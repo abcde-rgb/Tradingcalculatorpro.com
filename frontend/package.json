@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "homepage": "/Tradingcalculatorpro.com",
+  "homepage": "https://tradingcalculatorpro.com",
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
     "@paypal/react-paypal-js": "^9.0.1",
