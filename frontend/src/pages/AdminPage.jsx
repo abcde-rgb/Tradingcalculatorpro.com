@@ -28,7 +28,21 @@ import { useSEO } from '@/hooks/useSEO';
 import { Header } from '@/components/layout/Header';
 import { toast } from 'sonner';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
+const IS_DEMO = !BACKEND_URL;
+
+const DEMO_USERS = [
+  { id: 'demo-1', email: 'demo@btccalc.pro',   name: 'Demo Trader',   subscription_plan: 'lifetime',  is_premium: true,  is_admin: true,  auth_provider: 'password', created_at: '2025-01-01T00:00:00Z', subscription_status: 'active',   login_count: 42 },
+  { id: 'demo-2', email: 'trader1@example.com', name: 'Ana García',    subscription_plan: 'annual',    is_premium: true,  is_admin: false, auth_provider: 'google',   created_at: '2025-03-15T10:23:00Z', subscription_status: 'active',   login_count: 18 },
+  { id: 'demo-3', email: 'trader2@example.com', name: 'Carlos Ruiz',   subscription_plan: 'monthly',   is_premium: true,  is_admin: false, auth_provider: 'password', created_at: '2025-04-02T08:11:00Z', subscription_status: 'active',   login_count: 7 },
+  { id: 'demo-4', email: 'free1@example.com',   name: 'María López',   subscription_plan: null,        is_premium: false, is_admin: false, auth_provider: 'password', created_at: '2025-04-20T14:45:00Z', subscription_status: null,       login_count: 3 },
+  { id: 'demo-5', email: 'free2@example.com',   name: 'Javier Moreno', subscription_plan: null,        is_premium: false, is_admin: false, auth_provider: 'google',   created_at: '2025-05-01T09:30:00Z', subscription_status: null,       login_count: 1 },
+];
+const DEMO_METRICS = {
+  total_users: 5, premium_users: 3, new_users_30d: 2,
+  mrr: 217, arr: 2604, total_revenue: 717,
+};
 
 const PLAN_OPTIONS = [
   { value: 'none',      label: 'Free' },
@@ -79,6 +93,21 @@ export default function AdminPage() {
 
   const loadAll = async () => {
     setLoading(true);
+
+    // Demo mode: no backend configured → show demo data immediately
+    if (IS_DEMO) {
+      await new Promise(r => setTimeout(r, 300));
+      setMetrics(DEMO_METRICS);
+      let filtered = DEMO_USERS;
+      if (q) filtered = filtered.filter(u => u.email.includes(q) || u.name.toLowerCase().includes(q.toLowerCase()));
+      if (plan !== 'all') filtered = filtered.filter(u => (plan === 'none' ? !u.subscription_plan : u.subscription_plan === plan));
+      if (provider !== 'all') filtered = filtered.filter(u => u.auth_provider === provider);
+      setUsers(filtered);
+      setTotal(filtered.length);
+      setLoading(false);
+      return;
+    }
+
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (plan !== 'all')     params.set('plan', plan);
@@ -91,7 +120,6 @@ export default function AdminPage() {
         fetch(`${API}/admin/metrics`, { headers }),
         fetch(`${API}/admin/users?${params.toString()}`, { headers }),
       ]);
-      // Session expired → force re-login with a clear message
       if (mRes.status === 401 || uRes.status === 401) {
         toast.error('Tu sesión ha caducado. Vuelve a iniciar sesión.', { duration: 6000 });
         try { useAuthStore.getState().logout(); } catch { /* ignore */ }
@@ -112,7 +140,7 @@ export default function AdminPage() {
       setTotal(data.total);
     } catch (err) {
       console.error('[admin loadAll]', err);
-      toast.error(err.message || 'Error loading admin data');
+      toast.error(err.message || 'Error cargando datos del admin');
     } finally {
       setLoading(false);
     }
@@ -128,6 +156,7 @@ export default function AdminPage() {
   }, []);
 
   const handleExportCsv = async () => {
+    if (IS_DEMO) { toast.info('Exportación no disponible en modo preview'); return; }
     try {
       const res = await fetch(`${API}/admin/users.csv`, { headers });
       if (!res.ok) throw new Error('csv export failed');
@@ -147,6 +176,7 @@ export default function AdminPage() {
   };
 
   const togglePromote = async (email, currentlyAdmin) => {
+    if (IS_DEMO) { toast.info('Acción no disponible en modo preview'); return; }
     try {
       const res = await fetch(`${API}/admin/promote`, {
         method: 'POST',
@@ -162,6 +192,7 @@ export default function AdminPage() {
   };
 
   const deleteUser = async (u) => {
+    if (IS_DEMO) { toast.info('Acción no disponible en modo preview'); setConfirmDelete(null); return; }
     try {
       const res = await fetch(`${API}/admin/users/${u.id}`, {
         method: 'DELETE',
@@ -178,6 +209,7 @@ export default function AdminPage() {
   };
 
   const handleImpersonate = async (u) => {
+    if (IS_DEMO) { toast.info('Acción no disponible en modo preview'); return; }
     try {
       const res = await fetch(`${API}/admin/impersonate/${u.id}`, { method: 'POST', headers });
       if (!res.ok) throw new Error('impersonate failed');
@@ -205,6 +237,18 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-background pt-20" data-testid="admin-page">
       <Header />
+      {IS_DEMO && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-3">
+          <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
+            <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+            <p className="text-sm text-yellow-600 dark:text-yellow-400 flex-1">
+              <strong>Modo preview</strong> — estás viendo datos de ejemplo. Para ver usuarios reales, despliega el backend y configura
+              {' '}<code className="text-xs bg-yellow-500/20 px-1 rounded">REACT_APP_BACKEND_URL</code>{' '}
+              en los Secrets de GitHub Actions.
+            </p>
+          </div>
+        </div>
+      )}
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Header row */}
         <div className="flex items-center justify-between flex-wrap gap-3">
