@@ -29,7 +29,6 @@ import { Header } from '@/components/layout/Header';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const IS_PREVIEW = !process.env.REACT_APP_BACKEND_URL;
 
 const PLAN_OPTIONS = [
   { value: 'none',      label: 'Free' },
@@ -41,42 +40,6 @@ const PLAN_OPTIONS = [
 
 const PLAN_COLORS = { none: '#6b7280', free: '#6b7280', monthly: '#3b82f6', quarterly: '#8b5cf6', annual: '#10b981', lifetime: '#f59e0b' };
 
-const MOCK_MRR_HISTORY = [
-  { mes: 'Dic', mrr: 1200 }, { mes: 'Ene', mrr: 1450 },
-  { mes: 'Feb', mrr: 1800 }, { mes: 'Mar', mrr: 2100 },
-  { mes: 'Abr', mrr: 2400 }, { mes: 'May', mrr: 2850 },
-];
-const MOCK_PLAN_DIST = [
-  { plan: 'Free', count: 145 }, { plan: 'Monthly', count: 42 },
-  { plan: 'Quarterly', count: 28 }, { plan: 'Annual', count: 35 },
-  { plan: 'Lifetime', count: 12 },
-];
-const MOCK_CALC_USAGE = [
-  { name: 'Lot Size', usos: 4821 }, { name: 'Patrones', usos: 3654 },
-  { name: 'Monte Carlo', usos: 2987 }, { name: 'Fibonacci', usos: 2341 },
-  { name: 'Position Size', usos: 2156 }, { name: 'Leverage', usos: 1876 },
-  { name: 'Opciones', usos: 1543 }, { name: 'Backtest', usos: 987 },
-];
-const MOCK_COUPONS = [
-  { id: 'LAUNCH50', discount: 50, type: 'percent', uses: 23, max_uses: 100, expires: '2026-06-30', active: true },
-  { id: 'WELCOME20', discount: 20, type: 'percent', uses: 87, max_uses: null, expires: null, active: true },
-  { id: 'SUMMER25', discount: 25, type: 'percent', uses: 45, max_uses: 50, expires: '2026-08-31', active: false },
-];
-const MOCK_FEATURES = [
-  { id: 'ai_coach',      label: 'AI Coach',              desc: 'Análisis de operaciones con IA',      plans: 'Annual / Lifetime', enabled: true },
-  { id: 'backtest',      label: 'Backtest histórico',    desc: 'Datos reales yfinance',               plans: 'Premium+',          enabled: true },
-  { id: 'ws_alerts',     label: 'Alertas tiempo real',   desc: 'WebSocket push notifications',        plans: 'All Premium',       enabled: true },
-  { id: 'excel_export',  label: 'Export Excel',          desc: 'Performance en Excel',                plans: 'All',               enabled: false },
-  { id: 'referrals',     label: 'Sistema Referidos',     desc: 'Wallet + leaderboard',                plans: 'All',               enabled: true },
-  { id: 'options_suite', label: 'Suite Opciones',        desc: 'Black-Scholes, Kelly, Greeks',        plans: 'Premium+',          enabled: true },
-];
-const MOCK_WEBHOOKS = [
-  { id: 'evt_1', type: 'payment_intent.succeeded',       amount: 1700,  customer: 'cus_QwEr', created: '2026-05-15T10:23:00Z', status: 'ok'    },
-  { id: 'evt_2', type: 'customer.subscription.created',  amount: null,  customer: 'cus_AsDf', created: '2026-05-15T09:15:00Z', status: 'ok'    },
-  { id: 'evt_3', type: 'invoice.payment_failed',         amount: 1700,  customer: 'cus_ZxCv', created: '2026-05-14T18:42:00Z', status: 'error' },
-  { id: 'evt_4', type: 'customer.subscription.deleted',  amount: null,  customer: 'cus_BnMl', created: '2026-05-14T15:30:00Z', status: 'ok'    },
-  { id: 'evt_5', type: 'payment_intent.succeeded',       amount: 4500,  customer: 'cus_PoIu', created: '2026-05-13T12:00:00Z', status: 'ok'    },
-];
 
 /**
  * /admin — gated by `is_admin === true`.
@@ -96,10 +59,6 @@ export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  // Visibility toggles — each section independent
-  const [showDemo, setShowDemo] = useState(IS_PREVIEW);
-  const [showReal, setShowReal] = useState(!IS_PREVIEW);
 
   // Filters
   const [q, setQ] = useState('');
@@ -260,22 +219,6 @@ export default function AdminPage() {
             <p className="text-sm text-muted-foreground mt-1">{t('adminPanelSubtitle')}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Demo toggle */}
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${showDemo ? 'border-yellow-500/40 bg-yellow-500/5' : 'border-border bg-muted/30'}`}>
-              <span className="text-xs font-medium text-muted-foreground">Demo</span>
-              <Switch checked={showDemo} onCheckedChange={setShowDemo} data-testid="admin-demo-toggle" />
-              {showDemo
-                ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px]">ON</Badge>
-                : <Badge variant="outline" className="text-[10px] text-muted-foreground">OFF</Badge>}
-            </div>
-            {/* Real toggle */}
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${showReal ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30'}`}>
-              <span className="text-xs font-medium text-muted-foreground">Real</span>
-              <Switch checked={showReal} onCheckedChange={setShowReal} data-testid="admin-real-toggle" />
-              {showReal
-                ? <Badge className="bg-primary/15 text-primary text-[10px]">ON</Badge>
-                : <Badge variant="outline" className="text-[10px] text-muted-foreground">OFF</Badge>}
-            </div>
             <Button variant="outline" size="sm" onClick={loadAll} className="gap-2" data-testid="admin-refresh">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               {t('adminRefresh')}
@@ -444,58 +387,26 @@ export default function AdminPage() {
             </table>
           </CardContent>
         </Card>
-        {/* Audit Log — always real */}
+        {/* Audit Log */}
         <AuditLogPanel headers={headers} />
 
-        {/* ── DEMO SECTION ── */}
-        {showDemo && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-yellow-500/20" />
-              <span className="text-xs font-semibold text-yellow-400 uppercase tracking-widest px-2">
-                📊 Datos Demo
-              </span>
-              <div className="h-px flex-1 bg-yellow-500/20" />
-            </div>
-            <RevenueAnalyticsCard metrics={null} forceDemo />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PlanDistributionCard metrics={null} forceDemo />
-              <UsageAnalyticsCard forceDemo />
-            </div>
-            <CouponManagerCard headers={headers} forceDemo />
-            <FeatureFlagsCard headers={headers} forceDemo />
-            <WebhookLogsCard headers={headers} forceDemo />
-          </div>
-        )}
+        {/* Revenue Analytics */}
+        <RevenueAnalyticsCard metrics={metrics} headers={headers} />
 
-        {/* ── REAL SECTION ── */}
-        {showReal && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-primary/20" />
-              <span className="text-xs font-semibold text-primary uppercase tracking-widest px-2">
-                🔴 Datos Reales
-              </span>
-              <div className="h-px flex-1 bg-primary/20" />
-            </div>
-            <RevenueAnalyticsCard metrics={metrics} forceDemo={false} />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PlanDistributionCard metrics={metrics} forceDemo={false} />
-              <UsageAnalyticsCard forceDemo={false} />
-            </div>
-            <CouponManagerCard headers={headers} forceDemo={false} />
-            <FeatureFlagsCard headers={headers} forceDemo={false} />
-            <WebhookLogsCard headers={headers} forceDemo={false} />
-          </div>
-        )}
+        {/* Plan Distribution + Usage side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PlanDistributionCard metrics={metrics} />
+          <UsageAnalyticsCard headers={headers} />
+        </div>
 
-        {/* Neither active */}
-        {!showDemo && !showReal && (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-            <Activity className="w-10 h-10 opacity-30" />
-            <p className="text-sm">Activa <strong>Demo</strong> o <strong>Real</strong> para ver los datos de analytics.</p>
-          </div>
-        )}
+        {/* Coupon Manager */}
+        <CouponManagerCard headers={headers} />
+
+        {/* Feature Flags */}
+        <FeatureFlagsCard headers={headers} />
+
+        {/* Stripe Webhook Logs */}
+        <WebhookLogsCard headers={headers} />
       </main>
 
       {/* MODALS */}
@@ -1274,17 +1185,16 @@ function AuditLogPanel({ headers }) {
 /* ============================================================
  *  REVENUE ANALYTICS
  * ============================================================ */
-function RevenueAnalyticsCard({ metrics, forceDemo = IS_PREVIEW }) {
-  const [history, setHistory] = useState(MOCK_MRR_HISTORY);
-  const [stats, setStats] = useState({ churn: 3.2, conversion: 8.5, ltv: { monthly: 51, quarterly: 135, annual: 200, lifetime: 299 } });
+function RevenueAnalyticsCard({ metrics, headers }) {
+  const [history, setHistory] = useState([]);
+  const [stats, setStats] = useState({ churn: null, conversion: null, ltv: {} });
 
   useEffect(() => {
-    if (forceDemo) { setHistory(MOCK_MRR_HISTORY); return; }
-    fetch(`${API}/admin/revenue`, { headers: {} }).then(r => r.ok ? r.json() : null).then(d => {
+    fetch(`${API}/admin/revenue`, { headers }).then(r => r.ok ? r.json() : null).then(d => {
       if (d?.mrr_history) setHistory(d.mrr_history);
-      if (d?.churn_rate !== undefined) setStats(s => ({ ...s, churn: d.churn_rate, conversion: d.conversion_rate }));
+      if (d?.churn_rate !== undefined) setStats(s => ({ ...s, churn: d.churn_rate, conversion: d.conversion_rate, ltv: d.ltv || {} }));
     }).catch(() => {});
-  }, [forceDemo]);
+  }, []); // eslint-disable-line
 
   const currentMrr = history[history.length - 1]?.mrr || 0;
   const prevMrr = history[history.length - 2]?.mrr || 0;
@@ -1295,9 +1205,6 @@ function RevenueAnalyticsCard({ metrics, forceDemo = IS_PREVIEW }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" /> Revenue Analytics
-          {forceDemo
-            ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px] ml-auto">Demo data</Badge>
-            : <Badge className="bg-primary/15 text-primary text-[10px] ml-auto">Real</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1311,17 +1218,17 @@ function RevenueAnalyticsCard({ metrics, forceDemo = IS_PREVIEW }) {
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Churn rate</p>
-            <p className="text-xl font-bold text-red-400">{stats.churn}%</p>
+            <p className="text-xl font-bold text-red-400">{stats.churn != null ? `${stats.churn}%` : '—'}</p>
             <p className="text-xs text-muted-foreground">mensual</p>
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Conversión Free→Premium</p>
-            <p className="text-xl font-bold text-blue-400">{stats.conversion}%</p>
+            <p className="text-xl font-bold text-blue-400">{stats.conversion != null ? `${stats.conversion}%` : '—'}</p>
             <p className="text-xs text-muted-foreground">este mes</p>
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">LTV Lifetime</p>
-            <p className="text-xl font-bold text-amber-400">${stats.ltv.lifetime}</p>
+            <p className="text-xl font-bold text-amber-400">{stats.ltv?.lifetime != null ? `$${stats.ltv.lifetime}` : '—'}</p>
             <p className="text-xs text-muted-foreground">pago único</p>
           </div>
         </div>
@@ -1362,10 +1269,10 @@ function RevenueAnalyticsCard({ metrics, forceDemo = IS_PREVIEW }) {
 /* ============================================================
  *  PLAN DISTRIBUTION
  * ============================================================ */
-function PlanDistributionCard({ metrics, forceDemo = IS_PREVIEW }) {
-  const rawDist = (!forceDemo && metrics?.by_plan)
+function PlanDistributionCard({ metrics }) {
+  const rawDist = metrics?.by_plan
     ? Object.entries(metrics.by_plan).map(([plan, count]) => ({ plan: plan === 'null' || !plan ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1), count }))
-    : MOCK_PLAN_DIST;
+    : [];
 
   const total = rawDist.reduce((s, d) => s + d.count, 0);
 
@@ -1374,9 +1281,6 @@ function PlanDistributionCard({ metrics, forceDemo = IS_PREVIEW }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Percent className="w-4 h-4 text-primary" /> Distribución de Planes
-          {forceDemo
-            ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px] ml-auto">Demo data</Badge>
-            : <Badge className="bg-primary/15 text-primary text-[10px] ml-auto">Real</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -1416,26 +1320,22 @@ function PlanDistributionCard({ metrics, forceDemo = IS_PREVIEW }) {
 /* ============================================================
  *  USAGE ANALYTICS
  * ============================================================ */
-function UsageAnalyticsCard({ forceDemo = IS_PREVIEW }) {
-  const [data, setData] = useState(MOCK_CALC_USAGE);
-  const [activeUsers, setActiveUsers] = useState({ day: 124, week: 587, month: 2341 });
+function UsageAnalyticsCard({ headers }) {
+  const [data, setData] = useState([]);
+  const [activeUsers, setActiveUsers] = useState({ day: null, week: null, month: null });
 
   useEffect(() => {
-    if (forceDemo) { setData(MOCK_CALC_USAGE); setActiveUsers({ day: 124, week: 587, month: 2341 }); return; }
-    fetch(`${API}/admin/usage`).then(r => r.ok ? r.json() : null).then(d => {
+    fetch(`${API}/admin/usage`, { headers }).then(r => r.ok ? r.json() : null).then(d => {
       if (d?.calc_usage) setData(d.calc_usage);
       if (d?.active_users) setActiveUsers(d.active_users);
     }).catch(() => {});
-  }, [forceDemo]);
+  }, []); // eslint-disable-line
 
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Activity className="w-4 h-4 text-primary" /> Analytics de Uso
-          {forceDemo
-            ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px] ml-auto">Demo data</Badge>
-            : <Badge className="bg-primary/15 text-primary text-[10px] ml-auto">Real</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1443,7 +1343,7 @@ function UsageAnalyticsCard({ forceDemo = IS_PREVIEW }) {
           {[['DAU', activeUsers.day], ['WAU', activeUsers.week], ['MAU', activeUsers.month]].map(([label, val]) => (
             <div key={label} className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
               <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-xl font-bold">{val.toLocaleString()}</p>
+              <p className="text-xl font-bold">{val != null ? val.toLocaleString() : '—'}</p>
             </div>
           ))}
         </div>
@@ -1467,28 +1367,21 @@ function UsageAnalyticsCard({ forceDemo = IS_PREVIEW }) {
 /* ============================================================
  *  COUPON MANAGER
  * ============================================================ */
-function CouponManagerCard({ headers, forceDemo = IS_PREVIEW }) {
-  const [coupons, setCoupons] = useState(MOCK_COUPONS);
+function CouponManagerCard({ headers }) {
+  const [coupons, setCoupons] = useState([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ id: '', discount: 20, type: 'percent', max_uses: '', expires: '' });
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
-    if (forceDemo) { setCoupons(MOCK_COUPONS); return; }
     const res = await fetch(`${API}/admin/coupons`, { headers }).catch(() => null);
     if (res?.ok) setCoupons(await res.json());
   };
 
-  useEffect(() => { load(); }, [forceDemo]); // eslint-disable-line
+  useEffect(() => { load(); }, []); // eslint-disable-line
 
   const create = async () => {
     if (!form.id) return toast.error('Introduce un código');
-    if (forceDemo) {
-      setCoupons(c => [...c, { ...form, uses: 0, active: true, max_uses: form.max_uses || null, expires: form.expires || null }]);
-      setCreateOpen(false);
-      toast.success(`Cupón ${form.id} creado (demo)`);
-      return;
-    }
     setBusy(true);
     const res = await fetch(`${API}/admin/coupons`, { method: 'POST', headers, body: JSON.stringify(form) }).catch(() => null);
     setBusy(false);
@@ -1497,10 +1390,6 @@ function CouponManagerCard({ headers, forceDemo = IS_PREVIEW }) {
   };
 
   const toggle = async (coupon) => {
-    if (forceDemo) {
-      setCoupons(c => c.map(x => x.id === coupon.id ? { ...x, active: !x.active } : x));
-      return;
-    }
     await fetch(`${API}/admin/coupons/${coupon.id}/toggle`, { method: 'POST', headers }).catch(() => null);
     load();
   };
@@ -1511,9 +1400,6 @@ function CouponManagerCard({ headers, forceDemo = IS_PREVIEW }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Tag className="w-4 h-4 text-primary" /> Cupones y Descuentos
-            {forceDemo
-              ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px]">Demo data</Badge>
-              : <Badge className="bg-primary/15 text-primary text-[10px]">Real</Badge>}
           </CardTitle>
           <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1 h-7">
             <Plus className="w-3 h-3" /> Nuevo cupón
@@ -1582,21 +1468,19 @@ function CouponManagerCard({ headers, forceDemo = IS_PREVIEW }) {
 /* ============================================================
  *  FEATURE FLAGS
  * ============================================================ */
-function FeatureFlagsCard({ headers, forceDemo = IS_PREVIEW }) {
-  const [flags, setFlags] = useState(MOCK_FEATURES);
+function FeatureFlagsCard({ headers }) {
+  const [flags, setFlags] = useState([]);
 
   const load = async () => {
-    if (forceDemo) { setFlags(MOCK_FEATURES); return; }
     const res = await fetch(`${API}/admin/feature-flags`, { headers }).catch(() => null);
     if (res?.ok) setFlags(await res.json());
   };
 
-  useEffect(() => { load(); }, [forceDemo]); // eslint-disable-line
+  useEffect(() => { load(); }, []); // eslint-disable-line
 
   const toggle = async (flag) => {
     const updated = flags.map(f => f.id === flag.id ? { ...f, enabled: !f.enabled } : f);
     setFlags(updated);
-    if (forceDemo) { toast.success(`${flag.label} ${!flag.enabled ? 'activado' : 'desactivado'} (demo)`); return; }
     await fetch(`${API}/admin/feature-flags/${flag.id}`, { method: 'PATCH', headers, body: JSON.stringify({ enabled: !flag.enabled }) }).catch(() => {});
   };
 
@@ -1605,9 +1489,6 @@ function FeatureFlagsCard({ headers, forceDemo = IS_PREVIEW }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Zap className="w-4 h-4 text-primary" /> Feature Flags
-          {forceDemo
-            ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px] ml-auto">Demo data</Badge>
-            : <Badge className="bg-primary/15 text-primary text-[10px] ml-auto">Real</Badge>}
         </CardTitle>
         <p className="text-[11px] text-muted-foreground">Activa o desactiva funcionalidades sin desplegar código.</p>
       </CardHeader>
@@ -1642,22 +1523,20 @@ const WEBHOOK_COLORS = {
   'invoice.paid': 'bg-green-500/15 text-green-500',
 };
 
-function WebhookLogsCard({ headers, forceDemo = IS_PREVIEW }) {
-  const [logs, setLogs] = useState(MOCK_WEBHOOKS);
+function WebhookLogsCard({ headers }) {
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    if (forceDemo) { setLogs(MOCK_WEBHOOKS); return; }
     setLoading(true);
     const res = await fetch(`${API}/admin/webhooks?limit=20`, { headers }).catch(() => null);
     setLoading(false);
     if (res?.ok) setLogs(await res.json());
   };
 
-  useEffect(() => { load(); }, [forceDemo]); // eslint-disable-line
+  useEffect(() => { load(); }, []); // eslint-disable-line
 
   const retry = async (id) => {
-    if (forceDemo) { toast.info(`[Demo] Reintentando webhook ${id}`); return; }
     await fetch(`${API}/admin/webhooks/${id}/retry`, { method: 'POST', headers }).catch(() => null);
     toast.success('Webhook reenviado');
     load();
@@ -1669,9 +1548,6 @@ function WebhookLogsCard({ headers, forceDemo = IS_PREVIEW }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-primary" /> Stripe Webhook Logs
-            {forceDemo
-              ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px]">Demo data</Badge>
-              : <Badge className="bg-primary/15 text-primary text-[10px]">Real</Badge>}
           </CardTitle>
           <Button size="sm" variant="outline" onClick={load} className="gap-1 h-7">
             <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Refrescar
