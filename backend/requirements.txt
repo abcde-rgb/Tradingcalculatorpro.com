@@ -59,7 +59,7 @@ markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mccabe==0.7.0
 mdurl==0.1.2
-motor==3.3.1
+asyncpg==0.29.0
 multidict==6.7.1
 multitasking==0.0.12
 mypy==1.20.0
@@ -87,7 +87,7 @@ pydantic_core==2.41.5
 pyflakes==3.4.0
 Pygments==2.20.0
 PyJWT==2.12.1
-pymongo==4.5.0
+psycopg2-binary==2.9.9
 pyparsing==3.3.2
 pytest==9.0.3
 python-dateutil==2.9.0.post0

@@ -2,7 +2,8 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+import asyncpg
+import json as _json_module
 import os
 import logging
 from pathlib import Path
@@ -50,10 +51,660 @@ from performance import (
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'trading_calculator_pro')]
+# ============================================================
+#  PostgreSQL / asyncpg adapter — mimics Motor's Collection API
+# ============================================================
+
+def _json_default(obj):
+    """JSON serialiser for datetime and other non-standard types."""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+
+def _serialize(doc: dict) -> str:
+    """Serialize a Python dict to a JSON string suitable for JSONB storage."""
+    return _json_module.dumps(doc, default=_json_default)
+
+
+def _deserialize(raw) -> dict:
+    """Deserialize a JSONB value from asyncpg (may already be a dict or a str)."""
+    if raw is None:
+        return {}
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        return _json_module.loads(raw)
+    # asyncpg returns Record objects for rows; we convert to dict
+    return dict(raw)
+
+
+def _build_where_clause(filter_dict: dict, start_param: int = 1):
+    """
+    Convert a (potentially complex) MongoDB-style filter dict into a PostgreSQL
+    WHERE clause string + list of bind parameters.
+
+    Supported operators:
+      - Simple equality:   {"field": value}
+      - $set / $or:        {"$or": [{...}, {...}]}
+      - $in:               {"field": {"$in": [...]}}
+      - $ne:               {"field": {"$ne": value}}
+      - $gte / $lte / $gt / $lt: {"field": {"$gte": value}}
+      - $regex:            {"field": {"$regex": pattern, "$options": "i"}}
+      - None equality:     {"field": None}  → IS NULL or JSON null
+    """
+    if not filter_dict:
+        return "", [], start_param
+
+    parts = []
+    params = []
+    param_idx = start_param
+
+    for key, value in filter_dict.items():
+        if key == "$or":
+            sub_parts = []
+            for sub_filter in value:
+                sub_clause, sub_params, param_idx = _build_where_clause(sub_filter, param_idx)
+                if sub_clause:
+                    sub_parts.append(f"({sub_clause})")
+                    params.extend(sub_params)
+            if sub_parts:
+                parts.append("(" + " OR ".join(sub_parts) + ")")
+            continue
+
+        # key is a field name, value may be a plain value or operator dict
+        if key == "_id":
+            # Special: _id maps to _key column (used for app_settings "global" doc)
+            if isinstance(value, str):
+                parts.append(f"_key = ${param_idx}")
+                params.append(value)
+                param_idx += 1
+            continue
+
+        if isinstance(value, dict) and any(k.startswith("$") for k in value):
+            for op, operand in value.items():
+                if op == "$regex":
+                    flags = value.get("$options", "")
+                    if "i" in flags:
+                        parts.append(f"(data->>'{ key }') ~* ${param_idx}")
+                    else:
+                        parts.append(f"(data->>'{ key }') ~ ${param_idx}")
+                    params.append(operand)
+                    param_idx += 1
+                elif op == "$options":
+                    continue  # handled with $regex
+                elif op == "$in":
+                    if operand is None or len(operand) == 0:
+                        parts.append("FALSE")
+                        continue
+                    # Handle list with possible None values
+                    non_null = [x for x in operand if x is not None]
+                    has_null = any(x is None for x in operand)
+                    sub = []
+                    if non_null:
+                        placeholders = ", ".join(
+                            f"${param_idx + i}" for i in range(len(non_null))
+                        )
+                        sub.append(f"(data->>'{key}') IN ({placeholders})")
+                        params.extend([str(v) if not isinstance(v, str) else v for v in non_null])
+                        param_idx += len(non_null)
+                    if has_null:
+                        sub.append(f"(data->>'{key}') IS NULL")
+                    if sub:
+                        parts.append("(" + " OR ".join(sub) + ")")
+                    else:
+                        parts.append("FALSE")
+                elif op == "$ne":
+                    if operand is None:
+                        parts.append(f"(data->'{key}') IS NOT NULL AND (data->'{key}') != 'null'::jsonb")
+                    else:
+                        parts.append(f"(data->>'{key}') != ${param_idx}")
+                        params.append(str(operand) if not isinstance(operand, str) else operand)
+                        param_idx += 1
+                elif op == "$gte":
+                    parts.append(f"(data->>'{key}') >= ${param_idx}")
+                    params.append(str(operand) if not isinstance(operand, str) else operand)
+                    param_idx += 1
+                elif op == "$lte":
+                    parts.append(f"(data->>'{key}') <= ${param_idx}")
+                    params.append(str(operand) if not isinstance(operand, str) else operand)
+                    param_idx += 1
+                elif op == "$gt":
+                    parts.append(f"(data->>'{key}') > ${param_idx}")
+                    params.append(str(operand) if not isinstance(operand, str) else operand)
+                    param_idx += 1
+                elif op == "$lt":
+                    parts.append(f"(data->>'{key}') < ${param_idx}")
+                    params.append(str(operand) if not isinstance(operand, str) else operand)
+                    param_idx += 1
+                else:
+                    # Unknown operator — skip silently (no-op filter)
+                    pass
+        elif value is None:
+            # Match documents where the field is absent OR explicitly null
+            parts.append(f"(data->'{key}' IS NULL OR data->'{key}' = 'null'::jsonb)")
+        elif isinstance(value, bool):
+            json_val = "true" if value else "false"
+            parts.append(f"(data->'{key}') = '{json_val}'::jsonb")
+        else:
+            # Simple equality — use JSONB containment for the single key
+            sub_filter = {key: value}
+            parts.append(f"data @> ${param_idx}::jsonb")
+            params.append(_serialize(sub_filter))
+            param_idx += 1
+
+    clause = " AND ".join(parts) if parts else ""
+    return clause, params, param_idx
+
+
+class _DeleteResult:
+    def __init__(self, count: int):
+        self.deleted_count = count
+
+
+class _UpdateResult:
+    def __init__(self, matched: int, modified: int):
+        self.matched_count = matched
+        self.modified_count = modified
+
+
+class _Cursor:
+    """Lazy cursor returned by Collection.find(). Supports .sort(), .limit(), .skip(), .to_list(), async for."""
+
+    def __init__(self, pool, table: str, filter_dict: dict, projection=None):
+        self._pool = pool
+        self._table = table
+        self._filter = filter_dict
+        self._projection = projection  # ignored — we always return full JSONB doc
+        self._sort_field: Optional[str] = None
+        self._sort_dir: int = 1   # 1 ASC, -1 DESC
+        self._limit_val: Optional[int] = None
+        self._skip_val: int = 0
+
+    # --- chaining methods ---
+
+    def sort(self, key_or_list, direction=None):
+        """Support both .sort("field", -1) and .sort([("field", -1)]) forms."""
+        if isinstance(key_or_list, list):
+            # Use only the first sort key for simplicity
+            if key_or_list:
+                self._sort_field, self._sort_dir = key_or_list[0]
+        else:
+            self._sort_field = key_or_list
+            self._sort_dir = direction if direction is not None else 1
+        return self
+
+    def limit(self, n: int):
+        self._limit_val = n
+        return self
+
+    def skip(self, n: int):
+        self._skip_val = n
+        return self
+
+    # --- execution ---
+
+    def _build_query(self):
+        """Build SQL WHERE, ORDER BY, LIMIT, OFFSET parts and the filter params."""
+        if self._filter:
+            where_clause, params, next_param = _build_where_clause(self._filter)
+            where = f"WHERE {where_clause}" if where_clause else ""
+        else:
+            where = ""
+            params = []
+            next_param = 1
+
+        order = ""
+        if self._sort_field:
+            dir_str = "DESC" if self._sort_dir == -1 else "ASC"
+            # ISO date strings sort correctly as text
+            order = f"ORDER BY (data->>'{self._sort_field}') {dir_str} NULLS LAST"
+
+        limit_clause = f"LIMIT {self._limit_val}" if self._limit_val is not None else ""
+        offset_clause = f"OFFSET {self._skip_val}" if self._skip_val else ""
+
+        sql = f"SELECT data FROM {self._table} {where} {order} {limit_clause} {offset_clause}".strip()
+        return sql, params
+
+    async def to_list(self, length=None):
+        sql, params = self._build_query()
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(sql, *params)
+        result = [_deserialize(r["data"]) for r in rows]
+        if length is not None:
+            result = result[:length]
+        return result
+
+    def __aiter__(self):
+        return self._AsyncIterator(self)
+
+    class _AsyncIterator:
+        def __init__(self, cursor):
+            self._cursor = cursor
+            self._rows = None
+            self._idx = 0
+
+        async def __anext__(self):
+            if self._rows is None:
+                self._rows = await self._cursor.to_list()
+            if self._idx >= len(self._rows):
+                raise StopAsyncIteration
+            row = self._rows[self._idx]
+            self._idx += 1
+            return row
+
+
+def _apply_update_operators(doc: dict, update_dict: dict) -> dict:
+    """Apply $set, $inc, $push, $addToSet to a document copy in Python."""
+    result = dict(doc)
+
+    if "$set" in update_dict:
+        for k, v in update_dict["$set"].items():
+            result[k] = v
+
+    if "$inc" in update_dict:
+        for k, v in update_dict["$inc"].items():
+            current = result.get(k, 0) or 0
+            result[k] = current + v
+
+    if "$push" in update_dict:
+        for k, v in update_dict["$push"].items():
+            lst = result.get(k, [])
+            if not isinstance(lst, list):
+                lst = []
+            lst = list(lst)
+            lst.append(v)
+            result[k] = lst
+
+    if "$addToSet" in update_dict:
+        for k, v in update_dict["$addToSet"].items():
+            lst = result.get(k, [])
+            if not isinstance(lst, list):
+                lst = []
+            lst = list(lst)
+            if v not in lst:
+                lst.append(v)
+            result[k] = lst
+
+    return result
+
+
+def _doc_key(doc: dict) -> str:
+    """Derive the _key (primary key) from a document. Uses 'id' field."""
+    return str(doc.get("id") or doc.get("_id") or uuid.uuid4())
+
+
+class Collection:
+    """Thin Motor-compatible Collection wrapper over asyncpg + JSONB."""
+
+    def __init__(self, pool_holder, name: str):
+        self._pool_holder = pool_holder  # reference to the Database object holding the pool
+        self._name = name
+
+    @property
+    def _pool(self):
+        return self._pool_holder._pool
+
+    async def _ensure_table(self):
+        """Idempotently create the collection table (called by Database at startup)."""
+        async with self._pool.acquire() as conn:
+            await conn.execute(f"""
+                CREATE TABLE IF NOT EXISTS {self._name} (
+                    _key TEXT PRIMARY KEY,
+                    data JSONB NOT NULL
+                )
+            """)
+            await conn.execute(f"""
+                CREATE INDEX IF NOT EXISTS idx_{self._name}_data
+                ON {self._name} USING GIN (data)
+            """)
+
+    # --- Motor-compatible methods ---
+
+    async def find_one(self, filter_dict: dict, projection=None):
+        """SELECT … WHERE <clause> LIMIT 1.  Supports complex MongoDB filter operators."""
+        if not filter_dict:
+            sql = f"SELECT data FROM {self._name} LIMIT 1"
+            params = []
+        else:
+            where, params, _ = _build_where_clause(filter_dict)
+            if where:
+                sql = f"SELECT data FROM {self._name} WHERE {where} LIMIT 1"
+            else:
+                sql = f"SELECT data FROM {self._name} LIMIT 1"
+
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(sql, *params)
+        if row is None:
+            return None
+        return _deserialize(row["data"])
+
+    def find(self, filter_dict: dict = None, projection=None):
+        """Return a lazy _Cursor (supports .sort/.limit/.skip/.to_list/async for)."""
+        return _Cursor(self._pool, self._name, filter_dict or {}, projection)
+
+    async def insert_one(self, document: dict):
+        """INSERT into the table. Ignores _id field."""
+        doc = dict(document)
+        doc.pop("_id", None)
+        key = _doc_key(doc)
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                f"INSERT INTO {self._name} (_key, data) VALUES ($1, $2::jsonb) ON CONFLICT (_key) DO NOTHING",
+                key, _serialize(doc),
+            )
+        return type("InsertResult", (), {"inserted_id": key})()
+
+    async def update_one(self, filter_dict: dict, update_dict: dict, upsert: bool = False):
+        """SELECT, apply operators in Python, then UPDATE (or INSERT if upsert)."""
+        async with self._pool.acquire() as conn:
+            if filter_dict:
+                where, params, _ = _build_where_clause(filter_dict)
+                if where:
+                    row = await conn.fetchrow(
+                        f"SELECT _key, data FROM {self._name} WHERE {where} LIMIT 1",
+                        *params,
+                    )
+                else:
+                    row = await conn.fetchrow(f"SELECT _key, data FROM {self._name} LIMIT 1")
+            else:
+                row = await conn.fetchrow(f"SELECT _key, data FROM {self._name} LIMIT 1")
+
+            if row:
+                existing = _deserialize(row["data"])
+                key = row["_key"]
+                merged = _apply_update_operators(existing, update_dict)
+                await conn.execute(
+                    f"UPDATE {self._name} SET data = $1::jsonb WHERE _key = $2",
+                    _serialize(merged), key,
+                )
+                return _UpdateResult(matched=1, modified=1)
+            elif upsert:
+                # Build a new document from $set fields + filter fields (skip operator keys)
+                new_doc: dict = {k: v for k, v in filter_dict.items() if not k.startswith("$")}
+                new_doc = _apply_update_operators(new_doc, update_dict)
+                # Determine the storage key: prefer _id from filter, then id field
+                if "_id" in filter_dict and isinstance(filter_dict["_id"], str):
+                    key = filter_dict["_id"]
+                else:
+                    key = _doc_key(new_doc)
+                    if "id" not in new_doc and "_id" not in new_doc:
+                        new_doc["id"] = key
+                await conn.execute(
+                    f"INSERT INTO {self._name} (_key, data) VALUES ($1, $2::jsonb) "
+                    f"ON CONFLICT (_key) DO UPDATE SET data = EXCLUDED.data",
+                    key, _serialize(new_doc),
+                )
+                return _UpdateResult(matched=0, modified=0)
+            else:
+                return _UpdateResult(matched=0, modified=0)
+
+    async def delete_one(self, filter_dict: dict):
+        """DELETE one matching row."""
+        async with self._pool.acquire() as conn:
+            where, params, _ = _build_where_clause(filter_dict)
+            if where:
+                row = await conn.fetchrow(
+                    f"SELECT _key FROM {self._name} WHERE {where} LIMIT 1", *params,
+                )
+            else:
+                row = await conn.fetchrow(f"SELECT _key FROM {self._name} LIMIT 1")
+            if row:
+                await conn.execute(f"DELETE FROM {self._name} WHERE _key = $1", row["_key"])
+                return _DeleteResult(1)
+            return _DeleteResult(0)
+
+    async def delete_many(self, filter_dict: dict):
+        """DELETE all matching rows."""
+        async with self._pool.acquire() as conn:
+            if filter_dict:
+                where, params, _ = _build_where_clause(filter_dict)
+                if where:
+                    result = await conn.execute(
+                        f"DELETE FROM {self._name} WHERE {where}", *params,
+                    )
+                else:
+                    result = await conn.execute(f"DELETE FROM {self._name}")
+            else:
+                result = await conn.execute(f"DELETE FROM {self._name}")
+            # asyncpg returns "DELETE N" as a string
+            try:
+                count = int(result.split()[-1])
+            except Exception:
+                count = 0
+            return _DeleteResult(count)
+
+    async def count_documents(self, filter_dict: dict):
+        """SELECT COUNT(*) with full operator support."""
+        async with self._pool.acquire() as conn:
+            if filter_dict:
+                where, params, _ = _build_where_clause(filter_dict)
+                if where:
+                    row = await conn.fetchrow(
+                        f"SELECT COUNT(*) AS cnt FROM {self._name} WHERE {where}", *params,
+                    )
+                else:
+                    row = await conn.fetchrow(f"SELECT COUNT(*) AS cnt FROM {self._name}")
+            else:
+                row = await conn.fetchrow(f"SELECT COUNT(*) AS cnt FROM {self._name}")
+            return row["cnt"] if row else 0
+
+    async def estimated_document_count(self):
+        return await self.count_documents({})
+
+    async def create_index(self, *args, **kwargs):
+        """No-op: PostgreSQL GIN index on JSONB handles all queries adequately."""
+        return None
+
+    async def aggregate(self, pipeline: list):
+        """
+        Minimal aggregate support for the patterns actually used in this codebase:
+        - $group by a field with $sum: 1 → returns distinct values with counts
+        - $sort, $limit, $project
+        """
+        return _AggCursor(self._pool, self._name, pipeline)
+
+    async def distinct(self, field: str, filter_dict: dict = None):
+        """Return distinct values of a JSONB field, optionally filtered."""
+        async with self._pool.acquire() as conn:
+            if filter_dict:
+                where, params, _ = _build_where_clause(filter_dict)
+                if where:
+                    rows = await conn.fetch(
+                        f"SELECT DISTINCT data->>'{field}' AS v FROM {self._name} WHERE {where}",
+                        *params,
+                    )
+                else:
+                    rows = await conn.fetch(
+                        f"SELECT DISTINCT data->>'{field}' AS v FROM {self._name}"
+                    )
+            else:
+                rows = await conn.fetch(
+                    f"SELECT DISTINCT data->>'{field}' AS v FROM {self._name}"
+                )
+            return [r["v"] for r in rows if r["v"] is not None]
+
+
+class _AggCursor:
+    """Async iterable that executes a simplified aggregation pipeline."""
+
+    def __init__(self, pool, table: str, pipeline: list):
+        self._pool = pool
+        self._table = table
+        self._pipeline = pipeline
+        self._rows: Optional[List[dict]] = None
+
+    async def _execute(self) -> List[dict]:
+        """Execute the pipeline by interpreting it step by step in Python."""
+        # Step 1: fetch all documents (or filtered set)
+        match_filter = {}
+        group_id_field = None
+        sum_field = None
+        sort_spec = None
+        limit_n = None
+        project_spec = None
+
+        for stage in self._pipeline:
+            if "$match" in stage:
+                match_filter = stage["$match"]
+            elif "$group" in stage:
+                group_id_field = stage["$group"].get("_id")
+                # look for first $sum accumulator
+                for k, v in stage["$group"].items():
+                    if k == "_id":
+                        continue
+                    if isinstance(v, dict) and "$sum" in v:
+                        sum_field = k
+            elif "$sort" in stage:
+                sort_spec = stage["$sort"]
+            elif "$limit" in stage:
+                limit_n = stage["$limit"]
+            elif "$project" in stage:
+                project_spec = stage["$project"]
+
+        # Fetch docs
+        async with self._pool.acquire() as conn:
+            if match_filter:
+                where_clause, params, _ = _build_where_clause(match_filter)
+                if where_clause:
+                    rows = await conn.fetch(
+                        f"SELECT data FROM {self._table} WHERE {where_clause}", *params,
+                    )
+                else:
+                    rows = await conn.fetch(f"SELECT data FROM {self._table}")
+            else:
+                rows = await conn.fetch(f"SELECT data FROM {self._table}")
+        docs = [_deserialize(r["data"]) for r in rows]
+
+        # Group
+        if group_id_field is not None:
+            # group_id_field is like "$subscription_plan" → field name is "subscription_plan"
+            if isinstance(group_id_field, str) and group_id_field.startswith("$"):
+                field_name = group_id_field[1:]
+            else:
+                field_name = group_id_field
+
+            groups: dict = {}
+            for doc in docs:
+                val = doc.get(field_name)
+                key = val  # None is valid
+                groups.setdefault(key, 0)
+                groups[key] += 1
+
+            result_docs = [
+                {"_id": k, (sum_field or "count"): v}
+                for k, v in groups.items()
+            ]
+        else:
+            result_docs = docs
+
+        # Sort
+        if sort_spec:
+            for sort_field, sort_dir in reversed(list(sort_spec.items())):
+                if sort_field == "_id":
+                    result_docs.sort(key=lambda d: (d.get("_id") or ""), reverse=(sort_dir == -1))
+                else:
+                    result_docs.sort(key=lambda d: (d.get(sort_field) or 0), reverse=(sort_dir == -1))
+
+        # Limit
+        if limit_n is not None:
+            result_docs = result_docs[:limit_n]
+
+        # Project (very basic — just renames _id)
+        if project_spec:
+            new_docs = []
+            for doc in result_docs:
+                new_doc = {}
+                for k, v in project_spec.items():
+                    if v == 0:
+                        # exclude
+                        new_doc = {dk: dv for dk, dv in doc.items() if dk != k}
+                    elif isinstance(v, str) and v.startswith("$"):
+                        new_doc[k] = doc.get(v[1:])
+                    elif v == 1:
+                        if k in doc:
+                            new_doc[k] = doc[k]
+                new_docs.append(new_doc)
+            result_docs = new_docs
+
+        return result_docs
+
+    async def to_list(self, length=None):
+        rows = await self._execute()
+        if length is not None:
+            rows = rows[:length]
+        return rows
+
+    def __aiter__(self):
+        return self._AsyncIterator(self)
+
+    class _AsyncIterator:
+        def __init__(self, agg_cursor):
+            self._agg = agg_cursor
+            self._rows = None
+            self._idx = 0
+
+        async def __anext__(self):
+            if self._rows is None:
+                self._rows = await self._agg._execute()
+            if self._idx >= len(self._rows):
+                raise StopAsyncIteration
+            row = self._rows[self._idx]
+            self._idx += 1
+            return row
+
+
+class Database:
+    """Mimics a Motor database object. Attribute access → Collection proxy."""
+
+    def __init__(self):
+        self._pool = None
+        self._collections: Dict[str, Collection] = {}
+
+    def __getattr__(self, name: str) -> Collection:
+        # Called for db.users, db.trades, etc.
+        if name.startswith("_"):
+            raise AttributeError(name)
+        if name not in self._collections:
+            self._collections[name] = Collection(self, name)
+        return self._collections[name]
+
+    def __getitem__(self, name: str) -> Collection:
+        # Called for db["trades"], db[coll], etc.
+        return self.__getattr__(name)
+
+    async def init_pool(self, database_url: str):
+        self._pool = await asyncpg.create_pool(database_url, min_size=1, max_size=10)
+
+    async def create_all_tables(self):
+        """Create tables for all well-known collections upfront."""
+        known = [
+            "users", "trades", "calculations", "alerts", "portfolio",
+            "password_resets", "revoked_tokens", "user_revocations",
+            "user_states", "stock_cache", "payment_transactions",
+            "stripe_webhook_logs", "admin_audit_log", "app_settings",
+            "saved_positions", "coupons", "feature_flags",
+            # Extended modules
+            "referrals", "referral_redemptions",
+            "password_reset_tokens", "email_verification_tokens",
+        ]
+        for name in known:
+            coll = self.__getattr__(name)
+            await coll._ensure_table()
+
+    async def close(self):
+        if self._pool:
+            await self._pool.close()
+
+
+# Global db object (pool is None until startup_event runs)
+db = Database()
+
+# DATABASE_URL — supports both DATABASE_URL (new) and MONGO_URL (legacy key name)
+_DATABASE_URL = (
+    os.environ.get("DATABASE_URL")
+    or os.environ.get("MONGO_URL", "")
+)
 
 # JWT Configuration
 # 🔒 SECURITY: JWT_SECRET must be set via environment variable
@@ -364,39 +1015,22 @@ def check_premium(user: dict) -> bool:
 
 @app.on_event("startup")
 async def startup_event():
-    """Create demo user on startup if it doesn't exist; ensure admin flag.
-    Also creates TTL indexes that auto-expire stale data (security best practice)."""
+    """Initialise asyncpg pool, create tables, seed demo user."""
 
-    # ── TTL indexes ──────────────────────────────────────────────────────
-    # MongoDB TTL works on `Date` fields; we always store the relevant date
-    # field as a `datetime` (not isoformat string) on the writes that matter.
-    try:
-        await db.stock_cache.create_index("expires_at", expireAfterSeconds=0)
-        await db.user_states.create_index("expires_at", expireAfterSeconds=0)
-        await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
-        await db.user_revocations.create_index("expires_at", expireAfterSeconds=0)
-        # Audit log auto-purges after 180 days to bound DB growth.
-        await db.admin_audit_log.create_index(
-            "timestamp", expireAfterSeconds=180 * 24 * 3600,
-        )
-        # Useful query indexes for the audit log.
-        await db.admin_audit_log.create_index([("timestamp", -1)])
-        await db.admin_audit_log.create_index([("admin_email", 1), ("timestamp", -1)])
-        await db.admin_audit_log.create_index([("target_email", 1), ("timestamp", -1)])
-        # Webhook logs — keep 90 days
-        await db.stripe_webhook_logs.create_index([("created", -1)])
-        await db.stripe_webhook_logs.create_index(
-            "created", expireAfterSeconds=90 * 24 * 3600,
-        )
-        # Coupons + feature flags indexes
-        await db.coupons.create_index([("id", 1)], unique=True, sparse=True)
-        await db.feature_flags.create_index([("id", 1)], unique=True, sparse=True)
-        # Calculations index for usage analytics
-        await db.calculations.create_index([("created_at", -1)])
-        await db.calculations.create_index([("user_id", 1), ("created_at", -1)])
-        logging.info("TTL & query indexes ensured")
-    except Exception as e:
-        logging.error(f"Could not ensure TTL indexes: {e}")
+    # ── Connect to PostgreSQL ────────────────────────────────────────────
+    if not _DATABASE_URL:
+        logging.error("DATABASE_URL (or MONGO_URL) env var is not set — database will not work")
+    else:
+        try:
+            await db.init_pool(_DATABASE_URL)
+            await db.create_all_tables()
+            logging.info("PostgreSQL pool initialised and tables ensured")
+        except Exception as e:
+            logging.error(f"Could not initialise PostgreSQL: {e}", exc_info=True)
+
+    # ── No-op create_index calls (indexes already created by create_all_tables) ──
+    # These calls are kept as no-ops via Collection.create_index so that
+    # any remaining references in the codebase don't raise errors.
 
     existing = await db.users.find_one({"email": DEMO_EMAIL})
     if not existing:
@@ -4222,4 +4856,4 @@ logging.basicConfig(
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    await db.close()

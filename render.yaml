@@ -9,11 +9,9 @@ services:
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
-      # ─── Base de datos ───────────────────────────────────────────────
-      - key: MONGO_URL
-        sync: false             # pegar la URI de MongoDB Atlas en el dashboard
-      - key: DB_NAME
-        value: trading_calculator_pro
+      # ─── Base de datos (PostgreSQL) ──────────────────────────────────
+      - key: DATABASE_URL
+        sync: false             # pegar la URI de PostgreSQL (ej. Render PostgreSQL service URL)
 
       # ─── Seguridad ───────────────────────────────────────────────────
       - key: JWT_SECRET
