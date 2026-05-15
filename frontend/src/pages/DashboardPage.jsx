@@ -23,6 +23,7 @@ import { useAuthStore, usePriceStore } from '@/lib/store';
 import { useIsPremium } from '@/lib/premium';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
+import OnboardingModal from '@/components/common/OnboardingModal';
 import { 
   Calculator, Target, Gauge, Wallet, FlaskConical, 
   Ruler, BookOpen, Scale, TrendingUp, DollarSign, BarChart3, Dice1, Hexagon
@@ -150,8 +151,29 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <OnboardingModal />
       <Header />
-      
+
+      {/* Email verification banner */}
+      {user && user.email_verified === false && (
+        <div className="fixed top-16 left-0 right-0 z-40 bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2 text-center text-sm text-yellow-400 flex items-center justify-center gap-2">
+          <span>⚠️ Tu email no está verificado. Revisa tu bandeja de entrada para confirmar tu cuenta.</span>
+          <button
+            className="underline hover:text-yellow-300 ml-2"
+            onClick={() => {
+              if (process.env.REACT_APP_BACKEND_URL) {
+                fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/resend-verification`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${useAuthStore.getState().token}` },
+                }).catch(() => {});
+              }
+            }}
+          >
+            Reenviar email
+          </button>
+        </div>
+      )}
+
       <main className="pt-20 pb-12 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Welcome */}

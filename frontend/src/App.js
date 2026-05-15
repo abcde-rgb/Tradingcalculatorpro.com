@@ -15,8 +15,9 @@ import SubscriptionPage from "@/pages/SubscriptionPage";
 import OptionsPage from "@/pages/OptionsPage";
 import PerformancePage from "@/pages/PerformancePage";
 import AdminPage from "@/pages/AdminPage";
-import { LoginPage, RegisterPage } from "@/pages/AuthPages";
+import { LoginPage, RegisterPage, ForgotPasswordPage } from "@/pages/AuthPages";
 import { PaymentSuccessPage, PaymentCancelPage } from "@/pages/PaymentPages";
+import ReferralsPage from "@/pages/ReferralsPage";
 
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -37,6 +38,8 @@ const AppContent = () => (
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/referrals" element={<ReferralsPage />} />
         <Route path="/payment/success" element={<PaymentSuccessPage />} />
         <Route path="/payment/cancel" element={<PaymentCancelPage />} />
       </Routes>

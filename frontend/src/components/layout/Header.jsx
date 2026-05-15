@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { TrendingUp, Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield } from 'lucide-react';
+import { TrendingUp, Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield, Bell, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store';
 import { useThemeStore } from '@/lib/theme';
@@ -31,7 +31,17 @@ export function Header() {
     { href: '/performance', label: t('performance'), requireAuth: false },
     { href: '/pricing', label: t('pricing'), requireAuth: false },
     { href: '/education', label: t('education'), requireAuth: false },
+    { href: '/referrals', label: 'Referidos', requireAuth: true },
   ];
+
+  const MOCK_ALERTS = [
+    { id: 1, msg: 'BTC superó $70,000', time: 'hace 2 min', read: false },
+    { id: 2, msg: 'ETH bajó de $3,500', time: 'hace 15 min', read: false },
+    { id: 3, msg: 'Tu alerta de SOL fue activada', time: 'hace 1 h', read: true },
+  ];
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [alerts, setAlerts] = useState(MOCK_ALERTS);
+  const unreadCount = alerts.filter(a => !a.read).length;
 
   const handleLogout = () => {
     logout();
@@ -118,6 +128,60 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Notification Bell */}
+            {isAuthenticated && (
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden sm:flex"
+                  onClick={() => setAlertsOpen(!alertsOpen)}
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-black text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Button>
+                {alertsOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                      <span className="text-sm font-semibold">Notificaciones</span>
+                      <button
+                        className="text-xs text-primary hover:underline"
+                        onClick={() => setAlerts(a => a.map(x => ({ ...x, read: true })))}
+                      >
+                        Marcar todas
+                      </button>
+                    </div>
+                    {alerts.map(alert => (
+                      <div
+                        key={alert.id}
+                        className={`px-4 py-3 flex gap-3 items-start cursor-pointer hover:bg-muted transition-colors ${!alert.read ? 'bg-primary/5' : ''}`}
+                        onClick={() => setAlerts(a => a.map(x => x.id === alert.id ? { ...x, read: true } : x))}
+                      >
+                        <Bell className={`w-4 h-4 mt-0.5 flex-shrink-0 ${!alert.read ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <div>
+                          <p className="text-sm">{alert.msg}</p>
+                          <p className="text-xs text-muted-foreground">{alert.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="px-4 py-2 border-t border-border">
+                      <Link
+                        to="/dashboard?tab=alerts"
+                        className="text-xs text-primary hover:underline"
+                        onClick={() => setAlertsOpen(false)}
+                      >
+                        Ver todas las alertas →
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Auth Section */}
             {isAuthenticated ? (
               <DropdownMenu>
@@ -150,6 +214,11 @@ export function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/settings">{t('settings')}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/referrals" className="gap-2">
+                      <Users className="w-4 h-4" /> Referidos
+                    </Link>
                   </DropdownMenuItem>
                   {user?.is_admin && (
                     <DropdownMenuItem asChild>
