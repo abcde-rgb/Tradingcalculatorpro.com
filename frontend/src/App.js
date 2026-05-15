@@ -21,33 +21,40 @@ import { PaymentSuccessPage, PaymentCancelPage } from "@/pages/PaymentPages";
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
+const AppContent = () => (
+  <div className="App">
+    <BrowserRouter basename={process.env.PUBLIC_URL}>
+      <AnalyticsTracker />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/education" element={<EducationPage />} />
+        <Route path="/subscription" element={<SubscriptionPage />} />
+        <Route path="/options" element={<OptionsPage />} />
+        <Route path="/performance" element={<PerformancePage />} />
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/payment/success" element={<PaymentSuccessPage />} />
+        <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+      </Routes>
+    </BrowserRouter>
+    <Toaster position="top-right" richColors />
+  </div>
+);
+
 function App() {
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || ""}>
-      <GoogleIntegrations />
-      <div className="App">
-        <BrowserRouter basename={process.env.PUBLIC_URL}>
-          <AnalyticsTracker />
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/education" element={<EducationPage />} />
-            <Route path="/subscription" element={<SubscriptionPage />} />
-            <Route path="/options" element={<OptionsPage />} />
-            <Route path="/performance" element={<PerformancePage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/payment/success" element={<PaymentSuccessPage />} />
-            <Route path="/payment/cancel" element={<PaymentCancelPage />} />
-          </Routes>
-        </BrowserRouter>
-        <Toaster position="top-right" richColors />
-      </div>
-    </GoogleOAuthProvider>
-  );
+  if (GOOGLE_CLIENT_ID) {
+    return (
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <GoogleIntegrations />
+        <AppContent />
+      </GoogleOAuthProvider>
+    );
+  }
+  return <AppContent />;
 }
 
 export default App;
