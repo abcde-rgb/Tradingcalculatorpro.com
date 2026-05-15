@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -383,6 +383,17 @@ async def startup_event():
         await db.admin_audit_log.create_index([("timestamp", -1)])
         await db.admin_audit_log.create_index([("admin_email", 1), ("timestamp", -1)])
         await db.admin_audit_log.create_index([("target_email", 1), ("timestamp", -1)])
+        # Webhook logs — keep 90 days
+        await db.stripe_webhook_logs.create_index([("created", -1)])
+        await db.stripe_webhook_logs.create_index(
+            "created", expireAfterSeconds=90 * 24 * 3600,
+        )
+        # Coupons + feature flags indexes
+        await db.coupons.create_index([("id", 1)], unique=True, sparse=True)
+        await db.feature_flags.create_index([("id", 1)], unique=True, sparse=True)
+        # Calculations index for usage analytics
+        await db.calculations.create_index([("created_at", -1)])
+        await db.calculations.create_index([("user_id", 1), ("created_at", -1)])
         logging.info("TTL & query indexes ensured")
     except Exception as e:
         logging.error(f"Could not ensure TTL indexes: {e}")
@@ -1632,6 +1643,21 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     except Exception:
         # We'll still try to handle the legacy checkout.session.completed flow below
         pass
+
+    # ── Log every Stripe event to stripe_webhook_logs ──
+    if raw_event:
+        try:
+            _data_obj = raw_event.get("data", {}).get("object", {})
+            await db.stripe_webhook_logs.insert_one({
+                "id": raw_event.get("id", secrets.token_hex(8)),
+                "type": raw_event_type,
+                "amount": _data_obj.get("amount_total") or _data_obj.get("amount_due"),
+                "customer": _data_obj.get("customer"),
+                "created": datetime.now(timezone.utc).isoformat(),
+                "status": "ok",
+            })
+        except Exception:
+            pass
 
     # ── Handle subscription lifecycle events directly via Stripe SDK ──
     if raw_event and raw_event_type in (
@@ -3734,6 +3760,202 @@ async def admin_get_audit_log(
         if isinstance(ts, datetime):
             r["timestamp"] = ts.isoformat()
     return {"total": total, "limit": limit, "skip": skip, "rows": rows}
+
+
+# ── IMPERSONATE ──────────────────────────────────────────────────────────────
+@api_router.post("/admin/impersonate/{user_id}")
+async def admin_impersonate(request: Request, user_id: str, admin: dict = Depends(require_admin)):
+    target = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    now = datetime.now(timezone.utc)
+    payload = {
+        "user_id": target["id"],
+        "jti": secrets.token_hex(16),
+        "iat": now,
+        "exp": now + timedelta(hours=1),
+        "impersonated_by": admin["email"],
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    await log_admin_action(request, admin, "user.impersonate", target, {"impersonated_by": admin["email"]})
+    return {"token": token, "user": {k: v for k, v in target.items() if k != "password_hash"}}
+
+
+# ── REVENUE ANALYTICS ────────────────────────────────────────────────────────
+@api_router.get("/admin/revenue")
+async def admin_revenue(admin: dict = Depends(require_admin)):
+    now = datetime.now(timezone.utc)
+
+    # MRR history — last 6 months from payment_transactions
+    mrr_history = []
+    for i in range(5, -1, -1):
+        month_start = (now.replace(day=1) - timedelta(days=i * 30)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        month_end = (month_start + timedelta(days=32)).replace(day=1)
+        total = 0.0
+        async for tx in db.payment_transactions.find({
+            "status": "paid",
+            "created_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()},
+        }, {"amount": 1}):
+            total += float(tx.get("amount") or 0)
+        mes_label = month_start.strftime("%b")
+        mrr_history.append({"mes": mes_label, "mrr": round(total, 2)})
+
+    # Total paid users per plan → LTV approximation
+    ltv: Dict[str, float] = {}
+    for plan_id, plan in SUBSCRIPTION_PLANS.items():
+        count = await db.payment_transactions.count_documents({"plan_id": plan_id, "status": "paid"})
+        ltv[plan_id] = round(plan["price"] * max(count, 1) / max(count, 1), 2)  # price × 1 = one payment avg
+
+    # Churn: users who had premium and no longer do (cancelled last 30 days)
+    churn_count = await db.users.count_documents({
+        "subscription_status": {"$in": ["canceled", "past_due", "unpaid"]},
+        "subscription_canceled_at": {"$gte": (now - timedelta(days=30)).isoformat()},
+    })
+    premium_30d_ago = await db.users.count_documents({"is_premium": True}) + churn_count
+    churn_rate = round((churn_count / max(premium_30d_ago, 1)) * 100, 1)
+
+    # Conversion: new users last 30 days who became premium
+    new_30d = await db.users.count_documents({
+        "created_at": {"$gte": (now - timedelta(days=30)).isoformat()}
+    })
+    new_premium_30d = await db.users.count_documents({
+        "created_at": {"$gte": (now - timedelta(days=30)).isoformat()},
+        "is_premium": True,
+    })
+    conversion_rate = round((new_premium_30d / max(new_30d, 1)) * 100, 1)
+
+    return {
+        "mrr_history": mrr_history,
+        "churn_rate": churn_rate,
+        "conversion_rate": conversion_rate,
+        "ltv": ltv,
+    }
+
+
+# ── USAGE ANALYTICS ──────────────────────────────────────────────────────────
+@api_router.get("/admin/usage")
+async def admin_usage(admin: dict = Depends(require_admin)):
+    now = datetime.now(timezone.utc)
+
+    # Calculator usage from calculations collection
+    pipeline = [
+        {"$group": {"_id": "$calculator_type", "usos": {"$sum": 1}}},
+        {"$sort": {"usos": -1}},
+        {"$limit": 10},
+        {"$project": {"_id": 0, "name": "$_id", "usos": 1}},
+    ]
+    calc_usage = await db.calculations.aggregate(pipeline).to_list(10)
+
+    # Active users: distinct user_ids in calculations in last day/week/month
+    dau = await db.calculations.distinct("user_id", {
+        "created_at": {"$gte": (now - timedelta(days=1)).isoformat()}
+    })
+    wau = await db.calculations.distinct("user_id", {
+        "created_at": {"$gte": (now - timedelta(days=7)).isoformat()}
+    })
+    mau = await db.calculations.distinct("user_id", {
+        "created_at": {"$gte": (now - timedelta(days=30)).isoformat()}
+    })
+
+    return {
+        "calc_usage": calc_usage,
+        "active_users": {"day": len(dau), "week": len(wau), "month": len(mau)},
+    }
+
+
+# ── COUPONS ──────────────────────────────────────────────────────────────────
+@api_router.get("/admin/coupons")
+async def admin_list_coupons(admin: dict = Depends(require_admin)):
+    coupons = await db.coupons.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return coupons
+
+
+@api_router.post("/admin/coupons")
+async def admin_create_coupon(request: Request, payload: dict = Body(...), admin: dict = Depends(require_admin)):
+    code = (payload.get("id") or "").strip().upper()
+    if not code:
+        raise HTTPException(status_code=400, detail="Código requerido")
+    existing = await db.coupons.find_one({"id": code})
+    if existing:
+        raise HTTPException(status_code=409, detail="Código ya existe")
+    coupon = {
+        "id": code,
+        "discount": float(payload.get("discount", 0)),
+        "type": payload.get("type", "percent"),
+        "uses": 0,
+        "max_uses": int(payload["max_uses"]) if payload.get("max_uses") else None,
+        "expires": payload.get("expires") or None,
+        "active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin["email"],
+    }
+    await db.coupons.insert_one(coupon)
+    return {k: v for k, v in coupon.items() if k != "_id"}
+
+
+@api_router.post("/admin/coupons/{coupon_id}/toggle")
+async def admin_toggle_coupon(coupon_id: str, admin: dict = Depends(require_admin)):
+    coupon = await db.coupons.find_one({"id": coupon_id})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Cupón no encontrado")
+    new_state = not coupon.get("active", True)
+    await db.coupons.update_one({"id": coupon_id}, {"$set": {"active": new_state}})
+    return {"id": coupon_id, "active": new_state}
+
+
+# ── FEATURE FLAGS ─────────────────────────────────────────────────────────────
+_DEFAULT_FLAGS = [
+    {"id": "ai_coach",      "label": "AI Coach",           "desc": "Análisis de operaciones con IA",   "plans": "Annual / Lifetime", "enabled": True},
+    {"id": "backtest",      "label": "Backtest histórico", "desc": "Datos reales yfinance",            "plans": "Premium+",          "enabled": True},
+    {"id": "ws_alerts",     "label": "Alertas tiempo real","desc": "WebSocket push notifications",     "plans": "All Premium",       "enabled": True},
+    {"id": "excel_export",  "label": "Export Excel",       "desc": "Performance en Excel",             "plans": "All",               "enabled": False},
+    {"id": "referrals",     "label": "Sistema Referidos",  "desc": "Wallet + leaderboard",             "plans": "All",               "enabled": True},
+    {"id": "options_suite", "label": "Suite Opciones",     "desc": "Black-Scholes, Kelly, Greeks",     "plans": "Premium+",          "enabled": True},
+]
+
+@api_router.get("/admin/feature-flags")
+async def admin_list_flags(admin: dict = Depends(require_admin)):
+    flags = []
+    for default in _DEFAULT_FLAGS:
+        stored = await db.feature_flags.find_one({"id": default["id"]}, {"_id": 0})
+        flags.append(stored if stored else default)
+    return flags
+
+
+@api_router.patch("/admin/feature-flags/{flag_id}")
+async def admin_update_flag(flag_id: str, payload: dict = Body(...), admin: dict = Depends(require_admin)):
+    enabled = bool(payload.get("enabled", False))
+    default = next((f for f in _DEFAULT_FLAGS if f["id"] == flag_id), None)
+    if not default:
+        raise HTTPException(status_code=404, detail="Flag no encontrado")
+    await db.feature_flags.update_one(
+        {"id": flag_id},
+        {"$set": {**default, "enabled": enabled, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"id": flag_id, "enabled": enabled}
+
+
+# ── STRIPE WEBHOOK LOGS ───────────────────────────────────────────────────────
+@api_router.get("/admin/webhooks")
+async def admin_webhook_logs(limit: int = 20, admin: dict = Depends(require_admin)):
+    logs = await db.stripe_webhook_logs.find({}, {"_id": 0}).sort("created", -1).limit(limit).to_list(limit)
+    return logs
+
+
+@api_router.post("/admin/webhooks/{event_id}/retry")
+async def admin_retry_webhook(event_id: str, admin: dict = Depends(require_admin)):
+    log = await db.stripe_webhook_logs.find_one({"id": event_id})
+    if not log:
+        raise HTTPException(status_code=404, detail="Evento no encontrado")
+    # Mark as retry-requested; actual retry requires Stripe Dashboard or separate job
+    await db.stripe_webhook_logs.update_one(
+        {"id": event_id},
+        {"$set": {"retry_requested_at": datetime.now(timezone.utc).isoformat(), "retry_by": admin["email"]}}
+    )
+    return {"status": "retry_queued", "id": event_id}
 
 
 # Include router and setup middleware

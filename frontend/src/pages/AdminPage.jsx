@@ -178,16 +178,12 @@ export default function AdminPage() {
   };
 
   const handleImpersonate = async (u) => {
-    if (IS_PREVIEW) {
-      toast.info(`[Preview] Entrando como ${u.name || u.email} — en producción abre una sesión temporal.`);
-      return;
-    }
     try {
       const res = await fetch(`${API}/admin/impersonate/${u.id}`, { method: 'POST', headers });
       if (!res.ok) throw new Error('impersonate failed');
       const data = await res.json();
-      toast.success(`Sesión abierta como ${u.email}`);
-      navigator.clipboard?.writeText(data.token).catch(() => {});
+      await navigator.clipboard?.writeText(data.token).catch(() => {});
+      toast.success(`Token de ${u.email} copiado al portapapeles (válido 1h)`);
     } catch {
       toast.error('Error al impersonar usuario');
     }
