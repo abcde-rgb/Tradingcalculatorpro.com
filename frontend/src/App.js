@@ -26,7 +26,7 @@ function App() {
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || ""}>
       <GoogleIntegrations />
       <div className="App">
-        <BrowserRouter>
+        <BrowserRouter basename={process.env.PUBLIC_URL}>
           <AnalyticsTracker />
           <Routes>
             <Route path="/" element={<LandingPage />} />
