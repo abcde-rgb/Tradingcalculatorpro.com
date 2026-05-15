@@ -674,7 +674,11 @@ class Database:
         return self.__getattr__(name)
 
     async def init_pool(self, database_url: str):
-        self._pool = await asyncpg.create_pool(database_url, min_size=1, max_size=10)
+        import ssl as _ssl
+        # Strip sslmode from URL and handle SSL explicitly — required for Neon/Supabase
+        clean_url = database_url.split("?")[0]
+        ssl_ctx = _ssl.create_default_context()
+        self._pool = await asyncpg.create_pool(clean_url, ssl=ssl_ctx, min_size=1, max_size=10)
 
     async def create_all_tables(self):
         """Create tables for all well-known collections upfront."""
