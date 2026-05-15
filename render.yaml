@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: tradingcalculator-api
+    env: python
+    region: frankfurt           # más cercano a España/Europa
+    plan: free                  # cambia a "starter" para producción real
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      # ─── Base de datos ───────────────────────────────────────────────
+      - key: MONGO_URL
+        sync: false             # pegar la URI de MongoDB Atlas en el dashboard
+      - key: DB_NAME
+        value: trading_calculator_pro
+
+      # ─── Seguridad ───────────────────────────────────────────────────
+      - key: JWT_SECRET
+        generateValue: true     # Render genera uno seguro automáticamente
+
+      # ─── Stripe ──────────────────────────────────────────────────────
+      - key: STRIPE_API_KEY
+        sync: false             # sk_live_... desde Stripe Dashboard
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false             # whsec_... desde Stripe → Webhooks
+
+      # ─── SendGrid ────────────────────────────────────────────────────
+      - key: SENDGRID_API_KEY
+        sync: false             # SG.xxx desde SendGrid Dashboard
+      - key: SENDER_EMAIL
+        value: alerts@tradingcalculator.pro
+
+      # ─── Google OAuth ────────────────────────────────────────────────
+      - key: GOOGLE_CLIENT_ID
+        sync: false             # mismo valor que REACT_APP_GOOGLE_CLIENT_ID
+
+      # ─── URLs y CORS ─────────────────────────────────────────────────
+      - key: FRONTEND_URL
+        value: https://abcde-rgb.github.io/Tradingcalculatorpro.com
+      - key: CORS_ORIGINS
+        # Añade aquí tu dominio propio si tienes uno (ej. https://tradingcalculator.pro)
+        value: https://abcde-rgb.github.io
+
+      # ─── Demo user ───────────────────────────────────────────────────
+      - key: DEMO_EMAIL
+        value: demo@btccalc.pro
+      - key: DEMO_PASSWORD
+        value: 1234
