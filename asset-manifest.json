@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/Tradingcalculatorpro.com/static/css/main.7bdc0b3b.css",
-    "main.js": "/Tradingcalculatorpro.com/static/js/main.1ea74d06.js",
+    "main.js": "/Tradingcalculatorpro.com/static/js/main.a9197917.js",
     "index.html": "/Tradingcalculatorpro.com/index.html",
     "main.7bdc0b3b.css.map": "/Tradingcalculatorpro.com/static/css/main.7bdc0b3b.css.map",
-    "main.1ea74d06.js.map": "/Tradingcalculatorpro.com/static/js/main.1ea74d06.js.map"
+    "main.a9197917.js.map": "/Tradingcalculatorpro.com/static/js/main.a9197917.js.map"
   },
   "entrypoints": [
     "static/css/main.7bdc0b3b.css",
-    "static/js/main.1ea74d06.js"
+    "static/js/main.a9197917.js"
   ]
 }
