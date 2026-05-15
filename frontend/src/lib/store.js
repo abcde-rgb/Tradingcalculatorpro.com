@@ -137,7 +137,12 @@ export const useAuthStore = create(
     }),
     {
       name: 'btc-auth-storage',
-      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated })
+      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.token === DEMO_TOKEN) {
+          state.user = { ...DEMO_USER, ...state.user, ...DEMO_USER };
+        }
+      },
     }
   )
 );
