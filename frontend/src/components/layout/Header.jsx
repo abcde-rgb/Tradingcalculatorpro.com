@@ -1,10 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { TrendingUp, Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield, Bell, Users } from 'lucide-react';
+import { TrendingUp, Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store';
 import { useThemeStore } from '@/lib/theme';
 import { useTranslation, languages } from '@/lib/i18n';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,16 +33,36 @@ export function Header() {
     { href: '/performance', label: t('performance'), requireAuth: false },
     { href: '/pricing', label: t('pricing'), requireAuth: false },
     { href: '/education', label: t('education'), requireAuth: false },
-    { href: '/referrals', label: 'Referidos', requireAuth: true },
   ];
 
-  const MOCK_ALERTS = [
-    { id: 1, msg: 'BTC superó $70,000', time: 'hace 2 min', read: false },
-    { id: 2, msg: 'ETH bajó de $3,500', time: 'hace 15 min', read: false },
-    { id: 3, msg: 'Tu alerta de SOL fue activada', time: 'hace 1 h', read: true },
-  ];
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const [alerts, setAlerts] = useState(MOCK_ALERTS);
+  const [alerts, setAlerts] = useState([]);
+
+  const fetchAlerts = useCallback(async () => {
+    const token = useAuthStore.getState().token;
+    if (!BACKEND_URL || !token) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/alerts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAlerts(
+          data.map(a => ({
+            id: a.id,
+            msg: `${a.symbol} ${a.condition === 'above' ? '↑' : '↓'} $${a.target_price?.toLocaleString()}`,
+            time: a.triggered_at ? new Date(a.triggered_at).toLocaleTimeString() : '',
+            read: !!a.read,
+          }))
+        );
+      }
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) fetchAlerts();
+  }, [isAuthenticated, fetchAlerts]);
+
   const unreadCount = alerts.filter(a => !a.read).length;
 
   const handleLogout = () => {
@@ -214,11 +236,6 @@ export function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/settings">{t('settings')}</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/referrals" className="gap-2">
-                      <Users className="w-4 h-4" /> Referidos
-                    </Link>
                   </DropdownMenuItem>
                   {user?.is_admin && (
                     <DropdownMenuItem asChild>

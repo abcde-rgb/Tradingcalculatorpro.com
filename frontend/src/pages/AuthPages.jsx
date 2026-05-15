@@ -261,11 +261,6 @@ export const ForgotPasswordPage = () => {
               <p className="text-sm text-muted-foreground">
                 Si existe una cuenta con ese email, recibirás un enlace en breve.
               </p>
-              {!API && (
-                <p className="text-xs text-yellow-400 bg-yellow-400/10 px-3 py-2 rounded-lg">
-                  Modo preview — en producción se enviaría un email real.
-                </p>
-              )}
               <Button className="w-full" onClick={() => navigate('/login')}>
                 Volver al inicio de sesión
               </Button>
