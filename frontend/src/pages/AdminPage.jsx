@@ -97,6 +97,10 @@ export default function AdminPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // Visibility toggles — each section independent
+  const [showDemo, setShowDemo] = useState(IS_PREVIEW);
+  const [showReal, setShowReal] = useState(!IS_PREVIEW);
+
   // Filters
   const [q, setQ] = useState('');
   const [plan, setPlan] = useState('all');
@@ -255,7 +259,23 @@ export default function AdminPage() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">{t('adminPanelSubtitle')}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Demo toggle */}
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${showDemo ? 'border-yellow-500/40 bg-yellow-500/5' : 'border-border bg-muted/30'}`}>
+              <span className="text-xs font-medium text-muted-foreground">Demo</span>
+              <Switch checked={showDemo} onCheckedChange={setShowDemo} data-testid="admin-demo-toggle" />
+              {showDemo
+                ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px]">ON</Badge>
+                : <Badge variant="outline" className="text-[10px] text-muted-foreground">OFF</Badge>}
+            </div>
+            {/* Real toggle */}
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${showReal ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30'}`}>
+              <span className="text-xs font-medium text-muted-foreground">Real</span>
+              <Switch checked={showReal} onCheckedChange={setShowReal} data-testid="admin-real-toggle" />
+              {showReal
+                ? <Badge className="bg-primary/15 text-primary text-[10px]">ON</Badge>
+                : <Badge variant="outline" className="text-[10px] text-muted-foreground">OFF</Badge>}
+            </div>
             <Button variant="outline" size="sm" onClick={loadAll} className="gap-2" data-testid="admin-refresh">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               {t('adminRefresh')}
@@ -424,26 +444,58 @@ export default function AdminPage() {
             </table>
           </CardContent>
         </Card>
-        {/* Audit Log */}
+        {/* Audit Log — always real */}
         <AuditLogPanel headers={headers} />
 
-        {/* Revenue Analytics */}
-        <RevenueAnalyticsCard metrics={metrics} />
+        {/* ── DEMO SECTION ── */}
+        {showDemo && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-yellow-500/20" />
+              <span className="text-xs font-semibold text-yellow-400 uppercase tracking-widest px-2">
+                📊 Datos Demo
+              </span>
+              <div className="h-px flex-1 bg-yellow-500/20" />
+            </div>
+            <RevenueAnalyticsCard metrics={null} forceDemo />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PlanDistributionCard metrics={null} forceDemo />
+              <UsageAnalyticsCard forceDemo />
+            </div>
+            <CouponManagerCard headers={headers} forceDemo />
+            <FeatureFlagsCard headers={headers} forceDemo />
+            <WebhookLogsCard headers={headers} forceDemo />
+          </div>
+        )}
 
-        {/* Plan Distribution */}
-        <PlanDistributionCard metrics={metrics} />
+        {/* ── REAL SECTION ── */}
+        {showReal && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-primary/20" />
+              <span className="text-xs font-semibold text-primary uppercase tracking-widest px-2">
+                🔴 Datos Reales
+              </span>
+              <div className="h-px flex-1 bg-primary/20" />
+            </div>
+            <RevenueAnalyticsCard metrics={metrics} forceDemo={false} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PlanDistributionCard metrics={metrics} forceDemo={false} />
+              <UsageAnalyticsCard forceDemo={false} />
+            </div>
+            <CouponManagerCard headers={headers} forceDemo={false} />
+            <FeatureFlagsCard headers={headers} forceDemo={false} />
+            <WebhookLogsCard headers={headers} forceDemo={false} />
+          </div>
+        )}
 
-        {/* Usage Analytics */}
-        <UsageAnalyticsCard />
-
-        {/* Coupon Manager */}
-        <CouponManagerCard headers={headers} />
-
-        {/* Feature Flags */}
-        <FeatureFlagsCard headers={headers} />
-
-        {/* Stripe Webhook Logs */}
-        <WebhookLogsCard headers={headers} />
+        {/* Neither active */}
+        {!showDemo && !showReal && (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+            <Activity className="w-10 h-10 opacity-30" />
+            <p className="text-sm">Activa <strong>Demo</strong> o <strong>Real</strong> para ver los datos de analytics.</p>
+          </div>
+        )}
       </main>
 
       {/* MODALS */}
@@ -1222,17 +1274,17 @@ function AuditLogPanel({ headers }) {
 /* ============================================================
  *  REVENUE ANALYTICS
  * ============================================================ */
-function RevenueAnalyticsCard({ metrics }) {
+function RevenueAnalyticsCard({ metrics, forceDemo = IS_PREVIEW }) {
   const [history, setHistory] = useState(MOCK_MRR_HISTORY);
   const [stats, setStats] = useState({ churn: 3.2, conversion: 8.5, ltv: { monthly: 51, quarterly: 135, annual: 200, lifetime: 299 } });
 
   useEffect(() => {
-    if (IS_PREVIEW) return;
+    if (forceDemo) { setHistory(MOCK_MRR_HISTORY); return; }
     fetch(`${API}/admin/revenue`, { headers: {} }).then(r => r.ok ? r.json() : null).then(d => {
       if (d?.mrr_history) setHistory(d.mrr_history);
       if (d?.churn_rate !== undefined) setStats(s => ({ ...s, churn: d.churn_rate, conversion: d.conversion_rate }));
     }).catch(() => {});
-  }, []);
+  }, [forceDemo]);
 
   const currentMrr = history[history.length - 1]?.mrr || 0;
   const prevMrr = history[history.length - 2]?.mrr || 0;
@@ -1243,7 +1295,9 @@ function RevenueAnalyticsCard({ metrics }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" /> Revenue Analytics
-          {IS_PREVIEW && <Badge variant="outline" className="text-[10px] ml-auto">Demo data</Badge>}
+          {forceDemo
+            ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px] ml-auto">Demo data</Badge>
+            : <Badge className="bg-primary/15 text-primary text-[10px] ml-auto">Real</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1308,8 +1362,8 @@ function RevenueAnalyticsCard({ metrics }) {
 /* ============================================================
  *  PLAN DISTRIBUTION
  * ============================================================ */
-function PlanDistributionCard({ metrics }) {
-  const rawDist = metrics?.by_plan
+function PlanDistributionCard({ metrics, forceDemo = IS_PREVIEW }) {
+  const rawDist = (!forceDemo && metrics?.by_plan)
     ? Object.entries(metrics.by_plan).map(([plan, count]) => ({ plan: plan === 'null' || !plan ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1), count }))
     : MOCK_PLAN_DIST;
 
@@ -1320,7 +1374,9 @@ function PlanDistributionCard({ metrics }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Percent className="w-4 h-4 text-primary" /> Distribución de Planes
-          {IS_PREVIEW && <Badge variant="outline" className="text-[10px] ml-auto">Demo data</Badge>}
+          {forceDemo
+            ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px] ml-auto">Demo data</Badge>
+            : <Badge className="bg-primary/15 text-primary text-[10px] ml-auto">Real</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -1360,16 +1416,26 @@ function PlanDistributionCard({ metrics }) {
 /* ============================================================
  *  USAGE ANALYTICS
  * ============================================================ */
-function UsageAnalyticsCard() {
-  const [data] = useState(MOCK_CALC_USAGE);
-  const [activeUsers] = useState({ day: 124, week: 587, month: 2341 });
+function UsageAnalyticsCard({ forceDemo = IS_PREVIEW }) {
+  const [data, setData] = useState(MOCK_CALC_USAGE);
+  const [activeUsers, setActiveUsers] = useState({ day: 124, week: 587, month: 2341 });
+
+  useEffect(() => {
+    if (forceDemo) { setData(MOCK_CALC_USAGE); setActiveUsers({ day: 124, week: 587, month: 2341 }); return; }
+    fetch(`${API}/admin/usage`).then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.calc_usage) setData(d.calc_usage);
+      if (d?.active_users) setActiveUsers(d.active_users);
+    }).catch(() => {});
+  }, [forceDemo]);
 
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Activity className="w-4 h-4 text-primary" /> Analytics de Uso
-          {IS_PREVIEW && <Badge variant="outline" className="text-[10px] ml-auto">Demo data</Badge>}
+          {forceDemo
+            ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px] ml-auto">Demo data</Badge>
+            : <Badge className="bg-primary/15 text-primary text-[10px] ml-auto">Real</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1401,26 +1467,26 @@ function UsageAnalyticsCard() {
 /* ============================================================
  *  COUPON MANAGER
  * ============================================================ */
-function CouponManagerCard({ headers }) {
+function CouponManagerCard({ headers, forceDemo = IS_PREVIEW }) {
   const [coupons, setCoupons] = useState(MOCK_COUPONS);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ id: '', discount: 20, type: 'percent', max_uses: '', expires: '' });
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
-    if (IS_PREVIEW) return;
+    if (forceDemo) { setCoupons(MOCK_COUPONS); return; }
     const res = await fetch(`${API}/admin/coupons`, { headers }).catch(() => null);
     if (res?.ok) setCoupons(await res.json());
   };
 
-  useEffect(() => { load(); }, []); // eslint-disable-line
+  useEffect(() => { load(); }, [forceDemo]); // eslint-disable-line
 
   const create = async () => {
     if (!form.id) return toast.error('Introduce un código');
-    if (IS_PREVIEW) {
+    if (forceDemo) {
       setCoupons(c => [...c, { ...form, uses: 0, active: true, max_uses: form.max_uses || null, expires: form.expires || null }]);
       setCreateOpen(false);
-      toast.success(`Cupón ${form.id} creado (preview)`);
+      toast.success(`Cupón ${form.id} creado (demo)`);
       return;
     }
     setBusy(true);
@@ -1431,7 +1497,7 @@ function CouponManagerCard({ headers }) {
   };
 
   const toggle = async (coupon) => {
-    if (IS_PREVIEW) {
+    if (forceDemo) {
       setCoupons(c => c.map(x => x.id === coupon.id ? { ...x, active: !x.active } : x));
       return;
     }
@@ -1445,7 +1511,9 @@ function CouponManagerCard({ headers }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Tag className="w-4 h-4 text-primary" /> Cupones y Descuentos
-            {IS_PREVIEW && <Badge variant="outline" className="text-[10px]">Demo data</Badge>}
+            {forceDemo
+              ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px]">Demo data</Badge>
+              : <Badge className="bg-primary/15 text-primary text-[10px]">Real</Badge>}
           </CardTitle>
           <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1 h-7">
             <Plus className="w-3 h-3" /> Nuevo cupón
@@ -1514,21 +1582,21 @@ function CouponManagerCard({ headers }) {
 /* ============================================================
  *  FEATURE FLAGS
  * ============================================================ */
-function FeatureFlagsCard({ headers }) {
+function FeatureFlagsCard({ headers, forceDemo = IS_PREVIEW }) {
   const [flags, setFlags] = useState(MOCK_FEATURES);
 
   const load = async () => {
-    if (IS_PREVIEW) return;
+    if (forceDemo) { setFlags(MOCK_FEATURES); return; }
     const res = await fetch(`${API}/admin/feature-flags`, { headers }).catch(() => null);
     if (res?.ok) setFlags(await res.json());
   };
 
-  useEffect(() => { load(); }, []); // eslint-disable-line
+  useEffect(() => { load(); }, [forceDemo]); // eslint-disable-line
 
   const toggle = async (flag) => {
     const updated = flags.map(f => f.id === flag.id ? { ...f, enabled: !f.enabled } : f);
     setFlags(updated);
-    if (IS_PREVIEW) { toast.success(`${flag.label} ${!flag.enabled ? 'activado' : 'desactivado'} (preview)`); return; }
+    if (forceDemo) { toast.success(`${flag.label} ${!flag.enabled ? 'activado' : 'desactivado'} (demo)`); return; }
     await fetch(`${API}/admin/feature-flags/${flag.id}`, { method: 'PATCH', headers, body: JSON.stringify({ enabled: !flag.enabled }) }).catch(() => {});
   };
 
@@ -1537,7 +1605,9 @@ function FeatureFlagsCard({ headers }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Zap className="w-4 h-4 text-primary" /> Feature Flags
-          {IS_PREVIEW && <Badge variant="outline" className="text-[10px] ml-auto">Demo data</Badge>}
+          {forceDemo
+            ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px] ml-auto">Demo data</Badge>
+            : <Badge className="bg-primary/15 text-primary text-[10px] ml-auto">Real</Badge>}
         </CardTitle>
         <p className="text-[11px] text-muted-foreground">Activa o desactiva funcionalidades sin desplegar código.</p>
       </CardHeader>
@@ -1572,22 +1642,22 @@ const WEBHOOK_COLORS = {
   'invoice.paid': 'bg-green-500/15 text-green-500',
 };
 
-function WebhookLogsCard({ headers }) {
+function WebhookLogsCard({ headers, forceDemo = IS_PREVIEW }) {
   const [logs, setLogs] = useState(MOCK_WEBHOOKS);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    if (IS_PREVIEW) return;
+    if (forceDemo) { setLogs(MOCK_WEBHOOKS); return; }
     setLoading(true);
     const res = await fetch(`${API}/admin/webhooks?limit=20`, { headers }).catch(() => null);
     setLoading(false);
     if (res?.ok) setLogs(await res.json());
   };
 
-  useEffect(() => { load(); }, []); // eslint-disable-line
+  useEffect(() => { load(); }, [forceDemo]); // eslint-disable-line
 
   const retry = async (id) => {
-    if (IS_PREVIEW) { toast.info(`[Preview] Reintentando webhook ${id}`); return; }
+    if (forceDemo) { toast.info(`[Demo] Reintentando webhook ${id}`); return; }
     await fetch(`${API}/admin/webhooks/${id}/retry`, { method: 'POST', headers }).catch(() => null);
     toast.success('Webhook reenviado');
     load();
@@ -1599,7 +1669,9 @@ function WebhookLogsCard({ headers }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-primary" /> Stripe Webhook Logs
-            {IS_PREVIEW && <Badge variant="outline" className="text-[10px]">Demo data</Badge>}
+            {forceDemo
+              ? <Badge className="bg-yellow-400/15 text-yellow-400 text-[10px]">Demo data</Badge>
+              : <Badge className="bg-primary/15 text-primary text-[10px]">Real</Badge>}
           </CardTitle>
           <Button size="sm" variant="outline" onClick={load} className="gap-1 h-7">
             <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Refrescar
