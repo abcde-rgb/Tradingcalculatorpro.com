@@ -7,9 +7,6 @@ export function useIsPremium() {
   // Si no está autenticado, NO es premium
   if (!isAuthenticated) return false;
   
-  // Demo user siempre tiene acceso premium completo
-  if (user?.email === 'demo@btccalc.pro') return true;
-  
   // Usuario con is_premium activo
   if (user?.is_premium === true) return true;
   

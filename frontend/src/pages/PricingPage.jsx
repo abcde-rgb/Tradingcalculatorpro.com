@@ -71,7 +71,7 @@ export default function PricingPage() {
     }
   }, [selectedPlan, selectedPayment]);
 
-  const isPremium = user?.is_premium || user?.email === 'demo@btccalc.pro';
+  const isPremium = user?.is_premium;
 
   const handleCheckout = async () => {
     if (!isAuthenticated) {

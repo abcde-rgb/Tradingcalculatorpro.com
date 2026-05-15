@@ -70,7 +70,7 @@ export function Header() {
     navigate('/');
   };
 
-  const isPremium = user?.is_premium || user?.email === 'demo@btccalc.pro';
+  const isPremium = user?.is_premium;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">

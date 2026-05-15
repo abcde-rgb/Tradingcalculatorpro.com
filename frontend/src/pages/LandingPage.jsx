@@ -691,9 +691,6 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </div>
-            <p className="text-sm text-muted-foreground mt-6">
-              {t('demoAvailable')}: <code className="bg-muted px-2 py-1 rounded">demo@btccalc.pro</code> / <code className="bg-muted px-2 py-1 rounded">1234</code>
-            </p>
           </motion.div>
         </div>
       </section>

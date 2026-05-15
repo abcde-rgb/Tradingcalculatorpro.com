@@ -3,7 +3,7 @@ import { useEffect, useRef, useCallback } from 'react';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 function getWsUrl(token) {
-  if (!BACKEND_URL || !token || token === 'demo-token') return null;
+  if (!BACKEND_URL || !token) return null;
   const wsBase = BACKEND_URL.replace(/^https?/, (p) => (p === 'https' ? 'wss' : 'ws'));
   return `${wsBase}/api/ws/alerts?token=${encodeURIComponent(token)}`;
 }
@@ -56,7 +56,7 @@ export function useWebSocketAlerts(token, onMessage) {
   }, [token]);
 
   useEffect(() => {
-    if (!token || token === 'demo-token') return;
+    if (!token) return;
     connect();
     return () => {
       clearTimeout(retryRef.current);

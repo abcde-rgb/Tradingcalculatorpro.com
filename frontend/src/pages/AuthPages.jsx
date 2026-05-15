@@ -99,11 +99,6 @@ export const LoginPage = () => {
             <Link to="/register" className="text-primary hover:underline">{t('registrate_48a11f')}</Link>
           </div>
           
-          <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10 text-xs text-muted-foreground">
-            <p className="font-semibold mb-1">{t('demoUsaLasCredenciales_a06869')}</p>
-            <p>Email: demo@btccalc.pro</p>
-            <p>Password: 1234</p>
-          </div>
         </CardContent>
       </Card>
     </div>

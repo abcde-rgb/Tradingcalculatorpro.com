@@ -182,8 +182,6 @@ function Step3() {
   );
 }
 
-const isPreviewMode = !process.env.REACT_APP_BACKEND_URL;
-
 function Step4({ onComplete }) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
@@ -200,24 +198,6 @@ function Step4({ onComplete }) {
         Empieza calculando el tamaño de tu primera posición o explora el diario
         de trading para registrar tus operaciones.
       </p>
-      {isPreviewMode && (
-        <div className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-3 text-left">
-          <p className="text-xs font-semibold text-yellow-400 mb-1.5">
-            Modo demo activo
-          </p>
-          <p className="text-xs text-zinc-400 mb-1">
-            Credenciales de acceso rápido:
-          </p>
-          <p className="text-xs text-zinc-300">
-            Email:{" "}
-            <span className="font-mono text-green-400">demo@btccalc.pro</span>
-          </p>
-          <p className="text-xs text-zinc-300">
-            Contraseña:{" "}
-            <span className="font-mono text-green-400">demo123</span>
-          </p>
-        </div>
-      )}
       <button
         onClick={onComplete}
         className="flex items-center gap-2 w-full justify-center px-5 py-3 rounded-lg bg-green-500 hover:bg-green-400 text-black font-semibold text-sm transition-colors mt-1"
