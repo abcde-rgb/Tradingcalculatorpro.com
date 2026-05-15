@@ -80,10 +80,10 @@ DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "1234")
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
-    "monthly": {"name": "Mensual", "price": 17.00, "currency": "EUR", "interval": "month", "days": 30},
-    "quarterly": {"name": "Trimestral", "price": 45.00, "currency": "EUR", "interval": "quarter", "days": 90},
-    "annual": {"name": "Anual", "price": 200.00, "currency": "EUR", "interval": "year", "days": 365},
-    "lifetime": {"name": "De Por Vida", "price": 500.00, "currency": "USD", "interval": "lifetime", "days": 36500}
+    "monthly":   {"name": "Mensual",     "price": 17.00,  "currency": "EUR", "interval": "month",    "days": 30,    "stripe_price_id": "price_1TXM8EImYjMeegYBvEaA8LxH", "klarna": False},
+    "quarterly": {"name": "Trimestral",  "price": 45.00,  "currency": "EUR", "interval": "quarter",  "days": 90,    "stripe_price_id": "price_1TXM8KImYjMeegYB71T1UNaW", "klarna": False},
+    "annual":    {"name": "Anual",       "price": 200.00, "currency": "EUR", "interval": "year",     "days": 365,   "stripe_price_id": "price_1TXM8QImYjMeegYBS4svthyq", "klarna": False},
+    "lifetime":  {"name": "De Por Vida", "price": 500.00, "currency": "EUR", "interval": "lifetime", "days": 36500, "stripe_price_id": "price_1TXM8YImYjMeegYBouBCvmC0", "klarna": True},
 }
 
 app = FastAPI(title="Trading Calculator PRO API")
@@ -1487,22 +1487,12 @@ async def _create_stripe_session(
     plan: dict, payment_method: str, success_url: str, cancel_url: str,
     metadata: Dict[str, str], origin_url: str,
 ) -> Any:
-    """Create a Stripe Checkout session via emergentintegrations and return it."""
+    """Create a Stripe Checkout session using the plan's Stripe price ID."""
     from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
     webhook_url = f"{origin_url}/api/webhook/stripe"
-    # Prefer the key the admin saved in /admin/settings, fall back to env.
     runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
     stripe.api_key = runtime_key
     stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=webhook_url)
-    checkout_request = CheckoutSessionRequest(
-        amount=float(plan["price"]),
-        currency=plan["currency"].lower(),
-        success_url=success_url,
-        cancel_url=cancel_url,
-        payment_methods=_PAYMENT_METHODS_MAP.get(payment_method, ["card"]),
-        metadata=metadata,
-    )
-    return await stripe_checkout.create_checkout_session(checkout_request)
     checkout_request = CheckoutSessionRequest(
         amount=float(plan["price"]),
         currency=plan["currency"].lower(),
@@ -1523,6 +1513,13 @@ async def create_checkout(request: dict, user: dict = Depends(require_user)) -> 
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
         raise HTTPException(status_code=400, detail="Plan no válido")
+
+    # Klarna is only available for the lifetime one-time plan
+    if payment_method == "klarna" and not plan.get("klarna"):
+        raise HTTPException(
+            status_code=400,
+            detail="Klarna solo está disponible para el plan De Por Vida (€500 pago único)"
+        )
 
     transaction = _build_pending_transaction(user, plan_id, plan, payment_method)
 
