@@ -5,9 +5,8 @@ services:
     region: frankfurt           # más cercano a España/Europa
     plan: free                  # cambia a "starter" para producción real
     rootDir: backend
-    pythonVersion: "3.11.9"
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    startCommand: python -m uvicorn server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
       # ─── Base de datos (PostgreSQL) ──────────────────────────────────
