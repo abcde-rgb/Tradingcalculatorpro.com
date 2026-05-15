@@ -104,6 +104,7 @@ export default function PricingPage() {
       const data = await response.json();
 
       if (response.ok && data.checkout_url) {
+        try { window.gtag?.('event', 'begin_checkout', { plan: selectedPlan, payment_method: selectedPayment }); } catch (_) {}
         window.location.href = data.checkout_url;
       } else {
         toast.error(data.detail || t('checkoutError'));

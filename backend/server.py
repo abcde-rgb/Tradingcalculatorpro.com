@@ -466,7 +466,12 @@ async def register(request: Request, user_data: UserCreate):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
-    
+    try:
+        import asyncio as _asyncio
+        _asyncio.ensure_future(_send_welcome_email(user_data.email, user_data.name))
+    except Exception:
+        pass
+
     token = create_token(user_id, user_data.email)
     return {
         "token": token,
@@ -488,10 +493,16 @@ async def login(request: Request, credentials: UserLogin):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user or not user.get("password") or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"last_seen": now_iso}, "$inc": {"login_count": 1}},
+    )
+
     token = create_token(user["id"], user["email"])
     is_premium = check_premium(user)
-    
+
     return {
         "token": token,
         "user": {
@@ -504,12 +515,18 @@ async def login(request: Request, credentials: UserLogin):
             "is_premium": is_premium,
             "is_admin": bool(user.get("is_admin")),
             "auth_provider": user.get("auth_provider", "password"),
+            "last_seen": now_iso,
+            "login_count": (user.get("login_count") or 0) + 1,
         }
     }
 
 @api_router.get("/auth/me", response_model=dict)
 async def get_me(user: dict = Depends(require_user)):
     is_premium = check_premium(user)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"last_seen": datetime.now(timezone.utc).isoformat()}},
+    )
     return {
         "id": user["id"],
         "email": user["email"],
@@ -520,6 +537,8 @@ async def get_me(user: dict = Depends(require_user)):
         "is_admin": bool(user.get("is_admin")),
         "auth_provider": user.get("auth_provider", "password"),
         "picture": user.get("picture"),
+        "last_seen": user.get("last_seen"),
+        "login_count": user.get("login_count", 0),
     }
 
 
@@ -534,6 +553,65 @@ async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
         return {"ok": True, "revoked": False}
     await _revoke_token(payload)
     return {"ok": True, "revoked": True}
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@api_router.post("/auth/forgot-password")
+@limiter.limit("3/hour")
+async def forgot_password(request: Request, body: ForgotPasswordRequest):
+    """Generate a password-reset token, store it in DB, and email the reset link."""
+    user = await db.users.find_one({"email": body.email}, {"_id": 0})
+    # Always return 200 to prevent email enumeration
+    if not user:
+        return {"ok": True}
+
+    reset_token = secrets.token_urlsafe(32)
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    await db.password_resets.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"token": reset_token, "expires_at": expires_at, "used": False}},
+        upsert=True,
+    )
+
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
+    reset_url = f"{frontend_url}/reset-password?token={reset_token}"
+    try:
+        import asyncio as _asyncio
+        _asyncio.ensure_future(_send_password_reset_email(user["email"], user.get("name", ""), reset_url))
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+@api_router.post("/auth/reset-password")
+@limiter.limit("5/hour")
+async def reset_password(request: Request, body: ResetPasswordRequest):
+    """Consume a reset token and set a new password."""
+    if len(body.new_password) < 4:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 4 caracteres")
+
+    record = await db.password_resets.find_one({"token": body.token, "used": False})
+    if not record:
+        raise HTTPException(status_code=400, detail="Token inválido o ya utilizado")
+
+    expires = datetime.fromisoformat(record["expires_at"])
+    if expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="El enlace ha expirado. Solicita uno nuevo.")
+
+    await db.users.update_one(
+        {"id": record["user_id"]},
+        {"$set": {"password": hash_password(body.new_password)}},
+    )
+    await db.password_resets.update_one({"token": body.token}, {"$set": {"used": True}})
+    return {"ok": True, "message": "Contraseña actualizada correctamente"}
 
 
 # ============= GOOGLE OAUTH =============
@@ -1090,6 +1168,114 @@ async def delete_alert(alert_id: str, user: dict = Depends(require_user)):
         raise HTTPException(status_code=404, detail="Alerta no encontrada")
     return {"message": "Alerta eliminada"}
 
+async def _send_email(to_email: str, subject: str, html_content: str) -> bool:
+    """Send a transactional email via SendGrid. Returns True on success."""
+    if not SENDGRID_API_KEY:
+        logging.info(f"[email] SendGrid not configured, skipping: {subject} → {to_email}")
+        return False
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
+        message = Mail(from_email=SENDER_EMAIL, to_emails=to_email, subject=subject, html_content=html_content)
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        sg.send(message)
+        logging.info(f"[email] sent '{subject}' → {to_email}")
+        return True
+    except Exception as e:
+        logging.error(f"[email] SendGrid error: {e}")
+        return False
+
+_EMAIL_BASE = """
+<html><body style="margin:0;padding:0;background:#0f0f0f;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f0f;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#1a1a1a;border-radius:12px;overflow:hidden;border:1px solid #2a2a2a;">
+<tr><td style="background:linear-gradient(135deg,#00E676,#00B0FF);padding:32px 40px;text-align:center;">
+<h1 style="margin:0;color:#000;font-size:24px;font-weight:bold;">Trading Calculator PRO</h1>
+<p style="margin:8px 0 0;color:#000;opacity:0.7;font-size:14px;">tradingcalculator.pro</p>
+</td></tr>
+<tr><td style="padding:40px;">{body}</td></tr>
+<tr><td style="padding:20px 40px;border-top:1px solid #2a2a2a;text-align:center;">
+<p style="color:#555;font-size:12px;margin:0;">© 2025 Trading Calculator PRO · Todos los derechos reservados</p>
+</td></tr>
+</table></td></tr></table>
+</body></html>
+"""
+
+def _email_html(body_html: str) -> str:
+    return _EMAIL_BASE.replace("{body}", body_html)
+
+async def _send_welcome_email(to_email: str, name: str) -> None:
+    body = f"""
+<h2 style="color:#fff;margin-top:0;">¡Bienvenido, {name}! 🎉</h2>
+<p style="color:#aaa;line-height:1.6;">Tu cuenta en <strong style="color:#00E676;">Trading Calculator PRO</strong> ha sido creada exitosamente.</p>
+<p style="color:#aaa;line-height:1.6;">Ya puedes acceder a todas las herramientas de análisis técnico, calculadoras de opciones, y seguimiento de rendimiento.</p>
+<div style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:20px;margin:24px 0;">
+<p style="color:#888;margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:1px;">¿Qué puedes hacer?</p>
+<p style="color:#aaa;margin:6px 0;">📊 Calculadora de posición y riesgo</p>
+<p style="color:#aaa;margin:6px 0;">🔔 Alertas de precio en tiempo real</p>
+<p style="color:#aaa;margin:6px 0;">📈 Análisis de opciones y estrategias</p>
+<p style="color:#aaa;margin:6px 0;">🎯 Seguimiento de rendimiento</p>
+</div>
+<a href="https://tradingcalculator.pro/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
+"""
+    await _send_email(to_email, "¡Bienvenido a Trading Calculator PRO!", _email_html(body))
+
+async def _send_subscription_confirmation_email(to_email: str, name: str, plan_name: str, plan_price: float, subscription_end: str) -> None:
+    end_str = ""
+    try:
+        end_dt = datetime.fromisoformat(subscription_end.replace("Z", "+00:00"))
+        end_str = end_dt.strftime("%d/%m/%Y")
+    except Exception:
+        end_str = subscription_end
+    body = f"""
+<h2 style="color:#fff;margin-top:0;">¡Suscripción activada! 🚀</h2>
+<p style="color:#aaa;line-height:1.6;">Hola <strong style="color:#fff;">{name}</strong>, tu suscripción <strong style="color:#00E676;">{plan_name}</strong> está activa.</p>
+<div style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:20px;margin:24px 0;">
+<p style="color:#888;margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Detalles de tu plan</p>
+<p style="color:#aaa;margin:6px 0;">Plan: <strong style="color:#fff;">{plan_name}</strong></p>
+<p style="color:#aaa;margin:6px 0;">Importe: <strong style="color:#00E676;">€{plan_price:.2f}</strong></p>
+<p style="color:#aaa;margin:6px 0;">Válido hasta: <strong style="color:#fff;">{end_str}</strong></p>
+</div>
+<p style="color:#aaa;line-height:1.6;">Ahora tienes acceso completo a todas las funcionalidades premium.</p>
+<a href="https://tradingcalculator.pro/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
+"""
+    await _send_email(to_email, f"Suscripción {plan_name} activada — Trading Calculator PRO", _email_html(body))
+
+async def _send_payment_failed_email(to_email: str, name: str, attempt: int) -> None:
+    note = "Tu acceso premium puede ser suspendido pronto." if attempt >= 2 else "Por favor actualiza tu método de pago."
+    body = f"""
+<h2 style="color:#fff;margin-top:0;">⚠️ Pago fallido</h2>
+<p style="color:#aaa;line-height:1.6;">Hola <strong style="color:#fff;">{name}</strong>, no hemos podido procesar el pago de tu suscripción (intento {attempt}).</p>
+<p style="color:#aaa;line-height:1.6;">{note}</p>
+<div style="background:#1a0a0a;border:1px solid #5a1a1a;border-radius:8px;padding:20px;margin:24px 0;">
+<p style="color:#ff6b6b;margin:0;">Para mantener tu acceso premium, actualiza tu método de pago lo antes posible.</p>
+</div>
+<a href="https://tradingcalculator.pro/settings" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Actualizar método de pago →</a>
+"""
+    await _send_email(to_email, "⚠️ Pago fallido — Trading Calculator PRO", _email_html(body))
+
+async def _send_subscription_cancelled_email(to_email: str, name: str) -> None:
+    body = f"""
+<h2 style="color:#fff;margin-top:0;">Suscripción cancelada</h2>
+<p style="color:#aaa;line-height:1.6;">Hola <strong style="color:#fff;">{name}</strong>, tu suscripción a Trading Calculator PRO ha sido cancelada.</p>
+<p style="color:#aaa;line-height:1.6;">Tu acceso premium ha sido desactivado. Puedes reactivarlo en cualquier momento.</p>
+<a href="https://tradingcalculator.pro/pricing" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:24px;">Reactivar suscripción →</a>
+"""
+    await _send_email(to_email, "Suscripción cancelada — Trading Calculator PRO", _email_html(body))
+
+async def _send_password_reset_email(to_email: str, name: str, reset_url: str) -> None:
+    body = f"""
+<h2 style="color:#fff;margin-top:0;">Restablecer contraseña</h2>
+<p style="color:#aaa;line-height:1.6;">Hola <strong style="color:#fff;">{name}</strong>, hemos recibido una solicitud para restablecer tu contraseña.</p>
+<p style="color:#aaa;line-height:1.6;">Haz clic en el botón a continuación. Este enlace expira en <strong style="color:#fff;">1 hora</strong>.</p>
+<a href="{reset_url}" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:24px;">Restablecer contraseña →</a>
+<p style="color:#555;font-size:12px;margin-top:24px;">Si no solicitaste esto, ignora este correo. Tu contraseña no cambiará.</p>
+<p style="color:#555;font-size:12px;">O copia este enlace en tu navegador:<br/><span style="color:#00E676;">{reset_url}</span></p>
+"""
+    await _send_email(to_email, "Restablecer contraseña — Trading Calculator PRO", _email_html(body))
+
+
 @api_router.post("/alerts/send-email")
 async def send_alert_email(request: EmailAlertRequest, user: dict = Depends(require_user)):
     """Send email notification for triggered alert. Authenticated users only —
@@ -1613,6 +1799,21 @@ async def _activate_paid_subscription(
             {"$set": {"status": "paid", "paid_at": datetime.now(timezone.utc).isoformat()}},
         )
 
+    # Send subscription confirmation email
+    try:
+        user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "email": 1, "name": 1})
+        if user_doc:
+            import asyncio as _asyncio
+            _asyncio.ensure_future(_send_subscription_confirmation_email(
+                to_email=user_doc["email"],
+                name=user_doc.get("name", ""),
+                plan_name=plan["name"],
+                plan_price=plan["price"],
+                subscription_end=subscription_end.isoformat(),
+            ))
+    except Exception as _e:
+        logging.warning(f"[email] subscription confirmation email failed: {_e}")
+
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request) -> Dict[str, str]:
@@ -1681,6 +1882,13 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     }},
                 )
                 logging.info(f"[stripe-webhook] subscription deleted for {customer_id}")
+                try:
+                    _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
+                    if _u:
+                        import asyncio as _asyncio
+                        _asyncio.ensure_future(_send_subscription_cancelled_email(_u["email"], _u.get("name", "")))
+                except Exception:
+                    pass
             elif raw_event_type == "invoice.payment_failed" and customer_id:
                 attempt = int(data_obj.get("attempt_count", 1) or 1)
                 update: Dict[str, Any] = {"subscription_status": "past_due"}
@@ -1688,6 +1896,13 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     update.update({"is_premium": False, "subscription_plan": None, "subscription_status": "unpaid"})
                     logging.warning(f"[stripe-webhook] payment failed {attempt}x for {customer_id} → premium revoked")
                 await db.users.update_one({"stripe_customer_id": customer_id}, {"$set": update})
+                try:
+                    _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
+                    if _u:
+                        import asyncio as _asyncio
+                        _asyncio.ensure_future(_send_payment_failed_email(_u["email"], _u.get("name", ""), attempt))
+                except Exception:
+                    pass
             elif raw_event_type == "customer.subscription.updated" and customer_id:
                 status = data_obj.get("status")
                 if status:

@@ -4,6 +4,10 @@ import { persist } from 'zustand/middleware';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
+function trackEvent(eventName, params = {}) {
+  try { window.gtag?.('event', eventName, params); } catch (_) {}
+}
+
 const DEMO_USER = { id: 'demo', name: 'Demo Trader', email: 'demo@btccalc.pro', plan: 'premium', is_admin: true, is_premium: true, subscription_plan: 'lifetime' };
 const DEMO_TOKEN = 'demo-token';
 
@@ -46,6 +50,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error de login');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          trackEvent('login', { method: 'email' });
           return { success: true };
         } catch (error) {
           set({ isLoading: false });
@@ -70,6 +75,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error de registro');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          trackEvent('sign_up', { method: 'email' });
           return { success: true };
         } catch (error) {
           set({ isLoading: false });
@@ -97,6 +103,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error con Google');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          trackEvent('login', { method: 'google' });
           return { success: true };
         } catch (error) {
           set({ isLoading: false });

@@ -34,6 +34,7 @@ export const PaymentSuccessPage = () => {
       
       if (data.payment_status === 'paid') {
         setStatus('success');
+        try { window.gtag?.('event', 'purchase', { transaction_id: sessionId }); } catch (_) {}
         await refreshUser();
       } else if (attemptsRef.current < 5) {
         attemptsRef.current += 1;
