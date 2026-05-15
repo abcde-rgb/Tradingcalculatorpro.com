@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { useNavigate, Link } from 'react-router-dom';
-import { Bitcoin, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { Bitcoin, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,9 @@ import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
 export const LoginPage = () => {
   const { t } = useTranslation();
@@ -72,9 +75,15 @@ export const LoginPage = () => {
               </div>
             </div>
             
-            <Button 
-              type="submit" 
-              disabled={isLoading} 
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isLoading}
               className="w-full bg-primary text-black hover:bg-primary/90"
               data-testid="login-submit"
             >
@@ -84,7 +93,7 @@ export const LoginPage = () => {
           </form>
 
           <GoogleSignInButton />
-          
+
           <div className="mt-6 text-center text-sm">
             <span className="text-muted-foreground">{t('noTienesCuenta_ba7c96')} </span>
             <Link to="/register" className="text-primary hover:underline">{t('registrate_48a11f')}</Link>
@@ -201,6 +210,178 @@ export const RegisterPage = () => {
             <span className="text-muted-foreground">{t('yaTienesCuenta_7e833c')} </span>
             <Link to="/login" className="text-primary hover:underline">{t('iniciaSesion_0e195f')}</Link>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export const ResetPasswordPage = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState('');
+  const token = searchParams.get('token');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (password !== confirm) { setError('Las contraseñas no coinciden'); return; }
+    if (password.length < 4) { setError('Mínimo 4 caracteres'); return; }
+    setError('');
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, new_password: password }),
+      });
+      const data = await res.json();
+      if (res.ok) { setDone(true); }
+      else { setError(data.detail || 'Error al restablecer la contraseña'); }
+    } catch (_) { setError('Error de conexión'); }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md bg-card border-border">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
+            <KeyRound className="w-10 h-10 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-unbounded">Nueva contraseña</CardTitle>
+          <p className="text-muted-foreground text-sm mt-2">Elige una nueva contraseña para tu cuenta.</p>
+        </CardHeader>
+        <CardContent>
+          {done ? (
+            <div className="text-center space-y-4">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
+              <p className="text-sm text-muted-foreground">Contraseña actualizada correctamente.</p>
+              <Button className="w-full bg-primary text-black hover:bg-primary/90" onClick={() => navigate('/login')}>
+                Iniciar sesión
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!token && (
+                <p className="text-sm text-destructive text-center">Enlace inválido. Solicita uno nuevo.</p>
+              )}
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Nueva contraseña</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••" className="pl-10 bg-black/50 border-white/10" required />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Confirmar contraseña</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+                    placeholder="••••••••" className="pl-10 bg-black/50 border-white/10" required />
+                </div>
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" disabled={isLoading || !token}
+                className="w-full bg-primary text-black hover:bg-primary/90">
+                {isLoading ? 'Guardando...' : 'Guardar nueva contraseña'}
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+              <div className="text-center text-sm">
+                <Link to="/login" className="text-primary hover:underline">Volver al inicio de sesión</Link>
+              </div>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export const ForgotPasswordPage = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    if (!API) {
+      await new Promise(r => setTimeout(r, 600));
+      setSent(true);
+      setIsLoading(false);
+      return;
+    }
+    try {
+      await fetch(`${API}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch (_) {}
+    setSent(true);
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md bg-card border-border">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
+            <KeyRound className="w-10 h-10 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-unbounded">Recuperar contraseña</CardTitle>
+          <p className="text-muted-foreground text-sm mt-2">
+            Te enviaremos un enlace para restablecer tu contraseña.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {sent ? (
+            <div className="text-center space-y-4">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
+              <p className="text-sm text-muted-foreground">
+                Si existe una cuenta con ese email, recibirás un enlace en breve.
+              </p>
+              <Button className="w-full" onClick={() => navigate('/login')}>
+                Volver al inicio de sesión
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tu@email.com"
+                    className="pl-10 bg-black/50 border-white/10"
+                    required
+                  />
+                </div>
+              </div>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-primary text-black hover:bg-primary/90"
+              >
+                {isLoading ? 'Enviando...' : 'Enviar enlace'}
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+              <div className="text-center text-sm">
+                <Link to="/login" className="text-primary hover:underline">
+                  Volver al inicio de sesión
+                </Link>
+              </div>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

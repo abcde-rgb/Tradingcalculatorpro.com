@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "homepage": "/Tradingcalculatorpro.com",
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
     "@paypal/react-paypal-js": "^9.0.1",
@@ -33,6 +34,7 @@
     "@radix-ui/react-toggle-group": "^1.1.7",
     "@radix-ui/react-tooltip": "^1.2.4",
     "@react-oauth/google": "^0.13.5",
+    "ajv": "^8.20.0",
     "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

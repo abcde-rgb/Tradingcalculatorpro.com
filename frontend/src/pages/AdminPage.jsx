@@ -4,8 +4,13 @@ import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
   Shield, ShieldOff, RefreshCw, Mail, Globe2, Calendar,
   Plug, Check, X, Plus, Pencil, Trash2, KeyRound, Save, Loader2,
-  Eye, EyeOff, History, FileText,
+  Eye, EyeOff, History, FileText, Tag, Activity, UserCheck,
+  Zap, TrendingDown, Percent, AlertCircle, ChevronDown, ChevronUp,
 } from 'lucide-react';
+import {
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -32,6 +37,9 @@ const PLAN_OPTIONS = [
   { value: 'annual',    label: 'Annual' },
   { value: 'lifetime',  label: 'Lifetime' },
 ];
+
+const PLAN_COLORS = { none: '#6b7280', free: '#6b7280', monthly: '#3b82f6', quarterly: '#8b5cf6', annual: '#10b981', lifetime: '#f59e0b' };
+
 
 /**
  * /admin — gated by `is_admin === true`.
@@ -169,6 +177,18 @@ export default function AdminPage() {
     }
   };
 
+  const handleImpersonate = async (u) => {
+    try {
+      const res = await fetch(`${API}/admin/impersonate/${u.id}`, { method: 'POST', headers });
+      if (!res.ok) throw new Error('impersonate failed');
+      const data = await res.json();
+      await navigator.clipboard?.writeText(data.token).catch(() => {});
+      toast.success(`Token de ${u.email} copiado al portapapeles (válido 1h)`);
+    } catch {
+      toast.error('Error al impersonar usuario');
+    }
+  };
+
   if (!isAuthenticated || !user?.is_admin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -194,7 +214,7 @@ export default function AdminPage() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">{t('adminPanelSubtitle')}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={loadAll} className="gap-2" data-testid="admin-refresh">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               {t('adminRefresh')}
@@ -298,7 +318,7 @@ export default function AdminPage() {
                       <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
                       <td className="px-3 py-2">{u.name}</td>
                       <td className="px-3 py-2">
-                        <Badge variant={u.is_premium ? 'default' : 'outline'}>
+                        <Badge style={{ background: `${PLAN_COLORS[u.subscription_plan || 'free']}30`, color: PLAN_COLORS[u.subscription_plan || 'free'], border: `1px solid ${PLAN_COLORS[u.subscription_plan || 'free']}50` }}>
                           {u.subscription_plan || 'free'}
                         </Badge>
                       </td>
@@ -320,6 +340,14 @@ export default function AdminPage() {
                             className="gap-1 h-7" data-testid={`admin-edit-${u.email}`}>
                             <Pencil className="w-3 h-3" /> Editar
                           </Button>
+                          {!isSelf && (
+                            <Button size="sm" variant="outline"
+                              onClick={() => handleImpersonate(u)}
+                              className="gap-1 h-7 text-blue-500 border-blue-500/30 hover:bg-blue-500/10"
+                              data-testid={`admin-impersonate-${u.email}`}>
+                              <UserCheck className="w-3 h-3" /> Ver como
+                            </Button>
+                          )}
                           <Button size="sm" variant={u.is_admin ? 'destructive' : 'outline'}
                             onClick={() => togglePromote(u.email, u.is_admin)}
                             className="gap-1 h-7" data-testid={`admin-toggle-${u.email}`}>
@@ -357,6 +385,24 @@ export default function AdminPage() {
         </Card>
         {/* Audit Log */}
         <AuditLogPanel headers={headers} />
+
+        {/* Revenue Analytics */}
+        <RevenueAnalyticsCard metrics={metrics} headers={headers} />
+
+        {/* Plan Distribution + Usage side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PlanDistributionCard metrics={metrics} />
+          <UsageAnalyticsCard headers={headers} />
+        </div>
+
+        {/* Coupon Manager */}
+        <CouponManagerCard headers={headers} />
+
+        {/* Feature Flags */}
+        <FeatureFlagsCard headers={headers} />
+
+        {/* Stripe Webhook Logs */}
+        <WebhookLogsCard headers={headers} />
       </main>
 
       {/* MODALS */}
@@ -1125,6 +1171,418 @@ function AuditLogPanel({ headers }) {
                 </td>
               </tr>
             )}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+ *  REVENUE ANALYTICS
+ * ============================================================ */
+function RevenueAnalyticsCard({ metrics, headers }) {
+  const [history, setHistory] = useState([]);
+  const [stats, setStats] = useState({ churn: null, conversion: null, ltv: {} });
+
+  useEffect(() => {
+    fetch(`${API}/admin/revenue`, { headers }).then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.mrr_history) setHistory(d.mrr_history);
+      if (d?.churn_rate !== undefined) setStats(s => ({ ...s, churn: d.churn_rate, conversion: d.conversion_rate, ltv: d.ltv || {} }));
+    }).catch(() => {});
+  }, []); // eslint-disable-line
+
+  const currentMrr = history[history.length - 1]?.mrr || 0;
+  const prevMrr = history[history.length - 2]?.mrr || 0;
+  const growth = prevMrr ? (((currentMrr - prevMrr) / prevMrr) * 100).toFixed(1) : 0;
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary" /> Revenue Analytics
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <p className="text-xs text-muted-foreground">MRR actual</p>
+            <p className="text-xl font-bold text-green-500">${currentMrr.toLocaleString()}</p>
+            <p className={`text-xs ${growth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {growth >= 0 ? '+' : ''}{growth}% vs mes anterior
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <p className="text-xs text-muted-foreground">Churn rate</p>
+            <p className="text-xl font-bold text-red-400">{stats.churn != null ? `${stats.churn}%` : '—'}</p>
+            <p className="text-xs text-muted-foreground">mensual</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <p className="text-xs text-muted-foreground">Conversión Free→Premium</p>
+            <p className="text-xl font-bold text-blue-400">{stats.conversion != null ? `${stats.conversion}%` : '—'}</p>
+            <p className="text-xs text-muted-foreground">este mes</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <p className="text-xs text-muted-foreground">LTV Lifetime</p>
+            <p className="text-xl font-bold text-amber-400">{stats.ltv?.lifetime != null ? `$${stats.ltv.lifetime}` : '—'}</p>
+            <p className="text-xs text-muted-foreground">pago único</p>
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">Evolución MRR (6 meses)</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart data={history}>
+              <defs>
+                <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#6b7280' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} tickFormatter={v => `$${v}`} />
+              <Tooltip formatter={v => [`$${v}`, 'MRR']} contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
+              <Area type="monotone" dataKey="mrr" stroke="#10b981" fill="url(#mrrGrad)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground mb-1">LTV por plan</p>
+          <div className="flex gap-3 flex-wrap">
+            {Object.entries(stats.ltv).map(([plan, ltv]) => (
+              <div key={plan} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ background: PLAN_COLORS[plan] || '#6b7280' }} />
+                <span className="text-xs capitalize">{plan}: <strong>${ltv}</strong></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+ *  PLAN DISTRIBUTION
+ * ============================================================ */
+function PlanDistributionCard({ metrics }) {
+  const rawDist = metrics?.by_plan
+    ? Object.entries(metrics.by_plan).map(([plan, count]) => ({ plan: plan === 'null' || !plan ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1), count }))
+    : [];
+
+  const total = rawDist.reduce((s, d) => s + d.count, 0);
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Percent className="w-4 h-4 text-primary" /> Distribución de Planes
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={rawDist} dataKey="count" nameKey="plan" cx="50%" cy="50%" outerRadius={70} label={({ plan, percent }) => `${plan} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                {rawDist.map((entry) => (
+                  <Cell key={entry.plan} fill={PLAN_COLORS[entry.plan.toLowerCase()] || '#6b7280'} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="space-y-2">
+            {rawDist.map(({ plan, count }) => (
+              <div key={plan} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm shrink-0" style={{ background: PLAN_COLORS[plan.toLowerCase()] || '#6b7280' }} />
+                <div className="flex-1">
+                  <div className="flex justify-between text-sm mb-0.5">
+                    <span className="capitalize">{plan}</span>
+                    <span className="font-medium">{count} <span className="text-muted-foreground text-xs">({total ? ((count / total) * 100).toFixed(0) : 0}%)</span></span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${total ? (count / total) * 100 : 0}%`, background: PLAN_COLORS[plan.toLowerCase()] || '#6b7280' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+ *  USAGE ANALYTICS
+ * ============================================================ */
+function UsageAnalyticsCard({ headers }) {
+  const [data, setData] = useState([]);
+  const [activeUsers, setActiveUsers] = useState({ day: null, week: null, month: null });
+
+  useEffect(() => {
+    fetch(`${API}/admin/usage`, { headers }).then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.calc_usage) setData(d.calc_usage);
+      if (d?.active_users) setActiveUsers(d.active_users);
+    }).catch(() => {});
+  }, []); // eslint-disable-line
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Activity className="w-4 h-4 text-primary" /> Analytics de Uso
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          {[['DAU', activeUsers.day], ['WAU', activeUsers.week], ['MAU', activeUsers.month]].map(([label, val]) => (
+            <div key={label} className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xl font-bold">{val != null ? val.toLocaleString() : '—'}</p>
+            </div>
+          ))}
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">Calculadoras más usadas</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={data} layout="vertical" margin={{ left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: '#6b7280' }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} width={90} />
+              <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
+              <Bar dataKey="usos" fill="#10b981" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+ *  COUPON MANAGER
+ * ============================================================ */
+function CouponManagerCard({ headers }) {
+  const [coupons, setCoupons] = useState([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState({ id: '', discount: 20, type: 'percent', max_uses: '', expires: '' });
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    const res = await fetch(`${API}/admin/coupons`, { headers }).catch(() => null);
+    if (res?.ok) setCoupons(await res.json());
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line
+
+  const create = async () => {
+    if (!form.id) return toast.error('Introduce un código');
+    setBusy(true);
+    const res = await fetch(`${API}/admin/coupons`, { method: 'POST', headers, body: JSON.stringify(form) }).catch(() => null);
+    setBusy(false);
+    if (res?.ok) { load(); setCreateOpen(false); toast.success('Cupón creado'); }
+    else toast.error('Error creando cupón');
+  };
+
+  const toggle = async (coupon) => {
+    await fetch(`${API}/admin/coupons/${coupon.id}/toggle`, { method: 'POST', headers }).catch(() => null);
+    load();
+  };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Tag className="w-4 h-4 text-primary" /> Cupones y Descuentos
+          </CardTitle>
+          <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1 h-7">
+            <Plus className="w-3 h-3" /> Nuevo cupón
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left">
+              {['Código', 'Descuento', 'Usos', 'Máx.', 'Expira', 'Estado', ''].map(h => (
+                <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {coupons.map(c => (
+              <tr key={c.id} className="border-t border-border hover:bg-muted/20">
+                <td className="px-3 py-2 font-mono font-bold text-primary">{c.id}</td>
+                <td className="px-3 py-2">{c.discount}{c.type === 'percent' ? '%' : '$'}</td>
+                <td className="px-3 py-2">{c.uses}</td>
+                <td className="px-3 py-2 text-muted-foreground">{c.max_uses ?? '∞'}</td>
+                <td className="px-3 py-2 text-muted-foreground text-xs">{c.expires ?? '—'}</td>
+                <td className="px-3 py-2">
+                  <Badge className={c.active ? 'bg-green-500/15 text-green-500' : 'bg-muted text-muted-foreground'}>
+                    {c.active ? 'Activo' : 'Inactivo'}
+                  </Badge>
+                </td>
+                <td className="px-3 py-2">
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => toggle(c)}>
+                    {c.active ? 'Desactivar' : 'Activar'}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+      <Dialog open={createOpen} onOpenChange={v => !v && setCreateOpen(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Crear cupón</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Código *</Label><Input value={form.id} onChange={e => setForm({ ...form, id: e.target.value.toUpperCase() })} placeholder="PROMO20" /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Descuento</Label><Input type="number" value={form.discount} onChange={e => setForm({ ...form, discount: +e.target.value })} /></div>
+              <div><Label>Tipo</Label>
+                <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="percent">%</SelectItem><SelectItem value="fixed">$ fijo</SelectItem></SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div><Label>Máx. usos (vacío = ilimitado)</Label><Input type="number" value={form.max_uses} onChange={e => setForm({ ...form, max_uses: e.target.value })} /></div>
+            <div><Label>Fecha expiración (opcional)</Label><Input type="date" value={form.expires} onChange={e => setForm({ ...form, expires: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button onClick={create} disabled={busy}>{busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}Crear</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+/* ============================================================
+ *  FEATURE FLAGS
+ * ============================================================ */
+function FeatureFlagsCard({ headers }) {
+  const [flags, setFlags] = useState([]);
+
+  const load = async () => {
+    const res = await fetch(`${API}/admin/feature-flags`, { headers }).catch(() => null);
+    if (res?.ok) setFlags(await res.json());
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line
+
+  const toggle = async (flag) => {
+    const updated = flags.map(f => f.id === flag.id ? { ...f, enabled: !f.enabled } : f);
+    setFlags(updated);
+    await fetch(`${API}/admin/feature-flags/${flag.id}`, { method: 'PATCH', headers, body: JSON.stringify({ enabled: !flag.enabled }) }).catch(() => {});
+  };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Zap className="w-4 h-4 text-primary" /> Feature Flags
+        </CardTitle>
+        <p className="text-[11px] text-muted-foreground">Activa o desactiva funcionalidades sin desplegar código.</p>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {flags.map(flag => (
+            <div key={flag.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{flag.label}</span>
+                  <Badge variant="outline" className="text-[10px]">{flag.plans}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">{flag.desc}</p>
+              </div>
+              <Switch checked={flag.enabled} onCheckedChange={() => toggle(flag)} />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+ *  STRIPE WEBHOOK LOGS
+ * ============================================================ */
+const WEBHOOK_COLORS = {
+  'payment_intent.succeeded': 'bg-green-500/15 text-green-500',
+  'customer.subscription.created': 'bg-blue-500/15 text-blue-400',
+  'customer.subscription.deleted': 'bg-red-500/15 text-red-400',
+  'invoice.payment_failed': 'bg-red-500/20 text-red-500',
+  'invoice.paid': 'bg-green-500/15 text-green-500',
+};
+
+function WebhookLogsCard({ headers }) {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const res = await fetch(`${API}/admin/webhooks?limit=20`, { headers }).catch(() => null);
+    setLoading(false);
+    if (res?.ok) setLogs(await res.json());
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line
+
+  const retry = async (id) => {
+    await fetch(`${API}/admin/webhooks/${id}/retry`, { method: 'POST', headers }).catch(() => null);
+    toast.success('Webhook reenviado');
+    load();
+  };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-primary" /> Stripe Webhook Logs
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={load} className="gap-1 h-7">
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Refrescar
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Últimos eventos recibidos de Stripe.</p>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left">
+              {['Evento', 'Importe', 'Customer', 'Fecha', 'Estado', ''].map(h => (
+                <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map(log => (
+              <tr key={log.id} className="border-t border-border hover:bg-muted/20">
+                <td className="px-3 py-2">
+                  <Badge className={`text-[10px] ${WEBHOOK_COLORS[log.type] || 'bg-muted text-muted-foreground'}`}>
+                    {log.type}
+                  </Badge>
+                </td>
+                <td className="px-3 py-2 font-mono text-xs">{log.amount ? `$${(log.amount / 100).toFixed(2)}` : '—'}</td>
+                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{log.customer}</td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{log.created?.slice(0, 16).replace('T', ' ')}</td>
+                <td className="px-3 py-2">
+                  <Badge className={log.status === 'ok' ? 'bg-green-500/15 text-green-500' : 'bg-red-500/15 text-red-500'}>
+                    {log.status === 'ok' ? 'OK' : 'Error'}
+                  </Badge>
+                </td>
+                <td className="px-3 py-2">
+                  {log.status !== 'ok' && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => retry(log.id)}>Reintentar</Button>
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </CardContent>

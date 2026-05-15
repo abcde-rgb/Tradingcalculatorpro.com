@@ -1,7 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
+
+function trackEvent(eventName, params = {}) {
+  try { window.gtag?.('event', eventName, params); } catch (_) {}
+}
+
+const DEMO_USER = { id: 'demo', name: 'Demo Trader', email: 'demo@btccalc.pro', plan: 'premium', is_admin: true, is_premium: true, subscription_plan: 'lifetime' };
+const DEMO_TOKEN = 'demo-token';
 
 // Helper para leer respuesta de forma segura sin error "body stream already read"
 async function safeJson(res) {
@@ -24,6 +32,15 @@ export const useAuthStore = create(
 
       login: async (email, password) => {
         set({ isLoading: true });
+        if (!API) {
+          await new Promise(r => setTimeout(r, 400));
+          if (email === 'demo@btccalc.pro' && password === '1234') {
+            set({ user: DEMO_USER, token: DEMO_TOKEN, isAuthenticated: true, isLoading: false });
+            return { success: true };
+          }
+          set({ isLoading: false });
+          return { success: false, error: 'Preview mode: usa demo@btccalc.pro / 1234' };
+        }
         try {
           const res = await fetch(`${API}/auth/login`, {
             method: 'POST',
@@ -33,6 +50,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error de login');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          trackEvent('login', { method: 'email' });
           return { success: true };
         } catch (error) {
           set({ isLoading: false });
@@ -42,6 +60,12 @@ export const useAuthStore = create(
 
       register: async (name, email, password) => {
         set({ isLoading: true });
+        if (!API) {
+          await new Promise(r => setTimeout(r, 400));
+          const demoUser = { ...DEMO_USER, name, email };
+          set({ user: demoUser, token: DEMO_TOKEN, isAuthenticated: true, isLoading: false });
+          return { success: true };
+        }
         try {
           const res = await fetch(`${API}/auth/register`, {
             method: 'POST',
@@ -51,6 +75,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error de registro');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          trackEvent('sign_up', { method: 'email' });
           return { success: true };
         } catch (error) {
           set({ isLoading: false });
@@ -65,6 +90,10 @@ export const useAuthStore = create(
        */
       loginWithGoogle: async (credential) => {
         set({ isLoading: true });
+        if (!API) {
+          set({ isLoading: false });
+          return { success: false, error: 'Google login no disponible en preview' };
+        }
         try {
           const res = await fetch(`${API}/auth/google`, {
             method: 'POST',
@@ -74,6 +103,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error con Google');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          trackEvent('login', { method: 'google' });
           return { success: true };
         } catch (error) {
           set({ isLoading: false });
@@ -83,23 +113,20 @@ export const useAuthStore = create(
 
       logout: async () => {
         const token = get().token;
-        // Best-effort revoke the JWT server-side so it can't be reused if leaked.
-        if (token) {
+        if (API && token && token !== DEMO_TOKEN) {
           try {
             await fetch(`${API}/auth/logout`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` },
             });
-          } catch (_) {
-            // Network failure is fine; the local session is still cleared below.
-          }
+          } catch (_) {}
         }
         set({ user: null, token: null, isAuthenticated: false });
       },
 
       refreshUser: async () => {
         const token = get().token;
-        if (!token) return;
+        if (!token || !API || token === DEMO_TOKEN) return;
         try {
           const res = await fetch(`${API}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -112,13 +139,17 @@ export const useAuthStore = create(
           if (process.env.NODE_ENV !== 'production') {
             console.error('Auth refresh failed:', error);
           }
-          // Silent fail for auth refresh - user will need to re-login
         }
       }
     }),
     {
       name: 'btc-auth-storage',
-      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated })
+      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.token === DEMO_TOKEN) {
+          state.user = { ...DEMO_USER, ...state.user, ...DEMO_USER };
+        }
+      },
     }
   )
 );

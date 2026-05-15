@@ -26,11 +26,11 @@ const PLANS_DATA = [
 
 // Payment methods will use t() for dynamic translation
 const PAYMENT_METHODS_DATA = [
-  { id: 'card', icon: CreditCard, color: 'text-blue-500', nameKey: 'creditDebitCard', descKey: 'creditCardDesc' },
-  { id: 'sepa', icon: Building, color: 'text-emerald-500', nameKey: 'sepaDebit', descKey: 'sepaDesc' },
-  { id: 'klarna', icon: ShoppingCart, color: 'text-pink-500', nameKey: 'klarnaPayment', descKey: 'klarnaDesc' },
-  { id: 'paypal', icon: Wallet, color: 'text-blue-400', nameKey: 'paypalPayment', descKey: 'paypalDesc' },
-  { id: 'crypto', icon: Bitcoin, color: 'text-orange-500', nameKey: 'cryptoPayment', descKey: 'cryptoDesc' },
+  { id: 'card',    icon: CreditCard,  color: 'text-blue-500',   nameKey: 'creditDebitCard', descKey: 'creditCardDesc', lifetimeOnly: false },
+  { id: 'sepa',    icon: Building,    color: 'text-emerald-500', nameKey: 'sepaDebit',       descKey: 'sepaDesc',       lifetimeOnly: false },
+  { id: 'klarna',  icon: ShoppingCart,color: 'text-pink-500',   nameKey: 'klarnaPayment',   descKey: 'klarnaDesc',     lifetimeOnly: true  },
+  { id: 'paypal',  icon: Wallet,      color: 'text-blue-400',   nameKey: 'paypalPayment',   descKey: 'paypalDesc',     lifetimeOnly: false },
+  { id: 'crypto',  icon: Bitcoin,     color: 'text-orange-500', nameKey: 'cryptoPayment',   descKey: 'cryptoDesc',     lifetimeOnly: false },
 ];
 
 // Processor name displayed in "Secure payment via {processor}" footer
@@ -62,7 +62,14 @@ export default function PricingPage() {
     if (urlPlan && PLANS_DATA.find(p => p.id === urlPlan)) {
       setSelectedPlan(urlPlan);
     }
-  }, [searchParams]); // Fixed: removed setSelectedPlan and PLANS_DATA (stable/constant)
+  }, [searchParams]);
+
+  // Auto-deselect Klarna when switching away from lifetime
+  useEffect(() => {
+    if (selectedPlan !== 'lifetime' && selectedPayment === 'klarna') {
+      setSelectedPayment('card');
+    }
+  }, [selectedPlan, selectedPayment]);
 
   const isPremium = user?.is_premium || user?.email === 'demo@btccalc.pro';
 
@@ -97,6 +104,7 @@ export default function PricingPage() {
       const data = await response.json();
 
       if (response.ok && data.checkout_url) {
+        try { window.gtag?.('event', 'begin_checkout', { plan: selectedPlan, payment_method: selectedPayment }); } catch (_) {}
         window.location.href = data.checkout_url;
       } else {
         toast.error(data.detail || t('checkoutError'));
@@ -187,25 +195,44 @@ export default function PricingPage() {
                 <CardTitle>{t('paymentMethodTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {PAYMENT_METHODS_DATA.map((method) => (
-                  <button
-                    key={method.id}
-                    onClick={() => setSelectedPayment(method.id)}
-                    className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${
-                      selectedPayment === method.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'
-                    }`}
-                    data-testid={`payment-${method.id}`}
-                  >
-                    <method.icon className={`w-8 h-8 ${method.color}`} />
-                    <div className="text-left">
-                      <p className="font-semibold">{t(method.nameKey)}</p>
-                      <p className="text-sm text-muted-foreground">{t(method.descKey)}</p>
-                    </div>
-                    {selectedPayment === method.id && (
-                      <Check className="w-5 h-5 text-primary ml-auto" />
-                    )}
-                  </button>
-                ))}
+                {PAYMENT_METHODS_DATA.map((method) => {
+                  const isKlarnaLocked = method.lifetimeOnly && selectedPlan !== 'lifetime';
+                  return (
+                    <button
+                      key={method.id}
+                      onClick={() => {
+                        if (isKlarnaLocked) return;
+                        setSelectedPayment(method.id);
+                      }}
+                      disabled={isKlarnaLocked}
+                      title={isKlarnaLocked ? 'Klarna solo disponible en el plan De Por Vida (€500)' : undefined}
+                      className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${
+                        isKlarnaLocked
+                          ? 'border-border opacity-40 cursor-not-allowed'
+                          : selectedPayment === method.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/30'
+                      }`}
+                      data-testid={`payment-${method.id}`}
+                    >
+                      <method.icon className={`w-8 h-8 ${method.color}`} />
+                      <div className="text-left flex-1">
+                        <p className="font-semibold flex items-center gap-2">
+                          {t(method.nameKey)}
+                          {method.lifetimeOnly && (
+                            <span className="text-[10px] bg-pink-500/20 text-pink-400 px-1.5 py-0.5 rounded-full font-normal">
+                              Solo Lifetime
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{t(method.descKey)}</p>
+                      </div>
+                      {selectedPayment === method.id && !isKlarnaLocked && (
+                        <Check className="w-5 h-5 text-primary ml-auto" />
+                      )}
+                    </button>
+                  );
+                })}
               </CardContent>
             </Card>
             

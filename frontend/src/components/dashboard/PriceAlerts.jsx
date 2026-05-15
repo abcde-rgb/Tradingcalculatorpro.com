@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Plus, Trash2 } from 'lucide-react';
+import { Bell, Plus, Trash2, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
+import { useWebSocketAlerts } from '@/hooks/useWebSocketAlerts';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -15,6 +16,7 @@ export const PriceAlerts = () => {
   const { isAuthenticated, token } = useAuthStore();
   const { t } = useTranslation();
   const [alerts, setAlerts] = useState([]);
+  const [wsConnected, setWsConnected] = useState(false);
   const [newAlert, setNewAlert] = useState({
     symbol: 'BTC',
     target_price: '',
@@ -32,13 +34,27 @@ export const PriceAlerts = () => {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Failed to fetch alerts:', error);
       }
-      // Silent error - alerts component will show empty state
     }
   }, [token]);
 
   useEffect(() => {
     if (isAuthenticated) fetchAlerts();
-  }, [isAuthenticated, fetchAlerts]); // Fixed: added fetchAlerts dependency
+  }, [isAuthenticated, fetchAlerts]);
+
+  // Real-time WebSocket push: mark triggered alerts and show toast
+  useWebSocketAlerts(token, useCallback((data) => {
+    if (data.type === 'connected') {
+      setWsConnected(true);
+      return;
+    }
+    if (data.type === 'alert_triggered' && data.alert) {
+      const { symbol, condition, target_price } = data.alert;
+      toast.success(`🔔 ${symbol} ${condition === 'above' ? '↑' : '↓'} $${Number(target_price).toLocaleString()}`, {
+        duration: 8000,
+      });
+      fetchAlerts();
+    }
+  }, [fetchAlerts]));
 
   const createAlert = async () => {
     if (!newAlert.target_price) return;
@@ -90,6 +106,11 @@ export const PriceAlerts = () => {
         <CardTitle className="flex items-center gap-2">
           <Bell className="w-5 h-5 text-yellow-500" />
           {t('alerts')}
+          {wsConnected && (
+            <span className="ml-auto flex items-center gap-1 text-xs font-normal text-green-500">
+              <Zap className="w-3 h-3" /> Live
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
