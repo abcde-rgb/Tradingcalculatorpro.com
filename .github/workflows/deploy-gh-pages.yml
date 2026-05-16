@@ -1,10 +1,16 @@
 name: Build & Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
   workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
@@ -28,16 +34,15 @@ jobs:
       - name: Build
         working-directory: frontend
         env:
-          # Set these as GitHub Secrets in Settings → Secrets → Actions
           REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
           REACT_APP_GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
           REACT_APP_GA4_MEASUREMENT_ID: ${{ secrets.REACT_APP_GA4_MEASUREMENT_ID }}
-          # Suppress warnings-as-errors so the build never fails on lint warnings
+          PUBLIC_URL: /Tradingcalculatorpro.com
           CI: false
         run: npm run build
 
-      # React Router needs 404.html = index.html so direct-URL loads work
-      - name: Copy index.html → 404.html for client-side routing
+      # React Router SPA — direct URL loads return the app instead of 404
+      - name: Copy index.html to 404.html
         run: cp frontend/build/index.html frontend/build/404.html
 
       - name: Deploy to gh-pages
@@ -45,6 +50,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: frontend/build
-          # Preserve existing files not produced by this build (sitemap, robots.txt…)
           keep_files: false
           force_orphan: false
