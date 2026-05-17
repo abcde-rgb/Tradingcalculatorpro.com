@@ -1263,7 +1263,62 @@ async def reset_password(request: Request, body: ResetPasswordRequest):
         {"$set": {"password": hash_password(body.new_password)}},
     )
     await db.password_resets.update_one({"token": body.token}, {"$set": {"used": True}})
+    # Revoke all existing sessions so old tokens stop working
+    await db.user_revocations.update_one(
+        {"user_id": record["user_id"]},
+        {"$set": {"revoked_after": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
     return {"ok": True, "message": "Contraseña actualizada correctamente"}
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@api_router.post("/auth/change-password")
+@limiter.limit("5/hour")
+async def change_password(request: Request, body: ChangePasswordRequest, user: dict = Depends(require_user)):
+    """Authenticated user changes their own password."""
+    if len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 8 caracteres")
+
+    user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 1})
+    if not user_doc or not user_doc.get("password"):
+        raise HTTPException(status_code=400, detail="Esta cuenta usa login con Google. Usa la opción de Google para gestionar tu contraseña.")
+
+    if not verify_password(body.current_password, user_doc["password"]):
+        raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
+
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password": hash_password(body.new_password)}},
+    )
+    # Revoke all existing sessions (force re-login)
+    await db.user_revocations.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"revoked_after": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"ok": True, "message": "Contraseña cambiada correctamente. Por seguridad, vuelve a iniciar sesión."}
+
+
+@api_router.delete("/auth/account")
+@limiter.limit("3/hour")
+async def delete_account(request: Request, user: dict = Depends(require_user)):
+    """RGPD: permanently delete the authenticated user's account and all data."""
+    user_id = user["id"]
+    # Delete all user data across collections
+    for collection in ["trades", "calculations", "alerts", "portfolio",
+                        "user_states", "payment_transactions", "performance_trades"]:
+        try:
+            await getattr(db, collection).delete_many({"user_id": user_id})
+        except Exception:
+            pass
+    await db.users.delete_one({"id": user_id})
+    logging.info(f"[RGPD] Account deleted: {user_id}")
+    return {"ok": True, "message": "Cuenta eliminada permanentemente"}
 
 
 # ============= GOOGLE OAUTH =============
