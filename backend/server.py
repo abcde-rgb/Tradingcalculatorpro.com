@@ -1216,6 +1216,130 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+# ============= MAGIC LINK (Passwordless) =============
+
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+
+
+class MagicLinkVerifyRequest(BaseModel):
+    token: str
+
+
+@api_router.post("/auth/magic-link")
+@limiter.limit("3/hour")
+async def request_magic_link(request: Request, body: MagicLinkRequest):
+    """Send a one-time login link to the user's email. Creates account if it doesn't exist."""
+    email = body.email.lower().strip()
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user:
+        # Auto-create a passwordless account
+        import uuid as _uuid
+        user = {
+            "id": str(_uuid.uuid4()),
+            "email": email,
+            "name": email.split("@")[0].replace(".", " ").title(),
+            "auth_provider": "magic_link",
+            "password": None,
+            "is_admin": False,
+            "is_premium": False,
+            "subscription_plan": None,
+            "subscription_end": None,
+            "email_verified": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "login_count": 0,
+        }
+        await db.users.insert_one(user)
+
+    token = secrets.token_urlsafe(32)
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
+    await db.password_resets.insert_one({
+        "token": token,
+        "user_id": user["id"],
+        "email": email,
+        "type": "magic_link",
+        "used": False,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
+    magic_url = f"{frontend_url}/magic?token={token}"
+    # Send email (non-blocking)
+    import asyncio as _asyncio
+    _asyncio.create_task(_send_magic_link_email(email, user.get("name", ""), magic_url))
+    # In dev (no SendGrid), log the link
+    if not SENDGRID_API_KEY:
+        logging.info(f"[magic-link] DEV MODE — link for {email}: {magic_url}")
+    return {"ok": True, "message": "Si el email existe, recibirás el enlace en breve."}
+
+
+@api_router.post("/auth/magic-link/verify")
+@limiter.limit("10/minute")
+async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
+    """Exchange a magic link token for a session JWT."""
+    record = await db.password_resets.find_one(
+        {"token": body.token, "used": False, "type": "magic_link"}, {"_id": 0}
+    )
+    if not record:
+        raise HTTPException(status_code=400, detail="Enlace inválido o ya utilizado")
+    expires = datetime.fromisoformat(record["expires_at"])
+    if expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="El enlace ha expirado (15 minutos). Solicita uno nuevo.")
+    await db.password_resets.update_one({"token": body.token}, {"$set": {"used": True}})
+    user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    await db.users.update_one({"id": user["id"]}, {"$set": {
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "login_count": (user.get("login_count") or 0) + 1,
+        "auth_provider": user.get("auth_provider") or "magic_link",
+    }})
+    token = create_jwt(user["id"], user["email"])
+    return {
+        "access_token": token,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user.get("name", ""),
+            "is_admin": user.get("is_admin", False),
+            "is_premium": user.get("is_premium", False),
+            "subscription_plan": user.get("subscription_plan"),
+            "auth_provider": user.get("auth_provider", "magic_link"),
+        },
+    }
+
+
+async def _send_magic_link_email(to_email: str, name: str, magic_url: str) -> None:
+    if not SENDGRID_API_KEY:
+        return
+    try:
+        import httpx as _httpx
+        payload = {
+            "personalizations": [{"to": [{"email": to_email, "name": name}]}],
+            "from": {"email": SENDER_EMAIL, "name": "Trading Calculator PRO"},
+            "subject": "Tu enlace de acceso — Trading Calculator PRO",
+            "content": [{"type": "text/html", "value": f"""
+<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px">
+  <h2 style="color:#10b981">Trading Calculator PRO</h2>
+  <p>Hola {name},</p>
+  <p>Haz clic en el botón para iniciar sesión. El enlace expira en <strong>15 minutos</strong>.</p>
+  <a href="{magic_url}" style="display:inline-block;background:#10b981;color:#fff;padding:14px 28px;
+     border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
+    Iniciar sesión →
+  </a>
+  <p style="color:#888;font-size:12px">Si no solicitaste este enlace, ignora este email.</p>
+</div>"""}],
+        }
+        async with _httpx.AsyncClient(timeout=10) as c:
+            await c.post(
+                "https://api.sendgrid.com/v3/mail/send",
+                json=payload,
+                headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            )
+    except Exception as e:
+        logging.warning(f"[magic-link] email error: {e}")
+
+
 @api_router.post("/auth/forgot-password")
 @limiter.limit("3/hour")
 async def forgot_password(request: Request, body: ForgotPasswordRequest):

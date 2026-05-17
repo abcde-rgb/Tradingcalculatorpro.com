@@ -15,7 +15,7 @@ import SubscriptionPage from "@/pages/SubscriptionPage";
 import OptionsPage from "@/pages/OptionsPage";
 import PerformancePage from "@/pages/PerformancePage";
 import AdminPage from "@/pages/AdminPage";
-import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "@/pages/AuthPages";
+import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, MagicPage } from "@/pages/AuthPages";
 import { PaymentSuccessPage, PaymentCancelPage } from "@/pages/PaymentPages";
 import LegalPage from "@/pages/LegalPage";
 import ContactPage from "@/pages/ContactPage";
@@ -43,6 +43,7 @@ const AppContent = () => (
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/magic" element={<MagicPage />} />
         <Route path="/payment/success" element={<PaymentSuccessPage />} />
         <Route path="/payment/cancel" element={<PaymentCancelPage />} />
         <Route path="/legal" element={<LegalPage />} />

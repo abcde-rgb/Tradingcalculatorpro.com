@@ -282,12 +282,31 @@ class UpdateUserRequest(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     is_admin: Optional[bool] = None
+    is_premium: Optional[bool] = None
     subscription_plan: Optional[str] = None
     subscription_end: Optional[str] = None
+    subscription_status: Optional[str] = None
 
 
-class ResetPasswordRequest(BaseModel):
-    new_password: str
+class CreateUserRequest(BaseModel):
+    email: EmailStr
+    name: str
+    password: str
+    plan_id: Optional[str] = "free"
+    is_premium: bool = False
+    is_admin: bool = False
+
+
+class CouponRequest(BaseModel):
+    id: str
+    discount: float
+    type: str = "percent"
+    max_uses: Optional[int] = None
+    expires: Optional[str] = None
+
+
+class FeatureFlagPatch(BaseModel):
+    enabled: bool
 
 
 # ---------------------------------------------------------------------------
@@ -741,6 +760,358 @@ def build_admin_router(
             if isinstance(log.get("timestamp"), datetime):
                 log["timestamp"] = log["timestamp"].isoformat()
         return {"logs": logs, "total": total, "skip": skip, "limit": limit}
+
+    # =========================================================================
+    # PATCH /admin/users/{user_id}  — editar usuario (alias de POST para PATCH)
+    # DELETE /admin/users/{user_id} — eliminar usuario
+    # POST /admin/users             — crear usuario
+    # =========================================================================
+
+    @router.patch("/users/{user_id}")
+    async def patch_user(
+        user_id: str,
+        body: UpdateUserRequest,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Editar usuario vía PATCH (mismo comportamiento que POST)."""
+        target = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if not target:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        patch: Dict[str, Any] = {}
+        if body.name is not None:
+            patch["name"] = body.name
+        if body.email is not None:
+            new_email = body.email.lower()
+            conflict = await db.users.find_one({"email": new_email, "id": {"$ne": user_id}}, {"_id": 1})
+            if conflict:
+                raise HTTPException(status_code=400, detail="Ese email ya está en uso")
+            patch["email"] = new_email
+        if body.is_admin is not None:
+            if user_id == admin_user.get("id") and not body.is_admin:
+                raise HTTPException(status_code=400, detail="No puedes quitarte el rol de admin")
+            patch["is_admin"] = body.is_admin
+        if body.is_premium is not None:
+            patch["is_premium"] = body.is_premium
+        if body.subscription_plan is not None:
+            patch["subscription_plan"] = body.subscription_plan
+            if body.is_premium is None:
+                patch["is_premium"] = body.subscription_plan in subscription_plans
+        if body.subscription_end is not None:
+            patch["subscription_end"] = body.subscription_end
+        if body.subscription_status is not None:
+            patch["subscription_status"] = body.subscription_status
+        if not patch:
+            return {"success": True, "message": "Nada que actualizar"}
+        await db.users.update_one({"id": user_id}, {"$set": patch})
+        await _audit(admin_user, "update_user", target_id=user_id,
+                     target_email=target.get("email", ""), details=patch, request=request)
+        return {"success": True, "updated_fields": list(patch.keys())}
+
+    @router.delete("/users/{user_id}")
+    async def delete_user(
+        user_id: str,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        if user_id == admin_user.get("id"):
+            raise HTTPException(status_code=400, detail="No puedes eliminar tu propio usuario")
+        target = await db.users.find_one({"id": user_id}, {"_id": 0, "email": 1})
+        if not target:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        target_email = target.get("email", "")
+        for col in ["trades", "calculations", "alerts", "portfolio",
+                    "user_states", "payment_transactions", "performance_trades"]:
+            try:
+                await getattr(db, col).delete_many({"user_id": user_id})
+            except Exception:
+                pass
+        await db.users.delete_one({"id": user_id})
+        await _audit(admin_user, "delete_user", target_id=user_id, target_email=target_email, request=request)
+        return {"success": True, "deleted_user_id": user_id}
+
+    @router.post("/users")
+    async def create_user(
+        body: CreateUserRequest,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        import uuid, bcrypt as _bcrypt
+        existing = await db.users.find_one({"email": body.email.lower()}, {"_id": 1})
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe un usuario con ese email")
+        hashed = _bcrypt.hashpw(body.password.encode(), _bcrypt.gensalt()).decode()
+        plan = subscription_plans.get(body.plan_id) if body.plan_id != "free" else None
+        sub_end = None
+        if plan:
+            sub_end = (datetime.now(timezone.utc) + timedelta(days=plan.get("days", 30))).isoformat()
+        user_doc = {
+            "id": str(uuid.uuid4()),
+            "email": body.email.lower(),
+            "name": body.name,
+            "password": hashed,
+            "auth_provider": "password",
+            "is_admin": body.is_admin,
+            "is_premium": body.is_premium or bool(plan),
+            "subscription_plan": body.plan_id if body.plan_id != "free" else None,
+            "subscription_end": sub_end,
+            "subscription_status": "active" if plan else None,
+            "email_verified": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.users.insert_one(user_doc)
+        await _audit(admin_user, "create_user", target_email=body.email, request=request)
+        return {"success": True, "user_id": user_doc["id"], "email": body.email}
+
+    # =========================================================================
+    # POST /admin/impersonate/{user_id}
+    # =========================================================================
+
+    @router.post("/impersonate/{user_id}")
+    async def impersonate_user(
+        user_id: str,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Generate a 1-hour JWT for the target user (for debugging/support)."""
+        import jwt as _jwt, os as _os
+        if user_id == admin_user.get("id"):
+            raise HTTPException(status_code=400, detail="No puedes impersonar tu propio usuario")
+        target = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "email": 1, "name": 1, "is_admin": 1})
+        if not target:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        jwt_secret = _os.environ.get("JWT_SECRET", "")
+        payload = {
+            "user_id": target["id"],
+            "email": target.get("email"),
+            "impersonated_by": admin_user.get("email"),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        }
+        token = _jwt.encode(payload, jwt_secret, algorithm="HS256")
+        await _audit(admin_user, "impersonate_user", target_id=user_id,
+                     target_email=target.get("email", ""), request=request)
+        return {"token": token, "user_email": target.get("email"), "expires_in": 3600}
+
+    # =========================================================================
+    # GET /admin/revenue — Revenue analytics (MRR, churn, conversión, LTV)
+    # =========================================================================
+
+    @router.get("/revenue")
+    async def get_revenue(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """MRR history, churn, conversion rate y LTV calculados desde la DB."""
+        all_users: List[dict] = await db.users.find({}, {"_id": 0}).to_list(10000)
+        plan_price = {
+            "monthly":   subscription_plans.get("monthly",   {}).get("price", 17),
+            "quarterly": round(subscription_plans.get("quarterly", {}).get("price", 45) / 3, 2),
+            "annual":    round(subscription_plans.get("annual",    {}).get("price", 200) / 12, 2),
+            "lifetime":  0,
+        }
+        plan_ltv = {
+            "monthly":   subscription_plans.get("monthly",   {}).get("price", 17) * 12,
+            "quarterly": subscription_plans.get("quarterly", {}).get("price", 45) * 4,
+            "annual":    subscription_plans.get("annual",    {}).get("price", 200),
+            "lifetime":  subscription_plans.get("lifetime",  {}).get("price", 500),
+        }
+        now = datetime.now(timezone.utc)
+        total_users = len(all_users)
+        premium_users = [u for u in all_users if u.get("is_premium")]
+        mrr_current = round(sum(plan_price.get(u.get("subscription_plan", ""), 0) for u in premium_users), 2)
+        # MRR history: last 6 months (simulate from created_at distribution)
+        history = []
+        for i in range(5, -1, -1):
+            cutoff = now - timedelta(days=30 * i)
+            month_label = cutoff.strftime("%b %Y")
+            active_that_month = [
+                u for u in all_users
+                if u.get("is_premium") and (u.get("created_at") or "") <= cutoff.isoformat()
+            ]
+            mrr_month = round(sum(plan_price.get(u.get("subscription_plan", ""), 0) for u in active_that_month), 2)
+            history.append({"mes": month_label, "mrr": mrr_month})
+        # Churn: users who were premium and are not anymore
+        canceled = [u for u in all_users if u.get("subscription_status") in ("canceled", "expired", "unpaid")]
+        churn_rate = round(len(canceled) / max(len(premium_users) + len(canceled), 1) * 100, 1)
+        # Conversion: free -> premium
+        conversion_rate = round(len(premium_users) / max(total_users, 1) * 100, 1)
+        # ARR
+        arr = round(mrr_current * 12, 2)
+        return {
+            "mrr_current": mrr_current,
+            "arr": arr,
+            "churn": churn_rate,
+            "conversion": conversion_rate,
+            "ltv": plan_ltv,
+            "history": history,
+            "stats": {
+                "premium_users": len(premium_users),
+                "canceled_users": len(canceled),
+                "total_users": total_users,
+            },
+        }
+
+    # =========================================================================
+    # GET /admin/usage — Usage analytics
+    # =========================================================================
+
+    @router.get("/usage")
+    async def get_usage(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """DAU/WAU/MAU y uso de calculadoras desde logs de cálculos guardados."""
+        now = datetime.now(timezone.utc)
+        day_cutoff   = (now - timedelta(days=1)).isoformat()
+        week_cutoff  = (now - timedelta(days=7)).isoformat()
+        month_cutoff = (now - timedelta(days=30)).isoformat()
+        all_users: List[dict] = await db.users.find({}, {"_id": 0, "last_seen": 1}).to_list(10000)
+        dau = sum(1 for u in all_users if (u.get("last_seen") or "") >= day_cutoff)
+        wau = sum(1 for u in all_users if (u.get("last_seen") or "") >= week_cutoff)
+        mau = sum(1 for u in all_users if (u.get("last_seen") or "") >= month_cutoff)
+        # Calculators used: from calculations collection
+        calc_docs: List[dict] = await db.calculations.find(
+            {}, {"_id": 0, "type": 1, "calculator_type": 1, "created_at": 1}
+        ).to_list(5000)
+        calc_counts: Dict[str, int] = {}
+        for c in calc_docs:
+            ctype = c.get("type") or c.get("calculator_type") or "unknown"
+            calc_counts[ctype] = calc_counts.get(ctype, 0) + 1
+        calc_usage = sorted(
+            [{"name": k, "usos": v} for k, v in calc_counts.items()],
+            key=lambda x: x["usos"], reverse=True
+        )[:10]
+        # Trades in journal
+        trade_count = await db.performance_trades.count_documents({})
+        alert_count = await db.alerts.count_documents({})
+        return {
+            "active_users": {"day": dau, "week": wau, "month": mau},
+            "calc_usage": calc_usage,
+            "total_calculations": len(calc_docs),
+            "total_journal_trades": trade_count,
+            "total_alerts": alert_count,
+        }
+
+    # =========================================================================
+    # GET /admin/webhooks  — Stripe webhook logs
+    # POST /admin/webhooks/{id}/retry
+    # =========================================================================
+
+    @router.get("/webhooks")
+    async def get_webhook_logs(
+        limit: int = Query(20, ge=1, le=200),
+        _admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        logs = await db.stripe_webhook_logs.find(
+            {}, {"_id": 0}
+        ).sort("created", -1).to_list(limit)
+        return {"logs": logs, "total": len(logs)}
+
+    @router.post("/webhooks/{event_id}/retry")
+    async def retry_webhook(
+        event_id: str,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        log = await db.stripe_webhook_logs.find_one({"id": event_id}, {"_id": 0})
+        if not log:
+            raise HTTPException(status_code=404, detail="Webhook event not found")
+        await db.stripe_webhook_logs.update_one(
+            {"id": event_id}, {"$set": {"status": "retry_requested", "retried_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        await _audit(admin_user, "retry_webhook", details={"event_id": event_id}, request=request)
+        return {"success": True, "event_id": event_id, "status": "retry_requested"}
+
+    # =========================================================================
+    # GET /admin/coupons  — Listar cupones
+    # POST /admin/coupons — Crear cupón
+    # POST /admin/coupons/{id}/toggle — Activar/desactivar
+    # =========================================================================
+
+    @router.get("/coupons")
+    async def list_coupons(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        coupons = await db.coupons.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+        return {"coupons": coupons}
+
+    @router.post("/coupons")
+    async def create_coupon(
+        body: CouponRequest,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        existing = await db.coupons.find_one({"id": body.id.upper()}, {"_id": 1})
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Cupón '{body.id}' ya existe")
+        if body.type not in ("percent", "fixed"):
+            raise HTTPException(status_code=400, detail="Tipo debe ser 'percent' o 'fixed'")
+        if body.type == "percent" and not (0 < body.discount <= 100):
+            raise HTTPException(status_code=400, detail="Descuento porcentual debe estar entre 1 y 100")
+        coupon = {
+            "id": body.id.upper(),
+            "discount": body.discount,
+            "type": body.type,
+            "max_uses": body.max_uses,
+            "uses": 0,
+            "expires": body.expires,
+            "active": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": admin_user.get("email", ""),
+        }
+        await db.coupons.insert_one(coupon)
+        await _audit(admin_user, "create_coupon", details={"coupon_id": body.id}, request=request)
+        return {"success": True, "coupon": coupon}
+
+    @router.post("/coupons/{coupon_id}/toggle")
+    async def toggle_coupon(
+        coupon_id: str,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        coupon = await db.coupons.find_one({"id": coupon_id.upper()}, {"_id": 0})
+        if not coupon:
+            raise HTTPException(status_code=404, detail="Cupón no encontrado")
+        new_state = not coupon.get("active", True)
+        await db.coupons.update_one({"id": coupon_id.upper()}, {"$set": {"active": new_state}})
+        await _audit(admin_user, "toggle_coupon", details={"coupon_id": coupon_id, "active": new_state}, request=request)
+        return {"success": True, "coupon_id": coupon_id, "active": new_state}
+
+    # =========================================================================
+    # GET /admin/feature-flags
+    # PATCH /admin/feature-flags/{id}
+    # =========================================================================
+
+    DEFAULT_FEATURE_FLAGS = [
+        {"id": "monte_carlo",   "label": "Monte Carlo",          "desc": "Simulación de escenarios",       "plans": "Premium+", "enabled": True},
+        {"id": "backtest",      "label": "Backtest histórico",   "desc": "Datos reales yfinance",          "plans": "Premium+", "enabled": True},
+        {"id": "ai_coach",      "label": "AI Trade Coach",       "desc": "Análisis IA de opciones",        "plans": "Premium+", "enabled": True},
+        {"id": "iv_surface",    "label": "IV Surface 3D",        "desc": "Superficie de volatilidad",      "plans": "Premium+", "enabled": True},
+        {"id": "market_flow",   "label": "Market Flow",          "desc": "Flow intraday de opciones",      "plans": "Premium+", "enabled": True},
+        {"id": "unusual_activity","label": "Unusual Activity",   "desc": "Opciones inusuales",             "plans": "Premium+", "enabled": True},
+        {"id": "portfolio_greeks","label": "Portfolio Greeks",   "desc": "Griegos agregados de cartera",   "plans": "Premium+", "enabled": True},
+        {"id": "alert_emails",  "label": "Email Alerts",         "desc": "Alertas de precio por email",    "plans": "Todos",    "enabled": True},
+        {"id": "journal",       "label": "Trade Journal",        "desc": "Diario de trading",              "plans": "Todos",    "enabled": True},
+        {"id": "education",     "label": "Centro de Educación",  "desc": "Patrones y guías",               "plans": "Todos",    "enabled": True},
+    ]
+
+    @router.get("/feature-flags")
+    async def get_feature_flags(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        stored = await db.feature_flags.find({}, {"_id": 0}).to_list(100)
+        stored_map = {f["id"]: f for f in stored}
+        flags = []
+        for default in DEFAULT_FEATURE_FLAGS:
+            flag = {**default, **stored_map.get(default["id"], {})}
+            flags.append(flag)
+        return {"flags": flags}
+
+    @router.patch("/feature-flags/{flag_id}")
+    async def update_feature_flag(
+        flag_id: str,
+        body: FeatureFlagPatch,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        await db.feature_flags.update_one(
+            {"id": flag_id},
+            {"$set": {"id": flag_id, "enabled": body.enabled, "updated_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True,
+        )
+        await _audit(admin_user, "toggle_feature_flag",
+                     details={"flag_id": flag_id, "enabled": body.enabled}, request=request)
+        return {"success": True, "flag_id": flag_id, "enabled": body.enabled}
 
     return router
 
