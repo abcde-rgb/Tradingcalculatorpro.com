@@ -225,6 +225,7 @@ export const ResetPasswordPage = () => {
     e.preventDefault();
     if (password !== confirm) { setError('Las contraseñas no coinciden'); return; }
     if (password.length < 4) { setError('Mínimo 4 caracteres'); return; }
+    if (!API) { setError('Backend no configurado'); return; }
     setError('');
     setIsLoading(true);
     try {

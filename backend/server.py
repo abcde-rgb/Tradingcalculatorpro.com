@@ -2323,20 +2323,27 @@ async def _create_stripe_session(
     metadata: Dict[str, str], origin_url: str,
 ) -> Any:
     """Create a Stripe Checkout session using the plan's Stripe price ID."""
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
-    webhook_url = f"{origin_url}/api/webhook/stripe"
+    import asyncio as _asyncio
     runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
     stripe.api_key = runtime_key
-    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=webhook_url)
-    checkout_request = CheckoutSessionRequest(
-        amount=float(plan["price"]),
-        currency=plan["currency"].lower(),
-        success_url=success_url,
-        cancel_url=cancel_url,
-        payment_methods=_PAYMENT_METHODS_MAP.get(payment_method, ["card"]),
-        metadata=metadata,
+
+    mode = "payment" if plan.get("interval") == "lifetime" else "subscription"
+    payment_methods = _PAYMENT_METHODS_MAP.get(payment_method, ["card"])
+
+    session = await _asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: stripe.checkout.Session.create(
+            payment_method_types=payment_methods,
+            line_items=[{"price": plan["stripe_price_id"], "quantity": 1}],
+            mode=mode,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata=metadata,
+        ),
     )
-    return await stripe_checkout.create_checkout_session(checkout_request)
+    # Expose .session_id so callers don't need changing
+    session.session_id = session.id
+    return session
 
 
 @api_router.post("/checkout/create")
@@ -2461,7 +2468,6 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     - invoice.payment_failed         → mark past_due, revoke after 3 attempts
     - customer.subscription.updated  → sync status changes
     """
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
     host_url = str(request.base_url).rstrip("/")
@@ -2554,43 +2560,45 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             logging.error(f"[stripe-webhook] subscription event error: {e}")
             return {"status": "error"}
 
-    # ── Legacy checkout.session.completed via emergentintegrations ──
-    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=f"{host_url}/api/webhook/stripe")
-    try:
-        webhook_response = await stripe_checkout.handle_webhook(body, signature)
-        if webhook_response.payment_status != "paid":
-            return {"status": "received"}
-
-        meta = webhook_response.metadata or {}
-        user_id = meta.get("user_id")
-        plan_id = meta.get("plan_id")
-        plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
-        if not (user_id and plan_id and plan):
-            return {"status": "received"}
-
-        await _activate_paid_subscription(
-            user_id=user_id,
-            plan_id=plan_id,
-            plan=plan,
-            transaction_id=meta.get("transaction_id"),
-            session_id=webhook_response.session_id,
-        )
-        # ── Credit the referrer (if any) for this paid signup ──
+    # ── Handle checkout.session.completed via native Stripe SDK ──
+    if raw_event and raw_event_type == "checkout.session.completed":
         try:
-            from referrals import credit_referrer_for_payment
-            await credit_referrer_for_payment(
-                referee_user_id=user_id,
+            data_obj = raw_event["data"]["object"]
+            if data_obj.get("payment_status") != "paid":
+                return {"status": "received"}
+
+            meta = data_obj.get("metadata") or {}
+            user_id = meta.get("user_id")
+            plan_id = meta.get("plan_id")
+            plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
+            if not (user_id and plan_id and plan):
+                logging.warning(f"[stripe-webhook] checkout.session.completed missing metadata: {meta}")
+                return {"status": "received"}
+
+            await _activate_paid_subscription(
+                user_id=user_id,
                 plan_id=plan_id,
-                plan_amount=float(plan.get("price", 0)),
-                plan_currency=plan.get("currency", "EUR"),
+                plan=plan,
                 transaction_id=meta.get("transaction_id"),
+                session_id=data_obj.get("id", ""),
             )
+            try:
+                from referrals import credit_referrer_for_payment
+                await credit_referrer_for_payment(
+                    referee_user_id=user_id,
+                    plan_id=plan_id,
+                    plan_amount=float(plan.get("price", 0)),
+                    plan_currency=plan.get("currency", "EUR"),
+                    transaction_id=meta.get("transaction_id"),
+                )
+            except Exception as e:
+                logging.warning(f"[stripe-webhook] referral credit error: {e}")
+            return {"status": "received"}
         except Exception as e:
-            logging.warning(f"[stripe-webhook] referral credit error: {e}")
-        return {"status": "received"}
-    except Exception as e:
-        logging.error(f"Webhook error: {e}")
-        return {"status": "error"}
+            logging.error(f"[stripe-webhook] checkout.session.completed error: {e}")
+            return {"status": "error"}
+
+    return {"status": "received"}
 
 # ============= SUBSCRIPTION MANAGEMENT ROUTES =============
 
@@ -3666,24 +3674,32 @@ Sé directo, profesional y práctico. No repitas los números que ya tiene el tr
 
 @api_router.post("/options/ai-analyze")
 async def ai_analyze_trade(req: AITradeAnalysisRequest) -> Dict[str, Any]:
-    """AI-powered options trade coach using Claude Sonnet 4.5."""
+    """AI-powered options trade coach using Claude via Anthropic SDK."""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        key = os.environ.get("EMERGENT_LLM_KEY")
-        if not key:
+        import anthropic as _anthropic
+        import asyncio as _asyncio
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+        if not api_key:
             raise HTTPException(status_code=500, detail="AI key not configured")
 
-        chat = LlmChat(
-            api_key=key,
-            session_id=f"options-analysis-{req.symbol}",
-            system_message=(
-                "Eres un coach de trading de opciones experto con 15+ años de experiencia "
-                "en volatility trading. Respondes en español, directo, profesional, y basado en datos."
+        client = _anthropic.Anthropic(api_key=api_key)
+        prompt = _build_ai_trade_prompt(req)
+        message = await _asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=1024,
+                system=(
+                    "Eres un coach de trading de opciones experto con 15+ años de experiencia "
+                    "en volatility trading. Respondes en español, directo, profesional, y basado en datos."
+                ),
+                messages=[{"role": "user", "content": prompt}],
             ),
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
-        response = await chat.send_message(UserMessage(text=_build_ai_trade_prompt(req)))
-        return {"analysis": response, "model": "claude-sonnet-4-5"}
+        )
+        return {"analysis": message.content[0].text, "model": "claude-sonnet-4-5"}
+    except _anthropic.APIError as e:
+        logging.error(f"AI analyze API error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
     except Exception as e:
         logging.error(f"AI analyze error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
