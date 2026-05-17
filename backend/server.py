@@ -674,11 +674,23 @@ class Database:
         return self.__getattr__(name)
 
     async def init_pool(self, database_url: str):
-        import ssl as _ssl
-        # Strip sslmode from URL and handle SSL explicitly — required for Neon/Supabase
+        # Detect Cloud SQL Unix socket (host=/cloudsql/...) vs TCP (Neon/Supabase/dev)
+        is_unix_socket = "?host=/" in database_url or database_url.split("?")[0].count("/") > 3
         clean_url = database_url.split("?")[0]
-        ssl_ctx = _ssl.create_default_context()
-        self._pool = await asyncpg.create_pool(clean_url, ssl=ssl_ctx, min_size=1, max_size=10)
+        host_param = database_url.split("?host=")[1] if "?host=" in database_url else None
+
+        if is_unix_socket and host_param:
+            # Cloud SQL via Unix socket — SSL not applicable on socket connections
+            self._pool = await asyncpg.create_pool(
+                f"{clean_url}?host={host_param}",
+                min_size=1, max_size=10,
+            )
+        else:
+            import ssl as _ssl
+            ssl_ctx = _ssl.create_default_context()
+            self._pool = await asyncpg.create_pool(
+                clean_url, ssl=ssl_ctx, min_size=1, max_size=10,
+            )
 
     async def create_all_tables(self):
         """Create tables for all well-known collections upfront."""
@@ -722,8 +734,10 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
 # Stripe Configuration
-STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
-stripe.api_key = STRIPE_API_KEY  # Initialize Stripe SDK
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
+if not STRIPE_API_KEY:
+    logging.warning("⚠️  STRIPE_API_KEY not set — payment endpoints will fail")
+stripe.api_key = STRIPE_API_KEY
 
 # SendGrid Configuration
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
@@ -1106,7 +1120,7 @@ async def register(request: Request, user_data: UserCreate):
     await db.users.insert_one(user)
     try:
         import asyncio as _asyncio
-        _asyncio.ensure_future(_send_welcome_email(user_data.email, user_data.name))
+        _asyncio.create_task(_send_welcome_email(user_data.email, user_data.name))
     except Exception:
         pass
 
@@ -1223,7 +1237,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
     reset_url = f"{frontend_url}/reset-password?token={reset_token}"
     try:
         import asyncio as _asyncio
-        _asyncio.ensure_future(_send_password_reset_email(user["email"], user.get("name", ""), reset_url))
+        _asyncio.create_task(_send_password_reset_email(user["email"], user.get("name", ""), reset_url))
     except Exception:
         pass
     return {"ok": True}
@@ -2449,7 +2463,7 @@ async def _activate_paid_subscription(
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "email": 1, "name": 1})
         if user_doc:
             import asyncio as _asyncio
-            _asyncio.ensure_future(_send_subscription_confirmation_email(
+            _asyncio.create_task(_send_subscription_confirmation_email(
                 to_email=user_doc["email"],
                 name=user_doc.get("name", ""),
                 plan_name=plan["name"],
@@ -2477,17 +2491,20 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     # Try to parse a generic Stripe event (for the new event types)
     raw_event_type = ""
     raw_event = None
+    webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    if not webhook_secret or not signature:
+        logging.error("[stripe-webhook] Missing webhook secret or signature — request rejected")
+        raise HTTPException(status_code=400, detail="Webhook signature required")
+
     try:
-        webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-        if webhook_secret and signature:
-            raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
-        else:
-            import json as _json
-            raw_event = stripe.Event.construct_from(_json.loads(body), runtime_key)
+        raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
         raw_event_type = raw_event.get("type", "")
-    except Exception:
-        # We'll still try to handle the legacy checkout.session.completed flow below
-        pass
+    except stripe.error.SignatureVerificationError as e:
+        logging.error(f"[stripe-webhook] Invalid signature: {e}")
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    except Exception as e:
+        logging.error(f"[stripe-webhook] Parse error: {e}")
+        raise HTTPException(status_code=400, detail="Webhook parse error")
 
     # ── Log every Stripe event to stripe_webhook_logs ──
     if raw_event:
@@ -2530,7 +2547,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
                     if _u:
                         import asyncio as _asyncio
-                        _asyncio.ensure_future(_send_subscription_cancelled_email(_u["email"], _u.get("name", "")))
+                        _asyncio.create_task(_send_subscription_cancelled_email(_u["email"], _u.get("name", "")))
                 except Exception:
                     pass
             elif raw_event_type == "invoice.payment_failed" and customer_id:
@@ -2544,7 +2561,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
                     if _u:
                         import asyncio as _asyncio
-                        _asyncio.ensure_future(_send_payment_failed_email(_u["email"], _u.get("name", ""), attempt))
+                        _asyncio.create_task(_send_payment_failed_email(_u["email"], _u.get("name", ""), attempt))
                 except Exception:
                     pass
             elif raw_event_type == "customer.subscription.updated" and customer_id:
@@ -2912,7 +2929,13 @@ async def root():
 
 @api_router.get("/health")
 async def health():
-    return {"status": "healthy"}
+    try:
+        async with db._pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        return {"status": "healthy", "db": "ok"}
+    except Exception as e:
+        logging.error(f"[health] DB check failed: {e}")
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {e}")
 
 # ============= OPTIONS CALCULATOR ROUTES (merged from OPTIONS app) =============
 

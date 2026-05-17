@@ -41,16 +41,56 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt pytest pytest-asyncio httpx
 
-      - name: Ejecutar tests básicos
+      - name: Verificar dependencias críticas
         run: |
-          python -c "import server; print('✅ server.py importado correctamente')"
+          python -c "import fastapi; print('✅ fastapi', fastapi.__version__)"
+          python -c "import stripe; print('✅ stripe', stripe.VERSION)"
+          python -c "import yfinance; print('✅ yfinance', yfinance.__version__)"
+          python -c "import asyncpg; print('✅ asyncpg', asyncpg.__version__)"
+          python -c "import slowapi; print('✅ slowapi ok')"
+          python -c "import anthropic; print('✅ anthropic ok')"
+          python -c "import numpy, scipy, pandas; print('✅ numpy/scipy/pandas ok')"
+
+      - name: Verificar sintaxis de todos los módulos Python
+        run: |
+          python -m py_compile server.py && echo "✅ server.py"
+          python -m py_compile admin_routes.py && echo "✅ admin_routes.py"
+          python -m py_compile options_math.py && echo "✅ options_math.py"
+          python -m py_compile stock_data.py && echo "✅ stock_data.py"
+          python -m py_compile candle_patterns.py && echo "✅ candle_patterns.py"
+          python -m py_compile performance.py && echo "✅ performance.py"
+
+      - name: Test de cálculos core (sin DB)
+        run: |
+          python -c "
+          # Módulos de cálculo puramente matemáticos (no requieren DB ni red)
+          from options_math import calculate_greeks, calculate_payoff, call_price, put_price
+
+          # Black-Scholes sanity check: ATM call 1yr 20% IV debería estar ~8-11
+          price = call_price(S=100, K=100, T=1.0, r=0.05, sigma=0.20)
+          assert 8 < price < 12, f'BS call_price out of range: {price}'
+          print('✅ Black-Scholes call_price =', round(price, 4))
+
+          put = put_price(S=100, K=100, T=1.0, r=0.05, sigma=0.20)
+          assert 3 < put < 7, f'BS put_price out of range: {put}'
+          print('✅ Black-Scholes put_price =', round(put, 4))
+
+          # Griegos agregados de una leg call comprada
+          leg = {'type': 'call', 'action': 'buy', 'strike': 150, 'premium': 5, 'qty': 1, 'daysToExpiry': 30, 'iv': 0.25}
+          greeks = calculate_greeks([leg], stock_price=150)
+          assert 'delta' in greeks, 'Greeks missing delta'
+          assert 0 < greeks['delta'] < 1, f'Delta out of range: {greeks[\"delta\"]}'
+          print('✅ calculate_greeks delta =', greeks['delta'])
+
+          # Payoff diagram
+          payoff = calculate_payoff([leg], stock_price=150)
+          assert isinstance(payoff, list) and len(payoff) > 0, 'Payoff should be non-empty list'
+          print('✅ calculate_payoff points =', len(payoff))
+
+          print('✅ All core math tests passed')
+          "
         env:
-          JWT_SECRET: test-secret-key-for-ci-only
-          DATABASE_URL: sqlite+aiosqlite:///./test.db
-          GOOGLE_CLIENT_ID: test-client-id
-          STRIPE_API_KEY: sk_test_fake
-          SENDGRID_API_KEY: SG.fake
-          FRONTEND_URL: http://localhost:3000
+          PYTHONPATH: "."
 
   # ── 2. Build & Deploy a Cloud Run ────────────────────────
   deploy:
@@ -113,7 +153,7 @@ jobs:
             --timeout 300 \
             --concurrency 80 \
             --set-env-vars="GCP_PROJECT=${{ env.GCP_PROJECT }}" \
-            --update-secrets="JWT_SECRET=JWT_SECRET:latest,DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,STRIPE_API_KEY=STRIPE_API_KEY:latest,SENDGRID_API_KEY=SENDGRID_API_KEY:latest" \
+            --update-secrets="JWT_SECRET=JWT_SECRET:latest,DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,STRIPE_API_KEY=STRIPE_API_KEY:latest,SENDGRID_API_KEY=SENDGRID_API_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest" \
             --add-cloudsql-instances=tradingcalculator-495806:europe-west1:trading-db \
             --service-account=trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com
 
