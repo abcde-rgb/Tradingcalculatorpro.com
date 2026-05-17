@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Bitcoin, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle } from 'lucide-react';
+import { Bitcoin, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle, Zap, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -93,6 +93,9 @@ export const LoginPage = () => {
           </form>
 
           <GoogleSignInButton />
+
+          {/* Magic Link */}
+          <MagicLinkButton />
 
           <div className="mt-6 text-center text-sm">
             <span className="text-muted-foreground">{t('noTienesCuenta_ba7c96')} </span>
@@ -225,6 +228,7 @@ export const ResetPasswordPage = () => {
     e.preventDefault();
     if (password !== confirm) { setError('Las contraseñas no coinciden'); return; }
     if (password.length < 4) { setError('Mínimo 4 caracteres'); return; }
+    if (!API) { setError('Backend no configurado'); return; }
     setError('');
     setIsLoading(true);
     try {
@@ -376,6 +380,147 @@ export const ForgotPasswordPage = () => {
                 </Link>
               </div>
             </form>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const MagicLinkButton = () => {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!API) { toast.error('Backend no configurado'); return; }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API}/auth/magic-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) { setSent(true); }
+      else { const d = await res.json(); toast.error(d.detail || 'Error al enviar el enlace'); }
+    } catch (_) { toast.error('Error de conexión'); }
+    setIsLoading(false);
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-yellow-400 transition-colors"
+      >
+        <Zap className="w-4 h-4 text-yellow-400" />
+        Iniciar con Magic Link (sin contraseña)
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 border border-yellow-400/20 rounded-lg p-4 bg-yellow-400/5">
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="w-4 h-4 text-yellow-400" />
+        <span className="text-sm font-medium text-yellow-400">Magic Link</span>
+      </div>
+      {sent ? (
+        <div className="text-center space-y-2">
+          <CheckCircle className="w-8 h-8 text-green-500 mx-auto" />
+          <p className="text-xs text-muted-foreground">Revisa tu email — el enlace expira en 15 minutos.</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSend} className="space-y-3">
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@email.com"
+              className="pl-10 bg-black/50 border-white/10 h-9 text-sm"
+              required
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" disabled={isLoading} size="sm"
+              className="flex-1 bg-yellow-400 text-black hover:bg-yellow-300 h-8 text-xs">
+              {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Enviar enlace'}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}
+              className="h-8 text-xs text-muted-foreground">
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+};
+
+export const MagicPage = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [status, setStatus] = useState('verifying');
+  const token = searchParams.get('token');
+
+  useEffect(() => {
+    if (!token) { setStatus('invalid'); return; }
+    if (!API) { setStatus('no-backend'); return; }
+    (async () => {
+      try {
+        const res = await fetch(`${API}/auth/magic-link/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+        if (res.ok && data.access_token) {
+          useAuthStore.setState({
+            token: data.access_token,
+            user: data.user,
+            isAuthenticated: true,
+          });
+          localStorage.setItem('auth_token', data.access_token);
+          toast.success('¡Bienvenido!');
+          navigate('/dashboard');
+        } else {
+          setStatus('invalid');
+        }
+      } catch (_) {
+        setStatus('error');
+      }
+    })();
+  }, [token, navigate]);
+
+  const messages = {
+    verifying: { icon: <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />, text: 'Verificando enlace...' },
+    invalid: { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: 'Enlace inválido o expirado. Solicita uno nuevo.' },
+    'no-backend': { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: 'Backend no configurado.' },
+    error: { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: 'Error de conexión. Inténtalo de nuevo.' },
+  };
+
+  const msg = messages[status] || messages.error;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md bg-card border-border">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Zap className="w-10 h-10 text-yellow-400" />
+          </div>
+          <CardTitle className="text-2xl font-unbounded">Magic Link</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-4">
+          {msg.icon}
+          <p className="text-sm text-muted-foreground">{msg.text}</p>
+          {status !== 'verifying' && (
+            <Button className="w-full bg-primary text-black hover:bg-primary/90" onClick={() => navigate('/login')}>
+              Volver al inicio de sesión
+            </Button>
           )}
         </CardContent>
       </Card>

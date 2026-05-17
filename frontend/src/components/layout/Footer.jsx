@@ -99,9 +99,9 @@ export function Footer() {
             <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('resources')}</h4>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
               <li><Link to="/education" className="hover:text-primary transition-colors" data-testid="footer-education">{t('educationCenter')}</Link></li>
+              <li><Link to="/about" className="hover:text-primary transition-colors">Sobre nosotros</Link></li>
+              <li><Link to="/contact" className="hover:text-primary transition-colors">{t('support') || 'Contacto'}</Link></li>
               <li><Link to="/options" className="hover:text-primary transition-colors">{t('optionsAcademy')}</Link></li>
-              <li><a href="#" className="hover:text-primary transition-colors">{t('apiDocs') || 'API Docs'}</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">{t('support') || 'Soporte'}</a></li>
             </ul>
           </div>
 
@@ -109,9 +109,9 @@ export function Footer() {
           <div>
             <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('legal')}</h4>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">{t('terms')}</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">{t('privacyPolicy')}</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">{t('cookies')}</a></li>
+              <li><Link to="/legal" className="hover:text-primary transition-colors">{t('terms') || 'Términos de uso'}</Link></li>
+              <li><Link to="/legal" className="hover:text-primary transition-colors">{t('privacyPolicy') || 'Privacidad'}</Link></li>
+              <li><Link to="/legal" className="hover:text-primary transition-colors">{t('cookies') || 'Cookies'}</Link></li>
               <li><a href="#" className="hover:text-primary transition-colors">Disclaimer</a></li>
             </ul>
           </div>

@@ -85,6 +85,11 @@ export default function PricingPage() {
       return;
     }
 
+    if (!API) {
+      toast.error('Backend no configurado. Contacta soporte.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {

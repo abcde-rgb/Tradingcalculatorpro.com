@@ -674,11 +674,23 @@ class Database:
         return self.__getattr__(name)
 
     async def init_pool(self, database_url: str):
-        import ssl as _ssl
-        # Strip sslmode from URL and handle SSL explicitly — required for Neon/Supabase
+        # Detect Cloud SQL Unix socket (host=/cloudsql/...) vs TCP (Neon/Supabase/dev)
+        is_unix_socket = "?host=/" in database_url or database_url.split("?")[0].count("/") > 3
         clean_url = database_url.split("?")[0]
-        ssl_ctx = _ssl.create_default_context()
-        self._pool = await asyncpg.create_pool(clean_url, ssl=ssl_ctx, min_size=1, max_size=10)
+        host_param = database_url.split("?host=")[1] if "?host=" in database_url else None
+
+        if is_unix_socket and host_param:
+            # Cloud SQL via Unix socket — SSL not applicable on socket connections
+            self._pool = await asyncpg.create_pool(
+                f"{clean_url}?host={host_param}",
+                min_size=1, max_size=10,
+            )
+        else:
+            import ssl as _ssl
+            ssl_ctx = _ssl.create_default_context()
+            self._pool = await asyncpg.create_pool(
+                clean_url, ssl=ssl_ctx, min_size=1, max_size=10,
+            )
 
     async def create_all_tables(self):
         """Create tables for all well-known collections upfront."""
@@ -722,8 +734,10 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
 # Stripe Configuration
-STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
-stripe.api_key = STRIPE_API_KEY  # Initialize Stripe SDK
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
+if not STRIPE_API_KEY:
+    logging.warning("⚠️  STRIPE_API_KEY not set — payment endpoints will fail")
+stripe.api_key = STRIPE_API_KEY
 
 # SendGrid Configuration
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
@@ -1106,7 +1120,7 @@ async def register(request: Request, user_data: UserCreate):
     await db.users.insert_one(user)
     try:
         import asyncio as _asyncio
-        _asyncio.ensure_future(_send_welcome_email(user_data.email, user_data.name))
+        _asyncio.create_task(_send_welcome_email(user_data.email, user_data.name))
     except Exception:
         pass
 
@@ -1202,6 +1216,130 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+# ============= MAGIC LINK (Passwordless) =============
+
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+
+
+class MagicLinkVerifyRequest(BaseModel):
+    token: str
+
+
+@api_router.post("/auth/magic-link")
+@limiter.limit("3/hour")
+async def request_magic_link(request: Request, body: MagicLinkRequest):
+    """Send a one-time login link to the user's email. Creates account if it doesn't exist."""
+    email = body.email.lower().strip()
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user:
+        # Auto-create a passwordless account
+        import uuid as _uuid
+        user = {
+            "id": str(_uuid.uuid4()),
+            "email": email,
+            "name": email.split("@")[0].replace(".", " ").title(),
+            "auth_provider": "magic_link",
+            "password": None,
+            "is_admin": False,
+            "is_premium": False,
+            "subscription_plan": None,
+            "subscription_end": None,
+            "email_verified": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "login_count": 0,
+        }
+        await db.users.insert_one(user)
+
+    token = secrets.token_urlsafe(32)
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
+    await db.password_resets.insert_one({
+        "token": token,
+        "user_id": user["id"],
+        "email": email,
+        "type": "magic_link",
+        "used": False,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
+    magic_url = f"{frontend_url}/magic?token={token}"
+    # Send email (non-blocking)
+    import asyncio as _asyncio
+    _asyncio.create_task(_send_magic_link_email(email, user.get("name", ""), magic_url))
+    # In dev (no SendGrid), log the link
+    if not SENDGRID_API_KEY:
+        logging.info(f"[magic-link] DEV MODE — link for {email}: {magic_url}")
+    return {"ok": True, "message": "Si el email existe, recibirás el enlace en breve."}
+
+
+@api_router.post("/auth/magic-link/verify")
+@limiter.limit("10/minute")
+async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
+    """Exchange a magic link token for a session JWT."""
+    record = await db.password_resets.find_one(
+        {"token": body.token, "used": False, "type": "magic_link"}, {"_id": 0}
+    )
+    if not record:
+        raise HTTPException(status_code=400, detail="Enlace inválido o ya utilizado")
+    expires = datetime.fromisoformat(record["expires_at"])
+    if expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="El enlace ha expirado (15 minutos). Solicita uno nuevo.")
+    await db.password_resets.update_one({"token": body.token}, {"$set": {"used": True}})
+    user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    await db.users.update_one({"id": user["id"]}, {"$set": {
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "login_count": (user.get("login_count") or 0) + 1,
+        "auth_provider": user.get("auth_provider") or "magic_link",
+    }})
+    token = create_jwt(user["id"], user["email"])
+    return {
+        "access_token": token,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user.get("name", ""),
+            "is_admin": user.get("is_admin", False),
+            "is_premium": user.get("is_premium", False),
+            "subscription_plan": user.get("subscription_plan"),
+            "auth_provider": user.get("auth_provider", "magic_link"),
+        },
+    }
+
+
+async def _send_magic_link_email(to_email: str, name: str, magic_url: str) -> None:
+    if not SENDGRID_API_KEY:
+        return
+    try:
+        import httpx as _httpx
+        payload = {
+            "personalizations": [{"to": [{"email": to_email, "name": name}]}],
+            "from": {"email": SENDER_EMAIL, "name": "Trading Calculator PRO"},
+            "subject": "Tu enlace de acceso — Trading Calculator PRO",
+            "content": [{"type": "text/html", "value": f"""
+<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px">
+  <h2 style="color:#10b981">Trading Calculator PRO</h2>
+  <p>Hola {name},</p>
+  <p>Haz clic en el botón para iniciar sesión. El enlace expira en <strong>15 minutos</strong>.</p>
+  <a href="{magic_url}" style="display:inline-block;background:#10b981;color:#fff;padding:14px 28px;
+     border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
+    Iniciar sesión →
+  </a>
+  <p style="color:#888;font-size:12px">Si no solicitaste este enlace, ignora este email.</p>
+</div>"""}],
+        }
+        async with _httpx.AsyncClient(timeout=10) as c:
+            await c.post(
+                "https://api.sendgrid.com/v3/mail/send",
+                json=payload,
+                headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            )
+    except Exception as e:
+        logging.warning(f"[magic-link] email error: {e}")
+
+
 @api_router.post("/auth/forgot-password")
 @limiter.limit("3/hour")
 async def forgot_password(request: Request, body: ForgotPasswordRequest):
@@ -1223,7 +1361,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
     reset_url = f"{frontend_url}/reset-password?token={reset_token}"
     try:
         import asyncio as _asyncio
-        _asyncio.ensure_future(_send_password_reset_email(user["email"], user.get("name", ""), reset_url))
+        _asyncio.create_task(_send_password_reset_email(user["email"], user.get("name", ""), reset_url))
     except Exception:
         pass
     return {"ok": True}
@@ -1249,7 +1387,62 @@ async def reset_password(request: Request, body: ResetPasswordRequest):
         {"$set": {"password": hash_password(body.new_password)}},
     )
     await db.password_resets.update_one({"token": body.token}, {"$set": {"used": True}})
+    # Revoke all existing sessions so old tokens stop working
+    await db.user_revocations.update_one(
+        {"user_id": record["user_id"]},
+        {"$set": {"revoked_after": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
     return {"ok": True, "message": "Contraseña actualizada correctamente"}
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@api_router.post("/auth/change-password")
+@limiter.limit("5/hour")
+async def change_password(request: Request, body: ChangePasswordRequest, user: dict = Depends(require_user)):
+    """Authenticated user changes their own password."""
+    if len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 8 caracteres")
+
+    user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 1})
+    if not user_doc or not user_doc.get("password"):
+        raise HTTPException(status_code=400, detail="Esta cuenta usa login con Google. Usa la opción de Google para gestionar tu contraseña.")
+
+    if not verify_password(body.current_password, user_doc["password"]):
+        raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
+
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password": hash_password(body.new_password)}},
+    )
+    # Revoke all existing sessions (force re-login)
+    await db.user_revocations.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"revoked_after": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"ok": True, "message": "Contraseña cambiada correctamente. Por seguridad, vuelve a iniciar sesión."}
+
+
+@api_router.delete("/auth/account")
+@limiter.limit("3/hour")
+async def delete_account(request: Request, user: dict = Depends(require_user)):
+    """RGPD: permanently delete the authenticated user's account and all data."""
+    user_id = user["id"]
+    # Delete all user data across collections
+    for collection in ["trades", "calculations", "alerts", "portfolio",
+                        "user_states", "payment_transactions", "performance_trades"]:
+        try:
+            await getattr(db, collection).delete_many({"user_id": user_id})
+        except Exception:
+            pass
+    await db.users.delete_one({"id": user_id})
+    logging.info(f"[RGPD] Account deleted: {user_id}")
+    return {"ok": True, "message": "Cuenta eliminada permanentemente"}
 
 
 # ============= GOOGLE OAUTH =============
@@ -2323,20 +2516,27 @@ async def _create_stripe_session(
     metadata: Dict[str, str], origin_url: str,
 ) -> Any:
     """Create a Stripe Checkout session using the plan's Stripe price ID."""
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
-    webhook_url = f"{origin_url}/api/webhook/stripe"
+    import asyncio as _asyncio
     runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
     stripe.api_key = runtime_key
-    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=webhook_url)
-    checkout_request = CheckoutSessionRequest(
-        amount=float(plan["price"]),
-        currency=plan["currency"].lower(),
-        success_url=success_url,
-        cancel_url=cancel_url,
-        payment_methods=_PAYMENT_METHODS_MAP.get(payment_method, ["card"]),
-        metadata=metadata,
+
+    mode = "payment" if plan.get("interval") == "lifetime" else "subscription"
+    payment_methods = _PAYMENT_METHODS_MAP.get(payment_method, ["card"])
+
+    session = await _asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: stripe.checkout.Session.create(
+            payment_method_types=payment_methods,
+            line_items=[{"price": plan["stripe_price_id"], "quantity": 1}],
+            mode=mode,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata=metadata,
+        ),
     )
-    return await stripe_checkout.create_checkout_session(checkout_request)
+    # Expose .session_id so callers don't need changing
+    session.session_id = session.id
+    return session
 
 
 @api_router.post("/checkout/create")
@@ -2442,7 +2642,7 @@ async def _activate_paid_subscription(
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "email": 1, "name": 1})
         if user_doc:
             import asyncio as _asyncio
-            _asyncio.ensure_future(_send_subscription_confirmation_email(
+            _asyncio.create_task(_send_subscription_confirmation_email(
                 to_email=user_doc["email"],
                 name=user_doc.get("name", ""),
                 plan_name=plan["name"],
@@ -2461,7 +2661,6 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     - invoice.payment_failed         → mark past_due, revoke after 3 attempts
     - customer.subscription.updated  → sync status changes
     """
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
     host_url = str(request.base_url).rstrip("/")
@@ -2471,17 +2670,20 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     # Try to parse a generic Stripe event (for the new event types)
     raw_event_type = ""
     raw_event = None
+    webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    if not webhook_secret or not signature:
+        logging.error("[stripe-webhook] Missing webhook secret or signature — request rejected")
+        raise HTTPException(status_code=400, detail="Webhook signature required")
+
     try:
-        webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-        if webhook_secret and signature:
-            raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
-        else:
-            import json as _json
-            raw_event = stripe.Event.construct_from(_json.loads(body), runtime_key)
+        raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
         raw_event_type = raw_event.get("type", "")
-    except Exception:
-        # We'll still try to handle the legacy checkout.session.completed flow below
-        pass
+    except stripe.error.SignatureVerificationError as e:
+        logging.error(f"[stripe-webhook] Invalid signature: {e}")
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    except Exception as e:
+        logging.error(f"[stripe-webhook] Parse error: {e}")
+        raise HTTPException(status_code=400, detail="Webhook parse error")
 
     # ── Log every Stripe event to stripe_webhook_logs ──
     if raw_event:
@@ -2524,7 +2726,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
                     if _u:
                         import asyncio as _asyncio
-                        _asyncio.ensure_future(_send_subscription_cancelled_email(_u["email"], _u.get("name", "")))
+                        _asyncio.create_task(_send_subscription_cancelled_email(_u["email"], _u.get("name", "")))
                 except Exception:
                     pass
             elif raw_event_type == "invoice.payment_failed" and customer_id:
@@ -2538,7 +2740,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
                     if _u:
                         import asyncio as _asyncio
-                        _asyncio.ensure_future(_send_payment_failed_email(_u["email"], _u.get("name", ""), attempt))
+                        _asyncio.create_task(_send_payment_failed_email(_u["email"], _u.get("name", ""), attempt))
                 except Exception:
                     pass
             elif raw_event_type == "customer.subscription.updated" and customer_id:
@@ -2554,43 +2756,45 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             logging.error(f"[stripe-webhook] subscription event error: {e}")
             return {"status": "error"}
 
-    # ── Legacy checkout.session.completed via emergentintegrations ──
-    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=f"{host_url}/api/webhook/stripe")
-    try:
-        webhook_response = await stripe_checkout.handle_webhook(body, signature)
-        if webhook_response.payment_status != "paid":
-            return {"status": "received"}
-
-        meta = webhook_response.metadata or {}
-        user_id = meta.get("user_id")
-        plan_id = meta.get("plan_id")
-        plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
-        if not (user_id and plan_id and plan):
-            return {"status": "received"}
-
-        await _activate_paid_subscription(
-            user_id=user_id,
-            plan_id=plan_id,
-            plan=plan,
-            transaction_id=meta.get("transaction_id"),
-            session_id=webhook_response.session_id,
-        )
-        # ── Credit the referrer (if any) for this paid signup ──
+    # ── Handle checkout.session.completed via native Stripe SDK ──
+    if raw_event and raw_event_type == "checkout.session.completed":
         try:
-            from referrals import credit_referrer_for_payment
-            await credit_referrer_for_payment(
-                referee_user_id=user_id,
+            data_obj = raw_event["data"]["object"]
+            if data_obj.get("payment_status") != "paid":
+                return {"status": "received"}
+
+            meta = data_obj.get("metadata") or {}
+            user_id = meta.get("user_id")
+            plan_id = meta.get("plan_id")
+            plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
+            if not (user_id and plan_id and plan):
+                logging.warning(f"[stripe-webhook] checkout.session.completed missing metadata: {meta}")
+                return {"status": "received"}
+
+            await _activate_paid_subscription(
+                user_id=user_id,
                 plan_id=plan_id,
-                plan_amount=float(plan.get("price", 0)),
-                plan_currency=plan.get("currency", "EUR"),
+                plan=plan,
                 transaction_id=meta.get("transaction_id"),
+                session_id=data_obj.get("id", ""),
             )
+            try:
+                from referrals import credit_referrer_for_payment
+                await credit_referrer_for_payment(
+                    referee_user_id=user_id,
+                    plan_id=plan_id,
+                    plan_amount=float(plan.get("price", 0)),
+                    plan_currency=plan.get("currency", "EUR"),
+                    transaction_id=meta.get("transaction_id"),
+                )
+            except Exception as e:
+                logging.warning(f"[stripe-webhook] referral credit error: {e}")
+            return {"status": "received"}
         except Exception as e:
-            logging.warning(f"[stripe-webhook] referral credit error: {e}")
-        return {"status": "received"}
-    except Exception as e:
-        logging.error(f"Webhook error: {e}")
-        return {"status": "error"}
+            logging.error(f"[stripe-webhook] checkout.session.completed error: {e}")
+            return {"status": "error"}
+
+    return {"status": "received"}
 
 # ============= SUBSCRIPTION MANAGEMENT ROUTES =============
 
@@ -2904,7 +3108,13 @@ async def root():
 
 @api_router.get("/health")
 async def health():
-    return {"status": "healthy"}
+    try:
+        async with db._pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        return {"status": "healthy", "db": "ok"}
+    except Exception as e:
+        logging.error(f"[health] DB check failed: {e}")
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {e}")
 
 # ============= OPTIONS CALCULATOR ROUTES (merged from OPTIONS app) =============
 
@@ -3666,24 +3876,32 @@ Sé directo, profesional y práctico. No repitas los números que ya tiene el tr
 
 @api_router.post("/options/ai-analyze")
 async def ai_analyze_trade(req: AITradeAnalysisRequest) -> Dict[str, Any]:
-    """AI-powered options trade coach using Claude Sonnet 4.5."""
+    """AI-powered options trade coach using Claude via Anthropic SDK."""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        key = os.environ.get("EMERGENT_LLM_KEY")
-        if not key:
+        import anthropic as _anthropic
+        import asyncio as _asyncio
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+        if not api_key:
             raise HTTPException(status_code=500, detail="AI key not configured")
 
-        chat = LlmChat(
-            api_key=key,
-            session_id=f"options-analysis-{req.symbol}",
-            system_message=(
-                "Eres un coach de trading de opciones experto con 15+ años de experiencia "
-                "en volatility trading. Respondes en español, directo, profesional, y basado en datos."
+        client = _anthropic.Anthropic(api_key=api_key)
+        prompt = _build_ai_trade_prompt(req)
+        message = await _asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=1024,
+                system=(
+                    "Eres un coach de trading de opciones experto con 15+ años de experiencia "
+                    "en volatility trading. Respondes en español, directo, profesional, y basado en datos."
+                ),
+                messages=[{"role": "user", "content": prompt}],
             ),
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
-        response = await chat.send_message(UserMessage(text=_build_ai_trade_prompt(req)))
-        return {"analysis": response, "model": "claude-sonnet-4-5"}
+        )
+        return {"analysis": message.content[0].text, "model": "claude-sonnet-4-5"}
+    except _anthropic.APIError as e:
+        logging.error(f"AI analyze API error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
     except Exception as e:
         logging.error(f"AI analyze error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")

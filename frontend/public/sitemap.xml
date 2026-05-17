@@ -131,4 +131,28 @@
         <priority>0.5</priority>
     </url>
 
+    <!-- Sobre nosotros -->
+    <url>
+        <loc>https://tradingcalculatorpro.com/about</loc>
+        <lastmod>2026-05-17</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <!-- Contacto -->
+    <url>
+        <loc>https://tradingcalculatorpro.com/contact</loc>
+        <lastmod>2026-05-17</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <!-- Legal (Privacidad / Términos / Cookies) -->
+    <url>
+        <loc>https://tradingcalculatorpro.com/legal</loc>
+        <lastmod>2026-05-17</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.4</priority>
+    </url>
+
 </urlset>

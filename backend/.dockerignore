@@ -1,0 +1,47 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Test artifacts
+tests/
+*.test.py
+pytest_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Git
+.git/
+.gitignore
+
+# Docs
+*.md
+!README.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Patches
+patches/
+
+# Local dev
+Makefile
+docker-compose*.yml
