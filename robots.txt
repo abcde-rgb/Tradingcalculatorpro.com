@@ -13,6 +13,7 @@ Allow: /register
 Allow: /about
 Allow: /contact
 Allow: /legal
+Allow: /performance
 
 # Block private/auth routes & APIs
 Disallow: /api/
