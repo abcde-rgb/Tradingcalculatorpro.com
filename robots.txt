@@ -10,6 +10,9 @@ Allow: /pricing
 Allow: /subscription
 Allow: /login
 Allow: /register
+Allow: /about
+Allow: /contact
+Allow: /legal
 
 # Block private/auth routes & APIs
 Disallow: /api/
