@@ -49,6 +49,7 @@ jobs:
           python -c "import asyncpg; print('✅ asyncpg', asyncpg.__version__)"
           python -c "import slowapi; print('✅ slowapi ok')"
           python -c "import anthropic; print('✅ anthropic ok')"
+          python -c "import jwt; print('✅ PyJWT', jwt.__version__)"
           python -c "import numpy, scipy, pandas; print('✅ numpy/scipy/pandas ok')"
 
       - name: Verificar sintaxis de todos los módulos Python
