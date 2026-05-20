@@ -33,7 +33,7 @@ _poller_running = False
 # In-memory price cache to avoid hammering external APIs
 _price_cache: Dict[str, Dict[str, Any]] = {}
 _cache_ts: Optional[datetime] = None
-CACHE_TTL_SECONDS = 25  # poll cycle is 30s, refresh just-in-time
+CACHE_TTL_SECONDS = 60  # refresh once per minute, well within free API limits
 
 
 # ---------------------------------------------------------------------------
@@ -84,32 +84,44 @@ _COINGECKO_MAP: Dict[str, str] = {
 
 
 async def _fetch_crypto_prices(symbols: Set[str]) -> Dict[str, float]:
-    """Fetch crypto prices from CoinGecko (free, cached)."""
+    """Fetch crypto prices from CoinGecko (free, cached). Retries once on 429."""
     coin_ids = [_COINGECKO_MAP[s] for s in symbols if s in _COINGECKO_MAP]
     if not coin_ids:
         return {}
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            r = await client.get(
-                "https://api.coingecko.com/api/v3/simple/price",
-                params={"ids": ",".join(coin_ids), "vs_currencies": "usd"},
-            )
-        if r.status_code != 200:
-            return {}
-        data = r.json()
-        result: Dict[str, float] = {}
-        for sym in symbols:
-            cid = _COINGECKO_MAP.get(sym)
-            if cid and cid in data:
-                result[sym] = float(data[cid].get("usd", 0))
-        return result
-    except Exception as e:
-        logging.warning(f"[ws-alerts] coingecko fetch failed: {e}")
-        return {}
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=12) as client:
+                r = await client.get(
+                    "https://api.coingecko.com/api/v3/simple/price",
+                    params={"ids": ",".join(coin_ids), "vs_currencies": "usd"},
+                )
+            if r.status_code == 429:
+                if attempt == 0:
+                    logging.warning("[ws-alerts] CoinGecko rate limited (429), retrying in 10s")
+                    await asyncio.sleep(10)
+                    continue
+                logging.warning("[ws-alerts] CoinGecko rate limited (429), skipping cycle")
+                return {}
+            if r.status_code != 200:
+                logging.warning("[ws-alerts] CoinGecko returned HTTP %s", r.status_code)
+                return {}
+            data = r.json()
+            result: Dict[str, float] = {}
+            for sym in symbols:
+                cid = _COINGECKO_MAP.get(sym)
+                if cid and cid in data:
+                    result[sym] = float(data[cid].get("usd", 0))
+            return result
+        except Exception as e:
+            logging.warning("[ws-alerts] CoinGecko fetch failed (attempt %d): %s", attempt + 1, e)
+            if attempt == 0:
+                await asyncio.sleep(5)
+    return {}
 
 
 async def _fetch_yfinance_prices(symbols: Set[str]) -> Dict[str, float]:
-    """Fetch any yfinance-compatible symbol (stocks, forex, indices, commodities)."""
+    """Fetch any yfinance-compatible symbol (stocks, forex, indices, commodities).
+    Runs in a thread executor with a hard 30s timeout to prevent hangs."""
     if not symbols:
         return {}
     try:
@@ -132,9 +144,15 @@ async def _fetch_yfinance_prices(symbols: Set[str]) -> Dict[str, float]:
                     pass
             return out
 
-        return await loop.run_in_executor(None, _sync_fetch)
+        return await asyncio.wait_for(
+            loop.run_in_executor(None, _sync_fetch),
+            timeout=30.0,
+        )
+    except asyncio.TimeoutError:
+        logging.warning("[ws-alerts] yfinance fetch timed out after 30s — skipping cycle")
+        return {}
     except Exception as e:
-        logging.warning(f"[ws-alerts] yfinance fetch failed: {e}")
+        logging.warning("[ws-alerts] yfinance fetch failed: %s", e)
         return {}
 
 
@@ -264,7 +282,12 @@ async def ws_alerts(websocket: WebSocket, token: str = Query("")):
             payload = decode_token(token)
             user_id = payload.get("user_id")
             user_email = payload.get("email")
-        except Exception:
+            if not user_id:
+                logging.warning("[ws-alerts] token valid but missing user_id")
+                await websocket.close(code=4401, reason="invalid_token")
+                return
+        except Exception as exc:
+            logging.warning("[ws-alerts] token validation failed: %s", exc)
             await websocket.close(code=4401, reason="invalid_token")
             return
 

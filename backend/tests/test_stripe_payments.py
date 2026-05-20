@@ -254,11 +254,11 @@ class TestSubscriptionPlans:
         assert data["annual"]["currency"] == "EUR"
 
         assert data["lifetime"]["price"] == 500.0
-        assert data["lifetime"]["currency"] == "USD"
+        assert data["lifetime"]["currency"] == "EUR"
 
         print(
             f"Plans endpoint working - Monthly: {data['monthly']['price']} EUR, "
-            f"Lifetime: ${data['lifetime']['price']}"
+            f"Lifetime: {data['lifetime']['price']} EUR"
         )
 
 

@@ -1188,8 +1188,48 @@ async def login(request: Request, credentials: UserLogin):
         }
     }
 
+async def _sync_stripe_subscription(user: dict) -> None:
+    """If subscription_end is in the past and user has a stripe_customer_id,
+    re-verify against Stripe and update the local DB if expired."""
+    if not user.get("stripe_customer_id"):
+        return
+    if user.get("subscription_plan") == "lifetime":
+        return
+    sub_end = user.get("subscription_end")
+    if not sub_end:
+        return
+    try:
+        end_dt = datetime.fromisoformat(sub_end.replace('Z', '+00:00'))
+    except ValueError:
+        return
+    if end_dt > datetime.now(timezone.utc):
+        return  # still valid locally, no need to call Stripe
+    try:
+        subs = stripe.Subscription.list(
+            customer=user["stripe_customer_id"], status="active", limit=1
+        )
+        if subs.data:
+            sub = subs.data[0]
+            new_end = datetime.fromtimestamp(sub["current_period_end"], tz=timezone.utc).isoformat()
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"subscription_end": new_end, "is_premium": True}},
+            )
+            logging.info("[auth/me] Stripe sync: extended subscription for %s → %s", user["id"], new_end)
+        else:
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"is_premium": False, "subscription_plan": None, "subscription_end": None}},
+            )
+            logging.info("[auth/me] Stripe sync: subscription expired for %s", user["id"])
+    except Exception as exc:
+        logging.warning("[auth/me] Stripe sync failed for %s: %s", user["id"], exc)
+
+
 @api_router.get("/auth/me", response_model=dict)
 async def get_me(user: dict = Depends(require_user)):
+    await _sync_stripe_subscription(user)
+    user = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or user
     is_premium = check_premium(user)
     await db.users.update_one(
         {"id": user["id"]},
@@ -5095,4 +5135,9 @@ logging.basicConfig(
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    try:
+        from realtime_alerts import stop_poller
+        stop_poller()
+    except Exception:
+        pass
     await db.close()
