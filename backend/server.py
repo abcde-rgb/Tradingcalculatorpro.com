@@ -14,7 +14,9 @@ from datetime import datetime, timezone, timedelta
 import bcrypt
 import jwt
 import httpx
-import secrets  # ✅ SECURITY FIX: Added secure random for sensitive operations
+import secrets
+import hashlib
+import re as _re_module
 import stripe  # Stripe SDK for advanced subscription management
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
@@ -79,6 +81,9 @@ def _deserialize(raw) -> dict:
     return dict(raw)
 
 
+_SAFE_FIELD_RE = _re_module.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+
+
 def _build_where_clause(filter_dict: dict, start_param: int = 1):
     """
     Convert a (potentially complex) MongoDB-style filter dict into a PostgreSQL
@@ -119,6 +124,10 @@ def _build_where_clause(filter_dict: dict, start_param: int = 1):
                 parts.append(f"_key = ${param_idx}")
                 params.append(value)
                 param_idx += 1
+            continue
+
+        if not _SAFE_FIELD_RE.match(key):
+            logging.warning("Ignored invalid field name in query filter: %r", key)
             continue
 
         if isinstance(value, dict) and any(k.startswith("$") for k in value):
@@ -506,6 +515,8 @@ class Collection:
 
     async def distinct(self, field: str, filter_dict: dict = None):
         """Return distinct values of a JSONB field, optionally filtered."""
+        if not _SAFE_FIELD_RE.match(field):
+            raise ValueError(f"Invalid field name: {field!r}")
         async with self._pool.acquire() as conn:
             if filter_dict:
                 where, params, _ = _build_where_clause(filter_dict)
@@ -745,7 +756,7 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
 
 # Demo User (siempre tiene acceso PRO completo)
 DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
-DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "1234")
+DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "12345678")
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
@@ -833,6 +844,11 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+
+def _hash_token(token: str) -> str:
+    """SHA-256 hash a one-time token before storing it in the DB."""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 # ============================================================
@@ -1065,7 +1081,7 @@ async def startup_event():
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
-        logging.info("Demo user created: demo@btccalc.pro / 1234 (admin)")
+        logging.info("Demo user created: demo@btccalc.pro (admin)")
     else:
         # Idempotent self-heal: ensure demo always has admin + lifetime premium.
         patch: Dict[str, Any] = {}
@@ -1254,7 +1270,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
     token = secrets.token_urlsafe(32)
     expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
     await db.password_resets.insert_one({
-        "token": token,
+        "token": _hash_token(token),
         "user_id": user["id"],
         "email": email,
         "type": "magic_link",
@@ -1278,14 +1294,14 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
 async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
     """Exchange a magic link token for a session JWT."""
     record = await db.password_resets.find_one(
-        {"token": body.token, "used": False, "type": "magic_link"}, {"_id": 0}
+        {"token": _hash_token(body.token), "used": False, "type": "magic_link"}, {"_id": 0}
     )
     if not record:
         raise HTTPException(status_code=400, detail="Enlace inválido o ya utilizado")
     expires = datetime.fromisoformat(record["expires_at"])
     if expires < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="El enlace ha expirado (15 minutos). Solicita uno nuevo.")
-    await db.password_resets.update_one({"token": body.token}, {"$set": {"used": True}})
+    await db.password_resets.update_one({"token": _hash_token(body.token)}, {"$set": {"used": True}})
     user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -1353,7 +1369,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
     await db.password_resets.update_one(
         {"user_id": user["id"]},
-        {"$set": {"token": reset_token, "expires_at": expires_at, "used": False}},
+        {"$set": {"token": _hash_token(reset_token), "expires_at": expires_at, "used": False}},
         upsert=True,
     )
 
@@ -1371,10 +1387,10 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
 @limiter.limit("5/hour")
 async def reset_password(request: Request, body: ResetPasswordRequest):
     """Consume a reset token and set a new password."""
-    if len(body.new_password) < 4:
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 4 caracteres")
+    if len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
 
-    record = await db.password_resets.find_one({"token": body.token, "used": False})
+    record = await db.password_resets.find_one({"token": _hash_token(body.token), "used": False})
     if not record:
         raise HTTPException(status_code=400, detail="Token inválido o ya utilizado")
 
@@ -1386,7 +1402,7 @@ async def reset_password(request: Request, body: ResetPasswordRequest):
         {"id": record["user_id"]},
         {"$set": {"password": hash_password(body.new_password)}},
     )
-    await db.password_resets.update_one({"token": body.token}, {"$set": {"used": True}})
+    await db.password_resets.update_one({"token": _hash_token(body.token)}, {"$set": {"used": True}})
     # Revoke all existing sessions so old tokens stop working
     await db.user_revocations.update_one(
         {"user_id": record["user_id"]},
@@ -1481,7 +1497,8 @@ async def google_auth(request: Request, payload: GoogleAuthRequest):
         )
     except ValueError as exc:
         # Bad signature, expired token, or wrong audience
-        raise HTTPException(status_code=401, detail=f"Token de Google inválido: {exc}") from exc
+        logging.warning("Google token validation failed: %s", exc)
+        raise HTTPException(status_code=401, detail="Token de Google inválido") from exc
 
     email = (info.get("email") or "").lower()
     if not email or not info.get("email_verified"):
@@ -4423,8 +4440,8 @@ async def admin_create_user(request: Request, payload: AdminUserCreate, admin: d
     existing = await db.users.find_one({"email": email_lc})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
-    if len(payload.password) < 4:
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 4 caracteres")
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
 
     plan = _normalize_plan(payload.subscription_plan)
     sub_end = _compute_subscription_end(plan, payload.subscription_end)
@@ -4563,8 +4580,8 @@ async def admin_delete_user(request: Request, user_id: str, admin: dict = Depend
 @api_router.post("/admin/users/{user_id}/reset-password")
 async def admin_reset_password(request: Request, user_id: str, payload: AdminPasswordReset, admin: dict = Depends(require_admin)):
     """Force-set a new password for any user."""
-    if len(payload.new_password) < 4:
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 4 caracteres")
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
     user = await db.users.find_one({"id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -5066,7 +5083,7 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=os.environ.get('CORS_ORIGINS', 'https://tradingcalculator.pro').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
