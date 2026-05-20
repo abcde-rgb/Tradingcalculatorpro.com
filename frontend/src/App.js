@@ -1,4 +1,5 @@
 import "@/App.css";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
@@ -6,22 +7,38 @@ import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
 import CookieBanner from "@/components/common/CookieBanner";
 
-// Pages
+// Eagerly loaded — visible immediately on first paint
 import LandingPage from "@/pages/LandingPage";
-import DashboardPage from "@/pages/DashboardPage";
-import PricingPage from "@/pages/PricingPage";
-import SettingsPage from "@/pages/SettingsPage";
-import EducationPage from "@/pages/EducationPage";
-import SubscriptionPage from "@/pages/SubscriptionPage";
-import OptionsPage from "@/pages/OptionsPage";
-import PerformancePage from "@/pages/PerformancePage";
-import AdminPage from "@/pages/AdminPage";
-import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, MagicPage } from "@/pages/AuthPages";
-import { PaymentSuccessPage, PaymentCancelPage } from "@/pages/PaymentPages";
-import LegalPage from "@/pages/LegalPage";
-import ContactPage from "@/pages/ContactPage";
-import AboutPage from "@/pages/AboutPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+
+// Lazy loaded — split into separate chunks, only downloaded when navigated to
+const DashboardPage    = lazy(() => import("@/pages/DashboardPage"));
+const PricingPage      = lazy(() => import("@/pages/PricingPage"));
+const SettingsPage     = lazy(() => import("@/pages/SettingsPage"));
+const EducationPage    = lazy(() => import("@/pages/EducationPage"));
+const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
+const OptionsPage      = lazy(() => import("@/pages/OptionsPage"));
+const PerformancePage  = lazy(() => import("@/pages/PerformancePage"));
+const AdminPage        = lazy(() => import("@/pages/AdminPage"));
+const LegalPage        = lazy(() => import("@/pages/LegalPage"));
+const ContactPage      = lazy(() => import("@/pages/ContactPage"));
+const AboutPage        = lazy(() => import("@/pages/AboutPage"));
+// Named exports from multi-export files — each becomes its own chunk entry point
+const LoginPage          = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.LoginPage })));
+const RegisterPage       = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage  = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.ResetPasswordPage })));
+const MagicPage          = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.MagicPage })));
+const PaymentSuccessPage = lazy(() => import("@/pages/PaymentPages").then(m => ({ default: m.PaymentSuccessPage })));
+const PaymentCancelPage  = lazy(() => import("@/pages/PaymentPages").then(m => ({ default: m.PaymentCancelPage })));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -30,28 +47,30 @@ const AppContent = () => (
   <div className="App">
     <BrowserRouter basename={process.env.PUBLIC_URL}>
       <AnalyticsTracker />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/education" element={<EducationPage />} />
-        <Route path="/subscription" element={<SubscriptionPage />} />
-        <Route path="/options" element={<OptionsPage />} />
-        <Route path="/performance" element={<PerformancePage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/magic" element={<MagicPage />} />
-        <Route path="/payment/success" element={<PaymentSuccessPage />} />
-        <Route path="/payment/cancel" element={<PaymentCancelPage />} />
-        <Route path="/legal" element={<LegalPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/"                element={<LandingPage />} />
+          <Route path="/dashboard"       element={<DashboardPage />} />
+          <Route path="/pricing"         element={<PricingPage />} />
+          <Route path="/settings"        element={<SettingsPage />} />
+          <Route path="/education"       element={<EducationPage />} />
+          <Route path="/subscription"    element={<SubscriptionPage />} />
+          <Route path="/options"         element={<OptionsPage />} />
+          <Route path="/performance"     element={<PerformancePage />} />
+          <Route path="/admin"           element={<AdminPage />} />
+          <Route path="/login"           element={<LoginPage />} />
+          <Route path="/register"        element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password"  element={<ResetPasswordPage />} />
+          <Route path="/magic"           element={<MagicPage />} />
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/payment/cancel"  element={<PaymentCancelPage />} />
+          <Route path="/legal"           element={<LegalPage />} />
+          <Route path="/contact"         element={<ContactPage />} />
+          <Route path="/about"           element={<AboutPage />} />
+          <Route path="*"                element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
     <Toaster position="top-right" richColors />
     <CookieBanner />
