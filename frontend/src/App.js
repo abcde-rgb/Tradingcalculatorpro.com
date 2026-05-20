@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
 import CookieBanner from "@/components/common/CookieBanner";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 // Eagerly loaded — visible immediately on first paint
 import LandingPage from "@/pages/LandingPage";
@@ -78,15 +79,16 @@ const AppContent = () => (
 );
 
 function App() {
-  if (GOOGLE_CLIENT_ID) {
-    return (
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <GoogleIntegrations />
-        <AppContent />
-      </GoogleOAuthProvider>
-    );
-  }
-  return <AppContent />;
+  const content = GOOGLE_CLIENT_ID ? (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <GoogleIntegrations />
+      <AppContent />
+    </GoogleOAuthProvider>
+  ) : (
+    <AppContent />
+  );
+
+  return <ErrorBoundary>{content}</ErrorBoundary>;
 }
 
 export default App;

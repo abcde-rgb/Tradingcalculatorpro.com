@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useSEO } from '@/hooks/useSEO';
 import { Bitcoin, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle, Zap, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
 export const LoginPage = () => {
+  useSEO({ titleKey: 'seoLoginTitle', descriptionKey: 'seoLoginDesc', canonicalPath: '/login' });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, isLoading } = useAuthStore();
@@ -109,6 +111,7 @@ export const LoginPage = () => {
 };
 
 export const RegisterPage = () => {
+  useSEO({ titleKey: 'seoRegisterTitle', descriptionKey: 'seoRegisterDesc', canonicalPath: '/register' });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { register, isLoading } = useAuthStore();
@@ -302,6 +305,7 @@ export const ResetPasswordPage = () => {
 };
 
 export const ForgotPasswordPage = () => {
+  useSEO({ titleKey: 'seoForgotTitle', descriptionKey: 'seoForgotDesc', canonicalPath: '/forgot-password' });
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);

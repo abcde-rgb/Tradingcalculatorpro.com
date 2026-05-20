@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { useSEO } from '@/hooks/useSEO';
 import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff, Settings2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const PREFS_KEY = 'tcp-preferences';
 
 export default function SettingsPage() {
+  useSEO({ titleKey: 'seoSettingsTitle', descriptionKey: 'seoSettingsDesc', canonicalPath: '/settings' });
   const { t } = useTranslation();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();

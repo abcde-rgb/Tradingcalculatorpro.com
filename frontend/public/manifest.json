@@ -1,0 +1,51 @@
+{
+  "name": "Trading Calculator PRO",
+  "short_name": "TradeCalc PRO",
+  "description": "Calculadoras profesionales de trading: apalancamiento, posición, opciones Black-Scholes, Fibonacci, Monte Carlo y más.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#22c55e",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/og-image.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Trading Calculator PRO — Dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Ir al dashboard de calculadoras"
+    },
+    {
+      "name": "Opciones",
+      "url": "/options",
+      "description": "Suite de opciones con Black-Scholes"
+    },
+    {
+      "name": "Precios",
+      "url": "/pricing",
+      "description": "Ver planes y precios"
+    }
+  ]
+}

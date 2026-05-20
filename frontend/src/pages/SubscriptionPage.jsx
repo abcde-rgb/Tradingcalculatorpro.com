@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link } from 'react-router-dom';
+import { useSEO } from '@/hooks/useSEO';
 import { useAuthStore } from '../lib/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -53,6 +55,7 @@ function StatusBadge({ status }) {
 }
 
 export default function SubscriptionPage() {
+  useSEO({ titleKey: 'seoSubscriptionTitle', descriptionKey: 'seoSubscriptionDesc', canonicalPath: '/subscription' });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { token, isAuthenticated, user } = useAuthStore();
@@ -146,10 +149,31 @@ export default function SubscriptionPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="p-4 pt-24 max-w-4xl mx-auto space-y-4 animate-pulse">
-          <div className="h-8 bg-muted rounded w-1/3" />
-          <div className="h-56 bg-muted rounded" />
-          <div className="h-64 bg-muted rounded" />
+        <div className="px-4 pt-24 pb-16 max-w-4xl mx-auto space-y-6">
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-56" />
+            <Skeleton className="h-5 w-80" />
+          </div>
+          <div className="rounded-xl border p-6 space-y-4">
+            <div className="flex justify-between">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Skeleton className="h-9 w-32" />
+              <Skeleton className="h-9 w-32" />
+              <Skeleton className="h-9 w-40" />
+            </div>
+          </div>
+          <div className="rounded-xl border p-6 space-y-3">
+            <Skeleton className="h-6 w-40" />
+            {[1,2,3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
+          </div>
         </div>
         <Footer />
       </div>

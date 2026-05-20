@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#09090b"/>
+      <stop offset="100%" style="stop-color:#0f0f23"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#16a34a"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <g stroke="#ffffff08" stroke-width="1">
+    <line x1="0" y1="105" x2="1200" y2="105"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="200" y1="0" x2="200" y2="630"/>
+    <line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+  </g>
+
+  <!-- Candlestick chart decoration (right side) -->
+  <g opacity="0.15">
+    <!-- Candle 1 (green) -->
+    <line x1="720" y1="180" x2="720" y2="450" stroke="#22c55e" stroke-width="2"/>
+    <rect x="710" y="250" width="20" height="120" fill="#22c55e"/>
+    <!-- Candle 2 (red) -->
+    <line x1="780" y1="200" x2="780" y2="430" stroke="#ef4444" stroke-width="2"/>
+    <rect x="770" y="220" width="20" height="100" fill="#ef4444"/>
+    <!-- Candle 3 (green) -->
+    <line x1="840" y1="160" x2="840" y2="400" stroke="#22c55e" stroke-width="2"/>
+    <rect x="830" y="200" width="20" height="140" fill="#22c55e"/>
+    <!-- Candle 4 (green) -->
+    <line x1="900" y1="140" x2="900" y2="380" stroke="#22c55e" stroke-width="2"/>
+    <rect x="890" y="170" width="20" height="130" fill="#22c55e"/>
+    <!-- Candle 5 (red) -->
+    <line x1="960" y1="170" x2="960" y2="420" stroke="#ef4444" stroke-width="2"/>
+    <rect x="950" y="200" width="20" height="110" fill="#ef4444"/>
+    <!-- Candle 6 (green) -->
+    <line x1="1020" y1="130" x2="1020" y2="370" stroke="#22c55e" stroke-width="2"/>
+    <rect x="1010" y="160" width="20" height="120" fill="#22c55e"/>
+    <!-- Candle 7 (green) -->
+    <line x1="1080" y1="110" x2="1080" y2="350" stroke="#22c55e" stroke-width="2"/>
+    <rect x="1070" y="140" width="20" height="100" fill="#22c55e"/>
+    <!-- Trend line -->
+    <polyline points="720,310 780,270 840,270 900,235 960,255 1020,220 1080,190" stroke="#22c55e" stroke-width="2" fill="none" stroke-dasharray="8,4"/>
+  </g>
+
+  <!-- Left accent bar -->
+  <rect x="80" y="160" width="4" height="300" fill="url(#accent)" rx="2"/>
+
+  <!-- Logo icon (trending up chart) -->
+  <g transform="translate(100, 172)" filter="url(#glow)">
+    <polyline points="0,50 18,30 34,40 52,10" stroke="#22c55e" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="42,10 52,10 52,20" stroke="#22c55e" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Main title -->
+  <text x="165" y="218" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="800" fill="#ffffff" letter-spacing="-1">
+    Trading Calculator
+  </text>
+  <text x="165" y="278" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="800" fill="url(#accent)" letter-spacing="-1">
+    PRO
+  </text>
+
+  <!-- Tagline -->
+  <text x="165" y="335" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="#a1a1aa" font-weight="400">
+    Calculadoras profesionales para traders · 8 idiomas
+  </text>
+
+  <!-- Feature pills -->
+  <g transform="translate(165, 375)">
+    <!-- Pill 1 -->
+    <rect x="0" y="0" width="160" height="36" rx="18" fill="#22c55e18" stroke="#22c55e40" stroke-width="1"/>
+    <text x="80" y="23" font-family="system-ui, sans-serif" font-size="14" fill="#22c55e" text-anchor="middle" font-weight="500">Apalancamiento</text>
+    <!-- Pill 2 -->
+    <rect x="174" y="0" width="140" height="36" rx="18" fill="#3b82f618" stroke="#3b82f640" stroke-width="1"/>
+    <text x="244" y="23" font-family="system-ui, sans-serif" font-size="14" fill="#60a5fa" text-anchor="middle" font-weight="500">Black-Scholes</text>
+    <!-- Pill 3 -->
+    <rect x="328" y="0" width="130" height="36" rx="18" fill="#a855f718" stroke="#a855f740" stroke-width="1"/>
+    <text x="393" y="23" font-family="system-ui, sans-serif" font-size="14" fill="#c084fc" text-anchor="middle" font-weight="500">Monte Carlo</text>
+    <!-- Pill 4 -->
+    <rect x="0" y="48" width="120" height="36" rx="18" fill="#f59e0b18" stroke="#f59e0b40" stroke-width="1"/>
+    <text x="60" y="71" font-family="system-ui, sans-serif" font-size="14" fill="#fbbf24" text-anchor="middle" font-weight="500">Fibonacci</text>
+    <!-- Pill 5 -->
+    <rect x="134" y="48" width="120" height="36" rx="18" fill="#22c55e18" stroke="#22c55e40" stroke-width="1"/>
+    <text x="194" y="71" font-family="system-ui, sans-serif" font-size="14" fill="#22c55e" text-anchor="middle" font-weight="500">AI Coaching</text>
+    <!-- Pill 6 -->
+    <rect x="268" y="48" width="170" height="36" rx="18" fill="#3b82f618" stroke="#3b82f640" stroke-width="1"/>
+    <text x="353" y="71" font-family="system-ui, sans-serif" font-size="14" fill="#60a5fa" text-anchor="middle" font-weight="500">Datos en tiempo real</text>
+  </g>
+
+  <!-- Bottom domain -->
+  <text x="165" y="568" font-family="system-ui, sans-serif" font-size="18" fill="#52525b" font-weight="400">
+    tradingcalculatorpro.com
+  </text>
+
+  <!-- Top right badge -->
+  <rect x="1020" y="40" width="140" height="36" rx="8" fill="#22c55e18" stroke="#22c55e30" stroke-width="1"/>
+  <text x="1090" y="63" font-family="system-ui, sans-serif" font-size="13" fill="#22c55e" text-anchor="middle" font-weight="600">Gratis · Premium</text>
+</svg>

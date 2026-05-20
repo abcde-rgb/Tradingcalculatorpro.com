@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { toast } from 'sonner';
+import { useSEO } from '@/hooks/useSEO';
 
 const FAQ_ITEMS = [
   {
@@ -58,6 +59,7 @@ const SUBJECT_OPTIONS = [
 ];
 
 export default function ContactPage() {
+  useSEO({ titleKey: 'seoContactTitle', descriptionKey: 'seoContactDesc', canonicalPath: '/contact' });
   const [form, setForm] = useState({
     name: '',
     email: '',
