@@ -53,11 +53,11 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
           maxResults: 8,
         }),
       });
-      if (!res.ok) throw new Error('Error al optimizar');
+      if (!res.ok) throw new Error(t('errorOptimize'));
       const data = await res.json();
       setResults(data);
     } catch (e) {
-      setError(e.message || 'Error desconocido');
+      setError(e.message || t('errorUnknown'));
     } finally {
       setLoading(false);
     }
