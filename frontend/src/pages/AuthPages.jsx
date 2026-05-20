@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Bitcoin, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle, Zap, Loader2 } from 'lucide-react';
+import { useSEO } from '@/hooks/useSEO';
+import { Bitcoin, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,18 +11,54 @@ import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function getPasswordStrength(pw) {
+  if (!pw) return 0;
+  if (pw.length < 6) return 1;
+  const hasUpper  = /[A-Z]/.test(pw);
+  const hasDigit  = /\d/.test(pw);
+  const hasSymbol = /[^A-Za-z0-9]/.test(pw);
+  const long      = pw.length >= 12;
+  const score     = (pw.length >= 8 ? 1 : 0) + (hasUpper ? 1 : 0) + (hasDigit ? 1 : 0) + (hasSymbol || long ? 1 : 0);
+  return Math.min(score, 3);
+}
+
+function PasswordStrengthBar({ password, t }) {
+  const strength = getPasswordStrength(password);
+  if (!password) return null;
+  const labels = ['', t('passwordStrengthWeak'), t('passwordStrengthFair'), t('passwordStrengthGood'), t('passwordStrengthStrong')];
+  const colors  = ['', 'bg-red-500', 'bg-amber-400', 'bg-blue-400', 'bg-green-500'];
+  const textColors = ['', 'text-red-500', 'text-amber-400', 'text-blue-400', 'text-green-500'];
+  return (
+    <div className="space-y-1 mt-1" role="status" aria-live="polite" aria-label={`Fortaleza de contraseña: ${labels[strength]}`}>
+      <div className="flex gap-1">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-200 ${strength >= i ? colors[strength] : 'bg-muted'}`} />
+        ))}
+      </div>
+      <p className={`text-xs ${textColors[strength]}`}>{labels[strength]}</p>
+    </div>
+  );
+}
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
 export const LoginPage = () => {
+  useSEO({ titleKey: 'seoLoginTitle', descriptionKey: 'seoLoginDesc', canonicalPath: '/login' });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, isLoading } = useAuthStore();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [showPw, setShowPw]       = useState(false);
+  const [emailErr, setEmailErr]   = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!EMAIL_RE.test(email)) { setEmailErr(t('emailInvalid')); return; }
     const result = await login(email, password);
     if (result.success) {
       toast.success(t('bienvenido_b33c1f'));
@@ -44,34 +81,47 @@ export const LoginPage = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Label htmlFor="login-email" className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  id="login-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setEmailErr(''); }}
+                  onBlur={() => { if (email && !EMAIL_RE.test(email)) setEmailErr(t('emailInvalid')); }}
                   placeholder="tu@email.com"
-                  className="pl-10 bg-black/50 border-white/10"
+                  className={`pl-10 bg-black/50 border-white/10 ${emailErr ? 'border-destructive' : ''}`}
                   required
+                  aria-describedby={emailErr ? 'login-email-err' : undefined}
                   data-testid="login-email"
                 />
               </div>
+              {emailErr && <p id="login-email-err" className="text-xs text-destructive">{emailErr}</p>}
             </div>
-            
+
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('contrasena_6e7bc0')}</Label>
+              <Label htmlFor="login-password" className="text-xs uppercase tracking-wider text-muted-foreground">{t('contrasena_6e7bc0')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  type="password"
+                  id="login-password"
+                  type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="pl-10 bg-black/50 border-white/10"
+                  className="pl-10 pr-10 bg-black/50 border-white/10"
                   required
                   data-testid="login-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
             
@@ -109,17 +159,21 @@ export const LoginPage = () => {
 };
 
 export const RegisterPage = () => {
+  useSEO({ titleKey: 'seoRegisterTitle', descriptionKey: 'seoRegisterDesc', canonicalPath: '/register' });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { register, isLoading } = useAuthStore();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName]         = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw]     = useState(false);
+  const [emailErr, setEmailErr] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password.length < 4) {
-      toast.error(t('laContrasenaDebeTenerAl_47b500'));
+    if (!EMAIL_RE.test(email)) { setEmailErr(t('emailInvalid')); return; }
+    if (password.length < 8) {
+      toast.error(t('passwordMinChars'));
       return;
     }
     const result = await register(name, email, password);
@@ -144,10 +198,11 @@ export const RegisterPage = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Nombre</Label>
+              <Label htmlFor="register-name" className="text-xs uppercase tracking-wider text-muted-foreground">Nombre</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  id="register-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -158,42 +213,57 @@ export const RegisterPage = () => {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Label htmlFor="register-email" className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  id="register-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setEmailErr(''); }}
+                  onBlur={() => { if (email && !EMAIL_RE.test(email)) setEmailErr(t('emailInvalid')); }}
                   placeholder="tu@email.com"
-                  className="pl-10 bg-black/50 border-white/10"
+                  className={`pl-10 bg-black/50 border-white/10 ${emailErr ? 'border-destructive' : ''}`}
                   required
+                  aria-describedby={emailErr ? 'register-email-err' : undefined}
                   data-testid="register-email"
                 />
               </div>
+              {emailErr && <p id="register-email-err" className="text-xs text-destructive">{emailErr}</p>}
             </div>
-            
+
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('contrasena_6e7bc0')}</Label>
+              <Label htmlFor="register-password" className="text-xs uppercase tracking-wider text-muted-foreground">{t('contrasena_6e7bc0')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  type="password"
+                  id="register-password"
+                  type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t('minimo4Caracteres_793e1d')}
-                  className="pl-10 bg-black/50 border-white/10"
+                  placeholder={t('passwordMinChars')}
+                  className="pl-10 pr-10 bg-black/50 border-white/10"
                   required
+                  minLength={8}
                   data-testid="register-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+              <PasswordStrengthBar password={password} t={t} />
             </div>
-            
-            <Button 
-              type="submit" 
-              disabled={isLoading} 
+
+            <Button
+              type="submit"
+              disabled={isLoading}
               className="w-full bg-primary text-black hover:bg-primary/90"
               data-testid="register-submit"
             >
@@ -227,7 +297,7 @@ export const ResetPasswordPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirm) { setError('Las contraseñas no coinciden'); return; }
-    if (password.length < 4) { setError('Mínimo 4 caracteres'); return; }
+    if (password.length < 8) { setError('Mínimo 8 caracteres'); return; }
     if (!API) { setError('Backend no configurado'); return; }
     setError('');
     setIsLoading(true);
@@ -269,19 +339,19 @@ export const ResetPasswordPage = () => {
                 <p className="text-sm text-destructive text-center">Enlace inválido. Solicita uno nuevo.</p>
               )}
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Nueva contraseña</Label>
+                <Label htmlFor="reset-password" className="text-xs uppercase tracking-wider text-muted-foreground">Nueva contraseña</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••" className="pl-10 bg-black/50 border-white/10" required />
+                  <Input id="reset-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••" className="pl-10 bg-black/50 border-white/10" required minLength={8} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Confirmar contraseña</Label>
+                <Label htmlFor="reset-confirm" className="text-xs uppercase tracking-wider text-muted-foreground">Confirmar contraseña</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
-                    placeholder="••••••••" className="pl-10 bg-black/50 border-white/10" required />
+                  <Input id="reset-confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+                    placeholder="••••••••" className="pl-10 bg-black/50 border-white/10" required minLength={8} />
                 </div>
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
@@ -302,6 +372,7 @@ export const ResetPasswordPage = () => {
 };
 
 export const ForgotPasswordPage = () => {
+  useSEO({ titleKey: 'seoForgotTitle', descriptionKey: 'seoForgotDesc', canonicalPath: '/forgot-password' });
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);

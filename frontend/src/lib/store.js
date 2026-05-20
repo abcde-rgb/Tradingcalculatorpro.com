@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useI18nStore } from '@/lib/i18n';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
+
+const t = (key) => useI18nStore.getState().t(key);
 
 function trackEvent(eventName, params = {}) {
   try { window.gtag?.('event', eventName, params); } catch (_) {}
@@ -28,7 +31,7 @@ export const useAuthStore = create(
 
       login: async (email, password) => {
         if (!API) {
-          return { success: false, error: 'Backend no configurado. Contacta al administrador.' };
+          return { success: false, error: t('backendNotConfigured') };
         }
         set({ isLoading: true });
         try {
@@ -38,7 +41,7 @@ export const useAuthStore = create(
             body: JSON.stringify({ email, password })
           });
           const data = await safeJson(res);
-          if (!res.ok) throw new Error(data.detail || 'Credenciales inválidas');
+          if (!res.ok) throw new Error(data.detail || t('invalidCredentials'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'email' });
           return { success: true };
@@ -50,7 +53,7 @@ export const useAuthStore = create(
 
       register: async (name, email, password) => {
         if (!API) {
-          return { success: false, error: 'Backend no configurado. Contacta al administrador.' };
+          return { success: false, error: t('backendNotConfigured') };
         }
         set({ isLoading: true });
         try {
@@ -60,7 +63,7 @@ export const useAuthStore = create(
             body: JSON.stringify({ name, email, password })
           });
           const data = await safeJson(res);
-          if (!res.ok) throw new Error(data.detail || 'Error de registro');
+          if (!res.ok) throw new Error(data.detail || t('registrationError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('sign_up', { method: 'email' });
           return { success: true };
@@ -72,7 +75,7 @@ export const useAuthStore = create(
 
       loginWithGoogle: async (credential) => {
         if (!API) {
-          return { success: false, error: 'Backend no configurado. Contacta al administrador.' };
+          return { success: false, error: t('backendNotConfigured') };
         }
         set({ isLoading: true });
         try {
@@ -82,7 +85,7 @@ export const useAuthStore = create(
             body: JSON.stringify({ credential })
           });
           const data = await safeJson(res);
-          if (!res.ok) throw new Error(data.detail || 'Error con Google');
+          if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'google' });
           return { success: true };

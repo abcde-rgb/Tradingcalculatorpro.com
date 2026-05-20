@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Edit2, Trash2, Plus, AlertTriangle, TrendingUp, TrendingDown, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { useTranslation } from '@/lib/i18n';
 import { listTrades, deleteTrade } from '@/services/performanceApi';
 import TradeFormModal from './TradeFormModal';
@@ -22,10 +26,12 @@ const SEVERITY_COLORS = {
 
 export default function TradeJournal({ refreshKey, onChange }) {
   const { t } = useTranslation();
-  const [trades, setTrades] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [trades, setTrades]           = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [modalOpen, setModalOpen]     = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
+  const [deleteId, setDeleteId]       = useState(null);
+  const [deleting, setDeleting]       = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -48,15 +54,19 @@ export default function TradeJournal({ refreshKey, onChange }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm(t('confirmDeleteTrade'))) return;
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
     try {
-      await deleteTrade(id);
+      await deleteTrade(deleteId);
       toast.success(t('tradeDeleted'));
       load();
       onChange?.();
     } catch (e) {
       toast.error('Error');
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
     }
   };
 
@@ -187,9 +197,10 @@ export default function TradeJournal({ refreshKey, onChange }) {
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(tr.id)}
+                          onClick={() => setDeleteId(tr.id)}
                           className="p-1 rounded hover:bg-[#ef4444]/15 text-muted-foreground hover:text-[#ef4444]"
                           data-testid={`trade-delete-${tr.id}`}
+                          aria-label={t('confirmDeleteTradeTitle')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -209,6 +220,28 @@ export default function TradeJournal({ refreshKey, onChange }) {
         onSaved={handleSaved}
         initialTrade={editingTrade}
       />
+
+      <Dialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              {t('confirmDeleteTradeTitle')}
+            </DialogTitle>
+            <DialogDescription className="pt-1">
+              {t('confirmDeleteTradeDesc')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteId(null)} disabled={deleting} className="w-full sm:w-auto">
+              {t('keepPlanBtn')}
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting} className="w-full sm:w-auto">
+              {t('deleteTradeBtn')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

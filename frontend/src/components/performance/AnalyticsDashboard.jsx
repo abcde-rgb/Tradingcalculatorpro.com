@@ -161,7 +161,7 @@ export default function AnalyticsDashboard({ refreshKey }) {
           testId="kpi-win-rate" />
         <KpiCard icon={Activity} label={t('kpiProfitFactor')}
           value={a.profit_factor != null ? a.profit_factor : '∞'}
-          subValue={a.profit_factor >= 1.5 ? '✓ Excelente' : a.profit_factor >= 1.0 ? 'OK' : 'Pierdes'}
+          subValue={a.profit_factor >= 1.5 ? t('pfExcellent') : a.profit_factor >= 1.0 ? t('pfOk') : t('pfLosing')}
           color={a.profit_factor >= 1.5 ? 'text-[#22c55e]' : a.profit_factor >= 1.0 ? 'text-[#f59e0b]' : 'text-[#ef4444]'}
           testId="kpi-pf" />
         <KpiCard icon={Target} label={t('kpiExpectancy')}

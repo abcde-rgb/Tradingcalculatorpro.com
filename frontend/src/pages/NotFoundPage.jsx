@@ -3,15 +3,17 @@ import { TrendingDown, Home, BarChart3, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { useSEO } from '@/hooks/useSEO';
 
 export default function NotFoundPage() {
+  useSEO({ titleKey: 'seoNotFoundTitle', descriptionKey: 'seoNotFoundDesc', canonicalPath: '/404' });
+
   return (
-    <div className="min-h-screen bg-[#050505] flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
       <main className="flex-1 flex items-center justify-center px-4 py-24">
         <div className="text-center max-w-lg mx-auto space-y-6">
-          {/* Big 404 */}
           <div className="relative inline-block select-none">
             <p className="text-8xl font-bold text-primary/20 font-unbounded leading-none">404</p>
             <div className="absolute inset-0 flex items-center justify-center">
@@ -22,19 +24,16 @@ export default function NotFoundPage() {
             </div>
           </div>
 
-          {/* Heading */}
-          <h1 className="font-unbounded text-2xl sm:text-3xl font-bold text-white leading-snug">
-            Esta posicion entro en stop-loss
+          <h1 className="font-unbounded text-2xl sm:text-3xl font-bold leading-snug">
+            Esta posición entró en stop-loss
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-zinc-400 text-base sm:text-lg leading-relaxed">
-            La pagina que buscas no existe o fue movida.
+          <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
+            La página que buscas no existe o fue movida.
             <br />
             Pero tu portfolio puede recuperarse.
           </p>
 
-          {/* CTA buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link to="/">
               <Button className="w-full sm:w-auto gap-2">
@@ -42,16 +41,14 @@ export default function NotFoundPage() {
                 Ir al inicio
               </Button>
             </Link>
-
             <Link to="/dashboard">
               <Button variant="outline" className="w-full sm:w-auto gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Ver dashboard
               </Button>
             </Link>
-
             <Link to="/pricing">
-              <Button variant="ghost" className="w-full sm:w-auto gap-2 text-zinc-400 hover:text-white">
+              <Button variant="ghost" className="w-full sm:w-auto gap-2 text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="w-4 h-4" />
                 Ver precios
               </Button>

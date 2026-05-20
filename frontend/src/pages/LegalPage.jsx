@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Shield, FileText, Cookie, ChevronRight } from 'lucide-react';
+import { useSEO } from '@/hooks/useSEO';
 
 const LAST_UPDATED = 'Mayo 2026';
 
@@ -473,6 +474,7 @@ function CookiePolicy() {
 // Page
 // ---------------------------------------------------------------------------
 export default function LegalPage() {
+  useSEO({ titleKey: 'seoLegalTitle', descriptionKey: 'seoLegalDesc', canonicalPath: '/legal' });
   const [activeTab, setActiveTab] = useState('privacy');
 
   return (

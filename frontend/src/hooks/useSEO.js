@@ -42,7 +42,7 @@ export function useSEO({
   description,
   descriptionKey,
   canonicalPath,
-  image = `${ORIGIN}/og-image.jpg`,
+  image = `${ORIGIN}/og-image.svg`,
   type = 'website',
 }) {
   const { t, locale } = useTranslation();

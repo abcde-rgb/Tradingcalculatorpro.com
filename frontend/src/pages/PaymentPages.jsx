@@ -36,10 +36,10 @@ export const PaymentSuccessPage = () => {
         setStatus('success');
         try { window.gtag?.('event', 'purchase', { transaction_id: sessionId }); } catch (_) {}
         await refreshUser();
-      } else if (attemptsRef.current < 5) {
+      } else if (attemptsRef.current < 15) {
         attemptsRef.current += 1;
         setAttempts(attemptsRef.current);
-        setTimeout(() => checkStatus(), 2000);
+        setTimeout(() => checkStatus(), 3000);
       } else {
         setStatus('pending');
       }

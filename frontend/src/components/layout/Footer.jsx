@@ -99,7 +99,7 @@ export function Footer() {
             <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('resources')}</h4>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
               <li><Link to="/education" className="hover:text-primary transition-colors" data-testid="footer-education">{t('educationCenter')}</Link></li>
-              <li><Link to="/about" className="hover:text-primary transition-colors">Sobre nosotros</Link></li>
+              <li><Link to="/about" className="hover:text-primary transition-colors">{t('about') || 'Sobre nosotros'}</Link></li>
               <li><Link to="/contact" className="hover:text-primary transition-colors">{t('support') || 'Contacto'}</Link></li>
               <li><Link to="/options" className="hover:text-primary transition-colors">{t('optionsAcademy')}</Link></li>
             </ul>

@@ -44,11 +44,11 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
           userBalance: balance || null,
         }),
       });
-      if (!res.ok) throw new Error((await res.json()).detail || 'Error al analizar');
+      if (!res.ok) throw new Error((await res.json()).detail || t('errorAnalyze'));
       const d = await res.json();
       setAnalysis(d.analysis);
     } catch (e) {
-      setError(e.message || 'Error desconocido');
+      setError(e.message || t('errorUnknown'));
     } finally {
       setLoading(false);
     }

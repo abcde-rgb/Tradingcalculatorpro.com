@@ -3,6 +3,7 @@ import { TrendingUp, Shield, Zap, Users, BarChart3, Globe, ArrowRight, Target } 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
+import { useSEO } from '@/hooks/useSEO';
 import { Footer } from '@/components/layout/Footer';
 
 const VALUES = [
@@ -47,6 +48,7 @@ const TECH_STACK = [
 ];
 
 export default function AboutPage() {
+  useSEO({ titleKey: 'seoAboutTitle', descriptionKey: 'seoAboutDesc', canonicalPath: '/about' });
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />

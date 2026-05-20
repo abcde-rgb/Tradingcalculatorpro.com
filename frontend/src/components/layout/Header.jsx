@@ -169,12 +169,12 @@ export function Header() {
                 {alertsOpen && (
                   <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50">
                     <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-                      <span className="text-sm font-semibold">Notificaciones</span>
+                      <span className="text-sm font-semibold">{t('notifications')}</span>
                       <button
                         className="text-xs text-primary hover:underline"
                         onClick={() => setAlerts(a => a.map(x => ({ ...x, read: true })))}
                       >
-                        Marcar todas
+                        {t('markAllRead')}
                       </button>
                     </div>
                     {alerts.map(alert => (
@@ -196,7 +196,7 @@ export function Header() {
                         className="text-xs text-primary hover:underline"
                         onClick={() => setAlertsOpen(false)}
                       >
-                        Ver todas las alertas →
+                        {t('viewAllAlerts')}
                       </Link>
                     </div>
                   </div>
