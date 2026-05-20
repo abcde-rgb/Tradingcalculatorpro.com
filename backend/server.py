@@ -1503,6 +1503,42 @@ async def delete_account(request: Request, user: dict = Depends(require_user)):
     return {"ok": True, "message": "Cuenta eliminada permanentemente"}
 
 
+@api_router.get("/auth/my-data")
+@limiter.limit("5/hour")
+async def export_my_data(request: Request, user: dict = Depends(require_user)):
+    """RGPD Art. 20 — portabilidad de datos. Devuelve todos los datos del usuario en JSON."""
+    import json as _json
+    user_id = user["id"]
+    safe_user = {k: v for k, v in user.items() if k not in ("password",)}
+
+    async def collect(collection, query):
+        try:
+            return await getattr(db, collection).find(query, {"_id": 0})
+        except Exception:
+            return []
+
+    trades        = await collect("trades",            {"user_id": user_id})
+    calculations  = await collect("calculations",      {"user_id": user_id})
+    alerts        = await collect("alerts",            {"user_id": user_id})
+    performance   = await collect("performance_trades",{"user_id": user_id})
+
+    payload = {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "profile":      safe_user,
+        "trades":       trades,
+        "calculations": calculations,
+        "alerts":       alerts,
+        "performance":  performance,
+    }
+
+    filename = f"my-data-{user_id[:8]}.json"
+    return Response(
+        content=_json.dumps(payload, indent=2, default=str),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 # ============= GOOGLE OAUTH =============
 # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 

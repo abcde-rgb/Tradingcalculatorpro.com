@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff, Settings2 } from 'lucide-react';
+import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff, Settings2, Download, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,6 +155,30 @@ export default function SettingsPage() {
       }
     } finally {
       setDeletingAccount(false);
+    }
+  };
+
+  const [downloadingData, setDownloadingData] = useState(false);
+  const handleDownloadMyData = async () => {
+    setDownloadingData(true);
+    try {
+      const token = useAuthStore.getState().token;
+      const res = await fetch(`${BACKEND_URL}/api/auth/my-data`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mis-datos.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('downloadMyData'));
+    } catch (err) {
+      toast.error(err.message || 'Error al descargar los datos');
+    } finally {
+      setDownloadingData(false);
     }
   };
 
@@ -373,6 +397,20 @@ export default function SettingsPage() {
               <CardTitle>Acciones</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <Button
+                  onClick={handleDownloadMyData}
+                  disabled={downloadingData}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  {downloadingData
+                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    : <Download className="w-4 h-4 mr-2" />}
+                  {t('downloadMyData')}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1 ml-1">{t('downloadMyDataDesc')}</p>
+              </div>
               <Button
                 onClick={handleLogout}
                 variant="outline"
