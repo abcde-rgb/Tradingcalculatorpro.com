@@ -20,6 +20,17 @@ const LOCALE_LOADERS = {
 
 const SUPPORTED = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar'];
 
+export const languages = [
+  { code: 'es', name: 'Español',   flag: '🇪🇸' },
+  { code: 'en', name: 'English',   flag: '🇬🇧' },
+  { code: 'de', name: 'Deutsch',   flag: '🇩🇪' },
+  { code: 'fr', name: 'Français',  flag: '🇫🇷' },
+  { code: 'ru', name: 'Русский',   flag: '🇷🇺' },
+  { code: 'zh', name: '中文',       flag: '🇨🇳' },
+  { code: 'ja', name: '日本語',     flag: '🇯🇵' },
+  { code: 'ar', name: 'العربية',   flag: '🇸🇦' },
+];
+
 function applyDomLocale(locale) {
   if (typeof document === 'undefined') return;
   document.documentElement.dir  = locale === 'ar' ? 'rtl' : 'ltr';
