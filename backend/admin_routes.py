@@ -526,6 +526,9 @@ def build_admin_router(
                 raise HTTPException(status_code=400, detail="No puedes quitarte el rol de admin a ti mismo")
             patch["is_admin"] = body.is_admin
         if body.subscription_plan is not None:
+            valid_plans = set(subscription_plans.keys()) | {"free"}
+            if body.subscription_plan not in valid_plans:
+                raise HTTPException(status_code=400, detail=f"Plan inválido: {body.subscription_plan}")
             patch["subscription_plan"] = body.subscription_plan
             patch["is_premium"] = body.subscription_plan in subscription_plans
         if body.subscription_end is not None:

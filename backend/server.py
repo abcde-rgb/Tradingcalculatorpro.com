@@ -2582,6 +2582,8 @@ async def _create_stripe_session(
     mode = "payment" if plan.get("interval") == "lifetime" else "subscription"
     payment_methods = _PAYMENT_METHODS_MAP.get(payment_method, ["card"])
 
+    # Idempotency key prevents duplicate sessions if the client retries on network error
+    idempotency_key = f"checkout-{metadata.get('user_id', 'anon')}-{metadata.get('plan_id', 'unknown')}-{metadata.get('transaction_id', secrets.token_hex(8))}"
     session = await _asyncio.get_event_loop().run_in_executor(
         None,
         lambda: stripe.checkout.Session.create(
@@ -2591,6 +2593,7 @@ async def _create_stripe_session(
             success_url=success_url,
             cancel_url=cancel_url,
             metadata=metadata,
+            idempotency_key=idempotency_key,
         ),
     )
     # Expose .session_id so callers don't need changing

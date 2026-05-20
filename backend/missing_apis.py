@@ -20,6 +20,7 @@ All the missing/incomplete APIs from TradingCalculator PRO:
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import logging
 import os
@@ -33,6 +34,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
+
+
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
 
 # ── These helpers are imported from the main server module at registration time
 # (injected via register(router, db, helpers)).  We define placeholders here
@@ -489,14 +495,14 @@ async def forgot_password(request: Request, payload: ForgotPasswordRequest):
         # Avoid user enumeration: always return success
         return {"ok": True, "message": "Si existe una cuenta con ese email, recibirás un enlace de recuperación."}
 
-    token = uuid.uuid4().hex + uuid.uuid4().hex  # 64-char random token
+    token = uuid.uuid4().hex + uuid.uuid4().hex  # 64-char random token — sent in URL, never stored
     expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     await db.password_reset_tokens.update_one(
         {"user_id": user["id"]},
         {"$set": {
             "user_id": user["id"],
             "email": email_lc,
-            "token": token,
+            "token": _hash_token(token),  # store SHA-256 hash, not plaintext
             "created_at": datetime.now(timezone.utc),
             "expires_at": expires_at,
             "used": False,
@@ -527,10 +533,10 @@ async def reset_password(payload: ResetPasswordRequest):
     Validate the token, set the new password, mark the token used,
     and revoke all existing sessions for that user.
     """
-    if len(payload.new_password) < 6:
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
 
-    rec = await db.password_reset_tokens.find_one({"token": payload.token, "used": False})
+    rec = await db.password_reset_tokens.find_one({"token": _hash_token(payload.token), "used": False})
     if not rec:
         raise HTTPException(status_code=400, detail="Token inválido o ya utilizado")
 
@@ -553,7 +559,7 @@ async def reset_password(payload: ResetPasswordRequest):
         }},
     )
     await db.password_reset_tokens.update_one(
-        {"token": payload.token},
+        {"token": _hash_token(payload.token)},
         {"$set": {"used": True, "used_at": datetime.now(timezone.utc)}},
     )
     # Revoke all sessions for the user (user_revocations collection, same as admin reset)
@@ -783,12 +789,12 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
     webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
     stripe.api_key = runtime_key
 
+    if not webhook_secret:
+        logging.error("Stripe webhook received but STRIPE_WEBHOOK_SECRET is not configured — rejecting")
+        raise HTTPException(status_code=500, detail="Webhook secret not configured")
+
     try:
-        if webhook_secret:
-            event = stripe.Webhook.construct_event(payload_bytes, sig, webhook_secret)
-        else:
-            import json
-            event = stripe.Event.construct_from(json.loads(payload_bytes), runtime_key)
+        event = stripe.Webhook.construct_event(payload_bytes, sig, webhook_secret)
     except stripe.error.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
     except Exception as e:
