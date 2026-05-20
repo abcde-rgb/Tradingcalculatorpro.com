@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff, Settings2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -162,7 +162,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505]">
+    <div className="min-h-screen bg-background">
       <Header />
 
       <main className="pt-24 pb-12 px-4">
@@ -184,7 +184,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-lg">{user.name}</p>
-                  <p className="text-zinc-400 flex items-center gap-2">
+                  <p className="text-muted-foreground flex items-center gap-2 text-sm">
                     <Mail className="w-4 h-4" /> {user.email}
                   </p>
                 </div>
@@ -202,24 +202,30 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {user.is_premium ? (
-                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 space-y-3">
+                  <div className="flex items-center gap-2">
                     <Crown className="w-5 h-5 text-yellow-500" />
                     <span className="font-semibold text-yellow-500">{t('premiumActivo_433549')}</span>
                   </div>
-                  <p className="text-sm text-zinc-400">
-                    Plan: <span className="text-white capitalize">{user.subscription_plan}</span>
+                  <p className="text-sm text-muted-foreground">
+                    Plan: <span className="text-foreground capitalize">{user.subscription_plan}</span>
                   </p>
-                  {user.subscription_plan !== 'lifetime' && (
-                    <p className="text-sm text-zinc-400 flex items-center gap-2 mt-1">
+                  {user.subscription_plan !== 'lifetime' && user.subscription_end && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
                       Expira: {formatDate(user.subscription_end)}
                     </p>
                   )}
+                  <Link to="/subscription">
+                    <Button variant="outline" size="sm" className="mt-1">
+                      <Settings2 className="w-4 h-4 mr-2" />
+                      {t('manageSubscriptionBtn')}
+                    </Button>
+                  </Link>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <p className="text-zinc-400 mb-4">{t('noTienesUnaSuscripcionActiva_84a892')}</p>
+                <div className="p-4 rounded-xl bg-muted/30 border border-border space-y-3">
+                  <p className="text-sm text-muted-foreground">{t('noTienesUnaSuscripcionActiva_84a892')}</p>
                   <Link to="/pricing">
                     <Button className="bg-yellow-500 text-black hover:bg-yellow-400">
                       <Crown className="w-4 h-4 mr-2" /> Ver Planes Premium
@@ -330,7 +336,7 @@ export default function SettingsPage() {
                   <Label htmlFor="email-notifications" className="text-base">
                     Notificaciones por email
                   </Label>
-                  <p className="text-sm text-zinc-400">
+                  <p className="text-sm text-muted-foreground">
                     Recibe actualizaciones y novedades en tu bandeja de entrada
                   </p>
                 </div>
@@ -346,7 +352,7 @@ export default function SettingsPage() {
                   <Label htmlFor="compact-mode" className="text-base">
                     Modo compacto
                   </Label>
-                  <p className="text-sm text-zinc-400">
+                  <p className="text-sm text-muted-foreground">
                     Reduce el espaciado para ver más información en pantalla
                   </p>
                 </div>
@@ -385,9 +391,9 @@ export default function SettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-zinc-400">
-                Eliminar tu cuenta es una accion permanente e irreversible. Todos tus datos, calculos
-                y suscripciones seran eliminados conforme al RGPD.
+              <p className="text-sm text-muted-foreground">
+                Eliminar tu cuenta es una acción permanente e irreversible. Todos tus datos, cálculos
+                y suscripciones serán eliminados conforme al RGPD.
               </p>
               <Button
                 variant="outline"
@@ -416,9 +422,9 @@ export default function SettingsPage() {
               Confirmar eliminacion de cuenta
             </DialogTitle>
             <DialogDescription className="text-zinc-400 pt-2">
-              Esta accion es <span className="text-white font-semibold">permanente e irreversible</span>.
-              Todos tus datos seran eliminados. Escribe{' '}
-              <span className="font-mono font-bold text-white">ELIMINAR</span> para confirmar.
+              Esta acción es <span className="font-semibold text-foreground">permanente e irreversible</span>.
+              Todos tus datos serán eliminados. Escribe{' '}
+              <span className="font-mono font-bold text-foreground">ELIMINAR</span> para confirmar.
             </DialogDescription>
           </DialogHeader>
 
