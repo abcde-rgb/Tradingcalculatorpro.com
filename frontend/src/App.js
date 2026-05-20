@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
+import CookieBanner from "@/components/common/CookieBanner";
 
 // Pages
 import LandingPage from "@/pages/LandingPage";
@@ -53,6 +54,7 @@ const AppContent = () => (
       </Routes>
     </BrowserRouter>
     <Toaster position="top-right" richColors />
+    <CookieBanner />
   </div>
 );
 

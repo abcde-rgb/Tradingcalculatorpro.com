@@ -2052,6 +2052,12 @@ export const translations = {
     onboardingStep1Register: 'Registrar',
     onboardingAccountReady: 'Tu cuenta está configurada',
     onboardingStep4Desc: 'Empieza calculando el tamaño de tu primera posición o explora el diario de trading para registrar tus operaciones.',
+    cookieBannerTitle: 'Usamos cookies',
+    cookieBannerDesc: 'Usamos cookies esenciales para que la plataforma funcione. Con tu consentimiento, también usamos cookies analíticas (Google Analytics) para mejorar el servicio. No compartimos datos con redes publicitarias.',
+    cookieAcceptAll: 'Aceptar todo',
+    cookieEssentialOnly: 'Solo esenciales',
+    cookieManage: 'Gestionar preferencias',
+    cookiePolicyLink: 'Política de Cookies',
   },
   
   en: {
@@ -3985,6 +3991,12 @@ export const translations = {
     onboardingStep1Register: 'Record',
     onboardingAccountReady: 'Your account is set up',
     onboardingStep4Desc: 'Start by calculating the size of your first position or explore the trading journal to log your operations.',
+    cookieBannerTitle: 'We use cookies',
+    cookieBannerDesc: 'We use essential cookies to keep the platform running. With your consent, we also use analytics cookies (Google Analytics) to improve our service. We never share data with ad networks.',
+    cookieAcceptAll: 'Accept all',
+    cookieEssentialOnly: 'Essential only',
+    cookieManage: 'Manage preferences',
+    cookiePolicyLink: 'Cookie Policy',
   },
   
   de: {
@@ -5948,6 +5960,12 @@ export const translations = {
     onboardingStep1Register: 'Erfassen',
     onboardingAccountReady: 'Dein Konto ist eingerichtet',
     onboardingStep4Desc: 'Beginne mit der Berechnung deiner ersten Positionsgröße oder erkunde das Trading-Tagebuch.',
+    cookieBannerTitle: 'Wir verwenden Cookies',
+    cookieBannerDesc: 'Wir verwenden essentielle Cookies für den Betrieb der Plattform. Mit Ihrer Zustimmung verwenden wir auch Analyse-Cookies (Google Analytics) zur Verbesserung unseres Dienstes. Wir teilen keine Daten mit Werbenetzwerken.',
+    cookieAcceptAll: 'Alle akzeptieren',
+    cookieEssentialOnly: 'Nur essentielle',
+    cookieManage: 'Einstellungen verwalten',
+    cookiePolicyLink: 'Cookie-Richtlinie',
   },
   
   fr: {
@@ -7911,6 +7929,12 @@ export const translations = {
     onboardingStep1Register: 'Enregistrer',
     onboardingAccountReady: 'Votre compte est configuré',
     onboardingStep4Desc: 'Commencez par calculer la taille de votre première position ou explorez le journal de trading.',
+    cookieBannerTitle: 'Nous utilisons des cookies',
+    cookieBannerDesc: "Nous utilisons des cookies essentiels pour faire fonctionner la plateforme. Avec votre consentement, nous utilisons aussi des cookies analytiques (Google Analytics) pour améliorer notre service. Nous ne partageons aucune donnée avec des réseaux publicitaires.",
+    cookieAcceptAll: 'Tout accepter',
+    cookieEssentialOnly: 'Essentiels uniquement',
+    cookieManage: 'Gérer les préférences',
+    cookiePolicyLink: 'Politique des cookies',
   },
   
   ru: {
@@ -9816,6 +9840,12 @@ export const translations = {
     onboardingStep1Register: 'Записать',
     onboardingAccountReady: 'Ваш аккаунт настроен',
     onboardingStep4Desc: 'Начните с расчёта размера первой позиции или изучите торговый дневник для записи операций.',
+    cookieBannerTitle: 'Мы используем файлы cookie',
+    cookieBannerDesc: 'Мы используем основные файлы cookie для работы платформы. С вашего согласия мы также используем аналитические cookie (Google Analytics) для улучшения сервиса. Мы не передаём данные рекламным сетям.',
+    cookieAcceptAll: 'Принять все',
+    cookieEssentialOnly: 'Только основные',
+    cookieManage: 'Управление настройками',
+    cookiePolicyLink: 'Политика cookies',
   },
   
   zh: {
@@ -11721,6 +11751,12 @@ export const translations = {
     onboardingStep1Register: '记录',
     onboardingAccountReady: '您的账户已设置',
     onboardingStep4Desc: '开始计算您的第一个仓位大小，或浏览交易日记来记录您的操作。',
+    cookieBannerTitle: '我们使用Cookie',
+    cookieBannerDesc: '我们使用必要的Cookie来保持平台运行。在您同意的情况下，我们还使用分析Cookie（Google Analytics）来改进服务。我们不与广告网络共享数据。',
+    cookieAcceptAll: '接受所有',
+    cookieEssentialOnly: '仅必要',
+    cookieManage: '管理偏好',
+    cookiePolicyLink: 'Cookie政策',
   },
   
   ja: {
@@ -13626,6 +13662,12 @@ export const translations = {
     onboardingStep1Register: '記録',
     onboardingAccountReady: 'アカウントが設定されました',
     onboardingStep4Desc: '最初のポジションサイズの計算から始めるか、トレーディング日誌で取引を記録してください。',
+    cookieBannerTitle: 'クッキーを使用しています',
+    cookieBannerDesc: 'プラットフォームの動作に必要なクッキーを使用しています。同意いただいた場合、サービス改善のためGoogle Analyticsの分析クッキーも使用します。広告ネットワークとデータを共有することはありません。',
+    cookieAcceptAll: 'すべて同意',
+    cookieEssentialOnly: '必須のみ',
+    cookieManage: '設定を管理',
+    cookiePolicyLink: 'クッキーポリシー',
   },
   
   ar: {
@@ -15529,6 +15571,12 @@ export const translations = {
     onboardingStep1Register: 'تسجيل',
     onboardingAccountReady: 'تم إعداد حسابك',
     onboardingStep4Desc: 'ابدأ بحساب حجم مركزك الأول أو استكشف مذكرة التداول لتسجيل عملياتك.',
+    cookieBannerTitle: 'نستخدم ملفات الارتباط',
+    cookieBannerDesc: 'نستخدم ملفات الارتباط الأساسية لتشغيل المنصة. بموافقتك، نستخدم أيضاً ملفات تحليلية (Google Analytics) لتحسين خدمتنا. لا نشارك البيانات مع شبكات الإعلانات.',
+    cookieAcceptAll: 'قبول الكل',
+    cookieEssentialOnly: 'الأساسية فقط',
+    cookieManage: 'إدارة التفضيلات',
+    cookiePolicyLink: 'سياسة الكوكيز',
   }
 };
 
