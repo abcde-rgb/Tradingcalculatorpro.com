@@ -1362,7 +1362,7 @@ async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
         "login_count": (user.get("login_count") or 0) + 1,
         "auth_provider": user.get("auth_provider") or "magic_link",
     }})
-    token = create_jwt(user["id"], user["email"])
+    token = create_token(user["id"], user["email"])
     return {
         "access_token": token,
         "user": {
@@ -5168,6 +5168,21 @@ try:
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:
     logging.error(f"Module-level extended modules registration error: {_e}", exc_info=True)
+
+try:
+    from admin_routes import build_admin_router
+    api_router.include_router(
+        build_admin_router(
+            db=db,
+            require_admin_dep=require_admin,
+            subscription_plans=SUBSCRIPTION_PLANS,
+            log_admin_action_fn=log_admin_action,
+        ),
+        prefix="/admin",
+    )
+    logging.info("✅ admin_routes feature endpoints registered (maintenance, campaigns, churn, cohorts, referrals/leaderboard, plans, i18n, errors, rate-limits, gdpr-exports)")
+except Exception as _e:
+    logging.error(f"admin_routes registration error: {_e}", exc_info=True)
 
 app.include_router(api_router)
 
