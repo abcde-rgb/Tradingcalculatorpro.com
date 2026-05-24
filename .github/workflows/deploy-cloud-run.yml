@@ -153,8 +153,8 @@ jobs:
             --max-instances 10 \
             --timeout 300 \
             --concurrency 80 \
-            --set-env-vars="GCP_PROJECT=${{ env.GCP_PROJECT }}" \
-            --update-secrets="JWT_SECRET=JWT_SECRET:latest,DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,STRIPE_API_KEY=STRIPE_API_KEY:latest,SENDGRID_API_KEY=SENDGRID_API_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest" \
+            --set-env-vars="^;^GCP_PROJECT=${{ env.GCP_PROJECT }};CORS_ORIGINS=https://abcde-rgb.github.io,https://tradingcalculator.pro;FRONTEND_URL=https://abcde-rgb.github.io/Tradingcalculatorpro.com;DEMO_EMAIL=demo@btccalc.pro;SENDER_EMAIL=alerts@tradingcalculator.pro" \
+            --update-secrets="JWT_SECRET=JWT_SECRET:latest,DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,STRIPE_API_KEY=STRIPE_API_KEY:latest,SENDGRID_API_KEY=SENDGRID_API_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
             --add-cloudsql-instances=tradingcalculator-495806:europe-west1:trading-db \
             --service-account=trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com
 
