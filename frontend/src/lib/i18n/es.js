@@ -2411,7 +2411,7 @@ export default {
     trendBreakTitle: 'Rupturas de Línea de Tendencia',
     trendBreakDesc: 'Cuando el precio cierra decisivamente fuera de una línea de tendencia con fuerte momentum y volumen, la tendencia puede estar revirtiendo. Espera un retest de la línea rota antes de entrar en la nueva dirección.',
     trendBullLine: 'Línea Alcista',
-    trendBearLine: 'Línea Bajista',,
+    trendBearLine: 'Línea Bajista',
 
   // -- Trading Basics Guide --
     basicsHeroTitle: 'Conceptos Esenciales del Trading',

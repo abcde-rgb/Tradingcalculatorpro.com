@@ -2358,7 +2358,7 @@ export default {
     journalTrackName: 'Quoi enregistrer',
     journalTrackDesc: 'Points d\'entrée/sortie, taille de position, type de setup, conditions',
     journalReviewName: 'Processus de révision',
-    journalReviewDesc: 'Révision hebdomadaire pour identifier forces, faiblesses et patterns',,
+    journalReviewDesc: 'Révision hebdomadaire pour identifier forces, faiblesses et patterns',
 
   // -- Trading Basics Guide --
     basicsHeroTitle: 'Concepts essentiels du trading',

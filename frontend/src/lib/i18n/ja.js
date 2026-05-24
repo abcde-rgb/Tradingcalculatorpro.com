@@ -2300,7 +2300,7 @@ export default {
     journalTrackName: '記録すること',
     journalTrackDesc: '入場/出場ポイント、ポジションサイズ、設定タイプ、市場状況',
     journalReviewName: 'レビュープロセス',
-    journalReviewDesc: '週次レビューで強み、弱み、市場パターンを特定',,
+    journalReviewDesc: '週次レビューで強み、弱み、市場パターンを特定',
 
   // -- Trading Basics Guide --
     basicsHeroTitle: 'トレードの基本概念',

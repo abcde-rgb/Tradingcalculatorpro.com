@@ -2326,7 +2326,7 @@ export default {
     trendBreakTitle: 'Trend Line Breaks',
     trendBreakDesc: 'When price decisively closes outside a trend line with strong momentum and volume, the trend may be reversing. Wait for a retest of the broken line before entering in the new direction.',
     trendBullLine: 'Bullish Trend Line',
-    trendBearLine: 'Bearish Trend Line',,
+    trendBearLine: 'Bearish Trend Line',
 
   // -- Trading Basics Guide --
     basicsHeroTitle: 'Essential Trading Concepts',

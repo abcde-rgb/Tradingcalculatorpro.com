@@ -2300,7 +2300,7 @@ export default {
     journalTrackName: 'Что отслеживать',
     journalTrackDesc: 'Точки входа/выхода, размер позиции, тип сетапа, рыночные условия',
     journalReviewName: 'Процесс анализа',
-    journalReviewDesc: 'Еженедельный анализ сделок для выявления сильных и слабых сторон',,
+    journalReviewDesc: 'Еженедельный анализ сделок для выявления сильных и слабых сторон',
 
   // -- Trading Basics Guide --
     basicsHeroTitle: 'Основные концепции трейдинга',

@@ -2358,7 +2358,7 @@ export default {
     journalTrackName: 'Was aufzeichnen',
     journalTrackDesc: 'Ein-/Ausstiegspunkte, Positionsgröße, Setup-Typ, Marktbedingungen',
     journalReviewName: 'Überprüfungsprozess',
-    journalReviewDesc: 'Wöchentliche Überprüfung zur Identifizierung von Stärken und Schwächen',,
+    journalReviewDesc: 'Wöchentliche Überprüfung zur Identifizierung von Stärken und Schwächen',
 
   // -- Trading Basics Guide --
     basicsHeroTitle: 'Grundlegende Trading-Konzepte',

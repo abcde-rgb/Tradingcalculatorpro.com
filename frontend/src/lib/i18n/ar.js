@@ -2298,7 +2298,7 @@ export default {
     journalTrackName: 'ما تتبعه',
     journalTrackDesc: 'نقاط الدخول/الخروج، حجم المركز، نوع الإعداد، ظروف السوق، الحالة العاطفية',
     journalReviewName: 'عملية المراجعة',
-    journalReviewDesc: 'مراجعة أسبوعية للصفقات لتحديد نقاط القوة والضعف والأنماط',,
+    journalReviewDesc: 'مراجعة أسبوعية للصفقات لتحديد نقاط القوة والضعف والأنماط',
 
   // -- Trading Basics Guide --
     basicsHeroTitle: 'المفاهيم الأساسية في التداول',

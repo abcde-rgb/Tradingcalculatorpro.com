@@ -2300,7 +2300,7 @@ export default {
     journalTrackName: '记录什么',
     journalTrackDesc: '入场/出场点，仓位大小，设置类型，市场状况，情绪状态',
     journalReviewName: '复盘流程',
-    journalReviewDesc: '每周复盘交易，识别优势、劣势和市场模式',,
+    journalReviewDesc: '每周复盘交易，识别优势、劣势和市场模式',
 
   // -- Trading Basics Guide --
     basicsHeroTitle: '交易核心概念',
