@@ -1362,7 +1362,7 @@ async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
         "login_count": (user.get("login_count") or 0) + 1,
         "auth_provider": user.get("auth_provider") or "magic_link",
     }})
-    token = create_jwt(user["id"], user["email"])
+    token = create_token(user["id"], user["email"])
     return {
         "access_token": token,
         "user": {

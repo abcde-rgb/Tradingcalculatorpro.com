@@ -202,7 +202,7 @@ export default function AdminPage() {
         <Card className="max-w-md">
           <CardHeader><CardTitle>{t('adminAccessDenied')}</CardTitle></CardHeader>
           <CardContent>
-            <Link to="/dashboard"><Button>{t('volverAlDashboard_e3a957') || 'Volver'}</Button></Link>
+            <Link to="/dashboard"><Button>{t('volverAlDashboard')}</Button></Link>
           </CardContent>
         </Card>
       </div>
