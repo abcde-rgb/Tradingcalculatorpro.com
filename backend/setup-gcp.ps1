@@ -85,7 +85,7 @@ $roles = @(
 foreach ($role in $roles) {
   gcloud projects add-iam-policy-binding $PROJECT_ID `
     --member="serviceAccount:$SA_EMAIL" `
-    --role=$role --quiet | Out-Null
+    --role=$role --condition=None --quiet | Out-Null
 }
 Write-Host "OK - Service Account: $SA_EMAIL" -ForegroundColor Green
 
