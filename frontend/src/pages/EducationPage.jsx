@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics } from '@/lib/tradingEducationContent';
+import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -26,6 +26,9 @@ import LivePatternDetector from '@/components/education/LivePatternDetector';
 import PatternFilterBar from '@/components/education/PatternFilterBar';
 import LeverageGuide from '@/components/education/LeverageGuide';
 import TradingPillarsGuide from '@/components/education/TradingPillarsGuide';
+import TradingPyramid from '@/components/education/TradingPyramid';
+import TrendLinesGuide from '@/components/education/TrendLinesGuide';
+import TimeframesGuide from '@/components/education/TimeframesGuide';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -314,6 +317,11 @@ export default function EducationPage() {
   const CAPITAL_MANAGEMENT = getCapitalManagement(t);
   const TRADING_STRATEGIES = getTradingStrategies(t);
   const PROBABILITY_STATS = getProbabilityStatistics(t);
+  const TRADING_FUNDAMENTALS = getTradingFundamentals(t);
+  const TECHNICAL_ANALYSIS = getTechnicalAnalysis(t);
+  const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
+  const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
+  const MARKET_MECHANICS = getMarketMechanics(t);
 
   // Premium Gate - Block non-authenticated OR non-premium users
   if (!isPremium) {
@@ -438,6 +446,21 @@ export default function EducationPage() {
 
           <Tabs defaultValue="rules" className="space-y-8">
             <TabsList className="bg-card border border-border p-1 h-auto flex-wrap justify-center gap-1">
+              <TabsTrigger value="fundamentals" className="gap-2" data-testid="tab-fundamentals">
+                <Lightbulb className="w-4 h-4" /> {t('fundTab')}
+              </TabsTrigger>
+              <TabsTrigger value="tech-analysis" className="gap-2" data-testid="tab-tech-analysis">
+                <TrendingUp className="w-4 h-4" /> {t('techTab')}
+              </TabsTrigger>
+              <TabsTrigger value="fund-analysis" className="gap-2" data-testid="tab-fund-analysis">
+                <BarChart3 className="w-4 h-4" /> {t('fundAnalTab')}
+              </TabsTrigger>
+              <TabsTrigger value="styles" className="gap-2" data-testid="tab-styles">
+                <Target className="w-4 h-4" /> {t('stylesTab')}
+              </TabsTrigger>
+              <TabsTrigger value="mechanics" className="gap-2" data-testid="tab-mechanics">
+                <Scale className="w-4 h-4" /> {t('mechTab')}
+              </TabsTrigger>
               <TabsTrigger value="rules" className="gap-2" data-testid="tab-rules">
                 <Brain className="w-4 h-4" /> {t('tradingRules')}
               </TabsTrigger>
@@ -466,6 +489,478 @@ export default function EducationPage() {
                 <Scale className="w-4 h-4" /> {t('riskManagement')}
               </TabsTrigger>
             </TabsList>
+
+            {/* Fundamentals */}
+            <TabsContent value="fundamentals" className="space-y-8">
+              {/* Hero intro */}
+              <Card className="bg-gradient-to-br from-primary/5 to-blue-500/10 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Lightbulb className="w-6 h-6 text-primary" />
+                    {TRADING_FUNDAMENTALS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TRADING_FUNDAMENTALS.intro}</p>
+                </CardContent>
+              </Card>
+
+              {/* Market Types */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  {TRADING_FUNDAMENTALS.marketTypes.title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {TRADING_FUNDAMENTALS.marketTypes.items.map(item => (
+                    <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="text-2xl">{item.icon}</span>
+                          {item.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-3">{item.desc}</p>
+                        <Badge variant="secondary" className="text-xs">{item.volume}</Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Market Participants */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-blue-500" />
+                  {TRADING_FUNDAMENTALS.participants.title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {TRADING_FUNDAMENTALS.participants.items.map(item => (
+                    <Card key={item.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="text-xl">{item.icon}</span>
+                          {item.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trading Sessions */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-orange-500" />
+                  {TRADING_FUNDAMENTALS.sessions.title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {TRADING_FUNDAMENTALS.sessions.items.map(item => {
+                    const colorMap = { blue: 'border-blue-500/30 bg-blue-500/5', green: 'border-green-500/30 bg-green-500/5', orange: 'border-orange-500/30 bg-orange-500/5', red: 'border-red-500/30 bg-red-500/5' };
+                    const textMap = { blue: 'text-blue-500', green: 'text-green-500', orange: 'text-orange-500', red: 'text-red-500' };
+                    return (
+                      <Card key={item.id} className={`border ${colorMap[item.color]}`}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="flex items-center justify-between text-base">
+                            <span>{item.name}</span>
+                            <Badge variant="outline" className={`text-xs font-mono ${textMap[item.color]}`}>{item.hours}</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Technical Analysis */}
+            <TabsContent value="tech-analysis" className="space-y-8">
+              <Card className="bg-gradient-to-br from-green-500/5 to-teal-500/10 border-green-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <TrendingUp className="w-6 h-6 text-green-500" />
+                    {TECHNICAL_ANALYSIS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TECHNICAL_ANALYSIS.intro}</p>
+                </CardContent>
+              </Card>
+
+              {/* Trend Lines Guide */}
+              <Card className="bg-gradient-to-br from-green-500/5 via-card to-red-500/5 border-border">
+                <CardContent className="pt-6">
+                  <TrendLinesGuide />
+                </CardContent>
+              </Card>
+
+              {/* Support & Resistance */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Scale className="w-5 h-5 text-primary" />
+                  {TECHNICAL_ANALYSIS.supportResistance.title}
+                </h2>
+                <div className="grid gap-4">
+                  {TECHNICAL_ANALYSIS.supportResistance.concepts.map(c => (
+                    <Card key={c.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{c.name}</span>
+                          <Badge variant="outline" className={priorityColors[c.importance]}>{t(c.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trend Analysis */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                  {TECHNICAL_ANALYSIS.trends.title}
+                </h2>
+                <div className="grid gap-4">
+                  {TECHNICAL_ANALYSIS.trends.concepts.map(c => (
+                    <Card key={c.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          {c.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
+                          {c.type === 'bearish' && <TrendingDown className="w-4 h-4 text-red-500" />}
+                          {c.type === 'neutral' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+                          <span>{c.name}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Indicators */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-purple-500" />
+                  {TECHNICAL_ANALYSIS.indicators.title}
+                </h2>
+                <div className="grid gap-4">
+                  {TECHNICAL_ANALYSIS.indicators.items.map(ind => (
+                    <Card key={ind.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base flex-wrap">
+                          <span>{ind.name}</span>
+                          <Badge variant="secondary" className="text-xs">{ind.category}</Badge>
+                          <Badge variant="outline" className={priorityColors[ind.importance]}>{t(ind.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{ind.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* MTF */}
+              {/* Timeframes Guide — replaces old MTF 2-card section */}
+              <Card className="bg-gradient-to-br from-blue-500/5 via-card to-orange-500/5 border-border">
+                <CardContent className="pt-6">
+                  <TimeframesGuide />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Fundamental Analysis */}
+            <TabsContent value="fund-analysis" className="space-y-8">
+              <Card className="bg-gradient-to-br from-yellow-500/5 to-orange-500/10 border-yellow-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <BarChart3 className="w-6 h-6 text-yellow-500" />
+                    {FUNDAMENTAL_ANALYSIS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{FUNDAMENTAL_ANALYSIS.intro}</p>
+                </CardContent>
+              </Card>
+
+              {/* Macro */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-red-500" />
+                  {FUNDAMENTAL_ANALYSIS.macro.title}
+                </h2>
+                <div className="grid gap-4">
+                  {FUNDAMENTAL_ANALYSIS.macro.items.map(item => (
+                    <Card key={item.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{item.name}</span>
+                          <Badge variant="outline" className={item.impact === FUNDAMENTAL_ANALYSIS.macro.items[0].impact ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'}>
+                            {item.impact}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Economic Calendar */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Info className="w-5 h-5 text-blue-500" />
+                  {FUNDAMENTAL_ANALYSIS.calendar.title}
+                </h2>
+                <div className="grid gap-4">
+                  {FUNDAMENTAL_ANALYSIS.calendar.concepts.map(c => (
+                    <Card key={c.id} className="bg-blue-500/10 border-blue-500/30">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{c.name}</span>
+                          <Badge variant="outline" className={priorityColors[c.importance]}>{t(c.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stock Fundamentals */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  {FUNDAMENTAL_ANALYSIS.stocks.title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {FUNDAMENTAL_ANALYSIS.stocks.items.map(item => (
+                    <Card key={item.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{item.name}</span>
+                          <Badge variant="outline" className={priorityColors[item.importance]}>{t(item.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Trading Styles */}
+            <TabsContent value="styles" className="space-y-8">
+              <Card className="bg-gradient-to-br from-purple-500/5 to-blue-500/10 border-purple-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Target className="w-6 h-6 text-purple-500" />
+                    {TRADING_STYLES_CONTENT.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TRADING_STYLES_CONTENT.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {TRADING_STYLES_CONTENT.styles.map(style => {
+                  const colorBorder = { purple: 'border-purple-500/30', blue: 'border-blue-500/30', green: 'border-green-500/30', orange: 'border-orange-500/30' };
+                  const colorBg = { purple: 'bg-purple-500/5', blue: 'bg-blue-500/5', green: 'bg-green-500/5', orange: 'bg-orange-500/5' };
+                  const colorText = { purple: 'text-purple-500', blue: 'text-blue-500', green: 'text-green-500', orange: 'text-orange-500' };
+                  return (
+                    <Card key={style.id} className={`border ${colorBorder[style.color]} ${colorBg[style.color]}`}>
+                      <CardHeader>
+                        <CardTitle className={`flex items-center gap-2 text-xl ${colorText[style.color]}`}>
+                          <span className="text-2xl">{style.icon}</span>
+                          {style.name}
+                        </CardTitle>
+                        <div className="flex gap-2 flex-wrap mt-2">
+                          <Badge variant="outline" className="text-xs">{t('styleTimeframeLabel')}: {style.timeframe}</Badge>
+                          <Badge variant="outline" className="text-xs">{t('styleFrequencyLabel')}: {style.frequency}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-sm text-muted-foreground leading-relaxed">{style.desc}</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs font-semibold text-green-500 mb-2 flex items-center gap-1">
+                              <ChevronRight className="w-3 h-3" /> {t('styleProsLabel')}
+                            </p>
+                            <ul className="space-y-1">
+                              {style.pros.map((pro, i) => (
+                                <li key={i} className="text-xs text-muted-foreground flex items-start gap-1">
+                                  <span className="text-green-500 mt-0.5">✓</span> {pro}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-red-500 mb-2 flex items-center gap-1">
+                              <ChevronRight className="w-3 h-3" /> {t('styleConsLabel')}
+                            </p>
+                            <ul className="space-y-1">
+                              {style.cons.map((con, i) => (
+                                <li key={i} className="text-xs text-muted-foreground flex items-start gap-1">
+                                  <span className="text-red-500 mt-0.5">✗</span> {con}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              <Card className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Lightbulb className="w-5 h-5 text-primary" />
+                    {TRADING_STYLES_CONTENT.choiceTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{TRADING_STYLES_CONTENT.choiceDesc}</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Market Mechanics */}
+            <TabsContent value="mechanics" className="space-y-8">
+              <Card className="bg-gradient-to-br from-cyan-500/5 to-blue-500/10 border-cyan-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Scale className="w-6 h-6 text-cyan-500" />
+                    {MARKET_MECHANICS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{MARKET_MECHANICS.intro}</p>
+                </CardContent>
+              </Card>
+
+              {/* Order Types */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  {MARKET_MECHANICS.orders.title}
+                </h2>
+                <div className="grid gap-4">
+                  {MARKET_MECHANICS.orders.items.map(order => (
+                    <Card key={order.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{order.name}</span>
+                          <Badge variant="outline" className={priorityColors[order.importance]}>{t(order.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <p className="text-sm text-muted-foreground leading-relaxed">{order.desc}</p>
+                        <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                          <p className="text-xs font-semibold text-primary mb-1">{t('orderUseLabel')}</p>
+                          <p className="text-xs text-muted-foreground">{order.use}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Broker */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-green-500" />
+                  {MARKET_MECHANICS.broker.title}
+                </h2>
+                <p className="text-muted-foreground mb-4 text-sm">{MARKET_MECHANICS.broker.intro}</p>
+                <div className="grid gap-4">
+                  {MARKET_MECHANICS.broker.criteria.map(c => (
+                    <Card key={c.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{c.name}</span>
+                          <Badge variant="outline" className={priorityColors[c.importance]}>{t(c.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Platforms */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Info className="w-5 h-5 text-blue-500" />
+                  {MARKET_MECHANICS.platforms.title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {MARKET_MECHANICS.platforms.items.map(p => (
+                    <Card key={p.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="text-xl">{p.icon}</span>
+                          {p.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <p className="text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
+                        <div className="p-2 rounded bg-primary/5 border border-primary/10">
+                          <p className="text-xs font-semibold text-primary mb-0.5">{t('platformBestFor')}</p>
+                          <p className="text-xs text-muted-foreground">{p.best}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Journal */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-orange-500" />
+                  {MARKET_MECHANICS.journal.title}
+                </h2>
+                <div className="grid gap-4">
+                  {MARKET_MECHANICS.journal.concepts.map(c => (
+                    <Card key={c.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{c.name}</span>
+                          <Badge variant="outline" className={priorityColors[c.importance]}>{t(c.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
 
             {/* Trading Rules */}
             <TabsContent value="rules" className="space-y-6">

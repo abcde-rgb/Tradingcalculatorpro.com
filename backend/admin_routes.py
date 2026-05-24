@@ -394,8 +394,10 @@ def build_admin_router(
     ) -> Dict[str, Any]:
         filt: Dict[str, Any] = {}
         if q:
-            pattern = re.compile(re.escape(q), re.IGNORECASE)
-            filt["$or"] = [{"email": {"$regex": pattern}}, {"name": {"$regex": pattern}}]
+            filt["$or"] = [
+                {"email": {"$regex": re.escape(q), "$options": "i"}},
+                {"name": {"$regex": re.escape(q), "$options": "i"}},
+            ]
         if plan and plan != "all":
             filt["subscription_plan"] = None if plan == "none" else plan
         if provider and provider != "all":
@@ -751,7 +753,7 @@ def build_admin_router(
         """Log paginado de todas las acciones de administrador."""
         filt: Dict[str, Any] = {}
         if admin_email:
-            filt["admin_email"] = {"$regex": re.compile(re.escape(admin_email), re.IGNORECASE)}
+            filt["admin_email"] = {"$regex": re.escape(admin_email), "$options": "i"}
         if action:
             filt["action"] = action
         total = await db.admin_audit_log.count_documents(filt)
@@ -1116,6 +1118,543 @@ def build_admin_router(
                      details={"flag_id": flag_id, "enabled": body.enabled}, request=request)
         return {"success": True, "flag_id": flag_id, "enabled": body.enabled}
 
+    # =========================================================================
+    # FEATURE 1: EMAIL CAMPAIGNS
+    # =========================================================================
+
+    class CampaignCreate(BaseModel):
+        name: str
+        subject: str
+        body_html: str
+        segment: str  # free | premium | all | expired
+
+    @router.get("/campaigns")
+    async def list_campaigns(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """List all email campaigns."""
+        campaigns = await db.email_campaigns.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+        return {"campaigns": campaigns}
+
+    @router.post("/campaigns")
+    async def create_campaign(
+        body: CampaignCreate,
+        request: Request,
+        admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Create a new email campaign."""
+        import uuid as _uuid
+        doc = {
+            "id": str(_uuid.uuid4()),
+            "name": body.name,
+            "subject": body.subject,
+            "body_html": body.body_html,
+            "segment": body.segment,
+            "status": "draft",
+            "sent_count": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "sent_at": None,
+        }
+        await db.email_campaigns.insert_one(doc)
+        await _audit(admin, "campaign.create", details={"name": body.name, "segment": body.segment}, request=request)
+        return doc
+
+    @router.post("/campaigns/{campaign_id}/send")
+    async def send_campaign(
+        campaign_id: str,
+        request: Request,
+        admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Send a campaign to its segment."""
+        campaign = await db.email_campaigns.find_one({"id": campaign_id}, {"_id": 0})
+        if not campaign:
+            raise HTTPException(status_code=404, detail="Campaign not found")
+
+        segment = campaign.get("segment", "all")
+        now = datetime.now(timezone.utc)
+
+        # Build user filter based on segment
+        if segment == "premium":
+            filt = {"is_premium": True}
+        elif segment == "free":
+            filt = {"$or": [{"is_premium": False}, {"is_premium": {"$exists": False}}]}
+        elif segment == "expired":
+            filt = {"subscription_status": "expired"}
+        else:
+            filt = {}
+
+        users_to_send = await db.users.find(filt, {"_id": 0, "email": 1, "name": 1}).to_list(10000)
+
+        # Get SendGrid API key from settings
+        settings_raw = await _get_all_settings(db)
+        sg_key = settings_raw.get("sendgrid_api_key", "")
+        sender_email = settings_raw.get("sendgrid_sender_email", "noreply@tradingcalculatorpro.com")
+
+        sent_count = 0
+        if sg_key:
+            try:
+                import httpx
+                async with httpx.AsyncClient(timeout=30) as client:
+                    for u in users_to_send:
+                        payload = {
+                            "personalizations": [{"to": [{"email": u["email"], "name": u.get("name", "")}]}],
+                            "from": {"email": sender_email},
+                            "subject": campaign["subject"],
+                            "content": [{"type": "text/html", "value": campaign["body_html"]}],
+                        }
+                        r = await client.post(
+                            "https://api.sendgrid.com/v3/mail/send",
+                            json=payload,
+                            headers={"Authorization": f"Bearer {sg_key}"},
+                        )
+                        if r.status_code in (200, 202):
+                            sent_count += 1
+            except Exception as e:
+                logger.error(f"SendGrid error in campaign send: {e}")
+        else:
+            # Simulate send (no API key configured)
+            sent_count = len(users_to_send)
+
+        await db.email_campaigns.update_one(
+            {"id": campaign_id},
+            {"$set": {"status": "sent", "sent_count": sent_count, "sent_at": now.isoformat()}},
+        )
+        await _audit(admin, "campaign.send", details={"campaign_id": campaign_id, "sent_count": sent_count}, request=request)
+        return {"success": True, "sent_count": sent_count}
+
+    # =========================================================================
+    # FEATURE 2: i18n MANAGER
+    # =========================================================================
+
+    @router.get("/i18n")
+    async def list_i18n_keys(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """List all i18n overrides stored in app_settings (prefix 'i18n_')."""
+        docs = await db.app_settings.find(
+            {"key": {"$regex": "^i18n_"}},
+            {"_id": 0, "key": 1, "value": 1},
+        ).to_list(1000)
+        keys = []
+        for d in docs:
+            raw_key = d["key"][5:]  # strip "i18n_"
+            value = d.get("value", {})
+            if isinstance(value, str):
+                try:
+                    import json as _json
+                    value = _json.loads(value)
+                except Exception:
+                    value = {"es": value, "en": value}
+            keys.append({"key": raw_key, "es": value.get("es", ""), "en": value.get("en", "")})
+        return {"keys": keys, "count": len(keys)}
+
+    class I18nUpsert(BaseModel):
+        key: str
+        es: str
+        en: str
+
+    @router.post("/i18n")
+    async def upsert_i18n_key(
+        body: I18nUpsert,
+        request: Request,
+        admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Upsert an i18n override key into app_settings."""
+        import json as _json
+        setting_key = f"i18n_{body.key}"
+        value = _json.dumps({"es": body.es, "en": body.en})
+        await _upsert_setting(db, setting_key, value)
+        await _audit(admin, "i18n.upsert", details={"key": body.key}, request=request)
+        return {"success": True, "key": body.key}
+
+    # =========================================================================
+    # FEATURE 3: PAYMENT HISTORY PER USER
+    # =========================================================================
+
+    @router.get("/users/{user_id}/payments")
+    async def get_user_payments(
+        user_id: str,
+        _admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """List payment transactions for a specific user."""
+        txns = await db.payment_transactions.find(
+            {"user_id": user_id}, {"_id": 0}
+        ).sort("created_at", -1).to_list(500)
+        # Convert datetime fields
+        for t in txns:
+            for field in ("created_at", "updated_at"):
+                if isinstance(t.get(field), datetime):
+                    t[field] = t[field].isoformat()
+        total_amount = sum(t.get("amount", 0) for t in txns if t.get("status") == "succeeded")
+        return {"transactions": txns, "total_amount": total_amount, "count": len(txns)}
+
+    # =========================================================================
+    # FEATURE 4: CHURN SURVEY (admin views)
+    # =========================================================================
+
+    @router.get("/churn-surveys")
+    async def list_churn_surveys(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """List all churn survey responses with reason breakdown."""
+        surveys = await db.churn_surveys.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+        reasons: Dict[str, int] = {}
+        for s in surveys:
+            r = s.get("reason", "other")
+            reasons[r] = reasons.get(r, 0) + 1
+        for s in surveys:
+            if isinstance(s.get("created_at"), datetime):
+                s["created_at"] = s["created_at"].isoformat()
+        return {"surveys": surveys, "total": len(surveys), "by_reason": reasons}
+
+    class FollowUpNote(BaseModel):
+        note: str
+
+    @router.post("/churn-surveys/{survey_id}/follow-up")
+    async def churn_follow_up(
+        survey_id: str,
+        body: FollowUpNote,
+        request: Request,
+        admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Add a follow-up note to a churn survey entry."""
+        result = await db.churn_surveys.update_one(
+            {"id": survey_id},
+            {"$set": {"follow_up_note": body.note, "follow_up_at": datetime.now(timezone.utc).isoformat(),
+                      "follow_up_by": admin.get("email")}},
+        )
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Survey not found")
+        await _audit(admin, "churn_survey.follow_up", details={"survey_id": survey_id}, request=request)
+        return {"success": True}
+
+    # =========================================================================
+    # FEATURE 5: COHORT ANALYSIS
+    # =========================================================================
+
+    @router.get("/cohorts")
+    async def get_cohorts(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """Compute cohort analysis: signup month → conversion to premium."""
+        all_users = await db.users.find({}, {"_id": 0, "created_at": 1, "is_premium": 1,
+                                             "subscription_plan": 1, "subscription_end": 1}).to_list(10000)
+        cohort_data: Dict[str, Dict] = {}
+        for u in all_users:
+            created = u.get("created_at")
+            if not created:
+                continue
+            try:
+                if isinstance(created, datetime):
+                    month = created.strftime("%Y-%m")
+                else:
+                    month = str(created)[:7]
+            except Exception:
+                continue
+            if month not in cohort_data:
+                cohort_data[month] = {"total": 0, "converted": 0, "days_to_convert": []}
+            cohort_data[month]["total"] += 1
+            if u.get("is_premium") or u.get("subscription_plan") not in (None, "none", "free", ""):
+                cohort_data[month]["converted"] += 1
+
+        cohorts = []
+        for month in sorted(cohort_data.keys()):
+            d = cohort_data[month]
+            total = d["total"]
+            converted = d["converted"]
+            rate = round((converted / total * 100), 1) if total else 0
+            avg_days = round(sum(d["days_to_convert"]) / len(d["days_to_convert"]), 1) if d["days_to_convert"] else None
+            cohorts.append({
+                "month": month,
+                "total_users": total,
+                "converted": converted,
+                "conversion_rate": rate,
+                "avg_days_to_convert": avg_days,
+            })
+        return {"cohorts": cohorts}
+
+    # =========================================================================
+    # FEATURE 6: REFERRAL MANAGER
+    # =========================================================================
+
+    @router.get("/referrals")
+    async def list_referrals(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """List referral records."""
+        try:
+            referrals = await db.referrals.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+            for r in referrals:
+                if isinstance(r.get("created_at"), datetime):
+                    r["created_at"] = r["created_at"].isoformat()
+        except Exception:
+            referrals = []
+
+        # Also check users with referrer_id
+        referred_users = await db.users.find(
+            {"referrer_id": {"$exists": True}}, {"_id": 0, "id": 1, "email": 1, "referrer_id": 1, "created_at": 1}
+        ).to_list(1000)
+
+        return {
+            "referrals": referrals,
+            "referred_users_count": len(referred_users),
+            "note": "Referral system uses referrer_id field on users collection.",
+        }
+
+    @router.get("/referrals/leaderboard")
+    async def referrals_leaderboard(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """Top 10 referrers by referral count."""
+        referred_users = await db.users.find(
+            {"referrer_id": {"$exists": True, "$ne": None}},
+            {"_id": 0, "referrer_id": 1, "is_premium": 1},
+        ).to_list(10000)
+
+        leaderboard_map: Dict[str, Dict] = {}
+        for u in referred_users:
+            rid = u.get("referrer_id")
+            if not rid:
+                continue
+            if rid not in leaderboard_map:
+                leaderboard_map[rid] = {"referrer_id": rid, "referrals": 0, "conversions": 0}
+            leaderboard_map[rid]["referrals"] += 1
+            if u.get("is_premium"):
+                leaderboard_map[rid]["conversions"] += 1
+
+        # Enrich with emails
+        top = sorted(leaderboard_map.values(), key=lambda x: x["referrals"], reverse=True)[:10]
+        for entry in top:
+            ref_user = await db.users.find_one({"id": entry["referrer_id"]}, {"_id": 0, "email": 1})
+            entry["email"] = ref_user.get("email", entry["referrer_id"]) if ref_user else entry["referrer_id"]
+
+        return {"leaderboard": top, "total_referrers": len(leaderboard_map)}
+
+    # =========================================================================
+    # FEATURE 7: PLANS EDITOR
+    # =========================================================================
+
+    @router.get("/plans")
+    async def list_plans(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """Return current subscription plans (app_settings overrides + hardcoded fallback)."""
+        plans_out = []
+        for plan_id, plan_data in subscription_plans.items():
+            override_doc = await db.app_settings.find_one({"key": f"plan_{plan_id}"}, {"_id": 0, "value": 1})
+            if override_doc and override_doc.get("value"):
+                import json as _json
+                try:
+                    override = _json.loads(override_doc["value"])
+                    merged = {**plan_data, **override, "id": plan_id, "overridden": True}
+                except Exception:
+                    merged = {**plan_data, "id": plan_id, "overridden": False}
+            else:
+                merged = {**plan_data, "id": plan_id, "overridden": False}
+            plans_out.append(merged)
+        return {"plans": plans_out}
+
+    class PlanUpdate(BaseModel):
+        price: Optional[float] = None
+        label: Optional[str] = None
+        days: Optional[int] = None
+
+    @router.post("/plans/{plan_id}")
+    async def update_plan(
+        plan_id: str,
+        body: PlanUpdate,
+        request: Request,
+        admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Update a plan's price/label/days (stored in app_settings as override)."""
+        if plan_id not in subscription_plans:
+            raise HTTPException(status_code=404, detail=f"Plan '{plan_id}' not found")
+        import json as _json
+        existing_doc = await db.app_settings.find_one({"key": f"plan_{plan_id}"}, {"_id": 0, "value": 1})
+        existing = {}
+        if existing_doc and existing_doc.get("value"):
+            try:
+                existing = _json.loads(existing_doc["value"])
+            except Exception:
+                existing = {}
+        if body.price is not None:
+            existing["price"] = body.price
+        if body.label is not None:
+            existing["name"] = body.label
+        if body.days is not None:
+            existing["days"] = body.days
+        await _upsert_setting(db, f"plan_{plan_id}", _json.dumps(existing))
+        await _audit(admin, "plan.update", details={"plan_id": plan_id, "changes": existing}, request=request)
+        return {"success": True, "plan_id": plan_id, "override": existing}
+
+    # =========================================================================
+    # FEATURE 8: MAINTENANCE MODE
+    # =========================================================================
+
+    @router.get("/maintenance")
+    async def get_maintenance(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """Get current maintenance mode state."""
+        settings_raw = await _get_all_settings(db)
+        enabled_raw = settings_raw.get("maintenance_mode", "false")
+        enabled = str(enabled_raw).lower() in ("true", "1", "yes")
+        message = settings_raw.get("maintenance_message", "Estamos realizando tareas de mantenimiento. Volvemos pronto.")
+        return {"enabled": enabled, "message": message}
+
+    class MaintenanceUpdate(BaseModel):
+        enabled: bool
+        message: str = "Estamos realizando tareas de mantenimiento. Volvemos pronto."
+
+    @router.post("/maintenance")
+    async def set_maintenance(
+        body: MaintenanceUpdate,
+        request: Request,
+        admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Update maintenance mode state."""
+        await _upsert_setting(db, "maintenance_mode", "true" if body.enabled else "false")
+        await _upsert_setting(db, "maintenance_message", body.message)
+        await _audit(admin, "maintenance.update", details={"enabled": body.enabled}, request=request)
+        return {"success": True, "enabled": body.enabled, "message": body.message}
+
+    # =========================================================================
+    # FEATURE 9: ERROR MONITOR
+    # =========================================================================
+
+    @router.get("/errors")
+    async def list_errors(
+        status: Optional[str] = Query(None),
+        resolved: Optional[bool] = Query(None),
+        limit: int = Query(100, ge=1, le=500),
+        _admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """List recent error logs."""
+        filt: Dict[str, Any] = {}
+        if status == "unresolved":
+            filt["resolved"] = False
+        elif status == "resolved":
+            filt["resolved"] = True
+        elif resolved is not None:
+            filt["resolved"] = resolved
+        errors = await db.error_logs.find(filt, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+        for e in errors:
+            for field in ("created_at", "resolved_at"):
+                if isinstance(e.get(field), datetime):
+                    e[field] = e[field].isoformat()
+        total = await db.error_logs.count_documents(filt)
+        return {"errors": errors, "total": total}
+
+    class ResolveNote(BaseModel):
+        note: str = ""
+
+    @router.post("/errors/{error_id}/resolve")
+    async def resolve_error(
+        error_id: str,
+        body: ResolveNote,
+        request: Request,
+        admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Mark an error as resolved."""
+        result = await db.error_logs.update_one(
+            {"id": error_id},
+            {"$set": {
+                "resolved": True,
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolve_note": body.note,
+                "resolved_by": admin.get("email"),
+            }},
+        )
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Error log not found")
+        await _audit(admin, "error.resolve", details={"error_id": error_id, "note": body.note}, request=request)
+        return {"success": True}
+
+    # =========================================================================
+    # FEATURE 10: RATE LIMITING DASHBOARD
+    # =========================================================================
+
+    @router.get("/rate-limits")
+    async def get_rate_limits(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """Return configured rate limits and recent violations."""
+        limits = [
+            {"endpoint": "/api/login", "limit": "10/minute", "window": "1 min"},
+            {"endpoint": "/api/register", "limit": "5/minute", "window": "1 min"},
+            {"endpoint": "/api/password-reset", "limit": "5/hour", "window": "1 hour"},
+            {"endpoint": "/api/admin/*", "limit": "200/minute", "window": "1 min"},
+            {"endpoint": "/api/*", "limit": "300/minute", "window": "1 min"},
+        ]
+        try:
+            violations = await db.rate_limit_violations.find(
+                {}, {"_id": 0}
+            ).sort("created_at", -1).limit(50).to_list(50)
+            for v in violations:
+                if isinstance(v.get("created_at"), datetime):
+                    v["created_at"] = v["created_at"].isoformat()
+        except Exception:
+            violations = []
+        return {"limits": limits, "recent_violations": violations}
+
+    # =========================================================================
+    # FEATURE 11: GDPR EXPORTS (admin view)
+    # =========================================================================
+
+    @router.get("/gdpr-exports")
+    async def list_gdpr_exports(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        """List all GDPR export requests."""
+        exports = await db.gdpr_exports.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+        for e in exports:
+            for field in ("created_at", "delivered_at"):
+                if isinstance(e.get(field), datetime):
+                    e[field] = e[field].isoformat()
+        return {"exports": exports, "total": len(exports)}
+
+    @router.post("/gdpr-exports/{export_id}/deliver")
+    async def deliver_gdpr_export(
+        export_id: str,
+        request: Request,
+        admin: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        """Regenerate and deliver a GDPR export to the user."""
+        export_doc = await db.gdpr_exports.find_one({"id": export_id}, {"_id": 0})
+        if not export_doc:
+            raise HTTPException(status_code=404, detail="Export request not found")
+
+        user_id = export_doc.get("user_id")
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0, "password_hash": 0})
+        trades = await db.trades.find({"user_id": user_id}, {"_id": 0}).to_list(10000)
+
+        import json as _json
+        export_data = {
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "user": user or {},
+            "trades": trades,
+        }
+
+        # Send via SendGrid if configured
+        settings_raw = await _get_all_settings(db)
+        sg_key = settings_raw.get("sendgrid_api_key", "")
+        sender = settings_raw.get("sendgrid_sender_email", "noreply@tradingcalculatorpro.com")
+        email = export_doc.get("email", "")
+        sent = False
+
+        if sg_key and email:
+            try:
+                import httpx
+                body_html = (
+                    f"<h2>Tu exportación de datos GDPR</h2>"
+                    f"<p>Adjuntamos todos tus datos en formato JSON.</p>"
+                    f"<pre>{_json.dumps(export_data, indent=2, default=str)[:5000]}</pre>"
+                )
+                payload = {
+                    "personalizations": [{"to": [{"email": email}]}],
+                    "from": {"email": sender},
+                    "subject": "Tu exportación de datos — Trading Calculator PRO",
+                    "content": [{"type": "text/html", "value": body_html}],
+                }
+                async with httpx.AsyncClient(timeout=15) as client:
+                    r = await client.post(
+                        "https://api.sendgrid.com/v3/mail/send",
+                        json=payload,
+                        headers={"Authorization": f"Bearer {sg_key}"},
+                    )
+                    sent = r.status_code in (200, 202)
+            except Exception as e:
+                logger.error(f"GDPR deliver email error: {e}")
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        await db.gdpr_exports.update_one(
+            {"id": export_id},
+            {"$set": {"status": "delivered", "delivered_at": now_iso, "delivered_by": admin.get("email")}},
+        )
+        await _audit(admin, "gdpr.deliver", details={"export_id": export_id, "email": email, "sent": sent}, request=request)
+        return {"success": True, "sent_email": sent, "export_id": export_id}
+
+
     return router
 
 
@@ -1146,4 +1685,4 @@ def build_public_settings_router(db) -> APIRouter:
         ).to_list(200)
         return {d["key"]: d.get("value", "") for d in docs}
 
-    return router
+

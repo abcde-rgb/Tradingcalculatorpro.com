@@ -1289,3 +1289,204 @@ export const getProbabilityStatistics = (t) => ({
     }
   }
 });
+
+export const getTradingFundamentals = (t) => ({
+  title: t('fundTitle'),
+  intro: t('fundIntro'),
+  marketTypes: {
+    title: t('marketTypesTitle'),
+    items: [
+      { id: 'forex', name: t('mktForexName'), desc: t('mktForexDesc'), volume: t('mktForexVolume'), icon: '💱' },
+      { id: 'stocks', name: t('mktStocksName'), desc: t('mktStocksDesc'), volume: t('mktStocksVolume'), icon: '📈' },
+      { id: 'crypto', name: t('mktCryptoName'), desc: t('mktCryptoDesc'), volume: t('mktCryptoVolume'), icon: '₿' },
+      { id: 'commodities', name: t('mktCommoditiesName'), desc: t('mktCommoditiesDesc'), volume: t('mktCommoditiesVolume'), icon: '🛢️' },
+      { id: 'indices', name: t('mktIndicesName'), desc: t('mktIndicesDesc'), volume: t('mktIndicesVolume'), icon: '📊' },
+      { id: 'etfs', name: t('mktEtfsName'), desc: t('mktEtfsDesc'), volume: t('mktEtfsVolume'), icon: '🗂️' },
+      { id: 'futures', name: t('mktFuturesName'), desc: t('mktFuturesDesc'), volume: t('mktFuturesVolume'), icon: '📅' },
+    ]
+  },
+  participants: {
+    title: t('marketParticipantsTitle'),
+    items: [
+      { id: 'retail', name: t('partRetailName'), desc: t('partRetailDesc'), icon: '👤' },
+      { id: 'institutional', name: t('partInstitutionalName'), desc: t('partInstitutionalDesc'), icon: '🏦' },
+      { id: 'marketmakers', name: t('partMarketMakersName'), desc: t('partMarketMakersDesc'), icon: '⚖️' },
+      { id: 'centralbanks', name: t('partCentralBanksName'), desc: t('partCentralBanksDesc'), icon: '🏛️' },
+    ]
+  },
+  sessions: {
+    title: t('sessionsTitle'),
+    items: [
+      { id: 'asia', name: t('sessAsiaName'), hours: t('sessAsiaHours'), desc: t('sessAsiaDesc'), color: 'blue' },
+      { id: 'london', name: t('sessLondonName'), hours: t('sessLondonHours'), desc: t('sessLondonDesc'), color: 'green' },
+      { id: 'ny', name: t('sessNyName'), hours: t('sessNyHours'), desc: t('sessNyDesc'), color: 'orange' },
+      { id: 'overlap', name: t('sessOverlapName'), hours: t('sessOverlapHours'), desc: t('sessOverlapDesc'), color: 'red' },
+    ]
+  }
+});
+
+export const getTechnicalAnalysis = (t) => ({
+  title: t('techTitle'),
+  intro: t('techIntro'),
+  supportResistance: {
+    title: t('srTitle'),
+    concepts: [
+      { id: 'support', name: t('srSupportName'), desc: t('srSupportDesc'), importance: 'critical' },
+      { id: 'resistance', name: t('srResistanceName'), desc: t('srResistanceDesc'), importance: 'critical' },
+      { id: 'zones', name: t('srZonesName'), desc: t('srZonesDesc'), importance: 'high' },
+      { id: 'breakout', name: t('srBreakoutName'), desc: t('srBreakoutDesc'), importance: 'high' },
+    ]
+  },
+  trends: {
+    title: t('trendTitle'),
+    concepts: [
+      { id: 'uptrend', name: t('trendUptrendName'), desc: t('trendUptrendDesc'), type: 'bullish' },
+      { id: 'downtrend', name: t('trendDowntrendName'), desc: t('trendDowntrendDesc'), type: 'bearish' },
+      { id: 'sideways', name: t('trendSidewaysName'), desc: t('trendSidewaysDesc'), type: 'neutral' },
+      { id: 'structure', name: t('trendStructureName'), desc: t('trendStructureDesc'), type: 'neutral' },
+    ]
+  },
+  indicators: {
+    title: t('indicatorsTitle'),
+    items: [
+      { id: 'sma', name: t('indSMAName'), desc: t('indSMADesc'), category: t('indCatTrend'), importance: 'critical' },
+      { id: 'ema', name: t('indEMAName'), desc: t('indEMADesc'), category: t('indCatTrend'), importance: 'critical' },
+      { id: 'rsi', name: t('indRSIName'), desc: t('indRSIDesc'), category: t('indCatMomentum'), importance: 'critical' },
+      { id: 'macd', name: t('indMACDName'), desc: t('indMACDDesc'), category: t('indCatMomentum'), importance: 'high' },
+      { id: 'bb', name: t('indBBName'), desc: t('indBBDesc'), category: t('indCatVolatility'), importance: 'high' },
+      { id: 'fib', name: t('indFibName'), desc: t('indFibDesc'), category: t('indCatLevels'), importance: 'high' },
+    ]
+  },
+  mtf: {
+    title: t('mtfTitle'),
+    concepts: [
+      { id: 'concept', name: t('mtfConceptName'), desc: t('mtfConceptDesc'), importance: 'critical' },
+      { id: 'topdown', name: t('mtfTopDownName'), desc: t('mtfTopDownDesc'), importance: 'high' },
+    ]
+  }
+});
+
+export const getFundamentalAnalysis = (t) => ({
+  title: t('fundAnalTitle'),
+  intro: t('fundAnalIntro'),
+  macro: {
+    title: t('macroTitle'),
+    items: [
+      { id: 'gdp', name: t('macroGDPName'), desc: t('macroGDPDesc'), impact: t('macroHighImpact') },
+      { id: 'cpi', name: t('macroCPIName'), desc: t('macroCPIDesc'), impact: t('macroHighImpact') },
+      { id: 'rates', name: t('macroInterestName'), desc: t('macroInterestDesc'), impact: t('macroHighImpact') },
+      { id: 'nfp', name: t('macroNFPName'), desc: t('macroNFPDesc'), impact: t('macroHighImpact') },
+      { id: 'unemployment', name: t('macroUnemploymentName'), desc: t('macroUnemploymentDesc'), impact: t('macroMediumImpact') },
+    ]
+  },
+  calendar: {
+    title: t('econCalTitle'),
+    concepts: [
+      { id: 'howto', name: t('econCalHowToName'), desc: t('econCalHowToDesc'), importance: 'critical' },
+      { id: 'impact', name: t('econCalImpactName'), desc: t('econCalImpactDesc'), importance: 'high' },
+    ]
+  },
+  stocks: {
+    title: t('stockFundTitle'),
+    items: [
+      { id: 'per', name: t('stockPERName'), desc: t('stockPERDesc'), importance: 'critical' },
+      { id: 'eps', name: t('stockEPSName'), desc: t('stockEPSDesc'), importance: 'high' },
+      { id: 'revenue', name: t('stockRevenueGrowthName'), desc: t('stockRevenueGrowthDesc'), importance: 'high' },
+      { id: 'dividend', name: t('stockDividendName'), desc: t('stockDividendDesc'), importance: 'medium' },
+    ]
+  }
+});
+
+export const getTradingStylesContent = (t) => ({
+  title: t('stylesTitle'),
+  intro: t('stylesIntro'),
+  choiceTitle: t('styleChoiceTitle'),
+  choiceDesc: t('styleChoiceDesc'),
+  styles: [
+    {
+      id: 'scalping',
+      name: t('styleScalpingName'),
+      desc: t('styleScalpingDesc'),
+      timeframe: t('styleScalpingTimeframe'),
+      frequency: t('styleScalpingFrequency'),
+      pros: [t('styleScalpingPro1'), t('styleScalpingPro2'), t('styleScalpingPro3')],
+      cons: [t('styleScalpingCon1'), t('styleScalpingCon2'), t('styleScalpingCon3')],
+      color: 'purple',
+      icon: '⚡',
+    },
+    {
+      id: 'daytrading',
+      name: t('styleDayTradingName'),
+      desc: t('styleDayTradingDesc'),
+      timeframe: t('styleDayTradingTimeframe'),
+      frequency: t('styleDayTradingFrequency'),
+      pros: [t('styleDayTradingPro1'), t('styleDayTradingPro2'), t('styleDayTradingPro3')],
+      cons: [t('styleDayTradingCon1'), t('styleDayTradingCon2'), t('styleDayTradingCon3')],
+      color: 'blue',
+      icon: '🌅',
+    },
+    {
+      id: 'swing',
+      name: t('styleSwingName'),
+      desc: t('styleSwingDesc'),
+      timeframe: t('styleSwingTimeframe'),
+      frequency: t('styleSwingFrequency'),
+      pros: [t('styleSwingPro1'), t('styleSwingPro2'), t('styleSwingPro3')],
+      cons: [t('styleSwingCon1'), t('styleSwingCon2'), t('styleSwingCon3')],
+      color: 'green',
+      icon: '🌊',
+    },
+    {
+      id: 'position',
+      name: t('stylePositionName'),
+      desc: t('stylePositionDesc'),
+      timeframe: t('stylePositionTimeframe'),
+      frequency: t('stylePositionFrequency'),
+      pros: [t('stylePositionPro1'), t('stylePositionPro2'), t('stylePositionPro3')],
+      cons: [t('stylePositionCon1'), t('stylePositionCon2'), t('stylePositionCon3')],
+      color: 'orange',
+      icon: '🏔️',
+    },
+  ]
+});
+
+export const getMarketMechanics = (t) => ({
+  title: t('mechTitle'),
+  intro: t('mechIntro'),
+  orders: {
+    title: t('ordersTitle'),
+    items: [
+      { id: 'market', name: t('orderMarketName'), desc: t('orderMarketDesc'), use: t('orderMarketUse'), importance: 'critical' },
+      { id: 'limit', name: t('orderLimitName'), desc: t('orderLimitDesc'), use: t('orderLimitUse'), importance: 'critical' },
+      { id: 'stop', name: t('orderStopName'), desc: t('orderStopDesc'), use: t('orderStopUse'), importance: 'critical' },
+      { id: 'stoplimit', name: t('orderStopLimitName'), desc: t('orderStopLimitDesc'), use: t('orderStopLimitUse'), importance: 'high' },
+      { id: 'trailing', name: t('orderTrailingName'), desc: t('orderTrailingDesc'), use: t('orderTrailingUse'), importance: 'high' },
+    ]
+  },
+  broker: {
+    title: t('brokerTitle'),
+    intro: t('brokerIntro'),
+    criteria: [
+      { id: 'regulation', name: t('brokerRegulationName'), desc: t('brokerRegulationDesc'), importance: 'critical' },
+      { id: 'spread', name: t('brokerSpreadName'), desc: t('brokerSpreadDesc'), importance: 'critical' },
+      { id: 'execution', name: t('brokerExecutionName'), desc: t('brokerExecutionDesc'), importance: 'high' },
+      { id: 'leverage', name: t('brokerLeverageName'), desc: t('brokerLeverageDesc'), importance: 'high' },
+    ]
+  },
+  platforms: {
+    title: t('platformsTitle'),
+    items: [
+      { id: 'mt4', name: t('platformMT4Name'), desc: t('platformMT4Desc'), best: t('platformMT4Best'), icon: '🖥️' },
+      { id: 'mt5', name: t('platformMT5Name'), desc: t('platformMT5Desc'), best: t('platformMT5Best'), icon: '🖥️' },
+      { id: 'tv', name: t('platformTVName'), desc: t('platformTVDesc'), best: t('platformTVBest'), icon: '📱' },
+    ]
+  },
+  journal: {
+    title: t('journalTitle'),
+    concepts: [
+      { id: 'why', name: t('journalWhyName'), desc: t('journalWhyDesc'), importance: 'critical' },
+      { id: 'track', name: t('journalTrackName'), desc: t('journalTrackDesc'), importance: 'critical' },
+      { id: 'review', name: t('journalReviewName'), desc: t('journalReviewDesc'), importance: 'high' },
+    ]
+  }
+});

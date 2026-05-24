@@ -6,6 +6,8 @@ import {
   Plug, Check, X, Plus, Pencil, Trash2, KeyRound, Save, Loader2,
   Eye, EyeOff, History, FileText, Tag, Activity, UserCheck,
   Zap, TrendingDown, Percent, AlertCircle, ChevronDown, ChevronUp,
+  Send, Languages, CreditCard, UserMinus, Share2, Package,
+  Construction, Bug, Gauge, Lock, Settings, Database, ToggleLeft,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -407,6 +409,19 @@ export default function AdminPage() {
 
         {/* Stripe Webhook Logs */}
         <WebhookLogsCard headers={headers} />
+
+        {/* ── NEW FEATURES ── */}
+        <MaintenanceModeCard headers={headers} />
+        <EmailCampaignsCard headers={headers} />
+        <PaymentHistoryCard headers={headers} />
+        <ChurnSurveyCard headers={headers} />
+        <CohortAnalysisCard headers={headers} />
+        <ReferralManagerCard headers={headers} />
+        <PlansEditorCard headers={headers} />
+        <I18nManagerCard headers={headers} />
+        <ErrorMonitorCard headers={headers} />
+        <RateLimitingCard headers={headers} />
+        <GDPRExportCard headers={headers} />
       </main>
 
       {/* MODALS */}
@@ -1584,6 +1599,1026 @@ function WebhookLogsCard({ headers }) {
                   {log.status !== 'ok' && (
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => retry(log.id)}>Reintentar</Button>
                   )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAINTENANCE MODE CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function MaintenanceModeCard({ headers }) {
+  const [enabled, setEnabled] = useState(false);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/maintenance`, { headers });
+      if (!res.ok) return;
+      const d = await res.json();
+      setEnabled(!!d.enabled);
+      setMessage(d.message || '');
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/maintenance`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ enabled, message }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(enabled ? 'Modo mantenimiento ACTIVADO' : 'Modo mantenimiento desactivado');
+    } catch { toast.error('Error al guardar'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Card className={`border-border ${enabled ? 'border-orange-500/50 bg-orange-500/5' : 'bg-card'}`}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Construction className="w-4 h-4 text-orange-500" /> Modo Mantenimiento
+          </CardTitle>
+          <div className="flex items-center gap-3">
+            {enabled && <Badge className="bg-orange-500/15 text-orange-500 animate-pulse">ACTIVO</Badge>}
+            <Switch checked={enabled} onCheckedChange={setEnabled} disabled={loading} />
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Muestra un banner de mantenimiento a todos los usuarios.</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div>
+          <Label className="text-xs">Mensaje para los usuarios</Label>
+          <textarea
+            className="w-full mt-1 h-20 px-3 py-2 text-sm border border-border rounded-md bg-background resize-none"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            placeholder="Estamos realizando tareas de mantenimiento. Volvemos en breve..."
+          />
+        </div>
+        {enabled && (
+          <div className="p-3 rounded-md bg-orange-500/10 border border-orange-500/20 text-sm text-orange-600">
+            <strong>Vista previa:</strong> {message || 'Estamos realizando tareas de mantenimiento. Volvemos en breve...'}
+          </div>
+        )}
+        <Button onClick={save} disabled={saving} size="sm" className={enabled ? 'bg-orange-500 hover:bg-orange-600' : ''}>
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+          &nbsp;Guardar
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EMAIL CAMPAIGNS CARD
+═══════════════════════════════════════════════════════════════════════════ */
+const CAMPAIGN_SEGMENTS = [
+  { value: 'all',     label: 'Todos los usuarios' },
+  { value: 'free',    label: 'Solo usuarios free' },
+  { value: 'premium', label: 'Solo usuarios premium' },
+  { value: 'expired', label: 'Suscripción expirada' },
+];
+
+function EmailCampaignsCard({ headers }) {
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ name: '', subject: '', body_html: '', segment: 'all' });
+  const [sending, setSending] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/campaigns`, { headers });
+      if (res.ok) { const d = await res.json(); setCampaigns(d.campaigns || []); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+
+  const createCampaign = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/campaigns`, { method: 'POST', headers, body: JSON.stringify(form) });
+      if (!res.ok) throw new Error();
+      toast.success('Campaña creada');
+      setShowCreate(false);
+      setForm({ name: '', subject: '', body_html: '', segment: 'all' });
+      load();
+    } catch { toast.error('Error al crear campaña'); }
+    finally { setSaving(false); }
+  };
+
+  const sendCampaign = async (id) => {
+    if (!window.confirm('¿Enviar esta campaña ahora? Esta acción no se puede deshacer.')) return;
+    setSending(id);
+    try {
+      const res = await fetch(`${API}/admin/campaigns/${id}/send`, { method: 'POST', headers });
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      toast.success(`Enviado a ${d.sent_count} usuarios`);
+      load();
+    } catch { toast.error('Error al enviar campaña'); }
+    finally { setSending(null); }
+  };
+
+  const STATUS_CLS = { draft: 'bg-muted text-muted-foreground', sent: 'bg-green-500/15 text-green-500', sending: 'bg-blue-500/15 text-blue-500' };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Send className="w-4 h-4 text-primary" /> Campañas de Email
+          </CardTitle>
+          <Button size="sm" onClick={() => setShowCreate(true)} className="gap-1 h-7">
+            <Plus className="w-3 h-3" /> Nueva
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Envía emails segmentados vía SendGrid.</p>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left">
+              {['Nombre', 'Asunto', 'Segmento', 'Estado', 'Enviados', 'Creada', ''].map(h => (
+                <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {campaigns.map(c => (
+              <tr key={c.id} className="border-t border-border hover:bg-muted/20">
+                <td className="px-3 py-2 font-medium text-xs">{c.name}</td>
+                <td className="px-3 py-2 text-xs text-muted-foreground max-w-[160px] truncate">{c.subject}</td>
+                <td className="px-3 py-2"><Badge className="text-[10px] bg-primary/10 text-primary">{CAMPAIGN_SEGMENTS.find(s => s.value === c.segment)?.label || c.segment}</Badge></td>
+                <td className="px-3 py-2"><Badge className={`text-[10px] ${STATUS_CLS[c.status] || 'bg-muted text-muted-foreground'}`}>{c.status}</Badge></td>
+                <td className="px-3 py-2 text-xs text-center">{c.sent_count ?? 0}</td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{c.created_at?.slice(0, 10)}</td>
+                <td className="px-3 py-2">
+                  {c.status === 'draft' && (
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" disabled={!!sending} onClick={() => sendCampaign(c.id)}>
+                      {sending === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Enviar
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!loading && campaigns.length === 0 && (
+              <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">Sin campañas aún. Crea la primera.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </CardContent>
+
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Nueva campaña de email</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div><Label className="text-xs">Nombre interno</Label><Input className="mt-1" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="Ej: Retención Q1 2025" /></div>
+            <div><Label className="text-xs">Asunto del email</Label><Input className="mt-1" value={form.subject} onChange={e => setForm(f => ({...f, subject: e.target.value}))} placeholder="¡Bienvenido a Trading Calculator PRO!" /></div>
+            <div>
+              <Label className="text-xs">Segmento</Label>
+              <Select value={form.segment} onValueChange={v => setForm(f => ({...f, segment: v}))}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>{CAMPAIGN_SEGMENTS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Contenido HTML</Label>
+              <textarea className="w-full mt-1 h-28 px-3 py-2 text-sm border border-border rounded-md bg-background resize-none" value={form.body_html} onChange={e => setForm(f => ({...f, body_html: e.target.value}))} placeholder="<h1>Hola!</h1><p>Contenido del email...</p>" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
+            <Button onClick={createCampaign} disabled={!form.name || !form.subject || saving}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar campaña'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAYMENT HISTORY CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function PaymentHistoryCard({ headers }) {
+  const [query, setQuery] = useState('');
+  const [userId, setUserId] = useState(null);
+  const [payments, setPayments] = useState([]);
+  const [userResults, setUserResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+
+  const searchUser = async () => {
+    if (!query.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(`${API}/admin/users?q=${encodeURIComponent(query)}&limit=10`, { headers });
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      setUserResults(d.users || []);
+      setPayments([]);
+      setUserId(null);
+    } catch { toast.error('Error al buscar usuario'); }
+    finally { setSearching(false); }
+  };
+
+  const loadPayments = async (uid) => {
+    setUserId(uid);
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/users/${uid}/payments`, { headers });
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      setPayments(d.transactions || []);
+    } catch { toast.error('Error al cargar pagos'); }
+    finally { setLoading(false); }
+  };
+
+  const STATUS_CLS = { completed: 'bg-green-500/15 text-green-500', failed: 'bg-red-500/15 text-red-500', pending: 'bg-yellow-500/15 text-yellow-500' };
+  const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2"><CreditCard className="w-4 h-4 text-primary" /> Historial de Pagos por Usuario</CardTitle>
+        <p className="text-[11px] text-muted-foreground">Consulta todas las transacciones de un usuario específico.</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchUser()} placeholder="Buscar por email o nombre..." className="flex-1" />
+          <Button onClick={searchUser} disabled={searching} size="sm" variant="outline" className="gap-1">
+            {searching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />} Buscar
+          </Button>
+        </div>
+
+        {userResults.length > 0 && !userId && (
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{userResults.length} resultado(s) — selecciona un usuario:</p>
+            {userResults.map(u => (
+              <button key={u.id} onClick={() => loadPayments(u.id)} className="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-muted/60 flex items-center justify-between border border-border">
+                <span className="font-mono text-xs">{u.email}</span>
+                <Badge variant="outline" className="text-[10px]">{u.subscription_plan || 'free'}</Badge>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {userId && (
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">{payments.length} transacción(es) · Total: <strong>${total.toFixed(2)}</strong></p>
+              <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => { setUserId(null); setUserResults([]); setPayments([]); setQuery(''); }}>← Volver</Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr className="text-left">
+                    {['Fecha', 'Plan', 'Importe', 'Estado', 'ID Stripe'].map(h => (
+                      <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+                  ) : payments.length === 0 ? (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Sin transacciones registradas</td></tr>
+                  ) : payments.map(p => (
+                    <tr key={p.id} className="border-t border-border hover:bg-muted/20">
+                      <td className="px-3 py-2 text-xs text-muted-foreground">{p.created_at?.slice(0, 16).replace('T', ' ')}</td>
+                      <td className="px-3 py-2"><Badge variant="outline" className="text-[10px]">{p.plan || '—'}</Badge></td>
+                      <td className="px-3 py-2 font-mono text-xs font-semibold">${(p.amount || 0).toFixed(2)}</td>
+                      <td className="px-3 py-2"><Badge className={`text-[10px] ${STATUS_CLS[p.status] || 'bg-muted text-muted-foreground'}`}>{p.status}</Badge></td>
+                      <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">{p.stripe_payment_intent_id || p.id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHURN SURVEY CARD
+═══════════════════════════════════════════════════════════════════════════ */
+const CHURN_REASONS = { price: 'Precio alto', no_use: 'No lo usaba', missing_feature: 'Falta una función', bug: 'Bug/Problema', competitor: 'Migré a competidor', other: 'Otro' };
+const CHURN_COLORS_ARR = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
+
+function ChurnSurveyCard({ headers }) {
+  const [surveys, setSurveys] = useState([]);
+  const [summary, setSummary] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [followUp, setFollowUp] = useState(null);
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/churn-surveys`, { headers });
+      if (!res.ok) return;
+      const d = await res.json();
+      setSurveys(d.surveys || []);
+      setSummary(Object.entries(d.by_reason || {}).map(([reason, count]) => ({ reason, count })));
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+
+  const saveFollowUp = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/churn-surveys/${followUp.id}/follow-up`, {
+        method: 'POST', headers, body: JSON.stringify({ note }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Nota guardada');
+      setFollowUp(null);
+      setNote('');
+      load();
+    } catch { toast.error('Error al guardar'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2"><UserMinus className="w-4 h-4 text-red-500" /> Encuestas de Cancelación (Churn)</CardTitle>
+          <Button size="sm" variant="outline" onClick={load} className="gap-1 h-7"><RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /></Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Motivos de cancelación reportados por usuarios.</p>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Por motivo</p>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={summary} dataKey="count" nameKey="reason" cx="50%" cy="50%" outerRadius={70} label={e => CHURN_REASONS[e.reason] || e.reason}>
+                    {summary.map((_, i) => <Cell key={i} fill={CHURN_COLORS_ARR[i % CHURN_COLORS_ARR.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [v, CHURN_REASONS[n] || n]} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Distribución</p>
+            {summary.map((s, i) => {
+              const tot = summary.reduce((a, b) => a + b.count, 0);
+              const pct = tot > 0 ? Math.round((s.count / tot) * 100) : 0;
+              return (
+                <div key={s.reason} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: CHURN_COLORS_ARR[i % CHURN_COLORS_ARR.length] }} />
+                  <span className="text-xs flex-1">{CHURN_REASONS[s.reason] || s.reason}</span>
+                  <span className="text-xs font-mono text-muted-foreground">{s.count} ({pct}%)</span>
+                </div>
+              );
+            })}
+            {summary.length === 0 && !loading && <p className="text-xs text-muted-foreground">Sin datos aún.</p>}
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40">
+              <tr className="text-left">
+                {['Email', 'Motivo', 'Comentario', 'Fecha', 'Seguimiento', ''].map(h => (
+                  <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {surveys.slice(0, 20).map(s => (
+                <tr key={s.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-3 py-2 font-mono text-xs">{s.email}</td>
+                  <td className="px-3 py-2"><Badge className="text-[10px] bg-red-500/10 text-red-500">{CHURN_REASONS[s.reason] || s.reason}</Badge></td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate">{s.comment || '—'}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{s.created_at?.slice(0, 10)}</td>
+                  <td className="px-3 py-2">{s.follow_up_note ? <Badge className="bg-green-500/10 text-green-500 text-[10px]">Resuelto</Badge> : <Badge className="bg-muted text-muted-foreground text-[10px]">Pendiente</Badge>}</td>
+                  <td className="px-3 py-2">
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setFollowUp(s); setNote(s.follow_up_note || ''); }}>Nota</Button>
+                  </td>
+                </tr>
+              ))}
+              {!loading && surveys.length === 0 && (
+                <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Sin encuestas aún</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+
+      <Dialog open={!!followUp} onOpenChange={() => setFollowUp(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Nota de seguimiento — {followUp?.email}</DialogTitle></DialogHeader>
+          <textarea className="w-full h-24 px-3 py-2 text-sm border border-border rounded-md bg-background resize-none" value={note} onChange={e => setNote(e.target.value)} placeholder="Acción tomada, resolución..." />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFollowUp(null)}>Cancelar</Button>
+            <Button onClick={saveFollowUp} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar nota'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COHORT ANALYSIS CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function CohortAnalysisCard({ headers }) {
+  const [cohorts, setCohorts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!API) { setLoading(false); return; }
+    (async () => {
+      try {
+        const res = await fetch(`${API}/admin/cohorts`, { headers });
+        if (res.ok) { const d = await res.json(); setCohorts(d.cohorts || []); }
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  const chartData = cohorts.map(c => ({ month: c.month?.slice(0, 7), tasa: Math.round(c.conversion_rate || 0) }));
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Análisis de Cohortes</CardTitle>
+        <p className="text-[11px] text-muted-foreground">Tasa de conversión free→premium por mes de registro.</p>
+      </CardHeader>
+      <CardContent>
+        {loading ? <div className="py-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></div> : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} unit="%" />
+                  <Tooltip formatter={v => [`${v}%`, 'Conversión']} />
+                  <Bar dataKey="tasa" fill="var(--primary)" radius={[3,3,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr className="text-left">
+                    {['Mes', 'Usuarios', 'Convierten', 'Tasa', 'Días medio'].map(h => (
+                      <th key={h} className="px-2 py-2 text-xs font-semibold text-muted-foreground">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cohorts.map(c => (
+                    <tr key={c.month} className="border-t border-border hover:bg-muted/20">
+                      <td className="px-2 py-2 text-xs font-mono">{c.month?.slice(0, 7)}</td>
+                      <td className="px-2 py-2 text-xs text-center">{c.total_users}</td>
+                      <td className="px-2 py-2 text-xs text-center">{c.converted}</td>
+                      <td className="px-2 py-2 text-xs text-center">
+                        <Badge className={`text-[10px] ${(c.conversion_rate || 0) > 10 ? 'bg-green-500/15 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                          {Math.round(c.conversion_rate || 0)}%
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-2 text-xs text-center text-muted-foreground">{c.avg_days_to_convert ? `${Math.round(c.avg_days_to_convert)}d` : '—'}</td>
+                    </tr>
+                  ))}
+                  {cohorts.length === 0 && <tr><td colSpan={5} className="px-2 py-6 text-center text-muted-foreground">Sin datos de cohortes</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REFERRAL MANAGER CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function ReferralManagerCard({ headers }) {
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!API) { setLoading(false); return; }
+    (async () => {
+      try {
+        const res = await fetch(`${API}/admin/referrals/leaderboard`, { headers });
+        if (res.ok) { const d = await res.json(); setLeaderboard(d.leaderboard || []); setStats(d.stats || null); }
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2"><Share2 className="w-4 h-4 text-primary" /> Programa de Referidos</CardTitle>
+        <p className="text-[11px] text-muted-foreground">Top referidores y métricas del programa.</p>
+      </CardHeader>
+      <CardContent>
+        {stats && (
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            {[
+              { label: 'Total referidos', value: stats.total_referrals },
+              { label: 'Convertidos', value: stats.total_conversions },
+              { label: 'Tasa conversión', value: `${Math.round(stats.conversion_rate || 0)}%` },
+            ].map(m => (
+              <div key={m.label} className="bg-muted/30 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold">{m.value}</p>
+                <p className="text-[10px] text-muted-foreground">{m.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left">
+              {['#', 'Referidor', 'Referidos', 'Conversiones'].map(h => (
+                <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={4} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground" /></td></tr>
+            ) : leaderboard.length === 0 ? (
+              <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">Sistema de referidos no configurado aún</td></tr>
+            ) : leaderboard.map((r, i) => (
+              <tr key={r.email} className="border-t border-border hover:bg-muted/20">
+                <td className="px-3 py-2 text-xs font-bold text-muted-foreground">#{i + 1}</td>
+                <td className="px-3 py-2 font-mono text-xs">{r.email}</td>
+                <td className="px-3 py-2 text-xs text-center">{r.referrals}</td>
+                <td className="px-3 py-2 text-xs text-center"><Badge className="bg-green-500/10 text-green-500 text-[10px]">{r.conversions}</Badge></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PLANS EDITOR CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function PlansEditorCard({ headers }) {
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [edits, setEdits] = useState({});
+  const [saving, setSaving] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/plans`, { headers });
+      if (res.ok) { const d = await res.json(); setPlans(d.plans || []); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+
+  const savePlan = async (planId) => {
+    const edit = edits[planId];
+    if (!edit) return;
+    setSaving(planId);
+    try {
+      const res = await fetch(`${API}/admin/plans/${planId}`, { method: 'POST', headers, body: JSON.stringify(edit) });
+      if (!res.ok) throw new Error();
+      toast.success('Plan actualizado');
+      setEdits(e => { const n = {...e}; delete n[planId]; return n; });
+      load();
+    } catch { toast.error('Error al guardar plan'); }
+    finally { setSaving(null); }
+  };
+
+  const updateEdit = (planId, field, value) => setEdits(e => ({ ...e, [planId]: { ...(e[planId] || {}), [field]: value } }));
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2"><Package className="w-4 h-4 text-primary" /> Editor de Planes</CardTitle>
+          <Button size="sm" variant="outline" onClick={load} className="h-7 gap-1"><RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /></Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Modifica precios y etiquetas sin necesidad de redeploy.</p>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left">
+              {['Plan', 'Precio ($)', 'Días', 'Etiqueta', 'Stripe Price ID', ''].map(h => (
+                <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={6} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+            ) : plans.map(p => {
+              const edit = edits[p.id] || {};
+              return (
+                <tr key={p.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-3 py-2"><Badge variant="outline" className="capitalize text-[10px]">{p.id}</Badge></td>
+                  <td className="px-3 py-2">
+                    <Input className="h-7 text-xs w-24" type="number" step="0.01"
+                      value={edit.price ?? p.price} onChange={e => updateEdit(p.id, 'price', parseFloat(e.target.value))} />
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input className="h-7 text-xs w-20" type="number"
+                      value={edit.days ?? p.days} onChange={e => updateEdit(p.id, 'days', parseInt(e.target.value))} />
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input className="h-7 text-xs w-32" value={edit.label ?? (p.label || p.id)}
+                      onChange={e => updateEdit(p.id, 'label', e.target.value)} />
+                  </td>
+                  <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">{p.stripe_price_id || '—'}</td>
+                  <td className="px-3 py-2">
+                    {edits[p.id] && (
+                      <Button size="sm" className="h-7 text-xs gap-1" disabled={saving === p.id} onClick={() => savePlan(p.id)}>
+                        {saving === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Guardar
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <p className="px-3 py-2 text-[10px] text-muted-foreground/60">⚠ Cambiar el Stripe Price ID requiere actualizar también en el dashboard de Stripe.</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   I18N MANAGER CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function I18nManagerCard({ headers }) {
+  const [keys, setKeys] = useState([]);
+  const [filter, setFilter] = useState('');
+  const [edits, setEdits] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/i18n`, { headers });
+      if (res.ok) { const d = await res.json(); setKeys(d.keys || []); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+
+  const saveKey = async (key) => {
+    const edit = edits[key];
+    if (!edit) return;
+    setSaving(key);
+    try {
+      const res = await fetch(`${API}/admin/i18n`, { method: 'POST', headers, body: JSON.stringify({ key, ...edit }) });
+      if (!res.ok) throw new Error();
+      toast.success(`Clave "${key}" actualizada`);
+      setEdits(e => { const n = {...e}; delete n[key]; return n; });
+      load();
+    } catch { toast.error('Error al guardar'); }
+    finally { setSaving(null); }
+  };
+
+  const updateEdit = (key, lang, value) => setEdits(e => ({ ...e, [key]: { ...(e[key] || {}), [lang]: value } }));
+  const filtered = keys.filter(k => !filter || k.key.includes(filter) || (k.es || '').includes(filter) || (k.en || '').includes(filter));
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2"><Languages className="w-4 h-4 text-primary" /> Gestor de Traducciones (i18n)</CardTitle>
+          <Badge variant="outline" className="text-[10px]">{keys.length} claves sobreescritas</Badge>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Edita textos de la app sin redeploy.</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filtrar por clave o texto..." className="h-8" />
+        <div className="max-h-80 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 sticky top-0">
+              <tr className="text-left">
+                {['Clave', 'Español (ES)', 'Inglés (EN)', ''].map(h => (
+                  <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={4} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">{filter ? 'Sin resultados' : 'No hay sobreescrituras activas'}</td></tr>
+              ) : filtered.map(k => {
+                const edit = edits[k.key] || {};
+                return (
+                  <tr key={k.key} className="border-t border-border hover:bg-muted/20">
+                    <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground align-top pt-3">{k.key}</td>
+                    <td className="px-3 py-2"><Input className="h-7 text-xs" value={edit.es ?? (k.es || '')} onChange={e => updateEdit(k.key, 'es', e.target.value)} placeholder="Texto en español..." /></td>
+                    <td className="px-3 py-2"><Input className="h-7 text-xs" value={edit.en ?? (k.en || '')} onChange={e => updateEdit(k.key, 'en', e.target.value)} placeholder="Text in English..." /></td>
+                    <td className="px-3 py-2 align-top pt-2">
+                      {edits[k.key] && (
+                        <Button size="sm" className="h-7 text-xs" disabled={saving === k.key} onClick={() => saveKey(k.key)}>
+                          {saving === k.key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ERROR MONITOR CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function ErrorMonitorCard({ headers }) {
+  const [errors, setErrors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('unresolved');
+  const [resolving, setResolving] = useState(null);
+  const [resolveNote, setResolveNote] = useState('');
+  const [showNote, setShowNote] = useState(null);
+
+  const load = async (f = filter) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/errors?status=${f}&limit=50`, { headers });
+      if (res.ok) { const d = await res.json(); setErrors(d.errors || []); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+
+  const resolve = async (id) => {
+    setResolving(id);
+    try {
+      const res = await fetch(`${API}/admin/errors/${id}/resolve`, {
+        method: 'POST', headers, body: JSON.stringify({ note: resolveNote }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Error marcado como resuelto');
+      setShowNote(null);
+      setResolveNote('');
+      load();
+    } catch { toast.error('Error al resolver'); }
+    finally { setResolving(null); }
+  };
+
+  const SEV_CLS = { 5: 'bg-red-500/15 text-red-500', 4: 'bg-orange-500/15 text-orange-500', 3: 'bg-yellow-500/15 text-yellow-600' };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2"><Bug className="w-4 h-4 text-red-400" /> Monitor de Errores</CardTitle>
+          <div className="flex gap-2">
+            <Select value={filter} onValueChange={v => { setFilter(v); load(v); }}>
+              <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unresolved">Sin resolver</SelectItem>
+                <SelectItem value="resolved">Resueltos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" onClick={() => load()} className="h-7 gap-1">
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Errores recientes capturados por el backend.</p>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left">
+              {['Código', 'Tipo', 'Mensaje', 'Endpoint', 'Fecha', 'Estado', ''].map(h => (
+                <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={7} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+            ) : errors.length === 0 ? (
+              <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">{filter === 'unresolved' ? '✓ Sin errores pendientes' : 'Sin errores registrados'}</td></tr>
+            ) : errors.map(e => {
+              const sev = Math.floor((e.status_code || 500) / 100);
+              return (
+                <tr key={e.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-3 py-2"><Badge className={`text-[10px] ${SEV_CLS[sev] || 'bg-muted text-muted-foreground'}`}>{e.status_code}</Badge></td>
+                  <td className="px-3 py-2 font-mono text-[10px]">{e.type || '—'}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate" title={e.message}>{e.message}</td>
+                  <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">{e.method} {e.endpoint}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{e.created_at?.slice(0, 16).replace('T', ' ')}</td>
+                  <td className="px-3 py-2">{e.resolved ? <Badge className="bg-green-500/10 text-green-500 text-[10px]">Resuelto</Badge> : <Badge className="bg-red-500/10 text-red-500 text-[10px]">Abierto</Badge>}</td>
+                  <td className="px-3 py-2">
+                    {!e.resolved && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowNote(e)}>Resolver</Button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </CardContent>
+
+      <Dialog open={!!showNote} onOpenChange={() => setShowNote(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Resolver error</DialogTitle><DialogDescription className="font-mono text-xs">{showNote?.message}</DialogDescription></DialogHeader>
+          <textarea className="w-full h-20 px-3 py-2 text-sm border border-border rounded-md bg-background resize-none" value={resolveNote} onChange={e => setResolveNote(e.target.value)} placeholder="Descripción de la solución aplicada..." />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNote(null)}>Cancelar</Button>
+            <Button onClick={() => resolve(showNote?.id)} disabled={!!resolving}>{resolving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Marcar resuelto'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RATE LIMITING DASHBOARD CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function RateLimitingCard({ headers }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!API) { setLoading(false); return; }
+    (async () => {
+      try {
+        const res = await fetch(`${API}/admin/rate-limits`, { headers });
+        if (res.ok) setData(await res.json());
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2"><Gauge className="w-4 h-4 text-primary" /> Rate Limiting Dashboard</CardTitle>
+        <p className="text-[11px] text-muted-foreground">Configuración de límites y violaciones recientes.</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? <div className="py-8 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div> : (
+          <>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Límites configurados</p>
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40"><tr className="text-left">
+                  {['Endpoint / Grupo', 'Límite', 'Ventana'].map(h => <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground">{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {(data?.limits || []).map((l, i) => (
+                    <tr key={i} className="border-t border-border hover:bg-muted/20">
+                      <td className="px-3 py-2 font-mono text-xs">{l.endpoint}</td>
+                      <td className="px-3 py-2 text-xs font-semibold">{l.limit}</td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">{l.window}</td>
+                    </tr>
+                  ))}
+                  {!data?.limits?.length && <tr><td colSpan={3} className="px-3 py-4 text-center text-xs text-muted-foreground">Sin límites configurados</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Violaciones recientes</p>
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40"><tr className="text-left">
+                  {['IP', 'Endpoint', 'Fecha'].map(h => <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground">{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {(data?.recent_violations || []).map((v, i) => (
+                    <tr key={i} className="border-t border-border hover:bg-muted/20">
+                      <td className="px-3 py-2 font-mono text-xs text-red-400">{v.ip}</td>
+                      <td className="px-3 py-2 font-mono text-xs">{v.endpoint}</td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">{v.created_at?.slice(0, 16).replace('T', ' ')}</td>
+                    </tr>
+                  ))}
+                  {!data?.recent_violations?.length && <tr><td colSpan={3} className="px-3 py-4 text-center text-xs text-muted-foreground">Sin violaciones recientes</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GDPR EXPORT CARD
+═══════════════════════════════════════════════════════════════════════════ */
+function GDPRExportCard({ headers }) {
+  const [exports, setExports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [delivering, setDelivering] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/gdpr-exports`, { headers });
+      if (res.ok) { const d = await res.json(); setExports(d.exports || []); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+
+  const deliver = async (id) => {
+    setDelivering(id);
+    try {
+      const res = await fetch(`${API}/admin/gdpr-exports/${id}/deliver`, { method: 'POST', headers });
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      toast.success(d.sent_email ? 'Datos enviados por email' : 'Export procesado (sin SendGrid configurado)');
+      load();
+    } catch { toast.error('Error al entregar export'); }
+    finally { setDelivering(null); }
+  };
+
+  const STATUS_CLS = { pending: 'bg-yellow-500/15 text-yellow-600', delivered: 'bg-green-500/15 text-green-500', failed: 'bg-red-500/15 text-red-500' };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2"><Lock className="w-4 h-4 text-primary" /> Solicitudes GDPR (Export de datos)</CardTitle>
+          <Button size="sm" variant="outline" onClick={load} className="h-7 gap-1"><RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /></Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Solicitudes de portabilidad de datos (RGPD/GDPR).</p>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left">
+              {['Email', 'Estado', 'Solicitado', 'Entregado', ''].map(h => (
+                <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+            ) : exports.length === 0 ? (
+              <tr><td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">Sin solicitudes de export</td></tr>
+            ) : exports.map(ex => (
+              <tr key={ex.id} className="border-t border-border hover:bg-muted/20">
+                <td className="px-3 py-2 font-mono text-xs">{ex.email}</td>
+                <td className="px-3 py-2"><Badge className={`text-[10px] ${STATUS_CLS[ex.status] || 'bg-muted text-muted-foreground'}`}>{ex.status}</Badge></td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{ex.created_at?.slice(0, 16).replace('T', ' ')}</td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{ex.delivered_at?.slice(0, 16).replace('T', ' ') || '—'}</td>
+                <td className="px-3 py-2">
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={delivering === ex.id} onClick={() => deliver(ex.id)}>
+                    {delivering === ex.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />} Entregar
+                  </Button>
                 </td>
               </tr>
             ))}
