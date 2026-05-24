@@ -32,6 +32,7 @@ const ResetPasswordPage  = lazy(() => import("@/pages/AuthPages").then(m => ({ d
 const MagicPage          = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.MagicPage })));
 const PaymentSuccessPage = lazy(() => import("@/pages/PaymentPages").then(m => ({ default: m.PaymentSuccessPage })));
 const PaymentCancelPage  = lazy(() => import("@/pages/PaymentPages").then(m => ({ default: m.PaymentCancelPage })));
+const VerifyEmailPage    = lazy(() => import("@/pages/VerifyEmailPage"));
 
 function PageLoader() {
   return (
@@ -63,6 +64,7 @@ const AppContent = () => (
           <Route path="/register"        element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password"  element={<ResetPasswordPage />} />
+          <Route path="/verify-email"    element={<VerifyEmailPage />} />
           <Route path="/magic"           element={<MagicPage />} />
           <Route path="/payment/success" element={<PaymentSuccessPage />} />
           <Route path="/payment/cancel"  element={<PaymentCancelPage />} />

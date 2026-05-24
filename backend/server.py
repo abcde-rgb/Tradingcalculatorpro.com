@@ -847,6 +847,16 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
+async def hash_password_async(password: str) -> str:
+    import asyncio as _asyncio
+    loop = _asyncio.get_event_loop()
+    return await loop.run_in_executor(None, hash_password, password)
+
+async def verify_password_async(password: str, hashed: str) -> bool:
+    import asyncio as _asyncio
+    loop = _asyncio.get_event_loop()
+    return await loop.run_in_executor(None, verify_password, password, hashed)
+
 
 def _hash_token(token: str) -> str:
     """SHA-256 hash a one-time token before storing it in the DB."""
@@ -1126,7 +1136,7 @@ async def register(request: Request, user_data: UserCreate):
     user = {
         "id": user_id,
         "email": user_data.email,
-        "password": hash_password(user_data.password),
+        "password": await hash_password_async(user_data.password),
         "name": user_data.name,
         "subscription_plan": None,
         "subscription_end": None,
@@ -1161,7 +1171,7 @@ async def register(request: Request, user_data: UserCreate):
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
-    if not user or not user.get("password") or not verify_password(credentials.password, user["password"]):
+    if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -5161,10 +5171,17 @@ except Exception as _e:
 
 app.include_router(api_router)
 
+_cors_origins_raw = os.environ.get('CORS_ORIGINS', 'https://tradingcalculator.pro')
+if _cors_origins_raw == '*':
+    logging.warning(
+        "[SECURITY] CORS_ORIGINS is wildcard (*) — set CORS_ORIGINS=https://yourdomain.com in production."
+    )
+_cors_origins = _cors_origins_raw.split(',')
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', 'https://tradingcalculator.pro').split(','),
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
