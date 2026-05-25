@@ -5191,7 +5191,11 @@ if _cors_origins_raw == '*':
     logging.warning(
         "[SECURITY] CORS_ORIGINS is wildcard (*) — set CORS_ORIGINS=https://yourdomain.com in production."
     )
-_cors_origins = _cors_origins_raw.split(',')
+_cors_origins = [o.strip() for o in _cors_origins_raw.split(',') if o.strip()]
+# Always allow the GitHub Pages origin (frontend host) regardless of env var
+for _always_allowed in ['https://abcde-rgb.github.io', 'https://tradingcalculator.pro']:
+    if _always_allowed not in _cors_origins:
+        _cors_origins.append(_always_allowed)
 
 app.add_middleware(
     CORSMiddleware,
