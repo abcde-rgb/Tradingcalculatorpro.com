@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/Tradingcalculatorpro.com/static/css/main.c190cc3f.css",
-    "main.js": "/Tradingcalculatorpro.com/static/js/main.6ebd1eac.js",
+    "main.css": "/Tradingcalculatorpro.com/static/css/main.87f60c5f.css",
+    "main.js": "/Tradingcalculatorpro.com/static/js/main.a6160025.js",
     "static/js/820.7262a831.chunk.js": "/Tradingcalculatorpro.com/static/js/820.7262a831.chunk.js",
     "static/js/465.3d42605c.chunk.js": "/Tradingcalculatorpro.com/static/js/465.3d42605c.chunk.js",
     "static/js/448.2560f8e4.chunk.js": "/Tradingcalculatorpro.com/static/js/448.2560f8e4.chunk.js",
@@ -13,7 +13,7 @@
     "static/js/315.8bdd5642.chunk.js": "/Tradingcalculatorpro.com/static/js/315.8bdd5642.chunk.js",
     "static/js/256.ade2c862.chunk.js": "/Tradingcalculatorpro.com/static/js/256.ade2c862.chunk.js",
     "static/js/599.872c3527.chunk.js": "/Tradingcalculatorpro.com/static/js/599.872c3527.chunk.js",
-    "static/js/462.56712947.chunk.js": "/Tradingcalculatorpro.com/static/js/462.56712947.chunk.js",
+    "static/js/462.b90114d9.chunk.js": "/Tradingcalculatorpro.com/static/js/462.b90114d9.chunk.js",
     "static/js/696.409f0070.chunk.js": "/Tradingcalculatorpro.com/static/js/696.409f0070.chunk.js",
     "static/js/405.6ba46117.chunk.js": "/Tradingcalculatorpro.com/static/js/405.6ba46117.chunk.js",
     "static/js/802.c9d73f7c.chunk.js": "/Tradingcalculatorpro.com/static/js/802.c9d73f7c.chunk.js",
@@ -36,8 +36,8 @@
     "static/js/771.8882ded0.chunk.js": "/Tradingcalculatorpro.com/static/js/771.8882ded0.chunk.js",
     "static/js/184.2502bae0.chunk.js": "/Tradingcalculatorpro.com/static/js/184.2502bae0.chunk.js",
     "index.html": "/Tradingcalculatorpro.com/index.html",
-    "main.c190cc3f.css.map": "/Tradingcalculatorpro.com/static/css/main.c190cc3f.css.map",
-    "main.6ebd1eac.js.map": "/Tradingcalculatorpro.com/static/js/main.6ebd1eac.js.map",
+    "main.87f60c5f.css.map": "/Tradingcalculatorpro.com/static/css/main.87f60c5f.css.map",
+    "main.a6160025.js.map": "/Tradingcalculatorpro.com/static/js/main.a6160025.js.map",
     "820.7262a831.chunk.js.map": "/Tradingcalculatorpro.com/static/js/820.7262a831.chunk.js.map",
     "465.3d42605c.chunk.js.map": "/Tradingcalculatorpro.com/static/js/465.3d42605c.chunk.js.map",
     "448.2560f8e4.chunk.js.map": "/Tradingcalculatorpro.com/static/js/448.2560f8e4.chunk.js.map",
@@ -49,7 +49,7 @@
     "315.8bdd5642.chunk.js.map": "/Tradingcalculatorpro.com/static/js/315.8bdd5642.chunk.js.map",
     "256.ade2c862.chunk.js.map": "/Tradingcalculatorpro.com/static/js/256.ade2c862.chunk.js.map",
     "599.872c3527.chunk.js.map": "/Tradingcalculatorpro.com/static/js/599.872c3527.chunk.js.map",
-    "462.56712947.chunk.js.map": "/Tradingcalculatorpro.com/static/js/462.56712947.chunk.js.map",
+    "462.b90114d9.chunk.js.map": "/Tradingcalculatorpro.com/static/js/462.b90114d9.chunk.js.map",
     "696.409f0070.chunk.js.map": "/Tradingcalculatorpro.com/static/js/696.409f0070.chunk.js.map",
     "405.6ba46117.chunk.js.map": "/Tradingcalculatorpro.com/static/js/405.6ba46117.chunk.js.map",
     "802.c9d73f7c.chunk.js.map": "/Tradingcalculatorpro.com/static/js/802.c9d73f7c.chunk.js.map",
@@ -73,7 +73,7 @@
     "184.2502bae0.chunk.js.map": "/Tradingcalculatorpro.com/static/js/184.2502bae0.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.c190cc3f.css",
-    "static/js/main.6ebd1eac.js"
+    "static/css/main.87f60c5f.css",
+    "static/js/main.a6160025.js"
   ]
 }
