@@ -74,9 +74,9 @@ const AppContent = () => (
           <Route path="*"                element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+      <CookieBanner />
     </BrowserRouter>
     <Toaster position="top-right" richColors />
-    <CookieBanner />
   </div>
 );
 
