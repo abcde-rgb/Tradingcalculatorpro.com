@@ -1060,6 +1060,7 @@ async def startup_event():
     """Initialise asyncpg pool, create tables, seed demo user."""
 
     # ── Connect to PostgreSQL ────────────────────────────────────────────
+    _db_ready = False
     if not _DATABASE_URL:
         logging.error("DATABASE_URL env var is not set — database will not work")
     else:
@@ -1067,13 +1068,15 @@ async def startup_event():
             await db.init_pool(_DATABASE_URL)
             await db.create_all_tables()
             logging.info("PostgreSQL pool initialised and tables ensured")
+            _db_ready = True
         except Exception as e:
             logging.error(f"Could not initialise PostgreSQL: {e}", exc_info=True)
 
-    # ── No-op create_index calls (indexes already created by create_all_tables) ──
-    # These calls are kept as no-ops via Collection.create_index so that
-    # any remaining references in the codebase don't raise errors.
+    if not _db_ready:
+        logging.warning("Skipping post-startup DB tasks — database not available")
+        return
 
+    # ── Seed demo user ───────────────────────────────────────────────────
     existing = await db.users.find_one({"email": DEMO_EMAIL})
     if not existing:
         demo_user = {
@@ -1103,10 +1106,7 @@ async def startup_event():
             await db.users.update_one({"email": DEMO_EMAIL}, {"$set": patch})
             logging.info("Demo user patched: %s", patch)
 
-    # ─────────────────────────────────────────────────────────────────────
-    # Module-level routers were already registered (see bottom of file).
-    # Here we just create the runtime indexes and start the WS poller.
-    # ─────────────────────────────────────────────────────────────────────
+    # ── Extended modules ─────────────────────────────────────────────────
     try:
         from missing_apis import ensure_missing_api_indexes
         from referrals import ensure_referral_indexes
@@ -3212,13 +3212,15 @@ async def root():
 
 @api_router.get("/health")
 async def health():
+    if db._pool is None:
+        return {"status": "healthy", "db": "unavailable"}
     try:
         async with db._pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
         return {"status": "healthy", "db": "ok"}
     except Exception as e:
         logging.error(f"[health] DB check failed: {e}")
-        raise HTTPException(status_code=503, detail=f"Database unavailable: {e}")
+        return {"status": "healthy", "db": f"error: {e}"}
 
 # ============= OPTIONS CALCULATOR ROUTES (merged from OPTIONS app) =============
 

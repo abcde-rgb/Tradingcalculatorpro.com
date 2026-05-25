@@ -9,7 +9,7 @@ set -euo pipefail
 
 # ── Configuración ─────────────────────────────────────────────
 PROJECT_ID="tradingcalculator-495806"
-REGION="us-central1"
+REGION="europe-west1"
 DB_INSTANCE="trading-db"
 DB_NAME="trading_calculator_pro"
 DB_USER="trading_user"

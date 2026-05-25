@@ -1,7 +1,7 @@
 # 🚀 TradingCalculator.pro — Guía Completa Google Cloud Setup
 
 **Proyecto GCP:** `tradingcalculator-495806`  
-**Región:** `us-central1` (Bélgica)  
+**Región:** `europe-west1` (Bélgica)  
 **Repositorio:** `abcde-rgb/Tradingcalculatorpro.com`
 
 ---
@@ -33,7 +33,7 @@ gcloud services enable \
 ```bash
 gcloud artifacts repositories create trading-repo \
   --repository-format=docker \
-  --location=us-central1 \
+  --location=europe-west1 \
   --description="Imágenes Docker de TradingCalculator.pro"
 ```
 
@@ -75,7 +75,7 @@ echo -n "$JWT_VAL" | gcloud secrets create JWT_SECRET --data-file=-
 echo "Tu JWT_SECRET: $JWT_VAL  ← guárdalo en un lugar seguro"
 
 # Database URL (Cloud SQL con socket Unix para Cloud Run)
-echo -n "postgresql://trading_user:TU_PASSWORD@/trading_db?host=/cloudsql/tradingcalculator-495806:us-central1:trading-db" \
+echo -n "postgresql://trading_user:TU_PASSWORD@/trading_db?host=/cloudsql/tradingcalculator-495806:europe-west1:trading-db" \
   | gcloud secrets create DATABASE_URL --data-file=-
 
 # Google OAuth Client ID
@@ -105,7 +105,7 @@ echo -n "NUEVO_VALOR" | gcloud secrets versions add NOMBRE_SECRET --data-file=-
 gcloud sql instances create trading-db \
   --database-version=POSTGRES_16 \
   --tier=db-f1-micro \
-  --region=us-central1 \
+  --region=europe-west1 \
   --storage-type=SSD \
   --storage-size=10GB \
   --backup-start-time=03:00 \
@@ -120,7 +120,7 @@ gcloud sql users create trading_user \
   --instance=trading-db \
   --password=GENERA_UN_PASSWORD_SEGURO
 
-echo "✅ Cloud SQL PostgreSQL creado: tradingcalculator-495806:us-central1:trading-db"
+echo "✅ Cloud SQL PostgreSQL creado: tradingcalculator-495806:europe-west1:trading-db"
 ```
 
 ---
@@ -185,16 +185,16 @@ Después de hacer `git push` a `main`, el workflow arranca automáticamente.
 
 ```bash
 # Ver el estado del servicio
-gcloud run services describe tradingcalculator-api \
-  --region=us-central1 \
+gcloud run services describe tradingcalculator-backend \
+  --region=europe-west1 \
   --format='table(status.url,spec.template.spec.containers[0].image)'
 
 # Ver logs en tiempo real
-gcloud run services logs tail tradingcalculator-api --region=us-central1
+gcloud run services logs tail tradingcalculator-backend --region=europe-west1
 
 # Ver métricas básicas
-gcloud run services describe tradingcalculator-api \
-  --region=us-central1 \
+gcloud run services describe tradingcalculator-backend \
+  --region=europe-west1 \
   --format='value(status.observedGeneration,status.conditions)'
 ```
 
@@ -233,15 +233,15 @@ O ve directamente a:
 
 ```bash
 # Rollback a versión anterior
-gcloud run services update-traffic tradingcalculator-api \
-  --region=us-central1 \
+gcloud run services update-traffic tradingcalculator-backend \
+  --region=europe-west1 \
   --to-revisions=REVISION_ANTERIOR=100
 
 # Ver revisiones disponibles
-gcloud run revisions list --service=tradingcalculator-api --region=us-central1
+gcloud run revisions list --service=tradingcalculator-backend --region=europe-west1
 
 # Escalar a 0 manualmente (parar el servicio)
-gcloud run services update tradingcalculator-api \
-  --region=us-central1 \
+gcloud run services update tradingcalculator-backend \
+  --region=europe-west1 \
   --max-instances=0
 ```
