@@ -55,15 +55,18 @@ export const LoginPage = () => {
   const [password, setPassword]   = useState('');
   const [showPw, setShowPw]       = useState(false);
   const [emailErr, setEmailErr]   = useState('');
+  const [loginError, setLoginError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoginError('');
     if (!EMAIL_RE.test(email)) { setEmailErr(t('emailInvalid')); return; }
     const result = await login(email, password);
     if (result.success) {
       toast.success(t('bienvenido_b33c1f'));
       navigate('/dashboard');
     } else {
+      setLoginError(result.error);
       toast.error(result.error);
     }
   };
@@ -146,6 +149,11 @@ export const LoginPage = () => {
               <p className="text-xs text-center text-muted-foreground animate-pulse">
                 El servidor puede tardar unos segundos en arrancar…
               </p>
+            )}
+            {loginError && !isLoading && (
+              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-sm text-destructive text-center">
+                {loginError}
+              </div>
             )}
           </form>
 

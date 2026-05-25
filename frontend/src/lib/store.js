@@ -58,7 +58,10 @@ export const useAuthStore = create(
           return { success: true };
         } catch (error) {
           set({ isLoading: false });
-          return { success: false, error: error.message };
+          const msg = (error.name === 'TypeError' || error.message === 'Failed to fetch')
+            ? 'No se puede conectar al servidor. Comprueba tu conexión o intenta de nuevo.'
+            : error.message;
+          return { success: false, error: msg };
         }
       },
 
