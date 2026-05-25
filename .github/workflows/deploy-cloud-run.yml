@@ -17,7 +17,7 @@ env:
   GCP_PROJECT: tradingcalculator-495806
   GCP_REGION: us-central1
   SERVICE_NAME: tradingcalculator-api
-  IMAGE: us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend
+  IMAGE: europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend
 
 jobs:
   # ── 1. Tests rápidos antes de desplegar ──────────────────
@@ -121,7 +121,7 @@ jobs:
 
       # Configurar Docker para Artifact Registry
       - name: Configurar Docker Auth
-        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 
       # Build de la imagen Docker
       - name: Build imagen Docker
