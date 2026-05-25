@@ -21,6 +21,17 @@ async function safeJson(res) {
   }
 }
 
+function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer))
+    .catch((err) => {
+      if (err.name === 'AbortError') throw new Error('La solicitud tardó demasiado. El servidor puede estar iniciando, inténtalo de nuevo.');
+      throw err;
+    });
+}
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -35,7 +46,7 @@ export const useAuthStore = create(
         }
         set({ isLoading: true });
         try {
-          const res = await fetch(`${API}/auth/login`, {
+          const res = await fetchWithTimeout(`${API}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -57,7 +68,7 @@ export const useAuthStore = create(
         }
         set({ isLoading: true });
         try {
-          const res = await fetch(`${API}/auth/register`, {
+          const res = await fetchWithTimeout(`${API}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password })

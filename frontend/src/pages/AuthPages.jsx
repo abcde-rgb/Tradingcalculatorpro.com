@@ -137,9 +137,16 @@ export const LoginPage = () => {
               className="w-full bg-primary text-black hover:bg-primary/90"
               data-testid="login-submit"
             >
-              {isLoading ? t('loading') : t('iniciarSesion_9faefe')}
-              <ArrowRight className="ml-2 w-4 h-4" />
+              {isLoading
+                ? <><Loader2 className="mr-2 w-4 h-4 animate-spin" />{t('loading') || 'Conectando...'}</>
+                : <>{t('iniciarSesion_9faefe')}<ArrowRight className="ml-2 w-4 h-4" /></>
+              }
             </Button>
+            {isLoading && (
+              <p className="text-xs text-center text-muted-foreground animate-pulse">
+                El servidor puede tardar unos segundos en arrancar…
+              </p>
+            )}
           </form>
 
           <GoogleSignInButton />
