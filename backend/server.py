@@ -769,6 +769,30 @@ api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
 # ============================================================
+#  CORS — must be registered first so every response gets headers
+# ============================================================
+_CORS_ORIGINS = [
+    "https://abcde-rgb.github.io",
+    "https://tradingcalculator.pro",
+    "https://www.tradingcalculator.pro",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+_extra = os.environ.get("CORS_ORIGINS", "")
+for _o in _extra.split(","):
+    _o = _o.strip()
+    if _o and _o not in _CORS_ORIGINS:
+        _CORS_ORIGINS.append(_o)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ============================================================
 #  Rate limiting (slowapi) — applied to brute-force-prone routes
 # ============================================================
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
@@ -5186,24 +5210,6 @@ except Exception as _e:
 
 app.include_router(api_router)
 
-_cors_origins_raw = os.environ.get('CORS_ORIGINS', 'https://tradingcalculator.pro')
-if _cors_origins_raw == '*':
-    logging.warning(
-        "[SECURITY] CORS_ORIGINS is wildcard (*) — set CORS_ORIGINS=https://yourdomain.com in production."
-    )
-_cors_origins = [o.strip() for o in _cors_origins_raw.split(',') if o.strip()]
-# Always allow the GitHub Pages origin (frontend host) regardless of env var
-for _always_allowed in ['https://abcde-rgb.github.io', 'https://tradingcalculator.pro']:
-    if _always_allowed not in _cors_origins:
-        _cors_origins.append(_always_allowed)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=_cors_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 _FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculator.pro')
 
