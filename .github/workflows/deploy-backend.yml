@@ -11,8 +11,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: europe-west1
-  SERVICE_NAME: tradingcalculator-api
-  IMAGE: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tradingcalculator/tradingcalculator-api
+  SERVICE_NAME: tradingcalculator-backend
+  IMAGE: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tradingcalculator/tradingcalculator-backend
 
 jobs:
   deploy:

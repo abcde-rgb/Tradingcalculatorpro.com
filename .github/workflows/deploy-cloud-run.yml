@@ -1,7 +1,7 @@
 # ============================================================
 # TradingCalculator.pro — CI/CD: GitHub Actions → Google Cloud Run
 # Proyecto GCP: tradingcalculator-495806
-# Región: europe-west1 (Bélgica — más cercana a Zürich)
+# Región: europe-west1
 # ============================================================
 name: Deploy Backend → Cloud Run
 
