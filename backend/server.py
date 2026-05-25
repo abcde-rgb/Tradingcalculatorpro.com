@@ -729,11 +729,7 @@ class Database:
 # Global db object (pool is None until startup_event runs)
 db = Database()
 
-# DATABASE_URL — supports both DATABASE_URL (new) and MONGO_URL (legacy key name)
-_DATABASE_URL = (
-    os.environ.get("DATABASE_URL")
-    or os.environ.get("MONGO_URL", "")
-)
+_DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 # JWT Configuration
 # 🔒 SECURITY: JWT_SECRET must be set via environment variable
@@ -1065,7 +1061,7 @@ async def startup_event():
 
     # ── Connect to PostgreSQL ────────────────────────────────────────────
     if not _DATABASE_URL:
-        logging.error("DATABASE_URL (or MONGO_URL) env var is not set — database will not work")
+        logging.error("DATABASE_URL env var is not set — database will not work")
     else:
         try:
             await db.init_pool(_DATABASE_URL)
@@ -3333,7 +3329,7 @@ async def opt_get_stock(symbol: str):
             {"$set": {
                 **data,
                 "cached_at": now.isoformat(),
-                # Real datetime for the TTL index → mongo auto-deletes after 1h.
+                # Real datetime for TTL expiry — records older than 1h can be purged.
                 "expires_at": now + timedelta(hours=1),
             }},
             upsert=True
