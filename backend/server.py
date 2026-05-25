@@ -3325,21 +3325,23 @@ def _payoff_summary(
 async def opt_get_stock(symbol: str):
     try:
         data = get_stock_data(symbol)
+    except Exception as e:
+        logging.error(f"Error getting stock data for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    try:
         now = datetime.now(timezone.utc)
         await db.stock_cache.update_one(
             {"symbol": data["symbol"]},
             {"$set": {
                 **data,
                 "cached_at": now.isoformat(),
-                # Real datetime for TTL expiry — records older than 1h can be purged.
-                "expires_at": now + timedelta(hours=1),
+                "expires_at": (now + timedelta(hours=1)).isoformat(),
             }},
             upsert=True
         )
-        return data
     except Exception as e:
-        logging.error(f"Error getting stock data for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.warning(f"Failed to cache stock data for {symbol}: {e}")
+    return data
 
 
 def _classify_symbol(sym: str) -> dict:
