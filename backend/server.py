@@ -370,10 +370,24 @@ class Collection:
                 ON {self._name} USING GIN (data)
             """)
 
+    def _require_pool(self):
+        """Raise a proper HTTP 503 (not AttributeError) when the DB pool is not ready.
+        HTTPException is caught by FastAPI's ExceptionMiddleware which sits *inside*
+        CORSMiddleware, so the 503 response still carries CORS headers.  An unhandled
+        AttributeError would be caught by the outermost ServerErrorMiddleware and would
+        return a plain 500 with no CORS headers — causing a spurious "CORS error" in
+        the browser even though the real problem is the database connection."""
+        if self._pool is None:
+            raise HTTPException(
+                status_code=503,
+                detail="El servidor está iniciando, intenta de nuevo en unos segundos.",
+            )
+
     # --- Motor-compatible methods ---
 
     async def find_one(self, filter_dict: dict, projection=None):
         """SELECT … WHERE <clause> LIMIT 1.  Supports complex MongoDB filter operators."""
+        self._require_pool()
         if not filter_dict:
             sql = f"SELECT data FROM {self._name} LIMIT 1"
             params = []
@@ -392,10 +406,12 @@ class Collection:
 
     def find(self, filter_dict: dict = None, projection=None):
         """Return a lazy _Cursor (supports .sort/.limit/.skip/.to_list/async for)."""
+        self._require_pool()
         return _Cursor(self._pool, self._name, filter_dict or {}, projection)
 
     async def insert_one(self, document: dict):
         """INSERT into the table. Ignores _id field."""
+        self._require_pool()
         doc = dict(document)
         doc.pop("_id", None)
         key = _doc_key(doc)
@@ -408,6 +424,7 @@ class Collection:
 
     async def update_one(self, filter_dict: dict, update_dict: dict, upsert: bool = False):
         """SELECT, apply operators in Python, then UPDATE (or INSERT if upsert)."""
+        self._require_pool()
         async with self._pool.acquire() as conn:
             if filter_dict:
                 where, params, _ = _build_where_clause(filter_dict)
@@ -452,6 +469,7 @@ class Collection:
 
     async def delete_one(self, filter_dict: dict):
         """DELETE one matching row."""
+        self._require_pool()
         async with self._pool.acquire() as conn:
             where, params, _ = _build_where_clause(filter_dict)
             if where:
@@ -467,6 +485,7 @@ class Collection:
 
     async def delete_many(self, filter_dict: dict):
         """DELETE all matching rows."""
+        self._require_pool()
         async with self._pool.acquire() as conn:
             if filter_dict:
                 where, params, _ = _build_where_clause(filter_dict)
@@ -487,6 +506,7 @@ class Collection:
 
     async def count_documents(self, filter_dict: dict):
         """SELECT COUNT(*) with full operator support."""
+        self._require_pool()
         async with self._pool.acquire() as conn:
             if filter_dict:
                 where, params, _ = _build_where_clause(filter_dict)
@@ -517,6 +537,7 @@ class Collection:
 
     async def distinct(self, field: str, filter_dict: dict = None):
         """Return distinct values of a JSONB field, optionally filtered."""
+        self._require_pool()
         if not _SAFE_FIELD_RE.match(field):
             raise ValueError(f"Invalid field name: {field!r}")
         async with self._pool.acquire() as conn:

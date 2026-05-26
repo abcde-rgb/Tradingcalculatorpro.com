@@ -31,6 +31,10 @@ from pydantic import BaseModel, EmailStr
 
 logger = logging.getLogger(__name__)
 
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str
+
 # ---------------------------------------------------------------------------
 # Definición completa de todos los conectores / APIs del sistema
 # ---------------------------------------------------------------------------
