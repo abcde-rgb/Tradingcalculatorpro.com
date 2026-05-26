@@ -752,6 +752,26 @@ db = Database()
 
 _DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
+# Captures why the DB failed to connect at startup (surfaced via /api/health for
+# remote diagnosis without leaking credentials). None == no error recorded yet.
+_db_init_error: Optional[str] = None
+
+
+def _db_url_shape() -> str:
+    """Describe the DATABASE_URL format WITHOUT leaking credentials, for diagnostics."""
+    if not _DATABASE_URL:
+        return "unset"
+    try:
+        scheme = _DATABASE_URL.split("://", 1)[0]
+        is_socket = "?host=/" in _DATABASE_URL
+        has_cloudsql = "/cloudsql/" in _DATABASE_URL
+        has_at = "@" in _DATABASE_URL
+        # netloc host part between @ and the path/query, masked
+        host_hint = "socket" if is_socket else "tcp"
+        return f"{scheme}|{host_hint}|cloudsql={has_cloudsql}|creds={has_at}"
+    except Exception:
+        return "unparseable"
+
 # JWT Configuration
 # 🔒 SECURITY: JWT_SECRET must be set via environment variable
 JWT_SECRET = os.environ.get('JWT_SECRET')
@@ -1105,8 +1125,10 @@ async def startup_event():
     """Initialise asyncpg pool, create tables, seed demo user."""
 
     # ── Connect to PostgreSQL ────────────────────────────────────────────
+    global _db_init_error
     _db_ready = False
     if not _DATABASE_URL:
+        _db_init_error = "DATABASE_URL env var is not set"
         logging.error("DATABASE_URL env var is not set — database will not work")
     else:
         try:
@@ -1114,7 +1136,9 @@ async def startup_event():
             await db.create_all_tables()
             logging.info("PostgreSQL pool initialised and tables ensured")
             _db_ready = True
+            _db_init_error = None
         except Exception as e:
+            _db_init_error = f"{type(e).__name__}: {e}"
             logging.error(f"Could not initialise PostgreSQL: {e}", exc_info=True)
 
     if not _db_ready:
@@ -3258,7 +3282,14 @@ async def root():
 @api_router.get("/health")
 async def health():
     if db._pool is None:
-        return {"status": "healthy", "db": "unavailable"}
+        # Surface the real reason + URL shape so the DB connection can be
+        # diagnosed remotely (just open this URL in a browser). No secrets leaked.
+        return {
+            "status": "healthy",
+            "db": "unavailable",
+            "db_error": _db_init_error or "pool not initialised (startup may still be running)",
+            "db_url_shape": _db_url_shape(),
+        }
     try:
         async with db._pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
