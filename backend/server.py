@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 import asyncpg
+import asyncio
 import json as _json_module
 import os
 import logging
@@ -713,17 +714,24 @@ class Database:
         clean_url = database_url.split("?")[0]
         host_param = database_url.split("?host=")[1] if "?host=" in database_url else None
 
+        # Bound every connection attempt so a slow/unreachable DB can never hang the
+        # whole startup. If asyncpg blocked indefinitely, uvicorn would never finish
+        # "application startup", Cloud Run's startup probe would fail, the new revision
+        # would be rejected, and the previous (buggy) revision would keep serving — i.e.
+        # deploys would silently never go live. timeout=10 makes create_pool give up fast,
+        # and command_timeout caps individual queries.
         if is_unix_socket and host_param:
             # Cloud SQL via Unix socket — SSL not applicable on socket connections
             self._pool = await asyncpg.create_pool(
                 f"{clean_url}?host={host_param}",
-                min_size=1, max_size=10,
+                min_size=1, max_size=10, timeout=10, command_timeout=30,
             )
         else:
             import ssl as _ssl
             ssl_ctx = _ssl.create_default_context()
             self._pool = await asyncpg.create_pool(
                 clean_url, ssl=ssl_ctx, min_size=1, max_size=10,
+                timeout=10, command_timeout=30,
             )
 
     async def create_all_tables(self):
@@ -771,6 +779,31 @@ def _db_url_shape() -> str:
         return f"{scheme}|{host_hint}|cloudsql={has_cloudsql}|creds={has_at}"
     except Exception:
         return "unparseable"
+
+
+def _cloudsql_diag() -> dict:
+    """Inspect the /cloudsql mount to tell a name mismatch apart from a missing socket.
+    The instance connection name (project:region:instance) is not a credential, so it's
+    safe to surface for diagnosis. Compares the path DATABASE_URL expects against what
+    Cloud Run actually mounted."""
+    import os as _os
+    info: dict = {}
+    # What host path does DATABASE_URL ask asyncpg to use?
+    expected = None
+    if "?host=" in _DATABASE_URL:
+        expected = _DATABASE_URL.split("?host=", 1)[1].split("&", 1)[0]
+        info["expected_host"] = expected
+        info["expected_socket_exists"] = _os.path.exists(
+            _os.path.join(expected, ".s.PGSQL.5432")
+        )
+    # What did Cloud Run actually mount under /cloudsql ?
+    try:
+        info["cloudsql_dir"] = sorted(_os.listdir("/cloudsql"))[:10]
+    except FileNotFoundError:
+        info["cloudsql_dir"] = "/cloudsql does not exist (Cloud SQL connection not mounted)"
+    except Exception as e:
+        info["cloudsql_dir"] = f"error listing: {type(e).__name__}"
+    return info
 
 # JWT Configuration
 # 🔒 SECURITY: JWT_SECRET must be set via environment variable
@@ -1131,15 +1164,27 @@ async def startup_event():
         _db_init_error = "DATABASE_URL env var is not set"
         logging.error("DATABASE_URL env var is not set — database will not work")
     else:
-        try:
-            await db.init_pool(_DATABASE_URL)
-            await db.create_all_tables()
-            logging.info("PostgreSQL pool initialised and tables ensured")
-            _db_ready = True
-            _db_init_error = None
-        except Exception as e:
-            _db_init_error = f"{type(e).__name__}: {e}"
-            logging.error(f"Could not initialise PostgreSQL: {e}", exc_info=True)
+        # Retry a few times with backoff: on Cloud Run the Cloud SQL unix socket is
+        # provided by a sidecar that may not be ready the instant startup runs, which
+        # surfaces as FileNotFoundError on the socket path. Since startup runs only once,
+        # a single early failure would otherwise leave the DB down for the whole
+        # container lifetime.
+        for _attempt in range(1, 6):
+            try:
+                await asyncio.wait_for(db.init_pool(_DATABASE_URL), timeout=15)
+                await asyncio.wait_for(db.create_all_tables(), timeout=20)
+                logging.info("PostgreSQL pool initialised and tables ensured")
+                _db_ready = True
+                _db_init_error = None
+                break
+            except asyncio.TimeoutError:
+                _db_init_error = "TimeoutError: DB connection/bring-up exceeded timeout"
+                logging.error(f"DB init attempt {_attempt}/5 timed out", exc_info=True)
+            except Exception as e:
+                _db_init_error = f"{type(e).__name__}: {e}"
+                logging.error(f"DB init attempt {_attempt}/5 failed: {e}", exc_info=True)
+            if _attempt < 5:
+                await asyncio.sleep(2 * _attempt)  # 2s, 4s, 6s, 8s
 
     if not _db_ready:
         logging.warning("Skipping post-startup DB tasks — database not available")
@@ -3289,6 +3334,7 @@ async def health():
             "db": "unavailable",
             "db_error": _db_init_error or "pool not initialised (startup may still be running)",
             "db_url_shape": _db_url_shape(),
+            "cloudsql": _cloudsql_diag(),
         }
     try:
         async with db._pool.acquire() as conn:
