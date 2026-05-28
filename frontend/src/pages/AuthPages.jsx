@@ -3,7 +3,7 @@ import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
 import { TrendingUp, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -78,7 +78,7 @@ export const LoginPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <TrendingUp className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-unbounded">{t('iniciarSesion_9faefe')}</CardTitle>
+          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">{t('iniciarSesion_9faefe')}</h1>
           <p className="text-muted-foreground text-sm mt-2">{t('accedeABtcTradingCalculator_119926')}</p>
         </CardHeader>
         <CardContent>
@@ -207,7 +207,7 @@ export const RegisterPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <TrendingUp className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-unbounded">{t('crearCuenta_f32c7c')}</CardTitle>
+          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">{t('crearCuenta_f32c7c')}</h1>
           <p className="text-muted-foreground text-sm mt-2">{t('registrateEnBtcTradingCalculator_18dbac')}</p>
         </CardHeader>
         <CardContent>
@@ -336,7 +336,7 @@ export const ResetPasswordPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <KeyRound className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-unbounded">Nueva contraseña</CardTitle>
+          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">Nueva contraseña</h1>
           <p className="text-muted-foreground text-sm mt-2">Elige una nueva contraseña para tu cuenta.</p>
         </CardHeader>
         <CardContent>
@@ -420,7 +420,7 @@ export const ForgotPasswordPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <KeyRound className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-unbounded">Recuperar contraseña</CardTitle>
+          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">Recuperar contraseña</h1>
           <p className="text-muted-foreground text-sm mt-2">
             Te enviaremos un enlace para restablecer tu contraseña.
           </p>
@@ -598,7 +598,7 @@ export const MagicPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <Zap className="w-10 h-10 text-yellow-400" />
           </div>
-          <CardTitle className="text-2xl font-unbounded">Magic Link</CardTitle>
+          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">Magic Link</h1>
         </CardHeader>
         <CardContent className="text-center space-y-4">
           {msg.icon}
