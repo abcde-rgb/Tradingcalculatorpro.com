@@ -2,7 +2,7 @@
   "name": "Trading Calculator PRO",
   "short_name": "TradeCalc PRO",
   "description": "Calculadoras profesionales de trading: apalancamiento, posición, opciones Black-Scholes, Fibonacci, Monte Carlo y más.",
-  "start_url": "/",
+  "start_url": "%PUBLIC_URL%/",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#22c55e",
@@ -16,17 +16,22 @@
       "type": "image/svg+xml"
     },
     {
-      "src": "%PUBLIC_URL%/og-image.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "%PUBLIC_URL%/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "%PUBLIC_URL%/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "%PUBLIC_URL%/og-image.svg",
+      "src": "%PUBLIC_URL%/og-image.png",
       "sizes": "1200x630",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "form_factor": "wide",
       "label": "Trading Calculator PRO — Dashboard"
     }
@@ -34,17 +39,17 @@
   "shortcuts": [
     {
       "name": "Dashboard",
-      "url": "/dashboard",
+      "url": "%PUBLIC_URL%/dashboard",
       "description": "Ir al dashboard de calculadoras"
     },
     {
       "name": "Opciones",
-      "url": "/options",
+      "url": "%PUBLIC_URL%/options",
       "description": "Suite de opciones con Black-Scholes"
     },
     {
       "name": "Precios",
-      "url": "/pricing",
+      "url": "%PUBLIC_URL%/pricing",
       "description": "Ver planes y precios"
     }
   ]
