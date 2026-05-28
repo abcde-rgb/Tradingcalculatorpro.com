@@ -343,7 +343,41 @@ export default {
     threeBlackCrowsDesc: 'Three consecutive bearish candles with progressively lower closes. Strong bearish trend signal.',
     haramiName: 'Harami',
     haramiDesc: 'Two-candle pattern where the second is contained within the range of the first. Possible reversal signal.',
-    
+
+    // Extended Candlestick Patterns - Bullish
+    bullishHaramiName: 'Bullish Harami',
+    bullishHaramiDesc: 'Small bullish candle contained within the prior large bearish candle. Signals indecision and potential reversal after a downtrend.',
+    invertedHammerName: 'Inverted Hammer',
+    invertedHammerDesc: 'Small body at the bottom with a long upper wick, appearing at the bottom of a downtrend. Signals potential bullish reversal.',
+    threeInsideUpName: 'Three Inside Up',
+    threeInsideUpDesc: 'Bearish candle, then bullish harami inside it, then confirmation candle closing above the first. Strong bullish reversal.',
+    morningDojiStarName: 'Morning Doji Star',
+    morningDojiStarDesc: 'Three-candle bullish reversal: bearish candle, Doji gap down, then bullish candle. Stronger than the regular Morning Star.',
+    bullishMarubozuName: 'Bullish Marubozu',
+    bullishMarubozuDesc: 'Full bullish candle with no wicks. Shows strong buying pressure from open to close with no seller participation.',
+    bullishKickerName: 'Bullish Kicker',
+    bullishKickerDesc: 'Gap up from a bearish candle to a bullish candle. One of the most powerful bullish reversal signals in candlestick analysis.',
+
+    // Extended Candlestick Patterns - Bearish
+    bearishHaramiName: 'Bearish Harami',
+    bearishHaramiDesc: 'Small bearish candle contained within the prior large bullish candle. Signals indecision and potential reversal after an uptrend.',
+    hangingManName: 'Hanging Man',
+    hangingManDesc: 'Same shape as the Hammer but appears at the top of an uptrend. Signals potential bearish reversal when confirmed.',
+    threeInsideDownName: 'Three Inside Down',
+    threeInsideDownDesc: 'Bullish candle, then bearish harami inside it, then confirmation candle closing below the first. Strong bearish reversal.',
+    eveningDojiStarName: 'Evening Doji Star',
+    eveningDojiStarDesc: 'Three-candle bearish reversal: bullish candle, Doji gap up, then bearish candle. Stronger than the regular Evening Star.',
+    bearishMarubozuName: 'Bearish Marubozu',
+    bearishMarubozuDesc: 'Full bearish candle with no wicks. Shows strong selling pressure from open to close with no buyer participation.',
+    bearishKickerName: 'Bearish Kicker',
+    bearishKickerDesc: 'Gap down from a bullish candle to a bearish candle. One of the most powerful bearish reversal signals in candlestick analysis.',
+
+    // Extended Candlestick Patterns - Neutral
+    longLeggedDojiName: 'Long-Legged Doji',
+    longLeggedDojiDesc: 'Doji with very long upper and lower wicks and a tiny body. Shows extreme indecision with high volatility in both directions.',
+    highWaveName: 'High Wave',
+    highWaveDesc: 'Series of candles with very long wicks on both sides and small bodies. Signals market chaos and extreme indecision.',
+
     // Additional Chart Patterns - EN
     ascTriangleName: 'Ascending Triangle',
     ascTriangleDesc: 'Bullish continuation pattern with flat resistance line and ascending support line.',
