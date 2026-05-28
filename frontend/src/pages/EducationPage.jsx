@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics } from '@/lib/tradingEducationContent';
+import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -296,6 +296,7 @@ export default function EducationPage() {
   const [patternTypeFilter, setPatternTypeFilter] = useState('all');
   const [candleQuery, setCandleQuery] = useState('');
   const [candleTypeFilter, setCandleTypeFilter] = useState('all');
+  const [harmonicFilter, setHarmonicFilter] = useState('all');
   const { t } = useTranslation();
   
   const isPremium = useIsPremium();
@@ -322,6 +323,7 @@ export default function EducationPage() {
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
   const MARKET_MECHANICS = getMarketMechanics(t);
+  const HARMONIC_PATTERNS = getHarmonicPatterns(t);
 
   // Premium Gate - Block non-authenticated OR non-premium users
   if (!isPremium) {
@@ -487,6 +489,9 @@ export default function EducationPage() {
               </TabsTrigger>
               <TabsTrigger value="risk" className="gap-2" data-testid="tab-risk">
                 <Scale className="w-4 h-4" /> {t('riskManagement')}
+              </TabsTrigger>
+              <TabsTrigger value="harmonic-patterns" className="gap-2" data-testid="tab-harmonic-patterns">
+                <TrendingUp className="w-4 h-4" /> {t('harmonicPatternsTab')}
               </TabsTrigger>
             </TabsList>
 
@@ -1752,6 +1757,122 @@ export default function EducationPage() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            </TabsContent>
+
+            {/* Harmonic Patterns */}
+            <TabsContent value="harmonic-patterns" className="space-y-8">
+              <Card className="bg-gradient-to-br from-primary/5 to-blue-500/10 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <TrendingUp className="w-6 h-6 text-primary" />
+                    {t('harmonicPatternsTitle')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{t('harmonicPatternsIntro')}</p>
+                </CardContent>
+              </Card>
+
+              {/* Filter bar */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'all', label: t('harmonicAllFilter') },
+                  { key: 'bullish', label: t('harmonicBullishFilter') },
+                  { key: 'bearish', label: t('harmonicBearishFilter') },
+                ].map(({ key, label }) => (
+                  <Button
+                    key={key}
+                    variant={harmonicFilter === key ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setHarmonicFilter(key)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+                <span className="ml-auto text-xs text-muted-foreground self-center">
+                  {HARMONIC_PATTERNS.filter(p => harmonicFilter === 'all' || p.type === harmonicFilter).length} / {HARMONIC_PATTERNS.length}
+                </span>
+              </div>
+
+              {/* Pattern cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {HARMONIC_PATTERNS
+                  .filter(p => harmonicFilter === 'all' || p.type === harmonicFilter)
+                  .map(pattern => (
+                    <Card key={pattern.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base font-bold">{pattern.name}</CardTitle>
+                          <Badge
+                            className={
+                              pattern.type === 'bullish'
+                                ? 'bg-green-500/10 text-green-500 border-green-500/30'
+                                : pattern.type === 'bearish'
+                                ? 'bg-red-500/10 text-red-500 border-red-500/30'
+                                : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
+                            }
+                          >
+                            {pattern.type === 'bullish'
+                              ? t('harmonicBullishFilter')
+                              : pattern.type === 'bearish'
+                              ? t('harmonicBearishFilter')
+                              : t('harmonicPatternType')}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed mt-1">{pattern.description}</p>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Fibonacci Ratios */}
+                        <div>
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            {t('harmonicKeyRatios')}
+                          </h4>
+                          <div className="grid grid-cols-1 gap-1">
+                            {Object.entries(pattern.ratios).map(([label, value]) => (
+                              <div key={label} className="flex items-center justify-between bg-muted/50 rounded px-3 py-1.5 text-xs">
+                                <span className="text-muted-foreground">{label}</span>
+                                <span className="font-mono font-semibold text-primary">{value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Trading steps */}
+                        <div>
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            {t('harmonicHowToTrade')}
+                          </h4>
+                          <ol className="space-y-1.5">
+                            {pattern.steps.map((step, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-xs">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
+                                  {idx + 1}
+                                </span>
+                                <span className="text-muted-foreground leading-relaxed">{step}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+
+                        {/* Reliability + Timeframes */}
+                        <div className="flex items-center justify-between pt-1 border-t border-border">
+                          <div className="flex gap-1 flex-wrap">
+                            {pattern.timeframes.map(tf => (
+                              <Badge key={tf} variant="outline" className="text-[10px] px-1.5 py-0">{tf}</Badge>
+                            ))}
+                          </div>
+                          <span className={`text-xs font-semibold ${
+                            pattern.reliability === 'High' || pattern.reliability === 'Alta'
+                              ? 'text-green-500'
+                              : 'text-yellow-500'
+                          }`}>
+                            {pattern.reliability}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             </TabsContent>
           </Tabs>

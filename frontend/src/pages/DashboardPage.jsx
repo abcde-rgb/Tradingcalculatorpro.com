@@ -13,6 +13,7 @@ import { FibonacciCalculator } from '@/components/calculators/FibonacciCalculato
 import { MonteCarloSimulator } from '@/components/calculators/MonteCarloSimulator';
 import { SimulatorPro } from '@/components/calculators/SimulatorPro';
 import { PatternTradingCalculator } from '@/components/calculators/PatternTradingCalculator';
+import { BlackScholesCalculator } from '@/components/calculators/BlackScholesCalculator';
 import { TargetMeasurementTool } from '@/components/tools/TargetMeasurementTool';
 import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
@@ -25,9 +26,9 @@ import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { useSEO } from '@/hooks/useSEO';
 import OnboardingModal from '@/components/common/OnboardingModal';
-import { 
-  Calculator, Target, Gauge, Wallet, FlaskConical, 
-  Ruler, BookOpen, Scale, TrendingUp, DollarSign, BarChart3, Dice1, Hexagon
+import {
+  Calculator, Target, Gauge, Wallet, FlaskConical,
+  Ruler, BookOpen, Scale, TrendingUp, DollarSign, BarChart3, Dice1, Hexagon, Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ export default function DashboardPage() {
     const allowed = [
       'percentage', 'target', 'leverage', 'position', 'lotsize',
       'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
+      'black-scholes',
     ];
     if (requested && allowed.includes(requested)) setActiveTab(requested);
   }, [searchParams]);
@@ -271,12 +273,19 @@ export default function DashboardPage() {
                 >
                   <Hexagon className="w-3 h-3" /> {t('patternTrading')}
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="measure" 
+                <TabsTrigger
+                  value="measure"
                   className="gap-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white text-xs"
                   data-testid="tab-measure"
                 >
                   <Ruler className="w-3 h-3" /> {t('measureTarget')}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="black-scholes"
+                  className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs"
+                  data-testid="tab-black-scholes"
+                >
+                  <Activity className="w-3 h-3" /> {t('bsTabLabel')}
                 </TabsTrigger>
               </TabsList>
               
@@ -306,6 +315,9 @@ export default function DashboardPage() {
               </TabsContent>
               <TabsContent value="measure">
                 <TargetMeasurementTool />
+              </TabsContent>
+              <TabsContent value="black-scholes">
+                <BlackScholesCalculator />
               </TabsContent>
             </Tabs>
 
