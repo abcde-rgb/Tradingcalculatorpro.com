@@ -11,12 +11,12 @@
   "categories": ["finance", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "48x48",
-      "type": "image/x-icon"
+      "src": "%PUBLIC_URL%/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     },
     {
-      "src": "/og-image.svg",
+      "src": "%PUBLIC_URL%/og-image.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -24,7 +24,7 @@
   ],
   "screenshots": [
     {
-      "src": "/og-image.svg",
+      "src": "%PUBLIC_URL%/og-image.svg",
       "sizes": "1200x630",
       "type": "image/svg+xml",
       "form_factor": "wide",
