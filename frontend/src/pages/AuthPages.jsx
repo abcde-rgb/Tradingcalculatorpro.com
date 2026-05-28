@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
-import { Bitcoin, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff } from 'lucide-react';
+import { TrendingUp, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -76,7 +76,7 @@ export const LoginPage = () => {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Bitcoin className="w-10 h-10 text-primary" />
+            <TrendingUp className="w-10 h-10 text-primary" />
           </div>
           <CardTitle className="text-2xl font-unbounded">{t('iniciarSesion_9faefe')}</CardTitle>
           <p className="text-muted-foreground text-sm mt-2">{t('accedeABtcTradingCalculator_119926')}</p>
@@ -205,7 +205,7 @@ export const RegisterPage = () => {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Bitcoin className="w-10 h-10 text-primary" />
+            <TrendingUp className="w-10 h-10 text-primary" />
           </div>
           <CardTitle className="text-2xl font-unbounded">{t('crearCuenta_f32c7c')}</CardTitle>
           <p className="text-muted-foreground text-sm mt-2">{t('registrateEnBtcTradingCalculator_18dbac')}</p>
