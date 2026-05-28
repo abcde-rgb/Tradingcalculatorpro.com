@@ -37,6 +37,7 @@ jobs:
           REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
           REACT_APP_GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
           REACT_APP_GA4_MEASUREMENT_ID: ${{ secrets.REACT_APP_GA4_MEASUREMENT_ID }}
+          REACT_APP_GTM_ID: ${{ secrets.REACT_APP_GTM_ID }}
           PUBLIC_URL: /Tradingcalculatorpro.com
           CI: false
         run: npm run build
