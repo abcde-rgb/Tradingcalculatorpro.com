@@ -817,6 +817,70 @@ export const getCandlestickPatterns = (t) => ({
       type: 'bullish',
       signal: t('bullishReversal'),
       reliability: t('highReliability')
+    },
+    {
+      id: 'bullish-harami',
+      name: t('bullishHaramiName'),
+      description: t('bullishHaramiDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('mediumReliability')
+    },
+    {
+      id: 'inverted-hammer',
+      name: t('invertedHammerName'),
+      description: t('invertedHammerDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('mediumReliability')
+    },
+    {
+      id: 'three-inside-up',
+      name: t('threeInsideUpName'),
+      description: t('threeInsideUpDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('highReliability')
+    },
+    {
+      id: 'morning-doji-star',
+      name: t('morningDojiStarName'),
+      description: t('morningDojiStarDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('highReliability')
+    },
+    {
+      id: 'bullish-marubozu',
+      name: t('bullishMarubozuName'),
+      description: t('bullishMarubozuDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('highReliability')
+    },
+    {
+      id: 'bullish-kicker',
+      name: t('bullishKickerName'),
+      description: t('bullishKickerDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('highReliability')
+    },
+    {
+      id: 'piercing-line',
+      name: t('piercingLineName'),
+      description: t('piercingLineDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('mediumReliability')
+    },
+    {
+      id: 'tweezer-bottom',
+      name: t('tweezerBottomName'),
+      description: t('tweezerBottomDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('mediumReliability')
     }
   ],
   bearish: [
@@ -859,6 +923,70 @@ export const getCandlestickPatterns = (t) => ({
       type: 'bearish',
       signal: t('bearishReversal'),
       reliability: t('highReliability')
+    },
+    {
+      id: 'bearish-harami',
+      name: t('bearishHaramiName'),
+      description: t('bearishHaramiDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('mediumReliability')
+    },
+    {
+      id: 'hanging-man',
+      name: t('hangingManName'),
+      description: t('hangingManDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('mediumReliability')
+    },
+    {
+      id: 'three-inside-down',
+      name: t('threeInsideDownName'),
+      description: t('threeInsideDownDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('highReliability')
+    },
+    {
+      id: 'evening-doji-star',
+      name: t('eveningDojiStarName'),
+      description: t('eveningDojiStarDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('highReliability')
+    },
+    {
+      id: 'bearish-marubozu',
+      name: t('bearishMarubozuName'),
+      description: t('bearishMarubozuDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('highReliability')
+    },
+    {
+      id: 'bearish-kicker',
+      name: t('bearishKickerName'),
+      description: t('bearishKickerDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('highReliability')
+    },
+    {
+      id: 'dark-cloud-cover',
+      name: t('darkCloudName'),
+      description: t('darkCloudDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('mediumReliability')
+    },
+    {
+      id: 'tweezer-top',
+      name: t('tweezerTopName'),
+      description: t('tweezerTopDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('mediumReliability')
     }
   ],
   neutral: [
@@ -874,6 +1002,22 @@ export const getCandlestickPatterns = (t) => ({
       id: 'spinning-top',
       name: t('spinningTopName'),
       description: t('spinningTopDesc'),
+      type: 'neutral',
+      signal: t('indecisionSignal'),
+      reliability: t('mediumReliability')
+    },
+    {
+      id: 'long-legged-doji',
+      name: t('longLeggedDojiName'),
+      description: t('longLeggedDojiDesc'),
+      type: 'neutral',
+      signal: t('indecisionSignal'),
+      reliability: t('mediumReliability')
+    },
+    {
+      id: 'high-wave',
+      name: t('highWaveName'),
+      description: t('highWaveDesc'),
       type: 'neutral',
       signal: t('indecisionSignal'),
       reliability: t('mediumReliability')
@@ -1125,6 +1269,50 @@ export const getTradingStrategies = (t) => ({
       tips: t('strategy5Tips'),
       difficulty: 'intermediate',
       winRate: '55-60%'
+    },
+    {
+      id: 'strategy-6',
+      title: t('strategy6Title'),
+      timeframe: t('strategy6Timeframe'),
+      winRate: t('strategy6WinRate'),
+      difficulty: 'intermediate',
+      setup: t('strategy6Setup'),
+      entry: t('strategy6Entry'),
+      exit: t('strategy6Exit'),
+      tips: t('strategy6Tips'),
+    },
+    {
+      id: 'strategy-7',
+      title: t('strategy7Title'),
+      timeframe: t('strategy7Timeframe'),
+      winRate: t('strategy7WinRate'),
+      difficulty: 'intermediate',
+      setup: t('strategy7Setup'),
+      entry: t('strategy7Entry'),
+      exit: t('strategy7Exit'),
+      tips: t('strategy7Tips'),
+    },
+    {
+      id: 'strategy-8',
+      title: t('strategy8Title'),
+      timeframe: t('strategy8Timeframe'),
+      winRate: t('strategy8WinRate'),
+      difficulty: 'advanced',
+      setup: t('strategy8Setup'),
+      entry: t('strategy8Entry'),
+      exit: t('strategy8Exit'),
+      tips: t('strategy8Tips'),
+    },
+    {
+      id: 'strategy-9',
+      title: t('strategy9Title'),
+      timeframe: t('strategy9Timeframe'),
+      winRate: t('strategy9WinRate'),
+      difficulty: 'advanced',
+      setup: t('strategy9Setup'),
+      entry: t('strategy9Entry'),
+      exit: t('strategy9Exit'),
+      tips: t('strategy9Tips'),
     }
   ]
 });
@@ -1449,6 +1637,229 @@ export const getTradingStylesContent = (t) => ({
     },
   ]
 });
+
+export const getHarmonicPatterns = (t) => [
+  {
+    id: 'gartley-bull',
+    name: t('gartleyBullName'),
+    type: 'bullish',
+    description: t('gartleyBullDesc'),
+    ratios: {
+      'B retracement': '61.8% of XA',
+      'C retracement': '38.2-88.6% of AB',
+      'D (PRZ)': '78.6% of XA',
+    },
+    steps: [
+      t('gartleyBullStep1'),
+      t('gartleyBullStep2'),
+      t('gartleyBullStep3'),
+      t('gartleyBullStep4'),
+      t('gartleyBullStep5'),
+    ],
+    reliability: t('gartleyBullReliability'),
+    timeframes: ['1H', '4H', 'Daily'],
+  },
+  {
+    id: 'gartley-bear',
+    name: t('gartleyBearName'),
+    type: 'bearish',
+    description: t('gartleyBearDesc'),
+    ratios: {
+      'B retracement': '61.8% of XA',
+      'C retracement': '38.2-88.6% of AB',
+      'D (PRZ)': '78.6% of XA',
+    },
+    steps: [
+      t('gartleyBearStep1'),
+      t('gartleyBearStep2'),
+      t('gartleyBearStep3'),
+      t('gartleyBearStep4'),
+      t('gartleyBearStep5'),
+    ],
+    reliability: t('gartleyBearReliability'),
+    timeframes: ['1H', '4H', 'Daily'],
+  },
+  {
+    id: 'butterfly-bull',
+    name: t('butterflyBullName'),
+    type: 'bullish',
+    description: t('butterflyBullDesc'),
+    ratios: {
+      'B retracement': '78.6% of XA',
+      'C retracement': '38.2-88.6% of AB',
+      'D (PRZ)': '127.2% or 161.8% of XA',
+    },
+    steps: [
+      t('butterflyBullStep1'),
+      t('butterflyBullStep2'),
+      t('butterflyBullStep3'),
+      t('butterflyBullStep4'),
+      t('butterflyBullStep5'),
+    ],
+    reliability: t('butterflyBullReliability'),
+    timeframes: ['4H', 'Daily', 'Weekly'],
+  },
+  {
+    id: 'butterfly-bear',
+    name: t('butterflyBearName'),
+    type: 'bearish',
+    description: t('butterflyBearDesc'),
+    ratios: {
+      'B retracement': '78.6% of XA',
+      'C retracement': '38.2-88.6% of AB',
+      'D (PRZ)': '127.2% or 161.8% of XA',
+    },
+    steps: [
+      t('butterflyBearStep1'),
+      t('butterflyBearStep2'),
+      t('butterflyBearStep3'),
+      t('butterflyBearStep4'),
+      t('butterflyBearStep5'),
+    ],
+    reliability: t('butterflyBearReliability'),
+    timeframes: ['4H', 'Daily', 'Weekly'],
+  },
+  {
+    id: 'bat-bull',
+    name: t('batBullName'),
+    type: 'bullish',
+    description: t('batBullDesc'),
+    ratios: {
+      'B retracement': '38.2-50% of XA',
+      'C retracement': '38.2-88.6% of AB',
+      'D (PRZ)': '88.6% of XA',
+    },
+    steps: [
+      t('batBullStep1'),
+      t('batBullStep2'),
+      t('batBullStep3'),
+      t('batBullStep4'),
+      t('batBullStep5'),
+    ],
+    reliability: t('batBullReliability'),
+    timeframes: ['1H', '4H', 'Daily'],
+  },
+  {
+    id: 'bat-bear',
+    name: t('batBearName'),
+    type: 'bearish',
+    description: t('batBearDesc'),
+    ratios: {
+      'B retracement': '38.2-50% of XA',
+      'C retracement': '38.2-88.6% of AB',
+      'D (PRZ)': '88.6% of XA',
+    },
+    steps: [
+      t('batBearStep1'),
+      t('batBearStep2'),
+      t('batBearStep3'),
+      t('batBearStep4'),
+      t('batBearStep5'),
+    ],
+    reliability: t('batBearReliability'),
+    timeframes: ['1H', '4H', 'Daily'],
+  },
+  {
+    id: 'crab-bull',
+    name: t('crabBullName'),
+    type: 'bullish',
+    description: t('crabBullDesc'),
+    ratios: {
+      'B retracement': '38.2-61.8% of XA',
+      'C retracement': '38.2-88.6% of AB',
+      'D (PRZ)': '161.8% of XA',
+    },
+    steps: [
+      t('crabBullStep1'),
+      t('crabBullStep2'),
+      t('crabBullStep3'),
+      t('crabBullStep4'),
+      t('crabBullStep5'),
+    ],
+    reliability: t('crabBullReliability'),
+    timeframes: ['4H', 'Daily', 'Weekly'],
+  },
+  {
+    id: 'crab-bear',
+    name: t('crabBearName'),
+    type: 'bearish',
+    description: t('crabBearDesc'),
+    ratios: {
+      'B retracement': '38.2-61.8% of XA',
+      'C retracement': '38.2-88.6% of AB',
+      'D (PRZ)': '161.8% of XA',
+    },
+    steps: [
+      t('crabBearStep1'),
+      t('crabBearStep2'),
+      t('crabBearStep3'),
+      t('crabBearStep4'),
+      t('crabBearStep5'),
+    ],
+    reliability: t('crabBearReliability'),
+    timeframes: ['4H', 'Daily', 'Weekly'],
+  },
+  {
+    id: 'shark',
+    name: t('sharkName'),
+    type: 'neutral',
+    description: t('sharkDesc'),
+    ratios: {
+      'C extension of OX': '88.6-113%',
+      'C extension of AB': '161.8-224%',
+      'Entry': 'At C (PRZ)',
+    },
+    steps: [
+      t('sharkStep1'),
+      t('sharkStep2'),
+      t('sharkStep3'),
+      t('sharkStep4'),
+      t('sharkStep5'),
+    ],
+    reliability: t('sharkReliability'),
+    timeframes: ['1H', '4H', 'Daily'],
+  },
+  {
+    id: 'cypher-bull',
+    name: t('cypherBullName'),
+    type: 'bullish',
+    description: t('cypherBullDesc'),
+    ratios: {
+      'B retracement': '38.2-61.8% of XA',
+      'C extension': '113-141.4% of XA',
+      'D (PRZ)': '78.6% of XC',
+    },
+    steps: [
+      t('cypherBullStep1'),
+      t('cypherBullStep2'),
+      t('cypherBullStep3'),
+      t('cypherBullStep4'),
+      t('cypherBullStep5'),
+    ],
+    reliability: t('cypherBullReliability'),
+    timeframes: ['1H', '4H', 'Daily'],
+  },
+  {
+    id: 'cypher-bear',
+    name: t('cypherBearName'),
+    type: 'bearish',
+    description: t('cypherBearDesc'),
+    ratios: {
+      'B retracement': '38.2-61.8% of XA',
+      'C extension': '113-141.4% of XA',
+      'D (PRZ)': '78.6% of XC',
+    },
+    steps: [
+      t('cypherBearStep1'),
+      t('cypherBearStep2'),
+      t('cypherBearStep3'),
+      t('cypherBearStep4'),
+      t('cypherBearStep5'),
+    ],
+    reliability: t('cypherBearReliability'),
+    timeframes: ['1H', '4H', 'Daily'],
+  },
+];
 
 export const getMarketMechanics = (t) => ({
   title: t('mechTitle'),

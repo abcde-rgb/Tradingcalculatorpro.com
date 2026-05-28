@@ -116,6 +116,168 @@ const EducationTab = ({ onSwitchToCalc }) => {
           </div>
         </div>
 
+        {/* Advanced Options Strategies */}
+        <div className="mb-10">
+          <h2 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
+            <span className="text-primary">◆</span> {t('advancedOptionsTitle')}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">{t('advancedOptionsIntro')}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              {
+                title: t('ironCondorTitle'),
+                desc: t('ironCondorDesc'),
+                maxProfit: t('ironCondorMaxProfit'),
+                maxLoss: t('ironCondorMaxLoss'),
+                when: t('ironCondorWhen'),
+                tip: t('ironCondorTip'),
+              },
+              {
+                title: t('butterflySpreadTitle'),
+                desc: t('butterflySpreadDesc'),
+                maxProfit: t('butterflySpreadMaxProfit'),
+                maxLoss: t('butterflySpreadMaxLoss'),
+                when: t('butterflySpreadWhen'),
+                tip: t('butterflySpreadTip'),
+              },
+              {
+                title: t('calendarSpreadTitle'),
+                desc: t('calendarSpreadDesc'),
+                maxProfit: t('calendarSpreadMaxProfit'),
+                maxLoss: t('calendarSpreadMaxLoss'),
+                when: t('calendarSpreadWhen'),
+                tip: t('calendarSpreadTip'),
+              },
+              {
+                title: t('diagonalSpreadTitle'),
+                desc: t('diagonalSpreadDesc'),
+                maxProfit: t('diagonalSpreadMaxProfit'),
+                maxLoss: t('diagonalSpreadMaxLoss'),
+                when: t('diagonalSpreadWhen'),
+                tip: t('diagonalSpreadTip'),
+              },
+            ].map((s) => (
+              <div key={s.title} className="bg-card rounded-xl border border-border p-5 space-y-3">
+                <h3 className="text-sm font-bold text-foreground">{s.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                <div className="space-y-1 text-xs">
+                  <p className="text-[#4ade80]">{s.maxProfit}</p>
+                  <p className="text-[#f87171]">{s.maxLoss}</p>
+                  <p className="text-muted-foreground">{s.when}</p>
+                </div>
+                <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground border border-border">
+                  {s.tip}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Volatility Concepts */}
+        <div className="mb-10">
+          <h2 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
+            <span className="text-primary">◆</span> {t('volatilityConceptsTitle')}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">{t('volatilityConceptsIntro')}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              {
+                title: t('ivrTitle'),
+                desc: t('ivrDesc'),
+                lines: [t('ivrHigh'), t('ivrLow')],
+              },
+              {
+                title: t('ivPercentileTitle'),
+                desc: t('ivPercentileDesc'),
+                lines: [],
+              },
+              {
+                title: t('volSkewTitle'),
+                desc: t('volSkewDesc'),
+                lines: [t('volSkewPut'), t('volSkewCall')],
+              },
+              {
+                title: t('vixTitle'),
+                desc: t('vixDesc'),
+                lines: [t('vixHigh'), t('vixLow')],
+              },
+            ].map((c) => (
+              <div key={c.title} className="bg-card rounded-xl border border-border p-5 space-y-3">
+                <h3 className="text-sm font-bold text-foreground">{c.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{c.desc}</p>
+                {c.lines.length > 0 && (
+                  <div className="space-y-1">
+                    {c.lines.map((line) => (
+                      <div key={line} className="flex items-start gap-2 text-xs bg-muted rounded-lg px-3 py-2 border border-border">
+                        <span className="text-muted-foreground">{line}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Greeks Deep Dive */}
+        <div className="mb-10">
+          <h2 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
+            <span className="text-primary">◆</span> {t('greeksDeepDiveTitle')}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">{t('greeksDeepDiveIntro')}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              {
+                title: t('deltaHedgingTitle'),
+                desc: t('deltaHedgingDesc'),
+                note: t('deltaHedgingUse'),
+                noteColor: '#3b82f6',
+              },
+              {
+                title: t('gammaRiskTitle'),
+                desc: t('gammaRiskDesc'),
+                note: t('gammaRiskWarning'),
+                noteColor: '#ef4444',
+              },
+              {
+                title: t('thetaDecayTitle'),
+                desc: t('thetaDecayDesc'),
+                note: t('thetaDecayTarget'),
+                noteColor: '#22c55e',
+              },
+              {
+                title: t('vegaIVTitle'),
+                desc: t('vegaIVDesc'),
+                note: null,
+                lines: [t('vegaLong'), t('vegaShort')],
+                noteColor: null,
+              },
+            ].map((g) => (
+              <div key={g.title} className="bg-card rounded-xl border border-border p-5 space-y-3">
+                <h3 className="text-sm font-bold text-foreground">{g.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{g.desc}</p>
+                {g.note && (
+                  <div
+                    className="rounded-lg px-3 py-2 text-xs border"
+                    style={{ color: g.noteColor, backgroundColor: `${g.noteColor}15`, borderColor: `${g.noteColor}30` }}
+                  >
+                    {g.note}
+                  </div>
+                )}
+                {g.lines && (
+                  <div className="space-y-1">
+                    {g.lines.map((line) => (
+                      <div key={line} className="flex items-start gap-2 text-xs bg-muted rounded-lg px-3 py-2 border border-border">
+                        <span className="text-muted-foreground">{line}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* CTA */}
         <div className="bg-gradient-to-r from-muted to-card rounded-xl border border-border p-6 text-center">
           <h3 className="text-lg font-bold text-foreground mb-2">{t('listoParaOperar_98196f')}</h3>
