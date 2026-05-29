@@ -564,6 +564,8 @@ def build_admin_router(
         target = await db.users.find_one({"id": user_id}, {"_id": 0})
         if not target:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        if len(body.new_password) < 8:
+            raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
         hashed = bcrypt.hashpw(body.new_password.encode(), bcrypt.gensalt()).decode()
         await db.users.update_one({"id": user_id}, {"$set": {"password": hashed}})
         # Revoke all active sessions
@@ -1146,11 +1148,23 @@ def build_admin_router(
     ) -> Dict[str, Any]:
         """Create a new email campaign."""
         import uuid as _uuid
+        import re as _re_html
+        # Strip dangerous tags/attributes to prevent stored XSS in campaign emails
+        _DANGEROUS_TAGS = _re_html.compile(
+            r'<\s*(script|iframe|object|embed|form|link|meta|base|applet|svg|math)[^>]*>.*?</\s*\1\s*>|'
+            r'<\s*(script|iframe|object|embed|form|link|meta|base|applet|svg|math)[^>]*/?>',
+            _re_html.IGNORECASE | _re_html.DOTALL,
+        )
+        _DANGEROUS_ATTRS = _re_html.compile(
+            r'\s(on\w+|javascript\s*:)[^>]*', _re_html.IGNORECASE
+        )
+        safe_html = _DANGEROUS_TAGS.sub('', body.body_html)
+        safe_html = _DANGEROUS_ATTRS.sub('', safe_html)
         doc = {
             "id": str(_uuid.uuid4()),
             "name": body.name,
             "subject": body.subject,
-            "body_html": body.body_html,
+            "body_html": safe_html,
             "segment": body.segment,
             "status": "draft",
             "sent_count": 0,

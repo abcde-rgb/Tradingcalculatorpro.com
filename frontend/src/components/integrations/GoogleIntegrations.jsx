@@ -74,11 +74,16 @@ export default function GoogleIntegrations() {
         f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtm}');
       `;
       document.head.appendChild(s);
-      // GTM noscript fallback (for users with JS disabled / crawlers)
+      // GTM noscript fallback — use createElement to avoid innerHTML injection
       if (!document.getElementById('gtm-noscript')) {
         const ns = document.createElement('noscript');
         ns.id = 'gtm-noscript';
-        ns.innerHTML = `<iframe src="https://www.googletagmanager.com/ns.html?id=${gtm}" height="0" width="0" style="display:none;visibility:hidden"></iframe>`;
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtm)}`;
+        iframe.height = '0';
+        iframe.width = '0';
+        iframe.style.cssText = 'display:none;visibility:hidden';
+        ns.appendChild(iframe);
         document.body.prepend(ns);
       }
     }

@@ -268,6 +268,8 @@ class _Cursor:
 
         order = ""
         if self._sort_field:
+            if not _SAFE_FIELD_RE.match(self._sort_field):
+                raise ValueError(f"Invalid sort field name: {self._sort_field!r}")
             dir_str = "DESC" if self._sort_dir == -1 else "ASC"
             # ISO date strings sort correctly as text
             order = f"ORDER BY (data->>'{self._sort_field}') {dir_str} NULLS LAST"
@@ -809,12 +811,18 @@ def _cloudsql_diag() -> dict:
 # 🔒 SECURITY: JWT_SECRET must be set via environment variable
 JWT_SECRET = os.environ.get('JWT_SECRET')
 if not JWT_SECRET:
-    # Generate a secure random secret for development (should be set in production)
-    import secrets as sec
-    JWT_SECRET = sec.token_urlsafe(32)
-    print("⚠️  WARNING: Using auto-generated JWT_SECRET. Set JWT_SECRET env variable for production!")
+    _is_dev = os.environ.get('ENVIRONMENT', 'production').lower() in ('development', 'dev', 'local')
+    if _is_dev:
+        import secrets as sec
+        JWT_SECRET = sec.token_urlsafe(32)
+        print("⚠️  WARNING: Using auto-generated JWT_SECRET in dev mode. Set JWT_SECRET for production!")
+    else:
+        raise RuntimeError(
+            "JWT_SECRET environment variable is required in production. "
+            "Set it to a strong random secret (e.g. openssl rand -hex 32)."
+        )
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 24
+JWT_EXPIRATION_HOURS = 8  # Reduced from 24h to limit stolen-token window
 
 # Stripe Configuration
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
@@ -846,11 +854,11 @@ security = HTTPBearer(auto_error=False)
 #  CORS — must be registered first so every response gets headers
 # ============================================================
 _CORS_ORIGINS = [
-    "https://abcde-rgb.github.io",
     "https://tradingcalculator.pro",
     "https://www.tradingcalculator.pro",
     "http://localhost:3000",
     "http://localhost:5173",
+    # Staging/dev origins should be added via CORS_ORIGINS env var, not hardcoded here
 ]
 _extra = os.environ.get("CORS_ORIGINS", "")
 for _o in _extra.split(","):
@@ -865,6 +873,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============================================================
+#  URL origin validation helper (prevents open redirect attacks)
+# ============================================================
+_ALLOWED_ORIGINS_SET: set = set()
+
+def _get_allowed_origins() -> set:
+    """Lazy-build the set from _CORS_ORIGINS so it picks up runtime additions."""
+    if not _ALLOWED_ORIGINS_SET:
+        _ALLOWED_ORIGINS_SET.update(_CORS_ORIGINS)
+    return _ALLOWED_ORIGINS_SET
+
+def _validate_origin_url(url: str, field: str = "origin_url") -> str:
+    """Raise HTTP 400 if the URL's origin is not in the CORS allowlist."""
+    if not url:
+        raise HTTPException(status_code=400, detail=f"{field} is required")
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    if origin not in _get_allowed_origins():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {field}: '{origin}' is not an allowed origin",
+        )
+    return url
 
 # ============================================================
 #  Rate limiting (slowapi) — applied to brute-force-prone routes
@@ -1201,17 +1234,17 @@ async def startup_event():
             "subscription_plan": "lifetime",
             "subscription_end": None,
             "is_premium": True,
-            "is_admin": True,
+            "is_admin": False,  # Demo user is NOT admin — prevents credential abuse
             "auth_provider": "password",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
-        logging.info("Demo user created: demo@btccalc.pro (admin)")
+        logging.info("Demo user created: %s (premium, non-admin)", DEMO_EMAIL)
     else:
-        # Idempotent self-heal: ensure demo always has admin + lifetime premium.
+        # Idempotent self-heal: ensure demo has lifetime premium but NOT admin.
         patch: Dict[str, Any] = {}
-        if not existing.get("is_admin"):
-            patch["is_admin"] = True
+        if existing.get("is_admin"):
+            patch["is_admin"] = False  # Remove admin if it was accidentally set
         if existing.get("subscription_plan") != "lifetime":
             patch["subscription_plan"] = "lifetime"
         if not existing.get("auth_provider"):
@@ -1979,33 +2012,54 @@ async def get_trades(user: dict = Depends(require_user), limit: int = 100):
     ).sort("created_at", -1).limit(limit).to_list(limit)
     return trades
 
+class TradeUpdate(BaseModel):
+    """Allowed fields for updating a trade — prevents mass-assignment attacks."""
+    symbol: Optional[str] = None
+    direction: Optional[str] = None
+    entryPrice: Optional[float] = None
+    exitPrice: Optional[float] = None
+    stopLoss: Optional[float] = None
+    takeProfit: Optional[float] = None
+    quantity: Optional[float] = None
+    leverage: Optional[float] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    tags: Optional[List[str]] = None
+    emotion: Optional[int] = None
+    screenshot_urls: Optional[List[str]] = None
+    exit_date: Optional[str] = None
+    fees: Optional[float] = None
+
+
 @api_router.put("/journal/trades/{trade_id}")
-async def update_trade(trade_id: str, updates: dict, user: dict = Depends(require_user)):
+async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends(require_user)):
     trade = await db.trades.find_one({"id": trade_id, "user_id": user["id"]})
     if not trade:
         raise HTTPException(status_code=404, detail="Trade no encontrado")
-    
+
+    safe_updates = {k: v for k, v in updates.dict(exclude_unset=True).items() if v is not None}
+
     # Recalculate P&L if closing
-    if updates.get("status") == "closed" and updates.get("exitPrice"):
-        direction = trade.get("direction", updates.get("direction"))
-        entry = trade.get("entryPrice", updates.get("entryPrice"))
-        exit_price = updates.get("exitPrice")
-        quantity = trade.get("quantity", updates.get("quantity", 1))
-        leverage = trade.get("leverage", updates.get("leverage", 1))
-        
+    if safe_updates.get("status") == "closed" and safe_updates.get("exitPrice"):
+        direction = trade.get("direction", safe_updates.get("direction"))
+        entry = trade.get("entryPrice", safe_updates.get("entryPrice"))
+        exit_price = safe_updates.get("exitPrice")
+        quantity = trade.get("quantity", safe_updates.get("quantity", 1))
+        leverage = trade.get("leverage", safe_updates.get("leverage", 1))
+
         if direction == "long":
             pnl = (exit_price - entry) * quantity * leverage
             roe = ((exit_price - entry) / entry) * 100 * leverage
         else:
             pnl = (entry - exit_price) * quantity * leverage
             roe = ((entry - exit_price) / entry) * 100 * leverage
-        
-        updates["pnl"] = round(pnl, 2)
-        updates["roe"] = round(roe, 2)
-    
+
+        safe_updates["pnl"] = round(pnl, 2)
+        safe_updates["roe"] = round(roe, 2)
+
     await db.trades.update_one(
         {"id": trade_id, "user_id": user["id"]},
-        {"$set": updates}
+        {"$set": safe_updates}
     )
     return {"message": "Trade actualizado"}
 
@@ -2114,11 +2168,23 @@ async def add_portfolio_asset(asset: PortfolioAsset, user: dict = Depends(requir
     await db.portfolio.insert_one(asset_doc)
     return {"id": asset_doc["id"], "message": "Activo añadido al portfolio"}
 
+class PortfolioUpdate(BaseModel):
+    """Allowed fields for updating a portfolio asset — prevents mass-assignment attacks."""
+    symbol: Optional[str] = None
+    name: Optional[str] = None
+    quantity: Optional[float] = None
+    avg_price: Optional[float] = None
+    current_price: Optional[float] = None
+    notes: Optional[str] = None
+    target_allocation: Optional[float] = None
+
+
 @api_router.put("/portfolio/{asset_id}")
-async def update_portfolio_asset(asset_id: str, updates: dict, user: dict = Depends(require_user)):
+async def update_portfolio_asset(asset_id: str, updates: PortfolioUpdate, user: dict = Depends(require_user)):
+    safe_updates = {k: v for k, v in updates.dict(exclude_unset=True).items() if v is not None}
     result = await db.portfolio.update_one(
         {"id": asset_id, "user_id": user["id"]},
-        {"$set": updates}
+        {"$set": safe_updates}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Activo no encontrado")
@@ -2763,6 +2829,8 @@ async def create_checkout(request: dict, user: dict = Depends(require_user)) -> 
     payment_method = request.get("payment_method", "stripe")
     origin_url = request.get("origin_url", "")
 
+    _validate_origin_url(origin_url, "origin_url")
+
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
         raise HTTPException(status_code=400, detail="Plan no válido")
@@ -3173,12 +3241,14 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
     """Create Stripe Customer Portal session"""
     try:
         return_url = request.get("return_url", "")
-        
+
+        _validate_origin_url(return_url, "return_url")
+
         user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0})
-        
+
         if not user_doc or not user_doc.get("stripe_customer_id"):
             raise HTTPException(status_code=404, detail="No Stripe customer found")
-        
+
         # Create portal session
         session = stripe.billing_portal.Session.create(
             customer=user_doc["stripe_customer_id"],
@@ -3240,9 +3310,12 @@ async def save_user_state(request: dict, user: dict = Depends(require_user)):
     try:
         state_id = request.get("state_id")
         state_data = request.get("state")
-        
+
         if not state_id:
             raise HTTPException(status_code=400, detail="state_id is required")
+        import re as _re_val
+        if not _re_val.match(r'^[a-zA-Z0-9_-]{1,64}$', str(state_id)):
+            raise HTTPException(status_code=400, detail="state_id must be alphanumeric (1-64 chars)")
         
         # Upsert the state
         now = datetime.now(timezone.utc)
@@ -3327,14 +3400,9 @@ async def root():
 @api_router.get("/health")
 async def health():
     if db._pool is None:
-        # Surface the real reason + URL shape so the DB connection can be
-        # diagnosed remotely (just open this URL in a browser). No secrets leaked.
         return {
-            "status": "healthy",
+            "status": "degraded",
             "db": "unavailable",
-            "db_error": _db_init_error or "pool not initialised (startup may still be running)",
-            "db_url_shape": _db_url_shape(),
-            "cloudsql": _cloudsql_diag(),
         }
     try:
         async with db._pool.acquire() as conn:
@@ -4105,7 +4173,10 @@ Sé directo, profesional y práctico. No repitas los números que ya tiene el tr
 
 
 @api_router.post("/options/ai-analyze")
-async def ai_analyze_trade(req: AITradeAnalysisRequest) -> Dict[str, Any]:
+@limiter.limit("10/minute")
+async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    if not check_premium(user):
+        raise HTTPException(status_code=403, detail="Esta función requiere una suscripción premium")
     """AI-powered options trade coach using Claude via Anthropic SDK."""
     try:
         import anthropic as _anthropic
@@ -4197,7 +4268,8 @@ def _scan_ticker_flow(sym: str, min_ratio: float, min_volume: int) -> List[Dict[
 
 
 @api_router.get("/options/market-flow")
-async def market_wide_flow(min_ratio: float = 3.0, min_volume: int = 300, max_results: int = 30) -> Dict[str, Any]:
+@limiter.limit("20/minute")
+async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume: int = 300, max_results: int = 30, user: dict = Depends(require_user)) -> Dict[str, Any]:
     """Scan popular tickers for unusual options activity (market-wide flow)."""
     try:
         all_flow: List[Dict[str, Any]] = []
@@ -4234,8 +4306,9 @@ def _yfinance_to_ohlc_rows(symbol: str, period: str = "3mo", interval: str = "1d
 
 
 @api_router.get("/education/pattern-scan/{symbol}")
+@limiter.limit("30/minute")
 async def education_pattern_scan(
-    symbol: str, period: str = "3mo", interval: str = "1d", limit: int = 30,
+    request: Request, symbol: str, period: str = "3mo", interval: str = "1d", limit: int = 30,
 ) -> Dict[str, Any]:
     """Scan real OHLC for the given ticker and return canonical candlestick
     pattern detections (educational view)."""
@@ -5078,8 +5151,16 @@ async def admin_impersonate(request: Request, user_id: str, admin: dict = Depend
         "impersonated_by": admin["email"],
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    await log_admin_action(request, admin, "user.impersonate", target, {"impersonated_by": admin["email"]})
-    return {"token": token, "user": {k: v for k, v in target.items() if k != "password_hash"}}
+    await log_admin_action(
+        admin=admin,
+        action="user.impersonate",
+        target_id=target.get("id", ""),
+        target_email=target.get("email", ""),
+        details={"impersonated_by": admin["email"]},
+        request=request,
+    )
+    _SENSITIVE = {"password", "password_hash"}
+    return {"token": token, "user": {k: v for k, v in target.items() if k not in _SENSITIVE}}
 
 
 # ── REVENUE ANALYTICS ────────────────────────────────────────────────────────
