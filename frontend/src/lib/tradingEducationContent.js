@@ -1901,3 +1901,118 @@ export const getMarketMechanics = (t) => ({
     ]
   }
 });
+
+export const getWyckoffContent = (t) => ({
+  title: t('wyckoffTitle'),
+  intro: t('wyckoffIntro'),
+  phases: {
+    title: t('wyckoffPhasesTitle'),
+    intro: t('wyckoffPhasesIntro'),
+    items: [
+      { id: 'accumulation', name: t('wyckoffAccumulationName'), desc: t('wyckoffAccumulationDesc'), color: 'green', phase: 'A' },
+      { id: 'markup',       name: t('wyckoffMarkupName'),       desc: t('wyckoffMarkupDesc'),       color: 'blue',  phase: 'B' },
+      { id: 'distribution', name: t('wyckoffDistributionName'), desc: t('wyckoffDistributionDesc'), color: 'red',   phase: 'C' },
+      { id: 'markdown',     name: t('wyckoffMarkdownName'),     desc: t('wyckoffMarkdownDesc'),     color: 'orange',phase: 'D' },
+    ],
+  },
+  events: {
+    title: t('wyckoffEventsTitle'),
+    intro: t('wyckoffEventsIntro'),
+    items: [
+      { id: 'ps',   name: t('wyckoffPsName'),   desc: t('wyckoffPsDesc'),   sentiment: 'bullish' },
+      { id: 'sc',   name: t('wyckoffScName'),   desc: t('wyckoffScDesc'),   sentiment: 'bullish' },
+      { id: 'ar',   name: t('wyckoffArName'),   desc: t('wyckoffArDesc'),   sentiment: 'neutral' },
+      { id: 'st',   name: t('wyckoffStName'),   desc: t('wyckoffStDesc'),   sentiment: 'bullish' },
+      { id: 'spring', name: t('wyckoffSpringName'), desc: t('wyckoffSpringDesc'), sentiment: 'bullish' },
+      { id: 'buec', name: t('wyckoffBuecName'), desc: t('wyckoffBuecDesc'), sentiment: 'bullish' },
+      { id: 'sos',  name: t('wyckoffSosName'),  desc: t('wyckoffSosDesc'),  sentiment: 'bullish' },
+      { id: 'utad', name: t('wyckoffUtadName'), desc: t('wyckoffUtadDesc'), sentiment: 'bearish' },
+      { id: 'sow',  name: t('wyckoffSowName'),  desc: t('wyckoffSowDesc'),  sentiment: 'bearish' },
+    ],
+  },
+  composite: {
+    title: t('wyckoffCompositeTitle'),
+    desc: t('wyckoffCompositeDesc'),
+    concepts: [
+      { id: 'acc-campaign',  name: t('wyckoffCompositeAccName'),  desc: t('wyckoffCompositeAccDesc') },
+      { id: 'dist-campaign', name: t('wyckoffCompositeDistName'), desc: t('wyckoffCompositeDistDesc') },
+    ],
+  },
+  volume: {
+    title: t('wyckoffVolumeTitle'),
+    intro: t('wyckoffVolumeIntro'),
+    rules: [
+      { id: 'effort-result', name: t('wyckoffVolumeEffortName'),   desc: t('wyckoffVolumeEffortDesc') },
+      { id: 'no-supply',     name: t('wyckoffVolumeNoSupplyName'), desc: t('wyckoffVolumeNoSupplyDesc') },
+      { id: 'no-demand',     name: t('wyckoffVolumeNoDemandName'), desc: t('wyckoffVolumeNoDemandDesc') },
+      { id: 'climactic',     name: t('wyckoffVolumeClimaticName'), desc: t('wyckoffVolumeClimaticDesc') },
+    ],
+  },
+  howToTrade: {
+    title: t('wyckoffHowToTitle'),
+    steps: [
+      t('wyckoffHowToStep1'),
+      t('wyckoffHowToStep2'),
+      t('wyckoffHowToStep3'),
+      t('wyckoffHowToStep4'),
+      t('wyckoffHowToStep5'),
+    ],
+  },
+});
+
+export const getAlternativeCharts = (t) => ({
+  title: t('altChartTitle'),
+  intro: t('altChartIntro'),
+  charts: [
+    {
+      id: 'renko',
+      name: t('renkoName'),
+      desc: t('renkoDesc'),
+      construction: t('renkoConstructionDesc'),
+      strengths: [t('renkoStrength1'), t('renkoStrength2'), t('renkoStrength3')],
+      weaknesses: [t('renkoWeakness1'), t('renkoWeakness2')],
+      bestFor: t('renkoBestFor'),
+      color: 'amber',
+    },
+    {
+      id: 'heikin-ashi',
+      name: t('heikinAshiName'),
+      desc: t('heikinAshiDesc'),
+      construction: t('heikinAshiConstructionDesc'),
+      strengths: [t('heikinAshiStrength1'), t('heikinAshiStrength2'), t('heikinAshiStrength3')],
+      weaknesses: [t('heikinAshiWeakness1'), t('heikinAshiWeakness2')],
+      bestFor: t('heikinAshiBestFor'),
+      color: 'blue',
+    },
+    {
+      id: 'point-figure',
+      name: t('pointFigureName'),
+      desc: t('pointFigureDesc'),
+      construction: t('pointFigureConstructionDesc'),
+      strengths: [t('pointFigureStrength1'), t('pointFigureStrength2'), t('pointFigureStrength3')],
+      weaknesses: [t('pointFigureWeakness1'), t('pointFigureWeakness2')],
+      bestFor: t('pointFigureBestFor'),
+      color: 'purple',
+    },
+    {
+      id: 'kagi',
+      name: t('kagiName'),
+      desc: t('kagiDesc'),
+      construction: t('kagiConstructionDesc'),
+      strengths: [t('kagiStrength1'), t('kagiStrength2'), t('kagiStrength3')],
+      weaknesses: [t('kagiWeakness1'), t('kagiWeakness2')],
+      bestFor: t('kagiBestFor'),
+      color: 'teal',
+    },
+    {
+      id: 'three-line-break',
+      name: t('threeLineBreakName'),
+      desc: t('threeLineBreakDesc'),
+      construction: t('threeLineBreakConstructionDesc'),
+      strengths: [t('threeLineBreakStrength1'), t('threeLineBreakStrength2'), t('threeLineBreakStrength3')],
+      weaknesses: [t('threeLineBreakWeakness1'), t('threeLineBreakWeakness2')],
+      bestFor: t('threeLineBreakBestFor'),
+      color: 'indigo',
+    },
+  ],
+});

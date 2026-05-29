@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns } from '@/lib/tradingEducationContent';
+import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -492,6 +492,12 @@ export default function EducationPage() {
               </TabsTrigger>
               <TabsTrigger value="harmonic-patterns" className="gap-2" data-testid="tab-harmonic-patterns">
                 <TrendingUp className="w-4 h-4" /> {t('harmonicPatternsTab')}
+              </TabsTrigger>
+              <TabsTrigger value="wyckoff" className="gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-wyckoff">
+                <Brain className="w-4 h-4" /> {t('wyckoffTab')}
+              </TabsTrigger>
+              <TabsTrigger value="alt-charts" className="gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-alt-charts">
+                <BarChart3 className="w-4 h-4" /> {t('altChartTab')}
               </TabsTrigger>
             </TabsList>
 
@@ -1875,6 +1881,219 @@ export default function EducationPage() {
                   ))}
               </div>
             </TabsContent>
+
+            {/* Wyckoff Method */}
+            <TabsContent value="wyckoff" className="space-y-8">
+              {(() => {
+                const wyckoff = getWyckoffContent(t);
+                const phaseColors = { green: 'border-green-500 bg-green-50 dark:bg-green-900/20', blue: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20', red: 'border-red-500 bg-red-50 dark:bg-red-900/20', orange: 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' };
+                const phaseTextColors = { green: 'text-green-700 dark:text-green-300', blue: 'text-blue-700 dark:text-blue-300', red: 'text-red-700 dark:text-red-300', orange: 'text-orange-700 dark:text-orange-300' };
+                const sentimentBadge = { bullish: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300', bearish: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300', neutral: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300' };
+                return (
+                  <>
+                    <Card>
+                      <CardHeader><CardTitle className="text-xl">{wyckoff.title}</CardTitle></CardHeader>
+                      <CardContent><p className="text-muted-foreground leading-relaxed">{wyckoff.intro}</p></CardContent>
+                    </Card>
+
+                    {/* Four Phases */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">{wyckoff.phases.title}</h3>
+                      <p className="text-muted-foreground text-sm mb-4">{wyckoff.phases.intro}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                        {wyckoff.phases.items.map((phase, i) => (
+                          <Card key={phase.id} className={`border-l-4 ${phaseColors[phase.color]}`}>
+                            <CardContent className="pt-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${phaseColors[phase.color]} ${phaseTextColors[phase.color]}`}>Phase {phase.phase}</span>
+                                <span className="font-semibold">{phase.name}</span>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{phase.desc}</p>
+                              {i < wyckoff.phases.items.length - 1 && <div className="hidden xl:flex mt-4 justify-end text-muted-foreground"><ChevronRight className="w-4 h-4" /></div>}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Key Events */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">{wyckoff.events.title}</h3>
+                      <p className="text-muted-foreground text-sm mb-4">{wyckoff.events.intro}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {wyckoff.events.items.map(ev => (
+                          <Card key={ev.id}>
+                            <CardContent className="pt-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-semibold text-sm">{ev.name}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sentimentBadge[ev.sentiment]}`}>{ev.sentiment}</span>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{ev.desc}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Composite Operator */}
+                    <Card className="border-amber-400 dark:border-amber-600">
+                      <CardHeader><CardTitle className="text-base flex items-center gap-2"><Brain className="w-5 h-5 text-amber-500" />{wyckoff.composite.title}</CardTitle></CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-muted-foreground text-sm">{wyckoff.composite.desc}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {wyckoff.composite.concepts.map(c => (
+                            <div key={c.id} className="rounded-lg border p-4 bg-amber-50/50 dark:bg-amber-900/10">
+                              <p className="font-semibold text-sm mb-1">{c.name}</p>
+                              <p className="text-sm text-muted-foreground">{c.desc}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Volume Analysis */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">{wyckoff.volume.title}</h3>
+                      <p className="text-muted-foreground text-sm mb-4">{wyckoff.volume.intro}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {wyckoff.volume.rules.map(r => (
+                          <Card key={r.id}>
+                            <CardContent className="pt-4 flex gap-3">
+                              <Lightbulb className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-semibold text-sm mb-1">{r.name}</p>
+                                <p className="text-sm text-muted-foreground">{r.desc}</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* How to Trade */}
+                    <Card>
+                      <CardHeader><CardTitle className="text-base">{wyckoff.howToTrade.title}</CardTitle></CardHeader>
+                      <CardContent>
+                        <ol className="space-y-3">
+                          {wyckoff.howToTrade.steps.map((step, i) => (
+                            <li key={i} className="flex gap-3">
+                              <span className="shrink-0 w-7 h-7 rounded-full bg-amber-500 text-white text-sm font-bold flex items-center justify-center">{i + 1}</span>
+                              <p className="text-sm text-muted-foreground pt-1">{step}</p>
+                            </li>
+                          ))}
+                        </ol>
+                      </CardContent>
+                    </Card>
+                  </>
+                );
+              })()}
+            </TabsContent>
+
+            {/* Alternative Chart Types */}
+            <TabsContent value="alt-charts" className="space-y-8">
+              {(() => {
+                const alt = getAlternativeCharts(t);
+                const colorMap = {
+                  amber:  { border: 'border-amber-500',  badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' },
+                  blue:   { border: 'border-blue-500',   badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' },
+                  purple: { border: 'border-purple-500', badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' },
+                  teal:   { border: 'border-teal-500',   badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300' },
+                  indigo: { border: 'border-indigo-500', badge: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300' },
+                };
+                return (
+                  <>
+                    <Card>
+                      <CardHeader><CardTitle className="text-xl">{alt.title}</CardTitle></CardHeader>
+                      <CardContent><p className="text-muted-foreground leading-relaxed">{alt.intro}</p></CardContent>
+                    </Card>
+
+                    {/* Comparison table */}
+                    <Card>
+                      <CardContent className="pt-4 overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 pr-4 font-semibold">Chart Type</th>
+                              <th className="text-center py-2 px-2">Time-Based</th>
+                              <th className="text-center py-2 px-2">Noise Filtered</th>
+                              <th className="text-center py-2 px-2">Target Projection</th>
+                              <th className="text-left py-2 pl-2">Best Timeframe</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { name: 'Renko',          time: '✗', noise: '✓✓', target: '✗', tf: 'Any' },
+                              { name: 'Heikin-Ashi',    time: '✓', noise: '✓',  target: '✗', tf: 'Swing / Position' },
+                              { name: 'Point & Figure', time: '✗', noise: '✓✓', target: '✓✓', tf: 'Long-term' },
+                              { name: 'Kagi',           time: '✗', noise: '✓',  target: '✗', tf: 'Swing' },
+                              { name: 'Three Line Break', time: '✗', noise: '✓✓', target: '✗', tf: 'Swing / Position' },
+                            ].map((row, i) => (
+                              <tr key={i} className="border-b last:border-0">
+                                <td className="py-2 pr-4 font-medium">{row.name}</td>
+                                <td className="text-center py-2 px-2 text-muted-foreground">{row.time}</td>
+                                <td className="text-center py-2 px-2 text-green-600 font-medium">{row.noise}</td>
+                                <td className="text-center py-2 px-2 text-blue-600 font-medium">{row.target}</td>
+                                <td className="py-2 pl-2 text-muted-foreground">{row.tf}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </CardContent>
+                    </Card>
+
+                    {/* Chart type cards */}
+                    <div className="space-y-6">
+                      {alt.charts.map(chart => {
+                        const c = colorMap[chart.color] || colorMap.blue;
+                        return (
+                          <Card key={chart.id} className={`border-l-4 ${c.border}`}>
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <BarChart3 className="w-5 h-5" />
+                                {chart.name}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <p className="text-muted-foreground text-sm">{chart.desc}</p>
+
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{t('altChartConstruction')}</p>
+                                <p className="text-sm bg-slate-50 dark:bg-slate-800 rounded-md p-3">{chart.construction}</p>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-green-600 mb-2">{t('altChartStrengths')}</p>
+                                  <ul className="space-y-1">
+                                    {chart.strengths.map((s, i) => (
+                                      <li key={i} className="flex gap-2 text-sm text-muted-foreground"><span className="text-green-500 shrink-0">✓</span>{s}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-red-500 mb-2">{t('altChartWeaknesses')}</p>
+                                  <ul className="space-y-1">
+                                    {chart.weaknesses.map((w, i) => (
+                                      <li key={i} className="flex gap-2 text-sm text-muted-foreground"><span className="text-red-400 shrink-0">✗</span>{w}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('altChartBestFor')}:</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.badge}`}>{chart.bestFor}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
+            </TabsContent>
+
           </Tabs>
         </div>
       </main>
