@@ -25,6 +25,7 @@ import AITradeCoach from './AITradeCoach';
 import MarketFlow from './MarketFlow';
 import TradeAdvancedPanel from './TradeAdvancedPanel';
 
+import BlackScholesCalculator from './BlackScholesCalculator';
 import OptionsSubHeader from './OptionsSubHeader';
 import StatsKPIBar from './StatsKPIBar';
 import CompareBar from './CompareBar';
@@ -376,6 +377,8 @@ const CalculatorPage = () => {
       )}
 
       {activeTab === 'iv-surface' && <IVSurfaceView stock={stock} chain={chain} />}
+
+      {activeTab === 'black-scholes' && <BlackScholesCalculator />}
 
       {activeTab === 'optimize' && (
         <OptimizeView

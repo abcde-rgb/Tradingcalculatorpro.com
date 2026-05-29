@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Activity, ArrowUpRight, ArrowDownRight, BarChart2, BookOpen,
-  HelpCircle, LayoutGrid, Loader2, Target,
+  HelpCircle, LayoutGrid, Loader2, Target, Sigma,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import SearchBar from './SearchBar';
@@ -13,7 +13,8 @@ const TABS = [
   { id: 'flow',      icon: Activity,  labelKey: 'optTabFlow',      testid: 'tab-flow' },
   { id: 'chain',     icon: LayoutGrid, labelKey: 'optTabChain',    testid: 'tab-chain' },
   { id: 'iv-surface', icon: Activity,  labelKey: 'optTabIVSurface', testid: 'tab-iv-surface' },
-  { id: 'education', icon: BookOpen,  labelKey: 'optTabAcademy',   testid: 'tab-education' },
+  { id: 'education',    icon: BookOpen,  labelKey: 'optTabAcademy',   testid: 'tab-education' },
+  { id: 'black-scholes', icon: Sigma,   labelKey: 'bsTabLabel',      testid: 'tab-black-scholes' },
 ];
 
 const OptionsSubHeader = ({

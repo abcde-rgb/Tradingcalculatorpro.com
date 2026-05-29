@@ -13,7 +13,7 @@ import { FibonacciCalculator } from '@/components/calculators/FibonacciCalculato
 import { MonteCarloSimulator } from '@/components/calculators/MonteCarloSimulator';
 import { SimulatorPro } from '@/components/calculators/SimulatorPro';
 import { PatternTradingCalculator } from '@/components/calculators/PatternTradingCalculator';
-import { BlackScholesCalculator } from '@/components/calculators/BlackScholesCalculator';
+import { FuturesCalculator } from '@/components/calculators/FuturesCalculator';
 import { TargetMeasurementTool } from '@/components/tools/TargetMeasurementTool';
 import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
@@ -28,7 +28,7 @@ import { useSEO } from '@/hooks/useSEO';
 import OnboardingModal from '@/components/common/OnboardingModal';
 import {
   Calculator, Target, Gauge, Wallet, FlaskConical,
-  Ruler, BookOpen, Scale, TrendingUp, DollarSign, BarChart3, Dice1, Hexagon, Activity
+  Ruler, BookOpen, Scale, TrendingUp, DollarSign, BarChart3, Dice1, Hexagon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,7 @@ export default function DashboardPage() {
     const allowed = [
       'percentage', 'target', 'leverage', 'position', 'lotsize',
       'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
-      'black-scholes',
+      'futures',
     ];
     if (requested && allowed.includes(requested)) setActiveTab(requested);
   }, [searchParams]);
@@ -281,11 +281,11 @@ export default function DashboardPage() {
                   <Ruler className="w-3 h-3" /> {t('measureTarget')}
                 </TabsTrigger>
                 <TabsTrigger
-                  value="black-scholes"
+                  value="futures"
                   className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs"
-                  data-testid="tab-black-scholes"
+                  data-testid="tab-futures"
                 >
-                  <Activity className="w-3 h-3" /> {t('bsTabLabel')}
+                  <TrendingUp className="w-3 h-3" /> {t('futuresTabLabel')}
                 </TabsTrigger>
               </TabsList>
               
@@ -316,8 +316,8 @@ export default function DashboardPage() {
               <TabsContent value="measure">
                 <TargetMeasurementTool />
               </TabsContent>
-              <TabsContent value="black-scholes">
-                <BlackScholesCalculator />
+              <TabsContent value="futures">
+                <FuturesCalculator />
               </TabsContent>
             </Tabs>
 
