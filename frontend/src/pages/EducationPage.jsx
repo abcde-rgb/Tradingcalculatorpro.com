@@ -324,6 +324,8 @@ export default function EducationPage() {
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
   const MARKET_MECHANICS = getMarketMechanics(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
+  const WYCKOFF = getWyckoffContent(t);
+  const ALT_CHARTS = getAlternativeCharts(t);
 
   // Premium Gate - Block non-authenticated OR non-premium users
   if (!isPremium) {
@@ -494,7 +496,7 @@ export default function EducationPage() {
                 <TrendingUp className="w-4 h-4" /> {t('harmonicPatternsTab')}
               </TabsTrigger>
               <TabsTrigger value="wyckoff" className="gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-wyckoff">
-                <Brain className="w-4 h-4" /> {t('wyckoffTab')}
+                <TrendingUp className="w-4 h-4" /> {t('wyckoffTab')}
               </TabsTrigger>
               <TabsTrigger value="alt-charts" className="gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-alt-charts">
                 <BarChart3 className="w-4 h-4" /> {t('altChartTab')}
