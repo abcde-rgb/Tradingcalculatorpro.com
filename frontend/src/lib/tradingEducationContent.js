@@ -1909,10 +1909,10 @@ export const getWyckoffContent = (t) => ({
     title: t('wyckoffPhasesTitle'),
     intro: t('wyckoffPhasesIntro'),
     items: [
-      { id: 'accumulation', name: t('wyckoffAccumulationName'), desc: t('wyckoffAccumulationDesc'), color: 'green', phase: 'A' },
-      { id: 'markup',       name: t('wyckoffMarkupName'),       desc: t('wyckoffMarkupDesc'),       color: 'blue',  phase: 'B' },
-      { id: 'distribution', name: t('wyckoffDistributionName'), desc: t('wyckoffDistributionDesc'), color: 'red',   phase: 'C' },
-      { id: 'markdown',     name: t('wyckoffMarkdownName'),     desc: t('wyckoffMarkdownDesc'),     color: 'orange',phase: 'D' },
+      { id: 'accumulation', name: t('wyckoffAccumulationName'), desc: t('wyckoffAccumulationDesc'), type: 'bullish' },
+      { id: 'markup',       name: t('wyckoffMarkupName'),       desc: t('wyckoffMarkupDesc'),       type: 'bullish' },
+      { id: 'distribution', name: t('wyckoffDistributionName'), desc: t('wyckoffDistributionDesc'), type: 'bearish' },
+      { id: 'markdown',     name: t('wyckoffMarkdownName'),     desc: t('wyckoffMarkdownDesc'),     type: 'bearish' },
     ],
   },
   events: {
@@ -1972,7 +1972,7 @@ export const getAlternativeCharts = (t) => ({
       strengths: [t('renkoStrength1'), t('renkoStrength2'), t('renkoStrength3')],
       weaknesses: [t('renkoWeakness1'), t('renkoWeakness2')],
       bestFor: t('renkoBestFor'),
-      color: 'amber',
+      color: 'orange',
     },
     {
       id: 'heikin-ashi',
@@ -2002,7 +2002,7 @@ export const getAlternativeCharts = (t) => ({
       strengths: [t('kagiStrength1'), t('kagiStrength2'), t('kagiStrength3')],
       weaknesses: [t('kagiWeakness1'), t('kagiWeakness2')],
       bestFor: t('kagiBestFor'),
-      color: 'teal',
+      color: 'green',
     },
     {
       id: 'three-line-break',
@@ -2012,7 +2012,7 @@ export const getAlternativeCharts = (t) => ({
       strengths: [t('threeLineBreakStrength1'), t('threeLineBreakStrength2'), t('threeLineBreakStrength3')],
       weaknesses: [t('threeLineBreakWeakness1'), t('threeLineBreakWeakness2')],
       bestFor: t('threeLineBreakBestFor'),
-      color: 'indigo',
+      color: 'cyan',
     },
   ],
 });
