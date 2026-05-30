@@ -29,6 +29,11 @@ import TradingPillarsGuide from '@/components/education/TradingPillarsGuide';
 import TradingPyramid from '@/components/education/TradingPyramid';
 import TrendLinesGuide from '@/components/education/TrendLinesGuide';
 import TimeframesGuide from '@/components/education/TimeframesGuide';
+import CapitalManagementTools from '@/components/education/CapitalManagementTools';
+import StopLossGuide from '@/components/education/StopLossGuide';
+import OrderTypesGuide from '@/components/education/OrderTypesGuide';
+import DowTheoryDiagram from '@/components/education/DowTheoryDiagram';
+import TradingStylesCompare from '@/components/education/TradingStylesCompare';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -816,6 +821,9 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* At-a-glance comparison of the four styles */}
+              <TradingStylesCompare />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {TRADING_STYLES_CONTENT.styles.map(style => {
                   const colorBorder = { purple: 'border-purple-500/30', blue: 'border-blue-500/30', green: 'border-green-500/30', orange: 'border-orange-500/30' };
@@ -893,6 +901,9 @@ export default function EducationPage() {
                   <p className="text-muted-foreground leading-relaxed">{MARKET_MECHANICS.intro}</p>
                 </CardContent>
               </Card>
+
+              {/* Order book visual + iceberg / hidden / advanced order types */}
+              <OrderTypesGuide />
 
               {/* Order Types */}
               <div>
@@ -1060,6 +1071,9 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* Market-cycle diagram: phases + trend degrees */}
+              <DowTheoryDiagram />
+
               {/* Principles */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
@@ -1211,6 +1225,9 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* Interactive calculators: position size + Kelly */}
+              <CapitalManagementTools />
+
               {/* Capital Rules */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
@@ -1237,6 +1254,9 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Stop-loss philosophy + break-even R:R by win rate */}
+              <StopLossGuide />
 
               {/* Risk/Reward Ratios */}
               <div>
