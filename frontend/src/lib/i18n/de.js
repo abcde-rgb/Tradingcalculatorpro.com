@@ -789,7 +789,7 @@ export default {
     optionsSuite: 'Optionen Suite',
     optionsSuiteDesc: 'Black-Scholes, Greeks, OptionStrat-ähnlicher Strategieoptimierer',
     educationCenter: 'Lernzentrum',
-    educationCenterDesc: 'Kostenloser Kurs: Regeln, Dow-Theorie, Psychologie, Kapitalmanagement, 42+ Chart-Muster und 27 Kerzen-Muster',
+    educationCenterDesc: 'Kostenloser Kurs: Regeln, Dow-Theorie, Psychologie, Kapitalmanagement, 42+ Chart-Muster und 30 Kerzen-Muster',
     optionsCalculator: 'Optionsrechner',
     optionsCalculatorDesc: 'Pricing, Greeks und Payoff-Diagramme für alle Strategien',
     monteCarloCalculator: 'Monte-Carlo-Simulator',
@@ -2683,4 +2683,24 @@ export default {
     threeLineBreakWeakness1: 'Lagging in fast markets — three lines must complete before a reversal can form',
     threeLineBreakWeakness2: 'Not available in all charting platforms',
     threeLineBreakBestFor: 'Trend following, reducing overtrading, confirming major trend reversals',
+    // Strategy difficulty levels
+    diffBeginner: 'Anfänger',
+    diffIntermediate: 'Fortgeschritten',
+    diffAdvanced: 'Profi',
+    // Harmonic ratio descriptors
+    hRetracement: 'Retracement',
+    hExtension: 'Extension',
+    hOf: 'von',
+    hEntry: 'Einstieg',
+    hAt: 'bei',
+    hOr: 'oder',
+    // Chart-pattern entry steps (howToTrade)
+    httEntry2RetestLower: 'Entry 2: Bestätigung beim Retest der unteren Linie',
+    httEntry1BreakUpper: 'Entry 1: Kauf beim Ausbruch über die obere Linie',
+    httEntry2BuyRetest: 'Entry 2: Kauf beim bestätigten Retest',
+    httEntry1SellBreakLower: 'Entry 1: Verkauf beim Ausbruch unter die untere Linie',
+    httEntry2SellRetest: 'Entry 2: Verkauf beim bestätigten Retest',
+    httEntry2BuyPullbackChannel: 'Entry 2: Kauf nach Rücksetzer innerhalb des Kanals',
+    httEntry1BuyBullBreakUpper: 'Entry 1: Kauf beim bullischen Ausbruch über die obere Linie',
+    httEntry1SellBearBreakLower: 'Entry 1: Verkauf beim bärischen Ausbruch unter die untere Linie',
 }

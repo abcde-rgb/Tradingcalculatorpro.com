@@ -21,7 +21,7 @@ import { Link } from 'react-router-dom';
 import ExpectancyMatrix from '@/components/education/ExpectancyMatrix';
 import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
 import CandleAnatomy from '@/components/education/CandleAnatomy';
-import CandlePatternFigure from '@/components/education/CandlePatternFigure';
+import CandlePatternFigure, { hasCandleBlueprint } from '@/components/education/CandlePatternFigure';
 import LivePatternDetector from '@/components/education/LivePatternDetector';
 import PatternFilterBar from '@/components/education/PatternFilterBar';
 import LeverageGuide from '@/components/education/LeverageGuide';
@@ -181,7 +181,7 @@ function PatternDetailModal({ pattern, onClose }) {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-            {/* LEFT column: image (large) */}
+            {/* LEFT column: image (large) — or, for candlestick patterns, a rendered SVG figure */}
             {pattern.image ? (
               <div className="lg:sticky lg:top-20 self-start">
                 <button
@@ -191,8 +191,8 @@ function PatternDetailModal({ pattern, onClose }) {
                   data-testid="pattern-image-zoom-trigger"
                   aria-label="Click to zoom"
                 >
-                  <img 
-                    src={pattern.image} 
+                  <img
+                    src={pattern.image}
                     alt={pattern.name}
                     className="w-full h-auto max-h-[70vh] object-contain"
                   />
@@ -200,6 +200,15 @@ function PatternDetailModal({ pattern, onClose }) {
                     🔍 Zoom
                   </span>
                 </button>
+              </div>
+            ) : hasCandleBlueprint(pattern.id) ? (
+              <div className="lg:sticky lg:top-20 self-start">
+                <div
+                  className="w-full rounded-lg border border-border bg-card flex items-center justify-center py-10"
+                  data-testid="pattern-candle-figure"
+                >
+                  <CandlePatternFigure patternId={pattern.id} size="lg" showLabels />
+                </div>
               </div>
             ) : null}
 
@@ -298,9 +307,21 @@ export default function EducationPage() {
   const [candleTypeFilter, setCandleTypeFilter] = useState('all');
   const [harmonicFilter, setHarmonicFilter] = useState('all');
   const { t } = useTranslation();
-  
+
   const isPremium = useIsPremium();
   const { isAuthenticated } = useAuthStore();
+
+  // Localize the English descriptor words inside harmonic Fibonacci ratios
+  // (e.g. "61.8% of XA", "B retracement") while keeping the universal
+  // Fibonacci notation (XA, AB, %, PRZ) intact.
+  const localizeRatio = (s) =>
+    String(s)
+      .replace(/\bretracement\b/gi, t('hRetracement'))
+      .replace(/\bextension\b/gi, t('hExtension'))
+      .replace(/\bEntry\b/g, t('hEntry'))
+      .replace(/\bof\b/gi, t('hOf'))
+      .replace(/\bat\b/gi, t('hAt'))
+      .replace(/\bor\b/gi, t('hOr'));
 
   useSEO({
     titleKey: 'seoEducationTitle',
@@ -444,7 +465,7 @@ export default function EducationPage() {
               {t('educationCenter')}
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t('tradingRules')}, {t('chartPatterns')}, {t('candlestickPatterns')} y {t('riskManagement')}.
+              {t('educationCenterDesc')}
             </p>
           </div>
 
@@ -1267,7 +1288,18 @@ export default function EducationPage() {
                     <CardHeader>
                       <div className="flex items-start justify-between gap-4">
                         <CardTitle className="text-lg">{strategy.title}</CardTitle>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          {strategy.difficulty && (
+                            <Badge variant="outline" className={
+                              strategy.difficulty === 'beginner' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30'
+                              : strategy.difficulty === 'advanced' ? 'bg-red-500/10 text-red-500 border-red-500/30'
+                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/30'
+                            }>
+                              {strategy.difficulty === 'beginner' ? t('diffBeginner')
+                                : strategy.difficulty === 'advanced' ? t('diffAdvanced')
+                                : t('diffIntermediate')}
+                            </Badge>
+                          )}
                           <Badge variant="secondary">{strategy.timeframe}</Badge>
                           <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
                             {strategy.winRate}
@@ -1839,8 +1871,8 @@ export default function EducationPage() {
                           <div className="grid grid-cols-1 gap-1">
                             {Object.entries(pattern.ratios).map(([label, value]) => (
                               <div key={label} className="flex items-center justify-between bg-muted/50 rounded px-3 py-1.5 text-xs">
-                                <span className="text-muted-foreground">{label}</span>
-                                <span className="font-mono font-semibold text-primary">{value}</span>
+                                <span className="text-muted-foreground">{localizeRatio(label)}</span>
+                                <span className="font-mono font-semibold text-primary">{localizeRatio(value)}</span>
                               </div>
                             ))}
                           </div>
@@ -1920,7 +1952,18 @@ export default function EducationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {WYCKOFF.events.items.map((event) => (
                     <div key={event.id} className="bg-card border border-border rounded-xl p-4">
-                      <h4 className="font-bold text-sm mb-2 text-primary">{event.name}</h4>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="font-bold text-sm text-primary">{event.name}</h4>
+                        {event.sentiment && (
+                          <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                            event.sentiment === 'bullish' ? 'bg-green-500/15 text-green-500'
+                            : event.sentiment === 'bearish' ? 'bg-red-500/15 text-red-500'
+                            : 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-500'
+                          }`}>
+                            {event.sentiment === 'bullish' ? `↑ ${t('bullish')}` : event.sentiment === 'bearish' ? `↓ ${t('bearish')}` : `↔ ${t('neutral')}`}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">{event.desc}</p>
                     </div>
                   ))}

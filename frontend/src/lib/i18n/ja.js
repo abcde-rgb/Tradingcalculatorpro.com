@@ -658,7 +658,7 @@ export default {
     optionsSuite: 'オプションスイート',
     optionsSuiteDesc: 'ブラック・ショールズ、グリークス、OptionStrat風ストラテジーオプティマイザー',
     educationCenter: '学習センター',
-    educationCenterDesc: '無料コース：ルール、ダウ理論、心理学、資金管理、42+ チャートパターン、27 ローソク足',
+    educationCenterDesc: '無料コース：ルール、ダウ理論、心理学、資金管理、42+ チャートパターン、30 ローソク足',
     optionsCalculator: 'オプション計算機',
     optionsCalculatorDesc: '全戦略のプライシング、グリークス、ペイオフチャート',
     monteCarloCalculator: 'モンテカルロシミュレーター',
@@ -2625,5 +2625,24 @@ export default {
     threeLineBreakWeakness1: 'Lagging in fast markets — three lines must complete before a reversal can form',
     threeLineBreakWeakness2: 'Not available in all charting platforms',
     threeLineBreakBestFor: 'Trend following, reducing overtrading, confirming major trend reversals',
-
+    // Strategy difficulty levels
+    diffBeginner: '初級',
+    diffIntermediate: '中級',
+    diffAdvanced: '上級',
+    // Harmonic ratio descriptors
+    hRetracement: 'リトレースメント',
+    hExtension: 'エクステンション',
+    hOf: '/',
+    hEntry: 'エントリー',
+    hAt: '＠',
+    hOr: 'または',
+    // Chart-pattern entry steps (howToTrade)
+    httEntry2RetestLower: 'Entry 2：下側ラインのリテストで確認',
+    httEntry1BreakUpper: 'Entry 1：上側ラインのブレイクで買い',
+    httEntry2BuyRetest: 'Entry 2：確認されたリテストで買い',
+    httEntry1SellBreakLower: 'Entry 1：下側ラインのブレイクで売り',
+    httEntry2SellRetest: 'Entry 2：確認されたリテストで売り',
+    httEntry2BuyPullbackChannel: 'Entry 2：チャネル内の押し目で買い',
+    httEntry1BuyBullBreakUpper: 'Entry 1：上側ラインの強気ブレイクで買い',
+    httEntry1SellBearBreakLower: 'Entry 1：下側ラインの弱気ブレイクで売り',
 }

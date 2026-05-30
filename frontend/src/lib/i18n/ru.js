@@ -770,7 +770,7 @@ export default {
     optionsSuite: 'Набор опционов',
     optionsSuiteDesc: 'Блэк-Шоулз, греки, оптимизатор стратегий в стиле OptionStrat',
     educationCenter: 'Учебный центр',
-    educationCenterDesc: 'Бесплатный курс: правила, теория Доу, психология, управление капиталом, 42+ графических паттернов и 27 свечных',
+    educationCenterDesc: 'Бесплатный курс: правила, теория Доу, психология, управление капиталом, 42+ графических паттернов и 30 свечных',
     optionsCalculator: 'Калькулятор опционов',
     optionsCalculatorDesc: 'Ценообразование, греки, графики выплат для всех стратегий',
     monteCarloCalculator: 'Монте-Карло симулятор',
@@ -2625,5 +2625,24 @@ export default {
     threeLineBreakWeakness1: 'Lagging in fast markets — three lines must complete before a reversal can form',
     threeLineBreakWeakness2: 'Not available in all charting platforms',
     threeLineBreakBestFor: 'Trend following, reducing overtrading, confirming major trend reversals',
-
+    // Strategy difficulty levels
+    diffBeginner: 'Начальный',
+    diffIntermediate: 'Средний',
+    diffAdvanced: 'Продвинутый',
+    // Harmonic ratio descriptors
+    hRetracement: 'коррекция',
+    hExtension: 'расширение',
+    hOf: 'от',
+    hEntry: 'Вход',
+    hAt: 'на',
+    hOr: 'или',
+    // Chart-pattern entry steps (howToTrade)
+    httEntry2RetestLower: 'Entry 2: подтверждение на ретесте нижней линии',
+    httEntry1BreakUpper: 'Entry 1: покупка на пробое верхней линии',
+    httEntry2BuyRetest: 'Entry 2: покупка на подтверждённом ретесте',
+    httEntry1SellBreakLower: 'Entry 1: продажа на пробое нижней линии',
+    httEntry2SellRetest: 'Entry 2: продажа на подтверждённом ретесте',
+    httEntry2BuyPullbackChannel: 'Entry 2: покупка после отката внутри канала',
+    httEntry1BuyBullBreakUpper: 'Entry 1: покупка на бычьем пробое верхней линии',
+    httEntry1SellBearBreakLower: 'Entry 1: продажа на медвежьем пробое нижней линии',
 }

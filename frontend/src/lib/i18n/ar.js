@@ -497,7 +497,7 @@ export default {
     optionsSuite: 'مجموعة الخيارات',
     optionsSuiteDesc: 'بلاك-شولز، اليونانيون، محسن استراتيجيات على غرار OptionStrat',
     educationCenter: 'مركز التعلم',
-    educationCenterDesc: 'دورة مجانية: قواعد، نظرية داو، علم النفس، إدارة رأس المال، 42+ نموذج رسومي و27 نموذج شموع',
+    educationCenterDesc: 'دورة مجانية: قواعد، نظرية داو، علم النفس، إدارة رأس المال، 42+ نموذج رسومي و30 نموذج شموع',
     optionsCalculator: 'حاسبة الخيارات',
     optionsCalculatorDesc: 'تسعير، اليونانيون، رسوم العائد لجميع الاستراتيجيات',
     monteCarloCalculator: 'محاكاة مونت كارلو',
@@ -2623,4 +2623,24 @@ export default {
     threeLineBreakWeakness1: 'Lagging in fast markets — three lines must complete before a reversal can form',
     threeLineBreakWeakness2: 'Not available in all charting platforms',
     threeLineBreakBestFor: 'Trend following, reducing overtrading, confirming major trend reversals',
+    // Strategy difficulty levels
+    diffBeginner: 'مبتدئ',
+    diffIntermediate: 'متوسط',
+    diffAdvanced: 'متقدم',
+    // Harmonic ratio descriptors
+    hRetracement: 'تصحيح',
+    hExtension: 'امتداد',
+    hOf: 'من',
+    hEntry: 'دخول',
+    hAt: 'عند',
+    hOr: 'أو',
+    // Chart-pattern entry steps (howToTrade)
+    httEntry2RetestLower: 'Entry 2: تأكيد عند إعادة اختبار الخط السفلي',
+    httEntry1BreakUpper: 'Entry 1: الشراء عند اختراق الخط العلوي',
+    httEntry2BuyRetest: 'Entry 2: الشراء عند إعادة الاختبار المؤكدة',
+    httEntry1SellBreakLower: 'Entry 1: البيع عند اختراق الخط السفلي',
+    httEntry2SellRetest: 'Entry 2: البيع عند إعادة الاختبار المؤكدة',
+    httEntry2BuyPullbackChannel: 'Entry 2: الشراء بعد ارتداد داخل القناة',
+    httEntry1BuyBullBreakUpper: 'Entry 1: الشراء عند الاختراق الصاعد للخط العلوي',
+    httEntry1SellBearBreakLower: 'Entry 1: البيع عند الاختراق الهابط للخط السفلي',
 }

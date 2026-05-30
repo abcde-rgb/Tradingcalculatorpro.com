@@ -604,7 +604,7 @@ export default {
     optionsSuite: '期权套件',
     optionsSuiteDesc: '布莱克-斯科尔斯、希腊字母、OptionStrat 风格策略优化器',
     educationCenter: '学习中心',
-    educationCenterDesc: '免费课程：规则、道氏理论、心理学、资金管理、42+ 图形形态和 27 蜡烛形态',
+    educationCenterDesc: '免费课程：规则、道氏理论、心理学、资金管理、42+ 图形形态和 30 蜡烛形态',
     optionsCalculator: '期权计算器',
     optionsCalculatorDesc: '所有策略的定价、希腊字母、收益图',
     monteCarloCalculator: '蒙特卡洛模拟器',
@@ -2625,5 +2625,24 @@ export default {
     threeLineBreakWeakness1: 'Lagging in fast markets — three lines must complete before a reversal can form',
     threeLineBreakWeakness2: 'Not available in all charting platforms',
     threeLineBreakBestFor: 'Trend following, reducing overtrading, confirming major trend reversals',
-
+    // Strategy difficulty levels
+    diffBeginner: '初级',
+    diffIntermediate: '中级',
+    diffAdvanced: '高级',
+    // Harmonic ratio descriptors
+    hRetracement: '回撤',
+    hExtension: '扩展',
+    hOf: '的',
+    hEntry: '入场',
+    hAt: '于',
+    hOr: '或',
+    // Chart-pattern entry steps (howToTrade)
+    httEntry2RetestLower: 'Entry 2：下轨回踩确认时入场',
+    httEntry1BreakUpper: 'Entry 1：上轨突破时买入',
+    httEntry2BuyRetest: 'Entry 2：确认回踩时买入',
+    httEntry1SellBreakLower: 'Entry 1：下轨突破时卖出',
+    httEntry2SellRetest: 'Entry 2：确认回踩时卖出',
+    httEntry2BuyPullbackChannel: 'Entry 2：通道内回调后买入',
+    httEntry1BuyBullBreakUpper: 'Entry 1：上轨看涨突破时买入',
+    httEntry1SellBearBreakLower: 'Entry 1：下轨看跌突破时卖出',
 }

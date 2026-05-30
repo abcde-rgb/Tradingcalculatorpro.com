@@ -1085,7 +1085,7 @@ export default {
     optionsSuite: 'Options Suite',
     optionsSuiteDesc: 'Black-Scholes, Greeks, OptionStrat-style Strategy Optimizer',
     educationCenter: 'Learning Center',
-    educationCenterDesc: 'Free course: rules, Dow theory, psychology, capital management, 42+ chart patterns and 27 candlestick patterns',
+    educationCenterDesc: 'Free course: rules, Dow theory, psychology, capital management, 42+ chart patterns and 30 candlestick patterns',
     optionsCalculator: 'Options Calculator',
     optionsCalculatorDesc: 'Pricing, Greeks, and payoff diagrams for every strategy',
     monteCarloCalculator: 'Monte Carlo Simulator',
@@ -2981,4 +2981,24 @@ export default {
     threeLineBreakWeakness1: 'Lagging in fast markets — three lines must complete before a reversal can form',
     threeLineBreakWeakness2: 'Not available in all charting platforms',
     threeLineBreakBestFor: 'Trend following, reducing overtrading, confirming major trend reversals',
+    // Strategy difficulty levels
+    diffBeginner: 'Beginner',
+    diffIntermediate: 'Intermediate',
+    diffAdvanced: 'Advanced',
+    // Harmonic ratio descriptors
+    hRetracement: 'retracement',
+    hExtension: 'extension',
+    hOf: 'of',
+    hEntry: 'Entry',
+    hAt: 'at',
+    hOr: 'or',
+    // Chart-pattern entry steps (howToTrade)
+    httEntry2RetestLower: 'Entry 2: confirmation on retest of the lower line',
+    httEntry1BreakUpper: 'Entry 1: buy on breakout of the upper line',
+    httEntry2BuyRetest: 'Entry 2: buy on confirmed retest',
+    httEntry1SellBreakLower: 'Entry 1: sell on breakout of the lower line',
+    httEntry2SellRetest: 'Entry 2: sell on confirmed retest',
+    httEntry2BuyPullbackChannel: 'Entry 2: buy after pullback within the channel',
+    httEntry1BuyBullBreakUpper: 'Entry 1: buy on bullish breakout of the upper line',
+    httEntry1SellBearBreakLower: 'Entry 1: sell on bearish breakout of the lower line',
 }

@@ -782,7 +782,7 @@ export default {
     optionsSuite: 'Suite d\'Options',
     optionsSuiteDesc: 'Black-Scholes, Grecs, optimiseur de stratégies style OptionStrat',
     educationCenter: 'Centre d\'Apprentissage',
-    educationCenterDesc: 'Cours gratuit : règles, théorie de Dow, psychologie, gestion du capital, 42+ patterns graphiques et 27 patterns de chandeliers',
+    educationCenterDesc: 'Cours gratuit : règles, théorie de Dow, psychologie, gestion du capital, 42+ patterns graphiques et 30 patterns de chandeliers',
     optionsCalculator: 'Calculatrice d\'Options',
     optionsCalculatorDesc: 'Pricing, Grecs et diagrammes de payoff pour toutes les stratégies',
     monteCarloCalculator: 'Simulateur Monte Carlo',
@@ -2683,4 +2683,24 @@ export default {
     threeLineBreakWeakness1: 'Lagging in fast markets — three lines must complete before a reversal can form',
     threeLineBreakWeakness2: 'Not available in all charting platforms',
     threeLineBreakBestFor: 'Trend following, reducing overtrading, confirming major trend reversals',
+    // Strategy difficulty levels
+    diffBeginner: 'Débutant',
+    diffIntermediate: 'Intermédiaire',
+    diffAdvanced: 'Avancé',
+    // Harmonic ratio descriptors
+    hRetracement: 'retracement',
+    hExtension: 'extension',
+    hOf: 'de',
+    hEntry: 'Entrée',
+    hAt: 'à',
+    hOr: 'ou',
+    // Chart-pattern entry steps (howToTrade)
+    httEntry2RetestLower: 'Entry 2 : confirmation au retest de la ligne inférieure',
+    httEntry1BreakUpper: 'Entry 1 : acheter à la cassure de la ligne supérieure',
+    httEntry2BuyRetest: 'Entry 2 : acheter au retest confirmé',
+    httEntry1SellBreakLower: 'Entry 1 : vendre à la cassure de la ligne inférieure',
+    httEntry2SellRetest: 'Entry 2 : vendre au retest confirmé',
+    httEntry2BuyPullbackChannel: 'Entry 2 : acheter après un repli dans le canal',
+    httEntry1BuyBullBreakUpper: 'Entry 1 : acheter à la cassure haussière de la ligne supérieure',
+    httEntry1SellBearBreakLower: 'Entry 1 : vendre à la cassure baissière de la ligne inférieure',
 }

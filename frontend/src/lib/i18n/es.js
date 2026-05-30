@@ -1147,7 +1147,7 @@ export default {
     optionsSuite: 'Suite de Opciones',
     optionsSuiteDesc: 'Black-Scholes, Greeks y Strategy Optimizer estilo OptionStrat',
     educationCenter: 'Centro de Aprendizaje',
-    educationCenterDesc: 'Curso gratuito: reglas, Teoría de Dow, psicología, gestión de capital, 42+ patrones gráficos y 27 patrones de velas',
+    educationCenterDesc: 'Curso gratuito: reglas, Teoría de Dow, psicología, gestión de capital, 42+ patrones gráficos y 30 patrones de velas',
     optionsCalculator: 'Calculadora de Opciones',
     optionsCalculatorDesc: 'Pricing, Greeks y diagramas de payoff para todas las estrategias',
     monteCarloCalculator: 'Simulador Monte Carlo',
@@ -3067,4 +3067,24 @@ export default {
     threeLineBreakWeakness1: 'Rezagado en mercados rápidos — las tres líneas deben completarse antes de que pueda formarse una reversión',
     threeLineBreakWeakness2: 'No disponible en todas las plataformas de gráficos',
     threeLineBreakBestFor: 'Seguimiento de tendencia, reducción del sobretrading, confirmación de reversiones de tendencia mayores',
+    // Strategy difficulty levels
+    diffBeginner: 'Principiante',
+    diffIntermediate: 'Intermedio',
+    diffAdvanced: 'Avanzado',
+    // Harmonic ratio descriptors
+    hRetracement: 'retroceso',
+    hExtension: 'extensión',
+    hOf: 'de',
+    hEntry: 'Entrada',
+    hAt: 'en',
+    hOr: 'o',
+    // Chart-pattern entry steps (howToTrade)
+    httEntry2RetestLower: 'Entry 2: confirmación con retest de la línea inferior',
+    httEntry1BreakUpper: 'Entry 1: comprar en ruptura de la línea superior',
+    httEntry2BuyRetest: 'Entry 2: comprar en retest confirmado',
+    httEntry1SellBreakLower: 'Entry 1: vender en ruptura de la línea inferior',
+    httEntry2SellRetest: 'Entry 2: vender en retest confirmado',
+    httEntry2BuyPullbackChannel: 'Entry 2: comprar tras retroceso dentro del canal',
+    httEntry1BuyBullBreakUpper: 'Entry 1: comprar en ruptura alcista de la línea superior',
+    httEntry1SellBearBreakLower: 'Entry 1: vender en ruptura bajista de la línea inferior',
 }
