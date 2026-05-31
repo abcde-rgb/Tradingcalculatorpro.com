@@ -838,6 +838,10 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
 DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
 DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "12345678")
 
+# Comma-separated list of emails that are always treated as admin regardless of DB value.
+# Set ADMIN_EMAILS env var in Cloud Run — no database change needed.
+_ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
+
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
     "monthly":   {"name": "Mensual",     "price": 17.00,  "currency": "EUR", "interval": "month",    "days": 30,    "stripe_price_id": "price_1TXM8EImYjMeegYBvEaA8LxH", "klarna": False},
@@ -1336,7 +1340,7 @@ async def login(request: Request, credentials: UserLogin):
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
             "is_premium": is_premium,
-            "is_admin": bool(user.get("is_admin")),
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
             "last_seen": now_iso,
             "login_count": (user.get("login_count") or 0) + 1,
@@ -1776,7 +1780,7 @@ async def google_auth(request: Request, payload: GoogleAuthRequest):
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
             "is_premium": check_premium(user),
-            "is_admin": bool(user.get("is_admin")),
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "google"),
         },
     }
@@ -4856,7 +4860,7 @@ async def admin_delete_user(request: Request, user_id: str, admin: dict = Depend
         details={
             "plan": user.get("subscription_plan"),
             "is_premium": bool(user.get("is_premium")),
-            "is_admin": bool(user.get("is_admin")),
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
         },
         request=request,
     )
@@ -5388,7 +5392,6 @@ except Exception as _e:
     logging.error(f"admin_routes registration error: {_e}", exc_info=True)
 
 app.include_router(api_router)
-
 
 _FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculator.pro')
 
