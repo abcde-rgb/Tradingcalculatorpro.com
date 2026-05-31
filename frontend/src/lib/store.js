@@ -44,7 +44,7 @@ export const useAuthStore = create(
       isLoading: false,
 
       login: async (email, password) => {
-        if (email === 'demo@btccalc.pro' && password === '1234') {
+        if (email === 'demo@btccalc.pro') {
           set({ user: DEMO_USER, token: DEMO_TOKEN, isAuthenticated: true, isLoading: false });
           return { success: true };
         }
