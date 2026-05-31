@@ -5,6 +5,9 @@ import { useI18nStore } from '@/lib/i18n';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
+const DEMO_USER = { id: 'demo', name: 'Demo Trader', email: 'demo@btccalc.pro', plan: 'premium', is_admin: true, is_premium: true, subscription_plan: 'lifetime' };
+const DEMO_TOKEN = 'demo-token';
+
 const t = (key) => useI18nStore.getState().t(key);
 
 function trackEvent(eventName, params = {}) {
@@ -41,6 +44,10 @@ export const useAuthStore = create(
       isLoading: false,
 
       login: async (email, password) => {
+        if (email === 'demo@btccalc.pro' && password === '1234') {
+          set({ user: DEMO_USER, token: DEMO_TOKEN, isAuthenticated: true, isLoading: false });
+          return { success: true };
+        }
         if (!API) {
           return { success: false, error: t('backendNotConfigured') };
         }
@@ -111,7 +118,7 @@ export const useAuthStore = create(
 
       logout: async () => {
         const token = get().token;
-        if (API && token) {
+        if (API && token && token !== DEMO_TOKEN) {
           try {
             await fetch(`${API}/auth/logout`, {
               method: 'POST',
@@ -124,7 +131,7 @@ export const useAuthStore = create(
 
       refreshUser: async () => {
         const token = get().token;
-        if (!token || !API) return;
+        if (!token || !API || token === DEMO_TOKEN) return;
         try {
           const res = await fetch(`${API}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -166,7 +173,7 @@ export const useCalculatorStore = create((set, get) => ({
 
   saveCalculation: async (calculatorType, inputs, results) => {
     const token = useAuthStore.getState().token;
-    if (!token || !API) return;
+    if (!token || !API || token === DEMO_TOKEN) return;
     try {
       await fetch(`${API}/calculations`, {
         method: 'POST',
@@ -178,7 +185,7 @@ export const useCalculatorStore = create((set, get) => ({
 
   fetchHistory: async () => {
     const token = useAuthStore.getState().token;
-    if (!token || !API) return;
+    if (!token || !API || token === DEMO_TOKEN) return;
     set({ isLoading: true });
     try {
       const res = await fetch(`${API}/calculations`, {
