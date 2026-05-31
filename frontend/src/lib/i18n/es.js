@@ -1902,6 +1902,7 @@ export default {
     filterCalls_ua006: 'Calls',
     filterPuts_ua007: 'Puts',
     expirations_iv002: 'vencimientos',
+    marketDataUnavailableTitle: 'Datos de mercado no disponibles — cálculos deshabilitados',
     volatility_iv003: 'Volatilidad',
     ivCurrent_iv004: 'IV actual',
     range52w_iv005: 'Rango 52w',

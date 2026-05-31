@@ -1713,6 +1713,7 @@ export default {
     filterCalls_ua006: 'Calls',
     filterPuts_ua007: 'Puts',
     expirations_iv002: 'expirations',
+    marketDataUnavailableTitle: 'Market data unavailable — calculations disabled',
     volatility_iv003: 'Volatility',
     ivCurrent_iv004: 'Current IV',
     range52w_iv005: '52w Range',
