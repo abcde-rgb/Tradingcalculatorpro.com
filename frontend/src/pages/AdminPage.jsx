@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
+const DEMO_TOKEN = 'demo-token';
 
 const PLAN_OPTIONS = [
   { value: 'none',      label: 'Free' },
@@ -81,8 +82,7 @@ export default function AdminPage() {
   );
 
   const loadAll = async () => {
-    if (!API) {
-      toast.error('Backend no configurado. Establece REACT_APP_BACKEND_URL.');
+    if (!API || token === DEMO_TOKEN) {
       setLoading(false);
       return;
     }
@@ -213,6 +213,13 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background pt-20" data-testid="admin-page">
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        {/* Demo mode banner */}
+        {token === DEMO_TOKEN && (
+          <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 flex items-center gap-3 text-sm text-yellow-600 dark:text-yellow-400">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>Modo demo — los datos reales requieren el backend conectado. Las acciones están deshabilitadas.</span>
+          </div>
+        )}
         {/* Header row */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -609,7 +616,10 @@ function IntegrationsEditor({ headers, t }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    if (API && headers?.Authorization && !headers.Authorization.includes(DEMO_TOKEN)) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const save = async () => {
     setSaving(true);
