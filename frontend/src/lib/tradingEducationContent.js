@@ -1905,6 +1905,14 @@ export const getMarketMechanics = (t) => ({
 export const getWyckoffContent = (t) => ({
   title: t('wyckoffTitle'),
   intro: t('wyckoffIntro'),
+  laws: {
+    title: t('wyckoffLawsTitle'),
+    items: [
+      { id: 'supply-demand', name: t('wyckoffLawSupplyName'), desc: t('wyckoffLawSupplyDesc') },
+      { id: 'cause-effect', name: t('wyckoffLawCauseName'), desc: t('wyckoffLawCauseDesc') },
+      { id: 'effort-result', name: t('wyckoffLawEffortName'), desc: t('wyckoffLawEffortDesc') },
+    ]
+  },
   phases: {
     title: t('wyckoffPhasesTitle'),
     intro: t('wyckoffPhasesIntro'),
@@ -1926,8 +1934,13 @@ export const getWyckoffContent = (t) => ({
       { id: 'spring', name: t('wyckoffSpringName'), desc: t('wyckoffSpringDesc'), sentiment: 'bullish' },
       { id: 'buec', name: t('wyckoffBuecName'), desc: t('wyckoffBuecDesc'), sentiment: 'bullish' },
       { id: 'sos',  name: t('wyckoffSosName'),  desc: t('wyckoffSosDesc'),  sentiment: 'bullish' },
+      { id: 'lps',  name: t('wyckoffLPSName'),  desc: t('wyckoffLPSDesc'),  sentiment: 'bullish' },
+      { id: 'psy',  name: t('wyckoffPSYName'),  desc: t('wyckoffPSYDesc'),  sentiment: 'bearish' },
+      { id: 'bc',   name: t('wyckoffBCName'),   desc: t('wyckoffBCDesc'),   sentiment: 'bearish' },
+      { id: 'ut',   name: t('wyckoffUTName'),   desc: t('wyckoffUTDesc'),   sentiment: 'bearish' },
       { id: 'utad', name: t('wyckoffUtadName'), desc: t('wyckoffUtadDesc'), sentiment: 'bearish' },
       { id: 'sow',  name: t('wyckoffSowName'),  desc: t('wyckoffSowDesc'),  sentiment: 'bearish' },
+      { id: 'lpsy', name: t('wyckoffLPSYName'), desc: t('wyckoffLPSYDesc'), sentiment: 'bearish' },
     ],
   },
   composite: {
@@ -2015,4 +2028,58 @@ export const getAlternativeCharts = (t) => ({
       color: 'cyan',
     },
   ],
+});
+
+export const getCotContent = (t) => ({
+  title: t('cotTitle'),
+  intro: t('cotIntro'),
+  traderTypes: {
+    title: t('cotTraderTypesTitle'),
+    items: [
+      { id: 'commercial', name: t('cotCommercialName'), desc: t('cotCommercialDesc'), tag: t('cotCommercialTag') },
+      { id: 'large',      name: t('cotLargeName'),      desc: t('cotLargeDesc'),      tag: t('cotLargeTag') },
+      { id: 'small',      name: t('cotSmallName'),      desc: t('cotSmallDesc'),      tag: t('cotSmallTag') },
+    ],
+  },
+  howToRead: {
+    title: t('cotHowToReadTitle'),
+    items: [
+      { id: 'net',        name: t('cotReadNetName'),        desc: t('cotReadNetDesc') },
+      { id: 'change',     name: t('cotReadChangeName'),     desc: t('cotReadChangeDesc') },
+      { id: 'extreme',    name: t('cotReadExtremeName'),    desc: t('cotReadExtremeDesc') },
+      { id: 'divergence', name: t('cotReadDivergenceName'), desc: t('cotReadDivergenceDesc') },
+    ],
+  },
+  cotIndex: {
+    title: t('cotIndexSecTitle'),
+    desc: t('cotIndexSecDesc'),
+    formula: t('cotIndexFormula'),
+  },
+  contrarian: {
+    title: t('cotContrarianTitle'),
+    items: [
+      { id: 'bottom', name: t('cotBottomName'), desc: t('cotBottomDesc') },
+      { id: 'top',    name: t('cotTopName'),    desc: t('cotTopDesc') },
+    ],
+  },
+  combine: {
+    title: t('cotCombineTitle'),
+    tips: [t('cotCombine1'), t('cotCombine2'), t('cotCombine3')],
+  },
+  reports: {
+    title: t('cotReportsTitle'),
+    items: [
+      { id: 'legacy',    name: t('cotLegacyName'),  desc: t('cotLegacyDesc') },
+      { id: 'disagg',    name: t('cotDisaggName'),  desc: t('cotDisaggDesc') },
+      { id: 'tff',       name: t('cotTffName'),     desc: t('cotTffDesc') },
+    ],
+  },
+  sources: {
+    title: t('cotSourcesTitle'),
+    desc: t('cotSourcesDesc'),
+  },
+  limitations: {
+    title: t('cotLimitationsTitle'),
+    items: [t('cotLimit1'), t('cotLimit2'), t('cotLimit3')],
+  },
 });

@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts } from '@/lib/tradingEducationContent';
+import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -34,6 +34,9 @@ import StopLossGuide from '@/components/education/StopLossGuide';
 import OrderTypesGuide from '@/components/education/OrderTypesGuide';
 import DowTheoryDiagram from '@/components/education/DowTheoryDiagram';
 import TradingStylesCompare from '@/components/education/TradingStylesCompare';
+import RiskAnalysisTools from '@/components/education/RiskAnalysisTools';
+import WyckoffSchematic from '@/components/education/WyckoffSchematic';
+import CotGuide from '@/components/education/CotGuide';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -352,6 +355,7 @@ export default function EducationPage() {
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
+  const COT = getCotContent(t);
 
   // Premium Gate - Block non-authenticated OR non-premium users
   if (!isPremium) {
@@ -526,6 +530,9 @@ export default function EducationPage() {
               </TabsTrigger>
               <TabsTrigger value="alt-charts" className="gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-alt-charts">
                 <BarChart3 className="w-4 h-4" /> {t('altChartTab')}
+              </TabsTrigger>
+              <TabsTrigger value="cot" className="gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-cot">
+                <Scale className="w-4 h-4" /> {t('cotTab')}
               </TabsTrigger>
             </TabsList>
 
@@ -1284,6 +1291,15 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Advanced Risk Analytics */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-primary" />
+                  {t('capitalAdvancedToolsTitle')}
+                </h2>
+                <RiskAnalysisTools />
+              </div>
             </TabsContent>
 
             {/* Trading Strategies */}
@@ -1946,6 +1962,22 @@ export default function EducationPage() {
                 <p className="text-muted-foreground leading-relaxed">{WYCKOFF.intro}</p>
               </div>
 
+              {/* Three Laws */}
+              <div>
+                <h3 className="font-unbounded text-lg font-bold mb-4">{WYCKOFF.laws.title}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {WYCKOFF.laws.items.map((law) => (
+                    <div key={law.id} className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
+                      <h4 className="font-bold text-sm text-amber-400 mb-2">{law.name}</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{law.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Schematics */}
+              <WyckoffSchematic />
+
               {/* Four Phases */}
               <div>
                 <h3 className="font-unbounded text-lg font-bold mb-1">{WYCKOFF.phases.title}</h3>
@@ -2100,6 +2132,115 @@ export default function EducationPage() {
                     </div>
                   );
                 })}
+              </div>
+            </TabsContent>
+
+            {/* COT Report */}
+            <TabsContent value="cot" className="space-y-8 mt-6">
+              {/* Intro */}
+              <div className="bg-gradient-to-br from-teal-500/10 to-cyan-500/5 border border-teal-500/20 rounded-xl p-6">
+                <h2 className="font-unbounded text-2xl font-bold mb-3 flex items-center gap-3">
+                  <Scale className="w-7 h-7 text-teal-500" />
+                  {COT.title}
+                </h2>
+                <p className="text-muted-foreground leading-relaxed">{COT.intro}</p>
+              </div>
+
+              {/* Visual Guide */}
+              <CotGuide />
+
+              {/* Trader Types */}
+              <div>
+                <h3 className="font-unbounded text-lg font-bold mb-4">{COT.traderTypes.title}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {COT.traderTypes.items.map((item) => (
+                    <div key={item.id} className="bg-card border border-border rounded-xl p-5">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="font-bold text-sm">{item.name}</h4>
+                        <Badge variant="outline" className="text-[10px] shrink-0">{item.tag}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* How to Read */}
+              <div>
+                <h3 className="font-unbounded text-lg font-bold mb-4">{COT.howToRead.title}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {COT.howToRead.items.map((item) => (
+                    <div key={item.id} className="bg-card border border-border rounded-xl p-4">
+                      <h4 className="font-semibold text-sm text-teal-400 mb-1">{item.name}</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* COT Index */}
+              <div className="bg-teal-500/5 border border-teal-500/20 rounded-xl p-6">
+                <h3 className="font-unbounded text-lg font-bold mb-2">{COT.cotIndex.title}</h3>
+                <p className="text-muted-foreground text-sm mb-3 leading-relaxed">{COT.cotIndex.desc}</p>
+                <code className="block bg-muted/50 rounded-lg px-4 py-2 text-xs font-mono text-teal-400">{COT.cotIndex.formula}</code>
+              </div>
+
+              {/* Contrarian Signals */}
+              <div>
+                <h3 className="font-unbounded text-lg font-bold mb-4">{COT.contrarian.title}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {COT.contrarian.items.map((item) => (
+                    <div key={item.id} className={`rounded-xl border p-5 ${item.id === 'bottom' ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                      <h4 className={`font-bold text-sm mb-2 ${item.id === 'bottom' ? 'text-green-400' : 'text-red-400'}`}>{item.name}</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* How to Combine */}
+              <div>
+                <h3 className="font-unbounded text-lg font-bold mb-3">{COT.combine.title}</h3>
+                <ul className="space-y-2">
+                  {COT.combine.tips.map((tip, i) => (
+                    <li key={i} className="flex items-start gap-3 bg-card border border-border rounded-lg px-4 py-3">
+                      <span className="text-teal-400 mt-0.5 shrink-0">→</span>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{tip}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Report Formats */}
+              <div>
+                <h3 className="font-unbounded text-lg font-bold mb-4">{COT.reports.title}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {COT.reports.items.map((item) => (
+                    <div key={item.id} className="bg-card border border-border rounded-xl p-4">
+                      <h4 className="font-semibold text-sm mb-1 text-teal-400">{item.name}</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sources */}
+              <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-5">
+                <h4 className="font-semibold text-sm text-blue-400 mb-1">{COT.sources.title}</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{COT.sources.desc}</p>
+              </div>
+
+              {/* Limitations */}
+              <div>
+                <h3 className="font-unbounded text-lg font-bold mb-3">{COT.limitations.title}</h3>
+                <ul className="space-y-2">
+                  {COT.limitations.items.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item}</p>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </TabsContent>
 
