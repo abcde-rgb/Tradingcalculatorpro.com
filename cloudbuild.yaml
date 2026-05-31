@@ -64,11 +64,11 @@ steps:
     args:
       - -c
       - |
-        URL=$(gcloud run services describe tradingcalculator-api \
+        URL=$$(gcloud run services describe tradingcalculator-api \
           --region=us-central1 \
           --format='value(status.url)')
         sleep 10
-        curl -fsS "$URL/api/health" && echo "✅ Healthcheck OK: $URL" || echo "⚠️ Healthcheck falló"
+        curl -fsS "$$URL/api/health" && echo "✅ Healthcheck OK: $$URL" || echo "⚠️ Healthcheck falló"
     waitFor: ['deploy']
 
 images:
