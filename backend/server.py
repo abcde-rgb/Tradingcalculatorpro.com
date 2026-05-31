@@ -3619,14 +3619,33 @@ async def universal_search_tickers(q: str = "", limit: int = 30):
 async def opt_get_expirations(symbol: str):
     stock = get_stock_data(symbol)
     expirations = get_available_expirations(symbol)
-    if not expirations:
-        expirations = generate_expirations()
-    return {"stock": stock, "expirations": expirations}
+    if expirations:
+        return {"stock": stock, "expirations": expirations, "source": "market"}
+    # Yahoo Finance gave us nothing — fall back to mathematically estimated dates,
+    # but clearly flag them so the frontend can warn the user they may not be
+    # tradeable (not every symbol has weeklies; some dates may fall on holidays).
+    return {
+        "stock": stock,
+        "expirations": generate_expirations(),
+        "source": "estimated",
+        "warning": "Could not retrieve real expirations. Dates are estimated "
+                   "and may not be tradeable.",
+    }
 
 
 @api_router.get("/options/chain/{symbol}")
 async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
     stock = get_stock_data(symbol)
+    if stock.get("price") is None:
+        # No real spot price — don't fabricate a synthetic chain on top of
+        # missing data. Surface the error so the frontend can warn the user
+        # and disable calculations instead of showing invented quotes.
+        return {
+            "stock": stock,
+            "expiration": None,
+            "chain": [],
+            "error": stock.get("error") or f"No market data available for {symbol}.",
+        }
     expirations = get_available_expirations(symbol)
     if not expirations:
         expirations = generate_expirations()
@@ -3667,6 +3686,16 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
 @api_router.get("/options/iv-surface/{symbol}")
 async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
     stock = get_stock_data(symbol)
+    if stock.get("price") is None:
+        # No real spot price — can't build an IV surface. Return an empty,
+        # flagged response instead of crashing on arithmetic with a null price.
+        return {
+            "stock": stock,
+            "strikes": [],
+            "atm_strike": 0,
+            "expirations": [],
+            "error": stock.get("error") or f"No market data available for {symbol}.",
+        }
     expirations = get_available_expirations(symbol)
     if not expirations:
         expirations = generate_expirations()
@@ -3784,6 +3813,14 @@ async def optimize_options_strategy(req: OptimizeRequest):
     try:
         from options_optimize import optimize_strategies
         stock = get_stock_data(req.symbol)
+        if stock.get("price") is None:
+            # No real spot price — optimisation would be meaningless / would
+            # divide by a null price. Return a clean error, not a 500.
+            return {
+                "stock": stock,
+                "results": [],
+                "error": stock.get("error") or f"No market data available for {req.symbol}.",
+            }
         expirations = get_available_expirations(req.symbol) or generate_expirations()
         idx = max(0, min(req.expirationIdx, len(expirations) - 1))
         expiration = expirations[idx]
