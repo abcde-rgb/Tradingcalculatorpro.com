@@ -836,7 +836,18 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
 
 # Demo User (siempre tiene acceso PRO completo)
 DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
-DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "12345678")
+_demo_pw = os.environ.get('DEMO_PASSWORD')
+if not _demo_pw:
+    if os.environ.get('ENVIRONMENT', 'production').lower() in ('development', 'dev', 'local'):
+        _demo_pw = "12345678"  # convenience default for local dev only
+    else:
+        # Production without an explicit DEMO_PASSWORD: seed the demo account with an
+        # unguessable random password so it can't be logged into the backend with a
+        # known credential. The frontend demo experience bypasses the backend entirely
+        # (lib/store.js), so this does not affect it.
+        import secrets as _sec_demo
+        _demo_pw = _sec_demo.token_urlsafe(24)
+DEMO_PASSWORD = _demo_pw
 
 # Comma-separated list of emails that are always treated as admin regardless of DB value.
 # Set ADMIN_EMAILS env var in Cloud Run — no database change needed.
