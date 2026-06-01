@@ -1401,7 +1401,7 @@ async def get_me(user: dict = Depends(require_user)):
         "subscription_plan": user.get("subscription_plan"),
         "subscription_end": user.get("subscription_end"),
         "is_premium": is_premium,
-        "is_admin": bool(user.get("is_admin")),
+        "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
         "auth_provider": user.get("auth_provider", "password"),
         "picture": user.get("picture"),
         "last_seen": user.get("last_seen"),
@@ -2312,14 +2312,17 @@ _EMAIL_BASE = """
 </td></tr>
 <tr><td style="padding:40px;">{body}</td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #2a2a2a;text-align:center;">
-<p style="color:#555;font-size:12px;margin:0;">© 2025 Trading Calculator PRO · Todos los derechos reservados</p>
+<p style="color:#555;font-size:12px;margin:0;">© {year} Trading Calculator PRO · Todos los derechos reservados</p>
 </td></tr>
 </table></td></tr></table>
 </body></html>
 """
 
 def _email_html(body_html: str) -> str:
-    return _EMAIL_BASE.replace("{body}", body_html)
+    # {year} is filled dynamically so the footer copyright never goes stale.
+    return _EMAIL_BASE.replace("{body}", body_html).replace(
+        "{year}", str(datetime.now(timezone.utc).year)
+    )
 
 async def _send_welcome_email(to_email: str, name: str) -> None:
     body = f"""
@@ -2828,10 +2831,11 @@ async def _create_stripe_session(
 
 
 @api_router.post("/checkout/create")
-async def create_checkout(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
-    plan_id = request.get("plan_id")
-    payment_method = request.get("payment_method", "stripe")
-    origin_url = request.get("origin_url", "")
+@limiter.limit("10/hour")
+async def create_checkout(request: Request, body: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    plan_id = body.get("plan_id")
+    payment_method = body.get("payment_method", "stripe")
+    origin_url = body.get("origin_url", "")
 
     _validate_origin_url(origin_url, "origin_url")
 
