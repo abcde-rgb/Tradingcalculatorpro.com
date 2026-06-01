@@ -1253,21 +1253,19 @@ async def startup_event():
             "subscription_plan": "lifetime",
             "subscription_end": None,
             "is_premium": True,
-            # Demo is the operator's real admin login. Safe because auth now goes through
-            # the backend (no client-side bypass) and the password is random in production
-            # until DEMO_PASSWORD is set, so only the operator can reach it. Login is
-            # rate-limited to 10/min.
-            "is_admin": True,
+            # Demo is a non-admin showcase account. Admin access is granted via the
+            # ADMIN_EMAILS env var on a real login, never through this seeded account.
+            "is_admin": False,
             "auth_provider": "password",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
-        logging.info("Demo user created: %s (premium, admin)", DEMO_EMAIL)
+        logging.info("Demo user created: %s (premium, non-admin)", DEMO_EMAIL)
     else:
-        # Idempotent self-heal: keep demo on lifetime premium WITH admin.
+        # Idempotent self-heal: keep demo on lifetime premium and NOT admin.
         patch: Dict[str, Any] = {}
-        if not existing.get("is_admin"):
-            patch["is_admin"] = True  # Demo is the operator's admin account
+        if existing.get("is_admin"):
+            patch["is_admin"] = False  # Demo must never be admin (use ADMIN_EMAILS instead)
         if existing.get("subscription_plan") != "lifetime":
             patch["subscription_plan"] = "lifetime"
         if not existing.get("auth_provider"):
