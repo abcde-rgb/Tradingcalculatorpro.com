@@ -72,6 +72,10 @@ const CalculatorPage = () => {
   const [showGreeks, setShowGreeks] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
   const [nextEarnings, setNextEarnings] = useState(null);
+  // Data-quality state: set when the backend cannot return real market data
+  // (price === null / error) or returns estimated (non-tradeable) expirations.
+  const [dataError, setDataError] = useState(null);
+  const [expWarning, setExpWarning] = useState(null);
 
   const [commission, setCommission] = useState(() => readPersistedNumber('options_commission', 0.65));
   useEffect(() => writePersistedNumber('options_commission', commission), [commission]);
@@ -93,13 +97,31 @@ const CalculatorPage = () => {
           fetchStock(ticker),
           fetchExpirations(ticker),
         ]);
-        if (stockData) {
+        // Only treat the stock as usable when we have a real price. The backend
+        // returns price === null (plus an `error`) when no real market data is
+        // available — in that case we keep stock === null so every downstream
+        // calculation (which all guard on `!stock`) stays disabled.
+        if (stockData && stockData.price != null && !stockData.error) {
           setStock(stockData);
+          setDataError(null);
           if (typeof stockData.dividendYield === 'number') {
             setDividendYield(stockData.dividendYield);
           }
+        } else {
+          setStock(null);
+          setDataError(
+            (stockData && stockData.error) ||
+              'Market data unavailable — the market may be closed or the symbol may be invalid.'
+          );
         }
         if (expData?.expirations) setExpirations(expData.expirations);
+        // Flag estimated (non-market) expirations so the user knows the dates
+        // may not be tradeable.
+        setExpWarning(
+          expData?.source === 'estimated'
+            ? expData.warning || 'Estimated expiration dates — these may not be tradeable.'
+            : null
+        );
       } catch (e) {
         if (process.env.NODE_ENV !== 'production') {
           console.error('[Options] error loading initial stock/expirations:', e);
@@ -124,7 +146,12 @@ const CalculatorPage = () => {
     const interval = setInterval(async () => {
       try {
         const freshStock = await fetchStock(ticker);
-        if (freshStock) setStock(freshStock);
+        // Only update on a real price — never overwrite with a null-price error
+        // payload (which would silently re-enable nothing useful).
+        if (freshStock && freshStock.price != null && !freshStock.error) {
+          setStock(freshStock);
+          setDataError(null);
+        }
       } catch (err) {
         if (process.env.NODE_ENV !== 'production') console.warn('live price refresh failed:', err);
       }
@@ -360,6 +387,27 @@ const CalculatorPage = () => {
       />
 
       <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
+
+      {dataError && (
+        <div
+          className="mx-4 mt-3 rounded-lg border border-[#ef4444]/40 bg-[#ef4444]/10 px-4 py-3"
+          data-testid="market-data-error"
+        >
+          <p className="text-sm font-semibold text-[#ef4444]">
+            {ticker}: {t('marketDataUnavailableTitle')}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{dataError}</p>
+        </div>
+      )}
+
+      {expWarning && (
+        <div
+          className="mx-4 mt-3 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-4 py-2.5"
+          data-testid="estimated-expirations-warning"
+        >
+          <p className="text-xs font-semibold text-[#f59e0b]">{expWarning}</p>
+        </div>
+      )}
 
       {activeTab === 'education' && (
         <EducationTab onSwitchToCalc={() => setActiveTab('calculator')} />

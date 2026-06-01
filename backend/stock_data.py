@@ -1,6 +1,5 @@
 """Stock data provider using Yahoo Finance (yfinance) for real market data"""
 import yfinance as yf
-import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 import logging
@@ -98,22 +97,27 @@ def get_stock_data(symbol: str) -> dict:
 
 
 def _get_fallback_stock_data(symbol: str) -> dict:
-    """Fallback mock data when API fails."""
-    logger.warning(f"Using fallback mock data for {symbol}")
-    rng = secrets.SystemRandom()
-    price = round(rng.random() * 400 + 10, 2)
-    change = round((rng.random() - 0.5) * price * 0.03, 2)
+    """Return an explicit error state when no real market data is available.
+
+    We deliberately do NOT invent a price here. Returning a random number that
+    looks like a real quote would mislead the user into building strikes,
+    greeks and P&L on top of fabricated data. Instead we surface a null price
+    plus an ``error`` message so the frontend can disable calculations.
+    """
+    logger.warning(f"No real data available for {symbol} — returning error state")
     return {
         "symbol": symbol,
-        "name": f"{symbol} Corp.",
-        "price": price,
-        "change": change,
-        "changePercent": round((change / price) * 100, 2),
-        "high52w": round(price * 1.3, 2),
-        "low52w": round(price * 0.7, 2),
-        "volume": f"{rng.random() * 50 + 1:.1f}M",
+        "name": symbol,
+        "price": None,
+        "change": None,
+        "changePercent": None,
+        "high52w": None,
+        "low52w": None,
+        "volume": "N/A",
         "sector": _get_sector(symbol),
         "dividendYield": 0.0,
+        "error": f"No market data available for {symbol}. "
+                 f"The market may be closed or the symbol may be invalid.",
     }
 
 
@@ -236,7 +240,14 @@ def search_tickers(query: str) -> list:
 
 
 def generate_expirations():
-    """Generate realistic expiration dates (weekly/monthly/LEAPS)."""
+    """Estimate expiration dates as a last-resort fallback only.
+
+    These dates are generated mathematically (the next Friday at increasing
+    horizons) and are NOT guaranteed to be tradeable for any given symbol:
+    many assets have only monthly options, and some generated dates may fall on
+    market holidays. Callers must label any response built from this as
+    estimated (see the ``/api/options/expirations`` endpoint) so the user is
+    warned rather than misled into thinking the dates are real."""
     today = datetime.now()
     days_options = [3, 7, 14, 21, 30, 45, 60, 90, 120, 150, 180, 270, 365, 540, 730]
     expirations = []
