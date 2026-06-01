@@ -1140,7 +1140,11 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(secu
     user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
-    if not user.get("is_admin"):
+    # Honor ADMIN_EMAILS as well as the DB flag, so enforcement matches what
+    # /auth/login and /auth/me already report. Without this, an ADMIN_EMAILS
+    # admin sees the panel (frontend trusts the is_admin in the login response)
+    # but every /admin/* call returns 403 → empty panel.
+    if not (user.get("is_admin") or user.get("email", "").lower() in _ADMIN_EMAILS):
         raise HTTPException(status_code=403, detail="Acceso restringido")
     return user
 
