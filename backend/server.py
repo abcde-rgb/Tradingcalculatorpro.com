@@ -836,7 +836,18 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
 
 # Demo User (siempre tiene acceso PRO completo)
 DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
-DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "12345678")
+_demo_pw = os.environ.get('DEMO_PASSWORD')
+if not _demo_pw:
+    if os.environ.get('ENVIRONMENT', 'production').lower() in ('development', 'dev', 'local'):
+        _demo_pw = "12345678"  # convenience default for local dev only
+    else:
+        # Production without an explicit DEMO_PASSWORD: seed the demo account with an
+        # unguessable random password so it can't be logged into the backend with a
+        # known credential. The frontend demo experience bypasses the backend entirely
+        # (lib/store.js), so this does not affect it.
+        import secrets as _sec_demo
+        _demo_pw = _sec_demo.token_urlsafe(24)
+DEMO_PASSWORD = _demo_pw
 
 # Comma-separated list of emails that are always treated as admin regardless of DB value.
 # Set ADMIN_EMAILS env var in Cloud Run — no database change needed.
@@ -1129,7 +1140,11 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(secu
     user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
-    if not user.get("is_admin"):
+    # Honor ADMIN_EMAILS as well as the DB flag, so enforcement matches what
+    # /auth/login and /auth/me already report. Without this, an ADMIN_EMAILS
+    # admin sees the panel (frontend trusts the is_admin in the login response)
+    # but every /admin/* call returns 403 → empty panel.
+    if not (user.get("is_admin") or user.get("email", "").lower() in _ADMIN_EMAILS):
         raise HTTPException(status_code=403, detail="Acceso restringido")
     return user
 
@@ -1238,17 +1253,19 @@ async def startup_event():
             "subscription_plan": "lifetime",
             "subscription_end": None,
             "is_premium": True,
-            "is_admin": False,  # Demo user is NOT admin — prevents credential abuse
+            # Demo is a non-admin showcase account. Admin access is granted via the
+            # ADMIN_EMAILS env var on a real login, never through this seeded account.
+            "is_admin": False,
             "auth_provider": "password",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
         logging.info("Demo user created: %s (premium, non-admin)", DEMO_EMAIL)
     else:
-        # Idempotent self-heal: ensure demo has lifetime premium but NOT admin.
+        # Idempotent self-heal: keep demo on lifetime premium and NOT admin.
         patch: Dict[str, Any] = {}
         if existing.get("is_admin"):
-            patch["is_admin"] = False  # Remove admin if it was accidentally set
+            patch["is_admin"] = False  # Demo must never be admin (use ADMIN_EMAILS instead)
         if existing.get("subscription_plan") != "lifetime":
             patch["subscription_plan"] = "lifetime"
         if not existing.get("auth_provider"):
@@ -1401,7 +1418,7 @@ async def get_me(user: dict = Depends(require_user)):
         "subscription_plan": user.get("subscription_plan"),
         "subscription_end": user.get("subscription_end"),
         "is_premium": is_premium,
-        "is_admin": bool(user.get("is_admin")),
+        "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
         "auth_provider": user.get("auth_provider", "password"),
         "picture": user.get("picture"),
         "last_seen": user.get("last_seen"),
@@ -2312,14 +2329,17 @@ _EMAIL_BASE = """
 </td></tr>
 <tr><td style="padding:40px;">{body}</td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #2a2a2a;text-align:center;">
-<p style="color:#555;font-size:12px;margin:0;">© 2025 Trading Calculator PRO · Todos los derechos reservados</p>
+<p style="color:#555;font-size:12px;margin:0;">© {year} Trading Calculator PRO · Todos los derechos reservados</p>
 </td></tr>
 </table></td></tr></table>
 </body></html>
 """
 
 def _email_html(body_html: str) -> str:
-    return _EMAIL_BASE.replace("{body}", body_html)
+    # {year} is filled dynamically so the footer copyright never goes stale.
+    return _EMAIL_BASE.replace("{body}", body_html).replace(
+        "{year}", str(datetime.now(timezone.utc).year)
+    )
 
 async def _send_welcome_email(to_email: str, name: str) -> None:
     body = f"""
@@ -2828,10 +2848,11 @@ async def _create_stripe_session(
 
 
 @api_router.post("/checkout/create")
-async def create_checkout(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
-    plan_id = request.get("plan_id")
-    payment_method = request.get("payment_method", "stripe")
-    origin_url = request.get("origin_url", "")
+@limiter.limit("10/hour")
+async def create_checkout(request: Request, body: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    plan_id = body.get("plan_id")
+    payment_method = body.get("payment_method", "stripe")
+    origin_url = body.get("origin_url", "")
 
     _validate_origin_url(origin_url, "origin_url")
 
