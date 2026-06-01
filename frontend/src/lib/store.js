@@ -5,7 +5,6 @@ import { useI18nStore } from '@/lib/i18n';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
-const DEMO_USER = { id: 'demo', name: 'Demo Trader', email: 'demo@btccalc.pro', plan: 'premium', is_admin: true, is_premium: true, subscription_plan: 'lifetime' };
 const DEMO_TOKEN = 'demo-token';
 
 const t = (key) => useI18nStore.getState().t(key);
@@ -44,10 +43,6 @@ export const useAuthStore = create(
       isLoading: false,
 
       login: async (email, password) => {
-        if (email === 'demo@btccalc.pro') {
-          set({ user: DEMO_USER, token: DEMO_TOKEN, isAuthenticated: true, isLoading: false });
-          return { success: true };
-        }
         if (!API) {
           return { success: false, error: t('backendNotConfigured') };
         }
