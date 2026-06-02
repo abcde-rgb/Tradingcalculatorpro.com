@@ -91,7 +91,7 @@ mostraba "email enviado" **sin enviar nada**. Sustituido por un error honesto
 ---
 
 ### BUG-010 — yfinance bloqueaba el event loop (HTTP síncrono en endpoints async) 🆕
-**Severidad:** 🔴 CRÍTICA (rendimiento/escalabilidad) · **Archivo:** `backend/server.py` · **Estado:** ✅ RESUELTO (alto tráfico) · ⏳ PARCIAL (módulo opciones)
+**Severidad:** 🔴 CRÍTICA (rendimiento/escalabilidad) · **Archivo:** `backend/server.py` · **Estado:** ✅ RESUELTO (COMPLETO)
 
 **Causa raíz:** `yfinance` hace peticiones HTTP **síncronas**. Llamarlo directamente
 dentro de un `async def` **bloquea todo el event loop** mientras dura la red. En Cloud
@@ -106,31 +106,34 @@ tráfico**:
 - `GET /ohlc/{symbol}`, `POST /backtest`, `GET /iv-rank`, earnings (`.calendar`),
   `education/pattern-scan`, `market-wide-flow`.
 
-**Pendiente (mismo patrón, menor tráfico — premium/autenticado):** el módulo de opciones
-(`opt_get_stock`, `opt_get_options_chain`, `opt_get_iv_surface`, `optimize_options_strategy`,
-`portfolio_greeks`, `get_unusual_options`, `universal_search_tickers`, ~9 endpoints) llama
-funciones síncronas de `stock_data.py` directamente. Recomendado: ofrecer wrappers async de
-`stock_data` u offload por endpoint, en un pase dedicado con tests.
+**2ª fase (completada):** el módulo de opciones (`opt_get_stock`, `opt_search_tickers`,
+`opt_get_expirations`, `opt_get_options_chain`, `opt_get_iv_surface`, `optimize_options_strategy`,
+`portfolio_greeks`, `get_unusual_options`, `universal_search_tickers`, `get_iv_rank`) llamaba
+funciones síncronas de `stock_data.py` directamente. Ahora **todas** las llamadas en contexto
+`async` van por `await asyncio.to_thread(...)` (incluidas las que están dentro de bucles `for`
+sobre expiraciones). Los helpers síncronos (`_scan_ticker_flow`, `_fetch_atm_iv_proxy`,
+`_yfinance_to_ohlc_rows`) se ejecutan en thread desde su llamador async. **Cero llamadas
+bloqueantes de red quedan en el event loop.**
 
 ### BUG-011 — Código muerto engañoso (módulos huérfanos) 🆕
-**Severidad:** 🟡 MENOR (limpieza/confusión) · **Estado:** ⏳ REPORTADO (no eliminado sin confirmar)
+**Severidad:** 🟡 MENOR (limpieza/confusión) · **Estado:** ✅ RESUELTO
 
-Dos módulos **nunca se importan ni registran** en `server.py`:
-- `backend/fixes.py` — "parches críticos" de mayo 2026 (forex/índices/oro reales vía
-  Finnhub, `check_jwt_secret`, `change_plan_real`). Su docstring dice "Uso en server.py:
-  from fixes import (...)" pero **nunca se conectó**. Está **superado**: `server.py` ya sirve
-  datos reales vía yfinance/CoinGecko. → Candidato a **eliminar**.
-- `backend/admin_diary_endpoint.py` — router con 3 endpoints admin para exponer este
-  `DIARIO_BUGS.md` vía API. **Nunca se incluye** en la app. → O **eliminar**, o **cablearlo**
-  si se quiere la función (decisión del dueño).
+Dos módulos que **nunca se importaban ni registraban** en `server.py` (solo se
+referenciaban a sí mismos en sus docstrings) — **eliminados**:
+- `backend/fixes.py` — "parches críticos" de mayo 2026 cuyo docstring decía "Uso en
+  server.py: from fixes import (...)" pero **nunca se conectó**. Estaba **superado**:
+  `server.py` ya sirve datos reales vía yfinance/CoinGecko.
+- `backend/admin_diary_endpoint.py` — router admin para exponer este `DIARIO_BUGS.md` vía
+  API, **nunca incluido**. Además habría fallado en producción: el `Dockerfile` solo copia
+  `./backend`, y `DIARIO_BUGS.md` vive en la raíz del repo (no estaría en la imagen).
 
 ### BUG-012 — Adaptador SQL: LIMIT/OFFSET por interpolación (hardening) 🆕
-**Severidad:** 🟢 BAJA · **Archivo:** `server.py` (`_build_query`) · **Estado:** ⏳ REPORTADO
+**Severidad:** 🟢 BAJA · **Archivo:** `server.py` (`_build_query`) · **Estado:** ✅ RESUELTO
 
-El `WHERE` parametriza valores con `$1,$2` y valida nombres de campo con regex (✅ sin
-inyección). Pero `LIMIT {self._limit_val}` / `OFFSET {self._skip_val}` se **interpolan**
-directamente. Hoy reciben enteros (params tipados `int` de FastAPI), así que no hay riesgo
-real, pero conviene castear a `int()` o parametrizar como defensa en profundidad.
+El `WHERE` ya parametrizaba valores con `$1,$2` y validaba nombres de campo con regex (✅ sin
+inyección). Ahora `LIMIT`/`OFFSET` se castean explícitamente con `int(self._limit_val)` /
+`int(self._skip_val)` como defensa en profundidad (antes se interpolaban directamente; el
+riesgo real era nulo porque reciben ints tipados de FastAPI, pero ahora es a prueba de fallos).
 
 ---
 
@@ -172,16 +175,17 @@ Trabajo estimado: 4-6 h. No es una regresión; es deuda técnica pre-existente.
 | BUG-007 | Preferencias en localStorage | 🟡 | ❌ Pendiente (baja prioridad) |
 | BUG-008 | server.py monolítico | 🟠 | ❌ Pendiente (deuda técnica) |
 | BUG-009 | Workflows de deploy en carrera | 🔴 | ✅ Resuelto esta sesión |
-| BUG-010 | yfinance bloqueaba el event loop | 🔴 | ✅ 8 endpoints / ⏳ opciones pendiente |
-| BUG-011 | Código muerto (fixes.py, admin_diary_endpoint.py) | 🟡 | ⏳ Reportado (no borrado sin confirmar) |
-| BUG-012 | LIMIT/OFFSET por interpolación (hardening) | 🟢 | ⏳ Reportado (riesgo real nulo) |
+| BUG-010 | yfinance bloqueaba el event loop | 🔴 | ✅ Resuelto (COMPLETO, todos los endpoints) |
+| BUG-011 | Código muerto (fixes.py, admin_diary_endpoint.py) | 🟡 | ✅ Resuelto (eliminados) |
+| BUG-012 | LIMIT/OFFSET por interpolación (hardening) | 🟢 | ✅ Resuelto (cast a int) |
 
 **Conclusión:** la app está **mucho más cerca del 100%** de lo que el diario anterior
-sugería. Los bloqueantes reales eran (1) la condición de carrera entre los dos workflows
-de despliegue (BUG-009) y (2) yfinance bloqueando el event loop en los endpoints públicos
-(BUG-010) — ambos resueltos. Pendientes: el mismo patrón yfinance en el módulo de opciones
-(premium), limpieza de código muerto (BUG-011) y deuda de fondo (BUG-007, BUG-008).
-El adaptador SQL es seguro (sin inyección); JWT/CORS están bien configurados.
+sugería. Resueltos: la condición de carrera entre workflows (BUG-009), yfinance bloqueando
+el event loop en **todos** los endpoints (BUG-010), limpieza de código muerto (BUG-011) y
+hardening SQL (BUG-012). El adaptador SQL es seguro (sin inyección); JWT/CORS bien
+configurados. **Pendientes reales:** BUG-007 (preferencias en localStorage, menor) y BUG-008
+(refactor del monolito `server.py`, deuda técnica — requiere suite de tests para hacerse sin
+riesgo). Ninguno bloquea la operación.
 
 ---
 

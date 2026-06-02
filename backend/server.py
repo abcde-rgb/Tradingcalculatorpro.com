@@ -274,8 +274,8 @@ class _Cursor:
             # ISO date strings sort correctly as text
             order = f"ORDER BY (data->>'{self._sort_field}') {dir_str} NULLS LAST"
 
-        limit_clause = f"LIMIT {self._limit_val}" if self._limit_val is not None else ""
-        offset_clause = f"OFFSET {self._skip_val}" if self._skip_val else ""
+        limit_clause = f"LIMIT {int(self._limit_val)}" if self._limit_val is not None else ""
+        offset_clause = f"OFFSET {int(self._skip_val)}" if self._skip_val else ""
 
         sql = f"SELECT data FROM {self._table} {where} {order} {limit_clause} {offset_clause}".strip()
         return sql, params
@@ -3557,7 +3557,7 @@ def _payoff_summary(
 @api_router.get("/stock/{symbol}")
 async def opt_get_stock(symbol: str):
     try:
-        data = get_stock_data(symbol)
+        data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
         logging.error(f"Error getting stock data for {symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -3628,13 +3628,15 @@ def _classify_symbol(sym: str) -> dict:
 
 @api_router.get("/tickers/search")
 async def opt_search_tickers(q: str = ""):
-    results = search_tickers(q)
-    return {
-        "results": [
+    # search_tickers + per-symbol get_stock_data are blocking yfinance calls;
+    # run the whole build in a thread so the event loop stays free.
+    def _search_with_quotes():
+        results = search_tickers(q)
+        return [
             {"symbol": sym, **get_stock_data(sym)}
             for sym in results[:15]
         ]
-    }
+    return {"results": await asyncio.to_thread(_search_with_quotes)}
 
 
 @api_router.get("/tickers/universal-search")
@@ -3645,7 +3647,7 @@ async def universal_search_tickers(q: str = "", limit: int = 30):
     crypto price store. Avoids the 5–15s latency of fetching yfinance per ticker.
     """
     capped_limit = max(1, min(50, limit))
-    results = search_tickers(q)[:capped_limit]
+    results = (await asyncio.to_thread(search_tickers, q))[:capped_limit]
     return {
         "results": [
             {"symbol": sym, **_classify_symbol(sym)}
@@ -3656,8 +3658,8 @@ async def universal_search_tickers(q: str = "", limit: int = 30):
 
 @api_router.get("/options/expirations/{symbol}")
 async def opt_get_expirations(symbol: str):
-    stock = get_stock_data(symbol)
-    expirations = get_available_expirations(symbol)
+    stock = await asyncio.to_thread(get_stock_data, symbol)
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if expirations:
         return {"stock": stock, "expirations": expirations, "source": "market"}
     # Yahoo Finance gave us nothing — fall back to mathematically estimated dates,
@@ -3674,7 +3676,7 @@ async def opt_get_expirations(symbol: str):
 
 @api_router.get("/options/chain/{symbol}")
 async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
-    stock = get_stock_data(symbol)
+    stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
         # No real spot price — don't fabricate a synthetic chain on top of
         # missing data. Surface the error so the frontend can warn the user
@@ -3685,13 +3687,13 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
             "chain": [],
             "error": stock.get("error") or f"No market data available for {symbol}.",
         }
-    expirations = get_available_expirations(symbol)
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if not expirations:
         expirations = generate_expirations()
     if expiration_idx >= len(expirations):
         expiration_idx = min(3, len(expirations) - 1)
     expiration = expirations[expiration_idx]
-    chain = get_options_chain_real(symbol, expiration["date"])
+    chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
     if not chain:
         chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
     else:
@@ -3724,7 +3726,7 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
 
 @api_router.get("/options/iv-surface/{symbol}")
 async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
-    stock = get_stock_data(symbol)
+    stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
         # No real spot price — can't build an IV surface. Return an empty,
         # flagged response instead of crashing on arithmetic with a null price.
@@ -3735,14 +3737,14 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
             "expirations": [],
             "error": stock.get("error") or f"No market data available for {symbol}.",
         }
-    expirations = get_available_expirations(symbol)
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if not expirations:
         expirations = generate_expirations()
     expirations = expirations[:max_expirations]
     surface_data = []
     all_strikes = set()
     for exp in expirations:
-        chain = get_options_chain_real(symbol, exp["date"])
+        chain = await asyncio.to_thread(get_options_chain_real, symbol, exp["date"])
         if not chain:
             chain = generate_options_chain(stock["price"], exp["daysToExpiry"])
         exp_data = {
@@ -3851,7 +3853,7 @@ class OptimizeRequest(BaseModel):
 async def optimize_options_strategy(req: OptimizeRequest):
     try:
         from options_optimize import optimize_strategies
-        stock = get_stock_data(req.symbol)
+        stock = await asyncio.to_thread(get_stock_data, req.symbol)
         if stock.get("price") is None:
             # No real spot price — optimisation would be meaningless / would
             # divide by a null price. Return a clean error, not a 500.
@@ -3860,10 +3862,10 @@ async def optimize_options_strategy(req: OptimizeRequest):
                 "results": [],
                 "error": stock.get("error") or f"No market data available for {req.symbol}.",
             }
-        expirations = get_available_expirations(req.symbol) or generate_expirations()
+        expirations = await asyncio.to_thread(get_available_expirations, req.symbol) or generate_expirations()
         idx = max(0, min(req.expirationIdx, len(expirations) - 1))
         expiration = expirations[idx]
-        chain = get_options_chain_real(req.symbol, expiration["date"])
+        chain = await asyncio.to_thread(get_options_chain_real, req.symbol, expiration["date"])
         if not chain:
             chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
 
@@ -3994,7 +3996,7 @@ async def portfolio_greeks(user=Depends(get_current_user)):
     enriched = []
     for pos in positions:
         try:
-            stock = get_stock_data(pos["symbol"])
+            stock = await asyncio.to_thread(get_stock_data, pos["symbol"])
             legs_dicts = []
             for leg in pos.get("legs", []):
                 legs_dicts.append({
@@ -4082,7 +4084,8 @@ async def get_iv_rank(symbol: str) -> Dict[str, Any]:
             return {"symbol": symbol.upper(), "available": False}
 
         spot = float(hist["Close"].iloc[-1])
-        current_iv = _fetch_atm_iv_proxy(symbol, spot)
+        # _fetch_atm_iv_proxy does blocking yfinance calls — keep it off the loop
+        current_iv = await asyncio.to_thread(_fetch_atm_iv_proxy, symbol, spot)
 
         iv_high = float(rolling_vol.max())
         iv_low = float(rolling_vol.min())
@@ -4156,12 +4159,12 @@ def _scan_chain_for_unusual(symbol: str, chain: List[Dict[str, Any]], exp: Dict[
 async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: int = 100) -> Dict[str, Any]:
     """Detect unusual options activity (volume >> open interest) across the 5 nearest expiries."""
     try:
-        stock = get_stock_data(symbol)
-        expirations = get_available_expirations(symbol) or generate_expirations()
+        stock = await asyncio.to_thread(get_stock_data, symbol)
+        expirations = await asyncio.to_thread(get_available_expirations, symbol) or generate_expirations()
 
         all_unusual: List[Dict[str, Any]] = []
         for exp in expirations[:5]:
-            chain = get_options_chain_real(symbol, exp["date"])
+            chain = await asyncio.to_thread(get_options_chain_real, symbol, exp["date"])
             if not chain:
                 continue
             all_unusual.extend(_scan_chain_for_unusual(symbol, chain, exp, stock, min_ratio, min_volume))
