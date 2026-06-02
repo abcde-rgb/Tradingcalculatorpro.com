@@ -1000,6 +1000,20 @@ async def verify_password_async(password: str, hashed: str) -> bool:
     return await loop.run_in_executor(None, verify_password, password, hashed)
 
 
+async def _yf_history_async(symbol: str, **history_kwargs):
+    """Fetch yfinance price history WITHOUT blocking the event loop.
+
+    yfinance uses synchronous HTTP, so calling Ticker(...).history() directly
+    inside an async endpoint stalls every other request handled by the same
+    worker (Cloud Run runs up to `concurrency` requests on one event loop).
+    Offload it to a thread, mirroring hash_password_async / verify_password_async.
+    """
+    import asyncio as _asyncio
+    import yfinance as yf
+    loop = _asyncio.get_event_loop()
+    return await loop.run_in_executor(None, lambda: yf.Ticker(symbol).history(**history_kwargs))
+
+
 def _hash_token(token: str) -> str:
     """SHA-256 hash a one-time token before storing it in the DB."""
     return hashlib.sha256(token.encode()).hexdigest()
@@ -1843,10 +1857,9 @@ async def get_prices():
 
     # ── REAL commodities via yfinance (GC=F gold, SI=F silver, CL=F oil) ──
     try:
-        import yfinance as yf
         eur_usd = 0.92
         try:
-            fx = yf.Ticker("EURUSD=X").history(period="2d")
+            fx = await _yf_history_async("EURUSD=X", period="2d")
             if not fx.empty:
                 eur_usd = 1 / float(fx["Close"].iloc[-1])
         except Exception:
@@ -1854,8 +1867,7 @@ async def get_prices():
         commodity_map = {"gold": "GC=F", "silver": "SI=F", "oil": "CL=F"}
         for label, sym in commodity_map.items():
             try:
-                t = yf.Ticker(sym)
-                hist = t.history(period="2d")
+                hist = await _yf_history_async(sym, period="2d")
                 if hist.empty:
                     continue
                 price = float(hist["Close"].iloc[-1])
@@ -1974,7 +1986,7 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
 
         for cand in candidate_symbols:
             try:
-                hist = yf.Ticker(cand).history(period=period_str, interval=interval)
+                hist = await _yf_history_async(cand, period=period_str, interval=interval)
                 if hist.empty:
                     continue
                 candles = []
@@ -2715,14 +2727,20 @@ async def run_backtest(request: dict, user: dict = Depends(require_user)) -> Dic
     days = int(request.get("days", 180))
 
     try:
-        sim = _run_real_backtest(
-            symbol=symbol,
-            strategy=strategy,
-            days=days,
-            initial_capital=initial_capital,
-            take_profit_pct=take_profit,
-            stop_loss_pct=stop_loss,
-            leverage=leverage,
+        # _run_real_backtest does synchronous yfinance I/O + number crunching;
+        # run it in a thread so it doesn't block the event loop.
+        loop = asyncio.get_event_loop()
+        sim = await loop.run_in_executor(
+            None,
+            lambda: _run_real_backtest(
+                symbol=symbol,
+                strategy=strategy,
+                days=days,
+                initial_capital=initial_capital,
+                take_profit_pct=take_profit,
+                stop_loss_pct=stop_loss,
+                leverage=leverage,
+            ),
         )
     except HTTPException:
         raise
@@ -3881,11 +3899,13 @@ async def optimize_options_strategy(req: OptimizeRequest):
 async def get_next_earnings(symbol: str):
     """Next earnings date from yfinance (used to warn about IV crush)."""
     try:
+        import asyncio as _asyncio
         import yfinance as yf
         ticker = yf.Ticker(symbol)
         cal = None
         try:
-            cal = ticker.calendar
+            # ticker.calendar performs synchronous HTTP — offload off the event loop
+            cal = await _asyncio.get_event_loop().run_in_executor(None, lambda: ticker.calendar)
         except Exception:
             cal = None
         earnings_date = None
@@ -4053,8 +4073,7 @@ def _iv_rank_recommendation(iv_rank: float) -> str:
 async def get_iv_rank(symbol: str) -> Dict[str, Any]:
     """Compute IV Rank & Percentile from realized volatility (1y window)."""
     try:
-        import yfinance as yf
-        hist = yf.Ticker(symbol).history(period="1y")
+        hist = await _yf_history_async(symbol, period="1y")
         if hist.empty or len(hist) < 30:
             return {"symbol": symbol.upper(), "available": False}
 
@@ -4334,9 +4353,17 @@ def _scan_ticker_flow(sym: str, min_ratio: float, min_volume: int) -> List[Dict[
 async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume: int = 300, max_results: int = 30, user: dict = Depends(require_user)) -> Dict[str, Any]:
     """Scan popular tickers for unusual options activity (market-wide flow)."""
     try:
-        all_flow: List[Dict[str, Any]] = []
-        for sym in MARKET_FLOW_TICKERS:
-            all_flow.extend(_scan_ticker_flow(sym, min_ratio, min_volume))
+        # Each _scan_ticker_flow does several blocking yfinance calls (quote +
+        # option chains). Run the whole scan in a thread to avoid blocking the
+        # event loop for the duration of the market-wide sweep.
+        def _scan_all() -> List[Dict[str, Any]]:
+            flow: List[Dict[str, Any]] = []
+            for sym in MARKET_FLOW_TICKERS:
+                flow.extend(_scan_ticker_flow(sym, min_ratio, min_volume))
+            return flow
+
+        loop = asyncio.get_event_loop()
+        all_flow = await loop.run_in_executor(None, _scan_all)
         all_flow.sort(key=lambda x: x["estNotional"], reverse=True)
         return {
             "scannedTickers": len(MARKET_FLOW_TICKERS),
@@ -4376,7 +4403,11 @@ async def education_pattern_scan(
     pattern detections (educational view)."""
     sym = symbol.upper().strip()
     try:
-        rows = _yfinance_to_ohlc_rows(sym, period=period, interval=interval)
+        # _yfinance_to_ohlc_rows does synchronous yfinance I/O — keep it off the loop
+        loop = asyncio.get_event_loop()
+        rows = await loop.run_in_executor(
+            None, lambda: _yfinance_to_ohlc_rows(sym, period=period, interval=interval)
+        )
         if not rows:
             return {"symbol": sym, "rowsScanned": 0, "totalDetections": 0, "detections": []}
         detections = detect_all_patterns(rows)

@@ -46,8 +46,11 @@ Contrario a lo que decía el diario anterior, **los Price IDs SÍ están en el c
 No hay ningún `return {"total_users": 1250}`. `GET /admin/metrics` calcula valores
 **reales**: `total_users = len(all_users)`, premium/admin counts, `new_users_30d`,
 MRR, breakdown por plan/proveedor/locale.
-**Nota:** el backend usa **MongoDB** (`db.users.find(...)`), no PostgreSQL como
-asumía el diario anterior.
+**Nota (corregida):** el backend usa **PostgreSQL (asyncpg)** con un **adaptador
+hecho a mano compatible con la API de Motor/MongoDB** (`server.py:352`, "Motor-compatible
+Collection wrapper over asyncpg + JSONB"). Por eso el código usa `db.users.find(...)`
+estilo Mongo aunque por debajo sea SQL. (El diario anterior decía PostgreSQL a secas;
+una versión intermedia de este diario dijo MongoDB — ambas imprecisas. Esta es la real.)
 
 ---
 
@@ -84,6 +87,50 @@ directos (`/dashboard`, etc.) devolvían 404.
 mostraba "email enviado" **sin enviar nada**. Sustituido por un error honesto
 (`toast.error('Backend no configurado')`), coherente con el patrón ya usado en
 `MagicPage`/`RegisterPage` del mismo archivo.
+
+---
+
+### BUG-010 — yfinance bloqueaba el event loop (HTTP síncrono en endpoints async) 🆕
+**Severidad:** 🔴 CRÍTICA (rendimiento/escalabilidad) · **Archivo:** `backend/server.py` · **Estado:** ✅ RESUELTO (alto tráfico) · ⏳ PARCIAL (módulo opciones)
+
+**Causa raíz:** `yfinance` hace peticiones HTTP **síncronas**. Llamarlo directamente
+dentro de un `async def` **bloquea todo el event loop** mientras dura la red. En Cloud
+Run con `concurrency: 80`, una sola llamada lenta congela las 80 peticiones de esa
+instancia. El código ya usaba `run_in_executor` para bcrypt/Stripe/email, pero **se
+olvidó de yfinance**.
+
+**Solución aplicada:** nuevo helper `_yf_history_async()` (mismo patrón que
+`hash_password_async`) + offload a thread en los **8 endpoints públicos / de más
+tráfico**:
+- `GET /prices` (el peor: 4 llamadas yfinance secuenciales, endpoint público del ticker)
+- `GET /ohlc/{symbol}`, `POST /backtest`, `GET /iv-rank`, earnings (`.calendar`),
+  `education/pattern-scan`, `market-wide-flow`.
+
+**Pendiente (mismo patrón, menor tráfico — premium/autenticado):** el módulo de opciones
+(`opt_get_stock`, `opt_get_options_chain`, `opt_get_iv_surface`, `optimize_options_strategy`,
+`portfolio_greeks`, `get_unusual_options`, `universal_search_tickers`, ~9 endpoints) llama
+funciones síncronas de `stock_data.py` directamente. Recomendado: ofrecer wrappers async de
+`stock_data` u offload por endpoint, en un pase dedicado con tests.
+
+### BUG-011 — Código muerto engañoso (módulos huérfanos) 🆕
+**Severidad:** 🟡 MENOR (limpieza/confusión) · **Estado:** ⏳ REPORTADO (no eliminado sin confirmar)
+
+Dos módulos **nunca se importan ni registran** en `server.py`:
+- `backend/fixes.py` — "parches críticos" de mayo 2026 (forex/índices/oro reales vía
+  Finnhub, `check_jwt_secret`, `change_plan_real`). Su docstring dice "Uso en server.py:
+  from fixes import (...)" pero **nunca se conectó**. Está **superado**: `server.py` ya sirve
+  datos reales vía yfinance/CoinGecko. → Candidato a **eliminar**.
+- `backend/admin_diary_endpoint.py` — router con 3 endpoints admin para exponer este
+  `DIARIO_BUGS.md` vía API. **Nunca se incluye** en la app. → O **eliminar**, o **cablearlo**
+  si se quiere la función (decisión del dueño).
+
+### BUG-012 — Adaptador SQL: LIMIT/OFFSET por interpolación (hardening) 🆕
+**Severidad:** 🟢 BAJA · **Archivo:** `server.py` (`_build_query`) · **Estado:** ⏳ REPORTADO
+
+El `WHERE` parametriza valores con `$1,$2` y valida nombres de campo con regex (✅ sin
+inyección). Pero `LIMIT {self._limit_val}` / `OFFSET {self._skip_val}` se **interpolan**
+directamente. Hoy reciben enteros (params tipados `int` de FastAPI), así que no hay riesgo
+real, pero conviene castear a `int()` o parametrizar como defensa en profundidad.
 
 ---
 
@@ -125,11 +172,16 @@ Trabajo estimado: 4-6 h. No es una regresión; es deuda técnica pre-existente.
 | BUG-007 | Preferencias en localStorage | 🟡 | ❌ Pendiente (baja prioridad) |
 | BUG-008 | server.py monolítico | 🟠 | ❌ Pendiente (deuda técnica) |
 | BUG-009 | Workflows de deploy en carrera | 🔴 | ✅ Resuelto esta sesión |
+| BUG-010 | yfinance bloqueaba el event loop | 🔴 | ✅ 8 endpoints / ⏳ opciones pendiente |
+| BUG-011 | Código muerto (fixes.py, admin_diary_endpoint.py) | 🟡 | ⏳ Reportado (no borrado sin confirmar) |
+| BUG-012 | LIMIT/OFFSET por interpolación (hardening) | 🟢 | ⏳ Reportado (riesgo real nulo) |
 
 **Conclusión:** la app está **mucho más cerca del 100%** de lo que el diario anterior
-sugería. El bloqueante real era la condición de carrera entre los dos workflows de
-despliegue (BUG-009), ya resuelta. Quedan solo dos pendientes de fondo (BUG-007 menor,
-BUG-008 deuda técnica) que no afectan a la operación.
+sugería. Los bloqueantes reales eran (1) la condición de carrera entre los dos workflows
+de despliegue (BUG-009) y (2) yfinance bloqueando el event loop en los endpoints públicos
+(BUG-010) — ambos resueltos. Pendientes: el mismo patrón yfinance en el módulo de opciones
+(premium), limpieza de código muerto (BUG-011) y deuda de fondo (BUG-007, BUG-008).
+El adaptador SQL es seguro (sin inyección); JWT/CORS están bien configurados.
 
 ---
 
