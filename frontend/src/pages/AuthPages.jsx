@@ -397,8 +397,9 @@ export const ForgotPasswordPage = () => {
     e.preventDefault();
     setIsLoading(true);
     if (!API) {
-      await new Promise(r => setTimeout(r, 600));
-      setSent(true);
+      // No mentir al usuario: si no hay backend configurado, decirlo claramente
+      // en lugar de simular un "email enviado" que nunca llega.
+      toast.error('Backend no configurado');
       setIsLoading(false);
       return;
     }

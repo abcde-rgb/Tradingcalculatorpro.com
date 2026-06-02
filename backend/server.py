@@ -274,8 +274,8 @@ class _Cursor:
             # ISO date strings sort correctly as text
             order = f"ORDER BY (data->>'{self._sort_field}') {dir_str} NULLS LAST"
 
-        limit_clause = f"LIMIT {self._limit_val}" if self._limit_val is not None else ""
-        offset_clause = f"OFFSET {self._skip_val}" if self._skip_val else ""
+        limit_clause = f"LIMIT {int(self._limit_val)}" if self._limit_val is not None else ""
+        offset_clause = f"OFFSET {int(self._skip_val)}" if self._skip_val else ""
 
         sql = f"SELECT data FROM {self._table} {where} {order} {limit_clause} {offset_clause}".strip()
         return sql, params
@@ -998,6 +998,20 @@ async def verify_password_async(password: str, hashed: str) -> bool:
     import asyncio as _asyncio
     loop = _asyncio.get_event_loop()
     return await loop.run_in_executor(None, verify_password, password, hashed)
+
+
+async def _yf_history_async(symbol: str, **history_kwargs):
+    """Fetch yfinance price history WITHOUT blocking the event loop.
+
+    yfinance uses synchronous HTTP, so calling Ticker(...).history() directly
+    inside an async endpoint stalls every other request handled by the same
+    worker (Cloud Run runs up to `concurrency` requests on one event loop).
+    Offload it to a thread, mirroring hash_password_async / verify_password_async.
+    """
+    import asyncio as _asyncio
+    import yfinance as yf
+    loop = _asyncio.get_event_loop()
+    return await loop.run_in_executor(None, lambda: yf.Ticker(symbol).history(**history_kwargs))
 
 
 def _hash_token(token: str) -> str:
@@ -1843,10 +1857,9 @@ async def get_prices():
 
     # ── REAL commodities via yfinance (GC=F gold, SI=F silver, CL=F oil) ──
     try:
-        import yfinance as yf
         eur_usd = 0.92
         try:
-            fx = yf.Ticker("EURUSD=X").history(period="2d")
+            fx = await _yf_history_async("EURUSD=X", period="2d")
             if not fx.empty:
                 eur_usd = 1 / float(fx["Close"].iloc[-1])
         except Exception:
@@ -1854,8 +1867,7 @@ async def get_prices():
         commodity_map = {"gold": "GC=F", "silver": "SI=F", "oil": "CL=F"}
         for label, sym in commodity_map.items():
             try:
-                t = yf.Ticker(sym)
-                hist = t.history(period="2d")
+                hist = await _yf_history_async(sym, period="2d")
                 if hist.empty:
                     continue
                 price = float(hist["Close"].iloc[-1])
@@ -1974,7 +1986,7 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
 
         for cand in candidate_symbols:
             try:
-                hist = yf.Ticker(cand).history(period=period_str, interval=interval)
+                hist = await _yf_history_async(cand, period=period_str, interval=interval)
                 if hist.empty:
                     continue
                 candles = []
@@ -2715,14 +2727,20 @@ async def run_backtest(request: dict, user: dict = Depends(require_user)) -> Dic
     days = int(request.get("days", 180))
 
     try:
-        sim = _run_real_backtest(
-            symbol=symbol,
-            strategy=strategy,
-            days=days,
-            initial_capital=initial_capital,
-            take_profit_pct=take_profit,
-            stop_loss_pct=stop_loss,
-            leverage=leverage,
+        # _run_real_backtest does synchronous yfinance I/O + number crunching;
+        # run it in a thread so it doesn't block the event loop.
+        loop = asyncio.get_event_loop()
+        sim = await loop.run_in_executor(
+            None,
+            lambda: _run_real_backtest(
+                symbol=symbol,
+                strategy=strategy,
+                days=days,
+                initial_capital=initial_capital,
+                take_profit_pct=take_profit,
+                stop_loss_pct=stop_loss,
+                leverage=leverage,
+            ),
         )
     except HTTPException:
         raise
@@ -3539,7 +3557,7 @@ def _payoff_summary(
 @api_router.get("/stock/{symbol}")
 async def opt_get_stock(symbol: str):
     try:
-        data = get_stock_data(symbol)
+        data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
         logging.error(f"Error getting stock data for {symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -3610,13 +3628,15 @@ def _classify_symbol(sym: str) -> dict:
 
 @api_router.get("/tickers/search")
 async def opt_search_tickers(q: str = ""):
-    results = search_tickers(q)
-    return {
-        "results": [
+    # search_tickers + per-symbol get_stock_data are blocking yfinance calls;
+    # run the whole build in a thread so the event loop stays free.
+    def _search_with_quotes():
+        results = search_tickers(q)
+        return [
             {"symbol": sym, **get_stock_data(sym)}
             for sym in results[:15]
         ]
-    }
+    return {"results": await asyncio.to_thread(_search_with_quotes)}
 
 
 @api_router.get("/tickers/universal-search")
@@ -3627,7 +3647,7 @@ async def universal_search_tickers(q: str = "", limit: int = 30):
     crypto price store. Avoids the 5–15s latency of fetching yfinance per ticker.
     """
     capped_limit = max(1, min(50, limit))
-    results = search_tickers(q)[:capped_limit]
+    results = (await asyncio.to_thread(search_tickers, q))[:capped_limit]
     return {
         "results": [
             {"symbol": sym, **_classify_symbol(sym)}
@@ -3638,8 +3658,8 @@ async def universal_search_tickers(q: str = "", limit: int = 30):
 
 @api_router.get("/options/expirations/{symbol}")
 async def opt_get_expirations(symbol: str):
-    stock = get_stock_data(symbol)
-    expirations = get_available_expirations(symbol)
+    stock = await asyncio.to_thread(get_stock_data, symbol)
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if expirations:
         return {"stock": stock, "expirations": expirations, "source": "market"}
     # Yahoo Finance gave us nothing — fall back to mathematically estimated dates,
@@ -3656,7 +3676,7 @@ async def opt_get_expirations(symbol: str):
 
 @api_router.get("/options/chain/{symbol}")
 async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
-    stock = get_stock_data(symbol)
+    stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
         # No real spot price — don't fabricate a synthetic chain on top of
         # missing data. Surface the error so the frontend can warn the user
@@ -3667,13 +3687,13 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
             "chain": [],
             "error": stock.get("error") or f"No market data available for {symbol}.",
         }
-    expirations = get_available_expirations(symbol)
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if not expirations:
         expirations = generate_expirations()
     if expiration_idx >= len(expirations):
         expiration_idx = min(3, len(expirations) - 1)
     expiration = expirations[expiration_idx]
-    chain = get_options_chain_real(symbol, expiration["date"])
+    chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
     if not chain:
         chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
     else:
@@ -3706,7 +3726,7 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
 
 @api_router.get("/options/iv-surface/{symbol}")
 async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
-    stock = get_stock_data(symbol)
+    stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
         # No real spot price — can't build an IV surface. Return an empty,
         # flagged response instead of crashing on arithmetic with a null price.
@@ -3717,14 +3737,14 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
             "expirations": [],
             "error": stock.get("error") or f"No market data available for {symbol}.",
         }
-    expirations = get_available_expirations(symbol)
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if not expirations:
         expirations = generate_expirations()
     expirations = expirations[:max_expirations]
     surface_data = []
     all_strikes = set()
     for exp in expirations:
-        chain = get_options_chain_real(symbol, exp["date"])
+        chain = await asyncio.to_thread(get_options_chain_real, symbol, exp["date"])
         if not chain:
             chain = generate_options_chain(stock["price"], exp["daysToExpiry"])
         exp_data = {
@@ -3833,7 +3853,7 @@ class OptimizeRequest(BaseModel):
 async def optimize_options_strategy(req: OptimizeRequest):
     try:
         from options_optimize import optimize_strategies
-        stock = get_stock_data(req.symbol)
+        stock = await asyncio.to_thread(get_stock_data, req.symbol)
         if stock.get("price") is None:
             # No real spot price — optimisation would be meaningless / would
             # divide by a null price. Return a clean error, not a 500.
@@ -3842,10 +3862,10 @@ async def optimize_options_strategy(req: OptimizeRequest):
                 "results": [],
                 "error": stock.get("error") or f"No market data available for {req.symbol}.",
             }
-        expirations = get_available_expirations(req.symbol) or generate_expirations()
+        expirations = await asyncio.to_thread(get_available_expirations, req.symbol) or generate_expirations()
         idx = max(0, min(req.expirationIdx, len(expirations) - 1))
         expiration = expirations[idx]
-        chain = get_options_chain_real(req.symbol, expiration["date"])
+        chain = await asyncio.to_thread(get_options_chain_real, req.symbol, expiration["date"])
         if not chain:
             chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
 
@@ -3881,11 +3901,13 @@ async def optimize_options_strategy(req: OptimizeRequest):
 async def get_next_earnings(symbol: str):
     """Next earnings date from yfinance (used to warn about IV crush)."""
     try:
+        import asyncio as _asyncio
         import yfinance as yf
         ticker = yf.Ticker(symbol)
         cal = None
         try:
-            cal = ticker.calendar
+            # ticker.calendar performs synchronous HTTP — offload off the event loop
+            cal = await _asyncio.get_event_loop().run_in_executor(None, lambda: ticker.calendar)
         except Exception:
             cal = None
         earnings_date = None
@@ -3974,7 +3996,7 @@ async def portfolio_greeks(user=Depends(get_current_user)):
     enriched = []
     for pos in positions:
         try:
-            stock = get_stock_data(pos["symbol"])
+            stock = await asyncio.to_thread(get_stock_data, pos["symbol"])
             legs_dicts = []
             for leg in pos.get("legs", []):
                 legs_dicts.append({
@@ -4053,8 +4075,7 @@ def _iv_rank_recommendation(iv_rank: float) -> str:
 async def get_iv_rank(symbol: str) -> Dict[str, Any]:
     """Compute IV Rank & Percentile from realized volatility (1y window)."""
     try:
-        import yfinance as yf
-        hist = yf.Ticker(symbol).history(period="1y")
+        hist = await _yf_history_async(symbol, period="1y")
         if hist.empty or len(hist) < 30:
             return {"symbol": symbol.upper(), "available": False}
 
@@ -4063,7 +4084,8 @@ async def get_iv_rank(symbol: str) -> Dict[str, Any]:
             return {"symbol": symbol.upper(), "available": False}
 
         spot = float(hist["Close"].iloc[-1])
-        current_iv = _fetch_atm_iv_proxy(symbol, spot)
+        # _fetch_atm_iv_proxy does blocking yfinance calls — keep it off the loop
+        current_iv = await asyncio.to_thread(_fetch_atm_iv_proxy, symbol, spot)
 
         iv_high = float(rolling_vol.max())
         iv_low = float(rolling_vol.min())
@@ -4137,12 +4159,12 @@ def _scan_chain_for_unusual(symbol: str, chain: List[Dict[str, Any]], exp: Dict[
 async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: int = 100) -> Dict[str, Any]:
     """Detect unusual options activity (volume >> open interest) across the 5 nearest expiries."""
     try:
-        stock = get_stock_data(symbol)
-        expirations = get_available_expirations(symbol) or generate_expirations()
+        stock = await asyncio.to_thread(get_stock_data, symbol)
+        expirations = await asyncio.to_thread(get_available_expirations, symbol) or generate_expirations()
 
         all_unusual: List[Dict[str, Any]] = []
         for exp in expirations[:5]:
-            chain = get_options_chain_real(symbol, exp["date"])
+            chain = await asyncio.to_thread(get_options_chain_real, symbol, exp["date"])
             if not chain:
                 continue
             all_unusual.extend(_scan_chain_for_unusual(symbol, chain, exp, stock, min_ratio, min_volume))
@@ -4334,9 +4356,17 @@ def _scan_ticker_flow(sym: str, min_ratio: float, min_volume: int) -> List[Dict[
 async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume: int = 300, max_results: int = 30, user: dict = Depends(require_user)) -> Dict[str, Any]:
     """Scan popular tickers for unusual options activity (market-wide flow)."""
     try:
-        all_flow: List[Dict[str, Any]] = []
-        for sym in MARKET_FLOW_TICKERS:
-            all_flow.extend(_scan_ticker_flow(sym, min_ratio, min_volume))
+        # Each _scan_ticker_flow does several blocking yfinance calls (quote +
+        # option chains). Run the whole scan in a thread to avoid blocking the
+        # event loop for the duration of the market-wide sweep.
+        def _scan_all() -> List[Dict[str, Any]]:
+            flow: List[Dict[str, Any]] = []
+            for sym in MARKET_FLOW_TICKERS:
+                flow.extend(_scan_ticker_flow(sym, min_ratio, min_volume))
+            return flow
+
+        loop = asyncio.get_event_loop()
+        all_flow = await loop.run_in_executor(None, _scan_all)
         all_flow.sort(key=lambda x: x["estNotional"], reverse=True)
         return {
             "scannedTickers": len(MARKET_FLOW_TICKERS),
@@ -4376,7 +4406,11 @@ async def education_pattern_scan(
     pattern detections (educational view)."""
     sym = symbol.upper().strip()
     try:
-        rows = _yfinance_to_ohlc_rows(sym, period=period, interval=interval)
+        # _yfinance_to_ohlc_rows does synchronous yfinance I/O — keep it off the loop
+        loop = asyncio.get_event_loop()
+        rows = await loop.run_in_executor(
+            None, lambda: _yfinance_to_ohlc_rows(sym, period=period, interval=interval)
+        )
         if not rows:
             return {"symbol": sym, "rowsScanned": 0, "totalDetections": 0, "detections": []}
         detections = detect_all_patterns(rows)

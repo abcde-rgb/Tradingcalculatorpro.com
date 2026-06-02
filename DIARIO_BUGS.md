@@ -1,243 +1,192 @@
 # 📋 DIARIO DE BUGS & FIXES — TradingCalculator.Pro
 
-> **Instrucciones:** Este archivo se actualiza automáticamente con cada problema detectado, su solución y si está 100% resuelto.
-> Formato: cada entrada tiene fecha, descripción del bug, causa raíz, solución aplicada y estado de resolución.
+> **Instrucciones:** Cada entrada tiene fecha, descripción, causa raíz, solución y estado **verificado contra el código real** (no suposiciones).
+>
+> ⚠️ **Aviso importante (2026-06-02):** la versión anterior de este diario estaba
+> desactualizada: marcaba como "SIN RESOLVER" varios bugs que el código **ya
+> tenía corregidos**, y estimaba "~30% funcional" cuando la realidad es mucho
+> mayor. Fue creada sin contrastar con el código. Esta versión corrige esas
+> inexactitudes verificando archivo por archivo.
 
 ---
 
-## 🔴 BUGS CRÍTICOS
+## ✅ BUGS YA RESUELTOS EN EL CÓDIGO (el diario anterior los daba por rotos)
+
+### BUG-001 — Demo bypass admin en store.js
+**Severidad:** 🔴 CRÍTICA · **Archivo:** `frontend/src/lib/store.js` · **Estado:** ✅ RESUELTO
+
+El bypass hardcodeado (`DEMO_USER` con `is_admin:true` inyectado si el email era
+`demo@btccalc.pro`) **ya no existe**. `login()` solo autentica contra el backend.
+El único resto es `DEMO_TOKEN`, que se usa para *omitir* llamadas API cuando el
+backend emite un token demo — no concede privilegios en el cliente.
+**Verificado:** `store.js` no contiene ningún objeto `DEMO_USER` ni bloque
+`if (email === 'demo@btccalc.pro')`.
+
+### BUG-002 — REACT_APP_BACKEND_URL en el build
+**Severidad:** 🔴 CRÍTICA · **Archivos:** `store.js`, workflows · **Estado:** ✅ RESUELTO
+
+El código ya **no genera `undefined` silencioso**: `const API = BACKEND_URL ? ... : null`
+y cada acción devuelve `backendNotConfigured` si `!API`. El build de producción
+inyecta `REACT_APP_BACKEND_URL` vía `deploy-gh-pages.yml`.
+**Nota operativa:** que el secreto esté configurado en GitHub es responsabilidad de
+despliegue, pero el código ya lo maneja con elegancia.
+
+### BUG-003 — Stripe checkout/webhooks
+**Severidad:** 🔴 CRÍTICA · **Archivo:** `backend/server.py` · **Estado:** ✅ IMPLEMENTADO EN CÓDIGO
+
+Contrario a lo que decía el diario anterior, **los Price IDs SÍ están en el código**:
+`monthly/quarterly/annual/lifetime` con `stripe_price_id: price_1TXM8...`. Existe
+`POST /api/checkout/create`, `stripe.checkout.Session.create(...)` y manejo de webhook.
+**Pendiente (ops, no código):** confirmar que las claves `STRIPE_API_KEY` /
+`STRIPE_WEBHOOK_SECRET` y los productos están activos en el dashboard de Stripe.
+
+### BUG-004 — Panel admin con datos "hardcodeados"
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/admin_routes.py` · **Estado:** ✅ RESUELTO
+
+No hay ningún `return {"total_users": 1250}`. `GET /admin/metrics` calcula valores
+**reales**: `total_users = len(all_users)`, premium/admin counts, `new_users_30d`,
+MRR, breakdown por plan/proveedor/locale.
+**Nota (corregida):** el backend usa **PostgreSQL (asyncpg)** con un **adaptador
+hecho a mano compatible con la API de Motor/MongoDB** (`server.py:352`, "Motor-compatible
+Collection wrapper over asyncpg + JSONB"). Por eso el código usa `db.users.find(...)`
+estilo Mongo aunque por debajo sea SQL. (El diario anterior decía PostgreSQL a secas;
+una versión intermedia de este diario dijo MongoDB — ambas imprecisas. Esta es la real.)
 
 ---
 
-### [2026-06-01] BUG-001 — Demo bypass admin en store.js
-**Severidad:** 🔴 CRÍTICA  
-**Archivo afectado:** `frontend/src/lib/store.js`  
-**Estado:** ❌ SIN RESOLVER
+## 🟠 BUGS REALES CORREGIDOS EN ESTA SESIÓN (2026-06-02)
 
-**Descripción del problema:**
-Existe un bypass hardcodeado en la función `login()` del store de Zustand. Si el email es `demo@btccalc.pro`, el sistema inyecta un usuario con `is_admin: true` y `subscription_plan: 'lifetime'` sin verificar nada en el backend ni en la base de datos.
+### BUG-009 — Dos workflows desplegando el frontend (condición de carrera) 🆕
+**Severidad:** 🔴 CRÍTICA · **Archivos:** `.github/workflows/deploy-cloud-run.yml`,
+`.github/workflows/deploy-gh-pages.yml` · **Estado:** ✅ RESUELTO
 
-**Causa raíz:**
-```js
-const DEMO_USER = { id: 'demo', is_admin: true, is_premium: true, subscription_plan: 'lifetime' }
-if (email === 'demo@btccalc.pro') {
-  set({ user: DEMO_USER, token: DEMO_TOKEN ... });
-  return { success: true };
-}
-```
+**Causa raíz (la "cagada" entre los dos asistentes):** dos asistentes distintos
+crearon, sin coordinarse, **dos jobs que despliegan el frontend a la rama `gh-pages`**
+ante el mismo evento (`push` a `main` con cambios en `frontend/**`):
 
-**Impacto:**
-- Cualquier persona que conozca ese email tiene acceso admin total
-- Visible en el código fuente del build de producción
-- Exposición de funciones admin y datos de usuarios reales
+- `deploy-gh-pages.yml` (correcto y completo): `REACT_APP_GOOGLE_CLIENT_ID` + analytics
+  (GA4/GTM/GSC/Bing) + `PUBLIC_URL` + copia `index.html → 404.html` para rutas SPA +
+  `npm ci --legacy-peer-deps`.
+- `deploy-cloud-run.yml → job deploy-frontend` (añadido después, **degradado**): solo
+  `REACT_APP_BACKEND_URL`, **sin** Google OAuth, **sin** analytics, **sin** `404.html`,
+  `npm ci` sin `--legacy-peer-deps` y `force_orphan: true`.
 
-**Solución requerida:**
-1. Eliminar las líneas de `DEMO_USER`, `DEMO_TOKEN` y el bloque `if (email === 'demo@btccalc.pro')` en `store.js`
-2. Si se necesita acceso de prueba, crear usuario real en PostgreSQL con contraseña segura
-3. Hacer rebuild y redeploy del frontend
+Ambos corrían en paralelo y **el último en terminar sobrescribía al otro**. Si ganaba
+el degradado: se rompía el login con Google, se perdían las analíticas y los enlaces
+directos (`/dashboard`, etc.) devolvían 404.
 
-**Resuelto al 100%:** ❌ NO — Pendiente de implementar
+**Solución aplicada:**
+1. Eliminado el job `deploy-frontend` de `deploy-cloud-run.yml`.
+2. `deploy-cloud-run.yml` ya **solo** se dispara con `backend/**` (responsabilidad: backend).
+3. `deploy-gh-pages.yml` queda como **única** vía de despliegue del frontend.
 
----
+### BUG-006 — "Olvidé mi contraseña" mentía al usuario
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `frontend/src/pages/AuthPages.jsx` · **Estado:** ✅ RESUELTO
 
-### [2026-06-01] BUG-002 — REACT_APP_BACKEND_URL no configurado en el build
-**Severidad:** 🔴 CRÍTICA  
-**Archivo afectado:** `frontend/src/lib/store.js`, `.github/workflows/deploy.yml`  
-**Estado:** ❌ SIN RESOLVER
-
-**Descripción del problema:**
-Todo el frontend depende de `const API = process.env.REACT_APP_BACKEND_URL`. Si esta variable no está en GitHub Secrets cuando se hace el build de producción, el valor resulta `undefined` y **NINGUNA función que requiera backend funciona**: login, registro, precios, pagos, alertas, descarga de datos.
-
-**Causa raíz:**
-Variables de entorno de React deben estar disponibles en BUILD TIME (no en runtime). Si no están en los GitHub Secrets del workflow, el bundle se genera con `undefined`.
-
-**Síntoma observable:**
-- Login muestra error genérico de conexión
-- Forgot password muestra "Email enviado" pero no envía nada (hay un setTimeout falso)
-- Botones de pago no redirigen a Stripe
-
-**Solución requerida:**
-1. GitHub → repo → Settings → Secrets and variables → Actions → New repository secret
-2. Nombre: `REACT_APP_BACKEND_URL` | Valor: `https://tradingcalculator-api-704202303011.us-central1.run.app`
-3. Nombre: `REACT_APP_GOOGLE_CLIENT_ID` | Valor: tu client ID de Google OAuth
-4. Verificar en `.github/workflows/deploy.yml` que se pasan al build:
-   ```yaml
-   env:
-     REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
-     REACT_APP_GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
-   ```
-5. Hacer trigger del workflow de deploy
-
-**Resuelto al 100%:** ❌ NO — Pendiente de implementar
+`ForgotPasswordPage` tenía un fallback que, si `!API`, hacía `setTimeout(600ms)` y
+mostraba "email enviado" **sin enviar nada**. Sustituido por un error honesto
+(`toast.error('Backend no configurado')`), coherente con el patrón ya usado en
+`MagicPage`/`RegisterPage` del mismo archivo.
 
 ---
 
-### [2026-06-01] BUG-003 — Stripe: checkout y webhooks no configurados
-**Severidad:** 🔴 CRÍTICA  
-**Archivo afectado:** `backend/server.py`, `frontend/src/pages/PricingPage.jsx`  
-**Estado:** ❌ SIN RESOLVER
+### BUG-010 — yfinance bloqueaba el event loop (HTTP síncrono en endpoints async) 🆕
+**Severidad:** 🔴 CRÍTICA (rendimiento/escalabilidad) · **Archivo:** `backend/server.py` · **Estado:** ✅ RESUELTO (COMPLETO)
 
-**Descripción del problema:**
-El flujo de pago completo está roto en producción:
-1. `POST /api/checkout/create` falla con error 500 porque `STRIPE_API_KEY` no está configurada en Cloud Run
-2. Aunque alguien pagara, nunca recibiría acceso premium porque el webhook de Stripe no está configurado
-3. Los 4 productos (monthly, quarterly, annual, lifetime) no existen en el dashboard de Stripe o sus Price IDs no están en el código del backend
+**Causa raíz:** `yfinance` hace peticiones HTTP **síncronas**. Llamarlo directamente
+dentro de un `async def` **bloquea todo el event loop** mientras dura la red. En Cloud
+Run con `concurrency: 80`, una sola llamada lenta congela las 80 peticiones de esa
+instancia. El código ya usaba `run_in_executor` para bcrypt/Stripe/email, pero **se
+olvidó de yfinance**.
 
-**Impacto:**
-- Ingresos = €0. Nadie puede comprar.
-- Usuarios que intentan pagar ven un error sin explicación
+**Solución aplicada:** nuevo helper `_yf_history_async()` (mismo patrón que
+`hash_password_async`) + offload a thread en los **8 endpoints públicos / de más
+tráfico**:
+- `GET /prices` (el peor: 4 llamadas yfinance secuenciales, endpoint público del ticker)
+- `GET /ohlc/{symbol}`, `POST /backtest`, `GET /iv-rank`, earnings (`.calendar`),
+  `education/pattern-scan`, `market-wide-flow`.
 
-**Solución requerida:**
-1. Stripe Dashboard → Products → Crear 4 productos con sus precios
-2. Copiar Price IDs (`price_xxx`) al backend en el endpoint de checkout
-3. Stripe → Webhooks → Add endpoint: `https://tradingcalculator-api-704202303011.us-central1.run.app/api/stripe/webhook`
-4. Eventos: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
-5. Cloud Run → añadir `STRIPE_API_KEY=sk_live_xxx` y `STRIPE_WEBHOOK_SECRET=whsec_xxx`
+**2ª fase (completada):** el módulo de opciones (`opt_get_stock`, `opt_search_tickers`,
+`opt_get_expirations`, `opt_get_options_chain`, `opt_get_iv_surface`, `optimize_options_strategy`,
+`portfolio_greeks`, `get_unusual_options`, `universal_search_tickers`, `get_iv_rank`) llamaba
+funciones síncronas de `stock_data.py` directamente. Ahora **todas** las llamadas en contexto
+`async` van por `await asyncio.to_thread(...)` (incluidas las que están dentro de bucles `for`
+sobre expiraciones). Los helpers síncronos (`_scan_ticker_flow`, `_fetch_atm_iv_proxy`,
+`_yfinance_to_ohlc_rows`) se ejecutan en thread desde su llamador async. **Cero llamadas
+bloqueantes de red quedan en el event loop.**
 
-**Resuelto al 100%:** ❌ NO — Pendiente de implementar
+### BUG-011 — Código muerto engañoso (módulos huérfanos) 🆕
+**Severidad:** 🟡 MENOR (limpieza/confusión) · **Estado:** ✅ RESUELTO
 
----
+Dos módulos que **nunca se importaban ni registraban** en `server.py` (solo se
+referenciaban a sí mismos en sus docstrings) — **eliminados**:
+- `backend/fixes.py` — "parches críticos" de mayo 2026 cuyo docstring decía "Uso en
+  server.py: from fixes import (...)" pero **nunca se conectó**. Estaba **superado**:
+  `server.py` ya sirve datos reales vía yfinance/CoinGecko.
+- `backend/admin_diary_endpoint.py` — router admin para exponer este `DIARIO_BUGS.md` vía
+  API, **nunca incluido**. Además habría fallado en producción: el `Dockerfile` solo copia
+  `./backend`, y `DIARIO_BUGS.md` vive en la raíz del repo (no estaría en la imagen).
 
-## 🟠 BUGS IMPORTANTES
+### BUG-012 — Adaptador SQL: LIMIT/OFFSET por interpolación (hardening) 🆕
+**Severidad:** 🟢 BAJA · **Archivo:** `server.py` (`_build_query`) · **Estado:** ✅ RESUELTO
 
----
-
-### [2026-06-01] BUG-004 — Panel admin muestra datos hardcodeados (no reales)
-**Severidad:** 🟠 IMPORTANTE  
-**Archivo afectado:** `backend/admin_routes.py`  
-**Estado:** ❌ SIN RESOLVER
-
-**Descripción del problema:**
-El panel de administración devuelve métricas inventadas (usuarios, revenue, suscripciones) en lugar de hacer queries reales a PostgreSQL. Esto hace que el admin no pueda tomar decisiones reales de negocio.
-
-**Solución requerida:**
-Sustituir todos los `return {"total_users": 1250}` por queries reales:
-```python
-total = db.query(User).count()
-premium = db.query(User).filter(User.is_premium == True).count()
-revenue = db.query(func.sum(Payment.amount)).filter(Payment.status=="paid").scalar()
-```
-
-**Resuelto al 100%:** ❌ NO — Pendiente
+El `WHERE` ya parametrizaba valores con `$1,$2` y validaba nombres de campo con regex (✅ sin
+inyección). Ahora `LIMIT`/`OFFSET` se castean explícitamente con `int(self._limit_val)` /
+`int(self._skip_val)` como defensa en profundidad (antes se interpolaban directamente; el
+riesgo real era nulo porque reciben ints tipados de FastAPI, pero ahora es a prueba de fallos).
 
 ---
 
-### [2026-06-01] BUG-005 — Google OAuth inoperativo sin GOOGLE_CLIENT_ID
-**Severidad:** 🟠 IMPORTANTE  
-**Archivo afectado:** `frontend/src/components/auth/GoogleSignInButton.jsx`  
-**Estado:** ❌ SIN RESOLVER
+## 🟡 PENDIENTES REALES (no son "cagadas", son mejoras de fondo)
 
-**Descripción del problema:**
-El botón de Google Sign-In se renderiza pero al hacer click no inicia el flujo OAuth. La causa es que `REACT_APP_GOOGLE_CLIENT_ID` está vacío en el build actual.
+### BUG-005 — Google OAuth: dependía del workflow degradado
+**Severidad:** 🟠 IMPORTANTE · **Estado:** ✅ MITIGADO (vía BUG-009)
 
-**Solución requerida:**
-1. Google Cloud Console → APIs & Services → Credentials → Create OAuth 2.0 Client ID
-2. Authorized origins: `https://tradingcalculator.pro` y `https://abcde-rgb.github.io`
-3. Añadir Client ID en GitHub Secrets → `REACT_APP_GOOGLE_CLIENT_ID`
-4. También añadir `GOOGLE_CLIENT_ID` en Cloud Run para que el backend verifique los tokens
+El código (`GoogleSignInButton.jsx`, `App.js`) ya lee `REACT_APP_GOOGLE_CLIENT_ID`
+correctamente y oculta el botón si falta. El riesgo real era que el build degradado
+de BUG-009 generase el bundle sin ese ID. Resuelto al eliminar ese job.
+**Pendiente (ops):** tener `REACT_APP_GOOGLE_CLIENT_ID` en GitHub Secrets y la URL
+autorizada en Google Console.
 
-**Resuelto al 100%:** ❌ NO — Pendiente
+### BUG-007 — Preferencias de usuario solo en localStorage
+**Severidad:** 🟡 MENOR · **Archivo:** `frontend/src/pages/SettingsPage.jsx` · **Estado:** ❌ PENDIENTE
 
----
+`tcp-preferences` se guarda en localStorage; no se sincroniza entre dispositivos.
+Requiere endpoint `PATCH /api/user/preferences` + carga en el perfil. Prioridad baja.
 
-### [2026-06-01] BUG-006 — "Olvidé mi contraseña" miente al usuario
-**Severidad:** 🟠 IMPORTANTE  
-**Archivo afectado:** `frontend/src/pages/AuthPages.jsx` (ForgotPasswordPage)  
-**Estado:** ❌ SIN RESOLVER (se resuelve automáticamente al resolver BUG-002)
+### BUG-008 — server.py monolítico (~5.500 líneas)
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/server.py` · **Estado:** ❌ PENDIENTE
 
-**Descripción del problema:**
-Cuando `REACT_APP_BACKEND_URL` no está configurado, el código tiene un fallback:
-```js
-if (!API) {
-  await new Promise(r => setTimeout(r, 600));
-  setSent(true); // ← Muestra "Email enviado" aunque NO se envió ningún email
-  return;
-}
-```
-El usuario cree que recibirá el email de recuperación y nunca llega.
-
-**Solución requerida:**
-Eliminar el bloque `if (!API)` completo. Al resolver BUG-002 (configurar REACT_APP_BACKEND_URL), este bug desaparece automáticamente.
-
-**Resuelto al 100%:** ❌ NO — Depende de BUG-002
+Sigue siendo un único archivo grande. Refactor a `app/` + `routers/` recomendado.
+Trabajo estimado: 4-6 h. No es una regresión; es deuda técnica pre-existente.
 
 ---
 
-### [2026-06-01] BUG-007 — Preferencias de usuario solo en localStorage
-**Severidad:** 🟡 MENOR  
-**Archivo afectado:** `frontend/src/pages/SettingsPage.jsx`  
-**Estado:** ❌ SIN RESOLVER
+## 📊 RESUMEN DE ESTADO (verificado 2026-06-02)
 
-**Descripción del problema:**
-`emailNotifications` y `compactMode` se guardan bajo la clave `tcp-preferences` en localStorage. Si el usuario cambia de dispositivo o limpia el navegador, pierde todas sus preferencias.
+| Bug | Descripción | Severidad | Estado real |
+|-----|-------------|-----------|-------------|
+| BUG-001 | Demo bypass admin | 🔴 | ✅ Resuelto (en código) |
+| BUG-002 | REACT_APP_BACKEND_URL | 🔴 | ✅ Resuelto (en código) |
+| BUG-003 | Stripe checkout/webhooks | 🔴 | ✅ Implementado (falta verificar dashboard) |
+| BUG-004 | Admin con datos falsos | 🟠 | ✅ Resuelto (queries reales) |
+| BUG-005 | Google OAuth | 🟠 | ✅ Mitigado (vía BUG-009) |
+| BUG-006 | Forgot password mentía | 🟠 | ✅ Resuelto esta sesión |
+| BUG-007 | Preferencias en localStorage | 🟡 | ❌ Pendiente (baja prioridad) |
+| BUG-008 | server.py monolítico | 🟠 | ❌ Pendiente (deuda técnica) |
+| BUG-009 | Workflows de deploy en carrera | 🔴 | ✅ Resuelto esta sesión |
+| BUG-010 | yfinance bloqueaba el event loop | 🔴 | ✅ Resuelto (COMPLETO, todos los endpoints) |
+| BUG-011 | Código muerto (fixes.py, admin_diary_endpoint.py) | 🟡 | ✅ Resuelto (eliminados) |
+| BUG-012 | LIMIT/OFFSET por interpolación (hardening) | 🟢 | ✅ Resuelto (cast a int) |
 
-**Solución requerida:**
-1. Añadir endpoint `PATCH /api/user/preferences` en el backend
-2. Actualizar SettingsPage para hacer el POST al backend al guardar
-3. En la carga del perfil, traer también las preferencias desde la API
-
-**Resuelto al 100%:** ❌ NO — Prioridad baja
-
----
-
-### [2026-06-01] BUG-008 — server.py de 223KB: rendimiento y mantenibilidad
-**Severidad:** 🟠 IMPORTANTE  
-**Archivo afectado:** `backend/server.py`  
-**Estado:** ❌ SIN RESOLVER
-
-**Descripción del problema:**
-Todo el backend (rutas, modelos, lógica, middlewares, servicios) está en un único archivo de 223KB (~6.000 líneas). Esto causa:
-- Cold start de Cloud Run más lento
-- Imposible localizar un bug sin buscar en miles de líneas
-- Conflictos al intentar hacer cambios simultáneos
-- Archivos complementarios como `missing_apis.py` (45KB) con endpoints sin implementar
-
-**Solución requerida:**
-Refactorizar en la estructura modular propuesta en la reconfiguración:
-```
-backend/app/
-├── main.py (~60 líneas)
-├── config.py
-├── database.py
-├── models.py
-├── auth.py
-└── routers/
-    ├── auth_router.py
-    ├── payments_router.py
-    ├── admin_router.py
-    └── ...
-```
-
-**Resuelto al 100%:** ❌ NO — Trabajo estimado: 4-6 horas
+**Conclusión:** la app está **mucho más cerca del 100%** de lo que el diario anterior
+sugería. Resueltos: la condición de carrera entre workflows (BUG-009), yfinance bloqueando
+el event loop en **todos** los endpoints (BUG-010), limpieza de código muerto (BUG-011) y
+hardening SQL (BUG-012). El adaptador SQL es seguro (sin inyección); JWT/CORS bien
+configurados. **Pendientes reales:** BUG-007 (preferencias en localStorage, menor) y BUG-008
+(refactor del monolito `server.py`, deuda técnica — requiere suite de tests para hacerse sin
+riesgo). Ninguno bloquea la operación.
 
 ---
 
-## ✅ BUGS RESUELTOS
-
-*(Esta sección se irá llenando conforme se resuelvan los bugs anteriores)*
-
----
-
-## 📊 RESUMEN DE ESTADO
-
-| Bug | Descripción | Severidad | Resuelto |
-|-----|-------------|-----------|----------|
-| BUG-001 | Demo bypass admin | 🔴 CRÍTICA | ❌ |
-| BUG-002 | REACT_APP_BACKEND_URL vacío | 🔴 CRÍTICA | ❌ |
-| BUG-003 | Stripe no configurado | 🔴 CRÍTICA | ❌ |
-| BUG-004 | Admin con datos falsos | 🟠 IMPORTANTE | ❌ |
-| BUG-005 | Google OAuth inoperativo | 🟠 IMPORTANTE | ❌ |
-| BUG-006 | Forgot password miente | 🟠 IMPORTANTE | ❌ |
-| BUG-007 | Preferencias solo localStorage | 🟡 MENOR | ❌ |
-| BUG-008 | server.py monolítico 223KB | 🟠 IMPORTANTE | ❌ |
-
-**Bugs críticos resueltos:** 0/3  
-**Bugs importantes resueltos:** 0/4  
-**Bugs menores resueltos:** 0/1  
-**Funcionalidad estimada actual:** ~30%  
-**Funcionalidad estimada tras resolver todo:** 100%
-
----
-
-*Última actualización: 2026-06-01 por análisis automático*  
-*Próxima revisión: tras resolver BUG-001 y BUG-002 (prioridad máxima)*
+*Última actualización: 2026-06-02 — verificación archivo por archivo contra el código.*
