@@ -571,7 +571,6 @@ export const MagicPage = () => {
             user: data.user,
             isAuthenticated: true,
           });
-          localStorage.setItem('auth_token', data.access_token);
           toast.success('¡Bienvenido!');
           navigate('/dashboard');
         } else {

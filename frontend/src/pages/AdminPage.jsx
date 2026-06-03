@@ -134,6 +134,8 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (!isAuthenticated || !user?.is_admin) return null;
+
   const handleExportCsv = async () => {
     try {
       const res = await fetch(`${API}/admin/users.csv`, { headers });

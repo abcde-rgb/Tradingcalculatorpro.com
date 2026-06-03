@@ -530,11 +530,16 @@ class Collection:
         """No-op: PostgreSQL GIN index on JSONB handles all queries adequately."""
         return None
 
-    async def aggregate(self, pipeline: list):
+    def aggregate(self, pipeline: list):
         """
         Minimal aggregate support for the patterns actually used in this codebase:
         - $group by a field with $sum: 1 → returns distinct values with counts
         - $sort, $limit, $project
+
+        NOTE: intentionally a *sync* method that returns an async-iterable cursor,
+        mirroring Motor/PyMongo semantics. Callers use it as
+        `async for r in db.x.aggregate(...)` or `await db.x.aggregate(...).to_list()`.
+        Declaring it `async def` would return a coroutine and break both call styles.
         """
         return _AggCursor(self._pool, self._name, pipeline)
 
@@ -1700,8 +1705,11 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     safe_user = {k: v for k, v in user.items() if k not in ("password",)}
 
     async def collect(collection, query):
+        # find() returns a lazy _Cursor; it must be materialised with .to_list().
+        # Awaiting the cursor directly raises (no __await__) and the export would
+        # silently return [] — breaking the RGPD data-portability guarantee.
         try:
-            return await getattr(db, collection).find(query, {"_id": 0})
+            return await getattr(db, collection).find(query, {"_id": 0}).to_list(100000)
         except Exception:
             return []
 

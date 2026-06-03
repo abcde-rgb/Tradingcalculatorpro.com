@@ -61,11 +61,11 @@ check "Planes disponibles"     GET  "$BASE/plans"                    "" "price"
 
 # ── Cálculos opciones (sin auth) ────────────────────────────
 check "Payoff diagram" POST "$BASE/calculate/payoff" \
-  '{"legs":[{"type":"call","action":"buy","strike":150,"premium":5,"qty":1,"daysToExpiry":30,"iv":0.25}],"stock_price":150}' \
-  "price"
+  '{"legs":[{"type":"call","action":"buy","strike":150,"premium":5,"qty":1,"daysToExpiry":30,"iv":0.25}],"stockPrice":150}' \
+  "payoff"
 
 check "Greeks" POST "$BASE/calculate/greeks" \
-  '{"legs":[{"type":"call","action":"buy","strike":150,"premium":5,"qty":1,"daysToExpiry":30,"iv":0.25}],"stock_price":150}' \
+  '{"legs":[{"type":"call","action":"buy","strike":150,"premium":5,"qty":1,"daysToExpiry":30,"iv":0.25}],"stockPrice":150}' \
   "delta"
 
 # ── Monte Carlo ──────────────────────────────────────────────

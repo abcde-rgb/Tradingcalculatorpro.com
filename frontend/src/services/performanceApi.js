@@ -2,12 +2,9 @@ import axios from 'axios';
 import { useAuthStore } from '@/lib/store';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
-const client = axios.create({
-  baseURL: API,
-  timeout: 15000,
-});
+const client = axios.create({ baseURL: API || undefined, timeout: 15000 });
 
 // Auto-attach the JWT bearer from the auth store
 client.interceptors.request.use((config) => {

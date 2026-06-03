@@ -16,6 +16,8 @@ export const PaymentSuccessPage = () => {
   const [status, setStatus] = useState('checking');
   const [attempts, setAttempts] = useState(0);
   const attemptsRef = useRef(0);
+  const retryTimerRef = useRef(null);
+  const mountedRef = useRef(true);
   
   const sessionId = searchParams.get('session_id');
 
@@ -33,23 +35,30 @@ export const PaymentSuccessPage = () => {
       const data = await response.json();
       
       if (data.payment_status === 'paid') {
-        setStatus('success');
+        if (mountedRef.current) setStatus('success');
         try { window.gtag?.('event', 'purchase', { transaction_id: sessionId }); } catch (_) {}
         await refreshUser();
       } else if (attemptsRef.current < 15) {
         attemptsRef.current += 1;
-        setAttempts(attemptsRef.current);
-        setTimeout(() => checkStatus(), 3000);
+        if (mountedRef.current) {
+          setAttempts(attemptsRef.current);
+          retryTimerRef.current = setTimeout(() => checkStatus(), 3000);
+        }
       } else {
-        setStatus('pending');
+        if (mountedRef.current) setStatus('pending');
       }
     } catch (error) {
-      setStatus('error');
+      if (mountedRef.current) setStatus('error');
     }
-  }, [sessionId, token, refreshUser]); // Fixed: removed attempts, using ref instead + added checkStatus
+  }, [sessionId, token, refreshUser]);
 
   useEffect(() => {
+    mountedRef.current = true;
     checkStatus();
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(retryTimerRef.current);
+    };
   }, [checkStatus]);
 
   return (
