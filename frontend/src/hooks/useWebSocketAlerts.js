@@ -42,8 +42,8 @@ export function useWebSocketAlerts(token, onMessage) {
     };
 
     ws.onclose = () => {
+      if (wsRef.current !== ws) return; // closed by cleanup — skip retry
       wsRef.current = null;
-      // Reconnect with capped exponential back-off
       retryRef.current = setTimeout(() => {
         retryDelay.current = Math.min(retryDelay.current * 2, 30000);
         connect();
@@ -60,7 +60,11 @@ export function useWebSocketAlerts(token, onMessage) {
     connect();
     return () => {
       clearTimeout(retryRef.current);
-      wsRef.current?.close();
+      const ws = wsRef.current;
+      if (ws) {
+        wsRef.current = null; // signal onclose to skip retry
+        ws.close();
+      }
     };
   }, [connect, token]);
 }

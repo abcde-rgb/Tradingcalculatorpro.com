@@ -55,6 +55,7 @@ export const useAuthStore = create(
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('invalidCredentials'));
+          if (!data.token || !data.user) throw new Error(t('invalidCredentials'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'email' });
           return { success: true };
@@ -80,6 +81,7 @@ export const useAuthStore = create(
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('registrationError'));
+          if (!data.token || !data.user) throw new Error(t('registrationError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('sign_up', { method: 'email' });
           return { success: true };
@@ -102,6 +104,7 @@ export const useAuthStore = create(
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
+          if (!data.token || !data.user) throw new Error(t('googleLoginError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'google' });
           return { success: true };

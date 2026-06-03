@@ -726,12 +726,12 @@ def build_admin_router(
         results.append({"connector": "Emergent LLM", "status": "configured" if llm_key else "not_configured",
                         "configured": bool(llm_key)})
 
-        # -- MongoDB --
+        # -- Database (PostgreSQL via asyncpg) --
         try:
-            await db.command("ping")
-            results.append({"connector": "MongoDB", "status": "ok", "configured": True})
+            await db.users.find_one({"_id": "healthcheck"}, {"_id": 0})
+            results.append({"connector": "Database", "status": "ok", "configured": True})
         except Exception as e:
-            results.append({"connector": "MongoDB", "status": "error", "error": str(e), "configured": True})
+            results.append({"connector": "Database", "status": "error", "error": str(e), "configured": True})
 
         return {
             "checked_at": datetime.now(timezone.utc).isoformat(),

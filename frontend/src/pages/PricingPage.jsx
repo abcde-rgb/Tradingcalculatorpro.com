@@ -106,13 +106,20 @@ export default function PricingPage() {
         })
       });
 
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        toast.error(errData.detail || t('checkoutError'));
+        setIsLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
-      if (response.ok && data.checkout_url) {
+      if (data.checkout_url) {
         try { window.gtag?.('event', 'begin_checkout', { plan: selectedPlan, payment_method: selectedPayment }); } catch (_) {}
         window.location.href = data.checkout_url;
       } else {
-        toast.error(data.detail || t('checkoutError'));
+        toast.error(t('checkoutError'));
       }
     } catch (error) {
       toast.error(t('connectionError'));
