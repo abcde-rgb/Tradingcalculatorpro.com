@@ -129,6 +129,26 @@ jobs:
       - name: Configurar Docker Auth
         run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
+      # Asegurar que el repositorio de Artifact Registry existe en la región
+      # canónica. Es idempotente: si ya existe no hace nada.
+      # Sin esto, al cambiar GCP_REGION (p. ej. europe-west1 → us-central1) el
+      # push falla con `name unknown: Repository "trading-repo" not found`
+      # porque el repo solo se había creado en la región anterior.
+      - name: Asegurar repositorio Artifact Registry
+        run: |
+          if gcloud artifacts repositories describe trading-repo \
+               --location="${{ env.GCP_REGION }}" \
+               --project="${{ env.GCP_PROJECT }}" >/dev/null 2>&1; then
+            echo "✅ Artifact Registry 'trading-repo' ya existe en ${{ env.GCP_REGION }}"
+          else
+            echo "ℹ️ 'trading-repo' no existe en ${{ env.GCP_REGION }}; creándolo..."
+            gcloud artifacts repositories create trading-repo \
+              --repository-format=docker \
+              --location="${{ env.GCP_REGION }}" \
+              --project="${{ env.GCP_PROJECT }}" \
+              --description="Imágenes Docker del backend tradingcalculator-api"
+          fi
+
       # Build de la imagen Docker
       - name: Build imagen Docker
         run: |
