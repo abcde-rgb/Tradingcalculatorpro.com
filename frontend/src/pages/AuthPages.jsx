@@ -46,6 +46,74 @@ function PasswordStrengthBar({ password, t }) {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
+// ── Professional split-screen shell ─────────────────────────────────────────
+// Brand + value props on the left (desktop only), the auth card on the right.
+// On mobile only the card shows, centered. Uses the codebase's existing
+// `t(key) || 'fallback'` i18n pattern so it degrades gracefully in any locale.
+function AuthShell({ children }) {
+  const { t } = useTranslation();
+  const features = [
+    t('authFeatureOptions')  || 'Calculadora de opciones con griegas en tiempo real',
+    t('authFeatureStrategy') || 'Estrategias multi-leg y diagramas de payoff',
+    t('authFeatureMarket')   || 'Datos de mercado en vivo y patrones de velas',
+    t('authFeatureAlerts')   || 'Alertas de precio y seguimiento de operaciones',
+  ];
+  return (
+    <div className="min-h-screen flex bg-background">
+      {/* Brand panel — desktop only */}
+      <aside className="hidden lg:flex lg:w-[45%] relative overflow-hidden border-r border-white/5
+                        bg-gradient-to-br from-primary/10 via-background to-background">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl" aria-hidden />
+        <div className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full bg-primary/5 blur-3xl" aria-hidden />
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-primary" />
+            </div>
+            <span className="font-unbounded font-semibold text-lg">
+              TradingCalculator<span className="text-primary"> PRO</span>
+            </span>
+          </div>
+
+          <div className="space-y-7 max-w-md">
+            <h2 className="text-3xl xl:text-4xl font-unbounded font-bold leading-tight">
+              {t('authHeroTitle') || 'La calculadora de trading profesional para opciones y cripto'}
+            </h2>
+            <ul className="space-y-3.5">
+              {features.map((f) => (
+                <li key={f} className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <CheckCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <p className="text-xs text-muted-foreground/70">
+            © {new Date().getFullYear()} TradingCalculator PRO · {t('authSecureNote') || 'Conexión cifrada de extremo a extremo'}
+          </p>
+        </div>
+      </aside>
+
+      {/* Form panel */}
+      <main className="flex-1 flex items-center justify-center p-4">
+        {children}
+      </main>
+    </div>
+  );
+}
+
+// Small reassurance line shown under the auth forms.
+function SecureFooter() {
+  const { t } = useTranslation();
+  return (
+    <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70">
+      <Lock className="w-3 h-3" />
+      {t('authSecureNote') || 'Conexión segura · Nunca compartimos tus datos'}
+    </p>
+  );
+}
+
 export const LoginPage = () => {
   useSEO({ titleKey: 'seoLoginTitle', descriptionKey: 'seoLoginDesc', canonicalPath: '/login' });
   const { t } = useTranslation();
@@ -72,10 +140,10 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md bg-card border-border">
+    <AuthShell>
+      <Card className="w-full max-w-md bg-card border-border shadow-2xl shadow-black/20">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center lg:hidden">
             <TrendingUp className="w-10 h-10 text-primary" />
           </div>
           <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">{t('iniciarSesion_9faefe')}</h1>
@@ -166,10 +234,11 @@ export const LoginPage = () => {
             <span className="text-muted-foreground">{t('noTienesCuenta_ba7c96')} </span>
             <Link to="/register" className="text-primary hover:underline">{t('registrate_48a11f')}</Link>
           </div>
-          
+
+          <SecureFooter />
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 };
 
@@ -201,10 +270,10 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md bg-card border-border">
+    <AuthShell>
+      <Card className="w-full max-w-md bg-card border-border shadow-2xl shadow-black/20">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center lg:hidden">
             <TrendingUp className="w-10 h-10 text-primary" />
           </div>
           <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">{t('crearCuenta_f32c7c')}</h1>
@@ -293,9 +362,11 @@ export const RegisterPage = () => {
             <span className="text-muted-foreground">{t('yaTienesCuenta_7e833c')} </span>
             <Link to="/login" className="text-primary hover:underline">{t('iniciaSesion_0e195f')}</Link>
           </div>
+
+          <SecureFooter />
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 };
 
