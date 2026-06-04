@@ -1547,13 +1547,19 @@ async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
     }})
     token = create_token(user["id"], user["email"])
     return {
+        # `token` matches /auth/login & /auth/google; `access_token` kept for
+        # backwards-compat with the existing MagicPage that reads access_token.
+        "token": token,
         "access_token": token,
         "user": {
             "id": user["id"],
             "email": user["email"],
             "name": user.get("name", ""),
-            "is_admin": user.get("is_admin", False),
-            "is_premium": user.get("is_premium", False),
+            "picture": user.get("picture"),
+            # Honor ADMIN_EMAILS so the admin gets the panel no matter which
+            # login method they use (matches /auth/login and /auth/google).
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            "is_premium": check_premium(user),
             "subscription_plan": user.get("subscription_plan"),
             "auth_provider": user.get("auth_provider", "magic_link"),
         },
@@ -1738,7 +1744,10 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
 # ============= GOOGLE OAUTH =============
 # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+# .strip() defends against secrets stored with a trailing/leading newline.
+# Without it, a stray "\n" makes the OAuth audience mismatch every Google
+# token → all "Sign in with Google" logins fail with 401 "Token inválido".
+GOOGLE_CLIENT_ID = (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
 
 
 class GoogleAuthRequest(BaseModel):
