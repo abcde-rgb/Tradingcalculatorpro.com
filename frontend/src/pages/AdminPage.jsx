@@ -1096,7 +1096,7 @@ function AuditLogPanel({ headers }) {
       const res = await fetch(`${API}/admin/audit-log?${params.toString()}`, { headers });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setRows(data.rows || []);
+      setRows(data.logs || []);
       setTotal(data.total || 0);
     } catch {
       toast.error('Error cargando audit log');
@@ -1218,8 +1218,8 @@ function RevenueAnalyticsCard({ metrics, headers }) {
 
   useEffect(() => {
     fetch(`${API}/admin/revenue`, { headers }).then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.mrr_history) setHistory(d.mrr_history);
-      if (d?.churn_rate !== undefined) setStats(s => ({ ...s, churn: d.churn_rate, conversion: d.conversion_rate, ltv: d.ltv || {} }));
+      if (d?.history) setHistory(d.history);
+      if (d?.churn !== undefined) setStats(s => ({ ...s, churn: d.churn, conversion: d.conversion, ltv: d.ltv || {} }));
     }).catch(() => {});
   }, []); // eslint-disable-line
 
@@ -1402,7 +1402,7 @@ function CouponManagerCard({ headers }) {
 
   const load = async () => {
     const res = await fetch(`${API}/admin/coupons`, { headers }).catch(() => null);
-    if (res?.ok) setCoupons(await res.json());
+    if (res?.ok) { const d = await res.json(); setCoupons(d.coupons || []); }
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line
@@ -1500,7 +1500,7 @@ function FeatureFlagsCard({ headers }) {
 
   const load = async () => {
     const res = await fetch(`${API}/admin/feature-flags`, { headers }).catch(() => null);
-    if (res?.ok) setFlags(await res.json());
+    if (res?.ok) { const d = await res.json(); setFlags(d.flags || []); }
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line
@@ -1558,7 +1558,7 @@ function WebhookLogsCard({ headers }) {
     setLoading(true);
     const res = await fetch(`${API}/admin/webhooks?limit=20`, { headers }).catch(() => null);
     setLoading(false);
-    if (res?.ok) setLogs(await res.json());
+    if (res?.ok) { const d = await res.json(); setLogs(d.logs || []); }
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line
