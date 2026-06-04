@@ -6,7 +6,7 @@ import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 
 // Client ID configurado vía REACT_APP_GOOGLE_CLIENT_ID en .env
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = (process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim();
 
 /**
  * Google sign-in button. Drops next to the email/password form on the
