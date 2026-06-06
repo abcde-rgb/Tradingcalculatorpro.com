@@ -19,7 +19,8 @@ const PREFS_KEY = 'tcp-preferences';
 
 export default function SettingsPage() {
   useSEO({ titleKey: 'seoSettingsTitle', descriptionKey: 'seoSettingsDesc', canonicalPath: '/settings' });
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const deleteWord = t('deleteConfirmWord');
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -46,7 +47,7 @@ export default function SettingsPage() {
     const next = { ...prefs, [key]: value };
     setPrefs(next);
     localStorage.setItem(PREFS_KEY, JSON.stringify(next));
-    toast.success('Preferencias guardadas');
+    toast.success(t('preferencesSavedToast'));
   };
 
   // ── Delete Account ───────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ export default function SettingsPage() {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('es-ES', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -74,15 +75,15 @@ export default function SettingsPage() {
     e.preventDefault();
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error('Por favor completa todos los campos');
+      toast.error(t('fillAllFieldsToast'));
       return;
     }
     if (newPassword.length < 8) {
-      toast.error('La nueva contraseña debe tener al menos 8 caracteres');
+      toast.error(t('passwordTooShortToast'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('Las contraseñas nuevas no coinciden');
+      toast.error(t('passwordsDontMatchToast'));
       return;
     }
 
@@ -106,15 +107,15 @@ export default function SettingsPage() {
         throw new Error(data.detail || data.message || `Error ${res.status}`);
       }
 
-      toast.success('Contraseña cambiada correctamente');
+      toast.success(t('passwordChangedToast'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
       if (!BACKEND_URL || err.message.includes('fetch')) {
-        toast.error('No se pudo conectar con el servidor. Inténtalo más tarde.');
+        toast.error(t('serverConnectionErrorToast'));
       } else {
-        toast.error(err.message || 'No se pudo cambiar la contraseña');
+        toast.error(err.message || t('passwordChangeErrorToast'));
       }
     } finally {
       setChangingPassword(false);
@@ -122,8 +123,8 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'ELIMINAR') {
-      toast.error('Escribe ELIMINAR para confirmar');
+    if (deleteConfirmText !== deleteWord) {
+      toast.error(t('typeWordToConfirmToast', { word: deleteWord }));
       return;
     }
 
@@ -140,18 +141,15 @@ export default function SettingsPage() {
         throw new Error(data.detail || data.message || `Error ${res.status}`);
       }
 
-      toast.success('Cuenta eliminada. Hasta pronto.');
+      toast.success(t('accountDeletedToast'));
       logout();
       navigate('/');
     } catch (err) {
       setDeleteDialogOpen(false);
       if (!BACKEND_URL || err.message.includes('fetch') || err.name === 'TypeError') {
-        toast.error(
-          'No se pudo eliminar la cuenta automáticamente. Envía un email a contact@tradingcalculator.pro con asunto "Solicitud de eliminación de cuenta" desde tu email registrado.',
-          { duration: 10000 }
-        );
+        toast.error(t('accountDeleteManualToast'), { duration: 10000 });
       } else {
-        toast.error(err.message || 'No se pudo eliminar la cuenta. Contacta con soporte.');
+        toast.error(err.message || t('accountDeleteErrorToast'));
       }
     } finally {
       setDeletingAccount(false);
@@ -176,7 +174,7 @@ export default function SettingsPage() {
       URL.revokeObjectURL(url);
       toast.success(t('downloadMyData'));
     } catch (err) {
-      toast.error(err.message || 'Error al descargar los datos');
+      toast.error(err.message || t('downloadDataErrorToast'));
     } finally {
       setDownloadingData(false);
     }
@@ -200,7 +198,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="w-5 h-5" />
-                Perfil
+                {t('settingsProfileTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -223,7 +221,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Crown className="w-5 h-5 text-yellow-500" />
-                Suscripción
+                {t('subscription')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -234,12 +232,12 @@ export default function SettingsPage() {
                     <span className="font-semibold text-yellow-500">{t('premiumActivo_433549')}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Plan: <span className="text-foreground capitalize">{user.subscription_plan}</span>
+                    {t('settingsPlanLabel')} <span className="text-foreground capitalize">{user.subscription_plan}</span>
                   </p>
                   {user.subscription_plan !== 'lifetime' && user.subscription_end && (
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
-                      Expira: {formatDate(user.subscription_end)}
+                      {t('settingsExpiresLabel')} {formatDate(user.subscription_end)}
                     </p>
                   )}
                   <Link to="/subscription">
@@ -254,7 +252,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">{t('noTienesUnaSuscripcionActiva_84a892')}</p>
                   <Link to="/pricing">
                     <Button className="bg-yellow-500 text-black hover:bg-yellow-400">
-                      <Crown className="w-4 h-4 mr-2" /> Ver Planes Premium
+                      <Crown className="w-4 h-4 mr-2" /> {t('viewPremiumPlans')}
                     </Button>
                   </Link>
                 </div>
@@ -267,20 +265,20 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="w-5 h-5" />
-                Cambiar contraseña
+                {t('changePasswordTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="current-password">Contraseña actual</Label>
+                  <Label htmlFor="current-password">{t('currentPasswordLabel')}</Label>
                   <div className="relative">
                     <Input
                       id="current-password"
                       type={showCurrent ? 'text' : 'password'}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Tu contraseña actual"
+                      placeholder={t('currentPasswordPlaceholder')}
                       className="pr-10"
                       autoComplete="current-password"
                     />
@@ -296,14 +294,14 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">Nueva contraseña</Label>
+                  <Label htmlFor="new-password">{t('newPasswordLabel')}</Label>
                   <div className="relative">
                     <Input
                       id="new-password"
                       type={showNew ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Mínimo 8 caracteres"
+                      placeholder={t('newPasswordPlaceholder')}
                       className="pr-10"
                       autoComplete="new-password"
                     />
@@ -319,14 +317,14 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirmar nueva contraseña</Label>
+                  <Label htmlFor="confirm-password">{t('confirmNewPasswordLabel')}</Label>
                   <div className="relative">
                     <Input
                       id="confirm-password"
                       type={showConfirm ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Repite la nueva contraseña"
+                      placeholder={t('confirmNewPasswordPlaceholder')}
                       className="pr-10"
                       autoComplete="new-password"
                     />
@@ -342,7 +340,7 @@ export default function SettingsPage() {
                 </div>
 
                 <Button type="submit" disabled={changingPassword} className="w-full sm:w-auto">
-                  {changingPassword ? 'Guardando...' : 'Cambiar contraseña'}
+                  {changingPassword ? t('changingPasswordBtn') : t('changePasswordTitle')}
                 </Button>
               </form>
             </CardContent>
@@ -353,17 +351,17 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="w-5 h-5" />
-                Preferencias
+                {t('preferencesTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="email-notifications" className="text-base">
-                    Notificaciones por email
+                    {t('emailNotificationsLabel')}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Recibe actualizaciones y novedades en tu bandeja de entrada
+                    {t('emailNotificationsDesc')}
                   </p>
                 </div>
                 <Switch
@@ -376,10 +374,10 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="compact-mode" className="text-base">
-                    Modo compacto
+                    {t('compactModeLabel')}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Reduce el espaciado para ver más información en pantalla
+                    {t('compactModeDesc')}
                   </p>
                 </div>
                 <Switch
@@ -394,7 +392,7 @@ export default function SettingsPage() {
           {/* Actions Card */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle>Acciones</CardTitle>
+              <CardTitle>{t('actionsTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -417,7 +415,7 @@ export default function SettingsPage() {
                 className="w-full justify-start text-destructive border-destructive/20 hover:bg-destructive/10"
                 data-testid="logout-btn"
               >
-                <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
+                <LogOut className="w-4 h-4 mr-2" /> {t('logout')}
               </Button>
             </CardContent>
           </Card>
@@ -427,13 +425,12 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-400">
                 <AlertTriangle className="w-5 h-5" />
-                Zona de peligro
+                {t('dangerZoneTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Eliminar tu cuenta es una acción permanente e irreversible. Todos tus datos, cálculos
-                y suscripciones serán eliminados conforme al RGPD.
+                {t('deleteAccountWarning')}
               </p>
               <Button
                 variant="outline"
@@ -444,7 +441,7 @@ export default function SettingsPage() {
                 }}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar mi cuenta permanentemente
+                {t('deleteAccountBtn')}
               </Button>
             </CardContent>
           </Card>
@@ -459,12 +456,19 @@ export default function SettingsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="w-5 h-5" />
-              Confirmar eliminacion de cuenta
+              {t('confirmDeleteAccountTitle')}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 pt-2">
-              Esta acción es <span className="font-semibold text-foreground">permanente e irreversible</span>.
-              Todos tus datos serán eliminados. Escribe{' '}
-              <span className="font-mono font-bold text-foreground">ELIMINAR</span> para confirmar.
+              {(() => {
+                const [before, after] = t('confirmDeleteAccountDesc').split('{confirmWord}');
+                return (
+                  <>
+                    {before}
+                    <span className="font-mono font-bold text-foreground">{deleteWord}</span>
+                    {after}
+                  </>
+                );
+              })()}
             </DialogDescription>
           </DialogHeader>
 
@@ -472,7 +476,7 @@ export default function SettingsPage() {
             <Input
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder="Escribe ELIMINAR"
+              placeholder={t('typeWordPlaceholder', { word: deleteWord })}
               className="font-mono border-red-900/40 focus-visible:ring-red-800"
               autoComplete="off"
             />
@@ -484,15 +488,15 @@ export default function SettingsPage() {
               onClick={() => setDeleteDialogOpen(false)}
               disabled={deletingAccount}
             >
-              Cancelar
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteAccount}
-              disabled={deleteConfirmText !== 'ELIMINAR' || deletingAccount}
+              disabled={deleteConfirmText !== deleteWord || deletingAccount}
               className="bg-red-700 hover:bg-red-600"
             >
-              {deletingAccount ? 'Eliminando...' : 'Eliminar cuenta'}
+              {deletingAccount ? t('deletingAccountBtn') : t('deleteAccountConfirmBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>
