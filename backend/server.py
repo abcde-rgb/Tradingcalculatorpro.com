@@ -752,6 +752,10 @@ class Database:
             # Extended modules
             "referrals", "referral_redemptions",
             "password_reset_tokens", "email_verification_tokens",
+            # Admin panel features (queried/written in admin_routes.py — must
+            # exist upfront, since Collection methods don't auto-create tables)
+            "email_campaigns", "gdpr_exports", "error_logs",
+            "churn_surveys", "rate_limit_violations",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -1692,7 +1696,7 @@ async def delete_account(request: Request, user: dict = Depends(require_user)):
     user_id = user["id"]
     # Delete all user data across collections
     for collection in ["trades", "calculations", "alerts", "portfolio",
-                        "user_states", "payment_transactions", "performance_trades"]:
+                        "user_states", "payment_transactions"]:
         try:
             await getattr(db, collection).delete_many({"user_id": user_id})
         except Exception:
@@ -1719,10 +1723,13 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
         except Exception:
             return []
 
+    # NOTE: both /journal/trades and /performance/trades persist into db.trades
+    # (there is no separate "performance_trades" collection — see BUG fixed
+    # 2026-06-06), so "trades" below already contains the user's full trading
+    # journal including performance-module entries. No separate collect() needed.
     trades        = await collect("trades",            {"user_id": user_id})
     calculations  = await collect("calculations",      {"user_id": user_id})
     alerts        = await collect("alerts",            {"user_id": user_id})
-    performance   = await collect("performance_trades",{"user_id": user_id})
 
     payload = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -1730,7 +1737,6 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
         "trades":       trades,
         "calculations": calculations,
         "alerts":       alerts,
-        "performance":  performance,
     }
 
     filename = f"my-data-{user_id[:8]}.json"

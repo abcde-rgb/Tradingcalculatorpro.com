@@ -832,7 +832,7 @@ def build_admin_router(
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         target_email = target.get("email", "")
         for col in ["trades", "calculations", "alerts", "portfolio",
-                    "user_states", "payment_transactions", "performance_trades"]:
+                    "user_states", "payment_transactions"]:
             try:
                 await getattr(db, col).delete_many({"user_id": user_id})
             except Exception:
@@ -986,8 +986,9 @@ def build_admin_router(
             [{"name": k, "usos": v} for k, v in calc_counts.items()],
             key=lambda x: x["usos"], reverse=True
         )[:10]
-        # Trades in journal
-        trade_count = await db.performance_trades.count_documents({})
+        # Trades in journal (both /journal/trades and /performance/trades persist
+        # into db.trades — there is no separate "performance_trades" collection)
+        trade_count = await db.trades.count_documents({})
         alert_count = await db.alerts.count_documents({})
         return {
             "active_users": {"day": dau, "week": wau, "month": mau},
