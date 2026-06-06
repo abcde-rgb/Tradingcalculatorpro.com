@@ -2948,4 +2948,9 @@ export default {
   accountDeleteManualToast: 'Votre compte n\'a pas pu être supprimé automatiquement. Veuillez envoyer un e-mail à contact@tradingcalculator.pro avec pour objet "Demande de suppression de compte" depuis votre adresse e-mail enregistrée.',
   accountDeleteErrorToast: 'Impossible de supprimer le compte. Veuillez contacter le support.',
   downloadDataErrorToast: 'Erreur lors du téléchargement des données',
+  // === Recommended tools / affiliate partners (LandingPage.jsx) ===
+  partnersTitle: 'Outils que nous recommandons',
+  partnersSubtitle: 'Plateformes que nous utilisons et recommandons pour trader et analyser les marchés',
+  partnerMargexDesc: 'Plateforme de produits dérivés crypto avec un effet de levier jusqu\'à 100x, sans KYC et un bonus de bienvenue de 100 $',
+  sponsoredLabel: 'Lien d\'affiliation',
 }

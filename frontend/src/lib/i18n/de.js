@@ -2948,4 +2948,9 @@ export default {
   accountDeleteManualToast: 'Dein Konto konnte nicht automatisch gelöscht werden. Bitte sende eine E-Mail an contact@tradingcalculator.pro mit dem Betreff "Antrag auf Kontolöschung" von deiner registrierten E-Mail-Adresse.',
   accountDeleteErrorToast: 'Das Konto konnte nicht gelöscht werden. Bitte wende dich an den Support.',
   downloadDataErrorToast: 'Fehler beim Herunterladen der Daten',
+  // === Recommended tools / affiliate partners (LandingPage.jsx) ===
+  partnersTitle: 'Tools, die wir empfehlen',
+  partnersSubtitle: 'Plattformen, die wir zum Handeln und zur Marktanalyse nutzen und empfehlen',
+  partnerMargexDesc: 'Krypto-Derivatebörse mit bis zu 100-fachem Hebel, ohne KYC und mit 100-USD-Willkommensbonus',
+  sponsoredLabel: 'Affiliate-Link',
 }

@@ -3247,4 +3247,9 @@ export default {
   accountDeleteManualToast: 'Your account could not be deleted automatically. Please email contact@tradingcalculator.pro with the subject "Account deletion request" from your registered email address.',
   accountDeleteErrorToast: 'Could not delete the account. Please contact support.',
   downloadDataErrorToast: 'Error downloading the data',
+  // === Recommended tools / affiliate partners (LandingPage.jsx) ===
+  partnersTitle: 'Tools we recommend',
+  partnersSubtitle: 'Platforms we use and recommend for trading and analyzing the markets',
+  partnerMargexDesc: 'Crypto derivatives exchange with up to 100x leverage, no KYC, and a $100 welcome bonus',
+  sponsoredLabel: 'Affiliate link',
 }

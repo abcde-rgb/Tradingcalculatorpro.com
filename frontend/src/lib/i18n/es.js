@@ -3333,4 +3333,9 @@ export default {
   accountDeleteManualToast: 'No se pudo eliminar la cuenta automáticamente. Envía un email a contact@tradingcalculator.pro con asunto "Solicitud de eliminación de cuenta" desde tu email registrado.',
   accountDeleteErrorToast: 'No se pudo eliminar la cuenta. Contacta con soporte.',
   downloadDataErrorToast: 'Error al descargar los datos',
+  // === Recommended tools / affiliate partners (LandingPage.jsx) ===
+  partnersTitle: 'Herramientas que recomendamos',
+  partnersSubtitle: 'Plataformas que usamos y recomendamos para operar y analizar los mercados',
+  partnerMargexDesc: 'Exchange de derivados cripto con hasta 100x de apalancamiento, sin KYC y bono de bienvenida de $100',
+  sponsoredLabel: 'Enlace de afiliado',
 }

@@ -2890,4 +2890,9 @@ export default {
   accountDeleteManualToast: 'アカウントを自動的に削除できませんでした。登録済みのメールアドレスから、件名を「アカウント削除リクエスト」として contact@tradingcalculator.pro 宛にメールを送信してください。',
   accountDeleteErrorToast: 'アカウントを削除できませんでした。サポートにお問い合わせください。',
   downloadDataErrorToast: 'データのダウンロード中にエラーが発生しました',
+  // === Recommended tools / affiliate partners (LandingPage.jsx) ===
+  partnersTitle: 'おすすめのツール',
+  partnersSubtitle: '私たちが取引や市場分析に使用し、おすすめするプラットフォーム',
+  partnerMargexDesc: '最大100倍レバレッジ、KYC不要、$100ウェルカムボーナス付きの暗号資産デリバティブ取引所',
+  sponsoredLabel: 'アフィリエイトリンク',
 }

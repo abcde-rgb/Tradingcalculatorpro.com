@@ -2888,4 +2888,9 @@ export default {
   accountDeleteManualToast: 'تعذّر حذف الحساب تلقائيًا. يرجى إرسال بريد إلكتروني إلى contact@tradingcalculator.pro بعنوان "طلب حذف الحساب" من بريدك الإلكتروني المسجل.',
   accountDeleteErrorToast: 'تعذّر حذف الحساب. يرجى التواصل مع الدعم.',
   downloadDataErrorToast: 'حدث خطأ أثناء تنزيل البيانات',
+  // === Recommended tools / affiliate partners (LandingPage.jsx) ===
+  partnersTitle: 'أدوات نوصي بها',
+  partnersSubtitle: 'المنصات التي نستخدمها ونوصي بها للتداول وتحليل الأسواق',
+  partnerMargexDesc: 'منصة لتداول مشتقات العملات الرقمية برافعة مالية تصل إلى 100x، بدون KYC، ومكافأة ترحيب بقيمة 100 دولار',
+  sponsoredLabel: 'رابط تابع',
 }

@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { RecommendedTools } from '@/components/common/RecommendedTools';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
@@ -568,7 +569,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      
+
+      {/* Recommended Tools / Affiliate Partners */}
+      <RecommendedTools />
+
       {/* Testimonials Section */}
       <section className="py-20 px-4 bg-muted/30">
         <div className="max-w-7xl mx-auto">

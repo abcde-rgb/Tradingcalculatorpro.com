@@ -2890,4 +2890,9 @@ export default {
   accountDeleteManualToast: '无法自动删除账户。请使用您注册的邮箱，向 contact@tradingcalculator.pro 发送主题为"账户删除请求"的邮件。',
   accountDeleteErrorToast: '无法删除账户，请联系客服。',
   downloadDataErrorToast: '下载数据时出错',
+  // === Recommended tools / affiliate partners (LandingPage.jsx) ===
+  partnersTitle: '我们推荐的工具',
+  partnersSubtitle: '我们在交易和分析市场时使用并推荐的平台',
+  partnerMargexDesc: '加密衍生品交易所,最高100倍杠杆,无需KYC,新用户可获得100美元奖金',
+  sponsoredLabel: '联盟链接',
 }
