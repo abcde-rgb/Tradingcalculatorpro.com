@@ -2907,6 +2907,71 @@ _PAYMENT_METHODS_MAP = {
     "klarna": ["klarna"],
 }
 
+# ── PayPal REST API v2 helpers (httpx async) ──────────────────────────────────
+
+def _paypal_base_url(mode: str) -> str:
+    return "https://api-m.sandbox.paypal.com" if mode != "live" else "https://api-m.paypal.com"
+
+
+async def _paypal_access_token(client_id: str, client_secret: str, mode: str) -> str:
+    import httpx as _httpx
+    async with _httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{_paypal_base_url(mode)}/v1/oauth2/token",
+            auth=(client_id, client_secret),
+            data={"grant_type": "client_credentials"},
+            headers={"Accept": "application/json"},
+        )
+        r.raise_for_status()
+        return r.json()["access_token"]
+
+
+async def _paypal_create_order(
+    plan: dict, user_id: str, transaction_id: str, origin_url: str,
+    client_id: str, client_secret: str, mode: str,
+) -> dict:
+    import httpx as _httpx
+    token = await _paypal_access_token(client_id, client_secret, mode)
+    payload = {
+        "intent": "CAPTURE",
+        "purchase_units": [{
+            "reference_id": transaction_id,
+            "custom_id": user_id,
+            "amount": {
+                "currency_code": plan.get("currency", "EUR").upper(),
+                "value": f"{plan['price']:.2f}",
+            },
+            "description": f"TradingCalculator.Pro — Plan {plan['name']}",
+        }],
+        "application_context": {
+            "return_url": f"{origin_url}/payment/success",
+            "cancel_url": f"{origin_url}/payment/cancel",
+            "brand_name": "TradingCalculator.Pro",
+            "user_action": "PAY_NOW",
+        },
+    }
+    async with _httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{_paypal_base_url(mode)}/v2/checkout/orders",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+async def _paypal_capture_order(order_id: str, client_id: str, client_secret: str, mode: str) -> dict:
+    import httpx as _httpx
+    token = await _paypal_access_token(client_id, client_secret, mode)
+    async with _httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{_paypal_base_url(mode)}/v2/checkout/orders/{order_id}/capture",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            content=b"{}",
+        )
+        r.raise_for_status()
+        return r.json()
+
 
 def _build_pending_transaction(
     user: dict, plan_id: str, plan: dict, payment_method: str
@@ -2978,7 +3043,26 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
 
     transaction = _build_pending_transaction(user, plan_id, plan, payment_method)
 
-    if payment_method in _PAYMENT_METHODS_MAP:
+    if payment_method == "paypal":
+        pp_client_id = await get_setting("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
+        pp_client_secret = await get_setting("paypal_client_secret") or os.environ.get("PAYPAL_CLIENT_SECRET", "")
+        pp_mode = await get_setting("paypal_mode") or os.environ.get("PAYPAL_MODE", "sandbox")
+        if not pp_client_id or not pp_client_secret:
+            raise HTTPException(status_code=503, detail="PayPal no está configurado. Contacta soporte.")
+        try:
+            order = await _paypal_create_order(
+                plan, user["id"], transaction["id"], origin_url,
+                pp_client_id, pp_client_secret, pp_mode,
+            )
+        except Exception as _e:
+            logging.error(f"[paypal] create_order error: {_e}")
+            raise HTTPException(status_code=502, detail="Error al crear orden PayPal. Inténtalo de nuevo.")
+        transaction["paypal_order_id"] = order["id"]
+        # approval_url for mobile/fallback redirect
+        approval = next((l["href"] for l in order.get("links", []) if l["rel"] == "approve"), None)
+        transaction["checkout_url"] = approval
+
+    elif payment_method in _PAYMENT_METHODS_MAP:
         session = await _create_stripe_session(
             plan,
             payment_method,
@@ -3000,6 +3084,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         "transaction_id": transaction["id"],
         "checkout_url": transaction.get("checkout_url"),
         "session_id": transaction.get("session_id"),
+        "paypal_order_id": transaction.get("paypal_order_id"),
     }
 
 @api_router.get("/checkout/status/{session_id}")
@@ -3023,6 +3108,83 @@ async def get_checkout_status(session_id: str, user: dict = Depends(require_user
         "currency": transaction.get("currency"),
         "created_at": transaction.get("created_at")
     }
+
+@api_router.post("/paypal/capture/{order_id}")
+@limiter.limit("10/hour")
+async def paypal_capture_order(
+    request: Request, order_id: str, user: dict = Depends(require_user)
+) -> Dict[str, Any]:
+    """Called by the frontend after the payer approves the PayPal order.
+    Captures the payment and activates the subscription."""
+    transaction = await db.payment_transactions.find_one(
+        {"paypal_order_id": order_id, "user_id": user["id"]}, {"_id": 0}
+    )
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transacción PayPal no encontrada")
+    if transaction.get("status") == "paid":
+        return {"status": "already_paid", "plan_id": transaction["plan_id"]}
+
+    pp_client_id = await get_setting("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
+    pp_client_secret = await get_setting("paypal_client_secret") or os.environ.get("PAYPAL_CLIENT_SECRET", "")
+    pp_mode = await get_setting("paypal_mode") or os.environ.get("PAYPAL_MODE", "sandbox")
+    if not pp_client_id or not pp_client_secret:
+        raise HTTPException(status_code=503, detail="PayPal no está configurado")
+
+    try:
+        capture_result = await _paypal_capture_order(order_id, pp_client_id, pp_client_secret, pp_mode)
+    except Exception as _e:
+        logging.error(f"[paypal] capture error for {order_id}: {_e}")
+        raise HTTPException(status_code=502, detail="Error al capturar pago PayPal. Contacta soporte.")
+
+    capture_status = capture_result.get("status")
+    if capture_status != "COMPLETED":
+        raise HTTPException(
+            status_code=402,
+            detail=f"Pago no completado (estado: {capture_status}). Inténtalo de nuevo."
+        )
+
+    plan_id = transaction["plan_id"]
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="Plan no válido")
+
+    # Reuse existing subscription activation (no stripe_session_id — pass empty string)
+    subscription_end = datetime.now(timezone.utc) + timedelta(days=plan["days"])
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "subscription_plan": plan_id,
+            "subscription_end": subscription_end.isoformat(),
+            "is_premium": True,
+            "paypal_order_id": order_id,
+        }},
+    )
+    await db.payment_transactions.update_one(
+        {"id": transaction["id"]},
+        {"$set": {"status": "paid", "paid_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    try:
+        user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "email": 1, "name": 1})
+        if user_doc:
+            import asyncio as _asyncio
+            _asyncio.create_task(_send_subscription_confirmation_email(
+                to_email=user_doc["email"],
+                name=user_doc.get("name", ""),
+                plan_name=plan["name"],
+                plan_price=plan["price"],
+                subscription_end=subscription_end.isoformat(),
+            ))
+    except Exception as _e:
+        logging.warning(f"[paypal] confirmation email failed: {_e}")
+
+    logging.info(f"[paypal] subscription activated: user={user['id']} plan={plan_id} order={order_id}")
+    return {
+        "status": "paid",
+        "plan_id": plan_id,
+        "subscription_end": subscription_end.isoformat(),
+    }
+
 
 def _stripe_session_ids(session_id: str) -> Dict[str, Optional[str]]:
     """Retrieve Stripe customer & subscription IDs for a paid session, with safe fallback."""
