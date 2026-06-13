@@ -27,6 +27,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiar el código fuente del backend
 COPY . .
 
+# Usuario no privilegiado — no ejecutar como root
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+USER appuser
+
 # Cloud Run expone el puerto 8080
 EXPOSE 8080
 

@@ -949,7 +949,7 @@ app.add_middleware(SlowAPIMiddleware)
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=128)
     name: str
 
 class UserLogin(BaseModel):
@@ -1301,6 +1301,14 @@ async def startup_event():
             await db.users.update_one({"email": DEMO_EMAIL}, {"$set": patch})
             logging.info("Demo user patched: %s", patch)
 
+    # ── Purge expired JWT revocations (safe: expired tokens can't be used anyway) ─
+    try:
+        expired_cutoff = datetime.now(timezone.utc).isoformat()
+        result = await db.revoked_tokens.delete_many({"expires_at": {"$lt": expired_cutoff}})
+        logging.info("[startup] Purged %d expired revoked_tokens", result.deleted_count)
+    except Exception as e:
+        logging.warning("[startup] Could not purge revoked_tokens: %s", e)
+
     # ── Extended modules ─────────────────────────────────────────────────
     try:
         from missing_apis import ensure_missing_api_indexes
@@ -1408,7 +1416,8 @@ async def _sync_stripe_subscription(user: dict) -> None:
     if end_dt > datetime.now(timezone.utc):
         return  # still valid locally, no need to call Stripe
     try:
-        subs = stripe.Subscription.list(
+        subs = await asyncio.to_thread(
+            stripe.Subscription.list,
             customer=user["stripe_customer_id"], status="active", limit=1
         )
         if subs.data:
@@ -2350,7 +2359,7 @@ async def _send_email(to_email: str, subject: str, html_content: str) -> bool:
         from sendgrid.helpers.mail import Mail
         message = Mail(from_email=SENDER_EMAIL, to_emails=to_email, subject=subject, html_content=html_content)
         sg = SendGridAPIClient(SENDGRID_API_KEY)
-        sg.send(message)
+        await asyncio.to_thread(sg.send, message)
         logging.info(f"[email] sent '{subject}' → {to_email}")
         return True
     except Exception as e:
@@ -2543,8 +2552,8 @@ async def run_monte_carlo(request: dict, user: dict = Depends(require_user)) -> 
     avg_win = request.get("avgWin", 100)
     avg_loss = request.get("avgLoss", -50)
     initial = request.get("initialCapital", 10000)
-    num_trades = request.get("numTrades", 100)
-    num_simulations = request.get("numSimulations", 1000)
+    num_trades = min(int(request.get("numTrades", 100)), 1000)
+    num_simulations = min(int(request.get("numSimulations", 1000)), 5000)
 
     rng = secrets.SystemRandom()
     finals: List[float] = []
@@ -3169,10 +3178,9 @@ async def get_current_subscription(user: dict = Depends(require_user)):
             }
         
         # Get subscriptions from Stripe
-        subscriptions = stripe.Subscription.list(
-            customer=user_doc["stripe_customer_id"],
-            status="all",
-            limit=1
+        subscriptions = await asyncio.to_thread(
+            stripe.Subscription.list,
+            customer=user_doc["stripe_customer_id"], status="all", limit=1
         )
         
         if not subscriptions.data:
@@ -3216,10 +3224,9 @@ async def cancel_subscription(
             raise HTTPException(status_code=404, detail="No subscription found")
         
         # Get active subscription
-        subscriptions = stripe.Subscription.list(
-            customer=user_doc["stripe_customer_id"],
-            status="active",
-            limit=1
+        subscriptions = await asyncio.to_thread(
+            stripe.Subscription.list,
+            customer=user_doc["stripe_customer_id"], status="active", limit=1
         )
         
         if not subscriptions.data:
@@ -3229,7 +3236,7 @@ async def cancel_subscription(
         
         if request.immediate:
             # Cancel immediately
-            stripe.Subscription.delete(sub.id)
+            await asyncio.to_thread(stripe.Subscription.delete, sub.id)
             await db.users.update_one(
                 {"id": user["id"]},
                 {"$set": {"is_premium": False, "subscription_plan": None}}
@@ -3237,10 +3244,7 @@ async def cancel_subscription(
             return {"message": "Subscription canceled immediately", "canceled": True}
         else:
             # Cancel at period end
-            stripe.Subscription.modify(
-                sub.id,
-                cancel_at_period_end=True
-            )
+            await asyncio.to_thread(stripe.Subscription.modify, sub.id, cancel_at_period_end=True)
             return {
                 "message": "Subscription will be canceled at period end",
                 "canceled": False,
@@ -3262,10 +3266,9 @@ async def resume_subscription(user: dict = Depends(require_user)):
             raise HTTPException(status_code=404, detail="No subscription found")
         
         # Get subscription set to cancel
-        subscriptions = stripe.Subscription.list(
-            customer=user_doc["stripe_customer_id"],
-            status="active",
-            limit=1
+        subscriptions = await asyncio.to_thread(
+            stripe.Subscription.list,
+            customer=user_doc["stripe_customer_id"], status="active", limit=1
         )
         
         if not subscriptions.data:
@@ -3277,10 +3280,7 @@ async def resume_subscription(user: dict = Depends(require_user)):
             return {"message": "Subscription is not set to cancel", "resumed": False}
         
         # Resume by removing cancel_at_period_end
-        stripe.Subscription.modify(
-            sub.id,
-            cancel_at_period_end=False
-        )
+        await asyncio.to_thread(stripe.Subscription.modify, sub.id, cancel_at_period_end=False)
         
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
@@ -3320,9 +3320,9 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
             raise HTTPException(status_code=404, detail="No Stripe customer found")
 
         # Create portal session
-        session = stripe.billing_portal.Session.create(
-            customer=user_doc["stripe_customer_id"],
-            return_url=return_url
+        session = await asyncio.to_thread(
+            stripe.billing_portal.Session.create,
+            customer=user_doc["stripe_customer_id"], return_url=return_url
         )
         
         return {"url": session.url}
@@ -3342,9 +3342,9 @@ async def get_billing_history(user: dict = Depends(require_user)):
             return {"invoices": []}
         
         # Get invoices from Stripe
-        invoices = stripe.Invoice.list(
-            customer=user_doc["stripe_customer_id"],
-            limit=10
+        invoices = await asyncio.to_thread(
+            stripe.Invoice.list,
+            customer=user_doc["stripe_customer_id"], limit=10
         )
         
         return {
@@ -3470,17 +3470,14 @@ async def root():
 @api_router.get("/health")
 async def health():
     if db._pool is None:
-        return {
-            "status": "degraded",
-            "db": "unavailable",
-        }
+        raise HTTPException(status_code=503, detail={"status": "degraded", "db": "unavailable"})
     try:
         async with db._pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
         return {"status": "healthy", "db": "ok"}
     except Exception as e:
         logging.error(f"[health] DB check failed: {e}")
-        return {"status": "healthy", "db": f"error: {e}"}
+        raise HTTPException(status_code=503, detail={"status": "degraded", "db": f"error: {e}"})
 
 # ============= OPTIONS CALCULATOR ROUTES (merged from OPTIONS app) =============
 
