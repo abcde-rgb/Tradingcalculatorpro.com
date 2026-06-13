@@ -4873,6 +4873,25 @@ def _serialize_admin_user(u: dict) -> dict:
     }
 
 
+# ── admin_routes.py feature router — registered HERE (before server.py admin stubs)
+# so its handlers take precedence for overlapping paths (FastAPI first-match wins).
+# server.py admin routes below are kept for routes not yet in admin_routes.py.
+try:
+    from admin_routes import build_admin_router as _build_admin_router
+    api_router.include_router(
+        _build_admin_router(
+            db=db,
+            require_admin_dep=require_admin,
+            subscription_plans=SUBSCRIPTION_PLANS,
+            log_admin_action_fn=log_admin_action,
+        ),
+        prefix="/admin",
+    )
+    logging.info("✅ admin_routes registered (campaigns, i18n, connectors, maintenance, cohorts, referrals-leaderboard, gdpr)")
+except Exception as _e:
+    logging.error(f"admin_routes early registration error: {_e}", exc_info=True)
+
+
 @api_router.get("/admin/users")
 async def admin_list_users(
     admin: dict = Depends(require_admin),
@@ -5335,10 +5354,53 @@ async def _load_settings_doc() -> Dict[str, Any]:
     return doc
 
 
+# ── Symmetric encryption for secrets stored in DB (Fernet / AES-128-CBC) ───
+# Set SECRET_ENCRYPTION_KEY in env (generate once: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+# Without this key, secrets fall back to plaintext — functional but not encrypted at application level.
+# GCP Cloud SQL still encrypts at rest; this adds an extra layer.
+
+_ENC_PREFIX = "fernet:"
+
+def _get_fernet():
+    key = os.environ.get("SECRET_ENCRYPTION_KEY", "").strip()
+    if not key:
+        return None
+    try:
+        from cryptography.fernet import Fernet
+        return Fernet(key.encode())
+    except Exception as _e:
+        logging.warning(f"[settings] Fernet init failed: {_e}")
+        return None
+
+def _encrypt_setting(value: str) -> str:
+    if not value:
+        return value
+    f = _get_fernet()
+    if f:
+        return _ENC_PREFIX + f.encrypt(value.encode()).decode()
+    return value
+
+def _decrypt_setting(value: str) -> str:
+    if not value or not value.startswith(_ENC_PREFIX):
+        return value
+    f = _get_fernet()
+    if f:
+        try:
+            return f.decrypt(value[len(_ENC_PREFIX):].encode()).decode()
+        except Exception as _e:
+            logging.warning(f"[settings] Fernet decrypt failed: {_e}")
+    return value
+
+
 async def get_setting(key: str) -> str:
-    """Public helper: DB value first, env var fallback. Returns "" if both empty."""
+    """Public helper: DB value first (auto-decrypted), env var fallback. Returns "" if both empty."""
     doc = await _load_settings_doc()
-    return (doc.get(key) or os.environ.get(_SETTING_ENV_FALLBACK.get(key, ""), "") or "")
+    raw = doc.get(key) or ""
+    if raw:
+        if key in SECRET_SETTING_KEYS:
+            return _decrypt_setting(raw)
+        return raw
+    return os.environ.get(_SETTING_ENV_FALLBACK.get(key, ""), "") or ""
 
 
 def _mask_secret(val: str) -> str:
@@ -5361,7 +5423,9 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
     for k in PUBLIC_SETTING_KEYS:
         out[k] = doc.get(k) or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or ""
     for k in SECRET_SETTING_KEYS:
-        raw = doc.get(k) or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or ""
+        stored = doc.get(k) or ""
+        decrypted = _decrypt_setting(stored) if stored else ""
+        raw = decrypted or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or ""
         out[k] = _mask_secret(raw)            # masked value for display
         flags[f"{k}_set"] = bool(raw)
 
@@ -5401,7 +5465,7 @@ async def admin_update_settings(request: Request, payload: AdminSettingsUpdate, 
                 rejected.append(k)
                 continue
             else:
-                cleaned[k] = v
+                cleaned[k] = _encrypt_setting(v)                 # encrypt at rest
         else:
             cleaned[k] = v or None
 
@@ -5757,21 +5821,6 @@ try:
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:
     logging.error(f"Module-level extended modules registration error: {_e}", exc_info=True)
-
-try:
-    from admin_routes import build_admin_router
-    api_router.include_router(
-        build_admin_router(
-            db=db,
-            require_admin_dep=require_admin,
-            subscription_plans=SUBSCRIPTION_PLANS,
-            log_admin_action_fn=log_admin_action,
-        ),
-        prefix="/admin",
-    )
-    logging.info("✅ admin_routes feature endpoints registered (maintenance, campaigns, churn, cohorts, referrals/leaderboard, plans, i18n, errors, rate-limits, gdpr-exports)")
-except Exception as _e:
-    logging.error(f"admin_routes registration error: {_e}", exc_info=True)
 
 app.include_router(api_router)
 
