@@ -5309,11 +5309,11 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
         mes_label = month_start.strftime("%b")
         mrr_history.append({"mes": mes_label, "mrr": round(total, 2)})
 
-    # Total paid users per plan → LTV approximation
-    ltv: Dict[str, float] = {}
-    for plan_id, plan in SUBSCRIPTION_PLANS.items():
-        count = await db.payment_transactions.count_documents({"plan_id": plan_id, "status": "paid"})
-        ltv[plan_id] = round(plan["price"] * max(count, 1) / max(count, 1), 2)  # price × 1 = one payment avg
+    # LTV per plan: plan price (one-payment average; no churn-adjusted history yet)
+    ltv: Dict[str, float] = {
+        plan_id: round(plan["price"], 2)
+        for plan_id, plan in SUBSCRIPTION_PLANS.items()
+    }
 
     # Churn: users who had premium and no longer do (cancelled last 30 days)
     churn_count = await db.users.count_documents({
@@ -5489,6 +5489,7 @@ try:
     register_referrals(api_router, db, {
         "require_user": require_user,
         "require_admin": require_admin,
+        "limiter": limiter,
     })
     register_realtime_alerts(api_router, db, {
         "decode_token": decode_token,

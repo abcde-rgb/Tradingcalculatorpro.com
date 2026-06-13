@@ -346,4 +346,7 @@ def register(app_router, database, helpers: Dict[str, Any]) -> None:
     db = database
     require_user = helpers["require_user"]
     require_admin = helpers["require_admin"]
+    # Apply rate limit to the unauthenticated track endpoint before including router
+    if helpers.get("limiter"):
+        helpers["limiter"].limit("5/minute")(track_referral)
     app_router.include_router(router)
