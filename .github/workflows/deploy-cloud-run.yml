@@ -99,6 +99,12 @@ jobs:
         env:
           PYTHONPATH: "."
 
+      - name: Pytest — colección y tests de integración (si BACKEND_URL configurado)
+        run: pytest tests/ -v --tb=short
+        env:
+          PYTHONPATH: "."
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+
   # ── 2. Build & Deploy Backend a Cloud Run ────────────────────────
   deploy:
     name: 🚀 Deploy Backend a Cloud Run

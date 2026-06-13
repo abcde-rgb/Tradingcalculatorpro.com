@@ -597,8 +597,7 @@ class _AggCursor:
         self._rows: Optional[List[dict]] = None
 
     async def _execute(self) -> List[dict]:
-        """Execute the pipeline by interpreting it step by step in Python."""
-        # Step 1: fetch all documents (or filtered set)
+        """Execute the pipeline. GROUP+COUNT pipelines are pushed to SQL to avoid OOM."""
         match_filter = {}
         group_id_field = None
         sum_field = None
@@ -611,7 +610,6 @@ class _AggCursor:
                 match_filter = stage["$match"]
             elif "$group" in stage:
                 group_id_field = stage["$group"].get("_id")
-                # look for first $sum accumulator
                 for k, v in stage["$group"].items():
                     if k == "_id":
                         continue
@@ -624,7 +622,44 @@ class _AggCursor:
             elif "$project" in stage:
                 project_spec = stage["$project"]
 
-        # Fetch docs
+        # Push GROUP BY + ORDER BY + LIMIT to SQL when grouping by a simple $field
+        if group_id_field is not None and isinstance(group_id_field, str) and group_id_field.startswith("$"):
+            field_name = group_id_field[1:]
+            if not _SAFE_FIELD_RE.match(field_name):
+                raise ValueError(f"Unsafe group field: {field_name!r}")
+            count_col = sum_field or "count"
+
+            where_clause, params, _ = _build_where_clause(match_filter) if match_filter else ("", [], 0)
+            where_sql = f"WHERE {where_clause}" if where_clause else ""
+
+            order_parts = []
+            if sort_spec:
+                for sf, sd in sort_spec.items():
+                    col = f"data->>'{sf}'" if sf not in ("_id", count_col) else (
+                        f"data->>'{field_name}'" if sf == "_id" else count_col
+                    )
+                    order_parts.append(f"{col} {'DESC' if sd == -1 else 'ASC'}")
+            order_sql = f"ORDER BY {', '.join(order_parts)}" if order_parts else ""
+            limit_sql = f"LIMIT {int(limit_n)}" if limit_n is not None else ""
+
+            sql = (
+                f"SELECT data->>'{field_name}' AS _id, COUNT(*) AS {count_col} "
+                f"FROM {self._table} {where_sql} "
+                f"GROUP BY data->>'{field_name}' {order_sql} {limit_sql}"
+            )
+            async with self._pool.acquire() as conn:
+                rows = await conn.fetch(sql, *params)
+            result_docs = [{
+                "_id": r["_id"],
+                count_col: int(r[count_col]),
+            } for r in rows]
+
+            # $project on the small aggregated result
+            if project_spec:
+                result_docs = self._apply_project(result_docs, project_spec)
+            return result_docs
+
+        # Fallback: fetch docs (with optional WHERE), then process in Python
         async with self._pool.acquire() as conn:
             if match_filter:
                 where_clause, params, _ = _build_where_clause(match_filter)
@@ -638,27 +673,7 @@ class _AggCursor:
                 rows = await conn.fetch(f"SELECT data FROM {self._table}")
         docs = [_deserialize(r["data"]) for r in rows]
 
-        # Group
-        if group_id_field is not None:
-            # group_id_field is like "$subscription_plan" → field name is "subscription_plan"
-            if isinstance(group_id_field, str) and group_id_field.startswith("$"):
-                field_name = group_id_field[1:]
-            else:
-                field_name = group_id_field
-
-            groups: dict = {}
-            for doc in docs:
-                val = doc.get(field_name)
-                key = val  # None is valid
-                groups.setdefault(key, 0)
-                groups[key] += 1
-
-            result_docs = [
-                {"_id": k, (sum_field or "count"): v}
-                for k, v in groups.items()
-            ]
-        else:
-            result_docs = docs
+        result_docs = docs
 
         # Sort
         if sort_spec:
@@ -672,24 +687,33 @@ class _AggCursor:
         if limit_n is not None:
             result_docs = result_docs[:limit_n]
 
-        # Project (very basic — just renames _id)
         if project_spec:
-            new_docs = []
-            for doc in result_docs:
-                new_doc = {}
-                for k, v in project_spec.items():
-                    if v == 0:
-                        # exclude
-                        new_doc = {dk: dv for dk, dv in doc.items() if dk != k}
-                    elif isinstance(v, str) and v.startswith("$"):
-                        new_doc[k] = doc.get(v[1:])
-                    elif v == 1:
-                        if k in doc:
-                            new_doc[k] = doc[k]
-                new_docs.append(new_doc)
-            result_docs = new_docs
+            result_docs = self._apply_project(result_docs, project_spec)
 
         return result_docs
+
+    @staticmethod
+    def _apply_project(docs: list, project_spec: dict) -> list:
+        """Apply a $project stage (renames, includes, excludes) to a list of dicts."""
+        new_docs = []
+        for doc in docs:
+            new_doc: dict = {}
+            has_inclusion = any(
+                v == 1 or (isinstance(v, str) and v.startswith("$"))
+                for v in project_spec.values()
+            )
+            if has_inclusion:
+                for k, v in project_spec.items():
+                    if isinstance(v, str) and v.startswith("$"):
+                        new_doc[k] = doc.get(v[1:])
+                    elif v == 1 and k in doc:
+                        new_doc[k] = doc[k]
+            else:
+                # pure exclusion
+                exclude = {k for k, v in project_spec.items() if v == 0}
+                new_doc = {k: v for k, v in doc.items() if k not in exclude}
+            new_docs.append(new_doc)
+        return new_docs
 
     async def to_list(self, length=None):
         rows = await self._execute()

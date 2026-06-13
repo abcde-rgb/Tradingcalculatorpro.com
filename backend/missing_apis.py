@@ -919,6 +919,8 @@ async def export_trades(
     Export all trades to CSV or Excel.
     Query params: format=csv|excel, status=open|closed, symbol=AAPL, since=2024-01-01, until=2024-12-31
     """
+    if not check_premium(user):
+        raise HTTPException(status_code=403, detail="Función premium requerida")
     query: Dict[str, Any] = {"user_id": user["id"]}
     if status:
         query["status"] = status
@@ -973,6 +975,8 @@ async def save_calculation_to_journal(calc_id: str, payload: SaveToJournalReques
     Pre-fill a new journal trade entry from a saved calculation.
     The calculation inputs/results are merged with any overrides in the payload.
     """
+    if not check_premium(user):
+        raise HTTPException(status_code=403, detail="Función premium requerida")
     calc = await db.calculations.find_one({"id": calc_id, "user_id": user["id"]}, {"_id": 0})
     if not calc:
         raise HTTPException(status_code=404, detail="Cálculo no encontrado")
