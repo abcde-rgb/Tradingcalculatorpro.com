@@ -250,21 +250,26 @@ def _mask(value: Optional[str]) -> str:
 
 
 async def _get_all_settings(db) -> Dict[str, str]:
-    """Load all rows from app_settings collection as key->value dict."""
-    docs = await db.app_settings.find({}, {"_id": 0, "key": 1, "value": 1}).to_list(1000)
-    return {d["key"]: d.get("value", "") for d in docs}
+    """Load all settings from app_settings (Scheme A: single global doc keyed by _id='global')."""
+    doc = await db.app_settings.find_one({"_id": "global"}) or {}
+    for k in ("_id", "updated_at", "updated_by"):
+        doc.pop(k, None)
+    return {k: str(v) for k, v in doc.items()}
 
 
 async def _upsert_setting(db, key: str, value: str) -> None:
     await db.app_settings.update_one(
-        {"key": key},
-        {"$set": {"key": key, "value": value, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        {"_id": "global"},
+        {"$set": {key: value, "updated_at": datetime.now(timezone.utc).isoformat()}},
         upsert=True,
     )
 
 
 async def _delete_setting(db, key: str) -> None:
-    await db.app_settings.delete_one({"key": key})
+    await db.app_settings.update_one(
+        {"_id": "global"},
+        {"$unset": {key: ""}},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -832,7 +837,7 @@ def build_admin_router(
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         target_email = target.get("email", "")
         for col in ["trades", "calculations", "alerts", "portfolio",
-                    "user_states", "payment_transactions", "performance_trades"]:
+                    "user_states", "payment_transactions"]:
             try:
                 await getattr(db, col).delete_many({"user_id": user_id})
             except Exception:
@@ -986,8 +991,9 @@ def build_admin_router(
             [{"name": k, "usos": v} for k, v in calc_counts.items()],
             key=lambda x: x["usos"], reverse=True
         )[:10]
-        # Trades in journal
-        trade_count = await db.performance_trades.count_documents({})
+        # Trades in journal (both /journal/trades and /performance/trades persist
+        # into db.trades — there is no separate "performance_trades" collection)
+        trade_count = await db.trades.count_documents({})
         alert_count = await db.alerts.count_documents({})
         return {
             "active_users": {"day": dau, "week": wau, "month": mau},
@@ -1228,8 +1234,10 @@ def build_admin_router(
             except Exception as e:
                 logger.error(f"SendGrid error in campaign send: {e}")
         else:
-            # Simulate send (no API key configured)
-            sent_count = len(users_to_send)
+            raise HTTPException(
+                status_code=503,
+                detail="SendGrid API key no configurada. Configura SENDGRID_API_KEY para enviar campañas.",
+            )
 
         await db.email_campaigns.update_one(
             {"id": campaign_id},

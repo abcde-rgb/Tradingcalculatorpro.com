@@ -280,11 +280,25 @@ class _Cursor:
         sql = f"SELECT data FROM {self._table} {where} {order} {limit_clause} {offset_clause}".strip()
         return sql, params
 
+    @staticmethod
+    def _apply_projection(docs: list, projection) -> list:
+        if not projection:
+            return docs
+        exclusions = {k for k, v in projection.items() if v == 0}
+        inclusions = {k for k, v in projection.items() if v == 1 and k != "_id"}
+        if inclusions:
+            # Inclusion projection: keep only specified keys, then remove any exclusions
+            return [{k: d[k] for k in inclusions if k in d and k not in exclusions} for d in docs]
+        if exclusions:
+            return [{k: v for k, v in d.items() if k not in exclusions} for d in docs]
+        return docs
+
     async def to_list(self, length=None):
         sql, params = self._build_query()
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)
         result = [_deserialize(r["data"]) for r in rows]
+        result = self._apply_projection(result, self._projection)
         if length is not None:
             result = result[:length]
         return result
@@ -339,6 +353,10 @@ def _apply_update_operators(doc: dict, update_dict: dict) -> dict:
             if v not in lst:
                 lst.append(v)
             result[k] = lst
+
+    if "$unset" in update_dict:
+        for k in update_dict["$unset"]:
+            result.pop(k, None)
 
     return result
 
@@ -405,7 +423,10 @@ class Collection:
             row = await conn.fetchrow(sql, *params)
         if row is None:
             return None
-        return _deserialize(row["data"])
+        doc = _deserialize(row["data"])
+        if projection:
+            [doc] = _Cursor._apply_projection([doc], projection)
+        return doc
 
     def find(self, filter_dict: dict = None, projection=None):
         """Return a lazy _Cursor (supports .sort/.limit/.skip/.to_list/async for)."""
@@ -577,8 +598,7 @@ class _AggCursor:
         self._rows: Optional[List[dict]] = None
 
     async def _execute(self) -> List[dict]:
-        """Execute the pipeline by interpreting it step by step in Python."""
-        # Step 1: fetch all documents (or filtered set)
+        """Execute the pipeline. GROUP+COUNT pipelines are pushed to SQL to avoid OOM."""
         match_filter = {}
         group_id_field = None
         sum_field = None
@@ -591,7 +611,6 @@ class _AggCursor:
                 match_filter = stage["$match"]
             elif "$group" in stage:
                 group_id_field = stage["$group"].get("_id")
-                # look for first $sum accumulator
                 for k, v in stage["$group"].items():
                     if k == "_id":
                         continue
@@ -604,7 +623,48 @@ class _AggCursor:
             elif "$project" in stage:
                 project_spec = stage["$project"]
 
-        # Fetch docs
+        # Push GROUP BY + ORDER BY + LIMIT to SQL when grouping by a simple $field
+        if group_id_field is not None and isinstance(group_id_field, str) and group_id_field.startswith("$"):
+            field_name = group_id_field[1:]
+            if not _SAFE_FIELD_RE.match(field_name):
+                raise ValueError(f"Unsafe group field: {field_name!r}")
+            count_col = sum_field or "count"
+            if not _SAFE_FIELD_RE.match(count_col):
+                raise ValueError(f"Unsafe accumulator name: {count_col!r}")
+
+            where_clause, params, _ = _build_where_clause(match_filter) if match_filter else ("", [], 0)
+            where_sql = f"WHERE {where_clause}" if where_clause else ""
+
+            order_parts = []
+            if sort_spec:
+                for sf, sd in sort_spec.items():
+                    if sf not in ("_id", count_col) and not _SAFE_FIELD_RE.match(sf):
+                        raise ValueError(f"Unsafe sort field: {sf!r}")
+                    col = f"data->>'{sf}'" if sf not in ("_id", count_col) else (
+                        f"data->>'{field_name}'" if sf == "_id" else count_col
+                    )
+                    order_parts.append(f"{col} {'DESC' if sd == -1 else 'ASC'}")
+            order_sql = f"ORDER BY {', '.join(order_parts)}" if order_parts else ""
+            limit_sql = f"LIMIT {int(limit_n)}" if limit_n is not None else ""
+
+            sql = (
+                f"SELECT data->>'{field_name}' AS _id, COUNT(*) AS {count_col} "
+                f"FROM {self._table} {where_sql} "
+                f"GROUP BY data->>'{field_name}' {order_sql} {limit_sql}"
+            )
+            async with self._pool.acquire() as conn:
+                rows = await conn.fetch(sql, *params)
+            result_docs = [{
+                "_id": r["_id"],
+                count_col: int(r[count_col]),
+            } for r in rows]
+
+            # $project on the small aggregated result
+            if project_spec:
+                result_docs = self._apply_project(result_docs, project_spec)
+            return result_docs
+
+        # Fallback: fetch docs (with optional WHERE), then process in Python
         async with self._pool.acquire() as conn:
             if match_filter:
                 where_clause, params, _ = _build_where_clause(match_filter)
@@ -618,58 +678,47 @@ class _AggCursor:
                 rows = await conn.fetch(f"SELECT data FROM {self._table}")
         docs = [_deserialize(r["data"]) for r in rows]
 
-        # Group
-        if group_id_field is not None:
-            # group_id_field is like "$subscription_plan" → field name is "subscription_plan"
-            if isinstance(group_id_field, str) and group_id_field.startswith("$"):
-                field_name = group_id_field[1:]
-            else:
-                field_name = group_id_field
+        result_docs = docs
 
-            groups: dict = {}
-            for doc in docs:
-                val = doc.get(field_name)
-                key = val  # None is valid
-                groups.setdefault(key, 0)
-                groups[key] += 1
-
-            result_docs = [
-                {"_id": k, (sum_field or "count"): v}
-                for k, v in groups.items()
-            ]
-        else:
-            result_docs = docs
-
-        # Sort
+        # Sort (default-arg capture avoids late-binding closure bug)
         if sort_spec:
             for sort_field, sort_dir in reversed(list(sort_spec.items())):
                 if sort_field == "_id":
-                    result_docs.sort(key=lambda d: (d.get("_id") or ""), reverse=(sort_dir == -1))
+                    result_docs.sort(key=lambda d, _sf="_id": (d.get(_sf) or ""), reverse=(sort_dir == -1))
                 else:
-                    result_docs.sort(key=lambda d: (d.get(sort_field) or 0), reverse=(sort_dir == -1))
+                    result_docs.sort(key=lambda d, _sf=sort_field: (d.get(_sf) or 0), reverse=(sort_dir == -1))
 
         # Limit
         if limit_n is not None:
             result_docs = result_docs[:limit_n]
 
-        # Project (very basic — just renames _id)
         if project_spec:
-            new_docs = []
-            for doc in result_docs:
-                new_doc = {}
-                for k, v in project_spec.items():
-                    if v == 0:
-                        # exclude
-                        new_doc = {dk: dv for dk, dv in doc.items() if dk != k}
-                    elif isinstance(v, str) and v.startswith("$"):
-                        new_doc[k] = doc.get(v[1:])
-                    elif v == 1:
-                        if k in doc:
-                            new_doc[k] = doc[k]
-                new_docs.append(new_doc)
-            result_docs = new_docs
+            result_docs = self._apply_project(result_docs, project_spec)
 
         return result_docs
+
+    @staticmethod
+    def _apply_project(docs: list, project_spec: dict) -> list:
+        """Apply a $project stage (renames, includes, excludes) to a list of dicts."""
+        new_docs = []
+        for doc in docs:
+            new_doc: dict = {}
+            has_inclusion = any(
+                v == 1 or (isinstance(v, str) and v.startswith("$"))
+                for v in project_spec.values()
+            )
+            if has_inclusion:
+                for k, v in project_spec.items():
+                    if isinstance(v, str) and v.startswith("$"):
+                        new_doc[k] = doc.get(v[1:])
+                    elif v == 1 and k in doc:
+                        new_doc[k] = doc[k]
+            else:
+                # pure exclusion
+                exclude = {k for k, v in project_spec.items() if v == 0}
+                new_doc = {k: v for k, v in doc.items() if k not in exclude}
+            new_docs.append(new_doc)
+        return new_docs
 
     async def to_list(self, length=None):
         rows = await self._execute()
@@ -731,13 +780,13 @@ class Database:
             # Cloud SQL via Unix socket — SSL not applicable on socket connections
             self._pool = await asyncpg.create_pool(
                 f"{clean_url}?host={host_param}",
-                min_size=1, max_size=10, timeout=10, command_timeout=30,
+                min_size=5, max_size=20, timeout=10, command_timeout=30,
             )
         else:
             import ssl as _ssl
             ssl_ctx = _ssl.create_default_context()
             self._pool = await asyncpg.create_pool(
-                clean_url, ssl=ssl_ctx, min_size=1, max_size=10,
+                clean_url, ssl=ssl_ctx, min_size=5, max_size=20,
                 timeout=10, command_timeout=30,
             )
 
@@ -752,10 +801,29 @@ class Database:
             # Extended modules
             "referrals", "referral_redemptions",
             "password_reset_tokens", "email_verification_tokens",
+            # Admin panel features (queried/written in admin_routes.py — must
+            # exist upfront, since Collection methods don't auto-create tables)
+            "email_campaigns", "gdpr_exports", "error_logs",
+            "churn_surveys", "rate_limit_violations",
         ]
         for name in known:
             coll = self.__getattr__(name)
             await coll._ensure_table()
+
+        # Expression indexes on frequently-queried fields (idempotent)
+        async with self._pool.acquire() as conn:
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users ((data->>'email'))")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_id ON users ((data->>'id'))")
+            for tbl in ("trades", "calculations", "alerts", "saved_positions"):
+                await conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS idx_{tbl}_user_id ON {tbl} ((data->>'user_id'))"
+                )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_revoked_tokens_jti ON revoked_tokens ((data->>'jti'))"
+            )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_payment_transactions_user ON payment_transactions ((data->>'user_id'))"
+            )
 
     async def close(self):
         if self._pool:
@@ -827,7 +895,8 @@ if not JWT_SECRET:
             "Set it to a strong random secret (e.g. openssl rand -hex 32)."
         )
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 8  # Reduced from 24h to limit stolen-token window
+JWT_EXPIRATION_HOURS = 1        # Access token: 1 hour
+JWT_REFRESH_EXPIRATION_DAYS = 7 # Refresh token: 7 days
 
 # Stripe Configuration
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
@@ -876,10 +945,10 @@ security = HTTPBearer(auto_error=False)
 _CORS_ORIGINS = [
     "https://tradingcalculator.pro",
     "https://www.tradingcalculator.pro",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    # Staging/dev origins should be added via CORS_ORIGINS env var, not hardcoded here
 ]
+# Localhost only in non-production (dev) — add via CORS_ORIGINS env var in staging
+if os.environ.get("ENVIRONMENT", "production") != "production":
+    _CORS_ORIGINS += ["http://localhost:3000", "http://localhost:5173"]
 _extra = os.environ.get("CORS_ORIGINS", "")
 for _o in _extra.split(","):
     _o = _o.strip()
@@ -935,13 +1004,27 @@ async def _rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded)
     )
 
 
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    """Catch-all: log full traceback internally, return generic 500 to caller.
+    Prevents stack traces / file paths leaking to external clients in production."""
+    from fastapi.responses import JSONResponse
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    logging.exception(f"[500] Unhandled exception on {request.method} {request.url.path}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Error interno del servidor. Inténtalo de nuevo o contacta soporte."},
+    )
+
+
 app.add_middleware(SlowAPIMiddleware)
 
 # ============= MODELS =============
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=128)
     name: str
 
 class UserLogin(BaseModel):
@@ -989,7 +1072,7 @@ class EmailAlertRequest(BaseModel):
 # ============= AUTH HELPERS =============
 
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
@@ -1028,14 +1111,29 @@ def _hash_token(token: str) -> str:
 #  JWT (with revocable tokens via `jti` blacklist)
 # ============================================================
 def create_token(user_id: str, email: str) -> str:
-    """Issue a JWT carrying a unique `jti` so we can revoke individual sessions."""
+    """Issue a short-lived access JWT (1 h) with a unique jti."""
     now = datetime.now(timezone.utc)
     payload = {
         "user_id": user_id,
         "email": email,
+        "type": "access",
         "jti": str(uuid.uuid4()),
         "iat": now,
         "exp": now + timedelta(hours=JWT_EXPIRATION_HOURS),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def create_refresh_token(user_id: str, email: str) -> str:
+    """Issue a long-lived refresh JWT (7 days). Must never be used as an access token."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "user_id": user_id,
+        "email": email,
+        "type": "refresh",
+        "jti": str(uuid.uuid4()),
+        "iat": now,
+        "exp": now + timedelta(days=JWT_REFRESH_EXPIRATION_DAYS),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -1089,7 +1187,7 @@ async def _revoke_all_tokens_for_user(user_id: str) -> int:
         {"$set": {
             "user_id": user_id,
             "revoked_after": datetime.now(timezone.utc),
-            "expires_at": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS + 1),
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=JWT_REFRESH_EXPIRATION_DAYS + 1),
         }},
         upsert=True,
     )
@@ -1121,11 +1219,54 @@ async def _is_user_session_revoked(payload: dict) -> bool:
     return iat_dt < revoked_after
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[dict]:
-    if not credentials:
+def _extract_token_from_request(request: Request, credentials: Optional[HTTPAuthorizationCredentials]) -> Optional[str]:
+    """Cookie first (httpOnly, XSS-safe), Authorization header as fallback."""
+    cookie_token = request.cookies.get("access_token")
+    if cookie_token:
+        return cookie_token
+    if credentials and credentials.credentials:
+        return credentials.credentials
+    return None
+
+
+# Cookie settings for httpOnly token (cross-origin SPA on GitHub Pages + Cloud Run)
+_COOKIE_KWARGS: dict = {
+    "key": "access_token",
+    "httponly": True,
+    "secure": True,           # HTTPS only
+    "samesite": "none",       # required for cross-origin (github.io → cloud run)
+    "path": "/api",
+    "max_age": JWT_EXPIRATION_HOURS * 3600,
+}
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    response.set_cookie(**_COOKIE_KWARGS, value=access_token)
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/api/auth/refresh",   # only sent to the refresh endpoint
+        max_age=JWT_REFRESH_EXPIRATION_DAYS * 86400,
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie("access_token", path="/api", samesite="none", secure=True)
+    response.delete_cookie("refresh_token", path="/api/auth/refresh", samesite="none", secure=True)
+
+
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> Optional[dict]:
+    token = _extract_token_from_request(request, credentials)
+    if not token:
         return None
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
         if await _is_token_revoked(payload) or await _is_user_session_revoked(payload):
             return None
         user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
@@ -1133,10 +1274,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except Exception:
         return None
 
-async def require_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    if not credentials:
+
+async def require_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> dict:
+    token = _extract_token_from_request(request, credentials)
+    if not token:
         raise HTTPException(status_code=401, detail="Se requiere autenticación")
-    payload = decode_token(credentials.credentials)
+    payload = decode_token(token)
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Token de acceso requerido")
     if await _is_token_revoked(payload):
         raise HTTPException(status_code=401, detail="Sesión revocada (logout)")
     if await _is_user_session_revoked(payload):
@@ -1147,11 +1295,17 @@ async def require_user(credentials: HTTPAuthorizationCredentials = Depends(secur
     return user
 
 
-async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+async def require_admin(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> dict:
     """Gate-keeper for admin-only endpoints. Returns the admin user."""
-    if not credentials:
+    token = _extract_token_from_request(request, credentials)
+    if not token:
         raise HTTPException(status_code=401, detail="Se requiere autenticación")
-    payload = decode_token(credentials.credentials)
+    payload = decode_token(token)
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Token de acceso requerido")
     if await _is_token_revoked(payload):
         raise HTTPException(status_code=401, detail="Sesión revocada (logout)")
     if await _is_user_session_revoked(payload):
@@ -1267,7 +1421,7 @@ async def startup_event():
         demo_user = {
             "id": "demo-user-001",
             "email": DEMO_EMAIL,
-            "password": hash_password(DEMO_PASSWORD),
+            "password": await hash_password_async(DEMO_PASSWORD),
             "name": "Demo Trader",
             "subscription_plan": "lifetime",
             "subscription_end": None,
@@ -1293,6 +1447,14 @@ async def startup_event():
             await db.users.update_one({"email": DEMO_EMAIL}, {"$set": patch})
             logging.info("Demo user patched: %s", patch)
 
+    # ── Purge expired JWT revocations (safe: expired tokens can't be used anyway) ─
+    try:
+        expired_cutoff = datetime.now(timezone.utc).isoformat()
+        result = await db.revoked_tokens.delete_many({"expires_at": {"$lt": expired_cutoff}})
+        logging.info("[startup] Purged %d expired revoked_tokens", result.deleted_count)
+    except Exception as e:
+        logging.warning("[startup] Could not purge revoked_tokens: %s", e)
+
     # ── Extended modules ─────────────────────────────────────────────────
     try:
         from missing_apis import ensure_missing_api_indexes
@@ -1310,10 +1472,10 @@ async def startup_event():
 
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
-async def register(request: Request, user_data: UserCreate):
+async def register(request: Request, response: Response, user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
-        raise HTTPException(status_code=400, detail="El email ya está registrado")
+        raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")
     
     user_id = str(uuid.uuid4())
     user = {
@@ -1336,8 +1498,11 @@ async def register(request: Request, user_data: UserCreate):
         pass
 
     token = create_token(user_id, user_data.email)
+    refresh_token = create_refresh_token(user_id, user_data.email)
+    _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
+        "refresh_token": refresh_token,
         "user": {
             "id": user_id,
             "email": user_data.email,
@@ -1352,7 +1517,7 @@ async def register(request: Request, user_data: UserCreate):
 
 @api_router.post("/auth/login", response_model=dict)
 @limiter.limit("10/minute")
-async def login(request: Request, credentials: UserLogin):
+async def login(request: Request, response: Response, credentials: UserLogin):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
@@ -1364,10 +1529,13 @@ async def login(request: Request, credentials: UserLogin):
     )
 
     token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
     is_premium = check_premium(user)
+    _set_auth_cookies(response, token, refresh_token)
 
     return {
         "token": token,
+        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],
@@ -1400,7 +1568,8 @@ async def _sync_stripe_subscription(user: dict) -> None:
     if end_dt > datetime.now(timezone.utc):
         return  # still valid locally, no need to call Stripe
     try:
-        subs = stripe.Subscription.list(
+        subs = await asyncio.to_thread(
+            stripe.Subscription.list,
             customer=user["stripe_customer_id"], status="active", limit=1
         )
         if subs.data:
@@ -1446,16 +1615,84 @@ async def get_me(user: dict = Depends(require_user)):
 
 
 @api_router.post("/auth/logout")
-async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Revoke the caller's JWT so it cannot be reused even if leaked."""
-    if not credentials:
+async def logout(
+    request: Request,
+    response: Response,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Revoke the caller's JWT so it cannot be reused even if leaked. Also clears httpOnly cookies."""
+    _clear_auth_cookies(response)
+    token = _extract_token_from_request(request, credentials)
+    if not token:
         return {"ok": True, "revoked": False}
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
     except HTTPException:
         return {"ok": True, "revoked": False}
     await _revoke_token(payload)
     return {"ok": True, "revoked": True}
+
+
+class TokenRefreshRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
+@api_router.post("/auth/refresh")
+@limiter.limit("30/minute")
+async def refresh_access_token(request: Request, response: Response, body: TokenRefreshRequest) -> Dict[str, Any]:
+    """Exchange a valid refresh token for a new access token.
+    Reads token from body first, falls back to httpOnly cookie so both paths work.
+    The refresh token is rotated (revoked and a fresh one issued) for better security."""
+    raw_token = body.refresh_token or request.cookies.get("refresh_token")
+    if not raw_token:
+        raise HTTPException(status_code=401, detail="Refresh token requerido.")
+    try:
+        payload = jwt.decode(raw_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expirado. Inicia sesión de nuevo.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Refresh token inválido.")
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Token no es un refresh token.")
+
+    if await _is_token_revoked(payload):
+        raise HTTPException(status_code=401, detail="Refresh token revocado. Inicia sesión de nuevo.")
+
+    if await _is_user_session_revoked(payload):
+        raise HTTPException(status_code=401, detail="Sesión revocada por cambio de contraseña.")
+
+    user_id = payload.get("user_id")
+    email = payload.get("email")
+    if not user_id or not email:
+        raise HTTPException(status_code=401, detail="Refresh token malformado.")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado.")
+
+    # Revoke old refresh token (rotation)
+    await _revoke_token(payload)
+
+    new_access = create_token(user_id, email)
+    new_refresh = create_refresh_token(user_id, email)
+    _set_auth_cookies(response, new_access, new_refresh)
+
+    return {
+        "token": new_access,
+        "refresh_token": new_refresh,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user.get("name"),
+            "picture": user.get("picture"),
+            "subscription_plan": user.get("subscription_plan"),
+            "subscription_end": user.get("subscription_end"),
+            "is_premium": check_premium(user),
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            "auth_provider": user.get("auth_provider", "password"),
+        },
+    }
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -1526,7 +1763,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
 
 @api_router.post("/auth/magic-link/verify")
 @limiter.limit("10/minute")
-async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
+async def verify_magic_link(request: Request, response: Response, body: MagicLinkVerifyRequest):
     """Exchange a magic link token for a session JWT."""
     record = await db.password_resets.find_one(
         {"token": _hash_token(body.token), "used": False, "type": "magic_link"}, {"_id": 0}
@@ -1546,11 +1783,14 @@ async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
         "auth_provider": user.get("auth_provider") or "magic_link",
     }})
     token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
+    _set_auth_cookies(response, token, refresh_token)
     return {
         # `token` matches /auth/login & /auth/google; `access_token` kept for
         # backwards-compat with the existing MagicPage that reads access_token.
         "token": token,
         "access_token": token,
+        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],
@@ -1615,7 +1855,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
     )
 
     frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
-    reset_url = f"{frontend_url}/reset-password?token={reset_token}"
+    reset_url = f"{frontend_url}/reset-password#{reset_token}"
     try:
         import asyncio as _asyncio
         _asyncio.create_task(_send_password_reset_email(user["email"], user.get("name", ""), reset_url))
@@ -1641,7 +1881,7 @@ async def reset_password(request: Request, body: ResetPasswordRequest):
 
     await db.users.update_one(
         {"id": record["user_id"]},
-        {"$set": {"password": hash_password(body.new_password)}},
+        {"$set": {"password": await hash_password_async(body.new_password)}},
     )
     await db.password_resets.update_one({"token": _hash_token(body.token)}, {"$set": {"used": True}})
     # Revoke all existing sessions so old tokens stop working
@@ -1674,7 +1914,7 @@ async def change_password(request: Request, body: ChangePasswordRequest, user: d
 
     await db.users.update_one(
         {"id": user["id"]},
-        {"$set": {"password": hash_password(body.new_password)}},
+        {"$set": {"password": await hash_password_async(body.new_password)}},
     )
     # Revoke all existing sessions (force re-login)
     await db.user_revocations.update_one(
@@ -1692,7 +1932,7 @@ async def delete_account(request: Request, user: dict = Depends(require_user)):
     user_id = user["id"]
     # Delete all user data across collections
     for collection in ["trades", "calculations", "alerts", "portfolio",
-                        "user_states", "payment_transactions", "performance_trades"]:
+                        "user_states", "payment_transactions"]:
         try:
             await getattr(db, collection).delete_many({"user_id": user_id})
         except Exception:
@@ -1719,10 +1959,13 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
         except Exception:
             return []
 
+    # NOTE: both /journal/trades and /performance/trades persist into db.trades
+    # (there is no separate "performance_trades" collection — see BUG fixed
+    # 2026-06-06), so "trades" below already contains the user's full trading
+    # journal including performance-module entries. No separate collect() needed.
     trades        = await collect("trades",            {"user_id": user_id})
     calculations  = await collect("calculations",      {"user_id": user_id})
     alerts        = await collect("alerts",            {"user_id": user_id})
-    performance   = await collect("performance_trades",{"user_id": user_id})
 
     payload = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -1730,7 +1973,6 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
         "trades":       trades,
         "calculations": calculations,
         "alerts":       alerts,
-        "performance":  performance,
     }
 
     filename = f"my-data-{user_id[:8]}.json"
@@ -1757,7 +1999,7 @@ class GoogleAuthRequest(BaseModel):
 
 @api_router.post("/auth/google")
 @limiter.limit("10/minute")
-async def google_auth(request: Request, payload: GoogleAuthRequest):
+async def google_auth(request: Request, response: Response, payload: GoogleAuthRequest):
     """
     Verify a Google ID token, then return our own JWT.
 
@@ -1818,8 +2060,11 @@ async def google_auth(request: Request, payload: GoogleAuthRequest):
             user.update(updates)
 
     token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
+    _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
+        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],
@@ -2340,7 +2585,7 @@ async def _send_email(to_email: str, subject: str, html_content: str) -> bool:
         from sendgrid.helpers.mail import Mail
         message = Mail(from_email=SENDER_EMAIL, to_emails=to_email, subject=subject, html_content=html_content)
         sg = SendGridAPIClient(SENDGRID_API_KEY)
-        sg.send(message)
+        await asyncio.to_thread(sg.send, message)
         logging.info(f"[email] sent '{subject}' → {to_email}")
         return True
     except Exception as e:
@@ -2533,8 +2778,8 @@ async def run_monte_carlo(request: dict, user: dict = Depends(require_user)) -> 
     avg_win = request.get("avgWin", 100)
     avg_loss = request.get("avgLoss", -50)
     initial = request.get("initialCapital", 10000)
-    num_trades = request.get("numTrades", 100)
-    num_simulations = request.get("numSimulations", 1000)
+    num_trades = min(int(request.get("numTrades", 100)), 1000)
+    num_simulations = min(int(request.get("numSimulations", 1000)), 5000)
 
     rng = secrets.SystemRandom()
     finals: List[float] = []
@@ -2833,6 +3078,71 @@ _PAYMENT_METHODS_MAP = {
     "klarna": ["klarna"],
 }
 
+# ── PayPal REST API v2 helpers (httpx async) ──────────────────────────────────
+
+def _paypal_base_url(mode: str) -> str:
+    return "https://api-m.sandbox.paypal.com" if mode != "live" else "https://api-m.paypal.com"
+
+
+async def _paypal_access_token(client_id: str, client_secret: str, mode: str) -> str:
+    import httpx as _httpx
+    async with _httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{_paypal_base_url(mode)}/v1/oauth2/token",
+            auth=(client_id, client_secret),
+            data={"grant_type": "client_credentials"},
+            headers={"Accept": "application/json"},
+        )
+        r.raise_for_status()
+        return r.json()["access_token"]
+
+
+async def _paypal_create_order(
+    plan: dict, user_id: str, transaction_id: str, origin_url: str,
+    client_id: str, client_secret: str, mode: str,
+) -> dict:
+    import httpx as _httpx
+    token = await _paypal_access_token(client_id, client_secret, mode)
+    payload = {
+        "intent": "CAPTURE",
+        "purchase_units": [{
+            "reference_id": transaction_id,
+            "custom_id": user_id,
+            "amount": {
+                "currency_code": plan.get("currency", "EUR").upper(),
+                "value": f"{plan['price']:.2f}",
+            },
+            "description": f"TradingCalculator.Pro — Plan {plan['name']}",
+        }],
+        "application_context": {
+            "return_url": f"{origin_url}/payment/success",
+            "cancel_url": f"{origin_url}/payment/cancel",
+            "brand_name": "TradingCalculator.Pro",
+            "user_action": "PAY_NOW",
+        },
+    }
+    async with _httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{_paypal_base_url(mode)}/v2/checkout/orders",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+async def _paypal_capture_order(order_id: str, client_id: str, client_secret: str, mode: str) -> dict:
+    import httpx as _httpx
+    token = await _paypal_access_token(client_id, client_secret, mode)
+    async with _httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{_paypal_base_url(mode)}/v2/checkout/orders/{order_id}/capture",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            content=b"{}",
+        )
+        r.raise_for_status()
+        return r.json()
+
 
 def _build_pending_transaction(
     user: dict, plan_id: str, plan: dict, payment_method: str
@@ -2904,7 +3214,27 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
 
     transaction = _build_pending_transaction(user, plan_id, plan, payment_method)
 
-    if payment_method in _PAYMENT_METHODS_MAP:
+    if payment_method == "paypal":
+        pp_client_id = await get_setting("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
+        pp_client_secret = await get_setting("paypal_client_secret") or os.environ.get("PAYPAL_CLIENT_SECRET", "")
+        pp_default_mode = "live" if os.environ.get("ENVIRONMENT", "production") == "production" else "sandbox"
+        pp_mode = await get_setting("paypal_mode") or os.environ.get("PAYPAL_MODE", pp_default_mode)
+        if not pp_client_id or not pp_client_secret:
+            raise HTTPException(status_code=503, detail="PayPal no está configurado. Contacta soporte.")
+        try:
+            order = await _paypal_create_order(
+                plan, user["id"], transaction["id"], origin_url,
+                pp_client_id, pp_client_secret, pp_mode,
+            )
+        except Exception as _e:
+            logging.error(f"[paypal] create_order error: {_e}")
+            raise HTTPException(status_code=502, detail="Error al crear orden PayPal. Inténtalo de nuevo.")
+        transaction["paypal_order_id"] = order["id"]
+        # approval_url for mobile/fallback redirect
+        approval = next((l["href"] for l in order.get("links", []) if l["rel"] == "approve"), None)
+        transaction["checkout_url"] = approval
+
+    elif payment_method in _PAYMENT_METHODS_MAP:
         session = await _create_stripe_session(
             plan,
             payment_method,
@@ -2926,6 +3256,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         "transaction_id": transaction["id"],
         "checkout_url": transaction.get("checkout_url"),
         "session_id": transaction.get("session_id"),
+        "paypal_order_id": transaction.get("paypal_order_id"),
     }
 
 @api_router.get("/checkout/status/{session_id}")
@@ -2949,6 +3280,93 @@ async def get_checkout_status(session_id: str, user: dict = Depends(require_user
         "currency": transaction.get("currency"),
         "created_at": transaction.get("created_at")
     }
+
+@api_router.post("/paypal/capture/{order_id}")
+@limiter.limit("10/hour")
+async def paypal_capture_order(
+    request: Request, order_id: str, user: dict = Depends(require_user)
+) -> Dict[str, Any]:
+    """Called by the frontend after the payer approves the PayPal order.
+    Captures the payment and activates the subscription."""
+    transaction = await db.payment_transactions.find_one(
+        {"paypal_order_id": order_id, "user_id": user["id"]}, {"_id": 0}
+    )
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transacción PayPal no encontrada")
+    if transaction.get("status") == "paid":
+        return {"status": "already_paid", "plan_id": transaction["plan_id"]}
+
+    # Atomically claim the transaction to prevent double-capture races
+    claimed = await db.payment_transactions.find_one_and_update(
+        {"id": transaction["id"], "status": "pending"},
+        {"$set": {"status": "capturing"}},
+    )
+    if not claimed:
+        return {"status": "already_paid", "plan_id": transaction["plan_id"]}
+
+    pp_client_id = await get_setting("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
+    pp_client_secret = await get_setting("paypal_client_secret") or os.environ.get("PAYPAL_CLIENT_SECRET", "")
+    pp_default_mode = "live" if os.environ.get("ENVIRONMENT", "production") == "production" else "sandbox"
+    pp_mode = await get_setting("paypal_mode") or os.environ.get("PAYPAL_MODE", pp_default_mode)
+    if not pp_client_id or not pp_client_secret:
+        await db.payment_transactions.update_one({"id": transaction["id"]}, {"$set": {"status": "pending"}})
+        raise HTTPException(status_code=503, detail="PayPal no está configurado")
+
+    try:
+        capture_result = await _paypal_capture_order(order_id, pp_client_id, pp_client_secret, pp_mode)
+    except Exception as _e:
+        logging.error(f"[paypal] capture error for {order_id}: {_e}")
+        raise HTTPException(status_code=502, detail="Error al capturar pago PayPal. Contacta soporte.")
+
+    capture_status = capture_result.get("status")
+    if capture_status != "COMPLETED":
+        raise HTTPException(
+            status_code=402,
+            detail=f"Pago no completado (estado: {capture_status}). Inténtalo de nuevo."
+        )
+
+    plan_id = transaction["plan_id"]
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="Plan no válido")
+
+    # Reuse existing subscription activation (no stripe_session_id — pass empty string)
+    subscription_end = datetime.now(timezone.utc) + timedelta(days=plan["days"])
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "subscription_plan": plan_id,
+            "subscription_end": subscription_end.isoformat(),
+            "is_premium": True,
+            "paypal_order_id": order_id,
+        }},
+    )
+    await db.payment_transactions.update_one(
+        {"id": transaction["id"]},
+        {"$set": {"status": "paid", "paid_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    try:
+        user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "email": 1, "name": 1})
+        if user_doc:
+            import asyncio as _asyncio
+            _asyncio.create_task(_send_subscription_confirmation_email(
+                to_email=user_doc["email"],
+                name=user_doc.get("name", ""),
+                plan_name=plan["name"],
+                plan_price=plan["price"],
+                subscription_end=subscription_end.isoformat(),
+            ))
+    except Exception as _e:
+        logging.warning(f"[paypal] confirmation email failed: {_e}")
+
+    logging.info(f"[paypal] subscription activated: user={user['id']} plan={plan_id} order={order_id}")
+    return {
+        "status": "paid",
+        "plan_id": plan_id,
+        "subscription_end": subscription_end.isoformat(),
+    }
+
 
 def _stripe_session_ids(session_id: str) -> Dict[str, Optional[str]]:
     """Retrieve Stripe customer & subscription IDs for a paid session, with safe fallback."""
@@ -3109,6 +3527,16 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             if data_obj.get("payment_status") != "paid":
                 return {"status": "received"}
 
+            # Idempotency: skip if already processed
+            session_id_val = data_obj.get("id", "")
+            if session_id_val:
+                already = await db.payment_transactions.find_one(
+                    {"stripe_session_id": session_id_val, "status": "paid"}
+                )
+                if already:
+                    logging.info("[stripe-webhook] checkout already processed: %s", session_id_val)
+                    return {"status": "already_processed"}
+
             meta = data_obj.get("metadata") or {}
             user_id = meta.get("user_id")
             plan_id = meta.get("plan_id")
@@ -3159,10 +3587,9 @@ async def get_current_subscription(user: dict = Depends(require_user)):
             }
         
         # Get subscriptions from Stripe
-        subscriptions = stripe.Subscription.list(
-            customer=user_doc["stripe_customer_id"],
-            status="all",
-            limit=1
+        subscriptions = await asyncio.to_thread(
+            stripe.Subscription.list,
+            customer=user_doc["stripe_customer_id"], status="all", limit=1
         )
         
         if not subscriptions.data:
@@ -3206,10 +3633,9 @@ async def cancel_subscription(
             raise HTTPException(status_code=404, detail="No subscription found")
         
         # Get active subscription
-        subscriptions = stripe.Subscription.list(
-            customer=user_doc["stripe_customer_id"],
-            status="active",
-            limit=1
+        subscriptions = await asyncio.to_thread(
+            stripe.Subscription.list,
+            customer=user_doc["stripe_customer_id"], status="active", limit=1
         )
         
         if not subscriptions.data:
@@ -3219,7 +3645,7 @@ async def cancel_subscription(
         
         if request.immediate:
             # Cancel immediately
-            stripe.Subscription.delete(sub.id)
+            await asyncio.to_thread(stripe.Subscription.delete, sub.id)
             await db.users.update_one(
                 {"id": user["id"]},
                 {"$set": {"is_premium": False, "subscription_plan": None}}
@@ -3227,10 +3653,7 @@ async def cancel_subscription(
             return {"message": "Subscription canceled immediately", "canceled": True}
         else:
             # Cancel at period end
-            stripe.Subscription.modify(
-                sub.id,
-                cancel_at_period_end=True
-            )
+            await asyncio.to_thread(stripe.Subscription.modify, sub.id, cancel_at_period_end=True)
             return {
                 "message": "Subscription will be canceled at period end",
                 "canceled": False,
@@ -3252,10 +3675,9 @@ async def resume_subscription(user: dict = Depends(require_user)):
             raise HTTPException(status_code=404, detail="No subscription found")
         
         # Get subscription set to cancel
-        subscriptions = stripe.Subscription.list(
-            customer=user_doc["stripe_customer_id"],
-            status="active",
-            limit=1
+        subscriptions = await asyncio.to_thread(
+            stripe.Subscription.list,
+            customer=user_doc["stripe_customer_id"], status="active", limit=1
         )
         
         if not subscriptions.data:
@@ -3267,10 +3689,7 @@ async def resume_subscription(user: dict = Depends(require_user)):
             return {"message": "Subscription is not set to cancel", "resumed": False}
         
         # Resume by removing cancel_at_period_end
-        stripe.Subscription.modify(
-            sub.id,
-            cancel_at_period_end=False
-        )
+        await asyncio.to_thread(stripe.Subscription.modify, sub.id, cancel_at_period_end=False)
         
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
@@ -3310,9 +3729,9 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
             raise HTTPException(status_code=404, detail="No Stripe customer found")
 
         # Create portal session
-        session = stripe.billing_portal.Session.create(
-            customer=user_doc["stripe_customer_id"],
-            return_url=return_url
+        session = await asyncio.to_thread(
+            stripe.billing_portal.Session.create,
+            customer=user_doc["stripe_customer_id"], return_url=return_url
         )
         
         return {"url": session.url}
@@ -3332,9 +3751,9 @@ async def get_billing_history(user: dict = Depends(require_user)):
             return {"invoices": []}
         
         # Get invoices from Stripe
-        invoices = stripe.Invoice.list(
-            customer=user_doc["stripe_customer_id"],
-            limit=10
+        invoices = await asyncio.to_thread(
+            stripe.Invoice.list,
+            customer=user_doc["stripe_customer_id"], limit=10
         )
         
         return {
@@ -3460,17 +3879,14 @@ async def root():
 @api_router.get("/health")
 async def health():
     if db._pool is None:
-        return {
-            "status": "degraded",
-            "db": "unavailable",
-        }
+        raise HTTPException(status_code=503, detail={"status": "degraded", "db": "unavailable"})
     try:
         async with db._pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
         return {"status": "healthy", "db": "ok"}
     except Exception as e:
         logging.error(f"[health] DB check failed: {e}")
-        return {"status": "healthy", "db": f"error: {e}"}
+        raise HTTPException(status_code=503, detail={"status": "degraded", "db": f"error: {e}"})
 
 # ============= OPTIONS CALCULATOR ROUTES (merged from OPTIONS app) =============
 
@@ -4639,6 +5055,25 @@ def _serialize_admin_user(u: dict) -> dict:
     }
 
 
+# ── admin_routes.py feature router — registered HERE (before server.py admin stubs)
+# so its handlers take precedence for overlapping paths (FastAPI first-match wins).
+# server.py admin routes below are kept for routes not yet in admin_routes.py.
+try:
+    from admin_routes import build_admin_router as _build_admin_router
+    api_router.include_router(
+        _build_admin_router(
+            db=db,
+            require_admin_dep=require_admin,
+            subscription_plans=SUBSCRIPTION_PLANS,
+            log_admin_action_fn=log_admin_action,
+        ),
+        prefix="/admin",
+    )
+    logging.info("✅ admin_routes registered (campaigns, i18n, connectors, maintenance, cohorts, referrals-leaderboard, gdpr)")
+except Exception as _e:
+    logging.error(f"admin_routes early registration error: {_e}", exc_info=True)
+
+
 @api_router.get("/admin/users")
 async def admin_list_users(
     admin: dict = Depends(require_admin),
@@ -4734,8 +5169,11 @@ async def admin_metrics(admin: dict = Depends(require_admin)):
     free  = await db.users.count_documents({"subscription_plan": None})
     premium = total - free
 
-    # MRR (rough — uses plan price ÷ months)
-    plan_mrr = {"monthly": 9.99, "quarterly": 19.99 / 3, "annual": 79.99 / 12, "lifetime": 0}
+    # MRR — monthly equivalent of each plan's price using SUBSCRIPTION_PLANS (real prices)
+    plan_mrr = {
+        pid: (plan["price"] / (plan["days"] / 30) if plan["days"] < 36500 else 0)
+        for pid, plan in SUBSCRIPTION_PLANS.items()
+    }
     mrr = 0.0
     for r in by_plan:
         mrr += plan_mrr.get(r["plan"], 0) * r["count"]
@@ -4848,7 +5286,7 @@ async def admin_create_user(request: Request, payload: AdminUserCreate, admin: d
     user = {
         "id": user_id,
         "email": email_lc,
-        "password": hash_password(payload.password),
+        "password": await hash_password_async(payload.password),
         "name": payload.name,
         "subscription_plan": plan,
         "subscription_end": sub_end,
@@ -4987,7 +5425,7 @@ async def admin_reset_password(request: Request, user_id: str, payload: AdminPas
     await db.users.update_one(
         {"id": user_id},
         {"$set": {
-            "password": hash_password(payload.new_password),
+            "password": await hash_password_async(payload.new_password),
             "auth_provider": "password",
             "password_reset_at": datetime.now(timezone.utc).isoformat(),
             "password_reset_by": admin.get("email"),
@@ -5098,10 +5536,53 @@ async def _load_settings_doc() -> Dict[str, Any]:
     return doc
 
 
+# ── Symmetric encryption for secrets stored in DB (Fernet / AES-128-CBC) ───
+# Set SECRET_ENCRYPTION_KEY in env (generate once: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+# Without this key, secrets fall back to plaintext — functional but not encrypted at application level.
+# GCP Cloud SQL still encrypts at rest; this adds an extra layer.
+
+_ENC_PREFIX = "fernet:"
+
+def _get_fernet():
+    key = os.environ.get("SECRET_ENCRYPTION_KEY", "").strip()
+    if not key:
+        return None
+    try:
+        from cryptography.fernet import Fernet
+        return Fernet(key.encode())
+    except Exception as _e:
+        logging.warning(f"[settings] Fernet init failed: {_e}")
+        return None
+
+def _encrypt_setting(value: str) -> str:
+    if not value:
+        return value
+    f = _get_fernet()
+    if f:
+        return _ENC_PREFIX + f.encrypt(value.encode()).decode()
+    return value
+
+def _decrypt_setting(value: str) -> str:
+    if not value or not value.startswith(_ENC_PREFIX):
+        return value
+    f = _get_fernet()
+    if f:
+        try:
+            return f.decrypt(value[len(_ENC_PREFIX):].encode()).decode()
+        except Exception as _e:
+            logging.warning(f"[settings] Fernet decrypt failed: {_e}")
+    return value
+
+
 async def get_setting(key: str) -> str:
-    """Public helper: DB value first, env var fallback. Returns "" if both empty."""
+    """Public helper: DB value first (auto-decrypted), env var fallback. Returns "" if both empty."""
     doc = await _load_settings_doc()
-    return (doc.get(key) or os.environ.get(_SETTING_ENV_FALLBACK.get(key, ""), "") or "")
+    raw = doc.get(key) or ""
+    if raw:
+        if key in SECRET_SETTING_KEYS:
+            return _decrypt_setting(raw)
+        return raw
+    return os.environ.get(_SETTING_ENV_FALLBACK.get(key, ""), "") or ""
 
 
 def _mask_secret(val: str) -> str:
@@ -5124,7 +5605,9 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
     for k in PUBLIC_SETTING_KEYS:
         out[k] = doc.get(k) or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or ""
     for k in SECRET_SETTING_KEYS:
-        raw = doc.get(k) or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or ""
+        stored = doc.get(k) or ""
+        decrypted = _decrypt_setting(stored) if stored else ""
+        raw = decrypted or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or ""
         out[k] = _mask_secret(raw)            # masked value for display
         flags[f"{k}_set"] = bool(raw)
 
@@ -5164,7 +5647,7 @@ async def admin_update_settings(request: Request, payload: AdminSettingsUpdate, 
                 rejected.append(k)
                 continue
             else:
-                cleaned[k] = v
+                cleaned[k] = _encrypt_setting(v)                 # encrypt at rest
         else:
             cleaned[k] = v or None
 
@@ -5255,9 +5738,12 @@ async def admin_impersonate(request: Request, user_id: str, admin: dict = Depend
     target = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if target.get("is_admin") or target.get("email", "").lower() in _ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="No se puede impersonar a otro administrador")
     now = datetime.now(timezone.utc)
     payload = {
         "user_id": target["id"],
+        "type": "access",
         "jti": secrets.token_hex(16),
         "iat": now,
         "exp": now + timedelta(hours=1),
@@ -5274,6 +5760,39 @@ async def admin_impersonate(request: Request, user_id: str, admin: dict = Depend
     )
     _SENSITIVE = {"password", "password_hash"}
     return {"token": token, "user": {k: v for k, v in target.items() if k not in _SENSITIVE}}
+
+
+# ── ADMIN REFUND ──────────────────────────────────────────────────────────────
+@api_router.post("/admin/subscriptions/{user_id}/refund")
+async def admin_refund_subscription(request: Request, user_id: str, admin: dict = Depends(require_admin)):
+    """Process a Stripe refund for the user's most recent paid transaction."""
+    transaction = await db.payment_transactions.find_one({"user_id": user_id, "status": "paid"})
+    if not transaction:
+        raise HTTPException(status_code=404, detail="No hay transacciones elegibles para reembolso")
+    charge_id = transaction.get("charge_id") or transaction.get("stripe_charge_id")
+    if not charge_id:
+        raise HTTPException(status_code=400, detail="No se encontró charge_id para esta transacción")
+    try:
+        refund = await asyncio.to_thread(
+            stripe.Refund.create, charge=charge_id, reason="requested_by_customer"
+        )
+        await db.payment_transactions.update_one(
+            {"id": transaction["id"]},
+            {"$set": {"status": "refunded", "refund_id": refund.id, "refunded_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"is_premium": False, "subscription_status": "refunded", "subscription_plan": None}},
+        )
+        await log_admin_action(
+            admin=admin, action="subscription.refund",
+            target_id=user_id, target_email=transaction.get("user_email", ""),
+            details={"refund_id": refund.id, "amount": transaction.get("amount")},
+            request=request,
+        )
+        return {"status": "refunded", "refund_id": refund.id}
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Error de Stripe: {e}")
 
 
 # ── REVENUE ANALYTICS ────────────────────────────────────────────────────────
@@ -5297,11 +5816,11 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
         mes_label = month_start.strftime("%b")
         mrr_history.append({"mes": mes_label, "mrr": round(total, 2)})
 
-    # Total paid users per plan → LTV approximation
-    ltv: Dict[str, float] = {}
-    for plan_id, plan in SUBSCRIPTION_PLANS.items():
-        count = await db.payment_transactions.count_documents({"plan_id": plan_id, "status": "paid"})
-        ltv[plan_id] = round(plan["price"] * max(count, 1) / max(count, 1), 2)  # price × 1 = one payment avg
+    # LTV per plan: plan price (one-payment average; no churn-adjusted history yet)
+    ltv: Dict[str, float] = {
+        plan_id: round(plan["price"], 2)
+        for plan_id, plan in SUBSCRIPTION_PLANS.items()
+    }
 
     # Churn: users who had premium and no longer do (cancelled last 30 days)
     churn_count = await db.users.count_documents({
@@ -5322,9 +5841,9 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
     conversion_rate = round((new_premium_30d / max(new_30d, 1)) * 100, 1)
 
     return {
-        "mrr_history": mrr_history,
-        "churn_rate": churn_rate,
-        "conversion_rate": conversion_rate,
+        "history": mrr_history,
+        "churn": churn_rate,
+        "conversion": conversion_rate,
         "ltv": ltv,
     }
 
@@ -5477,6 +5996,7 @@ try:
     register_referrals(api_router, db, {
         "require_user": require_user,
         "require_admin": require_admin,
+        "limiter": limiter,
     })
     register_realtime_alerts(api_router, db, {
         "decode_token": decode_token,
@@ -5485,24 +6005,13 @@ try:
 except Exception as _e:
     logging.error(f"Module-level extended modules registration error: {_e}", exc_info=True)
 
-try:
-    from admin_routes import build_admin_router
-    api_router.include_router(
-        build_admin_router(
-            db=db,
-            require_admin_dep=require_admin,
-            subscription_plans=SUBSCRIPTION_PLANS,
-            log_admin_action_fn=log_admin_action,
-        ),
-        prefix="/admin",
-    )
-    logging.info("✅ admin_routes feature endpoints registered (maintenance, campaigns, churn, cohorts, referrals/leaderboard, plans, i18n, errors, rate-limits, gdpr-exports)")
-except Exception as _e:
-    logging.error(f"admin_routes registration error: {_e}", exc_info=True)
-
 app.include_router(api_router)
 
 _FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculator.pro')
+
+_AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/me",
+               "/api/auth/logout", "/api/auth/refresh", "/api/auth/google",
+               "/api/auth/magic-link", "/api/auth/magic-link/verify"}
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -5522,6 +6031,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "base-uri 'self'; "
             "form-action 'self';"
         )
+        # Prevent caching of auth responses (tokens, user data)
+        if request.url.path in _AUTH_PATHS:
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            response.headers["Pragma"] = "no-cache"
         # Only set HSTS on HTTPS (avoids breaking local dev)
         if request.url.scheme == "https":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -5529,10 +6042,64 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+
+class MaintenanceModeMiddleware(BaseHTTPMiddleware):
+    """Returns 503 for all non-admin API requests when maintenance_mode=true in app_settings."""
+    _BYPASS = {"/api/health", "/api/admin", "/api/auth/login"}
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        # Always pass: health, admin routes, login (so admin can log in during maintenance)
+        if path == "/api/health" or path.startswith("/api/admin") or path.startswith("/api/auth"):
+            return await call_next(request)
+        try:
+            if db._pool is not None:
+                doc = await db.app_settings.find_one({"_id": "global"}) or {}
+                if str(doc.get("maintenance_mode", "")).lower() == "true":
+                    from fastapi.responses import JSONResponse
+                    return JSONResponse(
+                        status_code=503,
+                        content={"detail": "Servicio en mantenimiento. Vuelve pronto."},
+                        headers={"Retry-After": "3600"},
+                    )
+        except Exception:
+            pass  # Never block traffic on middleware failure
+        return await call_next(request)
+
+
+app.add_middleware(MaintenanceModeMiddleware)
+
+# Structured JSON logging — Cloud Logging / Cloud Run parses this automatically.
+# In dev mode plain-text is fine; in production emit JSON so logs are queryable.
+_IS_PRODUCTION = os.environ.get("ENVIRONMENT", "production").lower() == "production"
+if _IS_PRODUCTION:
+    import json as _json
+
+    class _JsonFormatter(logging.Formatter):
+        _SEVERITY = {
+            logging.DEBUG: "DEBUG", logging.INFO: "INFO",
+            logging.WARNING: "WARNING", logging.ERROR: "ERROR",
+            logging.CRITICAL: "CRITICAL",
+        }
+        def format(self, record: logging.LogRecord) -> str:
+            entry: dict = {
+                "severity": self._SEVERITY.get(record.levelno, "DEFAULT"),
+                "message": record.getMessage(),
+                "logger": record.name,
+                "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%S.%fZ"),
+            }
+            if record.exc_info:
+                entry["exception"] = self.formatException(record.exc_info)
+            return _json.dumps(entry, ensure_ascii=False)
+
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(_JsonFormatter())
+    logging.basicConfig(level=logging.INFO, handlers=[_handler])
+else:
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

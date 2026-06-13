@@ -295,7 +295,12 @@ async def redeem_credit(user: dict = Depends(_require_user_proxy), amount: Optio
     available = round(wallet_total - redeemed, 2)
     if available <= 0:
         raise HTTPException(status_code=400, detail="No hay saldo de referidos disponible")
-    redeem_amount = float(amount) if amount and amount > 0 else available
+    try:
+        redeem_amount = float(amount) if amount is not None else available
+        if redeem_amount <= 0:
+            raise ValueError("El crédito debe ser positivo")
+    except (TypeError, ValueError) as _e:
+        raise HTTPException(status_code=400, detail=f"Monto de crédito inválido: {_e}")
     if redeem_amount > available:
         raise HTTPException(status_code=400, detail=f"Saldo insuficiente. Disponible: {available} €")
 
@@ -346,4 +351,7 @@ def register(app_router, database, helpers: Dict[str, Any]) -> None:
     db = database
     require_user = helpers["require_user"]
     require_admin = helpers["require_admin"]
+    # Apply rate limit to the unauthenticated track endpoint before including router
+    if helpers.get("limiter"):
+        helpers["limiter"].limit("5/minute")(track_referral)
     app_router.include_router(router)

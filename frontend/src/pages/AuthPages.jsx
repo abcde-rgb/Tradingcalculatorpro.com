@@ -372,13 +372,13 @@ export const RegisterPage = () => {
 
 export const ResetPasswordPage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
-  const token = searchParams.get('token');
+  // Token travels in URL hash (# fragment) so it never reaches server logs
+  const token = window.location.hash.slice(1) || new URLSearchParams(window.location.search).get('token');
 
   const handleSubmit = async (e) => {
     e.preventDefault();

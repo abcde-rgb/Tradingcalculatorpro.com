@@ -26,7 +26,8 @@ async function safeJson(res) {
 function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { ...options, signal: controller.signal })
+  // Always include credentials so httpOnly cookies are sent cross-origin
+  return fetch(url, { credentials: 'include', ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer))
     .catch((err) => {
       if (err.name === 'AbortError') throw new Error('La solicitud tardó demasiado. El servidor puede estar iniciando, inténtalo de nuevo.');
@@ -39,8 +40,10 @@ export const useAuthStore = create(
     (set, get) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
+      _isRefreshing: false,
 
       login: async (email, password) => {
         if (!API) {
@@ -56,7 +59,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('invalidCredentials'));
           if (!data.token || !data.user) throw new Error(t('invalidCredentials'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'email' });
           return { success: true };
         } catch (error) {
@@ -82,7 +85,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('registrationError'));
           if (!data.token || !data.user) throw new Error(t('registrationError'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
           trackEvent('sign_up', { method: 'email' });
           return { success: true };
         } catch (error) {
@@ -97,7 +100,7 @@ export const useAuthStore = create(
         }
         set({ isLoading: true });
         try {
-          const res = await fetch(`${API}/auth/google`, {
+          const res = await fetchWithTimeout(`${API}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ credential })
@@ -105,7 +108,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
           if (!data.token || !data.user) throw new Error(t('googleLoginError'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'google' });
           return { success: true };
         } catch (error) {
@@ -116,15 +119,46 @@ export const useAuthStore = create(
 
       logout: async () => {
         const token = get().token;
-        if (API && token && token !== DEMO_TOKEN) {
+        if (API) {
           try {
-            await fetch(`${API}/auth/logout`, {
+            await fetchWithTimeout(`${API}/auth/logout`, {
               method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}` },
+              headers: token && token !== DEMO_TOKEN ? { 'Authorization': `Bearer ${token}` } : {},
             });
           } catch (_) {}
         }
-        set({ user: null, token: null, isAuthenticated: false });
+        set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
+      },
+
+      // Silently exchange refresh_token for a new access token.
+      // Returns the new access token string, or null on failure.
+      silentRefresh: async () => {
+        const { refreshToken, _isRefreshing } = get();
+        if (!API || !refreshToken || refreshToken === DEMO_TOKEN || _isRefreshing) return null;
+        set({ _isRefreshing: true });
+        try {
+          const res = await fetchWithTimeout(`${API}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+          if (!res.ok) {
+            set({ user: null, token: null, refreshToken: null, isAuthenticated: false, _isRefreshing: false });
+            return null;
+          }
+          const data = await safeJson(res);
+          set({
+            token: data.token,
+            refreshToken: data.refresh_token || refreshToken,
+            user: data.user || get().user,
+            isAuthenticated: true,
+            _isRefreshing: false,
+          });
+          return data.token;
+        } catch (_) {
+          set({ _isRefreshing: false });
+          return null;
+        }
       },
 
       refreshUser: async () => {
@@ -134,6 +168,14 @@ export const useAuthStore = create(
           const res = await fetch(`${API}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+          if (res.status === 401) {
+            // Access token expired — try silent refresh
+            const newToken = await get().silentRefresh();
+            if (!newToken) return;
+            const res2 = await fetch(`${API}/auth/me`, { headers: { 'Authorization': `Bearer ${newToken}` } });
+            if (res2.ok) set({ user: await safeJson(res2) });
+            return;
+          }
           if (res.ok) {
             const user = await safeJson(res);
             set({ user });
@@ -143,7 +185,9 @@ export const useAuthStore = create(
     }),
     {
       name: 'btc-auth-storage',
-      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
+      // token (access token) intentionally NOT persisted — it lives in the httpOnly cookie.
+      // refreshToken IS persisted for silent renewal when the page is reloaded.
+      partialize: (state) => ({ user: state.user, refreshToken: state.refreshToken, isAuthenticated: state.isAuthenticated }),
     }
   )
 );
@@ -203,7 +247,7 @@ export const useTradingJournalStore = create(
       trades: [],
 
       addTrade: (trade) => {
-        set({ trades: [{ id: Date.now().toString(), ...trade, createdAt: new Date().toISOString() }, ...get().trades] });
+        set({ trades: [{ id: crypto.randomUUID(), ...trade, createdAt: new Date().toISOString() }, ...get().trades] });
       },
 
       updateTrade: (id, updates) => {

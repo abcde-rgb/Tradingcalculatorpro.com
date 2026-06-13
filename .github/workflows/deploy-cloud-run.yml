@@ -21,9 +21,9 @@ on:
 
 env:
   GCP_PROJECT: tradingcalculator-495806
-  GCP_REGION: us-central1
+  GCP_REGION: europe-west1
   SERVICE_NAME: tradingcalculator-api
-  IMAGE: us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend
+  IMAGE: europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend
 
 jobs:
   # ── 1. Tests rápidos antes de desplegar ──────────────────
@@ -99,6 +99,12 @@ jobs:
         env:
           PYTHONPATH: "."
 
+      - name: Pytest — colección y tests de integración (si BACKEND_URL configurado)
+        run: pytest tests/ -v --tb=short
+        env:
+          PYTHONPATH: "."
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+
   # ── 2. Build & Deploy Backend a Cloud Run ────────────────────────
   deploy:
     name: 🚀 Deploy Backend a Cloud Run
@@ -127,7 +133,7 @@ jobs:
 
       # Configurar Docker para Artifact Registry
       - name: Configurar Docker Auth
-        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 
       # Asegurar que el repositorio de Artifact Registry existe en la región
       # canónica. Es idempotente: si ya existe no hace nada.

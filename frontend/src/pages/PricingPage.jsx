@@ -10,6 +10,7 @@ import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { toast } from 'sonner';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -50,6 +51,7 @@ export default function PricingPage() {
   const [selectedPlan, setSelectedPlan] = useState(searchParams.get('plan') || 'annual');
   const [selectedPayment, setSelectedPayment] = useState('card');
   const [isLoading, setIsLoading] = useState(false);
+  const [paypalClientId, setPaypalClientId] = useState('');
 
   useSEO({
     titleKey: 'seoPricingTitle',
@@ -70,6 +72,15 @@ export default function PricingPage() {
       setSelectedPayment('card');
     }
   }, [selectedPlan, selectedPayment]);
+
+  // Load PayPal client ID from public settings
+  useEffect(() => {
+    if (!API) return;
+    fetch(`${API}/api/public/settings`)
+      .then(r => r.ok ? r.json() : {})
+      .then(d => { if (d.paypal_client_id) setPaypalClientId(d.paypal_client_id); })
+      .catch(() => {});
+  }, []);
 
   const isPremium = user?.is_premium;
 
@@ -126,6 +137,51 @@ export default function PricingPage() {
     }
 
     setIsLoading(false);
+  };
+
+  // PayPal: called by PayPalButtons to create the order on our backend
+  const handlePayPalCreateOrder = async () => {
+    if (!isAuthenticated) {
+      toast.error(t('mustLoginFirst'));
+      navigate('/login');
+      throw new Error('not authenticated');
+    }
+    const response = await fetch(`${API}/api/checkout/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ plan_id: selectedPlan, payment_method: 'paypal', origin_url: window.location.origin }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      toast.error(err.detail || t('checkoutError'));
+      throw new Error(err.detail || 'checkout failed');
+    }
+    const data = await response.json();
+    if (!data.paypal_order_id) throw new Error('No paypal_order_id returned');
+    try { window.gtag?.('event', 'begin_checkout', { plan: selectedPlan, payment_method: 'paypal' }); } catch (_) {}
+    return data.paypal_order_id;
+  };
+
+  // PayPal: called after payer approves — capture and activate subscription
+  const handlePayPalApprove = async (data) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API}/api/paypal/capture/${data.orderID}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        toast.error(err.detail || t('checkoutError'));
+        return;
+      }
+      try { window.gtag?.('event', 'purchase', { plan: selectedPlan, payment_method: 'paypal' }); } catch (_) {}
+      navigate('/payment/success');
+    } catch (err) {
+      toast.error(t('connectionError'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const selectedPlanData = PLANS_DATA.find(p => p.id === selectedPlan);
@@ -271,20 +327,56 @@ export default function PricingPage() {
                       </div>
                     </div>
                     
-                    <Button
-                      onClick={handleCheckout}
-                      disabled={isLoading || isPremium}
-                      className="w-full h-14 text-lg bg-primary text-primary-foreground hover:bg-primary/90"
-                      data-testid="checkout-btn"
-                    >
-                      {isLoading ? (
-                        <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
-                      ) : isPremium ? (
-                        <>{t('alreadyPremiumButton')}</>
-                      ) : (
-                        <>{t('payButton')} {t(selectedPlan + 'Price')} <ArrowRight className="ml-2" /></>
-                      )}
-                    </Button>
+                    {selectedPayment === 'paypal' && paypalClientId && !isPremium ? (
+                      <PayPalScriptProvider
+                        options={{
+                          clientId: paypalClientId,
+                          currency: 'EUR',
+                          intent: 'capture',
+                          components: 'buttons',
+                        }}
+                      >
+                        <PayPalButtons
+                          style={{ layout: 'vertical', shape: 'rect', label: 'pay' }}
+                          createOrder={handlePayPalCreateOrder}
+                          onApprove={handlePayPalApprove}
+                          onError={(err) => {
+                            console.error('[PayPal]', err);
+                            toast.error(t('checkoutError'));
+                          }}
+                          onCancel={() => toast.info('Pago PayPal cancelado')}
+                          disabled={isLoading}
+                        />
+                      </PayPalScriptProvider>
+                    ) : selectedPayment === 'paypal' && !paypalClientId && !isPremium ? (
+                      <Button
+                        onClick={handleCheckout}
+                        disabled={isLoading || isPremium}
+                        className="w-full h-14 text-lg bg-blue-500 text-white hover:bg-blue-600"
+                        data-testid="checkout-btn"
+                      >
+                        {isLoading ? (
+                          <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
+                        ) : (
+                          <>Pagar con PayPal <ArrowRight className="ml-2" /></>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleCheckout}
+                        disabled={isLoading || isPremium}
+                        className="w-full h-14 text-lg bg-primary text-primary-foreground hover:bg-primary/90"
+                        data-testid="checkout-btn"
+                      >
+                        {isLoading ? (
+                          <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
+                        ) : isPremium ? (
+                          <>{t('alreadyPremiumButton')}</>
+                        ) : (
+                          <>{t('payButton')} {t(selectedPlan + 'Price')} <ArrowRight className="ml-2" /></>
+                        )}
+                      </Button>
+                    )}
                     
                     <div className="text-xs text-center text-muted-foreground space-y-1">
                       <p>

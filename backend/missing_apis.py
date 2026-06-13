@@ -19,6 +19,7 @@ All the missing/incomplete APIs from TradingCalculator PRO:
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import hashlib
 import io
@@ -513,7 +514,7 @@ async def forgot_password(request: Request, payload: ForgotPasswordRequest):
     origin = request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
     if not origin:
         origin = str(request.base_url).rstrip("/")
-    reset_url = f"{origin}/reset-password?token={token}"
+    reset_url = f"{origin}/reset-password#{token}"
 
     sent = await _send_reset_email(email_lc, reset_url)
     resp: Dict[str, Any] = {
@@ -711,7 +712,7 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
         }
 
     try:
-        sub = stripe.Subscription.retrieve(subscription_id)
+        sub = await asyncio.to_thread(stripe.Subscription.retrieve, subscription_id)
         if sub.status not in ("active", "trialing"):
             return {
                 "ok": False,
@@ -730,7 +731,8 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
 
         if not stripe_price_id:
             # Create an ad-hoc price for this plan
-            price_obj = stripe.Price.create(
+            price_obj = await asyncio.to_thread(
+                stripe.Price.create,
                 currency=new_plan["currency"].lower(),
                 unit_amount=int(new_plan["price"] * 100),
                 recurring={"interval": new_plan.get("stripe_interval", "month")},
@@ -738,7 +740,8 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
             )
             stripe_price_id = price_obj.id
 
-        updated_sub = stripe.Subscription.modify(
+        updated_sub = await asyncio.to_thread(
+            stripe.Subscription.modify,
             subscription_id,
             items=[{"id": item_id, "price": stripe_price_id}],
             proration_behavior=payload.proration_behavior,
@@ -916,6 +919,8 @@ async def export_trades(
     Export all trades to CSV or Excel.
     Query params: format=csv|excel, status=open|closed, symbol=AAPL, since=2024-01-01, until=2024-12-31
     """
+    if not check_premium(user):
+        raise HTTPException(status_code=403, detail="Función premium requerida")
     query: Dict[str, Any] = {"user_id": user["id"]}
     if status:
         query["status"] = status
@@ -970,6 +975,8 @@ async def save_calculation_to_journal(calc_id: str, payload: SaveToJournalReques
     Pre-fill a new journal trade entry from a saved calculation.
     The calculation inputs/results are merged with any overrides in the payload.
     """
+    if not check_premium(user):
+        raise HTTPException(status_code=403, detail="Función premium requerida")
     calc = await db.calculations.find_one({"id": calc_id, "user_id": user["id"]}, {"_id": 0})
     if not calc:
         raise HTTPException(status_code=404, detail="Cálculo no encontrado")

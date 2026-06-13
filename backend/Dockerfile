@@ -27,6 +27,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiar el código fuente del backend
 COPY . .
 
+# Usuario no privilegiado — no ejecutar como root
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+USER appuser
+
 # Cloud Run expone el puerto 8080
 EXPOSE 8080
 
@@ -35,4 +39,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Arrancar con uvicorn — Cloud Run gestiona el escalado
-CMD exec uvicorn server:app --host 0.0.0.0 --port ${PORT} --workers 1 --log-level info
+CMD exec uvicorn server:app --host 0.0.0.0 --port ${PORT} --workers 2 --log-level info
