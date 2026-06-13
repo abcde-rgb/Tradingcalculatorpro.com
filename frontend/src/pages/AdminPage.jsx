@@ -87,6 +87,21 @@ export default function AdminPage() {
       return;
     }
     setLoading(true);
+
+    // After a page refresh the access token is not persisted — silently renew it
+    // before making any API calls, otherwise we'd send "Bearer null" and get 401.
+    let currentToken = token;
+    if (!currentToken) {
+      currentToken = await useAuthStore.getState().silentRefresh();
+      if (!currentToken) {
+        toast.error('Tu sesión ha caducado. Vuelve a iniciar sesión.', { duration: 6000 });
+        navigate('/login');
+        return;
+      }
+    }
+
+    const freshHeaders = { Authorization: `Bearer ${currentToken}`, 'Content-Type': 'application/json' };
+
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (plan !== 'all')     params.set('plan', plan);
@@ -96,8 +111,8 @@ export default function AdminPage() {
 
     try {
       const [mRes, uRes] = await Promise.all([
-        fetch(`${API}/admin/metrics`, { headers }),
-        fetch(`${API}/admin/users?${params.toString()}`, { headers }),
+        fetch(`${API}/admin/metrics`, { headers: freshHeaders, credentials: 'include' }),
+        fetch(`${API}/admin/users?${params.toString()}`, { headers: freshHeaders, credentials: 'include' }),
       ]);
       if (mRes.status === 401 || uRes.status === 401) {
         toast.error('Tu sesión ha caducado. Vuelve a iniciar sesión.', { duration: 6000 });
@@ -115,8 +130,8 @@ export default function AdminPage() {
       }
       setMetrics(await mRes.json());
       const data = await uRes.json();
-      setUsers(data.users);
-      setTotal(data.total);
+      setUsers(data.users || []);
+      setTotal(data.total || 0);
     } catch (err) {
       console.error('[admin loadAll]', err);
       toast.error(err.message || 'Error cargando datos del admin');
@@ -138,7 +153,7 @@ export default function AdminPage() {
 
   const handleExportCsv = async () => {
     try {
-      const res = await fetch(`${API}/admin/users.csv`, { headers });
+      const res = await fetch(`${API}/admin/users.csv`, { headers, credentials: 'include' });
       if (!res.ok) throw new Error('csv export failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -160,6 +175,7 @@ export default function AdminPage() {
       const res = await fetch(`${API}/admin/promote`, {
         method: 'POST',
         headers,
+        credentials: 'include',
         body: JSON.stringify({ email, is_admin: !currentlyAdmin }),
       });
       if (!res.ok) throw new Error('promote failed');
@@ -175,6 +191,7 @@ export default function AdminPage() {
       const res = await fetch(`${API}/admin/users/${u.id}`, {
         method: 'DELETE',
         headers,
+        credentials: 'include',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'delete failed');
@@ -188,7 +205,7 @@ export default function AdminPage() {
 
   const handleImpersonate = async (u) => {
     try {
-      const res = await fetch(`${API}/admin/impersonate/${u.id}`, { method: 'POST', headers });
+      const res = await fetch(`${API}/admin/impersonate/${u.id}`, { method: 'POST', headers, credentials: 'include' });
       if (!res.ok) throw new Error('impersonate failed');
       const data = await res.json();
       await navigator.clipboard?.writeText(data.token).catch(() => {});
@@ -895,6 +912,7 @@ function EditUserDialog({ user, onClose, headers, onSaved }) {
       const res = await fetch(`${API}/admin/users/${user.id}`, {
         method: 'PATCH',
         headers,
+        credentials: 'include',
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -998,6 +1016,7 @@ function ResetPasswordDialog({ user, onClose, headers }) {
       const res = await fetch(`${API}/admin/users/${user.id}/reset-password`, {
         method: 'POST',
         headers,
+        credentials: 'include',
         body: JSON.stringify({ new_password: pw }),
       });
       const data = await res.json();
