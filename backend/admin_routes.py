@@ -1234,8 +1234,10 @@ def build_admin_router(
             except Exception as e:
                 logger.error(f"SendGrid error in campaign send: {e}")
         else:
-            # Simulate send (no API key configured)
-            sent_count = len(users_to_send)
+            raise HTTPException(
+                status_code=503,
+                detail="SendGrid API key no configurada. Configura SENDGRID_API_KEY para enviar campañas.",
+            )
 
         await db.email_campaigns.update_one(
             {"id": campaign_id},

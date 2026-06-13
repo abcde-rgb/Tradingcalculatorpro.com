@@ -514,7 +514,7 @@ async def forgot_password(request: Request, payload: ForgotPasswordRequest):
     origin = request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
     if not origin:
         origin = str(request.base_url).rstrip("/")
-    reset_url = f"{origin}/reset-password?token={token}"
+    reset_url = f"{origin}/reset-password#{token}"
 
     sent = await _send_reset_email(email_lc, reset_url)
     resp: Dict[str, Any] = {

@@ -295,7 +295,12 @@ async def redeem_credit(user: dict = Depends(_require_user_proxy), amount: Optio
     available = round(wallet_total - redeemed, 2)
     if available <= 0:
         raise HTTPException(status_code=400, detail="No hay saldo de referidos disponible")
-    redeem_amount = float(amount) if amount and amount > 0 else available
+    try:
+        redeem_amount = float(amount) if amount is not None else available
+        if redeem_amount <= 0:
+            raise ValueError("El crédito debe ser positivo")
+    except (TypeError, ValueError) as _e:
+        raise HTTPException(status_code=400, detail=f"Monto de crédito inválido: {_e}")
     if redeem_amount > available:
         raise HTTPException(status_code=400, detail=f"Saldo insuficiente. Disponible: {available} €")
 

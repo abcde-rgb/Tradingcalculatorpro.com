@@ -7,6 +7,7 @@ import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
 import CookieBanner from "@/components/common/CookieBanner";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 // Eagerly loaded — visible immediately on first paint
 import LandingPage from "@/pages/LandingPage";
@@ -52,14 +53,14 @@ const AppContent = () => (
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/"                element={<LandingPage />} />
-          <Route path="/dashboard"       element={<DashboardPage />} />
+          <Route path="/dashboard"       element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/pricing"         element={<PricingPage />} />
-          <Route path="/settings"        element={<SettingsPage />} />
+          <Route path="/settings"        element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/education"       element={<EducationPage />} />
-          <Route path="/subscription"    element={<SubscriptionPage />} />
+          <Route path="/subscription"    element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route path="/options"         element={<OptionsPage />} />
-          <Route path="/performance"     element={<PerformancePage />} />
-          <Route path="/admin"           element={<AdminPage />} />
+          <Route path="/performance"     element={<ProtectedRoute><PerformancePage /></ProtectedRoute>} />
+          <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/login"           element={<LoginPage />} />
           <Route path="/register"        element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

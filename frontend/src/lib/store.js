@@ -203,7 +203,7 @@ export const useTradingJournalStore = create(
       trades: [],
 
       addTrade: (trade) => {
-        set({ trades: [{ id: Date.now().toString(), ...trade, createdAt: new Date().toISOString() }, ...get().trades] });
+        set({ trades: [{ id: crypto.randomUUID(), ...trade, createdAt: new Date().toISOString() }, ...get().trades] });
       },
 
       updateTrade: (id, updates) => {

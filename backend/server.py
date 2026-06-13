@@ -280,11 +280,24 @@ class _Cursor:
         sql = f"SELECT data FROM {self._table} {where} {order} {limit_clause} {offset_clause}".strip()
         return sql, params
 
+    @staticmethod
+    def _apply_projection(docs: list, projection) -> list:
+        if not projection:
+            return docs
+        exclusions = {k for k, v in projection.items() if v == 0}
+        inclusions = {k for k, v in projection.items() if v == 1 and k != "_id"}
+        if exclusions:
+            return [{k: v for k, v in d.items() if k not in exclusions} for d in docs]
+        if inclusions:
+            return [{k: d[k] for k in inclusions if k in d} for d in docs]
+        return docs
+
     async def to_list(self, length=None):
         sql, params = self._build_query()
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)
         result = [_deserialize(r["data"]) for r in rows]
+        result = self._apply_projection(result, self._projection)
         if length is not None:
             result = result[:length]
         return result
@@ -409,7 +422,10 @@ class Collection:
             row = await conn.fetchrow(sql, *params)
         if row is None:
             return None
-        return _deserialize(row["data"])
+        doc = _deserialize(row["data"])
+        if projection:
+            [doc] = _Cursor._apply_projection([doc], projection)
+        return doc
 
     def find(self, filter_dict: dict = None, projection=None):
         """Return a lazy _Cursor (supports .sort/.limit/.skip/.to_list/async for)."""
@@ -765,6 +781,21 @@ class Database:
             coll = self.__getattr__(name)
             await coll._ensure_table()
 
+        # Expression indexes on frequently-queried fields (idempotent)
+        async with self._pool.acquire() as conn:
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users ((data->>'email'))")
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_id ON users ((data->>'id'))")
+            for tbl in ("trades", "calculations", "alerts", "saved_positions"):
+                await conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS idx_{tbl}_user_id ON {tbl} ((data->>'user_id'))"
+                )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_revoked_tokens_jti ON revoked_tokens ((data->>'jti'))"
+            )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_payment_transactions_user ON payment_transactions ((data->>'user_id'))"
+            )
+
     async def close(self):
         if self._pool:
             await self._pool.close()
@@ -884,10 +915,10 @@ security = HTTPBearer(auto_error=False)
 _CORS_ORIGINS = [
     "https://tradingcalculator.pro",
     "https://www.tradingcalculator.pro",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    # Staging/dev origins should be added via CORS_ORIGINS env var, not hardcoded here
 ]
+# Localhost only in non-production (dev) — add via CORS_ORIGINS env var in staging
+if os.environ.get("ENVIRONMENT", "production") != "production":
+    _CORS_ORIGINS += ["http://localhost:3000", "http://localhost:5173"]
 _extra = os.environ.get("CORS_ORIGINS", "")
 for _o in _extra.split(","):
     _o = _o.strip()
@@ -997,7 +1028,7 @@ class EmailAlertRequest(BaseModel):
 # ============= AUTH HELPERS =============
 
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
@@ -1329,7 +1360,7 @@ async def startup_event():
 async def register(request: Request, user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
-        raise HTTPException(status_code=400, detail="El email ya está registrado")
+        raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")
     
     user_id = str(uuid.uuid4())
     user = {
@@ -1632,7 +1663,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
     )
 
     frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
-    reset_url = f"{frontend_url}/reset-password?token={reset_token}"
+    reset_url = f"{frontend_url}/reset-password#{reset_token}"
     try:
         import asyncio as _asyncio
         _asyncio.create_task(_send_password_reset_email(user["email"], user.get("name", ""), reset_url))
@@ -1658,7 +1689,7 @@ async def reset_password(request: Request, body: ResetPasswordRequest):
 
     await db.users.update_one(
         {"id": record["user_id"]},
-        {"$set": {"password": hash_password(body.new_password)}},
+        {"$set": {"password": await hash_password_async(body.new_password)}},
     )
     await db.password_resets.update_one({"token": _hash_token(body.token)}, {"$set": {"used": True}})
     # Revoke all existing sessions so old tokens stop working
@@ -1691,7 +1722,7 @@ async def change_password(request: Request, body: ChangePasswordRequest, user: d
 
     await db.users.update_one(
         {"id": user["id"]},
-        {"$set": {"password": hash_password(body.new_password)}},
+        {"$set": {"password": await hash_password_async(body.new_password)}},
     )
     # Revoke all existing sessions (force re-login)
     await db.user_revocations.update_one(
@@ -3127,6 +3158,16 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             data_obj = raw_event["data"]["object"]
             if data_obj.get("payment_status") != "paid":
                 return {"status": "received"}
+
+            # Idempotency: skip if already processed
+            session_id_val = data_obj.get("id", "")
+            if session_id_val:
+                already = await db.payment_transactions.find_one(
+                    {"stripe_session_id": session_id_val, "status": "paid"}
+                )
+                if already:
+                    logging.info("[stripe-webhook] checkout already processed: %s", session_id_val)
+                    return {"status": "already_processed"}
 
             meta = data_obj.get("metadata") or {}
             user_id = meta.get("user_id")
@@ -4858,7 +4899,7 @@ async def admin_create_user(request: Request, payload: AdminUserCreate, admin: d
     user = {
         "id": user_id,
         "email": email_lc,
-        "password": hash_password(payload.password),
+        "password": await hash_password_async(payload.password),
         "name": payload.name,
         "subscription_plan": plan,
         "subscription_end": sub_end,
@@ -4997,7 +5038,7 @@ async def admin_reset_password(request: Request, user_id: str, payload: AdminPas
     await db.users.update_one(
         {"id": user_id},
         {"$set": {
-            "password": hash_password(payload.new_password),
+            "password": await hash_password_async(payload.new_password),
             "auth_provider": "password",
             "password_reset_at": datetime.now(timezone.utc).isoformat(),
             "password_reset_by": admin.get("email"),
@@ -5288,6 +5329,39 @@ async def admin_impersonate(request: Request, user_id: str, admin: dict = Depend
     return {"token": token, "user": {k: v for k, v in target.items() if k not in _SENSITIVE}}
 
 
+# ── ADMIN REFUND ──────────────────────────────────────────────────────────────
+@api_router.post("/admin/subscriptions/{user_id}/refund")
+async def admin_refund_subscription(request: Request, user_id: str, admin: dict = Depends(require_admin)):
+    """Process a Stripe refund for the user's most recent paid transaction."""
+    transaction = await db.payment_transactions.find_one({"user_id": user_id, "status": "paid"})
+    if not transaction:
+        raise HTTPException(status_code=404, detail="No hay transacciones elegibles para reembolso")
+    charge_id = transaction.get("charge_id") or transaction.get("stripe_charge_id")
+    if not charge_id:
+        raise HTTPException(status_code=400, detail="No se encontró charge_id para esta transacción")
+    try:
+        refund = await asyncio.to_thread(
+            stripe.Refund.create, charge=charge_id, reason="requested_by_customer"
+        )
+        await db.payment_transactions.update_one(
+            {"id": transaction["id"]},
+            {"$set": {"status": "refunded", "refund_id": refund.id, "refunded_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"is_premium": False, "subscription_status": "refunded", "subscription_plan": None}},
+        )
+        await log_admin_action(
+            admin=admin, action="subscription.refund",
+            target_id=user_id, target_email=transaction.get("user_email", ""),
+            details={"refund_id": refund.id, "amount": transaction.get("amount")},
+            request=request,
+        )
+        return {"status": "refunded", "refund_id": refund.id}
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Error de Stripe: {e}")
+
+
 # ── REVENUE ANALYTICS ────────────────────────────────────────────────────────
 @api_router.get("/admin/revenue")
 async def admin_revenue(admin: dict = Depends(require_admin)):
@@ -5541,6 +5615,33 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+
+class MaintenanceModeMiddleware(BaseHTTPMiddleware):
+    """Returns 503 for all non-admin API requests when maintenance_mode=true in app_settings."""
+    _BYPASS = {"/api/health", "/api/admin", "/api/auth/login"}
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        # Always pass: health, admin routes, login (so admin can log in during maintenance)
+        if path == "/api/health" or path.startswith("/api/admin") or path.startswith("/api/auth"):
+            return await call_next(request)
+        try:
+            if db._pool is not None:
+                doc = await db.app_settings.find_one({"_id": "global"}) or {}
+                if str(doc.get("maintenance_mode", "")).lower() == "true":
+                    from fastapi.responses import JSONResponse
+                    return JSONResponse(
+                        status_code=503,
+                        content={"detail": "Servicio en mantenimiento. Vuelve pronto."},
+                        headers={"Retry-After": "3600"},
+                    )
+        except Exception:
+            pass  # Never block traffic on middleware failure
+        return await call_next(request)
+
+
+app.add_middleware(MaintenanceModeMiddleware)
 
 logging.basicConfig(
     level=logging.INFO,
