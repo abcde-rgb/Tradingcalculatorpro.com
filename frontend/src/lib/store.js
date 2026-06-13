@@ -100,7 +100,7 @@ export const useAuthStore = create(
         }
         set({ isLoading: true });
         try {
-          const res = await fetch(`${API}/auth/google`, {
+          const res = await fetchWithTimeout(`${API}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ credential })
@@ -119,11 +119,11 @@ export const useAuthStore = create(
 
       logout: async () => {
         const token = get().token;
-        if (API && token && token !== DEMO_TOKEN) {
+        if (API) {
           try {
-            await fetch(`${API}/auth/logout`, {
+            await fetchWithTimeout(`${API}/auth/logout`, {
               method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}` },
+              headers: token && token !== DEMO_TOKEN ? { 'Authorization': `Bearer ${token}` } : {},
             });
           } catch (_) {}
         }
@@ -137,7 +137,7 @@ export const useAuthStore = create(
         if (!API || !refreshToken || refreshToken === DEMO_TOKEN || _isRefreshing) return null;
         set({ _isRefreshing: true });
         try {
-          const res = await fetch(`${API}/auth/refresh`, {
+          const res = await fetchWithTimeout(`${API}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: refreshToken }),

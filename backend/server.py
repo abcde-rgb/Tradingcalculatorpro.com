@@ -286,10 +286,11 @@ class _Cursor:
             return docs
         exclusions = {k for k, v in projection.items() if v == 0}
         inclusions = {k for k, v in projection.items() if v == 1 and k != "_id"}
+        if inclusions:
+            # Inclusion projection: keep only specified keys, then remove any exclusions
+            return [{k: d[k] for k in inclusions if k in d and k not in exclusions} for d in docs]
         if exclusions:
             return [{k: v for k, v in d.items() if k not in exclusions} for d in docs]
-        if inclusions:
-            return [{k: d[k] for k in inclusions if k in d} for d in docs]
         return docs
 
     async def to_list(self, length=None):
@@ -628,6 +629,8 @@ class _AggCursor:
             if not _SAFE_FIELD_RE.match(field_name):
                 raise ValueError(f"Unsafe group field: {field_name!r}")
             count_col = sum_field or "count"
+            if not _SAFE_FIELD_RE.match(count_col):
+                raise ValueError(f"Unsafe accumulator name: {count_col!r}")
 
             where_clause, params, _ = _build_where_clause(match_filter) if match_filter else ("", [], 0)
             where_sql = f"WHERE {where_clause}" if where_clause else ""
@@ -635,6 +638,8 @@ class _AggCursor:
             order_parts = []
             if sort_spec:
                 for sf, sd in sort_spec.items():
+                    if sf not in ("_id", count_col) and not _SAFE_FIELD_RE.match(sf):
+                        raise ValueError(f"Unsafe sort field: {sf!r}")
                     col = f"data->>'{sf}'" if sf not in ("_id", count_col) else (
                         f"data->>'{field_name}'" if sf == "_id" else count_col
                     )
@@ -675,13 +680,13 @@ class _AggCursor:
 
         result_docs = docs
 
-        # Sort
+        # Sort (default-arg capture avoids late-binding closure bug)
         if sort_spec:
             for sort_field, sort_dir in reversed(list(sort_spec.items())):
                 if sort_field == "_id":
-                    result_docs.sort(key=lambda d: (d.get("_id") or ""), reverse=(sort_dir == -1))
+                    result_docs.sort(key=lambda d, _sf="_id": (d.get(_sf) or ""), reverse=(sort_dir == -1))
                 else:
-                    result_docs.sort(key=lambda d: (d.get(sort_field) or 0), reverse=(sort_dir == -1))
+                    result_docs.sort(key=lambda d, _sf=sort_field: (d.get(_sf) or 0), reverse=(sort_dir == -1))
 
         # Limit
         if limit_n is not None:
@@ -1004,6 +1009,8 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
     """Catch-all: log full traceback internally, return generic 500 to caller.
     Prevents stack traces / file paths leaking to external clients in production."""
     from fastapi.responses import JSONResponse
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     logging.exception(f"[500] Unhandled exception on {request.method} {request.url.path}")
     return JSONResponse(
         status_code=500,
@@ -1180,7 +1187,7 @@ async def _revoke_all_tokens_for_user(user_id: str) -> int:
         {"$set": {
             "user_id": user_id,
             "revoked_after": datetime.now(timezone.utc),
-            "expires_at": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS + 1),
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=JWT_REFRESH_EXPIRATION_DAYS + 1),
         }},
         upsert=True,
     )
@@ -1276,6 +1283,8 @@ async def require_user(
     if not token:
         raise HTTPException(status_code=401, detail="Se requiere autenticación")
     payload = decode_token(token)
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Token de acceso requerido")
     if await _is_token_revoked(payload):
         raise HTTPException(status_code=401, detail="Sesión revocada (logout)")
     if await _is_user_session_revoked(payload):
@@ -1295,6 +1304,8 @@ async def require_admin(
     if not token:
         raise HTTPException(status_code=401, detail="Se requiere autenticación")
     payload = decode_token(token)
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Token de acceso requerido")
     if await _is_token_revoked(payload):
         raise HTTPException(status_code=401, detail="Sesión revocada (logout)")
     if await _is_user_session_revoked(payload):
@@ -1410,7 +1421,7 @@ async def startup_event():
         demo_user = {
             "id": "demo-user-001",
             "email": DEMO_EMAIL,
-            "password": hash_password(DEMO_PASSWORD),
+            "password": await hash_password_async(DEMO_PASSWORD),
             "name": "Demo Trader",
             "subscription_plan": "lifetime",
             "subscription_end": None,
@@ -1623,16 +1634,20 @@ async def logout(
 
 
 class TokenRefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: Optional[str] = None
 
 
 @api_router.post("/auth/refresh")
 @limiter.limit("30/minute")
 async def refresh_access_token(request: Request, response: Response, body: TokenRefreshRequest) -> Dict[str, Any]:
     """Exchange a valid refresh token for a new access token.
+    Reads token from body first, falls back to httpOnly cookie so both paths work.
     The refresh token is rotated (revoked and a fresh one issued) for better security."""
+    raw_token = body.refresh_token or request.cookies.get("refresh_token")
+    if not raw_token:
+        raise HTTPException(status_code=401, detail="Refresh token requerido.")
     try:
-        payload = jwt.decode(body.refresh_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(raw_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Refresh token expirado. Inicia sesión de nuevo.")
     except jwt.InvalidTokenError:
@@ -1643,6 +1658,9 @@ async def refresh_access_token(request: Request, response: Response, body: Token
 
     if await _is_token_revoked(payload):
         raise HTTPException(status_code=401, detail="Refresh token revocado. Inicia sesión de nuevo.")
+
+    if await _is_user_session_revoked(payload):
+        raise HTTPException(status_code=401, detail="Sesión revocada por cambio de contraseña.")
 
     user_id = payload.get("user_id")
     email = payload.get("email")
@@ -3199,7 +3217,8 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
     if payment_method == "paypal":
         pp_client_id = await get_setting("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
         pp_client_secret = await get_setting("paypal_client_secret") or os.environ.get("PAYPAL_CLIENT_SECRET", "")
-        pp_mode = await get_setting("paypal_mode") or os.environ.get("PAYPAL_MODE", "sandbox")
+        pp_default_mode = "live" if os.environ.get("ENVIRONMENT", "production") == "production" else "sandbox"
+        pp_mode = await get_setting("paypal_mode") or os.environ.get("PAYPAL_MODE", pp_default_mode)
         if not pp_client_id or not pp_client_secret:
             raise HTTPException(status_code=503, detail="PayPal no está configurado. Contacta soporte.")
         try:
@@ -3277,10 +3296,20 @@ async def paypal_capture_order(
     if transaction.get("status") == "paid":
         return {"status": "already_paid", "plan_id": transaction["plan_id"]}
 
+    # Atomically claim the transaction to prevent double-capture races
+    claimed = await db.payment_transactions.find_one_and_update(
+        {"id": transaction["id"], "status": "pending"},
+        {"$set": {"status": "capturing"}},
+    )
+    if not claimed:
+        return {"status": "already_paid", "plan_id": transaction["plan_id"]}
+
     pp_client_id = await get_setting("paypal_client_id") or os.environ.get("PAYPAL_CLIENT_ID", "")
     pp_client_secret = await get_setting("paypal_client_secret") or os.environ.get("PAYPAL_CLIENT_SECRET", "")
-    pp_mode = await get_setting("paypal_mode") or os.environ.get("PAYPAL_MODE", "sandbox")
+    pp_default_mode = "live" if os.environ.get("ENVIRONMENT", "production") == "production" else "sandbox"
+    pp_mode = await get_setting("paypal_mode") or os.environ.get("PAYPAL_MODE", pp_default_mode)
     if not pp_client_id or not pp_client_secret:
+        await db.payment_transactions.update_one({"id": transaction["id"]}, {"$set": {"status": "pending"}})
         raise HTTPException(status_code=503, detail="PayPal no está configurado")
 
     try:
