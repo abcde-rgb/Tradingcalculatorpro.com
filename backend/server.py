@@ -890,7 +890,8 @@ if not JWT_SECRET:
             "Set it to a strong random secret (e.g. openssl rand -hex 32)."
         )
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 8  # Reduced from 24h to limit stolen-token window
+JWT_EXPIRATION_HOURS = 1        # Access token: 1 hour
+JWT_REFRESH_EXPIRATION_DAYS = 7 # Refresh token: 7 days
 
 # Stripe Configuration
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
@@ -1091,14 +1092,29 @@ def _hash_token(token: str) -> str:
 #  JWT (with revocable tokens via `jti` blacklist)
 # ============================================================
 def create_token(user_id: str, email: str) -> str:
-    """Issue a JWT carrying a unique `jti` so we can revoke individual sessions."""
+    """Issue a short-lived access JWT (1 h) with a unique jti."""
     now = datetime.now(timezone.utc)
     payload = {
         "user_id": user_id,
         "email": email,
+        "type": "access",
         "jti": str(uuid.uuid4()),
         "iat": now,
         "exp": now + timedelta(hours=JWT_EXPIRATION_HOURS),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def create_refresh_token(user_id: str, email: str) -> str:
+    """Issue a long-lived refresh JWT (7 days). Must never be used as an access token."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "user_id": user_id,
+        "email": email,
+        "type": "refresh",
+        "jti": str(uuid.uuid4()),
+        "iat": now,
+        "exp": now + timedelta(days=JWT_REFRESH_EXPIRATION_DAYS),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -1407,8 +1423,10 @@ async def register(request: Request, user_data: UserCreate):
         pass
 
     token = create_token(user_id, user_data.email)
+    refresh_token = create_refresh_token(user_id, user_data.email)
     return {
         "token": token,
+        "refresh_token": refresh_token,
         "user": {
             "id": user_id,
             "email": user_data.email,
@@ -1435,10 +1453,12 @@ async def login(request: Request, credentials: UserLogin):
     )
 
     token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
     is_premium = check_premium(user)
 
     return {
         "token": token,
+        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],
@@ -1530,6 +1550,60 @@ async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     return {"ok": True, "revoked": True}
 
 
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str
+
+
+@api_router.post("/auth/refresh")
+@limiter.limit("30/minute")
+async def refresh_access_token(request: Request, body: TokenRefreshRequest) -> Dict[str, Any]:
+    """Exchange a valid refresh token for a new access token.
+    The refresh token is rotated (revoked and a fresh one issued) for better security."""
+    try:
+        payload = jwt.decode(body.refresh_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expirado. Inicia sesión de nuevo.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Refresh token inválido.")
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Token no es un refresh token.")
+
+    if await _is_token_revoked(payload):
+        raise HTTPException(status_code=401, detail="Refresh token revocado. Inicia sesión de nuevo.")
+
+    user_id = payload.get("user_id")
+    email = payload.get("email")
+    if not user_id or not email:
+        raise HTTPException(status_code=401, detail="Refresh token malformado.")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado.")
+
+    # Revoke old refresh token (rotation)
+    await _revoke_token(payload)
+
+    new_access = create_token(user_id, email)
+    new_refresh = create_refresh_token(user_id, email)
+
+    return {
+        "token": new_access,
+        "refresh_token": new_refresh,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user.get("name"),
+            "picture": user.get("picture"),
+            "subscription_plan": user.get("subscription_plan"),
+            "subscription_end": user.get("subscription_end"),
+            "is_premium": check_premium(user),
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            "auth_provider": user.get("auth_provider", "password"),
+        },
+    }
+
+
 class ForgotPasswordRequest(BaseModel):
     email: str
 
@@ -1618,11 +1692,13 @@ async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
         "auth_provider": user.get("auth_provider") or "magic_link",
     }})
     token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
     return {
         # `token` matches /auth/login & /auth/google; `access_token` kept for
         # backwards-compat with the existing MagicPage that reads access_token.
         "token": token,
         "access_token": token,
+        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],
@@ -1892,8 +1968,10 @@ async def google_auth(request: Request, payload: GoogleAuthRequest):
             user.update(updates)
 
     token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
     return {
         "token": token,
+        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],

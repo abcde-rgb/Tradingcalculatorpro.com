@@ -39,8 +39,10 @@ export const useAuthStore = create(
     (set, get) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
+      _isRefreshing: false,
 
       login: async (email, password) => {
         if (!API) {
@@ -56,7 +58,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('invalidCredentials'));
           if (!data.token || !data.user) throw new Error(t('invalidCredentials'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'email' });
           return { success: true };
         } catch (error) {
@@ -82,7 +84,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('registrationError'));
           if (!data.token || !data.user) throw new Error(t('registrationError'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
           trackEvent('sign_up', { method: 'email' });
           return { success: true };
         } catch (error) {
@@ -105,7 +107,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
           if (!data.token || !data.user) throw new Error(t('googleLoginError'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'google' });
           return { success: true };
         } catch (error) {
@@ -124,7 +126,38 @@ export const useAuthStore = create(
             });
           } catch (_) {}
         }
-        set({ user: null, token: null, isAuthenticated: false });
+        set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
+      },
+
+      // Silently exchange refresh_token for a new access token.
+      // Returns the new access token string, or null on failure.
+      silentRefresh: async () => {
+        const { refreshToken, _isRefreshing } = get();
+        if (!API || !refreshToken || refreshToken === DEMO_TOKEN || _isRefreshing) return null;
+        set({ _isRefreshing: true });
+        try {
+          const res = await fetch(`${API}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+          if (!res.ok) {
+            set({ user: null, token: null, refreshToken: null, isAuthenticated: false, _isRefreshing: false });
+            return null;
+          }
+          const data = await safeJson(res);
+          set({
+            token: data.token,
+            refreshToken: data.refresh_token || refreshToken,
+            user: data.user || get().user,
+            isAuthenticated: true,
+            _isRefreshing: false,
+          });
+          return data.token;
+        } catch (_) {
+          set({ _isRefreshing: false });
+          return null;
+        }
       },
 
       refreshUser: async () => {
@@ -134,6 +167,14 @@ export const useAuthStore = create(
           const res = await fetch(`${API}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+          if (res.status === 401) {
+            // Access token expired — try silent refresh
+            const newToken = await get().silentRefresh();
+            if (!newToken) return;
+            const res2 = await fetch(`${API}/auth/me`, { headers: { 'Authorization': `Bearer ${newToken}` } });
+            if (res2.ok) set({ user: await safeJson(res2) });
+            return;
+          }
           if (res.ok) {
             const user = await safeJson(res);
             set({ user });
@@ -143,7 +184,7 @@ export const useAuthStore = create(
     }),
     {
       name: 'btc-auth-storage',
-      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => ({ user: state.user, token: state.token, refreshToken: state.refreshToken, isAuthenticated: state.isAuthenticated }),
     }
   )
 );
