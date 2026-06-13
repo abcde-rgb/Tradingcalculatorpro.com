@@ -775,13 +775,13 @@ class Database:
             # Cloud SQL via Unix socket — SSL not applicable on socket connections
             self._pool = await asyncpg.create_pool(
                 f"{clean_url}?host={host_param}",
-                min_size=1, max_size=10, timeout=10, command_timeout=30,
+                min_size=5, max_size=20, timeout=10, command_timeout=30,
             )
         else:
             import ssl as _ssl
             ssl_ctx = _ssl.create_default_context()
             self._pool = await asyncpg.create_pool(
-                clean_url, ssl=ssl_ctx, min_size=1, max_size=10,
+                clean_url, ssl=ssl_ctx, min_size=5, max_size=20,
                 timeout=10, command_timeout=30,
             )
 
@@ -996,6 +996,18 @@ async def _rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded)
     return JSONResponse(
         status_code=429,
         content={"detail": f"Demasiados intentos, espera un momento. Límite: {exc.detail}"},
+    )
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    """Catch-all: log full traceback internally, return generic 500 to caller.
+    Prevents stack traces / file paths leaking to external clients in production."""
+    from fastapi.responses import JSONResponse
+    logging.exception(f"[500] Unhandled exception on {request.method} {request.url.path}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Error interno del servidor. Inténtalo de nuevo o contacta soporte."},
     )
 
 
@@ -5967,6 +5979,10 @@ app.include_router(api_router)
 
 _FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculator.pro')
 
+_AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/me",
+               "/api/auth/logout", "/api/auth/refresh", "/api/auth/google",
+               "/api/auth/magic-link", "/api/auth/magic-link/verify"}
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
@@ -5985,6 +6001,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "base-uri 'self'; "
             "form-action 'self';"
         )
+        # Prevent caching of auth responses (tokens, user data)
+        if request.url.path in _AUTH_PATHS:
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            response.headers["Pragma"] = "no-cache"
         # Only set HSTS on HTTPS (avoids breaking local dev)
         if request.url.scheme == "https":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -6019,10 +6039,37 @@ class MaintenanceModeMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(MaintenanceModeMiddleware)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Structured JSON logging — Cloud Logging / Cloud Run parses this automatically.
+# In dev mode plain-text is fine; in production emit JSON so logs are queryable.
+_IS_PRODUCTION = os.environ.get("ENVIRONMENT", "production").lower() == "production"
+if _IS_PRODUCTION:
+    import json as _json
+
+    class _JsonFormatter(logging.Formatter):
+        _SEVERITY = {
+            logging.DEBUG: "DEBUG", logging.INFO: "INFO",
+            logging.WARNING: "WARNING", logging.ERROR: "ERROR",
+            logging.CRITICAL: "CRITICAL",
+        }
+        def format(self, record: logging.LogRecord) -> str:
+            entry: dict = {
+                "severity": self._SEVERITY.get(record.levelno, "DEFAULT"),
+                "message": record.getMessage(),
+                "logger": record.name,
+                "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%S.%fZ"),
+            }
+            if record.exc_info:
+                entry["exception"] = self.formatException(record.exc_info)
+            return _json.dumps(entry, ensure_ascii=False)
+
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(_JsonFormatter())
+    logging.basicConfig(level=logging.INFO, handlers=[_handler])
+else:
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

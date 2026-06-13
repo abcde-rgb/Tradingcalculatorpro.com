@@ -5,7 +5,6 @@ import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Maximize2, Minimize2, Star, StarOff, AlertCircle, RefreshCw, CandlestickChart, Trash2 } from 'lucide-react';
-import DOMPurify from 'dompurify';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
 // TradingView supported locale mapping. See https://www.tradingview.com/widget/advanced-chart/
