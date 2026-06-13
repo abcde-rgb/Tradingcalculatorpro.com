@@ -162,7 +162,124 @@ Trabajo estimado: 4-6 h. No es una regresión; es deuda técnica pre-existente.
 
 ---
 
-## 📊 RESUMEN DE ESTADO (verificado 2026-06-02)
+## 🔴 AUDITORÍA TÉCNICA COMPLETA — SESIÓN 2026-06-13
+
+Auditoría de 8 fases (57 hallazgos) + implementación de correcciones.
+
+### C-04 — app_settings Scheme A/B incompatibility (tiempo de bomba) ✅ RESUELTO
+**Severidad:** 🔴 CRÍTICA · **Archivos:** `backend/admin_routes.py`, `backend/server.py`
+
+`admin_routes.py` almacenaba settings con Scheme B `{key:"k", value:"v"}` (una fila por clave)
+mientras `server.py` usaba Scheme A `{_id:"global", k1:"v1", ...}` (un doc único). Al coexistir
+ambos, `_get_all_settings` hacía `d["key"]` sobre un doc Scheme A → **KeyError determinístico**
+en `connectors_status`, `send_campaign`, `get_maintenance` y `gdpr_export_deliver`.
+
+**Solución:** `_get_all_settings` → `find_one({_id:"global"})`. `_upsert_setting` → `$set` en
+doc global. `_delete_setting` → `$unset` en doc global. Añadido soporte `$unset` al adaptador
+JSONB (`_apply_update_operators`).
+
+### C-06 — Cloud Run en us-central1 vs Cloud SQL en europe-west1 ✅ RESUELTO
+**Severidad:** 🔴 CRÍTICA (latencia) · **Archivos:** `deploy-cloud-run.yml`, `cloudbuild.yaml`
+
+~100-150ms de latencia por query entre regiones. Movido Cloud Run y Artifact Registry a
+`europe-west1` (misma región que Cloud SQL `trading-db`) → latencia <5ms.
+
+### C-07 — Admin puede impersonar a otro admin ✅ RESUELTO
+**Severidad:** 🔴 CRÍTICA (seguridad) · **Archivo:** `backend/server.py`
+
+`POST /admin/impersonate/{user_id}` no verificaba si el objetivo era admin. Un admin
+comprometido podía escalar privilegios o cubrir rastros impersonando al superadmin.
+**Solución:** comprobación `target.get("is_admin") or email in _ADMIN_EMAILS` → HTTP 403.
+
+### A-02 — MRR con precios obsoletos (€9.99/€19.99/€79.99) ✅ RESUELTO
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/server.py`
+
+`plan_mrr = {"monthly": 9.99, ...}` estaba hardcodeado con precios de una versión
+anterior mientras `SUBSCRIPTION_PLANS` tiene €17/€45/€200/€500. Dashboard mostraba MRR
+~6× menor al real. **Solución:** `plan_mrr` calculado dinámicamente desde `SUBSCRIPTION_PLANS`.
+
+### A-03 — Campos /admin/revenue: backend ≠ frontend ✅ RESUELTO
+**Severidad:** 🟠 IMPORTANTE · **Archivos:** `backend/server.py`, `frontend/src/pages/AdminPage.jsx`
+
+Backend devolvía `mrr_history`/`churn_rate`/`conversion_rate`; frontend leía
+`history`/`churn`/`conversion` → gráficos vacíos siempre. **Solución:** renombrar en backend.
+
+### A-04 — Stripe SDK bloquea el event loop ✅ RESUELTO
+**Severidad:** 🟠 IMPORTANTE · **Archivos:** `backend/server.py`, `backend/missing_apis.py`
+
+9 llamadas síncronas Stripe (`Subscription.list/delete/modify`, `billing_portal.Session.create`,
+`Invoice.list`, `Subscription.retrieve`, `Price.create`) dentro de `async def` → congelaban el
+event loop 3-5s cada vez. Todas envueltas en `asyncio.to_thread`.
+
+### A-05 — SendGrid sg.send() bloquea el event loop ✅ RESUELTO
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/server.py`
+
+`sg.send(message)` → `await asyncio.to_thread(sg.send, message)`.
+
+### A-06 — Sin validación de longitud de contraseña ✅ RESUELTO
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/server.py`
+
+`UserCreate.password: str` sin restricciones → contraseñas de 1 carácter aceptadas.
+**Solución:** `Field(..., min_length=8, max_length=128)`.
+
+### A-07 — DoS en /monte-carlo vía numSimulations enorme ✅ RESUELTO
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/server.py`
+
+`numSimulations=9999999` consumía CPU/RAM hasta matar el worker. **Solución:** caps
+`numTrades ≤ 1000`, `numSimulations ≤ 5000`.
+
+### A-09 — revoked_tokens crece sin límite ✅ RESUELTO
+**Severidad:** 🟡 MENOR · **Archivo:** `backend/server.py`
+
+Tokens revocados nunca se purgaban. **Solución:** `delete_many({expires_at: {$lt: now}})`
+en `startup_event` — los tokens con JWT expirado no pueden usarse igualmente.
+
+### A-10 — Dockerfile ejecuta uvicorn como root ✅ RESUELTO
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/Dockerfile`
+
+Breach de proceso → acceso root al sistema de archivos del contenedor.
+**Solución:** `RUN adduser appuser` + `USER appuser` antes de `EXPOSE`.
+
+### M-13 — /api/health devuelve 200 cuando la DB está caída ✅ RESUELTO
+**Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/server.py`
+
+Cloud Run probes usaban HTTP status; `{"status":"degraded"}` con HTTP 200 nunca
+activaba el circuit breaker. **Solución:** `raise HTTPException(503)` cuando DB no responde.
+
+### M-14 — ADMIN_EMAILS hardcodeado en cloudbuild.yaml ✅ RESUELTO
+**Severidad:** 🟡 MENOR · **Archivo:** `cloudbuild.yaml`
+
+Email de admin (`tradingcalculatorpro@gmail.com`) expuesto en el repositorio.
+**Solución:** eliminado del `--set-env-vars`; debe configurarse en el servicio Cloud Run.
+
+### M-19 — POST /referrals/track sin rate limit ✅ RESUELTO
+**Severidad:** 🟡 MENOR · **Archivo:** `backend/referrals.py`
+
+Endpoint público sin autenticación ni límite → enumeración de emails (404 vs 200).
+**Solución:** `limiter.limit("5/minute")` inyectado vía `helpers["limiter"]` en `register()`.
+
+### LTV — Fórmula algebraicamente nula ✅ RESUELTO
+**Severidad:** 🟡 MENOR · **Archivo:** `backend/server.py`
+
+`price * max(count,1) / max(count,1)` ≡ `price` (el count se cancelaba). Simplificado
+a `round(plan["price"], 2)` con comentario explicativo.
+
+---
+
+## 🟡 PENDIENTES CONOCIDOS (no bloquean operación)
+
+- **BUG-007** — Preferencias de usuario solo en localStorage (baja prioridad)
+- **BUG-008** — `server.py` monolítico ~5.500 líneas (deuda técnica, requiere tests)
+- **C-08** — API keys (Stripe/SendGrid) pueden almacenarse en `app_settings` DB en plaintext.
+  Arquitectónicamente: las claves deberían ir solo como Cloud Run secrets. El panel admin
+  no debería tener un campo para sobreescribirlas vía DB. Requiere decisión de producto.
+- **Sombra de rutas** — ~21 endpoints de `admin_routes.py` son código muerto porque
+  `server.py` registra las mismas rutas primero (FastAPI first-match). Requiere refactor
+  mayor para unificar en un solo router.
+
+---
+
+## 📊 RESUMEN DE ESTADO (verificado 2026-06-13)
 
 | Bug | Descripción | Severidad | Estado real |
 |-----|-------------|-----------|-------------|
@@ -171,22 +288,30 @@ Trabajo estimado: 4-6 h. No es una regresión; es deuda técnica pre-existente.
 | BUG-003 | Stripe checkout/webhooks | 🔴 | ✅ Implementado (falta verificar dashboard) |
 | BUG-004 | Admin con datos falsos | 🟠 | ✅ Resuelto (queries reales) |
 | BUG-005 | Google OAuth | 🟠 | ✅ Mitigado (vía BUG-009) |
-| BUG-006 | Forgot password mentía | 🟠 | ✅ Resuelto esta sesión |
+| BUG-006 | Forgot password mentía | 🟠 | ✅ Resuelto (sesión anterior) |
 | BUG-007 | Preferencias en localStorage | 🟡 | ❌ Pendiente (baja prioridad) |
 | BUG-008 | server.py monolítico | 🟠 | ❌ Pendiente (deuda técnica) |
-| BUG-009 | Workflows de deploy en carrera | 🔴 | ✅ Resuelto esta sesión |
-| BUG-010 | yfinance bloqueaba el event loop | 🔴 | ✅ Resuelto (COMPLETO, todos los endpoints) |
+| BUG-009 | Workflows de deploy en carrera | 🔴 | ✅ Resuelto (sesión anterior) |
+| BUG-010 | yfinance bloqueaba el event loop | 🔴 | ✅ Resuelto (COMPLETO) |
 | BUG-011 | Código muerto (fixes.py, admin_diary_endpoint.py) | 🟡 | ✅ Resuelto (eliminados) |
-| BUG-012 | LIMIT/OFFSET por interpolación (hardening) | 🟢 | ✅ Resuelto (cast a int) |
-
-**Conclusión:** la app está **mucho más cerca del 100%** de lo que el diario anterior
-sugería. Resueltos: la condición de carrera entre workflows (BUG-009), yfinance bloqueando
-el event loop en **todos** los endpoints (BUG-010), limpieza de código muerto (BUG-011) y
-hardening SQL (BUG-012). El adaptador SQL es seguro (sin inyección); JWT/CORS bien
-configurados. **Pendientes reales:** BUG-007 (preferencias en localStorage, menor) y BUG-008
-(refactor del monolito `server.py`, deuda técnica — requiere suite de tests para hacerse sin
-riesgo). Ninguno bloquea la operación.
+| BUG-012 | LIMIT/OFFSET por interpolación | 🟢 | ✅ Resuelto (cast a int) |
+| C-04 | app_settings Scheme A/B → KeyError | 🔴 | ✅ Resuelto (sesión 2026-06-13) |
+| C-06 | Cloud Run us-central1 ↔ Cloud SQL europe-west1 | 🔴 | ✅ Resuelto (sesión 2026-06-13) |
+| C-07 | Admin impersona otro admin | 🔴 | ✅ Resuelto (sesión 2026-06-13) |
+| A-02 | MRR con precios obsoletos | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
+| A-03 | Campos revenue backend ≠ frontend | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
+| A-04 | Stripe SDK bloqueaba event loop | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
+| A-05 | SendGrid bloqueaba event loop | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
+| A-06 | Sin validación longitud contraseña | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
+| A-07 | DoS en /monte-carlo | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
+| A-09 | revoked_tokens sin purga | 🟡 | ✅ Resuelto (sesión 2026-06-13) |
+| A-10 | Dockerfile ejecuta como root | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
+| C-08 | API keys en app_settings DB | 🟠 | ❌ Pendiente (decisión de producto) |
+| LTV | Fórmula algebraicamente nula | 🟡 | ✅ Resuelto (sesión 2026-06-13) |
+| M-13 | /health devuelve 200 con DB caída | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
+| M-14 | ADMIN_EMAILS hardcodeado | 🟡 | ✅ Resuelto (sesión 2026-06-13) |
+| M-19 | /referrals/track sin rate limit | 🟡 | ✅ Resuelto (sesión 2026-06-13) |
 
 ---
 
-*Última actualización: 2026-06-02 — verificación archivo por archivo contra el código.*
+*Última actualización: 2026-06-13 — auditoría de 8 fases + implementación de correcciones.*

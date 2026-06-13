@@ -19,6 +19,7 @@ All the missing/incomplete APIs from TradingCalculator PRO:
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import hashlib
 import io
@@ -711,7 +712,7 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
         }
 
     try:
-        sub = stripe.Subscription.retrieve(subscription_id)
+        sub = await asyncio.to_thread(stripe.Subscription.retrieve, subscription_id)
         if sub.status not in ("active", "trialing"):
             return {
                 "ok": False,
@@ -730,7 +731,8 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
 
         if not stripe_price_id:
             # Create an ad-hoc price for this plan
-            price_obj = stripe.Price.create(
+            price_obj = await asyncio.to_thread(
+                stripe.Price.create,
                 currency=new_plan["currency"].lower(),
                 unit_amount=int(new_plan["price"] * 100),
                 recurring={"interval": new_plan.get("stripe_interval", "month")},
@@ -738,7 +740,8 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
             )
             stripe_price_id = price_obj.id
 
-        updated_sub = stripe.Subscription.modify(
+        updated_sub = await asyncio.to_thread(
+            stripe.Subscription.modify,
             subscription_id,
             items=[{"id": item_id, "price": stripe_price_id}],
             proration_behavior=payload.proration_behavior,
