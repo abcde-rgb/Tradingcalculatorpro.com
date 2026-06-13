@@ -4,7 +4,7 @@ import { useAuthStore } from '@/lib/store';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
-const api = API ? axios.create({ baseURL: API, timeout: 10000 }) : null;
+const api = API ? axios.create({ baseURL: API, timeout: 10000, withCredentials: true }) : null;
 
 if (api) {
   api.interceptors.request.use((config) => {

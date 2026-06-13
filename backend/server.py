@@ -1200,11 +1200,54 @@ async def _is_user_session_revoked(payload: dict) -> bool:
     return iat_dt < revoked_after
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[dict]:
-    if not credentials:
+def _extract_token_from_request(request: Request, credentials: Optional[HTTPAuthorizationCredentials]) -> Optional[str]:
+    """Cookie first (httpOnly, XSS-safe), Authorization header as fallback."""
+    cookie_token = request.cookies.get("access_token")
+    if cookie_token:
+        return cookie_token
+    if credentials and credentials.credentials:
+        return credentials.credentials
+    return None
+
+
+# Cookie settings for httpOnly token (cross-origin SPA on GitHub Pages + Cloud Run)
+_COOKIE_KWARGS: dict = {
+    "key": "access_token",
+    "httponly": True,
+    "secure": True,           # HTTPS only
+    "samesite": "none",       # required for cross-origin (github.io → cloud run)
+    "path": "/api",
+    "max_age": JWT_EXPIRATION_HOURS * 3600,
+}
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    response.set_cookie(**_COOKIE_KWARGS, value=access_token)
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/api/auth/refresh",   # only sent to the refresh endpoint
+        max_age=JWT_REFRESH_EXPIRATION_DAYS * 86400,
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie("access_token", path="/api", samesite="none", secure=True)
+    response.delete_cookie("refresh_token", path="/api/auth/refresh", samesite="none", secure=True)
+
+
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> Optional[dict]:
+    token = _extract_token_from_request(request, credentials)
+    if not token:
         return None
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
         if await _is_token_revoked(payload) or await _is_user_session_revoked(payload):
             return None
         user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
@@ -1212,10 +1255,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except Exception:
         return None
 
-async def require_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    if not credentials:
+
+async def require_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> dict:
+    token = _extract_token_from_request(request, credentials)
+    if not token:
         raise HTTPException(status_code=401, detail="Se requiere autenticación")
-    payload = decode_token(credentials.credentials)
+    payload = decode_token(token)
     if await _is_token_revoked(payload):
         raise HTTPException(status_code=401, detail="Sesión revocada (logout)")
     if await _is_user_session_revoked(payload):
@@ -1226,11 +1274,15 @@ async def require_user(credentials: HTTPAuthorizationCredentials = Depends(secur
     return user
 
 
-async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+async def require_admin(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> dict:
     """Gate-keeper for admin-only endpoints. Returns the admin user."""
-    if not credentials:
+    token = _extract_token_from_request(request, credentials)
+    if not token:
         raise HTTPException(status_code=401, detail="Se requiere autenticación")
-    payload = decode_token(credentials.credentials)
+    payload = decode_token(token)
     if await _is_token_revoked(payload):
         raise HTTPException(status_code=401, detail="Sesión revocada (logout)")
     if await _is_user_session_revoked(payload):
@@ -1397,7 +1449,7 @@ async def startup_event():
 
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
-async def register(request: Request, user_data: UserCreate):
+async def register(request: Request, response: Response, user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")
@@ -1424,6 +1476,7 @@ async def register(request: Request, user_data: UserCreate):
 
     token = create_token(user_id, user_data.email)
     refresh_token = create_refresh_token(user_id, user_data.email)
+    _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
         "refresh_token": refresh_token,
@@ -1441,7 +1494,7 @@ async def register(request: Request, user_data: UserCreate):
 
 @api_router.post("/auth/login", response_model=dict)
 @limiter.limit("10/minute")
-async def login(request: Request, credentials: UserLogin):
+async def login(request: Request, response: Response, credentials: UserLogin):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
@@ -1455,6 +1508,7 @@ async def login(request: Request, credentials: UserLogin):
     token = create_token(user["id"], user["email"])
     refresh_token = create_refresh_token(user["id"], user["email"])
     is_premium = check_premium(user)
+    _set_auth_cookies(response, token, refresh_token)
 
     return {
         "token": token,
@@ -1538,12 +1592,18 @@ async def get_me(user: dict = Depends(require_user)):
 
 
 @api_router.post("/auth/logout")
-async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Revoke the caller's JWT so it cannot be reused even if leaked."""
-    if not credentials:
+async def logout(
+    request: Request,
+    response: Response,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Revoke the caller's JWT so it cannot be reused even if leaked. Also clears httpOnly cookies."""
+    _clear_auth_cookies(response)
+    token = _extract_token_from_request(request, credentials)
+    if not token:
         return {"ok": True, "revoked": False}
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
     except HTTPException:
         return {"ok": True, "revoked": False}
     await _revoke_token(payload)
@@ -1556,7 +1616,7 @@ class TokenRefreshRequest(BaseModel):
 
 @api_router.post("/auth/refresh")
 @limiter.limit("30/minute")
-async def refresh_access_token(request: Request, body: TokenRefreshRequest) -> Dict[str, Any]:
+async def refresh_access_token(request: Request, response: Response, body: TokenRefreshRequest) -> Dict[str, Any]:
     """Exchange a valid refresh token for a new access token.
     The refresh token is rotated (revoked and a fresh one issued) for better security."""
     try:
@@ -1586,6 +1646,7 @@ async def refresh_access_token(request: Request, body: TokenRefreshRequest) -> D
 
     new_access = create_token(user_id, email)
     new_refresh = create_refresh_token(user_id, email)
+    _set_auth_cookies(response, new_access, new_refresh)
 
     return {
         "token": new_access,
@@ -1672,7 +1733,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
 
 @api_router.post("/auth/magic-link/verify")
 @limiter.limit("10/minute")
-async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
+async def verify_magic_link(request: Request, response: Response, body: MagicLinkVerifyRequest):
     """Exchange a magic link token for a session JWT."""
     record = await db.password_resets.find_one(
         {"token": _hash_token(body.token), "used": False, "type": "magic_link"}, {"_id": 0}
@@ -1693,6 +1754,7 @@ async def verify_magic_link(request: Request, body: MagicLinkVerifyRequest):
     }})
     token = create_token(user["id"], user["email"])
     refresh_token = create_refresh_token(user["id"], user["email"])
+    _set_auth_cookies(response, token, refresh_token)
     return {
         # `token` matches /auth/login & /auth/google; `access_token` kept for
         # backwards-compat with the existing MagicPage that reads access_token.
@@ -1907,7 +1969,7 @@ class GoogleAuthRequest(BaseModel):
 
 @api_router.post("/auth/google")
 @limiter.limit("10/minute")
-async def google_auth(request: Request, payload: GoogleAuthRequest):
+async def google_auth(request: Request, response: Response, payload: GoogleAuthRequest):
     """
     Verify a Google ID token, then return our own JWT.
 
@@ -1969,6 +2031,7 @@ async def google_auth(request: Request, payload: GoogleAuthRequest):
 
     token = create_token(user["id"], user["email"])
     refresh_token = create_refresh_token(user["id"], user["email"])
+    _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
         "refresh_token": refresh_token,
