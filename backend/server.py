@@ -5743,6 +5743,7 @@ async def admin_impersonate(request: Request, user_id: str, admin: dict = Depend
     now = datetime.now(timezone.utc)
     payload = {
         "user_id": target["id"],
+        "type": "access",
         "jti": secrets.token_hex(16),
         "iat": now,
         "exp": now + timedelta(hours=1),
