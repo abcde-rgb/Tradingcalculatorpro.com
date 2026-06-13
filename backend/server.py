@@ -340,6 +340,10 @@ def _apply_update_operators(doc: dict, update_dict: dict) -> dict:
                 lst.append(v)
             result[k] = lst
 
+    if "$unset" in update_dict:
+        for k in update_dict["$unset"]:
+            result.pop(k, None)
+
     return result
 
 
@@ -4740,8 +4744,11 @@ async def admin_metrics(admin: dict = Depends(require_admin)):
     free  = await db.users.count_documents({"subscription_plan": None})
     premium = total - free
 
-    # MRR (rough — uses plan price ÷ months)
-    plan_mrr = {"monthly": 9.99, "quarterly": 19.99 / 3, "annual": 79.99 / 12, "lifetime": 0}
+    # MRR — monthly equivalent of each plan's price using SUBSCRIPTION_PLANS (real prices)
+    plan_mrr = {
+        pid: (plan["price"] / (plan["days"] / 30) if plan["days"] < 36500 else 0)
+        for pid, plan in SUBSCRIPTION_PLANS.items()
+    }
     mrr = 0.0
     for r in by_plan:
         mrr += plan_mrr.get(r["plan"], 0) * r["count"]
@@ -5261,6 +5268,8 @@ async def admin_impersonate(request: Request, user_id: str, admin: dict = Depend
     target = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if target.get("is_admin") or target.get("email", "").lower() in _ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="No se puede impersonar a otro administrador")
     now = datetime.now(timezone.utc)
     payload = {
         "user_id": target["id"],
@@ -5328,9 +5337,9 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
     conversion_rate = round((new_premium_30d / max(new_30d, 1)) * 100, 1)
 
     return {
-        "mrr_history": mrr_history,
-        "churn_rate": churn_rate,
-        "conversion_rate": conversion_rate,
+        "history": mrr_history,
+        "churn": churn_rate,
+        "conversion": conversion_rate,
         "ltv": ltv,
     }
 

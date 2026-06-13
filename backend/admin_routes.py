@@ -250,21 +250,26 @@ def _mask(value: Optional[str]) -> str:
 
 
 async def _get_all_settings(db) -> Dict[str, str]:
-    """Load all rows from app_settings collection as key->value dict."""
-    docs = await db.app_settings.find({}, {"_id": 0, "key": 1, "value": 1}).to_list(1000)
-    return {d["key"]: d.get("value", "") for d in docs}
+    """Load all settings from app_settings (Scheme A: single global doc keyed by _id='global')."""
+    doc = await db.app_settings.find_one({"_id": "global"}) or {}
+    for k in ("_id", "updated_at", "updated_by"):
+        doc.pop(k, None)
+    return {k: str(v) for k, v in doc.items()}
 
 
 async def _upsert_setting(db, key: str, value: str) -> None:
     await db.app_settings.update_one(
-        {"key": key},
-        {"$set": {"key": key, "value": value, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        {"_id": "global"},
+        {"$set": {key: value, "updated_at": datetime.now(timezone.utc).isoformat()}},
         upsert=True,
     )
 
 
 async def _delete_setting(db, key: str) -> None:
-    await db.app_settings.delete_one({"key": key})
+    await db.app_settings.update_one(
+        {"_id": "global"},
+        {"$unset": {key: ""}},
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -10,9 +10,9 @@ steps:
     args:
       - build
       - -t
-      - 'us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:$COMMIT_SHA'
+      - 'europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:$COMMIT_SHA'
       - -t
-      - 'us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:latest'
+      - 'europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:latest'
       - -f
       - backend/Dockerfile
       - ./backend
@@ -22,14 +22,14 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - push
-      - 'us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:$COMMIT_SHA'
+      - 'europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:$COMMIT_SHA'
     id: 'push-sha'
     waitFor: ['build']
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - push
-      - 'us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:latest'
+      - 'europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:latest'
     id: 'push-latest'
     waitFor: ['build']
 
@@ -40,8 +40,8 @@ steps:
       - run
       - deploy
       - tradingcalculator-api
-      - --image=us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:$COMMIT_SHA
-      - --region=us-central1
+      - --image=europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:$COMMIT_SHA
+      - --region=europe-west1
       - --platform=managed
       - --allow-unauthenticated
       - --port=8080
@@ -65,15 +65,15 @@ steps:
       - -c
       - |
         URL=$$(gcloud run services describe tradingcalculator-api \
-          --region=us-central1 \
+          --region=europe-west1 \
           --format='value(status.url)')
         sleep 10
         curl -fsS "$$URL/api/health" && echo "✅ Healthcheck OK: $$URL" || echo "⚠️ Healthcheck falló"
     waitFor: ['deploy']
 
 images:
-  - 'us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:$COMMIT_SHA'
-  - 'us-central1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:latest'
+  - 'europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:$COMMIT_SHA'
+  - 'europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
