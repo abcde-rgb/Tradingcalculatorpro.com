@@ -40,7 +40,6 @@ export const useAuthStore = create(
     (set, get) => ({
       user: null,
       token: null,
-      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
       _isRefreshing: false,
@@ -59,7 +58,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('invalidCredentials'));
           if (!data.token || !data.user) throw new Error(t('invalidCredentials'));
-          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'email' });
           return { success: true };
         } catch (error) {
@@ -85,7 +84,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('registrationError'));
           if (!data.token || !data.user) throw new Error(t('registrationError'));
-          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('sign_up', { method: 'email' });
           return { success: true };
         } catch (error) {
@@ -108,7 +107,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
           if (!data.token || !data.user) throw new Error(t('googleLoginError'));
-          set({ user: data.user, token: data.token, refreshToken: data.refresh_token || null, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'google' });
           return { success: true };
         } catch (error) {
@@ -127,52 +126,67 @@ export const useAuthStore = create(
             });
           } catch (_) {}
         }
-        set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
+        set({ user: null, token: null, isAuthenticated: false });
       },
 
       // Silently exchange refresh_token for a new access token.
+      // Relies exclusively on the httpOnly refresh_token cookie — no localStorage exposure.
       // Returns the new access token string, or null on failure.
       silentRefresh: async () => {
-        const { refreshToken, _isRefreshing } = get();
-        if (!API || !refreshToken || refreshToken === DEMO_TOKEN || _isRefreshing) return null;
+        const { _isRefreshing, isAuthenticated } = get();
+        if (!API || !isAuthenticated || _isRefreshing) return null;
         set({ _isRefreshing: true });
         try {
           const res = await fetchWithTimeout(`${API}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: refreshToken }),
+            // Send empty body: backend reads refresh token from httpOnly cookie only.
+            body: JSON.stringify({}),
           });
           if (!res.ok) {
-            set({ user: null, token: null, refreshToken: null, isAuthenticated: false, _isRefreshing: false });
+            set({ user: null, token: null, isAuthenticated: false, _isRefreshing: false });
             return null;
           }
           const data = await safeJson(res);
           set({
             token: data.token,
-            refreshToken: data.refresh_token || refreshToken,
             user: data.user || get().user,
             isAuthenticated: true,
             _isRefreshing: false,
           });
           return data.token;
-        } catch (_) {
+        } catch (err) {
+          // Network timeout or abort — do not clear isAuthenticated (may be transient).
+          // But if it was an auth/server error disguised as a network error, leave state
+          // consistent so the next attempt can retry via the cookie.
           set({ _isRefreshing: false });
           return null;
         }
       },
 
       refreshUser: async () => {
-        const token = get().token;
-        if (!token || !API || token === DEMO_TOKEN) return;
+        if (!API) return;
+        let token = get().token;
+        const { isAuthenticated } = get();
+
+        // On page reload token is null (not persisted) but isAuthenticated may be true.
+        // Attempt silent refresh via httpOnly cookie before giving up.
+        if (!token && isAuthenticated && token !== DEMO_TOKEN) {
+          token = await get().silentRefresh();
+          if (!token) return;
+        }
+
+        if (!token || token === DEMO_TOKEN) return;
         try {
-          const res = await fetch(`${API}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const res = await fetchWithTimeout(`${API}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` },
           });
           if (res.status === 401) {
-            // Access token expired — try silent refresh
             const newToken = await get().silentRefresh();
             if (!newToken) return;
-            const res2 = await fetch(`${API}/auth/me`, { headers: { 'Authorization': `Bearer ${newToken}` } });
+            const res2 = await fetchWithTimeout(`${API}/auth/me`, {
+              headers: { 'Authorization': `Bearer ${newToken}` },
+            });
             if (res2.ok) set({ user: await safeJson(res2) });
             return;
           }
@@ -185,9 +199,9 @@ export const useAuthStore = create(
     }),
     {
       name: 'btc-auth-storage',
-      // token (access token) intentionally NOT persisted — it lives in the httpOnly cookie.
-      // refreshToken IS persisted for silent renewal when the page is reloaded.
-      partialize: (state) => ({ user: state.user, refreshToken: state.refreshToken, isAuthenticated: state.isAuthenticated }),
+      // Neither token is persisted — both live in httpOnly cookies sent by the backend.
+      // Only non-sensitive UI state is kept in localStorage.
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
     }
   )
 );

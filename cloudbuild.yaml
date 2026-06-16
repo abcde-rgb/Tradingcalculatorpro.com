@@ -47,7 +47,7 @@ steps:
       - --port=8080
       - --memory=512Mi
       - --cpu=1
-      - --min-instances=0
+      - --min-instances=1
       - --max-instances=10
       - --timeout=300
       - --concurrency=80
@@ -67,7 +67,7 @@ steps:
         URL=$$(gcloud run services describe tradingcalculator-api \
           --region=europe-west1 \
           --format='value(status.url)')
-        sleep 10
+        sleep 25
         curl -fsS "$$URL/api/health" && echo "✅ Healthcheck OK: $$URL" || echo "⚠️ Healthcheck falló"
     waitFor: ['deploy']
 

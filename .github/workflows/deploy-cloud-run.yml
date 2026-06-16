@@ -181,7 +181,7 @@ jobs:
             --port 8080 \
             --memory 512Mi \
             --cpu 1 \
-            --min-instances 0 \
+            --min-instances 1 \
             --max-instances 10 \
             --timeout 300 \
             --concurrency 80 \
@@ -205,5 +205,5 @@ jobs:
           URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.GCP_REGION }} \
             --format 'value(status.url)')
-          sleep 10
+          sleep 25
           curl -f "$URL/api/health" && echo "✅ Servicio respondiendo correctamente" || echo "⚠️ Healthcheck fallido"
