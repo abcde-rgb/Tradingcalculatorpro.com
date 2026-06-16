@@ -1,21 +1,38 @@
 #!/usr/bin/env python3
 """
-Security Pack Regression Test for Trading SaaS Backend
-Tests: JWT logout, password-reset revocation, rate limiting, audit log, TTL indexes
+⚠️  OBSOLETO — NO EJECUTAR
+
+Este test fue escrito para la arquitectura antigua (MongoDB + Motor).
+La BD es ahora Google Cloud SQL (PostgreSQL) via asyncpg.
+
+Problemas que lo hacen 100% inoperativo:
+  1. Importa motor.motor_asyncio (MongoDB) — no instalado en el backend actual.
+  2. DEMO_PASSWORD hardcodeado como "1234" — la real es mínimo 8 chars.
+  3. BACKEND_URL apunta a localhost:8001 — el backend corre en :8080.
+  4. Al ejecutarse desde el root, `import requests` carga requests.py local
+     (reemplazo stdlib), NO la librería HTTP real con sesiones/SSL completo.
+
+Para tests actualizados usa: backend/tests/ (pytest + FastAPI TestClient).
 """
-import requests
-import time
-import os
-from datetime import datetime
-from motor.motor_asyncio import AsyncIOMotorClient
-import asyncio
+import sys
+print("OBSOLETO: backend_test_security.py no es compatible con el backend PostgreSQL actual.", file=sys.stderr)
+print("Usa: cd backend && pytest tests/ -v", file=sys.stderr)
+sys.exit(1)
+
+# ── CÓDIGO ORIGINAL PRESERVADO ABAJO (referencia histórica) ──────────────────
+import requests  # noqa
+import time  # noqa
+import os  # noqa
+from datetime import datetime  # noqa
+from motor.motor_asyncio import AsyncIOMotorClient  # noqa: MongoDB — obsoleto
+import asyncio  # noqa
 
 # Backend URL - use localhost to avoid Cloudflare blocking
 BACKEND_URL = "http://localhost:8001/api"
 
 # Test credentials
 DEMO_EMAIL = "demo@btccalc.pro"
-DEMO_PASSWORD = "1234"
+DEMO_PASSWORD = "1234"  # INCORRECTO: contraseña real es mínimo 8 chars
 
 # MongoDB connection for TTL index check
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
