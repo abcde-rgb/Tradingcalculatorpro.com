@@ -1502,7 +1502,6 @@ async def register(request: Request, response: Response, user_data: UserCreate):
     _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
-        "refresh_token": refresh_token,
         "user": {
             "id": user_id,
             "email": user_data.email,
@@ -1535,7 +1534,6 @@ async def login(request: Request, response: Response, credentials: UserLogin):
 
     return {
         "token": token,
-        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],
@@ -1790,7 +1788,6 @@ async def verify_magic_link(request: Request, response: Response, body: MagicLin
         # backwards-compat with the existing MagicPage that reads access_token.
         "token": token,
         "access_token": token,
-        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],
@@ -2064,7 +2061,6 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
     _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
-        "refresh_token": refresh_token,
         "user": {
             "id": user["id"],
             "email": user["email"],
