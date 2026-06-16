@@ -4,7 +4,7 @@ import { useAuthStore } from '@/lib/store';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
-const client = axios.create({ baseURL: API || undefined, timeout: 15000 });
+const client = axios.create({ baseURL: API || undefined, timeout: 15000, withCredentials: true });
 
 // Auto-attach the JWT bearer from the auth store
 client.interceptors.request.use((config) => {
@@ -13,15 +13,21 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401, clear auth state silently — avoids stale-token toast loops.
-// Pages already render <AuthRequired /> when !isAuthenticated.
+// On 401, attempt a silent token refresh via the httpOnly cookie first.
+// Only log out if the refresh also fails (truly expired session).
 client.interceptors.response.use(
   (r) => r,
-  (err) => {
-    if (err?.response?.status === 401) {
+  async (err) => {
+    if (err?.response?.status === 401 && !err.config?._retried) {
+      err.config._retried = true;
       try {
-        useAuthStore.getState().logout?.();
+        const newToken = await useAuthStore.getState().silentRefresh?.();
+        if (newToken) {
+          err.config.headers.Authorization = `Bearer ${newToken}`;
+          return client.request(err.config);
+        }
       } catch { /* no-op */ }
+      try { useAuthStore.getState().logout?.(); } catch { /* no-op */ }
     }
     return Promise.reject(err);
   },
