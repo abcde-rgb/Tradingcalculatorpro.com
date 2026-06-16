@@ -155,24 +155,38 @@ export const useAuthStore = create(
             _isRefreshing: false,
           });
           return data.token;
-        } catch (_) {
+        } catch (err) {
+          // Network timeout or abort — do not clear isAuthenticated (may be transient).
+          // But if it was an auth/server error disguised as a network error, leave state
+          // consistent so the next attempt can retry via the cookie.
           set({ _isRefreshing: false });
           return null;
         }
       },
 
       refreshUser: async () => {
-        const token = get().token;
-        if (!token || !API || token === DEMO_TOKEN) return;
+        if (!API) return;
+        let token = get().token;
+        const { isAuthenticated } = get();
+
+        // On page reload token is null (not persisted) but isAuthenticated may be true.
+        // Attempt silent refresh via httpOnly cookie before giving up.
+        if (!token && isAuthenticated && token !== DEMO_TOKEN) {
+          token = await get().silentRefresh();
+          if (!token) return;
+        }
+
+        if (!token || token === DEMO_TOKEN) return;
         try {
-          const res = await fetch(`${API}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const res = await fetchWithTimeout(`${API}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` },
           });
           if (res.status === 401) {
-            // Access token expired — try silent refresh
             const newToken = await get().silentRefresh();
             if (!newToken) return;
-            const res2 = await fetch(`${API}/auth/me`, { headers: { 'Authorization': `Bearer ${newToken}` } });
+            const res2 = await fetchWithTimeout(`${API}/auth/me`, {
+              headers: { 'Authorization': `Bearer ${newToken}` },
+            });
             if (res2.ok) set({ user: await safeJson(res2) });
             return;
           }
