@@ -597,10 +597,7 @@ function IntegrationsEditor({ headers, t }) {
     try {
       const res = await fetch(`${API}/admin/settings`, { headers });
       if (res.status === 401) {
-        toast.error('Tu sesión ha caducado. Vuelve a iniciar sesión.', { duration: 6000 });
-        try { useAuthStore.getState().logout(); } catch { /* ignore */ }
-        // Navigate to /login (window.location to bypass router context)
-        if (typeof window !== 'undefined') window.location.href = '/login';
+        // Let the parent auth flow handle session expiry — don't redirect here.
         return;
       }
       if (!res.ok) {
@@ -636,9 +633,12 @@ function IntegrationsEditor({ headers, t }) {
   };
 
   useEffect(() => {
-    if (API && headers?.Authorization && !headers.Authorization.includes(DEMO_TOKEN)) load();
+    const bearer = headers?.Authorization?.replace('Bearer ', '');
+    // Skip when token is null ("Bearer null") — silentRefresh will update headers
+    // and this effect will re-run automatically via the [headers] dependency.
+    if (API && bearer && bearer !== 'null' && !bearer.includes(DEMO_TOKEN)) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [headers]);
 
   const save = async () => {
     setSaving(true);
@@ -690,8 +690,7 @@ function IntegrationsEditor({ headers, t }) {
       });
       if (res.status === 401) {
         toast.error('Tu sesión ha caducado. Vuelve a iniciar sesión.', { duration: 6000 });
-        try { useAuthStore.getState().logout(); } catch { /* ignore */ }
-        if (typeof window !== 'undefined') window.location.href = '/login';
+        setSaving(false);
         return;
       }
       if (!res.ok) {
