@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+import { motion } from 'framer-motion';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -120,7 +121,14 @@ function AuthShell({ children }) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        {children}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="w-full flex justify-center"
+        >
+          {children}
+        </motion.div>
       </main>
     </div>
   );
