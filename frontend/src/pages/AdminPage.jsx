@@ -427,6 +427,9 @@ export default function AdminPage() {
           <UsageAnalyticsCard headers={headers} />
         </div>
 
+        {/* Usage Heatmap — qué miran más los usuarios */}
+        <UsageHeatmapCard headers={headers} />
+
         {/* Coupon Manager */}
         <CouponManagerCard headers={headers} />
 
@@ -1403,6 +1406,108 @@ function UsageAnalyticsCard({ headers }) {
               <Bar dataKey="usos" fill="#10b981" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+ *  USAGE HEATMAP — qué miran más los usuarios
+ * ============================================================ */
+function UsageHeatmapCard({ headers }) {
+  const [data, setData] = useState(null);
+  const [days, setDays] = useState(30);
+
+  useEffect(() => {
+    fetch(`${API}/admin/usage-heatmap?days=${days}`, { headers, credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setData(d))
+      .catch(() => {});
+  }, [days]); // eslint-disable-line
+
+  const heatmap = data?.heatmap || [];
+  const maxCell = Math.max(1, ...heatmap.flat());
+  const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Eye className="w-4 h-4 text-primary" /> Mapa de calor de uso
+        </CardTitle>
+        <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
+          <SelectTrigger className="w-[110px] h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">7 días</SelectItem>
+            <SelectItem value="30">30 días</SelectItem>
+            <SelectItem value="90">90 días</SelectItem>
+          </SelectContent>
+        </Select>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
+            <p className="text-xs text-muted-foreground">Vistas totales</p>
+            <p className="text-xl font-bold">{data?.total_views != null ? data.total_views.toLocaleString() : '—'}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
+            <p className="text-xs text-muted-foreground">Visitantes únicos</p>
+            <p className="text-xl font-bold">{data?.unique_visitors != null ? data.unique_visitors.toLocaleString() : '—'}</p>
+          </div>
+        </div>
+
+        {/* Páginas / secciones más vistas */}
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">Páginas / secciones más vistas</p>
+          {data?.top_paths?.length ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={data.top_paths} layout="vertical" margin={{ left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: '#6b7280' }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} width={130} />
+                <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
+                <Bar dataKey="views" fill="#6366f1" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-xs text-muted-foreground py-6 text-center">
+              Aún no hay datos de uso. Se registran cuando los usuarios navegan (con
+              consentimiento de cookies aceptado).
+            </p>
+          )}
+        </div>
+
+        {/* Heatmap día × hora (UTC) */}
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">Actividad por día y hora (UTC)</p>
+          <div className="overflow-x-auto">
+            <div className="inline-block">
+              {dayLabels.map((dl, dow) => (
+                <div key={dl} className="flex items-center">
+                  <div className="w-9 text-[10px] text-muted-foreground">{dl}</div>
+                  {Array.from({ length: 24 }).map((_, h) => {
+                    const v = heatmap[dow]?.[h] || 0;
+                    const o = v === 0 ? 0 : 0.15 + 0.85 * (v / maxCell);
+                    return (
+                      <div
+                        key={h}
+                        title={`${dl} ${h}:00 UTC — ${v} vistas`}
+                        className="w-3.5 h-3.5 m-px rounded-sm border border-border/30"
+                        style={{ backgroundColor: v ? `rgba(16,185,129,${o})` : 'transparent' }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+              <div className="flex items-center mt-1">
+                <div className="w-9" />
+                {[0, 6, 12, 18].map((h) => (
+                  <div key={h} className="text-[9px] text-muted-foreground" style={{ width: '90px' }}>{h}h</div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> 📌 **Antes de trabajar, lee el estado vivo del proyecto:** [`docs/ESTADO_PROYECTO.md`](./docs/ESTADO_PROYECTO.md)
+> (qué hay, qué falta, qué probar, backlog). Para añadir cosas: [`docs/GUIA_EXTENSION.md`](./docs/GUIA_EXTENSION.md).
+> Para lanzar: [`docs/DEPLOY_CHECKLIST.md`](./docs/DEPLOY_CHECKLIST.md). Existe un skill
+> `estado-proyecto` (`.claude/skills/`) que orquesta todo esto y obliga a actualizar la doc al terminar.
+
 ## Stack real (no confundir con el origen)
 
 El proyecto nació en la plataforma Emergent con una imagen `fastapi_react_mongo_shadcn`. **MongoDB fue descartado.** La BD es ahora **Google Cloud SQL (PostgreSQL)** vía `asyncpg`. El archivo `.emergent/emergent.yml` es un residuo inofensivo del origen.
@@ -82,7 +87,7 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 3. En page reload: `token` es null → `refreshUser` detecta `isAuthenticated=true` → llama `silentRefresh` → POST `/api/auth/refresh` con body `{}` → el backend lee el refresh cookie → emite nuevos tokens.
 4. `DEMO_TOKEN = 'demo-token'` es un sentinel para modo demo offline; los guards `token === DEMO_TOKEN` evitan llamadas al backend.
 
-**Las cookies requieren `credentials: 'include'`** en todos los fetch del frontend. El cliente axios en `optionsApi.js` usa `withCredentials: true`. `fetchWithTimeout` en `store.js` lo incluye siempre. **`performanceApi.js` carece de `withCredentials`** — bug conocido pendiente.
+**Las cookies requieren `credentials: 'include'`** en todos los fetch del frontend. Los clientes axios de `optionsApi.js` y `performanceApi.js` usan `withCredentials: true`, y `fetchWithTimeout` en `store.js` lo incluye siempre. `performanceApi.js` además reintenta con refresh silencioso en 401 (corregido; antes carecía de `withCredentials`).
 
 ## Variables de entorno
 

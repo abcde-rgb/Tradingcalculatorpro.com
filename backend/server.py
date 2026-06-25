@@ -805,6 +805,8 @@ class Database:
             # exist upfront, since Collection methods don't auto-create tables)
             "email_campaigns", "gdpr_exports", "error_logs",
             "churn_surveys", "rate_limit_violations",
+            # Product usage analytics (admin heatmap of most-viewed pages/sections)
+            "usage_events",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -823,6 +825,9 @@ class Database:
             )
             await conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_payment_transactions_user ON payment_transactions ((data->>'user_id'))"
+            )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_usage_events_ts ON usage_events ((data->>'ts'))"
             )
 
     async def close(self):
@@ -1454,6 +1459,14 @@ async def startup_event():
         logging.info("[startup] Purged %d expired revoked_tokens", result.deleted_count)
     except Exception as e:
         logging.warning("[startup] Could not purge revoked_tokens: %s", e)
+
+    # ── Purge old usage_events (retain ~120 days for the admin heatmap) ──
+    try:
+        ue_cutoff = (datetime.now(timezone.utc) - timedelta(days=120)).isoformat()
+        ue_res = await db.usage_events.delete_many({"ts": {"$lt": ue_cutoff}})
+        logging.info("[startup] Purged %d old usage_events", ue_res.deleted_count)
+    except Exception as e:
+        logging.warning("[startup] Could not purge usage_events: %s", e)
 
     # ── Extended modules ─────────────────────────────────────────────────
     try:
@@ -5872,6 +5885,85 @@ async def admin_usage(admin: dict = Depends(require_admin)):
     return {
         "calc_usage": calc_usage,
         "active_users": {"day": len(dau), "week": len(wau), "month": len(mau)},
+    }
+
+
+# ── USAGE EVENT TRACKING + HEATMAP ───────────────────────────────────────────
+# Lightweight, privacy-conscious view tracking that powers the admin "heatmap"
+# (qué miran más los usuarios). Stores only path/section + timestamp + optional
+# user id; never stores query strings or PII. Frontend gates it on cookie consent.
+class UsageEventIn(BaseModel):
+    path: str = Field(..., max_length=200)
+    section: Optional[str] = Field(None, max_length=80)
+    label: Optional[str] = Field(None, max_length=120)
+
+
+@api_router.post("/analytics/track")
+@limiter.limit("240/minute")
+async def track_usage_event(
+    request: Request,
+    event: UsageEventIn,
+    user: Optional[dict] = Depends(get_current_user),
+):
+    """Record a single view/section event. Best-effort: never fails navigation."""
+    now = datetime.now(timezone.utc)
+    path = (event.path or "/").split("?")[0][:200] or "/"
+    try:
+        await db.usage_events.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user.get("id") if user else None,
+            "path": path,
+            "section": (event.section or "")[:80] or None,
+            "label": (event.label or "")[:120] or None,
+            "ts": now.isoformat(),
+            "day": now.strftime("%Y-%m-%d"),
+            "hour": now.hour,        # 0..23 (UTC)
+            "dow": now.weekday(),    # 0=Mon … 6=Sun
+        })
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+@api_router.get("/admin/usage-heatmap")
+async def admin_usage_heatmap(days: int = 30, admin: dict = Depends(require_admin)):
+    """Aggregate usage_events into a heatmap + rankings of the most-viewed
+    pages/sections over the last `days` (1..90)."""
+    from collections import Counter
+
+    days = max(1, min(int(days), 90))
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=days)).isoformat()
+
+    # Bounded fetch — at launch scale this is small; cap protects memory.
+    events = await db.usage_events.find({"ts": {"$gte": cutoff}}).limit(100000).to_list(100000)
+
+    path_counts: Counter = Counter()
+    section_counts: Counter = Counter()
+    day_counts: Counter = Counter()
+    heatmap = [[0] * 24 for _ in range(7)]   # [dow][hour]
+    visitors: set = set()
+
+    for e in events:
+        path_counts[e.get("path") or "/"] += 1
+        if e.get("section"):
+            section_counts[e["section"]] += 1
+        dow, hour = e.get("dow"), e.get("hour")
+        if isinstance(dow, int) and isinstance(hour, int) and 0 <= dow < 7 and 0 <= hour < 24:
+            heatmap[dow][hour] += 1
+        if e.get("day"):
+            day_counts[e["day"]] += 1
+        if e.get("user_id"):
+            visitors.add(e["user_id"])
+
+    return {
+        "days": days,
+        "total_views": len(events),
+        "unique_visitors": len(visitors),
+        "top_paths": [{"name": k, "views": v} for k, v in path_counts.most_common(15)],
+        "top_sections": [{"name": k, "views": v} for k, v in section_counts.most_common(15)],
+        "timeseries": [{"day": d, "views": day_counts[d]} for d in sorted(day_counts)],
+        "heatmap": heatmap,   # 7×24 matrix, [dow 0=Mon][hour 0..23 UTC]
     }
 
 
