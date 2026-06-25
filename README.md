@@ -20,6 +20,7 @@ Coach** basado en Claude.
 | [`docs/GUIA_EXTENSION.md`](./docs/GUIA_EXTENSION.md) | Cómo añadir calculadoras, páginas, endpoints, idiomas, secciones admin |
 | [`docs/TRADINGVIEW_PERSONALIZACION.md`](./docs/TRADINGVIEW_PERSONALIZACION.md) | Personalización del gráfico por usuario (activo, indicadores, layouts) |
 | [`docs/DEPLOY_CHECKLIST.md`](./docs/DEPLOY_CHECKLIST.md) | Checklist para publicar y lanzar |
+| [`docs/ROADMAP_IDEAS.md`](./docs/ROADMAP_IDEAS.md) | Catálogo de mejoras (análisis, gestión, psicología, educación) implementables |
 | [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs y correcciones |
 
 ## 🛠️ Desarrollo

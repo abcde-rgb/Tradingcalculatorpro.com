@@ -239,6 +239,7 @@ export default {
     delete: 'Eliminar',
     edit: 'Editar',
     close: 'Cerrar',
+    back: 'Volver',
     error: 'Error',
     success: 'Éxito',
     confirm: 'Confirmar',

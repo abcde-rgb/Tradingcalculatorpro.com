@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
-import { TrendingUp, Mail, Lock, User, ArrowRight, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff } from 'lucide-react';
+import { TrendingUp, Mail, Lock, User, ArrowRight, ArrowLeft, X, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,8 @@ const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 // `t(key) || 'fallback'` i18n pattern so it degrades gracefully in any locale.
 function AuthShell({ children }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const goBack = () => (typeof window !== 'undefined' && window.history.length > 1 ? navigate(-1) : navigate('/'));
   const features = [
     t('authFeatureOptions')  || 'Calculadora de opciones con griegas en tiempo real',
     t('authFeatureStrategy') || 'Estrategias multi-leg y diagramas de payoff',
@@ -96,7 +98,28 @@ function AuthShell({ children }) {
       </aside>
 
       {/* Form panel */}
-      <main className="flex-1 flex items-center justify-center p-4">
+      <main className="flex-1 flex items-center justify-center p-4 relative">
+        {/* Navegación: volver atrás / cerrar (→ inicio) */}
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label={t('back') || 'Volver'}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md px-2 py-1 hover:bg-muted/60"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">{t('back') || 'Volver'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            aria-label={t('close') || 'Cerrar'}
+            title={t('close') || 'Cerrar'}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
         {children}
       </main>
     </div>

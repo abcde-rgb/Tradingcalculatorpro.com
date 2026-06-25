@@ -88,6 +88,7 @@
 | G-06 | Sin CI de PR (lint/build/tests antes de merge); solo deploy en push a `main` | 🟡 | ✅ Añadido `ci.yml` esta sesión |
 | G-07 | Sin Dependabot/CodeQL/secret-scanning declarados en repo | 🟡 | Activar en ajustes del repo |
 | G-08 | Deriva documental (CLAUDE.md/PLAN_100 desactualizados) | 🟢 | ✅ Corregido CLAUDE.md esta sesión |
+| G-09 | **i18n incompleto**: 6 idiomas (de/fr/ru/zh/ja/ar) con ~290 claves sin traducir (patrones de velas, estrategias de educación) → caen a español. en.js: faltan 4. de/fr/ru: 9 claves muertas | 🟡 | Traducir lotes faltantes; herramienta `frontend/scripts/i18n-check.js` para detectar |
 
 ---
 
@@ -173,6 +174,22 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Pendiente arquitectónico: C-08 (API keys en DB).
 
 ---
+
+### 2026-06-25 (cont.) — Mapa de calor de uso + UX auth + auditoría i18n
+- ✅ **Nueva feature — Mapa de calor de uso en el admin** ("qué miran más los usuarios"):
+  - Backend: `POST /api/analytics/track` (ligero, rate-limited 240/min, sin PII, respeta
+    consentimiento) + `GET /api/admin/usage-heatmap` (rankings de páginas/secciones +
+    matriz 7×24 día/hora + visitantes únicos). Colección `usage_events` con índice y purga
+    a 120 días en startup. Backend pasa de 169 a **171 rutas**.
+  - Frontend: ping de vistas en `AnalyticsTracker` (solo con consentimiento) + tarjeta
+    `UsageHeatmapCard` en `AdminPage` (ranking + heatmap visual).
+- ✅ **UX**: botón **Volver** + **X de cerrar** en login/registro (`AuthShell`). Claves
+  i18n `back` añadidas (es/en).
+- 🔎 **Auditoría i18n** (ver G-09): herramienta nueva `frontend/scripts/i18n-check.js`.
+  en.js casi completo (faltan 4); de/fr/ru/zh/ja/ar faltan ~290 claves (caen a español).
+- 📚 Nuevo doc [`ROADMAP_IDEAS.md`](./ROADMAP_IDEAS.md): catálogo de mejoras de
+  análisis/gestión/psicología/comportamiento/educación implementables.
+- ✅ Verificado: `npm run build` exit 0; backend importa (171 rutas); `pytest` 10/74.
 
 ## Cómo mantener este documento
 

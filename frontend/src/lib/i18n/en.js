@@ -195,6 +195,7 @@ export default {
     delete: 'Delete',
     edit: 'Edit',
     close: 'Close',
+    back: 'Back',
     loading: 'Loading...',
     error: 'Error',
     success: 'Success',
