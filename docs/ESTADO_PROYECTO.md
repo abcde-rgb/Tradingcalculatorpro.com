@@ -209,6 +209,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   (el footer mostraba "about" en crudo). Añadida a es/en. El resto de claves existen.
 - ✅ Build exit 0. Capturas de verificación generadas (login, registro, forgot, móvil).
 
+### 2026-06-25 (cont. 4) — Calendario de PnL en el journal
+- ✅ **Nuevo: calendario de PnL mensual** (estilo TradeZella) en la pestaña Analytics del
+  journal (`AnalyticsDashboard`): rejilla día×mes verde/rojo por PnL realizado, navegación de
+  mes y total mensual. La **curva de equity ya existía** (por nº de operación).
+- Backend: `compute_analytics` ahora devuelve `daily_pnl` (`[{date,pnl,n}]`) agrupado por
+  fecha de salida. 3 tests unitarios offline nuevos (`test_performance_unit.py`).
+- Claves i18n `pnlCalendar`, `tradingDays` (es/en). Build exit 0.
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.

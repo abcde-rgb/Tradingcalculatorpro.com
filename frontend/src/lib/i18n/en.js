@@ -197,6 +197,8 @@ export default {
     close: 'Close',
     back: 'Back',
     about: 'About',
+    pnlCalendar: 'PnL Calendar',
+    tradingDays: 'trading days',
     authHeroTitle: 'The all-in-one trading platform for options, crypto and forex',
     authFeatureOptions: 'Options calculator with real-time Greeks',
     authFeatureStrategy: 'Multi-leg strategies and payoff diagrams',

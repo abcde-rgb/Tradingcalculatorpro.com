@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Activity, Target, AlertTriangle,
-  CheckCircle2, Calendar, Layers, BarChart3,
+  CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
@@ -116,6 +116,113 @@ const EquityCurve = ({ data }) => {
   );
 };
 
+// Monthly PnL calendar (TradeZella-style): one cell per day, green/red by realized PnL.
+const PnLCalendar = ({ data }) => {
+  const { t, locale } = useTranslation();
+
+  const byDate = useMemo(() => {
+    const m = {};
+    (data || []).forEach((d) => { m[d.date] = d; });
+    return m;
+  }, [data]);
+
+  const monthsWithData = useMemo(
+    () => Array.from(new Set((data || []).map((d) => d.date.slice(0, 7)))).sort(),
+    [data],
+  );
+
+  const [month, setMonth] = useState(() => {
+    if (monthsWithData.length) return monthsWithData[monthsWithData.length - 1];
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  const [year, mon] = month.split('-').map(Number);          // mon: 1-12
+  const daysInMonth = new Date(year, mon, 0).getDate();
+  const leading = (new Date(year, mon - 1, 1).getDay() + 6) % 7;  // Monday-first offset
+
+  const cells = [];
+  for (let i = 0; i < leading; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    cells.push({ day: d, info: byDate[ds] });
+  }
+
+  const monthRows = (data || []).filter((d) => d.date.startsWith(month));
+  const monthPnl = monthRows.reduce((s, d) => s + d.pnl, 0);
+  const tradingDays = monthRows.length;
+
+  const shift = (delta) => {
+    const dt = new Date(year, mon - 1 + delta, 1);
+    setMonth(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  let monthLabel = month;
+  try {
+    monthLabel = new Date(year, mon - 1, 1).toLocaleDateString(locale || 'es', { month: 'long', year: 'numeric' });
+  } catch (_) { /* fallback to YYYY-MM */ }
+
+  const dows = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  const compact = (v) => (Math.abs(v) >= 1000
+    ? `${v > 0 ? '+' : ''}${(v / 1000).toFixed(1)}k`
+    : `${v > 0 ? '+' : ''}${Math.round(v)}`);
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5" data-testid="pnl-calendar">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+          <Calendar className="w-4 h-4" /> {t('pnlCalendar')}
+        </h3>
+        <div className="flex items-center gap-1">
+          <button onClick={() => shift(-1)} aria-label="Mes anterior"
+            className="w-7 h-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-xs font-semibold capitalize w-28 text-center">{monthLabel}</span>
+          <button onClick={() => shift(1)} aria-label="Mes siguiente"
+            className="w-7 h-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {dows.map((d, i) => (
+          <div key={i} className="text-center text-[10px] font-bold text-muted-foreground/70">{d}</div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((c, i) => {
+          if (!c) return <div key={`e${i}`} />;
+          const pnl = c.info?.pnl;
+          const has = pnl != null;
+          const bg = !has ? 'bg-muted/15'
+            : pnl > 0 ? 'bg-[#22c55e]/15 border-[#22c55e]/30'
+            : pnl < 0 ? 'bg-[#ef4444]/15 border-[#ef4444]/30'
+            : 'bg-muted/30';
+          const col = pnl > 0 ? 'text-[#22c55e]' : pnl < 0 ? 'text-[#ef4444]' : 'text-muted-foreground';
+          return (
+            <div key={`d${c.day}`}
+              title={has ? `${c.day}: ${pnl > 0 ? '+' : ''}$${pnl} · ${c.info.n} ops` : `${c.day}`}
+              className={`aspect-square rounded-md border border-transparent ${bg} px-1 py-0.5 flex flex-col`}>
+              <span className="text-[9px] text-muted-foreground leading-none">{c.day}</span>
+              {has && <span className={`text-[10px] font-bold font-mono mt-auto leading-none ${col}`}>{compact(pnl)}</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border text-xs">
+        <span className="text-muted-foreground">{tradingDays} {t('tradingDays')}</span>
+        <span className={`font-bold font-mono ${monthPnl > 0 ? 'text-[#22c55e]' : monthPnl < 0 ? 'text-[#ef4444]' : ''}`}>
+          {monthPnl > 0 ? '+' : ''}${monthPnl.toFixed(2)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export default function AnalyticsDashboard({ refreshKey }) {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
@@ -207,6 +314,9 @@ export default function AnalyticsDashboard({ refreshKey }) {
         </div>
         <EquityCurve data={a.equity_curve} />
       </div>
+
+      {/* Monthly PnL calendar */}
+      <PnLCalendar data={a.daily_pnl} />
 
       {/* Two columns: by setup + by day */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

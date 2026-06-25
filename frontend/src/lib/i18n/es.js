@@ -241,6 +241,8 @@ export default {
     close: 'Cerrar',
     back: 'Volver',
     about: 'Sobre nosotros',
+    pnlCalendar: 'Calendario de PnL',
+    tradingDays: 'días operados',
     authHeroTitle: 'La plataforma de trading todo-en-uno para opciones, cripto y forex',
     authFeatureOptions: 'Calculadora de opciones con griegas en tiempo real',
     authFeatureStrategy: 'Estrategias multi-leg y diagramas de payoff',

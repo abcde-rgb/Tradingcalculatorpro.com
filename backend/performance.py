@@ -333,6 +333,21 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
     emotions = [int(t.get("emotion") or 0) for t in closed if t.get("emotion")]
     avg_emotion = round(sum(emotions) / len(emotions), 1) if emotions else 0
 
+    # Daily realized PnL (for the monthly calendar) — grouped by exit date (YYYY-MM-DD)
+    daily_map: Dict[str, Dict[str, float]] = {}
+    for t in closed:
+        ed = t.get("exit_date") or t.get("entry_date") or t.get("date")
+        if not ed:
+            continue
+        day = str(ed)[:10]
+        slot = daily_map.setdefault(day, {"pnl": 0.0, "n": 0})
+        slot["pnl"] += float(t.get("pnl") or 0)
+        slot["n"] += 1
+    daily_pnl = [
+        {"date": d, "pnl": round(v["pnl"], 2), "n": int(v["n"])}
+        for d, v in sorted(daily_map.items())
+    ]
+
     return {
         # Core
         "total_trades": len(trades),
@@ -366,6 +381,7 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
         "by_symbol": by_symbol,
         "r_distribution": r_buckets,
         "equity_curve": [round(e, 2) for e in equity],
+        "daily_pnl": daily_pnl,
         # Discipline
         "errors_total": total_errors,
         "errors_breakdown": error_counts,
@@ -403,6 +419,7 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "by_symbol": [],
         "r_distribution": {},
         "equity_curve": [],
+        "daily_pnl": [],
         "errors_total": 0,
         "errors_breakdown": {},
         "rule_compliance_rate": 100,
