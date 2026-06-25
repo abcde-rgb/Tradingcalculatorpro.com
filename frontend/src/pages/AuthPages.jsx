@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
-import { TrendingUp, Mail, Lock, User, ArrowRight, ArrowLeft, X, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff } from 'lucide-react';
+import { TrendingUp, Mail, Lock, User, ArrowRight, ArrowLeft, X, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff, Shield, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -47,54 +47,113 @@ function PasswordStrengthBar({ password, t }) {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
+// Decorative animated mini-chart for the auth brand panel (no real data —
+// purely aesthetic, draws itself in on mount).
+function BrandChartMotif() {
+  return (
+    <svg viewBox="0 0 320 120" className="w-full h-auto" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="authArea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#10b981" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <motion.path
+        d="M0 96 L40 84 L80 90 L120 58 L160 70 L200 40 L240 52 L280 26 L320 36 L320 120 L0 120 Z"
+        fill="url(#authArea)"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.4 }}
+      />
+      <motion.path
+        d="M0 96 L40 84 L80 90 L120 58 L160 70 L200 40 L240 52 L280 26 L320 36"
+        stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, ease: 'easeInOut' }}
+      />
+    </svg>
+  );
+}
+
 // ── Professional split-screen shell ─────────────────────────────────────────
 // Brand + value props on the left (desktop only), the auth card on the right.
-// On mobile only the card shows, centered. Uses the codebase's existing
-// `t(key) || 'fallback'` i18n pattern so it degrades gracefully in any locale.
+// On mobile only the card shows, centered. `tr(key, fallback)` renders the
+// fallback text whenever a translation key is missing (t() returns the key
+// itself when absent), so the panel never shows raw keys.
 function AuthShell({ children }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const tr = (key, fallback) => { const v = t(key); return v && v !== key ? v : fallback; };
   const goBack = () => (typeof window !== 'undefined' && window.history.length > 1 ? navigate(-1) : navigate('/'));
   const features = [
-    t('authFeatureOptions')  || 'Calculadora de opciones con griegas en tiempo real',
-    t('authFeatureStrategy') || 'Estrategias multi-leg y diagramas de payoff',
-    t('authFeatureMarket')   || 'Datos de mercado en vivo y patrones de velas',
-    t('authFeatureAlerts')   || 'Alertas de precio y seguimiento de operaciones',
+    tr('authFeatureOptions',  'Calculadora de opciones con griegas en tiempo real'),
+    tr('authFeatureStrategy', 'Estrategias multi-leg y diagramas de payoff'),
+    tr('authFeatureMarket',   'Datos de mercado en vivo y patrones de velas'),
+    tr('authFeatureAlerts',   'Alertas de precio y diario de operaciones'),
+  ];
+  const trust = [
+    { icon: Shield, label: tr('authTrustEncrypted', 'Cifrado de extremo a extremo') },
+    { icon: Zap,    label: tr('authTrustNoCard',    'Empieza gratis, sin tarjeta') },
+    { icon: Globe,  label: tr('authTrustLangs',     '8 idiomas') },
   ];
   return (
     <div className="min-h-screen flex bg-background">
       {/* Brand panel — desktop only */}
-      <aside className="hidden lg:flex lg:w-[45%] relative overflow-hidden border-r border-white/5
+      <aside className="hidden lg:flex lg:w-[46%] relative overflow-hidden border-r border-white/5
                         bg-gradient-to-br from-primary/10 via-background to-background">
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl" aria-hidden />
-        <div className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full bg-primary/5 blur-3xl" aria-hidden />
+        <motion.div aria-hidden
+          className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl"
+          animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0.9, 0.6] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }} />
+        <motion.div aria-hidden
+          className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+          transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }} />
+
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
+          <Link to="/" className="flex items-center gap-2.5 w-fit group" aria-label="TradingCalculator PRO">
+            <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
               <TrendingUp className="w-6 h-6 text-primary" />
             </div>
             <span className="font-unbounded font-semibold text-lg">
               TradingCalculator<span className="text-primary"> PRO</span>
             </span>
-          </div>
+          </Link>
 
           <div className="space-y-7 max-w-md">
-            <h2 className="text-3xl xl:text-4xl font-unbounded font-bold leading-tight">
-              {t('authHeroTitle') || 'La calculadora de trading profesional para opciones y cripto'}
-            </h2>
+            <motion.h2
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+              className="text-3xl xl:text-4xl font-unbounded font-bold leading-tight">
+              {tr('authHeroTitle', 'La plataforma de trading todo-en-uno para opciones, cripto y forex')}
+            </motion.h2>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, delay: 0.15 }}
+              className="rounded-xl border border-white/5 bg-card/30 backdrop-blur-sm p-4">
+              <BrandChartMotif />
+            </motion.div>
+
             <ul className="space-y-3.5">
-              {features.map((f) => (
-                <li key={f} className="flex items-start gap-3 text-sm text-muted-foreground">
+              {features.map((f, i) => (
+                <motion.li key={f}
+                  initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.08 }}
+                  className="flex items-start gap-3 text-sm text-muted-foreground">
                   <CheckCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                   <span>{f}</span>
-                </li>
+                </motion.li>
               ))}
             </ul>
           </div>
 
-          <p className="text-xs text-muted-foreground/70">
-            © {new Date().getFullYear()} TradingCalculator PRO · {t('authSecureNote') || 'Conexión cifrada de extremo a extremo'}
-          </p>
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {trust.map(({ icon: Ic, label }) => (
+                <span key={label} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
+                  <Ic className="w-3.5 h-3.5 text-primary/70" /> {label}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground/60">
+              © {new Date().getFullYear()} TradingCalculator PRO
+            </p>
+          </div>
         </div>
       </aside>
 
@@ -172,7 +231,7 @@ export const LoginPage = () => {
 
   return (
     <AuthShell>
-      <Card className="w-full max-w-md bg-card border-border shadow-2xl shadow-black/20">
+      <Card className="w-full max-w-md bg-card/70 backdrop-blur-xl border-white/10 shadow-2xl shadow-black/30">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center lg:hidden">
             <TrendingUp className="w-10 h-10 text-primary" />
@@ -302,7 +361,7 @@ export const RegisterPage = () => {
 
   return (
     <AuthShell>
-      <Card className="w-full max-w-md bg-card border-border shadow-2xl shadow-black/20">
+      <Card className="w-full max-w-md bg-card/70 backdrop-blur-xl border-white/10 shadow-2xl shadow-black/30">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center lg:hidden">
             <TrendingUp className="w-10 h-10 text-primary" />

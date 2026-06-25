@@ -191,6 +191,17 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   análisis/gestión/psicología/comportamiento/educación implementables.
 - ✅ Verificado: `npm run build` exit 0; backend importa (171 rutas); `pytest` 10/74.
 
+### 2026-06-25 (cont. 2) — Rediseño del login + fix de claves i18n crudas
+- 🐛 **Bug encontrado y corregido**: el panel de marca del login/registro usaba
+  `t('authHeroTitle') || 'fallback'`, pero como `t()` devuelve **la clave** cuando falta y
+  esas claves **no existían**, el panel mostraba texto en crudo ("authHeroTitle",
+  "authFeatureOptions"…). Solución: helper `tr(key, fallback)` (usa el fallback si `t`
+  devuelve la propia clave) + claves añadidas a es.js/en.js.
+- 🎨 **Rediseño completo de inicio de sesión/registro** (`AuthShell`): mini-gráfico
+  animado de marca (SVG que se dibuja), orbes animados, fila de confianza (cifrado/gratis/
+  idiomas), tarjeta "glass" (`backdrop-blur`), entradas escalonadas. Mantiene auth, Google,
+  validación e i18n intactos. Build exit 0 (+216 B), sin advertencias nuevas.
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.
