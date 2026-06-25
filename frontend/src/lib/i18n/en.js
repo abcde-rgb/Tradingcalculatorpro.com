@@ -196,6 +196,7 @@ export default {
     edit: 'Edit',
     close: 'Close',
     back: 'Back',
+    about: 'About',
     authHeroTitle: 'The all-in-one trading platform for options, crypto and forex',
     authFeatureOptions: 'Options calculator with real-time Greeks',
     authFeatureStrategy: 'Multi-leg strategies and payoff diagrams',

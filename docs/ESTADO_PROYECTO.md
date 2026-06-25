@@ -202,6 +202,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   idiomas), tarjeta "glass" (`backdrop-blur`), entradas escalonadas. Mantiene auth, Google,
   validación e i18n intactos. Build exit 0 (+216 B), sin advertencias nuevas.
 
+### 2026-06-25 (cont. 3) — Consistencia auth + barrido de claves crudas
+- ✅ **Reset / Forgot / Magic** ahora usan `AuthShell` → mismo diseño que el login
+  rediseñado (panel de marca, Volver/X, tarjeta glass). Antes tenían un layout propio viejo.
+- 🐛 **Barrido del patrón `t('x') || 'fallback'`**: solo faltaba la clave `about`
+  (el footer mostraba "about" en crudo). Añadida a es/en. El resto de claves existen.
+- ✅ Build exit 0. Capturas de verificación generadas (login, registro, forgot, móvil).
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.
