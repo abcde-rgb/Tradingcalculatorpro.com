@@ -57,7 +57,7 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuthStore();
 
-  useSEO({ title: 'Admin', description: 'Panel administrativo', canonicalPath: '/admin' });
+  useSEO({ title: 'Admin', description: 'Panel administrativo', canonicalPath: '/admin', noindex: true });
 
   const [metrics, setMetrics] = useState(null);
   const [users, setUsers] = useState([]);

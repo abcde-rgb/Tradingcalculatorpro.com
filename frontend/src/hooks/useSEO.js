@@ -42,8 +42,9 @@ export function useSEO({
   description,
   descriptionKey,
   canonicalPath,
-  image = `${ORIGIN}/og-image.svg`,
+  image = `${ORIGIN}/og-image.png`,   // PNG 1200×630 — SVG no renderiza en redes sociales
   type = 'website',
+  noindex = false,                    // true en páginas privadas/utilidad (no indexar)
 }) {
   const { t, locale } = useTranslation();
 
@@ -74,9 +75,11 @@ export function useSEO({
     setMeta('meta[property="og:image"]', 'content', image);
     setMeta('meta[name="twitter:image"]', 'content', image);
 
+    setMeta('meta[name="robots"]', 'content', noindex ? 'noindex, follow' : 'index, follow');
+
     setLink('canonical', canonical);
     syncHreflangAlternates(path);
-  }, [title, titleKey, description, descriptionKey, canonicalPath, image, type, locale, t]);
+  }, [title, titleKey, description, descriptionKey, canonicalPath, image, type, noindex, locale, t]);
 }
 
 /**

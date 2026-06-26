@@ -236,6 +236,16 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ⚠️ **Pendiente decisión**: dominio inconsistente — frontend usa `tradingcalculatorpro.com`,
   backend CORS usa `tradingcalculator.pro`, hoy se sirve en github.io. Unificar antes de lanzar.
 
+### 2026-06-26 (cont.) — Auditoría SEO + fixes
+- 🐛 **Fix**: `useSEO` ponía `og-image.svg` como imagen social (las redes NO renderizan SVG)
+  → cambiado a `og-image.png` (1200×630). Ahora los compartidos muestran preview.
+- ✅ **Nuevo**: opción `noindex` en `useSEO`, aplicada a páginas privadas/utilidad
+  (dashboard, settings, admin, subscription, 404) → Google no las indexa.
+- 🔎 Auditoría: todas las páginas públicas usan `useSEO`; todas las claves `seo*` existen en
+  es.js; JSON-LD muy completo (Organization/WebSite/WebApplication/Course/FAQPage/Breadcrumb).
+- ⏳ Mayores palancas pendientes (no bloqueadas por código): **unificar dominio** y
+  **prerender** (react-snap/SSG) para que los crawlers vean HTML completo del SPA.
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.

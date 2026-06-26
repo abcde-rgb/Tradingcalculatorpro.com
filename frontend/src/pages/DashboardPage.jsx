@@ -49,6 +49,7 @@ export default function DashboardPage() {
     titleKey: 'seoDashboardTitle',
     descriptionKey: 'seoDashboardDesc',
     canonicalPath: '/dashboard',
+    noindex: true,   // página premium tras login — no indexar
   });
 
   // Allow deep-linking to a calculator from outside (e.g. /dashboard?tab=leverage).
