@@ -217,6 +217,10 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   fecha de salida. 3 tests unitarios offline nuevos (`test_performance_unit.py`).
 - Claves i18n `pnlCalendar`, `tradingDays` (es/en). Build exit 0.
 
+### 2026-06-25 (cont. 5) — Pulido del dashboard
+- ✅ Animaciones de entrada (fade-up escalonado, framer-motion) en los bloques del
+  dashboard: bienvenida, stats, gráfico y panel de alertas/historial. Additivo, sin riesgo.
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.

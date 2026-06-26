@@ -32,6 +32,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+
+// Subtle entrance animation reused across the dashboard blocks.
+const RISE = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } };
 
 export default function DashboardPage() {
   const { user, refreshUser, isAuthenticated } = useAuthStore();
@@ -182,7 +186,8 @@ export default function DashboardPage() {
       <main className="pt-20 pb-12 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Welcome */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <motion.div {...RISE} transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="font-unbounded text-2xl md:text-3xl font-bold" data-testid="dashboard-welcome">
                 {user ? `${t('dashboard')}: ${user.name}` : t('dashboard')}
@@ -198,21 +203,28 @@ export default function DashboardPage() {
                 </Button>
               </Link>
             </div>
-          </div>
+          </motion.div>
           
           {/* Stats Row */}
-          {isPremium && <JournalStats />}
-          
+          {isPremium && (
+            <motion.div {...RISE} transition={{ duration: 0.4, ease: 'easeOut' }}>
+              <JournalStats />
+            </motion.div>
+          )}
+
           {/* Main Content - Full Width */}
           <div className="space-y-6">
             {/* TradingView Chart */}
-            <TradingViewChart />
-            
+            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.06, ease: 'easeOut' }}>
+              <TradingViewChart />
+            </motion.div>
+
             {/* Price Alerts and Calculation History - Below Chart */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <PriceAlerts />
               <CalculationHistory />
-            </div>
+            </motion.div>
             
             {/* Calculators Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
