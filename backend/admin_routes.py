@@ -230,7 +230,7 @@ ALL_CONNECTORS: List[Dict[str, Any]] = [
         "description": "Parámetros generales de la aplicación",
         "keys": [
             {"key": "site_name",         "label": "Nombre del sitio",       "secret": False, "placeholder": "Trading Calculator PRO"},
-            {"key": "support_email",     "label": "Email de soporte",       "secret": False, "placeholder": "support@tradingcalculator.pro"},
+            {"key": "support_email",     "label": "Email de soporte",       "secret": False, "placeholder": "support@tradingcalculatorpro.com"},
             {"key": "default_currency",  "label": "Moneda por defecto",     "secret": False, "placeholder": "EUR"},
             {"key": "default_locale",    "label": "Idioma por defecto",     "secret": False, "placeholder": "es"},
             {"key": "maintenance_mode",  "label": "Modo mantenimiento",     "secret": False, "placeholder": "false"},

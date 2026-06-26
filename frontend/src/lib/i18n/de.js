@@ -2945,7 +2945,7 @@ export default {
   passwordChangeErrorToast: 'Das Passwort konnte nicht geändert werden',
   typeWordToConfirmToast: 'Gib {word} ein, um zu bestätigen',
   accountDeletedToast: 'Konto gelöscht. Bis bald.',
-  accountDeleteManualToast: 'Dein Konto konnte nicht automatisch gelöscht werden. Bitte sende eine E-Mail an contact@tradingcalculator.pro mit dem Betreff "Antrag auf Kontolöschung" von deiner registrierten E-Mail-Adresse.',
+  accountDeleteManualToast: 'Dein Konto konnte nicht automatisch gelöscht werden. Bitte sende eine E-Mail an contact@tradingcalculatorpro.com mit dem Betreff "Antrag auf Kontolöschung" von deiner registrierten E-Mail-Adresse.',
   accountDeleteErrorToast: 'Das Konto konnte nicht gelöscht werden. Bitte wende dich an den Support.',
   downloadDataErrorToast: 'Fehler beim Herunterladen der Daten',
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===

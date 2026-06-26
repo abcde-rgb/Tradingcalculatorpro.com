@@ -2885,7 +2885,7 @@ export default {
   passwordChangeErrorToast: 'تعذّر تغيير كلمة المرور',
   typeWordToConfirmToast: 'اكتب {word} للتأكيد',
   accountDeletedToast: 'تم حذف الحساب. إلى اللقاء.',
-  accountDeleteManualToast: 'تعذّر حذف الحساب تلقائيًا. يرجى إرسال بريد إلكتروني إلى contact@tradingcalculator.pro بعنوان "طلب حذف الحساب" من بريدك الإلكتروني المسجل.',
+  accountDeleteManualToast: 'تعذّر حذف الحساب تلقائيًا. يرجى إرسال بريد إلكتروني إلى contact@tradingcalculatorpro.com بعنوان "طلب حذف الحساب" من بريدك الإلكتروني المسجل.',
   accountDeleteErrorToast: 'تعذّر حذف الحساب. يرجى التواصل مع الدعم.',
   downloadDataErrorToast: 'حدث خطأ أثناء تنزيل البيانات',
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===

@@ -2887,7 +2887,7 @@ export default {
   passwordChangeErrorToast: '无法修改密码',
   typeWordToConfirmToast: '请输入 {word} 以确认',
   accountDeletedToast: '账户已删除，再见。',
-  accountDeleteManualToast: '无法自动删除账户。请使用您注册的邮箱，向 contact@tradingcalculator.pro 发送主题为"账户删除请求"的邮件。',
+  accountDeleteManualToast: '无法自动删除账户。请使用您注册的邮箱，向 contact@tradingcalculatorpro.com 发送主题为"账户删除请求"的邮件。',
   accountDeleteErrorToast: '无法删除账户，请联系客服。',
   downloadDataErrorToast: '下载数据时出错',
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===

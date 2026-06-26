@@ -2887,7 +2887,7 @@ export default {
   passwordChangeErrorToast: 'Не удалось изменить пароль',
   typeWordToConfirmToast: 'Введите {word}, чтобы подтвердить',
   accountDeletedToast: 'Аккаунт удалён. До скорой встречи.',
-  accountDeleteManualToast: 'Не удалось автоматически удалить аккаунт. Отправьте письмо на contact@tradingcalculator.pro с темой "Запрос на удаление аккаунта" с вашего зарегистрированного адреса электронной почты.',
+  accountDeleteManualToast: 'Не удалось автоматически удалить аккаунт. Отправьте письмо на contact@tradingcalculatorpro.com с темой "Запрос на удаление аккаунта" с вашего зарегистрированного адреса электронной почты.',
   accountDeleteErrorToast: 'Не удалось удалить аккаунт. Обратитесь в поддержку.',
   downloadDataErrorToast: 'Ошибка при загрузке данных',
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===

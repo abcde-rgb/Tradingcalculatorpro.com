@@ -911,7 +911,7 @@ stripe.api_key = STRIPE_API_KEY
 
 # SendGrid Configuration
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculatorpro.com')
 
 # Demo User (siempre tiene acceso PRO completo)
 DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
@@ -948,8 +948,8 @@ security = HTTPBearer(auto_error=False)
 #  CORS — must be registered first so every response gets headers
 # ============================================================
 _CORS_ORIGINS = [
-    "https://tradingcalculator.pro",
-    "https://www.tradingcalculator.pro",
+    "https://tradingcalculatorpro.com",
+    "https://www.tradingcalculatorpro.com",
 ]
 # Localhost only in non-production (dev) — add via CORS_ORIGINS env var in staging
 if os.environ.get("ENVIRONMENT", "production") != "production":
@@ -1761,7 +1761,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
         "expires_at": expires_at,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
     magic_url = f"{frontend_url}/magic?token={token}"
     # Send email (non-blocking)
     import asyncio as _asyncio
@@ -1864,7 +1864,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
         upsert=True,
     )
 
-    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
     reset_url = f"{frontend_url}/reset-password#{reset_token}"
     try:
         import asyncio as _asyncio
@@ -2608,7 +2608,7 @@ _EMAIL_BASE = """
 <table width="600" cellpadding="0" cellspacing="0" style="background:#1a1a1a;border-radius:12px;overflow:hidden;border:1px solid #2a2a2a;">
 <tr><td style="background:linear-gradient(135deg,#00E676,#00B0FF);padding:32px 40px;text-align:center;">
 <h1 style="margin:0;color:#000;font-size:24px;font-weight:bold;">Trading Calculator PRO</h1>
-<p style="margin:8px 0 0;color:#000;opacity:0.7;font-size:14px;">tradingcalculator.pro</p>
+<p style="margin:8px 0 0;color:#000;opacity:0.7;font-size:14px;">tradingcalculatorpro.com</p>
 </td></tr>
 <tr><td style="padding:40px;">{body}</td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #2a2a2a;text-align:center;">
@@ -2636,7 +2636,7 @@ async def _send_welcome_email(to_email: str, name: str) -> None:
 <p style="color:#aaa;margin:6px 0;">📈 Análisis de opciones y estrategias</p>
 <p style="color:#aaa;margin:6px 0;">🎯 Seguimiento de rendimiento</p>
 </div>
-<a href="https://tradingcalculator.pro/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
+<a href="https://tradingcalculatorpro.com/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
 """
     await _send_email(to_email, "¡Bienvenido a Trading Calculator PRO!", _email_html(body))
 
@@ -2657,7 +2657,7 @@ async def _send_subscription_confirmation_email(to_email: str, name: str, plan_n
 <p style="color:#aaa;margin:6px 0;">Válido hasta: <strong style="color:#fff;">{end_str}</strong></p>
 </div>
 <p style="color:#aaa;line-height:1.6;">Ahora tienes acceso completo a todas las funcionalidades premium.</p>
-<a href="https://tradingcalculator.pro/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
+<a href="https://tradingcalculatorpro.com/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
 """
     await _send_email(to_email, f"Suscripción {plan_name} activada — Trading Calculator PRO", _email_html(body))
 
@@ -2670,7 +2670,7 @@ async def _send_payment_failed_email(to_email: str, name: str, attempt: int) -> 
 <div style="background:#1a0a0a;border:1px solid #5a1a1a;border-radius:8px;padding:20px;margin:24px 0;">
 <p style="color:#ff6b6b;margin:0;">Para mantener tu acceso premium, actualiza tu método de pago lo antes posible.</p>
 </div>
-<a href="https://tradingcalculator.pro/settings" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Actualizar método de pago →</a>
+<a href="https://tradingcalculatorpro.com/settings" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Actualizar método de pago →</a>
 """
     await _send_email(to_email, "⚠️ Pago fallido — Trading Calculator PRO", _email_html(body))
 
@@ -2679,7 +2679,7 @@ async def _send_subscription_cancelled_email(to_email: str, name: str) -> None:
 <h2 style="color:#fff;margin-top:0;">Suscripción cancelada</h2>
 <p style="color:#aaa;line-height:1.6;">Hola <strong style="color:#fff;">{name}</strong>, tu suscripción a Trading Calculator PRO ha sido cancelada.</p>
 <p style="color:#aaa;line-height:1.6;">Tu acceso premium ha sido desactivado. Puedes reactivarlo en cualquier momento.</p>
-<a href="https://tradingcalculator.pro/pricing" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:24px;">Reactivar suscripción →</a>
+<a href="https://tradingcalculatorpro.com/pricing" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:24px;">Reactivar suscripción →</a>
 """
     await _send_email(to_email, "Suscripción cancelada — Trading Calculator PRO", _email_html(body))
 
@@ -6095,7 +6095,7 @@ except Exception as _e:
 
 app.include_router(api_router)
 
-_FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculator.pro')
+_FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculatorpro.com')
 
 _AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/me",
                "/api/auth/logout", "/api/auth/refresh", "/api/auth/google",

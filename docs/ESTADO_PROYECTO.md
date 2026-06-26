@@ -27,7 +27,7 @@
 | **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
-| **DNS / dominio `tradingcalculator.pro`** | ❓ | Verificar apuntado (ver DEPLOY_CHECKLIST) |
+| **DNS / dominio `tradingcalculatorpro.com`** | ❓ | Verificar apuntado (ver DEPLOY_CHECKLIST) |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
 > Leyenda: 🟢 listo · 🟡 funciona con condiciones · 🔴 bloquea · ❓ requiere verificación externa (ops)
@@ -120,7 +120,7 @@
 ### P0 — Bloquea lanzamiento (ops)
 - [ ] Verificar **todos los secretos** en GitHub (frontend) y GCP Secret Manager (backend).
 - [ ] Verificar **Stripe** real: productos, price IDs (`price_1TXM8...`), webhook `whsec_...`.
-- [ ] Verificar **dominio** `tradingcalculator.pro` y CNAME de GitHub Pages.
+- [ ] Verificar **dominio** `tradingcalculatorpro.com` y CNAME de GitHub Pages.
 - [ ] Confirmar **Google OAuth**: origen `https://abcde-rgb.github.io` autorizado.
 
 ### P1 — Robustez antes de escalar
@@ -145,9 +145,9 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Workload Identity Federation, Artifact Registry `trading-repo`.
 - **Stripe**: productos/precios, webhook endpoint apuntando a `…/api/webhook/stripe`.
 - **Google Cloud Console**: OAuth client + orígenes autorizados.
-- **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculator.pro`).
+- **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculatorpro.com`).
 - **GitHub**: Secrets de Actions (ver DEPLOY_CHECKLIST) + branch protection.
-- **DNS**: `tradingcalculator.pro` / `www`.
+- **DNS**: `tradingcalculatorpro.com` / `www`.
 
 ---
 
@@ -234,7 +234,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ **Skill nuevo** `.claude/skills/mejorar-seo/` (auditoría + cómo añadir SEO + gotchas).
 - ✅ Generador reutilizable `frontend/scripts/gen-sitemap.js` (`node scripts/gen-sitemap.js`).
 - ⚠️ **Pendiente decisión**: dominio inconsistente — frontend usa `tradingcalculatorpro.com`,
-  backend CORS usa `tradingcalculator.pro`, hoy se sirve en github.io. Unificar antes de lanzar.
+  backend CORS usa `tradingcalculatorpro.com`, hoy se sirve en github.io. Unificar antes de lanzar.
 
 ### 2026-06-26 (cont.) — Auditoría SEO + fixes
 - 🐛 **Fix**: `useSEO` ponía `og-image.svg` como imagen social (las redes NO renderizan SVG)
@@ -245,6 +245,16 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   es.js; JSON-LD muy completo (Organization/WebSite/WebApplication/Course/FAQPage/Breadcrumb).
 - ⏳ Mayores palancas pendientes (no bloqueadas por código): **unificar dominio** y
   **prerender** (react-snap/SSG) para que los crawlers vean HTML completo del SPA.
+
+### 2026-06-26 (cont. 2) — Dominio unificado a tradingcalculatorpro.com
+- ✅ Decidido el dominio: **`tradingcalculatorpro.com`**. Reemplazadas TODAS las referencias al
+  incorrecto `tradingcalculator.pro` (backend CORS/emails/FRONTEND_URL, configs, i18n, contacto,
+  docs) → 0 restantes.
+- ✅ Dominio personalizado de GitHub Pages: añadido `frontend/public/CNAME`, `homepage` y
+  `PUBLIC_URL` a raíz `/` (con dominio propio el sitio se sirve en la raíz). Build raíz
+  verificado (assets en `/static/`).
+- ⏳ **Pendiente (ops)**: configurar DNS + Custom domain en GitHub Pages antes de mergear
+  (pasos exactos en DEPLOY_CHECKLIST §G).
 
 ## Cómo mantener este documento
 

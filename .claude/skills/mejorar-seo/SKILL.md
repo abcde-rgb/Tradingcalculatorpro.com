@@ -72,11 +72,12 @@ Validar: https://www.xml-sitemaps.com/validate-xml-sitemap.html
 
 ## 6. Gotchas / trampas conocidas
 
-- **⚠️ Dominio inconsistente (BLOQUEA):** el frontend/SEO usa `tradingcalculatorpro.com` (.com)
-  pero el **backend CORS** usa `tradingcalculator.pro` (.pro), y hoy se sirve en
-  `abcde-rgb.github.io/Tradingcalculatorpro.com`. **Decide UNO** y actualiza: `useSEO.js`,
-  `sitemap.xml`/`gen-sitemap.js`, `robots.txt`, `index.html` (canonical/OG) y el `_CORS_ORIGINS`
-  del backend (`server.py`). Configura el CNAME de GitHub Pages.
+- **Dominio:** producción es **`tradingcalculatorpro.com`**, ya unificado en frontend, backend
+  (CORS/emails) y configs (+ `frontend/public/CNAME`). Si alguna vez cambia, actualiza a la vez:
+  `useSEO.js`, `gen-sitemap.js`, `robots.txt`, `index.html` (canonical/OG), `_CORS_ORIGINS` y
+  `FRONTEND_URL` (server.py), los workflows y el `CNAME`. Requiere DNS + dominio configurado en
+  GitHub Pages (Settings → Pages). Con dominio propio el sitio se sirve en la **raíz** → `homepage`
+  y `PUBLIC_URL` deben ser `/` (no `/Tradingcalculatorpro.com`).
 - **SPA sin SSR:** GitHub Pages sirve `index.html` y React monta en el cliente. Google ejecuta
   JS (suele indexar), pero Bing/otros no siempre. Prerender mejora mucho la indexación.
 - **404.html:** el deploy copia `index.html → 404.html` para rutas directas (no tocar).
