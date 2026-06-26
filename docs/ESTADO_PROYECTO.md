@@ -229,6 +229,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - i18n: claves `biasTitle`/`bias*` (es/en) con interpolación de cifras. Build exit 0.
 - Nota: los **R-múltiplos ya existían** (`avg_r`, `r_distribution`) — no se duplicó.
 
+### 2026-06-26 — SEO: sitemap limpio + skill + generador
+- ✅ `sitemap.xml` regenerado (8 páginas públicas, hreflang completo, sin rutas con muro).
+- ✅ **Skill nuevo** `.claude/skills/mejorar-seo/` (auditoría + cómo añadir SEO + gotchas).
+- ✅ Generador reutilizable `frontend/scripts/gen-sitemap.js` (`node scripts/gen-sitemap.js`).
+- ⚠️ **Pendiente decisión**: dominio inconsistente — frontend usa `tradingcalculatorpro.com`,
+  backend CORS usa `tradingcalculator.pro`, hoy se sirve en github.io. Unificar antes de lanzar.
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.
