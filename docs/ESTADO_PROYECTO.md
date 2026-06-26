@@ -221,6 +221,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ Animaciones de entrada (fade-up escalonado, framer-motion) en los bloques del
   dashboard: bienvenida, stats, gráfico y panel de alertas/historial. Additivo, sin riesgo.
 
+### 2026-06-25 (cont. 6) — Detección de sesgos de comportamiento
+- ✅ **Nuevo**: `detect_behavioral_biases` en `performance.py` (efecto disposición,
+  revenge trading, overtrading, falta de stop) → expuesto en analytics como
+  `behavioral_biases`. Tarjeta nueva en `AnalyticsDashboard` con severidad + consejo
+  cuantificado. +4 tests unitarios (total 7 en `test_performance_unit.py`).
+- i18n: claves `biasTitle`/`bias*` (es/en) con interpolación de cifras. Build exit 0.
+- Nota: los **R-múltiplos ya existían** (`avg_r`, `r_distribution`) — no se duplicó.
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.

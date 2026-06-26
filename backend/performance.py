@@ -242,6 +242,94 @@ def detect_errors(
     return errors
 
 
+# ─── Behavioral bias detection (account-level) ────────────────────
+
+def _parse_dt(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+
+
+def detect_behavioral_biases(trades: List[dict]) -> List[Dict[str, Any]]:
+    """Synthesize account-level behavioral biases from the trade history.
+
+    Higher-level than per-trade `detect_errors`: looks at patterns across many
+    trades (disposition effect, revenge trading, overtrading, stop discipline).
+    Returns a list of {code, severity, title_key, detail_key, ...numbers} sorted
+    by severity. Empty when there isn't enough data or no bias stands out.
+    """
+    closed = [t for t in trades if t.get("status") in ("closed", "sl_hit", "tp_hit")
+              and t.get("exit_price") is not None]
+    n = len(closed)
+    biases: List[Dict[str, Any]] = []
+    if n < 3:
+        return biases
+
+    # 1) Disposition effect — holding losers longer than winners
+    win_durs, loss_durs = [], []
+    for t in closed:
+        ed, xd = _parse_dt(t.get("entry_date")), _parse_dt(t.get("exit_date"))
+        if ed and xd and xd >= ed:
+            (win_durs if float(t.get("pnl") or 0) > 0 else loss_durs).append((xd - ed).total_seconds() / 60)
+    if win_durs and loss_durs:
+        avg_win = sum(win_durs) / len(win_durs)
+        avg_loss = sum(loss_durs) / len(loss_durs)
+        if avg_win > 0 and avg_loss > avg_win * 1.5:
+            biases.append({
+                "code": "disposition_effect", "severity": "high",
+                "title_key": "biasDisposition", "detail_key": "biasDispositionDetail",
+                "ratio": round(avg_loss / avg_win, 1),
+            })
+
+    # 2) Revenge trading — reuse the per-trade flags already attached
+    revenge_trades = [t for t in closed
+                      if any(e.get("code") == "revenge_trade" for e in (t.get("errors") or []))]
+    if revenge_trades:
+        biases.append({
+            "code": "revenge_trade", "severity": "high",
+            "title_key": "biasRevenge", "detail_key": "biasRevengeDetail",
+            "count": len(revenge_trades),
+            "pnl": round(sum(float(t.get("pnl") or 0) for t in revenge_trades), 2),
+        })
+
+    # 3) Overtrading — days with abnormally many trades vs the median
+    per_day: Dict[str, int] = {}
+    day_pnl: Dict[str, float] = {}
+    for t in closed:
+        d = str(t.get("exit_date") or t.get("entry_date") or "")[:10]
+        if not d:
+            continue
+        per_day[d] = per_day.get(d, 0) + 1
+        day_pnl[d] = day_pnl.get(d, 0.0) + float(t.get("pnl") or 0)
+    if per_day:
+        counts = sorted(per_day.values())
+        median = counts[len(counts) // 2]
+        heavy = [d for d, c in per_day.items() if c >= max(median * 2, median + 3) and c >= 4]
+        if heavy:
+            biases.append({
+                "code": "overtrading", "severity": "medium",
+                "title_key": "biasOvertrading", "detail_key": "biasOvertradingDetail",
+                "days": len(heavy),
+                "pnl": round(sum(day_pnl[d] for d in heavy), 2),
+            })
+
+    # 4) Stop-loss discipline — share of trades entered without a stop
+    no_sl = sum(1 for t in closed if not t.get("sl"))
+    if n and no_sl / n > 0.3:
+        biases.append({
+            "code": "no_stop_discipline", "severity": "critical",
+            "title_key": "biasNoStop", "detail_key": "biasNoStopDetail",
+            "pct": round(no_sl / n * 100),
+        })
+
+    order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    biases.sort(key=lambda b: order.get(b["severity"], 9))
+    return biases
+
+
 # ─── Aggregate analytics (25+ metrics) ────────────────────────────
 
 def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
@@ -382,6 +470,7 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
         "r_distribution": r_buckets,
         "equity_curve": [round(e, 2) for e in equity],
         "daily_pnl": daily_pnl,
+        "behavioral_biases": detect_behavioral_biases(trades),
         # Discipline
         "errors_total": total_errors,
         "errors_breakdown": error_counts,
@@ -420,6 +509,7 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "r_distribution": {},
         "equity_curve": [],
         "daily_pnl": [],
+        "behavioral_biases": [],
         "errors_total": 0,
         "errors_breakdown": {},
         "rule_compliance_rate": 100,

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Activity, Target, AlertTriangle,
-  CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight,
+  CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight, Brain,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
@@ -26,6 +26,12 @@ const SEVERITY_COLOR = {
   warning:  'text-[#f59e0b]',
   good:     'text-[#22c55e]',
   info:     'text-[#3b82f6]',
+};
+// Behavioral-bias severities (critical / high / medium)
+const BIAS_STYLE = {
+  critical: { bg: 'border-[#ef4444]/40 bg-[#ef4444]/5', col: 'text-[#ef4444]' },
+  high:     { bg: 'border-[#f59e0b]/40 bg-[#f59e0b]/5', col: 'text-[#f59e0b]' },
+  medium:   { bg: 'border-[#3b82f6]/40 bg-[#3b82f6]/5', col: 'text-[#3b82f6]' },
 };
 
 const KpiCard = ({ icon: Ic, label, value, subValue, color = 'text-foreground', testId }) => (
@@ -368,6 +374,33 @@ export default function AnalyticsDashboard({ refreshKey }) {
           })}
         </div>
       </div>
+
+      {/* Behavioral biases */}
+      {a.behavioral_biases?.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-5" data-testid="behavioral-biases">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+            <Brain className="w-4 h-4" /> {t('biasTitle')}
+          </h3>
+          <div className="space-y-2">
+            {a.behavioral_biases.map((b) => {
+              const style = BIAS_STYLE[b.severity] || { bg: 'border-border', col: '' };
+              return (
+                <div
+                  key={b.code}
+                  className={`flex items-start gap-3 p-3 rounded-lg border ${style.bg}`}
+                  data-testid={`bias-${b.code}`}
+                >
+                  <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${style.col}`} />
+                  <div className="text-sm flex-1">
+                    <span className="font-semibold">{t(b.title_key)}</span>
+                    <span className="text-muted-foreground"> — {t(b.detail_key, b)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Auto-insights */}
       {insights.length > 0 && (
