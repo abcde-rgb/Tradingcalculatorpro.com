@@ -893,6 +893,7 @@ export default {
     userFallback: '用户',
     subscription: '订阅',
     disclaimer: '数据仅供参考，不构成财务建议。投资有风险。',
+    riskWarning: '风险警告',
     themeAriaLabel: '切换主题',
     languageAriaLabel: '语言',
     optionsAcademy: '期权学院',

@@ -1077,6 +1077,7 @@ export default {
     userFallback: 'Utilisateur',
     subscription: 'Abonnement',
     disclaimer: 'Les données sont informatives. Ne constituent pas un conseil financier. Investir comporte des risques.',
+    riskWarning: 'Avertissement sur les risques',
     themeAriaLabel: 'Changer de thème',
     languageAriaLabel: 'Langue',
     optionsAcademy: 'Académie d\'Options',

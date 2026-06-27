@@ -1019,6 +1019,7 @@ export default {
     userFallback: 'Пользователь',
     subscription: 'Подписка',
     disclaimer: 'Данные носят информационный характер. Не являются финансовым советом. Инвестирование связано с рисками.',
+    riskWarning: 'Предупреждение о рисках',
     themeAriaLabel: 'Сменить тему',
     languageAriaLabel: 'Язык',
     optionsAcademy: 'Академия Опционов',

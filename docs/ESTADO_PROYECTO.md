@@ -332,6 +332,16 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   concedido + tx pagada**, replay→already_processed, checkout sin config→503. Build frontend exit 0.
   La llamada saliente a OxaPay requiere **test en sandbox** con API Key real (red bloqueada offline).
 
+### 2026-06-27 (cont. 4) — Advertencia de Riesgo con datos reales
+- ➕ Nueva pestaña **"Advertencia de Riesgo"** en `/legal` (`LegalPage.jsx`) con estadísticas
+  **verificadas y citadas**: 74–89% de cuentas minoristas de CFDs pierden (ESMA), 97% en day trading
+  >300 días (estudio Brasil 2020), <1% rentable consistente (Taiwán, Barber & Odean). Con fuentes.
+- 🔗 Footer: el enlace "Disclaimer" estaba **muerto** (`href="#"`); ahora apunta a `/legal?tab=risk`
+  con clave i18n `riskWarning` añadida a los **8 idiomas**. `LegalPage` soporta deep-link `?tab=`.
+- ⚠️ Nota: se rechazó poner el reclamo falso "se pierde 100% seguro" (la probabilidad de perder NO es
+  del 100%); se usan las cifras reales, que ya son contundentes y además protegen legalmente.
+- ✅ Build frontend exit 0. Verificado visualmente (captura de la pestaña).
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.
