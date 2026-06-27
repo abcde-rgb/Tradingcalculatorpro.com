@@ -65,11 +65,13 @@ security = HTTPBearer(auto_error=False)
 # use a proxy callable that defers resolution until request time.
 # ─────────────────────────────────────────────────────────────────────
 async def _require_user_proxy(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> Dict[str, Any]:
     if require_user is None:
         raise HTTPException(status_code=503, detail="Service not initialized")
-    return await require_user(credentials)
+    # require_user's signature is (request, credentials) — pass both.
+    return await require_user(request, credentials)
 
 # ---------------------------------------------------------------------------
 # 0.  STARTUP — MongoDB unique index on users.email

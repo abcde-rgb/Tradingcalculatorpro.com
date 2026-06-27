@@ -82,6 +82,13 @@ export default function PricingPage() {
       .catch(() => {});
   }, []);
 
+  // The access token isn't persisted (memory-only). After a reload/deep-link the
+  // token is null while isAuthenticated rehydrates true, so repopulate it via a
+  // silent refresh — otherwise checkout/PayPal would send 'Bearer null'.
+  useEffect(() => {
+    if (isAuthenticated && !token) refreshUser();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const isPremium = user?.is_premium;
 
   const handleCheckout = async () => {
@@ -106,6 +113,7 @@ export default function PricingPage() {
     try {
       const response = await fetch(`${API}/api/checkout/create`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -148,6 +156,7 @@ export default function PricingPage() {
     }
     const response = await fetch(`${API}/api/checkout/create`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ plan_id: selectedPlan, payment_method: 'paypal', origin_url: window.location.origin }),
     });
@@ -168,6 +177,7 @@ export default function PricingPage() {
     try {
       const response = await fetch(`${API}/api/paypal/capture/${data.orderID}`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!response.ok) {

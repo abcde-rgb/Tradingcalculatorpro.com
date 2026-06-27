@@ -256,6 +256,24 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ⏳ **Pendiente (ops)**: configurar DNS + Custom domain en GitHub Pages antes de mergear
   (pasos exactos en DEPLOY_CHECKLIST §G).
 
+### 2026-06-27 — Fix de 3 crashes críticos (encontrados en code-review + verify runtime)
+- 🐛 **PayPal capture 500**: `db.payment_transactions.find_one_and_update(...)` no existía en el
+  shim → `AttributeError`. **Fix**: implementado `Collection.find_one_and_update` atómico
+  (`SELECT … FOR UPDATE` + operadores). Verificado: el claim funciona (503 PayPal-no-config es
+  el camino esperado sin credenciales).
+- 🐛 **Todos los endpoints de referidos 500**: `_require_user_proxy`/`_require_admin_proxy`
+  (en `referrals.py` Y `missing_apis.py`) llamaban `require_user(credentials)` pero el refactor
+  de auth cambió la firma a `(request, credentials)`. **Fix**: los proxies inyectan y pasan
+  `request`. (También afectaba verificación de email, cambio de plan, export, save-to-journal.)
+- 🐛 **Agregado del shim no agrupaba** (`_id:None` / múltiples acumuladores): `referrals/me` y
+  `leaderboard` devolvían docs crudos → `KeyError`. **Fix**: push-down SQL restringido al caso
+  `$sum:1` (COUNT); agrupación en Python para el resto ($sum de campo, $first, $max, $min).
+- 🐛 **PricingPage pagos rotos tras recarga**: 3 fetch sin `credentials:'include'` y `refreshUser`
+  nunca llamado → `Bearer null`. **Fix**: `credentials:'include'` + `refreshUser()` en mount.
+- ✅ **Verificado en runtime** (Postgres 16 real + backend): referrals/me 200 (total 15),
+  leaderboard 200 (email+totales correctos), PayPal sin AttributeError, track/heatmap 200.
+  17 tests unitarios verde; build frontend exit 0.
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.

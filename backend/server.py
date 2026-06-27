@@ -491,6 +491,59 @@ class Collection:
             else:
                 return _UpdateResult(matched=0, modified=0)
 
+    async def find_one_and_update(self, filter_dict: dict, update_dict: dict,
+                                  *, upsert: bool = False, return_document: bool = True):
+        """Atomically find one matching row, apply the update operators and return
+        the document — Mongo's find_one_and_update. Uses SELECT ... FOR UPDATE inside
+        a transaction so concurrent callers can't both claim the same row (needed by
+        the PayPal capture's pending→capturing claim). Returns the updated doc
+        (return_document=True) or the pre-update doc (False); None if no match and
+        not upsert.
+        """
+        self._require_pool()
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                if filter_dict:
+                    where, params, _ = _build_where_clause(filter_dict)
+                    if where:
+                        row = await conn.fetchrow(
+                            f"SELECT _key, data FROM {self._name} WHERE {where} LIMIT 1 FOR UPDATE",
+                            *params,
+                        )
+                    else:
+                        row = await conn.fetchrow(
+                            f"SELECT _key, data FROM {self._name} LIMIT 1 FOR UPDATE")
+                else:
+                    row = await conn.fetchrow(
+                        f"SELECT _key, data FROM {self._name} LIMIT 1 FOR UPDATE")
+
+                if row:
+                    existing = _deserialize(row["data"])
+                    merged = _apply_update_operators(existing, update_dict)
+                    await conn.execute(
+                        f"UPDATE {self._name} SET data = $1::jsonb WHERE _key = $2",
+                        _serialize(merged), row["_key"],
+                    )
+                    return merged if return_document else existing
+
+                if upsert:
+                    new_doc = {k: v for k, v in filter_dict.items() if not k.startswith("$")}
+                    new_doc = _apply_update_operators(new_doc, update_dict)
+                    if "_id" in filter_dict and isinstance(filter_dict["_id"], str):
+                        key = filter_dict["_id"]
+                    else:
+                        key = _doc_key(new_doc)
+                        if "id" not in new_doc and "_id" not in new_doc:
+                            new_doc["id"] = key
+                    await conn.execute(
+                        f"INSERT INTO {self._name} (_key, data) VALUES ($1, $2::jsonb) "
+                        f"ON CONFLICT (_key) DO UPDATE SET data = EXCLUDED.data",
+                        key, _serialize(new_doc),
+                    )
+                    return new_doc
+
+                return None
+
     async def delete_one(self, filter_dict: dict):
         """DELETE one matching row."""
         self._require_pool()
@@ -601,6 +654,7 @@ class _AggCursor:
         """Execute the pipeline. GROUP+COUNT pipelines are pushed to SQL to avoid OOM."""
         match_filter = {}
         group_id_field = None
+        group_stage = None
         sum_field = None
         sort_spec = None
         limit_n = None
@@ -610,8 +664,9 @@ class _AggCursor:
             if "$match" in stage:
                 match_filter = stage["$match"]
             elif "$group" in stage:
-                group_id_field = stage["$group"].get("_id")
-                for k, v in stage["$group"].items():
+                group_stage = stage["$group"]
+                group_id_field = group_stage.get("_id")
+                for k, v in group_stage.items():
                     if k == "_id":
                         continue
                     if isinstance(v, dict) and "$sum" in v:
@@ -623,8 +678,20 @@ class _AggCursor:
             elif "$project" in stage:
                 project_spec = stage["$project"]
 
-        # Push GROUP BY + ORDER BY + LIMIT to SQL when grouping by a simple $field
-        if group_id_field is not None and isinstance(group_id_field, str) and group_id_field.startswith("$"):
+        # The SQL push-down below emits COUNT(*), so it is ONLY correct for the
+        # simple "group by $field, one {$sum: 1}" count case (admin usage/metrics).
+        # Anything else — _id: None, several accumulators, $first, or $sum of a
+        # field — must be grouped in Python (handled in the fallback) or columns
+        # would be dropped / computed as a wrong COUNT.
+        _accs = [(k, v) for k, v in group_stage.items() if k != "_id"] if group_stage else []
+        is_simple_count = (
+            isinstance(group_id_field, str) and group_id_field.startswith("$")
+            and len(_accs) == 1
+            and _accs[0][1] == {"$sum": 1}
+        )
+
+        # Push GROUP BY + ORDER BY + LIMIT to SQL for the simple count-by-$field case
+        if is_simple_count:
             field_name = group_id_field[1:]
             if not _SAFE_FIELD_RE.match(field_name):
                 raise ValueError(f"Unsafe group field: {field_name!r}")
@@ -678,7 +745,54 @@ class _AggCursor:
                 rows = await conn.fetch(f"SELECT data FROM {self._table}")
         docs = [_deserialize(r["data"]) for r in rows]
 
-        result_docs = docs
+        # $group in Python — the SQL push-down above only covers the simple count.
+        # Supports _id: None | constant | "$field", and $sum / $first / $max / $min
+        # accumulators (operand may be a constant or a "$field" reference).
+        if group_stage is not None:
+            id_spec = group_stage.get("_id")
+
+            def _grp_key(d):
+                if isinstance(id_spec, str) and id_spec.startswith("$"):
+                    return d.get(id_spec[1:])
+                return id_spec  # None or a constant
+
+            def _operand(av, key, d):
+                val = av[key]
+                return d.get(val[1:]) if isinstance(val, str) and val.startswith("$") else val
+
+            groups: dict = {}
+            order: list = []
+            for d in docs:
+                gk = _grp_key(d)
+                hk = gk if isinstance(gk, (str, int, float, bool, type(None))) else str(gk)
+                if hk not in groups:
+                    groups[hk] = {"_id": gk}
+                    order.append(hk)
+                    for ak, av in _accs:
+                        groups[hk][ak] = 0 if isinstance(av, dict) and "$sum" in av else None
+                for ak, av in _accs:
+                    if not isinstance(av, dict):
+                        continue
+                    if "$sum" in av:
+                        operand = av["$sum"]
+                        if isinstance(operand, str) and operand.startswith("$"):
+                            groups[hk][ak] += float(d.get(operand[1:]) or 0)
+                        else:
+                            groups[hk][ak] += operand or 0
+                    elif "$first" in av:
+                        if groups[hk][ak] is None:
+                            groups[hk][ak] = _operand(av, "$first", d)
+                    elif "$max" in av:
+                        v = _operand(av, "$max", d)
+                        if v is not None and (groups[hk][ak] is None or v > groups[hk][ak]):
+                            groups[hk][ak] = v
+                    elif "$min" in av:
+                        v = _operand(av, "$min", d)
+                        if v is not None and (groups[hk][ak] is None or v < groups[hk][ak]):
+                            groups[hk][ak] = v
+            result_docs = [groups[k] for k in order]
+        else:
+            result_docs = docs
 
         # Sort (default-arg capture avoids late-binding closure bug)
         if sort_spec:
