@@ -40,7 +40,7 @@ jobs:
           REACT_APP_GTM_ID: ${{ secrets.REACT_APP_GTM_ID }}
           REACT_APP_GSC_VERIFICATION: ${{ secrets.REACT_APP_GSC_VERIFICATION }}
           REACT_APP_BING_VERIFICATION: ${{ secrets.REACT_APP_BING_VERIFICATION }}
-          PUBLIC_URL: /Tradingcalculatorpro.com
+          PUBLIC_URL: /
           CI: false
         run: npm run build
 
