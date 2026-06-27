@@ -1333,6 +1333,7 @@ export default {
     userFallback: 'User',
     subscription: 'Subscription',
     disclaimer: 'Data is informational. Does not constitute financial advice. Investing involves risks.',
+    riskWarning: 'Risk warning',
     themeAriaLabel: 'Toggle theme',
     languageAriaLabel: 'Language',
     optionsAcademy: 'Options Academy',

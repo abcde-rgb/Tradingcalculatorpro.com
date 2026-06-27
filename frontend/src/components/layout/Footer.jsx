@@ -112,7 +112,7 @@ export function Footer() {
               <li><Link to="/legal" className="hover:text-primary transition-colors">{t('terms') || 'Términos de uso'}</Link></li>
               <li><Link to="/legal" className="hover:text-primary transition-colors">{t('privacyPolicy') || 'Privacidad'}</Link></li>
               <li><Link to="/legal" className="hover:text-primary transition-colors">{t('cookies') || 'Cookies'}</Link></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Disclaimer</a></li>
+              <li><Link to="/legal?tab=risk" className="hover:text-primary transition-colors">{t('riskWarning') || 'Advertencia de riesgo'}</Link></li>
             </ul>
           </div>
         </div>

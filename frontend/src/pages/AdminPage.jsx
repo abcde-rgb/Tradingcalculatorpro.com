@@ -523,11 +523,19 @@ const INTEGRATION_SECTIONS = [
     ],
   },
   {
+    id: 'oxapay',
+    title: 'OxaPay (pagos con criptomonedas)',
+    description: 'Pasarela crypto no-KYC. Pon Sandbox="true" para pruebas y "false" en producción. La clave se aplica en caliente.',
+    fields: [
+      { id: 'oxapay_api_key', label: 'Merchant API Key', secret: true,  placeholder: 'XXXXXX-XXXXXX-…', hint: 'app.oxapay.com → Merchant → API Key (es también el secreto del webhook)' },
+      { id: 'oxapay_sandbox', label: 'Sandbox',          secret: false, placeholder: 'true | false',     hint: 'Usa "true" para el sandbox de pruebas, "false" en producción' },
+    ],
+  },
+  {
     id: 'others',
-    title: 'Otras integraciones (Crypto, SEO, Email, Reviews)',
+    title: 'Otras integraciones (SEO, Email, Reviews)',
     description: '',
     fields: [
-      { id: 'coinbase_api_key',       label: 'Coinbase Commerce API Key', secret: true,  placeholder: '0123abcd-…',  hint: 'commerce.coinbase.com → Settings → API Keys' },
       { id: 'sendgrid_api_key',       label: 'SendGrid API Key',          secret: true,  placeholder: 'SG.…',         hint: 'app.sendgrid.com → Settings → API Keys' },
       { id: 'trustpilot_business_id', label: 'Trustpilot Business URL',   secret: false, placeholder: 'midominio.com', hint: 'business.trustpilot.com — usa el slug de la URL' },
       { id: 'clarity_project_id',     label: 'Microsoft Clarity Project', secret: false, placeholder: 'a1b2c3d4',     hint: 'clarity.microsoft.com → Settings → Setup' },

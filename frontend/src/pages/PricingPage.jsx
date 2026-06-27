@@ -37,7 +37,7 @@ const PAYMENT_METHODS_DATA = [
 // Processor name displayed in "Secure payment via {processor}" footer
 const PAYMENT_PROCESSOR_NAMES = {
   card: 'Stripe',
-  crypto: 'Stripe (Crypto)',
+  crypto: 'OxaPay',
   paypal: 'PayPal',
   sepa: 'Stripe (SEPA)',
   klarna: 'Klarna',

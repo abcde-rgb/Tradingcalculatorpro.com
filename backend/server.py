@@ -3357,6 +3357,38 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         approval = next((l["href"] for l in order.get("links", []) if l["rel"] == "approve"), None)
         transaction["checkout_url"] = approval
 
+    elif payment_method in ("crypto", "oxapay"):
+        # Crypto via OxaPay (no-KYC crypto gateway). The hosted payment URL is
+        # returned synchronously; the actual premium grant happens in the
+        # HMAC-verified /webhook/oxapay callback once the payment settles.
+        from oxapay import OxaPayError, create_invoice as _ox_create_invoice
+
+        ox_api_key = await get_setting("oxapay_api_key")
+        ox_default_sandbox = os.environ.get("ENVIRONMENT", "production") != "production"
+        ox_sandbox = (await get_setting("oxapay_sandbox") or str(ox_default_sandbox)).strip().lower() in ("1", "true", "yes", "on")
+        if not ox_api_key:
+            raise HTTPException(status_code=503, detail="Pago con criptomonedas (OxaPay) no está configurado. Contacta soporte.")
+
+        backend_base = (os.environ.get("BACKEND_PUBLIC_URL", "").strip() or str(request.base_url)).rstrip("/")
+        try:
+            ox_invoice = await _ox_create_invoice(
+                api_key=ox_api_key,
+                amount=float(plan["price"]),
+                currency=plan.get("currency", "EUR"),
+                order_id=transaction["id"],
+                description=f"TradingCalculator.Pro — Plan {plan['name']}",
+                callback_url=f"{backend_base}/api/webhook/oxapay",
+                return_url=f"{origin_url}/payment/success",
+                email=user.get("email"),
+                sandbox=ox_sandbox,
+            )
+        except OxaPayError as _e:
+            logging.error(f"[oxapay] create invoice error: {_e}")
+            raise HTTPException(status_code=502, detail="Error al crear el pago con criptomonedas. Inténtalo de nuevo.")
+        transaction["oxapay_track_id"] = ox_invoice.get("track_id")
+        transaction["oxapay_sandbox"] = ox_sandbox
+        transaction["checkout_url"] = ox_invoice["payment_url"]
+
     elif payment_method in _PAYMENT_METHODS_MAP:
         session = await _create_stripe_session(
             plan,
@@ -3691,6 +3723,87 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             logging.error(f"[stripe-webhook] checkout.session.completed error: {e}")
             return {"status": "error"}
 
+    return {"status": "received"}
+
+
+@api_router.post("/webhook/oxapay")
+async def oxapay_webhook(request: Request) -> Dict[str, str]:
+    """OxaPay crypto payment callback (HMAC-SHA512 verified).
+
+    Grants premium once the crypto payment settles (status == 'paid'). The raw
+    body is signed by OxaPay with the merchant API key — we reject any callback
+    whose HMAC doesn't verify. Idempotent: a re-delivered or out-of-order
+    webhook is a safe no-op. The order_id we send is the (unguessable UUID)
+    payment_transactions.id, tying the callback back to the user/plan.
+    """
+    from oxapay import parse_webhook, verify_webhook, webhook_order_id, webhook_is_paid
+
+    raw_body = await request.body()
+    ox_api_key = await get_setting("oxapay_api_key")
+    if not verify_webhook(raw_body, request.headers.get("HMAC"), ox_api_key):
+        logging.warning("[oxapay-webhook] invalid/missing HMAC signature — rejected")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    data = parse_webhook(raw_body)
+    order_id = webhook_order_id(data)
+    if not order_id:
+        logging.warning("[oxapay-webhook] missing order id in payload: %s", str(data)[:300])
+        return {"status": "ignored"}
+
+    transaction = await db.payment_transactions.find_one({"id": order_id}, {"_id": 0})
+    if not transaction:
+        logging.warning("[oxapay-webhook] unknown order id: %s", order_id)
+        return {"status": "ignored"}
+    if transaction.get("status") == "paid":
+        return {"status": "already_processed"}
+
+    if not webhook_is_paid(data):
+        # new / waiting / confirming / expired / failed — record the latest
+        # status, keep the transaction claimable so a later 'paid' can settle.
+        await db.payment_transactions.update_one(
+            {"id": order_id},
+            {"$set": {"oxapay_last_status": str(data.get("status") or "")[:40]}},
+        )
+        return {"status": "received"}
+
+    # Atomically claim the pending transaction to prevent a double grant.
+    claimed = await db.payment_transactions.find_one_and_update(
+        {"id": order_id, "status": "pending"},
+        {"$set": {"status": "capturing"}},
+    )
+    if not claimed:
+        return {"status": "already_processed"}
+
+    plan_id = transaction["plan_id"]
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        logging.error("[oxapay-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
+        return {"status": "error"}
+
+    await _activate_paid_subscription(
+        user_id=transaction["user_id"],
+        plan_id=plan_id,
+        plan=plan,
+        transaction_id=order_id,
+        session_id="",
+    )
+    try:
+        from referrals import credit_referrer_for_payment
+        await credit_referrer_for_payment(
+            referee_user_id=transaction["user_id"],
+            plan_id=plan_id,
+            plan_amount=float(plan.get("price", 0)),
+            plan_currency=plan.get("currency", "EUR"),
+            transaction_id=order_id,
+        )
+    except Exception as e:
+        logging.warning(f"[oxapay-webhook] referral credit error: {e}")
+
+    logging.info(
+        "[oxapay-webhook] subscription activated: user=%s plan=%s order=%s",
+        transaction["user_id"], plan_id, order_id,
+    )
     return {"status": "received"}
 
 # ============= SUBSCRIPTION MANAGEMENT ROUTES =============
@@ -5589,6 +5702,8 @@ PUBLIC_SETTING_KEYS = (
     # PayPal
     "paypal_client_id",
     "paypal_mode",                # "sandbox" | "live"
+    # OxaPay (crypto) — only the sandbox flag is public; the key is secret
+    "oxapay_sandbox",             # "true" | "false"
     # Misc
     "trustpilot_business_id",
     "clarity_project_id",
@@ -5600,7 +5715,8 @@ SECRET_SETTING_KEYS = (
     "stripe_secret_key",
     "stripe_webhook_secret",
     "paypal_client_secret",
-    "coinbase_api_key",
+    "coinbase_api_key",           # legacy/unused — superseded by OxaPay
+    "oxapay_api_key",             # Merchant API key (also the webhook HMAC secret)
     "sendgrid_api_key",
 )
 
@@ -5623,6 +5739,8 @@ _SETTING_ENV_FALLBACK: Dict[str, str] = {
     "paypal_client_secret":   "PAYPAL_CLIENT_SECRET",
     "paypal_mode":            "PAYPAL_MODE",
     "coinbase_api_key":       "COINBASE_API_KEY",
+    "oxapay_api_key":         "OXAPAY_API_KEY",
+    "oxapay_sandbox":         "OXAPAY_SANDBOX",
     "sendgrid_api_key":       "SENDGRID_API_KEY",
     "trustpilot_business_id": "REACT_APP_TRUSTPILOT_BUSINESS_ID",
     "clarity_project_id":     "REACT_APP_CLARITY_PROJECT_ID",
@@ -5648,6 +5766,8 @@ class AdminSettingsUpdate(BaseModel):
     paypal_mode: Optional[str] = None
     # Crypto / email / misc
     coinbase_api_key: Optional[str] = None
+    oxapay_api_key: Optional[str] = None
+    oxapay_sandbox: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
     trustpilot_business_id: Optional[str] = None
     clarity_project_id: Optional[str] = None

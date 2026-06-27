@@ -1560,6 +1560,7 @@ export default {
     userFallback: 'Usuario',
     subscription: 'Suscripción',
     disclaimer: 'Los datos son informativos. No constituyen asesoramiento financiero. Invertir conlleva riesgos.',
+    riskWarning: 'Advertencia de riesgo',
     themeAriaLabel: 'Cambiar tema',
     languageAriaLabel: 'Idioma',
     optionsAcademy: 'Academia de Opciones',

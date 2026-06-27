@@ -885,6 +885,7 @@ export default {
     userFallback: 'ユーザー',
     subscription: 'サブスクリプション',
     disclaimer: 'データは情報提供を目的としており、金融アドバイスではありません。投資にはリスクが伴います。',
+    riskWarning: 'リスク警告',
     themeAriaLabel: 'テーマ切替',
     languageAriaLabel: '言語',
     optionsAcademy: 'オプションアカデミー',

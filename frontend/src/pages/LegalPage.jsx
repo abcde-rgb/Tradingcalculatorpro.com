@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Shield, FileText, Cookie, ChevronRight } from 'lucide-react';
+import { Shield, FileText, Cookie, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useSEO } from '@/hooks/useSEO';
 
 const LAST_UPDATED = 'Mayo 2026';
@@ -471,11 +471,113 @@ function CookiePolicy() {
 }
 
 // ---------------------------------------------------------------------------
+// Risk Disclosure — sourced statistics on retail-trading losses
+// ---------------------------------------------------------------------------
+function StatCallout({ figure, children }) {
+  return (
+    <div className="flex gap-4 items-start rounded-xl border border-destructive/30 bg-destructive/5 p-4 mb-3">
+      <div className="text-2xl sm:text-3xl font-extrabold text-destructive shrink-0 leading-none min-w-[4.5rem]">
+        {figure}
+      </div>
+      <p className="text-sm text-muted-foreground leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
+function RiskDisclosure() {
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 rounded-lg bg-destructive/10">
+          <AlertTriangle className="h-6 w-6 text-destructive" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Advertencia de Riesgo</h2>
+          <p className="text-xs text-muted-foreground">Última actualización: {LAST_UPDATED}</p>
+        </div>
+      </div>
+
+      <Para>
+        <strong className="text-foreground">
+          Operar en los mercados financieros conlleva un riesgo elevado de pérdida. La gran mayoría de
+          los traders minoristas pierden dinero.
+        </strong>{' '}
+        Antes de operar con dinero real, conviene que conozcas estos datos verificados e independientes.
+        No son nuestra opinión: son cifras de reguladores y de estudios académicos.
+      </Para>
+
+      <SectionTitle number={1} title="Los datos hablan claro" />
+
+      <StatCallout figure="74–89%">
+        de las <strong className="text-foreground">cuentas minoristas de CFDs pierden dinero</strong>,
+        según el regulador europeo (ESMA). La pérdida media por cliente se sitúa entre 1.600 € y 29.000 €.
+        Por eso la ley obliga a cada bróker a mostrar este porcentaje en su publicidad.
+      </StatCallout>
+
+      <StatCallout figure="97%">
+        de quienes hicieron <strong className="text-foreground">day trading durante más de 300 días</strong>{' '}
+        perdieron dinero (estudio sobre el mercado de futuros de Brasil, 2013–2015). Solo el 1,1% ganó más
+        que el salario mínimo y solo el 0,5% más que el sueldo inicial de un cajero de banco. Los autores
+        concluyen que es <em>«virtualmente imposible vivir del day trading»</em> y no hallaron mejora con
+        la experiencia.
+      </StatCallout>
+
+      <StatCallout figure="&lt;1%">
+        de los day traders son rentables de forma <strong className="text-foreground">consistente y
+        predecible</strong>, según estudios clásicos sobre el mercado de Taiwán (Barber &amp; Odean);
+        en torno al 80% pierde dinero.
+      </StatCallout>
+
+      <SectionTitle number={2} title="Qué significa esto para ti" />
+      <List items={[
+        'La rentabilidad sostenida en el trading minorista es rara: menos del 1-3% lo consigue a largo plazo.',
+        'Los resultados pasados no garantizan ni predicen los resultados futuros.',
+        'Puedes perder la totalidad del capital invertido. En productos apalancados (CFDs, futuros, opciones) las pérdidas pueden producirse muy rápido e incluso superar el depósito inicial.',
+        'Los costes (comisiones, spreads, slippage e impuestos) juegan en tu contra de forma acumulada.',
+        'Factores psicológicos y sesgos de comportamiento (exceso de confianza, operar por venganza, sobreoperar) empeoran los resultados de la mayoría.',
+      ]} />
+
+      <SectionTitle number={3} title="Nuestra postura" />
+      <Para>
+        <strong className="text-foreground">
+          TradingCalculator.pro ofrece herramientas informativas y educativas — no asesoramiento
+          financiero, no señales y no promesas de rentabilidad.
+        </strong>{' '}
+        Mostramos estas cifras porque queremos que decidas con información veraz. Opera únicamente con
+        dinero que puedas permitirte perder y, si lo necesitas, consulta a un asesor financiero
+        debidamente autorizado. Consulta también nuestros{' '}
+        <Link to="/legal?tab=terms" className="text-primary hover:underline">Términos de Uso</Link>.
+      </Para>
+
+      <SectionTitle number={4} title="Fuentes" />
+      <List items={[
+        <>ESMA (Autoridad Europea de Valores y Mercados) — medidas de intervención sobre CFDs:{' '}
+          <a href="https://www.esma.europa.eu/press-news/esma-news/esma-adopts-final-product-intervention-measures-cfds-and-binary-options"
+             target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-words">esma.europa.eu</a>.</>,
+        <>Chague, De-Losso &amp; Giovannetti (2020), «Day Trading for a Living?» — FGV/USP:{' '}
+          <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3423101"
+             target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-words">papers.ssrn.com</a>.</>,
+        'Barber, Lee, Liu & Odean — investigaciones sobre el rendimiento de los day traders en el mercado de Taiwán.',
+      ]} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
+const VALID_TABS = ['privacy', 'terms', 'cookies', 'risk'];
+
 export default function LegalPage() {
   useSEO({ titleKey: 'seoLegalTitle', descriptionKey: 'seoLegalDesc', canonicalPath: '/legal' });
-  const [activeTab, setActiveTab] = useState('privacy');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'privacy';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    setSearchParams(value === 'privacy' ? {} : { tab: value }, { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -496,7 +598,7 @@ export default function LegalPage() {
         </div>
 
         {/* Tab navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="w-full mb-8 h-auto flex flex-wrap gap-1 bg-muted p-1 rounded-lg">
             <TabsTrigger
               value="privacy"
@@ -518,6 +620,13 @@ export default function LegalPage() {
             >
               <Cookie className="h-4 w-4 shrink-0" />
               <span>Política de Cookies</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="risk"
+              className="flex-1 flex items-center justify-center gap-2 py-2 text-xs sm:text-sm"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>Advertencia de Riesgo</span>
             </TabsTrigger>
           </TabsList>
 
@@ -541,6 +650,14 @@ export default function LegalPage() {
             <Card className="bg-card border-border">
               <CardContent className="p-6 sm:p-8">
                 <CookiePolicy />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="risk">
+            <Card className="bg-card border-border">
+              <CardContent className="p-6 sm:p-8">
+                <RiskDisclosure />
               </CardContent>
             </Card>
           </TabsContent>

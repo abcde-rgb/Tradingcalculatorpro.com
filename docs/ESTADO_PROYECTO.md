@@ -27,6 +27,8 @@
 | **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
+| **OxaPay / crypto (código)** | 🟢 | Invoice + webhook HMAC implementados y probados (activación + idempotencia + rechazo de firma inválida) |
+| **OxaPay / crypto (operación)** | 🔴 | Falta Merchant API Key en panel admin + **test en `sandbox`** (round-trip saliente no verificable offline) |
 | **DNS / dominio `tradingcalculatorpro.com`** | ❓ | Verificar apuntado (ver DEPLOY_CHECKLIST) |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
@@ -52,7 +54,7 @@
 - **47 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
   en `lib/assets.js`.
 - **i18n: 8 idiomas** (`lib/i18n/`): es, en, de, fr, ru, zh, ja, ar.
-- **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`).
+- **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **OxaPay** (crypto, botón "Criptomonedas").
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
 - **Analítica/SEO**: GA4 + GTM + GSC/Bing, `sitemap.xml`, `robots.txt`, `og-image`,
   `manifest.json` (PWA), hook `useSEO`.
@@ -144,6 +146,10 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - **GCP**: Cloud Run service, Cloud SQL `trading-db` (europe-west1), Secret Manager,
   Workload Identity Federation, Artifact Registry `trading-repo`.
 - **Stripe**: productos/precios, webhook endpoint apuntando a `…/api/webhook/stripe`.
+- **OxaPay** (crypto): Merchant API Key en panel admin (o `OXAPAY_API_KEY` en Secret Manager),
+  `oxapay_sandbox` = `true`|`false`, y registrar el callback `…/api/webhook/oxapay` en su dashboard
+  (la misma API Key firma el webhook con HMAC-SHA512). Probar primero con `sandbox=true`. Opcional:
+  `BACKEND_PUBLIC_URL` si `request.base_url` no resuelve al host público.
 - **Google Cloud Console**: OAuth client + orígenes autorizados.
 - **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculatorpro.com`).
 - **GitHub**: Secrets de Actions (ver DEPLOY_CHECKLIST) + branch protection.
@@ -284,6 +290,57 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   (real **17€**) → corregido en es/en. Stat de la landing **"250+" activos** → **"50+"** (hay 47
   curados) + etiqueta `statsAssets` simplificada.
 - ✅ Build exit 0.
+
+### 2026-06-27 (cont. 2) — Pago crypto: Stripe(roto) → MaxelPay
+- 🔁 **Motivo**: el botón "Criptomonedas" estaba etiquetado "Stripe (Crypto)" pero `crypto` **no**
+  estaba en `_PAYMENT_METHODS_MAP` → `/checkout/create` devolvía `checkout_url: null` y no pasaba
+  nada (roto en TODOS los planes). Coinbase solo era una clave de settings muerta. Sustituido por
+  **MaxelPay** (pasarela crypto no-KYC).
+- ➕ **`backend/maxelpay.py`** (módulo puro, sin DB): AES-256-CBC (key=secret, iv=secret[:16],
+  base64) aislado en `_encrypt`/`_decrypt`, `build_payload` (campos camelCase exactos),
+  `create_checkout_url` (POST `api.maxelpay.com/v1/{stg|prod}/merchant/order/checkout`, header
+  `api-key`, body `{data}`), `parse_webhook`/`webhook_order_id`/`webhook_is_paid` (tolerantes a
+  variantes y a envelope cifrado).
+- 🔌 **`server.py`**: rama `crypto`→MaxelPay en `/checkout/create`; endpoint **`POST /webhook/maxelpay`**
+  (reutiliza `_activate_paid_subscription` + `credit_referrer_for_payment`, claim atómico
+  `find_one_and_update` para idempotencia). Claves `maxelpay_api_key`/`maxelpay_secret_key` (secretas,
+  cifradas con Fernet) + `maxelpay_mode` (público) en el sistema de settings (admin + env fallback).
+- 🖥️ **Frontend**: `PricingPage` muestra "Pago seguro vía **MaxelPay**". `AdminPage`: nuevo grupo
+  "MaxelPay (pagos con criptomonedas)" con API Key / Secret / Mode; quitado el campo muerto de Coinbase.
+- ✅ **Verificado**: 26 tests unitarios del módulo (round-trip de cifrado incluido) + 43 unit totales.
+  **Smoke E2E contra Postgres real** (5/5): webhook orden-desconocida→ignored, pending→sin premium,
+  Completed→**premium concedido + tx pagada**, replay→already_processed, checkout sin config→503.
+  La llamada saliente a MaxelPay **no** es verificable offline (red bloqueada) → **pendiente test `stg`**.
+- ✅ Build frontend exit 0.
+
+### 2026-06-27 (cont. 3) — Pago crypto: MaxelPay → OxaPay (a petición)
+- 🔁 **Motivo**: se sustituye MaxelPay por **OxaPay** (otra pasarela crypto no-KYC). Ventaja: API
+  JSON plana + verificación **HMAC-SHA512** del webhook (más segura y sin el handshake de cifrado AES
+  de MaxelPay que no era verificable offline). Contrato tomado **verbatim del SDK oficial** `oxapay` 0.3.0.
+- ➖ Eliminados `backend/maxelpay.py` y su test.
+- ➕ **`backend/oxapay.py`** (módulo puro): `create_invoice` (POST `api.oxapay.com/v1/payment/invoice`,
+  header `merchant_api_key`, JSON snake_case, `sandbox` bool), `verify_webhook` (HMAC-SHA512 del body
+  crudo, `compare_digest`), `parse_webhook`, `webhook_order_id`, `webhook_is_paid` (status==`paid`).
+- 🔌 **`server.py`**: rama `crypto`→OxaPay en `/checkout/create`; endpoint **`POST /webhook/oxapay`**
+  que **verifica el HMAC antes de actuar** (401 si falla) y reutiliza `_activate_paid_subscription` +
+  `credit_referrer_for_payment` con claim atómico (idempotencia). Settings: `oxapay_api_key` (secreto,
+  Fernet) + `oxapay_sandbox` (público), con fallback por env var.
+- 🖥️ **Frontend/Admin**: botón crypto → "Pago seguro vía **OxaPay**"; grupo admin "OxaPay (pagos con
+  criptomonedas)" con Merchant API Key + Sandbox.
+- ✅ **Verificado**: tests unitarios (incl. HMAC genuino→OK, body manipulado/clave incorrecta→rechazo).
+  **Smoke E2E contra Postgres real**: webhook con **firma inválida→401**, firma válida `paid`→**premium
+  concedido + tx pagada**, replay→already_processed, checkout sin config→503. Build frontend exit 0.
+  La llamada saliente a OxaPay requiere **test en sandbox** con API Key real (red bloqueada offline).
+
+### 2026-06-27 (cont. 4) — Advertencia de Riesgo con datos reales
+- ➕ Nueva pestaña **"Advertencia de Riesgo"** en `/legal` (`LegalPage.jsx`) con estadísticas
+  **verificadas y citadas**: 74–89% de cuentas minoristas de CFDs pierden (ESMA), 97% en day trading
+  >300 días (estudio Brasil 2020), <1% rentable consistente (Taiwán, Barber & Odean). Con fuentes.
+- 🔗 Footer: el enlace "Disclaimer" estaba **muerto** (`href="#"`); ahora apunta a `/legal?tab=risk`
+  con clave i18n `riskWarning` añadida a los **8 idiomas**. `LegalPage` soporta deep-link `?tab=`.
+- ⚠️ Nota: se rechazó poner el reclamo falso "se pierde 100% seguro" (la probabilidad de perder NO es
+  del 100%); se usan las cifras reales, que ya son contundentes y además protegen legalmente.
+- ✅ Build frontend exit 0. Verificado visualmente (captura de la pestaña).
 
 ## Cómo mantener este documento
 

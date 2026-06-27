@@ -1077,6 +1077,7 @@ export default {
     userFallback: 'Benutzer',
     subscription: 'Abonnement',
     disclaimer: 'Daten dienen nur zu Informationszwecken. Keine Finanzberatung. Investieren birgt Risiken.',
+    riskWarning: 'Risikohinweis',
     themeAriaLabel: 'Design wechseln',
     languageAriaLabel: 'Sprache',
     optionsAcademy: 'Optionen-Akademie',

@@ -809,6 +809,7 @@ export default {
     userFallback: 'مستخدم',
     subscription: 'اشتراك',
     disclaimer: 'البيانات لأغراض إعلامية. لا تشكل نصيحة مالية. الاستثمار ينطوي على مخاطر.',
+    riskWarning: 'تحذير المخاطر',
     themeAriaLabel: 'تبديل السمة',
     languageAriaLabel: 'اللغة',
     optionsAcademy: 'أكاديمية الخيارات',
