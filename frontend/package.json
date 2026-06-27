@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://tradingcalculator.pro",
+  "homepage": "https://abcde-rgb.github.io/Tradingcalculatorpro.com",
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
     "@paypal/react-paypal-js": "^10.0.0",
