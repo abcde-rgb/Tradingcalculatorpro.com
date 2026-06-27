@@ -27,7 +27,7 @@
 | **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
-| **DNS / dominio `tradingcalculator.pro`** | ❓ | Verificar apuntado (ver DEPLOY_CHECKLIST) |
+| **DNS / dominio `tradingcalculatorpro.com`** | ❓ | Verificar apuntado (ver DEPLOY_CHECKLIST) |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
 > Leyenda: 🟢 listo · 🟡 funciona con condiciones · 🔴 bloquea · ❓ requiere verificación externa (ops)
@@ -120,7 +120,7 @@
 ### P0 — Bloquea lanzamiento (ops)
 - [ ] Verificar **todos los secretos** en GitHub (frontend) y GCP Secret Manager (backend).
 - [ ] Verificar **Stripe** real: productos, price IDs (`price_1TXM8...`), webhook `whsec_...`.
-- [ ] Verificar **dominio** `tradingcalculator.pro` y CNAME de GitHub Pages.
+- [ ] Verificar **dominio** `tradingcalculatorpro.com` y CNAME de GitHub Pages.
 - [ ] Confirmar **Google OAuth**: origen `https://abcde-rgb.github.io` autorizado.
 
 ### P1 — Robustez antes de escalar
@@ -145,9 +145,9 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Workload Identity Federation, Artifact Registry `trading-repo`.
 - **Stripe**: productos/precios, webhook endpoint apuntando a `…/api/webhook/stripe`.
 - **Google Cloud Console**: OAuth client + orígenes autorizados.
-- **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculator.pro`).
+- **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculatorpro.com`).
 - **GitHub**: Secrets de Actions (ver DEPLOY_CHECKLIST) + branch protection.
-- **DNS**: `tradingcalculator.pro` / `www`.
+- **DNS**: `tradingcalculatorpro.com` / `www`.
 
 ---
 
@@ -201,6 +201,89 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   animado de marca (SVG que se dibuja), orbes animados, fila de confianza (cifrado/gratis/
   idiomas), tarjeta "glass" (`backdrop-blur`), entradas escalonadas. Mantiene auth, Google,
   validación e i18n intactos. Build exit 0 (+216 B), sin advertencias nuevas.
+
+### 2026-06-25 (cont. 3) — Consistencia auth + barrido de claves crudas
+- ✅ **Reset / Forgot / Magic** ahora usan `AuthShell` → mismo diseño que el login
+  rediseñado (panel de marca, Volver/X, tarjeta glass). Antes tenían un layout propio viejo.
+- 🐛 **Barrido del patrón `t('x') || 'fallback'`**: solo faltaba la clave `about`
+  (el footer mostraba "about" en crudo). Añadida a es/en. El resto de claves existen.
+- ✅ Build exit 0. Capturas de verificación generadas (login, registro, forgot, móvil).
+
+### 2026-06-25 (cont. 4) — Calendario de PnL en el journal
+- ✅ **Nuevo: calendario de PnL mensual** (estilo TradeZella) en la pestaña Analytics del
+  journal (`AnalyticsDashboard`): rejilla día×mes verde/rojo por PnL realizado, navegación de
+  mes y total mensual. La **curva de equity ya existía** (por nº de operación).
+- Backend: `compute_analytics` ahora devuelve `daily_pnl` (`[{date,pnl,n}]`) agrupado por
+  fecha de salida. 3 tests unitarios offline nuevos (`test_performance_unit.py`).
+- Claves i18n `pnlCalendar`, `tradingDays` (es/en). Build exit 0.
+
+### 2026-06-25 (cont. 5) — Pulido del dashboard
+- ✅ Animaciones de entrada (fade-up escalonado, framer-motion) en los bloques del
+  dashboard: bienvenida, stats, gráfico y panel de alertas/historial. Additivo, sin riesgo.
+
+### 2026-06-25 (cont. 6) — Detección de sesgos de comportamiento
+- ✅ **Nuevo**: `detect_behavioral_biases` en `performance.py` (efecto disposición,
+  revenge trading, overtrading, falta de stop) → expuesto en analytics como
+  `behavioral_biases`. Tarjeta nueva en `AnalyticsDashboard` con severidad + consejo
+  cuantificado. +4 tests unitarios (total 7 en `test_performance_unit.py`).
+- i18n: claves `biasTitle`/`bias*` (es/en) con interpolación de cifras. Build exit 0.
+- Nota: los **R-múltiplos ya existían** (`avg_r`, `r_distribution`) — no se duplicó.
+
+### 2026-06-26 — SEO: sitemap limpio + skill + generador
+- ✅ `sitemap.xml` regenerado (8 páginas públicas, hreflang completo, sin rutas con muro).
+- ✅ **Skill nuevo** `.claude/skills/mejorar-seo/` (auditoría + cómo añadir SEO + gotchas).
+- ✅ Generador reutilizable `frontend/scripts/gen-sitemap.js` (`node scripts/gen-sitemap.js`).
+- ⚠️ **Pendiente decisión**: dominio inconsistente — frontend usa `tradingcalculatorpro.com`,
+  backend CORS usa `tradingcalculatorpro.com`, hoy se sirve en github.io. Unificar antes de lanzar.
+
+### 2026-06-26 (cont.) — Auditoría SEO + fixes
+- 🐛 **Fix**: `useSEO` ponía `og-image.svg` como imagen social (las redes NO renderizan SVG)
+  → cambiado a `og-image.png` (1200×630). Ahora los compartidos muestran preview.
+- ✅ **Nuevo**: opción `noindex` en `useSEO`, aplicada a páginas privadas/utilidad
+  (dashboard, settings, admin, subscription, 404) → Google no las indexa.
+- 🔎 Auditoría: todas las páginas públicas usan `useSEO`; todas las claves `seo*` existen en
+  es.js; JSON-LD muy completo (Organization/WebSite/WebApplication/Course/FAQPage/Breadcrumb).
+- ⏳ Mayores palancas pendientes (no bloqueadas por código): **unificar dominio** y
+  **prerender** (react-snap/SSG) para que los crawlers vean HTML completo del SPA.
+
+### 2026-06-26 (cont. 2) — Dominio unificado a tradingcalculatorpro.com
+- ✅ Decidido el dominio: **`tradingcalculatorpro.com`**. Reemplazadas TODAS las referencias al
+  incorrecto `tradingcalculator.pro` (backend CORS/emails/FRONTEND_URL, configs, i18n, contacto,
+  docs) → 0 restantes.
+- ✅ Dominio personalizado de GitHub Pages: añadido `frontend/public/CNAME`, `homepage` y
+  `PUBLIC_URL` a raíz `/` (con dominio propio el sitio se sirve en la raíz). Build raíz
+  verificado (assets en `/static/`).
+- ⏳ **Pendiente (ops)**: configurar DNS + Custom domain en GitHub Pages antes de mergear
+  (pasos exactos en DEPLOY_CHECKLIST §G).
+
+### 2026-06-27 — Fix de 3 crashes críticos (encontrados en code-review + verify runtime)
+- 🐛 **PayPal capture 500**: `db.payment_transactions.find_one_and_update(...)` no existía en el
+  shim → `AttributeError`. **Fix**: implementado `Collection.find_one_and_update` atómico
+  (`SELECT … FOR UPDATE` + operadores). Verificado: el claim funciona (503 PayPal-no-config es
+  el camino esperado sin credenciales).
+- 🐛 **Todos los endpoints de referidos 500**: `_require_user_proxy`/`_require_admin_proxy`
+  (en `referrals.py` Y `missing_apis.py`) llamaban `require_user(credentials)` pero el refactor
+  de auth cambió la firma a `(request, credentials)`. **Fix**: los proxies inyectan y pasan
+  `request`. (También afectaba verificación de email, cambio de plan, export, save-to-journal.)
+- 🐛 **Agregado del shim no agrupaba** (`_id:None` / múltiples acumuladores): `referrals/me` y
+  `leaderboard` devolvían docs crudos → `KeyError`. **Fix**: push-down SQL restringido al caso
+  `$sum:1` (COUNT); agrupación en Python para el resto ($sum de campo, $first, $max, $min).
+- 🐛 **PricingPage pagos rotos tras recarga**: 3 fetch sin `credentials:'include'` y `refreshUser`
+  nunca llamado → `Bearer null`. **Fix**: `credentials:'include'` + `refreshUser()` en mount.
+- ✅ **Verificado en runtime** (Postgres 16 real + backend): referrals/me 200 (total 15),
+  leaderboard 200 (email+totales correctos), PayPal sin AttributeError, track/heatmap 200.
+  17 tests unitarios verde; build frontend exit 0.
+
+### 2026-06-27 (cont.) — Fixes medios + correcciones de contenido
+- 🐛 **#5** `UsageHeatmapCard` (admin): el efecto dependía solo de `[days]` y capturaba un
+  `Bearer null` tras recargar → heatmap vacío. **Fix**: deps `[days, headers]` + guard de bearer
+  válido (mismo patrón que IntegrationsEditor).
+- 🐛 **#6** `performanceApi`: en 401 con refresh concurrente, `silentRefresh` devolvía `null` y
+  se hacía `logout()` de una sesión válida. **Fix**: solo `logout()` si `!isAuthenticated`.
+- ✍️ **Contenido (visto al correr la app)**: título/desc SEO de `/pricing` decía **"$9.99/mes"**
+  (real **17€**) → corregido en es/en. Stat de la landing **"250+" activos** → **"50+"** (hay 47
+  curados) + etiqueta `statsAssets` simplificada.
+- ✅ Build exit 0.
 
 ## Cómo mantener este documento
 

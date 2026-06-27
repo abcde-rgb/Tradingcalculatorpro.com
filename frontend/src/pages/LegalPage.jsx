@@ -57,8 +57,8 @@ function PrivacyPolicy() {
         El responsable del tratamiento de tus datos personales es{' '}
         <strong className="text-foreground">TradingCalculator.pro</strong>, con sede en Suiza.
         Para cualquier consulta sobre privacidad, contáctanos en{' '}
-        <a href="mailto:contact@tradingcalculator.pro" className="text-primary hover:underline">
-          contact@tradingcalculator.pro
+        <a href="mailto:contact@tradingcalculatorpro.com" className="text-primary hover:underline">
+          contact@tradingcalculatorpro.com
         </a>.
       </Para>
 
@@ -126,8 +126,8 @@ function PrivacyPolicy() {
       ]} />
       <Para>
         Para ejercer cualquiera de estos derechos, envía un correo a{' '}
-        <a href="mailto:contact@tradingcalculator.pro" className="text-primary hover:underline">
-          contact@tradingcalculator.pro
+        <a href="mailto:contact@tradingcalculatorpro.com" className="text-primary hover:underline">
+          contact@tradingcalculatorpro.com
         </a>{' '}
         indicando el derecho que deseas ejercer. Respondemos en un plazo máximo de 30 días.
       </Para>
@@ -214,8 +214,8 @@ function TermsOfUse() {
         Para acceder a las funcionalidades de la plataforma es necesario crear una cuenta. Eres responsable
         de mantener la confidencialidad de tus credenciales y de todas las actividades que se realicen bajo
         tu cuenta. Notifícanos inmediatamente cualquier uso no autorizado en{' '}
-        <a href="mailto:contact@tradingcalculator.pro" className="text-primary hover:underline">
-          contact@tradingcalculator.pro
+        <a href="mailto:contact@tradingcalculatorpro.com" className="text-primary hover:underline">
+          contact@tradingcalculatorpro.com
         </a>.
         Debes tener al menos 18 años para registrarte y usar el Servicio.
       </Para>
@@ -246,8 +246,8 @@ function TermsOfUse() {
       ]} />
       <Para>
         Para solicitar un reembolso, contacta con nosotros en{' '}
-        <a href="mailto:contact@tradingcalculator.pro" className="text-primary hover:underline">
-          contact@tradingcalculator.pro
+        <a href="mailto:contact@tradingcalculatorpro.com" className="text-primary hover:underline">
+          contact@tradingcalculatorpro.com
         </a>{' '}
         dentro del plazo aplicable. Los reembolsos se procesan en el método de pago original en un plazo
         de 5 a 10 días hábiles. Esta política no limita los derechos que como consumidor te correspondan
@@ -446,8 +446,8 @@ function CookiePolicy() {
         Al acceder por primera vez a TradingCalculator.pro, se mostrará un banner de cookies que te permite
         aceptar o rechazar las cookies no esenciales. Puedes modificar tus preferencias en cualquier
         momento contactando con nosotros en{' '}
-        <a href="mailto:contact@tradingcalculator.pro" className="text-primary hover:underline">
-          contact@tradingcalculator.pro
+        <a href="mailto:contact@tradingcalculatorpro.com" className="text-primary hover:underline">
+          contact@tradingcalculatorpro.com
         </a>.
         La retirada del consentimiento no afecta a la licitud del tratamiento previo basado en dicho
         consentimiento.

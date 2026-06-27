@@ -491,6 +491,59 @@ class Collection:
             else:
                 return _UpdateResult(matched=0, modified=0)
 
+    async def find_one_and_update(self, filter_dict: dict, update_dict: dict,
+                                  *, upsert: bool = False, return_document: bool = True):
+        """Atomically find one matching row, apply the update operators and return
+        the document — Mongo's find_one_and_update. Uses SELECT ... FOR UPDATE inside
+        a transaction so concurrent callers can't both claim the same row (needed by
+        the PayPal capture's pending→capturing claim). Returns the updated doc
+        (return_document=True) or the pre-update doc (False); None if no match and
+        not upsert.
+        """
+        self._require_pool()
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                if filter_dict:
+                    where, params, _ = _build_where_clause(filter_dict)
+                    if where:
+                        row = await conn.fetchrow(
+                            f"SELECT _key, data FROM {self._name} WHERE {where} LIMIT 1 FOR UPDATE",
+                            *params,
+                        )
+                    else:
+                        row = await conn.fetchrow(
+                            f"SELECT _key, data FROM {self._name} LIMIT 1 FOR UPDATE")
+                else:
+                    row = await conn.fetchrow(
+                        f"SELECT _key, data FROM {self._name} LIMIT 1 FOR UPDATE")
+
+                if row:
+                    existing = _deserialize(row["data"])
+                    merged = _apply_update_operators(existing, update_dict)
+                    await conn.execute(
+                        f"UPDATE {self._name} SET data = $1::jsonb WHERE _key = $2",
+                        _serialize(merged), row["_key"],
+                    )
+                    return merged if return_document else existing
+
+                if upsert:
+                    new_doc = {k: v for k, v in filter_dict.items() if not k.startswith("$")}
+                    new_doc = _apply_update_operators(new_doc, update_dict)
+                    if "_id" in filter_dict and isinstance(filter_dict["_id"], str):
+                        key = filter_dict["_id"]
+                    else:
+                        key = _doc_key(new_doc)
+                        if "id" not in new_doc and "_id" not in new_doc:
+                            new_doc["id"] = key
+                    await conn.execute(
+                        f"INSERT INTO {self._name} (_key, data) VALUES ($1, $2::jsonb) "
+                        f"ON CONFLICT (_key) DO UPDATE SET data = EXCLUDED.data",
+                        key, _serialize(new_doc),
+                    )
+                    return new_doc
+
+                return None
+
     async def delete_one(self, filter_dict: dict):
         """DELETE one matching row."""
         self._require_pool()
@@ -601,6 +654,7 @@ class _AggCursor:
         """Execute the pipeline. GROUP+COUNT pipelines are pushed to SQL to avoid OOM."""
         match_filter = {}
         group_id_field = None
+        group_stage = None
         sum_field = None
         sort_spec = None
         limit_n = None
@@ -610,8 +664,9 @@ class _AggCursor:
             if "$match" in stage:
                 match_filter = stage["$match"]
             elif "$group" in stage:
-                group_id_field = stage["$group"].get("_id")
-                for k, v in stage["$group"].items():
+                group_stage = stage["$group"]
+                group_id_field = group_stage.get("_id")
+                for k, v in group_stage.items():
                     if k == "_id":
                         continue
                     if isinstance(v, dict) and "$sum" in v:
@@ -623,8 +678,20 @@ class _AggCursor:
             elif "$project" in stage:
                 project_spec = stage["$project"]
 
-        # Push GROUP BY + ORDER BY + LIMIT to SQL when grouping by a simple $field
-        if group_id_field is not None and isinstance(group_id_field, str) and group_id_field.startswith("$"):
+        # The SQL push-down below emits COUNT(*), so it is ONLY correct for the
+        # simple "group by $field, one {$sum: 1}" count case (admin usage/metrics).
+        # Anything else — _id: None, several accumulators, $first, or $sum of a
+        # field — must be grouped in Python (handled in the fallback) or columns
+        # would be dropped / computed as a wrong COUNT.
+        _accs = [(k, v) for k, v in group_stage.items() if k != "_id"] if group_stage else []
+        is_simple_count = (
+            isinstance(group_id_field, str) and group_id_field.startswith("$")
+            and len(_accs) == 1
+            and _accs[0][1] == {"$sum": 1}
+        )
+
+        # Push GROUP BY + ORDER BY + LIMIT to SQL for the simple count-by-$field case
+        if is_simple_count:
             field_name = group_id_field[1:]
             if not _SAFE_FIELD_RE.match(field_name):
                 raise ValueError(f"Unsafe group field: {field_name!r}")
@@ -678,7 +745,54 @@ class _AggCursor:
                 rows = await conn.fetch(f"SELECT data FROM {self._table}")
         docs = [_deserialize(r["data"]) for r in rows]
 
-        result_docs = docs
+        # $group in Python — the SQL push-down above only covers the simple count.
+        # Supports _id: None | constant | "$field", and $sum / $first / $max / $min
+        # accumulators (operand may be a constant or a "$field" reference).
+        if group_stage is not None:
+            id_spec = group_stage.get("_id")
+
+            def _grp_key(d):
+                if isinstance(id_spec, str) and id_spec.startswith("$"):
+                    return d.get(id_spec[1:])
+                return id_spec  # None or a constant
+
+            def _operand(av, key, d):
+                val = av[key]
+                return d.get(val[1:]) if isinstance(val, str) and val.startswith("$") else val
+
+            groups: dict = {}
+            order: list = []
+            for d in docs:
+                gk = _grp_key(d)
+                hk = gk if isinstance(gk, (str, int, float, bool, type(None))) else str(gk)
+                if hk not in groups:
+                    groups[hk] = {"_id": gk}
+                    order.append(hk)
+                    for ak, av in _accs:
+                        groups[hk][ak] = 0 if isinstance(av, dict) and "$sum" in av else None
+                for ak, av in _accs:
+                    if not isinstance(av, dict):
+                        continue
+                    if "$sum" in av:
+                        operand = av["$sum"]
+                        if isinstance(operand, str) and operand.startswith("$"):
+                            groups[hk][ak] += float(d.get(operand[1:]) or 0)
+                        else:
+                            groups[hk][ak] += operand or 0
+                    elif "$first" in av:
+                        if groups[hk][ak] is None:
+                            groups[hk][ak] = _operand(av, "$first", d)
+                    elif "$max" in av:
+                        v = _operand(av, "$max", d)
+                        if v is not None and (groups[hk][ak] is None or v > groups[hk][ak]):
+                            groups[hk][ak] = v
+                    elif "$min" in av:
+                        v = _operand(av, "$min", d)
+                        if v is not None and (groups[hk][ak] is None or v < groups[hk][ak]):
+                            groups[hk][ak] = v
+            result_docs = [groups[k] for k in order]
+        else:
+            result_docs = docs
 
         # Sort (default-arg capture avoids late-binding closure bug)
         if sort_spec:
@@ -911,7 +1025,7 @@ stripe.api_key = STRIPE_API_KEY
 
 # SendGrid Configuration
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculatorpro.com')
 
 # Demo User (siempre tiene acceso PRO completo)
 DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
@@ -948,8 +1062,8 @@ security = HTTPBearer(auto_error=False)
 #  CORS — must be registered first so every response gets headers
 # ============================================================
 _CORS_ORIGINS = [
-    "https://tradingcalculator.pro",
-    "https://www.tradingcalculator.pro",
+    "https://tradingcalculatorpro.com",
+    "https://www.tradingcalculatorpro.com",
 ]
 # Localhost only in non-production (dev) — add via CORS_ORIGINS env var in staging
 if os.environ.get("ENVIRONMENT", "production") != "production":
@@ -1761,7 +1875,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
         "expires_at": expires_at,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
     magic_url = f"{frontend_url}/magic?token={token}"
     # Send email (non-blocking)
     import asyncio as _asyncio
@@ -1864,7 +1978,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
         upsert=True,
     )
 
-    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro")
+    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
     reset_url = f"{frontend_url}/reset-password#{reset_token}"
     try:
         import asyncio as _asyncio
@@ -2608,7 +2722,7 @@ _EMAIL_BASE = """
 <table width="600" cellpadding="0" cellspacing="0" style="background:#1a1a1a;border-radius:12px;overflow:hidden;border:1px solid #2a2a2a;">
 <tr><td style="background:linear-gradient(135deg,#00E676,#00B0FF);padding:32px 40px;text-align:center;">
 <h1 style="margin:0;color:#000;font-size:24px;font-weight:bold;">Trading Calculator PRO</h1>
-<p style="margin:8px 0 0;color:#000;opacity:0.7;font-size:14px;">tradingcalculator.pro</p>
+<p style="margin:8px 0 0;color:#000;opacity:0.7;font-size:14px;">tradingcalculatorpro.com</p>
 </td></tr>
 <tr><td style="padding:40px;">{body}</td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #2a2a2a;text-align:center;">
@@ -2636,7 +2750,7 @@ async def _send_welcome_email(to_email: str, name: str) -> None:
 <p style="color:#aaa;margin:6px 0;">📈 Análisis de opciones y estrategias</p>
 <p style="color:#aaa;margin:6px 0;">🎯 Seguimiento de rendimiento</p>
 </div>
-<a href="https://tradingcalculator.pro/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
+<a href="https://tradingcalculatorpro.com/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
 """
     await _send_email(to_email, "¡Bienvenido a Trading Calculator PRO!", _email_html(body))
 
@@ -2657,7 +2771,7 @@ async def _send_subscription_confirmation_email(to_email: str, name: str, plan_n
 <p style="color:#aaa;margin:6px 0;">Válido hasta: <strong style="color:#fff;">{end_str}</strong></p>
 </div>
 <p style="color:#aaa;line-height:1.6;">Ahora tienes acceso completo a todas las funcionalidades premium.</p>
-<a href="https://tradingcalculator.pro/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
+<a href="https://tradingcalculatorpro.com/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
 """
     await _send_email(to_email, f"Suscripción {plan_name} activada — Trading Calculator PRO", _email_html(body))
 
@@ -2670,7 +2784,7 @@ async def _send_payment_failed_email(to_email: str, name: str, attempt: int) -> 
 <div style="background:#1a0a0a;border:1px solid #5a1a1a;border-radius:8px;padding:20px;margin:24px 0;">
 <p style="color:#ff6b6b;margin:0;">Para mantener tu acceso premium, actualiza tu método de pago lo antes posible.</p>
 </div>
-<a href="https://tradingcalculator.pro/settings" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Actualizar método de pago →</a>
+<a href="https://tradingcalculatorpro.com/settings" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Actualizar método de pago →</a>
 """
     await _send_email(to_email, "⚠️ Pago fallido — Trading Calculator PRO", _email_html(body))
 
@@ -2679,7 +2793,7 @@ async def _send_subscription_cancelled_email(to_email: str, name: str) -> None:
 <h2 style="color:#fff;margin-top:0;">Suscripción cancelada</h2>
 <p style="color:#aaa;line-height:1.6;">Hola <strong style="color:#fff;">{name}</strong>, tu suscripción a Trading Calculator PRO ha sido cancelada.</p>
 <p style="color:#aaa;line-height:1.6;">Tu acceso premium ha sido desactivado. Puedes reactivarlo en cualquier momento.</p>
-<a href="https://tradingcalculator.pro/pricing" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:24px;">Reactivar suscripción →</a>
+<a href="https://tradingcalculatorpro.com/pricing" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:24px;">Reactivar suscripción →</a>
 """
     await _send_email(to_email, "Suscripción cancelada — Trading Calculator PRO", _email_html(body))
 
@@ -6095,7 +6209,7 @@ except Exception as _e:
 
 app.include_router(api_router)
 
-_FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculator.pro')
+_FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculatorpro.com')
 
 _AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/me",
                "/api/auth/logout", "/api/auth/refresh", "/api/auth/google",

@@ -64,17 +64,27 @@ Los usa `deploy-cloud-run.yml`:
   - Orígenes JS autorizados: `https://abcde-rgb.github.io` (y el dominio propio si aplica).
   - El `GOOGLE_CLIENT_ID` del backend (C) y `REACT_APP_GOOGLE_CLIENT_ID` (A) son el **mismo**.
 
-## G. Dominio / DNS
+## G. Dominio / DNS — **dominio: `tradingcalculatorpro.com`**
 
-- [ ] `https://abcde-rgb.github.io/Tradingcalculatorpro.com` sirve la SPA (Pages activo).
-- [ ] Si se usa dominio propio `tradingcalculator.pro`:
-  - CNAME en GitHub Pages + DNS apuntando.
-  - Añadir el dominio a `CORS_ORIGINS` (ya está hardcodeado `tradingcalculator.pro` y `www`).
-  - Actualizar `homepage` en `frontend/package.json` y `PUBLIC_URL` si cambia la base path.
+El **código ya está unificado** a este dominio (frontend canonical/sitemap/robots, CORS y
+emails del backend, `frontend/public/CNAME`, `homepage` y `PUBLIC_URL` = raíz `/`). Falta solo
+el **cutover de DNS/Pages** (acción manual en consolas):
+
+1. **En tu registrador de dominios**, apunta el dominio a GitHub Pages:
+   - Registros **A** del apex `@` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
+   - Registro **CNAME** `www` → `abcde-rgb.github.io`
+2. **GitHub → Settings → Pages → Custom domain** → `tradingcalculatorpro.com` → Save
+   (el archivo `frontend/public/CNAME` ya lo fija en cada deploy).
+3. Activa **Enforce HTTPS** cuando GitHub emita el certificado (minutos/horas).
+4. ⚠️ **Orden:** configura el DNS (paso 1) **antes** de mergear el PR. Tras el deploy la web
+   vivirá en `https://tradingcalculatorpro.com/` (raíz); el viejo
+   `abcde-rgb.github.io/Tradingcalculatorpro.com` dejará de servir (el `homepage`/`PUBLIC_URL`
+   cambiaron a raíz). Si mergeas sin DNS, habrá un hueco hasta que propague.
+5. Verifica: `curl -I https://tradingcalculatorpro.com` · `…/sitemap.xml` · `…/robots.txt`.
 
 ## H. SendGrid
 
-- [ ] Dominio remitente verificado para `alerts@tradingcalculator.pro` (`SENDER_EMAIL`).
+- [ ] Dominio remitente verificado para `alerts@tradingcalculatorpro.com` (`SENDER_EMAIL`).
 - [ ] Probar: verificación de email, reset de contraseña, alerta de precio.
 
 ## I. Endurecimiento del repositorio (recomendado)

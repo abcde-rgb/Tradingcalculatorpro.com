@@ -188,10 +188,10 @@ export default function ContactPage() {
               <span>
                 O escríbenos directamente a{' '}
                 <a
-                  href="mailto:contact@tradingcalculator.pro"
+                  href="mailto:contact@tradingcalculatorpro.com"
                   className="text-primary underline underline-offset-4 hover:opacity-80 transition-opacity"
                 >
-                  contact@tradingcalculator.pro
+                  contact@tradingcalculatorpro.com
                 </a>
               </span>
             </div>

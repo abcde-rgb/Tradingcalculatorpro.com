@@ -92,7 +92,7 @@ POST /auth/forgot-password
     1. Buscar usuario en MongoDB por email.
     2. Generar token seguro (secrets.token_urlsafe(32)).
     3. Guardar hash del token + expiry (15 min) en colección password_reset_tokens.
-    4. Enviar email con enlace: https://app.tradingcalculator.pro/reset-password?token=TOKEN
+    4. Enviar email con enlace: https://app.tradingcalculatorpro.com/reset-password?token=TOKEN
   Response: { "message": "Si el email existe, recibirás un enlace en breve." }
 
 POST /auth/reset-password

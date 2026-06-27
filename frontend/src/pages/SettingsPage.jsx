@@ -18,7 +18,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const PREFS_KEY = 'tcp-preferences';
 
 export default function SettingsPage() {
-  useSEO({ titleKey: 'seoSettingsTitle', descriptionKey: 'seoSettingsDesc', canonicalPath: '/settings' });
+  useSEO({ titleKey: 'seoSettingsTitle', descriptionKey: 'seoSettingsDesc', canonicalPath: '/settings', noindex: true });
   const { t, locale } = useTranslation();
   const deleteWord = t('deleteConfirmWord');
   const { user, logout } = useAuthStore();

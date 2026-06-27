@@ -57,7 +57,7 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuthStore();
 
-  useSEO({ title: 'Admin', description: 'Panel administrativo', canonicalPath: '/admin' });
+  useSEO({ title: 'Admin', description: 'Panel administrativo', canonicalPath: '/admin', noindex: true });
 
   const [metrics, setMetrics] = useState(null);
   const [users, setUsers] = useState([]);
@@ -1420,11 +1420,15 @@ function UsageHeatmapCard({ headers }) {
   const [days, setDays] = useState(30);
 
   useEffect(() => {
+    const bearer = headers?.Authorization || '';
+    // After a page refresh the token is briefly 'Bearer null'; skip until it's real.
+    // Depending on [headers] makes the fetch re-run once the token is refreshed.
+    if (!API || !bearer || bearer.endsWith('null') || bearer.includes(DEMO_TOKEN)) return;
     fetch(`${API}/admin/usage-heatmap?days=${days}`, { headers, credentials: 'include' })
       .then(r => (r.ok ? r.json() : null))
       .then(d => setData(d))
       .catch(() => {});
-  }, [days]); // eslint-disable-line
+  }, [days, headers]); // eslint-disable-line
 
   const heatmap = data?.heatmap || [];
   const maxCell = Math.max(1, ...heatmap.flat());

@@ -103,7 +103,7 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 | `SENDGRID_API_KEY` | Email | |
 | `ANTHROPIC_API_KEY` | AI Coach | |
 | `ENVIRONMENT` | No | Setear a `development` en local → habilita CORS localhost y JWT_SECRET auto |
-| `CORS_ORIGINS` | No | Orígenes extra separados por coma. Hardcodeados: `tradingcalculator.pro`, `www.tradingcalculator.pro` |
+| `CORS_ORIGINS` | No | Orígenes extra separados por coma. Hardcodeados: `tradingcalculatorpro.com`, `www.tradingcalculatorpro.com` |
 | `ADMIN_EMAILS` | No | Emails admin separados por coma; no requiere cambio en BD |
 
 **Frontend** (GitHub Secrets → GitHub Actions build):

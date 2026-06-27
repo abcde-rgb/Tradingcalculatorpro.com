@@ -6,7 +6,7 @@ import { Footer } from '@/components/layout/Footer';
 import { useSEO } from '@/hooks/useSEO';
 
 export default function NotFoundPage() {
-  useSEO({ titleKey: 'seoNotFoundTitle', descriptionKey: 'seoNotFoundDesc', canonicalPath: '/404' });
+  useSEO({ titleKey: 'seoNotFoundTitle', descriptionKey: 'seoNotFoundDesc', canonicalPath: '/404', noindex: true });
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

@@ -41,19 +41,22 @@ COMMISSION_PCT = 10.0  # 10% of the plan price
 # are only injected by register() AFTER decoration).
 # ─────────────────────────────────────────────────────────────────────
 async def _require_user_proxy(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_security),
 ) -> Dict[str, Any]:
     if require_user is None:
         raise HTTPException(status_code=503, detail="Service not initialized")
-    return await require_user(credentials)
+    # require_user's signature is (request, credentials) — pass both.
+    return await require_user(request, credentials)
 
 
 async def _require_admin_proxy(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_security),
 ) -> Dict[str, Any]:
     if require_admin is None:
         raise HTTPException(status_code=503, detail="Service not initialized")
-    return await require_admin(credentials)
+    return await require_admin(request, credentials)
 
 
 # ---------------------------------------------------------------------------

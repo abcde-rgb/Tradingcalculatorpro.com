@@ -491,8 +491,8 @@ export const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md bg-card border-border">
+    <AuthShell>
+      <Card className="w-full max-w-md bg-card/70 backdrop-blur-xl border-white/10 shadow-2xl shadow-black/30">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <KeyRound className="w-10 h-10 text-primary" />
@@ -543,7 +543,7 @@ export const ResetPasswordPage = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 };
 
@@ -576,8 +576,8 @@ export const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md bg-card border-border">
+    <AuthShell>
+      <Card className="w-full max-w-md bg-card/70 backdrop-blur-xl border-white/10 shadow-2xl shadow-black/30">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <KeyRound className="w-10 h-10 text-primary" />
@@ -631,7 +631,7 @@ export const ForgotPasswordPage = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 };
 
@@ -753,8 +753,8 @@ export const MagicPage = () => {
   const msg = messages[status] || messages.error;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md bg-card border-border">
+    <AuthShell>
+      <Card className="w-full max-w-md bg-card/70 backdrop-blur-xl border-white/10 shadow-2xl shadow-black/30">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <Zap className="w-10 h-10 text-yellow-400" />
@@ -771,6 +771,6 @@ export const MagicPage = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 };

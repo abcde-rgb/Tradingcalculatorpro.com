@@ -55,7 +55,7 @@ function StatusBadge({ status }) {
 }
 
 export default function SubscriptionPage() {
-  useSEO({ titleKey: 'seoSubscriptionTitle', descriptionKey: 'seoSubscriptionDesc', canonicalPath: '/subscription' });
+  useSEO({ titleKey: 'seoSubscriptionTitle', descriptionKey: 'seoSubscriptionDesc', canonicalPath: '/subscription', noindex: true });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { token, isAuthenticated, user } = useAuthStore();
