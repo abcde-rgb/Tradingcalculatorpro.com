@@ -169,7 +169,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
               {[
                 { value: '24/7', labelKey: 'statsAvailable',  delay: 0.2, icon: Clock },
-                { value: '250+', labelKey: 'statsAssets',     delay: 0.3, icon: Layers },
+                { value: '50+',  labelKey: 'statsAssets',     delay: 0.3, icon: Layers },
                 { value: '8',    labelKey: 'statsLanguages',  delay: 0.4, icon: Globe },
                 { value: '99.9%',labelKey: 'statsUptime',     delay: 0.5, icon: Zap },
               ].map((stat) => {

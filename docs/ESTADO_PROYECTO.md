@@ -274,6 +274,17 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   leaderboard 200 (email+totales correctos), PayPal sin AttributeError, track/heatmap 200.
   17 tests unitarios verde; build frontend exit 0.
 
+### 2026-06-27 (cont.) — Fixes medios + correcciones de contenido
+- 🐛 **#5** `UsageHeatmapCard` (admin): el efecto dependía solo de `[days]` y capturaba un
+  `Bearer null` tras recargar → heatmap vacío. **Fix**: deps `[days, headers]` + guard de bearer
+  válido (mismo patrón que IntegrationsEditor).
+- 🐛 **#6** `performanceApi`: en 401 con refresh concurrente, `silentRefresh` devolvía `null` y
+  se hacía `logout()` de una sesión válida. **Fix**: solo `logout()` si `!isAuthenticated`.
+- ✍️ **Contenido (visto al correr la app)**: título/desc SEO de `/pricing` decía **"$9.99/mes"**
+  (real **17€**) → corregido en es/en. Stat de la landing **"250+" activos** → **"50+"** (hay 47
+  curados) + etiqueta `statsAssets` simplificada.
+- ✅ Build exit 0.
+
 ## Cómo mantener este documento
 
 1. **Al empezar**: lee §1–§5 para saber dónde está todo.

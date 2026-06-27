@@ -27,7 +27,12 @@ client.interceptors.response.use(
           return client.request(err.config);
         }
       } catch { /* no-op */ }
-      try { useAuthStore.getState().logout?.(); } catch { /* no-op */ }
+      // Only log out if the refresh actually invalidated the session. A null from
+      // silentRefresh can also mean a refresh is already in flight (concurrent 401s)
+      // or a transient network error — keep the session in those cases.
+      if (!useAuthStore.getState().isAuthenticated) {
+        try { useAuthStore.getState().logout?.(); } catch { /* no-op */ }
+      }
     }
     return Promise.reject(err);
   },
