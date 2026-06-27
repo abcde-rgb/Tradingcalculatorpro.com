@@ -351,8 +351,9 @@ export default function PricingPage() {
                           createOrder={handlePayPalCreateOrder}
                           onApprove={handlePayPalApprove}
                           onError={(err) => {
+                            // createOrder/onApprove already surface a specific toast and
+                            // re-throw, which lands here — don't double-toast. Log only.
                             console.error('[PayPal]', err);
-                            toast.error(t('checkoutError'));
                           }}
                           onCancel={() => toast.info('Pago PayPal cancelado')}
                           disabled={isLoading}
