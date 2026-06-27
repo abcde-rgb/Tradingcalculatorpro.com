@@ -3357,6 +3357,47 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         approval = next((l["href"] for l in order.get("links", []) if l["rel"] == "approve"), None)
         transaction["checkout_url"] = approval
 
+    elif payment_method in ("crypto", "maxelpay"):
+        # Crypto via MaxelPay (no-KYC crypto gateway). The hosted checkout URL is
+        # returned synchronously; the actual premium grant happens in the
+        # /webhook/maxelpay callback once the payment settles on-chain.
+        from maxelpay import (
+            MaxelPayError,
+            build_payload as _mp_build_payload,
+            create_checkout_url as _mp_create_checkout,
+        )
+
+        mp_api_key = await get_setting("maxelpay_api_key")
+        mp_secret = await get_setting("maxelpay_secret_key")
+        mp_default_mode = "prod" if os.environ.get("ENVIRONMENT", "production") == "production" else "stg"
+        mp_mode = (await get_setting("maxelpay_mode") or mp_default_mode).strip()
+        if not mp_api_key or not mp_secret:
+            raise HTTPException(status_code=503, detail="Pago con criptomonedas (MaxelPay) no está configurado. Contacta soporte.")
+
+        backend_base = (os.environ.get("BACKEND_PUBLIC_URL", "").strip() or str(request.base_url)).rstrip("/")
+        mp_payload = _mp_build_payload(
+            order_id=transaction["id"],
+            amount=f"{plan['price']:.2f}",
+            currency=plan.get("currency", "EUR"),
+            timestamp=str(int(datetime.now(timezone.utc).timestamp())),
+            user_name=(user.get("name") or user["email"].split("@")[0]),
+            user_email=user["email"],
+            site_name="TradingCalculator.Pro",
+            website_url=origin_url,
+            redirect_url=f"{origin_url}/payment/success",
+            cancel_url=f"{origin_url}/payment/cancel",
+            webhook_url=f"{backend_base}/api/webhook/maxelpay",
+        )
+        try:
+            mp_checkout_url = await _mp_create_checkout(
+                api_key=mp_api_key, secret_key=mp_secret, mode=mp_mode, payload=mp_payload,
+            )
+        except MaxelPayError as _e:
+            logging.error(f"[maxelpay] create checkout error: {_e}")
+            raise HTTPException(status_code=502, detail="Error al crear el pago con criptomonedas. Inténtalo de nuevo.")
+        transaction["maxelpay_mode"] = mp_mode
+        transaction["checkout_url"] = mp_checkout_url
+
     elif payment_method in _PAYMENT_METHODS_MAP:
         session = await _create_stripe_session(
             plan,
@@ -3691,6 +3732,82 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             logging.error(f"[stripe-webhook] checkout.session.completed error: {e}")
             return {"status": "error"}
 
+    return {"status": "received"}
+
+
+@api_router.post("/webhook/maxelpay")
+async def maxelpay_webhook(request: Request) -> Dict[str, str]:
+    """MaxelPay crypto payment callback.
+
+    Grants premium once the crypto payment settles. Idempotent: a re-delivered
+    or out-of-order webhook is a safe no-op. The order id we send to MaxelPay is
+    the (unguessable UUID) payment_transactions.id, which ties the callback back
+    to the originating user/plan.
+    """
+    from maxelpay import parse_webhook, webhook_order_id, webhook_is_paid
+
+    body = await request.body()
+    mp_secret = await get_setting("maxelpay_secret_key")
+    data = parse_webhook(body, mp_secret)
+    order_id = webhook_order_id(data)
+    if not order_id:
+        logging.warning("[maxelpay-webhook] missing order id in payload: %s", str(data)[:300])
+        return {"status": "ignored"}
+
+    transaction = await db.payment_transactions.find_one({"id": order_id}, {"_id": 0})
+    if not transaction:
+        logging.warning("[maxelpay-webhook] unknown order id: %s", order_id)
+        return {"status": "ignored"}
+    if transaction.get("status") == "paid":
+        return {"status": "already_processed"}
+
+    if not webhook_is_paid(data):
+        # Pending / failed / expired — record the latest status, keep the
+        # transaction claimable so a later "completed" callback can still settle.
+        await db.payment_transactions.update_one(
+            {"id": order_id},
+            {"$set": {"maxelpay_last_status": str(data.get("status") or data.get("orderStatus") or "")[:40]}},
+        )
+        return {"status": "received"}
+
+    # Atomically claim the pending transaction to prevent a double grant.
+    claimed = await db.payment_transactions.find_one_and_update(
+        {"id": order_id, "status": "pending"},
+        {"$set": {"status": "capturing"}},
+    )
+    if not claimed:
+        return {"status": "already_processed"}
+
+    plan_id = transaction["plan_id"]
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        logging.error("[maxelpay-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
+        return {"status": "error"}
+
+    await _activate_paid_subscription(
+        user_id=transaction["user_id"],
+        plan_id=plan_id,
+        plan=plan,
+        transaction_id=order_id,
+        session_id="",
+    )
+    try:
+        from referrals import credit_referrer_for_payment
+        await credit_referrer_for_payment(
+            referee_user_id=transaction["user_id"],
+            plan_id=plan_id,
+            plan_amount=float(plan.get("price", 0)),
+            plan_currency=plan.get("currency", "EUR"),
+            transaction_id=order_id,
+        )
+    except Exception as e:
+        logging.warning(f"[maxelpay-webhook] referral credit error: {e}")
+
+    logging.info(
+        "[maxelpay-webhook] subscription activated: user=%s plan=%s order=%s",
+        transaction["user_id"], plan_id, order_id,
+    )
     return {"status": "received"}
 
 # ============= SUBSCRIPTION MANAGEMENT ROUTES =============
@@ -5589,6 +5706,8 @@ PUBLIC_SETTING_KEYS = (
     # PayPal
     "paypal_client_id",
     "paypal_mode",                # "sandbox" | "live"
+    # MaxelPay (crypto) — only the mode is public; keys are secret
+    "maxelpay_mode",              # "stg" | "prod"
     # Misc
     "trustpilot_business_id",
     "clarity_project_id",
@@ -5600,7 +5719,9 @@ SECRET_SETTING_KEYS = (
     "stripe_secret_key",
     "stripe_webhook_secret",
     "paypal_client_secret",
-    "coinbase_api_key",
+    "coinbase_api_key",           # legacy/unused — superseded by MaxelPay
+    "maxelpay_api_key",
+    "maxelpay_secret_key",
     "sendgrid_api_key",
 )
 
@@ -5623,6 +5744,9 @@ _SETTING_ENV_FALLBACK: Dict[str, str] = {
     "paypal_client_secret":   "PAYPAL_CLIENT_SECRET",
     "paypal_mode":            "PAYPAL_MODE",
     "coinbase_api_key":       "COINBASE_API_KEY",
+    "maxelpay_api_key":       "MAXELPAY_API_KEY",
+    "maxelpay_secret_key":    "MAXELPAY_SECRET_KEY",
+    "maxelpay_mode":          "MAXELPAY_MODE",
     "sendgrid_api_key":       "SENDGRID_API_KEY",
     "trustpilot_business_id": "REACT_APP_TRUSTPILOT_BUSINESS_ID",
     "clarity_project_id":     "REACT_APP_CLARITY_PROJECT_ID",
@@ -5648,6 +5772,9 @@ class AdminSettingsUpdate(BaseModel):
     paypal_mode: Optional[str] = None
     # Crypto / email / misc
     coinbase_api_key: Optional[str] = None
+    maxelpay_api_key: Optional[str] = None
+    maxelpay_secret_key: Optional[str] = None
+    maxelpay_mode: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
     trustpilot_business_id: Optional[str] = None
     clarity_project_id: Optional[str] = None
