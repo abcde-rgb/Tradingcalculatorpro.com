@@ -27,8 +27,8 @@
 | **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
-| **MaxelPay / crypto (código)** | 🟢 | Checkout + webhook implementados y probados (incl. activación + idempotencia) |
-| **MaxelPay / crypto (operación)** | 🔴 | Falta API key/secret en panel admin + **test sandbox `stg`** (handshake de cifrado no verificable offline) |
+| **OxaPay / crypto (código)** | 🟢 | Invoice + webhook HMAC implementados y probados (activación + idempotencia + rechazo de firma inválida) |
+| **OxaPay / crypto (operación)** | 🔴 | Falta Merchant API Key en panel admin + **test en `sandbox`** (round-trip saliente no verificable offline) |
 | **DNS / dominio `tradingcalculatorpro.com`** | ❓ | Verificar apuntado (ver DEPLOY_CHECKLIST) |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
@@ -54,7 +54,7 @@
 - **47 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
   en `lib/assets.js`.
 - **i18n: 8 idiomas** (`lib/i18n/`): es, en, de, fr, ru, zh, ja, ar.
-- **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **MaxelPay** (crypto, botón "Criptomonedas").
+- **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **OxaPay** (crypto, botón "Criptomonedas").
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
 - **Analítica/SEO**: GA4 + GTM + GSC/Bing, `sitemap.xml`, `robots.txt`, `og-image`,
   `manifest.json` (PWA), hook `useSEO`.
@@ -146,10 +146,10 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - **GCP**: Cloud Run service, Cloud SQL `trading-db` (europe-west1), Secret Manager,
   Workload Identity Federation, Artifact Registry `trading-repo`.
 - **Stripe**: productos/precios, webhook endpoint apuntando a `…/api/webhook/stripe`.
-- **MaxelPay** (crypto): API key + Secret key (32 chars) en panel admin (o `MAXELPAY_API_KEY` /
-  `MAXELPAY_SECRET_KEY` en Secret Manager), `maxelpay_mode` = `stg`|`prod`, y registrar el webhook
-  `…/api/webhook/maxelpay` en su dashboard. Probar primero en `stg` (el handshake de cifrado AES no
-  es verificable offline). Opcional: `BACKEND_PUBLIC_URL` si `request.base_url` no resuelve al host público.
+- **OxaPay** (crypto): Merchant API Key en panel admin (o `OXAPAY_API_KEY` en Secret Manager),
+  `oxapay_sandbox` = `true`|`false`, y registrar el callback `…/api/webhook/oxapay` en su dashboard
+  (la misma API Key firma el webhook con HMAC-SHA512). Probar primero con `sandbox=true`. Opcional:
+  `BACKEND_PUBLIC_URL` si `request.base_url` no resuelve al host público.
 - **Google Cloud Console**: OAuth client + orígenes autorizados.
 - **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculatorpro.com`).
 - **GitHub**: Secrets de Actions (ver DEPLOY_CHECKLIST) + branch protection.
@@ -312,6 +312,25 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Completed→**premium concedido + tx pagada**, replay→already_processed, checkout sin config→503.
   La llamada saliente a MaxelPay **no** es verificable offline (red bloqueada) → **pendiente test `stg`**.
 - ✅ Build frontend exit 0.
+
+### 2026-06-27 (cont. 3) — Pago crypto: MaxelPay → OxaPay (a petición)
+- 🔁 **Motivo**: se sustituye MaxelPay por **OxaPay** (otra pasarela crypto no-KYC). Ventaja: API
+  JSON plana + verificación **HMAC-SHA512** del webhook (más segura y sin el handshake de cifrado AES
+  de MaxelPay que no era verificable offline). Contrato tomado **verbatim del SDK oficial** `oxapay` 0.3.0.
+- ➖ Eliminados `backend/maxelpay.py` y su test.
+- ➕ **`backend/oxapay.py`** (módulo puro): `create_invoice` (POST `api.oxapay.com/v1/payment/invoice`,
+  header `merchant_api_key`, JSON snake_case, `sandbox` bool), `verify_webhook` (HMAC-SHA512 del body
+  crudo, `compare_digest`), `parse_webhook`, `webhook_order_id`, `webhook_is_paid` (status==`paid`).
+- 🔌 **`server.py`**: rama `crypto`→OxaPay en `/checkout/create`; endpoint **`POST /webhook/oxapay`**
+  que **verifica el HMAC antes de actuar** (401 si falla) y reutiliza `_activate_paid_subscription` +
+  `credit_referrer_for_payment` con claim atómico (idempotencia). Settings: `oxapay_api_key` (secreto,
+  Fernet) + `oxapay_sandbox` (público), con fallback por env var.
+- 🖥️ **Frontend/Admin**: botón crypto → "Pago seguro vía **OxaPay**"; grupo admin "OxaPay (pagos con
+  criptomonedas)" con Merchant API Key + Sandbox.
+- ✅ **Verificado**: tests unitarios (incl. HMAC genuino→OK, body manipulado/clave incorrecta→rechazo).
+  **Smoke E2E contra Postgres real**: webhook con **firma inválida→401**, firma válida `paid`→**premium
+  concedido + tx pagada**, replay→already_processed, checkout sin config→503. Build frontend exit 0.
+  La llamada saliente a OxaPay requiere **test en sandbox** con API Key real (red bloqueada offline).
 
 ## Cómo mantener este documento
 

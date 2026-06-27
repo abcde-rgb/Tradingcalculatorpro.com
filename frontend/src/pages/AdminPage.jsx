@@ -523,13 +523,12 @@ const INTEGRATION_SECTIONS = [
     ],
   },
   {
-    id: 'maxelpay',
-    title: 'MaxelPay (pagos con criptomonedas)',
-    description: 'Pasarela crypto no-KYC. Usa "stg" para pruebas y "prod" en producción. Las claves se aplican en caliente.',
+    id: 'oxapay',
+    title: 'OxaPay (pagos con criptomonedas)',
+    description: 'Pasarela crypto no-KYC. Pon Sandbox="true" para pruebas y "false" en producción. La clave se aplica en caliente.',
     fields: [
-      { id: 'maxelpay_api_key',    label: 'API Key',    secret: true,  placeholder: 'mxl_…',     hint: 'app.maxelpay.com → Developers / API Keys' },
-      { id: 'maxelpay_secret_key', label: 'Secret Key', secret: true,  placeholder: '32 caracteres', hint: 'Mismo panel. Debe tener exactamente 32 caracteres (AES-256)' },
-      { id: 'maxelpay_mode',       label: 'Mode',       secret: false, placeholder: 'stg | prod', hint: 'Usa "stg" para sandbox de pruebas, "prod" en producción' },
+      { id: 'oxapay_api_key', label: 'Merchant API Key', secret: true,  placeholder: 'XXXXXX-XXXXXX-…', hint: 'app.oxapay.com → Merchant → API Key (es también el secreto del webhook)' },
+      { id: 'oxapay_sandbox', label: 'Sandbox',          secret: false, placeholder: 'true | false',     hint: 'Usa "true" para el sandbox de pruebas, "false" en producción' },
     ],
   },
   {

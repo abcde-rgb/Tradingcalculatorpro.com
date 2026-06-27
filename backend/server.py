@@ -3357,46 +3357,37 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         approval = next((l["href"] for l in order.get("links", []) if l["rel"] == "approve"), None)
         transaction["checkout_url"] = approval
 
-    elif payment_method in ("crypto", "maxelpay"):
-        # Crypto via MaxelPay (no-KYC crypto gateway). The hosted checkout URL is
+    elif payment_method in ("crypto", "oxapay"):
+        # Crypto via OxaPay (no-KYC crypto gateway). The hosted payment URL is
         # returned synchronously; the actual premium grant happens in the
-        # /webhook/maxelpay callback once the payment settles on-chain.
-        from maxelpay import (
-            MaxelPayError,
-            build_payload as _mp_build_payload,
-            create_checkout_url as _mp_create_checkout,
-        )
+        # HMAC-verified /webhook/oxapay callback once the payment settles.
+        from oxapay import OxaPayError, create_invoice as _ox_create_invoice
 
-        mp_api_key = await get_setting("maxelpay_api_key")
-        mp_secret = await get_setting("maxelpay_secret_key")
-        mp_default_mode = "prod" if os.environ.get("ENVIRONMENT", "production") == "production" else "stg"
-        mp_mode = (await get_setting("maxelpay_mode") or mp_default_mode).strip()
-        if not mp_api_key or not mp_secret:
-            raise HTTPException(status_code=503, detail="Pago con criptomonedas (MaxelPay) no está configurado. Contacta soporte.")
+        ox_api_key = await get_setting("oxapay_api_key")
+        ox_default_sandbox = os.environ.get("ENVIRONMENT", "production") != "production"
+        ox_sandbox = (await get_setting("oxapay_sandbox") or str(ox_default_sandbox)).strip().lower() in ("1", "true", "yes", "on")
+        if not ox_api_key:
+            raise HTTPException(status_code=503, detail="Pago con criptomonedas (OxaPay) no está configurado. Contacta soporte.")
 
         backend_base = (os.environ.get("BACKEND_PUBLIC_URL", "").strip() or str(request.base_url)).rstrip("/")
-        mp_payload = _mp_build_payload(
-            order_id=transaction["id"],
-            amount=f"{plan['price']:.2f}",
-            currency=plan.get("currency", "EUR"),
-            timestamp=str(int(datetime.now(timezone.utc).timestamp())),
-            user_name=(user.get("name") or user["email"].split("@")[0]),
-            user_email=user["email"],
-            site_name="TradingCalculator.Pro",
-            website_url=origin_url,
-            redirect_url=f"{origin_url}/payment/success",
-            cancel_url=f"{origin_url}/payment/cancel",
-            webhook_url=f"{backend_base}/api/webhook/maxelpay",
-        )
         try:
-            mp_checkout_url = await _mp_create_checkout(
-                api_key=mp_api_key, secret_key=mp_secret, mode=mp_mode, payload=mp_payload,
+            ox_invoice = await _ox_create_invoice(
+                api_key=ox_api_key,
+                amount=float(plan["price"]),
+                currency=plan.get("currency", "EUR"),
+                order_id=transaction["id"],
+                description=f"TradingCalculator.Pro — Plan {plan['name']}",
+                callback_url=f"{backend_base}/api/webhook/oxapay",
+                return_url=f"{origin_url}/payment/success",
+                email=user.get("email"),
+                sandbox=ox_sandbox,
             )
-        except MaxelPayError as _e:
-            logging.error(f"[maxelpay] create checkout error: {_e}")
+        except OxaPayError as _e:
+            logging.error(f"[oxapay] create invoice error: {_e}")
             raise HTTPException(status_code=502, detail="Error al crear el pago con criptomonedas. Inténtalo de nuevo.")
-        transaction["maxelpay_mode"] = mp_mode
-        transaction["checkout_url"] = mp_checkout_url
+        transaction["oxapay_track_id"] = ox_invoice.get("track_id")
+        transaction["oxapay_sandbox"] = ox_sandbox
+        transaction["checkout_url"] = ox_invoice["payment_url"]
 
     elif payment_method in _PAYMENT_METHODS_MAP:
         session = await _create_stripe_session(
@@ -3735,38 +3726,43 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     return {"status": "received"}
 
 
-@api_router.post("/webhook/maxelpay")
-async def maxelpay_webhook(request: Request) -> Dict[str, str]:
-    """MaxelPay crypto payment callback.
+@api_router.post("/webhook/oxapay")
+async def oxapay_webhook(request: Request) -> Dict[str, str]:
+    """OxaPay crypto payment callback (HMAC-SHA512 verified).
 
-    Grants premium once the crypto payment settles. Idempotent: a re-delivered
-    or out-of-order webhook is a safe no-op. The order id we send to MaxelPay is
-    the (unguessable UUID) payment_transactions.id, which ties the callback back
-    to the originating user/plan.
+    Grants premium once the crypto payment settles (status == 'paid'). The raw
+    body is signed by OxaPay with the merchant API key — we reject any callback
+    whose HMAC doesn't verify. Idempotent: a re-delivered or out-of-order
+    webhook is a safe no-op. The order_id we send is the (unguessable UUID)
+    payment_transactions.id, tying the callback back to the user/plan.
     """
-    from maxelpay import parse_webhook, webhook_order_id, webhook_is_paid
+    from oxapay import parse_webhook, verify_webhook, webhook_order_id, webhook_is_paid
 
-    body = await request.body()
-    mp_secret = await get_setting("maxelpay_secret_key")
-    data = parse_webhook(body, mp_secret)
+    raw_body = await request.body()
+    ox_api_key = await get_setting("oxapay_api_key")
+    if not verify_webhook(raw_body, request.headers.get("HMAC"), ox_api_key):
+        logging.warning("[oxapay-webhook] invalid/missing HMAC signature — rejected")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    data = parse_webhook(raw_body)
     order_id = webhook_order_id(data)
     if not order_id:
-        logging.warning("[maxelpay-webhook] missing order id in payload: %s", str(data)[:300])
+        logging.warning("[oxapay-webhook] missing order id in payload: %s", str(data)[:300])
         return {"status": "ignored"}
 
     transaction = await db.payment_transactions.find_one({"id": order_id}, {"_id": 0})
     if not transaction:
-        logging.warning("[maxelpay-webhook] unknown order id: %s", order_id)
+        logging.warning("[oxapay-webhook] unknown order id: %s", order_id)
         return {"status": "ignored"}
     if transaction.get("status") == "paid":
         return {"status": "already_processed"}
 
     if not webhook_is_paid(data):
-        # Pending / failed / expired — record the latest status, keep the
-        # transaction claimable so a later "completed" callback can still settle.
+        # new / waiting / confirming / expired / failed — record the latest
+        # status, keep the transaction claimable so a later 'paid' can settle.
         await db.payment_transactions.update_one(
             {"id": order_id},
-            {"$set": {"maxelpay_last_status": str(data.get("status") or data.get("orderStatus") or "")[:40]}},
+            {"$set": {"oxapay_last_status": str(data.get("status") or "")[:40]}},
         )
         return {"status": "received"}
 
@@ -3781,7 +3777,7 @@ async def maxelpay_webhook(request: Request) -> Dict[str, str]:
     plan_id = transaction["plan_id"]
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
-        logging.error("[maxelpay-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        logging.error("[oxapay-webhook] invalid plan for order %s: %s", order_id, plan_id)
         await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
         return {"status": "error"}
 
@@ -3802,10 +3798,10 @@ async def maxelpay_webhook(request: Request) -> Dict[str, str]:
             transaction_id=order_id,
         )
     except Exception as e:
-        logging.warning(f"[maxelpay-webhook] referral credit error: {e}")
+        logging.warning(f"[oxapay-webhook] referral credit error: {e}")
 
     logging.info(
-        "[maxelpay-webhook] subscription activated: user=%s plan=%s order=%s",
+        "[oxapay-webhook] subscription activated: user=%s plan=%s order=%s",
         transaction["user_id"], plan_id, order_id,
     )
     return {"status": "received"}
@@ -5706,8 +5702,8 @@ PUBLIC_SETTING_KEYS = (
     # PayPal
     "paypal_client_id",
     "paypal_mode",                # "sandbox" | "live"
-    # MaxelPay (crypto) — only the mode is public; keys are secret
-    "maxelpay_mode",              # "stg" | "prod"
+    # OxaPay (crypto) — only the sandbox flag is public; the key is secret
+    "oxapay_sandbox",             # "true" | "false"
     # Misc
     "trustpilot_business_id",
     "clarity_project_id",
@@ -5719,9 +5715,8 @@ SECRET_SETTING_KEYS = (
     "stripe_secret_key",
     "stripe_webhook_secret",
     "paypal_client_secret",
-    "coinbase_api_key",           # legacy/unused — superseded by MaxelPay
-    "maxelpay_api_key",
-    "maxelpay_secret_key",
+    "coinbase_api_key",           # legacy/unused — superseded by OxaPay
+    "oxapay_api_key",             # Merchant API key (also the webhook HMAC secret)
     "sendgrid_api_key",
 )
 
@@ -5744,9 +5739,8 @@ _SETTING_ENV_FALLBACK: Dict[str, str] = {
     "paypal_client_secret":   "PAYPAL_CLIENT_SECRET",
     "paypal_mode":            "PAYPAL_MODE",
     "coinbase_api_key":       "COINBASE_API_KEY",
-    "maxelpay_api_key":       "MAXELPAY_API_KEY",
-    "maxelpay_secret_key":    "MAXELPAY_SECRET_KEY",
-    "maxelpay_mode":          "MAXELPAY_MODE",
+    "oxapay_api_key":         "OXAPAY_API_KEY",
+    "oxapay_sandbox":         "OXAPAY_SANDBOX",
     "sendgrid_api_key":       "SENDGRID_API_KEY",
     "trustpilot_business_id": "REACT_APP_TRUSTPILOT_BUSINESS_ID",
     "clarity_project_id":     "REACT_APP_CLARITY_PROJECT_ID",
@@ -5772,9 +5766,8 @@ class AdminSettingsUpdate(BaseModel):
     paypal_mode: Optional[str] = None
     # Crypto / email / misc
     coinbase_api_key: Optional[str] = None
-    maxelpay_api_key: Optional[str] = None
-    maxelpay_secret_key: Optional[str] = None
-    maxelpay_mode: Optional[str] = None
+    oxapay_api_key: Optional[str] = None
+    oxapay_sandbox: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
     trustpilot_business_id: Optional[str] = None
     clarity_project_id: Optional[str] = None
