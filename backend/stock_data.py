@@ -1,6 +1,6 @@
 """Stock data provider using Yahoo Finance (yfinance) for real market data"""
 import yfinance as yf
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import logging
 
@@ -11,16 +11,42 @@ _ticker_cache = {}
 _cache_duration = 300  # 5 minutes cache
 
 
-# Yahoo throttles/blocks datacenter IPs (e.g. Cloud Run) for plain requests.
-# curl_cffi impersonates a real Chrome browser (TLS fingerprint + headers),
-# which bypasses most of that bot detection. Falls back to plain yfinance if
-# curl_cffi isn't installed or the version doesn't accept a session.
-def _make_ticker(symbol):
+# Yahoo returns empty data to plain datacenter requests (bot detection), which
+# is why yfinance fails from Cloud Run ("possibly delisted; no price data").
+# We hit Yahoo's JSON API directly via curl_cffi impersonating a real Chrome
+# browser (TLS fingerprint + headers), which Yahoo treats as a normal visitor.
+_YH_HOSTS = ("https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com")
+
+
+def _yahoo_get(path: str) -> dict:
+    """GET a Yahoo Finance JSON endpoint impersonating Chrome. Raises on failure."""
+    from curl_cffi import requests as _cffi
+    last = "no hosts tried"
+    for host in _YH_HOSTS:
+        try:
+            r = _cffi.get(host + path, impersonate="chrome", timeout=15)
+            if r.status_code == 200:
+                return r.json()
+            last = f"HTTP {r.status_code}"
+        except Exception as e:  # noqa: BLE001
+            last = f"{type(e).__name__}: {e}"
+    raise RuntimeError(f"Yahoo request failed ({path}): {last}")
+
+
+def _yf_safe_float(val, default=0.0):
     try:
-        from curl_cffi import requests as _cffi
-        return yf.Ticker(symbol, session=_cffi.Session(impersonate="chrome"))
-    except Exception:
-        return yf.Ticker(symbol)
+        f = float(val)
+        return default if f != f else f  # NaN guard
+    except (TypeError, ValueError):
+        return default
+
+
+def _yf_safe_int(val, default=0):
+    try:
+        f = float(val)
+        return default if f != f else int(f)
+    except (TypeError, ValueError):
+        return default
 
 # Sector mapping for fallback
 SECTOR_MAP = {
@@ -95,12 +121,28 @@ def get_stock_data(symbol: str) -> dict:
 
     try:
         logger.info(f"Fetching real data for {symbol} from Yahoo Finance")
-        ticker = _make_ticker(symbol)
-        hist = ticker.history(period="5d")
-        if hist.empty:
-            raise ValueError(f"No data found for {symbol}")
-
-        result = _build_stock_dict(symbol, hist, ticker.info)
+        data = _yahoo_get(f"/v8/finance/chart/{symbol}?range=5d&interval=1d")
+        res = (data.get("chart", {}).get("result") or [None])[0]
+        meta = (res or {}).get("meta") or {}
+        price = meta.get("regularMarketPrice")
+        if price is None:
+            raise ValueError(f"No price data for {symbol}")
+        prev = meta.get("chartPreviousClose") or meta.get("previousClose") or price
+        change = float(price) - float(prev)
+        change_pct = (change / float(prev) * 100) if prev else 0.0
+        vol = meta.get("regularMarketVolume") or 0
+        result = {
+            "symbol": symbol,
+            "name": meta.get("longName") or meta.get("shortName") or symbol,
+            "price": round(float(price), 2),
+            "change": round(change, 2),
+            "changePercent": round(change_pct, 2),
+            "high52w": round(float(meta.get("fiftyTwoWeekHigh") or price), 2),
+            "low52w": round(float(meta.get("fiftyTwoWeekLow") or price), 2),
+            "volume": f"{vol / 1_000_000:.1f}M" if vol and vol > 0 else "N/A",
+            "sector": _get_sector(symbol),
+            "dividendYield": 0.0,
+        }
         _ticker_cache[f"stock_{symbol}"] = (result, datetime.now())
         return result
     except Exception as e:
@@ -287,97 +329,51 @@ def generate_expirations():
 
 
 def get_options_chain_real(symbol: str, expiration_date: str) -> Optional[dict]:
-    """Get real options chain from Yahoo Finance."""
+    """Get real options chain from Yahoo Finance (v7 options JSON API)."""
     try:
         logger.info(f"Fetching options chain for {symbol} expiration {expiration_date}")
-        ticker = _make_ticker(symbol)
-        
-        # Get the options chain for specific expiration
-        opt_chain = ticker.option_chain(expiration_date)
-        
-        calls = opt_chain.calls
-        puts = opt_chain.puts
-        
-        if calls.empty and puts.empty:
+        exp_unix = int(datetime.strptime(expiration_date, "%Y-%m-%d")
+                       .replace(tzinfo=timezone.utc).timestamp())
+        data = _yahoo_get(f"/v7/finance/options/{symbol}?date={exp_unix}")
+        res = (data.get("optionChain", {}).get("result") or [None])[0]
+        opts = ((res or {}).get("options") or [None])[0]
+        if not opts:
             return None
-        
-        # Helper function to safely convert values, handling NaN
-        def safe_float(val, default=0.0):
-            try:
-                if val is None or (hasattr(val, '__iter__') and len(val) == 0):
-                    return default
-                f = float(val)
-                return default if (f != f) else f  # NaN check
-            except (ValueError, TypeError):
-                return default
-        
-        def safe_int(val, default=0):
-            try:
-                if val is None or (hasattr(val, '__iter__') and len(val) == 0):
-                    return default
-                f = float(val)
-                if f != f:  # NaN check
-                    return default
-                return int(f)
-            except (ValueError, TypeError):
-                return default
-        
-        # Build chain data
+        calls = opts.get("calls") or []
+        puts = opts.get("puts") or []
+        if not calls and not puts:
+            return None
+
+        _empty = {"bid": 0, "ask": 0, "mid": 0, "last": 0, "volume": 0, "openInterest": 0, "iv": 0.3}
+
+        def _leg(o):
+            bid = _yf_safe_float(o.get("bid"))
+            ask = _yf_safe_float(o.get("ask"))
+            return {
+                "bid": bid,
+                "ask": ask,
+                "mid": (bid + ask) / 2,
+                "last": _yf_safe_float(o.get("lastPrice")),
+                "volume": _yf_safe_int(o.get("volume")),
+                "openInterest": _yf_safe_int(o.get("openInterest")),
+                "iv": _yf_safe_float(o.get("impliedVolatility"), 0.3) or 0.3,
+            }
+
+        by_strike: dict = {}
+        for c in calls:
+            by_strike.setdefault(_yf_safe_float(c.get("strike")), {})["call"] = _leg(c)
+        for p in puts:
+            by_strike.setdefault(_yf_safe_float(p.get("strike")), {})["put"] = _leg(p)
+
         chain = []
-        
-        # Get all strikes (union of call and put strikes)
-        call_strikes = set(calls['strike'].tolist()) if not calls.empty else set()
-        put_strikes = set(puts['strike'].tolist()) if not puts.empty else set()
-        all_strikes = sorted(call_strikes | put_strikes)
-        
-        for strike in all_strikes:
-            call_row = calls[calls['strike'] == strike].iloc[0] if not calls.empty and strike in call_strikes else None
-            put_row = puts[puts['strike'] == strike].iloc[0] if not puts.empty and strike in put_strikes else None
-            
-            chain_item = {"strike": float(strike)}
-            
-            # Add call data
-            if call_row is not None:
-                bid = safe_float(call_row.get('bid', 0))
-                ask = safe_float(call_row.get('ask', 0))
-                chain_item["call"] = {
-                    "bid": bid,
-                    "ask": ask,
-                    "mid": (bid + ask) / 2,
-                    "last": safe_float(call_row.get('lastPrice', 0)),
-                    "volume": safe_int(call_row.get('volume', 0)),
-                    "openInterest": safe_int(call_row.get('openInterest', 0)),
-                    "iv": safe_float(call_row.get('impliedVolatility', 0.3), 0.3),
-                }
-            else:
-                chain_item["call"] = {
-                    "bid": 0, "ask": 0, "mid": 0, "last": 0, 
-                    "volume": 0, "openInterest": 0, "iv": 0.3
-                }
-            
-            # Add put data
-            if put_row is not None:
-                bid = safe_float(put_row.get('bid', 0))
-                ask = safe_float(put_row.get('ask', 0))
-                chain_item["put"] = {
-                    "bid": bid,
-                    "ask": ask,
-                    "mid": (bid + ask) / 2,
-                    "last": safe_float(put_row.get('lastPrice', 0)),
-                    "volume": safe_int(put_row.get('volume', 0)),
-                    "openInterest": safe_int(put_row.get('openInterest', 0)),
-                    "iv": safe_float(put_row.get('impliedVolatility', 0.3), 0.3),
-                }
-            else:
-                chain_item["put"] = {
-                    "bid": 0, "ask": 0, "mid": 0, "last": 0,
-                    "volume": 0, "openInterest": 0, "iv": 0.3
-                }
-            
-            chain.append(chain_item)
-        
+        for strike in sorted(by_strike):
+            chain.append({
+                "strike": float(strike),
+                "call": by_strike[strike].get("call", dict(_empty)),
+                "put": by_strike[strike].get("put", dict(_empty)),
+            })
         return chain
-        
+
     except Exception as e:
         logger.error(f"Error fetching options chain for {symbol}: {str(e)}")
         return None
@@ -387,21 +383,19 @@ def get_available_expirations(symbol: str) -> Optional[list]:
     """Get available expiration dates from Yahoo Finance."""
     try:
         logger.info(f"Fetching available expirations for {symbol}")
-        ticker = _make_ticker(symbol)
-        expirations = ticker.options  # Returns list of date strings
-        
-        if not expirations:
+        data = _yahoo_get(f"/v7/finance/options/{symbol}")
+        res = (data.get("optionChain", {}).get("result") or [None])[0]
+        exp_unix = (res or {}).get("expirationDates") or []
+        if not exp_unix:
             return None
-        
+
         today = datetime.now()
         result = []
-        
-        for exp_str in expirations[:15]:  # Limit to first 15 expirations
-            exp_date = datetime.strptime(exp_str, "%Y-%m-%d")
+        for ts in exp_unix[:15]:  # Limit to first 15 expirations
+            exp_date = datetime.fromtimestamp(int(ts), tz=timezone.utc).replace(tzinfo=None)
             days_to_expiry = (exp_date - today).days
-            
             result.append({
-                "date": exp_str,
+                "date": exp_date.strftime("%Y-%m-%d"),
                 "daysToExpiry": days_to_expiry,
                 "label": exp_date.strftime("%b %d"),
                 "fullLabel": exp_date.strftime("%b %d, %Y"),
@@ -409,9 +403,8 @@ def get_available_expirations(symbol: str) -> Optional[list]:
                 "isMonthly": 30 <= days_to_expiry < 100,
                 "isLeaps": days_to_expiry >= 180,
             })
-        
         return result
-        
+
     except Exception as e:
         logger.error(f"Error fetching expirations for {symbol}: {str(e)}")
         return None
