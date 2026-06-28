@@ -10,6 +10,18 @@ logger = logging.getLogger(__name__)
 _ticker_cache = {}
 _cache_duration = 300  # 5 minutes cache
 
+
+# Yahoo throttles/blocks datacenter IPs (e.g. Cloud Run) for plain requests.
+# curl_cffi impersonates a real Chrome browser (TLS fingerprint + headers),
+# which bypasses most of that bot detection. Falls back to plain yfinance if
+# curl_cffi isn't installed or the version doesn't accept a session.
+def _make_ticker(symbol):
+    try:
+        from curl_cffi import requests as _cffi
+        return yf.Ticker(symbol, session=_cffi.Session(impersonate="chrome"))
+    except Exception:
+        return yf.Ticker(symbol)
+
 # Sector mapping for fallback
 SECTOR_MAP = {
     "Technology": ["AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOG", "GOOGL", "AMD", "INTC"],
@@ -83,7 +95,7 @@ def get_stock_data(symbol: str) -> dict:
 
     try:
         logger.info(f"Fetching real data for {symbol} from Yahoo Finance")
-        ticker = yf.Ticker(symbol)
+        ticker = _make_ticker(symbol)
         hist = ticker.history(period="5d")
         if hist.empty:
             raise ValueError(f"No data found for {symbol}")
@@ -278,7 +290,7 @@ def get_options_chain_real(symbol: str, expiration_date: str) -> Optional[dict]:
     """Get real options chain from Yahoo Finance."""
     try:
         logger.info(f"Fetching options chain for {symbol} expiration {expiration_date}")
-        ticker = yf.Ticker(symbol)
+        ticker = _make_ticker(symbol)
         
         # Get the options chain for specific expiration
         opt_chain = ticker.option_chain(expiration_date)
@@ -375,7 +387,7 @@ def get_available_expirations(symbol: str) -> Optional[list]:
     """Get available expiration dates from Yahoo Finance."""
     try:
         logger.info(f"Fetching available expirations for {symbol}")
-        ticker = yf.Ticker(symbol)
+        ticker = _make_ticker(symbol)
         expirations = ticker.options  # Returns list of date strings
         
         if not expirations:

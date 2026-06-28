@@ -142,7 +142,7 @@ const SearchBar = ({ currentTicker, stockData, onSelect }) => {
   const showNoResults = open && query.trim() && flatResults.length === 0 && !loading;
 
   return (
-    <div ref={containerRef} className="relative w-[380px]">
+    <div ref={containerRef} className="relative w-full max-w-[380px]">
       {/* Input */}
       <div className={`relative flex items-center bg-muted border rounded-xl overflow-hidden transition-all ${
         open ? 'border-primary/60 ring-2 ring-primary/15 shadow-lg shadow-primary/10' : 'border-border hover:border-primary/40'

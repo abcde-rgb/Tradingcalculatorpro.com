@@ -491,7 +491,7 @@ const CalculatorPage = () => {
             <span className="text-[10px] text-muted-foreground ml-2">· {t('optConstructorHint')}</span>
           </div>
 
-          <div className="flex">
+          <div className="flex flex-col lg:flex-row">
             <div className="flex-1 flex flex-col p-3 gap-2.5 min-w-0">
               <StatsKPIBar
                 stats={stats}
@@ -565,7 +565,7 @@ const CalculatorPage = () => {
               />
             </div>
 
-            <aside className="w-[272px] min-w-[272px] bg-card border-l border-border flex flex-col">
+            <aside className="w-full lg:w-[272px] lg:min-w-[272px] bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col">
               <div className="p-4 border-b border-border">
                 <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">
                   {t('optExpirationDate')}
