@@ -428,11 +428,23 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
         if not ed:
             continue
         day = str(ed)[:10]
-        slot = daily_map.setdefault(day, {"pnl": 0.0, "n": 0})
-        slot["pnl"] += float(t.get("pnl") or 0)
+        slot = daily_map.setdefault(day, {"pnl": 0.0, "n": 0, "wins": 0, "losses": 0})
+        p = float(t.get("pnl") or 0)
+        slot["pnl"] += p
         slot["n"] += 1
+        if p > 0:
+            slot["wins"] += 1
+        elif p < 0:
+            slot["losses"] += 1
     daily_pnl = [
-        {"date": d, "pnl": round(v["pnl"], 2), "n": int(v["n"])}
+        {
+            "date": d,
+            "pnl": round(v["pnl"], 2),
+            "n": int(v["n"]),
+            "wins": int(v["wins"]),
+            "losses": int(v["losses"]),
+            "pct": round(_safe_div(v["pnl"], starting_balance, 0) * 100, 2),
+        }
         for d, v in sorted(daily_map.items())
     ]
 

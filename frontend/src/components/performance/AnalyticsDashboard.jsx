@@ -157,6 +157,9 @@ const PnLCalendar = ({ data }) => {
   const monthRows = (data || []).filter((d) => d.date.startsWith(month));
   const monthPnl = monthRows.reduce((s, d) => s + d.pnl, 0);
   const tradingDays = monthRows.length;
+  const monthWins = monthRows.reduce((s, d) => s + (d.wins || 0), 0);
+  const monthOps = monthRows.reduce((s, d) => s + (d.n || 0), 0);
+  const monthPct = monthRows.reduce((s, d) => s + (d.pct || 0), 0);
 
   const shift = (delta) => {
     const dt = new Date(year, mon - 1 + delta, 1);
@@ -208,21 +211,33 @@ const PnLCalendar = ({ data }) => {
             : pnl < 0 ? 'bg-[#ef4444]/15 border-[#ef4444]/30'
             : 'bg-muted/30';
           const col = pnl > 0 ? 'text-[#22c55e]' : pnl < 0 ? 'text-[#ef4444]' : 'text-muted-foreground';
+          const pct = c.info?.pct;
           return (
             <div key={`d${c.day}`}
-              title={has ? `${c.day}: ${pnl > 0 ? '+' : ''}$${pnl} · ${c.info.n} ops` : `${c.day}`}
-              className={`aspect-square rounded-md border border-transparent ${bg} px-1 py-0.5 flex flex-col`}>
+              title={has
+                ? `${c.day} · ${pnl > 0 ? '+' : ''}$${pnl} (${pct > 0 ? '+' : ''}${pct}%) · ${c.info.wins}/${c.info.n} ✓ · ${c.info.n} ops`
+                : `${c.day}`}
+              className={`min-h-[60px] rounded-md border border-transparent ${bg} px-1 py-0.5 flex flex-col`}>
               <span className="text-[9px] text-muted-foreground leading-none">{c.day}</span>
-              {has && <span className={`text-[10px] font-bold font-mono mt-auto leading-none ${col}`}>{compact(pnl)}</span>}
+              {has && (
+                <div className="mt-auto leading-tight">
+                  <div className={`text-[11px] font-bold font-mono ${col}`}>{compact(pnl)}</div>
+                  <div className="text-[8px] text-muted-foreground font-mono">
+                    {c.info.wins}/{c.info.n}{pct != null && ` · ${pct > 0 ? '+' : ''}${pct}%`}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border text-xs">
-        <span className="text-muted-foreground">{tradingDays} {t('tradingDays')}</span>
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border text-xs flex-wrap gap-1">
+        <span className="text-muted-foreground">
+          {tradingDays} {t('tradingDays')} · {monthWins}/{monthOps} ✓ ({monthOps ? Math.round((monthWins / monthOps) * 100) : 0}%)
+        </span>
         <span className={`font-bold font-mono ${monthPnl > 0 ? 'text-[#22c55e]' : monthPnl < 0 ? 'text-[#ef4444]' : ''}`}>
-          {monthPnl > 0 ? '+' : ''}${monthPnl.toFixed(2)}
+          {monthPnl > 0 ? '+' : ''}${monthPnl.toFixed(2)} ({monthPct > 0 ? '+' : ''}{monthPct.toFixed(1)}%)
         </span>
       </div>
     </div>
