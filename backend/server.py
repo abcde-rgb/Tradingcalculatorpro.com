@@ -42,6 +42,7 @@ from stock_data import (
     generate_expirations,
     get_options_chain_real,
     get_available_expirations,
+    get_cached_meta,
 )
 from candle_patterns import detect_all_patterns, PATTERN_META
 from performance import (
@@ -4292,6 +4293,11 @@ def _classify_symbol(sym: str) -> dict:
     }
     if s in etfs:
         return {"category": "etfs", "name": s}
+    # Uncurated symbol: use the name + category Yahoo's search gave us, if any,
+    # so e.g. a freshly-searched "AAPL" shows "Apple Inc." instead of just "AAPL".
+    meta = get_cached_meta(s)
+    if meta:
+        return {"category": meta.get("category") or "stocks", "name": meta.get("name") or s}
     return {"category": "stocks", "name": s}
 
 

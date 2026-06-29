@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Activity, Target, AlertTriangle,
-  CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight, Brain,
+  CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight, Brain, PlusCircle,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
@@ -244,7 +244,7 @@ const PnLCalendar = ({ data }) => {
   );
 };
 
-export default function AnalyticsDashboard({ refreshKey }) {
+export default function AnalyticsDashboard({ refreshKey, onGoToJournal }) {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -269,9 +269,22 @@ export default function AnalyticsDashboard({ refreshKey }) {
 
   if (a.closed_trades === 0) {
     return (
-      <div className="text-center py-16 bg-card border border-dashed border-border rounded-xl">
-        <BarChart3 className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">{t('analyticsNoData')}</p>
+      <div className="text-center py-16 px-4 bg-card border border-dashed border-border rounded-xl"
+        data-testid="analytics-empty">
+        <BarChart3 className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+        <h3 className="text-lg font-bold text-foreground mb-2">{t('analyticsEmptyTitle')}</h3>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">{t('analyticsNoData')}</p>
+        {onGoToJournal && (
+          <button
+            type="button"
+            onClick={onGoToJournal}
+            data-testid="analytics-empty-cta"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] text-white text-sm font-semibold transition-colors"
+          >
+            <PlusCircle className="w-4 h-4" />
+            {t('addFirstTrade')}
+          </button>
+        )}
       </div>
     );
   }

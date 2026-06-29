@@ -1763,6 +1763,7 @@ export default {
     dividendImpact_adv030: 'Yield {pct}% in BSM-Pricing eingerechnet',
     addFirstTrade: 'Meinen ersten Trade hinzufügen',
     analyticsNoData: 'Du hast noch keine geschlossenen Trades. Füge Trades im Journal hinzu, um deine Metriken hier zu sehen.',
+    analyticsEmptyTitle: 'Füge deinen ersten Trade hinzu, um zu starten',
     analyticsPoints: 'Punkte',
     autoInsights: 'Automatische Insights',
     breakdownByDay: 'Nach Wochentag',
