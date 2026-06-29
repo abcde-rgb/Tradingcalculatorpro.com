@@ -1,5 +1,5 @@
-"""Stock data provider using Yahoo Finance (yfinance) for real market data"""
-import yfinance as yf
+"""Stock data provider — hits Yahoo Finance's JSON API directly (via curl_cffi
+Chrome impersonation) for real market data. No yfinance/pandas at import time."""
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import logging
@@ -175,10 +175,74 @@ def _get_fallback_stock_data(symbol: str) -> dict:
     }
 
 
+# Symbols discovered through Yahoo's search API carry a human-friendly name
+# and an authoritative category. We cache that metadata so the rest of the app
+# (e.g. _classify_symbol) can show "Apple Inc." next to AAPL even for tickers
+# outside the hand-curated list.
+_meta_cache = {}
+
+# Yahoo quoteType → our UI categories.
+_YH_QUOTE_TYPE_TO_CAT = {
+    "EQUITY": "stocks", "ETF": "etfs", "INDEX": "indices",
+    "CURRENCY": "forex", "CRYPTOCURRENCY": "crypto", "FUTURE": "commodities",
+    "MUTUALFUND": "etfs", "OPTION": "stocks",
+}
+
+# Short-lived cache of search results keyed by lowercased query, so an
+# as-you-type search box doesn't fire a Yahoo request on every keystroke.
+_search_cache = {}
+_search_cache_ttl = 120  # seconds
+
+
+def yahoo_search_symbols(query: str, limit: int = 20) -> list:
+    """Search Yahoo Finance's full universe by company name or ticker.
+
+    Returns a list of {"symbol", "name", "category"} dicts. Degrades to an
+    empty list on any network/parse failure so callers can fall back to the
+    curated universe. Also populates the metadata cache for _classify_symbol.
+    """
+    q = (query or "").strip()
+    if not q:
+        return []
+    key = q.lower()
+    cached = _search_cache.get(key)
+    if cached and (datetime.now().timestamp() - cached[0]) < _search_cache_ttl:
+        return cached[1]
+    try:
+        from urllib.parse import quote
+        data = _yahoo_get(
+            f"/v1/finance/search?q={quote(q)}&quotesCount={int(limit)}"
+            "&newsCount=0&listsCount=0&enableFuzzyQuery=false"
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.info("Yahoo search failed for %r: %s", q, e)
+        return []
+    out = []
+    for item in (data.get("quotes") or []):
+        sym = (item.get("symbol") or "").strip()
+        if not sym:
+            continue
+        qt = (item.get("quoteType") or "").upper()
+        name = (item.get("shortname") or item.get("longname")
+                or item.get("shortName") or item.get("longName") or sym)
+        cat = _YH_QUOTE_TYPE_TO_CAT.get(qt, "stocks")
+        _meta_cache[sym.upper()] = {"name": name, "category": cat}
+        out.append({"symbol": sym, "name": name, "category": cat})
+    _search_cache[key] = (datetime.now().timestamp(), out)
+    return out
+
+
+def get_cached_meta(symbol: str) -> dict:
+    """Return {name, category} previously discovered via Yahoo search, or {}."""
+    return _meta_cache.get((symbol or "").upper(), {})
+
+
 def search_tickers(query: str) -> list:
     """Search tickers across stocks, ETFs, indices, commodities and crypto.
 
-    Returns up to 30 matching symbols. Empty query returns top 30 popular tickers.
+    Curated symbols match first (fast, reliable), then Yahoo's full universe
+    widens the net so company names ("apple", "tesla") and any uncurated ticker
+    also resolve. Returns up to 30 symbols. Empty query returns top 30 popular.
     """
     # Comprehensive ticker universe — stocks + ETFs + indices/CFDs + commodities + crypto
     all_tickers = [
@@ -281,15 +345,25 @@ def search_tickers(query: str) -> list:
         "GBPJPY": "GBPJPY=X",
     }
 
-    # Direct alias hit returns the canonical symbol first.
+    # Direct alias hit returns the canonical symbol first, then substring
+    # matches, then Yahoo's wider universe.
     if q in ALIASES:
         canonical = ALIASES[q]
-        # Combine: canonical first, then any other substring matches.
-        rest = [t for t in universe if q in t.upper() and t != canonical]
-        return [canonical] + rest[:29]
+        matches = [canonical] + [t for t in universe if q in t.upper() and t != canonical]
+    else:
+        # Substring match on the curated symbols first (fast, reliable).
+        matches = [t for t in universe if q in t.upper()]
 
-    # Substring match on the symbol (original behavior).
-    matches = [t for t in universe if q in t.upper()]
+    # Widen the net with Yahoo's full universe (name- or ticker-based) so
+    # "apple", "tesla", "microsoft", company names and any uncurated ticker
+    # also resolve. Curated hits keep priority; Yahoo fills the remainder.
+    seen_m = {m.upper() for m in matches}
+    for hit in yahoo_search_symbols(query, limit=25):
+        sym = hit["symbol"]
+        if sym.upper() not in seen_m:
+            seen_m.add(sym.upper())
+            matches.append(sym)
+
     return matches[:30]
 
 

@@ -1697,6 +1697,7 @@ export default {
     dividendImpact_adv030: 'Yield {pct}%をBSM価格計算に反映',
     addFirstTrade: '最初のトレードを追加',
     analyticsNoData: 'まだクローズされたトレードがありません。ジャーナルにトレードを追加すると、ここにメトリクスが表示されます。',
+    analyticsEmptyTitle: '最初のトレードを追加して始めましょう',
     analyticsPoints: 'ポイント',
     autoInsights: '自動インサイト',
     breakdownByDay: '曜日別',

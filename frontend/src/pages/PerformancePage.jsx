@@ -150,7 +150,7 @@ export default function PerformancePage() {
           {!isAuthenticated ? (
             <AuthRequired t={t} />
           ) : (
-            <AnalyticsDashboard refreshKey={refreshKey} />
+            <AnalyticsDashboard refreshKey={refreshKey} onGoToJournal={() => setTab('journal')} />
           )}
         </TabsContent>
 

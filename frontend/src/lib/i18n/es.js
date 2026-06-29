@@ -1321,6 +1321,7 @@ export default {
     equityCurve: 'Curva de capital',
     analyticsPoints: 'puntos',
     analyticsNoData: 'Aún no tienes trades cerrados. Añade trades en el Diario para ver tus métricas aquí.',
+    analyticsEmptyTitle: 'Añade tu primer trade para empezar',
     breakdownBySetup: 'Por Setup',
     breakdownByDay: 'Por día de la semana',
     breakdownEmpty: 'Sin datos',

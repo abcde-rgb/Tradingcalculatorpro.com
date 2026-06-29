@@ -1703,6 +1703,7 @@ export default {
     dividendImpact_adv030: 'Yield {pct}% مدمج في تسعير BSM',
     addFirstTrade: 'أضف أول صفقة لي',
     analyticsNoData: 'ليس لديك صفقات مغلقة بعد. أضف صفقات في اليومية لترى مقاييسك هنا.',
+    analyticsEmptyTitle: 'أضف صفقتك الأولى للبدء',
     analyticsPoints: 'نقاط',
     autoInsights: 'رؤى تلقائية',
     breakdownByDay: 'حسب يوم الأسبوع',

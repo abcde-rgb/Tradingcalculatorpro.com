@@ -1705,6 +1705,7 @@ export default {
     dividendImpact_adv030: 'Yield {pct}% учтён в BSM pricing',
     addFirstTrade: 'Добавить мою первую сделку',
     analyticsNoData: 'У вас пока нет закрытых сделок. Добавьте сделки в Дневник, чтобы увидеть здесь свою статистику.',
+    analyticsEmptyTitle: 'Добавьте свою первую сделку, чтобы начать',
     analyticsPoints: 'точек',
     autoInsights: 'Автоматические инсайты',
     breakdownByDay: 'По дням недели',

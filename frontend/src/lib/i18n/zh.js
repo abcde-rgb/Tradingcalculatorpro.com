@@ -1705,6 +1705,7 @@ export default {
     dividendImpact_adv030: 'Yield {pct}%已纳入BSM定价',
     addFirstTrade: '添加我的第一笔交易',
     analyticsNoData: '您还没有已平仓的交易。在交易日志中添加交易以查看您的指标。',
+    analyticsEmptyTitle: '添加您的第一笔交易以开始',
     analyticsPoints: '点',
     autoInsights: '自动洞察',
     breakdownByDay: '按星期几',
