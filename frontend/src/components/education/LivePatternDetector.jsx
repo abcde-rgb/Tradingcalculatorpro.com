@@ -9,24 +9,39 @@ import CandlePatternFigure from './CandlePatternFigure';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const PATTERN_NAME_KEY = {
+  // single
   'hammer':               'hammerName',
+  'hanging-man':          'hangingManName',
+  'inverted-hammer':      'invertedHammerName',
   'shooting-star':        'shootingStarName',
-  'bullish-engulfing':    'engulfingBullName',
-  'bearish-engulfing':    'engulfingBearName',
-  'morning-star':         'morningStarName',
-  'evening-star':         'eveningStarName',
+  'doji':                 'dojiName',
   'dragonfly-doji':       'dragonflyDojiName',
   'gravestone-doji':      'gravestoneDojiName',
+  'long-legged-doji':     'longLeggedDojiName',
+  'high-wave':            'highWaveName',
+  'bullish-marubozu':     'bullishMarubozuName',
+  'bearish-marubozu':     'bearishMarubozuName',
+  'spinning-top':         'spinningTopName',
+  // two
+  'bullish-engulfing':    'engulfingBullName',
+  'bearish-engulfing':    'engulfingBearName',
+  'bullish-harami':       'bullishHaramiName',
+  'bearish-harami':       'bearishHaramiName',
+  'piercing-line':        'piercingLineName',
+  'dark-cloud-cover':     'darkCloudName',
+  'tweezer-bottom':       'tweezerBottomName',
+  'tweezer-top':          'tweezerTopName',
+  'bullish-kicker':       'bullishKickerName',
+  'bearish-kicker':       'bearishKickerName',
+  // three
+  'morning-star':         'morningStarName',
+  'evening-star':         'eveningStarName',
+  'morning-doji-star':    'morningDojiStarName',
+  'evening-doji-star':    'eveningDojiStarName',
   'three-white-soldiers': 'threeWhiteSoldiersName',
   'three-black-crows':    'threeBlackCrowsName',
-  'doji':                 'dojiName',
-  'spinning-top':         'spinningTopName',
-};
-
-// Marubozu has no entry in the educational catalogue → static fallback strings.
-const FALLBACK_NAME = {
-  'marubozu-bullish': 'Marubozu',
-  'marubozu-bearish': 'Marubozu',
+  'three-inside-up':      'threeInsideUpName',
+  'three-inside-down':    'threeInsideDownName',
 };
 
 const TYPE_BADGE = {
@@ -34,6 +49,16 @@ const TYPE_BADGE = {
   bearish: { color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/10', border: 'border-[#ef4444]/30', icon: '↓' },
   neutral: { color: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border', icon: '↔' },
 };
+
+const BEHAVIOR_KEY = {
+  reversal:     'patReversal',
+  continuation: 'patContinuation',
+  indecision:   'patIndecision',
+};
+
+// Colour the reliability % by strength: strong ≥65, medium ≥55, weak below.
+const rateColor = (rate) =>
+  rate >= 65 ? 'text-[#22c55e]' : rate >= 55 ? 'text-[#f59e0b]' : 'text-muted-foreground';
 
 const PERIODS = ['1mo', '3mo', '6mo', '1y'];
 
@@ -71,7 +96,8 @@ const LivePatternDetector = () => {
     if (e.key === 'Enter') scan();
   };
 
-  const patternName = (id) => (PATTERN_NAME_KEY[id] ? t(PATTERN_NAME_KEY[id]) : (FALLBACK_NAME[id] || id));
+  const patternName = (id) => (PATTERN_NAME_KEY[id] ? t(PATTERN_NAME_KEY[id]) : id);
+  const behaviorLabel = (b) => (BEHAVIOR_KEY[b] ? t(BEHAVIOR_KEY[b]) : b);
 
   return (
     <Card
@@ -171,6 +197,33 @@ const LivePatternDetector = () => {
                         {badge.icon} {d.type}
                       </span>
                     </div>
+                    {/* Reliability stats (Bulkowski) — behavior · success rate · rank */}
+                    {d.behavior && (
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                        <span
+                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border"
+                          title={t('patBehaviorHint')}
+                        >
+                          {behaviorLabel(d.behavior)}
+                        </span>
+                        {typeof d.rate === 'number' && (
+                          <span
+                            className={`text-[11px] font-mono font-bold ${rateColor(d.rate)}`}
+                            title={t('patRateHint')}
+                          >
+                            {d.rate}%
+                          </span>
+                        )}
+                        {typeof d.rank === 'number' && (
+                          <span
+                            className="text-[10px] text-muted-foreground font-mono"
+                            title={t('patRankHint')}
+                          >
+                            · #{d.rank}/103
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono mt-0.5">
                       <Calendar className="w-3 h-3" />
                       <span>{d.date}</span>
@@ -191,6 +244,13 @@ const LivePatternDetector = () => {
           <div className="text-center py-6 text-sm text-muted-foreground">
             {t('livePatternNoResults')}
           </div>
+        )}
+
+        {/* Reliability figures are approximate historical stats — not a promise. */}
+        {data && data.detections && data.detections.length > 0 && (
+          <p className="text-[10px] text-muted-foreground/70 leading-relaxed pt-1">
+            {t('patStatsNote')}
+          </p>
         )}
       </CardContent>
     </Card>

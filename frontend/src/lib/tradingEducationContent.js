@@ -776,6 +776,43 @@ export const getChartPatterns = (t) => ({
   ]
 });
 
+// Approximate historical reliability per candlestick pattern (Bulkowski,
+// "Encyclopedia of Candlestick Charts"). Language-neutral numbers, mirrored
+// from the backend catalogue. behavior: reversal | continuation | indecision;
+// successRate: % it resolves that way; rank: overall performance (1 = best/103).
+export const CANDLE_PATTERN_STATS = {
+  'hammer':               { behavior: 'reversal',     successRate: 60, rank: 26 },
+  'hanging-man':          { behavior: 'reversal',     successRate: 59, rank: 51 },
+  'inverted-hammer':      { behavior: 'reversal',     successRate: 65, rank: 14 },
+  'shooting-star':        { behavior: 'reversal',     successRate: 59, rank: 31 },
+  'doji':                 { behavior: 'indecision',   successRate: 50, rank: 75 },
+  'dragonfly-doji':       { behavior: 'reversal',     successRate: 50, rank: 72 },
+  'gravestone-doji':      { behavior: 'reversal',     successRate: 51, rank: 77 },
+  'long-legged-doji':     { behavior: 'indecision',   successRate: 51, rank: 80 },
+  'high-wave':            { behavior: 'indecision',   successRate: 50, rank: 82 },
+  'bullish-marubozu':     { behavior: 'continuation', successRate: 56, rank: 58 },
+  'bearish-marubozu':     { behavior: 'continuation', successRate: 55, rank: 60 },
+  'spinning-top':         { behavior: 'indecision',   successRate: 50, rank: 78 },
+  'bullish-engulfing':    { behavior: 'reversal',     successRate: 63, rank: 22 },
+  'bearish-engulfing':    { behavior: 'reversal',     successRate: 79, rank: 9 },
+  'bullish-harami':       { behavior: 'reversal',     successRate: 53, rank: 68 },
+  'bearish-harami':       { behavior: 'reversal',     successRate: 53, rank: 65 },
+  'piercing-line':        { behavior: 'reversal',     successRate: 64, rank: 19 },
+  'dark-cloud-cover':     { behavior: 'reversal',     successRate: 60, rank: 30 },
+  'tweezer-bottom':       { behavior: 'reversal',     successRate: 56, rank: 56 },
+  'tweezer-top':          { behavior: 'reversal',     successRate: 55, rank: 57 },
+  'bullish-kicker':       { behavior: 'reversal',     successRate: 68, rank: 7 },
+  'bearish-kicker':       { behavior: 'reversal',     successRate: 67, rank: 8 },
+  'morning-star':         { behavior: 'reversal',     successRate: 78, rank: 6 },
+  'evening-star':         { behavior: 'reversal',     successRate: 72, rank: 11 },
+  'morning-doji-star':    { behavior: 'reversal',     successRate: 76, rank: 10 },
+  'evening-doji-star':    { behavior: 'reversal',     successRate: 71, rank: 13 },
+  'three-white-soldiers': { behavior: 'reversal',     successRate: 82, rank: 3 },
+  'three-black-crows':    { behavior: 'reversal',     successRate: 78, rank: 5 },
+  'three-inside-up':      { behavior: 'reversal',     successRate: 65, rank: 16 },
+  'three-inside-down':    { behavior: 'reversal',     successRate: 60, rank: 28 },
+};
+
 export const getCandlestickPatterns = (t) => ({
   bullish: [
     {

@@ -43,8 +43,9 @@ from stock_data import (
     get_options_chain_real,
     get_available_expirations,
     get_cached_meta,
+    get_ohlc_history,
 )
-from candle_patterns import detect_all_patterns, PATTERN_META
+from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
 from performance import (
     compute_trade_pnl,
     detect_errors,
@@ -5054,22 +5055,15 @@ async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume:
 
 
 # ========== EDUCATION: Live Pattern Detector ==========
-def _yfinance_to_ohlc_rows(symbol: str, period: str = "3mo", interval: str = "1d") -> List[Dict[str, Any]]:
-    """Fetch historical OHLC from Yahoo Finance and shape it for the detector."""
-    import yfinance as yf
-    hist = yf.Ticker(symbol).history(period=period, interval=interval)
-    if hist.empty:
-        return []
-    rows: List[Dict[str, Any]] = []
-    for idx, row in hist.iterrows():
-        rows.append({
-            "date": idx.strftime("%Y-%m-%d"),
-            "open": float(row["Open"]),
-            "high": float(row["High"]),
-            "low": float(row["Low"]),
-            "close": float(row["Close"]),
-        })
-    return rows
+# Frontend period selectors map 1:1 to Yahoo chart ranges.
+_PATTERN_SCAN_RANGES = {"1mo", "3mo", "6mo", "1y", "2y", "5y", "ytd", "max"}
+
+
+@api_router.get("/education/pattern-catalog")
+async def education_pattern_catalog() -> Dict[str, Any]:
+    """Full candlestick encyclopedia: every pattern with behavior, reliability
+    rate and overall rank (strongest first). Names are localized on the client."""
+    return {"patterns": get_pattern_catalog()}
 
 
 @api_router.get("/education/pattern-scan/{symbol}")
@@ -5078,14 +5072,12 @@ async def education_pattern_scan(
     request: Request, symbol: str, period: str = "3mo", interval: str = "1d", limit: int = 30,
 ) -> Dict[str, Any]:
     """Scan real OHLC for the given ticker and return canonical candlestick
-    pattern detections (educational view)."""
+    pattern detections (educational view), enriched with reliability stats."""
     sym = symbol.upper().strip()
+    rng = period if period in _PATTERN_SCAN_RANGES else "3mo"
     try:
-        # _yfinance_to_ohlc_rows does synchronous yfinance I/O — keep it off the loop
-        loop = asyncio.get_event_loop()
-        rows = await loop.run_in_executor(
-            None, lambda: _yfinance_to_ohlc_rows(sym, period=period, interval=interval)
-        )
+        # Direct Yahoo chart API (curl_cffi) — yfinance is blocked from Cloud Run.
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, interval)
         if not rows:
             return {"symbol": sym, "rowsScanned": 0, "totalDetections": 0, "detections": []}
         detections = detect_all_patterns(rows)

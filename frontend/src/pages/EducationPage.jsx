@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent } from '@/lib/tradingEducationContent';
+import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -49,6 +49,15 @@ const patternTypeColors = {
   bearish: 'text-red-500',
   neutral: 'text-yellow-500'
 };
+
+const PATTERN_BEHAVIOR_KEY = {
+  reversal: 'patReversal',
+  continuation: 'patContinuation',
+  indecision: 'patIndecision',
+};
+// Colour the historical hit-rate by strength.
+const candleRateColor = (r) =>
+  r >= 65 ? 'text-green-500' : r >= 55 ? 'text-yellow-500' : 'text-muted-foreground';
 
 // Motion variants extracted to module level to avoid inline-object re-renders
 const MOTION_FADE_UP = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
@@ -136,12 +145,28 @@ function PatternCard({ pattern, onClick }) {
           <CandlePatternFigure patternId={pattern.id} className="flex-shrink-0" />
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2">{pattern.description}</p>
-        {pattern.reliability && (
-          <div className="mt-3 flex items-center gap-2">
-            <Star className="w-3 h-3 text-yellow-500" />
-            <span className="text-xs text-muted-foreground">{t('reliability')}: {pattern.reliability}</span>
-          </div>
-        )}
+        {(() => {
+          const s = CANDLE_PATTERN_STATS[pattern.id];
+          if (!s) {
+            return pattern.reliability ? (
+              <div className="mt-3 flex items-center gap-2">
+                <Star className="w-3 h-3 text-yellow-500" />
+                <span className="text-xs text-muted-foreground">{t('reliability')}: {pattern.reliability}</span>
+              </div>
+            ) : null;
+          }
+          return (
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border">
+                {t(PATTERN_BEHAVIOR_KEY[s.behavior] || 'patReversal')}
+              </span>
+              <span className={`text-xs font-bold font-mono ${candleRateColor(s.successRate)}`}>
+                {s.successRate}%
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">· #{s.rank}/103</span>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
@@ -247,6 +272,27 @@ function PatternDetailModal({ pattern, onClose }) {
                 </div>
               )}
               
+              {CANDLE_PATTERN_STATS[pattern.id] && (() => {
+                const s = CANDLE_PATTERN_STATS[pattern.id];
+                return (
+                  <div className="grid grid-cols-3 gap-3" data-testid="pattern-stats">
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('patBehaviorHint')}</p>
+                      <p className="font-semibold mt-0.5">{t(PATTERN_BEHAVIOR_KEY[s.behavior] || 'patReversal')}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('patSuccessRateLabel')}</p>
+                      <p className={`font-bold font-mono mt-0.5 ${candleRateColor(s.successRate)}`}>{s.successRate}%</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('patRankLabel')}</p>
+                      <p className="font-semibold font-mono mt-0.5">#{s.rank}/103</p>
+                    </div>
+                    <p className="col-span-3 text-[10px] text-muted-foreground/70 leading-relaxed">{t('patStatsNote')}</p>
+                  </div>
+                );
+              })()}
+
               {pattern.reliability && (
                 <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
                   <div>
