@@ -150,6 +150,46 @@ def get_stock_data(symbol: str) -> dict:
         return _get_fallback_stock_data(symbol)
 
 
+def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> list:
+    """Historical OHLC rows from Yahoo's chart API (direct, curl_cffi Chrome).
+
+    Returns [{date, open, high, low, close}] ascending by date. Replaces the old
+    yfinance path, which Yahoo blocks from datacenter IPs. Returns [] on failure.
+
+    `range_` accepts Yahoo ranges (1mo, 3mo, 6mo, 1y, 2y, 5y, max);
+    `interval` accepts 1d, 1wk, 1mo, etc.
+    """
+    symbol = symbol.upper().strip()
+    try:
+        data = _yahoo_get(f"/v8/finance/chart/{symbol}?range={range_}&interval={interval}")
+        res = (data.get("chart", {}).get("result") or [None])[0]
+        if not res:
+            return []
+        stamps = res.get("timestamp") or []
+        quote = ((res.get("indicators") or {}).get("quote") or [{}])[0]
+        opens, highs = quote.get("open") or [], quote.get("high") or []
+        lows, closes = quote.get("low") or [], quote.get("close") or []
+        rows = []
+        for idx, ts in enumerate(stamps):
+            o, h, lo, c = (
+                opens[idx] if idx < len(opens) else None,
+                highs[idx] if idx < len(highs) else None,
+                lows[idx] if idx < len(lows) else None,
+                closes[idx] if idx < len(closes) else None,
+            )
+            # Yahoo emits null for non-trading slots — skip incomplete bars.
+            if None in (o, h, lo, c):
+                continue
+            rows.append({
+                "date": datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d"),
+                "open": float(o), "high": float(h), "low": float(lo), "close": float(c),
+            })
+        return rows
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Error fetching OHLC history for {symbol}: {e}")
+        return []
+
+
 def _get_fallback_stock_data(symbol: str) -> dict:
     """Return an explicit error state when no real market data is available.
 
