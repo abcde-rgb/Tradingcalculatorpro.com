@@ -1564,6 +1564,53 @@ export const getTradingFundamentals = (t) => ({
   }
 });
 
+export const getElliottWave = (t) => ({
+  title: t('ewTitle'),
+  intro: t('ewIntro'),
+  motive: {
+    title: t('ewMotiveTitle'),
+    intro: t('ewMotiveIntro'),
+    waves: [
+      { id: 1, name: t('ewWave1Name'), desc: t('ewWave1Desc'), type: 'bullish' },
+      { id: 2, name: t('ewWave2Name'), desc: t('ewWave2Desc'), type: 'bearish' },
+      { id: 3, name: t('ewWave3Name'), desc: t('ewWave3Desc'), type: 'bullish' },
+      { id: 4, name: t('ewWave4Name'), desc: t('ewWave4Desc'), type: 'bearish' },
+      { id: 5, name: t('ewWave5Name'), desc: t('ewWave5Desc'), type: 'bullish' },
+    ],
+  },
+  corrective: {
+    title: t('ewCorrTitle'),
+    intro: t('ewCorrIntro'),
+    waves: [
+      { id: 'A', name: t('ewWaveAName'), desc: t('ewWaveADesc'), type: 'bearish' },
+      { id: 'B', name: t('ewWaveBName'), desc: t('ewWaveBDesc'), type: 'bullish' },
+      { id: 'C', name: t('ewWaveCName'), desc: t('ewWaveCDesc'), type: 'bearish' },
+    ],
+  },
+  rules: {
+    title: t('ewRulesTitle'),
+    items: [
+      { id: 'r1', name: t('ewRule1Name'), desc: t('ewRule1Desc'), importance: 'critical' },
+      { id: 'r2', name: t('ewRule2Name'), desc: t('ewRule2Desc'), importance: 'critical' },
+      { id: 'r3', name: t('ewRule3Name'), desc: t('ewRule3Desc'), importance: 'critical' },
+    ],
+  },
+  patterns: {
+    title: t('ewPatternsTitle'),
+    items: [
+      { id: 'zigzag', name: t('ewZigzagName'), desc: t('ewZigzagDesc') },
+      { id: 'flat', name: t('ewFlatName'), desc: t('ewFlatDesc') },
+      { id: 'triangle', name: t('ewTriangleName'), desc: t('ewTriangleDesc') },
+    ],
+  },
+  fibonacci: { title: t('ewFibTitle'), desc: t('ewFibDesc') },
+  degrees: { title: t('ewDegreesTitle'), desc: t('ewDegreesDesc') },
+  mistakes: {
+    title: t('ewMistakesTitle'),
+    items: [t('ewMistake1'), t('ewMistake2'), t('ewMistake3')],
+  },
+});
+
 export const getTechnicalAnalysis = (t) => ({
   title: t('techTitle'),
   intro: t('techIntro'),

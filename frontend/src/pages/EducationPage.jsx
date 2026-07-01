@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -395,6 +395,7 @@ export default function EducationPage() {
   const PROBABILITY_STATS = getProbabilityStatistics(t);
   const TRADING_FUNDAMENTALS = getTradingFundamentals(t);
   const TECHNICAL_ANALYSIS = getTechnicalAnalysis(t);
+  const ELLIOTT_WAVE = getElliottWave(t);
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
   const MARKET_MECHANICS = getMarketMechanics(t);
@@ -531,6 +532,9 @@ export default function EducationPage() {
               </TabsTrigger>
               <TabsTrigger value="tech-analysis" className="gap-2" data-testid="tab-tech-analysis">
                 <TrendingUp className="w-4 h-4" /> {t('techTab')}
+              </TabsTrigger>
+              <TabsTrigger value="elliott" className="gap-2" data-testid="tab-elliott">
+                <TrendingUp className="w-4 h-4" /> {t('ewTab')}
               </TabsTrigger>
               <TabsTrigger value="fund-analysis" className="gap-2" data-testid="tab-fund-analysis">
                 <BarChart3 className="w-4 h-4" /> {t('fundAnalTab')}
@@ -785,6 +789,165 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-blue-500/5 via-card to-orange-500/5 border-border">
                 <CardContent className="pt-6">
                   <TimeframesGuide />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Elliott Wave Theory */}
+            <TabsContent value="elliott" className="space-y-8">
+              <Card className="bg-gradient-to-br from-indigo-500/5 to-blue-500/10 border-indigo-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <TrendingUp className="w-6 h-6 text-indigo-500" />
+                    {ELLIOTT_WAVE.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{ELLIOTT_WAVE.intro}</p>
+                </CardContent>
+              </Card>
+
+              {/* Motive waves 1-5 */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  {ELLIOTT_WAVE.motive.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {ELLIOTT_WAVE.motive.intro}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {ELLIOTT_WAVE.motive.waves.map(w => (
+                    <Card key={w.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="w-7 h-7 rounded-full bg-indigo-500/15 text-indigo-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            {w.id}
+                          </span>
+                          <span className={patternTypeColors[w.type]}>{w.name}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{w.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Corrective waves A-B-C */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <TrendingDown className="w-5 h-5 text-red-500" />
+                  {ELLIOTT_WAVE.corrective.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {ELLIOTT_WAVE.corrective.intro}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {ELLIOTT_WAVE.corrective.waves.map(w => (
+                    <Card key={w.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="w-7 h-7 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            {w.id}
+                          </span>
+                          <span className={patternTypeColors[w.type]}>{w.name}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{w.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* The 3 unbreakable rules */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  {ELLIOTT_WAVE.rules.title}
+                </h2>
+                <div className="grid gap-4">
+                  {ELLIOTT_WAVE.rules.items.map(r => (
+                    <Card key={r.id} className="bg-primary/5 border-primary/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{r.name}</span>
+                          <Badge variant="outline" className={priorityColors[r.importance]}>{t(r.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Corrective patterns */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-purple-500" />
+                  {ELLIOTT_WAVE.patterns.title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {ELLIOTT_WAVE.patterns.items.map(p => (
+                    <Card key={p.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{p.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fibonacci + degrees */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="bg-yellow-500/5 border-yellow-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Target className="w-4 h-4 text-yellow-500" />
+                      {ELLIOTT_WAVE.fibonacci.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{ELLIOTT_WAVE.fibonacci.desc}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-blue-500/5 border-blue-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Info className="w-4 h-4 text-blue-500" />
+                      {ELLIOTT_WAVE.degrees.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{ELLIOTT_WAVE.degrees.desc}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Common mistakes */}
+              <Card className="bg-orange-500/10 border-orange-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    {ELLIOTT_WAVE.mistakes.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {ELLIOTT_WAVE.mistakes.items.map((m, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
+                        <span className="text-orange-500 mt-0.5">•</span> {m}
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
             </TabsContent>
