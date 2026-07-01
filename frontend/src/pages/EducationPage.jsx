@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -385,6 +385,7 @@ export default function EducationPage() {
   
   // ✅ Get ALL translated content dynamically based on current language
   const TRADING_RULES = getTradingRules(t);
+  const GOLDEN_RULES = getGoldenRules(t);
   const RISK_MANAGEMENT_CONCEPTS = getRiskManagementConcepts(t);
   const CHART_PATTERNS = getChartPatterns(t);
   const CANDLESTICK_PATTERNS = getCandlestickPatterns(t);
@@ -1355,6 +1356,32 @@ export default function EducationPage() {
 
             {/* Trading Rules */}
             <TabsContent value="rules" className="space-y-6">
+              {/* Golden / inviolable rules — highlighted non-negotiables */}
+              <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-yellow-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-xl">
+                    <Star className="w-5 h-5 text-yellow-500" />
+                    {GOLDEN_RULES.title}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{GOLDEN_RULES.intro}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {GOLDEN_RULES.rules.map((r, i) => (
+                      <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg bg-background/40 border border-yellow-500/15">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-500/20 text-yellow-500 flex items-center justify-center text-xs font-bold">
+                          {i + 1}
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold">{r.name}</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{r.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Search and Filter */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
@@ -1526,6 +1553,31 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
+
+              {/* The trader's core emotions */}
+              {TRADING_PSYCHOLOGY.emotions && (
+                <div>
+                  <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-red-500" />
+                    {TRADING_PSYCHOLOGY.emotions.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                    {TRADING_PSYCHOLOGY.emotions.intro}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {TRADING_PSYCHOLOGY.emotions.items.map(e => (
+                      <Card key={e.id} className="bg-red-500/5 border-red-500/20">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">{e.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{e.description}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Emotional Control */}
               <div>
