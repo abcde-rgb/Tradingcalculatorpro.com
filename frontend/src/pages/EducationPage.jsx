@@ -599,10 +599,15 @@ export default function EducationPage() {
 
               {/* Market Types */}
               <div>
-                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
                   {TRADING_FUNDAMENTALS.marketTypes.title}
                 </h2>
+                {TRADING_FUNDAMENTALS.marketTypes.intro && (
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                    {TRADING_FUNDAMENTALS.marketTypes.intro}
+                  </p>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {TRADING_FUNDAMENTALS.marketTypes.items.map(item => (
                     <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
@@ -623,10 +628,15 @@ export default function EducationPage() {
 
               {/* Market Participants */}
               <div>
-                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
                   <Brain className="w-5 h-5 text-blue-500" />
                   {TRADING_FUNDAMENTALS.participants.title}
                 </h2>
+                {TRADING_FUNDAMENTALS.participants.intro && (
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                    {TRADING_FUNDAMENTALS.participants.intro}
+                  </p>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {TRADING_FUNDAMENTALS.participants.items.map(item => (
                     <Card key={item.id} className="bg-card border-border">
@@ -646,10 +656,15 @@ export default function EducationPage() {
 
               {/* Trading Sessions */}
               <div>
-                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-orange-500" />
                   {TRADING_FUNDAMENTALS.sessions.title}
                 </h2>
+                {TRADING_FUNDAMENTALS.sessions.intro && (
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                    {TRADING_FUNDAMENTALS.sessions.intro}
+                  </p>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {TRADING_FUNDAMENTALS.sessions.items.map(item => {
                     const colorMap = { blue: 'border-blue-500/30 bg-blue-500/5', green: 'border-green-500/30 bg-green-500/5', orange: 'border-orange-500/30 bg-orange-500/5', red: 'border-red-500/30 bg-red-500/5' };

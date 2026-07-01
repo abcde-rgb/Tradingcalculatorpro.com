@@ -1520,6 +1520,7 @@ export const getTradingFundamentals = (t) => ({
   intro: t('fundIntro'),
   marketTypes: {
     title: t('marketTypesTitle'),
+    intro: t('marketTypesIntro'),
     items: [
       { id: 'forex', name: t('mktForexName'), desc: t('mktForexDesc'), volume: t('mktForexVolume'), icon: '💱' },
       { id: 'stocks', name: t('mktStocksName'), desc: t('mktStocksDesc'), volume: t('mktStocksVolume'), icon: '📈' },
@@ -1528,24 +1529,37 @@ export const getTradingFundamentals = (t) => ({
       { id: 'indices', name: t('mktIndicesName'), desc: t('mktIndicesDesc'), volume: t('mktIndicesVolume'), icon: '📊' },
       { id: 'etfs', name: t('mktEtfsName'), desc: t('mktEtfsDesc'), volume: t('mktEtfsVolume'), icon: '🗂️' },
       { id: 'futures', name: t('mktFuturesName'), desc: t('mktFuturesDesc'), volume: t('mktFuturesVolume'), icon: '📅' },
+      { id: 'bonds', name: t('mktBondsName'), desc: t('mktBondsDesc'), volume: t('mktBondsVolume'), icon: '🏦' },
+      { id: 'options', name: t('mktOptionsName'), desc: t('mktOptionsDesc'), volume: t('mktOptionsVolume'), icon: '🎯' },
+      { id: 'cfds', name: t('mktCfdsName'), desc: t('mktCfdsDesc'), volume: t('mktCfdsVolume'), icon: '🔀' },
     ]
   },
   participants: {
     title: t('marketParticipantsTitle'),
+    intro: t('marketParticipantsIntro'),
     items: [
       { id: 'retail', name: t('partRetailName'), desc: t('partRetailDesc'), icon: '👤' },
       { id: 'institutional', name: t('partInstitutionalName'), desc: t('partInstitutionalDesc'), icon: '🏦' },
+      { id: 'banks', name: t('partBanksName'), desc: t('partBanksDesc'), icon: '🏢' },
+      { id: 'hedgefunds', name: t('partHedgeFundsName'), desc: t('partHedgeFundsDesc'), icon: '🦈' },
+      { id: 'funds', name: t('partFundsName'), desc: t('partFundsDesc'), icon: '💼' },
       { id: 'marketmakers', name: t('partMarketMakersName'), desc: t('partMarketMakersDesc'), icon: '⚖️' },
+      { id: 'hft', name: t('partHftName'), desc: t('partHftDesc'), icon: '⚡' },
+      { id: 'brokers', name: t('partBrokersName'), desc: t('partBrokersDesc'), icon: '🔗' },
+      { id: 'corporates', name: t('partCorporatesName'), desc: t('partCorporatesDesc'), icon: '🏭' },
       { id: 'centralbanks', name: t('partCentralBanksName'), desc: t('partCentralBanksDesc'), icon: '🏛️' },
     ]
   },
   sessions: {
     title: t('sessionsTitle'),
+    intro: t('sessionsIntro'),
     items: [
+      { id: 'sydney', name: t('sessSydneyName'), hours: t('sessSydneyHours'), desc: t('sessSydneyDesc'), color: 'blue' },
       { id: 'asia', name: t('sessAsiaName'), hours: t('sessAsiaHours'), desc: t('sessAsiaDesc'), color: 'blue' },
+      { id: 'overlap2', name: t('sessOverlap2Name'), hours: t('sessOverlap2Hours'), desc: t('sessOverlap2Desc'), color: 'red' },
       { id: 'london', name: t('sessLondonName'), hours: t('sessLondonHours'), desc: t('sessLondonDesc'), color: 'green' },
-      { id: 'ny', name: t('sessNyName'), hours: t('sessNyHours'), desc: t('sessNyDesc'), color: 'orange' },
       { id: 'overlap', name: t('sessOverlapName'), hours: t('sessOverlapHours'), desc: t('sessOverlapDesc'), color: 'red' },
+      { id: 'ny', name: t('sessNyName'), hours: t('sessNyHours'), desc: t('sessNyDesc'), color: 'orange' },
     ]
   }
 });
