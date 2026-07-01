@@ -1080,8 +1080,71 @@ export const getRiskManagementConcepts = (t) => [
     title: t('diversificationTitle'),
     description: t('diversificationDesc'),
     importance: 'high'
+  },
+  {
+    id: 'stop-loss',
+    title: t('riskStopLossTitle'),
+    description: t('riskStopLossDesc'),
+    importance: 'critical'
+  },
+  {
+    id: 'max-drawdown',
+    title: t('riskDrawdownTitle'),
+    description: t('riskDrawdownDesc'),
+    importance: 'critical'
+  },
+  {
+    id: 'risk-of-ruin',
+    title: t('riskOfRuinTitle'),
+    description: t('riskOfRuinDesc'),
+    importance: 'critical'
+  },
+  {
+    id: 'daily-loss',
+    title: t('riskDailyLossTitle'),
+    description: t('riskDailyLossDesc'),
+    importance: 'high'
+  },
+  {
+    id: 'leverage-risk',
+    title: t('riskLeverageTitle'),
+    description: t('riskLeverageDesc'),
+    importance: 'critical'
+  },
+  {
+    id: 'gap-risk',
+    title: t('riskGapTitle'),
+    description: t('riskGapDesc'),
+    importance: 'high'
+  },
+  {
+    id: 'correlation-risk',
+    title: t('riskCorrelationTitle'),
+    description: t('riskCorrelationDesc'),
+    importance: 'high'
+  },
+  {
+    id: 'tail-risk',
+    title: t('riskTailTitle'),
+    description: t('riskTailDesc'),
+    importance: 'high'
   }
 ];
+
+export const getGoldenRules = (t) => ({
+  title: t('goldenRulesTitle'),
+  intro: t('goldenRulesIntro'),
+  rules: [
+    { id: 'g1', name: t('goldenRule1Name'), desc: t('goldenRule1Desc') },
+    { id: 'g2', name: t('goldenRule2Name'), desc: t('goldenRule2Desc') },
+    { id: 'g3', name: t('goldenRule3Name'), desc: t('goldenRule3Desc') },
+    { id: 'g4', name: t('goldenRule4Name'), desc: t('goldenRule4Desc') },
+    { id: 'g5', name: t('goldenRule5Name'), desc: t('goldenRule5Desc') },
+    { id: 'g6', name: t('goldenRule6Name'), desc: t('goldenRule6Desc') },
+    { id: 'g7', name: t('goldenRule7Name'), desc: t('goldenRule7Desc') },
+    { id: 'g8', name: t('goldenRule8Name'), desc: t('goldenRule8Desc') },
+  ],
+});
 
 export const getDowTheory = (t) => ({
   title: t('dowTheoryTitle'),
@@ -1163,8 +1226,54 @@ export const getTradingPsychology = (t) => ({
         title: t('herdMentalityTitle'),
         description: t('herdMentalityDesc'),
         severity: 'medium'
+      },
+      {
+        id: 'revenge',
+        title: t('revengeTradingTitle'),
+        description: t('revengeTradingDesc'),
+        severity: 'critical'
+      },
+      {
+        id: 'overconfidence',
+        title: t('overconfidenceTitle'),
+        description: t('overconfidenceDesc'),
+        severity: 'high'
+      },
+      {
+        id: 'recency',
+        title: t('recencyBiasTitle'),
+        description: t('recencyBiasDesc'),
+        severity: 'high'
+      },
+      {
+        id: 'anchoring',
+        title: t('anchoringBiasTitle'),
+        description: t('anchoringBiasDesc'),
+        severity: 'medium'
+      },
+      {
+        id: 'gambler',
+        title: t('gamblersFallacyTitle'),
+        description: t('gamblersFallacyDesc'),
+        severity: 'high'
+      },
+      {
+        id: 'sunk-cost',
+        title: t('sunkCostTitle'),
+        description: t('sunkCostDesc'),
+        severity: 'high'
       }
     ]
+  },
+  emotions: {
+    title: t('traderEmotionsTitle'),
+    intro: t('traderEmotionsIntro'),
+    items: [
+      { id: 'greed', title: t('emotionGreedTitle'), description: t('emotionGreedDesc'), type: 'bearish' },
+      { id: 'fear', title: t('emotionFearTitle'), description: t('emotionFearDesc'), type: 'bearish' },
+      { id: 'hope', title: t('emotionHopeTitle'), description: t('emotionHopeDesc'), type: 'bearish' },
+      { id: 'euphoria', title: t('emotionEuphoriaTitle'), description: t('emotionEuphoriaDesc'), type: 'bearish' },
+    ],
   },
   emotionalControl: {
     title: t('emotionalControlTitle'),
@@ -1192,6 +1301,24 @@ export const getTradingPsychology = (t) => ({
         title: t('tradingRoutinesTitle'),
         description: t('tradingRoutinesDesc'),
         importance: 'medium'
+      },
+      {
+        id: 'accept-losses',
+        title: t('acceptLossesTitle'),
+        description: t('acceptLossesDesc'),
+        importance: 'critical'
+      },
+      {
+        id: 'patience',
+        title: t('patienceTitle'),
+        description: t('patienceDesc'),
+        importance: 'high'
+      },
+      {
+        id: 'tilt',
+        title: t('tiltControlTitle'),
+        description: t('tiltControlDesc'),
+        importance: 'high'
       }
     ]
   }
