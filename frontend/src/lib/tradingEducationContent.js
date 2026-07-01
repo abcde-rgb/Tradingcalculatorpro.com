@@ -1611,6 +1611,44 @@ export const getElliottWave = (t) => ({
   },
 });
 
+export const getIchimoku = (t) => ({
+  title: t('ichiTitle'),
+  intro: t('ichiIntro'),
+  lines: {
+    title: t('ichiLinesTitle'),
+    intro: t('ichiLinesIntro'),
+    items: [
+      { id: 'tenkan', name: t('ichiTenkanName'), period: '9', desc: t('ichiTenkanDesc'), type: 'bullish' },
+      { id: 'kijun', name: t('ichiKijunName'), period: '26', desc: t('ichiKijunDesc'), type: 'bullish' },
+      { id: 'senkouA', name: t('ichiSenkouAName'), period: '→26', desc: t('ichiSenkouADesc'), type: 'neutral' },
+      { id: 'senkouB', name: t('ichiSenkouBName'), period: '52→26', desc: t('ichiSenkouBDesc'), type: 'neutral' },
+      { id: 'chikou', name: t('ichiChikouName'), period: '←26', desc: t('ichiChikouDesc'), type: 'bearish' },
+    ],
+  },
+  cloud: {
+    title: t('ichiCloudTitle'),
+    intro: t('ichiCloudIntro'),
+    items: [
+      { id: 'above', name: t('ichiAboveName'), desc: t('ichiAboveDesc'), type: 'bullish' },
+      { id: 'below', name: t('ichiBelowName'), desc: t('ichiBelowDesc'), type: 'bearish' },
+      { id: 'inside', name: t('ichiInsideName'), desc: t('ichiInsideDesc'), type: 'neutral' },
+      { id: 'thick', name: t('ichiThickName'), desc: t('ichiThickDesc'), type: 'neutral' },
+    ],
+  },
+  signals: {
+    title: t('ichiSignalsTitle'),
+    items: [
+      { id: 'tkcross', name: t('ichiTkCrossName'), desc: t('ichiTkCrossDesc'), importance: 'critical' },
+      { id: 'cloudbreak', name: t('ichiCloudBreakName'), desc: t('ichiCloudBreakDesc'), importance: 'high' },
+      { id: 'chikouconf', name: t('ichiChikouConfName'), desc: t('ichiChikouConfDesc'), importance: 'high' },
+    ],
+  },
+  tips: {
+    title: t('ichiTipsTitle'),
+    items: [t('ichiTip1'), t('ichiTip2'), t('ichiTip3')],
+  },
+});
+
 export const getTechnicalAnalysis = (t) => ({
   title: t('techTitle'),
   intro: t('techIntro'),

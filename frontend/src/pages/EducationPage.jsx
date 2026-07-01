@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -396,6 +396,7 @@ export default function EducationPage() {
   const TRADING_FUNDAMENTALS = getTradingFundamentals(t);
   const TECHNICAL_ANALYSIS = getTechnicalAnalysis(t);
   const ELLIOTT_WAVE = getElliottWave(t);
+  const ICHIMOKU = getIchimoku(t);
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
   const MARKET_MECHANICS = getMarketMechanics(t);
@@ -535,6 +536,9 @@ export default function EducationPage() {
               </TabsTrigger>
               <TabsTrigger value="elliott" className="gap-2" data-testid="tab-elliott">
                 <TrendingUp className="w-4 h-4" /> {t('ewTab')}
+              </TabsTrigger>
+              <TabsTrigger value="ichimoku" className="gap-2" data-testid="tab-ichimoku">
+                <CandlestickChart className="w-4 h-4" /> {t('ichiTab')}
               </TabsTrigger>
               <TabsTrigger value="fund-analysis" className="gap-2" data-testid="tab-fund-analysis">
                 <BarChart3 className="w-4 h-4" /> {t('fundAnalTab')}
@@ -945,6 +949,117 @@ export default function EducationPage() {
                     {ELLIOTT_WAVE.mistakes.items.map((m, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
                         <span className="text-orange-500 mt-0.5">•</span> {m}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Ichimoku Kinko Hyo */}
+            <TabsContent value="ichimoku" className="space-y-8">
+              <Card className="bg-gradient-to-br from-red-500/5 to-orange-500/10 border-red-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <CandlestickChart className="w-6 h-6 text-red-500" />
+                    {ICHIMOKU.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{ICHIMOKU.intro}</p>
+                </CardContent>
+              </Card>
+
+              {/* The 5 lines */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  {ICHIMOKU.lines.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {ICHIMOKU.lines.intro}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {ICHIMOKU.lines.items.map(l => (
+                    <Card key={l.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-base flex-wrap">
+                          <span className={patternTypeColors[l.type]}>{l.name}</span>
+                          <Badge variant="secondary" className="text-[10px] font-mono">{l.period}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{l.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* The cloud (Kumo) */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <CandlestickChart className="w-5 h-5 text-orange-500" />
+                  {ICHIMOKU.cloud.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {ICHIMOKU.cloud.intro}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {ICHIMOKU.cloud.items.map(c => (
+                    <Card key={c.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          {c.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
+                          {c.type === 'bearish' && <TrendingDown className="w-4 h-4 text-red-500" />}
+                          {c.type === 'neutral' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+                          <span>{c.name}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main signals */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  {ICHIMOKU.signals.title}
+                </h2>
+                <div className="grid gap-4">
+                  {ICHIMOKU.signals.items.map(s => (
+                    <Card key={s.id} className="bg-primary/5 border-primary/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{s.name}</span>
+                          <Badge variant="outline" className={priorityColors[s.importance]}>{t(s.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tips & mistakes */}
+              <Card className="bg-orange-500/10 border-orange-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-orange-500" />
+                    {ICHIMOKU.tips.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {ICHIMOKU.tips.items.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
+                        <span className="text-orange-500 mt-0.5">•</span> {tip}
                       </li>
                     ))}
                   </ul>
