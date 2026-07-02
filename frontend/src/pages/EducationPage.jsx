@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -389,6 +389,7 @@ export default function EducationPage() {
   const ACCOUNT_KILLERS = getAccountKillers(t);
   const TRADER_CRAFT = getTraderCraft(t);
   const SMART_MONEY = getSmartMoney(t);
+  const OPTIONS_STRATEGIES = getOptionsStrategies(t);
   const RISK_MANAGEMENT_CONCEPTS = getRiskManagementConcepts(t);
   const CHART_PATTERNS = getChartPatterns(t);
   const CANDLESTICK_PATTERNS = getCandlestickPatterns(t);
@@ -546,6 +547,9 @@ export default function EducationPage() {
               </TabsTrigger>
               <TabsTrigger value="smc" className="gap-2" data-testid="tab-smc">
                 <TrendingUp className="w-4 h-4" /> {t('smcTitle')}
+              </TabsTrigger>
+              <TabsTrigger value="options-strat" className="gap-2" data-testid="tab-options-strat">
+                <Scale className="w-4 h-4" /> {t('optTitle')}
               </TabsTrigger>
               <TabsTrigger value="fund-analysis" className="gap-2" data-testid="tab-fund-analysis">
                 <BarChart3 className="w-4 h-4" /> {t('fundAnalTab')}
@@ -1114,6 +1118,48 @@ export default function EducationPage() {
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
                     {SMART_MONEY.note}
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Options strategies */}
+            <TabsContent value="options-strat" className="space-y-8">
+              <Card className="bg-gradient-to-br from-cyan-500/5 to-blue-500/10 border-cyan-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Scale className="w-6 h-6 text-cyan-500" />
+                    {OPTIONS_STRATEGIES.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{OPTIONS_STRATEGIES.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {OPTIONS_STRATEGIES.items.map(o => (
+                  <Card key={o.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        {o.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
+                        {o.type === 'bearish' && <TrendingDown className="w-4 h-4 text-red-500" />}
+                        {o.type === 'neutral' && <BarChart3 className="w-4 h-4 text-cyan-500" />}
+                        <span>{o.name}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{o.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="bg-orange-500/10 border-orange-500/30">
+                <CardContent className="pt-5">
+                  <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    {OPTIONS_STRATEGIES.note}
                   </p>
                 </CardContent>
               </Card>
