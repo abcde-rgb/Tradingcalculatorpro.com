@@ -1128,6 +1128,24 @@ export const getRiskManagementConcepts = (t) => [
     title: t('riskTailTitle'),
     description: t('riskTailDesc'),
     importance: 'high'
+  },
+  {
+    id: 'portfolio-heat',
+    title: t('riskHeatTitle'),
+    description: t('riskHeatDesc'),
+    importance: 'high'
+  },
+  {
+    id: 'sizing-methods',
+    title: t('riskSizingTitle'),
+    description: t('riskSizingDesc'),
+    importance: 'high'
+  },
+  {
+    id: 'hedging',
+    title: t('riskHedgingTitle'),
+    description: t('riskHedgingDesc'),
+    importance: 'medium'
   }
 ];
 
@@ -1238,6 +1256,79 @@ export const getTraderCraft = (t) => ({
       { id: 'expectations', name: t('bizExpectationsName'), desc: t('bizExpectationsDesc') },
       { id: 'treatbiz',     name: t('bizTreatName'),        desc: t('bizTreatDesc') },
       { id: 'survive',      name: t('bizSurviveName'),      desc: t('bizSurviveDesc') },
+    ],
+  },
+  journal: {
+    title: t('cjTitle'),
+    intro: t('cjIntro'),
+    items: [
+      { id: 'review',  name: t('cjReviewName'),  desc: t('cjReviewDesc') },
+      { id: 'tags',    name: t('cjTagsName'),    desc: t('cjTagsDesc') },
+      { id: 'metrics', name: t('cjMetricsName'), desc: t('cjMetricsDesc') },
+    ],
+  },
+  testing: {
+    title: t('ctTitle'),
+    intro: t('ctIntro'),
+    items: [
+      { id: 'backtest', name: t('ctBacktestName'), desc: t('ctBacktestDesc') },
+      { id: 'forward',  name: t('ctForwardName'),  desc: t('ctForwardDesc') },
+      { id: 'sample',   name: t('ctSampleName'),   desc: t('ctSampleDesc') },
+    ],
+  },
+  routine: {
+    title: t('crTitle'),
+    intro: t('crIntro'),
+    items: [
+      { id: 'pre',    name: t('crPreName'),    desc: t('crPreDesc') },
+      { id: 'during', name: t('crDuringName'), desc: t('crDuringDesc') },
+      { id: 'post',   name: t('crPostName'),   desc: t('crPostDesc') },
+    ],
+  },
+  regimes: {
+    title: t('cgTitle'),
+    intro: t('cgIntro'),
+    items: [
+      { id: 'trend',    name: t('cgTrendName'),    desc: t('cgTrendDesc'),    type: 'bullish' },
+      { id: 'range',    name: t('cgRangeName'),    desc: t('cgRangeDesc'),    type: 'neutral' },
+      { id: 'volatile', name: t('cgVolatileName'), desc: t('cgVolatileDesc'), type: 'bearish' },
+    ],
+    note: t('cgNote'),
+  },
+});
+
+// Advanced technical analysis: volume-based tools and dedicated concepts that
+// complement the base TA tab (supply/demand, profiles, divergences, VSA...).
+export const getAdvancedTA = (t) => ({
+  title: t('advTaTitle'),
+  intro: t('advTaIntro'),
+  items: [
+    { id: 'supplydemand', name: t('advSupplyDemandName'), desc: t('advSupplyDemandDesc') },
+    { id: 'volprofile',   name: t('advVolProfileName'),   desc: t('advVolProfileDesc') },
+    { id: 'vwap',         name: t('advVwapName'),         desc: t('advVwapDesc') },
+    { id: 'divergence',   name: t('advDivergenceName'),   desc: t('advDivergenceDesc') },
+    { id: 'pivots',       name: t('advPivotsName'),       desc: t('advPivotsDesc') },
+    { id: 'vsa',          name: t('advVsaName'),          desc: t('advVsaDesc') },
+    { id: 'squeeze',      name: t('advSqueezeName'),      desc: t('advSqueezeDesc') },
+  ],
+});
+
+// The trading business: funding, taxes, compounding — plus instrument deep
+// dives (crypto mechanics, futures/forex specifications).
+export const getTradingBusiness = (t) => ({
+  title: t('tbizTitle'),
+  intro: t('tbizIntro'),
+  items: [
+    { id: 'propfirms', name: t('tbizPropName'),     desc: t('tbizPropDesc') },
+    { id: 'taxes',     name: t('tbizTaxesName'),    desc: t('tbizTaxesDesc') },
+    { id: 'compound',  name: t('tbizCompoundName'), desc: t('tbizCompoundDesc') },
+    { id: 'fulltime',  name: t('tbizFulltimeName'), desc: t('tbizFulltimeDesc') },
+  ],
+  instruments: {
+    title: t('tbizInstrTitle'),
+    items: [
+      { id: 'cryptodeep',  name: t('tbizCryptoName'),  desc: t('tbizCryptoDesc') },
+      { id: 'futuresdeep', name: t('tbizFuturesName'), desc: t('tbizFuturesDesc') },
     ],
   },
 });
@@ -1425,6 +1516,24 @@ export const getTradingPsychology = (t) => ({
         importance: 'high'
       }
     ]
+  },
+  drawdown: {
+    title: t('pddTitle'),
+    intro: t('pddIntro'),
+    items: [
+      { id: 'reduce',  title: t('pddReduceName'),  description: t('pddReduceDesc') },
+      { id: 'review',  title: t('pddReviewName'),  description: t('pddReviewDesc') },
+      { id: 'rebuild', title: t('pddRebuildName'), description: t('pddRebuildDesc') },
+    ],
+  },
+  health: {
+    title: t('phTitle'),
+    intro: t('phIntro'),
+    items: [
+      { id: 'sleep',   title: t('phSleepName'),   description: t('phSleepDesc') },
+      { id: 'stress',  title: t('phStressName'),  description: t('phStressDesc') },
+      { id: 'burnout', title: t('phBurnoutName'), description: t('phBurnoutDesc') },
+    ],
   }
 });
 
