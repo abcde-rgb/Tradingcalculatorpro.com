@@ -1350,23 +1350,6 @@ export const getOptionsStrategies = (t) => ({
   note: t('optNote'),
 });
 
-// Options strategies: combining calls/puts for defined-risk, volatility and
-// income plays. Pairs with the Options Calculator (greeks + payoff diagram).
-export const getOptionsStrategies = (t) => ({
-  title: t('optTitle'),
-  intro: t('optIntro'),
-  items: [
-    { id: 'coveredcall',   name: t('optCoveredCallName'),   desc: t('optCoveredCallDesc'),   type: 'bullish' },
-    { id: 'cashput',       name: t('optCashPutName'),       desc: t('optCashPutDesc'),       type: 'bullish' },
-    { id: 'bullspread',    name: t('optBullSpreadName'),    desc: t('optBullSpreadDesc'),    type: 'bullish' },
-    { id: 'bearspread',    name: t('optBearSpreadName'),    desc: t('optBearSpreadDesc'),    type: 'bearish' },
-    { id: 'ironcondor',    name: t('optIronCondorName'),    desc: t('optIronCondorDesc'),    type: 'neutral' },
-    { id: 'straddle',      name: t('optStraddleName'),      desc: t('optStraddleDesc'),      type: 'neutral' },
-    { id: 'protectiveput', name: t('optProtectivePutName'), desc: t('optProtectivePutDesc'), type: 'bearish' },
-  ],
-  note: t('optNote'),
-});
-
 // Smart Money Concepts (ICT-style): tracking institutional footprints —
 // structure, order blocks, imbalances, liquidity and where price returns.
 export const getSmartMoney = (t) => ({
