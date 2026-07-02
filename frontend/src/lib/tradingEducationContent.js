@@ -1197,6 +1197,51 @@ export const getDowTheory = (t) => ({
   }
 });
 
+// The trader's craft — the professional PROCESS: trade management, a written
+// plan + pre-trade checklist, thinking in R, and treating trading as a business.
+export const getTraderCraft = (t) => ({
+  title: t('craftTitle'),
+  intro: t('craftIntro'),
+  management: {
+    title: t('mgmtTitle'),
+    intro: t('mgmtIntro'),
+    items: [
+      { id: 'breakeven',  name: t('mgmtBreakevenName'),  desc: t('mgmtBreakevenDesc') },
+      { id: 'partials',   name: t('mgmtPartialsName'),   desc: t('mgmtPartialsDesc') },
+      { id: 'trailing',   name: t('mgmtTrailingName'),   desc: t('mgmtTrailingDesc') },
+      { id: 'pyramiding', name: t('mgmtPyramidingName'), desc: t('mgmtPyramidingDesc') },
+      { id: 'takeprofit', name: t('mgmtTakeProfitName'), desc: t('mgmtTakeProfitDesc') },
+      { id: 'cutquick',   name: t('mgmtCutQuickName'),   desc: t('mgmtCutQuickDesc') },
+    ],
+  },
+  plan: {
+    title: t('planTitle'),
+    intro: t('planIntro'),
+    checklistTitle: t('planChecklistTitle'),
+    checklist: [t('planCheck1'), t('planCheck2'), t('planCheck3'), t('planCheck4'), t('planCheck5'), t('planCheck6')],
+  },
+  rmultiple: {
+    title: t('rTitle'),
+    intro: t('rIntro'),
+    items: [
+      { id: 'whatisr',    name: t('rWhatIsName'),     desc: t('rWhatIsDesc') },
+      { id: 'whyr',       name: t('rWhyName'),        desc: t('rWhyDesc') },
+      { id: 'expectancy', name: t('rExpectancyName'), desc: t('rExpectancyDesc') },
+      { id: 'recordr',    name: t('rRecordName'),     desc: t('rRecordDesc') },
+    ],
+  },
+  business: {
+    title: t('bizTitle'),
+    intro: t('bizIntro'),
+    items: [
+      { id: 'process',      name: t('bizProcessName'),      desc: t('bizProcessDesc') },
+      { id: 'expectations', name: t('bizExpectationsName'), desc: t('bizExpectationsDesc') },
+      { id: 'treatbiz',     name: t('bizTreatName'),        desc: t('bizTreatDesc') },
+      { id: 'survive',      name: t('bizSurviveName'),      desc: t('bizSurviveDesc') },
+    ],
+  },
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
