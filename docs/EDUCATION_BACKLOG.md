@@ -1,54 +1,56 @@
 # Backlog del Centro de Aprendizaje
 
-Roadmap de contenido educativo. ✅ = ya en producción · 🆕 = pendiente · ⭐ = prioritario.
+Roadmap de contenido educativo. ✅ = ya en producción · 🆕 = pendiente.
 
-> Las ⭐ prioritarias se están construyendo. El resto queda aquí para más adelante
-> (petición del usuario: "las prioritarias, pero sin olvidarte de las demás").
+> Estado: **backlog completado** (PRs #41-#44). Se listan abajo posibles
+> ampliaciones futuras si se quiere seguir creciendo.
 
-## 🎯 Proceso y ejecución
-- ⭐ **Gestión de la operación abierta** — break-even, parciales, trailing, pirámide, dónde tomar beneficio → **en curso (tab "El oficio del trader")**
-- ⭐ **Plantilla de plan + checklist pre-operación** → **en curso**
-- ⭐ **Pensar en R (múltiplos de riesgo) + expectativa** → **en curso**
-- 🆕 Metodología del diario (revisión semanal/mensual, etiquetar errores)
-- 🆕 Backtesting y demo (forward testing)
-- 🆕 Rutina diaria (pre-market, watchlist, post-market)
-- 🆕 Regímenes de mercado (tendencia/rango/volátil, cuándo NO operar)
+## 🎯 Proceso y ejecución — ✅ COMPLETO (pestaña "El oficio del trader")
+- ✅ Gestión de la operación abierta (break-even, parciales, trailing, pirámide, TP, cortar rápido)
+- ✅ Plantilla de plan + checklist pre-operación
+- ✅ Pensar en R (múltiplos de riesgo) + expectativa
+- ✅ Metodología del diario (revisión semanal/mensual, etiquetar errores, métricas)
+- ✅ Backtesting y demo (forward testing, tamaño de muestra)
+- ✅ Rutina diaria (pre-market, sesión, post-market)
+- ✅ Regímenes de mercado (tendencia/rango/volátil, cuándo NO operar)
 
-## 🧠 Psicología y mentalidad
-- ✅ Sesgos, emociones, control emocional, "por qué se queman las cuentas"
-- ⭐ **Trading como negocio: proceso > resultado + expectativas realistas** → **en curso**
-- 🆕 Gestionar el drawdown (mental y de cuenta), reconstruir confianza
-- 🆕 Salud del trader: sueño, estrés, tiempo de pantalla, burnout
+## 🧠 Psicología y mentalidad — ✅ COMPLETO
+- ✅ Sesgos (10), emociones, control emocional, "por qué se queman las cuentas" (16 causantes)
+- ✅ Trading como negocio: proceso > resultado + expectativas realistas
+- ✅ Gestionar el drawdown (reducir tamaño, diagnosticar, reconstruir confianza)
+- ✅ Salud del trader: sueño, estrés/pantalla, burnout
 
-## ⚠️ Riesgo y capital
-- ✅ 11 conceptos de riesgo, normas inviolables, 1%, Kelly, R:R
-- 🆕 Portfolio heat (riesgo total de posiciones abiertas)
-- 🆕 Métodos de sizing (fracción fija, ratio fijo, anti-martingala)
-- 🆕 Cobertura (hedging) básica
+## ⚠️ Riesgo y capital — ✅ COMPLETO (14 conceptos)
+- ✅ 11 conceptos previos + normas inviolables, 1%, Kelly, R:R
+- ✅ Portfolio heat (riesgo total de posiciones abiertas)
+- ✅ Métodos de sizing (fracción fija, ratio fijo, anti-martingala; nunca martingala)
+- ✅ Cobertura (hedging) básica
 
-## 📊 Análisis técnico avanzado
+## 📊 Análisis técnico avanzado — ✅ COMPLETO (pestaña "Técnico avanzado")
 - ✅ S/R, tendencias, indicadores, Elliott, Ichimoku, patrones, Dow, Wyckoff, armónicos, Renko/Heikin, COT
-- ⭐ 🆕 **Smart Money / ICT** — order blocks, fair value gaps, liquidez, barridos, BOS/CHoCH
-- 🆕 Zonas de oferta y demanda (dedicado)
-- 🆕 Volume Profile / VWAP / Market Profile
-- 🆕 Divergencias (RSI/MACD, dedicado)
-- 🆕 Pivotes, VSA (volumen), squeeze de Bollinger/Keltner
+- ✅ Smart Money / ICT (BOS/CHoCH, order blocks, FVG, liquidez, barridos, OTE, mitigación)
+- ✅ Zonas de oferta y demanda
+- ✅ Volume Profile / Market Profile + VWAP
+- ✅ Divergencias (regular/oculta)
+- ✅ Pivotes, VSA, squeeze de Bollinger/Keltner
 
-## 💰 Instrumentos
-- ✅ Mercados, participantes, sesiones, apalancamiento
-- ⭐ 🆕 **Estrategias de opciones** — spreads, iron condor, covered call, griegas a fondo
-- 🆕 Cripto a fondo: DeFi, staking, on-chain, tokenomics
-- 🆕 Futuros y forex: especificaciones, rollover, swaps
+## 💰 Instrumentos — ✅ COMPLETO
+- ✅ Mercados (10), participantes (10), sesiones (6), apalancamiento
+- ✅ Estrategias de opciones (7: covered call, CSP, spreads, iron condor, straddle, protective put)
+- ✅ Cripto a fondo: tokenomics, staking, DeFi, on-chain (en "El negocio del trading")
+- ✅ Futuros y forex: especificaciones, rollover, swaps (en "El negocio del trading")
 
-## 🏦 El negocio del trading
-- 🆕 Prop firms / fondeo (retos tipo FTMO)
-- 🆕 Fiscalidad y registro de operaciones
-- 🆕 Interés compuesto y cuándo escalar tamaño / pasar a tiempo completo
+## 🏦 El negocio del trading — ✅ COMPLETO (pestaña "El negocio del trading")
+- ✅ Prop firms / fondeo (retos tipo FTMO)
+- ✅ Fiscalidad y registro de operaciones
+- ✅ Interés compuesto
+- ✅ Escalar tamaño / pasar a tiempo completo
 
 ---
 
-### Orden de construcción sugerido
-1. ⭐ **El oficio del trader** (gestión de operación + plan/checklist + R + negocio) — batch 1
-2. ⭐ **Smart Money / ICT** — batch 2
-3. ⭐ **Estrategias de opciones** — batch 3
-4. Resto por pilar según demanda.
+### Posibles ampliaciones futuras (no comprometidas)
+- Cursos guiados / rutas de aprendizaje con progreso por usuario
+- Quizzes de autoevaluación por pestaña
+- Vídeos o animaciones interactivas de los patrones
+- Glosario de términos con buscador
+- Calculadora de riesgo de ruina interactiva

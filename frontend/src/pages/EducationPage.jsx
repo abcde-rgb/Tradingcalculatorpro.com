@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -390,6 +390,8 @@ export default function EducationPage() {
   const TRADER_CRAFT = getTraderCraft(t);
   const SMART_MONEY = getSmartMoney(t);
   const OPTIONS_STRATEGIES = getOptionsStrategies(t);
+  const ADVANCED_TA = getAdvancedTA(t);
+  const TRADING_BUSINESS = getTradingBusiness(t);
   const RISK_MANAGEMENT_CONCEPTS = getRiskManagementConcepts(t);
   const CHART_PATTERNS = getChartPatterns(t);
   const CANDLESTICK_PATTERNS = getCandlestickPatterns(t);
@@ -550,6 +552,12 @@ export default function EducationPage() {
               </TabsTrigger>
               <TabsTrigger value="options-strat" className="gap-2" data-testid="tab-options-strat">
                 <Scale className="w-4 h-4" /> {t('optTitle')}
+              </TabsTrigger>
+              <TabsTrigger value="advanced-ta" className="gap-2" data-testid="tab-advanced-ta">
+                <BarChart3 className="w-4 h-4" /> {t('advTaTitle')}
+              </TabsTrigger>
+              <TabsTrigger value="business" className="gap-2" data-testid="tab-business">
+                <Shield className="w-4 h-4" /> {t('tbizTitle')}
               </TabsTrigger>
               <TabsTrigger value="fund-analysis" className="gap-2" data-testid="tab-fund-analysis">
                 <BarChart3 className="w-4 h-4" /> {t('fundAnalTab')}
@@ -1165,6 +1173,85 @@ export default function EducationPage() {
               </Card>
             </TabsContent>
 
+            {/* Advanced technical analysis */}
+            <TabsContent value="advanced-ta" className="space-y-8">
+              <Card className="bg-gradient-to-br from-emerald-500/5 to-teal-500/10 border-emerald-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <BarChart3 className="w-6 h-6 text-emerald-500" />
+                    {ADVANCED_TA.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{ADVANCED_TA.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ADVANCED_TA.items.map(a => (
+                  <Card key={a.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <BarChart3 className="w-4 h-4 text-emerald-500" />
+                        <span>{a.name}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{a.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* The trading business */}
+            <TabsContent value="business" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-yellow-500/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Shield className="w-6 h-6 text-amber-500" />
+                    {TRADING_BUSINESS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TRADING_BUSINESS.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TRADING_BUSINESS.items.map(b => (
+                  <Card key={b.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">{b.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Instrument deep dives */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-amber-500" />
+                  {TRADING_BUSINESS.instruments.title}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {TRADING_BUSINESS.instruments.items.map(ins => (
+                    <Card key={ins.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{ins.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{ins.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
             {/* Fundamental Analysis */}
             <TabsContent value="fund-analysis" className="space-y-8">
               <Card className="bg-gradient-to-br from-yellow-500/5 to-orange-500/10 border-yellow-500/20">
@@ -1739,6 +1826,31 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Managing drawdown + trader health */}
+              {[TRADING_PSYCHOLOGY.drawdown, TRADING_PSYCHOLOGY.health].map((sec, si) => sec && (
+                <div key={`psy-sec-${si}`}>
+                  <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                    {si === 0
+                      ? <TrendingDown className="w-5 h-5 text-red-500" />
+                      : <Shield className="w-5 h-5 text-green-500" />}
+                    {sec.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">{sec.intro}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {sec.items.map(it => (
+                      <Card key={it.id} className="bg-card border-border">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">{it.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{it.description}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </TabsContent>
 
             {/* The trader's craft — the professional process */}
@@ -1852,6 +1964,64 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Journal methodology / backtesting / daily routine / market regimes */}
+              {[TRADER_CRAFT.journal, TRADER_CRAFT.testing, TRADER_CRAFT.routine].map((sec, si) => sec && (
+                <div key={`craft-sec-${si}`}>
+                  <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-orange-500" />
+                    {sec.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">{sec.intro}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {sec.items.map(it => (
+                      <Card key={it.id} className="bg-card border-border">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">{it.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {TRADER_CRAFT.regimes && (
+                <div>
+                  <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                    {TRADER_CRAFT.regimes.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">{TRADER_CRAFT.regimes.intro}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {TRADER_CRAFT.regimes.items.map(r => (
+                      <Card key={r.id} className="bg-card border-border">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            {r.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
+                            {r.type === 'bearish' && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                            {r.type === 'neutral' && <BarChart3 className="w-4 h-4 text-yellow-500" />}
+                            <span>{r.name}</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <Card className="bg-orange-500/10 border-orange-500/30 mt-4">
+                    <CardContent className="pt-5">
+                      <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                        {TRADER_CRAFT.regimes.note}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </TabsContent>
 
             {/* Capital Management */}
