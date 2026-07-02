@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -386,6 +386,7 @@ export default function EducationPage() {
   // ✅ Get ALL translated content dynamically based on current language
   const TRADING_RULES = getTradingRules(t);
   const GOLDEN_RULES = getGoldenRules(t);
+  const ACCOUNT_KILLERS = getAccountKillers(t);
   const RISK_MANAGEMENT_CONCEPTS = getRiskManagementConcepts(t);
   const CHART_PATTERNS = getChartPatterns(t);
   const CANDLESTICK_PATTERNS = getCandlestickPatterns(t);
@@ -1526,6 +1527,43 @@ export default function EducationPage() {
                   </p>
                 </CardContent>
               </Card>
+
+              {/* Account killers — self-diagnosis of the most common ways traders lose */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                  {ACCOUNT_KILLERS.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {ACCOUNT_KILLERS.intro}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {ACCOUNT_KILLERS.items.map((k, i) => {
+                    const tagStyle = {
+                      psych: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
+                      risk: 'bg-red-500/10 text-red-500 border-red-500/30',
+                      discipline: 'bg-green-500/10 text-green-500 border-green-500/30',
+                      system: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
+                    }[k.tag] || 'bg-muted text-muted-foreground border-border';
+                    const tagLabel = { psych: t('killerTagPsych'), risk: t('killerTagRisk'), discipline: t('killerTagDiscipline'), system: t('killerTagSystem') }[k.tag] || k.tag;
+                    return (
+                      <div key={k.id} className="flex items-start gap-3 p-3 rounded-lg bg-card border border-red-500/15"
+                        data-testid={`account-killer-${k.id}`}>
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center text-xs font-bold">
+                          {i + 1}
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold">{k.name}</p>
+                            <Badge variant="outline" className={`text-[9px] ${tagStyle}`}>{tagLabel}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{k.desc}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               {/* Cognitive Biases */}
               <div>

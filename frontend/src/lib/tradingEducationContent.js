@@ -1197,6 +1197,31 @@ export const getDowTheory = (t) => ({
   }
 });
 
+// Self-diagnosis catalogue: the most common behaviours that blow up accounts.
+// tag: which pillar the cause belongs to (psych | risk | discipline | system).
+export const getAccountKillers = (t) => ({
+  title: t('killersTitle'),
+  intro: t('killersIntro'),
+  items: [
+    { id: 'leverage',   name: t('killerLeverageName'),   desc: t('killerLeverageDesc'),   tag: 'risk' },
+    { id: 'gambling',   name: t('killerGamblingName'),   desc: t('killerGamblingDesc'),   tag: 'psych' },
+    { id: 'structure',  name: t('killerStructureName'),  desc: t('killerStructureDesc'),  tag: 'system' },
+    { id: 'revenge',    name: t('killerRevengeName'),    desc: t('killerRevengeDesc'),    tag: 'psych' },
+    { id: 'nolimits',   name: t('killerNoLimitsName'),   desc: t('killerNoLimitsDesc'),   tag: 'risk' },
+    { id: 'adrenaline', name: t('killerAdrenalineName'), desc: t('killerAdrenalineDesc'), tag: 'psych' },
+    { id: 'nosystem',   name: t('killerNoSystemName'),   desc: t('killerNoSystemDesc'),   tag: 'system' },
+    { id: 'tilt',       name: t('killerTiltName'),       desc: t('killerTiltDesc'),       tag: 'psych' },
+    { id: 'ego',        name: t('killerEgoName'),        desc: t('killerEgoDesc'),        tag: 'psych' },
+    { id: 'greed',      name: t('killerGreedName'),      desc: t('killerGreedDesc'),      tag: 'psych' },
+    { id: 'noconfirm',  name: t('killerNoConfirmName'),  desc: t('killerNoConfirmDesc'),  tag: 'system' },
+    { id: 'fatigue',    name: t('killerFatigueName'),    desc: t('killerFatigueDesc'),    tag: 'discipline' },
+    { id: 'boredom',    name: t('killerBoredomName'),    desc: t('killerBoredomDesc'),    tag: 'psych' },
+    { id: 'nojournal',  name: t('killerNoJournalName'),  desc: t('killerNoJournalDesc'),  tag: 'discipline' },
+    { id: 'breakrules', name: t('killerBreakRulesName'), desc: t('killerBreakRulesDesc'), tag: 'discipline' },
+    { id: 'fomo',       name: t('killerFomoName'),       desc: t('killerFomoDesc'),       tag: 'psych' },
+  ],
+});
+
 export const getTradingPsychology = (t) => ({
   title: t('tradingPsychologyTitle'),
   intro: t('tradingPsychologyIntro'),
