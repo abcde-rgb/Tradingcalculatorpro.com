@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -387,6 +387,7 @@ export default function EducationPage() {
   const TRADING_RULES = getTradingRules(t);
   const GOLDEN_RULES = getGoldenRules(t);
   const ACCOUNT_KILLERS = getAccountKillers(t);
+  const TRADER_CRAFT = getTraderCraft(t);
   const RISK_MANAGEMENT_CONCEPTS = getRiskManagementConcepts(t);
   const CHART_PATTERNS = getChartPatterns(t);
   const CANDLESTICK_PATTERNS = getCandlestickPatterns(t);
@@ -559,6 +560,9 @@ export default function EducationPage() {
               </TabsTrigger>
               <TabsTrigger value="psychology" className="gap-2" data-testid="tab-psychology">
                 <Brain className="w-4 h-4" /> {t('tradingPsychologyTitle')}
+              </TabsTrigger>
+              <TabsTrigger value="craft" className="gap-2" data-testid="tab-craft">
+                <Target className="w-4 h-4" /> {t('craftTitle')}
               </TabsTrigger>
               <TabsTrigger value="capital" className="gap-2" data-testid="tab-capital">
                 <Shield className="w-4 h-4" /> {t('capitalManagementTitle')}
@@ -1638,6 +1642,119 @@ export default function EducationPage() {
                         <p className="text-sm text-muted-foreground leading-relaxed">
                           {technique.description}
                         </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* The trader's craft — the professional process */}
+            <TabsContent value="craft" className="space-y-8">
+              <Card className="bg-gradient-to-br from-primary/5 to-emerald-500/10 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Target className="w-6 h-6 text-primary" />
+                    {TRADER_CRAFT.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TRADER_CRAFT.intro}</p>
+                </CardContent>
+              </Card>
+
+              {/* Trade management */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-green-500" />
+                  {TRADER_CRAFT.management.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {TRADER_CRAFT.management.intro}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {TRADER_CRAFT.management.items.map(m => (
+                    <Card key={m.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{m.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{m.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trading plan + pre-trade checklist */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-blue-500" />
+                  {TRADER_CRAFT.plan.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {TRADER_CRAFT.plan.intro}
+                </p>
+                <Card className="bg-gradient-to-br from-blue-500/10 to-primary/5 border-blue-500/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                      {TRADER_CRAFT.plan.checklistTitle}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {TRADER_CRAFT.plan.checklist.map((c, i) => (
+                        <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-lg bg-background/40 border border-blue-500/15">
+                          <span className="flex-shrink-0 w-5 h-5 rounded border border-blue-500/40 text-blue-500 flex items-center justify-center text-[10px] font-bold mt-0.5">{i + 1}</span>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{c}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Thinking in R */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-yellow-500" />
+                  {TRADER_CRAFT.rmultiple.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {TRADER_CRAFT.rmultiple.intro}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {TRADER_CRAFT.rmultiple.items.map(r => (
+                    <Card key={r.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{r.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{r.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trading as a business */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  {TRADER_CRAFT.business.title}
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
+                  {TRADER_CRAFT.business.intro}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {TRADER_CRAFT.business.items.map(b => (
+                    <Card key={b.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{b.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
                       </CardContent>
                     </Card>
                   ))}
