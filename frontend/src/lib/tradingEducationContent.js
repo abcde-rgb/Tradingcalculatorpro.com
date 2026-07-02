@@ -1242,6 +1242,23 @@ export const getTraderCraft = (t) => ({
   },
 });
 
+// Smart Money Concepts (ICT-style): tracking institutional footprints —
+// structure, order blocks, imbalances, liquidity and where price returns.
+export const getSmartMoney = (t) => ({
+  title: t('smcTitle'),
+  intro: t('smcIntro'),
+  items: [
+    { id: 'structure',  name: t('smcStructureName'),  desc: t('smcStructureDesc'),  type: 'neutral' },
+    { id: 'orderblock', name: t('smcOrderBlockName'), desc: t('smcOrderBlockDesc'), type: 'bullish' },
+    { id: 'fvg',        name: t('smcFvgName'),        desc: t('smcFvgDesc'),        type: 'neutral' },
+    { id: 'liquidity',  name: t('smcLiquidityName'),  desc: t('smcLiquidityDesc'),  type: 'neutral' },
+    { id: 'grab',       name: t('smcGrabName'),       desc: t('smcGrabDesc'),       type: 'bearish' },
+    { id: 'premium',    name: t('smcPremiumName'),    desc: t('smcPremiumDesc'),    type: 'neutral' },
+    { id: 'mitigation', name: t('smcMitigationName'), desc: t('smcMitigationDesc'), type: 'bullish' },
+  ],
+  note: t('smcNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
