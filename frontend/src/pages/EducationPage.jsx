@@ -423,6 +423,7 @@ export default function EducationPage() {
       { value: 'mechanics', label: t('mechTab') },
       { value: 'styles', label: t('stylesTab') },
       { value: 'fund-analysis', label: t('fundAnalTab') },
+      { value: 'glossary', label: t('glossaryTab') },
     ]},
     { id: 'technical', label: t('eduCatTechnical'), topics: [
       { value: 'tech-analysis', label: t('techTab') },
@@ -448,6 +449,7 @@ export default function EducationPage() {
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
       { value: 'rules', label: t('tradingRules') },
+      { value: 'quiz', label: t('quizTab') },
     ]},
     { id: 'pro', label: t('eduCatPro'), topics: [
       { value: 'craft', label: t('craftTitle') },
@@ -458,6 +460,35 @@ export default function EducationPage() {
   ];
   const totalTopics = EDUCATION_NAV.reduce((n, c) => n + c.topics.length, 0);
   const activeCategory = EDUCATION_NAV.find(c => c.topics.some(tp => tp.value === activeTopic));
+
+  // Per-module completion (localStorage) → progress bars in sidebar/header.
+  const [eduDone, setEduDone] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tcp-edu-progress') || '[]'); } catch { return []; }
+  });
+  const toggleTopicDone = (value) => {
+    setEduDone(prev => {
+      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
+      try { localStorage.setItem('tcp-edu-progress', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const doneCount = eduDone.filter(v => EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === v))).length;
+
+  // Glossary + quiz data (localized via i18n keys; answers are key-order-fixed).
+  const GLOSSARY = Array.from({ length: 20 }, (_, i) => ({ term: t(`gl${i + 1}t`), def: t(`gl${i + 1}d`) }));
+  const [glossQ, setGlossQ] = useState('');
+  const glossFiltered = GLOSSARY.filter(g =>
+    !glossQ || (g.term + ' ' + g.def).toLowerCase().includes(glossQ.toLowerCase())
+  );
+
+  const QUIZ = Array.from({ length: 8 }, (_, i) => ({
+    q: t(`qz${i + 1}q`),
+    opts: [t(`qz${i + 1}a`), t(`qz${i + 1}b`), t(`qz${i + 1}c`)],
+  }));
+  const QUIZ_CORRECT = [1, 0, 2, 1, 0, 2, 1, 0];
+  const [quizSel, setQuizSel] = useState({});
+  const [quizDone, setQuizDone] = useState(false);
+  const quizScore = QUIZ_CORRECT.reduce((n, c, i) => n + (quizSel[i] === c ? 1 : 0), 0);
 
   // Printable one-page Trading Plan + pre-trade checklist (localized).
   // Opens a print-ready window; the user saves it as PDF from the print dialog.
@@ -630,10 +661,19 @@ export default function EducationPage() {
                   {t('educationCenterDesc')}
                 </p>
               </div>
-              <div className="flex items-center gap-5 text-xs text-muted-foreground font-mono">
-                <span><span className="text-foreground font-bold">{totalTopics}</span> {t('eduModulesLabel')}</span>
-                <span className="opacity-40">|</span>
-                <span><span className="text-foreground font-bold">{EDUCATION_NAV.length}</span> {t('eduPathsLabel')}</span>
+              <div className="text-xs text-muted-foreground font-mono">
+                <div className="flex items-center gap-5">
+                  <span><span className="text-foreground font-bold">{totalTopics}</span> {t('eduModulesLabel')}</span>
+                  <span className="opacity-40">|</span>
+                  <span><span className="text-foreground font-bold">{EDUCATION_NAV.length}</span> {t('eduPathsLabel')}</span>
+                  <span className="opacity-40">|</span>
+                  <span data-testid="edu-progress-count">
+                    <span className="text-primary font-bold">{doneCount}</span>/{totalTopics} {t('eduProgressLabel')}
+                  </span>
+                </div>
+                <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden" data-testid="edu-progress-bar">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${Math.round((doneCount / totalTopics) * 100)}%` }} />
+                </div>
               </div>
             </div>
           </div>
@@ -661,6 +701,9 @@ export default function EducationPage() {
                         <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                           <span className="font-mono text-primary/70">{String(ci + 1).padStart(2, '0')}</span>
                           {cat.label}
+                          <span className="ml-auto font-mono normal-case tracking-normal opacity-70">
+                            {cat.topics.filter(tp => eduDone.includes(tp.value)).length}/{cat.topics.length}
+                          </span>
                         </p>
                         <div className="space-y-0.5">
                           {topics.map(tp => (
@@ -669,13 +712,16 @@ export default function EducationPage() {
                               type="button"
                               onClick={() => setActiveTopic(tp.value)}
                               data-testid={`edunav-${tp.value}`}
-                              className={`w-full text-left px-3 py-1.5 rounded-md text-[13px] leading-snug transition-colors border-l-2 ${
+                              className={`w-full flex items-center justify-between gap-2 text-left px-3 py-1.5 rounded-md text-[13px] leading-snug transition-colors border-l-2 ${
                                 activeTopic === tp.value
                                   ? 'border-primary bg-primary/10 text-primary font-medium'
                                   : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
                               }`}
                             >
-                              {tp.label}
+                              <span className="min-w-0 truncate">{tp.label}</span>
+                              {eduDone.includes(tp.value) && (
+                                <CheckCircle2 className="w-3 h-3 flex-shrink-0 text-primary" />
+                              )}
                             </button>
                           ))}
                         </div>
@@ -723,11 +769,26 @@ export default function EducationPage() {
 
               {/* Module content column */}
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-muted-foreground font-mono mb-4" data-testid="edu-breadcrumb">
-                  {activeCategory?.label}
-                  <span className="mx-1.5 opacity-50">/</span>
-                  <span className="text-foreground">{activeCategory?.topics.find(tp => tp.value === activeTopic)?.label}</span>
-                </p>
+                <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                  <p className="text-[11px] text-muted-foreground font-mono" data-testid="edu-breadcrumb">
+                    {activeCategory?.label}
+                    <span className="mx-1.5 opacity-50">/</span>
+                    <span className="text-foreground">{activeCategory?.topics.find(tp => tp.value === activeTopic)?.label}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => toggleTopicDone(activeTopic)}
+                    data-testid="edu-mark-done"
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+                      eduDone.includes(activeTopic)
+                        ? 'border-primary/40 bg-primary/10 text-primary'
+                        : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    {eduDone.includes(activeTopic) ? t('eduDoneLabel') : t('eduMarkDone')}
+                  </button>
+                </div>
 
             {/* Fundamentals */}
             <TabsContent value="fundamentals" className="space-y-8">
@@ -3181,6 +3242,115 @@ export default function EducationPage() {
                   ))}
                 </ul>
               </div>
+            </TabsContent>
+
+            {/* Glossary — searchable trading terms */}
+            <TabsContent value="glossary" className="space-y-6">
+              <Card className="bg-gradient-to-br from-primary/5 to-blue-500/10 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <BookOpen className="w-6 h-6 text-primary" />
+                    {t('glossaryTab')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      value={glossQ}
+                      onChange={(e) => setGlossQ(e.target.value)}
+                      placeholder={t('glossarySearch')}
+                      className="pl-10"
+                      data-testid="glossary-search"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="glossary-grid">
+                {glossFiltered.map((g, i) => (
+                  <div key={i} className="p-3.5 rounded-lg bg-card border border-border">
+                    <p className="text-sm font-bold text-primary mb-1">{g.term}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{g.def}</p>
+                  </div>
+                ))}
+                {glossFiltered.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-6">—</p>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Quiz — quick self-test on the essentials */}
+            <TabsContent value="quiz" className="space-y-6">
+              <Card className="bg-gradient-to-br from-purple-500/5 to-primary/10 border-purple-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Brain className="w-6 h-6 text-purple-500" />
+                    {t('quizTab')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{t('qzIntro')}</p>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-4" data-testid="quiz-questions">
+                {QUIZ.map((item, qi) => (
+                  <Card key={qi} className="bg-card border-border">
+                    <CardContent className="pt-5">
+                      <p className="text-sm font-semibold mb-3">
+                        <span className="font-mono text-primary mr-2">{qi + 1}.</span>{item.q}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {item.opts.map((opt, oi) => {
+                          const chosen = quizSel[qi] === oi;
+                          const correct = QUIZ_CORRECT[qi] === oi;
+                          let cls = 'border-border bg-background text-muted-foreground hover:text-foreground';
+                          if (quizDone && correct) cls = 'border-[#22c55e]/60 bg-[#22c55e]/10 text-[#22c55e] font-medium';
+                          else if (quizDone && chosen && !correct) cls = 'border-[#ef4444]/60 bg-[#ef4444]/10 text-[#ef4444]';
+                          else if (chosen) cls = 'border-primary text-primary bg-primary/10 font-medium';
+                          return (
+                            <button
+                              key={oi}
+                              type="button"
+                              disabled={quizDone}
+                              onClick={() => setQuizSel(prev => ({ ...prev, [qi]: oi }))}
+                              className={`px-3 py-2 rounded-md text-xs text-left border transition-colors ${cls}`}
+                              data-testid={`quiz-q${qi}-o${oi}`}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {!quizDone ? (
+                <Button
+                  onClick={() => setQuizDone(true)}
+                  disabled={Object.keys(quizSel).length < QUIZ.length}
+                  className="bg-primary text-black hover:bg-primary/90"
+                  data-testid="quiz-submit"
+                >
+                  {t('qzSubmit')}
+                </Button>
+              ) : (
+                <Card className={`border ${quizScore >= 7 ? 'border-[#22c55e]/40 bg-[#22c55e]/10' : quizScore >= 5 ? 'border-[#f59e0b]/40 bg-[#f59e0b]/10' : 'border-[#ef4444]/40 bg-[#ef4444]/10'}`}>
+                  <CardContent className="pt-5 flex items-center justify-between gap-3 flex-wrap">
+                    <p className="text-sm font-semibold" data-testid="quiz-score">
+                      {t('qzScoreLabel')}: <span className="font-mono text-lg">{quizScore}/{QUIZ.length}</span>
+                      <span className="ml-2 text-muted-foreground font-normal">
+                        {quizScore >= 7 ? t('qzPerfect') : quizScore >= 5 ? t('qzGood') : t('qzBad')}
+                      </span>
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => { setQuizSel({}); setQuizDone(false); }} data-testid="quiz-retry">
+                      {t('qzRetry')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
               </div>
             </div>
