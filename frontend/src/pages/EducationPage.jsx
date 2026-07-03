@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
@@ -351,6 +351,8 @@ function PatternDetailModal({ pattern, onClose }) {
 }
 
 export default function EducationPage() {
+  const [activeTopic, setActiveTopic] = useState('fundamentals');
+  const [topicQuery, setTopicQuery] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRules, setExpandedRules] = useState(new Set([1, 2, 3]));
   const [selectedPattern, setSelectedPattern] = useState(null);
@@ -411,6 +413,50 @@ export default function EducationPage() {
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
   const COT = getCotContent(t);
+
+  // Grouped curriculum — 6 pillars, broker-academy style (IBKR Campus / IG Academy).
+  // Values map 1:1 to the existing TabsContent blocks; only navigation changes.
+  const EDUCATION_NAV = [
+    { id: 'start', label: t('eduCatStart'), topics: [
+      { value: 'fundamentals', label: t('fundTab') },
+      { value: 'mechanics', label: t('mechTab') },
+      { value: 'styles', label: t('stylesTab') },
+      { value: 'fund-analysis', label: t('fundAnalTab') },
+    ]},
+    { id: 'technical', label: t('eduCatTechnical'), topics: [
+      { value: 'tech-analysis', label: t('techTab') },
+      { value: 'chart-patterns', label: t('chartPatterns') },
+      { value: 'candlesticks', label: t('candlestickPatterns') },
+      { value: 'dow-theory', label: t('dowTheoryTitle') },
+      { value: 'wyckoff', label: t('wyckoffTab') },
+      { value: 'alt-charts', label: t('altChartTab') },
+    ]},
+    { id: 'advanced', label: t('eduCatAdvanced'), topics: [
+      { value: 'elliott', label: t('ewTab') },
+      { value: 'ichimoku', label: t('ichiTab') },
+      { value: 'harmonic-patterns', label: t('harmonicPatternsTab') },
+      { value: 'smc', label: t('smcTitle') },
+      { value: 'advanced-ta', label: t('advTaTitle') },
+      { value: 'cot', label: t('cotTab') },
+    ]},
+    { id: 'risk', label: t('eduCatRisk'), topics: [
+      { value: 'risk', label: t('riskManagement') },
+      { value: 'capital', label: t('capitalManagementTitle') },
+      { value: 'probability', label: t('probabilityStatsTitle') },
+    ]},
+    { id: 'psych', label: t('eduCatPsych'), topics: [
+      { value: 'psychology', label: t('tradingPsychologyTitle') },
+      { value: 'rules', label: t('tradingRules') },
+    ]},
+    { id: 'pro', label: t('eduCatPro'), topics: [
+      { value: 'craft', label: t('craftTitle') },
+      { value: 'strategies', label: t('tradingStrategiesTitle') },
+      { value: 'options-strat', label: t('optTitle') },
+      { value: 'business', label: t('tbizTitle') },
+    ]},
+  ];
+  const totalTopics = EDUCATION_NAV.reduce((n, c) => n + c.topics.length, 0);
+  const activeCategory = EDUCATION_NAV.find(c => c.topics.some(tp => tp.value === activeTopic));
 
   // Premium Gate - Block non-authenticated OR non-premium users
   if (!isPremium) {
@@ -519,98 +565,119 @@ export default function EducationPage() {
       <Header />
       
       <main className="pt-24 pb-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-              <BookOpen className="w-5 h-5 text-primary" />
-              <span className="text-sm text-primary">{t('educationCenter')}</span>
-            </div>
-            <h1 className="font-unbounded text-3xl md:text-4xl font-bold mb-4">
-              {t('educationCenter')}
-            </h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t('educationCenterDesc')}
+        <div className="max-w-7xl mx-auto">
+          {/* Professional page header — sober, left-aligned, broker-academy style */}
+          <div className="mb-8 pb-6 border-b border-border">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary mb-2">
+              {t('eduAcademyLabel')}
             </p>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h1 className="font-unbounded text-2xl md:text-3xl font-bold mb-2">
+                  {t('educationCenter')}
+                </h1>
+                <p className="text-sm text-muted-foreground max-w-2xl">
+                  {t('educationCenterDesc')}
+                </p>
+              </div>
+              <div className="flex items-center gap-5 text-xs text-muted-foreground font-mono">
+                <span><span className="text-foreground font-bold">{totalTopics}</span> {t('eduModulesLabel')}</span>
+                <span className="opacity-40">|</span>
+                <span><span className="text-foreground font-bold">{EDUCATION_NAV.length}</span> {t('eduPathsLabel')}</span>
+              </div>
+            </div>
           </div>
 
-          <Tabs defaultValue="rules" className="space-y-8">
-            <TabsList className="bg-card border border-border p-1 h-auto flex-wrap justify-center gap-1">
-              <TabsTrigger value="fundamentals" className="gap-2" data-testid="tab-fundamentals">
-                <Lightbulb className="w-4 h-4" /> {t('fundTab')}
-              </TabsTrigger>
-              <TabsTrigger value="tech-analysis" className="gap-2" data-testid="tab-tech-analysis">
-                <TrendingUp className="w-4 h-4" /> {t('techTab')}
-              </TabsTrigger>
-              <TabsTrigger value="elliott" className="gap-2" data-testid="tab-elliott">
-                <TrendingUp className="w-4 h-4" /> {t('ewTab')}
-              </TabsTrigger>
-              <TabsTrigger value="ichimoku" className="gap-2" data-testid="tab-ichimoku">
-                <CandlestickChart className="w-4 h-4" /> {t('ichiTab')}
-              </TabsTrigger>
-              <TabsTrigger value="smc" className="gap-2" data-testid="tab-smc">
-                <TrendingUp className="w-4 h-4" /> {t('smcTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="options-strat" className="gap-2" data-testid="tab-options-strat">
-                <Scale className="w-4 h-4" /> {t('optTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="advanced-ta" className="gap-2" data-testid="tab-advanced-ta">
-                <BarChart3 className="w-4 h-4" /> {t('advTaTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="business" className="gap-2" data-testid="tab-business">
-                <Shield className="w-4 h-4" /> {t('tbizTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="fund-analysis" className="gap-2" data-testid="tab-fund-analysis">
-                <BarChart3 className="w-4 h-4" /> {t('fundAnalTab')}
-              </TabsTrigger>
-              <TabsTrigger value="styles" className="gap-2" data-testid="tab-styles">
-                <Target className="w-4 h-4" /> {t('stylesTab')}
-              </TabsTrigger>
-              <TabsTrigger value="mechanics" className="gap-2" data-testid="tab-mechanics">
-                <Scale className="w-4 h-4" /> {t('mechTab')}
-              </TabsTrigger>
-              <TabsTrigger value="rules" className="gap-2" data-testid="tab-rules">
-                <Brain className="w-4 h-4" /> {t('tradingRules')}
-              </TabsTrigger>
-              <TabsTrigger value="dow-theory" className="gap-2" data-testid="tab-dow-theory">
-                <Lightbulb className="w-4 h-4" /> {t('dowTheoryTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="psychology" className="gap-2" data-testid="tab-psychology">
-                <Brain className="w-4 h-4" /> {t('tradingPsychologyTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="craft" className="gap-2" data-testid="tab-craft">
-                <Target className="w-4 h-4" /> {t('craftTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="capital" className="gap-2" data-testid="tab-capital">
-                <Shield className="w-4 h-4" /> {t('capitalManagementTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="strategies" className="gap-2" data-testid="tab-strategies">
-                <Target className="w-4 h-4" /> {t('tradingStrategiesTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="probability" className="gap-2" data-testid="tab-probability">
-                <TrendingUp className="w-4 h-4" /> {t('probabilityStatsTitle')}
-              </TabsTrigger>
-              <TabsTrigger value="chart-patterns" className="gap-2" data-testid="tab-chart-patterns">
-                <BarChart3 className="w-4 h-4" /> {t('chartPatterns')}
-              </TabsTrigger>
-              <TabsTrigger value="candlesticks" className="gap-2" data-testid="tab-candlesticks">
-                <CandlestickChart className="w-4 h-4" /> {t('candlestickPatterns')}
-              </TabsTrigger>
-              <TabsTrigger value="risk" className="gap-2" data-testid="tab-risk">
-                <Scale className="w-4 h-4" /> {t('riskManagement')}
-              </TabsTrigger>
-              <TabsTrigger value="harmonic-patterns" className="gap-2" data-testid="tab-harmonic-patterns">
-                <TrendingUp className="w-4 h-4" /> {t('harmonicPatternsTab')}
-              </TabsTrigger>
-              <TabsTrigger value="wyckoff" className="gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-wyckoff">
-                <TrendingUp className="w-4 h-4" /> {t('wyckoffTab')}
-              </TabsTrigger>
-              <TabsTrigger value="alt-charts" className="gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-alt-charts">
-                <BarChart3 className="w-4 h-4" /> {t('altChartTab')}
-              </TabsTrigger>
-              <TabsTrigger value="cot" className="gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white text-xs sm:text-sm" data-testid="tab-cot">
-                <Scale className="w-4 h-4" /> {t('cotTab')}
-              </TabsTrigger>
-            </TabsList>
+          <Tabs value={activeTopic} onValueChange={setActiveTopic}>
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
+              {/* Curriculum sidebar (desktop) — grouped pillars, private-banking style */}
+              <aside className="hidden lg:block w-64 flex-shrink-0" data-testid="edu-sidebar">
+                <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 pb-8 space-y-5">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                    <Input
+                      value={topicQuery}
+                      onChange={(e) => setTopicQuery(e.target.value)}
+                      placeholder={t('eduSearchTopic')}
+                      className="pl-9 h-9 text-sm"
+                      data-testid="edu-topic-search"
+                    />
+                  </div>
+                  {EDUCATION_NAV.map((cat, ci) => {
+                    const topics = cat.topics.filter(tp => !topicQuery || tp.label.toLowerCase().includes(topicQuery.toLowerCase()));
+                    if (topics.length === 0) return null;
+                    return (
+                      <div key={cat.id}>
+                        <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                          <span className="font-mono text-primary/70">{String(ci + 1).padStart(2, '0')}</span>
+                          {cat.label}
+                        </p>
+                        <div className="space-y-0.5">
+                          {topics.map(tp => (
+                            <button
+                              key={tp.value}
+                              type="button"
+                              onClick={() => setActiveTopic(tp.value)}
+                              data-testid={`edunav-${tp.value}`}
+                              className={`w-full text-left px-3 py-1.5 rounded-md text-[13px] leading-snug transition-colors border-l-2 ${
+                                activeTopic === tp.value
+                                  ? 'border-primary bg-primary/10 text-primary font-medium'
+                                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                              }`}
+                            >
+                              {tp.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              {/* Mobile: two-level nav (pillar row + topic row) */}
+              <div className="lg:hidden space-y-2" data-testid="edu-mobile-nav">
+                <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                  {EDUCATION_NAV.map(cat => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setActiveTopic(cat.topics[0].value)}
+                      className={`flex-shrink-0 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                        activeCategory?.id === cat.id
+                          ? 'bg-primary text-black border-primary'
+                          : 'bg-card text-muted-foreground border-border'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                  {(activeCategory?.topics || []).map(tp => (
+                    <button
+                      key={tp.value}
+                      type="button"
+                      onClick={() => setActiveTopic(tp.value)}
+                      className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs border transition-colors ${
+                        activeTopic === tp.value
+                          ? 'border-primary text-primary bg-primary/10 font-medium'
+                          : 'border-border bg-card text-muted-foreground'
+                      }`}
+                    >
+                      {tp.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Module content column */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-muted-foreground font-mono mb-4" data-testid="edu-breadcrumb">
+                  {activeCategory?.label}
+                  <span className="mx-1.5 opacity-50">/</span>
+                  <span className="text-foreground">{activeCategory?.topics.find(tp => tp.value === activeTopic)?.label}</span>
+                </p>
 
             {/* Fundamentals */}
             <TabsContent value="fundamentals" className="space-y-8">
@@ -3051,7 +3118,8 @@ export default function EducationPage() {
                 </ul>
               </div>
             </TabsContent>
-
+              </div>
+            </div>
           </Tabs>
         </div>
       </main>
