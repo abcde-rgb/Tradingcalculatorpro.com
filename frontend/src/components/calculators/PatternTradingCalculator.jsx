@@ -347,7 +347,7 @@ export const PatternTradingCalculator = () => {
           </div>
         </div>
 
-        <Button onClick={calculate} className="w-full bg-emerald-500 text-white hover:bg-emerald-600">
+        <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90">
           {t('calculate')}
         </Button>
 

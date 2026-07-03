@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
-  CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2
+  CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -458,6 +458,55 @@ export default function EducationPage() {
   ];
   const totalTopics = EDUCATION_NAV.reduce((n, c) => n + c.topics.length, 0);
   const activeCategory = EDUCATION_NAV.find(c => c.topics.some(tp => tp.value === activeTopic));
+
+  // Printable one-page Trading Plan + pre-trade checklist (localized).
+  // Opens a print-ready window; the user saves it as PDF from the print dialog.
+  const printTradingPlan = () => {
+    const w = window.open('', '_blank', 'width=860,height=1100');
+    if (!w) return;
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const lines = (n) => Array.from({ length: n }).map(() => '<div class="line"></div>').join('');
+    const checks = [1, 2, 3, 4, 5, 6]
+      .map((i) => `<div class="chk"><span class="box"></span><span>${esc(t(`planCheck${i}`))}</span></div>`)
+      .join('');
+    const rules = ['tplRisk1', 'tplRisk2', 'tplRisk3']
+      .map((k) => `<div class="chk"><span class="box"></span><span>${esc(t(k))}</span></div>`)
+      .join('');
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(t('tplTitle'))}</title>
+<style>
+  @page { size: A4; margin: 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: #111; margin: 0; font-size: 12.5px; line-height: 1.45; }
+  .brand { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: #666; }
+  h1 { font-size: 21px; margin: 2px 0 14px; }
+  .meta { display: flex; gap: 24px; margin-bottom: 14px; }
+  .meta div { flex: 1; border-bottom: 1px solid #999; padding: 6px 2px; color: #444; }
+  h2 { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; border-bottom: 2px solid #111; padding-bottom: 3px; margin: 16px 0 8px; }
+  .line { border-bottom: 1px dotted #aaa; height: 22px; }
+  .chk { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
+  .box { width: 12px; height: 12px; border: 1.5px solid #111; border-radius: 2px; flex: none; margin-top: 2px; }
+  .commit { margin-top: 18px; border: 1.5px solid #111; padding: 10px 12px; font-weight: 600; }
+  .sign { display: flex; gap: 24px; margin-top: 14px; }
+  .sign div { flex: 1; border-bottom: 1px solid #999; height: 30px; }
+  .foot { margin-top: 10px; font-size: 10px; color: #888; }
+</style></head><body>
+  <div class="brand">TradingCalculator PRO</div>
+  <h1>${esc(t('tplTitle'))}</h1>
+  <div class="meta"><div>${esc(t('tplTrader'))}: </div><div>${esc(t('tplDate'))}: </div></div>
+  <h2>1 · ${esc(t('tplMarkets'))}</h2>${lines(2)}
+  <h2>2 · ${esc(t('tplSetup'))}</h2>${lines(3)}
+  <h2>3 · ${esc(t('tplRisk'))}</h2>${rules}
+  <h2>4 · ${esc(t('planChecklistTitle'))}</h2>${checks}
+  <h2>5 · ${esc(t('tplManagement'))}</h2>${lines(2)}
+  <h2>6 · ${esc(t('tplReview'))}</h2>${lines(2)}
+  <div class="commit">${esc(t('tplCommit'))}</div>
+  <div class="sign"><div></div></div>
+  <div class="foot">tradingcalculatorpro.com</div>
+<script>setTimeout(function(){window.print();},350);</script>
+</body></html>`);
+    w.document.close();
+    w.focus();
+  };
 
   // Premium Gate - Block non-authenticated OR non-premium users
   if (!isPremium) {
@@ -1969,9 +2018,20 @@ export default function EducationPage() {
                 </p>
                 <Card className="bg-gradient-to-br from-blue-500/10 to-primary/5 border-blue-500/30">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                      {TRADER_CRAFT.plan.checklistTitle}
+                    <CardTitle className="flex items-center justify-between gap-2 text-base flex-wrap">
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                        {TRADER_CRAFT.plan.checklistTitle}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={printTradingPlan}
+                        className="gap-1.5"
+                        data-testid="print-trading-plan"
+                      >
+                        <Printer className="w-3.5 h-3.5" /> {t('tplPrintBtn')}
+                      </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

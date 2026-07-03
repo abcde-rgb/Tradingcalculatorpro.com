@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DOMAIN = 'https://tradingcalculatorpro.com';
+const DOMAIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
 const LASTMOD = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 const LANGS = [['en', 'en'], ['de', 'de'], ['fr', 'fr'], ['ru', 'ru'], ['zh-CN', 'zh'], ['ja', 'ja'], ['ar', 'ar']];
 

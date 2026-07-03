@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 
-const ORIGIN = 'https://tradingcalculatorpro.com';
+const ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
 const BRAND  = 'Trading Calculator PRO';
 
 /**

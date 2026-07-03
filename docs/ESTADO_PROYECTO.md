@@ -353,3 +353,21 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
    - Si tocaste seguridad/bugs, refleja también en [`../DIARIO_BUGS.md`](../DIARIO_BUGS.md).
 4. **Regla de oro**: este documento debe reflejar el **código real**, no intenciones.
    Verifica antes de afirmar (compila, ejecuta, lee el archivo).
+
+### 2026-07-03 — Sesión larga: educación completa, dashboard pro, SEO al dominio real
+- ✅ **Educación**: reorganización estilo academia de broker (sidebar 6 pilares, buscador,
+  breadcrumb, PRs #45); backlog de contenido completado al 100% (25 módulos, PRs #41-44);
+  calculadora de riesgo de ruina Monte Carlo (#48); plantilla de Plan de Trading imprimible.
+- ✅ **Dashboard**: "Estación de cálculo" unificada (4 grupos, un acento, breadcrumb, #49);
+  favoritos + recientes (localStorage); botón "Registrar en el diario" desde Position Size
+  (POST /performance/trades); CTAs unificados al verde primario.
+- ✅ **Fixes**: crash premium de Educación (import CheckCircle2, #47); auto-recarga ante
+  ChunkLoadError tras deploys (#46); deep-link ?tab=montecarlo (#49); auditoría i18n
+  completa → 0 claves crudas en toda la app (#50 + 7 claves).
+- ✅ **SEO (skill mejorar-seo)**: TODO el SEO apuntaba a `tradingcalculatorpro.com` (dominio
+  AJENO) → migrado canonical/hreflang×9/OG/JSON-LD/sitemap/robots a
+  `https://abcde-rgb.github.io/Tradingcalculatorpro.com`; schema corregido (GPT-4→Claude,
+  screenshot svg→png); robots sin Allow explícito a rutas con muro. ⚠️ Si algún día se
+  compra dominio propio, revertir según §6 del skill.
+- Verificación: smokes headless premium (educación 25 módulos, dashboard 12 herramientas,
+  plantilla imprimible, head SEO) — 0 errores de runtime.

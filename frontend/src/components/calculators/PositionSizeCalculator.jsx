@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Calculator, Save, AlertTriangle, Trash2 } from 'lucide-react';
+import { Calculator, Save, AlertTriangle, Trash2, BookOpen } from 'lucide-react';
+import { toast } from 'sonner';
+import { createTrade } from '@/services/performanceApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,12 +37,43 @@ export const PositionSizeCalculator = () => {
   const setAsset          = (v) => setPersistedData(prev => ({ ...prev, asset: v }));
 
   const handleAssetChange = (a) => {
-    setAsset(a.id);
+    // Keep the ticker too so "send to journal" can record a proper symbol.
+    setPersistedData(prev => ({ ...prev, asset: a.id, assetSymbol: a.symbol || a.id }));
     const p = prices?.[a.id]?.usd;
     if (p) {
       setEntryPrice(p);
       // Default SL at 1% below entry (a sensible starting point)
       setStopLoss(p * 0.99);
+    }
+  };
+
+  const [sendingJournal, setSendingJournal] = useState(false);
+  const journalSymbol = persistedData.assetSymbol
+    || (asset === 'bitcoin' ? 'BTC' : String(asset).toUpperCase().slice(0, 12));
+
+  // One click from sizing to a logged trade: creates an OPEN trade in the
+  // Performance journal with the calculated entry/SL/size.
+  const handleSendToJournal = async () => {
+    if (!result || sendingJournal) return;
+    const entry = parseFloat(entryPrice);
+    const sl = parseFloat(stopLoss);
+    setSendingJournal(true);
+    try {
+      await createTrade({
+        symbol: journalSymbol,
+        side: entry >= sl ? 'long' : 'short',
+        entry_price: entry,
+        sl,
+        quantity: result.positionInCoins,
+        status: 'open',
+        account_balance: parseFloat(accountBalance) || 0,
+        notes: t('journalFromCalcNote'),
+      });
+      toast.success(t('sentToJournal'));
+    } catch (e) {
+      toast.error(t('sendToJournalError'));
+    } finally {
+      setSendingJournal(false);
     }
   };
 
@@ -151,7 +184,7 @@ export const PositionSizeCalculator = () => {
               </div>
             </div>
             
-            <Button onClick={calculate} className="w-full bg-blue-500 text-white hover:bg-blue-400" data-testid="position-calculate-btn">
+            <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="position-calculate-btn">
               {t('calcPosition_pos001')}
             </Button>
           </div>
@@ -212,6 +245,18 @@ export const PositionSizeCalculator = () => {
                     </Button>
                   )}
                 </div>
+
+                {isAuthenticated && (
+                  <Button
+                    onClick={handleSendToJournal}
+                    disabled={sendingJournal}
+                    className="w-full bg-primary/15 text-primary border border-primary/40 hover:bg-primary/25"
+                    data-testid="position-send-journal"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    {sendingJournal ? '…' : t('sendToJournal')}
+                  </Button>
+                )}
               </div>
             )}
           </div>
