@@ -190,7 +190,7 @@ export const LeverageCalculator = () => {
               </Button>
             </div>
             
-            <Button onClick={calculate} className="w-full bg-yellow-500 text-black hover:bg-yellow-400" data-testid="leverage-calculate-btn">
+            <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="leverage-calculate-btn">
               {t('simular_lev001')}
             </Button>
           </div>

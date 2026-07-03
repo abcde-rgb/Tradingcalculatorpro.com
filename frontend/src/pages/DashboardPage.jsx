@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 import { useSEO } from '@/hooks/useSEO';
 import OnboardingModal from '@/components/common/OnboardingModal';
 import {
-  Calculator, Target, FlaskConical,
+  Calculator, Target, FlaskConical, Star, Clock,
   BookOpen, Scale, TrendingUp, DollarSign, BarChart3
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -70,6 +70,33 @@ export default function DashboardPage() {
     ]},
   ];
   const activeCalcGroup = CALC_NAV.find(g => g.items.some(it => it.value === activeTab)) || CALC_NAV[0];
+  const ALL_CALC_TOOLS = CALC_NAV.flatMap(g => g.items);
+
+  // Quick access: starred favourites + auto-tracked recents (localStorage).
+  const [calcFavs, setCalcFavs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tcp-calc-favs') || '[]'); } catch { return []; }
+  });
+  const [calcRecents, setCalcRecents] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tcp-calc-recents') || '[]'); } catch { return []; }
+  });
+  useEffect(() => {
+    setCalcRecents(prev => {
+      const next = [activeTab, ...prev.filter(v => v !== activeTab)].slice(0, 4);
+      try { localStorage.setItem('tcp-calc-recents', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [activeTab]);
+  const toggleCalcFav = (value) => {
+    setCalcFavs(prev => {
+      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value].slice(0, 6);
+      try { localStorage.setItem('tcp-calc-favs', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const quickAccess = [
+    ...calcFavs.map(v => ({ value: v, fav: true })),
+    ...calcRecents.filter(v => !calcFavs.includes(v) && v !== activeTab).map(v => ({ value: v, fav: false })),
+  ].filter(q => ALL_CALC_TOOLS.some(it => it.value === q.value)).slice(0, 6);
 
   useSEO({
     titleKey: 'seoDashboardTitle',
@@ -250,12 +277,45 @@ export default function DashboardPage() {
                     <Calculator className="w-4 h-4 text-primary" />
                     {t('calcWorkstationTitle')}
                   </h2>
-                  <span className="text-[11px] text-muted-foreground font-mono" data-testid="calc-breadcrumb">
+                  <span className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono" data-testid="calc-breadcrumb">
                     {activeCalcGroup.label}
-                    <span className="mx-1.5 opacity-50">/</span>
+                    <span className="opacity-50">/</span>
                     <span className="text-foreground">{activeCalcGroup.items.find(it => it.value === activeTab)?.label}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleCalcFav(activeTab)}
+                      title={t('calcFavToggle')}
+                      data-testid="calc-fav-toggle"
+                      className={`p-1 rounded transition-colors ${calcFavs.includes(activeTab) ? 'text-yellow-500' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      <Star className="w-3.5 h-3.5" fill={calcFavs.includes(activeTab) ? 'currentColor' : 'none'} />
+                    </button>
                   </span>
                 </div>
+
+                {/* Quick access: favourites first, then recents */}
+                {quickAccess.length > 0 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" data-testid="calc-quick-access">
+                    <span className="flex-shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-0.5">
+                      {t('calcQuickAccess')}
+                    </span>
+                    {quickAccess.map(q => {
+                      const tool = ALL_CALC_TOOLS.find(it => it.value === q.value);
+                      const QIcon = q.fav ? Star : Clock;
+                      return (
+                        <button
+                          key={q.value}
+                          type="button"
+                          onClick={() => setActiveTab(q.value)}
+                          className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] border border-border bg-background text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <QIcon className={`w-3 h-3 ${q.fav ? 'text-yellow-500' : ''}`} fill={q.fav ? 'currentColor' : 'none'} />
+                          {tool?.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 {/* Group row */}
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5">
                   {CALC_NAV.map(g => {

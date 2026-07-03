@@ -120,7 +120,7 @@ export const SpotCalculator = () => {
               />
             </div>
             
-            <Button onClick={calculate} className="w-full bg-purple-500 text-white hover:bg-purple-400" data-testid="spot-calculate-btn">
+            <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="spot-calculate-btn">
               {t('calculate')}
             </Button>
           </div>

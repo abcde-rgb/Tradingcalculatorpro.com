@@ -3,11 +3,9 @@
 # Allow all major crawlers
 User-agent: *
 Allow: /
-Allow: /dashboard
 Allow: /options
 Allow: /education
 Allow: /pricing
-Allow: /subscription
 Allow: /login
 Allow: /register
 Allow: /about
@@ -40,4 +38,4 @@ User-agent: DotBot
 Disallow: /
 
 # Sitemap
-Sitemap: https://tradingcalculatorpro.com/sitemap.xml
+Sitemap: https://abcde-rgb.github.io/Tradingcalculatorpro.com/sitemap.xml
