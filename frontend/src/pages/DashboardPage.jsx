@@ -14,6 +14,9 @@ import { MonteCarloSimulator } from '@/components/calculators/MonteCarloSimulato
 import { SimulatorPro } from '@/components/calculators/SimulatorPro';
 import { PatternTradingCalculator } from '@/components/calculators/PatternTradingCalculator';
 import { FuturesCalculator } from '@/components/calculators/FuturesCalculator';
+import { CompoundCalculator } from '@/components/calculators/CompoundCalculator';
+import { Watchlist } from '@/components/dashboard/Watchlist';
+import { EconomicCalendar } from '@/components/dashboard/EconomicCalendar';
 import { TargetMeasurementTool } from '@/components/tools/TargetMeasurementTool';
 import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
@@ -67,6 +70,7 @@ export default function DashboardPage() {
     { id: 'sim', label: t('calcCatSim'), Icon: FlaskConical, items: [
       { value: 'montecarlo', label: t('monteCarlo') },
       { value: 'simulator', label: t('simulator') },
+      { value: 'compound', label: t('cmpTitle') },
     ]},
   ];
   const activeCalcGroup = CALC_NAV.find(g => g.items.some(it => it.value === activeTab)) || CALC_NAV[0];
@@ -111,7 +115,7 @@ export default function DashboardPage() {
     const allowed = [
       'percentage', 'target', 'leverage', 'position', 'lotsize',
       'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
-      'futures',
+      'futures', 'compound',
     ];
     if (requested && allowed.includes(requested)) setActiveTab(requested);
   }, [searchParams]);
@@ -394,6 +398,9 @@ export default function DashboardPage() {
               <TabsContent value="simulator">
                 <SimulatorPro />
               </TabsContent>
+              <TabsContent value="compound">
+                <CompoundCalculator />
+              </TabsContent>
             </Tabs>
             </motion.div>
 
@@ -402,11 +409,17 @@ export default function DashboardPage() {
               <TradingViewChart />
             </motion.div>
 
-            {/* Price Alerts and Calculation History */}
+            {/* Watchlist, Price Alerts and Calculation History */}
             <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.14, ease: 'easeOut' }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Watchlist />
               <PriceAlerts />
               <CalculationHistory />
+            </motion.div>
+
+            {/* Live economic calendar (TradingView events widget) */}
+            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.18, ease: 'easeOut' }}>
+              <EconomicCalendar />
             </motion.div>
 
             {/* Trading Journal */}
