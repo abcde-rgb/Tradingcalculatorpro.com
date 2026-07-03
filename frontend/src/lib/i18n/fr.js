@@ -412,6 +412,13 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    orderUseLabel: 'Quand l\'utiliser',
+    platformBestFor: 'Idéal pour',
+    styleProsLabel: 'Avantages',
+    styleConsLabel: 'Inconvénients',
+    styleFrequencyLabel: 'Fréquence',
+    styleTimeframeLabel: 'Unité de temps',
+    promedio_iv001: 'Moyenne',
     calcWorkstationTitle: 'Station de calcul',
     calcCatRisk: 'Risque et position',
     calcCatPrice: 'Prix et objectifs',

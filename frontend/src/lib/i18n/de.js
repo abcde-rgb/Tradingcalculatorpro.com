@@ -412,6 +412,13 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    orderUseLabel: 'Wann verwenden',
+    platformBestFor: 'Ideal für',
+    styleProsLabel: 'Vorteile',
+    styleConsLabel: 'Nachteile',
+    styleFrequencyLabel: 'Frequenz',
+    styleTimeframeLabel: 'Zeitrahmen',
+    promedio_iv001: 'Durchschnitt',
     calcWorkstationTitle: 'Rechner-Arbeitsplatz',
     calcCatRisk: 'Risiko & Position',
     calcCatPrice: 'Preis & Ziele',

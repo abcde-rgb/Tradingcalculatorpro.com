@@ -433,6 +433,13 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    orderUseLabel: 'When to use it',
+    platformBestFor: 'Best for',
+    styleProsLabel: 'Pros',
+    styleConsLabel: 'Cons',
+    styleFrequencyLabel: 'Frequency',
+    styleTimeframeLabel: 'Timeframe',
+    promedio_iv001: 'Average',
     calcWorkstationTitle: 'Calculator Workstation',
     calcCatRisk: 'Risk & position',
     calcCatPrice: 'Price & targets',

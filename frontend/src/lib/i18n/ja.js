@@ -318,6 +318,13 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    orderUseLabel: '使いどころ',
+    platformBestFor: '最適な用途',
+    styleProsLabel: '長所',
+    styleConsLabel: '短所',
+    styleFrequencyLabel: '頻度',
+    styleTimeframeLabel: '時間軸',
+    promedio_iv001: '平均',
     calcWorkstationTitle: '計算ワークステーション',
     calcCatRisk: 'リスクとポジション',
     calcCatPrice: '価格と目標',
