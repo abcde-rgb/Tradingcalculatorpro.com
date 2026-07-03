@@ -13,27 +13,45 @@ import ProtectedRoute from "@/components/common/ProtectedRoute";
 import LandingPage from "@/pages/LandingPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
+// After each deploy the old hashed chunks disappear from GitHub Pages; a
+// browser holding a stale index.html then 404s when lazy-loading a route
+// (ChunkLoadError) and the page never renders. Reload once (guarded against
+// loops) so the browser picks up the fresh index.html and its live chunks.
+const lazyRetry = (importer) =>
+  lazy(() =>
+    importer().catch((err) => {
+      const KEY = "chunk_reload_at";
+      const last = Number(sessionStorage.getItem(KEY) || 0);
+      if (Date.now() - last > 30_000) {
+        sessionStorage.setItem(KEY, String(Date.now()));
+        window.location.reload();
+        return new Promise(() => {}); // reloading — never resolves
+      }
+      throw err; // second failure inside 30s → surface to the ErrorBoundary
+    })
+  );
+
 // Lazy loaded — split into separate chunks, only downloaded when navigated to
-const DashboardPage    = lazy(() => import("@/pages/DashboardPage"));
-const PricingPage      = lazy(() => import("@/pages/PricingPage"));
-const SettingsPage     = lazy(() => import("@/pages/SettingsPage"));
-const EducationPage    = lazy(() => import("@/pages/EducationPage"));
-const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
-const OptionsPage      = lazy(() => import("@/pages/OptionsPage"));
-const PerformancePage  = lazy(() => import("@/pages/PerformancePage"));
-const AdminPage        = lazy(() => import("@/pages/AdminPage"));
-const LegalPage        = lazy(() => import("@/pages/LegalPage"));
-const ContactPage      = lazy(() => import("@/pages/ContactPage"));
-const AboutPage        = lazy(() => import("@/pages/AboutPage"));
+const DashboardPage    = lazyRetry(() => import("@/pages/DashboardPage"));
+const PricingPage      = lazyRetry(() => import("@/pages/PricingPage"));
+const SettingsPage     = lazyRetry(() => import("@/pages/SettingsPage"));
+const EducationPage    = lazyRetry(() => import("@/pages/EducationPage"));
+const SubscriptionPage = lazyRetry(() => import("@/pages/SubscriptionPage"));
+const OptionsPage      = lazyRetry(() => import("@/pages/OptionsPage"));
+const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
+const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
+const LegalPage        = lazyRetry(() => import("@/pages/LegalPage"));
+const ContactPage      = lazyRetry(() => import("@/pages/ContactPage"));
+const AboutPage        = lazyRetry(() => import("@/pages/AboutPage"));
 // Named exports from multi-export files — each becomes its own chunk entry point
-const LoginPage          = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.LoginPage })));
-const RegisterPage       = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.RegisterPage })));
-const ForgotPasswordPage = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.ForgotPasswordPage })));
-const ResetPasswordPage  = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.ResetPasswordPage })));
-const MagicPage          = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.MagicPage })));
-const PaymentSuccessPage = lazy(() => import("@/pages/PaymentPages").then(m => ({ default: m.PaymentSuccessPage })));
-const PaymentCancelPage  = lazy(() => import("@/pages/PaymentPages").then(m => ({ default: m.PaymentCancelPage })));
-const VerifyEmailPage    = lazy(() => import("@/pages/VerifyEmailPage"));
+const LoginPage          = lazyRetry(() => import("@/pages/AuthPages").then(m => ({ default: m.LoginPage })));
+const RegisterPage       = lazyRetry(() => import("@/pages/AuthPages").then(m => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazyRetry(() => import("@/pages/AuthPages").then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage  = lazyRetry(() => import("@/pages/AuthPages").then(m => ({ default: m.ResetPasswordPage })));
+const MagicPage          = lazyRetry(() => import("@/pages/AuthPages").then(m => ({ default: m.MagicPage })));
+const PaymentSuccessPage = lazyRetry(() => import("@/pages/PaymentPages").then(m => ({ default: m.PaymentSuccessPage })));
+const PaymentCancelPage  = lazyRetry(() => import("@/pages/PaymentPages").then(m => ({ default: m.PaymentCancelPage })));
+const VerifyEmailPage    = lazyRetry(() => import("@/pages/VerifyEmailPage"));
 
 function PageLoader() {
   return (
