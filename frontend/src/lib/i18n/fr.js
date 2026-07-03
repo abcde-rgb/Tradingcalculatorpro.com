@@ -412,6 +412,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    calcWorkstationTitle: 'Station de calcul',
+    calcCatRisk: 'Risque et position',
+    calcCatPrice: 'Prix et objectifs',
+    calcCatTech: 'Analyse technique',
+    calcCatSim: 'Simulateurs',
     rorTitle: 'Calculateur de risque de ruine',
     rorIntro: 'Simule 2 000 scénarios avec votre taux de réussite, votre ratio gain/risque et votre % de risque par trade, révélant la probabilité réelle d\'un drawdown sévère. Bougez les curseurs et observez comme le risque par trade change tout.',
     rorWinRate: 'Taux de réussite',
