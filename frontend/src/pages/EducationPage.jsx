@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle, 
+import {
+  BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
-  CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X
+  CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
