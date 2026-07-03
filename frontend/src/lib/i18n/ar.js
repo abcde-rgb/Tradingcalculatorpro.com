@@ -143,6 +143,13 @@ export default {
     // Risk Management - ARABIC
     positionSizingTitle: 'حجم المركز',
     positionSizingDesc: 'حدد مقدار رأس المال الذي ستخاطر به في كل صفقة بناءً على قدرتك على تحمل المخاطر وحجم حسابك.',
+    orderUseLabel: 'متى تستخدمه',
+    platformBestFor: 'الأنسب لـ',
+    styleProsLabel: 'الإيجابيات',
+    styleConsLabel: 'السلبيات',
+    styleFrequencyLabel: 'التكرار',
+    styleTimeframeLabel: 'الإطار الزمني',
+    promedio_iv001: 'المتوسط',
     calcWorkstationTitle: 'محطة الحسابات',
     calcCatRisk: 'المخاطر والمركز',
     calcCatPrice: 'السعر والأهداف',

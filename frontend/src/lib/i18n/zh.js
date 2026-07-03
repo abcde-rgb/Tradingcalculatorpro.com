@@ -326,6 +326,13 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    orderUseLabel: '何时使用',
+    platformBestFor: '最适合',
+    styleProsLabel: '优点',
+    styleConsLabel: '缺点',
+    styleFrequencyLabel: '频率',
+    styleTimeframeLabel: '时间框架',
+    promedio_iv001: '平均',
     calcWorkstationTitle: '计算工作台',
     calcCatRisk: '风险与仓位',
     calcCatPrice: '价格与目标',
