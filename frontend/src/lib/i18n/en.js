@@ -433,6 +433,11 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    calcWorkstationTitle: 'Calculator Workstation',
+    calcCatRisk: 'Risk & position',
+    calcCatPrice: 'Price & targets',
+    calcCatTech: 'Technical analysis',
+    calcCatSim: 'Simulators',
     rorTitle: 'Risk of Ruin Calculator',
     rorIntro: 'Simulates 2,000 scenarios with your win rate, reward-to-risk ratio and risk per trade, revealing the real probability of a severe drawdown. Move the sliders and watch how risk per trade changes everything.',
     rorWinRate: 'Win rate',

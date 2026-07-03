@@ -412,6 +412,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    calcWorkstationTitle: 'Rechner-Arbeitsplatz',
+    calcCatRisk: 'Risiko & Position',
+    calcCatPrice: 'Preis & Ziele',
+    calcCatTech: 'Technische Analyse',
+    calcCatSim: 'Simulatoren',
     rorTitle: 'Risiko-des-Ruins-Rechner',
     rorIntro: 'Simuliert 2.000 Szenarien mit deiner Trefferquote, deinem Chance-Risiko-Verhältnis und deinem Risiko pro Trade und zeigt die reale Wahrscheinlichkeit eines schweren Drawdowns. Bewege die Regler und sieh, wie das Risiko pro Trade alles verändert.',
     rorWinRate: 'Trefferquote',

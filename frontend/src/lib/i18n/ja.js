@@ -318,6 +318,11 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    calcWorkstationTitle: '計算ワークステーション',
+    calcCatRisk: 'リスクとポジション',
+    calcCatPrice: '価格と目標',
+    calcCatTech: 'テクニカル分析',
+    calcCatSim: 'シミュレーター',
     rorTitle: '破産リスク計算機',
     rorIntro: '勝率・リワードリスク比・1トレードあたりのリスクで2,000通りのシナリオをシミュレートし、深刻なドローダウンに陥る現実の確率を明らかにします。スライダーを動かして、1トレードのリスクがすべてを変えるのを確かめてください。',
     rorWinRate: '勝率',

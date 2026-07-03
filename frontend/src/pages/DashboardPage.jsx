@@ -19,7 +19,7 @@ import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
 import { CalculationHistory } from '@/components/dashboard/CalculationHistory';
 import { JournalStats } from '@/components/dashboard/JournalStats';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useAuthStore, usePriceStore } from '@/lib/store';
 import { useIsPremium } from '@/lib/premium';
 import { useTranslation } from '@/lib/i18n';
@@ -27,8 +27,8 @@ import { toast } from 'sonner';
 import { useSEO } from '@/hooks/useSEO';
 import OnboardingModal from '@/components/common/OnboardingModal';
 import {
-  Calculator, Target, Gauge, Wallet, FlaskConical,
-  Ruler, BookOpen, Scale, TrendingUp, DollarSign, BarChart3, Dice1, Hexagon
+  Calculator, Target, FlaskConical,
+  BookOpen, Scale, TrendingUp, DollarSign, BarChart3
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -42,8 +42,34 @@ export default function DashboardPage() {
   const { fetchPrices } = usePriceStore();
   const { t } = useTranslation();
   const isPremium = useIsPremium();
-  const [activeTab, setActiveTab] = useState('percentage');
+  const [activeTab, setActiveTab] = useState('position');
   const [searchParams] = useSearchParams();
+
+  // Calculator workstation — 12 tools grouped by function, broker-terminal
+  // style: one accent colour, two-level nav (group row + tool row).
+  const CALC_NAV = [
+    { id: 'risk', label: t('calcCatRisk'), Icon: Scale, items: [
+      { value: 'position', label: t('positionSize') },
+      { value: 'lotsize', label: t('lotSize') },
+      { value: 'leverage', label: t('leverage') },
+      { value: 'futures', label: t('futuresTabLabel') },
+    ]},
+    { id: 'price', label: t('calcCatPrice'), Icon: Target, items: [
+      { value: 'target', label: t('targetPrice') },
+      { value: 'percentage', label: t('percentageRequired') },
+      { value: 'spot', label: t('spot') },
+      { value: 'measure', label: t('measureTarget') },
+    ]},
+    { id: 'tech', label: t('calcCatTech'), Icon: TrendingUp, items: [
+      { value: 'fibonacci', label: t('fibonacci') },
+      { value: 'pattern', label: t('patternTrading') },
+    ]},
+    { id: 'sim', label: t('calcCatSim'), Icon: FlaskConical, items: [
+      { value: 'montecarlo', label: t('monteCarlo') },
+      { value: 'simulator', label: t('simulator') },
+    ]},
+  ];
+  const activeCalcGroup = CALC_NAV.find(g => g.items.some(it => it.value === activeTab)) || CALC_NAV[0];
 
   useSEO({
     titleKey: 'seoDashboardTitle',
@@ -213,95 +239,65 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* Main Content - Full Width */}
+          {/* Main Content - Full Width. Calculators first: they ARE the product. */}
           <div className="space-y-6">
-            {/* TradingView Chart */}
+            {/* Calculator workstation — 12 tools grouped by function, one accent */}
             <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.06, ease: 'easeOut' }}>
-              <TradingViewChart />
-            </motion.div>
-
-            {/* Price Alerts and Calculation History - Below Chart */}
-            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PriceAlerts />
-              <CalculationHistory />
-            </motion.div>
-            
-            {/* Calculators Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="bg-card border border-border p-1 h-auto flex-wrap justify-start gap-1">
-                <TabsTrigger 
-                  value="percentage" 
-                  className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs"
-                  data-testid="tab-percentage"
-                >
-                  <Calculator className="w-3 h-3" /> {t('percentageRequired')}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="target" 
-                  className="gap-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground text-xs"
-                  data-testid="tab-target"
-                >
-                  <Target className="w-3 h-3" /> {t('targetPrice')}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="leverage" 
-                  className="gap-2 data-[state=active]:bg-yellow-500 data-[state=active]:text-black text-xs"
-                  data-testid="tab-leverage"
-                >
-                  <Gauge className="w-3 h-3" /> {t('leverage')}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="position" 
-                  className="gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs"
-                  data-testid="tab-position"
-                >
-                  <Scale className="w-3 h-3" /> {t('positionSize')}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="lotsize" 
-                  className="gap-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white text-xs"
-                  data-testid="tab-lotsize"
-                >
-                  <DollarSign className="w-3 h-3" /> {t('lotSize')}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="fibonacci" 
-                  className="gap-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs"
-                  data-testid="tab-fibonacci"
-                >
-                  <TrendingUp className="w-3 h-3" /> {t('fibonacci')}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="spot" 
-                  className="gap-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs"
-                  data-testid="tab-spot"
-                >
-                  <Wallet className="w-3 h-3" /> {t('spot')}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="pattern" 
-                  className="gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-xs"
-                  data-testid="tab-pattern"
-                >
-                  <Hexagon className="w-3 h-3" /> {t('patternTrading')}
-                </TabsTrigger>
-                <TabsTrigger
-                  value="measure"
-                  className="gap-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white text-xs"
-                  data-testid="tab-measure"
-                >
-                  <Ruler className="w-3 h-3" /> {t('measureTarget')}
-                </TabsTrigger>
-                <TabsTrigger
-                  value="futures"
-                  className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs"
-                  data-testid="tab-futures"
-                >
-                  <TrendingUp className="w-3 h-3" /> {t('futuresTabLabel')}
-                </TabsTrigger>
-              </TabsList>
-              
+              <div className="rounded-xl border border-border bg-card p-3 md:p-4 space-y-3" data-testid="calc-workstation">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h2 className="font-unbounded text-base md:text-lg font-bold flex items-center gap-2">
+                    <Calculator className="w-4 h-4 text-primary" />
+                    {t('calcWorkstationTitle')}
+                  </h2>
+                  <span className="text-[11px] text-muted-foreground font-mono" data-testid="calc-breadcrumb">
+                    {activeCalcGroup.label}
+                    <span className="mx-1.5 opacity-50">/</span>
+                    <span className="text-foreground">{activeCalcGroup.items.find(it => it.value === activeTab)?.label}</span>
+                  </span>
+                </div>
+                {/* Group row */}
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                  {CALC_NAV.map(g => {
+                    const GIcon = g.Icon;
+                    const isActive = activeCalcGroup.id === g.id;
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => setActiveTab(g.items[0].value)}
+                        data-testid={`calcgroup-${g.id}`}
+                        className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                          isActive
+                            ? 'bg-primary text-black border-primary'
+                            : 'bg-background text-muted-foreground border-border hover:text-foreground'
+                        }`}
+                      >
+                        <GIcon className="w-3.5 h-3.5" /> {g.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Tool row of the active group */}
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                  {activeCalcGroup.items.map(it => (
+                    <button
+                      key={it.value}
+                      type="button"
+                      onClick={() => setActiveTab(it.value)}
+                      data-testid={`tab-${it.value}`}
+                      className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs border transition-colors ${
+                        activeTab === it.value
+                          ? 'border-primary text-primary bg-primary/10 font-medium'
+                          : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {it.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <TabsContent value="percentage">
                 <PercentageCalculator />
               </TabsContent>
@@ -332,27 +328,6 @@ export default function DashboardPage() {
               <TabsContent value="futures">
                 <FuturesCalculator />
               </TabsContent>
-            </Tabs>
-
-            {/* Simulators (Premium) */}
-            <Tabs defaultValue="montecarlo" className="space-y-4">
-              <TabsList className="bg-card border border-border p-1">
-                <TabsTrigger 
-                  value="montecarlo" 
-                  className="gap-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs"
-                  data-testid="tab-montecarlo"
-                >
-                  <Dice1 className="w-3 h-3" /> {t('monteCarlo')}
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="simulator" 
-                  className="gap-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white text-xs"
-                  data-testid="tab-simulator"
-                >
-                  <FlaskConical className="w-3 h-3" /> {t('simulator')}
-                </TabsTrigger>
-              </TabsList>
-              
               <TabsContent value="montecarlo">
                 <MonteCarloSimulator />
               </TabsContent>
@@ -360,7 +335,20 @@ export default function DashboardPage() {
                 <SimulatorPro />
               </TabsContent>
             </Tabs>
-            
+            </motion.div>
+
+            {/* TradingView Chart */}
+            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}>
+              <TradingViewChart />
+            </motion.div>
+
+            {/* Price Alerts and Calculation History */}
+            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.14, ease: 'easeOut' }}
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PriceAlerts />
+              <CalculationHistory />
+            </motion.div>
+
             {/* Trading Journal */}
             <TradingJournal />
           </div>

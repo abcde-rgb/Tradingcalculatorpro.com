@@ -125,7 +125,7 @@ export const PositionSizeCalculator = () => {
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>0.5%</span>
-                <span>{t('_2Recomendado_867927')}</span>
+                <span>{t('___2Recomendado_867927')}</span>
                 <span>10%</span>
               </div>
             </div>

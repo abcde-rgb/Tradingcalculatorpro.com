@@ -326,6 +326,11 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    calcWorkstationTitle: '计算工作台',
+    calcCatRisk: '风险与仓位',
+    calcCatPrice: '价格与目标',
+    calcCatTech: '技术分析',
+    calcCatSim: '模拟器',
     rorTitle: '破产风险计算器',
     rorIntro: '用你的胜率、盈亏比和每笔风险模拟2000种情景，揭示遭遇严重回撤的真实概率。拖动滑块，看看每笔风险如何改变一切。',
     rorWinRate: '胜率',

@@ -530,6 +530,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    calcWorkstationTitle: 'Estación de cálculo',
+    calcCatRisk: 'Riesgo y posición',
+    calcCatPrice: 'Precio y objetivos',
+    calcCatTech: 'Análisis técnico',
+    calcCatSim: 'Simuladores',
     rorTitle: 'Calculadora de riesgo de ruina',
     rorIntro: 'Simula 2.000 escenarios con tu win rate, tu ratio beneficio/riesgo y tu % de riesgo por operación, y descubre la probabilidad real de sufrir un drawdown grave. Mueve los controles y observa cómo el riesgo por operación lo cambia todo.',
     rorWinRate: 'Win rate',
