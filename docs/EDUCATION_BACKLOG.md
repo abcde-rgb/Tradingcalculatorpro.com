@@ -53,4 +53,4 @@ Roadmap de contenido educativo. ✅ = ya en producción · 🆕 = pendiente.
 - Quizzes de autoevaluación por pestaña
 - Vídeos o animaciones interactivas de los patrones
 - Glosario de términos con buscador
-- Calculadora de riesgo de ruina interactiva
+- ✅ Calculadora de riesgo de ruina interactiva (Monte Carlo, en el módulo de Riesgo — PR #48)

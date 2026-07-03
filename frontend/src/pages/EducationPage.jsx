@@ -35,6 +35,7 @@ import OrderTypesGuide from '@/components/education/OrderTypesGuide';
 import DowTheoryDiagram from '@/components/education/DowTheoryDiagram';
 import TradingStylesCompare from '@/components/education/TradingStylesCompare';
 import RiskAnalysisTools from '@/components/education/RiskAnalysisTools';
+import RiskOfRuinCalculator from '@/components/education/RiskOfRuinCalculator';
 import WyckoffSchematic from '@/components/education/WyckoffSchematic';
 import CotGuide from '@/components/education/CotGuide';
 
@@ -2687,6 +2688,9 @@ export default function EducationPage() {
 
             {/* Risk Management */}
             <TabsContent value="risk" className="space-y-6">
+              {/* Interactive Monte Carlo risk-of-ruin calculator */}
+              <RiskOfRuinCalculator />
+
               {/* Leverage 0x-100x guide with mini calc + redirect to full Dashboard */}
               <LeverageGuide />
 
