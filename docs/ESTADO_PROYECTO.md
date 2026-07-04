@@ -422,3 +422,17 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificación: py_compile + 11 tests unitarios OK; búsqueda offline resuelve IBEX/SHIB/US500/
   EURAUD/SAN.MC; smoke premium: chart-search encuentra PEPE/Iberdrola/IBEX y carga BME:IBC35,
   alertas aceptan WIF, calculadora encuentra SHIB. 0 claves i18n rotas (+2 claves ×8).
+
+### 2026-07-04 (5) — Reducción de costes: workflow conmutable + guía Neon
+- Diagnóstico de la factura GCP: mayores costes = Cloud SQL 24/7 y Cloud Run `min-instances=1`.
+  Poller de alertas cada 30 s mantiene todo despierto; imágenes Docker se acumulan sin limpieza.
+- ✅ `deploy-cloud-run.yml` parametrizado con variables de repositorio (sin cambiar código):
+  - `DB_PROVIDER=neon` → no monta el socket de Cloud SQL (conexión TCP+SSL vía `DATABASE_URL`).
+    Por defecto (vacía/`cloudsql`) se comporta igual que siempre.
+  - `MIN_INSTANCES` (por defecto 1) → poner a 0 para ahorrar.
+- ✅ Guía `docs/MIGRACION_NEON.md`: migración paso a paso Cloud SQL → Neon (gratis) con
+  Cloud Shell (proxy + pg_dump/pg_restore), cambio de secreto, verificación y rollback.
+- ⚠️ El código de conexión (`init_pool`) YA soportaba Neon (rama TCP+SSL). Migración = cambiar
+  secreto + variable, sin tocar código.
+- ⚠️ NO fusionar a main hasta reactivar la facturación: el workflow se dispara al cambiar su
+  propio archivo y un deploy fallaría con billing desactivado (sin impacto en prod, solo ruido).
