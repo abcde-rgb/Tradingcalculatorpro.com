@@ -1350,6 +1350,75 @@ export const getOptionsStrategies = (t) => ({
   note: t('optNote'),
 });
 
+// News/event trading: how pros handle high-impact releases (NFP, CPI, rates).
+export const getNewsTrading = (t) => ({
+  title: t('ntTitle'),
+  intro: t('ntIntro'),
+  items: [
+    { id: 'events', name: t('ntWhoName'),    desc: t('ntWhoDesc') },
+    { id: 'before', name: t('ntBeforeName'), desc: t('ntBeforeDesc') },
+    { id: 'spread', name: t('ntSpreadName'), desc: t('ntSpreadDesc') },
+    { id: 'spike',  name: t('ntSpikeName'),  desc: t('ntSpikeDesc') },
+    { id: 'strats', name: t('ntStratsName'), desc: t('ntStratsDesc') },
+  ],
+  note: t('ntNote'),
+});
+
+// Market sentiment: VIX, put/call, Fear&Greed, surveys — contrarian reading.
+export const getSentiment = (t) => ({
+  title: t('smTitle'),
+  intro: t('smIntro'),
+  items: [
+    { id: 'vix',       name: t('smVixName'),       desc: t('smVixDesc') },
+    { id: 'putcall',   name: t('smPutCallName'),   desc: t('smPutCallDesc') },
+    { id: 'feargreed', name: t('smFearGreedName'), desc: t('smFearGreedDesc') },
+    { id: 'surveys',   name: t('smSurveysName'),   desc: t('smSurveysDesc') },
+    { id: 'contrarian',name: t('smContrarianName'),desc: t('smContrarianDesc') },
+  ],
+});
+
+// Intermarket analysis (Murphy): dollar, yields, commodities, equities, FX correlations.
+export const getIntermarket = (t) => ({
+  title: t('imTitle'),
+  intro: t('imIntro'),
+  items: [
+    { id: 'dollar',   name: t('imDollarName'),   desc: t('imDollarDesc') },
+    { id: 'yields',   name: t('imYieldsName'),   desc: t('imYieldsDesc') },
+    { id: 'riskonoff',name: t('imRiskName'),     desc: t('imRiskDesc') },
+    { id: 'fxcorr',   name: t('imFxCorrName'),   desc: t('imFxCorrDesc') },
+    { id: 'rs',       name: t('imRsName'),       desc: t('imRsDesc') },
+    { id: 'use',      name: t('imUseName'),      desc: t('imUseDesc') },
+  ],
+});
+
+// Market breadth + cycles & seasonality (CMT staples).
+export const getBreadthCycles = (t) => ({
+  title: t('bcTitle'),
+  intro: t('bcIntro'),
+  items: [
+    { id: 'ad',        name: t('bcAdName'),        desc: t('bcAdDesc') },
+    { id: 'highslows', name: t('bcHlName'),        desc: t('bcHlDesc') },
+    { id: 'mcclellan', name: t('bcMcClellanName'), desc: t('bcMcClellanDesc') },
+    { id: 'seasonal',  name: t('bcSeasonalName'),  desc: t('bcSeasonalDesc') },
+    { id: 'cycles',    name: t('bcCyclesName'),    desc: t('bcCyclesDesc') },
+  ],
+  note: t('bcNote'),
+});
+
+// Broker safety: regulation, segregated funds and how to spot scams.
+export const getBrokerSafety = (t) => ({
+  title: t('bkrTitle'),
+  intro: t('bkrIntro'),
+  items: [
+    { id: 'regulation', name: t('bkrRegulationName'), desc: t('bkrRegulationDesc') },
+    { id: 'segregated', name: t('bkrSegregatedName'), desc: t('bkrSegregatedDesc') },
+    { id: 'redflags',   name: t('bkrRedFlagsName'),   desc: t('bkrRedFlagsDesc') },
+    { id: 'gurus',      name: t('bkrGurusName'),      desc: t('bkrGurusDesc') },
+    { id: 'ponzi',      name: t('bkrPonziName'),      desc: t('bkrPonziDesc') },
+    { id: 'checklist',  name: t('bkrChecklistName'),  desc: t('bkrChecklistDesc') },
+  ],
+});
+
 // Smart Money Concepts (ICT-style): tracking institutional footprints —
 // structure, order blocks, imbalances, liquidity and where price returns.
 export const getSmartMoney = (t) => ({
