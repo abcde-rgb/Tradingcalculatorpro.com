@@ -318,6 +318,8 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    tvSearchAsset: '銘柄を検索…',
+    alertSymbolPh: 'BTC, AAPL…',
     ddrTitle: 'ドローダウンと回復',
     ddrIntro: 'ドローダウンの数学は非対称で残酷です。50%失えば、元に戻すだけで100%の利益が必要になります。この計算機は、回復に必要な利益率と、現在の期待値で何トレードかかるかを示します。プロのファンドがドローダウンが上限（通常10〜20%）を超えた瞬間にサイズを削る理由がこれです。',
     ddrDrawdown: '現在のドローダウン',

@@ -82,6 +82,13 @@ _COINGECKO_MAP: Dict[str, str] = {
     "SUI": "sui", "TIA": "celestia",
 }
 
+# Widen with the canonical shared map (keeps the local entries as overrides).
+try:
+    from stock_data import COINGECKO_SYMBOL_TO_ID as _SHARED_CG_MAP
+    _COINGECKO_MAP = {**_SHARED_CG_MAP, **_COINGECKO_MAP}
+except Exception:  # pragma: no cover — poller still works with the local map
+    pass
+
 
 async def _fetch_crypto_prices(symbols: Set[str]) -> Dict[str, float]:
     """Fetch crypto prices from CoinGecko (free, cached). Retries once on 429."""

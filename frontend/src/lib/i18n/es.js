@@ -530,6 +530,8 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    tvSearchAsset: 'Buscar activo…',
+    alertSymbolPh: 'BTC, AAPL…',
     ddrTitle: 'Drawdown y recuperación',
     ddrIntro: 'La matemática del drawdown es asimétrica y cruel: perder un 50% exige ganar un 100% solo para volver al punto de partida. Esta calculadora te muestra cuánto necesitas recuperar y cuántas operaciones te costará con tu expectancy actual — la razón por la que los fondos profesionales recortan el tamaño en cuanto el drawdown supera su límite (normalmente 10-20%).',
     ddrDrawdown: 'Drawdown actual',

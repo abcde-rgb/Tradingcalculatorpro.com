@@ -433,6 +433,8 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    tvSearchAsset: 'Search asset…',
+    alertSymbolPh: 'BTC, AAPL…',
     ddrTitle: 'Drawdown & recovery',
     ddrIntro: 'Drawdown math is asymmetric and cruel: losing 50% requires a 100% gain just to get back to even. This calculator shows how much you need to recover and how many trades it will take with your current expectancy — the reason professional funds cut size as soon as drawdown breaches their limit (typically 10-20%).',
     ddrDrawdown: 'Current drawdown',

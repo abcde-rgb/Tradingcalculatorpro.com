@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, memo, useCallback } from 'react';
+import { useEffect, useRef, useState, memo, useCallback, useMemo } from 'react';
 import { useAssetsStore, ALL_ASSETS, ASSET_CATEGORIES, getAssetsByCategory } from '@/lib/assets';
 import { useThemeStore } from '@/lib/theme';
 import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Maximize2, Minimize2, Star, StarOff, AlertCircle, RefreshCw, CandlestickChart, Trash2 } from 'lucide-react';
+import { Maximize2, Minimize2, Star, StarOff, AlertCircle, RefreshCw, CandlestickChart, Trash2, Search, X } from 'lucide-react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
 // TradingView supported locale mapping. See https://www.tradingview.com/widget/advanced-chart/
@@ -34,6 +34,37 @@ function TradingViewWidgetComponent() {
   const [isFullscreen, setIsFullscreen] = useState(persistedData.isFullscreen);
   const [interval, setInterval] = useState(persistedData.interval);
   const [loadError, setLoadError] = useState(false);
+  const [searchQ, setSearchQ] = useState('');
+  const searchBoxRef = useRef(null);
+
+  // Instant search across the FULL asset catalog (all categories at once).
+  const searchResults = useMemo(() => {
+    const q = searchQ.trim().toUpperCase();
+    if (!q) return [];
+    return Object.values(ALL_ASSETS)
+      .filter(a => a.symbol.toUpperCase().includes(q) || (a.name || '').toUpperCase().includes(q))
+      .sort((a, b) => {
+        const ax = a.symbol.toUpperCase() === q ? 0 : a.symbol.toUpperCase().startsWith(q) ? 1 : 2;
+        const bx = b.symbol.toUpperCase() === q ? 0 : b.symbol.toUpperCase().startsWith(q) ? 1 : 2;
+        return ax - bx;
+      })
+      .slice(0, 24);
+  }, [searchQ]);
+
+  const pickSearchResult = useCallback((a) => {
+    setSelectedCategory(a.category);
+    setSelectedAsset(a.symbol);
+    setSearchQ('');
+  }, [setSelectedCategory, setSelectedAsset]);
+
+  // Close the search dropdown on outside click.
+  useEffect(() => {
+    const handler = (e) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target)) setSearchQ('');
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -154,6 +185,46 @@ function TradingViewWidgetComponent() {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border bg-card/50 flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Asset search across ALL categories */}
+          <div ref={searchBoxRef} className="relative">
+            <div className="flex items-center h-8 w-[170px] bg-muted border border-border rounded-md px-2 focus-within:border-primary/60">
+              <Search className="w-3.5 h-3.5 text-muted-foreground mr-1.5 shrink-0" />
+              <input
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                placeholder={t('tvSearchAsset')}
+                className="w-full bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/60"
+                data-testid="chart-search"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              {searchQ && (
+                <button type="button" onClick={() => setSearchQ('')} aria-label="clear">
+                  <X className="w-3 h-3 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+            {searchResults.length > 0 && (
+              <div className="absolute top-full left-0 mt-1 w-[280px] max-h-72 overflow-y-auto bg-card border border-border rounded-lg shadow-xl z-[60]" data-testid="chart-search-results">
+                {searchResults.map(a => (
+                  <button
+                    key={a.symbol}
+                    type="button"
+                    onClick={() => pickSearchResult(a)}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-muted/60 transition-colors"
+                    data-testid={`chart-search-opt-${a.symbol}`}
+                  >
+                    <span className="font-bold text-xs w-16 shrink-0">{a.symbol}</span>
+                    <span className="text-[11px] text-muted-foreground truncate flex-1">{a.name}</span>
+                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70 shrink-0">
+                      {ASSET_CATEGORIES[a.category]?.name || a.category}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Category Selector */}
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="category-select">

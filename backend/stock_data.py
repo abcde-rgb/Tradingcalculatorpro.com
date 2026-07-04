@@ -222,6 +222,36 @@ def _get_fallback_stock_data(symbol: str) -> dict:
 _meta_cache = {}
 
 # Yahoo quoteType → our UI categories.
+# Canonical crypto universe: ticker -> CoinGecko id. Shared by /api/prices,
+# the realtime alert poller and (mirrored) the frontend CRYPTO_LIST, so every
+# surface quotes the same ~65 coins. CoinGecko is the price source of truth
+# for crypto; Yahoo "-USD" symbols are only used for charts/quotes fallback.
+COINGECKO_SYMBOL_TO_ID = {
+    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
+    "XRP": "ripple", "ADA": "cardano", "DOGE": "dogecoin", "AVAX": "avalanche-2",
+    "DOT": "polkadot", "LINK": "chainlink", "LTC": "litecoin", "MATIC": "matic-network",
+    "TRX": "tron", "ATOM": "cosmos", "NEAR": "near", "APT": "aptos",
+    "ARB": "arbitrum", "OP": "optimism", "INJ": "injective-protocol",
+    "SUI": "sui", "TIA": "celestia", "SHIB": "shiba-inu", "PEPE": "pepe",
+    "TON": "the-open-network", "UNI": "uniswap", "XLM": "stellar",
+    "XMR": "monero", "ETC": "ethereum-classic", "BCH": "bitcoin-cash",
+    "FIL": "filecoin", "ALGO": "algorand", "VET": "vechain",
+    "HBAR": "hedera-hashgraph", "AAVE": "aave", "MKR": "maker",
+    "SAND": "the-sandbox", "MANA": "decentraland", "EOS": "eos",
+    "XTZ": "tezos", "CRO": "crypto-com-chain", "QNT": "quant-network",
+    "EGLD": "elrond-erd-2", "RUNE": "thorchain", "CAKE": "pancakeswap-token",
+    "THETA": "theta-token", "AXS": "axie-infinity", "ICP": "internet-computer",
+    "GRT": "the-graph", "IMX": "immutable-x", "RENDER": "render-token",
+    "FET": "fetch-ai", "KAS": "kaspa", "STX": "blockstack", "TAO": "bittensor",
+    "WIF": "dogwifcoin", "BONK": "bonk", "FLOKI": "floki",
+    "JUP": "jupiter-exchange-solana", "PYTH": "pyth-network",
+    "SEI": "sei-network", "ONDO": "ondo-finance", "ENA": "ethena",
+    "WLD": "worldcoin-wld", "LDO": "lido-dao", "CRV": "curve-dao-token",
+    "GALA": "gala", "FLOW": "flow", "CHZ": "chiliz", "BAT": "basic-attention-token",
+    "1INCH": "1inch", "SUSHI": "sushi", "YFI": "yearn-finance", "AR": "arweave",
+    "IOTA": "iota", "ZEC": "zcash", "POL": "polygon-ecosystem-token",
+}
+
 _YH_QUOTE_TYPE_TO_CAT = {
     "EQUITY": "stocks", "ETF": "etfs", "INDEX": "indices",
     "CURRENCY": "forex", "CRYPTOCURRENCY": "crypto", "FUTURE": "commodities",
@@ -299,7 +329,16 @@ def search_tickers(query: str) -> list:
         "RIVN", "LCID", "NIO", "BABA", "TSM", "ASML", "SAP", "TM", "SONY",
         "NKE", "SBUX", "CMG", "LULU", "TGT", "LOW", "EL", "MELI", "F", "GM",
         "BIDU", "JD", "PDD", "BX", "KKR", "GE", "LMT", "NOC", "ADP", "INTC",
-        "MU", "SMCI", "ARM", "DELL", "HPE", "ANET", "SHEL", "BP", "OXY",
+        "MU", "SMCI", "ARM", "DELL", "HPE", "ANET", "SHEL", "BP", "OXY", "AZN",
+        # Spanish stocks (BME, Yahoo ".MC" suffix) + IBEX
+        "SAN.MC", "BBVA.MC", "ITX.MC", "IBE.MC", "TEF.MC", "REP.MC", "CABK.MC",
+        "ACS.MC", "AMS.MC", "AENA.MC", "MAP.MC", "ELE.MC", "GRF.MC", "SAB.MC",
+        # European majors (Paris, Xetra, Milan, Zurich, London)
+        "AIR.PA", "MC.PA", "OR.PA", "BNP.PA", "TTE.PA", "SU.PA", "AI.PA",
+        "SIE.DE", "BMW.DE", "VOW3.DE", "ALV.DE", "DTE.DE", "ADS.DE", "MBG.DE", "BAS.DE",
+        "ENI.MI", "ISP.MI", "UCG.MI", "ENEL.MI", "STLAM.MI",
+        "NESN.SW", "NOVN.SW", "ROG.SW",
+        "HSBA.L", "ULVR.L", "AZN.L", "RIO.L", "GSK.L",
         "PYPL", "AAL", "DAL", "UAL", "LUV", "FDX", "UPS", "ABNB", "BKNG", "MAR",
         "MGM", "WYNN", "DKNG", "PENN", "F", "GM", "STLA", "TTE", "SIE",
         # ETFs (broad market, sector, leveraged)
@@ -314,11 +353,16 @@ def search_tickers(query: str) -> list:
         "VNQ", "VUG", "VTV", "VIG", "DVY", "SCHD", "MOAT", "QUAL", "MTUM",
         # Indices / CFDs (yfinance accepts ^ prefix; we expose user-friendly aliases)
         "^GSPC", "^DJI", "^IXIC", "^RUT", "^VIX", "^FTSE", "^GDAXI", "^FCHI",
-        "^N225", "^HSI", "^STOXX50E", "^STI",
+        "^N225", "^HSI", "^STOXX50E", "^STI", "^IBEX", "^AXJO", "^GSPTSE",
+        "^BVSP", "^MXX", "^KS11", "^TWII", "^NSEI", "^BSESN", "^AEX", "^SSMI",
         # Forex (yfinance "=X" syntax)
         "EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X",
         "NZDUSD=X", "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "USDMXN=X",
-        "USDZAR=X", "USDTRY=X", "USDCNH=X",
+        "USDZAR=X", "USDTRY=X", "USDCNH=X", "EURAUD=X", "EURCHF=X", "EURCAD=X",
+        "EURNZD=X", "GBPCHF=X", "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "AUDNZD=X",
+        "AUDCAD=X", "AUDCHF=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X", "CADCHF=X",
+        "USDSEK=X", "USDNOK=X", "USDDKK=X", "USDSGD=X", "USDHKD=X", "USDPLN=X",
+        "USDINR=X", "USDBRL=X", "EURPLN=X", "EURSEK=X", "EURNOK=X", "EURTRY=X",
         # Commodities (futures continuous)
         "GC=F", "SI=F", "CL=F", "BZ=F", "NG=F", "HG=F", "PL=F", "PA=F",
         "ZC=F", "ZW=F", "ZS=F", "KC=F", "CC=F", "SB=F", "CT=F",
@@ -326,7 +370,12 @@ def search_tickers(query: str) -> list:
         "BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "XRP-USD", "ADA-USD",
         "DOGE-USD", "AVAX-USD", "DOT-USD", "LINK-USD", "LTC-USD", "MATIC-USD",
         "TRX-USD", "ATOM-USD", "NEAR-USD", "APT-USD", "ARB-USD", "OP-USD",
-        "INJ-USD", "SUI-USD", "TIA-USD",
+        "INJ-USD", "SUI-USD", "TIA-USD", "SHIB-USD", "XLM-USD", "XMR-USD",
+        "ETC-USD", "BCH-USD", "FIL-USD", "ALGO-USD", "VET-USD", "HBAR-USD",
+        "AAVE-USD", "MKR-USD", "SAND-USD", "MANA-USD", "EOS-USD", "XTZ-USD",
+        "CRO-USD", "QNT-USD", "EGLD-USD", "RUNE-USD", "CAKE-USD", "THETA-USD",
+        "AXS-USD", "ICP-USD", "FLOW-USD", "CHZ-USD", "GALA-USD", "ZEC-USD",
+        "BAT-USD", "SUSHI-USD", "YFI-USD", "AR-USD", "LDO-USD", "CRV-USD",
     ]
     # de-dup while preserving order
     seen = set()
@@ -337,7 +386,7 @@ def search_tickers(query: str) -> list:
             universe.append(s)
 
     if not query:
-        return universe[:30]
+        return universe[:40]
 
     q = query.upper().strip()
 
@@ -355,7 +404,20 @@ def search_tickers(query: str) -> list:
         "CAC": "^FCHI", "CAC40": "^FCHI",
         "NIKKEI": "^N225", "JP225": "^N225",
         "HSI": "^HSI", "HK50": "^HSI",
-        "SX5E": "^STOXX50E", "EUSTX50": "^STOXX50E",
+        "SX5E": "^STOXX50E", "EUSTX50": "^STOXX50E", "EU50": "^STOXX50E",
+        "IBEX": "^IBEX", "IBEX35": "^IBEX", "ESP35": "^IBEX",
+        "US500": "^GSPC", "SPX500": "^GSPC",
+        "US30": "^DJI",
+        "US100": "^IXIC", "USTEC": "^IXIC",
+        "UK100": "^FTSE",
+        "GER30": "^GDAXI",
+        "FRA40": "^FCHI",
+        "JPN225": "^N225",
+        "AUS200": "^AXJO", "ASX200": "^AXJO",
+        "NIFTY": "^NSEI", "NIFTY50": "^NSEI",
+        "SENSEX": "^BSESN",
+        "KOSPI": "^KS11",
+        "BOVESPA": "^BVSP",
         # Commodities
         "XAUUSD": "GC=F", "XAU": "GC=F", "GOLD": "GC=F",
         "XAGUSD": "SI=F", "XAG": "SI=F", "SILVER": "SI=F",
@@ -378,6 +440,14 @@ def search_tickers(query: str) -> list:
         "LINK": "LINK-USD",
         "LTC": "LTC-USD",
         "MATIC": "MATIC-USD",
+        "SHIB": "SHIB-USD", "XLM": "XLM-USD", "XMR": "XMR-USD", "ETC": "ETC-USD",
+        "BCH": "BCH-USD", "FIL": "FIL-USD", "ALGO": "ALGO-USD", "VET": "VET-USD",
+        "HBAR": "HBAR-USD", "AAVE": "AAVE-USD", "MKR": "MKR-USD", "SAND": "SAND-USD",
+        "MANA": "MANA-USD", "EOS": "EOS-USD", "XTZ": "XTZ-USD", "CRO": "CRO-USD",
+        "QNT": "QNT-USD", "EGLD": "EGLD-USD", "RUNE": "RUNE-USD", "CAKE": "CAKE-USD",
+        "THETA": "THETA-USD", "AXS": "AXS-USD", "ICP": "ICP-USD", "FLOW": "FLOW-USD",
+        "CHZ": "CHZ-USD", "GALA": "GALA-USD", "ZEC": "ZEC-USD", "BAT": "BAT-USD",
+        "SUSHI": "SUSHI-USD", "YFI": "YFI-USD", "LDO": "LDO-USD", "CRV": "CRV-USD",
         # Forex (allow "EURUSD" → "EURUSD=X")
         "EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X", "USDJPY": "USDJPY=X",
         "USDCHF": "USDCHF=X", "AUDUSD": "AUDUSD=X", "USDCAD": "USDCAD=X",
@@ -398,13 +468,13 @@ def search_tickers(query: str) -> list:
     # "apple", "tesla", "microsoft", company names and any uncurated ticker
     # also resolve. Curated hits keep priority; Yahoo fills the remainder.
     seen_m = {m.upper() for m in matches}
-    for hit in yahoo_search_symbols(query, limit=25):
+    for hit in yahoo_search_symbols(query, limit=40):
         sym = hit["symbol"]
         if sym.upper() not in seen_m:
             seen_m.add(sym.upper())
             matches.append(sym)
 
-    return matches[:30]
+    return matches[:50]
 
 
 def generate_expirations():
