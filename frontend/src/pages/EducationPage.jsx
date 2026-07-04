@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
-  CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer
+  CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer,
+  Newspaper, Globe, Gauge, Activity
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -407,6 +408,11 @@ export default function EducationPage() {
   const TECHNICAL_ANALYSIS = getTechnicalAnalysis(t);
   const ELLIOTT_WAVE = getElliottWave(t);
   const ICHIMOKU = getIchimoku(t);
+  const NEWS_TRADING = getNewsTrading(t);
+  const SENTIMENT = getSentiment(t);
+  const INTERMARKET = getIntermarket(t);
+  const BREADTH_CYCLES = getBreadthCycles(t);
+  const BROKER_SAFETY = getBrokerSafety(t);
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
   const MARKET_MECHANICS = getMarketMechanics(t);
@@ -423,6 +429,7 @@ export default function EducationPage() {
       { value: 'mechanics', label: t('mechTab') },
       { value: 'styles', label: t('stylesTab') },
       { value: 'fund-analysis', label: t('fundAnalTab') },
+      { value: 'broker-safety', label: t('bkrTitle') },
       { value: 'glossary', label: t('glossaryTab') },
     ]},
     { id: 'technical', label: t('eduCatTechnical'), topics: [
@@ -439,6 +446,9 @@ export default function EducationPage() {
       { value: 'harmonic-patterns', label: t('harmonicPatternsTab') },
       { value: 'smc', label: t('smcTitle') },
       { value: 'advanced-ta', label: t('advTaTitle') },
+      { value: 'sentiment', label: t('smTitle') },
+      { value: 'intermarket', label: t('imTitle') },
+      { value: 'breadth-cycles', label: t('bcTitle') },
       { value: 'cot', label: t('cotTab') },
     ]},
     { id: 'risk', label: t('eduCatRisk'), topics: [
@@ -455,6 +465,7 @@ export default function EducationPage() {
       { value: 'craft', label: t('craftTitle') },
       { value: 'strategies', label: t('tradingStrategiesTitle') },
       { value: 'options-strat', label: t('optTitle') },
+      { value: 'news-trading', label: t('ntTitle') },
       { value: 'business', label: t('tbizTitle') },
     ]},
   ];
@@ -3243,6 +3254,51 @@ export default function EducationPage() {
                 </ul>
               </div>
             </TabsContent>
+
+            {/* The 5 CMT/Babypips gap modules — shared compact layout */}
+            {[
+              { value: 'news-trading', data: NEWS_TRADING, Icon: Newspaper, color: 'text-orange-500', grad: 'from-orange-500/5 to-primary/10 border-orange-500/20' },
+              { value: 'sentiment', data: SENTIMENT, Icon: Gauge, color: 'text-purple-500', grad: 'from-purple-500/5 to-blue-500/10 border-purple-500/20' },
+              { value: 'intermarket', data: INTERMARKET, Icon: Globe, color: 'text-blue-500', grad: 'from-blue-500/5 to-teal-500/10 border-blue-500/20' },
+              { value: 'breadth-cycles', data: BREADTH_CYCLES, Icon: Activity, color: 'text-teal-500', grad: 'from-teal-500/5 to-primary/10 border-teal-500/20' },
+              { value: 'broker-safety', data: BROKER_SAFETY, Icon: Shield, color: 'text-primary', grad: 'from-primary/5 to-red-500/10 border-primary/20' },
+            ].map(mod => (
+              <TabsContent key={mod.value} value={mod.value} className="space-y-6">
+                <Card className={`bg-gradient-to-br ${mod.grad}`}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                      <mod.Icon className={`w-6 h-6 ${mod.color}`} />
+                      {mod.data.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">{mod.data.intro}</p>
+                  </CardContent>
+                </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {mod.data.items.map(it => (
+                    <Card key={it.id} className="bg-card border-border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{it.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                {mod.data.note && (
+                  <Card className="bg-orange-500/10 border-orange-500/30">
+                    <CardContent className="pt-5">
+                      <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                        {mod.data.note}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            ))}
 
             {/* Glossary — searchable trading terms */}
             <TabsContent value="glossary" className="space-y-6">
