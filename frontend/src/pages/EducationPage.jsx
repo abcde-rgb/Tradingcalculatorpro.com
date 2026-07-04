@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -413,6 +413,7 @@ export default function EducationPage() {
   const INTERMARKET = getIntermarket(t);
   const BREADTH_CYCLES = getBreadthCycles(t);
   const BROKER_SAFETY = getBrokerSafety(t);
+  const MARGIN_LIQ = getMarginLiquidation(t);
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
   const MARKET_MECHANICS = getMarketMechanics(t);
@@ -454,6 +455,7 @@ export default function EducationPage() {
     { id: 'risk', label: t('eduCatRisk'), topics: [
       { value: 'risk', label: t('riskManagement') },
       { value: 'capital', label: t('capitalManagementTitle') },
+      { value: 'margin-liq', label: t('mlqTitle') },
       { value: 'probability', label: t('probabilityStatsTitle') },
     ]},
     { id: 'psych', label: t('eduCatPsych'), topics: [
@@ -3262,6 +3264,7 @@ export default function EducationPage() {
               { value: 'intermarket', data: INTERMARKET, Icon: Globe, color: 'text-blue-500', grad: 'from-blue-500/5 to-teal-500/10 border-blue-500/20' },
               { value: 'breadth-cycles', data: BREADTH_CYCLES, Icon: Activity, color: 'text-teal-500', grad: 'from-teal-500/5 to-primary/10 border-teal-500/20' },
               { value: 'broker-safety', data: BROKER_SAFETY, Icon: Shield, color: 'text-primary', grad: 'from-primary/5 to-red-500/10 border-primary/20' },
+              { value: 'margin-liq', data: MARGIN_LIQ, Icon: Scale, color: 'text-red-500', grad: 'from-red-500/5 to-orange-500/10 border-red-500/20' },
             ].map(mod => (
               <TabsContent key={mod.value} value={mod.value} className="space-y-6">
                 <Card className={`bg-gradient-to-br ${mod.grad}`}>

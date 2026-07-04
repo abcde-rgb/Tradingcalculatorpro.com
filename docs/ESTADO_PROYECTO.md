@@ -384,3 +384,12 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   → renombrado a `bkr*`. **La academia queda en 32 módulos / 6 pilares.**
 - Verificación: build limpio, auditoría i18n 0 claves rotas, smoke premium headless con
   click-through de los 32 módulos (0 regresiones, 0 pageerrors).
+
+### 2026-07-04 (2) — Módulo "Margen y liquidación en derivados"
+- ✅ Petición del usuario: aislado/cruzado, modo promedio vs separado y sistemas
+  anti-manipulación (tipo MP Shield de Margex). Auditado el centro: no existía nada → añadido
+  como módulo nº 33 en el pilar Riesgo y capital (`margin-liq`, prefijo i18n `mlq*`, 19 claves × 8 idiomas).
+- Cubre: isolated vs cross, one-way vs hedge, precio de liquidación/margen de mantenimiento,
+  mark vs last vs índice, funding rate, cascadas de liquidación y motores anti-manipulación.
+- Verificación: build limpio, auditoría i18n 0 rotas, smoke premium (8 tarjetas renderizadas,
+  click-through de los 33 módulos sin regresiones).

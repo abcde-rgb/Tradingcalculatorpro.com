@@ -62,4 +62,13 @@ Roadmap de contenido educativo. ✅ = ya en producción · 🆕 = pendiente.
 - ✅ Amplitud y ciclos (avance/declive, 52 semanas, McClellan, estacionalidad)
 - ✅ Brokers, regulación y estafas (tier-1, fondos segregados, red flags, gurús, ponzis, checklist)
 
-**Total academia: 32 módulos en 6 pilares.**
+## ⚙️ Mecánica de derivados apalancados — ✅ COMPLETO (módulo "Margen y liquidación", pilar Riesgo)
+- ✅ Margen aislado vs cruzado
+- ✅ Modo de posición: unidireccional (promedia) vs cobertura/hedge (separado)
+- ✅ Precio de liquidación y margen de mantenimiento
+- ✅ Mark price vs last price vs índice (dónde te pueden liquidar con una mecha)
+- ✅ Funding rate como coste y como señal contrarian
+- ✅ Mechas de liquidación, cascadas y scam wicks
+- ✅ Motores anti-manipulación (tipo MP Shield de Margex) + qué comprobar en tu exchange
+
+**Total academia: 33 módulos en 6 pilares.**
