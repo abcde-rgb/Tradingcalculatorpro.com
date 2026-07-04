@@ -1419,6 +1419,24 @@ export const getBrokerSafety = (t) => ({
   ],
 });
 
+// Margin & liquidation in leveraged derivatives: isolated vs cross, position
+// modes, mark price, funding, liquidation hunting and anti-manipulation engines.
+export const getMarginLiquidation = (t) => ({
+  title: t('mlqTitle'),
+  intro: t('mlqIntro'),
+  items: [
+    { id: 'isolated',  name: t('mlqIsolatedName'),  desc: t('mlqIsolatedDesc') },
+    { id: 'cross',     name: t('mlqCrossName'),     desc: t('mlqCrossDesc') },
+    { id: 'mode',      name: t('mlqModeName'),      desc: t('mlqModeDesc') },
+    { id: 'liqprice',  name: t('mlqLiqPriceName'),  desc: t('mlqLiqPriceDesc') },
+    { id: 'markprice', name: t('mlqMarkPriceName'), desc: t('mlqMarkPriceDesc') },
+    { id: 'funding',   name: t('mlqFundingName'),   desc: t('mlqFundingDesc') },
+    { id: 'wicks',     name: t('mlqWicksName'),     desc: t('mlqWicksDesc') },
+    { id: 'shield',    name: t('mlqShieldName'),    desc: t('mlqShieldDesc') },
+  ],
+  note: t('mlqNote'),
+});
+
 // Smart Money Concepts (ICT-style): tracking institutional footprints —
 // structure, order blocks, imbalances, liquidity and where price returns.
 export const getSmartMoney = (t) => ({
