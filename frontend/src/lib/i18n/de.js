@@ -412,6 +412,8 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    tvSearchAsset: 'Asset suchen…',
+    alertSymbolPh: 'BTC, AAPL…',
     ddrTitle: 'Drawdown & Erholung',
     ddrIntro: 'Die Drawdown-Mathematik ist asymmetrisch und grausam: Wer 50% verliert, braucht 100% Gewinn, nur um auf null zu kommen. Dieser Rechner zeigt, wie viel du aufholen musst und wie viele Trades das mit deiner aktuellen Expectancy kostet — der Grund, warum professionelle Fonds die Größe kürzen, sobald der Drawdown ihr Limit reißt (typisch 10-20%).',
     ddrDrawdown: 'Aktueller Drawdown',

@@ -37,6 +37,7 @@ from options_math import (
     simulate_assignment,
 )
 from stock_data import (
+    COINGECKO_SYMBOL_TO_ID,
     get_stock_data,
     search_tickers,
     generate_expirations,
@@ -2214,7 +2215,7 @@ async def get_prices():
             response = await http_client.get(
                 "https://api.coingecko.com/api/v3/simple/price",
                 params={
-                    "ids": "bitcoin,ethereum,solana,binancecoin,ripple,cardano,dogecoin,avalanche-2,polkadot,chainlink,litecoin",
+                    "ids": ",".join(dict.fromkeys(COINGECKO_SYMBOL_TO_ID.values())),
                     "vs_currencies": "usd,eur",
                     "include_24hr_change": "true",
                     "include_24hr_vol": "true"

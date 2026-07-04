@@ -28,6 +28,21 @@ const FOREX_LIST = [
   { id: 'USDZAR', symbol: 'USDZAR', name: 'USD/ZAR' },
   { id: 'USDTRY', symbol: 'USDTRY', name: 'USD/TRY' },
   { id: 'USDCNH', symbol: 'USDCNH', name: 'USD/CNH' },
+  { id: 'EURAUD', symbol: 'EURAUD', name: 'EUR/AUD' },
+  { id: 'EURCHF', symbol: 'EURCHF', name: 'EUR/CHF' },
+  { id: 'EURCAD', symbol: 'EURCAD', name: 'EUR/CAD' },
+  { id: 'GBPCHF', symbol: 'GBPCHF', name: 'GBP/CHF' },
+  { id: 'GBPAUD', symbol: 'GBPAUD', name: 'GBP/AUD' },
+  { id: 'GBPCAD', symbol: 'GBPCAD', name: 'GBP/CAD' },
+  { id: 'AUDNZD', symbol: 'AUDNZD', name: 'AUD/NZD' },
+  { id: 'AUDCAD', symbol: 'AUDCAD', name: 'AUD/CAD' },
+  { id: 'CADJPY', symbol: 'CADJPY', name: 'CAD/JPY' },
+  { id: 'CHFJPY', symbol: 'CHFJPY', name: 'CHF/JPY' },
+  { id: 'NZDJPY', symbol: 'NZDJPY', name: 'NZD/JPY' },
+  { id: 'USDSEK', symbol: 'USDSEK', name: 'USD/SEK' },
+  { id: 'USDNOK', symbol: 'USDNOK', name: 'USD/NOK' },
+  { id: 'USDSGD', symbol: 'USDSGD', name: 'USD/SGD' },
+  { id: 'USDPLN', symbol: 'USDPLN', name: 'USD/PLN' },
 ];
 
 const STOCKS_LIST = [
@@ -75,6 +90,26 @@ const STOCKS_LIST = [
   { id: 'RIVN',  symbol: 'RIVN',  name: 'Rivian' },
   { id: 'LCID',  symbol: 'LCID',  name: 'Lucid' },
   { id: 'NIO',   symbol: 'NIO',   name: 'NIO' },
+  { id: 'SAN.MC',  symbol: 'SAN.MC',  name: 'Banco Santander' },
+  { id: 'BBVA.MC', symbol: 'BBVA.MC', name: 'BBVA' },
+  { id: 'ITX.MC',  symbol: 'ITX.MC',  name: 'Inditex (Zara)' },
+  { id: 'IBE.MC',  symbol: 'IBE.MC',  name: 'Iberdrola' },
+  { id: 'TEF.MC',  symbol: 'TEF.MC',  name: 'Telefónica' },
+  { id: 'REP.MC',  symbol: 'REP.MC',  name: 'Repsol' },
+  { id: 'CABK.MC', symbol: 'CABK.MC', name: 'CaixaBank' },
+  { id: 'AENA.MC', symbol: 'AENA.MC', name: 'Aena' },
+  { id: 'AIR.PA',  symbol: 'AIR.PA',  name: 'Airbus' },
+  { id: 'MC.PA',   symbol: 'MC.PA',   name: 'LVMH' },
+  { id: 'OR.PA',   symbol: 'OR.PA',   name: "L'Oréal" },
+  { id: 'SIE.DE',  symbol: 'SIE.DE',  name: 'Siemens' },
+  { id: 'BMW.DE',  symbol: 'BMW.DE',  name: 'BMW' },
+  { id: 'VOW3.DE', symbol: 'VOW3.DE', name: 'Volkswagen' },
+  { id: 'ALV.DE',  symbol: 'ALV.DE',  name: 'Allianz' },
+  { id: 'NESN.SW', symbol: 'NESN.SW', name: 'Nestlé' },
+  { id: 'NOVN.SW', symbol: 'NOVN.SW', name: 'Novartis' },
+  { id: 'AZN.L',   symbol: 'AZN.L',   name: 'AstraZeneca' },
+  { id: 'HSBA.L',  symbol: 'HSBA.L',  name: 'HSBC' },
+  { id: 'ENEL.MI', symbol: 'ENEL.MI', name: 'Enel' },
 ];
 
 const ETFS_LIST = [
@@ -135,6 +170,12 @@ const INDICES_LIST = [
   { id: '^N225',     symbol: 'N225',   name: 'Nikkei 225 (Japan)' },
   { id: '^HSI',      symbol: 'HSI',    name: 'Hang Seng (HK)' },
   { id: '^STOXX50E', symbol: 'SX5E',   name: 'Euro Stoxx 50' },
+  { id: '^IBEX',     symbol: 'IBEX35', name: 'IBEX 35 (España)' },
+  { id: '^AXJO',     symbol: 'ASX200', name: 'ASX 200 (Australia)' },
+  { id: '^BVSP',     symbol: 'BOVESPA', name: 'Bovespa (Brasil)' },
+  { id: '^NSEI',     symbol: 'NIFTY',  name: 'Nifty 50 (India)' },
+  { id: '^KS11',     symbol: 'KOSPI',  name: 'KOSPI (Corea)' },
+  { id: '^GSPTSE',   symbol: 'TSX',    name: 'TSX (Canadá)' },
 ];
 
 const COMMODITIES_FUTURES = [
@@ -287,7 +328,7 @@ const UniversalAssetSearch = ({
     setRemoteLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const data = await universalSearchAPI(q, 30);
+        const data = await universalSearchAPI(q, 50);
         const filtered = (data || []).filter((r) => stableCategories.includes(r.category));
         setRemoteResults(filtered.map((r) => ({
           id: r.symbol,

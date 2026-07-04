@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
+import { CRYPTO_LIST } from '@/lib/constants';
 import { useWebSocketAlerts } from '@/hooks/useWebSocketAlerts';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -115,16 +116,26 @@ export const PriceAlerts = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
-          <Select value={newAlert.symbol} onValueChange={(v) => setNewAlert({ ...newAlert, symbol: v })}>
-            <SelectTrigger className="w-24 bg-muted border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="BTC">BTC</SelectItem>
-              <SelectItem value="ETH">ETH</SelectItem>
-              <SelectItem value="SOL">SOL</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="w-28">
+            <Input
+              value={newAlert.symbol}
+              onChange={(e) => setNewAlert({ ...newAlert, symbol: e.target.value.toUpperCase().trim() })}
+              placeholder={t('alertSymbolPh')}
+              list="alert-symbol-suggestions"
+              className="bg-muted border-border uppercase"
+              data-testid="alert-symbol-input"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <datalist id="alert-symbol-suggestions">
+              {CRYPTO_LIST.map((c) => (
+                <option key={c.id} value={c.symbol}>{c.name}</option>
+              ))}
+              {['AAPL', 'TSLA', 'NVDA', 'SPY', 'QQQ', '^GSPC', 'EURUSD=X', 'GC=F', 'CL=F'].map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
           <Select value={newAlert.condition} onValueChange={(v) => setNewAlert({ ...newAlert, condition: v })}>
             <SelectTrigger className="w-28 bg-muted border-border">
               <SelectValue />

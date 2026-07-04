@@ -50,7 +50,7 @@ export const Watchlist = () => {
     if (!query.trim() || !API) { setSuggestions([]); return; }
     debounceRef.current = setTimeout(async () => {
       try {
-        const r = await fetch(`${API}/api/tickers/universal-search?q=${encodeURIComponent(query)}&limit=6`);
+        const r = await fetch(`${API}/api/tickers/universal-search?q=${encodeURIComponent(query)}&limit=10`);
         const j = await r.json();
         setSuggestions(j.results || []);
       } catch { setSuggestions([]); }

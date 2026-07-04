@@ -326,6 +326,8 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    tvSearchAsset: '搜索资产…',
+    alertSymbolPh: 'BTC, AAPL…',
     ddrTitle: '回撤与恢复',
     ddrIntro: '回撤的数学是不对称且残酷的：亏损50%需要盈利100%才能回本。这个计算器告诉你需要赚回多少、按你当前的期望值需要多少笔交易——这正是专业基金一旦回撤突破上限（通常10-20%）就立刻削减仓位的原因。',
     ddrDrawdown: '当前回撤',
