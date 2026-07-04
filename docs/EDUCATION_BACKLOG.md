@@ -49,8 +49,17 @@ Roadmap de contenido educativo. ✅ = ya en producción · 🆕 = pendiente.
 ---
 
 ### Posibles ampliaciones futuras (no comprometidas)
-- Cursos guiados / rutas de aprendizaje con progreso por usuario
-- Quizzes de autoevaluación por pestaña
+- ✅ Progreso por módulo (localStorage, contador por pilar y barra en header — PR #52)
+- ✅ Quiz de autoevaluación (8 preguntas, en el pilar Empezar — PR #52)
 - Vídeos o animaciones interactivas de los patrones
-- Glosario de términos con buscador
+- ✅ Glosario de términos con buscador (20 términos — PR #52)
 - ✅ Calculadora de riesgo de ruina interactiva (Monte Carlo, en el módulo de Riesgo — PR #48)
+
+## 📰 Módulos "gap" vs fuentes profesionales (Babypips/CMT/brokers) — ✅ COMPLETO (PR #53)
+- ✅ Operar noticias (NFP, CPI, FOMC; spreads/slippage; spike & fade; 3 estrategias)
+- ✅ Sentimiento de mercado (VIX, Put/Call, Fear & Greed, AAII, contrarian)
+- ✅ Análisis intermercado (DXY, bonos, risk-on/off, correlaciones FX, fuerza relativa)
+- ✅ Amplitud y ciclos (avance/declive, 52 semanas, McClellan, estacionalidad)
+- ✅ Brokers, regulación y estafas (tier-1, fondos segregados, red flags, gurús, ponzis, checklist)
+
+**Total academia: 32 módulos en 6 pilares.**

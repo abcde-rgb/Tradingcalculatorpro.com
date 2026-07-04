@@ -371,3 +371,16 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   compra dominio propio, revertir según §6 del skill.
 - Verificación: smokes headless premium (educación 25 módulos, dashboard 12 herramientas,
   plantilla imprimible, head SEO) — 0 errores de runtime.
+
+### 2026-07-04 — Widgets de dashboard, engagement de educación y 5 módulos "gap"
+- ✅ **Dashboard (#52)**: Watchlist con precios en vivo (hasta 8 símbolos, buscador con
+  sugerencias, refresco 60s); calculadora de interés compuesto (gráfico de área, hitos);
+  calendario económico TradingView (idioma/tema sincronizados).
+- ✅ **Educación engagement (#52)**: progreso por módulo (contadores por pilar + barra en
+  header), glosario con buscador (20 términos), quiz de autoevaluación (8 preguntas).
+- ✅ **5 módulos "gap" vs fuentes pro (#53)**: Operar noticias, Sentimiento de mercado,
+  Análisis intermercado, Amplitud y ciclos, Brokers/regulación/estafas. 66 claves i18n × 8
+  idiomas. ⚠️ Lección: el prefijo `bs*` colisionaba con Black-Scholes (`bsTitle` duplicada)
+  → renombrado a `bkr*`. **La academia queda en 32 módulos / 6 pilares.**
+- Verificación: build limpio, auditoría i18n 0 claves rotas, smoke premium headless con
+  click-through de los 32 módulos (0 regresiones, 0 pageerrors).
