@@ -71,4 +71,15 @@ Roadmap de contenido educativo. ✅ = ya en producción · 🆕 = pendiente.
 - ✅ Mechas de liquidación, cascadas y scam wicks
 - ✅ Motores anti-manipulación (tipo MP Shield de Margex) + qué comprobar en tu exchange
 
-**Total academia: 33 módulos en 6 pilares.**
+## 📐 Suite cuantitativa de riesgo — ✅ COMPLETO (auditoría vs roadmap "prop desk")
+Ya existían: Risk of Ruin Monte Carlo, Kelly (completo/medio) + expectancy, matriz de expectancy,
+rachas de pérdidas (DP exacta), portfolio heat, simulador Monte Carlo (dashboard), Black-Scholes
+con griegas + dividend yield (×2 UIs), griegas de cartera (opciones), calculadora de futuros
+(nocional/tick/margen), tamaño de muestra y ley de grandes números.
+Añadido ahora:
+- ✅ Calculadora drawdown → recuperación (ganancia necesaria + nº de operaciones con expectancy, tabla 10-90%, nota VaR/política institucional)
+- ✅ Riesgo efectivo ajustado por correlación en Portfolio Heat (slider ρ 0-100%)
+- ✅ Módulo educativo nº 34: "Griegas de opciones" (Delta/Gamma/Theta/Vega/Rho/IV con ejemplos numéricos, pilar Pro)
+Pendiente (idea futura): edge en vivo desde el diario (RoR/Kelly recalculados con trades reales).
+
+**Total academia: 34 módulos en 6 pilares.**

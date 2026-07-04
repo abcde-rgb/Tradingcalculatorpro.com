@@ -1437,6 +1437,22 @@ export const getMarginLiquidation = (t) => ({
   note: t('mlqNote'),
 });
 
+// Option greeks theory with numeric examples. Pairs with the Black-Scholes
+// calculator and the portfolio-greeks panel on the Options page.
+export const getOptionGreeks = (t) => ({
+  title: t('gkTitle'),
+  intro: t('gkIntro'),
+  items: [
+    { id: 'delta', name: t('gkDeltaName'), desc: t('gkDeltaDesc') },
+    { id: 'gamma', name: t('gkGammaName'), desc: t('gkGammaDesc') },
+    { id: 'theta', name: t('gkThetaName'), desc: t('gkThetaDesc') },
+    { id: 'vega',  name: t('gkVegaName'),  desc: t('gkVegaDesc') },
+    { id: 'rho',   name: t('gkRhoName'),   desc: t('gkRhoDesc') },
+    { id: 'iv',    name: t('gkIvName'),    desc: t('gkIvDesc') },
+  ],
+  note: t('gkNote'),
+});
+
 // Smart Money Concepts (ICT-style): tracking institutional footprints —
 // structure, order blocks, imbalances, liquidity and where price returns.
 export const getSmartMoney = (t) => ({

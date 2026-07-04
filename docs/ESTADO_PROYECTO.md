@@ -393,3 +393,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   mark vs last vs índice, funding rate, cascadas de liquidación y motores anti-manipulación.
 - Verificación: build limpio, auditoría i18n 0 rotas, smoke premium (8 tarjetas renderizadas,
   click-through de los 33 módulos sin regresiones).
+
+### 2026-07-04 (3) — Auditoría "prop desk" + laboratorio de riesgo + griegas
+- Usuario pegó un roadmap de 9 calculadoras "que faltan": la auditoría demostró que 7 YA existían
+  (RoR, Kelly, expectancy, Monte Carlo, Black-Scholes+griegas, griegas de cartera, futuros con
+  tick/nocional/margen). Huecos reales cerrados:
+- ✅ Drawdown → recuperación (RiskAnalysisTools, testid drawdown-recovery-calculator): +X% para
+  recuperar, nº de operaciones estimado con riesgo+expectancy en compuesto, tabla 10-90%, nota VaR.
+- ✅ Correlación en Portfolio Heat (slider heat-corr): riesgo efectivo = √(Σr²+2ρΣΣrr).
+- ✅ Módulo 34 "Griegas de opciones" (option-greeks, prefijo gk*, pilar Pro): Δ/Γ/Θ/V/ρ/IV con
+  ejemplos numéricos y regla IV Rank; enlaza con las calculadoras de Opciones.
+- 30 claves i18n × 8 idiomas (ddr*, heatCorr*/heatEffective*, gk*). Smoke: 34 módulos, 0 regresiones.

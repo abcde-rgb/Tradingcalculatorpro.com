@@ -138,8 +138,21 @@ function RiskOfRuinCalculator() {
 function PortfolioHeatCalculator() {
   const { t } = useTranslation();
   const [risks, setRisks] = useState([1, 1, 1]);
+  const [corr, setCorr] = useState(60);
 
   const total = useMemo(() => risks.reduce((a, v) => a + (Number(v) || 0), 0), [risks]);
+  /* Correlation-adjusted combined risk: sqrt(Σri² + 2ρ·Σ_{i<j} ri·rj).
+   * ρ=1 collapses to the plain sum; ρ=0 to full diversification (√Σri²). */
+  const effective = useMemo(() => {
+    const r = risks.map((v) => Math.max(0, Number(v) || 0));
+    const rho = Math.min(1, Math.max(0, (Number(corr) || 0) / 100));
+    let sumSq = 0, cross = 0;
+    for (let i = 0; i < r.length; i++) {
+      sumSq += r[i] * r[i];
+      for (let j = i + 1; j < r.length; j++) cross += r[i] * r[j];
+    }
+    return Math.sqrt(sumSq + 2 * rho * cross);
+  }, [risks, corr]);
   const level = total <= 4 ? 'ok' : total <= 6 ? 'warn' : 'danger';
   const heatColor = level === 'ok' ? 'text-green-500' : level === 'warn' ? 'text-amber-500' : 'text-red-500';
   const barColor = level === 'ok' ? '#22c55e' : level === 'warn' ? '#f59e0b' : '#ef4444';
@@ -200,6 +213,31 @@ function PortfolioHeatCalculator() {
         <div className={`flex items-start gap-2 rounded-lg p-3 text-xs ${level === 'danger' ? 'bg-red-500/10 border border-red-500/30' : level === 'warn' ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-green-500/10 border border-green-500/30'}`}>
           {level === 'danger' ? <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" /> : <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${heatColor}`} />}
           <span className="text-muted-foreground">{t(level === 'danger' ? 'heatDanger' : level === 'warn' ? 'heatWarn' : 'heatOk')}</span>
+        </div>
+
+        {/* Correlation-adjusted effective risk */}
+        <div className="rounded-lg border border-border/60 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="heat-corr" className="text-xs text-muted-foreground">{t('heatCorrLabel')}</Label>
+            <span className="font-mono text-xs font-semibold">{Math.round(Number(corr) || 0)}%</span>
+          </div>
+          <input
+            id="heat-corr"
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={corr}
+            onChange={(e) => setCorr(e.target.value)}
+            className="w-full accent-orange-500"
+            data-testid="heat-corr"
+          />
+          <Output
+            label={t('heatEffective')}
+            value={fmtPct(effective)}
+            sub={t('heatEffectiveSub')}
+            accent={effective <= 4 ? 'text-green-500' : effective <= 6 ? 'text-amber-500' : 'text-red-500'}
+          />
         </div>
 
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -310,13 +348,99 @@ function LosingStreakCalculator() {
   );
 }
 
+/* ------------------------ Drawdown → recovery math ----------------------- */
+/* required gain = dd/(1-dd); expected trades via compounding:
+ * ln(1/(1-dd)) / ln(1 + f·E) with f = risk fraction and E = expectancy in R. */
+function DrawdownRecoveryCalculator() {
+  const { t } = useTranslation();
+  const [drawdown, setDrawdown] = useState(30);
+  const [riskPct, setRiskPct] = useState(1);
+  const [expectancy, setExpectancy] = useState(0.3);
+
+  const dd = Math.min(0.99, Math.max(0.001, (Number(drawdown) || 0) / 100));
+  const required = (dd / (1 - dd)) * 100;
+
+  const trades = useMemo(() => {
+    const f = Math.max(0, (Number(riskPct) || 0) / 100);
+    const e = Number(expectancy) || 0;
+    const gainPerTrade = f * e;
+    if (gainPerTrade <= 0) return null; // no edge → never recovers
+    return Math.ceil(Math.log(1 / (1 - dd)) / Math.log(1 + gainPerTrade));
+  }, [dd, riskPct, expectancy]);
+
+  const tableRows = [10, 20, 30, 40, 50, 70, 90].map((d) => ({ d, req: (d / (100 - d)) * 100 }));
+  const reqAccent = required <= 25 ? 'text-green-500' : required <= 100 ? 'text-amber-500' : 'text-red-500';
+
+  return (
+    <Card className="bg-gradient-to-br from-sky-500/5 to-blue-500/10 border-sky-500/30" data-testid="drawdown-recovery-calculator">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
+          <TrendingDown className="w-5 h-5 text-sky-500" />
+          {t('ddrTitle')}
+        </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('ddrIntro')}</p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid grid-cols-3 gap-3">
+          <NumField id="ddr-dd" label={t('ddrDrawdown')} value={drawdown} onChange={setDrawdown} suffix="%" />
+          <NumField id="ddr-risk" label={t('rorRiskPct')} value={riskPct} onChange={setRiskPct} suffix="%" />
+          <NumField id="ddr-exp" label={t('ddrExpectancy')} value={expectancy} onChange={setExpectancy} suffix="R" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Output label={t('ddrRequired')} value={`+${fmtPct(required)}`} sub={t('ddrRequiredSub')} accent={reqAccent} highlight />
+          <Output
+            label={t('ddrTrades')}
+            value={trades == null ? '∞' : trades}
+            sub={t('ddrTradesSub')}
+            accent={trades == null ? 'text-red-500' : 'text-sky-500'}
+            highlight={trades == null}
+          />
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t('ddrTableTitle')}</p>
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">{t('ddrColDd')}</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">{t('ddrColReq')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableRows.map((r) => (
+                  <tr key={r.d} className={`border-t border-border/40 ${Math.abs(r.d - Number(drawdown)) < 5 ? 'bg-sky-500/10' : ''}`}>
+                    <td className="px-3 py-1.5 font-mono">-{r.d}%</td>
+                    <td className={`px-3 py-1.5 text-right font-mono font-semibold ${r.req > 100 ? 'text-red-500' : r.req > 40 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                      +{fmtPct(r.req, 0)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+          <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+          <span>{t('ddrNote')}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 const RiskAnalysisTools = () => (
   <div className="space-y-6">
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <RiskOfRuinCalculator />
       <PortfolioHeatCalculator />
     </div>
-    <LosingStreakCalculator />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <LosingStreakCalculator />
+      <DrawdownRecoveryCalculator />
+    </div>
   </div>
 );
 
