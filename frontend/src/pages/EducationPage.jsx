@@ -935,6 +935,29 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* Chart scale: log vs linear */}
+              <div>
+                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-teal-500" />
+                  {TECHNICAL_ANALYSIS.scale.title}
+                </h2>
+                <div className="grid gap-4">
+                  {TECHNICAL_ANALYSIS.scale.concepts.map(c => (
+                    <Card key={c.id} className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-base">
+                          <span>{c.name}</span>
+                          <Badge variant="outline" className={priorityColors[c.importance]}>{t(c.importance)}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{c.desc}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
               {/* Support & Resistance */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">

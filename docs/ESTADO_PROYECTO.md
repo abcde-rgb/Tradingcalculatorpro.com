@@ -483,3 +483,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Header: selector de tema ampliado con muestras de color por tema; 5 claves i18n × 8 idiomas.
 - Verificación: build limpio, i18n 0 rotas, smoke de los 4 temas (clase+variables correctas,
   0 errores) + screenshots (oro y cripto validados visualmente).
+
+### 2026-07-04 (9) — Escala log vs lineal (módulo Technical)
+- ✅ Nueva sección "Escala del gráfico: logarítmica vs lineal" en el módulo Análisis Técnico
+  (`getTechnicalAnalysis.scale`, prefijo i18n `scale*`, render clonado del patrón de S/R).
+  4 tarjetas con explicación profesional Y NÚMEROS: lineal/aritmética (la de "auto"), log/semilog,
+  cuándo usar cada una, y por qué CAMBIA el análisis (directrices/patrones/Fibonacci se dibujan
+  distinto; ejemplo $100→$200→$400 = recta en log, curva en lineal). 9 claves × 8 idiomas.
+- Auditado: 0 cobertura previa. `whitespace-pre-line` para los ejemplos con saltos de línea.
+- Verificación: build limpio, i18n 0 rotas, smoke (sección presente, números +100%/$200/$400,
+  0 claves crudas, 0 pageerrors).
