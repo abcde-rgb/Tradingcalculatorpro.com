@@ -1453,6 +1453,37 @@ export const getOptionGreeks = (t) => ({
   note: t('gkNote'),
 });
 
+// The institutional trading desk: roles, execution algos, microstructure,
+// risk governance, P&L attribution and desk process — with what retail can steal.
+export const getInstitutionalDesk = (t) => ({
+  title: t('ideskTitle'),
+  intro: t('ideskIntro'),
+  items: [
+    { id: 'roles',   name: t('ideskRolesName'),   desc: t('ideskRolesDesc') },
+    { id: 'algo',    name: t('ideskAlgoName'),    desc: t('ideskAlgoDesc') },
+    { id: 'impact',  name: t('ideskImpactName'),  desc: t('ideskImpactDesc') },
+    { id: 'var',     name: t('ideskVarName'),     desc: t('ideskVarDesc') },
+    { id: 'attrib',  name: t('ideskAttribName'),  desc: t('ideskAttribDesc') },
+    { id: 'routine', name: t('ideskRoutineName'), desc: t('ideskRoutineDesc') },
+  ],
+  note: t('ideskNote'),
+});
+
+// Professional discipline & mental performance: process-over-outcome, checklists,
+// error taxonomy, tilt/stress protocol, decision fatigue and accountability.
+export const getProDiscipline = (t) => ({
+  title: t('discTitle'),
+  intro: t('discIntro'),
+  items: [
+    { id: 'process',   name: t('discProcessName'),   desc: t('discProcessDesc') },
+    { id: 'checklist', name: t('discChecklistName'), desc: t('discChecklistDesc') },
+    { id: 'errors',    name: t('discErrorsName'),    desc: t('discErrorsDesc') },
+    { id: 'tilt',      name: t('discTiltName'),      desc: t('discTiltDesc') },
+    { id: 'fatigue',   name: t('discFatigueName'),   desc: t('discFatigueDesc') },
+  ],
+  note: t('discNote'),
+});
+
 // Smart Money Concepts (ICT-style): tracking institutional footprints —
 // structure, order blocks, imbalances, liquidity and where price returns.
 export const getSmartMoney = (t) => ({

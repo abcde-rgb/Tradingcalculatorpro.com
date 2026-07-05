@@ -454,3 +454,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   de cartera, analítica por instrumento/setup, sesgos) YA existían. Descartadas por no encajar
   en una calculadora/academia: Tax Loss Harvesting, Stock Borrow/Loan, Basket rebalance,
   Probability Lab (requieren cuenta real y ejecución).
+
+### 2026-07-04 (7) — 2 módulos institucionales: la mesa profesional + disciplina
+- ✅ **La mesa institucional** (`inst-desk`, pilar Pro, icono Landmark): roles (analista/quant, PM,
+  trader de ejecución, gestor de riesgo, jefe de mesa), ejecución algorítmica (VWAP/TWAP/POV/IS),
+  impacto de mercado/slippage/liquidez (order book, dark pools, RFQ), VaR y límites de riesgo,
+  atribución de P&L (Sharpe/Sortino/Calmar/info ratio), rutina de mesa (brief, morning meeting,
+  blotter, post-market review) + nota "qué robar el retail".
+- ✅ **Disciplina y rendimiento profesional** (`pro-discipline`, pilar Psicología, icono Focus):
+  proceso sobre resultado (scorecard), checklists y pre-compromiso, taxonomía de errores
+  (análisis/ejecución/disciplina), protocolo anti-tilt y estrés (amígdala/cortisol, disyuntor),
+  fatiga de decisión y rendición de cuentas.
+- Auditoría: 0 cobertura previa de todo lo institucional (VWAP/VaR/blotter/roles/microestructura).
+  28 claves i18n × 8 idiomas (idesk*, disc*). Academia: 34 → **36 módulos**.
+- Verificación: build limpio, i18n 0 rotas, smoke premium (inst-desk 6 tarjetas, pro-discipline 5),
+  click-through de los 36 módulos con 0 regresiones.
