@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { Skull, Flame, TrendingDown, AlertTriangle, Info, Plus, Minus, ShieldCheck } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Skull, Flame, TrendingDown, AlertTriangle, Info, Plus, Minus, ShieldCheck, Gauge } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
+import JournalEdgeButton from './JournalEdgeButton';
 
 /**
  * Advanced capital-management analytics for the Education → Capital tab:
@@ -16,6 +17,16 @@ import { useTranslation } from '@/lib/i18n';
  */
 
 const fmtPct = (n, d = 1) => (isFinite(n) ? `${n.toFixed(d)}%` : '—');
+
+/* Compact money: $1.2k / $50k / $1.3M — keeps stress-test tables readable. */
+const fmtMoneyShort = (n) => {
+  if (!isFinite(n)) return '—';
+  const sign = n < 0 ? '-' : '';
+  const a = Math.abs(n);
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(2)}M`;
+  if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(1)}k`;
+  return `${sign}$${a.toFixed(0)}`;
+};
 
 /* Module-level field keeps a stable identity across renders (defining it inside a
  * calculator would remount the input on each keystroke → lost focus). */
@@ -91,6 +102,14 @@ function RiskOfRuinCalculator() {
     setResult(ror);
   };
 
+  // Pull real win rate & R:R from the user's journal so the simulation runs on
+  // their actual edge instead of typed guesses.
+  const applyJournal = useCallback((a) => {
+    if (a.win_rate != null) setWinRate(Math.round(a.win_rate * 10) / 10);
+    const po = a.avg_loss ? Math.abs(a.avg_win / a.avg_loss) : null;
+    if (po && isFinite(po) && po > 0) setPayoff(Math.round(po * 100) / 100);
+  }, []);
+
   const rorAccent = result == null ? 'text-foreground' : result < 1 ? 'text-green-500' : result < 10 ? 'text-amber-500' : 'text-red-500';
 
   return (
@@ -109,6 +128,8 @@ function RiskOfRuinCalculator() {
           <NumField id="ror-payoff" label={t('rorPayoff')} value={payoff} onChange={setPayoff} suffix="R" />
           <NumField id="ror-dd" label={t('rorDrawdown')} value={drawdown} onChange={setDrawdown} suffix="%" />
         </div>
+
+        <JournalEdgeButton onLoad={applyJournal} testId="ror-journal" />
 
         <div className="flex items-center gap-3">
           <Button onClick={run} size="sm" className="bg-red-500 hover:bg-red-600 text-white" data-testid="ror-run">
@@ -431,6 +452,199 @@ function DrawdownRecoveryCalculator() {
   );
 }
 
+/* ----------------------- Margin stress test (leverage) ------------------- */
+/* For a book of leveraged positions, apply market-move scenarios and flag when
+ * the account breaches maintenance margin (call) or goes to zero (liquidated).
+ * Model: P&L = Σ notionalᵢ · dirᵢ · move ; equity_after = balance + P&L ;
+ * maintenance requirement = Σ notionalᵢ · mmr. Liquidation move for the net-
+ * directional book solves balance + move·net = maintReq. Simplified vs a real
+ * broker (which nets by product and varies mmr), but pedagogically exact. */
+function MarginStressTest() {
+  const { t } = useTranslation();
+  const [account, setAccount] = useState(10000);
+  const [mmr, setMmr] = useState(0.5); // maintenance margin rate, %
+  const [positions, setPositions] = useState([{ notional: 50000, dir: 'long' }]);
+  const [customMove, setCustomMove] = useState(-10);
+
+  const setPos = (i, patch) => setPositions((ps) => ps.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  const addPos = () => setPositions((ps) => (ps.length < 8 ? [...ps, { notional: 10000, dir: 'long' }] : ps));
+  const removePos = (i) => setPositions((ps) => (ps.length > 1 ? ps.filter((_, idx) => idx !== i) : ps));
+
+  const calc = useMemo(() => {
+    const E = Math.max(0, Number(account) || 0);
+    const m = Math.max(0, (Number(mmr) || 0) / 100);
+    let gross = 0, net = 0;
+    positions.forEach((p) => {
+      const n = Math.max(0, Number(p.notional) || 0);
+      const s = p.dir === 'short' ? -1 : 1;
+      gross += n;
+      net += n * s;
+    });
+    const maintReq = gross * m;
+    const grossLev = E > 0 ? gross / E : 0;
+    // Adverse move (fraction) that drops equity to the maintenance requirement.
+    const liqMove = net !== 0 ? (maintReq - E) / net : null;
+    const row = (movePct) => {
+      const move = movePct / 100;
+      const pnl = net * move;
+      const eq = E + pnl;
+      const status = eq <= 0 ? 'liq' : eq <= maintReq ? 'call' : 'ok';
+      return { movePct, pnl, eq, status };
+    };
+    return {
+      E, gross, net, maintReq, grossLev, liqMove,
+      scenarios: [-5, -10, -15, -20, -30].map(row),
+      custom: row(Number(customMove) || 0),
+    };
+  }, [account, mmr, positions, customMove]);
+
+  const STATUS = {
+    ok: { txt: t('mstOk'), cls: 'text-green-500' },
+    call: { txt: t('mstCall'), cls: 'text-amber-500' },
+    liq: { txt: t('mstLiq'), cls: 'text-red-500' },
+  };
+
+  return (
+    <Card className="bg-gradient-to-br from-amber-500/5 to-red-500/10 border-amber-500/30" data-testid="margin-stress-test">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
+          <Gauge className="w-5 h-5 text-amber-500" />
+          {t('mstTitle')}
+        </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('mstIntro')}</p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid grid-cols-2 gap-3">
+          <NumField id="mst-account" label={t('mstAccount')} value={account} onChange={setAccount} suffix="$" />
+          <NumField id="mst-mmr" label={t('mstMaintRate')} value={mmr} onChange={setMmr} suffix="%" />
+        </div>
+
+        {/* Positions */}
+        <div className="space-y-2">
+          {positions.map((p, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground w-16 shrink-0">{t('mstPosition')} {i + 1}</span>
+              <div className="relative flex-1">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={p.notional}
+                  onChange={(e) => setPos(i, { notional: e.target.value })}
+                  className="font-mono h-9"
+                  data-testid={`mst-notional-${i}`}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+              </div>
+              <div className="flex rounded-md overflow-hidden border border-border shrink-0">
+                {['long', 'short'].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setPos(i, { dir: d })}
+                    className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                      p.dir === d
+                        ? d === 'long' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    data-testid={`mst-dir-${i}-${d}`}
+                  >
+                    {t(d === 'long' ? 'mstLong' : 'mstShort')}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => removePos(i)} className="text-muted-foreground hover:text-red-500 p-1 shrink-0" aria-label="remove">
+                <Minus className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          <button onClick={addPos} className="flex items-center gap-1 text-xs text-amber-500 hover:text-amber-600 mt-1">
+            <Plus className="w-3.5 h-3.5" /> {t('mstAddPosition')}
+          </button>
+        </div>
+
+        {/* Summary */}
+        <div className="grid grid-cols-3 gap-3">
+          <Output label={t('mstGross')} value={fmtMoneyShort(calc.gross)} />
+          <Output label={t('mstNet')} value={fmtMoneyShort(calc.net)} />
+          <Output label={t('mstLeverage')} value={`${calc.grossLev.toFixed(1)}x`} accent={calc.grossLev > 5 ? 'text-red-500' : calc.grossLev > 2 ? 'text-amber-500' : 'text-foreground'} />
+        </div>
+
+        {/* Liquidation headline */}
+        {calc.liqMove == null ? (
+          <div className="rounded-lg p-3 bg-muted/40 text-xs text-muted-foreground">{t('mstNeutral')}</div>
+        ) : (
+          <Output
+            label={t('mstLiqLabel')}
+            value={`${(calc.liqMove * 100).toFixed(1)}%`}
+            sub={t('mstLiqSub')}
+            accent={Math.abs(calc.liqMove) < 0.1 ? 'text-red-500' : Math.abs(calc.liqMove) < 0.2 ? 'text-amber-500' : 'text-green-500'}
+            highlight
+          />
+        )}
+
+        {/* Scenario table */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t('mstScenariosTitle')}</p>
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">{t('mstColMove')}</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">{t('mstColPnl')}</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">{t('mstColEquity')}</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">{t('mstColStatus')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {calc.scenarios.map((r) => (
+                  <tr key={r.movePct} className="border-t border-border/40">
+                    <td className="px-3 py-1.5 font-mono">{r.movePct}%</td>
+                    <td className={`px-3 py-1.5 text-right font-mono ${r.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {r.pnl >= 0 ? '+' : ''}{fmtMoneyShort(r.pnl)}
+                    </td>
+                    <td className="px-3 py-1.5 text-right font-mono">{fmtMoneyShort(r.eq)}</td>
+                    <td className={`px-3 py-1.5 text-right font-mono font-semibold ${STATUS[r.status].cls}`}>{STATUS[r.status].txt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Custom scenario */}
+        <div className="rounded-lg border border-border/60 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="mst-custom" className="text-xs text-muted-foreground">{t('mstCustom')}</Label>
+            <span className={`font-mono text-xs font-semibold ${calc.custom.status === 'liq' ? 'text-red-500' : calc.custom.status === 'call' ? 'text-amber-500' : 'text-green-500'}`}>
+              {Number(customMove) || 0}% → {STATUS[calc.custom.status].txt}
+            </span>
+          </div>
+          <input
+            id="mst-custom"
+            type="range"
+            min="-40"
+            max="40"
+            step="1"
+            value={customMove}
+            onChange={(e) => setCustomMove(e.target.value)}
+            className="w-full accent-amber-500"
+            data-testid="mst-custom"
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>{t('mstColPnl')}: <span className={`font-mono ${calc.custom.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>{calc.custom.pnl >= 0 ? '+' : ''}{fmtMoneyShort(calc.custom.pnl)}</span></span>
+            <span>{t('mstColEquity')}: <span className="font-mono">{fmtMoneyShort(calc.custom.eq)}</span></span>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+          <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <span>{t('mstNote')}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 const RiskAnalysisTools = () => (
   <div className="space-y-6">
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -441,6 +655,7 @@ const RiskAnalysisTools = () => (
       <LosingStreakCalculator />
       <DrawdownRecoveryCalculator />
     </div>
+    <MarginStressTest />
   </div>
 );
 

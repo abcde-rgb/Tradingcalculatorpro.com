@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Calculator, Percent, TrendingUp, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/lib/i18n';
+import JournalEdgeButton from './JournalEdgeButton';
 
 /**
  * Two practical capital-management calculators for the Education → Capital tab:
@@ -130,6 +131,14 @@ function KellyCalculator() {
 
   const pct = (f) => `${(f * 100).toFixed(1)}%`;
 
+  // Fill win rate & avg win/loss from the user's real journal (Kelly only uses
+  // the win/loss ratio, so dollar averages give the correct payoff).
+  const applyJournal = useCallback((a) => {
+    if (a.win_rate != null) setWinRate(Math.round(a.win_rate * 10) / 10);
+    if (a.avg_win) setAvgWin(Math.round(Math.abs(a.avg_win) * 100) / 100);
+    if (a.avg_loss) setAvgLoss(Math.round(Math.abs(a.avg_loss) * 100) / 100);
+  }, []);
+
   return (
     <Card className="bg-gradient-to-br from-blue-500/5 to-indigo-500/10 border-blue-500/30" data-testid="kelly-calculator">
       <CardHeader className="pb-3">
@@ -154,6 +163,8 @@ function KellyCalculator() {
             <Input id="kelly-al" type="number" inputMode="decimal" value={avgLoss} onChange={(e) => setAvgLoss(e.target.value)} className="font-mono" data-testid="kelly-avgloss" />
           </div>
         </div>
+
+        <JournalEdgeButton onLoad={applyJournal} testId="kelly-journal" />
 
         {r.hasEdge ? (
           <>
