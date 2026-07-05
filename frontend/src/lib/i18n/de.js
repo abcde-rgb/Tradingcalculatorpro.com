@@ -412,6 +412,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    premiumThemes: 'Premium-Themes',
+    goldMode: 'Gold',
+    cryptoMode: 'Krypto',
+    forexMode: 'Forex',
+    nasdaqMode: 'Nasdaq',
     ideskTitle: 'Der institutionelle Handelstisch',
     ideskIntro: 'Eine Bank oder ein Fonds «tradet» nicht wie Privatanleger: sie teilt die Arbeit auf Spezialisten auf, mit Prozessen, Limits und Technologie. Hier siehst du, wie ein professioneller Desk von innen funktioniert und was du dir aus jeder Rolle abschauen kannst, um wie ein Profi zu handeln, auch allein zu Hause.',
     ideskRolesName: 'Die Rollen am Desk',

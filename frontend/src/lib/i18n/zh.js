@@ -326,6 +326,11 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    premiumThemes: '高级主题',
+    goldMode: '黄金',
+    cryptoMode: '加密',
+    forexMode: '外汇',
+    nasdaqMode: '纳斯达克',
     ideskTitle: '机构交易台',
     ideskIntro: '银行或基金的「交易」和散户不同：工作在专家之间分工，有流程、限额和技术。这里你能看到一个专业交易台内部如何运作，以及能从每个角色偷学什么，让你即便独自在家也能像专业人士一样交易。',
     ideskRolesName: '交易台的角色',

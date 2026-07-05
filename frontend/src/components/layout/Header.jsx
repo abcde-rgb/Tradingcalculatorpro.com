@@ -127,6 +127,20 @@ export function Header() {
                 <DropdownMenuItem onClick={() => setTheme('system')}>
                   <Globe className="w-4 h-4 mr-2" /> {t('systemMode')}
                 </DropdownMenuItem>
+                <div className="my-1 h-px bg-border" />
+                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('premiumThemes')}</div>
+                {[
+                  { id: 'gold', label: t('goldMode'), sw: 'linear-gradient(135deg,#181614,#c9a24a 70%,#e8c46a)' },
+                  { id: 'crypto', label: t('cryptoMode'), sw: 'linear-gradient(135deg,#0a0912,#f7931a 55%,#8b5cf6)' },
+                  { id: 'forex', label: t('forexMode'), sw: 'linear-gradient(135deg,#060b16,#1e8f5a 60%,#3b82f6)' },
+                  { id: 'nasdaq', label: t('nasdaqMode'), sw: 'linear-gradient(135deg,#05070a,#00c2ff)' },
+                ].map((th) => (
+                  <DropdownMenuItem key={th.id} onClick={() => setTheme(th.id)} data-testid={`theme-${th.id}`}>
+                    <span className="w-4 h-4 mr-2 rounded-full border border-white/20 shrink-0" style={{ background: th.sw }} />
+                    {th.label}
+                    {theme === th.id && <span className="ml-auto text-primary">✓</span>}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
 

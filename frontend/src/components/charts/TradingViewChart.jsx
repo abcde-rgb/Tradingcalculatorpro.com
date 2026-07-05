@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, memo, useCallback, useMemo } from 'react';
 import { useAssetsStore, ALL_ASSETS, ASSET_CATEGORIES, getAssetsByCategory } from '@/lib/assets';
-import { useThemeStore } from '@/lib/theme';
+import { useThemeStore, resolveMode } from '@/lib/theme';
 import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -82,14 +82,8 @@ function TradingViewWidgetComponent() {
   const tradingviewSymbol = asset?.tradingviewSymbol || 'BINANCE:BTCUSDT';
   const isFavorite = favorites.includes(selectedAsset);
 
-  // Determinar el tema para TradingView
-  const getTradingViewTheme = useCallback(() => {
-    if (theme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return prefersDark ? 'dark' : 'light';
-    }
-    return theme === 'dark' ? 'dark' : 'light';
-  }, [theme]); // Fixed: memoize getTradingViewTheme with theme dependency
+  // Determinar el tema para TradingView (los temas con nombre resuelven a dark)
+  const getTradingViewTheme = useCallback(() => resolveMode(theme), [theme]);
 
   const loadWidget = useCallback(() => {
     const container = containerRef.current;

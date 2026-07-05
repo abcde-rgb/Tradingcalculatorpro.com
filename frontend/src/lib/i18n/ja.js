@@ -318,6 +318,11 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    premiumThemes: 'プレミアムテーマ',
+    goldMode: 'ゴールド',
+    cryptoMode: 'クリプト',
+    forexMode: 'FX',
+    nasdaqMode: 'ナスダック',
     ideskTitle: '機関投資家のトレーディングデスク',
     ideskIntro: '銀行やファンドはリテールのように「トレード」しません。仕事を専門家に分け、プロセス・リミット・技術で回します。ここではプロのデスクが内側でどう動くか、そして各役割から何を盗んで、自宅で一人でもプロのように取引できるかを見ます。',
     ideskRolesName: 'デスクの役割',
