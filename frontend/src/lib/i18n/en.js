@@ -433,6 +433,11 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    premiumThemes: 'Premium themes',
+    goldMode: 'Gold',
+    cryptoMode: 'Crypto',
+    forexMode: 'Forex',
+    nasdaqMode: 'Nasdaq',
     ideskTitle: 'The institutional trading desk',
     ideskIntro: 'A bank or fund does not «trade» like retail: it splits the work among specialists, with processes, limits and technology. Here you see how a professional desk works from the inside and what you can steal from each role to trade like a pro even alone at home.',
     ideskRolesName: 'The desk roles',

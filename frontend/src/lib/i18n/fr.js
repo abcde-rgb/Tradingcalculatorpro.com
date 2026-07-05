@@ -412,6 +412,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    premiumThemes: 'Thèmes premium',
+    goldMode: 'Or',
+    cryptoMode: 'Crypto',
+    forexMode: 'Forex',
+    nasdaqMode: 'Nasdaq',
     ideskTitle: 'La table de trading institutionnelle',
     ideskIntro: 'Une banque ou un fonds ne «trade» pas comme le retail : le travail est réparti entre spécialistes, avec des processus, des limites et de la technologie. Voici comment fonctionne une table pro de l\'intérieur et ce que tu peux voler à chaque rôle pour trader en pro, même seul chez toi.',
     ideskRolesName: 'Les rôles de la table',

@@ -530,6 +530,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    premiumThemes: 'Temas premium',
+    goldMode: 'Oro',
+    cryptoMode: 'Cripto',
+    forexMode: 'Forex',
+    nasdaqMode: 'Nasdaq',
     ideskTitle: 'La mesa institucional',
     ideskIntro: 'Un banco o fondo no «hace trading» como el retail: reparte el trabajo entre especialistas, con procesos, límites y tecnología. Aquí ves cómo funciona una mesa profesional por dentro y qué puedes robar de cada rol para operar como un profesional aunque estés solo en casa.',
     ideskRolesName: 'Los roles de la mesa',

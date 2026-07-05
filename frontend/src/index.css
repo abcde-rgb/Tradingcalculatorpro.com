@@ -98,6 +98,124 @@ code {
         --input: 0 0% 15%;
         --ring: 145 80% 45%;
     }
+
+    /* ============================================================
+       Temas premium con nombre (todos dark-based). Se aplican junto
+       a la clase .dark, y como van DESPUÉS en el CSS, sus variables
+       ganan. Cada uno redefine el set completo de variables shadcn.
+       ============================================================ */
+
+    /* Oro — "Black Gold Stone" (D1 Milano): carbón cálido + oro disperso */
+    .theme-gold {
+        --background: 40 13% 4%;
+        --foreground: 40 8% 89%;
+        --card: 34 11% 8%;
+        --card-foreground: 40 8% 89%;
+        --popover: 34 11% 8%;
+        --popover-foreground: 40 8% 89%;
+        --primary: 41 52% 54%;
+        --primary-foreground: 40 40% 6%;
+        --secondary: 34 10% 13%;
+        --secondary-foreground: 40 8% 89%;
+        --muted: 34 9% 14%;
+        --muted-foreground: 40 5% 60%;
+        --accent: 43 72% 66%;
+        --accent-foreground: 40 40% 6%;
+        --destructive: 11 45% 44%;
+        --destructive-foreground: 40 10% 92%;
+        --border: 38 15% 14%;
+        --input: 38 15% 14%;
+        --ring: 41 52% 54%;
+        --chart-1: 41 52% 54%;
+        --chart-2: 43 72% 66%;
+        --chart-3: 11 45% 48%;
+        --chart-4: 40 6% 60%;
+        --chart-5: 36 60% 40%;
+    }
+
+    /* Cripto — neón: violeta-negro + naranja Bitcoin + violeta eléctrico */
+    .theme-crypto {
+        --background: 250 30% 6%;
+        --foreground: 255 25% 93%;
+        --card: 250 26% 10%;
+        --card-foreground: 255 25% 93%;
+        --popover: 250 26% 10%;
+        --popover-foreground: 255 25% 93%;
+        --primary: 33 93% 54%;
+        --primary-foreground: 250 30% 8%;
+        --secondary: 250 22% 16%;
+        --secondary-foreground: 255 25% 93%;
+        --muted: 250 20% 16%;
+        --muted-foreground: 252 15% 64%;
+        --accent: 258 90% 66%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 348 90% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 252 24% 18%;
+        --input: 252 24% 18%;
+        --ring: 33 93% 54%;
+        --chart-1: 33 93% 54%;
+        --chart-2: 258 90% 66%;
+        --chart-3: 160 78% 51%;
+        --chart-4: 190 95% 55%;
+        --chart-5: 320 85% 62%;
+    }
+
+    /* Forex — mesa institucional: azul marino profundo + verde billete */
+    .theme-forex {
+        --background: 217 45% 6%;
+        --foreground: 215 35% 92%;
+        --card: 217 42% 10%;
+        --card-foreground: 215 35% 92%;
+        --popover: 217 42% 10%;
+        --popover-foreground: 215 35% 92%;
+        --primary: 152 58% 44%;
+        --primary-foreground: 217 45% 6%;
+        --secondary: 217 34% 16%;
+        --secondary-foreground: 215 35% 92%;
+        --muted: 217 30% 16%;
+        --muted-foreground: 215 20% 64%;
+        --accent: 217 91% 60%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 72% 55%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 217 30% 18%;
+        --input: 217 30% 18%;
+        --ring: 152 58% 44%;
+        --chart-1: 152 58% 44%;
+        --chart-2: 217 91% 60%;
+        --chart-3: 0 72% 55%;
+        --chart-4: 45 90% 55%;
+        --chart-5: 190 80% 50%;
+    }
+
+    /* Nasdaq — pantalla tech: casi-negro + cian/azul vívido */
+    .theme-nasdaq {
+        --background: 210 32% 4%;
+        --foreground: 205 35% 91%;
+        --card: 210 28% 8%;
+        --card-foreground: 205 35% 91%;
+        --popover: 210 28% 8%;
+        --popover-foreground: 205 35% 91%;
+        --primary: 195 100% 50%;
+        --primary-foreground: 210 32% 5%;
+        --secondary: 210 24% 15%;
+        --secondary-foreground: 205 35% 91%;
+        --muted: 210 22% 15%;
+        --muted-foreground: 205 16% 62%;
+        --accent: 199 95% 74%;
+        --accent-foreground: 210 30% 6%;
+        --destructive: 4 85% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 205 24% 17%;
+        --input: 205 24% 17%;
+        --ring: 195 100% 50%;
+        --chart-1: 195 100% 50%;
+        --chart-2: 199 95% 74%;
+        --chart-3: 4 85% 60%;
+        --chart-4: 145 70% 48%;
+        --chart-5: 260 85% 68%;
+    }
 }
 
 @layer base {
@@ -106,6 +224,14 @@ code {
     }
     body {
         @apply bg-background text-foreground;
+    }
+    /* Textura orgánica de "piedra fracturada con oro" solo en el tema Oro:
+       ruido sutil + dos destellos dorados dispersos, muy tenues. */
+    html.theme-gold body {
+        background-image:
+            radial-gradient(ellipse at 15% 0%, hsl(41 52% 54% / 0.05), transparent 45%),
+            radial-gradient(ellipse at 90% 100%, hsl(43 72% 66% / 0.04), transparent 50%),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
     }
 }
 

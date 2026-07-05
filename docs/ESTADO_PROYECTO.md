@@ -469,3 +469,17 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   28 claves i18n × 8 idiomas (idesk*, disc*). Academia: 34 → **36 módulos**.
 - Verificación: build limpio, i18n 0 rotas, smoke premium (inst-desk 6 tarjetas, pro-discipline 5),
   click-through de los 36 módulos con 0 regresiones.
+
+### 2026-07-04 (8) — 4 temas visuales premium (Oro/Cripto/Forex/Nasdaq)
+- ✅ Sistema de temas ampliado de claro/oscuro a **6 aspectos**: se añaden 4 temas premium
+  dark-based con paleta completa (18 variables shadcn c/u) en `index.css`:
+  - **Oro "Black Gold Stone"** (D1 Milano): carbón cálido + oro disperso + textura sutil de piedra (SVG noise).
+  - **Cripto**: violeta-negro + naranja Bitcoin + violeta eléctrico.
+  - **Forex**: azul marino institucional + verde billete.
+  - **Nasdaq**: casi-negro + cian/azul vívido.
+- `theme.js`: soporte de temas con nombre (aplica `.dark` + `.theme-<name>`); nuevo helper
+  `resolveMode()` para widgets que solo aceptan light/dark. TradingViewChart y EconomicCalendar
+  ahora usan `resolveMode` (los temas con nombre → gráfico oscuro, no blanco).
+- Header: selector de tema ampliado con muestras de color por tema; 5 claves i18n × 8 idiomas.
+- Verificación: build limpio, i18n 0 rotas, smoke de los 4 temas (clase+variables correctas,
+  0 errores) + screenshots (oro y cripto validados visualmente).

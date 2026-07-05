@@ -28,23 +28,29 @@ export const useThemeStore = create(
   )
 );
 
+// Premium named themes — all dark-based (apply .dark + .theme-<name>).
+export const NAMED_THEMES = ['gold', 'crypto', 'forex', 'nasdaq'];
+export const ALL_THEMES = ['light', 'dark', 'system', ...NAMED_THEMES];
+const THEME_CLASSES = ['light', 'dark', 'theme-gold', 'theme-crypto', 'theme-forex', 'theme-nasdaq'];
+
+// Resolve any theme to the effective light/dark mode. Named themes are dark.
+// Used by widgets that only accept 'light' | 'dark' (TradingView, etc.).
+export function resolveMode(theme) {
+  if (theme === 'light') return 'light';
+  if (theme === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'dark'; // 'dark' and all named themes are dark-based
+}
+
 function applyTheme(theme) {
   const root = document.documentElement;
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  
-  let isDark;
-  if (theme === 'system') {
-    isDark = prefersDark;
-  } else {
-    isDark = theme === 'dark';
-  }
-  
-  if (isDark) {
-    root.classList.add('dark');
-    root.classList.remove('light');
-  } else {
-    root.classList.remove('dark');
-    root.classList.add('light');
+  THEME_CLASSES.forEach((c) => root.classList.remove(c));
+
+  const mode = resolveMode(theme);
+  root.classList.add(mode); // 'light' or 'dark'
+  if (NAMED_THEMES.includes(theme)) {
+    root.classList.add(`theme-${theme}`); // overrides the .dark variables
   }
 }
 

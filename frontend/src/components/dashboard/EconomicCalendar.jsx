@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { useThemeStore } from '@/lib/theme';
+import { useThemeStore, resolveMode } from '@/lib/theme';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays } from 'lucide-react';
 
@@ -18,9 +18,7 @@ export const EconomicCalendar = () => {
   const { theme } = useThemeStore();
 
   const src = useMemo(() => {
-    const isDark = theme === 'system'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-      : theme === 'dark';
+    const isDark = resolveMode(theme) === 'dark';
     const cfg = {
       colorTheme: isDark ? 'dark' : 'light',
       isTransparent: true,
