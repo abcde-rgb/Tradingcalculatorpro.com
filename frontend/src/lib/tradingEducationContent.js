@@ -2126,6 +2126,15 @@ export const getIchimoku = (t) => ({
 export const getTechnicalAnalysis = (t) => ({
   title: t('techTitle'),
   intro: t('techIntro'),
+  scale: {
+    title: t('scaleTitle'),
+    concepts: [
+      { id: 'linear', name: t('scaleLinearName'), desc: t('scaleLinearDesc'), importance: 'high' },
+      { id: 'log', name: t('scaleLogName'), desc: t('scaleLogDesc'), importance: 'critical' },
+      { id: 'when', name: t('scaleWhenName'), desc: t('scaleWhenDesc'), importance: 'high' },
+      { id: 'analysis', name: t('scaleAnalysisName'), desc: t('scaleAnalysisDesc'), importance: 'critical' },
+    ],
+  },
   supportResistance: {
     title: t('srTitle'),
     concepts: [
