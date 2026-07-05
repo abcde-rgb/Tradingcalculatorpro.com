@@ -422,3 +422,35 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificación: py_compile + 11 tests unitarios OK; búsqueda offline resuelve IBEX/SHIB/US500/
   EURAUD/SAN.MC; smoke premium: chart-search encuentra PEPE/Iberdrola/IBEX y carga BME:IBC35,
   alertas aceptan WIF, calculadora encuentra SHIB. 0 claves i18n rotas (+2 claves ×8).
+
+### 2026-07-04 (5) — Reducción de costes: workflow conmutable + guía Neon
+- Diagnóstico de la factura GCP: mayores costes = Cloud SQL 24/7 y Cloud Run `min-instances=1`.
+  Poller de alertas cada 30 s mantiene todo despierto; imágenes Docker se acumulan sin limpieza.
+- ✅ `deploy-cloud-run.yml` parametrizado con variables de repositorio (sin cambiar código):
+  - `DB_PROVIDER=neon` → no monta el socket de Cloud SQL (conexión TCP+SSL vía `DATABASE_URL`).
+    Por defecto (vacía/`cloudsql`) se comporta igual que siempre.
+  - `MIN_INSTANCES` (por defecto 1) → poner a 0 para ahorrar.
+- ✅ Guía `docs/MIGRACION_NEON.md`: migración paso a paso Cloud SQL → Neon (gratis) con
+  Cloud Shell (proxy + pg_dump/pg_restore), cambio de secreto, verificación y rollback.
+- ⚠️ El código de conexión (`init_pool`) YA soportaba Neon (rama TCP+SSL). Migración = cambiar
+  secreto + variable, sin tocar código.
+- ⚠️ NO fusionar a main hasta reactivar la facturación: el workflow se dispara al cambiar su
+  propio archivo y un deploy fallaría con billing desactivado (sin impacto en prod, solo ruido).
+
+### 2026-07-04 (6) — Los 2 huecos "prop desk": stress test de margen + edge en vivo
+- ✅ **Stress test de margen** (`RiskAnalysisTools`, testid `margin-stress-test`): dado saldo +
+  posiciones (largo/corto, exposición), muestra por escenarios (−5/−10/−15/−20/−30 % + slider
+  −40…+40) el P&L, saldo restante y estado (Aguanta / Margin call / Liquidado), más el
+  movimiento que dispara la liquidación y el apalancamiento bruto. Modelo direccional correcto
+  (los cortos ganan en caídas). Nota de que es simplificado vs bróker real.
+- ✅ **Edge en vivo desde el diario** (`JournalEdgeButton`): botón "Usar mis datos del diario"
+  en Risk of Ruin y Kelly que llama a `/performance/analytics` y rellena win rate y R:R con las
+  operaciones REALES del usuario; avisa si hay <100 operaciones (muestra pequeña) o si no hay
+  sesión/datos. Cierra la Fase 3 del roadmap (calculadoras alimentadas por el journal real).
+- 29 claves i18n × 8 idiomas (mst*, edge*). Build limpio, i18n 0 rotas, smoke premium:
+  stress test interactivo (5x aguanta hasta −15 %, 15x liquida en −10 %), botones presentes en
+  RoR y Kelly, click-through de los 34 módulos sin regresiones.
+- Auditoría previa: el resto de ideas Saxo/IB/IG (payoff, IV rank/surface, multi-leg, griegas
+  de cartera, analítica por instrumento/setup, sesgos) YA existían. Descartadas por no encajar
+  en una calculadora/academia: Tax Loss Harvesting, Stock Borrow/Loan, Basket rebalance,
+  Probability Lab (requieren cuenta real y ejecución).

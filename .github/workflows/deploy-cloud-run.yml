@@ -173,6 +173,27 @@ jobs:
       # Deploy en Cloud Run
       - name: Deploy en Cloud Run
         run: |
+          # ── Base de datos: Cloud SQL (por defecto) o Neon/TCP ──────────────
+          # Variable de repositorio DB_PROVIDER:
+          #   - vacía o "cloudsql"  → monta el socket de Cloud SQL (comportamiento actual)
+          #   - "neon"              → NO monta socket; la conexión va por TCP+SSL
+          #                           usando el secreto DATABASE_URL (cadena de Neon)
+          # Así se puede cortar Cloud SQL SIN editar este archivo: basta cambiar la variable.
+          CLOUDSQL_ARGS=(--add-cloudsql-instances=tradingcalculator-495806:europe-west1:trading-db)
+          if [ "${{ vars.DB_PROVIDER }}" = "neon" ]; then
+            echo "🟢 DB_PROVIDER=neon → conexión TCP, sin socket de Cloud SQL"
+            CLOUDSQL_ARGS=()
+          else
+            echo "🔵 Usando Cloud SQL (socket)"
+          fi
+
+          # ── min-instances: coste vs arranque en frío ──────────────────────
+          # Variable de repositorio MIN_INSTANCES (por defecto 1). Ponla a 0 para
+          # ahorrar: el primer usuario tras un rato de inactividad espera ~2-4 s.
+          MIN_INST="${{ vars.MIN_INSTANCES }}"
+          [ -z "$MIN_INST" ] && MIN_INST=1
+          echo "min-instances=$MIN_INST"
+
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.IMAGE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
@@ -181,13 +202,13 @@ jobs:
             --port 8080 \
             --memory 1Gi \
             --cpu 1 \
-            --min-instances 1 \
+            --min-instances "$MIN_INST" \
             --max-instances 10 \
             --timeout 300 \
             --concurrency 80 \
             --set-env-vars="^;^GCP_PROJECT=${{ env.GCP_PROJECT }};CORS_ORIGINS=https://abcde-rgb.github.io,https://tradingcalculatorpro.com;FRONTEND_URL=https://abcde-rgb.github.io/Tradingcalculatorpro.com;DEMO_EMAIL=demo@btccalc.pro;SENDER_EMAIL=alerts@tradingcalculatorpro.com;ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}" \
             --update-secrets="JWT_SECRET=JWT_SECRET:latest,DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,STRIPE_API_KEY=STRIPE_API_KEY:latest,SENDGRID_API_KEY=SENDGRID_API_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
-            --add-cloudsql-instances=tradingcalculator-495806:europe-west1:trading-db \
+            "${CLOUDSQL_ARGS[@]}" \
             --service-account=trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com
 
       # URL del servicio desplegado

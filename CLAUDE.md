@@ -129,7 +129,8 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
 - **`backend_test_security.py` en la raíz está OBSOLETO** — hace `sys.exit(1)` inmediatamente. Usaba MongoDB (motor) y el puerto incorrecto. Usar siempre `backend/tests/`.
 - **`_requests_stdlib_shim.py` en la raíz** no es la librería `requests`. Es un shim stdlib que existía para evitar instalar el paquete. No importar directamente.
 - **CORS incluye `PATCH`** — hay dos endpoints PATCH en `server.py` usados por AdminPage: `PATCH /admin/users/{id}` y `PATCH /admin/feature-flags/{id}`. No eliminarlos del `allow_methods`.
-- **`min-instances=1`** en Cloud Run — intencionado para evitar cold starts en app financiera. No bajar a 0.
+- **`min-instances`** en Cloud Run — configurable vía variable de repositorio `MIN_INSTANCES` (por defecto `1`, intencionado para evitar cold starts en app financiera). Ponla a `0` para ahorrar coste a cambio de ~2-4 s de arranque en frío para el primer usuario tras inactividad.
+- **Base de datos conmutable Cloud SQL ↔ Neon** — variable de repositorio `DB_PROVIDER`: vacía/`cloudsql` monta el socket de Cloud SQL (por defecto); `neon` conecta por TCP+SSL usando el secreto `DATABASE_URL`. El código de conexión (`init_pool` en `server.py`) ya soporta ambos. Guía de migración: [`docs/MIGRACION_NEON.md`](./docs/MIGRACION_NEON.md).
 - **`samesite=none`** en cookies — necesario porque el frontend (GitHub Pages) y el backend (Cloud Run) son dominios diferentes. Requiere HTTPS obligatoriamente.
 - El campo `ENVIRONMENT` no se setea en producción — defaults a `"production"`. En local, setear `ENVIRONMENT=development`.
 
