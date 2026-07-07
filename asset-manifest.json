@@ -1,11 +1,11 @@
 {
   "files": {
     "main.css": "/Tradingcalculatorpro.com/static/css/main.f094c9b6.css",
-    "main.js": "/Tradingcalculatorpro.com/static/js/main.e464f6f7.js",
+    "main.js": "/Tradingcalculatorpro.com/static/js/main.269840d2.js",
     "static/js/616.62757cac.chunk.js": "/Tradingcalculatorpro.com/static/js/616.62757cac.chunk.js",
     "static/js/614.e2007f48.chunk.js": "/Tradingcalculatorpro.com/static/js/614.e2007f48.chunk.js",
     "static/js/448.35eba646.chunk.js": "/Tradingcalculatorpro.com/static/js/448.35eba646.chunk.js",
-    "static/js/368.b933d551.chunk.js": "/Tradingcalculatorpro.com/static/js/368.b933d551.chunk.js",
+    "static/js/368.04b68603.chunk.js": "/Tradingcalculatorpro.com/static/js/368.04b68603.chunk.js",
     "static/js/976.c7da1289.chunk.js": "/Tradingcalculatorpro.com/static/js/976.c7da1289.chunk.js",
     "static/js/703.ed14bdb8.chunk.js": "/Tradingcalculatorpro.com/static/js/703.ed14bdb8.chunk.js",
     "static/js/268.a3343c4f.chunk.js": "/Tradingcalculatorpro.com/static/js/268.a3343c4f.chunk.js",
@@ -40,11 +40,11 @@
     "index.html": "/Tradingcalculatorpro.com/index.html",
     "static/media/margex-square.png": "/Tradingcalculatorpro.com/static/media/margex-square.a7d30235766b0219db72.png",
     "main.f094c9b6.css.map": "/Tradingcalculatorpro.com/static/css/main.f094c9b6.css.map",
-    "main.e464f6f7.js.map": "/Tradingcalculatorpro.com/static/js/main.e464f6f7.js.map",
+    "main.269840d2.js.map": "/Tradingcalculatorpro.com/static/js/main.269840d2.js.map",
     "616.62757cac.chunk.js.map": "/Tradingcalculatorpro.com/static/js/616.62757cac.chunk.js.map",
     "614.e2007f48.chunk.js.map": "/Tradingcalculatorpro.com/static/js/614.e2007f48.chunk.js.map",
     "448.35eba646.chunk.js.map": "/Tradingcalculatorpro.com/static/js/448.35eba646.chunk.js.map",
-    "368.b933d551.chunk.js.map": "/Tradingcalculatorpro.com/static/js/368.b933d551.chunk.js.map",
+    "368.04b68603.chunk.js.map": "/Tradingcalculatorpro.com/static/js/368.04b68603.chunk.js.map",
     "976.c7da1289.chunk.js.map": "/Tradingcalculatorpro.com/static/js/976.c7da1289.chunk.js.map",
     "703.ed14bdb8.chunk.js.map": "/Tradingcalculatorpro.com/static/js/703.ed14bdb8.chunk.js.map",
     "268.a3343c4f.chunk.js.map": "/Tradingcalculatorpro.com/static/js/268.a3343c4f.chunk.js.map",
@@ -79,6 +79,6 @@
   },
   "entrypoints": [
     "static/css/main.f094c9b6.css",
-    "static/js/main.e464f6f7.js"
+    "static/js/main.269840d2.js"
   ]
 }
