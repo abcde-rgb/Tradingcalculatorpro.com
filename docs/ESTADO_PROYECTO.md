@@ -65,6 +65,7 @@
   **169 registradas** en la app (incluye `referrals`, `realtime_alerts`).
 - **Módulos**: `server.py` (monolito, 6107 líneas), `admin_routes.py`, `missing_apis.py`,
   `options_math.py`, `options_optimize.py`, `stock_data.py`, `candle_patterns.py`,
+  `price_action.py` (estructura de mercado: swings/BOS-CHoCH/S-R/FVG),
   `performance.py`, `realtime_alerts.py`, `referrals.py`.
 - **Datos de mercado**: yfinance + CoinGecko (todas las llamadas de red ya van por
   `asyncio.to_thread`/executor → no bloquean el event loop; ver BUG-010).
@@ -522,3 +523,25 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   ("Ralph Elliott beobachtete…"), árabe RTL correcto (screenshot), hreflang 9 en educación /
   2 en calc; CTAs → /education?topic= y /dashboard?tab=. HTML autocontenido.
 - Pendiente/ofrecido: calculadoras en los otros 6 idiomas + widget embebible (Fase 2 restante).
+
+### 2026-07-07 — Motor de detección de ACCIÓN DEL PRECIO (estructura de mercado)
+- ✅ **Nuevo módulo `backend/price_action.py`** (puro, determinista, sin I/O): complementa a
+  `candle_patterns.py` (que solo reconoce *formas* de vela). Ahora se lee la **ESTRUCTURA**:
+  - **Swings** (pivotes fractales alto/bajo, `strength` configurable).
+  - **Estructura de mercado**: etiqueta HH/HL/LH/LL y deriva tendencia (alcista/bajista/rango).
+  - **BOS / CHoCH**: Break of Structure (continuación) y Change of Character (primer giro
+    contra la tendencia → posible reversión); la tendencia se invierte en cada CHoCH.
+  - **Soportes/Resistencias** automáticos: clustering de swings por tolerancia (%) + nº de toques
+    y fuerza 2..5. Clasifica cada nivel como soporte/resistencia/pivote.
+  - **Fair Value Gaps (FVG)**: imbalances de 3 velas (huecos institucionales), marcados `filled`
+    si una vela posterior los rellena; los abiertos se listan primero.
+- ✅ **Endpoint** `GET /api/education/structure-scan/{symbol}` (rate-limit 30/min; params
+  `period`/`interval`/`strength`), en paralelo al de `pattern-scan`; usa `get_ohlc_history`
+  (yfinance). Errores devuelven `"scan_failed"` genérico (sin filtrar el detalle de la excepción).
+- ✅ **11 tests unitarios offline** `backend/tests/test_price_action_unit.py` (swings, HH/HL/LH/LL,
+  BOS/CHoCH incl. flip, clustering S/R, FVG alcista rellenado + bajista sin rellenar, forma
+  end-to-end, input vacío). `pytest` → **11 passed**; junto a velas → **22 passed**.
+- Verificación: `py_compile server.py price_action.py` OK; import de `detect_structure` en server.
+- ⚠️ **Requiere backend vivo** (billing GCP reactivado) para correr sobre datos reales, y una
+  **UI de escáner** en el frontend que consuma el endpoint (siguiente paso ofrecido).
+- ⚠️ Recordatorio nº1 sigue en pie: migrar Cloud SQL→Neon para frenar el gasto (~CHF 300/mes).

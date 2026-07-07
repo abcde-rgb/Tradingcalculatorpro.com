@@ -47,6 +47,7 @@ from stock_data import (
     get_ohlc_history,
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
+from price_action import detect_structure
 from performance import (
     compute_trade_pnl,
     detect_errors,
@@ -5095,6 +5096,30 @@ async def education_pattern_scan(
     except Exception as e:
         logging.error(f"Pattern scan error for {sym}: {e}")
         return {"symbol": sym, "error": str(e), "detections": []}
+
+
+@api_router.get("/education/structure-scan/{symbol}")
+@limiter.limit("30/minute")
+async def education_structure_scan(
+    request: Request, symbol: str, period: str = "6mo", interval: str = "1d", strength: int = 2,
+) -> Dict[str, Any]:
+    """Scan real OHLC and return the PRICE-ACTION STRUCTURE: swing highs/lows,
+    market structure (HH/HL/LH/LL → trend), Break of Structure / Change of
+    Character, support/resistance levels and Fair Value Gaps."""
+    sym = symbol.upper().strip()
+    rng = period if period in _PATTERN_SCAN_RANGES else "6mo"
+    strength = max(1, min(5, int(strength or 2)))
+    try:
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, interval)
+        if not rows:
+            return {"symbol": sym, "rowsScanned": 0, "trend": "range",
+                    "swings": [], "events": [], "levels": [], "fvgs": []}
+        res = await asyncio.to_thread(detect_structure, rows, strength)
+        return {"symbol": sym, "period": rng, "interval": interval, **res}
+    except Exception as e:
+        logging.error(f"Structure scan error for {sym}: {e}")
+        return {"symbol": sym, "error": "scan_failed", "trend": "range",
+                "swings": [], "events": [], "levels": [], "fvgs": []}
 
 
 # ============================================================
