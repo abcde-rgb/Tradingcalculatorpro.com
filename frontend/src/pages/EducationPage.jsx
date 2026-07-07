@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -479,6 +480,15 @@ export default function EducationPage() {
   ];
   const totalTopics = EDUCATION_NAV.reduce((n, c) => n + c.topics.length, 0);
   const activeCategory = EDUCATION_NAV.find(c => c.topics.some(tp => tp.value === activeTopic));
+
+  // Deep-link to a module from a static SEO landing page, e.g. /education?topic=candlesticks
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const requested = searchParams.get('topic');
+    if (requested && EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === requested))) {
+      setActiveTopic(requested);
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Per-module completion (localStorage) → progress bars in sidebar/header.
   const [eduDone, setEduDone] = useState(() => {
