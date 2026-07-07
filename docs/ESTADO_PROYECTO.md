@@ -493,3 +493,19 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Auditado: 0 cobertura previa. `whitespace-pre-line` para los ejemplos con saltos de línea.
 - Verificación: build limpio, i18n 0 rotas, smoke (sección presente, números +100%/$200/$400,
   0 claves crudas, 0 pageerrors).
+
+### 2026-07-04 (10) — SEO a gran escala: 22 páginas indexables + plan de backlinks
+- ✅ **Punto 2 (páginas indexables)**: `frontend/scripts/gen-seo-pages.js` (hook `postbuild`)
+  genera en cada deploy 22 páginas ESTÁTICAS con HTML completo (Google no necesita ejecutar JS):
+  12 calculadoras en `/tools/<slug>/` + 10 temas en `/learn/<slug>/`. Cada una: title/meta/
+  canonical/OG/JSON-LD (SoftwareApplication/LearningResource + BreadcrumbList), contenido real,
+  CTA a la app (`?tab=`/`?topic=`) y enlaces internos. `sitemap.xml` ampliado a 30 URLs.
+  Deep-link `?topic=` añadido a EducationPage (para aterrizar en el módulo exacto).
+- ✅ **Punto 3 (backlinks/distribución)**: `docs/CAPTAR_TRAFICO.md` — playbook accionable
+  (directorios, Product Hunt, comunidades, vídeos, plantilla de outreach, widget embebible, orden).
+- ⚠️ Las páginas se generan en `build/` (no se commitean); se recrean en cada `npm run build`.
+- ⚠️ Recordatorio: el mayor multiplicador sigue siendo un DOMINIO PROPIO (github.io = techo bajo).
+  Acción del usuario: alta en Search Console + enviar sitemap.
+- Verificación: build genera 22 páginas + sitemap 30 URLs; HTML válido y autocontenido (104
+  palabras reales en <main>, JSON-LD correcto, CTA → /dashboard?tab=position); screenshot OK.
+- Robots.txt revisado: los `Disallow: /` son por-bot (PetalBot/DotBot), correctos; no se toca.
