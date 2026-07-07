@@ -509,3 +509,16 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificación: build genera 22 páginas + sitemap 30 URLs; HTML válido y autocontenido (104
   palabras reales en <main>, JSON-LD correcto, CTA → /dashboard?tab=position); screenshot OK.
 - Robots.txt revisado: los `Disallow: /` son por-bot (PetalBot/DotBot), correctos; no se toca.
+
+### 2026-07-04 (11) — SEO multi-idioma: ~258 páginas indexables en 8 idiomas
+- ✅ `gen-seo-pages.js` reescrito MULTI-IDIOMA (postbuild): carga los 8 archivos i18n.
+  - **Educación: 234 páginas** = 30 temas × 8 idiomas, con título+intro REALES ya traducidos
+    (se saltan solos los que falten). URLs con prefijo `/en /de /fr /ru /zh /ja /ar`, `/` = es.
+  - **Calculadoras: 24 páginas** = 12 × (es + en). El resto de idiomas de calculadoras queda
+    como siguiente paso (evita traducciones flojas de copy comercial).
+  - hreflang entre todas las versiones de idioma + x-default; `dir="rtl"` en árabe.
+  - sitemap.xml: 266 URLs.
+- Verificación: build genera 258 páginas; alemán con contenido real de de.js
+  ("Ralph Elliott beobachtete…"), árabe RTL correcto (screenshot), hreflang 9 en educación /
+  2 en calc; CTAs → /education?topic= y /dashboard?tab=. HTML autocontenido.
+- Pendiente/ofrecido: calculadoras en los otros 6 idiomas + widget embebible (Fase 2 restante).
