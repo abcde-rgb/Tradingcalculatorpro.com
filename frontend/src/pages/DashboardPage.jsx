@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { TradingViewChart } from '@/components/charts/TradingViewChart';
+import StructureScanner from '@/components/charts/StructureScanner';
 import { PercentageCalculator } from '@/components/calculators/PercentageCalculator';
 import { TargetPriceCalculator } from '@/components/calculators/TargetPriceCalculator';
 import { LeverageCalculator } from '@/components/calculators/LeverageCalculator';
@@ -407,6 +408,11 @@ export default function DashboardPage() {
             {/* TradingView Chart */}
             <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}>
               <TradingViewChart />
+            </motion.div>
+
+            {/* Price-action structure scanner — reads the SAME asset as the chart above */}
+            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}>
+              <StructureScanner />
             </motion.div>
 
             {/* Watchlist, Price Alerts and Calculation History */}

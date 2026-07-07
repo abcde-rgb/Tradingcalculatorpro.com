@@ -542,6 +542,25 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   BOS/CHoCH incl. flip, clustering S/R, FVG alcista rellenado + bajista sin rellenar, forma
   end-to-end, input vacío). `pytest` → **11 passed**; junto a velas → **22 passed**.
 - Verificación: `py_compile server.py price_action.py` OK; import de `detect_structure` en server.
-- ⚠️ **Requiere backend vivo** (billing GCP reactivado) para correr sobre datos reales, y una
-  **UI de escáner** en el frontend que consuma el endpoint (siguiente paso ofrecido).
+- ⚠️ **Requiere backend vivo** (billing GCP reactivado) para correr sobre datos reales.
 - ⚠️ Recordatorio nº1 sigue en pie: migrar Cloud SQL→Neon para frenar el gasto (~CHF 300/mes).
+
+### 2026-07-07 (2) — UI del escáner de estructura debajo del gráfico (Dashboard)
+- ✅ **Nuevo componente `frontend/src/components/charts/StructureScanner.jsx`** montado en
+  `DashboardPage` **justo debajo del `TradingViewChart`**. Consume
+  `GET /api/education/structure-scan/{symbol}`.
+- ✅ **Auto-sincronizado con el gráfico**: lee `selectedAsset` del store `useAssetsStore` (el
+  mismo que usa el chart), así que escanea el activo que el usuario tiene puesto arriba.
+  Resuelve el símbolo a formato Yahoo en el frontend (crypto→`-USD`, forex→`=X`,
+  índices/materias/futuros por mapa) para no tocar el backend.
+- ✅ **Muestra**: banner de tendencia (alcista/bajista/rango + explicación), línea de stats
+  (velas/swings/BOS/CHoCH), lista de rupturas BOS/CHoCH con color y dirección, soportes/
+  resistencias con nº de toques y fuerza (puntos), y Fair Value Gaps (abierto/rellenado).
+  Auto-escanea al cambiar de activo o período; con guardia anti-carrera (`reqId`).
+- ✅ **i18n: 28 claves nuevas × 8 idiomas** (prefijo `struct*`), inyectadas tras el ancla
+  `positionSizingDesc`. Los 8 archivos parsean OK; 0 claves crudas.
+- Verificación: `npm run build` exit 0 (+ SEO postbuild 258 págs); smoke headless con la API
+  mockeada → las 5 secciones renderizan, tendencia/BOS/CHoCH correctos, 0 raw keys, 0
+  pageerrors propios (los 2 `SecurityError` son de los iframes TradingView, preexistentes).
+  Screenshot validado (card en español, "LEYENDO BTC" sincronizado con el chart).
+- ⚠️ En producción solo se verá con **datos reales** cuando el backend esté vivo (billing/Neon).
