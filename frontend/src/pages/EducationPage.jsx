@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getProDiscipline, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getProDiscipline, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -420,6 +420,7 @@ export default function EducationPage() {
   const INST_METHODS = getInstitutionalMethods(t);
   const POS_BUILDING = getPositionBuilding(t);
   const TRADING_MINDSET = getTradingMindset(t);
+  const TRADING_MASTERS = getTradingMasters(t);
   const PRO_DISCIPLINE = getProDiscipline(t);
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
@@ -468,6 +469,7 @@ export default function EducationPage() {
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
       { value: 'mindset', label: t('mdzTitle') },
+      { value: 'masters', label: t('mstrTitle') },
       { value: 'rules', label: t('tradingRules') },
       { value: 'pro-discipline', label: t('discTitle') },
       { value: 'quiz', label: t('quizTab') },
@@ -1482,6 +1484,46 @@ export default function EducationPage() {
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
                     <Lightbulb className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
                     {TRADING_MINDSET.note}
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Trading masters — lessons from the greats */}
+            <TabsContent value="masters" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-yellow-500/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Star className="w-6 h-6 text-amber-500" />
+                    {TRADING_MASTERS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{TRADING_MASTERS.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TRADING_MASTERS.items.map(s => (
+                  <Card key={s.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Star className="w-4 h-4 text-amber-500" />
+                        <span>{s.name}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="bg-amber-500/10 border-amber-500/30">
+                <CardContent className="pt-5">
+                  <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    {TRADING_MASTERS.note}
                   </p>
                 </CardContent>
               </Card>
