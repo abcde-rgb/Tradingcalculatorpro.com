@@ -7,7 +7,7 @@ import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
   CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer,
-  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus
+  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getProDiscipline, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getProDiscipline, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -417,6 +417,8 @@ export default function EducationPage() {
   const MARGIN_LIQ = getMarginLiquidation(t);
   const OPTION_GREEKS = getOptionGreeks(t);
   const INST_DESK = getInstitutionalDesk(t);
+  const INST_METHODS = getInstitutionalMethods(t);
+  const POS_BUILDING = getPositionBuilding(t);
   const PRO_DISCIPLINE = getProDiscipline(t);
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
@@ -475,6 +477,8 @@ export default function EducationPage() {
       { value: 'options-strat', label: t('optTitle') },
       { value: 'news-trading', label: t('ntTitle') },
       { value: 'inst-desk', label: t('ideskTitle') },
+      { value: 'inst-methods', label: t('imethTitle') },
+      { value: 'inst-positions', label: t('iposTitle') },
       { value: 'business', label: t('tbizTitle') },
     ]},
   ];
@@ -1356,6 +1360,86 @@ export default function EducationPage() {
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
                     {SMART_MONEY.note}
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Institutional methods (VWAP, GEX, Volume Profile, stat-arb, risk parity…) */}
+            <TabsContent value="inst-methods" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-blue-500/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Landmark className="w-6 h-6 text-amber-500" />
+                    {INST_METHODS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{INST_METHODS.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {INST_METHODS.items.map(s => (
+                  <Card key={s.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        {s.type === 'bearish' ? <AlertTriangle className="w-4 h-4 text-orange-500" /> : <BarChart3 className="w-4 h-4 text-amber-500" />}
+                        <span>{s.name}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="bg-orange-500/10 border-orange-500/30">
+                <CardContent className="pt-5">
+                  <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    {INST_METHODS.note}
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Institutional position construction (slicing, VWAP/TWAP, icebergs, campaigns…) */}
+            <TabsContent value="inst-positions" className="space-y-8">
+              <Card className="bg-gradient-to-br from-emerald-500/5 to-blue-500/10 border-emerald-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Layers className="w-6 h-6 text-emerald-500" />
+                    {POS_BUILDING.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{POS_BUILDING.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {POS_BUILDING.items.map((s, i) => (
+                  <Card key={s.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-500 text-[11px] font-bold flex-shrink-0">{i + 1}</span>
+                        <span>{s.name}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="bg-emerald-500/10 border-emerald-500/30">
+                <CardContent className="pt-5">
+                  <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    {POS_BUILDING.note}
                   </p>
                 </CardContent>
               </Card>
