@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import LandingDemoCalculator from '@/components/landing/LandingDemoCalculator';
 import { 
   TrendingUp, Calculator, Shield, Zap, Crown, ArrowRight, Check, 
   CandlestickChart, History, Bell, BookOpen, Wallet, Target, 
@@ -193,6 +194,9 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* Free demo calculator — try before you register */}
+      <LandingDemoCalculator />
 
       {/* Asset Types Section */}
       <section className="py-16 px-4 bg-card/50">
