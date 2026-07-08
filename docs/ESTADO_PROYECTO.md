@@ -591,3 +591,19 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   `METODOS_INSTITUCIONALES_REPLICABLE.md` (VWAP, GEX, Volume Profile, stat-arb, risk parity,
   construcción de posiciones) y `DETECCION_ACCION_PRECIO_REPLICABLE.md` (order blocks, liquidez,
   Wyckoff, DeMark TD Sequential, fractales/Alligator, Ichimoku). Math de ejemplos verificada.
+
+### 2026-07-07 (5) — Detector de confirmación de rupturas (liquidez alcista/bajista)
+- ✅ **`backend/price_action.py::detect_breakouts()`**: confirma rupturas de S/R y clasifica **qué
+  liquidez entra** (alcista=compradores / bajista=vendedores). Puntúa 0-100 con: cierre atraviesa el
+  nivel (no solo mecha), vela a favor, cierre en el extremo, expansión de rango (vs ATR) y de volumen.
+  Detecta **fakeouts** (mecha pincha, cierra del otro lado → liquidez contraria = barrido).
+- ✅ Integrado en `detect_structure()` (campo `breakouts` + `counts.breakouts/fakeouts`), así que el
+  endpoint `/education/structure-scan/{symbol}` ya lo devuelve. **Sin cambios de endpoint.**
+- ✅ **`get_ohlc_history` ahora incluye `volume`** (retrocompatible; habilita confirmación por volumen
+  y, a futuro, VWAP/Volume Profile).
+- ✅ **4 tests unitarios nuevos** → `pytest tests/test_price_action_unit.py` = **15 passed**;
+  `py_compile` de price_action/stock_data/server OK. Demo: resistencia 100 + vela +2% con vol 4×
+  → score 95, confirmado, liquidez alcista.
+- 📚 Documentado en `DETECCION_ACCION_PRECIO_REPLICABLE.md` (§7).
+- ⚠️ Corre con datos reales cuando el backend esté vivo (billing/Neon). El merge dispara deploy de
+  Cloud Run que fallará por BILLING_DISABLED (esperado; el código queda en main listo).

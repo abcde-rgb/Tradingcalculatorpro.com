@@ -275,6 +275,57 @@ def ichimoku(rows):
 
 ---
 
+## 7. Confirmación de rupturas — ¿entra liquidez alcista o bajista? ✅ YA IMPLEMENTADO
+
+**Qué es.** Saber si la rotura de un nivel es **real** (entra dinero de verdad) o una **trampa**
+(*fakeout* / barrido), y **de qué lado entra la liquidez**: compradora (alcista) o vendedora (bajista).
+
+**Señales de confirmación** (combinadas en una puntuación 0-100):
+```
++30  el CIERRE atraviesa el nivel (no solo la mecha), con margen ≥ 0.1%
++20  vela a favor (cierre > apertura en alcista; < en bajista)
++20  cierre cerca del extremo de la vela (compradores/vendedores dominan la vela)
++15  expansión de rango: la vela es ≥ 1.2× el ATR medio (participación)
++15  expansión de volumen: volumen ≥ 1.5× la media (dinero real detrás)   [+8 si no hay volumen]
+     Confirmado si la puntuación ≥ 50.
+```
+**Fakeout / barrido de liquidez.** Si la **mecha** pincha el nivel pero la vela **cierra del otro
+lado** → trampa. La liquidez que entra es la **CONTRARIA**: pincha máximos y cierra debajo = entró
+liquidez **bajista** (barrieron a los compradores). Pincha mínimos y cierra encima = **alcista**.
+
+**Ejemplo con números** (resistencia en 100):
+```
+Base bajo 100 … luego una vela cierra en 102 (margen +2%), vela verde,
+cierre cerca del máximo, rango 4× ATR, volumen 4× la media
+→ puntuación 95 → ruptura CONFIRMADA · liquidez ALCISTA.
+```
+
+**Pseudocódigo** (resumen — el completo está en `price_action.py::detect_breakouts`).
+```python
+up_cross   = prev_close <= level < close       # el cierre cruza hacia arriba
+if up_cross:
+    score  = 30 if (close-level)/level >= 0.001 else 10
+    score += 20 if close > open else 0
+    score += int(20 * (close-low)/(high-low))                 # cierre en el extremo
+    score += 15 if (high-low) >= 1.2*atr else 0               # rango
+    score += 15 if volume >= 1.5*avg_volume else 0            # volumen
+    confirmed = score >= 50;  liquidity = "bullish"
+elif high > level and close < level:            # mecha arriba, cierra debajo
+    kind = "fakeout";  liquidity = "bearish"    # barrido: entra liquidez contraria
+```
+
+**Dónde encaja. → Ya está construido en este repo (con tests):**
+- `backend/price_action.py::detect_breakouts()` — devuelve por cada ruptura: nivel, dirección,
+  `confirmed`, `kind` (breakout/fakeout), **`liquidity`** (bullish/bearish), `score`, `%` de cierre,
+  expansión de rango y de volumen.
+- Incluido en `detect_structure()` (campo `breakouts` + `counts.breakouts/fakeouts`), así que el
+  endpoint **`/education/structure-scan/{symbol}`** ya lo devuelve.
+- `get_ohlc_history` ahora incluye **`volume`** (necesario para la confirmación por volumen).
+- 4 tests unitarios offline en `tests/test_price_action_unit.py` (ruptura alcista/bajista confirmada,
+  fakeout de resistencia = liquidez bajista, y que `detect_structure` incluye `breakouts`).
+
+---
+
 ## Resumen: qué se puede detectar y sobre qué se apoya
 
 | Método | Regla clave (en 1 línea) | Se apoya en |
@@ -285,6 +336,7 @@ def ichimoku(rows):
 | DeMark TD Sequential | 9 cierres < close[−4]; countdown 13 vs low[−2] | velas (puro) |
 | Fractales + Alligator | Fractal = swing(2); Alligator = 3 SMMA | `detect_swings` + `smma()` |
 | Ichimoku | Medias de (máx+mín)/2 en 9/26/52 | velas (puro) |
+| **Confirmación de rupturas** ✅ | **Cierre atraviesa + rango/volumen; fakeout = liquidez contraria** | **`detect_breakouts` (hecho)** |
 
 Todos se implementarían igual que `price_action.py`: **funciones puras + tests unitarios offline +
 (opcional) un endpoint** que las exponga al escáner del dashboard. Ninguno necesita datos de pago:
