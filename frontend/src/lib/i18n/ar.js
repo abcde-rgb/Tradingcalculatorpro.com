@@ -143,6 +143,10 @@ export default {
     // Risk Management - ARABIC
     positionSizingTitle: 'حجم المركز',
     positionSizingDesc: 'حدد مقدار رأس المال الذي ستخاطر به في كل صفقة بناءً على قدرتك على تحمل المخاطر وحجم حسابك.',
+    trialBadge: '7 أيام مجانًا',
+    trialCtaButton: 'ابدأ 7 أيام مجانًا',
+    trialReassure: 'لا خصم اليوم. ألغِ في أي وقت قبل الانتهاء.',
+    trialHeroNote: '7 أيام مجانًا · إلغاء متى شئت · دون التزام',
     dcalcBadge: 'جرّبه مجانًا · دون تسجيل',
     dcalcTitle: 'احسب حجم مركزك',
     dcalcSubtitle: 'كم تشتري لتخاطر فقط بما تقرّره أنت. دون تسجيل.',

@@ -412,6 +412,10 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    trialBadge: '7 jours gratuits',
+    trialCtaButton: 'Commencer 7 jours gratuits',
+    trialReassure: 'Aucun débit aujourd\'hui. Annule à tout moment avant la fin.',
+    trialHeroNote: '7 jours gratuits · Annule quand tu veux · Sans engagement',
     dcalcBadge: 'Essaie gratuitement · Sans inscription',
     dcalcTitle: 'Calcule ta taille de position',
     dcalcSubtitle: 'Combien acheter pour ne risquer que ce que tu décides. Sans inscription.',

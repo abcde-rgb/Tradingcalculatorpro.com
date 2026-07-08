@@ -243,6 +243,11 @@ export default function PricingPage() {
                   <span className="font-unbounded text-3xl font-bold">{t(plan.id + 'Price')}</span>
                   <span className="text-muted-foreground text-sm">{t(plan.id + 'Period')}</span>
                 </div>
+                {plan.id !== 'lifetime' && (
+                  <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5 mb-3" data-testid={`trial-badge-${plan.id}`}>
+                    ✨ {t('trialBadge')}
+                  </div>
+                )}
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Check className="w-4 h-4 text-primary flex-shrink-0" />
@@ -383,13 +388,18 @@ export default function PricingPage() {
                           <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
                         ) : isPremium ? (
                           <>{t('alreadyPremiumButton')}</>
+                        ) : selectedPlan !== 'lifetime' ? (
+                          <>{t('trialCtaButton')} <ArrowRight className="ml-2" /></>
                         ) : (
                           <>{t('payButton')} {t(selectedPlan + 'Price')} <ArrowRight className="ml-2" /></>
                         )}
                       </Button>
                     )}
-                    
+
                     <div className="text-xs text-center text-muted-foreground space-y-1">
+                      {selectedPlan !== 'lifetime' && !isPremium && (
+                        <p className="text-primary font-medium" data-testid="trial-reassure">{t('trialReassure')}</p>
+                      )}
                       <p>
                         {t('securePayment')} {PAYMENT_PROCESSOR_NAMES[selectedPayment] || 'Stripe'}
                       </p>

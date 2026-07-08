@@ -412,6 +412,10 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    trialBadge: '7 Tage gratis',
+    trialCtaButton: '7 Tage gratis starten',
+    trialReassure: 'Heute keine Abbuchung. Jederzeit vor Ablauf kündbar.',
+    trialHeroNote: '7 Tage gratis · Jederzeit kündbar · Keine Bindung',
     dcalcBadge: 'Kostenlos testen · Ohne Anmeldung',
     dcalcTitle: 'Berechne deine Positionsgröße',
     dcalcSubtitle: 'Wie viel kaufen, damit du nur riskierst, was du entscheidest. Ohne Anmeldung.',

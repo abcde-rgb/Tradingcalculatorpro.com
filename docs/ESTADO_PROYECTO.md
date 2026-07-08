@@ -715,3 +715,19 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   ruta. Email de aviso en impagos (intentos 1-2): pendiente/ofrecido (necesita SendGrid + backend vivo).
 - Verificado: `py_compile missing_apis.py server.py` OK; conversión de timestamp validada; 15 tests
   de price_action pasan. Requiere backend vivo (billing) para probar el flujo real de Stripe.
+
+### 2026-07-07 (16) — Prueba gratis de 7 días (tarjeta por adelantado)
+- ✅ **Backend** (`server.py`): constante `TRIAL_PERIOD_DAYS = 7`; `_create_stripe_session` acepta
+  `trial_days` y añade `subscription_data={"trial_period_days": 7}` al Checkout **solo en modo
+  suscripción** (no lifetime). Checkout recoge la tarjeta por adelantado (no se pone
+  `payment_method_collection='if_required'`) → cobra automático al día 8.
+- ✅ **Elegibilidad** (solo clientes NUEVOS): en `create_checkout` el trial se concede si el usuario
+  no es premium, no tiene `stripe_subscription_id` y no tiene `trial_used`. `_activate_paid_subscription`
+  marca `trial_used=True` al activar (evita re-trial tras cancelar). `subscription_end` se autocorrige
+  vía el webhook `customer.subscription.updated` (fix de la sesión 15).
+- ✅ **Frontend**: `PricingPage` — badge "7 días gratis" en los planes de suscripción (no lifetime),
+  botón "Empezar 7 días gratis" y línea "Sin cargo hoy. Cancela cuando quieras antes de que termine".
+  `LandingPage` — nota bajo el hero. i18n: **4 claves × 8 idiomas** (`trialBadge/CtaButton/Reassure/HeroNote`).
+- Verificado: `py_compile server.py` OK; build OK; smoke headless (landing hero + pricing: 3 badges en
+  subs, 0 en lifetime, botón "Start 7-day free trial", reassurance, 0 crudas, 0 pageerrors); screenshot.
+- ⚠️ El flujo real de Stripe (trial → cobro día 8) solo se prueba con el backend vivo (billing).
