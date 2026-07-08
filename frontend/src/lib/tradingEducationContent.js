@@ -1559,6 +1559,24 @@ export const getFuturesMasters = (t) => ({
   note: t('fmstNote'),
 });
 
+// Partial exits / scaling out — an honest take: what it is, the case for it
+// (psychology + risk), the honest counter-argument (it usually lowers
+// expectancy), the two common strategies, the R-math and the common mistakes.
+export const getPartialExits = (t) => ({
+  title: t('pexTitle'),
+  intro: t('pexIntro'),
+  items: [
+    { id: 'what',     name: t('pexWhatName'),     desc: t('pexWhatDesc') },
+    { id: 'pros',     name: t('pexProsName'),     desc: t('pexProsDesc') },
+    { id: 'cons',     name: t('pexConsName'),     desc: t('pexConsDesc') },
+    { id: 'half',     name: t('pexHalfName'),     desc: t('pexHalfDesc') },
+    { id: 'thirds',   name: t('pexThirdsName'),   desc: t('pexThirdsDesc') },
+    { id: 'math',     name: t('pexMathName'),     desc: t('pexMathDesc') },
+    { id: 'mistakes', name: t('pexMistakesName'), desc: t('pexMistakesDesc') },
+  ],
+  note: t('pexNote'),
+});
+
 // Professional discipline & mental performance: process-over-outcome, checklists,
 // error taxonomy, tilt/stress protocol, decision fatigue and accountability.
 export const getProDiscipline = (t) => ({
