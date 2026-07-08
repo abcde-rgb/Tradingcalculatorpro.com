@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from price_action import (  # noqa: E402
     detect_swings, label_structure, detect_structure_events,
-    detect_sr_levels, detect_fvgs, detect_structure,
+    detect_sr_levels, detect_fvgs, detect_structure, detect_breakouts,
 )
 
 
@@ -147,6 +147,54 @@ def test_detect_structure_shape():
 def test_empty_input():
     res = detect_structure([], strength=2)
     assert res["trend"] == "range" and res["swings"] == []
+
+
+# ---- Breakout confirmation -------------------------------------------------
+def _rowv(o, h, lo, c, v=1000.0, d="2024-01-01"):
+    return {"date": d, "open": o, "high": h, "low": lo, "close": c, "volume": v}
+
+
+_RES = [{"price": 100.0, "type": "resistance", "touches": 2, "strength": 2}]
+_SUP = [{"price": 100.0, "type": "support", "touches": 2, "strength": 2}]
+
+
+def test_breakout_bullish_confirmed():
+    # Base below 100, then a strong up bar closes through it on high volume.
+    rows = [_rowv(98, 98.5, 97.5, 98), _rowv(98, 99, 97.8, 98.5), _rowv(98.5, 99.2, 98.2, 99),
+            _rowv(99, 99.3, 98.6, 99), _rowv(99, 103, 98.8, 102, 4000), _rowv(102, 102.5, 101, 102)]
+    bks = detect_breakouts(rows, _RES, strength=2)
+    hit = [b for b in bks if b["kind"] == "breakout"]
+    assert hit and hit[0]["index"] == 4
+    assert hit[0]["direction"] == "bullish" and hit[0]["liquidity"] == "bullish"
+    assert hit[0]["confirmed"] is True
+
+
+def test_breakout_bearish_confirmed():
+    # Base above 100, then a strong down bar closes through support.
+    rows = [_rowv(102, 102.5, 101.5, 102), _rowv(101.5, 102, 101, 101.5), _rowv(101, 101.5, 100.8, 101),
+            _rowv(101, 101.2, 100.7, 101), _rowv(101, 101.2, 97, 98, 4000), _rowv(98, 99, 97.5, 98)]
+    bks = detect_breakouts(rows, _SUP, strength=2)
+    hit = [b for b in bks if b["kind"] == "breakout"]
+    assert hit and hit[0]["direction"] == "bearish" and hit[0]["liquidity"] == "bearish"
+    assert hit[0]["confirmed"] is True
+
+
+def test_fakeout_resistance_is_bearish_liquidity():
+    # Wick pierces 100 but the bar closes back below → liquidity grab (bearish).
+    rows = [_rowv(98, 98.5, 97.5, 98), _rowv(98, 99, 97.8, 98.5), _rowv(98.5, 99.2, 98.2, 99),
+            _rowv(99, 99.3, 98.6, 99), _rowv(99, 101, 98.5, 99.5), _rowv(99.5, 99.8, 98.5, 99)]
+    bks = detect_breakouts(rows, _RES, strength=2)
+    fk = [b for b in bks if b["kind"] == "fakeout"]
+    assert fk and fk[0]["index"] == 4
+    assert fk[0]["liquidity"] == "bearish" and fk[0]["confirmed"] is False
+
+
+def test_detect_structure_includes_breakouts():
+    highs = [10, 11, 12, 15, 12, 11, 9, 7, 9, 11, 13, 10, 8, 6, 9, 12, 14]
+    rows = [{"date": "2024-01-01", "open": h, "high": h + 0.4, "low": h - 0.4, "close": h} for h in highs]
+    res = detect_structure(rows, strength=2)
+    assert "breakouts" in res and isinstance(res["breakouts"], list)
+    assert "breakouts" in res["counts"] and "fakeouts" in res["counts"]
 
 
 if __name__ == "__main__":

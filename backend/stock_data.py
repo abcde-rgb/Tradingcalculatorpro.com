@@ -169,6 +169,7 @@ def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> 
         quote = ((res.get("indicators") or {}).get("quote") or [{}])[0]
         opens, highs = quote.get("open") or [], quote.get("high") or []
         lows, closes = quote.get("low") or [], quote.get("close") or []
+        vols = quote.get("volume") or []
         rows = []
         for idx, ts in enumerate(stamps):
             o, h, lo, c = (
@@ -180,9 +181,11 @@ def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> 
             # Yahoo emits null for non-trading slots — skip incomplete bars.
             if None in (o, h, lo, c):
                 continue
+            v = vols[idx] if idx < len(vols) else None
             rows.append({
                 "date": datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d"),
                 "open": float(o), "high": float(h), "low": float(lo), "close": float(c),
+                "volume": float(v) if v is not None else 0.0,
             })
         return rows
     except Exception as e:  # noqa: BLE001

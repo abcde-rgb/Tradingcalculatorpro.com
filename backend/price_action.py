@@ -184,24 +184,111 @@ def detect_fvgs(rows: List[Row]) -> List[Dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
+# 6) Breakout confirmation — real break of a level + which liquidity enters
+# ---------------------------------------------------------------------------
+def _avg_true_range(rows: List[Row], window: int = 14) -> float:
+    if len(rows) < 2:
+        return 0.0
+    trs = []
+    for i in range(1, len(rows)):
+        h, lo, pc = rows[i]["high"], rows[i]["low"], rows[i - 1]["close"]
+        trs.append(max(h - lo, abs(h - pc), abs(lo - pc)))
+    w = trs[-window:] if len(trs) > window else trs
+    return sum(w) / len(w) if w else 0.0
+
+
+def _avg_vol(rows: List[Row], i: int, window: int) -> float:
+    seg = [(r.get("volume") or 0.0) for r in rows[max(0, i - window):i]]
+    seg = [v for v in seg if v > 0]
+    return sum(seg) / len(seg) if seg else 0.0
+
+
+def detect_breakouts(rows: List[Row], levels: List[Dict[str, Any]] = None,
+                     strength: int = 2, vol_window: int = 20) -> List[Dict[str, Any]]:
+    """Confirmed breakouts of support/resistance + which side of liquidity enters.
+
+    For each level, find the bar whose CLOSE crosses it (previous close on the
+    other side). Confirmation combines: close-through margin, bar polarity, close
+    position within the bar, range expansion (vs ATR) and — if volume is present —
+    volume expansion. A wick that pierces the level but closes back is a
+    ``fakeout`` (liquidity grab): the liquidity that enters is the OPPOSITE side.
+
+    ``liquidity`` = 'bullish' (buyers entering) or 'bearish' (sellers entering).
+    """
+    out: List[Dict[str, Any]] = []
+    n = len(rows)
+    if n < 2 * strength + 2:
+        return out
+    if levels is None:
+        levels = detect_sr_levels(detect_swings(rows, strength=strength))
+    atr = _avg_true_range(rows)
+    has_vol = any((r.get("volume") or 0) > 0 for r in rows)
+    for lv in levels:
+        L = lv["price"]
+        if L <= 0:
+            continue
+        for i in range(1, n):
+            prev_c, c = rows[i - 1]["close"], rows[i]["close"]
+            h, lo, o = rows[i]["high"], rows[i]["low"], rows[i]["open"]
+            rng = max(h - lo, 1e-9)
+            up_cross = prev_c <= L < c
+            down_cross = prev_c >= L > c
+            if up_cross or down_cross:
+                direction = "bullish" if up_cross else "bearish"
+                margin = abs(c - L) / L
+                bar_ok = (c > o) if up_cross else (c < o)
+                close_pos = (c - lo) / rng if up_cross else (h - c) / rng
+                range_exp = (h - lo) / atr if atr else 1.0
+                avg_v = _avg_vol(rows, i, vol_window) if has_vol else 0.0
+                vol_exp = ((rows[i].get("volume") or 0.0) / avg_v) if avg_v else None
+                score = 30 if margin >= 0.001 else 10
+                score += 20 if bar_ok else 0
+                score += int(20 * min(1.0, max(0.0, close_pos)))
+                score += 15 if range_exp >= 1.2 else 0
+                score += (15 if (vol_exp or 0) >= 1.5 else 0) if vol_exp is not None else 8
+                out.append({
+                    "index": i, "date": rows[i].get("date"), "level": round(L, 6),
+                    "levelType": lv["type"], "direction": direction, "kind": "breakout",
+                    "confirmed": score >= 50, "liquidity": direction, "score": min(100, score),
+                    "closeThroughPct": round(margin * 100, 3),
+                    "rangeExpansion": round(range_exp, 2),
+                    "volExpansion": round(vol_exp, 2) if vol_exp is not None else None,
+                })
+            elif h > L and c < L and prev_c < L:      # swept resistance, closed back below
+                out.append({"index": i, "date": rows[i].get("date"), "level": round(L, 6),
+                            "levelType": lv["type"], "direction": "bearish", "kind": "fakeout",
+                            "confirmed": False, "liquidity": "bearish", "score": 0,
+                            "closeThroughPct": 0.0, "rangeExpansion": None, "volExpansion": None})
+            elif lo < L and c > L and prev_c > L:      # swept support, closed back above
+                out.append({"index": i, "date": rows[i].get("date"), "level": round(L, 6),
+                            "levelType": lv["type"], "direction": "bullish", "kind": "fakeout",
+                            "confirmed": False, "liquidity": "bullish", "score": 0,
+                            "closeThroughPct": 0.0, "rangeExpansion": None, "volExpansion": None})
+    out.sort(key=lambda e: e["index"])
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Public: one call → full structural read
 # ---------------------------------------------------------------------------
 def detect_structure(rows: List[Row], strength: int = 2) -> Dict[str, Any]:
     """Full price-action structure read for a series of OHLC rows."""
     if not rows or len(rows) < 2 * strength + 1:
         return {"trend": "range", "swings": [], "events": [], "levels": [], "fvgs": [],
-                "rowsScanned": len(rows or [])}
+                "breakouts": [], "rowsScanned": len(rows or [])}
     swings = detect_swings(rows, strength=strength)
     structure = label_structure(swings)
     events = detect_structure_events(rows, swings)
     levels = detect_sr_levels(swings)
     fvgs = detect_fvgs(rows)
+    breakouts = detect_breakouts(rows, levels, strength=strength)
     return {
         "trend": structure["trend"],
         "swings": structure["swings"],
         "events": events,
         "levels": levels,
         "fvgs": [g for g in fvgs if not g["filled"]] + [g for g in fvgs if g["filled"]],
+        "breakouts": breakouts,
         "rowsScanned": len(rows),
         "counts": {
             "swings": len(swings),
@@ -209,5 +296,7 @@ def detect_structure(rows: List[Row], strength: int = 2) -> Dict[str, Any]:
             "choch": sum(1 for e in events if e["kind"] == "CHoCH"),
             "levels": len(levels),
             "fvgOpen": sum(1 for g in fvgs if not g["filled"]),
+            "breakouts": sum(1 for b in breakouts if b["kind"] == "breakout" and b["confirmed"]),
+            "fakeouts": sum(1 for b in breakouts if b["kind"] == "fakeout"),
         },
     }
