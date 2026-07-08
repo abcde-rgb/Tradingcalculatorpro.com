@@ -40,6 +40,20 @@ export function SimulatorPro() {
   const [fixedWinRate, setFixedWinRate] = useState(55);
   const [fixedTakeProfit, setFixedTakeProfit] = useState(2);
   const [fixedStopLoss, setFixedStopLoss] = useState(1);
+  // Partial take-profits (scale-out) for fixed mode
+  const [fixedPartialTps, setFixedPartialTps] = useState(false);
+  const [fixedPartialLegs, setFixedPartialLegs] = useState([
+    { r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 },
+  ]);
+  const [fixedPartialCont, setFixedPartialCont] = useState(60);
+
+  const updatePartialLeg = (index, field, value) => {
+    setFixedPartialLegs((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: parseFloat(value) || 0 };
+      return next;
+    });
+  };
 
   // Output
   const [results, setResults] = useState(null);
@@ -93,6 +107,7 @@ export function SimulatorPro() {
       initialBalance, capitalMode, phases, compoundInterest,
       tradingComm, platformComm,
       fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
+      fixedPartialTps, fixedPartialLegs, fixedPartialCont,
     });
     setResults(agg);
     setOperations(ops);
@@ -124,6 +139,9 @@ export function SimulatorPro() {
         fixedTakeProfit={fixedTakeProfit} setFixedTakeProfit={setFixedTakeProfit}
         fixedStopLoss={fixedStopLoss} setFixedStopLoss={setFixedStopLoss}
         fixedWinRate={fixedWinRate} setFixedWinRate={setFixedWinRate}
+        fixedPartialTps={fixedPartialTps} setFixedPartialTps={setFixedPartialTps}
+        fixedPartialLegs={fixedPartialLegs} updatePartialLeg={updatePartialLeg}
+        fixedPartialCont={fixedPartialCont} setFixedPartialCont={setFixedPartialCont}
         onExecute={executeSimulation} isLoading={isLoading}
       />
 

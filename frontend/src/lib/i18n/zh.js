@@ -326,6 +326,10 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    simPartialTps: '分批止盈（逐步了结）',
+    simPartialHint: '在每个目标平掉一部分。TP1 之后止损移至保本（其余不再会亏）。',
+    simContinuation: '到达下一个 TP 的概率',
+    simPartialNote: '贴近现实：在盈利单里，价格并不总能到达每个 TP。它降低波动，通常也降低平均盈利——正如现实。',
     pxcTitle: '分批平仓（盈亏比）',
     pxcSubtitle: '规划分批平仓，查看以 R 表示的结果',
     pxcLong: '做多',
