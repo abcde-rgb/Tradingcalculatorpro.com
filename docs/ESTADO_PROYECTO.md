@@ -652,3 +652,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   gestión es la que ya está en tu plan.
 - Total **43 → 44 módulos**. i18n: **19 claves × 8 idiomas** (prefijo `tmg*`). Icono `Activity` (sky).
 - Verificado: build OK; smoke `?topic=trade-mgmt` 0 crudas/0 errores.
+
+### 2026-07-07 (11) — Calculadora de salida parcial (R:B) en el Dashboard
+- ✅ **Nueva calculadora `PartialExitCalculator.jsx`** en el Dashboard (grupo Riesgo, pestaña
+  `partial-exit`, deep-link `?tab=partial-exit`). Entrada/stop/tamaño + dirección Long/Short + 3
+  objetivos con % a cerrar → calcula en vivo: riesgo 1R, R y beneficio por tramo, **R de la posición**,
+  % cerrado / runner abierto, y la comparativa **salida escalonada vs mantener todo** (+ "si el runner
+  llega arriba"). Cálculo puro con `useMemo`, sin backend.
+- i18n: **22 claves × 8 idiomas** (prefijo `pxc*`). Añadido `partial-exit` a la allowlist de `?tab=`.
+- Verificado: build OK; smoke headless en `/dashboard?tab=partial-exit` → render OK, 0 claves crudas,
+  0 pageerrors, y **math correcta** (defaults 100/95/100 + 105/50 110/25 120/25 → 1R/2R/4R, posición
+  2.00R vs mantener 4.00R, riesgo 500). Screenshot validado.
