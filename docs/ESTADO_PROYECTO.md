@@ -564,3 +564,19 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   pageerrors propios (los 2 `SecurityError` son de los iframes TradingView, preexistentes).
   Screenshot validado (card en español, "LEYENDO BTC" sincronizado con el chart).
 - ⚠️ En producción solo se verá con **datos reales** cuando el backend esté vivo (billing/Neon).
+
+### 2026-07-07 (3) — 2 módulos de educación: Métodos institucionales + Construcción de posiciones
+- ✅ **`inst-methods` "Métodos institucionales"** (getter `getInstitutionalMethods`): VWAP/TWAP,
+  Gamma Exposure (GEX), Volume/Market Profile, arbitraje estadístico, paridad de riesgo, order
+  flow/DOM + una tarjeta honesta "qué es institucional de verdad vs. envoltorio retail (ICT/SMC)".
+- ✅ **`inst-positions` "Construcción de posiciones institucionales"** (getter `getPositionBuilding`):
+  por qué no entran de golpe (impacto de mercado), troceo madre/hijas, algoritmos VWAP/TWAP/POV,
+  órdenes iceberg, anti-detección (jitter ±10-20%), campaña de acumulación/distribución (Wyckoff),
+  y unwinding. Nota honesta: "no tienes sus algos pero SÍ la lógica".
+- Ambos en la categoría **Trading Profesional** de `EducationPage`; total **36 → 38 módulos**.
+  Render clonado del patrón `{title, intro, items[], note}` (como SmartMoney); iconos `Landmark`/`Layers`.
+- ✅ **i18n: 34 claves nuevas × 8 idiomas** (prefijos `imeth*`/`ipos*`), tras el ancla
+  `positionSizingDesc`. Los 8 archivos parsean; 34/34 por idioma.
+- Investigación con fuentes (SpotGamma, HFR, Quantt, Wyden execution algos, forexclub VWAP/TWAP/IS).
+- Verificación: `npm run build` OK; smoke headless deep-link `?topic=inst-methods` y
+  `?topic=inst-positions` → ambos renderizan, 0 claves crudas, 0 pageerrors; screenshots validados.

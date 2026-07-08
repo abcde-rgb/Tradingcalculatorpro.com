@@ -1469,6 +1469,42 @@ export const getInstitutionalDesk = (t) => ({
   note: t('ideskNote'),
 });
 
+// Institutional METHODS — what banks/funds/prop desks genuinely use (VWAP, GEX,
+// Volume Profile, stat-arb, risk parity, order flow), with an honest line
+// between real institutional behaviour and retail marketing packaging.
+export const getInstitutionalMethods = (t) => ({
+  title: t('imethTitle'),
+  intro: t('imethIntro'),
+  items: [
+    { id: 'real',       name: t('imethRealName'),       desc: t('imethRealDesc'),       type: 'neutral' },
+    { id: 'vwap',       name: t('imethVwapName'),       desc: t('imethVwapDesc'),       type: 'neutral' },
+    { id: 'gex',        name: t('imethGexName'),        desc: t('imethGexDesc'),        type: 'neutral' },
+    { id: 'profile',    name: t('imethProfileName'),    desc: t('imethProfileDesc'),    type: 'neutral' },
+    { id: 'statarb',    name: t('imethStatarbName'),    desc: t('imethStatarbDesc'),    type: 'neutral' },
+    { id: 'riskparity', name: t('imethRiskparityName'), desc: t('imethRiskparityDesc'), type: 'neutral' },
+    { id: 'flow',       name: t('imethFlowName'),       desc: t('imethFlowDesc'),       type: 'bearish' },
+  ],
+  note: t('imethNote'),
+});
+
+// Institutional POSITION CONSTRUCTION — how large orders are actually built and
+// unwound without moving the market: slicing, VWAP/TWAP/POV, icebergs,
+// anti-detection jitter, accumulation/distribution campaigns and exit.
+export const getPositionBuilding = (t) => ({
+  title: t('iposTitle'),
+  intro: t('iposIntro'),
+  items: [
+    { id: 'why',      name: t('iposWhyName'),      desc: t('iposWhyDesc'),      type: 'neutral' },
+    { id: 'slice',    name: t('iposSliceName'),    desc: t('iposSliceDesc'),    type: 'neutral' },
+    { id: 'algos',    name: t('iposAlgosName'),    desc: t('iposAlgosDesc'),    type: 'neutral' },
+    { id: 'iceberg',  name: t('iposIcebergName'),  desc: t('iposIcebergDesc'),  type: 'neutral' },
+    { id: 'jitter',   name: t('iposJitterName'),   desc: t('iposJitterDesc'),   type: 'bearish' },
+    { id: 'campaign', name: t('iposCampaignName'), desc: t('iposCampaignDesc'), type: 'neutral' },
+    { id: 'unwind',   name: t('iposUnwindName'),   desc: t('iposUnwindDesc'),   type: 'bearish' },
+  ],
+  note: t('iposNote'),
+});
+
 // Professional discipline & mental performance: process-over-outcome, checklists,
 // error taxonomy, tilt/stress protocol, decision fatigue and accountability.
 export const getProDiscipline = (t) => ({
