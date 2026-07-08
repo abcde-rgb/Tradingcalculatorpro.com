@@ -1577,6 +1577,27 @@ export const getPartialExits = (t) => ({
   note: t('pexNote'),
 });
 
+// Entries & exits done right — the non-obvious mechanics of SL/TP and order
+// execution: invalidation-based stops, size from the stop, stop types, hard vs
+// mental stop, structure targets, R:R vs win-rate, stop-hunting/liquidity,
+// order types & real costs, and the classic SL/TP mistakes.
+export const getStopsAndTargets = (t) => ({
+  title: t('sltpTitle'),
+  intro: t('sltpIntro'),
+  items: [
+    { id: 'invalidation', name: t('sltpInvalidationName'), desc: t('sltpInvalidationDesc') },
+    { id: 'stopfirst',    name: t('sltpStopFirstName'),    desc: t('sltpStopFirstDesc') },
+    { id: 'stoptypes',    name: t('sltpStopTypesName'),    desc: t('sltpStopTypesDesc') },
+    { id: 'hardstop',     name: t('sltpHardStopName'),     desc: t('sltpHardStopDesc') },
+    { id: 'target',       name: t('sltpTargetName'),       desc: t('sltpTargetDesc') },
+    { id: 'rr',           name: t('sltpRrName'),           desc: t('sltpRrDesc') },
+    { id: 'liquidity',    name: t('sltpLiquidityName'),    desc: t('sltpLiquidityDesc') },
+    { id: 'orders',       name: t('sltpOrdersName'),       desc: t('sltpOrdersDesc') },
+    { id: 'mistakes',     name: t('sltpMistakesName'),     desc: t('sltpMistakesDesc') },
+  ],
+  note: t('sltpNote'),
+});
+
 // Professional discipline & mental performance: process-over-outcome, checklists,
 // error taxonomy, tilt/stress protocol, decision fatigue and accountability.
 export const getProDiscipline = (t) => ({

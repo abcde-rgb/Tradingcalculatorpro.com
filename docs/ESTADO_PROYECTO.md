@@ -634,3 +634,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Total **41 → 42 módulos**. i18n: **17 claves × 8 idiomas** (prefijo `pex*`). Icono `Gauge` (azul).
   Antes solo había menciones sueltas (`mgmtPartials`, `positionScaling`); ahora hay módulo dedicado.
 - Verificado: build OK; smoke `?topic=partial-exits` 0 crudas/0 errores; screenshot validado (42).
+
+### 2026-07-07 (9) — Módulo "Apertura y cierre: SL, TP y órdenes"
+- ✅ **`stops-targets` "Apertura y cierre: SL, TP y órdenes"** (getter `getStopsAndTargets`) en
+  Riesgo y capital: el stop en el punto de invalidación (no % cómodo), primero el stop→luego el
+  tamaño, tipos de stop (fijo/ATR/estructural/trailing/temporal), stop real vs mental, dónde poner
+  el TP (estructura), R:B vs % de acierto (con la fórmula de esperanza), no poner el stop en el sitio
+  obvio (liquidez), tipos de orden y costes reales (market/limit/stop/OCO, slippage, gaps), y errores
+  clásicos. Nota: define SL y TP por escrito ANTES de entrar.
+- Total **42 → 43 módulos**. i18n: **21 claves × 8 idiomas** (prefijo `sltp*`). Icono `Target` (rosa).
+- Verificado: build OK; smoke `?topic=stops-targets` 0 crudas/0 errores; screenshot validado (43).
