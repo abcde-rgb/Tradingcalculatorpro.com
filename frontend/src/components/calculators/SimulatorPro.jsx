@@ -93,6 +93,32 @@ export function SimulatorPro() {
     });
   };
 
+  // Enable/disable partial TPs for a phase (seeds legs + continuation on enable).
+  const togglePhasePartial = (index, checked) => {
+    setPhases((prev) => {
+      const next = [...prev];
+      const p = { ...next[index], partialTps: checked };
+      if (checked && !Array.isArray(p.legs)) {
+        p.legs = [{ r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 }];
+      }
+      if (checked && p.cont == null) p.cont = 60;
+      next[index] = p;
+      return next;
+    });
+  };
+
+  const updatePhaseLeg = (index, legIndex, field, value) => {
+    setPhases((prev) => {
+      const next = [...prev];
+      const legs = Array.isArray(next[index].legs)
+        ? next[index].legs.map((l) => ({ ...l }))
+        : [{ r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 }];
+      legs[legIndex] = { ...legs[legIndex], [field]: parseFloat(value) || 0 };
+      next[index] = { ...next[index], legs };
+      return next;
+    });
+  };
+
   const getOperationRange = (phaseIndex) => {
     let start = 1;
     for (let i = 0; i < phaseIndex; i += 1) start += phases[i]?.numOps || 30;
@@ -134,6 +160,7 @@ export function SimulatorPro() {
         platformComm={platformComm} setPlatformComm={setPlatformComm}
         compoundInterest={compoundInterest} setCompoundInterest={setCompoundInterest}
         phases={phases} updatePhase={updatePhase} getOperationRange={getOperationRange}
+        togglePhasePartial={togglePhasePartial} updatePhaseLeg={updatePhaseLeg}
         fixedCapitalPerOp={fixedCapitalPerOp} setFixedCapitalPerOp={setFixedCapitalPerOp}
         fixedTotalOps={fixedTotalOps} setFixedTotalOps={setFixedTotalOps}
         fixedTakeProfit={fixedTakeProfit} setFixedTakeProfit={setFixedTakeProfit}

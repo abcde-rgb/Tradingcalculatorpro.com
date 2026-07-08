@@ -36,6 +36,7 @@ export default function SimulatorConfigPanel({
   platformComm, setPlatformComm,
   compoundInterest, setCompoundInterest,
   phases, updatePhase, getOperationRange,
+  togglePhasePartial, updatePhaseLeg,
   // fixed risk mode
   fixedCapitalPerOp, setFixedCapitalPerOp,
   fixedTotalOps, setFixedTotalOps,
@@ -269,6 +270,40 @@ export default function SimulatorConfigPanel({
                                 ))}
                               </SelectContent>
                             </Select>
+                          </div>
+
+                          {/* Per-phase partial take-profits */}
+                          <div className="space-y-2 border-t border-border pt-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox
+                                checked={!!phase.partialTps}
+                                onCheckedChange={(v) => togglePhasePartial(idx, !!v)}
+                                data-testid={`phase-partial-toggle-${idx}`}
+                              />
+                              <span className="text-[11px] font-semibold">{t('simPartialTps')}</span>
+                            </label>
+                            {phase.partialTps && (
+                              <div className="space-y-1.5" data-testid={`phase-partial-config-${idx}`}>
+                                <div className="grid grid-cols-[auto_1fr_1fr] gap-1.5 text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">
+                                  <span className="w-7" /><span>{t('takeProfit')} %</span><span>{t('pxcClosePct')}</span>
+                                </div>
+                                {(phase.legs || [{ r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 }]).map((leg, li) => (
+                                  <div key={li} className="grid grid-cols-[auto_1fr_1fr] gap-1.5 items-center">
+                                    <span className="text-[10px] font-mono text-muted-foreground w-7">TP{li + 1}</span>
+                                    <Input type="number" value={leg.r} step={0.1} min={0.1}
+                                           onChange={(e) => updatePhaseLeg(idx, li, 'r', e.target.value)} className="h-7 text-xs" />
+                                    <Input type="number" value={leg.pct} step={5} min={0} max={100}
+                                           onChange={(e) => updatePhaseLeg(idx, li, 'pct', e.target.value)} className="h-7 text-xs" />
+                                  </div>
+                                ))}
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] text-muted-foreground flex-1">{t('simContinuation')}</span>
+                                  <Input type="number" value={phase.cont ?? 60} step={5} min={0} max={100}
+                                         onChange={(e) => updatePhase(idx, 'cont', parseFloat(e.target.value) || 0)}
+                                         className="h-7 text-xs w-16" />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
