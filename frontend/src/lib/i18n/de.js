@@ -412,6 +412,10 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    simPartialTps: 'Partielle TPs (Scale-Out)',
+    simPartialHint: 'Schließe an jedem Ziel einen Teil. Nach TP1 geht der Stop auf Break-even (der Rest kann nicht verlieren).',
+    simContinuation: 'Wahrsch., das nächste TP zu erreichen',
+    simPartialNote: 'Bildet die Realität ab: bei einem Gewinner erreicht der Kurs nicht immer jedes TP. Senkt die Varianz und meist den Durchschnittsgewinn — wie im echten Leben.',
     pxcTitle: 'Teilausstieg (CRV)',
     pxcSubtitle: 'Teilausstiege planen und das Ergebnis in R sehen',
     pxcLong: 'Long',

@@ -24,7 +24,28 @@ function makeOp(num, phase, numOpsInPhase, capitalBefore, capitalInOp, netResult
   };
 }
 
-function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss, totalCommRate }) {
+/**
+ * Winning-trade PnL when scaling out with PARTIAL take-profits.
+ *
+ * `legs` = [{ r, pct }] with r = target as a % gain and pct = % of the position
+ * closed there. TP1 is assumed reached on a win; each further leg is reached
+ * only with probability `cont` (sequential). Once a leg is missed, the rest of
+ * the position closes at break-even (0) — the professional "move the stop to
+ * break-even after TP1" behaviour, so the runner can't turn into a loss.
+ * `rnd` is injectable for deterministic tests.
+ */
+export function winPnlPartial(fixedCapital, legs, cont, rnd = Math.random) {
+  let pnl = 0;
+  let reached = true;
+  for (let i = 0; i < legs.length; i += 1) {
+    if (i > 0) reached = reached && rnd() < cont;
+    if (!reached) break;                         // remainder closes at break-even (0)
+    pnl += fixedCapital * ((legs[i].pct || 0) / 100) * ((legs[i].r || 0) / 100);
+  }
+  return pnl;
+}
+
+function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss, partialTps, partialLegs, partialCont, totalCommRate }) {
   const ops = [];
   let accountBalance = initialBalance;
   let totalWins = 0, totalOps = 0, peakBalance = accountBalance, minBalance = accountBalance;
@@ -34,10 +55,14 @@ function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixed
   const winRate = fixedWinRate / 100;
   const tp = fixedTakeProfit / 100;
   const sl = fixedStopLoss / 100;
+  const usePartial = partialTps && Array.isArray(partialLegs) && partialLegs.length > 0;
+  const cont = Math.max(0, Math.min(1, (partialCont ?? 60) / 100));
 
   for (let op = 0; op < fixedTotalOps; op += 1) {
     const isWin = Math.random() < winRate;
-    const pnl = isWin ? fixedCapital * tp : -(fixedCapital * sl);
+    const pnl = isWin
+      ? (usePartial ? winPnlPartial(fixedCapital, partialLegs, cont) : fixedCapital * tp)
+      : -(fixedCapital * sl);
     const commission = Math.abs(pnl) * totalCommRate;
     const netResult = pnl - commission;
     if (isWin) { grossGain += pnl; totalWins += 1; }
@@ -97,11 +122,13 @@ export function runSimulation(config) {
     initialBalance, capitalMode, phases, compoundInterest,
     tradingComm, platformComm,
     fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
+    fixedPartialTps, fixedPartialLegs, fixedPartialCont,
   } = config;
 
   const totalCommRate = (tradingComm + platformComm) / 100;
   const inner = capitalMode === 'fixed'
-    ? simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss, totalCommRate })
+    ? simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
+        partialTps: fixedPartialTps, partialLegs: fixedPartialLegs, partialCont: fixedPartialCont, totalCommRate })
     : simulateCompound({ initialBalance, phases, compoundInterest, totalCommRate });
 
   const { ops, finalBalance, totalWins, totalOps, peakBalance, minBalance, grossGain, grossLoss, totalCommission } = inner;

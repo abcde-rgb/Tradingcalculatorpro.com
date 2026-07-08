@@ -318,6 +318,10 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    simPartialTps: '分割TP（スケールアウト）',
+    simPartialHint: '各目標で一部を決済。TP1の後、ストップは建値へ（残りはもう負けない）。',
+    simContinuation: '次のTPに届く確率',
+    simPartialNote: '現実を再現：勝ちトレードでも価格が毎回すべてのTPに届くとは限らない。分散を下げ、平均利益もたいてい下がる——現実と同じ。',
     pxcTitle: '分割決済（R:R）',
     pxcSubtitle: '分割決済を計画し、結果をRで確認',
     pxcLong: 'ロング',

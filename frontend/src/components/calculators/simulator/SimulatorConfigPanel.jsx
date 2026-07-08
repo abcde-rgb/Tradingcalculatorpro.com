@@ -42,6 +42,9 @@ export default function SimulatorConfigPanel({
   fixedTakeProfit, setFixedTakeProfit,
   fixedStopLoss, setFixedStopLoss,
   fixedWinRate, setFixedWinRate,
+  fixedPartialTps, setFixedPartialTps,
+  fixedPartialLegs, updatePartialLeg,
+  fixedPartialCont, setFixedPartialCont,
   // exec
   onExecute, isLoading,
 }) {
@@ -333,6 +336,39 @@ export default function SimulatorConfigPanel({
                     min={1} max={100} step={1}
                     className="py-2"
                   />
+                </div>
+
+                {/* Partial take-profits (scale-out) */}
+                <div className="space-y-3 md:col-span-2 border-t border-border pt-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={fixedPartialTps} onCheckedChange={(v) => setFixedPartialTps(!!v)} data-testid="sim-partial-toggle" />
+                    <span className="text-sm font-semibold">{t('simPartialTps')}</span>
+                  </label>
+                  {fixedPartialTps && (
+                    <div className="space-y-3 pl-1" data-testid="sim-partial-config">
+                      <p className="text-xs text-muted-foreground">{t('simPartialHint')}</p>
+                      <div className="grid grid-cols-[auto_1fr_1fr] gap-2 items-center text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        <span className="w-8" />
+                        <span>{t('takeProfit')} (%)</span>
+                        <span>{t('pxcClosePct')}</span>
+                      </div>
+                      {(fixedPartialLegs || []).map((leg, i) => (
+                        <div key={i} className="grid grid-cols-[auto_1fr_1fr] gap-2 items-center">
+                          <span className="text-xs font-mono text-muted-foreground w-8">TP{i + 1}</span>
+                          <Input type="number" value={leg.r} min={0.1} step={0.1}
+                                 onChange={(e) => updatePartialLeg(i, 'r', e.target.value)} className="font-mono h-8" />
+                          <Input type="number" value={leg.pct} min={0} max={100} step={5}
+                                 onChange={(e) => updatePartialLeg(i, 'pct', e.target.value)} className="font-mono h-8" />
+                        </div>
+                      ))}
+                      <div className="space-y-1 pt-1">
+                        <Label className="text-sm">{t('simContinuation')}: {fixedPartialCont}%</Label>
+                        <Slider value={[fixedPartialCont]} onValueChange={(v) => setFixedPartialCont(v[0])}
+                                min={0} max={100} step={5} className="py-2" />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground/80 leading-relaxed">{t('simPartialNote')}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

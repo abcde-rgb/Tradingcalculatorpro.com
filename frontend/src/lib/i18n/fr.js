@@ -412,6 +412,10 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    simPartialTps: 'TP partiels (scale-out)',
+    simPartialHint: 'Ferme une partie à chaque objectif. Après le TP1, le stop passe au seuil de rentabilité (le reste ne peut plus perdre).',
+    simContinuation: 'Prob. d\'atteindre le TP suivant',
+    simPartialNote: 'Modélise le réel : sur une gagnante, le prix n\'atteint pas toujours chaque TP. Réduit la variance et baisse généralement le gain moyen — comme dans la vraie vie.',
     pxcTitle: 'Sortie partielle (R:R)',
     pxcSubtitle: 'Planifie les sorties partielles et vois le résultat en R',
     pxcLong: 'Long',

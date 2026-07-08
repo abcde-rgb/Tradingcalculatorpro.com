@@ -663,3 +663,17 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: build OK; smoke headless en `/dashboard?tab=partial-exit` → render OK, 0 claves crudas,
   0 pageerrors, y **math correcta** (defaults 100/95/100 + 105/50 110/25 120/25 → 1R/2R/4R, posición
   2.00R vs mantener 4.00R, riesgo 500). Screenshot validado.
+
+### 2026-07-07 (12) — Simulador Pro: TP parciales (scale-out) en modo Fixed
+- ✅ El **Simulador Pro** ahora soporta **TP parciales** en modo Fixed Risk: toggle + 3 tramos
+  (TP% + % a cerrar) + slider "prob. de alcanzar el siguiente TP" (continuación).
+- ✅ Motor (`simulatorEngine.js`): nuevo helper puro **`winPnlPartial(capital, legs, cont, rnd)`**.
+  En una ganadora, el TP1 siempre se alcanza; cada TP siguiente se alcanza con prob. `cont`
+  (secuencial); si no se alcanza, el resto cierra en **break-even** (modela el stop a BE tras TP1).
+  Las perdedoras siguen a −SL completo. `rnd` inyectable para tests deterministas.
+- Verificado: math determinista (legs 1/50,2/30,3/20; cap 100 → todo=1.70, solo TP1=0.50,
+  TP1+TP2=1.10 vs TP único 2%=2.00 → parciales dan menos ganancia media, más realista). Build OK;
+  smoke headless E2E (modo Fixed → toggle → config visible → ejecutar → resultados, 0 crudas,
+  0 pageerrors); screenshot validado.
+- i18n: **4 claves × 8 idiomas** (`simPartialTps/Hint/Note`, `simContinuation`); reutiliza
+  `takeProfit`/`pxcClosePct`. Scope: modo Fixed (compound mantiene TP por fase).

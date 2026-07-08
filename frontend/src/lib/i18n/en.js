@@ -433,6 +433,10 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    simPartialTps: 'Partial TPs (scale-out)',
+    simPartialHint: 'Close part at each target. After TP1, the stop moves to break-even (the rest can\'t lose).',
+    simContinuation: 'Prob. of reaching the next TP',
+    simPartialNote: 'Models reality: on a winner, price doesn\'t always reach every TP. It lowers variance and usually lowers the average win — just like real life.',
     pxcTitle: 'Partial exit (R:R)',
     pxcSubtitle: 'Plan partial exits and see the result in R',
     pxcLong: 'Long',

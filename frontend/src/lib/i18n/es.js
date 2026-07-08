@@ -530,6 +530,10 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    simPartialTps: 'TP parciales (salidas escalonadas)',
+    simPartialHint: 'Cierra parte en cada objetivo. Tras el TP1, el stop pasa a break-even (el resto ya no puede perder).',
+    simContinuation: 'Prob. de alcanzar el siguiente TP',
+    simPartialNote: 'Modela lo real: en una ganadora, el precio no siempre llega a todos los TP. Baja la varianza y suele bajar la ganancia media — como en la vida real.',
     pxcTitle: 'Salida parcial (R:B)',
     pxcSubtitle: 'Planifica cierres parciales y ve el resultado en R',
     pxcLong: 'Largo',
