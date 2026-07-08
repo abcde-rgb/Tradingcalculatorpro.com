@@ -580,3 +580,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Investigación con fuentes (SpotGamma, HFR, Quantt, Wyden execution algos, forexclub VWAP/TWAP/IS).
 - Verificación: `npm run build` OK; smoke headless deep-link `?topic=inst-methods` y
   `?topic=inst-positions` → ambos renderizan, 0 claves crudas, 0 pageerrors; screenshots validados.
+
+### 2026-07-07 (4) — Módulo Mark Douglas + guías replicables (docs)
+- ✅ **`mindset` "Mentalidad probabilística (Mark Douglas)"** (getter `getTradingMindset`) en la
+  categoría Psicología: pensar en probabilidades, las 5 verdades fundamentales, los 7 principios de
+  la consistencia, los 4 miedos, aceptar el riesgo de verdad, la ventaja/casino y operar "en la zona".
+  Total **38 → 39 módulos**. i18n: **17 claves × 8 idiomas** (prefijo `mdz*`). Verificado: build OK,
+  smoke `?topic=mindset` 0 crudas/0 errores, screenshot validado.
+- 📚 **Dos guías técnicas replicables** en `docs/` (fórmula + pasos + ejemplo + pseudocódigo):
+  `METODOS_INSTITUCIONALES_REPLICABLE.md` (VWAP, GEX, Volume Profile, stat-arb, risk parity,
+  construcción de posiciones) y `DETECCION_ACCION_PRECIO_REPLICABLE.md` (order blocks, liquidez,
+  Wyckoff, DeMark TD Sequential, fractales/Alligator, Ichimoku). Math de ejemplos verificada.
