@@ -625,3 +625,12 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   **Monroe Trout** (consistencia/drawdowns mínimos), **William Eckhardt** (mitad cuant de los Turtles).
 - Total **40 → 41 módulos**. i18n: **15 claves × 8 idiomas** (prefijo `fmst*`). Icono `Target` (teal).
 - Verificado: build OK; smoke `?topic=futures-masters` 0 crudas/0 errores; screenshot validado (41).
+
+### 2026-07-07 (8) — Módulo "Cierres parciales (scaling out)"
+- ✅ **`partial-exits` "Cierres parciales (salidas escalonadas)"** (getter `getPartialExits`) en la
+  categoría Riesgo y capital: qué es, a favor (psicología/riesgo), **el contra-argumento honesto**
+  (escalar out suele bajar la esperanza — Van Tharp), estrategia mitad+runner, en tercios,
+  **la matemática en R** (0.5×1 + 0.5×3 = 2R vs 3R manteniendo) y errores comunes.
+- Total **41 → 42 módulos**. i18n: **17 claves × 8 idiomas** (prefijo `pex*`). Icono `Gauge` (azul).
+  Antes solo había menciones sueltas (`mgmtPartials`, `positionScaling`); ahora hay módulo dedicado.
+- Verificado: build OK; smoke `?topic=partial-exits` 0 crudas/0 errores; screenshot validado (42).

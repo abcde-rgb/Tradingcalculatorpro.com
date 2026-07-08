@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getProDiscipline, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getProDiscipline, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -422,6 +422,7 @@ export default function EducationPage() {
   const TRADING_MINDSET = getTradingMindset(t);
   const TRADING_MASTERS = getTradingMasters(t);
   const FUTURES_MASTERS = getFuturesMasters(t);
+  const PARTIAL_EXITS = getPartialExits(t);
   const PRO_DISCIPLINE = getProDiscipline(t);
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
@@ -464,6 +465,7 @@ export default function EducationPage() {
     { id: 'risk', label: t('eduCatRisk'), topics: [
       { value: 'risk', label: t('riskManagement') },
       { value: 'capital', label: t('capitalManagementTitle') },
+      { value: 'partial-exits', label: t('pexTitle') },
       { value: 'margin-liq', label: t('mlqTitle') },
       { value: 'probability', label: t('probabilityStatsTitle') },
     ]},
@@ -1566,6 +1568,46 @@ export default function EducationPage() {
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
                     <Lightbulb className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                     {FUTURES_MASTERS.note}
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Partial exits / scaling out */}
+            <TabsContent value="partial-exits" className="space-y-8">
+              <Card className="bg-gradient-to-br from-blue-500/5 to-cyan-500/10 border-blue-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Gauge className="w-6 h-6 text-blue-500" />
+                    {PARTIAL_EXITS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{PARTIAL_EXITS.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {PARTIAL_EXITS.items.map(s => (
+                  <Card key={s.id} className="bg-card border-border">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Gauge className="w-4 h-4 text-blue-500" />
+                        <span>{s.name}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{s.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="bg-blue-500/10 border-blue-500/30">
+                <CardContent className="pt-5">
+                  <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                    {PARTIAL_EXITS.note}
                   </p>
                 </CardContent>
               </Card>
