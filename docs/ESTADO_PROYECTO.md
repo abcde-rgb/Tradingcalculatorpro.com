@@ -687,3 +687,15 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: wiring determinista (fase winRate 100% + cont 100% + legs 1/50 2/30 3/20 → avgWin 17
   vs 20 sin parciales). Build OK; smoke headless E2E (compound → toggle fase 1 → config visible →
   ejecutar → resultados, 0 crudas, 0 pageerrors); screenshot validado. Sin i18n nueva (reutiliza).
+
+### 2026-07-07 (14) — Modo demo en la landing (calculadora sin registro) [ROADMAP 8.5]
+- ✅ **`LandingDemoCalculator.jsx`** (nuevo, `components/landing/`): calculadora de **tamaño de
+  posición** funcional en la landing, **sin registro** — cálculo 100% cliente (useMemo, sin backend
+  ni store). Saldo/riesgo%/entrada/stop → arriesgas, unidades y valor de la posición. CTA a
+  `/register` ("Crea cuenta gratis, guarda cálculos y desbloquea 12 calculadoras…").
+- Montada tras el hero de `LandingPage`. i18n: **13 claves × 8 idiomas** (prefijo `dcalc*`).
+- Verificado: build OK; smoke headless en `/` → render, math correcta (1000/1%/100/95 → riesgo 10,
+  2 unidades, valor 200), CTA a registro, 0 claves crudas, 0 pageerrors; screenshot validado.
+- Cierra el ítem 8.5 del ROADMAP (probar antes de registrar) — sube conversión, **cero backend**.
+- Análisis del cliente (billing off): lo construible+usable YA es frontend (demo/onboarding/i18n);
+  AI-Coach+journal, preferencias cross-device e import CSV necesitan el backend vivo (billing/Neon).
