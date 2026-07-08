@@ -1598,6 +1598,25 @@ export const getStopsAndTargets = (t) => ({
   note: t('sltpNote'),
 });
 
+// Managing the live trade — what to do once you're IN: break-even, trailing,
+// pyramiding winners, de-risking, time management, event risk, not
+// micromanaging, and when the best action is to do nothing.
+export const getTradeManagement = (t) => ({
+  title: t('tmgTitle'),
+  intro: t('tmgIntro'),
+  items: [
+    { id: 'breakeven', name: t('tmgBreakevenName'), desc: t('tmgBreakevenDesc') },
+    { id: 'trailing',  name: t('tmgTrailingName'),  desc: t('tmgTrailingDesc') },
+    { id: 'addwin',    name: t('tmgAddWinName'),    desc: t('tmgAddWinDesc') },
+    { id: 'reduce',    name: t('tmgReduceName'),    desc: t('tmgReduceDesc') },
+    { id: 'time',      name: t('tmgTimeName'),      desc: t('tmgTimeDesc') },
+    { id: 'events',    name: t('tmgEventsName'),    desc: t('tmgEventsDesc') },
+    { id: 'micro',     name: t('tmgMicroName'),     desc: t('tmgMicroDesc') },
+    { id: 'donothing', name: t('tmgDoNothingName'), desc: t('tmgDoNothingDesc') },
+  ],
+  note: t('tmgNote'),
+});
+
 // Professional discipline & mental performance: process-over-outcome, checklists,
 // error taxonomy, tilt/stress protocol, decision fatigue and accountability.
 export const getProDiscipline = (t) => ({
