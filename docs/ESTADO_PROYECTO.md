@@ -677,3 +677,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   0 pageerrors); screenshot validado.
 - i18n: **4 claves × 8 idiomas** (`simPartialTps/Hint/Note`, `simContinuation`); reutiliza
   `takeProfit`/`pxcClosePct`. Scope: modo Fixed (compound mantiene TP por fase).
+
+### 2026-07-07 (13) — Simulador Pro: TP parciales también en modo compuesto (por fase)
+- ✅ El modo **capital compuesto** ahora soporta **TP parciales por fase**: cada tarjeta de fase tiene
+  su toggle + 3 tramos (TP % + % a cerrar) + prob. de continuación. El TP de cada tramo se mide en %,
+  igual que el TP de la fase.
+- ✅ Motor: `simulateCompound` reutiliza `winPnlPartial` cuando `phase.partialTps`; cada fase lleva
+  `partialTps/legs/cont` (sembrados al activar; preservados al cambiar el nº de fases).
+- Verificado: wiring determinista (fase winRate 100% + cont 100% + legs 1/50 2/30 3/20 → avgWin 17
+  vs 20 sin parciales). Build OK; smoke headless E2E (compound → toggle fase 1 → config visible →
+  ejecutar → resultados, 0 crudas, 0 pageerrors); screenshot validado. Sin i18n nueva (reutiliza).

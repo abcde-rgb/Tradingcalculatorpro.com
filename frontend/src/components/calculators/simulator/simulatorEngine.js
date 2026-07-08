@@ -93,11 +93,15 @@ function simulateCompound({ initialBalance, phases, compoundInterest, totalCommR
     const tp      = (phase.tp      || 2) / 100;
     const sl      = (phase.sl      || 1) / 100;
     const winRate = (phase.winRate || 50) / 100;
+    const usePartial = phase.partialTps && Array.isArray(phase.legs) && phase.legs.length > 0;
+    const cont    = Math.max(0, Math.min(1, (phase.cont ?? 60) / 100));
 
     for (let op = 0; op < numOps; op += 1) {
       const capitalInOp = capital * posSize;
       const isWin = Math.random() < winRate;
-      const pnl = isWin ? capitalInOp * tp : -(capitalInOp * sl);
+      const pnl = isWin
+        ? (usePartial ? winPnlPartial(capitalInOp, phase.legs, cont) : capitalInOp * tp)
+        : -(capitalInOp * sl);
       const commission = Math.abs(pnl) * totalCommRate;
       const netResult = pnl - commission;
       if (isWin) { grossGain += pnl; totalWins += 1; }
