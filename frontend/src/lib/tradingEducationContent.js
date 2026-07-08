@@ -1542,6 +1542,23 @@ export const getTradingMasters = (t) => ({
   note: t('mstrNote'),
 });
 
+// Futures masters — reference futures traders with verified track records
+// (Donchian, Larry Williams, Kovner, Marcus, Trout, Eckhardt). Pattern: trend
+// following + obsessive risk control, because leverage punishes indiscipline.
+export const getFuturesMasters = (t) => ({
+  title: t('fmstTitle'),
+  intro: t('fmstIntro'),
+  items: [
+    { id: 'donchian', name: t('fmstDonchianName'), desc: t('fmstDonchianDesc') },
+    { id: 'williams', name: t('fmstWilliamsName'), desc: t('fmstWilliamsDesc') },
+    { id: 'kovner',   name: t('fmstKovnerName'),   desc: t('fmstKovnerDesc') },
+    { id: 'marcus',   name: t('fmstMarcusName'),   desc: t('fmstMarcusDesc') },
+    { id: 'trout',    name: t('fmstTroutName'),    desc: t('fmstTroutDesc') },
+    { id: 'eckhardt', name: t('fmstEckhardtName'), desc: t('fmstEckhardtDesc') },
+  ],
+  note: t('fmstNote'),
+});
+
 // Professional discipline & mental performance: process-over-outcome, checklists,
 // error taxonomy, tilt/stress protocol, decision fatigue and accountability.
 export const getProDiscipline = (t) => ({
