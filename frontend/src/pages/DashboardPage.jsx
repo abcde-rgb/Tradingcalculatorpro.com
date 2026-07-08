@@ -10,6 +10,7 @@ import { LeverageCalculator } from '@/components/calculators/LeverageCalculator'
 import { SpotCalculator } from '@/components/calculators/SpotCalculator';
 import { PositionSizeCalculator } from '@/components/calculators/PositionSizeCalculator';
 import { LotSizeCalculator } from '@/components/calculators/LotSizeCalculator';
+import { PartialExitCalculator } from '@/components/calculators/PartialExitCalculator';
 import { FibonacciCalculator } from '@/components/calculators/FibonacciCalculator';
 import { MonteCarloSimulator } from '@/components/calculators/MonteCarloSimulator';
 import { SimulatorPro } from '@/components/calculators/SimulatorPro';
@@ -55,6 +56,7 @@ export default function DashboardPage() {
     { id: 'risk', label: t('calcCatRisk'), Icon: Scale, items: [
       { value: 'position', label: t('positionSize') },
       { value: 'lotsize', label: t('lotSize') },
+      { value: 'partial-exit', label: t('pxcTitle') },
       { value: 'leverage', label: t('leverage') },
       { value: 'futures', label: t('futuresTabLabel') },
     ]},
@@ -116,7 +118,7 @@ export default function DashboardPage() {
     const allowed = [
       'percentage', 'target', 'leverage', 'position', 'lotsize',
       'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
-      'futures', 'compound',
+      'futures', 'compound', 'partial-exit',
     ];
     if (requested && allowed.includes(requested)) setActiveTab(requested);
   }, [searchParams]);
@@ -374,6 +376,9 @@ export default function DashboardPage() {
               </TabsContent>
               <TabsContent value="position">
                 <PositionSizeCalculator />
+              </TabsContent>
+              <TabsContent value="partial-exit">
+                <PartialExitCalculator />
               </TabsContent>
               <TabsContent value="lotsize">
                 <LotSizeCalculator />
