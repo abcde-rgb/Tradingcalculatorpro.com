@@ -607,3 +607,12 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - 📚 Documentado en `DETECCION_ACCION_PRECIO_REPLICABLE.md` (§7).
 - ⚠️ Corre con datos reales cuando el backend esté vivo (billing/Neon). El merge dispara deploy de
   Cloud Run que fallará por BILLING_DISABLED (esperado; el código queda en main listo).
+
+### 2026-07-07 (6) — Módulo "Maestros del trading" (referencias + enseñanzas)
+- ✅ **`masters` "Maestros del trading (sus enseñanzas)"** (getter `getTradingMasters`) en Psicología:
+  8 leyendas con sus lecciones destiladas — **Jesse Livermore, Paul Tudor Jones, George Soros,
+  Ed Seykota, Richard Dennis (Turtles), Van Tharp, Alexander Elder, Stan Weinstein** (muchos del
+  clásico 'Market Wizards'). Hilo común: gestión de riesgo + disciplina sobre el método de entrada.
+- Total **39 → 40 módulos**. i18n: **19 claves × 8 idiomas** (prefijo `mstr*`; nombres propios
+  neutrales, enseñanzas traducidas). Icono `Star` (dorado).
+- Verificado: build OK; smoke `?topic=masters` 0 crudas/0 errores; screenshot validado (40 módulos).

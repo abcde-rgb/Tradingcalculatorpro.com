@@ -1523,6 +1523,25 @@ export const getTradingMindset = (t) => ({
   note: t('mdzNote'),
 });
 
+// Trading masters — distilled lessons from the greatest traders (Livermore,
+// Tudor Jones, Soros, Seykota, Dennis/Turtles, Van Tharp, Elder, Weinstein).
+// Note what they all REPEAT: risk management and discipline over entry method.
+export const getTradingMasters = (t) => ({
+  title: t('mstrTitle'),
+  intro: t('mstrIntro'),
+  items: [
+    { id: 'livermore', name: t('mstrLivermoreName'), desc: t('mstrLivermoreDesc') },
+    { id: 'tudor',     name: t('mstrTudorName'),     desc: t('mstrTudorDesc') },
+    { id: 'soros',     name: t('mstrSorosName'),     desc: t('mstrSorosDesc') },
+    { id: 'seykota',   name: t('mstrSeykotaName'),   desc: t('mstrSeykotaDesc') },
+    { id: 'dennis',    name: t('mstrDennisName'),    desc: t('mstrDennisDesc') },
+    { id: 'tharp',     name: t('mstrTharpName'),     desc: t('mstrTharpDesc') },
+    { id: 'elder',     name: t('mstrElderName'),     desc: t('mstrElderDesc') },
+    { id: 'weinstein', name: t('mstrWeinsteinName'), desc: t('mstrWeinsteinDesc') },
+  ],
+  note: t('mstrNote'),
+});
+
 // Professional discipline & mental performance: process-over-outcome, checklists,
 // error taxonomy, tilt/stress protocol, decision fatigue and accountability.
 export const getProDiscipline = (t) => ({
