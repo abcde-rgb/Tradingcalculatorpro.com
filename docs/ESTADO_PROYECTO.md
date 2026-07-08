@@ -616,3 +616,12 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Total **39 → 40 módulos**. i18n: **19 claves × 8 idiomas** (prefijo `mstr*`; nombres propios
   neutrales, enseñanzas traducidas). Icono `Star` (dorado).
 - Verificado: build OK; smoke `?topic=masters` 0 crudas/0 errores; screenshot validado (40 módulos).
+
+### 2026-07-07 (7) — Módulo "Maestros de los futuros"
+- ✅ **`futures-masters` "Maestros de los futuros"** (getter `getFuturesMasters`) en Psicología: 6
+  referentes de futuros con operativa comprobada — **Richard Donchian** (padre del trend following,
+  canales/regla 4 semanas), **Larry Williams** (récord World Cup: 10.000 $ → 1.137.600 $ en 1987,
+  auditado), **Bruce Kovner** ("undertrade ×3"), **Michael Marcus** (30.000 $ → ~80 M$),
+  **Monroe Trout** (consistencia/drawdowns mínimos), **William Eckhardt** (mitad cuant de los Turtles).
+- Total **40 → 41 módulos**. i18n: **15 claves × 8 idiomas** (prefijo `fmst*`). Icono `Target` (teal).
+- Verificado: build OK; smoke `?topic=futures-masters` 0 crudas/0 errores; screenshot validado (41).
