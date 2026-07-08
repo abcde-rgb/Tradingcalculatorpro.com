@@ -1505,6 +1505,24 @@ export const getPositionBuilding = (t) => ({
   note: t('iposNote'),
 });
 
+// Probabilistic mindset (Mark Douglas, "Trading in the Zone"): thinking in
+// probabilities, the 5 fundamental truths, the 7 principles of consistency,
+// the 4 fears, truly accepting risk, the edge/casino mentality, and the zone.
+export const getTradingMindset = (t) => ({
+  title: t('mdzTitle'),
+  intro: t('mdzIntro'),
+  items: [
+    { id: 'probs',  name: t('mdzProbsName'),  desc: t('mdzProbsDesc') },
+    { id: 'truths', name: t('mdzTruthsName'), desc: t('mdzTruthsDesc') },
+    { id: 'seven',  name: t('mdzSevenName'),  desc: t('mdzSevenDesc') },
+    { id: 'fears',  name: t('mdzFearsName'),  desc: t('mdzFearsDesc') },
+    { id: 'accept', name: t('mdzAcceptName'), desc: t('mdzAcceptDesc') },
+    { id: 'edge',   name: t('mdzEdgeName'),   desc: t('mdzEdgeDesc') },
+    { id: 'zone',   name: t('mdzZoneName'),   desc: t('mdzZoneDesc') },
+  ],
+  note: t('mdzNote'),
+});
+
 // Professional discipline & mental performance: process-over-outcome, checklists,
 // error taxonomy, tilt/stress protocol, decision fatigue and accountability.
 export const getProDiscipline = (t) => ({
