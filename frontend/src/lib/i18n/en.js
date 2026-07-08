@@ -433,6 +433,10 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    trialBadge: '7-day free trial',
+    trialCtaButton: 'Start 7-day free trial',
+    trialReassure: 'No charge today. Cancel anytime before it ends.',
+    trialHeroNote: '7 days free · Cancel anytime · No commitment',
     dcalcBadge: 'Try it free · No sign-up',
     dcalcTitle: 'Calculate your position size',
     dcalcSubtitle: 'How much to buy so you risk only what you decide. No sign-up.',

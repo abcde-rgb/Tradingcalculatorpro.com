@@ -326,6 +326,10 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    trialBadge: '7 天免费试用',
+    trialCtaButton: '开始 7 天免费试用',
+    trialReassure: '今天不扣款。到期前可随时取消。',
+    trialHeroNote: '7 天免费 · 随时取消 · 无需承诺',
     dcalcBadge: '免费试用 · 无需注册',
     dcalcTitle: '计算你的仓位大小',
     dcalcSubtitle: '该买多少，才能只冒你决定的风险。无需注册。',

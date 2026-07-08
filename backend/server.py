@@ -3288,11 +3288,22 @@ def _build_pending_transaction(
     }
 
 
+# Free-trial length for recurring subscriptions (card collected upfront via
+# Stripe Checkout; the card is auto-charged when the trial ends). 0 = no trial.
+TRIAL_PERIOD_DAYS = 7
+
+
 async def _create_stripe_session(
     plan: dict, payment_method: str, success_url: str, cancel_url: str,
-    metadata: Dict[str, str], origin_url: str,
+    metadata: Dict[str, str], origin_url: str, trial_days: int = 0,
 ) -> Any:
-    """Create a Stripe Checkout session using the plan's Stripe price ID."""
+    """Create a Stripe Checkout session using the plan's Stripe price ID.
+
+    When `trial_days > 0` and the plan is a recurring subscription, the session
+    starts a free trial: Checkout still collects the card upfront (we do NOT set
+    payment_method_collection='if_required'), and Stripe charges automatically
+    when the trial ends.
+    """
     import asyncio as _asyncio
     runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
     stripe.api_key = runtime_key
@@ -3302,17 +3313,20 @@ async def _create_stripe_session(
 
     # Idempotency key prevents duplicate sessions if the client retries on network error
     idempotency_key = f"checkout-{metadata.get('user_id', 'anon')}-{metadata.get('plan_id', 'unknown')}-{metadata.get('transaction_id', secrets.token_hex(8))}"
+    session_kwargs: Dict[str, Any] = {
+        "payment_method_types": payment_methods,
+        "line_items": [{"price": plan["stripe_price_id"], "quantity": 1}],
+        "mode": mode,
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "metadata": metadata,
+        "idempotency_key": idempotency_key,
+    }
+    if mode == "subscription" and trial_days and trial_days > 0:
+        session_kwargs["subscription_data"] = {"trial_period_days": int(trial_days)}
     session = await _asyncio.get_event_loop().run_in_executor(
         None,
-        lambda: stripe.checkout.Session.create(
-            payment_method_types=payment_methods,
-            line_items=[{"price": plan["stripe_price_id"], "quantity": 1}],
-            mode=mode,
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata=metadata,
-            idempotency_key=idempotency_key,
-        ),
+        lambda: stripe.checkout.Session.create(**session_kwargs),
     )
     # Expose .session_id so callers don't need changing
     session.session_id = session.id
@@ -3394,6 +3408,16 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         transaction["checkout_url"] = ox_invoice["payment_url"]
 
     elif payment_method in _PAYMENT_METHODS_MAP:
+        # 7-day free trial only for NEW subscribers (never premium, no prior/active
+        # Stripe subscription, trial not already used) and only on recurring plans.
+        user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or {}
+        trial_eligible = (
+            plan.get("interval") != "lifetime"
+            and not user_doc.get("is_premium")
+            and not user_doc.get("stripe_subscription_id")
+            and not user_doc.get("trial_used")
+        )
+        trial_days = TRIAL_PERIOD_DAYS if trial_eligible else 0
         session = await _create_stripe_session(
             plan,
             payment_method,
@@ -3405,7 +3429,9 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
                 "transaction_id": transaction["id"],
             },
             origin_url=origin_url,
+            trial_days=trial_days,
         )
+        transaction["trial_days"] = trial_days
         transaction["session_id"] = session.session_id
         transaction["checkout_url"] = session.url
 
@@ -3546,6 +3572,7 @@ async def _activate_paid_subscription(
         "subscription_plan": plan_id,
         "subscription_end": subscription_end.isoformat(),
         "is_premium": True,
+        "trial_used": True,  # a completed subscription consumes the free-trial eligibility
     }
     ids = _stripe_session_ids(session_id)
     if ids["customer"]:

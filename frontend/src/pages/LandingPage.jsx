@@ -165,6 +165,11 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </div>
+            {!isAuthenticated && (
+              <p className="text-sm text-primary font-medium -mt-8 mb-12" data-testid="hero-trial-note">
+                ✨ {t('trialHeroNote')}
+              </p>
+            )}
             
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">

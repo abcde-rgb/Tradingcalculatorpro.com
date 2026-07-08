@@ -318,6 +318,10 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    trialBadge: '7日間無料',
+    trialCtaButton: '7日間の無料トライアルを開始',
+    trialReassure: '本日は請求なし。終了前にいつでもキャンセル可能。',
+    trialHeroNote: '7日間無料 · いつでも解約可 · 契約縛りなし',
     dcalcBadge: '無料で試す · 登録不要',
     dcalcTitle: 'ポジションサイズを計算',
     dcalcSubtitle: '自分が決めた分だけリスクを取るための購入量。登録不要。',
