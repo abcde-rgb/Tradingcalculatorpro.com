@@ -644,3 +644,11 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   clásicos. Nota: define SL y TP por escrito ANTES de entrar.
 - Total **42 → 43 módulos**. i18n: **21 claves × 8 idiomas** (prefijo `sltp*`). Icono `Target` (rosa).
 - Verificado: build OK; smoke `?topic=stops-targets` 0 crudas/0 errores; screenshot validado (43).
+
+### 2026-07-07 (10) — Módulo "Gestión de la operación en marcha"
+- ✅ **`trade-mgmt` "Gestión de la operación en marcha"** (getter `getTradeManagement`) en Riesgo y
+  capital: break-even, trailing stop (métodos), añadir a ganadoras/pirámide, reducir exposición,
+  gestión por tiempo, ajustar ante eventos, no microgestionar y cuándo no tocar nada. Nota: la mejor
+  gestión es la que ya está en tu plan.
+- Total **43 → 44 módulos**. i18n: **19 claves × 8 idiomas** (prefijo `tmg*`). Icono `Activity` (sky).
+- Verificado: build OK; smoke `?topic=trade-mgmt` 0 crudas/0 errores.
