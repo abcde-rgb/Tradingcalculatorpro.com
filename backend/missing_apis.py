@@ -749,8 +749,14 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
             proration_behavior=payload.proration_behavior,
         )
 
-        # Update our DB
-        new_end = datetime.now(timezone.utc) + timedelta(days=new_plan["days"])
+        # Update our DB — use Stripe's REAL period end (not now + plan days, which
+        # ignored the proration/renewal date and drifted from the source of truth).
+        period_end = getattr(updated_sub, "current_period_end", None)
+        new_end = (
+            datetime.fromtimestamp(int(period_end), tz=timezone.utc)
+            if period_end
+            else datetime.now(timezone.utc) + timedelta(days=new_plan["days"])
+        )
         await db.users.update_one(
             {"id": user["id"]},
             {"$set": {
@@ -848,9 +854,22 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
         status = data_obj.get("status")
         if customer_id and status:
             is_active = status in ("active", "trialing")
+            update: Dict[str, Any] = {"subscription_status": status, "is_premium": is_active}
+            # Keep the local period end in sync on auto-renewal / plan change,
+            # otherwise subscription_end drifts stale after every renewal.
+            period_end = data_obj.get("current_period_end")
+            if period_end:
+                update["subscription_end"] = datetime.fromtimestamp(
+                    int(period_end), tz=timezone.utc
+                ).isoformat()
+            # Reflect a pending "cancel at period end" so the UI can warn the user.
+            if "cancel_at_period_end" in data_obj:
+                update["subscription_cancel_at_period_end"] = bool(
+                    data_obj.get("cancel_at_period_end")
+                )
             await db.users.update_one(
                 {"stripe_customer_id": customer_id},
-                {"$set": {"subscription_status": status, "is_premium": is_active}},
+                {"$set": update},
             )
 
     return {"status": "received", "event": event_type}

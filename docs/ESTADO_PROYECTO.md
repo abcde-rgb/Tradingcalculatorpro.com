@@ -699,3 +699,19 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Cierra el ítem 8.5 del ROADMAP (probar antes de registrar) — sube conversión, **cero backend**.
 - Análisis del cliente (billing off): lo construible+usable YA es frontend (demo/onboarding/i18n);
   AI-Coach+journal, preferencias cross-device e import CSV necesitan el backend vivo (billing/Neon).
+
+### 2026-07-07 (15) — Fixes de suscripciones Stripe (fecha de fin + sync renovación)
+- 🔎 **Auditoría previa** de los "3 fixes críticos" propuestos: 2 reales, 1 falsa alarma.
+  - ❌ "Falta endpoint de cancelación" → **YA EXISTE**: `server.py:/subscriptions/cancel`
+    (inmediata + fin de periodo) + `/subscriptions/resume`. NO se duplicó (habría chocado de ruta).
+  - ✅ **change_plan_real** (`missing_apis.py`): `subscription_end` se calculaba con
+    `now + días del plan` (drift). Ahora lee el **`current_period_end` real de Stripe** (con fallback).
+  - ✅ **webhook `customer.subscription.updated`**: ahora sincroniza también **`subscription_end`**
+    (evita que la fecha quede obsoleta tras cada renovación) + `subscription_cancel_at_period_end`.
+- ➕ Mejora relacionada: los endpoints cancel/resume ahora **persisten** `subscription_cancel_at_period_end`
+  en la BD (la UI puede avisar "se cancela el día X" sin llamar a Stripe).
+- Nota: el webhook de suscripciones (`/webhook/stripe/subscription`) **sí** está registrado
+  (`register_missing_apis` en startup). Pendiente ops: apuntar el webhook en el panel de Stripe a esa
+  ruta. Email de aviso en impagos (intentos 1-2): pendiente/ofrecido (necesita SendGrid + backend vivo).
+- Verificado: `py_compile missing_apis.py server.py` OK; conversión de timestamp validada; 15 tests
+  de price_action pasan. Requiere backend vivo (billing) para probar el flujo real de Stripe.

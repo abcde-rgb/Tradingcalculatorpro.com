@@ -3892,8 +3892,13 @@ async def cancel_subscription(
             )
             return {"message": "Subscription canceled immediately", "canceled": True}
         else:
-            # Cancel at period end
+            # Cancel at period end (Netflix-style: keep access until it lapses)
             await asyncio.to_thread(stripe.Subscription.modify, sub.id, cancel_at_period_end=True)
+            # Persist the pending cancellation so the UI can warn without hitting Stripe.
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"subscription_cancel_at_period_end": True}}
+            )
             return {
                 "message": "Subscription will be canceled at period end",
                 "canceled": False,
@@ -3930,7 +3935,11 @@ async def resume_subscription(user: dict = Depends(require_user)):
         
         # Resume by removing cancel_at_period_end
         await asyncio.to_thread(stripe.Subscription.modify, sub.id, cancel_at_period_end=False)
-        
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"subscription_cancel_at_period_end": False}}
+        )
+
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
