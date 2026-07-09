@@ -3897,6 +3897,6 @@ export default {
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===
   partnersTitle: 'Tools, die wir empfehlen',
   partnersSubtitle: 'Plattformen, die wir zum Handeln und zur Marktanalyse nutzen und empfehlen',
-  partnerMargexDesc: 'Krypto-Derivatebörse mit bis zu 100-fachem Hebel, ohne KYC und mit 100-USD-Willkommensbonus',
+  partnerMargexDesc: 'Krypto-Derivatebörse mit bis zu 100-fachem Hebel, ohne KYC, 100-USD-Willkommensbonus und Gebühren-Cashback bis zu 10.000 USD',
   sponsoredLabel: 'Affiliate-Link',
 }

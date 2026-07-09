@@ -3839,6 +3839,6 @@ export default {
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===
   partnersTitle: '我们推荐的工具',
   partnersSubtitle: '我们在交易和分析市场时使用并推荐的平台',
-  partnerMargexDesc: '加密衍生品交易所,最高100倍杠杆,无需KYC,新用户可获得100美元奖金',
+  partnerMargexDesc: '加密衍生品交易所,最高100倍杠杆,无需KYC,新用户可获得100美元奖金,以及最高10000美元的手续费返现',
   sponsoredLabel: '联盟链接',
 }

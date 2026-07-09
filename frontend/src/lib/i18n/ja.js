@@ -3839,6 +3839,6 @@ export default {
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===
   partnersTitle: 'おすすめのツール',
   partnersSubtitle: '私たちが取引や市場分析に使用し、おすすめするプラットフォーム',
-  partnerMargexDesc: '最大100倍レバレッジ、KYC不要、$100ウェルカムボーナス付きの暗号資産デリバティブ取引所',
+  partnerMargexDesc: '最大100倍レバレッジ、KYC不要、$100ウェルカムボーナス、最大$10,000の手数料キャッシュバック付きの暗号資産デリバティブ取引所',
   sponsoredLabel: 'アフィリエイトリンク',
 }

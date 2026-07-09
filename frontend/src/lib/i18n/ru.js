@@ -3839,6 +3839,6 @@ export default {
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===
   partnersTitle: 'Инструменты, которые мы рекомендуем',
   partnersSubtitle: 'Платформы, которые мы используем и рекомендуем для торговли и анализа рынков',
-  partnerMargexDesc: 'Биржа криптодеривативов с плечом до 100x, без KYC и приветственным бонусом $100',
+  partnerMargexDesc: 'Биржа криптодеривативов с плечом до 100x, без KYC, приветственным бонусом $100 и кэшбэком комиссий до $10 000',
   sponsoredLabel: 'Партнёрская ссылка',
 }

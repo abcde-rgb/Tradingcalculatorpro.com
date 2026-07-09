@@ -4304,6 +4304,6 @@ export default {
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===
   partnersTitle: 'Herramientas que recomendamos',
   partnersSubtitle: 'Plataformas que usamos y recomendamos para operar y analizar los mercados',
-  partnerMargexDesc: 'Exchange de derivados cripto con hasta 100x de apalancamiento, sin KYC y bono de bienvenida de $100',
+  partnerMargexDesc: 'Exchange de derivados cripto con hasta 100x de apalancamiento, sin KYC, bono de bienvenida de $100 y cashback de comisiones hasta $10.000',
   sponsoredLabel: 'Enlace de afiliado',
 }
