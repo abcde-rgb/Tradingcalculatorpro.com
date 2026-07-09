@@ -776,3 +776,10 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   fibonacci). Se renderizan dentro de cada tarjeta cuando el término tiene diagrama.
 - Verificado: build OK; captura headless del glosario (60 tarjetas, 20 SVGs, búsqueda 'vela' filtra la
   familia de velas con sus diagramas), 0 pageerrors.
+- ✅ **Módulo nuevo "La paradoja: tiempo vs impacto"** (`TimeVsImpact.jsx`, pilar Psicología): compara
+  en barras el **% de tiempo dedicado vs % de impacto en el resultado** por pilar (análisis 65/10,
+  riesgo 20/30, psicología 15/60) + ratio "rinde por hora" (impacto÷tiempo: análisis ×0.2, riesgo ×1.5,
+  psicología ×4.0). Impacto = ponderación clásica de Van K. Tharp (60/30/10, citada); tiempo ilustrativo
+  (con disclaimer honesto). 16 claves i18n × 8 idiomas. **Paleta validada con la skill dataviz**
+  (Tiempo #3b82f6 / Impacto #d97706: banda de luminosidad PASS, CVD ΔE 121 protan/94 tritan PASS,
+  contraste PASS). Verificado: build OK, captura del módulo, 0 pageerrors. Academia: **46 módulos**.
