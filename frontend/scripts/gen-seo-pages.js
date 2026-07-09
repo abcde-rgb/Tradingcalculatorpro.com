@@ -109,6 +109,7 @@ const TOPICS = [
   { v:'ichimoku', slug:'ichimoku-kinko-hyo', tk:'ichiTitle', ik:'ichiIntro' },
   { v:'harmonic-patterns', slug:'patrones-armonicos', tk:'harmonicPatternsTab', ik:'harmonicPatternsIntro' },
   { v:'smc', slug:'smart-money-concepts-ict', tk:'smcTitle', ik:'smcIntro' },
+  { v:'order-flow', slug:'order-flow-lectura-de-cinta', tk:'ofTitle', ik:'ofIntro' },
   { v:'advanced-ta', slug:'analisis-tecnico-avanzado', tk:'advTaTitle', ik:'advTaIntro' },
   { v:'sentiment', slug:'sentimiento-de-mercado', tk:'smTitle', ik:'smIntro' },
   { v:'intermarket', slug:'analisis-intermercado', tk:'imTitle', ik:'imIntro' },

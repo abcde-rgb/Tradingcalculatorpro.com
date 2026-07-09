@@ -900,3 +900,15 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   de operar") + glosario 20→60 con 20 diagramas SVG + hero de la landing con velas animadas + banda en
   Pricing + code-review (3 fixes) + SEO (hreflang `?lang=` + robots + 3 páginas SEO nuevas) +
   security-review (sin vulnerabilidades). Todo fusionado a `main` (PRs #82–#91).
+
+### 2026-07-09 (24) — Módulo nuevo "Order flow / lectura de cinta" (hueco nº1 del análisis v2)
+- ✅ **`getOrderFlow` + `OrderFlowVisual.jsx`** (pilar Técnico avanzado, tras Smart Money): 8 apartados
+  con **7 diagramas SVG** neutros de idioma — qué es el order flow, libro de órdenes (DOM), la cinta
+  (time & sales) y agresores, delta de volumen (+ divergencia y delta acumulado), footprint/clústeres,
+  absorción, órdenes iceberg, y punto de control (POC) + área de valor. 19 claves i18n × 8 idiomas = 152.
+- ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `order-flow-lectura-de-cinta`) → **266 páginas SEO (34
+  temas × 8), sitemap 290→298 URLs**.
+- Verificado: build OK; captura headless del módulo (7 SVGs renderizando, nav en su sitio, 0 pageerrors).
+  Academia: **48 módulos**.
+- ⏳ Del ranking de huecos v2 quedan: valorar una empresa a fondo, curva de tipos + rotación sectorial,
+  opciones a fondo (vol + mecánica), MAE/MFE + correlación (rápidos, dentro de módulos existentes).

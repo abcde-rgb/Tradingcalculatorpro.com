@@ -2669,6 +2669,25 @@ export const getMarketMechanics = (t) => ({
   }
 });
 
+// Order flow / tape reading — reading the raw buying/selling pressure (DOM,
+// time & sales, volume delta, footprint, absorption, icebergs, POC) rather than
+// only the finished price. Pairs with SVG diagrams in OrderFlowVisual.jsx.
+export const getOrderFlow = (t) => ({
+  title: t('ofTitle'),
+  intro: t('ofIntro'),
+  items: [
+    { id: 'whatis',     name: t('ofWhatisName'),     desc: t('ofWhatisDesc') },
+    { id: 'dom',        name: t('ofDomName'),        desc: t('ofDomDesc') },
+    { id: 'tape',       name: t('ofTapeName'),       desc: t('ofTapeDesc') },
+    { id: 'delta',      name: t('ofDeltaName'),      desc: t('ofDeltaDesc') },
+    { id: 'footprint',  name: t('ofFootprintName'),  desc: t('ofFootprintDesc') },
+    { id: 'absorption', name: t('ofAbsorptionName'), desc: t('ofAbsorptionDesc'), type: 'bullish' },
+    { id: 'iceberg',    name: t('ofIcebergName'),    desc: t('ofIcebergDesc') },
+    { id: 'poc',        name: t('ofPocName'),        desc: t('ofPocDesc') },
+  ],
+  note: t('ofNote'),
+});
+
 // "Start here" — the zero-knowledge first lesson: a linear 9-step walkthrough of
 // what opening a trade actually means (long/short, reading a candle, bid/ask,
 // units, leverage, the 1% rule, sizing, placing the order, closing + journaling).
