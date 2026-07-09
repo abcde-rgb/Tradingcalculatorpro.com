@@ -859,3 +859,28 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: build OK (290 URLs sitemap), smoke de `?lang=`.
 - ⏳ Sigue pendiente del usuario (mayor palanca SEO): comprar/conectar el dominio propio y enviar el
   sitemap a Search Console/Bing (ver `SEO_GUIDE.md`).
+
+### 2026-07-09 (22) — Revisión de seguridad del backend (pre-lanzamiento)
+- Revisión manual (la skill `security-review` no arrancó por `origin/HEAD` ambiguo; hecha a mano).
+  **Veredicto: sin vulnerabilidades.** Controles verificados:
+  1. **Inyección SQL**: el shim valida las claves de filtro con `_SAFE_FIELD_RE` (`^[a-zA-Z_]\w*$`) y
+     parametriza TODOS los valores (`$N`); `$regex/$in/$ne` con operandos parametrizados; sort field
+     validado. Nombres de tabla = colecciones internas, no input.
+  2. **Webhooks de pago**: Stripe `construct_event` + OxaPay HMAC-SHA512 en tiempo constante; ambos
+     rechazan firma/secreto ausente. No hay forma de conceder premium con un webhook falso.
+  3. **Premium solo por pago/admin**: todos los `is_premium=True` van tras webhook verificado,
+     confirmación real con Stripe (`Subscription.list status=active`), suscripción propia del usuario en
+     `change_plan` (sin IDOR: `subscription_id` sale del `user_doc`, no del payload), admin (`require_admin`)
+     o la cuenta demo (forzada no-admin). Sin ruta de auto-premium.
+  4. **Authz admin**: `require_admin` (flag BD o `ADMIN_EMAILS`) en las 23 rutas admin de server.py y en
+     todas las de `admin_routes.py` (dependencia inyectada `require_admin_dep`).
+  5. **CORS**: allowlist específica (no `*`) con `allow_credentials`. **JWT**: `RuntimeError` si falta el
+     secreto en prod. **Cookies**: httponly+secure+samesite=none, paths acotados. **bcrypt** rounds=12.
+     **Rate limits**: registro 3/h, login 10/min, refresh 30/min. **Sin secretos hardcodeados**.
+     **Sin sinks peligrosos** (eval/exec/pickle/subprocess).
+- ⚠️ **Nota operativa (no es vuln, pero bloquea el lanzamiento en el dominio actual)**: `_CORS_ORIGINS`
+  permite `tradingcalculatorpro.com`, pero el front sirve hoy desde `abcde-rgb.github.io`. Hasta conectar
+  el dominio propio, hay que añadir el origen github.io vía la variable de entorno `CORS_ORIGINS` (o a la
+  lista) o el front no podrá llamar al backend (falla en cerrado = seguro).
+- ⚠️ Bajo/teórico: `$regex` de usuario llega al `~` de Postgres (POSIX, sin backtracking exponencial
+  como PCRE) → riesgo ReDoS muy bajo; conviene no exponer `$regex` a input crudo en endpoints públicos.
