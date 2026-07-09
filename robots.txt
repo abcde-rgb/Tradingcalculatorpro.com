@@ -1,6 +1,6 @@
 # robots.txt — Trading Calculator PRO
 
-# Allow all major crawlers
+# Allow all major crawlers on the public, indexable routes
 User-agent: *
 Allow: /
 Allow: /options
@@ -11,12 +11,18 @@ Allow: /register
 Allow: /about
 Allow: /contact
 Allow: /legal
-Allow: /performance
 
-# Block private/auth routes & APIs
+# Block gated/walled routes, single-use token pages, APIs & payments
+# (all require auth or carry no SEO value → keep them out of the index)
 Disallow: /api/
-Disallow: /admin/
+Disallow: /admin
+Disallow: /dashboard
 Disallow: /settings
+Disallow: /subscription
+Disallow: /performance
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
 
