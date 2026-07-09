@@ -810,3 +810,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Montado como primera capa del `<section>` del hero en `LandingPage.jsx`.
 - Verificado: build OK; captura del hero con el gráfico animado + crosshair, titular y CTA perfectamente
   legibles, 0 pageerrors.
+- ✅ **Extendido a otras zonas** (mismo lenguaje "vivo"):
+  - `AnimatedHeroChart` ahora acepta props `fade` ('top'|'both') y `dim` (multiplicador de opacidad)
+    para reutilizarse en distintos contextos.
+  - **Pricing**: banda de velas animada detrás del encabezado "Elige tu Plan" (`fade="both"`, `dim=0.55`)
+    — contenida (fade arriba y abajo) para fundirse con la rejilla de planes.
+  - **Landing**: micro-interacción de *hover* en las tarjetas de activos y de funciones
+    (`hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 duration-300`) — elevación + brillo.
+  - Decisión de análisis: **NO** se añadió al Dashboard porque ya tiene el widget de TradingView
+    (sería redundante).
+  - Verificado: build OK; capturas de la banda de Pricing (con crosshair) y del hover en tarjetas, 0 pageerrors.

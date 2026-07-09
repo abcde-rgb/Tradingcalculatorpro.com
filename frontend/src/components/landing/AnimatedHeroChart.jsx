@@ -18,7 +18,7 @@ const RED = [239, 68, 68];     // #ef4444
 
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
-export default function AnimatedHeroChart() {
+export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '' }) {
   const canvasRef = useRef(null);
   const { theme } = useThemeStore();
   const mouse = useRef({ x: -1, y: -1, inside: false });
@@ -30,7 +30,7 @@ export default function AnimatedHeroChart() {
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     // light theme → gentler so it doesn't muddy the white background
     const isDark = theme !== 'light';
-    const alpha = isDark ? 1 : 0.7;
+    const alpha = (isDark ? 1 : 0.7) * dim;
 
     const CW = 15;           // candle slot width (px)
     let candles = [];        // {o,h,l,c}
@@ -160,13 +160,19 @@ export default function AnimatedHeroChart() {
       window.removeEventListener('mouseout', onLeave);
       ro.disconnect();
     };
-  }, [theme]);
+  }, [theme, dim]);
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" data-testid="hero-chart">
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`} aria-hidden="true" data-testid="hero-chart">
       <canvas ref={canvasRef} className="w-full h-full" />
       {/* fade the top so the headline stays crisp */}
-      <div className="absolute inset-x-0 top-0 h-2/3 bg-gradient-to-b from-background via-background/70 to-transparent" />
+      {(fade === 'top' || fade === 'both') && (
+        <div className="absolute inset-x-0 top-0 h-2/3 bg-gradient-to-b from-background via-background/70 to-transparent" />
+      )}
+      {/* fade the bottom so the chart blends into the content below (contained band) */}
+      {fade === 'both' && (
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background via-background/70 to-transparent" />
+      )}
     </div>
   );
 }
