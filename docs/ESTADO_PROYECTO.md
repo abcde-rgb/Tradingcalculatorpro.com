@@ -840,3 +840,22 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   legible, 0 pageerrors); páginas SEO nuevas presentes en los 8 idiomas.
 - ⏳ Deuda previa (fuera de esta sesión): claves i18n duplicadas `cmpTitle`/`ror*`/`advancedMetrics`/
   `educationCenter` (JS se queda con la última; conviene deduplicar algún día).
+
+### 2026-07-09 (21) — Auditoría SEO (skill mejorar-seo) + 2 fixes
+- Auditoría contra el checklist. **Dominio consistente** en todo (github.io; el dominio propio sigue
+  pendiente del usuario). **Sitemap servido correcto**: `gen-seo-pages.js` escribe `build/sitemap.xml`
+  con 290 URLs (incl. /learn/ y /tools/); el `public/sitemap.xml` de 8 URLs es una fuente vieja que el
+  build sobreescribe (no afecta a producción).
+- ✅ **Fix hreflang (el de más impacto)**: `useSEO` emitía alternates `?lang=xx`, pero **la app no leía
+  `?lang=`** → Google veía alternates que no servían ese idioma (hreflang roto). Añadido `LangSync` en
+  `App.js`: al cargar cualquier ruta con `?lang=xx`, cambia el idioma (y marca `autoDetected` para no
+  pisarlo). Ahora `/pricing?lang=de` renderiza en alemán con `<html lang=de>`. Verificado headless
+  (de/fr OK, 0 pageerrors). Bonus: enlaces por idioma compartibles.
+- ✅ **Fix robots.txt**: rutas con muro (`ProtectedRoute`) mal configuradas — `/performance` estaba en
+  `Allow` (¡y está gateada!) y faltaban `/dashboard` y `/subscription`. Reescrito: `Disallow` a
+  `/dashboard`, `/settings`, `/subscription`, `/performance`, `/admin`, y páginas de token de un solo
+  uso (`/reset-password`, `/verify-email`, `/magic`) + `/api/` y pagos. Solo quedan indexables las
+  públicas reales.
+- Verificado: build OK (290 URLs sitemap), smoke de `?lang=`.
+- ⏳ Sigue pendiente del usuario (mayor palanca SEO): comprar/conectar el dominio propio y enviar el
+  sitemap a Search Console/Bing (ver `SEO_GUIDE.md`).
