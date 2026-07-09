@@ -221,7 +221,7 @@ export default function LandingPage() {
                 key={asset.key}
                 {...MOTION_SCALE_IN_VIEW}
                 transition={TRANSITION_STAGGER_SM}
-                className="p-4 rounded-xl bg-background border border-border hover:border-primary/50 transition-all group text-center"
+                className="p-4 rounded-xl bg-background border border-border hover:border-primary/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group text-center"
               >
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/20 transition-colors">
                   <asset.icon className="w-6 h-6 text-primary" />
@@ -250,7 +250,7 @@ export default function LandingPage() {
                 key={feature.key}
                 {...MOTION_FADE_UP_VIEW}
                 transition={TRANSITION_STAGGER_MD}
-                className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-all group"
+                className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group"
               >
                 <div className={`w-14 h-14 rounded-xl ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                   <feature.icon className="w-7 h-7" />

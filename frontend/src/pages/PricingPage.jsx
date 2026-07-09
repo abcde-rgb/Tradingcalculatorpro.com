@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import AnimatedHeroChart from '@/components/landing/AnimatedHeroChart';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
@@ -202,21 +203,24 @@ export default function PricingPage() {
       
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 mb-4">
-              <Crown className="w-5 h-5 text-yellow-500" />
-              <span className="text-sm text-yellow-500 font-medium">Premium</span>
-            </div>
-            <h1 className="font-unbounded text-3xl md:text-4xl font-bold mb-4">{t('choosePlanTitle')}</h1>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              {t('choosePlanDesc')}
-            </p>
-            {isPremium && (
-              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary">
-                <Check className="w-4 h-4" />
-                <span className="text-sm font-medium">{t('alreadyPremiumActive')}</span>
+          <div className="relative overflow-hidden rounded-2xl mb-12 py-10 px-4">
+            <AnimatedHeroChart fade="both" dim={0.55} />
+            <div className="text-center relative">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 mb-4">
+                <Crown className="w-5 h-5 text-yellow-500" />
+                <span className="text-sm text-yellow-500 font-medium">Premium</span>
               </div>
-            )}
+              <h1 className="font-unbounded text-3xl md:text-4xl font-bold mb-4">{t('choosePlanTitle')}</h1>
+              <p className="text-muted-foreground max-w-xl mx-auto">
+                {t('choosePlanDesc')}
+              </p>
+              {isPremium && (
+                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary">
+                  <Check className="w-4 h-4" />
+                  <span className="text-sm font-medium">{t('alreadyPremiumActive')}</span>
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Plans Grid */}
