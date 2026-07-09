@@ -95,6 +95,7 @@ const CALCS = [
 // ─── Temas de educación: título+intro desde i18n (8 idiomas) ──────
 // {value (?topic=), slug, titleKey, introKey}
 const TOPICS = [
+  { v:'start-here', slug:'como-hacer-tu-primera-operacion', tk:'shTitle', ik:'shIntro' },
   { v:'fundamentals', slug:'fundamentos-del-trading', tk:'fundTitle', ik:'fundIntro' },
   { v:'mechanics', slug:'mecanica-del-mercado', tk:'mechTitle', ik:'mechIntro' },
   { v:'styles', slug:'estilos-de-trading', tk:'stylesTitle', ik:'stylesIntro' },
@@ -117,6 +118,8 @@ const TOPICS = [
   { v:'margin-liq', slug:'margen-y-liquidacion', tk:'mlqTitle', ik:'mlqIntro' },
   { v:'probability', slug:'probabilidad-y-estadistica', tk:'probabilityStatsTitle', ik:'probabilityStatsIntro' },
   { v:'psychology', slug:'psicologia-del-trading', tk:'tradingPsychologyTitle', ik:'tradingPsychologyIntro' },
+  { v:'time-impact', slug:'tiempo-vs-impacto-en-el-trading', tk:'tviTitle', ik:'tviIntro' },
+  { v:'pre-trade-protocol', slug:'protocolo-antes-de-operar', tk:'protoTitle', ik:'protoIntro' },
   { v:'pro-discipline', slug:'disciplina-profesional', tk:'discTitle', ik:'discIntro' },
   { v:'craft', slug:'el-oficio-del-trader', tk:'craftTitle', ik:'craftIntro' },
   { v:'strategies', slug:'estrategias-de-trading', tk:'tradingStrategiesTitle', ik:'tradingStrategiesIntro' },
