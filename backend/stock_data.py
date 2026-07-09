@@ -153,7 +153,7 @@ def get_stock_data(symbol: str) -> dict:
 def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> list:
     """Historical OHLC rows from Yahoo's chart API (direct, curl_cffi Chrome).
 
-    Returns [{date, open, high, low, close}] ascending by date. Replaces the old
+    Returns [{date, open, high, low, close, volume}] ascending by date. Replaces the old
     yfinance path, which Yahoo blocks from datacenter IPs. Returns [] on failure.
 
     `range_` accepts Yahoo ranges (1mo, 3mo, 6mo, 1y, 2y, 5y, max);

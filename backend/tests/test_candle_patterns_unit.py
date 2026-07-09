@@ -105,6 +105,7 @@ def test_ohlc_history_parsing_skips_null_bars():
             "indicators": {"quote": [{
                 "open": [10, 11, None], "high": [12, 13, 14],
                 "low": [9, 10, 11], "close": [11, 12, 13],
+                "volume": [1000, 2000, 3000],
             }]},
         }]}}
 
@@ -116,7 +117,8 @@ def test_ohlc_history_parsing_skips_null_bars():
         sd._yahoo_get = original
     assert len(rows) == 2                       # the null bar is dropped
     assert rows[0]["close"] == 11.0
-    assert set(rows[0].keys()) == {"date", "open", "high", "low", "close"}
+    assert rows[0]["volume"] == 1000.0          # volume is parsed alongside OHLC
+    assert set(rows[0].keys()) == {"date", "open", "high", "low", "close", "volume"}
 
 
 if __name__ == "__main__":
