@@ -3837,6 +3837,6 @@ export default {
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===
   partnersTitle: 'أدوات نوصي بها',
   partnersSubtitle: 'المنصات التي نستخدمها ونوصي بها للتداول وتحليل الأسواق',
-  partnerMargexDesc: 'منصة لتداول مشتقات العملات الرقمية برافعة مالية تصل إلى 100x، بدون KYC، ومكافأة ترحيب بقيمة 100 دولار',
+  partnerMargexDesc: 'منصة لتداول مشتقات العملات الرقمية برافعة مالية تصل إلى 100x، بدون KYC، ومكافأة ترحيب بقيمة 100 دولار، واسترداد نقدي على الرسوم يصل إلى 10,000 دولار',
   sponsoredLabel: 'رابط تابع',
 }

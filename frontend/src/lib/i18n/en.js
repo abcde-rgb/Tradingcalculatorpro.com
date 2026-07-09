@@ -4218,6 +4218,6 @@ export default {
   // === Recommended tools / affiliate partners (LandingPage.jsx) ===
   partnersTitle: 'Tools we recommend',
   partnersSubtitle: 'Platforms we use and recommend for trading and analyzing the markets',
-  partnerMargexDesc: 'Crypto derivatives exchange with up to 100x leverage, no KYC, and a $100 welcome bonus',
+  partnerMargexDesc: 'Crypto derivatives exchange with up to 100x leverage, no KYC, a $100 welcome bonus and fee cashback up to $10,000',
   sponsoredLabel: 'Affiliate link',
 }
