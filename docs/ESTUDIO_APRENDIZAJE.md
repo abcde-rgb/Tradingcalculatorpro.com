@@ -138,10 +138,12 @@ gestión emocional del drawdown (7), prop firms (5), + los 47 módulos y 60 tér
 ### 🔴 Huecos confirmados (cobertura 0 — realmente faltan)
 1. **Order flow / lectura de cinta** (5 líneas, solo 1 tarjeta en `inst-methods`): DOM/profundidad,
    footprint, delta de volumen, absorción, icebergs, POC intradía. Pilar entero del intradía profesional,
-   casi ausente. → módulo nuevo en "Avanzado" o "Pro".
+   casi ausente. → módulo nuevo en "Avanzado" o "Pro". **✅ HECHO (sesión #24)** — módulo `order-flow`
+   con 7 SVGs, pilar Técnico avanzado.
 2. **Análisis fundamental de acciones a fondo** (0): hoy solo 4 ratios (P/E, BPA, ingresos, dividendo).
    Faltan FCF, márgenes, deuda/equity, ROE/ROIC, foso (moat), valoración (DCF/múltiplos), leer un
-   informe de resultados. → ampliar `fund-analysis` o módulo "Valorar una empresa".
+   informe de resultados. → ampliar `fund-analysis` o módulo "Valorar una empresa". **✅ HECHO (sesión
+   #25)** — módulo `company-valuation` (10 apartados, 7 SVGs), pilar Empezar tras Análisis fundamental.
 3. **Curva de tipos (yield curve)** (0): la señal de recesión nº1 y cómo la lee el mercado. → añadir a
    `intermarket`/`fund-analysis`.
 4. **Rotación sectorial + ciclo económico** (0): qué sectores lideran en cada fase del ciclo. → "Avanzado".
@@ -157,7 +159,7 @@ gestión emocional del drawdown (7), prop firms (5), + los 47 módulos y 60 tér
 10. **Fiscalidad por país** (3): hoy genérica; España (IRPF/ahorro), LatAm, con aviso "no es asesoría".
 
 ### Prioridad recomendada
-1º **Order flow** (lo más pedido y más ausente) · 2º **Valorar una empresa** (fundamental a fondo) ·
+1º **Order flow** ✅ hecho (#24) · 2º **Valorar una empresa** ✅ hecho (#25) ·
 3º **Macro: curva de tipos + rotación sectorial** · 4º **Opciones a fondo (vol + mecánica)** ·
 5º MAE/MFE + correlación (añadidos dentro de módulos existentes, rápidos).
 

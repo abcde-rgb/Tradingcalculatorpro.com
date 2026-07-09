@@ -2669,6 +2669,28 @@ export const getMarketMechanics = (t) => ({
   }
 });
 
+// Value a company — deep fundamental analysis of a stock: income statement,
+// margins, free cash flow, debt, ROE/ROIC, the economic moat, valuation
+// (multiples + DCF) and how to read an earnings report. Pairs with SVGs in
+// CompanyValuationVisual.jsx.
+export const getCompanyValuation = (t) => ({
+  title: t('cvTitle'),
+  intro: t('cvIntro'),
+  items: [
+    { id: 'whatis',    name: t('cvWhatisName'),    desc: t('cvWhatisDesc') },
+    { id: 'income',    name: t('cvIncomeName'),    desc: t('cvIncomeDesc') },
+    { id: 'margins',   name: t('cvMarginsName'),   desc: t('cvMarginsDesc') },
+    { id: 'fcf',       name: t('cvFcfName'),       desc: t('cvFcfDesc') },
+    { id: 'debt',      name: t('cvDebtName'),      desc: t('cvDebtDesc') },
+    { id: 'roic',      name: t('cvRoicName'),      desc: t('cvRoicDesc') },
+    { id: 'moat',      name: t('cvMoatName'),      desc: t('cvMoatDesc') },
+    { id: 'multiples', name: t('cvMultiplesName'), desc: t('cvMultiplesDesc') },
+    { id: 'dcf',       name: t('cvDcfName'),       desc: t('cvDcfDesc') },
+    { id: 'earnings',  name: t('cvEarningsName'),  desc: t('cvEarningsDesc') },
+  ],
+  note: t('cvNote'),
+});
+
 // Order flow / tape reading — reading the raw buying/selling pressure (DOM,
 // time & sales, volume delta, footprint, absorption, icebergs, POC) rather than
 // only the finished price. Pairs with SVG diagrams in OrderFlowVisual.jsx.
