@@ -912,3 +912,16 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Academia: **48 módulos**.
 - ⏳ Del ranking de huecos v2 quedan: valorar una empresa a fondo, curva de tipos + rotación sectorial,
   opciones a fondo (vol + mecánica), MAE/MFE + correlación (rápidos, dentro de módulos existentes).
+
+### 2026-07-09 (25) — Módulo nuevo "Valorar una empresa a fondo" (hueco nº2 del análisis v2)
+- ✅ **`getCompanyValuation` + `CompanyValuationVisual.jsx`** (pilar Empezar, tras Análisis fundamental):
+  10 apartados con **7 diagramas SVG** neutros de idioma — precio vs valor, cuenta de resultados
+  (cascada), márgenes (embudo), flujo de caja libre (FCF vs beneficio), deuda y solidez del balance,
+  ROE/ROIC, el foso (moat, castillo+foso), valoración por múltiplos (vs sector) y por DCF (flujos
+  descontados), y cómo leer un informe de resultados (sorpresa + guía). 23 claves i18n × 8 idiomas = 184.
+- ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `como-valorar-una-empresa`) → **274 páginas SEO (35
+  temas × 8), sitemap 298→306 URLs**.
+- Verificado: build OK; captura headless del módulo (7 SVGs renderizando incl. foso y múltiplos, nav en
+  el pilar Empezar, 0 pageerrors). Academia: **49 módulos**.
+- ⏳ Del ranking de huecos v2 quedan: curva de tipos + rotación sectorial, opciones a fondo (vol +
+  mecánica), MAE/MFE + correlación (rápidos, dentro de módulos existentes).

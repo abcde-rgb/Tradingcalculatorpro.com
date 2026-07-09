@@ -100,6 +100,7 @@ const TOPICS = [
   { v:'mechanics', slug:'mecanica-del-mercado', tk:'mechTitle', ik:'mechIntro' },
   { v:'styles', slug:'estilos-de-trading', tk:'stylesTitle', ik:'stylesIntro' },
   { v:'fund-analysis', slug:'analisis-fundamental', tk:'fundAnalTitle', ik:'fundAnalIntro' },
+  { v:'company-valuation', slug:'como-valorar-una-empresa', tk:'cvTitle', ik:'cvIntro' },
   { v:'broker-safety', slug:'brokers-regulacion-estafas', tk:'bkrTitle', ik:'bkrIntro' },
   { v:'tech-analysis', slug:'analisis-tecnico', tk:'techTitle', ik:'techIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
