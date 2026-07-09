@@ -1,6 +1,7 @@
 import "@/App.css";
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useI18nStore, languages } from "@/lib/i18n";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
@@ -64,10 +65,28 @@ function PageLoader() {
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 const GOOGLE_CLIENT_ID = (process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim();
 
+// Honour an explicit ?lang= in the URL (shareable links + makes the hreflang
+// alternates emitted by useSEO truthful). Runs on every route; a bare language
+// switch from the selector doesn't add ?lang=, so it never fights the user.
+function LangSync() {
+  const location = useLocation();
+  useEffect(() => {
+    const p = new URLSearchParams(location.search).get('lang');
+    if (!p) return;
+    const st = useI18nStore.getState();
+    if (languages.some((l) => l.code === p) && p !== st.locale) {
+      st.setLocale(p);
+      useI18nStore.setState({ autoDetected: true }); // don't let browser-detect override a shared link
+    }
+  }, [location.search]);
+  return null;
+}
+
 const AppContent = () => (
   <div className="App">
     <BrowserRouter basename={process.env.PUBLIC_URL}>
       <AnalyticsTracker />
+      <LangSync />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/"                element={<LandingPage />} />
