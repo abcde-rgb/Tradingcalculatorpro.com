@@ -765,4 +765,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   idiomas. Es la **pestaña por defecto** y el primer tema del pilar Empezar. Total academia: **45 módulos**.
 - Verificado: build de producción OK; captura headless del módulo renderizando (sidebar + hero + pasos
   + CTA), 0 pageerrors. **Total sesión educativa: 57 claves enriquecidas + 24 nuevas × 8 idiomas = 648 textos.**
-- ⏳ Pendiente/propuesto: glosario ampliado (20→~60 términos).
+- ✅ **Glosario ampliado 20→60 términos** (`gl21..gl60`, 40 nuevos × 8 idiomas = 640 textos): bid, ask,
+  vela, OHLC, mecha, cuerpo, temporalidad, soporte, resistencia, tendencia, rango, ruptura, pullback,
+  media móvil, RSI, MACD, volumen, order book, market maker, órdenes (market/límite/stop), trailing,
+  hedge, funding, liquidación, mark price, posición, nocional, equity, margen libre, swap, divergencia,
+  fibonacci, ATH, FOMO, whale, backtesting, comisión, sesgo.
+- ✅ **Ejemplos visuales** (`GlossaryVisual.jsx`): 20 diagramas SVG inline, sin texto localizado,
+  mapeados por índice de glosario (spread, SL/TP, break-even, R:R, gap, largo, corto, vela, mecha,
+  cuerpo, soporte, resistencia, tendencia, rango, ruptura, pullback, media móvil, divergencia,
+  fibonacci). Se renderizan dentro de cada tarjeta cuando el término tiene diagrama.
+- Verificado: build OK; captura headless del glosario (60 tarjetas, 20 SVGs, búsqueda 'vela' filtra la
+  familia de velas con sus diagramas), 0 pageerrors.
