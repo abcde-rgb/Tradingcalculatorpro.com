@@ -796,3 +796,17 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   idiomas. Nuevo tema en el pilar Psicología. Verificado: i18n parsea, build OK, captura + interacción
   headless (capital 5000→1R=50; checklist 6/8→ámbar; readiness 7/7→verde), 0 pageerrors.
   Academia: **47 módulos**.
+
+### 2026-07-09 (19) — Efecto interactivo en la landing: gráfico de velas animado
+- **Análisis**: la landing ya usa framer-motion (fade/slide/scale al hacer scroll) y hover en tarjetas,
+  pero el **hero tenía un fondo estático** (blobs difuminados) — raro para una web de trading. Ese era
+  el punto de mayor impacto para un efecto interactivo "como la página de inicio".
+- ✅ **Nuevo `AnimatedHeroChart.jsx`** (`components/landing/`): capa `<canvas>` detrás del hero que
+  emite un **tape de velas japonesas** en movimiento (random-walk con tendencia y mean-reversion),
+  scroll continuo derecha→izquierda, relleno de área bajo los cierres, y un **crosshair que sigue el
+  ratón** y resalta la vela debajo. Decorativo (`aria-hidden`, `pointer-events-none` → no bloquea los
+  CTA), respeta `prefers-reduced-motion` (frame estático), theme-aware (alpha reducido en claro), con
+  devicePixelRatio y ResizeObserver. Fade superior (`from-background`) para que el titular siga legible.
+- Montado como primera capa del `<section>` del hero en `LandingPage.jsx`.
+- Verificado: build OK; captura del hero con el gráfico animado + crosshair, titular y CTA perfectamente
+  legibles, 0 pageerrors.
