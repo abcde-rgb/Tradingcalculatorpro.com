@@ -123,3 +123,44 @@ Cada `desc` delgada pasó del formato "1 línea" al formato de los módulos rico
 **qué es → cómo se lee/usa → umbral o ejemplo concreto → error típico del principiante.**
 Verificado con build de producción + capturas headless (Análisis Técnico, Mecánica, Fundamentos)
 renderizando el texto nuevo sin errores.
+
+---
+
+## Análisis de huecos v2 (profundo, 2026-07-09)
+
+Método: se **midió la cobertura real** de cada tema candidato (nº de líneas que lo mencionan en
+`i18n/es.js` + `tradingEducationContent.js`), separando "mención suelta" de "módulo estructurado".
+
+### Ya muy completo (NO tocar)
+Cripto a fondo (50), métricas del diario/expectancy (46), backtesting (24), Sharpe/Sortino/Calmar (13),
+gestión emocional del drawdown (7), prop firms (5), + los 47 módulos y 60 términos de glosario.
+
+### 🔴 Huecos confirmados (cobertura 0 — realmente faltan)
+1. **Order flow / lectura de cinta** (5 líneas, solo 1 tarjeta en `inst-methods`): DOM/profundidad,
+   footprint, delta de volumen, absorción, icebergs, POC intradía. Pilar entero del intradía profesional,
+   casi ausente. → módulo nuevo en "Avanzado" o "Pro".
+2. **Análisis fundamental de acciones a fondo** (0): hoy solo 4 ratios (P/E, BPA, ingresos, dividendo).
+   Faltan FCF, márgenes, deuda/equity, ROE/ROIC, foso (moat), valoración (DCF/múltiplos), leer un
+   informe de resultados. → ampliar `fund-analysis` o módulo "Valorar una empresa".
+3. **Curva de tipos (yield curve)** (0): la señal de recesión nº1 y cómo la lee el mercado. → añadir a
+   `intermarket`/`fund-analysis`.
+4. **Rotación sectorial + ciclo económico** (0): qué sectores lideran en cada fase del ciclo. → "Avanzado".
+5. **MAE/MFE** (0): excursión máxima adversa/favorable — métrica potente para afinar SL/TP con el diario.
+   → añadir a `probability` o `trade-mgmt`.
+6. **Correlación entre activos / cartera retail** (0): el concepto (hay slider ρ en portfolio heat pero
+   no se enseña), diversificación real, riesgo de secuencia de retornos. → añadir a `risk`/`capital`.
+
+### 🟠 Delgados (existen pero sin módulo estructurado)
+7. **Opciones — volatilidad** (5): IV rank/percentil, skew, term structure, vol crush en earnings.
+8. **Opciones — mecánica** (3): asignación, ejercicio, expiración, the wheel, 0DTE, PIN risk.
+9. **Forex a fondo** (1): carry trade, diferenciales de tipos, correlaciones estructuradas, estrategia por sesión.
+10. **Fiscalidad por país** (3): hoy genérica; España (IRPF/ahorro), LatAm, con aviso "no es asesoría".
+
+### Prioridad recomendada
+1º **Order flow** (lo más pedido y más ausente) · 2º **Valorar una empresa** (fundamental a fondo) ·
+3º **Macro: curva de tipos + rotación sectorial** · 4º **Opciones a fondo (vol + mecánica)** ·
+5º MAE/MFE + correlación (añadidos dentro de módulos existentes, rápidos).
+
+### Interactividad (engagement)
+Solo hay **1 quiz** (8 preguntas) para toda la academia. Añadir quizzes por pilar subiría mucho la
+retención (el detector de patrones en vivo ya cubre la parte de "practicar").

@@ -859,3 +859,56 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: build OK (290 URLs sitemap), smoke de `?lang=`.
 - ⏳ Sigue pendiente del usuario (mayor palanca SEO): comprar/conectar el dominio propio y enviar el
   sitemap a Search Console/Bing (ver `SEO_GUIDE.md`).
+
+### 2026-07-09 (22) — Revisión de seguridad del backend (pre-lanzamiento)
+- Revisión manual (la skill `security-review` no arrancó por `origin/HEAD` ambiguo; hecha a mano).
+  **Veredicto: sin vulnerabilidades.** Controles verificados:
+  1. **Inyección SQL**: el shim valida las claves de filtro con `_SAFE_FIELD_RE` (`^[a-zA-Z_]\w*$`) y
+     parametriza TODOS los valores (`$N`); `$regex/$in/$ne` con operandos parametrizados; sort field
+     validado. Nombres de tabla = colecciones internas, no input.
+  2. **Webhooks de pago**: Stripe `construct_event` + OxaPay HMAC-SHA512 en tiempo constante; ambos
+     rechazan firma/secreto ausente. No hay forma de conceder premium con un webhook falso.
+  3. **Premium solo por pago/admin**: todos los `is_premium=True` van tras webhook verificado,
+     confirmación real con Stripe (`Subscription.list status=active`), suscripción propia del usuario en
+     `change_plan` (sin IDOR: `subscription_id` sale del `user_doc`, no del payload), admin (`require_admin`)
+     o la cuenta demo (forzada no-admin). Sin ruta de auto-premium.
+  4. **Authz admin**: `require_admin` (flag BD o `ADMIN_EMAILS`) en las 23 rutas admin de server.py y en
+     todas las de `admin_routes.py` (dependencia inyectada `require_admin_dep`).
+  5. **CORS**: allowlist específica (no `*`) con `allow_credentials`. **JWT**: `RuntimeError` si falta el
+     secreto en prod. **Cookies**: httponly+secure+samesite=none, paths acotados. **bcrypt** rounds=12.
+     **Rate limits**: registro 3/h, login 10/min, refresh 30/min. **Sin secretos hardcodeados**.
+     **Sin sinks peligrosos** (eval/exec/pickle/subprocess).
+- ⚠️ **Nota operativa (no es vuln, pero bloquea el lanzamiento en el dominio actual)**: `_CORS_ORIGINS`
+  permite `tradingcalculatorpro.com`, pero el front sirve hoy desde `abcde-rgb.github.io`. Hasta conectar
+  el dominio propio, hay que añadir el origen github.io vía la variable de entorno `CORS_ORIGINS` (o a la
+  lista) o el front no podrá llamar al backend (falla en cerrado = seguro).
+- ⚠️ Bajo/teórico: `$regex` de usuario llega al `~` de Postgres (POSIX, sin backtracking exponencial
+  como PCRE) → riesgo ReDoS muy bajo; conviene no exponer `$regex` a input crudo en endpoints públicos.
+
+### 2026-07-09 (23) — Cierre de sesión (skill estado-proyecto): verificación + readiness
+- **Verificación obligatoria OK**: `py_compile` de los 9 módulos backend ✅; `npm run build` ✅
+  (sitemap 290 URLs). Esta sesión **no tocó backend `.py`** (solo frontend, i18n, robots, App.js,
+  gen-seo-pages y docs).
+- **Foto de lanzamiento**: el **código está listo**. Todo lo que falta para publicar es **operativo**
+  (consolas externas), no de código — ver `DEPLOY_CHECKLIST.md`: secretos de GitHub Actions
+  (`REACT_APP_BACKEND_URL`, `REACT_APP_GOOGLE_CLIENT_ID`, WIF), Secret Manager (`JWT_SECRET`,
+  `DATABASE_URL`, `STRIPE_API_KEY` sk_live, `STRIPE_WEBHOOK_SECRET`), infra Cloud Run + Cloud SQL,
+  webhook de Stripe apuntado a `/api/webhook/stripe`, y **`CORS_ORIGINS`** con el origen actual
+  (github.io) hasta conectar el dominio propio + DNS + Search Console.
+- Resumen de la sesión (educación + landing + skills): estudio de Aprendizaje + 57 conceptos
+  reescritos para principiantes + módulos nuevos ("Empieza aquí", "Tiempo vs impacto", "Protocolo antes
+  de operar") + glosario 20→60 con 20 diagramas SVG + hero de la landing con velas animadas + banda en
+  Pricing + code-review (3 fixes) + SEO (hreflang `?lang=` + robots + 3 páginas SEO nuevas) +
+  security-review (sin vulnerabilidades). Todo fusionado a `main` (PRs #82–#91).
+
+### 2026-07-09 (24) — Módulo nuevo "Order flow / lectura de cinta" (hueco nº1 del análisis v2)
+- ✅ **`getOrderFlow` + `OrderFlowVisual.jsx`** (pilar Técnico avanzado, tras Smart Money): 8 apartados
+  con **7 diagramas SVG** neutros de idioma — qué es el order flow, libro de órdenes (DOM), la cinta
+  (time & sales) y agresores, delta de volumen (+ divergencia y delta acumulado), footprint/clústeres,
+  absorción, órdenes iceberg, y punto de control (POC) + área de valor. 19 claves i18n × 8 idiomas = 152.
+- ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `order-flow-lectura-de-cinta`) → **266 páginas SEO (34
+  temas × 8), sitemap 290→298 URLs**.
+- Verificado: build OK; captura headless del módulo (7 SVGs renderizando, nav en su sitio, 0 pageerrors).
+  Academia: **48 módulos**.
+- ⏳ Del ranking de huecos v2 quedan: valorar una empresa a fondo, curva de tipos + rotación sectorial,
+  opciones a fondo (vol + mecánica), MAE/MFE + correlación (rápidos, dentro de módulos existentes).
