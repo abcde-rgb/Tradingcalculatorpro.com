@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -354,7 +354,7 @@ function PatternDetailModal({ pattern, onClose }) {
 }
 
 export default function EducationPage() {
-  const [activeTopic, setActiveTopic] = useState('fundamentals');
+  const [activeTopic, setActiveTopic] = useState('start-here');
   const [topicQuery, setTopicQuery] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRules, setExpandedRules] = useState(new Set([1, 2, 3]));
@@ -429,6 +429,7 @@ export default function EducationPage() {
   const FUNDAMENTAL_ANALYSIS = getFundamentalAnalysis(t);
   const TRADING_STYLES_CONTENT = getTradingStylesContent(t);
   const MARKET_MECHANICS = getMarketMechanics(t);
+  const START_HERE = getStartHere(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -438,6 +439,7 @@ export default function EducationPage() {
   // Values map 1:1 to the existing TabsContent blocks; only navigation changes.
   const EDUCATION_NAV = [
     { id: 'start', label: t('eduCatStart'), topics: [
+      { value: 'start-here', label: t('shTitle') },
       { value: 'fundamentals', label: t('fundTab') },
       { value: 'mechanics', label: t('mechTab') },
       { value: 'styles', label: t('stylesTab') },
@@ -834,6 +836,52 @@ export default function EducationPage() {
                     {eduDone.includes(activeTopic) ? t('eduDoneLabel') : t('eduMarkDone')}
                   </button>
                 </div>
+
+            {/* Start Here — zero-knowledge first lesson */}
+            <TabsContent value="start-here" className="space-y-8">
+              <Card className="bg-gradient-to-br from-primary/10 to-green-500/10 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Lightbulb className="w-6 h-6 text-primary" />
+                    {START_HERE.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{START_HERE.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-4">
+                {START_HERE.steps.map((step) => (
+                  <Card key={step.id} className="bg-card border-border border-l-2 border-l-primary/50 hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{step.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="bg-primary/5 border-primary/30">
+                <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Target className="w-5 h-5 text-primary" />
+                      {START_HERE.cta.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-xl">{START_HERE.cta.desc}</p>
+                  </div>
+                  <Link to="/dashboard?tab=position" className="flex-shrink-0">
+                    <Button size="lg" className="w-full sm:w-auto">{START_HERE.cta.button}</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{START_HERE.note}</p>
+              </div>
+            </TabsContent>
 
             {/* Fundamentals */}
             <TabsContent value="fundamentals" className="space-y-8">

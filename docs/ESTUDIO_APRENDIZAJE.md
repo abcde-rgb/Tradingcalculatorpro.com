@@ -107,11 +107,19 @@ La amplitud ya es alta; estas son adiciones de valor real, no relleno:
 | **B** | Mecánica: tipos de orden (market/limit/stop/stop-limit/trailing), criterios de bróker, diario — 11 claves | ✅ hecho |
 | **C** | Fundamentos: tipos de mercado (forex/acciones/cripto/futuros/índices/materias/ETFs) + estilos — 11 claves | ✅ hecho |
 | **D** | Coherencia del tab Fundamentos: participantes (minorista/institucional/market maker/banco central) + sesiones (Asia/Londres/NY/solape) — 8 claves | ✅ hecho |
-| **E** (pendiente) | Análisis fundamental (macro PIB/IPC/tipos/NFP/paro, calendario, ratios P/E, BPA…) — ~11 claves | ⏳ pendiente |
-| **F** (propuesto) | Módulo nuevo "Empieza aquí" (0 conocimiento) + glosario ampliado (20→~60) | 💡 propuesto |
+| **E** | Análisis fundamental (macro PIB/IPC/tipos/NFP/paro, calendario, ratios P/E, BPA…) — 11 claves | ✅ hecho |
+| **F** | Módulo nuevo **"Empieza aquí"** (0 conocimiento): primera operación en 9 pasos + CTA a la calculadora de tamaño — 24 claves nuevas | ✅ hecho |
+| (pendiente) | Glosario ampliado (20→~60 términos) | 💡 propuesto |
 
-**Hecho en esta sesión: 46 claves × 8 idiomas = 368 textos enriquecidos.** Cada `desc` delgada pasó
-del formato "1 línea" al formato de los módulos ricos:
+**Hecho en esta sesión: 57 claves enriquecidas + 24 claves nuevas, todo × 8 idiomas = 648 textos.**
+
+**Módulo "Empieza aquí"** (`getStartHere` + bloque en `EducationPage.jsx`): es ahora el **primer tema
+del pilar Empezar y la pestaña por defecto** de `/education`, para que un principiante total aterrice
+ahí. 9 pasos lineales: largo/corto → leer una vela → bid/ask/spread → pip/tick/lote → apalancamiento
+con ejemplo → regla del 1% → tamaño de posición → colocar la orden (entrada/SL/TP, R:R 1:2) → cerrar y
+anotar. Cierra con un botón que abre la Calculadora de Tamaño de Posición (`/dashboard?tab=position`).
+
+Cada `desc` delgada pasó del formato "1 línea" al formato de los módulos ricos:
 **qué es → cómo se lee/usa → umbral o ejemplo concreto → error típico del principiante.**
 Verificado con build de producción + capturas headless (Análisis Técnico, Mecánica, Fundamentos)
 renderizando el texto nuevo sin errores.

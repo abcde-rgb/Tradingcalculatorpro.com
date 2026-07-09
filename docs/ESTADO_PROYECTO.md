@@ -756,5 +756,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: los 8 ficheros i18n parsean como ESM; build de producción OK; capturas headless de
   Análisis Técnico (indicadores), Mecánica y Fundamentos (participantes) renderizando el texto nuevo,
   0 pageerrors.
-- ⏳ Pendiente/propuesto (documentado en el estudio): Batch E (análisis fundamental macro/ratios) y
-  Batch F (módulo nuevo "Empieza aquí" 0-conocimiento + glosario 20→~60 términos).
+- ✅ **Batch E** — Análisis fundamental (PIB, IPC, tipos, NFP, paro, calendario económico, ratios
+  P/E, BPA, ingresos, dividendo): 11 claves × 8 idiomas.
+- ✅ **Módulo nuevo "Empieza aquí"** (`getStartHere` + bloque en `EducationPage.jsx`): primera
+  operación en 9 pasos para 0-conocimiento (largo/corto, leer una vela, bid/ask/spread, pip/tick/lote,
+  apalancamiento con ejemplo, regla del 1%, tamaño de posición, colocar la orden con SL/TP y R:R 1:2,
+  cerrar y anotar) + CTA a la Calculadora de Tamaño (`/dashboard?tab=position`). 24 claves nuevas × 8
+  idiomas. Es la **pestaña por defecto** y el primer tema del pilar Empezar. Total academia: **45 módulos**.
+- Verificado: build de producción OK; captura headless del módulo renderizando (sidebar + hero + pasos
+  + CTA), 0 pageerrors. **Total sesión educativa: 57 claves enriquecidas + 24 nuevas × 8 idiomas = 648 textos.**
+- ⏳ Pendiente/propuesto: glosario ampliado (20→~60 términos).

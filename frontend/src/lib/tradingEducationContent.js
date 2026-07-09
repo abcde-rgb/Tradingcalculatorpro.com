@@ -2669,6 +2669,28 @@ export const getMarketMechanics = (t) => ({
   }
 });
 
+// "Start here" — the zero-knowledge first lesson: a linear 9-step walkthrough of
+// what opening a trade actually means (long/short, reading a candle, bid/ask,
+// units, leverage, the 1% rule, sizing, placing the order, closing + journaling).
+// Ends with a CTA into the Position Size Calculator (/dashboard?tab=position).
+export const getStartHere = (t) => ({
+  title: t('shTitle'),
+  intro: t('shIntro'),
+  steps: [
+    { id: 'longshort', name: t('shLongShortName'), desc: t('shLongShortDesc') },
+    { id: 'candle',    name: t('shCandleName'),    desc: t('shCandleDesc') },
+    { id: 'bidask',    name: t('shBidAskName'),    desc: t('shBidAskDesc') },
+    { id: 'units',     name: t('shUnitsName'),     desc: t('shUnitsDesc') },
+    { id: 'leverage',  name: t('shLeverageName'),  desc: t('shLeverageDesc') },
+    { id: 'risk',      name: t('shRiskName'),      desc: t('shRiskDesc') },
+    { id: 'size',      name: t('shSizeName'),      desc: t('shSizeDesc') },
+    { id: 'order',     name: t('shOrderName'),     desc: t('shOrderDesc') },
+    { id: 'manage',    name: t('shManageName'),    desc: t('shManageDesc') },
+  ],
+  cta: { title: t('shCtaTitle'), desc: t('shCtaDesc'), button: t('shCtaButton') },
+  note: t('shNote'),
+});
+
 export const getWyckoffContent = (t) => ({
   title: t('wyckoffTitle'),
   intro: t('wyckoffIntro'),
