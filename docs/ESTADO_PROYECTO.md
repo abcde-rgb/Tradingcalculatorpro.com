@@ -884,3 +884,19 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   lista) o el front no podrá llamar al backend (falla en cerrado = seguro).
 - ⚠️ Bajo/teórico: `$regex` de usuario llega al `~` de Postgres (POSIX, sin backtracking exponencial
   como PCRE) → riesgo ReDoS muy bajo; conviene no exponer `$regex` a input crudo en endpoints públicos.
+
+### 2026-07-09 (23) — Cierre de sesión (skill estado-proyecto): verificación + readiness
+- **Verificación obligatoria OK**: `py_compile` de los 9 módulos backend ✅; `npm run build` ✅
+  (sitemap 290 URLs). Esta sesión **no tocó backend `.py`** (solo frontend, i18n, robots, App.js,
+  gen-seo-pages y docs).
+- **Foto de lanzamiento**: el **código está listo**. Todo lo que falta para publicar es **operativo**
+  (consolas externas), no de código — ver `DEPLOY_CHECKLIST.md`: secretos de GitHub Actions
+  (`REACT_APP_BACKEND_URL`, `REACT_APP_GOOGLE_CLIENT_ID`, WIF), Secret Manager (`JWT_SECRET`,
+  `DATABASE_URL`, `STRIPE_API_KEY` sk_live, `STRIPE_WEBHOOK_SECRET`), infra Cloud Run + Cloud SQL,
+  webhook de Stripe apuntado a `/api/webhook/stripe`, y **`CORS_ORIGINS`** con el origen actual
+  (github.io) hasta conectar el dominio propio + DNS + Search Console.
+- Resumen de la sesión (educación + landing + skills): estudio de Aprendizaje + 57 conceptos
+  reescritos para principiantes + módulos nuevos ("Empieza aquí", "Tiempo vs impacto", "Protocolo antes
+  de operar") + glosario 20→60 con 20 diagramas SVG + hero de la landing con velas animadas + banda en
+  Pricing + code-review (3 fixes) + SEO (hreflang `?lang=` + robots + 3 páginas SEO nuevas) +
+  security-review (sin vulnerabilidades). Todo fusionado a `main` (PRs #82–#91).
