@@ -40,6 +40,7 @@ import RiskAnalysisTools from '@/components/education/RiskAnalysisTools';
 import RiskOfRuinCalculator from '@/components/education/RiskOfRuinCalculator';
 import WyckoffSchematic from '@/components/education/WyckoffSchematic';
 import CotGuide from '@/components/education/CotGuide';
+import GlossaryVisual from '@/components/education/GlossaryVisual';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -522,7 +523,7 @@ export default function EducationPage() {
   const doneCount = eduDone.filter(v => EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === v))).length;
 
   // Glossary + quiz data (localized via i18n keys; answers are key-order-fixed).
-  const GLOSSARY = Array.from({ length: 20 }, (_, i) => ({ term: t(`gl${i + 1}t`), def: t(`gl${i + 1}d`) }));
+  const GLOSSARY = Array.from({ length: 60 }, (_, i) => ({ n: i + 1, term: t(`gl${i + 1}t`), def: t(`gl${i + 1}d`) }));
   const [glossQ, setGlossQ] = useState('');
   const glossFiltered = GLOSSARY.filter(g =>
     !glossQ || (g.term + ' ' + g.def).toLowerCase().includes(glossQ.toLowerCase())
@@ -3752,10 +3753,11 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="glossary-grid">
-                {glossFiltered.map((g, i) => (
-                  <div key={i} className="p-3.5 rounded-lg bg-card border border-border">
+                {glossFiltered.map((g) => (
+                  <div key={g.n} className="p-3.5 rounded-lg bg-card border border-border">
                     <p className="text-sm font-bold text-primary mb-1">{g.term}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">{g.def}</p>
+                    <GlossaryVisual n={g.n} />
                   </div>
                 ))}
                 {glossFiltered.length === 0 && (

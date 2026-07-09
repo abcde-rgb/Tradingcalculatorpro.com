@@ -109,7 +109,7 @@ La amplitud ya es alta; estas son adiciones de valor real, no relleno:
 | **D** | Coherencia del tab Fundamentos: participantes (minorista/institucional/market maker/banco central) + sesiones (Asia/Londres/NY/solape) — 8 claves | ✅ hecho |
 | **E** | Análisis fundamental (macro PIB/IPC/tipos/NFP/paro, calendario, ratios P/E, BPA…) — 11 claves | ✅ hecho |
 | **F** | Módulo nuevo **"Empieza aquí"** (0 conocimiento): primera operación en 9 pasos + CTA a la calculadora de tamaño — 24 claves nuevas | ✅ hecho |
-| (pendiente) | Glosario ampliado (20→~60 términos) | 💡 propuesto |
+| **G** | Glosario ampliado (20→**60** términos) + **ejemplos visuales** (20 diagramas SVG inline) | ✅ hecho |
 
 **Hecho en esta sesión: 57 claves enriquecidas + 24 claves nuevas, todo × 8 idiomas = 648 textos.**
 
