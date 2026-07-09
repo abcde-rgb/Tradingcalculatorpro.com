@@ -41,6 +41,7 @@ import RiskOfRuinCalculator from '@/components/education/RiskOfRuinCalculator';
 import WyckoffSchematic from '@/components/education/WyckoffSchematic';
 import CotGuide from '@/components/education/CotGuide';
 import GlossaryVisual from '@/components/education/GlossaryVisual';
+import TimeVsImpact from '@/components/education/TimeVsImpact';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -478,6 +479,7 @@ export default function EducationPage() {
     ]},
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
+      { value: 'time-impact', label: t('tviTitle') },
       { value: 'mindset', label: t('mdzTitle') },
       { value: 'masters', label: t('mstrTitle') },
       { value: 'futures-masters', label: t('fmstTitle') },
@@ -882,6 +884,11 @@ export default function EducationPage() {
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{START_HERE.note}</p>
               </div>
+            </TabsContent>
+
+            {/* Time vs Impact — the trader's paradox */}
+            <TabsContent value="time-impact" className="space-y-6">
+              <TimeVsImpact />
             </TabsContent>
 
             {/* Fundamentals */}
