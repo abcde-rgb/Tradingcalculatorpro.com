@@ -28,13 +28,15 @@ export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    // light theme → gentler so it doesn't muddy the white background
-    const isDark = theme !== 'light';
+    // light theme → gentler so it doesn't muddy the white background.
+    // 'system' resolves to the OS preference, not a blanket "dark".
+    const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+    const isDark = theme === 'light' ? false : theme === 'system' ? !prefersLight : true;
     const alpha = (isDark ? 1 : 0.7) * dim;
 
     const CW = 15;           // candle slot width (px)
     let candles = [];        // {o,h,l,c}
-    let width = 0, height = 0, dpr = 1;
+    let width = 0, height = 0, dpr = 1, canvasLeft = 0;
     let scroll = 0;          // sub-pixel scroll offset
     let price = 100, trend = 0;
     let raf = 0;
@@ -58,7 +60,7 @@ export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = rect.width; height = rect.height;
+      width = rect.width; height = rect.height; canvasLeft = rect.left;
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -93,9 +95,9 @@ export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '
       ctx.fillStyle = grad;
       ctx.fill();
 
-      // crosshair target (mouse relative to canvas)
-      const rect = canvas.getBoundingClientRect();
-      const mx = mouse.current.inside ? mouse.current.x - rect.left : -1;
+      // crosshair target (mouse relative to canvas; canvasLeft cached in resize
+      // to avoid a layout-forcing getBoundingClientRect every frame)
+      const mx = mouse.current.inside ? mouse.current.x - canvasLeft : -1;
       let hot = -1;
       if (mx >= 0 && mx <= width) hot = Math.round((mx - baseX - CW / 2) / CW);
 
@@ -148,16 +150,20 @@ export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '
     else { raf = requestAnimationFrame(loop); }
 
     const onMove = (e) => { mouse.current = { x: e.clientX, y: e.clientY, inside: true }; };
+    // mouseleave on the document root fires only when the pointer actually
+    // leaves the window — unlike bubbling 'mouseout', which flips off on every
+    // element boundary and made the crosshair flicker.
     const onLeave = () => { mouse.current.inside = false; };
+    const root = document.documentElement;
     window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseout', onLeave);
+    root.addEventListener('mouseleave', onLeave);
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseout', onLeave);
+      root.removeEventListener('mouseleave', onLeave);
       ro.disconnect();
     };
   }, [theme, dim]);

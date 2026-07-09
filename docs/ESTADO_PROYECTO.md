@@ -820,3 +820,23 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   - Decisión de análisis: **NO** se añadió al Dashboard porque ya tiene el widget de TradingView
     (sería redundante).
   - Verificado: build OK; capturas de la banda de Pricing (con crosshair) y del hover en tarjetas, 0 pageerrors.
+
+### 2026-07-09 (20) — Revisión de código (skill code-review) de lo añadido + fixes
+- Lancé la skill **code-review** sobre el código nuevo de la sesión. Veredicto: **sin bugs graves**
+  (el canvas protege la división por cero con `|| 1`, clampa `dt`, y limpia listeners/rAF; la lógica
+  de las herramientas y sus veredictos es correcta). Comprobado además que **las inserciones i18n no
+  crearon claves duplicadas** (las duplicadas existentes —`cmpTitle`, `ror*`, `advancedMetrics`,
+  `educationCenter`— son **previas**, no de esta sesión).
+- ✅ **3 defectos de calidad corregidos en `AnimatedHeroChart`**:
+  1. `mouseout` (que burbujea) → **`mouseleave`** en `documentElement`: evitaba el parpadeo del crosshair
+     al cruzar fronteras de elementos.
+  2. `getBoundingClientRect()` en **cada frame** → `canvasLeft` cacheado en `resize()` (sin reflow por frame).
+  3. Tema **`system`** se trataba como oscuro para el alpha → ahora se resuelve con `prefers-color-scheme`.
+- ✅ **SEO**: los 3 módulos nuevos (start-here, time-impact, pre-trade-protocol) **no** estaban en la
+  lista `TOPICS` de `gen-seo-pages.js` → añadidos. Ahora se generan **258 páginas (33 temas × 8 idiomas)**
+  y el sitemap pasa a **290 URLs** (antes 266). Slugs SEO: `como-hacer-tu-primera-operacion`,
+  `tiempo-vs-impacto-en-el-trading`, `protocolo-antes-de-operar`.
+- Verificado: build OK; smoke del hero tras los fixes (canvas dibuja, crosshair sigue al ratón, titular
+  legible, 0 pageerrors); páginas SEO nuevas presentes en los 8 idiomas.
+- ⏳ Deuda previa (fuera de esta sesión): claves i18n duplicadas `cmpTitle`/`ror*`/`advancedMetrics`/
+  `educationCenter` (JS se queda con la última; conviene deduplicar algún día).
