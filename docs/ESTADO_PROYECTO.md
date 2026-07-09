@@ -783,3 +783,16 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   (con disclaimer honesto). 16 claves i18n × 8 idiomas. **Paleta validada con la skill dataviz**
   (Tiempo #3b82f6 / Impacto #d97706: banda de luminosidad PASS, CVD ΔE 121 protan/94 tritan PASS,
   contraste PASS). Verificado: build OK, captura del módulo, 0 pageerrors. Academia: **46 módulos**.
+- ✅ **Módulo nuevo "Protocolo antes de operar"** (`PreTradeProtocol.jsx`, pilar Psicología): 3
+  herramientas interactivas en una:
+  1. **Reglas de parada (cortacircuitos)** — capital + riesgo% + sliders (parada diaria/semanal en R,
+     pérdidas seguidas, máx operaciones/día) → genera "tu reglamento" con las cifras en divisa (1R,
+     diaria, semanal) calculadas en vivo (placeholders {r}/{v}/{n} vía `t()`).
+  2. **Checklist pre-operación** — 8 condiciones marcables → puntuación + semáforo go/no-go
+     (≥7 verde / 5-6 ámbar / ≤4 rojo).
+  3. **¿Estás para operar hoy?** — 7 preguntas Sí/No → índice de estado + veredicto
+     (≥6 en forma / 4-5 media máquina / ≤3 hoy no).
+  Status colors (verde/ámbar/rojo) siempre con icono+etiqueta (no solo color). 54 claves i18n × 8
+  idiomas. Nuevo tema en el pilar Psicología. Verificado: i18n parsea, build OK, captura + interacción
+  headless (capital 5000→1R=50; checklist 6/8→ámbar; readiness 7/7→verde), 0 pageerrors.
+  Academia: **47 módulos**.

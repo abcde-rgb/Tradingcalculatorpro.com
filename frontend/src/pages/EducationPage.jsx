@@ -42,6 +42,7 @@ import WyckoffSchematic from '@/components/education/WyckoffSchematic';
 import CotGuide from '@/components/education/CotGuide';
 import GlossaryVisual from '@/components/education/GlossaryVisual';
 import TimeVsImpact from '@/components/education/TimeVsImpact';
+import PreTradeProtocol from '@/components/education/PreTradeProtocol';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -480,6 +481,7 @@ export default function EducationPage() {
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
       { value: 'time-impact', label: t('tviTitle') },
+      { value: 'pre-trade-protocol', label: t('protoTitle') },
       { value: 'mindset', label: t('mdzTitle') },
       { value: 'masters', label: t('mstrTitle') },
       { value: 'futures-masters', label: t('fmstTitle') },
@@ -889,6 +891,11 @@ export default function EducationPage() {
             {/* Time vs Impact — the trader's paradox */}
             <TabsContent value="time-impact" className="space-y-6">
               <TimeVsImpact />
+            </TabsContent>
+
+            {/* Pre-trade protocol — stop rules + checklist + emotional readiness */}
+            <TabsContent value="pre-trade-protocol" className="space-y-6">
+              <PreTradeProtocol />
             </TabsContent>
 
             {/* Fundamentals */}
