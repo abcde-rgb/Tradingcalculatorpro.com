@@ -731,3 +731,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: `py_compile server.py` OK; build OK; smoke headless (landing hero + pricing: 3 badges en
   subs, 0 en lifetime, botón "Start 7-day free trial", reassurance, 0 crudas, 0 pageerrors); screenshot.
 - ⚠️ El flujo real de Stripe (trial → cobro día 8) solo se prueba con el backend vivo (billing).
+
+### 2026-07-09 (17) — Margex: cashback de comisiones en la tarjeta de afiliado
+- ✅ **Contenido afiliado** (`RecommendedTools.jsx` → clave `partnerMargexDesc`): la tarjeta de Margex
+  en la landing ahora menciona, además del bono de bienvenida de $100, el **cashback de comisiones
+  hasta $10.000**. Traducido en los **8 idiomas** (es/en/de/fr/ru/zh/ja/ar). El enlace mantiene el ID
+  de afiliado (`rid=44932212`) y el `rel="sponsored"`.
+- Verificado: build OK; screenshot headless de la sección "Herramientas que recomendamos" con el texto
+  nuevo renderizado en español.
+- ⚠️ Nota: la cifra "$10.000" de Margex es una promo de cashback sobre comisiones (no dinero libre
+  retirable) y puede cambiar con el tiempo; si Margex la retira o modifica, actualizar/quitar esta línea.
