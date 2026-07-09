@@ -741,3 +741,20 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   nuevo renderizado en español.
 - ⚠️ Nota: la cifra "$10.000" de Margex es una promo de cashback sobre comisiones (no dinero libre
   retirable) y puede cambiar con el tiempo; si Margex la retira o modifica, actualizar/quitar esta línea.
+
+### 2026-07-09 (18) — Estudio del Centro de Aprendizaje + enriquecimiento para principiantes
+- ✅ **Estudio** (`docs/ESTUDIO_APRENDIZAJE.md`): auditoría de los 44 módulos/6 pilares. Hallazgo
+  clave: dos capas de profundidad — los módulos avanzados (añadidos tarde) son ricos, pero los
+  **fundacionales que un principiante ve primero** (análisis técnico básico, tipos de orden, tipos de
+  mercado) eran stubs de una línea. Roadmap + gaps (falta ruta guiada "Empieza aquí" desde 0).
+- ✅ **Enriquecimiento 46 claves × 8 idiomas = 368 textos** (script line-replace, respeta paridad i18n):
+  - **Batch A** — Análisis técnico: S/R, tendencias, indicadores (SMA/EMA/RSI/MACD/BB/Fib), MTF (16).
+  - **Batch B** — Mecánica: órdenes market/limit/stop/stop-limit/trailing, criterios de bróker, diario (11).
+  - **Batch C** — Fundamentos: tipos de mercado (forex/acciones/cripto/futuros/índices/materias/ETFs) + estilos (11).
+  - **Batch D** — Coherencia del tab Fundamentos: participantes + sesiones (8).
+  - Cada `desc` pasó de 1 línea a: qué es → cómo se lee/usa → umbral o ejemplo → error típico del novato.
+- Verificado: los 8 ficheros i18n parsean como ESM; build de producción OK; capturas headless de
+  Análisis Técnico (indicadores), Mecánica y Fundamentos (participantes) renderizando el texto nuevo,
+  0 pageerrors.
+- ⏳ Pendiente/propuesto (documentado en el estudio): Batch E (análisis fundamental macro/ratios) y
+  Batch F (módulo nuevo "Empieza aquí" 0-conocimiento + glosario 20→~60 términos).
