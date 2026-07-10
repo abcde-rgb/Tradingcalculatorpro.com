@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Header } from '@/components/layout/Header';
+import AuroraHeader from '@/components/landing/AuroraHeader';
 import { Footer } from '@/components/layout/Footer';
 import { toast } from 'sonner';
 import { useSEO } from '@/hooks/useSEO';
@@ -91,10 +92,11 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col relative">
+      <AuroraHeader />
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 relative z-10">
         {/* Hero */}
         <section className="py-16 px-4 text-center border-b border-border">
           <div className="max-w-2xl mx-auto">
