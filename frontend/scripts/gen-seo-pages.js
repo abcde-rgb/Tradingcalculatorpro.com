@@ -102,6 +102,7 @@ const TOPICS = [
   { v:'fund-analysis', slug:'analisis-fundamental', tk:'fundAnalTitle', ik:'fundAnalIntro' },
   { v:'company-valuation', slug:'como-valorar-una-empresa', tk:'cvTitle', ik:'cvIntro' },
   { v:'broker-safety', slug:'brokers-regulacion-estafas', tk:'bkrTitle', ik:'bkrIntro' },
+  { v:'evidence-based', slug:'trading-basado-en-evidencia', tk:'evTitle', ik:'evIntro' },
   { v:'tech-analysis', slug:'analisis-tecnico', tk:'techTitle', ik:'techIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
   { v:'market-structure', slug:'estructura-de-mercado-bos-choch', tk:'msTitle', ik:'msIntro' },

@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -48,6 +48,7 @@ import CompanyValuationVisual from '@/components/education/CompanyValuationVisua
 import MacroVisual from '@/components/education/MacroVisual';
 import MarketStructureVisual from '@/components/education/MarketStructureVisual';
 import SessionTimingVisual from '@/components/education/SessionTimingVisual';
+import EvidenceVisual from '@/components/education/EvidenceVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 
 const priorityColors = {
@@ -444,6 +445,7 @@ export default function EducationPage() {
   const MACRO = getMacro(t);
   const MARKET_STRUCTURE = getMarketStructure(t);
   const SESSION_TIMING = getSessionTiming(t);
+  const EVIDENCE = getEvidenceBased(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -460,6 +462,7 @@ export default function EducationPage() {
       { value: 'fund-analysis', label: t('fundAnalTab') },
       { value: 'company-valuation', label: t('cvTitle') },
       { value: 'broker-safety', label: t('bkrTitle') },
+      { value: 'evidence-based', label: t('evTitle') },
       { value: 'glossary', label: t('glossaryTab') },
     ]},
     { id: 'technical', label: t('eduCatTechnical'), topics: [
@@ -1076,6 +1079,38 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{SESSION_TIMING.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Evidence-based trading — what funds, desks & academia have proven */}
+            <TabsContent value="evidence-based" className="space-y-8">
+              <Card className="bg-gradient-to-br from-teal-500/5 to-primary/10 border-teal-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <BarChart3 className="w-6 h-6 text-teal-500" />
+                    {EVIDENCE.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{EVIDENCE.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {EVIDENCE.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <EvidenceVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{EVIDENCE.note}</p>
               </div>
             </TabsContent>
 
