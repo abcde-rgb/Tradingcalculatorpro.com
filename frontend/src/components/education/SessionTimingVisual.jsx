@@ -79,7 +79,7 @@ const VISUALS = {
       <rect x={hx(14.33)} y="52" width={hx(16.2) - hx(14.33)} height="18" fill={HOT} opacity="0.16" />
       <T x={hx(15)} y="30" textAnchor="middle" fill={HOT} fontSize="7">14:20 · 14:30 dato</T>
       <T x={hx(16)} y="96" textAnchor="middle" fill={NEUT} fontSize="7">16:00</T>
-      <T x="20" y="16" fill={MUT} fontSize="7">oro — franja caliente (h. España)</T>
+      <T x="20" y="16" fill={MUT} fontSize="7">oro — franja caliente (h. Frankfurt)</T>
     </Frame>
   ),
   // Power hour — volume ramps into the US close
