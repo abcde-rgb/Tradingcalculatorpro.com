@@ -940,3 +940,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   (rápidos, dentro de módulos existentes).
 - ⚠️ Deploy backend (Cloud Run) sigue en rojo por **billing de GCP desactivado** (proyecto
   `tradingcalculator-495806`); el frontend (GitHub Pages) despliega OK. Bloqueo operativo del dueño.
+
+### 2026-07-10 (27) — Fondo "Aurora" animado en páginas internas
+- Revisión de fondos a 4:3/16:9/16:10/21:9: Principal y Precios ya usan el gráfico de velas animado
+  (responsivo); las internas se veían planas. El dueño eligió un estilo distinto tipo **Aurora**.
+- ✅ **`AuroraBackground.jsx`** (canvas de manchas de color que derivan despacio; sutil, responsivo con
+  ResizeObserver, respeta `prefers-reduced-motion`, aware de tema claro/oscuro) + **`AuroraHeader.jsx`**
+  (banda superior reutilizable, `pointer-events-none`, se funde con el contenido).
+- ✅ Aplicado como banda-cabecera en **Aprendizaje, Sobre nosotros y Contacto** (hero con brillo suave;
+  texto perfectamente legible). Descartado en Opciones/Dashboard/Performance (contenido denso tapa el
+  brillo → inútil) y Legal (estructura multi-sección). Principal/Precios se quedan con el gráfico.
+- Verificado: build OK; capturas headless de Aprendizaje/About/Contact a varias proporciones, 0 errores.

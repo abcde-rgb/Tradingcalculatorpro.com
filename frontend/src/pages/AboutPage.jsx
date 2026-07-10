@@ -3,6 +3,7 @@ import { TrendingUp, Shield, Zap, Users, BarChart3, Globe, ArrowRight, Target } 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
+import AuroraHeader from '@/components/landing/AuroraHeader';
 import { useSEO } from '@/hooks/useSEO';
 import { Footer } from '@/components/layout/Footer';
 
@@ -50,10 +51,11 @@ const TECH_STACK = [
 export default function AboutPage() {
   useSEO({ titleKey: 'seoAboutTitle', descriptionKey: 'seoAboutDesc', canonicalPath: '/about' });
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col relative">
+      <AuroraHeader />
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 relative z-10">
         {/* Hero */}
         <section className="py-20 px-4 text-center border-b border-border">
           <div className="max-w-3xl mx-auto">

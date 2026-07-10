@@ -46,6 +46,7 @@ import PreTradeProtocol from '@/components/education/PreTradeProtocol';
 import OrderFlowVisual from '@/components/education/OrderFlowVisual';
 import CompanyValuationVisual from '@/components/education/CompanyValuationVisual';
 import MacroVisual from '@/components/education/MacroVisual';
+import AuroraBackground from '@/components/landing/AuroraBackground';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -703,10 +704,15 @@ export default function EducationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Soft aurora glow behind the header — calmer, symbol-free counterpart to
+          the landing's candlestick chart. Contained top band, fades into content. */}
+      <div className="absolute top-0 inset-x-0 h-[460px] pointer-events-none">
+        <AuroraBackground fade="bottom" dim={0.9} />
+      </div>
       <Header />
-      
-      <main className="pt-24 pb-12 px-4">
+
+      <main className="pt-24 pb-12 px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
           {/* Professional page header — sober, left-aligned, broker-academy style */}
           <div className="mb-8 pb-6 border-b border-border">
