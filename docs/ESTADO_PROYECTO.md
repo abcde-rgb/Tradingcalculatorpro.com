@@ -970,3 +970,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   como *tendencias, no reglas* (aviso ±1 h por horario de verano; no es asesoramiento). 23 claves i18n × 8 = 184.
 - ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `horarios-sesiones-y-estacionalidad`) → **sitemap 322→330 URLs**.
 - Verificado: build OK; capturas headless de los 7 SVGs (nav en Técnico avanzado 0/11→0/12; 0 pageerrors). Academia: **52 módulos**.
+
+### 2026-07-11 (30) — Módulo nuevo "Trading basado en evidencia" (investigación verificada con WebSearch)
+- Investigación previa con búsquedas verificadas: ESMA (74-89% de cuentas CFD pierden), estudio de day
+  trading de Brasil (Chague/De-Losso/Giovannetti: 97% pierde, 0,4% gana más que un empleado de banca),
+  SPIVA (89,5% de fondos pierde vs S&P 500 a 15 años; 0/22 categorías), Jegadeesh & Titman (momentum
+  ~1%/mes 1965-89, 30 años out-of-sample, ~40 países), AQR 'A Century of Evidence on Trend-Following'
+  (positivo TODAS las décadas 1880-2016, 67 mercados, 8/10 crisis), Barber & Odean (los más activos
+  11,4% vs 17,9% del mercado; sesgo de disposición), Kelly/Thorp.
+- ✅ **`getEvidenceBased` + `EvidenceVisual.jsx`** (pilar Fundamentos, tras Brokers): 10 apartados con
+  **10 diagramas SVG** — números base, ley de los grandes números (convergencia al edge), esperanza
+  matemática, SPIVA, factores (valor/momentum/calidad/baja vol), momentum, siglo de tendencia, tamaño
+  (Kelly/riesgo fijo, 3 curvas de supervivencia), límites de riesgo de mesas, sesgo de disposición.
+  Con fuentes citadas en la nota + disclaimers. 23 claves i18n × 8 = 184.
+- ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `trading-basado-en-evidencia`) → **sitemap 330→338 URLs**.
+- Verificado: build OK; capturas headless de los 10 SVGs (nav Fundamentos 0/8→0/9; 0 pageerrors). Academia: **53 módulos**.

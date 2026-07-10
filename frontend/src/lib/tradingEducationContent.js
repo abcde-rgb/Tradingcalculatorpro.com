@@ -1694,6 +1694,30 @@ export const getSessionTiming = (t) => ({
   note: t('hzNote'),
 });
 
+// Evidence-based trading — what funds, banks, desks and academic research have
+// actually PROVEN with statistics and the law of large numbers: the retail base
+// rates (ESMA, Brazil day-trading study), expectancy, SPIVA, factor premia,
+// momentum (Jegadeesh-Titman), a century of trend following (AQR), Kelly /
+// fixed-fractional sizing (Thorp) and hard institutional risk limits. Pairs
+// with SVG diagrams in EvidenceVisual.jsx.
+export const getEvidenceBased = (t) => ({
+  title: t('evTitle'),
+  intro: t('evIntro'),
+  items: [
+    { id: 'numbers',    name: t('evNumbersName'),    desc: t('evNumbersDesc'),    type: 'bearish' },
+    { id: 'lln',        name: t('evLlnName'),        desc: t('evLlnDesc') },
+    { id: 'expectancy', name: t('evExpectName'),     desc: t('evExpectDesc') },
+    { id: 'indexing',   name: t('evIndexName'),      desc: t('evIndexDesc') },
+    { id: 'factors',    name: t('evFactorsName'),    desc: t('evFactorsDesc') },
+    { id: 'momentum',   name: t('evMomentumName'),   desc: t('evMomentumDesc'),   type: 'bullish' },
+    { id: 'trend',      name: t('evTrendName'),      desc: t('evTrendDesc'),      type: 'bullish' },
+    { id: 'sizing',     name: t('evSizingName'),     desc: t('evSizingDesc') },
+    { id: 'desks',      name: t('evDesksName'),      desc: t('evDesksDesc') },
+    { id: 'behavior',   name: t('evBehaviorName'),   desc: t('evBehaviorDesc'),   type: 'bearish' },
+  ],
+  note: t('evNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
