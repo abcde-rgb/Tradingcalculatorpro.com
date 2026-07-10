@@ -960,3 +960,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   (no chartistas). Complementa el módulo SMC (que solo tenía 1 tarjeta de estructura). 23 claves i18n × 8 = 184.
 - ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `estructura-de-mercado-bos-choch`) → **sitemap 314→322 URLs**.
 - Verificado: build OK; capturas headless de los 10 SVGs (nav en Técnico 0/6→0/7; 0 pageerrors). Academia: **51 módulos**.
+
+### 2026-07-10 (29) — Módulo nuevo "Horarios y estacionalidad" (patrones de comportamiento por hora/calendario)
+- ✅ **`getSessionTiming` + `SessionTimingVisual.jsx`** (pilar Técnico avanzado, tras Order flow):
+  10 apartados con **7 diagramas SVG** — las 3 sesiones (timeline 24 h), rango asiático, apertura de
+  Londres, apertura de NY / Judas swing (15:30), solape Londres-NY, hora de datos US (14:30), el oro y
+  sus horas (14:20/14:30/16:00), power hour (cierre 22:00), fin de semana (gap CME/lunes) y fin de
+  mes/vencimientos (triple hora bruja + estacionalidad). **Todas las horas en hora de España**, enmarcado
+  como *tendencias, no reglas* (aviso ±1 h por horario de verano; no es asesoramiento). 23 claves i18n × 8 = 184.
+- ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `horarios-sesiones-y-estacionalidad`) → **sitemap 322→330 URLs**.
+- Verificado: build OK; capturas headless de los 7 SVGs (nav en Técnico avanzado 0/11→0/12; 0 pageerrors). Academia: **52 módulos**.

@@ -1671,6 +1671,29 @@ export const getMarketStructure = (t) => ({
   note: t('msNote'),
 });
 
+// Sessions & seasonality — time-of-day and calendar behavioural tendencies
+// (all Spain time): the 3 sessions, Asian range, London open, NY open reversal
+// (Judas), London-NY overlap, US data hour, gold's hot hours, power hour,
+// weekend gap and month-end / witching / seasonality. Tendencies, not rules.
+// Pairs with SVG diagrams in SessionTimingVisual.jsx.
+export const getSessionTiming = (t) => ({
+  title: t('hzTitle'),
+  intro: t('hzIntro'),
+  items: [
+    { id: 'sessions',  name: t('hzSessionsName'), desc: t('hzSessionsDesc') },
+    { id: 'asian',     name: t('hzAsianName'),    desc: t('hzAsianDesc') },
+    { id: 'london',    name: t('hzLondonName'),   desc: t('hzLondonDesc') },
+    { id: 'nyopen',    name: t('hzNyOpenName'),   desc: t('hzNyOpenDesc'), type: 'bearish' },
+    { id: 'overlap',   name: t('hzOverlapName'),  desc: t('hzOverlapDesc') },
+    { id: 'usdata',    name: t('hzUsDataName'),   desc: t('hzUsDataDesc') },
+    { id: 'gold',      name: t('hzGoldName'),     desc: t('hzGoldDesc') },
+    { id: 'powerhour', name: t('hzPowerName'),    desc: t('hzPowerDesc') },
+    { id: 'weekend',   name: t('hzWeekendName'),  desc: t('hzWeekendDesc') },
+    { id: 'calendar',  name: t('hzCalendarName'), desc: t('hzCalendarDesc') },
+  ],
+  note: t('hzNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
