@@ -2691,6 +2691,25 @@ export const getCompanyValuation = (t) => ({
   note: t('cvNote'),
 });
 
+// Macro: the economic cycle, central-bank rates, the yield curve and sector
+// rotation — the top-down forces that move whole markets. Pairs with SVG
+// diagrams in MacroVisual.jsx.
+export const getMacro = (t) => ({
+  title: t('mcTitle'),
+  intro: t('mcIntro'),
+  items: [
+    { id: 'whatis',     name: t('mcWhatisName'),     desc: t('mcWhatisDesc') },
+    { id: 'cycle',      name: t('mcCycleName'),      desc: t('mcCycleDesc') },
+    { id: 'rates',      name: t('mcRatesName'),      desc: t('mcRatesDesc') },
+    { id: 'yieldcurve', name: t('mcYieldName'),      desc: t('mcYieldDesc') },
+    { id: 'inversion',  name: t('mcInversionName'),  desc: t('mcInversionDesc'), type: 'bearish' },
+    { id: 'sectors',    name: t('mcSectorsName'),    desc: t('mcSectorsDesc') },
+    { id: 'rotation',   name: t('mcRotationName'),   desc: t('mcRotationDesc') },
+    { id: 'leading',    name: t('mcLeadingName'),    desc: t('mcLeadingDesc') },
+  ],
+  note: t('mcNote'),
+});
+
 // Order flow / tape reading — reading the raw buying/selling pressure (DOM,
 // time & sales, volume delta, footprint, absorption, icebergs, POC) rather than
 // only the finished price. Pairs with SVG diagrams in OrderFlowVisual.jsx.

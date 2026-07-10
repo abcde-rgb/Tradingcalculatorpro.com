@@ -925,3 +925,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   el pilar Empezar, 0 pageerrors). Academia: **49 módulos**.
 - ⏳ Del ranking de huecos v2 quedan: curva de tipos + rotación sectorial, opciones a fondo (vol +
   mecánica), MAE/MFE + correlación (rápidos, dentro de módulos existentes).
+
+### 2026-07-09 (26) — Módulo nuevo "Macro: ciclo, tipos y rotación" (hueco nº3 del análisis v2)
+- ✅ **`getMacro` + `MacroVisual.jsx`** (pilar Técnico avanzado, tras Análisis intermercado):
+  8 apartados con **6 diagramas SVG** neutros de idioma — qué es la macro, el ciclo económico (onda
+  4 fases), los tipos de interés, la curva de tipos (normal vs invertida), la inversión de la curva
+  = señal de recesión (spread 10a−2a cruzando cero + banda de recesión), sectores cíclicos vs
+  defensivos, la rotación sectorial (reloj) e indicadores adelantados vs retrasados. 19 claves i18n × 8 = 152.
+- ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `macro-ciclo-tipos-y-rotacion-sectorial`) → **282 páginas
+  SEO (36 temas × 8), sitemap 306→314 URLs**.
+- Verificado: build OK; capturas headless (6 SVGs OK incl. reloj de rotación y curva; nav en Técnico
+  avanzado 0/10→0/11; 0 pageerrors). Academia: **50 módulos**.
+- ⏳ Del ranking de huecos v2 quedan: opciones a fondo (vol + mecánica), MAE/MFE + correlación
+  (rápidos, dentro de módulos existentes).
+- ⚠️ Deploy backend (Cloud Run) sigue en rojo por **billing de GCP desactivado** (proyecto
+  `tradingcalculator-495806`); el frontend (GitHub Pages) despliega OK. Bloqueo operativo del dueño.
