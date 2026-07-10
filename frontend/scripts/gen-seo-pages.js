@@ -104,6 +104,7 @@ const TOPICS = [
   { v:'broker-safety', slug:'brokers-regulacion-estafas', tk:'bkrTitle', ik:'bkrIntro' },
   { v:'tech-analysis', slug:'analisis-tecnico', tk:'techTitle', ik:'techIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
+  { v:'market-structure', slug:'estructura-de-mercado-bos-choch', tk:'msTitle', ik:'msIntro' },
   { v:'wyckoff', slug:'metodo-wyckoff', tk:'wyckoffTitle', ik:'wyckoffIntro' },
   { v:'alt-charts', slug:'tipos-de-grafico', tk:'altChartTitle', ik:'altChartIntro' },
   { v:'elliott', slug:'ondas-de-elliott', tk:'ewTitle', ik:'ewIntro' },

@@ -951,3 +951,12 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   texto perfectamente legible). Descartado en Opciones/Dashboard/Performance (contenido denso tapa el
   brillo → inútil) y Legal (estructura multi-sección). Principal/Precios se quedan con el gráfico.
 - Verificado: build OK; capturas headless de Aprendizaje/About/Contact a varias proporciones, 0 errores.
+
+### 2026-07-10 (28) — Módulo nuevo "Estructura de mercado" (BOS/CHOCH/HH-HL)
+- ✅ **`getMarketStructure` + `MarketStructureVisual.jsx`** (pilar Análisis técnico, tras Teoría de Dow):
+  10 apartados con **10 diagramas SVG** de zigzag de precio — tendencia alcista (HH/HL), bajista (LH/LL),
+  rango, BOS (ruptura de estructura), CHOCH (cambio de carácter), acumulación, distribución, retroceso
+  (pullback), ruptura y retesteo, y cambio de tendencia confirmado. Patrones de comportamiento del precio
+  (no chartistas). Complementa el módulo SMC (que solo tenía 1 tarjeta de estructura). 23 claves i18n × 8 = 184.
+- ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `estructura-de-mercado-bos-choch`) → **sitemap 314→322 URLs**.
+- Verificado: build OK; capturas headless de los 10 SVGs (nav en Técnico 0/6→0/7; 0 pageerrors). Academia: **51 módulos**.

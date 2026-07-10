@@ -1649,6 +1649,28 @@ export const getSmartMoney = (t) => ({
   note: t('smcNote'),
 });
 
+// Market structure — reading price as a sequence of swing highs/lows: trends
+// (HH/HL, LH/LL), ranges, break of structure (BOS), change of character (CHOCH),
+// accumulation/distribution, pullbacks, break & retest, confirmed trend change.
+// Pairs with SVG diagrams in MarketStructureVisual.jsx.
+export const getMarketStructure = (t) => ({
+  title: t('msTitle'),
+  intro: t('msIntro'),
+  items: [
+    { id: 'uptrend',      name: t('msUptrendName'),     desc: t('msUptrendDesc'),     type: 'bullish' },
+    { id: 'downtrend',    name: t('msDowntrendName'),   desc: t('msDowntrendDesc'),   type: 'bearish' },
+    { id: 'range',        name: t('msRangeName'),       desc: t('msRangeDesc'),       type: 'neutral' },
+    { id: 'bos',          name: t('msBosName'),         desc: t('msBosDesc') },
+    { id: 'choch',        name: t('msChochName'),       desc: t('msChochDesc'),       type: 'bearish' },
+    { id: 'accumulation', name: t('msAccumName'),       desc: t('msAccumDesc'),       type: 'bullish' },
+    { id: 'distribution', name: t('msDistribName'),     desc: t('msDistribDesc'),     type: 'bearish' },
+    { id: 'pullback',     name: t('msPullbackName'),    desc: t('msPullbackDesc') },
+    { id: 'retest',       name: t('msRetestName'),      desc: t('msRetestDesc') },
+    { id: 'trendchange',  name: t('msTrendChangeName'), desc: t('msTrendChangeDesc') },
+  ],
+  note: t('msNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
