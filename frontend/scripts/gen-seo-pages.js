@@ -114,6 +114,7 @@ const TOPICS = [
   { v:'advanced-ta', slug:'analisis-tecnico-avanzado', tk:'advTaTitle', ik:'advTaIntro' },
   { v:'sentiment', slug:'sentimiento-de-mercado', tk:'smTitle', ik:'smIntro' },
   { v:'intermarket', slug:'analisis-intermercado', tk:'imTitle', ik:'imIntro' },
+  { v:'macro', slug:'macro-ciclo-tipos-y-rotacion-sectorial', tk:'mcTitle', ik:'mcIntro' },
   { v:'breadth-cycles', slug:'amplitud-y-ciclos', tk:'bcTitle', ik:'bcIntro' },
   { v:'cot', slug:'informe-cot', tk:'cotTitle', ik:'cotIntro' },
   { v:'capital', slug:'gestion-del-capital', tk:'capitalManagementTitle', ik:'capitalManagementIntro' },

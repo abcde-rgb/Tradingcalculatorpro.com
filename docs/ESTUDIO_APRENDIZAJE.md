@@ -145,8 +145,9 @@ gestión emocional del drawdown (7), prop firms (5), + los 47 módulos y 60 tér
    informe de resultados. → ampliar `fund-analysis` o módulo "Valorar una empresa". **✅ HECHO (sesión
    #25)** — módulo `company-valuation` (10 apartados, 7 SVGs), pilar Empezar tras Análisis fundamental.
 3. **Curva de tipos (yield curve)** (0): la señal de recesión nº1 y cómo la lee el mercado. → añadir a
-   `intermarket`/`fund-analysis`.
+   `intermarket`/`fund-analysis`. **✅ HECHO (sesión #26)** — dentro del módulo `macro`.
 4. **Rotación sectorial + ciclo económico** (0): qué sectores lideran en cada fase del ciclo. → "Avanzado".
+   **✅ HECHO (sesión #26)** — módulo `macro` (ciclo, tipos, curva/inversión, sectores, rotación, indicadores).
 5. **MAE/MFE** (0): excursión máxima adversa/favorable — métrica potente para afinar SL/TP con el diario.
    → añadir a `probability` o `trade-mgmt`.
 6. **Correlación entre activos / cartera retail** (0): el concepto (hay slider ρ en portfolio heat pero
@@ -160,7 +161,7 @@ gestión emocional del drawdown (7), prop firms (5), + los 47 módulos y 60 tér
 
 ### Prioridad recomendada
 1º **Order flow** ✅ hecho (#24) · 2º **Valorar una empresa** ✅ hecho (#25) ·
-3º **Macro: curva de tipos + rotación sectorial** · 4º **Opciones a fondo (vol + mecánica)** ·
+3º **Macro: curva de tipos + rotación sectorial** ✅ hecho (#26) · 4º **Opciones a fondo (vol + mecánica)** ·
 5º MAE/MFE + correlación (añadidos dentro de módulos existentes, rápidos).
 
 ### Interactividad (engagement)
