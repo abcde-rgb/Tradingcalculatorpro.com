@@ -1718,6 +1718,41 @@ export const getEvidenceBased = (t) => ({
   note: t('evNote'),
 });
 
+// Options income & assignment — the "seller's" half of options: collect premium
+// systematically (covered call, cash-secured put, the wheel) and understand what
+// happens at assignment/expiration (american vs european, pin risk, 0DTE). Pairs
+// with SVG diagrams in OptionsIncomeVisual.jsx.
+export const getOptionsIncome = (t) => ({
+  title: t('oiTitle'),
+  intro: t('oiIntro'),
+  items: [
+    { id: 'covered', name: t('oiCoveredName'), desc: t('oiCoveredDesc'), type: 'bullish' },
+    { id: 'csp',     name: t('oiCspName'),     desc: t('oiCspDesc'),     type: 'bullish' },
+    { id: 'wheel',   name: t('oiWheelName'),   desc: t('oiWheelDesc') },
+    { id: 'assign',  name: t('oiAssignName'),  desc: t('oiAssignDesc') },
+    { id: 'expire',  name: t('oiExpireName'),  desc: t('oiExpireDesc'), type: 'bearish' },
+    { id: 'zero',    name: t('oiZeroName'),     desc: t('oiZeroDesc'),   type: 'bearish' },
+  ],
+  note: t('oiNote'),
+});
+
+// Options volatility — the other axis of option pricing: implied volatility, IV
+// rank/percentile, skew, term structure, earnings vol crush and vega (IV vs
+// realized HV). Pairs with SVG diagrams in OptionsVolVisual.jsx.
+export const getOptionsVol = (t) => ({
+  title: t('ovTitle'),
+  intro: t('ovIntro'),
+  items: [
+    { id: 'iv',    name: t('ovIvName'),    desc: t('ovIvDesc') },
+    { id: 'rank',  name: t('ovRankName'),  desc: t('ovRankDesc') },
+    { id: 'skew',  name: t('ovSkewName'),  desc: t('ovSkewDesc') },
+    { id: 'term',  name: t('ovTermName'),  desc: t('ovTermDesc') },
+    { id: 'crush', name: t('ovCrushName'), desc: t('ovCrushDesc'), type: 'bearish' },
+    { id: 'vega',  name: t('ovVegaName'),  desc: t('ovVegaDesc') },
+  ],
+  note: t('ovNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({

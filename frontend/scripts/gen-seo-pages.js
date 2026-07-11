@@ -131,6 +131,8 @@ const TOPICS = [
   { v:'strategies', slug:'estrategias-de-trading', tk:'tradingStrategiesTitle', ik:'tradingStrategiesIntro' },
   { v:'option-greeks', slug:'griegas-de-opciones', tk:'gkTitle', ik:'gkIntro' },
   { v:'options-strat', slug:'estrategias-con-opciones', tk:'optTitle', ik:'optIntro' },
+  { v:'options-income', slug:'opciones-ingresos-y-asignacion', tk:'oiTitle', ik:'oiIntro' },
+  { v:'options-vol', slug:'opciones-volatilidad', tk:'ovTitle', ik:'ovIntro' },
   { v:'news-trading', slug:'operar-noticias', tk:'ntTitle', ik:'ntIntro' },
   { v:'inst-desk', slug:'mesa-institucional', tk:'ideskTitle', ik:'ideskIntro' },
   { v:'business', slug:'el-negocio-del-trading', tk:'tbizTitle', ik:'tbizIntro' },
