@@ -1753,6 +1753,38 @@ export const getOptionsVol = (t) => ({
   note: t('ovNote'),
 });
 
+// Long-term investing — the evidence-backed "boring" path: compounding, DCA,
+// index funds/ETFs, dividends & reinvestment, asset allocation & rebalancing.
+// Pairs with SVG diagrams in LongInvestVisual.jsx.
+export const getLongInvest = (t) => ({
+  title: t('liTitle'),
+  intro: t('liIntro'),
+  items: [
+    { id: 'compound', name: t('liCompoundName'), desc: t('liCompoundDesc'), type: 'bullish' },
+    { id: 'dca',      name: t('liDcaName'),      desc: t('liDcaDesc') },
+    { id: 'index',    name: t('liIndexName'),    desc: t('liIndexDesc') },
+    { id: 'div',      name: t('liDivName'),      desc: t('liDivDesc') },
+    { id: 'alloc',    name: t('liAllocName'),    desc: t('liAllocDesc') },
+  ],
+  note: t('liNote'),
+});
+
+// Trading taxes — general concepts (realized vs unrealized, Spain example,
+// holding period, loss offsetting) with a strong "this is education, not tax
+// advice" disclaimer. Pairs with SVG diagrams in TaxesVisual.jsx.
+export const getTaxes = (t) => ({
+  title: t('txTitle'),
+  intro: t('txIntro'),
+  items: [
+    { id: 'basics',     name: t('txBasicsName'),     desc: t('txBasicsDesc') },
+    { id: 'spain',      name: t('txSpainName'),      desc: t('txSpainDesc') },
+    { id: 'holding',    name: t('txHoldingName'),    desc: t('txHoldingDesc') },
+    { id: 'loss',       name: t('txLossName'),       desc: t('txLossDesc') },
+    { id: 'disclaimer', name: t('txDisclaimerName'), desc: t('txDisclaimerDesc'), type: 'bearish' },
+  ],
+  note: t('txNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({

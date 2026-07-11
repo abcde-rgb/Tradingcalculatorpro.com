@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -51,6 +51,8 @@ import SessionTimingVisual from '@/components/education/SessionTimingVisual';
 import EvidenceVisual from '@/components/education/EvidenceVisual';
 import OptionsIncomeVisual from '@/components/education/OptionsIncomeVisual';
 import OptionsVolVisual from '@/components/education/OptionsVolVisual';
+import LongInvestVisual from '@/components/education/LongInvestVisual';
+import TaxesVisual from '@/components/education/TaxesVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 
 const priorityColors = {
@@ -450,6 +452,8 @@ export default function EducationPage() {
   const EVIDENCE = getEvidenceBased(t);
   const OPTIONS_INCOME = getOptionsIncome(t);
   const OPTIONS_VOL = getOptionsVol(t);
+  const LONG_INVEST = getLongInvest(t);
+  const TAXES = getTaxes(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -467,6 +471,8 @@ export default function EducationPage() {
       { value: 'company-valuation', label: t('cvTitle') },
       { value: 'broker-safety', label: t('bkrTitle') },
       { value: 'evidence-based', label: t('evTitle') },
+      { value: 'long-invest', label: t('liTitle') },
+      { value: 'taxes', label: t('txTitle') },
       { value: 'glossary', label: t('glossaryTab') },
     ]},
     { id: 'technical', label: t('eduCatTechnical'), topics: [
@@ -1181,6 +1187,70 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{OPTIONS_VOL.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Long-term investing — compounding, DCA, index funds, dividends, allocation */}
+            <TabsContent value="long-invest" className="space-y-8">
+              <Card className="bg-gradient-to-br from-green-500/5 to-primary/10 border-green-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <TrendingUp className="w-6 h-6 text-green-500" />
+                    {LONG_INVEST.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{LONG_INVEST.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {LONG_INVEST.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <LongInvestVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{LONG_INVEST.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Trading taxes — general concepts + strong 'not tax advice' disclaimer */}
+            <TabsContent value="taxes" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Scale className="w-6 h-6 text-amber-500" />
+                    {TAXES.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TAXES.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TAXES.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <TaxesVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{TAXES.note}</p>
               </div>
             </TabsContent>
 
