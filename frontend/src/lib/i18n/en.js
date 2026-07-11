@@ -433,6 +433,10 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    tweezersBottomName: 'Tweezer Bottom',
+    tweezersBottomDesc: 'Two consecutive candles with identical lows. A sign of strong support and buying interest at that price level.',
+    tweezersTopName: 'Tweezer Top',
+    tweezersTopDesc: 'Two consecutive candles with identical highs. A sign of strong resistance and selling interest at that price level.',
     evTitle: 'Evidence-based trading',
     evIntro: 'What is actually PROVEN with data rather than promises? Here we gather what academic studies, regulators and a century of data from funds, banks and trading desks show: how many really lose, which strategies have survived decades of statistics, and how professionals manage risk. The common thread is the law of large numbers: one trade is luck; a thousand trades are statistics.',
     evNumbersName: 'The numbers nobody shows you',

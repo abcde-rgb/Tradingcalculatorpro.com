@@ -91,7 +91,7 @@
 | G-06 | Sin CI de PR (lint/build/tests antes de merge); solo deploy en push a `main` | 🟡 | ✅ Añadido `ci.yml` esta sesión |
 | G-07 | Sin Dependabot/CodeQL/secret-scanning declarados en repo | 🟡 | Activar en ajustes del repo |
 | G-08 | Deriva documental (CLAUDE.md/PLAN_100 desactualizados) | 🟢 | ✅ Corregido CLAUDE.md esta sesión |
-| G-09 | **i18n incompleto**: 6 idiomas (de/fr/ru/zh/ja/ar) con ~290 claves sin traducir (patrones de velas, estrategias de educación) → caen a español. en.js: faltan 4. de/fr/ru: 9 claves muertas | 🟡 | Traducir lotes faltantes; herramienta `frontend/scripts/i18n-check.js` para detectar |
+| G-09 | ~~**i18n incompleto**: 6 idiomas con ~290 claves sin traducir → caían a español~~ | 🟢 | ✅ **Cerrado (2026-07-11)**: backfill completo (candlestick, armónicos, opciones Black-Scholes/futuros/volatilidad/griegas, estrategias 6-9, auth, sesgos). Los 8 locales con sets idénticos (4401 c/u), 0 huecos. Eliminadas 9 claves muertas de de/fr/ru |
 
 ---
 
@@ -985,3 +985,22 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Con fuentes citadas en la nota + disclaimers. 23 claves i18n × 8 = 184.
 - ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `trading-basado-en-evidencia`) → **sitemap 330→338 URLs**.
 - Verificado: build OK; capturas headless de los 10 SVGs (nav Fundamentos 0/8→0/9; 0 pageerrors). Academia: **53 módulos**.
+
+### 2026-07-11 (31) — Paridad i18n total: 8 idiomas a la par (cierra hueco de traducciones)
+- **Petición**: "analiza la web en busca de fallos en traducciones… hazlos todos de una". Auditoría previa
+  (comparación de sets de claves entre los 8 ficheros) detectó **claves sin traducir** en de/fr/ru/zh/ja/ar,
+  que en runtime caían al fallback español o mostraban la clave cruda.
+- **Backfill completo** con inserter genérico presence-checked (ancla `positionSizingDesc:`), por tandas
+  verificables: **auth hero + sesgos de conducta + candlestick** (Harami, Marubozu, Kicker, Doji Star,
+  Inverted Hammer, Hanging Man, Three Inside Up/Down, Long-Legged Doji, High Wave, Tweezers) ·
+  **97 claves de patrones armónicos** (Gartley/Butterfly/Bat/Crab/Shark/Cypher alcista+bajista, ratios de
+  Fibonacci, labels de filtro) · **131 de opciones** (calculadora Black-Scholes completa, futuros —
+  tick/margen/valor teórico/contango-backwardation, IVR/IV percentile/skew/VIX, delta-hedging/gamma/theta/vega,
+  Iron Condor/Butterfly/Calendar/Diagonal) · **28 de estrategias de day trading** (6-9: Opening Range,
+  VWAP+Momentum, Mean Reversion, Multi-Timeframe).
+- **Limpieza**: eliminadas 9 claves huérfanas muertas (sin `t()` en el código) que solo existían en de/fr/ru
+  (`sharpeRatio`, `winLossRatio`, `winningTrades`… `horChannelName/Desc`).
+- **Resultado**: los 8 ficheros con **sets de claves idénticos (4401 c/u)**; auditoría de paridad = **0 huecos**.
+- Verificado: los 8 locales parsean como módulos JS; `npm run build` OK (312 páginas edu, sitemap 344 URLs);
+  capturas headless en alemán de Opciones y Bildung → **0 claves crudas visibles, 0 pageerrors** (contenido
+  profundo tras el gate premium, pero el mecanismo `t()` queda probado: toda clave existe en todo locale).
