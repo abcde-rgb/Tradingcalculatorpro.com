@@ -141,6 +141,54 @@ const VISUALS = {
       <T x="120" y="108" textAnchor="middle" fill={MUT} fontSize="6.5">el 'descuento' enruta la comisión</T>
     </Frame>
   ),
+  // Denial: payout blocked, goalpost moved
+  denial: (
+    <Frame label="payout denied, goalpost moved">
+      <rect x="30" y="40" width="60" height="26" rx="4" fill={UP} opacity="0.5" />
+      <T x="60" y="56" textAnchor="middle" fill="#0a0a0a" fontSize="7">payout</T>
+      <path d="M96 53 h44" stroke={MUT} strokeWidth="1.4" fill="none" strokeDasharray="3 2" />
+      <line x1="150" y1="34" x2="150" y2="72" stroke={DOWN} strokeWidth="2" />
+      <line x1="142" y1="42" x2="158" y2="64" stroke={DOWN} strokeWidth="2" />
+      <line x1="158" y1="42" x2="142" y2="64" stroke={DOWN} strokeWidth="2" />
+      <T x="150" y="86" textAnchor="middle" fill={DOWN} fontSize="7">"violaste una regla"</T>
+      <path d="M170 30 q20 8 0 16" stroke={HOT} strokeWidth="1.4" fill="none" /><polygon points="170,46 176,40 168,38" fill={HOT} />
+      <T x="196" y="34" textAnchor="middle" fill={HOT} fontSize="7">meta ↗</T>
+    </Frame>
+  ),
+  // Crisis: firms collapse when the platform pulls the plug
+  crisis: (
+    <Frame label="platform cut-off collapses firms">
+      {[[40,70],[70,58],[100,74],[130,52]].map(([x,y],i)=>(
+        <rect key={i} x={x-9} y={y} width="18" height={90-y} fill={DOWN} opacity={0.3+i*0.12}
+          transform={`rotate(${i*4-2} ${x} ${y})`} />
+      ))}
+      <path d="M150 40 l14 0 m-7 -7 l0 14" stroke={HOT} strokeWidth="1.6" />
+      <line x1="150" y1="60" x2="176" y2="60" stroke={DOWN} strokeWidth="2" strokeDasharray="2 3" />
+      <rect x="184" y="48" width="30" height="24" rx="3" fill={MUT} opacity="0.3" />
+      <T x="199" y="63" textAnchor="middle" fill={MUT} fontSize="6.5">MT4/5</T>
+      <T x="90" y="104" textAnchor="middle" fill={MUT} fontSize="7">firmas caen · payouts congelados</T>
+    </Frame>
+  ),
+  // Habits: reckless all-in spike to hit the target in time
+  habits: (
+    <Frame label="challenge rewards reckless all-in">
+      <Axis />
+      <Line pts="24,72 60,68 96,70 132,64 168,60" c={NEUT} w={1.4} dash="3 2" />
+      <Line pts="168,60 182,30 190,86" c={DOWN} w={2.2} />
+      <T x="60" y="60" fill={MUT} fontSize="7">gestión sana</T>
+      <T x="150" y="26" fill={DOWN} fontSize="7">all-in último día</T>
+      <T x="30" y="102" fill={MUT} fontSize="7">te entrena a operar peor</T>
+    </Frame>
+  ),
+  // Broker: the real regulated alternative (shield + checks)
+  broker: (
+    <Frame label="pick a real regulated broker">
+      <path d="M120 22 l30 10 v22 q0 24 -30 34 q-30 -10 -30 -34 v-22 z" fill={UP} opacity="0.18" stroke={UP} strokeWidth="1.6" />
+      <path d="M108 56 l8 8 l18 -20" fill="none" stroke={UP} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <T x="120" y="104" textAnchor="middle" fill={UP} fontSize="6.5">CNMV · FCA · ESMA · ASIC</T>
+      <T x="120" y="16" textAnchor="middle" fill={MUT} fontSize="7">regulado · fondos segregados</T>
+    </Frame>
+  ),
   // Verdict: red-flag checklist
   verdict: (
     <Frame label="red flag checklist">
