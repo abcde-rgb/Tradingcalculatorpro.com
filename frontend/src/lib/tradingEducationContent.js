@@ -1908,6 +1908,29 @@ export const getFundedTruth = (t) => ({
   note: t('fdNote'),
 });
 
+// The trader's journey & time-to-profitability — the honest map nobody sells:
+// the four stages of competence (Broadwell), the Dunning-Kruger "valley of
+// despair", the realistic 1-3 year timeline, the attrition/base rates (ESMA
+// 74-89%, Taiwan <1% B&O, Brazil 97% Chague-De-Losso), deliberate practice vs
+// screen time (Ericsson), the capital + emotional runway, measuring process
+// over money, and why shortcuts (signals, courses, funded accounts) don't skip
+// the stages. Pairs with SVG diagrams in TraderJourneyVisual.jsx.
+export const getTraderJourney = (t) => ({
+  title: t('tjTitle'),
+  intro: t('tjIntro'),
+  items: [
+    { id: 'stages',    name: t('tjStagesName'),    desc: t('tjStagesDesc') },
+    { id: 'valley',    name: t('tjValleyName'),    desc: t('tjValleyDesc'),    type: 'bearish' },
+    { id: 'timeline',  name: t('tjTimelineName'),  desc: t('tjTimelineDesc') },
+    { id: 'attrition', name: t('tjAttritionName'), desc: t('tjAttritionDesc'), type: 'bearish' },
+    { id: 'practice',  name: t('tjPracticeName'),  desc: t('tjPracticeDesc'),  type: 'bullish' },
+    { id: 'runway',    name: t('tjRunwayName'),    desc: t('tjRunwayDesc') },
+    { id: 'measure',   name: t('tjMeasureName'),   desc: t('tjMeasureDesc'),   type: 'bullish' },
+    { id: 'shortcut',  name: t('tjShortcutName'),  desc: t('tjShortcutDesc'),  type: 'bearish' },
+  ],
+  note: t('tjNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({

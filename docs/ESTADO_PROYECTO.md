@@ -1046,3 +1046,24 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: `py_compile` server/admin/missing_apis OK; `npm run build` OK; paridad i18n 4609 (8 idénticos);
   TOTP probado offline (acepta código válido, rechaza incorrecto). Nota: el backend no se pudo desplegar/
   probar en vivo (facturación GCP). Todo en la PR #99. Ver `DIARIO_BUGS.md`.
+
+### 2026-07-12 (34) — Módulos de realidad: "Verdad sobre cuentas de fondeo" + "El camino del trader"
+- ✅ **Módulo nuevo `funded-truth` — "La verdad sobre las cuentas de fondeo"** (registrado ahora; se
+  construyó sin entrada de sesión): getter `getFundedTruth` + `FundedTruthVisual` (14 SVGs) + i18n×8. Explica
+  con detalle matemático por qué el modelo prop/"fondeo" es en su mayoría demo sin mercado regulado, las
+  reglas imposibles, quién vive de la comisión (afiliados/promos), pagos denegados, la crisis de 2024, y el
+  contrapunto: elegir un bróker regulado de verdad con apalancamiento y retirada reales. Pilar Fundamentos.
+- ✅ **Módulo nuevo `trader-journey` — "El camino del trader: cuánto se tarda de verdad en ser rentable"**:
+  getter `getTraderJourney` + `TraderJourneyVisual` (8 SVGs esquemáticos) + **19 claves i18n×8** (prefijo
+  `tj`, sin colisiones) + wiring en `EducationPage` (pilar Fundamentos, tras `evidence-based`/`funded-truth`)
+  + `gen-seo-pages` (slug `cuanto-se-tarda-en-ser-trader-rentable`, 8 idiomas). 8 tarjetas: las 4 etapas de
+  competencia (Broadwell), el valle de la desesperación (Dunning-Kruger), la línea temporal realista
+  (1-3 años, media ~2), la curva de abandono (ESMA 74-89%, Taiwán <1% Barber&Odean, Brasil 97% Chague&
+  De-Losso — sin evidencia de aprendizaje), práctica deliberada vs horas de pantalla (Ericsson / mito de las
+  10.000 h), los dos colchones (capital + vida), medir el proceso (adherencia/esperanza/R) no el dinero, y el
+  espejismo del atajo (prop firms: pasan ~5-14%, cobran ~7%, gasto medio +4.000$). Datos contrastados en
+  varias fuentes (estudios académicos, reguladores ESMA, investigación sobre adquisición de habilidades).
+- Verificado: `npm run build` OK (Educación **51 temas × 8 = 408 páginas**, sitemap **440 URLs**); paridad
+  i18n **4659 claves, 8 locales idénticos** (19 `tj` c/u, 0 huecos); **render headless con usuario premium
+  sembrado en es y ar** → 8 tarjetas / 8 SVGs / **0 claves crudas / 0 pageerrors**; páginas SEO con títulos
+  reales traducidos (es/ja/ar, incl. RTL). Trabajo en la rama `claude/stoic-mayer-04dpp2`.

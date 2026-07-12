@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -60,6 +60,7 @@ import CommoditiesVisual from '@/components/education/CommoditiesVisual';
 import CryptoVisual from '@/components/education/CryptoVisual';
 import IndicesVisual from '@/components/education/IndicesVisual';
 import FundedTruthVisual from '@/components/education/FundedTruthVisual';
+import TraderJourneyVisual from '@/components/education/TraderJourneyVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 
 const priorityColors = {
@@ -468,6 +469,7 @@ export default function EducationPage() {
   const CRYPTO_DEEP = getCryptoDeep(t);
   const INDICES = getIndices(t);
   const FUNDED_TRUTH = getFundedTruth(t);
+  const TRADER_JOURNEY = getTraderJourney(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -486,6 +488,7 @@ export default function EducationPage() {
       { value: 'broker-safety', label: t('bkrTitle') },
       { value: 'funded-truth', label: t('fdTitle') },
       { value: 'evidence-based', label: t('evTitle') },
+      { value: 'trader-journey', label: t('tjTitle') },
       { value: 'long-invest', label: t('liTitle') },
       { value: 'taxes', label: t('txTitle') },
       { value: 'glossary', label: t('glossaryTab') },
@@ -1166,6 +1169,38 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{EVIDENCE.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* The trader's journey — the 4 stages, valley of despair, realistic timeline, attrition */}
+            <TabsContent value="trader-journey" className="space-y-8">
+              <Card className="bg-gradient-to-br from-indigo-500/5 to-primary/10 border-indigo-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Clock className="w-6 h-6 text-indigo-500" />
+                    {TRADER_JOURNEY.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TRADER_JOURNEY.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TRADER_JOURNEY.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <TraderJourneyVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{TRADER_JOURNEY.note}</p>
               </div>
             </TabsContent>
 

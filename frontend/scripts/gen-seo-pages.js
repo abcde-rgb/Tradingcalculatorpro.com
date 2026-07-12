@@ -104,6 +104,7 @@ const TOPICS = [
   { v:'broker-safety', slug:'brokers-regulacion-estafas', tk:'bkrTitle', ik:'bkrIntro' },
   { v:'evidence-based', slug:'trading-basado-en-evidencia', tk:'evTitle', ik:'evIntro' },
   { v:'funded-truth', slug:'verdad-sobre-cuentas-de-fondeo', tk:'fdTitle', ik:'fdIntro' },
+  { v:'trader-journey', slug:'cuanto-se-tarda-en-ser-trader-rentable', tk:'tjTitle', ik:'tjIntro' },
   { v:'long-invest', slug:'inversion-a-largo-plazo', tk:'liTitle', ik:'liIntro' },
   { v:'taxes', slug:'fiscalidad-del-trading', tk:'txTitle', ik:'txIntro' },
   { v:'tech-analysis', slug:'analisis-tecnico', tk:'techTitle', ik:'techIntro' },
