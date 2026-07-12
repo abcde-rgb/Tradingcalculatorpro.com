@@ -403,6 +403,9 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    eduNextModule: 'Weiter',
+    eduPrevModule: 'Zurück',
+    eduPathHint: 'Empfohlener Pfad',
     tmgMaeName: 'MAE / MFE: SL & TP mit Daten justieren',
     tmgMaeDesc: 'Die MAE (maximale adverse Exkursion) ist das Maximum, das sich der Kurs GEGEN DICH bewegte, bevor der Trade schloss; die MFE (maximale favorable Exkursion) ist das Maximum ZU DEINEN GUNSTEN. Beide im Journal zu notieren fördert Gold zutage: gehen deine Gewinner selten mehr als 0,8R gegen dich, ist dein 1,5R-Stop zu weit; erreichen deine Trades meist +1,8R MFE, aber du schließt bei +1R, lässt du Gewinn liegen. Der objektive Weg — mit eigenen Daten — das Raten bei Stop und Ziel zu beenden.',
     capCorrelationTitle: 'Korrelation: echte Diversifikation',

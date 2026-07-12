@@ -403,6 +403,9 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    eduNextModule: 'Suivant',
+    eduPrevModule: 'Précédent',
+    eduPathHint: 'Parcours suggéré',
     tmgMaeName: 'MAE / MFE : régler SL & TP avec des données',
     tmgMaeDesc: 'La MAE (excursion maximale adverse) est le plus que le prix a bougé CONTRE TOI avant la clôture ; la MFE (excursion maximale favorable) est le plus qu\'il a bougé EN TA FAVEUR. Les noter au journal révèle de l\'or : si tes gagnants dépassent rarement 0,8R contre toi, ton stop de 1,5R est trop large ; si tes trades atteignent souvent +1,8R de MFE mais que tu clôtures à +1R, tu laisses du profit sur la table. La façon objective — avec tes propres données — d\'arrêter de deviner où placer stop et objectif.',
     capCorrelationTitle: 'Corrélation : vraie diversification',

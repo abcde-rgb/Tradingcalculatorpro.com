@@ -318,6 +318,9 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    eduNextModule: '次へ',
+    eduPrevModule: '前へ',
+    eduPathHint: 'おすすめの順路',
     tmgMaeName: 'MAE / MFE:データでSL・TPを調整',
     tmgMaeDesc: 'MAE(最大逆行幅)は決済前に価格があなたに逆らって動いた最大値、MFE(最大順行幅)は有利に動いた最大値だ。両方を日誌に記録すると金脈が見える:勝ちトレードが0.8R以上逆行することがまれなら、1.5Rのストップは広すぎる;トレードがたいてい+1.8RのMFEに達するのに+1Rで閉じているなら、利益を置き去りにしている。自分のデータで、ストップと目標を当てずっぽうで置くのをやめる客観的な方法だ。',
     capCorrelationTitle: '相関:本当の分散',

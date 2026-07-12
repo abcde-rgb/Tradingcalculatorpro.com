@@ -326,6 +326,9 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    eduNextModule: '下一个',
+    eduPrevModule: '上一个',
+    eduPathHint: '建议路径',
     tmgMaeName: 'MAE / MFE:用数据校准止损止盈',
     tmgMaeDesc: 'MAE(最大不利偏移)是交易平仓前价格逆你而动的最大幅度;MFE(最大有利偏移)是顺你而动的最大幅度。把两者记进日志会挖出金矿:若你的盈利单很少逆行超过 0.8R,你 1.5R 的止损就太宽了;若你的交易通常达到 +1.8R 的 MFE 却在 +1R 平仓,你就把利润留在了桌上。这是用你自己的数据、客观地不再靠猜来设置止损和目标的方法。',
     capCorrelationTitle: '相关性:真正的分散',

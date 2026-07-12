@@ -530,6 +530,9 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    eduNextModule: 'Siguiente',
+    eduPrevModule: 'Anterior',
+    eduPathHint: 'Ruta sugerida',
     tmgMaeName: 'MAE / MFE: afinar SL y TP con datos',
     tmgMaeDesc: 'La MAE (excursión máxima adversa) es lo máximo que se movió el precio EN TU CONTRA antes de que la operación cerrara; la MFE (excursión máxima favorable) es lo máximo que se movió A TU FAVOR. Anotarlas en el diario revela oro: si tus ganadoras rara vez sufren más de un 0,8R en contra, tu stop de 1,5R es demasiado ancho; si tus operaciones suelen alcanzar +1,8R de MFE pero cierras en +1R, estás dejando beneficio en la mesa. Es la forma objetiva —con tus propios datos— de dejar de adivinar dónde poner el stop y el objetivo.',
     capCorrelationTitle: 'Correlación: diversificar de verdad',

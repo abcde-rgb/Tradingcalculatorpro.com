@@ -553,6 +553,17 @@ export default function EducationPage() {
   const totalTopics = EDUCATION_NAV.reduce((n, c) => n + c.topics.length, 0);
   const activeCategory = EDUCATION_NAV.find(c => c.topics.some(tp => tp.value === activeTopic));
 
+  // Guided path: flatten every pillar's topics into one ordered list so the
+  // learner can walk the curriculum 1→2→3 with prev/next buttons.
+  const FLAT_TOPICS = EDUCATION_NAV.flatMap(c => c.topics);
+  const flatIdx = FLAT_TOPICS.findIndex(tp => tp.value === activeTopic);
+  const prevTopic = flatIdx > 0 ? FLAT_TOPICS[flatIdx - 1] : null;
+  const nextTopic = flatIdx >= 0 && flatIdx < FLAT_TOPICS.length - 1 ? FLAT_TOPICS[flatIdx + 1] : null;
+  const goToTopic = (val) => {
+    setActiveTopic(val);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Deep-link to a module from a static SEO landing page, e.g. /education?topic=candlesticks
   const [searchParams] = useSearchParams();
   useEffect(() => {
@@ -4419,6 +4430,38 @@ export default function EducationPage() {
                 </Card>
               )}
             </TabsContent>
+
+            {/* Guided path: previous / next module across all pillars */}
+            <div className="mt-10 pt-5 border-t border-border flex items-center justify-between gap-3">
+              {prevTopic ? (
+                <button
+                  type="button"
+                  onClick={() => goToTopic(prevTopic.value)}
+                  data-testid="edu-prev-module"
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:border-primary/40 transition-colors max-w-[46%]"
+                >
+                  <ChevronRight className="w-4 h-4 rotate-180 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                  <span className="text-left min-w-0">
+                    <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">{t('eduPrevModule')}</span>
+                    <span className="block text-xs font-semibold text-foreground truncate">{prevTopic.label}</span>
+                  </span>
+                </button>
+              ) : <span />}
+              {nextTopic ? (
+                <button
+                  type="button"
+                  onClick={() => goToTopic(nextTopic.value)}
+                  data-testid="edu-next-module"
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors max-w-[46%] ml-auto"
+                >
+                  <span className="text-right min-w-0">
+                    <span className="block text-[10px] uppercase tracking-wide text-primary/70">{t('eduNextModule')}</span>
+                    <span className="block text-xs font-semibold text-foreground truncate">{nextTopic.label}</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
+                </button>
+              ) : <span />}
+            </div>
               </div>
             </div>
           </Tabs>

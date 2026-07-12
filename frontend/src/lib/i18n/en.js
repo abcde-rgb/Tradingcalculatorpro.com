@@ -433,6 +433,9 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    eduNextModule: 'Next',
+    eduPrevModule: 'Previous',
+    eduPathHint: 'Suggested path',
     tmgMaeName: 'MAE / MFE: tune SL & TP with data',
     tmgMaeDesc: 'MAE (maximum adverse excursion) is the most the price moved AGAINST YOU before the trade closed; MFE (maximum favorable excursion) is the most it moved IN YOUR FAVOR. Logging both in your journal reveals gold: if your winners rarely go more than 0.8R against you, your 1.5R stop is too wide; if your trades usually reach +1.8R of MFE but you close at +1R, you are leaving profit on the table. It is the objective way — with your own data — to stop guessing where to put the stop and target.',
     capCorrelationTitle: 'Correlation: real diversification',
