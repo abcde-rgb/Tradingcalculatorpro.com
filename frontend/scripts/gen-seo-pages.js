@@ -136,6 +136,8 @@ const TOPICS = [
   { v:'options-income', slug:'opciones-ingresos-y-asignacion', tk:'oiTitle', ik:'oiIntro' },
   { v:'options-vol', slug:'opciones-volatilidad', tk:'ovTitle', ik:'ovIntro' },
   { v:'news-trading', slug:'operar-noticias', tk:'ntTitle', ik:'ntIntro' },
+  { v:'algo-trading', slug:'trading-algoritmico', tk:'atTitle', ik:'atIntro' },
+  { v:'copy-trading', slug:'copy-y-social-trading', tk:'cpTitle', ik:'cpIntro' },
   { v:'inst-desk', slug:'mesa-institucional', tk:'ideskTitle', ik:'ideskIntro' },
   { v:'business', slug:'el-negocio-del-trading', tk:'tbizTitle', ik:'tbizIntro' },
 ];

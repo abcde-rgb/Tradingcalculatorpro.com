@@ -1785,6 +1785,37 @@ export const getTaxes = (t) => ({
   note: t('txNote'),
 });
 
+// Algorithmic trading — systematic vs discretionary, backtesting (and its traps:
+// overfitting, survivorship/look-ahead bias), execution/APIs/latency, and
+// automation risk (kill switch). Pairs with SVG diagrams in AlgoTradingVisual.jsx.
+export const getAlgoTrading = (t) => ({
+  title: t('atTitle'),
+  intro: t('atIntro'),
+  items: [
+    { id: 'what',     name: t('atWhatName'),     desc: t('atWhatDesc') },
+    { id: 'backtest', name: t('atBacktestName'), desc: t('atBacktestDesc') },
+    { id: 'exec',     name: t('atExecName'),     desc: t('atExecDesc') },
+    { id: 'pitfall',  name: t('atPitfallName'),  desc: t('atPitfallDesc'), type: 'bearish' },
+    { id: 'risk',     name: t('atRiskName'),     desc: t('atRiskDesc'),    type: 'bearish' },
+  ],
+  note: t('atNote'),
+});
+
+// Copy & social trading — how it works, vetting the lead trader, misaligned
+// incentives, sizing/diversification and the measured reality (most popular
+// copied portfolios lag an index). Pairs with SVG diagrams in CopyTradingVisual.jsx.
+export const getCopyTrading = (t) => ({
+  title: t('cpTitle'),
+  intro: t('cpIntro'),
+  items: [
+    { id: 'what',   name: t('cpWhatName'),   desc: t('cpWhatDesc') },
+    { id: 'due',    name: t('cpDueName'),    desc: t('cpDueDesc') },
+    { id: 'incent', name: t('cpIncentName'), desc: t('cpIncentDesc'), type: 'bearish' },
+    { id: 'size',   name: t('cpSizeName'),   desc: t('cpSizeDesc') },
+  ],
+  note: t('cpNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
