@@ -318,6 +318,11 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    verifyEmailBannerTitle: 'メールを確認してください',
+    verifyEmailBannerDesc: '登録時にリンクを送信しました。アカウントを保護し、パスワードを忘れた際にアクセスを回復するため確認してください。',
+    verifyEmailResendBtn: '再送信',
+    verifyEmailSentToast: '確認メールを送信しました。受信箱をご確認ください。',
+    verifyEmailSentError: 'メールを送信できませんでした。もう一度お試しください。',
     deleteAccountCancelsSubNote: '有効なサブスクリプションがある場合、アカウント削除時に自動的に解約され、今後請求されません。この操作は取り消せません。',
     qzStart1q: '資産で『ロングする』とは?',
     qzStart1a: '価格が上がると賭ける',

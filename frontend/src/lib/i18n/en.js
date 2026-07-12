@@ -433,6 +433,11 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    verifyEmailBannerTitle: 'Verify your email',
+    verifyEmailBannerDesc: 'We sent you a link when you signed up. Confirm it to secure your account and recover access if you forget your password.',
+    verifyEmailResendBtn: 'Resend',
+    verifyEmailSentToast: 'Verification email sent. Check your inbox.',
+    verifyEmailSentError: 'Could not send the email. Please try again.',
     deleteAccountCancelsSubNote: 'If you have an active subscription, it will be cancelled automatically when you delete the account and you will not be charged again. This action is irreversible.',
     qzStart1q: 'What does \'going long\' on an asset mean?',
     qzStart1a: 'Betting the price goes UP',

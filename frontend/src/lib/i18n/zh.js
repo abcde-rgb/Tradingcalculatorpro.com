@@ -326,6 +326,11 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    verifyEmailBannerTitle: '验证你的邮箱',
+    verifyEmailBannerDesc: '注册时我们已给你发送链接。请确认以保护你的账户,并在忘记密码时恢复访问。',
+    verifyEmailResendBtn: '重新发送',
+    verifyEmailSentToast: '验证邮件已发送,请查收。',
+    verifyEmailSentError: '邮件发送失败,请重试。',
     deleteAccountCancelsSubNote: '如果你有正在生效的订阅,删除账户时将自动取消,不会再向你收费。此操作不可撤销。',
     qzStart1q: '对某资产『做多』是什么意思?',
     qzStart1a: '押注价格上涨',

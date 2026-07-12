@@ -1619,12 +1619,14 @@ async def register(request: Request, response: Response, user_data: UserCreate):
         "is_premium": False,
         "is_admin": False,
         "auth_provider": "password",
+        "email_verified": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
     try:
         import asyncio as _asyncio
         _asyncio.create_task(_send_welcome_email(user_data.email, user_data.name))
+        _asyncio.create_task(_send_email_verification(user_id, user_data.email, user_data.name))
     except Exception:
         pass
 
@@ -1642,6 +1644,7 @@ async def register(request: Request, response: Response, user_data: UserCreate):
             "is_premium": False,
             "is_admin": False,
             "auth_provider": "password",
+            "email_verified": False,
         }
     }
 
@@ -1675,6 +1678,7 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             "is_premium": is_premium,
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
+            "email_verified": bool(user.get("email_verified", False)),
             "last_seen": now_iso,
             "login_count": (user.get("login_count") or 0) + 1,
         }
@@ -1737,6 +1741,7 @@ async def get_me(user: dict = Depends(require_user)):
         "is_premium": is_premium,
         "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
         "auth_provider": user.get("auth_provider", "password"),
+        "email_verified": bool(user.get("email_verified", False)),
         "picture": user.get("picture"),
         "last_seen": user.get("last_seen"),
         "login_count": user.get("login_count", 0),
@@ -1820,6 +1825,7 @@ async def refresh_access_token(request: Request, response: Response, body: Token
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
+            "email_verified": bool(user.get("email_verified", False)),
         },
     }
 
@@ -1963,6 +1969,50 @@ async def _send_magic_link_email(to_email: str, name: str, magic_url: str) -> No
             )
     except Exception as e:
         logging.warning(f"[magic-link] email error: {e}")
+
+
+async def _send_email_verification(user_id: str, to_email: str, name: str) -> None:
+    """Create a verification token and email a confirmation link on signup.
+    Non-blocking; the /auth/verify-email endpoint (missing_apis.py) consumes it."""
+    try:
+        token = secrets.token_urlsafe(32)
+        expires_at = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+        await db.email_verification_tokens.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "user_id": user_id, "email": to_email, "token": token,
+                "used": False, "expires_at": expires_at,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True,
+        )
+        frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
+        verify_url = f"{frontend_url}/verify-email?token={token}"
+        if not SENDGRID_API_KEY:
+            logging.info(f"[verify-email] DEV MODE — link for {to_email}: {verify_url}")
+            return
+        import httpx as _httpx
+        payload = {
+            "personalizations": [{"to": [{"email": to_email, "name": name}]}],
+            "from": {"email": SENDER_EMAIL, "name": "Trading Calculator PRO"},
+            "subject": "Verifica tu email — Trading Calculator PRO",
+            "content": [{"type": "text/html", "value": f"""
+<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px">
+  <h2 style="color:#10b981">Trading Calculator PRO</h2>
+  <p>Hola {name},</p>
+  <p>Confirma tu dirección de email para asegurar tu cuenta. El enlace expira en <strong>24 horas</strong>.</p>
+  <a href="{verify_url}" style="display:inline-block;background:#10b981;color:#fff;padding:14px 28px;
+     border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">Verificar email →</a>
+  <p style="color:#888;font-size:12px">Si no creaste esta cuenta, ignora este email.</p>
+</div>"""}],
+        }
+        async with _httpx.AsyncClient(timeout=10) as c:
+            await c.post(
+                "https://api.sendgrid.com/v3/mail/send", json=payload,
+                headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            )
+    except Exception as e:
+        logging.warning(f"[verify-email] send error: {e}")
 
 
 @api_router.post("/auth/forgot-password")

@@ -143,6 +143,11 @@ export default {
     // Risk Management - ARABIC
     positionSizingTitle: 'حجم المركز',
     positionSizingDesc: 'حدد مقدار رأس المال الذي ستخاطر به في كل صفقة بناءً على قدرتك على تحمل المخاطر وحجم حسابك.',
+    verifyEmailBannerTitle: 'تحقّق من بريدك',
+    verifyEmailBannerDesc: 'أرسلنا لك رابطًا عند التسجيل. أكّده لتأمين حسابك واستعادة الوصول إذا نسيت كلمة المرور.',
+    verifyEmailResendBtn: 'إعادة إرسال',
+    verifyEmailSentToast: 'تم إرسال بريد التحقّق. تفقّد صندوق الوارد.',
+    verifyEmailSentError: 'تعذّر إرسال البريد. حاول مجددًا.',
     deleteAccountCancelsSubNote: 'إذا كان لديك اشتراك نشط، فسيُلغى تلقائيًا عند حذف الحساب ولن تُحصَّل منك رسوم مجددًا. هذا الإجراء لا يمكن التراجع عنه.',
     qzStart1q: 'ماذا يعني \'الشراء\' (long) على أصل؟',
     qzStart1a: 'الرهان على ارتفاع السعر',

@@ -403,6 +403,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    verifyEmailBannerTitle: 'Vérifie ton email',
+    verifyEmailBannerDesc: 'Nous t\'avons envoyé un lien à l\'inscription. Confirme-le pour sécuriser ton compte et récupérer l\'accès en cas d\'oubli du mot de passe.',
+    verifyEmailResendBtn: 'Renvoyer',
+    verifyEmailSentToast: 'Email de vérification envoyé. Vérifie ta boîte.',
+    verifyEmailSentError: 'Impossible d\'envoyer l\'email. Réessaie.',
     deleteAccountCancelsSubNote: 'Si tu as un abonnement actif, il sera annulé automatiquement à la suppression du compte et tu ne seras plus débité. Cette action est irréversible.',
     qzStart1q: 'Que signifie « être long » sur un actif ?',
     qzStart1a: 'Parier que le prix MONTE',

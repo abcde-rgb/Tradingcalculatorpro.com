@@ -530,6 +530,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    verifyEmailBannerTitle: 'Verifica tu email',
+    verifyEmailBannerDesc: 'Te enviamos un enlace al registrarte. Confírmalo para asegurar tu cuenta y recuperar el acceso si olvidas la contraseña.',
+    verifyEmailResendBtn: 'Reenviar',
+    verifyEmailSentToast: 'Email de verificación enviado. Revisa tu bandeja.',
+    verifyEmailSentError: 'No se pudo enviar el email. Inténtalo de nuevo.',
     deleteAccountCancelsSubNote: 'Si tienes una suscripción activa, se cancelará automáticamente al eliminar la cuenta y no se te volverá a cobrar. Esta acción es irreversible.',
     qzStart1q: '¿Qué significa \'ponerse largo\' en un activo?',
     qzStart1a: 'Apostar a que el precio SUBE',

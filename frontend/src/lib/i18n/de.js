@@ -403,6 +403,11 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    verifyEmailBannerTitle: 'Bestätige deine E-Mail',
+    verifyEmailBannerDesc: 'Wir haben dir bei der Anmeldung einen Link geschickt. Bestätige ihn, um dein Konto zu sichern und den Zugang bei vergessenem Passwort wiederherzustellen.',
+    verifyEmailResendBtn: 'Erneut senden',
+    verifyEmailSentToast: 'Bestätigungs-E-Mail gesendet. Prüfe dein Postfach.',
+    verifyEmailSentError: 'E-Mail konnte nicht gesendet werden. Bitte erneut versuchen.',
     deleteAccountCancelsSubNote: 'Wenn du ein aktives Abonnement hast, wird es beim Löschen des Kontos automatisch gekündigt und dir wird nichts mehr berechnet. Diese Aktion ist unumkehrbar.',
     qzStart1q: 'Was bedeutet \'long gehen\' bei einem Asset?',
     qzStart1a: 'Wetten, dass der Preis STEIGT',
