@@ -113,6 +113,34 @@ const VISUALS = {
       <T x="120" y="98" textAnchor="middle" fill={MUT} fontSize="7">CFTC 2023 · ~$310M · "demo"</T>
     </Frame>
   ),
+  // Affiliate: influencer earns a cut of your fee whether you win or lose
+  affiliate: (
+    <Frame label="affiliate paid per signup, not per success">
+      <circle cx="52" cy="40" r="16" fill={HOT} opacity="0.5" />
+      <T x="52" y="43" textAnchor="middle" fill="#0a0a0a" fontSize="7">gurú</T>
+      <rect x="150" y="26" width="66" height="26" rx="4" fill={MUT} opacity="0.3" />
+      <T x="183" y="42" textAnchor="middle" fill={MUT} fontSize="7">firma</T>
+      <path d="M52 58 v14 h131 v-16" stroke={MUT} strokeWidth="1.2" fill="none" />
+      <T x="90" y="82" fill={DOWN} fontSize="7">tú pagas 500€ →</T>
+      <path d="M150 39 h-80" stroke={UP} strokeWidth="1.6" fill="none" /><polygon points="70,39 76,36 76,42" fill={UP} />
+      <T x="86" y="30" fill={UP} fontSize="7">75€ comisión</T>
+      <T x="52" y="104" textAnchor="middle" fill={MUT} fontSize="6.5">cobra si pagas, no si ganas</T>
+    </Frame>
+  ),
+  // Promo: the "discount code" is the affiliate hook
+  promo: (
+    <Frame label="the discount code is the affiliate hook">
+      <g transform="rotate(-8 120 44)">
+        <rect x="66" y="30" width="108" height="30" rx="5" fill={HOT} opacity="0.18" stroke={HOT} strokeWidth="1.2" />
+        <circle cx="76" cy="45" r="3" fill="none" stroke={HOT} strokeWidth="1.2" />
+        <T x="92" y="49" fill={HOT} fontSize="9">−20% SAVE20</T>
+      </g>
+      <path d="M120 62 q0 12 0 16" stroke={DOWN} strokeWidth="1.4" fill="none" strokeDasharray="3 2" />
+      <polygon points="120,82 116,74 124,74" fill={DOWN} />
+      <T x="120" y="96" textAnchor="middle" fill={DOWN} fontSize="7">= enlace de afiliado</T>
+      <T x="120" y="108" textAnchor="middle" fill={MUT} fontSize="6.5">el 'descuento' enruta la comisión</T>
+    </Frame>
+  ),
   // Verdict: red-flag checklist
   verdict: (
     <Frame label="red flag checklist">

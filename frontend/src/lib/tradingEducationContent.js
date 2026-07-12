@@ -1896,8 +1896,10 @@ export const getFundedTruth = (t) => ({
     { id: 'math',     name: t('fdMathName'),     desc: t('fdMathDesc'),     type: 'bearish' },
     { id: 'rules',    name: t('fdRulesName'),    desc: t('fdRulesDesc'),    type: 'bearish' },
     { id: 'leverage', name: t('fdLeverageName'), desc: t('fdLeverageDesc'), type: 'bullish' },
-    { id: 'case',     name: t('fdCaseName'),     desc: t('fdCaseDesc'),     type: 'bearish' },
-    { id: 'verdict',  name: t('fdVerdictName'),  desc: t('fdVerdictDesc') },
+    { id: 'case',      name: t('fdCaseName'),      desc: t('fdCaseDesc'),      type: 'bearish' },
+    { id: 'affiliate', name: t('fdAffiliateName'), desc: t('fdAffiliateDesc'), type: 'bearish' },
+    { id: 'promo',     name: t('fdPromoName'),     desc: t('fdPromoDesc'),     type: 'bearish' },
+    { id: 'verdict',   name: t('fdVerdictName'),   desc: t('fdVerdictDesc') },
   ],
   note: t('fdNote'),
 });
