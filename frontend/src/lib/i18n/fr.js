@@ -403,6 +403,9 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    xlJourneyA: 'Pas de raccourcis ? Combien de temps il faut vraiment pour être rentable',
+    xlJourneyB: 'Peu gagnent : le vrai parcours et le temps pour devenir rentable',
+    xlFundedA: 'La vérité sur les comptes financés',
     tjTitle: 'Le parcours du trader : combien de temps il faut vraiment pour être rentable',
     tjIntro: 'La question que se pose tout débutant et à laquelle presque aucune formation ne répond honnêtement. Voici la vraie carte du parcours — les étapes par lesquelles tout le monde passe, le temps que cela prend selon les données et pourquoi la plupart abandonnent — issue d\'études universitaires, de régulateurs et de la recherche sur l\'acquisition de toute compétence difficile. Ce n\'est pas pour te décourager : c\'est pour que tu ne confondes pas une phase normale d\'apprentissage avec un échec et, surtout, pour que tu survives assez longtemps pour apprendre.',
     tjStagesName: 'Les 4 étapes de la compétence',

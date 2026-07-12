@@ -403,6 +403,9 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    xlJourneyA: 'Keine Abkürzungen? Wie lange es wirklich bis zur Profitabilität dauert',
+    xlJourneyB: 'Wenige gewinnen: der echte Weg und wie lange Profitabilität dauert',
+    xlFundedA: 'Die Wahrheit über Funded-Konten',
     tjTitle: 'Der Weg des Traders: Wie lange es wirklich bis zur Profitabilität dauert',
     tjIntro: 'Die Frage, die jeder Anfänger stellt und die fast kein Kurs ehrlich beantwortet. Hier ist die echte Landkarte der Reise – die Phasen, die jeder durchläuft, wie lange es laut Daten dauert und warum die meisten aufgeben – zusammengetragen aus akademischen Studien, Regulierungsbehörden und der Forschung darüber, wie man jede schwierige Fähigkeit erlernt. Es soll dich nicht entmutigen: Es soll verhindern, dass du eine normale Lernphase mit Scheitern verwechselst, und vor allem, dass du lange genug überlebst, um zu lernen.',
     tjStagesName: 'Die 4 Stufen der Kompetenz',

@@ -530,6 +530,9 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    xlJourneyA: '¿No hay atajos? Cuánto se tarda de verdad en ser rentable',
+    xlJourneyB: 'Pocos ganan: el camino real y cuánto se tarda en ser rentable',
+    xlFundedA: 'La verdad sobre las cuentas de fondeo',
     tjTitle: 'El camino del trader: cuánto se tarda de verdad en ser rentable',
     tjIntro: 'La pregunta que todo principiante hace y que casi ningún curso responde con honestidad. Aquí tienes el mapa real del viaje —las etapas por las que pasa todo el mundo, cuánto tiempo lleva según los datos y por qué la mayoría abandona— reunido de estudios académicos, reguladores y la investigación sobre cómo se adquiere cualquier habilidad difícil. No es para desanimarte: es para que no confundas una fase normal del aprendizaje con un fracaso y, sobre todo, para que sobrevivas el tiempo suficiente para aprender.',
     tjStagesName: 'Las 4 etapas de competencia',

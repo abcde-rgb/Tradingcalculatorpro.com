@@ -433,6 +433,9 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    xlJourneyA: 'No shortcuts? How long it really takes to become profitable',
+    xlJourneyB: 'Few win: the real path and how long profitability takes',
+    xlFundedA: 'The truth about funded accounts',
     tjTitle: 'The trader\'s journey: how long it really takes to be profitable',
     tjIntro: 'The question every beginner asks and almost no course answers honestly. Here is the real map of the journey — the stages everyone goes through, how long it takes according to the data, and why most people quit — drawn from academic studies, regulators and the research on how any hard skill is acquired. It is not meant to discourage you: it is so you don\'t mistake a normal phase of learning for failure and, above all, so you survive long enough to learn.',
     tjStagesName: 'The 4 stages of competence',

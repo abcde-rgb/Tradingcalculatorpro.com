@@ -1170,6 +1170,12 @@ export default function EducationPage() {
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{EVIDENCE.note}</p>
               </div>
+
+              <button onClick={() => goToTopic('trader-journey')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors">
+                <Clock className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                <span className="text-sm font-medium">{t('xlJourneyB')}</span>
+                <ChevronRight className="w-4 h-4 ml-auto text-indigo-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+              </button>
             </TabsContent>
 
             {/* The trader's journey — the 4 stages, valley of despair, realistic timeline, attrition */}
@@ -1202,6 +1208,12 @@ export default function EducationPage() {
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{TRADER_JOURNEY.note}</p>
               </div>
+
+              <button onClick={() => goToTopic('funded-truth')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-red-500/5 border border-red-500/20 hover:border-red-500/40 transition-colors">
+                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <span className="text-sm font-medium">{t('xlFundedA')}</span>
+                <ChevronRight className="w-4 h-4 ml-auto text-red-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+              </button>
             </TabsContent>
 
             {/* The truth about funded accounts — scam mechanics, math, real broker vs funded */}
@@ -1234,6 +1246,12 @@ export default function EducationPage() {
                 <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{FUNDED_TRUTH.note}</p>
               </div>
+
+              <button onClick={() => goToTopic('trader-journey')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors">
+                <Clock className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                <span className="text-sm font-medium">{t('xlJourneyA')}</span>
+                <ChevronRight className="w-4 h-4 ml-auto text-indigo-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+              </button>
             </TabsContent>
 
             {/* Options: income & assignment — covered call, CSP, the wheel, assignment, 0DTE */}

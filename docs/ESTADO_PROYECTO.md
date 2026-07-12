@@ -1063,6 +1063,10 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   10.000 h), los dos colchones (capital + vida), medir el proceso (adherencia/esperanza/R) no el dinero, y el
   espejismo del atajo (prop firms: pasan ~5-14%, cobran ~7%, gasto medio +4.000$). Datos contrastados en
   varias fuentes (estudios académicos, reguladores ESMA, investigación sobre adquisición de habilidades).
+- ✅ **Enlaces internos entre los 3 módulos de realidad** (retención + SEO): botón "seguir leyendo" al pie de
+  `funded-truth` y `evidence-based` → `trader-journey`, y de `trader-journey` → `funded-truth` (reutiliza
+  `goToTopic` + scroll arriba). 3 claves i18n×8 (`xlJourneyA/B`, `xlFundedA`). Probado en headless: los 3
+  botones navegan al módulo correcto, 0 pageerrors.
 - Verificado: `npm run build` OK (Educación **51 temas × 8 = 408 páginas**, sitemap **440 URLs**); paridad
   i18n **4659 claves, 8 locales idénticos** (19 `tj` c/u, 0 huecos); **render headless con usuario premium
   sembrado en es y ar** → 8 tarjetas / 8 SVGs / **0 claves crudas / 0 pageerrors**; páginas SEO con títulos
