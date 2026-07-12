@@ -1816,6 +1816,37 @@ export const getCopyTrading = (t) => ({
   note: t('cpNote'),
 });
 
+// Forex in depth — sessions & overlap, carry trade & rate differentials, DXY &
+// correlations, majors/minors/exotics, macro drivers. Pairs with ForexVisual.jsx.
+export const getForexDeep = (t) => ({
+  title: t('fxTitle'),
+  intro: t('fxIntro'),
+  items: [
+    { id: 'sess',    name: t('fxSessName'),    desc: t('fxSessDesc') },
+    { id: 'carry',   name: t('fxCarryName'),   desc: t('fxCarryDesc') },
+    { id: 'dxy',     name: t('fxDxyName'),     desc: t('fxDxyDesc') },
+    { id: 'pairs',   name: t('fxPairsName'),   desc: t('fxPairsDesc') },
+    { id: 'drivers', name: t('fxDriversName'), desc: t('fxDriversDesc') },
+  ],
+  note: t('fxNote'),
+});
+
+// Commodities — the three groups, seasonality, gold vs real rates, oil
+// (inventories/OPEC/WTI-Brent), futures curve & roll yield. Pairs with
+// CommoditiesVisual.jsx.
+export const getCommodities = (t) => ({
+  title: t('cmTitle'),
+  intro: t('cmIntro'),
+  items: [
+    { id: 'types',  name: t('cmTypesName'),  desc: t('cmTypesDesc') },
+    { id: 'season', name: t('cmSeasonName'), desc: t('cmSeasonDesc') },
+    { id: 'gold',   name: t('cmGoldName'),   desc: t('cmGoldDesc'), type: 'bullish' },
+    { id: 'oil',    name: t('cmOilName'),    desc: t('cmOilDesc') },
+    { id: 'curve',  name: t('cmCurveName'),  desc: t('cmCurveDesc') },
+  ],
+  note: t('cmNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
