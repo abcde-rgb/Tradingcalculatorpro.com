@@ -208,12 +208,15 @@ export const LoginPage = () => {
   useSEO({ titleKey: 'seoLoginTitle', descriptionKey: 'seoLoginDesc', canonicalPath: '/login' });
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, isLoading } = useAuthStore();
+  const { login, verify2fa, isLoading } = useAuthStore();
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [showPw, setShowPw]       = useState(false);
   const [emailErr, setEmailErr]   = useState('');
   const [loginError, setLoginError] = useState('');
+  const [totpStep, setTotpStep]   = useState(false);
+  const [pendingToken, setPendingToken] = useState('');
+  const [totpCode, setTotpCode]   = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -223,11 +226,73 @@ export const LoginPage = () => {
     if (result.success) {
       toast.success(t('bienvenido_b33c1f'));
       navigate('/dashboard');
+    } else if (result.totpRequired) {
+      setPendingToken(result.pendingToken);
+      setTotpStep(true);
     } else {
       setLoginError(result.error);
       toast.error(result.error);
     }
   };
+
+  const handleVerify2fa = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    const result = await verify2fa(pendingToken, totpCode.trim());
+    if (result.success) {
+      toast.success(t('bienvenido_b33c1f'));
+      navigate('/dashboard');
+    } else {
+      setLoginError(result.error);
+      toast.error(result.error);
+    }
+  };
+
+  if (totpStep) {
+    return (
+      <AuthShell>
+        <Card className="w-full max-w-md bg-card/70 backdrop-blur-xl border-white/10 shadow-2xl shadow-black/30">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Lock className="w-9 h-9 text-primary" />
+            </div>
+            <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">{t('twoFactorTitle')}</h1>
+            <p className="text-muted-foreground text-sm mt-2">{t('twoFactorPrompt')}</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleVerify2fa} className="space-y-4">
+              <Input
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                placeholder="000000"
+                className="text-center text-2xl tracking-[0.5em] font-mono bg-black/50 border-white/10"
+                data-testid="totp-code"
+              />
+              <Button type="submit" disabled={isLoading || totpCode.length < 6} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="totp-submit">
+                {isLoading ? <><Loader2 className="mr-2 w-4 h-4 animate-spin" />{t('loading') || '...'}</> : t('twoFactorVerifyBtn')}
+              </Button>
+              {loginError && !isLoading && (
+                <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-sm text-destructive text-center">
+                  {loginError}
+                </div>
+              )}
+            </form>
+            <button
+              type="button"
+              onClick={() => { setTotpStep(false); setTotpCode(''); setLoginError(''); }}
+              className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground"
+            >
+              {t('twoFactorBackToLogin')}
+            </button>
+            <SecureFooter />
+          </CardContent>
+        </Card>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell>

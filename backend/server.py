@@ -1655,6 +1655,11 @@ async def login(request: Request, response: Response, credentials: UserLogin):
     if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
+    # Password is correct — if the user enabled 2FA, don't issue a session yet.
+    # Return a short-lived pending token; the client must complete /auth/2fa/verify.
+    if user.get("totp_enabled"):
+        return {"totp_required": True, "pending_token": _create_2fa_pending_token(user["id"], user["email"])}
+
     now_iso = datetime.now(timezone.utc).isoformat()
     await db.users.update_one(
         {"id": user["id"]},
@@ -1742,6 +1747,7 @@ async def get_me(user: dict = Depends(require_user)):
         "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
         "auth_provider": user.get("auth_provider", "password"),
         "email_verified": bool(user.get("email_verified", False)),
+        "two_factor_enabled": bool(user.get("totp_enabled", False)),
         "picture": user.get("picture"),
         "last_seen": user.get("last_seen"),
         "login_count": user.get("login_count", 0),
@@ -2101,6 +2107,124 @@ async def change_password(request: Request, body: ChangePasswordRequest, user: d
         upsert=True,
     )
     return {"ok": True, "message": "Contraseña cambiada correctamente. Por seguridad, vuelve a iniciar sesión."}
+
+
+# ============= TWO-FACTOR AUTHENTICATION (TOTP) =============
+
+def _create_2fa_pending_token(user_id: str, email: str) -> str:
+    """Short-lived (5 min) token proving the password step passed; exchanged at
+    /auth/2fa/verify for a real session. Never a valid access/refresh token."""
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {"user_id": user_id, "email": email, "type": "2fa_pending",
+         "jti": str(uuid.uuid4()), "iat": now, "exp": now + timedelta(minutes=5)},
+        JWT_SECRET, algorithm=JWT_ALGORITHM,
+    )
+
+
+class TotpCodeRequest(BaseModel):
+    code: str
+
+
+class TotpVerifyRequest(BaseModel):
+    pending_token: str
+    code: str
+
+
+@api_router.post("/auth/2fa/setup")
+@limiter.limit("10/hour")
+async def totp_setup(request: Request, user: dict = Depends(require_user)):
+    """Generate a pending TOTP secret + provisioning URI. Does NOT enable 2FA
+    until the user confirms a code via /auth/2fa/enable."""
+    import pyotp
+    if user.get("totp_enabled"):
+        raise HTTPException(status_code=400, detail="El 2FA ya está activado.")
+    secret = pyotp.random_base32()
+    await db.users.update_one({"id": user["id"]}, {"$set": {"totp_pending_secret": secret}})
+    uri = pyotp.totp.TOTP(secret).provisioning_uri(
+        name=user["email"], issuer_name="Trading Calculator PRO"
+    )
+    return {"secret": secret, "otpauth_uri": uri}
+
+
+@api_router.post("/auth/2fa/enable")
+@limiter.limit("10/hour")
+async def totp_enable(request: Request, body: TotpCodeRequest, user: dict = Depends(require_user)):
+    """Confirm the 6-digit code against the pending secret and enable 2FA."""
+    import pyotp
+    doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "totp_pending_secret": 1})
+    secret = (doc or {}).get("totp_pending_secret")
+    if not secret:
+        raise HTTPException(status_code=400, detail="Inicia la configuración de 2FA primero.")
+    if not pyotp.TOTP(secret).verify(body.code.strip(), valid_window=1):
+        raise HTTPException(status_code=400, detail="Código incorrecto. Inténtalo de nuevo.")
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"totp_secret": secret, "totp_enabled": True, "totp_pending_secret": None,
+                  "totp_enabled_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"ok": True, "message": "2FA activado correctamente."}
+
+
+@api_router.post("/auth/2fa/disable")
+@limiter.limit("10/hour")
+async def totp_disable(request: Request, body: TotpCodeRequest, user: dict = Depends(require_user)):
+    """Disable 2FA after verifying a current code (proves the user still controls it)."""
+    import pyotp
+    doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "totp_secret": 1, "totp_enabled": 1})
+    if not (doc or {}).get("totp_enabled"):
+        return {"ok": True, "message": "El 2FA no estaba activado."}
+    secret = doc.get("totp_secret")
+    if not secret or not pyotp.TOTP(secret).verify(body.code.strip(), valid_window=1):
+        raise HTTPException(status_code=400, detail="Código incorrecto.")
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"totp_enabled": False, "totp_secret": None, "totp_pending_secret": None}},
+    )
+    return {"ok": True, "message": "2FA desactivado."}
+
+
+@api_router.post("/auth/2fa/verify")
+@limiter.limit("10/minute")
+async def totp_verify(request: Request, response: Response, body: TotpVerifyRequest):
+    """Complete a 2FA login: exchange the pending token + TOTP code for a session."""
+    import pyotp
+    try:
+        payload = jwt.decode(body.pending_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="El desafío de 2FA ha expirado. Inicia sesión de nuevo.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Desafío de 2FA inválido.")
+    if payload.get("type") != "2fa_pending":
+        raise HTTPException(status_code=401, detail="Token no válido para 2FA.")
+    user = await db.users.find_one({"id": payload.get("user_id")}, {"_id": 0})
+    if not user or not user.get("totp_enabled") or not user.get("totp_secret"):
+        raise HTTPException(status_code=400, detail="2FA no está activo para esta cuenta.")
+    if not pyotp.TOTP(user["totp_secret"]).verify(body.code.strip(), valid_window=1):
+        raise HTTPException(status_code=401, detail="Código incorrecto.")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"last_seen": now_iso}, "$inc": {"login_count": 1}},
+    )
+    token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
+    _set_auth_cookies(response, token, refresh_token)
+    return {
+        "token": token,
+        "user": {
+            "id": user["id"], "email": user["email"], "name": user["name"],
+            "picture": user.get("picture"),
+            "subscription_plan": user.get("subscription_plan"),
+            "subscription_end": user.get("subscription_end"),
+            "is_premium": check_premium(user),
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            "auth_provider": user.get("auth_provider", "password"),
+            "email_verified": bool(user.get("email_verified", False)),
+            "two_factor_enabled": True,
+        },
+    }
 
 
 async def _cancel_stripe_subscriptions_for_user(user_doc: dict) -> None:

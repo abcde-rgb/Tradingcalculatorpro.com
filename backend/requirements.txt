@@ -57,3 +57,6 @@ google-cloud-logging==3.11.3
 
 # CORS y middleware
 starlette==0.41.3
+
+# 2FA (TOTP)
+pyotp==2.9.0

@@ -13,6 +13,7 @@ import { Footer } from '@/components/layout/Footer';
 import { useAuthStore } from '@/lib/store';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import TwoFactorCard from '@/components/settings/TwoFactorCard';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const PREFS_KEY = 'tcp-preferences';
@@ -379,6 +380,9 @@ export default function SettingsPage() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Two-factor authentication (password accounts only) */}
+          {user?.auth_provider === 'password' && <TwoFactorCard />}
 
           {/* Preferences Card */}
           <Card className="bg-card border-border">

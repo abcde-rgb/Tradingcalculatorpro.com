@@ -57,6 +57,11 @@ export const useAuthStore = create(
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('invalidCredentials'));
+          // 2FA enabled: password verified but a TOTP code is still required.
+          if (data.totp_required && data.pending_token) {
+            set({ isLoading: false });
+            return { success: false, totpRequired: true, pendingToken: data.pending_token };
+          }
           if (!data.token || !data.user) throw new Error(t('invalidCredentials'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'email' });
@@ -67,6 +72,27 @@ export const useAuthStore = create(
             ? 'No se puede conectar al servidor. Comprueba tu conexión o intenta de nuevo.'
             : error.message;
           return { success: false, error: msg };
+        }
+      },
+
+      verify2fa: async (pendingToken, code) => {
+        if (!API) return { success: false, error: t('backendNotConfigured') };
+        set({ isLoading: true });
+        try {
+          const res = await fetchWithTimeout(`${API}/auth/2fa/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pending_token: pendingToken, code }),
+          });
+          const data = await safeJson(res);
+          if (!res.ok) throw new Error(data.detail || 'Código incorrecto');
+          if (!data.token || !data.user) throw new Error('Código incorrecto');
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          trackEvent('login', { method: 'email_2fa' });
+          return { success: true };
+        } catch (error) {
+          set({ isLoading: false });
+          return { success: false, error: error.message };
         }
       },
 
