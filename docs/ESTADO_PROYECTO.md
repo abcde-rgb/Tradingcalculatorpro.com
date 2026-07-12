@@ -1025,3 +1025,24 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Verificado con capturas headless en **alemán sembrando usuario premium**: `options-income` con sus 6 SVGs,
   el selector de quiz por pilar (6 chips) y el botón "siguiente módulo" → **0 claves crudas, 0 pageerrors**.
   Cabecera de la Academia: **63 Module · 6 Pfade**. Detalle en [`docs/ESTUDIO_APRENDIZAJE.md`](./ESTUDIO_APRENDIZAJE.md) (cierre v3).
+
+### 2026-07-12 (33) — Auditoría de cuenta/suscripción + 5 correcciones (auth, pagos, admin)
+- Análisis completo del ciclo de vida de cuenta (registro, login, multicuenta/sesiones, borrado,
+  cambio/cancelación de plan, impagos) y del panel admin. Sistema sólido; se detectaron 6 huecos y se
+  corrigieron 5 (OxaPay/UI cripto aplazado a petición del usuario).
+- 🔴 **Borrar cuenta ahora cancela la suscripción de Stripe** antes de eliminar (`_cancel_stripe_subscriptions_for_user`,
+  best-effort, no bloquea el borrado RGPD) → deja de cobrarse a quien se da de baja. Limpieza RGPD ampliada
+  a todas las colecciones con `user_id`. Aviso en el diálogo de borrado (i18n×8).
+- ✅ **Verificación de email en registro**: `register` marca `email_verified=False` y envía email de
+  verificación (los endpoints verify/resend ya existían). `email_verified` expuesto en /auth/me·login·
+  register·refresh. Banner + botón "reenviar" en Ajustes (soft, no bloquea login).
+- ✅ **2FA (TOTP) opcional** (pyotp): setup/enable/disable/verify; `/auth/login` devuelve
+  `{totp_required, pending_token}` si está activo; reto de código en LoginPage; `TwoFactorCard` en Ajustes
+  (activar con secreto/QR-manual, desactivar con código). 22 claves i18n×8.
+- ✅ **SubscriptionPage** con `credentials:'include'` en los 5 fetch (no falla en recarga con token null).
+- ✅ **Route shadowing admin resuelto**: eliminados los ~20 handlers duplicados y sombreados (código muerto)
+  de `admin_routes.py` — server.py gana por orden de registro. Conservadas las rutas exclusivas + modelos.
+  `admin_routes.py` 1714→1136 líneas. Verificado por inventario de rutas/modelos + py_compile.
+- Verificado: `py_compile` server/admin/missing_apis OK; `npm run build` OK; paridad i18n 4609 (8 idénticos);
+  TOTP probado offline (acepta código válido, rechaza incorrecto). Nota: el backend no se pudo desplegar/
+  probar en vivo (facturación GCP). Todo en la PR #99. Ver `DIARIO_BUGS.md`.

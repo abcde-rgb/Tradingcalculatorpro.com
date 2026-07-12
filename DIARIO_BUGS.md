@@ -10,6 +10,30 @@
 
 ---
 
+### BUG-020 — Borrar cuenta NO cancelaba la suscripción de Stripe (cobro tras baja)
+**Severidad:** 🔴 CRÍTICA · **Archivo:** `backend/server.py` (`delete_account`) · **Estado:** ✅ RESUELTO (2026-07-12)
+
+`DELETE /auth/account` borraba el usuario y sus datos pero **no cancelaba la
+suscripción activa en Stripe**. Consecuencia real: quien se daba de baja seguía
+siendo cobrado cada periodo porque la suscripción seguía viva en Stripe (riesgo
+económico y de reclamaciones/chargebacks).
+**Causa raíz:** el borrado RGPD no tocaba Stripe.
+**Solución:** nuevo `_cancel_stripe_subscriptions_for_user()` que lista y cancela
+las suscripciones activas del `stripe_customer_id` antes de borrar (best-effort,
+nunca bloquea el borrado). Limpieza RGPD ampliada a todas las colecciones con
+`user_id`. Aviso en el diálogo de borrado del front.
+**Verificado:** `py_compile` OK; reutiliza el patrón `stripe.Subscription.list/delete`
+ya usado en `cancel_subscription`. Pendiente prueba en vivo (deploy bloqueado por
+facturación GCP).
+
+### Mejoras de seguridad asociadas (2026-07-12)
+- **Verificación de email en registro** (antes no se enviaba ni marcaba). Soft, no bloquea login.
+- **2FA (TOTP) opcional** con pyotp: `/auth/2fa/*` + reto en login + gestión en Ajustes.
+- **Route shadowing admin** resuelto: −20 handlers duplicados muertos en `admin_routes.py`.
+- **SubscriptionPage**: `credentials:'include'` en los fetch (cookies en recarga).
+
+---
+
 ## ✅ BUGS YA RESUELTOS EN EL CÓDIGO (el diario anterior los daba por rotos)
 
 ### BUG-001 — Demo bypass admin en store.js
