@@ -1847,6 +1847,40 @@ export const getCommodities = (t) => ({
   note: t('cmNote'),
 });
 
+// Crypto in depth — halving & the cycle, funding rate, cascading liquidations,
+// BTC dominance & stablecoins, 24/7 & on-chain data, correlation with the Nasdaq.
+// Uses the 'cy' key prefix (the 'cr' prefix belongs to the trader-routine module).
+// Pairs with CryptoVisual.jsx.
+export const getCryptoDeep = (t) => ({
+  title: t('cyTitle'),
+  intro: t('cyIntro'),
+  items: [
+    { id: 'halving', name: t('cyHalvingName'), desc: t('cyHalvingDesc'), type: 'bullish' },
+    { id: 'funding', name: t('cyFundingName'), desc: t('cyFundingDesc') },
+    { id: 'liq',     name: t('cyLiqName'),     desc: t('cyLiqDesc'),     type: 'bearish' },
+    { id: 'dom',     name: t('cyDomName'),     desc: t('cyDomDesc') },
+    { id: 'chain',   name: t('cyChainName'),   desc: t('cyChainDesc') },
+    { id: 'corr',    name: t('cyCorrName'),    desc: t('cyCorrDesc') },
+  ],
+  note: t('cyNote'),
+});
+
+// Indices & the Nasdaq — cap weighting (megacaps), ES/NQ futures & overnight,
+// VIX vs the index, rebalances & triple witching, megacap earnings. Pairs with
+// IndicesVisual.jsx.
+export const getIndices = (t) => ({
+  title: t('ixTitle'),
+  intro: t('ixIntro'),
+  items: [
+    { id: 'weight', name: t('ixWeightName'), desc: t('ixWeightDesc') },
+    { id: 'fut',    name: t('ixFutName'),    desc: t('ixFutDesc') },
+    { id: 'vix',    name: t('ixVixName'),    desc: t('ixVixDesc'), type: 'bearish' },
+    { id: 'witch',  name: t('ixWitchName'),  desc: t('ixWitchDesc') },
+    { id: 'earn',   name: t('ixEarnName'),   desc: t('ixEarnDesc') },
+  ],
+  note: t('ixNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
