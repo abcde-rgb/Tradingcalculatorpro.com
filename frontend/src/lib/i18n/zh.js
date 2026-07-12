@@ -326,6 +326,7 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    deleteAccountCancelsSubNote: '如果你有正在生效的订阅,删除账户时将自动取消,不会再向你收费。此操作不可撤销。',
     qzStart1q: '对某资产『做多』是什么意思?',
     qzStart1a: '押注价格上涨',
     qzStart1b: '押注价格下跌',

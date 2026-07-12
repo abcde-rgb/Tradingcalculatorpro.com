@@ -433,6 +433,7 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    deleteAccountCancelsSubNote: 'If you have an active subscription, it will be cancelled automatically when you delete the account and you will not be charged again. This action is irreversible.',
     qzStart1q: 'What does \'going long\' on an asset mean?',
     qzStart1a: 'Betting the price goes UP',
     qzStart1b: 'Betting the price goes DOWN',

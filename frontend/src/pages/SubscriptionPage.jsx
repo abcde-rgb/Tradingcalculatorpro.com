@@ -73,8 +73,8 @@ export default function SubscriptionPage() {
     try {
       setLoading(true);
       const [subRes, invRes] = await Promise.all([
-        fetch(`${API}/api/subscriptions/current`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/api/billing/history`,        { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/api/subscriptions/current`, { credentials: 'include', headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/api/billing/history`,        { credentials: 'include', headers: { Authorization: `Bearer ${token}` } }),
       ]);
       setSubscription(await subRes.json());
       const inv = await invRes.json();
@@ -96,6 +96,7 @@ export default function SubscriptionPage() {
     try {
       const res = await fetch(`${API}/api/subscriptions/cancel`, {
         method: 'POST',
+        credentials: 'include',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ immediate: false }),
       });
@@ -115,6 +116,7 @@ export default function SubscriptionPage() {
     try {
       const res = await fetch(`${API}/api/subscriptions/resume`, {
         method: 'POST',
+        credentials: 'include',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error();
@@ -132,6 +134,7 @@ export default function SubscriptionPage() {
     try {
       const res = await fetch(`${API}/api/billing/create-portal-session`, {
         method: 'POST',
+        credentials: 'include',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ return_url: window.location.origin + '/subscription' }),
       });

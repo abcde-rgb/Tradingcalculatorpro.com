@@ -2053,14 +2053,45 @@ async def change_password(request: Request, body: ChangePasswordRequest, user: d
     return {"ok": True, "message": "Contraseña cambiada correctamente. Por seguridad, vuelve a iniciar sesión."}
 
 
+async def _cancel_stripe_subscriptions_for_user(user_doc: dict) -> None:
+    """Best-effort: cancel any active Stripe subscription so a deleted account
+    stops being billed. Never raises — GDPR deletion must proceed regardless."""
+    customer_id = user_doc.get("stripe_customer_id")
+    if not customer_id:
+        return
+    try:
+        stripe.api_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
+        subs = await asyncio.to_thread(
+            stripe.Subscription.list, customer=customer_id, status="active", limit=100
+        )
+        for sub in subs.data:
+            try:
+                await asyncio.to_thread(stripe.Subscription.delete, sub.id)
+                logging.info("[RGPD] Cancelled Stripe subscription %s before account delete", sub.id)
+            except Exception as exc:
+                logging.error("[RGPD] Failed to cancel Stripe sub %s: %s", sub.id, exc)
+    except Exception as exc:
+        logging.error("[RGPD] Stripe cancellation lookup failed for %s: %s", customer_id, exc)
+
+
 @api_router.delete("/auth/account")
 @limiter.limit("3/hour")
 async def delete_account(request: Request, user: dict = Depends(require_user)):
-    """RGPD: permanently delete the authenticated user's account and all data."""
+    """RGPD: permanently delete the authenticated user's account and all data.
+    Cancels any active Stripe subscription first so the person is not billed
+    after deletion."""
     user_id = user["id"]
-    # Delete all user data across collections
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0}) or user
+
+    # 1) Stop future billing before removing the account (best-effort).
+    await _cancel_stripe_subscriptions_for_user(user_doc)
+
+    # 2) Delete all user data across every collection that stores a user_id.
     for collection in ["trades", "calculations", "alerts", "portfolio",
-                        "user_states", "payment_transactions"]:
+                        "user_states", "payment_transactions", "saved_positions",
+                        "referrals", "referral_redemptions", "usage_events",
+                        "email_verification_tokens", "password_resets",
+                        "user_revocations"]:
         try:
             await getattr(db, collection).delete_many({"user_id": user_id})
         except Exception:

@@ -318,6 +318,7 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    deleteAccountCancelsSubNote: '有効なサブスクリプションがある場合、アカウント削除時に自動的に解約され、今後請求されません。この操作は取り消せません。',
     qzStart1q: '資産で『ロングする』とは?',
     qzStart1a: '価格が上がると賭ける',
     qzStart1b: '価格が下がると賭ける',

@@ -472,6 +472,13 @@ export default function SettingsPage() {
             </DialogDescription>
           </DialogHeader>
 
+          <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
+              {t('deleteAccountCancelsSubNote')}
+            </p>
+          </div>
+
           <div className="py-2">
             <Input
               value={deleteConfirmText}
