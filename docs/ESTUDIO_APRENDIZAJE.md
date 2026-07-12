@@ -167,3 +167,38 @@ gestión emocional del drawdown (7), prop firms (5), + los 47 módulos y 60 tér
 ### Interactividad (engagement)
 Solo hay **1 quiz** (8 preguntas) para toda la academia. Añadir quizzes por pilar subiría mucho la
 retención (el detector de patrones en vivo ya cubre la parte de "practicar").
+
+---
+
+## Cierre de huecos v3 (2026-07-12) — "añade todo lo mencionado"
+
+Nueva auditoría (medición de cobertura real en `tradingEducationContent.js` + `i18n/es.js`) y ejecución
+completa de todos los huecos detectados. La Academia pasa de **53 → 63 módulos** (10 nuevos) + 2 conceptos
+dentro de módulos existentes + 2 mejoras de retención. Todo en los 8 idiomas, con SVGs y página SEO.
+
+| Hueco (del análisis) | Estado | Módulo/ubicación |
+|---|---|---|
+| Opciones — mecánica de ingresos/asignación | ✅ | `options-income` (Wheel, covered call, CSP, asignación, 0DTE, pin risk) |
+| Opciones — volatilidad | ✅ | `options-vol` (IV, IV rank, skew, term structure, vol crush, vega) |
+| Inversión a largo plazo | ✅ | `long-invest` (interés compuesto, DCA, indexados, dividendos, asignación) |
+| Fiscalidad por país | ✅ | `taxes` (realizado vs latente, España IRPF, plazo, compensación, aviso no-asesoría) |
+| Trading algorítmico | ✅ | `algo-trading` (sistemático, backtesting/overfitting, APIs, riesgo de automatización) |
+| Copy / social trading | ✅ | `copy-trading` (due diligence del líder, incentivos, tamaño, realidad vs índice) |
+| Forex a fondo | ✅ | `forex-deep` (sesiones/solape, carry, DXY, pares, drivers macro) |
+| Materias primas | ✅ | `commodities` (grupos, estacionalidad, oro/tipos reales, petróleo/OPEP, curva/roll) |
+| Cripto a fondo | ✅ | `crypto-deep` (halving, funding, liquidaciones, dominancia, on-chain, corr. Nasdaq) |
+| Índices / Nasdaq | ✅ | `indices` (ponderación megacaps, ES/NQ, VIX, triple witching, earnings) |
+| MAE / MFE | ✅ | dentro de **Gestión de la operación** (`tmgMae*`) |
+| Construcción de cartera (correlación + riesgo de secuencia) | ✅ | dentro de **Gestión de capital** (`capCorrelation*`, `capSequence*`) |
+| Ruta guiada "siguiente módulo" | ✅ | barra prev/next al pie del contenido, recorre los 6 pilares 1→2→3 |
+| Quizzes por pilar | ✅ | selector de pilar + 6 quizzes de 3 preguntas (18 nuevas), reemplaza el quiz único |
+
+**Prefijos i18n nuevos:** `oi/ov` (opciones), `li` (inversión), `tx` (fiscalidad), `at` (algo), `cp` (copy),
+`fx` (forex), `cm` (materias), `cy` (cripto — el prefijo `cr` ya era de "Rutina diaria"), `ix` (índices),
+`qzStart/Tech/Adv/Risk/Psy/Pro` (quizzes). Los 8 locales quedan con **sets de claves idénticos (4585 c/u)**;
+paridad = 0 huecos. Verificado: build OK (sitemap 424 URLs, 49 páginas SEO edu × 8), y capturas headless en
+alemán (sembrando usuario premium) del módulo `options-income` (6 SVGs), del selector de quiz por pilar y del
+botón "siguiente módulo" → **0 claves crudas, 0 pageerrors**.
+
+**Sigue pendiente** (no bloqueante): impuestos con más países concretos (LatAm detallado), y más preguntas
+por quiz si se quiere subir de 3 a 5.
