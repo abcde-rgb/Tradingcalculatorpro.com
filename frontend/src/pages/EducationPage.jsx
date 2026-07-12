@@ -593,14 +593,25 @@ export default function EducationPage() {
     !glossQ || (g.term + ' ' + g.def).toLowerCase().includes(glossQ.toLowerCase())
   );
 
-  const QUIZ = Array.from({ length: 8 }, (_, i) => ({
-    q: t(`qz${i + 1}q`),
-    opts: [t(`qz${i + 1}a`), t(`qz${i + 1}b`), t(`qz${i + 1}c`)],
-  }));
-  const QUIZ_CORRECT = [1, 0, 2, 1, 0, 2, 1, 0];
+  // Per-pillar quizzes: pick a pillar, answer its 3 questions. Correct-answer
+  // indices live here (0-based); the questions/options come from i18n.
+  const QUIZ_BANK = {
+    start:     { label: t('eduCatStart'),     keys: ['qzStart1', 'qzStart2', 'qzStart3'], correct: [0, 1, 2] },
+    technical: { label: t('eduCatTechnical'), keys: ['qzTech1', 'qzTech2', 'qzTech3'],    correct: [0, 1, 0] },
+    advanced:  { label: t('eduCatAdvanced'),  keys: ['qzAdv1', 'qzAdv2', 'qzAdv3'],       correct: [0, 1, 1] },
+    risk:      { label: t('eduCatRisk'),      keys: ['qzRisk1', 'qzRisk2', 'qzRisk3'],    correct: [1, 2, 1] },
+    psych:     { label: t('eduCatPsych'),     keys: ['qzPsy1', 'qzPsy2', 'qzPsy3'],       correct: [0, 0, 0] },
+    pro:       { label: t('eduCatPro'),       keys: ['qzPro1', 'qzPro2', 'qzPro3'],       correct: [0, 0, 0] },
+  };
+  const QUIZ_PILLARS = ['start', 'technical', 'advanced', 'risk', 'psych', 'pro'];
+  const [quizPillar, setQuizPillar] = useState('start');
   const [quizSel, setQuizSel] = useState({});
   const [quizDone, setQuizDone] = useState(false);
+  const activeBank = QUIZ_BANK[quizPillar];
+  const QUIZ = activeBank.keys.map(k => ({ q: t(`${k}q`), opts: [t(`${k}a`), t(`${k}b`), t(`${k}c`)] }));
+  const QUIZ_CORRECT = activeBank.correct;
   const quizScore = QUIZ_CORRECT.reduce((n, c, i) => n + (quizSel[i] === c ? 1 : 0), 0);
+  const pickQuizPillar = (p) => { setQuizPillar(p); setQuizSel({}); setQuizDone(false); };
 
   // Printable one-page Trading Plan + pre-trade checklist (localized).
   // Opens a print-ready window; the user saves it as PDF from the print dialog.
@@ -4371,6 +4382,27 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{t('qzPickPillar')}</p>
+                <div className="flex flex-wrap gap-2" data-testid="quiz-pillars">
+                  {QUIZ_PILLARS.map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => pickQuizPillar(p)}
+                      data-testid={`quiz-pillar-${p}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        quizPillar === p
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {QUIZ_BANK[p].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-4" data-testid="quiz-questions">
                 {QUIZ.map((item, qi) => (
                   <Card key={qi} className="bg-card border-border">
@@ -4415,12 +4447,12 @@ export default function EducationPage() {
                   {t('qzSubmit')}
                 </Button>
               ) : (
-                <Card className={`border ${quizScore >= 7 ? 'border-[#22c55e]/40 bg-[#22c55e]/10' : quizScore >= 5 ? 'border-[#f59e0b]/40 bg-[#f59e0b]/10' : 'border-[#ef4444]/40 bg-[#ef4444]/10'}`}>
+                <Card className={`border ${quizScore === QUIZ.length ? 'border-[#22c55e]/40 bg-[#22c55e]/10' : quizScore >= 2 ? 'border-[#f59e0b]/40 bg-[#f59e0b]/10' : 'border-[#ef4444]/40 bg-[#ef4444]/10'}`}>
                   <CardContent className="pt-5 flex items-center justify-between gap-3 flex-wrap">
                     <p className="text-sm font-semibold" data-testid="quiz-score">
                       {t('qzScoreLabel')}: <span className="font-mono text-lg">{quizScore}/{QUIZ.length}</span>
                       <span className="ml-2 text-muted-foreground font-normal">
-                        {quizScore >= 7 ? t('qzPerfect') : quizScore >= 5 ? t('qzGood') : t('qzBad')}
+                        {quizScore === QUIZ.length ? t('qzPerfect') : quizScore >= 2 ? t('qzGood') : t('qzBad')}
                       </span>
                     </p>
                     <Button variant="outline" size="sm" onClick={() => { setQuizSel({}); setQuizDone(false); }} data-testid="quiz-retry">
