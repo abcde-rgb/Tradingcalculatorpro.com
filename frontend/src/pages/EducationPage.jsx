@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -59,6 +59,7 @@ import ForexVisual from '@/components/education/ForexVisual';
 import CommoditiesVisual from '@/components/education/CommoditiesVisual';
 import CryptoVisual from '@/components/education/CryptoVisual';
 import IndicesVisual from '@/components/education/IndicesVisual';
+import FundedTruthVisual from '@/components/education/FundedTruthVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 
 const priorityColors = {
@@ -466,6 +467,7 @@ export default function EducationPage() {
   const COMMODITIES = getCommodities(t);
   const CRYPTO_DEEP = getCryptoDeep(t);
   const INDICES = getIndices(t);
+  const FUNDED_TRUTH = getFundedTruth(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -482,6 +484,7 @@ export default function EducationPage() {
       { value: 'fund-analysis', label: t('fundAnalTab') },
       { value: 'company-valuation', label: t('cvTitle') },
       { value: 'broker-safety', label: t('bkrTitle') },
+      { value: 'funded-truth', label: t('fdTitle') },
       { value: 'evidence-based', label: t('evTitle') },
       { value: 'long-invest', label: t('liTitle') },
       { value: 'taxes', label: t('txTitle') },
@@ -1163,6 +1166,38 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{EVIDENCE.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* The truth about funded accounts — scam mechanics, math, real broker vs funded */}
+            <TabsContent value="funded-truth" className="space-y-8">
+              <Card className="bg-gradient-to-br from-red-500/5 to-primary/10 border-red-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                    {FUNDED_TRUTH.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{FUNDED_TRUTH.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {FUNDED_TRUTH.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <FundedTruthVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{FUNDED_TRUTH.note}</p>
               </div>
             </TabsContent>
 

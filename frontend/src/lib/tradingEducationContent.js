@@ -1882,6 +1882,26 @@ export const getIndices = (t) => ({
   note: t('ixNote'),
 });
 
+// The truth about funded accounts — real prop firm vs "funded challenge", the
+// fee-driven model (they win when you fail), simulated feeds, the negative-EV
+// math, rules designed to fail you, real-broker leverage/withdrawal vs funded,
+// the MyForexFunds regulatory case, and red flags. Pairs with FundedTruthVisual.jsx.
+export const getFundedTruth = (t) => ({
+  title: t('fdTitle'),
+  intro: t('fdIntro'),
+  items: [
+    { id: 'real',     name: t('fdRealName'),     desc: t('fdRealDesc') },
+    { id: 'model',    name: t('fdModelName'),    desc: t('fdModelDesc'),    type: 'bearish' },
+    { id: 'demo',     name: t('fdDemoName'),     desc: t('fdDemoDesc'),     type: 'bearish' },
+    { id: 'math',     name: t('fdMathName'),     desc: t('fdMathDesc'),     type: 'bearish' },
+    { id: 'rules',    name: t('fdRulesName'),    desc: t('fdRulesDesc'),    type: 'bearish' },
+    { id: 'leverage', name: t('fdLeverageName'), desc: t('fdLeverageDesc'), type: 'bullish' },
+    { id: 'case',     name: t('fdCaseName'),     desc: t('fdCaseDesc'),     type: 'bearish' },
+    { id: 'verdict',  name: t('fdVerdictName'),  desc: t('fdVerdictDesc') },
+  ],
+  note: t('fdNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
