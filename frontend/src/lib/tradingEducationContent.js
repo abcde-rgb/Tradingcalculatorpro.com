@@ -1612,6 +1612,7 @@ export const getTradeManagement = (t) => ({
     { id: 'time',      name: t('tmgTimeName'),      desc: t('tmgTimeDesc') },
     { id: 'events',    name: t('tmgEventsName'),    desc: t('tmgEventsDesc') },
     { id: 'micro',     name: t('tmgMicroName'),     desc: t('tmgMicroDesc') },
+    { id: 'maemfe',    name: t('tmgMaeName'),       desc: t('tmgMaeDesc') },
     { id: 'donothing', name: t('tmgDoNothingName'), desc: t('tmgDoNothingDesc') },
   ],
   note: t('tmgNote'),
@@ -2079,6 +2080,18 @@ export const getCapitalManagement = (t) => ({
         id: 'diversification',
         title: t('diversificationRuleTitle'),
         description: t('diversificationRuleDesc'),
+        importance: 'high'
+      },
+      {
+        id: 'correlation',
+        title: t('capCorrelationTitle'),
+        description: t('capCorrelationDesc'),
+        importance: 'high'
+      },
+      {
+        id: 'sequence-risk',
+        title: t('capSequenceTitle'),
+        description: t('capSequenceDesc'),
         importance: 'high'
       }
     ]

@@ -403,6 +403,12 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    tmgMaeName: 'MAE / MFE : régler SL & TP avec des données',
+    tmgMaeDesc: 'La MAE (excursion maximale adverse) est le plus que le prix a bougé CONTRE TOI avant la clôture ; la MFE (excursion maximale favorable) est le plus qu\'il a bougé EN TA FAVEUR. Les noter au journal révèle de l\'or : si tes gagnants dépassent rarement 0,8R contre toi, ton stop de 1,5R est trop large ; si tes trades atteignent souvent +1,8R de MFE mais que tu clôtures à +1R, tu laisses du profit sur la table. La façon objective — avec tes propres données — d\'arrêter de deviner où placer stop et objectif.',
+    capCorrelationTitle: 'Corrélation : vraie diversification',
+    capCorrelationDesc: 'Détenir cinq positions n\'est pas diversifier si les cinq montent et descendent ensemble. Acheter d\'un coup Apple, Microsoft, Nvidia, un ETF Nasdaq et bitcoin est en pratique un seul pari à effet de levier sur le « risk-on » tech : quand l\'un tombe, tous tombent. La vraie diversification exige des actifs peu ou négativement corrélés (actions + obligations + or, ou des secteurs qui ne bougent pas à l\'unisson). Avant d\'ouvrir une autre position, demande : « est-ce un nouveau pari, ou plus de la même chose ? ».',
+    capSequenceTitle: 'Risque de séquence des rendements',
+    capSequenceDesc: 'L\'ORDRE dans lequel arrivent tes gains et pertes compte autant que leur moyenne, surtout si tu ajoutes ou retires de l\'argent. Deux comptes au même rendement moyen peuvent finir très différemment : celui qui subit une grosse série de pertes tôt (quand le capital est déjà élevé, ou juste au début des retraits) peut ne jamais se rétablir, car une baisse de 50% exige +100% pour revenir. C\'est pourquoi limiter le drawdown tôt et ne pas se surexposer au début n\'est pas une prudence excessive : c\'est une survie mathématique.',
     cyTitle: 'Crypto en profondeur',
     cyIntro: 'Le marché le plus jeune, le plus volatil, avec ses propres règles : il trade 24/7 sans clôture, dispose de données publiques on-chain qu\'aucun autre actif n\'offre, et d\'un levier extrême qui provoque des mouvements introuvables en bourse. Voici ce qui le meut vraiment au-delà du hype.',
     cyHalvingName: 'Halving & le cycle',

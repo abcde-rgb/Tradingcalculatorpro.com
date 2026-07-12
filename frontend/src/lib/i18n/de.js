@@ -403,6 +403,12 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    tmgMaeName: 'MAE / MFE: SL & TP mit Daten justieren',
+    tmgMaeDesc: 'Die MAE (maximale adverse Exkursion) ist das Maximum, das sich der Kurs GEGEN DICH bewegte, bevor der Trade schloss; die MFE (maximale favorable Exkursion) ist das Maximum ZU DEINEN GUNSTEN. Beide im Journal zu notieren fördert Gold zutage: gehen deine Gewinner selten mehr als 0,8R gegen dich, ist dein 1,5R-Stop zu weit; erreichen deine Trades meist +1,8R MFE, aber du schließt bei +1R, lässt du Gewinn liegen. Der objektive Weg — mit eigenen Daten — das Raten bei Stop und Ziel zu beenden.',
+    capCorrelationTitle: 'Korrelation: echte Diversifikation',
+    capCorrelationDesc: 'Fünf Positionen zu halten ist keine Diversifikation, wenn alle fünf zusammen steigen und fallen. Apple, Microsoft, Nvidia, einen Nasdaq-ETF und Bitcoin gleichzeitig zu kaufen ist praktisch eine gehebelte Wette auf Tech-\'Risk-on\': fällt einer, fallen alle. Echte Diversifikation braucht gering oder negativ korrelierte Werte (Aktien + Anleihen + Gold, oder Sektoren, die nicht im Gleichschritt laufen). Bevor du eine weitere Position öffnest, frage: \'ist das eine neue Wette oder mehr vom Gleichen?\'.',
+    capSequenceTitle: 'Renditereihenfolge-Risiko',
+    capSequenceDesc: 'Die REIHENFOLGE, in der Gewinne und Verluste eintreffen, zählt so viel wie ihr Durchschnitt, besonders wenn du Geld ein- oder auszahlst. Zwei Konten mit gleicher Durchschnittsrendite können sehr unterschiedlich enden: das mit einer großen Verlustserie früh (wenn das Kapital schon hoch ist oder gerade beim Auszahlen) erholt sich vielleicht nie, denn ein 50%-Verlust braucht +100% zurück. Deshalb ist frühes Drawdown-Begrenzen und keine Überexponierung am Anfang keine übertriebene Vorsicht: es ist mathematisches Überleben.',
     cyTitle: 'Krypto im Detail',
     cyIntro: 'Der jüngste, volatilste Markt mit eigenen Regeln: er handelt 24/7 ohne Schluss, hat öffentliche On-Chain-Daten, die kein anderes Asset bietet, und extremen Hebel, der Bewegungen auslöst, die du an der Börse nicht siehst. Hier, was ihn jenseits des Hypes wirklich bewegt.',
     cyHalvingName: 'Halving & Zyklus',

@@ -530,6 +530,12 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    tmgMaeName: 'MAE / MFE: afinar SL y TP con datos',
+    tmgMaeDesc: 'La MAE (excursión máxima adversa) es lo máximo que se movió el precio EN TU CONTRA antes de que la operación cerrara; la MFE (excursión máxima favorable) es lo máximo que se movió A TU FAVOR. Anotarlas en el diario revela oro: si tus ganadoras rara vez sufren más de un 0,8R en contra, tu stop de 1,5R es demasiado ancho; si tus operaciones suelen alcanzar +1,8R de MFE pero cierras en +1R, estás dejando beneficio en la mesa. Es la forma objetiva —con tus propios datos— de dejar de adivinar dónde poner el stop y el objetivo.',
+    capCorrelationTitle: 'Correlación: diversificar de verdad',
+    capCorrelationDesc: 'Tener cinco posiciones no es diversificar si las cinco suben y bajan juntas. Comprar a la vez Apple, Microsoft, Nvidia, un ETF del Nasdaq y bitcoin es, en la práctica, una sola apuesta apalancada al \'risk-on\' tecnológico: cuando cae uno, caen todos. La diversificación real exige activos poco o negativamente correlacionados (acciones + bonos + oro, o sectores que no se muevan al unísono). Antes de abrir otra posición, pregúntate: \'¿esto es una apuesta nueva o más de la misma?\'.',
+    capSequenceTitle: 'Riesgo de secuencia de retornos',
+    capSequenceDesc: 'El ORDEN en que llegan tus ganancias y pérdidas importa tanto como su media, sobre todo si añades o retiras dinero. Dos cuentas con la misma rentabilidad media pueden acabar muy distintas: la que sufre una gran racha de pérdidas al principio (cuando el capital ya es alto o justo cuando empiezas a retirar) puede no recuperarse nunca, porque una caída del 50% exige un +100% para volver. Por eso limitar el drawdown temprano y no sobreexponerte al inicio no es cautela excesiva: es supervivencia matemática.',
     cyTitle: 'Cripto a fondo',
     cyIntro: 'El mercado más joven, más volátil y con reglas propias: opera 24/7 sin cierre, tiene datos públicos en la cadena (on-chain) que ningún otro activo ofrece, y un apalancamiento extremo que provoca movimientos que no verás en bolsa. Aquí, lo que de verdad lo mueve más allá del hype.',
     cyHalvingName: 'Halving y ciclo',

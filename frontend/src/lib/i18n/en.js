@@ -433,6 +433,12 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    tmgMaeName: 'MAE / MFE: tune SL & TP with data',
+    tmgMaeDesc: 'MAE (maximum adverse excursion) is the most the price moved AGAINST YOU before the trade closed; MFE (maximum favorable excursion) is the most it moved IN YOUR FAVOR. Logging both in your journal reveals gold: if your winners rarely go more than 0.8R against you, your 1.5R stop is too wide; if your trades usually reach +1.8R of MFE but you close at +1R, you are leaving profit on the table. It is the objective way — with your own data — to stop guessing where to put the stop and target.',
+    capCorrelationTitle: 'Correlation: real diversification',
+    capCorrelationDesc: 'Holding five positions is not diversifying if all five rise and fall together. Buying Apple, Microsoft, Nvidia, a Nasdaq ETF and bitcoin at once is, in practice, one leveraged bet on tech \'risk-on\': when one falls, they all fall. Real diversification requires lowly or negatively correlated assets (stocks + bonds + gold, or sectors that don\'t move in unison). Before opening another position, ask: \'is this a new bet, or more of the same?\'.',
+    capSequenceTitle: 'Sequence-of-returns risk',
+    capSequenceDesc: 'The ORDER in which your gains and losses arrive matters as much as their average, especially if you add or withdraw money. Two accounts with the same average return can end up very differently: the one that suffers a big losing streak early (when capital is already high, or just as you start withdrawing) may never recover, because a 50% drop needs a +100% to get back. That is why limiting drawdown early and not over-exposing at the start is not excessive caution: it is mathematical survival.',
     cyTitle: 'Crypto in depth',
     cyIntro: 'The youngest, most volatile market with its own rules: it trades 24/7 with no close, has public on-chain data no other asset offers, and extreme leverage that causes moves you won\'t see in stocks. Here is what really drives it beyond the hype.',
     cyHalvingName: 'Halving & the cycle',
