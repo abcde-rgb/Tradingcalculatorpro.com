@@ -1071,3 +1071,25 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   i18n **4659 claves, 8 locales idénticos** (19 `tj` c/u, 0 huecos); **render headless con usuario premium
   sembrado en es y ar** → 8 tarjetas / 8 SVGs / **0 claves crudas / 0 pageerrors**; páginas SEO con títulos
   reales traducidos (es/ja/ar, incl. RTL). Trabajo en la rama `claude/stoic-mayer-04dpp2`.
+
+### 2026-07-13 (35) — 2 módulos desde documentos del usuario (medias móviles + price action)
+- El usuario subió 8 documentos propios (Word/Excel/PDF): medias móviles + RoR, gestión de riesgo y plan,
+  velas japonesas, price action, teoría de Dow + estructura, simulador de riesgo (Excel), libro de
+  backtesting (Excel). Auditados uno a uno vs. la web: **la mayoría ya estaba cubierto** (velas, Dow,
+  estructura BOS/CHOCH, gestión de riesgo, plan imprimible, esperanza/rachas/backtesting en Probabilidad,
+  RoR en las calculadoras Monte Carlo/Risk of Ruin). Se detectaron **2 huecos reales** y se construyeron:
+- ✅ **Módulo `moving-averages` — "Medias móviles a fondo"** (pilar Técnico): getter `getMovingAverages` +
+  `MovingAveragesVisual` (8 SVGs) + **19 claves i18n×8** (`mav`). 8 tarjetas: SMA vs EMA, elegir periodo
+  (incl. Fibonacci 89/144/233), las 3 estrategias de cruce (precio/media, 2 medias, triple con filtro),
+  cruce dorado/muerte (50×200), media como soporte/resistencia dinámico, y familias de indicadores. Antes
+  solo había 2 líneas sueltas (indSMA/indEMA) en Análisis Técnico. Alto valor SEO.
+- ✅ **Módulo `price-action` — "Price action: leer el precio sin indicadores"** (pilar Técnico): getter
+  `getPriceAction` + `PriceActionVisual` (6 SVGs con velas) + **15 claves i18n×8** (`pac`). 6 tarjetas: qué
+  es (el precio lo descuenta todo), **barra interior (inside bar)**, **barra exterior/madre (outside bar)**,
+  leer tendencia por HH/HL, marcos altos primero (anti-overtrading), y confluencia patrón+nivel.
+- Wiring en `EducationPage` (pilar Técnico: MA tras Análisis Técnico, Price action tras Velas) + 2 entradas
+  en `gen-seo-pages` (`medias-moviles-sma-ema-cruces`, `price-action-barra-interior-exterior`).
+- Verificado: `npm run build` OK (Educación **53 temas × 8 = 424 páginas**, sitemap **456 URLs**); paridad
+  i18n **4696 claves, 8 locales idénticos** (19 `mav` + 15 `pac` c/u, 0 huecos); **render headless (premium,
+  es y ar)** → MA 8 tarjetas/8 SVGs, Price action 6/6, **0 claves crudas / 0 pageerrors**. Rama
+  `claude/stoic-mayer-04dpp2`.

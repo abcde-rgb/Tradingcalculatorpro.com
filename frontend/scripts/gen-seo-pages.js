@@ -108,6 +108,8 @@ const TOPICS = [
   { v:'long-invest', slug:'inversion-a-largo-plazo', tk:'liTitle', ik:'liIntro' },
   { v:'taxes', slug:'fiscalidad-del-trading', tk:'txTitle', ik:'txIntro' },
   { v:'tech-analysis', slug:'analisis-tecnico', tk:'techTitle', ik:'techIntro' },
+  { v:'moving-averages', slug:'medias-moviles-sma-ema-cruces', tk:'mavTitle', ik:'mavIntro' },
+  { v:'price-action', slug:'price-action-barra-interior-exterior', tk:'pacTitle', ik:'pacIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
   { v:'market-structure', slug:'estructura-de-mercado-bos-choch', tk:'msTitle', ik:'msIntro' },
   { v:'wyckoff', slug:'metodo-wyckoff', tk:'wyckoffTitle', ik:'wyckoffIntro' },

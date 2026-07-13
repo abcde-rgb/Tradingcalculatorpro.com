@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -61,6 +61,8 @@ import CryptoVisual from '@/components/education/CryptoVisual';
 import IndicesVisual from '@/components/education/IndicesVisual';
 import FundedTruthVisual from '@/components/education/FundedTruthVisual';
 import TraderJourneyVisual from '@/components/education/TraderJourneyVisual';
+import MovingAveragesVisual from '@/components/education/MovingAveragesVisual';
+import PriceActionVisual from '@/components/education/PriceActionVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 
 const priorityColors = {
@@ -470,6 +472,8 @@ export default function EducationPage() {
   const INDICES = getIndices(t);
   const FUNDED_TRUTH = getFundedTruth(t);
   const TRADER_JOURNEY = getTraderJourney(t);
+  const MOVING_AVERAGES = getMovingAverages(t);
+  const PRICE_ACTION = getPriceAction(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -495,8 +499,10 @@ export default function EducationPage() {
     ]},
     { id: 'technical', label: t('eduCatTechnical'), topics: [
       { value: 'tech-analysis', label: t('techTab') },
+      { value: 'moving-averages', label: t('mavTitle') },
       { value: 'chart-patterns', label: t('chartPatterns') },
       { value: 'candlesticks', label: t('candlestickPatterns') },
+      { value: 'price-action', label: t('pacTitle') },
       { value: 'dow-theory', label: t('dowTheoryTitle') },
       { value: 'market-structure', label: t('msTitle') },
       { value: 'wyckoff', label: t('wyckoffTab') },
@@ -1137,6 +1143,70 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{SESSION_TIMING.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Moving averages — SMA/EMA, periods, crossovers, golden/death, dynamic S/R */}
+            <TabsContent value="moving-averages" className="space-y-8">
+              <Card className="bg-gradient-to-br from-sky-500/5 to-primary/10 border-sky-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Activity className="w-6 h-6 text-sky-500" />
+                    {MOVING_AVERAGES.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{MOVING_AVERAGES.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {MOVING_AVERAGES.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <MovingAveragesVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{MOVING_AVERAGES.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Price action — reading raw price: inside/outside bar, HH/HL trend, confluence */}
+            <TabsContent value="price-action" className="space-y-8">
+              <Card className="bg-gradient-to-br from-violet-500/5 to-primary/10 border-violet-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <CandlestickChart className="w-6 h-6 text-violet-500" />
+                    {PRICE_ACTION.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{PRICE_ACTION.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {PRICE_ACTION.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <PriceActionVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{PRICE_ACTION.note}</p>
               </div>
             </TabsContent>
 

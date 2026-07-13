@@ -1931,6 +1931,44 @@ export const getTraderJourney = (t) => ({
   note: t('tjNote'),
 });
 
+// Moving averages deep-dive — the most-used TA indicator: SMA vs EMA, choosing
+// the period, the three crossover strategies (price/MA, 2-MA, triple with a
+// trend filter), the golden/death cross, MA as dynamic support/resistance, and
+// where it sits among indicator families. Pairs with MovingAveragesVisual.jsx.
+export const getMovingAverages = (t) => ({
+  title: t('mavTitle'),
+  intro: t('mavIntro'),
+  items: [
+    { id: 'smaema',      name: t('mavSmaEmaName'),      desc: t('mavSmaEmaDesc') },
+    { id: 'periods',     name: t('mavPeriodsName'),     desc: t('mavPeriodsDesc') },
+    { id: 'crossprice',  name: t('mavCrossPriceName'),  desc: t('mavCrossPriceDesc') },
+    { id: 'cross2',      name: t('mavCross2Name'),      desc: t('mavCross2Desc') },
+    { id: 'triple',      name: t('mavTripleName'),      desc: t('mavTripleDesc'),      type: 'bullish' },
+    { id: 'goldendeath', name: t('mavGoldenDeathName'), desc: t('mavGoldenDeathDesc') },
+    { id: 'dynamic',     name: t('mavDynamicName'),     desc: t('mavDynamicDesc') },
+    { id: 'families',    name: t('mavFamiliesName'),    desc: t('mavFamiliesDesc') },
+  ],
+  note: t('mavNote'),
+});
+
+// Price action — reading the raw price (candles/bars) with no indicators: the
+// "price discounts everything" premise, the inside bar (indecision/contraction)
+// and outside/mother bar (range engulf), reading trend by HH/HL, higher
+// timeframes first, and confluence entries. Pairs with PriceActionVisual.jsx.
+export const getPriceAction = (t) => ({
+  title: t('pacTitle'),
+  intro: t('pacIntro'),
+  items: [
+    { id: 'what',       name: t('pacWhatName'),       desc: t('pacWhatDesc') },
+    { id: 'inside',     name: t('pacInsideName'),     desc: t('pacInsideDesc'),     type: 'neutral' },
+    { id: 'outside',    name: t('pacOutsideName'),    desc: t('pacOutsideDesc'),    type: 'bullish' },
+    { id: 'trend',      name: t('pacTrendName'),      desc: t('pacTrendDesc') },
+    { id: 'htf',        name: t('pacHtfName'),        desc: t('pacHtfDesc'),        type: 'bullish' },
+    { id: 'confluence', name: t('pacConfluenceName'), desc: t('pacConfluenceDesc'), type: 'bullish' },
+  ],
+  note: t('pacNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
