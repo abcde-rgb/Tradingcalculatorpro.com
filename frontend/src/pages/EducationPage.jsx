@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -65,6 +65,8 @@ import MovingAveragesVisual from '@/components/education/MovingAveragesVisual';
 import PriceActionVisual from '@/components/education/PriceActionVisual';
 import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
+import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
+import TailRiskVisual from '@/components/education/TailRiskVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 
 const priorityColors = {
@@ -478,6 +480,8 @@ export default function EducationPage() {
   const PRICE_ACTION = getPriceAction(t);
   const GAMMA_EXPOSURE = getGammaExposure(t);
   const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
+  const NET_LIQUIDITY = getNetLiquidity(t);
+  const TAIL_RISK = getTailRisk(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -528,6 +532,7 @@ export default function EducationPage() {
       { value: 'crypto-deep', label: t('cyTitle') },
       { value: 'indices', label: t('ixTitle') },
       { value: 'macro', label: t('mcTitle') },
+      { value: 'net-liquidity', label: t('liqTitle') },
       { value: 'breadth-cycles', label: t('bcTitle') },
       { value: 'cot', label: t('cotTab') },
     ]},
@@ -539,6 +544,7 @@ export default function EducationPage() {
       { value: 'trade-mgmt', label: t('tmgTitle') },
       { value: 'margin-liq', label: t('mlqTitle') },
       { value: 'probability', label: t('probabilityStatsTitle') },
+      { value: 'tail-risk', label: t('tailTitle') },
     ]},
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
@@ -1277,6 +1283,70 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
                 <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{ORDER_FLOW_PAYMENT.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Macro net liquidity — WALCL − TGA − RRP, QE/QT, the ~0.95 S&P correlation */}
+            <TabsContent value="net-liquidity" className="space-y-8">
+              <Card className="bg-gradient-to-br from-cyan-500/5 to-primary/10 border-cyan-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Landmark className="w-6 h-6 text-cyan-500" />
+                    {NET_LIQUIDITY.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{NET_LIQUIDITY.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {NET_LIQUIDITY.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <NetLiquidityVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{NET_LIQUIDITY.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Fat tails & tail risk — why the normal distribution lies, black swans, convexity */}
+            <TabsContent value="tail-risk" className="space-y-8">
+              <Card className="bg-gradient-to-br from-rose-500/5 to-primary/10 border-rose-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <TrendingDown className="w-6 h-6 text-rose-500" />
+                    {TAIL_RISK.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TAIL_RISK.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TAIL_RISK.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <TailRiskVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/5 border border-rose-500/20">
+                <Info className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{TAIL_RISK.note}</p>
               </div>
             </TabsContent>
 

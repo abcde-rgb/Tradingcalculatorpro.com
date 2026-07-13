@@ -1110,3 +1110,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: `npm run build` OK (Educación **55 temas × 8 = 440 páginas**, sitemap **472 URLs**); paridad
   i18n **4728 claves, 8 idénticos** (17 `gex` + 15 `pfof`); **render headless (premium, es y ar)** →
   Gamma 7/7, PFOF 6/6, **0 claves crudas / 0 pageerrors**. Pendiente tanda B: liquidez macro + colas gordas.
+
+### 2026-07-13 (37) — Contenido poco conocido, tanda B: liquidez macro + colas gordas
+- ✅ **Módulo `net-liquidity` — "Liquidez macro: la fontanería que mueve el mercado"** (pilar Avanzado, junto
+  a Macro): getter `getNetLiquidity` + `NetLiquidityVisual` (6 SVGs) + **15 claves i18n×8** (`liq`). 6 tarjetas:
+  qué es la liquidez neta (WALCL − TGA − RRP), balance de la Fed (QE/QT), la TGA del Tesoro, el repo inverso
+  (RRP), la correlación ~0,95 con el S&P (desfase ~2 semanas), y el aviso "correlación ≠ causalidad".
+- ✅ **Módulo `tail-risk` — "Colas gordas: por qué la campana de Gauss miente"** (pilar Riesgo): getter
+  `getTailRisk` + `TailRiskVisual` (6 SVGs) + **15 claves i18n×8** (`tail`). 6 tarjetas: por qué la normal
+  miente (curtosis), cisnes negros (Taleb), los "sigmas imposibles" (Lunes Negro 1987), riesgo de ruina y
+  no-ergodicidad, convexidad/cobertura de cola, y la estrategia barbell.
+- Wiring en `EducationPage` + 2 entradas `gen-seo-pages` (`liquidez-macro-fed-tga-repo-inverso`,
+  `colas-gordas-cisnes-negros-riesgo-de-cola`).
+- Verificado: `npm run build` OK (Educación **57 temas × 8 = 456 páginas**, sitemap **488 URLs**); paridad
+  i18n **4758 claves, 8 idénticos**; **render headless (premium, es y ar)** → Liquidez 6/6, Colas gordas 6/6,
+  **0 claves crudas / 0 pageerrors**. Con esto, los 4 módulos de "contenido poco conocido" están cerrados.

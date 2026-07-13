@@ -2006,6 +2006,40 @@ export const getOrderFlowPayment = (t) => ({
   note: t('pfofNote'),
 });
 
+// Macro net liquidity — the hidden market driver retail rarely hears about: net
+// liquidity = Fed balance sheet (WALCL) − TGA − RRP, QE/QT, the Treasury account,
+// reverse repo, the ~0.95 S&P correlation and its limits. Pairs with NetLiquidityVisual.jsx.
+export const getNetLiquidity = (t) => ({
+  title: t('liqTitle'),
+  intro: t('liqIntro'),
+  items: [
+    { id: 'what',    name: t('liqWhatName'),    desc: t('liqWhatDesc') },
+    { id: 'balance', name: t('liqBalanceName'), desc: t('liqBalanceDesc') },
+    { id: 'tga',     name: t('liqTgaName'),     desc: t('liqTgaDesc') },
+    { id: 'rrp',     name: t('liqRrpName'),     desc: t('liqRrpDesc') },
+    { id: 'market',  name: t('liqMarketName'),  desc: t('liqMarketDesc'),  type: 'bullish' },
+    { id: 'caveat',  name: t('liqCaveatName'),  desc: t('liqCaveatDesc'),  type: 'bearish' },
+  ],
+  note: t('liqNote'),
+});
+
+// Fat tails & tail risk — why the normal distribution lies: fat tails/kurtosis,
+// black swans (Taleb), the "impossible" sigma moves that keep happening, ruin &
+// non-ergodicity, convexity/tail hedging and the barbell. Pairs with TailRiskVisual.jsx.
+export const getTailRisk = (t) => ({
+  title: t('tailTitle'),
+  intro: t('tailIntro'),
+  items: [
+    { id: 'normal',    name: t('tailNormalName'),    desc: t('tailNormalDesc'),    type: 'bearish' },
+    { id: 'blackswan', name: t('tailBlackSwanName'), desc: t('tailBlackSwanDesc'), type: 'bearish' },
+    { id: 'frequency', name: t('tailFrequencyName'), desc: t('tailFrequencyDesc'), type: 'bearish' },
+    { id: 'ruin',      name: t('tailRuinName'),      desc: t('tailRuinDesc'),      type: 'bearish' },
+    { id: 'convexity', name: t('tailConvexityName'), desc: t('tailConvexityDesc'), type: 'bullish' },
+    { id: 'barbell',   name: t('tailBarbellName'),   desc: t('tailBarbellDesc'),   type: 'bullish' },
+  ],
+  note: t('tailNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({
