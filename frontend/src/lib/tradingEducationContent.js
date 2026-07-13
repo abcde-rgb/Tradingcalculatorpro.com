@@ -1969,6 +1969,43 @@ export const getPriceAction = (t) => ({
   note: t('pacNote'),
 });
 
+// Dealer positioning & gamma — the lesser-known options market structure that
+// actually moves the underlying: market makers hedging delta, gamma exposure
+// (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna
+// (IV-driven), charm (the OPEX drift), and 0DTE/OPEX. Pairs with GammaExposureVisual.jsx.
+export const getGammaExposure = (t) => ({
+  title: t('gexTitle'),
+  intro: t('gexIntro'),
+  items: [
+    { id: 'mm',      name: t('gexMmName'),      desc: t('gexMmDesc') },
+    { id: 'gamma',   name: t('gexGammaName'),   desc: t('gexGammaDesc') },
+    { id: 'pin',     name: t('gexPinName'),     desc: t('gexPinDesc') },
+    { id: 'squeeze', name: t('gexSqueezeName'), desc: t('gexSqueezeDesc'), type: 'bullish' },
+    { id: 'vanna',   name: t('gexVannaName'),   desc: t('gexVannaDesc'),   type: 'bullish' },
+    { id: 'charm',   name: t('gexCharmName'),   desc: t('gexCharmDesc') },
+    { id: 'zerodte', name: t('gexZeroDteName'), desc: t('gexZeroDteDesc'), type: 'bearish' },
+  ],
+  note: t('gexNote'),
+});
+
+// "Free isn't free" — how commission-free brokers really make money: payment
+// for order flow (PFOF), internalisation by wholesalers, the invisible spread
+// cost, the conflict of interest, and how to protect yourself. Pairs with
+// PfofVisual.jsx. Fits the honest/broker-safety line of the site.
+export const getOrderFlowPayment = (t) => ({
+  title: t('pfofTitle'),
+  intro: t('pfofIntro'),
+  items: [
+    { id: 'free',     name: t('pfofFreeName'),     desc: t('pfofFreeDesc'),     type: 'bearish' },
+    { id: 'pfof',     name: t('pfofPfofName'),     desc: t('pfofPfofDesc') },
+    { id: 'internal', name: t('pfofInternalName'), desc: t('pfofInternalDesc'), type: 'bearish' },
+    { id: 'spread',   name: t('pfofSpreadName'),   desc: t('pfofSpreadDesc'),   type: 'bearish' },
+    { id: 'conflict', name: t('pfofConflictName'), desc: t('pfofConflictDesc'), type: 'bearish' },
+    { id: 'protect',  name: t('pfofProtectName'),  desc: t('pfofProtectDesc'),  type: 'bullish' },
+  ],
+  note: t('pfofNote'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({

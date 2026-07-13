@@ -1093,3 +1093,20 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   i18n **4696 claves, 8 locales idénticos** (19 `mav` + 15 `pac` c/u, 0 huecos); **render headless (premium,
   es y ar)** → MA 8 tarjetas/8 SVGs, Price action 6/6, **0 claves crudas / 0 pageerrors**. Rama
   `claude/stoic-mayer-04dpp2`.
+
+### 2026-07-13 (36) — Contenido poco conocido, tanda A: gamma de dealers + PFOF
+- El usuario pidió "contenido poco conocido". Tras investigar (WebSearch: fuentes que confirman que son de
+  alto impacto pero casi nunca explicados a retail), se construyen 2 de 4 módulos de nicho:
+- ✅ **Módulo `gamma-exposure` — "Posicionamiento de dealers: gamma, vanna y OPEX"** (pilar Pro, junto a
+  opciones): getter `getGammaExposure` + `GammaExposureVisual` (7 SVGs) + **17 claves i18n×8** (`gex`).
+  7 tarjetas: el dealer delta-neutral, GEX (gamma +/−), pinning/max pain, gamma squeeze (GME 2021), vanna
+  (IV empuja el delta), charm (OPEX drift), 0DTE/OPEX. Nota honesta: es contexto probabilístico, no señal.
+- ✅ **Módulo `pfof` — "Lo gratis no es gratis: PFOF y el coste real"** (pilar Fundamentos, junto a
+  brokers): getter `getOrderFlowPayment` + `PfofVisual` (6 SVGs) + **15 claves i18n×8** (`pfof`). 6 tarjetas:
+  "sin comisiones" no es gratis, payment for order flow (~2.500M$ en 2020), internalización (Citadel/Virtu),
+  el coste invisible del spread, el conflicto de interés ("kickback", restringido en la UE), cómo protegerte.
+- Wiring en `EducationPage` + 2 entradas `gen-seo-pages` (`gamma-dealers-gex-vanna-opex`,
+  `pfof-brokers-sin-comisiones-coste-real`).
+- Verificado: `npm run build` OK (Educación **55 temas × 8 = 440 páginas**, sitemap **472 URLs**); paridad
+  i18n **4728 claves, 8 idénticos** (17 `gex` + 15 `pfof`); **render headless (premium, es y ar)** →
+  Gamma 7/7, PFOF 6/6, **0 claves crudas / 0 pageerrors**. Pendiente tanda B: liquidez macro + colas gordas.
