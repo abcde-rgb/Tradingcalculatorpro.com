@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -49,6 +49,24 @@ import MacroVisual from '@/components/education/MacroVisual';
 import MarketStructureVisual from '@/components/education/MarketStructureVisual';
 import SessionTimingVisual from '@/components/education/SessionTimingVisual';
 import EvidenceVisual from '@/components/education/EvidenceVisual';
+import OptionsIncomeVisual from '@/components/education/OptionsIncomeVisual';
+import OptionsVolVisual from '@/components/education/OptionsVolVisual';
+import LongInvestVisual from '@/components/education/LongInvestVisual';
+import TaxesVisual from '@/components/education/TaxesVisual';
+import AlgoTradingVisual from '@/components/education/AlgoTradingVisual';
+import CopyTradingVisual from '@/components/education/CopyTradingVisual';
+import ForexVisual from '@/components/education/ForexVisual';
+import CommoditiesVisual from '@/components/education/CommoditiesVisual';
+import CryptoVisual from '@/components/education/CryptoVisual';
+import IndicesVisual from '@/components/education/IndicesVisual';
+import FundedTruthVisual from '@/components/education/FundedTruthVisual';
+import TraderJourneyVisual from '@/components/education/TraderJourneyVisual';
+import MovingAveragesVisual from '@/components/education/MovingAveragesVisual';
+import PriceActionVisual from '@/components/education/PriceActionVisual';
+import GammaExposureVisual from '@/components/education/GammaExposureVisual';
+import PfofVisual from '@/components/education/PfofVisual';
+import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
+import TailRiskVisual from '@/components/education/TailRiskVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 
 const priorityColors = {
@@ -446,6 +464,24 @@ export default function EducationPage() {
   const MARKET_STRUCTURE = getMarketStructure(t);
   const SESSION_TIMING = getSessionTiming(t);
   const EVIDENCE = getEvidenceBased(t);
+  const OPTIONS_INCOME = getOptionsIncome(t);
+  const OPTIONS_VOL = getOptionsVol(t);
+  const LONG_INVEST = getLongInvest(t);
+  const TAXES = getTaxes(t);
+  const ALGO_TRADING = getAlgoTrading(t);
+  const COPY_TRADING = getCopyTrading(t);
+  const FOREX_DEEP = getForexDeep(t);
+  const COMMODITIES = getCommodities(t);
+  const CRYPTO_DEEP = getCryptoDeep(t);
+  const INDICES = getIndices(t);
+  const FUNDED_TRUTH = getFundedTruth(t);
+  const TRADER_JOURNEY = getTraderJourney(t);
+  const MOVING_AVERAGES = getMovingAverages(t);
+  const PRICE_ACTION = getPriceAction(t);
+  const GAMMA_EXPOSURE = getGammaExposure(t);
+  const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
+  const NET_LIQUIDITY = getNetLiquidity(t);
+  const TAIL_RISK = getTailRisk(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -462,13 +498,20 @@ export default function EducationPage() {
       { value: 'fund-analysis', label: t('fundAnalTab') },
       { value: 'company-valuation', label: t('cvTitle') },
       { value: 'broker-safety', label: t('bkrTitle') },
+      { value: 'pfof', label: t('pfofTitle') },
+      { value: 'funded-truth', label: t('fdTitle') },
       { value: 'evidence-based', label: t('evTitle') },
+      { value: 'trader-journey', label: t('tjTitle') },
+      { value: 'long-invest', label: t('liTitle') },
+      { value: 'taxes', label: t('txTitle') },
       { value: 'glossary', label: t('glossaryTab') },
     ]},
     { id: 'technical', label: t('eduCatTechnical'), topics: [
       { value: 'tech-analysis', label: t('techTab') },
+      { value: 'moving-averages', label: t('mavTitle') },
       { value: 'chart-patterns', label: t('chartPatterns') },
       { value: 'candlesticks', label: t('candlestickPatterns') },
+      { value: 'price-action', label: t('pacTitle') },
       { value: 'dow-theory', label: t('dowTheoryTitle') },
       { value: 'market-structure', label: t('msTitle') },
       { value: 'wyckoff', label: t('wyckoffTab') },
@@ -484,7 +527,12 @@ export default function EducationPage() {
       { value: 'advanced-ta', label: t('advTaTitle') },
       { value: 'sentiment', label: t('smTitle') },
       { value: 'intermarket', label: t('imTitle') },
+      { value: 'forex-deep', label: t('fxTitle') },
+      { value: 'commodities', label: t('cmTitle') },
+      { value: 'crypto-deep', label: t('cyTitle') },
+      { value: 'indices', label: t('ixTitle') },
       { value: 'macro', label: t('mcTitle') },
+      { value: 'net-liquidity', label: t('liqTitle') },
       { value: 'breadth-cycles', label: t('bcTitle') },
       { value: 'cot', label: t('cotTab') },
     ]},
@@ -496,6 +544,7 @@ export default function EducationPage() {
       { value: 'trade-mgmt', label: t('tmgTitle') },
       { value: 'margin-liq', label: t('mlqTitle') },
       { value: 'probability', label: t('probabilityStatsTitle') },
+      { value: 'tail-risk', label: t('tailTitle') },
     ]},
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
@@ -513,7 +562,12 @@ export default function EducationPage() {
       { value: 'strategies', label: t('tradingStrategiesTitle') },
       { value: 'option-greeks', label: t('gkTitle') },
       { value: 'options-strat', label: t('optTitle') },
+      { value: 'options-income', label: t('oiTitle') },
+      { value: 'options-vol', label: t('ovTitle') },
+      { value: 'gamma-exposure', label: t('gexTitle') },
       { value: 'news-trading', label: t('ntTitle') },
+      { value: 'algo-trading', label: t('atTitle') },
+      { value: 'copy-trading', label: t('cpTitle') },
       { value: 'inst-desk', label: t('ideskTitle') },
       { value: 'inst-methods', label: t('imethTitle') },
       { value: 'inst-positions', label: t('iposTitle') },
@@ -522,6 +576,17 @@ export default function EducationPage() {
   ];
   const totalTopics = EDUCATION_NAV.reduce((n, c) => n + c.topics.length, 0);
   const activeCategory = EDUCATION_NAV.find(c => c.topics.some(tp => tp.value === activeTopic));
+
+  // Guided path: flatten every pillar's topics into one ordered list so the
+  // learner can walk the curriculum 1→2→3 with prev/next buttons.
+  const FLAT_TOPICS = EDUCATION_NAV.flatMap(c => c.topics);
+  const flatIdx = FLAT_TOPICS.findIndex(tp => tp.value === activeTopic);
+  const prevTopic = flatIdx > 0 ? FLAT_TOPICS[flatIdx - 1] : null;
+  const nextTopic = flatIdx >= 0 && flatIdx < FLAT_TOPICS.length - 1 ? FLAT_TOPICS[flatIdx + 1] : null;
+  const goToTopic = (val) => {
+    setActiveTopic(val);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Deep-link to a module from a static SEO landing page, e.g. /education?topic=candlesticks
   const [searchParams] = useSearchParams();
@@ -552,14 +617,25 @@ export default function EducationPage() {
     !glossQ || (g.term + ' ' + g.def).toLowerCase().includes(glossQ.toLowerCase())
   );
 
-  const QUIZ = Array.from({ length: 8 }, (_, i) => ({
-    q: t(`qz${i + 1}q`),
-    opts: [t(`qz${i + 1}a`), t(`qz${i + 1}b`), t(`qz${i + 1}c`)],
-  }));
-  const QUIZ_CORRECT = [1, 0, 2, 1, 0, 2, 1, 0];
+  // Per-pillar quizzes: pick a pillar, answer its 3 questions. Correct-answer
+  // indices live here (0-based); the questions/options come from i18n.
+  const QUIZ_BANK = {
+    start:     { label: t('eduCatStart'),     keys: ['qzStart1', 'qzStart2', 'qzStart3'], correct: [0, 1, 2] },
+    technical: { label: t('eduCatTechnical'), keys: ['qzTech1', 'qzTech2', 'qzTech3'],    correct: [0, 1, 0] },
+    advanced:  { label: t('eduCatAdvanced'),  keys: ['qzAdv1', 'qzAdv2', 'qzAdv3'],       correct: [0, 1, 1] },
+    risk:      { label: t('eduCatRisk'),      keys: ['qzRisk1', 'qzRisk2', 'qzRisk3'],    correct: [1, 2, 1] },
+    psych:     { label: t('eduCatPsych'),     keys: ['qzPsy1', 'qzPsy2', 'qzPsy3'],       correct: [0, 0, 0] },
+    pro:       { label: t('eduCatPro'),       keys: ['qzPro1', 'qzPro2', 'qzPro3'],       correct: [0, 0, 0] },
+  };
+  const QUIZ_PILLARS = ['start', 'technical', 'advanced', 'risk', 'psych', 'pro'];
+  const [quizPillar, setQuizPillar] = useState('start');
   const [quizSel, setQuizSel] = useState({});
   const [quizDone, setQuizDone] = useState(false);
+  const activeBank = QUIZ_BANK[quizPillar];
+  const QUIZ = activeBank.keys.map(k => ({ q: t(`${k}q`), opts: [t(`${k}a`), t(`${k}b`), t(`${k}c`)] }));
+  const QUIZ_CORRECT = activeBank.correct;
   const quizScore = QUIZ_CORRECT.reduce((n, c, i) => n + (quizSel[i] === c ? 1 : 0), 0);
+  const pickQuizPillar = (p) => { setQuizPillar(p); setQuizSel({}); setQuizDone(false); };
 
   // Printable one-page Trading Plan + pre-trade checklist (localized).
   // Opens a print-ready window; the user saves it as PDF from the print dialog.
@@ -1082,6 +1158,198 @@ export default function EducationPage() {
               </div>
             </TabsContent>
 
+            {/* Moving averages — SMA/EMA, periods, crossovers, golden/death, dynamic S/R */}
+            <TabsContent value="moving-averages" className="space-y-8">
+              <Card className="bg-gradient-to-br from-sky-500/5 to-primary/10 border-sky-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Activity className="w-6 h-6 text-sky-500" />
+                    {MOVING_AVERAGES.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{MOVING_AVERAGES.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {MOVING_AVERAGES.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <MovingAveragesVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{MOVING_AVERAGES.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Price action — reading raw price: inside/outside bar, HH/HL trend, confluence */}
+            <TabsContent value="price-action" className="space-y-8">
+              <Card className="bg-gradient-to-br from-violet-500/5 to-primary/10 border-violet-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <CandlestickChart className="w-6 h-6 text-violet-500" />
+                    {PRICE_ACTION.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{PRICE_ACTION.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {PRICE_ACTION.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <PriceActionVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{PRICE_ACTION.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Dealer positioning & gamma — GEX, pinning, squeeze, vanna, charm, 0DTE */}
+            <TabsContent value="gamma-exposure" className="space-y-8">
+              <Card className="bg-gradient-to-br from-fuchsia-500/5 to-primary/10 border-fuchsia-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Sigma className="w-6 h-6 text-fuchsia-500" />
+                    {GAMMA_EXPOSURE.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{GAMMA_EXPOSURE.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {GAMMA_EXPOSURE.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <GammaExposureVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{GAMMA_EXPOSURE.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* "Free isn't free" — PFOF, internalisation, the invisible spread cost */}
+            <TabsContent value="pfof" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Scale className="w-6 h-6 text-amber-500" />
+                    {ORDER_FLOW_PAYMENT.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{ORDER_FLOW_PAYMENT.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ORDER_FLOW_PAYMENT.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <PfofVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{ORDER_FLOW_PAYMENT.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Macro net liquidity — WALCL − TGA − RRP, QE/QT, the ~0.95 S&P correlation */}
+            <TabsContent value="net-liquidity" className="space-y-8">
+              <Card className="bg-gradient-to-br from-cyan-500/5 to-primary/10 border-cyan-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Landmark className="w-6 h-6 text-cyan-500" />
+                    {NET_LIQUIDITY.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{NET_LIQUIDITY.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {NET_LIQUIDITY.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <NetLiquidityVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{NET_LIQUIDITY.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Fat tails & tail risk — why the normal distribution lies, black swans, convexity */}
+            <TabsContent value="tail-risk" className="space-y-8">
+              <Card className="bg-gradient-to-br from-rose-500/5 to-primary/10 border-rose-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <TrendingDown className="w-6 h-6 text-rose-500" />
+                    {TAIL_RISK.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TAIL_RISK.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TAIL_RISK.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <TailRiskVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/5 border border-rose-500/20">
+                <Info className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{TAIL_RISK.note}</p>
+              </div>
+            </TabsContent>
+
             {/* Evidence-based trading — what funds, desks & academia have proven */}
             <TabsContent value="evidence-based" className="space-y-8">
               <Card className="bg-gradient-to-br from-teal-500/5 to-primary/10 border-teal-500/20">
@@ -1111,6 +1379,408 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{EVIDENCE.note}</p>
+              </div>
+
+              <button onClick={() => goToTopic('trader-journey')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors">
+                <Clock className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                <span className="text-sm font-medium">{t('xlJourneyB')}</span>
+                <ChevronRight className="w-4 h-4 ml-auto text-indigo-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </TabsContent>
+
+            {/* The trader's journey — the 4 stages, valley of despair, realistic timeline, attrition */}
+            <TabsContent value="trader-journey" className="space-y-8">
+              <Card className="bg-gradient-to-br from-indigo-500/5 to-primary/10 border-indigo-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Clock className="w-6 h-6 text-indigo-500" />
+                    {TRADER_JOURNEY.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TRADER_JOURNEY.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TRADER_JOURNEY.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <TraderJourneyVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{TRADER_JOURNEY.note}</p>
+              </div>
+
+              <button onClick={() => goToTopic('funded-truth')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-red-500/5 border border-red-500/20 hover:border-red-500/40 transition-colors">
+                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <span className="text-sm font-medium">{t('xlFundedA')}</span>
+                <ChevronRight className="w-4 h-4 ml-auto text-red-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </TabsContent>
+
+            {/* The truth about funded accounts — scam mechanics, math, real broker vs funded */}
+            <TabsContent value="funded-truth" className="space-y-8">
+              <Card className="bg-gradient-to-br from-red-500/5 to-primary/10 border-red-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                    {FUNDED_TRUTH.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{FUNDED_TRUTH.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {FUNDED_TRUTH.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <FundedTruthVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{FUNDED_TRUTH.note}</p>
+              </div>
+
+              <button onClick={() => goToTopic('trader-journey')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors">
+                <Clock className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                <span className="text-sm font-medium">{t('xlJourneyA')}</span>
+                <ChevronRight className="w-4 h-4 ml-auto text-indigo-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </TabsContent>
+
+            {/* Options: income & assignment — covered call, CSP, the wheel, assignment, 0DTE */}
+            <TabsContent value="options-income" className="space-y-8">
+              <Card className="bg-gradient-to-br from-emerald-500/5 to-primary/10 border-emerald-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Landmark className="w-6 h-6 text-emerald-500" />
+                    {OPTIONS_INCOME.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{OPTIONS_INCOME.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {OPTIONS_INCOME.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <OptionsIncomeVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{OPTIONS_INCOME.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Options: volatility — IV, IV rank, skew, term structure, vol crush, vega */}
+            <TabsContent value="options-vol" className="space-y-8">
+              <Card className="bg-gradient-to-br from-violet-500/5 to-primary/10 border-violet-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Gauge className="w-6 h-6 text-violet-500" />
+                    {OPTIONS_VOL.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{OPTIONS_VOL.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {OPTIONS_VOL.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <OptionsVolVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{OPTIONS_VOL.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Long-term investing — compounding, DCA, index funds, dividends, allocation */}
+            <TabsContent value="long-invest" className="space-y-8">
+              <Card className="bg-gradient-to-br from-green-500/5 to-primary/10 border-green-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <TrendingUp className="w-6 h-6 text-green-500" />
+                    {LONG_INVEST.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{LONG_INVEST.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {LONG_INVEST.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <LongInvestVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{LONG_INVEST.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Trading taxes — general concepts + strong 'not tax advice' disclaimer */}
+            <TabsContent value="taxes" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Scale className="w-6 h-6 text-amber-500" />
+                    {TAXES.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{TAXES.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TAXES.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <TaxesVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{TAXES.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Algorithmic trading — systematic, backtesting, execution, pitfalls, automation risk */}
+            <TabsContent value="algo-trading" className="space-y-8">
+              <Card className="bg-gradient-to-br from-cyan-500/5 to-primary/10 border-cyan-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Sigma className="w-6 h-6 text-cyan-500" />
+                    {ALGO_TRADING.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{ALGO_TRADING.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ALGO_TRADING.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <AlgoTradingVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{ALGO_TRADING.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Copy & social trading — how it works, vetting, incentives, sizing, reality */}
+            <TabsContent value="copy-trading" className="space-y-8">
+              <Card className="bg-gradient-to-br from-sky-500/5 to-primary/10 border-sky-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Globe className="w-6 h-6 text-sky-500" />
+                    {COPY_TRADING.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{COPY_TRADING.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {COPY_TRADING.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <CopyTradingVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{COPY_TRADING.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Forex in depth — sessions, carry, DXY, pairs, macro drivers */}
+            <TabsContent value="forex-deep" className="space-y-8">
+              <Card className="bg-gradient-to-br from-blue-500/5 to-primary/10 border-blue-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Globe className="w-6 h-6 text-blue-500" />
+                    {FOREX_DEEP.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{FOREX_DEEP.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {FOREX_DEEP.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <ForexVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{FOREX_DEEP.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Commodities — groups, seasonality, gold, oil, futures curve & roll */}
+            <TabsContent value="commodities" className="space-y-8">
+              <Card className="bg-gradient-to-br from-yellow-500/5 to-primary/10 border-yellow-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Layers className="w-6 h-6 text-yellow-500" />
+                    {COMMODITIES.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{COMMODITIES.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {COMMODITIES.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <CommoditiesVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{COMMODITIES.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Crypto in depth — halving, funding, liquidations, dominance, on-chain, correlation */}
+            <TabsContent value="crypto-deep" className="space-y-8">
+              <Card className="bg-gradient-to-br from-orange-500/5 to-primary/10 border-orange-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Activity className="w-6 h-6 text-orange-500" />
+                    {CRYPTO_DEEP.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{CRYPTO_DEEP.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {CRYPTO_DEEP.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <CryptoVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{CRYPTO_DEEP.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Indices & the Nasdaq — cap weighting, ES/NQ futures, VIX, triple witching, earnings */}
+            <TabsContent value="indices" className="space-y-8">
+              <Card className="bg-gradient-to-br from-indigo-500/5 to-primary/10 border-indigo-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <BarChart3 className="w-6 h-6 text-indigo-500" />
+                    {INDICES.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{INDICES.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {INDICES.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <IndicesVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{INDICES.note}</p>
               </div>
             </TabsContent>
 
@@ -4010,6 +4680,27 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{t('qzPickPillar')}</p>
+                <div className="flex flex-wrap gap-2" data-testid="quiz-pillars">
+                  {QUIZ_PILLARS.map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => pickQuizPillar(p)}
+                      data-testid={`quiz-pillar-${p}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        quizPillar === p
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {QUIZ_BANK[p].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-4" data-testid="quiz-questions">
                 {QUIZ.map((item, qi) => (
                   <Card key={qi} className="bg-card border-border">
@@ -4054,12 +4745,12 @@ export default function EducationPage() {
                   {t('qzSubmit')}
                 </Button>
               ) : (
-                <Card className={`border ${quizScore >= 7 ? 'border-[#22c55e]/40 bg-[#22c55e]/10' : quizScore >= 5 ? 'border-[#f59e0b]/40 bg-[#f59e0b]/10' : 'border-[#ef4444]/40 bg-[#ef4444]/10'}`}>
+                <Card className={`border ${quizScore === QUIZ.length ? 'border-[#22c55e]/40 bg-[#22c55e]/10' : quizScore >= 2 ? 'border-[#f59e0b]/40 bg-[#f59e0b]/10' : 'border-[#ef4444]/40 bg-[#ef4444]/10'}`}>
                   <CardContent className="pt-5 flex items-center justify-between gap-3 flex-wrap">
                     <p className="text-sm font-semibold" data-testid="quiz-score">
                       {t('qzScoreLabel')}: <span className="font-mono text-lg">{quizScore}/{QUIZ.length}</span>
                       <span className="ml-2 text-muted-foreground font-normal">
-                        {quizScore >= 7 ? t('qzPerfect') : quizScore >= 5 ? t('qzGood') : t('qzBad')}
+                        {quizScore === QUIZ.length ? t('qzPerfect') : quizScore >= 2 ? t('qzGood') : t('qzBad')}
                       </span>
                     </p>
                     <Button variant="outline" size="sm" onClick={() => { setQuizSel({}); setQuizDone(false); }} data-testid="quiz-retry">
@@ -4069,6 +4760,38 @@ export default function EducationPage() {
                 </Card>
               )}
             </TabsContent>
+
+            {/* Guided path: previous / next module across all pillars */}
+            <div className="mt-10 pt-5 border-t border-border flex items-center justify-between gap-3">
+              {prevTopic ? (
+                <button
+                  type="button"
+                  onClick={() => goToTopic(prevTopic.value)}
+                  data-testid="edu-prev-module"
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:border-primary/40 transition-colors max-w-[46%]"
+                >
+                  <ChevronRight className="w-4 h-4 rotate-180 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                  <span className="text-left min-w-0">
+                    <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">{t('eduPrevModule')}</span>
+                    <span className="block text-xs font-semibold text-foreground truncate">{prevTopic.label}</span>
+                  </span>
+                </button>
+              ) : <span />}
+              {nextTopic ? (
+                <button
+                  type="button"
+                  onClick={() => goToTopic(nextTopic.value)}
+                  data-testid="edu-next-module"
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors max-w-[46%] ml-auto"
+                >
+                  <span className="text-right min-w-0">
+                    <span className="block text-[10px] uppercase tracking-wide text-primary/70">{t('eduNextModule')}</span>
+                    <span className="block text-xs font-semibold text-foreground truncate">{nextTopic.label}</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
+                </button>
+              ) : <span />}
+            </div>
               </div>
             </div>
           </Tabs>

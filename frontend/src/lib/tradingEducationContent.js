@@ -1612,6 +1612,7 @@ export const getTradeManagement = (t) => ({
     { id: 'time',      name: t('tmgTimeName'),      desc: t('tmgTimeDesc') },
     { id: 'events',    name: t('tmgEventsName'),    desc: t('tmgEventsDesc') },
     { id: 'micro',     name: t('tmgMicroName'),     desc: t('tmgMicroDesc') },
+    { id: 'maemfe',    name: t('tmgMaeName'),       desc: t('tmgMaeDesc') },
     { id: 'donothing', name: t('tmgDoNothingName'), desc: t('tmgDoNothingDesc') },
   ],
   note: t('tmgNote'),
@@ -1716,6 +1717,327 @@ export const getEvidenceBased = (t) => ({
     { id: 'behavior',   name: t('evBehaviorName'),   desc: t('evBehaviorDesc'),   type: 'bearish' },
   ],
   note: t('evNote'),
+});
+
+// Options income & assignment — the "seller's" half of options: collect premium
+// systematically (covered call, cash-secured put, the wheel) and understand what
+// happens at assignment/expiration (american vs european, pin risk, 0DTE). Pairs
+// with SVG diagrams in OptionsIncomeVisual.jsx.
+export const getOptionsIncome = (t) => ({
+  title: t('oiTitle'),
+  intro: t('oiIntro'),
+  items: [
+    { id: 'covered', name: t('oiCoveredName'), desc: t('oiCoveredDesc'), type: 'bullish' },
+    { id: 'csp',     name: t('oiCspName'),     desc: t('oiCspDesc'),     type: 'bullish' },
+    { id: 'wheel',   name: t('oiWheelName'),   desc: t('oiWheelDesc') },
+    { id: 'assign',  name: t('oiAssignName'),  desc: t('oiAssignDesc') },
+    { id: 'expire',  name: t('oiExpireName'),  desc: t('oiExpireDesc'), type: 'bearish' },
+    { id: 'zero',    name: t('oiZeroName'),     desc: t('oiZeroDesc'),   type: 'bearish' },
+  ],
+  note: t('oiNote'),
+});
+
+// Options volatility — the other axis of option pricing: implied volatility, IV
+// rank/percentile, skew, term structure, earnings vol crush and vega (IV vs
+// realized HV). Pairs with SVG diagrams in OptionsVolVisual.jsx.
+export const getOptionsVol = (t) => ({
+  title: t('ovTitle'),
+  intro: t('ovIntro'),
+  items: [
+    { id: 'iv',    name: t('ovIvName'),    desc: t('ovIvDesc') },
+    { id: 'rank',  name: t('ovRankName'),  desc: t('ovRankDesc') },
+    { id: 'skew',  name: t('ovSkewName'),  desc: t('ovSkewDesc') },
+    { id: 'term',  name: t('ovTermName'),  desc: t('ovTermDesc') },
+    { id: 'crush', name: t('ovCrushName'), desc: t('ovCrushDesc'), type: 'bearish' },
+    { id: 'vega',  name: t('ovVegaName'),  desc: t('ovVegaDesc') },
+  ],
+  note: t('ovNote'),
+});
+
+// Long-term investing — the evidence-backed "boring" path: compounding, DCA,
+// index funds/ETFs, dividends & reinvestment, asset allocation & rebalancing.
+// Pairs with SVG diagrams in LongInvestVisual.jsx.
+export const getLongInvest = (t) => ({
+  title: t('liTitle'),
+  intro: t('liIntro'),
+  items: [
+    { id: 'compound', name: t('liCompoundName'), desc: t('liCompoundDesc'), type: 'bullish' },
+    { id: 'dca',      name: t('liDcaName'),      desc: t('liDcaDesc') },
+    { id: 'index',    name: t('liIndexName'),    desc: t('liIndexDesc') },
+    { id: 'div',      name: t('liDivName'),      desc: t('liDivDesc') },
+    { id: 'alloc',    name: t('liAllocName'),    desc: t('liAllocDesc') },
+  ],
+  note: t('liNote'),
+});
+
+// Trading taxes — general concepts (realized vs unrealized, Spain example,
+// holding period, loss offsetting) with a strong "this is education, not tax
+// advice" disclaimer. Pairs with SVG diagrams in TaxesVisual.jsx.
+export const getTaxes = (t) => ({
+  title: t('txTitle'),
+  intro: t('txIntro'),
+  items: [
+    { id: 'basics',     name: t('txBasicsName'),     desc: t('txBasicsDesc') },
+    { id: 'spain',      name: t('txSpainName'),      desc: t('txSpainDesc') },
+    { id: 'holding',    name: t('txHoldingName'),    desc: t('txHoldingDesc') },
+    { id: 'loss',       name: t('txLossName'),       desc: t('txLossDesc') },
+    { id: 'disclaimer', name: t('txDisclaimerName'), desc: t('txDisclaimerDesc'), type: 'bearish' },
+  ],
+  note: t('txNote'),
+});
+
+// Algorithmic trading — systematic vs discretionary, backtesting (and its traps:
+// overfitting, survivorship/look-ahead bias), execution/APIs/latency, and
+// automation risk (kill switch). Pairs with SVG diagrams in AlgoTradingVisual.jsx.
+export const getAlgoTrading = (t) => ({
+  title: t('atTitle'),
+  intro: t('atIntro'),
+  items: [
+    { id: 'what',     name: t('atWhatName'),     desc: t('atWhatDesc') },
+    { id: 'backtest', name: t('atBacktestName'), desc: t('atBacktestDesc') },
+    { id: 'exec',     name: t('atExecName'),     desc: t('atExecDesc') },
+    { id: 'pitfall',  name: t('atPitfallName'),  desc: t('atPitfallDesc'), type: 'bearish' },
+    { id: 'risk',     name: t('atRiskName'),     desc: t('atRiskDesc'),    type: 'bearish' },
+  ],
+  note: t('atNote'),
+});
+
+// Copy & social trading — how it works, vetting the lead trader, misaligned
+// incentives, sizing/diversification and the measured reality (most popular
+// copied portfolios lag an index). Pairs with SVG diagrams in CopyTradingVisual.jsx.
+export const getCopyTrading = (t) => ({
+  title: t('cpTitle'),
+  intro: t('cpIntro'),
+  items: [
+    { id: 'what',   name: t('cpWhatName'),   desc: t('cpWhatDesc') },
+    { id: 'due',    name: t('cpDueName'),    desc: t('cpDueDesc') },
+    { id: 'incent', name: t('cpIncentName'), desc: t('cpIncentDesc'), type: 'bearish' },
+    { id: 'size',   name: t('cpSizeName'),   desc: t('cpSizeDesc') },
+  ],
+  note: t('cpNote'),
+});
+
+// Forex in depth — sessions & overlap, carry trade & rate differentials, DXY &
+// correlations, majors/minors/exotics, macro drivers. Pairs with ForexVisual.jsx.
+export const getForexDeep = (t) => ({
+  title: t('fxTitle'),
+  intro: t('fxIntro'),
+  items: [
+    { id: 'sess',    name: t('fxSessName'),    desc: t('fxSessDesc') },
+    { id: 'carry',   name: t('fxCarryName'),   desc: t('fxCarryDesc') },
+    { id: 'dxy',     name: t('fxDxyName'),     desc: t('fxDxyDesc') },
+    { id: 'pairs',   name: t('fxPairsName'),   desc: t('fxPairsDesc') },
+    { id: 'drivers', name: t('fxDriversName'), desc: t('fxDriversDesc') },
+  ],
+  note: t('fxNote'),
+});
+
+// Commodities — the three groups, seasonality, gold vs real rates, oil
+// (inventories/OPEC/WTI-Brent), futures curve & roll yield. Pairs with
+// CommoditiesVisual.jsx.
+export const getCommodities = (t) => ({
+  title: t('cmTitle'),
+  intro: t('cmIntro'),
+  items: [
+    { id: 'types',  name: t('cmTypesName'),  desc: t('cmTypesDesc') },
+    { id: 'season', name: t('cmSeasonName'), desc: t('cmSeasonDesc') },
+    { id: 'gold',   name: t('cmGoldName'),   desc: t('cmGoldDesc'), type: 'bullish' },
+    { id: 'oil',    name: t('cmOilName'),    desc: t('cmOilDesc') },
+    { id: 'curve',  name: t('cmCurveName'),  desc: t('cmCurveDesc') },
+  ],
+  note: t('cmNote'),
+});
+
+// Crypto in depth — halving & the cycle, funding rate, cascading liquidations,
+// BTC dominance & stablecoins, 24/7 & on-chain data, correlation with the Nasdaq.
+// Uses the 'cy' key prefix (the 'cr' prefix belongs to the trader-routine module).
+// Pairs with CryptoVisual.jsx.
+export const getCryptoDeep = (t) => ({
+  title: t('cyTitle'),
+  intro: t('cyIntro'),
+  items: [
+    { id: 'halving', name: t('cyHalvingName'), desc: t('cyHalvingDesc'), type: 'bullish' },
+    { id: 'funding', name: t('cyFundingName'), desc: t('cyFundingDesc') },
+    { id: 'liq',     name: t('cyLiqName'),     desc: t('cyLiqDesc'),     type: 'bearish' },
+    { id: 'dom',     name: t('cyDomName'),     desc: t('cyDomDesc') },
+    { id: 'chain',   name: t('cyChainName'),   desc: t('cyChainDesc') },
+    { id: 'corr',    name: t('cyCorrName'),    desc: t('cyCorrDesc') },
+  ],
+  note: t('cyNote'),
+});
+
+// Indices & the Nasdaq — cap weighting (megacaps), ES/NQ futures & overnight,
+// VIX vs the index, rebalances & triple witching, megacap earnings. Pairs with
+// IndicesVisual.jsx.
+export const getIndices = (t) => ({
+  title: t('ixTitle'),
+  intro: t('ixIntro'),
+  items: [
+    { id: 'weight', name: t('ixWeightName'), desc: t('ixWeightDesc') },
+    { id: 'fut',    name: t('ixFutName'),    desc: t('ixFutDesc') },
+    { id: 'vix',    name: t('ixVixName'),    desc: t('ixVixDesc'), type: 'bearish' },
+    { id: 'witch',  name: t('ixWitchName'),  desc: t('ixWitchDesc') },
+    { id: 'earn',   name: t('ixEarnName'),   desc: t('ixEarnDesc') },
+  ],
+  note: t('ixNote'),
+});
+
+// The truth about funded accounts — real prop firm vs "funded challenge", the
+// fee-driven model (they win when you fail), simulated feeds, the negative-EV
+// math, rules designed to fail you, real-broker leverage/withdrawal vs funded,
+// the MyForexFunds regulatory case, and red flags. Pairs with FundedTruthVisual.jsx.
+export const getFundedTruth = (t) => ({
+  title: t('fdTitle'),
+  intro: t('fdIntro'),
+  items: [
+    { id: 'real',     name: t('fdRealName'),     desc: t('fdRealDesc') },
+    { id: 'model',    name: t('fdModelName'),    desc: t('fdModelDesc'),    type: 'bearish' },
+    { id: 'demo',     name: t('fdDemoName'),     desc: t('fdDemoDesc'),     type: 'bearish' },
+    { id: 'math',     name: t('fdMathName'),     desc: t('fdMathDesc'),     type: 'bearish' },
+    { id: 'rules',    name: t('fdRulesName'),    desc: t('fdRulesDesc'),    type: 'bearish' },
+    { id: 'leverage', name: t('fdLeverageName'), desc: t('fdLeverageDesc'), type: 'bullish' },
+    { id: 'case',      name: t('fdCaseName'),      desc: t('fdCaseDesc'),      type: 'bearish' },
+    { id: 'affiliate', name: t('fdAffiliateName'), desc: t('fdAffiliateDesc'), type: 'bearish' },
+    { id: 'promo',     name: t('fdPromoName'),     desc: t('fdPromoDesc'),     type: 'bearish' },
+    { id: 'denial',    name: t('fdDenialName'),    desc: t('fdDenialDesc'),    type: 'bearish' },
+    { id: 'crisis',    name: t('fdCrisisName'),    desc: t('fdCrisisDesc'),    type: 'bearish' },
+    { id: 'habits',    name: t('fdHabitsName'),    desc: t('fdHabitsDesc'),    type: 'bearish' },
+    { id: 'broker',    name: t('fdBrokerName'),    desc: t('fdBrokerDesc'),    type: 'bullish' },
+    { id: 'verdict',   name: t('fdVerdictName'),   desc: t('fdVerdictDesc') },
+  ],
+  note: t('fdNote'),
+});
+
+// The trader's journey & time-to-profitability — the honest map nobody sells:
+// the four stages of competence (Broadwell), the Dunning-Kruger "valley of
+// despair", the realistic 1-3 year timeline, the attrition/base rates (ESMA
+// 74-89%, Taiwan <1% B&O, Brazil 97% Chague-De-Losso), deliberate practice vs
+// screen time (Ericsson), the capital + emotional runway, measuring process
+// over money, and why shortcuts (signals, courses, funded accounts) don't skip
+// the stages. Pairs with SVG diagrams in TraderJourneyVisual.jsx.
+export const getTraderJourney = (t) => ({
+  title: t('tjTitle'),
+  intro: t('tjIntro'),
+  items: [
+    { id: 'stages',    name: t('tjStagesName'),    desc: t('tjStagesDesc') },
+    { id: 'valley',    name: t('tjValleyName'),    desc: t('tjValleyDesc'),    type: 'bearish' },
+    { id: 'timeline',  name: t('tjTimelineName'),  desc: t('tjTimelineDesc') },
+    { id: 'attrition', name: t('tjAttritionName'), desc: t('tjAttritionDesc'), type: 'bearish' },
+    { id: 'practice',  name: t('tjPracticeName'),  desc: t('tjPracticeDesc'),  type: 'bullish' },
+    { id: 'runway',    name: t('tjRunwayName'),    desc: t('tjRunwayDesc') },
+    { id: 'measure',   name: t('tjMeasureName'),   desc: t('tjMeasureDesc'),   type: 'bullish' },
+    { id: 'shortcut',  name: t('tjShortcutName'),  desc: t('tjShortcutDesc'),  type: 'bearish' },
+  ],
+  note: t('tjNote'),
+});
+
+// Moving averages deep-dive — the most-used TA indicator: SMA vs EMA, choosing
+// the period, the three crossover strategies (price/MA, 2-MA, triple with a
+// trend filter), the golden/death cross, MA as dynamic support/resistance, and
+// where it sits among indicator families. Pairs with MovingAveragesVisual.jsx.
+export const getMovingAverages = (t) => ({
+  title: t('mavTitle'),
+  intro: t('mavIntro'),
+  items: [
+    { id: 'smaema',      name: t('mavSmaEmaName'),      desc: t('mavSmaEmaDesc') },
+    { id: 'periods',     name: t('mavPeriodsName'),     desc: t('mavPeriodsDesc') },
+    { id: 'crossprice',  name: t('mavCrossPriceName'),  desc: t('mavCrossPriceDesc') },
+    { id: 'cross2',      name: t('mavCross2Name'),      desc: t('mavCross2Desc') },
+    { id: 'triple',      name: t('mavTripleName'),      desc: t('mavTripleDesc'),      type: 'bullish' },
+    { id: 'goldendeath', name: t('mavGoldenDeathName'), desc: t('mavGoldenDeathDesc') },
+    { id: 'dynamic',     name: t('mavDynamicName'),     desc: t('mavDynamicDesc') },
+    { id: 'families',    name: t('mavFamiliesName'),    desc: t('mavFamiliesDesc') },
+  ],
+  note: t('mavNote'),
+});
+
+// Price action — reading the raw price (candles/bars) with no indicators: the
+// "price discounts everything" premise, the inside bar (indecision/contraction)
+// and outside/mother bar (range engulf), reading trend by HH/HL, higher
+// timeframes first, and confluence entries. Pairs with PriceActionVisual.jsx.
+export const getPriceAction = (t) => ({
+  title: t('pacTitle'),
+  intro: t('pacIntro'),
+  items: [
+    { id: 'what',       name: t('pacWhatName'),       desc: t('pacWhatDesc') },
+    { id: 'inside',     name: t('pacInsideName'),     desc: t('pacInsideDesc'),     type: 'neutral' },
+    { id: 'outside',    name: t('pacOutsideName'),    desc: t('pacOutsideDesc'),    type: 'bullish' },
+    { id: 'trend',      name: t('pacTrendName'),      desc: t('pacTrendDesc') },
+    { id: 'htf',        name: t('pacHtfName'),        desc: t('pacHtfDesc'),        type: 'bullish' },
+    { id: 'confluence', name: t('pacConfluenceName'), desc: t('pacConfluenceDesc'), type: 'bullish' },
+  ],
+  note: t('pacNote'),
+});
+
+// Dealer positioning & gamma — the lesser-known options market structure that
+// actually moves the underlying: market makers hedging delta, gamma exposure
+// (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna
+// (IV-driven), charm (the OPEX drift), and 0DTE/OPEX. Pairs with GammaExposureVisual.jsx.
+export const getGammaExposure = (t) => ({
+  title: t('gexTitle'),
+  intro: t('gexIntro'),
+  items: [
+    { id: 'mm',      name: t('gexMmName'),      desc: t('gexMmDesc') },
+    { id: 'gamma',   name: t('gexGammaName'),   desc: t('gexGammaDesc') },
+    { id: 'pin',     name: t('gexPinName'),     desc: t('gexPinDesc') },
+    { id: 'squeeze', name: t('gexSqueezeName'), desc: t('gexSqueezeDesc'), type: 'bullish' },
+    { id: 'vanna',   name: t('gexVannaName'),   desc: t('gexVannaDesc'),   type: 'bullish' },
+    { id: 'charm',   name: t('gexCharmName'),   desc: t('gexCharmDesc') },
+    { id: 'zerodte', name: t('gexZeroDteName'), desc: t('gexZeroDteDesc'), type: 'bearish' },
+  ],
+  note: t('gexNote'),
+});
+
+// "Free isn't free" — how commission-free brokers really make money: payment
+// for order flow (PFOF), internalisation by wholesalers, the invisible spread
+// cost, the conflict of interest, and how to protect yourself. Pairs with
+// PfofVisual.jsx. Fits the honest/broker-safety line of the site.
+export const getOrderFlowPayment = (t) => ({
+  title: t('pfofTitle'),
+  intro: t('pfofIntro'),
+  items: [
+    { id: 'free',     name: t('pfofFreeName'),     desc: t('pfofFreeDesc'),     type: 'bearish' },
+    { id: 'pfof',     name: t('pfofPfofName'),     desc: t('pfofPfofDesc') },
+    { id: 'internal', name: t('pfofInternalName'), desc: t('pfofInternalDesc'), type: 'bearish' },
+    { id: 'spread',   name: t('pfofSpreadName'),   desc: t('pfofSpreadDesc'),   type: 'bearish' },
+    { id: 'conflict', name: t('pfofConflictName'), desc: t('pfofConflictDesc'), type: 'bearish' },
+    { id: 'protect',  name: t('pfofProtectName'),  desc: t('pfofProtectDesc'),  type: 'bullish' },
+  ],
+  note: t('pfofNote'),
+});
+
+// Macro net liquidity — the hidden market driver retail rarely hears about: net
+// liquidity = Fed balance sheet (WALCL) − TGA − RRP, QE/QT, the Treasury account,
+// reverse repo, the ~0.95 S&P correlation and its limits. Pairs with NetLiquidityVisual.jsx.
+export const getNetLiquidity = (t) => ({
+  title: t('liqTitle'),
+  intro: t('liqIntro'),
+  items: [
+    { id: 'what',    name: t('liqWhatName'),    desc: t('liqWhatDesc') },
+    { id: 'balance', name: t('liqBalanceName'), desc: t('liqBalanceDesc') },
+    { id: 'tga',     name: t('liqTgaName'),     desc: t('liqTgaDesc') },
+    { id: 'rrp',     name: t('liqRrpName'),     desc: t('liqRrpDesc') },
+    { id: 'market',  name: t('liqMarketName'),  desc: t('liqMarketDesc'),  type: 'bullish' },
+    { id: 'caveat',  name: t('liqCaveatName'),  desc: t('liqCaveatDesc'),  type: 'bearish' },
+  ],
+  note: t('liqNote'),
+});
+
+// Fat tails & tail risk — why the normal distribution lies: fat tails/kurtosis,
+// black swans (Taleb), the "impossible" sigma moves that keep happening, ruin &
+// non-ergodicity, convexity/tail hedging and the barbell. Pairs with TailRiskVisual.jsx.
+export const getTailRisk = (t) => ({
+  title: t('tailTitle'),
+  intro: t('tailIntro'),
+  items: [
+    { id: 'normal',    name: t('tailNormalName'),    desc: t('tailNormalDesc'),    type: 'bearish' },
+    { id: 'blackswan', name: t('tailBlackSwanName'), desc: t('tailBlackSwanDesc'), type: 'bearish' },
+    { id: 'frequency', name: t('tailFrequencyName'), desc: t('tailFrequencyDesc'), type: 'bearish' },
+    { id: 'ruin',      name: t('tailRuinName'),      desc: t('tailRuinDesc'),      type: 'bearish' },
+    { id: 'convexity', name: t('tailConvexityName'), desc: t('tailConvexityDesc'), type: 'bullish' },
+    { id: 'barbell',   name: t('tailBarbellName'),   desc: t('tailBarbellDesc'),   type: 'bullish' },
+  ],
+  note: t('tailNote'),
 });
 
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
@@ -1916,6 +2238,18 @@ export const getCapitalManagement = (t) => ({
         id: 'diversification',
         title: t('diversificationRuleTitle'),
         description: t('diversificationRuleDesc'),
+        importance: 'high'
+      },
+      {
+        id: 'correlation',
+        title: t('capCorrelationTitle'),
+        description: t('capCorrelationDesc'),
+        importance: 'high'
+      },
+      {
+        id: 'sequence-risk',
+        title: t('capSequenceTitle'),
+        description: t('capSequenceDesc'),
         importance: 'high'
       }
     ]

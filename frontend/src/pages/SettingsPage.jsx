@@ -13,6 +13,7 @@ import { Footer } from '@/components/layout/Footer';
 import { useAuthStore } from '@/lib/store';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import TwoFactorCard from '@/components/settings/TwoFactorCard';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const PREFS_KEY = 'tcp-preferences';
@@ -32,6 +33,26 @@ export default function SettingsPage() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [resendingVerify, setResendingVerify] = useState(false);
+
+  const emailUnverified = user?.auth_provider === 'password' && user?.email_verified === false;
+  const handleResendVerification = async () => {
+    setResendingVerify(true);
+    try {
+      const token = useAuthStore.getState().token;
+      const res = await fetch(`${BACKEND_URL}/api/auth/send-verification-email`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t('verifyEmailSentToast'));
+    } catch {
+      toast.error(t('verifyEmailSentError'));
+    } finally {
+      setResendingVerify(false);
+    }
+  };
 
   // ── Preferences ──────────────────────────────────────────────────────────
   const [prefs, setPrefs] = useState({ emailNotifications: true, compactMode: false });
@@ -193,6 +214,20 @@ export default function SettingsPage() {
         <div className="max-w-2xl mx-auto space-y-6">
           <h1 className="font-unbounded text-2xl font-bold">{t('configuracion_1a0150')}</h1>
 
+          {emailUnverified && (
+            <div className="flex items-start gap-3 rounded-lg bg-amber-500/10 border border-amber-500/25 px-4 py-3">
+              <Mail className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{t('verifyEmailBannerTitle')}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('verifyEmailBannerDesc')}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={handleResendVerification} disabled={resendingVerify} className="shrink-0">
+                {resendingVerify && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                {t('verifyEmailResendBtn')}
+              </Button>
+            </div>
+          )}
+
           {/* Profile Card */}
           <Card className="bg-card border-border">
             <CardHeader>
@@ -346,6 +381,9 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/* Two-factor authentication (password accounts only) */}
+          {user?.auth_provider === 'password' && <TwoFactorCard />}
+
           {/* Preferences Card */}
           <Card className="bg-card border-border">
             <CardHeader>
@@ -471,6 +509,13 @@ export default function SettingsPage() {
               })()}
             </DialogDescription>
           </DialogHeader>
+
+          <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
+              {t('deleteAccountCancelsSubNote')}
+            </p>
+          </div>
 
           <div className="py-2">
             <Input

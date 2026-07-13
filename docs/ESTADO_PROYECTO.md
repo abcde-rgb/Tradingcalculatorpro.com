@@ -91,7 +91,7 @@
 | G-06 | Sin CI de PR (lint/build/tests antes de merge); solo deploy en push a `main` | 🟡 | ✅ Añadido `ci.yml` esta sesión |
 | G-07 | Sin Dependabot/CodeQL/secret-scanning declarados en repo | 🟡 | Activar en ajustes del repo |
 | G-08 | Deriva documental (CLAUDE.md/PLAN_100 desactualizados) | 🟢 | ✅ Corregido CLAUDE.md esta sesión |
-| G-09 | **i18n incompleto**: 6 idiomas (de/fr/ru/zh/ja/ar) con ~290 claves sin traducir (patrones de velas, estrategias de educación) → caen a español. en.js: faltan 4. de/fr/ru: 9 claves muertas | 🟡 | Traducir lotes faltantes; herramienta `frontend/scripts/i18n-check.js` para detectar |
+| G-09 | ~~**i18n incompleto**: 6 idiomas con ~290 claves sin traducir → caían a español~~ | 🟢 | ✅ **Cerrado (2026-07-11)**: backfill completo (candlestick, armónicos, opciones Black-Scholes/futuros/volatilidad/griegas, estrategias 6-9, auth, sesgos). Los 8 locales con sets idénticos (4401 c/u), 0 huecos. Eliminadas 9 claves muertas de de/fr/ru |
 
 ---
 
@@ -985,3 +985,143 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Con fuentes citadas en la nota + disclaimers. 23 claves i18n × 8 = 184.
 - ✅ Añadido a `gen-seo-pages.js TOPICS` (slug `trading-basado-en-evidencia`) → **sitemap 330→338 URLs**.
 - Verificado: build OK; capturas headless de los 10 SVGs (nav Fundamentos 0/8→0/9; 0 pageerrors). Academia: **53 módulos**.
+
+### 2026-07-11 (31) — Paridad i18n total: 8 idiomas a la par (cierra hueco de traducciones)
+- **Petición**: "analiza la web en busca de fallos en traducciones… hazlos todos de una". Auditoría previa
+  (comparación de sets de claves entre los 8 ficheros) detectó **claves sin traducir** en de/fr/ru/zh/ja/ar,
+  que en runtime caían al fallback español o mostraban la clave cruda.
+- **Backfill completo** con inserter genérico presence-checked (ancla `positionSizingDesc:`), por tandas
+  verificables: **auth hero + sesgos de conducta + candlestick** (Harami, Marubozu, Kicker, Doji Star,
+  Inverted Hammer, Hanging Man, Three Inside Up/Down, Long-Legged Doji, High Wave, Tweezers) ·
+  **97 claves de patrones armónicos** (Gartley/Butterfly/Bat/Crab/Shark/Cypher alcista+bajista, ratios de
+  Fibonacci, labels de filtro) · **131 de opciones** (calculadora Black-Scholes completa, futuros —
+  tick/margen/valor teórico/contango-backwardation, IVR/IV percentile/skew/VIX, delta-hedging/gamma/theta/vega,
+  Iron Condor/Butterfly/Calendar/Diagonal) · **28 de estrategias de day trading** (6-9: Opening Range,
+  VWAP+Momentum, Mean Reversion, Multi-Timeframe).
+- **Limpieza**: eliminadas 9 claves huérfanas muertas (sin `t()` en el código) que solo existían en de/fr/ru
+  (`sharpeRatio`, `winLossRatio`, `winningTrades`… `horChannelName/Desc`).
+- **Resultado**: los 8 ficheros con **sets de claves idénticos (4401 c/u)**; auditoría de paridad = **0 huecos**.
+- Verificado: los 8 locales parsean como módulos JS; `npm run build` OK (312 páginas edu, sitemap 344 URLs);
+  capturas headless en alemán de Opciones y Bildung → **0 claves crudas visibles, 0 pageerrors** (contenido
+  profundo tras el gate premium, pero el mecanismo `t()` queda probado: toda clave existe en todo locale).
+
+### 2026-07-12 (32) — Academia 53→63 módulos: se cierran TODOS los huecos de aprendizaje
+- Auditoría de contenido (medición real en `tradingEducationContent.js` + `i18n/es.js`) → petición "añade
+  todo lo mencionado". Ejecución completa por tandas verificables, cada una con build + paridad i18n + commit.
+- ✅ **10 módulos nuevos** (getter + SVG dedicado + i18n×8 + wiring + `gen-seo-pages`): `options-income`
+  (Wheel/covered call/CSP/asignación/0DTE), `options-vol` (IV/IVR/skew/term/vol crush/vega), `long-invest`
+  (compuesto/DCA/indexados/dividendos), `taxes` (realizado vs latente/España IRPF/compensación + aviso
+  no-asesoría), `algo-trading` (backtesting/overfitting/APIs/kill switch), `copy-trading` (due diligence/
+  incentivos/realidad vs índice), `forex-deep` (sesiones/carry/DXY/drivers), `commodities` (grupos/
+  estacionalidad/oro/petróleo/curva-roll), `crypto-deep` (halving/funding/liquidaciones/dominancia/on-chain/
+  corr. Nasdaq — prefijo `cy` porque `cr` ya era de "Rutina diaria"), `indices` (ponderación/ES-NQ/VIX/
+  triple witching/earnings).
+- ✅ **2 conceptos dentro de módulos existentes:** MAE/MFE en Gestión de la operación; correlación entre
+  posiciones + riesgo de secuencia de retornos en Gestión de capital.
+- ✅ **Retención:** barra guiada "anterior/siguiente módulo" que recorre los 6 pilares 1→2→3; y **quizzes por
+  pilar** (selector + 6 quizzes de 3 preguntas, 18 nuevas) que reemplaza el quiz único de 8 (claves viejas
+  `qz1..8` eliminadas).
+- Los 8 locales con **sets de claves idénticos (4585 c/u)**, paridad = 0. Build OK (sitemap 424 URLs).
+  Verificado con capturas headless en **alemán sembrando usuario premium**: `options-income` con sus 6 SVGs,
+  el selector de quiz por pilar (6 chips) y el botón "siguiente módulo" → **0 claves crudas, 0 pageerrors**.
+  Cabecera de la Academia: **63 Module · 6 Pfade**. Detalle en [`docs/ESTUDIO_APRENDIZAJE.md`](./ESTUDIO_APRENDIZAJE.md) (cierre v3).
+
+### 2026-07-12 (33) — Auditoría de cuenta/suscripción + 5 correcciones (auth, pagos, admin)
+- Análisis completo del ciclo de vida de cuenta (registro, login, multicuenta/sesiones, borrado,
+  cambio/cancelación de plan, impagos) y del panel admin. Sistema sólido; se detectaron 6 huecos y se
+  corrigieron 5 (OxaPay/UI cripto aplazado a petición del usuario).
+- 🔴 **Borrar cuenta ahora cancela la suscripción de Stripe** antes de eliminar (`_cancel_stripe_subscriptions_for_user`,
+  best-effort, no bloquea el borrado RGPD) → deja de cobrarse a quien se da de baja. Limpieza RGPD ampliada
+  a todas las colecciones con `user_id`. Aviso en el diálogo de borrado (i18n×8).
+- ✅ **Verificación de email en registro**: `register` marca `email_verified=False` y envía email de
+  verificación (los endpoints verify/resend ya existían). `email_verified` expuesto en /auth/me·login·
+  register·refresh. Banner + botón "reenviar" en Ajustes (soft, no bloquea login).
+- ✅ **2FA (TOTP) opcional** (pyotp): setup/enable/disable/verify; `/auth/login` devuelve
+  `{totp_required, pending_token}` si está activo; reto de código en LoginPage; `TwoFactorCard` en Ajustes
+  (activar con secreto/QR-manual, desactivar con código). 22 claves i18n×8.
+- ✅ **SubscriptionPage** con `credentials:'include'` en los 5 fetch (no falla en recarga con token null).
+- ✅ **Route shadowing admin resuelto**: eliminados los ~20 handlers duplicados y sombreados (código muerto)
+  de `admin_routes.py` — server.py gana por orden de registro. Conservadas las rutas exclusivas + modelos.
+  `admin_routes.py` 1714→1136 líneas. Verificado por inventario de rutas/modelos + py_compile.
+- Verificado: `py_compile` server/admin/missing_apis OK; `npm run build` OK; paridad i18n 4609 (8 idénticos);
+  TOTP probado offline (acepta código válido, rechaza incorrecto). Nota: el backend no se pudo desplegar/
+  probar en vivo (facturación GCP). Todo en la PR #99. Ver `DIARIO_BUGS.md`.
+
+### 2026-07-12 (34) — Módulos de realidad: "Verdad sobre cuentas de fondeo" + "El camino del trader"
+- ✅ **Módulo nuevo `funded-truth` — "La verdad sobre las cuentas de fondeo"** (registrado ahora; se
+  construyó sin entrada de sesión): getter `getFundedTruth` + `FundedTruthVisual` (14 SVGs) + i18n×8. Explica
+  con detalle matemático por qué el modelo prop/"fondeo" es en su mayoría demo sin mercado regulado, las
+  reglas imposibles, quién vive de la comisión (afiliados/promos), pagos denegados, la crisis de 2024, y el
+  contrapunto: elegir un bróker regulado de verdad con apalancamiento y retirada reales. Pilar Fundamentos.
+- ✅ **Módulo nuevo `trader-journey` — "El camino del trader: cuánto se tarda de verdad en ser rentable"**:
+  getter `getTraderJourney` + `TraderJourneyVisual` (8 SVGs esquemáticos) + **19 claves i18n×8** (prefijo
+  `tj`, sin colisiones) + wiring en `EducationPage` (pilar Fundamentos, tras `evidence-based`/`funded-truth`)
+  + `gen-seo-pages` (slug `cuanto-se-tarda-en-ser-trader-rentable`, 8 idiomas). 8 tarjetas: las 4 etapas de
+  competencia (Broadwell), el valle de la desesperación (Dunning-Kruger), la línea temporal realista
+  (1-3 años, media ~2), la curva de abandono (ESMA 74-89%, Taiwán <1% Barber&Odean, Brasil 97% Chague&
+  De-Losso — sin evidencia de aprendizaje), práctica deliberada vs horas de pantalla (Ericsson / mito de las
+  10.000 h), los dos colchones (capital + vida), medir el proceso (adherencia/esperanza/R) no el dinero, y el
+  espejismo del atajo (prop firms: pasan ~5-14%, cobran ~7%, gasto medio +4.000$). Datos contrastados en
+  varias fuentes (estudios académicos, reguladores ESMA, investigación sobre adquisición de habilidades).
+- ✅ **Enlaces internos entre los 3 módulos de realidad** (retención + SEO): botón "seguir leyendo" al pie de
+  `funded-truth` y `evidence-based` → `trader-journey`, y de `trader-journey` → `funded-truth` (reutiliza
+  `goToTopic` + scroll arriba). 3 claves i18n×8 (`xlJourneyA/B`, `xlFundedA`). Probado en headless: los 3
+  botones navegan al módulo correcto, 0 pageerrors.
+- Verificado: `npm run build` OK (Educación **51 temas × 8 = 408 páginas**, sitemap **440 URLs**); paridad
+  i18n **4659 claves, 8 locales idénticos** (19 `tj` c/u, 0 huecos); **render headless con usuario premium
+  sembrado en es y ar** → 8 tarjetas / 8 SVGs / **0 claves crudas / 0 pageerrors**; páginas SEO con títulos
+  reales traducidos (es/ja/ar, incl. RTL). Trabajo en la rama `claude/stoic-mayer-04dpp2`.
+
+### 2026-07-13 (35) — 2 módulos desde documentos del usuario (medias móviles + price action)
+- El usuario subió 8 documentos propios (Word/Excel/PDF): medias móviles + RoR, gestión de riesgo y plan,
+  velas japonesas, price action, teoría de Dow + estructura, simulador de riesgo (Excel), libro de
+  backtesting (Excel). Auditados uno a uno vs. la web: **la mayoría ya estaba cubierto** (velas, Dow,
+  estructura BOS/CHOCH, gestión de riesgo, plan imprimible, esperanza/rachas/backtesting en Probabilidad,
+  RoR en las calculadoras Monte Carlo/Risk of Ruin). Se detectaron **2 huecos reales** y se construyeron:
+- ✅ **Módulo `moving-averages` — "Medias móviles a fondo"** (pilar Técnico): getter `getMovingAverages` +
+  `MovingAveragesVisual` (8 SVGs) + **19 claves i18n×8** (`mav`). 8 tarjetas: SMA vs EMA, elegir periodo
+  (incl. Fibonacci 89/144/233), las 3 estrategias de cruce (precio/media, 2 medias, triple con filtro),
+  cruce dorado/muerte (50×200), media como soporte/resistencia dinámico, y familias de indicadores. Antes
+  solo había 2 líneas sueltas (indSMA/indEMA) en Análisis Técnico. Alto valor SEO.
+- ✅ **Módulo `price-action` — "Price action: leer el precio sin indicadores"** (pilar Técnico): getter
+  `getPriceAction` + `PriceActionVisual` (6 SVGs con velas) + **15 claves i18n×8** (`pac`). 6 tarjetas: qué
+  es (el precio lo descuenta todo), **barra interior (inside bar)**, **barra exterior/madre (outside bar)**,
+  leer tendencia por HH/HL, marcos altos primero (anti-overtrading), y confluencia patrón+nivel.
+- Wiring en `EducationPage` (pilar Técnico: MA tras Análisis Técnico, Price action tras Velas) + 2 entradas
+  en `gen-seo-pages` (`medias-moviles-sma-ema-cruces`, `price-action-barra-interior-exterior`).
+- Verificado: `npm run build` OK (Educación **53 temas × 8 = 424 páginas**, sitemap **456 URLs**); paridad
+  i18n **4696 claves, 8 locales idénticos** (19 `mav` + 15 `pac` c/u, 0 huecos); **render headless (premium,
+  es y ar)** → MA 8 tarjetas/8 SVGs, Price action 6/6, **0 claves crudas / 0 pageerrors**. Rama
+  `claude/stoic-mayer-04dpp2`.
+
+### 2026-07-13 (36) — Contenido poco conocido, tanda A: gamma de dealers + PFOF
+- El usuario pidió "contenido poco conocido". Tras investigar (WebSearch: fuentes que confirman que son de
+  alto impacto pero casi nunca explicados a retail), se construyen 2 de 4 módulos de nicho:
+- ✅ **Módulo `gamma-exposure` — "Posicionamiento de dealers: gamma, vanna y OPEX"** (pilar Pro, junto a
+  opciones): getter `getGammaExposure` + `GammaExposureVisual` (7 SVGs) + **17 claves i18n×8** (`gex`).
+  7 tarjetas: el dealer delta-neutral, GEX (gamma +/−), pinning/max pain, gamma squeeze (GME 2021), vanna
+  (IV empuja el delta), charm (OPEX drift), 0DTE/OPEX. Nota honesta: es contexto probabilístico, no señal.
+- ✅ **Módulo `pfof` — "Lo gratis no es gratis: PFOF y el coste real"** (pilar Fundamentos, junto a
+  brokers): getter `getOrderFlowPayment` + `PfofVisual` (6 SVGs) + **15 claves i18n×8** (`pfof`). 6 tarjetas:
+  "sin comisiones" no es gratis, payment for order flow (~2.500M$ en 2020), internalización (Citadel/Virtu),
+  el coste invisible del spread, el conflicto de interés ("kickback", restringido en la UE), cómo protegerte.
+- Wiring en `EducationPage` + 2 entradas `gen-seo-pages` (`gamma-dealers-gex-vanna-opex`,
+  `pfof-brokers-sin-comisiones-coste-real`).
+- Verificado: `npm run build` OK (Educación **55 temas × 8 = 440 páginas**, sitemap **472 URLs**); paridad
+  i18n **4728 claves, 8 idénticos** (17 `gex` + 15 `pfof`); **render headless (premium, es y ar)** →
+  Gamma 7/7, PFOF 6/6, **0 claves crudas / 0 pageerrors**. Pendiente tanda B: liquidez macro + colas gordas.
+
+### 2026-07-13 (37) — Contenido poco conocido, tanda B: liquidez macro + colas gordas
+- ✅ **Módulo `net-liquidity` — "Liquidez macro: la fontanería que mueve el mercado"** (pilar Avanzado, junto
+  a Macro): getter `getNetLiquidity` + `NetLiquidityVisual` (6 SVGs) + **15 claves i18n×8** (`liq`). 6 tarjetas:
+  qué es la liquidez neta (WALCL − TGA − RRP), balance de la Fed (QE/QT), la TGA del Tesoro, el repo inverso
+  (RRP), la correlación ~0,95 con el S&P (desfase ~2 semanas), y el aviso "correlación ≠ causalidad".
+- ✅ **Módulo `tail-risk` — "Colas gordas: por qué la campana de Gauss miente"** (pilar Riesgo): getter
+  `getTailRisk` + `TailRiskVisual` (6 SVGs) + **15 claves i18n×8** (`tail`). 6 tarjetas: por qué la normal
+  miente (curtosis), cisnes negros (Taleb), los "sigmas imposibles" (Lunes Negro 1987), riesgo de ruina y
+  no-ergodicidad, convexidad/cobertura de cola, y la estrategia barbell.
+- Wiring en `EducationPage` + 2 entradas `gen-seo-pages` (`liquidez-macro-fed-tga-repo-inverso`,
+  `colas-gordas-cisnes-negros-riesgo-de-cola`).
+- Verificado: `npm run build` OK (Educación **57 temas × 8 = 456 páginas**, sitemap **488 URLs**); paridad
+  i18n **4758 claves, 8 idénticos**; **render headless (premium, es y ar)** → Liquidez 6/6, Colas gordas 6/6,
+  **0 claves crudas / 0 pageerrors**. Con esto, los 4 módulos de "contenido poco conocido" están cerrados.
