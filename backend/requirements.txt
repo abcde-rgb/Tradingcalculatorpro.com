@@ -5,7 +5,7 @@
 
 # Framework principal
 fastapi==0.115.5
-uvicorn[standard]==0.32.1
+uvicorn[standard]==0.51.0
 
 # Base de datos (Cloud SQL PostgreSQL)
 asyncpg==0.30.0
