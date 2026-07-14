@@ -2062,6 +2062,41 @@ export const getPitchfork = (t) => ({
   note: t('pfNote'),
 });
 
+// Bill Williams "Trading Chaos" — the once-famous, now-obscure system: the
+// Alligator (3 displaced smoothed MAs), Fractals, the Awesome Oscillator, the
+// Gator + Market Facilitation Index, how the 5 "dimensions" combine, honest limits.
+export const getBillWilliams = (t) => ({
+  title: t('bwTitle'),
+  intro: t('bwIntro'),
+  items: [
+    { id: 'what',      name: t('bwWhatName'),      desc: t('bwWhatDesc') },
+    { id: 'alligator', name: t('bwAlligatorName'), desc: t('bwAlligatorDesc') },
+    { id: 'fractals',  name: t('bwFractalsName'),  desc: t('bwFractalsDesc'),  type: 'bullish' },
+    { id: 'ao',        name: t('bwAoName'),        desc: t('bwAoDesc') },
+    { id: 'gatormfi',  name: t('bwGatorMfiName'),  desc: t('bwGatorMfiDesc') },
+    { id: 'use',       name: t('bwUseName'),       desc: t('bwUseDesc'),       type: 'bullish' },
+    { id: 'limits',    name: t('bwLimitsName'),    desc: t('bwLimitsDesc'),    type: 'neutral' },
+  ],
+  note: t('bwNote'),
+});
+
+// Wolfe Waves — a cult, very obscure 5-wave reversal pattern that projects a
+// target line in price AND time: the structure, the target line, the validity
+// rules, how to trade it, and an honest (highly subjective) limits card.
+export const getWolfeWaves = (t) => ({
+  title: t('wlfTitle'),
+  intro: t('wlfIntro'),
+  items: [
+    { id: 'what',      name: t('wlfWhatName'),      desc: t('wlfWhatDesc') },
+    { id: 'structure', name: t('wlfStructureName'), desc: t('wlfStructureDesc') },
+    { id: 'line',      name: t('wlfLineName'),      desc: t('wlfLineDesc'),      type: 'bullish' },
+    { id: 'rules',     name: t('wlfRulesName'),     desc: t('wlfRulesDesc') },
+    { id: 'use',       name: t('wlfUseName'),       desc: t('wlfUseDesc'),       type: 'bullish' },
+    { id: 'limits',    name: t('wlfLimitsName'),    desc: t('wlfLimitsDesc'),    type: 'neutral' },
+  ],
+  note: t('wlfNote'),
+});
+
 // Dealer positioning & gamma — the lesser-known options market structure that
 // actually moves the underlying: market makers hedging delta, gamma exposure
 // (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna
