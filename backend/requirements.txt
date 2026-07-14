@@ -18,7 +18,7 @@ PyJWT==2.13.0
 bcrypt==4.2.1
 python-multipart==0.0.32
 google-auth==2.36.0
-google-auth-oauthlib==1.2.1
+google-auth-oauthlib==1.4.0
 google-auth-httplib2==0.2.0
 passlib[bcrypt]==1.7.4
 cryptography>=41.0.0
