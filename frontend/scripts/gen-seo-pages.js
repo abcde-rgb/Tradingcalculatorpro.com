@@ -120,6 +120,8 @@ const TOPICS = [
   { v:'wolfe-waves', slug:'wolfe-waves-patron-5-ondas-objetivo', tk:'wlfTitle', ik:'wlfIntro' },
   { v:'market-profile', slug:'market-profile-teoria-subastas-poc-valor', tk:'mpTitle', ik:'mpIntro' },
   { v:'elder', slug:'sistema-elder-triple-pantalla-force-index', tk:'eldTitle', ik:'eldIntro' },
+  { v:'oscillators', slug:'osciladores-raros-coppock-schaff-rsi2-tsi', tk:'oscTitle', ik:'oscIntro' },
+  { v:'time-cycles', slug:'tiempo-ciclos-fibonacci-temporal-hurst', tk:'cycTitle', ik:'cycIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
   { v:'market-structure', slug:'estructura-de-mercado-bos-choch', tk:'msTitle', ik:'msIntro' },
   { v:'wyckoff', slug:'metodo-wyckoff', tk:'wyckoffTitle', ik:'wyckoffIntro' },

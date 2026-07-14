@@ -2131,6 +2131,40 @@ export const getElder = (t) => ({
   note: t('eldNote'),
 });
 
+// Obscure oscillators — a bundle of little-known momentum tools: the Coppock
+// Curve (long-term bottoms), the Schaff Trend Cycle, Connors RSI-2 (mean
+// reversion) and the True Strength Index (TSI), with honest limits.
+export const getObscureOscillators = (t) => ({
+  title: t('oscTitle'),
+  intro: t('oscIntro'),
+  items: [
+    { id: 'what',    name: t('oscWhatName'),    desc: t('oscWhatDesc') },
+    { id: 'coppock', name: t('oscCoppockName'), desc: t('oscCoppockDesc'), type: 'bullish' },
+    { id: 'schaff',  name: t('oscSchaffName'),  desc: t('oscSchaffDesc') },
+    { id: 'connors', name: t('oscConnorsName'), desc: t('oscConnorsDesc') },
+    { id: 'tsi',     name: t('oscTsiName'),     desc: t('oscTsiDesc') },
+    { id: 'limits',  name: t('oscLimitsName'),  desc: t('oscLimitsDesc'),  type: 'neutral' },
+  ],
+  note: t('oscNote'),
+});
+
+// Time & cycles — the forgotten TIME axis of technical analysis: Fibonacci time
+// zones and clusters, Hurst's nominal cycle model (nested waves) and the FLD, plus
+// an honest limits card (cycles drift, subjective). Sits beside Gann in the pillar.
+export const getTimeCycles = (t) => ({
+  title: t('cycTitle'),
+  intro: t('cycIntro'),
+  items: [
+    { id: 'what',        name: t('cycWhatName'),        desc: t('cycWhatDesc') },
+    { id: 'fibtime',     name: t('cycFibTimeName'),     desc: t('cycFibTimeDesc') },
+    { id: 'clusters',    name: t('cycClustersName'),    desc: t('cycClustersDesc'), type: 'bullish' },
+    { id: 'hurst',       name: t('cycHurstName'),       desc: t('cycHurstDesc') },
+    { id: 'fld',         name: t('cycFldName'),         desc: t('cycFldDesc') },
+    { id: 'limits',      name: t('cycLimitsName'),      desc: t('cycLimitsDesc'),   type: 'neutral' },
+  ],
+  note: t('cycNote'),
+});
+
 // Dealer positioning & gamma — the lesser-known options market structure that
 // actually moves the underlying: market makers hedging delta, gamma exposure
 // (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna
