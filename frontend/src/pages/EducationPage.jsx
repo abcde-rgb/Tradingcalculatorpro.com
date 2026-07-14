@@ -7,7 +7,7 @@ import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
   CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer,
-  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves, RefreshCw, GitFork, Fish, Spline
+  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves, RefreshCw, GitFork, Fish, Spline, BarChartHorizontal
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -70,6 +70,8 @@ import RRGVisual from '@/components/education/RRGVisual';
 import PitchforkVisual from '@/components/education/PitchforkVisual';
 import BillWilliamsVisual from '@/components/education/BillWilliamsVisual';
 import WolfeWavesVisual from '@/components/education/WolfeWavesVisual';
+import MarketProfileVisual from '@/components/education/MarketProfileVisual';
+import ElderVisual from '@/components/education/ElderVisual';
 import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
@@ -492,6 +494,8 @@ export default function EducationPage() {
   const PITCHFORK = getPitchfork(t);
   const BILL_WILLIAMS = getBillWilliams(t);
   const WOLFE = getWolfeWaves(t);
+  const MARKET_PROFILE = getMarketProfile(t);
+  const ELDER = getElder(t);
   const GAMMA_EXPOSURE = getGammaExposure(t);
   const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
   const NET_LIQUIDITY = getNetLiquidity(t);
@@ -546,6 +550,8 @@ export default function EducationPage() {
       { value: 'pitchfork', label: t('pfTitle') },
       { value: 'bill-williams', label: t('bwTitle') },
       { value: 'wolfe-waves', label: t('wlfTitle') },
+      { value: 'market-profile', label: t('mpTitle') },
+      { value: 'elder', label: t('eldTitle') },
       { value: 'sentiment', label: t('smTitle') },
       { value: 'intermarket', label: t('imTitle') },
       { value: 'forex-deep', label: t('fxTitle') },
@@ -1464,6 +1470,70 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{WOLFE.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Market Profile & Auction — TPO, value area/POC, initial balance, use, limits */}
+            <TabsContent value="market-profile" className="space-y-8">
+              <Card className="bg-gradient-to-br from-teal-500/5 to-primary/10 border-teal-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <BarChartHorizontal className="w-6 h-6 text-teal-500" />
+                    {MARKET_PROFILE.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{MARKET_PROFILE.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {MARKET_PROFILE.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <MarketProfileVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{MARKET_PROFILE.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Elder system — 3 Ms, Triple Screen, Elder-Ray, Force Index, Impulse, limits */}
+            <TabsContent value="elder" className="space-y-8">
+              <Card className="bg-gradient-to-br from-purple-500/5 to-primary/10 border-purple-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Brain className="w-6 h-6 text-purple-500" />
+                    {ELDER.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{ELDER.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ELDER.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <ElderVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{ELDER.note}</p>
               </div>
             </TabsContent>
 

@@ -118,6 +118,8 @@ const TOPICS = [
   { v:'pitchfork', slug:'horquilla-de-andrews-linea-mediana', tk:'pfTitle', ik:'pfIntro' },
   { v:'bill-williams', slug:'bill-williams-alligator-fractales-awesome-oscillator', tk:'bwTitle', ik:'bwIntro' },
   { v:'wolfe-waves', slug:'wolfe-waves-patron-5-ondas-objetivo', tk:'wlfTitle', ik:'wlfIntro' },
+  { v:'market-profile', slug:'market-profile-teoria-subastas-poc-valor', tk:'mpTitle', ik:'mpIntro' },
+  { v:'elder', slug:'sistema-elder-triple-pantalla-force-index', tk:'eldTitle', ik:'eldIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
   { v:'market-structure', slug:'estructura-de-mercado-bos-choch', tk:'msTitle', ik:'msIntro' },
   { v:'wyckoff', slug:'metodo-wyckoff', tk:'wyckoffTitle', ik:'wyckoffIntro' },

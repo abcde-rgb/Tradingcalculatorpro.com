@@ -2097,6 +2097,40 @@ export const getWolfeWaves = (t) => ({
   note: t('wlfNote'),
 });
 
+// Market Profile & Auction Market Theory — Steidlmayer's TPO/time-based view and
+// the auction framework (value area, POC, initial balance, balance vs imbalance).
+// Complements the volume-profile/POC already covered in advanced-ta/order-flow.
+export const getMarketProfile = (t) => ({
+  title: t('mpTitle'),
+  intro: t('mpIntro'),
+  items: [
+    { id: 'what',     name: t('mpWhatName'),     desc: t('mpWhatDesc') },
+    { id: 'tpo',      name: t('mpTpoName'),      desc: t('mpTpoDesc') },
+    { id: 'valuepoc', name: t('mpValuePocName'), desc: t('mpValuePocDesc'), type: 'bullish' },
+    { id: 'ib',       name: t('mpIbName'),       desc: t('mpIbDesc') },
+    { id: 'use',      name: t('mpUseName'),      desc: t('mpUseDesc'),      type: 'bullish' },
+    { id: 'limits',   name: t('mpLimitsName'),   desc: t('mpLimitsDesc'),   type: 'neutral' },
+  ],
+  note: t('mpNote'),
+});
+
+// The Elder system — Alexander Elder's practical toolkit: the Triple Screen,
+// Elder-Ray (Bull/Bear Power), the Force Index, the Impulse System, and honest
+// limits (classic, sensible, edge is in the discipline more than the indicators).
+export const getElder = (t) => ({
+  title: t('eldTitle'),
+  intro: t('eldIntro'),
+  items: [
+    { id: 'what',        name: t('eldWhatName'),        desc: t('eldWhatDesc') },
+    { id: 'triplescreen',name: t('eldTripleName'),      desc: t('eldTripleDesc'),  type: 'bullish' },
+    { id: 'elderray',    name: t('eldRayName'),         desc: t('eldRayDesc') },
+    { id: 'forceindex',  name: t('eldForceName'),       desc: t('eldForceDesc') },
+    { id: 'impulse',     name: t('eldImpulseName'),     desc: t('eldImpulseDesc'), type: 'bullish' },
+    { id: 'limits',      name: t('eldLimitsName'),      desc: t('eldLimitsDesc'),  type: 'neutral' },
+  ],
+  note: t('eldNote'),
+});
+
 // Dealer positioning & gamma — the lesser-known options market structure that
 // actually moves the underlying: market makers hedging delta, gamma exposure
 // (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna
