@@ -2026,6 +2026,42 @@ export const getEhlers = (t) => ({
   note: t('ehlNote'),
 });
 
+// Relative Rotation Graphs (RRG) — Julius de Kempenaer's 4-quadrant rotation
+// map (RS-Ratio vs RS-Momentum against a benchmark): the axes, the Leading/
+// Weakening/Lagging/Improving quadrants, the clockwise rotation, the tails, use.
+export const getRRG = (t) => ({
+  title: t('rrgTitle'),
+  intro: t('rrgIntro'),
+  items: [
+    { id: 'what',      name: t('rrgWhatName'),      desc: t('rrgWhatDesc') },
+    { id: 'axes',      name: t('rrgAxesName'),      desc: t('rrgAxesDesc') },
+    { id: 'quadrants', name: t('rrgQuadrantsName'), desc: t('rrgQuadrantsDesc') },
+    { id: 'rotation',  name: t('rrgRotationName'),  desc: t('rrgRotationDesc') },
+    { id: 'tails',     name: t('rrgTailsName'),     desc: t('rrgTailsDesc'),     type: 'bullish' },
+    { id: 'use',       name: t('rrgUseName'),       desc: t('rrgUseDesc'),       type: 'bullish' },
+    { id: 'limits',    name: t('rrgLimitsName'),    desc: t('rrgLimitsDesc'),    type: 'neutral' },
+  ],
+  note: t('rrgNote'),
+});
+
+// Andrews' Pitchfork (median line theory) — Alan Andrews' 3-parallel-line tool
+// from 3 pivots: how to draw it, the median line as a magnet, the parallels as
+// channel S/R, the Schiff variant, how to trade it, and honest (discretionary) limits.
+export const getPitchfork = (t) => ({
+  title: t('pfTitle'),
+  intro: t('pfIntro'),
+  items: [
+    { id: 'what',   name: t('pfWhatName'),   desc: t('pfWhatDesc') },
+    { id: 'build',  name: t('pfBuildName'),  desc: t('pfBuildDesc') },
+    { id: 'median', name: t('pfMedianName'), desc: t('pfMedianDesc'),  type: 'bullish' },
+    { id: 'lines',  name: t('pfLinesName'),  desc: t('pfLinesDesc') },
+    { id: 'schiff', name: t('pfSchiffName'), desc: t('pfSchiffDesc') },
+    { id: 'use',    name: t('pfUseName'),    desc: t('pfUseDesc'),     type: 'bullish' },
+    { id: 'limits', name: t('pfLimitsName'), desc: t('pfLimitsDesc'),  type: 'neutral' },
+  ],
+  note: t('pfNote'),
+});
+
 // Dealer positioning & gamma — the lesser-known options market structure that
 // actually moves the underlying: market makers hedging delta, gamma exposure
 // (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna

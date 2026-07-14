@@ -114,6 +114,8 @@ const TOPICS = [
   { v:'gann-box', slug:'caja-de-gann-como-se-monta-y-opera', tk:'gannTitle', ik:'gannIntro' },
   { v:'demark', slug:'demark-td-sequential-setup-9-countdown-13', tk:'dmkTitle', ik:'dmkIntro' },
   { v:'ehlers', slug:'indicadores-ehlers-fisher-transform-mama-dsp', tk:'ehlTitle', ik:'ehlIntro' },
+  { v:'rrg', slug:'graficos-rotacion-relativa-rrg-cuadrantes', tk:'rrgTitle', ik:'rrgIntro' },
+  { v:'pitchfork', slug:'horquilla-de-andrews-linea-mediana', tk:'pfTitle', ik:'pfIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
   { v:'market-structure', slug:'estructura-de-mercado-bos-choch', tk:'msTitle', ik:'msIntro' },
   { v:'wyckoff', slug:'metodo-wyckoff', tk:'wyckoffTitle', ik:'wyckoffIntro' },
