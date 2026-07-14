@@ -1164,3 +1164,23 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   i18n **4777 claves, 8 idénticos, 0 faltan/sobran**; contenido gann **bundleado en ES/EN/ZH/AR** y **8 páginas
   SEO generadas** con título/descripción localizados (comprobado ES/DE/AR-RTL). La caja de Gann no existía en la
   web antes (verificado: 0 ocurrencias de "gann" en el repo).
+
+### 2026-07-14 (40) — "Todos": 10 módulos de TA poco conocido + ampliación (6 oleadas)
+- Tras inventariar los 21 temas de TA existentes, se añaden 10 módulos nuevos de análisis técnico
+  **genuinamente obscuro** (pilar Técnico/Avanzado), en tono honesto/evidence-aware y 8 idiomas:
+  1. **DeMark TD Sequential** (`demark`): flip, setup 9, perfeccionado, countdown 13, uso, límites.
+  2. **Ehlers DSP** (`ehlers`): Fisher Transform, MAMA/MESA, ciclo+sinewave, SuperSmoother/Roofing.
+  3. **Rotación Relativa RRG** (`rrg`): ejes RS-Ratio/RS-Momentum, 4 cuadrantes, rotación horaria, colas.
+  4. **Andrews' Pitchfork** (`pitchfork`): montaje desde 3 pivotes, mediana-imán, paralelas, Schiff.
+  5. **Bill Williams / Chaos** (`bill-williams`): Alligator, fractales, AO, Gator/MFI, uso, límites.
+  6. **Wolfe Waves** (`wolfe-waves`): estructura 5 ondas, línea 1-4 (EPA), reglas, barrido onda 5.
+  7. **Market Profile / Subastas** (`market-profile`): TPO, área de valor+POC, balance inicial, POC virgen.
+  8. **Sistema de Elder** (`elder`): 3 M, Triple Pantalla, Elder-Ray, Force Index, Impulse System.
+  9. **Osciladores raros** (`oscillators`): Coppock, Schaff STC, Connors RSI-2, TSI.
+  10. **Tiempo y ciclos** (`time-cycles`): zonas de tiempo de Fibonacci, clusters, ciclos de Hurst, FLD.
+- **Ampliación**: `breadth-cycles` gana **TICK (NYSE)** y **TRIN (Arms Index)** como items nuevos.
+- Cada módulo nuevo: getter + componente SVG esquemático + ~15-17 claves i18n×8 + wiring EducationPage
+  (icono, const, nav, TabsContent) + entrada `gen-seo-pages`. Todos con tarjeta honesta de límites.
+- Verificado por oleada: `npm run build` OK (Educación **68 temas × 8 = 544 páginas**, sitemap **576 URLs**);
+  paridad i18n **4939 claves idénticas en los 8 idiomas, 0 faltan/sobran**; contenido bundleado y páginas
+  SEO generadas con títulos localizados. Subido a la rama en 6 commits (oleadas) + fusión final a `main`.

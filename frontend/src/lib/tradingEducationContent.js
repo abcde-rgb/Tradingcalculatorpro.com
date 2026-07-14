@@ -1398,6 +1398,8 @@ export const getBreadthCycles = (t) => ({
   items: [
     { id: 'ad',        name: t('bcAdName'),        desc: t('bcAdDesc') },
     { id: 'highslows', name: t('bcHlName'),        desc: t('bcHlDesc') },
+    { id: 'tick',      name: t('bcTickName'),      desc: t('bcTickDesc') },
+    { id: 'trin',      name: t('bcTrinName'),      desc: t('bcTrinDesc') },
     { id: 'mcclellan', name: t('bcMcClellanName'), desc: t('bcMcClellanDesc') },
     { id: 'seasonal',  name: t('bcSeasonalName'),  desc: t('bcSeasonalDesc') },
     { id: 'cycles',    name: t('bcCyclesName'),    desc: t('bcCyclesDesc') },
