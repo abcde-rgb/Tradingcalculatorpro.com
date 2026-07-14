@@ -7,7 +7,7 @@ import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
   CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer,
-  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock
+  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -63,6 +63,7 @@ import FundedTruthVisual from '@/components/education/FundedTruthVisual';
 import TraderJourneyVisual from '@/components/education/TraderJourneyVisual';
 import MovingAveragesVisual from '@/components/education/MovingAveragesVisual';
 import PriceActionVisual from '@/components/education/PriceActionVisual';
+import GannBoxVisual from '@/components/education/GannBoxVisual';
 import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
@@ -478,6 +479,7 @@ export default function EducationPage() {
   const TRADER_JOURNEY = getTraderJourney(t);
   const MOVING_AVERAGES = getMovingAverages(t);
   const PRICE_ACTION = getPriceAction(t);
+  const GANN_BOX = getGannBox(t);
   const GAMMA_EXPOSURE = getGammaExposure(t);
   const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
   const NET_LIQUIDITY = getNetLiquidity(t);
@@ -512,6 +514,7 @@ export default function EducationPage() {
       { value: 'chart-patterns', label: t('chartPatterns') },
       { value: 'candlesticks', label: t('candlestickPatterns') },
       { value: 'price-action', label: t('pacTitle') },
+      { value: 'gann-box', label: t('gannTitle') },
       { value: 'dow-theory', label: t('dowTheoryTitle') },
       { value: 'market-structure', label: t('msTitle') },
       { value: 'wyckoff', label: t('wyckoffTab') },
@@ -1219,6 +1222,38 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{PRICE_ACTION.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* The Gann Box — anchor, build, proportions, level trading, closes, timeframes, myth */}
+            <TabsContent value="gann-box" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Grid3x3 className="w-6 h-6 text-amber-500" />
+                    {GANN_BOX.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{GANN_BOX.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {GANN_BOX.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <GannBoxVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{GANN_BOX.note}</p>
               </div>
             </TabsContent>
 

@@ -1149,3 +1149,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: `py_compile` de los 9 módulos OK; **suite offline 104 passed / 74 skipped, 0 fallos**.
   Deploy backend sigue bloqueado por facturación GCP; los cambios entran en el repo y correrán en el pipeline
   (pytest → Docker) cuando se reactive.
+
+### 2026-07-14 (39) — Módulo nuevo "La caja de Gann" (análisis técnico, honesto)
+- ✅ **Módulo `gann-box` — "La caja de Gann: cómo se monta y se opera paso a paso"** (pilar Técnico, junto a
+  Price action): getter `getGannBox` + `GannBoxVisual` (8 SVGs) + **19 claves i18n×8** (`gann`). 8 tarjetas
+  centradas en la práctica que pidió el usuario: qué es y la diagonal 1×1 (equilibrio 45°), **desde qué
+  máximo/mínimo se ancla** (swing low alcista / swing high bajista), **cómo se monta paso a paso** en TradingView
+  + escalado a 45°, **proporciones** (0/25/50/75/100, tercios, ratios 1×1/1×2/2×1), cómo se operan los niveles,
+  **direccionalidad en cierres bajo un nivel** (cierre vs mecha, fakeout, retest), **temporalidades** (marcos
+  altos = niveles más fiables) y una tarjeta honesta **mito vs realidad** (sin evidencia de uso institucional;
+  niveles autocumplidos como Fibonacci; el mito de los "50M" de Gann). Mantiene el E-E-A-T de un sitio YMYL.
+- Wiring en `EducationPage` (icono Grid3x3) + entrada `gen-seo-pages` (`caja-de-gann-como-se-monta-y-opera`).
+- Verificado: `npm run build` OK (Educación **58 temas × 8 = 464 páginas**, sitemap **496 URLs**); paridad
+  i18n **4777 claves, 8 idénticos, 0 faltan/sobran**; contenido gann **bundleado en ES/EN/ZH/AR** y **8 páginas
+  SEO generadas** con título/descripción localizados (comprobado ES/DE/AR-RTL). La caja de Gann no existía en la
+  web antes (verificado: 0 ocurrencias de "gann" en el repo).

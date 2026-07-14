@@ -1969,6 +1969,28 @@ export const getPriceAction = (t) => ({
   note: t('pacNote'),
 });
 
+// The Gann Box — a technical-analysis drawing tool (W.D. Gann) anchored on a
+// major swing pivot that divides BOTH price and time into proportional levels
+// (0/25/50/75/100%), with the 1×1 diagonal as the price–time equilibrium. Covers
+// what it is, where to anchor (which high/low), how to build it, the proportions,
+// trading the levels, directional reads on closes, timeframes, and an honest
+// myth-vs-reality note. Pairs with GannBoxVisual.jsx. Sits in the technical pillar.
+export const getGannBox = (t) => ({
+  title: t('gannTitle'),
+  intro: t('gannIntro'),
+  items: [
+    { id: 'what',        name: t('gannWhatName'),        desc: t('gannWhatDesc') },
+    { id: 'anchor',      name: t('gannAnchorName'),      desc: t('gannAnchorDesc') },
+    { id: 'build',       name: t('gannBuildName'),       desc: t('gannBuildDesc') },
+    { id: 'proportions', name: t('gannProportionsName'), desc: t('gannProportionsDesc') },
+    { id: 'levels',      name: t('gannLevelsName'),      desc: t('gannLevelsDesc'),      type: 'bullish' },
+    { id: 'close',       name: t('gannCloseName'),       desc: t('gannCloseDesc'),       type: 'bearish' },
+    { id: 'timeframes',  name: t('gannTimeframesName'),  desc: t('gannTimeframesDesc') },
+    { id: 'myth',        name: t('gannMythName'),        desc: t('gannMythDesc'),        type: 'neutral' },
+  ],
+  note: t('gannNote'),
+});
+
 // Dealer positioning & gamma — the lesser-known options market structure that
 // actually moves the underlying: market makers hedging delta, gamma exposure
 // (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna
