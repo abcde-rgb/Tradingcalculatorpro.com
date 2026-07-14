@@ -59,4 +59,4 @@ google-cloud-logging==3.11.3
 starlette==0.41.3
 
 # 2FA (TOTP)
-pyotp==2.9.0
+pyotp==2.10.0
