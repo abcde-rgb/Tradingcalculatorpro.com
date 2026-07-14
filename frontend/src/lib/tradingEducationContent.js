@@ -1991,6 +1991,41 @@ export const getGannBox = (t) => ({
   note: t('gannNote'),
 });
 
+// DeMark TD Sequential/Combo — Tom DeMark's counter-trend exhaustion/timing tool
+// that ships on Bloomberg yet retail barely knows: the TD Price Flip, the 9-bar
+// Setup, the "perfected" setup, the 13-bar Countdown, how to use it, honest limits.
+export const getDeMark = (t) => ({
+  title: t('dmkTitle'),
+  intro: t('dmkIntro'),
+  items: [
+    { id: 'what',      name: t('dmkWhatName'),      desc: t('dmkWhatDesc') },
+    { id: 'flip',      name: t('dmkFlipName'),      desc: t('dmkFlipDesc') },
+    { id: 'setup',     name: t('dmkSetupName'),     desc: t('dmkSetupDesc') },
+    { id: 'perfected', name: t('dmkPerfectedName'), desc: t('dmkPerfectedDesc'), type: 'bullish' },
+    { id: 'countdown', name: t('dmkCountdownName'), desc: t('dmkCountdownDesc') },
+    { id: 'use',       name: t('dmkUseName'),       desc: t('dmkUseDesc'),       type: 'bullish' },
+    { id: 'limits',    name: t('dmkLimitsName'),    desc: t('dmkLimitsDesc'),    type: 'neutral' },
+  ],
+  note: t('dmkNote'),
+});
+
+// Ehlers DSP indicators — John Ehlers applied digital signal processing to price:
+// the Fisher Transform, the MAMA/MESA adaptive average, dominant-cycle measurement
+// + sinewave, and low-lag filters (SuperSmoother/roofing). Serious maths, very niche.
+export const getEhlers = (t) => ({
+  title: t('ehlTitle'),
+  intro: t('ehlIntro'),
+  items: [
+    { id: 'what',    name: t('ehlWhatName'),    desc: t('ehlWhatDesc') },
+    { id: 'fisher',  name: t('ehlFisherName'),  desc: t('ehlFisherDesc'),  type: 'bullish' },
+    { id: 'mama',    name: t('ehlMamaName'),    desc: t('ehlMamaDesc') },
+    { id: 'cycle',   name: t('ehlCycleName'),   desc: t('ehlCycleDesc') },
+    { id: 'filters', name: t('ehlFiltersName'), desc: t('ehlFiltersDesc') },
+    { id: 'limits',  name: t('ehlLimitsName'),  desc: t('ehlLimitsDesc'),  type: 'neutral' },
+  ],
+  note: t('ehlNote'),
+});
+
 // Dealer positioning & gamma — the lesser-known options market structure that
 // actually moves the underlying: market makers hedging delta, gamma exposure
 // (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna

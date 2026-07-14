@@ -7,7 +7,7 @@ import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
   CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer,
-  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3
+  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -64,6 +64,8 @@ import TraderJourneyVisual from '@/components/education/TraderJourneyVisual';
 import MovingAveragesVisual from '@/components/education/MovingAveragesVisual';
 import PriceActionVisual from '@/components/education/PriceActionVisual';
 import GannBoxVisual from '@/components/education/GannBoxVisual';
+import TDSequentialVisual from '@/components/education/TDSequentialVisual';
+import EhlersVisual from '@/components/education/EhlersVisual';
 import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
@@ -480,6 +482,8 @@ export default function EducationPage() {
   const MOVING_AVERAGES = getMovingAverages(t);
   const PRICE_ACTION = getPriceAction(t);
   const GANN_BOX = getGannBox(t);
+  const DEMARK = getDeMark(t);
+  const EHLERS = getEhlers(t);
   const GAMMA_EXPOSURE = getGammaExposure(t);
   const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
   const NET_LIQUIDITY = getNetLiquidity(t);
@@ -528,6 +532,8 @@ export default function EducationPage() {
       { value: 'order-flow', label: t('ofTitle') },
       { value: 'session-timing', label: t('hzTitle') },
       { value: 'advanced-ta', label: t('advTaTitle') },
+      { value: 'demark', label: t('dmkTitle') },
+      { value: 'ehlers', label: t('ehlTitle') },
       { value: 'sentiment', label: t('smTitle') },
       { value: 'intermarket', label: t('imTitle') },
       { value: 'forex-deep', label: t('fxTitle') },
@@ -1254,6 +1260,70 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{GANN_BOX.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* DeMark TD Sequential — flip, 9-setup, perfected, 13-countdown, use, limits */}
+            <TabsContent value="demark" className="space-y-8">
+              <Card className="bg-gradient-to-br from-rose-500/5 to-primary/10 border-rose-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Timer className="w-6 h-6 text-rose-500" />
+                    {DEMARK.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{DEMARK.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {DEMARK.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <TDSequentialVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{DEMARK.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* Ehlers DSP — price as signal, Fisher, MAMA/MESA, cycle, filters, limits */}
+            <TabsContent value="ehlers" className="space-y-8">
+              <Card className="bg-gradient-to-br from-cyan-500/5 to-primary/10 border-cyan-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Waves className="w-6 h-6 text-cyan-500" />
+                    {EHLERS.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{EHLERS.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {EHLERS.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <EhlersVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{EHLERS.note}</p>
               </div>
             </TabsContent>
 
