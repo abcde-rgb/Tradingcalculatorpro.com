@@ -1125,3 +1125,27 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado: `npm run build` OK (Educación **57 temas × 8 = 456 páginas**, sitemap **488 URLs**); paridad
   i18n **4758 claves, 8 idénticos**; **render headless (premium, es y ar)** → Liquidez 6/6, Colas gordas 6/6,
   **0 claves crudas / 0 pageerrors**. Con esto, los 4 módulos de "contenido poco conocido" están cerrados.
+
+### 2026-07-14 (38) — Endurecimiento de seguridad (auditoría OWASP activa)
+- ✅ **Suite de regresión de seguridad en CI** — `backend/tests/test_security_unit.py` (**41 tests, corre
+  siempre** gracias al sufijo `_unit.py`). Extrae por `ast` los helpers del shim (`_SAFE_FIELD_RE`,
+  `_build_where_clause`, `_serialize`) y **fuzz-testea inyección SQL**: claves maliciosas (`' OR '1'='1`,
+  `; DROP TABLE`, `UNION SELECT`, …) se rechazan por el whitelist; valores peligrosos acaban **parametrizados**
+  (nunca en el texto SQL). Cubre también bcrypt (salteado, no reversible) y el fix host-header (abajo).
+- 🔴 **Fix host-header injection en enlaces por email** — `forgot-password` y `send-verification-email`
+  construían el enlace desde `Origin`/`Referer`/`base_url` (todos manipulables por el atacante). Un atacante
+  podía pedir el reset del email de una víctima con `Origin: https://evil.com`; la víctima recibía un enlace
+  con el token apuntando al sitio del atacante → **robo de cuenta**. Nuevo `_trusted_link_base()` en
+  `missing_apis.py`: solo devuelve el `Origin` si está en la allow-list (CORS), si no cae al `FRONTEND_URL`
+  canónico; **nunca** a `base_url`. El magic-link ya era seguro (usaba `FRONTEND_URL`).
+- ✅ **Dependencias con CVE actualizadas** (pip-audit encontró 58 CVEs en 5 paquetes): `PyJWT 2.9→2.13`
+  (CVEs de validación `crit`, auth), `aiohttp 3.11.10→3.14.1`, `python-multipart 0.0.12→0.0.32`,
+  `python-dotenv 1.0.1→1.2.2` — cierran **50 de 58**. Bumps del mismo major, verificados con resolución
+  dry-run del stack completo + round-trip real de `jwt.encode/decode`.
+- ⏸️ **Pendiente (requiere upgrade coordinado y testeado en staging):** `starlette 0.41.3` (8 CVEs, clase
+  DoS/host-header) está fijado por `fastapi==0.115.5` (`<0.42`); subirlo exige subir FastAPI a la vez y no se
+  puede validar a ciegas en sandbox (no hay runtime FastAPI/asyncpg). Riesgo mitigado: Cloud Run tiene timeout
+  y `min-instances`; el fix propio de host-header cubre el vector serio. Añadido `G-` para hacerlo con test en vivo.
+- Verificado: `py_compile` de los 9 módulos OK; **suite offline 104 passed / 74 skipped, 0 fallos**.
+  Deploy backend sigue bloqueado por facturación GCP; los cambios entran en el repo y correrán en el pipeline
+  (pytest → Docker) cuando se reactive.

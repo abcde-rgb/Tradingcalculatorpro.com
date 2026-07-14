@@ -10,6 +10,35 @@
 
 ---
 
+### BUG-021 — Host-header injection en enlaces de email (reset de contraseña / verificación)
+**Severidad:** 🔴 CRÍTICA · **Archivo:** `backend/missing_apis.py` (`forgot_password`, `send_verification_email`) · **Estado:** ✅ RESUELTO (2026-07-14)
+
+Los endpoints `POST /auth/forgot-password` y `POST /auth/send-verification-email`
+construían el enlace que se envía por email a partir de cabeceras controlables por
+el atacante: `Origin` → `Referer` → `str(request.base_url)` (que deriva del header
+`Host`). Un atacante podía pedir el reset del email de **otra persona** enviando
+`Origin: https://evil.com`; la víctima recibía un correo legítimo con un enlace
+`https://evil.com/reset-password#<token>`. Como el token viaja en la URL, la página
+del atacante (JS leyendo `location.hash`) lo captura → **robo de cuenta**. En
+verificación el token va en query-string, así que se filtra directamente a los logs
+del atacante. Es la misma clase que el CVE `PYSEC-2026-161` de Starlette.
+**Causa raíz:** confianza en `Host`/`Origin`/`Referer` para construir enlaces de
+seguridad enviados por email.
+**Solución:** nuevo helper `_trusted_link_base(request)` que solo devuelve el
+`Origin` si está en la allow-list (misma que CORS: dominio canónico + `CORS_ORIGINS`
++ localhost en dev); en cualquier otro caso cae a `FRONTEND_URL` canónico. **Nunca**
+usa `base_url`/`Referer`. El magic-link (login sin contraseña, el más peligroso) ya
+era seguro porque usaba `FRONTEND_URL`.
+**Verificado:** `py_compile` OK; **9 tests nuevos** en `tests/test_security_unit.py`
+(origins maliciosos con trucos de sufijo/prefijo/userinfo → siempre canónico; allow-list
+CORS respetada). Pendiente prueba en vivo (deploy bloqueado por facturación GCP).
+
+### Endurecimiento asociado (2026-07-14)
+- **Suite de seguridad en CI** (`tests/test_security_unit.py`, 41 tests): fuzz de inyección SQL contra el shim
+  (claves whitelisted, valores parametrizados), bcrypt no reversible, host-header. Corre siempre (sufijo `_unit.py`).
+- **CVEs de dependencias**: `PyJWT 2.9→2.13`, `aiohttp 3.11.10→3.14.1`, `python-multipart 0.0.12→0.0.32`,
+  `python-dotenv 1.0.1→1.2.2` (50/58 CVEs que reportó `pip-audit`). `starlette` pendiente (atado a FastAPI; upgrade coordinado).
+
 ### BUG-020 — Borrar cuenta NO cancelaba la suscripción de Stripe (cobro tras baja)
 **Severidad:** 🔴 CRÍTICA · **Archivo:** `backend/server.py` (`delete_account`) · **Estado:** ✅ RESUELTO (2026-07-12)
 

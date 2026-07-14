@@ -41,6 +41,36 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def _trusted_link_base(request: Optional[Request] = None) -> str:
+    """Return a trusted base URL for links we EMAIL to users (password reset,
+    email verification).
+
+    Security: never build these links from the raw Host/Origin/Referer of the
+    request. An attacker can POST /auth/forgot-password for a victim's address
+    with ``Origin: https://evil.com`` (or a spoofed Host header); the victim
+    then receives a reset link pointing at the attacker's site, and since the
+    token travels in the URL the attacker's page can read it → account takeover
+    (host-header injection, the same class as CVE PYSEC-2026-161 in Starlette).
+
+    We only echo the request Origin back if it is explicitly allow-listed
+    (matches the CORS allow-list); otherwise we fall back to the canonical
+    ``FRONTEND_URL``. Never falls back to ``request.base_url``.
+    """
+    canonical = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com").strip().rstrip("/")
+    allowed = {canonical, "https://tradingcalculatorpro.com", "https://www.tradingcalculatorpro.com"}
+    for extra in os.environ.get("CORS_ORIGINS", "").split(","):
+        extra = extra.strip().rstrip("/")
+        if extra:
+            allowed.add(extra)
+    if os.environ.get("ENVIRONMENT", "production").strip().lower() == "development":
+        allowed.update({"http://localhost:3000", "http://localhost:5173"})
+    if request is not None:
+        origin = (request.headers.get("origin") or "").strip().rstrip("/")
+        if origin and origin in allowed:
+            return origin
+    return canonical
+
+
 # ── These helpers are imported from the main server module at registration time
 # (injected via register(router, db, helpers)).  We define placeholders here
 # that get replaced by register().
@@ -512,10 +542,10 @@ async def forgot_password(request: Request, payload: ForgotPasswordRequest):
         }},
         upsert=True,
     )
-    # Build reset URL from request origin
-    origin = request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
-    if not origin:
-        origin = str(request.base_url).rstrip("/")
+    # Build reset URL from a trusted, allow-listed origin — NEVER from the raw
+    # Host/Origin/Referer, which an attacker controls (host-header injection →
+    # the victim's reset link would point at the attacker's site).
+    origin = _trusted_link_base(request)
     reset_url = f"{origin}/reset-password#{token}"
 
     sent = await _send_reset_email(email_lc, reset_url)
@@ -640,7 +670,8 @@ async def send_verification_email(request: Request, user: dict = Depends(_requir
         }},
         upsert=True,
     )
-    origin = request.headers.get("origin") or str(request.base_url).rstrip("/")
+    # Trusted, allow-listed origin only (never raw Host/Origin → token leak).
+    origin = _trusted_link_base(request)
     verify_url = f"{origin}/verify-email?token={token}"
     sent = await _send_verification_email(user["email"], verify_url)
     resp: Dict[str, Any] = {"ok": True, "message": "Email de verificación enviado"}
