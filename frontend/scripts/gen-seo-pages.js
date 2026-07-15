@@ -122,6 +122,7 @@ const TOPICS = [
   { v:'elder', slug:'sistema-elder-triple-pantalla-force-index', tk:'eldTitle', ik:'eldIntro' },
   { v:'oscillators', slug:'osciladores-raros-coppock-schaff-rsi2-tsi', tk:'oscTitle', ik:'oscIntro' },
   { v:'time-cycles', slug:'tiempo-ciclos-fibonacci-temporal-hurst', tk:'cycTitle', ik:'cycIntro' },
+  { v:'psych-solutions', slug:'psicologia-trading-problema-solucion', tk:'pssTitle', ik:'pssIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
   { v:'market-structure', slug:'estructura-de-mercado-bos-choch', tk:'msTitle', ik:'msIntro' },
   { v:'wyckoff', slug:'metodo-wyckoff', tk:'wyckoffTitle', ik:'wyckoffIntro' },

@@ -2167,6 +2167,28 @@ export const getTimeCycles = (t) => ({
   note: t('cycNote'),
 });
 
+// Trading psychology — problem -> solution. The actionable/fix layer that
+// complements the descriptive biases module: each item names a recognisable
+// problem in the trader's own voice and gives the evidence-based fix, built on
+// implementation intentions ("if-then"), Steenbarger's self-monitoring and
+// Douglas's probabilistic mindset. Sits in the psychology pillar.
+export const getPsychSolutions = (t) => ({
+  title: t('pssTitle'),
+  intro: t('pssIntro'),
+  items: [
+    { id: 'ifthen',        name: t('pssIfThenName'),      desc: t('pssIfThenDesc'),      type: 'bullish' },
+    { id: 'revenge',       name: t('pssRevengeName'),     desc: t('pssRevengeDesc'),     type: 'bearish' },
+    { id: 'movestop',      name: t('pssMoveStopName'),    desc: t('pssMoveStopDesc'),    type: 'bearish' },
+    { id: 'fomo',          name: t('pssFomoName'),        desc: t('pssFomoDesc'),        type: 'bearish' },
+    { id: 'trigger',       name: t('pssTriggerName'),     desc: t('pssTriggerDesc'),     type: 'neutral' },
+    { id: 'overtrading',   name: t('pssOvertradingName'), desc: t('pssOvertradingDesc'), type: 'bearish' },
+    { id: 'disposition',   name: t('pssDispositionName'), desc: t('pssDispositionDesc'), type: 'bearish' },
+    { id: 'tilt',          name: t('pssTiltName'),        desc: t('pssTiltDesc'),        type: 'bearish' },
+    { id: 'probabilistic', name: t('pssProbName'),        desc: t('pssProbDesc'),        type: 'bullish' },
+  ],
+  note: t('pssNote'),
+});
+
 // Dealer positioning & gamma — the lesser-known options market structure that
 // actually moves the underlying: market makers hedging delta, gamma exposure
 // (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna
