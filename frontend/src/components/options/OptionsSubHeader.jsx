@@ -28,12 +28,14 @@ const OptionsSubHeader = ({
 }) => {
   const { t } = useTranslation();
 
+  // overflow-x-auto: on narrow screens the toolbar scrolls inside itself
+  // instead of widening the whole page (mobile had +360px sideways drift)
   return (
-    <header className="sticky top-16 h-14 min-h-[56px] bg-card border-b border-border flex items-center px-5 gap-4 z-30">
+    <header className="sticky top-16 h-14 min-h-[56px] bg-card border-b border-border flex items-center px-5 gap-4 z-30 overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
       <SearchBar currentTicker={ticker} stockData={stock} onSelect={onTickerSelect} />
 
       {stock && (
-        <div className="flex items-center gap-3 ml-2">
+        <div className="flex items-center gap-3 ml-2 shrink-0">
           {loading && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
           <span className="text-xl font-bold text-foreground font-mono" data-testid="live-price">
             ${stock.price.toFixed(2)}
@@ -53,7 +55,7 @@ const OptionsSubHeader = ({
         </div>
       )}
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2 shrink-0">
         <div className="flex bg-muted rounded-lg border border-border overflow-hidden">
           {TABS.map(({ id, icon: Icon, labelKey, testid }) => (
             <button

@@ -83,7 +83,8 @@ const StatsKPIBar = ({
   return (
     <>
       {/* 5 primary KPIs */}
-      <div className="grid grid-cols-5 gap-2">
+      {/* Responsive: 5 KPI cards were unreadable crammed into one mobile row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         <StatCard
           icon={TrendingUp}
           label={t('optMaxProfit')}

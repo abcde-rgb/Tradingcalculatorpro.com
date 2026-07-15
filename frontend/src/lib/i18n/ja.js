@@ -2799,6 +2799,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, ステーブルコイン',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    optShowAll: 'すべて表示（{count}）',
+    optShowLess: '折りたたむ',
     orderSummaryTitle: '注文概要',
     processing: '処理中...',
     alreadyPremiumButton: 'すでにプレミアムがあります',

@@ -2807,6 +2807,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, 稳定币',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    optShowAll: '显示全部（{count}）',
+    optShowLess: '收起',
     orderSummaryTitle: '订单摘要',
     processing: '处理中...',
     alreadyPremiumButton: '您已拥有高级',

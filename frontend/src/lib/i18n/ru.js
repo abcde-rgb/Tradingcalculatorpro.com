@@ -2925,6 +2925,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, Stablecoins',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    optShowAll: 'Показать все ({count})',
+    optShowLess: 'Свернуть',
     orderSummaryTitle: 'Итог Заказа',
     processing: 'Обработка...',
     alreadyPremiumButton: 'У вас уже есть Premium',

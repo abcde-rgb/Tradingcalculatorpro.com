@@ -2723,6 +2723,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, العملات المستقرة',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    optShowAll: 'عرض الكل ({count})',
+    optShowLess: 'تصغير',
     orderSummaryTitle: 'ملخص الطلب',
     processing: 'جارٍ المعالجة...',
     alreadyPremiumButton: 'لديك بالفعل مميز',

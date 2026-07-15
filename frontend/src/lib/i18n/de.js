@@ -2983,6 +2983,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, Stablecoins',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    optShowAll: 'Alle anzeigen ({count})',
+    optShowLess: 'Weniger anzeigen',
     orderSummaryTitle: 'Bestellübersicht',
     processing: 'Verarbeitung...',
     alreadyPremiumButton: 'Sie haben bereits Premium',

@@ -120,7 +120,9 @@ export default function PerformancePage() {
       <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-16 z-30">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList data-testid="performance-tabs">
+            {/* max-w-full + overflow-x-auto: tabs scroll inside the pill on
+                narrow screens instead of widening the page (mobile +99px) */}
+            <TabsList data-testid="performance-tabs" className="max-w-full justify-start overflow-x-auto [scrollbar-width:thin]">
               <TabsTrigger value="overview" data-testid="perftab-overview">
                 <BookOpen className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabOverview')}
               </TabsTrigger>

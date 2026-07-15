@@ -458,26 +458,29 @@ const CalculatorPage = () => {
             daysToExpiry={currentExp?.daysToExpiry}
           />
 
-          {/* Strategy preset bar with compare-mode toggle */}
-          <div className="relative">
-            <StrategyBar
-              strategies={STRATEGIES}
-              categories={STRATEGY_CATEGORIES}
-              selected={selectedStrategy}
-              onSelect={handleSelectStrategy}
-            />
-            <button
-              onClick={() => setCompareMode((v) => !v)}
-              className={`absolute right-4 top-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all z-10 border ${
-                compareMode
-                  ? 'bg-[#a855f7]/20 border-[#a855f7]/50 text-[#c084fc]'
-                  : 'bg-[#a855f7]/10 border-[#a855f7]/25 text-[#c084fc] hover:bg-[#a855f7]/20'
-              }`}
-              data-testid="compare-toggle"
-            >
-              <GitCompare className="w-3 h-3" /> {compareMode ? t('optComparing') : t('optCompareToggle')}
-            </button>
-          </div>
+          {/* Strategy preset bar with compare-mode toggle (rendered inline in
+              the filter row — the old absolute overlay collided with the
+              category pills on small screens) */}
+          <StrategyBar
+            strategies={STRATEGIES}
+            categories={STRATEGY_CATEGORIES}
+            selected={selectedStrategy}
+            onSelect={handleSelectStrategy}
+            rightSlot={
+              <button
+                onClick={() => setCompareMode((v) => !v)}
+                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-full text-[10px] font-bold transition-all border ${
+                  compareMode
+                    ? 'bg-[#a855f7]/20 border-[#a855f7]/50 text-[#c084fc]'
+                    : 'bg-[#a855f7]/10 border-[#a855f7]/25 text-[#c084fc] hover:bg-[#a855f7]/20'
+                }`}
+                data-testid="compare-toggle"
+              >
+                <GitCompare className="w-3 h-3" />
+                <span className="whitespace-nowrap">{compareMode ? t('optComparing') : t('optCompareToggle')}</span>
+              </button>
+            }
+          />
 
           {/* Constructor multi-leg header */}
           <div className="bg-card border-b border-border px-5 py-2 flex items-center gap-3">
