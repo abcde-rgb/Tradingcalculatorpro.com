@@ -2189,6 +2189,27 @@ export const getPsychSolutions = (t) => ({
   note: t('pssNote'),
 });
 
+// System adherence — how to actually FOLLOW your system every time. The
+// "engineering of discipline": write the rules, automate execution, pre-commit
+// (Ulysses contracts), score the process not P&L, accountability, environment
+// design, routine/habit, the review loop, and size-to-comply. Problem -> solution.
+export const getSystemAdherence = (t) => ({
+  title: t('sysTitle'),
+  intro: t('sysIntro'),
+  items: [
+    { id: 'written',      name: t('sysWrittenName'),      desc: t('sysWrittenDesc'),      type: 'bullish' },
+    { id: 'automate',     name: t('sysAutomateName'),     desc: t('sysAutomateDesc') },
+    { id: 'precommit',    name: t('sysPrecommitName'),    desc: t('sysPrecommitDesc'),    type: 'bearish' },
+    { id: 'scoreprocess', name: t('sysScoreName'),        desc: t('sysScoreDesc'),        type: 'bullish' },
+    { id: 'accountability', name: t('sysAccountName'),    desc: t('sysAccountDesc') },
+    { id: 'environment',  name: t('sysEnvName'),          desc: t('sysEnvDesc') },
+    { id: 'routine',      name: t('sysRoutineName'),      desc: t('sysRoutineDesc'),      type: 'bullish' },
+    { id: 'review',       name: t('sysReviewName'),       desc: t('sysReviewDesc') },
+    { id: 'sizetocomply', name: t('sysSizeName'),         desc: t('sysSizeDesc'),         type: 'bearish' },
+  ],
+  note: t('sysNote'),
+});
+
 // Dealer positioning & gamma — the lesser-known options market structure that
 // actually moves the underlying: market makers hedging delta, gamma exposure
 // (GEX) dampening/amplifying vol, pinning/max pain, the gamma squeeze, vanna

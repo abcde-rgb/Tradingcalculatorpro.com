@@ -7,7 +7,7 @@ import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
   CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer,
-  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves, RefreshCw, GitFork, Fish, Spline, BarChartHorizontal, AudioLines, Hourglass, HeartPulse
+  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves, RefreshCw, GitFork, Fish, Spline, BarChartHorizontal, AudioLines, Hourglass, HeartPulse, ClipboardCheck
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -75,6 +75,7 @@ import ElderVisual from '@/components/education/ElderVisual';
 import ObscureOscillatorsVisual from '@/components/education/ObscureOscillatorsVisual';
 import TimeCyclesVisual from '@/components/education/TimeCyclesVisual';
 import PsychSolutionsVisual from '@/components/education/PsychSolutionsVisual';
+import SystemAdherenceVisual from '@/components/education/SystemAdherenceVisual';
 import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
@@ -502,6 +503,7 @@ export default function EducationPage() {
   const OSCILLATORS = getObscureOscillators(t);
   const TIME_CYCLES = getTimeCycles(t);
   const PSYCH_SOLUTIONS = getPsychSolutions(t);
+  const SYSTEM_ADHERENCE = getSystemAdherence(t);
   const GAMMA_EXPOSURE = getGammaExposure(t);
   const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
   const NET_LIQUIDITY = getNetLiquidity(t);
@@ -584,6 +586,7 @@ export default function EducationPage() {
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
       { value: 'psych-solutions', label: t('pssTitle') },
+      { value: 'system-adherence', label: t('sysTitle') },
       { value: 'time-impact', label: t('tviTitle') },
       { value: 'pre-trade-protocol', label: t('protoTitle') },
       { value: 'mindset', label: t('mdzTitle') },
@@ -1639,6 +1642,38 @@ export default function EducationPage() {
               <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{PSYCH_SOLUTIONS.note}</p>
+              </div>
+            </TabsContent>
+
+            {/* System adherence — write rules, automate, pre-commit, score process, accountability... */}
+            <TabsContent value="system-adherence" className="space-y-8">
+              <Card className="bg-gradient-to-br from-emerald-500/5 to-primary/10 border-emerald-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <ClipboardCheck className="w-6 h-6 text-emerald-500" />
+                    {SYSTEM_ADHERENCE.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{SYSTEM_ADHERENCE.intro}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {SYSTEM_ADHERENCE.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <SystemAdherenceVisual id={item.id} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{SYSTEM_ADHERENCE.note}</p>
               </div>
             </TabsContent>
 
