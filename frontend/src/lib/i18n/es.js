@@ -3149,6 +3149,8 @@ export default {
     paypalDesc: 'Pago seguro con PayPal',
     cryptoPayment: 'Criptomonedas',
     cryptoDesc: 'BTC, ETH, USDC, Stablecoins',
+    revolutPayment: 'Revolut Pay',
+    revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
     orderSummaryTitle: 'Resumen del Pedido',
     processing: 'Procesando...',
     alreadyPremiumButton: 'Ya tienes Premium activo',

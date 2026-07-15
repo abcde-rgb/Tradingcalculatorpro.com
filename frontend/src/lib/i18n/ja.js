@@ -2797,6 +2797,8 @@ export default {
     paypalDesc: 'PayPalで安全な支払い',
     cryptoPayment: '仮想通貨',
     cryptoDesc: 'BTC, ETH, USDC, ステーブルコイン',
+    revolutPayment: 'Revolut Pay',
+    revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
     orderSummaryTitle: '注文概要',
     processing: '処理中...',
     alreadyPremiumButton: 'すでにプレミアムがあります',

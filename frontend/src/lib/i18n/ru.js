@@ -2923,6 +2923,8 @@ export default {
     paypalDesc: 'Безопасная оплата через PayPal',
     cryptoPayment: 'Криптовалюты',
     cryptoDesc: 'BTC, ETH, USDC, Stablecoins',
+    revolutPayment: 'Revolut Pay',
+    revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
     orderSummaryTitle: 'Итог Заказа',
     processing: 'Обработка...',
     alreadyPremiumButton: 'У вас уже есть Premium',

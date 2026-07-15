@@ -3612,6 +3612,37 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         transaction["oxapay_sandbox"] = ox_sandbox
         transaction["checkout_url"] = ox_invoice["payment_url"]
 
+    elif payment_method == "revolut":
+        # Revolut Pay via Revolut Merchant API (independent of Stripe). The hosted
+        # checkout also shows Apple Pay / Google Pay on eligible devices. Premium is
+        # granted in the signature-verified /webhook/revolut callback once settled.
+        # (Revolut webhooks are registered once at account level, not per order.)
+        from revolut import RevolutError, create_order as _rev_create_order
+
+        rev_api_key = await get_setting("revolut_api_key")
+        rev_default_sandbox = os.environ.get("ENVIRONMENT", "production") != "production"
+        rev_sandbox = (await get_setting("revolut_sandbox") or str(rev_default_sandbox)).strip().lower() in ("1", "true", "yes", "on")
+        if not rev_api_key:
+            raise HTTPException(status_code=503, detail="Revolut Pay no está configurado. Contacta soporte.")
+
+        try:
+            rev_order = await _rev_create_order(
+                api_key=rev_api_key,
+                amount=float(plan["price"]),
+                currency=plan.get("currency", "EUR"),
+                order_id=transaction["id"],
+                description=f"TradingCalculator.Pro — Plan {plan['name']}",
+                redirect_url=f"{origin_url}/payment/success",
+                email=user.get("email"),
+                sandbox=rev_sandbox,
+            )
+        except RevolutError as _e:
+            logging.error(f"[revolut] create order error: {_e}")
+            raise HTTPException(status_code=502, detail="Error al crear el pago con Revolut. Inténtalo de nuevo.")
+        transaction["revolut_order_id"] = rev_order.get("order_id")
+        transaction["revolut_sandbox"] = rev_sandbox
+        transaction["checkout_url"] = rev_order["checkout_url"]
+
     elif payment_method in _PAYMENT_METHODS_MAP:
         # 7-day free trial only for NEW subscribers (never premium, no prior/active
         # Stripe subscription, trial not already used) and only on recurring plans.
@@ -4038,6 +4069,99 @@ async def oxapay_webhook(request: Request) -> Dict[str, str]:
 
     logging.info(
         "[oxapay-webhook] subscription activated: user=%s plan=%s order=%s",
+        transaction["user_id"], plan_id, order_id,
+    )
+    return {"status": "received"}
+
+
+@api_router.post("/webhook/revolut")
+async def revolut_webhook(request: Request) -> Dict[str, str]:
+    """Revolut Pay payment callback (HMAC-SHA256 signature verified).
+
+    Grants premium once the order completes (event ORDER_COMPLETED). Revolut
+    signs the raw body with the webhook *signing secret* (separate from the API
+    key); we reject any callback whose signature doesn't verify. Idempotent: a
+    re-delivered/out-of-order webhook is a safe no-op. We match the order via our
+    merchant_order_ext_ref (= payment_transactions.id), falling back to the
+    stored Revolut order id.
+    """
+    from revolut import (
+        parse_webhook, verify_webhook, webhook_order_ref,
+        webhook_revolut_order_id, webhook_is_paid,
+    )
+
+    raw_body = await request.body()
+    signing_secret = await get_setting("revolut_webhook_secret")
+    if not verify_webhook(
+        raw_body,
+        request.headers.get("Revolut-Signature"),
+        request.headers.get("Revolut-Request-Timestamp"),
+        signing_secret,
+    ):
+        logging.warning("[revolut-webhook] invalid/missing signature — rejected")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    data = parse_webhook(raw_body)
+    ext_ref = webhook_order_ref(data)
+    transaction = None
+    if ext_ref:
+        transaction = await db.payment_transactions.find_one({"id": ext_ref}, {"_id": 0})
+    if not transaction:
+        rev_oid = webhook_revolut_order_id(data)
+        if rev_oid:
+            transaction = await db.payment_transactions.find_one({"revolut_order_id": rev_oid}, {"_id": 0})
+    if not transaction:
+        logging.warning("[revolut-webhook] unknown order: ext_ref=%s", ext_ref)
+        return {"status": "ignored"}
+
+    order_id = transaction["id"]
+    if transaction.get("status") == "paid":
+        return {"status": "already_processed"}
+
+    if not webhook_is_paid(data):
+        # authorised / pending / etc. — record latest event, keep it claimable.
+        await db.payment_transactions.update_one(
+            {"id": order_id},
+            {"$set": {"revolut_last_event": str(data.get("event") or data.get("state") or "")[:40]}},
+        )
+        return {"status": "received"}
+
+    # Atomically claim the pending transaction to prevent a double grant.
+    claimed = await db.payment_transactions.find_one_and_update(
+        {"id": order_id, "status": "pending"},
+        {"$set": {"status": "capturing"}},
+    )
+    if not claimed:
+        return {"status": "already_processed"}
+
+    plan_id = transaction["plan_id"]
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        logging.error("[revolut-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
+        return {"status": "error"}
+
+    await _activate_paid_subscription(
+        user_id=transaction["user_id"],
+        plan_id=plan_id,
+        plan=plan,
+        transaction_id=order_id,
+        session_id="",
+    )
+    try:
+        from referrals import credit_referrer_for_payment
+        await credit_referrer_for_payment(
+            referee_user_id=transaction["user_id"],
+            plan_id=plan_id,
+            plan_amount=float(plan.get("price", 0)),
+            plan_currency=plan.get("currency", "EUR"),
+            transaction_id=order_id,
+        )
+    except Exception as e:
+        logging.warning(f"[revolut-webhook] referral credit error: {e}")
+
+    logging.info(
+        "[revolut-webhook] subscription activated: user=%s plan=%s order=%s",
         transaction["user_id"], plan_id, order_id,
     )
     return {"status": "received"}
@@ -5969,6 +6093,8 @@ PUBLIC_SETTING_KEYS = (
     "paypal_mode",                # "sandbox" | "live"
     # OxaPay (crypto) — only the sandbox flag is public; the key is secret
     "oxapay_sandbox",             # "true" | "false"
+    # Revolut (Revolut Pay + Apple/Google Pay) — sandbox flag public, keys secret
+    "revolut_sandbox",            # "true" | "false"
     # Misc
     "trustpilot_business_id",
     "clarity_project_id",
@@ -5982,6 +6108,8 @@ SECRET_SETTING_KEYS = (
     "paypal_client_secret",
     "coinbase_api_key",           # legacy/unused — superseded by OxaPay
     "oxapay_api_key",             # Merchant API key (also the webhook HMAC secret)
+    "revolut_api_key",            # Revolut Merchant Secret API key
+    "revolut_webhook_secret",     # Revolut webhook signing secret (separate from the API key)
     "sendgrid_api_key",
 )
 
@@ -6006,6 +6134,9 @@ _SETTING_ENV_FALLBACK: Dict[str, str] = {
     "coinbase_api_key":       "COINBASE_API_KEY",
     "oxapay_api_key":         "OXAPAY_API_KEY",
     "oxapay_sandbox":         "OXAPAY_SANDBOX",
+    "revolut_api_key":        "REVOLUT_API_KEY",
+    "revolut_webhook_secret": "REVOLUT_WEBHOOK_SECRET",
+    "revolut_sandbox":        "REVOLUT_SANDBOX",
     "sendgrid_api_key":       "SENDGRID_API_KEY",
     "trustpilot_business_id": "REACT_APP_TRUSTPILOT_BUSINESS_ID",
     "clarity_project_id":     "REACT_APP_CLARITY_PROJECT_ID",
@@ -6033,6 +6164,9 @@ class AdminSettingsUpdate(BaseModel):
     coinbase_api_key: Optional[str] = None
     oxapay_api_key: Optional[str] = None
     oxapay_sandbox: Optional[str] = None
+    revolut_api_key: Optional[str] = None
+    revolut_webhook_secret: Optional[str] = None
+    revolut_sandbox: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
     trustpilot_business_id: Optional[str] = None
     clarity_project_id: Optional[str] = None

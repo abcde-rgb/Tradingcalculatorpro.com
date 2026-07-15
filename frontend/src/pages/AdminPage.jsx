@@ -532,6 +532,16 @@ const INTEGRATION_SECTIONS = [
     ],
   },
   {
+    id: 'revolut',
+    title: 'Revolut Pay (incluye Apple Pay y Google Pay)',
+    description: 'Pasarela independiente de Stripe. Su checkout muestra Revolut Pay + tarjeta, y Apple/Google Pay en dispositivos compatibles. Crea el webhook apuntando a /api/webhook/revolut y pega aquí su Signing Secret. Sandbox="true" para pruebas.',
+    fields: [
+      { id: 'revolut_api_key',        label: 'Secret API Key',         secret: true,  placeholder: 'sk_… (sandbox o live)', hint: 'business.revolut.com → Merchant API → API keys (Secret key)' },
+      { id: 'revolut_webhook_secret', label: 'Webhook Signing Secret',  secret: true,  placeholder: 'wsk_…',                 hint: 'Se genera al crear el webhook (endpoint /api/webhook/revolut). NO es la API key.' },
+      { id: 'revolut_sandbox',        label: 'Sandbox',                 secret: false, placeholder: 'true | false',          hint: 'Usa "true" para el sandbox de pruebas, "false" en producción' },
+    ],
+  },
+  {
     id: 'others',
     title: 'Otras integraciones (SEO, Email, Reviews)',
     description: '',

@@ -2805,6 +2805,8 @@ export default {
     paypalDesc: '使用PayPal安全付款',
     cryptoPayment: '加密货币',
     cryptoDesc: 'BTC, ETH, USDC, 稳定币',
+    revolutPayment: 'Revolut Pay',
+    revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
     orderSummaryTitle: '订单摘要',
     processing: '处理中...',
     alreadyPremiumButton: '您已拥有高级',

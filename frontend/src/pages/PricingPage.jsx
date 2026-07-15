@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Crown, Check, CreditCard, Wallet, Bitcoin, ArrowRight, Loader2, Building, ShoppingCart } from 'lucide-react';
+import { Crown, Check, CreditCard, Wallet, Bitcoin, ArrowRight, Loader2, Building, ShoppingCart, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -33,12 +33,14 @@ const PAYMENT_METHODS_DATA = [
   { id: 'klarna',  icon: ShoppingCart,color: 'text-pink-500',   nameKey: 'klarnaPayment',   descKey: 'klarnaDesc',     lifetimeOnly: true  },
   { id: 'paypal',  icon: Wallet,      color: 'text-blue-400',   nameKey: 'paypalPayment',   descKey: 'paypalDesc',     lifetimeOnly: false },
   { id: 'crypto',  icon: Bitcoin,     color: 'text-orange-500', nameKey: 'cryptoPayment',   descKey: 'cryptoDesc',     lifetimeOnly: false },
+  { id: 'revolut', icon: Zap,         color: 'text-indigo-400', nameKey: 'revolutPayment',  descKey: 'revolutDesc',    lifetimeOnly: false },
 ];
 
 // Processor name displayed in "Secure payment via {processor}" footer
 const PAYMENT_PROCESSOR_NAMES = {
   card: 'Stripe',
   crypto: 'OxaPay',
+  revolut: 'Revolut',
   paypal: 'PayPal',
   sepa: 'Stripe (SEPA)',
   klarna: 'Klarna',
