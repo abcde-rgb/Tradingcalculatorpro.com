@@ -1184,3 +1184,29 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - Verificado por oleada: `npm run build` OK (Educación **68 temas × 8 = 544 páginas**, sitemap **576 URLs**);
   paridad i18n **4939 claves idénticas en los 8 idiomas, 0 faltan/sobran**; contenido bundleado y páginas
   SEO generadas con títulos localizados. Subido a la rama en 6 commits (oleadas) + fusión final a `main`.
+
+### 2026-07-16 (41) — Pasarelas de pago (Revolut + NOWPayments), legal ×8, responsive, SEO de calculadoras
+- **SEO de calculadoras ×8 idiomas**: `gen-seo-pages` gana el mapa `CALC_I18N` (de/fr/ru/zh/ja/ar para 12
+  calculadoras) y el loop de calc itera los 8 idiomas → **96 páginas de calc + 560 de educación**, sitemap
+  **664 URLs**. Cierra el hueco de que las calculadoras solo tenían SEO en es/en.
+- **Revisión responsive integral (tarea #66)**: se compacta la fila de estrategias de Opciones (ya no ocupa
+  toda la pantalla), `overflow-x:clip` en html/body, fix de flex RTL (`:not(.flex-col)`), y ajustes en
+  `StrategyBar`, `CalculatorPage`, `OptionsSubHeader`, `StatsKPIBar`, `PerformancePage`, `index.css`.
+- **Legal en 8 idiomas (tarea #67)**: contenido por locale en `lib/legalContent/{8}.js` (Privacidad,
+  Términos, Cookies, Riesgo) + `LegalPage.jsx` data-driven con renderer de texto enriquecido
+  (**negrita**, enlaces, {email}, {terms}). Correcciones factuales: entidad **LLC de EE. UU.** (el usuario
+  aclaró que la empresa está registrada en EE. UU., no en Suiza), procesadores de pago reales, cookies
+  reales, mención a Anthropic, prueba de 7 días.
+- **Revolut Pay**: módulo `backend/revolut.py` (Merchant API, webhook HMAC-SHA256 sobre `v1.<ts>.<body>`) +
+  wiring en `server.py` (settings ×4, rama de checkout, webhook verificado) + grupo conector en AdminPage +
+  método en PricingPage + i18n ×8 + test unitario. Subido a `main`.
+- **NOWPayments (cripto)**: módulo `backend/nowpayments.py` (invoice + IPN HMAC-SHA512 sobre JSON ordenado y
+  compacto) con el mismo patrón de wiring; concede N días por factura pagada (`_activate_paid_subscription`,
+  reclamo atómico idempotente). Test unitario de 8 casos de firma IPN. Subido a `main`.
+- **Retirada de OxaPay**: se elimina por completo (`oxapay.py` + test borrados, rama de checkout, webhook y
+  settings ×4 en `server.py`, grupo en AdminPage, método en PricingPage, OxaPay→NOWPayments en legal ×8),
+  dejando solo **NOWPayments + Revolut** como alternativas a Stripe/PayPal.
+- Verificado: paridad i18n **4993 claves idénticas en 8 idiomas, 0 faltan/sobran**; `npm run build` exit 0;
+  `pytest` 17 passed / 15 skipped (`test_nowpayments_unit`, `test_revolut_unit`, `test_stripe_payments`);
+  py_compile OK. Deploy de GitHub Pages en verde. **Nota operativa**: cripto/pagos no cobrarán hasta que se
+  reactive el backend (Cloud Run) y se carguen las claves reales de NOWPayments/Revolut en admin.
