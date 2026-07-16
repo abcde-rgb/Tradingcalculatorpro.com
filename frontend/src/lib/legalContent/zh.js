@@ -17,7 +17,7 @@ const zh = {
         { list: [
           '身份数据：注册时或通过 Google 登录（OAuth）提供的姓名和电子邮箱。',
           '使用数据：访问的页面、使用的功能（期权计算器、模拟、价格跟踪）、主题与语言偏好。',
-          '支付数据：由外部支付服务商处理（Stripe、PayPal、Revolut，以及处理加密货币的 OxaPay）。我们绝不在服务器上存储卡号或银行信息，仅保留客户/交易标识符和订阅状态。',
+          '支付数据：由外部支付服务商处理（Stripe、PayPal、Revolut，以及处理加密货币的 NOWPayments）。我们绝不在服务器上存储卡号或银行信息，仅保留客户/交易标识符和订阅状态。',
           '技术日志：IP 地址、浏览器类型和操作系统，用于安全与诊断。',
           '价格提醒数据：您配置的资产与阈值，仅在您启用该功能时收集。',
           '交易日志与 AI Trade Coach 数据：您自愿记录的交易，以及使用 AI Trade Coach 时所分析策略的参数。',
@@ -48,7 +48,7 @@ const zh = {
           'Stripe, Inc.（银行卡与 SEPA 支付）：处理订阅付款，就支付数据而言为独立控制者。政策：stripe.com/privacy。',
           'PayPal, Inc.（支付）：按其自身隐私政策处理 PayPal 付款。',
           'Revolut（Revolut Pay，其收银台含 Apple Pay/Google Pay）：处理 Revolut Pay 付款。',
-          'OxaPay（加密货币支付）：处理加密货币付款；接收金额、订单标识符及（如适用）用于收据的邮箱。',
+          'NOWPayments（加密货币支付）：处理加密货币付款；接收金额、订单标识符及（如适用）用于收据的邮箱。',
           'Google LLC（OAuth 与 Analytics）：Google 登录会传输姓名和邮箱。Google Analytics 4 启用 IP 匿名化，且仅在您同意后使用。政策：policies.google.com/privacy。',
           'Twilio SendGrid（交易邮件）：发送确认、发票与提醒，仅接收您的邮箱地址。',
           'Anthropic（AI Trade Coach）：当您请求 AI 分析时，所分析策略的参数（资产、交易腿、价格）会发送给 Anthropic；请求中不包含您的姓名和邮箱。',
@@ -111,7 +111,7 @@ const zh = {
           '终身套餐（Lifetime）：€500，一次性付款，永久访问，无续订。',
         ]},
         { p: '**7 天免费试用**（仅限自动续订套餐和新订阅者）：开始试用需提供有效的支付方式。若您未在试用结束前取消，将自动进行所选套餐的首次扣款。试用期间可随时在"我的订阅"免费取消。' },
-        { p: '付款通过 **Stripe**（银行卡、SEPA、Klarna 及 Apple Pay/Google Pay 等钱包）、**PayPal**、**Revolut Pay** 和 **OxaPay**（加密货币）安全处理。价格以欧元（EUR）标示，并在适用时含税。订阅自动续订套餐即表示您授权对您的支付方式进行定期扣款，直至取消。您可随时在"我的订阅"取消；访问权保留至当前计费周期结束。' },
+        { p: '付款通过 **Stripe**（银行卡、SEPA、Klarna 及 Apple Pay/Google Pay 等钱包）、**PayPal**、**Revolut Pay** 和 **NOWPayments**（加密货币）安全处理。价格以欧元（EUR）标示，并在适用时含税。订阅自动续订套餐即表示您授权对您的支付方式进行定期扣款，直至取消。您可随时在"我的订阅"取消；访问权保留至当前计费周期结束。' },
       ]},
       { t: '退款政策', b: [
         { list: [

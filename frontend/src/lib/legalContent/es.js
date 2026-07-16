@@ -30,7 +30,7 @@ const es = {
         { list: [
           'Datos de identificación: nombre y dirección de correo electrónico, proporcionados durante el registro o mediante autenticación con Google (OAuth).',
           'Datos de uso: páginas visitadas, funcionalidades utilizadas (calculadora de opciones, simulaciones, seguimiento de precios), preferencias de tema e idioma.',
-          'Datos de pago: procesados por proveedores de pago externos (Stripe, PayPal, Revolut y OxaPay para criptomonedas). Nunca almacenamos números de tarjeta ni datos bancarios en nuestros servidores; solo conservamos identificadores de cliente/transacción y el estado de la suscripción.',
+          'Datos de pago: procesados por proveedores de pago externos (Stripe, PayPal, Revolut y NOWPayments para criptomonedas). Nunca almacenamos números de tarjeta ni datos bancarios en nuestros servidores; solo conservamos identificadores de cliente/transacción y el estado de la suscripción.',
           'Registros técnicos (logs): dirección IP, tipo de navegador y sistema operativo, con fines de seguridad y diagnóstico.',
           'Datos de alertas de precio: pares de activos y umbrales configurados, únicamente si activas esta funcionalidad.',
           'Datos del diario de trading y del AI Trade Coach: las operaciones que registres voluntariamente y, si usas el AI Trade Coach, los parámetros de la estrategia analizada.',
@@ -61,7 +61,7 @@ const es = {
           'Stripe, Inc. (pagos con tarjeta y SEPA): procesa pagos de suscripción. Actúa como responsable independiente para los datos de pago. Política: stripe.com/privacy.',
           'PayPal, Inc. (pagos): procesa los pagos realizados con PayPal conforme a su propia política de privacidad.',
           'Revolut (Revolut Pay, incluye Apple Pay/Google Pay en su checkout): procesa los pagos realizados con Revolut Pay.',
-          'OxaPay (pagos con criptomonedas): procesa los pagos en criptomonedas. Recibe el importe, un identificador de pedido y, en su caso, tu email para el recibo.',
+          'NOWPayments (pagos con criptomonedas): procesa los pagos en criptomonedas. Recibe el importe, un identificador de pedido y, en su caso, tu email para el recibo.',
           'Google LLC (OAuth y Analytics): la autenticación con Google OAuth transfiere nombre y correo electrónico. Google Analytics 4 se usa con anonimización de IP y solo si otorgas tu consentimiento. Política: policies.google.com/privacy.',
           'Twilio SendGrid (email transaccional): envío de correos de confirmación, facturas y alertas. Solo recibe tu dirección de email.',
           'Anthropic (AI Trade Coach): cuando solicitas un análisis con IA, se envían a Anthropic los parámetros de la estrategia analizada (activo, patas de la operación, precios). No se envían tu nombre ni tu email junto con la consulta.',
@@ -124,7 +124,7 @@ const es = {
           'Plan Lifetime (de por vida): €500, pago único, acceso permanente sin renovaciones.',
         ]},
         { p: '**Prueba gratuita de 7 días** (solo planes de renovación automática y nuevos suscriptores): al iniciarla se solicita un método de pago válido. Si no cancelas antes de que finalice la prueba, se efectuará automáticamente el primer cargo del plan elegido. Puedes cancelar durante la prueba, sin coste alguno, desde la sección «Mi Suscripción».' },
-        { p: 'Los pagos se procesan de forma segura a través de **Stripe** (tarjeta, SEPA, Klarna y carteras como Apple Pay/Google Pay), **PayPal**, **Revolut Pay** y **OxaPay** (criptomonedas). Los precios se indican en euros (EUR) e incluyen los impuestos aplicables cuando corresponda. Al suscribirte a un plan de renovación automática, autorizas los cargos recurrentes en tu método de pago hasta que canceles la suscripción. Puedes cancelar en cualquier momento desde «Mi Suscripción»; el acceso se mantiene hasta el final del período de facturación en curso.' },
+        { p: 'Los pagos se procesan de forma segura a través de **Stripe** (tarjeta, SEPA, Klarna y carteras como Apple Pay/Google Pay), **PayPal**, **Revolut Pay** y **NOWPayments** (criptomonedas). Los precios se indican en euros (EUR) e incluyen los impuestos aplicables cuando corresponda. Al suscribirte a un plan de renovación automática, autorizas los cargos recurrentes en tu método de pago hasta que canceles la suscripción. Puedes cancelar en cualquier momento desde «Mi Suscripción»; el acceso se mantiene hasta el final del período de facturación en curso.' },
       ]},
       { t: 'Política de Reembolsos', b: [
         { list: [

@@ -17,7 +17,7 @@ const de = {
         { list: [
           'Identifikationsdaten: Name und E-Mail-Adresse, angegeben bei der Registrierung oder über die Google-Anmeldung (OAuth).',
           'Nutzungsdaten: besuchte Seiten, genutzte Funktionen (Optionsrechner, Simulationen, Kursverfolgung), Theme- und Spracheinstellungen.',
-          'Zahlungsdaten: verarbeitet durch externe Zahlungsdienstleister (Stripe, PayPal, Revolut und OxaPay für Kryptowährungen). Kartennummern oder Bankdaten speichern wir niemals auf unseren Servern; wir bewahren nur Kunden-/Transaktionskennungen und den Abo-Status auf.',
+          'Zahlungsdaten: verarbeitet durch externe Zahlungsdienstleister (Stripe, PayPal, Revolut und NOWPayments für Kryptowährungen). Kartennummern oder Bankdaten speichern wir niemals auf unseren Servern; wir bewahren nur Kunden-/Transaktionskennungen und den Abo-Status auf.',
           'Technische Protokolle (Logs): IP-Adresse, Browsertyp und Betriebssystem, zu Sicherheits- und Diagnosezwecken.',
           'Preisalarm-Daten: konfigurierte Assets und Schwellenwerte, nur wenn du diese Funktion aktivierst.',
           'Trading-Journal- und AI-Trade-Coach-Daten: die von dir freiwillig erfassten Trades und, falls du den AI Trade Coach nutzt, die Parameter der analysierten Strategie.',
@@ -48,7 +48,7 @@ const de = {
           'Stripe, Inc. (Karten- und SEPA-Zahlungen): verarbeitet Abo-Zahlungen und agiert für Zahlungsdaten als eigenständiger Verantwortlicher. Richtlinie: stripe.com/privacy.',
           'PayPal, Inc. (Zahlungen): verarbeitet PayPal-Zahlungen gemäß eigener Datenschutzrichtlinie.',
           'Revolut (Revolut Pay, inkl. Apple Pay/Google Pay im Checkout): verarbeitet Zahlungen mit Revolut Pay.',
-          'OxaPay (Krypto-Zahlungen): verarbeitet Zahlungen in Kryptowährungen. Erhält Betrag, Bestellkennung und ggf. deine E-Mail für den Beleg.',
+          'NOWPayments (Krypto-Zahlungen): verarbeitet Zahlungen in Kryptowährungen. Erhält Betrag, Bestellkennung und ggf. deine E-Mail für den Beleg.',
           'Google LLC (OAuth und Analytics): Die Google-Anmeldung überträgt Name und E-Mail. Google Analytics 4 wird mit IP-Anonymisierung und nur mit deiner Einwilligung genutzt. Richtlinie: policies.google.com/privacy.',
           'Twilio SendGrid (Transaktions-E-Mails): Versand von Bestätigungen, Rechnungen und Alarmen. Erhält nur deine E-Mail-Adresse.',
           'Anthropic (AI Trade Coach): Wenn du eine KI-Analyse anforderst, werden die Parameter der analysierten Strategie (Asset, Trade-Legs, Preise) an Anthropic gesendet. Name und E-Mail werden nicht mitgesendet.',
@@ -111,7 +111,7 @@ const de = {
           'Lifetime-Plan: 500 €, Einmalzahlung, dauerhafter Zugang ohne Verlängerungen.',
         ]},
         { p: '**7-tägige kostenlose Testphase** (nur wiederkehrende Pläne, nur Neukunden): Zum Start ist eine gültige Zahlungsmethode erforderlich. Kündigst du nicht vor Ablauf der Testphase, erfolgt automatisch die erste Abbuchung des gewählten Plans. Während der Testphase kannst du kostenfrei unter „Mein Abo“ kündigen.' },
-        { p: 'Zahlungen werden sicher über **Stripe** (Karte, SEPA, Klarna sowie Wallets wie Apple Pay/Google Pay), **PayPal**, **Revolut Pay** und **OxaPay** (Kryptowährungen) abgewickelt. Preise sind in Euro (EUR) angegeben und enthalten ggf. anfallende Steuern. Mit einem Abo mit automatischer Verlängerung autorisierst du wiederkehrende Abbuchungen, bis du kündigst. Eine Kündigung ist jederzeit unter „Mein Abo“ möglich; der Zugang bleibt bis zum Ende des laufenden Abrechnungszeitraums bestehen.' },
+        { p: 'Zahlungen werden sicher über **Stripe** (Karte, SEPA, Klarna sowie Wallets wie Apple Pay/Google Pay), **PayPal**, **Revolut Pay** und **NOWPayments** (Kryptowährungen) abgewickelt. Preise sind in Euro (EUR) angegeben und enthalten ggf. anfallende Steuern. Mit einem Abo mit automatischer Verlängerung autorisierst du wiederkehrende Abbuchungen, bis du kündigst. Eine Kündigung ist jederzeit unter „Mein Abo“ möglich; der Zugang bleibt bis zum Ende des laufenden Abrechnungszeitraums bestehen.' },
       ]},
       { t: 'Erstattungsrichtlinie', b: [
         { list: [

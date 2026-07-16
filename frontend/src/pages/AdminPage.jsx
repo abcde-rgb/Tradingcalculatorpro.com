@@ -523,15 +523,6 @@ const INTEGRATION_SECTIONS = [
     ],
   },
   {
-    id: 'oxapay',
-    title: 'OxaPay (pagos con criptomonedas)',
-    description: 'Pasarela crypto no-KYC. Pon Sandbox="true" para pruebas y "false" en producción. La clave se aplica en caliente.',
-    fields: [
-      { id: 'oxapay_api_key', label: 'Merchant API Key', secret: true,  placeholder: 'XXXXXX-XXXXXX-…', hint: 'app.oxapay.com → Merchant → API Key (es también el secreto del webhook)' },
-      { id: 'oxapay_sandbox', label: 'Sandbox',          secret: false, placeholder: 'true | false',     hint: 'Usa "true" para el sandbox de pruebas, "false" en producción' },
-    ],
-  },
-  {
     id: 'revolut',
     title: 'Revolut Pay (incluye Apple Pay y Google Pay)',
     description: 'Pasarela independiente de Stripe. Su checkout muestra Revolut Pay + tarjeta, y Apple/Google Pay en dispositivos compatibles. Crea el webhook apuntando a /api/webhook/revolut y pega aquí su Signing Secret. Sandbox="true" para pruebas.',

@@ -17,7 +17,7 @@ const fr = {
         { list: [
           'Données d’identification : nom et adresse e-mail, fournis lors de l’inscription ou via l’authentification Google (OAuth).',
           'Données d’utilisation : pages visitées, fonctionnalités utilisées (calculateur d’options, simulations, suivi des prix), préférences de thème et de langue.',
-          'Données de paiement : traitées par des prestataires externes (Stripe, PayPal, Revolut et OxaPay pour les cryptomonnaies). Nous ne stockons jamais de numéros de carte ni de coordonnées bancaires sur nos serveurs ; nous ne conservons que des identifiants client/transaction et l’état de l’abonnement.',
+          'Données de paiement : traitées par des prestataires externes (Stripe, PayPal, Revolut et NOWPayments pour les cryptomonnaies). Nous ne stockons jamais de numéros de carte ni de coordonnées bancaires sur nos serveurs ; nous ne conservons que des identifiants client/transaction et l’état de l’abonnement.',
           'Journaux techniques (logs) : adresse IP, type de navigateur et système d’exploitation, à des fins de sécurité et de diagnostic.',
           'Données d’alertes de prix : actifs et seuils configurés, uniquement si vous activez cette fonctionnalité.',
           'Données du journal de trading et de l’AI Trade Coach : les opérations que vous enregistrez volontairement et, si vous utilisez l’AI Trade Coach, les paramètres de la stratégie analysée.',
@@ -48,7 +48,7 @@ const fr = {
           'Stripe, Inc. (paiements carte et SEPA) : traite les paiements d’abonnement. Agit en responsable indépendant pour les données de paiement. Politique : stripe.com/privacy.',
           'PayPal, Inc. (paiements) : traite les paiements PayPal selon sa propre politique de confidentialité.',
           'Revolut (Revolut Pay, avec Apple Pay/Google Pay dans son checkout) : traite les paiements Revolut Pay.',
-          'OxaPay (paiements en cryptomonnaies) : traite les paiements crypto. Reçoit le montant, un identifiant de commande et, le cas échéant, votre e-mail pour le reçu.',
+          'NOWPayments (paiements en cryptomonnaies) : traite les paiements crypto. Reçoit le montant, un identifiant de commande et, le cas échéant, votre e-mail pour le reçu.',
           'Google LLC (OAuth et Analytics) : la connexion Google transfère nom et e-mail. Google Analytics 4 est utilisé avec anonymisation de l’IP et uniquement avec votre consentement. Politique : policies.google.com/privacy.',
           'Twilio SendGrid (e-mails transactionnels) : envoi des confirmations, factures et alertes. Ne reçoit que votre adresse e-mail.',
           'Anthropic (AI Trade Coach) : lorsque vous demandez une analyse IA, les paramètres de la stratégie analysée (actif, jambes, prix) sont envoyés à Anthropic. Votre nom et votre e-mail ne sont pas transmis avec la requête.',
@@ -111,7 +111,7 @@ const fr = {
           'Formule à vie (Lifetime) : 500 €, paiement unique, accès permanent sans renouvellement.',
         ]},
         { p: '**Essai gratuit de 7 jours** (formules récurrentes uniquement, nouveaux abonnés uniquement) : un moyen de paiement valide est demandé au démarrage. Si vous n’annulez pas avant la fin de l’essai, le premier prélèvement de la formule choisie est effectué automatiquement. Vous pouvez annuler pendant l’essai, sans frais, depuis « Mon Abonnement ».' },
-        { p: 'Les paiements sont traités de manière sécurisée via **Stripe** (carte, SEPA, Klarna et portefeuilles comme Apple Pay/Google Pay), **PayPal**, **Revolut Pay** et **OxaPay** (cryptomonnaies). Les prix sont indiqués en euros (EUR), taxes applicables incluses le cas échéant. En souscrivant une formule à renouvellement automatique, vous autorisez les prélèvements récurrents jusqu’à annulation. Vous pouvez annuler à tout moment depuis « Mon Abonnement » ; l’accès est maintenu jusqu’à la fin de la période de facturation en cours.' },
+        { p: 'Les paiements sont traités de manière sécurisée via **Stripe** (carte, SEPA, Klarna et portefeuilles comme Apple Pay/Google Pay), **PayPal**, **Revolut Pay** et **NOWPayments** (cryptomonnaies). Les prix sont indiqués en euros (EUR), taxes applicables incluses le cas échéant. En souscrivant une formule à renouvellement automatique, vous autorisez les prélèvements récurrents jusqu’à annulation. Vous pouvez annuler à tout moment depuis « Mon Abonnement » ; l’accès est maintenu jusqu’à la fin de la période de facturation en cours.' },
       ]},
       { t: 'Politique de Remboursement', b: [
         { list: [

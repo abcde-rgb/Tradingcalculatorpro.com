@@ -17,7 +17,7 @@ const en = {
         { list: [
           'Identification data: name and email address, provided during registration or via Google authentication (OAuth).',
           'Usage data: pages visited, features used (options calculator, simulations, price tracking), theme and language preferences.',
-          'Payment data: processed by external payment providers (Stripe, PayPal, Revolut, and OxaPay for cryptocurrencies). We never store card numbers or bank details on our servers; we only keep customer/transaction identifiers and the subscription status.',
+          'Payment data: processed by external payment providers (Stripe, PayPal, Revolut, and NOWPayments for cryptocurrencies). We never store card numbers or bank details on our servers; we only keep customer/transaction identifiers and the subscription status.',
           'Technical logs: IP address, browser type and operating system, for security and diagnostics.',
           'Price-alert data: asset pairs and thresholds you configure, only if you enable this feature.',
           'Trading journal and AI Trade Coach data: the trades you voluntarily log and, if you use the AI Trade Coach, the parameters of the analysed strategy.',
@@ -48,7 +48,7 @@ const en = {
           'Stripe, Inc. (card and SEPA payments): processes subscription payments. Acts as an independent controller for payment data. Policy: stripe.com/privacy.',
           'PayPal, Inc. (payments): processes payments made with PayPal under its own privacy policy.',
           'Revolut (Revolut Pay, includes Apple Pay/Google Pay in its checkout): processes payments made with Revolut Pay.',
-          'OxaPay (cryptocurrency payments): processes crypto payments. Receives the amount, an order identifier and, where applicable, your email for the receipt.',
+          'NOWPayments (cryptocurrency payments): processes crypto payments. Receives the amount, an order identifier and, where applicable, your email for the receipt.',
           'Google LLC (OAuth and Analytics): Google OAuth sign-in transfers your name and email. Google Analytics 4 is used with IP anonymisation and only with your consent. Policy: policies.google.com/privacy.',
           'Twilio SendGrid (transactional email): sends confirmations, invoices and alerts. Only receives your email address.',
           'Anthropic (AI Trade Coach): when you request an AI analysis, the parameters of the analysed strategy (asset, trade legs, prices) are sent to Anthropic. Your name and email are not sent with the query.',
@@ -111,7 +111,7 @@ const en = {
           'Lifetime plan: €500, one-time payment, permanent access with no renewals.',
         ]},
         { p: '**7-day free trial** (recurring plans only, new subscribers only): a valid payment method is required to start it. If you do not cancel before the trial ends, the first charge for the chosen plan is made automatically. You can cancel during the trial at no cost from “My Subscription”.' },
-        { p: 'Payments are processed securely via **Stripe** (card, SEPA, Klarna and wallets such as Apple Pay/Google Pay), **PayPal**, **Revolut Pay** and **OxaPay** (cryptocurrencies). Prices are shown in euros (EUR) and include applicable taxes where relevant. By subscribing to an auto-renewing plan you authorise recurring charges to your payment method until you cancel. You can cancel at any time from “My Subscription”; access continues until the end of the current billing period.' },
+        { p: 'Payments are processed securely via **Stripe** (card, SEPA, Klarna and wallets such as Apple Pay/Google Pay), **PayPal**, **Revolut Pay** and **NOWPayments** (cryptocurrencies). Prices are shown in euros (EUR) and include applicable taxes where relevant. By subscribing to an auto-renewing plan you authorise recurring charges to your payment method until you cancel. You can cancel at any time from “My Subscription”; access continues until the end of the current billing period.' },
       ]},
       { t: 'Refund Policy', b: [
         { list: [
