@@ -2807,6 +2807,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, 稳定币',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    nowPaymentsPayment: '加密货币 (NOWPayments)',
+    nowPaymentsDesc: 'BTC、ETH、USDT、USDC 等 300+ 币种',
     optShowAll: '显示全部（{count}）',
     optShowLess: '收起',
     legalCenterTitle: '法律中心',

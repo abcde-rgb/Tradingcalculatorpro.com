@@ -2723,6 +2723,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, العملات المستقرة',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    nowPaymentsPayment: 'كريبتو (NOWPayments)',
+    nowPaymentsDesc: 'BTC وETH وUSDT وUSDC و+300 عملة',
     optShowAll: 'عرض الكل ({count})',
     optShowLess: 'تصغير',
     legalCenterTitle: 'المركز القانوني',

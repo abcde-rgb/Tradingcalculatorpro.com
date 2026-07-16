@@ -542,6 +542,16 @@ const INTEGRATION_SECTIONS = [
     ],
   },
   {
+    id: 'nowpayments',
+    title: 'NOWPayments (pagos con criptomonedas)',
+    description: 'Pasarela cripto no custodial (el dinero va a tu wallet). Crea el webhook/IPN apuntando a /api/webhook/nowpayments y pega aquí su IPN Secret. Sandbox="true" para pruebas.',
+    fields: [
+      { id: 'nowpayments_api_key',    label: 'API Key',     secret: true,  placeholder: 'XXXXXXX-XXXXXXX-…', hint: 'nowpayments.io → Store settings → API keys' },
+      { id: 'nowpayments_ipn_secret', label: 'IPN Secret',  secret: true,  placeholder: '…',                 hint: 'nowpayments.io → Store settings → IPN → firma el webhook. NO es la API key.' },
+      { id: 'nowpayments_sandbox',    label: 'Sandbox',     secret: false, placeholder: 'true | false',      hint: 'Usa "true" para el sandbox de pruebas, "false" en producción' },
+    ],
+  },
+  {
     id: 'others',
     title: 'Otras integraciones (SEO, Email, Reviews)',
     description: '',

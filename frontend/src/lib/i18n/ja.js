@@ -2799,6 +2799,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, ステーブルコイン',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    nowPaymentsPayment: '暗号資産 (NOWPayments)',
+    nowPaymentsDesc: 'BTC・ETH・USDT・USDC など300種類以上',
     optShowAll: 'すべて表示（{count}）',
     optShowLess: '折りたたむ',
     legalCenterTitle: '法的情報センター',

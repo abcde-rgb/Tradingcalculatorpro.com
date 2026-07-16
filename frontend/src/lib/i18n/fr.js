@@ -2983,6 +2983,8 @@ export default {
     cryptoDesc: 'BTC, ETH, USDC, Stablecoins',
     revolutPayment: 'Revolut Pay',
     revolutDesc: 'Revolut Pay · Apple Pay · Google Pay',
+    nowPaymentsPayment: 'Crypto (NOWPayments)',
+    nowPaymentsDesc: 'BTC, ETH, USDT, USDC et 300+ cryptos',
     optShowAll: 'Tout afficher ({count})',
     optShowLess: 'Réduire',
     legalCenterTitle: 'Centre Juridique',

@@ -3643,6 +3643,39 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         transaction["revolut_sandbox"] = rev_sandbox
         transaction["checkout_url"] = rev_order["checkout_url"]
 
+    elif payment_method in ("nowpayments", "np"):
+        # Crypto via NOWPayments (non-custodial: funds settle to your wallet).
+        # The hosted invoice URL is returned synchronously; premium is granted in
+        # the signature-verified /webhook/nowpayments IPN once the payment settles
+        # ('finished'). order_id is our unguessable payment_transactions.id.
+        from nowpayments import NowPaymentsError, create_invoice as _np_create_invoice
+
+        np_api_key = await get_setting("nowpayments_api_key")
+        np_default_sandbox = os.environ.get("ENVIRONMENT", "production") != "production"
+        np_sandbox = (await get_setting("nowpayments_sandbox") or str(np_default_sandbox)).strip().lower() in ("1", "true", "yes", "on")
+        if not np_api_key:
+            raise HTTPException(status_code=503, detail="Pago con criptomonedas (NOWPayments) no está configurado. Contacta soporte.")
+
+        backend_base = (os.environ.get("BACKEND_PUBLIC_URL", "").strip() or str(request.base_url)).rstrip("/")
+        try:
+            np_invoice = await _np_create_invoice(
+                api_key=np_api_key,
+                amount=float(plan["price"]),
+                currency=plan.get("currency", "EUR"),
+                order_id=transaction["id"],
+                description=f"TradingCalculator.Pro — Plan {plan['name']}",
+                ipn_callback_url=f"{backend_base}/api/webhook/nowpayments",
+                success_url=f"{origin_url}/payment/success",
+                cancel_url=f"{origin_url}/payment/cancel",
+                sandbox=np_sandbox,
+            )
+        except NowPaymentsError as _e:
+            logging.error(f"[nowpayments] create invoice error: {_e}")
+            raise HTTPException(status_code=502, detail="Error al crear el pago con criptomonedas. Inténtalo de nuevo.")
+        transaction["nowpayments_invoice_id"] = np_invoice.get("invoice_id")
+        transaction["nowpayments_sandbox"] = np_sandbox
+        transaction["checkout_url"] = np_invoice["invoice_url"]
+
     elif payment_method in _PAYMENT_METHODS_MAP:
         # 7-day free trial only for NEW subscribers (never premium, no prior/active
         # Stripe subscription, trial not already used) and only on recurring plans.
@@ -4162,6 +4195,86 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
 
     logging.info(
         "[revolut-webhook] subscription activated: user=%s plan=%s order=%s",
+        transaction["user_id"], plan_id, order_id,
+    )
+    return {"status": "received"}
+
+
+@api_router.post("/webhook/nowpayments")
+async def nowpayments_webhook(request: Request) -> Dict[str, str]:
+    """NOWPayments crypto IPN callback (HMAC-SHA512 signature verified).
+
+    Grants premium once the payment settles (payment_status == 'finished').
+    NOWPayments signs the sorted JSON body with the IPN secret — we reject any
+    callback whose signature doesn't verify. Idempotent: a re-delivered or
+    out-of-order IPN is a safe no-op. The order_id we send is the (unguessable
+    UUID) payment_transactions.id, tying the callback back to the user/plan.
+    """
+    from nowpayments import parse_ipn, verify_ipn, ipn_order_id, ipn_is_paid
+
+    raw_body = await request.body()
+    ipn_secret = await get_setting("nowpayments_ipn_secret")
+    if not verify_ipn(raw_body, request.headers.get("x-nowpayments-sig"), ipn_secret):
+        logging.warning("[nowpayments-webhook] invalid/missing IPN signature — rejected")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    data = parse_ipn(raw_body)
+    order_id = ipn_order_id(data)
+    if not order_id:
+        logging.warning("[nowpayments-webhook] missing order id in payload: %s", str(data)[:300])
+        return {"status": "ignored"}
+
+    transaction = await db.payment_transactions.find_one({"id": order_id}, {"_id": 0})
+    if not transaction:
+        logging.warning("[nowpayments-webhook] unknown order id: %s", order_id)
+        return {"status": "ignored"}
+    if transaction.get("status") == "paid":
+        return {"status": "already_processed"}
+
+    if not ipn_is_paid(data):
+        # waiting / confirming / partially_paid / etc. — record latest, keep claimable.
+        await db.payment_transactions.update_one(
+            {"id": order_id},
+            {"$set": {"nowpayments_last_status": str(data.get("payment_status") or "")[:40]}},
+        )
+        return {"status": "received"}
+
+    # Atomically claim the pending transaction to prevent a double grant.
+    claimed = await db.payment_transactions.find_one_and_update(
+        {"id": order_id, "status": "pending"},
+        {"$set": {"status": "capturing"}},
+    )
+    if not claimed:
+        return {"status": "already_processed"}
+
+    plan_id = transaction["plan_id"]
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        logging.error("[nowpayments-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
+        return {"status": "error"}
+
+    await _activate_paid_subscription(
+        user_id=transaction["user_id"],
+        plan_id=plan_id,
+        plan=plan,
+        transaction_id=order_id,
+        session_id="",
+    )
+    try:
+        from referrals import credit_referrer_for_payment
+        await credit_referrer_for_payment(
+            referee_user_id=transaction["user_id"],
+            plan_id=plan_id,
+            plan_amount=float(plan.get("price", 0)),
+            plan_currency=plan.get("currency", "EUR"),
+            transaction_id=order_id,
+        )
+    except Exception as e:
+        logging.warning(f"[nowpayments-webhook] referral credit error: {e}")
+
+    logging.info(
+        "[nowpayments-webhook] subscription activated: user=%s plan=%s order=%s",
         transaction["user_id"], plan_id, order_id,
     )
     return {"status": "received"}
@@ -6095,6 +6208,8 @@ PUBLIC_SETTING_KEYS = (
     "oxapay_sandbox",             # "true" | "false"
     # Revolut (Revolut Pay + Apple/Google Pay) — sandbox flag public, keys secret
     "revolut_sandbox",            # "true" | "false"
+    # NOWPayments (crypto, non-custodial) — sandbox flag public, keys secret
+    "nowpayments_sandbox",        # "true" | "false"
     # Misc
     "trustpilot_business_id",
     "clarity_project_id",
@@ -6110,6 +6225,8 @@ SECRET_SETTING_KEYS = (
     "oxapay_api_key",             # Merchant API key (also the webhook HMAC secret)
     "revolut_api_key",            # Revolut Merchant Secret API key
     "revolut_webhook_secret",     # Revolut webhook signing secret (separate from the API key)
+    "nowpayments_api_key",        # NOWPayments API key
+    "nowpayments_ipn_secret",     # NOWPayments IPN secret (signs the webhook)
     "sendgrid_api_key",
 )
 
@@ -6137,6 +6254,9 @@ _SETTING_ENV_FALLBACK: Dict[str, str] = {
     "revolut_api_key":        "REVOLUT_API_KEY",
     "revolut_webhook_secret": "REVOLUT_WEBHOOK_SECRET",
     "revolut_sandbox":        "REVOLUT_SANDBOX",
+    "nowpayments_api_key":    "NOWPAYMENTS_API_KEY",
+    "nowpayments_ipn_secret": "NOWPAYMENTS_IPN_SECRET",
+    "nowpayments_sandbox":    "NOWPAYMENTS_SANDBOX",
     "sendgrid_api_key":       "SENDGRID_API_KEY",
     "trustpilot_business_id": "REACT_APP_TRUSTPILOT_BUSINESS_ID",
     "clarity_project_id":     "REACT_APP_CLARITY_PROJECT_ID",
@@ -6167,6 +6287,9 @@ class AdminSettingsUpdate(BaseModel):
     revolut_api_key: Optional[str] = None
     revolut_webhook_secret: Optional[str] = None
     revolut_sandbox: Optional[str] = None
+    nowpayments_api_key: Optional[str] = None
+    nowpayments_ipn_secret: Optional[str] = None
+    nowpayments_sandbox: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
     trustpilot_business_id: Optional[str] = None
     clarity_project_id: Optional[str] = None
