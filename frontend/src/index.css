@@ -335,7 +335,10 @@ code {
     text-align: right;
 }
 
-[dir="rtl"] .flex {
+/* Only reverse ROW containers. Without the :not() guards this rule also
+   clobbered `flex-col` (higher specificity than Tailwind's class), turning
+   whole-page column layouts into side-by-side rows in Arabic. */
+[dir="rtl"] .flex:not(.flex-col):not(.flex-col-reverse) {
     flex-direction: row-reverse;
 }
 

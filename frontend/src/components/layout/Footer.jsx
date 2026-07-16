@@ -125,7 +125,7 @@ export function Footer() {
             </p>
             <span className="hidden md:inline text-muted-foreground/40">·</span>
             <p className="text-muted-foreground/70 text-[11px] max-w-xl leading-snug">
-              {t('disclaimer')}
+              {t('disclaimer')} {t('dataAttribution')}
             </p>
           </div>
           <div className="flex items-center gap-2">
