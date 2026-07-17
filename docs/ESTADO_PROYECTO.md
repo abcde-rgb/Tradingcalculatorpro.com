@@ -1227,5 +1227,8 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   (contrato, IRPF/349, KYC) y un plan en 3 fases (**Fase 1 = MVP semi-manual** recomendada primero).
 - ✅ **Lifetime decidido**: bonus **único de 50 €** por cada referido lifetime (excluido del recuento
   por bloques, pagado una sola vez). El umbral mínimo queda resuelto por el propio modelo de bloques.
+- ✅ **Organización del panel (§8bis)**: sección "Afiliados" **separada** de la lista general de
+  clientes; segmentación con/sin referidos; ficha por afiliado con **sus** referidos; orden/agrupación
+  **de 1000 en 1000** (por bloques). Todo derivado en vivo de `referred_by_id` + suscripciones.
 - ⏳ **Decisiones abiertas** antes de codificar (§7 del doc): si cuentan los *trialing* (rec.: no) y
   método de cobro de Fase 1 (banco/PayPal manual). **Nada implementado aún.**

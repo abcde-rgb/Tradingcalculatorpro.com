@@ -83,6 +83,8 @@ Se recomienda **construir la Fase 1 primero** (valida negocio y legalidad sin KY
 
 ### Fase 1 — MVP semi-manual (recomendado empezar aquí)
 - Modelo de datos + alta/aprobación de afiliados.
+- **Sección "Afiliados" propia en el admin, SEPARADA de la lista general de clientes**, con detalle
+  de los referidos de cada afiliado y orden por bloques de 1000 (ver §8bis).
 - **Job de liquidación mensual disparado por el admin** (endpoint) que cuenta activos y genera un
   **run** con una línea por afiliado (importe a pagar).
 - **Panel admin de liquidación**: tabla "a quién pagar cuánto", export CSV, botón "marcar como pagado".
@@ -305,7 +307,10 @@ cadencia mensual (reciclado de instancias). Recomendación:
 - `PUT  /affiliate/payout-details` — método + datos de cobro y fiscales (**cifrados** con Fernet).
 
 ### Admin (`/api/admin/affiliates/*`, `require_admin`)
-- `GET   /admin/affiliates` — lista + filtros (`pending`/`approved`) + métricas.
+- `GET   /admin/affiliates?segment=&sort=&group=` — **lista de afiliados separada** de la de clientes,
+  con contadores calculados (total referidos, activos de pago, bloques, € estimado). Ver §8bis.
+- `GET   /admin/affiliates/{id}` — **ficha del afiliado + lista de SUS referidos** (estado/plan/fecha)
+  + histórico de pagos. Ver §8bis.
 - `POST  /admin/affiliates/{id}/approve` · `/reject` · `/suspend`.
 - `PATCH /admin/affiliates/{id}` — override de tarifa, umbral, notas.
 - `POST  /admin/affiliates/payout-run?period=YYYY-MM` — genera/recomputa el `draft`.
@@ -313,6 +318,46 @@ cadencia mensual (reciclado de instancias). Recomendación:
 - `GET   /admin/affiliates/payout-runs` · `GET .../payout-runs/{id}` — ver runs y líneas.
 - `POST  /admin/affiliates/payout-lines/{id}/mark-paid` — registra pago manual (`payout_reference`).
 - `GET   /admin/affiliates/payout-runs/{id}/export.csv` — CSV para el banco (email, IBAN, importe).
+
+---
+
+## 8bis. Organización del panel de admin (afiliados separados de los clientes)
+
+> Requisito del propietario: los afiliados **NO se mezclan** con la lista general de usuarios. Cada
+> cliente con referidos se ve por separado, con sus propios referidos dentro, y se puede ordenar
+> **de 1000 en 1000**.
+
+**A) Sección "Afiliados" propia.** La lista general "Usuarios/Clientes" de `AdminPage.jsx` **no
+cambia**. Se añade una **pestaña/sección nueva "Afiliados"** que muestra **solo** clientes que son
+afiliados (los que tienen ficha en la colección `affiliates`). Así no se mezclan.
+
+**B) Segmentación "los que tienen / los que no" (`segment=`).** Dentro de Afiliados, dos vistas:
+- **Con referidos** — han traído ≥1 referido (opción de contar solo los de pago activos).
+- **Sin referidos** — afiliados aprobados que aún no han traído a nadie.
+
+**C) Columnas por fila de afiliado:**
+
+| Email / nombre | Código | Estado | Referidos (total) | **De pago activos** | **Bloques** ⌊act/1000⌋ | **Lifetime** | **€ este mes** | Ver |
+|---|---|---|---|---|---|---|---|---|
+
+**D) Ordenar / agrupar "de 1000 en 1000" (`sort=` / `group=`):**
+- `sort=active_desc` — por nº de referidos de pago activos (de mayor a menor).
+- `sort=blocks_desc` — por bloques completos.
+- `sort=amount_desc` — por € a pagar este mes.
+- `group=block_tier` — **agrupa por tramo de millar**: `≥1000 (1 bloque)`, `≥2000 (2 bloques)`, … →
+  ves de un vistazo quién ha cruzado cada 1000 y, por tanto, quién sube de bloque de pago.
+
+**E) Ficha de cada afiliado (`GET /admin/affiliates/{id}`):**
+- Su **código/link** (`/?ref=CODE`) y datos de cobro/fiscales.
+- **Lista de SUS referidos** (solo los suyos), con el estado de cada uno: *registrado (gratis) ·
+  de pago activo · lifetime · cancelado/expirado*, su plan y la fecha.
+- **Resumen de pago**: X activos de pago → Y bloques → `Y × 1000 €` + (nº lifetime nuevos × 50 €).
+- **Histórico de liquidaciones** pagadas a ese afiliado (fecha, importe, referencia).
+
+**Cómo se calcula (reutiliza `referred_by_id`):** los referidos de un afiliado `A` son
+`db.users.find({"referred_by_id": A.user_id})`; los que cuentan para el pago son los de pago activos
+no-lifetime (§5.1); los lifetime se listan aparte para el bonus. **Todo se deriva en vivo de los
+datos de suscripción existentes** — no hay que mantener ninguna lista a mano.
 
 ---
 
