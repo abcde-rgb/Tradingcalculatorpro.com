@@ -1210,3 +1210,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   `pytest` 17 passed / 15 skipped (`test_nowpayments_unit`, `test_revolut_unit`, `test_stripe_payments`);
   py_compile OK. Deploy de GitHub Pages en verde. **Nota operativa**: cripto/pagos no cobrarán hasta que se
   reactive el backend (Cloud Run) y se carguen las claves reales de NOWPayments/Revolut en admin.
+
+### 2026-07-17 (42) — Diseño del Programa de Afiliados (solo documento, sin código)
+- 📄 **Nuevo doc [`PROGRAMA_AFILIADOS.md`](./PROGRAMA_AFILIADOS.md)**: diseño técnico para pagar a
+  socios/afiliados **dinero real, mensual y recurrente** según cuántos **suscriptores de pago activos**
+  traigan. Reglas decididas por el propietario: cuenta **solo de pago activos**, fórmula **lineal**
+  (**1 €/suscriptor/mes** por defecto, configurable).
+- 🔎 **Auditoría del repo**: ~60 % de la fontanería ya existe y se recicla — `referrals.py` (atribución
+  `referred_by_id`, código/link `/?ref=`), suscripciones Stripe (`SUBSCRIPTION_PLANS` en `server.py:1054`,
+  webhooks de ciclo de vida `server.py:3843`, refund→revoca premium). **NO existe** (confirmado): pagos
+  SALIENTES (Stripe Connect/Transfers/Payouts), contabilidad recurrente por activo, ni rol de afiliado.
+- 🧱 El diseño define: colecciones `affiliates` / `affiliate_payout_runs` / `affiliate_payout_lines`,
+  contabilidad mensual por **snapshot** de activos, endpoints admin+afiliado, antifraude, gating legal/fiscal
+  (contrato, IRPF/349, KYC) y un plan en 3 fases (**Fase 1 = MVP semi-manual** recomendada primero).
+- ⏳ **Decisiones abiertas pendientes de confirmar** antes de codificar (§7 del doc): trato del plan
+  *lifetime*, umbral mínimo de pago, si cuentan los *trialing*, método de cobro. **Nada implementado aún.**
