@@ -24,14 +24,31 @@ Reglas ya decididas por el propietario del proyecto:
 | Regla | Decisión |
 |---|---|
 | **Qué cuenta como "suscriptor"** | **Solo suscriptores de pago ACTIVOS** ese mes. Los registros gratuitos NO cuentan. |
-| **Fórmula del importe** | **Lineal**: `tarifa × nº de referidos de pago activos`. La tarifa por defecto es **1 €/suscriptor/mes** (`1000 activos → 1000 €/mes`, `500 → 500 €`, `1500 → 1500 €`). |
-| **Cadencia** | Mensual y **recurrente**: mientras el referido siga pagando, el afiliado sigue cobrando por él. |
+| **Fórmula del importe** | **Por bloques de 1000, con suelo en 1000.** El pago **empieza a partir de 1000** referidos de pago activos y sube **de 1000 en 1000**: `pago/mes = ⌊nº de activos ÷ 1000⌋ × 1000 €`. Por debajo de 1000 activos → **0 €**. |
+| **Cadencia** | Mensual y **recurrente**: cada mes se recuenta y se paga según los activos de ese mes. |
 | **Moneda** | EUR (igual que los planes). |
 
-> **Nota económica.** El plan mensual son 17 €; pagar 1 €/mes por suscriptor activo ≈ **5,9 %**
-> de los ingresos brutos de ese usuario → sostenible. El plan anual (200 €) equivale a ~16,7 €/mes
-> → ~6 %. El único plan que requiere una regla especial es **lifetime** (500 € una sola vez pero
-> "activo para siempre"): ver §7 (Decisiones abiertas).
+> **Actualización 2026-07-17:** el propietario cambió la fórmula de *lineal* a **bloques de 1000
+> con suelo en 1000**. Esta versión **sustituye** la decisión lineal previa.
+
+**Ejemplos** (por afiliado; el bloque se calcula sobre los activos de *cada* afiliado, no del total):
+
+| Suscriptores de pago activos | Bloques completos | Pago/mes |
+|---:|:---:|---:|
+| 0 – 999 | 0 | **0 €** |
+| 1000 – 1999 | 1 | **1000 €** |
+| 2000 – 2999 | 2 | **2000 €** |
+| 5000 | 5 | **5000 €** |
+
+Los activos "sueltos" por debajo del siguiente bloque (p. ej. los 500 de un afiliado con 1500) **no
+pagan** hasta cruzar al bloque siguiente. Como es un **snapshot mensual** (§5), no se acumulan de un
+mes a otro: cada mes se recuenta desde cero.
+
+> **Nota económica.** El plan mensual son 17 €; el pago máximo por suscriptor activo es 1 €/mes
+> (bloque completo) ≈ **5,9 %** de los ingresos brutos de ese usuario, y **menos** cuando hay bloque
+> parcial (esos activos no pagan) → sostenible. El plan anual (200 €) equivale a ~16,7 €/mes → ~6 %.
+> El único plan que requiere una regla especial es **lifetime** (500 € una sola vez pero "activo
+> para siempre"): ver §7 (Decisiones abiertas).
 
 ---
 
@@ -102,8 +119,7 @@ de enlaces). Este doc añade la capa de estado/cobro/fiscal.
   "email": "socio@ejemplo.com",
   "code": "ABC12345",                 // = user.referral_code
   "status": "pending",                // pending | approved | suspended | rejected
-  "rate_eur": 1.0,                    // override opcional; si null usa el global
-  "min_payout_eur": 50.0,            // umbral mínimo para pagar (si no, acumula)
+  "block_reward_eur": null,           // override opcional del € por bloque; si null usa el global (1000)
   "payout_method": "bank",           // bank | paypal | stripe_connect (fase 2)
   "payout_details_enc": "<Fernet>",  // IBAN / email PayPal — CIFRADO (como settings secretos)
   "tax_info_enc": "<Fernet>",        // NIF/VAT, país, régimen — CIFRADO
@@ -121,10 +137,11 @@ de enlaces). Este doc añade la capa de estado/cobro/fiscal.
   "id": "uuid",
   "period": "2026-07",               // YYYY-MM
   "status": "draft",                 // draft | finalized | paid
-  "rate_eur": 1.0,                   // tarifa global aplicada en este run
+  "block_size": 1000,                // suelo y tamaño de bloque aplicados en este run
+  "block_reward_eur": 1000.0,        // € por bloque completo
   "snapshot_at": "2026-08-01T00:05:00Z",
-  "totals": { "affiliates": 12, "active_subscribers": 3480, "gross_eur": 3480.0,
-              "payable_eur": 3410.0, "carryover_eur": 70.0 },
+  "totals": { "affiliates": 12, "affiliates_paid": 3, "active_subscribers": 3480,
+              "total_blocks": 4, "payable_eur": 4000.0 },
   "created_at": "...", "finalized_at": "...", "created_by": "admin_id"
 }
 ```
@@ -136,14 +153,13 @@ de enlaces). Este doc añade la capa de estado/cobro/fiscal.
   "id": "uuid",
   "run_id": "uuid", "period": "2026-07",
   "affiliate_id": "uuid", "affiliate_email": "socio@ejemplo.com",
-  "active_count": 1000,              // referidos de pago activos en el snapshot
-  "rate_eur": 1.0,
-  "gross_eur": 1000.0,
+  "active_count": 1500,              // referidos de pago activos en el snapshot
+  "blocks": 1,                       // ⌊active_count / block_size⌋  (1500 → 1 bloque)
+  "block_size": 1000, "block_reward_eur": 1000.0,
+  "gross_eur": 1000.0,               // blocks * block_reward_eur
   "adjustments_eur": 0.0,           // clawback (negativo) por refunds/chargebacks (fase 2)
-  "carryover_in_eur": 0.0,          // arrastre de meses previos por debajo del umbral
-  "net_eur": 1000.0,                // gross + adjustments + carryover_in
-  "carryover_out_eur": 0.0,         // si net < umbral → se arrastra al mes siguiente
-  "status": "pending",              // pending | paid | held | below_threshold | skipped
+  "net_eur": 1000.0,                // gross + adjustments
+  "status": "pending",              // pending | paid | held | zero | skipped
   "counted_referee_ids": ["..."],   // auditoría (o hash/muestra si son muchos)
   "paid_at": null, "payout_reference": null,  // se rellenan al "marcar como pagado"
   "created_at": "..."
@@ -154,8 +170,9 @@ de enlaces). Este doc añade la capa de estado/cobro/fiscal.
 ### 4.4 Campos añadidos a documentos existentes
 - `users`: reutiliza `referred_by_id`, `referred_by_code` (ya existen). Opcional:
   `affiliate_first_paid_at` (cuándo el referido se hizo de pago por primera vez — para cohortes).
-- Global settings (sistema `get_setting`): `affiliate_rate_eur` (1.0), `affiliate_min_payout_eur`
-  (50.0), `affiliate_lifetime_mode` (ver §7), `affiliate_program_enabled` (bool).
+- Global settings (sistema `get_setting`): `affiliate_block_size` (1000), `affiliate_block_reward_eur`
+  (1000.0), `affiliate_lifetime_mode` (ver §7), `affiliate_program_enabled` (bool). *(El modelo de
+  bloques hace innecesario un umbral mínimo de pago: por debajo de un bloque el pago ya es 0 €.)*
 
 ---
 
@@ -174,6 +191,7 @@ al día (§2), **la contabilidad solo lee esos campos**, no habla con Stripe en 
 
 ### 5.2 Algoritmo del run (periodo `P`, enfoque *snapshot*)
 ```
+block_size = settings.affiliate_block_size            # 1000  → suelo y paso
 para cada afiliado A con status == "approved":
     referidos_activos = db.users.count_documents({
         "referred_by_id": A.user_id,
@@ -181,17 +199,19 @@ para cada afiliado A con status == "approved":
         "subscription_status": {"$in": ["active"]},   # + "trialing" si se decide contarlo
         # + filtro de plan según affiliate_lifetime_mode
     })
-    rate      = A.rate_eur  or  settings.affiliate_rate_eur
-    gross     = referidos_activos * rate
-    carry_in  = suma de carryover_out de líneas previas 'below_threshold' de A
-    net       = gross + carry_in + adjustments   # adjustments = clawbacks (fase 2)
-    if net < (A.min_payout_eur or settings.affiliate_min_payout_eur):
-        status = "below_threshold";  carryover_out = net
-    else:
-        status = "pending";          carryover_out = 0
-    persistir línea (run_id, A, referidos_activos, rate, gross, net, status, ...)
+    reward = A.block_reward_eur  or  settings.affiliate_block_reward_eur   # 1000 €
+    blocks = referidos_activos // block_size          # ⌊activos / 1000⌋ → suelo en 1000
+    gross  = blocks * reward
+    net    = gross + adjustments                      # adjustments = clawbacks (fase 2)
+    status = "zero" if blocks == 0 else "pending"     # < 1000 activos → 0 €, nada que pagar
+    persistir línea (run_id, A, referidos_activos, blocks, gross, net, status, ...)
 persistir totales del run
 ```
+
+> **Sin arrastre entre meses:** al ser un recuento en vivo por bloques completos, los activos por
+> debajo del siguiente bloque simplemente no pagan ese mes; no se acumulan ni se arrastran. El mes
+> siguiente se vuelve a contar desde cero y, si el afiliado ha crecido hasta el siguiente millar,
+> cobra el bloque nuevo.
 
 **Idempotencia:** volver a ejecutar un run en `draft` para el mismo `period` **reemplaza** sus
 líneas (recomputa). Una vez `finalized`, se congela; recomputar exige crear un run de ajuste.
@@ -232,7 +252,7 @@ cadencia mensual (reciclado de instancias). Recomendación:
 | # | Decisión | Opciones | Recomendación |
 |---|---|---|---|
 | D1 | **Lifetime (500 € único)** cómo cuenta | (a) `recurring`: 1 €/mes para siempre · (b) `capped`: cuenta N meses (p.ej. 24) · (c) `bonus`: pago único al afiliado (p.ej. 12 €) y deja de contar | **(b) capped a 24 meses** (evita pagar >4,8 % del importe único de forma indefinida) |
-| D2 | **Umbral mínimo de pago** | p.ej. 25 € / 50 € / sin umbral | **50 €** (reduce comisiones/coste operativo de micro-transferencias; el resto arrastra) |
+| D2 | **Umbral mínimo de pago** | — | **N/A**: el modelo de bloques ya impone un mínimo de **1 bloque = 1000 €**. Por debajo de 1000 activos el pago es 0 € → sin micro-pagos ni arrastre |
 | D3 | **¿Cuentan los `trialing`?** | sí / no | **No** — solo tras el primer cobro real (evita fraude de trials) |
 | D4 | **Ventana de atribución** | primer toque de por vida / N días | **De por vida del referido** (ya que pagamos por actividad, no por el click) |
 | D5 | **Método de cobro prioritario** | transferencia bancaria manual / PayPal / Stripe Connect | **Fase 1: banco/PayPal manual** · **Fase 2: Connect** |
@@ -288,9 +308,9 @@ Igual que Stripe hoy, estos puntos requieren decisiones/consolas externas:
 
 ## 11. Plan de pruebas (convención del repo: unit offline en `backend/tests/`)
 
-- **Cálculo del run**: dado un conjunto sintético de `users` (con `referred_by_id` +
-  `is_premium`/`subscription_status`/plan) → líneas e importes esperados (lineal, tarifa 1 €).
-- **Umbral y carryover**: net < umbral → `below_threshold` + arrastre correcto al mes siguiente.
+- **Cálculo por bloques**: dado un conjunto sintético de `users` (con `referred_by_id` +
+  `is_premium`/`subscription_status`/plan) → importes esperados con **suelo y paso de 1000**:
+  999 → 0 €, 1000 → 1000 €, 1999 → 1000 €, 2000 → 2000 €, 5000 → 5000 €.
 - **Modo lifetime** (D1): `recurring` vs `capped` vs `bonus` → recuentos esperados.
 - **Idempotencia**: recomputar un `draft` reemplaza líneas; `finalized` no se altera.
 - **Exclusión por refund**: `is_premium=false` → no cuenta.

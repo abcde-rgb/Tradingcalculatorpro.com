@@ -1214,8 +1214,10 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 ### 2026-07-17 (42) — Diseño del Programa de Afiliados (solo documento, sin código)
 - 📄 **Nuevo doc [`PROGRAMA_AFILIADOS.md`](./PROGRAMA_AFILIADOS.md)**: diseño técnico para pagar a
   socios/afiliados **dinero real, mensual y recurrente** según cuántos **suscriptores de pago activos**
-  traigan. Reglas decididas por el propietario: cuenta **solo de pago activos**, fórmula **lineal**
-  (**1 €/suscriptor/mes** por defecto, configurable).
+  traigan. Reglas decididas por el propietario: cuenta **solo de pago activos**, fórmula **por
+  bloques de 1000 con suelo en 1000** (el pago empieza en 1000 activos y sube de 1000 en 1000:
+  `⌊activos/1000⌋ × 1000 €/mes`; <1000 activos → 0 €). Configurable vía `affiliate_block_size` /
+  `affiliate_block_reward_eur`.
 - 🔎 **Auditoría del repo**: ~60 % de la fontanería ya existe y se recicla — `referrals.py` (atribución
   `referred_by_id`, código/link `/?ref=`), suscripciones Stripe (`SUBSCRIPTION_PLANS` en `server.py:1054`,
   webhooks de ciclo de vida `server.py:3843`, refund→revoca premium). **NO existe** (confirmado): pagos
