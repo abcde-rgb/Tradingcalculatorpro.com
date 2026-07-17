@@ -1230,5 +1230,10 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ **Organización del panel (§8bis)**: sección "Afiliados" **separada** de la lista general de
   clientes; segmentación con/sin referidos; ficha por afiliado con **sus** referidos; orden/agrupación
   **de 1000 en 1000** (por bloques). Todo derivado en vivo de `referred_by_id` + suscripciones.
+- ⚠️ **Estado real del lado afiliado (verificado en código)**: el usuario que refiere **hoy NO puede
+  ver sus referidos** — existe el endpoint backend `GET /referrals/me` pero **no está conectado a
+  ninguna página** (`App.js` sin ruta de referidos; en UI solo el leaderboard de admin y los
+  "Affiliate Partners" salientes de la landing). El diseño añade el **panel self-service del afiliado**
+  (`GET /affiliate/me`, Fase 1) con lista **enmascarada** (GDPR): estado/plan/fecha sí, email no.
 - ⏳ **Decisiones abiertas** antes de codificar (§7 del doc): si cuentan los *trialing* (rec.: no) y
   método de cobro de Fase 1 (banco/PayPal manual). **Nada implementado aún.**

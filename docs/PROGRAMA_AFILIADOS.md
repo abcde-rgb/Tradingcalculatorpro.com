@@ -295,6 +295,8 @@ cadencia mensual (reciclado de instancias). Recomendación:
 | D4 | **Ventana de atribución** | primer toque de por vida / N días | **De por vida del referido** (ya que pagamos por actividad, no por el click) |
 | D5 | **Método de cobro prioritario** | transferencia bancaria manual / PayPal / Stripe Connect | **Fase 1: banco/PayPal manual** · **Fase 2: Connect** |
 | D6 | **¿Quién puede ser afiliado?** | abierto a cualquier usuario / solo por invitación/aprobación | **Aprobación manual** (control de calidad y antifraude) |
+| D-panel | **Panel self-service del afiliado** (que el cliente vea SUS referidos) | Fase 1 / Fase 2 | **Fase 1** — dar visibilidad desde el principio; el endpoint `GET /affiliate/me` ya es Fase 1 |
+| D-priv | **Privacidad de la lista del afiliado** | email completo / enmascarado | **Enmascarado** (sin PII de otros usuarios; email completo solo en admin) |
 
 ---
 
@@ -302,9 +304,21 @@ cadencia mensual (reciclado de instancias). Recomendación:
 
 ### Afiliado (`/api/affiliate/*`, `require_user`)
 - `POST /affiliate/apply` — solicitar alta (acepta términos → guarda `terms_accepted_at/ip`).
-- `GET  /affiliate/me` — estado, código/link (`/?ref=CODE`), tarifa, **activos actuales en vivo**,
-  saldo acumulado, histórico de liquidaciones.
+- `GET  /affiliate/me` — **panel self-service del afiliado**. Devuelve: estado, código/link
+  (`/?ref=CODE`), nº de **registrados**, nº de **suscriptores de pago activos**, **bloques completos**
+  y **€ estimado del mes** (bloques×1000 + lifetime×50), referidos lifetime + bonus, y **histórico de
+  cobros** (lo ya pagado). Incluye la **lista de sus referidos con privacidad** (ver nota GDPR abajo).
 - `PUT  /affiliate/payout-details` — método + datos de cobro y fiscales (**cifrados** con Fernet).
+
+> **Privacidad de la lista de referidos (GDPR).** El endpoint actual `GET /referrals/me` devuelve el
+> **email completo** del referido. En el panel del afiliado eso **no debe exponerse**: un afiliado no
+> puede ver la PII de otros usuarios. La lista se muestra **enmascarada** (`j***@gmail.com`) o
+> anónima (*"Referido #1 — de pago activo — plan mensual — desde 12/07"*): estado/plan/fecha sí,
+> identidad no. La vista completa con email queda **solo para el admin** (§8bis-E).
+
+> **Ubicación de fase.** El endpoint `GET /affiliate/me` es Fase 1. La **página frontend** del panel
+> del afiliado puede entrar en Fase 1 (recomendado, para dar visibilidad desde el principio) o
+> quedar en Fase 2 — decisión de alcance pendiente (ver §7-D-panel).
 
 ### Admin (`/api/admin/affiliates/*`, `require_admin`)
 - `GET   /admin/affiliates?segment=&sort=&group=` — **lista de afiliados separada** de la de clientes,
