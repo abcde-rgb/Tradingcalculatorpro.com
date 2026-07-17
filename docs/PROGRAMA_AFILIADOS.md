@@ -26,6 +26,7 @@ Reglas ya decididas por el propietario del proyecto:
 | **Qué cuenta como "suscriptor"** | **Solo suscriptores de pago ACTIVOS** ese mes. Los registros gratuitos NO cuentan. |
 | **Fórmula del importe** | **Por bloques de 1000, con suelo en 1000.** El pago **empieza a partir de 1000** referidos de pago activos y sube **de 1000 en 1000**: `pago/mes = ⌊nº de activos ÷ 1000⌋ × 1000 €`. Por debajo de 1000 activos → **0 €**. |
 | **Cadencia** | Mensual y **recurrente**: cada mes se recuenta y se paga según los activos de ese mes. |
+| **Plan lifetime** | Se paga aparte: **bonus único de 50 €** por cada referido lifetime (**no** cuenta en los bloques mensuales; se abona una sola vez). |
 | **Moneda** | EUR (igual que los planes). |
 
 > **Actualización 2026-07-17:** el propietario cambió la fórmula de *lineal* a **bloques de 1000
@@ -47,8 +48,9 @@ mes a otro: cada mes se recuenta desde cero.
 > **Nota económica.** El plan mensual son 17 €; el pago máximo por suscriptor activo es 1 €/mes
 > (bloque completo) ≈ **5,9 %** de los ingresos brutos de ese usuario, y **menos** cuando hay bloque
 > parcial (esos activos no pagan) → sostenible. El plan anual (200 €) equivale a ~16,7 €/mes → ~6 %.
-> El único plan que requiere una regla especial es **lifetime** (500 € una sola vez pero "activo
-> para siempre"): ver §7 (Decisiones abiertas).
+> El plan **lifetime** (500 € una sola vez) se paga aparte: **bonus único de 50 €** al afiliado por
+> cada referido lifetime (= 10 % del precio del plan, una vez; no entra en el recuento mensual por
+> bloques). Ver §5.1/§5.2.
 
 ---
 
@@ -139,9 +141,11 @@ de enlaces). Este doc añade la capa de estado/cobro/fiscal.
   "status": "draft",                 // draft | finalized | paid
   "block_size": 1000,                // suelo y tamaño de bloque aplicados en este run
   "block_reward_eur": 1000.0,        // € por bloque completo
+  "lifetime_bonus_eur": 50.0,        // pago único por referido lifetime
   "snapshot_at": "2026-08-01T00:05:00Z",
-  "totals": { "affiliates": 12, "affiliates_paid": 3, "active_subscribers": 3480,
-              "total_blocks": 4, "payable_eur": 4000.0 },
+  "totals": { "affiliates": 12, "affiliates_paid": 4, "active_subscribers": 3480,
+              "total_blocks": 4, "block_eur": 4000.0, "lifetime_bonus_total_eur": 150.0,
+              "payable_eur": 4150.0 },
   "created_at": "...", "finalized_at": "...", "created_by": "admin_id"
 }
 ```
@@ -153,14 +157,19 @@ de enlaces). Este doc añade la capa de estado/cobro/fiscal.
   "id": "uuid",
   "run_id": "uuid", "period": "2026-07",
   "affiliate_id": "uuid", "affiliate_email": "socio@ejemplo.com",
-  "active_count": 1500,              // referidos de pago activos en el snapshot
+  "active_count": 1500,              // referidos de pago RECURRENTES activos (excluye lifetime)
   "blocks": 1,                       // ⌊active_count / block_size⌋  (1500 → 1 bloque)
   "block_size": 1000, "block_reward_eur": 1000.0,
-  "gross_eur": 1000.0,               // blocks * block_reward_eur
+  "block_gross_eur": 1000.0,         // blocks * block_reward_eur
+  "lifetime_new_count": 2,           // referidos LIFETIME nuevos (activos, aún sin bonificar)
+  "lifetime_bonus_eur": 50.0,        // € por cada lifetime (una sola vez)
+  "lifetime_gross_eur": 100.0,       // lifetime_new_count * lifetime_bonus_eur
+  "gross_eur": 1100.0,               // block_gross_eur + lifetime_gross_eur
   "adjustments_eur": 0.0,           // clawback (negativo) por refunds/chargebacks (fase 2)
-  "net_eur": 1000.0,                // gross + adjustments
+  "net_eur": 1100.0,                // gross + adjustments
   "status": "pending",              // pending | paid | held | zero | skipped
-  "counted_referee_ids": ["..."],   // auditoría (o hash/muestra si son muchos)
+  "counted_referee_ids": ["..."],   // recurrentes contados (auditoría)
+  "bonused_referee_ids": ["..."],    // lifetime bonificados en este run (auditoría/idempotencia)
   "paid_at": null, "payout_reference": null,  // se rellenan al "marcar como pagado"
   "created_at": "..."
 }
@@ -169,10 +178,12 @@ de enlaces). Este doc añade la capa de estado/cobro/fiscal.
 
 ### 4.4 Campos añadidos a documentos existentes
 - `users`: reutiliza `referred_by_id`, `referred_by_code` (ya existen). Opcional:
-  `affiliate_first_paid_at` (cuándo el referido se hizo de pago por primera vez — para cohortes).
+  `affiliate_first_paid_at` (cohortes). Para el bonus lifetime: **`affiliate_lifetime_bonus_paid_at`**
+  (sella que ese referido lifetime ya se bonificó → se paga UNA sola vez).
 - Global settings (sistema `get_setting`): `affiliate_block_size` (1000), `affiliate_block_reward_eur`
-  (1000.0), `affiliate_lifetime_mode` (ver §7), `affiliate_program_enabled` (bool). *(El modelo de
-  bloques hace innecesario un umbral mínimo de pago: por debajo de un bloque el pago ya es 0 €.)*
+  (1000.0), `affiliate_lifetime_mode` (**`bonus`**), `affiliate_lifetime_bonus_eur` (**50.0**),
+  `affiliate_program_enabled` (bool). *(El modelo de bloques hace innecesario un umbral mínimo de
+  pago: por debajo de un bloque el pago ya es 0 €.)*
 
 ---
 
@@ -184,37 +195,62 @@ Un referido `R` de un afiliado `A` **cuenta** en el periodo si, en el momento de
 - `R.is_premium == true`, **y**
 - `R.subscription_status ∈ {active, trialing?}` (recomendación: **excluir `trialing`** hasta el
   primer cobro real; ver §7), **y**
-- (`R.subscription_end` en el futuro) **o** plan `lifetime` (según `affiliate_lifetime_mode`, §7).
+- `R.subscription_plan != "lifetime"` **y** `R.subscription_end` en el futuro.
+
+Los referidos **lifetime** NO entran en el recuento por bloques: se pagan aparte como **bonus único
+de 50 €** (§5.2, apartado b), para no pagarlos dos veces.
 
 Como los webhooks de Stripe ya mantienen `is_premium`/`subscription_status`/`subscription_end`
 al día (§2), **la contabilidad solo lee esos campos**, no habla con Stripe en el run.
 
 ### 5.2 Algoritmo del run (periodo `P`, enfoque *snapshot*)
 ```
-block_size = settings.affiliate_block_size            # 1000  → suelo y paso
+block_size     = settings.affiliate_block_size          # 1000  → suelo y paso
+lifetime_bonus = settings.affiliate_lifetime_bonus_eur   # 50 €  → pago único por lifetime
 para cada afiliado A con status == "approved":
+    # (a) RECURRENTES → bloques de 1000 (excluye lifetime)
     referidos_activos = db.users.count_documents({
         "referred_by_id": A.user_id,
         "is_premium": true,
         "subscription_status": {"$in": ["active"]},   # + "trialing" si se decide contarlo
-        # + filtro de plan según affiliate_lifetime_mode
+        "subscription_plan": {"$ne": "lifetime"},
     })
-    reward = A.block_reward_eur  or  settings.affiliate_block_reward_eur   # 1000 €
-    blocks = referidos_activos // block_size          # ⌊activos / 1000⌋ → suelo en 1000
-    gross  = blocks * reward
+    reward      = A.block_reward_eur  or  settings.affiliate_block_reward_eur   # 1000 €
+    blocks      = referidos_activos // block_size     # ⌊activos / 1000⌋ → suelo en 1000
+    block_gross = blocks * reward
+
+    # (b) LIFETIME nuevos → bonus único de 50 € (una sola vez por referido)
+    lifetime_nuevos = db.users.find({
+        "referred_by_id": A.user_id,
+        "is_premium": true,
+        "subscription_plan": "lifetime",
+        "affiliate_lifetime_bonus_paid_at": {"$exists": false},   # aún no bonificados
+    })
+    lifetime_gross = count(lifetime_nuevos) * lifetime_bonus
+
+    gross  = block_gross + lifetime_gross
     net    = gross + adjustments                      # adjustments = clawbacks (fase 2)
-    status = "zero" if blocks == 0 else "pending"     # < 1000 activos → 0 €, nada que pagar
-    persistir línea (run_id, A, referidos_activos, blocks, gross, net, status, ...)
+    status = "zero" if gross == 0 else "pending"      # nada que pagar este mes
+    persistir línea (run_id, A, referidos_activos, blocks, block_gross,
+                     lifetime_new_count, lifetime_gross, gross, net, status,
+                     bonused_referee_ids=[ids de lifetime_nuevos], ...)
 persistir totales del run
 ```
 
-> **Sin arrastre entre meses:** al ser un recuento en vivo por bloques completos, los activos por
-> debajo del siguiente bloque simplemente no pagan ese mes; no se acumulan ni se arrastran. El mes
-> siguiente se vuelve a contar desde cero y, si el afiliado ha crecido hasta el siguiente millar,
-> cobra el bloque nuevo.
+> **Sellado del bonus lifetime (idempotencia):** los referidos lifetime se marcan con
+> `affiliate_lifetime_bonus_paid_at` **solo al `finalize`** del run (no en `draft`), de modo que
+> recomputar un borrador no los "consume" y cada lifetime se bonifica **exactamente una vez**. Un
+> lifetime reembolsado (con `is_premium=false`) no entra, así que el bonus solo se paga sobre compras
+> vivas.
+
+> **Sin arrastre entre meses (recurrentes):** al ser un recuento en vivo por bloques completos, los
+> activos por debajo del siguiente bloque simplemente no pagan ese mes; no se acumulan ni se
+> arrastran. El mes siguiente se vuelve a contar desde cero y, si el afiliado ha crecido hasta el
+> siguiente millar, cobra el bloque nuevo.
 
 **Idempotencia:** volver a ejecutar un run en `draft` para el mismo `period` **reemplaza** sus
-líneas (recomputa). Una vez `finalized`, se congela; recomputar exige crear un run de ajuste.
+líneas (recomputa). Una vez `finalized`, se congela (y se sella el bonus lifetime); recomputar exige
+crear un run de ajuste.
 
 **Por qué snapshot y no "por factura pagada":** el enfoque snapshot es simple, coincide con
 "activos ese mes", y **excluye automáticamente** a quien reembolsó/canceló (el webhook ya puso
@@ -251,7 +287,7 @@ cadencia mensual (reciclado de instancias). Recomendación:
 
 | # | Decisión | Opciones | Recomendación |
 |---|---|---|---|
-| D1 | **Lifetime (500 € único)** cómo cuenta | (a) `recurring`: 1 €/mes para siempre · (b) `capped`: cuenta N meses (p.ej. 24) · (c) `bonus`: pago único al afiliado (p.ej. 12 €) y deja de contar | **(b) capped a 24 meses** (evita pagar >4,8 % del importe único de forma indefinida) |
+| D1 | **Lifetime (500 € único)** cómo cuenta | — | ✅ **DECIDIDO: `bonus` único de 50 €** por cada referido lifetime. Se excluye del recuento por bloques y se paga una sola vez (sellado en `finalize`). |
 | D2 | **Umbral mínimo de pago** | — | **N/A**: el modelo de bloques ya impone un mínimo de **1 bloque = 1000 €**. Por debajo de 1000 activos el pago es 0 € → sin micro-pagos ni arrastre |
 | D3 | **¿Cuentan los `trialing`?** | sí / no | **No** — solo tras el primer cobro real (evita fraude de trials) |
 | D4 | **Ventana de atribución** | primer toque de por vida / N días | **De por vida del referido** (ya que pagamos por actividad, no por el click) |
@@ -309,9 +345,11 @@ Igual que Stripe hoy, estos puntos requieren decisiones/consolas externas:
 ## 11. Plan de pruebas (convención del repo: unit offline en `backend/tests/`)
 
 - **Cálculo por bloques**: dado un conjunto sintético de `users` (con `referred_by_id` +
-  `is_premium`/`subscription_status`/plan) → importes esperados con **suelo y paso de 1000**:
-  999 → 0 €, 1000 → 1000 €, 1999 → 1000 €, 2000 → 2000 €, 5000 → 5000 €.
-- **Modo lifetime** (D1): `recurring` vs `capped` vs `bonus` → recuentos esperados.
+  `is_premium`/`subscription_status`/plan) → importes esperados con **suelo y paso de 1000**,
+  **excluyendo lifetime**: 999 → 0 €, 1000 → 1000 €, 1999 → 1000 €, 2000 → 2000 €, 5000 → 5000 €.
+- **Bonus lifetime** (D1): un referido lifetime activo sin bonificar → **+50 € una vez**; tras
+  `finalize` queda sellado y en el run siguiente ya no vuelve a pagar (idempotente); un lifetime
+  reembolsado (`is_premium=false`) → 0 €. Verificar que **no** cuenta también en los bloques.
 - **Idempotencia**: recomputar un `draft` reemplaza líneas; `finalized` no se altera.
 - **Exclusión por refund**: `is_premium=false` → no cuenta.
 - **Doble programa**: referrer afiliado aprobado → **no** recibe comisión de wallet.

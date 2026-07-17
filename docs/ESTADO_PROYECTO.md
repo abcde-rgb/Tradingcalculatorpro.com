@@ -1225,5 +1225,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - 🧱 El diseño define: colecciones `affiliates` / `affiliate_payout_runs` / `affiliate_payout_lines`,
   contabilidad mensual por **snapshot** de activos, endpoints admin+afiliado, antifraude, gating legal/fiscal
   (contrato, IRPF/349, KYC) y un plan en 3 fases (**Fase 1 = MVP semi-manual** recomendada primero).
-- ⏳ **Decisiones abiertas pendientes de confirmar** antes de codificar (§7 del doc): trato del plan
-  *lifetime*, umbral mínimo de pago, si cuentan los *trialing*, método de cobro. **Nada implementado aún.**
+- ✅ **Lifetime decidido**: bonus **único de 50 €** por cada referido lifetime (excluido del recuento
+  por bloques, pagado una sola vez). El umbral mínimo queda resuelto por el propio modelo de bloques.
+- ⏳ **Decisiones abiertas** antes de codificar (§7 del doc): si cuentan los *trialing* (rec.: no) y
+  método de cobro de Fase 1 (banco/PayPal manual). **Nada implementado aún.**
