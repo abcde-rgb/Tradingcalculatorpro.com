@@ -169,6 +169,18 @@ def _is_active_lifetime(u: dict) -> bool:
     return bool(u.get("is_premium")) and u.get("subscription_plan") == "lifetime"
 
 
+def _is_paying_member(u: dict) -> bool:
+    """El PROPIO usuario es suscriptor de pago (requisito para ser afiliado).
+    Excluye la prueba de 7 días (`trialing`). Lifetime y de pago activo sí valen."""
+    if not u.get("is_premium"):
+        return False
+    if u.get("subscription_status") == "trialing":   # durante la prueba NO
+        return False
+    if u.get("subscription_plan") == "lifetime":
+        return True
+    return _sub_end_future(u)
+
+
 def _status_label(u: dict) -> str:
     if _is_active_lifetime(u):
         return "lifetime"
@@ -267,6 +279,13 @@ async def affiliate_apply(payload: AffiliateApply, request: Request,
     if existing:
         return {"ok": True, "already": True, "status": existing.get("status")}
 
+    # Requisito: hay que ser suscriptor de PAGO (no durante la prueba de 7 días)
+    if not _is_paying_member(user):
+        raise HTTPException(
+            status_code=403,
+            detail="El programa de afiliados es solo para suscriptores de pago (no disponible durante la prueba de 7 días).",
+        )
+
     code = await _ensure_referral_code(user)
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "")
@@ -303,7 +322,8 @@ async def affiliate_me(user: dict = Depends(_require_user_proxy)):
         summ = _summarize(referees, cfg)
         return {
             "is_affiliate": False,
-            "can_apply": True,
+            "can_apply": _is_paying_member(user),
+            "eligible": _is_paying_member(user),
             "config": {k: cfg[k] for k in ("block_size", "block_reward_eur", "lifetime_bonus_eur")},
             "potential": {
                 "registered": summ["registered"],

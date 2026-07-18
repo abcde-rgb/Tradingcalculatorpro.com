@@ -77,6 +77,18 @@ def test_free_registered_do_not_count():
     assert s["estimated_month_eur"] == 0
 
 
+def test_is_paying_member_requires_paid_not_trial():
+    # de pago activo o lifetime → sí; gratis o en prueba → no
+    assert ap._is_paying_member({"is_premium": True, "subscription_plan": "monthly",
+                                 "subscription_status": "active", "subscription_end": _future()}) is True
+    assert ap._is_paying_member({"is_premium": True, "subscription_plan": "lifetime"}) is True
+    assert ap._is_paying_member({"is_premium": True, "subscription_plan": "monthly",
+                                 "subscription_status": "trialing", "subscription_end": _future()}) is False
+    assert ap._is_paying_member({"is_premium": False}) is False
+    assert ap._is_paying_member({"is_premium": True, "subscription_plan": "monthly",
+                                 "subscription_status": "active", "subscription_end": _past()}) is False
+
+
 def test_mask_email_hides_pii():
     m = ap._mask_email("juanperez@gmail.com")
     assert m.startswith("j") and m.endswith("@gmail.com") and "***" in m

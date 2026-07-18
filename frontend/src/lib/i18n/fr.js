@@ -5149,4 +5149,7 @@ export default {
   affRequestSent: "Demande de paiement envoyée à l'administrateur.",
   affNoBalance: "Vous n'avez pas encore de solde à demander.",
   affRequestHint: "Demandez le paiement de votre solde accumulé ; l'administrateur le traitera.",
+  affNeedPaidTitle: "Réservé aux abonnés payants",
+  affNeedPaid: "Le programme d'affiliation est réservé aux abonnés payants. Il n'est pas actif pendant l'essai de 7 jours. Passez premium pour participer.",
+  affGoPremium: "Voir les offres",
 }

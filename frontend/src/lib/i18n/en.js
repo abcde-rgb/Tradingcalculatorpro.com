@@ -5172,4 +5172,7 @@ export default {
   affRequestSent: "Payout request sent to the admin.",
   affNoBalance: "You don't have a balance to request yet.",
   affRequestHint: "Request payout of your accrued balance; the admin will process it.",
+  affNeedPaidTitle: "Paying subscribers only",
+  affNeedPaid: "The affiliate program is available only to paying subscribers. It is not active during the 7-day trial. Go premium to join.",
+  affGoPremium: "See plans",
 }

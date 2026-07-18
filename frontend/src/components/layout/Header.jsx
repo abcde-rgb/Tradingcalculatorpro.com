@@ -71,6 +71,8 @@ export function Header() {
   };
 
   const isPremium = user?.is_premium;
+  // El programa de afiliados solo se activa para suscriptores de PAGO (no en la prueba de 7 días).
+  const isPayingMember = !!user?.is_premium && user?.subscription_status !== 'trialing';
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
@@ -251,11 +253,13 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link to="/settings">{t('settings')}</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/affiliate" className="gap-2" data-testid="user-menu-affiliate">
-                      <Users className="w-4 h-4 text-primary" /> {t('affMenuLabel')}
-                    </Link>
-                  </DropdownMenuItem>
+                  {isPayingMember && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/affiliate" className="gap-2" data-testid="user-menu-affiliate">
+                        <Users className="w-4 h-4 text-primary" /> {t('affMenuLabel')}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {user?.is_admin && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="gap-2" data-testid="user-menu-admin">

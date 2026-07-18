@@ -5254,4 +5254,7 @@ export default {
   affRequestSent: "Solicitud de pago enviada al administrador.",
   affNoBalance: "Todavía no tienes saldo para solicitar.",
   affRequestHint: "Solicita el pago de lo acumulado; el administrador lo procesará.",
+  affNeedPaidTitle: "Solo para suscriptores de pago",
+  affNeedPaid: "El programa de afiliados está disponible solo para suscriptores de pago. Durante la prueba de 7 días no está activo. Hazte premium para unirte.",
+  affGoPremium: "Ver planes",
 }

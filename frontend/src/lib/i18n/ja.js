@@ -5100,4 +5100,7 @@ export default {
   affRequestSent: "支払い申請を管理者に送信しました。",
   affNoBalance: "まだ申請できる残高がありません。",
   affRequestHint: "累積した残高の支払いを申請してください。管理者が処理します。",
+  affNeedPaidTitle: "有料購読者限定",
+  affNeedPaid: "アフィリエイトプログラムは有料購読者のみが利用できます。7日間の無料トライアル中は利用できません。参加するにはプレミアムにご登録ください。",
+  affGoPremium: "プランを見る",
 }

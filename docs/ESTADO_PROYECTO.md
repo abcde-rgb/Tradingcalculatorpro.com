@@ -1276,3 +1276,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ **Verificado**: `import server` OK (**178 rutas** totales); `npm run build` exit 0; `pytest`
   afiliados 8/8; **smoke E2E** ampliado contra PostgreSQL real: solicitar pago → 1000 €, `open_request`
   presente, duplicado bloqueado, notificación admin (pendientes=1), marcar pagada → pendientes=0.
+
+### 2026-07-17 (45) — Requisito: afiliado debe ser suscriptor de PAGO (no en la prueba)
+- ✅ **Solo suscriptores de pago pueden ser afiliados** (no durante la prueba de 7 días). Backend:
+  helper `_is_paying_member` (excluye `trialing`; lifetime y de pago activo sí); `POST /affiliate/apply`
+  devuelve **403** si no paga; `/affiliate/me` expone `eligible`.
+- ✅ **Frontend**: la opción "Programa de afiliados" del menú **solo aparece para suscriptores de pago**
+  (`is_premium && subscription_status !== 'trialing'`); `AffiliatePage` muestra un aviso con CTA a
+  planes si no es elegible. `/auth/me` y las respuestas de login ahora incluyen `subscription_status`.
+- ✅ i18n: +3 claves (`affNeedPaidTitle/affNeedPaid/affGoPremium`) ×8 → **5047 claves, 0 huecos**.
+- ✅ **Verificado**: 9 tests afiliados; import 178 rutas; build exit 0; smoke E2E: gratis→403,
+  trial→403, de pago→alta OK, `eligible=False` para gratis/trial.

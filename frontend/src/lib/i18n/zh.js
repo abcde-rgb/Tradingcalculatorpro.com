@@ -5100,4 +5100,7 @@ export default {
   affRequestSent: "付款申请已发送给管理员。",
   affNoBalance: "你还没有可申请的余额。",
   affRequestHint: "申请结算你已累计的余额,管理员将进行处理。",
+  affNeedPaidTitle: "仅限付费订阅者",
+  affNeedPaid: "推广联盟计划仅对付费订阅者开放。7 天试用期内不可用。升级为会员即可加入。",
+  affGoPremium: "查看方案",
 }

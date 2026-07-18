@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, Gift, Link2, Copy, Check, TrendingUp, Wallet, Crown, Clock, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -178,8 +179,20 @@ export default function AffiliatePage() {
             </Card>
           )}
 
-          {/* ── Not an affiliate yet → apply ── */}
-          {!loading && data && !data.is_affiliate && (
+          {/* ── Not paying → must be a paying subscriber (not during trial) ── */}
+          {!loading && data && !data.is_affiliate && !data.eligible && (
+            <Card className="bg-card border-border">
+              <CardHeader><CardTitle className="text-lg flex items-center gap-2">
+                <Crown className="w-5 h-5 text-yellow-500" /> {t('affNeedPaidTitle')}</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">{t('affNeedPaid')}</p>
+                <Button asChild><Link to="/pricing">{t('affGoPremium')}</Link></Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ── Paying but not an affiliate yet → apply ── */}
+          {!loading && data && !data.is_affiliate && data.eligible && (
             <Card className="bg-card border-border">
               <CardHeader><CardTitle className="text-lg">{t('affJoinCta')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">

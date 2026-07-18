@@ -5149,4 +5149,7 @@ export default {
   affRequestSent: "Auszahlungsanfrage an den Administrator gesendet.",
   affNoBalance: "Du hast noch kein Guthaben zum Anfordern.",
   affRequestHint: "Fordere die Auszahlung deines aufgelaufenen Guthabens an; der Administrator bearbeitet sie.",
+  affNeedPaidTitle: "Nur für zahlende Abonnenten",
+  affNeedPaid: "Das Partnerprogramm ist nur für zahlende Abonnenten verfügbar. Während der 7-tägigen Testphase ist es nicht aktiv. Werde Premium, um teilzunehmen.",
+  affGoPremium: "Tarife ansehen",
 }
