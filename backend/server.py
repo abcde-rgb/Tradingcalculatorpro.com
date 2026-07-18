@@ -918,6 +918,8 @@ class Database:
             "saved_positions", "coupons", "feature_flags",
             # Extended modules
             "referrals", "referral_redemptions",
+            "affiliates", "affiliate_payout_runs", "affiliate_payout_lines",
+            "affiliate_payout_requests",
             "password_reset_tokens", "email_verification_tokens",
             # Admin panel features (queried/written in admin_routes.py — must
             # exist upfront, since Collection methods don't auto-create tables)
@@ -1590,10 +1592,12 @@ async def startup_event():
     try:
         from missing_apis import ensure_missing_api_indexes
         from referrals import ensure_referral_indexes
+        from affiliate_program import ensure_affiliate_indexes
         from realtime_alerts import start_poller
 
         await ensure_missing_api_indexes(db)
         await ensure_referral_indexes(db)
+        await ensure_affiliate_indexes(db)
         start_poller()
         logging.info("✅ Extended modules: indexes ensured & WS poller started")
     except Exception as e:
@@ -1680,6 +1684,7 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             "picture": user.get("picture"),
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
+            "subscription_status": user.get("subscription_status"),
             "is_premium": is_premium,
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
@@ -1743,6 +1748,7 @@ async def get_me(user: dict = Depends(require_user)):
         "name": user["name"],
         "subscription_plan": user.get("subscription_plan"),
         "subscription_end": user.get("subscription_end"),
+        "subscription_status": user.get("subscription_status"),
         "is_premium": is_premium,
         "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
         "auth_provider": user.get("auth_provider", "password"),
@@ -1828,6 +1834,7 @@ async def refresh_access_token(request: Request, response: Response, body: Token
             "picture": user.get("picture"),
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
+            "subscription_status": user.get("subscription_status"),
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
@@ -2218,6 +2225,7 @@ async def totp_verify(request: Request, response: Response, body: TotpVerifyRequ
             "picture": user.get("picture"),
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
+            "subscription_status": user.get("subscription_status"),
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
@@ -2404,6 +2412,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "picture": user.get("picture"),
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
+            "subscription_status": user.get("subscription_status"),
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "google"),
@@ -6705,6 +6714,7 @@ async def admin_retry_webhook(event_id: str, admin: dict = Depends(require_admin
 try:
     from missing_apis import register as register_missing_apis
     from referrals import register as register_referrals
+    from affiliate_program import register as register_affiliate_program
     from realtime_alerts import register as register_realtime_alerts
 
     register_missing_apis(api_router, db, {
@@ -6720,6 +6730,14 @@ try:
     register_referrals(api_router, db, {
         "require_user": require_user,
         "require_admin": require_admin,
+        "limiter": limiter,
+    })
+    register_affiliate_program(api_router, db, {
+        "require_user": require_user,
+        "require_admin": require_admin,
+        "get_setting": get_setting,
+        "encrypt": _encrypt_setting,
+        "decrypt": _decrypt_setting,
         "limiter": limiter,
     })
     register_realtime_alerts(api_router, db, {

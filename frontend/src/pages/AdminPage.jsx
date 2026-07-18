@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, useRef, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
@@ -8,6 +8,7 @@ import {
   Zap, TrendingDown, Percent, AlertCircle, ChevronDown, ChevronUp,
   Send, Languages, CreditCard, UserMinus, Share2, Package,
   Construction, Bug, Gauge, Lock, Settings, Database, ToggleLeft,
+  Layers, Gift, Wallet,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -446,6 +447,9 @@ export default function AdminPage() {
         <ChurnSurveyCard headers={headers} />
         <CohortAnalysisCard headers={headers} />
         <ReferralManagerCard headers={headers} />
+        <AffiliatePayoutRequestsCard headers={headers} />
+        <AffiliatesAdminCard headers={headers} />
+        <AffiliatePayoutsCard headers={headers} />
         <PlansEditorCard headers={headers} />
         <I18nManagerCard headers={headers} />
         <ErrorMonitorCard headers={headers} />
@@ -2345,6 +2349,388 @@ function ReferralManagerCard({ headers }) {
             ))}
           </tbody>
         </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AFFILIATE PAYOUT REQUESTS — notificación: afiliados que piden su pago
+═══════════════════════════════════════════════════════════════════════════ */
+function AffiliatePayoutRequestsCard({ headers }) {
+  const [reqs, setReqs] = useState([]);
+  const [pending, setPending] = useState(0);
+  const [amount, setAmount] = useState(0);
+  const toasted = useRef(false);
+
+  const bearer = headers?.Authorization || '';
+  const ready = bearer && !bearer.includes('null');
+
+  const fetchReqs = async () => {
+    if (!API || !ready) return;
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-requests?status=pending`, { headers });
+      if (res.ok) {
+        const d = await res.json();
+        setReqs(d.requests || []); setPending(d.pending_count || 0); setAmount(d.pending_amount_eur || 0);
+        if ((d.pending_count || 0) > 0 && !toasted.current) {
+          toasted.current = true;
+          toast.warning(`Tienes ${d.pending_count} solicitud(es) de pago de afiliados pendientes — ${d.pending_amount_eur} €`,
+            { duration: 8000 });
+        }
+      }
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => { fetchReqs(); /* eslint-disable-next-line */ }, [headers]);
+
+  const action = async (id, verb) => {
+    let ref = '';
+    if (verb === 'mark-paid') ref = window.prompt('Referencia del pago (opcional):') || '';
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-requests/${id}/${verb}`, {
+        method: 'POST', headers, body: verb === 'mark-paid' ? JSON.stringify({ payout_reference: ref }) : undefined });
+      if (res.ok) { toast.success('OK'); fetchReqs(); } else toast.error('Error');
+    } catch { toast.error('Error'); }
+  };
+
+  if (pending === 0) return null;   // solo aparece cuando hay algo que pagar
+
+  return (
+    <Card className="bg-yellow-500/5 border-yellow-500/40">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
+          <AlertCircle className="w-4 h-4" /> Solicitudes de pago pendientes ({pending}) — {amount} €
+        </CardTitle>
+        <p className="text-[11px] text-muted-foreground">Afiliados que han solicitado su pago. Haz la transferencia y márcala como pagada.</p>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40"><tr className="text-left">
+              {['Email', 'Importe', 'Activos', 'Bloques', 'Fecha', ''].map(h => (
+                <th key={h} className="px-2 py-2 text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {reqs.map(r => (
+                <tr key={r.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-2 py-2 font-mono text-xs">{r.email}</td>
+                  <td className="px-2 py-2 text-center text-xs font-bold">{r.amount_eur} €</td>
+                  <td className="px-2 py-2 text-center text-xs">{r.active_count}</td>
+                  <td className="px-2 py-2 text-center text-xs">{r.blocks}</td>
+                  <td className="px-2 py-2 text-center text-[10px] text-muted-foreground">{(r.created_at || '').slice(0, 10)}</td>
+                  <td className="px-2 py-2 text-right whitespace-nowrap">
+                    <Button size="sm" variant="outline" className="h-7 text-xs mr-1" onClick={() => action(r.id, 'mark-paid')}>Marcar pagado</Button>
+                    <button onClick={() => action(r.id, 'reject')} title="Rechazar" className="p-1 text-red-500 hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AFFILIATES ADMIN CARD — lista SEPARADA de clientes, con/sin referidos,
+   orden por activos/bloques/importe (de 1000 en 1000), ficha con sus referidos.
+═══════════════════════════════════════════════════════════════════════════ */
+function AffiliatesAdminCard({ headers }) {
+  const [rows, setRows] = useState([]);
+  const [totals, setTotals] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [segment, setSegment] = useState('all');
+  const [sort, setSort] = useState('active_desc');
+  const [expanded, setExpanded] = useState(null);
+  const [detail, setDetail] = useState(null);
+
+  const bearer = headers?.Authorization || '';
+  const ready = bearer && !bearer.includes('null');
+
+  const fetchList = async () => {
+    if (!API || !ready) { setLoading(false); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/affiliates?segment=${segment}&sort=${sort}`, { headers });
+      if (res.ok) { const d = await res.json(); setRows(d.affiliates || []); setTotals(d.totals || null); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchList(); /* eslint-disable-next-line */ }, [headers, segment, sort]);
+
+  const act = async (id, verb) => {
+    try {
+      const res = await fetch(`${API}/admin/affiliates/${id}/${verb}`, { method: 'POST', headers });
+      if (res.ok) { toast.success('OK'); fetchList(); } else { toast.error('Error'); }
+    } catch { toast.error('Error'); }
+  };
+
+  const toggle = async (id) => {
+    if (expanded === id) { setExpanded(null); setDetail(null); return; }
+    setExpanded(id); setDetail(null);
+    try {
+      const res = await fetch(`${API}/admin/affiliates/${id}`, { headers });
+      if (res.ok) setDetail(await res.json());
+    } catch { /* ignore */ }
+  };
+
+  const badge = (s) => {
+    const map = { approved: 'bg-green-500/10 text-green-500', pending: 'bg-yellow-500/10 text-yellow-600',
+      rejected: 'bg-red-500/10 text-red-500', suspended: 'bg-muted text-muted-foreground' };
+    return <Badge className={`${map[s] || 'bg-muted'} text-[10px]`}>{s}</Badge>;
+  };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> Afiliados</CardTitle>
+        <p className="text-[11px] text-muted-foreground">Clientes que traen referidos (separado de la lista de usuarios). Pago por bloques de 1000.</p>
+      </CardHeader>
+      <CardContent>
+        {totals && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {[
+              { label: 'Afiliados', value: totals.affiliates },
+              { label: 'Con referidos', value: totals.with_referrals },
+              { label: 'Suscriptores activos', value: totals.active_subscribers },
+              { label: 'Estimado/mes', value: `${totals.estimated_month_eur} €` },
+            ].map(m => (
+              <div key={m.label} className="bg-muted/30 rounded-lg p-3 text-center">
+                <p className="text-lg font-bold">{m.value}</p>
+                <p className="text-[10px] text-muted-foreground">{m.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2 mb-3">
+          {[['all', 'Todos'], ['with_referrals', 'Con referidos'], ['without_referrals', 'Sin referidos']].map(([v, l]) => (
+            <button key={v} onClick={() => setSegment(v)}
+              className={`px-3 py-1 rounded-full text-xs ${segment === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{l}</button>
+          ))}
+          <select value={sort} onChange={(e) => setSort(e.target.value)}
+            className="ml-auto h-7 rounded-md border border-input bg-background px-2 text-xs">
+            <option value="active_desc">Ordenar: activos</option>
+            <option value="blocks_desc">Ordenar: bloques</option>
+            <option value="amount_desc">Ordenar: importe</option>
+            <option value="registered_desc">Ordenar: registrados</option>
+          </select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40">
+              <tr className="text-left">
+                {['Email', 'Estado', 'Registrados', 'Activos', 'Bloques', 'Lifetime', '€/mes', ''].map(h => (
+                  <th key={h} className="px-2 py-2 text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground" /></td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">Aún no hay afiliados.</td></tr>
+              ) : rows.map(r => (
+                <Fragment key={r.id}>
+                  <tr className="border-t border-border hover:bg-muted/20">
+                    <td className="px-2 py-2 font-mono text-xs">{r.email}</td>
+                    <td className="px-2 py-2">{badge(r.status)}</td>
+                    <td className="px-2 py-2 text-center text-xs">{r.registered}</td>
+                    <td className="px-2 py-2 text-center text-xs font-medium">{r.active_paying}</td>
+                    <td className="px-2 py-2 text-center text-xs">{r.blocks}</td>
+                    <td className="px-2 py-2 text-center text-xs">{r.lifetime_active}</td>
+                    <td className="px-2 py-2 text-center text-xs font-bold">{r.estimated_month_eur} €</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-right">
+                      {r.status !== 'approved' && (
+                        <button onClick={() => act(r.id, 'approve')} title="Aprobar" className="p-1 text-green-500 hover:bg-green-500/10 rounded"><Check className="w-4 h-4" /></button>
+                      )}
+                      {r.status === 'approved' && (
+                        <button onClick={() => act(r.id, 'suspend')} title="Suspender" className="p-1 text-muted-foreground hover:bg-muted rounded"><ShieldOff className="w-4 h-4" /></button>
+                      )}
+                      {r.status === 'pending' && (
+                        <button onClick={() => act(r.id, 'reject')} title="Rechazar" className="p-1 text-red-500 hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                      )}
+                      <button onClick={() => toggle(r.id)} title="Ver referidos" className="p-1 text-primary hover:bg-primary/10 rounded">
+                        {expanded === r.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                    </td>
+                  </tr>
+                  {expanded === r.id && (
+                    <tr className="bg-muted/20">
+                      <td colSpan={8} className="px-3 py-3">
+                        {!detail ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /> : (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Código <span className="font-mono">{detail.affiliate.code}</span> · Cobro: {detail.affiliate.payout_method || '—'} {detail.affiliate.payout_details ? `(${detail.affiliate.payout_details})` : ''}
+                            </p>
+                            {detail.referrals.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">Sin referidos todavía.</p>
+                            ) : (
+                              <table className="w-full text-xs">
+                                <thead><tr className="text-left text-muted-foreground">
+                                  <th className="py-1 pr-3">Email</th><th className="py-1 pr-3">Estado</th><th className="py-1 pr-3">Plan</th><th className="py-1">Desde</th>
+                                </tr></thead>
+                                <tbody>
+                                  {detail.referrals.slice(0, 100).map((rr, i) => (
+                                    <tr key={i} className="border-t border-border/40">
+                                      <td className="py-1 pr-3 font-mono">{rr.email}</td>
+                                      <td className="py-1 pr-3">{rr.status}</td>
+                                      <td className="py-1 pr-3">{rr.plan || '—'}</td>
+                                      <td className="py-1 text-muted-foreground">{(rr.since || '').slice(0, 10)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AFFILIATE PAYOUTS CARD — liquidación mensual manual (bloques + bonus lifetime)
+═══════════════════════════════════════════════════════════════════════════ */
+function AffiliatePayoutsCard({ headers }) {
+  const nowPeriod = new Date().toISOString().slice(0, 7);
+  const [period, setPeriod] = useState(nowPeriod);
+  const [run, setRun] = useState(null);
+  const [lines, setLines] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const bearer = headers?.Authorization || '';
+  const ready = bearer && !bearer.includes('null');
+
+  const loadRunDetail = async (rid) => {
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-runs/${rid}`, { headers });
+      if (res.ok) { const d = await res.json(); setRun(d.run); setLines(d.lines || []); }
+    } catch { /* ignore */ }
+  };
+
+  const generate = async () => {
+    if (!API || !ready) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-run?period=${period}`, { method: 'POST', headers });
+      if (res.ok) { const d = await res.json(); await loadRunDetail(d.run.id); toast.success('Liquidación generada'); }
+      else { const e = await res.json().catch(() => ({})); toast.error(e.detail || 'Error'); }
+    } catch { toast.error('Error'); }
+    finally { setBusy(false); }
+  };
+
+  const finalize = async () => {
+    if (!run) return;
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-run/${run.id}/finalize`, { method: 'POST', headers });
+      if (res.ok) { toast.success('Finalizada'); loadRunDetail(run.id); } else { toast.error('Error'); }
+    } catch { toast.error('Error'); }
+  };
+
+  const markPaid = async (lid) => {
+    const ref = window.prompt('Referencia del pago (opcional):') || '';
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-lines/${lid}/mark-paid`, {
+        method: 'POST', headers, body: JSON.stringify({ payout_reference: ref }),
+      });
+      if (res.ok) { toast.success('Marcado como pagado'); loadRunDetail(run.id); } else { toast.error('Error'); }
+    } catch { toast.error('Error'); }
+  };
+
+  const exportCsv = async () => {
+    if (!run) return;
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-runs/${run.id}/export.csv`, { headers });
+      if (!res.ok) { toast.error('Error'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `afiliados_${run.period}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    } catch { toast.error('Error'); }
+  };
+
+  const payable = lines.filter(l => l.status !== 'zero');
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2"><Wallet className="w-4 h-4 text-primary" /> Liquidación de afiliados</CardTitle>
+        <p className="text-[11px] text-muted-foreground">Genera el importe a pagar por mes. Los pagos los haces tú y los marcas aquí.</p>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="YYYY-MM" className="w-32 h-8 text-sm" />
+          <Button size="sm" onClick={generate} disabled={busy}>{busy ? '…' : 'Generar liquidación'}</Button>
+          {run && (
+            <>
+              <Badge className="bg-muted text-muted-foreground text-[10px]">{run.status}</Badge>
+              <Button size="sm" variant="outline" onClick={exportCsv} className="gap-1"><Download className="w-3.5 h-3.5" /> CSV</Button>
+              {run.status === 'draft' && <Button size="sm" variant="outline" onClick={finalize}>Finalizar</Button>}
+            </>
+          )}
+        </div>
+
+        {run && (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+              {[
+                { label: 'A pagar', value: `${run.totals?.payable_eur ?? 0} €` },
+                { label: 'Afiliados con pago', value: run.totals?.affiliates_paid ?? 0 },
+                { label: 'Bloques', value: run.totals?.total_blocks ?? 0 },
+                { label: 'Bonus lifetime', value: `${run.totals?.lifetime_bonus_total_eur ?? 0} €` },
+              ].map(m => (
+                <div key={m.label} className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold">{m.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40"><tr className="text-left">
+                  {['Email', 'Activos', 'Bloques', 'Lifetime', 'Importe', 'Estado', ''].map(h => (
+                    <th key={h} className="px-2 py-2 text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {payable.length === 0 ? (
+                    <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Ningún afiliado alcanza un bloque este periodo.</td></tr>
+                  ) : payable.map(l => (
+                    <tr key={l.id} className="border-t border-border hover:bg-muted/20">
+                      <td className="px-2 py-2 font-mono text-xs">{l.affiliate_email}</td>
+                      <td className="px-2 py-2 text-center text-xs">{l.active_count}</td>
+                      <td className="px-2 py-2 text-center text-xs">{l.blocks}</td>
+                      <td className="px-2 py-2 text-center text-xs">{l.lifetime_new_count}</td>
+                      <td className="px-2 py-2 text-center text-xs font-bold">{l.net_eur} €</td>
+                      <td className="px-2 py-2 text-center">
+                        <Badge className={`${l.status === 'paid' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-600'} text-[10px]`}>{l.status}</Badge>
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        {l.status !== 'paid' && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => markPaid(l.id)}>Marcar pagado</Button>}
+                        {l.status === 'paid' && l.payout_reference && <span className="text-[10px] text-muted-foreground">{l.payout_reference}</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

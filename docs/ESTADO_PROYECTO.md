@@ -1210,3 +1210,80 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   `pytest` 17 passed / 15 skipped (`test_nowpayments_unit`, `test_revolut_unit`, `test_stripe_payments`);
   py_compile OK. Deploy de GitHub Pages en verde. **Nota operativa**: cripto/pagos no cobrarán hasta que se
   reactive el backend (Cloud Run) y se carguen las claves reales de NOWPayments/Revolut en admin.
+
+### 2026-07-17 (42) — Diseño del Programa de Afiliados (solo documento, sin código)
+- 📄 **Nuevo doc [`PROGRAMA_AFILIADOS.md`](./PROGRAMA_AFILIADOS.md)**: diseño técnico para pagar a
+  socios/afiliados **dinero real, mensual y recurrente** según cuántos **suscriptores de pago activos**
+  traigan. Reglas decididas por el propietario: cuenta **solo de pago activos**, fórmula **por
+  bloques de 1000 con suelo en 1000** (el pago empieza en 1000 activos y sube de 1000 en 1000:
+  `⌊activos/1000⌋ × 1000 €/mes`; <1000 activos → 0 €). Configurable vía `affiliate_block_size` /
+  `affiliate_block_reward_eur`.
+- 🔎 **Auditoría del repo**: ~60 % de la fontanería ya existe y se recicla — `referrals.py` (atribución
+  `referred_by_id`, código/link `/?ref=`), suscripciones Stripe (`SUBSCRIPTION_PLANS` en `server.py:1054`,
+  webhooks de ciclo de vida `server.py:3843`, refund→revoca premium). **NO existe** (confirmado): pagos
+  SALIENTES (Stripe Connect/Transfers/Payouts), contabilidad recurrente por activo, ni rol de afiliado.
+- 🧱 El diseño define: colecciones `affiliates` / `affiliate_payout_runs` / `affiliate_payout_lines`,
+  contabilidad mensual por **snapshot** de activos, endpoints admin+afiliado, antifraude, gating legal/fiscal
+  (contrato, IRPF/349, KYC) y un plan en 3 fases (**Fase 1 = MVP semi-manual** recomendada primero).
+- ✅ **Lifetime decidido**: bonus **único de 50 €** por cada referido lifetime (excluido del recuento
+  por bloques, pagado una sola vez). El umbral mínimo queda resuelto por el propio modelo de bloques.
+- ✅ **Organización del panel (§8bis)**: sección "Afiliados" **separada** de la lista general de
+  clientes; segmentación con/sin referidos; ficha por afiliado con **sus** referidos; orden/agrupación
+  **de 1000 en 1000** (por bloques). Todo derivado en vivo de `referred_by_id` + suscripciones.
+- ⚠️ **Estado real del lado afiliado (verificado en código)**: el usuario que refiere **hoy NO puede
+  ver sus referidos** — existe el endpoint backend `GET /referrals/me` pero **no está conectado a
+  ninguna página** (`App.js` sin ruta de referidos; en UI solo el leaderboard de admin y los
+  "Affiliate Partners" salientes de la landing). El diseño añade el **panel self-service del afiliado**
+  (`GET /affiliate/me`, Fase 1) con lista **enmascarada** (GDPR): estado/plan/fecha sí, email no.
+- ⏳ **Decisiones abiertas** antes de codificar (§7 del doc): si cuentan los *trialing* (rec.: no) y
+  método de cobro de Fase 1 (banco/PayPal manual).
+
+### 2026-07-17 (43) — Programa de Afiliados: Fase 1 IMPLEMENTADA (backend + frontend + admin)
+- ✅ **Backend `affiliate_program.py`** (14 rutas, registrado en `server.py`): alta/aprobación de
+  afiliados, panel self-service (`/affiliate/me`), liquidación mensual por **bloques de 1000 con suelo
+  en 1000** (`⌊activos/1000⌋ × 1000 €`) + **bonus lifetime único de 50 €** (sellado al finalizar →
+  idempotente), export CSV y marcar pagado. Solo cuentan **suscriptores de pago activos** (excluye
+  gratis, trials y lifetime del recuento de bloques). Tablas nuevas: `affiliates`,
+  `affiliate_payout_runs`, `affiliate_payout_lines`.
+- ✅ **`referrals.py`**: `credit_referrer_for_payment` **omite el wallet del 10 %** si el referente es
+  afiliado aprobado (evita doble pago).
+- ✅ **Frontend `AffiliatePage.jsx`** (ruta `/affiliate`, **enlace en el menú de usuario** junto a
+  Cerrar sesión): formulario de alta + panel con link, registrados, activos, bloques, € del mes,
+  lifetime, total cobrado, **lista de referidos ENMASCARADA** (GDPR) e histórico de cobros.
+- ✅ **AdminPage**: sección **"Afiliados"** SEPARADA de la lista de clientes (segmentación con/sin
+  referidos, orden por activos/bloques/importe, ficha por afiliado con sus referidos) + **"Liquidación
+  de afiliados"** (generar mes, finalizar, marcar pagado, CSV).
+- ✅ **i18n**: 46 claves `aff*` × 8 idiomas (es real, en/otros en inglés como seed → **pendiente
+  localización** de de/fr/ru/zh/ja/ar). `i18n-check`: **5039 claves, 0 faltan/0 sobran**.
+- ✅ **Verificado**: `pytest` **109 passed / 74 skipped** (8 tests nuevos de afiliados); `import server`
+  OK (**174 rutas**); `npm run build` exit 0 (664 URLs sitemap); **smoke E2E contra PostgreSQL real**:
+  1000 activos→1 bloque→1000 € + 2 lifetime×50 = 1100 €; finalize sella 2 bonus; mes siguiente bonus 0
+  (idempotente); wallet omitido para afiliado; mark-paid OK.
+- ⚠️ **Decisión aplicada por defecto** (a confirmar): los *trials* **no** cuentan (solo tras cobro real).
+- ⏳ **Pendiente (ops)**: fusionar a `main`, aprobar afiliados y hacer los pagos manualmente. Fase 2
+  (Cloud Scheduler + **Stripe Connect** payouts automáticos) no implementada.
+
+### 2026-07-17 (44) — Afiliados: traducciones ×8 + botón "Solicitar pago" + notificación admin
+- ✅ **i18n completa**: las **51 claves `aff*` traducidas de verdad en los 8 idiomas** (es/en/de/fr/ru/
+  zh/ja/ar), sin seed en inglés. `i18n-check`: **5044 claves, 0 faltan/0 sobran** en los 8.
+- ✅ **Botón "Solicitar pago"** en el panel del afiliado (`AffiliatePage`): el afiliado pide el pago de
+  su saldo acumulado → `POST /affiliate/request-payout` (una solicitud abierta a la vez; refleja
+  estado "pendiente"). `/affiliate/me` devuelve `open_request`.
+- ✅ **Notificación en el admin**: nueva tabla `affiliate_payout_requests` + endpoints
+  `GET /admin/affiliates/payout-requests`, `.../{id}/mark-paid`, `.../{id}/reject`. En `AdminPage`,
+  tarjeta de aviso **que aparece arriba + toast** al cargar si hay solicitudes pendientes (con importe,
+  activos, bloques y botones pagar/rechazar). Backend pasa a **18 rutas de afiliados**.
+- ✅ **Verificado**: `import server` OK (**178 rutas** totales); `npm run build` exit 0; `pytest`
+  afiliados 8/8; **smoke E2E** ampliado contra PostgreSQL real: solicitar pago → 1000 €, `open_request`
+  presente, duplicado bloqueado, notificación admin (pendientes=1), marcar pagada → pendientes=0.
+
+### 2026-07-17 (45) — Requisito: afiliado debe ser suscriptor de PAGO (no en la prueba)
+- ✅ **Solo suscriptores de pago pueden ser afiliados** (no durante la prueba de 7 días). Backend:
+  helper `_is_paying_member` (excluye `trialing`; lifetime y de pago activo sí); `POST /affiliate/apply`
+  devuelve **403** si no paga; `/affiliate/me` expone `eligible`.
+- ✅ **Frontend**: la opción "Programa de afiliados" del menú **solo aparece para suscriptores de pago**
+  (`is_premium && subscription_status !== 'trialing'`); `AffiliatePage` muestra un aviso con CTA a
+  planes si no es elegible. `/auth/me` y las respuestas de login ahora incluyen `subscription_status`.
+- ✅ i18n: +3 claves (`affNeedPaidTitle/affNeedPaid/affGoPremium`) ×8 → **5047 claves, 0 huecos**.
+- ✅ **Verificado**: 9 tests afiliados; import 178 rutas; build exit 0; smoke E2E: gratis→403,
+  trial→403, de pago→alta OK, `eligible=False` para gratis/trial.

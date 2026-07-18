@@ -227,6 +227,19 @@ async def credit_referrer_for_payment(referee_user_id: str, plan_id: str,
     if not referee or not referee.get("referred_by_id"):
         return None
 
+    # If the referrer is an approved affiliate, the affiliate program (recurring
+    # monthly payouts by blocks + one-time lifetime bonus) compensates them —
+    # skip the one-time 10% wallet commission to avoid double-paying.
+    try:
+        aff = await db.affiliates.find_one(
+            {"user_id": referee["referred_by_id"], "status": "approved"}, {"_id": 0, "id": 1})
+        if aff:
+            logging.info("[referrals] referrer %s es afiliado → wallet omitido (programa de afiliados)",
+                         referee["referred_by_id"])
+            return None
+    except Exception as _e:
+        logging.warning("[referrals] affiliate check failed: %s", _e)
+
     referral = await db.referrals.find_one({
         "referrer_id": referee["referred_by_id"],
         "referee_id": referee_user_id,
