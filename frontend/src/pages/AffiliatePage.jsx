@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { toast } from 'sonner';
@@ -107,6 +108,19 @@ export default function AffiliatePage() {
       });
       if (res && res.ok) toast.success(t('affSaved'));
     } catch (_) { /* ignore */ }
+    setSubmitting(false);
+  }
+
+  async function requestPayout() {
+    setSubmitting(true);
+    try {
+      const res = await authedFetch('/affiliate/request-payout', { method: 'POST' });
+      if (res && res.ok) { toast.success(t('affRequestSent')); await load(); }
+      else {
+        const e = res ? await res.json().catch(() => ({})) : {};
+        toast.error(e.detail || t('affNoBalance'));
+      }
+    } catch (_) { toast.error(t('affNoBalance')); }
     setSubmitting(false);
   }
 
@@ -234,6 +248,26 @@ export default function AffiliatePage() {
                 <StatCard icon={Wallet} label={t('affStatEstimated')} value={`${data.stats.estimated_month_eur} €`} accent="bg-primary/15" />
                 <StatCard icon={Gift} label={t('affStatTotalPaid')} value={`${data.stats.total_paid_eur} €`} />
               </div>
+
+              {/* Request payout */}
+              <Card className="bg-card border-border">
+                <CardContent className="py-5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                  <div>
+                    <p className="font-semibold">{t('affStatEstimated')}: <span className="text-primary">{data.stats.estimated_month_eur} €</span></p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('affRequestHint')}</p>
+                  </div>
+                  {data.open_request ? (
+                    <Badge className="bg-yellow-500/10 text-yellow-600 gap-1 py-1.5 px-3">
+                      <Clock className="w-3.5 h-3.5" /> {t('affRequestPending')} · {data.open_request.amount_eur} €
+                    </Badge>
+                  ) : (
+                    <Button onClick={requestPayout} disabled={submitting || data.stats.estimated_month_eur <= 0}
+                      data-testid="affiliate-request-payout" className="gap-2 shrink-0">
+                      <Wallet className="w-4 h-4" /> {t('affRequestPayout')}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Referrals */}
               <Card className="bg-card border-border">

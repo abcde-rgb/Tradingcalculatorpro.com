@@ -919,6 +919,7 @@ class Database:
             # Extended modules
             "referrals", "referral_redemptions",
             "affiliates", "affiliate_payout_runs", "affiliate_payout_lines",
+            "affiliate_payout_requests",
             "password_reset_tokens", "email_verification_tokens",
             # Admin panel features (queried/written in admin_routes.py — must
             # exist upfront, since Collection methods don't auto-create tables)

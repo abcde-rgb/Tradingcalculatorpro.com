@@ -334,9 +334,16 @@ async def affiliate_me(user: dict = Depends(_require_user_proxy)):
     payouts.sort(key=lambda p: p.get("period", ""), reverse=True)
     total_paid = round(sum(float(p.get("net_eur", 0)) for p in payouts), 2)
 
+    # Solicitud de pago pendiente (para reflejar el estado del botón "Solicitar pago")
+    open_request = await db.affiliate_payout_requests.find_one(
+        {"affiliate_id": aff["id"], "status": "pending"},
+        {"_id": 0, "amount_eur": 1, "created_at": 1, "status": 1},
+    )
+
     return {
         "is_affiliate": True,
         "status": aff.get("status"),
+        "open_request": open_request,
         "code": aff.get("code"),
         "share_link_path": f"/?ref={aff.get('code')}",
         "payout_method": aff.get("payout_method") or "",
@@ -376,6 +383,47 @@ async def affiliate_payout_details(payload: PayoutDetails,
         patch["payout_details_updated_at"] = _iso()
         await db.affiliates.update_one({"id": aff["id"]}, {"$set": patch})
     return {"ok": True}
+
+
+@router.post("/affiliate/request-payout")
+async def affiliate_request_payout(user: dict = Depends(_require_user_proxy)):
+    """El afiliado solicita el pago de su saldo acumulado. Crea una solicitud
+    que el admin verá como notificación pendiente de pagar."""
+    aff = await db.affiliates.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not aff:
+        raise HTTPException(status_code=404, detail="No estás dado de alta como afiliado")
+    if aff.get("status") != "approved":
+        raise HTTPException(status_code=403, detail="Tu cuenta de afiliado no está aprobada")
+
+    # Una sola solicitud abierta a la vez
+    existing = await db.affiliate_payout_requests.find_one(
+        {"affiliate_id": aff["id"], "status": "pending"}, {"_id": 0, "id": 1})
+    if existing:
+        return {"ok": True, "already": True}
+
+    cfg = await _config()
+    referees = await _fetch_referees(user["id"])
+    summ = _summarize(referees, cfg, reward_override=aff.get("block_reward_eur"))
+    amount = summ["estimated_month_eur"]
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Todavía no tienes saldo para solicitar")
+
+    req = {
+        "id": str(uuid.uuid4()),
+        "affiliate_id": aff["id"],
+        "user_id": user["id"],
+        "email": aff.get("email"),
+        "amount_eur": amount,
+        "active_count": summ["active_paying"],
+        "blocks": summ["blocks"],
+        "lifetime_pending": summ["lifetime_unbonused_count"],
+        "payout_method": aff.get("payout_method") or "",
+        "status": "pending",
+        "created_at": _iso(),
+    }
+    await db.affiliate_payout_requests.insert_one(req)
+    logging.info("[affiliate] SOLICITUD DE PAGO de %s: %s €", aff.get("email"), amount)
+    return {"ok": True, "amount_eur": amount}
 
 
 # ---------------------------------------------------------------------------
@@ -683,6 +731,41 @@ async def admin_mark_paid(lid: str, payload: MarkPaid,
     return {"ok": True, "status": "paid"}
 
 
+@router.get("/admin/affiliates/payout-requests")
+async def admin_list_requests(admin: dict = Depends(_require_admin_proxy), status: str = "pending"):
+    """Solicitudes de pago de los afiliados (notificación de que hay que pagar)."""
+    q: Dict[str, Any] = {} if status == "all" else {"status": status}
+    reqs = await db.affiliate_payout_requests.find(q, {"_id": 0}).to_list(500)
+    reqs.sort(key=lambda r: r.get("created_at", ""), reverse=True)
+    pending = await db.affiliate_payout_requests.count_documents({"status": "pending"})
+    total = round(sum(float(r.get("amount_eur", 0)) for r in reqs if r.get("status") == "pending"), 2)
+    return {"requests": reqs, "pending_count": pending, "pending_amount_eur": total}
+
+
+@router.post("/admin/affiliates/payout-requests/{rid}/mark-paid")
+async def admin_request_mark_paid(rid: str, payload: MarkPaid,
+                                  admin: dict = Depends(_require_admin_proxy)):
+    r = await db.affiliate_payout_requests.find_one({"id": rid}, {"_id": 0, "id": 1})
+    if not r:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    await db.affiliate_payout_requests.update_one(
+        {"id": rid},
+        {"$set": {"status": "paid", "paid_at": _iso(),
+                  "payout_reference": payload.payout_reference or "", "paid_by": admin.get("id")}},
+    )
+    return {"ok": True, "status": "paid"}
+
+
+@router.post("/admin/affiliates/payout-requests/{rid}/reject")
+async def admin_request_reject(rid: str, admin: dict = Depends(_require_admin_proxy)):
+    r = await db.affiliate_payout_requests.find_one({"id": rid}, {"_id": 0, "id": 1})
+    if not r:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    await db.affiliate_payout_requests.update_one(
+        {"id": rid}, {"$set": {"status": "rejected", "rejected_at": _iso()}})
+    return {"ok": True, "status": "rejected"}
+
+
 @router.get("/admin/affiliates/payout-runs/{rid}/export.csv")
 async def admin_export_csv(rid: str, admin: dict = Depends(_require_admin_proxy)):
     run = await db.affiliate_payout_runs.find_one({"id": rid}, {"_id": 0, "period": 1})
@@ -723,6 +806,8 @@ async def ensure_affiliate_indexes(database) -> None:
         await database.affiliate_payout_lines.create_index("run_id")
         await database.affiliate_payout_lines.create_index("affiliate_id")
         await database.affiliate_payout_lines.create_index("status")
+        await database.affiliate_payout_requests.create_index("status")
+        await database.affiliate_payout_requests.create_index("affiliate_id")
         logging.info("✅ affiliate_program indexes ensured")
     except Exception as e:
         logging.error(f"affiliate_program index error: {e}")

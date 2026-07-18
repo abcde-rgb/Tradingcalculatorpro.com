@@ -314,6 +314,9 @@ cadencia mensual (reciclado de instancias). Recomendación:
   y **€ estimado del mes** (bloques×1000 + lifetime×50), referidos lifetime + bonus, y **histórico de
   cobros** (lo ya pagado). Incluye la **lista de sus referidos con privacidad** (ver nota GDPR abajo).
 - `PUT  /affiliate/payout-details` — método + datos de cobro y fiscales (**cifrados** con Fernet).
+- `POST /affiliate/request-payout` — **el afiliado solicita el pago** de su saldo acumulado (una
+  solicitud abierta a la vez). Genera una notificación pendiente para el admin. `/affiliate/me`
+  devuelve `open_request` para reflejar el estado del botón "Solicitar pago".
 
 > **Privacidad de la lista de referidos (GDPR).** El endpoint actual `GET /referrals/me` devuelve el
 > **email completo** del referido. En el panel del afiliado eso **no debe exponerse**: un afiliado no
@@ -337,6 +340,8 @@ cadencia mensual (reciclado de instancias). Recomendación:
 - `GET   /admin/affiliates/payout-runs` · `GET .../payout-runs/{id}` — ver runs y líneas.
 - `POST  /admin/affiliates/payout-lines/{id}/mark-paid` — registra pago manual (`payout_reference`).
 - `GET   /admin/affiliates/payout-runs/{id}/export.csv` — CSV para el banco (email, IBAN, importe).
+- `GET   /admin/affiliates/payout-requests` — **solicitudes de pago pendientes** (notificación admin).
+- `POST  /admin/affiliates/payout-requests/{id}/mark-paid` · `/reject` — resolver una solicitud.
 
 ---
 

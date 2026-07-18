@@ -1261,4 +1261,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   (idempotente); wallet omitido para afiliado; mark-paid OK.
 - ⚠️ **Decisión aplicada por defecto** (a confirmar): los *trials* **no** cuentan (solo tras cobro real).
 - ⏳ **Pendiente (ops)**: fusionar a `main`, aprobar afiliados y hacer los pagos manualmente. Fase 2
-  (Cloud Scheduler + **Stripe Connect** payouts automáticos) no implementada. Traducir los 6 idiomas.
+  (Cloud Scheduler + **Stripe Connect** payouts automáticos) no implementada.
+
+### 2026-07-17 (44) — Afiliados: traducciones ×8 + botón "Solicitar pago" + notificación admin
+- ✅ **i18n completa**: las **51 claves `aff*` traducidas de verdad en los 8 idiomas** (es/en/de/fr/ru/
+  zh/ja/ar), sin seed en inglés. `i18n-check`: **5044 claves, 0 faltan/0 sobran** en los 8.
+- ✅ **Botón "Solicitar pago"** en el panel del afiliado (`AffiliatePage`): el afiliado pide el pago de
+  su saldo acumulado → `POST /affiliate/request-payout` (una solicitud abierta a la vez; refleja
+  estado "pendiente"). `/affiliate/me` devuelve `open_request`.
+- ✅ **Notificación en el admin**: nueva tabla `affiliate_payout_requests` + endpoints
+  `GET /admin/affiliates/payout-requests`, `.../{id}/mark-paid`, `.../{id}/reject`. En `AdminPage`,
+  tarjeta de aviso **que aparece arriba + toast** al cargar si hay solicitudes pendientes (con importe,
+  activos, bloques y botones pagar/rechazar). Backend pasa a **18 rutas de afiliados**.
+- ✅ **Verificado**: `import server` OK (**178 rutas** totales); `npm run build` exit 0; `pytest`
+  afiliados 8/8; **smoke E2E** ampliado contra PostgreSQL real: solicitar pago → 1000 €, `open_request`
+  presente, duplicado bloqueado, notificación admin (pendientes=1), marcar pagada → pendientes=0.

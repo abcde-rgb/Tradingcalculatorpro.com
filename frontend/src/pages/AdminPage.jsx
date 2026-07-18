@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, useRef, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
@@ -447,6 +447,7 @@ export default function AdminPage() {
         <ChurnSurveyCard headers={headers} />
         <CohortAnalysisCard headers={headers} />
         <ReferralManagerCard headers={headers} />
+        <AffiliatePayoutRequestsCard headers={headers} />
         <AffiliatesAdminCard headers={headers} />
         <AffiliatePayoutsCard headers={headers} />
         <PlansEditorCard headers={headers} />
@@ -2348,6 +2349,86 @@ function ReferralManagerCard({ headers }) {
             ))}
           </tbody>
         </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AFFILIATE PAYOUT REQUESTS — notificación: afiliados que piden su pago
+═══════════════════════════════════════════════════════════════════════════ */
+function AffiliatePayoutRequestsCard({ headers }) {
+  const [reqs, setReqs] = useState([]);
+  const [pending, setPending] = useState(0);
+  const [amount, setAmount] = useState(0);
+  const toasted = useRef(false);
+
+  const bearer = headers?.Authorization || '';
+  const ready = bearer && !bearer.includes('null');
+
+  const fetchReqs = async () => {
+    if (!API || !ready) return;
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-requests?status=pending`, { headers });
+      if (res.ok) {
+        const d = await res.json();
+        setReqs(d.requests || []); setPending(d.pending_count || 0); setAmount(d.pending_amount_eur || 0);
+        if ((d.pending_count || 0) > 0 && !toasted.current) {
+          toasted.current = true;
+          toast.warning(`Tienes ${d.pending_count} solicitud(es) de pago de afiliados pendientes — ${d.pending_amount_eur} €`,
+            { duration: 8000 });
+        }
+      }
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => { fetchReqs(); /* eslint-disable-next-line */ }, [headers]);
+
+  const action = async (id, verb) => {
+    let ref = '';
+    if (verb === 'mark-paid') ref = window.prompt('Referencia del pago (opcional):') || '';
+    try {
+      const res = await fetch(`${API}/admin/affiliates/payout-requests/${id}/${verb}`, {
+        method: 'POST', headers, body: verb === 'mark-paid' ? JSON.stringify({ payout_reference: ref }) : undefined });
+      if (res.ok) { toast.success('OK'); fetchReqs(); } else toast.error('Error');
+    } catch { toast.error('Error'); }
+  };
+
+  if (pending === 0) return null;   // solo aparece cuando hay algo que pagar
+
+  return (
+    <Card className="bg-yellow-500/5 border-yellow-500/40">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
+          <AlertCircle className="w-4 h-4" /> Solicitudes de pago pendientes ({pending}) — {amount} €
+        </CardTitle>
+        <p className="text-[11px] text-muted-foreground">Afiliados que han solicitado su pago. Haz la transferencia y márcala como pagada.</p>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40"><tr className="text-left">
+              {['Email', 'Importe', 'Activos', 'Bloques', 'Fecha', ''].map(h => (
+                <th key={h} className="px-2 py-2 text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {reqs.map(r => (
+                <tr key={r.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-2 py-2 font-mono text-xs">{r.email}</td>
+                  <td className="px-2 py-2 text-center text-xs font-bold">{r.amount_eur} €</td>
+                  <td className="px-2 py-2 text-center text-xs">{r.active_count}</td>
+                  <td className="px-2 py-2 text-center text-xs">{r.blocks}</td>
+                  <td className="px-2 py-2 text-center text-[10px] text-muted-foreground">{(r.created_at || '').slice(0, 10)}</td>
+                  <td className="px-2 py-2 text-right whitespace-nowrap">
+                    <Button size="sm" variant="outline" className="h-7 text-xs mr-1" onClick={() => action(r.id, 'mark-paid')}>Marcar pagado</Button>
+                    <button onClick={() => action(r.id, 'reject')} title="Rechazar" className="p-1 text-red-500 hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
