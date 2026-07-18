@@ -41,6 +41,7 @@ const SubscriptionPage = lazyRetry(() => import("@/pages/SubscriptionPage"));
 const OptionsPage      = lazyRetry(() => import("@/pages/OptionsPage"));
 const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
 const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
+const AffiliatePage    = lazyRetry(() => import("@/pages/AffiliatePage"));
 const LegalPage        = lazyRetry(() => import("@/pages/LegalPage"));
 const ContactPage      = lazyRetry(() => import("@/pages/ContactPage"));
 const AboutPage        = lazyRetry(() => import("@/pages/AboutPage"));
@@ -98,6 +99,7 @@ const AppContent = () => (
           <Route path="/options"         element={<OptionsPage />} />
           <Route path="/performance"     element={<ProtectedRoute><PerformancePage /></ProtectedRoute>} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
+          <Route path="/affiliate"       element={<ProtectedRoute><AffiliatePage /></ProtectedRoute>} />
           <Route path="/login"           element={<LoginPage />} />
           <Route path="/register"        element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -1236,4 +1236,29 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   "Affiliate Partners" salientes de la landing). El diseño añade el **panel self-service del afiliado**
   (`GET /affiliate/me`, Fase 1) con lista **enmascarada** (GDPR): estado/plan/fecha sí, email no.
 - ⏳ **Decisiones abiertas** antes de codificar (§7 del doc): si cuentan los *trialing* (rec.: no) y
-  método de cobro de Fase 1 (banco/PayPal manual). **Nada implementado aún.**
+  método de cobro de Fase 1 (banco/PayPal manual).
+
+### 2026-07-17 (43) — Programa de Afiliados: Fase 1 IMPLEMENTADA (backend + frontend + admin)
+- ✅ **Backend `affiliate_program.py`** (14 rutas, registrado en `server.py`): alta/aprobación de
+  afiliados, panel self-service (`/affiliate/me`), liquidación mensual por **bloques de 1000 con suelo
+  en 1000** (`⌊activos/1000⌋ × 1000 €`) + **bonus lifetime único de 50 €** (sellado al finalizar →
+  idempotente), export CSV y marcar pagado. Solo cuentan **suscriptores de pago activos** (excluye
+  gratis, trials y lifetime del recuento de bloques). Tablas nuevas: `affiliates`,
+  `affiliate_payout_runs`, `affiliate_payout_lines`.
+- ✅ **`referrals.py`**: `credit_referrer_for_payment` **omite el wallet del 10 %** si el referente es
+  afiliado aprobado (evita doble pago).
+- ✅ **Frontend `AffiliatePage.jsx`** (ruta `/affiliate`, **enlace en el menú de usuario** junto a
+  Cerrar sesión): formulario de alta + panel con link, registrados, activos, bloques, € del mes,
+  lifetime, total cobrado, **lista de referidos ENMASCARADA** (GDPR) e histórico de cobros.
+- ✅ **AdminPage**: sección **"Afiliados"** SEPARADA de la lista de clientes (segmentación con/sin
+  referidos, orden por activos/bloques/importe, ficha por afiliado con sus referidos) + **"Liquidación
+  de afiliados"** (generar mes, finalizar, marcar pagado, CSV).
+- ✅ **i18n**: 46 claves `aff*` × 8 idiomas (es real, en/otros en inglés como seed → **pendiente
+  localización** de de/fr/ru/zh/ja/ar). `i18n-check`: **5039 claves, 0 faltan/0 sobran**.
+- ✅ **Verificado**: `pytest` **109 passed / 74 skipped** (8 tests nuevos de afiliados); `import server`
+  OK (**174 rutas**); `npm run build` exit 0 (664 URLs sitemap); **smoke E2E contra PostgreSQL real**:
+  1000 activos→1 bloque→1000 € + 2 lifetime×50 = 1100 €; finalize sella 2 bonus; mes siguiente bonus 0
+  (idempotente); wallet omitido para afiliado; mark-paid OK.
+- ⚠️ **Decisión aplicada por defecto** (a confirmar): los *trials* **no** cuentan (solo tras cobro real).
+- ⏳ **Pendiente (ops)**: fusionar a `main`, aprobar afiliados y hacer los pagos manualmente. Fase 2
+  (Cloud Scheduler + **Stripe Connect** payouts automáticos) no implementada. Traducir los 6 idiomas.

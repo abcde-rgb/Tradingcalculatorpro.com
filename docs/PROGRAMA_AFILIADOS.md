@@ -1,10 +1,15 @@
 # 🤝 Programa de Afiliados — Diseño técnico
 
-> **Estado:** propuesta de diseño (aún **sin implementar**). Documento de trabajo previo a
-> tocar código. Fecha: 2026-07-17. Rama: `claude/affiliate-payment-system-nda23v`.
+> **Estado:** ✅ **Fase 1 IMPLEMENTADA** (backend + panel del afiliado + panel admin). Fecha: 2026-07-17.
+> Rama: `claude/affiliate-payment-system-nda23v`. Pendiente: fusionar a `main` y cargar operativa
+> (aprobar afiliados, pagos manuales). Fase 2 (Stripe Connect automático) no implementada.
 >
 > **Qué resuelve:** pagar a socios/afiliados **dinero real, cada mes**, en función de cuántos
 > **suscriptores de pago activos** hayan traído a TradingCalculator.Pro.
+>
+> **Módulos implementados:** `backend/affiliate_program.py` (14 rutas), `frontend/src/pages/AffiliatePage.jsx`
+> (panel self-service, ruta `/affiliate`, enlace en el menú de usuario), sección "Afiliados" + "Liquidación
+> de afiliados" en `frontend/src/pages/AdminPage.jsx`. Tests: `backend/tests/test_affiliate_program_unit.py`.
 >
 > Documentos relacionados: [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) ·
 > [`DEPLOY_CHECKLIST.md`](./DEPLOY_CHECKLIST.md) · código base: `backend/referrals.py`,

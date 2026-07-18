@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { TrendingUp, Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield, Bell } from 'lucide-react';
+import { TrendingUp, Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield, Bell, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store';
 import { useThemeStore } from '@/lib/theme';
@@ -250,6 +250,11 @@ export function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/settings">{t('settings')}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/affiliate" className="gap-2" data-testid="user-menu-affiliate">
+                      <Users className="w-4 h-4 text-primary" /> {t('affMenuLabel')}
+                    </Link>
                   </DropdownMenuItem>
                   {user?.is_admin && (
                     <DropdownMenuItem asChild>
