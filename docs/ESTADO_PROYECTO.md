@@ -1302,3 +1302,15 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ **Verificado**: import 178 rutas; `npm run build` exit 0; **smoke E2E cadena de atribución** contra
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
+
+### 2026-07-17 (47) — Acceso libre (comp) para cuentas de cortesía
+- ✅ **`_FREE_ACCESS_EMAILS`** en `server.py`: correos con **acceso premium completo sin pagar**
+  (útil mientras no está la facturación/Stripe activa). Por defecto incluye
+  `tradingcalculatorpro@gmail.com`; ampliable por env `FREE_ACCESS_EMAILS` (coma-separado).
+  `check_premium` los trata como premium; `affiliate_program._is_paying_member` los acepta como
+  suscriptores de pago (pueden unirse al programa de afiliados). Sin cambios en el frontend: `/auth/me`
+  ya devuelve `is_premium=True` para ellos → desbloquea funciones y muestra la opción de afiliados.
+- ⚠️ **Revertir cuando haya pagos**: quitar el correo del set (o de la env var). No es admin por sí solo
+  (para admin, usar `ADMIN_EMAILS`).
+- ✅ Verificado: 10 tests afiliados; import 178 rutas; `check_premium`/`_is_paying_member` True para el
+  correo comp y False para un usuario gratis normal.
