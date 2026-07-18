@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Gift, Link2, Copy, Check, TrendingUp, Wallet, Crown, Clock, Layers } from 'lucide-react';
+import { Users, Gift, Link2, Copy, Check, TrendingUp, Wallet, Crown, Clock, Layers, Share2, MessageCircle, Send, Mail } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,7 @@ export default function AffiliatePage() {
   const [details, setDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const authedFetch = useCallback(async (path, options = {}) => {
     if (!API || token === DEMO_TOKEN) return null;
@@ -128,12 +129,20 @@ export default function AffiliatePage() {
   const shareLink = data?.code
     ? `${window.location.origin}${process.env.PUBLIC_URL || ''}/?ref=${data.code}`
     : '';
+  const shareMsg = `${t('affShareText')} ${shareLink}`;
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
+  const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(t('affShareText'))}`;
+  const mailUrl = `mailto:?subject=${encodeURIComponent(t('affShareEmailSubject'))}&body=${encodeURIComponent(shareMsg)}`;
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}`;
 
-  function copyLink() {
-    navigator.clipboard?.writeText(shareLink).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+  function copyText(text, setter) {
+    navigator.clipboard?.writeText(text).then(() => {
+      setter(true);
+      setTimeout(() => setter(false), 1800);
     }).catch(() => {});
+  }
+  function nativeShare() {
+    navigator.share?.({ title: 'TradingCalculator.Pro', text: t('affShareText'), url: shareLink }).catch(() => {});
   }
 
   const cfg = data?.config || {};
@@ -237,18 +246,38 @@ export default function AffiliatePage() {
           {/* ── Approved dashboard ── */}
           {!loading && data && data.is_affiliate && data.status === 'approved' && (
             <>
-              {/* Share link */}
+              {/* Share: code + link + quick share buttons */}
               <Card className="bg-card border-border">
                 <CardHeader><CardTitle className="text-lg flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-primary" /> {t('affYourLink')}</CardTitle></CardHeader>
-                <CardContent>
+                  <Share2 className="w-5 h-5 text-primary" /> {t('affYourLink')}</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Código */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-sm text-muted-foreground">{t('affYourCode')}:</span>
+                    <code className="text-lg font-bold tracking-widest bg-muted px-3 py-1 rounded" data-testid="affiliate-code">{data.code}</code>
+                    <Button size="sm" variant="ghost" onClick={() => copyText(data.code, setCodeCopied)} className="gap-1">
+                      {codeCopied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  {/* Enlace */}
                   <div className="flex gap-2">
                     <Input readOnly value={shareLink} data-testid="affiliate-link" className="font-mono text-sm" />
-                    <Button variant="outline" onClick={copyLink} className="gap-2 shrink-0">
+                    <Button variant="outline" onClick={() => copyText(shareLink, setCopied)} className="gap-2 shrink-0">
                       {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                       {copied ? t('affLinkCopied') : t('affCopyLink')}
                     </Button>
                   </div>
+                  {/* Compartir rápido */}
+                  <div className="flex flex-wrap gap-2">
+                    <a href={waUrl} target="_blank" rel="noreferrer"><Button variant="outline" size="sm" className="gap-2"><MessageCircle className="w-4 h-4 text-green-500" /> WhatsApp</Button></a>
+                    <a href={tgUrl} target="_blank" rel="noreferrer"><Button variant="outline" size="sm" className="gap-2"><Send className="w-4 h-4 text-sky-500" /> Telegram</Button></a>
+                    <a href={mailUrl}><Button variant="outline" size="sm" className="gap-2"><Mail className="w-4 h-4" /> Email</Button></a>
+                    <a href={xUrl} target="_blank" rel="noreferrer"><Button variant="outline" size="sm" className="gap-2"><span className="font-bold text-sm leading-none">𝕏</span></Button></a>
+                    {typeof navigator !== 'undefined' && navigator.share && (
+                      <Button variant="outline" size="sm" className="gap-2" onClick={nativeShare}><Share2 className="w-4 h-4" /> {t('affShareNative')}</Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t('affShareHelp')}</p>
                 </CardContent>
               </Card>
 

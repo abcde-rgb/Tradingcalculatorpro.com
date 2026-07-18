@@ -5152,4 +5152,9 @@ export default {
   affNeedPaidTitle: "Réservé aux abonnés payants",
   affNeedPaid: "Le programme d'affiliation est réservé aux abonnés payants. Il n'est pas actif pendant l'essai de 7 jours. Passez premium pour participer.",
   affGoPremium: "Voir les offres",
+  affYourCode: "Votre code",
+  affShareNative: "Partager",
+  affShareHelp: "Lorsqu'une personne s'inscrit via votre lien, elle vous est automatiquement associée.",
+  affShareText: "Rejoins TradingCalculator.Pro avec mon lien :",
+  affShareEmailSubject: "Je t'invite sur TradingCalculator.Pro",
 }

@@ -13,6 +13,26 @@ function trackEvent(eventName, params = {}) {
   try { window.gtag?.('event', eventName, params); } catch (_) {}
 }
 
+// Referral attribution: a visitor who lands on /?ref=CODE has the code stored in
+// localStorage (see RefCapture in App.js). On a NEW signup we tell the backend so
+// the referee gets linked to the referrer (referred_by_id). Best-effort, never blocks signup.
+export const REF_STORAGE_KEY = 'tcp_ref_code';
+
+async function trackReferral(email) {
+  if (!API || !email) return;
+  let code = '';
+  try { code = (localStorage.getItem(REF_STORAGE_KEY) || '').trim(); } catch (_) {}
+  if (!code) return;
+  try {
+    const res = await fetchWithTimeout(`${API}/referrals/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, referee_email: email }),
+    });
+    if (res.ok) { try { localStorage.removeItem(REF_STORAGE_KEY); } catch (_) {} }
+  } catch (_) { /* silencioso: nunca bloquea el registro */ }
+}
+
 async function safeJson(res) {
   const clone = res.clone();
   try {
@@ -112,6 +132,7 @@ export const useAuthStore = create(
           if (!data.token || !data.user) throw new Error(t('registrationError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('sign_up', { method: 'email' });
+          await trackReferral(email);
           return { success: true };
         } catch (error) {
           set({ isLoading: false });
@@ -135,6 +156,7 @@ export const useAuthStore = create(
           if (!data.token || !data.user) throw new Error(t('googleLoginError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           trackEvent('login', { method: 'google' });
+          if (data.is_new_user) await trackReferral(data.user?.email);
           return { success: true };
         } catch (error) {
           set({ isLoading: false });

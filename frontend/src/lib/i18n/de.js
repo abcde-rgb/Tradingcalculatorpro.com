@@ -5152,4 +5152,9 @@ export default {
   affNeedPaidTitle: "Nur für zahlende Abonnenten",
   affNeedPaid: "Das Partnerprogramm ist nur für zahlende Abonnenten verfügbar. Während der 7-tägigen Testphase ist es nicht aktiv. Werde Premium, um teilzunehmen.",
   affGoPremium: "Tarife ansehen",
+  affYourCode: "Dein Code",
+  affShareNative: "Teilen",
+  affShareHelp: "Wenn sich jemand über deinen Link registriert, wird er automatisch dir zugeordnet.",
+  affShareText: "Tritt TradingCalculator.Pro über meinen Link bei:",
+  affShareEmailSubject: "Ich lade dich zu TradingCalculator.Pro ein",
 }

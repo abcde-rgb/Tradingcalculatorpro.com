@@ -5101,4 +5101,9 @@ export default {
   affNeedPaidTitle: "للمشتركين المدفوعين فقط",
   affNeedPaid: "برنامج الإحالة متاح فقط للمشتركين المدفوعين. وهو غير مفعّل خلال فترة التجربة المجانية لمدة 7 أيام. اشترك في بريميوم للانضمام.",
   affGoPremium: "عرض الخطط",
+  affYourCode: "رمزك",
+  affShareNative: "مشاركة",
+  affShareHelp: "عندما يسجّل شخص ما عبر رابطك، يُربط بك تلقائيًا.",
+  affShareText: "انضم إلى TradingCalculator.Pro عبر رابطي:",
+  affShareEmailSubject: "أدعوك إلى TradingCalculator.Pro",
 }

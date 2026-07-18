@@ -5175,4 +5175,9 @@ export default {
   affNeedPaidTitle: "Paying subscribers only",
   affNeedPaid: "The affiliate program is available only to paying subscribers. It is not active during the 7-day trial. Go premium to join.",
   affGoPremium: "See plans",
+  affYourCode: "Your code",
+  affShareNative: "Share",
+  affShareHelp: "When someone signs up through your link, they're automatically linked to you.",
+  affShareText: "Join TradingCalculator.Pro with my link:",
+  affShareEmailSubject: "I'm inviting you to TradingCalculator.Pro",
 }

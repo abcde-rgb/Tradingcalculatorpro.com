@@ -2,6 +2,7 @@ import "@/App.css";
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useI18nStore, languages } from "@/lib/i18n";
+import { REF_STORAGE_KEY } from "@/lib/store";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
@@ -83,11 +84,25 @@ function LangSync() {
   return null;
 }
 
+// Capture a referral code from ?ref=CODE on any landing and remember it, so it can
+// be attributed when the visitor registers (see trackReferral in store.js).
+function RefCapture() {
+  const location = useLocation();
+  useEffect(() => {
+    const code = new URLSearchParams(location.search).get('ref');
+    if (code && /^[A-Za-z0-9]{4,16}$/.test(code)) {
+      try { localStorage.setItem(REF_STORAGE_KEY, code.toUpperCase()); } catch (_) {}
+    }
+  }, [location.search]);
+  return null;
+}
+
 const AppContent = () => (
   <div className="App">
     <BrowserRouter basename={process.env.PUBLIC_URL}>
       <AnalyticsTracker />
       <LangSync />
+      <RefCapture />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/"                element={<LandingPage />} />

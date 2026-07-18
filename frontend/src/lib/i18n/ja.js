@@ -5103,4 +5103,9 @@ export default {
   affNeedPaidTitle: "有料購読者限定",
   affNeedPaid: "アフィリエイトプログラムは有料購読者のみが利用できます。7日間の無料トライアル中は利用できません。参加するにはプレミアムにご登録ください。",
   affGoPremium: "プランを見る",
+  affYourCode: "あなたのコード",
+  affShareNative: "共有",
+  affShareHelp: "誰かがあなたのリンクから登録すると、自動的にあなたに紐づけられます。",
+  affShareText: "私のリンクから TradingCalculator.Pro に参加しよう:",
+  affShareEmailSubject: "TradingCalculator.Pro に招待します",
 }

@@ -2372,6 +2372,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
 
     # Look up by email, otherwise create a passwordless user with `auth_provider=google`.
     user = await db.users.find_one({"email": email}, {"_id": 0})
+    is_new_user = user is None   # para atribución de referidos: solo altas nuevas
     if not user:
         user_id = str(uuid.uuid4())
         user = {
@@ -2405,6 +2406,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
     _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
+        "is_new_user": is_new_user,
         "user": {
             "id": user["id"],
             "email": user["email"],
