@@ -1331,3 +1331,15 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ⚠️ `GOOGLE_CLOUD_SETUP.md` y `setup-gcp.ps1` marcados como legado (apuntan al runbook nuevo).
 - 🔒 La cadena de Neon del usuario **no se guarda en el repo**: va solo a Secret Manager (`DATABASE_URL`).
 - ⚠️ La app no cambia; `init_pool` ya soporta Neon (TCP+SSL). **Sin mergear** hasta el cutover.
+
+### 2026-07-17 (49) — Repo limpio de Google Cloud (el propietario monta su infra)
+- 🗑️ **Eliminados** (a petición): `.github/workflows/deploy-cloud-run.yml`, `cloudbuild.yaml`,
+  `backend/setup-gcp.sh`, `backend/setup-gcp.ps1`, `GOOGLE_CLOUD_SETUP.md` y
+  `docs/MIGRACION_GCP_NUEVA_CUENTA.md`. **No hay workflow de deploy de backend en el repo**; el
+  despliegue del backend lo gestiona el propietario en su propia infraestructura (desde 0).
+- ✅ **Se conservan**: `.github/workflows/ci.yml` (tests PR) y `deploy-gh-pages.yml` (frontend →
+  GitHub Pages, no es GCP). La app sigue **agnóstica de plataforma**: cualquier PostgreSQL vía
+  `DATABASE_URL` (Cloud SQL socket o TCP+SSL) y cualquier host de backend. `backend/Dockerfile` intacto.
+- ℹ️ **Referencias históricas a GCP** que quedan en documentación (no bloquean nada):
+  `CLAUDE.md`, `README.md`, `docs/DEPLOY_CHECKLIST.md`, `docs/MIGRACION_NEON.md`,
+  `docs/ANALISIS_2026-06-25.md`, `DIARIO_BUGS.md`. Actualizar cuando se decida la nueva plataforma.
