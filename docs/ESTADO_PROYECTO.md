@@ -1287,3 +1287,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ i18n: +3 claves (`affNeedPaidTitle/affNeedPaid/affGoPremium`) ×8 → **5047 claves, 0 huecos**.
 - ✅ **Verificado**: 9 tests afiliados; import 178 rutas; build exit 0; smoke E2E: gratis→403,
   trial→403, de pago→alta OK, `eligible=False` para gratis/trial.
+
+### 2026-07-17 (46) — Atribución de referidos (captura ?ref + tracking) + compartir mejorado
+- 🐛 **Hueco crítico corregido**: el frontend **nunca capturaba `?ref=` ni llamaba a `/referrals/track`**
+  al registrarse → NADIE quedaba atribuido (todo el sistema de afiliados/referidos era inerte).
+  - `App.js`: componente **`RefCapture`** guarda el código de `?ref=CODE` en localStorage al aterrizar.
+  - `store.js`: helper **`trackReferral(email)`** (POST `/referrals/track`) tras alta por **email**
+    (siempre) y por **Google** (solo si `is_new_user`, para no atribuir logins de usuarios existentes).
+  - `server.py`: `/auth/google` ahora devuelve **`is_new_user`**.
+- ✅ **Compartir mejorado** en `AffiliatePage`: **código visible** + copiar, enlace + copiar, y botones
+  de **WhatsApp / Telegram / Email / X / compartir nativo** con mensaje prehecho.
+- ✅ i18n: +8 claves de compartir ×8 (`affYourCode`, `affShareNative`, `affShareHelp`, `affShareText`,
+  `affShareEmailSubject`, +requisito) → **5052 claves, 0 huecos**.
+- ✅ **Verificado**: import 178 rutas; `npm run build` exit 0; **smoke E2E cadena de atribución** contra
+  PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
+  (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.

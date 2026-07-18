@@ -5103,4 +5103,9 @@ export default {
   affNeedPaidTitle: "仅限付费订阅者",
   affNeedPaid: "推广联盟计划仅对付费订阅者开放。7 天试用期内不可用。升级为会员即可加入。",
   affGoPremium: "查看方案",
+  affYourCode: "你的代码",
+  affShareNative: "分享",
+  affShareHelp: "当有人通过你的链接注册时,会自动归属到你名下。",
+  affShareText: "使用我的链接加入 TradingCalculator.Pro:",
+  affShareEmailSubject: "邀请你加入 TradingCalculator.Pro",
 }

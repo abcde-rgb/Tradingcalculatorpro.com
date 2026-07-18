@@ -5094,4 +5094,9 @@ export default {
   affNeedPaidTitle: "Только для платных подписчиков",
   affNeedPaid: "Партнёрская программа доступна только платным подписчикам. Во время 7-дневного пробного периода она не активна. Оформите премиум, чтобы участвовать.",
   affGoPremium: "Смотреть тарифы",
+  affYourCode: "Ваш код",
+  affShareNative: "Поделиться",
+  affShareHelp: "Когда кто-то регистрируется по вашей ссылке, он автоматически привязывается к вам.",
+  affShareText: "Присоединяйся к TradingCalculator.Pro по моей ссылке:",
+  affShareEmailSubject: "Приглашаю тебя в TradingCalculator.Pro",
 }
