@@ -1,6 +1,10 @@
 # 🚀 TradingCalculator.pro — Guía Completa Google Cloud Setup
 
-**Proyecto GCP:** `tradingcalculator-495806`  
+> ⚠️ **Para montar el backend en una cuenta/proyecto NUEVO (desde 0), usa la guía actualizada:**
+> [`docs/MIGRACION_GCP_NUEVA_CUENTA.md`](./docs/MIGRACION_GCP_NUEVA_CUENTA.md) (Neon + parametrizado).
+> Este documento describe el proyecto **original** y se conserva como referencia histórica.
+
+**Proyecto GCP (original):** `tradingcalculator-495806`  
 **Región:** `us-central1` (Bélgica)  
 **Repositorio:** `abcde-rgb/Tradingcalculatorpro.com`
 

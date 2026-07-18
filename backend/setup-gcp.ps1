@@ -1,6 +1,10 @@
 # =============================================================
 # TradingCalculator.pro - Setup GCP para Cloud Run (Windows)
 # Uso: .\backend\setup-gcp.ps1
+#
+# NOTA: para una CUENTA/PROYECTO NUEVO usa `backend/setup-gcp.sh` (parametrizado,
+# compatible con Neon) en Google Cloud Shell, y la guía
+# docs/MIGRACION_GCP_NUEVA_CUENTA.md. Este .ps1 apunta al proyecto original.
 # =============================================================
 
 $PROJECT_ID   = "tradingcalculator-495806"

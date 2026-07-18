@@ -1,7 +1,11 @@
 # ============================================================
 # TradingCalculator.pro — CI/CD: GitHub Actions → Google Cloud Run
-# Proyecto GCP: tradingcalculator-495806
-# Región: us-central1
+# Proyecto/región/servicio CONFIGURABLES por variables de repositorio (Settings →
+# Secrets and variables → Actions → Variables):
+#   GCP_PROJECT (obligatoria) · GCP_REGION (def. europe-west1) ·
+#   SERVICE_NAME (def. tradingcalculator-api) · AR_REPO (def. trading-repo) ·
+#   RUNTIME_SA (opcional) · DB_PROVIDER (neon|cloudsql) · MIN_INSTANCES (def. 1)
+# Guía de migración a una cuenta nueva: docs/MIGRACION_GCP_NUEVA_CUENTA.md
 # ============================================================
 name: Deploy Backend → Cloud Run
 
@@ -20,10 +24,12 @@ on:
 #  sin analytics y sin fallback 404.html para rutas SPA. Eliminado.)
 
 env:
-  GCP_PROJECT: tradingcalculator-495806
-  GCP_REGION: europe-west1
-  SERVICE_NAME: tradingcalculator-api
-  IMAGE: europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend
+  GCP_PROJECT: ${{ vars.GCP_PROJECT }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
+  SERVICE_NAME: ${{ vars.SERVICE_NAME || 'tradingcalculator-api' }}
+  AR_REPO: ${{ vars.AR_REPO || 'trading-repo' }}
+  IMAGE: ${{ vars.GCP_REGION || 'europe-west1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/${{ vars.AR_REPO || 'trading-repo' }}/backend
+  RUNTIME_SA: ${{ vars.RUNTIME_SA || format('trading-backend-sa@{0}.iam.gserviceaccount.com', vars.GCP_PROJECT) }}
 
 jobs:
   # ── 1. Tests rápidos antes de desplegar ──────────────────
@@ -133,7 +139,7 @@ jobs:
 
       # Configurar Docker para Artifact Registry
       - name: Configurar Docker Auth
-        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
       # Asegurar que el repositorio de Artifact Registry existe en la región
       # canónica. Es idempotente: si ya existe no hace nada.
@@ -142,17 +148,17 @@ jobs:
       # porque el repo solo se había creado en la región anterior.
       - name: Asegurar repositorio Artifact Registry
         run: |
-          if gcloud artifacts repositories describe trading-repo \
+          if gcloud artifacts repositories describe "${{ env.AR_REPO }}" \
                --location="${{ env.GCP_REGION }}" \
                --project="${{ env.GCP_PROJECT }}" >/dev/null 2>&1; then
-            echo "✅ Artifact Registry 'trading-repo' ya existe en ${{ env.GCP_REGION }}"
+            echo "✅ Artifact Registry '${{ env.AR_REPO }}' ya existe en ${{ env.GCP_REGION }}"
           else
-            echo "ℹ️ 'trading-repo' no existe en ${{ env.GCP_REGION }}; creándolo..."
-            gcloud artifacts repositories create trading-repo \
+            echo "ℹ️ '${{ env.AR_REPO }}' no existe en ${{ env.GCP_REGION }}; creándolo..."
+            gcloud artifacts repositories create "${{ env.AR_REPO }}" \
               --repository-format=docker \
               --location="${{ env.GCP_REGION }}" \
               --project="${{ env.GCP_PROJECT }}" \
-              --description="Imágenes Docker del backend tradingcalculator-api"
+              --description="Imágenes Docker del backend ${{ env.SERVICE_NAME }}"
           fi
 
       # Build de la imagen Docker
@@ -179,7 +185,7 @@ jobs:
           #   - "neon"              → NO monta socket; la conexión va por TCP+SSL
           #                           usando el secreto DATABASE_URL (cadena de Neon)
           # Así se puede cortar Cloud SQL SIN editar este archivo: basta cambiar la variable.
-          CLOUDSQL_ARGS=(--add-cloudsql-instances=tradingcalculator-495806:europe-west1:trading-db)
+          CLOUDSQL_ARGS=(--add-cloudsql-instances=${{ env.GCP_PROJECT }}:${{ env.GCP_REGION }}:${{ vars.CLOUDSQL_INSTANCE || 'trading-db' }})
           if [ "${{ vars.DB_PROVIDER }}" = "neon" ]; then
             echo "🟢 DB_PROVIDER=neon → conexión TCP, sin socket de Cloud SQL"
             CLOUDSQL_ARGS=()
@@ -209,7 +215,7 @@ jobs:
             --set-env-vars="^;^GCP_PROJECT=${{ env.GCP_PROJECT }};CORS_ORIGINS=https://abcde-rgb.github.io,https://tradingcalculatorpro.com;FRONTEND_URL=https://abcde-rgb.github.io/Tradingcalculatorpro.com;DEMO_EMAIL=demo@btccalc.pro;SENDER_EMAIL=alerts@tradingcalculatorpro.com;ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}" \
             --update-secrets="JWT_SECRET=JWT_SECRET:latest,DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,STRIPE_API_KEY=STRIPE_API_KEY:latest,SENDGRID_API_KEY=SENDGRID_API_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
             "${CLOUDSQL_ARGS[@]}" \
-            --service-account=trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com
+            --service-account=${{ env.RUNTIME_SA }}
 
       # URL del servicio desplegado
       - name: Obtener URL del servicio

@@ -1314,3 +1314,20 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   (para admin, usar `ADMIN_EMAILS`).
 - ✅ Verificado: 10 tests afiliados; import 178 rutas; `check_premium`/`_is_paying_member` True para el
   correo comp y False para un usuario gratis normal.
+
+### 2026-07-17 (48) — Preparar migración del backend a una cuenta GCP nueva (Neon)
+- ✅ **Deploy parametrizado** (sin ID de proyecto fijo en el repo): `deploy-cloud-run.yml` toma
+  `GCP_PROJECT`/`GCP_REGION`/`SERVICE_NAME`/`AR_REPO`/`RUNTIME_SA` de variables de repo; imagen y
+  Cloud SQL derivados; `cloudbuild.yaml` usa `$PROJECT_ID` + substitutions. **0 referencias** al
+  proyecto viejo en la config de deploy (validado).
+- ✅ **`backend/setup-gcp.sh` reescrito**: parametrizado por env (`PROJECT_ID`/`REGION`/`GITHUB_REPO`)
+  y **compatible con Neon** (`DB_PROVIDER=neon` → no crea Cloud SQL, usa `NEON_DATABASE_URL`). Crea
+  APIs, Artifact Registry, Service Account, Workload Identity y Secret Manager, e imprime los valores
+  para GitHub. `bash -n` OK.
+- 📄 **Runbook nuevo** [`docs/MIGRACION_GCP_NUEVA_CUENTA.md`]: pasos desde 0 (proyecto, billing, Neon,
+  Cloud Shell, OAuth nuevo, variables/secretos de GitHub, deploy, post-deploy) + **orden de cutover
+  seguro** (poner `GCP_PROJECT` al proyecto actual antes de mergear para no romper nada) + coste (≈0 €
+  en reposo). Decisiones: Neon `us-east-1`, Cloud Run **us-east1**, BD vacía, min-instances=0, OAuth nuevo.
+- ⚠️ `GOOGLE_CLOUD_SETUP.md` y `setup-gcp.ps1` marcados como legado (apuntan al runbook nuevo).
+- 🔒 La cadena de Neon del usuario **no se guarda en el repo**: va solo a Secret Manager (`DATABASE_URL`).
+- ⚠️ La app no cambia; `init_pool` ya soporta Neon (TCP+SSL). **Sin mergear** hasta el cutover.
