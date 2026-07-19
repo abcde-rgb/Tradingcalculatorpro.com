@@ -337,9 +337,10 @@ export function Header() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     {languages.map(lang => (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         key={lang.code}
                         onClick={() => setLocale(lang.code)}
+                        className={locale === lang.code ? 'bg-primary/10' : ''}
                       >
                         <span className="mr-2">{lang.flag}</span> {lang.name}
                       </DropdownMenuItem>

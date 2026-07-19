@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom';
 import { TrendingUp, Sun, Moon, Globe, Linkedin, Mail, CandlestickChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, languages } from '@/lib/i18n';
 import { useThemeStore } from '@/lib/theme';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Official X (formerly Twitter) logo — lucide-react still ships the old bird icon
 const XLogo = (props) => (
@@ -36,7 +42,7 @@ const TradingViewLogo = (props) => <CandlestickChart {...props} />;
  * Uses i18n strings from LandingPage for consistency.
  */
 export function Footer() {
-  const { t } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const year = new Date().getFullYear();
@@ -132,9 +138,24 @@ export function Footer() {
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" aria-label={t('themeAriaLabel')}>
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={t('languageAriaLabel')}>
-              <Globe className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={t('languageAriaLabel')} data-testid="footer-language-toggle">
+                  <Globe className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top">
+                {languages.map((lang) => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => setLocale(lang.code)}
+                    className={locale === lang.code ? 'bg-primary/10' : ''}
+                  >
+                    <span className="mr-2">{lang.flag}</span> {lang.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

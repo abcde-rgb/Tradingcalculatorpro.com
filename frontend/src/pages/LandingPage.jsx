@@ -202,8 +202,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Free demo calculator — try before you register */}
-      <LandingDemoCalculator />
+      {/* Free demo calculator — try before you register. Hidden once logged in:
+          authenticated users already have the full Position Size calculator. */}
+      {!isAuthenticated && <LandingDemoCalculator />}
 
       {/* Asset Types Section */}
       <section className="py-16 px-4 bg-card/50">

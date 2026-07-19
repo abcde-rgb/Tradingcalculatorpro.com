@@ -1302,3 +1302,33 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ **Verificado**: import 178 rutas; `npm run build` exit 0; **smoke E2E cadena de atribución** contra
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
+
+### 2026-07-19 (48) — 3 fixes de UI reportados por el dueño (footer idiomas, pricing full-bleed, demo calc)
+- 🐛 **Selector de idiomas del Footer estaba MUERTO**: el botón del globo (`Footer.jsx`) no tenía
+  menú — no abría nada ni con sesión ni sin ella (el único selector real estaba en el Header).
+  **Fix**: DropdownMenu real con las 8 banderas + nombres (`languages` de i18n), `setLocale` al
+  clic, resaltado del idioma activo, `side="top"` (abre hacia arriba), testid
+  `footer-language-toggle`. Bonus: el selector móvil del Header ahora también resalta el idioma activo.
+- 🐛 **Pricing: la banda de velas animada no llenaba el ancho** (estaba contenida en `max-w-6xl`
+  + `rounded-2xl`). **Fix**: reestructurado el header de `PricingPage` como `<section>` full-bleed
+  (mismo tratamiento borde-a-borde que el hero de la landing); el resto del contenido conserva su
+  contenedor `max-w-6xl px-4`. Verificado: canvas x=0, width=1280/1280.
+- 🐛 **La calculadora demo de la landing aparecía también con sesión iniciada** (era para probar
+  antes de registrarse). **Fix**: `{!isAuthenticated && <LandingDemoCalculator />}`.
+- ✅ Verificado: `npm run build` exit 0 (sitemap 664 URLs); smoke headless Playwright (11/11):
+  demo visible sin sesión y oculta con sesión; footer abre 8 idiomas en ambos estados y el clic en
+  Deutsch cambia `html lang=de` + textos; canvas de Pricing a ancho completo con título legible;
+  0 pageerrors. Screenshot de Pricing validado.
+
+### 2026-07-19 (47) — Análisis de competencia (solo documento, sin código)
+- 📄 **Nuevo doc [`ANALISIS_COMPETENCIA_2026-07-19.md`](./ANALISIS_COMPETENCIA_2026-07-19.md)**:
+  respuesta a «¿alguien de la competencia ofrece todo lo mío mejor que yo?». **Veredicto: nadie
+  ofrece el bundle completo** (calculadoras pro + opciones + diario con sesgos + academia 68×8 +
+  escáner de estructura + IA) y menos a 17 €/mes; pero **cada vertical suelta tiene un especialista
+  superior**: TradeZella ($24-49/mes, auto-import 500+ brokers, replay, backtesting) gana en journal;
+  OptionStrat ($40-100/mes, flow en vivo) gana en opciones con datos reales; los gratuitos
+  (Myfxbook/BabyPips/CalcuTrader) ganan en fricción cero; BabyPips gana en autoridad SEO.
+- 🎯 Acciones derivadas (por impacto): (1) import CSV/auto de operaciones al diario — mayor gap
+  objetivo; (2) dominio propio (ya era la palanca nº1); (3) marketing del bundle vs 65-150 $/mes de
+  la suma de especialistas; (4) doblar en español/LATAM (frente vacío); (5) NO perseguir flow en vivo.
+- Sin cambios de código. Investigación con WebSearch (precios/features julio 2026, fuentes en el doc).
