@@ -364,7 +364,8 @@ a `round(plan["price"], 2)` con comentario explicativo.
 | M-13 | /health devuelve 200 con DB caída | 🟠 | ✅ Resuelto (sesión 2026-06-13) |
 | M-14 | ADMIN_EMAILS hardcodeado | 🟡 | ✅ Resuelto (sesión 2026-06-13) |
 | M-19 | /referrals/track sin rate limit | 🟡 | ✅ Resuelto (sesión 2026-06-13) |
+| BUG-013 | Route shadowing en afiliados: `GET /admin/affiliates/{aid}` (declarada antes) capturaba las estáticas `/payout-runs` y `/payout-requests` → el panel admin recibía 404 "Afiliado no encontrado" (notificación de solicitudes de pago y listado de liquidaciones muertos). Detectado con E2E real (Postgres 16 + backend vivo). Fix: la ruta dinámica se registra al final del módulo + test de regresión de orden de rutas. | 🔴 | ✅ Resuelto (2026-07-19) |
 
 ---
 
-*Última actualización: 2026-06-13 — auditoría de 8 fases + implementación de correcciones.*
+*Última actualización: 2026-07-19 — E2E de afiliados contra backend vivo (BUG-013).*

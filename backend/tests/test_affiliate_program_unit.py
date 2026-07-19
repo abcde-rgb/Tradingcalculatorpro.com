@@ -95,3 +95,13 @@ def test_mask_email_hides_pii():
     assert "juanperez" not in m
     assert ap._mask_email("") == "—"
     assert ap._mask_email(None) == "—"
+
+
+def test_admin_static_routes_before_dynamic_aid():
+    """Regresión BUG route-shadowing: GET /admin/affiliates/{aid} debe registrarse
+    DESPUÉS de las estáticas /payout-runs y /payout-requests; si no, FastAPI trata
+    "payout-requests" como un aid y el panel admin recibe 404."""
+    get_paths = [r.path for r in ap.router.routes if "GET" in getattr(r, "methods", set())]
+    i_dyn = get_paths.index("/admin/affiliates/{aid}")
+    assert get_paths.index("/admin/affiliates/payout-requests") < i_dyn
+    assert get_paths.index("/admin/affiliates/payout-runs") < i_dyn

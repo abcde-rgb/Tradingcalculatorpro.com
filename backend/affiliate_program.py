@@ -507,9 +507,12 @@ async def admin_list_affiliates(admin: dict = Depends(_require_admin_proxy),
             "config": {k: cfg[k] for k in ("block_size", "block_reward_eur", "lifetime_bonus_eur")}}
 
 
-@router.get("/admin/affiliates/{aid}")
 async def admin_affiliate_detail(aid: str, admin: dict = Depends(_require_admin_proxy)):
-    """Ficha del afiliado + lista de SUS referidos (admin ve email completo) + histórico."""
+    """Ficha del afiliado + lista de SUS referidos (admin ve email completo) + histórico.
+
+    OJO: su ruta GET /admin/affiliates/{aid} se registra AL FINAL del módulo —
+    declarada aquí capturaba las rutas estáticas /payout-runs y /payout-requests
+    (route shadowing → 404 "Afiliado no encontrado" en el panel admin)."""
     cfg = await _config()
     a = await db.affiliates.find_one({"id": aid}, {"_id": 0})
     if not a:
@@ -812,6 +815,11 @@ async def admin_export_csv(rid: str, admin: dict = Depends(_require_admin_proxy)
         content=csv_text, media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="afiliados_{run.get("period")}.csv"'},
     )
+
+
+# La ruta dinámica {aid} va la ÚLTIMA: FastAPI resuelve por orden de registro y,
+# si se declara antes, "payout-runs"/"payout-requests" se interpretan como un aid.
+router.get("/admin/affiliates/{aid}")(admin_affiliate_detail)
 
 
 # ---------------------------------------------------------------------------

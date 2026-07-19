@@ -1303,6 +1303,25 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-19 (50) — Auditoría E2E de afiliados: BUG-013 (route shadowing) encontrado y corregido
+- **Petición**: "¿algo sin integrar de PRs antiguos? revisa si los afiliados funcionan bien".
+- 🔎 **PRs pendientes**: #117 "Acceso libre (comp) + repo limpio de Google Cloud" (de otra sesión;
+  decisión del dueño pendiente — elimina el auto-deploy del backend) + 15 de Dependabot (#100-#114).
+- ✅ **Verificación con backend VIVO** (PostgreSQL 16 local + uvicorn, primera vez desde julio):
+  suite offline **111 passed**; integración con backend vivo **148 passed** (los ~31 restantes son
+  entorno: sin STRIPE_API_KEY, sin salida a internet para yfinance/IA, rate limits por diseño, y
+  varios tests leen `REACT_APP_BACKEND_URL` con fallback a la URL muerta de Emergent).
+- ✅ **E2E de afiliados 24/24** (script con siembra por el shim real + HTTP): gating trial→403,
+  alta→aprobación admin, `/affiliate/me` (1004 registrados / 1000 activos: excluye lifetime, trial
+  y caducado), atribución `?ref`→track idempotente, liquidación 2026-07 = **1100 €** (bloque 1000 +
+  2 lifetime × 50), finalize sella bonus (mes siguiente 1000 €), solicitar pago (no duplica),
+  notificación admin y marcar pagada.
+- 🔴 **BUG-013 encontrado y corregido**: `GET /admin/affiliates/{aid}` estaba declarada ANTES que
+  las rutas estáticas → FastAPI trataba `payout-requests`/`payout-runs` como un `aid` → **404** en
+  la notificación de solicitudes de pago y el listado de liquidaciones del admin. Fix: la ruta
+  dinámica se registra al final del módulo (`router.get(...)(fn)`) + **test de regresión** del
+  orden de rutas (`test_admin_static_routes_before_dynamic_aid`). Ver DIARIO_BUGS.md.
+
 ### 2026-07-19 (49) — Pricing: el gráfico animado igualado de verdad al de la portada
 - 🐛 Tras el full-bleed (sesión 48), el dueño reportó que Pricing se veía «desfigurado» vs la
   portada. Dos causas: (1) `fade="both"` + `dim=0.55` velaban casi todo el canvas (fundidos
