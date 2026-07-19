@@ -203,11 +203,11 @@ export default function PricingPage() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-24 pb-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative overflow-hidden rounded-2xl mb-12 py-10 px-4">
-            <AnimatedHeroChart fade="both" dim={0.55} />
-            <div className="text-center relative">
+      <main className="pt-24 pb-12">
+        {/* Banda animada a ancho completo de pantalla, como el hero de la página principal */}
+        <section className="relative overflow-hidden mb-12 py-10 px-4">
+          <AnimatedHeroChart fade="both" dim={0.55} />
+          <div className="max-w-6xl mx-auto text-center relative">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 mb-4">
                 <Crown className="w-5 h-5 text-yellow-500" />
                 <span className="text-sm text-yellow-500 font-medium">Premium</span>
@@ -222,9 +222,10 @@ export default function PricingPage() {
                   <span className="text-sm font-medium">{t('alreadyPremiumActive')}</span>
                 </div>
               )}
-            </div>
           </div>
-          
+        </section>
+
+        <div className="max-w-6xl mx-auto px-4">
           {/* Plans Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
             {PLANS_DATA.map((plan) => (
