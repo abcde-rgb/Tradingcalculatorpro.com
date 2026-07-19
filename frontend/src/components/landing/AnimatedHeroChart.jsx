@@ -16,6 +16,10 @@ import { useThemeStore } from '@/lib/theme';
 const GREEN = [34, 197, 94];   // #22c55e
 const RED = [239, 68, 68];     // #ef4444
 
+// Escala vertical mínima (px por unidad de precio). En contenedores bajos evita
+// que ajustar todo el rango a la altura encoja las velas hasta parecer rayitas.
+const MIN_PX_PER_PRICE_UNIT = 8;
+
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
 export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '' }) {
@@ -79,12 +83,10 @@ export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '
       const pad = (max - min) * 0.12 || 1;
       min -= pad; max += pad;
       const padY = height * 0.14;
-      // En contenedores bajos (banda de Pricing) ajustar TODO el rango a la altura
-      // encoge las velas hasta parecer rayitas. Se garantiza una escala mínima
-      // (px por unidad de precio) centrada en el rango; lo que sobre se recorta
-      // por los bordes, como en un gráfico real.
+      // Escala centrada en el rango con mínimo garantizado; lo que sobre se
+      // recorta por los bordes, como en un gráfico real.
       const fitScale = (height - padY * 2) / (max - min);
-      const scale = Math.max(fitScale, 8);
+      const scale = Math.max(fitScale, MIN_PX_PER_PRICE_UNIT);
       const mid = (min + max) / 2;
       const y = (p) => height / 2 - (p - mid) * scale;
 
