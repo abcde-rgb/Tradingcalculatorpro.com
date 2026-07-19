@@ -1302,3 +1302,16 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ **Verificado**: import 178 rutas; `npm run build` exit 0; **smoke E2E cadena de atribución** contra
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
+
+### 2026-07-19 (47) — Análisis de competencia (solo documento, sin código)
+- 📄 **Nuevo doc [`ANALISIS_COMPETENCIA_2026-07-19.md`](./ANALISIS_COMPETENCIA_2026-07-19.md)**:
+  respuesta a «¿alguien de la competencia ofrece todo lo mío mejor que yo?». **Veredicto: nadie
+  ofrece el bundle completo** (calculadoras pro + opciones + diario con sesgos + academia 68×8 +
+  escáner de estructura + IA) y menos a 17 €/mes; pero **cada vertical suelta tiene un especialista
+  superior**: TradeZella ($24-49/mes, auto-import 500+ brokers, replay, backtesting) gana en journal;
+  OptionStrat ($40-100/mes, flow en vivo) gana en opciones con datos reales; los gratuitos
+  (Myfxbook/BabyPips/CalcuTrader) ganan en fricción cero; BabyPips gana en autoridad SEO.
+- 🎯 Acciones derivadas (por impacto): (1) import CSV/auto de operaciones al diario — mayor gap
+  objetivo; (2) dominio propio (ya era la palanca nº1); (3) marketing del bundle vs 65-150 $/mes de
+  la suma de especialistas; (4) doblar en español/LATAM (frente vacío); (5) NO perseguir flow en vivo.
+- Sin cambios de código. Investigación con WebSearch (precios/features julio 2026, fuentes en el doc).
