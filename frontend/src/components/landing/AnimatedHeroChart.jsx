@@ -79,7 +79,14 @@ export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '
       const pad = (max - min) * 0.12 || 1;
       min -= pad; max += pad;
       const padY = height * 0.14;
-      const y = (p) => height - padY - ((p - min) / (max - min)) * (height - padY * 2);
+      // En contenedores bajos (banda de Pricing) ajustar TODO el rango a la altura
+      // encoge las velas hasta parecer rayitas. Se garantiza una escala mínima
+      // (px por unidad de precio) centrada en el rango; lo que sobre se recorta
+      // por los bordes, como en un gráfico real.
+      const fitScale = (height - padY * 2) / (max - min);
+      const scale = Math.max(fitScale, 8);
+      const mid = (min + max) / 2;
+      const y = (p) => height / 2 - (p - mid) * scale;
 
       const baseX = -scroll;
 

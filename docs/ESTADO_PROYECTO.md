@@ -1303,6 +1303,20 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-19 (49) — Pricing: el gráfico animado igualado de verdad al de la portada
+- 🐛 Tras el full-bleed (sesión 48), el dueño reportó que Pricing se veía «desfigurado» vs la
+  portada. Dos causas: (1) `fade="both"` + `dim=0.55` velaban casi todo el canvas (fundidos
+  solapados 2/3 arriba + 1/2 abajo); (2) `AnimatedHeroChart` ajusta TODO el rango de precios a la
+  altura del contenedor → en una banda baja las velas quedaban como rayitas.
+- ✅ **Fix 1** (`PricingPage`): mismo tratamiento que la landing — `<AnimatedHeroChart />` a
+  intensidad completa con fade solo arriba + overlay `from-primary/5`; banda más alta
+  (`py-12 md:py-16`).
+- ✅ **Fix 2** (`AnimatedHeroChart`): escala mínima de 8 px por unidad de precio, centrada en el
+  rango (lo que sobra se recorta por los bordes, como un gráfico real). En contenedores altos
+  (landing) no cambia nada (fitScale > mínimo).
+- ✅ Verificado: build OK; screenshots landing vs pricing comparados (velas del mismo tamaño,
+  título legible); smoke 11/11 sin regresiones (full-bleed x=0 w=1280, idiomas, demo calc).
+
 ### 2026-07-19 (48) — 3 fixes de UI reportados por el dueño (footer idiomas, pricing full-bleed, demo calc)
 - 🐛 **Selector de idiomas del Footer estaba MUERTO**: el botón del globo (`Footer.jsx`) no tenía
   menú — no abría nada ni con sesión ni sin ella (el único selector real estaba en el Header).
