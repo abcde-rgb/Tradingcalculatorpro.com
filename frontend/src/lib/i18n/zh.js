@@ -326,6 +326,7 @@ export default {
     // Risk Management - CHINESE
     positionSizingTitle: '仓位大小',
     positionSizingDesc: '根据您的风险承受能力和账户规模，确定在每笔交易中承担多少资本风险。',
+    gatedNotice: '您的订阅未激活。请选择一个套餐以使用平台。',
     tradeInstrument: '品种',
     tradeInstrumentSpot: '现货 / 股票',
     tradeInstrumentOption: '期权',

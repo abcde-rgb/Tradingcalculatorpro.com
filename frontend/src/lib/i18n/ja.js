@@ -318,6 +318,7 @@ export default {
     // Risk Management - JAPANESE
     positionSizingTitle: 'ポジションサイズ',
     positionSizingDesc: 'リスク許容度と口座規模に基づいて、各取引でリスクを取る資金を決定します。',
+    gatedNotice: 'サブスクリプションが有効ではありません。プランを選択してプラットフォームにアクセスしてください。',
     tradeInstrument: '商品',
     tradeInstrumentSpot: '現物 / 株式',
     tradeInstrumentOption: 'オプション',

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Crown, Check, CreditCard, Wallet, ArrowRight, Loader2, Building, ShoppingCart, Zap, Coins } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +49,8 @@ const PAYMENT_PROCESSOR_NAMES = {
 export default function PricingPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const gated = location.state?.gated; // llegó redirigido por falta de suscripción
   const { isAuthenticated, token, user, refreshUser } = useAuthStore();
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState(searchParams.get('plan') || 'annual');
@@ -222,6 +224,12 @@ export default function PricingPage() {
                 <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary">
                   <Check className="w-4 h-4" />
                   <span className="text-sm font-medium">{t('alreadyPremiumActive')}</span>
+                </div>
+              )}
+              {gated && !isPremium && (
+                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-500" data-testid="pricing-gated-notice">
+                  <Crown className="w-4 h-4" />
+                  <span className="text-sm font-medium">{t('gatedNotice')}</span>
                 </div>
               )}
           </div>

@@ -433,6 +433,7 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    gatedNotice: 'Your subscription is not active. Choose a plan to access the platform.',
     tradeInstrument: 'Instrument',
     tradeInstrumentSpot: 'Spot / Stock',
     tradeInstrumentOption: 'Option',

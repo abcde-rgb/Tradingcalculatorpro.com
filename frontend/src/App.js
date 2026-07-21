@@ -106,13 +106,13 @@ const AppContent = () => (
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/"                element={<LandingPage />} />
-          <Route path="/dashboard"       element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/dashboard"       element={<ProtectedRoute premiumOnly><DashboardPage /></ProtectedRoute>} />
           <Route path="/pricing"         element={<PricingPage />} />
           <Route path="/settings"        element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/education"       element={<EducationPage />} />
           <Route path="/subscription"    element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route path="/options"         element={<OptionsPage />} />
-          <Route path="/performance"     element={<ProtectedRoute><PerformancePage /></ProtectedRoute>} />
+          <Route path="/performance"     element={<ProtectedRoute premiumOnly><PerformancePage /></ProtectedRoute>} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/affiliate"       element={<ProtectedRoute><AffiliatePage /></ProtectedRoute>} />
           <Route path="/login"           element={<LoginPage />} />

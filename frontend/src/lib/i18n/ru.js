@@ -444,6 +444,7 @@ export default {
     lowReliability: 'Низкая',
     positionSizingTitle: 'Размер Позиции',
     positionSizingDesc: 'Определите сколько капитала рисковать в каждой сделке на основе вашей толерантности к риску и размера счета.',
+    gatedNotice: 'Ваша подписка неактивна. Выберите план, чтобы получить доступ к платформе.',
     tradeInstrument: 'Инструмент',
     tradeInstrumentSpot: 'Спот / Акция',
     tradeInstrumentOption: 'Опцион',

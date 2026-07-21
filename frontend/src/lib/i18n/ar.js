@@ -143,6 +143,7 @@ export default {
     // Risk Management - ARABIC
     positionSizingTitle: 'حجم المركز',
     positionSizingDesc: 'حدد مقدار رأس المال الذي ستخاطر به في كل صفقة بناءً على قدرتك على تحمل المخاطر وحجم حسابك.',
+    gatedNotice: 'اشتراكك غير مُفعَّل. اختر خطة للوصول إلى المنصة.',
     tradeInstrument: 'الأداة',
     tradeInstrumentSpot: 'فوري / سهم',
     tradeInstrumentOption: 'خيار',

@@ -1501,6 +1501,15 @@ def check_premium(user: dict) -> bool:
         return end_date > datetime.now(timezone.utc)
     return False
 
+
+async def require_premium(user: dict = Depends(require_user)) -> dict:
+    """Auth + suscripción activa. Bloquea a todo cliente sin pago vigente
+    (403 → el frontend redirige a /pricing). El trial de 7 días SÍ cuenta como
+    premium (is_premium=True mientras dura). La cuenta demo también pasa."""
+    if not check_premium(user):
+        raise HTTPException(status_code=403, detail="Suscripción requerida")
+    return user
+
 # ============= STARTUP - Create Demo User =============
 
 @app.on_event("startup")
@@ -2617,7 +2626,7 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
 # ============= TRADING JOURNAL =============
 
 @api_router.post("/journal/trades")
-async def create_trade(trade: TradeEntry, user: dict = Depends(require_user)):
+async def create_trade(trade: TradeEntry, user: dict = Depends(require_premium)):
     trade_doc = {
         "id": str(uuid.uuid4()),
         "user_id": user["id"],
@@ -2643,7 +2652,7 @@ async def create_trade(trade: TradeEntry, user: dict = Depends(require_user)):
     return trade_doc
 
 @api_router.get("/journal/trades")
-async def get_trades(user: dict = Depends(require_user), limit: int = 100):
+async def get_trades(user: dict = Depends(require_premium), limit: int = 100):
     trades = await db.trades.find(
         {"user_id": user["id"]},
         {"_id": 0}
@@ -2670,7 +2679,7 @@ class TradeUpdate(BaseModel):
 
 
 @api_router.put("/journal/trades/{trade_id}")
-async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends(require_user)):
+async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends(require_premium)):
     trade = await db.trades.find_one({"id": trade_id, "user_id": user["id"]})
     if not trade:
         raise HTTPException(status_code=404, detail="Trade no encontrado")
@@ -2702,7 +2711,7 @@ async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends
     return {"message": "Trade actualizado"}
 
 @api_router.delete("/journal/trades/{trade_id}")
-async def journal_delete_trade(trade_id: str, user: dict = Depends(require_user)):
+async def journal_delete_trade(trade_id: str, user: dict = Depends(require_premium)):
     result = await db.trades.delete_one({"id": trade_id, "user_id": user["id"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Trade no encontrado")
@@ -2774,7 +2783,7 @@ def _journal_stats_from_aggregate(agg: Dict[str, float], total: int) -> Dict[str
 
 
 @api_router.get("/journal/stats")
-async def get_journal_stats(user: dict = Depends(require_user)) -> Dict[str, Any]:
+async def get_journal_stats(user: dict = Depends(require_premium)) -> Dict[str, Any]:
     """Get trading statistics from the user's closed trades."""
     trades = await db.trades.find(
         {"user_id": user["id"], "status": "closed"},
@@ -2788,7 +2797,7 @@ async def get_journal_stats(user: dict = Depends(require_user)) -> Dict[str, Any
 # ============= PORTFOLIO =============
 
 @api_router.get("/portfolio")
-async def get_portfolio(user: dict = Depends(require_user)):
+async def get_portfolio(user: dict = Depends(require_premium)):
     portfolio = await db.portfolio.find(
         {"user_id": user["id"]},
         {"_id": 0}
@@ -5540,7 +5549,7 @@ def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict
 
 
 @api_router.post("/performance/trades")
-async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_user)):
+async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premium)):
     user_id = user["id"]
     prev = await trades_for_user(db, user_id, limit=50)
     doc = make_trade_doc(payload.model_dump(), user_id)
@@ -5559,7 +5568,7 @@ class BulkTradesIn(BaseModel):
 @api_router.post("/performance/trades/bulk")
 async def perf_bulk_create_trades(
     payload: BulkTradesIn,
-    user: dict = Depends(require_user),
+    user: dict = Depends(require_premium),
 ):
     """Import multiple trades at once. Returns imported count + any rejected rows.
 
@@ -5590,7 +5599,7 @@ async def perf_bulk_create_trades(
 
 @api_router.get("/performance/trades")
 async def perf_list_trades(
-    user: dict = Depends(require_user),
+    user: dict = Depends(require_premium),
     limit: int = 100,
     status: Optional[str] = None,
     symbol: Optional[str] = None,
@@ -5613,7 +5622,7 @@ async def perf_list_trades(
 
 
 @api_router.get("/performance/trades/{trade_id}")
-async def perf_get_trade(trade_id: str, user: dict = Depends(require_user)):
+async def perf_get_trade(trade_id: str, user: dict = Depends(require_premium)):
     t = await db.trades.find_one(
         {"id": trade_id, "user_id": user["id"]},
         {"_id": 0},
@@ -5625,7 +5634,7 @@ async def perf_get_trade(trade_id: str, user: dict = Depends(require_user)):
 
 
 @api_router.put("/performance/trades/{trade_id}")
-async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depends(require_user)):
+async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depends(require_premium)):
     existing = await db.trades.find_one(
         {"id": trade_id, "user_id": user["id"]},
         {"_id": 0},
@@ -5653,7 +5662,7 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
 
 
 @api_router.delete("/performance/trades/{trade_id}")
-async def perf_delete_trade(trade_id: str, user: dict = Depends(require_user)):
+async def perf_delete_trade(trade_id: str, user: dict = Depends(require_premium)):
     res = await db.trades.delete_one({"id": trade_id, "user_id": user["id"]})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Trade not found")
@@ -5661,7 +5670,7 @@ async def perf_delete_trade(trade_id: str, user: dict = Depends(require_user)):
 
 
 @api_router.get("/performance/analytics")
-async def performance_analytics(user: dict = Depends(require_user)):
+async def performance_analytics(user: dict = Depends(require_premium)):
     rows = await trades_for_user(db, user["id"], limit=1000)
     # Re-enrich to get fresh errors and pnl
     enriched: List[dict] = []
