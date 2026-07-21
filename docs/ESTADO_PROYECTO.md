@@ -1303,6 +1303,20 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-21 (54) — BUG-014: el panel admin crasheaba entero con datos reales (fix + capturas UI)
+- Al capturar por primera vez la **UI del admin contra backend vivo** (frontend build apuntando al
+  uvicorn local + PostgreSQL sembrado), el AdminPage moría con la pantalla del ErrorBoundary
+  ("Algo salió mal"). **React #31**: `PlanDistributionCard` hacía `Object.entries(metrics.by_plan)`
+  pero el backend devuelve `by_plan` como **LISTA** `[{plan, count}]` → los objetos acababan como
+  hijos de React. Crasheaba en cuanto existía UN usuario con plan (o sea: siempre en producción real).
+- ✅ Fix: normalización que acepta lista (shape real) y dict (compatibilidad). `by_locale` revisado:
+  usa `.length`, OK con lista.
+- ✅ Capturas UI reales verificadas: panel del afiliado (código+link, 1005 registrados / 1000
+  activos / 1 bloque / 1000 € / botón Solicitar pago, lista enmascarada) y admin (sección Afiliados
+  con la fila del afiliado approved + Liquidación). Login real vía UI (token en memoria, sin reload).
+- Lección para el plan de test: el E2E a nivel API (18/18) no cubre el RENDER; añadir smoke de UI
+  admin con datos sembrados a la checklist pre-lanzamiento.
+
 ### 2026-07-21 (53) — Figuras XABCD para los 11 patrones ARMÓNICOS (cierra hueco de sesión 51)
 - ✅ **`HarmonicPatternFigure.jsx`**: zigzag X-A-B-C-D en código para los 11 armónicos
   (Gartley/Butterfly/Bat/Crab/Cypher alcista+bajista + Shark con etiquetas O-X-A-B-C):

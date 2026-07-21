@@ -1341,8 +1341,15 @@ function RevenueAnalyticsCard({ metrics, headers }) {
  *  PLAN DISTRIBUTION
  * ============================================================ */
 function PlanDistributionCard({ metrics }) {
-  const rawDist = metrics?.by_plan
-    ? Object.entries(metrics.by_plan).map(([plan, count]) => ({ plan: plan === 'null' || !plan ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1), count }))
+  // El backend devuelve by_plan como LISTA [{plan, count}]; tratarlo como dict
+  // (Object.entries) renderizaba objetos como hijos de React y tiraba TODO el
+  // panel admin (React #31) en cuanto había un usuario con plan.
+  const prettyPlan = (plan) =>
+    !plan || plan === 'null' || plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1);
+  const rawDist = Array.isArray(metrics?.by_plan)
+    ? metrics.by_plan.map(({ plan, count }) => ({ plan: prettyPlan(plan), count: Number(count) || 0 }))
+    : metrics?.by_plan
+    ? Object.entries(metrics.by_plan).map(([plan, count]) => ({ plan: prettyPlan(plan), count: Number(count) || 0 }))
     : [];
 
   const total = rawDist.reduce((s, d) => s + d.count, 0);
