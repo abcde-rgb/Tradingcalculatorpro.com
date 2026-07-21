@@ -11,7 +11,7 @@
 > **degradan al popularizarse** (McLean & Pontiff 2016). Por eso el valor está en
 > mostrarlas con **muestra y datos vivos**, nunca como promesa.
 
-**Total catalogado: 240 técnicas** (15 categorías núcleo + 12 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
+**Total catalogado: 262 técnicas** (15 categorías núcleo + 13 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
 
 ## Leyenda
 - **Calidad:** ✅ respaldo académico / uso profesional, reglas objetivas, testeable · ⚠️ útil pero subjetivo o edge que decae · ❌ mayormente infalsable (incluido para saber separarlo del humo)
@@ -321,6 +321,43 @@
 > "código samurái del trading") es casi siempre **reempaquetado de lo ya
 > listado** con marketing. No hay una técnica oculta de alta probabilidad que la
 > industria esconda; si la hubiera, dejaría de funcionar al usarse.
+
+## 28. Aportes por nacionalidad (EE. UU., RU, Francia, Alemania, Australia — últimas décadas)
+> Muchos grandes nombres **ya están** arriba; aquí se anota su nacionalidad y se
+> añade **solo lo genuinamente nuevo**. No hay "secreto nacional" oculto; lo que
+> se vende así suele ser reempaquetado de lo ya listado.
+
+**🇺🇸 EE. UU.** *(ya listados: Bollinger, DeMark, Ehlers, Wilder, Appel/MACD, Connors, Raschke, Crabel, Minervini, Chande, Bill & Larry Williams, Arms, Lambert, Pring, Dorsey…)*
+241. **Parabolic SAR** (Wilder) — stop-and-reverse por precio y tiempo. ✅🔨
+242. **Accumulation Swing Index / Swing Index** (Wilder). ✅🔨
+243. **Chaikin Oscillator + Chaikin Volatility** (Marc Chaikin). ✅🔨
+244. **Método W-bottom / M-top con %B** (John Bollinger). ✅🔨
+245. **Rangos de RSI en tendencia + Composite Index** (Constance Brown). ✅🔨
+246. **Método ACD** (Mark Fisher) — pivotes por rango de apertura. ✅🔧
+247. **"OOPS!" — reversión de gap** (Larry Williams). ✅🔨
+248. **Greatest Swing Value (GSV)** (Larry Williams). ✅🔨
+249. **Holy Grail (ADX+EMA20) + The Anti + 80-20s** (Raschke & Connors, *Street Smarts*). ✅🔨
+250. **Sistemas de reversión a la media Double 7s / TPS / Cumulative RSI** (Larry Connors). ✅🔨
+251. **DiNapoli Levels** (Fib desplazado + Oscillator Predictor) (Joe DiNapoli). ⚠️🔨
+252. **Price Action bar-by-bar** (Al Brooks): trend/signal bars, ii/iii, "always in". ⚠️🔨
+253. **Adam & Eve** (dobles suelos/techos refinados) (Bulkowski). ✅🔨
+254. **Chande-Kroll Stop** (stop por volatilidad) (Chande & Kroll). ✅🔨
+255. **Optimal f / leverage space** (Ralph Vince) — gestión monetaria. ✅🔨
+
+**🇬🇧 Reino Unido** *(ya listado: VSA de Tom Williams, #87–90)*
+256. **Análisis técnico conductual** (David Fuller / The Chart Seminar): consistencia, *commonality*, sobre-extensión vs la media. ⚠️🔨
+
+**🇫🇷 Francia** *(econofísica; conceptos potentes aunque más cuantitativos)*
+257. **Mercados fractales / modelo multifractal** (Benoît Mandelbrot): colas gruesas, dimensión fractal, "rugosidad". ⚠️🔨
+258. **Ley de impacto raíz cuadrada + dinámica del libro de órdenes** (J-P. Bouchaud / CFM). ✅🔧
+259. **Bandes de Bollinger dynamiques / configurations** (Philippe Cahen). ⚠️🔨
+
+**🇩🇪 Alemania**
+260. **Markttechnik** (Michael Voigt): estructura reglada de movimientos/correcciones y puntos 1-2-3; entrada al romper el punto 2. ✅🔨
+
+**🇦🇺 Australia** *(ya listados: GMMA de Guppy #112, HMA de Alan Hull #113)*
+261. **Count Back Line (CBL)** (Daryl Guppy) — entrada/stop por conteo de barras. ✅🔨
+262. **Sistemas de ruptura/rotación sistemática** (Nick Radge, *Unholy Grails*) — trend/momentum reglado. ✅🔨
 
 ---
 
