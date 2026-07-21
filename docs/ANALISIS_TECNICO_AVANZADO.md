@@ -11,6 +11,8 @@
 > **degradan al popularizarse** (McLean & Pontiff 2016). Por eso el valor está en
 > mostrarlas con **muestra y datos vivos**, nunca como promesa.
 
+**Total catalogado: 230 técnicas** (15 categorías núcleo + 10 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
+
 ## Leyenda
 - **Calidad:** ✅ respaldo académico / uso profesional, reglas objetivas, testeable · ⚠️ útil pero subjetivo o edge que decae · ❌ mayormente infalsable (incluido para saber separarlo del humo)
 - **Construcción:** 🔨 construible ya sobre tu OHLCV diario · 🔧 necesita dato extra (volumen intradía, order flow / tick, o constituyentes del índice)
@@ -184,6 +186,118 @@
 136. **Ciclos de Hurst** (análisis cíclico). ⚠️🔨
 137. **Detrended Price Oscillator** (longitud de ciclo). ✅🔨
 138. **Análisis espectral / Fourier del precio**. ⚠️🔨
+
+## 16. Chartismo clásico (con volumen + objetivo medido — estadística de Bulkowski)
+139. **Hombro-Cabeza-Hombro / inverso** (neckline + measured move + volumen). ✅🔨
+140. **Doble techo / doble suelo**. ✅🔨
+141. **Triple techo / triple suelo**. ✅🔨
+142. **Cup & Handle** (O'Neil). ✅🔨
+143. **Rounding bottom / platillo**. ✅🔨
+144. **Banderas y banderines** (measured move). ✅🔨
+145. **High Tight Flag** (Bulkowski — el continuación alcista más fiable). ✅🔨
+146. **Rectángulos / rangos**. ✅🔨
+147. **Triángulo ascendente**. ✅🔨
+148. **Triángulo descendente**. ✅🔨
+149. **Triángulo simétrico** (dirección ambigua → esperar rotura). ⚠️🔨
+150. **Cuñas** (ascendente/descendente). ✅🔨
+151. **Broadening / megáfono**. ⚠️🔨
+152. **Diamante** (techo/suelo). ⚠️🔨
+153. **Bump-and-Run Reversal** (Bulkowski). ✅🔨
+154. **V-spike reversal** (techo/suelo en V). ⚠️🔨
+155. **Scallop** (Bulkowski). ⚠️🔨
+156. **Darvas Box** (breakout de caja — Nicolas Darvas). ✅🔨
+
+## 17. Líneas, canales y regresión
+157. **Trendline** (reglas de trazado; log vs lineal). ✅🔨
+158. **Canal paralelo** (trend channel). ✅🔨
+159. **Speed Resistance Lines** (Gould). ⚠️🔨
+160. **Fan principle** (tres roturas de directriz). ✅🔨
+161. **Internal trendlines** (directrices internas). ⚠️🔨
+162. **Linear Regression Channel**. ✅🔨
+163. **Raff Regression Channel**. ✅🔨
+164. **Standard Error Bands** (Andersen). ✅🔨
+165. **Time Series Forecast** (regresión lineal proyectada). ✅🔨
+166. **Pendiente de regresión / R²** como fuerza de tendencia. ✅🔨
+167. **ZigZag** (filtro de swings). ✅🔨
+168. **Fractales** (Bill Williams). ✅🔨
+169. **Alligator + Gator** (Williams). ⚠️🔨
+
+## 18. Fibonacci (herramienta completa)
+170. **Retrocesos** (0.382 / 0.5 / 0.618). ⚠️🔨
+171. **Extensiones** (1.272 / 1.618 → objetivos). ⚠️🔨
+172. **Fibonacci fan** (abanico). ⚠️🔨
+173. **Fibonacci arcs** (arcos). ⚠️🔨
+174. **Fibonacci time zones** (zonas de tiempo). ❌🔨
+175. **Fibonacci channels**. ⚠️🔨
+
+## 19. Medias móviles (variantes avanzadas / olvidadas)
+176. **MACD** (cruce de señal / línea cero / histograma / divergencia). ✅🔨
+177. **DEMA / TEMA** (Mulloy). ✅🔨
+178. **T3** (Tillson). ✅🔨
+179. **VIDYA** (Chande, adaptativa a volatilidad). ✅🔨
+180. **ALMA** (Arnaud Legoux). ✅🔨
+181. **Zero-Lag EMA**. ✅🔨
+182. **FRAMA** (fractal adaptive). ⚠️🔨
+183. **Jurik MA (JMA)**. ⚠️🔨
+184. **MA ribbon / abanico**. ✅🔨
+185. **Pendiente/ángulo de MA** como filtro de régimen. ✅🔨
+186. **Envelopes / bandas porcentuales**. ✅🔨
+
+## 20. Momentum, rate-of-change y filtros de régimen
+187. **Rate of Change (ROC)**. ✅🔨
+188. **Momentum**. ✅🔨
+189. **KST — Know Sure Thing** (Pring). ✅🔨
+190. **Special K** (Pring). ⚠️🔨
+191. **PMO — Price Momentum Oscillator**. ✅🔨
+192. **Stochastic RSI**. ✅🔨
+193. **Relative Momentum Index (RMI)**. ✅🔨
+194. **Chande Momentum Oscillator (CMO)**. ✅🔨
+195. **Balance of Power**. ✅🔨
+196. **Force Index** (Elder). ✅🔨
+197. **Choppiness Index** (Dreiss — tendencia vs rango). ✅🔨
+198. **Efficiency Ratio** (Kaufman). ✅🔨
+199. **Vertical Horizontal Filter (VHF)**. ✅🔨
+
+## 21. Estadística cuantitativa replicable por retail
+200. **Z-score / bandas de reversión a la media**. ✅🔨
+201. **Exponente de Hurst** (régimen: tendencia vs reversión). ✅🔨
+202. **Autocorrelación del retorno**. ✅🔨
+203. **Volatilidad histórica — percentil / rango**. ✅🔨
+204. **IV Rank / IV Percentile**. ✅🔨 *(con tus opciones)*
+205. **Matriz de correlación entre activos**. ✅🔨
+206. **Beta respecto al índice**. ✅🔨
+207. **Pairs trading — z-score del spread**. ✅🔨
+208. **Cointegración** (stat-arb sencillo). ✅🔨
+209. **Ranking rotacional por fuerza relativa**. ✅🔨
+210. **Desviación respecto a la MM (%)**. ✅🔨
+
+## 22. Niveles de referencia por sesión (replicables)
+211. **PDH/PDL** — máximo/mínimo del día previo. ✅🔨
+212. **PWH/PWL** — máximo/mínimo de la semana previa. ✅🔨
+213. **Apertura semanal/mensual** como pivote. ✅🔨
+214. **Números redondos / niveles 00** (psicológicos). ⚠️🔨
+215. **Rango de la primera hora / 50% del rango previo**. ✅🔧
+216. **Aperturas de sesión** (Londres/NY). ✅🔧
+217. **Gap-and-go vs gap-fade** por sesión. ✅🔨
+
+## 23. Point & Figure — patrones y amplitud (Dorsey)
+218. **Patrones P&F** (double top/bottom breakout, catapulta, triángulo). ✅🔨
+219. **Bullish Percent Index** (amplitud por P&F). ✅🔧
+220. **Fuerza relativa P&F** (Dorsey Wright). ✅🔧
+
+## 24. Sentimiento y posicionamiento (retail-accesible)
+221. **Put/Call ratio**. ✅🔧
+222. **VIX y su estructura temporal** (contango/backwardation). ✅🔧
+223. **AAII / NAAIM** (sentimiento y exposición gestores). ✅🔧
+224. **Short interest / days-to-cover**. ✅🔧
+225. **Índice compuesto Fear & Greed**. ⚠️🔧
+
+## 25. Ehlers / DSP (adicional)
+226. **Decycler** (Ehlers). ⚠️🔨
+227. **Even Better Sinewave** (Ehlers). ⚠️🔨
+228. **Reflex / Trendflex** (Ehlers). ⚠️🔨
+229. **Correlation Trend Indicator** (Ehlers). ✅🔨
+230. **RSI / Estocástico ciclo-adaptativos**. ⚠️🔨
 
 ---
 
