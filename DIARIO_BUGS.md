@@ -368,4 +368,8 @@ a `round(plan["price"], 2)` con comentario explicativo.
 
 ---
 
-*Última actualización: 2026-07-19 — E2E de afiliados contra backend vivo (BUG-013).*
+| BUG-014 | AdminPage crasheaba ENTERO (React #31, pantalla "Algo salió mal") en cuanto `/admin/metrics` devolvía usuarios con plan: `PlanDistributionCard` trataba `by_plan` (LISTA `[{plan,count}]` del backend) como dict con `Object.entries` → renderizaba objetos como hijos de React. Nunca visto porque la UI admin no se había probado contra datos reales. Detectado al capturar el panel con backend vivo. Fix: normalización que acepta lista (y dict por compatibilidad). | 🔴 | ✅ Resuelto (2026-07-21) |
+
+---
+
+*Última actualización: 2026-07-21 — captura UI admin contra backend vivo (BUG-014).*
