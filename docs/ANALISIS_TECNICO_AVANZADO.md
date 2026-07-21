@@ -299,6 +299,9 @@
 229. **Correlation Trend Indicator** (Ehlers). ✅🔨
 230. **RSI / Estocástico ciclo-adaptativos**. ⚠️🔨
 
+> 📚 **Detalle didáctico completo (qué/por qué/cómo/cuándo + ejemplos) de las
+> entradas 231–240** en [`APRENDER_ICHIMOKU_PROFUNDO_Y_ESCUELA_RUSA.md`](./APRENDER_ICHIMOKU_PROFUNDO_Y_ESCUELA_RUSA.md).
+
 ## 26. Escuela japonesa (más allá de las velas — lo difundido en Occidente en las últimas décadas)
 231. **Sakata Goho** — los 5 métodos de Homma: San-zan (tres montañas = triple techo), San-sen (tres ríos), San-ku (tres huecos), San-pei (tres soldados), San-poh (pausa/continuación). ✅🔨
 232. **Ichimoku — Teoría del Tiempo** (時間論): números básicos *kihon suchi* 9/17/26 y *taito suchi* (tramos de igual duración). ⚠️🔨
