@@ -91,6 +91,9 @@ def compute_trade_pnl(trade: dict) -> dict:
     sl = trade.get("sl")
     fees = float(trade.get("fees") or 0)
     balance = float(trade.get("account_balance") or 0)
+    # Tamaño de contrato: 1 en spot; 100 en opciones sobre acciones (el frontend
+    # lo envía). Multiplica el nominal de precios×cantidad en P&L y en el riesgo.
+    mult = float(trade.get("multiplier") or 1)
 
     if exit_p is None or entry == 0 or qty == 0:
         out["pnl"] = 0.0
@@ -100,9 +103,9 @@ def compute_trade_pnl(trade: dict) -> dict:
 
     exit_p = float(exit_p)
     if side == "long":
-        gross = (exit_p - entry) * qty
+        gross = (exit_p - entry) * qty * mult
     else:
-        gross = (entry - exit_p) * qty
+        gross = (entry - exit_p) * qty * mult
     pnl = gross - fees
     out["pnl"] = round(pnl, 2)
     out["pnl_pct"] = round(_safe_div(pnl, balance, 0) * 100, 2) if balance else 0.0
@@ -110,7 +113,7 @@ def compute_trade_pnl(trade: dict) -> dict:
     # R-multiple: P&L divided by initial risk per share/contract.
     if sl is not None:
         risk_per_unit = abs(entry - float(sl))
-        risk_total = risk_per_unit * qty
+        risk_total = risk_per_unit * qty * mult
         out["r_multiple"] = round(_safe_div(pnl, risk_total, 0), 2)
     else:
         out["r_multiple"] = 0.0
@@ -665,6 +668,12 @@ def make_trade_doc(payload: dict, user_id: str) -> dict:
         "symbol": (payload.get("symbol") or "").upper(),
         "side": payload.get("side") or "long",
         "setup": payload.get("setup") or "",
+        # Instrumento: spot (por defecto) u option. Campos de opción opcionales.
+        "instrument_type": payload.get("instrument_type") or "spot",
+        "option_type": payload.get("option_type") or None,
+        "strike": float(payload["strike"]) if payload.get("strike") not in (None, "") else None,
+        "expiry": payload.get("expiry") or None,
+        "multiplier": float(payload.get("multiplier") or 1),
         "entry_price": float(payload.get("entry_price") or 0),
         "exit_price": float(payload["exit_price"]) if payload.get("exit_price") not in (None, "") else None,
         "sl": float(payload["sl"]) if payload.get("sl") not in (None, "") else None,

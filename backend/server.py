@@ -5521,6 +5521,14 @@ class TradeIn(BaseModel):
     tags: Optional[List[str]] = []
     emotion: Optional[int] = None  # 1..5
     screenshot_urls: Optional[List[str]] = []
+    # Instrument: 'spot' (acciones/cripto/forex/futuros — comportamiento clásico)
+    # u 'option'. En opciones, entry/exit_price = prima por acción, quantity =
+    # nº de contratos, multiplier = tamaño del contrato (100 en opciones sobre acciones).
+    instrument_type: Optional[str] = Field("spot", pattern="^(spot|option)$")
+    option_type: Optional[str] = Field(None, pattern="^(call|put)$")
+    strike: Optional[float] = None
+    expiry: Optional[str] = None
+    multiplier: Optional[float] = 1
 
 
 def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict:
