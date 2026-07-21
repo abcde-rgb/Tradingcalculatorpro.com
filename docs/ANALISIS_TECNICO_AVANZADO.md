@@ -11,7 +11,7 @@
 > **degradan al popularizarse** (McLean & Pontiff 2016). Por eso el valor está en
 > mostrarlas con **muestra y datos vivos**, nunca como promesa.
 
-**Total catalogado: 300 técnicas** (15 categorías núcleo + 15 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
+**Total catalogado: 313 técnicas** (15 categorías núcleo + 16 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
 
 ## Leyenda
 - **Calidad:** ✅ respaldo académico / uso profesional, reglas objetivas, testeable · ⚠️ útil pero subjetivo o edge que decae · ❌ mayormente infalsable (incluido para saber separarlo del humo)
@@ -404,6 +404,33 @@
 298. **Cripto — CME gap fill** — el hueco viernes→domingo del BTC tiende a rellenarse. ✅🔨
 299. **Cripto — cierre de vela diaria 00:00 UTC** — nivel de referencia y reacción. ⚠️🔨
 300. **Overnight vs intradía** — casi todo el retorno del índice es nocturno *(detalle en `ANALISIS_TEMPORAL.md`/edges olvidados)*. ✅🔨
+
+## 31. Barridos de liquidez y reversión por sesión (clase "falsa dirección → giro")
+> **Qué es esta clase.** Un empujón **falso** a una hora concreta que **barre la
+> liquidez** (stops acumulados sobre un máximo/mínimo obvio) y **luego revierte**
+> hacia la dirección real. El caso que preguntabas —apertura de NY, mini-barrido
+> el primer minuto y vuelta— es el **Judas Swing**.
+>
+> **Honestidad (clave).** El *mecanismo* es real y está documentado: los stops
+> se agrupan sobre niveles obvios y el precio los "caza" antes del movimiento
+> real (*predatory trading*, Brunnermeier-Pedersen 2005), la **apertura
+> sobre-reacciona y revierte** (Amihud-Mendelson; Stoll-Whaley) y existe
+> **reversión de corto plazo** intradía. Pero las **ventanas horarias exactas de
+> ICT** (killzones, Silver Bullet) son *folklore popularizado*: hay que
+> **verificarlas vivas por activo**, no operar un reloj a ciegas.
+301. **Judas Swing** (ICT) — barrido falso al inicio de sesión y giro a la dirección real (**NY 09:30 ET**, apertura de Londres, *midnight open* 00:00 ET). ⚠️🔧
+302. **Power of 3 / AMD** (ICT) — cada sesión: **A**cumulación → **M**anipulación (el barrido) → **D**istribución. ⚠️🔧
+303. **Killzones** (ICT) — ventanas de manipulación: **Londres 02:00–05:00 ET**, **NY AM 07:00–10:00 ET**, **London Close 10:00–12:00 ET**, **Asia 20:00–00:00 ET**. ⚠️🔧
+304. **Silver Bullet** (ICT) — ventana de 1 h (**10:00–11:00 ET**; también 03:00–04:00 y 14:00–15:00 ET): entrada en FVG tras el barrido. ⚠️🔧
+305. **Barrido del rango asiático** en la apertura de Londres → reversión. ⚠️🔧
+306. **Turtle Soup / 2B a la apertura** (Raschke) — falso rompimiento del extremo previo (pre-market H/L o rango) y giro *(cf. #62)*. ✅🔨
+307. **Spike & fade en datos** (**08:30 / 10:00 ET**) — el primer latigazo tras la publicación suele revertirse ("fade the number"). ✅🔧
+308. **Reversión tras el London 4pm fix** (**16:00 Londres**) — el spike del fijado revierte al cerrar la ventana. ✅🔧
+309. **Reversión Gotobi** — tras la compra de USD/JPY al **fix de Tokio 09:55 JST**, giro posterior. ✅🔧
+310. **Over-reacción de apertura + reversión parcial** del *opening print* (Amihud-Mendelson; Stoll-Whaley). ✅🔧
+311. **Stop-run en números redondos** (00/50) y giro (*predatory trading*, Brunnermeier-Pedersen 2005). ✅🔨
+312. **Short-term reversal intradía** — el movimiento extremo de N minutos tiende a revertir (compensación al proveedor de liquidez). ✅🔧
+313. **Gamma flip / pin a max-pain** cerca de vencimiento — imán y reversiones por cobertura de dealers. ⚠️🔧
 
 ---
 
