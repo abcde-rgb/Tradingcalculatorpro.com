@@ -11,7 +11,7 @@
 > **degradan al popularizarse** (McLean & Pontiff 2016). Por eso el valor está en
 > mostrarlas con **muestra y datos vivos**, nunca como promesa.
 
-**Total catalogado: 262 técnicas** (15 categorías núcleo + 13 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
+**Total catalogado: 300 técnicas** (15 categorías núcleo + 15 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
 
 ## Leyenda
 - **Calidad:** ✅ respaldo académico / uso profesional, reglas objetivas, testeable · ⚠️ útil pero subjetivo o edge que decae · ❌ mayormente infalsable (incluido para saber separarlo del humo)
@@ -358,6 +358,52 @@
 **🇦🇺 Australia** *(ya listados: GMMA de Guppy #112, HMA de Alan Hull #113)*
 261. **Count Back Line (CBL)** (Daryl Guppy) — entrada/stop por conteo de barras. ✅🔨
 262. **Sistemas de ruptura/rotación sistemática** (Nick Radge, *Unholy Grails*) — trend/momentum reglado. ✅🔨
+
+## 29. Ingeniería cuantitativa / algoritmos (métodos y quiénes los trajeron)
+> Herramientas del quant profesional. Muchas son 🔧 (dato o cómputo extra) y varias
+> ⚠️ por **riesgo de sobreajuste**: sin validación honesta, "funcionan" solo en backtest.
+263. **Filtro de Kalman** — media móvil / hedge-ratio adaptativos en tiempo real. ✅🔨
+264. **Modelos de Markov ocultos (HMM)** — detección de régimen (alcista/bajista/alta-vol). ✅🔨
+265. **Transformada wavelet** — descomposición multiescala (mejor que Fourier en series no estacionarias). ⚠️🔨
+266. **Empirical Mode Decomposition / Hilbert-Huang** — descompone el precio en modos. ⚠️🔨
+267. **GARCH** (Engle, Nobel) — clustering y pronóstico de volatilidad. ✅🔨
+268. **Proceso Ornstein-Uhlenbeck + *half-life*** de reversión (pairs/stat-arb). ✅🔨
+269. **Cointegración de Johansen** — cestas de reversión a la media. ✅🔨
+270. **PCA / eigenportfolios** — factores comunes (mercado, sector). ✅🔨
+271. **Stat-arb Avellaneda-Lee** — reversión sobre residuos de PCA. ✅🔧
+272. **Fractional differentiation** (López de Prado) — estacionaria sin perder memoria. ✅🔨
+273. **Triple-barrier + meta-labeling** (López de Prado) — etiquetado honesto para ML. ✅🔨
+274. **Purged / embargoed cross-validation** (López de Prado) — evita fuga de datos. ✅🔨
+275. **Filtro CUSUM / change-point** — detecta rupturas de régimen. ✅🔨
+276. **VPIN** (Easley-López de Prado-O'Hara) — toxicidad del flujo (avisó del flash crash). ✅🔧
+277. **Kyle's lambda / estimador de spread de Roll** — impacto y coste. ✅🔧
+278. **Almgren-Chriss** — ejecución óptima (VWAP/TWAP, *implementation shortfall*). ✅🔧
+279. **Avellaneda-Stoikov** — market making óptimo (cotización bid/ask). ✅🔧
+280. **Monte Carlo + walk-forward** — robustez y test fuera de muestra. ✅🔨
+281. **ML: gradient boosting / LSTM / RL** — con aviso serio de sobreajuste. ⚠️🔨
+282. **Estadística de Ed Thorp** — stat-arb pionero + Kelly aplicado. ✅🔨
+283. **Filtros DSP: Savitzky-Golay / Butterworth** — suavizado con poco retardo. ✅🔨
+284. **Entropía / sample entropy** — mide cuán predecible es una serie. ⚠️🔨
+
+## 30. Anomalías intradía por hora / minuto (movimientos inusuales — con descubridores)
+> Casi todas 🔧 (necesitan datos intradía) y **dependen de la zona horaria** (ET / UTC / JST).
+> Son edges de **contexto y ejecución**, no imprentas de dinero; decaen y hay que verificarlos vivos.
+285. **Forma en U** del volumen y la volatilidad — pico en apertura y cierre, valle a mediodía (Admati-Pfleiderer 1988; Wood-McInish-Ord 1985). ✅🔧
+286. **Momentum intradía**: el retorno de la **1ª media hora predice la última media hora** (Gao-Han-Li-Zhou 2018; Heston-Korajczyk-Sadka 2010). ✅🔧
+287. **Rampa de cierre / MOC imbalance** — rebalanceo de ETFs/índices **15:30–16:00 ET**. ✅🔧
+288. **"Amateur hour" y reversión ~10:00 ET** — la apertura se desvanece; dato macro a las 10:00. ✅🔧
+289. **Power hour** — última hora (**15:00–16:00 ET**): reanudación de la tendencia del día. ✅🔧
+290. **Lunch lull** — **12:00–13:00 ET**: mínima liquidez, movimiento errático. ✅🔧
+291. **Spikes por datos** — **08:30 ET** (empleo/IPC) y **10:00 ET** (ISM/confianza): saltos en el segundo exacto. ✅🔧
+292. **Clustering algorítmico en horas redondas** — volumen a las **:00 y :30** por slices TWAP/VWAP. ✅🔧
+293. **Triple/cuádruple witching** — 3er viernes trimestral: spike de volumen/volatilidad en el cierre. ✅🔨
+294. **FX — días "Gotobi" (五十日)** — fechas acabadas en 5/0: compras de **USD/JPY hacia el fix de Tokio 09:55 JST**. ✅🔧
+295. **FX — London 4pm fix (16:00 Londres)** — spike de volatilidad en el benchmark WM/Reuters. ✅🔧
+296. **Aperturas FX** — **Londres 08:00** y **NY 08:00 ET**: máxima volatilidad y solapamiento. ✅🔧
+297. **Cripto — horas de funding 00:00 / 08:00 / 16:00 UTC** — movimientos en el settlement de perpetuos. ✅🔧
+298. **Cripto — CME gap fill** — el hueco viernes→domingo del BTC tiende a rellenarse. ✅🔨
+299. **Cripto — cierre de vela diaria 00:00 UTC** — nivel de referencia y reacción. ⚠️🔨
+300. **Overnight vs intradía** — casi todo el retorno del índice es nocturno *(detalle en `ANALISIS_TEMPORAL.md`/edges olvidados)*. ✅🔨
 
 ---
 
