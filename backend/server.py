@@ -1510,6 +1510,74 @@ async def require_premium(user: dict = Depends(require_user)) -> dict:
         raise HTTPException(status_code=403, detail="Suscripción requerida")
     return user
 
+
+# ── Retención de datos tras impago ──────────────────────────────────────
+# Al dejar de pagar se marca `premium_lapsed_at`; los datos se conservan
+# DATA_RETENTION_DAYS (90 por defecto) y luego se purgan en el arranque.
+DATA_RETENTION_DAYS = int(os.environ.get("DATA_RETENTION_DAYS", "90"))
+# Colecciones con datos personales del usuario (NO se borra la cuenta en sí,
+# para que pueda volver a suscribirse; solo sus datos de trading).
+_USER_DATA_COLLECTIONS = (
+    "trades", "calculations", "alerts", "saved_positions", "portfolio",
+    "user_states", "journal_entries",
+)
+
+
+def _lapse_stamp(existing: dict) -> str:
+    """Devuelve la marca de lapso: conserva la previa si ya existe (no reinicia
+    el reloj de los 3 meses ante eventos repetidos), o `now` si es nueva."""
+    prev = (existing or {}).get("premium_lapsed_at")
+    return prev if prev else datetime.now(timezone.utc).isoformat()
+
+
+def _retention_cutoff_iso(now: Optional[datetime] = None) -> str:
+    now = now or datetime.now(timezone.utc)
+    return (now - timedelta(days=DATA_RETENTION_DAYS)).isoformat()
+
+
+async def purge_lapsed_user_data(database, now: Optional[datetime] = None) -> int:
+    """Borra los DATOS de trading (no la cuenta) de los usuarios que llevan más
+    de DATA_RETENTION_DAYS sin pago. Idempotente (marca `data_purged_at`).
+
+    Candidatos = quienes tienen `premium_lapsed_at` o `subscription_end`
+    anteriores al corte. Se excluye lifetime, quien vuelva a ser premium
+    (check_premium), y quien ya fue purgado. Devuelve nº de usuarios purgados.
+    """
+    now = now or datetime.now(timezone.utc)
+    cutoff = _retention_cutoff_iso(now)
+    seen: Dict[str, dict] = {}
+    for field in ("premium_lapsed_at", "subscription_end"):
+        try:
+            rows = await database.users.find(
+                {field: {"$lt": cutoff}},
+                {"_id": 0, "id": 1, "email": 1, "is_premium": 1, "subscription_plan": 1,
+                 "subscription_end": 1, "premium_lapsed_at": 1, "data_purged_at": 1},
+            ).to_list(length=100000)
+        except Exception:
+            rows = []
+        for u in rows:
+            seen[u["id"]] = u
+
+    purged = 0
+    for u in seen.values():
+        if u.get("data_purged_at"):
+            continue  # ya purgado
+        if u.get("subscription_plan") == "lifetime":
+            continue
+        if check_premium(u):
+            continue  # volvió a pagar / sigue vigente
+        for coll in _USER_DATA_COLLECTIONS:
+            try:
+                await database[coll].delete_many({"user_id": u["id"]})
+            except Exception:
+                pass
+        await database.users.update_one(
+            {"id": u["id"]},
+            {"$set": {"data_purged_at": now.isoformat()}},
+        )
+        purged += 1
+    return purged
+
 # ============= STARTUP - Create Demo User =============
 
 @app.on_event("startup")
@@ -1596,6 +1664,15 @@ async def startup_event():
         logging.info("[startup] Purged %d old usage_events", ue_res.deleted_count)
     except Exception as e:
         logging.warning("[startup] Could not purge usage_events: %s", e)
+
+    # ── Retención: purgar datos de clientes sin pago > DATA_RETENTION_DAYS ──
+    try:
+        purged = await purge_lapsed_user_data(db)
+        if purged:
+            logging.info("[startup] Retención: purgados los datos de %d usuario(s) sin pago > %d días",
+                         purged, DATA_RETENTION_DAYS)
+    except Exception as e:
+        logging.warning("[startup] Retención/purga falló: %s", e)
 
     # ── Extended modules ─────────────────────────────────────────────────
     try:
@@ -1735,7 +1812,8 @@ async def _sync_stripe_subscription(user: dict) -> None:
         else:
             await db.users.update_one(
                 {"id": user["id"]},
-                {"$set": {"is_premium": False, "subscription_plan": None, "subscription_end": None}},
+                {"$set": {"is_premium": False, "subscription_plan": None, "subscription_end": None,
+                          "premium_lapsed_at": _lapse_stamp(user)}},
             )
             logging.info("[auth/me] Stripe sync: subscription expired for %s", user["id"])
     except Exception as exc:
@@ -3830,6 +3908,9 @@ async def _activate_paid_subscription(
         "subscription_end": subscription_end.isoformat(),
         "is_premium": True,
         "trial_used": True,  # a completed subscription consumes the free-trial eligibility
+        # Renueva/reactiva → cancela cualquier lapso y ventana de purga de datos.
+        "premium_lapsed_at": None,
+        "data_purged_at": None,
     }
     ids = _stripe_session_ids(session_id)
     if ids["customer"]:
@@ -3917,6 +3998,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             data_obj = raw_event["data"]["object"]
             customer_id = data_obj.get("customer")
             if raw_event_type == "customer.subscription.deleted" and customer_id:
+                _u_lapse = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "premium_lapsed_at": 1})
                 await db.users.update_one(
                     {"stripe_customer_id": customer_id},
                     {"$set": {
@@ -3926,6 +4008,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                         "subscription_status": "canceled",
                         "stripe_subscription_id": None,
                         "subscription_canceled_at": datetime.now(timezone.utc).isoformat(),
+                        "premium_lapsed_at": _lapse_stamp(_u_lapse or {}),
                     }},
                 )
                 logging.info(f"[stripe-webhook] subscription deleted for {customer_id}")
@@ -3940,7 +4023,9 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                 attempt = int(data_obj.get("attempt_count", 1) or 1)
                 update: Dict[str, Any] = {"subscription_status": "past_due"}
                 if attempt >= 3:
-                    update.update({"is_premium": False, "subscription_plan": None, "subscription_status": "unpaid"})
+                    _u_pf = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "premium_lapsed_at": 1})
+                    update.update({"is_premium": False, "subscription_plan": None, "subscription_status": "unpaid",
+                                   "premium_lapsed_at": _lapse_stamp(_u_pf or {})})
                     logging.warning(f"[stripe-webhook] payment failed {attempt}x for {customer_id} → premium revoked")
                 await db.users.update_one({"stripe_customer_id": customer_id}, {"$set": update})
                 try:
@@ -3954,9 +4039,15 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                 status = data_obj.get("status")
                 if status:
                     is_active = status in ("active", "trialing")
+                    _set: Dict[str, Any] = {"subscription_status": status, "is_premium": is_active}
+                    if is_active:
+                        _set["premium_lapsed_at"] = None  # reactivado → sin ventana de purga
+                    else:
+                        _u_up = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "premium_lapsed_at": 1})
+                        _set["premium_lapsed_at"] = _lapse_stamp(_u_up or {})
                     await db.users.update_one(
                         {"stripe_customer_id": customer_id},
-                        {"$set": {"subscription_status": status, "is_premium": is_active}},
+                        {"$set": _set},
                     )
             return {"status": "received", "event": raw_event_type}
         except Exception as e:
