@@ -1303,6 +1303,23 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-21 (56) — Muro de pago DURO: sin suscripción activa, sin acceso a la app
+- **Petición**: que un cliente que no paga no tenga acceso a nada de la web (app).
+- ✅ **Backend** (`server.py`): nueva dependencia **`require_premium`** (auth + `check_premium`;
+  403 "Suscripción requerida" si no premium). Aplicada a **12 endpoints de producto**: diario
+  `/journal/trades` (CRUD+stats) y `/performance/trades` (CRUD, bulk, get, analytics). El trial de
+  7 días y la cuenta demo cuentan como premium; caducado/gratis → 403.
+- ✅ **Frontend**: `ProtectedRoute` gana `premiumOnly` → redirige a `/pricing` (con `state.gated`)
+  a usuarios logueados sin suscripción; **los admin conservan acceso**. Aplicado a `/dashboard` y
+  `/performance` (`/options` ya tenía su propio muro). Aviso amarillo en Pricing ("Tu suscripción no
+  está activa…", clave `gatedNotice` ×8 idiomas, 5077 claves 0 huecos).
+- ⚠️ **Se dejan accesibles a propósito**: `/pricing`, `/subscription`, `/settings` (para poder
+  pagar/gestionar), `/login`, `/register`, legales y el **contenido público** (landing, educación —
+  activo SEO). Un caducado puede autenticarse para renovar (`/auth/me` sigue 200 con is_premium=False).
+- ✅ **E2E backend vivo 6/6**: gratis→403, caducado→403, de pago→200, trial→200, lifetime→200,
+  caducado puede /auth/me. **Captura UI**: `gate.expired` intenta Dashboard → redirigido a Precios
+  con el aviso. Build OK.
+
 ### 2026-07-21 (55) — Diario/Performance: operaciones de OPCIONES + selector de TODOS los activos
 - **Petición**: que el diario acepte operaciones de opciones y todos los activos.
 - ✅ **Backend** (`server.py` `TradeIn` + `performance.py`): nuevo `instrument_type` (`spot`|`option`),

@@ -403,6 +403,7 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    gatedNotice: 'Dein Abo ist nicht aktiv. Wähle einen Plan, um die Plattform zu nutzen.',
     tradeInstrument: 'Instrument',
     tradeInstrumentSpot: 'Spot / Aktie',
     tradeInstrumentOption: 'Option',
