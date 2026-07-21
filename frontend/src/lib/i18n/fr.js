@@ -403,6 +403,13 @@ export default {
     // Risk Management
     positionSizingTitle: 'Taille de Position',
     positionSizingDesc: 'Déterminez combien de capital risquer sur chaque opération en fonction de votre tolérance au risque et de la taille de votre compte.',
+    svbTitle: 'Symétriques vs élargies : lire la forme',
+    svbIntro: 'Presque toutes les figures chartistes appartiennent à deux familles selon ce que fait la volatilité : formations SYMÉTRIQUES/convergentes (le range se comprime) et formations ÉLARGIES/en expansion (le range s\'élargit). Savoir laquelle on a devant soi change la façon de trader.',
+    svbSymTitle: 'Symétriques (convergentes) : la volatilité se comprime',
+    svbSymDesc: 'Triangles, biseaux et fanions : sommets et creux se rapprochent, le range se resserre. Le marché « bande le ressort » : la cassure après compression est souvent nette et directionnelle. On trade la cassure confirmée avec un objectif égal à la hauteur initiale de la figure ; le stop reste proche (figure étroite = petit risque).',
+    svbBroadTitle: 'Élargies (en expansion) : la volatilité augmente',
+    svbBroadDesc: 'Formations d\'élargissement/mégaphones : plus hauts sommets ET plus bas creux à la fois, range toujours plus large. Indécision violente, typique des sommets de marché. Plus piégeuses : davantage de chasses aux stops, cassures moins fiables, stops éloignés. Préférer la cassure confirmée ou le retest, et réduire la taille de position.',
+    svbTip: 'Règle rapide : range qui se resserre → préparer la cassure ; range qui s\'élargit → réduire la taille et exiger une confirmation supplémentaire.',
     liqTitle: 'Liquidité macro : la plomberie qui meut le marché',
     liqIntro: 'Le moteur caché des Bourses que presque personne n\'explique : combien d\'argent « utilisable » il y a vraiment dans le système. Ce ne sont pas que les taux ou les bénéfices, mais la liquidité nette — ce que la Réserve fédérale injecte ou draine — que beaucoup de gros acteurs surveillent. Elle se calcule à partir de trois pièces (bilan de la Fed − TGA − reverse repo) et a corrélé autour de 0,95 avec le S&P 500. Voici la plomberie, pièce par pièce, et ses limites.',
     liqWhatName: 'Ce qu\'est la liquidité nette',

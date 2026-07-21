@@ -232,6 +232,111 @@ const SIZES = {
   lg: { width: '100%', height: 'auto' },
 };
 
+// ── Síntesis de VELAS JAPONESAS a partir del trazado del patrón ───────────
+// Muestrea la polilínea a lo largo de x y construye velas OHLC: cada vela
+// abre en el cierre anterior y cierra en el siguiente punto muestreado, con
+// mechas pequeñas deterministas (sin aleatoriedad entre renders).
+
+const noise = (seed, i) => {
+  const v = Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453;
+  return v - Math.floor(v); // 0..1 determinista
+};
+
+const hashId = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 1000;
+  return h;
+};
+
+/** Interpola la polilínea `p` en ~n cierres equiespaciados en x. */
+const sampleCloses = (p, n) => {
+  const x0 = p[0][0];
+  const x1 = p[p.length - 1][0];
+  const closes = [];
+  for (let i = 0; i < n; i++) {
+    const x = x0 + ((x1 - x0) * i) / (n - 1);
+    let j = 0;
+    while (j < p.length - 2 && p[j + 1][0] < x) j++;
+    const [ax, ay] = p[j];
+    const [bx, by] = p[j + 1];
+    const f = bx === ax ? 0 : (x - ax) / (bx - ax);
+    closes.push([x, ay + (by - ay) * f]);
+  }
+  return closes;
+};
+
+const buildCandles = (spec, patternId, n = 22) => {
+  const seed = hashId(patternId);
+  const closes = sampleCloses(spec.p, n);
+  const candles = [];
+  let prev = closes[0][1];
+  for (let i = 1; i < closes.length; i++) {
+    const [x, target] = closes[i];
+    const o = prev;
+    // pequeño exceso/defecto determinista para que no sea una escalera perfecta
+    const c = target + (noise(seed, i) - 0.5) * 1.6;
+    const wickUp = 0.6 + noise(seed, i + 100) * 1.6;
+    const wickDn = 0.6 + noise(seed, i + 200) * 1.6;
+    candles.push({
+      x,
+      o,
+      c,
+      h: Math.max(o, c) + wickUp,
+      l: Math.min(o, c) - wickDn,
+    });
+    prev = c;
+  }
+  return candles;
+};
+
+/**
+ * El mismo patrón dibujado con VELAS JAPONESAS (para el modal de detalle).
+ * Reutiliza las specs de línea: las velas se sintetizan del trazado.
+ */
+export const ChartPatternCandleFigure = ({ patternId, className = '', size = 'lg' }) => {
+  const spec = CHART_SPECS[patternId];
+  if (!spec) return null;
+
+  const { g = [], b } = spec;
+  // determinista (noise sembrado por patternId) → mismo dibujo en cada render
+  const candles = buildCandles(spec, patternId);
+  const last = spec.p[spec.p.length - 1];
+  const dims = SIZES[size] || SIZES.lg;
+  const bw = 2.6; // ancho del cuerpo de la vela
+
+  return (
+    <svg
+      viewBox="0 0 100 60"
+      width={dims.width}
+      height={dims.height}
+      className={className}
+      role="img"
+      aria-label={`${patternId} candlestick illustration`}
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {g.map(([[x1, y1], [x2, y2]], i) => (
+        <line
+          key={i} x1={x1} y1={fy(y1)} x2={x2} y2={fy(y2)}
+          stroke={MUT} strokeWidth="1" strokeDasharray="3 2.5" opacity="0.75"
+        />
+      ))}
+      {candles.map((k, i) => {
+        const up = k.c >= k.o;
+        const col = up ? UP : DOWN;
+        const top = fy(Math.max(k.o, k.c));
+        const bodyH = Math.max(Math.abs(k.c - k.o), 0.8);
+        return (
+          <g key={i}>
+            <line x1={k.x} y1={fy(k.h)} x2={k.x} y2={fy(k.l)} stroke={col} strokeWidth="0.7" />
+            <rect x={k.x - bw / 2} y={top} width={bw} height={bodyH} fill={col} rx="0.4" />
+          </g>
+        );
+      })}
+      {b && <Arrow x={last[0]} y={last[1]} dir={b} />}
+    </svg>
+  );
+};
+
 const ChartPatternFigure = ({ patternId, className = '', size = 'sm' }) => {
   const spec = CHART_SPECS[patternId];
   if (!spec) return null;

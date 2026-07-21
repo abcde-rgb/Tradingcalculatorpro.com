@@ -433,6 +433,13 @@ export default {
     // Risk Management - ENGLISH
     positionSizingTitle: 'Position Sizing',
     positionSizingDesc: 'Determine how much capital to risk on each trade based on your risk tolerance and account size.',
+    svbTitle: 'Symmetrical vs broadening: reading the shape',
+    svbIntro: 'Nearly every chart pattern falls into two families based on what volatility does: SYMMETRICAL/converging formations (the range compresses) and BROADENING/expanding formations (the range widens). Knowing which one you face changes how you trade it.',
+    svbSymTitle: 'Symmetrical (converging): volatility compresses',
+    svbSymDesc: 'Triangles, wedges and pennants: highs and lows squeeze together and the range narrows. The market "loads the spring": the breakout after compression tends to be clean and directional. Trade the confirmed breakout with a target equal to the initial pattern height; the stop sits close (narrow pattern = small risk).',
+    svbBroadTitle: 'Broadening (expanding): volatility grows',
+    svbBroadDesc: 'Broadening formations/megaphones: higher highs AND lower lows at once, an ever-wider range. Violent indecision, typical of market tops. They are trickier: more stop hunts, less reliable breakouts and distant stops. Prefer the confirmed breakout or the retest, and cut position size.',
+    svbTip: 'Quick rule: narrowing range → get ready for the breakout; widening range → cut size and demand extra confirmation.',
     liqTitle: 'Macro liquidity: the plumbing that moves the market',
     liqIntro: 'The hidden engine of the stock market that almost no one explains: how much "usable" money is really in the system. It\'s not just rates or earnings, but net liquidity — what the Federal Reserve injects or drains — that many big players watch. It\'s calculated from three pieces (Fed balance sheet − TGA − reverse repo) and has correlated around 0.95 with the S&P 500. Here is the plumbing, piece by piece, and its limits.',
     liqWhatName: 'What net liquidity is',

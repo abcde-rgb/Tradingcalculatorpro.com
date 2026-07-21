@@ -403,6 +403,13 @@ export default {
     // Risk Management
     positionSizingTitle: 'Positionsgröße',
     positionSizingDesc: 'Bestimmen Sie, wie viel Kapital Sie bei jedem Trade riskieren, basierend auf Ihrer Risikotoleranz und Kontogröße.',
+    svbTitle: 'Symmetrisch vs. ausgeweitet: die Form lesen',
+    svbIntro: 'Fast jedes Chartmuster gehört zu einer von zwei Familien, je nachdem, was die Volatilität tut: SYMMETRISCHE/konvergierende Formationen (die Spanne komprimiert sich) und AUSGEWEITETE/expandierende Formationen (die Spanne weitet sich). Zu wissen, welche vorliegt, ändert das Trading.',
+    svbSymTitle: 'Symmetrisch (konvergierend): die Volatilität komprimiert',
+    svbSymDesc: 'Dreiecke, Keile und Wimpel: Hochs und Tiefs rücken zusammen, die Spanne wird enger. Der Markt "spannt die Feder": Der Ausbruch nach der Kompression ist meist sauber und direktional. Den bestätigten Ausbruch handeln, Ziel = anfängliche Musterhöhe; der Stop liegt nah (enges Muster = kleines Risiko).',
+    svbBroadTitle: 'Ausgeweitet (expandierend): die Volatilität wächst',
+    svbBroadDesc: 'Broadening-Formationen/Megafone: höhere Hochs UND tiefere Tiefs zugleich, immer größere Spanne. Heftige Unentschlossenheit, typisch für Markthochs. Sie sind tückischer: mehr Stop-Jagden, unzuverlässigere Ausbrüche, ferne Stops. Besser den bestätigten Ausbruch oder Retest abwarten und die Positionsgröße reduzieren.',
+    svbTip: 'Faustregel: Spanne verengt sich → Ausbruch vorbereiten; Spanne weitet sich → Größe reduzieren und extra Bestätigung verlangen.',
     liqTitle: 'Makro-Liquidität: die Klempnerei, die den Markt bewegt',
     liqIntro: 'Der verborgene Motor der Börsen, den fast niemand erklärt: wie viel „nutzbares" Geld wirklich im System ist. Es sind nicht nur Zinsen oder Gewinne, sondern die Nettoliquidität – was die Federal Reserve injiziert oder abzieht –, die viele große Akteure beobachten. Sie wird aus drei Teilen berechnet (Fed-Bilanz − TGA − Reverse Repo) und korrelierte um die 0,95 mit dem S&P 500. Hier ist die Klempnerei, Stück für Stück, und ihre Grenzen.',
     liqWhatName: 'Was Nettoliquidität ist',
