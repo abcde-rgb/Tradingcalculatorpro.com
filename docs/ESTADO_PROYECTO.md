@@ -1303,6 +1303,27 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-21 (57) — Retención de datos: guardar 3 meses tras impago y purgar automáticamente
+- **Petición**: al dejar de pagar, guardar los datos al menos 3 meses y luego borrarlos solos.
+- ✅ **Marca de lapso** `premium_lapsed_at`: se pone al revocar premium (sync de expiración en
+  `/auth/me`, webhook `subscription.deleted`, `payment_failed` 3×, `subscription.updated` inactivo).
+  Helper `_lapse_stamp` **conserva el reloj** si ya había lapso (no reinicia los 3 meses ante eventos
+  repetidos). `_activate_paid_subscription` y `subscription.updated` activo la **limpian** (`None`).
+- ✅ **Purga** `purge_lapsed_user_data(db)` en el arranque (junto a las purgas de revoked_tokens/
+  usage_events): borra los **datos de trading** (`trades, calculations, alerts, saved_positions,
+  portfolio, user_states, journal_entries`) de quienes llevan **> DATA_RETENTION_DAYS (90, configurable
+  por env)** sin pago. **Conserva la cuenta** (para que puedan volver a suscribirse). Candidatos por
+  `premium_lapsed_at` **o** `subscription_end` antiguos (cubre expiración silenciosa). Excluye
+  lifetime y a quien vuelva a ser premium. Idempotente (marca `data_purged_at`).
+- ✅ **Verificado**: 7 tests unitarios offline (purga >90d, conserva <90d, renovado, lifetime,
+  expiración silenciosa, idempotencia, `_lapse_stamp`) → `pytest` **124 passed**. **E2E contra
+  Postgres real 8/8**: caducado>90d y silent>90d borrados; <90d/renovado/lifetime conservados;
+  2ª purga idempotente; marca puesta.
+- ⚠️ Decisión aplicada: se borran los **datos** (diario, cálculos…), **no la cuenta** — así el
+  cliente puede reactivar. Si se quisiera borrar la cuenta entera, es otra decisión. La purga corre
+  en cada arranque (mismo patrón que las purgas existentes); con `min-instances=1` conviene un
+  Cloud Scheduler para garantizarla a diario (pendiente ops).
+
 ### 2026-07-21 (56) — Muro de pago DURO: sin suscripción activa, sin acceso a la app
 - **Petición**: que un cliente que no paga no tenga acceso a nada de la web (app).
 - ✅ **Backend** (`server.py`): nueva dependencia **`require_premium`** (auth + `check_premium`;
