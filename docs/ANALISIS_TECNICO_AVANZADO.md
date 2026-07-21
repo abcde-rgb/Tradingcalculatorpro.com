@@ -11,7 +11,7 @@
 > **degradan al popularizarse** (McLean & Pontiff 2016). Por eso el valor está en
 > mostrarlas con **muestra y datos vivos**, nunca como promesa.
 
-**Total catalogado: 230 técnicas** (15 categorías núcleo + 10 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
+**Total catalogado: 240 técnicas** (15 categorías núcleo + 12 ampliadas). Todas replicables por un retail con datos de precio/volumen; las 🔧 requieren un dato extra accesible.
 
 ## Leyenda
 - **Calidad:** ✅ respaldo académico / uso profesional, reglas objetivas, testeable · ⚠️ útil pero subjetivo o edge que decae · ❌ mayormente infalsable (incluido para saber separarlo del humo)
@@ -298,6 +298,26 @@
 228. **Reflex / Trendflex** (Ehlers). ⚠️🔨
 229. **Correlation Trend Indicator** (Ehlers). ✅🔨
 230. **RSI / Estocástico ciclo-adaptativos**. ⚠️🔨
+
+## 26. Escuela japonesa (más allá de las velas — lo difundido en Occidente en las últimas décadas)
+231. **Sakata Goho** — los 5 métodos de Homma: San-zan (tres montañas = triple techo), San-sen (tres ríos), San-ku (tres huecos), San-pei (tres soldados), San-poh (pausa/continuación). ✅🔨
+232. **Ichimoku — Teoría del Tiempo** (時間論): números básicos *kihon suchi* 9/17/26 y *taito suchi* (tramos de igual duración). ⚠️🔨
+233. **Ichimoku — Teoría de la Onda** (波動論): conteo de ondas I, V, N, P. ⚠️🔨
+234. **Ichimoku — Objetivos de precio** (値幅観測論): cálculos N, V, E, NT. ✅🔨
+235. **Heikin-Ashi suavizado** (doble suavizado para tendencia). ✅🔨
+236. **Candle-volume charts** (Nison, *Beyond Candlesticks*): ancho de vela = volumen. ✅🔧
+
+## 27. Escuela rusa / soviética
+237. **Sistema Triple Pantalla** (Alexander Elder, ruso-americano): filtro multi-temporalidad tendencia + oscilador + entrada. ✅🔨
+238. **SafeZone stop** (Elder): stop adaptativo por ruido de mercado. ✅🔨
+239. **Análisis de clúster / footprint** — escuela rusa de *order-flow* (delta, POC por clúster, absorción; ecosistema ATAS/MT). ✅🔧
+240. **Trading por niveles + estadística de riesgo** (metodología Gerchik): niveles duros, R:R y *profit factor* estrictos. ⚠️🔨
+
+> **Honestidad sobre "métodos secretos rusos/japoneses":** lo de arriba es lo
+> genuino y documentado. El resto de lo que circula ("sistema secreto ruso",
+> "código samurái del trading") es casi siempre **reempaquetado de lo ya
+> listado** con marketing. No hay una técnica oculta de alta probabilidad que la
+> industria esconda; si la hubiera, dejaría de funcionar al usarse.
 
 ---
 
