@@ -1303,6 +1303,31 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-19 (51) — Patrones chartistas EN CÓDIGO (42 SVG) + verificación admin E2E 18/18
+- **Petición**: revisar que todo funciona (admin, afiliados…), detectar huecos, y hacer los
+  patrones chartistas (HCH, HCHi…) "en formato gráfico con código".
+- ✅ **Nuevo `ChartPatternFigure.jsx`**: diagramas SVG en código para los **42 patrones chartistas**
+  de `getChartPatterns` (HCH/HCHi, dobles/triples, cuñas, ensanchamientos, diamantes, V, redondeos,
+  triángulos, banderas/banderines, canales, taza con asa). Espacio lógico 100×60, colores del
+  proyecto (#22c55e/#ef4444/#94a3b8), directrices/necklines discontinuas, tramo de ruptura
+  coloreado + flecha; variantes bajistas derivadas por espejo vertical. **Neutrales de idioma**
+  (0 claves i18n nuevas). Integrado en `PatternCard` (mini-figura) y `PatternDetailModal`
+  (figura grande **preferida sobre el PNG externo**).
+- 🔥 **Se retira de la UI la dependencia de `customer-assets.emergentagent.com`** (residuo
+  Emergent): los 28 PNG externos de patrones ya no se muestran (quedan como fallback muerto en
+  data). Los diagramas funcionan offline, nítidos a cualquier tamaño y aware del tema.
+- ✅ **Verificación admin E2E 18/18** (backend vivo + PostgreSQL): login, guarda no-admin (403),
+  métricas (1009 usuarios seed, MRR), buscador `?q=`, PATCH usuario, feature flags GET+toggle,
+  usage-heatmap, audit-log, settings, revenue, impersonación (normal OK / admin prohibido 403),
+  cupones crear+toggle.
+- ✅ Verificación obligatoria: `pytest` offline **111 passed**; build OK; i18n **5052 claves,
+  0 huecos**; smoke headless premium: **42/42 figuras** en tarjetas, modales (HCH/taza/bandera)
+  con SVG grande, 0 pageerrors; capturas validadas visualmente.
+- 🔎 **Huecos detectados** (para backlog): (1) import de operaciones CSV/broker al diario — mayor
+  gap vs journals comerciales; (2) los 6 patrones ARMÓNICOS (Gartley/Butterfly/Bat/Crab/Shark/
+  Cypher) sin figura propia — extensión natural del nuevo componente (XABCD); (3) velas: solo
+  28/≈30+ con blueprint; (4) BUG-007 (prefs cross-device) y G-05 (layouts TV) siguen abiertos.
+
 ### 2026-07-19 (50) — Auditoría E2E de afiliados: BUG-013 (route shadowing) encontrado y corregido
 - **Petición**: "¿algo sin integrar de PRs antiguos? revisa si los afiliados funcionan bien".
 - 🔎 **PRs pendientes**: #117 "Acceso libre (comp) + repo limpio de Google Cloud" (de otra sesión;

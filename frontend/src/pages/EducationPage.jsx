@@ -24,6 +24,7 @@ import ExpectancyMatrix from '@/components/education/ExpectancyMatrix';
 import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
 import CandleAnatomy from '@/components/education/CandleAnatomy';
 import CandlePatternFigure, { hasCandleBlueprint } from '@/components/education/CandlePatternFigure';
+import ChartPatternFigure, { hasChartFigure } from '@/components/education/ChartPatternFigure';
 import LivePatternDetector from '@/components/education/LivePatternDetector';
 import PatternFilterBar from '@/components/education/PatternFilterBar';
 import LeverageGuide from '@/components/education/LeverageGuide';
@@ -187,6 +188,8 @@ function PatternCard({ pattern, onClick }) {
           </div>
           {/* Mini SVG illustration drawn from OHLC blueprints (24x80 px per candle) */}
           <CandlePatternFigure patternId={pattern.id} className="flex-shrink-0" />
+          {/* Chartist patterns (HCH, wedges, flags…) get their own coded line-chart figure */}
+          <ChartPatternFigure patternId={pattern.id} className="flex-shrink-0" />
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2">{pattern.description}</p>
         {(() => {
@@ -258,8 +261,18 @@ function PatternDetailModal({ pattern, onClose }) {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-            {/* LEFT column: image (large) — or, for candlestick patterns, a rendered SVG figure */}
-            {pattern.image ? (
+            {/* LEFT column: coded SVG figure (preferred — crisp, theme-aware, no
+                external hosting) — or legacy image — or candlestick SVG figure */}
+            {hasChartFigure(pattern.id) ? (
+              <div className="lg:sticky lg:top-20 self-start">
+                <div
+                  className="w-full rounded-lg border border-border bg-card px-6 py-8"
+                  data-testid="pattern-chart-figure"
+                >
+                  <ChartPatternFigure patternId={pattern.id} size="lg" />
+                </div>
+              </div>
+            ) : pattern.image ? (
               <div className="lg:sticky lg:top-20 self-start">
                 <button
                   type="button"
