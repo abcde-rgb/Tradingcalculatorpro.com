@@ -88,3 +88,56 @@ def test_total_pnl_matches_daily_sum():
     trades = [_closed("2026-02-01", 30), _closed("2026-02-02", -10), _closed("2026-02-02", 5)]
     a = compute_analytics(trades)
     assert round(sum(d["pnl"] for d in a["daily_pnl"]), 2) == a["total_pnl"]
+
+
+# ─── Opciones (multiplier) ─────────────────────────────────────────
+from performance import compute_trade_pnl, make_trade_doc
+
+
+def test_option_long_call_pnl_uses_multiplier():
+    # Compra 2 calls a 1.50, vende a 3.20, contrato ×100 → (3.20-1.50)*2*100 = 340
+    t = compute_trade_pnl({"side": "long", "entry_price": 1.50, "exit_price": 3.20,
+                           "quantity": 2, "multiplier": 100})
+    assert t["pnl"] == 340.0
+
+
+def test_option_short_put_pnl_uses_multiplier():
+    # Vende 1 put a 2.00, recompra a 0.50 → (2.00-0.50)*1*100 = 150
+    t = compute_trade_pnl({"side": "short", "entry_price": 2.00, "exit_price": 0.50,
+                           "quantity": 1, "multiplier": 100})
+    assert t["pnl"] == 150.0
+
+
+def test_option_pnl_subtracts_fees_and_r_multiple_scales():
+    # (5-4)*3*100 = 300 bruto - 12 fees = 288; riesgo = |4-3.5|*3*100 = 150 → R = 1.92
+    t = compute_trade_pnl({"side": "long", "entry_price": 4.0, "exit_price": 5.0,
+                           "quantity": 3, "multiplier": 100, "fees": 12, "sl": 3.5})
+    assert t["pnl"] == 288.0
+    assert t["r_multiple"] == 1.92
+
+
+def test_spot_multiplier_defaults_to_one():
+    # Sin multiplier, comportamiento clásico: (110-100)*10 = 100
+    t = compute_trade_pnl({"side": "long", "entry_price": 100, "exit_price": 110, "quantity": 10})
+    assert t["pnl"] == 100.0
+
+
+def test_make_trade_doc_persists_option_fields():
+    doc = make_trade_doc({
+        "symbol": "aapl", "side": "long", "entry_price": 1.5, "quantity": 2,
+        "instrument_type": "option", "option_type": "call", "strike": 190,
+        "expiry": "2026-09-19", "multiplier": 100,
+    }, "u1")
+    assert doc["instrument_type"] == "option"
+    assert doc["option_type"] == "call"
+    assert doc["strike"] == 190.0
+    assert doc["expiry"] == "2026-09-19"
+    assert doc["multiplier"] == 100.0
+    assert doc["symbol"] == "AAPL"
+
+
+def test_make_trade_doc_spot_defaults():
+    doc = make_trade_doc({"symbol": "btc", "side": "long", "entry_price": 100, "quantity": 1}, "u1")
+    assert doc["instrument_type"] == "spot"
+    assert doc["option_type"] is None
+    assert doc["multiplier"] == 1.0

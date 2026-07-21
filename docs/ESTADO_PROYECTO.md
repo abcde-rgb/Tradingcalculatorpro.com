@@ -1303,6 +1303,23 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-21 (55) — Diario/Performance: operaciones de OPCIONES + selector de TODOS los activos
+- **Petición**: que el diario acepte operaciones de opciones y todos los activos.
+- ✅ **Backend** (`server.py` `TradeIn` + `performance.py`): nuevo `instrument_type` (`spot`|`option`),
+  `option_type` (`call`|`put`), `strike`, `expiry`, `multiplier`. `compute_trade_pnl` multiplica el
+  nominal y el riesgo por `multiplier` (100 en opciones sobre acciones); `spot` mantiene `multiplier=1`
+  (retrocompatible con los trades existentes). `make_trade_doc` persiste los campos.
+- ✅ **Frontend** (`TradeFormModal`): toggle **Spot/Opción**; el símbolo pasa de input plano al
+  **`UniversalAssetSearch`** (cripto/acciones/ETFs/índices/forex/materias — con override manual para
+  cualquier símbolo). En modo opción: Call/Put, Strike, Vencimiento, Multiplicador, y las etiquetas
+  cambian a Compra/Venta · Prima entrada/salida · Contratos. P&L y R:R en vivo con multiplier.
+- ✅ **6 tests unitarios** de PnL de opciones (long call 340, short put 150, R-múltiplo escalado,
+  spot=1, persistencia de campos) → `test_performance_unit` 13 passed. **17 claves i18n × 8 idiomas**
+  (`trade*`, paridad 5076, 0 huecos).
+- ✅ **E2E contra backend vivo**: long call cerrada (3×(3.20−1.50)×100−6 = **504 €**), short put
+  (2×(2.00−0.60)×100 = **280 €**), spot retrocompat (**100**), aparece en el diario, analytics suma
+  (**total 1424**), editar recalcula (**1044**). Captura UI del formulario en modo opción validada.
+
 ### 2026-07-21 (54) — BUG-014: el panel admin crasheaba entero con datos reales (fix + capturas UI)
 - Al capturar por primera vez la **UI del admin contra backend vivo** (frontend build apuntando al
   uvicorn local + PostgreSQL sembrado), el AdminPage moría con la pantalla del ErrorBoundary

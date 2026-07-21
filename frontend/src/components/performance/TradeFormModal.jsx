@@ -5,11 +5,20 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
 import { createTrade, updateTrade } from '@/services/performanceApi';
+import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
 import { toast } from 'sonner';
+
+const OPTION_MULTIPLIER = 100; // tamaño estándar de contrato de opciones sobre acciones
 
 const SIDES = [
   { id: 'long',  labelKey: 'tradeFormSideLong',  color: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/40' },
   { id: 'short', labelKey: 'tradeFormSideShort', color: 'bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/40' },
+];
+
+// Compra/venta de la opción (long = comprada, short = vendida/emitida)
+const OPTION_SIDES = [
+  { id: 'long',  labelKey: 'tradeOptionBuy',  color: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/40' },
+  { id: 'short', labelKey: 'tradeOptionSell', color: 'bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/40' },
 ];
 
 const STATUS_OPTIONS = [
@@ -44,12 +53,21 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
     status: 'open',
     emotion: 3,
     notes: '',
+    instrument_type: 'spot',
+    option_type: 'call',
+    strike: '',
+    expiry: '',
+    multiplier: OPTION_MULTIPLIER,
   });
 
   const set = (k) => (e) => {
     const v = e?.target ? e.target.value : e;
     setForm((p) => ({ ...p, [k]: v }));
   };
+
+  const isOption = form.instrument_type === 'option';
+  // Multiplicador efectivo: 100 (u otro) en opciones; 1 en spot.
+  const mult = isOption ? (parseFloat(form.multiplier) || OPTION_MULTIPLIER) : 1;
 
   // Live derived metrics — instant feedback
   const entry = parseFloat(form.entry_price) || 0;
@@ -58,8 +76,8 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
   const qty = parseFloat(form.quantity) || 0;
   const balance = parseFloat(form.account_balance) || 0;
 
-  const liveRisk = entry && sl ? Math.abs(entry - sl) * qty : 0;
-  const liveReward = entry && tp ? Math.abs(tp - entry) * qty : 0;
+  const liveRisk = entry && sl ? Math.abs(entry - sl) * qty * mult : 0;
+  const liveReward = entry && tp ? Math.abs(tp - entry) * qty * mult : 0;
   const liveRR = liveRisk > 0 ? (liveReward / liveRisk).toFixed(2) : '—';
   const liveRiskPct = balance > 0 ? ((liveRisk / balance) * 100).toFixed(2) : '—';
 
@@ -88,6 +106,11 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
         status: form.status,
         emotion: form.emotion ? Number(form.emotion) : null,
         notes: form.notes || '',
+        instrument_type: form.instrument_type || 'spot',
+        option_type: isOption ? (form.option_type || 'call') : null,
+        strike: isOption && form.strike !== '' ? Number(form.strike) : null,
+        expiry: isOption ? (form.expiry || null) : null,
+        multiplier: mult,
       };
       const saved = isEdit
         ? await updateTrade(initialTrade.id, payload)
@@ -119,20 +142,62 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-5">
-          {/* Row 1: Symbol + Side + Setup */}
+          {/* Instrument toggle: Spot vs Opción */}
+          <div>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+              {t('tradeInstrument')}
+            </Label>
+            <div className="mt-1 flex gap-1.5 max-w-xs">
+              {[
+                { id: 'spot', labelKey: 'tradeInstrumentSpot' },
+                { id: 'option', labelKey: 'tradeInstrumentOption' },
+              ].map((it) => (
+                <button
+                  type="button"
+                  key={it.id}
+                  onClick={() => set('instrument_type')(it.id)}
+                  className={`flex-1 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wider border transition-all ${
+                    form.instrument_type === it.id
+                      ? 'bg-primary/15 text-primary border-primary/40'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                  data-testid={`trade-instrument-${it.id}`}
+                >
+                  {t(it.labelKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Row 1: Symbol (all assets) + Side + Setup */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 {t('tradeSymbol')} *
               </Label>
-              <Input value={form.symbol} onChange={set('symbol')} placeholder="AAPL" className="mt-1 uppercase" data-testid="trade-symbol" />
+              <div className="mt-1">
+                <UniversalAssetSearch
+                  value={form.symbol}
+                  onChange={(asset) => set('symbol')((asset?.symbol || asset?.id || '').toUpperCase())}
+                  placeholder={t('tradeSymbolSearch')}
+                  testId="trade-symbol-search"
+                />
+              </div>
+              {/* Fallback/override manual para símbolos no listados (permite escribir cualquiera) */}
+              <Input
+                value={form.symbol}
+                onChange={(e) => set('symbol')(e.target.value.toUpperCase())}
+                placeholder="AAPL"
+                className="mt-1.5 uppercase text-xs h-8"
+                data-testid="trade-symbol"
+              />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                {t('tradeSide')} *
+                {isOption ? t('tradeOptionSideLabel') : t('tradeSide')} *
               </Label>
               <div className="mt-1 flex gap-1.5">
-                {SIDES.map((s) => (
+                {(isOption ? OPTION_SIDES : SIDES).map((s) => (
                   <button
                     type="button"
                     key={s.id}
@@ -155,11 +220,50 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
             </div>
           </div>
 
+          {/* Option-specific row: Call/Put, Strike, Vencimiento, Multiplicador */}
+          {isOption && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-primary/[0.04] border border-primary/20" data-testid="trade-option-fields">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('tradeOptionType')}</Label>
+                <div className="mt-1 flex gap-1.5">
+                  {[{ id: 'call', k: 'tradeOptionCall' }, { id: 'put', k: 'tradeOptionPut' }].map((o) => (
+                    <button
+                      type="button"
+                      key={o.id}
+                      onClick={() => set('option_type')(o.id)}
+                      className={`flex-1 px-2 py-2 rounded-md text-xs font-bold uppercase border transition-all ${
+                        form.option_type === o.id
+                          ? (o.id === 'call' ? 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/40' : 'bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/40')
+                          : 'border-border text-muted-foreground hover:text-foreground'
+                      }`}
+                      data-testid={`trade-option-${o.id}`}
+                    >
+                      {t(o.k)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('tradeStrike')}</Label>
+                <Input type="number" step="any" value={form.strike} onChange={set('strike')} className="mt-1" data-testid="trade-strike" />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('tradeExpiry')}</Label>
+                <Input type="date" value={form.expiry || ''} onChange={set('expiry')} className="mt-1" data-testid="trade-expiry" />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('tradeMultiplier')}</Label>
+                <Input type="number" step="any" value={form.multiplier} onChange={set('multiplier')} className="mt-1" data-testid="trade-multiplier" />
+              </div>
+              <p className="col-span-2 md:col-span-4 text-[11px] text-muted-foreground">{t('tradeOptionHint')}</p>
+            </div>
+          )}
+
           {/* Row 2: Entry / SL / TP / Exit */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                {t('tradeEntry')} *
+                {isOption ? t('tradePremiumEntry') : t('tradeEntry')} *
               </Label>
               <Input type="number" step="any" value={form.entry_price} onChange={set('entry_price')} className="mt-1" data-testid="trade-entry" />
             </div>
@@ -177,7 +281,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                {t('tradeExit')}
+                {isOption ? t('tradePremiumExit') : t('tradeExit')}
               </Label>
               <Input type="number" step="any" value={form.exit_price} onChange={set('exit_price')} className="mt-1" data-testid="trade-exit" />
             </div>
@@ -187,7 +291,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                {t('tradeQuantity')} *
+                {isOption ? t('tradeContracts') : t('tradeQuantity')} *
               </Label>
               <Input type="number" step="any" value={form.quantity} onChange={set('quantity')} className="mt-1" data-testid="trade-quantity" />
             </div>
