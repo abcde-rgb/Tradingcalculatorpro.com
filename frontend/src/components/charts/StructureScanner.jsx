@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, TrendingUp, TrendingDown, Minus, RefreshCw, Layers, Waves, GitBranch } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Minus, RefreshCw, Layers, Waves, GitBranch, CandlestickChart, History, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { useAssetsStore, ALL_ASSETS } from '@/lib/assets';
+import { PATTERN_NAME_KEY, TYPE_BADGE, BEHAVIOR_KEY, rateColor } from '@/lib/candlePatternMeta';
+import { DAY_MS, loadLogFor, mergeLogFor, clearLogFor } from '@/lib/structureLog';
+import CandlePatternFigure from '@/components/education/CandlePatternFigure';
 import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -35,6 +38,7 @@ const toYahooSymbol = (asset) => {
 };
 
 const PERIODS = ['3mo', '6mo', '1y', '2y'];
+const PERIOD_KEY = 'tcp_struct_period';          // persisted timeframe selection
 
 const TREND_UI = {
   uptrend:   { color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/10', border: 'border-[#22c55e]/30', Icon: TrendingUp,   key: 'structTrendUp' },
@@ -53,37 +57,88 @@ const LEVEL_UI = {
   pivot:      { color: 'text-[#f59e0b]', key: 'structLvlPivot' },
 };
 
+// ── Persistence helpers (localStorage; all guarded — private mode / quota safe) ──
+const loadPeriod = () => {
+  try {
+    const p = localStorage.getItem(PERIOD_KEY);
+    return PERIODS.includes(p) ? p : '6mo';
+  } catch { return '6mo'; }
+};
+const savePeriod = (p) => {
+  try { localStorage.setItem(PERIOD_KEY, p); } catch { /* no-op */ }
+};
+
+const relTime = (ts, t) => {
+  const diff = Date.now() - ts;
+  if (diff < 60 * 60 * 1000) return t('structLogJustNow');
+  if (diff < DAY_MS) return t('structLogHoursAgo').replace('{h}', String(Math.floor(diff / (60 * 60 * 1000))));
+  return t('structLogDaysAgo').replace('{d}', String(Math.floor(diff / DAY_MS)));
+};
+
 const StructureScanner = () => {
   const { t } = useTranslation();
   const { selectedAsset } = useAssetsStore();
   const asset = ALL_ASSETS[selectedAsset];
   const yahoo = toYahooSymbol(asset);
 
-  const [period, setPeriod] = useState('6mo');
+  const [period, setPeriod] = useState(loadPeriod);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
+  const [candles, setCandles] = useState([]);   // reversal/continuation candle signals
+  const [log, setLog] = useState([]);            // persisted registro for current asset
   const reqId = useRef(0);
+
+  const changePeriod = useCallback((p) => {
+    setPeriod(p);
+    savePeriod(p);
+  }, []);
+
+  // Show the stored registro for the current asset immediately on switch.
+  useEffect(() => { setLog(loadLogFor(yahoo)); }, [yahoo]);
 
   const scan = useCallback(async () => {
     if (!API || !yahoo) return;
     const myReq = ++reqId.current;
     setLoading(true);
     try {
-      const res = await fetch(
-        `${API}/api/education/structure-scan/${encodeURIComponent(yahoo)}?period=${period}&interval=1d&strength=2`
-      );
-      const json = await res.json();
+      const sym = encodeURIComponent(yahoo);
+      const [structRes, patternRes] = await Promise.all([
+        fetch(`${API}/api/education/structure-scan/${sym}?period=${period}&interval=1d&strength=2`),
+        fetch(`${API}/api/education/pattern-scan/${sym}?period=${period}&interval=1d&limit=20`),
+      ]);
+      const [structJson, patternJson] = await Promise.all([structRes.json(), patternRes.json()]);
       if (myReq !== reqId.current) return; // a newer request superseded this one
-      if (json.error) {
+
+      if (structJson.error) {
         setData(null);
+        setCandles([]);
         toast.error(t('structScanError'));
-      } else {
-        setData(json);
+        return;
       }
+      setData(structJson);
+
+      // Candle signals that carry a directional message: reversal / continuation.
+      const dets = Array.isArray(patternJson?.detections) ? patternJson.detections : [];
+      const signals = dets.filter((d) => d.behavior === 'reversal' || d.behavior === 'continuation');
+      setCandles(signals);
+
+      // Build the registro: structure breaks + directional candle signals, deduped.
+      const evtItems = (structJson.events || []).map((e) => ({
+        id: `e|${e.date}|${e.kind}|${e.direction}|${e.price}`,
+        cat: 'event', kind: e.kind, dir: e.direction, price: e.price, date: e.date,
+      }));
+      const candleItems = signals.map((d) => ({
+        id: `c|${d.date}|${d.pattern_id}`,
+        cat: 'candle', pid: d.pattern_id, ctype: d.type, behavior: d.behavior,
+        dir: d.type === 'bullish' ? 'bullish' : d.type === 'bearish' ? 'bearish' : null,
+        price: d.ohlc?.close, date: d.date,
+      }));
+      setLog(mergeLogFor(yahoo, [...evtItems, ...candleItems]));
     } catch (e) {
       if (myReq !== reqId.current) return;
       if (process.env.NODE_ENV !== 'production') console.error('[StructureScanner]', e);
       setData(null);
+      setCandles([]);
       toast.error(t('structScanError'));
     } finally {
       if (myReq === reqId.current) setLoading(false);
@@ -93,12 +148,22 @@ const StructureScanner = () => {
   // Auto-scan whenever the chart's asset or the period changes.
   useEffect(() => { scan(); }, [scan]);
 
+  const onClearLog = () => {
+    clearLogFor(yahoo);
+    setLog([]);
+  };
+
+  const patternName = (id) => (PATTERN_NAME_KEY[id] ? t(PATTERN_NAME_KEY[id]) : id);
+  const behaviorLabel = (b) => (BEHAVIOR_KEY[b] ? t(BEHAVIOR_KEY[b]) : b);
+
   const trend = (data && TREND_UI[data.trend]) || TREND_UI.range;
   const TrendIcon = trend.Icon;
   const events = data?.events ? [...data.events].reverse().slice(0, 8) : [];
   const levels = data?.levels ? data.levels.slice(0, 6) : [];
   const fvgs = data?.fvgs ? data.fvgs.slice(0, 6) : [];
   const c = data?.counts || {};
+  const candleSignals = candles.slice(0, 6);
+  const newInDay = log.filter((e) => Date.now() - e.ts < DAY_MS).length;
 
   return (
     <Card
@@ -135,7 +200,7 @@ const StructureScanner = () => {
             {PERIODS.map((p) => (
               <button
                 key={p}
-                onClick={() => setPeriod(p)}
+                onClick={() => changePeriod(p)}
                 className={`px-2.5 py-1 text-[11px] font-mono rounded transition-colors ${
                   period === p ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
@@ -181,6 +246,47 @@ const StructureScanner = () => {
               .replace('{bos}', String(c.bos ?? 0))
               .replace('{choch}', String(c.choch ?? 0))}
           </div>
+        )}
+
+        {/* Candlestick signals: reversal / continuation on the recent bars */}
+        {candleSignals.length > 0 && (
+          <section data-testid="struct-candles">
+            <h4 className="flex items-center gap-1.5 text-xs font-semibold text-foreground mb-2">
+              <CandlestickChart className="w-3.5 h-3.5 text-primary" />
+              {t('structCandlesTitle')}
+            </h4>
+            <div className="space-y-1.5">
+              {candleSignals.map((d, i) => {
+                const badge = TYPE_BADGE[d.type] || TYPE_BADGE.neutral;
+                return (
+                  <div
+                    key={`${d.date}-${d.pattern_id}-${i}`}
+                    className={`flex items-center gap-2.5 rounded-md border ${badge.border} ${badge.bg} px-2.5 py-1.5`}
+                    data-testid={`struct-candle-${i}`}
+                  >
+                    <div className="flex-shrink-0 transform scale-[0.5] origin-left -mr-7 -my-2">
+                      <CandlePatternFigure patternId={d.pattern_id} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-semibold truncate">{patternName(d.pattern_id)}</span>
+                        <span className={`text-[10px] font-mono uppercase ${badge.color}`}>{badge.icon} {d.type}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border">
+                          {behaviorLabel(d.behavior)}
+                        </span>
+                        {typeof d.rate === 'number' && (
+                          <span className={`text-[10px] font-mono font-bold ${rateColor(d.rate)}`}>{d.rate}%</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-mono text-muted-foreground/70 text-[10px] ml-auto shrink-0">{d.date}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         )}
 
         {/* Structure events: BOS / CHoCH */}
@@ -279,6 +385,63 @@ const StructureScanner = () => {
           </section>
         )}
 
+        {/* Persistent registro: what the scanner has recorded (survives reloads) */}
+        {log.length > 0 && (
+          <section data-testid="struct-log">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <h4 className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <History className="w-3.5 h-3.5 text-primary" />
+                {t('structLogTitle')}
+                {newInDay > 0 && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                    {t('structLogNew').replace('{n}', String(newInDay))}
+                  </span>
+                )}
+              </h4>
+              <button
+                onClick={onClearLog}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-[#ef4444] transition-colors"
+                data-testid="struct-log-clear"
+              >
+                <Trash2 className="w-3 h-3" />
+                {t('structLogClear')}
+              </button>
+            </div>
+            <div className="space-y-1 max-h-[260px] overflow-y-auto pr-1">
+              {log.map((e) => {
+                const dir = DIR_UI[e.dir];
+                const isNew = Date.now() - e.ts < DAY_MS;
+                const label = e.cat === 'candle'
+                  ? patternName(e.pid)
+                  : t(e.kind === 'CHoCH' ? 'structChoch' : 'structBos');
+                return (
+                  <div
+                    key={e.id}
+                    className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs ${
+                      isNew ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30'
+                    }`}
+                  >
+                    {isNew && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" title={t('structLogNew').replace('{n}', '')} />
+                    )}
+                    <span className="font-semibold truncate max-w-[130px]">{label}</span>
+                    {e.cat === 'candle' && e.behavior && (
+                      <span className="text-[9px] text-muted-foreground uppercase">{behaviorLabel(e.behavior)}</span>
+                    )}
+                    {dir && <span className={`font-mono ${dir.color}`}>{dir.icon}</span>}
+                    {e.price != null && <span className="font-mono text-muted-foreground">{e.price}</span>}
+                    <span className="font-mono text-muted-foreground/70 text-[10px] ml-auto shrink-0">{e.date}</span>
+                    <span className="text-[9px] text-muted-foreground/60 shrink-0 hidden sm:inline">· {relTime(e.ts, t)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground/70 leading-relaxed pt-1.5">
+              {t('structLogNote')}
+            </p>
+          </section>
+        )}
+
         {/* Empty state */}
         {data && data.rowsScanned === 0 && (
           <div className="text-center py-6 text-sm text-muted-foreground" data-testid="struct-empty">
@@ -287,7 +450,7 @@ const StructureScanner = () => {
         )}
 
         {/* Nothing detected but data was scanned */}
-        {data && data.rowsScanned > 0 && events.length === 0 && levels.length === 0 && fvgs.length === 0 && (
+        {data && data.rowsScanned > 0 && events.length === 0 && levels.length === 0 && fvgs.length === 0 && candleSignals.length === 0 && (
           <div className="text-center py-4 text-sm text-muted-foreground">
             {t('structScanNoStructure')}
           </div>
