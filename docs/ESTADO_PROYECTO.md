@@ -1303,6 +1303,23 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-21 (52) — Patrones chartistas en VELAS JAPONESAS + tarjeta "simétricos vs distendidos"
+- **Petición**: al clicar un patrón, verlo en velas japonesas (las tarjetas se quedan en líneas);
+  añadir la explicación de patrones simétricos vs distendidos (ensanchados).
+- ✅ **`ChartPatternCandleFigure`** (en `ChartPatternFigure.jsx`): motor que SINTETIZA velas OHLC
+  a partir del trazado de línea de cada patrón — muestrea la polilínea (~21 velas), cada vela abre
+  en el cierre anterior, mechas pequeñas deterministas (noise sembrado por patternId → sin parpadeo
+  entre renders), color verde/rojo por dirección. **Los 42 patrones tienen versión en velas sin
+  dibujar un solo plano a mano.** El modal de detalle muestra la versión en velas como protagonista
+  + la de línea (estructura) debajo.
+- ✅ **`SymVsBroadeningCard`**: tarjeta educativa al inicio de la pestaña Chart Patterns —
+  simétricos/convergentes (volatilidad comprimiéndose: triángulos/cuñas/banderines, ruptura limpia,
+  stop cercano) vs distendidos/ensanchados (megáfonos: volatilidad creciente, barridas, menos
+  fiables, reducir tamaño), con 2 SVG comparativos + regla rápida. **7 claves i18n × 8 idiomas**
+  (prefijo `svb`, traducciones reales) → paridad **5059 claves, 0 huecos**.
+- Verificado: build OK; smoke headless premium — tarjeta renderiza, modales HCH/taza/bandera con
+  velas (21 cuerpos) + línea, 0 pageerrors; capturas validadas (HCH en velas claramente reconocible).
+
 ### 2026-07-19 (51) — Patrones chartistas EN CÓDIGO (42 SVG) + verificación admin E2E 18/18
 - **Petición**: revisar que todo funciona (admin, afiliados…), detectar huecos, y hacer los
   patrones chartistas (HCH, HCHi…) "en formato gráfico con código".

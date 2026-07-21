@@ -24,7 +24,8 @@ import ExpectancyMatrix from '@/components/education/ExpectancyMatrix';
 import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
 import CandleAnatomy from '@/components/education/CandleAnatomy';
 import CandlePatternFigure, { hasCandleBlueprint } from '@/components/education/CandlePatternFigure';
-import ChartPatternFigure, { hasChartFigure } from '@/components/education/ChartPatternFigure';
+import ChartPatternFigure, { hasChartFigure, ChartPatternCandleFigure } from '@/components/education/ChartPatternFigure';
+import SymVsBroadeningCard from '@/components/education/SymVsBroadeningCard';
 import LivePatternDetector from '@/components/education/LivePatternDetector';
 import PatternFilterBar from '@/components/education/PatternFilterBar';
 import LeverageGuide from '@/components/education/LeverageGuide';
@@ -264,12 +265,20 @@ function PatternDetailModal({ pattern, onClose }) {
             {/* LEFT column: coded SVG figure (preferred — crisp, theme-aware, no
                 external hosting) — or legacy image — or candlestick SVG figure */}
             {hasChartFigure(pattern.id) ? (
-              <div className="lg:sticky lg:top-20 self-start">
+              <div className="lg:sticky lg:top-20 self-start space-y-3">
+                {/* Versión en VELAS JAPONESAS (protagonista al abrir el patrón) */}
                 <div
                   className="w-full rounded-lg border border-border bg-card px-6 py-8"
+                  data-testid="pattern-candle-chart-figure"
+                >
+                  <ChartPatternCandleFigure patternId={pattern.id} size="lg" />
+                </div>
+                {/* Versión de línea (estructura del patrón), más pequeña debajo */}
+                <div
+                  className="w-full rounded-lg border border-border bg-card/60 px-10 py-4"
                   data-testid="pattern-chart-figure"
                 >
-                  <ChartPatternFigure patternId={pattern.id} size="lg" />
+                  <ChartPatternFigure patternId={pattern.id} size="lg" className="opacity-80" />
                 </div>
               </div>
             ) : pattern.image ? (
@@ -4476,6 +4485,9 @@ export default function EducationPage() {
                       totalAll={totalAll}
                       testIdPrefix="patterns"
                     />
+
+                    {/* Concepto transversal: simétricos (convergen) vs distendidos (ensanchan) */}
+                    <SymVsBroadeningCard />
 
                     {/* Reversal Patterns */}
                     {reversal.length > 0 && (

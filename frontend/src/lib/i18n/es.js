@@ -530,6 +530,13 @@ export default {
     // Risk Management
     positionSizingTitle: 'Tamaño de Posición',
     positionSizingDesc: 'Determina cuánto capital arriesgar en cada operación basándote en tu tolerancia al riesgo y el tamaño de tu cuenta.',
+    svbTitle: 'Simétricos vs distendidos: cómo leer la forma',
+    svbIntro: 'Casi todos los patrones chartistas caben en dos familias según lo que hace la volatilidad: formaciones SIMÉTRICAS/convergentes (el rango se comprime) y formaciones DISTENDIDAS/ensanchadas (el rango se expande). Saber cuál tienes delante cambia cómo se opera.',
+    svbSymTitle: 'Simétricos (convergentes): la volatilidad se comprime',
+    svbSymDesc: 'Triángulos, cuñas y banderines: máximos y mínimos se acercan y el rango se estrecha. El mercado "carga el muelle": la ruptura tras la compresión suele ser limpia y direccional. Se opera la ruptura confirmada con objetivo = altura inicial del patrón, y el stop queda cerca (patrón estrecho = riesgo pequeño).',
+    svbBroadTitle: 'Distendidos (ensanchados): la volatilidad crece',
+    svbBroadDesc: 'Ensanchamientos/megáfonos: máximos más altos Y mínimos más bajos a la vez, rango cada vez mayor. Hay indecisión violenta, típica de techos de mercado. Son más traicioneros: más barridas de stops, rupturas menos fiables y stops lejanos. Mejor esperar la ruptura confirmada o el retesteo, y reducir tamaño de posición.',
+    svbTip: 'Regla rápida: rango que se estrecha → prepara la ruptura; rango que se ensancha → reduce tamaño y exige confirmación extra.',
     liqTitle: 'Liquidez macro: la fontanería que mueve el mercado',
     liqIntro: 'El motor oculto de las bolsas que casi nadie explica: cuánto dinero "utilizable" hay de verdad en el sistema. No son solo los tipos o los beneficios, sino la liquidez neta —lo que la Reserva Federal inyecta o drena— la que muchos grandes vigilan. Se calcula con tres piezas (balance de la Fed − TGA − repo inverso) y ha llegado a correlacionarse en torno a 0,95 con el S&P 500. Aquí tienes la fontanería, pieza a pieza, y sus límites.',
     liqWhatName: 'Qué es la liquidez neta',
