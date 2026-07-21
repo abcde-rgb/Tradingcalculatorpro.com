@@ -26,6 +26,7 @@ import CandleAnatomy from '@/components/education/CandleAnatomy';
 import CandlePatternFigure, { hasCandleBlueprint } from '@/components/education/CandlePatternFigure';
 import ChartPatternFigure, { hasChartFigure, ChartPatternCandleFigure } from '@/components/education/ChartPatternFigure';
 import SymVsBroadeningCard from '@/components/education/SymVsBroadeningCard';
+import HarmonicPatternFigure from '@/components/education/HarmonicPatternFigure';
 import LivePatternDetector from '@/components/education/LivePatternDetector';
 import PatternFilterBar from '@/components/education/PatternFilterBar';
 import LeverageGuide from '@/components/education/LeverageGuide';
@@ -4716,6 +4717,13 @@ export default function EducationPage() {
                         <p className="text-sm text-muted-foreground leading-relaxed mt-1">{pattern.description}</p>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        {/* Zigzag XABCD dibujado en código */}
+                        <div
+                          className="rounded-lg border border-border bg-muted/30 px-6 py-3"
+                          data-testid={`harmonic-figure-${pattern.id}`}
+                        >
+                          <HarmonicPatternFigure patternId={pattern.id} className="max-h-40" />
+                        </div>
                         {/* Fibonacci Ratios */}
                         <div>
                           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
