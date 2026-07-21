@@ -1303,6 +1303,15 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   PostgreSQL real: `?ref` → track → referido vinculado (`referred_by_id`) → cuenta para el afiliado
   (registrado + activo), idempotente. `#115` ya estaba en `main`; este trabajo va en **PR nuevo**.
 
+### 2026-07-21 (53) — Figuras XABCD para los 11 patrones ARMÓNICOS (cierra hueco de sesión 51)
+- ✅ **`HarmonicPatternFigure.jsx`**: zigzag X-A-B-C-D en código para los 11 armónicos
+  (Gartley/Butterfly/Bat/Crab/Cypher alcista+bajista + Shark con etiquetas O-X-A-B-C):
+  pivotes etiquetados (letras universales, 0 claves i18n), los 2 triángulos clásicos XAB/BCD con
+  relleno suave, punto D coloreado + flecha de la reversión esperada. Bajistas por espejo vertical.
+  Insertado en cada tarjeta de la pestaña Harmonic Patterns (que no tenía figura ninguna).
+- Verificado: build OK; smoke headless premium — 11/11 figuras renderizan, 0 pageerrors; captura
+  validada (Gartley alcista en "M" y bajista en "W" de libro).
+
 ### 2026-07-21 (52) — Patrones chartistas en VELAS JAPONESAS + tarjeta "simétricos vs distendidos"
 - **Petición**: al clicar un patrón, verlo en velas japonesas (las tarjetas se quedan en líneas);
   añadir la explicación de patrones simétricos vs distendidos (ensanchados).
