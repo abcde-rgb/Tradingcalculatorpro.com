@@ -1254,6 +1254,53 @@ confirmación.
 
 ---
 
+# LOTE 16 — Secciones 7 y 8: Price action avanzado + Smart Money/ICT ✅
+
+## 16A · Price action avanzado (60–80)
+> 2B/fade/Turtle Soup (60–62) ya en Lote 1.2 y 2; Fib confluence (78) en Lote 10.
+- **Wolfe Waves (#63):** 5 puntos; recta 1→3→5 proyecta la reversión; línea
+  objetivo (EPA) 1→4. ⚠️. **Three-Drive (#64):** 3 impulsos simétricos con Fib. ⚠️.
+- **Pitchfork de Andrews (#65) + Schiff (#66):** línea media desde 3 pivotes; el
+  precio **gravita a la mediana**. ⚠️ (anclaje subjetivo).
+- **Ross Hook (#67):** primer retroceso tras una ruptura; entrada al romper el
+  *hook*. 🔨. **1-2-3 reversal (#68):** rotura de tendencia + test + rotura del
+  punto 2. 🔨 (reusa swings).
+- **Hikkake (#69):** inside bar con falso rompimiento y giro. 🔨.
+- **NR7/NR4 (#70), ID/NR4 (#71):** barras de **rango más estrecho** (contracción
+  de volatilidad) → ruptura. 🔨.
+- **ORB (#72):** ruptura del rango de apertura. 🔧 (intradía).
+- **Key reversal / island (#73):** barras/islas de giro. 🔨.
+- **Taxonomía de gaps (#74) + relleno (#75):** breakaway/runaway/exhaustion +
+  probabilidad de relleno. 🔨.
+- **Wide Range Bar (#76):** barra de expansión. 🔨.
+- **Pivotes (#77):** `P=(H+L+C)/3`; `R1=2P−L`, `S1=2P−H`; `R2=P+(H−L)`,
+  `S2=P−(H−L)` (+ Camarilla/Woodie). 🔨.
+- **Measured Move / AB=CD (#79):** simetría `D = C + (B−A)`. 🔨.
+- **Armónicos (#80):** Gartley/Bat/Butterfly/Crab/Shark/Cypher = ratios Fib de
+  XABCD; **reusa `HarmonicPatternFigure`** ya construida. ⚠️.
+
+**Implementación.** Detectores en `price_action.py` (Ross Hook, 1-2-3, Hikkake,
+NR7, key reversal, gaps, WRB, pivotes, AB=CD); pitchfork/Wolfe/three-drive como
+**herramientas de dibujo** (⚠️). i18n por técnica.
+
+## 16B · Smart Money Concepts / ICT (81–86)
+> FVG (83) ya en el escáner; liquidity void/pool (84) y OTE (86) en Lote 2.
+- **Order Block (#81):** última vela **opuesta** antes de un desplazamiento fuerte
+  (última roja antes de un impulso alcista = OB alcista) → zona de órdenes
+  institucionales. ⚠️.
+- **Breaker Block (#82):** un order block **fallido** que el precio rompe y
+  retesta desde el otro lado. ⚠️.
+- **Quasimodo / QM (#85):** estructura tipo H-C-H donde el hombro derecho **rompe**
+  el izquierdo → reversión en el "nivel QM". ⚠️.
+
+**Implementación.** Detectores en `smc.py` (order block, breaker, QM) reusando
+swings + el detector de displacement/FVG del Lote 2. i18n `orderBlock, breaker,
+quasimodo`.
+**Honestidad.** SMC/ICT es **popular pero discrecional**; el mecanismo (liquidez +
+displacement) es real, las etiquetas hay que **validarlas vivas** con estadística.
+
+---
+
 ## 🏁 Catálogo completo especificado
 Con el Lote 15, **las 31 secciones / 313 técnicas están detalladas** como spec
 implementable. Próximo paso natural: **construir** empezando por la Fase 1 (1.1
@@ -1271,8 +1318,8 @@ Volume Profile y 1.2 detector de falso rompimiento, ambas 🔨 sin intradía).
 | 4. DeMark | 38–43 | ✅ Lote 15 (TD Seq en 1.4) |
 | 5. Amplitud/internals | 44–53 | ✅ Lote 6 |
 | 6. Intermercado/RS | 54–59 | ✅ Lote 6 |
-| 7. Price action avanzado | 60–80 | 🟡 parcial *(falso rompimiento en 1.2)* |
-| 8. Smart Money/ICT | 81–86 | ⏳ pendiente |
+| 7. Price action avanzado | 60–80 | ✅ Lote 16 (2B/spring en 1.2/2) |
+| 8. Smart Money/ICT | 81–86 | ✅ Lote 16 (FVG/OTE en 2) |
 | 9. Volumen | 87–97 | ✅ Lote 11 (VSA en 1.5) |
 | 10. Volatilidad/canales | 98–104 | ✅ Lote 7 |
 | 11. Gráficos anti-ruido | 105–110 | ✅ Lote 7 |
