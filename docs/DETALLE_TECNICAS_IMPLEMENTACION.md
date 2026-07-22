@@ -699,6 +699,76 @@ no señal de timing.
 
 ---
 
+# LOTE 7 — Secciones 10 y 11: Volatilidad/canales + Gráficos anti-ruido ✅ detallado
+
+## 7A · Volatilidad y canales (98–104) — todo 🔨 sobre OHLCV
+
+**Fórmulas base.**
+- **Bollinger:** `media = SMA(20)`; `sup/inf = media ± 2·stdev(20)`.
+- **Keltner:** `media = EMA(20)`; `sup/inf = media ± m·ATR(10)` (m≈1,5–2).
+- **Donchian(N):** `sup = max(high, N)`, `inf = min(low, N)`.
+
+**Técnicas.**
+- **Bollinger Squeeze (#98):** `bandwidth = (sup − inf)/media`. **Squeeze** =
+  bandwidth en **mínimo de N periodos** (p. ej. 6 meses) → contracción de
+  volatilidad → **expansión inminente**; operas la **dirección de la ruptura**.
+- **%B + divergencia (#99):** `%B = (precio − inf)/(sup − inf)`. `>1` sobre la
+  banda, `<0` bajo ella. **M-top/W-bottom** de Bollinger = precio nuevo máximo
+  pero **%B máximo más bajo** → divergencia.
+- **TTM Squeeze (#100, Carter):** *squeeze ON* cuando **las Bollinger están
+  DENTRO de las Keltner** (baja volatilidad); **dispara** al salir las BB fuera
+  de las KC. Histograma de momentum (regresión del precio vs su media) = dirección.
+- **Donchian breakout (#101, Turtles):** entrada al cerrar fuera del canal de 20;
+  salida con canal de 10.
+- **Chandelier Exit (#102):** stop largo = `max(high,22) − 3·ATR(22)`; corto =
+  `min(low,22) + 3·ATR(22)`. Trailing (en largos solo sube).
+- **VCP (#103, Minervini):** serie de **retrocesos cada vez más estrechos**
+  (p. ej. 25% → 15% → 8%) con **volumen secándose** → punto pivote de compra en
+  el máximo de la zona más ajustada.
+- **Keltner Channels (#104):** canal de EMA ± ATR; tendencia = fuera del canal.
+
+**Ejemplos.**
+- **Squeeze:** SMA20=100, stdev=2 → sup 104, inf 96, `bandwidth = 8/100 = 0,08`.
+  Si es el menor en 6 meses → squeeze; ruptura sobre 104 = largo.
+- **%B:** precio 103, inf 96, sup 104 → `%B = 7/8 = 0,875`.
+- **Chandelier:** `max(high,22)=130`, `ATR22=3` → stop largo `130 − 9 = 121`.
+
+**Implementación.** Funciones puras en `indicators.py` (rolling); overlay de
+bandas/canales en el gráfico + **puntos de squeeze** bajo el precio; VCP como
+badge en el escáner. i18n `bbSqueeze, pctB, ttmSqueeze, donchian, chandelier,
+vcp` ×8. Estadística viva: % de rupturas de squeeze que siguieron en la dirección.
+
+**Honestidad.** Las bandas son **envolventes de volatilidad**, no señales por sí
+solas; el squeeze predice **expansión, no dirección**. VCP es algo interpretativo.
+
+## 7B · Gráficos que filtran ruido (105–110) — 🔨 (transforman OHLCV)
+
+Son **modos de render alternativos** que quitan tiempo/ruido:
+- **Point & Figure (#105):** columnas **X** (sube) / **O** (baja), `box` y
+  `reversal` (N cajas). Ignora tiempo; da conteos de objetivo (ver Lote 3.10) y
+  patrones (double top/bottom breakout, catapulta).
+- **Renko (#106):** **ladrillos** de tamaño fijo (o por ATR); ladrillo nuevo solo
+  si el precio se mueve ≥ tamaño. Aísla la tendencia.
+- **Kagi (#107):** línea que **invierte** con un *reversal amount*; cambia de
+  **grosor** (yang/yin) al romper el máximo/mínimo previo.
+- **Three-Line Break (#108):** línea nueva solo si el precio supera el extremo de
+  las **3** líneas previas; revertir exige romper 3 líneas.
+- **Heikin-Ashi (#109):** velas promediadas (fórmulas en
+  `APRENDER_ICHIMOKU_PROFUNDO_Y_ESCUELA_RUSA.md` §4).
+- **Range bars (#110):** barra nueva cada rango de precio fijo, sin tiempo.
+
+**Implementación.** Funciones `to_pnf / to_renko / to_kagi / to_three_line /
+to_heikin_ashi / to_range_bars(rows, params)` que devuelven series listas para
+dibujar; **selector de tipo de gráfico** en el componente del chart. i18n
+`chartTypePnf, chartTypeRenko, chartTypeKagi, chartType3lb, chartTypeHA,
+chartTypeRange`.
+
+**Honestidad.** Filtran ruido **a cambio de ocultar tiempo y volumen** y de
+**retardo**; el último ladrillo/línea puede "repintar" hasta confirmarse. Son
+lente de tendencia, no máquinas de señales.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -712,8 +782,8 @@ no señal de timing.
 | 7. Price action avanzado | 60–80 | 🟡 parcial *(falso rompimiento en 1.2)* |
 | 8. Smart Money/ICT | 81–86 | ⏳ pendiente |
 | 9. Volumen | 87–97 | 🟡 parcial *(VSA en 1.5)* |
-| 10. Volatilidad/canales | 98–104 | ⏳ pendiente |
-| 11. Gráficos anti-ruido | 105–110 | ⏳ pendiente |
+| 10. Volatilidad/canales | 98–104 | ✅ Lote 7 |
+| 11. Gráficos anti-ruido | 105–110 | ✅ Lote 7 |
 | 12. Medias/tendencia | 111–117 | ⏳ pendiente *(Ichimoku en doc aparte)* |
 | 13. Ehlers/DSP | 118–122 | ⏳ pendiente |
 | 14. Osciladores | 123–135 | ⏳ pendiente |
@@ -741,8 +811,9 @@ no señal de timing.
 - ~~Lote 4: Order flow (29–37)~~ ✅ hecho (cripto en vivo).
 - ~~Lote 5: Chartismo clásico (139–156)~~ ✅ hecho.
 - ~~Lote 6: Amplitud/internals (44–53) e intermercado/RS (54–59)~~ ✅ hecho.
-- **Lote 7 (siguiente):** Volatilidad/canales (98–104) y gráficos anti-ruido (105–110).
-- **Lote 8+:** el resto por prioridad de construcción.
+- ~~Lote 7: Volatilidad/canales (98–104) y gráficos anti-ruido (105–110)~~ ✅ hecho.
+- **Lote 8 (siguiente):** Medias/tendencia (111–117) y Ehlers/DSP (118–122).
+- **Lote 9+:** el resto por prioridad de construcción.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
