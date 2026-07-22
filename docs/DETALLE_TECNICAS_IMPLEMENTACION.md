@@ -632,6 +632,73 @@ no da dirección: espera la ruptura. Mostrar confianza + muestra, nunca "esto va
 
 ---
 
+# LOTE 6 — Secciones 5 y 6: Amplitud/internals + Intermercado/RS ✅ detallado
+
+## 6A · Amplitud de mercado / internals (44–53)
+
+**Nota de datos.** La amplitud **no** sale de un solo símbolo: necesita el
+**universo del índice** (avances/descensos, nuevos máx/mín, % sobre MM200 de
+todos sus componentes) o símbolos de amplitud ($ADD/$TRIN/$ADVN…). 🔧 Es una
+herramienta de **nivel de mercado**, no por activo.
+
+**Fórmulas.**
+- **A-D Line (#44):** suma acumulada de `(avances − descensos)` diarios.
+- **McClellan Oscillator (#45):** `EMA19(net) − EMA39(net)`, con
+  `net = (avances − descensos)` (mejor ratio-ajustado `(a−d)/(a+d)·1000`).
+- **McClellan Summation Index (#46):** suma acumulada del McClellan Oscillator.
+- **TRIN/Arms (#47):** `(avances/descensos) / (vol_av/vol_desc)`. `>1` presión
+  vendedora, `<1` compradora; **extremos = reversión**.
+- **Nuevos Máx − Mín (#48):** neto de nuevos máximos de 52 semanas.
+- **% sobre MM200 (#49):** amplitud de la tendencia (participación).
+- **A-D Volume line (#50):** acumulado de `(vol subida − vol bajada)`.
+- **Zweig Breadth Thrust (#51):** EMA10 de `avances/(avances+descensos)` pasa de
+  `<40%` a `>61,5%` en **≤10 días** → **rarísimo y muy alcista**.
+- **Hindenburg Omen (#52):** **muchos** nuevos máximos **Y** mínimos a la vez
+  (>2,2% cada uno) + filtros → aviso de techo. ⚠️ Muchos falsos positivos.
+- **Divergencia de amplitud (#53):** índice hace **nuevo máximo** pero la A-D
+  Line / % sobre MM200 **no** → internals débiles, techo probable.
+
+**Implementación.** `breadth.py` que calcula sobre el universo (traer
+constituyentes + su avance/descenso) o ingiere símbolos de amplitud. Endpoint
+`/education/breadth?index=SPX`. Frontend: **dashboard de amplitud** (separado del
+escáner por activo) con McClellan, A-D, TRIN, nuevos máx/mín y alertas de
+divergencia. i18n `brAdLine, brMcclellan, brTrin, brThrust, brDivergence`.
+
+**Honestidad.** Es para **timing de índices** (grandes techos/suelos), no por
+activo; necesita universo. Hindenburg y Zweig son **raros**: mostrar frecuencia
+histórica.
+
+## 6B · Intermercado y fuerza relativa (54–59)
+
+**Nota de datos.** Necesita **varios símbolos** (bonos, sectores, dólar) → varias
+llamadas a `get_ohlc_history`. Mayormente 🔨/🔧.
+
+**Fórmulas/definiciones.**
+- **RS line (#55):** `precio(activo) / precio(benchmark)`. Sube = **bate** al
+  benchmark. (No confundir con RSI.)
+- **RRG (#56):** dos ejes — **RS-Ratio** (fuerza relativa normalizada) y
+  **RS-Momentum** (momentum de esa fuerza) → 4 cuadrantes:
+  **Leading / Weakening / Lagging / Improving**. Mapa de **rotación** de sectores.
+- **Ratio charts (#57):** `A/B` como termómetro: **cobre/oro** (riesgo),
+  **acciones/bonos**, **SPX/oro**.
+- **Curva de tipos (#58):** spread **10a−2a**; inversión → régimen de recesión →
+  filtro **risk-off** para renta variable.
+- **Spreads de crédito (#59):** **HYG/LQD** o el spread high-yield; ensanchándose
+  = **risk-off**.
+- **Intermercado clásico (#54, Murphy):** dólar↓→materias↑; bonos y acciones
+  suben juntos hasta el fin de ciclo; etc.
+
+**Implementación.** `intermarket.py`: ratios/RS desde múltiples OHLCV; RRG con
+benchmark + universo. Frontend: **overlay de RS line**, tarjeta de ratio chart,
+**gráfico RRG de cuadrantes** y un **badge de "régimen de mercado"** (curva de
+tipos + crédito: risk-on/off). i18n `imRs, imRrg, imRatio, imRegime`.
+
+**Honestidad.** Las relaciones intermercado **cambian según el ciclo**; la RS es
+**relativa** (puede subir en un mercado que cae). El RRG es **mapa de rotación**,
+no señal de timing.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -640,8 +707,8 @@ no da dirección: espera la ruptura. Mostrar confianza + muestra, nunca "esto va
 | 2. Volume/Market Profile | 13–28 | 🟡 parcial *(POC/VA/naked en 1.1; AVWAP en 1.3)* |
 | 3. Order flow | 29–37 | ✅ Lote 4 (cripto en vivo; resto lección) |
 | 4. DeMark | 38–43 | 🟡 parcial *(TD Sequential en 1.4)* |
-| 5. Amplitud/internals | 44–53 | ⏳ pendiente |
-| 6. Intermercado/RS | 54–59 | ⏳ pendiente |
+| 5. Amplitud/internals | 44–53 | ✅ Lote 6 |
+| 6. Intermercado/RS | 54–59 | ✅ Lote 6 |
 | 7. Price action avanzado | 60–80 | 🟡 parcial *(falso rompimiento en 1.2)* |
 | 8. Smart Money/ICT | 81–86 | ⏳ pendiente |
 | 9. Volumen | 87–97 | 🟡 parcial *(VSA en 1.5)* |
@@ -673,8 +740,9 @@ no da dirección: espera la ruptura. Mostrar confianza + muestra, nunca "esto va
 - ~~Lote 3: Wyckoff (1–12)~~ ✅ hecho.
 - ~~Lote 4: Order flow (29–37)~~ ✅ hecho (cripto en vivo).
 - ~~Lote 5: Chartismo clásico (139–156)~~ ✅ hecho.
-- **Lote 6 (siguiente):** Amplitud/internals (44–53) e intermercado/RS (54–59).
-- **Lote 7+:** el resto por prioridad de construcción.
+- ~~Lote 6: Amplitud/internals (44–53) e intermercado/RS (54–59)~~ ✅ hecho.
+- **Lote 7 (siguiente):** Volatilidad/canales (98–104) y gráficos anti-ruido (105–110).
+- **Lote 8+:** el resto por prioridad de construcción.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
