@@ -1007,6 +1007,69 @@ aperturas necesitan intradía. Ejemplo gap: +2% de apertura; si a los 30 min sig
 
 ---
 
+# LOTE 12 — Secciones 19 y 21: Medias avanzadas + Estadística cuantitativa ✅ detallado
+
+## 12A · Medias móviles avanzadas (176–186) — 🔨
+
+- **MACD (#176, Appel):** `MACD = EMA12 − EMA26`; `señal = EMA9(MACD)`;
+  `histograma = MACD − señal`. Cruce de señal, cruce de **cero**, **divergencia**
+  del histograma.
+- **DEMA / TEMA (#177, Mulloy):** `DEMA = 2·EMA − EMA(EMA)`;
+  `TEMA = 3·EMA − 3·EMA(EMA) + EMA(EMA(EMA))` → menos retardo.
+- **T3 (#178, Tillson):** DEMA generalizada con factor de volumen (0,7): suave +
+  responsiva.
+- **VIDYA (#179, Chande):** EMA cuyo suavizado escala con la **volatilidad/CMO**
+  → rápida en tendencia.
+- **ALMA (#180):** media con pesos **gaussianos** (offset + sigma) → suave con
+  poco retardo.
+- **Zero-Lag EMA (#181):** `EMA(precio + (precio − precio[lag]))` para cancelar
+  el retardo.
+- **FRAMA (#182, Ehlers):** EMA cuyo `alpha` se adapta a la **dimensión fractal**.
+- **Jurik MA (#183):** filtro adaptativo de bajo retardo (aprox.).
+- **MA ribbon (#184):** muchas MAs; **abanico abierto** = tendencia, **enredadas**
+  = rango.
+- **Pendiente/ángulo de MA (#185):** derivada de la MA como filtro de tendencia.
+- **Envelopes (#186):** `MA ± %` (p. ej. ±3%).
+
+**Implementación.** `indicators.py` puras; overlays + histograma MACD.
+**Honestidad.** Reducen retardo, no lo eliminan; los cruces **dan sierra en rango**.
+
+## 12B · Estadística cuantitativa replicable (200–210) — 🔨
+
+- **Z-score (#200):** `z = (precio − media(n))/stdev(n)`; `|z|>2` = extremo →
+  banda de reversión. Ej.: precio 110, media 100, stdev 5 → `z = 2`.
+- **Exponente de Hurst (#201):** R/S; `H>0,5` persistente (tendencia), `H<0,5`
+  reversión, `H≈0,5` aleatorio. **Filtro de régimen.** Ej.: `H=0,6` = tiende.
+- **Autocorrelación (#202):** correlación del retorno con su rezago; `+` momentum,
+  `−` reversión.
+- **Volatilidad histórica — percentil (#203):** rankea la HV actual (stdev de
+  retornos anualizada) vs su historia → régimen de vol alta/baja.
+- **IV Rank / IV Percentile (#204):** `(IV − min)/(max − min)` a 1 año; percentil
+  = % de días con IV inferior. Para **timing de opciones** (vender prima con IV
+  rank alto). 🔧 (tu módulo de opciones). Ej.: IV 30 en rango 15–45 → **rank 50%**.
+- **Matriz de correlación (#205):** correlación por pares de retornos → cobertura /
+  candidatos a pairs.
+- **Beta (#206):** `cov(activo, índice)/var(índice)`.
+- **Pairs — z-score del spread (#207):** `spread = A − β·B` (o log-ratio); entra
+  con `|z|>2`, sale en `z=0`. Ej.: `z=2,5` → corto A / largo B.
+- **Cointegración (#208):** test (ADF sobre residuos / Johansen) de que una combo
+  es **estacionaria** → spread operable; + *half-life* OU.
+- **Ranking rotacional por RS (#209):** rankea el universo por momentum/RS; mantén
+  el top N y rota periódicamente.
+- **Desviación respecto a la MM % (#210):** `(precio − MA)/MA·100`; estirón
+  extremo = candidato a reversión. Ej.: precio 110, MA200 100 → **+10%**.
+
+**Implementación.** `quant.py` puras; z-score/HV-percentil/desviación como
+paneles + badge de régimen (Hurst); **mapa de calor** de correlación; herramienta
+de **pairs** (2 símbolos → z-score del spread); IV rank enlazado a opciones. i18n
+`zscore, hurst, autocorr, hvPercentile, ivRank, corrMatrix, beta, pairsZ,
+cointegration, rsRank, maDeviation`.
+**Honestidad.** La reversión a la media funciona en **rango, no en tendencia** (el
+z extremo **persiste** en tendencia); Hurst/autocorrelación son estimaciones de
+ventana; pairs/cointegración **se rompen** cuando la relación cambia → re-testear.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -1029,9 +1092,9 @@ aperturas necesitan intradía. Ejemplo gap: +2% de apertura; si a los 30 min sig
 | 16. Chartismo clásico | 139–156 | ✅ Lote 5 |
 | 17. Líneas/canales/regresión | 157–169 | ✅ Lote 10 |
 | 18. Fibonacci | 170–175 | ✅ Lote 10 |
-| 19. Medias avanzadas | 176–186 | ⏳ pendiente |
+| 19. Medias avanzadas | 176–186 | ✅ Lote 12 |
 | 20. Momentum/régimen | 187–199 | ✅ Lote 9 |
-| 21. Estadística cuant | 200–210 | ⏳ pendiente |
+| 21. Estadística cuant | 200–210 | ✅ Lote 12 |
 | 22. Niveles por sesión | 211–217 | ✅ Lote 11 |
 | 23. P&F avanzado | 218–220 | ⏳ pendiente |
 | 24. Sentimiento | 221–225 | ⏳ pendiente |
@@ -1054,8 +1117,9 @@ aperturas necesitan intradía. Ejemplo gap: +2% de apertura; si a los 30 min sig
 - ~~Lote 9: Osciladores olvidados (123–135) y Momentum/régimen (187–199)~~ ✅ hecho.
 - ~~Lote 10: Líneas/canales/regresión (157–169) y Fibonacci (170–175)~~ ✅ hecho.
 - ~~Lote 11: Volumen (87–97) y Niveles por sesión (211–217)~~ ✅ hecho.
-- **Lote 12 (siguiente):** Medias avanzadas (176–186) y Estadística cuant (200–210).
-- **Lote 13+:** el resto por prioridad de construcción.
+- ~~Lote 12: Medias avanzadas (176–186) y Estadística cuant (200–210)~~ ✅ hecho.
+- **Lote 13 (siguiente):** Cuant/algoritmos (263–284) e Intradía hora/minuto (285–300).
+- **Lote 14+:** el resto (nacionalidad 241–262; ciclos, P&F, sentimiento, Ehlers+).
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
