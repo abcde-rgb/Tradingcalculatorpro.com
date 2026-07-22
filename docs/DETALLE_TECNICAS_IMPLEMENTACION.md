@@ -1070,6 +1070,74 @@ ventana; pairs/cointegración **se rompen** cuando la relación cambia → re-te
 
 ---
 
+# LOTE 13 — Secciones 29 y 30: Cuant/algoritmos + Intradía hora/minuto ✅ detallado
+
+## 13A · Ingeniería cuantitativa (263–284)
+
+> **Realismo.** Para una web retail, el subconjunto **útil y construible** es el
+> de **régimen, etiquetado y robustez**; las de **ejecución/microestructura** son
+> **lección**, no herramienta live. Muchas ⚠️ por **sobreajuste**.
+
+- **Régimen/estado (🔨/🔧):** **Kalman (#263)** = media/hedge adaptativos;
+  **HMM (#264)** = estados alcista/bajista/alta-vol; **GARCH (#267)** = pronóstico
+  de volatilidad; **entropía/sample entropy (#284)** = predictibilidad;
+  **wavelet/EMD (#265,266)** = descomposición multiescala (⚠️).
+- **Reversión/pairs (🔨):** **Ornstein-Uhlenbeck + half-life (#268)**;
+  **cointegración Johansen (#269)** *(cf. #208)*; **PCA/eigenportfolios (#270)**;
+  **stat-arb Avellaneda-Lee (#271)** sobre residuos de PCA (🔧).
+- **ML honesto — López de Prado (🔨):** **fractional differentiation (#272)**
+  (estacionaria sin perder memoria), **triple-barrier + meta-labeling (#273)**,
+  **purged/embargoed CV (#274)** (evita fuga de datos), **CUSUM (#275)**
+  (change-point). Estas **valen para no auto-engañarse** con ML.
+- **Microestructura/ejecución (lección, 🔧):** **VPIN (#276)** (toxicidad del
+  flujo, avisó del flash crash), **Kyle's lambda / Roll (#277)** (impacto/coste),
+  **Almgren-Chriss (#278)** (ejecución óptima), **Avellaneda-Stoikov (#279)**
+  (market making).
+- **Robustez/filtros (🔨):** **Monte Carlo + walk-forward (#280)** (test fuera de
+  muestra), **Savitzky-Golay / Butterworth (#283)** (suavizado poco-retardo),
+  **Ed Thorp + Kelly (#282)** (stat-arb + tamaño de apuesta). **ML: gradient
+  boosting / LSTM / RL (#281)** ⚠️ solo con la disciplina de López de Prado.
+
+**Implementación.** `quant_advanced.py` (Kalman/HMM/GARCH/OU/PCA/fracdiff/CUSUM
+puras) + utilidades de backtest (Monte Carlo, walk-forward, purged CV). Las de
+ejecución van como **lecciones** con simulación, no como señales. i18n mínimo por
+técnica. **Honestidad:** el 90% del valor retail está en **régimen + no
+sobreajustar + robustez**; el resto es cultura cuant, no una imprenta.
+
+## 13B · Anomalías intradía por hora/minuto (285–300)
+
+**Enfoque unificado.** Un **motor de estadística por franja horaria**: dado
+intradía, calcula el **retorno/volatilidad medios por bucket** (p. ej. cada 30
+min) y la **tasa de acierto viva** de cada anomalía por activo. Casi todas 🔧
+(intradía) y **dependen de la zona horaria**.
+
+| # | Anomalía | Hora exacta | Nota |
+|---|---|---|---|
+| 285 | Forma en U vol/volumen | apertura/cierre altos, mediodía bajo | Admati-Pfleiderer |
+| 286 | **Momentum intradía** 1ª→última ½h | primera vs última media hora | Gao et al. 2018 |
+| 287 | Rampa de cierre / MOC | 15:30–16:00 ET | rebalanceo ETFs |
+| 288 | Amateur hour + reversión | ~10:00 ET | fade de la apertura |
+| 289 | Power hour | 15:00–16:00 ET | reanudación |
+| 290 | Lunch lull | 12:00–13:00 ET | mínima liquidez |
+| 291 | Spikes de datos | 08:30 / 10:00 ET | salto en el segundo exacto |
+| 292 | Clustering algorítmico | :00 y :30 | TWAP/VWAP |
+| 293 | Triple witching | 3er viernes trimestral, cierre | 🔨 (fecha) |
+| 294 | Gotobi USD/JPY | fix Tokio 09:55 JST | días 5/0 |
+| 295 | London 4pm fix | 16:00 Londres | benchmark WM/Reuters |
+| 296 | Aperturas FX | Londres 08:00 / NY 08:00 ET | solapamiento |
+| 297 | Funding cripto | 00:00 / 08:00 / 16:00 UTC | settlement perpetuos |
+| 298 | CME BTC gap fill | viernes→domingo | 🔨 (diario) |
+| 299 | Cierre vela cripto | 00:00 UTC | referencia |
+| 300 | Overnight vs intradía | noche vs día | 🔨; casi todo el retorno es nocturno |
+
+**Implementación.** `intraday_stats.py`: agrupa por franja, media/volatilidad y
+tasa de acierto; **calendario** para witching/datos/Gotobi; overlay de franjas +
+tabla de estadística viva. i18n por anomalía. **Honestidad:** son edges de
+**contexto/ejecución** que **decaen**; verifícalos vivos por activo, no operes el
+reloj a ciegas. (La clase "barrido+reversión" está en el Lote 2.)
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -1102,8 +1170,8 @@ ventana; pairs/cointegración **se rompen** cuando la relación cambia → re-te
 | 26. Escuela japonesa | 231–236 | ✅ doc aparte (Ichimoku) |
 | 27. Escuela rusa | 237–240 | ✅ doc aparte |
 | 28. Por nacionalidad | 241–262 | ⏳ pendiente |
-| 29. Cuant/algoritmos | 263–284 | ⏳ pendiente |
-| 30. Intradía hora/minuto | 285–300 | ⏳ pendiente |
+| 29. Cuant/algoritmos | 263–284 | ✅ Lote 13 |
+| 30. Intradía hora/minuto | 285–300 | ✅ Lote 13 |
 | 31. Barridos/Judas swing | 301–313 | ✅ Lote 2 |
 
 ## Orden propuesto de los siguientes lotes
@@ -1118,8 +1186,9 @@ ventana; pairs/cointegración **se rompen** cuando la relación cambia → re-te
 - ~~Lote 10: Líneas/canales/regresión (157–169) y Fibonacci (170–175)~~ ✅ hecho.
 - ~~Lote 11: Volumen (87–97) y Niveles por sesión (211–217)~~ ✅ hecho.
 - ~~Lote 12: Medias avanzadas (176–186) y Estadística cuant (200–210)~~ ✅ hecho.
-- **Lote 13 (siguiente):** Cuant/algoritmos (263–284) e Intradía hora/minuto (285–300).
-- **Lote 14+:** el resto (nacionalidad 241–262; ciclos, P&F, sentimiento, Ehlers+).
+- ~~Lote 13: Cuant/algoritmos (263–284) e Intradía hora/minuto (285–300)~~ ✅ hecho.
+- **Lote 14 (siguiente):** Por nacionalidad (241–262) + secciones cortas (ciclos 136–138, P&F 218–220, sentimiento 221–225, Ehlers+ 226–230).
+- **Lote 15 (final):** cerrar restos de secciones 2 y 4.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
