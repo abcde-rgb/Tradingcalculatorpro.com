@@ -956,6 +956,57 @@ fibArc, fibChannel`.
 
 ---
 
+# LOTE 11 — Secciones 9 y 22: Volumen + Niveles por sesión ✅ detallado
+
+## 11A · Volumen (87–97) — 🔨 (VSA #87-90 ya en Lote 1.5)
+
+- **OBV (#91, Granville):** total corrido `+vol` si `close>close_prev`, `−vol` si
+  `<`. **Divergencia:** precio sube, OBV baja = débil.
+- **A/D Line (#92, Chaikin):** `MFM = ((close−low)−(high−close))/(high−low)`;
+  `MFV = MFM·vol`; A/D = suma acumulada. Mide **dónde cierra dentro del rango**.
+  Ej.: cierre pegado al máximo → MFM≈+1 → acumulación.
+- **Chaikin Money Flow (#93):** `Σ(MFV,20)/Σ(vol,20)`; `>0` acumulación.
+- **Money Flow Index (#94):** RSI del **money flow** (typical·vol) → RSI
+  ponderado por volumen; sobrecompra/venta + divergencias.
+- **Ease of Movement (#95, Arms):** `EMV = (mediano − mediano_prev)/(vol/(high−low))`;
+  alto = el precio se mueve **fácil con poco volumen**.
+- **NVI / PVI (#96, Fosback):** **NVI** cambia solo en días de **volumen bajo**
+  ("dinero listo"); **PVI** en días de volumen alto (multitud). `NVI > su EMA255`
+  = alta probabilidad de mercado alcista.
+- **Klinger Volume Oscillator (#97):** fuerza de volumen `EMA34 − EMA55` + señal;
+  flujo de dinero de largo plazo.
+
+**Implementación.** `volume_indicators.py` (todas puras); paneles + divergencias.
+i18n `obv, adLine, cmf, mfi, emv, nvi, klinger`.
+**Honestidad.** Necesitan **volumen fiable** (forex spot = parcial → menos válido).
+
+## 11B · Niveles de referencia por sesión (211–217)
+
+- **PDH/PDL (#211):** máximo/mínimo del **día previo** → imanes y niveles de
+  ruptura/reversión intradía. 🔨 (del diario).
+- **PWH/PWL (#212):** extremos de la **semana previa**. 🔨.
+- **Apertura semanal/mensual (#213):** el *open* del periodo como **pivote**;
+  por encima = sesgo alcista del periodo. 🔨.
+- **Números redondos / 00 (#214):** niveles psicológicos donde se agrupan stops. 🔨.
+- **Rango de la 1ª hora (IB) + 50% del rango previo (#215):** el máx/mín de la
+  primera hora define el **Initial Balance**; su ruptura y el 50% del rango del
+  día previo como pivote. 🔧 (intradía).
+- **Aperturas de sesión (#216):** **Londres 08:00 local** y **NY 09:30 ET** =
+  estallidos de volatilidad; estrategias de rango de apertura. 🔧.
+- **Gap-and-go vs gap-fade (#217):** clasifica el gap matinal: **aguanta y
+  continúa** (go) vs **rellena** al cierre previo (fade). Estadística por tamaño
+  de gap. 🔨 (diario) / 🔧 (intradía fino).
+
+**Implementación.** `session_levels.py`: PDH/PDL/PWH/PWL/open semanal/redondos y
+clasificación de gaps desde diario; IB/aperturas desde intradía. Overlay de
+**líneas de referencia** + badge de gap. i18n `pdhPdl, pwhPwl, weekOpen,
+roundNumber, initialBalance, gapGo, gapFade`.
+**Honestidad.** Son **niveles de referencia**, no señales por sí solos; IB y
+aperturas necesitan intradía. Ejemplo gap: +2% de apertura; si a los 30 min sigue
+**sobre el cierre previo** → *gap-and-go*; si lo pierde → *fade*.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -968,7 +1019,7 @@ fibArc, fibChannel`.
 | 6. Intermercado/RS | 54–59 | ✅ Lote 6 |
 | 7. Price action avanzado | 60–80 | 🟡 parcial *(falso rompimiento en 1.2)* |
 | 8. Smart Money/ICT | 81–86 | ⏳ pendiente |
-| 9. Volumen | 87–97 | 🟡 parcial *(VSA en 1.5)* |
+| 9. Volumen | 87–97 | ✅ Lote 11 (VSA en 1.5) |
 | 10. Volatilidad/canales | 98–104 | ✅ Lote 7 |
 | 11. Gráficos anti-ruido | 105–110 | ✅ Lote 7 |
 | 12. Medias/tendencia | 111–117 | ✅ Lote 8 |
@@ -981,7 +1032,7 @@ fibArc, fibChannel`.
 | 19. Medias avanzadas | 176–186 | ⏳ pendiente |
 | 20. Momentum/régimen | 187–199 | ✅ Lote 9 |
 | 21. Estadística cuant | 200–210 | ⏳ pendiente |
-| 22. Niveles por sesión | 211–217 | ⏳ pendiente |
+| 22. Niveles por sesión | 211–217 | ✅ Lote 11 |
 | 23. P&F avanzado | 218–220 | ⏳ pendiente |
 | 24. Sentimiento | 221–225 | ⏳ pendiente |
 | 25. Ehlers adicional | 226–230 | ⏳ pendiente |
@@ -1002,8 +1053,9 @@ fibArc, fibChannel`.
 - ~~Lote 8: Medias/tendencia (111–117) y Ehlers/DSP (118–122)~~ ✅ hecho.
 - ~~Lote 9: Osciladores olvidados (123–135) y Momentum/régimen (187–199)~~ ✅ hecho.
 - ~~Lote 10: Líneas/canales/regresión (157–169) y Fibonacci (170–175)~~ ✅ hecho.
-- **Lote 11 (siguiente):** Volumen (87–97) y Niveles por sesión (211–217).
-- **Lote 12+:** el resto por prioridad de construcción.
+- ~~Lote 11: Volumen (87–97) y Niveles por sesión (211–217)~~ ✅ hecho.
+- **Lote 12 (siguiente):** Medias avanzadas (176–186) y Estadística cuant (200–210).
+- **Lote 13+:** el resto por prioridad de construcción.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
