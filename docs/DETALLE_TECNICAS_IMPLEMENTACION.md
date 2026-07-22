@@ -1301,6 +1301,51 @@ displacement) es real, las etiquetas hay que **validarlas vivas** con estadísti
 
 ---
 
+# LOTE 17 — Secciones 26 y 27: Escuela japonesa + rusa (spec de implementación) ✅
+> Didáctica en `APRENDER_ICHIMOKU_PROFUNDO_Y_ESCUELA_RUSA.md`; aquí, cómo
+> **construirlas**. (Ichimoku 5 líneas + Kumo ya en Lote 8A #111.)
+
+## 17A · Japonesa (231–236)
+- **Objetivos de precio N/V/E/NT (#234) — 🔨, la joya construible.** De 3 swings
+  A(mín)/B(máx)/C(retroceso): `N=C+(B−A)`, `V=B+(B−C)`, `E=B+(B−A)`, `NT=C+(C−A)`.
+  Auto-detecta A/B/C de los 3 últimos swings. **Backend** `ichimoku_targets(rows)`;
+  **overlay** de las 4 líneas objetivo. Ej.: A=100,B=120,C=112 → NT124·V128·N132·E140.
+- **Kihon suchi — contador de tiempo (#232) — 🔨.** Cuenta barras desde el último
+  swing significativo; **resalta** al llegar a 9/17/26/33/42/51/65/76; además
+  *taito suchi* = proyecta la duración del tramo previo. Badge "día candidato".
+- **Teoría de la onda (#233) — 🔨.** Clasifica la estructura reciente como
+  **I/V/N/P/Y** comparando amplitud y dirección de swings sucesivos.
+- **Sakata Goho (#231) — 🔨 (reusa detectores).** San-zan=triple techo,
+  San-sen=familia estrella (morning/evening), San-ku=tres huecos (agotamiento),
+  San-pei=tres soldados/cuervos, San-poh=pausa. Mapea a `candle_patterns` +
+  `chart_patterns`.
+- **Heikin-Ashi suavizado (#235) / Candle-volume (#236) — 🔨.** Modos de render:
+  `to_heikin_ashi_smoothed` (EMA pre y post) y `to_candle_volume` (ancho=volumen).
+
+**Implementación.** `ichimoku_advanced.py` (targets, kihon suchi, clasificador de
+onda). i18n `ichiTargets, kihonSuchi, ichiWave, sakata`.
+
+## 17B · Rusa (237–240)
+- **Sistema Triple Pantalla (#237) — 🔨.** 3 marcos vía `get_ohlc_history` con
+  distinto `interval`: **Pantalla 1** (superior) tendencia (pendiente MACD-hist /
+  EMA13) → dirección permitida; **Pantalla 2** (trabajo) **oscilador** (Force
+  Index/Estocástico) busca el retroceso; **Pantalla 3** (bajo) entrada con
+  buy/sell-stop. UI = **semáforo** por marco.
+- **SafeZone stop (#238) — 🔨.** Largos: `stop = low − coef·media(penetraciones
+  a la baja)`, coef 2–3. Función pura `safezone_stop(rows, coef, lookback)`.
+- **Análisis de clúster/footprint (#239) — 🔧.** Order flow → **cross-ref Lote 4**
+  (cripto en vivo con `isBuyerMaker`).
+- **Trading por niveles + estadística (#240) — 🔨.** Detecta niveles "duros"
+  (toque preciso + reacción vertical + nivel espejo) y un **panel de estadística**
+  (profit factor, win rate, R:R) enlazado a tu **diario**.
+
+**Implementación.** `triple_screen.py`, `safezone.py`, detector de niveles Gerchik
++ métricas del diario. i18n `tripleScreen, safezone, gerchikLevels`.
+**Honestidad.** Triple Pantalla y SafeZone son de las más sólidas (disciplina
+multi-marco / stop por ruido); Gerchik es **proceso**, no indicador mágico.
+
+---
+
 ## 🏁 Catálogo completo especificado
 Con el Lote 15, **las 31 secciones / 313 técnicas están detalladas** como spec
 implementable. Próximo paso natural: **construir** empezando por la Fase 1 (1.1
@@ -1337,8 +1382,8 @@ Volume Profile y 1.2 detector de falso rompimiento, ambas 🔨 sin intradía).
 | 23. P&F avanzado | 218–220 | ✅ Lote 14 |
 | 24. Sentimiento | 221–225 | ✅ Lote 14 |
 | 25. Ehlers adicional | 226–230 | ✅ Lote 14 |
-| 26. Escuela japonesa | 231–236 | ✅ doc aparte (Ichimoku) |
-| 27. Escuela rusa | 237–240 | ✅ doc aparte |
+| 26. Escuela japonesa | 231–236 | ✅ doc aparte + Lote 17 (spec) |
+| 27. Escuela rusa | 237–240 | ✅ doc aparte + Lote 17 (spec) |
 | 28. Por nacionalidad | 241–262 | ✅ Lote 14 |
 | 29. Cuant/algoritmos | 263–284 | ✅ Lote 13 |
 | 30. Intradía hora/minuto | 285–300 | ✅ Lote 13 |
