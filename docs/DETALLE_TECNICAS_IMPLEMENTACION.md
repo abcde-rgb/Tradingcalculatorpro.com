@@ -560,6 +560,78 @@ Mostrar siempre la muestra. **Barrido de liquidez (#36)** ya está en Lote 2.2.
 
 ---
 
+# LOTE 5 — Sección 16: Chartismo clásico (con objetivo medido) ✅ detallado
+
+## 5.1 · Enfoque unificado de detección
+Todos se detectan sobre **swings** (reusa `detect_swings`) + **ajuste de
+directrices** a máximos y mínimos:
+1. Extrae swings del periodo.
+2. Ajusta una recta a los **swing highs** y otra a los **swing lows** (regresión).
+3. **Clasifica por las pendientes:** ambas planas = **rectángulo**; techo plano +
+   mínimos subiendo = **triángulo ascendente**; suelo plano + máximos bajando =
+   **descendente**; convergentes = **simétrico**; divergentes = **broadening**;
+   ambas subiendo/convergiendo = **cuña**.
+4. Los de picos (**H&S**, **dobles/triples**) se detectan por el patrón de
+   swings (p. ej. 5 swings con el central más alto y valles ~iguales = H&S).
+5. **Objetivo medido** por la fórmula de cada patrón (tabla 5.2) y, opcional,
+   **confirmación de volumen** en la ruptura.
+
+## 5.2 · Tabla: geometría · sesgo · objetivo medido — #139-156
+| Patrón | Geometría (swings) | Sesgo | Objetivo medido | Nota |
+|---|---|---|---|---|
+| **H-C-H techo** | 3 picos, central mayor, valles ≈ (neckline) | bajista | `neckline − (cabeza − neckline)` | vol baja hacia hombro der.; falla ~4% |
+| **H-C-H inverso** | espejo | alcista | `neckline + (neckline − cabeza)` | ídem |
+| **Doble techo/suelo** | 2 extremos ≈ iguales | reversión | ruptura del pico/valle central `± altura` | *throwback* frecuente |
+| **Triple techo/suelo** | 3 extremos ≈ iguales | reversión | `± altura` | menos común, fiable |
+| **Cup & Handle** | U redonda + asa corta en mitad superior | alcista cont. | `ruptura + profundidad de la taza` | O'Neil; asa poco profunda |
+| **Rounding bottom** | cuenco redondo | alcista | `borde + profundidad` | volumen en cuenco |
+| **Banderas/gallardetes** | asta + consolidación corta contra-tendencia | continuación | `ruptura + altura del asta` | "media asta"; fiable si asta fuerte |
+| **High Tight Flag** | subida ≥90% en ~2 meses + bandera estrecha | alcista | `ruptura + altura` | Bulkowski: de las más fiables |
+| **Rectángulo** | 2 líneas horizontales | continuación | `ruptura ± altura` | |
+| **Triángulo ascendente** | techo plano + mínimos subiendo | alcista | `ruptura + altura` | vol baja hacia el ápice |
+| **Triángulo descendente** | suelo plano + máximos bajando | bajista | `ruptura − altura` | |
+| **Triángulo simétrico** | convergente | **ambiguo → romper** | `ruptura ± altura (parte ancha)` | dirección incierta |
+| **Cuña ascendente** | 2 líneas subiendo, convergen | bajista | retorno al inicio de la cuña | |
+| **Cuña descendente** | 2 líneas bajando, convergen | alcista | ídem | |
+| **Broadening/megáfono** | 2 líneas divergentes | reversión (difícil) | `altura en la ruptura` | poco fiable |
+| **Diamante** | broadening → convergente | reversión | `± altura` | raro |
+| **Bump-and-Run** | directriz *lead-in* 1x, *bump* 2-3x pendiente, rotura de la lead-in | reversión | vuelta a la lead-in/base | Bulkowski |
+| **V-spike** | giro brusco en V | reversión | — (difícil anticipar) | reactivo |
+| **Scallop** | J redondeada | continuación | según tipo | Bulkowski |
+| **Darvas Box** | cajas con techo/suelo estables | continuación alcista | ruptura de la caja; stop bajo la caja | Darvas |
+
+## 5.3 · Ejemplos de objetivo medido
+- **H-C-H techo:** hombro izq. 110, cabeza 120, hombro der. 111, **neckline 100**
+  → objetivo `100 − (120 − 100) = **80**`.
+- **Bandera alcista:** asta de 50 → 65 (**altura 15**), bandera 62–64, ruptura en
+  64 → objetivo `64 + 15 = **79**`.
+
+## 5.4 · Estadística de Bulkowski (qué mostrar)
+Por patrón: **tasa de fallo** (*break-even failure rate*), **movimiento medio**
+tras la ruptura, y **% de throwback/pullback**. Se muestran junto al patrón
+detectado, con la advertencia de que son **tasas históricas**, no promesas.
+
+## 5.5 · Implementación web
+- **Backend `chart_patterns.py`:** detector geométrico sobre swings →
+  `[{pattern, points, lines(neckline/trendlines), target, breakout, confidence,
+  bulkowski:{failRate, avgMove, throwback}}]`. Endpoint
+  `/education/chart-pattern-scan/{symbol}`.
+- **Frontend:** overlay de las líneas + objetivo en el gráfico; tarjeta con los
+  patrones detectados, objetivo y stat de Bulkowski; **reusa `ChartPatternFigure`**
+  (las 42 figuras SVG ya construidas) para la mini-ilustración.
+- **i18n ×8:** `cpTitle, cpTarget, cpBreakout, cpFailRate, cpNote`.
+- **Estadística viva:** % de veces que el precio **alcanzó el objetivo medido**
+  por patrón/activo; muestra.
+
+## 5.6 · Honestidad
+La detección de patrones es **ajuste geométrico** → hay **varios encajes
+válidos** (subjetividad inevitable). Las tasas de Bulkowski son **base histórica**.
+El objetivo medido se alcanza quizá la **mitad** de las veces. El **simétrico**
+no da dirección: espera la ruptura. Mostrar confianza + muestra, nunca "esto va a
+80 seguro".
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -579,7 +651,7 @@ Mostrar siempre la muestra. **Barrido de liquidez (#36)** ya está en Lote 2.2.
 | 13. Ehlers/DSP | 118–122 | ⏳ pendiente |
 | 14. Osciladores | 123–135 | ⏳ pendiente |
 | 15. Ciclos/tiempo | 136–138 | ⏳ pendiente |
-| 16. Chartismo clásico | 139–156 | ⏳ pendiente |
+| 16. Chartismo clásico | 139–156 | ✅ Lote 5 |
 | 17. Líneas/canales/regresión | 157–169 | ⏳ pendiente |
 | 18. Fibonacci | 170–175 | ⏳ pendiente |
 | 19. Medias avanzadas | 176–186 | ⏳ pendiente |
@@ -600,8 +672,8 @@ Mostrar siempre la muestra. **Barrido de liquidez (#36)** ya está en Lote 2.2.
 - ~~Lote 2: Sección 31 (Judas swing / barridos)~~ ✅ hecho.
 - ~~Lote 3: Wyckoff (1–12)~~ ✅ hecho.
 - ~~Lote 4: Order flow (29–37)~~ ✅ hecho (cripto en vivo).
-- **Lote 5 (siguiente):** Chartismo clásico (139–156) con objetivos medidos.
-- **Lote 6:** Amplitud/internals (44–53) e intermercado/RS (54–59).
+- ~~Lote 5: Chartismo clásico (139–156)~~ ✅ hecho.
+- **Lote 6 (siguiente):** Amplitud/internals (44–53) e intermercado/RS (54–59).
 - **Lote 7+:** el resto por prioridad de construcción.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
