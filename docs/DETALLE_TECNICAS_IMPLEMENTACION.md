@@ -184,11 +184,155 @@ volumen central (forex spot) baja su fiabilidad. Mostrar siempre la muestra.
 
 ---
 
+# LOTE 2 — Sección 31: Barridos de liquidez y reversión por sesión ✅ detallado
+
+## 2.1 · Marco: Power of 3 (AMD) y pools de liquidez — #302
+**Idea.** Cada sesión se descompone en **A**cumulación (se forma un rango, a
+menudo la sesión previa/asiática) → **M**anipulación (un empujón **falso** fuera
+del rango que **barre los stops obvios** = el *Judas swing*) → **D**istribución
+(el movimiento **real** hacia la liquidez contraria).
+
+**Pools de liquidez** = cúmulos de stops justo **más allá de niveles obvios**:
+máximo/mínimo del día previo (**PDH/PDL**), de la semana (**PWH/PWL**), del rango
+asiático o pre-market, **máximos/mínimos iguales** (dobles techos/suelos) y
+**números redondos**. Los algos los "cazan" antes del movimiento real porque ahí
+están las órdenes en reposo (el "combustible").
+
+**Base honesta.** Mecanismo documentado: *predatory trading*
+(Brunnermeier-Pedersen 2005), sobre-reacción y reversión de la apertura
+(Amihud-Mendelson; Stoll-Whaley) y reversión de corto plazo intradía.
+
+## 2.2 · Detector genérico "sweep + reversal" (el núcleo construible) — #301,305,311
+**Algoritmo (velas intradía con marca de tiempo por zona horaria):**
+1. **Niveles de referencia** de la sesión: PDH, PDL, PWH, PWL, extremos del
+   **rango asiático/pre-market**, números redondos.
+2. **Barrido (sweep):** una vela cuya **mecha** perfora el nivel (p. ej.
+   `high > PDH`) pero cuyo **cuerpo cierra de vuelta dentro** (`close < PDH`)
+   → caza de liquidez sobre ese pool.
+3. **Desplazamiento/reversión:** en **K velas**, un impulso fuerte en sentido
+   contrario que idealmente deja un **FVG** (imbalance) — **reusa el detector de
+   FVG que ya tiene `price_action`**.
+4. **Señal** = `{hora, nivel_barrido, dirección(=contraria al barrido),
+   zona_fvg, extremo_barrido}`.
+5. **Modelo para estadística:** entrada en el retroceso al FVG; stop más allá del
+   `extremo_barrido`; objetivo = pool de liquidez opuesto.
+6. **Filtro horario (opcional):** exigir que el barrido caiga en una *killzone*.
+
+**Datos.** Intradía (1m/5m/15m) con zona horaria 🔧.
+
+## 2.3 · Judas Swing (especialización en la apertura) — #301
+**Config.** Nivel = extremo del pre-market/overnight o PDH/PDL. Ventana = primeros
+**5–30 min** tras la apertura (**NY 09:30 ET**, **Londres 03:00 ET**,
+*midnight* **00:00 ET**).
+
+**Ejemplo minuto a minuto (NY open).** Pre-market high (PMH) = 5010.
+- 09:30 → la vela de 1 min pincha a **5012** (barre el PMH, caza stops) y cierra
+  **5008**.
+- 09:31 → vela bajista fuerte rompe **5005** y deja un **FVG 5005–5007**.
+- **Judas confirmado bajista.** Entrada en retroceso a **5006** (FVG), stop
+  **5013** (sobre el barrido), objetivo = PDL / liquidez inferior.
+
+## 2.4 · Killzones y Silver Bullet (capa de ventana horaria) — #303,304
+**Tabla de ventanas (zona del instrumento):** Londres **02:00–05:00 ET**,
+NY AM **07:00–10:00 ET**, **Silver Bullet 10:00–11:00 ET** (entrada en FVG tras
+el barrido), London Close **10:00–12:00 ET**, Asia **20:00–00:00 ET**.
+El detector **eleva** las señales dentro de estas ventanas.
+
+**Honestidad (clave).** Estas ventanas exactas son **folklore de ICT**: la
+herramienta debe **medir y mostrar la tasa de acierto real por ventana y activo**
+para que el usuario vea cuáles funcionan de verdad, en vez de creer el reloj.
+
+## 2.5 · Spike & fade en eventos y fixes — #307,308,309
+**Config.** Nivel = precio justo **antes** de un evento programado: datos
+**08:30 / 10:00 ET**, **London 4pm fix (16:00)**, **fix de Tokio 09:55 JST** en
+días Gotobi.
+**Regla.** Marca el precio pre-evento; mide el primer latigazo; **señala si el
+precio revierte** cruzando el precio pre-evento en **N minutos** ("fade").
+**Datos.** Intradía + calendario económico / horario de fixes 🔧.
+
+## 2.6 · Stop-run en números redondos — #311
+Nivel = redondos (…00, …50). Barrido = mecha más allá + cierre de vuelta;
+reversión como en 2.2. Detectable **aprox. con mechas en diario (🔨)** o exacto
+en intradía (🔧).
+
+## 2.7 · Implementación web unificada
+- **Backend:** módulo `liquidity_sweeps.py` con `detect_sweeps(bars, levels,
+  window)` puro; endpoint `/education/liquidity-scan/{symbol}?interval=5m&session=NY`.
+  Reusa el detector de FVG de `price_action`.
+- **Frontend:** panel "Barridos & reversiones" con la lista de barridos (hora,
+  nivel, dirección) + **tabla de tasa de acierto por killzone** (la estadística
+  honesta) + overlay opcional marcando barrido + FVG.
+- **i18n ×8:** `sweepTitle, sweepJudas, sweepKillzone, sweepFade, sweepNote`.
+- **Realidad del dato:** requiere intradía; Yahoo tiene histórico intradía
+  **limitado** y el sandbox lo **bloquea** → construir con capa de datos
+  **mockeable** y verificar con *fixtures* grabadas.
+- **Estadística viva:** por tipo de nivel y por killzone: % de barridos que
+  revirtieron X, MFE/MAE medio, muestra, peor racha.
+
+**Honestidad global.** El mecanismo es real; las **horas exactas hay que
+validarlas vivas**. Nunca operar el reloj a ciegas; mostrar siempre la muestra.
+
+---
+
+# LOTE 3 — Sección 1: Método Wyckoff ✅ detallado
+
+## 3.1 · Esquema de acumulación/distribución (fases A–E) + eventos — #3-9
+**Acumulación (suelo):**
+- **Fase A** (frena la bajada): **PS** (soporte preliminar), **SC** (*selling
+  climax*: vela bajista de **rango amplio + volumen clímax** que cierra en el
+  tercio superior), **AR** (*automatic rally*), **ST** (test secundario del SC
+  con **menos volumen**).
+- **Fase B** (construye causa): oscilación en el **rango (TR)**; lecturas de
+  esfuerzo/resultado.
+- **Fase C:** el **Spring** (barrido falso bajo el mínimo del TR — **reusa el
+  detector de falso rompimiento 1.2**) y su **Test**.
+- **Fase D:** **SOS** (*sign of strength*: velas alcistas de rango amplio y
+  volumen creciente que rompen la resistencia del TR), **LPS** (último punto de
+  soporte, retroceso más alto).
+- **Fase E:** markup fuera del rango.
+
+**Distribución (techo)** = espejo: **PSY, BC** (*buying climax*), AR, ST,
+**UT/UTAD** (upthrust — reusa detector), **SOW, LPSY**.
+
+**Eventos detectables (spec):**
+- **SC/BC:** `spread ≥ x·ATR` y `volumen ≥ y·media`, cierre en el tercio
+  opuesto al impulso.
+- **AR:** contra-movimiento fuerte tras SC/BC.
+- **Spring/UT:** `detect_false_breaks` contra el extremo del TR.
+- **SOS/SOW:** vela de ruptura del TR con rango amplio y volumen sobre la media.
+- **TR (rango):** precio oscilando entre dos niveles ≥ M velas (reusa el
+  *clustering* de S/R que ya existe).
+
+## 3.2 · Ley Esfuerzo vs Resultado — #10
+Compara **esfuerzo** (volumen) vs **resultado** (progreso del precio). Divergencia
+(**mucho volumen, poco avance**) = absorción → posible giro.
+**Algoritmo:** `esfuerzo = z-score(volumen)`; `resultado = |close−open|/ATR`.
+Marca barras de **esfuerzo alto / resultado bajo**.
+
+## 3.3 · Ley Causa–Efecto (conteo P&F) — #11
+La **anchura** del TR (nº de columnas en Point & Figure) proyecta el objetivo:
+`objetivo = base ± (nº columnas × box × reversal)`. Da el recorrido "merecido"
+por la causa acumulada.
+
+## 3.4 · Composite Operator — #12
+Lente interpretativa (leer el rango como si lo dirigiera un gran operador). ⚠️
+Subjetiva: se enseña, no se automatiza como señal dura.
+
+## 3.5 · Implementación web
+- **Backend:** `wyckoff.py` → detecta TR, clímax (SC/BC), AR, spring/UT
+  (reusa 1.2), SOS/SOW; devuelve **fase probable + eventos**.
+- **Frontend:** anota en el escáner la **"posible fase Wyckoff"** y los eventos.
+- **i18n ×8:** `wyPhase, wySpring, wyUpthrust, wySOS, wyNote`.
+- **Honestidad:** el etiquetado de fase es **probabilístico**; mostrar siempre
+  "posible fase X", nunca como certeza.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
 |---|---|---|
-| 1. Wyckoff | 1–12 | ⏳ pendiente *(Spring/Upthrust ya en 1.2)* |
+| 1. Wyckoff | 1–12 | ✅ Lote 3 |
 | 2. Volume/Market Profile | 13–28 | 🟡 parcial *(POC/VA/naked en 1.1; AVWAP en 1.3)* |
 | 3. Order flow | 29–37 | ⏳ pendiente |
 | 4. DeMark | 38–43 | 🟡 parcial *(TD Sequential en 1.4)* |
@@ -218,14 +362,15 @@ volumen central (forex spot) baja su fiabilidad. Mostrar siempre la muestra.
 | 28. Por nacionalidad | 241–262 | ⏳ pendiente |
 | 29. Cuant/algoritmos | 263–284 | ⏳ pendiente |
 | 30. Intradía hora/minuto | 285–300 | ⏳ pendiente |
-| 31. Barridos/Judas swing | 301–313 | ⏳ pendiente *(candidata a Lote 2)* |
+| 31. Barridos/Judas swing | 301–313 | ✅ Lote 2 |
 
 ## Orden propuesto de los siguientes lotes
-- **Lote 2:** Sección 31 (Judas swing / barridos por sesión) — la que más te
-  interesa; detalle minuto a minuto + detector.
-- **Lote 3:** Wyckoff completo (1–12) y order flow (29–37).
-- **Lote 4:** Chartismo clásico (139–156) con objetivos medidos.
-- **Lote 5+:** el resto por prioridad de construcción.
+- ~~Lote 2: Sección 31 (Judas swing / barridos)~~ ✅ hecho.
+- ~~Lote 3: Wyckoff (1–12)~~ ✅ hecho.
+- **Lote 4 (siguiente):** Order flow (29–37) — delta/CVD, absorción, imbalance.
+- **Lote 5:** Chartismo clásico (139–156) con objetivos medidos.
+- **Lote 6:** Amplitud/internals (44–53) e intermercado/RS (54–59).
+- **Lote 7+:** el resto por prioridad de construcción.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
