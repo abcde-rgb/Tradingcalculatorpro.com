@@ -272,6 +272,98 @@ en intradía (🔧).
 **Honestidad global.** El mecanismo es real; las **horas exactas hay que
 validarlas vivas**. Nunca operar el reloj a ciegas; mostrar siempre la muestra.
 
+## 2.8 · SMT Divergence (confirmación con par correlacionado)
+**Qué/para qué.** La mejor **confirmación** de que un barrido es falso. Dos
+activos que **deberían moverse juntos**: si **uno hace un nuevo máximo (barre
+liquidez) pero el otro NO** → *non-confirmation* → el barrido es una trampa y el
+giro es probable.
+
+**Pares típicos.** Índices **ES / NQ / YM**; **EUR vs GBP** (o vs DXY);
+**BTC vs ETH**; **oro vs plata**.
+
+**Algoritmo.**
+1. En el nivel barrido del activo A (p. ej. nuevo máximo sobre PDH), toma la
+   misma marca temporal en B.
+2. Si **A hace nuevo máximo y B NO** (o viceversa en mínimos) → **SMT bajista**
+   (alcista en mínimos).
+3. Úsalo como filtro sobre la señal 2.2: barrido + SMT + FVG = alta convicción.
+
+**Datos.** Dos series intradía **alineadas en el tiempo** 🔧.
+
+**Honestidad.** Requiere que la correlación sea **real y vigente** (se rompe en
+regímenes raros). Mide la correlación rodante antes de confiar en la divergencia.
+
+## 2.9 · Liquidez ingenierizada: EQH/EQL y trendline liquidity — #84
+**Qué.** Los **máximos/mínimos iguales** (dobles techos/suelos, *EQH/EQL*) y las
+**directrices** son **cebos**: el retail pone stops justo detrás, y ahí apunta el
+barrido.
+
+**Algoritmo.**
+- **EQH/EQL:** dos+ swings al mismo nivel dentro de tolerancia (p. ej. ≤0,05%)
+  → *pool* de liquidez justo por encima/debajo. (Reusa `detect_swings`.)
+- **Trendline liquidity:** 3+ toques de una directriz → stops alineados bajo/
+  sobre ella; su ruptura falsa + giro = barrido de directriz.
+
+**Uso.** Marca estos pools como **objetivos de barrido**; cuando el precio los
+caza y revierte (2.2), la señal es más limpia.
+
+## 2.10 · Cascada de sesiones y alto/bajo semanal por día — #305
+**Cascada.** El **rango asiático** (20:00–00:00 ET) se forma; **Londres**
+(02:00–05:00) **barre un lado** del rango asiático y revierte; **NY** (07:00–10:00)
+puede barrer el extremo de Londres. Estadística útil: **qué % de días el máximo
+o mínimo del día se fija en la ventana de Londres/apertura de NY**.
+
+**Alto/bajo semanal por día.** Tendencia documentada: el **máximo o mínimo de la
+semana suele formarse lunes–miércoles** (perfil semanal). Herramienta: contar,
+por activo, **en qué día de la semana** se fija el extremo semanal y mostrar la
+distribución.
+
+**Datos.** Intradía para la cascada 🔧; diario para el día del extremo semanal 🔨.
+
+## 2.11 · Confirmaciones: displacement · FVG · breaker · OTE — #81-83,86
+Secuencia que valida el giro tras el barrido:
+- **Displacement:** vela(s) de **rango amplio** que rompen estructura en el
+  sentido del giro (energía real, no ruido).
+- **FVG:** el hueco de 3 velas que deja el displacement = **zona de entrada**
+  (reusa el detector de FVG).
+- **Breaker block:** el último *order block* contrario **antes** del barrido; al
+  romperse, pasa a ser soporte/resistencia.
+- **OTE (Optimal Trade Entry):** entrada en el retroceso **0,62–0,79** de la
+  pierna de displacement.
+
+## 2.12 · Pseudocódigo del detector (para `liquidity_sweeps.py`)
+```
+def detect_sweeps(bars, tz, session_windows, tol=0.0005, K=3):
+    levels = build_levels(bars)          # PDH/PDL, PWH/PWL, Asian H/L, redondos, EQH/EQL
+    out = []
+    for i, b in enumerate(bars):
+        for lvl in levels:
+            swept_up   = b.high > lvl*(1+tol) and b.close < lvl   # mecha arriba, cierra dentro
+            swept_down = b.low  < lvl*(1-tol) and b.close > lvl
+            if not (swept_up or swept_down):
+                continue
+            rev = confirm_reversal(bars, i, K, direction=down if swept_up else up)
+            if not rev: continue          # exige displacement + FVG en K velas
+            out.append(dict(time=b.time, level=lvl, dir=rev.dir,
+                            fvg=rev.fvg, sweep_extreme=b.high if swept_up else b.low,
+                            killzone=window_of(b.time, tz, session_windows),
+                            smt=check_smt(b.time, corr_symbol)))   # opcional
+    return out
+```
+Salidas → tarjeta + **estadística por killzone y por tipo de nivel**.
+
+## 2.13 · Arnés de verificación (por el bloqueo de intradía)
+Como el sandbox **bloquea Yahoo** y el intradía es limitado:
+- Guardar **fixtures** JSON de sesiones reales (`tests/fixtures/ny_open_*.json`).
+- Test unitario que corre `detect_sweeps` sobre la fixture y **asevera** el
+  Judas del ejemplo 2.3 (barrido de PMH + FVG + dirección).
+- Métrica de backtest: sobre N sesiones, `% barridos que revirtieron ≥ R`,
+  MFE/MAE, muestra, peor racha — **lo que se muestra al usuario**.
+
+**Cierre de Lote 2.** Con 2.1–2.13 la sección 31 queda como **spec completa**:
+detector genérico + Judas + killzones + SMT + liquidez ingenierizada + cascada +
+confirmaciones + pseudocódigo + verificación. Lista para pasar a código.
+
 ---
 
 # LOTE 3 — Sección 1: Método Wyckoff ✅ detallado
