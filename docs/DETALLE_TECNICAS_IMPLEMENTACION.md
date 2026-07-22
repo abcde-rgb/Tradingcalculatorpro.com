@@ -769,6 +769,64 @@ lente de tendencia, no máquinas de señales.
 
 ---
 
+# LOTE 8 — Secciones 12 y 13: Medias/tendencia + Ehlers/DSP ✅ detallado
+
+## 8A · Medias móviles y sistemas de tendencia (111–117) — 🔨
+
+- **Ichimoku (5 líneas + Kumo) (#111):**
+  `Tenkan=(max(H,9)+min(L,9))/2`; `Kijun=(max(H,26)+min(L,26))/2`;
+  `SpanA=(Tenkan+Kijun)/2` (desplazado +26); `SpanB=(max(H,52)+min(L,52))/2`
+  (+26); `Chikou=close` (−26). **Kumo** (nube) = área entre A y B; precio **sobre
+  la nube** = alcista; **giro de la nube futura** = cambio; **Chikou** por encima
+  del precio de hace 26 = confirmación. *(Las 3 teorías profundas —tiempo, onda,
+  objetivos— en `APRENDER_ICHIMOKU_PROFUNDO_Y_ESCUELA_RUSA.md`.)*
+- **GMMA / Guppy (#112):** dos grupos de EMAs — **corto** (3,5,8,10,12,15) y
+  **largo** (30,35,40,45,50,60). Separación amplia del grupo corto sobre el largo
+  = tendencia fuerte; **compresión** del corto = pausa; **cruce** de grupos =
+  cambio. (Corto = traders; largo = inversores.)
+- **Hull MA (#113):** `HMA(n) = WMA( 2·WMA(n/2) − WMA(n) , √n )`. Muy poco
+  retardo. Tendencia = **pendiente** de la HMA. Ej.: HMA(16) usa WMA(8), WMA(16)
+  y WMA(…,4).
+- **KAMA (#114, Kaufman):** `ER = |close−close[n]| / Σ|Δclose|`;
+  `SC = (ER·(2/3 − 2/31) + 2/31)²`; `KAMA = KAMA_prev + SC·(precio − KAMA_prev)`.
+  **Rápida en tendencia, lenta en ruido.** Ej.: avance neto 10 con recorrido 20
+  → `ER=0,5`.
+- **Coppock Curve (#115):** `WMA10( ROC(14) + ROC(11) )` (mensual). Señal de
+  **suelo de largo plazo** cuando gira al alza **desde debajo de cero**.
+- **Golden/Death cross + filtro de amplitud (#116):** cruce SMA50×SMA200; añade
+  **% de valores sobre la MM200 subiendo** para filtrar sierra.
+- **Displaced MA / envelopes (#117):** MA desplazada N barras (DiNapoli 3×3 =
+  SMA(3) desplazada 3); **envelopes** = MA ± %.
+
+**Implementación.** Puras en `indicators.py`; overlays (Ichimoku, GMMA, HMA,
+KAMA, envelopes) + oscilador Coppock en panel; badge de "cruce dorado/muerte".
+i18n `ichimoku, gmma, hma, kama, coppock, goldenCross, displacedMa`.
+**Honestidad.** Adaptativas/rápidas **reducen** el retardo, no lo eliminan; los
+cruces **dan sierra en rango**; Coppock es de **largo plazo**.
+
+## 8B · Ehlers / DSP (118–122) — 🔨 (procesado de señal)
+
+- **Fisher Transform (#118):** normaliza el precio a [−1,1] en N y aplica
+  `Fisher = 0.5·ln((1+x)/(1−x))` → **giros muy marcados** (colas del gaussiano).
+- **Roofing Filter (#119):** **paso-alto** (quita tendencia/baja frecuencia) +
+  **super-smoother** (quita ruido/alta frecuencia) = paso-banda → oscilador más
+  limpio.
+- **Sinewave / MESA (#120):** mide el **ciclo dominante** y dibuja seno + seno
+  adelantado; sus cruces marcan giros de ciclo; **se aplana en modo tendencia**.
+- **Laguerre RSI / filtro (#121):** filtro Laguerre de 4 polos con factor
+  `gamma` (amortiguación); RSI sobre la serie filtrada → **muy responsivo con
+  poco retardo**.
+- **Instantaneous Trendline (#122):** línea de tendencia suavizada usando el
+  ciclo dominante para **quitar el retardo**; tendencia = precio sobre/bajo ella.
+
+**Implementación.** `ehlers.py` (funciones puras); paneles de oscilador
+(Fisher/Laguerre RSI/Roofing/Sinewave) + overlay de la Instantaneous Trendline.
+i18n `fisher, roofing, sinewave, laguerreRsi, instTrend`.
+**Honestidad.** Los indicadores de Ehlers **asumen comportamiento cíclico**: en
+tendencias fuertes el Sinewave/MESA **se confunde**. Reducen retardo, no predicen.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -784,8 +842,8 @@ lente de tendencia, no máquinas de señales.
 | 9. Volumen | 87–97 | 🟡 parcial *(VSA en 1.5)* |
 | 10. Volatilidad/canales | 98–104 | ✅ Lote 7 |
 | 11. Gráficos anti-ruido | 105–110 | ✅ Lote 7 |
-| 12. Medias/tendencia | 111–117 | ⏳ pendiente *(Ichimoku en doc aparte)* |
-| 13. Ehlers/DSP | 118–122 | ⏳ pendiente |
+| 12. Medias/tendencia | 111–117 | ✅ Lote 8 |
+| 13. Ehlers/DSP | 118–122 | ✅ Lote 8 |
 | 14. Osciladores | 123–135 | ⏳ pendiente |
 | 15. Ciclos/tiempo | 136–138 | ⏳ pendiente |
 | 16. Chartismo clásico | 139–156 | ✅ Lote 5 |
@@ -812,8 +870,9 @@ lente de tendencia, no máquinas de señales.
 - ~~Lote 5: Chartismo clásico (139–156)~~ ✅ hecho.
 - ~~Lote 6: Amplitud/internals (44–53) e intermercado/RS (54–59)~~ ✅ hecho.
 - ~~Lote 7: Volatilidad/canales (98–104) y gráficos anti-ruido (105–110)~~ ✅ hecho.
-- **Lote 8 (siguiente):** Medias/tendencia (111–117) y Ehlers/DSP (118–122).
-- **Lote 9+:** el resto por prioridad de construcción.
+- ~~Lote 8: Medias/tendencia (111–117) y Ehlers/DSP (118–122)~~ ✅ hecho.
+- **Lote 9 (siguiente):** Osciladores olvidados (123–135) y Momentum/régimen (187–199).
+- **Lote 10+:** el resto por prioridad de construcción.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
