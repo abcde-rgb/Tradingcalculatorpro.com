@@ -141,3 +141,28 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
 - `POST /auth/google`: 10/minuto
 - `POST /auth/refresh`: 30/minuto
 - Cálculos y datos de mercado: sin límite (considerar si se añaden endpoints públicos)
+
+## Restricciones del sandbox web (sesiones remotas de Claude Code)
+
+En sesiones remotas (Claude Code on the web) el entorno es efímero y la **red de
+salida está restringida** por la política del entorno: normalmente solo registros
+de paquetes (npm/pip) y Anthropic. Implicaciones al desarrollar/verificar aquí:
+
+- **Yahoo Finance y CoinGecko están BLOQUEADOS** → `get_ohlc_history` y los
+  precios en vivo fallan. Cualquier smoke del escáner, `pattern-scan`,
+  `structure-scan` o datos de mercado debe **mockear la respuesta de la API** (o
+  usar fixtures). No confíes en una prueba que llame a la red real.
+- **Loop de verificación local** (E2E con backend vivo):
+  - Postgres 16 por socket Unix + `uvicorn` con
+    `ENVIRONMENT=development JWT_SECRET=devonly DATABASE_URL=postgresql://...`.
+  - Para probar login en Playwright: arranca el backend con
+    `CORS_ORIGINS="http://localhost:<puerto>,http://127.0.0.1:<puerto>"` del
+    puerto donde sirves el frontend, o el navegador bloqueará el login por CORS.
+  - Las cookies `secure` NO persisten sobre `http://localhost` → usa navegación
+    client-side en el test, no recargas completas.
+  - Descarta el **cookie banner** antes de hacer clic (intercepta los clicks).
+- **Verificación offline que SÍ corre siempre:** `python -m py_compile ...`,
+  `node frontend/scripts/i18n-check.js` (paridad de 8 idiomas) y `npm run build`.
+  Atajo: comando `/verify`.
+- Order flow real (delta/CVD/footprint) necesita datos de tick → viable **solo
+  en cripto** (Binance/Bybit) y con una capa de datos mockeable en el sandbox.
