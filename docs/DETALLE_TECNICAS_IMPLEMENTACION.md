@@ -418,13 +418,87 @@ Subjetiva: se enseña, no se automatiza como señal dura.
 - **Honestidad:** el etiquetado de fase es **probabilístico**; mostrar siempre
   "posible fase X", nunca como certeza.
 
+## 3.6 · Ejemplo trabajado de acumulación (con números)
+Baja hasta **PS 52** → **SC** (selling climax) pincha **48** con volumen enorme y
+**cierra 51** (lejos del mínimo) → **AR** rebota a **56** → **ST** retesta **49**
+con **menos volumen**. Se forma el **TR 49–56** durante semanas (**Fase B**).
+**Fase C:** **Spring** cae a **47,5** (bajo el mínimo 48) con volumen moderado y
+vuelve rápido sobre 49; **Test** en 49,5 con volumen bajo. **Fase D:** **SOS** =
+vela amplia de 53 a **57** con gran volumen (*jump across the creek* sobre la
+resistencia 56); **LPS/BUEC** = retroceso a **55,5** (por encima de la vieja
+resistencia). **Fase E:** markup. El **conteo P&F** del TR proyecta objetivo en
+los ~70 (ver 3.10).
+
+## 3.7 · Los 9 tests de compra / venta (Wyckoff-Pruden)
+**Compra (acumulación):** ① objetivo bajista P&F cumplido · ② PS/SC/ST visibles ·
+③ actividad alcista (volumen sube en rebotes, baja en reacciones) · ④ rota la
+línea de oferta bajista · ⑤ mínimos crecientes · ⑥ máximos crecientes · ⑦ **más
+fuerte que el mercado** · ⑧ base formada (causa) · ⑨ recorrido potencial ≥ **3×
+el riesgo del stop**.
+**Venta (distribución):** espejo (objetivo alcista cumplido, PSY/BC/ST, actividad
+bajista, rota la línea de demanda, máximos y mínimos decrecientes, más débil que
+el mercado, techo formado, potencial bajista ≥ 3× riesgo).
+→ **Implementación:** un **checklist de 9** que el escáner marca automáticamente
+(los que son objetivos) y deja manuales los interpretativos.
+
+## 3.8 · Ondas de compra/venta y fuerza relativa — enlaza #55
+- **Ondas:** compara **volumen y longitud** de las **ondas alcistas vs bajistas**
+  dentro del TR. Ondas bajistas cada vez **más cortas y con menos volumen** =
+  la oferta se seca (test ③).
+- **Fuerza relativa:** compara el activo con su índice; en Fase C/D debe
+  **resistir las caídas y liderar los rebotes** frente al índice (test ⑦).
+  Reusa la línea RS de #55.
+
+## 3.9 · Creek / JAC / BUEC
+El **"creek"** (arroyo) = la resistencia ondulada sobre los máximos del TR.
+**JAC** (*jump across the creek*) = la ruptura SOS. **BUEC** (*back up to the edge
+of the creek*) = el LPS, retroceso a la resistencia ya rota (ahora soporte). Son
+el mismo evento SOS/LPS con la metáfora de Wyckoff.
+
+## 3.10 · Conteo Point & Figure para el objetivo (ley Causa-Efecto) — #11
+`objetivo = línea_de_conteo ± (nº columnas × box × reversal)`.
+**Ejemplo:** línea de conteo en **42**, **12 columnas** en el TR, box **1**,
+reversal **3** → 12×1×3 = **36** → **objetivo 42 + 36 = 78**. Cuanto más ancho el
+TR (más causa), mayor el efecto.
+
+## 3.11 · Máquina de estados de fase (pseudocódigo para `wyckoff.py`)
+```
+def wyckoff_phase(rows):
+    tr = detect_range(rows)                 # reusa clustering S/R; TR = [lo, hi]
+    if not tr: return {"phase": None}
+    sc = find_climax(rows, tr, side="sell") # spread≥x·ATR, vol≥y·media, cierra 1/3 sup
+    ar = find_auto_rally(rows, sc)
+    st = find_secondary_test(rows, sc)      # retesta con menos volumen
+    spring = detect_false_breaks(rows, [tr.lo])   # reusa 1.2
+    sos = find_wide_breakout(rows, tr.hi, side="up")
+    lps = find_higher_pullback(rows, sos)
+    # estado según qué eventos existen y su orden temporal:
+    if sos and lps:      phase = "D→E (markup)"
+    elif spring:         phase = "C (spring/test)"
+    elif st and ar:      phase = "B (construyendo causa)"
+    elif sc:             phase = "A (frenando la bajada)"
+    else:                phase = "sin estructura clara"
+    return {"phase": phase, "events": [...], "tests9": checklist(...)}
+```
+
+## 3.12 · Tipos de Spring y terminal shakeout
+- **Spring #1 (terminal shakeout):** ruptura **profunda** bajo soporte con
+  **volumen alto** y recuperación inmediata → el más dramático.
+- **Spring #2:** ruptura y volumen **moderados**.
+- **Spring #3:** ruptura **mínima**, **volumen bajo** → el más "seguro" (apenas
+  aparece oferta). → clasifícalos por profundidad y volumen en el detector.
+
+**Cierre de Lote 3.** Wyckoff queda como spec: fases con eventos detectables,
+9 tests como checklist, ondas/fuerza relativa, creek/JAC/BUEC, conteo P&F,
+máquina de estados y tipos de spring. Lista para `wyckoff.py`.
+
 ---
 
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
 |---|---|---|
-| 1. Wyckoff | 1–12 | ✅ Lote 3 |
+| 1. Wyckoff | 1–12 | ✅ Lote 3 (ampliado 3.6–3.12) |
 | 2. Volume/Market Profile | 13–28 | 🟡 parcial *(POC/VA/naked en 1.1; AVWAP en 1.3)* |
 | 3. Order flow | 29–37 | ⏳ pendiente |
 | 4. DeMark | 38–43 | 🟡 parcial *(TD Sequential en 1.4)* |
