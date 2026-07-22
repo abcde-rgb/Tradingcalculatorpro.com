@@ -827,6 +827,70 @@ tendencias fuertes el Sinewave/MESA **se confunde**. Reducen retardo, no predice
 
 ---
 
+# LOTE 9 — Secciones 14 y 20: Osciladores olvidados + Momentum/régimen ✅ detallado
+
+## 9A · Osciladores (uso original, 123–135) — 🔨
+
+- **RSI failure swings (#123, Wilder original):** la señal **real** de Wilder (no
+  el sobrecompra/venta): *bullish failure swing* = RSI cae bajo 30, rebota,
+  recae **sin perder 30** y **rompe su pico previo de RSI** → compra (espejo
+  bajista sobre 70). Más las **divergencias** y roturas de directriz **en el RSI**.
+- **RSI(2) (#124, Connors):** RSI de **2 periodos** para reversión: comprar con
+  `RSI2 < 5` **sobre la MM200**; salir con `RSI2 > 70` o `precio > MM5`.
+- **Connors RSI (#125):** media de `RSI(3)` del precio + `RSI(2)` de la **racha** +
+  **percentil** del ROC(1) a 100 días.
+- **CCI (#126, Lambert):** `CCI = (typical − SMA20)/(0,015·desv.media)`. Rupturas
+  de **±100** (tendencia) y cruce de **cero**. Ej.: typical 102, SMA 100, desv 1,2
+  → `CCI = 2/0,018 ≈ 111`.
+- **Elder Ray + Impulse (#127):** `BullPower = high − EMA13`, `BearPower = low −
+  EMA13`. **Impulse:** barra **verde** si EMA13 y el histograma MACD suben (compra
+  permitida), **roja** si ambos bajan, **azul** si mixto.
+- **Stochastic Pop (#128, Bernstein):** uso de **momentum** del estocástico —
+  ruptura de 80 con fuerza = **continuación** ("pop"), no reversión.
+- **ADX/DMI (#129, Wilder):** `ADX>25` = tendencia (usa herramientas de
+  tendencia); `ADX<20` = rango (usa osciladores). **Filtro de régimen.**
+- **Vortex (#130):** `VI+ = Σ|high−low_prev|/ΣTR`, `VI− = Σ|low−high_prev|/ΣTR`;
+  cruces = señal.
+- **Aroon (#131):** `Up = 100·(n − barras desde el máximo)/n`; ídem Down con el
+  mínimo. Ej.: máximo hace 5 en n=25 → `Up = 80`.
+- **TRIX (#132):** ROC de una **EMA triple**; cruce de cero/señal, filtra ruido.
+- **Schaff Trend Cycle (#133):** estocástico aplicado al **MACD** → señal cíclica
+  más rápida.
+- **Awesome Oscillator (#134, Williams):** `AO = SMA5(mediano) − SMA34(mediano)`;
+  "saucer", "twin peaks", cruce de cero.
+- **Ultimate Oscillator (#135, Williams):** presión compradora ponderada
+  (7/14/28) → reduce divergencias falsas.
+
+## 9B · Momentum, rate-of-change y filtros de régimen (187–199) — 🔨
+
+- **ROC (#187):** `(close − close[n])/close[n]·100`. **Momentum (#188):**
+  `close − close[n]`.
+- **KST (#189, Pring):** suma **ponderada de 4 ROC suavizados** de distinta
+  longitud; cruce de señal. **Special K (#190):** los combina en una sola curva
+  para giros de ciclo.
+- **PMO (#191):** ROC doblemente suavizado (DecisionPoint).
+- **Stochastic RSI (#192):** estocástico **sobre el RSI** → más sensible.
+- **RMI (#193):** RSI generalizado con lookback de momentum `m`.
+- **CMO (#194, Chande):** `(ΣUp − ΣDown)/(ΣUp + ΣDown)·100`.
+- **Balance of Power (#195):** `(close − open)/(high − low)`.
+- **Force Index (#196, Elder):** `(close − close_prev)·volumen`, luego EMA →
+  dirección **+ volumen**.
+- **Choppiness Index (#197):** `100·log10(ΣATR(n)/(maxH−minL))/log10(n)`. **Alto
+  (~61,8) = rango; bajo (~38,2) = tendencia.**
+- **Efficiency Ratio (#198, Kaufman):** `neto/recorrido` → régimen.
+- **VHF (#199):** `(maxC−minC)/Σ|Δclose|` → alto = tendencia.
+
+## 9C · Implementación y honestidad
+`oscillators.py` (todas puras); paneles de oscilador + un **medidor único de
+régimen "tendencia vs rango"** que combina ADX + Choppiness + ER + VHF. i18n
+`rsiFailure, rsi2, connorsRsi, cci, elderRay, adx, aroon, trix, stc, ao,
+ultimate, kst, cmo, forceIndex, choppiness` (etc.).
+**Honestidad.** Los osciladores **fallan en el régimen contrario**: en tendencia
+fuerte el "sobrecompra" aguanta y da ventas malas → por eso el **filtro de
+régimen** (ADX/Choppiness) va **primero**. Las divergencias fallan; mostrar muestra.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -844,13 +908,13 @@ tendencias fuertes el Sinewave/MESA **se confunde**. Reducen retardo, no predice
 | 11. Gráficos anti-ruido | 105–110 | ✅ Lote 7 |
 | 12. Medias/tendencia | 111–117 | ✅ Lote 8 |
 | 13. Ehlers/DSP | 118–122 | ✅ Lote 8 |
-| 14. Osciladores | 123–135 | ⏳ pendiente |
+| 14. Osciladores | 123–135 | ✅ Lote 9 |
 | 15. Ciclos/tiempo | 136–138 | ⏳ pendiente |
 | 16. Chartismo clásico | 139–156 | ✅ Lote 5 |
 | 17. Líneas/canales/regresión | 157–169 | ⏳ pendiente |
 | 18. Fibonacci | 170–175 | ⏳ pendiente |
 | 19. Medias avanzadas | 176–186 | ⏳ pendiente |
-| 20. Momentum/régimen | 187–199 | ⏳ pendiente |
+| 20. Momentum/régimen | 187–199 | ✅ Lote 9 |
 | 21. Estadística cuant | 200–210 | ⏳ pendiente |
 | 22. Niveles por sesión | 211–217 | ⏳ pendiente |
 | 23. P&F avanzado | 218–220 | ⏳ pendiente |
@@ -871,8 +935,9 @@ tendencias fuertes el Sinewave/MESA **se confunde**. Reducen retardo, no predice
 - ~~Lote 6: Amplitud/internals (44–53) e intermercado/RS (54–59)~~ ✅ hecho.
 - ~~Lote 7: Volatilidad/canales (98–104) y gráficos anti-ruido (105–110)~~ ✅ hecho.
 - ~~Lote 8: Medias/tendencia (111–117) y Ehlers/DSP (118–122)~~ ✅ hecho.
-- **Lote 9 (siguiente):** Osciladores olvidados (123–135) y Momentum/régimen (187–199).
-- **Lote 10+:** el resto por prioridad de construcción.
+- ~~Lote 9: Osciladores olvidados (123–135) y Momentum/régimen (187–199)~~ ✅ hecho.
+- **Lote 10 (siguiente):** Líneas/canales/regresión (157–169) y Fibonacci (170–175).
+- **Lote 11+:** el resto por prioridad de construcción.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
