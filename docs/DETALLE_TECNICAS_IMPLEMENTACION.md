@@ -494,13 +494,79 @@ máquina de estados y tipos de spring. Lista para `wyckoff.py`.
 
 ---
 
+# LOTE 4 — Sección 3: Order flow / microestructura ✅ detallado
+
+## 4.0 · Nota crítica de datos (léela primero)
+El order flow necesita **operaciones (tick) con lado comprador/vendedor**, que el
+OHLCV de Yahoo **NO** tiene. Realidad práctica:
+- **Cripto: SÍ es construible y GRATIS.** Binance/Bybit exponen las operaciones
+  con `isBuyerMaker` → delta/CVD/footprint **reales**. Es un **diferenciador
+  real** del módulo cripto (casi ningún competidor retail lo da bien).
+- **Acciones/forex:** requiere **feed de pago** (tick + bid/ask). De momento:
+  **lecciones** + "en vivo solo cripto".
+- El sandbox bloquea la red → construir con **fixtures** de trades.
+
+## 4.1 · Delta y CVD — #29
+Desde cada operación `{price, qty, isBuyerMaker}`:
+- `isBuyerMaker = true` → comprador es maker → **taker vendió** → **delta −qty**.
+- `isBuyerMaker = false` → **taker compró** → **delta +qty**.
+`delta_barra = Σ signo·qty` ; `CVD = suma acumulada`. El CVD **confirma o
+desmiente** el precio.
+
+## 4.2 · Footprint e imbalance — #30,33
+- **Footprint:** dentro de cada vela, agrupa el volumen por **nivel de precio**,
+  separando compra (al ask) y venta (al bid) → rejilla numérica.
+- **Imbalance:** en un nivel, si `ask_vol` vs `bid_vol` en diagonal supera un
+  **ratio ≥ 300%** → agresión fuerte. **≥3 apilados** = zona institucional.
+
+## 4.3 · Absorción — #31
+**Mucho volumen/delta a un nivel y el precio no avanza** → un pasivo grande
+absorbe. Regla: `|delta| alto` + `progreso de precio < ε` en ese nivel → marca
+**absorción**; suele preceder giro.
+
+## 4.4 · Divergencia de delta / CVD en extremos — #32
+Precio hace **nuevo máximo** pero **CVD hace máximo más bajo** → compras
+agotándose → posible giro (espejo en mínimos). Es de las señales de order flow
+más fiables.
+
+## 4.5 · Iceberg — #34
+Reposiciones repetidas **al mismo precio** (muchos prints sin que el precio se
+mueva) → orden oculta grande. Detección: cuenta de operaciones a un precio fijo
+sobre un umbral **sin desplazamiento**.
+
+## 4.6 · DOM / spoofing — #35
+Necesita **libro L2** (*depth stream*). Órdenes grandes que **aparecen y
+desaparecen** sin ejecutarse = *spoofing*. ⚠️ Más complejo; como lección +
+detector avanzado opcional.
+
+## 4.7 · Lectura de cinta (time & sales) — #37
+**Velocidad y tamaño** de los prints: ráfagas de órdenes grandes al ask = compra
+agresiva. Métrica: prints/seg y tamaño medio.
+
+## 4.8 · Implementación web
+- **Backend `orderflow.py` (cripto):** fetch de aggTrades (Binance) con capa
+  mockeable; funciones puras `compute_delta_cvd(trades, interval)`,
+  `build_footprint(trades, bucket)`, `detect_imbalances / absorption /
+  cvd_divergence`. Endpoint `/education/orderflow/{symbol}?interval=5m` (guard
+  categoría=cripto).
+- **Frontend:** panel footprint (rejilla), línea **CVD** bajo el precio, badges
+  de absorción/divergencia. i18n ×8: `ofCvd, ofFootprint, ofAbsorption,
+  ofImbalance, ofNote`.
+- **Estadística viva:** tasa de giro tras divergencia de CVD / absorción, muestra.
+
+**Honestidad.** Order flow ≠ predicción: es **lectura de intención en tiempo
+real**. Sólido intradía en **cripto**; en forex spot el volumen es parcial.
+Mostrar siempre la muestra. **Barrido de liquidez (#36)** ya está en Lote 2.2.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
 |---|---|---|
 | 1. Wyckoff | 1–12 | ✅ Lote 3 (ampliado 3.6–3.12) |
 | 2. Volume/Market Profile | 13–28 | 🟡 parcial *(POC/VA/naked en 1.1; AVWAP en 1.3)* |
-| 3. Order flow | 29–37 | ⏳ pendiente |
+| 3. Order flow | 29–37 | ✅ Lote 4 (cripto en vivo; resto lección) |
 | 4. DeMark | 38–43 | 🟡 parcial *(TD Sequential en 1.4)* |
 | 5. Amplitud/internals | 44–53 | ⏳ pendiente |
 | 6. Intermercado/RS | 54–59 | ⏳ pendiente |
@@ -533,8 +599,8 @@ máquina de estados y tipos de spring. Lista para `wyckoff.py`.
 ## Orden propuesto de los siguientes lotes
 - ~~Lote 2: Sección 31 (Judas swing / barridos)~~ ✅ hecho.
 - ~~Lote 3: Wyckoff (1–12)~~ ✅ hecho.
-- **Lote 4 (siguiente):** Order flow (29–37) — delta/CVD, absorción, imbalance.
-- **Lote 5:** Chartismo clásico (139–156) con objetivos medidos.
+- ~~Lote 4: Order flow (29–37)~~ ✅ hecho (cripto en vivo).
+- **Lote 5 (siguiente):** Chartismo clásico (139–156) con objetivos medidos.
 - **Lote 6:** Amplitud/internals (44–53) e intermercado/RS (54–59).
 - **Lote 7+:** el resto por prioridad de construcción.
 
