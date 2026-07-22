@@ -1207,14 +1207,68 @@ frameworks discrecionales → **lecciones**.
 
 ---
 
+# LOTE 15 (final) — Restos de Volume Profile (secc. 2) y DeMark (secc. 4) ✅
+
+## 15A · Volume/Market Profile — sub-conceptos (16–25, 28)
+> POC/VA/naked ya en 1.1; Anchored VWAP y bandas en 1.3. Casi todo el TPO real
+> necesita **intradía** 🔧; con diario, aproximado.
+- **Single prints / excess (#16):** TPO que aparece **una sola vez** en un extremo
+  = rechazo/exceso → S/R fuerte.
+- **Poor high / poor low (#17):** varios TPO en el extremo **sin exceso** =
+  subasta **inacabada** → probable revisita.
+- **Initial Balance (#18):** rango de la **primera hora**; su ruptura = extensión.
+- **Perfiles b / P / D (#19, Dalton):** **b** = liquidación (suelo), **P** =
+  cobertura de cortos (techo), **D** = equilibrio.
+- **Migración del Value Area (#20):** VA más alto día a día = aceptación alcista.
+- **Perfil compuesto (#21):** fusiona varios días → POC/VA de marco superior.
+- **Tipos de apertura (#22, Dalton):** Open-Drive / Open-Test-Drive /
+  Open-Rejection-Reverse / Open-Auction.
+- **Volume POC vs TPO POC (#23):** control por **volumen** vs por **tiempo**.
+- **HVN / LVN (#24):** nodos de **alto** volumen (imán/aceptación) vs **bajo**
+  (zona de paso rápido/rechazo).
+- **VWAP de sesión (#25):** VWAP acumulado que **reinicia cada sesión** (🔧).
+- **VWAP semanal/mensual rodante (#28):** ancla al inicio del periodo (🔨 con
+  diario agregando la semana/mes).
+
+**Implementación.** Extiende el módulo de Volume Profile (1.1); el TPO fino y el
+VWAP de sesión necesitan intradía. i18n `vpSinglePrint, vpPoorHigh, vpIB,
+vpShapeB, vpVaMigration, vpComposite, vpOpenType, vpHvnLvn, vwapSession`.
+
+## 15B · DeMark — resto (40–43) — 🔨 (mecánico sobre OHLC)
+> TD Sequential (Setup 9 + Countdown 13) ya en 1.4.
+- **TD Combo (#40):** variante del Countdown con condiciones más estrictas y
+  arranque anticipado → agotamiento alternativo.
+- **TD Lines (#41):** directrices **automáticas** desde los últimos puntos TD
+  cualificados (demand line desde el último mínimo, supply line desde el último
+  máximo) + **proyección de precio** en la ruptura.
+- **TDST (#42):** nivel del verdadero mínimo/máximo que **inició** el setup =
+  soporte/resistencia; su ruptura confirma tendencia.
+- **TD REI / TD Pressure (#43):** osciladores DeMark de sobrecompra/venta con
+  **filtro de duración**.
+
+**Implementación.** `demark.py` (junto a `compute_td_sequential` de 1.4):
+`td_combo`, `td_lines`, `tdst`, `td_rei`. Badges/overlays en el escáner. i18n
+`tdCombo, tdLines, tdst, tdRei`.
+**Honestidad.** Mecánico pero **no es señal por sí solo**: agotamiento + nivel +
+confirmación.
+
+---
+
+## 🏁 Catálogo completo especificado
+Con el Lote 15, **las 31 secciones / 313 técnicas están detalladas** como spec
+implementable. Próximo paso natural: **construir** empezando por la Fase 1 (1.1
+Volume Profile y 1.2 detector de falso rompimiento, ambas 🔨 sin intradía).
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
 |---|---|---|
 | 1. Wyckoff | 1–12 | ✅ Lote 3 (ampliado 3.6–3.12) |
-| 2. Volume/Market Profile | 13–28 | 🟡 parcial *(POC/VA/naked en 1.1; AVWAP en 1.3)* |
+| 2. Volume/Market Profile | 13–28 | ✅ Lote 15 (base en 1.1/1.3) |
 | 3. Order flow | 29–37 | ✅ Lote 4 (cripto en vivo; resto lección) |
-| 4. DeMark | 38–43 | 🟡 parcial *(TD Sequential en 1.4)* |
+| 4. DeMark | 38–43 | ✅ Lote 15 (TD Seq en 1.4) |
 | 5. Amplitud/internals | 44–53 | ✅ Lote 6 |
 | 6. Intermercado/RS | 54–59 | ✅ Lote 6 |
 | 7. Price action avanzado | 60–80 | 🟡 parcial *(falso rompimiento en 1.2)* |
@@ -1257,7 +1311,9 @@ frameworks discrecionales → **lecciones**.
 - ~~Lote 12: Medias avanzadas (176–186) y Estadística cuant (200–210)~~ ✅ hecho.
 - ~~Lote 13: Cuant/algoritmos (263–284) e Intradía hora/minuto (285–300)~~ ✅ hecho.
 - ~~Lote 14: Por nacionalidad + ciclos + P&F + sentimiento + Ehlers+~~ ✅ hecho.
-- **Lote 15 (final):** cerrar restos de secciones 2 (Profile/VWAP) y 4 (DeMark).
+- ~~Lote 15 (final): restos de secciones 2 y 4~~ ✅ hecho.
+
+**🏁 TODAS las 31 secciones / 313 técnicas detalladas.** Siguiente paso: construir (Fase 1).
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
