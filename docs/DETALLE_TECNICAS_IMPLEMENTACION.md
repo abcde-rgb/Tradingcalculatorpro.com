@@ -1138,6 +1138,75 @@ reloj a ciegas. (La clase "barrido+reversión" está en el Lote 2.)
 
 ---
 
+# LOTE 14 — Secciones 28, 15, 23, 24, 25 (limpieza) ✅ detallado
+
+## 14A · Por nacionalidad (241–262)
+
+**🇺🇸 (todas 🔨 salvo aviso):**
+- **Parabolic SAR (#241):** `SAR = SAR_prev + AF·(EP − SAR_prev)`; `AF` 0,02
+  (+0,02 por nuevo EP, tope 0,20). Stop-and-reverse.
+- **ASI (#242, Wilder):** swing index acumulado (fuerza de la tendencia).
+- **Chaikin Oscillator + Volatility (#243):** `EMA3(A/D) − EMA10(A/D)`; volatilidad
+  = ROC de `EMA(high−low)`.
+- **W-bottom / M-top con %B (#244):** segundo suelo con **%B más alto** = W alcista
+  (espejo M).
+- **Constance Brown (#245):** en alcista el RSI oscila **40–80** (soporte ~40); en
+  bajista **20–60**. **Composite Index** capta divergencias que el RSI no ve.
+- **ACD (#246, Fisher):** niveles A/B = rango de apertura ± *stretch*; C/D confirman.
+  🔧 (intradía).
+- **OOPS (#247, L. Williams):** apertura con gap **bajo el mínimo previo** → buy-stop
+  en el mínimo previo (fade del gap). **GSV (#248):** stop de entrada = open ±
+  media de los mayores swings adversos.
+- **Holy Grail (#249, Raschke):** `ADX>30` + retroceso a la **EMA20** → entra a
+  favor de la tendencia. **The Anti** = pullback de momentum.
+- **Double 7s (#250, Connors):** sobre MM200, compra en **mínimo de 7 días**, sale
+  en máximo de 7 días.
+- **DiNapoli Levels (#251):** nodos Fib + **MA desplazada 3×3** + Oscillator
+  Predictor. ⚠️ **Al Brooks (#252):** price action barra a barra (discrecional ⚠️).
+- **Adam & Eve (#253, Bulkowski):** dobles suelos Adam (pico agudo) vs Eve
+  (redondeado) → por forma del swing.
+- **Chande-Kroll Stop (#254):** trailing por ATR. **Optimal f (#255, Vince):**
+  fracción que maximiza el crecimiento geométrico (Kelly generalizado).
+
+**🇬🇧 #256** Fuller (conductual: consistencia/commonality) ⚠️. **🇫🇷 (econofísica,
+concepto/lección):** **Mandelbrot #257** (dimensión fractal/multifractal, colas);
+**Bouchaud #258** (impacto ∝ √(vol/ADV)); **Cahen #259** (bandas dinámicas). **🇩🇪
+Markttechnik #260 (Voigt, 🔨):** tendencia = movimiento/corrección con puntos
+P1-P2-P3; **entrada al romper P2**, stop tras P2 (reusa swings). **🇦🇺:** **Count
+Back Line #261 (Guppy)** = línea de conteo de 3 barras para stop/entrada;
+**Radge #262** = ruptura/rotación sistemática (Bollinger breakout + ranking).
+
+**Implementación.** Los 🔨 → `indicators.py`/`systems.py`; econofísica y
+frameworks discrecionales → **lecciones**.
+
+## 14B · Ciclos y tiempo (136–138) — ⚠️
+- **Ciclos de Hurst (#136):** longitudes de ciclo nominales + envolventes (⚠️
+  interpretativo).
+- **DPO (#137):** `precio − SMA(n) desplazada n/2+1` → aísla el **ciclo** (quita
+  tendencia). 🔨.
+- **Fourier/espectral (#138):** ciclo dominante por periodograma. ⚠️.
+
+## 14C · Point & Figure avanzado (218–220)
+- **Patrones P&F (#218):** sobre el gráfico P&F (Lote 7B): double top/bottom
+  breakout, **catapulta**, triángulo. 🔨.
+- **Bullish Percent Index (#219, Dorsey):** % de valores del índice en **señal de
+  compra P&F** → amplitud. 🔧 (universo).
+- **Fuerza relativa P&F (#220, Dorsey Wright):** RS por columnas P&F. 🔧.
+
+## 14D · Sentimiento (221–225) — 🔧 (datos externos), contrarian en extremos
+- **Put/Call ratio (#221)**, **VIX + estructura temporal (#222)** (contango/
+  backwardation), **AAII/NAAIM (#223)**, **short interest (#224)**, **Fear &
+  Greed (#225)**. Dashboard si hay datos; si no, **lecciones**. Extremos = señal
+  **contraria**.
+
+## 14E · Ehlers adicional (226–230) — 🔨 → `ehlers.py`
+- **Decycler (#226)** (quita el ciclo, deja tendencia), **Even Better Sinewave
+  (#227)**, **Reflex/Trendflex (#228)**, **Correlation Trend Indicator (#229)**
+  (correlación del precio con una rampa → tendencia), **RSI/Estocástico
+  ciclo-adaptativos (#230)**. Mismos avisos que 8B (asumen ciclo).
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -1156,7 +1225,7 @@ reloj a ciegas. (La clase "barrido+reversión" está en el Lote 2.)
 | 12. Medias/tendencia | 111–117 | ✅ Lote 8 |
 | 13. Ehlers/DSP | 118–122 | ✅ Lote 8 |
 | 14. Osciladores | 123–135 | ✅ Lote 9 |
-| 15. Ciclos/tiempo | 136–138 | ⏳ pendiente |
+| 15. Ciclos/tiempo | 136–138 | ✅ Lote 14 |
 | 16. Chartismo clásico | 139–156 | ✅ Lote 5 |
 | 17. Líneas/canales/regresión | 157–169 | ✅ Lote 10 |
 | 18. Fibonacci | 170–175 | ✅ Lote 10 |
@@ -1164,12 +1233,12 @@ reloj a ciegas. (La clase "barrido+reversión" está en el Lote 2.)
 | 20. Momentum/régimen | 187–199 | ✅ Lote 9 |
 | 21. Estadística cuant | 200–210 | ✅ Lote 12 |
 | 22. Niveles por sesión | 211–217 | ✅ Lote 11 |
-| 23. P&F avanzado | 218–220 | ⏳ pendiente |
-| 24. Sentimiento | 221–225 | ⏳ pendiente |
-| 25. Ehlers adicional | 226–230 | ⏳ pendiente |
+| 23. P&F avanzado | 218–220 | ✅ Lote 14 |
+| 24. Sentimiento | 221–225 | ✅ Lote 14 |
+| 25. Ehlers adicional | 226–230 | ✅ Lote 14 |
 | 26. Escuela japonesa | 231–236 | ✅ doc aparte (Ichimoku) |
 | 27. Escuela rusa | 237–240 | ✅ doc aparte |
-| 28. Por nacionalidad | 241–262 | ⏳ pendiente |
+| 28. Por nacionalidad | 241–262 | ✅ Lote 14 |
 | 29. Cuant/algoritmos | 263–284 | ✅ Lote 13 |
 | 30. Intradía hora/minuto | 285–300 | ✅ Lote 13 |
 | 31. Barridos/Judas swing | 301–313 | ✅ Lote 2 |
@@ -1187,8 +1256,8 @@ reloj a ciegas. (La clase "barrido+reversión" está en el Lote 2.)
 - ~~Lote 11: Volumen (87–97) y Niveles por sesión (211–217)~~ ✅ hecho.
 - ~~Lote 12: Medias avanzadas (176–186) y Estadística cuant (200–210)~~ ✅ hecho.
 - ~~Lote 13: Cuant/algoritmos (263–284) e Intradía hora/minuto (285–300)~~ ✅ hecho.
-- **Lote 14 (siguiente):** Por nacionalidad (241–262) + secciones cortas (ciclos 136–138, P&F 218–220, sentimiento 221–225, Ehlers+ 226–230).
-- **Lote 15 (final):** cerrar restos de secciones 2 y 4.
+- ~~Lote 14: Por nacionalidad + ciclos + P&F + sentimiento + Ehlers+~~ ✅ hecho.
+- **Lote 15 (final):** cerrar restos de secciones 2 (Profile/VWAP) y 4 (DeMark).
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
