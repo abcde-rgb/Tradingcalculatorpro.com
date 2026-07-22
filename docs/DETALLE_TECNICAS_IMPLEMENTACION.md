@@ -891,6 +891,71 @@ régimen** (ADX/Choppiness) va **primero**. Las divergencias fallan; mostrar mue
 
 ---
 
+# LOTE 10 — Secciones 17 y 18: Líneas/canales/regresión + Fibonacci ✅ detallado
+
+## 10A · Líneas, canales y regresión (157–169) — 🔨 (sobre swings)
+
+- **Trendline (#157):** une ≥2 swing lows (soporte) o highs (resistencia); el 3er
+  toque confirma. **Log vs lineal:** en log unes **%**; una directriz válida en
+  lineal puede estar **rota en log** (¡señales opuestas!). Auto = regresión por
+  los swings.
+- **Canal paralelo (#158):** directriz + paralela en el extremo opuesto.
+- **Speed Resistance Lines (#159, Gould):** de un mínimo a un máximo, divide el
+  rango vertical en **1/3 y 2/3** y traza líneas desde el mínimo → soporte/
+  resistencia dinámicos.
+- **Fan principle (#160):** tras una tendencia, sucesivas directrices; **rota la
+  3ª** = reversión (tres líneas del abanico).
+- **Internal trendlines (#161, Sperandeo):** recta de mejor ajuste por el **cuerpo**
+  del precio (deja toques a ambos lados), ignora extremos.
+- **Linear Regression Channel (#162):** recta de mínimos cuadrados por N cierres;
+  canal = ± desviación máxima (o ±k·stdev) paralela.
+- **Raff Regression Channel (#163):** regresión ± la **mayor distancia** de la
+  recta a cualquier precio del rango (ancho fijo).
+- **Standard Error Bands (#164, Andersen):** regresión ± k·**error estándar**;
+  estrechándose = tendencia, ensanchándose = giro.
+- **Time Series Forecast (#165):** el **extremo** de la recta de regresión graficado
+  barra a barra (regresión móvil).
+- **Pendiente / R² (#166):** pendiente = dirección/fuerza; **R²≈1** = tendencia
+  limpia; R² bajo = ruido. Úsalo como **"calidad de tendencia"**.
+- **ZigZag (#167):** filtra tramos menores a X% (o ATR); une swings
+  significativos. **Repinta el último tramo** → estructura/olas/patrones, no señal.
+- **Fractales (#168, Williams):** patrón de 5 barras (máximo con 2 máximos
+  menores a cada lado = fractal alcista; espejo bajista) → marca swings.
+- **Alligator + Gator (#169, Williams):** 3 SMMA (13/8/5) desplazadas (8/5/3):
+  **jaw/teeth/lips**. Entrelazadas = "dormido" (rango); boca abierta = tendencia.
+  **Gator** = histograma de convergencia/divergencia de las 3.
+
+**Implementación.** `lines.py` puras; overlay de directrices/canales/regresión +
+**badge de R² (calidad de tendencia)**. i18n `trendline, channel, speedLines,
+regChannel, raff, seBands, tsf, r2, zigzag, fractal, alligator`.
+**Honestidad.** Directriz y regresión dependen del **anclaje/ventana**; el ZigZag
+**repinta**; log vs lineal cambia el veredicto.
+
+## 10B · Fibonacci (170–175) — 🔨
+
+Dado un tramo A→B (mínimo→máximo alcista, `d = B−A`):
+- **Retrocesos (#170):** `nivel = B − d·r`, `r ∈ {0,236; 0,382; 0,5; 0,618; 0,786}`.
+  Ej. A=100, B=120 → **38,2%=112,4 · 50%=110 · 61,8%=107,6** (zona de compra).
+- **Extensiones (#171):** objetivos más allá de B: `B + d·{0,272; 0,618}` →
+  **1,272=125,4 · 1,618=132,4**.
+- **Fibonacci fan (#172):** directrices desde el pivote por los niveles de retroceso
+  → S/R **angulares**.
+- **Fibonacci arcs (#173):** arcos centrados en el pivote a radios = fracciones fib
+  → S/R por **tiempo+precio**.
+- **Fibonacci time zones (#174):** verticales en conteos fib (1,2,3,5,8,13…) →
+  fechas candidatas. ❌ (basado en tiempo, infalsable — marcado como descarte).
+- **Fibonacci channels (#175):** canal paralelo con líneas internas a fracciones
+  fib del ancho.
+
+**Implementación.** `fibonacci.py` puras; niveles/objetivos calculados de swings
+auto-detectados; overlay + tabla de niveles. i18n `fibRetr, fibExt, fibFan,
+fibArc, fibChannel`.
+**Honestidad.** Fibonacci son **zonas de confluencia**, en parte **autocumplidas**
+(mucha gente las mira), no números mágicos. Dependen del tramo elegido. Las
+**time zones** no las vendas como fiables.
+
+---
+
 # TRACKER — estado del detalle (313 técnicas / 31 secciones)
 
 | Sección | Técnicas | Estado |
@@ -911,8 +976,8 @@ régimen** (ADX/Choppiness) va **primero**. Las divergencias fallan; mostrar mue
 | 14. Osciladores | 123–135 | ✅ Lote 9 |
 | 15. Ciclos/tiempo | 136–138 | ⏳ pendiente |
 | 16. Chartismo clásico | 139–156 | ✅ Lote 5 |
-| 17. Líneas/canales/regresión | 157–169 | ⏳ pendiente |
-| 18. Fibonacci | 170–175 | ⏳ pendiente |
+| 17. Líneas/canales/regresión | 157–169 | ✅ Lote 10 |
+| 18. Fibonacci | 170–175 | ✅ Lote 10 |
 | 19. Medias avanzadas | 176–186 | ⏳ pendiente |
 | 20. Momentum/régimen | 187–199 | ✅ Lote 9 |
 | 21. Estadística cuant | 200–210 | ⏳ pendiente |
@@ -936,8 +1001,9 @@ régimen** (ADX/Choppiness) va **primero**. Las divergencias fallan; mostrar mue
 - ~~Lote 7: Volatilidad/canales (98–104) y gráficos anti-ruido (105–110)~~ ✅ hecho.
 - ~~Lote 8: Medias/tendencia (111–117) y Ehlers/DSP (118–122)~~ ✅ hecho.
 - ~~Lote 9: Osciladores olvidados (123–135) y Momentum/régimen (187–199)~~ ✅ hecho.
-- **Lote 10 (siguiente):** Líneas/canales/regresión (157–169) y Fibonacci (170–175).
-- **Lote 11+:** el resto por prioridad de construcción.
+- ~~Lote 10: Líneas/canales/regresión (157–169) y Fibonacci (170–175)~~ ✅ hecho.
+- **Lote 11 (siguiente):** Volumen (87–97) y Niveles por sesión (211–217).
+- **Lote 12+:** el resto por prioridad de construcción.
 
 *Cada técnica detallada aquí queda lista para pasar a código + i18n ×8 + tarjeta
 con estadística viva en el escáner.*
