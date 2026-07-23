@@ -1566,6 +1566,8 @@ export default {
     iposAlgosDesc: 'VWAP sigue el perfil de volumen del día; TWAP reparte a partes iguales por tiempo; POV mantiene un porcentaje constante del volumen que se negocia (p. ej. el 10%).',
     iposIcebergName: 'Órdenes iceberg (ocultas)',
     iposIcebergDesc: 'Solo muestran una punta de la orden en el libro; el grueso queda oculto. Así nadie ve el tamaño real y no pueden ponerse por delante (front-running).',
+    iposFrontrunName: 'Front-running: operar por delante de tu orden',
+    iposFrontrunDesc: 'Es cuando alguien que VE tu orden (o la deduce) compra o vende justo antes que tú para aprovechar el movimiento que vas a provocar, y luego te la revende peor. El front-running clásico de un bróker con la orden de su propio cliente es ILEGAL. Sus primos legales o grises: el PFOF (tu bróker vende tu flujo a un mayorista que se coloca en medio) y el latency arbitrage de los HFT (se adelantan por milisegundos). Al minorista le encarece el precio de ejecución de forma invisible. Defensa: usa órdenes LÍMITE (no a mercado), evita mover activos ilíquidos — y por eso los grandes usan órdenes iceberg y dark pools para que nadie vea su tamaño.',
     iposJitterName: 'Anti-detección: randomización (jitter)',
     iposJitterDesc: 'Los algoritmos modernos varían los tamaños (±10-20%) y los tiempos a propósito, para que nadie detecte un patrón regular y les adivine la jugada.',
     iposCampaignName: 'Campaña: acumulación y distribución',

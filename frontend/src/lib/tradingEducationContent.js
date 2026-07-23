@@ -1472,6 +1472,7 @@ export const getPositionBuilding = (t) => ({
     { id: 'slice',    name: t('iposSliceName'),    desc: t('iposSliceDesc'),    type: 'neutral' },
     { id: 'algos',    name: t('iposAlgosName'),    desc: t('iposAlgosDesc'),    type: 'neutral' },
     { id: 'iceberg',  name: t('iposIcebergName'),  desc: t('iposIcebergDesc'),  type: 'neutral' },
+    { id: 'frontrun', name: t('iposFrontrunName'), desc: t('iposFrontrunDesc'), type: 'bearish' },
     { id: 'jitter',   name: t('iposJitterName'),   desc: t('iposJitterDesc'),   type: 'bearish' },
     { id: 'campaign', name: t('iposCampaignName'), desc: t('iposCampaignDesc'), type: 'neutral' },
     { id: 'unwind',   name: t('iposUnwindName'),   desc: t('iposUnwindDesc'),   type: 'bearish' },

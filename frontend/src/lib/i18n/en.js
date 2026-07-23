@@ -1473,6 +1473,8 @@ export default {
     iposAlgosDesc: 'VWAP follows the day\'s volume profile; TWAP spreads evenly over time; POV keeps a constant percentage of traded volume (e.g. 10%).',
     iposIcebergName: 'Iceberg (hidden) orders',
     iposIcebergDesc: 'Only a tip of the order shows in the book; the bulk stays hidden. That way nobody sees the true size and can\'t front-run it.',
+    iposFrontrunName: 'Front-running: trading ahead of your order',
+    iposFrontrunDesc: 'It\'s when someone who SEES your order (or infers it) buys or sells just before you to profit from the move you\'ll cause, then sells it back to you worse. A broker front-running its own client\'s order is ILLEGAL. Its legal or gray cousins: PFOF (your broker sells your order flow to a wholesaler that steps in between) and HFT latency arbitrage (getting ahead by milliseconds). For retail it invisibly worsens your execution price. Defense: use LIMIT orders (not market), avoid moving illiquid assets — and it\'s why big players use iceberg orders and dark pools so nobody sees their size.',
     iposJitterName: 'Anti-detection: randomisation (jitter)',
     iposJitterDesc: 'Modern algos deliberately vary sizes (±10-20%) and timing so nobody can spot a regular pattern and guess their play.',
     iposCampaignName: 'Campaign: accumulation & distribution',
