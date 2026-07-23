@@ -47,21 +47,25 @@ Muestra lo que pasa **antes del clic** (impresiones, CTR, posición por consulta
 
 ---
 
-## Tarea de CÓDIGO pendiente — eventos de conversión GA4
-Hoy GA4 registra **vistas de página** (`AnalyticsTracker`), pero **no
-conversiones**. Sin esto no sabemos **qué tráfico paga**.
-- **Qué añadir:** `dataLayer.push` / evento GA4 en los puntos clave, respetando
-  el consentimiento:
-  - `sign_up` (registro completado),
-  - `email_verified` (verificación),
-  - `begin_checkout` (clic en pagar, con `plan` y `method`),
-  - `purchase` (activación premium confirmada por webhook — idealmente server-side
-    o al aterrizar en `/payment/success`, con `value` y `currency`).
-- **Dónde:** en el flujo de auth (`store.js`/AuthPages), en `PricingPage`
-  (begin_checkout) y en `PaymentPages` success (purchase). Marcar esos eventos
-  como **conversiones** en GA4.
-- **Guardarraíl:** no disparar nada si el usuario no aceptó cookies (mismo patrón
-  que `AnalyticsTracker`). Evitar PII.
+## Eventos de conversión GA4 — estado real (auditado)
+✅ **Ya están cableados** (respetan consentimiento; `gtag` solo carga con
+consentimiento total, y `trackEvent` es no-op sin él):
+- `login` (email / email_2fa / google) — `lib/store.js`.
+- `sign_up` (email) — `lib/store.js`.
+- `begin_checkout` (con `plan` y `payment_method`) — `pages/PricingPage.jsx`.
+- `purchase` (con `transaction_id`, `currency`, `plan`; **dedupe por sesión** para
+  no recontar al recargar) — `pages/PaymentPages.jsx`.
+
+**Lo que queda (tú, en consola / opcional en código):**
+- [ ] 🌐 En **GA4**: marcar `sign_up`, `begin_checkout` y `purchase` como
+  **eventos clave / conversiones** (si no, se registran pero no cuentan como conversión).
+- [ ] ⌨️ *(opcional)* Enviar **`value`** en `purchase`: hoy se omite a propósito
+  porque el importe se guarda en **unidades distintas según la vía de pago**
+  (unidad mayor en checkout, céntimos en el webhook) → habría que **normalizarlo
+  en backend** antes de mandarlo, para no reportar ingresos 100× erróneos.
+- [ ] ⌨️ *(opcional)* `sign_up` también en registro con Google (hoy Google solo
+  dispara `login`).
+- **Guardarraíl:** nunca disparar sin consentimiento (ya garantizado). Sin PII.
 
 ## Nota de mantenimiento
 Cuando se implementen los eventos, marcar aquí las casillas y añadir entrada en
