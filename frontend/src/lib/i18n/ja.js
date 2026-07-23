@@ -5082,6 +5082,7 @@ export default {
   partnersTitle: 'おすすめのツール',
   partnersSubtitle: '私たちが取引や市場分析に使用し、おすすめするプラットフォーム',
   partnerMargexDesc: '最大100倍レバレッジ、KYC不要、$100ウェルカムボーナス、最大$10,000の手数料キャッシュバック付きの暗号資産デリバティブ取引所',
+  partnerHyperliquidDesc: 'オンチェーンの分散型無期限先物取引所（DEX）。KYC不要、高速約定、低手数料、完全に透明なデータ',
   sponsoredLabel: 'アフィリエイトリンク',
   // === Programa de afiliados / Affiliate program (AffiliatePage.jsx + user menu) ===
   affMenuLabel: "アフィリエイトプログラム",
