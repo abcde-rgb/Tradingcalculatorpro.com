@@ -5082,6 +5082,7 @@ export default {
   partnersTitle: '我们推荐的工具',
   partnersSubtitle: '我们在交易和分析市场时使用并推荐的平台',
   partnerMargexDesc: '加密衍生品交易所,最高100倍杠杆,无需KYC,新用户可获得100美元奖金,以及最高10000美元的手续费返现',
+  partnerHyperliquidDesc: '链上去中心化永续合约交易所（DEX），无需KYC，执行快速、手续费低，数据完全透明',
   sponsoredLabel: '联盟链接',
   // === Programa de afiliados / Affiliate program (AffiliatePage.jsx + user menu) ===
   affMenuLabel: "推广联盟计划",

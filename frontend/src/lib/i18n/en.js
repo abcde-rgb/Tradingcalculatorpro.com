@@ -5154,6 +5154,7 @@ export default {
   partnersTitle: 'Tools we recommend',
   partnersSubtitle: 'Platforms we use and recommend for trading and analyzing the markets',
   partnerMargexDesc: 'Crypto derivatives exchange with up to 100x leverage, no KYC, a $100 welcome bonus and fee cashback up to $10,000',
+  partnerHyperliquidDesc: 'On-chain decentralized perpetuals exchange (DEX), no KYC, with fast execution, low fees and fully transparent data',
   sponsoredLabel: 'Affiliate link',
   // === Programa de afiliados / Affiliate program (AffiliatePage.jsx + user menu) ===
   affMenuLabel: "Affiliate program",
