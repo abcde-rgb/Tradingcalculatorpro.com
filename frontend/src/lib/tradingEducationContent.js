@@ -116,7 +116,6 @@ export const getChartPatterns = (t) => ({
       name: t('headShouldersName'),
       type: 'bearish',
       description: t('headShouldersDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/9wfzko6e_HOMBRO%20CABEZA%20HOMBRO.png',
       howToTrade: [
         t('htt_identificarLaTendenciaAlcist_af7998c2'),
         t('htt_esperarFormacionCompletaDelP_133fd32f'),
@@ -132,7 +131,6 @@ export const getChartPatterns = (t) => ({
       name: t('invHeadShouldersName'),
       type: 'bullish',
       description: t('invHeadShouldersDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/2ygvtz2y_HOMBRO%20CABEZA%20HOMBRO%20INVERTIDO.png',
       howToTrade: [
         t('htt_identificarLaTendenciaBajist_4fb6db68'),
         t('htt_esperarFormacionCompletaDelP_133fd32f'),
@@ -148,7 +146,6 @@ export const getChartPatterns = (t) => ({
       name: t('doubleTopName'),
       type: 'bearish',
       description: t('doubleTopDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/raa08hc3_DOBLE%20TECHO.png',
       howToTrade: [
         t('htt_identificarDosMaximosSimilar_8da8788c'),
         t('htt_confirmarConVolumenDecrecien_e341216e'),
@@ -164,7 +161,6 @@ export const getChartPatterns = (t) => ({
       name: t('doubleBottomName'),
       type: 'bullish',
       description: t('doubleBottomDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/bvkk52gf_DOBLE%20SUELO.png',
       howToTrade: [
         t('htt_identificarDosMinimosSimilar_aacf8393'),
         t('htt_confirmarConVolumenCreciente_8bf6da85'),
@@ -210,7 +206,6 @@ export const getChartPatterns = (t) => ({
       name: t('expandingPatternsAscWedgeName'),
       type: 'bearish',
       description: t('expandingPatternsAscWedgeDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/z7egei96_CU%C3%91A%20DE%20EXPANSION%20ASCENDENTE.png',
       howToTrade: [
         t('htt_entry1ComprarEnRuptura_f5a96723').replace('Comprar', 'Vender'),
         t('httEntry2RetestLower'),
@@ -226,7 +221,6 @@ export const getChartPatterns = (t) => ({
       name: t('expandingPatternsBearRevName'),
       type: 'bullish',
       description: t('expandingPatternsBearRevDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/ce7dvho5_TRIANGULO%20SIMETRICO%20EXPANSIVO%20BAJISTA%28CAMBIO%20ALCISTA%29.png',
       howToTrade: [
         t('httEntry1BreakUpper'),
         t('httEntry2BuyRetest'),
@@ -242,7 +236,6 @@ export const getChartPatterns = (t) => ({
       name: t('expandingPatternsBearRevDownName'),
       type: 'bearish',
       description: t('expandingPatternsBearRevDownDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/a7rj6hlx_TRIANGULO%20SIMETRICO%20EXPANSIVO%20BAJISTA%28CAMBIO%20BAJISTA%29.png',
       howToTrade: [
         t('httEntry1SellBreakLower'),
         t('httEntry2SellRetest'),
@@ -258,7 +251,6 @@ export const getChartPatterns = (t) => ({
       name: t('vBottomReversalName'),
       type: 'bullish',
       description: t('vBottomReversalDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/m4gllqw8_SUELO%20EN%20V%28CAMBIO%20ALCISTA%29.png',
       howToTrade: [
         t('vBottomReversalHTT_1'),
         t('vBottomReversalHTT_2'),
@@ -319,7 +311,6 @@ export const getChartPatterns = (t) => ({
       name: t('bullishDiamondName'),
       type: 'bullish',
       description: t('bullishDiamondDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/vgzdj1ay_DIAMANTE%20ALCISTA.png',
       howToTrade: [
         t('bullishDiamondHTT_1'),
         t('bullishDiamondHTT_2'),
@@ -335,7 +326,6 @@ export const getChartPatterns = (t) => ({
       name: t('bearishDiamondName'),
       type: 'bearish',
       description: t('bearishDiamondDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/qf6raoaj_DIAMANTE%20BAJISTA.png',
       howToTrade: [
         t('bearishDiamondHTT_1'),
         t('bearishDiamondHTT_2'),
@@ -351,7 +341,6 @@ export const getChartPatterns = (t) => ({
       name: t('vTopName'),
       type: 'bearish',
       description: t('vTopDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/enj4wnk0_TECHO%20EN%20V.png',
       howToTrade: [
         t('vTopHTT_1'),
         t('vTopHTT_2'),
@@ -474,7 +463,6 @@ export const getChartPatterns = (t) => ({
       name: t('vBottomContinuationName'),
       type: 'bullish',
       description: t('vBottomContinuationDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/n7t7zeai_SUELO%20EN%20V%28CONTINUACCION%20ALCISTA%29.png',
       howToTrade: [
         t('vBottomContinuationHTT_1'),
         t('vBottomContinuationHTT_2'),
@@ -490,7 +478,6 @@ export const getChartPatterns = (t) => ({
       name: t('ascTriangleName'),
       type: 'bullish',
       description: t('ascTriangleDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/9hxylq5z_TRIANGULO%20DE%20CONTINUACCION%20ALCISTA.png',
       howToTrade: [
         t('htt_identificarResistenciaPlanaC_c844339b'),
         t('htt_esperarRupturaDeLaResistenci_350ac0e7'),
@@ -507,7 +494,6 @@ export const getChartPatterns = (t) => ({
       name: t('descTriangleName'),
       type: 'bearish',
       description: t('descTriangleDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/ggcbypeq_TRIANGULO%20DE%20CONTINUACCION%20BAJISTA.png',
       howToTrade: [
         t('htt_identificarSoportePlanoConMa_3d058880'),
         t('htt_esperarRupturaDelSoporteCon_09579d67'),
@@ -539,7 +525,6 @@ export const getChartPatterns = (t) => ({
       name: t('symTriangleBullName'),
       type: 'bullish',
       description: t('symTriangleBullDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/xzk3o1rm_TRIANGULO%20SIMETRICO%20DE%20CONTINUACCION%20ALCISTA.png',
       howToTrade: [
         t('htt_identificarConvergenciaDeLin_b44ab6c2'),
         t('htt_entry1RupturaAlcistaDe_2d66fc23'),
@@ -555,7 +540,6 @@ export const getChartPatterns = (t) => ({
       name: t('symTriangleBearName'),
       type: 'bearish',
       description: t('symTriangleBearDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/ui5ydasb_TRIANGULO%20SIMETRICO%20DE%20CONTINUACCION%20BAJISTA.png',
       howToTrade: [
         t('htt_identificarConvergenciaDeLin_b44ab6c2'),
         t('htt_entry1RupturaBajistaDel_3b93e3f8'),
@@ -571,7 +555,6 @@ export const getChartPatterns = (t) => ({
       name: t('bullFlagName'),
       type: 'bullish',
       description: t('bullFlagDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/tyu0tbqa_BANDERA%20DE%20CONTINUACCION%20ALCISTA.png',
       howToTrade: [
         t('htt_identificarMovimientoAlcista_a29dfcc7'),
         t('htt_consolidacionEnCanalBajistaB_c250b95e'),
@@ -587,7 +570,6 @@ export const getChartPatterns = (t) => ({
       name: t('bearFlagName'),
       type: 'bearish',
       description: t('bearFlagDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/yxqoe3xy_BANDERA%20DE%20CONTINUACCION%20BAJISTA.png',
       howToTrade: [
         t('htt_identificarMovimientoBajista_dc5090ef'),
         t('htt_consolidacionEnCanalAlcistaB_a0a69e0b'),
@@ -618,7 +600,6 @@ export const getChartPatterns = (t) => ({
       name: t('bullPennantName'),
       type: 'bullish',
       description: t('bullPennantDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/4ikd2cr5_BANDERIN%20DE%20CONTINUACCION%20ALCISTA.png',
       howToTrade: [
         t('htt_identificarAstaAlcistaFuerte_1a64b4ba'),
         t('htt_pequenoTrianguloSimetricoBan_4141f840'),
@@ -634,7 +615,6 @@ export const getChartPatterns = (t) => ({
       name: t('bearPennantName'),
       type: 'bearish',
       description: t('bearPennantDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/urowelfz_BANDERIN%20DE%20CONTINUACCION%20BAJISTA.png',
       howToTrade: [
         t('htt_identificarAstaBajistaFuerte_2ebc185e'),
         t('htt_pequenoTrianguloSimetricoBan_4141f840'),
@@ -650,7 +630,6 @@ export const getChartPatterns = (t) => ({
       name: t('ascChannelName'),
       type: 'bullish',
       description: t('ascChannelDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/xwieicd1_CANAL%20ALCISTA.png',
       howToTrade: [
         t('htt_dibujarLineasParalelasConect_a52d6314'),
         t('htt_entry1ComprarEnEl_2fefd3e7'),
@@ -666,7 +645,6 @@ export const getChartPatterns = (t) => ({
       name: t('descChannelName'),
       type: 'bearish',
       description: t('descChannelDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/17ftg4ps_CANAL%20BAJISTA.png',
       howToTrade: [
         t('htt_dibujarLineasParalelasConect_95298983'),
         t('htt_entry1VenderEnLa_0de2bbcf'),
@@ -682,7 +660,6 @@ export const getChartPatterns = (t) => ({
       name: t('horzChannelName'),
       type: 'neutral',
       description: t('horzChannelDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/wrbamc2m_CANAL%20HORIZONTAL.png',
       howToTrade: [
         t('htt_identificarSoporteYResistenc_44379c8a'),
         t('htt_entry1ComprarEnEl_205a48a2'),
@@ -698,7 +675,6 @@ export const getChartPatterns = (t) => ({
       name: t('horzChannelBullName'),
       type: 'bullish',
       description: t('horzChannelBullDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/m4fqb9l4_CANAL%20HORIZONTAL%20ALCISTA.png',
       howToTrade: [
         t('htt_identificarRangoHorizontalCo_9413adc0'),
         t('htt_entry1ComprarEnSoporte_a2b22c0e'),
@@ -714,7 +690,6 @@ export const getChartPatterns = (t) => ({
       name: t('horzChannelBearName'),
       type: 'bearish',
       description: t('horzChannelBearDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/grq5z4q9_CANAL%20HORIZONTAL%20BAJISTA.png',
       howToTrade: [
         t('htt_identificarRangoHorizontalCo_28a4b59b'),
         t('htt_entry1VenderEnResistencia_128c1a2d'),
@@ -730,7 +705,6 @@ export const getChartPatterns = (t) => ({
       name: t('cupHandleName'),
       type: 'bullish',
       description: t('cupHandleDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/xxyrw8nn_TAZA%20CON%20ASA.png',
       howToTrade: [
         t('htt_identificarFormacionDeTazaU_efa479b6'),
         t('htt_entry1ComprarEnRuptura_f5a96723'),
@@ -746,7 +720,6 @@ export const getChartPatterns = (t) => ({
       name: t('expandingPatternsBullContName'),
       type: 'bullish',
       description: t('expandingPatternsBullContDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/ozc52r6l_TRIANGULO%20SIMETRICO%20EXPANISVO%20ALCISTA%28CONTINUACCION%20ALCISTA%29.png',
       howToTrade: [
         t('httEntry1BuyBullBreakUpper'),
         t('httEntry2BuyRetest'),
@@ -762,7 +735,6 @@ export const getChartPatterns = (t) => ({
       name: t('expandingPatternsBearContName'),
       type: 'bearish',
       description: t('expandingPatternsBearContDesc'),
-      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/jix471rb_TRIANGULO%20SIMETRICO%20EXPANSIVO%20BAJISTA%28CONTINUACION%20BAJISTA%29.png',
       howToTrade: [
         t('httEntry1SellBearBreakLower'),
         t('httEntry2SellRetest'),
@@ -1500,6 +1472,7 @@ export const getPositionBuilding = (t) => ({
     { id: 'slice',    name: t('iposSliceName'),    desc: t('iposSliceDesc'),    type: 'neutral' },
     { id: 'algos',    name: t('iposAlgosName'),    desc: t('iposAlgosDesc'),    type: 'neutral' },
     { id: 'iceberg',  name: t('iposIcebergName'),  desc: t('iposIcebergDesc'),  type: 'neutral' },
+    { id: 'frontrun', name: t('iposFrontrunName'), desc: t('iposFrontrunDesc'), type: 'bearish' },
     { id: 'jitter',   name: t('iposJitterName'),   desc: t('iposJitterDesc'),   type: 'bearish' },
     { id: 'campaign', name: t('iposCampaignName'), desc: t('iposCampaignDesc'), type: 'neutral' },
     { id: 'unwind',   name: t('iposUnwindName'),   desc: t('iposUnwindDesc'),   type: 'bearish' },
