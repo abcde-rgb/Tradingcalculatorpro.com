@@ -223,7 +223,6 @@ function PatternCard({ pattern, onClick }) {
 
 function PatternDetailModal({ pattern, onClose }) {
   const { t } = useTranslation();
-  const [imageZoom, setImageZoom] = useState(false);
   
   if (!pattern) return null;
   
@@ -281,25 +280,6 @@ function PatternDetailModal({ pattern, onClose }) {
                 >
                   <ChartPatternFigure patternId={pattern.id} size="lg" className="opacity-80" />
                 </div>
-              </div>
-            ) : pattern.image ? (
-              <div className="lg:sticky lg:top-20 self-start">
-                <button
-                  type="button"
-                  onClick={() => setImageZoom(true)}
-                  className="w-full rounded-lg overflow-hidden border border-border bg-white cursor-zoom-in hover:border-primary/50 transition-colors group relative"
-                  data-testid="pattern-image-zoom-trigger"
-                  aria-label="Click to zoom"
-                >
-                  <img
-                    src={pattern.image}
-                    alt={pattern.name}
-                    className="w-full h-auto max-h-[70vh] object-contain"
-                  />
-                  <span className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-mono">
-                    🔍 Zoom
-                  </span>
-                </button>
               </div>
             ) : hasCandleBlueprint(pattern.id) ? (
               <div className="lg:sticky lg:top-20 self-start">
@@ -389,30 +369,6 @@ function PatternDetailModal({ pattern, onClose }) {
           </div>
         </div>
       </motion.div>
-
-      {/* Image zoom lightbox */}
-      {imageZoom && pattern.image && (
-        <motion.div
-          {...MOTION_FADE}
-          className="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4"
-          onClick={(e) => { e.stopPropagation(); setImageZoom(false); }}
-          data-testid="pattern-image-lightbox"
-        >
-          <Button
-            variant="ghost" size="icon"
-            onClick={(e) => { e.stopPropagation(); setImageZoom(false); }}
-            className="absolute top-4 right-4 text-white hover:bg-white/10 z-10"
-          >
-            <X className="w-6 h-6" />
-          </Button>
-          <img
-            src={pattern.image}
-            alt={pattern.name}
-            className="max-w-[95vw] max-h-[92vh] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </motion.div>
-      )}
     </motion.div>
   );
 }
