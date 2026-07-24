@@ -26,7 +26,8 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, languages } from '@/lib/i18n';
+import { countryFlag, countryName } from '@/lib/countries';
 import { useSEO } from '@/hooks/useSEO';
 import { Header } from '@/components/layout/Header';
 import { toast } from 'sonner';
@@ -53,8 +54,11 @@ const PLAN_COLORS = { none: '#6b7280', free: '#6b7280', monthly: '#3b82f6', quar
  *   - Google integrations editor (GA4, GTM, GSC, AdSense, Bing) saved to DB
  *   - Full user CRUD: create, edit, delete, reset password, promote/demote
  */
+// Language code → { flag, name } for the admin users table.
+const LANG_BY_CODE = Object.fromEntries(languages.map((l) => [l.code, l]));
+
 export default function AdminPage() {
-  const { t } = useTranslation();
+  const { t, locale: uiLocale } = useTranslation();
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuthStore();
 
@@ -339,6 +343,8 @@ export default function AdminPage() {
                   <Th>{t('adminColPlan')}</Th>
                   <Th>{t('adminColStatus')}</Th>
                   <Th>{t('adminColProvider')}</Th>
+                  <Th>{t('adminColCountry')}</Th>
+                  <Th>{t('adminColLanguage')}</Th>
                   <Th><Calendar className="w-3 h-3 inline" /> {t('adminColCreated')}</Th>
                   <Th>Acciones</Th>
                 </tr>
@@ -363,6 +369,16 @@ export default function AdminPage() {
                       </td>
                       <td className="px-3 py-2">
                         <span className="text-xs text-muted-foreground">{u.auth_provider || 'password'}</span>
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {u.country
+                          ? <span title={u.country}>{countryFlag(u.country)} {countryName(u.country, uiLocale)}</span>
+                          : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {u.preferred_locale
+                          ? <span>{(LANG_BY_CODE[u.preferred_locale]?.flag || '')} {LANG_BY_CODE[u.preferred_locale]?.name || u.preferred_locale}</span>
+                          : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-3 py-2 text-xs text-muted-foreground">
                         {u.created_at ? u.created_at.slice(0, 10) : '—'}
@@ -407,7 +423,7 @@ export default function AdminPage() {
                 })}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">
                       {loading ? t('loading') : t('adminNoUsers')}
                     </td>
                   </tr>

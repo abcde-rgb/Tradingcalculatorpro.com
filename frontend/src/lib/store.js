@@ -13,6 +13,14 @@ function trackEvent(eventName, params = {}) {
   try { window.gtag?.('event', eventName, params); } catch (_) {}
 }
 
+// Apply a user's saved UI language so it follows the account across sessions/devices.
+function applyUserLocale(user) {
+  try {
+    const loc = user?.preferred_locale;
+    if (loc) useI18nStore.getState().setLocale(loc);
+  } catch (_) { /* non-fatal: keep current locale */ }
+}
+
 // Referral attribution: a visitor who lands on /?ref=CODE has the code stored in
 // localStorage (see RefCapture in App.js). On a NEW signup we tell the backend so
 // the referee gets linked to the referrer (referred_by_id). Best-effort, never blocks signup.
@@ -84,6 +92,7 @@ export const useAuthStore = create(
           }
           if (!data.token || !data.user) throw new Error(t('invalidCredentials'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          applyUserLocale(data.user);
           trackEvent('login', { method: 'email' });
           return { success: true };
         } catch (error) {
@@ -108,6 +117,7 @@ export const useAuthStore = create(
           if (!res.ok) throw new Error(data.detail || 'Código incorrecto');
           if (!data.token || !data.user) throw new Error('Código incorrecto');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          applyUserLocale(data.user);
           trackEvent('login', { method: 'email_2fa' });
           return { success: true };
         } catch (error) {
@@ -116,16 +126,19 @@ export const useAuthStore = create(
         }
       },
 
-      register: async (name, email, password) => {
+      register: async (name, email, password, opts = {}) => {
         if (!API) {
           return { success: false, error: t('backendNotConfigured') };
         }
         set({ isLoading: true });
         try {
+          const body = { name, email, password };
+          if (opts.country) body.country = opts.country;
+          if (opts.preferredLocale) body.preferred_locale = opts.preferredLocale;
           const res = await fetchWithTimeout(`${API}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify(body)
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('registrationError'));
@@ -155,6 +168,7 @@ export const useAuthStore = create(
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
           if (!data.token || !data.user) throw new Error(t('googleLoginError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          applyUserLocale(data.user);
           trackEvent('login', { method: 'google' });
           if (data.is_new_user) await trackReferral(data.user?.email);
           return { success: true };

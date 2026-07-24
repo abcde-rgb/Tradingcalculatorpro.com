@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from '@/lib/i18n';
+import { useState, useEffect, useMemo } from 'react';
+import { useTranslation, languages } from '@/lib/i18n';
+import { getCountryOptions } from '@/lib/countries';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
 import { TrendingUp, Mail, Lock, User, ArrowRight, ArrowLeft, X, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff, Shield, Globe } from 'lucide-react';
@@ -399,7 +400,7 @@ export const LoginPage = () => {
 
 export const RegisterPage = () => {
   useSEO({ titleKey: 'seoRegisterTitle', descriptionKey: 'seoRegisterDesc', canonicalPath: '/register' });
-  const { t } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
   const navigate = useNavigate();
   const { register, isLoading } = useAuthStore();
   const [name, setName]         = useState('');
@@ -407,6 +408,11 @@ export const RegisterPage = () => {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw]     = useState(false);
   const [emailErr, setEmailErr] = useState('');
+  const [country, setCountry]   = useState('');       // ISO alpha-2 (empty = not set)
+  const [language, setLanguage] = useState(locale);   // UI language, defaults to current
+
+  // Country list localized to the UI language; recomputed only when locale changes.
+  const countryOptions = useMemo(() => getCountryOptions(locale), [locale]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -415,8 +421,10 @@ export const RegisterPage = () => {
       toast.error(t('passwordMinChars'));
       return;
     }
-    const result = await register(name, email, password);
+    const result = await register(name, email, password, { country, preferredLocale: language });
     if (result.success) {
+      // Make the chosen language stick as this client's preferred UI language.
+      if (language && language !== locale) { try { setLocale(language); } catch (_) {} }
       toast.success(t('cuentaCreadaExitosamente_f4aa3e'));
       navigate('/dashboard');
     } else {
@@ -498,6 +506,46 @@ export const RegisterPage = () => {
                 </button>
               </div>
               <PasswordStrengthBar password={password} t={t} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="register-country" className="text-xs uppercase tracking-wider text-muted-foreground">{t('registerCountry')}</Label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <select
+                    id="register-country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className="w-full h-10 rounded-md pl-10 pr-3 bg-black/50 border border-white/10 text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary"
+                    required
+                    data-testid="register-country"
+                  >
+                    <option value="" disabled>{t('registerCountryPlaceholder')}</option>
+                    {countryOptions.map((c) => (
+                      <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="register-language" className="text-xs uppercase tracking-wider text-muted-foreground">{t('registerLanguage')}</Label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <select
+                    id="register-language"
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full h-10 rounded-md pl-10 pr-3 bg-black/50 border border-white/10 text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary"
+                    data-testid="register-language"
+                  >
+                    {languages.map((l) => (
+                      <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <Button

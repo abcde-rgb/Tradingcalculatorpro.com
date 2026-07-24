@@ -1151,6 +1151,8 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     name: str
+    country: Optional[str] = None            # ISO 3166-1 alpha-2 (e.g. "ES")
+    preferred_locale: Optional[str] = None   # one of the 8 supported UI locales
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -1691,6 +1693,26 @@ async def startup_event():
 
 # ============= AUTH ROUTES =============
 
+# Supported UI locales (must mirror frontend/src/lib/i18n.js SUPPORTED).
+_SUPPORTED_LOCALES = {"es", "en", "de", "fr", "ru", "zh", "ja", "ar"}
+
+
+def _norm_locale(value: Optional[str]) -> Optional[str]:
+    """Normalize a user-provided locale to one of the supported codes, else None."""
+    if not value:
+        return None
+    code = str(value).strip().lower().split("-")[0]
+    return code if code in _SUPPORTED_LOCALES else None
+
+
+def _norm_country(value: Optional[str]) -> Optional[str]:
+    """Normalize a country to an ISO 3166-1 alpha-2 uppercase code, else None."""
+    if not value:
+        return None
+    code = str(value).strip().upper()
+    return code if len(code) == 2 and code.isalpha() else None
+
+
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
 async def register(request: Request, response: Response, user_data: UserCreate):
@@ -1699,11 +1721,15 @@ async def register(request: Request, response: Response, user_data: UserCreate):
         raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")
     
     user_id = str(uuid.uuid4())
+    country = _norm_country(user_data.country)
+    preferred_locale = _norm_locale(user_data.preferred_locale)
     user = {
         "id": user_id,
         "email": user_data.email,
         "password": await hash_password_async(user_data.password),
         "name": user_data.name,
+        "country": country,                      # ISO alpha-2 for per-country services
+        "preferred_locale": preferred_locale,    # UI language chosen at sign-up
         "subscription_plan": None,
         "subscription_end": None,
         "is_premium": False,
@@ -1729,6 +1755,8 @@ async def register(request: Request, response: Response, user_data: UserCreate):
             "id": user_id,
             "email": user_data.email,
             "name": user_data.name,
+            "country": country,
+            "preferred_locale": preferred_locale,
             "subscription_plan": None,
             "subscription_end": None,
             "is_premium": False,
@@ -1768,6 +1796,8 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             "email": user["email"],
             "name": user["name"],
             "picture": user.get("picture"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
             "subscription_status": user.get("subscription_status"),
@@ -1833,6 +1863,8 @@ async def get_me(user: dict = Depends(require_user)):
         "id": user["id"],
         "email": user["email"],
         "name": user["name"],
+        "country": user.get("country"),
+        "preferred_locale": user.get("preferred_locale"),
         "subscription_plan": user.get("subscription_plan"),
         "subscription_end": user.get("subscription_end"),
         "subscription_status": user.get("subscription_status"),
@@ -5793,6 +5825,7 @@ def _serialize_admin_user(u: dict) -> dict:
         "stripe_customer_id": u.get("stripe_customer_id"),
         "stripe_subscription_id": u.get("stripe_subscription_id"),
         "preferred_locale": u.get("preferred_locale"),
+        "country": u.get("country"),
         "created_at": u.get("created_at"),
         "last_payment_amount": u.get("last_payment_amount"),
         "last_payment_at": u.get("last_payment_at"),
@@ -5826,6 +5859,7 @@ async def admin_list_users(
     status: Optional[str] = None,                # active|canceled|expired|none
     provider: Optional[str] = None,              # password|google
     locale: Optional[str] = None,                # es|en|de|...
+    country: Optional[str] = None,               # ISO alpha-2, e.g. ES
     limit: int = 200,
     skip: int = 0,
 ):
@@ -5844,6 +5878,8 @@ async def admin_list_users(
         query["auth_provider"] = provider if provider != "password" else {"$in": ["password", None]}
     if locale:
         query["preferred_locale"] = locale
+    if country:
+        query["country"] = country.strip().upper()
 
     cursor = db.users.find(query, {"_id": 0, "password": 0}).sort("created_at", -1).skip(skip).limit(limit)
     users = [_serialize_admin_user(u) async for u in cursor]
@@ -5878,7 +5914,7 @@ async def admin_export_users_csv(admin: dict = Depends(require_admin)):
     cols = [
         "email", "name", "auth_provider", "is_premium", "is_admin",
         "subscription_plan", "subscription_end", "subscription_status",
-        "stripe_customer_id", "preferred_locale", "created_at",
+        "stripe_customer_id", "preferred_locale", "country", "created_at",
         "last_payment_amount", "last_payment_at",
     ]
     buf = io.StringIO()
@@ -5903,11 +5939,17 @@ async def admin_metrics(admin: dict = Depends(require_admin)):
     pipeline_locale = [
         {"$group": {"_id": "$preferred_locale", "count": {"$sum": 1}}}
     ]
-    by_plan, by_locale = [], []
+    pipeline_country = [
+        {"$group": {"_id": "$country", "count": {"$sum": 1}}}
+    ]
+    by_plan, by_locale, by_country = [], [], []
     async for r in db.users.aggregate(pipeline_plan):
         by_plan.append({"plan": r["_id"] or "free", "count": r["count"]})
     async for r in db.users.aggregate(pipeline_locale):
         by_locale.append({"locale": r["_id"] or "es", "count": r["count"]})
+    async for r in db.users.aggregate(pipeline_country):
+        by_country.append({"country": r["_id"] or "—", "count": r["count"]})
+    by_country.sort(key=lambda x: x["count"], reverse=True)
 
     total = await db.users.count_documents({})
     free  = await db.users.count_documents({"subscription_plan": None})
@@ -5934,6 +5976,7 @@ async def admin_metrics(admin: dict = Depends(require_admin)):
         "new_users_30d": new_30d,
         "by_plan":       by_plan,
         "by_locale":     by_locale,
+        "by_country":    by_country,
     }
 
 
