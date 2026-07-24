@@ -50,6 +50,9 @@ function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixed
   let accountBalance = initialBalance;
   let totalWins = 0, totalOps = 0, peakBalance = accountBalance, minBalance = accountBalance;
   let grossGain = 0, grossLoss = 0, totalCommission = 0;
+  // Max drawdown must be measured against the RUNNING peak (a trough only counts
+  // if it comes after a peak), not the global peak vs global min.
+  let runningPeak = accountBalance, maxDD = 0;
 
   const fixedCapital = fixedCapitalPerOp;
   const winRate = fixedWinRate / 100;
@@ -73,11 +76,14 @@ function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixed
     accountBalance += netResult;
     peakBalance = Math.max(peakBalance, accountBalance);
     minBalance = Math.min(minBalance, accountBalance);
+    if (accountBalance > runningPeak) runningPeak = accountBalance;
+    const dd = runningPeak > 0 ? (runningPeak - accountBalance) / runningPeak : 0;
+    if (dd > maxDD) maxDD = dd;
     totalOps += 1;
 
     ops.push(makeOp(totalOps, 1, fixedTotalOps, balanceBefore, fixedCapital, netResult, commission, accountBalance, isWin));
   }
-  return { ops, finalBalance: accountBalance, totalWins, totalOps, peakBalance, minBalance, grossGain, grossLoss, totalCommission };
+  return { ops, finalBalance: accountBalance, totalWins, totalOps, peakBalance, minBalance, maxDrawdown: maxDD * 100, grossGain, grossLoss, totalCommission };
 }
 
 function simulateCompound({ initialBalance, phases, compoundInterest, totalCommRate }) {
@@ -85,6 +91,7 @@ function simulateCompound({ initialBalance, phases, compoundInterest, totalCommR
   let capital = initialBalance;
   let totalWins = 0, totalOps = 0, peakBalance = capital, minBalance = capital;
   let grossGain = 0, grossLoss = 0, totalCommission = 0;
+  let runningPeak = capital, maxDD = 0;  // running-peak drawdown (see simulateFixed)
 
   for (let phaseIdx = 0; phaseIdx < phases.length; phaseIdx += 1) {
     const phase = phases[phaseIdx];
@@ -113,12 +120,15 @@ function simulateCompound({ initialBalance, phases, compoundInterest, totalCommR
 
       peakBalance = Math.max(peakBalance, capital);
       minBalance = Math.min(minBalance, capital);
+      if (capital > runningPeak) runningPeak = capital;
+      const dd = runningPeak > 0 ? (runningPeak - capital) / runningPeak : 0;
+      if (dd > maxDD) maxDD = dd;
       totalOps += 1;
 
       ops.push(makeOp(totalOps, phaseIdx + 1, numOps, capitalBefore, capitalInOp, netResult, commission, capital, isWin));
     }
   }
-  return { ops, finalBalance: capital, totalWins, totalOps, peakBalance, minBalance, grossGain, grossLoss, totalCommission };
+  return { ops, finalBalance: capital, totalWins, totalOps, peakBalance, minBalance, maxDrawdown: maxDD * 100, grossGain, grossLoss, totalCommission };
 }
 
 export function runSimulation(config) {
@@ -135,7 +145,7 @@ export function runSimulation(config) {
         partialTps: fixedPartialTps, partialLegs: fixedPartialLegs, partialCont: fixedPartialCont, totalCommRate })
     : simulateCompound({ initialBalance, phases, compoundInterest, totalCommRate });
 
-  const { ops, finalBalance, totalWins, totalOps, peakBalance, minBalance, grossGain, grossLoss, totalCommission } = inner;
+  const { ops, finalBalance, totalWins, totalOps, grossGain, grossLoss, totalCommission, maxDrawdown } = inner;
   const netGain       = finalBalance - initialBalance;
   const roi           = (netGain / initialBalance) * 100;
   const winRatePct    = totalOps > 0 ? (totalWins / totalOps) * 100 : 0;
@@ -145,7 +155,6 @@ export function runSimulation(config) {
   const expectancy    = totalOps > 0
     ? (avgWin * (totalWins / totalOps)) - (avgLoss * (losers / totalOps))
     : 0;
-  const maxDrawdown   = peakBalance > 0 ? ((peakBalance - minBalance) / peakBalance) * 100 : 0;
   const profitFactor  = grossLoss > 0 ? grossGain / grossLoss : grossGain > 0 ? Infinity : 0;
 
   return {
