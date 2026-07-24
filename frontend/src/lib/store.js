@@ -153,16 +153,19 @@ export const useAuthStore = create(
         }
       },
 
-      loginWithGoogle: async (credential) => {
+      loginWithGoogle: async (credential, opts = {}) => {
         if (!API) {
           return { success: false, error: t('backendNotConfigured') };
         }
         set({ isLoading: true });
         try {
+          const body = { credential };
+          if (opts.country) body.country = opts.country;
+          if (opts.preferredLocale) body.preferred_locale = opts.preferredLocale;
           const res = await fetchWithTimeout(`${API}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ credential })
+            body: JSON.stringify(body)
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
@@ -171,9 +174,36 @@ export const useAuthStore = create(
           applyUserLocale(data.user);
           trackEvent('login', { method: 'google' });
           if (data.is_new_user) await trackReferral(data.user?.email);
-          return { success: true };
+          return { success: true, isNewUser: !!data.is_new_user };
         } catch (error) {
           set({ isLoading: false });
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Update the signed-in user's own profile fields (country / UI language).
+      // Powers the "complete your profile" step for Google sign-ups.
+      updateProfile: async ({ country, preferredLocale } = {}) => {
+        const token = get().token;
+        if (!API || !token || token === DEMO_TOKEN) {
+          return { success: false, error: t('backendNotConfigured') };
+        }
+        try {
+          const body = {};
+          if (country !== undefined) body.country = country;
+          if (preferredLocale !== undefined) body.preferred_locale = preferredLocale;
+          const res = await fetchWithTimeout(`${API}/auth/profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            credentials: 'include',
+            body: JSON.stringify(body),
+          });
+          const data = await safeJson(res);
+          if (!res.ok) throw new Error(data.detail || t('registrationError'));
+          set((s) => ({ user: { ...s.user, country: data.country, preferred_locale: data.preferred_locale } }));
+          if (data.preferred_locale) applyUserLocale({ preferred_locale: data.preferred_locale });
+          return { success: true };
+        } catch (error) {
           return { success: false, error: error.message };
         }
       },

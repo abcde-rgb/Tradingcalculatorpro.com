@@ -559,8 +559,8 @@ export const RegisterPage = () => {
             </Button>
           </form>
 
-          <GoogleSignInButton />
-          
+          <GoogleSignInButton country={country} language={language} />
+
           <div className="mt-6 text-center text-sm">
             <span className="text-muted-foreground">{t('yaTienesCuenta_7e833c')} </span>
             <Link to="/login" className="text-primary hover:underline">{t('iniciaSesion_0e195f')}</Link>

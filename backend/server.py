@@ -2455,6 +2455,8 @@ GOOGLE_CLIENT_ID = (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
 class GoogleAuthRequest(BaseModel):
     """Payload sent by the SPA after Google's button returns an ID token."""
     credential: str  # the Google-issued ID token (JWT signed by Google)
+    country: Optional[str] = None            # optional, when signing up from the register form
+    preferred_locale: Optional[str] = None
 
 
 @api_router.post("/auth/google")
@@ -2489,6 +2491,9 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
     if not email or not info.get("email_verified"):
         raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
 
+    country = _norm_country(payload.country)
+    preferred_locale = _norm_locale(payload.preferred_locale)
+
     # Look up by email, otherwise create a passwordless user with `auth_provider=google`.
     user = await db.users.find_one({"email": email}, {"_id": 0})
     is_new_user = user is None   # para atribución de referidos: solo altas nuevas
@@ -2500,6 +2505,8 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "password": None,                  # no password for Google users
             "name": info.get("name") or email.split("@")[0],
             "picture": info.get("picture"),
+            "country": country,                # from the register form if provided
+            "preferred_locale": preferred_locale,
             "subscription_plan": None,
             "subscription_end": None,
             "is_premium": False,
@@ -2510,12 +2517,16 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
         }
         await db.users.insert_one(user)
     else:
-        # Backfill picture / google_sub on existing accounts that registered with email/password.
+        # Backfill picture / google_sub / country / locale on existing accounts.
         updates = {}
         if not user.get("google_sub"):
             updates["google_sub"] = info.get("sub")
         if not user.get("picture") and info.get("picture"):
             updates["picture"] = info.get("picture")
+        if country and not user.get("country"):
+            updates["country"] = country
+        if preferred_locale and not user.get("preferred_locale"):
+            updates["preferred_locale"] = preferred_locale
         if updates:
             await db.users.update_one({"id": user["id"]}, {"$set": updates})
             user.update(updates)
@@ -2531,6 +2542,8 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "email": user["email"],
             "name": user["name"],
             "picture": user.get("picture"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
             "subscription_status": user.get("subscription_status"),
@@ -2538,6 +2551,32 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "google"),
         },
+    }
+
+
+class ProfileUpdateRequest(BaseModel):
+    country: Optional[str] = None
+    preferred_locale: Optional[str] = None
+
+
+@api_router.post("/auth/profile")
+async def update_own_profile(payload: ProfileUpdateRequest, user: dict = Depends(require_user)):
+    """Let a signed-in user set their own country / preferred UI language.
+
+    Powers the 'complete your profile' step for Google sign-ups (and any user
+    who registered before these fields existed)."""
+    updates: Dict[str, Any] = {}
+    if payload.country is not None:
+        updates["country"] = _norm_country(payload.country)
+    if payload.preferred_locale is not None:
+        updates["preferred_locale"] = _norm_locale(payload.preferred_locale)
+    if updates:
+        await db.users.update_one({"id": user["id"]}, {"$set": updates})
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or user
+    return {
+        "ok": True,
+        "country": fresh.get("country"),
+        "preferred_locale": fresh.get("preferred_locale"),
     }
 
 # ============= PRICES - Real-time Data =============

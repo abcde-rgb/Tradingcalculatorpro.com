@@ -22,7 +22,7 @@ const GOOGLE_CLIENT_ID = (process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim();
  *   3. Google Console: añadir la URL del frontend como "Authorized JavaScript origin"
  *      en el OAuth 2.0 Client ID (no se necesita redirect URI).
  */
-export default function GoogleSignInButton() {
+export default function GoogleSignInButton({ country, language } = {}) {
   const navigate = useNavigate();
   const { t, locale } = useTranslation();
   const { loginWithGoogle } = useAuthStore();
@@ -53,7 +53,9 @@ export default function GoogleSignInButton() {
   const handleSuccess = async (response) => {
     if (busy) return;
     setBusy(true);
-    const result = await loginWithGoogle(response.credential);
+    // On the register page we pass the pre-selected country/language so a
+    // one-click Google sign-up still captures them.
+    const result = await loginWithGoogle(response.credential, { country, preferredLocale: language });
     setBusy(false);
     if (result.success) {
       toast.success(t('bienvenido_b33c1f'));
