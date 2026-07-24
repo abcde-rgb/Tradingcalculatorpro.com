@@ -35,6 +35,7 @@ export default function SimulatorConfigPanel({
   tradingComm, setTradingComm,
   platformComm, setPlatformComm,
   compoundInterest, setCompoundInterest,
+  stopAfterLosses, setStopAfterLosses,
   phases, updatePhase, getOperationRange,
   togglePhasePartial, updatePhaseLeg,
   // fixed risk mode
@@ -46,10 +47,14 @@ export default function SimulatorConfigPanel({
   fixedPartialTps, setFixedPartialTps,
   fixedPartialLegs, updatePartialLeg,
   fixedPartialCont, setFixedPartialCont,
+  fixedPartialPct, setFixedPartialPct,
   // exec
   onExecute, isLoading,
 }) {
   const { t } = useTranslation();
+
+  // Sum of close-% across scale-out legs — used to warn when it isn't 100%.
+  const legSum = (legs) => (Array.isArray(legs) ? legs : []).reduce((s, l) => s + (parseFloat(l?.pct) || 0), 0);
 
   return (
     <Card className="bg-card border-border">
@@ -86,7 +91,7 @@ export default function SimulatorConfigPanel({
                 <Input
                   type="number"
                   value={initialBalance}
-                  onChange={(e) => setInitialBalance(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setInitialBalance(Math.min(1e12, Math.max(0, parseFloat(e.target.value) || 0)))}
                   min={1}
                   className="font-mono"
                   data-testid="initial-balance"
@@ -178,6 +183,22 @@ export default function SimulatorConfigPanel({
                     💰 {t('compoundInterest')}
                   </Label>
                 </div>
+
+                {/* Optional risk rule: stop after N consecutive losses */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-sm">{t('stopAfterLosses')}</Label>
+                    <Input
+                      type="number"
+                      value={stopAfterLosses}
+                      onChange={(e) => setStopAfterLosses(Math.min(1000, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                      min={0} max={1000} step={1}
+                      className="font-mono"
+                      data-testid="stop-after-losses"
+                    />
+                    <p className="text-[11px] text-muted-foreground">{t('stopAfterLossesHint')}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Phase cards grid */}
@@ -204,8 +225,8 @@ export default function SimulatorConfigPanel({
                               <Input
                                 type="number"
                                 value={phase.numOps}
-                                onChange={(e) => updatePhase(idx, 'numOps', parseInt(e.target.value, 10) || 30)}
-                                min={1} max={200}
+                                onChange={(e) => updatePhase(idx, 'numOps', Math.min(500, Math.max(1, parseInt(e.target.value, 10) || 30)))}
+                                min={1} max={500}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -214,7 +235,7 @@ export default function SimulatorConfigPanel({
                               <Input
                                 type="number"
                                 value={phase.posSize}
-                                onChange={(e) => updatePhase(idx, 'posSize', parseFloat(e.target.value) || 5)}
+                                onChange={(e) => updatePhase(idx, 'posSize', Math.min(1000, Math.max(0.1, parseFloat(e.target.value) || 5)))}
                                 step={0.5} min={0.1} max={100}
                                 className="h-8 text-sm"
                               />
@@ -296,11 +317,22 @@ export default function SimulatorConfigPanel({
                                            onChange={(e) => updatePhaseLeg(idx, li, 'pct', e.target.value)} className="h-7 text-xs" />
                                   </div>
                                 ))}
+                                {Math.round(legSum(phase.legs)) !== 100 && (
+                                  <p className="text-[10px] text-amber-500" data-testid={`phase-legsum-warn-${idx}`}>
+                                    ⚠ {t('legSumWarning').replace('{sum}', Math.round(legSum(phase.legs)))}
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-[10px] text-muted-foreground flex-1">{t('simContinuation')}</span>
                                   <Input type="number" value={phase.cont ?? 60} step={5} min={0} max={100}
-                                         onChange={(e) => updatePhase(idx, 'cont', parseFloat(e.target.value) || 0)}
+                                         onChange={(e) => updatePhase(idx, 'cont', Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
                                          className="h-7 text-xs w-16" />
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] text-muted-foreground flex-1">{t('partialSharePct')}</span>
+                                  <Input type="number" value={phase.partialPct ?? 100} step={5} min={0} max={100}
+                                         onChange={(e) => updatePhase(idx, 'partialPct', Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                                         className="h-7 text-xs w-16" data-testid={`phase-partial-pct-${idx}`} />
                                 </div>
                               </div>
                             )}
@@ -326,7 +358,7 @@ export default function SimulatorConfigPanel({
                   <Input
                     type="number"
                     value={fixedCapitalPerOp}
-                    onChange={(e) => setFixedCapitalPerOp(parseFloat(e.target.value) || 100)}
+                    onChange={(e) => setFixedCapitalPerOp(Math.min(1e12, Math.max(0, parseFloat(e.target.value) || 100)))}
                     min={1}
                     className="font-mono"
                     placeholder="100"
@@ -338,8 +370,8 @@ export default function SimulatorConfigPanel({
                   <Input
                     type="number"
                     value={fixedTotalOps}
-                    onChange={(e) => setFixedTotalOps(parseInt(e.target.value, 10) || 100)}
-                    min={1} max={1000}
+                    onChange={(e) => setFixedTotalOps(Math.min(5000, Math.max(1, parseInt(e.target.value, 10) || 100)))}
+                    min={1} max={5000}
                     className="font-mono"
                   />
                 </div>
@@ -396,10 +428,21 @@ export default function SimulatorConfigPanel({
                                  onChange={(e) => updatePartialLeg(i, 'pct', e.target.value)} className="font-mono h-8" />
                         </div>
                       ))}
+                      {Math.round(legSum(fixedPartialLegs)) !== 100 && (
+                        <p className="text-[11px] text-amber-500" data-testid="fixed-legsum-warn">
+                          ⚠ {t('legSumWarning').replace('{sum}', Math.round(legSum(fixedPartialLegs)))}
+                        </p>
+                      )}
                       <div className="space-y-1 pt-1">
                         <Label className="text-sm">{t('simContinuation')}: {fixedPartialCont}%</Label>
                         <Slider value={[fixedPartialCont]} onValueChange={(v) => setFixedPartialCont(v[0])}
                                 min={0} max={100} step={5} className="py-2" />
+                      </div>
+                      <div className="space-y-1 pt-1">
+                        <Label className="text-sm">{t('partialSharePct')}: {fixedPartialPct}%</Label>
+                        <Slider value={[fixedPartialPct]} onValueChange={(v) => setFixedPartialPct(v[0])}
+                                min={0} max={100} step={5} className="py-2" data-testid="fixed-partial-pct" />
+                        <p className="text-[11px] text-muted-foreground">{t('partialShareHint')}</p>
                       </div>
                       <p className="text-[11px] text-muted-foreground/80 leading-relaxed">{t('simPartialNote')}</p>
                     </div>

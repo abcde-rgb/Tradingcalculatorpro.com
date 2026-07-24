@@ -29,6 +29,20 @@ export function mulberry32(seed) {
   };
 }
 
+/** Clamp a value to [lo, hi]; non-finite falls back to `lo`. */
+function clamp(v, lo, hi) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return lo;
+  return Math.min(hi, Math.max(lo, n));
+}
+/** Clamp + floor to an integer in [lo, hi]. */
+function clampInt(v, lo, hi) {
+  return Math.floor(clamp(v, lo, hi));
+}
+
+/** Hard ceiling on operations per single run — guards against runaway configs. */
+const MAX_OPS_PER_RUN = 5000;
+
 function makeOp(num, phase, numOpsInPhase, capitalBefore, capitalInOp, netResult, commission, capitalAfter, isWin) {
   return {
     num,
@@ -82,28 +96,36 @@ function makeTracker(startBalance) {
     get maxDrawdown() { return maxDD * 100; },
     get maxWinStreak() { return maxWinStreak; },
     get maxLossStreak() { return maxLossStreak; },
+    get currentLoss() { return curLoss; },
   };
 }
 
-function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss, partialTps, partialLegs, partialCont, totalCommRate }, rnd, collectOps) {
+function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss, partialTps, partialLegs, partialCont, partialPct, totalCommRate, stopAfterLosses }, rnd, collectOps) {
   const ops = collectOps ? [] : null;
-  let accountBalance = initialBalance;
+  let accountBalance = clamp(initialBalance, 0, 1e15);
   let totalWins = 0, totalOps = 0;
   let grossGain = 0, grossLoss = 0, totalCommission = 0;
   const tr = makeTracker(accountBalance);
 
-  const fixedCapital = fixedCapitalPerOp;
-  const winRate = fixedWinRate / 100;
-  const tp = fixedTakeProfit / 100;
-  const sl = fixedStopLoss / 100;
+  const fixedCapital = clamp(fixedCapitalPerOp, 0, 1e15);
+  const winRate = clamp(fixedWinRate, 0, 100) / 100;
+  const tp = clamp(fixedTakeProfit, 0, 1e6) / 100;
+  const sl = clamp(fixedStopLoss, 0, 1e6) / 100;
   const usePartial = partialTps && Array.isArray(partialLegs) && partialLegs.length > 0;
-  const cont = Math.max(0, Math.min(1, (partialCont ?? 60) / 100));
+  const cont = clamp(partialCont ?? 60, 0, 100) / 100;
+  const partialFrac = clamp(partialPct ?? 100, 0, 100) / 100;  // share of wins scaled out
+  const totalOpsWanted = clampInt(fixedTotalOps, 0, MAX_OPS_PER_RUN);
+  const lossLimit = clampInt(stopAfterLosses ?? 0, 0, 1000);   // 0 = disabled
 
-  for (let op = 0; op < fixedTotalOps; op += 1) {
+  for (let op = 0; op < totalOpsWanted; op += 1) {
     const isWin = rnd() < winRate;
-    const pnl = isWin
-      ? (usePartial ? winPnlPartial(fixedCapital, partialLegs, cont, rnd) : fixedCapital * tp)
-      : -(fixedCapital * sl);
+    let pnl;
+    if (isWin) {
+      const scaleOut = usePartial && rnd() < partialFrac;
+      pnl = scaleOut ? winPnlPartial(fixedCapital, partialLegs, cont, rnd) : fixedCapital * tp;
+    } else {
+      pnl = -(fixedCapital * sl);
+    }
     // Commission is charged on the traded NOTIONAL (position size), the way
     // brokers/exchanges actually bill it — not on the P&L.
     const commission = fixedCapital * totalCommRate;
@@ -117,7 +139,9 @@ function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixed
     tr.update(accountBalance, isWin);
     totalOps += 1;
 
-    if (collectOps) ops.push(makeOp(totalOps, 1, fixedTotalOps, balanceBefore, fixedCapital, netResult, commission, accountBalance, isWin));
+    if (collectOps) ops.push(makeOp(totalOps, 1, totalOpsWanted, balanceBefore, fixedCapital, netResult, commission, accountBalance, isWin));
+    // Risk rule: stop trading after N consecutive losses (loss-limit).
+    if (lossLimit > 0 && tr.currentLoss >= lossLimit) break;
   }
   return {
     ops, finalBalance: accountBalance, totalWins, totalOps,
@@ -126,35 +150,43 @@ function simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixed
   };
 }
 
-function simulateCompound({ initialBalance, phases, compoundInterest, totalCommRate }, rnd, collectOps) {
+function simulateCompound({ initialBalance, phases, compoundInterest, totalCommRate, stopAfterLosses }, rnd, collectOps) {
   const ops = collectOps ? [] : null;
+  initialBalance = clamp(initialBalance, 0, 1e15);
   let capital = initialBalance;
   let totalWins = 0, totalOps = 0;
   let grossGain = 0, grossLoss = 0, totalCommission = 0;
   const tr = makeTracker(capital);
+  const lossLimit = clampInt(stopAfterLosses ?? 0, 0, 1000);   // 0 = disabled
+  let stopped = false;
 
-  for (let phaseIdx = 0; phaseIdx < phases.length; phaseIdx += 1) {
+  for (let phaseIdx = 0; phaseIdx < phases.length && !stopped; phaseIdx += 1) {
     const phase = phases[phaseIdx];
     // Nullish coalescing (not ||) so a legitimate 0 (e.g. winRate 0) is kept
-    // instead of silently falling back to the default.
-    const numOps  = phase.numOps   ?? 30;
-    const posSize = (phase.posSize ?? 5) / 100;
-    const tp      = (phase.tp      ?? 2) / 100;
-    const sl      = (phase.sl      ?? 1) / 100;
-    const winRate = (phase.winRate ?? 50) / 100;
+    // instead of silently falling back to the default; then clamp to safe ranges.
+    const numOps  = clampInt(phase.numOps ?? 30, 0, MAX_OPS_PER_RUN);
+    const posSize = clamp(phase.posSize ?? 5, 0, 1000) / 100;   // % of capital (allow leverage)
+    const tp      = clamp(phase.tp ?? 2, 0, 1e6) / 100;
+    const sl      = clamp(phase.sl ?? 1, 0, 1e6) / 100;
+    const winRate = clamp(phase.winRate ?? 50, 0, 100) / 100;
     const usePartial = phase.partialTps && Array.isArray(phase.legs) && phase.legs.length > 0;
-    const cont    = Math.max(0, Math.min(1, (phase.cont ?? 60) / 100));
+    const cont    = clamp(phase.cont ?? 60, 0, 100) / 100;
+    const partialFrac = clamp(phase.partialPct ?? 100, 0, 100) / 100;  // share of wins scaled out
 
     for (let op = 0; op < numOps; op += 1) {
       // When compounding is ON the position scales with the growing capital;
       // when OFF it is a fixed fraction of the INITIAL balance (fixed sizing).
       // Either way the P&L always accrues to the running balance.
       const sizingBase = compoundInterest ? capital : initialBalance;
-      const capitalInOp = sizingBase * posSize;
+      const capitalInOp = Math.max(0, sizingBase) * posSize;
       const isWin = rnd() < winRate;
-      const pnl = isWin
-        ? (usePartial ? winPnlPartial(capitalInOp, phase.legs, cont, rnd) : capitalInOp * tp)
-        : -(capitalInOp * sl);
+      let pnl;
+      if (isWin) {
+        const scaleOut = usePartial && rnd() < partialFrac;
+        pnl = scaleOut ? winPnlPartial(capitalInOp, phase.legs, cont, rnd) : capitalInOp * tp;
+      } else {
+        pnl = -(capitalInOp * sl);
+      }
       const commission = capitalInOp * totalCommRate;   // on notional, see simulateFixed
       const netResult = pnl - commission;
       if (isWin) { grossGain += pnl; totalWins += 1; }
@@ -167,6 +199,8 @@ function simulateCompound({ initialBalance, phases, compoundInterest, totalCommR
       totalOps += 1;
 
       if (collectOps) ops.push(makeOp(totalOps, phaseIdx + 1, numOps, capitalBefore, capitalInOp, netResult, commission, capital, isWin));
+      // Risk rule: stop trading after N consecutive losses (loss-limit).
+      if (lossLimit > 0 && tr.currentLoss >= lossLimit) { stopped = true; break; }
     }
   }
   return {
@@ -179,23 +213,31 @@ function simulateCompound({ initialBalance, phases, compoundInterest, totalCommR
 function simulateOnce(config, rnd, collectOps) {
   const {
     initialBalance, capitalMode, phases, compoundInterest,
-    tradingComm, platformComm,
+    tradingComm, platformComm, stopAfterLosses,
     fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
-    fixedPartialTps, fixedPartialLegs, fixedPartialCont,
+    fixedPartialTps, fixedPartialLegs, fixedPartialCont, fixedPartialPct,
   } = config;
 
-  const totalCommRate = (tradingComm + platformComm) / 100;
+  const totalCommRate = (Math.max(0, tradingComm) + Math.max(0, platformComm)) / 100;
   return capitalMode === 'fixed'
     ? simulateFixed({ initialBalance, fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
-        partialTps: fixedPartialTps, partialLegs: fixedPartialLegs, partialCont: fixedPartialCont, totalCommRate }, rnd, collectOps)
-    : simulateCompound({ initialBalance, phases, compoundInterest, totalCommRate }, rnd, collectOps);
+        partialTps: fixedPartialTps, partialLegs: fixedPartialLegs, partialCont: fixedPartialCont, partialPct: fixedPartialPct,
+        totalCommRate, stopAfterLosses }, rnd, collectOps)
+    : simulateCompound({ initialBalance, phases, compoundInterest, totalCommRate, stopAfterLosses }, rnd, collectOps);
+}
+
+/** Upper bound on ops in one run — used to size the Monte-Carlo work budget. */
+function estimateOpsPerRun(config) {
+  if (config.capitalMode === 'fixed') return clampInt(config.fixedTotalOps ?? 0, 0, MAX_OPS_PER_RUN);
+  return (config.phases || []).reduce((s, p) => s + clampInt(p.numOps ?? 30, 0, MAX_OPS_PER_RUN), 0);
 }
 
 /** Turn a raw single-run result into the aggregate KPI object used by the UI. */
 function aggregate(inner, initialBalance) {
+  const init = clamp(initialBalance, 0, 1e15);
   const { finalBalance, totalWins, totalOps, grossGain, grossLoss, totalCommission, maxDrawdown, maxWinStreak, maxLossStreak } = inner;
-  const netGain       = finalBalance - initialBalance;
-  const roi           = initialBalance > 0 ? (netGain / initialBalance) * 100 : 0;
+  const netGain       = finalBalance - init;
+  const roi           = init > 0 ? (netGain / init) * 100 : 0;
   const winRatePct    = totalOps > 0 ? (totalWins / totalOps) * 100 : 0;
   const losers        = totalOps - totalWins;
   const avgWin        = totalWins > 0 ? grossGain / totalWins : 0;
@@ -235,7 +277,11 @@ export function runSimulation(config, opts = {}) {
  * to display the representative (median) equity curve.
  */
 export function runMonteCarlo(config, opts = {}) {
-  const iterations = Math.max(1, opts.iterations || 1000);
+  const requested = Math.max(1, opts.iterations || 1000);
+  // Cap total work (iterations × ops/run) so a huge config can't freeze the UI.
+  const WORK_BUDGET = 3_000_000;
+  const opsPerRun = Math.max(1, estimateOpsPerRun(config));
+  const iterations = Math.max(50, Math.min(requested, Math.floor(WORK_BUDGET / opsPerRun)));
   const seedBase = opts.seedBase != null ? (opts.seedBase >>> 0) : (Math.floor(Math.random() * 0xFFFFFFFF) >>> 0);
 
   const runs = new Array(iterations);
@@ -249,7 +295,7 @@ export function runMonteCarlo(config, opts = {}) {
   const at = (q) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
   const p5 = at(0.05), p50 = at(0.50), p95 = at(0.95);
 
-  const initial = config.initialBalance;
+  const initial = clamp(config.initialBalance, 0, 1e15);
   const n = runs.length;
   const mean = runs.reduce((s, r) => s + r.finalBalance, 0) / n;
   const profitProbability = (runs.filter((r) => r.finalBalance > initial).length / n) * 100;

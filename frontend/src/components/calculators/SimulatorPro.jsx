@@ -33,6 +33,8 @@ export function SimulatorPro() {
   const [platformComm, setPlatformComm] = useState(0.05);
   const [compoundInterest, setCompoundInterest] = useState(true);
   const [phases, setPhases] = useState(DEFAULT_PHASES);
+  // Optional risk rule: stop after N consecutive losses (0 = disabled).
+  const [stopAfterLosses, setStopAfterLosses] = useState(0);
 
   // Fixed risk config
   const [fixedCapitalPerOp, setFixedCapitalPerOp] = useState(100);
@@ -46,6 +48,8 @@ export function SimulatorPro() {
     { r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 },
   ]);
   const [fixedPartialCont, setFixedPartialCont] = useState(60);
+  // Share of WINNING trades managed with partial scale-out (rest hit fixed TP).
+  const [fixedPartialPct, setFixedPartialPct] = useState(100);
 
   const updatePartialLeg = (index, field, value) => {
     setFixedPartialLegs((prev) => {
@@ -102,6 +106,7 @@ export function SimulatorPro() {
         p.legs = [{ r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 }];
       }
       if (checked && p.cont == null) p.cont = 60;
+      if (checked && p.partialPct == null) p.partialPct = 100;
       next[index] = p;
       return next;
     });
@@ -134,9 +139,9 @@ export function SimulatorPro() {
     setIsLoading(true);
     const config = {
       initialBalance, capitalMode, phases, compoundInterest,
-      tradingComm, platformComm,
+      tradingComm, platformComm, stopAfterLosses,
       fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
-      fixedPartialTps, fixedPartialLegs, fixedPartialCont,
+      fixedPartialTps, fixedPartialLegs, fixedPartialCont, fixedPartialPct,
     };
     // 1) Map the long-term outcome range over many runs of this same config.
     const mc = runMonteCarlo(config, { iterations: MC_ITERATIONS });
@@ -167,6 +172,7 @@ export function SimulatorPro() {
         tradingComm={tradingComm} setTradingComm={setTradingComm}
         platformComm={platformComm} setPlatformComm={setPlatformComm}
         compoundInterest={compoundInterest} setCompoundInterest={setCompoundInterest}
+        stopAfterLosses={stopAfterLosses} setStopAfterLosses={setStopAfterLosses}
         phases={phases} updatePhase={updatePhase} getOperationRange={getOperationRange}
         togglePhasePartial={togglePhasePartial} updatePhaseLeg={updatePhaseLeg}
         fixedCapitalPerOp={fixedCapitalPerOp} setFixedCapitalPerOp={setFixedCapitalPerOp}
@@ -177,6 +183,7 @@ export function SimulatorPro() {
         fixedPartialTps={fixedPartialTps} setFixedPartialTps={setFixedPartialTps}
         fixedPartialLegs={fixedPartialLegs} updatePartialLeg={updatePartialLeg}
         fixedPartialCont={fixedPartialCont} setFixedPartialCont={setFixedPartialCont}
+        fixedPartialPct={fixedPartialPct} setFixedPartialPct={setFixedPartialPct}
         onExecute={executeSimulation} isLoading={isLoading}
       />
 
