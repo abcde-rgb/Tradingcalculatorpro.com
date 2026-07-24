@@ -35,6 +35,25 @@
 - [ ] **Construir la Fase 1** del técnico avanzado (Volume Profile, falso rompimiento,
       objetivos Ichimoku, TD Sequential). Spec en `DETALLE_TECNICAS_IMPLEMENTACION.md`.
 
+## SimulatorPro (mejoras aplicadas — conservando su esencia de largo plazo)
+- [x] **Curva = escenario mediano de 1000 simulaciones** (Monte-Carlo de la MISMA
+      config multi-fase). Sigue siendo una única curva de capital a largo plazo,
+      pero representativa y estable, no un único camino con suerte. La aleatoriedad
+      se muestra ahora como *rango* (p5 / p50 / p95), no como ruido en la curva.
+- [x] **Panel "Rango a largo plazo"**: pesimista (peor 5%), mediano, optimista
+      (mejor 5%), probabilidad de beneficio, peor drawdown y peor racha perdedora.
+- [x] **Bug corregido**: en modo *sin* interés compuesto el saldo final quedaba
+      igual al inicial (no acumulaba P&L). Ahora acumula y usa tamaño de posición
+      fijo sobre el saldo inicial.
+- [x] **Comisión sobre el nocional** (tamaño de posición), no sobre el |P&L| —
+      como cobran realmente brokers/exchanges.
+- [x] **Bug corregido**: `winRate/posSize/tp/sl/numOps` en 0 se trataban como el
+      valor por defecto (`|| default`) → ahora `?? default` respeta el 0.
+- [x] **Rachas** ganadora/perdedora máximas añadidas a métricas avanzadas.
+- [x] **PRNG con semilla** (`mulberry32`) → resultados reproducibles.
+- [ ] *Opcional futuro*: control de nº de simulaciones en la UI (hoy fijo a 1000)
+      y banda p5–p95 sombreada sobre la propia curva de capital.
+
 ## Endurecimiento (menor)
 - [ ] Sustituir `detail=str(e)` por mensajes genéricos en los endpoints que lo usan
       (evita filtrar texto de error interno). No es fuga de datos de usuario.

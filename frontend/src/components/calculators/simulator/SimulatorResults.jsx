@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  BarChart3, Target, Activity, DollarSign, RotateCcw,
+  BarChart3, Target, Activity, DollarSign, RotateCcw, Layers, Shuffle,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
@@ -38,7 +38,10 @@ export default function SimulatorResults({ results, operations, onReset }) {
     finalBalance, netGain, roi, winRate, maxDrawdown, profitFactor,
     grossGain, grossLoss, totalCommission, expectancy,
     totalOps, totalWins, totalLosses,
+    maxWinStreak, maxLossStreak, distribution, iterations,
   } = results;
+
+  const fmt = (v) => `$${(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <Card className="bg-card border-border" data-testid="simulation-results">
@@ -76,6 +79,52 @@ export default function SimulatorResults({ results, operations, onReset }) {
           </div>
         </section>
 
+        {/* Long-term outcome range (Monte-Carlo over the same config) */}
+        {distribution && (
+          <section data-testid="longterm-range">
+            <h4 className="font-semibold text-sm mb-1 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-primary" /> {t('longTermRange')}
+            </h4>
+            <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+              <Shuffle className="w-3 h-3" />
+              {t('longTermRangeDesc').replace('{n}', (iterations || 0).toLocaleString())}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <ScenarioCard
+                label={t('scenarioPessimistic')} value={fmt(distribution.p5)}
+                tone="bg-red-500/10 border-red-500/30" valueClass="text-red-500"
+              />
+              <ScenarioCard
+                label={t('scenarioMedian')} value={fmt(distribution.p50)}
+                tone="bg-primary/10 border-primary/30" valueClass="text-primary" highlight
+              />
+              <ScenarioCard
+                label={t('scenarioOptimistic')} value={fmt(distribution.p95)}
+                tone="bg-green-500/10 border-green-500/30" valueClass="text-green-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Kpi label={t('profitProbability')}
+                valueClass={distribution.profitProbability >= 55 ? 'text-green-500' : distribution.profitProbability >= 45 ? 'text-yellow-500' : 'text-red-500'}
+                size="sm">
+                {distribution.profitProbability.toFixed(1)}%
+              </Kpi>
+              <Kpi label={t('worstCaseDrawdown')} valueClass="text-red-500" size="sm">
+                {distribution.worstMaxDrawdown.toFixed(1)}%
+              </Kpi>
+              <Kpi label={t('worstLosingStreak')} valueClass="text-orange-500" size="sm">
+                {distribution.worstLosingStreak}
+              </Kpi>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground mt-3">
+              {t('medianPathNote').replace('{n}', (iterations || 0).toLocaleString())}
+            </p>
+          </section>
+        )}
+
         {/* Advanced Metrics */}
         <section>
           <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
@@ -98,6 +147,8 @@ export default function SimulatorResults({ results, operations, onReset }) {
             <Kpi label={t('winnersLosers')} size="sm">
               <span className="text-green-500">{totalWins}</span> / <span className="text-red-500">{totalLosses}</span>
             </Kpi>
+            <Kpi label={t('maxWinStreak')} valueClass="text-green-500" size="sm">{maxWinStreak ?? 0}</Kpi>
+            <Kpi label={t('maxLossStreak')} valueClass="text-red-500" size="sm">{maxLossStreak ?? 0}</Kpi>
           </div>
         </section>
 
@@ -212,6 +263,16 @@ function Kpi({ label, children, valueClass = '', size = 'xl', testId }) {
     <div className="p-3 rounded-lg bg-muted/50" data-testid={testId}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`${size === 'xl' ? 'text-xl' : 'text-lg'} font-bold ${valueClass}`}>{children}</p>
+    </div>
+  );
+}
+
+/** Scenario card for the long-term outcome range (pessimistic/median/optimistic). */
+function ScenarioCard({ label, value, tone, valueClass, highlight = false }) {
+  return (
+    <div className={`p-4 rounded-lg border text-center ${tone} ${highlight ? 'ring-1 ring-primary/40' : ''}`}>
+      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+      <p className={`text-xl font-bold ${valueClass}`}>{value}</p>
     </div>
   );
 }

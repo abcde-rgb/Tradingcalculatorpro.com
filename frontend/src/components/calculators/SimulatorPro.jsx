@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useIsPremium } from '@/lib/premium';
-import { runSimulation } from './simulator/simulatorEngine';
+import { runSimulation, runMonteCarlo } from './simulator/simulatorEngine';
 import SimulatorLocked from './simulator/SimulatorLocked';
 import SimulatorConfigPanel from './simulator/SimulatorConfigPanel';
 import SimulatorResults from './simulator/SimulatorResults';
@@ -126,16 +126,24 @@ export function SimulatorPro() {
     return { start, end };
   };
 
+  // How many long-term journeys to simulate to map the range of outcomes.
+  const MC_ITERATIONS = 1000;
+
   const executeSimulation = () => {
     if (!isPremium) return;
     setIsLoading(true);
-    const { operations: ops, results: agg } = runSimulation({
+    const config = {
       initialBalance, capitalMode, phases, compoundInterest,
       tradingComm, platformComm,
       fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
       fixedPartialTps, fixedPartialLegs, fixedPartialCont,
-    });
-    setResults(agg);
+    };
+    // 1) Map the long-term outcome range over many runs of this same config.
+    const mc = runMonteCarlo(config, { iterations: MC_ITERATIONS });
+    // 2) Redraw the MEDIAN journey as the equity curve — representative of the
+    //    long term, not one lucky/unlucky path (keeps the tool's essence).
+    const { operations: ops, results: agg } = runSimulation(config, { seed: mc.medianSeed });
+    setResults({ ...agg, distribution: mc.distribution, iterations: mc.iterations });
     setOperations(ops);
     setShowConfig(false);
     setIsLoading(false);
