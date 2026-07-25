@@ -1,4 +1,20 @@
 export default {
+    // ── Academia Fase 1: WIP + ejemplo interactivo ──
+    wipBadge: 'En construcción',
+    wipTitle: 'Estamos trabajando en ello',
+    wipMessage: 'Esta sección está en desarrollo. Pronto añadiremos el contenido completo por país y jurisdicción.',
+    wipOk: 'Entendido',
+    srExampleTitle: 'Soportes y Resistencias — ejemplo interactivo',
+    srExampleHint: 'Haz clic para ampliar',
+    srModalSubtitle: 'Un rango: el precio rebota en el soporte y se rechaza en la resistencia.',
+    srSupport: 'Soporte',
+    srResistance: 'Resistencia',
+    srBounce: 'Rebote (demanda)',
+    srRejection: 'Rechazo (oferta)',
+    srHowTitle: 'Cómo identificarlos',
+    srHowBody: 'El soporte es un nivel donde el precio deja de caer y rebota: la demanda supera a la oferta.\nLa resistencia es un nivel donde el precio deja de subir y se gira: la oferta supera a la demanda.\nCuantos más rebotes o rechazos acumula un nivel, más fiable es.\nSi el precio rompe el nivel con fuerza y volumen, soporte y resistencia intercambian su papel.',
+    srUseTitle: 'Uso práctico',
+    srUseBody: 'Buscar compras cerca del soporte, con el stop justo por debajo.\nTomar beneficios o vender cerca de la resistencia.\nOperar la ruptura solo cuando se confirma, idealmente con el retest del nivel.',
     // App
     appName: 'Trading Calculator PRO',
     tagline: 'Herramienta hecha por y para traders',

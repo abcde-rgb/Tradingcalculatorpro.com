@@ -34,6 +34,8 @@ import TradingPillarsGuide from '@/components/education/TradingPillarsGuide';
 import TradingPyramid from '@/components/education/TradingPyramid';
 import TrendLinesGuide from '@/components/education/TrendLinesGuide';
 import TimeframesGuide from '@/components/education/TimeframesGuide';
+import WipSection from '@/components/education/WipSection';
+import SupportResistanceExample from '@/components/education/SupportResistanceExample';
 import CapitalManagementTools from '@/components/education/CapitalManagementTools';
 import StopLossGuide from '@/components/education/StopLossGuide';
 import OrderTypesGuide from '@/components/education/OrderTypesGuide';
@@ -1996,6 +1998,10 @@ export default function EducationPage() {
 
             {/* Trading taxes — general concepts + strong 'not tax advice' disclaimer */}
             <TabsContent value="taxes" className="space-y-8">
+              {/* Fiscalidad: contenido conservado pero difuminado — "trabajando en ello".
+                  Para reactivarlo, basta con quitar el wrapper <WipSection>. */}
+              <WipSection>
+              <div className="space-y-8">
               <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
@@ -2024,6 +2030,8 @@ export default function EducationPage() {
                 <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{TAXES.note}</p>
               </div>
+              </div>
+              </WipSection>
             </TabsContent>
 
             {/* Algorithmic trading — systematic, backtesting, execution, pitfalls, automation risk */}
@@ -2343,6 +2351,9 @@ export default function EducationPage() {
                   <TrendLinesGuide />
                 </CardContent>
               </Card>
+
+              {/* Interactive support/resistance example — click to expand */}
+              <SupportResistanceExample />
 
               {/* Chart scale: log vs linear */}
               <div>
