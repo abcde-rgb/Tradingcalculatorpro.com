@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/Tradingcalculatorpro.com/static/css/main.833b9e53.css",
-    "main.js": "/Tradingcalculatorpro.com/static/js/main.605032a5.js",
+    "main.js": "/Tradingcalculatorpro.com/static/js/main.a6816a73.js",
     "static/js/247.ad719ef6.chunk.js": "/Tradingcalculatorpro.com/static/js/247.ad719ef6.chunk.js",
     "static/js/614.acfd6efc.chunk.js": "/Tradingcalculatorpro.com/static/js/614.acfd6efc.chunk.js",
     "static/js/948.c62decc6.chunk.js": "/Tradingcalculatorpro.com/static/js/948.c62decc6.chunk.js",
@@ -43,7 +43,7 @@
     "static/media/margex-square.png": "/Tradingcalculatorpro.com/static/media/margex-square.a7d30235766b0219db72.png",
     "static/media/hyperliquid-square.svg": "/Tradingcalculatorpro.com/static/media/hyperliquid-square.8312e6ed1784905e8ce25d88babb0bee.svg",
     "main.833b9e53.css.map": "/Tradingcalculatorpro.com/static/css/main.833b9e53.css.map",
-    "main.605032a5.js.map": "/Tradingcalculatorpro.com/static/js/main.605032a5.js.map",
+    "main.a6816a73.js.map": "/Tradingcalculatorpro.com/static/js/main.a6816a73.js.map",
     "247.ad719ef6.chunk.js.map": "/Tradingcalculatorpro.com/static/js/247.ad719ef6.chunk.js.map",
     "614.acfd6efc.chunk.js.map": "/Tradingcalculatorpro.com/static/js/614.acfd6efc.chunk.js.map",
     "948.c62decc6.chunk.js.map": "/Tradingcalculatorpro.com/static/js/948.c62decc6.chunk.js.map",
@@ -84,6 +84,6 @@
   },
   "entrypoints": [
     "static/css/main.833b9e53.css",
-    "static/js/main.605032a5.js"
+    "static/js/main.a6816a73.js"
   ]
 }
