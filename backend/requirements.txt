@@ -5,12 +5,12 @@
 
 # Framework principal
 fastapi==0.115.5
-uvicorn[standard]==0.32.1
+uvicorn[standard]==0.51.0
 
 # Base de datos (Cloud SQL PostgreSQL)
 asyncpg==0.30.0
 sqlalchemy[asyncio]==2.0.36
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.12
 alembic==1.14.0
 
 # Seguridad / Auth
@@ -18,7 +18,7 @@ PyJWT==2.13.0
 bcrypt==4.2.1
 python-multipart==0.0.32
 google-auth==2.36.0
-google-auth-oauthlib==1.2.1
+google-auth-oauthlib==1.4.0
 google-auth-httplib2==0.2.0
 passlib[bcrypt]==1.7.4
 cryptography>=41.0.0
@@ -33,7 +33,7 @@ anthropic>=0.40.0
 slowapi==0.1.9
 
 # Email
-sendgrid==6.11.0
+sendgrid==6.12.5
 
 # HTTP / utilidades
 httpx==0.28.1
@@ -59,4 +59,4 @@ google-cloud-logging==3.11.3
 starlette==0.41.3
 
 # 2FA (TOTP)
-pyotp==2.9.0
+pyotp==2.10.0
