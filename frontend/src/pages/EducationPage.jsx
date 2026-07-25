@@ -46,6 +46,7 @@ import RiskOfRuinCalculator from '@/components/education/RiskOfRuinCalculator';
 import WyckoffSchematic from '@/components/education/WyckoffSchematic';
 import CotGuide from '@/components/education/CotGuide';
 import GlossaryVisual from '@/components/education/GlossaryVisual';
+import FillBlanksExample from '@/components/education/FillBlanksExample';
 import TimeVsImpact from '@/components/education/TimeVsImpact';
 import PreTradeProtocol from '@/components/education/PreTradeProtocol';
 import OrderFlowVisual from '@/components/education/OrderFlowVisual';
@@ -631,7 +632,7 @@ export default function EducationPage() {
   const doneCount = eduDone.filter(v => EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === v))).length;
 
   // Glossary + quiz data (localized via i18n keys; answers are key-order-fixed).
-  const GLOSSARY = Array.from({ length: 60 }, (_, i) => ({ n: i + 1, term: t(`gl${i + 1}t`), def: t(`gl${i + 1}d`) }));
+  const GLOSSARY = Array.from({ length: 68 }, (_, i) => ({ n: i + 1, term: t(`gl${i + 1}t`), def: t(`gl${i + 1}d`) }));
   const [glossQ, setGlossQ] = useState('');
   const glossFiltered = GLOSSARY.filter(g =>
     !glossQ || (g.term + ' ' + g.def).toLowerCase().includes(glossQ.toLowerCase())
@@ -5113,6 +5114,7 @@ export default function EducationPage() {
                     <p className="text-sm font-bold text-primary mb-1">{g.term}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">{g.def}</p>
                     <GlossaryVisual n={g.n} />
+                    <FillBlanksExample n={g.n} />
                   </div>
                 ))}
                 {glossFiltered.length === 0 && (

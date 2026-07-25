@@ -36,7 +36,7 @@ Leyenda: ✅ existe con profundidad · 🟡 existe pero flojo/ampliar · 🔴 no
 
 | # | Tema (PDF §3) | Componente actual | Estado | Acción propuesta |
 |---|---|---|---|---|
-| T1 | **Glosario** (§3.1) | `GlossaryVisual.jsx` (230 l) | 🟡 | Completar los 22 términos mínimos del PDF + faltantes; para cada uno: definición corta + explicación novato + **ejemplo fill-in-the-blanks** (componente nuevo `FillBlanksExample`). Añadir términos que falten (auditar vocabulario) |
+| T1 | **Glosario** (§3.1) | `GlossaryVisual.jsx` + `FillBlanksExample.jsx` | 🟢 en curso | **[Fase 2 hecho]** Añadidos los 8 términos del temario que faltaban (gl61–gl68: acumulación, distribución, swing, scalping, estructura de mercado, order block, fair value gap, top-down) en 8 idiomas + componente **`FillBlanksExample`** (ejemplo con hueco: se escribe la palabra, se valida o se revela) aplicado a 14 términos núcleo. **Pendiente:** extender los huecos al resto de términos y añadir más `GlossaryVisual` SVG. |
 | T2 | **Fiscalidad** (§3.2) | `TaxesVisual.jsx` (92 l) | 🟡→WIP | **No borrar.** Envolver en `WipSection` (difuminado + "Estamos trabajando en ello"). Conservar el contenido para reactivarlo luego por país |
 | T3 | **Soportes y Resistencias** (§3.3) | `TrendLinesGuide.jsx` (412 l) | 🟡 | Añadir **ejemplo gráfico interactivo**: soporte horizontal con varios rebotes + resistencia con varios rechazos; clic → se abre grande con anotaciones y explicación de cómo identificarlos |
 | T4 | **Método Top-Down** (§3.4) | `TimeframesGuide.jsx` (dentro) | 🟡 | Detallar flujo semanal→diario→4h→1h→15m; añadir **representación tipo árbol/flujo** con ejemplo |
