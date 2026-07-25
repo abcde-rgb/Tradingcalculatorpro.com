@@ -5131,6 +5131,7 @@ export default {
   partnersTitle: 'Tools, die wir empfehlen',
   partnersSubtitle: 'Plattformen, die wir zum Handeln und zur Marktanalyse nutzen und empfehlen',
   partnerMargexDesc: 'Krypto-Derivatebörse mit bis zu 100-fachem Hebel, ohne KYC, 100-USD-Willkommensbonus und Gebühren-Cashback bis zu 10.000 USD',
+  partnerHyperliquidDesc: 'On-chain dezentrale Perpetual-Börse (DEX), ohne KYC, mit schneller Ausführung, niedrigen Gebühren und vollständig transparenten Daten',
   sponsoredLabel: 'Affiliate-Link',
   // === Programa de afiliados / Affiliate program (AffiliatePage.jsx + user menu) ===
   affMenuLabel: "Partnerprogramm",

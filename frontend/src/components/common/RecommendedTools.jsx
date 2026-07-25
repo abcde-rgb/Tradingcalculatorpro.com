@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import margexLogo from '@/assets/partners/margex-square.png';
+import hyperliquidLogo from '@/assets/partners/hyperliquid-square.svg';
 
 const FADE_UP_VIEW = { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 } };
 
@@ -14,6 +15,16 @@ const PARTNERS = [
     url: 'https://margex.com/?rid=44932212',
     image: margexLogo,
     descKey: 'partnerMargexDesc',
+  },
+  {
+    id: 'hyperliquid',
+    name: 'Hyperliquid',
+    // TODO(pendiente): reemplazar por el enlace de referido real de Hyperliquid
+    // cuando el usuario lo facilite. Y sustituir el logo placeholder (SVG) por el
+    // oficial (hyperliquid-square.png). Ver docs/PENDIENTES.md.
+    url: 'https://app.hyperliquid.xyz/',
+    image: hyperliquidLogo,
+    descKey: 'partnerHyperliquidDesc',
   },
 ];
 

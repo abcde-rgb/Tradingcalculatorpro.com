@@ -5236,6 +5236,7 @@ export default {
   partnersTitle: 'Herramientas que recomendamos',
   partnersSubtitle: 'Plataformas que usamos y recomendamos para operar y analizar los mercados',
   partnerMargexDesc: 'Exchange de derivados cripto con hasta 100x de apalancamiento, sin KYC, bono de bienvenida de $100 y cashback de comisiones hasta $10.000',
+  partnerHyperliquidDesc: 'Exchange de perpetuos descentralizado (DEX) on-chain, sin KYC, con ejecución rápida, comisiones bajas y datos totalmente transparentes',
   sponsoredLabel: 'Enlace de afiliado',
   // === Programa de afiliados / Affiliate program (AffiliatePage.jsx + user menu) ===
   affMenuLabel: "Programa de afiliados",

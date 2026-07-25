@@ -5073,6 +5073,7 @@ export default {
   partnersTitle: 'Инструменты, которые мы рекомендуем',
   partnersSubtitle: 'Платформы, которые мы используем и рекомендуем для торговли и анализа рынков',
   partnerMargexDesc: 'Биржа криптодеривативов с плечом до 100x, без KYC, приветственным бонусом $100 и кэшбэком комиссий до $10 000',
+  partnerHyperliquidDesc: 'Децентрализованная биржа бессрочных контрактов (DEX) on-chain, без KYC, с быстрым исполнением, низкими комиссиями и полностью прозрачными данными',
   sponsoredLabel: 'Партнёрская ссылка',
   // === Programa de afiliados / Affiliate program (AffiliatePage.jsx + user menu) ===
   affMenuLabel: "Партнёрская программа",
