@@ -1,4 +1,15 @@
 export default {
+    // ── Academy Phase 3: Elliott / Ichimoku / Smart Money diagrams ──
+    ewVisTitle: 'Elliott structure (5-3)',
+    ewVisImpulse: 'Impulse (1-5)',
+    ewVisCorrective: 'Correction (A-B-C)',
+    ewVisCaption: 'Five waves with the trend (1-5) and three corrective (A-B-C). Waves 2 and 4 pull back; wave 3 is usually the longest.',
+    ichiVisTitle: 'Ichimoku at a glance',
+    ichiVisCloud: 'Cloud (Kumo)',
+    ichiVisCaption: 'Price above the cloud = bullish bias; below = bearish. Tenkan (fast) and Kijun (slow) show momentum.',
+    smcVisTitle: 'Smart Money: sweep, order block and FVG',
+    smcVisSweep: 'Liquidity sweep',
+    smcVisCaption: 'Price sweeps the liquidity below a prior low, leaves an order block and a fair value gap, and reacts upward from there.',
     // ── Academy Phase 2: glossary (new terms + fill-in-the-blanks) ──
     fillPrompt: 'Type the missing word',
     fillCorrect: 'Correct!',

@@ -1,4 +1,15 @@
 export default {
+    // ── Académie Phase 3 : diagrammes Elliott / Ichimoku / Smart Money ──
+    ewVisTitle: 'Structure d\'Elliott (5-3)',
+    ewVisImpulse: 'Impulsion (1-5)',
+    ewVisCorrective: 'Correction (A-B-C)',
+    ewVisCaption: 'Cinq vagues dans le sens de la tendance (1-5) et trois correctives (A-B-C). Les vagues 2 et 4 corrigent ; la vague 3 est souvent la plus longue.',
+    ichiVisTitle: 'Ichimoku en un coup d\'œil',
+    ichiVisCloud: 'Nuage (Kumo)',
+    ichiVisCaption: 'Prix au-dessus du nuage = biais haussier ; en dessous = baissier. Tenkan (rapide) et Kijun (lente) montrent le momentum.',
+    smcVisTitle: 'Smart Money : sweep, order block et FVG',
+    smcVisSweep: 'Balayage de liquidité',
+    smcVisCaption: 'Le prix balaie la liquidité sous un plus-bas précédent, laisse un order block et un fair value gap, puis réagit à la hausse.',
     // ── Académie Phase 2 : glossaire (nouveaux termes + texte à trous) ──
     fillPrompt: 'Écris le mot manquant',
     fillCorrect: 'Correct !',

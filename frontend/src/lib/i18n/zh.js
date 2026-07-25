@@ -1,4 +1,15 @@
 export default {
+    // ── 学院第三阶段：艾略特 / 一目均衡表 / Smart Money 图示 ──
+    ewVisTitle: '艾略特结构（5-3）',
+    ewVisImpulse: '推动浪（1-5）',
+    ewVisCorrective: '调整浪（A-B-C）',
+    ewVisCaption: '顺势的五浪（1-5）加上三浪调整（A-B-C）。第2、4浪回调；第3浪通常最长。',
+    ichiVisTitle: '一目均衡表速览',
+    ichiVisCloud: '云（Kumo）',
+    ichiVisCaption: '价格在云之上＝偏多；在云之下＝偏空。转换线（快）与基准线（慢）显示动能。',
+    smcVisTitle: 'Smart Money：扫单、订单块与FVG',
+    smcVisSweep: '流动性扫单',
+    smcVisCaption: '价格扫掉前低下方的流动性，留下一个订单块和一个公允价值缺口，随后从此处向上反应。',
     // ── 学院第二阶段：术语表（新增术语 + 填空）──
     fillPrompt: '填写缺少的词',
     fillCorrect: '正确！',

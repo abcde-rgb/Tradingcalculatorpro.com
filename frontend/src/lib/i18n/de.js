@@ -1,4 +1,15 @@
 export default {
+    // ── Akademie Phase 3: Diagramme Elliott / Ichimoku / Smart Money ──
+    ewVisTitle: 'Elliott-Struktur (5-3)',
+    ewVisImpulse: 'Impuls (1-5)',
+    ewVisCorrective: 'Korrektur (A-B-C)',
+    ewVisCaption: 'Fünf Wellen mit dem Trend (1-5) und drei korrektive (A-B-C). Wellen 2 und 4 korrigieren; Welle 3 ist meist die längste.',
+    ichiVisTitle: 'Ichimoku auf einen Blick',
+    ichiVisCloud: 'Wolke (Kumo)',
+    ichiVisCaption: 'Kurs über der Wolke = bullische Tendenz; darunter = bärisch. Tenkan (schnell) und Kijun (langsam) zeigen das Momentum.',
+    smcVisTitle: 'Smart Money: Sweep, Order Block und FVG',
+    smcVisSweep: 'Liquiditäts-Sweep',
+    smcVisCaption: 'Der Kurs greift die Liquidität unter einem vorherigen Tief ab, hinterlässt einen Order Block und ein Fair Value Gap und reagiert von dort nach oben.',
     // ── Akademie Phase 2: Glossar (neue Begriffe + Lückentext) ──
     fillPrompt: 'Gib das fehlende Wort ein',
     fillCorrect: 'Richtig!',

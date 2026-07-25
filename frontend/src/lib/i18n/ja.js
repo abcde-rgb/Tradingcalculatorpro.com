@@ -1,4 +1,15 @@
 export default {
+    // ── アカデミー フェーズ3：エリオット / 一目均衡表 / スマートマネー図 ──
+    ewVisTitle: 'エリオットの構造（5-3）',
+    ewVisImpulse: '推進波（1-5）',
+    ewVisCorrective: '修正波（A-B-C）',
+    ewVisCaption: 'トレンド方向の5波（1-5）と3波の修正（A-B-C）。2波と4波は押し戻し、3波が最も長いことが多い。',
+    ichiVisTitle: '一目均衡表をひと目で',
+    ichiVisCloud: '雲（Kumo）',
+    ichiVisCaption: '価格が雲の上＝強気、雲の下＝弱気。転換線（速い）と基準線（遅い）が勢いを示す。',
+    smcVisTitle: 'スマートマネー：スイープ、オーダーブロック、FVG',
+    smcVisSweep: '流動性スイープ',
+    smcVisCaption: '価格は直近安値下の流動性を狩り、オーダーブロックとフェアバリューギャップを残して上方向へ反応する。',
     // ── アカデミー フェーズ2：用語集（新規用語 + 穴埋め）──
     fillPrompt: '空欄の言葉を入力',
     fillCorrect: '正解！',

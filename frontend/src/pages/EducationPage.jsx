@@ -27,6 +27,9 @@ import CandlePatternFigure, { hasCandleBlueprint } from '@/components/education/
 import ChartPatternFigure, { hasChartFigure, ChartPatternCandleFigure } from '@/components/education/ChartPatternFigure';
 import SymVsBroadeningCard from '@/components/education/SymVsBroadeningCard';
 import HarmonicPatternFigure from '@/components/education/HarmonicPatternFigure';
+import ElliottWavesVisual from '@/components/education/ElliottWavesVisual';
+import IchimokuVisual from '@/components/education/IchimokuVisual';
+import SmartMoneyVisual from '@/components/education/SmartMoneyVisual';
 import LivePatternDetector from '@/components/education/LivePatternDetector';
 import PatternFilterBar from '@/components/education/PatternFilterBar';
 import LeverageGuide from '@/components/education/LeverageGuide';
@@ -2474,6 +2477,9 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* Diagrama 5-3 */}
+              <ElliottWavesVisual />
+
               {/* Motive waves 1-5 */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
@@ -2633,6 +2639,9 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* Diagrama Ichimoku */}
+              <IchimokuVisual />
+
               {/* The 5 lines */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
@@ -2743,6 +2752,9 @@ export default function EducationPage() {
                   <p className="text-muted-foreground leading-relaxed">{SMART_MONEY.intro}</p>
                 </CardContent>
               </Card>
+
+              {/* Diagrama Smart Money / ICT */}
+              <SmartMoneyVisual />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {SMART_MONEY.items.map(s => (
