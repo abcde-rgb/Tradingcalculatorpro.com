@@ -30,6 +30,7 @@ import HarmonicPatternFigure from '@/components/education/HarmonicPatternFigure'
 import ElliottWavesVisual from '@/components/education/ElliottWavesVisual';
 import IchimokuVisual from '@/components/education/IchimokuVisual';
 import SmartMoneyVisual from '@/components/education/SmartMoneyVisual';
+import SetupBuilder from '@/components/education/SetupBuilder';
 import LivePatternDetector from '@/components/education/LivePatternDetector';
 import PatternFilterBar from '@/components/education/PatternFilterBar';
 import LeverageGuide from '@/components/education/LeverageGuide';
@@ -503,6 +504,7 @@ export default function EducationPage() {
   const EDUCATION_NAV = [
     { id: 'start', label: t('eduCatStart'), topics: [
       { value: 'start-here', label: t('shTitle') },
+      { value: 'my-setup', label: t('setupTab') },
       { value: 'fundamentals', label: t('fundTab') },
       { value: 'mechanics', label: t('mechTab') },
       { value: 'styles', label: t('stylesTab') },
@@ -5097,6 +5099,11 @@ export default function EducationPage() {
                 )}
               </TabsContent>
             ))}
+
+            {/* Crea tu setup de trading — builder interactivo (localStorage) */}
+            <TabsContent value="my-setup" className="space-y-6">
+              <SetupBuilder />
+            </TabsContent>
 
             {/* Glossary — searchable trading terms */}
             <TabsContent value="glossary" className="space-y-6">

@@ -54,6 +54,12 @@ Leyenda: ✅ existe con profundidad · 🟡 existe pero flojo/ampliar · 🔴 no
 
 ## 3. Feature nueva — "Crea tu setup de trading" (§3.14)
 
+> 🟢 **[Fase 4 hecho]** `components/education/SetupBuilder.jsx` — pestaña **"Crea tu setup"**
+> (2ª de la Academia). Chips para marco temporal, estilo, enfoques (Wyckoff/ICT/S-R/Elliott/
+> Ichimoku/Dow/Price Action/Volume Profile/VWAP/armónicos) y herramientas (EMA/RSI/MACD/…),
+> + riesgo por operación y R:R, con **resumen en vivo**, botones Guardar/Copiar/Reiniciar y
+> **persistencia en `localStorage` (v1)**. 8 idiomas. **v2 (futuro):** guardar por usuario en backend.
+
 Objetivo: panel donde el usuario **configura su propio setup**.
 - Elegir **marco temporal**.
 - **Seleccionar herramientas** (indicadores/enfoques).
