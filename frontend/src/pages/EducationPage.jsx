@@ -5102,7 +5102,11 @@ export default function EducationPage() {
 
             {/* Crea tu setup de trading — builder interactivo (localStorage) */}
             <TabsContent value="my-setup" className="space-y-6">
-              <SetupBuilder />
+              {/* Difuminado "trabajando en ello" hasta validar la interacción.
+                  Para reactivarlo, basta con quitar el wrapper <WipSection>. */}
+              <WipSection>
+                <SetupBuilder />
+              </WipSection>
             </TabsContent>
 
             {/* Glossary — searchable trading terms */}
