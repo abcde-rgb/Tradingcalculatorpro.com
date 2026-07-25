@@ -60,7 +60,7 @@
 
 **Credentials:**
 - Demo `demo@btccalc.pro / 1234` ahora tiene `is_admin: true` (bootstrap manual). El usuario puede crear más admins desde el panel `/admin`.
-- Google OAuth en `/app/backend/.env`: `GOOGLE_CLIENT_ID=704202303011-h80r1dthm40hm7qtmu6ood7bq24mgcs2.apps.googleusercontent.com` + secret. JS Origin autorizado: preview URL.
+- Google OAuth: `GOOGLE_CLIENT_ID` se inyecta por variable de entorno / Secret Manager (no se versiona en el repo). JS Origin autorizado en la consola de Google Cloud de la cuenta propietaria actual.
 
 ### May 2026 — SEO Multi-idioma Dinámico (8 locales) ✅
 

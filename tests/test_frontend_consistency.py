@@ -19,7 +19,7 @@ import requests
 from pathlib import Path
 from datetime import datetime
 
-BASE_URL = "https://tradingcalculator-api-704202303011.us-central1.run.app"
+BASE_URL = os.environ.get("BACKEND_URL", "https://tradingcalculator-api-822920348693.us-east1.run.app")
 FRONTEND_DIR = Path("frontend/src")
 
 # Rutas que esperamos encontrar en el backend

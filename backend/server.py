@@ -1053,12 +1053,11 @@ DEMO_PASSWORD = _demo_pw
 _ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 # Emails with FREE full (comp) access — always treated as premium without paying.
-# Útil mientras no está la facturación/Stripe activa. Ampliable por env FREE_ACCESS_EMAILS
-# (coma-separado); hardcodeamos una cuenta de cortesía por defecto.
-_FREE_ACCESS_EMAILS = (
-    {e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()}
-    | {"tradingcalculatorpro@gmail.com"}
-)
+# Útil mientras no está la facturación/Stripe activa. Se configura SOLO por env
+# FREE_ACCESS_EMAILS (coma-separado); sin hardcodear ninguna cuenta en el repo.
+_FREE_ACCESS_EMAILS = {
+    e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()
+}
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {

@@ -5,12 +5,14 @@ Prueba cada endpoint del backend en producción y reporta errores.
 
 Uso:
     python tests/test_all_endpoints.py
-    python tests/test_all_endpoints.py --url https://tradingcalculator-api-704202303011.us-central1.run.app
+    python tests/test_all_endpoints.py --url https://tu-backend.run.app
+    # o via env:  BACKEND_URL=https://tu-backend.run.app python tests/test_all_endpoints.py
 
 Requiere:
     pip install requests
 """
 
+import os
 import requests
 import json
 import time
@@ -20,7 +22,7 @@ from datetime import datetime
 from typing import Optional
 
 # ─────────────────────────────────────────────
-BASE_URL = "https://tradingcalculator-api-704202303011.us-central1.run.app"
+BASE_URL = os.environ.get("BACKEND_URL", "https://tradingcalculator-api-822920348693.us-east1.run.app")
 TIMEOUT  = 10
 # ─────────────────────────────────────────────
 

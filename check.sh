@@ -4,7 +4,7 @@
 # Uso: bash check.sh
 # ============================================================
 
-BASE="https://tradingcalculator-api-704202303011.us-central1.run.app/api"
+BASE="${BACKEND_URL:-https://tradingcalculator-api-822920348693.us-east1.run.app}/api"
 PASS=0
 FAIL=0
 

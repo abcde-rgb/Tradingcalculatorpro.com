@@ -938,8 +938,8 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   avanzado 0/10→0/11; 0 pageerrors). Academia: **50 módulos**.
 - ⏳ Del ranking de huecos v2 quedan: opciones a fondo (vol + mecánica), MAE/MFE + correlación
   (rápidos, dentro de módulos existentes).
-- ⚠️ Deploy backend (Cloud Run) sigue en rojo por **billing de GCP desactivado** (proyecto
-  `tradingcalculator-495806`); el frontend (GitHub Pages) despliega OK. Bloqueo operativo del dueño.
+- ⚠️ Deploy backend (Cloud Run) estuvo en rojo por **billing de GCP desactivado** en el proyecto
+  antiguo; el frontend (GitHub Pages) despliega OK. (Resuelto después migrando a una cuenta GCP nueva.)
 
 ### 2026-07-10 (27) — Fondo "Aurora" animado en páginas internas
 - Revisión de fondos a 4:3/16:9/16:10/21:9: Principal y Precios ya usan el gráfico de velas animado
@@ -1305,8 +1305,8 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 
 ### 2026-07-17 (47) — Acceso libre (comp) para cuentas de cortesía
 - ✅ **`_FREE_ACCESS_EMAILS`** en `server.py`: correos con **acceso premium completo sin pagar**
-  (útil mientras no está la facturación/Stripe activa). Por defecto incluye
-  `tradingcalculatorpro@gmail.com`; ampliable por env `FREE_ACCESS_EMAILS` (coma-separado).
+  (útil mientras no está la facturación/Stripe activa). Se configura **solo por env**
+  `FREE_ACCESS_EMAILS` (coma-separado); sin ninguna cuenta hardcodeada en el repo.
   `check_premium` los trata como premium; `affiliate_program._is_paying_member` los acepta como
   suscriptores de pago (pueden unirse al programa de afiliados). Sin cambios en el frontend: `/auth/me`
   ya devuelve `is_premium=True` para ellos → desbloquea funciones y muestra la opción de afiliados.

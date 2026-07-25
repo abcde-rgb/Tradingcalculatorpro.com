@@ -302,8 +302,8 @@ activaba el circuit breaker. **Solución:** `raise HTTPException(503)` cuando DB
 ### M-14 — ADMIN_EMAILS hardcodeado en cloudbuild.yaml ✅ RESUELTO
 **Severidad:** 🟡 MENOR · **Archivo:** `cloudbuild.yaml`
 
-Email de admin (`tradingcalculatorpro@gmail.com`) expuesto en el repositorio.
-**Solución:** eliminado del `--set-env-vars`; debe configurarse en el servicio Cloud Run.
+Un email de admin quedaba expuesto en texto plano en el repositorio.
+**Solución:** eliminado del `--set-env-vars`; debe configurarse por variable de entorno en el servicio Cloud Run (nunca versionado en el repo).
 
 ### M-19 — POST /referrals/track sin rate limit ✅ RESUELTO
 **Severidad:** 🟡 MENOR · **Archivo:** `backend/referrals.py`
