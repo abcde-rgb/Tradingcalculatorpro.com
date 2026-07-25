@@ -44,15 +44,21 @@ Leyenda: ✅ existe con profundidad · 🟡 existe pero flojo/ampliar · 🔴 no
 | T6 | **Estructura de mercado + Wyckoff** (§3.6) | `WyckoffSchematic.jsx`, `MarketStructureVisual.jsx` | 🟡 | Fases A–E + **eventos clave** (PS, SC/BC, AR, ST, Spring/UTAD, SOS/SOW, LPS/LPSY): para cada uno definición + aspecto visual + comportamiento del volumen |
 | T7 | **Volumen + operar con Wyckoff** (§3.7) | — (parte de Wyckoff) | 🔴/🟡 | Ley esfuerzo vs resultado; ejemplos (selling climax, test con volumen menor, acumulación, distribución); **guía operativa**: identificar fase → esperar evento → confirmar ruptura+retest → entrada/stop/objetivos |
 | T8 | **Gráficos alternativos** (§3.8) | — | 🔴 | Crear `AltChartsVisual`: Renko, Heiken Ashi, Point & Figure — explicación breve + ejemplo + contexto de uso |
-| T9 | **Ondas de Elliott** (§3.9) | — | 🔴 | Crear `ElliottWavesVisual`: estructura 5-3 (5 impulsivas + 3 correctivas), reglas básicas, ejemplo gráfico simple; recomendar diario/4h |
-| T10 | **Ichimoku** (§3.10) | — | 🔴 | Crear `IchimokuVisual`: Tenkan, Kijun, Span A/B, Chikou; interpretación (precio sobre nube, nube alcista/bajista, confirmación Chikou); recomendar diario/semanal |
+| T9 | **Ondas de Elliott** (§3.9) | `ElliottWavesVisual.jsx` | 🟢 **[Fase 3 hecho]** | Diagrama SVG de la estructura 5-3 (impulso 1-5 + corrección A-B-C) insertado en la pestaña Elliott, 8 idiomas |
+| T10 | **Ichimoku** (§3.10) | `IchimokuVisual.jsx` | 🟢 **[Fase 3 hecho]** | Diagrama SVG (nube Kumo + Tenkan/Kijun + precio) insertado en la pestaña Ichimoku, 8 idiomas |
 | T11 | **Patrones armónicos** (§3.11) | — | 🔴 | Crear `HarmonicPatternsVisual`: Gartley, Bat, Crab, Butterfly; base Fibonacci; representación X-A-B-C-D + ejemplo + temporalidades |
-| T12 | **Smart Money / ICT** (§3.12) | — | 🔴 | Crear `SmartMoneyVisual`: liquidez, order blocks, fair value gaps, kill zones; definición + ejemplo gráfico + relación con estructura y top-down |
+| T12 | **Smart Money / ICT** (§3.12) | `SmartMoneyVisual.jsx` | 🟢 **[Fase 3 hecho]** | Diagrama SVG (barrido de liquidez + order block + fair value gap) insertado en la pestaña SMC, 8 idiomas. *(T8 alt-charts y T11 armónicos YA tenían diagrama en main)* |
 | T13 | **Técnico avanzado** (§3.13) | varios sueltos | 🟡 | Sección paraguas que agrupe: Wyckoff avanzado, ICT, Elliott avanzado, Volume Profile, VWAP. Enfoque a usuarios que ya dominan la base |
 
 ---
 
 ## 3. Feature nueva — "Crea tu setup de trading" (§3.14)
+
+> 🟢 **[Fase 4 hecho]** `components/education/SetupBuilder.jsx` — pestaña **"Crea tu setup"**
+> (2ª de la Academia). Chips para marco temporal, estilo, enfoques (Wyckoff/ICT/S-R/Elliott/
+> Ichimoku/Dow/Price Action/Volume Profile/VWAP/armónicos) y herramientas (EMA/RSI/MACD/…),
+> + riesgo por operación y R:R, con **resumen en vivo**, botones Guardar/Copiar/Reiniciar y
+> **persistencia en `localStorage` (v1)**. 8 idiomas. **v2 (futuro):** guardar por usuario en backend.
 
 Objetivo: panel donde el usuario **configura su propio setup**.
 - Elegir **marco temporal**.
