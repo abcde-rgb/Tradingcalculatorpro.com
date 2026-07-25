@@ -3,21 +3,47 @@ import { CandlestickChart } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 /**
- * Simplified Ichimoku diagram: price above a bullish Kumo cloud (Span A over Span B),
- * with Tenkan-sen (fast) and Kijun-sen (slow) lines. Component names stay in the
- * original (language-neutral); only the cloud label and caption are translated.
+ * Ichimoku diagram drawn with real Japanese candlesticks: price (candles) trading
+ * above a bullish Kumo cloud (Span A over Span B), with Tenkan-sen (fast) and
+ * Kijun-sen (slow) lines. Component names stay language-neutral; only the cloud
+ * label and caption are translated.
  */
-const SPAN_A = [[10, 150], [120, 140], [230, 132], [340, 122], [450, 112]];
-const SPAN_B = [[10, 176], [120, 172], [230, 169], [340, 166], [450, 162]];
-const PRICE = [[10, 120], [90, 98], [160, 112], [240, 78], [320, 92], [450, 58]];
-const TENKAN = [[10, 128], [120, 108], [230, 100], [340, 90], [450, 72]];
-const KIJUN = [[10, 141], [120, 136], [230, 129], [340, 123], [450, 117]];
+// price → y (viewBox 0 0 460 240). Domain [100,132] mapped to y [220,24].
+const py = (p) => 220 - ((p - 100) / 32) * 196;
 
-const line = (pts) => pts.map((p) => p.join(',')).join(' ');
+// [o, h, l, c] per candle
+const CANDLES = [
+  [106, 108, 105, 107], [107, 110, 106, 109], [109, 110, 106, 107], [107, 112, 106, 111],
+  [111, 114, 110, 113], [113, 114, 110, 111], [111, 116, 110, 116], [116, 119, 115, 118],
+  [118, 120, 116, 117], [117, 122, 116, 122], [122, 125, 121, 124], [124, 127, 122, 126],
+];
+const X0 = 44, STEP = 30, W = 13;
+const cx = (i) => X0 + i * STEP;
+
+const SPAN_A = [[30, 104], [150, 108], [280, 113], [430, 116]];
+const SPAN_B = [[30, 101], [150, 104], [280, 108], [430, 112]];
+const TENKAN = [[44, 107], [140, 112], [240, 114], [340, 120], [426, 126]];
+const KIJUN = [[44, 109], [140, 110], [240, 113], [340, 116], [426, 121]];
+
+const toPts = (arr) => arr.map(([x, p]) => `${x},${py(p).toFixed(1)}`).join(' ');
+
+function Candle({ i, o, h, l, c }) {
+  const up = c >= o;
+  const color = up ? '#16a34a' : '#dc2626';
+  const x = cx(i);
+  const top = Math.min(py(o), py(c));
+  const bh = Math.max(Math.abs(py(o) - py(c)), 1.5);
+  return (
+    <g>
+      <line x1={x} y1={py(h)} x2={x} y2={py(l)} stroke={color} strokeWidth="1.4" />
+      <rect x={x - W / 2} y={top} width={W} height={bh} fill={color} rx="0.5" />
+    </g>
+  );
+}
 
 export default function IchimokuVisual() {
   const { t } = useTranslation();
-  const cloud = line(SPAN_A) + ' ' + line([...SPAN_B].reverse());
+  const cloud = toPts(SPAN_A) + ' ' + toPts([...SPAN_B].reverse());
 
   return (
     <Card className="border-red-500/30 bg-gradient-to-br from-red-500/5 to-orange-500/10">
@@ -26,19 +52,19 @@ export default function IchimokuVisual() {
           <CandlestickChart className="w-5 h-5 text-red-500" /> {t('ichiVisTitle')}
         </h3>
         <svg viewBox="0 0 460 240" className="w-full h-auto rounded-lg bg-muted/20" role="img" aria-label={t('ichiVisTitle')}>
-          {/* Kumo cloud (Span A over Span B → bullish, green) */}
-          <polygon points={cloud} fill="#16a34a" fillOpacity="0.18" stroke="none" />
-          <polyline points={line(SPAN_A)} fill="none" stroke="#16a34a" strokeWidth="1" opacity="0.6" />
-          <polyline points={line(SPAN_B)} fill="none" stroke="#dc2626" strokeWidth="1" opacity="0.6" />
+          {/* Kumo cloud (Span A over Span B → bullish) */}
+          <polygon points={cloud} fill="#16a34a" fillOpacity="0.16" stroke="none" />
+          <polyline points={toPts(SPAN_A)} fill="none" stroke="#16a34a" strokeWidth="1" opacity="0.6" />
+          <polyline points={toPts(SPAN_B)} fill="none" stroke="#dc2626" strokeWidth="1" opacity="0.6" />
           {/* Kijun (slow, blue) + Tenkan (fast, orange) */}
-          <polyline points={line(KIJUN)} fill="none" stroke="#3b82f6" strokeWidth="1.8" />
-          <polyline points={line(TENKAN)} fill="none" stroke="#f59e0b" strokeWidth="1.8" />
-          {/* Price */}
-          <polyline points={line(PRICE)} fill="none" stroke="#111827" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" className="dark:stroke-white" />
+          <polyline points={toPts(KIJUN)} fill="none" stroke="#3b82f6" strokeWidth="1.8" />
+          <polyline points={toPts(TENKAN)} fill="none" stroke="#f59e0b" strokeWidth="1.8" />
+          {/* Candles */}
+          {CANDLES.map(([o, h, l, c], i) => <Candle key={i} i={i} o={o} h={h} l={l} c={c} />)}
           {/* Labels */}
-          <text x="60" y="160" fontSize="11" fontWeight="700" fill="#16a34a">{t('ichiVisCloud')}</text>
-          <text x="360" y="70" fontSize="10" fontWeight="700" fill="#f59e0b">Tenkan</text>
-          <text x="360" y="132" fontSize="10" fontWeight="700" fill="#3b82f6">Kijun</text>
+          <text x="150" y={py(105.2).toFixed(1)} fontSize="11" fontWeight="700" fill="#16a34a">{t('ichiVisCloud')}</text>
+          <text x="360" y={py(128).toFixed(1)} fontSize="10" fontWeight="700" fill="#f59e0b">Tenkan</text>
+          <text x="360" y={py(114).toFixed(1)} fontSize="10" fontWeight="700" fill="#3b82f6">Kijun</text>
         </svg>
         <p className="text-xs text-muted-foreground leading-relaxed">{t('ichiVisCaption')}</p>
       </CardContent>
