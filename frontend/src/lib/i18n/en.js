@@ -1,4 +1,14 @@
 export default {
+    // ── Academy: Ichimoku explained (colour legend + bullish/bearish) ──
+    ichiVisTenkan: 'Tenkan (fast, 9)',
+    ichiVisKijun: 'Kijun (slow, 26)',
+    ichiVisChikou: 'Chikou (current price, 26 candles back)',
+    ichiVisCloudLegend: 'Cloud: green = bullish · red = bearish',
+    ichiVisBullTitle: 'When it is BULLISH',
+    ichiVisBullBody: 'Price is ABOVE the cloud.\nTenkan (orange) is above Kijun (blue).\nThe cloud ahead is GREEN (Span A over Span B).\nChikou (purple) is above the price 26 candles ago.',
+    ichiVisBearTitle: 'When it is BEARISH',
+    ichiVisBearBody: 'Price is BELOW the cloud.\nTenkan (orange) is below Kijun (blue).\nThe cloud ahead is RED (Span A under Span B).\nChikou (purple) is below the price 26 candles ago.',
+    ichiVisNeutral: 'If price is INSIDE the cloud there is no clear trend: better to wait until it leaves.',
     // ── Academy Phase 4: Build your trading setup ──
     setupTab: 'Build your setup',
     setupTitle: 'Build your trading setup',

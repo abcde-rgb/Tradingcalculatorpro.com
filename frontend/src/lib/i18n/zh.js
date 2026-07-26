@@ -1,4 +1,14 @@
 export default {
+    // ── 学院：一目均衡表讲解（颜色图例 + 偏多/偏空）──
+    ichiVisTenkan: '转换线 Tenkan（快，9）',
+    ichiVisKijun: '基准线 Kijun（慢，26）',
+    ichiVisChikou: '迟行线 Chikou（当前价，后移26根）',
+    ichiVisCloudLegend: '云：绿=偏多 · 红=偏空',
+    ichiVisBullTitle: '何时偏多',
+    ichiVisBullBody: '价格在云之上。\n转换线（橙）在基准线（蓝）之上。\n前方的云是绿色（Span A 在 Span B 之上）。\n迟行线（紫）在26根前的价格之上。',
+    ichiVisBearTitle: '何时偏空',
+    ichiVisBearBody: '价格在云之下。\n转换线（橙）在基准线（蓝）之下。\n前方的云是红色（Span A 在 Span B 之下）。\n迟行线（紫）在26根前的价格之下。',
+    ichiVisNeutral: '若价格在云内，趋势不明：最好等它离开云层再操作。',
     // ── 学院第四阶段：打造你的交易设置 ──
     setupTab: '打造设置',
     setupTitle: '打造你的交易设置',

@@ -1,4 +1,14 @@
 export default {
+    // ── Académie : Ichimoku expliqué (légende de couleurs + haussier/baissier) ──
+    ichiVisTenkan: 'Tenkan (rapide, 9)',
+    ichiVisKijun: 'Kijun (lente, 26)',
+    ichiVisChikou: 'Chikou (prix actuel, 26 bougies en arrière)',
+    ichiVisCloudLegend: 'Nuage : vert = haussier · rouge = baissier',
+    ichiVisBullTitle: 'Quand c\'est HAUSSIER',
+    ichiVisBullBody: 'Le prix est AU-DESSUS du nuage.\nLa Tenkan (orange) est au-dessus de la Kijun (bleue).\nLe nuage devant est VERT (Span A au-dessus de Span B).\nLa Chikou (violette) est au-dessus du prix d\'il y a 26 bougies.',
+    ichiVisBearTitle: 'Quand c\'est BAISSIER',
+    ichiVisBearBody: 'Le prix est EN DESSOUS du nuage.\nLa Tenkan (orange) est en dessous de la Kijun (bleue).\nLe nuage devant est ROUGE (Span A en dessous de Span B).\nLa Chikou (violette) est en dessous du prix d\'il y a 26 bougies.',
+    ichiVisNeutral: 'Si le prix est À L\'INTÉRIEUR du nuage, pas de tendance claire : mieux vaut attendre qu\'il en sorte.',
     // ── Académie Phase 4 : Crée ton setup de trading ──
     setupTab: 'Crée ton setup',
     setupTitle: 'Crée ton setup de trading',

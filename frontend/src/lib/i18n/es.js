@@ -1,4 +1,14 @@
 export default {
+    // ── Academia: Ichimoku explicado (leyenda de colores + alcista/bajista) ──
+    ichiVisTenkan: 'Tenkan (rápida, 9)',
+    ichiVisKijun: 'Kijun (lenta, 26)',
+    ichiVisChikou: 'Chikou (precio de ahora, 26 velas atrás)',
+    ichiVisCloudLegend: 'Nube: verde = alcista · roja = bajista',
+    ichiVisBullTitle: 'Cuándo es ALCISTA',
+    ichiVisBullBody: 'El precio está POR ENCIMA de la nube.\nLa Tenkan (naranja) va por encima de la Kijun (azul).\nLa nube de delante es VERDE (Span A sobre Span B).\nLa Chikou (morada) va por encima del precio de hace 26 velas.',
+    ichiVisBearTitle: 'Cuándo es BAJISTA',
+    ichiVisBearBody: 'El precio está POR DEBAJO de la nube.\nLa Tenkan (naranja) va por debajo de la Kijun (azul).\nLa nube de delante es ROJA (Span A bajo Span B).\nLa Chikou (morada) va por debajo del precio de hace 26 velas.',
+    ichiVisNeutral: 'Si el precio está DENTRO de la nube, no hay tendencia clara: mejor esperar a que salga.',
     // ── Academia Fase 4: Crea tu setup de trading ──
     setupTab: 'Crea tu setup',
     setupTitle: 'Crea tu setup de trading',
