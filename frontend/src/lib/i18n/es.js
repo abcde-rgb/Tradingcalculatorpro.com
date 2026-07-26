@@ -3146,4 +3146,11 @@ export default {
   importField_emotion: "Emoción",
   importField_notes: "Notas",
   newsWipMessage: "Estamos conectando el feed de titulares. Así se verá: titular, medio, hora y enlace al artículo original. Nada de textos reescritos.",
+  emptyHistoryHint: "Cada cálculo que hagas se guarda aquí para que puedas repasarlo y exportarlo.",
+  emptyHistoryCta: "Hacer mi primer cálculo",
+  emptyAlertsHint: "Crea una alerta arriba y te avisamos por email cuando el precio la toque.",
+  emptyWatchlistHint: "Añade activos y verás su precio en vivo, actualizado cada minuto.",
+  alertActiveBadge: "Activa",
+  admin2faRequiredTitle: "Activa la verificación en dos pasos para entrar al panel",
+  admin2faRequiredBody: "Una cuenta de administrador puede impersonar usuarios, mover suscripciones y ver toda la base de clientes: una contraseña robada no puede bastar. Actívala aquí abajo y vuelve al panel.",
 }

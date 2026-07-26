@@ -3146,4 +3146,11 @@ export default {
   importField_emotion: "感情",
   importField_notes: "メモ",
   newsWipMessage: "見出しフィードを接続中です。完成イメージはこちら：見出し・媒体・時刻・元記事へのリンク。書き換えた文章は使いません。",
+  emptyHistoryHint: "計算するたびにここへ保存され、あとで見返したり書き出したりできます。",
+  emptyHistoryCta: "最初の計算をする",
+  emptyAlertsHint: "上でアラートを作成すると、価格が到達したときにメールでお知らせします。",
+  emptyWatchlistHint: "銘柄を追加すると、1分ごとに更新されるリアルタイム価格が表示されます。",
+  alertActiveBadge: "有効",
+  admin2faRequiredTitle: "管理パネルの利用には二段階認証が必要です",
+  admin2faRequiredBody: "管理者アカウントはユーザーへのなりすまし、サブスクリプションの変更、全顧客データの閲覧ができます。パスワードだけが頼りでは不十分です。下で有効にしてからパネルに戻ってください。",
 }

@@ -3146,4 +3146,11 @@ export default {
   importField_emotion: "Emotion",
   importField_notes: "Notizen",
   newsWipMessage: "Wir binden gerade den Schlagzeilen-Feed an. So wird es aussehen: Schlagzeile, Medium, Uhrzeit und Link zum Originalartikel. Keine umgeschriebenen Texte.",
+  emptyHistoryHint: "Jede Berechnung wird hier gespeichert, damit du sie ansehen und exportieren kannst.",
+  emptyHistoryCta: "Erste Berechnung starten",
+  emptyAlertsHint: "Lege oben einen Alarm an und wir mailen dir, sobald der Kurs ihn erreicht.",
+  emptyWatchlistHint: "Füge Werte hinzu und du siehst ihren Live-Kurs, jede Minute aktualisiert.",
+  alertActiveBadge: "Aktiv",
+  admin2faRequiredTitle: "Aktiviere die Zwei-Faktor-Authentifizierung für den Admin-Bereich",
+  admin2faRequiredBody: "Ein Admin-Konto kann Nutzer impersonieren, Abos ändern und die gesamte Kundenbasis einsehen: ein gestohlenes Passwort darf nicht genügen. Aktiviere sie unten und kehre zum Panel zurück.",
 }

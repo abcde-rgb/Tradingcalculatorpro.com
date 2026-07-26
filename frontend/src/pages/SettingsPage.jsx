@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { useAuthStore } from '@/lib/store';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import TwoFactorCard from '@/components/settings/TwoFactorCard';
 
@@ -24,6 +24,10 @@ export default function SettingsPage() {
   const deleteWord = t('deleteConfirmWord');
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Admins are redirected here by ProtectedRoute when they lack 2FA — say why,
+  // otherwise landing on Settings out of nowhere looks like a bug.
+  const need2fa = location.state?.need2fa === true;
 
   // ── Change Password ──────────────────────────────────────────────────────
   const [currentPassword, setCurrentPassword] = useState('');
@@ -387,6 +391,20 @@ export default function SettingsPage() {
           </Card>
 
           {/* Two-factor authentication (password accounts only) */}
+          {need2fa && (
+            <div
+              className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3"
+              data-testid="admin-2fa-notice"
+            >
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold">{t('admin2faRequiredTitle')}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  {t('admin2faRequiredBody')}
+                </p>
+              </div>
+            </div>
+          )}
           {user?.auth_provider === 'password' && <TwoFactorCard />}
 
           {/* Preferences Card */}

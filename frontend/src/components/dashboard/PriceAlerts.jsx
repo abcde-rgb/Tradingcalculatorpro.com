@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import EmptyState from '@/components/common/EmptyState';
 import { Bell, Plus, Trash2, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -174,9 +175,22 @@ export const PriceAlerts = () => {
             </div>
           ))}
           {alerts.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-4">
-              {t('noAlerts')}
-            </p>
+            <EmptyState
+              icon={Bell}
+              title={t('noAlerts')}
+              hint={t('emptyAlertsHint')}
+              preview={
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
+                  <div className="text-left">
+                    <div className="text-sm font-semibold">BTC</div>
+                    <div className="text-xs text-muted-foreground">&gt; 100,000 $</div>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/15 text-yellow-500">
+                    {t('alertActiveBadge')}
+                  </span>
+                </div>
+              }
+            />
           )}
         </div>
       </CardContent>

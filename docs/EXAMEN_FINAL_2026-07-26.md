@@ -75,6 +75,9 @@ está por encima de casi toda la competencia directa.
 | 9 | Dominio propio | (ops) | ⏳ |
 | 10 | Import CSV de operaciones al diario | M-25 | ✅ asistente con mapeo guiado |
 | 11 | Guardar dibujos/layouts de TradingView por usuario | M-08 | ⏳ límite técnico documentado |
+| 13 | Refresco automático al introducir datos + estados vacíos | M-38 | ✅ |
+| 14 | 2FA obligatorio de admin + CodeQL | (seguridad) | ✅ |
+| 15 | Andamiaje de tiendas (Play TWA + Microsoft MSIX) | M-32 | ✅ preparado |
 | 12 | Tokenomics de cripto (FDV/dilución) — del PDF de 100 reglas | C-04 | ✅ |
 
 ---
@@ -853,11 +856,19 @@ C-01 · C-02 · C-03 · C-04 · C-05.
 4. **M-25** import CSV al diario.
 5. **M-35** presupuesto de rendimiento (dividir academia y admin).
 
-### Ola 3 — plataforma
-1. **M-32** TWA de Android + MSIX de Windows (los dos más baratos y rápidos).
-2. **M-08** `charting_library` para guardar dibujos (solicitarla ya, tarda).
-3. **M-16** calculadora de roll · **M-26** capturas en el diario.
-4. **2FA obligatorio de admin** + Dependabot/CodeQL.
+### Ola 3 — hecha
+**M-38** refresco automático + estados vacíos · **M-36** resoluciones (móvil apaisado y ultrawide)
+· **2FA obligatorio de admin** + **CodeQL** · **M-16** calculadora de roll · **M-32** andamiaje de
+Play (TWA) y Microsoft Store (MSIX) con [`PUBLICAR_EN_TIENDAS.md`](./PUBLICAR_EN_TIENDAS.md).
+
+### Ola 4 — lo que queda
+1. **M-08** `charting_library` para guardar dibujos (solicitarla ya: es gratis y tarda días).
+2. **M-26** capturas del gráfico en el diario (requiere almacenamiento).
+3. **M-02/M-03** caché de mercado en PostgreSQL + presupuesto de llamadas en admin.
+4. **M-28/M-29** unificar los tres buscadores en uno.
+5. **M-40/M-41** conciliación de pagos + alerta de webhook caído.
+6. **F-07** route shadowing admin · **F-08** tests obsoletos en la raíz.
+7. **C-06** ficha de fiscalidad para España.
 
 ### Acciones que solo puedes hacer tú (operación)
 - Dar de alta **Finnhub** (gratis) y meter la clave en Secret Manager.

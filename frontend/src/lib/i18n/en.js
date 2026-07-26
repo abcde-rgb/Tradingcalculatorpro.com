@@ -3146,4 +3146,11 @@ export default {
   importField_emotion: "Emotion",
   importField_notes: "Notes",
   newsWipMessage: "We're wiring up the headline feed. This is how it will look: headline, outlet, time and a link to the original article. No rewritten copy.",
+  emptyHistoryHint: "Every calculation you run is saved here so you can review and export it.",
+  emptyHistoryCta: "Run my first calculation",
+  emptyAlertsHint: "Create an alert above and we'll email you when price reaches it.",
+  emptyWatchlistHint: "Add assets and you'll see their live price, refreshed every minute.",
+  alertActiveBadge: "Active",
+  admin2faRequiredTitle: "Enable two-factor authentication to access the admin panel",
+  admin2faRequiredBody: "An admin account can impersonate users, move subscriptions and read the whole customer base: a stolen password must not be enough. Turn it on below and go back to the panel.",
 }

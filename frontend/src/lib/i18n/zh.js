@@ -3146,4 +3146,11 @@ export default {
   importField_emotion: "情绪",
   importField_notes: "备注",
   newsWipMessage: "我们正在接入标题信息流。呈现方式如下：标题、媒体、时间和原文链接。不会有改写的文字。",
+  emptyHistoryHint: "你做的每一次计算都会保存在这里，方便回看和导出。",
+  emptyHistoryCta: "进行第一次计算",
+  emptyAlertsHint: "在上方创建提醒，价格触及时我们会发邮件通知你。",
+  emptyWatchlistHint: "添加标的后，这里会显示实时价格，每分钟刷新。",
+  alertActiveBadge: "启用中",
+  admin2faRequiredTitle: "启用两步验证才能进入管理面板",
+  admin2faRequiredBody: "管理员账号可以模拟用户、调整订阅并查看全部客户数据：仅凭密码被盗就足以造成损失是不可接受的。请在下方启用，然后返回面板。",
 }

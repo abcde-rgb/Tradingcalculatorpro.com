@@ -247,7 +247,9 @@ export default function DashboardPage() {
       )}
 
       <main className="pt-20 pb-12 px-4 md:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        {/* 2xl+: ultrawide screens left ~50% of the viewport empty. The
+            data-dense blocks below benefit from the extra width. */}
+        <div className="max-w-7xl 2xl:max-w-[1720px] mx-auto space-y-6">
           {/* Welcome */}
           <motion.div {...RISE} transition={{ duration: 0.4, ease: 'easeOut' }}
             className="flex items-center justify-between flex-wrap gap-4">

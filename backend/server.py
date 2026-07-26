@@ -1123,6 +1123,15 @@ def _validate_origin_url(url: str, field: str = "origin_url") -> str:
 # unspoofable: a client can prepend fake IPs, it cannot append past the proxy.
 TRUSTED_PROXY_HOPS = max(1, int(os.environ.get("TRUSTED_PROXY_HOPS", "1")))
 
+# Admins must carry a second factor. Only a non-production environment may opt
+# out (so a fresh local DB isn't locked out of its own panel); in production the
+# env var is ignored on purpose — it must not be possible to disable this by
+# setting a variable on the service.
+ADMIN_2FA_OPTIONAL = (
+    os.environ.get("ENVIRONMENT", "production").lower() in ("development", "dev", "local")
+    and os.environ.get("ADMIN_2FA_OPTIONAL", "true").lower() != "false"
+)
+
 
 def _real_client_ip(request: Optional[Request]) -> str:
     """Client IP as seen by our outermost trusted proxy.
@@ -1474,6 +1483,21 @@ async def require_admin(
     # but every /admin/* call returns 403 → empty panel.
     if not (user.get("is_admin") or user.get("email", "").lower() in _ADMIN_EMAILS):
         raise HTTPException(status_code=403, detail="Acceso restringido")
+
+    # Second factor is MANDATORY for admins. An admin session can impersonate
+    # users, move subscriptions and read the whole customer base, so a stolen
+    # password must not be enough. Per-user TOTP already existed but nothing
+    # required it here.
+    #
+    # 428 (not 403) so the frontend can tell "you may not" apart from "you must
+    # finish setting this up" and send the admin to Settings instead of a dead
+    # end. Escape hatch for local development only.
+    if not user.get("totp_enabled") and not ADMIN_2FA_OPTIONAL:
+        raise HTTPException(
+            status_code=428,
+            detail="Los administradores deben activar la verificación en dos pasos "
+                   "(Ajustes → Seguridad) antes de usar el panel.",
+        )
     return user
 
 
