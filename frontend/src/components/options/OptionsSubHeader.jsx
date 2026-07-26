@@ -56,7 +56,10 @@ const OptionsSubHeader = ({
   const activeLabel = TABS.find((tb) => tb.id === activeTab)?.labelKey;
 
   return (
-    <header className="sticky top-16 bg-card border-b border-border z-30">
+    // On a landscape phone the two sticky bars ate 43% of the viewport
+    // (65px header + 102px here). Below 520px of height the toolbar scrolls
+    // away instead of pinning, giving the content the screen back.
+    <header className="sticky top-16 [@media(max-height:520px)]:static bg-card border-b border-border z-30">
       {/* Row 1 — instrument: search, live price, IV rank. Tabular numerals so
           the price doesn't shift the row every time it ticks. */}
       <div className="h-14 min-h-[56px] flex items-center px-4 md:px-5 gap-3 overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">

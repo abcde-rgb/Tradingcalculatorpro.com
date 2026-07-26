@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { getOptionsMechanics } from '@/lib/optionsMechanicsContent';
+import RollCalculator from './RollCalculator';
 
 /**
  * OptionsMechanics — the plumbing of options trading, in four sections:
@@ -350,6 +351,9 @@ const OptionsMechanics = () => {
               {C.rolling.mistakes.big}
             </p>
           </Card>
+
+          {/* The theory above is only useful if you can price the roll. */}
+          <RollCalculator />
         </div>
       )}
     </section>

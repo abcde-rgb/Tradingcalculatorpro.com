@@ -3146,4 +3146,11 @@ export default {
   importField_emotion: "Émotion",
   importField_notes: "Notes",
   newsWipMessage: "Nous connectons le flux de titres. Voici à quoi cela ressemblera : titre, média, heure et lien vers l'article original. Aucun texte réécrit.",
+  emptyHistoryHint: "Chaque calcul est enregistré ici pour que vous puissiez le revoir et l'exporter.",
+  emptyHistoryCta: "Faire mon premier calcul",
+  emptyAlertsHint: "Créez une alerte ci-dessus et nous vous écrirons quand le prix l'atteindra.",
+  emptyWatchlistHint: "Ajoutez des actifs et vous verrez leur cours en direct, actualisé chaque minute.",
+  alertActiveBadge: "Active",
+  admin2faRequiredTitle: "Activez la double authentification pour accéder au panneau d'administration",
+  admin2faRequiredBody: "Un compte administrateur peut impersonner des utilisateurs, modifier des abonnements et consulter toute la base clients : un mot de passe volé ne doit pas suffire. Activez-la ci-dessous puis revenez au panneau.",
 }

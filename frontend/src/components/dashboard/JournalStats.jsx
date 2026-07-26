@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useDataVersion } from '@/lib/dataVersion';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Target, Percent, BarChart3, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
@@ -32,9 +33,12 @@ export function JournalStats() {
     setIsLoading(false);
   }, [token]);
 
+  // Refresh whenever a trade is written anywhere (journal, import, the
+  // "log to journal" button in Position Size...).
+  const tradesVersion = useDataVersion('trades');
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]);
+  }, [fetchStats, tradesVersion]);
 
   if (isLoading || !stats || stats.totalTrades === 0) {
     return null;

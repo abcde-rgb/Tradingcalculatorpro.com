@@ -1579,3 +1579,49 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   exit 0 (744 URLs); **smoke ola 1: 23/23** y **smoke ola 2: 14/14**, 0 pageerrors — incluye el
   recorrido de 6 módulos de academia y el cambio de idioma en /education buscando **claves i18n
   crudas: 0** (el riesgo real del split).
+
+### 2026-07-26 (60) — Ola 3: datos vivos, resoluciones, 2FA de admin, roll y tiendas
+- ✅ **M-38 — refresco automático al introducir datos** (petición explícita del dueño: «que se
+  actualice cada vez que introduces datos»). Nuevo `lib/dataVersion.js`: bus de versiones por tema
+  (`trades`, `calculations`, `alerts`…). Los escritores llaman a `bumpData(tema)` y los lectores
+  ponen `useDataVersion(tema)` en sus dependencias. Instrumentados los 4 writes de
+  `performanceApi` y `saveCalculation`; escuchan `JournalStats` y `CalculationHistory`. Antes, al
+  registrar una operación desde la calculadora de posición, las estadísticas del dashboard
+  mantenían los números viejos **hasta recargar la página entera** — datos correctos en el
+  servidor y obsoletos en pantalla, que se lee como que la web está rota.
+- 🐛 **Mismo bug de cookies otra vez**: `saveCalculation` y `fetchHistory` usaban `fetch()` pelado
+  (sin `credentials:'include'`), así que tras recargar **no guardaban ni leían nada** en silencio.
+  Migrados a `fetchWithTimeout`, que siempre las incluye. Van ya 5 sitios con este mismo fallo.
+- ✅ **Estados vacíos con sentido** (`components/common/EmptyState.jsx`): en vez de «sin datos» en
+  gris, una vista previa atenuada e inerte de lo que aparecerá + una acción. Aplicado a historial de
+  cálculos, alertas y watchlist.
+- ✅ **M-36 — resoluciones, medidas antes y después** (no a ojo):
+  - **Móvil apaisado (844×390) en Opciones: 167 px de barras fijas = 43% de la pantalla → 65 px
+    (17%)**. La barra de opciones deja de fijarse por debajo de 520 px de alto.
+  - **Ultrawide (2560×1440): el contenido ocupaba 1280 px (50%) → 1720 px (67%)** en el dashboard.
+  - **Desbordamiento horizontal: 0 en las 4 resoluciones** — ya estaba bien.
+  - ⚠️ Dos falsos positivos descartados al investigarlos: la barra lateral «sticky» de Educación
+    (va al lado, no encima) y un `div` de 499 px que era el modal de onboarding.
+- ✅ **2FA OBLIGATORIO para administradores**: `require_admin` exige `totp_enabled` y responde
+  **428** (no 403) para que el frontend distinga «no puedes» de «termina de configurarlo».
+  `ProtectedRoute` lleva al admin a Ajustes con un aviso explicando por qué. El escape
+  `ADMIN_2FA_OPTIONAL` **solo funciona fuera de producción** (test que lo verifica). 6 tests nuevos.
+- ✅ **CodeQL** (`.github/workflows/codeql.yml`): Python + JS, `security-extended`, en PR, push y
+  semanal. Cierra G-07 junto con el `dependabot.yml` que ya existía.
+- ✅ **M-16 — calculadora de roll** (`components/options/RollCalculator.jsx`), justo debajo de la
+  teoría de rollover: flujo neto (débito/crédito, con el signo invertido para posiciones vendidas),
+  días comprados, **coste por día**, cambio de delta y de theta, y una lectura en texto. No
+  re-valora con Black-Scholes a propósito: se introducen las primas que cotiza el bróker, que ya
+  llevan dentro el spread y la IV real.
+- ✅ **M-32 — andamiaje de tiendas**: `packaging/twa-manifest.json` (Bubblewrap, Android),
+  `frontend/public/.well-known/assetlinks.json` y **[`docs/PUBLICAR_EN_TIENDAS.md`](./PUBLICAR_EN_TIENDAS.md)**
+  con los pasos, costes reales (25 $ Play · 19 $ Microsoft · 99 $/año Apple) y las trampas: el
+  keystore que no se puede perder, el fingerprint de Play App Signing (no el local), el rechazo de
+  Apple por «envoltura web» y **la comisión del 15-30% si se vende dentro de la app** (hay que
+  diseñarlo como app «reader» desde el principio). `.gitignore` protege los keystores.
+- ✅ **Verificado**: `pytest` **156 passed / 74 skipped**; `import server` **180 rutas**;
+  `py_compile` 15 módulos; i18n **5254 claves, 0 huecos en los 8 idiomas**; `npm run build` exit 0
+  (main 279,57 kB); **smokes: ola 1 23/23 · ola 2 14/14 · ola 3 8/8, todos con 0 pageerrors**.
+- ℹ️ **Nota de despliegue**: el workflow de Cloud Run falla desde antes de estas olas porque faltan
+  los secretos `GCP_WORKLOAD_IDENTITY_PROVIDER` y `GCP_SERVICE_ACCOUNT` en GitHub — falla en el
+  paso de autenticación, antes de tocar el código. GitHub Pages sí despliega correctamente.

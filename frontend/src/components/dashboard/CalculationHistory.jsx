@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useDataVersion } from '@/lib/dataVersion';
+import EmptyState from '@/components/common/EmptyState';
 import { History, Trash2, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,9 +23,12 @@ export const CalculationHistory = () => {
     spot: t('spot')
   };
 
+  // dataVersion: reload when a calculation is saved from ANY page, instead of
+  // showing a stale list until the next full page load.
+  const calcVersion = useDataVersion('calculations');
   useEffect(() => {
     if (isAuthenticated) fetchHistory();
-  }, [isAuthenticated, fetchHistory]); // Fixed: added fetchHistory dependency
+  }, [isAuthenticated, fetchHistory, calcVersion]);
 
   const deleteCalculation = async (calcId) => {
     try {
@@ -115,9 +120,26 @@ export const CalculationHistory = () => {
             </div>
           ))}
           {history.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-8">
-              {t('noHistory')}
-            </p>
+            <EmptyState
+              icon={History}
+              title={t('noHistory')}
+              hint={t('emptyHistoryHint')}
+              to="/dashboard?tab=position"
+              cta={t('emptyHistoryCta')}
+              preview={
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-0.5 rounded bg-accent/20 text-accent">
+                        {t('positionSize')}
+                      </span>
+                      <span className="text-xs text-muted-foreground">--/--/----</span>
+                    </div>
+                    <div className="mt-1 text-sm font-mono text-primary">+2.40%</div>
+                  </div>
+                </div>
+              }
+            />
           )}
         </div>
       </CardContent>

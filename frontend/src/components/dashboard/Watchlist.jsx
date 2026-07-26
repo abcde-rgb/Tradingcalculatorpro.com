@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import EmptyState from '@/components/common/EmptyState';
 import { useTranslation } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -119,7 +120,22 @@ export const Watchlist = () => {
 
         {/* Rows */}
         {symbols.length === 0 && (
-          <p className="text-xs text-muted-foreground py-4 text-center">{t('watchlistEmpty')}</p>
+          <EmptyState
+            title={t('watchlistEmpty')}
+            hint={t('emptyWatchlistHint')}
+            preview={
+              <div className="space-y-1">
+                {[['AAPL', '+1.24%'], ['BTC', '-0.68%']].map(([sym, chg]) => (
+                  <div key={sym} className="flex items-center justify-between px-2 py-1.5 rounded-md bg-muted/40">
+                    <span className="text-sm font-semibold">{sym}</span>
+                    <span className={`text-xs font-mono ${chg.startsWith('+') ? 'text-primary' : 'text-destructive'}`}>
+                      {chg}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            }
+          />
         )}
         <div className="space-y-1">
           {symbols.map(sym => {
