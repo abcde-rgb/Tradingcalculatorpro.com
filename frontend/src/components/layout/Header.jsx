@@ -32,6 +32,7 @@ export function Header() {
     { href: '/dashboard', label: t('dashboard'), requireAuth: true },
     { href: '/options', label: t('options'), requireAuth: false },
     { href: '/performance', label: t('performance'), requireAuth: false },
+    { href: '/news', label: t('news'), requireAuth: false },
     { href: '/pricing', label: t('pricing'), requireAuth: false },
     { href: '/education', label: t('education'), requireAuth: false },
   ];

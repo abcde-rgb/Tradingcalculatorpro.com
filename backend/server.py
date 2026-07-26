@@ -2418,16 +2418,44 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     # (there is no separate "performance_trades" collection — see BUG fixed
     # 2026-06-06), so "trades" below already contains the user's full trading
     # journal including performance-module entries. No separate collect() needed.
-    trades        = await collect("trades",            {"user_id": user_id})
-    calculations  = await collect("calculations",      {"user_id": user_id})
-    alerts        = await collect("alerts",            {"user_id": user_id})
+    #
+    # The export must cover everything `delete_account` erases, minus pure
+    # security artefacts. Anything the user can have DELETED they must be able
+    # to TAKE WITH THEM — exporting less than we delete is exactly the gap
+    # GDPR Art. 20 exists to close. Deliberately excluded: email verification
+    # tokens, password resets and token revocations (credentials, not personal
+    # data, and shipping them out would be a security regression).
+    trades           = await collect("trades",           {"user_id": user_id})
+    calculations     = await collect("calculations",     {"user_id": user_id})
+    alerts           = await collect("alerts",           {"user_id": user_id})
+    portfolio        = await collect("portfolio",        {"user_id": user_id})
+    saved_positions  = await collect("saved_positions",  {"user_id": user_id})
+    user_states      = await collect("user_states",      {"user_id": user_id})
+    journal_entries  = await collect("journal_entries",  {"user_id": user_id})
+    referrals        = await collect("referrals",        {"user_id": user_id})
+
+    # Billing history is the user's own data, but the raw rows carry gateway
+    # internals. Ship the fields a person would actually need for their records.
+    raw_payments = await collect("payment_transactions", {"user_id": user_id})
+    payments = [
+        {k: p.get(k) for k in
+         ("id", "amount", "currency", "status", "plan", "provider", "created_at", "paid_at")}
+        for p in raw_payments
+    ]
 
     payload = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
-        "profile":      safe_user,
-        "trades":       trades,
-        "calculations": calculations,
-        "alerts":       alerts,
+        "format_version": 2,
+        "profile":          safe_user,
+        "trades":           trades,
+        "calculations":     calculations,
+        "alerts":           alerts,
+        "portfolio":        portfolio,
+        "saved_positions":  saved_positions,
+        "preferences":      user_states,
+        "journal_entries":  journal_entries,
+        "referrals":        referrals,
+        "payments":         payments,
     }
 
     filename = f"my-data-{user_id[:8]}.json"
@@ -6640,6 +6668,42 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
 
 
 # ── USAGE ANALYTICS ──────────────────────────────────────────────────────────
+@api_router.get("/admin/market-data-health")
+async def admin_market_data_health(admin: dict = Depends(require_admin)):
+    """Health of the market-data providers: who is answering, who is failing,
+    and whether any circuit is open.
+
+    Every live price in the product depends on this chain, so when quotes start
+    looking wrong this is the first place to look — it tells you *which*
+    provider broke instead of leaving you guessing.
+    """
+    try:
+        import market_data
+    except Exception as exc:  # noqa: BLE001
+        return {"available": False, "error": str(exc)}
+    return {
+        "available": True,
+        "providers": market_data.provider_status(),
+        "cache": market_data.cache_stats(),
+    }
+
+
+@api_router.get("/quote/{symbol}")
+async def get_quote_with_failover(symbol: str):
+    """Single quote through the multi-provider chain (Yahoo → Finnhub → Twelve
+    Data → last known good).
+
+    The response carries ``stale`` and ``as_of``: the UI MUST show when a price
+    could not be refreshed. Showing an old price as if it were live is a legal
+    problem on a finance site, not just a cosmetic one.
+    """
+    import market_data
+    quote = await asyncio.to_thread(market_data.get_quote, symbol)
+    if quote.get("price") is None:
+        raise HTTPException(status_code=503, detail=quote.get("error") or "No market data available")
+    return quote
+
+
 @api_router.get("/admin/usage")
 async def admin_usage(admin: dict = Depends(require_admin)):
     now = datetime.now(timezone.utc)

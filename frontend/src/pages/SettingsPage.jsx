@@ -182,8 +182,13 @@ export default function SettingsPage() {
     setDownloadingData(true);
     try {
       const token = useAuthStore.getState().token;
+      // credentials:'include' is required for every backend call: the token
+      // lives in memory only, so after a page reload it is null and the
+      // httpOnly cookie is the ONLY thing that authenticates this request.
+      // Without it the download failed with 401 on any reloaded session.
       const res = await fetch(`${BACKEND_URL}/api/auth/my-data`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const blob = await res.blob();

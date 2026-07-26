@@ -65,15 +65,15 @@ está por encima de casi toda la competencia directa.
 | # | Palanca | Ref | Estado |
 |---|---|---|---|
 | 1 | Arreglar el rate limiting por IP real (pérdida de altas) | F-01 | ✅ |
-| 2 | Arquitectura multi-proveedor de datos con failover + caché | M-01 | ⏳ diseñado |
+| 2 | Arquitectura multi-proveedor de datos con failover + caché | M-01 | ✅ (falta la clave de Finnhub) |
 | 3 | Tipos de mercado interactivos (Q&A + ejemplo + calculadora + widget) | M-10 | ✅ |
 | 4 | Librería de widgets de TradingView (los útiles, no todos) | M-06 | ✅ |
 | 5 | PWA instalable real + insignias “Próximamente” de tiendas | M-30 | ✅ |
 | 6 | Contenido de opciones de los PDFs (prima, BTO/STO, rollover) | C-01..C-03 | ✅ |
 | 7 | Cuenta atrás del próximo dato macro + ponentes de alto impacto | M-20 | ✅ |
-| 8 | Noticias en la cabecera (diseño decidido, sin implementar aún) | M-22 | ⏳ estudiado |
+| 8 | Noticias en la cabecera | M-22 | ✅ maqueta difuminada («trabajando en ello») |
 | 9 | Dominio propio | (ops) | ⏳ |
-| 10 | Import CSV de operaciones al diario | M-25 | ⏳ |
+| 10 | Import CSV de operaciones al diario | M-25 | ✅ asistente con mapeo guiado |
 | 11 | Guardar dibujos/layouts de TradingView por usuario | M-08 | ⏳ límite técnico documentado |
 | 12 | Tokenomics de cripto (FDV/dilución) — del PDF de 100 reglas | C-04 | ✅ |
 
@@ -496,10 +496,22 @@ stop) y botón “usar mis datos del diario” que alimenta Risk of Ruin y Kelly
 
 **Esto ya es mejor que la mayoría de journals gratuitos.** Los huecos reales son tres:
 
-#### M-25 ⏳ Import automático desde bróker/CSV — *el mayor hueco objetivo frente a TradeZella*
-Ya identificado en el análisis de competencia. Fase 1 realista: importador CSV con **mapeo de
-columnas guiado** (el usuario dice qué columna es qué) + plantillas para MT4/MT5, Interactive
-Brokers, Binance y Bybit. No hace falta integración por API para el 80% del valor.
+#### M-25 ✅ Import CSV con mapeo guiado y plantillas de bróker
+
+**Rectificación parcial.** El importador CSV **ya existía** (`TradeImportExport.jsx`, con
+auto-detección por lista de alias). El hueco real no era “no se puede importar”, era que **cuando la
+detección fallaba, las filas se descartaban en silencio** y el usuario no sabía por qué.
+
+Implementado: `lib/tradeImport.js` (motor puro) + `TradeImportWizard.jsx`:
+- **Detección del formato** por firma de cabeceras: MetaTrader 4/5, Interactive Brokers, Binance,
+  Bybit, o genérico.
+- **Mapeo visible y editable**: cada campo del diario con la columna detectada y un desplegable para
+  corregirla.
+- **Vista previa** de las primeras filas ya normalizadas, con el recuento de lo que se importará y
+  **lo que se omitirá y por qué** (número de fila + campo que falla).
+- Parseo numérico tolerante (`1.234,56` vs `1,234.56`, notación contable `(123)`), y cantidades con
+  signo interpretadas como dirección cuando el CSV no trae columna de lado (IBKR/MT).
+- Nada se escribe hasta pulsar Importar. La lista de alias duplicada se eliminó: una sola fuente.
 
 #### M-26 ⏳ Adjuntar captura del gráfico a cada operación
 Un journal sin la imagen del setup pierde la mitad de su valor de revisión. Requiere almacenamiento
@@ -688,16 +700,29 @@ impago → recuperación → borrado.
 | Audit log admin | ✅ | Con IP, ahora no falsificable (F-01) |
 | **IP de clientes** | 🟡 | Solo se guarda en el audit log del admin. Ninguna IP de usuario normal se persiste → **bien para GDPR**, pero conviene decirlo explícitamente en la política de privacidad |
 | Borrado de cuenta | ✅ | `DELETE /api/auth/account` |
-| **Exportación de datos (GDPR art. 20)** | ⏳ | **No existe un “descarga todos mis datos”.** Es obligatorio en la UE. Hay export del diario, pero no del perfil completo |
+| **Exportación de datos (GDPR art. 20)** | ✅ | **Corrección: sí existía** (`GET /auth/my-data` + botón en Ajustes). Ver F-09 corregido |
 | Purga tras impago | ✅ | 90 días configurables, conserva la cuenta |
 | Secretos | ✅ | Ninguno en el repo |
 | **Claves de API en BD** | 🟠 | **C-08 sigue abierto**: `app_settings` puede guardar claves de Stripe/SendGrid cifradas con Fernet, pero la clave de Fernet vive en el mismo entorno. Decisión pendiente: solo Secret Manager |
 | Dependabot / CodeQL / secret scanning | ⏳ | Sigue sin activarse en el repo (G-07) |
 
-#### F-09 🟠 Falta “descargar mis datos” (RGPD art. 20)
-Endpoint propuesto: `GET /api/auth/export` → ZIP con perfil, operaciones, cálculos, alertas,
-posiciones y preferencias en JSON + CSV. Con rate limit de 1/día. Es el hueco legal más claro que
-queda.
+#### F-09 🟠 ~~Falta “descargar mis datos”~~ → **corregido: la exportación existía, pero estaba incompleta** — ✅ ARREGLADO
+
+**Rectificación.** La primera versión de este documento afirmaba que no existía la portabilidad de
+datos del RGPD. **Es falso**: `GET /api/auth/my-data` existe desde hace tiempo, con rate limit y con
+su botón en Ajustes. Al leer el código a fondo aparecieron **dos defectos reales**, que sí se han
+arreglado:
+
+1. **Exportaba menos de lo que borra.** `delete_account` elimina 13 colecciones; el export solo
+   devolvía 3 (perfil, operaciones, cálculos, alertas). Faltaban cartera, posiciones guardadas,
+   preferencias, entradas del diario, referidos e historial de pagos. Que puedas *borrar* datos que
+   no puedes *llevarte* es exactamente el hueco que el art. 20 existe para cerrar. Ahora el export
+   cubre todo lo que se borra, menos los artefactos de seguridad (tokens de verificación, resets de
+   contraseña, revocaciones) — sacarlos fuera sería una regresión de seguridad, no una mejora.
+2. **Fallaba tras recargar la página.** El `fetch` de `SettingsPage` no llevaba
+   `credentials: 'include'`, así que dependía del token en memoria; tras una recarga ese token es
+   `null` y la descarga devolvía 401. Es la misma clase de bug ya corregida en `PricingPage` y en
+   `UsageHeatmapCard`. Corregido.
 
 #### F-10 🟡 La política de privacidad no menciona la conservación de IP del admin
 Se guarda la IP del administrador en el audit log (correcto y necesario), pero no está declarado.

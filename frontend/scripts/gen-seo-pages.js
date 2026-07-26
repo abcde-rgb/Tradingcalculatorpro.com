@@ -30,10 +30,19 @@ const LANGS = [
 const RTL = new Set(['ar']);
 
 // Cargar traducciones de cada idioma (mismo truco que la auditoría i18n)
+// Academy strings live in `<lang>.edu.js` (lazy chunk at runtime); the static
+// page generator needs both halves merged.
+const readDict = (file) => {
+  if (!fs.existsSync(file)) return {};
+  const src = fs.readFileSync(file, 'utf8').replace(/export\s+default\s+/, 'return ');
+  return new Function(src)();
+};
 const T = {};
 for (const [lang] of LANGS) {
-  const src = fs.readFileSync(path.join(I18N_DIR, lang + '.js'), 'utf8').replace(/export\s+default\s+/, 'return ');
-  T[lang] = new Function(src)();
+  T[lang] = {
+    ...readDict(path.join(I18N_DIR, lang + '.js')),
+    ...readDict(path.join(I18N_DIR, lang + '.edu.js')),
+  };
 }
 
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

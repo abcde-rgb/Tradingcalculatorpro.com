@@ -1534,3 +1534,48 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ⏳ **Ola 2 pendiente** (§6 del examen): M-01 proveedor multi-fuente con failover (requiere alta en
   Finnhub), M-22 noticias (diseño decidido, sin implementar a petición), F-09 exportación RGPD,
   M-25 import CSV al diario, M-35 presupuesto de rendimiento.
+
+### 2026-07-26 (59) — Ola 2 del examen final: datos multi-proveedor, noticias, import guiado, rendimiento
+- ✅ **M-01 — `backend/market_data.py` (nuevo)**: capa multi-proveedor con failover
+  **Yahoo → Finnhub → Twelve Data → último valor bueno**, caché con TTL, **circuit breaker** por
+  proveedor (N fallos seguidos → fuera de rotación durante un cooldown) y marca **`stale`** con
+  `as_of` cuando se sirve un precio que no se pudo refrescar. **Nunca inventa un precio**: si todo
+  falla y no hay caché, `price` es `None` con el motivo. Claves **solo por entorno/Secret Manager**
+  (test de regresión que lo verifica → cierra también el riesgo C-08 para esta capa).
+  Nuevos endpoints: `GET /quote/{symbol}` y `GET /admin/market-data-health`. **17 tests offline.**
+  ⏳ Pendiente del propietario: dar de alta Finnhub (gratis, 60 llamadas/min) y cargar la clave.
+- ✅ **M-22 — Noticias**: ruta `/news` + entrada de menú **entre Performance y Precios** (como se
+  pidió). La maqueta completa (filtros por categoría, buscador, tarjetas con titular · medio · hora ·
+  enlace externo) va envuelta en **`WipSection`: difuminada con el mensaje «estamos trabajando en
+  ello»**. `WipSection` gana una prop `message` para no reutilizar el texto genérico sobre contenido
+  legal por país. Las filas son **marcadores de maquetación deliberadamente genéricos** — la página
+  no puede mostrar noticias inventadas. La **política editorial sí queda visible** (titular + fuente
+  + enlace, nunca el cuerpo, nunca titulares reescritos por IA).
+- 🐛 **F-09 — rectificación + 2 fallos reales.** El examen decía que faltaba la exportación RGPD:
+  **era falso**, `GET /auth/my-data` existía con su botón en Ajustes. Al leerlo aparecieron dos
+  defectos: (1) **exportaba 3 colecciones cuando el borrado elimina 13** — faltaban cartera,
+  posiciones guardadas, preferencias, diario, referidos e historial de pagos (poder borrar datos que
+  no puedes llevarte es justo el hueco del art. 20); (2) el `fetch` **sin `credentials:'include'`**
+  daba 401 tras recargar la página (misma clase de bug ya corregida en PricingPage y UsageHeatmapCard).
+  Ambos arreglados.
+- ✅ **M-25 — Import CSV con mapeo guiado** (rectificación parcial: el importador ya existía con
+  auto-detección por alias; el hueco real era que **descartaba filas en silencio**). Nuevos
+  `lib/tradeImport.js` (motor puro) y `TradeImportWizard.jsx`: detección del formato por firma de
+  cabeceras (**MetaTrader 4/5, Interactive Brokers, Binance, Bybit** o genérico), **mapeo visible y
+  editable** campo a campo, **vista previa** normalizada y recuento de **lo que se omitirá y por qué**
+  (fila + campo). Parseo numérico tolerante (`1.234,56` vs `1,234.56`, notación contable) y cantidad
+  con signo interpretada como dirección cuando no hay columna de lado. Eliminada la lista de alias
+  duplicada: una sola fuente de verdad.
+- ✅ **M-35 — Rendimiento: `main.js` 395,55 kB → 278,96 kB gzip (−29%)**. `es.js` (555 KB) viajaba
+  dentro del bundle inicial, así que cada visitante de la portada se descargaba los 68 módulos de
+  academia. Nuevo `scripts/split-i18n-edu.js`: extrae las **2.100 claves usadas EXCLUSIVAMENTE** por
+  `tradingEducationContent.js` a `<locale>.edu.js`, cargado en diferido. **Por qué es seguro**:
+  ese fichero tiene **0 llamadas `t()` dinámicas** (el script aborta si aparece alguna), las 204
+  claves compartidas con otros ficheros **se quedan** en el diccionario eager, `lib/i18n.js` espera
+  el chunk antes de renderizar EducationPage y también al **cambiar de idioma** estando en ella.
+  `i18n-check` y `gen-seo-pages` fusionan ambos ficheros.
+- ✅ **Verificado**: `pytest` **150 passed / 74 skipped** (17 nuevos de `market_data`);
+  `import server` **180 rutas**; i18n **5247 claves, 0 huecos en los 8 idiomas**; `npm run build`
+  exit 0 (744 URLs); **smoke ola 1: 23/23** y **smoke ola 2: 14/14**, 0 pageerrors — incluye el
+  recorrido de 6 módulos de academia y el cambio de idioma en /education buscando **claves i18n
+  crudas: 0** (el riesgo real del split).
