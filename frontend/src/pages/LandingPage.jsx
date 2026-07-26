@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import LandingDemoCalculator from '@/components/landing/LandingDemoCalculator';
 import AnimatedHeroChart from '@/components/landing/AnimatedHeroChart';
+import AppComingSoon from '@/components/landing/AppComingSoon';
 import { 
   TrendingUp, Calculator, Shield, Zap, Crown, ArrowRight, Check, 
   CandlestickChart, History, Bell, BookOpen, Wallet, Target, 
@@ -681,7 +682,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      
+
+      {/* Install as an app today + stores coming soon */}
+      <AppComingSoon />
+
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">

@@ -1116,7 +1116,37 @@ def _validate_origin_url(url: str, field: str = "origin_url") -> str:
 # ============================================================
 #  Rate limiting (slowapi) — applied to brute-force-prone routes
 # ============================================================
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
+
+# How many proxies we sit behind. Cloud Run (direct) = 1: its front end appends
+# the real peer as the LAST entry of X-Forwarded-For. Put an HTTPS load balancer
+# in front and it becomes 2. Counting from the RIGHT is what makes this
+# unspoofable: a client can prepend fake IPs, it cannot append past the proxy.
+TRUSTED_PROXY_HOPS = max(1, int(os.environ.get("TRUSTED_PROXY_HOPS", "1")))
+
+
+def _real_client_ip(request: Optional[Request]) -> str:
+    """Client IP as seen by our outermost trusted proxy.
+
+    uvicorn runs without --forwarded-allow-ips, so `request.client.host` is the
+    Cloud Run front end for EVERY request — using it as a rate-limit key puts the
+    whole planet in one bucket (register was 3/hour globally). Read the header
+    ourselves instead.
+    """
+    if request is None:
+        return ""
+    fwd = request.headers.get("x-forwarded-for") or ""
+    parts = [p.strip() for p in fwd.split(",") if p.strip()]
+    if parts:
+        idx = len(parts) - TRUSTED_PROXY_HOPS
+        return parts[idx] if 0 <= idx < len(parts) else parts[0]
+    return request.client.host if request.client else ""
+
+
+def _rate_limit_key(request: Request) -> str:
+    return _real_client_ip(request) or get_remote_address(request)
+
+
+limiter = Limiter(key_func=_rate_limit_key, default_limits=[])
 app.state.limiter = limiter
 
 
@@ -1451,12 +1481,9 @@ async def require_admin(
 #  ADMIN AUDIT LOG  (every admin write goes through here)
 # ============================================================
 def _client_ip(request: Optional[Request]) -> str:
-    if not request:
-        return ""
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else ""
+    # Same trusted-hop logic as the rate limiter: taking parts[0] let anyone
+    # forge the IP recorded in the admin audit log by sending their own header.
+    return _real_client_ip(request)
 
 
 async def log_admin_action(

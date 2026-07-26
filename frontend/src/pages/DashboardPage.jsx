@@ -19,6 +19,8 @@ import { FuturesCalculator } from '@/components/calculators/FuturesCalculator';
 import { CompoundCalculator } from '@/components/calculators/CompoundCalculator';
 import { Watchlist } from '@/components/dashboard/Watchlist';
 import { EconomicCalendar } from '@/components/dashboard/EconomicCalendar';
+import { NextDataCountdown } from '@/components/dashboard/NextDataCountdown';
+import { SpeakersWatch } from '@/components/dashboard/SpeakersWatch';
 import { TargetMeasurementTool } from '@/components/tools/TargetMeasurementTool';
 import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
@@ -428,8 +430,12 @@ export default function DashboardPage() {
               <CalculationHistory />
             </motion.div>
 
-            {/* Live economic calendar (TradingView events widget) */}
-            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.18, ease: 'easeOut' }}>
+            {/* Macro block: countdown to the next release + who is speaking,
+                with the full TradingView calendar beside them. */}
+            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.18, ease: 'easeOut' }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              <NextDataCountdown />
+              <SpeakersWatch />
               <EconomicCalendar />
             </motion.div>
 
