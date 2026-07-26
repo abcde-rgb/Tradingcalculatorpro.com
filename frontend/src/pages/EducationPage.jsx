@@ -91,6 +91,7 @@ import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
 import TailRiskVisual from '@/components/education/TailRiskVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
+import MarketTypeModal from '@/components/education/MarketTypeModal';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -392,6 +393,7 @@ export default function EducationPage() {
   const [candleQuery, setCandleQuery] = useState('');
   const [candleTypeFilter, setCandleTypeFilter] = useState('all');
   const [harmonicFilter, setHarmonicFilter] = useState('all');
+  const [openMarket, setOpenMarket] = useState(null);
   const { t } = useTranslation();
 
   const isPremium = useIsPremium();
@@ -620,6 +622,16 @@ export default function EducationPage() {
     const requested = searchParams.get('topic');
     if (requested && EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === requested))) {
       setActiveTopic(requested);
+    }
+    // ?market=crypto lands straight on that market's fact sheet — the static
+    // /markets/<id>/ SEO pages link here.
+    const market = searchParams.get('market');
+    if (market) {
+      const item = TRADING_FUNDAMENTALS.marketTypes.items.find(m => m.id === market);
+      if (item) {
+        setActiveTopic('fundamentals');
+        setOpenMarket(item);
+      }
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -2260,7 +2272,17 @@ export default function EducationPage() {
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {TRADING_FUNDAMENTALS.marketTypes.items.map(item => (
-                    <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <Card
+                      key={item.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setOpenMarket(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMarket(item); }
+                      }}
+                      data-testid={`market-card-${item.id}`}
+                      className="bg-card border-border hover:border-primary/60 hover:shadow-lg hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none transition-all cursor-pointer group"
+                    >
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-base">
                           <span className="text-2xl">{item.icon}</span>
@@ -2269,11 +2291,21 @@ export default function EducationPage() {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground leading-relaxed mb-3">{item.desc}</p>
-                        <Badge variant="secondary" className="text-xs">{item.volume}</Badge>
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="secondary" className="text-xs">{item.volume}</Badge>
+                          <span className="text-[11px] font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity flex items-center gap-1">
+                            {t('mktOpenCard')} <ChevronRight className="w-3 h-3" />
+                          </span>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
+                <MarketTypeModal
+                  market={openMarket}
+                  open={!!openMarket}
+                  onOpenChange={(v) => { if (!v) setOpenMarket(null); }}
+                />
               </div>
 
               {/* Market Participants */}

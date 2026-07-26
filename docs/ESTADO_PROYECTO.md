@@ -1485,3 +1485,97 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   objetivo; (2) dominio propio (ya era la palanca nº1); (3) marketing del bundle vs 65-150 $/mes de
   la suma de especialistas; (4) doblar en español/LATAM (frente vacío); (5) NO perseguir flow en vivo.
 - Sin cambios de código. Investigación con WebSearch (precios/features julio 2026, fuentes en el doc).
+
+### 2026-07-26 (58) — Examen final 100%: auditoría integral + ola 1 de mejoras
+- 📄 **Nuevo doc [`EXAMEN_FINAL_2026-07-26.md`](./EXAMEN_FINAL_2026-07-26.md)**: auditoría punto por punto
+  (inventario real verificado contra el código, 10 fallos con severidad, ~45 mejoras con IDs, mapa de
+  cobertura de los 4 PDF aportados, plan por olas y acciones que solo puede hacer el propietario).
+- 🔴 **BUG-015 (F-01) — rate limiting con la IP del proxy.** `get_remote_address` devolvía la IP del
+  frontend de Cloud Run: **todo el planeta compartía un cubo** (registro 3/hora GLOBAL, login 10/min
+  GLOBAL). Nuevo `_real_client_ip` que lee `X-Forwarded-For` **desde la derecha** con
+  `TRUSTED_PROXY_HOPS` (no falsificable); el audit log admin deja de ser falsificable también.
+  9 tests nuevos → `pytest` **133 passed / 74 skipped**. Ver DIARIO_BUGS.
+- ✅ **Tipos de mercado interactivos** (`MarketTypeModal` + `lib/marketTypesContent.js`): las 10 tarjetas
+  de Fundamentos abren una ficha con 6 bloques —qué es · **cómo se mide** (pips/lotes/tick/contratos/
+  duración/FDV…) · ejemplo numérico resuelto · **calculadora en vivo** (7 variantes) · widget de
+  TradingView · **Q&A**—. Deep-link `?market=<id>`.
+- ✅ **Librería TradingView** (`TVWidget.jsx`): un solo cargador con tema/locale compartidos y lazy mount
+  por `IntersectionObserver`; 10 widgets con nombre (screener cripto/acciones, cross rates, market
+  overview, heatmaps, symbol overview, technical, ticker tape, events). El calendario económico migrado.
+- ✅ **Contenido de los 3 PDF de opciones** (`OptionsMechanics` en la academia de Opciones): formación
+  del precio de la prima (order book vs market maker + valor teórico/oferta y demanda/spread),
+  apalancamiento **nocional vs efectivo por delta** (con laboratorio interactivo), **BTO/STO/BTC/STC**
+  con las 3 formas de cerrar, y **rollover/rolling** completo (roll out/up/down, coste, contango vs
+  backwardation, checklist y errores). Cobertura previa: 0.
+- ✅ **Tokenomics de cripto del PDF de 100 reglas**: capitalización, oferta circulante vs total, **FDV**
+  y **calculadora de dilución** con el caso real ($20 · 200M/1000M → $4, −80%). Cobertura previa: 0
+  coincidencias de "oferta circulante"/"dilución"/"market cap" en los 8 idiomas.
+- ✅ **Dashboard macro**: `NextDataCountdown` (cuenta atrás en vivo al próximo dato, bandera del país,
+  qué suele mover, enlace a la fuente) + `SpeakersWatch` (Fed, BCE, BoJ, BoE, presidencia de EE. UU.,
+  OPEP+), con `lib/macroCalendar.js` derivado de las reglas oficiales de publicación (nunca inventa
+  cifras ni consenso; los de fecha fija se marcan `≈`).
+- ✅ **PWA instalable de verdad** (F-02): `sw.js` (network-first en navegación para no repetir el
+  ChunkLoadError post-deploy, cache-first solo en estáticos con hash, API nunca cacheada), página
+  offline, `lib/pwa.js` con captura de `beforeinstallprompt` + ayuda de iOS, manifest con
+  `id`/`scope`/`display_override`/`launch_handler`.
+- ✅ **Landing: bloque de app** (`AppComingSoon`) — instalar ahora + insignias **Próximamente** de Google
+  Play / App Store / Microsoft Store (reproducciones propias: Google y Apple prohíben las oficiales
+  para apps no publicadas).
+- ✅ **80 páginas SEO nuevas** `/markets/<id>/` × 8 idiomas con **FAQPage en el HTML visible** (en inglés
+  para los locales sin traducción, que es lo que se pidió para los rich results). Sitemap **664 → 744**.
+- ✅ **Opciones: redistribución** (M-15) — 7 pestañas en una fila → 3 grupos (Operar/Analizar/Aprender)
+  en escritorio y **un selector** en móvil; ficha del activo en su propia línea con cifras tabulares.
+- 🐛 **F-03** banderas de idioma en emoji (invisibles en Windows) → **SVG** (`FlagIcon`, 20 países).
+  **F-04/F-05** JSON-LD de la portada mentía: "250+ activos" (real 186) y "$17/mes" (real 17 €).
+- ✅ **Verificado**: `pytest` 133/74 · `import server` 178 rutas · `py_compile` 14 módulos ·
+  i18n **5196 claves, 0 huecos en los 8 idiomas** (+23 nuevas) · `npm run build` exit 0 ·
+  **smoke headless 23/23 con 0 pageerrors** (fichas de mercado, calculadora de dilución, deep-link,
+  FAQ inglesa indexable, banderas SVG, bloque de app, móvil sin desbordamiento).
+- ⏳ **Ola 2 pendiente** (§6 del examen): M-01 proveedor multi-fuente con failover (requiere alta en
+  Finnhub), M-22 noticias (diseño decidido, sin implementar a petición), F-09 exportación RGPD,
+  M-25 import CSV al diario, M-35 presupuesto de rendimiento.
+
+### 2026-07-26 (59) — Ola 2 del examen final: datos multi-proveedor, noticias, import guiado, rendimiento
+- ✅ **M-01 — `backend/market_data.py` (nuevo)**: capa multi-proveedor con failover
+  **Yahoo → Finnhub → Twelve Data → último valor bueno**, caché con TTL, **circuit breaker** por
+  proveedor (N fallos seguidos → fuera de rotación durante un cooldown) y marca **`stale`** con
+  `as_of` cuando se sirve un precio que no se pudo refrescar. **Nunca inventa un precio**: si todo
+  falla y no hay caché, `price` es `None` con el motivo. Claves **solo por entorno/Secret Manager**
+  (test de regresión que lo verifica → cierra también el riesgo C-08 para esta capa).
+  Nuevos endpoints: `GET /quote/{symbol}` y `GET /admin/market-data-health`. **17 tests offline.**
+  ⏳ Pendiente del propietario: dar de alta Finnhub (gratis, 60 llamadas/min) y cargar la clave.
+- ✅ **M-22 — Noticias**: ruta `/news` + entrada de menú **entre Performance y Precios** (como se
+  pidió). La maqueta completa (filtros por categoría, buscador, tarjetas con titular · medio · hora ·
+  enlace externo) va envuelta en **`WipSection`: difuminada con el mensaje «estamos trabajando en
+  ello»**. `WipSection` gana una prop `message` para no reutilizar el texto genérico sobre contenido
+  legal por país. Las filas son **marcadores de maquetación deliberadamente genéricos** — la página
+  no puede mostrar noticias inventadas. La **política editorial sí queda visible** (titular + fuente
+  + enlace, nunca el cuerpo, nunca titulares reescritos por IA).
+- 🐛 **F-09 — rectificación + 2 fallos reales.** El examen decía que faltaba la exportación RGPD:
+  **era falso**, `GET /auth/my-data` existía con su botón en Ajustes. Al leerlo aparecieron dos
+  defectos: (1) **exportaba 3 colecciones cuando el borrado elimina 13** — faltaban cartera,
+  posiciones guardadas, preferencias, diario, referidos e historial de pagos (poder borrar datos que
+  no puedes llevarte es justo el hueco del art. 20); (2) el `fetch` **sin `credentials:'include'`**
+  daba 401 tras recargar la página (misma clase de bug ya corregida en PricingPage y UsageHeatmapCard).
+  Ambos arreglados.
+- ✅ **M-25 — Import CSV con mapeo guiado** (rectificación parcial: el importador ya existía con
+  auto-detección por alias; el hueco real era que **descartaba filas en silencio**). Nuevos
+  `lib/tradeImport.js` (motor puro) y `TradeImportWizard.jsx`: detección del formato por firma de
+  cabeceras (**MetaTrader 4/5, Interactive Brokers, Binance, Bybit** o genérico), **mapeo visible y
+  editable** campo a campo, **vista previa** normalizada y recuento de **lo que se omitirá y por qué**
+  (fila + campo). Parseo numérico tolerante (`1.234,56` vs `1,234.56`, notación contable) y cantidad
+  con signo interpretada como dirección cuando no hay columna de lado. Eliminada la lista de alias
+  duplicada: una sola fuente de verdad.
+- ✅ **M-35 — Rendimiento: `main.js` 395,55 kB → 278,96 kB gzip (−29%)**. `es.js` (555 KB) viajaba
+  dentro del bundle inicial, así que cada visitante de la portada se descargaba los 68 módulos de
+  academia. Nuevo `scripts/split-i18n-edu.js`: extrae las **2.100 claves usadas EXCLUSIVAMENTE** por
+  `tradingEducationContent.js` a `<locale>.edu.js`, cargado en diferido. **Por qué es seguro**:
+  ese fichero tiene **0 llamadas `t()` dinámicas** (el script aborta si aparece alguna), las 204
+  claves compartidas con otros ficheros **se quedan** en el diccionario eager, `lib/i18n.js` espera
+  el chunk antes de renderizar EducationPage y también al **cambiar de idioma** estando en ella.
+  `i18n-check` y `gen-seo-pages` fusionan ambos ficheros.
+- ✅ **Verificado**: `pytest` **150 passed / 74 skipped** (17 nuevos de `market_data`);
+  `import server` **180 rutas**; i18n **5247 claves, 0 huecos en los 8 idiomas**; `npm run build`
+  exit 0 (744 URLs); **smoke ola 1: 23/23** y **smoke ola 2: 14/14**, 0 pageerrors — incluye el
+  recorrido de 6 módulos de academia y el cambio de idioma en /education buscando **claves i18n
+  crudas: 0** (el riesgo real del split).

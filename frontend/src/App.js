@@ -37,9 +37,15 @@ const lazyRetry = (importer) =>
 const DashboardPage    = lazyRetry(() => import("@/pages/DashboardPage"));
 const PricingPage      = lazyRetry(() => import("@/pages/PricingPage"));
 const SettingsPage     = lazyRetry(() => import("@/pages/SettingsPage"));
-const EducationPage    = lazyRetry(() => import("@/pages/EducationPage"));
+// The academy strings live in a lazy chunk (see scripts/split-i18n-edu.js).
+// Await it alongside the page so the first render can never show a raw key.
+const EducationPage    = lazyRetry(() => Promise.all([
+  import("@/pages/EducationPage"),
+  import("@/lib/i18n").then((m) => m.loadEduDict(useI18nStore.getState().locale)),
+]).then(([mod]) => mod));
 const SubscriptionPage = lazyRetry(() => import("@/pages/SubscriptionPage"));
 const OptionsPage      = lazyRetry(() => import("@/pages/OptionsPage"));
+const NewsPage         = lazyRetry(() => import("@/pages/NewsPage"));
 const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
 const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
 const AffiliatePage    = lazyRetry(() => import("@/pages/AffiliatePage"));
@@ -113,6 +119,7 @@ const AppContent = () => (
           <Route path="/subscription"    element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route path="/options"         element={<OptionsPage />} />
           <Route path="/performance"     element={<ProtectedRoute premiumOnly><PerformancePage /></ProtectedRoute>} />
+          <Route path="/news"            element={<NewsPage />} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/affiliate"       element={<ProtectedRoute><AffiliatePage /></ProtectedRoute>} />
           <Route path="/login"           element={<LoginPage />} />

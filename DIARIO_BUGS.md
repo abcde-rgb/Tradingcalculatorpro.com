@@ -372,4 +372,8 @@ a `round(plan["price"], 2)` con comentario explicativo.
 
 ---
 
-*Última actualización: 2026-07-21 — captura UI admin contra backend vivo (BUG-014).*
+| BUG-015 | **Rate limiting con la IP equivocada detrás de Cloud Run.** `Limiter(key_func=get_remote_address)` devuelve `request.client.host`, que en Cloud Run es la IP del frontend de Google (uvicorn arranca sin `--forwarded-allow-ips` y su valor por defecto `127.0.0.1` no casa con el peer real, así que descarta `X-Forwarded-For`). Resultado: **todos los usuarios del mundo compartían un solo cubo** → `POST /auth/register` (3/hora) significaba 3 registros por hora en TODA la web, y `/auth/login` (10/min) bloqueaba a clientes legítimos. Pérdida directa de altas, invisible en los logs. Fix: `_real_client_ip()` lee XFF **contando desde la derecha** con `TRUSTED_PROXY_HOPS` (1 por defecto = Cloud Run directo), lo que además lo hace **no falsificable** (anteponer IPs falsas no funciona, al contrario que el clásico `parts[0]`). `_client_ip` del audit log admin —que sí usaba `parts[0]`, es decir era falsificable— pasa a delegar en el mismo helper. 9 tests de regresión (`test_rate_limit_key_unit.py`). | 🔴 | ✅ Resuelto (2026-07-26) |
+
+---
+
+*Última actualización: 2026-07-26 — rate limiting por IP real detrás del proxy (BUG-015).*

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { EDU_MODULES, STRATEGIES } from '../../data/mockData';
 import { BookOpen, ChevronRight, Zap, ArrowRight } from 'lucide-react';
+import OptionsMechanics from './OptionsMechanics';
 
 const BIAS_STYLES = {
   Bullish: { color: '#22c55e', bg: 'rgba(34,197,94,0.08)', labelKey: 'alcista_8e20d3', label: 'ALCISTA' },
@@ -27,6 +28,9 @@ const EducationTab = ({ onSwitchToCalc }) => {
             {t('deCeroAProfesional_c32b2c')}
           </p>
         </div>
+
+        {/* Mechanics: premium pricing, real leverage, open/close, rolling */}
+        <OptionsMechanics />
 
         {/* Education Modules */}
         <div className="grid gap-3 mb-10">

@@ -16,8 +16,10 @@ import { useTranslation } from '@/lib/i18n';
  * Props:
  *  - children: the real (blurred) content
  *  - label:    optional badge text override
+ *  - message:  optional overlay copy override (the default talks about legal
+ *              content by country, which doesn't fit every section)
  */
-export default function WipSection({ children, label }) {
+export default function WipSection({ children, label, message }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -65,7 +67,7 @@ export default function WipSection({ children, label }) {
                 <Wrench className="w-7 h-7 text-amber-500" />
               </div>
               <h3 className="text-xl font-bold mb-2">{t('wipTitle')}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-5">{t('wipMessage')}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-5">{message || t('wipMessage')}</p>
               <Button onClick={() => setOpen(false)} className="w-full" data-testid="wip-ok">
                 {t('wipOk')}
               </Button>
