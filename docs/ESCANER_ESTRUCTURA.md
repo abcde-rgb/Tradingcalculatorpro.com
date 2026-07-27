@@ -1,12 +1,13 @@
 # Escáner de Estructura de Precio — qué hace bien, qué no, y cómo confirma
 
 **Última revisión:** 2026-07-27
-**Código:** `backend/price_action.py`, `backend/timeframes.py`,
+**Código:** `backend/price_action.py`, `backend/timeframes.py`, `backend/candle_patterns.py`,
 `backend/server.py` (`/api/education/structure-scan/{symbol}`,
 `/api/education/pattern-scan/{symbol}`, `/api/education/scan-timeframes`),
-`frontend/src/components/charts/StructureScanner.jsx`
+`frontend/src/components/charts/StructureScanner.jsx`, `frontend/src/lib/structureLog.js`
 **Tests:** `backend/tests/test_price_action_unit.py` (42),
-`backend/tests/test_timeframes_unit.py` (32)
+`backend/tests/test_timeframes_unit.py` (37),
+`backend/tests/test_candle_patterns_unit.py` (23)
 
 Este documento es el manual honesto del escáner: lo que detecta de forma fiable,
 lo que **no** detecta, dónde se equivoca y por qué, y qué significa exactamente
@@ -241,6 +242,87 @@ por no tener el dato castigaría a clases de activo enteras.
 
 ---
 
+## 5b. Patrones de vela: temporalidad, fechas y en qué se basa cada uno
+
+### El problema que había
+
+Se reportó ver "tres soldados blancos" en el registro, ir al gráfico y no
+encontrarlos. **La causa era doble y las dos partes eran fallos reales.**
+
+**(a) El registro mezclaba temporalidades.** Se guardaba por activo y nada más
+(`store[symbol]`), sin anotar en qué vela se había detectado cada cosa. Una
+detección de 15 minutos y una diaria caían en la misma lista, indistinguibles.
+El escáner respondía a una pregunta distinta de la que el usuario miraba.
+
+Ahora el registro se guarda por **activo + temporalidad**, cada entrada lleva su
+etiqueta (`15m`, `4h`, `1d`…), el identificador incluye la temporalidad —antes
+el mismo patrón en dos velas distintas compartía id y uno pisaba al otro— y cada
+detección viaja desde el backend con su campo `interval`. El almacén anterior se
+descarta en vez de migrarse: sus entradas no guardaron temporalidad, así que no
+hay forma honesta de asignarles una.
+
+**(b) "Tres soldados" se disparaba con velas que no lo eran.** La definición
+canónica exige tres velas alcistas **de cuerpo largo** que cierran **cerca de su
+máximo**. El detector solo comprobaba dirección, cierres crecientes y aperturas
+dentro del cuerpo anterior. Tres velas con cuerpos del **4 % del rango** y mechas
+superiores del **94 %** pasaban el filtro: exactamente la desproporción que se
+veía al comparar con el gráfico.
+
+Añadidos los dos umbrales que faltaban, para soldados y para cuervos:
+
+| Condición | Umbral |
+|---|---|
+| El cuerpo domina la vela | `cuerpo ≥ 55 %` del rango |
+| Poca mecha en el sentido de la marcha | `mecha ≤ 25 %` del rango |
+
+### En qué se basa cada patrón
+
+Cada patrón declara su `basis`, visible en la interfaz junto a la detección:
+
+| Valor | Qué mira | Ejemplos |
+|---|---|---|
+| **`body`** — por el cuerpo | Apertura contra cierre. Las mechas no se miran o casi | envolvente, harami, estrella de la mañana/tarde, penetrante, nube oscura, tres interiores |
+| **`wicks`** — por las mechas | Mandan las sombras; el cuerpo solo da la escala | martillo, hombre colgado, estrella fugaz, martillo invertido, pinzas |
+| **`both`** — cuerpo + mechas | Hacen falta las dos a la vez | marubozu, doji de libélula/lápida, **tres soldados**, **tres cuervos**, kicker |
+
+Reparto actual: **11 por cuerpo · 6 por mechas · 13 por ambos**.
+
+Además cada detección trae las **medidas reales de la vela que confirma** —cuerpo,
+mecha superior y mecha inferior como % del rango— para poder contrastar el aviso
+con el gráfico en vez de creérselo. Las tres suman 100 % por construcción, y hay
+un test que lo comprueba.
+
+### Cuándo abre y cuándo confirma
+
+Un patrón de tres velas ocupa tres barras. Antes solo se publicaba la fecha de la
+última, así que localizarlo exigía contar velas hacia atrás a mano. Cada
+detección lleva ahora:
+
+- `start_date` / `start_index` → **primera** vela del patrón (donde se abre)
+- `confirm_date` / `index` → vela que lo **confirma** (la última)
+- `date` se mantiene igual que `confirm_date` por compatibilidad
+
+En patrones de una sola vela ambas fechas coinciden, como debe ser.
+
+### Un tercer fallo de escala, corregido de paso
+
+`_trend_before` —lo que distingue un martillo de un hombre colgado, o una
+estrella fugaz de un martillo invertido— usaba un **1 % fijo** para decidir si
+venía tendencia. En velas de 5 minutos casi cualquier ventana supera el 1 %, así
+que casi todo parecía tendencia y las etiquetas se intercambiaban a capricho; en
+mensuales casi nada lo supera y el contexto era siempre "lateral". Ahora el
+umbral se mide en **rangos medios de vela**, que es adimensional: la misma forma
+significa lo mismo en cualquier escalón de la escalera y en cualquier activo,
+valga 100 o 100 000.
+
+> Verificado en `test_three_tiny_candles_with_huge_wicks_are_NOT_three_soldiers`,
+> `test_a_long_upper_wick_disqualifies_a_soldier`,
+> `test_trend_context_is_scale_free`,
+> `test_every_detection_says_when_it_opens_and_when_it_confirms`,
+> `test_metrics_add_up_to_the_whole_candle`.
+
+---
+
 ## 6. Qué hace BIEN
 
 1. **Roles de S/R correctos por definición.** Arriba resistencia, abajo soporte,
@@ -329,7 +411,12 @@ disimulado: son límites conocidos del enfoque.
     se distingue de uno roto en una tarde muerta de agosto. Los datos macro están
     en el dashboard, pero **no se cruzan** con el escáner.
 
-12. **Sin backtest.** El escáner no reporta cuántas veces un nivel "confirmado"
+12. **Las pinzas usan una tolerancia fija (0,15 %)** para decidir si dos máximos
+    o mínimos son "iguales". Es el mismo defecto que tenían los niveles de S/R
+    antes de pasar a ATR: demasiado estrecha en activos volátiles, demasiado
+    ancha en los tranquilos. Pendiente de convertir a ATR.
+
+13. **Sin backtest.** El escáner no reporta cuántas veces un nivel "confirmado"
     ha aguantado históricamente en ese activo. Las puntuaciones miden la
     evidencia **en la ventana escaneada**, no la fiabilidad estadística. No se
     debe presentar como tasa de acierto.

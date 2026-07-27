@@ -3189,4 +3189,11 @@ export default {
   "structWhyNoData": "sin datos suficientes",
   "structAtrLine": "ATR {atr} ({atrPct}%) · niveles agrupados a ±{tol}%",
   "structLevelsStats": "{levels} niveles · {res} resistencias · {sup} soportes · {conf} confirmados",
+  "structBasisBody": "por el cuerpo",
+  "structBasisWicks": "por las mechas",
+  "structBasisBoth": "cuerpo + mechas",
+  "structBasisTip": "Medidas de la vela que confirma: cuerpo {body}% del rango · mecha superior {up}% · mecha inferior {down}%",
+  "structPatternOpens": "abre",
+  "structPatternConfirms": "confirma",
+  "structLogScopeNote": "El registro es de esta temporalidad. Cambia de vela y verás el suyo.",
 }

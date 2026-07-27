@@ -3189,4 +3189,11 @@ export default {
   "structWhyNoData": "not enough data",
   "structAtrLine": "ATR {atr} ({atrPct}%) · levels clustered at ±{tol}%",
   "structLevelsStats": "{levels} levels · {res} resistance · {sup} support · {conf} confirmed",
+  "structBasisBody": "by the body",
+  "structBasisWicks": "by the wicks",
+  "structBasisBoth": "body + wicks",
+  "structBasisTip": "Confirming candle: body {body}% of range · upper wick {up}% · lower wick {down}%",
+  "structPatternOpens": "opens",
+  "structPatternConfirms": "confirms",
+  "structLogScopeNote": "This log belongs to this timeframe. Switch candle and you get its own.",
 }

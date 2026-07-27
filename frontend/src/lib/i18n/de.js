@@ -3189,4 +3189,11 @@ export default {
   "structWhyNoData": "nicht genug Daten",
   "structAtrLine": "ATR {atr} ({atrPct}%) · Niveaus gruppiert bei ±{tol}%",
   "structLevelsStats": "{levels} Niveaus · {res} Widerstände · {sup} Unterstützungen · {conf} bestätigt",
+  "structBasisBody": "nach dem Körper",
+  "structBasisWicks": "nach den Dochten",
+  "structBasisBoth": "Körper + Dochte",
+  "structBasisTip": "Bestätigende Kerze: Körper {body}% der Spanne · oberer Docht {up}% · unterer Docht {down}%",
+  "structPatternOpens": "öffnet",
+  "structPatternConfirms": "bestätigt",
+  "structLogScopeNote": "Dieses Protokoll gehört zu diesem Zeitrahmen. Kerze wechseln zeigt dessen eigenes.",
 }

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { useAssetsStore, ALL_ASSETS } from '@/lib/assets';
 import { PATTERN_NAME_KEY, TYPE_BADGE, BEHAVIOR_KEY, rateColor } from '@/lib/candlePatternMeta';
-import { DAY_MS, loadLogFor, mergeLogFor, clearLogFor } from '@/lib/structureLog';
+import { DAY_MS, loadLogFor, mergeLogFor, clearLogFor, purgeLegacyLogs } from '@/lib/structureLog';
 import CandlePatternFigure from '@/components/education/CandlePatternFigure';
 import { toast } from 'sonner';
 
@@ -70,6 +70,10 @@ const REASON_KEY = {
 };
 
 const ORIGIN_KEY = { highs: 'structOriginHighs', lows: 'structOriginLows', mixed: 'structOriginMixed' };
+
+// En qué se fija el detector para cada patrón. Es lo primero que quiere saber
+// quien compara el aviso con su gráfico.
+const BASIS_KEY = { body: 'structBasisBody', wicks: 'structBasisWicks', both: 'structBasisBoth' };
 
 const TREND_UI = {
   uptrend:   { color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/10', border: 'border-[#22c55e]/30', Icon: TrendingUp,   key: 'structTrendUp' },
@@ -155,8 +159,12 @@ const StructureScanner = () => {
     store(PERIOD_KEY, p);
   }, []);
 
-  // Show the stored registro for the current asset immediately on switch.
-  useEffect(() => { setLog(loadLogFor(yahoo)); }, [yahoo]);
+  // El registro anterior mezclaba temporalidades y no puede repararse: sus
+  // entradas no guardaron en cuál se detectaron. Se descarta una sola vez.
+  useEffect(() => { purgeLegacyLogs(); }, []);
+
+  // Registro del activo EN ESTA TEMPORALIDAD: cambiar de vela cambia de lista.
+  useEffect(() => { setLog(loadLogFor(yahoo, tfInterval)); }, [yahoo, tfInterval]);
 
   const scan = useCallback(async () => {
     if (!API || !yahoo) return;
@@ -186,17 +194,22 @@ const StructureScanner = () => {
       setCandles(signals);
 
       // Build the registro: structure breaks + directional candle signals, deduped.
+      // El id lleva la temporalidad: sin ella, el mismo patrón en 15m y en
+      // diario compartía identificador y uno pisaba al otro.
       const evtItems = (structJson.events || []).map((e) => ({
-        id: `e|${e.date}|${e.kind}|${e.direction}|${e.price}`,
+        id: `e|${tfInterval}|${e.date}|${e.kind}|${e.direction}|${e.price}`,
         cat: 'event', kind: e.kind, dir: e.direction, price: e.price, date: e.date,
+        tf: tfInterval,
       }));
       const candleItems = signals.map((d) => ({
-        id: `c|${d.date}|${d.pattern_id}`,
+        id: `c|${tfInterval}|${d.date}|${d.pattern_id}`,
         cat: 'candle', pid: d.pattern_id, ctype: d.type, behavior: d.behavior,
         dir: d.type === 'bullish' ? 'bullish' : d.type === 'bearish' ? 'bearish' : null,
         price: d.ohlc?.close, date: d.date,
+        tf: d.interval || tfInterval,
+        startDate: d.start_date, basis: d.basis, candles: d.candle_count,
       }));
-      setLog(mergeLogFor(yahoo, [...evtItems, ...candleItems]));
+      setLog(mergeLogFor(yahoo, tfInterval, [...evtItems, ...candleItems]));
     } catch (e) {
       if (myReq !== reqId.current) return;
       if (process.env.NODE_ENV !== 'production') console.error('[StructureScanner]', e);
@@ -212,7 +225,7 @@ const StructureScanner = () => {
   useEffect(() => { scan(); }, [scan]);
 
   const onClearLog = () => {
-    clearLogFor(yahoo);
+    clearLogFor(yahoo, tfInterval);
     setLog([]);
   };
 
@@ -463,18 +476,43 @@ const StructureScanner = () => {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-xs font-semibold truncate">{patternName(d.pattern_id)}</span>
+                        {/* La temporalidad, siempre a la vista: es lo que faltaba
+                            para poder contrastar el aviso con el gráfico. */}
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                          {d.interval || tfInterval}
+                        </span>
                         <span className={`text-[10px] font-mono uppercase ${badge.color}`}>{badge.icon} {d.type}</span>
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border">
                           {behaviorLabel(d.behavior)}
                         </span>
+                        {d.basis && BASIS_KEY[d.basis] && (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-muted border border-border text-muted-foreground"
+                            title={d.metrics
+                              ? t('structBasisTip')
+                                  .replace('{body}', String(d.metrics.bodyPct))
+                                  .replace('{up}', String(d.metrics.upperWickPct))
+                                  .replace('{down}', String(d.metrics.lowerWickPct))
+                              : undefined}
+                          >
+                            {t(BASIS_KEY[d.basis])}
+                          </span>
+                        )}
                         {typeof d.rate === 'number' && (
                           <span className={`text-[10px] font-mono font-bold ${rateColor(d.rate)}`}>{d.rate}%</span>
                         )}
                       </div>
                     </div>
-                    <span className="font-mono text-muted-foreground/70 text-[10px] ml-auto shrink-0">{d.date}</span>
+                    {/* Un patrón de 3 velas ocupa 3 barras: sin la fecha de
+                        apertura había que contar velas hacia atrás a mano. */}
+                    <span className="font-mono text-muted-foreground/70 text-[10px] ml-auto shrink-0 text-right leading-tight">
+                      {d.start_date && d.start_date !== d.date && (
+                        <>{t('structPatternOpens')} {d.start_date}<br /></>
+                      )}
+                      {t('structPatternConfirms')} {d.confirm_date || d.date}
+                    </span>
                   </div>
                 );
               })}
@@ -608,6 +646,9 @@ const StructureScanner = () => {
               <h4 className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                 <History className="w-3.5 h-3.5 text-primary" />
                 {t('structLogTitle')}
+                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-muted border border-border text-muted-foreground">
+                  {tfInterval}
+                </span>
                 {newInDay > 0 && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary">
                     {t('structLogNew').replace('{n}', String(newInDay))}
@@ -641,6 +682,11 @@ const StructureScanner = () => {
                       <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" title={t('structLogNew').replace('{n}', '')} />
                     )}
                     <span className="font-semibold truncate max-w-[130px]">{label}</span>
+                    {e.tf && (
+                      <span className="text-[9px] font-mono font-bold px-1 py-0.5 rounded bg-primary/15 text-primary shrink-0">
+                        {e.tf}
+                      </span>
+                    )}
                     {e.cat === 'candle' && e.behavior && (
                       <span className="text-[9px] text-muted-foreground uppercase">{behaviorLabel(e.behavior)}</span>
                     )}

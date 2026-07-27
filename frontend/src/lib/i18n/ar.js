@@ -3189,4 +3189,11 @@ export default {
   "structWhyNoData": "بيانات غير كافية",
   "structAtrLine": "ATR {atr} ({atrPct}%) · تجميع المستويات ±{tol}%",
   "structLevelsStats": "{levels} مستويات · {res} مقاومات · {sup} دعوم · {conf} مؤكَّدة",
+  "structBasisBody": "حسب الجسم",
+  "structBasisWicks": "حسب الظلال",
+  "structBasisBoth": "الجسم + الظلال",
+  "structBasisTip": "الشمعة المؤكِّدة: الجسم {body}% من المدى · الظل العلوي {up}% · الظل السفلي {down}%",
+  "structPatternOpens": "يبدأ",
+  "structPatternConfirms": "يتأكد",
+  "structLogScopeNote": "هذا السجل يخص هذا الإطار الزمني. غيّر الشمعة لترى سجلها.",
 }

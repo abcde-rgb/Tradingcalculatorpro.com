@@ -1768,3 +1768,37 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ **Verificado**: `pytest` **245 passed / 74 skipped** (+15); E2E contra las rutas reales
   con datos mockeados → 600 velas de 1h se convierten en **150 de 4h exactas**, el upstream
   recibe `1h` y `H4` ya no genera aviso; i18n 8 idiomas sin huecos; `npm run build` exit 0.
+
+---
+
+### 2026-07-27 (65) — Patrones de vela: la incoherencia de "3 soldados" y revisión matemática
+- 🔴 **La incoherencia reportada tenía DOS causas, ambas fallos reales.**
+  - **(a) El registro mezclaba temporalidades.** Se guardaba por activo y nada más
+    (`store[symbol]`), sin anotar en qué vela se detectó cada cosa: una detección de 15m y una
+    diaria caían en la misma lista, indistinguibles. El usuario veía "3 soldados", miraba su
+    gráfico y no estaban, porque eran de otra temporalidad. Ahora el registro va por
+    **activo + temporalidad**, cada entrada lleva su etiqueta visible, el identificador incluye
+    la temporalidad (antes el mismo patrón en dos velas compartía id y uno pisaba al otro) y el
+    backend estampa `interval` en cada detección. El almacén v1 se descarta en vez de migrarse:
+    sus entradas no guardaron temporalidad y no hay forma honesta de asignarles una.
+  - **(b) "Tres soldados" se disparaba con velas que no lo eran.** Solo se comprobaba dirección,
+    cierres crecientes y aperturas dentro del cuerpo anterior. **Demostrado con un caso**: tres
+    velas con cuerpos del **4 % del rango** y mechas superiores del **94 %** pasaban el filtro.
+    Añadidos los umbrales canónicos que faltaban (cuerpo ≥ 55 % del rango, mecha en el sentido
+    de la marcha ≤ 25 %), también para los tres cuervos.
+- ✅ **Cada patrón declara en qué se fija** (`basis`): **body** (11 patrones), **wicks** (6) o
+  **both** (13), visible en la interfaz. Y cada detección trae las **medidas reales de la vela
+  que confirma** —cuerpo, mecha superior, mecha inferior en % del rango, que suman 100 % por
+  construcción— para contrastar el aviso con el gráfico en vez de creérselo.
+- ✅ **Qué día abre y qué día confirma.** Un patrón de 3 velas ocupa 3 barras; antes solo se
+  publicaba la fecha de la última y había que contar velas hacia atrás. Ahora `start_date` /
+  `confirm_date` (con `date` intacto por compatibilidad). En patrones de 1 vela, coinciden.
+- 🐛 **Tercer fallo de escala encontrado al revisar**: `_trend_before` —lo que distingue martillo
+  de hombre colgado— usaba un **1 % fijo**. En 5m casi cualquier ventana lo supera (todo parecía
+  tendencia y las etiquetas se intercambiaban); en mensual casi nada (contexto siempre lateral).
+  Ahora el umbral se mide en **rangos medios de vela**, adimensional.
+- 🔎 **Anotado sin tocar**: las pinzas (tweezers) usan tolerancia fija del 0,15 % para decidir si
+  dos extremos son "iguales" — mismo defecto que tenían los S/R antes de pasar a ATR.
+- ✅ **Verificado**: `pytest` **256 passed / 74 skipped** (+11); E2E contra las rutas reales →
+  cada detección lleva su temporalidad (15m→{15m}, 1d→{1d}) y los 42 patrones multi-vela abren
+  en fecha distinta de la que confirman; i18n **5297 claves × 8 idiomas, 0 huecos**; build exit 0.

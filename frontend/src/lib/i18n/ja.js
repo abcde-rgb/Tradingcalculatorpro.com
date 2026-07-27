@@ -3189,4 +3189,11 @@ export default {
   "structWhyNoData": "データ不足",
   "structAtrLine": "ATR {atr}（{atrPct}%）· 水準の集約幅 ±{tol}%",
   "structLevelsStats": "{levels} 水準 · レジスタンス {res} · サポート {sup} · 確認済み {conf}",
+  "structBasisBody": "実体で判定",
+  "structBasisWicks": "ヒゲで判定",
+  "structBasisBoth": "実体＋ヒゲ",
+  "structBasisTip": "確定した足：実体が値幅の {body}% · 上ヒゲ {up}% · 下ヒゲ {down}%",
+  "structPatternOpens": "開始",
+  "structPatternConfirms": "確定",
+  "structLogScopeNote": "この記録はこの時間軸のものです。足を切り替えると別の記録になります。",
 }

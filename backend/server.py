@@ -5696,6 +5696,12 @@ async def education_pattern_scan(
                     "adjustments": win["adjustments"],
                     "rowsScanned": 0, "totalDetections": 0, "detections": []}
         detections = detect_all_patterns(rows)
+        # Cada detección se marca con la temporalidad en la que se encontró. Sin
+        # esto el cliente no puede distinguir un patrón de 15m de uno diario, y
+        # el registro persistente los mezclaba: el usuario veía "3 soldados",
+        # miraba su gráfico y no estaban, porque eran de otra temporalidad.
+        for det in detections:
+            det["interval"] = tf.interval
         # Most recent first, capped at `limit`.
         detections.reverse()
         return {

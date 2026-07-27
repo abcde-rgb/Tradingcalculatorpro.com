@@ -3189,4 +3189,11 @@ export default {
   "structWhyNoData": "données insuffisantes",
   "structAtrLine": "ATR {atr} ({atrPct}%) · niveaux regroupés à ±{tol}%",
   "structLevelsStats": "{levels} niveaux · {res} résistances · {sup} supports · {conf} confirmés",
+  "structBasisBody": "par le corps",
+  "structBasisWicks": "par les mèches",
+  "structBasisBoth": "corps + mèches",
+  "structBasisTip": "Bougie de confirmation : corps {body}% de l’amplitude · mèche haute {up}% · mèche basse {down}%",
+  "structPatternOpens": "ouvre",
+  "structPatternConfirms": "confirme",
+  "structLogScopeNote": "Ce journal appartient à cette unité de temps. Changez de bougie pour voir le sien.",
 }

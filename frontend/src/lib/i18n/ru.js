@@ -3189,4 +3189,11 @@ export default {
   "structWhyNoData": "недостаточно данных",
   "structAtrLine": "ATR {atr} ({atrPct}%) · уровни сгруппированы ±{tol}%",
   "structLevelsStats": "{levels} уровней · {res} сопротивлений · {sup} поддержек · {conf} подтверждено",
+  "structBasisBody": "по телу",
+  "structBasisWicks": "по теням",
+  "structBasisBoth": "тело + тени",
+  "structBasisTip": "Подтверждающая свеча: тело {body}% диапазона · верхняя тень {up}% · нижняя тень {down}%",
+  "structPatternOpens": "открытие",
+  "structPatternConfirms": "подтверждение",
+  "structLogScopeNote": "Журнал относится к этому таймфрейму. Смените свечу — увидите её журнал.",
 }

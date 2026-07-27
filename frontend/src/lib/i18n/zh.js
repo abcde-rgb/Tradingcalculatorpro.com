@@ -3189,4 +3189,11 @@ export default {
   "structWhyNoData": "数据不足",
   "structAtrLine": "ATR {atr}（{atrPct}%）· 关键位聚合容差 ±{tol}%",
   "structLevelsStats": "{levels} 个关键位 · {res} 阻力 · {sup} 支撑 · {conf} 已确认",
+  "structBasisBody": "看实体",
+  "structBasisWicks": "看影线",
+  "structBasisBoth": "实体 + 影线",
+  "structBasisTip": "确认K线：实体占振幅 {body}% · 上影线 {up}% · 下影线 {down}%",
+  "structPatternOpens": "起始",
+  "structPatternConfirms": "确认",
+  "structLogScopeNote": "该记录属于当前周期。切换周期会显示对应的记录。",
 }
