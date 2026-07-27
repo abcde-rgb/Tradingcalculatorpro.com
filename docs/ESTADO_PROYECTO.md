@@ -1716,3 +1716,32 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   0 pageerrors** contra backend vivo (Postgres real + lector OHLC mockeado, porque Yahoo está
   bloqueado en el sandbox), confirmando el caso clave: con precio en 122, el techo de 120,6 se
   muestra como **Soporte −1,15 % · polaridad · confirmado**, no como resistencia.
+
+---
+
+### 2026-07-27 (63) — El despliegue apuntaba al proyecto GCP antiguo
+- 🔴 **Causa real de un mes sin desplegar backend.** El último deploy con éxito fue el
+  **30 de junio** (`47e8491`); los 8 siguientes fallaron todos en el paso *"Autenticar con
+  Google Cloud"*. El motivo de fondo: el trabajo se movió al proyecto
+  **`tradingcalculatorpro-502817`**, pero el despliegue seguía escrito a fuego contra el
+  antiguo (`tradingcalculator-495806`) en **cinco sitios** del workflow, más `cloudbuild.yaml`,
+  `setup-gcp.sh` y `GOOGLE_CLOUD_SETUP.md`.
+- ✅ **Nada específico del proyecto queda fijado en el YAML.** Ahora sale de variables de
+  repositorio con el proyecto actual por defecto: `GCP_PROJECT`, `GCP_REGION`,
+  `CLOUDSQL_INSTANCE`, `RUNTIME_SERVICE_ACCOUNT` (además de las que ya había, `DB_PROVIDER`
+  y `MIN_INSTANCES`). Mover el backend de proyecto o de región ya no requiere un PR.
+- 🐛 **Restos del proyecto viejo que también rompían al cambiar de región**: `configure-docker`
+  tenía `europe-west1` a fuego, el nombre de la imagen se componía con el proyecto antiguo, y
+  ni el deploy ni el healthcheck pasaban `--project` (dependían del proyecto activo de gcloud).
+- 🐛 **`GOOGLE_CLOUD_SETUP.md` decía `us-central1` mientras el deploy real usaba `europe-west1`.**
+  No es cosmético: el nombre de conexión de Cloud SQL lleva la región dentro, así que seguir el
+  documento al pie de la letra creaba una instancia a la que el servicio no podía conectarse.
+  Corregido y avisado en cabecera.
+- ✅ `cloudbuild.yaml` usa ahora la sustitución `_GCP_PROJECT` (por defecto, el proyecto donde
+  corre el build) y `setup-gcp.sh` acepta `PROJECT_ID`/`REGION` por entorno.
+- ✅ **Verificado**: los tres ficheros parsean (`yaml.safe_load`, `bash -n`); sin referencias al
+  proyecto antiguo fuera del registro histórico. **El deploy real no se puede probar desde el
+  sandbox** (sin acceso a GCP): lo confirma el propio workflow al ejecutarse.
+- ⏳ **Pendiente del dueño**: crear en el proyecto nuevo la federación de identidad (los secretos
+  `GCP_WORKLOAD_IDENTITY_PROVIDER` y `GCP_SERVICE_ACCOUNT`), los 7 secretos de Secret Manager,
+  la cuenta de servicio de ejecución y la instancia de Cloud SQL (o `DB_PROVIDER=neon`).

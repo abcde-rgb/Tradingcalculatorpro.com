@@ -49,7 +49,7 @@ ya trae `gcloud`, `psql`, `pg_dump` y el proxy de Cloud SQL).
 1. En la consola de Google Cloud, arriba a la derecha, pulsa el icono **`>_`** (Activar Cloud Shell).
 2. Arranca el proxy hacia tu base de datos (deja este comando corriendo):
    ```bash
-   cloud-sql-proxy tradingcalculator-495806:europe-west1:trading-db --port 5432 &
+   cloud-sql-proxy tradingcalculatorpro-502817:europe-west1:trading-db --port 5432 &
    ```
    Verás algo como `Listening on 127.0.0.1:5432`.
 

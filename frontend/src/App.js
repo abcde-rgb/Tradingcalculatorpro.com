@@ -9,6 +9,7 @@ import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
 import CookieBanner from "@/components/common/CookieBanner";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import { reloadFreshShell } from "@/lib/appShell";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 // Eagerly loaded — visible immediately on first paint
@@ -22,11 +23,16 @@ import NotFoundPage from "@/pages/NotFoundPage";
 const lazyRetry = (importer) =>
   lazy(() =>
     importer().catch((err) => {
-      const KEY = "chunk_reload_at";
-      const last = Number(sessionStorage.getItem(KEY) || 0);
+      // sessionStorage throws in some privacy modes; a throw HERE would replace
+      // the ChunkLoadError with a SecurityError and skip the recovery entirely.
+      let last = 0;
+      try { last = Number(sessionStorage.getItem("chunk_reload_at") || 0); } catch { /* no-op */ }
       if (Date.now() - last > 30_000) {
-        sessionStorage.setItem(KEY, String(Date.now()));
-        window.location.reload();
+        try { sessionStorage.setItem("chunk_reload_at", String(Date.now())); } catch { /* no-op */ }
+        // Drop the service worker and its caches before reloading: a plain
+        // reload can be answered with the SAME stale shell, which 404s the same
+        // chunk again and drops the user on the error screen.
+        reloadFreshShell();
         return new Promise(() => {}); // reloading — never resolves
       }
       throw err; // second failure inside 30s → surface to the ErrorBoundary
