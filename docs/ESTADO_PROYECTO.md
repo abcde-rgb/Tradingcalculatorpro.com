@@ -1802,3 +1802,38 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ✅ **Verificado**: `pytest` **256 passed / 74 skipped** (+11); E2E contra las rutas reales →
   cada detección lleva su temporalidad (15m→{15m}, 1d→{1d}) y los 42 patrones multi-vela abren
   en fecha distinta de la que confirman; i18n **5297 claves × 8 idiomas, 0 huecos**; build exit 0.
+
+---
+
+### 2026-07-27 (66) — Aprendizaje: temática por mercado, "por qué importa" y laboratorio de velas
+- ✅ **Identidad visual por mercado y por activo** (`src/lib/marketTheme.js`, nuevo). Los diez
+  paneles de Tipos de Mercado se pintaban todos con el mismo verde: oro, petróleo, bonos y
+  cripto compartían cara, así que la pantalla no ayudaba a saber dónde estabas. Ahora cada
+  mercado tiene acento, fondo y halo propios, y hay **sub-temas por activo** porque "materias
+  primas" mete en el mismo cajón oro, crudo y gas, que no se parecen en nada: el oro con
+  degradado metálico dorado, la plata plateada, el cobre cobrizo, el crudo verde petróleo, el
+  gas azul llama. Se aplica **desde la tarjeta**, no solo al abrir el panel.
+- ⚠️ **Decisión técnica que evita un fallo clásico**: los colores viajan como **variables CSS en
+  línea**, no como clases de Tailwind. Tailwind genera su CSS escaneando el código en
+  compilación, así que una clase construida en ejecución (`text-${color}-500`) no existe en el
+  bundle y se queda sin estilo — habría fallado justo en producción.
+- ✅ **`WhyItMatters`** (nuevo): qué es · por qué importa · **qué te cuesta ignorarlo** · cómo se
+  usa. El coste va en concreto y destacado a propósito: un consejo sin consecuencia cuantificada
+  se olvida antes de bajar a la siguiente sección.
+- ✅ **Laboratorio de velas** (`CandleLab`, nuevo): el usuario **construye** la vela con cuatro
+  controles y ve en vivo qué reglas se cumplen y cuáles no, **con el número medido al lado**.
+  Enseña lo que ninguna galería cuenta: dónde está la frontera exacta y que un patrón "casi" no
+  es el patrón. El preset *"casi martillo"* falla por 0,6 puntos de mecha superior (3 frente a
+  un límite de 2,4 = 0,4× el cuerpo), y lo dice.
+- 🛡️ **Guardián contra la deriva de umbrales.** El laboratorio clasifica en el navegador (una
+  llamada al servidor por cada arrastre del ratón sería absurda), así que los 16 umbrales están
+  duplicados en `candleRules.js`. Lo peligroso de duplicar no es la copia: es que se separen en
+  silencio y la web acabe **enseñando** una regla mientras el escáner aplica otra. Nuevo
+  `test_candle_rules_parity_unit.py` lee el JavaScript y compara número a número, y además
+  detecta umbrales inventados solo en JS. **3 tests.**
+- 🐛 Encontrado al probarlo: el preset "casi martillo" original **sí** era un martillo (mecha
+  superior 2 ≤ 2,4). Corregido y verificado numéricamente antes y después.
+- ✅ **Verificado**: `pytest` **259 passed / 74 skipped**; i18n **5327 claves × 8 idiomas, 0
+  huecos** (+30); `check-fetch-credentials` limpio; `npm run build` exit 0; **smoke de navegador
+  9/9 con 0 pageerrors** contra backend vivo — el laboratorio clasifica bien, "casi martillo" NO
+  forma martillo, y tarjeta y panel del oro llevan `--mk-accent=#d4a017`.

@@ -12,6 +12,7 @@ import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
 import { useTranslation } from '@/lib/i18n';
+import { themeForMarket, themeVars, headerBackground } from '@/lib/marketTheme';
 import { getMarketContent } from '@/lib/marketTypesContent';
 import {
   TVCryptoScreener, TVStockScreener, TVForexCrossRates, TVMarketOverview,
@@ -472,20 +473,44 @@ export default function MarketTypeModal({ market, open, onOpenChange }) {
     </section>
   );
 
+  const mkTheme = themeForMarket(market.id);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-4xl max-h-[92vh] overflow-y-auto"
         data-testid={`market-modal-${market.id}`}
+        /* Identidad visual por mercado: el oro no puede verse igual que los
+           bonos. Va como variables CSS porque una clase de Tailwind construida
+           en ejecución no existe en el bundle compilado. */
+        style={themeVars(mkTheme)}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 font-unbounded text-2xl">
-            <span className="text-3xl" aria-hidden="true">{market.icon}</span>
-            {market.name}
-            {market.volume && (
-              <Badge variant="secondary" className="text-[10px] font-normal">{market.volume}</Badge>
-            )}
-          </DialogTitle>
+          <div
+            className="-mx-6 -mt-6 mb-1 px-6 pt-6 pb-4 rounded-t-lg border-b border-[color:var(--mk-accent)]/25"
+            style={{ background: headerBackground(mkTheme) }}
+          >
+            <DialogTitle className="flex items-center gap-3 font-unbounded text-2xl">
+              <span
+                className="text-3xl w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'var(--mk-soft)', boxShadow: `0 0 24px var(--mk-glow)` }}
+                aria-hidden="true"
+              >
+                {mkTheme.emoji || market.icon}
+              </span>
+              <span style={mkTheme.metallic ? {
+                backgroundImage: mkTheme.metallic,
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              } : { color: 'var(--mk-accent)' }}>
+                {market.name}
+              </span>
+              {market.volume && (
+                <Badge variant="secondary" className="text-[10px] font-normal">{market.volume}</Badge>
+              )}
+            </DialogTitle>
+          </div>
         </DialogHeader>
 
         <div className="space-y-7 pt-2">
@@ -495,7 +520,7 @@ export default function MarketTypeModal({ market, open, onOpenChange }) {
           </Section>
 
           {/* 2 · How it is measured — the units block */}
-          <Section icon={Ruler} title={calcUI.measure} tone="text-blue-500">
+          <Section icon={Ruler} title={calcUI.measure} tone="text-[color:var(--mk-accent)]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {content.measure.map((m) => (
                 <div key={m.k} className="rounded-lg border border-border bg-muted/20 p-3">

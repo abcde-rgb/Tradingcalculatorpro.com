@@ -23,6 +23,8 @@ import { Link } from 'react-router-dom';
 import ExpectancyMatrix from '@/components/education/ExpectancyMatrix';
 import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
 import CandleAnatomy from '@/components/education/CandleAnatomy';
+import CandleLab from '@/components/education/CandleLab';
+import { themeForMarket, themeVars } from '@/lib/marketTheme';
 import CandlePatternFigure, { hasCandleBlueprint } from '@/components/education/CandlePatternFigure';
 import ChartPatternFigure, { hasChartFigure, ChartPatternCandleFigure } from '@/components/education/ChartPatternFigure';
 import SymVsBroadeningCard from '@/components/education/SymVsBroadeningCard';
@@ -2281,11 +2283,19 @@ export default function EducationPage() {
                         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMarket(item); }
                       }}
                       data-testid={`market-card-${item.id}`}
-                      className="bg-card border-border hover:border-primary/60 hover:shadow-lg hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none transition-all cursor-pointer group"
+                      /* Cada mercado con su color, ya desde la tarjeta: el oro
+                         se ve dorado antes incluso de abrirlo. */
+                      style={themeVars(themeForMarket(item.id))}
+                      className="bg-card border-border hover:border-[color:var(--mk-accent)] hover:shadow-[0_8px_28px_-8px_var(--mk-glow)] hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[color:var(--mk-accent)] focus-visible:outline-none transition-all cursor-pointer group"
                     >
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-base">
-                          <span className="text-2xl">{item.icon}</span>
+                          <span
+                            className="text-2xl w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ background: 'var(--mk-soft)' }}
+                          >
+                            {themeForMarket(item.id).emoji || item.icon}
+                          </span>
                           {item.name}
                         </CardTitle>
                       </CardHeader>
@@ -4545,6 +4555,9 @@ export default function EducationPage() {
             <TabsContent value="candlesticks" className="space-y-8">
               {/* Anatomy primer with SVG candles */}
               <CandleAnatomy />
+              {/* Después de VER la anatomía, tocarla: el laboratorio deja
+                  construir la vela y ver qué regla se cumple y cuál no. */}
+              <CandleLab />
 
               {/* Live pattern detector — scans real Yahoo Finance OHLC */}
               <LivePatternDetector />
