@@ -5,8 +5,15 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-06-25
-> - 🌿 **Rama de trabajo actual:** `claude/stoic-mayer-04dpp2`
+> - 📅 **Última verificación real contra el código:** 2026-07-27
+> - 🌿 **Rama de trabajo actual:** `claude/digital-project-audit-3upqfd`
+>
+> ⚠️ **Aviso de método (2026-07-27).** Las §1, §2 y §6 se habían quedado un mes
+> por detrás del código mientras el registro de sesiones (§7) sí se actualizaba.
+> El caso peor: §1 y §6 seguían pidiendo configurar **OxaPay** como pasarela
+> cripto cuando OxaPay se retiró y hoy el código llama a **NOWPayments** — quien
+> siguiera este documento se pondría a dar de alta una cuenta que la web no usa.
+> Al cerrar sesión, actualiza también la cabecera y §1–§6, no sólo §7.
 > - 📚 Documentos hermanos: [`ANALISIS_2026-06-25.md`](./ANALISIS_2026-06-25.md) ·
 >   [`GUIA_EXTENSION.md`](./GUIA_EXTENSION.md) ·
 >   [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) ·
@@ -18,18 +25,21 @@
 
 | Área | Estado | Nota |
 |---|:--:|---|
-| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-06-25: exit 0, 5.0 MB, code-splitting OK |
-| **Backend import + sintaxis** | 🟢 | `import server` OK → **169 rutas**; 10 módulos compilan |
-| **Tests offline (matemáticas opciones)** | 🟢 | 10 nuevos tests unitarios → `10 passed` (antes 0) |
+| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
+| **Backend import + sintaxis** | 🟢 | `import server` OK → **181 rutas**; los **16** módulos compilan |
+| **Tests offline** | 🟢 | `pytest tests/` → **264 passed, 74 skipped** (2026-07-27) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
-| **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo |
-| **CI backend (Cloud Run)** | 🟡→🟢 | El job `test` corría pytest roto; **fix de `conftest` aplicado** |
-| **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) |
+| **Lint del frontend (ESLint)** | 🟡→🟢 | **Estaba roto**: el parser abortaba en los 283 ficheros, así que lintaba 0. Arreglado 2026-07-27 y añadido a CI → **0 errores**, 128 avisos de limpieza |
+| **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
+| **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
+| **CI backend (Cloud Run)** | 🟢 | `py_compile *.py` (antes la lista iba a mano y omitía 6 módulos) + pytest |
+| **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) + i18n + credentials + **lint** |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
-| **OxaPay / crypto (código)** | 🟢 | Invoice + webhook HMAC implementados y probados (activación + idempotencia + rechazo de firma inválida) |
-| **OxaPay / crypto (operación)** | 🔴 | Falta Merchant API Key en panel admin + **test en `sandbox`** (round-trip saliente no verificable offline) |
-| **DNS / dominio `tradingcalculatorpro.com`** | ❓ | Verificar apuntado (ver DEPLOY_CHECKLIST) |
+| **NOWPayments / crypto (código)** | 🟢 | Invoice + IPN con HMAC-SHA512 verificado (`backend/nowpayments.py`) |
+| **NOWPayments / crypto (operación)** | 🔴 | Falta API Key + IPN secret en el panel admin y registrar el callback. **OxaPay y MaxelPay ya NO existen en el código** |
+| **Revolut Pay (código)** | 🟢 | `backend/revolut.py`, registrado en el checkout |
+| **DNS / dominio `tradingcalculatorpro.com`** | ❓ | **Hoy se sirve en `abcde-rgb.github.io/Tradingcalculatorpro.com`** (no hay `CNAME` en `public/`). Los despliegues ya apuntan ahí; el dominio propio sigue sin usarse |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
 > Leyenda: 🟢 listo · 🟡 funciona con condiciones · 🔴 bloquea · ❓ requiere verificación externa (ops)
@@ -39,34 +49,37 @@
 ## 2. Qué HAY (inventario verificado)
 
 ### Frontend — React 19 + CRACO + Tailwind + shadcn/ui
-- **19 páginas** (rutas en `App.js`): Landing, Dashboard, Pricing, Settings, Education,
+- **24 rutas** declaradas en `App.js` (Landing, Dashboard, Pricing, Settings, Education,
   Subscription, Options, Performance, Admin, Login, Register, Forgot/Reset password,
-  Verify-email, Magic-link, Payment success/cancel, Legal, Contact, About, 404.
-- **12 calculadoras** (`components/calculators/`): BlackScholes, Fibonacci, Futures,
-  Leverage, LotSize, MonteCarlo, PatternTrading, Percentage, PositionSize, SimulatorPro,
-  Spot, TargetPrice (+ subcarpeta `simulator`).
+  Verify-email, Magic-link, Payment success/cancel, Legal, Contact, About, 404…).
+- **14 calculadoras** (`components/calculators/`, contadas por fichero `.jsx`).
 - **~28 componentes de opciones** (`components/options/`): cadena, payoff, griegas
   (display/panel/time-chart), IV surface, IV rank, unusual activity, market flow,
   optimizador, Kelly, AI Trade Coach, comparador, posiciones guardadas, etc.
 - **Gráfico TradingView** (`components/charts/TradingViewChart.jsx`): embed iframe con
   selector de categoría/activo, favoritos, 9 temporalidades, tema y locale.
   → Detalle y límites en [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md).
-- **47 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
-  en `lib/assets.js`.
+- **~186 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
+  en `lib/assets.js` (los "47" de la primera versión se ampliaron el 2026-07-04).
 - **i18n: 8 idiomas** (`lib/i18n/`): es, en, de, fr, ru, zh, ja, ar.
-- **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **OxaPay** (crypto, botón "Criptomonedas").
+  **5327 claves por idioma, 0 huecos** (`node scripts/i18n-check.js`, verificado 2026-07-27).
+- **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **Revolut Pay** +
+  **NOWPayments** (crypto, botón "Criptomonedas"). *No* OxaPay ni MaxelPay: ambas
+  se probaron y se retiraron; no queda código de ninguna.
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
 - **Analítica/SEO**: GA4 + GTM + GSC/Bing, `sitemap.xml`, `robots.txt`, `og-image`,
   `manifest.json` (PWA), hook `useSEO`.
 - **Journal de trading**, alertas de precio (WebSocket), historial de cálculos.
 
 ### Backend — FastAPI + asyncpg (shim Mongo→PostgreSQL)
-- **160 rutas declaradas** (`server.py` 103 · `admin_routes.py` 45 · `missing_apis.py` 12),
-  **169 registradas** en la app (incluye `referrals`, `realtime_alerts`).
-- **Módulos**: `server.py` (monolito, 6107 líneas), `admin_routes.py`, `missing_apis.py`,
-  `options_math.py`, `options_optimize.py`, `stock_data.py`, `candle_patterns.py`,
-  `price_action.py` (estructura de mercado: swings/BOS-CHoCH/S-R/FVG),
-  `performance.py`, `realtime_alerts.py`, `referrals.py`.
+- **181 rutas registradas** en la app (contadas sobre `server.app.routes`, 2026-07-27).
+- **16 módulos** (`backend/*.py`, 15 508 líneas en total): `server.py` (monolito,
+  **7377 líneas**), `admin_routes.py` (1143), `missing_apis.py` (1075),
+  `affiliate_program.py` (859), `performance.py` (694), `price_action.py` (646)
+  —estructura de mercado: swings/BOS-CHoCH/S-R/FVG—, `stock_data.py` (608),
+  `candle_patterns.py` (518), `options_math.py` (462), `options_optimize.py` (395),
+  `referrals.py` (373), `realtime_alerts.py` (366), `market_data.py` (323),
+  `timeframes.py` (273), `revolut.py` (215), `nowpayments.py` (181).
 - **Datos de mercado**: yfinance + CoinGecko (todas las llamadas de red ya van por
   `asyncio.to_thread`/executor → no bloquean el event loop; ver BUG-010).
 - **IA**: Anthropic SDK (AI Trade Coach) en `POST /api/options/ai-analyze`.
@@ -91,6 +104,10 @@
 | G-06 | Sin CI de PR (lint/build/tests antes de merge); solo deploy en push a `main` | 🟡 | ✅ Añadido `ci.yml` esta sesión |
 | G-07 | Sin Dependabot/CodeQL/secret-scanning declarados en repo | 🟡 | Activar en ajustes del repo |
 | G-08 | Deriva documental (CLAUDE.md/PLAN_100 desactualizados) | 🟢 | ✅ Corregido CLAUDE.md esta sesión |
+| G-10 | **El sitio servido por GitHub Pages no tiene CSP.** Las cabeceras de `SecurityHeadersMiddleware` sólo viajan en las respuestas de la API (Cloud Run); Pages no deja definir cabeceras, así que el HTML de la web va sin `Content-Security-Policy`, `X-Frame-Options` ni `Referrer-Policy` | 🟠 | Meta `http-equiv="Content-Security-Policy"` en `public/index.html`. Requiere enumerar todos los orígenes (TradingView, GA4/GTM, Google OAuth, Stripe, PayPal) y **verificar en navegador**: un CSP mal puesto rompe la web y el meta **no admite modo report-only** |
+| G-11 | **La orden de desarrollo local documentada no puede conectar.** `init_pool` exige SSL verificado en toda conexión TCP (rama Neon), pero el `DATABASE_URL` de dev que documentan CLAUDE.md y el README apunta a un Postgres local sin SSL → `CERTIFICATE_VERIFY_FAILED` | 🟡 | Aceptar `sslmode=disable`/`?ssl=false` en la URL, o documentar el socket Unix (`?host=/var/run/postgresql`), que sí funciona |
+| G-12 | **ESLint no analizaba nada** (283/283 ficheros con error de parseo) y no corría en CI. Dejó pasar a producción un `idx` no definido que reventaba la calculadora de Fibonacci | 🟠 | ✅ **Cerrado (2026-07-27)**: config arreglada, lint en CI, 0 errores. Quedan **128 avisos** de símbolos muertos como deuda de limpieza |
+| G-13 | **11 tarjetas del panel admin se quedaban vacías tras recargar** (efecto con deps `[]` que disparaba `Bearer null` y nunca reintentaba) | 🟠 | ✅ **Cerrado (2026-07-27)**: hook `useAuthedLoad` compartido, que espera al token real y relanza la carga cuando llega |
 | G-09 | ~~**i18n incompleto**: 6 idiomas con ~290 claves sin traducir → caían a español~~ | 🟢 | ✅ **Cerrado (2026-07-11)**: backfill completo (candlestick, armónicos, opciones Black-Scholes/futuros/volatilidad/griegas, estrategias 6-9, auth, sesgos). Los 8 locales con sets idénticos (4401 c/u), 0 huecos. Eliminadas 9 claves muertas de de/fr/ru |
 
 ---
@@ -147,14 +164,22 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - **GCP**: Cloud Run service, Cloud SQL `trading-db` (europe-west1), Secret Manager,
   Workload Identity Federation, Artifact Registry `trading-repo`.
 - **Stripe**: productos/precios, webhook endpoint apuntando a `…/api/webhook/stripe`.
-- **OxaPay** (crypto): Merchant API Key en panel admin (o `OXAPAY_API_KEY` en Secret Manager),
-  `oxapay_sandbox` = `true`|`false`, y registrar el callback `…/api/webhook/oxapay` en su dashboard
-  (la misma API Key firma el webhook con HMAC-SHA512). Probar primero con `sandbox=true`. Opcional:
-  `BACKEND_PUBLIC_URL` si `request.base_url` no resuelve al host público.
-- **Google Cloud Console**: OAuth client + orígenes autorizados.
+- **NOWPayments** (crypto): ajustes `nowpayments_api_key` y `nowpayments_ipn_secret`
+  en el panel admin (o sus variables de entorno), `nowpayments_sandbox` = `true`|`false`,
+  y registrar el callback `…/api/webhook/nowpayments` en su dashboard. El IPN se firma con
+  **HMAC-SHA512** sobre el JSON ordenado y viaja en la cabecera `x-nowpayments-sig`; el
+  backend rechaza con 401 cualquier IPN sin firma válida. Probar primero en sandbox.
+  Opcional: `BACKEND_PUBLIC_URL` si `request.base_url` no resuelve al host público.
+  > Ojo: **OxaPay y MaxelPay ya no existen en el código.** Si un documento antiguo te
+  > manda configurarlas, ese documento está caducado (ver aviso de la cabecera).
+- **Revolut Pay**: credenciales del comercio para `backend/revolut.py`.
+- **Google Cloud Console**: OAuth client + orígenes autorizados. El origen que hay que
+  autorizar hoy es **`https://abcde-rgb.github.io`**, que es donde se sirve el frontend.
 - **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculatorpro.com`).
 - **GitHub**: Secrets de Actions (ver DEPLOY_CHECKLIST) + branch protection.
-- **DNS**: `tradingcalculatorpro.com` / `www`.
+- **DNS**: sólo aplica si se decide activar el dominio propio `tradingcalculatorpro.com`
+  / `www`. Hoy **no está en uso**: no hay `frontend/public/CNAME` y el build se publica en
+  `https://abcde-rgb.github.io/Tradingcalculatorpro.com`.
 
 ---
 
@@ -1837,3 +1862,76 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   huecos** (+30); `check-fetch-credentials` limpio; `npm run build` exit 0; **smoke de navegador
   9/9 con 0 pageerrors** contra backend vivo — el laboratorio clasifica bien, "casi martillo" NO
   forma martillo, y tarjeta y panel del oro llevan `--mk-accent=#d4a017`.
+
+---
+
+### 2026-07-27 (67) — Auditoría de producto: el linter mudo y lo que dejó pasar
+- 🔴 **ESLint no analizaba ni un fichero.** La configuración cargaba
+  `@babel/eslint-parser`, pero CRA no deja un `babel.config.js` en el repo (vive dentro de
+  `react-scripts`), así que el parser abortaba con *"No Babel config file detected"* en
+  **283 de 283** ficheros. El resultado: `jsx-a11y`, `rules-of-hooks` y `exhaustive-deps`
+  llevaban tiempo instalados y sin mirar **nada**. Y CI tampoco ejecutaba el linter, así que
+  no había forma de enterarse. Se pasa al parser propio de ESLint (espree), que entiende JSX
+  sin Babel ni `NODE_ENV`, y se añade el paso `Lint (ESLint)` a `ci.yml`.
+- 🐛 **Lo primero que encontró al funcionar: la calculadora de Fibonacci estaba rota.**
+  `FibonacciCalculator.jsx` usaba `idx` dentro de dos `.map((item) => …)` que nunca lo
+  declaraban. En JavaScript eso es `ReferenceError: idx is not defined` — comprobado — así
+  que el componente **reventaba al pintar los niveles**, es decir, en cuanto alguien
+  calculaba. Está enlazado desde `DashboardPage`, o sea que era una herramienta principal
+  caída. Arreglado añadiendo el índice a ambos callbacks.
+- 🐛 **11 tarjetas del panel admin se quedaban vacías tras recargar la página.** Todas
+  repetían `useEffect(() => { if (API) load(); else setLoading(false); }, [])`. Tras un F5 el
+  token vive sólo en memoria (Zustand) y arranca a `null`: la petición sale con
+  `Bearer null`, el backend responde 401, el `catch` se lo traga y —al no depender de
+  `headers`— **no se reintenta jamás**. Este proyecto ya había parcheado el mismo fallo dos
+  veces por separado (`UsageHeatmapCard`, `IntegrationsEditor`) sin tocar la raíz. En vez de
+  un parche número 12, se añade **`useAuthedLoad`**: espera a que el bearer sea real y
+  relanza la carga cuando llega. Mientras espera deja el spinner puesto, que es la verdad;
+  sólo apaga `loading` cuando no va a llegar nada (sin backend o modo demo).
+- 🐛 **La búsqueda de usuarios del admin devolvía 500 con un paréntesis.** `q` iba crudo a
+  los operadores `~`/`~*` de PostgreSQL, así que buscar `Rodríguez (padre)` —o teclear `(` a
+  medias— abortaba la consulta. Verificado contra PostgreSQL real:
+  `InvalidRegularExpressionError: parentheses () not balanced`. Nuevo `_literal_regex()` que
+  escapa los metacaracteres: un buscador debe buscar texto, no ejecutar sintaxis.
+  **+5 tests** (`test_admin_search_regex_unit.py`).
+  - 🔎 Descartado tras medirlo: **no** hay ReDoS. El motor de PostgreSQL resolvió
+    `(a+)+$` contra el caso patológico sin despeinarse, así que se documenta como crash de
+    entrada inválida y nada más. No se reporta lo que no se ha demostrado.
+- 🧹 **`agent-browser` estaba en `dependencies` de producción**: 73 MB, importado en cero
+  sitios y sin una sola mención en el repo ni en la documentación. No llegaba al bundle
+  (webpack sólo empaqueta lo que se importa), pero sí a cada `npm ci` de CI y de cada
+  despliegue. Fuera: `node_modules` pasa de **624 MB a 551 MB**. Si hace falta para smokes
+  locales, su sitio es `npm i -D`.
+- 🔒 **axios `^1.8.4` → `^1.18.1`**: era la única vulnerabilidad *alta* que de verdad viaja
+  al navegador (las otras 45 son cadena de compilación: react-scripts, workbox, svgr,
+  postcss — no llegan al usuario). Ahora `npm audit` da axios limpio.
+  - 🔎 **`react-router-dom` se deja como está, a propósito.** El aviso es *"RSC Mode CSRF
+    Bypass"* y esto es una SPA de CRA: no hay React Server Components por ningún lado. El
+    "arreglo" que propone npm es **bajar a 7.11.0**, un salto mayor hacia atrás. Cambiar una
+    versión que funciona por un aviso que no aplica es empeorar el proyecto.
+- 🐛 **`py_compile` en CI iba con lista escrita a mano** y se había quedado atrás:
+  `price_action`, `timeframes`, `market_data`, `nowpayments`, `revolut` y
+  `affiliate_program` no se comprobaban. Ahora `python -m py_compile *.py`.
+- 📚 **La "fuente de verdad" mentía en lo más caro de equivocarse.** El registro de sesiones
+  (§7) sí se actualizaba, pero §1, §2 y §6 —justo las que el documento manda leer primero—
+  llevaban un mes congeladas: seguían pidiendo dar de alta **OxaPay**, que se retiró hace
+  tiempo y hoy es **NOWPayments**. Quien siguiera el documento se pondría a abrir una cuenta
+  que la web no llama. Corregidas §1/§2/§6 con cifras medidas (181 rutas, 16 módulos,
+  `server.py` 7377 líneas, 24 rutas de `App.js`, 14 calculadoras, 5327 claves × 8 idiomas) y
+  añadido un aviso de método en la cabecera. También `CLAUDE.md` (pasarelas, tabla de
+  módulos, comandos de verificación).
+- 🐛 **La orden de desarrollo local que documentaba `CLAUDE.md` no podía conectar** (G-11):
+  `init_pool` trata cualquier host TCP como Neon y exige SSL verificado, así que contra un
+  Postgres local da `CERTIFICATE_VERIFY_FAILED`. Documentada la forma que sí funciona
+  (socket Unix). El código no se toca: exigir TLS por defecto es lo correcto.
+- 🟠 **Hueco abierto, no cerrado (G-10)**: el HTML que sirve GitHub Pages va **sin CSP**.
+  `SecurityHeadersMiddleware` protege las respuestas de la API, pero no la web, y Pages no
+  permite cabeceras. La vía es un `<meta http-equiv>`, que **no admite report-only**: hay que
+  enumerar TradingView, GA4/GTM, Google OAuth, Stripe y PayPal y verificarlo en navegador
+  antes de activarlo. Se deja documentado en vez de activarlo a ciegas: un CSP mal puesto
+  tira la web entera.
+- ✅ **Verificado**: `pytest` **264 passed / 74 skipped** (+5); ESLint **0 errores** (128
+  avisos de limpieza heredados); `py_compile` de los 16 módulos; i18n **5327 × 8, 0 huecos**;
+  `npm run build` exit 0 con las 744 URLs del sitemap; fix del buscador probado contra
+  **PostgreSQL 16 real** (antes: excepción; después: busca literal y sigue siendo
+  insensible a mayúsculas).

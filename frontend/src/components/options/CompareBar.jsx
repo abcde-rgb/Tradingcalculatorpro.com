@@ -6,8 +6,8 @@ import { useTranslation } from '@/lib/i18n';
 const compareNumeric = (a, b, prefer, aUnlim = false, bUnlim = false) => {
   if (aUnlim && !bUnlim) return prefer === 'higher' ? 'A' : 'B';
   if (!aUnlim && bUnlim) return prefer === 'higher' ? 'B' : 'A';
-  const na = parseFloat(String(a).replace(/[^\d.\-]/g, ''));
-  const nb = parseFloat(String(b).replace(/[^\d.\-]/g, ''));
+  const na = parseFloat(String(a).replace(/[^\d.-]/g, ''));
+  const nb = parseFloat(String(b).replace(/[^\d.-]/g, ''));
   if (!Number.isFinite(na) || !Number.isFinite(nb)) return 'tie';
   if (Math.abs(na - nb) < 0.005) return 'tie';
   if (prefer === 'higher') return na > nb ? 'A' : 'B';

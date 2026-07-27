@@ -15,7 +15,9 @@ El proyecto nació en la plataforma Emergent con una imagen `fastapi_react_mongo
 - **Backend**: Python 3.11 + **FastAPI** (no Flask) + asyncpg → desplegado en **Google Cloud Run**
 - **BD**: PostgreSQL en Cloud SQL (socket Unix en producción, TCP en local)
 - **Auth**: JWT con httpOnly cookies + Google OAuth (biblioteca `google-auth`)
-- **Pagos**: Stripe SDK
+- **Pagos**: Stripe SDK + PayPal + Revolut Pay (`revolut.py`) + **NOWPayments** para
+  criptomonedas (`nowpayments.py`, IPN firmado con HMAC-SHA512). *OxaPay y MaxelPay se
+  probaron en su día y se retiraron: no queda código de ninguna de las dos.*
 - **Email**: SendGrid
 - **IA**: Anthropic SDK (`ANTHROPIC_API_KEY`) — AI Trade Coach
 
@@ -24,7 +26,13 @@ El proyecto nació en la plataforma Emergent con una imagen `fastapi_react_mongo
 ### Backend (ejecutar desde `backend/`)
 ```bash
 pip install -r requirements.txt
-ENVIRONMENT=development DATABASE_URL=postgresql://user:pass@localhost:5432/trading_dev JWT_SECRET=devonly uvicorn server:app --host 0.0.0.0 --port 8080 --reload
+# OJO con la URL: init_pool trata cualquier host TCP como si fuera Neon y exige SSL
+# VERIFICADO. Contra un Postgres local sin SSL falla con CERTIFICATE_VERIFY_FAILED.
+# Por socket Unix sí conecta (asyncpg no negocia TLS sobre socket):
+ENVIRONMENT=development \
+DATABASE_URL='postgresql://user:pass@/trading_dev?host=/var/run/postgresql' \
+JWT_SECRET=devonly \
+uvicorn server:app --host 0.0.0.0 --port 8080 --reload
 ```
 
 ### Tests (siempre desde `backend/`)
@@ -41,9 +49,14 @@ REACT_APP_BACKEND_URL=http://localhost:8080 npm start  # dev con proxy implícit
 npm run build                              # build de producción
 ```
 
-### Verificar sintaxis Python antes de commit
+### Verificar antes de commit
 ```bash
-python -m py_compile backend/server.py backend/admin_routes.py backend/options_math.py
+# Sintaxis de TODOS los módulos (la lista a mano se quedaba corta: omitía 6)
+cd backend && python -m py_compile *.py
+
+# Lint del frontend. Falla sólo ante errores reales (no-undef, rules-of-hooks);
+# los avisos de símbolos muertos no bloquean. Corre también en CI.
+cd frontend && npx eslint src scripts
 ```
 
 ## Arquitectura: el shim MongoDB→PostgreSQL
@@ -78,6 +91,11 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 | `missing_apis.py` | Forex real, índices, commodities, password reset, magic links |
 | `realtime_alerts.py` | Poller de alertas de precio (WebSocket) |
 | `referrals.py` | Sistema de referidos |
+| `affiliate_program.py` | Programa de afiliados: comisiones, tramos y solicitudes de pago |
+| `market_data.py` | Capa de datos de mercado multi-proveedor |
+| `options_optimize.py` | Optimizador de estrategias de opciones |
+| `nowpayments.py` | Cripto: creación de factura + verificación HMAC-SHA512 del IPN |
+| `revolut.py` | Revolut Pay: creación de pedido y confirmación |
 
 `admin_routes.py` se importa de forma lazy en `startup_event`. Si falla la importación, el servidor arranca igual (logging de error) pero sin rutas admin.
 
