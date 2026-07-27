@@ -44,7 +44,7 @@ export function Header() {
     const token = useAuthStore.getState().token;
     if (!BACKEND_URL || !token) return;
     try {
-      const res = await fetch(`${BACKEND_URL}/api/alerts`, {
+      const res = await fetch(`${BACKEND_URL}/api/alerts`, { credentials: 'include',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {

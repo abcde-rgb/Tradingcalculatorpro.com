@@ -20,7 +20,7 @@ const SavedPositionsPanel = ({ currentLegs, currentSymbol, currentExpiration, on
     if (!isAuthenticated || !token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/options/positions`, {
+      const res = await fetch(`${API}/api/options/positions`, { credentials: 'include',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -42,7 +42,7 @@ const SavedPositionsPanel = ({ currentLegs, currentSymbol, currentExpiration, on
     if (!saveName.trim() || !currentLegs.length) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API}/api/options/positions/save`, {
+      const res = await fetch(`${API}/api/options/positions/save`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -74,7 +74,7 @@ const SavedPositionsPanel = ({ currentLegs, currentSymbol, currentExpiration, on
 
   const deletePosition = async (id) => {
     try {
-      await fetch(`${API}/api/options/positions/${id}`, {
+      await fetch(`${API}/api/options/positions/${id}`, { credentials: 'include',
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

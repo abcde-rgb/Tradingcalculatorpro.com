@@ -1625,3 +1625,94 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ℹ️ **Nota de despliegue**: el workflow de Cloud Run falla desde antes de estas olas porque faltan
   los secretos `GCP_WORKLOAD_IDENTITY_PROVIDER` y `GCP_SERVICE_ACCOUNT` en GitHub — falla en el
   paso de autenticación, antes de tocar el código. GitHub Pages sí despliega correctamente.
+
+### 2026-07-26 (61) — Ola 5: conciliación de pagos, el bug de las cookies a escala y limpieza de rutas
+- ✅ **M-40/M-41 — Conciliación de pagos.** El fallo más caro que puede pasar desapercibido: el
+  cliente paga, el webhook se pierde y nunca recibe premium; nada da error, así que el primer aviso
+  es un email enfadado. Nuevos `GET /admin/payments/reconciliation` (cruza dinero cobrado contra
+  premium concedido en 3 categorías), `POST /admin/payments/{id}/grant` (repara en un clic, **solo**
+  sobre transacciones realmente pagadas, idempotente, por la misma vía que los webhooks y auditado) y
+  `GET /admin/payments/webhook-health` (avisa si no llega ningún webhook en 24 h **habiendo**
+  suscripciones activas — sin clientes de pago el silencio es normal y no alarma). Tarjeta en
+  AdminPage. Tabla `webhook_health` + registro en los 3 webhooks. **14 tests.**
+- 🔴 **El bug de `credentials` era sistémico: 84 llamadas, no 5.** Al escribir el chequeo para que no
+  volviera a colarse, resultó que había **84 `fetch()` al backend sin `credentials:'include'`** en
+  28 ficheros. Con el token solo en memoria, tras recargar la página esas llamadas dan 401 dentro de
+  un `catch` que se lo traga: la función simplemente no hace nada, sin error ni log. **Corregidas
+  todas** con un codemod (seguro también para endpoints públicos: el backend ya responde con orígenes
+  CORS explícitos y `Allow-Credentials`). Nuevo `scripts/check-fetch-credentials.js`.
+- ✅ **CI: dos comprobaciones que existían pero NO se ejecutaban.** `ci.yml` solo hacía
+  `npm run build`, así que ni la paridad de los 8 idiomas ni el nuevo chequeo de `credentials`
+  protegían nada. Ambos añadidos al job de frontend.
+- 🐛 **F-07 rectificado y resuelto.** La doc decía «~21 endpoints admin muertos» (G-04). Medido sobre
+  las rutas **registradas**: `admin_routes.py` sí se registra (24 rutas) y antes que los stubs, así
+  que eso ya estaba resuelto. Las duplicadas reales eran **2** en `missing_apis.py`
+  (`/auth/forgot-password`, `/auth/reset-password`), que además escribían en **otra colección** y no
+  tenían rate limit. Eliminadas (93 líneas) + test de regresión sobre rutas registradas —
+  **0 duplicadas**. Rutas: 183 → **181**.
+- ✅ **M-02/M-03 — Presupuesto de llamadas por proveedor** en `market_data.py`: contador diario con
+  reinicio a medianoche UTC y aviso al **80%** del cupo (Twelve Data 800/día, Finnhub 60/min).
+  Sin cupo documentado (Yahoo, que se scrapea) no alarma nunca. **6 tests.**
+- ✅ **F-08** — `backend_test.py` y `backend_test_security.py` (75 KB, MongoDB, `sys.exit(1)` al
+  arrancar) movidos a `_archive/` con un README que explica por qué no sirven y dónde están los
+  tests reales.
+- 🔎 **Hallazgos anotados sin tocar** (requieren decisión o migración de datos):
+  - Los emails se guardan **tal y como se escriben** (sin normalizar) en registro, login y
+    recuperación de contraseña. Es coherente en todo el sistema, pero significa que quien se
+    registró como `User@X.com` no puede entrar escribiendo `user@x.com`. Arreglarlo bien exige
+    migrar las filas existentes: **no se toca a ciegas**.
+  - `build_public_settings_router` en `admin_routes.py` es una fábrica que **nunca se llama**
+    (su propio docstring explica cómo registrarla, y nadie lo hizo). Sin impacto: `server.py` tiene
+    su propia `/public/settings`.
+- ✅ **Verificado**: `pytest` **181 passed / 74 skipped** (+25); `py_compile` 15 módulos;
+  i18n **5254 claves, 0 huecos**; `check-fetch-credentials` limpio; `npm run build` exit 0;
+  **smokes 23/23 · 14/14 · 8/8 con 0 pageerrors** tras tocar 84 llamadas.
+
+---
+
+### 2026-07-27 (62) — Escáner de estructura: S/R relativos al precio, escalera 5m–1mes y confirmación anotada
+- 🔴 **Bug de fondo: los soportes y resistencias estaban mal etiquetados.** `detect_sr_levels`
+  decidía el rol por **cómo se formó** el nivel (más máximos → "resistencia"), sin mirar dónde está
+  el precio. Un techo ya roto sobre el que el precio se apoyaba seguía apareciendo como resistencia:
+  **invierte la operativa**. Ahora el rol lo decide el lado del precio actual — *encima →
+  resistencia, debajo → soporte*, sin excepciones. El origen se conserva en `origin` y, cuando no
+  coincide con el rol, el nivel se marca `flipped` (cambio de polaridad, que es información valiosa,
+  no un error). Añadidos `distancePct` con signo, `nearestResistance`/`nearestSupport` y orden por
+  cercanía al precio. La UI lo pinta como **escalera de precio**: resistencias arriba, banda del
+  precio en medio, soportes debajo.
+- ✅ **Escalera de temporalidades con validación** (`backend/timeframes.py`, nuevo). Antes `interval`
+  era texto libre que se pasaba tal cual a Yahoo: `interval=banana` llegaba al proveedor y su error
+  volvía convertido en *"sin estructura relevante"* — indistinguible de un gráfico plano. Y solo
+  funcionaba el diario, porque el frontend tenía `interval=1d` a fuego. Ahora hay 7 escalones
+  (**5m · 15m · 30m · 1h · 1d · 1wk · 1mo**) con las ventanas que el proveedor **sí** sirve, y
+  `1h` llega a **2 años**. Nuevo `GET /api/education/scan-timeframes` para que la UI nunca ofrezca
+  un par imposible. Si se pide algo imposible se ajusta y **se dice** (`adjustments`, aviso ámbar).
+  ⚠️ Límite real documentado: **ninguna fuente gratuita da 2 años de velas de 15m** (tope de 60 días
+  por debajo de la hora); para mirar 2 años atrás se usa el escalón de 1h o el diario.
+- ✅ **Confirmación anotada.** Cada nivel y cada ruptura llevan un bloque `confirmation` con la
+  evidencia y códigos de motivo traducibles: visitas (rachas de velas dentro de la banda, **una
+  racha = una visita**, no diez), cuántas aguantaron, cuántas se rompieron, antigüedad, y para las
+  rupturas cierre en **ATR**, continuación en la vela siguiente, expansión, volumen y retest.
+  Umbrales explícitos: nivel confirmado con ≥2 visitas y ≥55/100; ruptura con ≥50/100, que es
+  exactamente *"cerró claro al otro lado y la siguiente se quedó ahí"*. Sin datos de volumen
+  (forex, índices) la ruptura no se penaliza.
+- ✅ **Análisis adaptativo**: tolerancia de agrupación = medio ATR en % del precio (antes 0,8 % fijo,
+  que fundía todos los niveles en 5m y separaba techos evidentes en mensual), y **fuerza fractal por
+  escalón** (3 en 5m/15m: un fractal de 2 velas en intradía marca cada micro-giro como swing).
+- 🐛 **Fix de datos intradía**: `get_ohlc_history` daba a las 78 velas de una sesión la misma cadena
+  `2026-07-27`; el registro del escáner deduplica por fecha, así que **las fundía en una sola**.
+  Ahora las velas intradía llevan hora y un campo `ts`. Añadido `lastBarForming`: en intradía la
+  última vela aún no ha cerrado y lo que dependa de ella puede deshacerse.
+- ⚡ **Rendimiento**: FVG en una pasada (era O(n²), inservible con 1 500 velas) y análisis profundo
+  limitado a los 30 niveles más cercanos (las dos pasadas caras son O(niveles × velas)). Peor caso
+  de 10 000 velas: **946 ms → 289 ms**. Listas recortadas antes de enviarse (`truncated`).
+- 📚 Nuevo [`docs/ESCANER_ESTRUCTURA.md`](./ESCANER_ESTRUCTURA.md): qué hace bien (8 puntos), **qué
+  no hace bien (11 limitaciones reales**: huecos de sesión, swings recientes sin confirmar, ruido en
+  5m, sin confluencia multi-temporal, sin volumen real en forex/índices, Yahoo como única fuente de
+  OHLC, sin backtest…), el contrato de la API y cómo verificarlo sin red.
+- ✅ **Verificado**: `pytest` **230 passed / 74 skipped** (21 tests nuevos de la escalera + 27 de
+  acción del precio); `py_compile` OK; i18n **5290 claves × 8 idiomas, 0 huecos** (+36);
+  `check-fetch-credentials` limpio; `npm run build` exit 0. **Smoke de navegador 20/20 con
+  0 pageerrors** contra backend vivo (Postgres real + lector OHLC mockeado, porque Yahoo está
+  bloqueado en el sandbox), confirmando el caso clave: con precio en 122, el techo de 120,6 se
+  muestra como **Soporte −1,15 % · polaridad · confirmado**, no como resistencia.

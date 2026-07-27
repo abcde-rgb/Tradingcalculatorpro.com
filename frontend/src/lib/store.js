@@ -263,7 +263,7 @@ export const usePriceStore = create((set) => ({
     if (!API) return;
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API}/prices`);
+      const res = await fetch(`${API}/prices`, { credentials: 'include' });
       const data = await safeJson(res);
       set({ prices: data, isLoading: false });
     } catch (_) {

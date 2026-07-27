@@ -153,13 +153,23 @@ def get_stock_data(symbol: str) -> dict:
 def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> list:
     """Historical OHLC rows from Yahoo's chart API (direct, curl_cffi Chrome).
 
-    Returns [{date, open, high, low, close, volume}] ascending by date. Replaces the old
-    yfinance path, which Yahoo blocks from datacenter IPs. Returns [] on failure.
+    Returns ``[{date, ts, open, high, low, close, volume}]`` ascending by date.
+    Replaces the old yfinance path, which Yahoo blocks from datacenter IPs.
+    Returns [] on failure.
 
     `range_` accepts Yahoo ranges (1mo, 3mo, 6mo, 1y, 2y, 5y, max);
-    `interval` accepts 1d, 1wk, 1mo, etc.
+    `interval` accepts 5m, 15m, 30m, 1h, 1d, 1wk, 1mo (see `timeframes.py` for
+    which pairs Yahoo actually serves).
+
+    On INTRADAY intervals ``date`` carries the time too (``YYYY-MM-DD HH:MM``
+    UTC). Without it every 5-minute bar of a session shared the string
+    "2026-07-27", which is not a cosmetic problem: the scanner's event log
+    de-duplicates by date, so 78 distinct intraday events collapsed into one.
+    ``ts`` is the raw epoch, for callers that need to reason about bar age.
     """
     symbol = symbol.upper().strip()
+    intraday = str(interval).lower() in ("1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h")
+    fmt = "%Y-%m-%d %H:%M" if intraday else "%Y-%m-%d"
     try:
         data = _yahoo_get(f"/v8/finance/chart/{symbol}?range={range_}&interval={interval}")
         res = (data.get("chart", {}).get("result") or [None])[0]
@@ -183,7 +193,8 @@ def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> 
                 continue
             v = vols[idx] if idx < len(vols) else None
             rows.append({
-                "date": datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d"),
+                "date": datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime(fmt),
+                "ts": int(ts),
                 "open": float(o), "high": float(h), "low": float(lo), "close": float(c),
                 "volume": float(v) if v is not None else 0.0,
             })

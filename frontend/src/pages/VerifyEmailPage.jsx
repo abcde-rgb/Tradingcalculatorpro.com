@@ -27,7 +27,7 @@ export default function VerifyEmailPage() {
       setMessage('Backend not configured.');
       return;
     }
-    fetch(`${API}/auth/verify-email`, {
+    fetch(`${API}/auth/verify-email`, { credentials: 'include',
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),

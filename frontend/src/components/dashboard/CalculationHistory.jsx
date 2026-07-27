@@ -32,7 +32,7 @@ export const CalculationHistory = () => {
 
   const deleteCalculation = async (calcId) => {
     try {
-      const res = await fetch(`${API}/api/calculations/${calcId}`, {
+      const res = await fetch(`${API}/api/calculations/${calcId}`, { credentials: 'include',
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

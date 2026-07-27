@@ -40,7 +40,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/api/optimize`, {
+      const res = await fetch(`${API}/api/optimize`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

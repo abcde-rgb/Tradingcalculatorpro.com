@@ -118,7 +118,34 @@ def test_ohlc_history_parsing_skips_null_bars():
     assert len(rows) == 2                       # the null bar is dropped
     assert rows[0]["close"] == 11.0
     assert rows[0]["volume"] == 1000.0          # volume is parsed alongside OHLC
-    assert set(rows[0].keys()) == {"date", "open", "high", "low", "close", "volume"}
+    assert set(rows[0].keys()) == {"date", "ts", "open", "high", "low", "close", "volume"}
+    assert rows[0]["date"] == "2023-11-14"      # daily bars carry no time
+    assert rows[0]["ts"] == 1700000000
+
+
+def test_intraday_bars_carry_the_time_in_the_date():
+    """Every 5-minute bar of a session sharing the string '2023-11-14' is not a
+    cosmetic problem: the scanner's event log de-duplicates by date, so a whole
+    day of distinct intraday events collapsed into one entry."""
+    import stock_data as sd
+
+    def fake_get(path):
+        return {"chart": {"result": [{
+            "timestamp": [1700000000, 1700000300],
+            "indicators": {"quote": [{
+                "open": [10, 11], "high": [12, 13], "low": [9, 10],
+                "close": [11, 12], "volume": [1000, 2000],
+            }]},
+        }]}}
+
+    original = sd._yahoo_get
+    sd._yahoo_get = fake_get
+    try:
+        rows = sd.get_ohlc_history("AAPL", "5d", "5m")
+    finally:
+        sd._yahoo_get = original
+    assert rows[0]["date"] == "2023-11-14 22:13"
+    assert rows[0]["date"] != rows[1]["date"]
 
 
 if __name__ == "__main__":

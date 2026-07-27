@@ -63,6 +63,14 @@ jobs:
       - name: Instalar dependencias
         run: npm ci --legacy-peer-deps
 
+      # Dos comprobaciones estáticas que existían pero NO se ejecutaban en CI,
+      # así que un fallo podía llegar a producción sin que nadie lo viera.
+      - name: Paridad de los 8 idiomas
+        run: node scripts/i18n-check.js
+
+      - name: fetch() al backend con credentials
+        run: node scripts/check-fetch-credentials.js
+
       - name: Build de producción
         run: npm run build
         env:

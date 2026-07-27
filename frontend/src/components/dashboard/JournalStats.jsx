@@ -17,7 +17,7 @@ export function JournalStats() {
     if (!token) return;
     
     try {
-      const response = await fetch(`${API}/api/journal/stats`, {
+      const response = await fetch(`${API}/api/journal/stats`, { credentials: 'include',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

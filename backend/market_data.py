@@ -95,6 +95,28 @@ class Provider:
     calls: int = 0
     failures: int = 0
     served: int = 0
+    # Daily quota, so the admin panel can warn BEFORE the tap runs dry. Free
+    # tiers are small (Twelve Data: 800/day) and hitting the cap looks exactly
+    # like the provider being down. 0 = no documented daily cap.
+    daily_quota: int = 0
+    _day: str = ""
+    _day_calls: int = 0
+
+    def note_call(self, today: str) -> None:
+        if self._day != today:
+            self._day, self._day_calls = today, 0
+        self._day_calls += 1
+
+    def usage(self, today: str) -> Dict[str, Any]:
+        used = self._day_calls if self._day == today else 0
+        pct = round(used / self.daily_quota * 100, 1) if self.daily_quota else None
+        return {
+            "used_today": used,
+            "daily_quota": self.daily_quota or None,
+            "pct_used": pct,
+            # 80% is early enough to react before users see missing prices.
+            "near_limit": bool(pct is not None and pct >= 80),
+        }
 
 
 _lock = threading.Lock()
@@ -194,9 +216,13 @@ def _fetch_twelvedata(symbol: str) -> Optional[dict]:
 
 
 PROVIDERS: List[Provider] = [
-    Provider("yahoo", _fetch_yahoo, lambda: True),
-    Provider("finnhub", _fetch_finnhub, lambda: bool(FINNHUB_API_KEY)),
-    Provider("twelvedata", _fetch_twelvedata, lambda: bool(TWELVEDATA_API_KEY)),
+    # daily_quota = documented free-tier cap. Yahoo has no published quota (it
+    # is scraped, not licensed) so it stays 0 = unknown.
+    Provider("yahoo", _fetch_yahoo, lambda: True, daily_quota=0),
+    Provider("finnhub", _fetch_finnhub, lambda: bool(FINNHUB_API_KEY),
+             daily_quota=int(os.environ.get("FINNHUB_DAILY_QUOTA", "86400"))),  # 60/min
+    Provider("twelvedata", _fetch_twelvedata, lambda: bool(TWELVEDATA_API_KEY),
+             daily_quota=int(os.environ.get("TWELVEDATA_DAILY_QUOTA", "800"))),
 ]
 
 
@@ -227,6 +253,7 @@ def get_quote(symbol: str, *, ttl: Optional[int] = None) -> dict:
             errors.append(f"{provider.name}: circuit open")
             continue
         provider.calls += 1
+        provider.note_call(time.strftime("%Y-%m-%d", time.gmtime(now)))
         try:
             quote = provider.fetch(symbol)
             if quote is None:
@@ -265,6 +292,7 @@ def get_quote(symbol: str, *, ttl: Optional[int] = None) -> dict:
 def provider_status() -> List[Dict[str, Any]]:
     """Per-provider health, for the admin panel."""
     now = time.time()
+    today = time.strftime("%Y-%m-%d", time.gmtime(now))
     return [
         {
             "name": p.name,
@@ -274,6 +302,7 @@ def provider_status() -> List[Dict[str, Any]]:
             "served": p.served,
             "circuit_open": p.breaker.is_open(now),
             "consecutive_failures": p.breaker.fails,
+            **p.usage(today),
         }
         for p in PROVIDERS
     ]
@@ -291,3 +320,4 @@ def reset_state() -> None:
     for p in PROVIDERS:
         p.breaker = _Breaker()
         p.calls = p.failures = p.served = 0
+        p._day, p._day_calls = "", 0

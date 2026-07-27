@@ -27,7 +27,7 @@ export const PriceAlerts = () => {
 
   const fetchAlerts = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/alerts`, {
+      const res = await fetch(`${API}/api/alerts`, { credentials: 'include',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -61,7 +61,7 @@ export const PriceAlerts = () => {
   const createAlert = async () => {
     if (!newAlert.target_price) return;
     try {
-      const res = await fetch(`${API}/api/alerts`, {
+      const res = await fetch(`${API}/api/alerts`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ export const PriceAlerts = () => {
 
   const deleteAlert = async (alertId) => {
     try {
-      await fetch(`${API}/api/alerts/${alertId}`, {
+      await fetch(`${API}/api/alerts/${alertId}`, { credentials: 'include',
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

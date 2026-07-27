@@ -28,7 +28,7 @@ export const PaymentSuccessPage = () => {
     }
     
     try {
-      const response = await fetch(`${API}/api/checkout/status/${sessionId}`, {
+      const response = await fetch(`${API}/api/checkout/status/${sessionId}`, { credentials: 'include',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

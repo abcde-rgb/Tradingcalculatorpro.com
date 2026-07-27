@@ -233,7 +233,7 @@ export default function DashboardPage() {
             onClick={() => {
               const backendUrl = process.env.REACT_APP_BACKEND_URL;
               if (!backendUrl) return;
-              fetch(`${backendUrl}/api/auth/resend-verification`, {
+              fetch(`${backendUrl}/api/auth/resend-verification`, { credentials: 'include',
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${useAuthStore.getState().token}` },
               })

@@ -19,6 +19,7 @@ import jwt
 import httpx
 import secrets
 import hashlib
+import time
 import re as _re_module
 import stripe  # Stripe SDK for advanced subscription management
 from google.oauth2 import id_token as google_id_token
@@ -48,6 +49,7 @@ from stock_data import (
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
 from price_action import detect_structure
+import timeframes
 from performance import (
     compute_trade_pnl,
     detect_errors,
@@ -915,6 +917,7 @@ class Database:
             "password_resets", "revoked_tokens", "user_revocations",
             "user_states", "stock_cache", "payment_transactions",
             "stripe_webhook_logs", "admin_audit_log", "app_settings",
+            "webhook_health",  # last webhook seen per provider (M-41)
             "saved_positions", "coupons", "feature_flags",
             # Extended modules
             "referrals", "referral_redemptions",
@@ -4028,6 +4031,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     - invoice.payment_failed         → mark past_due, revoke after 3 attempts
     - customer.subscription.updated  → sync status changes
     """
+    await _record_webhook_seen("stripe")
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
     host_url = str(request.base_url).rstrip("/")
@@ -4195,6 +4199,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
     merchant_order_ext_ref (= payment_transactions.id), falling back to the
     stored Revolut order id.
     """
+    await _record_webhook_seen("revolut")
     from revolut import (
         parse_webhook, verify_webhook, webhook_order_ref,
         webhook_revolut_order_id, webhook_is_paid,
@@ -4287,6 +4292,7 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
     out-of-order IPN is a safe no-op. The order_id we send is the (unguessable
     UUID) payment_transactions.id, tying the callback back to the user/plan.
     """
+    await _record_webhook_seen("nowpayments")
     from nowpayments import parse_ipn, verify_ipn, ipn_order_id, ipn_is_paid
 
     raw_body = await request.body()
@@ -5612,8 +5618,56 @@ async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume:
 
 
 # ========== EDUCATION: Live Pattern Detector ==========
-# Frontend period selectors map 1:1 to Yahoo chart ranges.
-_PATTERN_SCAN_RANGES = {"1mo", "3mo", "6mo", "1y", "2y", "5y", "ytd", "max"}
+# The legal (interval, range) pairs live in timeframes.py — Yahoo refuses most
+# combinations and answers with something our reader turns into "no rows",
+# which used to reach the UI as "no structure detected". See that module.
+
+
+def _scan_window(interval: Optional[str], period: Optional[str]) -> Dict[str, Any]:
+    """Resolve the requested timeframe and describe it for the response."""
+    tf, rng, adjustments = timeframes.resolve(interval, period)
+    return {"tf": tf, "range": rng, "adjustments": adjustments}
+
+
+def _bar_is_forming(rows: List[dict], minutes: int) -> bool:
+    """True when the last bar has not closed yet.
+
+    An unclosed bar keeps moving, so anything derived from it (a break, a new
+    swing, the level it is 'confirming') can un-happen. The scanner still uses
+    it — that is where the live price is — but the client is told, so it can
+    stop presenting a provisional break as a fact.
+    """
+    if not rows or minutes <= 0:
+        return False
+    last_ts = rows[-1].get("ts")
+    if not last_ts:
+        return False
+    return (time.time() - float(last_ts)) < minutes * 60
+
+
+def _trim_structure(res: Dict[str, Any]) -> Dict[str, Any]:
+    """Bound the arrays before they go over the wire.
+
+    A month of 5-minute candles is ~1 600 bars, which yields hundreds of swing
+    points, structure events and FVGs. `counts` already carries the totals, and
+    the UI renders at most a handful of each, so shipping the full lists is
+    pure weight on a mobile connection. Newest entries are kept (levels are
+    already sorted nearest-price-first, so those keep the head).
+    """
+    caps = {"swings": 120, "events": 120, "fvgs": 40, "breakouts": 60, "levels": 24}
+    for key, cap in caps.items():
+        rows = res.get(key)
+        if isinstance(rows, list) and len(rows) > cap:
+            res[key] = rows[:cap] if key == "levels" else rows[-cap:]
+            res.setdefault("truncated", {})[key] = len(rows)
+    return res
+
+
+@api_router.get("/education/scan-timeframes")
+async def education_scan_timeframes() -> Dict[str, Any]:
+    """The timeframe ladder the scanners accept, so the UI never offers a pair
+    the upstream provider will refuse."""
+    return {"timeframes": timeframes.ladder(), "defaultInterval": timeframes.DEFAULT_INTERVAL}
 
 
 @api_router.get("/education/pattern-catalog")
@@ -5631,19 +5685,25 @@ async def education_pattern_scan(
     """Scan real OHLC for the given ticker and return canonical candlestick
     pattern detections (educational view), enriched with reliability stats."""
     sym = symbol.upper().strip()
-    rng = period if period in _PATTERN_SCAN_RANGES else "3mo"
+    win = _scan_window(interval, period)
+    tf, rng = win["tf"], win["range"]
     try:
         # Direct Yahoo chart API (curl_cffi) — yfinance is blocked from Cloud Run.
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, interval)
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.interval)
         if not rows:
-            return {"symbol": sym, "rowsScanned": 0, "totalDetections": 0, "detections": []}
+            return {"symbol": sym, "period": rng, "interval": tf.interval,
+                    "adjustments": win["adjustments"],
+                    "rowsScanned": 0, "totalDetections": 0, "detections": []}
         detections = detect_all_patterns(rows)
         # Most recent first, capped at `limit`.
         detections.reverse()
         return {
             "symbol": sym,
-            "period": period,
-            "interval": interval,
+            "period": rng,
+            "interval": tf.interval,
+            "intraday": tf.intraday,
+            "adjustments": win["adjustments"],
+            "lastBarForming": _bar_is_forming(rows, tf.minutes),
             "rowsScanned": len(rows),
             "totalDetections": len(detections),
             "detections": detections[:limit],
@@ -5656,24 +5716,35 @@ async def education_pattern_scan(
 @api_router.get("/education/structure-scan/{symbol}")
 @limiter.limit("30/minute")
 async def education_structure_scan(
-    request: Request, symbol: str, period: str = "6mo", interval: str = "1d", strength: int = 2,
+    request: Request, symbol: str, period: Optional[str] = None,
+    interval: Optional[str] = None, strength: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Scan real OHLC and return the PRICE-ACTION STRUCTURE: swing highs/lows,
     market structure (HH/HL/LH/LL → trend), Break of Structure / Change of
-    Character, support/resistance levels and Fair Value Gaps."""
+    Character, support/resistance levels (above price = resistance, below =
+    support) and Fair Value Gaps — on any rung of the timeframe ladder.
+
+    `strength` (fractal half-window) defaults to the rung's own value: a
+    2-bar fractal is right on daily bars and far too twitchy on 5-minute ones.
+    """
     sym = symbol.upper().strip()
-    rng = period if period in _PATTERN_SCAN_RANGES else "6mo"
-    strength = max(1, min(5, int(strength or 2)))
+    win = _scan_window(interval, period)
+    tf, rng = win["tf"], win["range"]
+    strn = tf.strength if strength is None else max(1, min(5, int(strength)))
+    meta = {"symbol": sym, "period": rng, "interval": tf.interval,
+            "intraday": tf.intraday, "strength": strn,
+            "adjustments": win["adjustments"]}
     try:
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, interval)
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.interval)
         if not rows:
-            return {"symbol": sym, "rowsScanned": 0, "trend": "range",
+            return {**meta, "rowsScanned": 0, "trend": "range",
                     "swings": [], "events": [], "levels": [], "fvgs": []}
-        res = await asyncio.to_thread(detect_structure, rows, strength)
-        return {"symbol": sym, "period": rng, "interval": interval, **res}
+        res = await asyncio.to_thread(detect_structure, rows, strn)
+        return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
+                **_trim_structure(res)}
     except Exception as e:
         logging.error(f"Structure scan error for {sym}: {e}")
-        return {"symbol": sym, "error": "scan_failed", "trend": "range",
+        return {**meta, "error": "scan_failed", "trend": "range",
                 "swings": [], "events": [], "levels": [], "fvgs": []}
 
 
@@ -6692,6 +6763,222 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
 
 
 # ── USAGE ANALYTICS ──────────────────────────────────────────────────────────
+# ============================================================
+#  PAYMENT RECONCILIATION  (M-40 / M-41)
+# ============================================================
+# The most expensive failure this product can have is silent: a customer pays,
+# the webhook is lost or errors, and they never get premium. Nothing is logged
+# as an error — Stripe has the money, the user has nothing, and the first signal
+# is an angry email. These endpoints surface that state instead of waiting for
+# the complaint.
+
+async def _record_webhook_seen(provider: str) -> None:
+    """Timestamp the last webhook received per provider. Never raises: a
+    bookkeeping failure must not break payment processing."""
+    try:
+        await db.webhook_health.update_one(
+            {"id": provider},
+            {"$set": {"id": provider, "provider": provider,
+                      "last_seen_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logging.warning("[webhook-health] could not record %s: %s", provider, exc)
+
+
+# A checkout older than this with no resolution is worth a human look. Long
+# enough that a slow bank redirect or a crypto confirmation isn't flagged.
+STALE_PENDING_HOURS = int(os.environ.get("PAYMENT_STALE_PENDING_HOURS", "6"))
+WEBHOOK_SILENCE_HOURS = int(os.environ.get("PAYMENT_WEBHOOK_SILENCE_HOURS", "24"))
+
+
+@api_router.get("/admin/payments/reconciliation")
+async def admin_payment_reconciliation(admin: dict = Depends(require_admin)):
+    """Cross-check money received against premium granted.
+
+    Three discrepancies, in descending order of how much they cost:
+
+      paid_not_premium  — we took the money and the user is NOT premium.
+                          This is the one that loses customers. Fixable in one
+                          click with /admin/payments/{id}/grant.
+      stale_pending     — checkout started, never resolved. Either the user
+                          abandoned it (harmless) or the webhook never arrived
+                          (not harmless). Needs a human to tell them apart.
+      premium_no_payment— premium with no paid transaction on record. Usually
+                          legitimate (manual grant, comp account, trial) but
+                          worth seeing, because it is also what a bug that
+                          grants premium for free looks like.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff_pending = (now - timedelta(hours=STALE_PENDING_HOURS)).isoformat()
+
+    txs = await db.payment_transactions.find({}, {"_id": 0}).to_list(20000)
+    users = await db.users.find({}, {"_id": 0}).to_list(20000)
+    by_id = {u.get("id"): u for u in users}
+
+    paid_not_premium, stale_pending = [], []
+    paid_user_ids = set()
+
+    for tx in txs:
+        status = (tx.get("status") or "").lower()
+        user = by_id.get(tx.get("user_id"))
+
+        if status in ("paid", "completed", "finished"):
+            paid_user_ids.add(tx.get("user_id"))
+            # check_premium() is the same helper the product uses, so this
+            # cannot drift from what the customer actually experiences.
+            if user and not check_premium(user):
+                paid_not_premium.append({
+                    "transaction_id": tx.get("id"),
+                    "user_id": tx.get("user_id"),
+                    "user_email": tx.get("user_email") or user.get("email"),
+                    "plan_id": tx.get("plan_id"),
+                    "amount": tx.get("amount"),
+                    "currency": tx.get("currency"),
+                    "payment_method": tx.get("payment_method"),
+                    "paid_at": tx.get("paid_at") or tx.get("updated_at"),
+                    "created_at": tx.get("created_at"),
+                })
+        elif status == "pending" and (tx.get("created_at") or "") < cutoff_pending:
+            stale_pending.append({
+                "transaction_id": tx.get("id"),
+                "user_id": tx.get("user_id"),
+                "user_email": tx.get("user_email"),
+                "plan_id": tx.get("plan_id"),
+                "amount": tx.get("amount"),
+                "payment_method": tx.get("payment_method"),
+                "created_at": tx.get("created_at"),
+            })
+
+    premium_no_payment = [
+        {"user_id": u.get("id"), "email": u.get("email"),
+         "subscription_plan": u.get("subscription_plan"),
+         "subscription_end": u.get("subscription_end")}
+        for u in users
+        if check_premium(u)
+        and u.get("id") not in paid_user_ids
+        and u.get("subscription_plan") not in (None, "", "free", "trial")
+    ]
+
+    # Newest first: a discrepancy from an hour ago is more actionable than one
+    # from six months ago.
+    paid_not_premium.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+    stale_pending.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+
+    return {
+        "checked_at": now.isoformat(),
+        "transactions_scanned": len(txs),
+        "stale_pending_hours": STALE_PENDING_HOURS,
+        "paid_not_premium": paid_not_premium[:200],
+        "stale_pending": stale_pending[:200],
+        "premium_no_payment": premium_no_payment[:200],
+        "counts": {
+            "paid_not_premium": len(paid_not_premium),
+            "stale_pending": len(stale_pending),
+            "premium_no_payment": len(premium_no_payment),
+        },
+    }
+
+
+@api_router.post("/admin/payments/{transaction_id}/grant")
+async def admin_payment_grant(
+    transaction_id: str,
+    request: Request,
+    admin: dict = Depends(require_admin),
+):
+    """Grant the premium a paid transaction should already have granted.
+
+    Safety rails, because this hands out paid product:
+      * the transaction must exist AND be marked paid — this can never be used
+        to comp an account, only to repair a payment that was actually taken;
+      * it is a no-op if the user is already premium (idempotent, so retrying
+        after a timeout cannot double-extend a subscription);
+      * it goes through the same _activate_paid_subscription the webhooks use,
+        so the resulting state is identical to a normal payment;
+      * it is written to the admin audit log.
+    """
+    tx = await db.payment_transactions.find_one({"id": transaction_id}, {"_id": 0})
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transacción no encontrada")
+    if (tx.get("status") or "").lower() not in ("paid", "completed", "finished"):
+        raise HTTPException(
+            status_code=400,
+            detail="Solo se puede conceder premium de una transacción pagada",
+        )
+
+    user = await db.users.find_one({"id": tx.get("user_id")}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if check_premium(user):
+        return {"ok": True, "already_premium": True, "granted": False}
+
+    plan_id = tx.get("plan_id")
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail=f"Plan desconocido: {plan_id}")
+
+    await _activate_paid_subscription(
+        user_id=user["id"], plan_id=plan_id, plan=plan,
+        transaction_id=tx.get("id"), session_id=f"admin-grant:{admin.get('email')}",
+    )
+    await log_admin_action(
+        admin=admin, action="payment_grant", target_type="user",
+        target_id=user["id"], target_email=user.get("email"),
+        details={"transaction_id": transaction_id, "plan_id": plan_id,
+                 "amount": tx.get("amount")},
+        request=request,
+    )
+    logging.info("[reconciliation] admin %s granted %s to %s (tx %s)",
+                 admin.get("email"), plan_id, user.get("email"), transaction_id)
+    return {"ok": True, "already_premium": False, "granted": True, "plan_id": plan_id}
+
+
+@api_router.get("/admin/payments/webhook-health")
+async def admin_webhook_health(admin: dict = Depends(require_admin)):
+    """Is each payment provider still talking to us?
+
+    Silence is the signal: if there are active paying subscriptions but Stripe
+    has sent nothing in 24 hours, renewals are almost certainly failing to
+    register. That state is invisible in the logs because *nothing happening*
+    produces no log line.
+    """
+    now = datetime.now(timezone.utc)
+    rows = await db.webhook_health.find({}, {"_id": 0}).to_list(100)
+    seen = {r.get("provider"): r.get("last_seen_at") for r in rows}
+
+    users = await db.users.find({}, {"_id": 0}).to_list(20000)
+    active_paid = sum(
+        1 for u in users
+        if check_premium(u) and u.get("subscription_plan") not in (None, "", "free", "trial", "lifetime")
+    )
+
+    providers = []
+    for name in ("stripe", "revolut", "nowpayments", "paypal"):
+        last = seen.get(name)
+        hours = None
+        if last:
+            try:
+                hours = round((now - datetime.fromisoformat(last)).total_seconds() / 3600, 1)
+            except (TypeError, ValueError):
+                hours = None
+        providers.append({
+            "provider": name,
+            "last_seen_at": last,
+            "hours_since": hours,
+            # Only alarm when there is something to lose: no active
+            # subscriptions means no expected traffic, so silence is normal.
+            "alert": bool(active_paid > 0 and (last is None or (hours or 0) > WEBHOOK_SILENCE_HOURS)),
+        })
+
+    return {
+        "checked_at": now.isoformat(),
+        "active_paid_subscriptions": active_paid,
+        "silence_threshold_hours": WEBHOOK_SILENCE_HOURS,
+        "providers": providers,
+        "any_alert": any(p["alert"] for p in providers),
+    }
+
+
 @api_router.get("/admin/market-data-health")
 async def admin_market_data_health(admin: dict = Depends(require_admin)):
     """Health of the market-data providers: who is answering, who is failing,
