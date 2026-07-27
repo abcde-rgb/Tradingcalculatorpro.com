@@ -75,7 +75,7 @@ export default function DashboardPage() {
     { id: 'sim', label: t('calcCatSim'), Icon: FlaskConical, items: [
       { value: 'montecarlo', label: t('monteCarlo') },
       { value: 'simulator', label: t('simulator') },
-      { value: 'compound', label: t('cmpTitle') },
+      { value: 'compound', label: t('compoundTitle') },
     ]},
   ];
   const activeCalcGroup = CALC_NAV.find(g => g.items.some(it => it.value === activeTab)) || CALC_NAV[0];

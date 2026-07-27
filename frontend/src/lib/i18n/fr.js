@@ -3226,4 +3226,5 @@ export default {
   "labRule_upperOverBody": "mèche haute > corps",
   "labRule_lowerOverBody": "mèche basse > corps",
   "labRule_runWickMax": "mèche dans le sens de la marche",
+  "compoundTitle": "Intérêts composés",
 }

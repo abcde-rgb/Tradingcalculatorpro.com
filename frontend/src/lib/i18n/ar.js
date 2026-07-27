@@ -3226,4 +3226,5 @@ export default {
   "labRule_upperOverBody": "الظل العلوي > الجسم",
   "labRule_lowerOverBody": "الظل السفلي > الجسم",
   "labRule_runWickMax": "الظل في اتجاه الحركة",
+  "compoundTitle": "الفائدة المركبة",
 }

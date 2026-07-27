@@ -3226,4 +3226,5 @@ export default {
   "labRule_upperOverBody": "mecha superior > cuerpo",
   "labRule_lowerOverBody": "mecha inferior > cuerpo",
   "labRule_runWickMax": "mecha en el sentido de la marcha",
+  "compoundTitle": "Interés Compuesto",
 }

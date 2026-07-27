@@ -3226,4 +3226,5 @@ export default {
   "labRule_upperOverBody": "верхняя тень > тело",
   "labRule_lowerOverBody": "нижняя тень > тело",
   "labRule_runWickMax": "тень по направлению движения",
+  "compoundTitle": "Сложный процент",
 }

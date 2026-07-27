@@ -58,7 +58,7 @@ export const CompoundCalculator = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-primary" />
-          {t('cmpTitle')}
+          {t('compoundTitle')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">

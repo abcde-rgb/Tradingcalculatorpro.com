@@ -3226,4 +3226,5 @@ export default {
   "labRule_upperOverBody": "oberer Docht > Körper",
   "labRule_lowerOverBody": "unterer Docht > Körper",
   "labRule_runWickMax": "Docht in Laufrichtung",
+  "compoundTitle": "Zinseszins",
 }

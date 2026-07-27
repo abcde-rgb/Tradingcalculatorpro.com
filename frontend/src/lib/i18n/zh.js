@@ -3226,4 +3226,5 @@ export default {
   "labRule_upperOverBody": "上影线 > 实体",
   "labRule_lowerOverBody": "下影线 > 实体",
   "labRule_runWickMax": "顺势方向的影线",
+  "compoundTitle": "复利",
 }

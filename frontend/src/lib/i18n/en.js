@@ -3226,4 +3226,5 @@ export default {
   "labRule_upperOverBody": "upper wick > body",
   "labRule_lowerOverBody": "lower wick > body",
   "labRule_runWickMax": "wick in the direction of travel",
+  "compoundTitle": "Compound Interest",
 }

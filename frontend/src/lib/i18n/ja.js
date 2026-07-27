@@ -3226,4 +3226,5 @@ export default {
   "labRule_upperOverBody": "上ヒゲ > 実体",
   "labRule_lowerOverBody": "下ヒゲ > 実体",
   "labRule_runWickMax": "進行方向のヒゲ",
+  "compoundTitle": "複利",
 }
