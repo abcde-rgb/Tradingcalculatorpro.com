@@ -1202,6 +1202,7 @@ export default {
   "statsAssets": "250+ 銘柄",
   "statsLanguages": "8 言語",
   "statsUptime": "稼働率",
+  "statsCalculators": "計算ツール",
   "optionsSuite": "オプションスイート",
   "optionsSuiteDesc": "ブラック・ショールズ、グリークス、OptionStrat風ストラテジーオプティマイザー",
   "educationCenterDesc": "無料コース：ルール、ダウ理論、心理学、資金管理、42+ チャートパターン、30 ローソク足",

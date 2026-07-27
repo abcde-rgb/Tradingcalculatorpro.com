@@ -1256,6 +1256,7 @@ export default {
   "statsAssets": "activos",
   "statsLanguages": "8 idiomas",
   "statsUptime": "tiempo activo",
+  "statsCalculators": "calculadoras",
   "optionsSuite": "Suite de Opciones",
   "optionsSuiteDesc": "Black-Scholes, Greeks y Strategy Optimizer estilo OptionStrat",
   "educationCenter": "Centro de Aprendizaje",

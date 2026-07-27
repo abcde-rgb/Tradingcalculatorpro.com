@@ -1330,6 +1330,7 @@ export default {
   "statsAssets": "+250 actifs",
   "statsLanguages": "8 langues",
   "statsUptime": "disponibilité",
+  "statsCalculators": "calculatrices",
   "optionsSuite": "Suite d'Options",
   "optionsSuiteDesc": "Black-Scholes, Grecs, optimiseur de stratégies style OptionStrat",
   "educationCenterDesc": "Cours gratuit : règles, théorie de Dow, psychologie, gestion du capital, 42+ patterns graphiques et 30 patterns de chandeliers",

@@ -1124,6 +1124,7 @@ export default {
   "statsAssets": "+250 أصل",
   "statsLanguages": "8 لغات",
   "statsUptime": "وقت تشغيل",
+  "statsCalculators": "حاسبات",
   "optionsSuite": "مجموعة الخيارات",
   "optionsSuiteDesc": "بلاك-شولز، اليونانيون، محسن استراتيجيات على غرار OptionStrat",
   "educationCenterDesc": "دورة مجانية: قواعد، نظرية داو، علم النفس، إدارة رأس المال، 42+ نموذج رسومي و30 نموذج شموع",
