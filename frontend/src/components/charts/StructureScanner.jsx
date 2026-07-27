@@ -48,6 +48,8 @@ const FALLBACK_LADDER = [
   { interval: '15m', intraday: true,  ranges: ['1d', '5d', '1mo'], defaultRange: '5d' },
   { interval: '30m', intraday: true,  ranges: ['5d', '1mo'], defaultRange: '1mo' },
   { interval: '1h',  intraday: true,  ranges: ['1mo', '3mo', '6mo', '1y', '2y'], defaultRange: '3mo' },
+  // 4h no lo sirve el proveedor: el backend la compone juntando cuatro velas de 1h.
+  { interval: '4h',  intraday: true,  ranges: ['3mo', '6mo', '1y', '2y'], defaultRange: '6mo' },
   { interval: '1d',  intraday: false, ranges: ['1mo', '3mo', '6mo', '1y', '2y', '5y', 'ytd', 'max'], defaultRange: '6mo' },
   { interval: '1wk', intraday: false, ranges: ['6mo', '1y', '2y', '5y', 'max'], defaultRange: '2y' },
   { interval: '1mo', intraday: false, ranges: ['1y', '2y', '5y', 'max'], defaultRange: '5y' },

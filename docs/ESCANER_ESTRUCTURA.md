@@ -5,8 +5,8 @@
 `backend/server.py` (`/api/education/structure-scan/{symbol}`,
 `/api/education/pattern-scan/{symbol}`, `/api/education/scan-timeframes`),
 `frontend/src/components/charts/StructureScanner.jsx`
-**Tests:** `backend/tests/test_price_action_unit.py` (38),
-`backend/tests/test_timeframes_unit.py` (21)
+**Tests:** `backend/tests/test_price_action_unit.py` (42),
+`backend/tests/test_timeframes_unit.py` (32)
 
 Este documento es el manual honesto del escáner: lo que detecta de forma fiable,
 lo que **no** detecta, dónde se equivoca y por qué, y qué significa exactamente
@@ -107,9 +107,27 @@ fallos:
 | **15m** | 1d · 5d · 1mo | 5d | 3 |
 | **30m** | 5d · 1mo | 1mo | 2 |
 | **1h** | 1mo · 3mo · 6mo · 1y · **2y** | 3mo | 2 |
+| **4h** ⚙️ | 3mo · 6mo · 1y · **2y** | 6mo | 2 |
 | **1d** | 1mo · 3mo · 6mo · 1y · 2y · 5y · ytd · max | 6mo | 2 |
 | **1wk** | 6mo · 1y · 2y · 5y · max | 2y | 2 |
 | **1mo** | 1y · 2y · 5y · max | 5y | 2 |
+
+⚙️ **4H no la sirve ningún proveedor gratuito** (los intervalos de Yahoo son
+1m, 2m, 5m, 15m, 30m, 1h y 90m: no hay 4h). Como es de las temporalidades más
+operadas en swing, se **compone**: se piden velas de 1h y se juntan de cuatro en
+cuatro. Apertura de la primera, máximo y mínimo de las cuatro, cierre de la
+última, volumen sumado. La respuesta incluye `aggregatedFrom: "1h"` para que el
+cliente pueda decir que esa vela se fabrica, no se sirve. Hereda el tope de 730
+días del intervalo horario, de ahí que llegue justo a 2 años.
+
+⚠️ **Límite de la composición**: los grupos se anclan a medianoche UTC (00:00,
+04:00, 08:00…). En cripto y forex, que cotizan 24/7, eso coincide exactamente
+con lo que muestra cualquier plataforma. En **acciones**, cuya sesión dura 6,5 h
+y abre a las 13:30 UTC, no coincide: las velas caen dentro de los tramos UTC en
+vez de empezar en la apertura, y la primera y la última del día agrupan menos
+horas. Anclar a la sesión de cada mercado exigiría un calendario de sesiones que
+el proveedor de precios no da. Se documenta en vez de disimularlo: cambia dónde
+empieza una vela de 4h, no inventa precios.
 
 Esto cubre lo pedido: **desde 5 minutos hasta velas mensuales**, y **hasta 2
 años de histórico ya desde una vela intradía** (la de 1 hora).
@@ -272,30 +290,34 @@ disimulado: son límites conocidos del enfoque.
    anotada filtra los peores, pero el escalón de 5m sigue siendo el más ruidoso
    de la escalera. Para lectura estructural seria, 15m/1h dan mucha mejor señal.
 
-4. **No hay confluencia multi-temporal.** Cada escaneo mira **una** temporalidad.
+4. **Las velas de 4h en acciones no empiezan en la apertura** (ver §3): se
+   agrupan por tramos UTC porque no tenemos calendario de sesiones. En cripto y
+   forex el problema no existe.
+
+5. **No hay confluencia multi-temporal.** Cada escaneo mira **una** temporalidad.
    El escáner no sabe que la resistencia que está viendo en 15m es un soporte
    diario. Es la mejora individual con más valor pendiente.
 
-5. **BOS repetidos sobre el mismo nivel.** Si el precio cruza tres veces el mismo
+6. **BOS repetidos sobre el mismo nivel.** Si el precio cruza tres veces el mismo
    swing high, se emiten tres eventos. Son reales, pero saturan el registro. No
    hay agrupación por nivel.
 
-6. **La tendencia sale de las dos últimas etiquetas.** `label_structure` mira el
+7. **La tendencia sale de las dos últimas etiquetas.** `label_structure` mira el
    último máximo y el último mínimo etiquetados. Es simple y transparente, pero
    en rangos amplios oscila entre `uptrend` y `range` con facilidad.
 
-7. **Sin volumen real en forex, índices y CFD.** El "volumen" de Yahoo en esos
+8. **Sin volumen real en forex, índices y CFD.** El "volumen" de Yahoo en esos
    activos es de contratos o directamente 0. La puntuación lo trata como dato
    ausente (ver §5.2), pero significa que la evidencia de volumen solo funciona
    de verdad en acciones y cripto.
 
-8. **Los datos vienen de un proveedor no contratado.** Yahoo es scraping con
+9. **Los datos vienen de un proveedor no contratado.** Yahoo es scraping con
    `curl_cffi`. Hay failover multi-proveedor para *precios*
    (`backend/market_data.py`), pero **el histórico OHLC de este escáner sigue
    siendo Yahoo únicamente**. Si Yahoo endurece su antibot, el escáner se queda
    sin datos aunque los precios en vivo sigan funcionando.
 
-9. **`max` en velas diarias sigue siendo el escalón más caro.** Para un índice
+10. **`max` en velas diarias sigue siendo el escalón más caro.** Para un índice
    con 40 años de histórico son ~10 000 velas: ~289 ms de cálculo y más de 100
    niveles detectados, de los que **solo se analizan en profundidad los 30 más
    cercanos** (`levelsAnalysed` lo indica; `counts.levels` sigue dando el total).
@@ -303,11 +325,11 @@ disimulado: son límites conocidos del enfoque.
    real). Es un compromiso consciente: los niveles a un 40 % del precio no
    necesitan evidencia por vela.
 
-10. **No conoce el calendario.** Un nivel roto en el minuto de un dato del IPC no
+11. **No conoce el calendario.** Un nivel roto en el minuto de un dato del IPC no
     se distingue de uno roto en una tarde muerta de agosto. Los datos macro están
     en el dashboard, pero **no se cruzan** con el escáner.
 
-11. **Sin backtest.** El escáner no reporta cuántas veces un nivel "confirmado"
+12. **Sin backtest.** El escáner no reporta cuántas veces un nivel "confirmado"
     ha aguantado históricamente en ese activo. Las puntuaciones miden la
     evidencia **en la ventana escaneada**, no la fiabilidad estadística. No se
     debe presentar como tasa de acierto.

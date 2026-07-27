@@ -1745,3 +1745,26 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ⏳ **Pendiente del dueño**: crear en el proyecto nuevo la federación de identidad (los secretos
   `GCP_WORKLOAD_IDENTITY_PROVIDER` y `GCP_SERVICE_ACCOUNT`), los 7 secretos de Secret Manager,
   la cuenta de servicio de ejecución y la instancia de Cloud SQL (o `DB_PROVIDER=neon`).
+
+---
+
+### 2026-07-27 (64) — Escáner: falta la temporalidad 4H (reportado por el dueño)
+- ✅ **4H añadida a la escalera.** Ningún proveedor gratuito la sirve (los intervalos de
+  Yahoo son 1m, 2m, 5m, 15m, 30m, 1h y 90m), pero es de las temporalidades más operadas en
+  swing, así que se **compone**: se piden velas de 1h y se juntan de cuatro en cuatro
+  (apertura de la primera, máximo y mínimo de las cuatro, cierre de la última, volumen
+  sumado). Nuevo `timeframes.resample()`. Hereda el tope de 730 días del intervalo horario,
+  así que llega justo a 2 años. La respuesta trae `aggregatedFrom: "1h"` para que el cliente
+  pueda distinguir una vela compuesta de una servida de origen.
+- ⚠️ **Límite documentado, no disimulado**: los grupos se anclan a medianoche UTC. En cripto
+  y forex (24/7) coincide exactamente con cualquier plataforma; en **acciones** no, porque la
+  sesión abre a las 13:30 UTC — las velas caen dentro de los tramos UTC en vez de empezar en
+  la apertura. Anclar a la sesión exigiría un calendario que el proveedor de precios no da.
+- 🐛 **Bug encontrado al probarlo: una grafía distinta disparaba el aviso ámbar.** Escribir
+  `H4` (o `60m`, o `daily`) hacía que `resolve()` lo reportara como "ajuste", y la interfaz
+  pintaba *"el proveedor no sirve esa combinación"* a alguien que había pedido exactamente lo
+  que recibió. Los alias se separan ahora en `SPELLINGS` (misma vela, otra grafía → **sin**
+  aviso) y `APPROXIMATIONS` (vela distinta de la pedida → **con** aviso, p. ej. `2h`→`1h`).
+- ✅ **Verificado**: `pytest` **245 passed / 74 skipped** (+15); E2E contra las rutas reales
+  con datos mockeados → 600 velas de 1h se convierten en **150 de 4h exactas**, el upstream
+  recibe `1h` y `H4` ya no genera aviso; i18n 8 idiomas sin huecos; `npm run build` exit 0.

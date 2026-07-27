@@ -5689,7 +5689,8 @@ async def education_pattern_scan(
     tf, rng = win["tf"], win["range"]
     try:
         # Direct Yahoo chart API (curl_cffi) — yfinance is blocked from Cloud Run.
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.interval)
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.fetch_interval)
+        rows = timeframes.resample(rows, tf.bucket_minutes)
         if not rows:
             return {"symbol": sym, "period": rng, "interval": tf.interval,
                     "adjustments": win["adjustments"],
@@ -5733,9 +5734,14 @@ async def education_structure_scan(
     strn = tf.strength if strength is None else max(1, min(5, int(strength)))
     meta = {"symbol": sym, "period": rng, "interval": tf.interval,
             "intraday": tf.intraday, "strength": strn,
+            # Cuando la vela se compone (4h a partir de 1h) el cliente debe
+            # poder decirlo: no es lo mismo que un dato servido de origen.
+            "aggregatedFrom": tf.source_interval,
             "adjustments": win["adjustments"]}
     try:
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.interval)
+        # 4h no lo sirve el proveedor: se pide en 1h y se compone aquí.
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.fetch_interval)
+        rows = timeframes.resample(rows, tf.bucket_minutes)
         if not rows:
             return {**meta, "rowsScanned": 0, "trend": "range",
                     "swings": [], "events": [], "levels": [], "fvgs": []}
