@@ -81,7 +81,7 @@ export default function PricingPage() {
   // Load PayPal client ID from public settings
   useEffect(() => {
     if (!API) return;
-    fetch(`${API}/api/public/settings`)
+    fetch(`${API}/api/public/settings`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : {})
       .then(d => { if (d.paypal_client_id) setPaypalClientId(d.paypal_client_id); })
       .catch(() => {});

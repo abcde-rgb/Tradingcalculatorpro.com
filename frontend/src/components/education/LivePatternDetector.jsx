@@ -24,7 +24,7 @@ const LivePatternDetector = () => {
     try {
       const res = await fetch(
         `${API}/api/education/pattern-scan/${encodeURIComponent(symbol.toUpperCase())}?period=${period}&interval=1d&limit=20`
-      );
+      , { credentials: 'include' });
       const json = await res.json();
       if (json.error) {
         toast.error(t('livePatternErrorFetch'));

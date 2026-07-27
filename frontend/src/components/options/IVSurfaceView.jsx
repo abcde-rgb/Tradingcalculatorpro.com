@@ -16,7 +16,7 @@ const IVSurfaceView = ({ stock, chain }) => {
       setLoading(true);
       try {
         const API_URL = process.env.REACT_APP_BACKEND_URL;
-        const res = await fetch(`${API_URL}/api/options/iv-surface/${stock.symbol}?max_expirations=8`);
+        const res = await fetch(`${API_URL}/api/options/iv-surface/${stock.symbol}?max_expirations=8`, { credentials: 'include' });
         const data = await res.json();
         setSurfaceData(data);
       } catch (error) {

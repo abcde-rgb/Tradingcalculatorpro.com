@@ -20,7 +20,7 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/api/options/ai-analyze`, {
+      const res = await fetch(`${API}/api/options/ai-analyze`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -133,7 +133,7 @@ const CalculatorPage = () => {
 
     (async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/options/earnings/${ticker}`);
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/options/earnings/${ticker}`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           setNextEarnings(data.nextEarnings);

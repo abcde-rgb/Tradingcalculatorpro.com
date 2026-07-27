@@ -17,7 +17,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
   const scan = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/options/market-flow?min_ratio=${minRatio}&min_volume=300&max_results=30`);
+      const res = await fetch(`${API}/api/options/market-flow?min_ratio=${minRatio}&min_volume=300&max_results=30`, { credentials: 'include' });
       if (res.ok) setData(await res.json());
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('market flow error:', err);

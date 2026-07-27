@@ -19,7 +19,7 @@ const IVRankBadge = ({ symbol }) => {
     setLoading(true);
     (async () => {
       try {
-        const res = await fetch(`${API}/api/options/iv-rank/${symbol}`);
+        const res = await fetch(`${API}/api/options/iv-rank/${symbol}`, { credentials: 'include' });
         if (res.ok) {
           const d = await res.json();
           if (!cancelled) setData(d);

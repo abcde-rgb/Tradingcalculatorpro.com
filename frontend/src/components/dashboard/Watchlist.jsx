@@ -28,7 +28,7 @@ export const Watchlist = () => {
     try {
       const results = await Promise.all(syms.map(async (s) => {
         try {
-          const r = await fetch(`${API}/api/stock/${encodeURIComponent(s)}`);
+          const r = await fetch(`${API}/api/stock/${encodeURIComponent(s)}`, { credentials: 'include' });
           return [s, await r.json()];
         } catch { return [s, null]; }
       }));
@@ -51,7 +51,7 @@ export const Watchlist = () => {
     if (!query.trim() || !API) { setSuggestions([]); return; }
     debounceRef.current = setTimeout(async () => {
       try {
-        const r = await fetch(`${API}/api/tickers/universal-search?q=${encodeURIComponent(query)}&limit=10`);
+        const r = await fetch(`${API}/api/tickers/universal-search?q=${encodeURIComponent(query)}&limit=10`, { credentials: 'include' });
         const j = await r.json();
         setSuggestions(j.results || []);
       } catch { setSuggestions([]); }

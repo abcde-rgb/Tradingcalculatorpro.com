@@ -103,8 +103,8 @@ const StructureScanner = () => {
     try {
       const sym = encodeURIComponent(yahoo);
       const [structRes, patternRes] = await Promise.all([
-        fetch(`${API}/api/education/structure-scan/${sym}?period=${period}&interval=1d&strength=2`),
-        fetch(`${API}/api/education/pattern-scan/${sym}?period=${period}&interval=1d&limit=20`),
+        fetch(`${API}/api/education/structure-scan/${sym}?period=${period}&interval=1d&strength=2`, { credentials: 'include' }),
+        fetch(`${API}/api/education/pattern-scan/${sym}?period=${period}&interval=1d&limit=20`, { credentials: 'include' }),
       ]);
       const [structJson, patternJson] = await Promise.all([structRes.json(), patternRes.json()]);
       if (myReq !== reqId.current) return; // a newer request superseded this one

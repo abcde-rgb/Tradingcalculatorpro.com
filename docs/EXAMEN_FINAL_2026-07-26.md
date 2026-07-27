@@ -253,11 +253,22 @@ puede mostrar el precio en dólares en el snippet. Corregido a `17 €/mes`.
 → Arquitectura de solución en **M-01**. No implementado en esta sesión (requiere dar de alta claves
 en proveedores externos, que es una acción del propietario).
 
-### F-07 🟡 21 endpoints admin sombreados (código muerto) — sigue abierto (G-04)
+### F-07 🟡 ~~21 endpoints admin sombreados~~ → **medido: eran 2, y en otro fichero** — ✅ RESUELTO
 
-Ya estaba documentado. Los endpoints de `admin_routes.py` que duplican rutas de `server.py` nunca se
-ejecutan porque gana el orden de registro. Riesgo: alguien corrige un bug en el fichero equivocado y
-cree que lo ha arreglado.
+**Rectificación.** La documentación previa (G-04) hablaba de «~21 endpoints de `admin_routes.py`
+muertos». Al medirlo sobre las rutas realmente registradas: **`admin_routes.py` sí se registra**
+(24 rutas) y además **antes** de los stubs de `server.py`, así que ese problema ya estaba resuelto.
+
+Las duplicadas reales eran **2**, y en `missing_apis.py`: `POST /auth/forgot-password` y
+`POST /auth/reset-password`. Ganaba `server.py`, así que las de `missing_apis` **nunca se
+ejecutaron** — y escribían en **otra colección** (`password_reset_tokens` en vez de
+`password_resets`). Justo el escenario peligroso: arreglar el bug en la copia muerta y creerlo
+resuelto. Además, solo la viva tenía `@limiter.limit("3/hour")`.
+
+Eliminadas (93 líneas) + **test de regresión** `test_route_uniqueness_unit.py` que inspecciona las
+rutas **registradas** (no el código fuente: los prefijos de router hacen que `/plans` en
+`admin_routes` sea en realidad `/api/admin/plans`, y un escaneo ingenuo del fuente lo reporta como
+duplicado sin serlo). Duplicadas actuales: **0**.
 
 ### F-08 🟢 `backend_test_security.py` y `backend_test.py` en la raíz siguen siendo trampas
 

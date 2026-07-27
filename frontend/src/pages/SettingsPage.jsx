@@ -115,7 +115,7 @@ export default function SettingsPage() {
     setChangingPassword(true);
     try {
       const token = useAuthStore.getState().token;
-      const res = await fetch(`${BACKEND_URL}/api/auth/change-password`, {
+      const res = await fetch(`${BACKEND_URL}/api/auth/change-password`, { credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ export default function SettingsPage() {
     setDeletingAccount(true);
     try {
       const token = useAuthStore.getState().token;
-      const res = await fetch(`${BACKEND_URL}/api/auth/account`, {
+      const res = await fetch(`${BACKEND_URL}/api/auth/account`, { credentials: 'include',
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

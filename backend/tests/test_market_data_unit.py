@@ -215,3 +215,57 @@ def test_api_keys_are_read_from_the_environment_not_the_database():
     assert "get_setting" not in src
     assert "app_settings" not in src
     assert "os.environ.get" in src
+
+
+# ── Daily budget (M-03) ──────────────────────────────────────────────
+def test_quota_usage_is_counted_per_day():
+    p = md.Provider("t", lambda s: None, lambda: True, daily_quota=100)
+    for _ in range(3):
+        p.note_call("2026-07-26")
+    assert p.usage("2026-07-26")["used_today"] == 3
+
+
+def test_counter_resets_on_a_new_day():
+    """A free tier resets at midnight UTC; the counter must too, or the panel
+    would show a permanent false alarm."""
+    p = md.Provider("t", lambda s: None, lambda: True, daily_quota=100)
+    p.note_call("2026-07-26")
+    p.note_call("2026-07-26")
+    assert p.usage("2026-07-26")["used_today"] == 2
+    p.note_call("2026-07-27")
+    assert p.usage("2026-07-27")["used_today"] == 1
+
+
+def test_near_limit_trips_at_80_percent():
+    p = md.Provider("t", lambda s: None, lambda: True, daily_quota=10)
+    for _ in range(7):
+        p.note_call("2026-07-26")
+    assert p.usage("2026-07-26")["near_limit"] is False   # 70%
+    p.note_call("2026-07-26")
+    assert p.usage("2026-07-26")["near_limit"] is True    # 80%
+
+
+def test_provider_without_a_documented_quota_never_alarms():
+    """Yahoo is scraped, not licensed: there is no published cap to compare to."""
+    p = md.Provider("yahoo", lambda s: None, lambda: True, daily_quota=0)
+    for _ in range(10_000):
+        p.note_call("2026-07-26")
+    u = p.usage("2026-07-26")
+    assert u["daily_quota"] is None
+    assert u["pct_used"] is None
+    assert u["near_limit"] is False
+
+
+def test_get_quote_counts_against_the_budget():
+    md.PROVIDERS[:] = [_provider("p", _ok("p"))]
+    md.PROVIDERS[0].daily_quota = 50
+    md.get_quote("AAPL", ttl=0)
+    md.get_quote("MSFT", ttl=0)
+    assert sum(p["used_today"] for p in md.provider_status() if p["name"] == "p") == 2
+
+
+def test_provider_status_exposes_the_budget_fields():
+    md.PROVIDERS[:] = [_provider("p", _ok("p"))]
+    row = md.provider_status()[0]
+    for key in ("used_today", "daily_quota", "pct_used", "near_limit"):
+        assert key in row
