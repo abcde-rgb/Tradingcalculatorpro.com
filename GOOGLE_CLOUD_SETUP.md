@@ -1,7 +1,17 @@
 # 🚀 TradingCalculator.pro — Guía Completa Google Cloud Setup
 
-**Proyecto GCP:** `tradingcalculator-495806`  
-**Región:** `us-central1` (Bélgica)  
+> ⚠️ **Este documento describe el proyecto ACTUAL.** El proyecto y la región no
+> están fijados en el workflow: salen de las variables de repositorio
+> `GCP_PROJECT` y `GCP_REGION` (ver `.github/workflows/deploy-cloud-run.yml`).
+> Si cambias de proyecto, ajusta esas variables — no hace falta tocar el YAML.
+>
+> Antes este documento decía `us-central1` mientras el deploy real usaba
+> `europe-west1`. No era un detalle: el nombre de conexión de Cloud SQL lleva la
+> región dentro, así que seguir el doc al pie de la letra creaba una instancia a
+> la que el servicio no se podía conectar.
+
+**Proyecto GCP:** `tradingcalculatorpro-502817`  
+**Región:** `europe-west1` (Bélgica)  
 **Repositorio:** `abcde-rgb/Tradingcalculatorpro.com`
 
 ---
@@ -11,7 +21,7 @@
 Ejecuta esto UNA SOLA VEZ en Google Cloud Shell o tu terminal con `gcloud` instalado:
 
 ```bash
-gcloud config set project tradingcalculator-495806
+gcloud config set project tradingcalculatorpro-502817
 
 gcloud services enable \
   run.googleapis.com \
@@ -33,7 +43,7 @@ gcloud services enable \
 ```bash
 gcloud artifacts repositories create trading-repo \
   --repository-format=docker \
-  --location=us-central1 \
+  --location=europe-west1 \
   --description="Imágenes Docker de TradingCalculator.pro"
 ```
 
@@ -54,8 +64,8 @@ for ROLE in \
   roles/logging.logWriter \
   roles/monitoring.metricWriter \
   roles/artifactregistry.reader; do
-  gcloud projects add-iam-policy-binding tradingcalculator-495806 \
-    --member="serviceAccount:trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com" \
+  gcloud projects add-iam-policy-binding tradingcalculatorpro-502817 \
+    --member="serviceAccount:trading-backend-sa@tradingcalculatorpro-502817.iam.gserviceaccount.com" \
     --role="$ROLE"
 done
 
@@ -75,7 +85,7 @@ echo -n "$JWT_VAL" | gcloud secrets create JWT_SECRET --data-file=-
 echo "Tu JWT_SECRET: $JWT_VAL  ← guárdalo en un lugar seguro"
 
 # Database URL (Cloud SQL con socket Unix para Cloud Run)
-echo -n "postgresql://trading_user:TU_PASSWORD@/trading_db?host=/cloudsql/tradingcalculator-495806:us-central1:trading-db" \
+echo -n "postgresql://trading_user:TU_PASSWORD@/trading_db?host=/cloudsql/tradingcalculatorpro-502817:europe-west1:trading-db" \
   | gcloud secrets create DATABASE_URL --data-file=-
 
 # Google OAuth Client ID
@@ -105,7 +115,7 @@ echo -n "NUEVO_VALOR" | gcloud secrets versions add NOMBRE_SECRET --data-file=-
 gcloud sql instances create trading-db \
   --database-version=POSTGRES_16 \
   --tier=db-f1-micro \
-  --region=us-central1 \
+  --region=europe-west1 \
   --storage-type=SSD \
   --storage-size=10GB \
   --backup-start-time=03:00 \
@@ -120,7 +130,7 @@ gcloud sql users create trading_user \
   --instance=trading-db \
   --password=GENERA_UN_PASSWORD_SEGURO
 
-echo "✅ Cloud SQL PostgreSQL creado: tradingcalculator-495806:us-central1:trading-db"
+echo "✅ Cloud SQL PostgreSQL creado: tradingcalculatorpro-502817:europe-west1:trading-db"
 ```
 
 ---
@@ -148,7 +158,7 @@ POOL_NAME=$(gcloud iam workload-identity-pools describe github-pool \
 
 # Permitir que el repositorio específico use la SA
 gcloud iam service-accounts add-iam-policy-binding \
-  trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com \
+  trading-backend-sa@tradingcalculatorpro-502817.iam.gserviceaccount.com \
   --role=roles/iam.workloadIdentityUser \
   --member="principalSet://iam.googleapis.com/${POOL_NAME}/attribute.repository/abcde-rgb/Tradingcalculatorpro.com"
 
@@ -162,7 +172,7 @@ echo "======================================================"
 echo "Guarda estos valores como GitHub Secrets:"
 echo ""
 echo "GCP_WORKLOAD_IDENTITY_PROVIDER = $PROVIDER"
-echo "GCP_SERVICE_ACCOUNT = trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com"
+echo "GCP_SERVICE_ACCOUNT = trading-backend-sa@tradingcalculatorpro-502817.iam.gserviceaccount.com"
 echo "======================================================"
 ```
 
@@ -175,7 +185,7 @@ Ve a: **GitHub → tu repo → Settings → Secrets and variables → Actions �
 | Secret Name | Valor |
 |---|---|
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | El valor del comando anterior |
-| `GCP_SERVICE_ACCOUNT` | `trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com` |
+| `GCP_SERVICE_ACCOUNT` | `trading-backend-sa@tradingcalculatorpro-502817.iam.gserviceaccount.com` |
 
 ---
 
@@ -186,15 +196,15 @@ Después de hacer `git push` a `main`, el workflow arranca automáticamente.
 ```bash
 # Ver el estado del servicio
 gcloud run services describe tradingcalculator-api \
-  --region=us-central1 \
+  --region=europe-west1 \
   --format='table(status.url,spec.template.spec.containers[0].image)'
 
 # Ver logs en tiempo real
-gcloud run services logs tail tradingcalculator-api --region=us-central1
+gcloud run services logs tail tradingcalculator-api --region=europe-west1
 
 # Ver métricas básicas
 gcloud run services describe tradingcalculator-api \
-  --region=us-central1 \
+  --region=europe-west1 \
   --format='value(status.observedGeneration,status.conditions)'
 ```
 
@@ -212,7 +222,7 @@ gcloud alpha monitoring policies create \
 ```
 
 O ve directamente a:  
-🔗 https://console.cloud.google.com/monitoring/dashboards?project=tradingcalculator-495806
+🔗 https://console.cloud.google.com/monitoring/dashboards?project=tradingcalculatorpro-502817
 
 ---
 
@@ -234,14 +244,14 @@ O ve directamente a:
 ```bash
 # Rollback a versión anterior
 gcloud run services update-traffic tradingcalculator-api \
-  --region=us-central1 \
+  --region=europe-west1 \
   --to-revisions=REVISION_ANTERIOR=100
 
 # Ver revisiones disponibles
-gcloud run revisions list --service=tradingcalculator-api --region=us-central1
+gcloud run revisions list --service=tradingcalculator-api --region=europe-west1
 
 # Escalar a 0 manualmente (parar el servicio)
 gcloud run services update tradingcalculator-api \
-  --region=us-central1 \
+  --region=europe-west1 \
   --max-instances=0
 ```

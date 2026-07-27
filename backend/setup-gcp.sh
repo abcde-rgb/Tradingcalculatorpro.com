@@ -8,8 +8,10 @@
 set -euo pipefail
 
 # ── Configuración ─────────────────────────────────────────────
-PROJECT_ID="tradingcalculator-495806"
-REGION="us-central1"
+# Sobrescribibles por entorno:  PROJECT_ID=otro REGION=otra bash setup-gcp.sh
+PROJECT_ID="${PROJECT_ID:-tradingcalculatorpro-502817}"
+# OJO: debe coincidir con GCP_REGION del workflow (deploy-cloud-run.yml).
+REGION="${REGION:-europe-west1}"
 DB_INSTANCE="trading-db"
 DB_NAME="trading_calculator_pro"
 DB_USER="trading_user"
