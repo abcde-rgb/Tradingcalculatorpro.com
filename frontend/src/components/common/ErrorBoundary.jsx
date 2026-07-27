@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
+import { homeUrl, reloadFreshShell } from '@/lib/appShell';
 
 function ErrorDisplay({ error, onRetry }) {
   const { t } = useTranslation();
@@ -25,7 +26,9 @@ function ErrorDisplay({ error, onRetry }) {
             <RefreshCw className="w-4 h-4" />
             {t('errorBoundaryRetry')}
           </Button>
-          <Button onClick={() => { window.location.href = '/'; }}>
+          {/* NOT '/': on GitHub Pages the app lives under a sub-path, so a
+              hardcoded root is a 404 — from the error screen itself. */}
+          <Button onClick={() => { window.location.href = homeUrl(); }}>
             {t('backHome')}
           </Button>
         </div>
@@ -55,7 +58,10 @@ export default class ErrorBoundary extends Component {
     return (
       <ErrorDisplay
         error={this.state.error}
-        onRetry={() => this.setState({ hasError: false, error: null })}
+        // A missing chunk does not come back by re-rendering: the file is gone
+        // from the server. Retry has to fetch a fresh shell, or the button
+        // just redraws the same error.
+        onRetry={() => reloadFreshShell()}
       />
     );
   }
