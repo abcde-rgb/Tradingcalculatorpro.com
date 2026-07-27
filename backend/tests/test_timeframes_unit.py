@@ -24,7 +24,9 @@ import timeframes as tfm  # noqa: E402
 # ---- The table itself ------------------------------------------------------
 def test_every_pair_respects_the_upstream_retention_cap():
     for tf in tfm.TIMEFRAMES:
-        cap = tfm.INTERVAL_MAX_DAYS.get(tf.interval, 0)
+        # El tope lo marca lo que se PIDE upstream, no la etiqueta de la vela:
+        # 4h se sirve pidiendo 1h, así que hereda el límite de 1h.
+        cap = tfm.INTERVAL_MAX_DAYS.get(tf.fetch_interval, 0)
         for rng in tf.ranges:
             days = tfm.RANGE_DAYS[rng]
             if cap:
@@ -56,8 +58,33 @@ def test_the_ladder_spans_five_minutes_to_monthly():
     names = [tf.interval for tf in tfm.TIMEFRAMES]
     assert names[0] == "5m"
     assert names[-1] == "1mo"
-    for required in ("5m", "15m", "30m", "1h", "1d", "1wk", "1mo"):
+    for required in ("5m", "15m", "30m", "1h", "4h", "1d", "1wk", "1mo"):
         assert required in names
+
+
+def test_four_hours_is_a_real_rung_built_from_hourly_bars():
+    """Ningún proveedor gratuito sirve velas de 4h, pero 4H es de las
+    temporalidades más operadas: se compone a partir de 1h."""
+    tf = tfm.get("4h")
+    assert tf is not None
+    assert tf.fetch_interval == "1h"
+    assert tf.bucket_minutes == 240
+    assert tf.minutes == 240
+
+
+def test_four_hours_inherits_the_hourly_retention_cap():
+    """Sale de velas de 1h, así que no puede pasar de los 730 días de estas."""
+    tf = tfm.get("4h")
+    cap = tfm.INTERVAL_MAX_DAYS[tf.fetch_interval]
+    for rng in tf.ranges:
+        assert tfm.RANGE_DAYS[rng] <= cap
+
+
+def test_rungs_without_aggregation_are_left_alone():
+    for tf in tfm.TIMEFRAMES:
+        if tf.interval != "4h":
+            assert tf.bucket_minutes == 0
+            assert tf.fetch_interval == tf.interval
 
 
 def test_two_years_is_reachable_from_an_intraday_rung():
@@ -96,9 +123,38 @@ def test_unknown_interval_is_not_invented():
     assert tfm.normalize_interval(None) is None
 
 
-def test_four_hour_maps_to_the_nearest_real_rung():
-    """Yahoo has no 4h bar. Mapping to 1h beats returning nothing."""
-    assert tfm.normalize_interval("4h") == "1h"
+def test_two_hours_maps_to_the_nearest_real_rung():
+    """2h no existe ni upstream ni en la escalera: cae a 1h antes que a nada."""
+    assert tfm.normalize_interval("2h") == "1h"
+
+
+def test_four_hour_spellings_all_land_on_the_4h_rung():
+    for spelling in ("4h", "4H", "h4", "240", "240m", "4hour"):
+        assert tfm.normalize_interval(spelling) == "4h"
+
+
+def test_a_different_spelling_is_not_reported_as_an_adjustment():
+    """`H4` y `4h` son la MISMA vela. Avisar de un "ajuste" ahí pintaba una
+    alerta ámbar de 'el proveedor no sirve eso' a quien solo escribió H4."""
+    for spelling in ("H4", "240", "60m", "daily", "1DAY"):
+        _, _, adj = tfm.resolve(spelling, None)
+        assert not any(a.startswith("interval:") for a in adj), f"{spelling} avisó de más"
+
+
+def test_an_approximation_IS_reported():
+    """2h no existe en ninguna parte: servir 1h es responder otra cosa."""
+    tf, _, adj = tfm.resolve("2h", None)
+    assert tf.interval == "1h"
+    assert "interval:2h->1h" in adj
+
+
+def test_every_spelling_maps_to_a_real_rung():
+    for spelling, target in tfm.SPELLINGS.items():
+        assert target in tfm.BY_INTERVAL, f"{spelling} apunta a {target}, que no existe"
+
+
+def test_spellings_and_approximations_do_not_overlap():
+    assert not (set(tfm.SPELLINGS) & set(tfm.APPROXIMATIONS))
 
 
 def test_is_intraday():
@@ -156,7 +212,7 @@ def test_resolve_never_returns_an_illegal_pair():
             tf, rng, _ = tfm.resolve(interval, period)
             assert tf.interval in tfm.BY_INTERVAL
             assert rng in tf.ranges
-            cap = tfm.INTERVAL_MAX_DAYS.get(tf.interval, 0)
+            cap = tfm.INTERVAL_MAX_DAYS.get(tf.fetch_interval, 0)
             if cap:
                 assert tfm.RANGE_DAYS[rng] <= cap
 
@@ -172,3 +228,68 @@ def test_ladder_is_json_serialisable_and_complete():
                     "defaultRange", "defaultStrength"):
             assert key in rung
         assert rung["defaultRange"] in rung["ranges"]
+
+
+# ---- resample(): componer velas que el proveedor no sirve -------------------
+DAY = 1_700_000_000 - (1_700_000_000 % 86_400)   # medianoche UTC exacta
+
+
+def _hour(i, o, h, l, c, v=100.0):
+    return {"ts": DAY + i * 3600, "date": f"h{i}", "open": o, "high": h,
+            "low": l, "close": c, "volume": v}
+
+
+def test_resample_merges_four_hours_into_one_bar():
+    rows = [_hour(0, 10, 12, 9, 11), _hour(1, 11, 15, 10, 14),
+            _hour(2, 14, 14, 8, 9),  _hour(3, 9, 13, 7, 12)]
+    bar = tfm.resample(rows, 240)[0]
+    assert bar["open"] == 10      # apertura de la PRIMERA vela
+    assert bar["high"] == 15      # máximo de todas
+    assert bar["low"] == 7        # mínimo de todas
+    assert bar["close"] == 12     # cierre de la ÚLTIMA
+    assert bar["volume"] == 400   # suma
+
+
+def test_resample_splits_on_the_utc_boundary():
+    rows = [_hour(i, 10, 20, 5, 11) for i in range(8)]
+    bars = tfm.resample(rows, 240)
+    assert len(bars) == 2
+    assert bars[0]["date"].endswith("00:00")
+    assert bars[1]["date"].endswith("04:00")
+
+
+def test_a_partial_bucket_is_still_emitted():
+    """La vela en curso no se descarta: ahí está el precio actual, y el
+    escáner ya avisa aparte de que la última no ha cerrado."""
+    rows = [_hour(0, 10, 12, 9, 11), _hour(1, 11, 15, 10, 14)]
+    bars = tfm.resample(rows, 240)
+    assert len(bars) == 1
+    assert bars[0]["close"] == 14
+
+
+def test_bars_without_a_timestamp_are_skipped_not_guessed():
+    """Sin `ts` no se puede saber a qué vela pertenece; inventarlo la metería
+    en la equivocada."""
+    rows = [_hour(0, 10, 12, 9, 11), {"date": "?", "open": 1, "high": 1, "low": 1, "close": 1}]
+    bars = tfm.resample(rows, 240)
+    assert len(bars) == 1
+    assert bars[0]["high"] == 12
+
+
+def test_resample_is_a_no_op_without_a_bucket():
+    rows = [_hour(0, 10, 12, 9, 11)]
+    assert tfm.resample(rows, 0) is rows
+    assert tfm.resample([], 240) == []
+
+
+def test_resample_keeps_bars_in_order():
+    rows = [_hour(i, 10 + i, 20 + i, 5 + i, 11 + i) for i in range(24)]
+    bars = tfm.resample(rows, 240)
+    assert len(bars) == 6
+    assert [b["ts"] for b in bars] == sorted(b["ts"] for b in bars)
+
+
+def test_ladder_tells_the_client_when_a_candle_is_composed():
+    rungs = {r["interval"]: r for r in tfm.ladder()}
+    assert rungs["4h"]["aggregatedFrom"] == "1h"
+    assert rungs["1h"]["aggregatedFrom"] is None

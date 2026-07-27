@@ -1745,3 +1745,95 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - ⏳ **Pendiente del dueño**: crear en el proyecto nuevo la federación de identidad (los secretos
   `GCP_WORKLOAD_IDENTITY_PROVIDER` y `GCP_SERVICE_ACCOUNT`), los 7 secretos de Secret Manager,
   la cuenta de servicio de ejecución y la instancia de Cloud SQL (o `DB_PROVIDER=neon`).
+
+---
+
+### 2026-07-27 (64) — Escáner: falta la temporalidad 4H (reportado por el dueño)
+- ✅ **4H añadida a la escalera.** Ningún proveedor gratuito la sirve (los intervalos de
+  Yahoo son 1m, 2m, 5m, 15m, 30m, 1h y 90m), pero es de las temporalidades más operadas en
+  swing, así que se **compone**: se piden velas de 1h y se juntan de cuatro en cuatro
+  (apertura de la primera, máximo y mínimo de las cuatro, cierre de la última, volumen
+  sumado). Nuevo `timeframes.resample()`. Hereda el tope de 730 días del intervalo horario,
+  así que llega justo a 2 años. La respuesta trae `aggregatedFrom: "1h"` para que el cliente
+  pueda distinguir una vela compuesta de una servida de origen.
+- ⚠️ **Límite documentado, no disimulado**: los grupos se anclan a medianoche UTC. En cripto
+  y forex (24/7) coincide exactamente con cualquier plataforma; en **acciones** no, porque la
+  sesión abre a las 13:30 UTC — las velas caen dentro de los tramos UTC en vez de empezar en
+  la apertura. Anclar a la sesión exigiría un calendario que el proveedor de precios no da.
+- 🐛 **Bug encontrado al probarlo: una grafía distinta disparaba el aviso ámbar.** Escribir
+  `H4` (o `60m`, o `daily`) hacía que `resolve()` lo reportara como "ajuste", y la interfaz
+  pintaba *"el proveedor no sirve esa combinación"* a alguien que había pedido exactamente lo
+  que recibió. Los alias se separan ahora en `SPELLINGS` (misma vela, otra grafía → **sin**
+  aviso) y `APPROXIMATIONS` (vela distinta de la pedida → **con** aviso, p. ej. `2h`→`1h`).
+- ✅ **Verificado**: `pytest` **245 passed / 74 skipped** (+15); E2E contra las rutas reales
+  con datos mockeados → 600 velas de 1h se convierten en **150 de 4h exactas**, el upstream
+  recibe `1h` y `H4` ya no genera aviso; i18n 8 idiomas sin huecos; `npm run build` exit 0.
+
+---
+
+### 2026-07-27 (65) — Patrones de vela: la incoherencia de "3 soldados" y revisión matemática
+- 🔴 **La incoherencia reportada tenía DOS causas, ambas fallos reales.**
+  - **(a) El registro mezclaba temporalidades.** Se guardaba por activo y nada más
+    (`store[symbol]`), sin anotar en qué vela se detectó cada cosa: una detección de 15m y una
+    diaria caían en la misma lista, indistinguibles. El usuario veía "3 soldados", miraba su
+    gráfico y no estaban, porque eran de otra temporalidad. Ahora el registro va por
+    **activo + temporalidad**, cada entrada lleva su etiqueta visible, el identificador incluye
+    la temporalidad (antes el mismo patrón en dos velas compartía id y uno pisaba al otro) y el
+    backend estampa `interval` en cada detección. El almacén v1 se descarta en vez de migrarse:
+    sus entradas no guardaron temporalidad y no hay forma honesta de asignarles una.
+  - **(b) "Tres soldados" se disparaba con velas que no lo eran.** Solo se comprobaba dirección,
+    cierres crecientes y aperturas dentro del cuerpo anterior. **Demostrado con un caso**: tres
+    velas con cuerpos del **4 % del rango** y mechas superiores del **94 %** pasaban el filtro.
+    Añadidos los umbrales canónicos que faltaban (cuerpo ≥ 55 % del rango, mecha en el sentido
+    de la marcha ≤ 25 %), también para los tres cuervos.
+- ✅ **Cada patrón declara en qué se fija** (`basis`): **body** (11 patrones), **wicks** (6) o
+  **both** (13), visible en la interfaz. Y cada detección trae las **medidas reales de la vela
+  que confirma** —cuerpo, mecha superior, mecha inferior en % del rango, que suman 100 % por
+  construcción— para contrastar el aviso con el gráfico en vez de creérselo.
+- ✅ **Qué día abre y qué día confirma.** Un patrón de 3 velas ocupa 3 barras; antes solo se
+  publicaba la fecha de la última y había que contar velas hacia atrás. Ahora `start_date` /
+  `confirm_date` (con `date` intacto por compatibilidad). En patrones de 1 vela, coinciden.
+- 🐛 **Tercer fallo de escala encontrado al revisar**: `_trend_before` —lo que distingue martillo
+  de hombre colgado— usaba un **1 % fijo**. En 5m casi cualquier ventana lo supera (todo parecía
+  tendencia y las etiquetas se intercambiaban); en mensual casi nada (contexto siempre lateral).
+  Ahora el umbral se mide en **rangos medios de vela**, adimensional.
+- 🔎 **Anotado sin tocar**: las pinzas (tweezers) usan tolerancia fija del 0,15 % para decidir si
+  dos extremos son "iguales" — mismo defecto que tenían los S/R antes de pasar a ATR.
+- ✅ **Verificado**: `pytest` **256 passed / 74 skipped** (+11); E2E contra las rutas reales →
+  cada detección lleva su temporalidad (15m→{15m}, 1d→{1d}) y los 42 patrones multi-vela abren
+  en fecha distinta de la que confirman; i18n **5297 claves × 8 idiomas, 0 huecos**; build exit 0.
+
+---
+
+### 2026-07-27 (66) — Aprendizaje: temática por mercado, "por qué importa" y laboratorio de velas
+- ✅ **Identidad visual por mercado y por activo** (`src/lib/marketTheme.js`, nuevo). Los diez
+  paneles de Tipos de Mercado se pintaban todos con el mismo verde: oro, petróleo, bonos y
+  cripto compartían cara, así que la pantalla no ayudaba a saber dónde estabas. Ahora cada
+  mercado tiene acento, fondo y halo propios, y hay **sub-temas por activo** porque "materias
+  primas" mete en el mismo cajón oro, crudo y gas, que no se parecen en nada: el oro con
+  degradado metálico dorado, la plata plateada, el cobre cobrizo, el crudo verde petróleo, el
+  gas azul llama. Se aplica **desde la tarjeta**, no solo al abrir el panel.
+- ⚠️ **Decisión técnica que evita un fallo clásico**: los colores viajan como **variables CSS en
+  línea**, no como clases de Tailwind. Tailwind genera su CSS escaneando el código en
+  compilación, así que una clase construida en ejecución (`text-${color}-500`) no existe en el
+  bundle y se queda sin estilo — habría fallado justo en producción.
+- ✅ **`WhyItMatters`** (nuevo): qué es · por qué importa · **qué te cuesta ignorarlo** · cómo se
+  usa. El coste va en concreto y destacado a propósito: un consejo sin consecuencia cuantificada
+  se olvida antes de bajar a la siguiente sección.
+- ✅ **Laboratorio de velas** (`CandleLab`, nuevo): el usuario **construye** la vela con cuatro
+  controles y ve en vivo qué reglas se cumplen y cuáles no, **con el número medido al lado**.
+  Enseña lo que ninguna galería cuenta: dónde está la frontera exacta y que un patrón "casi" no
+  es el patrón. El preset *"casi martillo"* falla por 0,6 puntos de mecha superior (3 frente a
+  un límite de 2,4 = 0,4× el cuerpo), y lo dice.
+- 🛡️ **Guardián contra la deriva de umbrales.** El laboratorio clasifica en el navegador (una
+  llamada al servidor por cada arrastre del ratón sería absurda), así que los 16 umbrales están
+  duplicados en `candleRules.js`. Lo peligroso de duplicar no es la copia: es que se separen en
+  silencio y la web acabe **enseñando** una regla mientras el escáner aplica otra. Nuevo
+  `test_candle_rules_parity_unit.py` lee el JavaScript y compara número a número, y además
+  detecta umbrales inventados solo en JS. **3 tests.**
+- 🐛 Encontrado al probarlo: el preset "casi martillo" original **sí** era un martillo (mecha
+  superior 2 ≤ 2,4). Corregido y verificado numéricamente antes y después.
+- ✅ **Verificado**: `pytest` **259 passed / 74 skipped**; i18n **5327 claves × 8 idiomas, 0
+  huecos** (+30); `check-fetch-credentials` limpio; `npm run build` exit 0; **smoke de navegador
+  9/9 con 0 pageerrors** contra backend vivo — el laboratorio clasifica bien, "casi martillo" NO
+  forma martillo, y tarjeta y panel del oro llevan `--mk-accent=#d4a017`.
