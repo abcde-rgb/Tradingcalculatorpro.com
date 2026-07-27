@@ -72,6 +72,8 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 | `options_math.py` | Black-Scholes, griegas, payoff diagrams, cadenas de opciones |
 | `stock_data.py` | Precios en tiempo real (yfinance, CoinGecko) y búsqueda de tickers |
 | `candle_patterns.py` | Detección de patrones de velas japonesas |
+| `price_action.py` | Estructura de precio: swings, BOS/CHoCH, S/R, FVG, rupturas ([manual](./docs/ESCANER_ESTRUCTURA.md)) |
+| `timeframes.py` | Escalera de temporalidades (5m–1mes) y pares (vela, histórico) legales del proveedor |
 | `performance.py` | Cálculo de PnL, analytics del diario de trading |
 | `missing_apis.py` | Forex real, índices, commodities, password reset, magic links |
 | `realtime_alerts.py` | Poller de alertas de precio (WebSocket) |

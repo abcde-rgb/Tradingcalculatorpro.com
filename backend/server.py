@@ -19,6 +19,7 @@ import jwt
 import httpx
 import secrets
 import hashlib
+import time
 import re as _re_module
 import stripe  # Stripe SDK for advanced subscription management
 from google.oauth2 import id_token as google_id_token
@@ -48,6 +49,7 @@ from stock_data import (
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
 from price_action import detect_structure
+import timeframes
 from performance import (
     compute_trade_pnl,
     detect_errors,
@@ -5616,8 +5618,56 @@ async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume:
 
 
 # ========== EDUCATION: Live Pattern Detector ==========
-# Frontend period selectors map 1:1 to Yahoo chart ranges.
-_PATTERN_SCAN_RANGES = {"1mo", "3mo", "6mo", "1y", "2y", "5y", "ytd", "max"}
+# The legal (interval, range) pairs live in timeframes.py — Yahoo refuses most
+# combinations and answers with something our reader turns into "no rows",
+# which used to reach the UI as "no structure detected". See that module.
+
+
+def _scan_window(interval: Optional[str], period: Optional[str]) -> Dict[str, Any]:
+    """Resolve the requested timeframe and describe it for the response."""
+    tf, rng, adjustments = timeframes.resolve(interval, period)
+    return {"tf": tf, "range": rng, "adjustments": adjustments}
+
+
+def _bar_is_forming(rows: List[dict], minutes: int) -> bool:
+    """True when the last bar has not closed yet.
+
+    An unclosed bar keeps moving, so anything derived from it (a break, a new
+    swing, the level it is 'confirming') can un-happen. The scanner still uses
+    it — that is where the live price is — but the client is told, so it can
+    stop presenting a provisional break as a fact.
+    """
+    if not rows or minutes <= 0:
+        return False
+    last_ts = rows[-1].get("ts")
+    if not last_ts:
+        return False
+    return (time.time() - float(last_ts)) < minutes * 60
+
+
+def _trim_structure(res: Dict[str, Any]) -> Dict[str, Any]:
+    """Bound the arrays before they go over the wire.
+
+    A month of 5-minute candles is ~1 600 bars, which yields hundreds of swing
+    points, structure events and FVGs. `counts` already carries the totals, and
+    the UI renders at most a handful of each, so shipping the full lists is
+    pure weight on a mobile connection. Newest entries are kept (levels are
+    already sorted nearest-price-first, so those keep the head).
+    """
+    caps = {"swings": 120, "events": 120, "fvgs": 40, "breakouts": 60, "levels": 24}
+    for key, cap in caps.items():
+        rows = res.get(key)
+        if isinstance(rows, list) and len(rows) > cap:
+            res[key] = rows[:cap] if key == "levels" else rows[-cap:]
+            res.setdefault("truncated", {})[key] = len(rows)
+    return res
+
+
+@api_router.get("/education/scan-timeframes")
+async def education_scan_timeframes() -> Dict[str, Any]:
+    """The timeframe ladder the scanners accept, so the UI never offers a pair
+    the upstream provider will refuse."""
+    return {"timeframes": timeframes.ladder(), "defaultInterval": timeframes.DEFAULT_INTERVAL}
 
 
 @api_router.get("/education/pattern-catalog")
@@ -5635,19 +5685,25 @@ async def education_pattern_scan(
     """Scan real OHLC for the given ticker and return canonical candlestick
     pattern detections (educational view), enriched with reliability stats."""
     sym = symbol.upper().strip()
-    rng = period if period in _PATTERN_SCAN_RANGES else "3mo"
+    win = _scan_window(interval, period)
+    tf, rng = win["tf"], win["range"]
     try:
         # Direct Yahoo chart API (curl_cffi) — yfinance is blocked from Cloud Run.
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, interval)
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.interval)
         if not rows:
-            return {"symbol": sym, "rowsScanned": 0, "totalDetections": 0, "detections": []}
+            return {"symbol": sym, "period": rng, "interval": tf.interval,
+                    "adjustments": win["adjustments"],
+                    "rowsScanned": 0, "totalDetections": 0, "detections": []}
         detections = detect_all_patterns(rows)
         # Most recent first, capped at `limit`.
         detections.reverse()
         return {
             "symbol": sym,
-            "period": period,
-            "interval": interval,
+            "period": rng,
+            "interval": tf.interval,
+            "intraday": tf.intraday,
+            "adjustments": win["adjustments"],
+            "lastBarForming": _bar_is_forming(rows, tf.minutes),
             "rowsScanned": len(rows),
             "totalDetections": len(detections),
             "detections": detections[:limit],
@@ -5660,24 +5716,35 @@ async def education_pattern_scan(
 @api_router.get("/education/structure-scan/{symbol}")
 @limiter.limit("30/minute")
 async def education_structure_scan(
-    request: Request, symbol: str, period: str = "6mo", interval: str = "1d", strength: int = 2,
+    request: Request, symbol: str, period: Optional[str] = None,
+    interval: Optional[str] = None, strength: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Scan real OHLC and return the PRICE-ACTION STRUCTURE: swing highs/lows,
     market structure (HH/HL/LH/LL → trend), Break of Structure / Change of
-    Character, support/resistance levels and Fair Value Gaps."""
+    Character, support/resistance levels (above price = resistance, below =
+    support) and Fair Value Gaps — on any rung of the timeframe ladder.
+
+    `strength` (fractal half-window) defaults to the rung's own value: a
+    2-bar fractal is right on daily bars and far too twitchy on 5-minute ones.
+    """
     sym = symbol.upper().strip()
-    rng = period if period in _PATTERN_SCAN_RANGES else "6mo"
-    strength = max(1, min(5, int(strength or 2)))
+    win = _scan_window(interval, period)
+    tf, rng = win["tf"], win["range"]
+    strn = tf.strength if strength is None else max(1, min(5, int(strength)))
+    meta = {"symbol": sym, "period": rng, "interval": tf.interval,
+            "intraday": tf.intraday, "strength": strn,
+            "adjustments": win["adjustments"]}
     try:
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, interval)
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.interval)
         if not rows:
-            return {"symbol": sym, "rowsScanned": 0, "trend": "range",
+            return {**meta, "rowsScanned": 0, "trend": "range",
                     "swings": [], "events": [], "levels": [], "fvgs": []}
-        res = await asyncio.to_thread(detect_structure, rows, strength)
-        return {"symbol": sym, "period": rng, "interval": interval, **res}
+        res = await asyncio.to_thread(detect_structure, rows, strn)
+        return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
+                **_trim_structure(res)}
     except Exception as e:
         logging.error(f"Structure scan error for {sym}: {e}")
-        return {"symbol": sym, "error": "scan_failed", "trend": "range",
+        return {**meta, "error": "scan_failed", "trend": "range",
                 "swings": [], "events": [], "levels": [], "fvgs": []}
 
 

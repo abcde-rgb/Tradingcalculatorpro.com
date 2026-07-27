@@ -37,8 +37,37 @@ const toYahooSymbol = (asset) => {
   }
 };
 
-const PERIODS = ['3mo', '6mo', '1y', '2y'];
-const PERIOD_KEY = 'tcp_struct_period';          // persisted timeframe selection
+// The timeframe ladder comes from the backend (`/education/scan-timeframes`),
+// which is the single source of truth for which (candle, history) pairs the
+// data provider will actually serve — most combinations are refused upstream,
+// and a refused pair used to reach the UI as "no structure detected".
+// This copy is only a fallback for when that call fails; it must stay in sync
+// with backend/timeframes.py.
+const FALLBACK_LADDER = [
+  { interval: '5m',  intraday: true,  ranges: ['1d', '5d', '1mo'], defaultRange: '5d' },
+  { interval: '15m', intraday: true,  ranges: ['1d', '5d', '1mo'], defaultRange: '5d' },
+  { interval: '30m', intraday: true,  ranges: ['5d', '1mo'], defaultRange: '1mo' },
+  { interval: '1h',  intraday: true,  ranges: ['1mo', '3mo', '6mo', '1y', '2y'], defaultRange: '3mo' },
+  { interval: '1d',  intraday: false, ranges: ['1mo', '3mo', '6mo', '1y', '2y', '5y', 'ytd', 'max'], defaultRange: '6mo' },
+  { interval: '1wk', intraday: false, ranges: ['6mo', '1y', '2y', '5y', 'max'], defaultRange: '2y' },
+  { interval: '1mo', intraday: false, ranges: ['1y', '2y', '5y', 'max'], defaultRange: '5y' },
+];
+
+const PERIOD_KEY = 'tcp_struct_period';          // persisted history window
+const INTERVAL_KEY = 'tcp_struct_interval';      // persisted candle size
+
+// Stable reason codes from the backend → translated labels. The backend never
+// ships prose it would then have to translate 8 times.
+const REASON_KEY = {
+  multiTest: 'structWhyMultiTest', held: 'structWhyHeld', weak: 'structWhyWeak',
+  recent: 'structWhyRecent', stale: 'structWhyStale', flip: 'structWhyFlip',
+  inPlay: 'structWhyInPlay', untested: 'structWhyUntested',
+  closedThrough: 'structWhyClosedThrough', followThrough: 'structWhyFollowThrough',
+  expansion: 'structWhyExpansion', volume: 'structWhyVolume', retest: 'structWhyRetest',
+  noData: 'structWhyNoData',
+};
+
+const ORIGIN_KEY = { highs: 'structOriginHighs', lows: 'structOriginLows', mixed: 'structOriginMixed' };
 
 const TREND_UI = {
   uptrend:   { color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/10', border: 'border-[#22c55e]/30', Icon: TrendingUp,   key: 'structTrendUp' },
@@ -58,15 +87,14 @@ const LEVEL_UI = {
 };
 
 // ── Persistence helpers (localStorage; all guarded — private mode / quota safe) ──
-const loadPeriod = () => {
-  try {
-    const p = localStorage.getItem(PERIOD_KEY);
-    return PERIODS.includes(p) ? p : '6mo';
-  } catch { return '6mo'; }
+const loadStored = (key, fallback) => {
+  try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
 };
-const savePeriod = (p) => {
-  try { localStorage.setItem(PERIOD_KEY, p); } catch { /* no-op */ }
+const store = (key, value) => {
+  try { localStorage.setItem(key, value); } catch { /* no-op */ }
 };
+
+const signed = (n) => (n > 0 ? `+${n.toFixed(2)}%` : `${n.toFixed(2)}%`);
 
 const relTime = (ts, t) => {
   const diff = Date.now() - ts;
@@ -81,16 +109,48 @@ const StructureScanner = () => {
   const asset = ALL_ASSETS[selectedAsset];
   const yahoo = toYahooSymbol(asset);
 
-  const [period, setPeriod] = useState(loadPeriod);
+  const [ladder, setLadder] = useState(FALLBACK_LADDER);
+  const [tfInterval, setTfInterval] = useState(() => loadStored(INTERVAL_KEY, '1d'));
+  const [period, setPeriod] = useState(() => loadStored(PERIOD_KEY, '6mo'));
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [candles, setCandles] = useState([]);   // reversal/continuation candle signals
   const [log, setLog] = useState([]);            // persisted registro for current asset
   const reqId = useRef(0);
 
+  const rung = ladder.find((r) => r.interval === tfInterval) || ladder.find((r) => r.interval === '1d') || ladder[0];
+  const periods = rung?.ranges || [];
+  // A stored window that this rung cannot serve would be silently rewritten by
+  // the backend; pick the rung's default instead so the button row matches
+  // what is actually being requested.
+  const activePeriod = periods.includes(period) ? period : (rung?.defaultRange || period);
+
+  // Real ladder from the backend (falls back to the local copy on failure).
+  useEffect(() => {
+    if (!API) return;
+    let alive = true;
+    fetch(`${API}/api/education/scan-timeframes`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (alive && Array.isArray(j?.timeframes) && j.timeframes.length) setLadder(j.timeframes);
+      })
+      .catch(() => { /* keep the local copy */ });
+    return () => { alive = false; };
+  }, []);
+
+  const changeInterval = useCallback((iv, rows) => {
+    setTfInterval(iv);
+    store(INTERVAL_KEY, iv);
+    const next = rows.find((r) => r.interval === iv);
+    if (next && !next.ranges.includes(period)) {
+      setPeriod(next.defaultRange);
+      store(PERIOD_KEY, next.defaultRange);
+    }
+  }, [period]);
+
   const changePeriod = useCallback((p) => {
     setPeriod(p);
-    savePeriod(p);
+    store(PERIOD_KEY, p);
   }, []);
 
   // Show the stored registro for the current asset immediately on switch.
@@ -102,9 +162,10 @@ const StructureScanner = () => {
     setLoading(true);
     try {
       const sym = encodeURIComponent(yahoo);
+      const tf = `period=${encodeURIComponent(activePeriod)}&interval=${encodeURIComponent(tfInterval)}`;
       const [structRes, patternRes] = await Promise.all([
-        fetch(`${API}/api/education/structure-scan/${sym}?period=${period}&interval=1d&strength=2`, { credentials: 'include' }),
-        fetch(`${API}/api/education/pattern-scan/${sym}?period=${period}&interval=1d&limit=20`, { credentials: 'include' }),
+        fetch(`${API}/api/education/structure-scan/${sym}?${tf}`, { credentials: 'include' }),
+        fetch(`${API}/api/education/pattern-scan/${sym}?${tf}&limit=20`, { credentials: 'include' }),
       ]);
       const [structJson, patternJson] = await Promise.all([structRes.json(), patternRes.json()]);
       if (myReq !== reqId.current) return; // a newer request superseded this one
@@ -143,9 +204,9 @@ const StructureScanner = () => {
     } finally {
       if (myReq === reqId.current) setLoading(false);
     }
-  }, [yahoo, period, t]);
+  }, [yahoo, activePeriod, tfInterval, t]);
 
-  // Auto-scan whenever the chart's asset or the period changes.
+  // Auto-scan whenever the chart's asset, candle size or window changes.
   useEffect(() => { scan(); }, [scan]);
 
   const onClearLog = () => {
@@ -159,11 +220,80 @@ const StructureScanner = () => {
   const trend = (data && TREND_UI[data.trend]) || TREND_UI.range;
   const TrendIcon = trend.Icon;
   const events = data?.events ? [...data.events].reverse().slice(0, 8) : [];
-  const levels = data?.levels ? data.levels.slice(0, 6) : [];
+  const allLevels = data?.levels || [];
+  // The whole point of the rewrite: the side of the CURRENT price decides the
+  // role. Above → resistance, below → support. Rendered as a price ladder so
+  // it reads the way a chart does, farthest resistance at the top.
+  const resistances = allLevels.filter((l) => l.type === 'resistance')
+    .sort((a, b) => b.price - a.price).slice(-4);
+  const supports = allLevels.filter((l) => l.type === 'support')
+    .sort((a, b) => b.price - a.price).slice(0, 4);
+  const nearestRes = data?.nearestResistance?.price;
+  const nearestSup = data?.nearestSupport?.price;
   const fvgs = data?.fvgs ? data.fvgs.slice(0, 6) : [];
   const c = data?.counts || {};
   const candleSignals = candles.slice(0, 6);
   const newInDay = log.filter((e) => Date.now() - e.ts < DAY_MS).length;
+  const adjusted = Array.isArray(data?.adjustments) && data.adjustments.length > 0;
+
+  const reasonList = (codes) => (codes || [])
+    .map((code) => (REASON_KEY[code] ? t(REASON_KEY[code]) : code))
+    .join(' · ');
+
+  // One level row of the price ladder, with its evidence attached.
+  const LevelRow = ({ lv, nearest }) => {
+    const ui = LEVEL_UI[lv.type] || LEVEL_UI.pivot;
+    const conf = lv.confirmation || {};
+    return (
+      <div
+        className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs ${
+          nearest ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/40'
+        }`}
+        data-testid={`struct-level-${lv.type}`}
+      >
+        <span className={`font-semibold ${ui.color}`}>{t(ui.key)}</span>
+        <span className="font-mono text-foreground">{lv.price}</span>
+        {typeof lv.distancePct === 'number' && (
+          <span className={`font-mono text-[10px] ${ui.color}`}>{signed(lv.distancePct)}</span>
+        )}
+        {nearest && (
+          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+            {t('structNearestTag')}
+          </span>
+        )}
+        {lv.flipped && (
+          <span
+            className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#f59e0b]"
+            title={t('structFlippedTip').replace('{origin}', t(ORIGIN_KEY[lv.origin] || 'structOriginMixed'))}
+          >
+            {t('structFlippedTag')}
+          </span>
+        )}
+        <span
+          className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded shrink-0"
+          style={undefined}
+          title={t('structConfTip')
+            .replace('{visits}', String(conf.visits ?? 0))
+            .replace('{held}', String(conf.held ?? 0))
+            .replace('{broken}', String(conf.broken ?? 0))
+            .replace('{score}', String(conf.score ?? 0))
+            + (conf.reasons?.length ? ` — ${reasonList(conf.reasons)}` : '')}
+        >
+          <span className={conf.confirmed ? 'text-[#22c55e]' : 'text-muted-foreground'}>
+            {conf.confirmed ? `✓ ${t('structConfirmedTag')}` : t('structUnconfirmedTag')}
+          </span>
+        </span>
+        <span className="flex gap-0.5 shrink-0" title={`${lv.strength}/5`}>
+          {Array.from({ length: 5 }).map((_, k) => (
+            <span
+              key={k}
+              className={`inline-block w-1.5 h-1.5 rounded-full ${k < lv.strength ? ui.color.replace('text-', 'bg-') : 'bg-border'}`}
+            />
+          ))}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <Card
@@ -194,21 +324,47 @@ const StructureScanner = () => {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Controls: period + rescan (asset comes from the chart above) */}
+        {/* Controls: candle size + history window + rescan.
+            The two rows are dependent: the windows offered are only those the
+            selected candle size can actually serve upstream. */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex gap-1 bg-muted rounded-md border border-border p-0.5" role="group">
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                onClick={() => changePeriod(p)}
-                className={`px-2.5 py-1 text-[11px] font-mono rounded transition-colors ${
-                  period === p ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
-                }`}
-                data-testid={`struct-period-${p}`}
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              {t('structTfCandle')}
+            </span>
+            <div className="flex gap-1 bg-muted rounded-md border border-border p-0.5 flex-wrap" role="group">
+              {ladder.map((r) => (
+                <button
+                  key={r.interval}
+                  onClick={() => changeInterval(r.interval, ladder)}
+                  className={`px-2 py-1 text-[11px] font-mono rounded transition-colors ${
+                    tfInterval === r.interval ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  data-testid={`struct-interval-${r.interval}`}
+                >
+                  {r.interval}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              {t('structTfHistory')}
+            </span>
+            <div className="flex gap-1 bg-muted rounded-md border border-border p-0.5 flex-wrap" role="group">
+              {periods.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => changePeriod(p)}
+                  className={`px-2 py-1 text-[11px] font-mono rounded transition-colors ${
+                    activePeriod === p ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  data-testid={`struct-period-${p}`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
           </div>
           <Button
             onClick={scan}
@@ -222,6 +378,24 @@ const StructureScanner = () => {
             {loading ? t('livePatternScanning') : t('structScanRescan')}
           </Button>
         </div>
+
+        {/* Honest notices: the backend rewrote the request, or the last candle
+            of an intraday series has not closed yet. Both change what the
+            numbers below mean, so neither may be hidden. */}
+        {adjusted && (
+          <div className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#f59e0b] px-2.5 py-1.5"
+               data-testid="struct-adjusted">
+            {t('structAdjustedNotice')
+              .replace('{interval}', data.interval || '')
+              .replace('{period}', data.period || '')}
+          </div>
+        )}
+        {data?.lastBarForming && (
+          <div className="text-[11px] rounded-md border border-border bg-muted/50 text-muted-foreground px-2.5 py-1.5"
+               data-testid="struct-forming">
+            {t('structLastBarForming')}
+          </div>
+        )}
 
         {/* Trend banner */}
         {data && (
@@ -239,12 +413,29 @@ const StructureScanner = () => {
 
         {/* Stats line */}
         {data && (
-          <div className="text-xs text-muted-foreground font-mono" data-testid="struct-stats">
-            {t('structScanStats')
-              .replace('{rows}', String(data.rowsScanned ?? 0))
-              .replace('{swings}', String(c.swings ?? 0))
-              .replace('{bos}', String(c.bos ?? 0))
-              .replace('{choch}', String(c.choch ?? 0))}
+          <div className="text-xs text-muted-foreground font-mono space-y-0.5" data-testid="struct-stats">
+            <div>
+              {t('structScanStats')
+                .replace('{rows}', String(data.rowsScanned ?? 0))
+                .replace('{swings}', String(c.swings ?? 0))
+                .replace('{bos}', String(c.bos ?? 0))
+                .replace('{choch}', String(c.choch ?? 0))}
+            </div>
+            <div className="text-[10px]">
+              {t('structLevelsStats')
+                .replace('{levels}', String(c.levels ?? 0))
+                .replace('{res}', String(c.resistances ?? 0))
+                .replace('{sup}', String(c.supports ?? 0))
+                .replace('{conf}', String(c.confirmedLevels ?? 0))}
+            </div>
+            {data.atr != null && (
+              <div className="text-[10px]">
+                {t('structAtrLine')
+                  .replace('{atr}', String(data.atr))
+                  .replace('{atrPct}', String(data.atrPct ?? '—'))
+                  .replace('{tol}', String(data.tolerancePct ?? '—'))}
+              </div>
+            )}
           </div>
         )}
 
@@ -300,6 +491,7 @@ const StructureScanner = () => {
               {events.map((e, i) => {
                 const dir = DIR_UI[e.direction] || DIR_UI.bullish;
                 const isChoch = e.kind === 'CHoCH';
+                const conf = e.confirmation || {};
                 return (
                   <div
                     key={`${e.date}-${e.index}-${i}`}
@@ -309,6 +501,17 @@ const StructureScanner = () => {
                       {t(isChoch ? 'structChoch' : 'structBos')}
                     </span>
                     <span className={`font-mono ${dir.color}`}>{dir.icon} {t(`structDir_${e.direction}`)}</span>
+                    {/* A close one tick past a swing high is not a break of
+                        structure. The badge says whether the evidence is there,
+                        and the tooltip says exactly which evidence. */}
+                    <span
+                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                        conf.confirmed ? 'bg-[#22c55e]/15 text-[#22c55e]' : 'bg-muted text-muted-foreground'
+                      }`}
+                      title={`${t('structEvidence')}: ${conf.score ?? 0}/100${conf.reasons?.length ? ` — ${reasonList(conf.reasons)}` : ''}`}
+                    >
+                      {conf.confirmed ? `✓ ${t('structConfirmedTag')}` : t('structUnconfirmedTag')}
+                    </span>
                     <span className="font-mono text-muted-foreground ml-auto">{e.price}</span>
                     <span className="font-mono text-muted-foreground/70 text-[10px]">{e.date}</span>
                   </div>
@@ -318,37 +521,48 @@ const StructureScanner = () => {
           </section>
         )}
 
-        {/* Support / Resistance levels */}
-        {levels.length > 0 && (
+        {/* Support / Resistance as a PRICE LADDER.
+            Everything above the current price is resistance, everything below
+            it is support — regardless of whether the level was originally
+            built by highs or by lows. A level that changed hands carries the
+            `polarity` badge instead of being quietly mislabelled. */}
+        {data && allLevels.length > 0 && (
           <section data-testid="struct-levels">
             <h4 className="flex items-center gap-1.5 text-xs font-semibold text-foreground mb-2">
               <Layers className="w-3.5 h-3.5 text-primary" />
               {t('structLevelsTitle')}
             </h4>
+
+            <div className="text-[10px] uppercase tracking-wider text-[#ef4444] font-semibold mb-1">
+              {t('structAboveIsResistance')}
+            </div>
             <div className="space-y-1.5">
-              {levels.map((lv, i) => {
-                const ui = LEVEL_UI[lv.type] || LEVEL_UI.pivot;
-                return (
-                  <div
-                    key={`${lv.price}-${i}`}
-                    className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs"
-                  >
-                    <span className={`font-semibold ${ui.color}`}>{t(ui.key)}</span>
-                    <span className="font-mono text-foreground">{lv.price}</span>
-                    <span className="text-muted-foreground ml-auto">
-                      {t('structTouches').replace('{n}', String(lv.touches))}
-                    </span>
-                    <span className="flex gap-0.5" title={`${lv.strength}/5`}>
-                      {Array.from({ length: 5 }).map((_, k) => (
-                        <span
-                          key={k}
-                          className={`inline-block w-1.5 h-1.5 rounded-full ${k < lv.strength ? ui.color.replace('text-', 'bg-') : 'bg-border'}`}
-                        />
-                      ))}
-                    </span>
-                  </div>
-                );
-              })}
+              {resistances.length > 0
+                ? resistances.map((lv, i) => (
+                    <LevelRow key={`r-${lv.price}-${i}`} lv={lv} nearest={lv.price === nearestRes} />
+                  ))
+                : <div className="text-[11px] text-muted-foreground px-1 pb-1">{t('structNoneAbove')}</div>}
+            </div>
+
+            <div
+              className="flex items-center gap-2 my-2 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5"
+              data-testid="struct-price-now"
+            >
+              <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                {t('structPriceNow')}
+              </span>
+              <span className="font-mono font-bold text-primary">{data.currentPrice}</span>
+            </div>
+
+            <div className="text-[10px] uppercase tracking-wider text-[#22c55e] font-semibold mb-1">
+              {t('structBelowIsSupport')}
+            </div>
+            <div className="space-y-1.5">
+              {supports.length > 0
+                ? supports.map((lv, i) => (
+                    <LevelRow key={`s-${lv.price}-${i}`} lv={lv} nearest={lv.price === nearestSup} />
+                  ))
+                : <div className="text-[11px] text-muted-foreground px-1">{t('structNoneBelow')}</div>}
             </div>
           </section>
         )}
@@ -450,7 +664,7 @@ const StructureScanner = () => {
         )}
 
         {/* Nothing detected but data was scanned */}
-        {data && data.rowsScanned > 0 && events.length === 0 && levels.length === 0 && fvgs.length === 0 && candleSignals.length === 0 && (
+        {data && data.rowsScanned > 0 && events.length === 0 && allLevels.length === 0 && fvgs.length === 0 && candleSignals.length === 0 && (
           <div className="text-center py-4 text-sm text-muted-foreground">
             {t('structScanNoStructure')}
           </div>
