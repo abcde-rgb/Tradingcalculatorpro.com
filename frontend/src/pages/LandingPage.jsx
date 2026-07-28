@@ -32,30 +32,16 @@ const TRANSITION_HERO = { duration: 0.6 };
 const TRANSITION_STAGGER_SM = { delay: 0.05 };
 const TRANSITION_STAGGER_MD = { delay: 0.1 };
 
-// Features will use t() in component
-//
-// Antes cada tarjeta traía su propio color: verde, naranja, azul, morado,
-// amarillo, rojo, cian y rosa. Ocho acentos en una sola rejilla es la firma
-// involuntaria de una plantilla — y, peor, no significan NADA: el rosa de
-// "Centro de aprendizaje" no comunica nada sobre aprender. Color sin
-// significado es ruido, y en una web que maneja dinero el ruido se paga en
-// confianza. Ninguna banca digital seria pinta así su rejilla de funciones.
-//
-// Ahora el tratamiento es único y el color se reserva para donde SÍ significa
-// algo (beneficio/pérdida, estado, acción principal). Lo que diferencia una
-// tarjeta de otra pasa a ser su icono y su texto, que es lo que el usuario
-// venía a leer.
-const ICON_TREATMENT = 'bg-foreground/[0.06] text-foreground/80 border border-foreground/10';
-
+// Features will use t() in component  
 const featuresData = [
-  { icon: Calculator, key: 'professionalCalculators', color: ICON_TREATMENT },
-  { icon: Sigma, key: 'optionsSuite', color: ICON_TREATMENT },
-  { icon: CandlestickChart, key: 'tradingViewCharts', color: ICON_TREATMENT },
-  { icon: BookOpen, key: 'tradingJournal', color: ICON_TREATMENT },
-  { icon: PieChart, key: 'portfolioManagement', color: ICON_TREATMENT },
-  { icon: Bell, key: 'emailAlerts', color: ICON_TREATMENT },
-  { icon: FlaskConical, key: 'monteCarloSimulator', color: ICON_TREATMENT },
-  { icon: GraduationCap, key: 'educationCenter', color: ICON_TREATMENT },
+  { icon: Calculator, key: 'professionalCalculators', color: 'bg-green-500/10 text-green-500' },
+  { icon: Sigma, key: 'optionsSuite', color: 'bg-orange-500/10 text-orange-500' },
+  { icon: CandlestickChart, key: 'tradingViewCharts', color: 'bg-blue-500/10 text-blue-500' },
+  { icon: BookOpen, key: 'tradingJournal', color: 'bg-purple-500/10 text-purple-500' },
+  { icon: PieChart, key: 'portfolioManagement', color: 'bg-yellow-500/10 text-yellow-500' },
+  { icon: Bell, key: 'emailAlerts', color: 'bg-red-500/10 text-red-500' },
+  { icon: FlaskConical, key: 'monteCarloSimulator', color: 'bg-cyan-500/10 text-cyan-500' },
+  { icon: GraduationCap, key: 'educationCenter', color: 'bg-pink-500/10 text-pink-500' },
 ];
 
 // Asset types will use t() in component
@@ -154,98 +140,64 @@ export default function LandingPage() {
             transition={TRANSITION_HERO}
             className="text-center"
           >
-            {/* Píldora de contexto en neutro: es una etiqueta, no una llamada a
-                la acción. En verde competía con el CTA real por la atención. */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-foreground/[0.06] border border-foreground/10 mb-7 backdrop-blur-sm">
-              <TrendingUp className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs text-foreground/70 font-medium tracking-wide">{t('tagline')}</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <span className="text-sm text-primary font-medium">{t('tagline')}</span>
             </div>
             
-            {/*
-              Titular: se quita el degradado verde de "PRO". Un degradado sobre
-              el nombre de la marca es el recurso más repetido de la web cripto
-              y arrastra al producto a ese barrio. En blanco, con el interletraje
-              apretado de .display, el mismo texto pasa a leerse como una marca
-              de infraestructura financiera. La jerarquía la da el TAMAÑO.
-            */}
-            <h1 className="font-unbounded display text-5xl md:text-7xl lg:text-[5.5rem] mb-6">
-              Trading Calculator
-              <span className="block text-primary">PRO</span>
+            <h1 className="font-unbounded text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+              Trading Calculator<br />
+              <span className="bg-gradient-to-r from-primary via-green-400 to-emerald-500 bg-clip-text text-transparent">PRO</span>
             </h1>
-
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 prose-measure">
+            
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
               {t('heroDescription')}
             </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-12">
-              {/*
-                Pastilla BLANCA, no verde. En un fondo oscuro el blanco es el
-                punto más luminoso de la pantalla, así que gana la jerarquía sin
-                competir con ningún otro acento. Es la firma de las heroes de
-                Revolut, y el motivo por el que su CTA se ve antes que nada.
-              */}
-              <Link to={isAuthenticated ? '/dashboard' : '/register'} className="w-full sm:w-auto">
-                <span className="pill-cta h-14 px-8 text-base w-full sm:w-auto" data-testid="hero-cta">
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <Link to={isAuthenticated ? '/dashboard' : '/register'}>
+                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-lg h-14 px-8 shadow-lg shadow-primary/25" data-testid="hero-cta">
                   {isAuthenticated ? t('goToDashboard') : t('getStartedFree')}
-                  <ArrowRight className="w-4 h-4" />
-                </span>
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
               </Link>
-              <Link to="/pricing" className="w-full sm:w-auto">
-                <span className="pill-ghost h-14 px-7 text-base w-full sm:w-auto" data-testid="view-plans-btn">
-                  <Crown className="w-4 h-4" />
+              <Link to="/pricing">
+                <Button size="lg" variant="outline" className="gap-2 text-lg h-14 px-8" data-testid="view-plans-btn">
+                  <Crown className="w-5 h-5 text-yellow-500" />
                   {t('viewPremiumPlans')}
-                </span>
+                </Button>
               </Link>
             </div>
             {!isAuthenticated && (
-              /* Letra pequeña de tranquilidad: informa, no vende. En verde y
-                 con purpurina pedía el mismo protagonismo que el botón. */
-              <p className="text-sm text-muted-foreground -mt-6 mb-12" data-testid="hero-trial-note">
-                {t('trialHeroNote')}
+              <p className="text-sm text-primary font-medium -mt-8 mb-12" data-testid="hero-trial-note">
+                ✨ {t('trialHeroNote')}
               </p>
             )}
             
-            {/*
-              Barra de cifras.
-
-              Dos cambios de fondo, no de estilo:
-
-              1. Fuera el "99.9% de tiempo activo". Nadie mide ese número ni
-                 puede enseñarlo, y esta web ya rechazó una vez poner un dato
-                 que no podía sostener (la advertencia de riesgo lleva cifras
-                 con fuente). Una promesa de disponibilidad sin panel público
-                 que la respalde es justo el tipo de adorno que un banco no
-                 pone. Se sustituye por algo comprobable: cuántas calculadoras
-                 hay, que se pueden contar entrando.
-
-              2. Las cifras dejan de ir en verde. Cuatro números enormes en el
-                 color de marca convierten el acento en ruido de fondo: si
-                 TODO destaca, nada destaca. Van en el color de texto, y el
-                 verde se reserva para lo que de verdad es una señal.
-
-              `tabular` alinea los dígitos: sin eso, "24/7" y "186" bailan.
-            */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px max-w-3xl mx-auto surface overflow-hidden">
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
               {[
-                { value: '14',   labelKey: 'statsCalculators', delay: 0.20 },
-                { value: '186',  labelKey: 'statsAssets',      delay: 0.26 },
-                { value: '8',    labelKey: 'statsLanguages',   delay: 0.32 },
-                { value: '24/7', labelKey: 'statsAvailable',   delay: 0.38 },
-              ].map((stat) => (
-                <motion.div
-                  key={stat.labelKey}
-                  {...MOTION_FADE_UP}
-                  transition={{ delay: stat.delay }}
-                  className="text-center px-4 py-6 bg-card"
-                >
-                  <div className="tabular text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
-                    {stat.value}
-                  </div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                    {t(stat.labelKey)}
-                  </div>
-                </motion.div>
-              ))}
+                { value: '24/7', labelKey: 'statsAvailable',  delay: 0.2, icon: Clock },
+                { value: '50+',  labelKey: 'statsAssets',     delay: 0.3, icon: Layers },
+                { value: '8',    labelKey: 'statsLanguages',  delay: 0.4, icon: Globe },
+                { value: '99.9%',labelKey: 'statsUptime',     delay: 0.5, icon: Zap },
+              ].map((stat) => {
+                const Ic = stat.icon;
+                return (
+                  <motion.div
+                    key={stat.labelKey}
+                    {...MOTION_FADE_UP}
+                    transition={{ delay: stat.delay }}
+                    className="text-center"
+                  >
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Ic className="w-5 h-5 text-primary" />
+                      <div className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">{t(stat.labelKey)}</div>
+                  </motion.div>
+                );
+              })}
             </div>
           </motion.div>
         </div>
@@ -300,16 +252,12 @@ export default function LandingPage() {
                 key={feature.key}
                 {...MOTION_FADE_UP_VIEW}
                 transition={TRANSITION_STAGGER_MD}
-                /* `surface` aporta el filo de luz superior y el degradado de
-                   profundidad; `surface-interactive` el levantamiento de 1px.
-                   Se va el halo verde del hover: la reacción la da la LUZ, no
-                   el color de marca. */
-                className="surface surface-raised surface-interactive p-6 group"
+                className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group"
               >
-                <div className={`w-12 h-12 rounded-xl ${feature.color} flex items-center justify-center mb-5 transition-colors duration-300 group-hover:bg-foreground/10`}>
-                  <feature.icon className="w-6 h-6" strokeWidth={1.75} />
+                <div className={`w-14 h-14 rounded-xl ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <feature.icon className="w-7 h-7" />
                 </div>
-                <h3 className="font-semibold text-base mb-2 tracking-tight">{t(feature.key)}</h3>
+                <h3 className="font-bold text-lg mb-2">{t(feature.key)}</h3>
                 <p className="text-muted-foreground text-sm">{t(`${feature.key}Desc`)}</p>
               </motion.div>
             ))}

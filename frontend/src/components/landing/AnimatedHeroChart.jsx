@@ -179,28 +179,7 @@ export default function AnimatedHeroChart({ fade = 'top', dim = 1, className = '
 
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`} aria-hidden="true" data-testid="hero-chart">
-      {/*
-        El gráfico es AMBIENTE, no contenido: su trabajo es insinuar de qué va
-        esto, no que nadie lo lea. Iba al 100 % de opacidad y competía de tú a
-        tú con el titular — el ojo no sabía dónde posarse, y unas velas nítidas
-        detrás de un texto es justo lo que hace que una portada parezca un
-        montaje sobre una foto de stock.
-
-        Dos correcciones:
-          · opacidad al 25 %, para que quede como una marca de agua.
-          · máscara radial que lo desvanece por el centro, precisamente donde
-            va el texto. Así el contraste del titular no depende de la suerte
-            de qué vela le toque detrás.
-      */}
-      <div
-        className="absolute inset-0 opacity-25"
-        style={{
-          maskImage: 'radial-gradient(ellipse 70% 60% at 50% 45%, transparent 20%, black 75%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 45%, transparent 20%, black 75%)',
-        }}
-      >
-        <canvas ref={canvasRef} className="w-full h-full" />
-      </div>
+      <canvas ref={canvasRef} className="w-full h-full" />
       {/* fade the top so the headline stays crisp */}
       {(fade === 'top' || fade === 'both') && (
         <div className="absolute inset-x-0 top-0 h-2/3 bg-gradient-to-b from-background via-background/70 to-transparent" />
