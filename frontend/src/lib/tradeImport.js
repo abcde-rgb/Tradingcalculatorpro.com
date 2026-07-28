@@ -156,7 +156,7 @@ export function toNumber(value) {
     // A lone comma is a decimal separator unless it groups 3 digits.
     s = /,\d{3}\b/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
   }
-  s = s.replace(/[^0-9.\-]/g, '');
+  s = s.replace(/[^0-9.-]/g, '');
   const n = Number(s);
   if (!Number.isFinite(n)) return undefined;
   return negative ? -Math.abs(n) : n;

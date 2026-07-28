@@ -18,8 +18,22 @@
 }
 
 /* Font utilities */
+/*
+ * Esta clase gobierna 217 titulares de toda la aplicación, así que es la
+ * palanca tipográfica más grande que hay: cambiarla aquí reviste la web
+ * entera sin tocar un solo componente.
+ *
+ * Antes cargaba Unbounded. Unbounded es una display redondeada, expresiva,
+ * de cartel — buena para una marca de música, ruidosa para algo que tiene
+ * que parecer que custodia dinero. Se pasa a Space Grotesk (la misma que ya
+ * usa el cuerpo, así que la familia se descarga igualmente) apretando el
+ * interletraje: la seriedad la da el TRACKING, no una fuente más gritona.
+ * De paso, una familia menos que descargar antes del primer pintado.
+ */
 .font-unbounded {
-  font-family: 'Unbounded', 'Space Grotesk', sans-serif;
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 
 .font-mono {

@@ -290,7 +290,11 @@ export function Header() {
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button size="sm" className="bg-primary text-primary-foreground" data-testid="register-btn">
+                  {/* Pastilla blanca, igual que el CTA de la portada: el mismo
+                      acto (crear cuenta) debe tener el mismo aspecto en toda la
+                      web. Antes era verde arriba y verde abajo, compitiendo
+                      entre sí; ahora hay UNA jerarquía. */}
+                  <Button size="sm" className="pill-cta px-4" data-testid="register-btn">
                     {t('register')}
                   </Button>
                 </Link>

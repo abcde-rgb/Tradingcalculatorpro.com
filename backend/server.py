@@ -93,6 +93,19 @@ def _deserialize(raw) -> dict:
 _SAFE_FIELD_RE = _re_module.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 
+def _literal_regex(text: str) -> str:
+    """Convierte texto de un buscador en un patrón que lo busca TAL CUAL.
+
+    Lo que teclea alguien en una caja de búsqueda es texto, no una expresión
+    regular. Al pasarlo crudo a los operadores `~`/`~*` de PostgreSQL, buscar
+    ``"Rodríguez (padre)"`` —o un simple ``(``— aborta la consulta entera con
+    *invalid regular expression: parentheses () not balanced* y la petición
+    acaba en 500. Escapando los metacaracteres, el paréntesis vuelve a ser un
+    paréntesis y la búsqueda hace lo que el usuario espera: subcadena literal.
+    """
+    return _re_module.escape(text or "")
+
+
 def _build_where_clause(filter_dict: dict, start_param: int = 1):
     """
     Convert a (potentially complex) MongoDB-style filter dict into a PostgreSQL
@@ -5995,9 +6008,10 @@ async def admin_list_users(
     query: Dict[str, Any] = {}
 
     if q:
+        pattern = _literal_regex(q.strip())
         query["$or"] = [
-            {"email": {"$regex": q, "$options": "i"}},
-            {"name":  {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": pattern, "$options": "i"}},
+            {"name":  {"$regex": pattern, "$options": "i"}},
         ]
     if plan:
         query["subscription_plan"] = None if plan == "none" else plan

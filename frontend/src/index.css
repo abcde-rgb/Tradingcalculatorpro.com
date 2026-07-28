@@ -21,33 +21,49 @@ code {
     font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, monospace;
 }
 
+/* Definición espejo de la de App.css (allí está la explicación completa).
+   Se mantienen las dos sincronizadas a propósito: cuál gana depende del
+   orden de importación, y que difieran es cómo se acaba con un titular
+   distinto según la página. */
 .font-unbounded {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
+    letter-spacing: -0.025em;
 }
 
 @layer base {
     /* Dark Theme (Default) */
     :root {
-        --background: 0 0% 3%;
-        --foreground: 0 0% 95%;
-        --card: 0 0% 6%;
-        --card-foreground: 0 0% 95%;
-        --popover: 0 0% 6%;
-        --popover-foreground: 0 0% 95%;
-        --primary: 145 80% 45%;
-        --primary-foreground: 0 0% 0%;
-        --secondary: 0 0% 12%;
-        --secondary-foreground: 0 0% 95%;
-        --muted: 0 0% 12%;
-        --muted-foreground: 0 0% 55%;
-        --accent: 217 90% 60%;
+        /* ────────────────────────────────────────────────────────────
+           Base institucional, no "void".
+           Antes era gris puro (0 0% 3%). Un negro sin temperatura se lee
+           barato: es el fondo por defecto de cualquier plantilla. La banca
+           digital (Revolut, Monzo, N26) tiñe el oscuro ligeramente en frío
+           — cuesta nombrarlo, pero el ojo lo lee como "hecho a propósito".
+           ──────────────────────────────────────────────────────────── */
+        --background: 222 24% 4%;
+        --foreground: 210 20% 96%;
+        --card: 222 20% 7%;
+        --card-foreground: 210 20% 96%;
+        --popover: 222 20% 8%;
+        --popover-foreground: 210 20% 96%;
+        /* Verde de marca, desaturado de 80% → 58%. El neón es la paleta del
+           chiringuito cripto; el esmeralda profundo es la del dinero. Mismo
+           tono de marca, veinte años más de credibilidad. */
+        --primary: 152 58% 40%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 222 16% 13%;
+        --secondary-foreground: 210 20% 96%;
+        --muted: 222 16% 12%;
+        /* 55% no llegaba a 4.5:1 sobre el fondo. 64% sí. */
+        --muted-foreground: 217 12% 64%;
+        --accent: 217 75% 58%;
         --accent-foreground: 0 0% 100%;
-        --destructive: 0 85% 60%;
+        --destructive: 358 70% 54%;
         --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 15%;
-        --input: 0 0% 15%;
-        --ring: 145 80% 45%;
+        --border: 222 14% 15%;
+        --input: 222 14% 15%;
+        --ring: 152 58% 40%;
         --chart-1: 145 80% 45%;
         --chart-2: 217 90% 60%;
         --chart-3: 0 85% 60%;
@@ -84,27 +100,27 @@ code {
         --chart-5: 280 90% 50%;
     }
 
-    /* Dark Theme class */
+    /* Dark Theme class — espejo de :root (ver las notas de allí) */
     .dark {
-        --background: 0 0% 3%;
-        --foreground: 0 0% 95%;
-        --card: 0 0% 6%;
-        --card-foreground: 0 0% 95%;
-        --popover: 0 0% 6%;
-        --popover-foreground: 0 0% 95%;
-        --primary: 145 80% 45%;
-        --primary-foreground: 0 0% 0%;
-        --secondary: 0 0% 12%;
-        --secondary-foreground: 0 0% 95%;
-        --muted: 0 0% 12%;
-        --muted-foreground: 0 0% 55%;
-        --accent: 217 90% 60%;
+        --background: 222 24% 4%;
+        --foreground: 210 20% 96%;
+        --card: 222 20% 7%;
+        --card-foreground: 210 20% 96%;
+        --popover: 222 20% 8%;
+        --popover-foreground: 210 20% 96%;
+        --primary: 152 58% 40%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 222 16% 13%;
+        --secondary-foreground: 210 20% 96%;
+        --muted: 222 16% 12%;
+        --muted-foreground: 217 12% 64%;
+        --accent: 217 75% 58%;
         --accent-foreground: 0 0% 100%;
-        --destructive: 0 85% 60%;
+        --destructive: 358 70% 54%;
         --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 15%;
-        --input: 0 0% 15%;
-        --ring: 145 80% 45%;
+        --border: 222 14% 15%;
+        --input: 222 14% 15%;
+        --ring: 152 58% 40%;
     }
 
     /* ============================================================
@@ -261,6 +277,227 @@ code {
 
 ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--foreground));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SISTEMA DE SUPERFICIE — "materialidad de banco"
+   ═══════════════════════════════════════════════════════════════════
+   Lo que separa una interfaz financiera cara de una plantilla no es el
+   color: es que las superficies tengan MASA. Un panel debe parecer una
+   placa apoyada sobre otra, no un div con un borde gris.
+
+   Tres piezas, y ninguna cuesta rendimiento:
+     1. Elevación por capas (el fondo aclara al subir de nivel).
+     2. Filo de luz: 1px superior más claro, como el canto biselado de
+        una tarjeta metálica bajo una luz cenital.
+     3. Sombra difusa y baja opacidad — en oscuro, las sombras negras no
+        se ven; lo que da profundidad es el CONTRASTE del filo.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.surface {
+    background:
+        linear-gradient(180deg, hsl(var(--foreground) / 0.03) 0%, transparent 40%),
+        hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    position: relative;
+}
+
+/* El filo de luz. Un pseudo-elemento y no un border-image porque así
+   respeta el radio sin pelearse con el borde real. */
+.surface::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        hsl(var(--foreground) / 0.14) 30%,
+        hsl(var(--foreground) / 0.14) 70%,
+        transparent 100%
+    );
+    pointer-events: none;
+}
+
+.surface-raised {
+    background:
+        linear-gradient(180deg, hsl(var(--foreground) / 0.05) 0%, transparent 45%),
+        hsl(var(--card));
+    box-shadow:
+        0 1px 2px hsl(222 40% 2% / 0.6),
+        0 8px 24px -8px hsl(222 40% 2% / 0.5);
+}
+
+/* Reacción al puntero: sube 1px y el filo se enciende. Sutil a propósito
+   — a 2px ya parece un juguete. */
+.surface-interactive {
+    transition:
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 220ms ease,
+        box-shadow 220ms ease;
+}
+
+.surface-interactive:hover {
+    transform: translateY(-1px);
+    border-color: hsl(var(--foreground) / 0.16);
+    box-shadow:
+        0 1px 2px hsl(222 40% 2% / 0.6),
+        0 12px 32px -10px hsl(222 40% 2% / 0.65);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CIFRAS — lo más importante de todo el sistema
+   ═══════════════════════════════════════════════════════════════════
+   En tipografía proporcional el "1" es más estrecho que el "8", así que
+   un precio que se actualiza en vivo BAILA horizontalmente y una columna
+   de importes no alinea por la coma. Es el detalle que delata a una web
+   financiera amateur, y se arregla con una línea.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tabular,
+.font-mono,
+[data-numeric],
+table td,
+table th {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'zero' 1; /* 'zero' = cero barrado */
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TIPOGRAFÍA DE TITULAR
+   ═══════════════════════════════════════════════════════════════════
+   Por defecto la fuente reserva un espaciado pensado para texto de 16px.
+   A 72px ese mismo espaciado deja los titulares sueltos y blandos. El
+   tracking negativo progresivo es la firma visual de Revolut, Stripe y
+   Linear: cuanto más grande, más apretado.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.display,
+h1.display,
+.text-display {
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    font-weight: 700;
+    text-wrap: balance; /* evita la línea huérfana de una sola palabra */
+}
+
+.display-sm {
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    text-wrap: balance;
+}
+
+/* Ojo tipográfico: a partir de cierto tamaño el interletraje debe caer
+   solo, sin que nadie se acuerde de ponerlo. */
+h1, h2 { letter-spacing: -0.025em; text-wrap: balance; }
+h3, h4 { letter-spacing: -0.015em; }
+
+/* Texto largo: medida legible y sin ríos. */
+.prose-measure { max-width: 68ch; text-wrap: pretty; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CTA PASTILLA — la firma de Revolut
+   ═══════════════════════════════════════════════════════════════════
+   En un fondo oscuro, el botón de máxima prioridad NO es de color: es
+   BLANCO. El color compite con el resto de acentos; el blanco no compite
+   con nada porque es el punto más luminoso de la pantalla. Por eso todas
+   las heroes oscuras de Revolut llevan pastilla blanca con texto negro.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/*
+   El truco no es "blanco": es MÁXIMO CONTRASTE contra el fondo. En oscuro eso
+   es blanco; en claro, blanco sobre blanco desaparece —y el botón principal
+   acabaría destacando MENOS que el secundario, que es el peor error posible
+   en una portada—. Por eso el par va en variables y cada tema lo invierte.
+*/
+:root, .dark, .theme-gold, .theme-crypto, .theme-forex, .theme-nasdaq {
+    --cta-bg: 0 0% 100%;
+    --cta-fg: 222 30% 6%;
+    --cta-halo: 0 0% 100%;
+}
+
+.light {
+    --cta-bg: 222 30% 8%;
+    --cta-fg: 0 0% 100%;
+    --cta-halo: 222 30% 8%;
+}
+
+.pill-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: hsl(var(--cta-bg));
+    color: hsl(var(--cta-fg));
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    border: 1px solid transparent;
+    transition:
+        transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 200ms ease,
+        filter 200ms ease;
+    box-shadow: 0 1px 2px hsl(222 40% 2% / 0.4), 0 8px 24px -12px hsl(var(--cta-halo) / 0.35);
+}
+
+.pill-cta:hover {
+    transform: translateY(-1px);
+    filter: brightness(0.96);
+    box-shadow: 0 2px 4px hsl(222 40% 2% / 0.4), 0 14px 34px -12px hsl(var(--cta-halo) / 0.5);
+}
+
+/* En claro, `brightness` sobre un botón casi negro lo apaga en vez de
+   iluminarlo; ahí el realce correcto va al revés. */
+.light .pill-cta:hover { filter: brightness(1.25); }
+
+.pill-cta:active { transform: translateY(0); }
+
+.pill-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: hsl(var(--foreground) / 0.04);
+    color: hsl(var(--foreground));
+    font-weight: 500;
+    border: 1px solid hsl(var(--foreground) / 0.12);
+    backdrop-filter: blur(8px);
+    transition: background 200ms ease, border-color 200ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pill-ghost:hover {
+    background: hsl(var(--foreground) / 0.08);
+    border-color: hsl(var(--foreground) / 0.22);
+    transform: translateY(-1px);
+}
+
+/* Foco visible y consistente en TODO lo interactivo. Sin esto, navegar
+   con teclado es ir a ciegas. */
+:where(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: calc(var(--radius) * 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPETO A prefers-reduced-motion, de forma global
+   ═══════════════════════════════════════════════════════════════════
+   Ya se respetaba en dos componentes de la landing a mano. Esto lo hace
+   norma de la casa: quien lo tenga activado no debería depender de que
+   alguien se acordara en cada componente nuevo.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* Gradient text */

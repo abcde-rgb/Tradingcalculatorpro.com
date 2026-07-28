@@ -1148,6 +1148,7 @@ export default {
   "statsAssets": "250+ 资产",
   "statsLanguages": "8 种语言",
   "statsUptime": "运行时间",
+  "statsCalculators": "个计算器",
   "optionsSuite": "期权套件",
   "optionsSuiteDesc": "布莱克-斯科尔斯、希腊字母、OptionStrat 风格策略优化器",
   "educationCenterDesc": "免费课程：规则、道氏理论、心理学、资金管理、42+ 图形形态和 30 蜡烛形态",

@@ -133,7 +133,36 @@
         <!-- ─────────── Performance hints ─────────── -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <!--
+          Se descargaban CUATRO familias y sólo se usaban dos:
+            · Inter      → 0 usos en todo el código. Puro peso muerto.
+            · Unbounded  → sustituida por Space Grotesk con tracking apretado
+                           (ver .font-unbounded en App.css).
+          Quedan Space Grotesk (interfaz y titulares) y JetBrains Mono (cifras).
+          Una hoja de estilo de terceros bloquea el pintado: cada familia que
+          sobra retrasa el LCP de todos los visitantes.
+
+          `media="print" onload` la saca de la ruta crítica: el navegador la
+          descarga sin bloquear el render y la aplica al terminar. El <noscript>
+          cubre el caso sin JavaScript.
+        -->
+        <link
+            rel="preload"
+            as="style"
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+            media="print"
+            onload="this.media='all'"
+        />
+        <noscript>
+            <link
+                rel="stylesheet"
+                href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+            />
+        </noscript>
 
         <!-- ─────────── JSON-LD: WebApplication ─────────── -->
         <script type="application/ld+json">

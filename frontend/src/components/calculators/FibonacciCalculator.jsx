@@ -178,7 +178,7 @@ export function FibonacciCalculator() {
                     ? t('supportLevels')
                     : t('resistanceLevels')}
                 </p>
-                {retracementLevels.map((item) => (
+                {retracementLevels.map((item, idx) => (
                   <div 
                     key={`retracement-${item.level}`}
                     className="flex items-center justify-between p-2 rounded bg-muted/50 hover:bg-muted transition-colors"
@@ -207,7 +207,7 @@ export function FibonacciCalculator() {
                     ? t('targetsUp')
                     : t('targetsDown')}
                 </p>
-                {extensionLevels.map((item) => (
+                {extensionLevels.map((item, idx) => (
                   <div 
                     key={`extension-${item.level}`}
                     className={`flex items-center justify-between p-2 rounded transition-colors ${
