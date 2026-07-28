@@ -52,7 +52,7 @@ curl_cffi>=0.6.0          # browser impersonation para que Yahoo no bloquee las 
 
 # Google Cloud (Cloud SQL connector, Secret Manager)
 cloud-sql-python-connector[asyncpg]==1.12.1
-google-cloud-secret-manager==2.22.0
+google-cloud-secret-manager==2.30.0
 google-cloud-logging==3.11.3
 
 # CORS y middleware
