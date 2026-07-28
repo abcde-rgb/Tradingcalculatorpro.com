@@ -51,7 +51,7 @@ yfinance==0.2.54
 curl_cffi>=0.6.0          # browser impersonation para que Yahoo no bloquee las IPs de Cloud Run
 
 # Google Cloud (Cloud SQL connector, Secret Manager)
-cloud-sql-python-connector[asyncpg]==1.12.1
+cloud-sql-python-connector[asyncpg]==1.21.0
 google-cloud-secret-manager==2.22.0
 google-cloud-logging==3.11.3
 
