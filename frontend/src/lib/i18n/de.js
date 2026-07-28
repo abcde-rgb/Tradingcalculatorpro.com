@@ -1277,7 +1277,6 @@ export default {
   "statsAssets": "+250 Assets",
   "statsLanguages": "8 Sprachen",
   "statsUptime": "Verfügbarkeit",
-  "statsCalculators": "Rechner",
   "optionsSuite": "Optionen Suite",
   "optionsSuiteDesc": "Black-Scholes, Greeks, OptionStrat-ähnlicher Strategieoptimierer",
   "educationCenterDesc": "Kostenloser Kurs: Regeln, Dow-Theorie, Psychologie, Kapitalmanagement, 42+ Chart-Muster und 30 Kerzen-Muster",

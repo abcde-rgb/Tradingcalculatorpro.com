@@ -1335,7 +1335,6 @@ export default {
   "statsAssets": "250+ активов",
   "statsLanguages": "8 языков",
   "statsUptime": "время работы",
-  "statsCalculators": "калькуляторов",
   "optionsSuite": "Набор опционов",
   "optionsSuiteDesc": "Блэк-Шоулз, греки, оптимизатор стратегий в стиле OptionStrat",
   "educationCenterDesc": "Бесплатный курс: правила, теория Доу, психология, управление капиталом, 42+ графических паттернов и 30 свечных",
