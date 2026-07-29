@@ -1,4 +1,9 @@
 export default {
+  "patProvisionalTag": "Provisional",
+  "patProvisionalHint": "La última vela de este patrón aún no ha cerrado: su cuerpo sigue moviéndose, así que la figura puede desaparecer en el próximo tick. No la trates como confirmada.",
+  "flowNoOi": "sin OI",
+  "flowNoOiHint": "Este strike no tiene interés abierto, así que el ratio volumen/OI no está definido. Volumen sobre cero interés abierto es lo normal en un strike recién listado, no una señal de actividad inusual.",
+  "flowOiStaleNote": "El interés abierto se publica una vez al día tras el cierre, así que este ratio compara el volumen de hoy con el interés abierto de la sesión anterior. Sale alto a primera hora y es menos fiable tras un fin de semana. Úsalo como pista de filtrado, no como medición.",
   "eduGroup_core": "Núcleo avanzado",
   "eduGroup_alt": "Sistemas alternativos",
   "eduGroup_macro": "Macro y por activo",

@@ -1,4 +1,9 @@
 export default {
+  "patProvisionalTag": "暂定",
+  "patProvisionalHint": "该形态的最后一根K线尚未收盘：实体仍在变动，下一个跳动就可能消失。不要当作已确认的形态。",
+  "flowNoOi": "无未平仓",
+  "flowNoOiHint": "该行权价没有未平仓合约，因此成交量/未平仓比率无从定义。成交量对零未平仓是新上市行权价的正常状态，而不是异常活动的信号。",
+  "flowOiStaleNote": "未平仓合约每日收盘后公布一次，因此该比率是拿今天的成交量对比上一交易日的未平仓量。开盘初期数值偏高，周末之后最不可靠。请当作筛选线索，而非测量结果。",
   "eduGroup_core": "进阶核心",
   "eduGroup_alt": "另类体系",
   "eduGroup_macro": "宏观与分资产",

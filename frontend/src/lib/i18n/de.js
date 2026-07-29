@@ -1,4 +1,9 @@
 export default {
+  "patProvisionalTag": "Vorläufig",
+  "patProvisionalHint": "Die letzte Kerze dieses Musters ist noch nicht geschlossen: Ihr Körper bewegt sich weiter, die Formation kann beim nächsten Tick verschwunden sein. Nicht als bestätigt behandeln.",
+  "flowNoOi": "kein OI",
+  "flowNoOiHint": "Dieser Strike hat kein Open Interest, das Verhältnis Volumen/OI ist also undefiniert. Volumen gegen null Open Interest ist der Normalzustand eines neu gelisteten Strikes und kein Zeichen ungewöhnlicher Aktivität.",
+  "flowOiStaleNote": "Open Interest wird einmal täglich nach Handelsschluss veröffentlicht, dieses Verhältnis vergleicht also das heutige Volumen mit dem Open Interest der Vorsitzung. Früh in der Sitzung fällt es hoch aus und nach einem Wochenende ist es am wenigsten verlässlich. Als Screening-Hinweis verwenden, nicht als Messwert.",
   "eduGroup_core": "Fortgeschrittener Kern",
   "eduGroup_alt": "Alternative Systeme",
   "eduGroup_macro": "Makro und nach Anlageklasse",

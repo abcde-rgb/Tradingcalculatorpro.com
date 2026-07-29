@@ -1,4 +1,9 @@
 export default {
+  "patProvisionalTag": "Provisional",
+  "patProvisionalHint": "The last candle of this pattern has not closed yet: its body is still moving, so the shape may be gone on the next tick. Do not treat it as confirmed.",
+  "flowNoOi": "no OI",
+  "flowNoOiHint": "This strike has no open interest, so the volume/OI ratio is undefined. Volume against zero open interest is the normal state of a newly listed strike, not a sign of unusual activity.",
+  "flowOiStaleNote": "Open interest is published once per day after the close, so this ratio compares today's volume against the previous session's open interest. It reads high early in the session and is least reliable after a weekend. Treat it as a screening hint, not a measurement.",
   "eduGroup_core": "Advanced core",
   "eduGroup_alt": "Alternative systems",
   "eduGroup_macro": "Macro and per-asset",

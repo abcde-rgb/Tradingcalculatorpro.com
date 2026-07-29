@@ -1,4 +1,9 @@
 export default {
+  "patProvisionalTag": "Provisoire",
+  "patProvisionalHint": "La dernière bougie de cette figure n'est pas encore clôturée : son corps bouge toujours, la figure peut disparaître au prochain tick. Ne la considérez pas comme confirmée.",
+  "flowNoOi": "sans OI",
+  "flowNoOiHint": "Ce strike n'a pas de position ouverte, le ratio volume/OI n'est donc pas défini. Du volume face à une position ouverte nulle est l'état normal d'un strike récemment listé, pas un signe d'activité inhabituelle.",
+  "flowOiStaleNote": "La position ouverte est publiée une fois par jour après la clôture : ce ratio compare donc le volume du jour à la position ouverte de la séance précédente. Il ressort élevé en début de séance et est le moins fiable après un week-end. À utiliser comme indice de filtrage, pas comme mesure.",
   "eduGroup_core": "Noyau avancé",
   "eduGroup_alt": "Systèmes alternatifs",
   "eduGroup_macro": "Macro et par actif",
