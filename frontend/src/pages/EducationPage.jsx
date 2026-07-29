@@ -508,7 +508,7 @@ export default function EducationPage() {
   const EDUCATION_NAV = [
     { id: 'start', label: t('eduCatStart'), topics: [
       { value: 'start-here', label: t('shTitle') },
-      { value: 'my-setup', label: t('setupTab') },
+      { value: 'my-setup', label: t('tsysTitle') },
       { value: 'fundamentals', label: t('fundTab') },
       { value: 'mechanics', label: t('mechTab') },
       { value: 'styles', label: t('stylesTab') },

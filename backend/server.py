@@ -36,6 +36,8 @@ from options_math import (
     calculate_greeks,
     calculate_pnl_attribution,
     simulate_assignment,
+    implied_volatility,
+    year_fraction,
 )
 from stock_data import (
     COINGECKO_SYMBOL_TO_ID,
@@ -57,7 +59,9 @@ from performance import (
     generate_insights,
     trades_for_user,
     make_trade_doc,
+    sort_trades_chronologically,
 )
+from market_rates import get_risk_free_rate
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -4926,6 +4930,26 @@ async def opt_get_expirations(symbol: str):
     }
 
 
+def _synthetic_marker(is_synthetic: bool) -> Dict[str, Any]:
+    """Uniform flag for any response built on a modelled (not observed) chain.
+
+    Rule for this codebase: a response that contains modelled quotes always says
+    so. The frontend keys off `synthetic` to show a warning band; the prose in
+    `syntheticWarning` is the fallback for any client that doesn't.
+    """
+    if not is_synthetic:
+        return {"synthetic": False}
+    return {
+        "synthetic": True,
+        "syntheticWarning": (
+            "No real options chain is available for this symbol/expiration. "
+            "Prices, IV and Greeks below are MODEL ESTIMATES from an assumed "
+            "volatility smile, not market quotes; volume and open interest are "
+            "unavailable. Use for exploration only — do not trade off these numbers."
+        ),
+    }
+
+
 @api_router.get("/options/chain/{symbol}")
 async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
     stock = await asyncio.to_thread(get_stock_data, symbol)
@@ -4946,13 +4970,14 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
         expiration_idx = min(3, len(expirations) - 1)
     expiration = expirations[expiration_idx]
     chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
+    r = await asyncio.to_thread(get_risk_free_rate)
+    synthetic = not chain
     if not chain:
-        chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
+        chain = generate_options_chain(stock["price"], expiration["daysToExpiry"], r=r)
     else:
         # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
         from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
-        T = max(expiration["daysToExpiry"], 1) / 365
-        r = 0.0525
+        T = year_fraction(expiration["daysToExpiry"])
         for item in chain:
             K = item["strike"]
             for side in ("call", "put"):
@@ -4973,7 +4998,13 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
                 # Ensure mid is present
                 if "mid" not in leg or leg.get("mid") is None:
                     leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
-    return {"stock": stock, "expiration": expiration, "chain": chain}
+    return {
+        "stock": stock,
+        "expiration": expiration,
+        "chain": chain,
+        **_synthetic_marker(synthetic),
+        "riskFreeRate": round(r, 5),
+    }
 
 
 @api_router.get("/options/iv-surface/{symbol}")
@@ -4993,12 +5024,18 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
     if not expirations:
         expirations = generate_expirations()
     expirations = expirations[:max_expirations]
+    r = await asyncio.to_thread(get_risk_free_rate)
     surface_data = []
     all_strikes = set()
+    synthetic_expirations: List[str] = []
     for exp in expirations:
         chain = await asyncio.to_thread(get_options_chain_real, symbol, exp["date"])
         if not chain:
-            chain = generate_options_chain(stock["price"], exp["daysToExpiry"])
+            # A surface stitched from modelled smiles has a skew that was
+            # assumed, not observed. Keep it (it's still useful to explore the
+            # shape) but record exactly which expiries are made up.
+            synthetic_expirations.append(exp["date"])
+            chain = generate_options_chain(stock["price"], exp["daysToExpiry"], r=r)
         exp_data = {
             "date": exp["date"],
             "label": exp["label"],
@@ -5022,6 +5059,9 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
         "strikes": sorted_strikes,
         "atm_strike": atm_strike,
         "expirations": surface_data,
+        **_synthetic_marker(bool(synthetic_expirations)),
+        "syntheticExpirations": synthetic_expirations,
+        "riskFreeRate": round(r, 5),
     }
 
 
@@ -5046,6 +5086,46 @@ async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
     except Exception as e:
         logging.error(f"Payoff calculation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class ImpliedVolRequest(BaseModel):
+    """Back out IV from an observed option price."""
+    marketPrice: float
+    stockPrice: float
+    strike: float
+    daysToExpiry: float
+    optionType: str = Field(..., pattern="^(call|put)$")
+    dividendYield: Optional[float] = 0.0
+    riskFreeRate: Optional[float] = None
+
+
+@api_router.post("/calculate/implied-volatility")
+async def opt_implied_volatility(req: ImpliedVolRequest) -> Dict[str, Any]:
+    """Solve for the volatility that reproduces a given market price.
+
+    Without this the app can only consume whatever IV the data provider hands
+    over — which for illiquid strikes is garbage or a 0.30 default. Returns
+    `impliedVolatility: null` (not a fabricated number) when no volatility can
+    produce the quoted price, which usually means the quote itself is bad.
+    """
+    r = req.riskFreeRate if req.riskFreeRate is not None else await asyncio.to_thread(get_risk_free_rate)
+    T = year_fraction(req.daysToExpiry)
+    iv = implied_volatility(
+        req.marketPrice, req.stockPrice, req.strike, T, r,
+        req.optionType, req.dividendYield or 0.0,
+    )
+    return {
+        "impliedVolatility": iv,
+        "impliedVolatilityPct": round(iv * 100, 2) if iv is not None else None,
+        "timeToExpiryYears": round(T, 6),
+        "riskFreeRate": round(r, 5),
+        "solved": iv is not None,
+        "reason": None if iv is not None else (
+            "No volatility reproduces this price — the quote is outside the "
+            "no-arbitrage bounds (below intrinsic value or above the underlying), "
+            "or the contract has expired."
+        ),
+    }
 
 
 @api_router.post("/calculate/greeks")
@@ -5118,8 +5198,10 @@ async def optimize_options_strategy(req: OptimizeRequest):
         idx = max(0, min(req.expirationIdx, len(expirations) - 1))
         expiration = expirations[idx]
         chain = await asyncio.to_thread(get_options_chain_real, req.symbol, expiration["date"])
+        risk_free = await asyncio.to_thread(get_risk_free_rate)
+        synthetic = not chain
         if not chain:
-            chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
+            chain = generate_options_chain(stock["price"], expiration["daysToExpiry"], r=risk_free)
 
         results = optimize_strategies(
             symbol=req.symbol,
@@ -5132,6 +5214,7 @@ async def optimize_options_strategy(req: OptimizeRequest):
             expiration_label=expiration["fullLabel"],
             mode=req.mode,
             max_results=req.maxResults,
+            risk_free=risk_free,
         )
         return {
             "stock": stock,
@@ -5143,6 +5226,8 @@ async def optimize_options_strategy(req: OptimizeRequest):
                 "mode": req.mode,
             },
             "results": results,
+            **_synthetic_marker(synthetic),
+            "riskFreeRate": round(risk_free, 5),
         }
     except Exception as e:
         logging.error(f"Optimize error: {e}")
@@ -5444,6 +5529,8 @@ class AITradeAnalysisRequest(BaseModel):
     ivRank: Optional[float] = None
     daysToExpiry: Optional[int] = 30
     userBalance: Optional[float] = None
+    # UI language, so the coach answers in the language the user is reading.
+    locale: Optional[str] = "es"
 
 
 def _format_legs_for_prompt(legs: List[Dict[str, Any]]) -> List[str]:
@@ -5460,7 +5547,74 @@ def _format_legs_for_prompt(legs: List[Dict[str, Any]]) -> List[str]:
     return out
 
 
-def _build_ai_trade_prompt(req: "AITradeAnalysisRequest") -> str:
+_AI_COACH_LANGUAGES = {
+    "es": "Spanish", "en": "English", "de": "German", "fr": "French",
+    "ru": "Russian", "zh": "Chinese (Simplified)", "ja": "Japanese", "ar": "Arabic",
+}
+
+# The system prompt says what the assistant IS. The previous one claimed "15+
+# years of experience in volatility trading" — a human career the model does not
+# have, invented inside a paid financial product. It bought nothing (the
+# analysis is exactly as good either way) and cost credibility and regulatory
+# exposure. It is also where the guardrails belong: personalized investment
+# advice is a regulated activity, and a disclaimer in the site footer is not
+# where a user reads it — the response itself is.
+AI_COACH_SYSTEM_PROMPT = (
+    "You are the analysis assistant built into TradingCalculator.Pro. You are an AI, "
+    "not a person, and you never claim professional experience, credentials or a track "
+    "record. Your job is to explain what the numbers in front of the user imply about "
+    "the structure of their position and about their own trading record.\n\n"
+    "Rules you always follow:\n"
+    "- You do NOT give personalized investment advice and you do not tell the user to "
+    "buy or sell any specific instrument. You describe trade-offs and let them decide.\n"
+    "- You never invent data. If a figure is missing or flagged as an estimate, say so "
+    "rather than filling the gap.\n"
+    "- When the position carries undefined or very large downside, you say so plainly "
+    "and early, before discussing anything else.\n"
+    "- You are concrete and quantitative, you avoid hedging filler, and you never "
+    "repeat back numbers the user can already see without adding meaning to them."
+)
+
+
+def _format_user_context(analytics: Optional[Dict[str, Any]]) -> str:
+    """Render the user's own track record for the prompt.
+
+    This is what turns a generic options chatbot into something worth renewing
+    for. Without it the assistant can only restate the payoff diagram; with it
+    it can say "this is your fifth short-vol position this month and the last
+    four lost money in the same volatility regime" — a thing no generic tool
+    can tell them.
+    """
+    if not analytics or not analytics.get("closed_trades"):
+        return "\n\nTrader's own record: no closed trades logged yet — do not speculate about their habits."
+
+    lines = [
+        "\n\nTrader's OWN record (from their journal — use it, this is the part they can't get elsewhere):",
+        f"- Closed trades: {analytics.get('closed_trades')} · win rate {analytics.get('win_rate')}%",
+        f"- Expectancy {analytics.get('expectancy')} per trade · profit factor {analytics.get('profit_factor')}",
+        f"- Average R {analytics.get('avg_r')} (over {analytics.get('r_sample_size', 0)} trades with a defined stop)",
+        f"- Max drawdown {analytics.get('max_drawdown_pct')}%",
+    ]
+    if analytics.get("annualized"):
+        lines.append(f"- Sharpe {analytics.get('sharpe_ratio')} annualized "
+                     f"(~{analytics.get('trades_per_year')} trades/year)")
+    biases = analytics.get("behavioral_biases") or []
+    if biases:
+        lines.append("- Behavioural patterns already detected in their history: "
+                     + ", ".join(f"{b.get('code')} ({b.get('severity')})" for b in biases[:4]))
+    by_setup = [s for s in (analytics.get("by_setup") or []) if s.get("n", 0) >= 3][:4]
+    if by_setup:
+        lines.append("- By setup: " + "; ".join(
+            f"{s['group']}: {s['n']} trades, {s['win_rate']}% win, {s['pnl']} P&L" for s in by_setup))
+    exc = analytics.get("excursion") or {}
+    if exc.get("available") and exc.get("winners_mae_p80") is not None:
+        lines.append(f"- MAE: 80% of their winners never went more than "
+                     f"{exc['winners_mae_p80']}R against them")
+    return "\n".join(lines)
+
+
+def _build_ai_trade_prompt(req: "AITradeAnalysisRequest",
+                           analytics: Optional[Dict[str, Any]] = None) -> str:
     """Compose the markdown prompt sent to Claude. Pure / side-effect free."""
     legs_lines = _format_legs_for_prompt(req.legs)
     greeks_str = ""
@@ -5472,40 +5626,54 @@ def _build_ai_trade_prompt(req: "AITradeAnalysisRequest") -> str:
     iv_str = f"\nIV Rank: {req.ivRank:.0f}%" if req.ivRank is not None else ""
     balance_str = f"\nCapital disponible del trader: ${req.userBalance}" if req.userBalance else ""
 
-    max_profit_str = "Ilimitado" if req.stats.get("isMaxProfitUnlimited") else f"${req.stats.get('maxProfit', 0)}"
-    max_loss_str = "Ilimitado" if req.stats.get("isMaxLossUnlimited") else f"${req.stats.get('maxLoss', 0)}"
+    max_profit_str = "UNLIMITED" if req.stats.get("isMaxProfitUnlimited") else f"${req.stats.get('maxProfit', 0)}"
+    max_loss_str = "UNLIMITED" if req.stats.get("isMaxLossUnlimited") else f"${req.stats.get('maxLoss', 0)}"
 
-    return f"""Actúa como un coach de trading de opciones experto y conciso. Analiza esta operación:
+    language = _AI_COACH_LANGUAGES.get((req.locale or "es")[:2].lower(), "Spanish")
+    user_context = _format_user_context(analytics)
 
-Subyacente: {req.symbol} @ ${req.stockPrice:.2f}
-Vencimiento: {req.daysToExpiry}d
+    return f"""Analyse the following options position.
+
+Underlying: {req.symbol} @ ${req.stockPrice:.2f}
+Days to expiry: {req.daysToExpiry}
 
 Legs:
 {chr(10).join(['  - ' + leg for leg in legs_lines])}
 
-Métricas:
-- Máx. Beneficio: {max_profit_str}
-- Máx. Pérdida: {max_loss_str}
+Position metrics:
+- Max profit: {max_profit_str}
+- Max loss: {max_loss_str}
 - POP: {req.stats.get('pop', '—')}%
 - ROI: {req.stats.get('roi', '—')}%
 - R/R: {req.stats.get('rr', '—')}
-- Capital requerido: ${req.stats.get('capitalRequired', 0)}{greeks_str}{iv_str}{balance_str}
+- Capital required: ${req.stats.get('capitalRequired', 0)}{greeks_str}{iv_str}{balance_str}{user_context}
 
-Proporciona tu análisis en ESPAÑOL con EXACTAMENTE esta estructura (Markdown):
+Write your analysis in {language}, in Markdown, with EXACTLY this structure:
 
-**✅ Puntos Fuertes**
-- (2-3 bullets concretos)
+**✅ What works**
+- (2-3 concrete bullets)
 
-**⚠️ Riesgos Principales**
-- (2-3 bullets concretos)
+**⚠️ Main risks**
+- (2-3 concrete bullets. If max loss is UNLIMITED or exceeds the trader's
+  available capital, that has to be the first bullet, stated plainly.)
 
-**💡 Mejoras Sugeridas**
-- (2-3 acciones accionables específicas: strikes distintos, ajustar contratos, hedge, rolar, etc.)
+**🔍 What your own history says**
+- (1-2 bullets connecting THIS position to the trader's record above — a setup
+  that has or hasn't worked for them, a bias this trade would repeat, a
+  drawdown this size of position would cause. If they have no logged history,
+  say so in one line instead of guessing.)
 
-**📊 Veredicto**
-Una frase final recomendando ENTRAR / AJUSTAR / EVITAR y por qué.
+**💡 Things to weigh**
+- (2-3 specific structural alternatives — different strikes, fewer contracts, a
+  defined-risk version of the same thesis, a hedge — framed as trade-offs to
+  consider, never as instructions to place.)
 
-Sé directo, profesional y práctico. No repitas los números que ya tiene el trader — analiza el SIGNIFICADO. Máximo 250 palabras totales."""
+**📊 Read**
+One sentence on whether the structure matches the stated thesis, and the single
+biggest thing that would have to be true for it to work.
+
+Be direct and quantitative. Do not restate numbers the trader can already see —
+explain what they IMPLY. Maximum 280 words."""
 
 
 @api_router.post("/options/ai-analyze")
@@ -5522,20 +5690,45 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
             raise HTTPException(status_code=500, detail="AI key not configured")
 
         client = _anthropic.Anthropic(api_key=api_key)
-        prompt = _build_ai_trade_prompt(req)
+
+        # The coach is only worth its price if it analyses the USER, not just the
+        # payoff diagram. Pull their own journal analytics into the prompt; a
+        # failure here degrades the answer but must never fail the request.
+        analytics: Optional[Dict[str, Any]] = None
+        try:
+            rows = await trades_for_user(db, user["id"], limit=500)
+            if rows:
+                enriched: List[dict] = []
+                seen: List[dict] = []
+                for t in sort_trades_chronologically(rows):
+                    e = _enrich_trade(t, prev_trades=list(seen))
+                    enriched.append(e)
+                    seen.append(e)
+                analytics = compute_analytics(enriched)
+        except Exception as ctx_err:  # noqa: BLE001
+            logging.warning(f"AI coach: could not load trader context: {ctx_err}")
+
+        prompt = _build_ai_trade_prompt(req, analytics)
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
         message = await _asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.messages.create(
-                model="claude-sonnet-4-5-20250929",
+                model=model,
                 max_tokens=1024,
-                system=(
-                    "Eres un coach de trading de opciones experto con 15+ años de experiencia "
-                    "en volatility trading. Respondes en español, directo, profesional, y basado en datos."
-                ),
+                system=AI_COACH_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
             ),
         )
-        return {"analysis": message.content[0].text, "model": "claude-sonnet-4-5"}
+        return {
+            "analysis": message.content[0].text,
+            "model": model,
+            "usedTraderContext": bool(analytics and analytics.get("closed_trades")),
+            # Shown at the point of use, not just in the footer.
+            "disclaimer": (
+                "AI-generated analysis, not investment advice. It describes the "
+                "structure of a position you built; it does not recommend trading it."
+            ),
+        }
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
@@ -5786,6 +5979,11 @@ class TradeIn(BaseModel):
     exit_price: Optional[float] = None
     sl: Optional[float] = None
     tp: Optional[float] = None
+    # Maximum adverse / favourable excursion: the worst and best price the
+    # trade reached while it was open. Optional, but they are what powers the
+    # stop/target calibration analysis.
+    mae_price: Optional[float] = None
+    mfe_price: Optional[float] = None
     quantity: float
     entry_date: Optional[str] = None
     exit_date: Optional[str] = None
@@ -5938,15 +6136,17 @@ async def perf_delete_trade(trade_id: str, user: dict = Depends(require_premium)
 @api_router.get("/performance/analytics")
 async def performance_analytics(user: dict = Depends(require_premium)):
     rows = await trades_for_user(db, user["id"], limit=1000)
-    # Re-enrich to get fresh errors and pnl
+    # Re-enrich to get fresh errors and pnl. Enrichment is order-sensitive
+    # (revenge-trade detection needs the trades that preceded each one), so walk
+    # the history oldest-first explicitly rather than relying on the fetch order.
     enriched: List[dict] = []
     seen: List[dict] = []
-    for t in reversed(rows):
+    for t in sort_trades_chronologically(rows):
         e = _enrich_trade(t, prev_trades=list(seen))
         enriched.append(e)
         seen.append(e)
-    enriched.reverse()
-    analytics = compute_analytics(enriched)
+    risk_free = await asyncio.to_thread(get_risk_free_rate)
+    analytics = compute_analytics(enriched, risk_free_rate=risk_free)
     insights = generate_insights(analytics)
     return {"analytics": analytics, "insights": insights}
 

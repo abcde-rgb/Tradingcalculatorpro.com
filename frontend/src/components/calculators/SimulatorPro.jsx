@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useIsPremium } from '@/lib/premium';
 import { runSimulation } from './simulator/simulatorEngine';
+import MonteCarloPanel from './simulator/MonteCarloPanel';
 import SimulatorLocked from './simulator/SimulatorLocked';
 import SimulatorConfigPanel from './simulator/SimulatorConfigPanel';
 import SimulatorResults from './simulator/SimulatorResults';
@@ -58,6 +59,7 @@ export function SimulatorPro() {
   // Output
   const [results, setResults] = useState(null);
   const [operations, setOperations] = useState([]);
+  const [lastConfig, setLastConfig] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfig, setShowConfig] = useState(true);
 
@@ -126,17 +128,21 @@ export function SimulatorPro() {
     return { start, end };
   };
 
+  const buildConfig = () => ({
+    initialBalance, capitalMode, phases, compoundInterest,
+    tradingComm, platformComm,
+    fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
+    fixedPartialTps, fixedPartialLegs, fixedPartialCont,
+  });
+
   const executeSimulation = () => {
     if (!isPremium) return;
     setIsLoading(true);
-    const { operations: ops, results: agg } = runSimulation({
-      initialBalance, capitalMode, phases, compoundInterest,
-      tradingComm, platformComm,
-      fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
-      fixedPartialTps, fixedPartialLegs, fixedPartialCont,
-    });
+    const cfg = buildConfig();
+    const { operations: ops, results: agg } = runSimulation(cfg);
     setResults(agg);
     setOperations(ops);
+    setLastConfig(cfg);
     setShowConfig(false);
     setIsLoading(false);
   };
@@ -144,6 +150,7 @@ export function SimulatorPro() {
   const resetSimulation = () => {
     setResults(null);
     setOperations([]);
+    setLastConfig(null);
     setShowConfig(true);
   };
 
@@ -179,6 +186,9 @@ export function SimulatorPro() {
           onReset={resetSimulation}
         />
       )}
+
+      {/* One path is a sample, not a forecast — the distribution is next. */}
+      {results && lastConfig && <MonteCarloPanel config={lastConfig} />}
     </div>
   );
 }

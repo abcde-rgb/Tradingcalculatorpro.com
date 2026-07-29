@@ -5,8 +5,8 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-07-27
-> - 🌿 **Rama de trabajo actual:** `claude/digital-project-audit-3upqfd`
+> - 📅 **Última verificación real contra el código:** 2026-07-29
+> - 🌿 **Rama de trabajo actual:** `claude/implement-per-docs-0maz7v`
 >
 > ⚠️ **Aviso de método (2026-07-27).** Las §1, §2 y §6 se habían quedado un mes
 > por detrás del código mientras el registro de sesiones (§7) sí se actualizaba.
@@ -26,8 +26,8 @@
 | Área | Estado | Nota |
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
-| **Backend import + sintaxis** | 🟢 | `import server` OK → **181 rutas**; los **16** módulos compilan |
-| **Tests offline** | 🟢 | `pytest tests/` → **264 passed, 74 skipped** (2026-07-27) |
+| **Backend import + sintaxis** | 🟢 | `import server` OK → **183 rutas**; los **17** módulos compilan (2026-07-29) |
+| **Tests offline** | 🟢 | `pytest tests/` → **312 passed, 74 skipped** (2026-07-29) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟡→🟢 | **Estaba roto**: el parser abortaba en los 283 ficheros, así que lintaba 0. Arreglado 2026-07-27 y añadido a CI → **0 errores**, 128 avisos de limpieza |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
@@ -1935,3 +1935,162 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   `npm run build` exit 0 con las 744 URLs del sitemap; fix del buscador probado contra
   **PostgreSQL 16 real** (antes: excepción; después: busca literal y sigue siendo
   insensible a mayúsculas).
+
+### 2026-07-29 — Correcciones de las 3 auditorías externas (trader / opciones / sistema)
+
+Sesión guiada por tres documentos entregados por el dueño:
+`ANALISIS_TRADER_20260728`, `AUDITORIA_CONTENIDO_APRENDIZAJE_OPCIONES_20260728` y
+`PROPUESTA_SISTEMA_TRADING_SETUP_20260728`. Se implementó el **plan de acción
+priorizado del propio análisis** (Semana 1 + Mes 1), el hallazgo P0 de la auditoría
+de opciones y la propuesta completa del sistema de trading.
+
+#### 🔴 Bugs de cálculo corregidos (números que el usuario usaba para decidir)
+
+- **§2.1 La curva de equity y el max drawdown iban al revés en el tiempo.**
+  `performance_analytics` pasaba la lista de la más nueva a la más vieja y
+  `compute_analytics` la recorría tal cual. **El drawdown no es simétrico bajo
+  inversión**: al dar la vuelta a la serie las caídas se vuelven subidas, así que el
+  DD reportado salía *por debajo* del real (verificado: la muestra de 120 operaciones
+  del análisis daba 21,42 % invertida frente a **25,36 %** cronológica — nuestro fix
+  devuelve 25,36 %). Además se ordenaba por `entry_date` cuando lo correcto para una
+  curva realizada es `exit_date`, y `starting_balance` tomaba el saldo de la operación
+  **más reciente**, del que colgaban todos los porcentajes.
+  → Nuevo `sort_trades_chronologically()` (por fecha de salida) aplicado dentro de
+  `compute_analytics`, que ahora es **independiente del orden de entrada** (test).
+- **§2.2 El "Monte Carlo" ejecutaba UNA trayectoria.** `simulatorEngine.js` no tenía
+  bucle externo: el usuario veía un ROI y un drawdown, pulsaba recalcular y salían
+  números distintos. Añadido `runMonteCarlo()` real (N trayectorias → P5/P50/P95 de
+  saldo y ROI, distribución de drawdown, **probabilidad de ruina** y **probabilidad de
+  superar un límite de DD**, que es la métrica que necesita quien va a un challenge de
+  fondeo) + panel `MonteCarloPanel.jsx` con histograma.
+- **§2.2 (bis) El max drawdown del simulador no era un max drawdown.** Calculaba
+  `(picoGlobal − mínimoGlobal) / picoGlobal`; si el mínimo ocurre *antes* del pico
+  reporta una caída que jamás pasó (con `100→50→200→150` daba 75 %, real 50 %).
+  Sustituido por seguimiento de pico corriente. El backend ya lo hacía bien: los dos
+  módulos se contradecían.
+- **§2.3 Con el interruptor de interés compuesto apagado la simulación no simulaba.**
+  `if (compoundInterest) capital += netResult` → saldo final = inicial, ROI 0 %, DD 0 %
+  y las 180 filas con el mismo número. Compuesto OFF significa que **el tamaño de
+  posición** deja de crecer, no que la cuenta deje de moverse.
+- **§2.4 Sharpe y Sortino.** Sharpe era por operación pero los umbrales estaban
+  calibrados como si fuera anualizado (un Sharpe anualizado de 2,0 con 120 ops/año son
+  0,18 por operación: nunca disparaba el badge). Ahora: series de retornos reales sobre
+  la curva de equity, `stdev` muestral, resta del tipo libre de riesgo y **anualización
+  con las fechas reales** — y si la muestra es demasiado corta o breve para anualizar
+  honestamente, se devuelve `annualized: false` y los insights **callan** en vez de
+  juzgar. Sortino dividía el downside entre el nº de negativos en vez de entre N total
+  (infravaloraba sistemáticamente) y devolvía `0.0` sin pérdidas, que se lee como
+  pésimo: ahora es `None` (indefinido).
+- **§2.5 Las operaciones sin stop contaminaban el R medio.** `r_multiple` era `0.0`
+  sin stop y entraba en el agregado, arrastrando `avg_r` hacia la media y metiendo un
+  pico artificial en el bucket `0R..1R`. Ahora es `None` (indefinido, que es lo que es),
+  se excluye del agregado y se reportan `r_sample_size` / `trades_without_r` + aviso en
+  la UI y un insight.
+
+#### 🟠 Funcionalidad nueva del análisis (Mes 1)
+
+- **§2.6 MAE / MFE** — el hueco que el análisis llama "la métrica más rentable de un
+  diario". Campos `mae_price`/`mfe_price` en el diario, `mae_r`/`mfe_r` calculados,
+  agregado `excursion` (MAE media, MFE media, **p80 de MAE de las ganadoras**, cuántas
+  perdedoras llegaron a +1R) + **scatter MAE-vs-resultado** en el dashboard y dos
+  insights nuevos (stop más ancho de lo que pide la evidencia / ganadoras devueltas).
+- **§3.1 Bandera `synthetic`.** `/options/chain`, `/options/iv-surface` y `/optimize`
+  marcan toda respuesta construida sobre cadena modelada, con banda de aviso en la UI.
+  Además **se han eliminado el volumen y el interés abierto inventados**
+  (`rng.randint(50, 8000)`): son observaciones de lo que hicieron otros, no salida de
+  un modelo — y con ellos dentro, todo ratio volumen/OI leía números aleatorios. Ahora
+  van a `None`.
+- **§3.3 Tipo libre de riesgo en vivo.** Nuevo `backend/market_rates.py`: lee `^IRX`
+  (letra a 13 semanas), cachea 6 h, banda de plausibilidad, y **nunca lanza** — sin red
+  sirve el último valor bueno o el fallback. Sustituye el `0.0525` de 2023-24
+  hardcodeado en tres sitios. Además `year_fraction()` hace **T consciente de la hora**:
+  antes un 0DTE valía `1/365` plano toda la sesión, cuando theta y gamma cambian por
+  horas el último día.
+- **§3.4 Solver de volatilidad implícita.** `implied_volatility()`: Newton-Raphson
+  sobre vega con **bisección de respaldo** (Newton diverge donde vega colapsa) +
+  endpoint `POST /calculate/implied-volatility`. Devuelve `None` —no un número— cuando
+  la respuesta no es recuperable: cotización fuera de las bandas de no-arbitraje, o
+  contrato tan dentro de dinero que su precio es plano en sigma (ahí cualquier cifra es
+  un artefacto de la tolerancia, que es justo el problema de los strikes ilíquidos).
+- **§3.5 Valor esperado, CVaR y probabilidad de tocar.** El optimizador ordenaba por
+  ROI-al-objetivo (selecciona billetes de lotería OTM) o por POP (selecciona venta de
+  volatilidad): **ninguna de las dos mide ventaja**. Añadidos `expectedValue`,
+  `evOnCapital`, `cvar5` (media del peor 5 %), `probLargeLoss` y `probTouchBreakEven`
+  integrando el P&L sobre la distribución lognormal terminal, y **el modo por defecto
+  pasa a ordenar por valor esperado sobre capital**.
+- **§5.4 Prompt del AI Coach reescrito.** Fuera el currículum humano inventado
+  ("coach con 15+ años de experiencia en volatility trading"): ahora se presenta como
+  el asistente de análisis que es. Se le inyectan **las analíticas reales del usuario**
+  (win rate, expectancy, R medio, drawdown, sesgos detectados, rendimiento por setup,
+  MAE) para que pueda decir lo único que no da ningún chatbot genérico; barreras de
+  "no recomendaciones personalizadas"; responde en **el idioma de la UI** (8 idiomas,
+  antes solo español); modelo configurable por env; `disclaimer` en la propia respuesta.
+
+#### 🔴 Auditoría de opciones — P0 #1 (riesgo indefinido)
+
+`short_call` / `short_straddle` / `short_strangle` se podían construir en la
+calculadora sin que nada avisara. Son el **negativo fotográfico** del straddle que la
+Academia sí enseña: quien conoce la palabra puede montarlo creyendo que es "lo mismo
+pero vendido" y llevarse un perfil de riesgo completamente distinto. Añadida
+clasificación `_risk_profile()` con detección de **patas cortas sin cubrir** (no basta
+mirar `maxLoss`: con el rango de payoff de ±35 % una short call desnuda no llegaba al
+umbral de "ilimitado" y salía como riesgo acotado) y aviso rojo en la tarjeta del
+optimizador, **antes** de las métricas atractivas. Distingue riesgo `undefined` de
+`substantial` (put desnuda: acotado, pero el límite es el nocional entero) y no marca
+la covered call, que sí está cubierta por las acciones.
+
+#### 🟢 Propuesta del sistema de trading — implementada entera
+
+`SetupBuilder.jsx` guardaba **un** setup en una sola clave de `localStorage` y lo
+sobrescribía. Reconstruido como **"Mi Sistema de Trading"**:
+- **Librería de setups** (crear / editar / duplicar / eliminar, id propio cada uno) con
+  migración automática del setup v1 existente — no se pierde nada.
+- **Gatillo de entrada e invalidación** (§D de la propuesta), la pieza que faltaba por
+  completo: sin ella dos traders con las mismas etiquetas entran en momentos distintos.
+- HTF + LTF separados (el método Top-Down que ya se enseña no se podía representar con
+  un único chip), tipo de setup, activos, sesión, método de S/R como campo propio,
+  regla de stop, gestión, máx. posiciones simultáneas.
+- **Enlazado al contenido que ya existía** en vez de duplicar catálogos: los 42 patrones
+  de `getChartPatterns` y los 30 patrones de vela con su `successRate` de
+  `CANDLE_PATTERN_STATS`.
+- **Bloque de reglas del sistema** (§F), que no vivía en ningún sitio: pérdida máxima
+  diaria/semanal, condiciones de no-operar, exposición correlacionada máxima, checklist.
+- Modelo puro y testeable en `tradingSystemModel.js`; indicador de qué le falta a cada
+  setup para ser operable.
+
+#### ✅ Verificación
+
+- `pytest tests/` → **312 passed / 74 skipped** (eran 264; **+48 tests nuevos** en
+  `test_analytics_correctness_unit.py` y `test_options_edge_unit.py`, cada uno fijando
+  un defecto concreto de los documentos).
+- `python -m py_compile *.py` OK (**17 módulos**, +`market_rates.py`).
+- Nuevo `frontend/scripts/engine-check.js` (**30 comprobaciones**, en CI): el simulador
+  y el modelo del sistema producen números con los que se dimensionan posiciones y
+  viven en el frontend, donde no hay pytest.
+- i18n **5470 claves × 8 idiomas, 0 huecos** (+143 claves nuevas traducidas a los 8).
+  ⚠️ Lección repetida: el prefijo `mc*` colisionaba con el módulo de macro
+  (`mcTitle` = "Macro: ciclo, tipos y rotación") → renombrado a `mcsim*`. Es el mismo
+  fallo que ya pasó con `bs*`/Black-Scholes: **comprobar el prefijo antes de escribir**.
+- ESLint **0 errores**; `npm run build` exit 0.
+
+#### ⏳ Lo que estos documentos piden y NO se ha hecho en esta sesión
+
+Queda explícito para no dar por cerrado lo que sigue abierto:
+- **Motor de backtest con separación in-sample/out-of-sample, walk-forward y contador
+  de pruebas** (§5.1). El análisis lo llama "el mayor hueco del producto" y "esto es el
+  producto". Es un trimestre de trabajo, no cabía aquí.
+- **Riesgo a nivel de cartera** (§5.2): heat agregado, correlación, bloqueo real al
+  tocar el límite diario. Las reglas ya se *definen* en el sistema de trading nuevo,
+  pero nada las hace cumplir todavía.
+- **Decisión sobre el proveedor de datos de opciones** (§3.2): Yahoo v7 da OI de ayer y
+  no distingue at-bid/at-ask. Es una decisión de negocio (pagar Polygon/ORATS/Tradier o
+  degradar Unusual Activity y Market Flow fuera del tier de pago), no de código.
+- **Sincronización con IBKR/Binance** (§5.3), **precios y tiers** (§6), **poda de las
+  ~744 páginas SEO** y **reducción de pasarelas** (§4).
+- **Auditoría de opciones**: P0 #2 (explicación canónica de Griegas/IV/Vega y enlazar
+  en vez de reexplicar en 4-6 sitios) y P1 #3-#5 (fichas de `collar`,
+  `bull_put_spread`, `bear_call_spread`, `jade_lizard`, `short_strangle`; módulo de
+  margen de opciones separado de `margin-liq`; fiscalidad de ejercicio/asignación).
+- **Griegas americanas** (§3.4): la valoración sigue siendo europea (BSM) sobre
+  opciones americanas; falta binomial/BAW para asignación temprana con dividendo.
+- **Jerarquizar la educación por evidencia** (§1) y sub-agrupar el pilar "Avanzado".

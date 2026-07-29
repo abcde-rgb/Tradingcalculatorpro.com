@@ -76,6 +76,23 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 
 **Nunca añadir SQL directo** — usar siempre la API de `Collection`.
 
+## Reglas de honestidad numérica (no romper)
+
+El producto muestra cifras con las que el usuario dimensiona posiciones reales.
+Tres reglas que ya costaron bugs y están fijadas por tests:
+
+1. **Nada de datos inventados sin etiquetar.** Toda respuesta construida sobre
+   `generate_options_chain` lleva `synthetic: true` (helper `_synthetic_marker`) y la UI
+   pinta una banda de aviso. El volumen y el interés abierto de una cadena modelada van a
+   `None`: son observaciones, no salida de un modelo (llenarlos con `rng.randint` hacía que
+   todo ratio volumen/OI leyera ruido).
+2. **Lo que no se puede calcular es `None`, no `0`.** Un R sin stop es indefinido, no cero
+   (como cero arrastra `avg_r` y falsea la distribución). Un Sortino sin pérdidas es
+   indefinido, no cero. Una IV que el precio no puede determinar es `None`, no una cifra.
+3. **Lo sensible al orden se ordena explícitamente.** La curva de equity, el drawdown y las
+   rachas se construyen sobre `sort_trades_chronologically()` (por `exit_date`), nunca sobre
+   el orden en que llegó la consulta: el drawdown no es simétrico bajo inversión.
+
 ## Módulos del backend
 
 | Archivo | Responsabilidad |
@@ -94,6 +111,7 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 | `affiliate_program.py` | Programa de afiliados: comisiones, tramos y solicitudes de pago |
 | `market_data.py` | Capa de datos de mercado multi-proveedor |
 | `options_optimize.py` | Optimizador de estrategias de opciones |
+| `market_rates.py` | Tipo libre de riesgo en vivo (^IRX) con caché y fallback — **no** hardcodear 0.0525 |
 | `nowpayments.py` | Cripto: creación de factura + verificación HMAC-SHA512 del IPN |
 | `revolut.py` | Revolut Pay: creación de pedido y confirmación |
 
