@@ -1,4 +1,9 @@
 export default {
+  "structPriceLive": "Precio en vivo",
+  "structPriceLastClose": "Último cierre",
+  "structRefLiveHint": "Los niveles se clasifican como soporte o resistencia comparándolos con este precio en vivo.",
+  "structRefCloseHint": "No hay cotización en vivo disponible, así que los niveles se clasifican contra el cierre de la última vela de esta temporalidad. Con el mercado cerrado o en fin de semana, el precio real puede estar en otro sitio.",
+  "structRefDivergence": "El precio se ha movido un {pct}% desde el cierre ({close}): {n} nivel(es) quedan entre ambos y cambian de rol según cuál se use.",
   "patProvisionalTag": "Provisional",
   "patProvisionalHint": "La última vela de este patrón aún no ha cerrado: su cuerpo sigue moviéndose, así que la figura puede desaparecer en el próximo tick. No la trates como confirmada.",
   "flowNoOi": "sin OI",

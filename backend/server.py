@@ -6136,7 +6136,19 @@ async def education_structure_scan(
         if not rows:
             return {**meta, "rowsScanned": 0, "trend": "range",
                     "swings": [], "events": [], "levels": [], "fvgs": []}
-        res = await asyncio.to_thread(detect_structure, rows, strn)
+        # The support/resistance split is decided against a reference price, and
+        # the last bar's close is not "the price now" once the session is over.
+        # Fetch the live quote so the split answers the question the panel is
+        # actually asking; a failure here is not fatal — detect_structure falls
+        # back to the last close and says so in `referenceSource`.
+        live_price = None
+        try:
+            quote = await asyncio.to_thread(get_stock_data, sym)
+            live_price = quote.get("price")
+        except Exception as quote_err:  # noqa: BLE001
+            logging.info(f"structure-scan: no live quote for {sym}: {quote_err}")
+
+        res = await asyncio.to_thread(detect_structure, rows, strn, None, live_price)
         forming = _bar_is_forming(rows, tf.minutes)
         _mark_provisional(res, forming, len(rows) - 1)
         return {**meta, "lastBarForming": forming, **_trim_structure(res)}

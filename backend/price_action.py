@@ -15,6 +15,7 @@ Pure, deterministic functions over a list of OHLC dicts
 ``[{date, open, high, low, close}]`` ascending by date. No I/O, no deps —
 unit-testable in isolation (see tests/test_price_action_unit.py).
 """
+import time
 from typing import Any, Dict, List
 
 Row = Dict[str, float]
@@ -578,7 +579,8 @@ def auto_tolerance(rows: List[Row]) -> float:
 
 
 def detect_structure(rows: List[Row], strength: int = 2,
-                     tolerance: float = None) -> Dict[str, Any]:
+                     tolerance: float = None,
+                     live_price: float = None) -> Dict[str, Any]:
     """Full price-action structure read for a series of OHLC rows.
 
     `tolerance` defaults to `auto_tolerance(rows)` so the same call behaves
@@ -589,6 +591,10 @@ def detect_structure(rows: List[Row], strength: int = 2,
         # branch on "did the scan return the short shape or the long one".
         return {"trend": "range", "swings": [], "events": [], "levels": [], "fvgs": [],
                 "breakouts": [], "rowsScanned": len(rows or []), "currentPrice": None,
+                "referencePrice": None, "referenceSource": None, "lastClose": None,
+                "livePrice": None, "liveVsCloseDivergencePct": None,
+                "referenceTs": None, "referenceDate": None, "referenceAgeSeconds": None,
+                "levelsBetweenLiveAndClose": 0,
                 "tolerancePct": None, "atr": None, "atrPct": None,
                 "nearestResistance": None, "nearestSupport": None,
                 "levelsAnalysed": 0,
@@ -596,7 +602,39 @@ def detect_structure(rows: List[Row], strength: int = 2,
                            "resistances": 0, "supports": 0, "flipped": 0,
                            "confirmedLevels": 0, "confirmedEvents": 0,
                            "fvgOpen": 0, "breakouts": 0, "fakeouts": 0}}
-    current_price = rows[-1].get("close")
+    # The reference price for the support/resistance split. It is the CLOSE OF
+    # THE LAST BAR of the requested timeframe, which is not the same thing as
+    # "the price now": on a daily chart after the close it is today's close, on
+    # a Saturday it is Friday's, on a monthly chart it is this month's running
+    # close, and Yahoo's chart feed is itself delayed on many venues.
+    #
+    # This matters more here than anywhere else in the scanner, because the
+    # whole support/resistance role hangs off a comparison with it — see
+    # `detect_sr_levels`, where getting that role backwards is called the single
+    # most misleading thing this scanner could say. The reference and its age
+    # are therefore reported, so the caller can show what the split was actually
+    # computed against instead of implying it is live.
+    last_close = rows[-1].get("close")
+    reference_ts = rows[-1].get("ts")
+    reference_date = rows[-1].get("date")
+
+    # Prefer the live quote when the caller supplies one. A trader reading a
+    # support/resistance panel is asking "where is price relative to these
+    # levels RIGHT NOW", and on a daily chart after the close — or at any point
+    # over a weekend — the last bar's close answers a different question. When
+    # no live quote is available the last close is used and labelled as such.
+    use_live = live_price is not None and live_price > 0
+    reference_price = float(live_price) if use_live else last_close
+    reference_source = "live" if use_live else "last_close"
+    # How far the live quote has moved from the last bar's close. This is the
+    # number that decides whether the two would classify levels differently: a
+    # level sitting between them flips role depending on which one is used.
+    divergence_pct = (
+        round((reference_price - last_close) / last_close * 100, 3)
+        if (use_live and last_close) else None
+    )
+
+    current_price = reference_price
     tol = auto_tolerance(rows) if tolerance is None else tolerance
     atr = _avg_true_range(rows)
     swings = detect_swings(rows, strength=strength)
@@ -613,7 +651,26 @@ def detect_structure(rows: List[Row], strength: int = 2,
     fvgs = detect_fvgs(rows)
     breakouts = detect_breakouts(rows, levels, strength=strength)
     return {
+        # Kept for backwards compatibility with existing clients, but the name
+        # overpromises: see `referencePrice` below for what it actually is.
         "currentPrice": round(current_price, 6) if current_price else None,
+        "referencePrice": round(reference_price, 6) if reference_price else None,
+        "referenceSource": reference_source,
+        "lastClose": round(last_close, 6) if last_close else None,
+        "livePrice": round(float(live_price), 6) if use_live else None,
+        "liveVsCloseDivergencePct": divergence_pct,
+        "referenceTs": reference_ts,
+        "referenceDate": reference_date,
+        "referenceAgeSeconds": (
+            max(0, int(time.time() - float(reference_ts))) if reference_ts else None
+        ),
+        # Levels sitting between the live quote and the last close are the ones
+        # whose support/resistance role depends on which reference is used.
+        "levelsBetweenLiveAndClose": (
+            sum(1 for l in levels
+                if min(reference_price, last_close) <= l["price"] <= max(reference_price, last_close))
+            if (use_live and last_close) else 0
+        ),
         "tolerancePct": round(tol * 100, 3),
         "atr": round(atr, 6) if atr else None,
         "atrPct": round(atr / current_price * 100, 3) if (atr and current_price) else None,

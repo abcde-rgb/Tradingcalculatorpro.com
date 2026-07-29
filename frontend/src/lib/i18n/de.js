@@ -1,4 +1,9 @@
 export default {
+  "structPriceLive": "Live-Kurs",
+  "structPriceLastClose": "Letzter Schlusskurs",
+  "structRefLiveHint": "Die Level werden als Unterstützung oder Widerstand eingestuft, indem sie mit diesem Live-Kurs verglichen werden.",
+  "structRefCloseHint": "Keine Live-Notierung verfügbar, daher werden die Level gegen den Schlusskurs der letzten Kerze dieser Zeiteinheit eingestuft. Bei geschlossenem Markt oder am Wochenende kann der tatsächliche Kurs woanders liegen.",
+  "structRefDivergence": "Der Kurs hat sich seit dem Schluss um {pct}% bewegt ({close}): {n} Level liegen dazwischen und wechseln je nach verwendeter Referenz die Rolle.",
   "patProvisionalTag": "Vorläufig",
   "patProvisionalHint": "Die letzte Kerze dieses Musters ist noch nicht geschlossen: Ihr Körper bewegt sich weiter, die Formation kann beim nächsten Tick verschwunden sein. Nicht als bestätigt behandeln.",
   "flowNoOi": "kein OI",

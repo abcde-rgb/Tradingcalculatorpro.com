@@ -1,4 +1,9 @@
 export default {
+  "structPriceLive": "リアルタイム価格",
+  "structPriceLastClose": "直近終値",
+  "structRefLiveHint": "各水準は、このリアルタイム価格と比較してサポートかレジスタンスかを判定しています。",
+  "structRefCloseHint": "リアルタイムの気配が取得できないため、各水準はこの時間軸の最終ローソク足の終値を基準に判定しています。市場が閉まっている場合や週末は、実際の価格が別の位置にある可能性があります。",
+  "structRefDivergence": "終値（{close}）から価格が{pct}%動いています。{n}件の水準がその間にあり、どちらを基準にするかで役割が変わります。",
   "patProvisionalTag": "暫定",
   "patProvisionalHint": "このパターンの最後のローソク足はまだ確定していません。実体が動き続けているため、次のティックで形が消える可能性があります。確定したものとして扱わないでください。",
   "flowNoOi": "建玉なし",

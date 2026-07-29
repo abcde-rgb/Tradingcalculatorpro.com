@@ -584,14 +584,43 @@ const StructureScanner = () => {
                 : <div className="text-[11px] text-muted-foreground px-1 pb-1">{t('structNoneAbove')}</div>}
             </div>
 
+            {/* The whole support/resistance split hangs off this one number, so
+                it has to say WHICH price it is. Labelling the last bar's close
+                "price now" was wrong on any closed session and on every
+                weekend, and a level between the close and the live quote flips
+                role depending on which one is used. */}
             <div
-              className="flex items-center gap-2 my-2 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5"
+              className="my-2 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5"
               data-testid="struct-price-now"
             >
-              <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">
-                {t('structPriceNow')}
-              </span>
-              <span className="font-mono font-bold text-primary">{data.currentPrice}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                  {data.referenceSource === 'live' ? t('structPriceLive') : t('structPriceLastClose')}
+                </span>
+                <span className="font-mono font-bold text-primary">
+                  {data.referencePrice ?? data.currentPrice}
+                </span>
+                {data.referenceSource !== 'live' && data.referenceDate && (
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    · {data.referenceDate}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-snug mt-1">
+                {data.referenceSource === 'live'
+                  ? t('structRefLiveHint')
+                  : t('structRefCloseHint')}
+              </p>
+              {/* Only worth showing when a level actually sits in the gap. */}
+              {data.referenceSource === 'live' && data.levelsBetweenLiveAndClose > 0 && (
+                <p className="text-[10px] leading-snug mt-1 text-[#fbbf24]"
+                   data-testid="struct-ref-divergence">
+                  {t('structRefDivergence')
+                    .replace('{n}', String(data.levelsBetweenLiveAndClose))
+                    .replace('{close}', String(data.lastClose))
+                    .replace('{pct}', String(data.liveVsCloseDivergencePct))}
+                </p>
+              )}
             </div>
 
             <div className="text-[10px] uppercase tracking-wider text-[#22c55e] font-semibold mb-1">

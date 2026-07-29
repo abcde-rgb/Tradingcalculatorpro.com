@@ -1,4 +1,9 @@
 export default {
+  "structPriceLive": "实时价格",
+  "structPriceLastClose": "最新收盘价",
+  "structRefLiveHint": "各价位以此实时价格为基准划分为支撑或阻力。",
+  "structRefCloseHint": "没有可用的实时报价，因此各价位以该时间周期最后一根K线的收盘价为基准划分。休市或周末期间，实际价格可能已在别处。",
+  "structRefDivergence": "自收盘（{close}）以来价格已变动 {pct}%：有 {n} 个价位落在两者之间，会因采用哪个基准而改变角色。",
   "patProvisionalTag": "暂定",
   "patProvisionalHint": "该形态的最后一根K线尚未收盘：实体仍在变动，下一个跳动就可能消失。不要当作已确认的形态。",
   "flowNoOi": "无未平仓",

@@ -27,7 +27,7 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **188 rutas**; los **20** módulos compilan (2026-07-29) |
-| **Tests offline** | 🟢 | `pytest tests/` → **355 passed, 74 skipped** (2026-07-29) |
+| **Tests offline** | 🟢 | `pytest tests/` → **361 passed, 74 skipped** (2026-07-29) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟡→🟢 | **Estaba roto**: el parser abortaba en los 283 ficheros, así que lintaba 0. Arreglado 2026-07-27 y añadido a CI → **0 errores**, 128 avisos de limpieza |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
@@ -2249,6 +2249,38 @@ uno cerrado, aunque la figura pueda desaparecer en el siguiente tick.
   `adjustments`, `aggregatedFrom` (4h compuesto desde 1h) e `interval` por
   detección.
 
-**Verificación**: `pytest` **355 passed / 74 skipped** (+10 en
-`tests/test_scanner_data_unit.py`), 188 rutas, i18n **5485 × 8 sin huecos**,
+#### 🔴 El "Precio ahora" del escáner de estructura no era el precio de ahora
+
+Lo más grave de esta revisión, y afecta directamente a **soportes y resistencias**.
+`detect_structure` usaba `current_price = rows[-1]["close"]` —el cierre de la
+última vela de la temporalidad pedida— y la UI lo etiquetaba **"Precio ahora"**.
+No lo es: en diario tras el cierre es el cierre de hoy, un sábado es el del
+viernes, en mensual es el cierre corriente del mes, y el feed de Yahoo va con
+retardo en muchos mercados.
+
+Importa más aquí que en ningún otro sitio del escáner porque **todo el rol de
+soporte/resistencia se decide comparando contra ese precio**. El propio
+docstring de `detect_sr_levels` dice que equivocar ese rol es *"lo más engañoso
+que este escáner podría decir, porque invierte la operación"* — y se estaba
+alimentando con un precio potencialmente rancio. Reproducido: con el precio
+un 1,2 % por encima del cierre, el nivel 115,02 pasa de **resistencia** a
+**soporte**.
+
+- `/education/structure-scan` pide ahora la **cotización en vivo**
+  (`get_stock_data`, ya cacheada 5 min) y clasifica contra ella. Si falla, cae al
+  último cierre y **lo dice** en `referenceSource`.
+- Nuevos campos: `referencePrice`, `referenceSource` (`live` | `last_close`),
+  `lastClose`, `livePrice`, `liveVsCloseDivergencePct`, `referenceDate`,
+  `referenceAgeSeconds` y `levelsBetweenLiveAndClose` — este último cuenta
+  exactamente los niveles cuyo rol depende de qué precio se use.
+- `StructureScanner.jsx`: la etiqueta pasa de "Precio ahora" a **"Precio en
+  vivo"** o **"Último cierre"** según lo que sea de verdad, con la fecha de la
+  vela y un aviso ámbar cuando hay niveles en la zona de divergencia.
+- ⚠️ Un test que ya existía (`test_empty_read_has_the_same_keys_as_a_full_one`)
+  detectó que había añadido las claves nuevas solo a la respuesta completa y no
+  a la vacía. El contrato es correcto —el cliente no debe ramificar según la
+  forma que le llegue— y se corrigió.
+
+**Verificación**: `pytest` **361 passed / 74 skipped** (+16 en
+`tests/test_scanner_data_unit.py`), 188 rutas, i18n **5490 × 8 sin huecos**,
 ESLint 0 errores, build exit 0.

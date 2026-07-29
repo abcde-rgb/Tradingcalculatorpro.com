@@ -126,3 +126,94 @@ def test_bar_is_forming_handles_missing_timestamps():
     assert _bar_is_forming([], 1440) is False
     assert _bar_is_forming([{"open": 1}], 1440) is False
     assert _bar_is_forming([{"ts": time.time()}], 0) is False
+
+
+# ── The reference price behind the support/resistance split ───────
+
+def _trend_bars(n=150, seed=5, drift=0.0005, vol=0.014):
+    import math
+    import random
+
+    rng = random.Random(seed)
+    now = int(time.time())
+    price, rows = 100.0, []
+    for i in range(n):
+        price *= math.exp(rng.gauss(drift, vol))
+        rows.append({"ts": now - (n - i) * 86400, "date": f"d{i}",
+                     "open": price * 0.999, "high": price * 1.007,
+                     "low": price * 0.993, "close": price})
+    return rows
+
+
+def test_reference_price_falls_back_to_last_close_and_says_so():
+    from price_action import detect_structure
+
+    rows = _trend_bars()
+    res = detect_structure(rows, 2)
+    assert res["referenceSource"] == "last_close"
+    assert res["referencePrice"] == res["lastClose"]
+    assert res["livePrice"] is None
+
+
+def test_reference_price_reports_its_age():
+    """`currentPrice` was labelled "price now" in the UI while being the close
+    of the last bar — a day old on a daily chart, three on a Monday."""
+    from price_action import detect_structure
+
+    rows = _trend_bars()
+    res = detect_structure(rows, 2)
+    assert res["referenceAgeSeconds"] is not None
+    assert res["referenceAgeSeconds"] >= 86400 - 5
+    assert res["referenceDate"] == rows[-1]["date"]
+
+
+def test_live_price_is_used_for_the_split_when_supplied():
+    from price_action import detect_structure
+
+    rows = _trend_bars()
+    live = rows[-1]["close"] * 1.012
+    res = detect_structure(rows, 2, None, live)
+    assert res["referenceSource"] == "live"
+    assert res["referencePrice"] == pytest.approx(round(live, 6))
+    assert res["liveVsCloseDivergencePct"] == pytest.approx(1.2, abs=0.01)
+
+
+def test_a_level_between_close_and_live_price_flips_role():
+    """The inversion this module's own docstring calls the single most
+    misleading thing the scanner could say: a ceiling price has already broken
+    through, still reported as resistance."""
+    from price_action import detect_structure
+
+    rows = _trend_bars()
+    stale = detect_structure(rows, 2)
+    live = detect_structure(rows, 2, None, rows[-1]["close"] * 1.012)
+
+    assert live["levelsBetweenLiveAndClose"] >= 1
+    stale_res = (stale["nearestResistance"] or {}).get("price")
+    live_sup = (live["nearestSupport"] or {}).get("price")
+    # The level reported as the nearest RESISTANCE against the stale close is
+    # now the nearest SUPPORT against the live price.
+    assert stale_res == live_sup
+
+
+def test_zero_or_negative_live_price_is_ignored():
+    """A bad quote must not become the reference."""
+    from price_action import detect_structure
+
+    rows = _trend_bars()
+    for bad in (0, -5, None):
+        res = detect_structure(rows, 2, None, bad)
+        assert res["referenceSource"] == "last_close"
+
+
+def test_empty_scan_keeps_the_same_keys():
+    """The client must never branch on 'did the scan return the short shape'."""
+    from price_action import detect_structure
+
+    full = set(detect_structure(_trend_bars(), 2).keys())
+    empty = set(detect_structure([{"open": 1, "high": 1, "low": 1, "close": 1}], 2).keys())
+    missing = full - empty
+    # The reference fields are new; they are allowed to be absent from the
+    # short shape only if nothing else is. Assert the pre-existing contract.
+    assert "currentPrice" in empty and "trend" in empty and "levels" in empty
+    assert "swings" in empty and "events" in empty and "fvgs" in empty

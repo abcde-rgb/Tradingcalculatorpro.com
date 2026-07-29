@@ -1,4 +1,9 @@
 export default {
+  "structPriceLive": "Live price",
+  "structPriceLastClose": "Last close",
+  "structRefLiveHint": "Levels are classified as support or resistance by comparing them against this live price.",
+  "structRefCloseHint": "No live quote available, so levels are classified against the close of this timeframe's last candle. With the market closed or over a weekend, the real price may be somewhere else.",
+  "structRefDivergence": "Price has moved {pct}% since the close ({close}): {n} level(s) sit between the two and change role depending on which one is used.",
   "patProvisionalTag": "Provisional",
   "patProvisionalHint": "The last candle of this pattern has not closed yet: its body is still moving, so the shape may be gone on the next tick. Do not treat it as confirmed.",
   "flowNoOi": "no OI",

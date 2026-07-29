@@ -1,4 +1,9 @@
 export default {
+  "structPriceLive": "Prix en direct",
+  "structPriceLastClose": "Dernière clôture",
+  "structRefLiveHint": "Les niveaux sont classés en support ou résistance par comparaison avec ce prix en direct.",
+  "structRefCloseHint": "Aucune cotation en direct disponible : les niveaux sont donc classés par rapport à la clôture de la dernière bougie de cette unité de temps. Marché fermé ou week-end, le prix réel peut être ailleurs.",
+  "structRefDivergence": "Le prix a bougé de {pct}% depuis la clôture ({close}) : {n} niveau(x) se situent entre les deux et changent de rôle selon la référence utilisée.",
   "patProvisionalTag": "Provisoire",
   "patProvisionalHint": "La dernière bougie de cette figure n'est pas encore clôturée : son corps bouge toujours, la figure peut disparaître au prochain tick. Ne la considérez pas comme confirmée.",
   "flowNoOi": "sans OI",
