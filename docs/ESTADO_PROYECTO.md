@@ -5,8 +5,8 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-07-27
-> - 🌿 **Rama de trabajo actual:** `claude/digital-project-audit-3upqfd`
+> - 📅 **Última verificación real contra el código:** 2026-07-29
+> - 🌿 **Rama de trabajo actual:** `claude/implement-per-docs-0maz7v`
 >
 > ⚠️ **Aviso de método (2026-07-27).** Las §1, §2 y §6 se habían quedado un mes
 > por detrás del código mientras el registro de sesiones (§7) sí se actualizaba.
@@ -26,8 +26,8 @@
 | Área | Estado | Nota |
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
-| **Backend import + sintaxis** | 🟢 | `import server` OK → **181 rutas**; los **16** módulos compilan |
-| **Tests offline** | 🟢 | `pytest tests/` → **264 passed, 74 skipped** (2026-07-27) |
+| **Backend import + sintaxis** | 🟢 | `import server` OK → **188 rutas**; los **20** módulos compilan (2026-07-29) |
+| **Tests offline** | 🟢 | `pytest tests/` → **345 passed, 74 skipped** (2026-07-29) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟡→🟢 | **Estaba roto**: el parser abortaba en los 283 ficheros, así que lintaba 0. Arreglado 2026-07-27 y añadido a CI → **0 errores**, 128 avisos de limpieza |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
@@ -1935,3 +1935,246 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   `npm run build` exit 0 con las 744 URLs del sitemap; fix del buscador probado contra
   **PostgreSQL 16 real** (antes: excepción; después: busca literal y sigue siendo
   insensible a mayúsculas).
+
+### 2026-07-29 — Correcciones de las 3 auditorías externas (trader / opciones / sistema)
+
+Sesión guiada por tres documentos entregados por el dueño:
+`ANALISIS_TRADER_20260728`, `AUDITORIA_CONTENIDO_APRENDIZAJE_OPCIONES_20260728` y
+`PROPUESTA_SISTEMA_TRADING_SETUP_20260728`.
+
+> **Cómo leer las citas.** Cada afirmación lleva su `archivo:línea` o
+> `archivo → función`, verificados contra el código de este commit. Las líneas
+> se mueven; el nombre de la función no. Si una cita no cuadra, busca por nombre.
+
+#### 🔴 Bugs de cálculo corregidos (cifras con las que el usuario dimensiona posiciones)
+
+- **§2.1 La curva de equity y el max drawdown iban al revés en el tiempo.**
+  `server.py → performance_analytics` pasaba la lista de la más nueva a la más
+  vieja y `compute_analytics` la recorría tal cual. **El drawdown no es simétrico
+  bajo inversión**: al invertir la serie las caídas se vuelven subidas, así que el
+  DD reportado salía *por debajo* del real. Verificado con la muestra de 120
+  operaciones del análisis: **21,42 % invertida frente a 25,36 % cronológica**, y
+  el fix devuelve 25,36 %. Además se ordenaba por `entry_date` cuando lo correcto
+  para una curva realizada es `exit_date`, y el saldo inicial se tomaba de la
+  operación **más reciente**, de la que colgaban todos los porcentajes.
+  → `performance.py:61 sort_trades_chronologically()`, aplicado dentro de
+  `compute_analytics`; test de independencia del orden en
+  `tests/test_analytics_correctness_unit.py::test_analytics_are_order_independent`.
+- **§2.2 El "Monte Carlo" ejecutaba UNA trayectoria.** Sin bucle externo: el
+  usuario veía un ROI y un drawdown, pulsaba recalcular y salían otros.
+  → `simulator/simulatorEngine.js:280 runMonteCarlo()` (P5/P50/P95 de saldo y ROI,
+  distribución de drawdown, **probabilidad de ruina** y **probabilidad de superar
+  un límite de DD**, que es la métrica que necesita quien va a un challenge de
+  fondeo) + panel `simulator/MonteCarloPanel.jsx`.
+- **§2.2 (bis) El max drawdown del simulador no era un max drawdown.** Calculaba
+  `(picoGlobal − mínimoGlobal) / picoGlobal`; si el mínimo ocurre *antes* del pico
+  reporta una caída que jamás pasó (`100→50→200→150` daba 75 %, real 50 %).
+  → `simulatorEngine.js:64 makeDrawdownTracker()`, pico corriente. El backend ya lo
+  hacía bien (`performance.py:_compute_max_drawdown`): los dos módulos se
+  contradecían. Comprobación en `scripts/engine-check.js`.
+- **§2.3 Con el interés compuesto apagado la simulación no simulaba.**
+  `if (compoundInterest) capital += netResult` → saldo final = inicial, ROI 0 %,
+  DD 0 % y las 180 filas con el mismo número. Compuesto OFF significa que **el
+  tamaño de posición** deja de crecer, no que la cuenta deje de moverse.
+  → `simulatorEngine.js → simulateCompound()`, variable `sizingBase`.
+- **§2.4 Sharpe y Sortino.** El Sharpe era por operación pero los umbrales de
+  `generate_insights` estaban calibrados como si fuera anualizado (un Sharpe
+  anualizado de 2,0 con 120 ops/año son 0,18 por operación: nunca disparaba el
+  badge). Ahora hay series de retornos reales sobre la curva de equity, `stdev`
+  muestral, resta del tipo libre de riesgo y **anualización con las fechas
+  reales**; si la muestra es demasiado corta o breve para anualizar honestamente
+  se devuelve `annualized: false` y los insights **callan** en vez de juzgar.
+  Sortino dividía el downside entre el nº de negativos en vez de entre N total
+  (infravaloraba sistemáticamente) y devolvía `0.0` sin pérdidas, que se lee como
+  pésimo: ahora es `None`.
+  → `performance.py:160 _risk_adjusted_metrics()`, `performance.py:141 _compute_sortino()`.
+- **§2.5 Las operaciones sin stop contaminaban el R medio.** `r_multiple` era
+  `0.0` sin stop y entraba en el agregado, arrastrando `avg_r` y metiendo un pico
+  artificial en el bucket `0R..1R`. Ahora es `None` (indefinido, que es lo que es),
+  se excluye y se reportan `r_sample_size` / `trades_without_r`.
+  → `performance.py → compute_trade_pnl()` y `compute_analytics()`; aviso en la UI
+  en `AnalyticsDashboard.jsx` (clave `rSamplePartial`).
+
+#### 🟠 Funcionalidad nueva del análisis
+
+- **§2.6 MAE / MFE** — lo que el análisis llama "la métrica más rentable de un
+  diario". Campos `mae_price`/`mfe_price`, `mae_r`/`mfe_r` calculados
+  (`performance.py:247 _excursion_r()`), agregado en
+  `performance.py:676 compute_excursion_stats()` (MAE media, MFE media, **p80 de
+  MAE de las ganadoras**, cuántas perdedoras llegaron a +1R), **scatter
+  MAE-vs-resultado** en `AnalyticsDashboard.jsx` y dos insights nuevos.
+- **§3.1 Bandera `synthetic`.** `/options/chain`, `/options/iv-surface` y
+  `/optimize` marcan toda respuesta construida sobre cadena modelada
+  (`server.py:4940 _synthetic_marker()`), con banda de aviso en `OptimizeView.jsx`.
+  Además **se eliminaron el volumen y el interés abierto inventados**
+  (`rng.randint(50, 8000)`): son observaciones de lo que hicieron otros, no salida
+  de un modelo — y con ellos dentro todo ratio volumen/OI leía ruido. Ahora van a
+  `None` → `options_math.py:281 _build_strike_quote()`.
+- **§3.3 Tipo libre de riesgo en vivo.** Nuevo `backend/market_rates.py`: lee
+  `^IRX`, cachea 6 h, banda de plausibilidad y **nunca lanza** — sin red sirve el
+  último valor bueno o el fallback (`market_rates.py:64 get_risk_free_rate()`).
+  Sustituye el `0.0525` de 2023-24 hardcodeado en tres sitios. Además
+  `options_math.py:153 year_fraction()` hace **T consciente de la hora**: antes un
+  0DTE valía `1/365` plano toda la sesión, cuando theta y gamma cambian por horas
+  el último día.
+- **§3.4 Solver de volatilidad implícita.** `options_math.py:185
+  implied_volatility()`: Newton-Raphson sobre vega con **bisección de respaldo** +
+  `POST /calculate/implied-volatility`. Devuelve `None` —no una cifra— cuando la
+  respuesta no es recuperable: cotización fuera de las bandas de no-arbitraje, o
+  contrato tan dentro de dinero que su precio es plano en sigma (ahí cualquier
+  número es un artefacto de la tolerancia, que es justo el problema de los strikes
+  ilíquidos). Umbral en `MIN_IDENTIFIABLE_VEGA`.
+- **§3.5 Valor esperado, CVaR y probabilidad de tocar.** El optimizador ordenaba
+  por ROI-al-objetivo (selecciona billetes de lotería OTM) o por POP (selecciona
+  venta de volatilidad): **ninguna mide ventaja**. Añadidos `expectedValue`,
+  `evOnCapital`, `cvar5`, `probLargeLoss` y `probTouchBreakEven` integrando el P&L
+  sobre la distribución lognormal terminal, y **el modo por defecto ordena por
+  valor esperado sobre capital**.
+  → `options_optimize.py:278 _expected_value_and_cvar()`, `:305 _probability_of_touch()`,
+  `_rank_results()`.
+- **§5.4 Prompt del AI Coach reescrito.** Fuera el currículum humano inventado
+  ("coach con 15+ años de experiencia en volatility trading"). Se le inyectan **las
+  analíticas reales del usuario** (win rate, expectancy, R medio, drawdown, sesgos,
+  rendimiento por setup, MAE), barreras de "no recomendaciones personalizadas",
+  responde en **el idioma de la UI** (8 idiomas, antes solo español), modelo
+  configurable por env y `disclaimer` en la propia respuesta.
+  → `server.py:5661 AI_COACH_SYSTEM_PROMPT`, `server.py:5678 _format_user_context()`.
+
+#### 🔴 Auditoría de opciones — P0 #1 (riesgo indefinido)
+
+`short_call` / `short_straddle` / `short_strangle` se podían construir sin aviso,
+siendo el **negativo fotográfico** del straddle que la Academia sí enseña: quien
+conoce la palabra puede montarlo creyendo que es "lo mismo pero vendido".
+→ `options_optimize.py:356 _risk_profile()` con detección de patas cortas sin
+cubrir en `:338 _naked_short_legs()`. **Mirar `maxLoss` no bastaba**: con el rango
+de payoff de ±35 % una short call desnuda no llega al umbral de "ilimitado" y
+salía clasificada como riesgo acotado (test
+`test_options_edge_unit.py::test_naked_short_call_is_flagged_undefined`). Aviso
+rojo en la tarjeta **antes** de las métricas atractivas (`OptimizeView.jsx`).
+Distingue `undefined` de `substantial` (put desnuda: acotado, pero el límite es el
+nocional entero) y no marca la covered call, que sí está cubierta.
+
+#### 🟢 Propuesta del sistema de trading — implementada entera
+
+`SetupBuilder.jsx` guardaba **un** setup en una sola clave de `localStorage` y lo
+sobrescribía. Reconstruido como **"Mi Sistema de Trading"**:
+- **Librería de setups** (crear/editar/duplicar/eliminar, id propio) con migración
+  automática del setup v1 → `tradingSystemModel.js:72 migrateLegacySetup()`.
+- **Gatillo de entrada e invalidación** (§D de la propuesta), la pieza que faltaba
+  por completo: sin ella dos traders con las mismas etiquetas entran en momentos
+  distintos. Indicador de qué falta en `tradingSystemModel.js:158 missingEssentials()`.
+- HTF + LTF separados (el método Top-Down no se podía representar con un chip
+  único), tipo de setup, activos, sesión, método de S/R como campo propio, regla de
+  stop, gestión, máx. posiciones simultáneas.
+- **Enlazado al contenido que ya existía** en vez de duplicar catálogos: los 42
+  patrones de `getChartPatterns` y los 30 de vela con su `successRate` de
+  `CANDLE_PATTERN_STATS`.
+- **Bloque de reglas del sistema** (§F), que no vivía en ningún sitio: pérdida
+  máxima diaria/semanal, condiciones de no-operar, exposición correlacionada,
+  checklist.
+
+#### 🥇 Herramientas profesionales (2ª tanda de esta misma sesión)
+
+- **§3.4 Opciones americanas** — nuevo `backend/american_options.py`. Toda la
+  valoración era europea (BSM) sobre opciones que son americanas, y
+  `simulate_assignment` modelaba la asignación con precios europeos, así que el
+  ejercicio temprano antes del ex-dividendo —un evento real y frecuente— era
+  literalmente invisible. Añadidos **binomial Cox-Ross-Rubinstein**
+  (`american_options.py:40`) y **Barone-Adesi-Whaley** (`:95`), griegas por
+  diferencias finitas sobre el árbol (analíticas BSM fallan justo en la frontera de
+  ejercicio, que es donde te asignan) y `:232 early_assignment_risk()`, que compara
+  el dividendo con el valor temporal restante. Endpoint `POST /calculate/american`;
+  `POST /assignment` acepta `dividend`/`daysToExDividend` y devuelve
+  `earlyAssignment`. Verificado con la identidad que valida el árbol: **call
+  americana sin dividendo = europea** (14,2254 vs 14,2313 con 800 pasos).
+- **§5.2 Riesgo de cartera** — nuevo `backend/portfolio_risk.py`. Todo el sistema
+  razonaba operación a operación. `portfolio_risk.py:106 compute_open_heat()` da
+  heat abierto y **riesgo efectivo por correlación**: cuatro posiciones del 1 % en
+  NQ/ES/SPY/AAPL no son 4 % de riesgo sino **3,61 %** (el análisis estimaba ~3,4 %)
+  — un solo factor sostenido cuatro veces. ⚠️ Detalle que cambió el resultado: la
+  primera versión metía AAPL en "equity" y NQ/ES/SPY en "index" con correlación
+  cruzada baja, **infravalorando** la exposición; un valor de gran capitalización
+  es en su mayor parte beta del índice, así que ambos comparten grupo de
+  correlación (`_CORRELATION_GROUPS`). `:197 compute_loss_limits()` devuelve
+  `blocked`, no un aviso blando — un límite que solo avisa no es un límite.
+  `:259 volatility_adjusted_size()` dimensiona por ATR para que 1R signifique lo
+  mismo en ES que en SOL. Endpoints `POST /performance/portfolio-risk` y
+  `POST /calculate/volatility-size`.
+- **§5.1 Motor de backtest con validación** — nuevo `backend/backtest.py`.
+  ⚠️ **Corrección al documento**: el análisis afirma que "backtest aparece solo
+  como tema educativo, no como herramienta". Es **inexacto** — `server.py:3508`
+  ya tenía un `POST /backtest` funcional con datos reales. Lo que de verdad
+  faltaba, y es lo que se ha añadido, es la **validación**:
+  separación in-sample/out-of-sample, **walk-forward** por ventanas rodantes
+  (`backtest.py:564`), y sobre todo **contador de ensayos con corrección por data
+  snooping** (`backtest.py:439 deflated_sharpe()`), que descuenta el mejor Sharpe
+  por cuánto se buscó. Comisiones y slippage son parámetros con defecto **no nulo**:
+  una estrategia que solo funciona a coste cero no funciona. Endpoint nuevo
+  `POST /backtest/validate` (el viejo `/backtest` se deja intacto).
+  ⚠️ **Límite medido, no prometido**: sobre 6 paseos aleatorios puros
+  (sin ventaja posible por construcción) la corrección rechazó 5 y dejó pasar 1.
+  El fallo se concentra con pocas combinaciones probadas, así que la respuesta
+  incluye `low_power: true` por debajo de 20 ensayos y el veredicto lo dice en
+  texto. No se vende como infalible porque no lo es.
+
+#### 📚 Auditoría de opciones — resto
+
+- **P0 #2 (griegas/IV/vega duplicadas)**: elegida la Academia como fuente canónica.
+  `EducationTab.jsx:28 CanonicalLink` enlaza a `?topic=option-greeks` y
+  `?topic=options-vol` desde las rejillas "Griegas a fondo" y "Conceptos de
+  volatilidad" en vez de reexplicar. Para la sangría; **no** consolida los 4-6
+  sitios (queda pendiente, ver abajo).
+- **P2 #6 (pilar Avanzado con 27 temas planos)**: sub-agrupado en *núcleo avanzado /
+  sistemas alternativos / macro y por activo* con `group` en `EDUCATION_NAV` y
+  sub-cabeceras en el sidebar. **No se borró ni una línea de contenido.**
+- **P2 #7 (Gann)**: `docs/ANALISIS_TECNICO_AVANZADO.md` lo clasifica como
+  "mayormente infalsable" y aun así estaba al mismo nivel que Wyckoff. Movido al
+  final del pilar Técnico y marcado `evidence: 'disputed'` con etiqueta y tooltip.
+  No se borra: el contenido está escrito y ya incluye su apartado de mito vs.
+  realidad; lo que se corrige es la **paridad estructural**.
+- **P3 #9 (calendar/diagonal)**: **confirmado el desajuste**. `LegEditor.jsx` no
+  tiene vencimiento por pata y no existen ids `calendar`/`diagonal` entre las
+  estrategias de `mockData.js`, así que se explicaban dos estrategias que la
+  calculadora no puede construir. Añadido aviso explícito en ambas fichas
+  (`strategyNotBuildable`) en lugar de dejar al usuario buscando un botón que no
+  existe.
+
+#### ✅ Verificación
+
+- `pytest tests/` → **345 passed / 74 skipped** (eran 264; **+81 tests nuevos** en
+  `test_analytics_correctness_unit.py`, `test_options_edge_unit.py` y
+  `test_pro_tools_unit.py`, cada uno fijando un defecto concreto de los documentos).
+- `python -m py_compile *.py` OK (**20 módulos**: +`market_rates.py`,
+  +`american_options.py`, +`portfolio_risk.py`, +`backtest.py`).
+- `import server` → **188 rutas** (eran 181).
+- `frontend/scripts/engine-check.js` (**30 comprobaciones**, añadido a CI): el
+  simulador y el modelo del sistema producen números con los que se dimensionan
+  posiciones y viven en el frontend, donde no hay pytest.
+- i18n **5480 claves × 8 idiomas, 0 huecos** (+153 nuevas traducidas a los 8).
+  ⚠️ Lección repetida: el prefijo `mc*` colisionaba con el módulo de macro
+  (`mcTitle` = "Macro: ciclo, tipos y rotación") → renombrado a `mcsim*`. Es el
+  mismo fallo que ya pasó con `bs*`/Black-Scholes: **comprobar el prefijo antes de
+  escribir** (`node -e` sobre `es.js` + `es.edu.js`).
+- ESLint **0 errores**; `npm run build` exit 0.
+
+#### ⏳ Lo que estos documentos piden y sigue SIN hacer
+
+- **Decisión sobre el proveedor de datos de opciones** (§3.2): Yahoo v7 da OI de
+  ayer y no distingue at-bid/at-ask. Es una **decisión de negocio** (pagar
+  Polygon/ORATS/Tradier o degradar Unusual Activity y Market Flow fuera del tier de
+  pago), no de código. No se toca sin el dueño.
+- **Precios y tiers** (§6), **matar el plan vitalicio**, **reducir a dos pasarelas**
+  (§4), **podar las ~744 páginas SEO**: todas son decisiones de negocio.
+- **Sincronización con IBKR/Binance** (§5.3): requiere credenciales y pruebas
+  contra APIs reales; la red del sandbox está bloqueada.
+- **Consolidar de verdad las griegas duplicadas** (P0 #2): se han puesto los
+  enlaces canónicos, pero las 4-6 explicaciones independientes siguen existiendo.
+  Borrarlas es trabajo de contenido con revisión humana.
+- **P1 #3-#5**: fichas de `collar`, `bull_put_spread`, `bear_call_spread`,
+  `jade_lizard`, `short_strangle`; módulo de **margen de opciones** (Reg-T, spread
+  vs desnudo) separado de `margin-liq` (cripto); fiscalidad de ejercicio/asignación
+  y covered calls cualificadas. Es redacción de contenido en 8 idiomas.
+- **Frontend de las herramientas nuevas**: backtest validado, riesgo de cartera y
+  precios americanos existen como **endpoints**, sin UI todavía.
+- **UI para el bloqueo por límite de pérdida**: `compute_loss_limits` devuelve
+  `blocked`, pero nada en el frontend lo hace cumplir aún.

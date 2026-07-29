@@ -55,6 +55,7 @@ class OptimizerContext:
     target_price: float
     budget: float
     days_until_target: int
+    risk_free: float = DEFAULT_R
 
 
 # ---------------------------------------------------------------------------
@@ -231,6 +232,158 @@ def _probability_of_profit(legs: list[dict], spot: float,
 
 
 # ---------------------------------------------------------------------------
+# Expected value, tail risk and probability of touch
+#
+# POP and ROI-at-target are both selection biases wearing a metric's clothes:
+# ranking by ROI puts the furthest OTM lottery tickets on top, ranking by POP
+# puts premium-selling strategies on top — an iron condor that wins 88% of the
+# time and hands back two years of credit in the 12%. Neither says anything
+# about EDGE. Expected value (P&L weighted across the whole terminal
+# distribution) and CVaR (the average outcome in the worst 5%) do, and together
+# they show a high-POP negative-EV trade for what it is.
+# ---------------------------------------------------------------------------
+
+_EV_GRID_POINTS: int = 401
+_EV_SIGMA_SPAN: float = 5.0   # integrate ±5σ in log space — covers the tails
+CVAR_ALPHA: float = 0.05      # worst 5%
+
+
+def _lognormal_grid(spot: float, sigma: float) -> list[tuple[float, float]]:
+    """(price, probability_weight) pairs over a driftless log-normal terminal.
+
+    Driftless (risk-neutral-ish, median at spot) matches the POP model already
+    in use, so EV and POP describe the same distribution rather than two
+    different ones. Weights are normalized, so the truncation at ±5σ doesn't
+    leak probability mass.
+    """
+    if sigma <= 0:
+        return [(spot, 1.0)]
+    lo, hi = -_EV_SIGMA_SPAN * sigma, _EV_SIGMA_SPAN * sigma
+    step = (hi - lo) / (_EV_GRID_POINTS - 1)
+    grid: list[tuple[float, float]] = []
+    total = 0.0
+    for i in range(_EV_GRID_POINTS):
+        x = lo + i * step                       # log-return
+        # Median-at-spot lognormal: ln(S_T/S_0) ~ N(-sigma²/2, sigma²)
+        z = (x + sigma * sigma / 2) / sigma
+        w = math.exp(-0.5 * z * z)
+        price = spot * math.exp(x)
+        grid.append((price, w))
+        total += w
+    if total <= 0:
+        return [(spot, 1.0)]
+    return [(p, w / total) for p, w in grid]
+
+
+def _expected_value_and_cvar(legs: list[dict], spot: float, sigma: float,
+                             risk_free: float = DEFAULT_R) -> tuple[float, float, float]:
+    """(expected_value, cvar_worst_5pct, prob_of_large_loss) at expiry, in $."""
+    grid = _lognormal_grid(spot, sigma)
+    outcomes = [(_compute_pnl_at_price_and_time(legs, price, 0, risk_free), w) for price, w in grid]
+
+    ev = sum(pnl * w for pnl, w in outcomes)
+
+    # CVaR: probability-weighted mean of the worst CVAR_ALPHA of the distribution.
+    outcomes.sort(key=lambda o: o[0])
+    acc_w = 0.0
+    acc_pnl = 0.0
+    for pnl, w in outcomes:
+        take = min(w, CVAR_ALPHA - acc_w)
+        if take <= 0:
+            break
+        acc_pnl += pnl * take
+        acc_w += take
+    cvar = acc_pnl / acc_w if acc_w > 0 else 0.0
+
+    # How often the outcome is worse than losing twice the expected gain —
+    # a plain-language read on the fat left tail of short-premium structures.
+    threshold = -2 * abs(ev) if ev else 0.0
+    p_large_loss = sum(w for pnl, w in outcomes if pnl < threshold) * 100
+    return ev, cvar, p_large_loss
+
+
+def _probability_of_touch(spot: float, break_evens: list[float], sigma: float) -> Optional[float]:
+    """Chance of the underlying TOUCHING the nearest break-even before expiry.
+
+    Roughly twice the probability of finishing beyond it (the reflection
+    principle for driftless Brownian motion). It matters because a position is
+    rarely held to expiry: what takes a trader out early is price touching the
+    level, not closing past it — so POP at expiry systematically overstates how
+    comfortable the trade will feel.
+    """
+    if not break_evens or sigma <= 0 or spot <= 0:
+        return None
+    nearest = min(break_evens, key=lambda b: abs(math.log(b / spot)) if b > 0 else float("inf"))
+    if nearest <= 0:
+        return None
+    z = abs(math.log(nearest / spot)) / sigma
+    p_finish_beyond = 1 - _normal_cdf(z)
+    return round(min(99.0, 2 * p_finish_beyond * 100), 1)
+
+
+# ---------------------------------------------------------------------------
+# Risk classification
+# ---------------------------------------------------------------------------
+
+# Structures whose loss is not bounded by construction. The calculator lets a
+# user build every one of these; the Academy teaches the LONG version of
+# straddle/strangle and nothing about the short one, so someone who knows the
+# word "straddle" can assemble its photographic negative believing it is "the
+# same thing but sold". Flagging it here is what closes that gap.
+UNDEFINED_RISK_STRATEGIES: set[str] = {
+    "short_call_otm", "short_straddle", "short_strangle",
+}
+
+
+def _naked_short_legs(legs: list[dict]) -> list[dict]:
+    """Short option legs with no long leg of the same type capping them."""
+    longs_by_type: dict[str, int] = {}
+    for leg in legs:
+        if leg["type"] in ("call", "put") and leg["action"] == "buy":
+            longs_by_type[leg["type"]] = longs_by_type.get(leg["type"], 0) + leg.get("quantity", 1)
+    naked = []
+    for leg in legs:
+        if leg["type"] not in ("call", "put") or leg["action"] != "sell":
+            continue
+        available = longs_by_type.get(leg["type"], 0)
+        if available >= leg.get("quantity", 1):
+            longs_by_type[leg["type"]] = available - leg.get("quantity", 1)
+        else:
+            naked.append(leg)
+    return naked
+
+
+def _risk_profile(strat_id: str, legs: list[dict], max_loss: float) -> dict:
+    """Classify a candidate's downside so the UI can warn before, not after."""
+    naked = _naked_short_legs(legs)
+    has_stock = any(leg["type"] == "stock" for leg in legs)
+    # A short call covered by long stock is a covered call: capped, not naked.
+    naked_calls = [leg for leg in naked if leg["type"] == "call" and not has_stock]
+    naked_puts = [leg for leg in naked if leg["type"] == "put"]
+
+    unlimited = bool(naked_calls) or strat_id in UNDEFINED_RISK_STRATEGIES
+    # A naked put's loss is bounded (the stock can only go to zero) but that
+    # bound is the entire notional, which is not what "defined risk" means.
+    substantial = bool(naked_puts) and not unlimited
+
+    if unlimited:
+        level, key = "undefined", "riskUndefinedLoss"
+    elif substantial:
+        level, key = "substantial", "riskSubstantialLoss"
+    elif max_loss <= -5_000_000:
+        level, key = "undefined", "riskUndefinedLoss"
+    else:
+        level, key = "defined", "riskDefinedLoss"
+
+    return {
+        "riskLevel": level,
+        "riskWarningKey": key,
+        "nakedShortLegs": len(naked_calls) + len(naked_puts),
+        "isUndefinedRisk": level == "undefined",
+    }
+
+
+# ---------------------------------------------------------------------------
 # Capital requirement (refactored into per-strategy-type helpers)
 # ---------------------------------------------------------------------------
 
@@ -308,7 +461,7 @@ def _friendly_name(strat_id: str, legs: list[dict]) -> str:
 def _score_strategy(strat_id: str, legs: list[dict],
                     ctx: OptimizerContext) -> Optional[dict]:
     """Compute one candidate's metrics. Returns None if disqualified by budget."""
-    payoff_points = calculate_payoff(legs, ctx.spot, 0.35, ctx.days_until_target)
+    payoff_points = calculate_payoff(legs, ctx.spot, 0.35, ctx.days_until_target, r=ctx.risk_free)
     if not payoff_points:
         return None
 
@@ -321,15 +474,29 @@ def _score_strategy(strat_id: str, legs: list[dict],
     if capital_required > ctx.budget and ctx.budget > 0:
         return None
 
-    pnl_at_target = _compute_pnl_at_price_and_time(legs, ctx.target_price, ctx.days_until_target)
-    pnl_at_target_expiry = _compute_pnl_at_price_and_time(legs, ctx.target_price, 0)
+    pnl_at_target = _compute_pnl_at_price_and_time(
+        legs, ctx.target_price, ctx.days_until_target, ctx.risk_free)
+    pnl_at_target_expiry = _compute_pnl_at_price_and_time(legs, ctx.target_price, 0, ctx.risk_free)
 
     risk = max(abs(max_loss), 0.01)
     roi_target = (pnl_at_target_expiry / risk) * 100 if risk > 0 else 0
     pop = _probability_of_profit(legs, ctx.spot, break_evens, pnl_at_target_expiry, ctx.target_price)
 
+    sigma = _terminal_sigma(legs)
+    ev, cvar, p_large_loss = _expected_value_and_cvar(legs, ctx.spot, sigma, ctx.risk_free)
+    prob_touch = _probability_of_touch(ctx.spot, break_evens, sigma)
+    risk_profile = _risk_profile(strat_id, legs, max_loss)
+
     atm_idx = _find_atm_index(ctx.chain, ctx.spot)
     return {
+        # Edge, not just outcome-at-a-point. `evOnCapital` is the comparable
+        # figure across strategies with different capital requirements.
+        "expectedValue": round(ev, 2),
+        "evOnCapital": round(ev / capital_required * 100, 2) if capital_required > 0 else None,
+        "cvar5": round(cvar, 2),
+        "probLargeLoss": round(p_large_loss, 1),
+        "probTouchBreakEven": prob_touch,
+        **risk_profile,
         "id": f"{strat_id}_{int(ctx.chain[atm_idx]['strike'])}",
         "strategyId": strat_id,
         "name": _friendly_name(strat_id, legs),
@@ -367,16 +534,31 @@ def _filter_candidates(ctx: OptimizerContext, sentiment: str) -> list[tuple[str,
 
 
 def _rank_results(results: list[dict], mode: str) -> list[dict]:
-    key = "pop" if mode == "max_chance" else "roi"
-    return sorted(results, key=lambda r: r[key], reverse=True)
+    """Rank candidates. Default is expected value — the only edge measure here.
+
+    `max_return` (ROI-at-target) and `max_chance` (POP) are kept because the UI
+    exposes them, but both are known to select adversely: ROI picks the furthest
+    OTM lottery tickets, POP picks whatever sells the most premium. Expected
+    value on capital is the default so the top of the list is the trade with
+    edge, not the trade with the prettiest single number.
+    """
+    if mode == "max_chance":
+        key = "pop"
+    elif mode == "max_return":
+        key = "roi"
+    else:  # 'best_edge' and anything unrecognised
+        key = "evOnCapital"
+    return sorted(results, key=lambda r: (r.get(key) if r.get(key) is not None else -math.inf),
+                  reverse=True)
 
 
 def optimize_strategies(symbol: str, sentiment: str, target_price: float,
                        budget: float, chain: list[dict], spot: float,
                        days_to_expiry: int, expiration_label: str,
                        mode: str = "max_return", max_results: int = 8,
-                       days_until_target: Optional[int] = None) -> list[dict]:
-    """Rank strategies matching the thesis by ROI-at-target or POP.
+                       days_until_target: Optional[int] = None,
+                       risk_free: Optional[float] = None) -> list[dict]:
+    """Rank strategies matching the thesis by expected value, ROI-at-target or POP.
 
     Pipeline: filter (sentiment + strikes available) → score (metrics + budget) → rank.
     """
@@ -387,6 +569,7 @@ def optimize_strategies(symbol: str, sentiment: str, target_price: float,
         chain=chain, spot=spot, days_to_expiry=days_to_expiry,
         expiration_label=expiration_label, target_price=target_price, budget=budget,
         days_until_target=days_until_target if days_until_target is not None else days_to_expiry,
+        risk_free=DEFAULT_R if risk_free is None else risk_free,
     )
 
     candidates = _filter_candidates(ctx, sentiment)

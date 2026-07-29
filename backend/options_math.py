@@ -7,8 +7,8 @@ Refactored for clarity: complex functions split into helpers; full type hints.
 """
 from __future__ import annotations
 import math
-import secrets
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from scipy.stats import norm
 
@@ -16,10 +16,17 @@ from scipy.stats import norm
 # Constants & dataclasses
 # ---------------------------------------------------------------------------
 
-DEFAULT_RISK_FREE: float = 0.0525
+# Static fallback only. Callers that price anything a user will act on should
+# pass the live short rate (`market_rates.get_risk_free_rate()`); this constant
+# exists so the pure-math layer stays importable and offline-testable.
+DEFAULT_RISK_FREE: float = 0.04
 DEFAULT_IV: float = 0.30
 SHARES_PER_CONTRACT: int = 100
 SECONDS_PER_YEAR: int = 365  # market days approximation
+
+# Options expire at the close, 16:00 New York time.
+MARKET_CLOSE_HOUR_ET: int = 16
+_ET_FALLBACK_OFFSET = timedelta(hours=-4)  # used only if tzdata is unavailable
 
 
 @dataclass
@@ -127,6 +134,126 @@ def rho_val(S: float, K: float, T: float, r: float, sigma: float,
 
 
 # ---------------------------------------------------------------------------
+# Time to expiry
+# ---------------------------------------------------------------------------
+
+
+def _now_et(now: Optional[datetime] = None) -> datetime:
+    """Current time in the New York session's timezone."""
+    base = now or datetime.now(timezone.utc)
+    if base.tzinfo is None:
+        base = base.replace(tzinfo=timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+        return base.astimezone(ZoneInfo("America/New_York"))
+    except Exception:  # noqa: BLE001 — no tzdata in the image; approximate
+        return base.astimezone(timezone(_ET_FALLBACK_OFFSET))
+
+
+def year_fraction(days_to_expiry: float, now: Optional[datetime] = None) -> float:
+    """Time to expiry in years, aware of the hour of the day.
+
+    `days_to_expiry / 365` holds T flat for the whole session, which is
+    harmless at 30 days and wrong at zero: on expiry day theta and gamma change
+    by the hour, and a flat 1/365 prices a 0DTE contract at 10:00 exactly like
+    the same contract at 15:55. Expiry lands at the 16:00 ET close, so the
+    remaining time is `days_to_expiry` plus whatever is left of today's session.
+
+    Floored just above zero so downstream `T <= 0` branches only fire for
+    genuinely expired contracts.
+    """
+    et = _now_et(now)
+    fraction_of_day_now = (et.hour + et.minute / 60 + et.second / 3600) / 24
+    fraction_at_close = MARKET_CLOSE_HOUR_ET / 24
+    remaining_days = float(days_to_expiry) + fraction_at_close - fraction_of_day_now
+    return max(remaining_days, 1.0 / 24 / 365) / SECONDS_PER_YEAR
+
+
+# ---------------------------------------------------------------------------
+# Implied volatility solver
+# ---------------------------------------------------------------------------
+
+IV_MIN: float = 0.001
+IV_MAX: float = 5.0
+# Below this, a 1-percentage-point change in IV moves the option price by less
+# than half a cent — under the tick size of any real quote. At that point the
+# price carries no information about volatility and any "solution" is an
+# arbitrary point on a flat plateau.
+MIN_IDENTIFIABLE_VEGA: float = 0.005
+
+
+def implied_volatility(market_price: float, S: float, K: float, T: float, r: float,
+                       option_type: str, q: float = 0.0,
+                       *, tol: float = 1e-6, max_iter: int = 100) -> Optional[float]:
+    """Back out implied volatility from an observed option price.
+
+    Newton-Raphson on vega, falling back to bisection whenever Newton misbehaves
+    — which it does for deep ITM/OTM strikes, where vega collapses toward zero
+    and the step explodes. Bisection is slower but cannot diverge, so the pair
+    covers the whole surface.
+
+    Returns None when the answer is not recoverable rather than inventing one:
+    an expired or zero-strike contract; a quote outside the no-arbitrage bounds
+    (below intrinsic value, or above the underlying); or a contract so deep
+    in-the-money that its price is effectively flat in sigma, where any figure
+    the solver lands on is an artefact of the tolerance, not a measurement.
+    """
+    if T <= 0 or S <= 0 or K <= 0 or market_price is None or market_price <= 0:
+        return None
+
+    # No-arbitrage bounds: price must sit between intrinsic and the max value.
+    disc_s, disc_k = S * math.exp(-q * T), K * math.exp(-r * T)
+    if option_type == "call":
+        lower, upper = max(0.0, disc_s - disc_k), disc_s
+    else:
+        lower, upper = max(0.0, disc_k - disc_s), disc_k
+    if market_price < lower - tol or market_price > upper + tol:
+        return None
+
+    def price_at(sigma: float) -> float:
+        return option_price(S, K, T, r, sigma, option_type, q)
+
+    def identifiable(sigma: float) -> bool:
+        """Is the price actually sensitive to volatility at this point?"""
+        return vega_val(S, K, T, r, sigma, q) >= MIN_IDENTIFIABLE_VEGA
+
+    def finish(sigma: float) -> Optional[float]:
+        return round(sigma, 6) if identifiable(sigma) else None
+
+    # Newton-Raphson from a moneyness-aware seed (Brenner-Subrahmanyam style).
+    sigma = max(IV_MIN, min(IV_MAX, math.sqrt(2 * math.pi / T) * market_price / S))
+    for _ in range(max_iter):
+        diff = price_at(sigma) - market_price
+        if abs(diff) < tol:
+            return finish(sigma)
+        # vega_val is per 1% move; undo the scaling for the raw derivative.
+        v = vega_val(S, K, T, r, sigma, q) * 100
+        if v < 1e-8:
+            break  # flat in sigma — hand over to bisection
+        step = diff / v
+        sigma -= step
+        if not (IV_MIN <= sigma <= IV_MAX) or sigma != sigma:  # out of range / NaN
+            break
+
+    # Bisection over the full admissible range. Converges on the WIDTH of the
+    # sigma bracket, not on the price difference: on a near-flat plateau the
+    # price test is satisfied across a wide band of volatilities, so stopping on
+    # it returns whichever point the walk happened to reach.
+    lo, hi = IV_MIN, IV_MAX
+    if (price_at(lo) - market_price) * (price_at(hi) - market_price) > 0:
+        return None  # price not attainable anywhere in [IV_MIN, IV_MAX]
+    for _ in range(max_iter):
+        mid = (lo + hi) / 2
+        if (hi - lo) < tol:
+            return finish(mid)
+        if price_at(mid) - market_price > 0:
+            hi = mid
+        else:
+            lo = mid
+    return finish((lo + hi) / 2)
+
+
+# ---------------------------------------------------------------------------
 # Synthetic chain generator (split into clear helpers)
 # ---------------------------------------------------------------------------
 
@@ -152,8 +279,17 @@ def _smile_iv(spot: float, strike: float, base_iv: float = DEFAULT_IV) -> float:
 
 
 def _build_strike_quote(spot: float, strike: float, T: float, r: float,
-                       q: float, opt_type: str, rng: secrets.SystemRandom) -> dict:
-    """Build a single side (call or put) quote dict for a strike."""
+                       q: float, opt_type: str) -> dict:
+    """Build a single side (call or put) quote dict for a strike.
+
+    Prices and Greeks are model output from an assumed volatility smile — a
+    defensible approximation, clearly labelled `synthetic`. Volume and open
+    interest are **None**: they are observations of what other participants
+    actually did, and there is no model that produces them. An earlier version
+    filled them with `rng.randint(...)`, which meant every downstream
+    volume/open-interest ratio (the whole basis of "unusual activity") was
+    reading random numbers.
+    """
     iv = _smile_iv(spot, strike)
     price = option_price(spot, strike, T, r, iv, opt_type, q)
     d = delta(spot, strike, T, r, iv, opt_type, q)
@@ -166,24 +302,29 @@ def _build_strike_quote(spot: float, strike: float, T: float, r: float,
         "ask": round(price + spread, 2),
         "mid": round(price, 2),
         "last": round(price, 2),
-        "volume": rng.randint(50, 8000),
-        "openInterest": rng.randint(200, 30000),
+        "volume": None,
+        "openInterest": None,
         "iv": round(iv, 4),
         "delta": round(d, 4),
         "gamma": round(g, 6),
         "theta": round(th, 4),
         "vega": round(v, 4),
+        "synthetic": True,
     }
 
 
 def generate_options_chain(current_price: float, days_to_expiry: int,
-                           q: float = 0.0) -> list[dict]:
-    """Generate a synthetic options chain when real data is unavailable."""
+                           q: float = 0.0, r: Optional[float] = None) -> list[dict]:
+    """Generate a synthetic options chain when real data is unavailable.
+
+    Every quote carries `synthetic: True`. Callers must propagate that to the
+    API response so the UI can warn — a modelled chain is fine to explore with
+    and unacceptable to trade off unlabelled.
+    """
     step = _strike_step(current_price)
     base_strike = round(current_price / step) * step
-    T = max(days_to_expiry / SECONDS_PER_YEAR, 0.001)
-    r = DEFAULT_RISK_FREE
-    rng = secrets.SystemRandom()
+    T = year_fraction(days_to_expiry)
+    rate = DEFAULT_RISK_FREE if r is None else r
 
     chain: list[dict] = []
     for i in range(-15, 16):
@@ -192,8 +333,8 @@ def generate_options_chain(current_price: float, days_to_expiry: int,
             continue
         chain.append({
             "strike": strike,
-            "call": _build_strike_quote(current_price, strike, T, r, q, "call", rng),
-            "put": _build_strike_quote(current_price, strike, T, r, q, "put", rng),
+            "call": _build_strike_quote(current_price, strike, T, rate, q, "call"),
+            "put": _build_strike_quote(current_price, strike, T, rate, q, "put"),
         })
     return chain
 
