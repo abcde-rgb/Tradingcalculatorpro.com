@@ -38,6 +38,7 @@ from options_math import (
     simulate_assignment,
     implied_volatility,
     year_fraction,
+    option_price,
 )
 from stock_data import (
     COINGECKO_SYMBOL_TO_ID,
@@ -4753,6 +4754,12 @@ class PnlAttributionRequest(BaseModel):
 class AssignmentRequest(BaseModel):
     legs: List[OptionLegInput]
     stockPriceAtExpiry: float
+    # Optional early-exercise context. Supplying a dividend and its ex-date lets
+    # the response also cover assignment BEFORE expiry, which is the case a
+    # European model cannot represent at all.
+    dividend: Optional[float] = None
+    daysToExDividend: Optional[int] = None
+    dividendYield: Optional[float] = 0.0
 
 
 def _legs_to_dicts(legs: List[OptionLegInput]) -> List[Dict[str, Any]]:
@@ -5161,13 +5168,105 @@ async def opt_pnl_attribution(request: PnlAttributionRequest) -> Dict[str, Any]:
 
 @api_router.post("/calculate/assignment")
 async def opt_assignment(request: AssignmentRequest) -> Dict[str, Any]:
-    """Simulate exercise/assignment at expiry given a final stock price."""
+    """Simulate exercise/assignment at expiry given a final stock price.
+
+    When a dividend and its ex-date are supplied, also reports EARLY assignment
+    risk per short call. Options on US single stocks are American, and a short
+    in-the-money call whose remaining time value is worth less than an imminent
+    dividend should expect to be assigned the day before the ex-date — an event
+    the at-expiry simulation below, and Black-Scholes generally, cannot see.
+    """
     try:
+        from american_options import early_assignment_risk
+
         legs_dicts = _legs_to_dicts(request.legs)
-        return simulate_assignment(legs_dicts, request.stockPriceAtExpiry)
+        result = simulate_assignment(legs_dicts, request.stockPriceAtExpiry)
+
+        early: List[Dict[str, Any]] = []
+        if request.dividend and request.daysToExDividend is not None:
+            r = await asyncio.to_thread(get_risk_free_rate)
+            for leg in legs_dicts:
+                if leg.get("type") != "call" or leg.get("action") != "sell":
+                    continue
+                risk = early_assignment_risk(
+                    S=request.stockPriceAtExpiry,
+                    K=leg["strike"],
+                    T=year_fraction(leg.get("daysToExpiry", 30)),
+                    r=r,
+                    sigma=leg.get("iv") or 0.3,
+                    dividend=request.dividend,
+                    days_to_ex_dividend=request.daysToExDividend,
+                    q=request.dividendYield or 0.0,
+                )
+                risk["leg"] = f"SELL {leg.get('quantity', 1)} CALL ${leg['strike']}"
+                early.append(risk)
+
+        result["earlyAssignment"] = early
+        result["earlyAssignmentAtRisk"] = any(e.get("at_risk") for e in early)
+        return result
     except Exception as e:
         logging.error(f"Assignment simulation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class AmericanPriceRequest(BaseModel):
+    """Price an American option, i.e. one that can be exercised before expiry."""
+    stockPrice: float
+    strike: float
+    daysToExpiry: float
+    volatility: float
+    optionType: str = Field(..., pattern="^(call|put)$")
+    dividendYield: Optional[float] = 0.0
+    riskFreeRate: Optional[float] = None
+    method: str = Field("baw", pattern="^(baw|binomial)$")
+    steps: Optional[int] = None
+
+
+@api_router.post("/calculate/american")
+async def opt_american_price(req: AmericanPriceRequest) -> Dict[str, Any]:
+    """American price, the early-exercise premium, and tree-based Greeks.
+
+    Every listed option on a US single stock is American, so the difference
+    between this and the Black-Scholes figure elsewhere in the app is not a
+    rounding detail: for an in-the-money put, or a call over an ex-dividend
+    date, it is the entire early-exercise premium.
+    """
+    from american_options import (
+        american_price, american_greeks, early_exercise_premium, DEFAULT_BINOMIAL_STEPS,
+    )
+
+    r = req.riskFreeRate if req.riskFreeRate is not None else await asyncio.to_thread(get_risk_free_rate)
+    T = year_fraction(req.daysToExpiry)
+    q = req.dividendYield or 0.0
+    steps = req.steps or DEFAULT_BINOMIAL_STEPS
+
+    american = await asyncio.to_thread(
+        american_price, req.stockPrice, req.strike, T, r, req.volatility,
+        req.optionType, q, method=req.method, steps=steps,
+    )
+    european = option_price(req.stockPrice, req.strike, T, r, req.volatility, req.optionType, q)
+    premium = await asyncio.to_thread(
+        early_exercise_premium, req.stockPrice, req.strike, T, r, req.volatility,
+        req.optionType, q, method=req.method,
+    )
+    greeks = await asyncio.to_thread(
+        american_greeks, req.stockPrice, req.strike, T, r, req.volatility,
+        req.optionType, q, steps=steps,
+    )
+    return {
+        "americanPrice": round(american, 4),
+        "europeanPrice": round(european, 4),
+        "earlyExercisePremium": round(premium, 4),
+        "greeks": greeks,
+        "method": req.method,
+        "riskFreeRate": round(r, 5),
+        "timeToExpiryYears": round(T, 6),
+        "note": (
+            "A non-dividend-paying American call is never worth exercising early, "
+            "so its price equals the European one. The premium above is what "
+            "Black-Scholes cannot price."
+        ),
+    }
 
 
 # --- Strategy Optimizer ---
@@ -6131,6 +6230,180 @@ async def perf_delete_trade(trade_id: str, user: dict = Depends(require_premium)
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Trade not found")
     return {"ok": True}
+
+
+class BacktestRequest(BaseModel):
+    """Backtest a rule set over real daily history."""
+    symbol: str
+    strategy: str = Field(..., pattern="^(sma_cross|rsi_reversion|breakout)$")
+    period: str = "5y"
+    mode: str = Field("validated", pattern="^(single|validated|walk_forward)$")
+    params: Optional[Dict[str, Any]] = None
+    initialCapital: float = 10000
+    riskPct: float = 1.0
+    # Costs are parameters with non-zero defaults, never optional extras: a
+    # strategy that only works at zero cost does not work.
+    commissionPct: float = 0.05
+    slippagePct: float = 0.05
+    stopAtrMultiple: float = 2.0
+    targetAtrMultiple: float = 4.0
+    allowShort: bool = False
+    oosFraction: float = 0.3
+    windows: int = 5
+
+
+@api_router.post("/backtest/validate")
+@limiter.limit("20/minute")
+async def run_validated_backtest_endpoint(request: Request, req: BacktestRequest,
+                                          user: dict = Depends(require_premium)) -> Dict[str, Any]:
+    """Backtest a system, with the validation that decides if the result means anything.
+
+    Distinct from the older `POST /backtest`, which runs a single pass with one
+    fixed parameter set. What is added here is the part that answers "does this
+    have an edge, or did I find it by looking hard enough":
+
+    * `validated` holds a slice of history back from the parameter search and
+      evaluates on it exactly once.
+    * `walk_forward` re-optimises on a rolling basis, which is the closest thing
+      to how the system would actually have been traded.
+
+    Both report a data-snooping correction, because every parameter combination
+    tried is another chance to find something that looks good by luck.
+    """
+    from backtest import (
+        BacktestConfig, run_backtest, run_validated_backtest, walk_forward, STRATEGIES,
+    )
+
+    history = await asyncio.to_thread(get_ohlc_history, req.symbol, req.period, "1d")
+    if not history or len(history) < 200:
+        return {
+            "error": f"Not enough daily history for {req.symbol} "
+                     f"({len(history or [])} bars). At least 200 are needed.",
+            "bars": len(history or []),
+        }
+
+    bars = [
+        {
+            "date": b.get("date") or b.get("time") or str(i),
+            "open": float(b.get("open") or b.get("close") or 0),
+            "high": float(b.get("high") or b.get("close") or 0),
+            "low": float(b.get("low") or b.get("close") or 0),
+            "close": float(b.get("close") or 0),
+        }
+        for i, b in enumerate(history)
+    ]
+    bars = [b for b in bars if b["close"] > 0 and b["open"] > 0]
+
+    cfg = BacktestConfig(
+        initial_capital=req.initialCapital, risk_pct=req.riskPct,
+        commission_pct=req.commissionPct, slippage_pct=req.slippagePct,
+        stop_atr_multiple=req.stopAtrMultiple, target_atr_multiple=req.targetAtrMultiple,
+        allow_short=req.allowShort,
+    )
+
+    if req.mode == "single":
+        params = req.params or STRATEGIES[req.strategy]["defaults"]
+        result = await asyncio.to_thread(run_backtest, bars, req.strategy, params, cfg)
+    elif req.mode == "walk_forward":
+        result = await asyncio.to_thread(walk_forward, bars, req.strategy, cfg,
+                                         windows=req.windows)
+    else:
+        result = await asyncio.to_thread(run_validated_backtest, bars, req.strategy, cfg,
+                                         oos_fraction=req.oosFraction)
+
+    result["symbol"] = req.symbol.upper()
+    result["mode"] = req.mode
+    result["bars_used"] = len(bars)
+    result["disclaimer"] = (
+        "Past performance on historical data is not a prediction. This backtest "
+        "assumes fills at the next bar's open with the stated commission and "
+        "slippage; real execution, liquidity and gaps will differ."
+    )
+    return result
+
+
+@api_router.get("/backtest/strategies")
+async def list_backtest_strategies() -> Dict[str, Any]:
+    """The rule sets available to backtest, with their parameter grids."""
+    from backtest import STRATEGIES
+
+    return {
+        "strategies": [
+            {"id": sid, "defaults": spec["defaults"], "grid": spec["grid"],
+             "combinations": len(list(__import__("itertools").product(*spec["grid"].values())))}
+            for sid, spec in STRATEGIES.items()
+        ]
+    }
+
+
+class PortfolioRiskQuery(BaseModel):
+    """User-defined circuit breakers, from their own trading system rules."""
+    accountBalance: Optional[float] = None
+    maxDailyLossPct: Optional[float] = None
+    maxWeeklyLossPct: Optional[float] = None
+    correlation: Optional[float] = None
+
+
+@api_router.post("/performance/portfolio-risk")
+async def performance_portfolio_risk(req: PortfolioRiskQuery,
+                                     user: dict = Depends(require_premium)):
+    """Account-level risk: open heat, correlation, and the loss-limit state.
+
+    Everything else in the journal reasons trade by trade. This is the view a
+    prop trader checks first: how much of the account is at risk right now, how
+    much of that risk is really the same bet held several times, and whether the
+    day's or week's loss limit has already been hit.
+    """
+    from portfolio_risk import compute_open_heat, compute_loss_limits
+
+    rows = await trades_for_user(db, user["id"], limit=1000)
+    enriched = [_enrich_trade(t) for t in sort_trades_chronologically(rows)]
+
+    open_positions = [t for t in enriched if (t.get("status") or "open") == "open"]
+    closed = [t for t in enriched
+              if t.get("status") in ("closed", "sl_hit", "tp_hit")
+              and t.get("exit_price") is not None]
+
+    # Balance: explicit override, else the most recent trade's recorded balance.
+    balance = req.accountBalance
+    if balance is None:
+        with_balance = [t for t in enriched if t.get("account_balance")]
+        balance = float(with_balance[-1]["account_balance"]) if with_balance else 0.0
+
+    heat = compute_open_heat(open_positions, balance, correlation=req.correlation)
+    limits = compute_loss_limits(
+        closed, balance,
+        max_daily_loss_pct=req.maxDailyLossPct,
+        max_weekly_loss_pct=req.maxWeeklyLossPct,
+    )
+    return {"heat": heat, "limits": limits}
+
+
+class VolSizeRequest(BaseModel):
+    accountBalance: float
+    riskPct: float
+    atr: float
+    atrMultiple: Optional[float] = 2.0
+    price: Optional[float] = None
+    contractMultiplier: Optional[float] = 1.0
+
+
+@api_router.post("/calculate/volatility-size")
+async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
+    """Position size from the instrument's own volatility (ATR), not a fixed %.
+
+    A 1% stop is a different bet on an index future than on an altcoin. Sizing
+    off ATR is what makes 1R mean the same thing across instruments — without
+    it, per-trade R statistics are not comparable at all.
+    """
+    from portfolio_risk import volatility_adjusted_size
+
+    return volatility_adjusted_size(
+        req.accountBalance, req.riskPct, req.atr,
+        atr_multiple=req.atrMultiple or 2.0,
+        price=req.price,
+        contract_multiplier=req.contractMultiplier or 1.0,
+    )
 
 
 @api_router.get("/performance/analytics")

@@ -112,6 +112,9 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `market_data.py` | Capa de datos de mercado multi-proveedor |
 | `options_optimize.py` | Optimizador de estrategias de opciones |
 | `market_rates.py` | Tipo libre de riesgo en vivo (^IRX) con caché y fallback — **no** hardcodear 0.0525 |
+| `american_options.py` | Opciones americanas: binomial CRR, Barone-Adesi-Whaley, riesgo de asignación temprana por dividendo |
+| `portfolio_risk.py` | Riesgo a nivel de cuenta: heat abierto, correlación, límites de pérdida con bloqueo, sizing por ATR |
+| `backtest.py` | Backtest con validación: in-sample/out-of-sample, walk-forward, corrección por data snooping |
 | `nowpayments.py` | Cripto: creación de factura + verificación HMAC-SHA512 del IPN |
 | `revolut.py` | Revolut Pay: creación de pedido y confirmación |
 
