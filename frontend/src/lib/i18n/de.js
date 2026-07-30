@@ -3417,4 +3417,8 @@ export default {
   "optChainEmpty": "Keine Optionskette für diesen Basiswert und Verfall.",
   "syntheticDataTitle": "Simulierte Daten, keine Marktdaten",
   "syntheticDataBody": "Der Anbieter lieferte keine echte Optionskette für diesen Basiswert und Verfall. Prämien und implizite Volatilität stammen aus einem theoretischen Modell, Volumen und Open Interest sind generierte Werte. Zum Üben, nicht für Geldentscheidungen.",
+  "simMedianOfSweep": "Median-Pfad des Durchlaufs, kein einzelner Wurf",
+  "excCapture": "Bewegungsausschöpfung",
+  "excCaptureHint": "Welchen Anteil der verfügbaren günstigen Bewegung du im Schnitt mitnimmst. Unter 40 % liegt das Ziel zu weit weg oder du steigst zu spät aus.",
+  "insightLowCapture": "⚠️ Du schöpfst nur {value} % der günstigen Bewegung aus. Entweder liegt dein Ziel zu weit weg oder du steigst zu spät aus Gewinnern aus.",
 }

@@ -179,6 +179,13 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   vista que consuma esas respuestas, móntalo también.
 - **El tipo libre de riesgo de la UI sale de `GET /api/market/risk-free`**, nunca de un
   literal. Ese endpoint publica también la procedencia (`^IRX` / `stale` / `fallback`).
+- **`market_rates` cachea también los fallos.** Si toqueas esa lógica, no quites la
+  ventana `FAILURE_BACKOFF_SECONDS`: sin ella, con el proveedor caído, `get_risk_free_rate`
+  vuelve a salir a la red en cada llamada, y está dentro de `/options/chain`, `/optimize`,
+  `/calculate/*` y `/performance/analytics`. Hay test que lo fija.
+- **Un número que dispare un consejo de tamaño de posición necesita muestra EN EL ORIGEN**,
+  no sólo en el sitio que lo pinta. `suggested_stop_r` vale `None` por debajo de
+  `MIN_WINNERS_FOR_STOP_ADVICE`; no lo calcules "y que el consumidor decida".
 
 - **`backend_test_security.py` en la raíz está OBSOLETO** — hace `sys.exit(1)` inmediatamente. Usaba MongoDB (motor) y el puerto incorrecto. Usar siempre `backend/tests/`.
 - **`_requests_stdlib_shim.py` en la raíz** no es la librería `requests`. Es un shim stdlib que existía para evitar instalar el paquete. No importar directamente.

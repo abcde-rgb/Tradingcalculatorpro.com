@@ -3417,4 +3417,8 @@ export default {
   "optChainEmpty": "No options chain for this underlying and expiry.",
   "syntheticDataTitle": "Simulated data, not market data",
   "syntheticDataBody": "The provider returned no real chain for this underlying and expiry. Premiums and implied volatility come from a theoretical model, and volume and open interest are generated values. Use it to practise, not to decide with money.",
+  "simMedianOfSweep": "median trajectory of the sweep, not a single throw",
+  "excCapture": "Move capture",
+  "excCaptureHint": "How much of the favourable move available you keep on average. Under 40% the target sits too far out, or you exit late.",
+  "insightLowCapture": "⚠️ You only capture {value}% of the favourable move available. Either your target sits too far out, or you exit winners too late.",
 }

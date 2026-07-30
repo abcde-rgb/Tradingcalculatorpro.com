@@ -3417,4 +3417,8 @@ export default {
   "optChainEmpty": "No hay cadena de opciones para este subyacente y vencimiento.",
   "syntheticDataTitle": "Datos simulados, no de mercado",
   "syntheticDataBody": "El proveedor no devolvió una cadena real para este subyacente y vencimiento. Las primas y la volatilidad implícita son un modelo teórico, y el volumen y el interés abierto son valores generados. Úsalo para practicar, no para decidir con dinero.",
+  "simMedianOfSweep": "trayectoria mediana del barrido, no una tirada suelta",
+  "excCapture": "Captura del recorrido",
+  "excCaptureHint": "Qué parte del recorrido favorable disponible te llevas de media. Por debajo del 40% el objetivo está demasiado lejos o sales tarde.",
+  "insightLowCapture": "⚠️ Sólo capturas el {value}% del recorrido favorable disponible. O el objetivo está demasiado lejos, o estás saliendo tarde de las ganadoras.",
 }

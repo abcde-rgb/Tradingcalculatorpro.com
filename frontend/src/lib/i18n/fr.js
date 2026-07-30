@@ -3417,4 +3417,8 @@ export default {
   "optChainEmpty": "Aucune chaîne d'options pour ce sous-jacent et cette échéance.",
   "syntheticDataTitle": "Données simulées, pas des données de marché",
   "syntheticDataBody": "Le fournisseur n'a renvoyé aucune chaîne réelle pour ce sous-jacent et cette échéance. Les primes et la volatilité implicite viennent d'un modèle théorique, le volume et l'open interest sont générés. À utiliser pour s'entraîner, pas pour décider avec de l'argent.",
+  "simMedianOfSweep": "trajectoire médiane du balayage, pas un tirage isolé",
+  "excCapture": "Capture du mouvement",
+  "excCaptureHint": "Quelle part du mouvement favorable disponible tu conserves en moyenne. Sous 40 %, l'objectif est trop lointain ou tu sors tard.",
+  "insightLowCapture": "⚠️ Tu ne captures que {value} % du mouvement favorable disponible. Soit ton objectif est trop lointain, soit tu sors trop tard des gagnantes.",
 }

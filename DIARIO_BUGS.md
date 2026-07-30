@@ -399,4 +399,24 @@ a `round(plan["price"], 2)` con comentario explicativo.
 
 ---
 
-*Última actualización: 2026-07-30 — rediseño del panel de opciones: cadena con scroll roto (BUG-023), tipo libre de riesgo desincronizado entre UI y backend (BUG-024), aviso de datos modelados que sólo salía en el optimizador (BUG-026), coach siempre en español (BUG-027) y concordancia/idioma en el editor de patas (BUG-025).*
+*Actualización previa: 2026-07-30 — rediseño del panel de opciones: cadena con scroll roto (BUG-023), tipo libre de riesgo desincronizado entre UI y backend (BUG-024), aviso de datos modelados que sólo salía en el optimizador (BUG-026), coach siempre en español (BUG-027) y concordancia/idioma en el editor de patas (BUG-025).*
+
+---
+
+| BUG-028 | **Un fallo del proveedor del tipo libre de riesgo se reintentaba en CADA llamada.** `market_rates.get_risk_free_rate` cacheaba los aciertos pero no los fallos: la comprobación `fresh` exige `rate is not None`, así que con el proveedor inalcanzable nunca había caché y todo llamante volvía a salir a la red. Medido: **25 llamadas → 25 intentos**, y lo mismo teniendo ya un valor previo caducado (que sí se servía, pero pagando el viaje igual, porque `fetched_at` no se actualizaba en la rama *stale*). La función está en la ruta de `/options/chain`, `/options/iv-surface`, `/optimize`, `/calculate/*` y `/performance/analytics`, así que ese peaje se cobraba en cada petición que el usuario estaba esperando; y el fetch heredaba el `timeout=15` × 2 hosts de `stock_data._yahoo_get`, hasta 30 s por petición si el fallo es por timeout en vez de por rechazo. Fix: ventana de reintento tras fallo (`FAILURE_BACKOFF_SECONDS = 15 min`, `force_refresh` la salta), y `timeout` parametrizable en `_yahoo_get` con 4 s para la tasa. Verificado: 25 llamadas → 1 intento. | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-029 | **La sugerencia de stop se pintaba sin muestra suficiente.** `generate_insights` exigía ≥10 ganadoras antes de hablar de estrechar el stop, pero `AnalyticsDashboard` lee `excursion.suggested_stop_r` directamente del payload y no comprobaba nada: con 2 operaciones ganadoras de MAE pequeña, el panel recomendaba una anchura de stop — y por tanto un tamaño de posición — a partir de dos observaciones. Fix: la guarda se mueve al origen (`MIN_WINNERS_FOR_STOP_ADVICE` en `_excursion_stats`), así que el campo sólo existe cuando está respaldado, y el insight deja de duplicar el umbral (no pueden divergir). | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-030 | **El factor de anualización de Sharpe/Sortino no tenía techo.** `_periods_per_year` exige mínimo de operaciones y de ventana, pero no acota el resultado: una muestra densa en poco tiempo —una semana de scalping, o un CSV importado de operaciones de tick— lleva las operaciones/año a cinco cifras y con ellas el factor √ppy. Medido: 400 operaciones en 10 días daban ≈14.610 ops/año y √≈121, convirtiendo un Sharpe por operación de 0,05 en un 6,0 presentado como dato. Fix: `MAX_TRADES_PER_YEAR = 2520` (~10 por sesión × 252 sesiones). | 🟡 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-031 | **Las tarjetas de cabecera del simulador seguían siendo una tirada suelta.** El PR #153 añadió la distribución de Monte Carlo en un panel aparte, pero `SimulatorPro` seguía llamando a `runSimulation` para los KPI, así que el usuario leía un ROI, un drawdown y un profit factor de **una trayectoria aleatoria** justo encima de un rango P5–P95 que no la contenía; al recalcular, la cabecera cambiaba entera aunque la distribución apenas se moviese. Era la mitad no resuelta del bug original. Fix: PRNG con semilla (`makeRng`) y semilla por iteración en `runMonteCarlo`, que ahora devuelve `medianPath` reproducible; cuando el usuario lanza el barrido, la cabecera pasa a esa mediana y se etiqueta como tal. `opts.rnd` explícito sigue ganando, así que las comprobaciones deterministas de `engine-check.js` no cambian. | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+*Última actualización: 2026-07-30 — reconciliación de las dos auditorías: reintentos sin caché del tipo libre de riesgo (BUG-028), sugerencia de stop sin muestra (BUG-029), anualización sin techo (BUG-030) y cabecera del simulador aún aleatoria (BUG-031).*

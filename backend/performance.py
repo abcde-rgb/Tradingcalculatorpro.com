@@ -35,6 +35,15 @@ DEFAULT_RISK_FREE_RATE = 0.04      # annual; overridden with the live curve when
 MIN_DAYS_TO_ANNUALIZE = 7
 MIN_TRADES_TO_ANNUALIZE = 10
 DAYS_PER_YEAR = 365.25
+# Ceiling on the observed frequency used to annualize. ~10 trades per session ×
+# 252 sessions. Without it a dense sample over a short span — a scalping week,
+# or a bulk CSV import of tick trades — drives trades/year into five figures and
+# the √ppy scale factor with it, turning a per-trade Sharpe of 0.05 into a
+# reported 5.5. The cap keeps the number wrong-but-bounded instead of absurd.
+MAX_TRADES_PER_YEAR = 2520.0
+# Minimum winning trades before the excursion panel is allowed to suggest a stop
+# width. A p80 estimate off fewer than this is two observations wide.
+MIN_WINNERS_FOR_STOP_ADVICE = 10
 
 
 # ─── Math helpers ─────────────────────────────────────────────────
@@ -120,7 +129,7 @@ def _periods_per_year(closed: List[dict]) -> Optional[float]:
     span_days = (max(dts) - min(dts)).total_seconds() / 86400
     if span_days < MIN_DAYS_TO_ANNUALIZE:
         return None
-    return len(closed) / (span_days / DAYS_PER_YEAR)
+    return min(len(closed) / (span_days / DAYS_PER_YEAR), MAX_TRADES_PER_YEAR)
 
 
 def _compute_sharpe(returns: List[float], rf_period: float = 0.0) -> float:
@@ -691,17 +700,37 @@ def compute_excursion_stats(closed: List[dict]) -> Dict[str, Any]:
     with_mae = [t for t in closed if t.get("mae_r") is not None]
     with_mfe = [t for t in closed if t.get("mfe_r") is not None]
     if not with_mae and not with_mfe:
-        return {"available": False, "sample_size": 0, "scatter": []}
+        return {"available": False, "sample_size": 0, "scatter": [],
+                "capture_ratio": None, "capture_sample": 0}
 
     winners_mae = sorted(float(t["mae_r"]) for t in with_mae if float(t.get("pnl") or 0) > 0)
     losers_mfe = sorted(float(t["mfe_r"]) for t in with_mfe if float(t.get("pnl") or 0) <= 0)
 
     # p80 of winners' MAE: the stop distance that would have kept 80% of the
     # winners alive. A small buffer on top keeps it from being knife-edge.
+    # The sample floor lives HERE, not only in `generate_insights`: the analytics
+    # panel renders `suggested_stop_r` straight from this payload, so guarding it
+    # downstream left the UI free to recommend a stop width — and therefore a
+    # position size — off two winning trades.
+    enough_winners = len(winners_mae) >= MIN_WINNERS_FOR_STOP_ADVICE
     stop_p80 = _percentile(winners_mae, 80) if winners_mae else None
-    suggested_stop_r = round(stop_p80 * 1.2, 2) if stop_p80 else None
+    suggested_stop_r = (
+        round(stop_p80 * 1.2, 2) if (stop_p80 and enough_winners) else None
+    )
 
     gave_back = sum(1 for v in losers_mfe if v >= 1.0)
+
+    # Capture: how much of the favourable move actually available you took home.
+    # MAE answers "is my stop wider than it needs to be"; nothing here answered
+    # the mirror question about the target. A capture well under half says the
+    # target sits past where price usually turns, or that the exit is late.
+    both = [t for t in closed
+            if t.get("mfe_r") not in (None, 0) and t.get("r_multiple") is not None]
+    mfe_total = sum(float(t["mfe_r"]) for t in both)
+    capture_ratio = (
+        round(sum(float(t["r_multiple"]) for t in both) / mfe_total, 2)
+        if both and mfe_total > 0 else None
+    )
 
     return {
         "available": True,
@@ -715,6 +744,8 @@ def compute_excursion_stats(closed: List[dict]) -> Dict[str, Any]:
         "suggested_stop_r": suggested_stop_r if (suggested_stop_r and suggested_stop_r < 0.8) else None,
         "losers_gave_back": gave_back,
         "losers_sample": len(losers_mfe),
+        "capture_ratio": capture_ratio,
+        "capture_sample": len(both),
         "scatter": [
             {
                 "mae_r": float(t["mae_r"]) if t.get("mae_r") is not None else None,
@@ -864,7 +895,10 @@ def generate_insights(analytics: Dict[str, Any]) -> List[Dict[str, str]]:
 
     # MAE — stop wider than the evidence requires
     exc = analytics.get("excursion") or {}
-    if exc.get("suggested_stop_r") and exc.get("winners_sample", 0) >= 10:
+    # The sample floor now lives in `_excursion_stats` (see
+    # MIN_WINNERS_FOR_STOP_ADVICE), so a non-None suggestion is already vouched
+    # for — no need to re-check the count and risk the two drifting apart.
+    if exc.get("suggested_stop_r"):
         insights.append({"severity": "info", "key": "insightStopTooWide",
                          "value": str(exc["winners_mae_p80"]),
                          "suggested": str(exc["suggested_stop_r"])})
@@ -875,6 +909,12 @@ def generate_insights(analytics: Dict[str, Any]) -> List[Dict[str, str]]:
             insights.append({"severity": "warning", "key": "insightGaveBackWinners",
                              "count": str(exc["losers_gave_back"]),
                              "pct": f"{share:.0f}"})
+
+    # MFE — how little of the available move you keep
+    if (exc.get("capture_ratio") is not None and exc.get("capture_sample", 0) >= 20
+            and 0 < exc["capture_ratio"] < 0.4):
+        insights.append({"severity": "warning", "key": "insightLowCapture",
+                         "value": f"{exc['capture_ratio'] * 100:.0f}"})
 
     # Rule compliance
     if compliance < 80:

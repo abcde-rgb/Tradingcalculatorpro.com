@@ -3417,4 +3417,8 @@ export default {
   "optChainEmpty": "该标的与到期日没有期权链数据。",
   "syntheticDataTitle": "模拟数据，非市场数据",
   "syntheticDataBody": "数据源未返回该标的与到期日的真实期权链。权利金与隐含波动率来自理论模型，成交量与未平仓量为生成值。仅供练习，请勿据此做出资金决策。",
+  "simMedianOfSweep": "本次扫描的中位路径，而非单次抽样",
+  "excCapture": "行情捕获率",
+  "excCaptureHint": "平均而言你拿走了可用有利行情的多少。低于 40% 说明目标太远或出场太晚。",
+  "insightLowCapture": "⚠️ 你只捕获了可用有利行情的 {value}%。要么目标设得太远，要么盈利单出场太晚。",
 }

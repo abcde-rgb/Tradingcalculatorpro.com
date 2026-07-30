@@ -2245,6 +2245,49 @@ arriba y los extras y cosas de menor importancia y impacto más abajo"*.
 - **BUG-025 · "1 patas activas"**, "Constructor de Legs" y "Limitado riesgo ·
   Ilimitado recompensa" (orden que sólo funciona en inglés).
 
+### Reconciliación de las dos auditorías (misma sesión)
+
+Descartar el commit duplicado no cerraba la pregunta de **cuál de las dos
+implementaciones era mejor en cada punto**. Repasadas una por una; en la mayoría
+gana `main` y no se ha tocado nada:
+
+| Punto | Gana | Por qué |
+|---|---|---|
+| Sortino | `main` | Devuelve `None` también con `len < 2`; la mía devolvía `0.0`, que se lee como "malo" |
+| Anualización Sharpe/Sortino | `main` | Separa el cálculo en `_risk_adjusted_metrics` y expone además el valor por operación, el flag `annualized` y `trades_per_year` |
+| Solver de IV | `main` | Tiene guarda de **identificabilidad** (`MIN_IDENTIFIABLE_VEGA`): rechaza respuestas donde el precio no es sensible a σ. A la mía le faltaba, y devolvía un 0,72 sin significado en strikes muy fuera de dinero |
+| Semilla del solver | `main` | Brenner-Subrahmanyam según moneyness, en vez de un 0,30 fijo |
+| MAE/MFE | `main` | `losers_gave_back` (cuántas perdedoras estuvieron ≥1R a favor) es más accionable que mi `losers_avg_mfe_r` |
+| Definición de ruina en Monte Carlo | `main` | Usa el valle alcanzado, no sólo el balance final: una racha que baja del umbral y recupera igualmente reventó la cuenta |
+| Marcado de datos sintéticos (backend) | `main` | `_synthetic_marker` en las tres rutas, con prosa de respaldo para clientes que no localizan |
+
+Y **cuatro puntos donde la versión descartada era mejor**, aplicados sobre
+`main` con test de regresión cada uno (`tests/test_reconciled_metrics_unit.py`,
+13 tests):
+
+- **BUG-028 · El tipo libre de riesgo se reintentaba en cada llamada.**
+  `market_rates` cacheaba aciertos pero no fallos: `fresh` exige `rate is not
+  None`, así que con el proveedor caído no había caché. **Medido: 25 llamadas →
+  25 intentos de red**, y lo mismo con un valor previo caducado. Está en la ruta
+  de `/options/chain`, `/optimize`, `/calculate/*` y `/performance/analytics`.
+  Añadidos `FAILURE_BACKOFF_SECONDS` (15 min) y `timeout` parametrizable en
+  `_yahoo_get` (4 s para la tasa, frente a los 15 s × 2 hosts heredados).
+  Ahora: **25 → 1**.
+- **BUG-029 · La sugerencia de stop se pintaba sin muestra.** El insight exigía
+  ≥10 ganadoras; el panel leía el campo directo y no comprobaba nada, así que
+  con 2 ganadoras recomendaba una anchura de stop. La guarda pasa al origen.
+- **BUG-030 · La anualización no tenía techo.** 400 operaciones en 10 días →
+  ≈14.610 ops/año → √≈121, convirtiendo un Sharpe por operación de 0,05 en un
+  6,0. Añadido `MAX_TRADES_PER_YEAR = 2520`.
+- **BUG-031 · La cabecera del simulador seguía siendo una tirada suelta.** El
+  panel de distribución es nuevo, pero los KPI seguían saliendo de un
+  `runSimulation` aparte: un ROI aleatorio justo encima de un P5–P95 que no lo
+  contenía. Añadido PRNG con semilla y `medianPath` reproducible; al lanzar el
+  barrido la cabecera pasa a la mediana y se etiqueta.
+
+Además, `capture_ratio` (+ su insight y su tarjeta): la MAE responde "¿sobra mi
+stop?" y no había nada que respondiese la pregunta espejo sobre el objetivo.
+
 **⚠️ Nota de método — trabajo duplicado detectado y descartado.** Esta rama
 llevaba un commit previo que aplicaba el mismo `ANALISIS_TRADER_20260728.md` que
 el PR #153 ya había mergeado en `main` mientras se trabajaba: mismas correcciones
@@ -2263,6 +2306,7 @@ empezar y no sólo antes de abrir el PR.**
 - Capturas a 1440×1000 y 390×844: el orden se mantiene apilado en móvil. ✔
 - Pestañas Cadena, Optimizar y Flujo verificadas; acordeón abierto sobre los
   componentes de `main` (`ExplainTrade`, `GreeksDisplay`, `GreeksTimeChart`). ✔
-- `pytest` **345 passed / 74 skipped** · `node scripts/engine-check.js` **30/30** ·
-  ESLint **0 errores** (125 avisos) · i18n **5518 × 8 idiomas, 0 huecos** (+37
-  claves) · `npm run build` exit 0 · 0 errores de runtime en consola.
+- `pytest` **358 passed / 74 skipped** (+13 de la reconciliación) ·
+  `node scripts/engine-check.js` **30/30** (contrato intacto) · ESLint **0
+  errores** (125 avisos) · i18n **5522 × 8 idiomas, 0 huecos** (+41 claves) ·
+  `npm run build` exit 0 · 0 errores de runtime en consola.
