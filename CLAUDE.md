@@ -21,6 +21,19 @@ El proyecto nació en la plataforma Emergent con una imagen `fastapi_react_mongo
 - **Email**: SendGrid
 - **IA**: Anthropic SDK (`ANTHROPIC_API_KEY`) — AI Trade Coach
 
+## Estructura del repositorio
+
+```
+backend/     FastAPI + shim Mongo→PostgreSQL   frontend/   React 19 + CRACO
+docs/        toda la doc → docs/README.md      scripts/    verificadores del repo
+tests/       smoke E2E manual (backend vivo)   _archive/   código retirado
+```
+
+`docs/README.md` es el índice, agrupado por intención. `docs/ESTADO_PROYECTO.md` es la
+fuente de verdad del estado; `docs/DIARIO_BUGS.md`, el historial de bugs con causa raíz.
+La raíz sólo tiene `README.md`, `CLAUDE.md` y `SECURITY.md`: cualquier `.md` nuevo va a
+`docs/`, y si es una foto fechada que no se va a mantener, a `docs/historico/`.
+
 ## Comandos de desarrollo
 
 ### Backend (ejecutar desde `backend/`)
@@ -57,6 +70,13 @@ cd backend && python -m py_compile *.py
 # Lint del frontend. Falla sólo ante errores reales (no-undef, rules-of-hooks);
 # los avisos de símbolos muertos no bloquean. Corre también en CI.
 cd frontend && npx eslint src scripts
+
+# Paridad de los 8 idiomas y motor del simulador (ambos offline)
+cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
+
+# Los enlaces relativos de la doc resuelven. Existe porque ya se colaron
+# referencias a archivos inexistentes y nada las detectaba.
+python scripts/check-doc-links.py
 ```
 
 ## Arquitectura: el shim MongoDB→PostgreSQL
@@ -198,8 +218,11 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
 - **`plan_version` se sella al crear la operación y no se reescribe.** Cambiar el
   plan no debe re-juzgar retroactivamente la historia que se supone que mide.
 
-- **`backend_test_security.py` en la raíz está OBSOLETO** — hace `sys.exit(1)` inmediatamente. Usaba MongoDB (motor) y el puerto incorrecto. Usar siempre `backend/tests/`.
-- **`_requests_stdlib_shim.py` en la raíz** no es la librería `requests`. Es un shim stdlib que existía para evitar instalar el paquete. No importar directamente.
+- **`_archive/` es código retirado, no se importa.** Contiene `backend_test_security.py`
+  (obsoleto: hace `sys.exit(1)` inmediatamente, usaba MongoDB y el puerto equivocado) y
+  `backend_test.py`. Los tests vivos son los de `backend/tests/`.
+  *`_requests_stdlib_shim.py` se eliminó el 2026-07-30: era un envoltorio de urllib que imitaba
+  a `requests` y ningún módulo lo importaba.*
 - **CORS incluye `PATCH`** — hay dos endpoints PATCH en `server.py` usados por AdminPage: `PATCH /admin/users/{id}` y `PATCH /admin/feature-flags/{id}`. No eliminarlos del `allow_methods`.
 - **`min-instances`** en Cloud Run — configurable vía variable de repositorio `MIN_INSTANCES` (por defecto `1`, intencionado para evitar cold starts en app financiera). Ponla a `0` para ahorrar coste a cambio de ~2-4 s de arranque en frío para el primer usuario tras inactividad.
 - **Base de datos conmutable Cloud SQL ↔ Neon** — variable de repositorio `DB_PROVIDER`: vacía/`cloudsql` monta el socket de Cloud SQL (por defecto); `neon` conecta por TCP+SSL usando el secreto `DATABASE_URL`. El código de conexión (`init_pool` en `server.py`) ya soporta ambos. Guía de migración: [`docs/MIGRACION_NEON.md`](./docs/MIGRACION_NEON.md).

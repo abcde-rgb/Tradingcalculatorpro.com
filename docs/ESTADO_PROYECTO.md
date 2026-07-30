@@ -17,7 +17,7 @@
 > - 📚 Documentos hermanos: [`ANALISIS_2026-06-25.md`](./ANALISIS_2026-06-25.md) ·
 >   [`GUIA_EXTENSION.md`](./GUIA_EXTENSION.md) ·
 >   [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) ·
->   [`DEPLOY_CHECKLIST.md`](./DEPLOY_CHECKLIST.md) · [`DIARIO_BUGS.md`](../DIARIO_BUGS.md)
+>   [`DEPLOY_CHECKLIST.md`](./DEPLOY_CHECKLIST.md) · [`DIARIO_BUGS.md`](./DIARIO_BUGS.md)
 
 ---
 
@@ -376,7 +376,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
    - Actualiza el **semáforo** (§1) y el **inventario** (§2) si cambió algo.
    - Marca casillas del **backlog** (§5) que hayas cerrado.
    - Añade una entrada con fecha en el **registro de sesiones** (§7).
-   - Si tocaste seguridad/bugs, refleja también en [`../DIARIO_BUGS.md`](../DIARIO_BUGS.md).
+   - Si tocaste seguridad/bugs, refleja también en [`./DIARIO_BUGS.md`](./DIARIO_BUGS.md).
 4. **Regla de oro**: este documento debe reflejar el **código real**, no intenciones.
    Verifica antes de afirmar (compila, ejecuta, lee el archivo).
 
@@ -883,7 +883,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   públicas reales.
 - Verificado: build OK (290 URLs sitemap), smoke de `?lang=`.
 - ⏳ Sigue pendiente del usuario (mayor palanca SEO): comprar/conectar el dominio propio y enviar el
-  sitemap a Search Console/Bing (ver `SEO_GUIDE.md`).
+  sitemap a Search Console/Bing (ver `docs/setup/SEO_GUIDE.md`).
 
 ### 2026-07-09 (22) — Revisión de seguridad del backend (pre-lanzamiento)
 - Revisión manual (la skill `security-review` no arrancó por `origin/HEAD` ambiguo; hecha a mano).
@@ -1750,7 +1750,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Google Cloud"*. El motivo de fondo: el trabajo se movió al proyecto
   **`tradingcalculatorpro-502817`**, pero el despliegue seguía escrito a fuego contra el
   antiguo (`tradingcalculator-495806`) en **cinco sitios** del workflow, más `cloudbuild.yaml`,
-  `setup-gcp.sh` y `GOOGLE_CLOUD_SETUP.md`.
+  `setup-gcp.sh` y `docs/setup/GOOGLE_CLOUD_SETUP.md`.
 - ✅ **Nada específico del proyecto queda fijado en el YAML.** Ahora sale de variables de
   repositorio con el proyecto actual por defecto: `GCP_PROJECT`, `GCP_REGION`,
   `CLOUDSQL_INSTANCE`, `RUNTIME_SERVICE_ACCOUNT` (además de las que ya había, `DB_PROVIDER`
@@ -1758,7 +1758,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - 🐛 **Restos del proyecto viejo que también rompían al cambiar de región**: `configure-docker`
   tenía `europe-west1` a fuego, el nombre de la imagen se componía con el proyecto antiguo, y
   ni el deploy ni el healthcheck pasaban `--project` (dependían del proyecto activo de gcloud).
-- 🐛 **`GOOGLE_CLOUD_SETUP.md` decía `us-central1` mientras el deploy real usaba `europe-west1`.**
+- 🐛 **`docs/setup/GOOGLE_CLOUD_SETUP.md` decía `us-central1` mientras el deploy real usaba `europe-west1`.**
   No es cosmético: el nombre de conexión de Cloud SQL lleva la región dentro, así que seguir el
   documento al pie de la letra creaba una instancia a la que el servicio no podía conectarse.
   Corregido y avisado en cabecera.
@@ -2225,7 +2225,7 @@ arriba y los extras y cosas de menor importancia y impacto más abajo"*.
 - 🔧 `StrategyBar` sin marco ni `rightSlot` propios: se anida.
 - 🔧 `OptionsSubHeader`: había **dos** indicadores de "en vivo" diciendo lo mismo.
 
-**Bugs corregidos** (detalle en [`DIARIO_BUGS.md`](../DIARIO_BUGS.md)):
+**Bugs corregidos** (detalle en [`DIARIO_BUGS.md`](./DIARIO_BUGS.md)):
 - **BUG-023 · La pestaña Cadena era inusable al abrirla.** La tabla estaba en un
   `flex-1/overflow-hidden` cuyo hijo `overflow-auto` no tenía altura acotada, así
   que scrolleaba la página y el `thead sticky` se pegaba al contenedor
@@ -2245,9 +2245,67 @@ arriba y los extras y cosas de menor importancia y impacto más abajo"*.
 - **BUG-025 · "1 patas activas"**, "Constructor de Legs" y "Limitado riesgo ·
   Ilimitado recompensa" (orden que sólo funciona en inglés).
 
+## Reorganización del repositorio (2026-07-30)
+
+La raíz tenía **10 `.md` sueltos** y `docs/` **27 documentos sin índice**, así que
+encontrar algo dependía de recordar dónde estaba. Reordenado por intención, no por
+tema.
+
+**Movimientos** (todos con `git mv`, la historia se conserva):
+
+| De | A | Por qué |
+|---|---|---|
+| `DIARIO_BUGS.md` | `docs/` | Doc vivo; era el único que quedaba fuera de `docs/` |
+| `GOOGLE_CLOUD_SETUP.md`, `GOOGLE_OAUTH_SETUP.md`, `SEO_GUIDE.md` | `docs/setup/` | Se abren una vez, al dar de alta infraestructura |
+| `ANALISIS_APIS_ADMIN_GOOGLE_2026-05-09.md`, `AUDIT_REPORT_2026-05-09.md`, `PLAN_100_FUNCIONAMIENTO_2026-05-09.md` | `docs/historico/` | Fotos de mayo; no describen el sistema actual |
+| `test_result.md` (67 KB), `test_summary.txt` | `docs/historico/` | Residuo de Emergent: un protocolo de comunicación entre agentes de una plataforma retirada |
+
+**Eliminado:** `_requests_stdlib_shim.py` — envoltorio de urllib que imitaba a
+`requests` y que **ningún módulo importaba**. CLAUDE.md tenía que advertir de él;
+quitándolo desaparecen el archivo y la advertencia. Y los 13 `iteration_*.json` de
+`test_reports/` que estaban versionados por error (se conserva el `.gitkeep`).
+
+La raíz queda en **`README.md` + `CLAUDE.md` + `SECURITY.md`**, que es lo que por
+convención va ahí.
+
+**Nuevo:**
+
+- **[`docs/README.md`](./README.md)** — el índice que no existía. Agrupa los 27
+  documentos por *para qué los vas a abrir* (empieza aquí / voy a escribir código /
+  voy a desplegar / voy a captar usuarios / contenido / referencia / auditorías),
+  con el tamaño de cada uno: un doc de 1.411 líneas y una checklist de 111 no se
+  leen en el mismo momento.
+- **`scripts/check-doc-links.py`** — verifica que los enlaces relativos resuelven.
+  Existe porque este mismo trabajo destapó que `ESTADO_PROYECTO.md` citaba
+  `docs/PLAN_DE_TRADING_spec.md`, que no estaba en el repo. Corre offline. Pilló un
+  enlace roto en el índice nada más escribirlo.
+- **`docs/PLAN_DE_TRADING_spec.md`** — el spec que faltaba, ya referenciado.
+- **`README.md`** reescrito con el mapa del repo.
+
+**Incoherencias corregidas** (la doc mentía a quien la leyera):
+
+1. **CLAUDE.md decía que `backend_test_security.py` está en la raíz.** Estaba en
+   `_archive/` desde antes. Quien buscara el fichero para evitarlo no lo encontraba.
+2. **El `README.md` mandaba un comando roto.** Daba `DATABASE_URL` por TCP a
+   `localhost:5432`, y CLAUDE.md documenta que eso falla con
+   `CERTIFICATE_VERIFY_FAILED` porque `init_pool` trata cualquier host TCP como Neon
+   y exige SSL. Corregido al socket Unix, que es lo que funciona.
+3. **El skill `estado-proyecto` llevaba una lista de `py_compile` a mano** que
+   CLAUDE.md ya marcaba como incompleta ("omitía 6"). Ahora `*.py`, y añadidos los
+   checks de i18n, motor y enlaces que ya existían y no estaban en el skill.
+4. **`check.sh` y los dos smoke de `tests/` apuntaban a `us-central1`** mientras el
+   despliegue real está en `europe-west1`. Llevaban tiempo midiendo un host que no
+   existe: fallaba todo, y no porque la API estuviera mal. Ahora leen `BACKEND_URL`
+   del entorno y abortan si falta — no se inventa un hostname de producción.
+
+**Verificado:** `py_compile` de todos los módulos · `pytest` 408 passed / 74 skipped
+· i18n 5528 × 8 sin huecos · ESLint 0 errores · `engine-check` 30/30 ·
+`check-fetch-credentials` OK · `npm run build` exit 0 (744 URLs) ·
+`check-doc-links` 47 documentos, 0 roturas.
+
 ## Plan de trading versionado (2026-07-30) — backend completo
 
-Implementación de `docs/PLAN_DE_TRADING_spec.md` §3, pasos 1, 2 y 4. El plan deja
+Implementación de [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) §3, pasos 1, 2 y 4. El plan deja
 de ser tres piezas desconectadas y efímeras y pasa a ser **la fuente de verdad de
 los umbrales de riesgo del usuario**.
 
