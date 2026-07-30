@@ -3421,4 +3421,10 @@ export default {
   "excCapture": "Bewegungsausschöpfung",
   "excCaptureHint": "Welchen Anteil der verfügbaren günstigen Bewegung du im Schnitt mitnimmst. Unter 40 % liegt das Ziel zu weit weg oder du steigst zu spät aus.",
   "insightLowCapture": "⚠️ Du schöpfst nur {value} % der günstigen Bewegung aus. Entweder liegt dein Ziel zu weit weg oder du steigst zu spät aus Gewinnern aus.",
+  "errOutsideSession": "Außerhalb der Handelszeiten deines Plans",
+  "errUnlistedMarket": "Markt steht nicht in deinem Plan",
+  "errOverDailyLimit": "Eröffnet, obwohl das Tagesverlustlimit erreicht war",
+  "errOverTradeCount": "Über dem Tagesmaximum an Trades in deinem Plan",
+  "errAfterConsecutiveLosses": "Nach Erreichen deiner maximalen Verluststrähne eröffnet",
+  "planCooldownWarning": "Du änderst den Plan, bevor die von ihm selbst gesetzte Stichprobe vollständig ist: {trades_under_plan} von {required} Trades. Du kannst fortfahren, es wird aber festgehalten.",
 }

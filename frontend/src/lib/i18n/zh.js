@@ -3421,4 +3421,10 @@ export default {
   "excCapture": "行情捕获率",
   "excCaptureHint": "平均而言你拿走了可用有利行情的多少。低于 40% 说明目标太远或出场太晚。",
   "insightLowCapture": "⚠️ 你只捕获了可用有利行情的 {value}%。要么目标设得太远，要么盈利单出场太晚。",
+  "errOutsideSession": "不在你计划的交易时段内",
+  "errUnlistedMarket": "该市场不在你的计划中",
+  "errOverDailyLimit": "在已达到当日亏损上限后开仓",
+  "errOverTradeCount": "超过你计划的每日最大交易笔数",
+  "errAfterConsecutiveLosses": "在达到你的最大连续亏损后交易",
+  "planCooldownWarning": "你在计划自己设定的样本量完成前就修改它：已有 {trades_under_plan} 笔，共需 {required} 笔。可以继续，但会被记录。",
 }

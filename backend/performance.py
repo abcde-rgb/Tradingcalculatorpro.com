@@ -21,10 +21,22 @@ import uuid
 # ─── Configuration ────────────────────────────────────────────────
 # Education-aligned thresholds. These appear inside auto-error messages
 # and reference what the Education Center already teaches.
-MIN_RR_THRESHOLD = 1.5            # min recommended R:R (per Education Center)
-MAX_RISK_PCT_THRESHOLD = 2.0       # max risk per trade (% of account)
+# These are DEFAULTS, not thresholds. They apply only to a user who has not
+# written a trading plan; anyone with one is judged against `plan["risk"]`
+# instead (see `detect_errors`). Judging every trader against the same numbers
+# is what made `rule_compliance_rate` measure adherence to the app's opinion
+# rather than to the user's own rules: a scalper deliberately running 1:1 at a
+# 65% hit rate collected a `low_rr` error on every trade, and someone who caps
+# risk at 0.5% got no warning at 1.8% because the global ceiling was 2%.
+DEFAULT_MIN_RR = 1.5               # min recommended R:R (per Education Center)
+DEFAULT_MAX_RISK_PCT = 2.0         # max risk per trade (% of account)
 EARLY_CLOSE_THRESHOLD = 0.5        # closed before reaching 50% of TP
 REVENGE_TRADE_WINDOW_MIN = 30      # min between losing trade and next entry
+
+# Old names kept as aliases: they are imported by name elsewhere and read by
+# tests, and silently changing what they mean is worse than carrying two lines.
+MIN_RR_THRESHOLD = DEFAULT_MIN_RR
+MAX_RISK_PCT_THRESHOLD = DEFAULT_MAX_RISK_PCT
 
 # Risk-adjusted metrics. The Sharpe/Sortino reported to the user are
 # ANNUALIZED, which is the only convention whose thresholds ("above 1 is good")
@@ -289,13 +301,43 @@ def _excursion_r(trade: dict, side: str, entry: float,
 def detect_errors(
     trade: dict,
     *,
+    plan: Optional[dict] = None,
     prev_trades: Optional[List[dict]] = None,
 ) -> List[Dict[str, str]]:
     """Run a set of rules against a trade and return detected mistakes.
 
-    Each error is {code, severity, message_key} so the frontend can localize.
+    Each error is {code, severity, message_key} so the frontend can localize,
+    plus `threshold` and `plan_version` when a plan supplied the limit — that is
+    what lets the UI say "your plan says 1%, this trade risked 2.3%" instead of a
+    generic scolding.
+
+    `plan` is the user's active trading plan (see `trading_plan.py`). When it is
+    None every threshold falls back to the module defaults and the behaviour is
+    exactly what it was before plans existed — a user without a plan must not
+    see their error list change. When it IS present, the plan wins on every
+    threshold it declares, and five extra rules become available that cannot
+    even be expressed without one (sessions, daily loss, trade count,
+    consecutive losses, traded market).
     """
+    from trading_plan import is_within_sessions, plan_risk  # local: avoids a cycle
+
     errors: List[Dict[str, str]] = []
+    risk_cfg = plan_risk(plan)
+    plan_version = plan.get("version") if plan else None
+
+    def _fail(code: str, severity: str, message_key: str, *,
+              value: Any = None, threshold: Any = None) -> None:
+        """Append an error, tagging it with the plan that judged it."""
+        err: Dict[str, Any] = {"code": code, "severity": severity,
+                               "message_key": message_key}
+        if value is not None:
+            err["value"] = str(value)
+        if threshold is not None:
+            err["threshold"] = str(threshold)
+        if plan_version is not None:
+            err["plan_version"] = plan_version
+        errors.append(err)
+
     side = trade.get("side", "long")
     entry = trade.get("entry_price")
     exit_p = trade.get("exit_price")
@@ -305,42 +347,35 @@ def detect_errors(
     balance = trade.get("account_balance")
     status = trade.get("status", "closed")
 
-    # Rule 1: NO STOP LOSS — cardinal sin
-    if sl is None or sl == 0:
-        errors.append({
-            "code": "no_sl",
-            "severity": "critical",
-            "message_key": "errNoSL",
-        })
+    # Rule 1: NO STOP LOSS — cardinal sin, unless the plan deliberately opts out.
+    # Some real systems (options spreads with defined max loss, mean-reversion
+    # baskets) carry no per-trade stop. Flagging those forever trained the user
+    # to ignore the whole error list, which is worse than the missing rule.
+    if (sl is None or sl == 0) and risk_cfg["require_stop_loss"]:
+        _fail("no_sl", "critical", "errNoSL")
 
-    # Rule 2: R:R below threshold
+    # Rule 2: R:R below the minimum THIS trader declared
+    min_rr = risk_cfg["min_rr"]
     if entry and sl and tp:
         try:
             risk = abs(float(entry) - float(sl))
             reward = abs(float(tp) - float(entry))
             rr = _safe_div(reward, risk, 0)
-            if rr < MIN_RR_THRESHOLD and risk > 0:
-                errors.append({
-                    "code": "low_rr",
-                    "severity": "high",
-                    "message_key": "errLowRR",
-                    "value": str(round(rr, 2)),
-                })
+            if rr < min_rr and risk > 0:
+                _fail("low_rr", "high", "errLowRR",
+                      value=round(rr, 2), threshold=min_rr)
         except (TypeError, ValueError):
             pass
 
-    # Rule 3: Position size too large (risk > MAX_RISK_PCT of balance)
+    # Rule 3: Position size above the trader's own ceiling
+    max_risk_pct = risk_cfg["max_risk_pct_per_trade"]
     if entry and sl and qty and balance:
         try:
             risk_amount = abs(float(entry) - float(sl)) * float(qty)
             risk_pct = _safe_div(risk_amount, float(balance), 0) * 100
-            if risk_pct > MAX_RISK_PCT_THRESHOLD:
-                errors.append({
-                    "code": "oversize",
-                    "severity": "high",
-                    "message_key": "errOversize",
-                    "value": str(round(risk_pct, 2)),
-                })
+            if risk_pct > max_risk_pct:
+                _fail("oversize", "high", "errOversize",
+                      value=round(risk_pct, 2), threshold=max_risk_pct)
         except (TypeError, ValueError):
             pass
 
@@ -355,12 +390,8 @@ def detect_errors(
             )
             ratio = _safe_div(actual_distance, tp_distance, 0)
             if same_dir and 0 < ratio < EARLY_CLOSE_THRESHOLD:
-                errors.append({
-                    "code": "closed_early",
-                    "severity": "medium",
-                    "message_key": "errClosedEarly",
-                    "value": f"{int(ratio * 100)}%",
-                })
+                _fail("closed_early", "medium", "errClosedEarly",
+                      value=f"{int(ratio * 100)}%")
         except (TypeError, ValueError):
             pass
 
@@ -370,17 +401,9 @@ def detect_errors(
         try:
             sl_f, exit_f, entry_f = float(sl), float(exit_p), float(entry)
             if side == "long" and exit_f < sl_f and exit_f < entry_f:
-                errors.append({
-                    "code": "sl_violated",
-                    "severity": "critical",
-                    "message_key": "errSLViolated",
-                })
+                _fail("sl_violated", "critical", "errSLViolated")
             elif side == "short" and exit_f > sl_f and exit_f > entry_f:
-                errors.append({
-                    "code": "sl_violated",
-                    "severity": "critical",
-                    "message_key": "errSLViolated",
-                })
+                _fail("sl_violated", "critical", "errSLViolated")
         except (TypeError, ValueError):
             pass
 
@@ -396,15 +419,71 @@ def detect_errors(
                 prev_exit = datetime.fromisoformat(prev["exit_date"].replace("Z", "+00:00"))
                 gap_min = (entry_dt - prev_exit).total_seconds() / 60
                 if 0 < gap_min < REVENGE_TRADE_WINDOW_MIN:
-                    errors.append({
-                        "code": "revenge_trade",
-                        "severity": "high",
-                        "message_key": "errRevengeTrade",
-                        "value": str(int(gap_min)),
-                    })
+                    _fail("revenge_trade", "high", "errRevengeTrade",
+                          value=int(gap_min))
                     break
         except (ValueError, TypeError):
             pass
+
+    # ── Rules that only exist with a plan ────────────────────────────────
+    # Each is silent unless the plan actually declares the limit: an undeclared
+    # limit is not a limit of zero, and inventing one would bury the user in
+    # violations of rules they never wrote.
+    if plan:
+        entry_dt = _parse_dt(trade.get("entry_date"))
+
+        # Rule 7: entered outside the plan's own trading windows
+        inside = is_within_sessions(entry_dt, plan.get("sessions"))
+        if inside is False:      # None = unanswerable, and stays quiet
+            _fail("outside_session", "medium", "errOutsideSession",
+                  value=entry_dt.isoformat() if entry_dt else None)
+
+        # Rule 8: symbol is not one of the markets the plan covers
+        markets = [m.upper() for m in (plan.get("markets") or [])]
+        symbol = str(trade.get("symbol") or "").upper()
+        if markets and symbol and symbol not in markets:
+            _fail("unlisted_market", "medium", "errUnlistedMarket",
+                  value=symbol, threshold=", ".join(markets[:6]))
+
+        # The remaining three need the day's history, in chronological order.
+        same_day: List[dict] = []
+        if entry_dt and prev_trades:
+            for prev in prev_trades:
+                prev_dt = _parse_dt(prev.get("entry_date"))
+                if prev_dt and prev_dt.date() == entry_dt.date() and prev_dt <= entry_dt:
+                    same_day.append(prev)
+            same_day.sort(key=lambda t: _parse_dt(t.get("entry_date")) or entry_dt)
+
+        # Rule 9: opened with the plan's daily loss already reached. Measured in
+        # R, which is why it can be compared across instruments at all.
+        max_daily_r = risk_cfg["max_daily_loss_r"]
+        if max_daily_r is not None and same_day:
+            realized_r = sum(float(t["r_multiple"]) for t in same_day
+                             if t.get("r_multiple") is not None
+                             and float(t["r_multiple"]) < 0)
+            if realized_r <= -abs(max_daily_r):
+                _fail("over_daily_limit", "critical", "errOverDailyLimit",
+                      value=round(realized_r, 2), threshold=-abs(max_daily_r))
+
+        # Rule 10: more trades in the day than the plan allows
+        max_per_day = risk_cfg["max_trades_per_day"]
+        if max_per_day is not None and len(same_day) >= max_per_day:
+            _fail("over_trade_count", "high", "errOverTradeCount",
+                  value=len(same_day) + 1, threshold=max_per_day)
+
+        # Rule 11: kept trading past the plan's consecutive-loss circuit breaker
+        max_streak = risk_cfg["max_consecutive_losses"]
+        if max_streak is not None and same_day:
+            streak = 0
+            for prev in reversed(same_day):
+                if float(prev.get("pnl") or 0) < 0:
+                    streak += 1
+                else:
+                    break
+            if streak >= max_streak:
+                _fail("traded_after_consecutive_losses", "critical",
+                      "errAfterConsecutiveLosses",
+                      value=streak, threshold=max_streak)
 
     return errors
 

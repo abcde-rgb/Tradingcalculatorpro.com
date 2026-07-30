@@ -2245,6 +2245,63 @@ arriba y los extras y cosas de menor importancia y impacto más abajo"*.
 - **BUG-025 · "1 patas activas"**, "Constructor de Legs" y "Limitado riesgo ·
   Ilimitado recompensa" (orden que sólo funciona en inglés).
 
+## Plan de trading versionado (2026-07-30) — backend completo
+
+Implementación de `docs/PLAN_DE_TRADING_spec.md` §3, pasos 1, 2 y 4. El plan deja
+de ser tres piezas desconectadas y efímeras y pasa a ser **la fuente de verdad de
+los umbrales de riesgo del usuario**.
+
+**El bug de fondo que esto arregla.** `detect_errors` juzgaba cada operación
+contra tres constantes de módulo, así que el `rule_compliance_rate` del panel no
+medía el cumplimiento del plan del usuario: medía **el cumplimiento de la opinión
+de la app**. Un scalper que declara 1:1 al 65% de acierto —sistema válido— se
+comía un `low_rr` en *todas* sus operaciones; quien decide arriesgar 0,5% máximo
+no recibía ningún aviso al arriesgar 1,8%, porque el techo global era 2%.
+
+| Pieza | Qué hay |
+|---|---|
+| `backend/trading_plan.py` | Modelo de 5 secciones, versionado, normalización, pertenencia a sesión, informe de cumplimiento. Todo lo que calcula es función pura sobre dicts |
+| `trading_plans` (tabla) | Un documento por versión, nunca se sobrescribe. Registrada en la lista de arranque del shim — **no se autocrean** |
+| `detect_errors(trade, *, plan=None, …)` | Cada umbral sale de `plan["risk"]`; con `plan=None` el comportamiento es idéntico al anterior |
+| 5 reglas nuevas | `outside_session`, `unlisted_market`, `over_daily_limit`, `over_trade_count`, `traded_after_consecutive_losses` — sólo existen con plan |
+| `GET/POST /api/plan`, `/history`, `PATCH /draft`, `GET /compliance` | Las cinco rutas del §3.2 |
+| `plan_version` en cada operación | Sellado al crear, inmutable: un cambio de reglas no reescribe la historia que debía juzgar |
+
+**Decisiones que conviene no deshacer:**
+
+- **Un límite sin declarar es `None`, no 0.** Tratarlo como cero enterraría al
+  usuario en violaciones de reglas que nunca escribió.
+- **`require_stop_loss: false` silencia `no_sl`.** Hay sistemas reales sin stop
+  por operación (spreads de opciones con pérdida máxima definida). Marcarlos para
+  siempre enseñaba a ignorar la lista de errores entera.
+- **La regla de enfriamiento avisa, no bloquea.** El plan declaró cuánta
+  evidencia quería; cambiarlo antes es decisión del usuario. Lo que importa es
+  que quede registrada.
+- **`change_reason` obligatorio desde la v2** (422). Los planes no se abandonan,
+  se erosionan excepción a excepción.
+- **Un borrador NO es una versión.** Lo destapó un test: al guardar un borrador y
+  luego activar el primer plan, el contador lo tomaba por una v2 y exigía motivo
+  para un plan que no había gobernado ni una operación. `next_version_number()`
+  filtra los borradores.
+- **Una ventana horaria mal formada se descarta, no se convierte en "todo el
+  día"**, e `is_within_sessions` devuelve `None` (no `False`) cuando no puede
+  responder: nunca se reporta una violación que no se ha podido verificar.
+- **`by_rule` se ordena por dinero, no por frecuencia.** "Has incumplido 6 veces"
+  invita a encogerse de hombros; "esto te ha costado 412 €" no.
+
+**Verificado contra Postgres real** (no sólo unit): las 5 rutas, persistencia del
+modelo anidado en JSONB, ciclo v1→v2 con archivado, 422 sin motivo, aviso de
+enfriamiento, borrador que no toca la activa, y lo importante — un plan con
+`min_rr: 1.0` deja pasar un R:R 1.3, y con `max_risk 0.5%` marca un 1.2% diciendo
+`threshold=0.5` y `plan_version=1`.
+
+**Lo que falta** (pasos 3, 5 y 7 del §3.8, todo frontend): `TradingPlanEditor`
+(asistente de 5 pasos), migración de `localStorage['tcp-trading-setup']`,
+`printTradingPlan()` rellenado, checklist generada desde el plan, bloque de
+cumplimiento con la matriz 2×2 en `AnalyticsDashboard`, y los enlaces sesgo →
+módulo. El §3.6 (MAE/MFE) **ya estaba hecho** en el PR #153.
+
+
 ### Reconciliación de las dos auditorías (misma sesión)
 
 Descartar el commit duplicado no cerraba la pregunta de **cuál de las dos

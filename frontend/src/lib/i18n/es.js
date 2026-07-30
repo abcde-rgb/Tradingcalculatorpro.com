@@ -3421,4 +3421,10 @@ export default {
   "excCapture": "Captura del recorrido",
   "excCaptureHint": "Qué parte del recorrido favorable disponible te llevas de media. Por debajo del 40% el objetivo está demasiado lejos o sales tarde.",
   "insightLowCapture": "⚠️ Sólo capturas el {value}% del recorrido favorable disponible. O el objetivo está demasiado lejos, o estás saliendo tarde de las ganadoras.",
+  "errOutsideSession": "Fuera del horario de tu plan",
+  "errUnlistedMarket": "Mercado que no está en tu plan",
+  "errOverDailyLimit": "Abierta con el límite de pérdida diaria ya alcanzado",
+  "errOverTradeCount": "Supera el máximo de operaciones al día de tu plan",
+  "errAfterConsecutiveLosses": "Operada tras alcanzar tu racha máxima de pérdidas",
+  "planCooldownWarning": "Cambias el plan antes de completar la muestra que él mismo fijó: llevas {trades_under_plan} de {required} operaciones. Puedes seguir, pero queda registrado.",
 }

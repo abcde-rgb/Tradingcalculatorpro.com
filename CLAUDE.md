@@ -115,6 +115,7 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `american_options.py` | Opciones americanas: binomial CRR, Barone-Adesi-Whaley, riesgo de asignación temprana por dividendo |
 | `portfolio_risk.py` | Riesgo a nivel de cuenta: heat abierto, correlación, límites de pérdida con bloqueo, sizing por ATR |
 | `backtest.py` | Backtest con validación: in-sample/out-of-sample, walk-forward, corrección por data snooping |
+| `trading_plan.py` | Plan de trading versionado: modelo, activación/archivado e informe de cumplimiento. **Fuente de verdad de los umbrales de riesgo** que consume `detect_errors` |
 | `nowpayments.py` | Cripto: creación de factura + verificación HMAC-SHA512 del IPN |
 | `revolut.py` | Revolut Pay: creación de pedido y confirmación |
 
@@ -186,6 +187,16 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
 - **Un número que dispare un consejo de tamaño de posición necesita muestra EN EL ORIGEN**,
   no sólo en el sitio que lo pinta. `suggested_stop_r` vale `None` por debajo de
   `MIN_WINNERS_FOR_STOP_ADVICE`; no lo calcules "y que el consumidor decida".
+- **Los umbrales de riesgo salen del plan del usuario, no de constantes.**
+  `DEFAULT_MIN_RR` y `DEFAULT_MAX_RISK_PCT` en `performance.py` son sólo el
+  fallback para quien no tiene plan; con plan manda `plan["risk"]`. Si añades una
+  regla a `detect_errors`, su umbral va en el modelo de `trading_plan.py`, y un
+  límite sin declarar es `None` (regla callada), nunca 0.
+- **`trading_plans` está en la lista `known` de tablas de `server.py`.** El shim
+  **no** autocrea tablas: una colección nueva que no esté en esa lista falla en
+  cuanto se consulta.
+- **`plan_version` se sella al crear la operación y no se reescribe.** Cambiar el
+  plan no debe re-juzgar retroactivamente la historia que se supone que mide.
 
 - **`backend_test_security.py` en la raíz está OBSOLETO** — hace `sys.exit(1)` inmediatamente. Usaba MongoDB (motor) y el puerto incorrecto. Usar siempre `backend/tests/`.
 - **`_requests_stdlib_shim.py` en la raíz** no es la librería `requests`. Es un shim stdlib que existía para evitar instalar el paquete. No importar directamente.

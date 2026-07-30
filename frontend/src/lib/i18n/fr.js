@@ -3421,4 +3421,10 @@ export default {
   "excCapture": "Capture du mouvement",
   "excCaptureHint": "Quelle part du mouvement favorable disponible tu conserves en moyenne. Sous 40 %, l'objectif est trop lointain ou tu sors tard.",
   "insightLowCapture": "⚠️ Tu ne captures que {value} % du mouvement favorable disponible. Soit ton objectif est trop lointain, soit tu sors trop tard des gagnantes.",
+  "errOutsideSession": "Hors des horaires de ton plan",
+  "errUnlistedMarket": "Marché absent de ton plan",
+  "errOverDailyLimit": "Ouverte alors que ta limite de perte quotidienne était atteinte",
+  "errOverTradeCount": "Au-delà du nombre maximum d'opérations par jour de ton plan",
+  "errAfterConsecutiveLosses": "Prise après avoir atteint ta série de pertes maximale",
+  "planCooldownWarning": "Tu modifies le plan avant que l'échantillon qu'il s'est fixé soit complet : {trades_under_plan} sur {required} opérations. Tu peux continuer, mais ce sera enregistré.",
 }

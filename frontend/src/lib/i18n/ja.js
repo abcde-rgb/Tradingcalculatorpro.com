@@ -3421,4 +3421,10 @@ export default {
   "excCapture": "値幅の捕捉率",
   "excCaptureHint": "取れたはずの順行幅のうち平均でどれだけ確保できているか。40% を下回るなら目標が遠すぎるか決済が遅いかです。",
   "insightLowCapture": "⚠️ 取れたはずの順行幅のうち {value}% しか捕捉できていません。目標が遠すぎるか、勝ちトレードの決済が遅いかです。",
+  "errOutsideSession": "計画の取引時間外",
+  "errUnlistedMarket": "計画に載っていない市場",
+  "errOverDailyLimit": "日次損失上限に達した後に建玉",
+  "errOverTradeCount": "計画の1日あたり最大取引数を超過",
+  "errAfterConsecutiveLosses": "連敗の上限に達した後にトレード",
+  "planCooldownWarning": "計画が自ら定めたサンプル数に達する前に変更しています（{required} 件中 {trades_under_plan} 件）。続行できますが記録されます。",
 }

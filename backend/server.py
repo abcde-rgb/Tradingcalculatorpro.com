@@ -62,6 +62,15 @@ from performance import (
     make_trade_doc,
     sort_trades_chronologically,
 )
+from trading_plan import (
+    activate_plan,
+    compliance_report,
+    count_trades_under_version,
+    get_active_plan,
+    get_draft_plan,
+    list_plan_versions,
+    save_draft,
+)
 from market_rates import get_risk_free_rate, get_risk_free_info
 
 ROOT_DIR = Path(__file__).parent
@@ -948,6 +957,10 @@ class Database:
             "churn_surveys", "rate_limit_violations",
             # Product usage analytics (admin heatmap of most-viewed pages/sections)
             "usage_events",
+            # Versioned trading plans — the source of truth for each user's own
+            # risk thresholds (see trading_plan.py). Must be listed here: the
+            # comment above is load-bearing, Collection does not auto-create.
+            "trading_plans",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -957,7 +970,8 @@ class Database:
         async with self._pool.acquire() as conn:
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users ((data->>'email'))")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_id ON users ((data->>'id'))")
-            for tbl in ("trades", "calculations", "alerts", "saved_positions"):
+            for tbl in ("trades", "calculations", "alerts", "saved_positions",
+                        "trading_plans"):
                 await conn.execute(
                     f"CREATE INDEX IF NOT EXISTS idx_{tbl}_user_id ON {tbl} ((data->>'user_id'))"
                 )
@@ -6134,10 +6148,16 @@ class TradeIn(BaseModel):
     multiplier: Optional[float] = 1
 
 
-def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict:
-    """Compute pnl + errors. Output is JSON-safe (no _id)."""
+def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
+                  plan: Optional[dict] = None) -> dict:
+    """Compute pnl + errors. Output is JSON-safe (no _id).
+
+    `plan` is the user's active trading plan. Callers that have it should pass
+    it, so the trade is judged against the user's own thresholds instead of the
+    module defaults; callers that don't get exactly the legacy behaviour.
+    """
     enriched = compute_trade_pnl(trade)
-    enriched["errors"] = detect_errors(enriched, prev_trades=prev_trades)
+    enriched["errors"] = detect_errors(enriched, plan=plan, prev_trades=prev_trades)
     enriched.pop("_id", None)
     return enriched
 
@@ -6146,8 +6166,13 @@ def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict
 async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premium)):
     user_id = user["id"]
     prev = await trades_for_user(db, user_id, limit=50)
+    plan = await get_active_plan(db, user_id)
     doc = make_trade_doc(payload.model_dump(), user_id)
-    enriched = _enrich_trade(doc, prev_trades=prev)
+    # Stamped at creation and never rewritten: a later plan change must not
+    # retroactively re-judge the history it is supposed to be measured against.
+    if plan:
+        doc["plan_version"] = plan.get("version")
+    enriched = _enrich_trade(doc, prev_trades=prev, plan=plan)
     # Strip computed read-only fields before persisting (keep stored doc minimal)
     to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
     await db.trades.insert_one(to_store)
@@ -6173,10 +6198,13 @@ async def perf_bulk_create_trades(
     imported, failed = [], []
     # Fetch once; don't re-fetch inside the loop.
     prev = await trades_for_user(db, user_id, limit=100)
+    bulk_plan = await get_active_plan(db, user_id)
     for i, payload_item in enumerate(payload.trades):
         try:
             doc = make_trade_doc(payload_item.model_dump(), user_id)
-            enriched = _enrich_trade(doc, prev_trades=prev)
+            if bulk_plan:
+                doc["plan_version"] = bulk_plan.get("version")
+            enriched = _enrich_trade(doc, prev_trades=prev, plan=bulk_plan)
             to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
             await db.trades.insert_one(to_store)
             imported.append(enriched)
@@ -6205,11 +6233,12 @@ async def perf_list_trades(
         query["symbol"] = symbol.upper()
     cursor = db.trades.find(query, {"_id": 0}).sort("entry_date", -1).limit(limit)
     rows = await cursor.to_list(length=limit)
+    plan = await get_active_plan(db, user["id"])
     # Re-enrich on each fetch so updates to detection rules apply retroactively
     enriched_rows = []
     seen: List[dict] = []
     for t in reversed(rows):  # chronological order for prev_trades context
-        enriched_rows.append(_enrich_trade(t, prev_trades=list(seen)))
+        enriched_rows.append(_enrich_trade(t, prev_trades=list(seen), plan=plan))
         seen.append(enriched_rows[-1])
     enriched_rows.reverse()
     return {"trades": enriched_rows, "count": len(enriched_rows)}
@@ -6224,7 +6253,8 @@ async def perf_get_trade(trade_id: str, user: dict = Depends(require_premium)):
     if not t:
         raise HTTPException(status_code=404, detail="Trade not found")
     prev = await trades_for_user(db, user["id"], limit=50)
-    return _enrich_trade(t, prev_trades=prev)
+    plan = await get_active_plan(db, user["id"])
+    return _enrich_trade(t, prev_trades=prev, plan=plan)
 
 
 @api_router.put("/performance/trades/{trade_id}")
@@ -6440,19 +6470,159 @@ async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
 @api_router.get("/performance/analytics")
 async def performance_analytics(user: dict = Depends(require_premium)):
     rows = await trades_for_user(db, user["id"], limit=1000)
+    # One plan lookup for the whole request: every trade is judged against the
+    # same active version, and the query does not repeat per row.
+    plan = await get_active_plan(db, user["id"])
     # Re-enrich to get fresh errors and pnl. Enrichment is order-sensitive
     # (revenge-trade detection needs the trades that preceded each one), so walk
     # the history oldest-first explicitly rather than relying on the fetch order.
     enriched: List[dict] = []
     seen: List[dict] = []
     for t in sort_trades_chronologically(rows):
-        e = _enrich_trade(t, prev_trades=list(seen))
+        e = _enrich_trade(t, prev_trades=list(seen), plan=plan)
         enriched.append(e)
         seen.append(e)
     risk_free = await asyncio.to_thread(get_risk_free_rate)
     analytics = compute_analytics(enriched, risk_free_rate=risk_free)
     insights = generate_insights(analytics)
-    return {"analytics": analytics, "insights": insights}
+    return {
+        "analytics": analytics,
+        "insights": insights,
+        # So the panel can say WHOSE rules produced those errors, and offer to
+        # write a plan to anyone still being judged by the defaults.
+        "plan": {"version": plan.get("version"), "name": plan.get("name")} if plan else None,
+        "compliance": compliance_report(enriched, plan) if plan else None,
+    }
+
+
+
+# ============= TRADING PLAN =============
+# The plan is the user's own rulebook, versioned. Everything that used to judge
+# a trade against module-level constants now reads from here — see
+# `trading_plan.py` for why that distinction matters.
+
+
+class PlanRiskIn(BaseModel):
+    """Risk limits. Only the first two have defaults; the rest are opt-in.
+
+    A limit left as None means "not declared" and its rule stays silent. It must
+    never be coerced to 0, which would read as a limit of zero and bury the user
+    in violations of rules they never wrote.
+    """
+    max_risk_pct_per_trade: Optional[float] = Field(None, gt=0, le=100)
+    min_rr: Optional[float] = Field(None, gt=0, le=100)
+    max_daily_loss_r: Optional[float] = Field(None, gt=0)
+    max_weekly_loss_r: Optional[float] = Field(None, gt=0)
+    max_consecutive_losses: Optional[int] = Field(None, gt=0, le=100)
+    max_trades_per_day: Optional[int] = Field(None, gt=0, le=500)
+    max_open_risk_r: Optional[float] = Field(None, gt=0)
+    max_correlated_positions: Optional[int] = Field(None, gt=0, le=100)
+    require_stop_loss: Optional[bool] = True
+
+
+class PlanSessionIn(BaseModel):
+    days: List[int] = Field(default_factory=lambda: [1, 2, 3, 4, 5])
+    start: str = "09:00"
+    end: str = "17:00"
+    tz: str = "UTC"
+
+
+class PlanIn(BaseModel):
+    """A trading plan as submitted by the wizard. Shape only — `trading_plan`
+    does the clamping, so a partially filled draft is always storable."""
+    name: Optional[str] = None
+    style: Optional[str] = None
+    markets: Optional[List[str]] = None
+    sessions: Optional[List[PlanSessionIn]] = None
+    timeframes: Optional[Dict[str, Any]] = None
+    approaches: Optional[List[str]] = None
+    tools: Optional[List[str]] = None
+    entry_rules: Optional[List[str]] = None
+    invalidation: Optional[str] = None
+    no_trade_conditions: Optional[List[str]] = None
+    risk: Optional[PlanRiskIn] = None
+    management: Optional[Dict[str, Any]] = None
+    review: Optional[Dict[str, Any]] = None
+    change_reason: Optional[str] = Field(None, max_length=500)
+
+
+@api_router.get("/plan")
+async def plan_get_active(user: dict = Depends(require_user)):
+    """The active plan. 404 when the user has never written one."""
+    plan = await get_active_plan(db, user["id"])
+    if not plan:
+        raise HTTPException(status_code=404, detail="No active trading plan")
+    return plan
+
+
+@api_router.get("/plan/history")
+async def plan_get_history(user: dict = Depends(require_user)):
+    """Every version, newest first, each with how many trades it governed.
+
+    The trade count is what makes the history readable: a version with 4 trades
+    under it was abandoned before it could say anything, and that is visible
+    here rather than having to be inferred.
+    """
+    versions = await list_plan_versions(db, user["id"])
+    out = []
+    for version in versions:
+        out.append({
+            **version,
+            "trades_under_plan": await count_trades_under_version(
+                db, user["id"], version.get("version")),
+        })
+    return {"versions": out, "count": len(out)}
+
+
+@api_router.post("/plan")
+async def plan_create_version(payload: PlanIn, user: dict = Depends(require_user)):
+    """Create v1, or a new version, and activate it (archiving the previous).
+
+    From v2 onward `change_reason` is required — a 422, not a silent default.
+    Plans rarely get abandoned outright; they get eroded one unrecorded
+    exception at a time, and having to type a sentence is the cheapest brake.
+    """
+    raw = payload.model_dump(exclude_none=False)
+    try:
+        plan, warning = await activate_plan(
+            db, user["id"], raw, change_reason=payload.change_reason or "")
+    except ValueError as exc:
+        if str(exc) == "change_reason_required":
+            raise HTTPException(
+                status_code=422,
+                detail="A change reason is required when replacing an existing plan",
+            )
+        raise
+    # 200 with a warning, never a 4xx: changing the plan early is the user's
+    # call. What matters is that the call is recorded and visible.
+    return {"plan": plan, "warning": warning}
+
+
+@api_router.patch("/plan/draft")
+async def plan_save_draft(payload: PlanIn, user: dict = Depends(require_user)):
+    """Save the work-in-progress plan without activating it.
+
+    Lets the 5-step wizard survive a reload without the half-written plan
+    starting to govern anything.
+    """
+    draft = await save_draft(db, user["id"], payload.model_dump(exclude_none=False))
+    return {"draft": draft}
+
+
+@api_router.get("/plan/compliance")
+async def plan_get_compliance(user: dict = Depends(require_premium)):
+    """Adherence to the active plan, costed by rule."""
+    plan = await get_active_plan(db, user["id"])
+    if not plan:
+        raise HTTPException(status_code=404, detail="No active trading plan")
+    rows = await trades_for_user(db, user["id"], limit=1000)
+    enriched: List[dict] = []
+    seen: List[dict] = []
+    for t in sort_trades_chronologically(rows):
+        e = _enrich_trade(t, prev_trades=list(seen), plan=plan)
+        enriched.append(e)
+        seen.append(e)
+    return compliance_report(enriched, plan)
 
 
 # ============= ADMIN PANEL =============

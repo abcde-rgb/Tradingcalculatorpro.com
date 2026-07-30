@@ -3421,4 +3421,10 @@ export default {
   "excCapture": "Move capture",
   "excCaptureHint": "How much of the favourable move available you keep on average. Under 40% the target sits too far out, or you exit late.",
   "insightLowCapture": "⚠️ You only capture {value}% of the favourable move available. Either your target sits too far out, or you exit winners too late.",
+  "errOutsideSession": "Outside your plan's trading hours",
+  "errUnlistedMarket": "Market not listed in your plan",
+  "errOverDailyLimit": "Opened with your daily loss limit already reached",
+  "errOverTradeCount": "Above your plan's maximum trades per day",
+  "errAfterConsecutiveLosses": "Taken after hitting your maximum losing streak",
+  "planCooldownWarning": "You're changing the plan before the sample it set for itself is complete: {trades_under_plan} of {required} trades. You can proceed, but it will be recorded.",
 }
