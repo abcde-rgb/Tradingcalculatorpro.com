@@ -376,4 +376,27 @@ a `round(plan["price"], 2)` con comentario explicativo.
 
 ---
 
-*Última actualización: 2026-07-26 — rate limiting por IP real detrás del proxy (BUG-015).*
+*Actualización previa: 2026-07-26 — rate limiting por IP real detrás del proxy (BUG-015).*
+---
+
+| BUG-023 | **La pestaña Cadena era inusable al abrirla.** `OptionsChainView` montaba la tabla en un `flex-1 … overflow-hidden` cuyo hijo `overflow-auto` **no tenía altura acotada**: el contenedor que scrolleaba de verdad era la página, así que el `thead sticky top-0` se pegaba al contenedor equivocado y acababa **oculto detrás de las dos barras fijas** de la cabecera. Al entrar en la pestaña no se veía ni la fila CALLS/Strike/PUTS ni el selector de vencimiento — sólo un mar de números sin encabezado. Agravado porque el navegador conservaba la posición de scroll de la pestaña anterior y se aterrizaba a media tabla. Fix: la tabla scrollea DENTRO de su propia tarjeta (`max-h` acotada), la cabecera se pega a esa tarjeta, y `handleTabChange` vuelve al principio al cambiar de pestaña. | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-024 | **La UI afirmaba un tipo libre de riesgo distinto del que usaba el backend.** `market_rates.py` (PR #153) sacó el `0.0525` del pricing, pero `GreeksDisplay.jsx` seguía pintando `Risk-Free Rate 5.25%` como literal en su ficha de datos de mercado. Además `market_rates` calculaba la procedencia (`get_risk_free_info`) y **nada la publicaba**, así que el frontend no tenía de dónde leerla. Fix: nuevo `GET /api/market/risk-free` que expone el tipo y su origen (`^IRX` / `stale` / `fallback`), y `GreeksDisplay` lo consume con la procedencia en el tooltip. | 🟡 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-026 | **El aviso de datos modelados sólo se pintaba en el optimizador.** `_synthetic_marker` marca las tres respuestas que pueden venir de una cadena modelada — `/options/chain`, `/options/iv-surface` y `/optimize` — pero en el frontend únicamente `OptimizeView` leía la bandera. En la calculadora y en la superficie de IV el usuario veía primas, griegas y skew fabricados **sin ningún aviso**, que es justo lo que §3.1 de la auditoría señalaba como indefendible en un producto de pago. Fix: componente `SyntheticDataBanner` (traducido a los 8 idiomas) montado en la calculadora y en la superficie; y el coach recibe la bandera, con instrucción de declararlo en su primera línea. | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-027 | **El coach de IA respondía siempre en español.** El PR #153 añadió `locale` al `AITradeAnalysisRequest` y la tabla `_AI_COACH_LANGUAGES`, pero **el frontend nunca enviaba el campo**, así que el valor por defecto (`"es"`) ganaba siempre en una web de 8 idiomas. Fix: `AITradeCoach` envía el locale activo de `useTranslation()`. | 🟡 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-025 | **Concordancia y mezcla de idiomas en el editor de patas.** Mostraba `1 patas activas` (la concordancia singular/plural no se resuelve igual en los 8 idiomas, así que interpolar el número dentro de la frase estaba roto por diseño) y titulaba `Constructor de Legs`, mezclando castellano e inglés en una UI en castellano. En la barra de estrategia, `{riesgo} {etiqueta}` producía "Limitado riesgo · Ilimitado recompensa": orden adjetivo-sustantivo que sólo funciona en inglés. Fix: etiqueta de recuento (`patas activas: 1`), `optLegsBuilder` traducido en es/fr/de, y `etiqueta: valor` en el resumen de riesgo/recompensa. | 🟢 | ✅ Resuelto (2026-07-30) |
+
+---
+
+*Última actualización: 2026-07-30 — rediseño del panel de opciones: cadena con scroll roto (BUG-023), tipo libre de riesgo desincronizado entre UI y backend (BUG-024), aviso de datos modelados que sólo salía en el optimizador (BUG-026), coach siempre en español (BUG-027) y concordancia/idioma en el editor de patas (BUG-025).*

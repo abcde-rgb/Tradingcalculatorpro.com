@@ -73,7 +73,14 @@ const FilterPill = ({ active, onClick, Icon, label, count, text, bgActive, bgHov
   </button>
 );
 
-const StrategyBar = ({ strategies, categories, selected, onSelect, rightSlot }) => {
+/**
+ * Selector de estrategia. Ya NO se renderiza siempre: vive dentro de
+ * `PositionSetupBar` y sólo aparece cuando el usuario pulsa el nombre de la
+ * estrategia actual. Por eso no lleva marco ni fondo propios — los pone el
+ * contenedor — y ya no recibe `rightSlot`: el botón de comparar pasó a la fila
+ * de configuración, que es donde se decide, no dentro de la lista.
+ */
+const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(null);
   // Collapsed by default: one horizontally-scrollable row instead of a wall of
@@ -90,7 +97,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect, rightSlot }) 
   }, [selected, expanded, activeCategory]);
 
   return (
-    <div className="bg-card border-b border-border px-5 py-2.5">
+    <div className="px-4 py-3">
       {/* Category Filter Pills */}
       <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
         <FilterPill
@@ -128,9 +135,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect, rightSlot }) 
           );
         })}
 
-        {/* Right-side actions: compare toggle (from parent) + expand/collapse */}
         <div className="ml-auto flex items-center gap-1.5">
-          {rightSlot}
           <button
             onClick={() => setExpanded(v => !v)}
             data-testid="strategies-expand-toggle"
@@ -168,7 +173,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect, rightSlot }) 
             </div>
             <div className="text-left">
               <div className="text-xs font-semibold whitespace-nowrap text-foreground">{t(strategy.name)}</div>
-              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{t(strategy.risk)} {t('riskLabel')} · {t(strategy.reward)} {t('rewardLabel')}</div>
+              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{t('riskLabel')}: {t(strategy.risk)} · {t('rewardLabel')}: {t(strategy.reward)}</div>
             </div>
           </button>
         ))}

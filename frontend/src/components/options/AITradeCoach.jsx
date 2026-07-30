@@ -9,8 +9,8 @@ const API = process.env.REACT_APP_BACKEND_URL;
  * AI Trade Coach — sends current strategy context to Claude Sonnet 4.5
  * and displays natural-language analysis with strengths/risks/improvements/verdict.
  */
-const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank, balance }) => {
-  const { t } = useTranslation();
+const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank, balance, synthetic }) => {
+  const { t, locale } = useTranslation();
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -42,6 +42,12 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
           ivRank: ivRank ?? null,
           daysToExpiry: daysToExpiry || 30,
           userBalance: balance || null,
+          // El backend acepta `locale` desde el PR #153, pero nadie se lo
+          // enviaba: el coach respondía siempre en español en una web de 8
+          // idiomas. Y si la cadena que valoró la operación es modelada, que lo
+          // diga en vez de analizarla como si fuera mercado.
+          locale: locale || 'es',
+          synthetic: Boolean(synthetic),
         }),
       });
       if (!res.ok) throw new Error((await res.json()).detail || t('errorAnalyze'));

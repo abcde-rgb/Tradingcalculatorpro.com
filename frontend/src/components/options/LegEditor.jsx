@@ -88,7 +88,12 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div>
           <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">{t('optLegsBuilder')}</h3>
-          <p className="text-[9px] text-muted-foreground mt-0.5">{legs.filter(l => l.enabled).length} {t('optLegsActive')}</p>
+          {/* Etiqueta de recuento en vez de "{n} patas activas": con n=1 salía
+              "1 patas activas", y la concordancia singular/plural no se resuelve
+              igual en los 8 idiomas. Así funciona en todos. */}
+          <p className="text-[9px] text-muted-foreground mt-0.5">
+            {t('optLegsActive')}: {legs.filter(l => l.enabled).length}
+          </p>
         </div>
         <div className="flex items-center gap-1.5">
           <button

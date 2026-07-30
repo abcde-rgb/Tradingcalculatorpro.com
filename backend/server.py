@@ -62,7 +62,7 @@ from performance import (
     make_trade_doc,
     sort_trades_chronologically,
 )
-from market_rates import get_risk_free_rate
+from market_rates import get_risk_free_rate, get_risk_free_info
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -5106,6 +5106,26 @@ class ImpliedVolRequest(BaseModel):
     riskFreeRate: Optional[float] = None
 
 
+@api_router.get("/market/risk-free")
+async def market_risk_free() -> Dict[str, Any]:
+    """Risk-free rate currently in use, with its provenance.
+
+    `market_rates` already computes this for pricing and for the journal's
+    risk-adjusted ratios, but nothing exposed it, so the UI could not tell the
+    user where the `r` behind a Greek came from — and `GreeksDisplay` was
+    printing a hardcoded 5.25% that no longer matched the backend.
+    """
+    info = await asyncio.to_thread(get_risk_free_info)
+    rate = info.get("rate") or 0.0
+    return {
+        "rate": rate,
+        "ratePct": round(rate * 100, 3),
+        "source": info.get("source"),
+        "isLive": info.get("is_live", False),
+        "fetchedAt": info.get("fetched_at"),
+    }
+
+
 @api_router.post("/calculate/implied-volatility")
 async def opt_implied_volatility(req: ImpliedVolRequest) -> Dict[str, Any]:
     """Solve for the volatility that reproduces a given market price.
@@ -5630,6 +5650,10 @@ class AITradeAnalysisRequest(BaseModel):
     userBalance: Optional[float] = None
     # UI language, so the coach answers in the language the user is reading.
     locale: Optional[str] = "es"
+    # Whether the chain that priced this position was modelled rather than
+    # observed. `_synthetic_marker` already flags it on the way out; without it
+    # here the coach analyses model output as if it were market data.
+    synthetic: Optional[bool] = False
 
 
 def _format_legs_for_prompt(legs: List[Dict[str, Any]]) -> List[str]:
@@ -5730,8 +5754,15 @@ def _build_ai_trade_prompt(req: "AITradeAnalysisRequest",
 
     language = _AI_COACH_LANGUAGES.get((req.locale or "es")[:2].lower(), "Spanish")
     user_context = _format_user_context(analytics)
+    synthetic_note = (
+        "\n⚠️ The premiums and implied volatility below come from a MODELLED "
+        "chain, not from market quotes. Say so in your first line and treat the "
+        "whole analysis as an exercise.\n"
+        if req.synthetic else ""
+    )
 
     return f"""Analyse the following options position.
+{synthetic_note}
 
 Underlying: {req.symbol} @ ${req.stockPrice:.2f}
 Days to expiry: {req.daysToExpiry}

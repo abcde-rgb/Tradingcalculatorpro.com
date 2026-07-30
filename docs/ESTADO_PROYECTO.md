@@ -6,7 +6,7 @@
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
 > - 📅 **Última verificación real contra el código:** 2026-07-29
-> - 🌿 **Rama de trabajo actual:** `claude/implement-per-docs-0maz7v`
+> - 🌿 **Rama de trabajo actual:** `claude/aplicate-qriesk`
 >
 > ⚠️ **Aviso de método (2026-07-27).** Las §1, §2 y §6 se habían quedado un mes
 > por detrás del código mientras el registro de sesiones (§7) sí se actualizaba.
@@ -2178,3 +2178,91 @@ sobrescribía. Reconstruido como **"Mi Sistema de Trading"**:
   precios americanos existen como **endpoints**, sin UI todavía.
 - **UI para el bloqueo por límite de pérdida**: `compute_loss_limits` devuelve
   `blocked`, pero nada en el frontend lo hace cumplir aún.
+
+
+### 2026-07-30 — Rediseño del panel de opciones: jerarquía de arriba abajo
+
+Petición del dueño: *"más ordenado, limpio, fácil, organizado… lo principal
+arriba y los extras y cosas de menor importancia y impacto más abajo"*.
+
+**El diagnóstico.** El panel no estaba mal dibujado, estaba mal **ordenado**:
+
+1. **Las tres decisiones que definen una posición vivían en tres zonas distintas
+   de la página.** La estrategia ocupaba una barra propia con 33 tarjetas siempre
+   desplegadas arriba del todo; el vencimiento estaba en la barra lateral derecha
+   (bajo el plegado en móvil); y el número de contratos, enterrado en medio de la
+   fila de métricas, entre el break-even y las comisiones.
+2. **Un mismo bloque mezclaba datos y controles.** `StatsKPIBar` tenía las cinco
+   métricas (que se leen), el input de comisión y el selector de contratos (que
+   se tocan) y la lista de patas (que se edita en otro sitio), en una fila que se
+   envolvía en cuatro líneas. La comisión aparecía **dos veces**.
+3. **Nada indicaba qué era importante.** Lo accesorio se repartía entre tres
+   botones sueltos de "▼ mostrar" (`AdvancedToggles`), un `TradeAdvancedPanel`
+   siempre montado al final y `ExplainTrade` + `AITradeCoach` siempre visibles.
+   Al revés: las **griegas** estaban escondidas tras un toggle, al mismo nivel
+   que "mi cartera".
+
+**El orden nuevo**, numerado en la propia interfaz:
+
+| | Bloque | Qué contiene |
+|---|---|---|
+| **1** | Configura tu posición | Estrategia · vencimiento · contratos · comparar A/B |
+| **2** | Resultado | 5 KPI + una línea con R:R, break-even, prima y comisiones |
+| **3** | Gráfico y patas | Payoff con el deslizador de tiempo DENTRO de su tarjeta + editor de patas al lado |
+| **4** | Griegas de la posición | Δ Γ Θ ν ρ siempre visibles, con qué significa cada una |
+| — | Más análisis | Acordeón de 6 secciones, **todas cerradas** |
+
+- ➕ **`SectionCard.jsx`** — sección plegable accesible (`aria-expanded`/`aria-controls`)
+  con subtítulo que explica para qué sirve. Más `SectionHeading` para los pasos.
+- ➕ **`PositionSetupBar.jsx`** — el paso 1. El selector de 33 estrategias pasa a
+  desplegarse **bajo demanda**.
+- ➕ **`GreeksStrip.jsx`** — resumen de griegas siempre visible.
+- ➕ **`SecondaryPanels.jsx`** — un solo acordeón para lo accesorio, ordenado por
+  impacto: entender la operación → contraste con tu histórico → griegas
+  detalladas → cuánto arriesgar → tu cartera → costes y escenarios.
+- ➖ **`AdvancedToggles.jsx` eliminado.**
+- 🔧 `StatsKPIBar` reescrito: **sólo números** (se elimina la comisión duplicada).
+- 🔧 `StrategyBar` sin marco ni `rightSlot` propios: se anida.
+- 🔧 `OptionsSubHeader`: había **dos** indicadores de "en vivo" diciendo lo mismo.
+
+**Bugs corregidos** (detalle en [`DIARIO_BUGS.md`](../DIARIO_BUGS.md)):
+- **BUG-023 · La pestaña Cadena era inusable al abrirla.** La tabla estaba en un
+  `flex-1/overflow-hidden` cuyo hijo `overflow-auto` no tenía altura acotada, así
+  que scrolleaba la página y el `thead sticky` se pegaba al contenedor
+  equivocado, quedando **oculto tras las barras fijas**. Ahora scrollea dentro de
+  su tarjeta, y el scroll vuelve arriba al cambiar de pestaña.
+- **BUG-026 · El aviso de datos modelados sólo salía en el optimizador.**
+  `_synthetic_marker` marca las tres respuestas, pero sólo `OptimizeView` leía la
+  bandera: en la calculadora y en la superficie de IV se pintaban primas, griegas
+  y skew fabricados sin aviso. Nuevo `SyntheticDataBanner` en ambas, y el coach
+  recibe la bandera.
+- **BUG-024 · La UI afirmaba un tipo libre de riesgo distinto del backend.**
+  `GreeksDisplay` pintaba `5.25%` fijo mientras el pricing usaba `market_rates`.
+  Nuevo `GET /api/market/risk-free` que publica el tipo **y su procedencia**
+  (`market_rates.get_risk_free_info` ya la calculaba y nada la exponía).
+- **BUG-027 · El coach respondía siempre en español.** El backend acepta `locale`
+  desde el PR #153 pero el frontend nunca lo enviaba.
+- **BUG-025 · "1 patas activas"**, "Constructor de Legs" y "Limitado riesgo ·
+  Ilimitado recompensa" (orden que sólo funciona en inglés).
+
+**⚠️ Nota de método — trabajo duplicado detectado y descartado.** Esta rama
+llevaba un commit previo que aplicaba el mismo `ANALISIS_TRADER_20260728.md` que
+el PR #153 ya había mergeado en `main` mientras se trabajaba: mismas correcciones
+en `performance.py`, mismo VE/CVaR en el optimizador, un `rates.py` equivalente a
+`market_rates.py`, y ficheros de test con nombres idénticos. La versión de `main`
+es más amplia (opciones americanas, riesgo de cartera, backtest validado), así que
+ese commit se **descartó** en lugar de mezclarlo, y sólo se rescató lo que `main`
+no tenía: el endpoint del tipo libre de riesgo, el aviso de datos modelados fuera
+del optimizador y el locale del coach. Lección: **comprobar `origin/main` antes de
+empezar y no sólo antes de abrir el PR.**
+
+**Verificación** (Chromium + Playwright, API mockeada porque el sandbox bloquea Yahoo):
+- Orden vertical comprobado en el DOM: `position-setup` → `kpi-max-profit` →
+  `time-slider` → `greeks-strip` → `secondary-panels`, ascendente. ✔
+- **0 secciones del acordeón abiertas al cargar.** ✔
+- Capturas a 1440×1000 y 390×844: el orden se mantiene apilado en móvil. ✔
+- Pestañas Cadena, Optimizar y Flujo verificadas; acordeón abierto sobre los
+  componentes de `main` (`ExplainTrade`, `GreeksDisplay`, `GreeksTimeChart`). ✔
+- `pytest` **345 passed / 74 skipped** · `node scripts/engine-check.js` **30/30** ·
+  ESLint **0 errores** (125 avisos) · i18n **5518 × 8 idiomas, 0 huecos** (+37
+  claves) · `npm run build` exit 0 · 0 errores de runtime en consola.

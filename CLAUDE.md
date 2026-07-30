@@ -167,6 +167,19 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
 
 ## Trampas conocidas
 
+- **El panel de opciones está ordenado por importancia, y ese orden es la feature.**
+  `CalculatorPage` va: 1 configurar (`PositionSetupBar`) → 2 resultado (`StatsKPIBar`) →
+  3 gráfico + patas → 4 griegas (`GreeksStrip`) → acordeón (`SecondaryPanels`). Lo nuevo
+  que sea accesorio va **dentro del acordeón y cerrado**, usando `SectionCard`; no añadas
+  paneles siempre abiertos ni botones de toggle sueltos al final de la página.
+- **Si un endpoint puede servir una cadena modelada, el frontend tiene que avisar.**
+  El backend ya marca con `_synthetic_marker` (`synthetic` + `syntheticWarning`);
+  en el frontend se pinta con `<SyntheticDataBanner synthetic={...} />`. Está en la
+  calculadora, la cadena, la superficie de IV y el optimizador — si añades una
+  vista que consuma esas respuestas, móntalo también.
+- **El tipo libre de riesgo de la UI sale de `GET /api/market/risk-free`**, nunca de un
+  literal. Ese endpoint publica también la procedencia (`^IRX` / `stale` / `fallback`).
+
 - **`backend_test_security.py` en la raíz está OBSOLETO** — hace `sys.exit(1)` inmediatamente. Usaba MongoDB (motor) y el puerto incorrecto. Usar siempre `backend/tests/`.
 - **`_requests_stdlib_shim.py` en la raíz** no es la librería `requests`. Es un shim stdlib que existía para evitar instalar el paquete. No importar directamente.
 - **CORS incluye `PATCH`** — hay dos endpoints PATCH en `server.py` usados por AdminPage: `PATCH /admin/users/{id}` y `PATCH /admin/feature-flags/{id}`. No eliminarlos del `allow_methods`.
