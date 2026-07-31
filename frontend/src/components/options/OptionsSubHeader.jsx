@@ -4,6 +4,9 @@ import {
   HelpCircle, LayoutGrid, Loader2, Target, Sigma,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import SearchBar from './SearchBar';
 import IVRankBadge from './IVRankBadge';
 
@@ -40,6 +43,11 @@ const GROUPS = [
 ];
 
 const TABS = GROUPS.flatMap((g) => g.tabs);
+
+// El resaltado por defecto de shadcn usa --accent, que en este tema es azul
+// (217°) mientras la app es verde (145°). Las pestañas activas de escritorio
+// ya van en primary; el desplegable móvil tiene que leerse igual.
+const ITEM_CLS = 'text-xs focus:bg-primary/15 focus:text-primary data-[state=checked]:text-primary';
 
 const OptionsSubHeader = ({
   ticker,
@@ -146,21 +154,34 @@ const OptionsSubHeader = ({
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold shrink-0">
             {t(activeGroup.labelKey)}
           </span>
-          <select
-            value={activeTab}
-            onChange={(e) => onTabChange(e.target.value)}
-            data-testid="options-tab-select"
-            aria-label={activeLabel ? t(activeLabel) : undefined}
-            className="flex-1 h-8 rounded-lg border border-border bg-muted text-xs font-medium px-2 text-foreground"
-          >
-            {GROUPS.map((g) => (
-              <optgroup key={g.id} label={t(g.labelKey)}>
-                {g.tabs.map((tb) => (
-                  <option key={tb.id} value={tb.id}>{t(tb.labelKey)}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+          {/* Radix, no <select> nativo: en móvil el nativo abre la hoja a
+              pantalla completa del sistema —tapa la pantalla entera y no se
+              parece a nada del resto de la app—. Esto despliega un panel
+              anclado bajo el control, como en escritorio. */}
+          <Select value={activeTab} onValueChange={onTabChange}>
+            <SelectTrigger
+              data-testid="options-tab-select"
+              aria-label={activeLabel ? t(activeLabel) : undefined}
+              className="flex-1 min-w-0 h-8 rounded-lg border-border bg-muted text-xs font-medium px-2 text-foreground shadow-none"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-[60vh]">
+              {GROUPS.map((g) => (
+                <SelectGroup key={g.id}>
+                  <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-2 py-1">
+                    {t(g.labelKey)}
+                  </SelectLabel>
+                  {g.tabs.map(({ id, icon: Icon, labelKey }) => (
+                    <SelectItem key={id} value={id} className={ITEM_CLS}>
+                      <Icon className="w-3.5 h-3.5 inline mr-1.5 -mt-px" />
+                      {t(labelKey)}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </header>

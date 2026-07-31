@@ -1,6 +1,9 @@
 import React from 'react';
 import { GitCompare, Trophy } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 // Returns 'A', 'B', or 'tie' based on which side wins given the preference.
 const compareNumeric = (a, b, prefer, aUnlim = false, bUnlim = false) => {
@@ -70,25 +73,39 @@ const CompareBar = ({
           <span className="mx-2 text-muted-foreground/50">vs</span>
           <span className="text-[#c084fc] font-bold">B:</span>
         </span>
-        <select
+        <Select
           value={selectedStrategyB.id}
-          onChange={(e) => {
-            const s = strategies.find((x) => x.id === e.target.value);
+          onValueChange={(v) => {
+            const s = strategies.find((x) => x.id === v);
             if (s) onSelectStrategyB(s);
           }}
-          className="bg-muted border border-[#a855f7]/40 rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:border-[#a855f7]"
-          data-testid="strategy-b-select"
         >
-          {categories.map((cat) => (
-            <optgroup key={cat} label={cat}>
-              {strategies.filter((s) => s.category === cat).map((s) => (
-                <option key={s.id} value={s.id} disabled={s.id === selectedStrategy.id}>
-                  {t(s.name)}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+          <SelectTrigger
+            data-testid="strategy-b-select"
+            className="w-auto min-w-[9rem] h-7 bg-muted border-[#a855f7]/40 rounded-md px-2 text-xs text-foreground shadow-none focus:border-[#a855f7]"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-[60vh]">
+            {categories.map((cat) => (
+              <SelectGroup key={cat}>
+                <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-2 py-1">
+                  {cat}
+                </SelectLabel>
+                {strategies.filter((s) => s.category === cat).map((s) => (
+                  <SelectItem
+                    key={s.id}
+                    value={s.id}
+                    disabled={s.id === selectedStrategy.id}
+                    className="text-xs focus:bg-[#a855f7]/15 focus:text-[#c084fc] data-[state=checked]:text-[#c084fc]"
+                  >
+                    {t(s.name)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid grid-cols-7 gap-1.5 mt-2 text-[11px] font-mono">
         <CompareCell label={t('metric_c8a9b1')} headers />

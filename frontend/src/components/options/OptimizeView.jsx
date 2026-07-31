@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { Loader2, Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight, AlertTriangle, ShieldAlert, Sigma, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -130,16 +133,24 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
           {/* Expiration */}
           <div>
             <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">{t('vencimientoObjetivo_0277d0')}</label>
-            <select
-              value={expirationIdx}
-              onChange={(e) => setExpirationIdx(Number(e.target.value))}
-              className="w-full bg-muted border border-border rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary"
-              data-testid="expiration-select"
+            <Select
+              value={String(expirationIdx)}
+              onValueChange={(v) => setExpirationIdx(Number(v))}
             >
-              {(expirations || []).map((exp, idx) => (
-                <option key={exp.date} value={idx}>{exp.fullLabel} · {exp.daysToExpiry}d</option>
-              ))}
-            </select>
+              <SelectTrigger
+                data-testid="expiration-select"
+                className="w-full h-11 bg-muted border-border rounded-lg px-3 text-sm text-foreground shadow-none focus:border-primary"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-[60vh]">
+                {(expirations || []).map((exp, idx) => (
+                  <SelectItem key={exp.date} value={String(idx)} className="focus:bg-primary/15 focus:text-primary data-[state=checked]:text-primary">
+                    {exp.fullLabel} · {exp.daysToExpiry}d
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Mode */}
