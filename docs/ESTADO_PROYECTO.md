@@ -34,6 +34,8 @@
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI backend (Cloud Run)** | 🟢 | `py_compile *.py` (antes la lista iba a mano y omitía 6 módulos) + pytest |
 | **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) + i18n + credentials + **lint** |
+| **Publicidad AdSense (código)** | 🟢 | Implementado y verificado (26 checks offline + 24 en navegador). **Apagado por defecto**: sin `REACT_APP_ADSENSE_CLIENT` no se emite nada |
+| **Publicidad AdSense (operación)** | 🔴 | Bloqueada por el **dominio propio**: en `github.io/Tradingcalculatorpro.com` no se puede servir `ads.txt` en la raíz ni acreditar propiedad. Falta además CMP certificada para el EEE. Ver [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md) |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
 | **NOWPayments / crypto (código)** | 🟢 | Invoice + IPN con HMAC-SHA512 verificado (`backend/nowpayments.py`) |
@@ -69,6 +71,12 @@
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
 - **Analítica/SEO**: GA4 + GTM + GSC/Bing, `sitemap.xml`, `robots.txt`, `og-image`,
   `manifest.json` (PWA), hook `useSEO`.
+- **Publicidad (Google AdSense)** en el contenido gratuito, con la regla
+  «**quien paga no ve anuncios en ninguna parte**» fijada por test: política pura
+  en `lib/adsPolicy.js`, `<AdSlot>` en el hub y las fichas públicas de opciones,
+  y huecos en las 1273 páginas estáticas del postbuild (con su propio banner de
+  consentimiento en 8 idiomas). Apagada mientras no existan las variables de
+  entorno → [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
 - **Journal de trading**, alertas de precio (WebSocket), historial de cálculos.
 
 ### Backend — FastAPI + asyncpg (shim Mongo→PostgreSQL)
@@ -164,6 +172,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - **GCP**: Cloud Run service, Cloud SQL `trading-db` (europe-west1), Secret Manager,
   Workload Identity Federation, Artifact Registry `trading-repo`.
 - **Stripe**: productos/precios, webhook endpoint apuntando a `…/api/webhook/stripe`.
+- **Google AdSense**: alta de la cuenta, dos bloques de anuncio y las variables
+  de repositorio `REACT_APP_ADSENSE_CLIENT` / `..._SLOT_ARTICLE` / `..._SLOT_BOTTOM`.
+  **Requiere el dominio propio antes que nada** (`ads.txt` debe servirse en la raíz
+  y hay que acreditar la propiedad del sitio; con `github.io` ninguna de las dos
+  cosas es posible). Para tráfico del EEE, además, CMP certificada — lo más simple
+  es activar la de Google y poner `REACT_APP_ADSENSE_CMP=google`.
+  Guía completa: [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
 - **NOWPayments** (crypto): ajustes `nowpayments_api_key` y `nowpayments_ipn_secret`
   en el panel admin (o sus variables de entorno), `nowpayments_sandbox` = `true`|`false`,
   y registrar el callback `…/api/webhook/nowpayments` en su dashboard. El IPN se firma con
@@ -2517,3 +2532,86 @@ sólo como texto educativo— junto a las griegas primarias.
 **60/60** (+30, `blackScholes.js` no estaba cubierto y ahora lo está) · ESLint **0
 errores** · i18n **5633 × 8 idiomas, 0 huecos** (+105 claves) · `npm run build`
 exit 0 con 1273 URLs · `check-doc-links` 47 documentos, 0 roturas.
+
+---
+
+## 2026-07-31 (2) — Publicidad: Google AdSense en el contenido gratuito
+
+Petición: monetizar el contenido gratuito con Google AdSense, **y que quien paga
+no vea anuncios ni cuando consulta ese contenido gratuito**. La segunda mitad es
+la que ha gobernado el diseño.
+
+### La regla, en un sitio y comprobada
+
+`frontend/src/lib/adsPolicy.js` — módulo **puro y sin imports** con
+`shouldShowAds(...)`. Sin imports a propósito: lo consumen tres runtimes que no
+comparten nada (el hook de React, el generador de páginas estáticas del
+postbuild y el verificador offline), y así la regla no se puede duplicar mal.
+
+Un suscriptor no ve anuncios en ninguna ruta y, además, **el script de AdSense
+ni siquiera se descarga en su navegador**: no basta con ocultar el bloque si el
+usuario que paga sigue hablando con la red publicitaria. También se deniega
+mientras la sesión no está resuelta (recarga + refresh silencioso), para que no
+haya ni un parpadeo.
+
+Las rutas con publicidad son **lista blanca** (`AD_SURFACES`), no decisión de
+quien monta el componente: soltar un `<AdSlot>` en el dashboard no pinta nada.
+
+### Dónde se anuncia
+
+- **SPA**: hub público de opciones, índice de estrategias y las 66 fichas.
+- **Estáticas del postbuild**: las 1273 URLs (`/tools`, `/learn`, `/markets`,
+  `/options/strategies`, ×8 idiomas), 2 huecos por página.
+- **Fuera**: dashboard y demás rutas de pago, pricing/login/pago (conversión),
+  legales/contacto/about (texto fino), la landing (es página de venta) y
+  `/news`, que hoy es una maqueta con filas de relleno — anunciar sobre
+  contenido de mentira es motivo de suspensión de cuenta.
+
+### El puente con las páginas estáticas
+
+Esas páginas son HTML plano, sin sesión. Antes de tocar la red comprueban la
+marca `tcp-ads` que escribe la SPA (`AdsBootstrap`) **y**, como respaldo, la
+sesión persistida de Zustand — lo segundo se añadió tras verlo fallar en el
+smoke: un premium recién logueado que aterriza desde Google todavía no tenía la
+marca. Queda un límite aceptado y documentado: en un dispositivo donde nunca ha
+iniciado sesión, sí vería anuncios hasta entrar en la app.
+
+### Consentimiento y textos legales
+
+- El banner de cookies concede ahora `ad_storage`/`ad_user_data`/
+  `ad_personalization` con «Aceptar todo» (antes iban siempre denegados) y emite
+  `tcp:consent` para que los huecos aparezcan sin recargar.
+- Las páginas estáticas llevan su propio banner mínimo en JS plano, traducido a
+  los 8 idiomas, que escribe **la misma clave**.
+- **Textos legales corregidos en los 8 idiomas**: el banner y la política de
+  cookies decían literalmente «no mostramos anuncios de terceros ni compartimos
+  datos con redes publicitarias». Con AdSense eso pasaba a ser falso. Se han
+  actualizado banner, política de cookies (sección de publicidad reescrita),
+  finalidades, base jurídica del art. 6(1)(a) y la lista de terceros.
+
+### Lo que NO se ha hecho (y por qué)
+
+- **No se enciende nada.** Sin `REACT_APP_ADSENSE_CLIENT` el sitio queda byte a
+  byte como estaba. Las variables van al workflow como *variables* de repositorio.
+- **Bloqueo real: el dominio propio.** En `abcde-rgb.github.io/Tradingcalculatorpro.com`
+  AdSense no es viable — `ads.txt` tiene que estar en la raíz del dominio y hay
+  que acreditar la propiedad del sitio, y ninguna de las dos cosas se puede con
+  un subdirectorio de un dominio de GitHub. El código ya es correcto para el día
+  que se active `tradingcalculatorpro.com` (con `CNAME`, el build es la raíz).
+- **La CMP propia no está certificada.** Para el EEE Google exige una CMP de su
+  lista. Lo más simple es activar la suya (gratuita) y poner
+  `REACT_APP_ADSENSE_CMP=google`. Mientras tanto nuestro banner es *más*
+  restrictivo de lo que Google pide, así que no se sirve nada sin consentimiento.
+
+### Nuevo
+
+`lib/adsPolicy.js` · `lib/ads.js` · `components/ads/AdSlot.jsx` ·
+`components/ads/AdsBootstrap.jsx` · `scripts/ads-check.js` (en CI) ·
+`scripts/gen-ads-txt.js` (postbuild) · [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
+
+**Verificación:** `ads-check` **26/26** · smoke real en Chromium **24/24**
+(premium: 0 huecos y 0 peticiones a `pagead2`; gratuito: huecos y script;
+estáticas: banner → aceptar → 2 `<ins>`; «solo esenciales» no carga nada) ·
+ESLint **0 errores, 125 avisos** (los mismos de antes) · i18n **5635 × 8
+idiomas, 0 huecos** (+2 claves) · `npm run build` exit 0 → 1273 URLs + `ads.txt`
+· build sin las variables: **0 rastros** de publicidad y `ads.txt` borrado.
