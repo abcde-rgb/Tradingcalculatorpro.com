@@ -91,3 +91,7 @@ chainlit.md
 packaging/android/
 packaging/*.keystore
 android/
+
+# Informes de test generados (el .gitkeep sí se versiona)
+test_reports/*.json
+test_reports/pytest/

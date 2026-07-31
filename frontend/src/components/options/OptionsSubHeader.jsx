@@ -83,26 +83,32 @@ const OptionsSubHeader = ({
             <span className="hidden md:inline text-[10px] text-muted-foreground uppercase tracking-wider">
               {stock.sector}
             </span>
-            <span className="relative flex h-2 w-2" title={t('precioEnVivoRefrescoCada_73be80')}>
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
             <IVRankBadge symbol={ticker} />
           </div>
         )}
 
+        {/* Un solo indicador de "en vivo". Antes había dos —un punto que
+            palpitaba junto al precio y una etiqueta LIVE a la derecha— diciendo
+            exactamente lo mismo desde dos sitios distintos. */}
         <div className="ml-auto flex items-center gap-2 shrink-0">
+          <span
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#22c55e]"
+            title={t('precioEnVivoRefrescoCada_73be80')}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22c55e]"></span>
+            </span>
+            LIVE
+          </span>
           <button
             onClick={onOpenGuide}
             className="p-1.5 rounded-lg hover:bg-muted transition-colors"
             title={t('optQuickGuide')}
+            aria-label={t('optQuickGuide')}
           >
             <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-[#eab308]" />
           </button>
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse"></span>
-            <span className="text-[#22c55e]">LIVE</span>
-          </div>
         </div>
       </div>
 

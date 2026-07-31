@@ -16,6 +16,27 @@
 /** Default number of trajectories. Enough for stable P5/P95 at this cost. */
 export const DEFAULT_MC_ITERATIONS = 5000;
 
+/**
+ * Seedable PRNG (mulberry32).
+ *
+ * `Math.random` cannot be replayed, so a sweep could report a distribution but
+ * not hand back any single trajectory from inside it. That is what left the KPI
+ * cards showing an arbitrary extra draw, unrelated to the percentiles printed
+ * below them: press recalculate and the headline moved even though the
+ * distribution barely did. With a seed per iteration, the median run can be
+ * re-executed on demand and the detail the user inspects belongs to the sweep.
+ */
+export function makeRng(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function makeOp(num, phase, numOpsInPhase, capitalBefore, capitalInOp, netResult, commission, capitalAfter, isWin) {
   return {
     num,
@@ -283,6 +304,7 @@ export function runMonteCarlo(config, opts = {}) {
     ruinThreshold = 0.5,
     maxDrawdownLimit = 10,
     rnd = Math.random,
+    baseSeed = 0x5eed,
   } = opts;
 
   const cfg = normalizeConfig(config);
@@ -292,12 +314,24 @@ export function runMonteCarlo(config, opts = {}) {
   const finals = new Array(n);
   const rois = new Array(n);
   const drawdowns = new Array(n);
+  // Per-iteration seeds, so any single trajectory can be replayed later — that
+  // is what lets `medianPath` be a real member of this sweep instead of a
+  // separate throw of the dice. An explicit `opts.rnd` still wins, because the
+  // deterministic checks in scripts/engine-check.js inject their own.
+  const seeded = rnd === Math.random;
+  const seeds = seeded ? new Uint32Array(n) : null;
   let ruinCount = 0;
   let profitableCount = 0;
   let breachCount = 0;
 
   for (let i = 0; i < n; i += 1) {
-    const path = runOnePath(cfg, rnd, false);
+    let iterRnd = rnd;
+    if (seeded) {
+      const seed = (baseSeed + i * 2654435761) >>> 0;
+      seeds[i] = seed;
+      iterRnd = makeRng(seed);
+    }
+    const path = runOnePath(cfg, iterRnd, false);
     finals[i] = path.finalBalance;
     rois[i] = ((path.finalBalance - cfg.initialBalance) / cfg.initialBalance) * 100;
     drawdowns[i] = path.maxDrawdown;
@@ -314,8 +348,23 @@ export function runMonteCarlo(config, opts = {}) {
   const sortedRois = [...rois].sort((a, b) => a - b);
   const sortedDds = [...drawdowns].sort((a, b) => a - b);
 
+  // Replay the trajectory whose final balance sits closest to the median. One
+  // extra pass, versus keeping every path in memory.
+  let medianPath = null;
+  if (seeded && n > 0) {
+    const target = percentile(sortedFinals, 50);
+    let bestIdx = 0;
+    let bestDelta = Infinity;
+    for (let i = 0; i < n; i += 1) {
+      const d = Math.abs(finals[i] - target);
+      if (d < bestDelta) { bestDelta = d; bestIdx = i; }
+    }
+    medianPath = runSimulation(config, makeRng(seeds[bestIdx]));
+  }
+
   return {
     iterations: n,
+    medianPath,
     initialBalance: cfg.initialBalance,
     finalBalance: summarize(sortedFinals),
     roi: summarize(sortedRois),

@@ -4,7 +4,16 @@
 # Uso: bash check.sh
 # ============================================================
 
-BASE="https://tradingcalculator-api-704202303011.us-central1.run.app/api"
+# La URL sale del entorno. El valor que había aquí apuntaba a us-central1, y el
+# despliegue real está en europe-west1 (ver CLAUDE.md y deploy-cloud-run.yml), así
+# que este script llevaba tiempo comprobando un host equivocado: todo fallaba y no
+# porque la API estuviera mal. Sin BACKEND_URL no se adivina nada, se aborta.
+if [ -z "$BACKEND_URL" ]; then
+  echo "Falta BACKEND_URL. Ejemplo:"
+  echo "  BACKEND_URL=https://<servicio>-<num>.europe-west1.run.app bash check.sh"
+  exit 2
+fi
+BASE="${BACKEND_URL%/}/api"
 PASS=0
 FAIL=0
 

@@ -2,9 +2,26 @@ import React, { useState, useCallback } from 'react';
 import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight, ChevronDown, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
-const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
+const LegEditor = ({
+  legs,
+  chain,
+  chains = {},
+  expirations = [],
+  defaultExpIdx = 0,
+  stockPrice,
+  onLegsChange,
+}) => {
   const { t } = useTranslation();
   const [dragIdx, setDragIdx] = useState(null);
+
+  // La cadena que corresponde a una pata. Cada pata puede vivir en un
+  // vencimiento distinto — es lo que separa un vertical de un calendar — así
+  // que su strike y su prima tienen que salir de SU cadena, no de la que esté
+  // seleccionada arriba.
+  const chainFor = useCallback(
+    (expIdx) => chains[String(expIdx)]?.chain || chain || [],
+    [chains, chain]
+  );
 
   const addLeg = useCallback((type = 'call', action = 'buy') => {
     // Find ATM strike
@@ -22,10 +39,11 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
       strike: atmStrike?.strike || stockPrice,
       premium: opt?.mid || 0,
       iv: opt?.iv || 0.3,
+      expIdx: defaultExpIdx,
       enabled: true,
     };
     onLegsChange([...legs, newLeg]);
-  }, [chain, stockPrice, legs, onLegsChange]);
+  }, [chain, stockPrice, legs, onLegsChange, defaultExpIdx]);
 
   const removeLeg = useCallback((idx) => {
     onLegsChange(legs.filter((_, i) => i !== idx));
@@ -35,11 +53,35 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
     const newLegs = [...legs];
     const leg = { ...newLegs[idx], ...updates };
 
+    // Cambiar de vencimiento no conserva el índice de strike: dos vencimientos
+    // no tienen por qué listar los mismos strikes ni en el mismo orden. Se
+    // reancla por strike más cercano, y la prima y la IV se releen de la
+    // cadena nueva — que es justo el punto de mover la pata de fecha.
+    if (updates.expIdx !== undefined) {
+      const nextChain = chainFor(updates.expIdx);
+      if (nextChain.length > 0) {
+        const target = leg.strike ?? stockPrice;
+        const nearest = nextChain.reduce(
+          (best, s, i) =>
+            Math.abs(s.strike - target) < Math.abs(nextChain[best].strike - target) ? i : best,
+          0
+        );
+        const strikeData = nextChain[nearest];
+        leg.strikeIdx = nearest;
+        leg.strike = strikeData.strike;
+        leg.premium = strikeData[leg.type]?.mid || 0;
+        leg.iv = strikeData[leg.type]?.iv || 0.3;
+      }
+      newLegs[idx] = leg;
+      onLegsChange(newLegs);
+      return;
+    }
+
     // If strike changed, update premium from chain
     if (updates.strikeIdx !== undefined || updates.type !== undefined) {
       const sIdx = updates.strikeIdx !== undefined ? updates.strikeIdx : leg.strikeIdx;
       const type = updates.type !== undefined ? updates.type : leg.type;
-      const strikeData = chain[sIdx];
+      const strikeData = chainFor(leg.expIdx ?? defaultExpIdx)[sIdx];
       if (strikeData) {
         leg.strike = strikeData.strike;
         leg.premium = strikeData[type]?.mid || 0;
@@ -50,7 +92,14 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
 
     newLegs[idx] = leg;
     onLegsChange(newLegs);
-  }, [legs, chain, onLegsChange]);
+  }, [legs, chainFor, onLegsChange, defaultExpIdx, stockPrice]);
+
+  // ¿Hay patas en más de un vencimiento? Entonces esto ya no es un vertical y
+  // conviene decirlo: el gráfico se dibuja al vencimiento de la más cercana.
+  const distinctExpiries = new Set(
+    legs.filter((l) => l.enabled).map((l) => l.expIdx ?? defaultExpIdx)
+  );
+  const isMultiExpiry = distinctExpiries.size > 1;
 
   const duplicateLeg = useCallback((idx) => {
     const clone = { ...legs[idx], id: Date.now() + Math.random() };
@@ -88,7 +137,17 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div>
           <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">{t('optLegsBuilder')}</h3>
-          <p className="text-[9px] text-muted-foreground mt-0.5">{legs.filter(l => l.enabled).length} {t('optLegsActive')}</p>
+          {/* Etiqueta de recuento en vez de "{n} patas activas": con n=1 salía
+              "1 patas activas", y la concordancia singular/plural no se resuelve
+              igual en los 8 idiomas. Así funciona en todos. */}
+          <p className="text-[9px] text-muted-foreground mt-0.5">
+            {t('optLegsActive')}: {legs.filter(l => l.enabled).length}
+          </p>
+          {isMultiExpiry && (
+            <p className="text-[9px] text-[#f59e0b] mt-0.5" data-testid="multi-expiry-notice">
+              {t('optMultiExpiryNotice')}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -159,6 +218,29 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
               </button>
             </div>
 
+            {/* Vencimiento de ESTA pata. Sin este selector, un calendar, una
+                diagonal o un PMCC no se pueden ni escribir: todas las patas
+                heredaban el vencimiento global. */}
+            {expirations.length > 0 && (
+              <div className="px-3 pb-1.5">
+                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">
+                  {t('optLegExpiry')}
+                </label>
+                <select
+                  value={leg.expIdx ?? defaultExpIdx}
+                  onChange={(e) => updateLeg(idx, { expIdx: parseInt(e.target.value, 10) })}
+                  className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:border-primary appearance-none cursor-pointer"
+                  data-testid={`leg-${idx}-expiry`}
+                >
+                  {expirations.map((exp, ei) => (
+                    <option key={exp.date || ei} value={ei}>
+                      {exp.label || exp.date} · {exp.daysToExpiry}d
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Leg Config */}
             <div className="grid grid-cols-3 gap-1.5 px-3 pb-2.5">
               {/* Strike */}
@@ -169,7 +251,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
                   onChange={(e) => updateLeg(idx, { strikeIdx: parseInt(e.target.value) })}
                   className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:border-primary appearance-none cursor-pointer"
                 >
-                  {chain.map((s, si) => (
+                  {chainFor(leg.expIdx ?? defaultExpIdx).map((s, si) => (
                     <option key={s.strike} value={si}>${s.strike}</option>
                   ))}
                 </select>

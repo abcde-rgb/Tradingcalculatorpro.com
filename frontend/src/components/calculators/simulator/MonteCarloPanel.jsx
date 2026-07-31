@@ -21,7 +21,7 @@ const fmt = (n, d = 0) => Number(n).toLocaleString(undefined, {
  * that into information — run the same system thousands of times and look at
  * the SPREAD, not at one lucky or unlucky run.
  */
-export default function MonteCarloPanel({ config }) {
+export default function MonteCarloPanel({ config, onResult }) {
   const { t } = useTranslation();
   const [mc, setMc] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -33,10 +33,14 @@ export default function MonteCarloPanel({ config }) {
     // Yield a frame so the spinner paints before the (synchronous) run.
     setTimeout(() => {
       try {
-        setMc(runMonteCarlo(config, {
+        const result = runMonteCarlo(config, {
           iterations: Number(iterations) || DEFAULT_MC_ITERATIONS,
           maxDrawdownLimit: Number(ddLimit) || 10,
-        }));
+        });
+        setMc(result);
+        // Hand the sweep up so the headline above can switch from an arbitrary
+        // extra draw to the median trajectory of THIS distribution.
+        if (onResult) onResult(result);
       } finally {
         setBusy(false);
       }

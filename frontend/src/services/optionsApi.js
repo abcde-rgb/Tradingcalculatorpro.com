@@ -68,6 +68,28 @@ export async function fetchOptionsChain(symbol, expirationIdx = 3) {
   }
 }
 
+/**
+ * Several expirations in one request.
+ *
+ * A calendar, a diagonal or a PMCC needs quotes from two different expiries at
+ * once. Asking for them one at a time meant N round trips just to draw one
+ * payoff, and the legs could end up priced against chains fetched seconds
+ * apart. Returns the `chains` map keyed by expiration index.
+ */
+export async function fetchOptionsChains(symbol, expirationIdxs = []) {
+  if (!api) return null;
+  const idxs = [...new Set(expirationIdxs.filter((i) => Number.isInteger(i) && i >= 0))];
+  if (idxs.length === 0) return null;
+  try {
+    const res = await api.get(`/options/chain/${symbol}`, {
+      params: { expiration_idxs: idxs.join(',') },
+    });
+    return res.data;
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function calculatePayoff(legs, stockPrice, priceRange = 0.35, daysToChart = 30) {
   if (!api) return null;
   try {

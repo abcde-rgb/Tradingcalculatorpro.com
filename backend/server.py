@@ -11,7 +11,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import uuid
 from datetime import datetime, timezone, timedelta
 import bcrypt
@@ -62,7 +62,16 @@ from performance import (
     make_trade_doc,
     sort_trades_chronologically,
 )
-from market_rates import get_risk_free_rate
+from trading_plan import (
+    activate_plan,
+    compliance_report,
+    count_trades_under_version,
+    get_active_plan,
+    get_draft_plan,
+    list_plan_versions,
+    save_draft,
+)
+from market_rates import get_risk_free_rate, get_risk_free_info
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -948,6 +957,10 @@ class Database:
             "churn_surveys", "rate_limit_violations",
             # Product usage analytics (admin heatmap of most-viewed pages/sections)
             "usage_events",
+            # Versioned trading plans — the source of truth for each user's own
+            # risk thresholds (see trading_plan.py). Must be listed here: the
+            # comment above is load-bearing, Collection does not auto-create.
+            "trading_plans",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -957,7 +970,8 @@ class Database:
         async with self._pool.acquire() as conn:
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users ((data->>'email'))")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_id ON users ((data->>'id'))")
-            for tbl in ("trades", "calculations", "alerts", "saved_positions"):
+            for tbl in ("trades", "calculations", "alerts", "saved_positions",
+                        "trading_plans"):
                 await conn.execute(
                     f"CREATE INDEX IF NOT EXISTS idx_{tbl}_user_id ON {tbl} ((data->>'user_id'))"
                 )
@@ -4957,8 +4971,85 @@ def _synthetic_marker(is_synthetic: bool) -> Dict[str, Any]:
     }
 
 
+async def _build_chain_for_expiration(
+    symbol: str, stock: Dict[str, Any], expiration: Dict[str, Any], r: float
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Fetch (or model) one expiration's chain and enrich it with Greeks.
+
+    Returns `(chain, synthetic)`. Extracted so the single- and multi-expiration
+    endpoints cannot drift apart: a calendar spread priced from a chain built by
+    a second, slightly different code path is a bug waiting to happen.
+    """
+    chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
+    synthetic = not chain
+    if not chain:
+        return generate_options_chain(stock["price"], expiration["daysToExpiry"], r=r), True
+
+    # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
+    from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
+    T = year_fraction(expiration["daysToExpiry"])
+    for item in chain:
+        K = item["strike"]
+        for side in ("call", "put"):
+            leg = item.get(side, {})
+            iv = leg.get("iv") or 0.3
+            if iv <= 0:
+                iv = 0.3
+            try:
+                leg["delta"] = round(_d(stock["price"], K, T, r, iv, side), 4)
+                leg["gamma"] = round(_g(stock["price"], K, T, r, iv), 6)
+                leg["theta"] = round(_th(stock["price"], K, T, r, iv, side), 4)
+                leg["vega"] = round(_v(stock["price"], K, T, r, iv), 4)
+            except (ValueError, ZeroDivisionError):
+                leg["delta"] = 0.0
+                leg["gamma"] = 0.0
+                leg["theta"] = 0.0
+                leg["vega"] = 0.0
+            # Ensure mid is present
+            if "mid" not in leg or leg.get("mid") is None:
+                leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
+    return chain, synthetic
+
+
+# A calendar needs 2 expirations, a double diagonal 2, a term-structure view a
+# handful. The cap exists because each expiration is a separate upstream fetch.
+MAX_CHAIN_EXPIRATIONS = 8
+
+
+def _parse_expiration_idxs(raw: str, count: int) -> List[int]:
+    """`"1,3,6"` → `[1, 3, 6]`, clamped to the expirations that exist.
+
+    Silently drops anything unparseable rather than 400-ing: this is a widening
+    of an existing endpoint and a stray token should degrade to fewer chains,
+    not to no chain at all.
+    """
+    out: List[int] = []
+    for token in (raw or "").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            idx = int(token)
+        except ValueError:
+            continue
+        if 0 <= idx < count and idx not in out:
+            out.append(idx)
+    return out[:MAX_CHAIN_EXPIRATIONS]
+
+
 @api_router.get("/options/chain/{symbol}")
-async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
+async def opt_get_options_chain(
+    symbol: str,
+    expiration_idx: int = 3,
+    expiration_idxs: Optional[str] = None,
+):
+    """Options chain for one expiration, or for several in a single call.
+
+    `expiration_idxs=1,3,6` returns a `chains` map keyed by expiration index so
+    that a multi-expiration structure (calendar, diagonal, PMCC) can be built
+    without firing one request per leg. The single-expiration response shape is
+    unchanged, and is still what comes back when the parameter is absent.
+    """
     stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
         # No real spot price — don't fabricate a synthetic chain on top of
@@ -4968,47 +5059,54 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
             "stock": stock,
             "expiration": None,
             "chain": [],
+            "chains": {},
             "error": stock.get("error") or f"No market data available for {symbol}.",
         }
     expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if not expirations:
         expirations = generate_expirations()
+    r = await asyncio.to_thread(get_risk_free_rate)
+
+    if expiration_idxs:
+        wanted = _parse_expiration_idxs(expiration_idxs, len(expirations))
+        if not wanted:
+            wanted = [min(expiration_idx, len(expirations) - 1)]
+        chains: Dict[str, Any] = {}
+        any_synthetic = False
+        for idx in wanted:
+            exp = expirations[idx]
+            chain, synthetic = await _build_chain_for_expiration(symbol, stock, exp, r)
+            any_synthetic = any_synthetic or synthetic
+            chains[str(idx)] = {
+                "expiration": exp,
+                "chain": chain,
+                **_synthetic_marker(synthetic),
+            }
+        primary = wanted[0]
+        return {
+            "stock": stock,
+            "expiration": chains[str(primary)]["expiration"],
+            "chain": chains[str(primary)]["chain"],
+            "chains": chains,
+            **_synthetic_marker(any_synthetic),
+            "riskFreeRate": round(r, 5),
+        }
+
     if expiration_idx >= len(expirations):
         expiration_idx = min(3, len(expirations) - 1)
     expiration = expirations[expiration_idx]
-    chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
-    r = await asyncio.to_thread(get_risk_free_rate)
-    synthetic = not chain
-    if not chain:
-        chain = generate_options_chain(stock["price"], expiration["daysToExpiry"], r=r)
-    else:
-        # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
-        from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
-        T = year_fraction(expiration["daysToExpiry"])
-        for item in chain:
-            K = item["strike"]
-            for side in ("call", "put"):
-                leg = item.get(side, {})
-                iv = leg.get("iv") or 0.3
-                if iv <= 0:
-                    iv = 0.3
-                try:
-                    leg["delta"] = round(_d(stock["price"], K, T, r, iv, side), 4)
-                    leg["gamma"] = round(_g(stock["price"], K, T, r, iv), 6)
-                    leg["theta"] = round(_th(stock["price"], K, T, r, iv, side), 4)
-                    leg["vega"] = round(_v(stock["price"], K, T, r, iv), 4)
-                except (ValueError, ZeroDivisionError):
-                    leg["delta"] = 0.0
-                    leg["gamma"] = 0.0
-                    leg["theta"] = 0.0
-                    leg["vega"] = 0.0
-                # Ensure mid is present
-                if "mid" not in leg or leg.get("mid") is None:
-                    leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
+    chain, synthetic = await _build_chain_for_expiration(symbol, stock, expiration, r)
     return {
         "stock": stock,
         "expiration": expiration,
         "chain": chain,
+        "chains": {
+            str(expiration_idx): {
+                "expiration": expiration,
+                "chain": chain,
+                **_synthetic_marker(synthetic),
+            }
+        },
         **_synthetic_marker(synthetic),
         "riskFreeRate": round(r, 5),
     }
@@ -5072,6 +5170,120 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
     }
 
 
+@api_router.get("/options/positioning/{symbol}")
+async def opt_get_positioning(symbol: str, expiration_idx: int = 3) -> Dict[str, Any]:
+    """Where the open interest sits: max pain, GEX, the OI profile and liquidity.
+
+    These are readings of observed positioning, so they are computed only from
+    a real chain. When the provider gives us nothing and the chain has to be
+    modelled, every metric comes back None with `synthetic: true` rather than a
+    number derived from open interest nobody reported — a fabricated max pain is
+    indistinguishable from a real one on screen, which is exactly the problem.
+    """
+    from options_positioning import (
+        max_pain, gamma_exposure, open_interest_profile, put_call_ratio,
+        chain_liquidity, atm_iv, expected_move,
+    )
+
+    stock = await asyncio.to_thread(get_stock_data, symbol)
+    if stock.get("price") is None:
+        return {
+            "stock": stock,
+            "error": stock.get("error") or f"No market data available for {symbol}.",
+            "maxPain": None, "gex": None, "openInterestProfile": None,
+            "putCallRatio": None, "liquidity": None, "expectedMove": None,
+        }
+
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
+    if not expirations:
+        expirations = generate_expirations()
+    if expiration_idx >= len(expirations):
+        expiration_idx = min(3, len(expirations) - 1)
+    expiration = expirations[expiration_idx]
+    r = await asyncio.to_thread(get_risk_free_rate)
+    chain, synthetic = await _build_chain_for_expiration(symbol, stock, expiration, r)
+
+    spot = stock["price"]
+    iv = atm_iv(chain, spot)
+    if synthetic:
+        # An expected move is a volatility statement, not a positioning one, so
+        # it survives a modelled chain — but it inherits the modelled IV and the
+        # response says so through `synthetic`.
+        return {
+            "stock": stock,
+            "expiration": expiration,
+            "maxPain": None,
+            "gex": None,
+            "openInterestProfile": None,
+            "putCallRatio": None,
+            "liquidity": None,
+            "atmIV": iv,
+            "expectedMove": expected_move(spot, iv, expiration.get("daysToExpiry")),
+            **_synthetic_marker(True),
+        }
+
+    return {
+        "stock": stock,
+        "expiration": expiration,
+        "maxPain": max_pain(chain),
+        "gex": gamma_exposure(chain, spot),
+        "openInterestProfile": open_interest_profile(chain),
+        "putCallRatio": put_call_ratio(chain),
+        "liquidity": chain_liquidity(chain),
+        "atmIV": iv,
+        "expectedMove": expected_move(spot, iv, expiration.get("daysToExpiry")),
+        **_synthetic_marker(False),
+    }
+
+
+@api_router.get("/options/term-structure/{symbol}")
+async def opt_get_term_structure(symbol: str, max_expirations: int = 8) -> Dict[str, Any]:
+    """ATM implied volatility by expiration — contango or backwardation.
+
+    The first question a premium seller asks is whether the front is rich
+    against the back, and nothing in the app answered it: the IV surface showed
+    skew across strikes but never the curve across time.
+    """
+    from options_positioning import atm_iv, term_structure
+
+    stock = await asyncio.to_thread(get_stock_data, symbol)
+    if stock.get("price") is None:
+        return {
+            "stock": stock,
+            "termStructure": None,
+            "error": stock.get("error") or f"No market data available for {symbol}.",
+        }
+
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
+    if not expirations:
+        expirations = generate_expirations()
+    expirations = expirations[:max_expirations]
+    r = await asyncio.to_thread(get_risk_free_rate)
+
+    points: List[Dict[str, Any]] = []
+    synthetic_dates: List[str] = []
+    for exp in expirations:
+        chain, synthetic = await _build_chain_for_expiration(symbol, stock, exp, r)
+        if synthetic:
+            synthetic_dates.append(exp["date"])
+        points.append(
+            {
+                "date": exp["date"],
+                "label": exp.get("label"),
+                "daysToExpiry": exp["daysToExpiry"],
+                "iv": atm_iv(chain, stock["price"]),
+                "synthetic": synthetic,
+            }
+        )
+
+    return {
+        "stock": stock,
+        "termStructure": term_structure(points),
+        **_synthetic_marker(bool(synthetic_dates)),
+        "syntheticExpirations": synthetic_dates,
+    }
+
+
 @api_router.post("/calculate/payoff")
 async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
     try:
@@ -5104,6 +5316,26 @@ class ImpliedVolRequest(BaseModel):
     optionType: str = Field(..., pattern="^(call|put)$")
     dividendYield: Optional[float] = 0.0
     riskFreeRate: Optional[float] = None
+
+
+@api_router.get("/market/risk-free")
+async def market_risk_free() -> Dict[str, Any]:
+    """Risk-free rate currently in use, with its provenance.
+
+    `market_rates` already computes this for pricing and for the journal's
+    risk-adjusted ratios, but nothing exposed it, so the UI could not tell the
+    user where the `r` behind a Greek came from — and `GreeksDisplay` was
+    printing a hardcoded 5.25% that no longer matched the backend.
+    """
+    info = await asyncio.to_thread(get_risk_free_info)
+    rate = info.get("rate") or 0.0
+    return {
+        "rate": rate,
+        "ratePct": round(rate * 100, 3),
+        "source": info.get("source"),
+        "isLive": info.get("is_live", False),
+        "fetchedAt": info.get("fetched_at"),
+    }
 
 
 @api_router.post("/calculate/implied-volatility")
@@ -5630,6 +5862,10 @@ class AITradeAnalysisRequest(BaseModel):
     userBalance: Optional[float] = None
     # UI language, so the coach answers in the language the user is reading.
     locale: Optional[str] = "es"
+    # Whether the chain that priced this position was modelled rather than
+    # observed. `_synthetic_marker` already flags it on the way out; without it
+    # here the coach analyses model output as if it were market data.
+    synthetic: Optional[bool] = False
 
 
 def _format_legs_for_prompt(legs: List[Dict[str, Any]]) -> List[str]:
@@ -5730,8 +5966,15 @@ def _build_ai_trade_prompt(req: "AITradeAnalysisRequest",
 
     language = _AI_COACH_LANGUAGES.get((req.locale or "es")[:2].lower(), "Spanish")
     user_context = _format_user_context(analytics)
+    synthetic_note = (
+        "\n⚠️ The premiums and implied volatility below come from a MODELLED "
+        "chain, not from market quotes. Say so in your first line and treat the "
+        "whole analysis as an exercise.\n"
+        if req.synthetic else ""
+    )
 
     return f"""Analyse the following options position.
+{synthetic_note}
 
 Underlying: {req.symbol} @ ${req.stockPrice:.2f}
 Days to expiry: {req.daysToExpiry}
@@ -6103,10 +6346,16 @@ class TradeIn(BaseModel):
     multiplier: Optional[float] = 1
 
 
-def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict:
-    """Compute pnl + errors. Output is JSON-safe (no _id)."""
+def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
+                  plan: Optional[dict] = None) -> dict:
+    """Compute pnl + errors. Output is JSON-safe (no _id).
+
+    `plan` is the user's active trading plan. Callers that have it should pass
+    it, so the trade is judged against the user's own thresholds instead of the
+    module defaults; callers that don't get exactly the legacy behaviour.
+    """
     enriched = compute_trade_pnl(trade)
-    enriched["errors"] = detect_errors(enriched, prev_trades=prev_trades)
+    enriched["errors"] = detect_errors(enriched, plan=plan, prev_trades=prev_trades)
     enriched.pop("_id", None)
     return enriched
 
@@ -6115,8 +6364,13 @@ def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict
 async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premium)):
     user_id = user["id"]
     prev = await trades_for_user(db, user_id, limit=50)
+    plan = await get_active_plan(db, user_id)
     doc = make_trade_doc(payload.model_dump(), user_id)
-    enriched = _enrich_trade(doc, prev_trades=prev)
+    # Stamped at creation and never rewritten: a later plan change must not
+    # retroactively re-judge the history it is supposed to be measured against.
+    if plan:
+        doc["plan_version"] = plan.get("version")
+    enriched = _enrich_trade(doc, prev_trades=prev, plan=plan)
     # Strip computed read-only fields before persisting (keep stored doc minimal)
     to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
     await db.trades.insert_one(to_store)
@@ -6142,10 +6396,13 @@ async def perf_bulk_create_trades(
     imported, failed = [], []
     # Fetch once; don't re-fetch inside the loop.
     prev = await trades_for_user(db, user_id, limit=100)
+    bulk_plan = await get_active_plan(db, user_id)
     for i, payload_item in enumerate(payload.trades):
         try:
             doc = make_trade_doc(payload_item.model_dump(), user_id)
-            enriched = _enrich_trade(doc, prev_trades=prev)
+            if bulk_plan:
+                doc["plan_version"] = bulk_plan.get("version")
+            enriched = _enrich_trade(doc, prev_trades=prev, plan=bulk_plan)
             to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
             await db.trades.insert_one(to_store)
             imported.append(enriched)
@@ -6174,11 +6431,12 @@ async def perf_list_trades(
         query["symbol"] = symbol.upper()
     cursor = db.trades.find(query, {"_id": 0}).sort("entry_date", -1).limit(limit)
     rows = await cursor.to_list(length=limit)
+    plan = await get_active_plan(db, user["id"])
     # Re-enrich on each fetch so updates to detection rules apply retroactively
     enriched_rows = []
     seen: List[dict] = []
     for t in reversed(rows):  # chronological order for prev_trades context
-        enriched_rows.append(_enrich_trade(t, prev_trades=list(seen)))
+        enriched_rows.append(_enrich_trade(t, prev_trades=list(seen), plan=plan))
         seen.append(enriched_rows[-1])
     enriched_rows.reverse()
     return {"trades": enriched_rows, "count": len(enriched_rows)}
@@ -6193,7 +6451,8 @@ async def perf_get_trade(trade_id: str, user: dict = Depends(require_premium)):
     if not t:
         raise HTTPException(status_code=404, detail="Trade not found")
     prev = await trades_for_user(db, user["id"], limit=50)
-    return _enrich_trade(t, prev_trades=prev)
+    plan = await get_active_plan(db, user["id"])
+    return _enrich_trade(t, prev_trades=prev, plan=plan)
 
 
 @api_router.put("/performance/trades/{trade_id}")
@@ -6409,19 +6668,159 @@ async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
 @api_router.get("/performance/analytics")
 async def performance_analytics(user: dict = Depends(require_premium)):
     rows = await trades_for_user(db, user["id"], limit=1000)
+    # One plan lookup for the whole request: every trade is judged against the
+    # same active version, and the query does not repeat per row.
+    plan = await get_active_plan(db, user["id"])
     # Re-enrich to get fresh errors and pnl. Enrichment is order-sensitive
     # (revenge-trade detection needs the trades that preceded each one), so walk
     # the history oldest-first explicitly rather than relying on the fetch order.
     enriched: List[dict] = []
     seen: List[dict] = []
     for t in sort_trades_chronologically(rows):
-        e = _enrich_trade(t, prev_trades=list(seen))
+        e = _enrich_trade(t, prev_trades=list(seen), plan=plan)
         enriched.append(e)
         seen.append(e)
     risk_free = await asyncio.to_thread(get_risk_free_rate)
     analytics = compute_analytics(enriched, risk_free_rate=risk_free)
     insights = generate_insights(analytics)
-    return {"analytics": analytics, "insights": insights}
+    return {
+        "analytics": analytics,
+        "insights": insights,
+        # So the panel can say WHOSE rules produced those errors, and offer to
+        # write a plan to anyone still being judged by the defaults.
+        "plan": {"version": plan.get("version"), "name": plan.get("name")} if plan else None,
+        "compliance": compliance_report(enriched, plan) if plan else None,
+    }
+
+
+
+# ============= TRADING PLAN =============
+# The plan is the user's own rulebook, versioned. Everything that used to judge
+# a trade against module-level constants now reads from here — see
+# `trading_plan.py` for why that distinction matters.
+
+
+class PlanRiskIn(BaseModel):
+    """Risk limits. Only the first two have defaults; the rest are opt-in.
+
+    A limit left as None means "not declared" and its rule stays silent. It must
+    never be coerced to 0, which would read as a limit of zero and bury the user
+    in violations of rules they never wrote.
+    """
+    max_risk_pct_per_trade: Optional[float] = Field(None, gt=0, le=100)
+    min_rr: Optional[float] = Field(None, gt=0, le=100)
+    max_daily_loss_r: Optional[float] = Field(None, gt=0)
+    max_weekly_loss_r: Optional[float] = Field(None, gt=0)
+    max_consecutive_losses: Optional[int] = Field(None, gt=0, le=100)
+    max_trades_per_day: Optional[int] = Field(None, gt=0, le=500)
+    max_open_risk_r: Optional[float] = Field(None, gt=0)
+    max_correlated_positions: Optional[int] = Field(None, gt=0, le=100)
+    require_stop_loss: Optional[bool] = True
+
+
+class PlanSessionIn(BaseModel):
+    days: List[int] = Field(default_factory=lambda: [1, 2, 3, 4, 5])
+    start: str = "09:00"
+    end: str = "17:00"
+    tz: str = "UTC"
+
+
+class PlanIn(BaseModel):
+    """A trading plan as submitted by the wizard. Shape only — `trading_plan`
+    does the clamping, so a partially filled draft is always storable."""
+    name: Optional[str] = None
+    style: Optional[str] = None
+    markets: Optional[List[str]] = None
+    sessions: Optional[List[PlanSessionIn]] = None
+    timeframes: Optional[Dict[str, Any]] = None
+    approaches: Optional[List[str]] = None
+    tools: Optional[List[str]] = None
+    entry_rules: Optional[List[str]] = None
+    invalidation: Optional[str] = None
+    no_trade_conditions: Optional[List[str]] = None
+    risk: Optional[PlanRiskIn] = None
+    management: Optional[Dict[str, Any]] = None
+    review: Optional[Dict[str, Any]] = None
+    change_reason: Optional[str] = Field(None, max_length=500)
+
+
+@api_router.get("/plan")
+async def plan_get_active(user: dict = Depends(require_user)):
+    """The active plan. 404 when the user has never written one."""
+    plan = await get_active_plan(db, user["id"])
+    if not plan:
+        raise HTTPException(status_code=404, detail="No active trading plan")
+    return plan
+
+
+@api_router.get("/plan/history")
+async def plan_get_history(user: dict = Depends(require_user)):
+    """Every version, newest first, each with how many trades it governed.
+
+    The trade count is what makes the history readable: a version with 4 trades
+    under it was abandoned before it could say anything, and that is visible
+    here rather than having to be inferred.
+    """
+    versions = await list_plan_versions(db, user["id"])
+    out = []
+    for version in versions:
+        out.append({
+            **version,
+            "trades_under_plan": await count_trades_under_version(
+                db, user["id"], version.get("version")),
+        })
+    return {"versions": out, "count": len(out)}
+
+
+@api_router.post("/plan")
+async def plan_create_version(payload: PlanIn, user: dict = Depends(require_user)):
+    """Create v1, or a new version, and activate it (archiving the previous).
+
+    From v2 onward `change_reason` is required — a 422, not a silent default.
+    Plans rarely get abandoned outright; they get eroded one unrecorded
+    exception at a time, and having to type a sentence is the cheapest brake.
+    """
+    raw = payload.model_dump(exclude_none=False)
+    try:
+        plan, warning = await activate_plan(
+            db, user["id"], raw, change_reason=payload.change_reason or "")
+    except ValueError as exc:
+        if str(exc) == "change_reason_required":
+            raise HTTPException(
+                status_code=422,
+                detail="A change reason is required when replacing an existing plan",
+            )
+        raise
+    # 200 with a warning, never a 4xx: changing the plan early is the user's
+    # call. What matters is that the call is recorded and visible.
+    return {"plan": plan, "warning": warning}
+
+
+@api_router.patch("/plan/draft")
+async def plan_save_draft(payload: PlanIn, user: dict = Depends(require_user)):
+    """Save the work-in-progress plan without activating it.
+
+    Lets the 5-step wizard survive a reload without the half-written plan
+    starting to govern anything.
+    """
+    draft = await save_draft(db, user["id"], payload.model_dump(exclude_none=False))
+    return {"draft": draft}
+
+
+@api_router.get("/plan/compliance")
+async def plan_get_compliance(user: dict = Depends(require_premium)):
+    """Adherence to the active plan, costed by rule."""
+    plan = await get_active_plan(db, user["id"])
+    if not plan:
+        raise HTTPException(status_code=404, detail="No active trading plan")
+    rows = await trades_for_user(db, user["id"], limit=1000)
+    enriched: List[dict] = []
+    seen: List[dict] = []
+    for t in sort_trades_chronologically(rows):
+        e = _enrich_trade(t, prev_trades=list(seen), plan=plan)
+        enriched.append(e)
+        seen.append(e)
+    return compliance_report(enriched, plan)
 
 
 # ============= ADMIN PANEL =============

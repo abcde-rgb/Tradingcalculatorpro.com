@@ -376,4 +376,67 @@ a `round(plan["price"], 2)` con comentario explicativo.
 
 ---
 
-*Última actualización: 2026-07-26 — rate limiting por IP real detrás del proxy (BUG-015).*
+*Actualización previa: 2026-07-26 — rate limiting por IP real detrás del proxy (BUG-015).*
+---
+
+| BUG-023 | **La pestaña Cadena era inusable al abrirla.** `OptionsChainView` montaba la tabla en un `flex-1 … overflow-hidden` cuyo hijo `overflow-auto` **no tenía altura acotada**: el contenedor que scrolleaba de verdad era la página, así que el `thead sticky top-0` se pegaba al contenedor equivocado y acababa **oculto detrás de las dos barras fijas** de la cabecera. Al entrar en la pestaña no se veía ni la fila CALLS/Strike/PUTS ni el selector de vencimiento — sólo un mar de números sin encabezado. Agravado porque el navegador conservaba la posición de scroll de la pestaña anterior y se aterrizaba a media tabla. Fix: la tabla scrollea DENTRO de su propia tarjeta (`max-h` acotada), la cabecera se pega a esa tarjeta, y `handleTabChange` vuelve al principio al cambiar de pestaña. | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-024 | **La UI afirmaba un tipo libre de riesgo distinto del que usaba el backend.** `market_rates.py` (PR #153) sacó el `0.0525` del pricing, pero `GreeksDisplay.jsx` seguía pintando `Risk-Free Rate 5.25%` como literal en su ficha de datos de mercado. Además `market_rates` calculaba la procedencia (`get_risk_free_info`) y **nada la publicaba**, así que el frontend no tenía de dónde leerla. Fix: nuevo `GET /api/market/risk-free` que expone el tipo y su origen (`^IRX` / `stale` / `fallback`), y `GreeksDisplay` lo consume con la procedencia en el tooltip. | 🟡 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-026 | **El aviso de datos modelados sólo se pintaba en el optimizador.** `_synthetic_marker` marca las tres respuestas que pueden venir de una cadena modelada — `/options/chain`, `/options/iv-surface` y `/optimize` — pero en el frontend únicamente `OptimizeView` leía la bandera. En la calculadora y en la superficie de IV el usuario veía primas, griegas y skew fabricados **sin ningún aviso**, que es justo lo que §3.1 de la auditoría señalaba como indefendible en un producto de pago. Fix: componente `SyntheticDataBanner` (traducido a los 8 idiomas) montado en la calculadora y en la superficie; y el coach recibe la bandera, con instrucción de declararlo en su primera línea. | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-027 | **El coach de IA respondía siempre en español.** El PR #153 añadió `locale` al `AITradeAnalysisRequest` y la tabla `_AI_COACH_LANGUAGES`, pero **el frontend nunca enviaba el campo**, así que el valor por defecto (`"es"`) ganaba siempre en una web de 8 idiomas. Fix: `AITradeCoach` envía el locale activo de `useTranslation()`. | 🟡 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-025 | **Concordancia y mezcla de idiomas en el editor de patas.** Mostraba `1 patas activas` (la concordancia singular/plural no se resuelve igual en los 8 idiomas, así que interpolar el número dentro de la frase estaba roto por diseño) y titulaba `Constructor de Legs`, mezclando castellano e inglés en una UI en castellano. En la barra de estrategia, `{riesgo} {etiqueta}` producía "Limitado riesgo · Ilimitado recompensa": orden adjetivo-sustantivo que sólo funciona en inglés. Fix: etiqueta de recuento (`patas activas: 1`), `optLegsBuilder` traducido en es/fr/de, y `etiqueta: valor` en el resumen de riesgo/recompensa. | 🟢 | ✅ Resuelto (2026-07-30) |
+
+---
+
+*Actualización previa: 2026-07-30 — rediseño del panel de opciones: cadena con scroll roto (BUG-023), tipo libre de riesgo desincronizado entre UI y backend (BUG-024), aviso de datos modelados que sólo salía en el optimizador (BUG-026), coach siempre en español (BUG-027) y concordancia/idioma en el editor de patas (BUG-025).*
+
+---
+
+| BUG-028 | **Un fallo del proveedor del tipo libre de riesgo se reintentaba en CADA llamada.** `market_rates.get_risk_free_rate` cacheaba los aciertos pero no los fallos: la comprobación `fresh` exige `rate is not None`, así que con el proveedor inalcanzable nunca había caché y todo llamante volvía a salir a la red. Medido: **25 llamadas → 25 intentos**, y lo mismo teniendo ya un valor previo caducado (que sí se servía, pero pagando el viaje igual, porque `fetched_at` no se actualizaba en la rama *stale*). La función está en la ruta de `/options/chain`, `/options/iv-surface`, `/optimize`, `/calculate/*` y `/performance/analytics`, así que ese peaje se cobraba en cada petición que el usuario estaba esperando; y el fetch heredaba el `timeout=15` × 2 hosts de `stock_data._yahoo_get`, hasta 30 s por petición si el fallo es por timeout en vez de por rechazo. Fix: ventana de reintento tras fallo (`FAILURE_BACKOFF_SECONDS = 15 min`, `force_refresh` la salta), y `timeout` parametrizable en `_yahoo_get` con 4 s para la tasa. Verificado: 25 llamadas → 1 intento. | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-029 | **La sugerencia de stop se pintaba sin muestra suficiente.** `generate_insights` exigía ≥10 ganadoras antes de hablar de estrechar el stop, pero `AnalyticsDashboard` lee `excursion.suggested_stop_r` directamente del payload y no comprobaba nada: con 2 operaciones ganadoras de MAE pequeña, el panel recomendaba una anchura de stop — y por tanto un tamaño de posición — a partir de dos observaciones. Fix: la guarda se mueve al origen (`MIN_WINNERS_FOR_STOP_ADVICE` en `_excursion_stats`), así que el campo sólo existe cuando está respaldado, y el insight deja de duplicar el umbral (no pueden divergir). | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-030 | **El factor de anualización de Sharpe/Sortino no tenía techo.** `_periods_per_year` exige mínimo de operaciones y de ventana, pero no acota el resultado: una muestra densa en poco tiempo —una semana de scalping, o un CSV importado de operaciones de tick— lleva las operaciones/año a cinco cifras y con ellas el factor √ppy. Medido: 400 operaciones en 10 días daban ≈14.610 ops/año y √≈121, convirtiendo un Sharpe por operación de 0,05 en un 6,0 presentado como dato. Fix: `MAX_TRADES_PER_YEAR = 2520` (~10 por sesión × 252 sesiones). | 🟡 | ✅ Resuelto (2026-07-30) |
+
+---
+
+| BUG-031 | **Las tarjetas de cabecera del simulador seguían siendo una tirada suelta.** El PR #153 añadió la distribución de Monte Carlo en un panel aparte, pero `SimulatorPro` seguía llamando a `runSimulation` para los KPI, así que el usuario leía un ROI, un drawdown y un profit factor de **una trayectoria aleatoria** justo encima de un rango P5–P95 que no la contenía; al recalcular, la cabecera cambiaba entera aunque la distribución apenas se moviese. Era la mitad no resuelta del bug original. Fix: PRNG con semilla (`makeRng`) y semilla por iteración en `runMonteCarlo`, que ahora devuelve `medianPath` reproducible; cuando el usuario lanza el barrido, la cabecera pasa a esa mediana y se etiqueta como tal. `opts.rnd` explícito sigue ganando, así que las comprobaciones deterministas de `engine-check.js` no cambian. | 🟠 | ✅ Resuelto (2026-07-30) |
+
+---
+
+*Última actualización: 2026-07-30 — reconciliación de las dos auditorías: reintentos sin caché del tipo libre de riesgo (BUG-028), sugerencia de stop sin muestra (BUG-029), anualización sin techo (BUG-030) y cabecera del simulador aún aleatoria (BUG-031).*
+
+---
+
+| BUG-032 | **Los calendars, las diagonales y el PMCC eran imposibles por arquitectura, no por falta de preset.** Tanto `presetLegs` como `customBuiltLegs` asignaban `daysToExpiry: currentExp.daysToExpiry` a **todas** las patas, y `LegEditor` trabajaba sobre una única `chain`: no existía forma de expresar una pata con vencimiento distinto. Ocho estructuras —calendar de call y de put, diagonal de call y de put, doble calendar, doble diagonal, jelly roll y PMCC, dos de ellas de las más usadas del retail— no estaban "sin implementar": el modelo de datos no las admitía. Y si se forzaba, el motor las valoraba como verticales, porque `calculateStrategyPayoff` aplicaba un único `daysToExpiry` global a cada pata. Fix: `expIdx` por pata en el editor, un mapa `{expIdx: chain}` en `CalculatorPage`, un endpoint de cadena multi-expiración (`?expiration_idxs=1,3,6`) para no disparar N peticiones, y tiempo restante POR PATA en el motor — el diagrama al vencimiento se dibuja al de la pata más cercana y la pata larga conserva su valor extrínseco. Fijado por `engine-check` con un control de mismo vencimiento que sí liquida al débito neto. | 🔴 | ✅ Resuelto (2026-07-31) |
+
+---
+
+| BUG-033 | **El frontend valoraba con un tipo libre de riesgo del 5% inventado mientras el backend usaba el real.** `CalculatorPage` pasaba `0.05` literal a `calculateStrategyPayoff`, `calculateStrategyGreeks` y `probabilityOfProfit`, y `blackScholes.js` lo repetía como valor por defecto de firma, teniendo `market_rates` en producción desde hacía dos PRs y el endpoint `/api/market/risk-free` ya publicado. Consecuencias: Rho era decorativo, las americanas se valoraban con un tipo falso y las tres estructuras cuyo P&L **es** el tipo de interés (box spread, jelly roll, conversion) habrían dado números sin sentido en cuanto se añadieran. Fix: hook `useRiskFreeRate` con caché a nivel de módulo (la tasa se mueve en puntos básicos, no una petición por panel), el tipo real se pasa a las cuatro llamadas del motor, y `GreeksStrip` publica el valor y su procedencia (`r = 4,28% · letra a 3 meses en vivo`) para que Rho tenga referencia. El literal superviviente es una única constante `FALLBACK_RISK_FREE_RATE`, nombrada para que un grep la encuentre. | 🔴 | ✅ Resuelto (2026-07-31) |
+
+---
+
+| BUG-034 | **El rango del gráfico de payoff estaba fijo en ±35% del spot.** El mismo ancho para un 0DTE de SPY —donde toda la acción ocurre en un ±1% y el payoff se veía como una línea plana en mitad del lienzo— que para un LEAPS de una small cap con IV del 80%, donde ±35% recorta justo la zona en la que la posición vive. Fix: `priceRangeFromExpectedMove` deriva el ancho de 2,5σ del expected move (`S·σ·√(T/365)`), con suelo del 10% y techo del 150%; sin volatilidad utilizable cae al 35% de siempre en vez de a un rango degenerado. | 🟡 | ✅ Resuelto (2026-07-31) |
+
+---
+
+| BUG-035 | **Cargar una posición guardada dejaba la calculadora a cero.** No estaba en la auditoría; apareció al tocar el mismo código. `handleLoadPosition` y `handleOpenInCalculator` construían las patas sin el campo `enabled`, y `customBuiltLegs` filtra por `l.enabled`: las patas llegaban al editor —donde se pintaban en gris al 40% de opacidad, el estilo de "pata desactivada"— pero salían del cálculo, así que el payoff quedaba vacío, las griegas a cero y los KPI en blanco. Afectaba a las dos rutas de entrada que no son teclear la posición a mano: recuperar una posición guardada y el botón "abrir en la calculadora" del optimizador. Fix: `enabled: true` explícito en ambos mapeos, más `expIdx` para que una posición guardada multi-expiración no se aplane en un vertical al recargarla. | 🟠 | ✅ Resuelto (2026-07-31) |
+
+---
+
+*Última actualización: 2026-07-31 — auditoría del apartado de opciones: multi-expiración imposible por arquitectura (BUG-032), tipo libre de riesgo inventado en el frontend (BUG-033), rango del gráfico fijo (BUG-034) y posiciones guardadas que se cargaban desactivadas (BUG-035).*

@@ -19,7 +19,10 @@ import requests
 from pathlib import Path
 from datetime import datetime
 
-BASE_URL = "https://tradingcalculator-api-704202303011.us-central1.run.app"
+# Se toma del entorno. El literal anterior apuntaba a us-central1 mientras el
+# despliegue real vive en europe-west1, así que este smoke medía un host que no
+# existe. Sin BACKEND_URL no hay valor por defecto que inventar.
+BASE_URL = os.environ.get("BACKEND_URL", "").rstrip("/")
 FRONTEND_DIR = Path("frontend/src")
 
 # Rutas que esperamos encontrar en el backend

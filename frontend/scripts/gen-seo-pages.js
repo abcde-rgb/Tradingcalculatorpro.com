@@ -567,8 +567,89 @@ LANGS.forEach(([lang, prefix]) => {
   });
 });
 
+// ── Estrategias de opciones (/options/strategies/<slug>/) ─────────
+// Una página por estrategia y por idioma. El catálogo ya existía dentro de la
+// SPA, tras el muro de pago y sin una sola URL propia: 66 estructuras que
+// ningún buscador podía ver. Aquí no se escribe contenido nuevo, se enruta el
+// que ya estaba: nombre, descripción, patas, riesgo y cuándo usarla salen del
+// mismo `STRATEGIES` que consume la calculadora, así que no pueden divergir.
+const STRAT_SRC = fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'mockData.js'), 'utf8');
+const STRATEGIES = (() => {
+  const start = STRAT_SRC.indexOf('export const STRATEGIES');
+  const body = STRAT_SRC.slice(start).replace(/export\s+const/, 'const');
+  // eslint-disable-next-line no-new-func
+  return new Function(`${body.slice(0, body.indexOf('\n];') + 3)}\nreturn STRATEGIES;`)();
+})();
+
+const STRAT_UI = {
+  es: { section:'Estrategias de opciones', legs:'Patas', risk:'Riesgo', reward:'Recompensa', maxP:'Beneficio máximo', maxL:'Pérdida máxima', when:'Cuándo usarla', open:'Abrir en la calculadora', multi:'Usa más de un vencimiento' },
+  en: { section:'Options strategies', legs:'Legs', risk:'Risk', reward:'Reward', maxP:'Max profit', maxL:'Max loss', when:'When to use it', open:'Open in the calculator', multi:'Uses more than one expiration' },
+  de: { section:'Optionsstrategien', legs:'Beine', risk:'Risiko', reward:'Chance', maxP:'Max. Gewinn', maxL:'Max. Verlust', when:'Wann einsetzen', open:'Im Rechner öffnen', multi:'Nutzt mehr als einen Verfall' },
+  fr: { section:'Stratégies d’options', legs:'Jambes', risk:'Risque', reward:'Gain', maxP:'Gain maximum', maxL:'Perte maximum', when:'Quand l’utiliser', open:'Ouvrir dans la calculatrice', multi:'Utilise plusieurs échéances' },
+  ru: { section:'Опционные стратегии', legs:'Ноги', risk:'Риск', reward:'Доход', maxP:'Макс. прибыль', maxL:'Макс. убыток', when:'Когда использовать', open:'Открыть в калькуляторе', multi:'Использует несколько экспираций' },
+  zh: { section:'期权策略', legs:'腿', risk:'风险', reward:'收益', maxP:'最大盈利', maxL:'最大亏损', when:'何时使用', open:'在计算器中打开', multi:'使用多个到期日' },
+  ja: { section:'オプション戦略', legs:'脚', risk:'リスク', reward:'リターン', maxP:'最大利益', maxL:'最大損失', when:'使いどころ', open:'計算機で開く', multi:'複数の満期を使用' },
+  ar: { section:'استراتيجيات الخيارات', legs:'الأرجل', risk:'المخاطرة', reward:'العائد', maxP:'أقصى ربح', maxL:'أقصى خسارة', when:'متى تستخدمها', open:'افتح في الحاسبة', multi:'تستخدم أكثر من تاريخ استحقاق' },
+};
+
+// Las estrategias nuevas llevan su nombre en literal (los términos del sector
+// no se traducen: nadie busca "call cubierta del hombre pobre"); las antiguas
+// llevan clave i18n. `tr` resuelve ambos casos sin ramificar en el llamante.
+const tr = (lang, value) => (value ? (T[lang][value] || T.es[value] || value) : '');
+const slugOf = (s) => String(s.id).replace(/_/g, '-');
+const legLine = (leg) => {
+  const where = leg.type === 'stock'
+    ? ''
+    : ` @ ATM${(leg.offset || 0) >= 0 ? '+' : ''}${leg.offset || 0}`;
+  const exp = leg.expOffset ? ` · exp+${leg.expOffset}` : '';
+  return `${leg.action === 'buy' ? 'BUY' : 'SELL'} ${leg.qty}× ${leg.type.toUpperCase()}${where}${exp}`;
+};
+
+let stratCount = 0;
+STRATEGIES.forEach((s, i) => {
+  const slug = slugOf(s);
+  const multiExpiry = new Set(s.legs.map((l) => l.expOffset || 0)).size > 1;
+  LANGS.forEach(([lang, pref, hl]) => {
+    const sui = STRAT_UI[lang] || STRAT_UI.en;
+    const ui = UI[lang];
+    const name = tr(lang, s.name);
+    const lead = tr(lang, s.description);
+    if (!name || !lead) return;
+    const rel = `${pref ? pref.slice(1) + '/' : ''}options/strategies/${slug}`;
+    const url = `${DOMAIN}/${rel}/`;
+    const alts = LANGS.map(([l2, p2, h2]) => [h2, `${DOMAIN}/${p2 ? p2.slice(1) + '/' : ''}options/strategies/${slug}/`]);
+    const related = STRATEGIES
+      .filter((r, j) => j !== i && r.category === s.category)
+      .slice(0, 6)
+      .map((r) => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}options/strategies/${slugOf(r)}/`, label: tr(lang, r.name) }));
+    const points = [
+      `${sui.risk}: ${tr(lang, s.risk)}`,
+      `${sui.reward}: ${tr(lang, s.reward)}`,
+      `${sui.maxP}: ${tr(lang, s.maxProfit)}`,
+      `${sui.maxL}: ${tr(lang, s.maxLoss)}`,
+      `${sui.when}: ${tr(lang, s.whenToUse)}`,
+    ];
+    if (multiExpiry) points.push(sui.multi);
+    const description = String(lead).slice(0, 158);
+    const html = render({
+      lang, url, alts, title: `${name} | ${sui.section}`, description, h1: name, kw: name, ui,
+      sectionLabel: sui.section, sectionUrl: `${DOMAIN}/options`,
+      lead, formula: s.legs.map(legLine).join('  ·  '), points,
+      ctaUrl: `${DOMAIN}/options/calculator?strategy=${s.id}`, ctaLabel: sui.open,
+      related, sectionKind: 'options',
+      jsonld: {
+        '@context': 'https://schema.org', '@type': 'HowTo', name, url, inLanguage: lang, description,
+        step: s.legs.map((leg, n) => ({ '@type': 'HowToStep', position: n + 1, name: legLine(leg) })),
+      },
+    });
+    write(rel, html);
+    sitemapUrls.push([`/${rel}/`, '0.7']);
+    stratCount++;
+  });
+});
+
 // ── Sitemap ──
-const MAIN = [['/','1.0'],['/options','0.9'],['/education','0.9'],['/performance','0.8'],['/pricing','0.85'],['/about','0.7'],['/contact','0.6'],['/legal','0.4']];
+const MAIN = [['/','1.0'],['/options','0.9'],['/options/strategies','0.85'],['/education','0.9'],['/performance','0.8'],['/pricing','0.85'],['/about','0.7'],['/contact','0.6'],['/legal','0.4']];
 const all = [...MAIN, ...sitemapUrls];
 const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   all.map(([p, pr]) => `  <url><loc>${DOMAIN}${p}</loc><lastmod>${LASTMOD}</lastmod><priority>${pr}</priority></url>`).join('\n') +
@@ -578,4 +659,5 @@ fs.writeFileSync(path.join(BUILD, 'sitemap.xml'), sitemap, 'utf8');
 console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × 8 idiomas)`);
 console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} temas × 8 idiomas)`);
 console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × 8 idiomas, FAQPage)`);
+console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × 8 idiomas, HowTo)`);
 console.log(`✅ sitemap.xml: ${all.length} URLs`);
