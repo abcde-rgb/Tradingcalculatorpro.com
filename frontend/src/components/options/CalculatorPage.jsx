@@ -6,10 +6,13 @@ import {
   findBreakEvenPoints,
   calculateStrategyGreeks,
   probabilityOfProfit,
+  priceRangeFromExpectedMove,
+  frontDaysToExpiry,
 } from '../../utils/blackScholes';
 import { computeStrategyStats } from '../../utils/strategyStats';
 import { useTranslation } from '@/lib/i18n';
-import { fetchStock, fetchOptionsChain, fetchExpirations } from '../../services/optionsApi';
+import { fetchStock, fetchOptionsChains, fetchExpirations } from '../../services/optionsApi';
+import useRiskFreeRate from '@/hooks/useRiskFreeRate';
 import SyntheticDataBanner from './SyntheticDataBanner';
 
 import PayoffChart from './PayoffChart';
@@ -49,15 +52,34 @@ const writePersistedNumber = (key, value) => {
   }
 };
 
+/**
+ * Estrategia pedida por la URL (`/options/calculator?strategy=pmcc`).
+ *
+ * Es lo que hace que el botón "abrir en la calculadora" de las fichas públicas
+ * de estrategia lleve a algún sitio: sin esto, el enlace aterrizaba siempre en
+ * la long call por defecto y el usuario tenía que buscar a mano entre 66.
+ */
+const strategyFromUrl = () => {
+  try {
+    const id = new URLSearchParams(window.location.search).get('strategy');
+    return (id && STRATEGIES.find((s) => s.id === id)) || null;
+  } catch {
+    return null;
+  }
+};
+
 const CalculatorPage = () => {
   const { t } = useTranslation();
   const [ticker, setTicker] = useState('AAPL');
   const [stock, setStock] = useState(null);
   const [expirations, setExpirations] = useState([]);
-  const [chain, setChain] = useState([]);
+  // Una cadena POR vencimiento, no una sola. Un calendar o un PMCC tienen patas
+  // en fechas distintas: con un único `chain` no se podían ni representar.
+  // Clave: índice de vencimiento; valor: { chain, synthetic }.
+  const [chains, setChains] = useState({});
   // ¿La cadena que se está mostrando la fabricó el modelo por falta de datos reales?
   const [chainSynthetic, setChainSynthetic] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState(STRATEGIES[0]);
+  const [selectedStrategy, setSelectedStrategy] = useState(() => strategyFromUrl() || STRATEGIES[0]);
   const [selectedExpIdx, setSelectedExpIdx] = useState(3);
   const [selectedStrikeIdx, setSelectedStrikeIdx] = useState(15);
   const [contracts, setContracts] = useState(1);
@@ -156,23 +178,40 @@ const CalculatorPage = () => {
       }
     }, 15000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker]);
 
-  // Load options chain when expiration changes
+  // Cada pata puede apuntar a un vencimiento distinto, así que la lista de
+  // cadenas que hay que tener cargadas es la unión del vencimiento seleccionado
+  // y los que usen las patas. Se pide en UNA llamada.
+  const [legExpIdxs, setLegExpIdxs] = useState([]);
+  const neededExpIdxs = useMemo(() => {
+    const set = new Set([selectedExpIdx, ...legExpIdxs]);
+    return [...set].filter((i) => Number.isInteger(i) && i >= 0).sort((a, b) => a - b);
+  }, [selectedExpIdx, legExpIdxs]);
+  const neededKey = neededExpIdxs.join(',');
+
+  // Cambiar de ticker invalida TODAS las cadenas: una cadena de AAPL bajo el
+  // símbolo MSFT no es un dato viejo, es un dato de otro activo.
   useEffect(() => {
-    const loadChain = async () => {
-      if (!ticker) return;
+    setChains({});
+    setLegExpIdxs([]);
+  }, [ticker]);
+
+  // Load options chains when the ticker or the set of needed expirations changes
+  useEffect(() => {
+    const loadChains = async () => {
+      if (!ticker || neededExpIdxs.length === 0) return;
       try {
-        const data = await fetchOptionsChain(ticker, selectedExpIdx);
-        if (data?.chain) {
-          setChain(data.chain);
+        const data = await fetchOptionsChains(ticker, neededExpIdxs);
+        if (data?.chains) {
+          setChains(data.chains);
           setChainSynthetic(Boolean(data.synthetic));
-          if (data.chain.length > 0 && data.stock) {
-            const closestIdx = data.chain.reduce(
+          const primary = data.chains[String(selectedExpIdx)]?.chain || [];
+          if (primary.length > 0 && data.stock?.price != null) {
+            const closestIdx = primary.reduce(
               (best, s, idx) =>
                 Math.abs(s.strike - data.stock.price) <
-                Math.abs(data.chain[best].strike - data.stock.price)
+                Math.abs(primary[best].strike - data.stock.price)
                   ? idx
                   : best,
               0
@@ -182,13 +221,24 @@ const CalculatorPage = () => {
         }
       } catch (e) {
         if (process.env.NODE_ENV !== 'production') {
-          console.error('[Options] error loading options chain:', e);
+          console.error('[Options] error loading options chains:', e);
         }
       }
     };
-    loadChain();
+    loadChains();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticker, selectedExpIdx]);
+  }, [ticker, neededKey]);
+
+  // La cadena "actual" — la del vencimiento seleccionado — sigue existiendo para
+  // todo lo que es mono-expiración (preset, cadena, superficie de IV).
+  const chain = useMemo(
+    () => chains[String(selectedExpIdx)]?.chain || [],
+    [chains, selectedExpIdx]
+  );
+  const chainFor = useCallback(
+    (expIdx) => chains[String(expIdx)]?.chain || [],
+    [chains]
+  );
 
   // Al cambiar de pestaña, el navegador conservaba la posición de scroll de la
   // anterior: se aterrizaba a media tabla de la cadena, con la cabecera ya
@@ -206,17 +256,35 @@ const CalculatorPage = () => {
     () => expirations[selectedExpIdx] || expirations[3] || { daysToExpiry: 30 },
     [expirations, selectedExpIdx]
   );
+  // Días a vencimiento de un índice cualquiera, con respaldo en el seleccionado:
+  // una pata cuyo vencimiento aún no ha llegado del backend no debe valorarse
+  // como si venciera hoy.
+  const dteFor = useCallback(
+    (expIdx) => expirations[expIdx]?.daysToExpiry ?? currentExp.daysToExpiry,
+    [expirations, currentExp]
+  );
   const selectedStrike = chain[selectedStrikeIdx];
 
   // Build legs from strategy + selected strike (PRESET mode)
+  // `legDef.expOffset` desplaza la pata a un vencimiento posterior: es lo que
+  // convierte un vertical en un calendar o una diagonal.
   const presetLegs = useMemo(() => {
     if (!selectedStrike || !currentExp || chain.length === 0 || !stock) return [];
     return selectedStrategy.legs.map((legDef) => {
       if (legDef.type === 'stock') {
         return { type: 'stock', action: legDef.action, quantity: legDef.qty, strike: stock.price };
       }
-      const idx = Math.max(0, Math.min(chain.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
-      const strikeData = chain[idx];
+      const legExpIdx = Math.max(
+        0,
+        Math.min(
+          Math.max(0, expirations.length - 1),
+          selectedExpIdx + (legDef.expOffset || 0)
+        )
+      );
+      const legChain = chainFor(legExpIdx);
+      const source = legChain.length > 0 ? legChain : chain;
+      const idx = Math.max(0, Math.min(source.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
+      const strikeData = source[idx];
       const opt = strikeData?.[legDef.type];
       return {
         type: legDef.type,
@@ -225,10 +293,14 @@ const CalculatorPage = () => {
         strike: strikeData?.strike || 0,
         premium: opt?.mid || 0,
         iv: opt?.iv || 0.3,
-        daysToExpiry: currentExp.daysToExpiry,
+        expIdx: legExpIdx,
+        daysToExpiry: dteFor(legExpIdx),
       };
     });
-  }, [selectedStrategy, selectedStrikeIdx, chain, currentExp, stock, contracts, selectedStrike]);
+  }, [
+    selectedStrategy, selectedStrikeIdx, chain, chainFor, currentExp, stock, contracts,
+    selectedStrike, selectedExpIdx, expirations.length, dteFor,
+  ]);
 
   // Custom legs (CUSTOM mode)
   const customBuiltLegs = useMemo(() => {
@@ -242,9 +314,18 @@ const CalculatorPage = () => {
         strike: l.strike,
         premium: l.premium,
         iv: l.iv,
-        daysToExpiry: currentExp.daysToExpiry,
+        expIdx: l.expIdx ?? selectedExpIdx,
+        daysToExpiry: dteFor(l.expIdx ?? selectedExpIdx),
       }));
-  }, [customLegs, currentExp, chain, stock]);
+  }, [customLegs, currentExp, chain, stock, selectedExpIdx, dteFor]);
+
+  // Mantiene cargadas las cadenas de los vencimientos que usan las patas.
+  useEffect(() => {
+    const used = [...new Set(customLegs.map((l) => l.expIdx ?? selectedExpIdx))];
+    setLegExpIdxs((prev) =>
+      prev.length === used.length && prev.every((v, i) => v === used[i]) ? prev : used
+    );
+  }, [customLegs, selectedExpIdx]);
 
   // Active legs — always uses the Constructor.
   // Apply the global "contracts" multiplier so premium / max loss / Greeks all scale together.
@@ -270,7 +351,9 @@ const CalculatorPage = () => {
       presetLegs
         .filter((l) => l.type !== 'stock')
         .map((l, i) => {
-          const idx = chain.findIndex((s) => s.strike === l.strike);
+          const legChain = chainFor(l.expIdx ?? selectedExpIdx);
+          const source = legChain.length > 0 ? legChain : chain;
+          const idx = source.findIndex((s) => s.strike === l.strike);
           return {
             id: `seed-${Date.now()}-${i}`,
             type: l.type,
@@ -280,11 +363,15 @@ const CalculatorPage = () => {
             strike: l.strike,
             premium: l.premium,
             iv: l.iv,
+            expIdx: l.expIdx ?? selectedExpIdx,
             enabled: true,
           };
         })
     );
-  }, [customLegs.length, presetLegs, selectedStrategy.id, ticker, selectedStrikeIdx, chain]);
+  }, [
+    customLegs.length, presetLegs, selectedStrategy.id, ticker, selectedStrikeIdx,
+    chain, chainFor, selectedExpIdx,
+  ]);
 
   // Strategy B (compare mode)
   const legsB = useMemo(() => {
@@ -293,8 +380,17 @@ const CalculatorPage = () => {
       if (legDef.type === 'stock') {
         return { type: 'stock', action: legDef.action, quantity: legDef.qty * contracts, strike: stock.price };
       }
-      const idx = Math.max(0, Math.min(chain.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
-      const strikeData = chain[idx];
+      const legExpIdx = Math.max(
+        0,
+        Math.min(
+          Math.max(0, expirations.length - 1),
+          selectedExpIdx + (legDef.expOffset || 0)
+        )
+      );
+      const legChain = chainFor(legExpIdx);
+      const source = legChain.length > 0 ? legChain : chain;
+      const idx = Math.max(0, Math.min(source.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
+      const strikeData = source[idx];
       const opt = strikeData?.[legDef.type];
       return {
         type: legDef.type,
@@ -303,36 +399,68 @@ const CalculatorPage = () => {
         strike: strikeData?.strike || 0,
         premium: opt?.mid || 0,
         iv: opt?.iv || 0.3,
-        daysToExpiry: currentExp.daysToExpiry,
+        expIdx: legExpIdx,
+        daysToExpiry: dteFor(legExpIdx),
       };
     });
-  }, [compareMode, selectedStrategyB, selectedStrikeIdx, chain, currentExp, stock, contracts, selectedStrike]);
+  }, [
+    compareMode, selectedStrategyB, selectedStrikeIdx, chain, chainFor, currentExp, stock,
+    contracts, selectedStrike, selectedExpIdx, expirations.length, dteFor,
+  ]);
+
+  // El eje temporal del gráfico va anclado a la pata MÁS CERCANA, no al
+  // vencimiento seleccionado: en un calendar, el día que manda es el que vence
+  // primero, porque es cuando la posición cambia de naturaleza.
+  const chartHorizonDays = useMemo(() => {
+    const front = frontDaysToExpiry(legs);
+    return front > 0 ? front : currentExp?.daysToExpiry || 30;
+  }, [legs, currentExp]);
 
   const daysForChart = useMemo(
-    () => Math.max(0, Math.round((currentExp?.daysToExpiry || 30) * (timeSlider / 100))),
-    [currentExp, timeSlider]
+    () => Math.max(0, Math.round(chartHorizonDays * (timeSlider / 100))),
+    [chartHorizonDays, timeSlider]
+  );
+
+  // El tipo libre de riesgo real, con su procedencia. Antes se pasaba 0.05
+  // literal mientras el backend valoraba con ^IRX: Rho era decorativo y las
+  // estructuras de puro tipo (box, jelly roll, conversion) no cuadraban.
+  const { rate: riskFreeRate, ratePct: riskFreePct, source: riskFreeSource, isLive: riskFreeLive } =
+    useRiskFreeRate();
+
+  // Rango del gráfico derivado del expected move en vez del ±35% fijo: en un
+  // 0DTE el payoff salía plano en mitad del lienzo y en un LEAPS volátil se
+  // cortaba la parte donde la posición vive.
+  const priceRange = useMemo(
+    () => (stock ? priceRangeFromExpectedMove(legs, stock.price) : 0.35),
+    [legs, stock]
+  );
+  const priceRangeB = useMemo(
+    () => (stock ? priceRangeFromExpectedMove(legsB, stock.price) : 0.35),
+    [legsB, stock]
   );
 
   const payoffData = useMemo(() => {
     if (!stock || legs.length === 0) return [];
-    return calculateStrategyPayoff(legs, stock.price, 0.35, daysForChart, 0.05, dividendYield);
-  }, [legs, stock, daysForChart, dividendYield]);
+    return calculateStrategyPayoff(legs, stock.price, priceRange, daysForChart, riskFreeRate, dividendYield);
+  }, [legs, stock, priceRange, daysForChart, riskFreeRate, dividendYield]);
 
   const payoffDataB = useMemo(() => {
     if (!compareMode || !stock || legsB.length === 0) return [];
-    return calculateStrategyPayoff(legsB, stock.price, 0.35, daysForChart, 0.05, dividendYield);
-  }, [compareMode, legsB, stock, daysForChart, dividendYield]);
+    return calculateStrategyPayoff(legsB, stock.price, priceRangeB, daysForChart, riskFreeRate, dividendYield);
+  }, [compareMode, legsB, stock, priceRangeB, daysForChart, riskFreeRate, dividendYield]);
 
   const breakEvens = useMemo(() => findBreakEvenPoints(payoffData), [payoffData]);
   const greeks = useMemo(() => {
-    if (!stock || legs.length === 0) return { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 };
-    return calculateStrategyGreeks(legs, stock.price, 0.05, dividendYield);
-  }, [legs, stock, dividendYield]);
+    if (!stock || legs.length === 0) {
+      return { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0, vanna: 0, charm: 0, vomma: 0 };
+    }
+    return calculateStrategyGreeks(legs, stock.price, riskFreeRate, dividendYield);
+  }, [legs, stock, riskFreeRate, dividendYield]);
 
   const pop = useMemo(() => {
     if (!stock || legs.length === 0) return 0;
-    return probabilityOfProfit(legs, stock.price);
-  }, [legs, stock]);
+    return probabilityOfProfit(legs, stock.price, riskFreeRate, dividendYield);
+  }, [legs, stock, riskFreeRate, dividendYield]);
 
   const stats = useMemo(
     () => computeStrategyStats(payoffData, legs, stock, pop, breakEvens, commission),
@@ -342,8 +470,8 @@ const CalculatorPage = () => {
   const breakEvensB = useMemo(() => findBreakEvenPoints(payoffDataB), [payoffDataB]);
   const popB = useMemo(() => {
     if (!compareMode || !stock || legsB.length === 0) return 0;
-    return probabilityOfProfit(legsB, stock.price);
-  }, [compareMode, legsB, stock]);
+    return probabilityOfProfit(legsB, stock.price, riskFreeRate, dividendYield);
+  }, [compareMode, legsB, stock, riskFreeRate, dividendYield]);
   const statsB = useMemo(() => {
     if (!compareMode) return computeStrategyStats([], [], null, 0, []);
     return computeStrategyStats(payoffDataB, legsB, stock, popB, breakEvensB, 0);
@@ -355,11 +483,15 @@ const CalculatorPage = () => {
       type: l.type, action: l.action,
       quantity: l.quantity || 1, strike: l.strike,
       premium: l.premium || 0, iv: l.iv || 0.3,
+      // Una posición guardada puede ser multi-expiración: conservar su expIdx
+      // es lo que evita que al recargarla se aplane en un vertical.
+      expIdx: l.expIdx ?? selectedExpIdx,
       daysToExpiry: l.daysToExpiry || 30,
+      enabled: true,
     }));
     setCustomLegs(mapped);
     if (pos.symbol && pos.symbol !== ticker) setTicker(pos.symbol);
-  }, [ticker]);
+  }, [ticker, selectedExpIdx]);
 
   const handleOpenInCalculator = useCallback((result) => {
     const mappedLegs = (result.legs || []).map((leg) => ({
@@ -370,11 +502,13 @@ const CalculatorPage = () => {
       strike: leg.strike,
       premium: leg.premium || 0,
       iv: 0.3,
+      expIdx: leg.expIdx ?? selectedExpIdx,
       daysToExpiry: result.daysToExpiry || 30,
+      enabled: true,
     }));
     setCustomLegs(mappedLegs);
     setActiveTab('calculator');
-  }, []);
+  }, [selectedExpIdx]);
 
   const handleSelectStrategy = useCallback((s) => {
     setSelectedStrategy(s);
@@ -559,7 +693,7 @@ const CalculatorPage = () => {
                   />
                   <span className="text-xs font-mono font-bold text-foreground tabular-nums whitespace-nowrap">
                     {daysForChart}d
-                    <span className="text-muted-foreground font-normal"> / {currentExp?.daysToExpiry}d</span>
+                    <span className="text-muted-foreground font-normal"> / {chartHorizonDays}d</span>
                   </span>
                 </div>
               </div>
@@ -572,6 +706,9 @@ const CalculatorPage = () => {
                 <LegEditor
                   legs={customLegs}
                   chain={chain}
+                  chains={chains}
+                  expirations={expirations}
+                  defaultExpIdx={selectedExpIdx}
                   stockPrice={stock?.price || 0}
                   onLegsChange={setCustomLegs}
                 />
@@ -585,7 +722,14 @@ const CalculatorPage = () => {
               nivel que Kelly o la cartera. */}
           <section>
             <SectionHeading step={4} title={t('optStepGreeks')} hint={t('optStepGreeksHint')} />
-            <GreeksStrip greeks={greeks} />
+            <GreeksStrip
+              greeks={greeks}
+              riskFree={{
+                ratePct: riskFreePct,
+                source: riskFreeSource,
+                isLive: riskFreeLive,
+              }}
+            />
           </section>
 
           {/* ═══ Más análisis ══════════════════════════════════════════
@@ -609,6 +753,8 @@ const CalculatorPage = () => {
               dividendYield={dividendYield}
               onDividendChange={setDividendYield}
               chainSynthetic={chainSynthetic}
+              riskFreeRate={riskFreeRate}
+              selectedExpIdx={selectedExpIdx}
             />
           </section>
         </div>

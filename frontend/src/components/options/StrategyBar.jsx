@@ -34,6 +34,14 @@ const ShapeSVG = ({ shape, color }) => {
     long_guts: 'M5,6 L17,30 L30,6',
     strap: 'M5,6 L14,28 L22,22 L30,5',
     strip: 'M5,5 L12,22 L20,28 L30,6',
+    // Multi-vencimiento: la curva no toca el eje en los extremos porque la
+    // pata larga conserva valor extrínseco cuando vence la corta.
+    calendar: 'M3,24 L11,20 L17,7 L23,20 L31,24',
+    diagonal: 'M3,26 L11,21 L18,8 L24,12 L31,15',
+    double_calendar: 'M3,25 L9,12 L14,20 L20,20 L25,12 L31,25',
+    box: 'M4,14 L30,14 L30,22 L4,22 Z',
+    ladder: 'M3,22 L11,22 L18,9 L24,9 L31,28',
+    ladder_long: 'M3,12 L11,12 L18,25 L24,25 L31,5',
   };
   return (
     <svg viewBox="0 0 34 34" className="w-full h-full">

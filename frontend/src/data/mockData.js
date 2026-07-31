@@ -1,5 +1,5 @@
 // Ultra-comprehensive mock data for options calculator
-// Supports ANY ticker with dynamic generation + 33 strategies
+// Supports ANY ticker with dynamic generation + 66 strategies
 
 const KNOWN_STOCKS = {
   AAPL: { name: 'Apple Inc.', price: 198.45, sector: 'Technology' },
@@ -553,7 +553,439 @@ export const STRATEGIES = [
     maxProfit: 'mock_altoMasSiBaja_de15ce82', maxLoss: 'mock_primaTotalPagada_c75d4574',
     whenToUse: 'mock_volatilConSesgoBajista_a2337b6f',
   },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // INCOME / CUBIERTAS (7)
+  // Estructuras sobre acciones. El Cash Secured Put no es un duplicado del
+  // short put: la diferencia está en el capital inmovilizado, que es
+  // exactamente lo que decide si la operación cabe en la cuenta.
+  // ═══════════════════════════════════════════════════════════════════════
+  {
+    id: 'cash_secured_put', name: 'Cash Secured Put', category: 'Bullish', color: '#0ea5e9',
+    description: 'strat_csp_desc',
+    legs: [{ type: 'put', action: 'sell', qty: 1, offset: -2 }],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'put_sell',
+    maxProfit: 'mock_primaCobrada_c02e4698', maxLoss: 'mock_strikePrima_e1d2b2aa',
+    whenToUse: 'strat_when_wheel',
+  },
+  {
+    id: 'protective_put', name: 'Protective Put', category: 'Bullish', color: '#38bdf8',
+    description: 'strat_protective_put_desc',
+    legs: [
+      { type: 'stock', action: 'buy', qty: 100, offset: 0 },
+      { type: 'put', action: 'buy', qty: 1, offset: -2 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_ilimitado_07602bab', shape: 'collar',
+    maxProfit: 'mock_ilimitado_07602bab', maxLoss: 'mock_spotPutStrikeCredito_d6a8bf4e',
+    whenToUse: 'strat_when_hedge_long',
+  },
+  {
+    id: 'covered_put', name: 'Covered Put', category: 'Bearish', color: '#f43f5e',
+    description: 'strat_covered_put_desc',
+    legs: [
+      { type: 'stock', action: 'sell', qty: 100, offset: 0 },
+      { type: 'put', action: 'sell', qty: 1, offset: -2 },
+    ],
+    risk: 'mock_ilimitado_07602bab', reward: 'mock_limitado_042e1180', shape: 'put_sell',
+    maxProfit: 'mock_primaCobrada_c02e4698', maxLoss: 'mock_ilimitado_07602bab',
+    whenToUse: 'strat_when_income_short',
+  },
+  {
+    id: 'covered_strangle', name: 'Covered Strangle', category: 'Bullish', color: '#22d3ee',
+    description: 'strat_covered_strangle_desc',
+    legs: [
+      { type: 'stock', action: 'buy', qty: 100, offset: 0 },
+      { type: 'call', action: 'sell', qty: 1, offset: 3 },
+      { type: 'put', action: 'sell', qty: 1, offset: -3 },
+    ],
+    risk: 'mock_alto_2c90bb36', reward: 'mock_limitado_042e1180', shape: 'short_strangle',
+    maxProfit: 'mock_callStrikeSpotCredito_0e05b9af', maxLoss: 'mock_strikePrima_e1d2b2aa',
+    whenToUse: 'strat_when_income_long',
+  },
+  {
+    id: 'ratio_call_write', name: 'Ratio Call Write', category: 'Neutral', color: '#fb7185',
+    description: 'strat_ratio_call_write_desc',
+    legs: [
+      { type: 'stock', action: 'buy', qty: 100, offset: 0 },
+      { type: 'call', action: 'sell', qty: 2, offset: 2 },
+    ],
+    risk: 'mock_ilimitado_07602bab', reward: 'mock_limitado_042e1180', shape: 'ratio_spread',
+    maxProfit: 'mock_callStrikeSpotCredito_0e05b9af', maxLoss: 'mock_ilimitado_07602bab',
+    whenToUse: 'strat_when_ratio_write',
+  },
+  {
+    id: 'ratio_put_write', name: 'Ratio Put Write', category: 'Neutral', color: '#f472b6',
+    description: 'strat_ratio_put_write_desc',
+    legs: [
+      { type: 'stock', action: 'sell', qty: 100, offset: 0 },
+      { type: 'put', action: 'sell', qty: 2, offset: -2 },
+    ],
+    risk: 'mock_alto_2c90bb36', reward: 'mock_limitado_042e1180', shape: 'ratio_spread_put',
+    maxProfit: 'mock_primaCobrada_c02e4698', maxLoss: 'mock_alto_2c90bb36',
+    whenToUse: 'strat_when_ratio_write',
+  },
+  {
+    id: 'stock_repair', name: 'Stock Repair', category: 'Bullish', color: '#84cc16',
+    description: 'strat_stock_repair_desc',
+    legs: [
+      { type: 'stock', action: 'buy', qty: 100, offset: 0 },
+      { type: 'call', action: 'buy', qty: 1, offset: 0 },
+      { type: 'call', action: 'sell', qty: 2, offset: 3 },
+    ],
+    risk: 'mock_alto_2c90bb36', reward: 'mock_limitado_042e1180', shape: 'ratio_spread',
+    maxProfit: 'mock_difStrikesDebito_7047c6fd', maxLoss: 'mock_spotPutStrikeCredito_d6a8bf4e',
+    whenToUse: 'strat_when_repair',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TEMPORALES (8) — requieren vencimiento POR PATA (`expOffset`)
+  // Hasta que el modelo de datos admitió varias expiraciones, ninguna de
+  // estas ocho se podía siquiera escribir: todas las patas heredaban la
+  // misma fecha y un calendar se aplanaba en un vertical de prima cero.
+  // ═══════════════════════════════════════════════════════════════════════
+  {
+    id: 'call_calendar', name: 'Call Calendar Spread', category: 'Neutral', color: '#8b5cf6',
+    description: 'strat_call_calendar_desc',
+    legs: [
+      { type: 'call', action: 'sell', qty: 1, offset: 0, expOffset: 0 },
+      { type: 'call', action: 'buy', qty: 1, offset: 0, expOffset: 2 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'calendar',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_calendar',
+  },
+  {
+    id: 'put_calendar', name: 'Put Calendar Spread', category: 'Neutral', color: '#a78bfa',
+    description: 'strat_put_calendar_desc',
+    legs: [
+      { type: 'put', action: 'sell', qty: 1, offset: 0, expOffset: 0 },
+      { type: 'put', action: 'buy', qty: 1, offset: 0, expOffset: 2 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'calendar',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_calendar',
+  },
+  {
+    id: 'call_diagonal', name: 'Call Diagonal Spread', category: 'Bullish', color: '#7c3aed',
+    description: 'strat_call_diagonal_desc',
+    legs: [
+      { type: 'call', action: 'sell', qty: 1, offset: 3, expOffset: 0 },
+      { type: 'call', action: 'buy', qty: 1, offset: 0, expOffset: 2 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'diagonal',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_diagonal',
+  },
+  {
+    id: 'put_diagonal', name: 'Put Diagonal Spread', category: 'Bearish', color: '#c084fc',
+    description: 'strat_put_diagonal_desc',
+    legs: [
+      { type: 'put', action: 'sell', qty: 1, offset: -3, expOffset: 0 },
+      { type: 'put', action: 'buy', qty: 1, offset: 0, expOffset: 2 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'diagonal',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_diagonal',
+  },
+  {
+    id: 'double_calendar', name: 'Double Calendar', category: 'Neutral', color: '#6366f1',
+    description: 'strat_double_calendar_desc',
+    legs: [
+      { type: 'put', action: 'sell', qty: 1, offset: -2, expOffset: 0 },
+      { type: 'put', action: 'buy', qty: 1, offset: -2, expOffset: 2 },
+      { type: 'call', action: 'sell', qty: 1, offset: 2, expOffset: 0 },
+      { type: 'call', action: 'buy', qty: 1, offset: 2, expOffset: 2 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'double_calendar',
+    maxProfit: 'strat_max_between_strikes', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_calendar',
+  },
+  {
+    id: 'double_diagonal', name: 'Double Diagonal', category: 'Neutral', color: '#818cf8',
+    description: 'strat_double_diagonal_desc',
+    legs: [
+      { type: 'put', action: 'sell', qty: 1, offset: -3, expOffset: 0 },
+      { type: 'put', action: 'buy', qty: 1, offset: -5, expOffset: 2 },
+      { type: 'call', action: 'sell', qty: 1, offset: 3, expOffset: 0 },
+      { type: 'call', action: 'buy', qty: 1, offset: 5, expOffset: 2 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'double_calendar',
+    maxProfit: 'strat_max_between_strikes', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_diagonal',
+  },
+  {
+    id: 'jelly_roll', name: 'Jelly Roll', category: 'Neutral', color: '#a855f7',
+    description: 'strat_jelly_roll_desc',
+    legs: [
+      { type: 'call', action: 'buy', qty: 1, offset: 0, expOffset: 0 },
+      { type: 'put', action: 'sell', qty: 1, offset: 0, expOffset: 0 },
+      { type: 'call', action: 'sell', qty: 1, offset: 0, expOffset: 2 },
+      { type: 'put', action: 'buy', qty: 1, offset: 0, expOffset: 2 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'box',
+    maxProfit: 'strat_max_rate_differential', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_rates',
+  },
+  {
+    id: 'pmcc', name: "Poor Man's Covered Call", category: 'Bullish', color: '#14b8a6',
+    description: 'strat_pmcc_desc',
+    legs: [
+      { type: 'call', action: 'buy', qty: 1, offset: -6, expOffset: 3 },
+      { type: 'call', action: 'sell', qty: 1, offset: 3, expOffset: 0 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'diagonal',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_pmcc',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ESTRUCTURAS AVANZADAS (11)
+  // ═══════════════════════════════════════════════════════════════════════
+  {
+    id: 'zebra', name: 'ZEBRA', category: 'Bullish', color: '#16a34a',
+    description: 'strat_zebra_desc',
+    legs: [
+      { type: 'call', action: 'buy', qty: 2, offset: -3 },
+      { type: 'call', action: 'sell', qty: 1, offset: 0 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_ilimitado_07602bab', shape: 'synthetic_long',
+    maxProfit: 'mock_ilimitado_07602bab', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_zebra',
+  },
+  {
+    id: 'risk_reversal', name: 'Risk Reversal', category: 'Bullish', color: '#65a30d',
+    description: 'strat_risk_reversal_desc',
+    legs: [
+      { type: 'put', action: 'sell', qty: 1, offset: -3 },
+      { type: 'call', action: 'buy', qty: 1, offset: 3 },
+    ],
+    risk: 'mock_alto_2c90bb36', reward: 'mock_ilimitado_07602bab', shape: 'long_combo',
+    maxProfit: 'mock_ilimitado_07602bab', maxLoss: 'mock_strikePrima_e1d2b2aa',
+    whenToUse: 'strat_when_risk_reversal',
+  },
+  {
+    id: 'seagull', name: 'Seagull Spread', category: 'Bullish', color: '#0d9488',
+    description: 'strat_seagull_desc',
+    legs: [
+      { type: 'put', action: 'sell', qty: 1, offset: -4 },
+      { type: 'call', action: 'buy', qty: 1, offset: 1 },
+      { type: 'call', action: 'sell', qty: 1, offset: 5 },
+    ],
+    risk: 'mock_alto_2c90bb36', reward: 'mock_limitado_042e1180', shape: 'jade_lizard',
+    maxProfit: 'mock_difStrikesDebito_7047c6fd', maxLoss: 'mock_strikePrima_e1d2b2aa',
+    whenToUse: 'strat_when_seagull',
+  },
+  {
+    id: 'big_lizard', name: 'Big Lizard', category: 'Neutral', color: '#eab308',
+    description: 'strat_big_lizard_desc',
+    legs: [
+      { type: 'put', action: 'sell', qty: 1, offset: 0 },
+      { type: 'call', action: 'sell', qty: 1, offset: 0 },
+      { type: 'call', action: 'buy', qty: 1, offset: 2 },
+    ],
+    risk: 'mock_alto_2c90bb36', reward: 'mock_limitado_042e1180', shape: 'jade_lizard',
+    maxProfit: 'mock_creditoNeto_636ec39f', maxLoss: 'mock_strikePrima_e1d2b2aa',
+    whenToUse: 'strat_when_no_upside_risk',
+  },
+  {
+    id: 'reverse_jade_lizard', name: 'Reverse Jade Lizard', category: 'Neutral', color: '#f97316',
+    description: 'strat_reverse_jade_desc',
+    legs: [
+      { type: 'call', action: 'sell', qty: 1, offset: 1 },
+      { type: 'put', action: 'sell', qty: 1, offset: -1 },
+      { type: 'put', action: 'buy', qty: 1, offset: -4 },
+    ],
+    risk: 'mock_ilimitado_07602bab', reward: 'mock_limitado_042e1180', shape: 'jade_lizard',
+    maxProfit: 'mock_creditoNeto_636ec39f', maxLoss: 'mock_ilimitado_07602bab',
+    whenToUse: 'strat_when_no_downside_risk',
+  },
+  {
+    id: 'long_call_condor', name: 'Long Call Condor', category: 'Neutral', color: '#0891b2',
+    description: 'strat_long_call_condor_desc',
+    legs: [
+      { type: 'call', action: 'buy', qty: 1, offset: -4 },
+      { type: 'call', action: 'sell', qty: 1, offset: -1 },
+      { type: 'call', action: 'sell', qty: 1, offset: 1 },
+      { type: 'call', action: 'buy', qty: 1, offset: 4 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'iron_condor',
+    maxProfit: 'strat_max_between_strikes', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_range_debit',
+  },
+  {
+    id: 'long_put_condor', name: 'Long Put Condor', category: 'Neutral', color: '#0284c7',
+    description: 'strat_long_put_condor_desc',
+    legs: [
+      { type: 'put', action: 'buy', qty: 1, offset: 4 },
+      { type: 'put', action: 'sell', qty: 1, offset: 1 },
+      { type: 'put', action: 'sell', qty: 1, offset: -1 },
+      { type: 'put', action: 'buy', qty: 1, offset: -4 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'iron_condor',
+    maxProfit: 'strat_max_between_strikes', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_range_debit',
+  },
+  {
+    id: 'long_put_butterfly', name: 'Long Put Butterfly', category: 'Neutral', color: '#2563eb',
+    description: 'strat_long_put_butterfly_desc',
+    legs: [
+      { type: 'put', action: 'buy', qty: 1, offset: 3 },
+      { type: 'put', action: 'sell', qty: 2, offset: 0 },
+      { type: 'put', action: 'buy', qty: 1, offset: -3 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'butterfly',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_pin',
+  },
+  {
+    id: 'put_broken_wing', name: 'Put Broken Wing Butterfly', category: 'Neutral', color: '#4f46e5',
+    description: 'strat_put_bwb_desc',
+    legs: [
+      { type: 'put', action: 'buy', qty: 1, offset: -1 },
+      { type: 'put', action: 'sell', qty: 2, offset: -4 },
+      { type: 'put', action: 'buy', qty: 1, offset: -8 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'broken_wing',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_difStrikesCredito_5013370a',
+    whenToUse: 'strat_when_bwb',
+  },
+  {
+    id: 'xmas_tree_call', name: 'Christmas Tree Butterfly (Call)', category: 'Neutral', color: '#059669',
+    description: 'strat_xmas_call_desc',
+    legs: [
+      { type: 'call', action: 'buy', qty: 1, offset: 0 },
+      { type: 'call', action: 'sell', qty: 3, offset: 3 },
+      { type: 'call', action: 'buy', qty: 2, offset: 5 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'broken_wing',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_xmas',
+  },
+  {
+    id: 'xmas_tree_put', name: 'Christmas Tree Butterfly (Put)', category: 'Neutral', color: '#047857',
+    description: 'strat_xmas_put_desc',
+    legs: [
+      { type: 'put', action: 'buy', qty: 1, offset: 0 },
+      { type: 'put', action: 'sell', qty: 3, offset: -3 },
+      { type: 'put', action: 'buy', qty: 2, offset: -5 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'broken_wing',
+    maxProfit: 'strat_max_at_short_strike', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_xmas',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ESCALERAS (4)
+  // Un spread al que se le añade una tercera pata vendida (o comprada) más
+  // lejos. La versión vendida deja un extremo abierto: es el detalle que las
+  // hace peligrosas y el motivo de que lleven su propio aviso de riesgo.
+  // ═══════════════════════════════════════════════════════════════════════
+  {
+    id: 'bull_call_ladder', name: 'Bull Call Ladder', category: 'Bullish', color: '#15803d',
+    description: 'strat_bull_call_ladder_desc',
+    legs: [
+      { type: 'call', action: 'buy', qty: 1, offset: -2 },
+      { type: 'call', action: 'sell', qty: 1, offset: 0 },
+      { type: 'call', action: 'sell', qty: 1, offset: 3 },
+    ],
+    risk: 'mock_ilimitado_07602bab', reward: 'mock_limitado_042e1180', shape: 'ladder',
+    maxProfit: 'strat_max_between_strikes', maxLoss: 'mock_ilimitado_07602bab',
+    whenToUse: 'strat_when_ladder_short',
+  },
+  {
+    id: 'bear_call_ladder', name: 'Bear Call Ladder', category: 'Volatile', color: '#b91c1c',
+    description: 'strat_bear_call_ladder_desc',
+    legs: [
+      { type: 'call', action: 'sell', qty: 1, offset: -2 },
+      { type: 'call', action: 'buy', qty: 1, offset: 0 },
+      { type: 'call', action: 'buy', qty: 1, offset: 3 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_ilimitado_07602bab', shape: 'ladder_long',
+    maxProfit: 'mock_ilimitadoAlAlza_eb34ff8b', maxLoss: 'mock_difStrikesCredito_5013370a',
+    whenToUse: 'strat_when_ladder_long',
+  },
+  {
+    id: 'bull_put_ladder', name: 'Bull Put Ladder', category: 'Volatile', color: '#be123c',
+    description: 'strat_bull_put_ladder_desc',
+    legs: [
+      { type: 'put', action: 'sell', qty: 1, offset: 2 },
+      { type: 'put', action: 'buy', qty: 1, offset: 0 },
+      { type: 'put', action: 'buy', qty: 1, offset: -3 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_alto_2c90bb36', shape: 'ladder_long',
+    maxProfit: 'mock_altoMasSiBaja_de15ce82', maxLoss: 'mock_difStrikesCredito_5013370a',
+    whenToUse: 'strat_when_ladder_long',
+  },
+  {
+    id: 'bear_put_ladder', name: 'Bear Put Ladder', category: 'Bearish', color: '#9f1239',
+    description: 'strat_bear_put_ladder_desc',
+    legs: [
+      { type: 'put', action: 'buy', qty: 1, offset: 2 },
+      { type: 'put', action: 'sell', qty: 1, offset: 0 },
+      { type: 'put', action: 'sell', qty: 1, offset: -3 },
+    ],
+    risk: 'mock_alto_2c90bb36', reward: 'mock_limitado_042e1180', shape: 'ladder',
+    maxProfit: 'strat_max_between_strikes', maxLoss: 'mock_strikePrima_e1d2b2aa',
+    whenToUse: 'strat_when_ladder_short',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ARBITRAJE / PARIDAD (3)
+  // Su P&L ES el tipo de interés. Con `r` hardcodeado al 5% estas tres daban
+  // números sin sentido; ahora se valoran con el tipo real de `^IRX`.
+  // ═══════════════════════════════════════════════════════════════════════
+  {
+    id: 'box_spread', name: 'Box Spread', category: 'Neutral', color: '#525252',
+    description: 'strat_box_desc',
+    legs: [
+      { type: 'call', action: 'buy', qty: 1, offset: 0 },
+      { type: 'call', action: 'sell', qty: 1, offset: 3 },
+      { type: 'put', action: 'buy', qty: 1, offset: 3 },
+      { type: 'put', action: 'sell', qty: 1, offset: 0 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'box',
+    maxProfit: 'strat_max_rate_differential', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_rates',
+  },
+  {
+    id: 'conversion', name: 'Conversion', category: 'Neutral', color: '#737373',
+    description: 'strat_conversion_desc',
+    legs: [
+      { type: 'stock', action: 'buy', qty: 100, offset: 0 },
+      { type: 'call', action: 'sell', qty: 1, offset: 0 },
+      { type: 'put', action: 'buy', qty: 1, offset: 0 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'box',
+    maxProfit: 'strat_max_rate_differential', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_rates',
+  },
+  {
+    id: 'reversal', name: 'Reversal', category: 'Neutral', color: '#a3a3a3',
+    description: 'strat_reversal_desc',
+    legs: [
+      { type: 'stock', action: 'sell', qty: 100, offset: 0 },
+      { type: 'call', action: 'buy', qty: 1, offset: 0 },
+      { type: 'put', action: 'sell', qty: 1, offset: 0 },
+    ],
+    risk: 'mock_limitado_042e1180', reward: 'mock_limitado_042e1180', shape: 'box',
+    maxProfit: 'strat_max_rate_differential', maxLoss: 'mock_debitoNeto_189d540d',
+    whenToUse: 'strat_when_rates',
+  },
 ];
+
+/**
+ * Estrategias cuyas patas NO comparten vencimiento.
+ *
+ * Se deriva de los datos en vez de mantenerse a mano: una estrategia con
+ * `expOffset` distinto de cero necesita más de una cadena cargada, y quien
+ * pinte un aviso o precargue vencimientos debe poder preguntarlo sin
+ * reimplementar la comprobación.
+ */
+export const isMultiExpiryStrategy = (strategy) =>
+  new Set((strategy?.legs || []).map((l) => l.expOffset || 0)).size > 1;
+
+/** Slug estable para la ruta pública `/options/strategies/:slug`. */
+export const strategySlug = (strategy) => String(strategy?.id || '').replace(/_/g, '-');
 
 export const STRATEGY_CATEGORIES = ['Bullish', 'Bearish', 'Neutral', 'Volatile'];
 

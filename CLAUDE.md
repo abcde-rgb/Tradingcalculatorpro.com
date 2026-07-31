@@ -120,6 +120,7 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `server.py` | Monolito principal: shim de BD, todas las rutas API, auth, Stripe, startup |
 | `admin_routes.py` | Panel admin (`/api/admin/*`) — se registra dinámicamente en startup |
 | `options_math.py` | Black-Scholes, griegas, payoff diagrams, cadenas de opciones |
+| `options_positioning.py` | Posicionamiento observado: max pain, GEX, perfil de OI, ratio put/call, liquidez por contrato, term structure de IV y expected move. **Todo devuelve `None` sobre cadena modelada** |
 | `stock_data.py` | Precios en tiempo real (yfinance, CoinGecko) y búsqueda de tickers |
 | `candle_patterns.py` | Detección de patrones de velas japonesas |
 | `price_action.py` | Estructura de precio: swings, BOS/CHoCH, S/R, FVG, rupturas ([manual](./docs/ESCANER_ESTRUCTURA.md)) |
@@ -188,6 +189,33 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
 
 ## Trampas conocidas
 
+- **Una pata de opciones tiene su PROPIO vencimiento (`expIdx`).** No heredan el
+  vencimiento seleccionado arriba: eso es lo que hacía imposibles los calendars,
+  las diagonales y el PMCC. `CalculatorPage` mantiene un mapa `{expIdx: chain}` y
+  las pide en una sola llamada (`/options/chain/{sym}?expiration_idxs=1,3,6`). En
+  el motor, el cuarto argumento de `calculateStrategyPayoff` son los días que le
+  quedan a la **pata más cercana**; de ahí se deriva el tiempo transcurrido y se
+  aplica a cada pata por separado. Si añades una estrategia con patas en fechas
+  distintas, ponle `expOffset` en la definición de la pata — `isMultiExpiryStrategy`
+  lo detecta solo, no hay lista que mantener.
+- **El tipo libre de riesgo del frontend sale de `useRiskFreeRate()`**, nunca de un
+  literal. Hay una única constante de respaldo, `FALLBACK_RISK_FREE_RATE`, y existe
+  para que el motor sea llamable antes de que resuelva el fetch — no para pasarla a
+  propósito. Un `0.05` suelto en el frontend es un bug (BUG-033).
+- **`/options` es público; el workspace es `/options/calculator`.** La referencia
+  (catálogo de estrategias, fichas por slug) no lleva muro de pago y tiene URL
+  propia e indexable; la calculadora en vivo sí lo lleva y va con `noindex`. Si
+  añades una vista de referencia, va fuera del gate y con ruta propia.
+- **Las páginas por estrategia se generan solas en el `postbuild`.** `gen-seo-pages.js`
+  lee `STRATEGIES` de `mockData.js` y emite una página por estrategia × 8 idiomas con
+  JSON-LD `HowTo`. Añadir una estrategia al array añade 8 páginas al sitemap; no hay
+  nada que escribir a mano. Los nombres nuevos van en literal (los términos del sector
+  no se traducen) y `tr()` resuelve literal o clave i18n indistintamente.
+- **`options_positioning` se calla sobre datos modelados.** Max pain, GEX, perfil de
+  OI y ratio put/call son lecturas de interés abierto OBSERVADO; con cadena sintética
+  el `openInterest` es `None` y todas devuelven `None`. No las "rellenes" con el
+  modelo: un max pain inventado es indistinguible en pantalla de uno real. Hay tests
+  que lo fijan.
 - **El panel de opciones está ordenado por importancia, y ese orden es la feature.**
   `CalculatorPage` va: 1 configurar (`PositionSetupBar`) → 2 resultado (`StatsKPIBar`) →
   3 gráfico + patas → 4 griegas (`GreeksStrip`) → acordeón (`SecondaryPanels`). Lo nuevo

@@ -51,6 +51,11 @@ const EducationPage    = lazyRetry(() => Promise.all([
 ]).then(([mod]) => mod));
 const SubscriptionPage = lazyRetry(() => import("@/pages/SubscriptionPage"));
 const OptionsPage      = lazyRetry(() => import("@/pages/OptionsPage"));
+const OptionsHubPage   = lazyRetry(() => import("@/pages/OptionsHubPage"));
+const OptionsStrategiesIndexPage = lazyRetry(() =>
+  import("@/pages/OptionsHubPage").then((m) => ({ default: m.OptionsStrategiesIndexPage }))
+);
+const OptionsStrategyPage = lazyRetry(() => import("@/pages/OptionsStrategyPage"));
 const NewsPage         = lazyRetry(() => import("@/pages/NewsPage"));
 const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
 const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
@@ -123,7 +128,14 @@ const AppContent = () => (
           <Route path="/settings"        element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/education"       element={<EducationPage />} />
           <Route path="/subscription"    element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
-          <Route path="/options"         element={<OptionsPage />} />
+          {/* La referencia es pública y tiene URL propia; el workspace en vivo
+              sigue siendo premium y se ha movido a /options/calculator. Las
+              rutas más específicas van ANTES que /options/:algo para que
+              `strategies` no se coma a `calculator`. */}
+          <Route path="/options"                    element={<OptionsHubPage />} />
+          <Route path="/options/calculator"         element={<OptionsPage />} />
+          <Route path="/options/strategies"         element={<OptionsStrategiesIndexPage />} />
+          <Route path="/options/strategies/:slug"   element={<OptionsStrategyPage />} />
           <Route path="/performance"     element={<ProtectedRoute premiumOnly><PerformancePage /></ProtectedRoute>} />
           <Route path="/news"            element={<NewsPage />} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />

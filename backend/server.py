@@ -11,7 +11,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import uuid
 from datetime import datetime, timezone, timedelta
 import bcrypt
@@ -4971,8 +4971,85 @@ def _synthetic_marker(is_synthetic: bool) -> Dict[str, Any]:
     }
 
 
+async def _build_chain_for_expiration(
+    symbol: str, stock: Dict[str, Any], expiration: Dict[str, Any], r: float
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Fetch (or model) one expiration's chain and enrich it with Greeks.
+
+    Returns `(chain, synthetic)`. Extracted so the single- and multi-expiration
+    endpoints cannot drift apart: a calendar spread priced from a chain built by
+    a second, slightly different code path is a bug waiting to happen.
+    """
+    chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
+    synthetic = not chain
+    if not chain:
+        return generate_options_chain(stock["price"], expiration["daysToExpiry"], r=r), True
+
+    # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
+    from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
+    T = year_fraction(expiration["daysToExpiry"])
+    for item in chain:
+        K = item["strike"]
+        for side in ("call", "put"):
+            leg = item.get(side, {})
+            iv = leg.get("iv") or 0.3
+            if iv <= 0:
+                iv = 0.3
+            try:
+                leg["delta"] = round(_d(stock["price"], K, T, r, iv, side), 4)
+                leg["gamma"] = round(_g(stock["price"], K, T, r, iv), 6)
+                leg["theta"] = round(_th(stock["price"], K, T, r, iv, side), 4)
+                leg["vega"] = round(_v(stock["price"], K, T, r, iv), 4)
+            except (ValueError, ZeroDivisionError):
+                leg["delta"] = 0.0
+                leg["gamma"] = 0.0
+                leg["theta"] = 0.0
+                leg["vega"] = 0.0
+            # Ensure mid is present
+            if "mid" not in leg or leg.get("mid") is None:
+                leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
+    return chain, synthetic
+
+
+# A calendar needs 2 expirations, a double diagonal 2, a term-structure view a
+# handful. The cap exists because each expiration is a separate upstream fetch.
+MAX_CHAIN_EXPIRATIONS = 8
+
+
+def _parse_expiration_idxs(raw: str, count: int) -> List[int]:
+    """`"1,3,6"` → `[1, 3, 6]`, clamped to the expirations that exist.
+
+    Silently drops anything unparseable rather than 400-ing: this is a widening
+    of an existing endpoint and a stray token should degrade to fewer chains,
+    not to no chain at all.
+    """
+    out: List[int] = []
+    for token in (raw or "").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            idx = int(token)
+        except ValueError:
+            continue
+        if 0 <= idx < count and idx not in out:
+            out.append(idx)
+    return out[:MAX_CHAIN_EXPIRATIONS]
+
+
 @api_router.get("/options/chain/{symbol}")
-async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
+async def opt_get_options_chain(
+    symbol: str,
+    expiration_idx: int = 3,
+    expiration_idxs: Optional[str] = None,
+):
+    """Options chain for one expiration, or for several in a single call.
+
+    `expiration_idxs=1,3,6` returns a `chains` map keyed by expiration index so
+    that a multi-expiration structure (calendar, diagonal, PMCC) can be built
+    without firing one request per leg. The single-expiration response shape is
+    unchanged, and is still what comes back when the parameter is absent.
+    """
     stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
         # No real spot price — don't fabricate a synthetic chain on top of
@@ -4982,47 +5059,54 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
             "stock": stock,
             "expiration": None,
             "chain": [],
+            "chains": {},
             "error": stock.get("error") or f"No market data available for {symbol}.",
         }
     expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if not expirations:
         expirations = generate_expirations()
+    r = await asyncio.to_thread(get_risk_free_rate)
+
+    if expiration_idxs:
+        wanted = _parse_expiration_idxs(expiration_idxs, len(expirations))
+        if not wanted:
+            wanted = [min(expiration_idx, len(expirations) - 1)]
+        chains: Dict[str, Any] = {}
+        any_synthetic = False
+        for idx in wanted:
+            exp = expirations[idx]
+            chain, synthetic = await _build_chain_for_expiration(symbol, stock, exp, r)
+            any_synthetic = any_synthetic or synthetic
+            chains[str(idx)] = {
+                "expiration": exp,
+                "chain": chain,
+                **_synthetic_marker(synthetic),
+            }
+        primary = wanted[0]
+        return {
+            "stock": stock,
+            "expiration": chains[str(primary)]["expiration"],
+            "chain": chains[str(primary)]["chain"],
+            "chains": chains,
+            **_synthetic_marker(any_synthetic),
+            "riskFreeRate": round(r, 5),
+        }
+
     if expiration_idx >= len(expirations):
         expiration_idx = min(3, len(expirations) - 1)
     expiration = expirations[expiration_idx]
-    chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
-    r = await asyncio.to_thread(get_risk_free_rate)
-    synthetic = not chain
-    if not chain:
-        chain = generate_options_chain(stock["price"], expiration["daysToExpiry"], r=r)
-    else:
-        # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
-        from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
-        T = year_fraction(expiration["daysToExpiry"])
-        for item in chain:
-            K = item["strike"]
-            for side in ("call", "put"):
-                leg = item.get(side, {})
-                iv = leg.get("iv") or 0.3
-                if iv <= 0:
-                    iv = 0.3
-                try:
-                    leg["delta"] = round(_d(stock["price"], K, T, r, iv, side), 4)
-                    leg["gamma"] = round(_g(stock["price"], K, T, r, iv), 6)
-                    leg["theta"] = round(_th(stock["price"], K, T, r, iv, side), 4)
-                    leg["vega"] = round(_v(stock["price"], K, T, r, iv), 4)
-                except (ValueError, ZeroDivisionError):
-                    leg["delta"] = 0.0
-                    leg["gamma"] = 0.0
-                    leg["theta"] = 0.0
-                    leg["vega"] = 0.0
-                # Ensure mid is present
-                if "mid" not in leg or leg.get("mid") is None:
-                    leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
+    chain, synthetic = await _build_chain_for_expiration(symbol, stock, expiration, r)
     return {
         "stock": stock,
         "expiration": expiration,
         "chain": chain,
+        "chains": {
+            str(expiration_idx): {
+                "expiration": expiration,
+                "chain": chain,
+                **_synthetic_marker(synthetic),
+            }
+        },
         **_synthetic_marker(synthetic),
         "riskFreeRate": round(r, 5),
     }
@@ -5083,6 +5167,120 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
         **_synthetic_marker(bool(synthetic_expirations)),
         "syntheticExpirations": synthetic_expirations,
         "riskFreeRate": round(r, 5),
+    }
+
+
+@api_router.get("/options/positioning/{symbol}")
+async def opt_get_positioning(symbol: str, expiration_idx: int = 3) -> Dict[str, Any]:
+    """Where the open interest sits: max pain, GEX, the OI profile and liquidity.
+
+    These are readings of observed positioning, so they are computed only from
+    a real chain. When the provider gives us nothing and the chain has to be
+    modelled, every metric comes back None with `synthetic: true` rather than a
+    number derived from open interest nobody reported — a fabricated max pain is
+    indistinguishable from a real one on screen, which is exactly the problem.
+    """
+    from options_positioning import (
+        max_pain, gamma_exposure, open_interest_profile, put_call_ratio,
+        chain_liquidity, atm_iv, expected_move,
+    )
+
+    stock = await asyncio.to_thread(get_stock_data, symbol)
+    if stock.get("price") is None:
+        return {
+            "stock": stock,
+            "error": stock.get("error") or f"No market data available for {symbol}.",
+            "maxPain": None, "gex": None, "openInterestProfile": None,
+            "putCallRatio": None, "liquidity": None, "expectedMove": None,
+        }
+
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
+    if not expirations:
+        expirations = generate_expirations()
+    if expiration_idx >= len(expirations):
+        expiration_idx = min(3, len(expirations) - 1)
+    expiration = expirations[expiration_idx]
+    r = await asyncio.to_thread(get_risk_free_rate)
+    chain, synthetic = await _build_chain_for_expiration(symbol, stock, expiration, r)
+
+    spot = stock["price"]
+    iv = atm_iv(chain, spot)
+    if synthetic:
+        # An expected move is a volatility statement, not a positioning one, so
+        # it survives a modelled chain — but it inherits the modelled IV and the
+        # response says so through `synthetic`.
+        return {
+            "stock": stock,
+            "expiration": expiration,
+            "maxPain": None,
+            "gex": None,
+            "openInterestProfile": None,
+            "putCallRatio": None,
+            "liquidity": None,
+            "atmIV": iv,
+            "expectedMove": expected_move(spot, iv, expiration.get("daysToExpiry")),
+            **_synthetic_marker(True),
+        }
+
+    return {
+        "stock": stock,
+        "expiration": expiration,
+        "maxPain": max_pain(chain),
+        "gex": gamma_exposure(chain, spot),
+        "openInterestProfile": open_interest_profile(chain),
+        "putCallRatio": put_call_ratio(chain),
+        "liquidity": chain_liquidity(chain),
+        "atmIV": iv,
+        "expectedMove": expected_move(spot, iv, expiration.get("daysToExpiry")),
+        **_synthetic_marker(False),
+    }
+
+
+@api_router.get("/options/term-structure/{symbol}")
+async def opt_get_term_structure(symbol: str, max_expirations: int = 8) -> Dict[str, Any]:
+    """ATM implied volatility by expiration — contango or backwardation.
+
+    The first question a premium seller asks is whether the front is rich
+    against the back, and nothing in the app answered it: the IV surface showed
+    skew across strikes but never the curve across time.
+    """
+    from options_positioning import atm_iv, term_structure
+
+    stock = await asyncio.to_thread(get_stock_data, symbol)
+    if stock.get("price") is None:
+        return {
+            "stock": stock,
+            "termStructure": None,
+            "error": stock.get("error") or f"No market data available for {symbol}.",
+        }
+
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
+    if not expirations:
+        expirations = generate_expirations()
+    expirations = expirations[:max_expirations]
+    r = await asyncio.to_thread(get_risk_free_rate)
+
+    points: List[Dict[str, Any]] = []
+    synthetic_dates: List[str] = []
+    for exp in expirations:
+        chain, synthetic = await _build_chain_for_expiration(symbol, stock, exp, r)
+        if synthetic:
+            synthetic_dates.append(exp["date"])
+        points.append(
+            {
+                "date": exp["date"],
+                "label": exp.get("label"),
+                "daysToExpiry": exp["daysToExpiry"],
+                "iv": atm_iv(chain, stock["price"]),
+                "synthetic": synthetic,
+            }
+        )
+
+    return {
+        "stock": stock,
+        "termStructure": term_structure(points),
+        **_synthetic_marker(bool(synthetic_dates)),
+        "syntheticExpirations": synthetic_dates,
     }
 
 

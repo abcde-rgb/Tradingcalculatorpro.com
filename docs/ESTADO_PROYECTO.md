@@ -2425,3 +2425,95 @@ empezar y no sólo antes de abrir el PR.**
   `node scripts/engine-check.js` **30/30** (contrato intacto) · ESLint **0
   errores** (125 avisos) · i18n **5522 × 8 idiomas, 0 huecos** (+41 claves) ·
   `npm run build` exit 0 · 0 errores de runtime en consola.
+
+---
+
+## 2026-07-31 — Auditoría del apartado de opciones
+
+Ejecución de `AUDITORIA_OPCIONES_20260731`. El diagnóstico del documento era que el
+motor de opciones es mejor que el de la competencia y el problema está en otra
+parte: arquitectura de información, cobertura de estrategias y superficie pública.
+Se ha trabajado en ese orden.
+
+### Fase 0 — Los tres bloqueos
+
+Los tres eran reales y estaban donde decía el documento.
+
+1. **Multi-expiración** (BUG-032). Era un límite del **modelo de datos**, no un
+   preset que faltara: todas las patas heredaban `currentExp.daysToExpiry`. Ahora
+   cada pata lleva `expIdx`, `CalculatorPage` mantiene `{expIdx: chain}` y el
+   backend sirve varias expiraciones en una llamada (`?expiration_idxs=1,3,6`,
+   tope 8). En el motor, el argumento de tiempo pasa a ser el de la **pata más
+   cercana** y de ahí se deriva el transcurrido por pata — con una sola
+   expiración el comportamiento es idéntico al de antes, lo que hace el cambio
+   compatible hacia atrás y así está fijado en `engine-check`.
+2. **Tipo libre de riesgo** (BUG-033). El frontend pasaba `0.05` literal mientras
+   el backend valoraba con `^IRX`. Hook `useRiskFreeRate` con caché de módulo y el
+   valor + procedencia visibles bajo las griegas.
+3. **Rango del gráfico** (BUG-034). `±35%` fijo → `2,5σ` del expected move, con
+   suelo 10% y techo 150%.
+
+De propina, un bug que la auditoría no vio: **cargar una posición guardada dejaba
+todo a cero** (BUG-035), porque las patas se construían sin `enabled` y
+`customBuiltLegs` filtra por ese campo.
+
+### Estrategias: 33 → 66
+
+Las 33 enumeradas en el documento, incluidas las 8 temporales que la Fase 0
+desbloquea. El documento pedía "~35" para llegar a 68; se han añadido exactamente
+las que enumera, así que **el total es 66, no 68** — no se ha rellenado para
+cuadrar un número.
+
+Las nuevas llevan el nombre en literal (los términos del sector no se traducen) y
+las descripciones y el "cuándo usarla" en claves i18n × 8 idiomas. El `whenToUse`
+se comparte por familia cuando la razón de uso es genuinamente la misma (las
+cuatro escaleras, las tres de arbitraje), en vez de duplicar la misma frase con
+otras palabras.
+
+### Fase 2 — Métricas
+
+`options_positioning.py`, nuevo, con **max pain, GEX (con la convención de
+dealer explícita en la respuesta), perfil de OI por strike, ratio put/call,
+semáforo de liquidez por contrato, term structure de IV y expected move**. Dos
+endpoints nuevos: `/api/options/positioning/{symbol}` y
+`/api/options/term-structure/{symbol}`.
+
+La regla que gobierna el módulo: **son lecturas de posicionamiento observado**, así
+que sobre cadena modelada devuelven `None`, no un número plausible. 34 tests, y
+buena parte existen sólo para fijar esa negativa.
+
+En el frontend: **heatmap precio × IV** (lo que el documento señalaba como la copia
+más rentable), panel de posicionamiento, y **vanna, charm y vomma** —que existían
+sólo como texto educativo— junto a las griegas primarias.
+
+### Fases 1 y 3 — Superficie pública
+
+- `/options` deja de ser el muro de pago y pasa a ser un **hub público** con el
+  catálogo completo enlazable. El workspace en vivo se mueve a
+  `/options/calculator`, sigue siendo premium y ahora va con `noindex`.
+- `/options/strategies` y `/options/strategies/:slug`, públicas.
+- El `postbuild` que ya existía (`gen-seo-pages.js`) genera **528 páginas de
+  estrategia** (66 × 8 idiomas) con JSON-LD `HowTo`. El sitemap pasa de **744 a
+  1273 URLs**. No se ha escrito contenido nuevo: se ha enrutado el que ya estaba.
+
+### Lo que NO entra
+
+- **`/options/glossary/:slug`, `/options/learn/:slug` y `/options/ticker/:symbol`.**
+  El documento las pide y son el resto del camino a las ~120 URLs que estima. La
+  maquinaria ya está montada (el generador, el sitemap, el patrón de slug), pero
+  el glosario necesita antes un índice con slug del contenido de
+  `tradingEducationContent.js`, que es trabajo de datos, no de rutas.
+- **Prerender completo (react-snap / SSG).** Las páginas estáticas del postbuild
+  cubren el caso de indexación sin que corra el JavaScript, que es el problema
+  real; migrar la SPA entera a SSG es otra conversación.
+- **Fusionar cadena + constructor en un paso 3 único**, subir IV rank/percentil y
+  skew a un paso 1 de contexto, y las rutas `/options/chain/:symbol`,
+  `/options/iv/:symbol` y `/options/flow/:symbol`. Es reordenación del workspace,
+  no capacidad nueva.
+- **Fase 4 entera** (paper trading, quizzes, backtest de opciones, calendario de
+  earnings propio) y los extras de marketing (embed widget, compartir por URL).
+
+**Verificación:** `pytest` **442 passed / 74 skipped** (+34) · `engine-check`
+**60/60** (+30, `blackScholes.js` no estaba cubierto y ahora lo está) · ESLint **0
+errores** · i18n **5633 × 8 idiomas, 0 huecos** (+105 claves) · `npm run build`
+exit 0 con 1273 URLs · `check-doc-links` 47 documentos, 0 roturas.

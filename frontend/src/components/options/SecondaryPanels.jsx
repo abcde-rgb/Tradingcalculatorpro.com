@@ -1,7 +1,9 @@
 import React from 'react';
-import { Calculator, Layers, Lightbulb, Settings2, Sparkles } from 'lucide-react';
+import { Calculator, Crosshair, Grid3x3, Layers, Lightbulb, Settings2, Sparkles } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import SectionCard from './SectionCard';
+import PriceIVHeatmap from './PriceIVHeatmap';
+import PositioningPanel from './PositioningPanel';
 import ExplainTrade from './ExplainTrade';
 import AITradeCoach from './AITradeCoach';
 import GreeksDisplay from './GreeksDisplay';
@@ -44,6 +46,8 @@ const SecondaryPanels = ({
   dividendYield,
   onDividendChange,
   chainSynthetic,
+  riskFreeRate,
+  selectedExpIdx = 3,
 }) => {
   const { t } = useTranslation();
 
@@ -107,6 +111,44 @@ const SecondaryPanels = ({
         ) : (
           <Empty text={t('optSectionNeedsPosition')} />
         )}
+      </SectionCard>
+
+      {/* Precio × IV. Va justo detrás de las griegas porque responde la
+          pregunta que ellas plantean: vega dice que la posición es sensible a
+          la volatilidad, y esta rejilla dice cuánto cuesta esa sensibilidad. */}
+      <SectionCard
+        icon={<Grid3x3 className="w-4 h-4" />}
+        accent="purple"
+        title={t('optSectionHeatmap')}
+        subtitle={t('optSectionHeatmapHint')}
+        testid="section-heatmap"
+      >
+        {hasPosition ? (
+          <PriceIVHeatmap
+            legs={legs}
+            stockPrice={stock?.price}
+            riskFreeRate={riskFreeRate}
+            dividendYield={dividendYield}
+          />
+        ) : (
+          <Empty text={t('optSectionNeedsPosition')} />
+        )}
+      </SectionCard>
+
+      {/* Posicionamiento del mercado. Es lo único de este acordeón que no
+          depende de la posición construida: describe el subyacente. */}
+      <SectionCard
+        icon={<Crosshair className="w-4 h-4" />}
+        accent="amber"
+        title={t('optSectionPositioning')}
+        subtitle={t('optSectionPositioningHint')}
+        testid="section-positioning"
+      >
+        <PositioningPanel
+          symbol={ticker}
+          expirationIdx={selectedExpIdx}
+          stockPrice={stock?.price}
+        />
       </SectionCard>
 
       <SectionCard

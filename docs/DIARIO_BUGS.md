@@ -420,3 +420,23 @@ a `round(plan["price"], 2)` con comentario explicativo.
 ---
 
 *Última actualización: 2026-07-30 — reconciliación de las dos auditorías: reintentos sin caché del tipo libre de riesgo (BUG-028), sugerencia de stop sin muestra (BUG-029), anualización sin techo (BUG-030) y cabecera del simulador aún aleatoria (BUG-031).*
+
+---
+
+| BUG-032 | **Los calendars, las diagonales y el PMCC eran imposibles por arquitectura, no por falta de preset.** Tanto `presetLegs` como `customBuiltLegs` asignaban `daysToExpiry: currentExp.daysToExpiry` a **todas** las patas, y `LegEditor` trabajaba sobre una única `chain`: no existía forma de expresar una pata con vencimiento distinto. Ocho estructuras —calendar de call y de put, diagonal de call y de put, doble calendar, doble diagonal, jelly roll y PMCC, dos de ellas de las más usadas del retail— no estaban "sin implementar": el modelo de datos no las admitía. Y si se forzaba, el motor las valoraba como verticales, porque `calculateStrategyPayoff` aplicaba un único `daysToExpiry` global a cada pata. Fix: `expIdx` por pata en el editor, un mapa `{expIdx: chain}` en `CalculatorPage`, un endpoint de cadena multi-expiración (`?expiration_idxs=1,3,6`) para no disparar N peticiones, y tiempo restante POR PATA en el motor — el diagrama al vencimiento se dibuja al de la pata más cercana y la pata larga conserva su valor extrínseco. Fijado por `engine-check` con un control de mismo vencimiento que sí liquida al débito neto. | 🔴 | ✅ Resuelto (2026-07-31) |
+
+---
+
+| BUG-033 | **El frontend valoraba con un tipo libre de riesgo del 5% inventado mientras el backend usaba el real.** `CalculatorPage` pasaba `0.05` literal a `calculateStrategyPayoff`, `calculateStrategyGreeks` y `probabilityOfProfit`, y `blackScholes.js` lo repetía como valor por defecto de firma, teniendo `market_rates` en producción desde hacía dos PRs y el endpoint `/api/market/risk-free` ya publicado. Consecuencias: Rho era decorativo, las americanas se valoraban con un tipo falso y las tres estructuras cuyo P&L **es** el tipo de interés (box spread, jelly roll, conversion) habrían dado números sin sentido en cuanto se añadieran. Fix: hook `useRiskFreeRate` con caché a nivel de módulo (la tasa se mueve en puntos básicos, no una petición por panel), el tipo real se pasa a las cuatro llamadas del motor, y `GreeksStrip` publica el valor y su procedencia (`r = 4,28% · letra a 3 meses en vivo`) para que Rho tenga referencia. El literal superviviente es una única constante `FALLBACK_RISK_FREE_RATE`, nombrada para que un grep la encuentre. | 🔴 | ✅ Resuelto (2026-07-31) |
+
+---
+
+| BUG-034 | **El rango del gráfico de payoff estaba fijo en ±35% del spot.** El mismo ancho para un 0DTE de SPY —donde toda la acción ocurre en un ±1% y el payoff se veía como una línea plana en mitad del lienzo— que para un LEAPS de una small cap con IV del 80%, donde ±35% recorta justo la zona en la que la posición vive. Fix: `priceRangeFromExpectedMove` deriva el ancho de 2,5σ del expected move (`S·σ·√(T/365)`), con suelo del 10% y techo del 150%; sin volatilidad utilizable cae al 35% de siempre en vez de a un rango degenerado. | 🟡 | ✅ Resuelto (2026-07-31) |
+
+---
+
+| BUG-035 | **Cargar una posición guardada dejaba la calculadora a cero.** No estaba en la auditoría; apareció al tocar el mismo código. `handleLoadPosition` y `handleOpenInCalculator` construían las patas sin el campo `enabled`, y `customBuiltLegs` filtra por `l.enabled`: las patas llegaban al editor —donde se pintaban en gris al 40% de opacidad, el estilo de "pata desactivada"— pero salían del cálculo, así que el payoff quedaba vacío, las griegas a cero y los KPI en blanco. Afectaba a las dos rutas de entrada que no son teclear la posición a mano: recuperar una posición guardada y el botón "abrir en la calculadora" del optimizador. Fix: `enabled: true` explícito en ambos mapeos, más `expIdx` para que una posición guardada multi-expiración no se aplane en un vertical al recargarla. | 🟠 | ✅ Resuelto (2026-07-31) |
+
+---
+
+*Última actualización: 2026-07-31 — auditoría del apartado de opciones: multi-expiración imposible por arquitectura (BUG-032), tipo libre de riesgo inventado en el frontend (BUG-033), rango del gráfico fijo (BUG-034) y posiciones guardadas que se cargaban desactivadas (BUG-035).*
