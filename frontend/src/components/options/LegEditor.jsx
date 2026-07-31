@@ -1,6 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight, ChevronDown, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 const LegEditor = ({
   legs,
@@ -226,18 +229,24 @@ const LegEditor = ({
                 <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">
                   {t('optLegExpiry')}
                 </label>
-                <select
-                  value={leg.expIdx ?? defaultExpIdx}
-                  onChange={(e) => updateLeg(idx, { expIdx: parseInt(e.target.value, 10) })}
-                  className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:border-primary appearance-none cursor-pointer"
-                  data-testid={`leg-${idx}-expiry`}
+                <Select
+                  value={String(leg.expIdx ?? defaultExpIdx)}
+                  onValueChange={(v) => updateLeg(idx, { expIdx: parseInt(v, 10) })}
                 >
-                  {expirations.map((exp, ei) => (
-                    <option key={exp.date || ei} value={ei}>
-                      {exp.label || exp.date} · {exp.daysToExpiry}d
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    data-testid={`leg-${idx}-expiry`}
+                    className="w-full h-8 bg-background border-border rounded-lg px-2 text-xs font-mono text-foreground shadow-none focus:border-primary"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[60vh]">
+                    {expirations.map((exp, ei) => (
+                      <SelectItem key={exp.date || ei} value={String(ei)} className="text-xs font-mono focus:bg-primary/15 focus:text-primary data-[state=checked]:text-primary">
+                        {exp.label || exp.date} · {exp.daysToExpiry}d
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -246,15 +255,21 @@ const LegEditor = ({
               {/* Strike */}
               <div>
                 <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Strike</label>
-                <select
-                  value={leg.strikeIdx}
-                  onChange={(e) => updateLeg(idx, { strikeIdx: parseInt(e.target.value) })}
-                  className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:border-primary appearance-none cursor-pointer"
+                <Select
+                  value={String(leg.strikeIdx)}
+                  onValueChange={(v) => updateLeg(idx, { strikeIdx: parseInt(v, 10) })}
                 >
-                  {chainFor(leg.expIdx ?? defaultExpIdx).map((s, si) => (
-                    <option key={s.strike} value={si}>${s.strike}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full h-8 bg-background border-border rounded-lg px-2 text-xs font-mono text-foreground shadow-none focus:border-primary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[60vh]">
+                    {chainFor(leg.expIdx ?? defaultExpIdx).map((s, si) => (
+                      <SelectItem key={s.strike} value={String(si)} className="text-xs font-mono focus:bg-primary/15 focus:text-primary data-[state=checked]:text-primary">
+                        ${s.strike}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Quantity */}
