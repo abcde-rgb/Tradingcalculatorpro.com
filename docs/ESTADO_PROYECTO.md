@@ -1503,6 +1503,15 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   menor pendiente (10× `detail=str(e)`, Dependabot/CodeQL, C-08).
 - ✅ Confirmado ya implementado (no re-hacer): buscador universal con autocompletado, 8 idiomas a la
   par con banderas, lotes/pips/valor-pip, borrado de cuenta RGPD, 3+ pasarelas de pago.
-- 🎯 Próximos pasos P1 recomendados: tipos de mercado interactivos, schema FAQ/HowTo para featured
-  snippets, Twelve Data conmutable + caché, buscador del gráfico con backend, presets de indicadores.
-- Sin cambios de código en esta sesión (auditoría/documentación). El detalle vive en el doc nuevo.
+- 🎯 Próximos pasos P1 recomendados: schema FAQ/HowTo en páginas prerenderizadas para featured
+  snippets, Twelve Data conmutable + caché, buscador del gráfico con backend, presets de indicadores,
+  Advanced Charts (dibujos guardables), calendario con cuenta atrás + banderas.
+- ✅ **Implementado y verificado en esta sesión** (build exit 0 + i18n-check 5185×8):
+  1. **Sección "Próximamente App"** en la landing (`components/landing/AppStorePromo.jsx`): badges
+     teaser de Google Play / App Store / Microsoft Store (SVG inline) + CTA "Avísame" + nota
+     multiplataforma Android/iOS/Windows/macOS/Linux. i18n ×8. (P-19)
+  2. **Tipos de mercado interactivos** en Educación → Fundamentos
+     (`components/education/MarketTypeDetailModal.jsx` + `data/marketTypeDetails.js`): las tarjetas
+     ahora abren un modal con cómo-se-mide + unidades, widget TradingView en vivo por mercado, FAQ
+     (inglés, para snippets), ejemplo y accesos a calculadora + módulo profundo. 10 mercados. i18n ×8.
+     (P-07/P-08/P-09; parte SEO de P-10 pendiente = JSON-LD en el generador de páginas SEO).

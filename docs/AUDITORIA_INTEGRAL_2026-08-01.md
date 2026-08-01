@@ -80,9 +80,9 @@ La petición del dueño se traduce en **11 frentes de mejora**. Tras la auditor�
 | P-04 | Widgets de TradingView **útiles** (analizar API Reference) | 🟡 | Chart + `EconomicCalendar` embed | §4.B.1 |
 | P-05 | **Herramientas de dibujo** sobre el gráfico **que se guarden** | 🔴 | Embed no lo permite | §4.B.2 |
 | P-06 | Distribuir mejor la **sección de Opciones** + widgets de opciones TV | 🟡 | `OptionsPage.jsx` + `components/options/` | §4.E |
-| P-07 | Tipos de mercado: clic → pestaña con preguntas/respuestas/ejemplos/calculadora/tabla o widget TV | 🔴 | `EducationPage.jsx:2250` (tarjetas estáticas) | §4.D.1 |
-| P-08 | En cripto: añadir "lo útil del documento" + widget TV | 🟡 | `crypto-deep` tab existe | §4.D.1 |
-| P-09 | Acciones: cómo se mide (marketcap, etc.); commodities, índices, ETFs, futuros, bonos, opciones, CFDs | 🟡 | Tabs deep existen; falta **bonos** y **CFDs** como tipo | §4.D.2 |
+| P-07 | Tipos de mercado: clic → pestaña con preguntas/respuestas/ejemplos/calculadora/tabla o widget TV | ✅ **HECHO** | `MarketTypeDetailModal.jsx` + `data/marketTypeDetails.js` | §4.D.1 |
+| P-08 | En cripto: añadir "lo útil del documento" + widget TV | ✅ **HECHO** | modal cripto: heatmap TV + FAQ (halving, market cap, dominancia) | §4.D.1 |
+| P-09 | Acciones: cómo se mide (marketcap, etc.); commodities, índices, ETFs, futuros, bonos, opciones, CFDs | ✅ **HECHO** | 10 mercados en el modal (incl. bonos y CFDs) | §4.D.1 |
 | P-10 | **Featured snippets** de Google (ej. "criptos más grandes") en inglés | 🔴 | Sin schema FAQ/HowTo/ItemList | §4.G.2 |
 | P-11 | **Calendario económico**: cuenta atrás al siguiente dato (PMI…) + **banderas** + clic → Investing | 🔴 | `EconomicCalendar.jsx` (iframe simple) | §4.C.1 |
 | P-12 | Segundo widget: cuándo hablan **Trump / FED** + conferencias + personas de alto impacto | 🔴 | No existe | §4.C.2 |
@@ -92,7 +92,7 @@ La petición del dueño se traduce en **11 frentes de mejora**. Tras la auditor�
 | P-16 | **Banderas de idiomas** + info que propuse antes | 🟢 | `i18n.js:23` (flags ✅) | §4.J |
 | P-17 | Verificación de idiomas/traducciones | 🟢 | 8 locales a la par (i18n-check) | §4.J |
 | P-18 | Versión **app / móvil** (web móvil = app) | 🟡 | Responsive + PWA; sin nativo | §4.F.1 |
-| P-19 | "**Próximamente**" + badges Google Play / App Store en portada | 🔴 | Solo teaser de features | §4.F.2 |
+| P-19 | "**Próximamente**" + badges Google Play / App Store en portada | ✅ **HECHO** | `components/landing/AppStorePromo.jsx` | §4.F.2 |
 | P-20 | App **desktop** (Microsoft Store) + Android/Mac/iOS/Windows/Linux | 🔴 | No existe | §4.F.3 |
 | P-21 | Revisar **pagos, admin, ajustes, seguridad, IP, legal, privacidad** de cabo a rabo | 🟢/🟡 | `server.py`, `admin_routes.py`, `LegalPage.jsx` | §4.I |
 | P-22 | Ciclo de vida: desde registro hasta cierre/eliminación de cuenta | 🟢 | `DELETE /auth/account` (RGPD) | §4.I.4 |
