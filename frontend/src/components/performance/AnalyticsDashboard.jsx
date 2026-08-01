@@ -45,6 +45,18 @@ const KpiCard = ({ icon: Ic, label, value, subValue, color = 'text-foreground', 
   </div>
 );
 
+// Honest formatting: null/undefined → "—" (never a misleading 0).
+const fmtNum = (v, dp = 2) => (v == null ? '—' : Number(v).toFixed(dp));
+const fmtMoney = (v) => (v == null ? '—' : `$${Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}`);
+
+const AdvTile = ({ label, value, hint, color = 'text-foreground', testId }) => (
+  <div className="bg-background border border-border rounded-lg p-3" data-testid={testId}>
+    <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-1">{label}</div>
+    <div className={`text-lg font-bold font-mono ${color}`}>{value}</div>
+    {hint && <div className="text-[9px] text-muted-foreground mt-0.5">{hint}</div>}
+  </div>
+);
+
 const Bar = ({ label, n, total, pnl }) => {
   const pct = total > 0 ? (n / total) * 100 : 0;
   const pnlPositive = pnl > 0;
@@ -335,6 +347,35 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal }) {
           subValue={t('kpiStreaksHint')}
           testId="kpi-streaks" />
       </div>
+
+      {/* Advanced desk metrics (SQN, Calmar, Ulcer, Z-score, VaR/CVaR) */}
+      {a.advanced && (
+        <div className="bg-card border border-border rounded-xl p-5" data-testid="advanced-metrics">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" /> {t('advMetricsTitle')}
+          </h3>
+          <p className="text-[11px] text-muted-foreground/70 mb-4">{t('advMetricsHint')}</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <AdvTile label={t('advSqn')} value={fmtNum(a.advanced.sqn)}
+              hint={t('advSqnHint')}
+              color={a.advanced.sqn == null ? 'text-muted-foreground' : a.advanced.sqn >= 2.5 ? 'text-[#22c55e]' : a.advanced.sqn >= 1.6 ? 'text-[#f59e0b]' : 'text-[#ef4444]'}
+              testId="adv-sqn" />
+            <AdvTile label={t('advCalmar')} value={fmtNum(a.advanced.calmar_ratio)}
+              color={a.advanced.calmar_ratio == null ? 'text-muted-foreground' : 'text-foreground'}
+              testId="adv-calmar" />
+            <AdvTile label={t('advUlcer')} value={fmtNum(a.advanced.ulcer_index)}
+              hint={t('advUlcerHint')} testId="adv-ulcer" />
+            <AdvTile label={t('advZScore')} value={fmtNum(a.advanced.streak_zscore)}
+              hint={t('advZScoreHint')} testId="adv-zscore" />
+            <AdvTile label={t('advVar')} value={fmtMoney(a.advanced.var_95)}
+              hint={t('advVarHint')} color={a.advanced.var_95 == null ? 'text-muted-foreground' : 'text-[#ef4444]'}
+              testId="adv-var" />
+            <AdvTile label={t('advCvar')} value={fmtMoney(a.advanced.cvar_95)}
+              hint={t('advCvarHint')} color={a.advanced.cvar_95 == null ? 'text-muted-foreground' : 'text-[#ef4444]'}
+              testId="adv-cvar" />
+          </div>
+        </div>
+      )}
 
       {/* Equity curve */}
       <div className="bg-card border border-border rounded-xl p-5">
