@@ -1485,3 +1485,24 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   objetivo; (2) dominio propio (ya era la palanca nº1); (3) marketing del bundle vs 65-150 $/mes de
   la suma de especialistas; (4) doblar en español/LATAM (frente vacío); (5) NO perseguir flow en vivo.
 - Sin cambios de código. Investigación con WebSearch (precios/features julio 2026, fuentes en el doc).
+
+### 2026-08-01 — Auditoría integral 100% (documento, sin cambios de código todavía)
+- 📄 **Nuevo doc [`AUDITORIA_INTEGRAL_2026-08-01.md`](./AUDITORIA_INTEGRAL_2026-08-01.md)**:
+  auditoría a petición del dueño de **todo** el proyecto (frontend 19 páginas/~200 componentes,
+  backend 169 rutas, 20+ docs), verificada contra el código real. Incluye: inventario, **matriz de
+  trazabilidad de las 26 peticiones** (cada una → estado → acción), hallazgos por bloque
+  (datos/APIs, TradingView, dashboard inteligente, educación, opciones, app móvil/desktop, SEO,
+  journal, seguridad, i18n, performance) y roadmap P0-P3.
+- 🔎 Hallazgos clave: (1) el gráfico usa el **embed iframe** → **no puede guardar dibujos** (necesita
+  migrar a **Advanced Charts**, hueco G-05); (2) los **tipos de mercado** en Educación son tarjetas
+  **estáticas** → falta la pestaña interactiva pedida (preguntas/ejemplos/calculadora/widget);
+  (3) el **calendario** no tiene cuenta atrás ni banderas, y no hay panel de **ponentes** ni de
+  **noticias**; (4) sin **badges de tiendas** ni apps nativas (PWA sí existe); (5) **Twelve Data**
+  solo está en PENDIENTES, no integrado (backend usa Yahoo curl_cffi + CoinGecko); (6) **seguridad
+  y ciclo de cuenta muy sólidos** (2FA, borrado RGPD, IP con x-forwarded-for) con endurecimiento
+  menor pendiente (10× `detail=str(e)`, Dependabot/CodeQL, C-08).
+- ✅ Confirmado ya implementado (no re-hacer): buscador universal con autocompletado, 8 idiomas a la
+  par con banderas, lotes/pips/valor-pip, borrado de cuenta RGPD, 3+ pasarelas de pago.
+- 🎯 Próximos pasos P1 recomendados: tipos de mercado interactivos, schema FAQ/HowTo para featured
+  snippets, Twelve Data conmutable + caché, buscador del gráfico con backend, presets de indicadores.
+- Sin cambios de código en esta sesión (auditoría/documentación). El detalle vive en el doc nuevo.

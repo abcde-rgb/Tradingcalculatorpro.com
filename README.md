@@ -16,6 +16,7 @@ Coach** basado en Claude.
 | Documento | Para qué |
 |---|---|
 | [`docs/ESTADO_PROYECTO.md`](./docs/ESTADO_PROYECTO.md) | **Estado vivo**: qué hay, qué falta, qué probar, backlog. Empieza aquí. |
+| [`docs/AUDITORIA_INTEGRAL_2026-08-01.md`](./docs/AUDITORIA_INTEGRAL_2026-08-01.md) | **Auditoría 100%**: inventario verificado, matriz de trazabilidad de peticiones, hallazgos por bloque y roadmap P0-P3. |
 | [`docs/ANALISIS_2026-06-25.md`](./docs/ANALISIS_2026-06-25.md) | Análisis apartado por apartado + comparación con competidores + seguridad |
 | [`docs/GUIA_EXTENSION.md`](./docs/GUIA_EXTENSION.md) | Cómo añadir calculadoras, páginas, endpoints, idiomas, secciones admin |
 | [`docs/TRADINGVIEW_PERSONALIZACION.md`](./docs/TRADINGVIEW_PERSONALIZACION.md) | Personalización del gráfico por usuario (activo, indicadores, layouts) |
