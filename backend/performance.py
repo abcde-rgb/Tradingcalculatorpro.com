@@ -18,6 +18,8 @@ import math
 import statistics
 import uuid
 
+import performance_metrics
+
 # ─── Configuration ────────────────────────────────────────────────
 # Education-aligned thresholds. These appear inside auto-error messages
 # and reference what the Education Center already teaches.
@@ -384,6 +386,22 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
             cur_w = 0
             cur_l = 0
 
+    # Runs (streak count) for the Z-score dependency test, over W/L signs only.
+    signs = ["W" if p > 0 else "L" for p in pnls if p != 0]
+    runs = (1 + sum(1 for i in range(1, len(signs)) if signs[i] != signs[i - 1])) if signs else 0
+    # Only real R-multiples (never fabricate a 0-R for trades without a stop).
+    r_clean = [float(t["r_multiple"]) for t in closed if t.get("r_multiple") is not None]
+    advanced = performance_metrics.compute_advanced_metrics(
+        pnls=pnls,
+        equity_curve=equity,
+        r_multiples=r_clean,
+        wins=len(wins),
+        losses=len(losses),
+        runs=runs,
+        cagr=None,  # no reliable dated returns → Calmar stays None (honest)
+        max_drawdown=(max_dd_pct / 100 if max_dd_pct else None),
+    )
+
     # By-day breakdown
     by_day = _group_winrate_by(closed, lambda t: _weekday_name(t.get("entry_date")))
     # By-setup breakdown
@@ -491,6 +509,8 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
         "errors_breakdown": error_counts,
         "rule_compliance_rate": round(rule_compliance_rate, 2),
         "avg_emotion": avg_emotion,
+        # Advanced desk metrics (None where incalculable — UI renders '—')
+        "advanced": advanced,
     }
 
 
@@ -529,6 +549,10 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "errors_breakdown": {},
         "rule_compliance_rate": 100,
         "avg_emotion": 0,
+        "advanced": {
+            "sqn": None, "calmar_ratio": None, "ulcer_index": None,
+            "streak_zscore": None, "var_95": None, "var_95_parametric": None, "cvar_95": None,
+        },
     }
 
 
