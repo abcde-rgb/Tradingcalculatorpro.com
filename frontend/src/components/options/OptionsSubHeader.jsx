@@ -13,6 +13,7 @@ const TABS = [
   { id: 'flow',      icon: Activity,  labelKey: 'optTabFlow',      testid: 'tab-flow' },
   { id: 'chain',     icon: LayoutGrid, labelKey: 'optTabChain',    testid: 'tab-chain' },
   { id: 'iv-surface', icon: Activity,  labelKey: 'optTabIVSurface', testid: 'tab-iv-surface' },
+  { id: 'dealers',   icon: ArrowUpRight, labelKey: 'optTabDealers', testid: 'tab-dealers' },
   { id: 'education',    icon: BookOpen,  labelKey: 'optTabAcademy',   testid: 'tab-education' },
   { id: 'black-scholes', icon: Sigma,   labelKey: 'bsTabLabel',      testid: 'tab-black-scholes' },
 ];

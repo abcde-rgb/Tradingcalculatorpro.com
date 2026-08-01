@@ -211,6 +211,10 @@ def gamma_exposure(chain: list[dict], spot: float,
 
     if not by_strike:
         return None
+    # All-zero exposure means there is no real open interest anywhere on the
+    # chain: reporting a "wall" from that would be noise dressed as signal.
+    if all(v == 0 for v in by_strike.values()):
+        return None
     total = sum(by_strike.values())
     call_wall = max(by_strike.items(), key=lambda kv: kv[1])[0]   # most positive gamma
     put_wall = min(by_strike.items(), key=lambda kv: kv[1])[0]    # most negative gamma
@@ -220,6 +224,34 @@ def gamma_exposure(chain: list[dict], spot: float,
         "call_wall": call_wall,
         "put_wall": put_wall,
     }
+
+
+def flatten_chain_for_gex(chain: list[dict], days_to_expiry: int,
+                          synthetic: bool = False) -> Optional[list[dict]]:
+    """Flatten a per-strike chain into the flat rows `gamma_exposure` expects.
+
+    Input rows look like {strike, call: {openInterest, iv, ...}, put: {...}}.
+    Returns None for modelled/synthetic chains: their open interest is generated,
+    so any GEX derived from it would be fiction presented as dealer positioning.
+    """
+    if synthetic or not chain:
+        return None
+    rows: list[dict] = []
+    for item in chain:
+        strike = item.get("strike")
+        if strike is None:
+            continue
+        for side in ("call", "put"):
+            leg = item.get(side) or {}
+            iv = leg.get("iv")
+            rows.append({
+                "strike": float(strike),
+                "type": side,
+                "oi": leg.get("openInterest"),
+                "iv": iv if iv and iv > 0 else DEFAULT_IV,
+                "daysToExpiry": days_to_expiry,
+            })
+    return rows
 
 
 # ---------------------------------------------------------------------------

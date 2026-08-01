@@ -33,8 +33,11 @@ from options_math import (
     calculate_payoff,
     find_break_evens,
     calculate_greeks,
+    calculate_second_order_greeks,
     calculate_pnl_attribution,
     simulate_assignment,
+    gamma_exposure,
+    flatten_chain_for_gex,
 )
 from stock_data import (
     COINGECKO_SYMBOL_TO_ID,
@@ -4828,17 +4831,21 @@ async def opt_get_expirations(symbol: str):
     }
 
 
-@api_router.get("/options/chain/{symbol}")
-async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
+async def _load_options_chain(symbol: str, expiration_idx: int = 3) -> dict:
+    """Shared loader for the options chain.
+
+    Returns {stock, expiration, chain, synthetic, error?}. `synthetic` is True when
+    no real chain was available and we fell back to a MODELLED chain: its open
+    interest/volume are generated, so downstream analytics that depend on real
+    positioning (GEX) must refuse to compute rather than invent a number.
+    """
     stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
-        # No real spot price — don't fabricate a synthetic chain on top of
-        # missing data. Surface the error so the frontend can warn the user
-        # and disable calculations instead of showing invented quotes.
         return {
             "stock": stock,
             "expiration": None,
             "chain": [],
+            "synthetic": False,
             "error": stock.get("error") or f"No market data available for {symbol}.",
         }
     expirations = await asyncio.to_thread(get_available_expirations, symbol)
@@ -4848,7 +4855,8 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
         expiration_idx = min(3, len(expirations) - 1)
     expiration = expirations[expiration_idx]
     chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
-    if not chain:
+    synthetic = not chain
+    if synthetic:
         chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
     else:
         # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
@@ -4875,7 +4883,52 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
                 # Ensure mid is present
                 if "mid" not in leg or leg.get("mid") is None:
                     leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
-    return {"stock": stock, "expiration": expiration, "chain": chain}
+    return {"stock": stock, "expiration": expiration, "chain": chain, "synthetic": synthetic}
+
+
+@api_router.get("/options/gex/{symbol}")
+async def opt_gamma_exposure(symbol: str, expiration_idx: int = 3):
+    """Dealer gamma exposure (GEX) per strike, plus call/put walls.
+
+    Honesty contract: GEX is returned ONLY when the chain carries real open
+    interest. With a modelled chain (or a chain with no open interest at all)
+    `gex` is null and `synthetic` explains why — we never fabricate positioning.
+    """
+    data = await _load_options_chain(symbol, expiration_idx)
+    if data.get("error"):
+        return {"symbol": symbol.upper(), "gex": None, "synthetic": False,
+                "error": data["error"]}
+    expiration = data["expiration"]
+    rows = flatten_chain_for_gex(
+        data["chain"], expiration["daysToExpiry"], synthetic=data["synthetic"]
+    )
+    gex = gamma_exposure(rows, data["stock"]["price"]) if rows else None
+    return {
+        "symbol": symbol.upper(),
+        "spot": data["stock"]["price"],
+        "expiration": expiration,
+        "synthetic": data["synthetic"],
+        "gex": gex,
+    }
+
+
+@api_router.post("/calculate/greeks-advanced")
+async def opt_calculate_second_order_greeks(request: GreeksRequest) -> Dict[str, Any]:
+    """Second-order Greeks (vanna, charm) for the current strategy legs."""
+    try:
+        legs_dicts = _legs_to_dicts(request.legs)
+        return calculate_second_order_greeks(
+            legs_dicts, request.stockPrice, q=request.dividendYield or 0.0
+        )
+    except Exception:
+        logging.exception("Second-order Greeks calculation error")
+        raise HTTPException(status_code=500, detail="Could not calculate advanced Greeks")
+
+
+@api_router.get("/options/chain/{symbol}")
+async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
+    return await _load_options_chain(symbol, expiration_idx)
+
 
 
 @api_router.get("/options/iv-surface/{symbol}")

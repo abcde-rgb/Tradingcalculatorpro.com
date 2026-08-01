@@ -88,4 +88,29 @@ export async function calculateGreeks(legs, stockPrice) {
   }
 }
 
+// Second-order Greeks (vanna, charm) for the current strategy legs.
+export async function calculateAdvancedGreeks(legs, stockPrice) {
+  if (!api) return null;
+  try {
+    const res = await api.post('/calculate/greeks-advanced', { legs, stockPrice });
+    return res.data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Dealer gamma exposure. The backend returns { gex: null, synthetic: true }
+// when the chain is modelled — callers must show that instead of a number.
+export async function fetchGammaExposure(symbol, expirationIdx = 3) {
+  if (!api) return null;
+  try {
+    const res = await api.get(`/options/gex/${symbol}`, {
+      params: { expiration_idx: expirationIdx },
+    });
+    return res.data;
+  } catch (e) {
+    return null;
+  }
+}
+
 export default api;

@@ -58,6 +58,55 @@ def test_gex_returns_none_for_synthetic_chain():
     assert om.gamma_exposure(chain, spot=100.0) is None
 
 
+def test_gex_returns_none_when_no_open_interest_anywhere():
+    # An illiquid chain (all OI = 0) must not produce a fake "wall".
+    chain = [
+        {"strike": 100, "type": "call", "oi": 0, "iv": 0.3, "daysToExpiry": 30},
+        {"strike": 105, "type": "put", "oi": 0, "iv": 0.3, "daysToExpiry": 30},
+    ]
+    assert om.gamma_exposure(chain, spot=100.0) is None
+
+
+# ---------------------------------------------------------------------------
+# Chain flattening — the bridge between the API chain shape and GEX.
+# ---------------------------------------------------------------------------
+
+def test_flatten_chain_produces_call_and_put_rows():
+    chain = [
+        {"strike": 100, "call": {"openInterest": 500, "iv": 0.25},
+         "put": {"openInterest": 300, "iv": 0.28}},
+    ]
+    rows = om.flatten_chain_for_gex(chain, days_to_expiry=30)
+    assert len(rows) == 2
+    assert {r["type"] for r in rows} == {"call", "put"}
+    assert rows[0]["oi"] == 500 and rows[0]["iv"] == 0.25
+    assert all(r["daysToExpiry"] == 30 for r in rows)
+
+
+def test_flatten_chain_refuses_synthetic():
+    chain = [{"strike": 100, "call": {"openInterest": 9999, "iv": 0.3}, "put": {}}]
+    assert om.flatten_chain_for_gex(chain, 30, synthetic=True) is None
+    assert om.flatten_chain_for_gex([], 30) is None
+
+
+def test_flatten_chain_defaults_bad_iv():
+    chain = [{"strike": 100, "call": {"openInterest": 10, "iv": 0}, "put": {"openInterest": 5}}]
+    rows = om.flatten_chain_for_gex(chain, 30)
+    assert all(r["iv"] == om.DEFAULT_IV for r in rows)
+
+
+def test_flatten_then_gex_end_to_end():
+    chain = [
+        {"strike": 95, "call": {"openInterest": 100, "iv": 0.3}, "put": {"openInterest": 900, "iv": 0.3}},
+        {"strike": 105, "call": {"openInterest": 800, "iv": 0.3}, "put": {"openInterest": 50, "iv": 0.3}},
+    ]
+    rows = om.flatten_chain_for_gex(chain, 30)
+    res = om.gamma_exposure(rows, spot=100.0)
+    assert res is not None
+    assert res["call_wall"] == 105  # net positive gamma from the heavy call OI
+    assert res["put_wall"] == 95    # net negative gamma from the heavy put OI
+
+
 # ---------------------------------------------------------------------------
 # SQN, Calmar, Ulcer, streak Z-score.
 # ---------------------------------------------------------------------------
