@@ -1515,3 +1515,25 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
      ahora abren un modal con cómo-se-mide + unidades, widget TradingView en vivo por mercado, FAQ
      (inglés, para snippets), ejemplo y accesos a calculadora + módulo profundo. 10 mercados. i18n ×8.
      (P-07/P-08/P-09; parte SEO de P-10 pendiente = JSON-LD en el generador de páginas SEO).
+
+### 2026-08-01 (cont.) — Aplicar la investigación del dueño + red estructural de asistente
+- 🧠 **Red estructural de Claude Code** (`.claude/`): 5 skills (`auditar-formulas`,
+  `revisar-contenido-trading`, `auditar-seo-spa`, `seguridad-pagos`, `consistencia-diseno`),
+  4 subagentes (`auditor-formulas`, `crawler-visual`, `revisor-seguridad`, `revisor-i18n-contenido`),
+  2 comandos (`/examen-web`, `/pre-deploy`) y `ARQUITECTURA_ASISTENTE.md` (índice que interconecta
+  skills/subagentes/comandos/docs/código). Adaptado al stack REAL (shim PostgreSQL, no MongoDB).
+- 🧮 **Huecos financieros deterministas implementados y verificados offline:**
+  - `options_math.py`: **vanna, charm** (griegas 2º orden, verificadas por diferencias finitas) +
+    `calculate_second_order_greeks()` + **`gamma_exposure()` (GEX)** con honestidad (OI sintético→None).
+  - `performance_metrics.py` (nuevo, stdlib): **SQN, Calmar, Ulcer, z-score de rachas, VaR
+    (paramétrico+histórico), CVaR, MAE/MFE** — todo con regla None-no-0. 15 tests nuevos con valores
+    de referencia; cableado aditivo en `compute_analytics` → clave `advanced`; 0 regresiones.
+  - **UI:** panel "Métricas de mesa (avanzadas)" en `AnalyticsDashboard.jsx` (SQN/Calmar/Ulcer/
+    Z/VaR/CVaR) con "—" honesto. i18n ×8 (5198 claves).
+- 📄 **Investigación preservada en el repo:** `docs/ROADMAP_JOURNAL_OPCIONES.md` (journal/opciones:
+  métricas + fases + estado) y `docs/AUDITORIA_FINAL_PRELANZAMIENTO.md` (huecos GEX/vol/VaR/vanna/
+  funding/roll + checklist de deploy). El reparto free/paid NO se toca (solo estudio).
+- 🔴 **Pendiente grande de estos docs** (mapeado, no hecho): panel UI de GEX + vanna/charm en el
+  workspace; skew/term-structure/expected-move; funding/basis cripto y roll yield futuros;
+  constructor visual de estrategias; journal de opciones multi-pata + import CSV por broker; CSP meta.
+- ✅ Verificado: `pytest` 15 nuevos + 38/7-skip sin regresiones; `i18n-check` 5198×8; `npm run build` exit 0.
