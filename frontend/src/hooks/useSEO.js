@@ -19,6 +19,8 @@ const LOCALE_META = {
   zh: { og: 'zh_CN', html: 'zh-CN', dir: 'ltr' },
   ja: { og: 'ja_JP', html: 'ja', dir: 'ltr' },
   ar: { og: 'ar_SA', html: 'ar', dir: 'rtl' },
+  pt: { og: 'pt_PT', html: 'pt', dir: 'ltr' },
+  it: { og: 'it_IT', html: 'it', dir: 'ltr' },
 };
 
 const SUPPORTED_LOCALES = Object.keys(LOCALE_META);
@@ -31,7 +33,7 @@ const SUPPORTED_LOCALES = Object.keys(LOCALE_META);
  *  - meta description / og:* / twitter:*
  *  - canonical link
  *  - <html lang="…" dir="…">
- *  - hreflang alternates for the current path across all 8 locales
+ *  - hreflang alternates for the current path across every locale
  *
  * Both literal strings and translation keys are accepted via `titleKey` /
  * `descriptionKey`. Plain `title` / `description` props still work.
@@ -83,7 +85,7 @@ export function useSEO({
 }
 
 /**
- * Replace the existing rel="alternate" hreflang link list to point all 8 locales
+ * Replace the existing rel="alternate" hreflang link list to point every locale
  * to the **current path** (instead of the static `/` from index.html). This is
  * what makes Google, Bing and Yandex serve the right localised version for
  * each user's region on every route — not just the homepage.

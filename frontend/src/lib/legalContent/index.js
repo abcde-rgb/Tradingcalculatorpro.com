@@ -11,8 +11,10 @@ import ru from './ru';
 import zh from './zh';
 import ja from './ja';
 import ar from './ar';
+import pt from './pt';
+import it from './it';
 
-const CONTENT = { es, en, de, fr, ru, zh, ja, ar };
+const CONTENT = { es, en, de, fr, ru, zh, ja, ar, pt, it };
 
 export function getLegalContent(locale) {
   return CONTENT[locale] || CONTENT.es;
