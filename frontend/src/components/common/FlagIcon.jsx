@@ -183,6 +183,22 @@ const FLAGS = {
       <path d="M12 4.6a3.4 3.4 0 010 6.8 1.7 1.7 0 010-3.4 1.7 1.7 0 001.7-1.7A1.7 1.7 0 0012 4.6z" fill="#0047a0" />
     </>
   ),
+  pt: (
+    <>
+      <R width="24" height="16" fill="#da291c" />
+      <R width="9.6" height="16" fill="#046a38" />
+      <circle cx="9.6" cy="8" r="3.1" fill="#ffe900" stroke="#ffe900" strokeWidth="0.4" />
+      <circle cx="9.6" cy="8" r="2.2" fill="#fff" stroke="#da291c" strokeWidth="0.7" />
+      <R x="8.5" y="6.9" width="2.2" height="2.2" rx="0.3" fill="#046a38" />
+    </>
+  ),
+  it: (
+    <>
+      <R width="24" height="16" fill="#fff" />
+      <R width="8" height="16" fill="#008c45" />
+      <R x="16" width="8" height="16" fill="#cd212a" />
+    </>
+  ),
   // Region / catch-all buckets used by the macro calendar
   world: (
     <>
@@ -196,6 +212,7 @@ const FLAGS = {
 // Language code → flag code (a language is not a country).
 export const LOCALE_FLAG = {
   es: 'es', en: 'gb', de: 'de', fr: 'fr', ru: 'ru', zh: 'cn', ja: 'jp', ar: 'sa',
+  pt: 'pt', it: 'it',
 };
 
 export function FlagIcon({ code, className = 'w-5 h-[13px]', title, ...rest }) {

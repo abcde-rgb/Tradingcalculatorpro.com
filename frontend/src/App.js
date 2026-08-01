@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
 import CookieBanner from "@/components/common/CookieBanner";
+import AdsBootstrap from "@/components/ads/AdsBootstrap";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { reloadFreshShell } from "@/lib/appShell";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -118,6 +119,7 @@ const AppContent = () => (
   <div className="App">
     <BrowserRouter basename={process.env.PUBLIC_URL}>
       <AnalyticsTracker />
+      <AdsBootstrap />
       <LangSync />
       <RefCapture />
       <Suspense fallback={<PageLoader />}>

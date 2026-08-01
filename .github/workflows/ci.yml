@@ -77,6 +77,11 @@ jobs:
       - name: Motores del frontend (simulador + sistema de trading)
         run: node scripts/engine-check.js
 
+      # "Con Premium no hay anuncios" es una promesa comercial: se comprueba,
+      # no se confía. Fija también que ninguna página de pago monte un AdSlot.
+      - name: Política de publicidad (Premium sin anuncios)
+        run: node scripts/ads-check.js
+
       # ESLint existía en el repo pero su configuración no parseaba NI UN
       # fichero (0 de 283): el parser de Babel abortaba en todos. Con el linter
       # mudo llegó a producción, entre otras cosas, un `idx` no definido que

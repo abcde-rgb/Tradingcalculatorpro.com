@@ -4,6 +4,7 @@ import { ArrowRight, CalendarClock } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
+import AdSlot from '@/components/ads/AdSlot';
 import { STRATEGIES, strategySlug, isMultiExpiryStrategy } from '@/data/mockData';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
@@ -107,6 +108,11 @@ export default function OptionsStrategyPage() {
           ))}
         </section>
 
+        {/* Entre el contenido y el CTA, con separación propia: un anuncio
+            pegado a un botón es la receta del clic accidental (y de la
+            suspensión de la cuenta de AdSense). */}
+        <AdSlot placement="article" />
+
         <section className="bg-card border border-border rounded-xl p-4">
           <h2 className="text-sm uppercase tracking-widest text-muted-foreground font-semibold mb-1">
             {t('optStrategyWhenToUse')}
@@ -139,6 +145,8 @@ export default function OptionsStrategyPage() {
             </ul>
           </section>
         )}
+
+        <AdSlot placement="bottom" />
       </main>
       <Footer />
     </div>
