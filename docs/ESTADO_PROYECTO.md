@@ -1537,3 +1537,22 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   workspace; skew/term-structure/expected-move; funding/basis cripto y roll yield futuros;
   constructor visual de estrategias; journal de opciones multi-pata + import CSV por broker; CSP meta.
 - ✅ Verificado: `pytest` 15 nuevos + 38/7-skip sin regresiones; `i18n-check` 5198×8; `npm run build` exit 0.
+
+### 2026-08-01 (cont. 2) — Pestaña "Dealers": GEX + vanna/charm en el workspace de opciones
+- 🎯 **Los huecos A y D de la auditoría pasan de "motor listo" a producto usable.**
+- **Backend:** `_load_options_chain()` (helper compartido; elimina el cuerpo duplicado del endpoint
+  de cadena) · `GET /options/gex/{symbol}` (GEX por strike, total, call/put wall) ·
+  `POST /calculate/greeks-advanced` (vanna/charm de las patas) · `flatten_chain_for_gex()`.
+- **Frontend:** `components/options/DealerPositioning.jsx` + pestaña **Dealers** en `OptionsSubHeader`:
+  tiles de GEX total/muros/spot, barras de exposición por strike centradas en el spot, y vanna/charm
+  de la estrategia activa. i18n ×8 (21 claves nuevas → 5217 c/u).
+- 🐛 **BUG DE HONESTIDAD ENCONTRADO Y CORREGIDO:** la cadena **sintética fabricaba `openInterest` y
+  `volume` aleatorios** y el endpoint los devolvía **sin marcar**. (El informe del dueño daba por
+  existente un `SyntheticDataBanner` que **no estaba en el código**.) Ahora la respuesta lleva
+  `synthetic: true` y **el GEX se niega a calcularse** sobre datos modelados o sin interés abierto
+  real → `gex: null` + aviso explícito en la UI, en vez de inventar muros de gamma.
+- ✅ Verificado: **144 passed / 74 skipped** (0 regresiones), 8 tests nuevos de GEX/flatten, la app
+  importa con **180 rutas**, `i18n-check` 5217×8, `npm run build` exit 0.
+- 🔴 Sigue pendiente de estos docs: skew/term-structure/expected-move; funding/basis cripto y roll
+  yield futuros; constructor visual de estrategias; journal de opciones multi-pata + import CSV;
+  CSP meta; ficha educativa `/learn/gex/`.

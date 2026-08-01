@@ -9,10 +9,10 @@
 
 | # | Hueco | Fórmula / nota | Estado |
 |---|---|---|:--:|
-| A | **GEX (Gamma Exposure) + niveles** | `GEX_i = Γ_i·OI_i·100·S²·0.01·signo` (+call,−put); call/put wall; gamma-flip | ✅ backend `gamma_exposure()` (OI sintético→None). 🔴 falta panel UI + `/learn/gex/` |
+| A | **GEX (Gamma Exposure) + niveles** | `GEX_i = Γ_i·OI_i·100·S²·0.01·signo` (+call,−put); call/put wall; gamma-flip | ✅ **completo**: `gamma_exposure()` + `GET /options/gex/{symbol}` + pestaña **Dealers** en el workspace. 🟡 falta ficha `/learn/gex/` |
 | B | **Superficie de vol accionable** | skew `IV_put25Δ−IV_call25Δ`, term structure, expected move `S·IV·√(T/365)` | 🟡 hay IV surface; falta explotarla |
 | C | **VaR / CVaR cartera** | paramétrico `z_α·σ`, histórico (percentil), CVaR = media de la cola | ✅ `performance_metrics.py` + UI (a nivel journal) |
-| D | **Vanna / charm** | `vanna=−e^(−qT)·φ(d1)·d2/σ`; `charm=∂Δ/∂t` | ✅ `options_math.py` (verificado por dif. finitas). 🔴 falta mostrar en GreeksStrip |
+| D | **Vanna / charm** | `vanna=−e^(−qT)·φ(d1)·d2/σ`; `charm=∂Δ/∂t` | ✅ **completo**: `options_math.py` (verificado por dif. finitas) + `POST /calculate/greeks-advanced` + visibles en la pestaña Dealers |
 | E | **Cripto: funding / basis / roll** | `funding_pnl=Σ rate·notional`; `basis=(F−S)/S` | 🔴 pendiente (calculadora) |
 | F | **Futuros: roll yield / contango** | `roll_yield≈(F_cercano−F_lejano)/F_lejano` anualizado; SPAN aprox. | 🔴 pendiente |
 | G | **Constructor visual de estrategias** (drag de patas, estilo OptionStrat) | evolución de `LegEditor` | 🔴 pendiente (alto esfuerzo) |
@@ -25,6 +25,13 @@
   (un CSP mal puesto rompe la web). 🔴
 - **[Medio] TradingView embed sin persistencia (G-05):** migrar a Advanced Charts + `save_load_adapter`. 🔴
 - **[Medio] Datos de opciones vía yfinance** (no OPRA): banner de origen/latencia. 🟡
+- **[Alto — ENCONTRADO Y CORREGIDO 2026-08-01] Cadena sintética sin marcar.** El informe daba por
+  hecho un `SyntheticDataBanner`/`_synthetic_marker` que **no existía en el código**: cuando no hay
+  cadena real, `generate_options_chain()` fabrica `openInterest`/`volume` **aleatorios** y el
+  endpoint los devolvía **sin avisar**. Corregido: la respuesta de `/options/chain/{symbol}` ahora
+  lleva `synthetic: true`, y el GEX **se niega a calcular** sobre datos modelados (devuelve `null`
+  + aviso en la UI). 🟢 Pendiente menor: marcar también OI/volumen como `None` en la propia cadena
+  y mostrar el banner en la vista de cadena.
 - **[Bajo] Preferencias solo en localStorage (BUG-007):** `PATCH /api/user/preferences`. 🔴
 - **[Bajo] Export PDF/imagen no homogéneo** en todas las calculadoras. 🟡
 
