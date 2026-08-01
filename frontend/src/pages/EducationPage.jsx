@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
+import MarketTypeDetailModal from '@/components/education/MarketTypeDetailModal';
 import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
@@ -386,6 +387,7 @@ export default function EducationPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRules, setExpandedRules] = useState(new Set([1, 2, 3]));
   const [selectedPattern, setSelectedPattern] = useState(null);
+  const [selectedMarketType, setSelectedMarketType] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [patternQuery, setPatternQuery] = useState('');
   const [patternTypeFilter, setPatternTypeFilter] = useState('all');
@@ -2260,7 +2262,15 @@ export default function EducationPage() {
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {TRADING_FUNDAMENTALS.marketTypes.items.map(item => (
-                    <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <Card
+                      key={item.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedMarketType(item)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedMarketType(item); } }}
+                      className="bg-card border-border hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer group"
+                      data-testid={`market-type-card-${item.id}`}
+                    >
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-base">
                           <span className="text-2xl">{item.icon}</span>
@@ -2269,7 +2279,12 @@ export default function EducationPage() {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground leading-relaxed mb-3">{item.desc}</p>
-                        <Badge variant="secondary" className="text-xs">{item.volume}</Badge>
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="secondary" className="text-xs">{item.volume}</Badge>
+                          <span className="text-[11px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                            {t('mktModalOpenDetail')} →
+                          </span>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -5285,6 +5300,21 @@ export default function EducationPage() {
           <PatternDetailModal
             pattern={selectedPattern}
             onClose={() => setSelectedPattern(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Market-type interactive detail modal (Fundamentals) */}
+      <AnimatePresence>
+        {selectedMarketType && (
+          <MarketTypeDetailModal
+            market={selectedMarketType}
+            onClose={() => setSelectedMarketType(null)}
+            onLearnMore={(topicId) => {
+              setSelectedMarketType(null);
+              setActiveTopic(topicId);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         )}
       </AnimatePresence>
