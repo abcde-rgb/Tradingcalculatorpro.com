@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from '@/lib/i18n';
 import { Search, Clock, TrendingUp, Star, ArrowUpRight, ArrowDownRight, X, Flame } from 'lucide-react';
 import { fetchStock, searchTickersAPI } from '../../services/optionsApi';
+import { searchTickersLocal } from '../../data/mockData';
 
 const TRENDING = ['SPY', 'NVDA', 'TSLA', 'AAPL', 'META', 'AMZN'];
 
@@ -52,17 +53,34 @@ const SearchBar = ({ currentTicker, stockData, onSelect }) => {
       return;
     }
 
-    // Instant local pre-filter for responsiveness
+    // Resultados locales EN EL MISMO TECLEO. Antes este bloque sólo encendía
+    // el spinner pese al comentario, así que cada letra esperaba una ida y
+    // vuelta al backend y no aparecía nada hasta terminar de escribir. Los
+    // locales van sin precio a propósito (ver `searchTickersLocal`).
+    const local = searchTickersLocal(query);
+    if (local.length > 0) {
+      setResults(local);
+      setActiveIdx(0);
+    }
+
     setLoading(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(async () => {
       try {
         const apiResults = await searchTickersAPI(query);
-        setResults(apiResults || []);
-        setActiveIdx(apiResults?.length > 0 ? 0 : -1);
+        // El backend manda cuando responde: trae precio y cobertura completa.
+        // Si no devuelve nada, se conservan los locales en vez de vaciar la
+        // lista que el usuario ya está viendo.
+        if (apiResults && apiResults.length > 0) {
+          setResults(apiResults);
+          setActiveIdx(0);
+        } else if (local.length === 0) {
+          setResults([]);
+          setActiveIdx(-1);
+        }
       } catch {
-        setResults([]);
+        if (local.length === 0) setResults([]);
       }
       setLoading(false);
     }, 80); // Very fast debounce for instant feel
@@ -257,14 +275,25 @@ const SearchBar = ({ currentTicker, stockData, onSelect }) => {
                             <p className="text-[11px] text-muted-foreground truncate max-w-[180px]">{highlightMatch(result.name || '', query)}</p>
                           </div>
                         </div>
+                        {/* Los resultados locales llegan sin precio: hasta que
+                            responde el backend no se pinta cifra alguna, en vez
+                            de un guarismo inventado o un "$undefined". */}
                         <div className="text-right flex-shrink-0 ml-3">
-                          <div className="text-sm font-bold text-foreground font-mono">${result.price?.toFixed(2)}</div>
-                          <div className={`text-[10px] font-semibold flex items-center justify-end gap-0.5 ${
-                            result.change >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'
-                          }`}>
-                            {result.change >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
-                            {result.change >= 0 ? '+' : ''}{result.changePercent}%
-                          </div>
+                          {typeof result.price === 'number' ? (
+                            <>
+                              <div className="text-sm font-bold text-foreground font-mono">${result.price.toFixed(2)}</div>
+                              {typeof result.changePercent === 'number' && (
+                                <div className={`text-[10px] font-semibold flex items-center justify-end gap-0.5 ${
+                                  result.change >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'
+                                }`}>
+                                  {result.change >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                                  {result.change >= 0 ? '+' : ''}{result.changePercent}%
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-[10px] text-muted-foreground font-mono">—</div>
+                          )}
                         </div>
                       </button>
                     );

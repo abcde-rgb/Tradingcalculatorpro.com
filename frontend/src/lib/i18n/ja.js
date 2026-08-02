@@ -3573,4 +3573,12 @@ export default {
   "optStrategyOpenInCalculator": "計算機で開く",
   "optStrategyRelated": "関連する構造",
   "optStrategyMultiExpiry": "各脚の満期が異なり、複数の期日が必要。",
+  "optExitTargetsTitle": "手仕舞い目標",
+  "optExitLevel": "水準",
+  "optExitTarget": "目標",
+  "optExitNet": "純損益",
+  "optExitFromDebit": "支払ったデビットは",
+  "optExitFromCredit": "受け取ったクレジットは",
+  "optExitOpenEnded": "チャート端でも曲線が上昇中：表示の最大値は価格ウィンドウのもので、戦略の上限ではありません。",
+  "optExitNote": "満期時の価格、往復手数料控除後。満期前に閉じると時間価値を残すことになります。",
 }

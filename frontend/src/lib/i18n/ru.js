@@ -3573,4 +3573,12 @@ export default {
   "optStrategyOpenInCalculator": "Открыть в калькуляторе",
   "optStrategyRelated": "Похожие структуры",
   "optStrategyMultiExpiry": "Её ноги имеют разные экспирации: нужна не одна дата.",
+  "optExitTargetsTitle": "Цели выхода",
+  "optExitLevel": "Уровень",
+  "optExitTarget": "Цель",
+  "optExitNet": "Чистый P&L",
+  "optExitFromDebit": "Вы заплатили дебет",
+  "optExitFromCredit": "Вы получили кредит",
+  "optExitOpenEnded": "Кривая всё ещё растёт у края графика: показанный максимум — это максимум окна, а не стратегии.",
+  "optExitNote": "Цены на экспирацию, комиссии туда-обратно вычтены. Закрытие до экспирации оставляет временную стоимость.",
 }

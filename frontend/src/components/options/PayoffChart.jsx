@@ -29,7 +29,32 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = null, labelA = 'A', labelB = 'B' }) => {
+/**
+ * Ajusta un precio al punto más cercano de la rejilla del gráfico.
+ *
+ * El eje X es CATEGÓRICO (`dataKey="price"` sin `type="number"`), así que una
+ * `ReferenceLine` sólo se dibuja si su `x` coincide EXACTAMENTE con un valor
+ * presente en los datos: un precio intermedio no pinta nada, y lo hace en
+ * silencio. La rejilla tiene 201 puntos, de modo que el desvío del ajuste es
+ * imperceptible. Devuelve null fuera del rango, para no dibujar una referencia
+ * que el gráfico no cubre.
+ */
+function snapToGrid(value, chartData) {
+  if (typeof value !== 'number' || !(value > 0) || !chartData || chartData.length === 0) return null;
+  const first = chartData[0].price;
+  const last = chartData[chartData.length - 1].price;
+  if (value < first || value > last) return null;
+  let best = first;
+  for (const d of chartData) {
+    if (Math.abs(d.price - value) < Math.abs(best - value)) best = d.price;
+  }
+  return best;
+}
+
+const PayoffChart = ({
+  data, breakEvens, stockPrice, title, legs = [], dataB = null, labelA = 'A', labelB = 'B',
+  high52w = null, low52w = null,
+}) => {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     // Merge strategy B payoff by price, aligned with A (same price grid)
@@ -115,6 +140,26 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = n
     fontSize: 10,
     fontFamily: 'JetBrains Mono'
   }), [stockPrice]);
+
+  // Máximo y mínimo de 52 semanas del subyacente.
+  //
+  // Dicen si el break-even cae en terreno que el precio ya ha pisado este año o
+  // si hace falta un máximo anual para ganar dinero — algo que la curva de
+  // payoff, por sí sola, no cuenta. Se recortan al dominio del gráfico a mano
+  // en vez de con `ifOverflow`: una referencia fuera de escala estira el eje y
+  // aplasta la curva, y el recorte declarado aquí es además comprobable.
+  const high52wX = useMemo(() => snapToGrid(high52w, chartData), [high52w, chartData]);
+  const low52wX = useMemo(() => snapToGrid(low52w, chartData), [low52w, chartData]);
+  const show52wHigh = high52wX !== null;
+  const show52wLow = low52wX !== null;
+  const high52wLabel = useMemo(() => ({
+    value: `52W ${high52w}`, position: 'insideTopRight', fill: '#38bdf8', fontSize: 9,
+    fontFamily: 'JetBrains Mono',
+  }), [high52w]);
+  const low52wLabel = useMemo(() => ({
+    value: `52W ${low52w}`, position: 'insideTopLeft', fill: '#38bdf8', fontSize: 9,
+    fontFamily: 'JetBrains Mono',
+  }), [low52w]);
 
   if (!data || data.length === 0) {
     return (
@@ -267,6 +312,26 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = n
                 label={breakEvenLabels[i]}
               />
             ))}
+
+            {/* Máximo y mínimo de 52 semanas del subyacente.
+                Dice si el break-even cae en una zona que el precio ha visitado
+                alguna vez en el último año o si hace falta un máximo histórico
+                para ganar dinero — que es lo que el payoff, por sí solo, no
+                cuenta. Sólo se pintan si están DENTRO del rango del gráfico:
+                una referencia fuera de escala comprime la curva y no informa
+                de nada. */}
+            {show52wHigh && (
+              <ReferenceLine
+                x={high52wX} stroke="#38bdf8" strokeDasharray="2 5" strokeWidth={1}
+                label={high52wLabel}
+              />
+            )}
+            {show52wLow && (
+              <ReferenceLine
+                x={low52wX} stroke="#38bdf8" strokeDasharray="2 5" strokeWidth={1}
+                label={low52wLabel}
+              />
+            )}
             <Area type="monotone" dataKey="profitArea" stroke="none" fill="url(#profitFill)" isAnimationActive={false} baseValue={0} />
             <Area type="monotone" dataKey="lossArea" stroke="none" fill="url(#lossFill)" isAnimationActive={false} baseValue={0} />
             <Area type="monotone" dataKey="pnlAtExpiry" stroke="#ffffff" strokeWidth={1.5} strokeOpacity={0.4} fill="none" dot={false} isAnimationActive={false} />
