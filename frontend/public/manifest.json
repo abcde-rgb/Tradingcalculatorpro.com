@@ -6,13 +6,23 @@
   "start_url": "%PUBLIC_URL%/?source=pwa",
   "scope": "%PUBLIC_URL%/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "browser"],
-  "launch_handler": { "client_mode": "navigate-existing" },
-  "background_color": "#09090b",
-  "theme_color": "#22c55e",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "browser"
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "background_color": "#080808",
+  "theme_color": "#080808",
   "orientation": "any",
   "lang": "es",
-  "categories": ["finance", "productivity", "utilities"],
+  "categories": [
+    "finance",
+    "productivity",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "%PUBLIC_URL%/favicon.svg",
@@ -20,15 +30,25 @@
       "type": "image/svg+xml"
     },
     {
-      "src": "%PUBLIC_URL%/apple-touch-icon.png",
-      "sizes": "180x180",
+      "src": "%PUBLIC_URL%/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "%PUBLIC_URL%/og-image.png",
-      "sizes": "1200x630",
+      "src": "%PUBLIC_URL%/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "%PUBLIC_URL%/icon-512-maskable.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
+    },
+    {
+      "src": "%PUBLIC_URL%/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
     }
   ],
   "screenshots": [

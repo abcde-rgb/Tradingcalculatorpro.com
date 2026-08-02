@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { TrendingUp, Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield, Bell, Users } from 'lucide-react';
+import { Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield, Bell, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import BrandMark from '@/components/common/BrandMark';
 import { useAuthStore } from '@/lib/store';
 import { useThemeStore } from '@/lib/theme';
 import { useTranslation, languages } from '@/lib/i18n';
@@ -82,9 +83,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2" data-testid="logo-link">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-primary" />
-            </div>
+            <BrandMark className="w-9 h-9 shrink-0" />
             <span className="font-unbounded font-bold text-lg hidden sm:block">
               Trading Calculator <span className="text-primary">PRO</span>
             </span>
