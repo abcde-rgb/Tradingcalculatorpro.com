@@ -2751,3 +2751,89 @@ y se aplica a todo lo que lleva logo.
   página estática) · favicons revisados a 16/32/180 px.
 - ⚠️ **Pendiente**: `favicon` por tema (el pack trae variantes oro y nasdaq, ya
   copiadas a `public/`) y revisión nativa de las traducciones pt/it.
+
+### 2026-08-02 (4) — Estudio de rediseño y paridad con `options-strategies.com`
+Encargo del propietario: estudiar esa web a fondo, rediseñar la nuestra para que
+**no se parezca** pero tenga **las mismas calculadoras y funciones**, y estudiar
+la reestructuración del repositorio. Resultado en
+[`REDISENO_PARIDAD_2026-08-02.md`](./REDISENO_PARIDAD_2026-08-02.md) (documento,
+sin cambios de código).
+
+- ⛔ **La web de referencia está bloqueada por la política de salida de red** del
+  entorno remoto (`403` al CONNECT contra `options-strategies.com:443`, tanto por
+  `WebFetch` como por `curl`). No se ha rodeado el bloqueo. El análisis de esa web
+  se sostiene sobre el índice de búsqueda (URLs, títulos y fragmentos suyos), que
+  da su arquitectura y su modelo, **pero no su diseño**: «que no se parezca» queda
+  sin verificación visual hasta que se permita el dominio o lleguen capturas.
+- 🔴 **Hallazgo que bloquea todo lo demás**: el commit `ba8b09ed` («calcular los
+  extremos del payoff sobre la posición, no sobre el ancho del gráfico») **quedó
+  huérfano** en `claude/google-ads-monetization-nd9l81` cuando se mergeó el PR
+  #167. Verificado: `payoffBounds`/`payoff_bounds` no existen en `main`, y
+  `strategyStats.js:116` sigue decidiendo «ilimitado» comparando la rejilla de
+  ±30-35% con `MAX_UNLIMITED = 5_000_000`, umbral que con spot 100 no se cruza
+  nunca. **Hoy `main` enseña pérdida máxima finita en una call vendida desnuda.**
+  El fix ya está escrito y verificado (11 tests, paridad JS↔Python): rescatarlo es
+  lo primero.
+- 📋 **Sin mergear**: 5 PRs de producto (#161 contraste WCAG en CI, #162
+  honestidad de los escáneres, #163 Dealers + métricas pro, #164 lucide v1, #165
+  acceso comp), 13 de Dependabot, y 7 ramas con trabajo sin PR — entre ellas
+  `competitive-feature-analysis-8mzm3p`, que lleva un **fix de max drawdown
+  (running peak)** del mismo tipo. `scanner-data-review` y
+  `trading-web-analysis-ktsvkd` son duplicados de #162 y #161. **48 ramas remotas
+  en total**; 11 son forks de mayo-junio con 226-330 commits divergentes.
+- 🔎 **Paridad**: el motor está por encima de la referencia en casi todo. Los
+  huecos reales son de producto, no de matemáticas: superficie pública cero
+  (las 1.589 URLs enlazan a `/dashboard?tab=`, que es `premiumOnly`), no hay
+  puerta de entrada por intención (`/optimize` existe pero enterrado), las 14
+  calculadoras no tienen URL propia (pestañas de `/dashboard`), no hay ficha
+  pública por concepto, y el Monte Carlo es sobre el sistema, no sobre la
+  posición de opciones.
+- ⚠️ **Incoherencia documental detectada**: `CLAUDE.md` sigue afirmando que
+  «`/options` es público; el workspace es `/options/calculator`». Desde el muro
+  duro del 2026-08-02 las dos son `premiumOnly` (`App.js:135-138`).
+- 🧭 **Decisión pendiente del propietario** (§10 del documento): mantener el muro
+  total, o abrir las calculadoras y el catálogo sobre datos de ejemplo y dejar el
+  muro donde el producto es insustituible (dato vivo, guardar, IA, journal). La
+  recomendación es la segunda; es reversible y `ProtectedRoute` ya lo soporta.
+
+### 2026-08-02 (5) — Verificación del diario: qué está hecho y qué no
+Pregunta del propietario («¿lo del journal y todo eso está hecho o no? revisa
+código en ramas») cruzada con su investigación de mercado de journals del
+2026-08-01. Detalle en
+[`PLAN_JOURNAL_OPCIONES_2026-08-02.md`](./PLAN_JOURNAL_OPCIONES_2026-08-02.md) y
+en la §6.5 de [`REDISENO_PARIDAD_2026-08-02.md`](./REDISENO_PARIDAD_2026-08-02.md).
+
+- ✅ **El diario de `/performance` está hecho y al nivel del estándar**: CRUD,
+  alta masiva, import CSV con detección de bróker (MetaTrader, IBKR, Binance,
+  Bybit), operaciones de opciones de una pata, curva de equity, calendario de
+  PnL, distribución de R, MAE/MFE, sesgos, insights, expectancy, profit factor,
+  Sharpe y Sortino, y desglose por día/setup/símbolo.
+- ⚠️ **Hay DOS diarios y uno no lleva a ninguna parte.**
+  `components/tools/TradingJournal.jsx` (`DashboardPage.jsx:445`) guarda en
+  `localStorage['trading-journal-storage']` y **no hace ni una llamada de red**,
+  mientras `JournalStats` (`DashboardPage.jsx:276`), en la misma página, enseña
+  las cifras del diario de rendimiento. Quien apunta en el de abajo ve que las
+  estadísticas de arriba no se mueven y pierde lo apuntado al cambiar de
+  dispositivo. Los endpoints `POST/GET/PUT/DELETE /journal/trades` no los llama
+  nadie desde el frontend; sólo se usa `/journal/stats`.
+- ❌ **El plan de trading sigue sin interfaz.** Verificado en `main` y en las
+  cinco ramas vivas: **cero llamadas a `/plan`, `/plan/history`, `/plan/draft` o
+  `/plan/compliance`** desde `frontend/src`. Lo que el usuario rellena hoy es el
+  modelo de la academia (`components/education/tradingSystemModel.js`, clave
+  `tcp-trading-setup`), que vive en localStorage y no habla con el backend.
+  Consecuencia: `get_active_plan()` nunca devuelve nada, `detect_errors` cae
+  siempre en `DEFAULT_MIN_RR`/`DEFAULT_MAX_RISK_PCT` y la tasa de cumplimiento
+  **sigue midiendo la opinión de la app, no el plan del usuario** — el bug que el
+  trabajo del 2026-07-30 arregló en el backend y que no llega al usuario por
+  falta de un formulario.
+- 🌿 **Las métricas de mesa están sólo en una rama**: SQN, Calmar, Ulcer,
+  Z-score de rachas y VaR/CVaR viven en `backend/performance_metrics.py`
+  (195 líneas + `test_advanced_metrics_unit.py`) del PR #163. En `main` no hay
+  ninguna de las cinco. Son 65 líneas de integración para un motor ya escrito.
+- 🔴 **Bloqueo del diario de opciones**: `make_trade_doc` es de **una sola pata**
+  (`option_type`/`strike`/`expiry` en singular, 0 apariciones de `legs` en
+  `performance.py`). Una iron condor no se puede registrar como una posición. La
+  migración a `legs[]` es barata ahora —los datos ya son JSONB, no hay
+  `ALTER TABLE`— y cara después; desbloquea toda la fase de opciones (griegas e
+  IV selladas en la entrada, theta capturada vs PnL real, PnL por DTE y por IV
+  rank, rolls y asignaciones).
