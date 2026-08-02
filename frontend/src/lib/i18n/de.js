@@ -3534,4 +3534,12 @@ export default {
   "optStrategyOpenInCalculator": "Im Rechner öffnen",
   "optStrategyRelated": "Verwandte Strukturen",
   "optStrategyMultiExpiry": "Die Beine haben unterschiedliche Verfallstermine: mehr als ein Datum nötig.",
+  "optExitTargetsTitle": "Ausstiegsziele",
+  "optExitLevel": "Stufe",
+  "optExitTarget": "Ziel",
+  "optExitNet": "Netto-P&L",
+  "optExitFromDebit": "Sie zahlten ein Debit von",
+  "optExitFromCredit": "Sie erhielten ein Kredit von",
+  "optExitOpenEnded": "Die Kurve steigt am Rand des Charts weiter: das gezeigte Maximum ist das des Fensters, nicht der Strategie.",
+  "optExitNote": "Preise bei Verfall, Hin- und Rückgebühren abgezogen. Ein Schließen vor Verfall lässt Zeitwert liegen.",
 }
