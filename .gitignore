@@ -82,3 +82,16 @@ chainlit.md
 
 # Claude worktrees (local only)
 .claude/worktrees/
+
+# Empaquetado para tiendas (docs/PUBLICAR_EN_TIENDAS.md)
+# El keystore de firma NUNCA entra al repo: quien lo tenga puede publicar
+# actualizaciones de la app en tu nombre, y perderlo impide actualizarla jamás.
+*.keystore
+*.jks
+packaging/android/
+packaging/*.keystore
+android/
+
+# Informes de test generados (el .gitkeep sí se versiona)
+test_reports/*.json
+test_reports/pytest/

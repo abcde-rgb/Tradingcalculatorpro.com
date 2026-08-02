@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useIsPremium } from '@/lib/premium';
 import { runSimulation } from './simulator/simulatorEngine';
+import MonteCarloPanel from './simulator/MonteCarloPanel';
 import SimulatorLocked from './simulator/SimulatorLocked';
 import SimulatorConfigPanel from './simulator/SimulatorConfigPanel';
 import SimulatorResults from './simulator/SimulatorResults';
@@ -58,6 +59,12 @@ export function SimulatorPro() {
   // Output
   const [results, setResults] = useState(null);
   const [operations, setOperations] = useState([]);
+  const [lastConfig, setLastConfig] = useState(null);
+  // Trayectoria mediana del último barrido de Monte Carlo, cuando el usuario lo
+  // ha lanzado. Sustituye a la tirada suelta en las tarjetas de cabecera: leer
+  // un ROI arbitrario justo encima de un rango P5–P95 es el error que la propia
+  // distribución venía a corregir.
+  const [mcMedian, setMcMedian] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfig, setShowConfig] = useState(true);
 
@@ -126,17 +133,22 @@ export function SimulatorPro() {
     return { start, end };
   };
 
+  const buildConfig = () => ({
+    initialBalance, capitalMode, phases, compoundInterest,
+    tradingComm, platformComm,
+    fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
+    fixedPartialTps, fixedPartialLegs, fixedPartialCont,
+  });
+
   const executeSimulation = () => {
     if (!isPremium) return;
     setIsLoading(true);
-    const { operations: ops, results: agg } = runSimulation({
-      initialBalance, capitalMode, phases, compoundInterest,
-      tradingComm, platformComm,
-      fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
-      fixedPartialTps, fixedPartialLegs, fixedPartialCont,
-    });
+    const cfg = buildConfig();
+    const { operations: ops, results: agg } = runSimulation(cfg);
     setResults(agg);
     setOperations(ops);
+    setLastConfig(cfg);
+    setMcMedian(null);   // la config cambió: el barrido anterior ya no aplica
     setShowConfig(false);
     setIsLoading(false);
   };
@@ -144,6 +156,8 @@ export function SimulatorPro() {
   const resetSimulation = () => {
     setResults(null);
     setOperations([]);
+    setLastConfig(null);
+    setMcMedian(null);
     setShowConfig(true);
   };
 
@@ -174,9 +188,18 @@ export function SimulatorPro() {
 
       {results && (
         <SimulatorResults
-          results={results}
-          operations={operations}
+          results={mcMedian ? mcMedian.results : results}
+          operations={mcMedian ? mcMedian.operations : operations}
+          isMedianOfSweep={Boolean(mcMedian)}
           onReset={resetSimulation}
+        />
+      )}
+
+      {/* One path is a sample, not a forecast — the distribution is next. */}
+      {results && lastConfig && (
+        <MonteCarloPanel
+          config={lastConfig}
+          onResult={(mc) => setMcMedian(mc?.medianPath || null)}
         />
       )}
     </div>

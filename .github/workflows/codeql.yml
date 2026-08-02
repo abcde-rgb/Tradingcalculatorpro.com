@@ -1,0 +1,52 @@
+# ============================================================
+# CodeQL — análisis estático de seguridad (G-07 del examen final).
+# Complementa a Dependabot: Dependabot mira las DEPENDENCIAS,
+# CodeQL mira NUESTRO código (inyección, XSS, secretos en claro,
+# rutas peligrosas...).
+# ============================================================
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Lunes 06:00 UTC: coge vulnerabilidades nuevas publicadas para patrones
+    # que ya estaban en el código sin que nadie tocara nada.
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  analyze:
+    name: Analizar (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['python', 'javascript-typescript']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # security-extended añade consultas de menor severidad que las
+          # predeterminadas; en una app financiera compensa el ruido extra.
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Analizar
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'

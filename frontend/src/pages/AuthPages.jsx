@@ -543,7 +543,7 @@ export const ResetPasswordPage = () => {
     setError('');
     setIsLoading(true);
     try {
-      const res = await fetch(`${API}/auth/reset-password`, {
+      const res = await fetch(`${API}/auth/reset-password`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, new_password: password }),
@@ -630,7 +630,7 @@ export const ForgotPasswordPage = () => {
       return;
     }
     try {
-      await fetch(`${API}/auth/forgot-password`, {
+      await fetch(`${API}/auth/forgot-password`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -711,7 +711,7 @@ const MagicLinkButton = () => {
     if (!API) { toast.error('Backend no configurado'); return; }
     setIsLoading(true);
     try {
-      const res = await fetch(`${API}/auth/magic-link`, {
+      const res = await fetch(`${API}/auth/magic-link`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -785,7 +785,7 @@ export const MagicPage = () => {
     if (!API) { setStatus('no-backend'); return; }
     (async () => {
       try {
-        const res = await fetch(`${API}/auth/magic-link/verify`, {
+        const res = await fetch(`${API}/auth/magic-link/verify`, { credentials: 'include',
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),

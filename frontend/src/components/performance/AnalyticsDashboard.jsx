@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
+  ScatterChart, Scatter,
 } from 'recharts';
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
@@ -312,7 +313,8 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal }) {
           testId="kpi-exp" />
         <KpiCard icon={Layers} label={t('kpiAvgR')}
           value={`${a.avg_r > 0 ? '+' : ''}${a.avg_r}R`}
-          subValue={t('kpiSharpeShort', { val: a.sharpe_ratio }) || `Sharpe ${a.sharpe_ratio}`}
+          subValue={a.annualized ? t('kpiSharpeShort', { val: a.sharpe_ratio })
+            : t('kpiSharpePerTrade', { val: a.sharpe_per_trade ?? a.sharpe_ratio })}
           color={a.avg_r > 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}
           testId="kpi-r" />
         <KpiCard icon={TrendingUp} label={t('kpiTotalPnL')}
@@ -380,11 +382,89 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal }) {
         </div>
       </div>
 
+      {/* MAE / MFE — stop and target calibration */}
+      {a.excursion?.available && (
+        <div className="bg-card border border-border rounded-xl p-5" data-testid="excursion-card">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1">
+            {t('excTitle')}
+          </h3>
+          <p className="text-xs text-muted-foreground/80 mb-4">{t('excIntro')}</p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+            <div className="bg-muted/40 rounded-lg border border-border/40 p-3">
+              <p className="text-[11px] text-muted-foreground mb-1">{t('excAvgMae')}</p>
+              <p className="text-lg font-bold">{a.excursion.avg_mae_r ?? '—'}R</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg border border-border/40 p-3">
+              <p className="text-[11px] text-muted-foreground mb-1">{t('excAvgMfe')}</p>
+              <p className="text-lg font-bold">{a.excursion.avg_mfe_r ?? '—'}R</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg border border-border/40 p-3">
+              <p className="text-[11px] text-muted-foreground mb-1">{t('excWinnersP80')}</p>
+              <p className="text-lg font-bold">{a.excursion.winners_mae_p80 ?? '—'}R</p>
+            </div>
+            <div className="bg-muted/40 rounded-lg border border-border/40 p-3">
+              <p className="text-[11px] text-muted-foreground mb-1">{t('excGaveBack')}</p>
+              <p className="text-lg font-bold">
+                {a.excursion.losers_gave_back}/{a.excursion.losers_sample}
+              </p>
+            </div>
+            <div className="bg-muted/40 rounded-lg border border-border/40 p-3"
+                 title={t('excCaptureHint')}>
+              <p className="text-[11px] text-muted-foreground mb-1">{t('excCapture')}</p>
+              <p className={`text-lg font-bold ${
+                a.excursion.capture_ratio != null && a.excursion.capture_ratio < 0.4
+                  ? 'text-[#f59e0b]' : ''
+              }`}>
+                {a.excursion.capture_ratio != null
+                  ? `${Math.round(a.excursion.capture_ratio * 100)}%`
+                  : '—'}
+              </p>
+            </div>
+          </div>
+          {a.excursion.suggested_stop_r && (
+            <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 mb-4">
+              <p className="text-xs text-foreground">
+                {t('excStopSuggestion', {
+                  p80: a.excursion.winners_mae_p80,
+                  suggested: a.excursion.suggested_stop_r,
+                })}
+              </p>
+            </div>
+          )}
+          {/* MAE against outcome: the scatter a professional opens a new journal
+              to look at. Points hugging the left axis with positive R mean the
+              stop is far wider than the evidence requires. */}
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 8, right: 12, bottom: 24, left: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <XAxis type="number" dataKey="mae_r" name="MAE"
+                  label={{ value: t('excAxisMae'), position: 'insideBottom', offset: -12, fontSize: 11 }}
+                  tick={{ fontSize: 11 }} />
+                <YAxis type="number" dataKey="r" name="R"
+                  label={{ value: t('excAxisR'), angle: -90, position: 'insideLeft', fontSize: 11 }}
+                  tick={{ fontSize: 11 }} />
+                <ReferenceLine y={0} stroke="#6b7280" />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }}
+                  formatter={(v, n) => [`${v}R`, n]} />
+                <Scatter data={(a.excursion.scatter || []).filter((d) => d.mae_r != null && d.r != null)}
+                  fill="#6366f1" />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* R distribution */}
       <div className="bg-card border border-border rounded-xl p-5">
         <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3">
           {t('rDistribution')}
         </h3>
+        {a.trades_without_r > 0 && (
+          <p className="text-xs text-amber-500 mb-3" data-testid="r-partial-sample">
+            {t('rSamplePartial', { excluded: a.trades_without_r, n: a.r_sample_size })}
+          </p>
+        )}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {Object.entries(a.r_distribution).map(([bucket, count]) => {
             const pct = a.closed_trades > 0 ? (count / a.closed_trades) * 100 : 0;

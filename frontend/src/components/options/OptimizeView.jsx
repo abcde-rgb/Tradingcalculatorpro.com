@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Loader2, Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight } from 'lucide-react';
+import { Loader2, Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight, AlertTriangle, ShieldAlert, Sigma, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -40,7 +43,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/api/optimize`, {
+      const res = await fetch(`${API}/api/optimize`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -130,16 +133,24 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
           {/* Expiration */}
           <div>
             <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">{t('vencimientoObjetivo_0277d0')}</label>
-            <select
-              value={expirationIdx}
-              onChange={(e) => setExpirationIdx(Number(e.target.value))}
-              className="w-full bg-muted border border-border rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary"
-              data-testid="expiration-select"
+            <Select
+              value={String(expirationIdx)}
+              onValueChange={(v) => setExpirationIdx(Number(v))}
             >
-              {(expirations || []).map((exp, idx) => (
-                <option key={exp.date} value={idx}>{exp.fullLabel} · {exp.daysToExpiry}d</option>
-              ))}
-            </select>
+              <SelectTrigger
+                data-testid="expiration-select"
+                className="w-full h-11 bg-muted border-border rounded-lg px-3 text-sm text-foreground shadow-none focus:border-primary"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-[60vh]">
+                {(expirations || []).map((exp, idx) => (
+                  <SelectItem key={exp.date} value={String(idx)} className="focus:bg-primary/15 focus:text-primary data-[state=checked]:text-primary">
+                    {exp.fullLabel} · {exp.daysToExpiry}d
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Mode */}
@@ -182,6 +193,19 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
 
       {error && (
         <div className="bg-[#ef4444]/10 border border-[#ef4444]/40 rounded-lg p-3 text-sm text-[#f87171]">{error}</div>
+      )}
+
+      {/* A modelled chain is fine to explore with and unacceptable to trade off
+          unlabelled. The backend flags it; this is where the user sees it. */}
+      {results?.synthetic && (
+        <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/50 rounded-lg p-3 flex gap-2.5"
+          data-testid="synthetic-warning">
+          <AlertTriangle className="w-4 h-4 text-[#f59e0b] flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-[#fbbf24] leading-relaxed">
+            <strong className="block mb-0.5">{t('synthDataTitle')}</strong>
+            {t('synthDataBody')}
+          </div>
+        </div>
       )}
 
       {/* Results */}
@@ -275,10 +299,46 @@ const StrategyCard = ({ rank, result, onOpen }) => {
         </ResponsiveContainer>
       </div>
 
-      {/* Metrics */}
+      {/* Undefined risk, stated BEFORE the attractive metrics.
+          A short straddle is the photographic negative of the long straddle the
+          Academy teaches — same two strikes, a loss that is bounded by the
+          premium if you buy it and effectively unbounded if you sell it. Someone
+          who knows the word can assemble it here believing it is "the same thing
+          but sold", so the warning belongs on the card, not in a footnote. */}
+      {result.isUndefinedRisk && (
+        <div className="mb-3 rounded-lg border border-[#ef4444]/50 bg-[#ef4444]/10 px-2.5 py-2 flex gap-2"
+          data-testid={`undefined-risk-${result.strategyId}`}>
+          <ShieldAlert className="w-3.5 h-3.5 text-[#ef4444] flex-shrink-0 mt-0.5" />
+          <p className="text-[10px] leading-snug text-[#fca5a5]">
+            <strong>{t('riskUndefinedTitle')}</strong> {t('riskUndefinedBody')}
+          </p>
+        </div>
+      )}
+      {result.riskLevel === 'substantial' && (
+        <div className="mb-3 rounded-lg border border-[#f59e0b]/50 bg-[#f59e0b]/10 px-2.5 py-2 flex gap-2">
+          <ShieldAlert className="w-3.5 h-3.5 text-[#f59e0b] flex-shrink-0 mt-0.5" />
+          <p className="text-[10px] leading-snug text-[#fbbf24]">
+            <strong>{t('riskSubstantialTitle')}</strong> {t('riskSubstantialBody')}
+          </p>
+        </div>
+      )}
+
+      {/* Metrics. Expected value first: ROI-at-target selects the furthest OTM
+          lottery tickets and POP selects premium selling — neither measures edge. */}
       <div className="grid grid-cols-2 gap-1.5 mb-3">
+        {result.expectedValue !== undefined && (
+          <Metric icon={Sigma} label={t('metricEV')}
+            value={`$${result.expectedValue}`}
+            color={result.expectedValue >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'} />
+        )}
+        {result.cvar5 !== undefined && (
+          <Metric icon={ShieldAlert} label={t('metricCVaR')} value={`$${result.cvar5}`} color="text-[#f87171]" />
+        )}
         <Metric icon={Zap} label="ROI" value={`${result.roi}%`} color="text-[#fbbf24]" />
         <Metric icon={Percent} label="POP" value={`${result.pop}%`} color="text-primary" />
+        {result.probTouchBreakEven != null && (
+          <Metric icon={Activity} label={t('metricTouch')} value={`${result.probTouchBreakEven}%`} color="text-[#fbbf24]" />
+        )}
         <Metric icon={TrendingUp} label={t('profitMax_op008')} value={result.maxProfitUnlimited ? '∞' : `$${result.maxProfit}`} color="text-[#4ade80]" />
         <Metric icon={Wallet} label={t('capital_op009')} value={`$${result.capitalRequired}`} color="text-[#a78bfa]" />
       </div>

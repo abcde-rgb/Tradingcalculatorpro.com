@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef, Fragment } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
@@ -8,7 +8,7 @@ import {
   Zap, TrendingDown, Percent, AlertCircle, ChevronDown, ChevronUp,
   Send, Languages, CreditCard, UserMinus, Share2, Package,
   Construction, Bug, Gauge, Lock, Settings, Database, ToggleLeft,
-  Layers, Gift, Wallet,
+  Layers, Gift, Wallet, AlertTriangle,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -34,6 +34,43 @@ import { toast } from 'sonner';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 const DEMO_TOKEN = 'demo-token';
+
+/**
+ * ¿El bearer de estas cabeceras sirve para llamar al backend?
+ *
+ * Tras recargar la página el token vive sólo en memoria (Zustand), así que
+ * arranca a `null` y la cabecera queda literalmente en `"Bearer null"` hasta
+ * que el refresco silencioso trae uno nuevo.
+ */
+const bearerIsReady = (headers) => {
+  const bearer = headers?.Authorization || '';
+  return Boolean(bearer) && !bearer.endsWith('null') && !bearer.includes(DEMO_TOKEN);
+};
+
+/**
+ * Carga de una tarjeta del panel que ESPERA a tener un token utilizable.
+ *
+ * El fallo que evita: un `useEffect(..., [])` que llama al backend al montar
+ * dispara, justo después de un F5, una petición con `Bearer null`. El backend
+ * responde 401 y —como el efecto no depende de `headers`— no se reintenta
+ * jamás: la tarjeta se queda vacía (o suelta un toast de error falso) hasta que
+ * el usuario navega de nuevo. Depender de `headers` es lo que hace que la carga
+ * se relance sola en cuanto el token real llega.
+ *
+ * Mientras el token no está listo NO se apaga `loading`: la tarjeta enseña su
+ * spinner, que es la verdad (está esperando). Sólo se apaga cuando no va a
+ * llegar nada nunca: sin backend configurado o en modo demo.
+ */
+function useAuthedLoad(headers, load, setLoading, extraDeps = []) {
+  const ready = bearerIsReady(headers);
+  const isDemo = (headers?.Authorization || '').includes(DEMO_TOKEN);
+  useEffect(() => {
+    if (!API || isDemo) { setLoading?.(false); return; }
+    if (!ready) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headers, ready, isDemo, ...extraDeps]);
+}
 
 const PLAN_OPTIONS = [
   { value: 'none',      label: 'Free' },
@@ -429,6 +466,7 @@ export default function AdminPage() {
         </div>
 
         {/* Usage Heatmap — qué miran más los usuarios */}
+        <PaymentReconciliationCard headers={headers} />
         <UsageHeatmapCard headers={headers} />
 
         {/* Coupon Manager */}
@@ -621,7 +659,7 @@ function IntegrationsEditor({ headers, t }) {
 
   const load = async () => {
     try {
-      const res = await fetch(`${API}/admin/settings`, { headers });
+      const res = await fetch(`${API}/admin/settings`, { credentials: 'include', headers });
       if (res.status === 401) {
         // Let the parent auth flow handle session expiry — don't redirect here.
         return;
@@ -709,7 +747,7 @@ function IntegrationsEditor({ headers, t }) {
         setSaving(false);
         return;
       }
-      const res = await fetch(`${API}/admin/settings`, {
+      const res = await fetch(`${API}/admin/settings`, { credentials: 'include',
         method: 'PUT',
         headers,
         body: JSON.stringify(body),
@@ -821,7 +859,7 @@ function CreateUserDialog({ open, onClose, headers, onCreated }) {
     }
     setBusy(true);
     try {
-      const res = await fetch(`${API}/admin/users`, {
+      const res = await fetch(`${API}/admin/users`, { credentials: 'include',
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -1137,7 +1175,7 @@ function AuditLogPanel({ headers }) {
     if (actionFilter !== 'all') params.set('action', actionFilter);
     if (emailFilter.trim()) params.set('target_email', emailFilter.trim());
     try {
-      const res = await fetch(`${API}/admin/audit-log?${params.toString()}`, { headers });
+      const res = await fetch(`${API}/admin/audit-log?${params.toString()}`, { credentials: 'include', headers });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRows(data.logs || []);
@@ -1149,7 +1187,7 @@ function AuditLogPanel({ headers }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   return (
     <Card className="bg-card border-border" data-testid="audit-log-panel">
@@ -1261,7 +1299,7 @@ function RevenueAnalyticsCard({ metrics, headers }) {
   const [stats, setStats] = useState({ churn: null, conversion: null, ltv: {} });
 
   useEffect(() => {
-    fetch(`${API}/admin/revenue`, { headers }).then(r => r.ok ? r.json() : null).then(d => {
+    fetch(`${API}/admin/revenue`, { credentials: 'include', headers }).then(r => r.ok ? r.json() : null).then(d => {
       if (d?.history) setHistory(d.history);
       if (d?.churn !== undefined) setStats(s => ({ ...s, churn: d.churn, conversion: d.conversion, ltv: d.ltv || {} }));
     }).catch(() => {});
@@ -1403,7 +1441,7 @@ function UsageAnalyticsCard({ headers }) {
   const [activeUsers, setActiveUsers] = useState({ day: null, week: null, month: null });
 
   useEffect(() => {
-    fetch(`${API}/admin/usage`, { headers }).then(r => r.ok ? r.json() : null).then(d => {
+    fetch(`${API}/admin/usage`, { credentials: 'include', headers }).then(r => r.ok ? r.json() : null).then(d => {
       if (d?.calc_usage) setData(d.calc_usage);
       if (d?.active_users) setActiveUsers(d.active_users);
     }).catch(() => {});
@@ -1445,6 +1483,133 @@ function UsageAnalyticsCard({ headers }) {
 /* ============================================================
  *  USAGE HEATMAP — qué miran más los usuarios
  * ============================================================ */
+
+/**
+ * PaymentReconciliationCard — money taken vs premium granted.
+ *
+ * The failure it exists for is silent: a customer pays, the webhook is lost,
+ * and the first signal is a complaint. Nothing errors, so nothing shows up in
+ * the logs. This puts the discrepancy on screen and lets an admin repair it in
+ * one click (the backend only allows it for genuinely paid transactions).
+ */
+function PaymentReconciliationCard({ headers }) {
+  const [data, setData] = useState(null);
+  const [health, setHealth] = useState(null);
+  const [busy, setBusy] = useState(null);
+
+  const bearerReady = (h) => {
+    const b = h?.Authorization || '';
+    // Right after a refresh the token is briefly 'Bearer null'.
+    return !!API && !!b && !b.endsWith('null') && !b.includes(DEMO_TOKEN);
+  };
+
+  const load = useCallback(() => {
+    if (!bearerReady(headers)) return;
+    fetch(`${API}/admin/payments/reconciliation`, { headers, credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null)).then(setData).catch(() => {});
+    fetch(`${API}/admin/payments/webhook-health`, { headers, credentials: 'include' })
+      .then(r => (r.ok ? r.json() : null)).then(setHealth).catch(() => {});
+  }, [headers]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const grant = async (txId) => {
+    setBusy(txId);
+    try {
+      const res = await fetch(`${API}/admin/payments/${txId}/grant`, {
+        method: 'POST', headers, credentials: 'include',
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Error ${res.status}`);
+      toast.success(body.already_premium ? 'El usuario ya era premium' : 'Premium concedido');
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const c = data?.counts || {};
+  const alerts = (health?.providers || []).filter(p => p.alert);
+
+  return (
+    <Card className="bg-card border-border" data-testid="payment-reconciliation">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <CardTitle className="text-base flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          Conciliación de pagos
+        </CardTitle>
+        <Button size="sm" variant="outline" onClick={load}>Actualizar</Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            ['Pagados sin premium', c.paid_not_premium, 'text-red-500'],
+            ['Pendientes antiguos', c.stale_pending, 'text-amber-500'],
+            ['Premium sin pago', c.premium_no_payment, 'text-muted-foreground'],
+          ].map(([label, n, tone]) => (
+            <div key={label} className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+              <div className={`font-mono font-bold text-xl ${n > 0 ? tone : ''}`}>{n ?? '—'}</div>
+            </div>
+          ))}
+        </div>
+
+        {alerts.length > 0 && (
+          <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3">
+            <div className="text-xs font-semibold text-red-500 mb-1">
+              Sin webhooks recientes: {alerts.map(a => a.provider).join(', ')}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Hay {health?.active_paid_subscriptions} suscripciones de pago activas y no llega ningún
+              webhook desde hace más de {health?.silence_threshold_hours} h. Las renovaciones podrían
+              no estar registrándose.
+            </p>
+          </div>
+        )}
+
+        {(data?.paid_not_premium || []).length > 0 && (
+          <div>
+            <div className="text-xs font-semibold mb-1.5">
+              Han pagado y NO tienen premium
+            </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {data.paid_not_premium.map(tx => (
+                <div
+                  key={tx.transaction_id}
+                  className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium truncate">{tx.user_email}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">
+                      {tx.plan_id} · {tx.amount} {tx.currency} · {tx.payment_method}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={busy === tx.transaction_id}
+                    onClick={() => grant(tx.transaction_id)}
+                  >
+                    {busy === tx.transaction_id ? '…' : 'Conceder'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {data && c.paid_not_premium === 0 && (
+          <p className="text-xs text-muted-foreground">
+            Sin discrepancias: todo el que ha pagado tiene su premium.
+            {' '}{data.transactions_scanned} transacciones revisadas.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function UsageHeatmapCard({ headers }) {
   const [data, setData] = useState(null);
   const [days, setDays] = useState(30);
@@ -1558,7 +1723,7 @@ function CouponManagerCard({ headers }) {
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
-    const res = await fetch(`${API}/admin/coupons`, { headers }).catch(() => null);
+    const res = await fetch(`${API}/admin/coupons`, { credentials: 'include', headers }).catch(() => null);
     if (res?.ok) { const d = await res.json(); setCoupons(d.coupons || []); }
   };
 
@@ -1567,14 +1732,14 @@ function CouponManagerCard({ headers }) {
   const create = async () => {
     if (!form.id) return toast.error('Introduce un código');
     setBusy(true);
-    const res = await fetch(`${API}/admin/coupons`, { method: 'POST', headers, body: JSON.stringify(form) }).catch(() => null);
+    const res = await fetch(`${API}/admin/coupons`, { credentials: 'include', method: 'POST', headers, body: JSON.stringify(form) }).catch(() => null);
     setBusy(false);
     if (res?.ok) { load(); setCreateOpen(false); toast.success('Cupón creado'); }
     else toast.error('Error creando cupón');
   };
 
   const toggle = async (coupon) => {
-    await fetch(`${API}/admin/coupons/${coupon.id}/toggle`, { method: 'POST', headers }).catch(() => null);
+    await fetch(`${API}/admin/coupons/${coupon.id}/toggle`, { credentials: 'include', method: 'POST', headers }).catch(() => null);
     load();
   };
 
@@ -1656,7 +1821,7 @@ function FeatureFlagsCard({ headers }) {
   const [flags, setFlags] = useState([]);
 
   const load = async () => {
-    const res = await fetch(`${API}/admin/feature-flags`, { headers }).catch(() => null);
+    const res = await fetch(`${API}/admin/feature-flags`, { credentials: 'include', headers }).catch(() => null);
     if (res?.ok) { const d = await res.json(); setFlags(d.flags || []); }
   };
 
@@ -1665,7 +1830,7 @@ function FeatureFlagsCard({ headers }) {
   const toggle = async (flag) => {
     const updated = flags.map(f => f.id === flag.id ? { ...f, enabled: !f.enabled } : f);
     setFlags(updated);
-    await fetch(`${API}/admin/feature-flags/${flag.id}`, { method: 'PATCH', headers, body: JSON.stringify({ enabled: !flag.enabled }) }).catch(() => {});
+    await fetch(`${API}/admin/feature-flags/${flag.id}`, { credentials: 'include', method: 'PATCH', headers, body: JSON.stringify({ enabled: !flag.enabled }) }).catch(() => {});
   };
 
   return (
@@ -1713,7 +1878,7 @@ function WebhookLogsCard({ headers }) {
 
   const load = async () => {
     setLoading(true);
-    const res = await fetch(`${API}/admin/webhooks?limit=20`, { headers }).catch(() => null);
+    const res = await fetch(`${API}/admin/webhooks?limit=20`, { credentials: 'include', headers }).catch(() => null);
     setLoading(false);
     if (res?.ok) { const d = await res.json(); setLogs(d.logs || []); }
   };
@@ -1721,7 +1886,7 @@ function WebhookLogsCard({ headers }) {
   useEffect(() => { load(); }, []); // eslint-disable-line
 
   const retry = async (id) => {
-    await fetch(`${API}/admin/webhooks/${id}/retry`, { method: 'POST', headers }).catch(() => null);
+    await fetch(`${API}/admin/webhooks/${id}/retry`, { credentials: 'include', method: 'POST', headers }).catch(() => null);
     toast.success('Webhook reenviado');
     load();
   };
@@ -1790,7 +1955,7 @@ function MaintenanceModeCard({ headers }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/maintenance`, { headers });
+      const res = await fetch(`${API}/admin/maintenance`, { credentials: 'include', headers });
       if (!res.ok) return;
       const d = await res.json();
       setEnabled(!!d.enabled);
@@ -1799,12 +1964,12 @@ function MaintenanceModeCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const save = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API}/admin/maintenance`, {
+      const res = await fetch(`${API}/admin/maintenance`, { credentials: 'include',
         method: 'POST', headers,
         body: JSON.stringify({ enabled, message }),
       });
@@ -1873,18 +2038,18 @@ function EmailCampaignsCard({ headers }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/campaigns`, { headers });
+      const res = await fetch(`${API}/admin/campaigns`, { credentials: 'include', headers });
       if (res.ok) { const d = await res.json(); setCampaigns(d.campaigns || []); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const createCampaign = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API}/admin/campaigns`, { method: 'POST', headers, body: JSON.stringify(form) });
+      const res = await fetch(`${API}/admin/campaigns`, { credentials: 'include', method: 'POST', headers, body: JSON.stringify(form) });
       if (!res.ok) throw new Error();
       toast.success('Campaña creada');
       setShowCreate(false);
@@ -1898,7 +2063,7 @@ function EmailCampaignsCard({ headers }) {
     if (!window.confirm('¿Enviar esta campaña ahora? Esta acción no se puede deshacer.')) return;
     setSending(id);
     try {
-      const res = await fetch(`${API}/admin/campaigns/${id}/send`, { method: 'POST', headers });
+      const res = await fetch(`${API}/admin/campaigns/${id}/send`, { credentials: 'include', method: 'POST', headers });
       if (!res.ok) throw new Error();
       const d = await res.json();
       toast.success(`Enviado a ${d.sent_count} usuarios`);
@@ -2001,7 +2166,7 @@ function PaymentHistoryCard({ headers }) {
     if (!query.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch(`${API}/admin/users?q=${encodeURIComponent(query)}&limit=10`, { headers });
+      const res = await fetch(`${API}/admin/users?q=${encodeURIComponent(query)}&limit=10`, { credentials: 'include', headers });
       if (!res.ok) throw new Error();
       const d = await res.json();
       setUserResults(d.users || []);
@@ -2015,7 +2180,7 @@ function PaymentHistoryCard({ headers }) {
     setUserId(uid);
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/users/${uid}/payments`, { headers });
+      const res = await fetch(`${API}/admin/users/${uid}/payments`, { credentials: 'include', headers });
       if (!res.ok) throw new Error();
       const d = await res.json();
       setPayments(d.transactions || []);
@@ -2108,7 +2273,7 @@ function ChurnSurveyCard({ headers }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/churn-surveys`, { headers });
+      const res = await fetch(`${API}/admin/churn-surveys`, { credentials: 'include', headers });
       if (!res.ok) return;
       const d = await res.json();
       setSurveys(d.surveys || []);
@@ -2117,12 +2282,12 @@ function ChurnSurveyCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const saveFollowUp = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API}/admin/churn-surveys/${followUp.id}/follow-up`, {
+      const res = await fetch(`${API}/admin/churn-surveys/${followUp.id}/follow-up`, { credentials: 'include',
         method: 'POST', headers, body: JSON.stringify({ note }),
       });
       if (!res.ok) throw new Error();
@@ -2226,16 +2391,15 @@ function CohortAnalysisCard({ headers }) {
   const [cohorts, setCohorts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!API) { setLoading(false); return; }
-    (async () => {
-      try {
-        const res = await fetch(`${API}/admin/cohorts`, { headers });
-        if (res.ok) { const d = await res.json(); setCohorts(d.cohorts || []); }
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
+  const load = async () => {
+    try {
+      const res = await fetch(`${API}/admin/cohorts`, { credentials: 'include', headers });
+      if (res.ok) { const d = await res.json(); setCohorts(d.cohorts || []); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useAuthedLoad(headers, load, setLoading);
 
   const chartData = cohorts.map(c => ({ month: c.month?.slice(0, 7), tasa: Math.round(c.conversion_rate || 0) }));
 
@@ -2301,16 +2465,15 @@ function ReferralManagerCard({ headers }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!API) { setLoading(false); return; }
-    (async () => {
-      try {
-        const res = await fetch(`${API}/admin/referrals/leaderboard`, { headers });
-        if (res.ok) { const d = await res.json(); setLeaderboard(d.leaderboard || []); setStats(d.stats || null); }
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
+  const load = async () => {
+    try {
+      const res = await fetch(`${API}/admin/referrals/leaderboard`, { credentials: 'include', headers });
+      if (res.ok) { const d = await res.json(); setLeaderboard(d.leaderboard || []); setStats(d.stats || null); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useAuthedLoad(headers, load, setLoading);
 
   return (
     <Card className="bg-card border-border">
@@ -2376,7 +2539,7 @@ function AffiliatePayoutRequestsCard({ headers }) {
   const fetchReqs = async () => {
     if (!API || !ready) return;
     try {
-      const res = await fetch(`${API}/admin/affiliates/payout-requests?status=pending`, { headers });
+      const res = await fetch(`${API}/admin/affiliates/payout-requests?status=pending`, { credentials: 'include', headers });
       if (res.ok) {
         const d = await res.json();
         setReqs(d.requests || []); setPending(d.pending_count || 0); setAmount(d.pending_amount_eur || 0);
@@ -2395,7 +2558,7 @@ function AffiliatePayoutRequestsCard({ headers }) {
     let ref = '';
     if (verb === 'mark-paid') ref = window.prompt('Referencia del pago (opcional):') || '';
     try {
-      const res = await fetch(`${API}/admin/affiliates/payout-requests/${id}/${verb}`, {
+      const res = await fetch(`${API}/admin/affiliates/payout-requests/${id}/${verb}`, { credentials: 'include',
         method: 'POST', headers, body: verb === 'mark-paid' ? JSON.stringify({ payout_reference: ref }) : undefined });
       if (res.ok) { toast.success('OK'); fetchReqs(); } else toast.error('Error');
     } catch { toast.error('Error'); }
@@ -2461,7 +2624,7 @@ function AffiliatesAdminCard({ headers }) {
     if (!API || !ready) { setLoading(false); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/affiliates?segment=${segment}&sort=${sort}`, { headers });
+      const res = await fetch(`${API}/admin/affiliates?segment=${segment}&sort=${sort}`, { credentials: 'include', headers });
       if (res.ok) { const d = await res.json(); setRows(d.affiliates || []); setTotals(d.totals || null); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -2471,7 +2634,7 @@ function AffiliatesAdminCard({ headers }) {
 
   const act = async (id, verb) => {
     try {
-      const res = await fetch(`${API}/admin/affiliates/${id}/${verb}`, { method: 'POST', headers });
+      const res = await fetch(`${API}/admin/affiliates/${id}/${verb}`, { credentials: 'include', method: 'POST', headers });
       if (res.ok) { toast.success('OK'); fetchList(); } else { toast.error('Error'); }
     } catch { toast.error('Error'); }
   };
@@ -2480,7 +2643,7 @@ function AffiliatesAdminCard({ headers }) {
     if (expanded === id) { setExpanded(null); setDetail(null); return; }
     setExpanded(id); setDetail(null);
     try {
-      const res = await fetch(`${API}/admin/affiliates/${id}`, { headers });
+      const res = await fetch(`${API}/admin/affiliates/${id}`, { credentials: 'include', headers });
       if (res.ok) setDetail(await res.json());
     } catch { /* ignore */ }
   };
@@ -2624,7 +2787,7 @@ function AffiliatePayoutsCard({ headers }) {
 
   const loadRunDetail = async (rid) => {
     try {
-      const res = await fetch(`${API}/admin/affiliates/payout-runs/${rid}`, { headers });
+      const res = await fetch(`${API}/admin/affiliates/payout-runs/${rid}`, { credentials: 'include', headers });
       if (res.ok) { const d = await res.json(); setRun(d.run); setLines(d.lines || []); }
     } catch { /* ignore */ }
   };
@@ -2633,7 +2796,7 @@ function AffiliatePayoutsCard({ headers }) {
     if (!API || !ready) return;
     setBusy(true);
     try {
-      const res = await fetch(`${API}/admin/affiliates/payout-run?period=${period}`, { method: 'POST', headers });
+      const res = await fetch(`${API}/admin/affiliates/payout-run?period=${period}`, { credentials: 'include', method: 'POST', headers });
       if (res.ok) { const d = await res.json(); await loadRunDetail(d.run.id); toast.success('Liquidación generada'); }
       else { const e = await res.json().catch(() => ({})); toast.error(e.detail || 'Error'); }
     } catch { toast.error('Error'); }
@@ -2643,7 +2806,7 @@ function AffiliatePayoutsCard({ headers }) {
   const finalize = async () => {
     if (!run) return;
     try {
-      const res = await fetch(`${API}/admin/affiliates/payout-run/${run.id}/finalize`, { method: 'POST', headers });
+      const res = await fetch(`${API}/admin/affiliates/payout-run/${run.id}/finalize`, { credentials: 'include', method: 'POST', headers });
       if (res.ok) { toast.success('Finalizada'); loadRunDetail(run.id); } else { toast.error('Error'); }
     } catch { toast.error('Error'); }
   };
@@ -2651,7 +2814,7 @@ function AffiliatePayoutsCard({ headers }) {
   const markPaid = async (lid) => {
     const ref = window.prompt('Referencia del pago (opcional):') || '';
     try {
-      const res = await fetch(`${API}/admin/affiliates/payout-lines/${lid}/mark-paid`, {
+      const res = await fetch(`${API}/admin/affiliates/payout-lines/${lid}/mark-paid`, { credentials: 'include',
         method: 'POST', headers, body: JSON.stringify({ payout_reference: ref }),
       });
       if (res.ok) { toast.success('Marcado como pagado'); loadRunDetail(run.id); } else { toast.error('Error'); }
@@ -2661,7 +2824,7 @@ function AffiliatePayoutsCard({ headers }) {
   const exportCsv = async () => {
     if (!run) return;
     try {
-      const res = await fetch(`${API}/admin/affiliates/payout-runs/${run.id}/export.csv`, { headers });
+      const res = await fetch(`${API}/admin/affiliates/payout-runs/${run.id}/export.csv`, { credentials: 'include', headers });
       if (!res.ok) { toast.error('Error'); return; }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -2755,20 +2918,20 @@ function PlansEditorCard({ headers }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/plans`, { headers });
+      const res = await fetch(`${API}/admin/plans`, { credentials: 'include', headers });
       if (res.ok) { const d = await res.json(); setPlans(d.plans || []); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const savePlan = async (planId) => {
     const edit = edits[planId];
     if (!edit) return;
     setSaving(planId);
     try {
-      const res = await fetch(`${API}/admin/plans/${planId}`, { method: 'POST', headers, body: JSON.stringify(edit) });
+      const res = await fetch(`${API}/admin/plans/${planId}`, { credentials: 'include', method: 'POST', headers, body: JSON.stringify(edit) });
       if (!res.ok) throw new Error();
       toast.success('Plan actualizado');
       setEdits(e => { const n = {...e}; delete n[planId]; return n; });
@@ -2849,20 +3012,20 @@ function I18nManagerCard({ headers }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/i18n`, { headers });
+      const res = await fetch(`${API}/admin/i18n`, { credentials: 'include', headers });
       if (res.ok) { const d = await res.json(); setKeys(d.keys || []); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const saveKey = async (key) => {
     const edit = edits[key];
     if (!edit) return;
     setSaving(key);
     try {
-      const res = await fetch(`${API}/admin/i18n`, { method: 'POST', headers, body: JSON.stringify({ key, ...edit }) });
+      const res = await fetch(`${API}/admin/i18n`, { credentials: 'include', method: 'POST', headers, body: JSON.stringify({ key, ...edit }) });
       if (!res.ok) throw new Error();
       toast.success(`Clave "${key}" actualizada`);
       setEdits(e => { const n = {...e}; delete n[key]; return n; });
@@ -2938,18 +3101,18 @@ function ErrorMonitorCard({ headers }) {
   const load = async (f = filter) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/errors?status=${f}&limit=50`, { headers });
+      const res = await fetch(`${API}/admin/errors?status=${f}&limit=50`, { credentials: 'include', headers });
       if (res.ok) { const d = await res.json(); setErrors(d.errors || []); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const resolve = async (id) => {
     setResolving(id);
     try {
-      const res = await fetch(`${API}/admin/errors/${id}/resolve`, {
+      const res = await fetch(`${API}/admin/errors/${id}/resolve`, { credentials: 'include',
         method: 'POST', headers, body: JSON.stringify({ note: resolveNote }),
       });
       if (!res.ok) throw new Error();
@@ -3041,16 +3204,15 @@ function RateLimitingCard({ headers }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!API) { setLoading(false); return; }
-    (async () => {
-      try {
-        const res = await fetch(`${API}/admin/rate-limits`, { headers });
-        if (res.ok) setData(await res.json());
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
+  const load = async () => {
+    try {
+      const res = await fetch(`${API}/admin/rate-limits`, { credentials: 'include', headers });
+      if (res.ok) setData(await res.json());
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useAuthedLoad(headers, load, setLoading);
 
   return (
     <Card className="bg-card border-border">
@@ -3115,18 +3277,18 @@ function GDPRExportCard({ headers }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/gdpr-exports`, { headers });
+      const res = await fetch(`${API}/admin/gdpr-exports`, { credentials: 'include', headers });
       if (res.ok) { const d = await res.json(); setExports(d.exports || []); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const deliver = async (id) => {
     setDelivering(id);
     try {
-      const res = await fetch(`${API}/admin/gdpr-exports/${id}/deliver`, { method: 'POST', headers });
+      const res = await fetch(`${API}/admin/gdpr-exports/${id}/deliver`, { credentials: 'include', method: 'POST', headers });
       if (!res.ok) throw new Error();
       const d = await res.json();
       toast.success(d.sent_email ? 'Datos enviados por email' : 'Export procesado (sin SendGrid configurado)');

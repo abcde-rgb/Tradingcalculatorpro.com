@@ -5,7 +5,7 @@ Prueba cada endpoint del backend en producción y reporta errores.
 
 Uso:
     python tests/test_all_endpoints.py
-    python tests/test_all_endpoints.py --url https://tradingcalculator-api-704202303011.us-central1.run.app
+    python tests/test_all_endpoints.py --url https://<servicio>-<numero>.europe-west1.run.app
 
 Requiere:
     pip install requests
@@ -14,13 +14,17 @@ Requiere:
 import requests
 import json
 import time
+import os
 import sys
 import argparse
 from datetime import datetime
 from typing import Optional
 
 # ─────────────────────────────────────────────
-BASE_URL = "https://tradingcalculator-api-704202303011.us-central1.run.app"
+# Se toma del entorno. El literal anterior apuntaba a us-central1 mientras el
+# despliegue real vive en europe-west1, así que este smoke medía un host que no
+# existe. Sin BACKEND_URL no hay valor por defecto que inventar.
+BASE_URL = os.environ.get("BACKEND_URL", "").rstrip("/")
 TIMEOUT  = 10
 # ─────────────────────────────────────────────
 

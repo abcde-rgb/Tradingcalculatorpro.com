@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { TrendingUp, Info } from 'lucide-react';
+import SyntheticDataBanner from './SyntheticDataBanner';
 
 const IVSurfaceView = ({ stock, chain }) => {
   const { t } = useTranslation();
@@ -16,7 +17,7 @@ const IVSurfaceView = ({ stock, chain }) => {
       setLoading(true);
       try {
         const API_URL = process.env.REACT_APP_BACKEND_URL;
-        const res = await fetch(`${API_URL}/api/options/iv-surface/${stock.symbol}?max_expirations=8`);
+        const res = await fetch(`${API_URL}/api/options/iv-surface/${stock.symbol}?max_expirations=8`, { credentials: 'include' });
         const data = await res.json();
         setSurfaceData(data);
       } catch (error) {
@@ -93,6 +94,11 @@ const IVSurfaceView = ({ stock, chain }) => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* El backend ya marca la respuesta con `synthetic` (_synthetic_marker),
+          pero sólo el optimizador lo estaba pintando: aquí el usuario veía un
+          skew modelado sin saberlo. */}
+      <SyntheticDataBanner synthetic={surfaceData.synthetic} className="mx-6 mt-4" />
+
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-3">

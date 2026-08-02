@@ -19,7 +19,7 @@ const UnusualActivity = ({ symbol }) => {
     if (!symbol) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/options/unusual/${symbol}?min_ratio=${minRatio}&min_volume=100`);
+      const res = await fetch(`${API}/api/options/unusual/${symbol}?min_ratio=${minRatio}&min_volume=100`, { credentials: 'include' });
       if (res.ok) setData(await res.json());
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('unusual fetch failed:', err);

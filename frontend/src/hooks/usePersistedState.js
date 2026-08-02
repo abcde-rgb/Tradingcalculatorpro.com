@@ -28,7 +28,7 @@ export function usePersistedState(stateId, initialValue) {
 
     const loadState = async () => {
       try {
-        const response = await fetch(`${API}/api/user-states/get/${stateId}`, {
+        const response = await fetch(`${API}/api/user-states/get/${stateId}`, { credentials: 'include',
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -67,7 +67,7 @@ export function usePersistedState(stateId, initialValue) {
     saveTimeoutRef.current = setTimeout(async () => {
       setIsSaving(true);
       try {
-        await fetch(`${API}/api/user-states/save`, {
+        await fetch(`${API}/api/user-states/save`, { credentials: 'include',
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -101,7 +101,7 @@ export function usePersistedState(stateId, initialValue) {
     if (!isAuthenticated || !token) return;
 
     try {
-      await fetch(`${API}/api/user-states/delete/${stateId}`, {
+      await fetch(`${API}/api/user-states/delete/${stateId}`, { credentials: 'include',
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -127,7 +127,7 @@ export function useResetAllStates() {
     if (!isAuthenticated || !token) return;
 
     try {
-      const response = await fetch(`${API}/api/user-states/reset-all`, {
+      const response = await fetch(`${API}/api/user-states/reset-all`, { credentials: 'include',
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

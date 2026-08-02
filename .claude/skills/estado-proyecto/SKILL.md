@@ -22,7 +22,7 @@ Este skill mantiene el proyecto coherente entre sesiones. **Léelo entero antes 
    - Gráficos / personalización por usuario → **`TRADINGVIEW_PERSONALIZACION.md`**
    - Publicar / lanzar → **`DEPLOY_CHECKLIST.md`**
    - Análisis y comparación de mercado → **`ANALISIS_2026-06-25.md`**
-   - Historial de bugs → **`DIARIO_BUGS.md`** (raíz)
+   - Historial de bugs → **`docs/DIARIO_BUGS.md`**
 
 ## 2. Reglas de oro (no romper)
 
@@ -36,10 +36,12 @@ Este skill mantiene el proyecto coherente entre sesiones. **Léelo entero antes 
 ## 3. Verificación obligatoria antes de commit
 
 ```bash
-cd backend && python -m py_compile server.py admin_routes.py options_math.py missing_apis.py \
-  stock_data.py candle_patterns.py performance.py referrals.py realtime_alerts.py
-cd backend && pytest tests/ -q        # 10 unit offline deben pasar; integración se salta
-cd frontend && npm run build          # exit 0
+cd backend && python -m py_compile *.py   # TODOS los módulos: la lista a mano omitía 6
+cd backend && pytest tests/ -q           # los *_unit.py corren siempre; integración se salta
+cd frontend && npx eslint src scripts    # 0 errores (los avisos heredados no bloquean)
+cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
+cd frontend && npm run build             # exit 0
+python scripts/check-doc-links.py        # los enlaces de la doc resuelven
 ```
 Notas de entorno:
 - Si `pip install -r requirements.txt` choca con `PyJWT` del sistema (Debian), usa un
@@ -53,7 +55,7 @@ Actualiza **`docs/ESTADO_PROYECTO.md`**:
 - Semáforo (§1) e inventario (§2) si cambió algo.
 - Marca casillas cerradas en el backlog (§5) y añade huecos nuevos a §3 con ID `G-xx`.
 - **Añade una entrada con fecha en el registro de sesiones (§7).**
-- Si tocaste seguridad/bugs, refleja también en `DIARIO_BUGS.md`.
+- Si tocaste seguridad/bugs, refleja también en `docs/DIARIO_BUGS.md`.
 
 **Regla:** la documentación debe reflejar el **código real**, no intenciones. Verifica
 (compila/ejecuta/lee) antes de afirmar que algo está hecho.

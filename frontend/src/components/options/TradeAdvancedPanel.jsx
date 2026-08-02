@@ -41,7 +41,7 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
     }));
 
     if (expanded.attribution) {
-      fetch(`${API}/api/calculate/pnl-attribution`, {
+      fetch(`${API}/api/calculate/pnl-attribution`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,7 +61,7 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
 
     if (expanded.assignment) {
       const expiryPrice = stock.price * (1 + scenarios.priceMove / 100);
-      fetch(`${API}/api/calculate/assignment`, {
+      fetch(`${API}/api/calculate/assignment`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ legs: optionLegs, stockPriceAtExpiry: expiryPrice }),

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useI18nStore } from '@/lib/i18n';
+import { bumpData } from '@/lib/dataVersion';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
@@ -262,7 +263,7 @@ export const usePriceStore = create((set) => ({
     if (!API) return;
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API}/prices`);
+      const res = await fetch(`${API}/prices`, { credentials: 'include' });
       const data = await safeJson(res);
       set({ prices: data, isLoading: false });
     } catch (_) {
@@ -275,25 +276,35 @@ export const useCalculatorStore = create((set, get) => ({
   history: [],
   isLoading: false,
 
+  // These two used a bare fetch() and so sent no cookies: after a reload the
+  // in-memory token is null and both silently no-op'd. fetchWithTimeout always
+  // sets credentials:'include' — same fix already applied to PricingPage,
+  // UsageHeatmapCard and the GDPR export.
   saveCalculation: async (calculatorType, inputs, results) => {
     const token = useAuthStore.getState().token;
-    if (!token || !API || token === DEMO_TOKEN) return;
+    if (!API || token === DEMO_TOKEN) return;
     try {
-      await fetch(`${API}/calculations`, {
+      await fetchWithTimeout(`${API}/calculations`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ calculator_type: calculatorType, inputs, results })
       });
+      // Tell the calculation-history card to reload instead of waiting for a
+      // full page refresh.
+      bumpData('calculations');
     } catch (_) {}
   },
 
   fetchHistory: async () => {
     const token = useAuthStore.getState().token;
-    if (!token || !API || token === DEMO_TOKEN) return;
+    if (!API || token === DEMO_TOKEN) return;
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API}/calculations`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetchWithTimeout(`${API}/calculations`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await safeJson(res);
       set({ history: data, isLoading: false });

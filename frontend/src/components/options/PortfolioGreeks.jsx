@@ -27,7 +27,7 @@ const PortfolioGreeks = () => {
     if (!isAuthenticated || !token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/options/positions/portfolio-greeks`, {
+      const res = await fetch(`${API}/api/options/positions/portfolio-greeks`, { credentials: 'include',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setData(await res.json());

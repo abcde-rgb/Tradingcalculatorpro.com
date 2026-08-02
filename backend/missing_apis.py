@@ -515,98 +515,19 @@ async def _send_reset_email(to_email: str, reset_url: str) -> bool:
         return False
 
 
-@router.post("/auth/forgot-password")
-async def forgot_password(request: Request, payload: ForgotPasswordRequest):
-    """
-    Generate a password-reset token, store it in MongoDB (expires in 1h),
-    and send an email to the user with the reset link.
-    Always returns 200 to avoid user-enumeration.
-    """
-    email_lc = payload.email.lower()
-    user = await db.users.find_one({"email": email_lc}, {"_id": 0})
-    if not user:
-        # Avoid user enumeration: always return success
-        return {"ok": True, "message": "Si existe una cuenta con ese email, recibirás un enlace de recuperación."}
-
-    token = uuid.uuid4().hex + uuid.uuid4().hex  # 64-char random token — sent in URL, never stored
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-    await db.password_reset_tokens.update_one(
-        {"user_id": user["id"]},
-        {"$set": {
-            "user_id": user["id"],
-            "email": email_lc,
-            "token": _hash_token(token),  # store SHA-256 hash, not plaintext
-            "created_at": datetime.now(timezone.utc),
-            "expires_at": expires_at,
-            "used": False,
-        }},
-        upsert=True,
-    )
-    # Build reset URL from a trusted, allow-listed origin — NEVER from the raw
-    # Host/Origin/Referer, which an attacker controls (host-header injection →
-    # the victim's reset link would point at the attacker's site).
-    origin = _trusted_link_base(request)
-    reset_url = f"{origin}/reset-password#{token}"
-
-    sent = await _send_reset_email(email_lc, reset_url)
-    resp: Dict[str, Any] = {
-        "ok": True,
-        "message": "Si existe una cuenta con ese email, recibirás un enlace de recuperación.",
-    }
-    # In development (no SendGrid), expose the token so devs can test
-    if not sent:
-        resp["dev_token"] = token
-        resp["dev_reset_url"] = reset_url
-    return resp
-
-
-@router.post("/auth/reset-password")
-async def reset_password(payload: ResetPasswordRequest):
-    """
-    Validate the token, set the new password, mark the token used,
-    and revoke all existing sessions for that user.
-    """
-    if len(payload.new_password) < 8:
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
-
-    rec = await db.password_reset_tokens.find_one({"token": _hash_token(payload.token), "used": False})
-    if not rec:
-        raise HTTPException(status_code=400, detail="Token inválido o ya utilizado")
-
-    expires_at = rec["expires_at"]
-    if isinstance(expires_at, str):
-        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if datetime.now(timezone.utc) > expires_at:
-        raise HTTPException(status_code=400, detail="El token ha expirado. Solicita uno nuevo.")
-
-    import bcrypt
-    new_hash = bcrypt.hashpw(payload.new_password.encode(), bcrypt.gensalt()).decode()
-    await db.users.update_one(
-        {"id": rec["user_id"]},
-        {"$set": {
-            "password": new_hash,
-            "auth_provider": "password",
-            "password_reset_at": datetime.now(timezone.utc).isoformat(),
-        }},
-    )
-    await db.password_reset_tokens.update_one(
-        {"token": _hash_token(payload.token)},
-        {"$set": {"used": True, "used_at": datetime.now(timezone.utc)}},
-    )
-    # Revoke all sessions for the user (user_revocations collection, same as admin reset)
-    await db.user_revocations.update_one(
-        {"user_id": rec["user_id"]},
-        {"$set": {
-            "user_id": rec["user_id"],
-            "revoked_after": datetime.now(timezone.utc),
-            "expires_at": datetime.now(timezone.utc) + timedelta(hours=25),
-        }},
-        upsert=True,
-    )
-    return {"ok": True, "message": "Contraseña actualizada. Por favor inicia sesión de nuevo."}
-
+# ── RUTAS RETIRADAS: /auth/forgot-password y /auth/reset-password ──────────
+#
+# Estaban declaradas aquí Y en server.py. server.py se registra primero, así que
+# FastAPI servía SIEMPRE la suya y estas dos nunca se ejecutaron: eran código
+# muerto que además usaba OTRA colección (`password_reset_tokens` en vez de
+# `password_resets`), con el riesgo evidente de que alguien arreglara un bug
+# aquí y creyera que estaba resuelto.
+#
+# Las de server.py son además las mejores: llevan `@limiter.limit("3/hour")`,
+# que estas no tenían.
+#
+# Los índices de `password_reset_tokens` (más abajo, en la creación de índices)
+# se dejan: la colección puede contener filas de antes de este cambio.
 
 # ---------------------------------------------------------------------------
 # 7.  EMAIL VERIFICATION

@@ -64,7 +64,7 @@ const ExpectancyCalculator = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/journal/stats`, {
+      const res = await fetch(`${API}/api/journal/stats`, { credentials: 'include',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('journal fetch failed');

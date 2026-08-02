@@ -38,12 +38,19 @@ client.interceptors.response.use(
   },
 );
 
+import { bumpData } from '@/lib/dataVersion';
+
 /**
  * Performance / Trade Journal API client. All endpoints require auth.
+ *
+ * Every write signals the `trades` topic (lib/dataVersion.js) so anything
+ * showing journal data refreshes itself — the dashboard stats, the analytics
+ * and the calendar all used to keep stale numbers until a full page reload.
  */
 
 export async function createTrade(payload) {
   const { data } = await client.post('/performance/trades', payload);
+  bumpData('trades');
   return data;
 }
 
@@ -59,11 +66,13 @@ export async function getTrade(id) {
 
 export async function updateTrade(id, payload) {
   const { data } = await client.put(`/performance/trades/${id}`, payload);
+  bumpData('trades');
   return data;
 }
 
 export async function deleteTrade(id) {
   const { data } = await client.delete(`/performance/trades/${id}`);
+  bumpData('trades');
   return data;
 }
 
@@ -74,5 +83,6 @@ export async function fetchAnalytics() {
 
 export async function bulkCreateTrades(trades) {
   const { data } = await client.post('/performance/trades/bulk', { trades });
+  bumpData('trades');
   return data;
 }

@@ -18,10 +18,13 @@ export default function OptionsPage() {
   const { isAuthenticated } = useAuthStore();
   const { t } = useTranslation();
 
+  // El workspace es premium: no se indexa. Lo indexable es el hub público de
+  // `/options` y las fichas de estrategia, que es donde vive la referencia.
   useSEO({
     titleKey: 'seoOptionsTitle',
     descriptionKey: 'seoOptionsDesc',
-    canonicalPath: '/options',
+    canonicalPath: '/options/calculator',
+    noindex: true,
   });
 
   // Premium Gate - Block non-authenticated OR non-premium users

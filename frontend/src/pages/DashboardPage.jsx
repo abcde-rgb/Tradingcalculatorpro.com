@@ -19,6 +19,8 @@ import { FuturesCalculator } from '@/components/calculators/FuturesCalculator';
 import { CompoundCalculator } from '@/components/calculators/CompoundCalculator';
 import { Watchlist } from '@/components/dashboard/Watchlist';
 import { EconomicCalendar } from '@/components/dashboard/EconomicCalendar';
+import { NextDataCountdown } from '@/components/dashboard/NextDataCountdown';
+import { SpeakersWatch } from '@/components/dashboard/SpeakersWatch';
 import { TargetMeasurementTool } from '@/components/tools/TargetMeasurementTool';
 import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
@@ -231,7 +233,7 @@ export default function DashboardPage() {
             onClick={() => {
               const backendUrl = process.env.REACT_APP_BACKEND_URL;
               if (!backendUrl) return;
-              fetch(`${backendUrl}/api/auth/resend-verification`, {
+              fetch(`${backendUrl}/api/auth/resend-verification`, { credentials: 'include',
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${useAuthStore.getState().token}` },
               })
@@ -245,7 +247,9 @@ export default function DashboardPage() {
       )}
 
       <main className="pt-20 pb-12 px-4 md:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        {/* 2xl+: ultrawide screens left ~50% of the viewport empty. The
+            data-dense blocks below benefit from the extra width. */}
+        <div className="max-w-7xl 2xl:max-w-[1720px] mx-auto space-y-6">
           {/* Welcome */}
           <motion.div {...RISE} transition={{ duration: 0.4, ease: 'easeOut' }}
             className="flex items-center justify-between flex-wrap gap-4">
@@ -428,8 +432,12 @@ export default function DashboardPage() {
               <CalculationHistory />
             </motion.div>
 
-            {/* Live economic calendar (TradingView events widget) */}
-            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.18, ease: 'easeOut' }}>
+            {/* Macro block: countdown to the next release + who is speaking,
+                with the full TradingView calendar beside them. */}
+            <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.18, ease: 'easeOut' }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              <NextDataCountdown />
+              <SpeakersWatch />
               <EconomicCalendar />
             </motion.div>
 

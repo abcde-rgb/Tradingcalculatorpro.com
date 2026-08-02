@@ -24,6 +24,13 @@ function ProtectedRoute({ children, adminOnly = false, premiumOnly = false }) {
     return <Navigate to="/" replace />;
   }
 
+  // El backend exige 2FA a los administradores (428 en /admin/*). Sin esto el
+  // admin vería el panel entero cargar y luego fallar cada llamada: se le lleva
+  // a Ajustes, donde puede activarlo.
+  if (adminOnly && user?.is_admin && user?.two_factor_enabled === false) {
+    return <Navigate to="/settings" state={{ from: location, need2fa: true }} replace />;
+  }
+
   // Los administradores conservan acceso aunque no tengan suscripción.
   if (premiumOnly && !isPremium && !user?.is_admin) {
     return <Navigate to="/pricing" state={{ from: location, gated: true }} replace />;

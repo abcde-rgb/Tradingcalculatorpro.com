@@ -47,6 +47,8 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
     exit_price: '',
     sl: '',
     tp: '',
+    mae_price: '',
+    mfe_price: '',
     quantity: '',
     account_balance: 10000,
     fees: 0,
@@ -100,6 +102,8 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
         exit_price: form.exit_price !== '' ? Number(form.exit_price) : null,
         sl: form.sl !== '' ? Number(form.sl) : null,
         tp: form.tp !== '' ? Number(form.tp) : null,
+        mae_price: form.mae_price !== '' ? Number(form.mae_price) : null,
+        mfe_price: form.mfe_price !== '' ? Number(form.mfe_price) : null,
         quantity: Number(form.quantity),
         account_balance: Number(form.account_balance) || 0,
         fees: Number(form.fees) || 0,
@@ -278,6 +282,21 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
                 {t('tradeTP')}
               </Label>
               <Input type="number" step="any" value={form.tp} onChange={set('tp')} className="mt-1" data-testid="trade-tp" />
+            </div>
+            {/* MAE/MFE: the worst and best price the trade reached while open.
+                Two numbers per trade, and the only ones that objectively answer
+                whether your stops are too wide and your targets too close. */}
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground" title={t('tradeMAEHint')}>
+                {t('tradeMAE')}
+              </Label>
+              <Input type="number" step="any" value={form.mae_price} onChange={set('mae_price')} className="mt-1" data-testid="trade-mae" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground" title={t('tradeMFEHint')}>
+                {t('tradeMFE')}
+              </Label>
+              <Input type="number" step="any" value={form.mfe_price} onChange={set('mfe_price')} className="mt-1" data-testid="trade-mfe" />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">

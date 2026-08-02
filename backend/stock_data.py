@@ -18,13 +18,20 @@ _cache_duration = 300  # 5 minutes cache
 _YH_HOSTS = ("https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com")
 
 
-def _yahoo_get(path: str) -> dict:
-    """GET a Yahoo Finance JSON endpoint impersonating Chrome. Raises on failure."""
+def _yahoo_get(path: str, *, timeout: int = 15) -> dict:
+    """GET a Yahoo Finance JSON endpoint impersonating Chrome. Raises on failure.
+
+    `timeout` is per host, and there are two hosts, so the worst case is twice
+    this value. Callers on a latency-sensitive path (anything that runs inside a
+    request the user is waiting on) should pass something well under the default
+    — see `market_rates`, where a slow rate lookup would otherwise be charged to
+    every pricing request.
+    """
     from curl_cffi import requests as _cffi
     last = "no hosts tried"
     for host in _YH_HOSTS:
         try:
-            r = _cffi.get(host + path, impersonate="chrome", timeout=15)
+            r = _cffi.get(host + path, impersonate="chrome", timeout=timeout)
             if r.status_code == 200:
                 return r.json()
             last = f"HTTP {r.status_code}"
@@ -153,13 +160,23 @@ def get_stock_data(symbol: str) -> dict:
 def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> list:
     """Historical OHLC rows from Yahoo's chart API (direct, curl_cffi Chrome).
 
-    Returns [{date, open, high, low, close, volume}] ascending by date. Replaces the old
-    yfinance path, which Yahoo blocks from datacenter IPs. Returns [] on failure.
+    Returns ``[{date, ts, open, high, low, close, volume}]`` ascending by date.
+    Replaces the old yfinance path, which Yahoo blocks from datacenter IPs.
+    Returns [] on failure.
 
     `range_` accepts Yahoo ranges (1mo, 3mo, 6mo, 1y, 2y, 5y, max);
-    `interval` accepts 1d, 1wk, 1mo, etc.
+    `interval` accepts 5m, 15m, 30m, 1h, 1d, 1wk, 1mo (see `timeframes.py` for
+    which pairs Yahoo actually serves).
+
+    On INTRADAY intervals ``date`` carries the time too (``YYYY-MM-DD HH:MM``
+    UTC). Without it every 5-minute bar of a session shared the string
+    "2026-07-27", which is not a cosmetic problem: the scanner's event log
+    de-duplicates by date, so 78 distinct intraday events collapsed into one.
+    ``ts`` is the raw epoch, for callers that need to reason about bar age.
     """
     symbol = symbol.upper().strip()
+    intraday = str(interval).lower() in ("1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h")
+    fmt = "%Y-%m-%d %H:%M" if intraday else "%Y-%m-%d"
     try:
         data = _yahoo_get(f"/v8/finance/chart/{symbol}?range={range_}&interval={interval}")
         res = (data.get("chart", {}).get("result") or [None])[0]
@@ -183,7 +200,8 @@ def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> 
                 continue
             v = vols[idx] if idx < len(vols) else None
             rows.append({
-                "date": datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d"),
+                "date": datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime(fmt),
+                "ts": int(ts),
                 "open": float(o), "high": float(h), "low": float(lo), "close": float(c),
                 "volume": float(v) if v is not None else 0.0,
             })
