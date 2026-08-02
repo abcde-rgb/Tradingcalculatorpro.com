@@ -2751,3 +2751,47 @@ y se aplica a todo lo que lleva logo.
   página estática) · favicons revisados a 16/32/180 px.
 - ⚠️ **Pendiente**: `favicon` por tema (el pack trae variantes oro y nasdaq, ya
   copiadas a `public/`) y revisión nativa de las traducciones pt/it.
+
+### 2026-08-02 (4) — Estudio de rediseño y paridad con `options-strategies.com`
+Encargo del propietario: estudiar esa web a fondo, rediseñar la nuestra para que
+**no se parezca** pero tenga **las mismas calculadoras y funciones**, y estudiar
+la reestructuración del repositorio. Resultado en
+[`REDISENO_PARIDAD_2026-08-02.md`](./REDISENO_PARIDAD_2026-08-02.md) (documento,
+sin cambios de código).
+
+- ⛔ **La web de referencia está bloqueada por la política de salida de red** del
+  entorno remoto (`403` al CONNECT contra `options-strategies.com:443`, tanto por
+  `WebFetch` como por `curl`). No se ha rodeado el bloqueo. El análisis de esa web
+  se sostiene sobre el índice de búsqueda (URLs, títulos y fragmentos suyos), que
+  da su arquitectura y su modelo, **pero no su diseño**: «que no se parezca» queda
+  sin verificación visual hasta que se permita el dominio o lleguen capturas.
+- 🔴 **Hallazgo que bloquea todo lo demás**: el commit `ba8b09ed` («calcular los
+  extremos del payoff sobre la posición, no sobre el ancho del gráfico») **quedó
+  huérfano** en `claude/google-ads-monetization-nd9l81` cuando se mergeó el PR
+  #167. Verificado: `payoffBounds`/`payoff_bounds` no existen en `main`, y
+  `strategyStats.js:116` sigue decidiendo «ilimitado» comparando la rejilla de
+  ±30-35% con `MAX_UNLIMITED = 5_000_000`, umbral que con spot 100 no se cruza
+  nunca. **Hoy `main` enseña pérdida máxima finita en una call vendida desnuda.**
+  El fix ya está escrito y verificado (11 tests, paridad JS↔Python): rescatarlo es
+  lo primero.
+- 📋 **Sin mergear**: 5 PRs de producto (#161 contraste WCAG en CI, #162
+  honestidad de los escáneres, #163 Dealers + métricas pro, #164 lucide v1, #165
+  acceso comp), 13 de Dependabot, y 7 ramas con trabajo sin PR — entre ellas
+  `competitive-feature-analysis-8mzm3p`, que lleva un **fix de max drawdown
+  (running peak)** del mismo tipo. `scanner-data-review` y
+  `trading-web-analysis-ktsvkd` son duplicados de #162 y #161. **48 ramas remotas
+  en total**; 11 son forks de mayo-junio con 226-330 commits divergentes.
+- 🔎 **Paridad**: el motor está por encima de la referencia en casi todo. Los
+  huecos reales son de producto, no de matemáticas: superficie pública cero
+  (las 1.589 URLs enlazan a `/dashboard?tab=`, que es `premiumOnly`), no hay
+  puerta de entrada por intención (`/optimize` existe pero enterrado), las 14
+  calculadoras no tienen URL propia (pestañas de `/dashboard`), no hay ficha
+  pública por concepto, y el Monte Carlo es sobre el sistema, no sobre la
+  posición de opciones.
+- ⚠️ **Incoherencia documental detectada**: `CLAUDE.md` sigue afirmando que
+  «`/options` es público; el workspace es `/options/calculator`». Desde el muro
+  duro del 2026-08-02 las dos son `premiumOnly` (`App.js:135-138`).
+- 🧭 **Decisión pendiente del propietario** (§10 del documento): mantener el muro
+  total, o abrir las calculadoras y el catálogo sobre datos de ejemplo y dejar el
+  muro donde el producto es insustituible (dato vivo, guardar, IA, journal). La
+  recomendación es la segunda; es reversible y `ProtectedRoute` ya lo soporta.
