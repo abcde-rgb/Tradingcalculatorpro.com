@@ -5,8 +5,8 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-07-29
-> - 🌿 **Rama de trabajo actual:** `claude/aplicate-qriesk`
+> - 📅 **Última verificación real contra el código:** 2026-08-02
+> - 🌿 **Rama de trabajo actual:** `claude/google-ads-monetization-nd9l81`
 >
 > ⚠️ **Aviso de método (2026-07-27).** Las §1, §2 y §6 se habían quedado un mes
 > por detrás del código mientras el registro de sesiones (§7) sí se actualizaba.
@@ -63,8 +63,10 @@
   → Detalle y límites en [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md).
 - **~186 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
   en `lib/assets.js` (los "47" de la primera versión se ampliaron el 2026-07-04).
-- **i18n: 8 idiomas** (`lib/i18n/`): es, en, de, fr, ru, zh, ja, ar.
-  **5327 claves por idioma, 0 huecos** (`node scripts/i18n-check.js`, verificado 2026-07-27).
+- **i18n: 10 idiomas** (`lib/i18n/`): es, en, de, fr, ru, zh, ja, ar, **pt** (Portugal) e **it**.
+  **5635 claves por idioma, 0 huecos** (`node scripts/i18n-check.js`, verificado 2026-08-02).
+  Los textos legales (`lib/legalContent/`) también están en los 10; la versión
+  vinculante sigue siendo la española.
 - **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **Revolut Pay** +
   **NOWPayments** (crypto, botón "Criptomonedas"). *No* OxaPay ni MaxelPay: ambas
   se probaron y se retiraron; no queda código de ninguna.
@@ -74,8 +76,8 @@
 - **Publicidad (Google AdSense)** en el contenido gratuito, con la regla
   «**quien paga no ve anuncios en ninguna parte**» fijada por test: política pura
   en `lib/adsPolicy.js`, `<AdSlot>` en el hub y las fichas públicas de opciones,
-  y huecos en las 1273 páginas estáticas del postbuild (con su propio banner de
-  consentimiento en 8 idiomas). Apagada mientras no existan las variables de
+  y huecos en las 1589 páginas estáticas del postbuild (con su propio banner de
+  consentimiento en los 10 idiomas). Apagada mientras no existan las variables de
   entorno → [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
 - **Journal de trading**, alertas de precio (WebSocket), historial de cálculos.
 
@@ -2615,3 +2617,39 @@ estáticas: banner → aceptar → 2 `<ins>`; «solo esenciales» no carga nada)
 ESLint **0 errores, 125 avisos** (los mismos de antes) · i18n **5635 × 8
 idiomas, 0 huecos** (+2 claves) · `npm run build` exit 0 → 1273 URLs + `ads.txt`
 · build sin las variables: **0 rastros** de publicidad y `ads.txt` borrado.
+
+### 2026-08-02 — Portugués e italiano: 10 idiomas de punta a punta
+- ✅ **`pt` (Portugal, pt-PT) e `it` completos**: las **5.635 claves** traducidas
+  a mano en los dos, `i18n-check` en verde para los 10 idiomas (0 huecos).
+  Sin caídas al español: los diccionarios están completos, no rellenados.
+  - Se tradujo también toda la academia (`<lang>.edu.js`), que es ~2.100 claves
+    de prosa larga; el resto de idiomas ya la tenía.
+  - Portugués **europeo**, no brasileño (decisión del usuario): «ecrã», «rutura»,
+    «fica»; y los reguladores/ejemplos locales se adaptan (CMVM en pt, CONSOB
+    en it, PSI 20 / FTSE MIB en el módulo de índices). El ejemplo fiscal sigue
+    siendo España, como en el resto de idiomas.
+- ✅ **Andamiaje**, no sólo el diccionario:
+  - `lib/i18n.js` (`LOCALE_LOADERS`, `SUPPORTED`, `EDU_LOADERS`, `languages`),
+    `hooks/useSEO.js` (`pt_PT` / `it_IT`) y `components/common/FlagIcon.jsx`
+    (banderas SVG nuevas).
+  - `scripts/gen-seo-pages.js`: `pt`/`it` en `LANGS`, `UI`, `ADS_UI`, `MARKET_UI`,
+    `STRAT_UI` y las 12 entradas de `CALC_I18N`. El sitemap pasa de **1273 a
+    1589 URLs** (120 calculadoras + 700 educación + 100 mercados + 660
+    estrategias). Los contadores del log ya derivan de `LANGS.length`, así que
+    no se vuelven a quedar obsoletos al añadir un idioma.
+  - `public/index.html`: `hreflang` pt/it, `og:locale:alternate`, `inLanguage`
+    y `availableLanguage` del JSON-LD.
+  - `lib/legalContent/pt.js` + `it.js` (traducción de cortesía completa:
+    privacidad, términos, cookies y aviso de riesgo) registrados en `index.js`.
+    Hasta ahora esas dos rutas caían al español.
+  - `scripts/i18n-check.js` y `scripts/split-i18n-edu.js` incluyen pt/it.
+  - «8 idiomas» → «10» en `index.html` y en las claves `authTrustLangs`,
+    `statsLanguages` y `seoLandingDesc` de los 10 diccionarios.
+- ✅ **Verificado**: `npm run build` exit 0 · `i18n-check` 10/10 sin huecos ·
+  `engine-check` 60/60 · `ads-check` 26/26 · ESLint 0 errores (125 warnings, la
+  línea base) · páginas estáticas `build/pt/**` y `build/it/**` generadas con su
+  `hreflang` correcto.
+- ⚠️ **Pendiente**: nadie nativo ha revisado las dos traducciones. Están hechas
+  con cuidado y con la terminología del sector sin traducir (order block, funding
+  rate, spread…), pero antes de anunciarlas conviene una pasada de un hablante
+  nativo, sobre todo en la academia y en los textos legales.

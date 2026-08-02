@@ -18,7 +18,7 @@ const path = require('path');
 
 const I18N_DIR = path.join(__dirname, '..', 'src', 'lib', 'i18n');
 const REF = 'es';
-const LANGS = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar'];
+const LANGS = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar', 'pt', 'it'];
 
 // The academy strings live in a separate lazily-loaded `<lang>.edu.js` chunk
 // (scripts/split-i18n-edu.js). Parity has to be checked over BOTH files, since

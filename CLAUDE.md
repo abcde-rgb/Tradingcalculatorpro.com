@@ -71,7 +71,7 @@ cd backend && python -m py_compile *.py
 # los avisos de símbolos muertos no bloquean. Corre también en CI.
 cd frontend && npx eslint src scripts
 
-# Paridad de los 8 idiomas y motor del simulador (ambos offline)
+# Paridad de los 10 idiomas y motor del simulador (ambos offline)
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
 
 # Publicidad: que ningún suscriptor pueda ver un anuncio (offline, corre en CI)
@@ -211,8 +211,8 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   propia e indexable; la calculadora en vivo sí lo lleva y va con `noindex`. Si
   añades una vista de referencia, va fuera del gate y con ruta propia.
 - **Las páginas por estrategia se generan solas en el `postbuild`.** `gen-seo-pages.js`
-  lee `STRATEGIES` de `mockData.js` y emite una página por estrategia × 8 idiomas con
-  JSON-LD `HowTo`. Añadir una estrategia al array añade 8 páginas al sitemap; no hay
+  lee `STRATEGIES` de `mockData.js` y emite una página por estrategia × 10 idiomas con
+  JSON-LD `HowTo`. Añadir una estrategia al array añade 10 páginas al sitemap; no hay
   nada que escribir a mano. Los nombres nuevos van en literal (los términos del sector
   no se traducen) y `tr()` resuelve literal o clave i18n indistintamente.
 - **`options_positioning` se calla sobre datos modelados.** Max pain, GEX, perfil de
@@ -297,7 +297,7 @@ de paquetes (npm/pip) y Anthropic. Implicaciones al desarrollar/verificar aquí:
     client-side en el test, no recargas completas.
   - Descarta el **cookie banner** antes de hacer clic (intercepta los clicks).
 - **Verificación offline que SÍ corre siempre:** `python -m py_compile ...`,
-  `node frontend/scripts/i18n-check.js` (paridad de 8 idiomas) y `npm run build`.
+  `node frontend/scripts/i18n-check.js` (paridad de 10 idiomas) y `npm run build`.
   Atajo: comando `/verify`.
 - Order flow real (delta/CVD/footprint) necesita datos de tick → viable **solo
   en cripto** (Binance/Bybit) y con una capa de datos mockeable en el sandbox.

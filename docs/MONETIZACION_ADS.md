@@ -47,7 +47,7 @@ Devuelve `true` sólo si se cumple **todo**:
 | `/options/strategies/:slug` | 2 (`article` + `bottom`) |
 
 **En las páginas estáticas del postbuild** (`gen-seo-pages.js`) — las 1273 URLs
-de `/tools/…`, `/learn/…`, `/markets/…` y `/options/strategies/…` en 8 idiomas:
+de `/tools/…`, `/learn/…`, `/markets/…` y `/options/strategies/…` en 10 idiomas:
 2 huecos por página.
 
 **Dónde NO, y por qué:**
@@ -92,10 +92,10 @@ tocar la red:
   Mode v2, y dispara el evento `tcp:consent` para que los huecos ya montados
   aparezcan sin recargar. Por defecto, desde `index.html`, todo va **denegado**.
 - **En las páginas estáticas** hay un banner mínimo en JavaScript plano
-  (traducido a los 8 idiomas) que escribe **la misma clave** `tcp-cookie-consent`.
+  (traducido a los 10 idiomas) que escribe **la misma clave** `tcp-cookie-consent`.
   Antes no existía porque esas páginas no ponían cookies; con publicidad, sí.
 - Los textos legales (banner, política de cookies, privacidad, base jurídica y
-  lista de terceros) se han actualizado en **los 8 idiomas**. Decían literalmente
+  lista de terceros) se han actualizado en **los 10 idiomas**. Decían literalmente
   *«no mostramos anuncios de terceros ni compartimos datos con redes
   publicitarias»*: con AdSense encendido, eso habría sido falso.
 
@@ -205,7 +205,7 @@ separado del CTA).
 | Añadir un tipo de hueco | `AD_SLOTS` en `src/lib/ads.js` + variable de entorno + workflow |
 | Cambiar el aspecto del hueco | `src/components/ads/AdSlot.jsx` (SPA) · `ADS_CSS` en `scripts/gen-seo-pages.js` (estáticas) |
 | Cambiar quién no ve anuncios | `shouldShowAds` en `adsPolicy.js` → `ads-check.js` fallará hasta que actualices el test, que es lo que se busca |
-| Textos de «Publicidad» / «Quitar anuncios» | claves i18n `adsLabel` y `adsRemove` (8 idiomas) |
+| Textos de «Publicidad» / «Quitar anuncios» | claves i18n `adsLabel` y `adsRemove` (10 idiomas) |
 
 ---
 

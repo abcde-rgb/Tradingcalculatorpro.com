@@ -11,11 +11,10 @@ import ru from './ru';
 import zh from './zh';
 import ja from './ja';
 import ar from './ar';
-// pt/it todavía no tienen su traducción de cortesía: `getLegalContent` cae a
-// español, que es el texto vinculante. En cuanto existan `pt.js`/`it.js`, se
-// importan aquí y se añaden al mapa.
+import pt from './pt';
+import it from './it';
 
-const CONTENT = { es, en, de, fr, ru, zh, ja, ar };
+const CONTENT = { es, en, de, fr, ru, zh, ja, ar, pt, it };
 
 export function getLegalContent(locale) {
   return CONTENT[locale] || CONTENT.es;

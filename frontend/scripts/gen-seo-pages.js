@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Genera páginas estáticas indexables (SEO) dentro de `build/`, MULTI-IDIOMA:
- *   - Educación: 1 página por tema × 8 idiomas, con el título+intro REALES ya
+ *   - Educación: 1 página por tema × N idiomas (ver LANGS), con el título+intro REALES ya
  *     traducidos en los archivos i18n (src/lib/i18n/*.js). Contenido de calidad
  *     sin inventar.
  *   - Calculadoras: 1 página por calculadora en es + en (páginas comerciales).
@@ -26,6 +26,7 @@ const LASTMOD = new Date().toISOString().slice(0, 10);
 const LANGS = [
   ['es', '', 'es'], ['en', '/en', 'en'], ['de', '/de', 'de'], ['fr', '/fr', 'fr'],
   ['ru', '/ru', 'ru'], ['zh', '/zh', 'zh-CN'], ['ja', '/ja', 'ja'], ['ar', '/ar', 'ar'],
+  ['pt', '/pt', 'pt'], ['it', '/it', 'it'],
 ];
 const RTL = new Set(['ar']);
 
@@ -75,6 +76,8 @@ const ADS_UI = {
   zh: { label:'广告', msg:'我们使用分析和广告 Cookie 来支持免费内容。', more:'了解更多', yes:'接受所有', no:'仅必要' },
   ja: { label:'広告', msg:'無料コンテンツを支えるため、分析クッキーと広告クッキーを使用します。', more:'詳細', yes:'すべて同意', no:'必須のみ' },
   ar: { label:'إعلان', msg:'نستخدم ملفات ارتباط تحليلية وإعلانية لتمويل المحتوى المجاني.', more:'مزيد من المعلومات', yes:'قبول الكل', no:'الأساسية فقط' },
+  pt: { label:'Publicidade', msg:'Usamos cookies analíticos e publicitários para financiar o conteúdo gratuito.', more:'Mais informação', yes:'Aceitar tudo', no:'Só essenciais' },
+  it: { label:'Pubblicità', msg:'Usiamo cookie analitici e pubblicitari per finanziare i contenuti gratuiti.', more:'Maggiori informazioni', yes:'Accetta tutto', no:'Solo essenziali' },
 };
 
 /** Hueco de anuncio. Vacío (literalmente nada) si no hay editor o slot. */
@@ -160,14 +163,16 @@ const adsScript = (lang) => {
 
 // ─── UI localizada mínima (breadcrumb, CTAs, etc.) ────────────────
 const UI = {
-  es: { home:'Inicio', learn:'Aprender', prices:'Precios', calcs:'Calculadoras', useCalc:'Usar la calculadora', openModule:'Abrir el módulo completo', whatGet:'Qué obtienes', whatLearn:'Qué aprenderás', formula:'Fórmula', otherCalcs:'Otras calculadoras', moreTopics:'Más temas', free:'Gratis · 8 idiomas', disc:'TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.' },
-  en: { home:'Home', learn:'Learn', prices:'Pricing', calcs:'Calculators', useCalc:'Use the calculator', openModule:'Open the full module', whatGet:'What you get', whatLearn:'What you will learn', formula:'Formula', otherCalcs:'Other calculators', moreTopics:'More topics', free:'Free · 8 languages', disc:'TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.' },
-  de: { home:'Start', learn:'Lernen', prices:'Preise', calcs:'Rechner', useCalc:'Rechner öffnen', openModule:'Vollständiges Modul öffnen', whatGet:'Was du bekommst', whatLearn:'Was du lernst', formula:'Formel', otherCalcs:'Weitere Rechner', moreTopics:'Weitere Themen', free:'Kostenlos · 8 Sprachen', disc:'TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.' },
-  fr: { home:'Accueil', learn:'Apprendre', prices:'Tarifs', calcs:'Calculatrices', useCalc:'Utiliser la calculatrice', openModule:'Ouvrir le module complet', whatGet:'Ce que vous obtenez', whatLearn:'Ce que vous apprendrez', formula:'Formule', otherCalcs:'Autres calculatrices', moreTopics:'Plus de thèmes', free:'Gratuit · 8 langues', disc:'TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.' },
-  ru: { home:'Главная', learn:'Обучение', prices:'Цены', calcs:'Калькуляторы', useCalc:'Открыть калькулятор', openModule:'Открыть полный модуль', whatGet:'Что вы получите', whatLearn:'Чему вы научитесь', formula:'Формула', otherCalcs:'Другие калькуляторы', moreTopics:'Ещё темы', free:'Бесплатно · 8 языков', disc:'TradingCalculator.Pro — инструменты и обучение трейдингу. Информационный контент, не инвестсовет. Торговля сопряжена с риском убытков.' },
-  zh: { home:'首页', learn:'学习', prices:'价格', calcs:'计算器', useCalc:'使用计算器', openModule:'打开完整模块', whatGet:'你将获得', whatLearn:'你将学到', formula:'公式', otherCalcs:'其他计算器', moreTopics:'更多主题', free:'免费 · 8 种语言', disc:'TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。' },
-  ja: { home:'ホーム', learn:'学ぶ', prices:'料金', calcs:'計算ツール', useCalc:'計算ツールを使う', openModule:'モジュール全体を開く', whatGet:'得られるもの', whatLearn:'学べること', formula:'計算式', otherCalcs:'他の計算ツール', moreTopics:'他のテーマ', free:'無料 · 8言語', disc:'TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。' },
-  ar: { home:'الرئيسية', learn:'تعلّم', prices:'الأسعار', calcs:'الحاسبات', useCalc:'استخدم الحاسبة', openModule:'افتح الوحدة كاملة', whatGet:'ما ستحصل عليه', whatLearn:'ما ستتعلمه', formula:'الصيغة', otherCalcs:'حاسبات أخرى', moreTopics:'مواضيع أخرى', free:'مجاني · 8 لغات', disc:'TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.' },
+  es: { home:'Inicio', learn:'Aprender', prices:'Precios', calcs:'Calculadoras', useCalc:'Usar la calculadora', openModule:'Abrir el módulo completo', whatGet:'Qué obtienes', whatLearn:'Qué aprenderás', formula:'Fórmula', otherCalcs:'Otras calculadoras', moreTopics:'Más temas', free:'Gratis · 10 idiomas', disc:'TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.' },
+  en: { home:'Home', learn:'Learn', prices:'Pricing', calcs:'Calculators', useCalc:'Use the calculator', openModule:'Open the full module', whatGet:'What you get', whatLearn:'What you will learn', formula:'Formula', otherCalcs:'Other calculators', moreTopics:'More topics', free:'Free · 10 languages', disc:'TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.' },
+  de: { home:'Start', learn:'Lernen', prices:'Preise', calcs:'Rechner', useCalc:'Rechner öffnen', openModule:'Vollständiges Modul öffnen', whatGet:'Was du bekommst', whatLearn:'Was du lernst', formula:'Formel', otherCalcs:'Weitere Rechner', moreTopics:'Weitere Themen', free:'Kostenlos · 10 Sprachen', disc:'TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.' },
+  fr: { home:'Accueil', learn:'Apprendre', prices:'Tarifs', calcs:'Calculatrices', useCalc:'Utiliser la calculatrice', openModule:'Ouvrir le module complet', whatGet:'Ce que vous obtenez', whatLearn:'Ce que vous apprendrez', formula:'Formule', otherCalcs:'Autres calculatrices', moreTopics:'Plus de thèmes', free:'Gratuit · 10 langues', disc:'TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.' },
+  ru: { home:'Главная', learn:'Обучение', prices:'Цены', calcs:'Калькуляторы', useCalc:'Открыть калькулятор', openModule:'Открыть полный модуль', whatGet:'Что вы получите', whatLearn:'Чему вы научитесь', formula:'Формула', otherCalcs:'Другие калькуляторы', moreTopics:'Ещё темы', free:'Бесплатно · 10 языков', disc:'TradingCalculator.Pro — инструменты и обучение трейдингу. Информационный контент, не инвестсовет. Торговля сопряжена с риском убытков.' },
+  zh: { home:'首页', learn:'学习', prices:'价格', calcs:'计算器', useCalc:'使用计算器', openModule:'打开完整模块', whatGet:'你将获得', whatLearn:'你将学到', formula:'公式', otherCalcs:'其他计算器', moreTopics:'更多主题', free:'免费 · 10 种语言', disc:'TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。' },
+  ja: { home:'ホーム', learn:'学ぶ', prices:'料金', calcs:'計算ツール', useCalc:'計算ツールを使う', openModule:'モジュール全体を開く', whatGet:'得られるもの', whatLearn:'学べること', formula:'計算式', otherCalcs:'他の計算ツール', moreTopics:'他のテーマ', free:'無料 · 10言語', disc:'TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。' },
+  ar: { home:'الرئيسية', learn:'تعلّم', prices:'الأسعار', calcs:'الحاسبات', useCalc:'استخدم الحاسبة', openModule:'افتح الوحدة كاملة', whatGet:'ما ستحصل عليه', whatLearn:'ما ستتعلمه', formula:'الصيغة', otherCalcs:'حاسبات أخرى', moreTopics:'مواضيع أخرى', free:'مجاني · 10 لغات', disc:'TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.' },
+  pt: { home:'Início', learn:'Aprender', prices:'Preços', calcs:'Calculadoras', useCalc:'Usar a calculadora', openModule:'Abrir o módulo completo', whatGet:'O que obtém', whatLearn:'O que vai aprender', formula:'Fórmula', otherCalcs:'Outras calculadoras', moreTopics:'Mais temas', free:'Grátis · 10 idiomas', disc:'TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.' },
+  it: { home:'Home', learn:'Impara', prices:'Prezzi', calcs:'Calcolatrici', useCalc:'Usa la calcolatrice', openModule:'Apri il modulo completo', whatGet:'Cosa ottieni', whatLearn:'Cosa imparerai', formula:'Formula', otherCalcs:'Altre calcolatrici', moreTopics:'Altri temi', free:'Gratis · 10 lingue', disc:'TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.' },
 };
 
 // ─── Calculadoras: es + en (páginas comerciales) ──────────────────
@@ -221,6 +226,8 @@ const CALC_I18N = {
     zh:{ title:`仓位大小计算器 — 免费且专业`, kw:`仓位大小计算器`, lead:`精确计算应交易多少单位、手数或合约，使每笔交易只承担你所选择的账户百分比风险。`, pts:[`始终以固定、可控的百分比（1–2%）承担风险`,`股票、外汇、加密货币、指数和期货`,`避免头号错误：过度杠杆`] },
     ja:{ title:`ポジションサイズ計算ツール — 無料でプロ仕様`, kw:`ポジションサイズ計算`, lead:`1回の取引で口座の決めた割合だけをリスクにするために、何単位・何ロット・何枚を取引すべきかを正確に計算します。`, pts:[`常に一定で管理された割合（1〜2%）でリスクを取る`,`株式・FX・仮想通貨・指数・先物`,`最大の失敗「過剰レバレッジ」を回避`] },
     ar:{ title:`حاسبة حجم المركز — مجانية واحترافية`, kw:`حاسبة حجم المركز`, lead:`احسب بدقة عدد الوحدات أو اللوتات أو العقود التي يجب تداولها لتخاطر فقط بالنسبة المئوية التي تختارها من حسابك في كل صفقة.`, pts:[`خاطر دائمًا بنسبة ثابتة ومنضبطة (1–2%)`,`الأسهم والفوركس والعملات الرقمية والمؤشرات والعقود الآجلة`,`يتجنب الخطأ الأول: الرافعة المفرطة`] },
+    pt:{ title:`Calculadora de Tamanho de Posição — Grátis e Profissional`, kw:`calculadora de tamanho de posição`, lead:`Calcule exatamente quantas unidades, lotes ou contratos operar para arriscar apenas a percentagem da sua conta que decidir por operação.`, pts:[`Arrisque sempre uma % fixa e controlada (1-2 %)`,`Ações, forex, cripto, índices e futuros`,`Evita o erro n.º 1: a sobrealavancagem`] },
+    it:{ title:`Calcolatrice della Size di Posizione — Gratuita e Professionale`, kw:`calcolatrice size posizione`, lead:`Calcola esattamente quante unità, lotti o contratti operare per rischiare solo la percentuale del tuo conto che decidi per ogni operazione.`, pts:[`Rischia sempre una % fissa e controllata (1-2 %)`,`Azioni, forex, cripto, indici e futures`,`Evita l'errore n.1: la leva eccessiva`] },
   },
   'calculadora-de-lotes-forex': {
     de:{ title:`Forex-Lot-Rechner — Lotgröße & Pip-Wert`, kw:`Forex-Lot-Rechner`, lead:`Rechne dein Risiko in Euro/Dollar in die richtige Lotgröße (Standard, Mini oder Micro) um – anhand deines Paars, deines Stops in Pips und deines Kapitals.`, pts:[`Standard-, Mini- und Micro-Lots`,`Pip-Wert je Währungspaar`,`An dein Risiko-% pro Trade angepasst`] },
@@ -229,6 +236,8 @@ const CALC_I18N = {
     zh:{ title:`外汇手数计算器 — 手数与点值`, kw:`外汇手数计算器`, lead:`根据货币对、以点数计的止损和资金，将你以美元计的风险换算为正确的手数（标准、迷你或微型）。`, pts:[`标准手、迷你手和微型手`,`各货币对的点值`,`匹配你每笔交易的风险百分比`] },
     ja:{ title:`FXロット計算ツール — ロットサイズとpip価値`, kw:`FXロット計算`, lead:`通貨ペア・pip単位のストップ・資金に応じて、ドル建てのリスクを正しいロットサイズ（標準・ミニ・マイクロ）に換算します。`, pts:[`標準・ミニ・マイクロロット`,`通貨ペアごとのpip価値`,`1取引あたりのリスク%に合わせて調整`] },
     ar:{ title:`حاسبة عقود الفوركس (اللوت) — حجم اللوت وقيمة النقطة`, kw:`حاسبة لوت الفوركس`, lead:`حوّل مخاطرتك بالدولار إلى حجم اللوت الصحيح (قياسي أو ميني أو مايكرو) حسب زوجك ووقف الخسارة بالنقاط ورأس مالك.`, pts:[`لوت قياسي وميني ومايكرو`,`قيمة النقطة لكل زوج عملات`,`مضبوط على نسبة مخاطرتك لكل صفقة`] },
+    pt:{ title:`Calculadora de Lotes de Forex — Tamanho de Lote e Pip`, kw:`calculadora de lotes forex`, lead:`Converta o seu risco em euros/dólares no tamanho de lote correto (padrão, mini ou micro) consoante o par, o stop em pips e o seu capital.`, pts:[`Lotes padrão, mini e micro`,`Valor do pip por par`,`Ajustado à sua % de risco`] },
+    it:{ title:`Calcolatrice di Lotti Forex — Dimensione del Lotto e Valore del Pip`, kw:`calcolatrice lotti forex`, lead:`Converti il tuo rischio in euro/dollari nella dimensione di lotto corretta (standard, mini o micro) in base alla coppia, allo stop in pip e al tuo capitale.`, pts:[`Lotti standard, mini e micro`,`Valore del pip per coppia`,`Adattato alla tua % di rischio`] },
   },
   'calculadora-de-apalancamiento': {
     de:{ title:`Hebel-Rechner — Exposure & Margin`, kw:`Hebel-Rechner`, lead:`Sieh deinen echten Hebel, die benötigte Margin und die Gesamt-Exposure deiner Position, bevor du sie eröffnest.`, pts:[`Benötigte Margin und nominale Exposure`,`Effektiver vs. angebotener Hebel`,`Forex, Krypto, CFDs und Futures`] },
@@ -237,6 +246,8 @@ const CALC_I18N = {
     zh:{ title:`杠杆计算器 — 敞口与保证金`, kw:`杠杆计算器`, lead:`在开仓前查看你的真实杠杆、所需保证金和头寸的总敞口。`, pts:[`所需保证金与名义敞口`,`有效杠杆与提供杠杆`,`外汇、加密货币、差价合约和期货`] },
     ja:{ title:`レバレッジ計算ツール — エクスポージャーと証拠金`, kw:`レバレッジ計算`, lead:`ポジションを建てる前に、実効レバレッジ・必要証拠金・総エクスポージャーを確認できます。`, pts:[`必要証拠金と想定元本エクスポージャー`,`実効レバレッジと提供レバレッジ`,`FX・仮想通貨・CFD・先物`] },
     ar:{ title:`حاسبة الرافعة المالية — الانكشاف والهامش`, kw:`حاسبة الرافعة المالية`, lead:`اعرف رافعتك الحقيقية والهامش المطلوب والانكشاف الكلي لمركزك قبل فتحه.`, pts:[`الهامش المطلوب والانكشاف الاسمي`,`الرافعة الفعلية مقابل المعروضة`,`الفوركس والعملات الرقمية والعقود مقابل الفروقات والعقود الآجلة`] },
+    pt:{ title:`Calculadora de Alavancagem — Exposição e Margem`, kw:`calculadora de alavancagem`, lead:`Descubra a sua alavancagem real, a margem de que precisa e a exposição total da sua posição antes de a abrir.`, pts:[`Margem exigida e exposição nocional`,`Alavancagem efetiva vs. oferecida`,`Forex, cripto, CFDs e futuros`] },
+    it:{ title:`Calcolatrice della Leva — Esposizione e Margine`, kw:`calcolatrice leva finanziaria`, lead:`Scopri la tua leva reale, il margine che ti serve e l'esposizione totale della tua posizione prima di aprirla.`, pts:[`Margine richiesto ed esposizione nozionale`,`Leva effettiva vs. offerta`,`Forex, cripto, CFD e futures`] },
   },
   'calculadora-de-futuros': {
     de:{ title:`Futures-Rechner — Margin, Tick & Nominalwert`, kw:`Futures-Rechner`, lead:`Übersetze Kontraktgröße, Multiplikator und Margin in echte Exposure: was jeder Tick wert ist und der gesamte Nominalwert.`, pts:[`Tick- und Punktwert`,`Initial- und Erhaltungsmargin`,`Echte nominale Exposure`] },
@@ -245,6 +256,8 @@ const CALC_I18N = {
     zh:{ title:`期货计算器 — 保证金、跳动点与名义价值`, kw:`期货计算器`, lead:`将合约规模、乘数和保证金换算为真实敞口：每个跳动点的价值和总名义价值。`, pts:[`跳动点与点值`,`初始保证金与维持保证金`,`真实名义敞口`] },
     ja:{ title:`先物計算ツール — 証拠金・ティック・想定元本`, kw:`先物計算`, lead:`契約サイズ・乗数・証拠金を実際のエクスポージャーに換算：1ティックの価値と総想定元本がわかります。`, pts:[`ティック値と1ポイントの価値`,`当初証拠金と維持証拠金`,`実際の想定元本エクスポージャー`] },
     ar:{ title:`حاسبة العقود الآجلة — الهامش والتِك والقيمة الاسمية`, kw:`حاسبة العقود الآجلة`, lead:`حوّل حجم العقد والمضاعف والهامش إلى انكشاف حقيقي: قيمة كل تِك والقيمة الاسمية الإجمالية.`, pts:[`قيمة التِك والنقطة`,`الهامش المبدئي وهامش الصيانة`,`الانكشاف الاسمي الحقيقي`] },
+    pt:{ title:`Calculadora de Futuros — Margem, Tick e Nocional`, kw:`calculadora de futuros`, lead:`Traduza o tamanho do contrato, o multiplicador e a margem em exposição real: quanto vale cada tick e o nocional total.`, pts:[`Valor do tick e do ponto`,`Margem inicial e de manutenção`,`Exposição nocional real`] },
+    it:{ title:`Calcolatrice Futures — Margine, Tick e Nozionale`, kw:`calcolatrice futures`, lead:`Traduci dimensione del contratto, moltiplicatore e margine in esposizione reale: quanto vale ogni tick e il nozionale totale.`, pts:[`Valore del tick e del punto`,`Margine iniziale e di mantenimento`,`Esposizione nozionale reale`] },
   },
   'calculadora-precio-objetivo': {
     de:{ title:`Kursziel-Rechner — Take-Profit & CRV`, kw:`Kursziel-Rechner`, lead:`Setze deinen Take-Profit anhand des gewünschten Chance-Risiko-Verhältnisses und prüfe, ob sich der Trade lohnt, bevor du einsteigst.`, pts:[`Kursziel nach CRV`,`Potenzieller Gewinn in % und Geld`,`Prüft dein minimales CRV`] },
@@ -253,6 +266,8 @@ const CALC_I18N = {
     zh:{ title:`目标价计算器 — 止盈与盈亏比`, kw:`目标价计算器`, lead:`根据你期望的风险回报比设定止盈，并在入场前判断这笔交易是否值得。`, pts:[`按盈亏比计算目标价`,`以百分比和金额显示潜在利润`,`验证你的最低盈亏比`] },
     ja:{ title:`目標価格計算ツール — 利確とリスクリワード`, kw:`目標価格計算`, lead:`狙うリスクリワード比から利確価格を設定し、エントリー前にそのトレードが割に合うか確認します。`, pts:[`リスクリワード比による目標価格`,`潜在利益を%と金額で表示`,`最低リスクリワード比を検証`] },
     ar:{ title:`حاسبة السعر المستهدف — جني الأرباح ونسبة العائد/المخاطرة`, kw:`حاسبة السعر المستهدف`, lead:`حدّد جني الأرباح حسب نسبة العائد إلى المخاطرة التي تريدها وتحقّق مما إذا كانت الصفقة تستحق قبل الدخول.`, pts:[`السعر المستهدف حسب نسبة العائد/المخاطرة`,`الربح المحتمل بالنسبة والمبلغ`,`يتحقق من الحد الأدنى للعائد/المخاطرة`] },
+    pt:{ title:`Calculadora de Preço Objetivo — Take Profit e R:R`, kw:`calculadora de preço objetivo`, lead:`Fixe o seu take profit segundo o rácio risco/benefício que procura e verifique se a operação vale a pena antes de entrar.`, pts:[`Preço objetivo por rácio R:R`,`Lucro potencial em % e em dinheiro`,`Valida o R:R mínimo`] },
+    it:{ title:`Calcolatrice del Prezzo Obiettivo — Take Profit e R:R`, kw:`calcolatrice prezzo obiettivo`, lead:`Fissa il tuo take profit in base al rapporto rischio/rendimento che cerchi e verifica se l'operazione vale la pena prima di entrare.`, pts:[`Prezzo obiettivo per rapporto R:R`,`Profitto potenziale in % e in denaro`,`Convalida il R:R minimo`] },
   },
   'calculadora-porcentaje-trading': {
     de:{ title:`Prozent-Rechner — Gewinn, Verlust & ROI`, kw:`Trading-Prozentrechner`, lead:`Berechne die prozentuale Änderung zwischen zwei Kursen, deinen Gewinn oder Verlust und wie viel du nach einem Drawdown aufholen musst.`, pts:[`%-Änderung zwischen zwei Kursen`,`ROI des Trades`,`Nötige Erholung nach einem Verlust`] },
@@ -261,6 +276,8 @@ const CALC_I18N = {
     zh:{ title:`百分比计算器 — 盈利、亏损与投资回报率`, kw:`交易百分比计算器`, lead:`计算两个价格之间的百分比变化、你的盈亏，以及回撤后需要收回多少。`, pts:[`两个价格之间的百分比变化`,`交易投资回报率`,`亏损后所需的回本幅度`] },
     ja:{ title:`パーセント計算ツール — 利益・損失・ROI`, kw:`トレードパーセント計算`, lead:`2つの価格間の変化率、損益、そしてドローダウン後にどれだけ取り返す必要があるかを計算します。`, pts:[`2つの価格間の変化率`,`トレードのROI`,`損失後に必要な回復幅`] },
     ar:{ title:`حاسبة النسبة المئوية — الربح والخسارة والعائد`, kw:`حاسبة نسبة التداول`, lead:`احسب التغير المئوي بين سعرين وربحك أو خسارتك وكم تحتاج لتعويضه بعد التراجع (drawdown).`, pts:[`التغير المئوي بين سعرين`,`عائد الصفقة (ROI)`,`ما يلزم تعويضه بعد الخسارة`] },
+    pt:{ title:`Calculadora de Percentagem — Ganhos, Perdas e ROI`, kw:`calculadora de percentagem de trading`, lead:`Calcule a variação percentual entre dois preços, o seu ganho ou perda e quanto precisa de recuperar depois de um drawdown.`, pts:[`Variação % entre dois preços`,`ROI da operação`,`Quanto recuperar depois de uma perda`] },
+    it:{ title:`Calcolatrice di Percentuale — Guadagni, Perdite e ROI`, kw:`calcolatrice percentuale trading`, lead:`Calcola la variazione percentuale tra due prezzi, il tuo guadagno o la tua perdita e quanto ti serve per recuperare dopo un drawdown.`, pts:[`Variazione % tra due prezzi`,`ROI dell'operazione`,`Quanto recuperare dopo una perdita`] },
   },
   'calculadora-precio-medio': {
     de:{ title:`Durchschnittskurs-Rechner (DCA) — Einstandskurs`, kw:`Durchschnittskurs-Rechner`, lead:`Berechne deinen durchschnittlichen Einstiegskurs bei Käufen in mehreren Tranchen (DCA) und kenne deinen Break-even, um im Plus auszusteigen.`, pts:[`Gewichteter Durchschnittskurs`,`Break-even nach dem Nachkaufen`,`Ideal für DCA bei Krypto und Aktien`] },
@@ -269,6 +286,8 @@ const CALC_I18N = {
     zh:{ title:`平均价格计算器（定投）— 成本基础`, kw:`平均价格计算器`, lead:`计算你分批买入（定投/DCA）的平均入场价，并了解保本价以便盈利离场。`, pts:[`加权平均价格`,`摊平后的保本价`,`适合加密货币和股票的定投`] },
     ja:{ title:`平均取得単価計算ツール（ドルコスト平均法）`, kw:`平均取得単価計算`, lead:`複数回に分けて買った場合（ドルコスト平均法）の平均取得単価を計算し、利益で降りるための損益分岐点を把握します。`, pts:[`加重平均取得単価`,`ナンピン後の損益分岐点`,`仮想通貨・株式の積立に最適`] },
     ar:{ title:`حاسبة متوسط السعر (DCA) — تكلفة الشراء`, kw:`حاسبة متوسط السعر`, lead:`احسب متوسط سعر دخولك عند الشراء على دفعات (DCA) واعرف نقطة التعادل للخروج بربح.`, pts:[`متوسط السعر المرجّح`,`نقطة التعادل بعد التوسيط`,`مثالي للشراء الدوري في العملات الرقمية والأسهم`] },
+    pt:{ title:`Calculadora de Preço Médio (DCA) — Custo Médio`, kw:`calculadora de preço médio`, lead:`Calcule o seu preço de entrada médio ao comprar em várias vezes (DCA) e saiba a que preço fica e o que precisa para sair em positivo.`, pts:[`Preço médio ponderado`,`Break-even depois de fazer média`,`Ideal para DCA em cripto e ações`] },
+    it:{ title:`Calcolatrice del Prezzo Medio (PAC) — Costo Medio`, kw:`calcolatrice prezzo medio`, lead:`Calcola il tuo prezzo medio di ingresso comprando in più tranche (PAC) e scopri a quale prezzo sei e cosa ti serve per uscire in positivo.`, pts:[`Prezzo medio ponderato`,`Break-even dopo la mediazione`,`Ideale per il PAC su cripto e azioni`] },
   },
   'calculadora-fibonacci': {
     de:{ title:`Fibonacci-Rechner — Retracements & Extensionen`, kw:`Fibonacci-Rechner`, lead:`Erzeuge die Fibonacci-Retracements (38,2 %, 50 %, 61,8 %) und -Extensionen zwischen zwei Punkten, um Unterstützungen, Widerstände und Ziele zu finden.`, pts:[`Automatische Retracements und Extensionen`,`Einstiegszonen und Ziele`,`Long und Short`] },
@@ -277,6 +296,8 @@ const CALC_I18N = {
     zh:{ title:`斐波那契计算器 — 回撤与扩展`, kw:`斐波那契计算器`, lead:`在两点之间生成斐波那契回撤（38.2%、50%、61.8%）和扩展位，寻找支撑、阻力和目标位。`, pts:[`自动回撤与扩展`,`入场区与目标位`,`看涨与看跌`] },
     ja:{ title:`フィボナッチ計算ツール — リトレースメントとエクステンション`, kw:`フィボナッチ計算`, lead:`2点間のフィボナッチ・リトレースメント（38.2%・50%・61.8%）とエクステンションを生成し、サポート・レジスタンス・目標を見つけます。`, pts:[`リトレースメントとエクステンションを自動計算`,`エントリーゾーンと目標`,`上昇・下降の両方に対応`] },
     ar:{ title:`حاسبة فيبوناتشي — التصحيحات والامتدادات`, kw:`حاسبة فيبوناتشي`, lead:`أنشئ مستويات تصحيح فيبوناتشي (38.2% و50% و61.8%) والامتدادات بين نقطتين لإيجاد الدعوم والمقاومات والأهداف.`, pts:[`تصحيحات وامتدادات تلقائية`,`مناطق الدخول والأهداف`,`صاعد وهابط`] },
+    pt:{ title:`Calculadora de Fibonacci — Retrocessos e Extensões`, kw:`calculadora de fibonacci`, lead:`Gere os níveis de retrocesso (38,2 %, 50 %, 61,8 %) e de extensão de Fibonacci entre dois pontos, para encontrar suportes, resistências e objetivos.`, pts:[`Retrocessos e extensões automáticos`,`Zonas de entrada e objetivos`,`De alta e de baixa`] },
+    it:{ title:`Calcolatrice di Fibonacci — Ritracciamenti ed Estensioni`, kw:`calcolatrice fibonacci`, lead:`Genera i livelli di ritracciamento (38,2 %, 50 %, 61,8 %) e di estensione di Fibonacci tra due punti, per trovare supporti, resistenze e obiettivi.`, pts:[`Ritracciamenti ed estensioni automatici`,`Zone di ingresso e obiettivi`,`Rialzista e ribassista`] },
   },
   'calculadora-patrones-trading': {
     de:{ title:`Chartmuster-Rechner — Einstieg, Stop & Ziel`, kw:`Chartmuster-Rechner`, lead:`Berechne aus einem Chartmuster den Einstieg, den Stop-Loss und das gemessene Ziel mit seinem Chance-Risiko-Verhältnis.`, pts:[`Einstieg, Stop und gemessenes Ziel`,`CRV des Musters`,`Integriertes Risikomanagement`] },
@@ -285,6 +306,8 @@ const CALC_I18N = {
     zh:{ title:`图表形态计算器 — 入场、止损与目标`, kw:`图表形态计算器`, lead:`根据图表形态，计算入场、止损和量度目标及其风险回报比。`, pts:[`入场、止损和量度目标`,`形态的盈亏比`,`内置风险管理`] },
     ja:{ title:`チャートパターン計算ツール — エントリー・ストップ・目標`, kw:`チャートパターン計算`, lead:`チャートパターンからエントリー・ストップロス・測定目標をリスクリワード比とともに計算します。`, pts:[`エントリー・ストップ・測定目標`,`パターンのリスクリワード比`,`リスク管理を内蔵`] },
     ar:{ title:`حاسبة النماذج السعرية — الدخول والوقف والهدف`, kw:`حاسبة النماذج السعرية`, lead:`انطلاقًا من نموذج سعري، احسب الدخول ووقف الخسارة والهدف المقاس مع نسبة العائد/المخاطرة.`, pts:[`الدخول والوقف والهدف المقاس`,`نسبة العائد/المخاطرة للنموذج`,`إدارة مخاطر مدمجة`] },
+    pt:{ title:`Calculadora de Padrões — Entrada, Stop e Objetivo`, kw:`calculadora de padrões de trading`, lead:`A partir de um padrão chartista, calcule a entrada, o stop-loss e o objetivo medido com o seu rácio risco/benefício.`, pts:[`Entrada, stop e objetivo medido`,`Rácio R:R do padrão`,`Gestão de risco integrada`] },
+    it:{ title:`Calcolatrice di Pattern — Ingresso, Stop e Obiettivo`, kw:`calcolatrice pattern grafici`, lead:`Partendo da un pattern grafico, calcola l'ingresso, lo stop-loss e l'obiettivo misurato con il suo rapporto rischio/rendimento.`, pts:[`Ingresso, stop e obiettivo misurato`,`Rapporto R:R del pattern`,`Gestione del rischio integrata`] },
   },
   'simulador-monte-carlo-risk-of-ruin': {
     de:{ title:`Monte-Carlo- & Risk-of-Ruin-Simulator — Blow-up-Wahrscheinlichkeit`, kw:`Risk-of-Ruin-Rechner`, lead:`Simuliere Tausende Trade-Sequenzen mit deiner Trefferquote und deinem CRV, um deine echte Wahrscheinlichkeit für einen Totalverlust und die schlimmste Verluststrähne zu sehen.`, pts:[`Ruin-Wahrscheinlichkeit für deine Positionsgröße`,`Schlimmste erwartete Verluststrähne`,`Prüft, ob dein System tragfähig ist`] },
@@ -293,6 +316,8 @@ const CALC_I18N = {
     zh:{ title:`蒙特卡洛与爆仓风险模拟器 — 爆仓概率`, kw:`爆仓风险计算器`, lead:`用你的胜率和盈亏比模拟数千次交易序列，查看你真实的爆仓概率和最糟糕的连亏。`, pts:[`基于你下注规模的破产概率`,`预期最糟糕的连续亏损`,`验证你的系统是否可持续`] },
     ja:{ title:`モンテカルロ＆破産確率シミュレーター — 資金消失の確率`, kw:`破産確率計算`, lead:`勝率とリスクリワード比で数千回の取引シーケンスをシミュレートし、口座を飛ばす本当の確率と最悪の連敗を確認します。`, pts:[`賭け金に応じた破産確率`,`想定される最悪の連敗`,`システムが持続可能か検証`] },
     ar:{ title:`محاكي مونت كارلو واحتمال الإفلاس — احتمال تفجير الحساب`, kw:`حاسبة احتمال الإفلاس`, lead:`حاكِ آلاف تسلسلات الصفقات بنسبة فوزك ونسبة العائد/المخاطرة لترى احتمالك الحقيقي لتفجير الحساب وأسوأ سلسلة خسائر.`, pts:[`احتمال الإفلاس حسب حجم مخاطرتك`,`أسوأ سلسلة خسائر متوقعة`,`يتحقق من استدامة نظامك`] },
+    pt:{ title:`Simulador Monte Carlo e Risk of Ruin — Probabilidade de Falência`, kw:`simulador monte carlo risk of ruin`, lead:`Simule milhares de sequências de operações com o seu win rate e R:R para ver a sua probabilidade real de arruinar a conta e a pior série esperada.`, pts:[`Probabilidade de ruína consoante o seu risco`,`Pior série de perdas esperada`,`Valida se o seu sistema é sustentável`] },
+    it:{ title:`Simulatore Monte Carlo e Risk of Ruin — Probabilità di Fallimento`, kw:`simulatore monte carlo risk of ruin`, lead:`Simula migliaia di sequenze di operazioni con il tuo win rate e R:R per vedere la tua reale probabilità di bruciare il conto e la peggiore serie attesa.`, pts:[`Probabilità di rovina in base al tuo rischio`,`Peggiore serie di perdite attesa`,`Verifica se il tuo sistema è sostenibile`] },
   },
   'simulador-de-trading': {
     de:{ title:`Trading-Simulator — Kontoprojektion nach Phasen`, kw:`Trading-Simulator`, lead:`Projiziere, wie sich dein Konto mit Trefferquote, CRV, Gebühren und Zinseszins über Hunderte Trades entwickelt.`, pts:[`Phasen-Projektion mit Zinseszins`,`Inklusive Gebühren und Slippage`,`Erwartete Equity-Kurve`] },
@@ -301,6 +326,8 @@ const CALC_I18N = {
     zh:{ title:`交易模拟器 — 分阶段账户预测`, kw:`交易模拟器`, lead:`用你的胜率、盈亏比、手续费和复利，预测账户在数百笔交易中的增长。`, pts:[`带复利的分阶段预测`,`包含手续费和滑点`,`预期资金曲线`] },
     ja:{ title:`トレードシミュレーター — フェーズ別口座予測`, kw:`トレードシミュレーター`, lead:`勝率・リスクリワード比・手数料・複利をもとに、数百回の取引で口座がどう増えるかを予測します。`, pts:[`複利を含むフェーズ別予測`,`手数料とスリッページを考慮`,`想定されるエクイティカーブ`] },
     ar:{ title:`محاكي التداول — إسقاط الحساب على مراحل`, kw:`محاكي التداول`, lead:`توقّع كيف ينمو حسابك بنسبة فوزك ونسبة العائد/المخاطرة والعمولات والفائدة المركبة عبر مئات الصفقات.`, pts:[`إسقاط على مراحل مع الفائدة المركبة`,`يشمل العمولات والانزلاق السعري`,`منحنى رأس المال المتوقع`] },
+    pt:{ title:`Simulador de Trading — Projeção de Conta por Fases`, kw:`simulador de trading`, lead:`Projete como evolui a sua conta com o seu win rate, R:R, comissões e juro composto ao longo de centenas de operações.`, pts:[`Projeção por fases com juro composto`,`Inclui comissões e slippage`,`Curva de equity esperada`] },
+    it:{ title:`Simulatore di Trading — Proiezione del Conto per Fasi`, kw:`simulatore di trading`, lead:`Proietta come evolve il tuo conto con il tuo win rate, R:R, commissioni e interesse composto lungo centinaia di operazioni.`, pts:[`Proiezione per fasi con capitalizzazione`,`Include commissioni e slippage`,`Curva di equity attesa`] },
   },
   'calculadora-interes-compuesto-trading': {
     de:{ title:`Zinseszins-Rechner fürs Trading`, kw:`Zinseszins-Rechner Trading`, lead:`Sieh, wie dein Kapital wächst, wenn du die Gewinne Monat für Monat mit einer angestrebten prozentualen Rendite reinvestierst.`, pts:[`Zinseszins-Wachstum mit Einzahlungen`,`Meilensteine und Wachstumsdiagramm`,`Realistische Renditeerwartungen`] },
@@ -309,10 +336,12 @@ const CALC_I18N = {
     zh:{ title:`交易复利计算器`, kw:`交易复利计算器`, lead:`查看按目标百分比收益逐月再投资利润，你的资金如何增长。`, pts:[`带追加投入的复利增长`,`里程碑与增长图表`,`现实的收益预期`] },
     ja:{ title:`トレード複利計算ツール`, kw:`トレード複利計算`, lead:`目標とする利回りで毎月利益を再投資したとき、資金がどう増えるかを確認します。`, pts:[`積立を含む複利成長`,`マイルストーンと成長グラフ`,`現実的なリターン期待`] },
     ar:{ title:`حاسبة الفائدة المركبة للتداول`, kw:`حاسبة الفائدة المركبة للتداول`, lead:`شاهد كيف ينمو رأس مالك بإعادة استثمار الأرباح شهرًا بعد شهر بعائد مئوي مستهدف.`, pts:[`نمو مركّب مع الإيداعات`,`مؤشرات ورسم بياني للنمو`,`توقعات عائد واقعية`] },
+    pt:{ title:`Calculadora de Juro Composto para Trading`, kw:`calculadora de juro composto trading`, lead:`Veja como cresce o seu capital reinvestindo os ganhos mês a mês com um rendimento percentual objetivo.`, pts:[`Crescimento composto com aportes`,`Marcos e gráfico de evolução`,`Expectativas realistas de rentabilidade`] },
+    it:{ title:`Calcolatrice di Interesse Composto per il Trading`, kw:`calcolatrice interesse composto trading`, lead:`Guarda come cresce il tuo capitale reinvestendo i guadagni mese dopo mese con un rendimento percentuale obiettivo.`, pts:[`Crescita composta con versamenti`,`Traguardi e grafico di evoluzione`,`Aspettative di rendimento realistiche`] },
   },
 };
 
-// ─── Temas de educación: título+intro desde i18n (8 idiomas) ──────
+// ─── Temas de educación: título+intro desde i18n (todos los idiomas de LANGS) ──────
 // {value (?topic=), slug, titleKey, introKey}
 const TOPICS = [
   { v:'start-here', slug:'como-hacer-tu-primera-operacion', tk:'shTitle', ik:'shIntro' },
@@ -478,7 +507,7 @@ function write(rel, html) {
 
 const sitemapUrls = [];
 
-// ── Calculadoras (8 idiomas: es+en inline, resto desde CALC_I18N) ──
+// ── Calculadoras (todos los idiomas de LANGS: es+en inline, resto desde CALC_I18N) ──
 const calcData = (c, lang) => c[lang] || (CALC_I18N[c.slug] || {})[lang];
 let calcCount = 0;
 CALCS.forEach((c, i) => {
@@ -504,7 +533,7 @@ CALCS.forEach((c, i) => {
   });
 });
 
-// ── Educación (8 idiomas, contenido desde i18n) ──
+// ── Educación (todos los idiomas de LANGS, contenido desde i18n) ──
 let learnCount = 0;
 TOPICS.forEach((tp, i) => {
   LANGS.forEach(([lang, pref]) => {
@@ -554,6 +583,8 @@ const MARKET_UI = {
   zh: { section:'市场', what:'这是什么', measure:'如何衡量', example:'实例计算', faq:'常见问题', cta:'打开互动资料卡', other:'其他市场' },
   ja: { section:'マーケット', what:'これは何か', measure:'測り方', example:'計算例', faq:'よくある質問', cta:'インタラクティブ資料を開く', other:'他のマーケット' },
   ar: { section:'الأسواق', what:'ما هو', measure:'كيف يُقاس', example:'مثال محلول', faq:'أسئلة شائعة', cta:'افتح البطاقة التفاعلية', other:'أسواق أخرى' },
+  pt: { section:'Mercados', what:'O que é', measure:'Como se mede', example:'Exemplo resolvido', faq:'Perguntas frequentes', cta:'Abrir a ficha interativa', other:'Outros mercados' },
+  it: { section:'Mercati', what:"Che cos'è", measure:'Come si misura', example:'Esempio svolto', faq:'Domande frequenti', cta:'Apri la scheda interattiva', other:'Altri mercati' },
 };
 
 // Título localizado del mercado: se reutiliza la clave mkt*Name de i18n.
@@ -709,6 +740,8 @@ const STRAT_UI = {
   zh: { section:'期权策略', legs:'腿', risk:'风险', reward:'收益', maxP:'最大盈利', maxL:'最大亏损', when:'何时使用', open:'在计算器中打开', multi:'使用多个到期日' },
   ja: { section:'オプション戦略', legs:'脚', risk:'リスク', reward:'リターン', maxP:'最大利益', maxL:'最大損失', when:'使いどころ', open:'計算機で開く', multi:'複数の満期を使用' },
   ar: { section:'استراتيجيات الخيارات', legs:'الأرجل', risk:'المخاطرة', reward:'العائد', maxP:'أقصى ربح', maxL:'أقصى خسارة', when:'متى تستخدمها', open:'افتح في الحاسبة', multi:'تستخدم أكثر من تاريخ استحقاق' },
+  pt: { section:'Estratégias de opções', legs:'Pernas', risk:'Risco', reward:'Retorno', maxP:'Lucro máximo', maxL:'Perda máxima', when:'Quando usá-la', open:'Abrir na calculadora', multi:'Usa mais do que um vencimento' },
+  it: { section:'Strategie in opzioni', legs:'Gambe', risk:'Rischio', reward:'Rendimento', maxP:'Profitto massimo', maxL:'Perdita massima', when:'Quando usarla', open:'Apri nella calcolatrice', multi:'Usa più di una scadenza' },
 };
 
 // Las estrategias nuevas llevan su nombre en literal (los términos del sector
@@ -775,8 +808,8 @@ const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://w
   '\n</urlset>\n';
 fs.writeFileSync(path.join(BUILD, 'sitemap.xml'), sitemap, 'utf8');
 
-console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × 8 idiomas)`);
-console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} temas × 8 idiomas)`);
-console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × 8 idiomas, FAQPage)`);
-console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × 8 idiomas, HowTo)`);
+console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × ${LANGS.length} idiomas)`);
+console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} temas × ${LANGS.length} idiomas)`);
+console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × ${LANGS.length} idiomas, FAQPage)`);
+console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × ${LANGS.length} idiomas, HowTo)`);
 console.log(`✅ sitemap.xml: ${all.length} URLs`);

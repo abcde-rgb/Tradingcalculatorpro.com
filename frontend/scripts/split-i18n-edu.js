@@ -31,7 +31,7 @@ const cp = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const I18N = path.join(ROOT, 'src', 'lib', 'i18n');
 const CONTENT = path.join(ROOT, 'src', 'lib', 'tradingEducationContent.js');
-const LANGS = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar'];
+const LANGS = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar', 'pt', 'it'];
 const CHECK = process.argv.includes('--check');
 
 const load = (file) =>
