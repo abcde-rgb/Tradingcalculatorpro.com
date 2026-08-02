@@ -3544,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "Open in the calculator",
   "optStrategyRelated": "Related structures",
   "optStrategyMultiExpiry": "Its legs do not share an expiration: it needs more than one date.",
+  "optExitTargetsTitle": "Exit targets",
+  "optExitLevel": "Level",
+  "optExitTarget": "Target",
+  "optExitNet": "Net P&L",
+  "optExitFromDebit": "You paid a debit of",
+  "optExitFromCredit": "You collected a credit of",
+  "optExitOpenEnded": "The curve is still rising at the edge of the chart: the maximum shown is the window’s, not the strategy’s.",
+  "optExitNote": "Prices at expiry, round-trip commissions deducted. Closing before expiry leaves time value on the table.",
 }

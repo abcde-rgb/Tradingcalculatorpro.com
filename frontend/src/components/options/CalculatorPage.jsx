@@ -32,6 +32,7 @@ import CompareBar from './CompareBar';
 import EarningsBanner from './EarningsBanner';
 import PositionSetupBar from './PositionSetupBar';
 import GreeksStrip from './GreeksStrip';
+import ExitTargetsTable from './ExitTargetsTable';
 import SecondaryPanels from './SecondaryPanels';
 import { SectionHeading } from './SectionCard';
 
@@ -327,6 +328,42 @@ const CalculatorPage = () => {
     );
   }, [customLegs, selectedExpIdx]);
 
+  // Revalorar una pata contra la cadena de SU vencimiento.
+  //
+  // Al cambiar de vencimiento no basta con mover el índice: la prima, la IV y
+  // el strike de la pata siguen siendo los de la fecha anterior, y como esos
+  // valores viven en `customLegs` nada los refrescaba. Se reancla por strike
+  // más cercano porque dos vencimientos no listan los mismos strikes.
+  // `pricedExpIdx` marca contra qué cadena está valorada, y es lo que corta el
+  // bucle: cuando ya coincide, no hay nada que reescribir.
+  useEffect(() => {
+    if (customLegs.length === 0) return;
+    let changed = false;
+    const next = customLegs.map((l) => {
+      const expIdx = l.expIdx ?? selectedExpIdx;
+      if (l.pricedExpIdx === expIdx) return l;
+      const legChain = chains[String(expIdx)]?.chain;
+      if (!legChain || legChain.length === 0) return l;
+      const target = l.strike ?? stock?.price ?? legChain[0].strike;
+      const nearest = legChain.reduce(
+        (best, s, i) =>
+          Math.abs(s.strike - target) < Math.abs(legChain[best].strike - target) ? i : best,
+        0
+      );
+      const strikeData = legChain[nearest];
+      changed = true;
+      return {
+        ...l,
+        strikeIdx: nearest,
+        strike: strikeData.strike,
+        premium: strikeData[l.type]?.mid ?? 0,
+        iv: strikeData[l.type]?.iv ?? 0.3,
+        pricedExpIdx: expIdx,
+      };
+    });
+    if (changed) setCustomLegs(next);
+  }, [chains, customLegs, selectedExpIdx, stock]);
+
   // Active legs — always uses the Constructor.
   // Apply the global "contracts" multiplier so premium / max loss / Greeks all scale together.
   const legs = useMemo(
@@ -510,6 +547,30 @@ const CalculatorPage = () => {
     setActiveTab('calculator');
   }, [selectedExpIdx]);
 
+  /**
+   * Cambiar el vencimiento global ARRASTRA las patas.
+   *
+   * Se desplazan todas por el mismo delta en vez de fijarlas al índice nuevo:
+   * así una posición normal se mueve entera a la fecha elegida, y un calendar
+   * o una diagonal conservan su separación entre patas —que es lo que las
+   * define— en lugar de aplanarse en un vertical. La revaloración la hace el
+   * efecto de arriba en cuanto llega la cadena.
+   */
+  const handleExpChange = useCallback((nextIdx) => {
+    const maxIdx = Math.max(0, expirations.length - 1);
+    const target = Math.max(0, Math.min(maxIdx, nextIdx));
+    const delta = target - selectedExpIdx;
+    if (delta !== 0) {
+      setCustomLegs((prev) =>
+        prev.map((l) => ({
+          ...l,
+          expIdx: Math.max(0, Math.min(maxIdx, (l.expIdx ?? selectedExpIdx) + delta)),
+        }))
+      );
+    }
+    setSelectedExpIdx(target);
+  }, [selectedExpIdx, expirations.length]);
+
   const handleSelectStrategy = useCallback((s) => {
     setSelectedStrategy(s);
     seededRef.current = null; // invalidate cache to force re-seed
@@ -573,7 +634,7 @@ const CalculatorPage = () => {
           stockPrice={stock?.price}
           expirations={expirations}
           selectedExpIdx={selectedExpIdx}
-          onExpChange={setSelectedExpIdx}
+          onExpChange={handleExpChange}
         />
       )}
 
@@ -621,7 +682,7 @@ const CalculatorPage = () => {
               onSelectStrategy={handleSelectStrategy}
               expirations={expirations}
               selectedExpIdx={selectedExpIdx}
-              onExpChange={setSelectedExpIdx}
+              onExpChange={handleExpChange}
               contracts={contracts}
               onContractsChange={setContracts}
               compareMode={compareMode}
@@ -639,6 +700,22 @@ const CalculatorPage = () => {
               breakEvens={breakEvens}
               currentExp={currentExp}
             />
+
+            {/* Objetivos de salida. Va aquí y no en el acordeón: no es análisis
+                accesorio, es con lo que se colocan las órdenes de cierre, y sale
+                de la misma curva que el gráfico. */}
+            <div className="mt-2 bg-card border border-border rounded-xl p-3">
+              <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
+                {t('optExitTargetsTitle')}
+              </h3>
+              <ExitTargetsTable
+                payoffData={payoffData}
+                legs={legs}
+                stockPrice={stock?.price}
+                commission={commission}
+                contracts={contracts}
+              />
+            </div>
             {compareMode && (
               <div className="mt-2">
                 <CompareBar
@@ -668,6 +745,8 @@ const CalculatorPage = () => {
                     data={payoffData}
                     breakEvens={breakEvens}
                     stockPrice={stock?.price}
+                    high52w={stock?.high52w}
+                    low52w={stock?.low52w}
                     legs={legs}
                     dataB={compareMode ? payoffDataB : null}
                     labelA={t(selectedStrategy.name)}
