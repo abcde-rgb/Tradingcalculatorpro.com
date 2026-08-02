@@ -89,6 +89,18 @@ def test_is_paying_member_requires_paid_not_trial():
                                  "subscription_status": "active", "subscription_end": _past()}) is False
 
 
+def test_free_access_email_counts_as_paying():
+    # Un correo con acceso libre (comp) cuenta como de pago aunque no tenga suscripción.
+    saved = ap._free_access_emails
+    try:
+        ap._free_access_emails = {"comp@x.com"}
+        assert ap._is_paying_member({"email": "comp@x.com"}) is True
+        assert ap._is_paying_member({"email": "Comp@X.com"}) is True  # case-insensitive
+        assert ap._is_paying_member({"email": "otro@x.com", "is_premium": False}) is False
+    finally:
+        ap._free_access_emails = saved
+
+
 def test_mask_email_hides_pii():
     m = ap._mask_email("juanperez@gmail.com")
     assert m.startswith("j") and m.endswith("@gmail.com") and "***" in m

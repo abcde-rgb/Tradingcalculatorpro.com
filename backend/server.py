@@ -1087,6 +1087,14 @@ DEMO_PASSWORD = _demo_pw
 # Set ADMIN_EMAILS env var in Cloud Run — no database change needed.
 _ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
 
+# Emails with FREE full (comp) access — always treated as premium without paying.
+# Útil mientras no está la facturación/Stripe activa. Ampliable por env FREE_ACCESS_EMAILS
+# (coma-separado); hardcodeamos una cuenta de cortesía por defecto.
+_FREE_ACCESS_EMAILS = (
+    {e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()}
+    | {"tradingcalculatorpro@gmail.com"}
+)
+
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
     "monthly":   {"name": "Mensual",     "price": 17.00,  "currency": "EUR", "interval": "month",    "days": 30,    "stripe_price_id": "price_1TXM8EImYjMeegYBvEaA8LxH", "klarna": False},
@@ -1579,6 +1587,9 @@ def check_premium(user: dict) -> bool:
         return False
     # Demo user always has full PRO access
     if user.get("email") == DEMO_EMAIL:
+        return True
+    # Cuentas con acceso libre (comp) — premium sin pagar (ver _FREE_ACCESS_EMAILS)
+    if (user.get("email") or "").lower() in _FREE_ACCESS_EMAILS:
         return True
     if user.get("subscription_plan") == "lifetime":
         return True
@@ -8148,6 +8159,7 @@ try:
         "get_setting": get_setting,
         "encrypt": _encrypt_setting,
         "decrypt": _decrypt_setting,
+        "free_access_emails": _FREE_ACCESS_EMAILS,
         "limiter": limiter,
     })
     register_realtime_alerts(api_router, db, {
