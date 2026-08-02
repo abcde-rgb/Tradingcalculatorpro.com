@@ -3535,4 +3535,12 @@ export default {
   "optStrategyOpenInCalculator": "افتح في الحاسبة",
   "optStrategyRelated": "هياكل ذات صلة",
   "optStrategyMultiExpiry": "أرجلها لا تشترك في تاريخ الاستحقاق: تحتاج أكثر من تاريخ.",
+  "optExitTargetsTitle": "أهداف الخروج",
+  "optExitLevel": "المستوى",
+  "optExitTarget": "الهدف",
+  "optExitNet": "صافي الربح",
+  "optExitFromDebit": "دفعت مديناً قدره",
+  "optExitFromCredit": "حصّلت ائتماناً قدره",
+  "optExitOpenEnded": "المنحنى ما زال يصعد عند حافة الرسم: الحد الأقصى المعروض هو حدّ النافذة السعرية لا حدّ الاستراتيجية.",
+  "optExitNote": "أسعار عند الاستحقاق مع خصم عمولات الذهاب والإياب. الإغلاق قبل الاستحقاق يترك قيمة زمنية.",
 }

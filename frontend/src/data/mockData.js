@@ -110,6 +110,33 @@ export function getStockData(symbol) {
   };
 }
 
+/**
+ * Búsqueda local instantánea para el desplegable del buscador.
+ *
+ * Devuelve SÓLO símbolo, nombre y sector, deliberadamente sin precio: los
+ * precios de `KNOWN_STOCKS` son de muestra y `getStockData` los completa con
+ * `Math.random()`. Una cotización inventada en el desplegable es
+ * indistinguible de una real, así que el precio se deja vacío hasta que
+ * responde el backend.
+ *
+ * Existe porque el buscador esperaba una ida y vuelta al servidor por cada
+ * tecla y no aparecía nada hasta terminar de escribir.
+ */
+export function searchTickersLocal(query, limit = 8) {
+  const q = String(query || '').trim().toUpperCase();
+  if (!q) return [];
+  const starts = [];
+  const contains = [];
+  for (const [symbol, data] of Object.entries(KNOWN_STOCKS)) {
+    if (symbol.startsWith(q)) starts.push({ symbol, name: data.name, sector: data.sector, local: true });
+    else if (symbol.includes(q) || data.name.toUpperCase().includes(q)) {
+      contains.push({ symbol, name: data.name, sector: data.sector, local: true });
+    }
+    if (starts.length >= limit) break;
+  }
+  return [...starts, ...contains].slice(0, limit);
+}
+
 export function searchTickers(query) {
   if (!query) return Object.keys(KNOWN_STOCKS).slice(0, 12);
   const q = query.toUpperCase();

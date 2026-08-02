@@ -3535,4 +3535,12 @@ export default {
   "optStrategyOpenInCalculator": "Abrir en la calculadora",
   "optStrategyRelated": "Estructuras relacionadas",
   "optStrategyMultiExpiry": "Sus patas no comparten vencimiento: necesita más de una fecha.",
+  "optExitTargetsTitle": "Objetivos de salida",
+  "optExitLevel": "Nivel",
+  "optExitTarget": "Objetivo",
+  "optExitNet": "P&L neto",
+  "optExitFromDebit": "Pagaste un débito de",
+  "optExitFromCredit": "Cobraste un crédito de",
+  "optExitOpenEnded": "La curva sigue subiendo en el borde del gráfico: el máximo mostrado es el de la ventana de precios, no el de la estrategia.",
+  "optExitNote": "Precios al vencimiento y comisiones de ida y vuelta descontadas. Cerrar antes de vencimiento deja valor temporal en la mesa.",
 }

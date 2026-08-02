@@ -3535,4 +3535,12 @@ export default {
   "optStrategyOpenInCalculator": "在计算器中打开",
   "optStrategyRelated": "相关结构",
   "optStrategyMultiExpiry": "各腿到期日不同：需要多个到期日。",
+  "optExitTargetsTitle": "离场目标",
+  "optExitLevel": "级别",
+  "optExitTarget": "目标",
+  "optExitNet": "净盈亏",
+  "optExitFromDebit": "你支付的借记为",
+  "optExitFromCredit": "你收取的贷记为",
+  "optExitOpenEnded": "曲线在图表边缘仍在上升：显示的最大值是价格窗口的最大值，而非策略的最大值。",
+  "optExitNote": "按到期价格计算，已扣除往返佣金。到期前平仓会留下时间价值。",
 }
