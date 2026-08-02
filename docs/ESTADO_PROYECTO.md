@@ -34,8 +34,6 @@
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI backend (Cloud Run)** | 🟢 | `py_compile *.py` (antes la lista iba a mano y omitía 6 módulos) + pytest |
 | **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) + i18n + credentials + **lint** |
-| **Publicidad AdSense (código)** | 🟢 | Implementado y verificado (26 checks offline + 24 en navegador). **Apagado por defecto**: sin `REACT_APP_ADSENSE_CLIENT` no se emite nada |
-| **Publicidad AdSense (operación)** | 🔴 | Bloqueada por el **dominio propio**: en `github.io/Tradingcalculatorpro.com` no se puede servir `ads.txt` en la raíz ni acreditar propiedad. Falta además CMP certificada para el EEE. Ver [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md) |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
 | **NOWPayments / crypto (código)** | 🟢 | Invoice + IPN con HMAC-SHA512 verificado (`backend/nowpayments.py`) |
@@ -73,12 +71,18 @@
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
 - **Analítica/SEO**: GA4 + GTM + GSC/Bing, `sitemap.xml`, `robots.txt`, `og-image`,
   `manifest.json` (PWA), hook `useSEO`.
-- **Publicidad (Google AdSense)** en el contenido gratuito, con la regla
-  «**quien paga no ve anuncios en ninguna parte**» fijada por test: política pura
-  en `lib/adsPolicy.js`, `<AdSlot>` en el hub y las fichas públicas de opciones,
-  y huecos en las 1589 páginas estáticas del postbuild (con su propio banner de
-  consentimiento en los 10 idiomas). Apagada mientras no existan las variables de
-  entorno → [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
+- **Todo el contenido es de pago.** No hay secciones abiertas dentro de la app:
+  `/education`, `/options*`, `/news`, `/dashboard` y `/performance` exigen
+  suscripción activa (`ProtectedRoute premiumOnly`). Fuera del muro sólo quedan
+  la landing, precios, legales, contacto, «sobre» y el flujo de alta/pago, para
+  que un registrado sin plan pueda suscribirse. **Sin publicidad**: AdSense se
+  retiró por completo el 2026-08-02.
+- **Prueba de 7 días con tarjeta por adelantado** (`TRIAL_PERIOD_DAYS = 7`, solo
+  para nuevos suscriptores y planes recurrentes). Stripe Checkout cobra solo al
+  acabar el periodo si no se cancela antes desde «Mi suscripción».
+- **Las 1589 páginas estáticas son anzuelo, no contenido**: título, primer
+  párrafo y llamada a la prueba de 7 días. La receta de cada estrategia, las
+  tablas de mercado y las FAQ ya no se publican.
 - **Journal de trading**, alertas de precio (WebSocket), historial de cálculos.
 
 ### Backend — FastAPI + asyncpg (shim Mongo→PostgreSQL)
@@ -180,7 +184,6 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   y hay que acreditar la propiedad del sitio; con `github.io` ninguna de las dos
   cosas es posible). Para tráfico del EEE, además, CMP certificada — lo más simple
   es activar la de Google y poner `REACT_APP_ADSENSE_CMP=google`.
-  Guía completa: [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
 - **NOWPayments** (crypto): ajustes `nowpayments_api_key` y `nowpayments_ipn_secret`
   en el panel admin (o sus variables de entorno), `nowpayments_sandbox` = `true`|`false`,
   y registrar el callback `…/api/webhook/nowpayments` en su dashboard. El IPN se firma con
@@ -2609,7 +2612,6 @@ iniciado sesión, sí vería anuncios hasta entrar en la app.
 
 `lib/adsPolicy.js` · `lib/ads.js` · `components/ads/AdSlot.jsx` ·
 `components/ads/AdsBootstrap.jsx` · `scripts/ads-check.js` (en CI) ·
-`scripts/gen-ads-txt.js` (postbuild) · [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
 
 **Verificación:** `ads-check` **26/26** · smoke real en Chromium **24/24**
 (premium: 0 huecos y 0 peticiones a `pagead2`; gratuito: huecos y script;
@@ -2653,3 +2655,50 @@ idiomas, 0 huecos** (+2 claves) · `npm run build` exit 0 → 1273 URLs + `ads.t
   con cuidado y con la terminología del sector sin traducir (order block, funding
   rate, spread…), pero antes de anunciarlas conviene una pasada de un hablante
   nativo, sobre todo en la academia y en los textos legales.
+
+### 2026-08-02 (2) — Fuera AdSense; todo el contenido tras el muro de pago
+Cambio de modelo de negocio pedido por el propietario: se retira la publicidad y
+el sitio pasa a ser **de pago íntegro**, con prueba de 7 días como única puerta.
+
+- ✅ **AdSense eliminado de raíz**, no desactivado. Borrados `lib/ads.js`,
+  `lib/adsPolicy.js`, `components/ads/*`, `scripts/gen-ads-txt.js`,
+  `scripts/ads-check.js` y `docs/MONETIZACION_ADS.md`. Fuera también el paso de
+  CI, las 4 variables del workflow de Pages, las de `.env.example`, las reglas
+  `Mediapartners-Google`/`AdsBot-Google` de `robots.txt`, las claves i18n
+  `adsLabel`/`adsRemove` en los 10 idiomas y los párrafos de publicidad de los
+  textos legales (los 8 originales se restauraron desde `aae872f^`; pt/it se
+  recortaron a mano).
+  - Se retiró además una **segunda** integración que no era del PR de ads: el
+    ajuste `adsense_publisher_id` cargaba auto-ads desde `GoogleIntegrations.jsx`.
+    Quitado del frontend, de `admin_routes.py` y de `server.py`.
+  - `CONSENT_KEY` vivía en `adsPolicy.js`; ahora vive en `CookieBanner.jsx`, que
+    es su único consumidor. El banner ya sólo concede `analytics_storage`: las
+    señales `ad_*` siguen denegadas desde `index.html` y nadie las concede.
+- ✅ **Muro de pago total.** `premiumOnly` en `/education`, `/options`,
+  `/options/calculator`, `/options/strategies`, `/options/strategies/:slug` y
+  `/news` (ya lo tenían `/dashboard` y `/performance`). Un registrado sin plan
+  sólo puede llegar a landing, precios, legales, contacto, «sobre» y al flujo de
+  pago —`/settings` y `/subscription` siguen siendo sólo-auth para que pueda
+  gestionar la cuenta y suscribirse.
+- ✅ **Las páginas estáticas pasan a ser anzuelo.** Mantienen título, primer
+  párrafo, enlaces relacionados y una llamada «7 días gratis» que apunta a
+  `/pricing`; el deep-link a la app queda como enlace secundario. Se retiran la
+  receta de las estrategias (patas, riesgo, máximos, cuándo usarla), y en las
+  fichas de mercado las tablas de medición y ejemplo y las FAQ.
+  - Con ellas se van los schemas `HowTo` y `FAQPage`: describían contenido que ya
+    no está en la página, y un marcado que no casa con lo visible es un problema
+    con Google, no una ventaja. Las fichas de estrategia emiten `WebPage`.
+  - El sitemap se queda en **1589 URLs**: no se pierde indexación, se pierde
+    contenido regalado.
+- ℹ️ **El trial ya estaba bien montado y no se ha tocado**: `TRIAL_PERIOD_DAYS = 7`,
+  tarjeta por adelantado vía Stripe Checkout (`trial_period_days`), sólo para
+  nuevos suscriptores y planes recurrentes, y cobro automático al vencer salvo
+  cancelación. Es la opción elegida frente a pedir confirmación explícita.
+- ✅ **Verificado**: ESLint 0 errores (125 warnings, la línea base) · i18n 10/10
+  sin huecos (5650 claves) · engine 60/60 · `npm run build` exit 0 con 1589 URLs ·
+  `py_compile` de todos los módulos del backend · enlaces de doc OK.
+  ⚠️ `pytest` **no** se pudo correr en el contenedor (faltan `fastapi`/`scipy`);
+  el cambio de backend son 3 líneas borradas de un ajuste y CI lo cubre.
+- ⚠️ **Pendiente de decidir**: `/affiliate` sigue siendo sólo-auth. Un registrado
+  sin plan ve la página aunque el backend (`_is_paying_member`) no le deje entrar
+  al programa. Si debe caer también tras el muro, es una línea.

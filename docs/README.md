@@ -45,7 +45,6 @@ leen en el mismo momento ni con la misma intención.
 | [`setup/SEO_GUIDE.md`](./setup/SEO_GUIDE.md) | Dónde vive cada pieza de SEO y cómo cambiarla |
 | [`CAPTAR_TRAFICO.md`](./CAPTAR_TRAFICO.md) | Canales de adquisición |
 | [`PROGRAMA_AFILIADOS.md`](./PROGRAMA_AFILIADOS.md) | Comisiones, tramos y solicitudes de pago |
-| [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md) | Google AdSense en el contenido gratuito. **Premium no ve anuncios**: cómo se garantiza, cómo se enciende y qué falta (dominio propio, CMP) |
 | [`ESTUDIO_UBICACION_WEB.md`](./ESTUDIO_UBICACION_WEB.md) | Dónde colocar cada cosa en la web |
 
 ## 🧠 Contenido y formación

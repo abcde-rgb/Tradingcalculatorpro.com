@@ -7251,7 +7251,6 @@ PUBLIC_SETTING_KEYS = (
     "ga4_measurement_id",
     "gtm_id",
     "gsc_verification",
-    "adsense_publisher_id",
     "bing_verification",
     # Stripe
     "stripe_publishable_key",
@@ -7291,7 +7290,6 @@ _SETTING_ENV_FALLBACK: Dict[str, str] = {
     "ga4_measurement_id":     "REACT_APP_GA4_MEASUREMENT_ID",
     "gtm_id":                 "REACT_APP_GTM_ID",
     "gsc_verification":       "REACT_APP_GSC_VERIFICATION",
-    "adsense_publisher_id":   "REACT_APP_ADSENSE_PUBLISHER_ID",
     "bing_verification":      "REACT_APP_BING_VERIFICATION",
     "stripe_publishable_key": "STRIPE_PUBLISHABLE_KEY",
     "stripe_secret_key":      "STRIPE_API_KEY",
@@ -7319,7 +7317,6 @@ class AdminSettingsUpdate(BaseModel):
     ga4_measurement_id: Optional[str] = None
     gtm_id: Optional[str] = None
     gsc_verification: Optional[str] = None
-    adsense_publisher_id: Optional[str] = None
     bing_verification: Optional[str] = None
     # Stripe
     stripe_publishable_key: Optional[str] = None

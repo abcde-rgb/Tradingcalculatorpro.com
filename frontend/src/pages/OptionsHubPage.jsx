@@ -4,7 +4,6 @@ import { LineChart, Target, Brain, Activity, BarChart3, TrendingUp, ArrowRight }
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
-import AdSlot from '@/components/ads/AdSlot';
 import { STRATEGIES, STRATEGY_CATEGORIES, strategySlug, isMultiExpiryStrategy } from '@/data/mockData';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
@@ -72,7 +71,6 @@ export function OptionsStrategiesIndexPage() {
         <div className="space-y-6">
           <StrategyCatalog byCategory={byCategory} />
         </div>
-        <AdSlot placement="bottom" />
       </main>
       <Footer />
     </div>
@@ -140,7 +138,6 @@ export default function OptionsHubPage() {
           <StrategyCatalog byCategory={byCategory} />
         </section>
 
-        <AdSlot placement="article" />
 
         <section className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold">{t('optionsGateIncludedTitle')}</h2>

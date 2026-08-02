@@ -31,14 +31,13 @@ const fr = {
           'Communications transactionnelles : confirmations de paiement, avis de renouvellement et notifications d’alertes de prix que vous configurez, envoyés via SendGrid.',
           'Sécurité et prévention de la fraude : détection des accès non autorisés et protection de l’intégrité du service.',
           'Analyse d’utilisation (avec votre consentement) : via Google Analytics 4 avec anonymisation de l’IP, pour améliorer la plateforme.',
-          'Publicité dans le contenu gratuit (avec votre consentement) : via Google AdSense, pour financer les sections ouvertes. Les utilisateurs Premium ne voient aucune publicité.',
         ]},
       ]},
       { t: 'Base Légale du Traitement (RGPD)', b: [
         { p: 'Pour les utilisateurs de l’Espace économique européen, le traitement repose sur les bases légales suivantes du Règlement général sur la protection des données (RGPD) :' },
         { list: [
           'Art. 6(1)(b) RGPD — Exécution d’un contrat : le traitement est nécessaire pour fournir le service, gérer votre abonnement et traiter les paiements.',
-          'Art. 6(1)(a) RGPD — Consentement : pour les cookies analytiques (Google Analytics 4) et les communications marketing optionnelles. Vous pouvez retirer votre consentement à tout moment. De même pour les cookies publicitaires de Google AdSense dans le contenu gratuit.',
+          'Art. 6(1)(a) RGPD — Consentement : pour les cookies analytiques (Google Analytics 4) et les communications marketing optionnelles. Vous pouvez retirer votre consentement à tout moment.',
           'Art. 6(1)(c) RGPD — Obligation légale : conservation des données de facturation selon la législation fiscale applicable.',
           'Art. 6(1)(f) RGPD — Intérêt légitime : sécurité du service et prévention de la fraude.',
         ]},
@@ -50,7 +49,7 @@ const fr = {
           'PayPal, Inc. (paiements) : traite les paiements PayPal selon sa propre politique de confidentialité.',
           'Revolut (Revolut Pay, avec Apple Pay/Google Pay dans son checkout) : traite les paiements Revolut Pay.',
           'NOWPayments (paiements en cryptomonnaies) : traite les paiements crypto. Reçoit le montant, un identifiant de commande et, le cas échéant, votre e-mail pour le reçu.',
-          'Google LLC (OAuth et Analytics) : la connexion Google transfère nom et e-mail. Google Analytics 4 est utilisé avec anonymisation de l’IP et uniquement avec votre consentement. Politique : policies.google.com/privacy. Google AdSense diffuse des annonces dans le contenu gratuit, uniquement avec votre consentement et jamais aux utilisateurs Premium.',
+          'Google LLC (OAuth et Analytics) : la connexion Google transfère nom et e-mail. Google Analytics 4 est utilisé avec anonymisation de l’IP et uniquement avec votre consentement. Politique : policies.google.com/privacy.',
           'Twilio SendGrid (e-mails transactionnels) : envoi des confirmations, factures et alertes. Ne reçoit que votre adresse e-mail.',
           'Anthropic (AI Trade Coach) : lorsque vous demandez une analyse IA, les paramètres de la stratégie analysée (actif, jambes, prix) sont envoyés à Anthropic. Votre nom et votre e-mail ne sont pas transmis avec la requête.',
         ]},
@@ -184,9 +183,7 @@ const fr = {
         { p: 'Certaines pages intègrent le graphique **TradingView** via un iframe de tradingview.com. Ce contenu est servi par TradingView, qui peut déposer ses propres cookies techniques selon sa propre politique. Nous ne contrôlons pas ces cookies.' },
       ]},
       { t: 'Cookies Publicitaires et Traçage Tiers', b: [
-        { p: 'Nous affichons des annonces **Google AdSense** dans les sections gratuites du site afin de financer le contenu ouvert. Les annonces et leurs cookies ne sont chargés que si vous avez choisi « Tout accepter » dans le bandeau — sans ce consentement, le script de Google n’est même pas téléchargé.' },
-        { p: '**Avec un abonnement Premium actif, vous ne verrez aucune publicité sur le site**, y compris dans le contenu gratuit : le script AdSense n’est pas chargé dans votre navigateur et aucun cookie publicitaire n’est déposé.' },
-        { p: 'Google peut utiliser des cookies pour personnaliser les annonces selon vos visites sur ce site et sur d’autres. Vous pouvez désactiver cette personnalisation dans les [paramètres des annonces Google](https://adssettings.google.com), ou la refuser ici en choisissant « Essentiels uniquement ».' },
+        { p: '**TradingCalculator.pro n’utilise aucun cookie publicitaire, de retargeting ni de traçage comportemental tiers.** Nous n’affichons pas de publicités tierces et ne partageons pas de données comportementales avec des régies publicitaires.' },
       ]},
       { t: 'Gérer et Désactiver les Cookies', b: [
         { p: 'La plupart des navigateurs permettent de contrôler les cookies dans leurs réglages :' },

@@ -45,13 +45,9 @@ jobs:
           # hay nada que ocultar. Si no están definidas, el build sale SIN
           # publicidad (ni script, ni huecos, ni ads.txt) — es el estado por
           # defecto. Ver docs/MONETIZACION_ADS.md.
-          REACT_APP_ADSENSE_CLIENT: ${{ vars.REACT_APP_ADSENSE_CLIENT }}
-          REACT_APP_ADSENSE_SLOT_ARTICLE: ${{ vars.REACT_APP_ADSENSE_SLOT_ARTICLE }}
-          REACT_APP_ADSENSE_SLOT_BOTTOM: ${{ vars.REACT_APP_ADSENSE_SLOT_BOTTOM }}
           # 'google' si el consentimiento lo gestiona la CMP certificada de
           # Google (AdSense → Privacidad y mensajes). Vacío = manda el banner
           # de cookies propio.
-          REACT_APP_ADSENSE_CMP: ${{ vars.REACT_APP_ADSENSE_CMP }}
           PUBLIC_URL: /Tradingcalculatorpro.com
           CI: false
         run: npm run build
