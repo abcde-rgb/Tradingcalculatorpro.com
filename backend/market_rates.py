@@ -29,6 +29,20 @@ FALLBACK_RISK_FREE: float = 0.04
 # nothing and costs an external request per call.
 CACHE_TTL_SECONDS: int = 6 * 3600
 
+# How long to wait before retrying after a FAILED lookup. Without this the
+# failure path had no cache at all: `fresh` requires a non-None rate, so every
+# call re-attempted the network while the provider was unreachable — measured at
+# 25 network attempts for 25 calls, and the same when a stale value was already
+# in hand. `get_risk_free_rate` sits inside /options/chain, /optimize,
+# /calculate/* and /performance/analytics, so that tax was charged to every
+# pricing request the user was waiting on.
+FAILURE_BACKOFF_SECONDS: int = 15 * 60
+
+# Per-host timeout for the rate lookup. Deliberately far below the 15s default
+# of `_yahoo_get`: the rate is a refinement, and no user request should stall on
+# it. Two hosts, so the worst case is twice this.
+FETCH_TIMEOUT_SECONDS: int = 4
+
 # Sanity band. A parse error or a units mix-up (percent vs fraction) shows up
 # as a value outside this range, and we'd rather use the fallback than price
 # the whole book off a 1500% risk-free rate.
@@ -38,7 +52,8 @@ MAX_PLAUSIBLE_RATE: float = 0.25
 _RATE_SYMBOL = "^IRX"  # 13-week US Treasury bill, quoted as a percentage
 
 _lock = threading.Lock()
-_cache: Dict[str, Any] = {"rate": None, "fetched_at": None, "source": "fallback"}
+_cache: Dict[str, Any] = {"rate": None, "fetched_at": None, "source": "fallback",
+                           "failed_at": None}
 
 
 def _fetch_live_rate() -> Optional[float]:
@@ -46,7 +61,8 @@ def _fetch_live_rate() -> Optional[float]:
     try:
         from stock_data import _yahoo_get  # local import: keeps this module import-safe
 
-        data = _yahoo_get(f"/v8/finance/chart/{_RATE_SYMBOL}?range=5d&interval=1d")
+        data = _yahoo_get(f"/v8/finance/chart/{_RATE_SYMBOL}?range=5d&interval=1d",
+                          timeout=FETCH_TIMEOUT_SECONDS)
         meta = (data.get("chart", {}).get("result") or [{}])[0].get("meta", {})
         raw = meta.get("regularMarketPrice")
         if raw is None:
@@ -71,6 +87,7 @@ def get_risk_free_rate(*, force_refresh: bool = False) -> float:
     now = datetime.now(timezone.utc)
     with _lock:
         fetched_at = _cache["fetched_at"]
+        failed_at = _cache["failed_at"]
         fresh = (
             _cache["rate"] is not None
             and fetched_at is not None
@@ -78,12 +95,24 @@ def get_risk_free_rate(*, force_refresh: bool = False) -> float:
         )
         if fresh and not force_refresh:
             return float(_cache["rate"])
+        # A recent failure is itself cached. Without this the unreachable-provider
+        # path had no cache at all — `fresh` needs a non-None rate — so every
+        # caller re-tried the network, on a code path that runs inside requests
+        # the user is waiting on. An explicit force_refresh still goes out.
+        backing_off = (
+            failed_at is not None
+            and (now - failed_at).total_seconds() < FAILURE_BACKOFF_SECONDS
+        )
+        if backing_off and not force_refresh:
+            return float(_cache["rate"]) if _cache["rate"] is not None else FALLBACK_RISK_FREE
 
     rate = _fetch_live_rate()
     with _lock:
         if rate is not None:
-            _cache.update({"rate": rate, "fetched_at": now, "source": _RATE_SYMBOL})
+            _cache.update({"rate": rate, "fetched_at": now,
+                           "source": _RATE_SYMBOL, "failed_at": None})
             return rate
+        _cache["failed_at"] = now
         if _cache["rate"] is not None:
             # Live lookup failed but we have a previous reading — a slightly old
             # real rate beats a made-up one. Mark it stale, keep serving it.

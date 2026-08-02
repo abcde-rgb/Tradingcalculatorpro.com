@@ -13,7 +13,7 @@ import { useTranslation } from '@/lib/i18n';
  * Results section of SimulatorPro: KPI cards + equity/drawdown charts
  * + win/loss distribution + last-20 ops table + "new simulation" reset.
  */
-export default function SimulatorResults({ results, operations, onReset }) {
+export default function SimulatorResults({ results, operations, isMedianOfSweep = false, onReset }) {
   const { t } = useTranslation();
 
   // Equity + drawdown precomputed with running peak — O(n) single pass
@@ -48,6 +48,14 @@ export default function SimulatorResults({ results, operations, onReset }) {
             <BarChart3 className="w-4 h-4 text-green-500" />
           </div>
           {t('simulationResults')}
+          {isMedianOfSweep && (
+            <span
+              className="text-xs font-normal text-muted-foreground"
+              data-testid="median-of-sweep-note"
+            >
+              — {t('simMedianOfSweep')}
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
 

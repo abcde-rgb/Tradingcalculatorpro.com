@@ -16,9 +16,11 @@ const LOCALE_LOADERS = {
   zh: () => import('./i18n/zh').then((m) => m.default),
   ja: () => import('./i18n/ja').then((m) => m.default),
   ar: () => import('./i18n/ar').then((m) => m.default),
+  pt: () => import('./i18n/pt').then((m) => m.default),
+  it: () => import('./i18n/it').then((m) => m.default),
 };
 
-const SUPPORTED = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar'];
+const SUPPORTED = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar', 'pt', 'it'];
 
 // Academy-content strings (68 modules) live in a separate chunk so they don't
 // ride along in main.js for visitors who never open the learning centre.
@@ -32,6 +34,8 @@ const EDU_LOADERS = {
   zh: () => import('./i18n/zh.edu').then((m) => m.default),
   ja: () => import('./i18n/ja.edu').then((m) => m.default),
   ar: () => import('./i18n/ar.edu').then((m) => m.default),
+  pt: () => import('./i18n/pt.edu').then((m) => m.default),
+  it: () => import('./i18n/it.edu').then((m) => m.default),
 };
 
 // Locales whose academy chunk is already merged in.
@@ -68,6 +72,8 @@ export const languages = [
   { code: 'zh', name: '中文',       flag: '🇨🇳' },
   { code: 'ja', name: '日本語',     flag: '🇯🇵' },
   { code: 'ar', name: 'العربية',   flag: '🇸🇦' },
+  { code: 'pt', name: 'Português', flag: '🇵🇹' },
+  { code: 'it', name: 'Italiano',  flag: '🇮🇹' },
 ];
 
 function applyDomLocale(locale) {

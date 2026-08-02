@@ -18,13 +18,20 @@ _cache_duration = 300  # 5 minutes cache
 _YH_HOSTS = ("https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com")
 
 
-def _yahoo_get(path: str) -> dict:
-    """GET a Yahoo Finance JSON endpoint impersonating Chrome. Raises on failure."""
+def _yahoo_get(path: str, *, timeout: int = 15) -> dict:
+    """GET a Yahoo Finance JSON endpoint impersonating Chrome. Raises on failure.
+
+    `timeout` is per host, and there are two hosts, so the worst case is twice
+    this value. Callers on a latency-sensitive path (anything that runs inside a
+    request the user is waiting on) should pass something well under the default
+    — see `market_rates`, where a slow rate lookup would otherwise be charged to
+    every pricing request.
+    """
     from curl_cffi import requests as _cffi
     last = "no hosts tried"
     for host in _YH_HOSTS:
         try:
-            r = _cffi.get(host + path, impersonate="chrome", timeout=15)
+            r = _cffi.get(host + path, impersonate="chrome", timeout=timeout)
             if r.status_code == 200:
                 return r.json()
             last = f"HTTP {r.status_code}"

@@ -12,7 +12,7 @@
 > - 🔗 Documentos hermanos: [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) ·
 >   [`ANALISIS_COMPETENCIA_2026-07-19.md`](./ANALISIS_COMPETENCIA_2026-07-19.md) ·
 >   [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) ·
->   [`DEPLOY_CHECKLIST.md`](./DEPLOY_CHECKLIST.md) · [`DIARIO_BUGS.md`](../DIARIO_BUGS.md)
+>   [`DEPLOY_CHECKLIST.md`](./DEPLOY_CHECKLIST.md) · [`DIARIO_BUGS.md`](./DIARIO_BUGS.md)
 
 ---
 
@@ -893,4 +893,4 @@ Play (TWA) y Microsoft Store (MSIX) con [`PUBLICAR_EN_TIENDAS.md`](./PUBLICAR_EN
 ## 7. Registro de lo implementado en esta sesión
 
 Ver la entrada correspondiente en [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) §7 y, para los
-fallos, [`DIARIO_BUGS.md`](../DIARIO_BUGS.md).
+fallos, [`DIARIO_BUGS.md`](./DIARIO_BUGS.md).

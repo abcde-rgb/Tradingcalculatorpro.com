@@ -389,7 +389,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal }) {
             {t('excTitle')}
           </h3>
           <p className="text-xs text-muted-foreground/80 mb-4">{t('excIntro')}</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
             <div className="bg-muted/40 rounded-lg border border-border/40 p-3">
               <p className="text-[11px] text-muted-foreground mb-1">{t('excAvgMae')}</p>
               <p className="text-lg font-bold">{a.excursion.avg_mae_r ?? '—'}R</p>
@@ -406,6 +406,18 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal }) {
               <p className="text-[11px] text-muted-foreground mb-1">{t('excGaveBack')}</p>
               <p className="text-lg font-bold">
                 {a.excursion.losers_gave_back}/{a.excursion.losers_sample}
+              </p>
+            </div>
+            <div className="bg-muted/40 rounded-lg border border-border/40 p-3"
+                 title={t('excCaptureHint')}>
+              <p className="text-[11px] text-muted-foreground mb-1">{t('excCapture')}</p>
+              <p className={`text-lg font-bold ${
+                a.excursion.capture_ratio != null && a.excursion.capture_ratio < 0.4
+                  ? 'text-[#f59e0b]' : ''
+              }`}>
+                {a.excursion.capture_ratio != null
+                  ? `${Math.round(a.excursion.capture_ratio * 100)}%`
+                  : '—'}
               </p>
             </div>
           </div>

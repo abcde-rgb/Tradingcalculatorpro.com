@@ -48,6 +48,116 @@ for (const [lang] of LANGS) {
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const cap = (s) => String(s).replace(/^\w/, (m) => m.toUpperCase());
 
+// ─── Publicidad (Google AdSense) ──────────────────────────────────
+// Estas páginas son HTML plano: no hay React, ni sesión, ni store. Para no
+// romper la promesa de "quien paga no ve anuncios" se replica aquí, en
+// JavaScript mínimo, la misma regla de `src/lib/adsPolicy.js`:
+//   1. la marca `tcp-ads=off` de localStorage (la escribe la SPA cuando el
+//      visitante tiene suscripción) apaga la publicidad ANTES de cargar nada;
+//   2. sin consentimiento de cookies no se descarga el script de Google.
+// Sin `REACT_APP_ADSENSE_CLIENT` no se emite absolutamente nada.
+const ADS = {
+  client: (process.env.REACT_APP_ADSENSE_CLIENT || '').trim(),
+  cmp: (process.env.REACT_APP_ADSENSE_CMP || '').trim().toLowerCase(),
+  slots: {
+    article: (process.env.REACT_APP_ADSENSE_SLOT_ARTICLE || '').trim(),
+    bottom: (process.env.REACT_APP_ADSENSE_SLOT_BOTTOM || '').trim(),
+  },
+};
+const adsOn = () => Boolean(ADS.client);
+
+const ADS_UI = {
+  es: { label:'Publicidad', msg:'Usamos cookies analíticas y publicitarias para financiar el contenido gratuito.', more:'Más información', yes:'Aceptar todo', no:'Solo esenciales' },
+  en: { label:'Advertisement', msg:'We use analytics and advertising cookies to fund the free content.', more:'Learn more', yes:'Accept all', no:'Essential only' },
+  de: { label:'Anzeige', msg:'Wir nutzen Analyse- und Werbe-Cookies, um die kostenlosen Inhalte zu finanzieren.', more:'Mehr erfahren', yes:'Alle akzeptieren', no:'Nur essentielle' },
+  fr: { label:'Publicité', msg:'Nous utilisons des cookies analytiques et publicitaires pour financer le contenu gratuit.', more:'En savoir plus', yes:'Tout accepter', no:'Essentiels uniquement' },
+  ru: { label:'Реклама', msg:'Мы используем аналитические и рекламные cookie, чтобы финансировать бесплатный контент.', more:'Подробнее', yes:'Принять все', no:'Только основные' },
+  zh: { label:'广告', msg:'我们使用分析和广告 Cookie 来支持免费内容。', more:'了解更多', yes:'接受所有', no:'仅必要' },
+  ja: { label:'広告', msg:'無料コンテンツを支えるため、分析クッキーと広告クッキーを使用します。', more:'詳細', yes:'すべて同意', no:'必須のみ' },
+  ar: { label:'إعلان', msg:'نستخدم ملفات ارتباط تحليلية وإعلانية لتمويل المحتوى المجاني.', more:'مزيد من المعلومات', yes:'قبول الكل', no:'الأساسية فقط' },
+};
+
+/** Hueco de anuncio. Vacío (literalmente nada) si no hay editor o slot. */
+const adsBox = (placement) => {
+  const slot = ADS.slots[placement];
+  return adsOn() && slot ? `<div class="adbox" data-ad-slot="${esc(slot)}"></div>` : '';
+};
+
+// Sin publicidad configurada no se emite ni el CSS: la página queda byte a byte
+// como antes de existir esto.
+const ADS_CSS = !adsOn() ? '' : `
+.adbox{margin:26px 0}
+.adlabel{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#5c5c5c;margin-bottom:4px}
+.cbar{position:fixed;inset-inline:12px;bottom:12px;z-index:99;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.cbar p{margin:0;font-size:13px;color:#c7c7c7;flex:1 1 260px}
+.cbar div{display:flex;gap:8px}
+.cbar button{font:inherit;font-size:12px;padding:8px 14px;border-radius:8px;border:1px solid #333;background:transparent;color:#a3a3a3;cursor:pointer}
+.cbar button.ok{background:#22c55e;border-color:#22c55e;color:#04120a;font-weight:700}`;
+
+/**
+ * Script de anuncios de la página estática. El orden de las comprobaciones es
+ * la parte importante: primero suscriptor, luego consentimiento, y sólo
+ * entonces se toca la red.
+ */
+const adsScript = (lang) => {
+  if (!adsOn()) return '';
+  const u = ADS_UI[lang] || ADS_UI.en;
+  const j = (s) => JSON.stringify(String(s));
+  return `<script>
+(function(){
+  var C=${j(ADS.client)},L=${j(u.label)};
+  var boxes=document.querySelectorAll('.adbox');
+  if(!boxes.length)return;
+  function get(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function set(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  // Suscriptor. Dos vías, porque una sola deja un hueco:
+  //  a) la marca que escribe la SPA (AdsBootstrap);
+  //  b) la sesión persistida de Zustand, que existe desde el primer login y
+  //     cubre al premium que aterriza aquí desde Google sin haber pasado antes
+  //     por una página con anuncios. Misma regla que src/lib/premium.js.
+  if(get('tcp-ads')==='off')return;
+  try{
+    var st=JSON.parse(get('btc-auth-storage')||'null');
+    var u=st&&st.state&&st.state.isAuthenticated?st.state.user:null;
+    if(u&&(u.is_premium===true||u.is_admin===true||u.subscription_plan==='lifetime'||
+      (u.subscription_end&&new Date(u.subscription_end)>new Date())))return;
+  }catch(e){}
+  function load(){
+    var s=document.createElement('script');
+    s.async=true;s.crossOrigin='anonymous';
+    s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(C);
+    document.head.appendChild(s);
+    for(var i=0;i<boxes.length;i++){
+      var b=boxes[i],slot=b.getAttribute('data-ad-slot');
+      if(!slot)continue;
+      var lab=document.createElement('span');lab.className='adlabel';lab.textContent=L;b.appendChild(lab);
+      var ins=document.createElement('ins');
+      ins.className='adsbygoogle';ins.style.display='block';ins.style.minHeight='100px';
+      ins.setAttribute('data-ad-client',C);ins.setAttribute('data-ad-slot',slot);
+      ins.setAttribute('data-ad-format','auto');ins.setAttribute('data-full-width-responsive','true');
+      b.appendChild(ins);
+      try{(window.adsbygoogle=window.adsbygoogle||[]).push({})}catch(e){}
+    }
+  }
+  var c=get('tcp-cookie-consent');
+  if(c==='all'||${ADS.cmp === 'google' ? 'true' : 'false'}){load();return;}
+  if(c)return;
+  var bar=document.createElement('div');bar.className='cbar';
+  bar.innerHTML='<p>'+${j(u.msg)}+' <a href="${DOMAIN}/legal?tab=cookies">'+${j(u.more)}+'</a></p>'+
+    '<div><button type="button" data-a="essential">'+${j(u.no)}+'</button>'+
+    '<button type="button" class="ok" data-a="all">'+${j(u.yes)}+'</button></div>';
+  bar.addEventListener('click',function(e){
+    var a=e.target&&e.target.getAttribute&&e.target.getAttribute('data-a');
+    if(!a)return;
+    set('tcp-cookie-consent',a);
+    if(bar.parentNode)bar.parentNode.removeChild(bar);
+    if(a==='all')load();
+  });
+  document.body.appendChild(bar);
+})();
+</script>`;
+};
+
 // ─── UI localizada mínima (breadcrumb, CTAs, etc.) ────────────────
 const UI = {
   es: { home:'Inicio', learn:'Aprender', prices:'Precios', calcs:'Calculadoras', useCalc:'Usar la calculadora', openModule:'Abrir el módulo completo', whatGet:'Qué obtienes', whatLearn:'Qué aprenderás', formula:'Fórmula', otherCalcs:'Otras calculadoras', moreTopics:'Más temas', free:'Gratis · 8 idiomas', disc:'TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.' },
@@ -330,6 +440,7 @@ ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 .free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
 footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
 footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+${ADS_CSS}
 </style>
 </head>
 <body>
@@ -345,13 +456,16 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <a class="cta" href="${esc(ctaUrl)}">${esc(ctaLabel)} →</a>
   ${formula ? `<div class="card"><h2>${esc(ui.formula)}</h2><code class="formula">${esc(formula)}</code></div>` : ''}
   ${points && points.length ? `<div class="card"><h2>${esc(sectionKind === 'tools' ? ui.whatGet : ui.whatLearn)}</h2><ul>${pointsHtml}</ul></div>` : ''}
+  ${adsBox('article')}
   <a class="cta" href="${esc(ctaUrl)}">${esc(ctaLabel)} →</a>
   <div class="related card"><h2>${esc(sectionKind === 'tools' ? ui.otherCalcs : ui.moreTopics)}</h2><ul>${relatedHtml}</ul></div>
+  ${adsBox('bottom')}
 </main>
 <footer><div class="wrap">
   <div><a href="${DOMAIN}/">${esc(ui.home)}</a><a href="${DOMAIN}/education">${esc(ui.learn)}</a><a href="${DOMAIN}/legal">Legal</a></div>
   <div class="disc">${esc(ui.disc)}</div>
 </div></footer>
+${adsScript(lang)}
 </body>
 </html>`;
 }
@@ -510,6 +624,7 @@ td.num{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-align:end;co
 ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
 footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+${ADS_CSS}
 </style>
 </head>
 <body>
@@ -530,13 +645,17 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 
   <div class="card"><h2>${esc(mui.faq)}</h2>${faqHtml}</div>
 
+  ${adsBox('article')}
+
   <a class="cta" href="${DOMAIN}/education?topic=fundamentals&amp;market=${esc(id)}">${esc(mui.cta)} →</a>
   <div class="card"><h2>${esc(mui.other)}</h2><ul>${relatedHtml}</ul></div>
+  ${adsBox('bottom')}
 </main>
 <footer><div class="wrap">
   <div><a href="${DOMAIN}/">${esc(UI[lang].home)}</a><a href="${DOMAIN}/education">${esc(UI[lang].learn)}</a><a href="${DOMAIN}/legal">Legal</a></div>
   <div class="disc">${esc(UI[lang].disc)}</div>
 </div></footer>
+${adsScript(lang)}
 </body>
 </html>`;
 }
@@ -567,8 +686,89 @@ LANGS.forEach(([lang, prefix]) => {
   });
 });
 
+// ── Estrategias de opciones (/options/strategies/<slug>/) ─────────
+// Una página por estrategia y por idioma. El catálogo ya existía dentro de la
+// SPA, tras el muro de pago y sin una sola URL propia: 66 estructuras que
+// ningún buscador podía ver. Aquí no se escribe contenido nuevo, se enruta el
+// que ya estaba: nombre, descripción, patas, riesgo y cuándo usarla salen del
+// mismo `STRATEGIES` que consume la calculadora, así que no pueden divergir.
+const STRAT_SRC = fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'mockData.js'), 'utf8');
+const STRATEGIES = (() => {
+  const start = STRAT_SRC.indexOf('export const STRATEGIES');
+  const body = STRAT_SRC.slice(start).replace(/export\s+const/, 'const');
+  // eslint-disable-next-line no-new-func
+  return new Function(`${body.slice(0, body.indexOf('\n];') + 3)}\nreturn STRATEGIES;`)();
+})();
+
+const STRAT_UI = {
+  es: { section:'Estrategias de opciones', legs:'Patas', risk:'Riesgo', reward:'Recompensa', maxP:'Beneficio máximo', maxL:'Pérdida máxima', when:'Cuándo usarla', open:'Abrir en la calculadora', multi:'Usa más de un vencimiento' },
+  en: { section:'Options strategies', legs:'Legs', risk:'Risk', reward:'Reward', maxP:'Max profit', maxL:'Max loss', when:'When to use it', open:'Open in the calculator', multi:'Uses more than one expiration' },
+  de: { section:'Optionsstrategien', legs:'Beine', risk:'Risiko', reward:'Chance', maxP:'Max. Gewinn', maxL:'Max. Verlust', when:'Wann einsetzen', open:'Im Rechner öffnen', multi:'Nutzt mehr als einen Verfall' },
+  fr: { section:'Stratégies d’options', legs:'Jambes', risk:'Risque', reward:'Gain', maxP:'Gain maximum', maxL:'Perte maximum', when:'Quand l’utiliser', open:'Ouvrir dans la calculatrice', multi:'Utilise plusieurs échéances' },
+  ru: { section:'Опционные стратегии', legs:'Ноги', risk:'Риск', reward:'Доход', maxP:'Макс. прибыль', maxL:'Макс. убыток', when:'Когда использовать', open:'Открыть в калькуляторе', multi:'Использует несколько экспираций' },
+  zh: { section:'期权策略', legs:'腿', risk:'风险', reward:'收益', maxP:'最大盈利', maxL:'最大亏损', when:'何时使用', open:'在计算器中打开', multi:'使用多个到期日' },
+  ja: { section:'オプション戦略', legs:'脚', risk:'リスク', reward:'リターン', maxP:'最大利益', maxL:'最大損失', when:'使いどころ', open:'計算機で開く', multi:'複数の満期を使用' },
+  ar: { section:'استراتيجيات الخيارات', legs:'الأرجل', risk:'المخاطرة', reward:'العائد', maxP:'أقصى ربح', maxL:'أقصى خسارة', when:'متى تستخدمها', open:'افتح في الحاسبة', multi:'تستخدم أكثر من تاريخ استحقاق' },
+};
+
+// Las estrategias nuevas llevan su nombre en literal (los términos del sector
+// no se traducen: nadie busca "call cubierta del hombre pobre"); las antiguas
+// llevan clave i18n. `tr` resuelve ambos casos sin ramificar en el llamante.
+const tr = (lang, value) => (value ? (T[lang][value] || T.es[value] || value) : '');
+const slugOf = (s) => String(s.id).replace(/_/g, '-');
+const legLine = (leg) => {
+  const where = leg.type === 'stock'
+    ? ''
+    : ` @ ATM${(leg.offset || 0) >= 0 ? '+' : ''}${leg.offset || 0}`;
+  const exp = leg.expOffset ? ` · exp+${leg.expOffset}` : '';
+  return `${leg.action === 'buy' ? 'BUY' : 'SELL'} ${leg.qty}× ${leg.type.toUpperCase()}${where}${exp}`;
+};
+
+let stratCount = 0;
+STRATEGIES.forEach((s, i) => {
+  const slug = slugOf(s);
+  const multiExpiry = new Set(s.legs.map((l) => l.expOffset || 0)).size > 1;
+  LANGS.forEach(([lang, pref, hl]) => {
+    const sui = STRAT_UI[lang] || STRAT_UI.en;
+    const ui = UI[lang];
+    const name = tr(lang, s.name);
+    const lead = tr(lang, s.description);
+    if (!name || !lead) return;
+    const rel = `${pref ? pref.slice(1) + '/' : ''}options/strategies/${slug}`;
+    const url = `${DOMAIN}/${rel}/`;
+    const alts = LANGS.map(([l2, p2, h2]) => [h2, `${DOMAIN}/${p2 ? p2.slice(1) + '/' : ''}options/strategies/${slug}/`]);
+    const related = STRATEGIES
+      .filter((r, j) => j !== i && r.category === s.category)
+      .slice(0, 6)
+      .map((r) => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}options/strategies/${slugOf(r)}/`, label: tr(lang, r.name) }));
+    const points = [
+      `${sui.risk}: ${tr(lang, s.risk)}`,
+      `${sui.reward}: ${tr(lang, s.reward)}`,
+      `${sui.maxP}: ${tr(lang, s.maxProfit)}`,
+      `${sui.maxL}: ${tr(lang, s.maxLoss)}`,
+      `${sui.when}: ${tr(lang, s.whenToUse)}`,
+    ];
+    if (multiExpiry) points.push(sui.multi);
+    const description = String(lead).slice(0, 158);
+    const html = render({
+      lang, url, alts, title: `${name} | ${sui.section}`, description, h1: name, kw: name, ui,
+      sectionLabel: sui.section, sectionUrl: `${DOMAIN}/options`,
+      lead, formula: s.legs.map(legLine).join('  ·  '), points,
+      ctaUrl: `${DOMAIN}/options/calculator?strategy=${s.id}`, ctaLabel: sui.open,
+      related, sectionKind: 'options',
+      jsonld: {
+        '@context': 'https://schema.org', '@type': 'HowTo', name, url, inLanguage: lang, description,
+        step: s.legs.map((leg, n) => ({ '@type': 'HowToStep', position: n + 1, name: legLine(leg) })),
+      },
+    });
+    write(rel, html);
+    sitemapUrls.push([`/${rel}/`, '0.7']);
+    stratCount++;
+  });
+});
+
 // ── Sitemap ──
-const MAIN = [['/','1.0'],['/options','0.9'],['/education','0.9'],['/performance','0.8'],['/pricing','0.85'],['/about','0.7'],['/contact','0.6'],['/legal','0.4']];
+const MAIN = [['/','1.0'],['/options','0.9'],['/options/strategies','0.85'],['/education','0.9'],['/performance','0.8'],['/pricing','0.85'],['/about','0.7'],['/contact','0.6'],['/legal','0.4']];
 const all = [...MAIN, ...sitemapUrls];
 const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   all.map(([p, pr]) => `  <url><loc>${DOMAIN}${p}</loc><lastmod>${LASTMOD}</lastmod><priority>${pr}</priority></url>`).join('\n') +
@@ -578,4 +778,5 @@ fs.writeFileSync(path.join(BUILD, 'sitemap.xml'), sitemap, 'utf8');
 console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × 8 idiomas)`);
 console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} temas × 8 idiomas)`);
 console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × 8 idiomas, FAQPage)`);
+console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × 8 idiomas, HowTo)`);
 console.log(`✅ sitemap.xml: ${all.length} URLs`);
