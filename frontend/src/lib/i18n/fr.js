@@ -1,4 +1,14 @@
 export default {
+    // ── Académie : Ichimoku expliqué (légende de couleurs + haussier/baissier) ──
+    ichiVisTenkan: 'Tenkan (rapide, 9)',
+    ichiVisKijun: 'Kijun (lente, 26)',
+    ichiVisChikou: 'Chikou (prix actuel, 26 bougies en arrière)',
+    ichiVisCloudLegend: 'Nuage : vert = haussier · rouge = baissier',
+    ichiVisBullTitle: 'Quand c\'est HAUSSIER',
+    ichiVisBullBody: 'Le prix est AU-DESSUS du nuage.\nLa Tenkan (orange) est au-dessus de la Kijun (bleue).\nLe nuage devant est VERT (Span A au-dessus de Span B).\nLa Chikou (violette) est au-dessus du prix d\'il y a 26 bougies.',
+    ichiVisBearTitle: 'Quand c\'est BAISSIER',
+    ichiVisBearBody: 'Le prix est EN DESSOUS du nuage.\nLa Tenkan (orange) est en dessous de la Kijun (bleue).\nLe nuage devant est ROUGE (Span A en dessous de Span B).\nLa Chikou (violette) est en dessous du prix d\'il y a 26 bougies.',
+    ichiVisNeutral: 'Si le prix est À L\'INTÉRIEUR du nuage, pas de tendance claire : mieux vaut attendre qu\'il en sorte.',
   "eduGroup_core": "Noyau avancé",
   "eduGroup_alt": "Systèmes alternatifs",
   "eduGroup_macro": "Macro et par actif",
@@ -3534,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "Ouvrir dans la calculatrice",
   "optStrategyRelated": "Structures liées",
   "optStrategyMultiExpiry": "Ses jambes ne partagent pas d’échéance : il faut plusieurs dates.",
+  "optExitTargetsTitle": "Objectifs de sortie",
+  "optExitLevel": "Niveau",
+  "optExitTarget": "Objectif",
+  "optExitNet": "P&L net",
+  "optExitFromDebit": "Vous avez payé un débit de",
+  "optExitFromCredit": "Vous avez encaissé un crédit de",
+  "optExitOpenEnded": "La courbe monte encore au bord du graphique : le maximum affiché est celui de la fenêtre, pas de la stratégie.",
+  "optExitNote": "Prix à l’échéance, commissions aller-retour déduites. Clôturer avant l’échéance laisse de la valeur temps.",
 }

@@ -1,4 +1,14 @@
 export default {
+    // ── アカデミー：一目均衡表の解説（色の凡例 + 強気/弱気）──
+    ichiVisTenkan: '転換線 Tenkan（速い、9）',
+    ichiVisKijun: '基準線 Kijun（遅い、26）',
+    ichiVisChikou: '遅行線 Chikou（現在値を26本前に）',
+    ichiVisCloudLegend: '雲：緑＝強気 · 赤＝弱気',
+    ichiVisBullTitle: '強気のとき',
+    ichiVisBullBody: '価格が雲の上にある。\n転換線（オレンジ）が基準線（青）の上。\n先の雲が緑（Span A が Span B の上）。\n遅行線（紫）が26本前の価格の上。',
+    ichiVisBearTitle: '弱気のとき',
+    ichiVisBearBody: '価格が雲の下にある。\n転換線（オレンジ）が基準線（青）の下。\n先の雲が赤（Span A が Span B の下）。\n遅行線（紫）が26本前の価格の下。',
+    ichiVisNeutral: '価格が雲の中なら明確なトレンドなし。雲を抜けるまで待つのが無難。',
   "eduGroup_core": "上級コア",
   "eduGroup_alt": "代替システム",
   "eduGroup_macro": "マクロと資産別",
@@ -3534,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "計算機で開く",
   "optStrategyRelated": "関連する構造",
   "optStrategyMultiExpiry": "各脚の満期が異なり、複数の期日が必要。",
+  "optExitTargetsTitle": "手仕舞い目標",
+  "optExitLevel": "水準",
+  "optExitTarget": "目標",
+  "optExitNet": "純損益",
+  "optExitFromDebit": "支払ったデビットは",
+  "optExitFromCredit": "受け取ったクレジットは",
+  "optExitOpenEnded": "チャート端でも曲線が上昇中：表示の最大値は価格ウィンドウのもので、戦略の上限ではありません。",
+  "optExitNote": "満期時の価格、往復手数料控除後。満期前に閉じると時間価値を残すことになります。",
 }

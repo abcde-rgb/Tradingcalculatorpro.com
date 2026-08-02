@@ -1,4 +1,14 @@
 export default {
+    // ── Академия: Ишимоку с пояснениями (легенда цветов + бычий/медвежий) ──
+    ichiVisTenkan: 'Tenkan (быстрая, 9)',
+    ichiVisKijun: 'Kijun (медленная, 26)',
+    ichiVisChikou: 'Chikou (текущая цена, 26 свечей назад)',
+    ichiVisCloudLegend: 'Облако: зелёное = бычье · красное = медвежье',
+    ichiVisBullTitle: 'Когда БЫЧИЙ',
+    ichiVisBullBody: 'Цена ВЫШЕ облака.\nTenkan (оранжевая) выше Kijun (синей).\nОблако впереди ЗЕЛЁНОЕ (Span A над Span B).\nChikou (фиолетовая) выше цены 26 свечей назад.',
+    ichiVisBearTitle: 'Когда МЕДВЕЖИЙ',
+    ichiVisBearBody: 'Цена НИЖЕ облака.\nTenkan (оранжевая) ниже Kijun (синей).\nОблако впереди КРАСНОЕ (Span A под Span B).\nChikou (фиолетовая) ниже цены 26 свечей назад.',
+    ichiVisNeutral: 'Если цена ВНУТРИ облака, чёткого тренда нет: лучше подождать выхода.',
   "eduGroup_core": "Продвинутое ядро",
   "eduGroup_alt": "Альтернативные системы",
   "eduGroup_macro": "Макро и по активам",
@@ -3534,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "Открыть в калькуляторе",
   "optStrategyRelated": "Похожие структуры",
   "optStrategyMultiExpiry": "Её ноги имеют разные экспирации: нужна не одна дата.",
+  "optExitTargetsTitle": "Цели выхода",
+  "optExitLevel": "Уровень",
+  "optExitTarget": "Цель",
+  "optExitNet": "Чистый P&L",
+  "optExitFromDebit": "Вы заплатили дебет",
+  "optExitFromCredit": "Вы получили кредит",
+  "optExitOpenEnded": "Кривая всё ещё растёт у края графика: показанный максимум — это максимум окна, а не стратегии.",
+  "optExitNote": "Цены на экспирацию, комиссии туда-обратно вычтены. Закрытие до экспирации оставляет временную стоимость.",
 }

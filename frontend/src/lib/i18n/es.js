@@ -1,4 +1,14 @@
 export default {
+    // ── Academia: Ichimoku explicado (leyenda de colores + alcista/bajista) ──
+    ichiVisTenkan: 'Tenkan (rápida, 9)',
+    ichiVisKijun: 'Kijun (lenta, 26)',
+    ichiVisChikou: 'Chikou (precio de ahora, 26 velas atrás)',
+    ichiVisCloudLegend: 'Nube: verde = alcista · roja = bajista',
+    ichiVisBullTitle: 'Cuándo es ALCISTA',
+    ichiVisBullBody: 'El precio está POR ENCIMA de la nube.\nLa Tenkan (naranja) va por encima de la Kijun (azul).\nLa nube de delante es VERDE (Span A sobre Span B).\nLa Chikou (morada) va por encima del precio de hace 26 velas.',
+    ichiVisBearTitle: 'Cuándo es BAJISTA',
+    ichiVisBearBody: 'El precio está POR DEBAJO de la nube.\nLa Tenkan (naranja) va por debajo de la Kijun (azul).\nLa nube de delante es ROJA (Span A bajo Span B).\nLa Chikou (morada) va por debajo del precio de hace 26 velas.',
+    ichiVisNeutral: 'Si el precio está DENTRO de la nube, no hay tendencia clara: mejor esperar a que salga.',
   "eduGroup_core": "Núcleo avanzado",
   "eduGroup_alt": "Sistemas alternativos",
   "eduGroup_macro": "Macro y por activo",
@@ -3534,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "Abrir en la calculadora",
   "optStrategyRelated": "Estructuras relacionadas",
   "optStrategyMultiExpiry": "Sus patas no comparten vencimiento: necesita más de una fecha.",
+  "optExitTargetsTitle": "Objetivos de salida",
+  "optExitLevel": "Nivel",
+  "optExitTarget": "Objetivo",
+  "optExitNet": "P&L neto",
+  "optExitFromDebit": "Pagaste un débito de",
+  "optExitFromCredit": "Cobraste un crédito de",
+  "optExitOpenEnded": "La curva sigue subiendo en el borde del gráfico: el máximo mostrado es el de la ventana de precios, no el de la estrategia.",
+  "optExitNote": "Precios al vencimiento y comisiones de ida y vuelta descontadas. Cerrar antes de vencimiento deja valor temporal en la mesa.",
 }

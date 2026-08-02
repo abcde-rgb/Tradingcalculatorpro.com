@@ -1,4 +1,14 @@
 export default {
+    // ── Academy: Ichimoku explained (colour legend + bullish/bearish) ──
+    ichiVisTenkan: 'Tenkan (fast, 9)',
+    ichiVisKijun: 'Kijun (slow, 26)',
+    ichiVisChikou: 'Chikou (current price, 26 candles back)',
+    ichiVisCloudLegend: 'Cloud: green = bullish · red = bearish',
+    ichiVisBullTitle: 'When it is BULLISH',
+    ichiVisBullBody: 'Price is ABOVE the cloud.\nTenkan (orange) is above Kijun (blue).\nThe cloud ahead is GREEN (Span A over Span B).\nChikou (purple) is above the price 26 candles ago.',
+    ichiVisBearTitle: 'When it is BEARISH',
+    ichiVisBearBody: 'Price is BELOW the cloud.\nTenkan (orange) is below Kijun (blue).\nThe cloud ahead is RED (Span A under Span B).\nChikou (purple) is below the price 26 candles ago.',
+    ichiVisNeutral: 'If price is INSIDE the cloud there is no clear trend: better to wait until it leaves.',
   "eduGroup_core": "Advanced core",
   "eduGroup_alt": "Alternative systems",
   "eduGroup_macro": "Macro and per-asset",
@@ -3534,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "Open in the calculator",
   "optStrategyRelated": "Related structures",
   "optStrategyMultiExpiry": "Its legs do not share an expiration: it needs more than one date.",
+  "optExitTargetsTitle": "Exit targets",
+  "optExitLevel": "Level",
+  "optExitTarget": "Target",
+  "optExitNet": "Net P&L",
+  "optExitFromDebit": "You paid a debit of",
+  "optExitFromCredit": "You collected a credit of",
+  "optExitOpenEnded": "The curve is still rising at the edge of the chart: the maximum shown is the window’s, not the strategy’s.",
+  "optExitNote": "Prices at expiry, round-trip commissions deducted. Closing before expiry leaves time value on the table.",
 }

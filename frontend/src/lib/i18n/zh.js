@@ -1,4 +1,14 @@
 export default {
+    // ── 学院：一目均衡表讲解（颜色图例 + 偏多/偏空）──
+    ichiVisTenkan: '转换线 Tenkan（快，9）',
+    ichiVisKijun: '基准线 Kijun（慢，26）',
+    ichiVisChikou: '迟行线 Chikou（当前价，后移26根）',
+    ichiVisCloudLegend: '云：绿=偏多 · 红=偏空',
+    ichiVisBullTitle: '何时偏多',
+    ichiVisBullBody: '价格在云之上。\n转换线（橙）在基准线（蓝）之上。\n前方的云是绿色（Span A 在 Span B 之上）。\n迟行线（紫）在26根前的价格之上。',
+    ichiVisBearTitle: '何时偏空',
+    ichiVisBearBody: '价格在云之下。\n转换线（橙）在基准线（蓝）之下。\n前方的云是红色（Span A 在 Span B 之下）。\n迟行线（紫）在26根前的价格之下。',
+    ichiVisNeutral: '若价格在云内，趋势不明：最好等它离开云层再操作。',
   "eduGroup_core": "进阶核心",
   "eduGroup_alt": "另类体系",
   "eduGroup_macro": "宏观与分资产",
@@ -3534,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "在计算器中打开",
   "optStrategyRelated": "相关结构",
   "optStrategyMultiExpiry": "各腿到期日不同：需要多个到期日。",
+  "optExitTargetsTitle": "离场目标",
+  "optExitLevel": "级别",
+  "optExitTarget": "目标",
+  "optExitNet": "净盈亏",
+  "optExitFromDebit": "你支付的借记为",
+  "optExitFromCredit": "你收取的贷记为",
+  "optExitOpenEnded": "曲线在图表边缘仍在上升：显示的最大值是价格窗口的最大值，而非策略的最大值。",
+  "optExitNote": "按到期价格计算，已扣除往返佣金。到期前平仓会留下时间价值。",
 }

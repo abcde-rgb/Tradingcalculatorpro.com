@@ -1,4 +1,14 @@
 export default {
+    // ── Akademie: Ichimoku erklärt (Farblegende + bullisch/bärisch) ──
+    ichiVisTenkan: 'Tenkan (schnell, 9)',
+    ichiVisKijun: 'Kijun (langsam, 26)',
+    ichiVisChikou: 'Chikou (aktueller Kurs, 26 Kerzen zurück)',
+    ichiVisCloudLegend: 'Wolke: grün = bullisch · rot = bärisch',
+    ichiVisBullTitle: 'Wann BULLISCH',
+    ichiVisBullBody: 'Der Kurs ist ÜBER der Wolke.\nTenkan (orange) liegt über Kijun (blau).\nDie Wolke voraus ist GRÜN (Span A über Span B).\nChikou (lila) liegt über dem Kurs von vor 26 Kerzen.',
+    ichiVisBearTitle: 'Wann BÄRISCH',
+    ichiVisBearBody: 'Der Kurs ist UNTER der Wolke.\nTenkan (orange) liegt unter Kijun (blau).\nDie Wolke voraus ist ROT (Span A unter Span B).\nChikou (lila) liegt unter dem Kurs von vor 26 Kerzen.',
+    ichiVisNeutral: 'Ist der Kurs INNERHALB der Wolke, gibt es keinen klaren Trend: besser warten, bis er sie verlässt.',
   "eduGroup_core": "Fortgeschrittener Kern",
   "eduGroup_alt": "Alternative Systeme",
   "eduGroup_macro": "Makro und nach Anlageklasse",
@@ -3534,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "Im Rechner öffnen",
   "optStrategyRelated": "Verwandte Strukturen",
   "optStrategyMultiExpiry": "Die Beine haben unterschiedliche Verfallstermine: mehr als ein Datum nötig.",
+  "optExitTargetsTitle": "Ausstiegsziele",
+  "optExitLevel": "Stufe",
+  "optExitTarget": "Ziel",
+  "optExitNet": "Netto-P&L",
+  "optExitFromDebit": "Sie zahlten ein Debit von",
+  "optExitFromCredit": "Sie erhielten ein Kredit von",
+  "optExitOpenEnded": "Die Kurve steigt am Rand des Charts weiter: das gezeigte Maximum ist das des Fensters, nicht der Strategie.",
+  "optExitNote": "Preise bei Verfall, Hin- und Rückgebühren abgezogen. Ein Schließen vor Verfall lässt Zeitwert liegen.",
 }
