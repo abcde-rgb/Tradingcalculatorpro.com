@@ -20,7 +20,8 @@ const LANGS = [['en', 'en'], ['de', 'de'], ['fr', 'fr'], ['ru', 'ru'], ['zh-CN',
 // [path, priority, changefreq]
 const PAGES = [
   ['/',            '1.0',  'weekly'],
-  ['/options',     '0.9',  'weekly'],
+  ['/options',            '0.9',  'weekly'],
+  ['/options/strategies', '0.85', 'weekly'],
   ['/education',   '0.9',  'weekly'],
   ['/performance', '0.9',  'weekly'],
   ['/pricing',     '0.85', 'monthly'],

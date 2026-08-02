@@ -31,13 +31,14 @@ const de = {
           'Transaktionale Kommunikation: Zahlungsbestätigungen, Verlängerungshinweise und von dir konfigurierte Preisalarm-Benachrichtigungen, versendet über SendGrid.',
           'Sicherheit und Betrugsprävention: Erkennung unbefugter Zugriffe und Schutz der Integrität des Dienstes.',
           'Nutzungsanalyse (mit deiner Einwilligung): über Google Analytics 4 mit IP-Anonymisierung, zur Verbesserung der Plattform.',
+          'Werbung in den kostenlosen Inhalten (mit deiner Einwilligung): über Google AdSense, zur Finanzierung der offenen Bereiche. Premium-Nutzer sehen keine Werbung.',
         ]},
       ]},
       { t: 'Rechtsgrundlagen der Verarbeitung (DSGVO)', b: [
         { p: 'Für Nutzer im Europäischen Wirtschaftsraum stützt sich die Verarbeitung auf folgende Rechtsgrundlagen der Datenschutz-Grundverordnung (DSGVO):' },
         { list: [
           'Art. 6 Abs. 1 lit. b DSGVO — Vertragserfüllung: Die Verarbeitung ist zur Erbringung des Dienstes, zur Abo-Verwaltung und zur Zahlungsabwicklung erforderlich.',
-          'Art. 6 Abs. 1 lit. a DSGVO — Einwilligung: für Analyse-Cookies (Google Analytics 4) und optionale Marketing-Kommunikation. Du kannst deine Einwilligung jederzeit widerrufen.',
+          'Art. 6 Abs. 1 lit. a DSGVO — Einwilligung: für Analyse-Cookies (Google Analytics 4) und optionale Marketing-Kommunikation. Du kannst deine Einwilligung jederzeit widerrufen. Ebenso für die Werbe-Cookies von Google AdSense in den kostenlosen Inhalten.',
           'Art. 6 Abs. 1 lit. c DSGVO — Rechtliche Verpflichtung: Aufbewahrung von Abrechnungsdaten gemäß geltendem Steuerrecht.',
           'Art. 6 Abs. 1 lit. f DSGVO — Berechtigtes Interesse: Sicherheit des Dienstes und Betrugsprävention.',
         ]},
@@ -49,7 +50,7 @@ const de = {
           'PayPal, Inc. (Zahlungen): verarbeitet PayPal-Zahlungen gemäß eigener Datenschutzrichtlinie.',
           'Revolut (Revolut Pay, inkl. Apple Pay/Google Pay im Checkout): verarbeitet Zahlungen mit Revolut Pay.',
           'NOWPayments (Krypto-Zahlungen): verarbeitet Zahlungen in Kryptowährungen. Erhält Betrag, Bestellkennung und ggf. deine E-Mail für den Beleg.',
-          'Google LLC (OAuth und Analytics): Die Google-Anmeldung überträgt Name und E-Mail. Google Analytics 4 wird mit IP-Anonymisierung und nur mit deiner Einwilligung genutzt. Richtlinie: policies.google.com/privacy.',
+          'Google LLC (OAuth und Analytics): Die Google-Anmeldung überträgt Name und E-Mail. Google Analytics 4 wird mit IP-Anonymisierung und nur mit deiner Einwilligung genutzt. Richtlinie: policies.google.com/privacy. Google AdSense liefert Anzeigen in den kostenlosen Inhalten aus, nur mit deiner Einwilligung und nie an Premium-Nutzer.',
           'Twilio SendGrid (Transaktions-E-Mails): Versand von Bestätigungen, Rechnungen und Alarmen. Erhält nur deine E-Mail-Adresse.',
           'Anthropic (AI Trade Coach): Wenn du eine KI-Analyse anforderst, werden die Parameter der analysierten Strategie (Asset, Trade-Legs, Preise) an Anthropic gesendet. Name und E-Mail werden nicht mitgesendet.',
         ]},
@@ -183,7 +184,9 @@ const de = {
         { p: 'Einige Seiten betten den **TradingView**-Chart über ein iframe von tradingview.com ein. Diese Inhalte liefert TradingView aus; dabei können eigene technische Cookies gemäß der TradingView-Richtlinien gesetzt werden. Auf diese Cookies haben wir keinen Einfluss.' },
       ]},
       { t: 'Werbe- und Dritt-Tracking-Cookies', b: [
-        { p: '**TradingCalculator.pro verwendet keine Werbe-, Retargeting- oder Verhaltens-Tracking-Cookies Dritter.** Wir zeigen keine Werbung Dritter und teilen keine Verhaltensdaten mit Werbenetzwerken.' },
+        { p: 'Wir zeigen **Google AdSense**-Anzeigen in den kostenlosen Bereichen der Website, um die offenen Inhalte zu finanzieren. Die Anzeigen und ihre Cookies werden nur geladen, wenn du im Cookie-Banner „Alle akzeptieren“ gewählt hast — ohne diese Einwilligung wird das Google-Skript nicht einmal heruntergeladen.' },
+        { p: '**Mit einem aktiven Premium-Abo siehst du nirgends auf der Website Werbung**, auch nicht beim Lesen der kostenlosen Inhalte: Das AdSense-Skript wird in deinem Browser nicht geladen und es wird kein Werbe-Cookie gesetzt.' },
+        { p: 'Google kann Cookies verwenden, um Anzeigen anhand deiner Besuche auf dieser und anderen Websites zu personalisieren. Du kannst diese Personalisierung in den [Google-Anzeigeneinstellungen](https://adssettings.google.com) deaktivieren oder sie hier ablehnen, indem du im Banner „Nur essentielle“ wählst.' },
       ]},
       { t: 'Cookies verwalten und deaktivieren', b: [
         { p: 'Die meisten Browser erlauben die Cookie-Verwaltung in den Einstellungen:' },

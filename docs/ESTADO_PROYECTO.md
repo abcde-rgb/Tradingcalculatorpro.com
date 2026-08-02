@@ -5,12 +5,19 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-06-25
-> - 🌿 **Rama de trabajo actual:** `claude/stoic-mayer-04dpp2`
+> - 📅 **Última verificación real contra el código:** 2026-07-29
+> - 🌿 **Rama de trabajo actual:** `claude/aplicate-qriesk`
+>
+> ⚠️ **Aviso de método (2026-07-27).** Las §1, §2 y §6 se habían quedado un mes
+> por detrás del código mientras el registro de sesiones (§7) sí se actualizaba.
+> El caso peor: §1 y §6 seguían pidiendo configurar **OxaPay** como pasarela
+> cripto cuando OxaPay se retiró y hoy el código llama a **NOWPayments** — quien
+> siguiera este documento se pondría a dar de alta una cuenta que la web no usa.
+> Al cerrar sesión, actualiza también la cabecera y §1–§6, no sólo §7.
 > - 📚 Documentos hermanos: [`ANALISIS_2026-06-25.md`](./ANALISIS_2026-06-25.md) ·
 >   [`GUIA_EXTENSION.md`](./GUIA_EXTENSION.md) ·
 >   [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) ·
->   [`DEPLOY_CHECKLIST.md`](./DEPLOY_CHECKLIST.md) · [`DIARIO_BUGS.md`](../DIARIO_BUGS.md)
+>   [`DEPLOY_CHECKLIST.md`](./DEPLOY_CHECKLIST.md) · [`DIARIO_BUGS.md`](./DIARIO_BUGS.md)
 
 ---
 
@@ -18,18 +25,23 @@
 
 | Área | Estado | Nota |
 |---|:--:|---|
-| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-06-25: exit 0, 5.0 MB, code-splitting OK |
-| **Backend import + sintaxis** | 🟢 | `import server` OK → **169 rutas**; 10 módulos compilan |
-| **Tests offline (matemáticas opciones)** | 🟢 | 10 nuevos tests unitarios → `10 passed` (antes 0) |
+| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
+| **Backend import + sintaxis** | 🟢 | `import server` OK → **188 rutas**; los **20** módulos compilan (2026-07-29) |
+| **Tests offline** | 🟢 | `pytest tests/` → **345 passed, 74 skipped** (2026-07-29) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
-| **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo |
-| **CI backend (Cloud Run)** | 🟡→🟢 | El job `test` corría pytest roto; **fix de `conftest` aplicado** |
-| **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) |
+| **Lint del frontend (ESLint)** | 🟡→🟢 | **Estaba roto**: el parser abortaba en los 283 ficheros, así que lintaba 0. Arreglado 2026-07-27 y añadido a CI → **0 errores**, 128 avisos de limpieza |
+| **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
+| **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
+| **CI backend (Cloud Run)** | 🟢 | `py_compile *.py` (antes la lista iba a mano y omitía 6 módulos) + pytest |
+| **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) + i18n + credentials + **lint** |
+| **Publicidad AdSense (código)** | 🟢 | Implementado y verificado (26 checks offline + 24 en navegador). **Apagado por defecto**: sin `REACT_APP_ADSENSE_CLIENT` no se emite nada |
+| **Publicidad AdSense (operación)** | 🔴 | Bloqueada por el **dominio propio**: en `github.io/Tradingcalculatorpro.com` no se puede servir `ads.txt` en la raíz ni acreditar propiedad. Falta además CMP certificada para el EEE. Ver [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md) |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
-| **OxaPay / crypto (código)** | 🟢 | Invoice + webhook HMAC implementados y probados (activación + idempotencia + rechazo de firma inválida) |
-| **OxaPay / crypto (operación)** | 🔴 | Falta Merchant API Key en panel admin + **test en `sandbox`** (round-trip saliente no verificable offline) |
-| **DNS / dominio `tradingcalculatorpro.com`** | ❓ | Verificar apuntado (ver DEPLOY_CHECKLIST) |
+| **NOWPayments / crypto (código)** | 🟢 | Invoice + IPN con HMAC-SHA512 verificado (`backend/nowpayments.py`) |
+| **NOWPayments / crypto (operación)** | 🔴 | Falta API Key + IPN secret en el panel admin y registrar el callback. **OxaPay y MaxelPay ya NO existen en el código** |
+| **Revolut Pay (código)** | 🟢 | `backend/revolut.py`, registrado en el checkout |
+| **DNS / dominio `tradingcalculatorpro.com`** | ❓ | **Hoy se sirve en `abcde-rgb.github.io/Tradingcalculatorpro.com`** (no hay `CNAME` en `public/`). Los despliegues ya apuntan ahí; el dominio propio sigue sin usarse |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
 > Leyenda: 🟢 listo · 🟡 funciona con condiciones · 🔴 bloquea · ❓ requiere verificación externa (ops)
@@ -39,34 +51,43 @@
 ## 2. Qué HAY (inventario verificado)
 
 ### Frontend — React 19 + CRACO + Tailwind + shadcn/ui
-- **19 páginas** (rutas en `App.js`): Landing, Dashboard, Pricing, Settings, Education,
+- **24 rutas** declaradas en `App.js` (Landing, Dashboard, Pricing, Settings, Education,
   Subscription, Options, Performance, Admin, Login, Register, Forgot/Reset password,
-  Verify-email, Magic-link, Payment success/cancel, Legal, Contact, About, 404.
-- **12 calculadoras** (`components/calculators/`): BlackScholes, Fibonacci, Futures,
-  Leverage, LotSize, MonteCarlo, PatternTrading, Percentage, PositionSize, SimulatorPro,
-  Spot, TargetPrice (+ subcarpeta `simulator`).
+  Verify-email, Magic-link, Payment success/cancel, Legal, Contact, About, 404…).
+- **14 calculadoras** (`components/calculators/`, contadas por fichero `.jsx`).
 - **~28 componentes de opciones** (`components/options/`): cadena, payoff, griegas
   (display/panel/time-chart), IV surface, IV rank, unusual activity, market flow,
   optimizador, Kelly, AI Trade Coach, comparador, posiciones guardadas, etc.
 - **Gráfico TradingView** (`components/charts/TradingViewChart.jsx`): embed iframe con
   selector de categoría/activo, favoritos, 9 temporalidades, tema y locale.
   → Detalle y límites en [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md).
-- **47 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
-  en `lib/assets.js`.
+- **~186 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
+  en `lib/assets.js` (los "47" de la primera versión se ampliaron el 2026-07-04).
 - **i18n: 8 idiomas** (`lib/i18n/`): es, en, de, fr, ru, zh, ja, ar.
-- **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **OxaPay** (crypto, botón "Criptomonedas").
+  **5327 claves por idioma, 0 huecos** (`node scripts/i18n-check.js`, verificado 2026-07-27).
+- **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **Revolut Pay** +
+  **NOWPayments** (crypto, botón "Criptomonedas"). *No* OxaPay ni MaxelPay: ambas
+  se probaron y se retiraron; no queda código de ninguna.
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
 - **Analítica/SEO**: GA4 + GTM + GSC/Bing, `sitemap.xml`, `robots.txt`, `og-image`,
   `manifest.json` (PWA), hook `useSEO`.
+- **Publicidad (Google AdSense)** en el contenido gratuito, con la regla
+  «**quien paga no ve anuncios en ninguna parte**» fijada por test: política pura
+  en `lib/adsPolicy.js`, `<AdSlot>` en el hub y las fichas públicas de opciones,
+  y huecos en las 1273 páginas estáticas del postbuild (con su propio banner de
+  consentimiento en 8 idiomas). Apagada mientras no existan las variables de
+  entorno → [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
 - **Journal de trading**, alertas de precio (WebSocket), historial de cálculos.
 
 ### Backend — FastAPI + asyncpg (shim Mongo→PostgreSQL)
-- **160 rutas declaradas** (`server.py` 103 · `admin_routes.py` 45 · `missing_apis.py` 12),
-  **169 registradas** en la app (incluye `referrals`, `realtime_alerts`).
-- **Módulos**: `server.py` (monolito, 6107 líneas), `admin_routes.py`, `missing_apis.py`,
-  `options_math.py`, `options_optimize.py`, `stock_data.py`, `candle_patterns.py`,
-  `price_action.py` (estructura de mercado: swings/BOS-CHoCH/S-R/FVG),
-  `performance.py`, `realtime_alerts.py`, `referrals.py`.
+- **181 rutas registradas** en la app (contadas sobre `server.app.routes`, 2026-07-27).
+- **16 módulos** (`backend/*.py`, 15 508 líneas en total): `server.py` (monolito,
+  **7377 líneas**), `admin_routes.py` (1143), `missing_apis.py` (1075),
+  `affiliate_program.py` (859), `performance.py` (694), `price_action.py` (646)
+  —estructura de mercado: swings/BOS-CHoCH/S-R/FVG—, `stock_data.py` (608),
+  `candle_patterns.py` (518), `options_math.py` (462), `options_optimize.py` (395),
+  `referrals.py` (373), `realtime_alerts.py` (366), `market_data.py` (323),
+  `timeframes.py` (273), `revolut.py` (215), `nowpayments.py` (181).
 - **Datos de mercado**: yfinance + CoinGecko (todas las llamadas de red ya van por
   `asyncio.to_thread`/executor → no bloquean el event loop; ver BUG-010).
 - **IA**: Anthropic SDK (AI Trade Coach) en `POST /api/options/ai-analyze`.
@@ -91,6 +112,10 @@
 | G-06 | Sin CI de PR (lint/build/tests antes de merge); solo deploy en push a `main` | 🟡 | ✅ Añadido `ci.yml` esta sesión |
 | G-07 | Sin Dependabot/CodeQL/secret-scanning declarados en repo | 🟡 | Activar en ajustes del repo |
 | G-08 | Deriva documental (CLAUDE.md/PLAN_100 desactualizados) | 🟢 | ✅ Corregido CLAUDE.md esta sesión |
+| G-10 | **El sitio servido por GitHub Pages no tiene CSP.** Las cabeceras de `SecurityHeadersMiddleware` sólo viajan en las respuestas de la API (Cloud Run); Pages no deja definir cabeceras, así que el HTML de la web va sin `Content-Security-Policy`, `X-Frame-Options` ni `Referrer-Policy` | 🟠 | Meta `http-equiv="Content-Security-Policy"` en `public/index.html`. Requiere enumerar todos los orígenes (TradingView, GA4/GTM, Google OAuth, Stripe, PayPal) y **verificar en navegador**: un CSP mal puesto rompe la web y el meta **no admite modo report-only** |
+| G-11 | **La orden de desarrollo local documentada no puede conectar.** `init_pool` exige SSL verificado en toda conexión TCP (rama Neon), pero el `DATABASE_URL` de dev que documentan CLAUDE.md y el README apunta a un Postgres local sin SSL → `CERTIFICATE_VERIFY_FAILED` | 🟡 | Aceptar `sslmode=disable`/`?ssl=false` en la URL, o documentar el socket Unix (`?host=/var/run/postgresql`), que sí funciona |
+| G-12 | **ESLint no analizaba nada** (283/283 ficheros con error de parseo) y no corría en CI. Dejó pasar a producción un `idx` no definido que reventaba la calculadora de Fibonacci | 🟠 | ✅ **Cerrado (2026-07-27)**: config arreglada, lint en CI, 0 errores. Quedan **128 avisos** de símbolos muertos como deuda de limpieza |
+| G-13 | **11 tarjetas del panel admin se quedaban vacías tras recargar** (efecto con deps `[]` que disparaba `Bearer null` y nunca reintentaba) | 🟠 | ✅ **Cerrado (2026-07-27)**: hook `useAuthedLoad` compartido, que espera al token real y relanza la carga cuando llega |
 | G-09 | ~~**i18n incompleto**: 6 idiomas con ~290 claves sin traducir → caían a español~~ | 🟢 | ✅ **Cerrado (2026-07-11)**: backfill completo (candlestick, armónicos, opciones Black-Scholes/futuros/volatilidad/griegas, estrategias 6-9, auth, sesgos). Los 8 locales con sets idénticos (4401 c/u), 0 huecos. Eliminadas 9 claves muertas de de/fr/ru |
 
 ---
@@ -147,14 +172,29 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - **GCP**: Cloud Run service, Cloud SQL `trading-db` (europe-west1), Secret Manager,
   Workload Identity Federation, Artifact Registry `trading-repo`.
 - **Stripe**: productos/precios, webhook endpoint apuntando a `…/api/webhook/stripe`.
-- **OxaPay** (crypto): Merchant API Key en panel admin (o `OXAPAY_API_KEY` en Secret Manager),
-  `oxapay_sandbox` = `true`|`false`, y registrar el callback `…/api/webhook/oxapay` en su dashboard
-  (la misma API Key firma el webhook con HMAC-SHA512). Probar primero con `sandbox=true`. Opcional:
-  `BACKEND_PUBLIC_URL` si `request.base_url` no resuelve al host público.
-- **Google Cloud Console**: OAuth client + orígenes autorizados.
+- **Google AdSense**: alta de la cuenta, dos bloques de anuncio y las variables
+  de repositorio `REACT_APP_ADSENSE_CLIENT` / `..._SLOT_ARTICLE` / `..._SLOT_BOTTOM`.
+  **Requiere el dominio propio antes que nada** (`ads.txt` debe servirse en la raíz
+  y hay que acreditar la propiedad del sitio; con `github.io` ninguna de las dos
+  cosas es posible). Para tráfico del EEE, además, CMP certificada — lo más simple
+  es activar la de Google y poner `REACT_APP_ADSENSE_CMP=google`.
+  Guía completa: [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
+- **NOWPayments** (crypto): ajustes `nowpayments_api_key` y `nowpayments_ipn_secret`
+  en el panel admin (o sus variables de entorno), `nowpayments_sandbox` = `true`|`false`,
+  y registrar el callback `…/api/webhook/nowpayments` en su dashboard. El IPN se firma con
+  **HMAC-SHA512** sobre el JSON ordenado y viaja en la cabecera `x-nowpayments-sig`; el
+  backend rechaza con 401 cualquier IPN sin firma válida. Probar primero en sandbox.
+  Opcional: `BACKEND_PUBLIC_URL` si `request.base_url` no resuelve al host público.
+  > Ojo: **OxaPay y MaxelPay ya no existen en el código.** Si un documento antiguo te
+  > manda configurarlas, ese documento está caducado (ver aviso de la cabecera).
+- **Revolut Pay**: credenciales del comercio para `backend/revolut.py`.
+- **Google Cloud Console**: OAuth client + orígenes autorizados. El origen que hay que
+  autorizar hoy es **`https://abcde-rgb.github.io`**, que es donde se sirve el frontend.
 - **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculatorpro.com`).
 - **GitHub**: Secrets de Actions (ver DEPLOY_CHECKLIST) + branch protection.
-- **DNS**: `tradingcalculatorpro.com` / `www`.
+- **DNS**: sólo aplica si se decide activar el dominio propio `tradingcalculatorpro.com`
+  / `www`. Hoy **no está en uso**: no hay `frontend/public/CNAME` y el build se publica en
+  `https://abcde-rgb.github.io/Tradingcalculatorpro.com`.
 
 ---
 
@@ -351,7 +391,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
    - Actualiza el **semáforo** (§1) y el **inventario** (§2) si cambió algo.
    - Marca casillas del **backlog** (§5) que hayas cerrado.
    - Añade una entrada con fecha en el **registro de sesiones** (§7).
-   - Si tocaste seguridad/bugs, refleja también en [`../DIARIO_BUGS.md`](../DIARIO_BUGS.md).
+   - Si tocaste seguridad/bugs, refleja también en [`./DIARIO_BUGS.md`](./DIARIO_BUGS.md).
 4. **Regla de oro**: este documento debe reflejar el **código real**, no intenciones.
    Verifica antes de afirmar (compila, ejecuta, lee el archivo).
 
@@ -858,7 +898,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   públicas reales.
 - Verificado: build OK (290 URLs sitemap), smoke de `?lang=`.
 - ⏳ Sigue pendiente del usuario (mayor palanca SEO): comprar/conectar el dominio propio y enviar el
-  sitemap a Search Console/Bing (ver `SEO_GUIDE.md`).
+  sitemap a Search Console/Bing (ver `docs/setup/SEO_GUIDE.md`).
 
 ### 2026-07-09 (22) — Revisión de seguridad del backend (pre-lanzamiento)
 - Revisión manual (la skill `security-review` no arrancó por `origin/HEAD` ambiguo; hecha a mano).
@@ -1725,7 +1765,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   Google Cloud"*. El motivo de fondo: el trabajo se movió al proyecto
   **`tradingcalculatorpro-502817`**, pero el despliegue seguía escrito a fuego contra el
   antiguo (`tradingcalculator-495806`) en **cinco sitios** del workflow, más `cloudbuild.yaml`,
-  `setup-gcp.sh` y `GOOGLE_CLOUD_SETUP.md`.
+  `setup-gcp.sh` y `docs/setup/GOOGLE_CLOUD_SETUP.md`.
 - ✅ **Nada específico del proyecto queda fijado en el YAML.** Ahora sale de variables de
   repositorio con el proyecto actual por defecto: `GCP_PROJECT`, `GCP_REGION`,
   `CLOUDSQL_INSTANCE`, `RUNTIME_SERVICE_ACCOUNT` (además de las que ya había, `DB_PROVIDER`
@@ -1733,7 +1773,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - 🐛 **Restos del proyecto viejo que también rompían al cambiar de región**: `configure-docker`
   tenía `europe-west1` a fuego, el nombre de la imagen se componía con el proyecto antiguo, y
   ni el deploy ni el healthcheck pasaban `--project` (dependían del proyecto activo de gcloud).
-- 🐛 **`GOOGLE_CLOUD_SETUP.md` decía `us-central1` mientras el deploy real usaba `europe-west1`.**
+- 🐛 **`docs/setup/GOOGLE_CLOUD_SETUP.md` decía `us-central1` mientras el deploy real usaba `europe-west1`.**
   No es cosmético: el nombre de conexión de Cloud SQL lleva la región dentro, así que seguir el
   documento al pie de la letra creaba una instancia a la que el servicio no podía conectarse.
   Corregido y avisado en cabecera.
@@ -1837,3 +1877,741 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   huecos** (+30); `check-fetch-credentials` limpio; `npm run build` exit 0; **smoke de navegador
   9/9 con 0 pageerrors** contra backend vivo — el laboratorio clasifica bien, "casi martillo" NO
   forma martillo, y tarjeta y panel del oro llevan `--mk-accent=#d4a017`.
+
+---
+
+### 2026-07-27 (67) — Auditoría de producto: el linter mudo y lo que dejó pasar
+- 🔴 **ESLint no analizaba ni un fichero.** La configuración cargaba
+  `@babel/eslint-parser`, pero CRA no deja un `babel.config.js` en el repo (vive dentro de
+  `react-scripts`), así que el parser abortaba con *"No Babel config file detected"* en
+  **283 de 283** ficheros. El resultado: `jsx-a11y`, `rules-of-hooks` y `exhaustive-deps`
+  llevaban tiempo instalados y sin mirar **nada**. Y CI tampoco ejecutaba el linter, así que
+  no había forma de enterarse. Se pasa al parser propio de ESLint (espree), que entiende JSX
+  sin Babel ni `NODE_ENV`, y se añade el paso `Lint (ESLint)` a `ci.yml`.
+- 🐛 **Lo primero que encontró al funcionar: la calculadora de Fibonacci estaba rota.**
+  `FibonacciCalculator.jsx` usaba `idx` dentro de dos `.map((item) => …)` que nunca lo
+  declaraban. En JavaScript eso es `ReferenceError: idx is not defined` — comprobado — así
+  que el componente **reventaba al pintar los niveles**, es decir, en cuanto alguien
+  calculaba. Está enlazado desde `DashboardPage`, o sea que era una herramienta principal
+  caída. Arreglado añadiendo el índice a ambos callbacks.
+- 🐛 **11 tarjetas del panel admin se quedaban vacías tras recargar la página.** Todas
+  repetían `useEffect(() => { if (API) load(); else setLoading(false); }, [])`. Tras un F5 el
+  token vive sólo en memoria (Zustand) y arranca a `null`: la petición sale con
+  `Bearer null`, el backend responde 401, el `catch` se lo traga y —al no depender de
+  `headers`— **no se reintenta jamás**. Este proyecto ya había parcheado el mismo fallo dos
+  veces por separado (`UsageHeatmapCard`, `IntegrationsEditor`) sin tocar la raíz. En vez de
+  un parche número 12, se añade **`useAuthedLoad`**: espera a que el bearer sea real y
+  relanza la carga cuando llega. Mientras espera deja el spinner puesto, que es la verdad;
+  sólo apaga `loading` cuando no va a llegar nada (sin backend o modo demo).
+- 🐛 **La búsqueda de usuarios del admin devolvía 500 con un paréntesis.** `q` iba crudo a
+  los operadores `~`/`~*` de PostgreSQL, así que buscar `Rodríguez (padre)` —o teclear `(` a
+  medias— abortaba la consulta. Verificado contra PostgreSQL real:
+  `InvalidRegularExpressionError: parentheses () not balanced`. Nuevo `_literal_regex()` que
+  escapa los metacaracteres: un buscador debe buscar texto, no ejecutar sintaxis.
+  **+5 tests** (`test_admin_search_regex_unit.py`).
+  - 🔎 Descartado tras medirlo: **no** hay ReDoS. El motor de PostgreSQL resolvió
+    `(a+)+$` contra el caso patológico sin despeinarse, así que se documenta como crash de
+    entrada inválida y nada más. No se reporta lo que no se ha demostrado.
+- 🧹 **`agent-browser` estaba en `dependencies` de producción**: 73 MB, importado en cero
+  sitios y sin una sola mención en el repo ni en la documentación. No llegaba al bundle
+  (webpack sólo empaqueta lo que se importa), pero sí a cada `npm ci` de CI y de cada
+  despliegue. Fuera: `node_modules` pasa de **624 MB a 551 MB**. Si hace falta para smokes
+  locales, su sitio es `npm i -D`.
+- 🔒 **axios `^1.8.4` → `^1.18.1`**: era la única vulnerabilidad *alta* que de verdad viaja
+  al navegador (las otras 45 son cadena de compilación: react-scripts, workbox, svgr,
+  postcss — no llegan al usuario). Ahora `npm audit` da axios limpio.
+  - 🔎 **`react-router-dom` se deja como está, a propósito.** El aviso es *"RSC Mode CSRF
+    Bypass"* y esto es una SPA de CRA: no hay React Server Components por ningún lado. El
+    "arreglo" que propone npm es **bajar a 7.11.0**, un salto mayor hacia atrás. Cambiar una
+    versión que funciona por un aviso que no aplica es empeorar el proyecto.
+- 🐛 **`py_compile` en CI iba con lista escrita a mano** y se había quedado atrás:
+  `price_action`, `timeframes`, `market_data`, `nowpayments`, `revolut` y
+  `affiliate_program` no se comprobaban. Ahora `python -m py_compile *.py`.
+- 📚 **La "fuente de verdad" mentía en lo más caro de equivocarse.** El registro de sesiones
+  (§7) sí se actualizaba, pero §1, §2 y §6 —justo las que el documento manda leer primero—
+  llevaban un mes congeladas: seguían pidiendo dar de alta **OxaPay**, que se retiró hace
+  tiempo y hoy es **NOWPayments**. Quien siguiera el documento se pondría a abrir una cuenta
+  que la web no llama. Corregidas §1/§2/§6 con cifras medidas (181 rutas, 16 módulos,
+  `server.py` 7377 líneas, 24 rutas de `App.js`, 14 calculadoras, 5327 claves × 8 idiomas) y
+  añadido un aviso de método en la cabecera. También `CLAUDE.md` (pasarelas, tabla de
+  módulos, comandos de verificación).
+- 🐛 **La orden de desarrollo local que documentaba `CLAUDE.md` no podía conectar** (G-11):
+  `init_pool` trata cualquier host TCP como Neon y exige SSL verificado, así que contra un
+  Postgres local da `CERTIFICATE_VERIFY_FAILED`. Documentada la forma que sí funciona
+  (socket Unix). El código no se toca: exigir TLS por defecto es lo correcto.
+- 🟠 **Hueco abierto, no cerrado (G-10)**: el HTML que sirve GitHub Pages va **sin CSP**.
+  `SecurityHeadersMiddleware` protege las respuestas de la API, pero no la web, y Pages no
+  permite cabeceras. La vía es un `<meta http-equiv>`, que **no admite report-only**: hay que
+  enumerar TradingView, GA4/GTM, Google OAuth, Stripe y PayPal y verificarlo en navegador
+  antes de activarlo. Se deja documentado en vez de activarlo a ciegas: un CSP mal puesto
+  tira la web entera.
+- ✅ **Verificado**: `pytest` **264 passed / 74 skipped** (+5); ESLint **0 errores** (128
+  avisos de limpieza heredados); `py_compile` de los 16 módulos; i18n **5327 × 8, 0 huecos**;
+  `npm run build` exit 0 con las 744 URLs del sitemap; fix del buscador probado contra
+  **PostgreSQL 16 real** (antes: excepción; después: busca literal y sigue siendo
+  insensible a mayúsculas).
+
+### 2026-07-29 — Correcciones de las 3 auditorías externas (trader / opciones / sistema)
+
+Sesión guiada por tres documentos entregados por el dueño:
+`ANALISIS_TRADER_20260728`, `AUDITORIA_CONTENIDO_APRENDIZAJE_OPCIONES_20260728` y
+`PROPUESTA_SISTEMA_TRADING_SETUP_20260728`.
+
+> **Cómo leer las citas.** Cada afirmación lleva su `archivo:línea` o
+> `archivo → función`, verificados contra el código de este commit. Las líneas
+> se mueven; el nombre de la función no. Si una cita no cuadra, busca por nombre.
+
+#### 🔴 Bugs de cálculo corregidos (cifras con las que el usuario dimensiona posiciones)
+
+- **§2.1 La curva de equity y el max drawdown iban al revés en el tiempo.**
+  `server.py → performance_analytics` pasaba la lista de la más nueva a la más
+  vieja y `compute_analytics` la recorría tal cual. **El drawdown no es simétrico
+  bajo inversión**: al invertir la serie las caídas se vuelven subidas, así que el
+  DD reportado salía *por debajo* del real. Verificado con la muestra de 120
+  operaciones del análisis: **21,42 % invertida frente a 25,36 % cronológica**, y
+  el fix devuelve 25,36 %. Además se ordenaba por `entry_date` cuando lo correcto
+  para una curva realizada es `exit_date`, y el saldo inicial se tomaba de la
+  operación **más reciente**, de la que colgaban todos los porcentajes.
+  → `performance.py:61 sort_trades_chronologically()`, aplicado dentro de
+  `compute_analytics`; test de independencia del orden en
+  `tests/test_analytics_correctness_unit.py::test_analytics_are_order_independent`.
+- **§2.2 El "Monte Carlo" ejecutaba UNA trayectoria.** Sin bucle externo: el
+  usuario veía un ROI y un drawdown, pulsaba recalcular y salían otros.
+  → `simulator/simulatorEngine.js:280 runMonteCarlo()` (P5/P50/P95 de saldo y ROI,
+  distribución de drawdown, **probabilidad de ruina** y **probabilidad de superar
+  un límite de DD**, que es la métrica que necesita quien va a un challenge de
+  fondeo) + panel `simulator/MonteCarloPanel.jsx`.
+- **§2.2 (bis) El max drawdown del simulador no era un max drawdown.** Calculaba
+  `(picoGlobal − mínimoGlobal) / picoGlobal`; si el mínimo ocurre *antes* del pico
+  reporta una caída que jamás pasó (`100→50→200→150` daba 75 %, real 50 %).
+  → `simulatorEngine.js:64 makeDrawdownTracker()`, pico corriente. El backend ya lo
+  hacía bien (`performance.py:_compute_max_drawdown`): los dos módulos se
+  contradecían. Comprobación en `scripts/engine-check.js`.
+- **§2.3 Con el interés compuesto apagado la simulación no simulaba.**
+  `if (compoundInterest) capital += netResult` → saldo final = inicial, ROI 0 %,
+  DD 0 % y las 180 filas con el mismo número. Compuesto OFF significa que **el
+  tamaño de posición** deja de crecer, no que la cuenta deje de moverse.
+  → `simulatorEngine.js → simulateCompound()`, variable `sizingBase`.
+- **§2.4 Sharpe y Sortino.** El Sharpe era por operación pero los umbrales de
+  `generate_insights` estaban calibrados como si fuera anualizado (un Sharpe
+  anualizado de 2,0 con 120 ops/año son 0,18 por operación: nunca disparaba el
+  badge). Ahora hay series de retornos reales sobre la curva de equity, `stdev`
+  muestral, resta del tipo libre de riesgo y **anualización con las fechas
+  reales**; si la muestra es demasiado corta o breve para anualizar honestamente
+  se devuelve `annualized: false` y los insights **callan** en vez de juzgar.
+  Sortino dividía el downside entre el nº de negativos en vez de entre N total
+  (infravaloraba sistemáticamente) y devolvía `0.0` sin pérdidas, que se lee como
+  pésimo: ahora es `None`.
+  → `performance.py:160 _risk_adjusted_metrics()`, `performance.py:141 _compute_sortino()`.
+- **§2.5 Las operaciones sin stop contaminaban el R medio.** `r_multiple` era
+  `0.0` sin stop y entraba en el agregado, arrastrando `avg_r` y metiendo un pico
+  artificial en el bucket `0R..1R`. Ahora es `None` (indefinido, que es lo que es),
+  se excluye y se reportan `r_sample_size` / `trades_without_r`.
+  → `performance.py → compute_trade_pnl()` y `compute_analytics()`; aviso en la UI
+  en `AnalyticsDashboard.jsx` (clave `rSamplePartial`).
+
+#### 🟠 Funcionalidad nueva del análisis
+
+- **§2.6 MAE / MFE** — lo que el análisis llama "la métrica más rentable de un
+  diario". Campos `mae_price`/`mfe_price`, `mae_r`/`mfe_r` calculados
+  (`performance.py:247 _excursion_r()`), agregado en
+  `performance.py:676 compute_excursion_stats()` (MAE media, MFE media, **p80 de
+  MAE de las ganadoras**, cuántas perdedoras llegaron a +1R), **scatter
+  MAE-vs-resultado** en `AnalyticsDashboard.jsx` y dos insights nuevos.
+- **§3.1 Bandera `synthetic`.** `/options/chain`, `/options/iv-surface` y
+  `/optimize` marcan toda respuesta construida sobre cadena modelada
+  (`server.py:4940 _synthetic_marker()`), con banda de aviso en `OptimizeView.jsx`.
+  Además **se eliminaron el volumen y el interés abierto inventados**
+  (`rng.randint(50, 8000)`): son observaciones de lo que hicieron otros, no salida
+  de un modelo — y con ellos dentro todo ratio volumen/OI leía ruido. Ahora van a
+  `None` → `options_math.py:281 _build_strike_quote()`.
+- **§3.3 Tipo libre de riesgo en vivo.** Nuevo `backend/market_rates.py`: lee
+  `^IRX`, cachea 6 h, banda de plausibilidad y **nunca lanza** — sin red sirve el
+  último valor bueno o el fallback (`market_rates.py:64 get_risk_free_rate()`).
+  Sustituye el `0.0525` de 2023-24 hardcodeado en tres sitios. Además
+  `options_math.py:153 year_fraction()` hace **T consciente de la hora**: antes un
+  0DTE valía `1/365` plano toda la sesión, cuando theta y gamma cambian por horas
+  el último día.
+- **§3.4 Solver de volatilidad implícita.** `options_math.py:185
+  implied_volatility()`: Newton-Raphson sobre vega con **bisección de respaldo** +
+  `POST /calculate/implied-volatility`. Devuelve `None` —no una cifra— cuando la
+  respuesta no es recuperable: cotización fuera de las bandas de no-arbitraje, o
+  contrato tan dentro de dinero que su precio es plano en sigma (ahí cualquier
+  número es un artefacto de la tolerancia, que es justo el problema de los strikes
+  ilíquidos). Umbral en `MIN_IDENTIFIABLE_VEGA`.
+- **§3.5 Valor esperado, CVaR y probabilidad de tocar.** El optimizador ordenaba
+  por ROI-al-objetivo (selecciona billetes de lotería OTM) o por POP (selecciona
+  venta de volatilidad): **ninguna mide ventaja**. Añadidos `expectedValue`,
+  `evOnCapital`, `cvar5`, `probLargeLoss` y `probTouchBreakEven` integrando el P&L
+  sobre la distribución lognormal terminal, y **el modo por defecto ordena por
+  valor esperado sobre capital**.
+  → `options_optimize.py:278 _expected_value_and_cvar()`, `:305 _probability_of_touch()`,
+  `_rank_results()`.
+- **§5.4 Prompt del AI Coach reescrito.** Fuera el currículum humano inventado
+  ("coach con 15+ años de experiencia en volatility trading"). Se le inyectan **las
+  analíticas reales del usuario** (win rate, expectancy, R medio, drawdown, sesgos,
+  rendimiento por setup, MAE), barreras de "no recomendaciones personalizadas",
+  responde en **el idioma de la UI** (8 idiomas, antes solo español), modelo
+  configurable por env y `disclaimer` en la propia respuesta.
+  → `server.py:5661 AI_COACH_SYSTEM_PROMPT`, `server.py:5678 _format_user_context()`.
+
+#### 🔴 Auditoría de opciones — P0 #1 (riesgo indefinido)
+
+`short_call` / `short_straddle` / `short_strangle` se podían construir sin aviso,
+siendo el **negativo fotográfico** del straddle que la Academia sí enseña: quien
+conoce la palabra puede montarlo creyendo que es "lo mismo pero vendido".
+→ `options_optimize.py:356 _risk_profile()` con detección de patas cortas sin
+cubrir en `:338 _naked_short_legs()`. **Mirar `maxLoss` no bastaba**: con el rango
+de payoff de ±35 % una short call desnuda no llega al umbral de "ilimitado" y
+salía clasificada como riesgo acotado (test
+`test_options_edge_unit.py::test_naked_short_call_is_flagged_undefined`). Aviso
+rojo en la tarjeta **antes** de las métricas atractivas (`OptimizeView.jsx`).
+Distingue `undefined` de `substantial` (put desnuda: acotado, pero el límite es el
+nocional entero) y no marca la covered call, que sí está cubierta.
+
+#### 🟢 Propuesta del sistema de trading — implementada entera
+
+`SetupBuilder.jsx` guardaba **un** setup en una sola clave de `localStorage` y lo
+sobrescribía. Reconstruido como **"Mi Sistema de Trading"**:
+- **Librería de setups** (crear/editar/duplicar/eliminar, id propio) con migración
+  automática del setup v1 → `tradingSystemModel.js:72 migrateLegacySetup()`.
+- **Gatillo de entrada e invalidación** (§D de la propuesta), la pieza que faltaba
+  por completo: sin ella dos traders con las mismas etiquetas entran en momentos
+  distintos. Indicador de qué falta en `tradingSystemModel.js:158 missingEssentials()`.
+- HTF + LTF separados (el método Top-Down no se podía representar con un chip
+  único), tipo de setup, activos, sesión, método de S/R como campo propio, regla de
+  stop, gestión, máx. posiciones simultáneas.
+- **Enlazado al contenido que ya existía** en vez de duplicar catálogos: los 42
+  patrones de `getChartPatterns` y los 30 de vela con su `successRate` de
+  `CANDLE_PATTERN_STATS`.
+- **Bloque de reglas del sistema** (§F), que no vivía en ningún sitio: pérdida
+  máxima diaria/semanal, condiciones de no-operar, exposición correlacionada,
+  checklist.
+
+#### 🥇 Herramientas profesionales (2ª tanda de esta misma sesión)
+
+- **§3.4 Opciones americanas** — nuevo `backend/american_options.py`. Toda la
+  valoración era europea (BSM) sobre opciones que son americanas, y
+  `simulate_assignment` modelaba la asignación con precios europeos, así que el
+  ejercicio temprano antes del ex-dividendo —un evento real y frecuente— era
+  literalmente invisible. Añadidos **binomial Cox-Ross-Rubinstein**
+  (`american_options.py:40`) y **Barone-Adesi-Whaley** (`:95`), griegas por
+  diferencias finitas sobre el árbol (analíticas BSM fallan justo en la frontera de
+  ejercicio, que es donde te asignan) y `:232 early_assignment_risk()`, que compara
+  el dividendo con el valor temporal restante. Endpoint `POST /calculate/american`;
+  `POST /assignment` acepta `dividend`/`daysToExDividend` y devuelve
+  `earlyAssignment`. Verificado con la identidad que valida el árbol: **call
+  americana sin dividendo = europea** (14,2254 vs 14,2313 con 800 pasos).
+- **§5.2 Riesgo de cartera** — nuevo `backend/portfolio_risk.py`. Todo el sistema
+  razonaba operación a operación. `portfolio_risk.py:106 compute_open_heat()` da
+  heat abierto y **riesgo efectivo por correlación**: cuatro posiciones del 1 % en
+  NQ/ES/SPY/AAPL no son 4 % de riesgo sino **3,61 %** (el análisis estimaba ~3,4 %)
+  — un solo factor sostenido cuatro veces. ⚠️ Detalle que cambió el resultado: la
+  primera versión metía AAPL en "equity" y NQ/ES/SPY en "index" con correlación
+  cruzada baja, **infravalorando** la exposición; un valor de gran capitalización
+  es en su mayor parte beta del índice, así que ambos comparten grupo de
+  correlación (`_CORRELATION_GROUPS`). `:197 compute_loss_limits()` devuelve
+  `blocked`, no un aviso blando — un límite que solo avisa no es un límite.
+  `:259 volatility_adjusted_size()` dimensiona por ATR para que 1R signifique lo
+  mismo en ES que en SOL. Endpoints `POST /performance/portfolio-risk` y
+  `POST /calculate/volatility-size`.
+- **§5.1 Motor de backtest con validación** — nuevo `backend/backtest.py`.
+  ⚠️ **Corrección al documento**: el análisis afirma que "backtest aparece solo
+  como tema educativo, no como herramienta". Es **inexacto** — `server.py:3508`
+  ya tenía un `POST /backtest` funcional con datos reales. Lo que de verdad
+  faltaba, y es lo que se ha añadido, es la **validación**:
+  separación in-sample/out-of-sample, **walk-forward** por ventanas rodantes
+  (`backtest.py:564`), y sobre todo **contador de ensayos con corrección por data
+  snooping** (`backtest.py:439 deflated_sharpe()`), que descuenta el mejor Sharpe
+  por cuánto se buscó. Comisiones y slippage son parámetros con defecto **no nulo**:
+  una estrategia que solo funciona a coste cero no funciona. Endpoint nuevo
+  `POST /backtest/validate` (el viejo `/backtest` se deja intacto).
+  ⚠️ **Límite medido, no prometido**: sobre 6 paseos aleatorios puros
+  (sin ventaja posible por construcción) la corrección rechazó 5 y dejó pasar 1.
+  El fallo se concentra con pocas combinaciones probadas, así que la respuesta
+  incluye `low_power: true` por debajo de 20 ensayos y el veredicto lo dice en
+  texto. No se vende como infalible porque no lo es.
+
+#### 📚 Auditoría de opciones — resto
+
+- **P0 #2 (griegas/IV/vega duplicadas)**: elegida la Academia como fuente canónica.
+  `EducationTab.jsx:28 CanonicalLink` enlaza a `?topic=option-greeks` y
+  `?topic=options-vol` desde las rejillas "Griegas a fondo" y "Conceptos de
+  volatilidad" en vez de reexplicar. Para la sangría; **no** consolida los 4-6
+  sitios (queda pendiente, ver abajo).
+- **P2 #6 (pilar Avanzado con 27 temas planos)**: sub-agrupado en *núcleo avanzado /
+  sistemas alternativos / macro y por activo* con `group` en `EDUCATION_NAV` y
+  sub-cabeceras en el sidebar. **No se borró ni una línea de contenido.**
+- **P2 #7 (Gann)**: `docs/ANALISIS_TECNICO_AVANZADO.md` lo clasifica como
+  "mayormente infalsable" y aun así estaba al mismo nivel que Wyckoff. Movido al
+  final del pilar Técnico y marcado `evidence: 'disputed'` con etiqueta y tooltip.
+  No se borra: el contenido está escrito y ya incluye su apartado de mito vs.
+  realidad; lo que se corrige es la **paridad estructural**.
+- **P3 #9 (calendar/diagonal)**: **confirmado el desajuste**. `LegEditor.jsx` no
+  tiene vencimiento por pata y no existen ids `calendar`/`diagonal` entre las
+  estrategias de `mockData.js`, así que se explicaban dos estrategias que la
+  calculadora no puede construir. Añadido aviso explícito en ambas fichas
+  (`strategyNotBuildable`) en lugar de dejar al usuario buscando un botón que no
+  existe.
+
+#### ✅ Verificación
+
+- `pytest tests/` → **345 passed / 74 skipped** (eran 264; **+81 tests nuevos** en
+  `test_analytics_correctness_unit.py`, `test_options_edge_unit.py` y
+  `test_pro_tools_unit.py`, cada uno fijando un defecto concreto de los documentos).
+- `python -m py_compile *.py` OK (**20 módulos**: +`market_rates.py`,
+  +`american_options.py`, +`portfolio_risk.py`, +`backtest.py`).
+- `import server` → **188 rutas** (eran 181).
+- `frontend/scripts/engine-check.js` (**30 comprobaciones**, añadido a CI): el
+  simulador y el modelo del sistema producen números con los que se dimensionan
+  posiciones y viven en el frontend, donde no hay pytest.
+- i18n **5480 claves × 8 idiomas, 0 huecos** (+153 nuevas traducidas a los 8).
+  ⚠️ Lección repetida: el prefijo `mc*` colisionaba con el módulo de macro
+  (`mcTitle` = "Macro: ciclo, tipos y rotación") → renombrado a `mcsim*`. Es el
+  mismo fallo que ya pasó con `bs*`/Black-Scholes: **comprobar el prefijo antes de
+  escribir** (`node -e` sobre `es.js` + `es.edu.js`).
+- ESLint **0 errores**; `npm run build` exit 0.
+
+#### ⏳ Lo que estos documentos piden y sigue SIN hacer
+
+- **Decisión sobre el proveedor de datos de opciones** (§3.2): Yahoo v7 da OI de
+  ayer y no distingue at-bid/at-ask. Es una **decisión de negocio** (pagar
+  Polygon/ORATS/Tradier o degradar Unusual Activity y Market Flow fuera del tier de
+  pago), no de código. No se toca sin el dueño.
+- **Precios y tiers** (§6), **matar el plan vitalicio**, **reducir a dos pasarelas**
+  (§4), **podar las ~744 páginas SEO**: todas son decisiones de negocio.
+- **Sincronización con IBKR/Binance** (§5.3): requiere credenciales y pruebas
+  contra APIs reales; la red del sandbox está bloqueada.
+- **Consolidar de verdad las griegas duplicadas** (P0 #2): se han puesto los
+  enlaces canónicos, pero las 4-6 explicaciones independientes siguen existiendo.
+  Borrarlas es trabajo de contenido con revisión humana.
+- **P1 #3-#5**: fichas de `collar`, `bull_put_spread`, `bear_call_spread`,
+  `jade_lizard`, `short_strangle`; módulo de **margen de opciones** (Reg-T, spread
+  vs desnudo) separado de `margin-liq` (cripto); fiscalidad de ejercicio/asignación
+  y covered calls cualificadas. Es redacción de contenido en 8 idiomas.
+- **Frontend de las herramientas nuevas**: backtest validado, riesgo de cartera y
+  precios americanos existen como **endpoints**, sin UI todavía.
+- **UI para el bloqueo por límite de pérdida**: `compute_loss_limits` devuelve
+  `blocked`, pero nada en el frontend lo hace cumplir aún.
+
+
+### 2026-07-30 — Rediseño del panel de opciones: jerarquía de arriba abajo
+
+Petición del dueño: *"más ordenado, limpio, fácil, organizado… lo principal
+arriba y los extras y cosas de menor importancia y impacto más abajo"*.
+
+**El diagnóstico.** El panel no estaba mal dibujado, estaba mal **ordenado**:
+
+1. **Las tres decisiones que definen una posición vivían en tres zonas distintas
+   de la página.** La estrategia ocupaba una barra propia con 33 tarjetas siempre
+   desplegadas arriba del todo; el vencimiento estaba en la barra lateral derecha
+   (bajo el plegado en móvil); y el número de contratos, enterrado en medio de la
+   fila de métricas, entre el break-even y las comisiones.
+2. **Un mismo bloque mezclaba datos y controles.** `StatsKPIBar` tenía las cinco
+   métricas (que se leen), el input de comisión y el selector de contratos (que
+   se tocan) y la lista de patas (que se edita en otro sitio), en una fila que se
+   envolvía en cuatro líneas. La comisión aparecía **dos veces**.
+3. **Nada indicaba qué era importante.** Lo accesorio se repartía entre tres
+   botones sueltos de "▼ mostrar" (`AdvancedToggles`), un `TradeAdvancedPanel`
+   siempre montado al final y `ExplainTrade` + `AITradeCoach` siempre visibles.
+   Al revés: las **griegas** estaban escondidas tras un toggle, al mismo nivel
+   que "mi cartera".
+
+**El orden nuevo**, numerado en la propia interfaz:
+
+| | Bloque | Qué contiene |
+|---|---|---|
+| **1** | Configura tu posición | Estrategia · vencimiento · contratos · comparar A/B |
+| **2** | Resultado | 5 KPI + una línea con R:R, break-even, prima y comisiones |
+| **3** | Gráfico y patas | Payoff con el deslizador de tiempo DENTRO de su tarjeta + editor de patas al lado |
+| **4** | Griegas de la posición | Δ Γ Θ ν ρ siempre visibles, con qué significa cada una |
+| — | Más análisis | Acordeón de 6 secciones, **todas cerradas** |
+
+- ➕ **`SectionCard.jsx`** — sección plegable accesible (`aria-expanded`/`aria-controls`)
+  con subtítulo que explica para qué sirve. Más `SectionHeading` para los pasos.
+- ➕ **`PositionSetupBar.jsx`** — el paso 1. El selector de 33 estrategias pasa a
+  desplegarse **bajo demanda**.
+- ➕ **`GreeksStrip.jsx`** — resumen de griegas siempre visible.
+- ➕ **`SecondaryPanels.jsx`** — un solo acordeón para lo accesorio, ordenado por
+  impacto: entender la operación → contraste con tu histórico → griegas
+  detalladas → cuánto arriesgar → tu cartera → costes y escenarios.
+- ➖ **`AdvancedToggles.jsx` eliminado.**
+- 🔧 `StatsKPIBar` reescrito: **sólo números** (se elimina la comisión duplicada).
+- 🔧 `StrategyBar` sin marco ni `rightSlot` propios: se anida.
+- 🔧 `OptionsSubHeader`: había **dos** indicadores de "en vivo" diciendo lo mismo.
+
+**Bugs corregidos** (detalle en [`DIARIO_BUGS.md`](./DIARIO_BUGS.md)):
+- **BUG-023 · La pestaña Cadena era inusable al abrirla.** La tabla estaba en un
+  `flex-1/overflow-hidden` cuyo hijo `overflow-auto` no tenía altura acotada, así
+  que scrolleaba la página y el `thead sticky` se pegaba al contenedor
+  equivocado, quedando **oculto tras las barras fijas**. Ahora scrollea dentro de
+  su tarjeta, y el scroll vuelve arriba al cambiar de pestaña.
+- **BUG-026 · El aviso de datos modelados sólo salía en el optimizador.**
+  `_synthetic_marker` marca las tres respuestas, pero sólo `OptimizeView` leía la
+  bandera: en la calculadora y en la superficie de IV se pintaban primas, griegas
+  y skew fabricados sin aviso. Nuevo `SyntheticDataBanner` en ambas, y el coach
+  recibe la bandera.
+- **BUG-024 · La UI afirmaba un tipo libre de riesgo distinto del backend.**
+  `GreeksDisplay` pintaba `5.25%` fijo mientras el pricing usaba `market_rates`.
+  Nuevo `GET /api/market/risk-free` que publica el tipo **y su procedencia**
+  (`market_rates.get_risk_free_info` ya la calculaba y nada la exponía).
+- **BUG-027 · El coach respondía siempre en español.** El backend acepta `locale`
+  desde el PR #153 pero el frontend nunca lo enviaba.
+- **BUG-025 · "1 patas activas"**, "Constructor de Legs" y "Limitado riesgo ·
+  Ilimitado recompensa" (orden que sólo funciona en inglés).
+
+## Reorganización del repositorio (2026-07-30)
+
+La raíz tenía **10 `.md` sueltos** y `docs/` **27 documentos sin índice**, así que
+encontrar algo dependía de recordar dónde estaba. Reordenado por intención, no por
+tema.
+
+**Movimientos** (todos con `git mv`, la historia se conserva):
+
+| De | A | Por qué |
+|---|---|---|
+| `DIARIO_BUGS.md` | `docs/` | Doc vivo; era el único que quedaba fuera de `docs/` |
+| `GOOGLE_CLOUD_SETUP.md`, `GOOGLE_OAUTH_SETUP.md`, `SEO_GUIDE.md` | `docs/setup/` | Se abren una vez, al dar de alta infraestructura |
+| `ANALISIS_APIS_ADMIN_GOOGLE_2026-05-09.md`, `AUDIT_REPORT_2026-05-09.md`, `PLAN_100_FUNCIONAMIENTO_2026-05-09.md` | `docs/historico/` | Fotos de mayo; no describen el sistema actual |
+| `test_result.md` (67 KB), `test_summary.txt` | `docs/historico/` | Residuo de Emergent: un protocolo de comunicación entre agentes de una plataforma retirada |
+
+**Eliminado:** `_requests_stdlib_shim.py` — envoltorio de urllib que imitaba a
+`requests` y que **ningún módulo importaba**. CLAUDE.md tenía que advertir de él;
+quitándolo desaparecen el archivo y la advertencia. Y los 13 `iteration_*.json` de
+`test_reports/` que estaban versionados por error (se conserva el `.gitkeep`).
+
+La raíz queda en **`README.md` + `CLAUDE.md` + `SECURITY.md`**, que es lo que por
+convención va ahí.
+
+**Nuevo:**
+
+- **[`docs/README.md`](./README.md)** — el índice que no existía. Agrupa los 27
+  documentos por *para qué los vas a abrir* (empieza aquí / voy a escribir código /
+  voy a desplegar / voy a captar usuarios / contenido / referencia / auditorías),
+  con el tamaño de cada uno: un doc de 1.411 líneas y una checklist de 111 no se
+  leen en el mismo momento.
+- **`scripts/check-doc-links.py`** — verifica que los enlaces relativos resuelven.
+  Existe porque este mismo trabajo destapó que `ESTADO_PROYECTO.md` citaba
+  `docs/PLAN_DE_TRADING_spec.md`, que no estaba en el repo. Corre offline. Pilló un
+  enlace roto en el índice nada más escribirlo.
+- **`docs/PLAN_DE_TRADING_spec.md`** — el spec que faltaba, ya referenciado.
+- **`README.md`** reescrito con el mapa del repo.
+
+**Incoherencias corregidas** (la doc mentía a quien la leyera):
+
+1. **CLAUDE.md decía que `backend_test_security.py` está en la raíz.** Estaba en
+   `_archive/` desde antes. Quien buscara el fichero para evitarlo no lo encontraba.
+2. **El `README.md` mandaba un comando roto.** Daba `DATABASE_URL` por TCP a
+   `localhost:5432`, y CLAUDE.md documenta que eso falla con
+   `CERTIFICATE_VERIFY_FAILED` porque `init_pool` trata cualquier host TCP como Neon
+   y exige SSL. Corregido al socket Unix, que es lo que funciona.
+3. **El skill `estado-proyecto` llevaba una lista de `py_compile` a mano** que
+   CLAUDE.md ya marcaba como incompleta ("omitía 6"). Ahora `*.py`, y añadidos los
+   checks de i18n, motor y enlaces que ya existían y no estaban en el skill.
+4. **`check.sh` y los dos smoke de `tests/` apuntaban a `us-central1`** mientras el
+   despliegue real está en `europe-west1`. Llevaban tiempo midiendo un host que no
+   existe: fallaba todo, y no porque la API estuviera mal. Ahora leen `BACKEND_URL`
+   del entorno y abortan si falta — no se inventa un hostname de producción.
+
+**Verificado:** `py_compile` de todos los módulos · `pytest` 408 passed / 74 skipped
+· i18n 5528 × 8 sin huecos · ESLint 0 errores · `engine-check` 30/30 ·
+`check-fetch-credentials` OK · `npm run build` exit 0 (744 URLs) ·
+`check-doc-links` 47 documentos, 0 roturas.
+
+## Plan de trading versionado (2026-07-30) — backend completo
+
+Implementación de [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) §3, pasos 1, 2 y 4. El plan deja
+de ser tres piezas desconectadas y efímeras y pasa a ser **la fuente de verdad de
+los umbrales de riesgo del usuario**.
+
+**El bug de fondo que esto arregla.** `detect_errors` juzgaba cada operación
+contra tres constantes de módulo, así que el `rule_compliance_rate` del panel no
+medía el cumplimiento del plan del usuario: medía **el cumplimiento de la opinión
+de la app**. Un scalper que declara 1:1 al 65% de acierto —sistema válido— se
+comía un `low_rr` en *todas* sus operaciones; quien decide arriesgar 0,5% máximo
+no recibía ningún aviso al arriesgar 1,8%, porque el techo global era 2%.
+
+| Pieza | Qué hay |
+|---|---|
+| `backend/trading_plan.py` | Modelo de 5 secciones, versionado, normalización, pertenencia a sesión, informe de cumplimiento. Todo lo que calcula es función pura sobre dicts |
+| `trading_plans` (tabla) | Un documento por versión, nunca se sobrescribe. Registrada en la lista de arranque del shim — **no se autocrean** |
+| `detect_errors(trade, *, plan=None, …)` | Cada umbral sale de `plan["risk"]`; con `plan=None` el comportamiento es idéntico al anterior |
+| 5 reglas nuevas | `outside_session`, `unlisted_market`, `over_daily_limit`, `over_trade_count`, `traded_after_consecutive_losses` — sólo existen con plan |
+| `GET/POST /api/plan`, `/history`, `PATCH /draft`, `GET /compliance` | Las cinco rutas del §3.2 |
+| `plan_version` en cada operación | Sellado al crear, inmutable: un cambio de reglas no reescribe la historia que debía juzgar |
+
+**Decisiones que conviene no deshacer:**
+
+- **Un límite sin declarar es `None`, no 0.** Tratarlo como cero enterraría al
+  usuario en violaciones de reglas que nunca escribió.
+- **`require_stop_loss: false` silencia `no_sl`.** Hay sistemas reales sin stop
+  por operación (spreads de opciones con pérdida máxima definida). Marcarlos para
+  siempre enseñaba a ignorar la lista de errores entera.
+- **La regla de enfriamiento avisa, no bloquea.** El plan declaró cuánta
+  evidencia quería; cambiarlo antes es decisión del usuario. Lo que importa es
+  que quede registrada.
+- **`change_reason` obligatorio desde la v2** (422). Los planes no se abandonan,
+  se erosionan excepción a excepción.
+- **Un borrador NO es una versión.** Lo destapó un test: al guardar un borrador y
+  luego activar el primer plan, el contador lo tomaba por una v2 y exigía motivo
+  para un plan que no había gobernado ni una operación. `next_version_number()`
+  filtra los borradores.
+- **Una ventana horaria mal formada se descarta, no se convierte en "todo el
+  día"**, e `is_within_sessions` devuelve `None` (no `False`) cuando no puede
+  responder: nunca se reporta una violación que no se ha podido verificar.
+- **`by_rule` se ordena por dinero, no por frecuencia.** "Has incumplido 6 veces"
+  invita a encogerse de hombros; "esto te ha costado 412 €" no.
+
+**Verificado contra Postgres real** (no sólo unit): las 5 rutas, persistencia del
+modelo anidado en JSONB, ciclo v1→v2 con archivado, 422 sin motivo, aviso de
+enfriamiento, borrador que no toca la activa, y lo importante — un plan con
+`min_rr: 1.0` deja pasar un R:R 1.3, y con `max_risk 0.5%` marca un 1.2% diciendo
+`threshold=0.5` y `plan_version=1`.
+
+**Lo que falta** (pasos 3, 5 y 7 del §3.8, todo frontend): `TradingPlanEditor`
+(asistente de 5 pasos), migración de `localStorage['tcp-trading-setup']`,
+`printTradingPlan()` rellenado, checklist generada desde el plan, bloque de
+cumplimiento con la matriz 2×2 en `AnalyticsDashboard`, y los enlaces sesgo →
+módulo. El §3.6 (MAE/MFE) **ya estaba hecho** en el PR #153.
+
+
+### Reconciliación de las dos auditorías (misma sesión)
+
+Descartar el commit duplicado no cerraba la pregunta de **cuál de las dos
+implementaciones era mejor en cada punto**. Repasadas una por una; en la mayoría
+gana `main` y no se ha tocado nada:
+
+| Punto | Gana | Por qué |
+|---|---|---|
+| Sortino | `main` | Devuelve `None` también con `len < 2`; la mía devolvía `0.0`, que se lee como "malo" |
+| Anualización Sharpe/Sortino | `main` | Separa el cálculo en `_risk_adjusted_metrics` y expone además el valor por operación, el flag `annualized` y `trades_per_year` |
+| Solver de IV | `main` | Tiene guarda de **identificabilidad** (`MIN_IDENTIFIABLE_VEGA`): rechaza respuestas donde el precio no es sensible a σ. A la mía le faltaba, y devolvía un 0,72 sin significado en strikes muy fuera de dinero |
+| Semilla del solver | `main` | Brenner-Subrahmanyam según moneyness, en vez de un 0,30 fijo |
+| MAE/MFE | `main` | `losers_gave_back` (cuántas perdedoras estuvieron ≥1R a favor) es más accionable que mi `losers_avg_mfe_r` |
+| Definición de ruina en Monte Carlo | `main` | Usa el valle alcanzado, no sólo el balance final: una racha que baja del umbral y recupera igualmente reventó la cuenta |
+| Marcado de datos sintéticos (backend) | `main` | `_synthetic_marker` en las tres rutas, con prosa de respaldo para clientes que no localizan |
+
+Y **cuatro puntos donde la versión descartada era mejor**, aplicados sobre
+`main` con test de regresión cada uno (`tests/test_reconciled_metrics_unit.py`,
+13 tests):
+
+- **BUG-028 · El tipo libre de riesgo se reintentaba en cada llamada.**
+  `market_rates` cacheaba aciertos pero no fallos: `fresh` exige `rate is not
+  None`, así que con el proveedor caído no había caché. **Medido: 25 llamadas →
+  25 intentos de red**, y lo mismo con un valor previo caducado. Está en la ruta
+  de `/options/chain`, `/optimize`, `/calculate/*` y `/performance/analytics`.
+  Añadidos `FAILURE_BACKOFF_SECONDS` (15 min) y `timeout` parametrizable en
+  `_yahoo_get` (4 s para la tasa, frente a los 15 s × 2 hosts heredados).
+  Ahora: **25 → 1**.
+- **BUG-029 · La sugerencia de stop se pintaba sin muestra.** El insight exigía
+  ≥10 ganadoras; el panel leía el campo directo y no comprobaba nada, así que
+  con 2 ganadoras recomendaba una anchura de stop. La guarda pasa al origen.
+- **BUG-030 · La anualización no tenía techo.** 400 operaciones en 10 días →
+  ≈14.610 ops/año → √≈121, convirtiendo un Sharpe por operación de 0,05 en un
+  6,0. Añadido `MAX_TRADES_PER_YEAR = 2520`.
+- **BUG-031 · La cabecera del simulador seguía siendo una tirada suelta.** El
+  panel de distribución es nuevo, pero los KPI seguían saliendo de un
+  `runSimulation` aparte: un ROI aleatorio justo encima de un P5–P95 que no lo
+  contenía. Añadido PRNG con semilla y `medianPath` reproducible; al lanzar el
+  barrido la cabecera pasa a la mediana y se etiqueta.
+
+Además, `capture_ratio` (+ su insight y su tarjeta): la MAE responde "¿sobra mi
+stop?" y no había nada que respondiese la pregunta espejo sobre el objetivo.
+
+**⚠️ Nota de método — trabajo duplicado detectado y descartado.** Esta rama
+llevaba un commit previo que aplicaba el mismo `ANALISIS_TRADER_20260728.md` que
+el PR #153 ya había mergeado en `main` mientras se trabajaba: mismas correcciones
+en `performance.py`, mismo VE/CVaR en el optimizador, un `rates.py` equivalente a
+`market_rates.py`, y ficheros de test con nombres idénticos. La versión de `main`
+es más amplia (opciones americanas, riesgo de cartera, backtest validado), así que
+ese commit se **descartó** en lugar de mezclarlo, y sólo se rescató lo que `main`
+no tenía: el endpoint del tipo libre de riesgo, el aviso de datos modelados fuera
+del optimizador y el locale del coach. Lección: **comprobar `origin/main` antes de
+empezar y no sólo antes de abrir el PR.**
+
+**Verificación** (Chromium + Playwright, API mockeada porque el sandbox bloquea Yahoo):
+- Orden vertical comprobado en el DOM: `position-setup` → `kpi-max-profit` →
+  `time-slider` → `greeks-strip` → `secondary-panels`, ascendente. ✔
+- **0 secciones del acordeón abiertas al cargar.** ✔
+- Capturas a 1440×1000 y 390×844: el orden se mantiene apilado en móvil. ✔
+- Pestañas Cadena, Optimizar y Flujo verificadas; acordeón abierto sobre los
+  componentes de `main` (`ExplainTrade`, `GreeksDisplay`, `GreeksTimeChart`). ✔
+- `pytest` **358 passed / 74 skipped** (+13 de la reconciliación) ·
+  `node scripts/engine-check.js` **30/30** (contrato intacto) · ESLint **0
+  errores** (125 avisos) · i18n **5522 × 8 idiomas, 0 huecos** (+41 claves) ·
+  `npm run build` exit 0 · 0 errores de runtime en consola.
+
+---
+
+## 2026-07-31 — Auditoría del apartado de opciones
+
+Ejecución de `AUDITORIA_OPCIONES_20260731`. El diagnóstico del documento era que el
+motor de opciones es mejor que el de la competencia y el problema está en otra
+parte: arquitectura de información, cobertura de estrategias y superficie pública.
+Se ha trabajado en ese orden.
+
+### Fase 0 — Los tres bloqueos
+
+Los tres eran reales y estaban donde decía el documento.
+
+1. **Multi-expiración** (BUG-032). Era un límite del **modelo de datos**, no un
+   preset que faltara: todas las patas heredaban `currentExp.daysToExpiry`. Ahora
+   cada pata lleva `expIdx`, `CalculatorPage` mantiene `{expIdx: chain}` y el
+   backend sirve varias expiraciones en una llamada (`?expiration_idxs=1,3,6`,
+   tope 8). En el motor, el argumento de tiempo pasa a ser el de la **pata más
+   cercana** y de ahí se deriva el transcurrido por pata — con una sola
+   expiración el comportamiento es idéntico al de antes, lo que hace el cambio
+   compatible hacia atrás y así está fijado en `engine-check`.
+2. **Tipo libre de riesgo** (BUG-033). El frontend pasaba `0.05` literal mientras
+   el backend valoraba con `^IRX`. Hook `useRiskFreeRate` con caché de módulo y el
+   valor + procedencia visibles bajo las griegas.
+3. **Rango del gráfico** (BUG-034). `±35%` fijo → `2,5σ` del expected move, con
+   suelo 10% y techo 150%.
+
+De propina, un bug que la auditoría no vio: **cargar una posición guardada dejaba
+todo a cero** (BUG-035), porque las patas se construían sin `enabled` y
+`customBuiltLegs` filtra por ese campo.
+
+### Estrategias: 33 → 66
+
+Las 33 enumeradas en el documento, incluidas las 8 temporales que la Fase 0
+desbloquea. El documento pedía "~35" para llegar a 68; se han añadido exactamente
+las que enumera, así que **el total es 66, no 68** — no se ha rellenado para
+cuadrar un número.
+
+Las nuevas llevan el nombre en literal (los términos del sector no se traducen) y
+las descripciones y el "cuándo usarla" en claves i18n × 8 idiomas. El `whenToUse`
+se comparte por familia cuando la razón de uso es genuinamente la misma (las
+cuatro escaleras, las tres de arbitraje), en vez de duplicar la misma frase con
+otras palabras.
+
+### Fase 2 — Métricas
+
+`options_positioning.py`, nuevo, con **max pain, GEX (con la convención de
+dealer explícita en la respuesta), perfil de OI por strike, ratio put/call,
+semáforo de liquidez por contrato, term structure de IV y expected move**. Dos
+endpoints nuevos: `/api/options/positioning/{symbol}` y
+`/api/options/term-structure/{symbol}`.
+
+La regla que gobierna el módulo: **son lecturas de posicionamiento observado**, así
+que sobre cadena modelada devuelven `None`, no un número plausible. 34 tests, y
+buena parte existen sólo para fijar esa negativa.
+
+En el frontend: **heatmap precio × IV** (lo que el documento señalaba como la copia
+más rentable), panel de posicionamiento, y **vanna, charm y vomma** —que existían
+sólo como texto educativo— junto a las griegas primarias.
+
+### Fases 1 y 3 — Superficie pública
+
+- `/options` deja de ser el muro de pago y pasa a ser un **hub público** con el
+  catálogo completo enlazable. El workspace en vivo se mueve a
+  `/options/calculator`, sigue siendo premium y ahora va con `noindex`.
+- `/options/strategies` y `/options/strategies/:slug`, públicas.
+- El `postbuild` que ya existía (`gen-seo-pages.js`) genera **528 páginas de
+  estrategia** (66 × 8 idiomas) con JSON-LD `HowTo`. El sitemap pasa de **744 a
+  1273 URLs**. No se ha escrito contenido nuevo: se ha enrutado el que ya estaba.
+
+### Lo que NO entra
+
+- **`/options/glossary/:slug`, `/options/learn/:slug` y `/options/ticker/:symbol`.**
+  El documento las pide y son el resto del camino a las ~120 URLs que estima. La
+  maquinaria ya está montada (el generador, el sitemap, el patrón de slug), pero
+  el glosario necesita antes un índice con slug del contenido de
+  `tradingEducationContent.js`, que es trabajo de datos, no de rutas.
+- **Prerender completo (react-snap / SSG).** Las páginas estáticas del postbuild
+  cubren el caso de indexación sin que corra el JavaScript, que es el problema
+  real; migrar la SPA entera a SSG es otra conversación.
+- **Fusionar cadena + constructor en un paso 3 único**, subir IV rank/percentil y
+  skew a un paso 1 de contexto, y las rutas `/options/chain/:symbol`,
+  `/options/iv/:symbol` y `/options/flow/:symbol`. Es reordenación del workspace,
+  no capacidad nueva.
+- **Fase 4 entera** (paper trading, quizzes, backtest de opciones, calendario de
+  earnings propio) y los extras de marketing (embed widget, compartir por URL).
+
+**Verificación:** `pytest` **442 passed / 74 skipped** (+34) · `engine-check`
+**60/60** (+30, `blackScholes.js` no estaba cubierto y ahora lo está) · ESLint **0
+errores** · i18n **5633 × 8 idiomas, 0 huecos** (+105 claves) · `npm run build`
+exit 0 con 1273 URLs · `check-doc-links` 47 documentos, 0 roturas.
+
+---
+
+## 2026-07-31 (2) — Publicidad: Google AdSense en el contenido gratuito
+
+Petición: monetizar el contenido gratuito con Google AdSense, **y que quien paga
+no vea anuncios ni cuando consulta ese contenido gratuito**. La segunda mitad es
+la que ha gobernado el diseño.
+
+### La regla, en un sitio y comprobada
+
+`frontend/src/lib/adsPolicy.js` — módulo **puro y sin imports** con
+`shouldShowAds(...)`. Sin imports a propósito: lo consumen tres runtimes que no
+comparten nada (el hook de React, el generador de páginas estáticas del
+postbuild y el verificador offline), y así la regla no se puede duplicar mal.
+
+Un suscriptor no ve anuncios en ninguna ruta y, además, **el script de AdSense
+ni siquiera se descarga en su navegador**: no basta con ocultar el bloque si el
+usuario que paga sigue hablando con la red publicitaria. También se deniega
+mientras la sesión no está resuelta (recarga + refresh silencioso), para que no
+haya ni un parpadeo.
+
+Las rutas con publicidad son **lista blanca** (`AD_SURFACES`), no decisión de
+quien monta el componente: soltar un `<AdSlot>` en el dashboard no pinta nada.
+
+### Dónde se anuncia
+
+- **SPA**: hub público de opciones, índice de estrategias y las 66 fichas.
+- **Estáticas del postbuild**: las 1273 URLs (`/tools`, `/learn`, `/markets`,
+  `/options/strategies`, ×8 idiomas), 2 huecos por página.
+- **Fuera**: dashboard y demás rutas de pago, pricing/login/pago (conversión),
+  legales/contacto/about (texto fino), la landing (es página de venta) y
+  `/news`, que hoy es una maqueta con filas de relleno — anunciar sobre
+  contenido de mentira es motivo de suspensión de cuenta.
+
+### El puente con las páginas estáticas
+
+Esas páginas son HTML plano, sin sesión. Antes de tocar la red comprueban la
+marca `tcp-ads` que escribe la SPA (`AdsBootstrap`) **y**, como respaldo, la
+sesión persistida de Zustand — lo segundo se añadió tras verlo fallar en el
+smoke: un premium recién logueado que aterriza desde Google todavía no tenía la
+marca. Queda un límite aceptado y documentado: en un dispositivo donde nunca ha
+iniciado sesión, sí vería anuncios hasta entrar en la app.
+
+### Consentimiento y textos legales
+
+- El banner de cookies concede ahora `ad_storage`/`ad_user_data`/
+  `ad_personalization` con «Aceptar todo» (antes iban siempre denegados) y emite
+  `tcp:consent` para que los huecos aparezcan sin recargar.
+- Las páginas estáticas llevan su propio banner mínimo en JS plano, traducido a
+  los 8 idiomas, que escribe **la misma clave**.
+- **Textos legales corregidos en los 8 idiomas**: el banner y la política de
+  cookies decían literalmente «no mostramos anuncios de terceros ni compartimos
+  datos con redes publicitarias». Con AdSense eso pasaba a ser falso. Se han
+  actualizado banner, política de cookies (sección de publicidad reescrita),
+  finalidades, base jurídica del art. 6(1)(a) y la lista de terceros.
+
+### Lo que NO se ha hecho (y por qué)
+
+- **No se enciende nada.** Sin `REACT_APP_ADSENSE_CLIENT` el sitio queda byte a
+  byte como estaba. Las variables van al workflow como *variables* de repositorio.
+- **Bloqueo real: el dominio propio.** En `abcde-rgb.github.io/Tradingcalculatorpro.com`
+  AdSense no es viable — `ads.txt` tiene que estar en la raíz del dominio y hay
+  que acreditar la propiedad del sitio, y ninguna de las dos cosas se puede con
+  un subdirectorio de un dominio de GitHub. El código ya es correcto para el día
+  que se active `tradingcalculatorpro.com` (con `CNAME`, el build es la raíz).
+- **La CMP propia no está certificada.** Para el EEE Google exige una CMP de su
+  lista. Lo más simple es activar la suya (gratuita) y poner
+  `REACT_APP_ADSENSE_CMP=google`. Mientras tanto nuestro banner es *más*
+  restrictivo de lo que Google pide, así que no se sirve nada sin consentimiento.
+
+### Nuevo
+
+`lib/adsPolicy.js` · `lib/ads.js` · `components/ads/AdSlot.jsx` ·
+`components/ads/AdsBootstrap.jsx` · `scripts/ads-check.js` (en CI) ·
+`scripts/gen-ads-txt.js` (postbuild) · [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
+
+**Verificación:** `ads-check` **26/26** · smoke real en Chromium **24/24**
+(premium: 0 huecos y 0 peticiones a `pagead2`; gratuito: huecos y script;
+estáticas: banner → aceptar → 2 `<ins>`; «solo esenciales» no carga nada) ·
+ESLint **0 errores, 125 avisos** (los mismos de antes) · i18n **5635 × 8
+idiomas, 0 huecos** (+2 claves) · `npm run build` exit 0 → 1273 URLs + `ads.txt`
+· build sin las variables: **0 rastros** de publicidad y `ads.txt` borrado.

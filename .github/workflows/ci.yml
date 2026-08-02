@@ -30,12 +30,12 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt pytest
 
+      # La lista de módulos iba a mano y se quedó atrás: price_action, timeframes,
+      # market_data, nowpayments, revolut y affiliate_program no se comprobaban.
+      # Con el glob no hay nada que recordar actualizar al añadir un módulo.
       - name: Verificar sintaxis (py_compile)
         run: |
-          python -m py_compile \
-            server.py admin_routes.py options_math.py options_optimize.py \
-            stock_data.py candle_patterns.py performance.py missing_apis.py \
-            realtime_alerts.py referrals.py
+          python -m py_compile *.py
           echo "✅ Todos los módulos compilan"
 
       - name: Tests unitarios offline (las matemáticas siempre corren)
@@ -70,6 +70,25 @@ jobs:
 
       - name: fetch() al backend con credentials
         run: node scripts/check-fetch-credentials.js
+
+      # El simulador y el modelo del sistema de trading producen números con los
+      # que el usuario dimensiona posiciones, y viven en el frontend, donde no
+      # hay pytest que detecte una regresión.
+      - name: Motores del frontend (simulador + sistema de trading)
+        run: node scripts/engine-check.js
+
+      # "Con Premium no hay anuncios" es una promesa comercial: se comprueba,
+      # no se confía. Fija también que ninguna página de pago monte un AdSlot.
+      - name: Política de publicidad (Premium sin anuncios)
+        run: node scripts/ads-check.js
+
+      # ESLint existía en el repo pero su configuración no parseaba NI UN
+      # fichero (0 de 283): el parser de Babel abortaba en todos. Con el linter
+      # mudo llegó a producción, entre otras cosas, un `idx` no definido que
+      # reventaba la calculadora de Fibonacci. Falla sólo ante errores
+      # (no-undef, rules-of-hooks); los avisos de limpieza no bloquean el PR.
+      - name: Lint (ESLint)
+        run: npx eslint src scripts
 
       # Un acento bonito con texto ilegible no lo ve nadie a ojo, y menos quien
       # eligió la paleta. En una web financiera un dato que no se lee es un

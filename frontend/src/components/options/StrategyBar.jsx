@@ -34,6 +34,14 @@ const ShapeSVG = ({ shape, color }) => {
     long_guts: 'M5,6 L17,30 L30,6',
     strap: 'M5,6 L14,28 L22,22 L30,5',
     strip: 'M5,5 L12,22 L20,28 L30,6',
+    // Multi-vencimiento: la curva no toca el eje en los extremos porque la
+    // pata larga conserva valor extrínseco cuando vence la corta.
+    calendar: 'M3,24 L11,20 L17,7 L23,20 L31,24',
+    diagonal: 'M3,26 L11,21 L18,8 L24,12 L31,15',
+    double_calendar: 'M3,25 L9,12 L14,20 L20,20 L25,12 L31,25',
+    box: 'M4,14 L30,14 L30,22 L4,22 Z',
+    ladder: 'M3,22 L11,22 L18,9 L24,9 L31,28',
+    ladder_long: 'M3,12 L11,12 L18,25 L24,25 L31,5',
   };
   return (
     <svg viewBox="0 0 34 34" className="w-full h-full">
@@ -73,7 +81,14 @@ const FilterPill = ({ active, onClick, Icon, label, count, text, bgActive, bgHov
   </button>
 );
 
-const StrategyBar = ({ strategies, categories, selected, onSelect, rightSlot }) => {
+/**
+ * Selector de estrategia. Ya NO se renderiza siempre: vive dentro de
+ * `PositionSetupBar` y sólo aparece cuando el usuario pulsa el nombre de la
+ * estrategia actual. Por eso no lleva marco ni fondo propios — los pone el
+ * contenedor — y ya no recibe `rightSlot`: el botón de comparar pasó a la fila
+ * de configuración, que es donde se decide, no dentro de la lista.
+ */
+const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(null);
   // Collapsed by default: one horizontally-scrollable row instead of a wall of
@@ -90,7 +105,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect, rightSlot }) 
   }, [selected, expanded, activeCategory]);
 
   return (
-    <div className="bg-card border-b border-border px-5 py-2.5">
+    <div className="px-4 py-3">
       {/* Category Filter Pills */}
       <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
         <FilterPill
@@ -128,9 +143,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect, rightSlot }) 
           );
         })}
 
-        {/* Right-side actions: compare toggle (from parent) + expand/collapse */}
         <div className="ml-auto flex items-center gap-1.5">
-          {rightSlot}
           <button
             onClick={() => setExpanded(v => !v)}
             data-testid="strategies-expand-toggle"
@@ -168,7 +181,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect, rightSlot }) 
             </div>
             <div className="text-left">
               <div className="text-xs font-semibold whitespace-nowrap text-foreground">{t(strategy.name)}</div>
-              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{t(strategy.risk)} {t('riskLabel')} · {t(strategy.reward)} {t('rewardLabel')}</div>
+              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{t('riskLabel')}: {t(strategy.risk)} · {t('rewardLabel')}: {t(strategy.reward)}</div>
             </div>
           </button>
         ))}

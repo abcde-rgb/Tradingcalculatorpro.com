@@ -40,6 +40,18 @@ jobs:
           REACT_APP_GTM_ID: ${{ secrets.REACT_APP_GTM_ID }}
           REACT_APP_GSC_VERIFICATION: ${{ secrets.REACT_APP_GSC_VERIFICATION }}
           REACT_APP_BING_VERIFICATION: ${{ secrets.REACT_APP_BING_VERIFICATION }}
+          # Google AdSense. Van como VARIABLES del repositorio, no secretos: el
+          # ID de editor y los de bloque viajan en el HTML de cada página, no
+          # hay nada que ocultar. Si no están definidas, el build sale SIN
+          # publicidad (ni script, ni huecos, ni ads.txt) — es el estado por
+          # defecto. Ver docs/MONETIZACION_ADS.md.
+          REACT_APP_ADSENSE_CLIENT: ${{ vars.REACT_APP_ADSENSE_CLIENT }}
+          REACT_APP_ADSENSE_SLOT_ARTICLE: ${{ vars.REACT_APP_ADSENSE_SLOT_ARTICLE }}
+          REACT_APP_ADSENSE_SLOT_BOTTOM: ${{ vars.REACT_APP_ADSENSE_SLOT_BOTTOM }}
+          # 'google' si el consentimiento lo gestiona la CMP certificada de
+          # Google (AdSense → Privacidad y mensajes). Vacío = manda el banner
+          # de cookies propio.
+          REACT_APP_ADSENSE_CMP: ${{ vars.REACT_APP_ADSENSE_CMP }}
           PUBLIC_URL: /Tradingcalculatorpro.com
           CI: false
         run: npm run build

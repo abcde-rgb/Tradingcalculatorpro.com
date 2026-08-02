@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-
-const CONSENT_KEY = 'tcp-cookie-consent'; // 'all' | 'essential' | null
+import { CONSENT_KEY } from '@/lib/adsPolicy';
+import { CONSENT_EVENT } from '@/lib/ads';
 
 export function getCookieConsent() {
   try {
@@ -20,13 +20,15 @@ function applyConsent(level) {
 
   const granted = level === 'all' ? 'granted' : 'denied';
 
-  // Google Consent Mode v2
+  // Google Consent Mode v2. La publicidad (AdSense en el contenido gratuito)
+  // va atada al mismo "Aceptar todo" que la analítica y, como ella, sale
+  // denegada por defecto desde `index.html`.
   if (typeof window.gtag === 'function') {
     window.gtag('consent', 'update', {
       analytics_storage: granted,
-      ad_storage: 'denied',
-      ad_user_data: 'denied',
-      ad_personalization: 'denied',
+      ad_storage: granted,
+      ad_user_data: granted,
+      ad_personalization: granted,
     });
   }
 
@@ -37,6 +39,14 @@ function applyConsent(level) {
     } else {
       window.posthog.opt_out_capturing();
     }
+  }
+
+  // Los huecos de AdSense ya montados escuchan esto: sin el aviso, aceptar
+  // cookies no haría aparecer los anuncios hasta el siguiente cambio de ruta.
+  try {
+    window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: level }));
+  } catch {
+    /* navegador sin CustomEvent: el consentimiento se aplicará al recargar */
   }
 }
 

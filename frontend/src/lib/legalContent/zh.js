@@ -31,13 +31,14 @@ const zh = {
           '交易类通知：通过 SendGrid 发送付款确认、续订提醒及您配置的价格提醒。',
           '安全与反欺诈：检测未经授权的访问，保护服务完整性。',
           '使用分析（经您同意）：通过启用 IP 匿名化的 Google Analytics 4 改进平台。',
+          '免费内容中的广告（经您同意）：通过 Google AdSense 支持开放板块。Premium 用户不会看到广告。',
         ]},
       ]},
       { t: '处理的法律依据（GDPR）', b: [
         { p: '对于欧洲经济区用户，处理依据《通用数据保护条例》（GDPR）的以下法律基础：' },
         { list: [
           'GDPR 第6(1)(b)条 — 履行合同：为提供所订购的服务、管理订阅和处理付款所必需。',
-          'GDPR 第6(1)(a)条 — 同意：用于分析类 Cookie（Google Analytics 4）和可选的营销通讯。您可随时撤回同意。',
+          'GDPR 第6(1)(a)条 — 同意：用于分析类 Cookie（Google Analytics 4）和可选的营销通讯。您可随时撤回同意。 同样适用于免费内容中 Google AdSense 的广告 Cookie。',
           'GDPR 第6(1)(c)条 — 法律义务：按适用税法保存账单数据。',
           'GDPR 第6(1)(f)条 — 合法利益：服务安全与反欺诈。',
         ]},
@@ -49,7 +50,7 @@ const zh = {
           'PayPal, Inc.（支付）：按其自身隐私政策处理 PayPal 付款。',
           'Revolut（Revolut Pay，其收银台含 Apple Pay/Google Pay）：处理 Revolut Pay 付款。',
           'NOWPayments（加密货币支付）：处理加密货币付款；接收金额、订单标识符及（如适用）用于收据的邮箱。',
-          'Google LLC（OAuth 与 Analytics）：Google 登录会传输姓名和邮箱。Google Analytics 4 启用 IP 匿名化，且仅在您同意后使用。政策：policies.google.com/privacy。',
+          'Google LLC（OAuth 与 Analytics）：Google 登录会传输姓名和邮箱。Google Analytics 4 启用 IP 匿名化，且仅在您同意后使用。政策：policies.google.com/privacy。 Google AdSense 在免费内容中投放广告，仅在您同意后展示，且从不向 Premium 用户展示。',
           'Twilio SendGrid（交易邮件）：发送确认、发票与提醒，仅接收您的邮箱地址。',
           'Anthropic（AI Trade Coach）：当您请求 AI 分析时，所分析策略的参数（资产、交易腿、价格）会发送给 Anthropic；请求中不包含您的姓名和邮箱。',
         ]},
@@ -183,7 +184,9 @@ const zh = {
         { p: '部分页面通过 tradingview.com 的 iframe 嵌入 **TradingView** 图表。该内容由 TradingView 提供，可能按其自身政策设置其自己的技术性 Cookie。我们无法控制这些 Cookie。' },
       ]},
       { t: '广告与第三方跟踪 Cookie', b: [
-        { p: '**TradingCalculator.pro 不使用广告、再营销或第三方行为跟踪 Cookie。**我们不在平台展示第三方广告，也不与广告网络共享行为数据。' },
+        { p: '我们在网站的免费板块展示 **Google AdSense** 广告，用于支持开放内容。只有在您于 Cookie 横幅中选择「接受所有」后，广告及其 Cookie 才会加载；未获同意时，Google 的脚本根本不会被下载。' },
+        { p: '**拥有有效的 Premium 订阅后，您在网站任何位置都不会看到广告**，浏览免费内容时同样如此：您的浏览器不会加载 AdSense 脚本，也不会写入任何广告 Cookie。' },
+        { p: 'Google 可能使用 Cookie，根据您对本网站及其他网站的访问来个性化广告。您可以在 [Google 广告设置](https://adssettings.google.com) 中关闭个性化，或在横幅中选择「仅必要」来拒绝。' },
       ]},
       { t: '如何管理和禁用 Cookie', b: [
         { p: '多数浏览器可在设置中管理 Cookie：' },

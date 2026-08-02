@@ -35,6 +35,43 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 const DEMO_TOKEN = 'demo-token';
 
+/**
+ * ¿El bearer de estas cabeceras sirve para llamar al backend?
+ *
+ * Tras recargar la página el token vive sólo en memoria (Zustand), así que
+ * arranca a `null` y la cabecera queda literalmente en `"Bearer null"` hasta
+ * que el refresco silencioso trae uno nuevo.
+ */
+const bearerIsReady = (headers) => {
+  const bearer = headers?.Authorization || '';
+  return Boolean(bearer) && !bearer.endsWith('null') && !bearer.includes(DEMO_TOKEN);
+};
+
+/**
+ * Carga de una tarjeta del panel que ESPERA a tener un token utilizable.
+ *
+ * El fallo que evita: un `useEffect(..., [])` que llama al backend al montar
+ * dispara, justo después de un F5, una petición con `Bearer null`. El backend
+ * responde 401 y —como el efecto no depende de `headers`— no se reintenta
+ * jamás: la tarjeta se queda vacía (o suelta un toast de error falso) hasta que
+ * el usuario navega de nuevo. Depender de `headers` es lo que hace que la carga
+ * se relance sola en cuanto el token real llega.
+ *
+ * Mientras el token no está listo NO se apaga `loading`: la tarjeta enseña su
+ * spinner, que es la verdad (está esperando). Sólo se apaga cuando no va a
+ * llegar nada nunca: sin backend configurado o en modo demo.
+ */
+function useAuthedLoad(headers, load, setLoading, extraDeps = []) {
+  const ready = bearerIsReady(headers);
+  const isDemo = (headers?.Authorization || '').includes(DEMO_TOKEN);
+  useEffect(() => {
+    if (!API || isDemo) { setLoading?.(false); return; }
+    if (!ready) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headers, ready, isDemo, ...extraDeps]);
+}
+
 const PLAN_OPTIONS = [
   { value: 'none',      label: 'Free' },
   { value: 'monthly',   label: 'Monthly' },
@@ -1150,7 +1187,7 @@ function AuditLogPanel({ headers }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   return (
     <Card className="bg-card border-border" data-testid="audit-log-panel">
@@ -1927,7 +1964,7 @@ function MaintenanceModeCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const save = async () => {
     setSaving(true);
@@ -2007,7 +2044,7 @@ function EmailCampaignsCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const createCampaign = async () => {
     setSaving(true);
@@ -2245,7 +2282,7 @@ function ChurnSurveyCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const saveFollowUp = async () => {
     setSaving(true);
@@ -2354,16 +2391,15 @@ function CohortAnalysisCard({ headers }) {
   const [cohorts, setCohorts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!API) { setLoading(false); return; }
-    (async () => {
-      try {
-        const res = await fetch(`${API}/admin/cohorts`, { credentials: 'include', headers });
-        if (res.ok) { const d = await res.json(); setCohorts(d.cohorts || []); }
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
+  const load = async () => {
+    try {
+      const res = await fetch(`${API}/admin/cohorts`, { credentials: 'include', headers });
+      if (res.ok) { const d = await res.json(); setCohorts(d.cohorts || []); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useAuthedLoad(headers, load, setLoading);
 
   const chartData = cohorts.map(c => ({ month: c.month?.slice(0, 7), tasa: Math.round(c.conversion_rate || 0) }));
 
@@ -2429,16 +2465,15 @@ function ReferralManagerCard({ headers }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!API) { setLoading(false); return; }
-    (async () => {
-      try {
-        const res = await fetch(`${API}/admin/referrals/leaderboard`, { credentials: 'include', headers });
-        if (res.ok) { const d = await res.json(); setLeaderboard(d.leaderboard || []); setStats(d.stats || null); }
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
+  const load = async () => {
+    try {
+      const res = await fetch(`${API}/admin/referrals/leaderboard`, { credentials: 'include', headers });
+      if (res.ok) { const d = await res.json(); setLeaderboard(d.leaderboard || []); setStats(d.stats || null); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useAuthedLoad(headers, load, setLoading);
 
   return (
     <Card className="bg-card border-border">
@@ -2889,7 +2924,7 @@ function PlansEditorCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const savePlan = async (planId) => {
     const edit = edits[planId];
@@ -2983,7 +3018,7 @@ function I18nManagerCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const saveKey = async (key) => {
     const edit = edits[key];
@@ -3072,7 +3107,7 @@ function ErrorMonitorCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const resolve = async (id) => {
     setResolving(id);
@@ -3169,16 +3204,15 @@ function RateLimitingCard({ headers }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!API) { setLoading(false); return; }
-    (async () => {
-      try {
-        const res = await fetch(`${API}/admin/rate-limits`, { credentials: 'include', headers });
-        if (res.ok) setData(await res.json());
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
+  const load = async () => {
+    try {
+      const res = await fetch(`${API}/admin/rate-limits`, { credentials: 'include', headers });
+      if (res.ok) setData(await res.json());
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useAuthedLoad(headers, load, setLoading);
 
   return (
     <Card className="bg-card border-border">
@@ -3249,7 +3283,7 @@ function GDPRExportCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (API) load(); else setLoading(false); }, []);
+  useAuthedLoad(headers, load, setLoading);
 
   const deliver = async (id) => {
     setDelivering(id);

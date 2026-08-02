@@ -15,16 +15,37 @@ El proyecto nació en la plataforma Emergent con una imagen `fastapi_react_mongo
 - **Backend**: Python 3.11 + **FastAPI** (no Flask) + asyncpg → desplegado en **Google Cloud Run**
 - **BD**: PostgreSQL en Cloud SQL (socket Unix en producción, TCP en local)
 - **Auth**: JWT con httpOnly cookies + Google OAuth (biblioteca `google-auth`)
-- **Pagos**: Stripe SDK
+- **Pagos**: Stripe SDK + PayPal + Revolut Pay (`revolut.py`) + **NOWPayments** para
+  criptomonedas (`nowpayments.py`, IPN firmado con HMAC-SHA512). *OxaPay y MaxelPay se
+  probaron en su día y se retiraron: no queda código de ninguna de las dos.*
 - **Email**: SendGrid
 - **IA**: Anthropic SDK (`ANTHROPIC_API_KEY`) — AI Trade Coach
+
+## Estructura del repositorio
+
+```
+backend/     FastAPI + shim Mongo→PostgreSQL   frontend/   React 19 + CRACO
+docs/        toda la doc → docs/README.md      scripts/    verificadores del repo
+tests/       smoke E2E manual (backend vivo)   _archive/   código retirado
+```
+
+`docs/README.md` es el índice, agrupado por intención. `docs/ESTADO_PROYECTO.md` es la
+fuente de verdad del estado; `docs/DIARIO_BUGS.md`, el historial de bugs con causa raíz.
+La raíz sólo tiene `README.md`, `CLAUDE.md` y `SECURITY.md`: cualquier `.md` nuevo va a
+`docs/`, y si es una foto fechada que no se va a mantener, a `docs/historico/`.
 
 ## Comandos de desarrollo
 
 ### Backend (ejecutar desde `backend/`)
 ```bash
 pip install -r requirements.txt
-ENVIRONMENT=development DATABASE_URL=postgresql://user:pass@localhost:5432/trading_dev JWT_SECRET=devonly uvicorn server:app --host 0.0.0.0 --port 8080 --reload
+# OJO con la URL: init_pool trata cualquier host TCP como si fuera Neon y exige SSL
+# VERIFICADO. Contra un Postgres local sin SSL falla con CERTIFICATE_VERIFY_FAILED.
+# Por socket Unix sí conecta (asyncpg no negocia TLS sobre socket):
+ENVIRONMENT=development \
+DATABASE_URL='postgresql://user:pass@/trading_dev?host=/var/run/postgresql' \
+JWT_SECRET=devonly \
+uvicorn server:app --host 0.0.0.0 --port 8080 --reload
 ```
 
 ### Tests (siempre desde `backend/`)
@@ -41,9 +62,24 @@ REACT_APP_BACKEND_URL=http://localhost:8080 npm start  # dev con proxy implícit
 npm run build                              # build de producción
 ```
 
-### Verificar sintaxis Python antes de commit
+### Verificar antes de commit
 ```bash
-python -m py_compile backend/server.py backend/admin_routes.py backend/options_math.py
+# Sintaxis de TODOS los módulos (la lista a mano se quedaba corta: omitía 6)
+cd backend && python -m py_compile *.py
+
+# Lint del frontend. Falla sólo ante errores reales (no-undef, rules-of-hooks);
+# los avisos de símbolos muertos no bloquean. Corre también en CI.
+cd frontend && npx eslint src scripts
+
+# Paridad de los 8 idiomas y motor del simulador (ambos offline)
+cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
+
+# Publicidad: que ningún suscriptor pueda ver un anuncio (offline, corre en CI)
+cd frontend && node scripts/ads-check.js
+
+# Los enlaces relativos de la doc resuelven. Existe porque ya se colaron
+# referencias a archivos inexistentes y nada las detectaba.
+python scripts/check-doc-links.py
 ```
 
 ## Arquitectura: el shim MongoDB→PostgreSQL
@@ -63,6 +99,23 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 
 **Nunca añadir SQL directo** — usar siempre la API de `Collection`.
 
+## Reglas de honestidad numérica (no romper)
+
+El producto muestra cifras con las que el usuario dimensiona posiciones reales.
+Tres reglas que ya costaron bugs y están fijadas por tests:
+
+1. **Nada de datos inventados sin etiquetar.** Toda respuesta construida sobre
+   `generate_options_chain` lleva `synthetic: true` (helper `_synthetic_marker`) y la UI
+   pinta una banda de aviso. El volumen y el interés abierto de una cadena modelada van a
+   `None`: son observaciones, no salida de un modelo (llenarlos con `rng.randint` hacía que
+   todo ratio volumen/OI leyera ruido).
+2. **Lo que no se puede calcular es `None`, no `0`.** Un R sin stop es indefinido, no cero
+   (como cero arrastra `avg_r` y falsea la distribución). Un Sortino sin pérdidas es
+   indefinido, no cero. Una IV que el precio no puede determinar es `None`, no una cifra.
+3. **Lo sensible al orden se ordena explícitamente.** La curva de equity, el drawdown y las
+   rachas se construyen sobre `sort_trades_chronologically()` (por `exit_date`), nunca sobre
+   el orden en que llegó la consulta: el drawdown no es simétrico bajo inversión.
+
 ## Módulos del backend
 
 | Archivo | Responsabilidad |
@@ -70,6 +123,7 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 | `server.py` | Monolito principal: shim de BD, todas las rutas API, auth, Stripe, startup |
 | `admin_routes.py` | Panel admin (`/api/admin/*`) — se registra dinámicamente en startup |
 | `options_math.py` | Black-Scholes, griegas, payoff diagrams, cadenas de opciones |
+| `options_positioning.py` | Posicionamiento observado: max pain, GEX, perfil de OI, ratio put/call, liquidez por contrato, term structure de IV y expected move. **Todo devuelve `None` sobre cadena modelada** |
 | `stock_data.py` | Precios en tiempo real (yfinance, CoinGecko) y búsqueda de tickers |
 | `candle_patterns.py` | Detección de patrones de velas japonesas |
 | `price_action.py` | Estructura de precio: swings, BOS/CHoCH, S/R, FVG, rupturas ([manual](./docs/ESCANER_ESTRUCTURA.md)) |
@@ -78,6 +132,16 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 | `missing_apis.py` | Forex real, índices, commodities, password reset, magic links |
 | `realtime_alerts.py` | Poller de alertas de precio (WebSocket) |
 | `referrals.py` | Sistema de referidos |
+| `affiliate_program.py` | Programa de afiliados: comisiones, tramos y solicitudes de pago |
+| `market_data.py` | Capa de datos de mercado multi-proveedor |
+| `options_optimize.py` | Optimizador de estrategias de opciones |
+| `market_rates.py` | Tipo libre de riesgo en vivo (^IRX) con caché y fallback — **no** hardcodear 0.0525 |
+| `american_options.py` | Opciones americanas: binomial CRR, Barone-Adesi-Whaley, riesgo de asignación temprana por dividendo |
+| `portfolio_risk.py` | Riesgo a nivel de cuenta: heat abierto, correlación, límites de pérdida con bloqueo, sizing por ATR |
+| `backtest.py` | Backtest con validación: in-sample/out-of-sample, walk-forward, corrección por data snooping |
+| `trading_plan.py` | Plan de trading versionado: modelo, activación/archivado e informe de cumplimiento. **Fuente de verdad de los umbrales de riesgo** que consume `detect_errors` |
+| `nowpayments.py` | Cripto: creación de factura + verificación HMAC-SHA512 del IPN |
+| `revolut.py` | Revolut Pay: creación de pedido y confirmación |
 
 `admin_routes.py` se importa de forma lazy en `startup_event`. Si falla la importación, el servidor arranca igual (logging de error) pero sin rutas admin.
 
@@ -115,6 +179,7 @@ Los datos se almacenan como JSONB en PostgreSQL. La clase `Collection` en `serve
 | `REACT_APP_BACKEND_URL` | URL de Cloud Run (sin `/api`). Si falta, `API = null` y todas las llamadas fallan silenciosamente. |
 | `REACT_APP_GOOGLE_CLIENT_ID` | Google OAuth en frontend |
 | `REACT_APP_GA4_MEASUREMENT_ID` / `REACT_APP_GTM_ID` | Analytics |
+| `REACT_APP_ADSENSE_CLIENT` + `..._SLOT_ARTICLE` / `..._SLOT_BOTTOM` / `..._CMP` | Google AdSense en el contenido gratuito. Van como **variables** del repositorio (no secretos). Vacías = sin publicidad. Ver [`docs/MONETIZACION_ADS.md`](./docs/MONETIZACION_ADS.md) |
 
 ## CI/CD
 
@@ -128,8 +193,76 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
 
 ## Trampas conocidas
 
-- **`backend_test_security.py` en la raíz está OBSOLETO** — hace `sys.exit(1)` inmediatamente. Usaba MongoDB (motor) y el puerto incorrecto. Usar siempre `backend/tests/`.
-- **`_requests_stdlib_shim.py` en la raíz** no es la librería `requests`. Es un shim stdlib que existía para evitar instalar el paquete. No importar directamente.
+- **Una pata de opciones tiene su PROPIO vencimiento (`expIdx`).** No heredan el
+  vencimiento seleccionado arriba: eso es lo que hacía imposibles los calendars,
+  las diagonales y el PMCC. `CalculatorPage` mantiene un mapa `{expIdx: chain}` y
+  las pide en una sola llamada (`/options/chain/{sym}?expiration_idxs=1,3,6`). En
+  el motor, el cuarto argumento de `calculateStrategyPayoff` son los días que le
+  quedan a la **pata más cercana**; de ahí se deriva el tiempo transcurrido y se
+  aplica a cada pata por separado. Si añades una estrategia con patas en fechas
+  distintas, ponle `expOffset` en la definición de la pata — `isMultiExpiryStrategy`
+  lo detecta solo, no hay lista que mantener.
+- **El tipo libre de riesgo del frontend sale de `useRiskFreeRate()`**, nunca de un
+  literal. Hay una única constante de respaldo, `FALLBACK_RISK_FREE_RATE`, y existe
+  para que el motor sea llamable antes de que resuelva el fetch — no para pasarla a
+  propósito. Un `0.05` suelto en el frontend es un bug (BUG-033).
+- **`/options` es público; el workspace es `/options/calculator`.** La referencia
+  (catálogo de estrategias, fichas por slug) no lleva muro de pago y tiene URL
+  propia e indexable; la calculadora en vivo sí lo lleva y va con `noindex`. Si
+  añades una vista de referencia, va fuera del gate y con ruta propia.
+- **Las páginas por estrategia se generan solas en el `postbuild`.** `gen-seo-pages.js`
+  lee `STRATEGIES` de `mockData.js` y emite una página por estrategia × 8 idiomas con
+  JSON-LD `HowTo`. Añadir una estrategia al array añade 8 páginas al sitemap; no hay
+  nada que escribir a mano. Los nombres nuevos van en literal (los términos del sector
+  no se traducen) y `tr()` resuelve literal o clave i18n indistintamente.
+- **`options_positioning` se calla sobre datos modelados.** Max pain, GEX, perfil de
+  OI y ratio put/call son lecturas de interés abierto OBSERVADO; con cadena sintética
+  el `openInterest` es `None` y todas devuelven `None`. No las "rellenes" con el
+  modelo: un max pain inventado es indistinguible en pantalla de uno real. Hay tests
+  que lo fijan.
+- **El panel de opciones está ordenado por importancia, y ese orden es la feature.**
+  `CalculatorPage` va: 1 configurar (`PositionSetupBar`) → 2 resultado (`StatsKPIBar`) →
+  3 gráfico + patas → 4 griegas (`GreeksStrip`) → acordeón (`SecondaryPanels`). Lo nuevo
+  que sea accesorio va **dentro del acordeón y cerrado**, usando `SectionCard`; no añadas
+  paneles siempre abiertos ni botones de toggle sueltos al final de la página.
+- **Si un endpoint puede servir una cadena modelada, el frontend tiene que avisar.**
+  El backend ya marca con `_synthetic_marker` (`synthetic` + `syntheticWarning`);
+  en el frontend se pinta con `<SyntheticDataBanner synthetic={...} />`. Está en la
+  calculadora, la cadena, la superficie de IV y el optimizador — si añades una
+  vista que consuma esas respuestas, móntalo también.
+- **El tipo libre de riesgo de la UI sale de `GET /api/market/risk-free`**, nunca de un
+  literal. Ese endpoint publica también la procedencia (`^IRX` / `stale` / `fallback`).
+- **`market_rates` cachea también los fallos.** Si toqueas esa lógica, no quites la
+  ventana `FAILURE_BACKOFF_SECONDS`: sin ella, con el proveedor caído, `get_risk_free_rate`
+  vuelve a salir a la red en cada llamada, y está dentro de `/options/chain`, `/optimize`,
+  `/calculate/*` y `/performance/analytics`. Hay test que lo fija.
+- **Un número que dispare un consejo de tamaño de posición necesita muestra EN EL ORIGEN**,
+  no sólo en el sitio que lo pinta. `suggested_stop_r` vale `None` por debajo de
+  `MIN_WINNERS_FOR_STOP_ADVICE`; no lo calcules "y que el consumidor decida".
+- **Los umbrales de riesgo salen del plan del usuario, no de constantes.**
+  `DEFAULT_MIN_RR` y `DEFAULT_MAX_RISK_PCT` en `performance.py` son sólo el
+  fallback para quien no tiene plan; con plan manda `plan["risk"]`. Si añades una
+  regla a `detect_errors`, su umbral va en el modelo de `trading_plan.py`, y un
+  límite sin declarar es `None` (regla callada), nunca 0.
+- **`trading_plans` está en la lista `known` de tablas de `server.py`.** El shim
+  **no** autocrea tablas: una colección nueva que no esté en esa lista falla en
+  cuanto se consulta.
+- **`plan_version` se sella al crear la operación y no se reescribe.** Cambiar el
+  plan no debe re-juzgar retroactivamente la historia que se supone que mide.
+
+- **Un suscriptor no puede ver publicidad en NINGUNA ruta, ni siquiera en el
+  contenido gratuito.** La regla vive en `frontend/src/lib/adsPolicy.js`
+  (`shouldShowAds`, módulo puro sin imports) y la consumen tres runtimes: el hook
+  de React, el generador de páginas estáticas y `scripts/ads-check.js`, que corre
+  en CI. Con premium el script de AdSense **ni se descarga**. Poner un `<AdSlot>`
+  en una página no basta: la ruta tiene que estar en `AD_SURFACES`, y las páginas
+  de pago/conversión/legales están prohibidas por test. Detalle y encendido en
+  [`docs/MONETIZACION_ADS.md`](./docs/MONETIZACION_ADS.md).
+- **`_archive/` es código retirado, no se importa.** Contiene `backend_test_security.py`
+  (obsoleto: hace `sys.exit(1)` inmediatamente, usaba MongoDB y el puerto equivocado) y
+  `backend_test.py`. Los tests vivos son los de `backend/tests/`.
+  *`_requests_stdlib_shim.py` se eliminó el 2026-07-30: era un envoltorio de urllib que imitaba
+  a `requests` y ningún módulo lo importaba.*
 - **CORS incluye `PATCH`** — hay dos endpoints PATCH en `server.py` usados por AdminPage: `PATCH /admin/users/{id}` y `PATCH /admin/feature-flags/{id}`. No eliminarlos del `allow_methods`.
 - **`min-instances`** en Cloud Run — configurable vía variable de repositorio `MIN_INSTANCES` (por defecto `1`, intencionado para evitar cold starts en app financiera). Ponla a `0` para ahorrar coste a cambio de ~2-4 s de arranque en frío para el primer usuario tras inactividad.
 - **Base de datos conmutable Cloud SQL ↔ Neon** — variable de repositorio `DB_PROVIDER`: vacía/`cloudsql` monta el socket de Cloud SQL (por defecto); `neon` conecta por TCP+SSL usando el secreto `DATABASE_URL`. El código de conexión (`init_pool` en `server.py`) ya soporta ambos. Guía de migración: [`docs/MIGRACION_NEON.md`](./docs/MIGRACION_NEON.md).
