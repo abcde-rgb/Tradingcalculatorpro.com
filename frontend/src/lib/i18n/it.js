@@ -1,4 +1,14 @@
 export default {
+  // ── Academia: Ichimoku spiegato (legenda dei colori + rialzo/ribasso) ──
+  "ichiVisTenkan": "Tenkan (veloce, 9)",
+  "ichiVisKijun": "Kijun (lenta, 26)",
+  "ichiVisChikou": "Chikou (prezzo di adesso, 26 candele indietro)",
+  "ichiVisCloudLegend": "Nuvola: verde = rialzista · rossa = ribassista",
+  "ichiVisBullTitle": "Quando è RIALZISTA",
+  "ichiVisBullBody": "Il prezzo è SOPRA la nuvola.\nLa Tenkan (arancione) sta sopra la Kijun (blu).\nLa nuvola davanti è VERDE (Span A sopra Span B).\nLa Chikou (viola) sta sopra il prezzo di 26 candele fa.",
+  "ichiVisBearTitle": "Quando è RIBASSISTA",
+  "ichiVisBearBody": "Il prezzo è SOTTO la nuvola.\nLa Tenkan (arancione) sta sotto la Kijun (blu).\nLa nuvola davanti è ROSSA (Span A sotto Span B).\nLa Chikou (viola) sta sotto il prezzo di 26 candele fa.",
+  "ichiVisNeutral": "Se il prezzo è DENTRO la nuvola non c'è un trend chiaro: meglio aspettare che ne esca.",
   "eduGroup_core": "Nucleo avanzato",
   "eduGroup_alt": "Sistemi alternativi",
   "eduGroup_macro": "Macro e per asset",
@@ -3534,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "Apri nella calcolatrice",
   "optStrategyRelated": "Strutture correlate",
   "optStrategyMultiExpiry": "Le sue gambe non condividono la scadenza: serve più di una data.",
+  "optExitTargetsTitle": "Obiettivi di uscita",
+  "optExitLevel": "Livello",
+  "optExitTarget": "Obiettivo",
+  "optExitNet": "P&L netto",
+  "optExitFromDebit": "Hai pagato un debito di",
+  "optExitFromCredit": "Hai incassato un credito di",
+  "optExitOpenEnded": "La curva continua a salire al bordo del grafico: il massimo mostrato è quello della finestra di prezzi, non quello della strategia.",
+  "optExitNote": "Prezzi a scadenza e commissioni di andata e ritorno già scontate. Chiudere prima della scadenza lascia valore temporale sul tavolo.",
 }
