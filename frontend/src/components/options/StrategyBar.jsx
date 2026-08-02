@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Layers, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Layers, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 const ShapeSVG = ({ shape, color }) => {
@@ -91,18 +91,32 @@ const FilterPill = ({ active, onClick, Icon, label, count, text, bgActive, bgHov
 const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(null);
-  // Collapsed by default: one horizontally-scrollable row instead of a wall of
-  // 33 cards eating the whole screen. "Show all" expands to the wrap grid.
-  const [expanded, setExpanded] = useState(false);
+  const [query, setQuery] = useState('');
   const selectedCardRef = useRef(null);
-  const filtered = activeCategory ? strategies.filter(s => s.category === activeCategory) : strategies;
 
-  // Keep the selected strategy visible inside the compact row
+  // Lista VERTICAL con scroll propio, no una tira horizontal.
+  //
+  // El modo plegado era `flex-nowrap overflow-x-auto`: una sola fila con las
+  // 66 estrategias, que obligaba a arrastrar de lado durante metros para llegar
+  // a las últimas y no cabía en ninguna pantalla. Una lista vertical acotada se
+  // recorre con la rueda del ratón, con la barra o con el teclado, y además
+  // admite buscar por nombre — con 66 estructuras, filtrar es más rápido que
+  // recorrer.
+  const filtered = useMemo(() => {
+    const byCat = activeCategory
+      ? strategies.filter((s) => s.category === activeCategory)
+      : strategies;
+    const q = query.trim().toLowerCase();
+    if (!q) return byCat;
+    return byCat.filter((s) => t(s.name).toLowerCase().includes(q));
+  }, [strategies, activeCategory, query, t]);
+
+  // Al abrir, deja la estrategia activa a la vista dentro de la lista.
   useEffect(() => {
-    if (!expanded && selectedCardRef.current) {
-      selectedCardRef.current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    if (selectedCardRef.current) {
+      selectedCardRef.current.scrollIntoView({ block: 'nearest' });
     }
-  }, [selected, expanded, activeCategory]);
+  }, [selected, activeCategory]);
 
   return (
     <div className="px-4 py-3">
@@ -144,47 +158,57 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
         })}
 
         <div className="ml-auto flex items-center gap-1.5">
-          <button
-            onClick={() => setExpanded(v => !v)}
-            data-testid="strategies-expand-toggle"
-            className="flex items-center gap-1 px-2.5 h-8 rounded-full border border-border bg-muted/30 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          >
-            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            <span className="whitespace-nowrap">
-              {expanded ? t('optShowLess') : t('optShowAll', { count: filtered.length })}
-            </span>
-          </button>
+          <span className="text-[11px] text-muted-foreground tabular-nums" data-testid="strategy-count">
+            {filtered.length}
+          </span>
         </div>
       </div>
 
-      {/* Strategy Cards — collapsed: one scrollable row · expanded: wrap grid */}
+      {/* Buscador: con 66 estructuras, escribir "calendar" llega antes que
+          recorrer la lista entera. */}
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={t('patternsSearchPlaceholder')}
+        data-testid="strategy-search"
+        className="w-full h-9 mb-2 rounded-lg bg-muted border border-border px-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+      />
+
+      {/* Lista vertical acotada: rueda del ratón, barra de scroll o teclado. */}
       <div
-        className={
-          expanded
-            ? 'flex flex-wrap gap-2 pb-1'
-            : 'flex flex-nowrap gap-2 pb-1 overflow-x-auto [scrollbar-width:thin]'
-        }
+        className="max-h-[46vh] min-h-[9rem] overflow-y-auto overscroll-contain [scrollbar-width:thin] grid grid-cols-1 lg:grid-cols-2 gap-1.5 pr-1"
+        data-testid="strategy-list"
       >
         {filtered.map(strategy => (
           <button
             key={strategy.id}
             ref={selected.id === strategy.id ? selectedCardRef : null}
             onClick={() => onSelect(strategy)}
-            className={`flex flex-shrink-0 items-center gap-2.5 pl-2 pr-3.5 py-2 rounded-lg border transition-all ${
+            aria-current={selected.id === strategy.id ? 'true' : undefined}
+            className={`flex w-full items-center gap-2.5 pl-2 pr-3 py-2 rounded-lg border text-left transition-colors ${
               selected.id === strategy.id
-                ? 'bg-muted border-primary/50 shadow-lg shadow-primary/10'
-                : 'bg-muted border-border hover:border-border hover:bg-[#1a2238]'
+                ? 'bg-primary/10 border-primary/50'
+                : 'bg-muted border-border hover:border-primary/30 hover:bg-muted/70'
             }`}
           >
             <div className="w-9 h-7 flex-shrink-0">
               <ShapeSVG shape={strategy.shape} color={selected.id === strategy.id ? '#22c55e' : strategy.color} />
             </div>
-            <div className="text-left">
-              <div className="text-xs font-semibold whitespace-nowrap text-foreground">{t(strategy.name)}</div>
-              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{t('riskLabel')}: {t(strategy.risk)} · {t('rewardLabel')}: {t(strategy.reward)}</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-semibold truncate text-foreground">{t(strategy.name)}</div>
+              <div className="text-[9px] text-muted-foreground truncate">
+                {t('riskLabel')}: {t(strategy.risk)} · {t('rewardLabel')}: {t(strategy.reward)}
+              </div>
             </div>
           </button>
         ))}
+
+        {filtered.length === 0 && (
+          <p className="col-span-full text-xs text-muted-foreground py-6 text-center">
+            {t('patternsNoResults')} “{query}”
+          </p>
+        )}
       </div>
     </div>
   );

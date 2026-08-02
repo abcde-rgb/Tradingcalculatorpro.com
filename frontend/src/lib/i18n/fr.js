@@ -3544,4 +3544,12 @@ export default {
   "optStrategyOpenInCalculator": "Ouvrir dans la calculatrice",
   "optStrategyRelated": "Structures liées",
   "optStrategyMultiExpiry": "Ses jambes ne partagent pas d’échéance : il faut plusieurs dates.",
+  "optExitTargetsTitle": "Objectifs de sortie",
+  "optExitLevel": "Niveau",
+  "optExitTarget": "Objectif",
+  "optExitNet": "P&L net",
+  "optExitFromDebit": "Vous avez payé un débit de",
+  "optExitFromCredit": "Vous avez encaissé un crédit de",
+  "optExitOpenEnded": "La courbe monte encore au bord du graphique : le maximum affiché est celui de la fenêtre, pas de la stratégie.",
+  "optExitNote": "Prix à l’échéance, commissions aller-retour déduites. Clôturer avant l’échéance laisse de la valeur temps.",
 }
