@@ -1,4 +1,5 @@
 export default {
+  "compoundTitle": "Interés Compuesto",
   "eduGroup_core": "Núcleo avanzado",
   "eduGroup_alt": "Sistemas alternativos",
   "eduGroup_macro": "Macro y por activo",

@@ -1,4 +1,5 @@
 export default {
+  "compoundTitle": "الفائدة المركبة",
   "eduGroup_core": "النواة المتقدمة",
   "eduGroup_alt": "أنظمة بديلة",
   "eduGroup_macro": "الاقتصاد الكلي وحسب الأصل",

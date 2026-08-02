@@ -1,4 +1,5 @@
 export default {
+  "compoundTitle": "复利",
   "eduGroup_core": "进阶核心",
   "eduGroup_alt": "另类体系",
   "eduGroup_macro": "宏观与分资产",

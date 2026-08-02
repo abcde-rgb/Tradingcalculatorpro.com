@@ -1,4 +1,5 @@
 export default {
+  "compoundTitle": "Zinseszins",
   "eduGroup_core": "Fortgeschrittener Kern",
   "eduGroup_alt": "Alternative Systeme",
   "eduGroup_macro": "Makro und nach Anlageklasse",

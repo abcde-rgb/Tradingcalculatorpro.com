@@ -57,6 +57,12 @@ code {
     }
 
     /* Light Theme */
+    /* El verde de marca en claro estaba a 35 % de luminosidad: el texto blanco
+       dentro de los botones quedaba en 3,73:1, por debajo del 4,5 que exige
+       WCAG AA para texto normal. Bajarlo a 30 % lo sube a 4,87:1 y sigue
+       siendo el mismo verde, solo un punto más profundo. Se corrige el fondo,
+       no el texto: oscurecer la letra sobre un verde saturado se ve peor y
+       tampoco resolvía. Lo vigila scripts/theme-contrast-check.js. */
     .light {
         --background: 0 0% 100%;
         --foreground: 0 0% 10%;
@@ -64,7 +70,7 @@ code {
         --card-foreground: 0 0% 10%;
         --popover: 0 0% 100%;
         --popover-foreground: 0 0% 10%;
-        --primary: 145 70% 35%;
+        --primary: 145 70% 30%;
         --primary-foreground: 0 0% 100%;
         --secondary: 0 0% 96%;
         --secondary-foreground: 0 0% 10%;
@@ -76,7 +82,7 @@ code {
         --destructive-foreground: 0 0% 100%;
         --border: 0 0% 90%;
         --input: 0 0% 90%;
-        --ring: 145 70% 35%;
+        --ring: 145 70% 30%;
         --chart-1: 145 70% 35%;
         --chart-2: 217 80% 50%;
         --chart-3: 0 80% 50%;
@@ -240,6 +246,45 @@ code {
             radial-gradient(ellipse at 15% 0%, hsl(41 52% 54% / 0.05), transparent 45%),
             radial-gradient(ellipse at 90% 100%, hsl(43 72% 66% / 0.04), transparent 50%),
             url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    /* Cada tema con nombre merece su propia atmósfera, no solo su paleta. Antes
+       únicamente el Oro tenía textura: Cripto, Forex y Nasdaq se veían tan
+       planos como el modo oscuro normal, así que la personalidad se quedaba a
+       medias. Todas las capas van por debajo del 6 % de opacidad — la
+       atmósfera nunca debe competir con el texto ni con los datos. */
+
+    /* Cripto — malla de circuito + doble resplandor: naranja Bitcoin arriba,
+       violeta eléctrico abajo. */
+    html.theme-crypto body {
+        background-image:
+            radial-gradient(ellipse at 12% 0%, hsl(33 93% 54% / 0.06), transparent 42%),
+            radial-gradient(ellipse at 88% 100%, hsl(258 90% 66% / 0.06), transparent 48%),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='none' stroke='%238b5cf6' stroke-width='0.6' opacity='0.10'%3E%3Cpath d='M0 30h18M42 30h18M30 0v18M30 42v18'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* Forex — mesa institucional: bandas horizontales tenues, como filas de
+       cotizaciones, y el verde billete entrando por la izquierda. */
+    html.theme-forex body {
+        background-image:
+            radial-gradient(ellipse at 0% 20%, hsl(152 58% 44% / 0.05), transparent 45%),
+            radial-gradient(ellipse at 100% 85%, hsl(217 91% 60% / 0.05), transparent 45%),
+            repeating-linear-gradient(0deg, hsl(217 45% 60% / 0.028) 0 1px, transparent 1px 26px);
+    }
+
+    /* Nasdaq — pantalla de cotizaciones: líneas de barrido finísimas y un halo
+       cian, como un monitor encendido en una sala a oscuras. */
+    html.theme-nasdaq body {
+        background-image:
+            radial-gradient(ellipse at 50% -10%, hsl(195 100% 50% / 0.07), transparent 55%),
+            repeating-linear-gradient(0deg, hsl(195 100% 50% / 0.022) 0 1px, transparent 1px 4px);
+    }
+
+    /* Quien pida "menos movimiento" no debe cargar con texturas de fondo. */
+    @media (prefers-reduced-motion: reduce) {
+        html.theme-crypto body,
+        html.theme-forex body,
+        html.theme-nasdaq body { background-image: none; }
     }
 }
 

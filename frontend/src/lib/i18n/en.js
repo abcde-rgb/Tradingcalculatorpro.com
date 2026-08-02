@@ -1,4 +1,5 @@
 export default {
+  "compoundTitle": "Compound Interest",
   "eduGroup_core": "Advanced core",
   "eduGroup_alt": "Alternative systems",
   "eduGroup_macro": "Macro and per-asset",

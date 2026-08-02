@@ -8,6 +8,7 @@ import { PATTERN_NAME_KEY, TYPE_BADGE, BEHAVIOR_KEY, rateColor } from '@/lib/can
 import { DAY_MS, loadLogFor, mergeLogFor, clearLogFor, purgeLegacyLogs } from '@/lib/structureLog';
 import CandlePatternFigure from '@/components/education/CandlePatternFigure';
 import { toast } from 'sonner';
+import { themeForAsset, themeVars } from '@/lib/marketTheme';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -114,6 +115,10 @@ const StructureScanner = () => {
   const { selectedAsset } = useAssetsStore();
   const asset = ALL_ASSETS[selectedAsset];
   const yahoo = toYahooSymbol(asset);
+  // El escáner se viste del activo que está leyendo: mirando oro, dorado;
+  // mirando Bitcoin, naranja. Es la señal más barata de "estás en el sitio
+  // correcto" y evita confundir dos análisis abiertos a la vez.
+  const assetTheme = themeForAsset(asset?.symbol, asset?.category);
 
   const [ladder, setLadder] = useState(FALLBACK_LADDER);
   const [tfInterval, setTfInterval] = useState(() => loadStored(INTERVAL_KEY, '1d'));
@@ -312,14 +317,15 @@ const StructureScanner = () => {
 
   return (
     <Card
-      className="bg-gradient-to-br from-primary/5 to-blue-500/5 border-primary/30"
+      className="border-[color:var(--mk-accent)]/30"
+      style={{ ...themeVars(assetTheme), background: `linear-gradient(135deg, var(--mk-soft), transparent 65%)` }}
       data-testid="structure-scanner"
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-              <Activity className="w-5 h-5 text-primary" />
+              <Activity className="w-5 h-5" style={{ color: 'var(--mk-accent)' }} />
               {t('structScanTitle')}
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
@@ -331,7 +337,9 @@ const StructureScanner = () => {
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                 {t('structScanReading')}
               </div>
-              <div className="text-sm font-bold font-mono text-primary">{asset.symbol}</div>
+              <div className="text-sm font-bold font-mono flex items-center justify-end gap-1.5" style={{ color: 'var(--mk-accent)' }}>
+                <span aria-hidden="true">{assetTheme.emoji}</span>{asset.symbol}
+              </div>
               <div className="text-[10px] text-muted-foreground truncate max-w-[140px]">{asset.name}</div>
             </div>
           )}

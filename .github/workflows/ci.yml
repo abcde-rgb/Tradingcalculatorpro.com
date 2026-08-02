@@ -90,6 +90,12 @@ jobs:
       - name: Lint (ESLint)
         run: npx eslint src scripts
 
+      # Un acento bonito con texto ilegible no lo ve nadie a ojo, y menos quien
+      # eligió la paleta. En una web financiera un dato que no se lee es un
+      # número que alguien leerá mal.
+      - name: Contraste de los temas (WCAG AA)
+        run: node scripts/theme-contrast-check.js
+
       - name: Build de producción
         run: npm run build
         env:

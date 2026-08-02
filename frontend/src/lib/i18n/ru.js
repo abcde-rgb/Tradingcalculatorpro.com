@@ -1,4 +1,5 @@
 export default {
+  "compoundTitle": "Сложный процент",
   "eduGroup_core": "Продвинутое ядро",
   "eduGroup_alt": "Альтернативные системы",
   "eduGroup_macro": "Макро и по активам",

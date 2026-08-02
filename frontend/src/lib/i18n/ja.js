@@ -1,4 +1,5 @@
 export default {
+  "compoundTitle": "複利",
   "eduGroup_core": "上級コア",
   "eduGroup_alt": "代替システム",
   "eduGroup_macro": "マクロと資産別",
