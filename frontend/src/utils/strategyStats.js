@@ -4,9 +4,9 @@
  *
  * Shared between Strategy A (with commissions) and Strategy B (comparison mode, no commissions).
  */
-import { riskRewardRatio } from './blackScholes';
-
-const MAX_UNLIMITED = 5_000_000;
+// Extensión explícita, como en `blackScholes.js`: así este módulo se puede
+// importar con el ESM de Node y comprobar sin navegador. Webpack la acepta igual.
+import { riskRewardRatio, payoffBounds } from './blackScholes.js';
 
 /**
  * Compute net premium (credit/debit) from option legs. Positive = credit, negative = debit.
@@ -42,14 +42,16 @@ const computeNakedMargin = (legs, spot) => {
 
 /**
  * Capital required — Reg-T per leg for unlimited, |max loss| or |premium| otherwise.
+ *
+ * `maxLoss === null` means the loss is unbounded, which is exactly when Reg-T
+ * on the naked legs is the only figure there is to show.
  */
 const computeCapitalRequired = (legs, maxLoss, premium, spot) => {
-  const isUnlimited = maxLoss < -MAX_UNLIMITED;
-  if (isUnlimited && spot) {
+  if (maxLoss === null && spot) {
     const naked = computeNakedMargin(legs, spot);
     return naked > 0 ? naked : Math.abs(premium);
   }
-  return Math.max(Math.abs(maxLoss), premium < 0 ? Math.abs(premium) : 0);
+  return Math.max(maxLoss === null ? 0 : Math.abs(maxLoss), premium < 0 ? Math.abs(premium) : 0);
 };
 
 /**
@@ -67,7 +69,7 @@ const EMPTY_STATS = {
   premium: '0',
   commissions: '0',
   breakEvens: [],
-  roi: '0.0',
+  roi: null,
   rr: '—',
   isMaxProfitUnlimited: false,
   isMaxLossUnlimited: false,
@@ -89,31 +91,47 @@ const EMPTY_STATS = {
 export const computeStrategyStats = (payoffData, legs, stock, pop, breakEvens, commission = 0) => {
   if (!payoffData || payoffData.length === 0) return { ...EMPTY_STATS, breakEvens: breakEvens || [] };
 
-  const expPnls = payoffData.map((p) => p.pnlAtExpiry);
-  const maxProfit = Math.max(...expPnls);
-  const maxLoss = Math.min(...expPnls);
+  // NOT max()/min() over payoffData: that grid is only the width of the chart,
+  // so an unbounded payoff came out as whatever sat at its edge. `payoffBounds`
+  // decides unboundedness from the structure of the legs and returns null for
+  // it — a long call has no maximum profit, and no number belongs in that box.
+  const { maxProfit, maxLoss, isMaxProfitUnlimited, isMaxLossUnlimited } =
+    payoffBounds(legs, stock?.price);
 
   const premium = computeNetPremium(legs);
   const totalCommissions = computeCommissions(legs, commission);
 
-  // Commissions hurt both sides
-  const maxProfitNet = maxProfit - totalCommissions;
-  const maxLossNet = maxLoss - totalCommissions;
+  // Commissions hurt both sides; they cannot dent an unbounded one.
+  const maxProfitNet = maxProfit === null ? null : maxProfit - totalCommissions;
+  const maxLossNet = maxLoss === null ? null : maxLoss - totalCommissions;
 
-  const roi = premium !== 0 ? (maxProfitNet / Math.abs(premium)) * 100 : 0;
-  const rr = riskRewardRatio(maxProfitNet, maxLossNet);
-  const isMaxLossUnlimited = maxLoss < -MAX_UNLIMITED;
+  // Everything derived from an unbounded extreme is undefined, not zero and
+  // not infinity: ROI over an unbounded best case has no value to report, and
+  // reward-per-unit-of-risk has none when the risk is what is unbounded.
+  const roi =
+    maxProfitNet !== null && premium !== 0
+      ? ((maxProfitNet / Math.abs(premium)) * 100).toFixed(1)
+      : null;
+
+  let rr;
+  if (isMaxProfitUnlimited) rr = '∞';
+  else if (maxLossNet === null || maxProfitNet === null) rr = '—';
+  else {
+    const ratio = riskRewardRatio(maxProfitNet, maxLossNet);
+    rr = ratio > 100 ? '∞' : ratio.toFixed(2);
+  }
+
   const capitalRequired = computeCapitalRequired(legs, maxLoss, premium, stock?.price);
 
   return {
-    maxProfit: maxProfitNet > MAX_UNLIMITED ? 'Unlimited' : maxProfitNet.toFixed(0),
-    maxLoss: maxLossNet.toFixed(0),
+    maxProfit: maxProfitNet === null ? null : maxProfitNet.toFixed(0),
+    maxLoss: maxLossNet === null ? null : maxLossNet.toFixed(0),
     premium: premium.toFixed(0),
     commissions: totalCommissions.toFixed(2),
     breakEvens: breakEvens || [],
-    roi: roi.toFixed(1),
-    rr: rr > 100 ? '∞' : rr.toFixed(2),
-    isMaxProfitUnlimited: maxProfitNet > MAX_UNLIMITED,
+    roi,
+    rr,
+    isMaxProfitUnlimited,
     isMaxLossUnlimited,
     pop: (pop || 0).toFixed(1),
     capitalRequired: capitalRequired.toFixed(0),

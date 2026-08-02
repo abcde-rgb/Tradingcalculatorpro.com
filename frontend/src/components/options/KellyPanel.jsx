@@ -9,15 +9,27 @@ import { Calculator, AlertTriangle, TrendingUp, Shield, Zap } from 'lucide-react
  *   R = |maxProfit / maxLoss| (risk-reward ratio)
  * Fractional Kelly (½, ¼) recommended due to estimation error.
  */
-const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxLossUnlimited, accountBalance, onBalanceChange }) => {
+const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxProfitUnlimited, isMaxLossUnlimited, accountBalance, onBalanceChange }) => {
   const { t } = useTranslation();
   const kelly = useMemo(() => {
     const p = Math.max(0, Math.min(1, (pop || 0) / 100));
     const mp = Number(maxProfit);
     const ml = Number(maxLoss);
 
-    if (!Number.isFinite(mp) || !Number.isFinite(ml) || ml >= 0 || isMaxLossUnlimited) {
-      return { status: 'invalid', reason: isMaxLossUnlimited ? 'Riesgo ilimitado' : t('sinPerdidaDefinida_89d5d7'), fullPct: 0 };
+    // Kelly asume dos resultados con importe conocido. Si alguno de los dos no
+    // está acotado, la fórmula no describe esta posición: no hay número que
+    // dar, y dar uno sería peor que no darlo.
+    if (isMaxLossUnlimited || isMaxProfitUnlimited || maxLoss === null || maxProfit === null) {
+      return {
+        status: 'invalid',
+        reason: isMaxProfitUnlimited && !isMaxLossUnlimited
+          ? t('kellyUnboundedProfit')
+          : t('kellyUnboundedRisk'),
+        fullPct: 0,
+      };
+    }
+    if (!Number.isFinite(mp) || !Number.isFinite(ml) || ml >= 0) {
+      return { status: 'invalid', reason: t('sinPerdidaDefinida_89d5d7'), fullPct: 0 };
     }
     if (p <= 0 || p >= 1) {
       return { status: 'invalid', reason: 'POP no disponible', fullPct: 0 };
@@ -38,7 +50,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxLossUnli
       R,
       p,
     };
-  }, [pop, maxProfit, maxLoss, isMaxLossUnlimited]);
+  }, [pop, maxProfit, maxLoss, isMaxProfitUnlimited, isMaxLossUnlimited]);
 
   const suggestedContracts = (pct) => {
     if (!accountBalance || accountBalance <= 0 || !capitalPerContract || capitalPerContract <= 0) return 0;

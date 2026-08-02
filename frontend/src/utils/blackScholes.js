@@ -235,6 +235,95 @@ export function calculateStrategyPayoff(
 }
 
 /**
+ * P&L of the whole position at one underlying price, ON THE FRONT EXPIRY DATE.
+ *
+ * Same rule as the `pnlAtExpiry` series of `calculateStrategyPayoff`: a leg
+ * dated further out is still alive that day and keeps its remaining life.
+ */
+export function expiryPnLAtPrice(price, legs, stockPrice, r = FALLBACK_RISK_FREE_RATE, q = 0) {
+  const frontDTE = frontDaysToExpiry(legs);
+  return (legs || []).reduce((total, leg) => {
+    if (!leg) return total;
+    if (leg.type === 'stock') {
+      const multiplier = leg.action === 'buy' ? 1 : -1;
+      return total + (price - stockPrice) * multiplier * (leg.quantity || 100);
+    }
+    const remaining = Math.max(0, (leg.daysToExpiry ?? frontDTE) - frontDTE);
+    return total + legPnL(price, leg, remaining, r, q);
+  }, 0);
+}
+
+/**
+ * Slope of the payoff (€ per €1 of underlying) in the limit S → ∞.
+ *
+ * Structural, not sampled: far above every strike a call behaves like the
+ * stock itself (delta → 1) and a put is worthless (delta → 0). The sign of
+ * this number IS the answer to "is this position unbounded?", and it stays
+ * valid for a leg that still has time value at the front expiry, because it
+ * describes the limit rather than any particular price.
+ */
+export function farUpsideSlope(legs) {
+  return (legs || []).reduce((slope, leg) => {
+    if (!leg) return slope;
+    const sign = leg.action === 'buy' ? 1 : -1;
+    if (leg.type === 'call') return slope + sign * (leg.quantity || 1) * 100;
+    if (leg.type === 'stock') return slope + sign * (leg.quantity || 100);
+    return slope; // a put is worth nothing far above its strike
+  }, 0);
+}
+
+/**
+ * Best and worst case of the payoff. `null` means unbounded.
+ *
+ * Taking max()/min() over `calculateStrategyPayoff` cannot answer this: that
+ * grid spans ±`priceRange` around spot, so a long call's "max profit" came out
+ * as whatever P&L happened to sit at the right edge of the chart, and a naked
+ * short call's "max loss" the same. Both are unbounded — and a number printed
+ * where the answer is "unbounded" is the figure a trader sizes a position
+ * with, so it is reported as `null` plus its flag, never as a capped number.
+ *
+ * The bounded side is exact for a single-expiry structure: the payoff is
+ * piecewise linear with kinks only at the strikes, so its extreme sits at a
+ * strike or at S=0 and both are sampled. A calendar keeps a curve at the front
+ * expiry, hence the dense sampling in between; the unbounded verdict above is
+ * exact either way.
+ */
+export function payoffBounds(legs, stockPrice, r = FALLBACK_RISK_FREE_RATE, q = 0) {
+  const EMPTY = {
+    maxProfit: null, maxLoss: null,
+    isMaxProfitUnlimited: false, isMaxLossUnlimited: false,
+  };
+  if (!legs || legs.length === 0) return EMPTY;
+
+  const slope = farUpsideSlope(legs);
+  const strikes = legs
+    .filter((l) => l && l.type !== 'stock' && Number.isFinite(l.strike))
+    .map((l) => l.strike);
+
+  const ceiling = Math.max(stockPrice || 0, ...strikes, 1) * 3;
+  const prices = new Set([0, ...strikes]);
+  const STEPS = 400;
+  for (let i = 0; i <= STEPS; i += 1) prices.add((ceiling * i) / STEPS);
+
+  let hi = -Infinity;
+  let lo = Infinity;
+  prices.forEach((price) => {
+    const v = expiryPnLAtPrice(price, legs, stockPrice, r, q);
+    if (!Number.isFinite(v)) return;
+    if (v > hi) hi = v;
+    if (v < lo) lo = v;
+  });
+  if (!Number.isFinite(hi) || !Number.isFinite(lo)) return EMPTY;
+
+  return {
+    maxProfit: slope > 0 ? null : hi,
+    maxLoss: slope < 0 ? null : lo,
+    isMaxProfitUnlimited: slope > 0,
+    isMaxLossUnlimited: slope < 0,
+  };
+}
+
+/**
  * Expected move over `days`, in price terms: S · σ · √(T/365).
  *
  * One standard deviation of the lognormal diffusion, which is what the market

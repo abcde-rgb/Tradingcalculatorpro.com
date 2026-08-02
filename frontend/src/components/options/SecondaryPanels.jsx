@@ -158,11 +158,16 @@ const SecondaryPanels = ({
         subtitle={t('optSectionKellyHint')}
         testid="section-kelly"
       >
+        {/* `|| 0` aquí convertía «ilimitado» en 0 y Kelly concluía «sin edge,
+            evita el trade» justo en las estrategias de beneficio ilimitado.
+            Un extremo sin acotar viaja como null y Kelly lo declara no
+            aplicable, que es lo que es. */}
         <KellyPanel
           pop={parseFloat(stats.pop) || 0}
-          maxProfit={parseFloat(stats.maxProfit) || 0}
-          maxLoss={parseFloat(stats.maxLoss) || 0}
+          maxProfit={stats.maxProfit === null ? null : parseFloat(stats.maxProfit)}
+          maxLoss={stats.maxLoss === null ? null : parseFloat(stats.maxLoss)}
           capitalPerContract={capPerContract}
+          isMaxProfitUnlimited={stats.isMaxProfitUnlimited}
           isMaxLossUnlimited={stats.isMaxLossUnlimited}
           accountBalance={accountBalance}
           onBalanceChange={onAccountBalanceChange}

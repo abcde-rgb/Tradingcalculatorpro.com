@@ -32,6 +32,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from options_math import (
     generate_options_chain,
     calculate_payoff,
+    payoff_bounds,
     find_break_evens,
     calculate_greeks,
     calculate_pnl_attribution,
@@ -4801,11 +4802,19 @@ def _payoff_summary(
     legs_dicts: List[Dict[str, Any]],
     points: List[Dict[str, float]],
     fee_per_contract: float,
+    stock_price: float,
 ) -> Dict[str, Any]:
-    """Compute payoff summary stats from raw points + legs."""
-    expiry_pnls = [p["pnlAtExpiry"] for p in points]
-    max_profit = max(expiry_pnls)
-    max_loss = min(expiry_pnls)
+    """Compute payoff summary stats from raw points + legs.
+
+    The extremes come from `payoff_bounds`, NOT from max()/min() over `points`:
+    that grid stops at ±35% of spot, so an unbounded payoff came out as
+    whatever sat at the edge of the chart. Unbounded is `None` plus its flag.
+    """
+    # No risk-free rate here on purpose: every leg is valued at expiry (T=0),
+    # where the price is intrinsic value and discounting plays no part.
+    bounds = payoff_bounds(legs_dicts, stock_price, fee_per_contract=fee_per_contract)
+    max_profit = bounds["maxProfit"]
+    max_loss = bounds["maxLoss"]
     net_premium = 0.0
     total_fees = 0.0
     for leg in legs_dicts:
@@ -4815,14 +4824,16 @@ def _payoff_summary(
         mult = -1 if leg["action"] == "buy" else 1
         net_premium += leg.get("premium", 0) * mult * qty * 100
         total_fees += qty * fee_per_contract
-    roi = (max_profit / abs(net_premium) * 100) if net_premium != 0 else 0
+    # ROI on an unbounded best case is not a number; it is undefined.
+    roi = (max_profit / abs(net_premium) * 100) if (net_premium != 0 and max_profit is not None) else None
     return {
-        "maxProfit": round(max_profit, 2),
-        "maxLoss": round(max_loss, 2),
+        "maxProfit": round(max_profit, 2) if max_profit is not None else None,
+        "maxLoss": round(max_loss, 2) if max_loss is not None else None,
         "netPremium": round(net_premium, 2),
         "totalFees": round(total_fees, 2),
-        "roi": round(roi, 1),
-        "isMaxProfitUnlimited": max_profit > 5000000,
+        "roi": round(roi, 1) if roi is not None else None,
+        "isMaxProfitUnlimited": bounds["isMaxProfitUnlimited"],
+        "isMaxLossUnlimited": bounds["isMaxLossUnlimited"],
     }
 
 
@@ -5300,7 +5311,7 @@ async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
         return {
             "points": points,
             "breakEvens": find_break_evens(points),
-            "stats": _payoff_summary(legs_dicts, points, fee),
+            "stats": _payoff_summary(legs_dicts, points, fee, request.stockPrice),
         }
     except Exception as e:
         logging.error(f"Payoff calculation error: {e}")
@@ -5961,8 +5972,16 @@ def _build_ai_trade_prompt(req: "AITradeAnalysisRequest",
     iv_str = f"\nIV Rank: {req.ivRank:.0f}%" if req.ivRank is not None else ""
     balance_str = f"\nCapital disponible del trader: ${req.userBalance}" if req.userBalance else ""
 
-    max_profit_str = "UNLIMITED" if req.stats.get("isMaxProfitUnlimited") else f"${req.stats.get('maxProfit', 0)}"
-    max_loss_str = "UNLIMITED" if req.stats.get("isMaxLossUnlimited") else f"${req.stats.get('maxLoss', 0)}"
+    # Un extremo sin acotar llega como None: al coach se le dice "UNLIMITED",
+    # nunca "$None" ni un 0 que le haría razonar sobre una cifra inventada.
+    def _extreme(value_key: str, flag_key: str) -> str:
+        if req.stats.get(flag_key):
+            return "UNLIMITED"
+        value = req.stats.get(value_key)
+        return f"${value}" if value is not None else "UNKNOWN"
+
+    max_profit_str = _extreme("maxProfit", "isMaxProfitUnlimited")
+    max_loss_str = _extreme("maxLoss", "isMaxLossUnlimited")
 
     language = _AI_COACH_LANGUAGES.get((req.locale or "es")[:2].lower(), "Spanish")
     user_context = _format_user_context(analytics)

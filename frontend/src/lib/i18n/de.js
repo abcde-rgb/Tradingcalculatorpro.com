@@ -1944,6 +1944,8 @@ export default {
   "creditoNeto_a96b7e": "Netto-Gutschrift",
   "debitoNeto_39b7f9": "Netto-Belastung",
   "diasDesdeHoy_114266": "Tage ab heute →",
+  "kellyUnboundedRisk": "Unbegrenztes Risiko: Kelly gilt nicht",
+  "kellyUnboundedProfit": "Unbegrenzter Gewinn: Kelly gilt nicht",
   "sinPerdidaDefinida_89d5d7": "Unbegrenztes Risiko",
   "sinEdgeEstadisticoEvitarTrade_c81cb1": "Kein statistischer Vorteil (Trade vermeiden)",
   "volTil_9eeb74": "VOLATIL",

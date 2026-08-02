@@ -1944,6 +1944,8 @@ export default {
   "creditoNeto_a96b7e": "净贷方",
   "debitoNeto_39b7f9": "净借方",
   "diasDesdeHoy_114266": "距今天数 →",
+  "kellyUnboundedRisk": "风险无限：凯利公式不适用",
+  "kellyUnboundedProfit": "收益无限：凯利公式不适用",
   "sinPerdidaDefinida_89d5d7": "无明确损失",
   "sinEdgeEstadisticoEvitarTrade_c81cb1": "无统计优势（避免交易）",
   "volTil_9eeb74": "高波动",

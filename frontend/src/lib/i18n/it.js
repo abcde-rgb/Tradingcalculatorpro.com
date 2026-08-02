@@ -1965,6 +1965,8 @@ export default {
   "creditoNeto_a96b7e": "Credito Netto",
   "debitoNeto_39b7f9": "Debito Netto",
   "diasDesdeHoy_114266": "Giorni da oggi →",
+  "kellyUnboundedRisk": "Rischio illimitato: Kelly non si applica",
+  "kellyUnboundedProfit": "Profitto illimitato: Kelly non si applica",
   "sinPerdidaDefinida_89d5d7": "Senza perdita definita",
   "sinEdgeEstadisticoEvitarTrade_c81cb1": "Senza edge statistico (evitare il trade)",
   "volTil_9eeb74": "VOLATILE",

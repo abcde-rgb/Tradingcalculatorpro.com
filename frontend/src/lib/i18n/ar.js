@@ -1944,6 +1944,8 @@ export default {
   "creditoNeto_a96b7e": "دائن صافي",
   "debitoNeto_39b7f9": "خصم صافي",
   "diasDesdeHoy_114266": "أيام من اليوم ←",
+  "kellyUnboundedRisk": "مخاطر غير محدودة: معيار كيلي لا ينطبق",
+  "kellyUnboundedProfit": "ربح غير محدود: معيار كيلي لا ينطبق",
   "sinPerdidaDefinida_89d5d7": "بدون خسارة محددة",
   "sinEdgeEstadisticoEvitarTrade_c81cb1": "بدون ميزة إحصائية (تجنب الصفقة)",
   "volTil_9eeb74": "متقلب",

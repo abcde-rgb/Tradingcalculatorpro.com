@@ -1944,6 +1944,8 @@ export default {
   "creditoNeto_a96b7e": "Crédit Net",
   "debitoNeto_39b7f9": "Débit Net",
   "diasDesdeHoy_114266": "Jours à partir d'aujourd'hui →",
+  "kellyUnboundedRisk": "Risque illimité : Kelly ne s'applique pas",
+  "kellyUnboundedProfit": "Gain illimité : Kelly ne s'applique pas",
   "sinPerdidaDefinida_89d5d7": "Sans perte définie",
   "sinEdgeEstadisticoEvitarTrade_c81cb1": "Sans edge statistique (éviter le trade)",
   "volTil_9eeb74": "VOLATILE",

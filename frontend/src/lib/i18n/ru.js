@@ -1944,6 +1944,8 @@ export default {
   "creditoNeto_a96b7e": "Чистый Кредит",
   "debitoNeto_39b7f9": "Чистый Дебет",
   "diasDesdeHoy_114266": "Дней с сегодня →",
+  "kellyUnboundedRisk": "Неограниченный риск: критерий Келли неприменим",
+  "kellyUnboundedProfit": "Неограниченная прибыль: критерий Келли неприменим",
   "sinPerdidaDefinida_89d5d7": "Без фиксированного убытка",
   "sinEdgeEstadisticoEvitarTrade_c81cb1": "Без статистического преимущества (избегать)",
   "volTil_9eeb74": "ВОЛАТИЛЬНО",

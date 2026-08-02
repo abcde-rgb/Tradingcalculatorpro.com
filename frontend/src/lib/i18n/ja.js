@@ -1936,6 +1936,8 @@ export default {
   "creditoNeto_a96b7e": "ネットクレジット",
   "debitoNeto_39b7f9": "ネットデビット",
   "diasDesdeHoy_114266": "今日から日数 →",
+  "kellyUnboundedRisk": "損失が無限大：ケリー基準は適用外",
+  "kellyUnboundedProfit": "利益が無限大：ケリー基準は適用外",
   "sinPerdidaDefinida_89d5d7": "損失限定なし",
   "sinEdgeEstadisticoEvitarTrade_c81cb1": "統計的優位性なし（取引回避）",
   "volTil_9eeb74": "変動大",

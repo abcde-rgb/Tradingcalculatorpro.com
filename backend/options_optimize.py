@@ -11,7 +11,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from typing import Optional
-from options_math import option_price, calculate_payoff, find_break_evens
+from options_math import option_price, calculate_payoff, find_break_evens, payoff_bounds
 
 DEFAULT_R: float = 0.0525
 SHARES_PER_CONTRACT: int = 100
@@ -353,7 +353,7 @@ def _naked_short_legs(legs: list[dict]) -> list[dict]:
     return naked
 
 
-def _risk_profile(strat_id: str, legs: list[dict], max_loss: float) -> dict:
+def _risk_profile(strat_id: str, legs: list[dict], max_loss: Optional[float]) -> dict:
     """Classify a candidate's downside so the UI can warn before, not after."""
     naked = _naked_short_legs(legs)
     has_stock = any(leg["type"] == "stock" for leg in legs)
@@ -366,12 +366,10 @@ def _risk_profile(strat_id: str, legs: list[dict], max_loss: float) -> dict:
     # bound is the entire notional, which is not what "defined risk" means.
     substantial = bool(naked_puts) and not unlimited
 
-    if unlimited:
+    if unlimited or max_loss is None:
         level, key = "undefined", "riskUndefinedLoss"
     elif substantial:
         level, key = "substantial", "riskSubstantialLoss"
-    elif max_loss <= -5_000_000:
-        level, key = "undefined", "riskUndefinedLoss"
     else:
         level, key = "defined", "riskDefinedLoss"
 
@@ -428,9 +426,13 @@ def _capital_for_stock_position(legs: list[dict]) -> Optional[float]:
     return None
 
 
-def _compute_capital_required(legs: list[dict], max_loss: float, spot: float) -> float:
-    """Reg-T approximation for capital/margin required."""
-    if max_loss < -5_000_000:  # unlimited risk
+def _compute_capital_required(legs: list[dict], max_loss: Optional[float], spot: float) -> float:
+    """Reg-T approximation for capital/margin required.
+
+    `max_loss is None` means the loss is unbounded, which is precisely when
+    Reg-T on the naked legs is the only figure available.
+    """
+    if max_loss is None:
         cap = _capital_for_unlimited_risk(legs, spot)
         if cap > 0:
             return cap
@@ -440,7 +442,8 @@ def _compute_capital_required(legs: list[dict], max_loss: float, spot: float) ->
         return stock_cap
 
     net_prem = _net_premium(legs)
-    return max(abs(max_loss), abs(net_prem) if net_prem < 0 else 0)
+    return max(abs(max_loss) if max_loss is not None else 0.0,
+               abs(net_prem) if net_prem < 0 else 0)
 
 
 def _friendly_name(strat_id: str, legs: list[dict]) -> str:
@@ -466,9 +469,12 @@ def _score_strategy(strat_id: str, legs: list[dict],
         return None
 
     break_evens = find_break_evens(payoff_points)
-    expiry_pnls = [p["pnlAtExpiry"] for p in payoff_points]
-    max_profit = max(expiry_pnls)
-    max_loss = min(expiry_pnls)
+    # Extremes come from payoff_bounds, not from the ±35% chart grid: on that
+    # grid a long call's max profit was whatever sat at the right edge and a
+    # naked short call's max loss the same. Both are unbounded → None.
+    bounds = payoff_bounds(legs, ctx.spot, r=ctx.risk_free)
+    max_profit = bounds["maxProfit"]
+    max_loss = bounds["maxLoss"]
 
     capital_required = _compute_capital_required(legs, max_loss, ctx.spot)
     if capital_required > ctx.budget and ctx.budget > 0:
@@ -478,7 +484,10 @@ def _score_strategy(strat_id: str, legs: list[dict],
         legs, ctx.target_price, ctx.days_until_target, ctx.risk_free)
     pnl_at_target_expiry = _compute_pnl_at_price_and_time(legs, ctx.target_price, 0, ctx.risk_free)
 
-    risk = max(abs(max_loss), 0.01)
+    # With an unbounded loss there is no "max loss" to divide by; the capital
+    # the broker actually ties up (Reg-T) is the honest denominator, and it is
+    # the same one `evOnCapital` uses below.
+    risk = max(abs(max_loss) if max_loss is not None else capital_required, 0.01)
     roi_target = (pnl_at_target_expiry / risk) * 100 if risk > 0 else 0
     pop = _probability_of_profit(legs, ctx.spot, break_evens, pnl_at_target_expiry, ctx.target_price)
 
@@ -509,10 +518,10 @@ def _score_strategy(strat_id: str, legs: list[dict],
         "pop": round(pop, 1),
         "profitAtTarget": round(pnl_at_target, 2),
         "profitAtTargetExpiry": round(pnl_at_target_expiry, 2),
-        "maxProfit": round(max_profit, 2) if max_profit < 5_000_000 else None,
-        "maxProfitUnlimited": max_profit >= 5_000_000,
-        "maxLoss": round(max_loss, 2) if max_loss > -5_000_000 else None,
-        "maxLossUnlimited": max_loss <= -5_000_000,
+        "maxProfit": round(max_profit, 2) if max_profit is not None else None,
+        "maxProfitUnlimited": bounds["isMaxProfitUnlimited"],
+        "maxLoss": round(max_loss, 2) if max_loss is not None else None,
+        "maxLossUnlimited": bounds["isMaxLossUnlimited"],
         "capitalRequired": round(capital_required, 2),
         "breakEvens": [round(b, 2) for b in break_evens],
         "payoffPoints": payoff_points,

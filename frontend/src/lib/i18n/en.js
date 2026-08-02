@@ -1861,6 +1861,8 @@ export default {
   "creditoNeto_a96b7e": "Net Credit",
   "debitoNeto_39b7f9": "Net Debit",
   "diasDesdeHoy_114266": "Days from today →",
+  "kellyUnboundedRisk": "Unlimited risk: Kelly does not apply",
+  "kellyUnboundedProfit": "Unlimited profit: Kelly does not apply",
   "sinPerdidaDefinida_89d5d7": "No defined loss",
   "sinEdgeEstadisticoEvitarTrade_c81cb1": "No statistical edge (avoid trade)",
   "volTil_9eeb74": "VOLATILE",

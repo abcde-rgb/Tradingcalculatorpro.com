@@ -2751,3 +2751,39 @@ y se aplica a todo lo que lleva logo.
   página estática) · favicons revisados a 16/32/180 px.
 - ⚠️ **Pendiente**: `favicon` por tema (el pack trae variantes oro y nasdaq, ya
   copiadas a `public/`) y revisión nativa de las traducciones pt/it.
+
+### 2026-08-02 (4) — Los extremos del payoff se medían sobre el gráfico
+Reportado por el propietario: en opciones, «beneficio máximo» ponía un número
+fijo donde en algunos casos es ilimitado. Detalle y causa raíz en
+[`DIARIO_BUGS.md`](./DIARIO_BUGS.md) (BUG-036); aquí lo que hay que saber para
+tocar este código.
+
+- ✅ **`payoffBounds` (JS) / `payoff_bounds` (Py) es ahora la única fuente de los
+  extremos.** Los tres sitios que hacían `max()/min()` sobre los puntos del
+  gráfico —`strategyStats.js`, `_payoff_summary`, `_score_strategy`— llaman a
+  ella. La rejilla del gráfico sigue siendo la rejilla del gráfico: sirve para
+  dibujar, no para decidir el peor caso.
+- ✅ **Lo acotado se decide por la estructura, no muestreando.** `far_upside_slope`
+  suma la pendiente del payoff en el límite S→∞: una call comprada aporta
+  +100 por contrato, una vendida −100, una put 0 (vale cero ahí arriba) y la
+  acción ±su número de títulos. Pendiente positiva ⇒ beneficio sin acotar;
+  negativa ⇒ pérdida sin acotar. Sale gratis y es exacto, también para una pata
+  que aún conserva valor temporal (calendars): es una afirmación sobre el
+  límite, no sobre un precio.
+  - Cae solo: una covered call (100 acciones + 1 call vendida) da pendiente 0 y
+    queda acotada por ambos lados, sin lista de excepciones que mantener.
+- ✅ **El extremo finito se evalúa en S=0 y en cada strike.** Son los únicos
+  vértices de una función lineal a trozos, así que el resultado es exacto. Esto
+  arregla un tercer caso que no era «ilimitado» sino directamente **mal**: una
+  put comprada K=100 vale como mucho 9.800 € y la rejilla devolvía 3.300.
+- ✅ **Sin acotar es `null`, nunca un número.** Y lo que se deriva de ello queda
+  indefinido: ROI sobre un beneficio sin acotar y R/R sobre un riesgo sin acotar
+  se pintan `—`, no `Infinity%` ni 0. Kelly se declara no aplicable en vez de
+  concluir «sin edge» (antes `parseFloat('Unlimited') || 0` lo mandaba a 0).
+- ✅ **Verificado**: 11 tests nuevos en `test_options_math_unit.py` (452 pasan en
+  total) · paridad exacta entre el motor JS y el de Python sobre 8 estructuras ·
+  ESLint 0 errores · i18n 10/10 (5652 claves, 2 nuevas para Kelly) ·
+  `engine-check` 60/60 · `npm run build` con 1589 URLs.
+  ⚠️ `tests/test_route_uniqueness_unit.py` falla 2 casos en este contenedor,
+  **también sin mis cambios** (comprobado revirtiendo): es del entorno, no del
+  código, y en la CI pasa.
