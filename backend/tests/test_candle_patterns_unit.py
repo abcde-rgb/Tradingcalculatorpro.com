@@ -118,7 +118,154 @@ def test_ohlc_history_parsing_skips_null_bars():
     assert len(rows) == 2                       # the null bar is dropped
     assert rows[0]["close"] == 11.0
     assert rows[0]["volume"] == 1000.0          # volume is parsed alongside OHLC
-    assert set(rows[0].keys()) == {"date", "open", "high", "low", "close", "volume"}
+    assert set(rows[0].keys()) == {"date", "ts", "open", "high", "low", "close", "volume"}
+    assert rows[0]["date"] == "2023-11-14"      # daily bars carry no time
+    assert rows[0]["ts"] == 1700000000
+
+
+def test_intraday_bars_carry_the_time_in_the_date():
+    """Every 5-minute bar of a session sharing the string '2023-11-14' is not a
+    cosmetic problem: the scanner's event log de-duplicates by date, so a whole
+    day of distinct intraday events collapsed into one entry."""
+    import stock_data as sd
+
+    def fake_get(path):
+        return {"chart": {"result": [{
+            "timestamp": [1700000000, 1700000300],
+            "indicators": {"quote": [{
+                "open": [10, 11], "high": [12, 13], "low": [9, 10],
+                "close": [11, 12], "volume": [1000, 2000],
+            }]},
+        }]}}
+
+    original = sd._yahoo_get
+    sd._yahoo_get = fake_get
+    try:
+        rows = sd.get_ohlc_history("AAPL", "5d", "5m")
+    finally:
+        sd._yahoo_get = original
+    assert rows[0]["date"] == "2023-11-14 22:13"
+    assert rows[0]["date"] != rows[1]["date"]
+
+
+
+
+# ============================================================================
+#  Revisión matemática pedida por el dueño: "tres soldados" que no lo eran,
+#  contexto de tendencia dependiente de la temporalidad, y trazabilidad
+#  (qué temporalidad, qué día abre, qué día confirma, en qué se basa).
+# ============================================================================
+from candle_patterns import (  # noqa: E402
+    _is_three_white_soldiers, _is_three_black_crows, _trend_before, _candle_metrics,
+)
+
+
+def _c(o, h, l, c, d="2026-07-01"):
+    return {"date": d, "open": o, "high": h, "low": l, "close": c, "volume": 1.0}
+
+
+# ---- Tres soldados / tres cuervos ------------------------------------------
+def test_three_tiny_candles_with_huge_wicks_are_NOT_three_soldiers():
+    """El fallo reportado: cuerpos del 4% del rango y mechas superiores del 94%
+    se anunciaban como tres soldados blancos. Un soldado es una vela con CUERPO
+    que cierra cerca de su máximo."""
+    c1 = _c(100.0, 105.0, 99.9, 100.2)
+    c2 = _c(100.1, 106.0, 100.0, 100.4)
+    c3 = _c(100.3, 107.0, 100.2, 100.6)
+    assert _is_three_white_soldiers(c1, c2, c3) is False
+
+
+def test_three_real_soldiers_are_still_detected():
+    c1 = _c(100, 106, 99.8, 105.5)
+    c2 = _c(102, 110, 101.8, 109.5)
+    c3 = _c(106, 114, 105.8, 113.5)
+    assert _is_three_white_soldiers(c1, c2, c3) is True
+    for c in (c1, c2, c3):
+        m = _candle_metrics(c)
+        assert m["body_pct"] >= 0.55
+        assert m["upper"] <= 0.25 * m["range"]
+
+
+def test_a_long_upper_wick_disqualifies_a_soldier():
+    """Mecha superior larga = los vendedores devolvieron el precio. Aunque el
+    cuerpo sea grande, eso no es un soldado."""
+    c1 = _c(100, 106, 99.8, 105.5)
+    c2 = _c(102, 118, 101.8, 109.5)      # cuerpo grande PERO mecha enorme
+    c3 = _c(106, 114, 105.8, 113.5)
+    assert _is_three_white_soldiers(c1, c2, c3) is False
+
+
+def test_three_black_crows_mirror_the_same_rules():
+    c1 = _c(114, 114.2, 106, 106.5)
+    c2 = _c(110, 110.2, 102, 102.5)
+    c3 = _c(106, 106.2, 98, 98.5)
+    assert _is_three_black_crows(c1, c2, c3) is True
+    tiny = (_c(100.2, 100.3, 95, 100.0), _c(100.0, 100.1, 94, 99.8), _c(99.9, 100.0, 93, 99.6))
+    assert _is_three_black_crows(*tiny) is False
+
+
+# ---- Contexto de tendencia independiente de la escala ----------------------
+def test_trend_context_is_scale_free():
+    """El mismo movimiento relativo debe leerse igual en un activo de 100 y en
+    uno de 100.000. Con el umbral fijo del 1% no era así."""
+    def series(base, step):
+        return [_c(base + i * step, base + i * step + step, base + i * step - step,
+                   base + i * step) for i in range(7)]
+    barato = series(100.0, 1.0)
+    caro = series(100_000.0, 1_000.0)
+    assert _trend_before(barato, 6) == _trend_before(caro, 6) == "up"
+
+
+def test_a_flat_market_is_not_a_trend():
+    flat = [_c(100, 101, 99, 100) for _ in range(7)]
+    assert _trend_before(flat, 6) == "flat"
+
+
+# ---- Trazabilidad: fechas y base de la detección ---------------------------
+def test_every_detection_says_when_it_opens_and_when_it_confirms():
+    rows = [_c(100, 101, 99, 99.5, "2026-07-01"),
+            _c(100, 106, 99.8, 105.5, "2026-07-02"),
+            _c(102, 110, 101.8, 109.5, "2026-07-03"),
+            _c(106, 114, 105.8, 113.5, "2026-07-04")]
+    hits = [d for d in detect_all_patterns(rows) if d["pattern_id"] == "three-white-soldiers"]
+    assert hits, "el patrón debería detectarse"
+    d = hits[0]
+    assert d["start_date"] == "2026-07-02"      # primera vela del patrón
+    assert d["confirm_date"] == "2026-07-04"    # vela que lo confirma
+    assert d["date"] == d["confirm_date"]       # compatibilidad hacia atrás
+    assert d["index"] - d["start_index"] == d["candle_count"] - 1
+
+
+def test_a_one_candle_pattern_opens_and_confirms_on_the_same_bar():
+    rows = [_c(100, 101, 99, 100.5, "2026-07-01"),
+            _c(100, 100.2, 94, 99.8, "2026-07-02")]   # martillo
+    for d in detect_all_patterns(rows):
+        if d["candle_count"] == 1:
+            assert d["start_date"] == d["confirm_date"]
+
+
+def test_every_detection_declares_what_it_looks_at():
+    rows = [_c(100 + i, 102 + i, 98 + i, 101 + i, f"2026-07-{i+1:02d}") for i in range(12)]
+    for d in detect_all_patterns(rows):
+        assert d["basis"] in ("body", "wicks", "both")
+        for key in ("bodyPct", "upperWickPct", "lowerWickPct"):
+            assert 0 <= d["metrics"][key] <= 100
+
+
+def test_the_catalogue_declares_a_basis_for_every_pattern():
+    for pid, meta in PATTERN_META.items():
+        assert meta.get("basis") in ("body", "wicks", "both"), pid
+    assert all("basis" in row for row in get_pattern_catalog())
+
+
+def test_metrics_add_up_to_the_whole_candle():
+    """cuerpo + mecha superior + mecha inferior = 100% del rango. Si no cuadra,
+    alguna de las tres está mal medida."""
+    rows = [_c(100, 110, 90, 105, "2026-07-01")]
+    d = detect_all_patterns(rows)
+    for det in d:
+        m = det["metrics"]
+        assert abs(m["bodyPct"] + m["upperWickPct"] + m["lowerWickPct"] - 100.0) < 0.2
 
 
 if __name__ == "__main__":

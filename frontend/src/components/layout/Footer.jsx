@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { TrendingUp, Sun, Moon, Globe, Linkedin, Mail, CandlestickChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation, languages } from '@/lib/i18n';
+import { FlagIcon, LOCALE_FLAG } from '@/components/common/FlagIcon';
 import { useThemeStore } from '@/lib/theme';
 import {
   DropdownMenu,
@@ -151,7 +152,7 @@ export function Footer() {
                     onClick={() => setLocale(lang.code)}
                     className={locale === lang.code ? 'bg-primary/10' : ''}
                   >
-                    <span className="mr-2">{lang.flag}</span> {lang.name}
+                    <FlagIcon code={LOCALE_FLAG[lang.code]} title={lang.name} className="w-5 h-[13px] mr-2" /> {lang.name}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

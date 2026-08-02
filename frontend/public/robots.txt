@@ -26,6 +26,15 @@ Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
 
+# AdSense: el rastreador de anuncios necesita leer la página para elegir qué
+# anunciar. No indexa: sin este acceso los huecos salen en blanco o con
+# anuncios genéricos.
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
 # Specific bot rules — large/aggressive crawlers throttled
 User-agent: AhrefsBot
 Crawl-delay: 5

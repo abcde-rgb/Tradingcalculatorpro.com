@@ -81,6 +81,23 @@ el **cutover de DNS/Pages** (acción manual en consolas):
    `abcde-rgb.github.io/Tradingcalculatorpro.com` dejará de servir (el `homepage`/`PUBLIC_URL`
    cambiaron a raíz). Si mergeas sin DNS, habrá un hueco hasta que propague.
 5. Verifica: `curl -I https://tradingcalculatorpro.com` · `…/sitemap.xml` · `…/robots.txt`.
+6. ⚠️ **Comprobar antes de empezar:** hoy `frontend/public/CNAME` **no existe** y el
+   `homepage` de `package.json` sigue apuntando a `abcde-rgb.github.io/Tradingcalculatorpro.com`
+   (el cutover se revirtió en su día). Habrá que reponer ambos junto con el DNS.
+7. **La publicidad depende de esto.** AdSense exige `ads.txt` en la raíz del dominio y
+   acreditar la propiedad del sitio: con `github.io` no es posible. En cuanto el dominio
+   propio esté sirviendo, `…/ads.txt` empieza a resolver solo (lo genera el `postbuild`)
+   → ver [`MONETIZACION_ADS.md`](./MONETIZACION_ADS.md).
+
+## G-bis. Google AdSense (opcional, sólo tras el dominio propio)
+
+- [ ] Alta en AdSense con `tradingcalculatorpro.com` y sitio aprobado.
+- [ ] Dos bloques de anuncio creados → variables **de repositorio** (no secretos)
+      `REACT_APP_ADSENSE_CLIENT`, `REACT_APP_ADSENSE_SLOT_ARTICLE`, `REACT_APP_ADSENSE_SLOT_BOTTOM`.
+- [ ] CMP certificada para tráfico del EEE: activar la de Google y poner `REACT_APP_ADSENSE_CMP=google`.
+- [ ] Verificar `https://tradingcalculatorpro.com/ads.txt` tras el deploy.
+- [ ] Verificar con una cuenta **Premium** que no aparece ningún anuncio ni petición a
+      `pagead2.googlesyndication.com` (pestaña Red del navegador).
 
 ## H. SendGrid
 

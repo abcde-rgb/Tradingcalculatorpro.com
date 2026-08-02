@@ -122,28 +122,44 @@ def _is_evening_star(c1: Dict, c2: Dict, c3: Dict) -> bool:
     )
 
 
+# Un "soldado" o un "cuervo" tiene que ser una vela CON CUERPO que cierra cerca
+# de su extremo. Sin estos dos umbrales el patrón se disparaba con tres velas
+# diminutas de mecha enorme —cuerpos del 4% del rango y mechas del 94%— que
+# nadie llamaría tres soldados: justo lo que hacía que el escáner pareciera
+# desproporcionado frente al gráfico.
+_SOLDIER_MIN_BODY_PCT = 0.55   # el cuerpo domina la vela
+_SOLDIER_MAX_WICK_PCT = 0.25   # poca mecha en el sentido de la marcha
+
+
+def _is_long_body_close_near_high(m: Dict[str, float]) -> bool:
+    """Vela alcista con cuerpo dominante y poca mecha superior."""
+    return m["body_pct"] >= _SOLDIER_MIN_BODY_PCT and m["upper"] <= _SOLDIER_MAX_WICK_PCT * m["range"]
+
+
+def _is_long_body_close_near_low(m: Dict[str, float]) -> bool:
+    """Vela bajista con cuerpo dominante y poca mecha inferior."""
+    return m["body_pct"] >= _SOLDIER_MIN_BODY_PCT and m["lower"] <= _SOLDIER_MAX_WICK_PCT * m["range"]
+
+
 def _is_three_white_soldiers(c1: Dict, c2: Dict, c3: Dict) -> bool:
-    return (
-        c1["close"] > c1["open"]
-        and c2["close"] > c2["open"]
-        and c3["close"] > c3["open"]
-        and c2["close"] > c1["close"]
-        and c3["close"] > c2["close"]
-        and c2["open"] > c1["open"] and c2["open"] < c1["close"]
-        and c3["open"] > c2["open"] and c3["open"] < c2["close"]
-    )
+    if not (c1["close"] > c1["open"] and c2["close"] > c2["open"] and c3["close"] > c3["open"]):
+        return False
+    if not (c2["close"] > c1["close"] and c3["close"] > c2["close"]):
+        return False
+    # Cada apertura, dentro del cuerpo de la anterior (avance ordenado, sin hueco).
+    if not (c1["open"] < c2["open"] < c1["close"] and c2["open"] < c3["open"] < c2["close"]):
+        return False
+    return all(_is_long_body_close_near_high(_candle_metrics(c)) for c in (c1, c2, c3))
 
 
 def _is_three_black_crows(c1: Dict, c2: Dict, c3: Dict) -> bool:
-    return (
-        c1["close"] < c1["open"]
-        and c2["close"] < c2["open"]
-        and c3["close"] < c3["open"]
-        and c2["close"] < c1["close"]
-        and c3["close"] < c2["close"]
-        and c2["open"] < c1["open"] and c2["open"] > c1["close"]
-        and c3["open"] < c2["open"] and c3["open"] > c2["close"]
-    )
+    if not (c1["close"] < c1["open"] and c2["close"] < c2["open"] and c3["close"] < c3["open"]):
+        return False
+    if not (c2["close"] < c1["close"] and c3["close"] < c2["close"]):
+        return False
+    if not (c1["close"] < c2["open"] < c1["open"] and c2["close"] < c3["open"] < c2["open"]):
+        return False
+    return all(_is_long_body_close_near_low(_candle_metrics(c)) for c in (c1, c2, c3))
 
 
 # ---------- Extra single-candle shapes ----------
@@ -165,18 +181,28 @@ def _trend_before(rows: List[Dict[str, float]], i: int, lookback: int = 5) -> st
 
     Used to disambiguate same-shaped candles (hammer vs hanging-man,
     shooting-star vs inverted-hammer) by the context they appear in.
+
+    The threshold is measured in AVERAGE CANDLE RANGES, not in a fixed percent.
+    It used to be a flat 1%: on 5-minute candles almost every window clears 1%,
+    so nearly everything looked like a trend and hammers were relabelled hanging
+    men at random; on monthly candles almost nothing clears it, so the context
+    was always "flat". The same shape has to mean the same thing on every rung
+    of the ladder, and only a scale-free threshold does that.
     """
     j = i - 1
     k = max(0, i - lookback)
     if j <= k:
         return "flat"
-    then = rows[k]["close"]
-    if then <= 0:
+    window = rows[k:i]
+    avg_range = sum(max(r["high"] - r["low"], 0.0) for r in window) / max(len(window), 1)
+    if avg_range <= 0:
         return "flat"
-    chg = (rows[j]["close"] - then) / then
-    if chg >= 0.01:
+    move = rows[j]["close"] - rows[k]["close"]
+    # Un recorrido neto de al menos un rango medio de vela ya es dirección; por
+    # debajo de eso es ruido dentro del propio tamaño de las velas.
+    if move >= avg_range:
         return "up"
-    if chg <= -0.01:
+    if move <= -avg_range:
         return "down"
     return "flat"
 
@@ -297,40 +323,48 @@ def _is_three_inside_down(c1: Dict, c2: Dict, c3: Dict) -> bool:
 # that way · rank: Bulkowski-style overall performance rank (lower = stronger).
 # Rates/ranks are APPROXIMATE historical figures (Bulkowski, "Encyclopedia of
 # Candlestick Charts"), shown for education — not a guarantee of future results.
+# `basis` responde a la pregunta "¿en qué se fija el detector?", que es lo
+# primero que quiere saber quien compara el aviso con su gráfico:
+#   "body"  → manda el CUERPO (apertura vs cierre). Las mechas no se miran o
+#             apenas influyen: envolventes, harami, estrellas, penetrante.
+#   "wicks" → mandan las MECHAS (sombras). El cuerpo solo sirve de referencia
+#             de tamaño: martillo, estrella fugaz, pinzas.
+#   "both"  → hacen falta las dos condiciones a la vez: marubozu, doji de
+#             libélula/lápida, tres soldados, tres cuervos.
 PATTERN_META: Dict[str, Dict[str, Any]] = {
     # ----- Single candle -----
-    "hammer":               {"type": "bullish", "candles": 1, "behavior": "reversal",    "rate": 60, "rank": 26},
-    "hanging-man":          {"type": "bearish", "candles": 1, "behavior": "reversal",    "rate": 59, "rank": 51},
-    "inverted-hammer":      {"type": "bullish", "candles": 1, "behavior": "reversal",    "rate": 65, "rank": 14},
-    "shooting-star":        {"type": "bearish", "candles": 1, "behavior": "reversal",    "rate": 59, "rank": 31},
-    "doji":                 {"type": "neutral", "candles": 1, "behavior": "indecision",  "rate": 50, "rank": 75},
-    "dragonfly-doji":       {"type": "bullish", "candles": 1, "behavior": "reversal",    "rate": 50, "rank": 72},
-    "gravestone-doji":      {"type": "bearish", "candles": 1, "behavior": "reversal",    "rate": 51, "rank": 77},
-    "long-legged-doji":     {"type": "neutral", "candles": 1, "behavior": "indecision",  "rate": 51, "rank": 80},
-    "high-wave":            {"type": "neutral", "candles": 1, "behavior": "indecision",  "rate": 50, "rank": 82},
-    "bullish-marubozu":     {"type": "bullish", "candles": 1, "behavior": "continuation", "rate": 56, "rank": 58},
-    "bearish-marubozu":     {"type": "bearish", "candles": 1, "behavior": "continuation", "rate": 55, "rank": 60},
-    "spinning-top":         {"type": "neutral", "candles": 1, "behavior": "indecision",  "rate": 50, "rank": 78},
+    "hammer":               {"type": "bullish", "candles": 1, "behavior": "reversal",    "rate": 60, "rank": 26, "basis": "wicks"},
+    "hanging-man":          {"type": "bearish", "candles": 1, "behavior": "reversal",    "rate": 59, "rank": 51, "basis": "wicks"},
+    "inverted-hammer":      {"type": "bullish", "candles": 1, "behavior": "reversal",    "rate": 65, "rank": 14, "basis": "wicks"},
+    "shooting-star":        {"type": "bearish", "candles": 1, "behavior": "reversal",    "rate": 59, "rank": 31, "basis": "wicks"},
+    "doji":                 {"type": "neutral", "candles": 1, "behavior": "indecision",  "rate": 50, "rank": 75, "basis": "body"},
+    "dragonfly-doji":       {"type": "bullish", "candles": 1, "behavior": "reversal",    "rate": 50, "rank": 72, "basis": "both"},
+    "gravestone-doji":      {"type": "bearish", "candles": 1, "behavior": "reversal",    "rate": 51, "rank": 77, "basis": "both"},
+    "long-legged-doji":     {"type": "neutral", "candles": 1, "behavior": "indecision",  "rate": 51, "rank": 80, "basis": "both"},
+    "high-wave":            {"type": "neutral", "candles": 1, "behavior": "indecision",  "rate": 50, "rank": 82, "basis": "both"},
+    "bullish-marubozu":     {"type": "bullish", "candles": 1, "behavior": "continuation", "rate": 56, "rank": 58, "basis": "both"},
+    "bearish-marubozu":     {"type": "bearish", "candles": 1, "behavior": "continuation", "rate": 55, "rank": 60, "basis": "both"},
+    "spinning-top":         {"type": "neutral", "candles": 1, "behavior": "indecision",  "rate": 50, "rank": 78, "basis": "both"},
     # ----- Two candle -----
-    "bullish-engulfing":    {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 63, "rank": 22},
-    "bearish-engulfing":    {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 79, "rank": 9},
-    "bullish-harami":       {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 53, "rank": 68},
-    "bearish-harami":       {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 53, "rank": 65},
-    "piercing-line":        {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 64, "rank": 19},
-    "dark-cloud-cover":     {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 60, "rank": 30},
-    "tweezer-bottom":       {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 56, "rank": 56},
-    "tweezer-top":          {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 55, "rank": 57},
-    "bullish-kicker":       {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 68, "rank": 7},
-    "bearish-kicker":       {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 67, "rank": 8},
+    "bullish-engulfing":    {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 63, "rank": 22, "basis": "body"},
+    "bearish-engulfing":    {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 79, "rank": 9, "basis": "body"},
+    "bullish-harami":       {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 53, "rank": 68, "basis": "body"},
+    "bearish-harami":       {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 53, "rank": 65, "basis": "body"},
+    "piercing-line":        {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 64, "rank": 19, "basis": "body"},
+    "dark-cloud-cover":     {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 60, "rank": 30, "basis": "body"},
+    "tweezer-bottom":       {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 56, "rank": 56, "basis": "wicks"},
+    "tweezer-top":          {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 55, "rank": 57, "basis": "wicks"},
+    "bullish-kicker":       {"type": "bullish", "candles": 2, "behavior": "reversal",    "rate": 68, "rank": 7, "basis": "both"},
+    "bearish-kicker":       {"type": "bearish", "candles": 2, "behavior": "reversal",    "rate": 67, "rank": 8, "basis": "both"},
     # ----- Three candle -----
-    "morning-star":         {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 78, "rank": 6},
-    "evening-star":         {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 72, "rank": 11},
-    "morning-doji-star":    {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 76, "rank": 10},
-    "evening-doji-star":    {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 71, "rank": 13},
-    "three-white-soldiers": {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 82, "rank": 3},
-    "three-black-crows":    {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 78, "rank": 5},
-    "three-inside-up":      {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 65, "rank": 16},
-    "three-inside-down":    {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 60, "rank": 28},
+    "morning-star":         {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 78, "rank": 6, "basis": "body"},
+    "evening-star":         {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 72, "rank": 11, "basis": "body"},
+    "morning-doji-star":    {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 76, "rank": 10, "basis": "both"},
+    "evening-doji-star":    {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 71, "rank": 13, "basis": "both"},
+    "three-white-soldiers": {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 82, "rank": 3, "basis": "both"},
+    "three-black-crows":    {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 78, "rank": 5, "basis": "both"},
+    "three-inside-up":      {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 65, "rank": 16, "basis": "body"},
+    "three-inside-down":    {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 60, "rank": 28, "basis": "body"},
 }
 
 
@@ -421,13 +455,37 @@ def _detect_at_index(rows: List[Dict[str, float]], i: int) -> List[str]:
 
 
 def detect_all_patterns(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Walk OHLC rows once and return detections enriched with reliability stats:
-    [{date, pattern_id, type, behavior, rate, rank, ohlc, candle_count}]."""
+    """Walk OHLC rows once and return detections enriched with reliability stats.
+
+    Cada detección dice **cuándo empieza y cuándo se confirma**. Un patrón de
+    tres velas ocupa tres barras: antes solo se publicaba la fecha de la última
+    y era imposible localizarlo en el gráfico sin contar velas hacia atrás.
+
+      start_date / start_index → primera vela del patrón (donde se "abre")
+      date / index             → vela que lo CONFIRMA (la última)
+
+    `metrics` trae las medidas reales de la vela que confirma —cuerpo y mechas
+    como porcentaje del rango— para poder contrastar el aviso con el gráfico en
+    vez de creérselo. `basis` dice si el patrón se decide por el cuerpo, por las
+    mechas, o por ambos.
+    """
     detections: List[Dict[str, Any]] = []
     for i, row in enumerate(rows):
         for pid in _detect_at_index(rows, i):
             meta = PATTERN_META[pid]
+            start_i = max(0, i - (meta["candles"] - 1))
+            m = _candle_metrics(row)
             detections.append({
+                "index": i,
+                "start_index": start_i,
+                "start_date": rows[start_i]["date"],
+                "confirm_date": row["date"],
+                "basis": meta["basis"],
+                "metrics": {
+                    "bodyPct": round(m["body_pct"] * 100, 1),
+                    "upperWickPct": round(m["upper"] / m["range"] * 100, 1),
+                    "lowerWickPct": round(m["lower"] / m["range"] * 100, 1),
+                },
                 "date": row["date"],
                 "pattern_id": pid,
                 "type": meta["type"],
@@ -454,6 +512,7 @@ def get_pattern_catalog() -> List[Dict[str, Any]]:
             "rate": meta["rate"],
             "rank": meta["rank"],
             "candle_count": meta["candles"],
+            "basis": meta["basis"],
         }
         for pid, meta in sorted(PATTERN_META.items(), key=lambda kv: kv[1]["rank"])
     ]

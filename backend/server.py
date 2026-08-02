@@ -11,7 +11,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import uuid
 from datetime import datetime, timezone, timedelta
 import bcrypt
@@ -19,6 +19,7 @@ import jwt
 import httpx
 import secrets
 import hashlib
+import time
 import re as _re_module
 import stripe  # Stripe SDK for advanced subscription management
 from google.oauth2 import id_token as google_id_token
@@ -36,8 +37,9 @@ from options_math import (
     calculate_second_order_greeks,
     calculate_pnl_attribution,
     simulate_assignment,
-    gamma_exposure,
-    flatten_chain_for_gex,
+    implied_volatility,
+    year_fraction,
+    option_price,
 )
 from stock_data import (
     COINGECKO_SYMBOL_TO_ID,
@@ -51,6 +53,7 @@ from stock_data import (
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
 from price_action import detect_structure
+import timeframes
 from performance import (
     compute_trade_pnl,
     detect_errors,
@@ -58,7 +61,18 @@ from performance import (
     generate_insights,
     trades_for_user,
     make_trade_doc,
+    sort_trades_chronologically,
 )
+from trading_plan import (
+    activate_plan,
+    compliance_report,
+    count_trades_under_version,
+    get_active_plan,
+    get_draft_plan,
+    list_plan_versions,
+    save_draft,
+)
+from market_rates import get_risk_free_rate, get_risk_free_info
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -92,6 +106,19 @@ def _deserialize(raw) -> dict:
 
 
 _SAFE_FIELD_RE = _re_module.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+
+
+def _literal_regex(text: str) -> str:
+    """Convierte texto de un buscador en un patrón que lo busca TAL CUAL.
+
+    Lo que teclea alguien en una caja de búsqueda es texto, no una expresión
+    regular. Al pasarlo crudo a los operadores `~`/`~*` de PostgreSQL, buscar
+    ``"Rodríguez (padre)"`` —o un simple ``(``— aborta la consulta entera con
+    *invalid regular expression: parentheses () not balanced* y la petición
+    acaba en 500. Escapando los metacaracteres, el paréntesis vuelve a ser un
+    paréntesis y la búsqueda hace lo que el usuario espera: subcadena literal.
+    """
+    return _re_module.escape(text or "")
 
 
 def _build_where_clause(filter_dict: dict, start_param: int = 1):
@@ -918,6 +945,7 @@ class Database:
             "password_resets", "revoked_tokens", "user_revocations",
             "user_states", "stock_cache", "payment_transactions",
             "stripe_webhook_logs", "admin_audit_log", "app_settings",
+            "webhook_health",  # last webhook seen per provider (M-41)
             "saved_positions", "coupons", "feature_flags",
             # Extended modules
             "referrals", "referral_redemptions",
@@ -930,6 +958,10 @@ class Database:
             "churn_surveys", "rate_limit_violations",
             # Product usage analytics (admin heatmap of most-viewed pages/sections)
             "usage_events",
+            # Versioned trading plans — the source of truth for each user's own
+            # risk thresholds (see trading_plan.py). Must be listed here: the
+            # comment above is load-bearing, Collection does not auto-create.
+            "trading_plans",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -939,7 +971,8 @@ class Database:
         async with self._pool.acquire() as conn:
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users ((data->>'email'))")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_id ON users ((data->>'id'))")
-            for tbl in ("trades", "calculations", "alerts", "saved_positions"):
+            for tbl in ("trades", "calculations", "alerts", "saved_positions",
+                        "trading_plans"):
                 await conn.execute(
                     f"CREATE INDEX IF NOT EXISTS idx_{tbl}_user_id ON {tbl} ((data->>'user_id'))"
                 )
@@ -1119,7 +1152,46 @@ def _validate_origin_url(url: str, field: str = "origin_url") -> str:
 # ============================================================
 #  Rate limiting (slowapi) — applied to brute-force-prone routes
 # ============================================================
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
+
+# How many proxies we sit behind. Cloud Run (direct) = 1: its front end appends
+# the real peer as the LAST entry of X-Forwarded-For. Put an HTTPS load balancer
+# in front and it becomes 2. Counting from the RIGHT is what makes this
+# unspoofable: a client can prepend fake IPs, it cannot append past the proxy.
+TRUSTED_PROXY_HOPS = max(1, int(os.environ.get("TRUSTED_PROXY_HOPS", "1")))
+
+# Admins must carry a second factor. Only a non-production environment may opt
+# out (so a fresh local DB isn't locked out of its own panel); in production the
+# env var is ignored on purpose — it must not be possible to disable this by
+# setting a variable on the service.
+ADMIN_2FA_OPTIONAL = (
+    os.environ.get("ENVIRONMENT", "production").lower() in ("development", "dev", "local")
+    and os.environ.get("ADMIN_2FA_OPTIONAL", "true").lower() != "false"
+)
+
+
+def _real_client_ip(request: Optional[Request]) -> str:
+    """Client IP as seen by our outermost trusted proxy.
+
+    uvicorn runs without --forwarded-allow-ips, so `request.client.host` is the
+    Cloud Run front end for EVERY request — using it as a rate-limit key puts the
+    whole planet in one bucket (register was 3/hour globally). Read the header
+    ourselves instead.
+    """
+    if request is None:
+        return ""
+    fwd = request.headers.get("x-forwarded-for") or ""
+    parts = [p.strip() for p in fwd.split(",") if p.strip()]
+    if parts:
+        idx = len(parts) - TRUSTED_PROXY_HOPS
+        return parts[idx] if 0 <= idx < len(parts) else parts[0]
+    return request.client.host if request.client else ""
+
+
+def _rate_limit_key(request: Request) -> str:
+    return _real_client_ip(request) or get_remote_address(request)
+
+
+limiter = Limiter(key_func=_rate_limit_key, default_limits=[])
 app.state.limiter = limiter
 
 
@@ -1447,6 +1519,21 @@ async def require_admin(
     # but every /admin/* call returns 403 → empty panel.
     if not (user.get("is_admin") or user.get("email", "").lower() in _ADMIN_EMAILS):
         raise HTTPException(status_code=403, detail="Acceso restringido")
+
+    # Second factor is MANDATORY for admins. An admin session can impersonate
+    # users, move subscriptions and read the whole customer base, so a stolen
+    # password must not be enough. Per-user TOTP already existed but nothing
+    # required it here.
+    #
+    # 428 (not 403) so the frontend can tell "you may not" apart from "you must
+    # finish setting this up" and send the admin to Settings instead of a dead
+    # end. Escape hatch for local development only.
+    if not user.get("totp_enabled") and not ADMIN_2FA_OPTIONAL:
+        raise HTTPException(
+            status_code=428,
+            detail="Los administradores deben activar la verificación en dos pasos "
+                   "(Ajustes → Seguridad) antes de usar el panel.",
+        )
     return user
 
 
@@ -1454,12 +1541,9 @@ async def require_admin(
 #  ADMIN AUDIT LOG  (every admin write goes through here)
 # ============================================================
 def _client_ip(request: Optional[Request]) -> str:
-    if not request:
-        return ""
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else ""
+    # Same trusted-hop logic as the rate limiter: taking parts[0] let anyone
+    # forge the IP recorded in the admin audit log by sending their own header.
+    return _real_client_ip(request)
 
 
 async def log_admin_action(
@@ -2394,16 +2478,44 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     # (there is no separate "performance_trades" collection — see BUG fixed
     # 2026-06-06), so "trades" below already contains the user's full trading
     # journal including performance-module entries. No separate collect() needed.
-    trades        = await collect("trades",            {"user_id": user_id})
-    calculations  = await collect("calculations",      {"user_id": user_id})
-    alerts        = await collect("alerts",            {"user_id": user_id})
+    #
+    # The export must cover everything `delete_account` erases, minus pure
+    # security artefacts. Anything the user can have DELETED they must be able
+    # to TAKE WITH THEM — exporting less than we delete is exactly the gap
+    # GDPR Art. 20 exists to close. Deliberately excluded: email verification
+    # tokens, password resets and token revocations (credentials, not personal
+    # data, and shipping them out would be a security regression).
+    trades           = await collect("trades",           {"user_id": user_id})
+    calculations     = await collect("calculations",     {"user_id": user_id})
+    alerts           = await collect("alerts",           {"user_id": user_id})
+    portfolio        = await collect("portfolio",        {"user_id": user_id})
+    saved_positions  = await collect("saved_positions",  {"user_id": user_id})
+    user_states      = await collect("user_states",      {"user_id": user_id})
+    journal_entries  = await collect("journal_entries",  {"user_id": user_id})
+    referrals        = await collect("referrals",        {"user_id": user_id})
+
+    # Billing history is the user's own data, but the raw rows carry gateway
+    # internals. Ship the fields a person would actually need for their records.
+    raw_payments = await collect("payment_transactions", {"user_id": user_id})
+    payments = [
+        {k: p.get(k) for k in
+         ("id", "amount", "currency", "status", "plan", "provider", "created_at", "paid_at")}
+        for p in raw_payments
+    ]
 
     payload = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
-        "profile":      safe_user,
-        "trades":       trades,
-        "calculations": calculations,
-        "alerts":       alerts,
+        "format_version": 2,
+        "profile":          safe_user,
+        "trades":           trades,
+        "calculations":     calculations,
+        "alerts":           alerts,
+        "portfolio":        portfolio,
+        "saved_positions":  saved_positions,
+        "preferences":      user_states,
+        "journal_entries":  journal_entries,
+        "referrals":        referrals,
+        "payments":         payments,
     }
 
     filename = f"my-data-{user_id[:8]}.json"
@@ -3952,6 +4064,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     - invoice.payment_failed         → mark past_due, revoke after 3 attempts
     - customer.subscription.updated  → sync status changes
     """
+    await _record_webhook_seen("stripe")
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
     host_url = str(request.base_url).rstrip("/")
@@ -4119,6 +4232,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
     merchant_order_ext_ref (= payment_transactions.id), falling back to the
     stored Revolut order id.
     """
+    await _record_webhook_seen("revolut")
     from revolut import (
         parse_webhook, verify_webhook, webhook_order_ref,
         webhook_revolut_order_id, webhook_is_paid,
@@ -4211,6 +4325,7 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
     out-of-order IPN is a safe no-op. The order_id we send is the (unguessable
     UUID) payment_transactions.id, tying the callback back to the user/plan.
     """
+    await _record_webhook_seen("nowpayments")
     from nowpayments import parse_ipn, verify_ipn, ipn_order_id, ipn_is_paid
 
     raw_body = await request.body()
@@ -4654,6 +4769,12 @@ class PnlAttributionRequest(BaseModel):
 class AssignmentRequest(BaseModel):
     legs: List[OptionLegInput]
     stockPriceAtExpiry: float
+    # Optional early-exercise context. Supplying a dividend and its ex-date lets
+    # the response also cover assignment BEFORE expiry, which is the case a
+    # European model cannot represent at all.
+    dividend: Optional[float] = None
+    daysToExDividend: Optional[int] = None
+    dividendYield: Optional[float] = 0.0
 
 
 def _legs_to_dicts(legs: List[OptionLegInput]) -> List[Dict[str, Any]]:
@@ -4831,13 +4952,104 @@ async def opt_get_expirations(symbol: str):
     }
 
 
-async def _load_options_chain(symbol: str, expiration_idx: int = 3) -> dict:
-    """Shared loader for the options chain.
+def _synthetic_marker(is_synthetic: bool) -> Dict[str, Any]:
+    """Uniform flag for any response built on a modelled (not observed) chain.
 
-    Returns {stock, expiration, chain, synthetic, error?}. `synthetic` is True when
-    no real chain was available and we fell back to a MODELLED chain: its open
-    interest/volume are generated, so downstream analytics that depend on real
-    positioning (GEX) must refuse to compute rather than invent a number.
+    Rule for this codebase: a response that contains modelled quotes always says
+    so. The frontend keys off `synthetic` to show a warning band; the prose in
+    `syntheticWarning` is the fallback for any client that doesn't.
+    """
+    if not is_synthetic:
+        return {"synthetic": False}
+    return {
+        "synthetic": True,
+        "syntheticWarning": (
+            "No real options chain is available for this symbol/expiration. "
+            "Prices, IV and Greeks below are MODEL ESTIMATES from an assumed "
+            "volatility smile, not market quotes; volume and open interest are "
+            "unavailable. Use for exploration only — do not trade off these numbers."
+        ),
+    }
+
+
+async def _build_chain_for_expiration(
+    symbol: str, stock: Dict[str, Any], expiration: Dict[str, Any], r: float
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Fetch (or model) one expiration's chain and enrich it with Greeks.
+
+    Returns `(chain, synthetic)`. Extracted so the single- and multi-expiration
+    endpoints cannot drift apart: a calendar spread priced from a chain built by
+    a second, slightly different code path is a bug waiting to happen.
+    """
+    chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
+    synthetic = not chain
+    if not chain:
+        return generate_options_chain(stock["price"], expiration["daysToExpiry"], r=r), True
+
+    # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
+    from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
+    T = year_fraction(expiration["daysToExpiry"])
+    for item in chain:
+        K = item["strike"]
+        for side in ("call", "put"):
+            leg = item.get(side, {})
+            iv = leg.get("iv") or 0.3
+            if iv <= 0:
+                iv = 0.3
+            try:
+                leg["delta"] = round(_d(stock["price"], K, T, r, iv, side), 4)
+                leg["gamma"] = round(_g(stock["price"], K, T, r, iv), 6)
+                leg["theta"] = round(_th(stock["price"], K, T, r, iv, side), 4)
+                leg["vega"] = round(_v(stock["price"], K, T, r, iv), 4)
+            except (ValueError, ZeroDivisionError):
+                leg["delta"] = 0.0
+                leg["gamma"] = 0.0
+                leg["theta"] = 0.0
+                leg["vega"] = 0.0
+            # Ensure mid is present
+            if "mid" not in leg or leg.get("mid") is None:
+                leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
+    return chain, synthetic
+
+
+# A calendar needs 2 expirations, a double diagonal 2, a term-structure view a
+# handful. The cap exists because each expiration is a separate upstream fetch.
+MAX_CHAIN_EXPIRATIONS = 8
+
+
+def _parse_expiration_idxs(raw: str, count: int) -> List[int]:
+    """`"1,3,6"` → `[1, 3, 6]`, clamped to the expirations that exist.
+
+    Silently drops anything unparseable rather than 400-ing: this is a widening
+    of an existing endpoint and a stray token should degrade to fewer chains,
+    not to no chain at all.
+    """
+    out: List[int] = []
+    for token in (raw or "").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            idx = int(token)
+        except ValueError:
+            continue
+        if 0 <= idx < count and idx not in out:
+            out.append(idx)
+    return out[:MAX_CHAIN_EXPIRATIONS]
+
+
+@api_router.get("/options/chain/{symbol}")
+async def opt_get_options_chain(
+    symbol: str,
+    expiration_idx: int = 3,
+    expiration_idxs: Optional[str] = None,
+):
+    """Options chain for one expiration, or for several in a single call.
+
+    `expiration_idxs=1,3,6` returns a `chains` map keyed by expiration index so
+    that a multi-expiration structure (calendar, diagonal, PMCC) can be built
+    without firing one request per leg. The single-expiration response shape is
+    unchanged, and is still what comes back when the parameter is absent.
     """
     stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
@@ -4845,76 +5057,67 @@ async def _load_options_chain(symbol: str, expiration_idx: int = 3) -> dict:
             "stock": stock,
             "expiration": None,
             "chain": [],
-            "synthetic": False,
+            "chains": {},
             "error": stock.get("error") or f"No market data available for {symbol}.",
         }
     expirations = await asyncio.to_thread(get_available_expirations, symbol)
     if not expirations:
         expirations = generate_expirations()
+    r = await asyncio.to_thread(get_risk_free_rate)
+
+    if expiration_idxs:
+        wanted = _parse_expiration_idxs(expiration_idxs, len(expirations))
+        if not wanted:
+            wanted = [min(expiration_idx, len(expirations) - 1)]
+        chains: Dict[str, Any] = {}
+        any_synthetic = False
+        for idx in wanted:
+            exp = expirations[idx]
+            chain, synthetic = await _build_chain_for_expiration(symbol, stock, exp, r)
+            any_synthetic = any_synthetic or synthetic
+            chains[str(idx)] = {
+                "expiration": exp,
+                "chain": chain,
+                **_synthetic_marker(synthetic),
+            }
+        primary = wanted[0]
+        return {
+            "stock": stock,
+            "expiration": chains[str(primary)]["expiration"],
+            "chain": chains[str(primary)]["chain"],
+            "chains": chains,
+            **_synthetic_marker(any_synthetic),
+            "riskFreeRate": round(r, 5),
+        }
+
     if expiration_idx >= len(expirations):
         expiration_idx = min(3, len(expirations) - 1)
     expiration = expirations[expiration_idx]
-    chain = await asyncio.to_thread(get_options_chain_real, symbol, expiration["date"])
-    synthetic = not chain
-    if synthetic:
-        chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
-    else:
-        # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
-        from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
-        T = max(expiration["daysToExpiry"], 1) / 365
-        r = 0.0525
-        for item in chain:
-            K = item["strike"]
-            for side in ("call", "put"):
-                leg = item.get(side, {})
-                iv = leg.get("iv") or 0.3
-                if iv <= 0:
-                    iv = 0.3
-                try:
-                    leg["delta"] = round(_d(stock["price"], K, T, r, iv, side), 4)
-                    leg["gamma"] = round(_g(stock["price"], K, T, r, iv), 6)
-                    leg["theta"] = round(_th(stock["price"], K, T, r, iv, side), 4)
-                    leg["vega"] = round(_v(stock["price"], K, T, r, iv), 4)
-                except (ValueError, ZeroDivisionError):
-                    leg["delta"] = 0.0
-                    leg["gamma"] = 0.0
-                    leg["theta"] = 0.0
-                    leg["vega"] = 0.0
-                # Ensure mid is present
-                if "mid" not in leg or leg.get("mid") is None:
-                    leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
-    return {"stock": stock, "expiration": expiration, "chain": chain, "synthetic": synthetic}
-
-
-@api_router.get("/options/gex/{symbol}")
-async def opt_gamma_exposure(symbol: str, expiration_idx: int = 3):
-    """Dealer gamma exposure (GEX) per strike, plus call/put walls.
-
-    Honesty contract: GEX is returned ONLY when the chain carries real open
-    interest. With a modelled chain (or a chain with no open interest at all)
-    `gex` is null and `synthetic` explains why — we never fabricate positioning.
-    """
-    data = await _load_options_chain(symbol, expiration_idx)
-    if data.get("error"):
-        return {"symbol": symbol.upper(), "gex": None, "synthetic": False,
-                "error": data["error"]}
-    expiration = data["expiration"]
-    rows = flatten_chain_for_gex(
-        data["chain"], expiration["daysToExpiry"], synthetic=data["synthetic"]
-    )
-    gex = gamma_exposure(rows, data["stock"]["price"]) if rows else None
+    chain, synthetic = await _build_chain_for_expiration(symbol, stock, expiration, r)
     return {
-        "symbol": symbol.upper(),
-        "spot": data["stock"]["price"],
+        "stock": stock,
         "expiration": expiration,
-        "synthetic": data["synthetic"],
-        "gex": gex,
+        "chain": chain,
+        "chains": {
+            str(expiration_idx): {
+                "expiration": expiration,
+                "chain": chain,
+                **_synthetic_marker(synthetic),
+            }
+        },
+        **_synthetic_marker(synthetic),
+        "riskFreeRate": round(r, 5),
     }
 
 
 @api_router.post("/calculate/greeks-advanced")
 async def opt_calculate_second_order_greeks(request: GreeksRequest) -> Dict[str, Any]:
-    """Second-order Greeks (vanna, charm) for the current strategy legs."""
+    """Second-order Greeks (vanna, charm) for the current strategy legs.
+
+    Vanna and charm are model output, not observed positioning, so unlike the
+    readings in `/options/positioning` they are computable from the legs alone
+    and need no open interest.
+    """
     try:
         legs_dicts = _legs_to_dicts(request.legs)
         return calculate_second_order_greeks(
@@ -4923,12 +5126,6 @@ async def opt_calculate_second_order_greeks(request: GreeksRequest) -> Dict[str,
     except Exception:
         logging.exception("Second-order Greeks calculation error")
         raise HTTPException(status_code=500, detail="Could not calculate advanced Greeks")
-
-
-@api_router.get("/options/chain/{symbol}")
-async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
-    return await _load_options_chain(symbol, expiration_idx)
-
 
 
 @api_router.get("/options/iv-surface/{symbol}")
@@ -4948,12 +5145,18 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
     if not expirations:
         expirations = generate_expirations()
     expirations = expirations[:max_expirations]
+    r = await asyncio.to_thread(get_risk_free_rate)
     surface_data = []
     all_strikes = set()
+    synthetic_expirations: List[str] = []
     for exp in expirations:
         chain = await asyncio.to_thread(get_options_chain_real, symbol, exp["date"])
         if not chain:
-            chain = generate_options_chain(stock["price"], exp["daysToExpiry"])
+            # A surface stitched from modelled smiles has a skew that was
+            # assumed, not observed. Keep it (it's still useful to explore the
+            # shape) but record exactly which expiries are made up.
+            synthetic_expirations.append(exp["date"])
+            chain = generate_options_chain(stock["price"], exp["daysToExpiry"], r=r)
         exp_data = {
             "date": exp["date"],
             "label": exp["label"],
@@ -4977,6 +5180,123 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
         "strikes": sorted_strikes,
         "atm_strike": atm_strike,
         "expirations": surface_data,
+        **_synthetic_marker(bool(synthetic_expirations)),
+        "syntheticExpirations": synthetic_expirations,
+        "riskFreeRate": round(r, 5),
+    }
+
+
+@api_router.get("/options/positioning/{symbol}")
+async def opt_get_positioning(symbol: str, expiration_idx: int = 3) -> Dict[str, Any]:
+    """Where the open interest sits: max pain, GEX, the OI profile and liquidity.
+
+    These are readings of observed positioning, so they are computed only from
+    a real chain. When the provider gives us nothing and the chain has to be
+    modelled, every metric comes back None with `synthetic: true` rather than a
+    number derived from open interest nobody reported — a fabricated max pain is
+    indistinguishable from a real one on screen, which is exactly the problem.
+    """
+    from options_positioning import (
+        max_pain, gamma_exposure, open_interest_profile, put_call_ratio,
+        chain_liquidity, atm_iv, expected_move,
+    )
+
+    stock = await asyncio.to_thread(get_stock_data, symbol)
+    if stock.get("price") is None:
+        return {
+            "stock": stock,
+            "error": stock.get("error") or f"No market data available for {symbol}.",
+            "maxPain": None, "gex": None, "openInterestProfile": None,
+            "putCallRatio": None, "liquidity": None, "expectedMove": None,
+        }
+
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
+    if not expirations:
+        expirations = generate_expirations()
+    if expiration_idx >= len(expirations):
+        expiration_idx = min(3, len(expirations) - 1)
+    expiration = expirations[expiration_idx]
+    r = await asyncio.to_thread(get_risk_free_rate)
+    chain, synthetic = await _build_chain_for_expiration(symbol, stock, expiration, r)
+
+    spot = stock["price"]
+    iv = atm_iv(chain, spot)
+    if synthetic:
+        # An expected move is a volatility statement, not a positioning one, so
+        # it survives a modelled chain — but it inherits the modelled IV and the
+        # response says so through `synthetic`.
+        return {
+            "stock": stock,
+            "expiration": expiration,
+            "maxPain": None,
+            "gex": None,
+            "openInterestProfile": None,
+            "putCallRatio": None,
+            "liquidity": None,
+            "atmIV": iv,
+            "expectedMove": expected_move(spot, iv, expiration.get("daysToExpiry")),
+            **_synthetic_marker(True),
+        }
+
+    return {
+        "stock": stock,
+        "expiration": expiration,
+        "maxPain": max_pain(chain),
+        "gex": gamma_exposure(chain, spot),
+        "openInterestProfile": open_interest_profile(chain),
+        "putCallRatio": put_call_ratio(chain),
+        "liquidity": chain_liquidity(chain),
+        "atmIV": iv,
+        "expectedMove": expected_move(spot, iv, expiration.get("daysToExpiry")),
+        **_synthetic_marker(False),
+    }
+
+
+@api_router.get("/options/term-structure/{symbol}")
+async def opt_get_term_structure(symbol: str, max_expirations: int = 8) -> Dict[str, Any]:
+    """ATM implied volatility by expiration — contango or backwardation.
+
+    The first question a premium seller asks is whether the front is rich
+    against the back, and nothing in the app answered it: the IV surface showed
+    skew across strikes but never the curve across time.
+    """
+    from options_positioning import atm_iv, term_structure
+
+    stock = await asyncio.to_thread(get_stock_data, symbol)
+    if stock.get("price") is None:
+        return {
+            "stock": stock,
+            "termStructure": None,
+            "error": stock.get("error") or f"No market data available for {symbol}.",
+        }
+
+    expirations = await asyncio.to_thread(get_available_expirations, symbol)
+    if not expirations:
+        expirations = generate_expirations()
+    expirations = expirations[:max_expirations]
+    r = await asyncio.to_thread(get_risk_free_rate)
+
+    points: List[Dict[str, Any]] = []
+    synthetic_dates: List[str] = []
+    for exp in expirations:
+        chain, synthetic = await _build_chain_for_expiration(symbol, stock, exp, r)
+        if synthetic:
+            synthetic_dates.append(exp["date"])
+        points.append(
+            {
+                "date": exp["date"],
+                "label": exp.get("label"),
+                "daysToExpiry": exp["daysToExpiry"],
+                "iv": atm_iv(chain, stock["price"]),
+                "synthetic": synthetic,
+            }
+        )
+
+    return {
+        "stock": stock,
+        "termStructure": term_structure(points),
+        **_synthetic_marker(bool(synthetic_dates)),
+        "syntheticExpirations": synthetic_dates,
     }
 
 
@@ -5001,6 +5321,66 @@ async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
     except Exception as e:
         logging.error(f"Payoff calculation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class ImpliedVolRequest(BaseModel):
+    """Back out IV from an observed option price."""
+    marketPrice: float
+    stockPrice: float
+    strike: float
+    daysToExpiry: float
+    optionType: str = Field(..., pattern="^(call|put)$")
+    dividendYield: Optional[float] = 0.0
+    riskFreeRate: Optional[float] = None
+
+
+@api_router.get("/market/risk-free")
+async def market_risk_free() -> Dict[str, Any]:
+    """Risk-free rate currently in use, with its provenance.
+
+    `market_rates` already computes this for pricing and for the journal's
+    risk-adjusted ratios, but nothing exposed it, so the UI could not tell the
+    user where the `r` behind a Greek came from — and `GreeksDisplay` was
+    printing a hardcoded 5.25% that no longer matched the backend.
+    """
+    info = await asyncio.to_thread(get_risk_free_info)
+    rate = info.get("rate") or 0.0
+    return {
+        "rate": rate,
+        "ratePct": round(rate * 100, 3),
+        "source": info.get("source"),
+        "isLive": info.get("is_live", False),
+        "fetchedAt": info.get("fetched_at"),
+    }
+
+
+@api_router.post("/calculate/implied-volatility")
+async def opt_implied_volatility(req: ImpliedVolRequest) -> Dict[str, Any]:
+    """Solve for the volatility that reproduces a given market price.
+
+    Without this the app can only consume whatever IV the data provider hands
+    over — which for illiquid strikes is garbage or a 0.30 default. Returns
+    `impliedVolatility: null` (not a fabricated number) when no volatility can
+    produce the quoted price, which usually means the quote itself is bad.
+    """
+    r = req.riskFreeRate if req.riskFreeRate is not None else await asyncio.to_thread(get_risk_free_rate)
+    T = year_fraction(req.daysToExpiry)
+    iv = implied_volatility(
+        req.marketPrice, req.stockPrice, req.strike, T, r,
+        req.optionType, req.dividendYield or 0.0,
+    )
+    return {
+        "impliedVolatility": iv,
+        "impliedVolatilityPct": round(iv * 100, 2) if iv is not None else None,
+        "timeToExpiryYears": round(T, 6),
+        "riskFreeRate": round(r, 5),
+        "solved": iv is not None,
+        "reason": None if iv is not None else (
+            "No volatility reproduces this price — the quote is outside the "
+            "no-arbitrage bounds (below intrinsic value or above the underlying), "
+            "or the contract has expired."
+        ),
+    }
 
 
 @api_router.post("/calculate/greeks")
@@ -5036,13 +5416,105 @@ async def opt_pnl_attribution(request: PnlAttributionRequest) -> Dict[str, Any]:
 
 @api_router.post("/calculate/assignment")
 async def opt_assignment(request: AssignmentRequest) -> Dict[str, Any]:
-    """Simulate exercise/assignment at expiry given a final stock price."""
+    """Simulate exercise/assignment at expiry given a final stock price.
+
+    When a dividend and its ex-date are supplied, also reports EARLY assignment
+    risk per short call. Options on US single stocks are American, and a short
+    in-the-money call whose remaining time value is worth less than an imminent
+    dividend should expect to be assigned the day before the ex-date — an event
+    the at-expiry simulation below, and Black-Scholes generally, cannot see.
+    """
     try:
+        from american_options import early_assignment_risk
+
         legs_dicts = _legs_to_dicts(request.legs)
-        return simulate_assignment(legs_dicts, request.stockPriceAtExpiry)
+        result = simulate_assignment(legs_dicts, request.stockPriceAtExpiry)
+
+        early: List[Dict[str, Any]] = []
+        if request.dividend and request.daysToExDividend is not None:
+            r = await asyncio.to_thread(get_risk_free_rate)
+            for leg in legs_dicts:
+                if leg.get("type") != "call" or leg.get("action") != "sell":
+                    continue
+                risk = early_assignment_risk(
+                    S=request.stockPriceAtExpiry,
+                    K=leg["strike"],
+                    T=year_fraction(leg.get("daysToExpiry", 30)),
+                    r=r,
+                    sigma=leg.get("iv") or 0.3,
+                    dividend=request.dividend,
+                    days_to_ex_dividend=request.daysToExDividend,
+                    q=request.dividendYield or 0.0,
+                )
+                risk["leg"] = f"SELL {leg.get('quantity', 1)} CALL ${leg['strike']}"
+                early.append(risk)
+
+        result["earlyAssignment"] = early
+        result["earlyAssignmentAtRisk"] = any(e.get("at_risk") for e in early)
+        return result
     except Exception as e:
         logging.error(f"Assignment simulation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class AmericanPriceRequest(BaseModel):
+    """Price an American option, i.e. one that can be exercised before expiry."""
+    stockPrice: float
+    strike: float
+    daysToExpiry: float
+    volatility: float
+    optionType: str = Field(..., pattern="^(call|put)$")
+    dividendYield: Optional[float] = 0.0
+    riskFreeRate: Optional[float] = None
+    method: str = Field("baw", pattern="^(baw|binomial)$")
+    steps: Optional[int] = None
+
+
+@api_router.post("/calculate/american")
+async def opt_american_price(req: AmericanPriceRequest) -> Dict[str, Any]:
+    """American price, the early-exercise premium, and tree-based Greeks.
+
+    Every listed option on a US single stock is American, so the difference
+    between this and the Black-Scholes figure elsewhere in the app is not a
+    rounding detail: for an in-the-money put, or a call over an ex-dividend
+    date, it is the entire early-exercise premium.
+    """
+    from american_options import (
+        american_price, american_greeks, early_exercise_premium, DEFAULT_BINOMIAL_STEPS,
+    )
+
+    r = req.riskFreeRate if req.riskFreeRate is not None else await asyncio.to_thread(get_risk_free_rate)
+    T = year_fraction(req.daysToExpiry)
+    q = req.dividendYield or 0.0
+    steps = req.steps or DEFAULT_BINOMIAL_STEPS
+
+    american = await asyncio.to_thread(
+        american_price, req.stockPrice, req.strike, T, r, req.volatility,
+        req.optionType, q, method=req.method, steps=steps,
+    )
+    european = option_price(req.stockPrice, req.strike, T, r, req.volatility, req.optionType, q)
+    premium = await asyncio.to_thread(
+        early_exercise_premium, req.stockPrice, req.strike, T, r, req.volatility,
+        req.optionType, q, method=req.method,
+    )
+    greeks = await asyncio.to_thread(
+        american_greeks, req.stockPrice, req.strike, T, r, req.volatility,
+        req.optionType, q, steps=steps,
+    )
+    return {
+        "americanPrice": round(american, 4),
+        "europeanPrice": round(european, 4),
+        "earlyExercisePremium": round(premium, 4),
+        "greeks": greeks,
+        "method": req.method,
+        "riskFreeRate": round(r, 5),
+        "timeToExpiryYears": round(T, 6),
+        "note": (
+            "A non-dividend-paying American call is never worth exercising early, "
+            "so its price equals the European one. The premium above is what "
+            "Black-Scholes cannot price."
+        ),
+    }
 
 
 # --- Strategy Optimizer ---
@@ -5073,8 +5545,10 @@ async def optimize_options_strategy(req: OptimizeRequest):
         idx = max(0, min(req.expirationIdx, len(expirations) - 1))
         expiration = expirations[idx]
         chain = await asyncio.to_thread(get_options_chain_real, req.symbol, expiration["date"])
+        risk_free = await asyncio.to_thread(get_risk_free_rate)
+        synthetic = not chain
         if not chain:
-            chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
+            chain = generate_options_chain(stock["price"], expiration["daysToExpiry"], r=risk_free)
 
         results = optimize_strategies(
             symbol=req.symbol,
@@ -5087,6 +5561,7 @@ async def optimize_options_strategy(req: OptimizeRequest):
             expiration_label=expiration["fullLabel"],
             mode=req.mode,
             max_results=req.maxResults,
+            risk_free=risk_free,
         )
         return {
             "stock": stock,
@@ -5098,6 +5573,8 @@ async def optimize_options_strategy(req: OptimizeRequest):
                 "mode": req.mode,
             },
             "results": results,
+            **_synthetic_marker(synthetic),
+            "riskFreeRate": round(risk_free, 5),
         }
     except Exception as e:
         logging.error(f"Optimize error: {e}")
@@ -5399,6 +5876,12 @@ class AITradeAnalysisRequest(BaseModel):
     ivRank: Optional[float] = None
     daysToExpiry: Optional[int] = 30
     userBalance: Optional[float] = None
+    # UI language, so the coach answers in the language the user is reading.
+    locale: Optional[str] = "es"
+    # Whether the chain that priced this position was modelled rather than
+    # observed. `_synthetic_marker` already flags it on the way out; without it
+    # here the coach analyses model output as if it were market data.
+    synthetic: Optional[bool] = False
 
 
 def _format_legs_for_prompt(legs: List[Dict[str, Any]]) -> List[str]:
@@ -5415,7 +5898,74 @@ def _format_legs_for_prompt(legs: List[Dict[str, Any]]) -> List[str]:
     return out
 
 
-def _build_ai_trade_prompt(req: "AITradeAnalysisRequest") -> str:
+_AI_COACH_LANGUAGES = {
+    "es": "Spanish", "en": "English", "de": "German", "fr": "French",
+    "ru": "Russian", "zh": "Chinese (Simplified)", "ja": "Japanese", "ar": "Arabic",
+}
+
+# The system prompt says what the assistant IS. The previous one claimed "15+
+# years of experience in volatility trading" — a human career the model does not
+# have, invented inside a paid financial product. It bought nothing (the
+# analysis is exactly as good either way) and cost credibility and regulatory
+# exposure. It is also where the guardrails belong: personalized investment
+# advice is a regulated activity, and a disclaimer in the site footer is not
+# where a user reads it — the response itself is.
+AI_COACH_SYSTEM_PROMPT = (
+    "You are the analysis assistant built into TradingCalculator.Pro. You are an AI, "
+    "not a person, and you never claim professional experience, credentials or a track "
+    "record. Your job is to explain what the numbers in front of the user imply about "
+    "the structure of their position and about their own trading record.\n\n"
+    "Rules you always follow:\n"
+    "- You do NOT give personalized investment advice and you do not tell the user to "
+    "buy or sell any specific instrument. You describe trade-offs and let them decide.\n"
+    "- You never invent data. If a figure is missing or flagged as an estimate, say so "
+    "rather than filling the gap.\n"
+    "- When the position carries undefined or very large downside, you say so plainly "
+    "and early, before discussing anything else.\n"
+    "- You are concrete and quantitative, you avoid hedging filler, and you never "
+    "repeat back numbers the user can already see without adding meaning to them."
+)
+
+
+def _format_user_context(analytics: Optional[Dict[str, Any]]) -> str:
+    """Render the user's own track record for the prompt.
+
+    This is what turns a generic options chatbot into something worth renewing
+    for. Without it the assistant can only restate the payoff diagram; with it
+    it can say "this is your fifth short-vol position this month and the last
+    four lost money in the same volatility regime" — a thing no generic tool
+    can tell them.
+    """
+    if not analytics or not analytics.get("closed_trades"):
+        return "\n\nTrader's own record: no closed trades logged yet — do not speculate about their habits."
+
+    lines = [
+        "\n\nTrader's OWN record (from their journal — use it, this is the part they can't get elsewhere):",
+        f"- Closed trades: {analytics.get('closed_trades')} · win rate {analytics.get('win_rate')}%",
+        f"- Expectancy {analytics.get('expectancy')} per trade · profit factor {analytics.get('profit_factor')}",
+        f"- Average R {analytics.get('avg_r')} (over {analytics.get('r_sample_size', 0)} trades with a defined stop)",
+        f"- Max drawdown {analytics.get('max_drawdown_pct')}%",
+    ]
+    if analytics.get("annualized"):
+        lines.append(f"- Sharpe {analytics.get('sharpe_ratio')} annualized "
+                     f"(~{analytics.get('trades_per_year')} trades/year)")
+    biases = analytics.get("behavioral_biases") or []
+    if biases:
+        lines.append("- Behavioural patterns already detected in their history: "
+                     + ", ".join(f"{b.get('code')} ({b.get('severity')})" for b in biases[:4]))
+    by_setup = [s for s in (analytics.get("by_setup") or []) if s.get("n", 0) >= 3][:4]
+    if by_setup:
+        lines.append("- By setup: " + "; ".join(
+            f"{s['group']}: {s['n']} trades, {s['win_rate']}% win, {s['pnl']} P&L" for s in by_setup))
+    exc = analytics.get("excursion") or {}
+    if exc.get("available") and exc.get("winners_mae_p80") is not None:
+        lines.append(f"- MAE: 80% of their winners never went more than "
+                     f"{exc['winners_mae_p80']}R against them")
+    return "\n".join(lines)
+
+
+def _build_ai_trade_prompt(req: "AITradeAnalysisRequest",
+                           analytics: Optional[Dict[str, Any]] = None) -> str:
     """Compose the markdown prompt sent to Claude. Pure / side-effect free."""
     legs_lines = _format_legs_for_prompt(req.legs)
     greeks_str = ""
@@ -5427,40 +5977,61 @@ def _build_ai_trade_prompt(req: "AITradeAnalysisRequest") -> str:
     iv_str = f"\nIV Rank: {req.ivRank:.0f}%" if req.ivRank is not None else ""
     balance_str = f"\nCapital disponible del trader: ${req.userBalance}" if req.userBalance else ""
 
-    max_profit_str = "Ilimitado" if req.stats.get("isMaxProfitUnlimited") else f"${req.stats.get('maxProfit', 0)}"
-    max_loss_str = "Ilimitado" if req.stats.get("isMaxLossUnlimited") else f"${req.stats.get('maxLoss', 0)}"
+    max_profit_str = "UNLIMITED" if req.stats.get("isMaxProfitUnlimited") else f"${req.stats.get('maxProfit', 0)}"
+    max_loss_str = "UNLIMITED" if req.stats.get("isMaxLossUnlimited") else f"${req.stats.get('maxLoss', 0)}"
 
-    return f"""Actúa como un coach de trading de opciones experto y conciso. Analiza esta operación:
+    language = _AI_COACH_LANGUAGES.get((req.locale or "es")[:2].lower(), "Spanish")
+    user_context = _format_user_context(analytics)
+    synthetic_note = (
+        "\n⚠️ The premiums and implied volatility below come from a MODELLED "
+        "chain, not from market quotes. Say so in your first line and treat the "
+        "whole analysis as an exercise.\n"
+        if req.synthetic else ""
+    )
 
-Subyacente: {req.symbol} @ ${req.stockPrice:.2f}
-Vencimiento: {req.daysToExpiry}d
+    return f"""Analyse the following options position.
+{synthetic_note}
+
+Underlying: {req.symbol} @ ${req.stockPrice:.2f}
+Days to expiry: {req.daysToExpiry}
 
 Legs:
 {chr(10).join(['  - ' + leg for leg in legs_lines])}
 
-Métricas:
-- Máx. Beneficio: {max_profit_str}
-- Máx. Pérdida: {max_loss_str}
+Position metrics:
+- Max profit: {max_profit_str}
+- Max loss: {max_loss_str}
 - POP: {req.stats.get('pop', '—')}%
 - ROI: {req.stats.get('roi', '—')}%
 - R/R: {req.stats.get('rr', '—')}
-- Capital requerido: ${req.stats.get('capitalRequired', 0)}{greeks_str}{iv_str}{balance_str}
+- Capital required: ${req.stats.get('capitalRequired', 0)}{greeks_str}{iv_str}{balance_str}{user_context}
 
-Proporciona tu análisis en ESPAÑOL con EXACTAMENTE esta estructura (Markdown):
+Write your analysis in {language}, in Markdown, with EXACTLY this structure:
 
-**✅ Puntos Fuertes**
-- (2-3 bullets concretos)
+**✅ What works**
+- (2-3 concrete bullets)
 
-**⚠️ Riesgos Principales**
-- (2-3 bullets concretos)
+**⚠️ Main risks**
+- (2-3 concrete bullets. If max loss is UNLIMITED or exceeds the trader's
+  available capital, that has to be the first bullet, stated plainly.)
 
-**💡 Mejoras Sugeridas**
-- (2-3 acciones accionables específicas: strikes distintos, ajustar contratos, hedge, rolar, etc.)
+**🔍 What your own history says**
+- (1-2 bullets connecting THIS position to the trader's record above — a setup
+  that has or hasn't worked for them, a bias this trade would repeat, a
+  drawdown this size of position would cause. If they have no logged history,
+  say so in one line instead of guessing.)
 
-**📊 Veredicto**
-Una frase final recomendando ENTRAR / AJUSTAR / EVITAR y por qué.
+**💡 Things to weigh**
+- (2-3 specific structural alternatives — different strikes, fewer contracts, a
+  defined-risk version of the same thesis, a hedge — framed as trade-offs to
+  consider, never as instructions to place.)
 
-Sé directo, profesional y práctico. No repitas los números que ya tiene el trader — analiza el SIGNIFICADO. Máximo 250 palabras totales."""
+**📊 Read**
+One sentence on whether the structure matches the stated thesis, and the single
+biggest thing that would have to be true for it to work.
+
+Be direct and quantitative. Do not restate numbers the trader can already see —
+explain what they IMPLY. Maximum 280 words."""
 
 
 @api_router.post("/options/ai-analyze")
@@ -5477,20 +6048,45 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
             raise HTTPException(status_code=500, detail="AI key not configured")
 
         client = _anthropic.Anthropic(api_key=api_key)
-        prompt = _build_ai_trade_prompt(req)
+
+        # The coach is only worth its price if it analyses the USER, not just the
+        # payoff diagram. Pull their own journal analytics into the prompt; a
+        # failure here degrades the answer but must never fail the request.
+        analytics: Optional[Dict[str, Any]] = None
+        try:
+            rows = await trades_for_user(db, user["id"], limit=500)
+            if rows:
+                enriched: List[dict] = []
+                seen: List[dict] = []
+                for t in sort_trades_chronologically(rows):
+                    e = _enrich_trade(t, prev_trades=list(seen))
+                    enriched.append(e)
+                    seen.append(e)
+                analytics = compute_analytics(enriched)
+        except Exception as ctx_err:  # noqa: BLE001
+            logging.warning(f"AI coach: could not load trader context: {ctx_err}")
+
+        prompt = _build_ai_trade_prompt(req, analytics)
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
         message = await _asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.messages.create(
-                model="claude-sonnet-4-5-20250929",
+                model=model,
                 max_tokens=1024,
-                system=(
-                    "Eres un coach de trading de opciones experto con 15+ años de experiencia "
-                    "en volatility trading. Respondes en español, directo, profesional, y basado en datos."
-                ),
+                system=AI_COACH_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
             ),
         )
-        return {"analysis": message.content[0].text, "model": "claude-sonnet-4-5"}
+        return {
+            "analysis": message.content[0].text,
+            "model": model,
+            "usedTraderContext": bool(analytics and analytics.get("closed_trades")),
+            # Shown at the point of use, not just in the footer.
+            "disclaimer": (
+                "AI-generated analysis, not investment advice. It describes the "
+                "structure of a position you built; it does not recommend trading it."
+            ),
+        }
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
@@ -5586,8 +6182,56 @@ async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume:
 
 
 # ========== EDUCATION: Live Pattern Detector ==========
-# Frontend period selectors map 1:1 to Yahoo chart ranges.
-_PATTERN_SCAN_RANGES = {"1mo", "3mo", "6mo", "1y", "2y", "5y", "ytd", "max"}
+# The legal (interval, range) pairs live in timeframes.py — Yahoo refuses most
+# combinations and answers with something our reader turns into "no rows",
+# which used to reach the UI as "no structure detected". See that module.
+
+
+def _scan_window(interval: Optional[str], period: Optional[str]) -> Dict[str, Any]:
+    """Resolve the requested timeframe and describe it for the response."""
+    tf, rng, adjustments = timeframes.resolve(interval, period)
+    return {"tf": tf, "range": rng, "adjustments": adjustments}
+
+
+def _bar_is_forming(rows: List[dict], minutes: int) -> bool:
+    """True when the last bar has not closed yet.
+
+    An unclosed bar keeps moving, so anything derived from it (a break, a new
+    swing, the level it is 'confirming') can un-happen. The scanner still uses
+    it — that is where the live price is — but the client is told, so it can
+    stop presenting a provisional break as a fact.
+    """
+    if not rows or minutes <= 0:
+        return False
+    last_ts = rows[-1].get("ts")
+    if not last_ts:
+        return False
+    return (time.time() - float(last_ts)) < minutes * 60
+
+
+def _trim_structure(res: Dict[str, Any]) -> Dict[str, Any]:
+    """Bound the arrays before they go over the wire.
+
+    A month of 5-minute candles is ~1 600 bars, which yields hundreds of swing
+    points, structure events and FVGs. `counts` already carries the totals, and
+    the UI renders at most a handful of each, so shipping the full lists is
+    pure weight on a mobile connection. Newest entries are kept (levels are
+    already sorted nearest-price-first, so those keep the head).
+    """
+    caps = {"swings": 120, "events": 120, "fvgs": 40, "breakouts": 60, "levels": 24}
+    for key, cap in caps.items():
+        rows = res.get(key)
+        if isinstance(rows, list) and len(rows) > cap:
+            res[key] = rows[:cap] if key == "levels" else rows[-cap:]
+            res.setdefault("truncated", {})[key] = len(rows)
+    return res
+
+
+@api_router.get("/education/scan-timeframes")
+async def education_scan_timeframes() -> Dict[str, Any]:
+    """The timeframe ladder the scanners accept, so the UI never offers a pair
+    the upstream provider will refuse."""
+    return {"timeframes": timeframes.ladder(), "defaultInterval": timeframes.DEFAULT_INTERVAL}
 
 
 @api_router.get("/education/pattern-catalog")
@@ -5605,19 +6249,32 @@ async def education_pattern_scan(
     """Scan real OHLC for the given ticker and return canonical candlestick
     pattern detections (educational view), enriched with reliability stats."""
     sym = symbol.upper().strip()
-    rng = period if period in _PATTERN_SCAN_RANGES else "3mo"
+    win = _scan_window(interval, period)
+    tf, rng = win["tf"], win["range"]
     try:
         # Direct Yahoo chart API (curl_cffi) — yfinance is blocked from Cloud Run.
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, interval)
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.fetch_interval)
+        rows = timeframes.resample(rows, tf.bucket_minutes)
         if not rows:
-            return {"symbol": sym, "rowsScanned": 0, "totalDetections": 0, "detections": []}
+            return {"symbol": sym, "period": rng, "interval": tf.interval,
+                    "adjustments": win["adjustments"],
+                    "rowsScanned": 0, "totalDetections": 0, "detections": []}
         detections = detect_all_patterns(rows)
+        # Cada detección se marca con la temporalidad en la que se encontró. Sin
+        # esto el cliente no puede distinguir un patrón de 15m de uno diario, y
+        # el registro persistente los mezclaba: el usuario veía "3 soldados",
+        # miraba su gráfico y no estaban, porque eran de otra temporalidad.
+        for det in detections:
+            det["interval"] = tf.interval
         # Most recent first, capped at `limit`.
         detections.reverse()
         return {
             "symbol": sym,
-            "period": period,
-            "interval": interval,
+            "period": rng,
+            "interval": tf.interval,
+            "intraday": tf.intraday,
+            "adjustments": win["adjustments"],
+            "lastBarForming": _bar_is_forming(rows, tf.minutes),
             "rowsScanned": len(rows),
             "totalDetections": len(detections),
             "detections": detections[:limit],
@@ -5630,24 +6287,40 @@ async def education_pattern_scan(
 @api_router.get("/education/structure-scan/{symbol}")
 @limiter.limit("30/minute")
 async def education_structure_scan(
-    request: Request, symbol: str, period: str = "6mo", interval: str = "1d", strength: int = 2,
+    request: Request, symbol: str, period: Optional[str] = None,
+    interval: Optional[str] = None, strength: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Scan real OHLC and return the PRICE-ACTION STRUCTURE: swing highs/lows,
     market structure (HH/HL/LH/LL → trend), Break of Structure / Change of
-    Character, support/resistance levels and Fair Value Gaps."""
+    Character, support/resistance levels (above price = resistance, below =
+    support) and Fair Value Gaps — on any rung of the timeframe ladder.
+
+    `strength` (fractal half-window) defaults to the rung's own value: a
+    2-bar fractal is right on daily bars and far too twitchy on 5-minute ones.
+    """
     sym = symbol.upper().strip()
-    rng = period if period in _PATTERN_SCAN_RANGES else "6mo"
-    strength = max(1, min(5, int(strength or 2)))
+    win = _scan_window(interval, period)
+    tf, rng = win["tf"], win["range"]
+    strn = tf.strength if strength is None else max(1, min(5, int(strength)))
+    meta = {"symbol": sym, "period": rng, "interval": tf.interval,
+            "intraday": tf.intraday, "strength": strn,
+            # Cuando la vela se compone (4h a partir de 1h) el cliente debe
+            # poder decirlo: no es lo mismo que un dato servido de origen.
+            "aggregatedFrom": tf.source_interval,
+            "adjustments": win["adjustments"]}
     try:
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, interval)
+        # 4h no lo sirve el proveedor: se pide en 1h y se compone aquí.
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.fetch_interval)
+        rows = timeframes.resample(rows, tf.bucket_minutes)
         if not rows:
-            return {"symbol": sym, "rowsScanned": 0, "trend": "range",
+            return {**meta, "rowsScanned": 0, "trend": "range",
                     "swings": [], "events": [], "levels": [], "fvgs": []}
-        res = await asyncio.to_thread(detect_structure, rows, strength)
-        return {"symbol": sym, "period": rng, "interval": interval, **res}
+        res = await asyncio.to_thread(detect_structure, rows, strn)
+        return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
+                **_trim_structure(res)}
     except Exception as e:
         logging.error(f"Structure scan error for {sym}: {e}")
-        return {"symbol": sym, "error": "scan_failed", "trend": "range",
+        return {**meta, "error": "scan_failed", "trend": "range",
                 "swings": [], "events": [], "levels": [], "fvgs": []}
 
 
@@ -5664,6 +6337,11 @@ class TradeIn(BaseModel):
     exit_price: Optional[float] = None
     sl: Optional[float] = None
     tp: Optional[float] = None
+    # Maximum adverse / favourable excursion: the worst and best price the
+    # trade reached while it was open. Optional, but they are what powers the
+    # stop/target calibration analysis.
+    mae_price: Optional[float] = None
+    mfe_price: Optional[float] = None
     quantity: float
     entry_date: Optional[str] = None
     exit_date: Optional[str] = None
@@ -5684,10 +6362,16 @@ class TradeIn(BaseModel):
     multiplier: Optional[float] = 1
 
 
-def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict:
-    """Compute pnl + errors. Output is JSON-safe (no _id)."""
+def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
+                  plan: Optional[dict] = None) -> dict:
+    """Compute pnl + errors. Output is JSON-safe (no _id).
+
+    `plan` is the user's active trading plan. Callers that have it should pass
+    it, so the trade is judged against the user's own thresholds instead of the
+    module defaults; callers that don't get exactly the legacy behaviour.
+    """
     enriched = compute_trade_pnl(trade)
-    enriched["errors"] = detect_errors(enriched, prev_trades=prev_trades)
+    enriched["errors"] = detect_errors(enriched, plan=plan, prev_trades=prev_trades)
     enriched.pop("_id", None)
     return enriched
 
@@ -5696,8 +6380,13 @@ def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict
 async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premium)):
     user_id = user["id"]
     prev = await trades_for_user(db, user_id, limit=50)
+    plan = await get_active_plan(db, user_id)
     doc = make_trade_doc(payload.model_dump(), user_id)
-    enriched = _enrich_trade(doc, prev_trades=prev)
+    # Stamped at creation and never rewritten: a later plan change must not
+    # retroactively re-judge the history it is supposed to be measured against.
+    if plan:
+        doc["plan_version"] = plan.get("version")
+    enriched = _enrich_trade(doc, prev_trades=prev, plan=plan)
     # Strip computed read-only fields before persisting (keep stored doc minimal)
     to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
     await db.trades.insert_one(to_store)
@@ -5723,10 +6412,13 @@ async def perf_bulk_create_trades(
     imported, failed = [], []
     # Fetch once; don't re-fetch inside the loop.
     prev = await trades_for_user(db, user_id, limit=100)
+    bulk_plan = await get_active_plan(db, user_id)
     for i, payload_item in enumerate(payload.trades):
         try:
             doc = make_trade_doc(payload_item.model_dump(), user_id)
-            enriched = _enrich_trade(doc, prev_trades=prev)
+            if bulk_plan:
+                doc["plan_version"] = bulk_plan.get("version")
+            enriched = _enrich_trade(doc, prev_trades=prev, plan=bulk_plan)
             to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
             await db.trades.insert_one(to_store)
             imported.append(enriched)
@@ -5755,11 +6447,12 @@ async def perf_list_trades(
         query["symbol"] = symbol.upper()
     cursor = db.trades.find(query, {"_id": 0}).sort("entry_date", -1).limit(limit)
     rows = await cursor.to_list(length=limit)
+    plan = await get_active_plan(db, user["id"])
     # Re-enrich on each fetch so updates to detection rules apply retroactively
     enriched_rows = []
     seen: List[dict] = []
     for t in reversed(rows):  # chronological order for prev_trades context
-        enriched_rows.append(_enrich_trade(t, prev_trades=list(seen)))
+        enriched_rows.append(_enrich_trade(t, prev_trades=list(seen), plan=plan))
         seen.append(enriched_rows[-1])
     enriched_rows.reverse()
     return {"trades": enriched_rows, "count": len(enriched_rows)}
@@ -5774,7 +6467,8 @@ async def perf_get_trade(trade_id: str, user: dict = Depends(require_premium)):
     if not t:
         raise HTTPException(status_code=404, detail="Trade not found")
     prev = await trades_for_user(db, user["id"], limit=50)
-    return _enrich_trade(t, prev_trades=prev)
+    plan = await get_active_plan(db, user["id"])
+    return _enrich_trade(t, prev_trades=prev, plan=plan)
 
 
 @api_router.put("/performance/trades/{trade_id}")
@@ -5813,20 +6507,336 @@ async def perf_delete_trade(trade_id: str, user: dict = Depends(require_premium)
     return {"ok": True}
 
 
+class BacktestRequest(BaseModel):
+    """Backtest a rule set over real daily history."""
+    symbol: str
+    strategy: str = Field(..., pattern="^(sma_cross|rsi_reversion|breakout)$")
+    period: str = "5y"
+    mode: str = Field("validated", pattern="^(single|validated|walk_forward)$")
+    params: Optional[Dict[str, Any]] = None
+    initialCapital: float = 10000
+    riskPct: float = 1.0
+    # Costs are parameters with non-zero defaults, never optional extras: a
+    # strategy that only works at zero cost does not work.
+    commissionPct: float = 0.05
+    slippagePct: float = 0.05
+    stopAtrMultiple: float = 2.0
+    targetAtrMultiple: float = 4.0
+    allowShort: bool = False
+    oosFraction: float = 0.3
+    windows: int = 5
+
+
+@api_router.post("/backtest/validate")
+@limiter.limit("20/minute")
+async def run_validated_backtest_endpoint(request: Request, req: BacktestRequest,
+                                          user: dict = Depends(require_premium)) -> Dict[str, Any]:
+    """Backtest a system, with the validation that decides if the result means anything.
+
+    Distinct from the older `POST /backtest`, which runs a single pass with one
+    fixed parameter set. What is added here is the part that answers "does this
+    have an edge, or did I find it by looking hard enough":
+
+    * `validated` holds a slice of history back from the parameter search and
+      evaluates on it exactly once.
+    * `walk_forward` re-optimises on a rolling basis, which is the closest thing
+      to how the system would actually have been traded.
+
+    Both report a data-snooping correction, because every parameter combination
+    tried is another chance to find something that looks good by luck.
+    """
+    from backtest import (
+        BacktestConfig, run_backtest, run_validated_backtest, walk_forward, STRATEGIES,
+    )
+
+    history = await asyncio.to_thread(get_ohlc_history, req.symbol, req.period, "1d")
+    if not history or len(history) < 200:
+        return {
+            "error": f"Not enough daily history for {req.symbol} "
+                     f"({len(history or [])} bars). At least 200 are needed.",
+            "bars": len(history or []),
+        }
+
+    bars = [
+        {
+            "date": b.get("date") or b.get("time") or str(i),
+            "open": float(b.get("open") or b.get("close") or 0),
+            "high": float(b.get("high") or b.get("close") or 0),
+            "low": float(b.get("low") or b.get("close") or 0),
+            "close": float(b.get("close") or 0),
+        }
+        for i, b in enumerate(history)
+    ]
+    bars = [b for b in bars if b["close"] > 0 and b["open"] > 0]
+
+    cfg = BacktestConfig(
+        initial_capital=req.initialCapital, risk_pct=req.riskPct,
+        commission_pct=req.commissionPct, slippage_pct=req.slippagePct,
+        stop_atr_multiple=req.stopAtrMultiple, target_atr_multiple=req.targetAtrMultiple,
+        allow_short=req.allowShort,
+    )
+
+    if req.mode == "single":
+        params = req.params or STRATEGIES[req.strategy]["defaults"]
+        result = await asyncio.to_thread(run_backtest, bars, req.strategy, params, cfg)
+    elif req.mode == "walk_forward":
+        result = await asyncio.to_thread(walk_forward, bars, req.strategy, cfg,
+                                         windows=req.windows)
+    else:
+        result = await asyncio.to_thread(run_validated_backtest, bars, req.strategy, cfg,
+                                         oos_fraction=req.oosFraction)
+
+    result["symbol"] = req.symbol.upper()
+    result["mode"] = req.mode
+    result["bars_used"] = len(bars)
+    result["disclaimer"] = (
+        "Past performance on historical data is not a prediction. This backtest "
+        "assumes fills at the next bar's open with the stated commission and "
+        "slippage; real execution, liquidity and gaps will differ."
+    )
+    return result
+
+
+@api_router.get("/backtest/strategies")
+async def list_backtest_strategies() -> Dict[str, Any]:
+    """The rule sets available to backtest, with their parameter grids."""
+    from backtest import STRATEGIES
+
+    return {
+        "strategies": [
+            {"id": sid, "defaults": spec["defaults"], "grid": spec["grid"],
+             "combinations": len(list(__import__("itertools").product(*spec["grid"].values())))}
+            for sid, spec in STRATEGIES.items()
+        ]
+    }
+
+
+class PortfolioRiskQuery(BaseModel):
+    """User-defined circuit breakers, from their own trading system rules."""
+    accountBalance: Optional[float] = None
+    maxDailyLossPct: Optional[float] = None
+    maxWeeklyLossPct: Optional[float] = None
+    correlation: Optional[float] = None
+
+
+@api_router.post("/performance/portfolio-risk")
+async def performance_portfolio_risk(req: PortfolioRiskQuery,
+                                     user: dict = Depends(require_premium)):
+    """Account-level risk: open heat, correlation, and the loss-limit state.
+
+    Everything else in the journal reasons trade by trade. This is the view a
+    prop trader checks first: how much of the account is at risk right now, how
+    much of that risk is really the same bet held several times, and whether the
+    day's or week's loss limit has already been hit.
+    """
+    from portfolio_risk import compute_open_heat, compute_loss_limits
+
+    rows = await trades_for_user(db, user["id"], limit=1000)
+    enriched = [_enrich_trade(t) for t in sort_trades_chronologically(rows)]
+
+    open_positions = [t for t in enriched if (t.get("status") or "open") == "open"]
+    closed = [t for t in enriched
+              if t.get("status") in ("closed", "sl_hit", "tp_hit")
+              and t.get("exit_price") is not None]
+
+    # Balance: explicit override, else the most recent trade's recorded balance.
+    balance = req.accountBalance
+    if balance is None:
+        with_balance = [t for t in enriched if t.get("account_balance")]
+        balance = float(with_balance[-1]["account_balance"]) if with_balance else 0.0
+
+    heat = compute_open_heat(open_positions, balance, correlation=req.correlation)
+    limits = compute_loss_limits(
+        closed, balance,
+        max_daily_loss_pct=req.maxDailyLossPct,
+        max_weekly_loss_pct=req.maxWeeklyLossPct,
+    )
+    return {"heat": heat, "limits": limits}
+
+
+class VolSizeRequest(BaseModel):
+    accountBalance: float
+    riskPct: float
+    atr: float
+    atrMultiple: Optional[float] = 2.0
+    price: Optional[float] = None
+    contractMultiplier: Optional[float] = 1.0
+
+
+@api_router.post("/calculate/volatility-size")
+async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
+    """Position size from the instrument's own volatility (ATR), not a fixed %.
+
+    A 1% stop is a different bet on an index future than on an altcoin. Sizing
+    off ATR is what makes 1R mean the same thing across instruments — without
+    it, per-trade R statistics are not comparable at all.
+    """
+    from portfolio_risk import volatility_adjusted_size
+
+    return volatility_adjusted_size(
+        req.accountBalance, req.riskPct, req.atr,
+        atr_multiple=req.atrMultiple or 2.0,
+        price=req.price,
+        contract_multiplier=req.contractMultiplier or 1.0,
+    )
+
+
 @api_router.get("/performance/analytics")
 async def performance_analytics(user: dict = Depends(require_premium)):
     rows = await trades_for_user(db, user["id"], limit=1000)
-    # Re-enrich to get fresh errors and pnl
+    # One plan lookup for the whole request: every trade is judged against the
+    # same active version, and the query does not repeat per row.
+    plan = await get_active_plan(db, user["id"])
+    # Re-enrich to get fresh errors and pnl. Enrichment is order-sensitive
+    # (revenge-trade detection needs the trades that preceded each one), so walk
+    # the history oldest-first explicitly rather than relying on the fetch order.
     enriched: List[dict] = []
     seen: List[dict] = []
-    for t in reversed(rows):
-        e = _enrich_trade(t, prev_trades=list(seen))
+    for t in sort_trades_chronologically(rows):
+        e = _enrich_trade(t, prev_trades=list(seen), plan=plan)
         enriched.append(e)
         seen.append(e)
-    enriched.reverse()
-    analytics = compute_analytics(enriched)
+    risk_free = await asyncio.to_thread(get_risk_free_rate)
+    analytics = compute_analytics(enriched, risk_free_rate=risk_free)
     insights = generate_insights(analytics)
-    return {"analytics": analytics, "insights": insights}
+    return {
+        "analytics": analytics,
+        "insights": insights,
+        # So the panel can say WHOSE rules produced those errors, and offer to
+        # write a plan to anyone still being judged by the defaults.
+        "plan": {"version": plan.get("version"), "name": plan.get("name")} if plan else None,
+        "compliance": compliance_report(enriched, plan) if plan else None,
+    }
+
+
+
+# ============= TRADING PLAN =============
+# The plan is the user's own rulebook, versioned. Everything that used to judge
+# a trade against module-level constants now reads from here — see
+# `trading_plan.py` for why that distinction matters.
+
+
+class PlanRiskIn(BaseModel):
+    """Risk limits. Only the first two have defaults; the rest are opt-in.
+
+    A limit left as None means "not declared" and its rule stays silent. It must
+    never be coerced to 0, which would read as a limit of zero and bury the user
+    in violations of rules they never wrote.
+    """
+    max_risk_pct_per_trade: Optional[float] = Field(None, gt=0, le=100)
+    min_rr: Optional[float] = Field(None, gt=0, le=100)
+    max_daily_loss_r: Optional[float] = Field(None, gt=0)
+    max_weekly_loss_r: Optional[float] = Field(None, gt=0)
+    max_consecutive_losses: Optional[int] = Field(None, gt=0, le=100)
+    max_trades_per_day: Optional[int] = Field(None, gt=0, le=500)
+    max_open_risk_r: Optional[float] = Field(None, gt=0)
+    max_correlated_positions: Optional[int] = Field(None, gt=0, le=100)
+    require_stop_loss: Optional[bool] = True
+
+
+class PlanSessionIn(BaseModel):
+    days: List[int] = Field(default_factory=lambda: [1, 2, 3, 4, 5])
+    start: str = "09:00"
+    end: str = "17:00"
+    tz: str = "UTC"
+
+
+class PlanIn(BaseModel):
+    """A trading plan as submitted by the wizard. Shape only — `trading_plan`
+    does the clamping, so a partially filled draft is always storable."""
+    name: Optional[str] = None
+    style: Optional[str] = None
+    markets: Optional[List[str]] = None
+    sessions: Optional[List[PlanSessionIn]] = None
+    timeframes: Optional[Dict[str, Any]] = None
+    approaches: Optional[List[str]] = None
+    tools: Optional[List[str]] = None
+    entry_rules: Optional[List[str]] = None
+    invalidation: Optional[str] = None
+    no_trade_conditions: Optional[List[str]] = None
+    risk: Optional[PlanRiskIn] = None
+    management: Optional[Dict[str, Any]] = None
+    review: Optional[Dict[str, Any]] = None
+    change_reason: Optional[str] = Field(None, max_length=500)
+
+
+@api_router.get("/plan")
+async def plan_get_active(user: dict = Depends(require_user)):
+    """The active plan. 404 when the user has never written one."""
+    plan = await get_active_plan(db, user["id"])
+    if not plan:
+        raise HTTPException(status_code=404, detail="No active trading plan")
+    return plan
+
+
+@api_router.get("/plan/history")
+async def plan_get_history(user: dict = Depends(require_user)):
+    """Every version, newest first, each with how many trades it governed.
+
+    The trade count is what makes the history readable: a version with 4 trades
+    under it was abandoned before it could say anything, and that is visible
+    here rather than having to be inferred.
+    """
+    versions = await list_plan_versions(db, user["id"])
+    out = []
+    for version in versions:
+        out.append({
+            **version,
+            "trades_under_plan": await count_trades_under_version(
+                db, user["id"], version.get("version")),
+        })
+    return {"versions": out, "count": len(out)}
+
+
+@api_router.post("/plan")
+async def plan_create_version(payload: PlanIn, user: dict = Depends(require_user)):
+    """Create v1, or a new version, and activate it (archiving the previous).
+
+    From v2 onward `change_reason` is required — a 422, not a silent default.
+    Plans rarely get abandoned outright; they get eroded one unrecorded
+    exception at a time, and having to type a sentence is the cheapest brake.
+    """
+    raw = payload.model_dump(exclude_none=False)
+    try:
+        plan, warning = await activate_plan(
+            db, user["id"], raw, change_reason=payload.change_reason or "")
+    except ValueError as exc:
+        if str(exc) == "change_reason_required":
+            raise HTTPException(
+                status_code=422,
+                detail="A change reason is required when replacing an existing plan",
+            )
+        raise
+    # 200 with a warning, never a 4xx: changing the plan early is the user's
+    # call. What matters is that the call is recorded and visible.
+    return {"plan": plan, "warning": warning}
+
+
+@api_router.patch("/plan/draft")
+async def plan_save_draft(payload: PlanIn, user: dict = Depends(require_user)):
+    """Save the work-in-progress plan without activating it.
+
+    Lets the 5-step wizard survive a reload without the half-written plan
+    starting to govern anything.
+    """
+    draft = await save_draft(db, user["id"], payload.model_dump(exclude_none=False))
+    return {"draft": draft}
+
+
+@api_router.get("/plan/compliance")
+async def plan_get_compliance(user: dict = Depends(require_premium)):
+    """Adherence to the active plan, costed by rule."""
+    plan = await get_active_plan(db, user["id"])
+    if not plan:
+        raise HTTPException(status_code=404, detail="No active trading plan")
+    rows = await trades_for_user(db, user["id"], limit=1000)
+    enriched: List[dict] = []
+    seen: List[dict] = []
+    for t in sort_trades_chronologically(rows):
+        e = _enrich_trade(t, prev_trades=list(seen), plan=plan)
+        enriched.append(e)
+        seen.append(e)
+    return compliance_report(enriched, plan)
 
 
 # ============= ADMIN PANEL =============
@@ -5886,9 +6896,10 @@ async def admin_list_users(
     query: Dict[str, Any] = {}
 
     if q:
+        pattern = _literal_regex(q.strip())
         query["$or"] = [
-            {"email": {"$regex": q, "$options": "i"}},
-            {"name":  {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": pattern, "$options": "i"}},
+            {"name":  {"$regex": pattern, "$options": "i"}},
         ]
     if plan:
         query["subscription_plan"] = None if plan == "none" else plan
@@ -6666,6 +7677,258 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
 
 
 # ── USAGE ANALYTICS ──────────────────────────────────────────────────────────
+# ============================================================
+#  PAYMENT RECONCILIATION  (M-40 / M-41)
+# ============================================================
+# The most expensive failure this product can have is silent: a customer pays,
+# the webhook is lost or errors, and they never get premium. Nothing is logged
+# as an error — Stripe has the money, the user has nothing, and the first signal
+# is an angry email. These endpoints surface that state instead of waiting for
+# the complaint.
+
+async def _record_webhook_seen(provider: str) -> None:
+    """Timestamp the last webhook received per provider. Never raises: a
+    bookkeeping failure must not break payment processing."""
+    try:
+        await db.webhook_health.update_one(
+            {"id": provider},
+            {"$set": {"id": provider, "provider": provider,
+                      "last_seen_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logging.warning("[webhook-health] could not record %s: %s", provider, exc)
+
+
+# A checkout older than this with no resolution is worth a human look. Long
+# enough that a slow bank redirect or a crypto confirmation isn't flagged.
+STALE_PENDING_HOURS = int(os.environ.get("PAYMENT_STALE_PENDING_HOURS", "6"))
+WEBHOOK_SILENCE_HOURS = int(os.environ.get("PAYMENT_WEBHOOK_SILENCE_HOURS", "24"))
+
+
+@api_router.get("/admin/payments/reconciliation")
+async def admin_payment_reconciliation(admin: dict = Depends(require_admin)):
+    """Cross-check money received against premium granted.
+
+    Three discrepancies, in descending order of how much they cost:
+
+      paid_not_premium  — we took the money and the user is NOT premium.
+                          This is the one that loses customers. Fixable in one
+                          click with /admin/payments/{id}/grant.
+      stale_pending     — checkout started, never resolved. Either the user
+                          abandoned it (harmless) or the webhook never arrived
+                          (not harmless). Needs a human to tell them apart.
+      premium_no_payment— premium with no paid transaction on record. Usually
+                          legitimate (manual grant, comp account, trial) but
+                          worth seeing, because it is also what a bug that
+                          grants premium for free looks like.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff_pending = (now - timedelta(hours=STALE_PENDING_HOURS)).isoformat()
+
+    txs = await db.payment_transactions.find({}, {"_id": 0}).to_list(20000)
+    users = await db.users.find({}, {"_id": 0}).to_list(20000)
+    by_id = {u.get("id"): u for u in users}
+
+    paid_not_premium, stale_pending = [], []
+    paid_user_ids = set()
+
+    for tx in txs:
+        status = (tx.get("status") or "").lower()
+        user = by_id.get(tx.get("user_id"))
+
+        if status in ("paid", "completed", "finished"):
+            paid_user_ids.add(tx.get("user_id"))
+            # check_premium() is the same helper the product uses, so this
+            # cannot drift from what the customer actually experiences.
+            if user and not check_premium(user):
+                paid_not_premium.append({
+                    "transaction_id": tx.get("id"),
+                    "user_id": tx.get("user_id"),
+                    "user_email": tx.get("user_email") or user.get("email"),
+                    "plan_id": tx.get("plan_id"),
+                    "amount": tx.get("amount"),
+                    "currency": tx.get("currency"),
+                    "payment_method": tx.get("payment_method"),
+                    "paid_at": tx.get("paid_at") or tx.get("updated_at"),
+                    "created_at": tx.get("created_at"),
+                })
+        elif status == "pending" and (tx.get("created_at") or "") < cutoff_pending:
+            stale_pending.append({
+                "transaction_id": tx.get("id"),
+                "user_id": tx.get("user_id"),
+                "user_email": tx.get("user_email"),
+                "plan_id": tx.get("plan_id"),
+                "amount": tx.get("amount"),
+                "payment_method": tx.get("payment_method"),
+                "created_at": tx.get("created_at"),
+            })
+
+    premium_no_payment = [
+        {"user_id": u.get("id"), "email": u.get("email"),
+         "subscription_plan": u.get("subscription_plan"),
+         "subscription_end": u.get("subscription_end")}
+        for u in users
+        if check_premium(u)
+        and u.get("id") not in paid_user_ids
+        and u.get("subscription_plan") not in (None, "", "free", "trial")
+    ]
+
+    # Newest first: a discrepancy from an hour ago is more actionable than one
+    # from six months ago.
+    paid_not_premium.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+    stale_pending.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+
+    return {
+        "checked_at": now.isoformat(),
+        "transactions_scanned": len(txs),
+        "stale_pending_hours": STALE_PENDING_HOURS,
+        "paid_not_premium": paid_not_premium[:200],
+        "stale_pending": stale_pending[:200],
+        "premium_no_payment": premium_no_payment[:200],
+        "counts": {
+            "paid_not_premium": len(paid_not_premium),
+            "stale_pending": len(stale_pending),
+            "premium_no_payment": len(premium_no_payment),
+        },
+    }
+
+
+@api_router.post("/admin/payments/{transaction_id}/grant")
+async def admin_payment_grant(
+    transaction_id: str,
+    request: Request,
+    admin: dict = Depends(require_admin),
+):
+    """Grant the premium a paid transaction should already have granted.
+
+    Safety rails, because this hands out paid product:
+      * the transaction must exist AND be marked paid — this can never be used
+        to comp an account, only to repair a payment that was actually taken;
+      * it is a no-op if the user is already premium (idempotent, so retrying
+        after a timeout cannot double-extend a subscription);
+      * it goes through the same _activate_paid_subscription the webhooks use,
+        so the resulting state is identical to a normal payment;
+      * it is written to the admin audit log.
+    """
+    tx = await db.payment_transactions.find_one({"id": transaction_id}, {"_id": 0})
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transacción no encontrada")
+    if (tx.get("status") or "").lower() not in ("paid", "completed", "finished"):
+        raise HTTPException(
+            status_code=400,
+            detail="Solo se puede conceder premium de una transacción pagada",
+        )
+
+    user = await db.users.find_one({"id": tx.get("user_id")}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if check_premium(user):
+        return {"ok": True, "already_premium": True, "granted": False}
+
+    plan_id = tx.get("plan_id")
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail=f"Plan desconocido: {plan_id}")
+
+    await _activate_paid_subscription(
+        user_id=user["id"], plan_id=plan_id, plan=plan,
+        transaction_id=tx.get("id"), session_id=f"admin-grant:{admin.get('email')}",
+    )
+    await log_admin_action(
+        admin=admin, action="payment_grant", target_type="user",
+        target_id=user["id"], target_email=user.get("email"),
+        details={"transaction_id": transaction_id, "plan_id": plan_id,
+                 "amount": tx.get("amount")},
+        request=request,
+    )
+    logging.info("[reconciliation] admin %s granted %s to %s (tx %s)",
+                 admin.get("email"), plan_id, user.get("email"), transaction_id)
+    return {"ok": True, "already_premium": False, "granted": True, "plan_id": plan_id}
+
+
+@api_router.get("/admin/payments/webhook-health")
+async def admin_webhook_health(admin: dict = Depends(require_admin)):
+    """Is each payment provider still talking to us?
+
+    Silence is the signal: if there are active paying subscriptions but Stripe
+    has sent nothing in 24 hours, renewals are almost certainly failing to
+    register. That state is invisible in the logs because *nothing happening*
+    produces no log line.
+    """
+    now = datetime.now(timezone.utc)
+    rows = await db.webhook_health.find({}, {"_id": 0}).to_list(100)
+    seen = {r.get("provider"): r.get("last_seen_at") for r in rows}
+
+    users = await db.users.find({}, {"_id": 0}).to_list(20000)
+    active_paid = sum(
+        1 for u in users
+        if check_premium(u) and u.get("subscription_plan") not in (None, "", "free", "trial", "lifetime")
+    )
+
+    providers = []
+    for name in ("stripe", "revolut", "nowpayments", "paypal"):
+        last = seen.get(name)
+        hours = None
+        if last:
+            try:
+                hours = round((now - datetime.fromisoformat(last)).total_seconds() / 3600, 1)
+            except (TypeError, ValueError):
+                hours = None
+        providers.append({
+            "provider": name,
+            "last_seen_at": last,
+            "hours_since": hours,
+            # Only alarm when there is something to lose: no active
+            # subscriptions means no expected traffic, so silence is normal.
+            "alert": bool(active_paid > 0 and (last is None or (hours or 0) > WEBHOOK_SILENCE_HOURS)),
+        })
+
+    return {
+        "checked_at": now.isoformat(),
+        "active_paid_subscriptions": active_paid,
+        "silence_threshold_hours": WEBHOOK_SILENCE_HOURS,
+        "providers": providers,
+        "any_alert": any(p["alert"] for p in providers),
+    }
+
+
+@api_router.get("/admin/market-data-health")
+async def admin_market_data_health(admin: dict = Depends(require_admin)):
+    """Health of the market-data providers: who is answering, who is failing,
+    and whether any circuit is open.
+
+    Every live price in the product depends on this chain, so when quotes start
+    looking wrong this is the first place to look — it tells you *which*
+    provider broke instead of leaving you guessing.
+    """
+    try:
+        import market_data
+    except Exception as exc:  # noqa: BLE001
+        return {"available": False, "error": str(exc)}
+    return {
+        "available": True,
+        "providers": market_data.provider_status(),
+        "cache": market_data.cache_stats(),
+    }
+
+
+@api_router.get("/quote/{symbol}")
+async def get_quote_with_failover(symbol: str):
+    """Single quote through the multi-provider chain (Yahoo → Finnhub → Twelve
+    Data → last known good).
+
+    The response carries ``stale`` and ``as_of``: the UI MUST show when a price
+    could not be refreshed. Showing an old price as if it were live is a legal
+    problem on a finance site, not just a cosmetic one.
+    """
+    import market_data
+    quote = await asyncio.to_thread(market_data.get_quote, symbol)
+    if quote.get("price") is None:
+        raise HTTPException(status_code=503, detail=quote.get("error") or "No market data available")
+    return quote
+
+
 @api_router.get("/admin/usage")
 async def admin_usage(admin: dict = Depends(require_admin)):
     now = datetime.now(timezone.utc)

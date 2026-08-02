@@ -1,0 +1,63 @@
+{
+  "_comment": [
+    "Bubblewrap config for the Android build (Trusted Web Activity).",
+    "A TWA is Chrome running the PWA full-screen with no browser UI — Google Play",
+    "accepts it as a real app. Regenerate the project with:",
+    "    npx @bubblewrap/cli init --manifest packaging/twa-manifest.json",
+    "    npx @bubblewrap/cli build",
+    "",
+    "BEFORE THE FIRST BUILD, two values below are placeholders and MUST be replaced:",
+    "  - signingKey.*        : create the keystore with `bubblewrap build` and KEEP IT.",
+    "                          Lose it and you can never update the app on Play again.",
+    "  - the SHA-256 fingerprint has to be copied into",
+    "    frontend/public/.well-known/assetlinks.json, or Android shows the browser",
+    "    address bar instead of a full-screen app.",
+    "See docs/PUBLICAR_EN_TIENDAS.md for the full walkthrough."
+  ],
+
+  "packageId": "com.tradingcalculatorpro.app",
+  "host": "abcde-rgb.github.io",
+  "name": "Trading Calculator PRO",
+  "launcherName": "TradeCalc PRO",
+  "display": "standalone",
+  "orientation": "any",
+  "themeColor": "#22c55e",
+  "themeColorDark": "#09090b",
+  "navigationColor": "#09090b",
+  "navigationColorDark": "#09090b",
+  "navigationDividerColor": "#09090b",
+  "navigationDividerColorDark": "#09090b",
+  "backgroundColor": "#09090b",
+  "enableNotifications": true,
+  "startUrl": "/Tradingcalculatorpro.com/?source=twa",
+  "iconUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/apple-touch-icon.png",
+  "maskableIconUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/apple-touch-icon.png",
+  "splashScreenFadeOutDuration": 300,
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/Tradingcalculatorpro.com/dashboard",
+      "chosenIconUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/apple-touch-icon.png"
+    },
+    {
+      "name": "Opciones",
+      "short_name": "Opciones",
+      "url": "/Tradingcalculatorpro.com/options",
+      "chosenIconUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/apple-touch-icon.png"
+    }
+  ],
+  "signingKey": {
+    "path": "REEMPLAZAR/android.keystore",
+    "alias": "android"
+  },
+  "fallbackType": "customtabs",
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/",
+  "minSdkVersion": 23,
+  "shareTarget": null
+}

@@ -1,7 +1,21 @@
 # ============================================================
 # TradingCalculator.pro — CI/CD: GitHub Actions → Google Cloud Run
-# Proyecto GCP: tradingcalculator-495806
-# Región: us-central1
+#
+# Proyecto GCP por defecto: tradingcalculatorpro-502817
+#
+# TODO lo específico del proyecto sale de VARIABLES DE REPOSITORIO
+# (Settings → Secrets and variables → Actions → Variables), con el proyecto
+# actual como valor por defecto. Así se puede mover el backend a otro proyecto,
+# otra región u otra instancia de Cloud SQL SIN tocar este archivo ni abrir un
+# PR — que es exactamente lo que hizo falta al cambiar de proyecto y obligó a
+# editar cinco sitios distintos:
+#
+#   GCP_PROJECT             ID del proyecto        (def. tradingcalculatorpro-502817)
+#   GCP_REGION              región de Cloud Run    (def. europe-west1)
+#   CLOUDSQL_INSTANCE       nombre de conexión     (def. <proyecto>:<región>:trading-db)
+#   RUNTIME_SERVICE_ACCOUNT cuenta de ejecución    (def. trading-backend-sa@<proyecto>...)
+#   DB_PROVIDER             "neon" para saltarse Cloud SQL
+#   MIN_INSTANCES           0 para ahorrar coste   (def. 1)
 # ============================================================
 name: Deploy Backend → Cloud Run
 
@@ -20,10 +34,12 @@ on:
 #  sin analytics y sin fallback 404.html para rutas SPA. Eliminado.)
 
 env:
-  GCP_PROJECT: tradingcalculator-495806
-  GCP_REGION: europe-west1
+  # `IMAGE` ya no vive aquí: GitHub Actions no deja que una entrada de `env`
+  # referencie a otra, así que se compone en los pasos a partir de estas dos.
+  GCP_PROJECT: ${{ vars.GCP_PROJECT || 'tradingcalculatorpro-502817' }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
   SERVICE_NAME: tradingcalculator-api
-  IMAGE: europe-west1-docker.pkg.dev/tradingcalculator-495806/trading-repo/backend
+  AR_REPO: trading-repo
 
 jobs:
   # ── 1. Tests rápidos antes de desplegar ──────────────────
@@ -133,7 +149,7 @@ jobs:
 
       # Configurar Docker para Artifact Registry
       - name: Configurar Docker Auth
-        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev" --quiet
 
       # Asegurar que el repositorio de Artifact Registry existe en la región
       # canónica. Es idempotente: si ya existe no hace nada.
@@ -142,13 +158,13 @@ jobs:
       # porque el repo solo se había creado en la región anterior.
       - name: Asegurar repositorio Artifact Registry
         run: |
-          if gcloud artifacts repositories describe trading-repo \
+          if gcloud artifacts repositories describe "${{ env.AR_REPO }}" \
                --location="${{ env.GCP_REGION }}" \
                --project="${{ env.GCP_PROJECT }}" >/dev/null 2>&1; then
-            echo "✅ Artifact Registry 'trading-repo' ya existe en ${{ env.GCP_REGION }}"
+            echo "✅ Artifact Registry '${{ env.AR_REPO }}' ya existe en ${{ env.GCP_REGION }}"
           else
-            echo "ℹ️ 'trading-repo' no existe en ${{ env.GCP_REGION }}; creándolo..."
-            gcloud artifacts repositories create trading-repo \
+            echo "ℹ️ '${{ env.AR_REPO }}' no existe en ${{ env.GCP_REGION }}; creándolo..."
+            gcloud artifacts repositories create "${{ env.AR_REPO }}" \
               --repository-format=docker \
               --location="${{ env.GCP_REGION }}" \
               --project="${{ env.GCP_PROJECT }}" \
@@ -158,17 +174,19 @@ jobs:
       # Build de la imagen Docker
       - name: Build imagen Docker
         run: |
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.AR_REPO }}/backend"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
           docker build \
-            --tag ${{ env.IMAGE }}:${{ github.sha }} \
-            --tag ${{ env.IMAGE }}:latest \
+            --tag "$IMAGE:${{ github.sha }}" \
+            --tag "$IMAGE:latest" \
             --file backend/Dockerfile \
             ./backend
 
       # Push al Artifact Registry de GCP
       - name: Push imagen a Artifact Registry
         run: |
-          docker push ${{ env.IMAGE }}:${{ github.sha }}
-          docker push ${{ env.IMAGE }}:latest
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
 
       # Deploy en Cloud Run
       - name: Deploy en Cloud Run
@@ -179,7 +197,12 @@ jobs:
           #   - "neon"              → NO monta socket; la conexión va por TCP+SSL
           #                           usando el secreto DATABASE_URL (cadena de Neon)
           # Así se puede cortar Cloud SQL SIN editar este archivo: basta cambiar la variable.
-          CLOUDSQL_ARGS=(--add-cloudsql-instances=tradingcalculator-495806:europe-west1:trading-db)
+          # El nombre de conexión de Cloud SQL es <proyecto>:<región>:<instancia>.
+          # Se puede fijar entero con la variable CLOUDSQL_INSTANCE si la
+          # instancia no se llama `trading-db` o vive en otra región.
+          SQL_INSTANCE="${{ vars.CLOUDSQL_INSTANCE }}"
+          [ -z "$SQL_INSTANCE" ] && SQL_INSTANCE="${{ env.GCP_PROJECT }}:${{ env.GCP_REGION }}:trading-db"
+          CLOUDSQL_ARGS=(--add-cloudsql-instances="$SQL_INSTANCE")
           if [ "${{ vars.DB_PROVIDER }}" = "neon" ]; then
             echo "🟢 DB_PROVIDER=neon → conexión TCP, sin socket de Cloud SQL"
             CLOUDSQL_ARGS=()
@@ -194,8 +217,14 @@ jobs:
           [ -z "$MIN_INST" ] && MIN_INST=1
           echo "min-instances=$MIN_INST"
 
+          # Cuenta de servicio con la que CORRE el servicio (distinta de la que
+          # despliega, que llega por Workload Identity).
+          RUNTIME_SA="${{ vars.RUNTIME_SERVICE_ACCOUNT }}"
+          [ -z "$RUNTIME_SA" ] && RUNTIME_SA="trading-backend-sa@${{ env.GCP_PROJECT }}.iam.gserviceaccount.com"
+          echo "proyecto=${{ env.GCP_PROJECT }} región=${{ env.GCP_REGION }} sa=$RUNTIME_SA"
+
           gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --image "$IMAGE:${{ github.sha }}" \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
@@ -209,13 +238,15 @@ jobs:
             --set-env-vars="^;^GCP_PROJECT=${{ env.GCP_PROJECT }};CORS_ORIGINS=https://abcde-rgb.github.io,https://tradingcalculatorpro.com;FRONTEND_URL=https://abcde-rgb.github.io/Tradingcalculatorpro.com;DEMO_EMAIL=demo@btccalc.pro;SENDER_EMAIL=alerts@tradingcalculatorpro.com;ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}" \
             --update-secrets="JWT_SECRET=JWT_SECRET:latest,DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,STRIPE_API_KEY=STRIPE_API_KEY:latest,SENDGRID_API_KEY=SENDGRID_API_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
             "${CLOUDSQL_ARGS[@]}" \
-            --service-account=trading-backend-sa@tradingcalculator-495806.iam.gserviceaccount.com
+            --service-account="$RUNTIME_SA" \
+            --project="${{ env.GCP_PROJECT }}"
 
       # URL del servicio desplegado
       - name: Obtener URL del servicio
         run: |
           URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.GCP_REGION }} \
+            --project "${{ env.GCP_PROJECT }}" \
             --format 'value(status.url)')
           echo "✅ Backend desplegado en: $URL"
           echo "SERVICE_URL=$URL" >> $GITHUB_OUTPUT
@@ -225,6 +256,7 @@ jobs:
         run: |
           URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.GCP_REGION }} \
+            --project "${{ env.GCP_PROJECT }}" \
             --format 'value(status.url)')
           sleep 25
           curl -f "$URL/api/health" && echo "✅ Servicio respondiendo correctamente" || echo "⚠️ Healthcheck fallido"

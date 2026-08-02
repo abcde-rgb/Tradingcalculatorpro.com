@@ -20,12 +20,21 @@ const I18N_DIR = path.join(__dirname, '..', 'src', 'lib', 'i18n');
 const REF = 'es';
 const LANGS = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar'];
 
-function loadKeys(lang) {
-  const file = path.join(I18N_DIR, `${lang}.js`);
+// The academy strings live in a separate lazily-loaded `<lang>.edu.js` chunk
+// (scripts/split-i18n-edu.js). Parity has to be checked over BOTH files, since
+// together they are what t() sees at runtime.
+function loadFile(file) {
+  if (!fs.existsSync(file)) return {};
   const src = fs.readFileSync(file, 'utf8').replace(/export\s+default\s+/, 'return ');
   // eslint-disable-next-line no-new-func
-  const obj = new Function(src)();
-  return Object.keys(obj);
+  return new Function(src)();
+}
+
+function loadKeys(lang) {
+  return Object.keys({
+    ...loadFile(path.join(I18N_DIR, `${lang}.js`)),
+    ...loadFile(path.join(I18N_DIR, `${lang}.edu.js`)),
+  });
 }
 
 const full = process.argv.includes('--full');

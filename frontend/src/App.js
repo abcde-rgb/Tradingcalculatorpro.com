@@ -8,7 +8,9 @@ import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
 import CookieBanner from "@/components/common/CookieBanner";
+import AdsBootstrap from "@/components/ads/AdsBootstrap";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import { reloadFreshShell } from "@/lib/appShell";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 // Eagerly loaded — visible immediately on first paint
@@ -22,11 +24,16 @@ import NotFoundPage from "@/pages/NotFoundPage";
 const lazyRetry = (importer) =>
   lazy(() =>
     importer().catch((err) => {
-      const KEY = "chunk_reload_at";
-      const last = Number(sessionStorage.getItem(KEY) || 0);
+      // sessionStorage throws in some privacy modes; a throw HERE would replace
+      // the ChunkLoadError with a SecurityError and skip the recovery entirely.
+      let last = 0;
+      try { last = Number(sessionStorage.getItem("chunk_reload_at") || 0); } catch { /* no-op */ }
       if (Date.now() - last > 30_000) {
-        sessionStorage.setItem(KEY, String(Date.now()));
-        window.location.reload();
+        try { sessionStorage.setItem("chunk_reload_at", String(Date.now())); } catch { /* no-op */ }
+        // Drop the service worker and its caches before reloading: a plain
+        // reload can be answered with the SAME stale shell, which 404s the same
+        // chunk again and drops the user on the error screen.
+        reloadFreshShell();
         return new Promise(() => {}); // reloading — never resolves
       }
       throw err; // second failure inside 30s → surface to the ErrorBoundary
@@ -37,9 +44,20 @@ const lazyRetry = (importer) =>
 const DashboardPage    = lazyRetry(() => import("@/pages/DashboardPage"));
 const PricingPage      = lazyRetry(() => import("@/pages/PricingPage"));
 const SettingsPage     = lazyRetry(() => import("@/pages/SettingsPage"));
-const EducationPage    = lazyRetry(() => import("@/pages/EducationPage"));
+// The academy strings live in a lazy chunk (see scripts/split-i18n-edu.js).
+// Await it alongside the page so the first render can never show a raw key.
+const EducationPage    = lazyRetry(() => Promise.all([
+  import("@/pages/EducationPage"),
+  import("@/lib/i18n").then((m) => m.loadEduDict(useI18nStore.getState().locale)),
+]).then(([mod]) => mod));
 const SubscriptionPage = lazyRetry(() => import("@/pages/SubscriptionPage"));
 const OptionsPage      = lazyRetry(() => import("@/pages/OptionsPage"));
+const OptionsHubPage   = lazyRetry(() => import("@/pages/OptionsHubPage"));
+const OptionsStrategiesIndexPage = lazyRetry(() =>
+  import("@/pages/OptionsHubPage").then((m) => ({ default: m.OptionsStrategiesIndexPage }))
+);
+const OptionsStrategyPage = lazyRetry(() => import("@/pages/OptionsStrategyPage"));
+const NewsPage         = lazyRetry(() => import("@/pages/NewsPage"));
 const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
 const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
 const AffiliatePage    = lazyRetry(() => import("@/pages/AffiliatePage"));
@@ -101,6 +119,7 @@ const AppContent = () => (
   <div className="App">
     <BrowserRouter basename={process.env.PUBLIC_URL}>
       <AnalyticsTracker />
+      <AdsBootstrap />
       <LangSync />
       <RefCapture />
       <Suspense fallback={<PageLoader />}>
@@ -111,8 +130,16 @@ const AppContent = () => (
           <Route path="/settings"        element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/education"       element={<EducationPage />} />
           <Route path="/subscription"    element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
-          <Route path="/options"         element={<OptionsPage />} />
+          {/* La referencia es pública y tiene URL propia; el workspace en vivo
+              sigue siendo premium y se ha movido a /options/calculator. Las
+              rutas más específicas van ANTES que /options/:algo para que
+              `strategies` no se coma a `calculator`. */}
+          <Route path="/options"                    element={<OptionsHubPage />} />
+          <Route path="/options/calculator"         element={<OptionsPage />} />
+          <Route path="/options/strategies"         element={<OptionsStrategiesIndexPage />} />
+          <Route path="/options/strategies/:slug"   element={<OptionsStrategyPage />} />
           <Route path="/performance"     element={<ProtectedRoute premiumOnly><PerformancePage /></ProtectedRoute>} />
+          <Route path="/news"            element={<NewsPage />} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/affiliate"       element={<ProtectedRoute><AffiliatePage /></ProtectedRoute>} />
           <Route path="/login"           element={<LoginPage />} />

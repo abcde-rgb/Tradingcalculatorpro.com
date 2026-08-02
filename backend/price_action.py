@@ -19,6 +19,10 @@ from typing import Any, Dict, List
 
 Row = Dict[str, float]
 
+# How many levels get the expensive per-bar analysis (evidence + breakouts).
+# They are sorted nearest-price-first, so this keeps the ones that matter.
+MAX_ANALYSED_LEVELS = 30
+
 
 # ---------------------------------------------------------------------------
 # 1) Swing highs / lows (fractal pivots)
@@ -120,10 +124,33 @@ def detect_structure_events(rows: List[Row], swings: List[Dict[str, Any]]) -> Li
 # 4) Support / Resistance — cluster swings within a tolerance band
 # ---------------------------------------------------------------------------
 def detect_sr_levels(swings: List[Dict[str, Any]], tolerance: float = 0.008,
-                     min_touches: int = 2) -> List[Dict[str, Any]]:
-    """Group swing points whose prices are within `tolerance` (fraction, e.g.
-    0.008 = 0.8%) of each other into horizontal levels. `touches` = swings in the
-    cluster; `strength` scales with touches. Returns strongest levels first."""
+                     min_touches: int = 2,
+                     current_price: float = None) -> List[Dict[str, Any]]:
+    """Group swing points within `tolerance` of each other into horizontal levels.
+
+    ROLE (``type``) IS DECIDED BY WHERE PRICE IS **NOW**, not by how the level
+    was formed:
+
+        level above the current price  →  resistance
+        level below the current price  →  support
+
+    That is the definition every trader uses, and the previous implementation
+    got it wrong: it labelled a level "resistance" whenever more swing HIGHS
+    than lows had formed it, regardless of price. So a ceiling that price had
+    already broken through and was now standing on kept being reported as
+    resistance — the single most misleading thing this scanner could say,
+    because it inverts the trade.
+
+    The formation origin is kept in ``origin`` (formed by highs / lows / mixed)
+    and, when origin and current role disagree, ``flipped`` is True. That is not
+    an error: it is *polarity reversal*, one of the most reliable behaviours in
+    price action (broken resistance tends to act as support, and vice versa),
+    so it is worth surfacing rather than hiding.
+
+    When ``current_price`` is None the role cannot be determined; levels come
+    back as ``pivot`` with ``flipped=False``, and the caller must not present
+    them as support or resistance.
+    """
     pts = sorted(swings, key=lambda s: s["price"])
     clusters: List[Dict[str, Any]] = []
     for s in pts:
@@ -137,22 +164,256 @@ def detect_sr_levels(swings: List[Dict[str, Any]], tolerance: float = 0.008,
                 break
         if not placed:
             clusters.append({"_ref": s["price"], "prices": [s["price"]], "types": [s["type"]]})
+
     levels = []
     for c in clusters:
         touches = len(c["prices"])
         if touches < min_touches:
             continue
+        price = round(sum(c["prices"]) / touches, 6)
         highs = c["types"].count("high")
         lows = c["types"].count("low")
-        kind = "resistance" if highs > lows else "support" if lows > highs else "pivot"
+        origin = "highs" if highs > lows else "lows" if lows > highs else "mixed"
+
+        if current_price and current_price > 0:
+            # Strictly above → resistance; strictly below → support. A level the
+            # price is sitting exactly on is neither: it is in play right now.
+            if price > current_price:
+                kind = "resistance"
+            elif price < current_price:
+                kind = "support"
+            else:
+                kind = "pivot"
+            distance_pct = round((price - current_price) / current_price * 100, 3)
+            # Origin says ceiling but price is above it (or vice versa) → the
+            # level changed hands.
+            flipped = bool(
+                (origin == "highs" and kind == "support")
+                or (origin == "lows" and kind == "resistance")
+            )
+        else:
+            kind, distance_pct, flipped = "pivot", None, False
+
         levels.append({
-            "price": round(sum(c["prices"]) / touches, 6),
+            "price": price,
             "type": kind,
+            "origin": origin,
+            "flipped": flipped,
+            "distancePct": distance_pct,
             "touches": touches,
             "strength": min(5, touches),  # 2..5+ capped
         })
-    levels.sort(key=lambda l: (-l["touches"], l["price"]))
+
+    # Nearest levels first when we know where price is — the one you are about
+    # to trade into matters more than the one from six months ago. Without a
+    # price, fall back to the old "most touched first".
+    if current_price and current_price > 0:
+        levels.sort(key=lambda l: (abs(l["distancePct"]), -l["touches"]))
+    else:
+        levels.sort(key=lambda l: (-l["touches"], l["price"]))
     return levels
+
+
+# ---------------------------------------------------------------------------
+# 4b) Annotated confirmation — the EVIDENCE behind every level and every break
+# ---------------------------------------------------------------------------
+# The scanner used to print a level and a touch count and stop there. "Support
+# at 182.40, 3 touches" says nothing about whether those touches HELD: three
+# visits that all closed straight through describe a level that no longer
+# exists. Same for a BOS — a close one tick past a swing high on the thinnest
+# bar of the week is not a break of structure, it is noise that happens to
+# cross a line.
+#
+# So every level and every event now carries a `confirmation` block: the raw
+# evidence (visits, holds, breaks, follow-through, volume, recency), a 0-100
+# score and a list of stable reason CODES. The codes are translated on the
+# client — the backend never ships prose it would then have to translate 8×.
+
+def _side(value: float, low: float, high: float) -> int:
+    """+1 above the band, -1 below it, 0 inside it."""
+    if value > high:
+        return 1
+    if value < low:
+        return -1
+    return 0
+
+
+def annotate_levels(rows: List[Row], levels: List[Dict[str, Any]],
+                    tolerance: float = 0.008) -> List[Dict[str, Any]]:
+    """Add a ``confirmation`` block to each level, from the bars themselves.
+
+    A *visit* is a run of consecutive bars whose range touches the level's
+    band, collapsed into ONE event — otherwise ten bars chopping inside the
+    band would be reported as ten independent tests, which is exactly backwards
+    (chop means the level is being eaten, not confirmed ten times over).
+
+    A visit is *held* when price leaves the band on the side it arrived from,
+    and *broken* when it leaves on the far side. Visits still in progress on
+    the last bar are neither: they are ``inPlay``.
+    """
+    n = len(rows)
+    for lv in levels:
+        price = lv.get("price") or 0.0
+        if n == 0 or price <= 0:
+            lv["confirmation"] = {"visits": 0, "held": 0, "broken": 0,
+                                  "holdRatePct": None, "barsSince": None,
+                                  "lastVisit": None, "score": 0,
+                                  "confirmed": False, "reasons": ["noData"]}
+            continue
+        low_band, high_band = price * (1 - tolerance), price * (1 + tolerance)
+
+        visits: List[Dict[str, Any]] = []
+        open_visit = None          # {"start": i, "entry": side}
+        last_side = 0
+        for i, row in enumerate(rows):
+            touching = row["high"] >= low_band and row["low"] <= high_band
+            close_side = _side(row["close"], low_band, high_band)
+            if touching and open_visit is None:
+                open_visit = {"start": i, "entry": last_side}
+            elif not touching and open_visit is not None:
+                open_visit.update(end=i - 1, exit=close_side, date=rows[i - 1].get("date"))
+                visits.append(open_visit)
+                open_visit = None
+            if close_side != 0:
+                last_side = close_side
+        if open_visit is not None:                      # still inside the band
+            open_visit.update(end=n - 1, exit=0, date=rows[-1].get("date"), inPlay=True)
+            visits.append(open_visit)
+
+        held = sum(1 for v in visits if v["entry"] != 0 and v["exit"] == v["entry"])
+        broken = sum(1 for v in visits if v["entry"] != 0 and v["exit"] == -v["entry"])
+        resolved = held + broken
+        hold_rate = (held / resolved) if resolved else None
+        bars_since = (n - 1 - visits[-1]["end"]) if visits else None
+        in_play = bool(visits and visits[-1].get("inPlay"))
+
+        reasons: List[str] = []
+        score = min(45, 15 * len(visits))
+        if len(visits) >= 3:
+            reasons.append("multiTest")
+        if hold_rate is None:
+            score += 10                                  # no verdict yet
+            reasons.append("untested")
+        else:
+            score += int(30 * hold_rate)
+            if hold_rate >= 0.66:
+                reasons.append("held")
+            elif hold_rate < 0.4:
+                reasons.append("weak")
+        if bars_since is not None:
+            if bars_since <= max(5, n * 0.10):
+                score += 15
+                reasons.append("recent")
+            elif bars_since <= n * 0.35:
+                score += 8
+            else:
+                reasons.append("stale")
+        if lv.get("flipped") and broken >= 1:
+            score += 10
+            reasons.append("flip")                       # polarity change, earned
+        if in_play:
+            reasons.append("inPlay")
+
+        score = max(0, min(100, score))
+        lv["confirmation"] = {
+            "visits": len(visits),
+            "held": held,
+            "broken": broken,
+            "holdRatePct": round(hold_rate * 100, 1) if hold_rate is not None else None,
+            "barsSince": bars_since,
+            "lastVisit": visits[-1]["date"] if visits else None,
+            "score": score,
+            # Two independent visits minimum: one visit is the swing that
+            # created the level, and a level nobody has come back to is a
+            # drawing, not a level.
+            "confirmed": bool(len(visits) >= 2 and score >= 55),
+            "reasons": reasons,
+        }
+    return levels
+
+
+def annotate_events(rows: List[Row], events: List[Dict[str, Any]],
+                    atr: float = 0.0, vol_window: int = 20) -> List[Dict[str, Any]]:
+    """Add a ``confirmation`` block to each BOS / CHoCH.
+
+    What separates a real break from a line-crossing: how far past the level it
+    closed (measured in ATR, so it means the same on 5-minute and monthly
+    bars), whether the NEXT bar stayed beyond it, whether the breaking bar was
+    an expansion bar, whether volume showed up, and whether price came back to
+    the level and respected it (the retest — the single strongest of the five).
+    """
+    n = len(rows)
+    has_vol = any((r.get("volume") or 0) > 0 for r in rows)
+    for ev in events:
+        i = ev.get("index", 0)
+        level = ev.get("price") or 0.0
+        bullish = ev.get("direction") == "bullish"
+        if not (0 <= i < n) or level <= 0:
+            ev["confirmation"] = {"score": 0, "confirmed": False, "reasons": ["noData"]}
+            continue
+        bar = rows[i]
+        reasons: List[str] = []
+        score = 0
+
+        through = abs(bar["close"] - level)
+        through_atr = round(through / atr, 2) if atr else None
+        if through_atr is not None and through_atr >= 0.25:
+            score += 25
+            reasons.append("closedThrough")
+        else:
+            score += 10
+
+        follow = False
+        if i + 1 < n:
+            nxt = rows[i + 1]["close"]
+            follow = nxt > level if bullish else nxt < level
+        if follow:
+            score += 25
+            reasons.append("followThrough")
+
+        rng = bar["high"] - bar["low"]
+        expansion = round(rng / atr, 2) if atr else None
+        if expansion is not None and expansion >= 1.2:
+            score += 15
+            reasons.append("expansion")
+
+        avg_v = _avg_vol(rows, i, vol_window) if has_vol else 0.0
+        vol_exp = round((bar.get("volume") or 0.0) / avg_v, 2) if avg_v else None
+        if vol_exp is None:
+            score += 8                                   # no volume feed (forex, indices)
+        elif vol_exp >= 1.3:
+            score += 15
+            reasons.append("volume")
+
+        retest = False
+        for k in range(i + 1, n):
+            r = rows[k]
+            if bullish and r["low"] <= level and r["close"] > level:
+                retest = True
+                break
+            if (not bullish) and r["high"] >= level and r["close"] < level:
+                retest = True
+                break
+        if retest:
+            score += 20
+            reasons.append("retest")
+
+        score = max(0, min(100, score))
+        ev["confirmation"] = {
+            "closeThroughAtr": through_atr,
+            "rangeExpansion": expansion,
+            "volExpansion": vol_exp,
+            "followThrough": follow,
+            "retested": retest,
+            "score": score,
+            # 50 is exactly "closed clearly through it AND the next bar stayed
+            # there" — the classic minimum standard for calling a break real.
+            # Anything with only one of the two lands at 35 or below and is
+            # reported as unconfirmed.
+            "confirmed": bool(score >= 50),
+            "reasons": reasons,
+        }
+    return events
 
 
 # ---------------------------------------------------------------------------
@@ -160,10 +421,31 @@ def detect_sr_levels(swings: List[Dict[str, Any]], tolerance: float = 0.008,
 # ---------------------------------------------------------------------------
 def detect_fvgs(rows: List[Row]) -> List[Dict[str, Any]]:
     """Bullish FVG: high[i-1] < low[i+1] (gap left by a fast up-move).
-    Bearish FVG: low[i-1] > high[i+1]. Marked `filled` if any later candle trades
-    back through the gap. The middle candle (i) is the impulse."""
+    Bearish FVG: low[i-1] > high[i+1]. Marked `filled` if price later trades
+    back into the gap. The middle candle (i) is the impulse.
+
+    Fill test: for a BULLISH gap price sits above it, so the gap is revisited
+    exactly when some later bar's LOW reaches the top of the gap — the running
+    minimum of the lows after the gap answers that in one pass. Symmetrically
+    for bearish gaps with the running maximum of the highs. That replaces the
+    previous O(n²) rescan (unusable at 1 500+ intraday bars) and is also
+    slightly *more* correct: a bar that blows straight through the gap without
+    its range overlapping now counts as filled, which is what actually happened
+    to the imbalance.
+    """
     out: List[Dict[str, Any]] = []
     n = len(rows)
+    if n < 3:
+        return out
+    # suffix_min_low[k] = min low over rows[k:]; suffix_max_high[k] = max high.
+    suffix_min_low = [0.0] * (n + 1)
+    suffix_max_high = [0.0] * (n + 1)
+    suffix_min_low[n] = float("inf")
+    suffix_max_high[n] = float("-inf")
+    for k in range(n - 1, -1, -1):
+        suffix_min_low[k] = min(rows[k]["low"], suffix_min_low[k + 1])
+        suffix_max_high[k] = max(rows[k]["high"], suffix_max_high[k + 1])
+
     for i in range(1, n - 1):
         p, c = rows[i - 1], rows[i + 1]
         bull = p["high"] < c["low"]
@@ -172,13 +454,14 @@ def detect_fvgs(rows: List[Row]) -> List[Dict[str, Any]]:
             continue
         if bull:
             bottom, top, direction = p["high"], c["low"], "bullish"
+            filled = suffix_min_low[i + 2] <= top
         else:
             bottom, top, direction = c["high"], p["low"], "bearish"
-        filled = any(rows[k]["low"] <= top and rows[k]["high"] >= bottom for k in range(i + 2, n))
+            filled = suffix_max_high[i + 2] >= bottom
         out.append({
             "index": i, "date": rows[i].get("date"),
             "top": round(top, 6), "bottom": round(bottom, 6),
-            "direction": direction, "filled": filled,
+            "direction": direction, "filled": bool(filled),
         })
     return out
 
@@ -271,18 +554,73 @@ def detect_breakouts(rows: List[Row], levels: List[Dict[str, Any]] = None,
 # ---------------------------------------------------------------------------
 # Public: one call → full structural read
 # ---------------------------------------------------------------------------
-def detect_structure(rows: List[Row], strength: int = 2) -> Dict[str, Any]:
-    """Full price-action structure read for a series of OHLC rows."""
+def auto_tolerance(rows: List[Row]) -> float:
+    """Level-clustering tolerance derived from the series' own volatility.
+
+    A fixed 0.8% was the previous behaviour and it only made sense on daily
+    bars. On 5-minute candles the whole session may span 1%, so 0.8% merges
+    every level into one useless blob; on a monthly chart of a volatile crypto
+    it is so tight that two touches of the same obvious ceiling land in
+    different clusters.
+
+    Half the average true range, expressed as a percentage of price, adapts on
+    its own: it widens on volatile series and tightens on quiet ones, with no
+    per-timeframe table to maintain. Clamped to [0.15%, 2.5%] so a data glitch
+    (a single absurd bar) cannot produce a nonsensical band.
+    """
+    if not rows:
+        return 0.008
+    atr = _avg_true_range(rows)
+    last_close = rows[-1].get("close") or 0.0
+    if atr <= 0 or last_close <= 0:
+        return 0.008
+    return max(0.0015, min(0.025, (atr / last_close) * 0.5))
+
+
+def detect_structure(rows: List[Row], strength: int = 2,
+                     tolerance: float = None) -> Dict[str, Any]:
+    """Full price-action structure read for a series of OHLC rows.
+
+    `tolerance` defaults to `auto_tolerance(rows)` so the same call behaves
+    sensibly on a 5-minute chart and on a monthly one.
+    """
     if not rows or len(rows) < 2 * strength + 1:
+        # Same KEYS as a full read, all empty: the client must never have to
+        # branch on "did the scan return the short shape or the long one".
         return {"trend": "range", "swings": [], "events": [], "levels": [], "fvgs": [],
-                "breakouts": [], "rowsScanned": len(rows or [])}
+                "breakouts": [], "rowsScanned": len(rows or []), "currentPrice": None,
+                "tolerancePct": None, "atr": None, "atrPct": None,
+                "nearestResistance": None, "nearestSupport": None,
+                "levelsAnalysed": 0,
+                "counts": {"swings": 0, "bos": 0, "choch": 0, "levels": 0,
+                           "resistances": 0, "supports": 0, "flipped": 0,
+                           "confirmedLevels": 0, "confirmedEvents": 0,
+                           "fvgOpen": 0, "breakouts": 0, "fakeouts": 0}}
+    current_price = rows[-1].get("close")
+    tol = auto_tolerance(rows) if tolerance is None else tolerance
+    atr = _avg_true_range(rows)
     swings = detect_swings(rows, strength=strength)
     structure = label_structure(swings)
-    events = detect_structure_events(rows, swings)
-    levels = detect_sr_levels(swings)
+    events = annotate_events(rows, detect_structure_events(rows, swings), atr=atr)
+    all_levels = detect_sr_levels(swings, tolerance=tol, current_price=current_price)
+    # Only the nearest levels get the per-bar evidence pass and the breakout
+    # scan. Both are O(levels × bars): on a 10 000-bar `max` daily series with
+    # 120+ levels that is a full CPU second spent on levels 40 % away from
+    # price that no one will ever look at. `counts` below still describes every
+    # level found; `levelsAnalysed` says how many were examined in depth.
+    levels = all_levels[:MAX_ANALYSED_LEVELS]
+    annotate_levels(rows, levels, tolerance=tol)
     fvgs = detect_fvgs(rows)
     breakouts = detect_breakouts(rows, levels, strength=strength)
     return {
+        "currentPrice": round(current_price, 6) if current_price else None,
+        "tolerancePct": round(tol * 100, 3),
+        "atr": round(atr, 6) if atr else None,
+        "atrPct": round(atr / current_price * 100, 3) if (atr and current_price) else None,
+        # Nearest level on each side — the two prices that actually matter for
+        # the next trade, so the UI doesn't have to re-derive them.
+        "nearestResistance": next((l for l in levels if l["type"] == "resistance"), None),
+        "nearestSupport": next((l for l in levels if l["type"] == "support"), None),
         "trend": structure["trend"],
         "swings": structure["swings"],
         "events": events,
@@ -290,11 +628,17 @@ def detect_structure(rows: List[Row], strength: int = 2) -> Dict[str, Any]:
         "fvgs": [g for g in fvgs if not g["filled"]] + [g for g in fvgs if g["filled"]],
         "breakouts": breakouts,
         "rowsScanned": len(rows),
+        "levelsAnalysed": len(levels),
         "counts": {
             "swings": len(swings),
             "bos": sum(1 for e in events if e["kind"] == "BOS"),
             "choch": sum(1 for e in events if e["kind"] == "CHoCH"),
-            "levels": len(levels),
+            "levels": len(all_levels),
+            "resistances": sum(1 for l in all_levels if l["type"] == "resistance"),
+            "supports": sum(1 for l in all_levels if l["type"] == "support"),
+            "flipped": sum(1 for l in all_levels if l.get("flipped")),
+            "confirmedLevels": sum(1 for l in levels if l.get("confirmation", {}).get("confirmed")),
+            "confirmedEvents": sum(1 for e in events if e.get("confirmation", {}).get("confirmed")),
             "fvgOpen": sum(1 for g in fvgs if not g["filled"]),
             "breakouts": sum(1 for b in breakouts if b["kind"] == "breakout" and b["confirmed"]),
             "fakeouts": sum(1 for b in breakouts if b["kind"] == "fakeout"),

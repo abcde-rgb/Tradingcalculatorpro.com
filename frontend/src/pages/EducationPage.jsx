@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
-import MarketTypeDetailModal from '@/components/education/MarketTypeDetailModal';
 import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
@@ -24,6 +23,8 @@ import { Link } from 'react-router-dom';
 import ExpectancyMatrix from '@/components/education/ExpectancyMatrix';
 import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
 import CandleAnatomy from '@/components/education/CandleAnatomy';
+import CandleLab from '@/components/education/CandleLab';
+import { themeForMarket, themeVars } from '@/lib/marketTheme';
 import CandlePatternFigure, { hasCandleBlueprint } from '@/components/education/CandlePatternFigure';
 import ChartPatternFigure, { hasChartFigure, ChartPatternCandleFigure } from '@/components/education/ChartPatternFigure';
 import SymVsBroadeningCard from '@/components/education/SymVsBroadeningCard';
@@ -92,6 +93,7 @@ import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
 import TailRiskVisual from '@/components/education/TailRiskVisual';
 import AuroraBackground from '@/components/landing/AuroraBackground';
+import MarketTypeModal from '@/components/education/MarketTypeModal';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -387,13 +389,13 @@ export default function EducationPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRules, setExpandedRules] = useState(new Set([1, 2, 3]));
   const [selectedPattern, setSelectedPattern] = useState(null);
-  const [selectedMarketType, setSelectedMarketType] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [patternQuery, setPatternQuery] = useState('');
   const [patternTypeFilter, setPatternTypeFilter] = useState('all');
   const [candleQuery, setCandleQuery] = useState('');
   const [candleTypeFilter, setCandleTypeFilter] = useState('all');
   const [harmonicFilter, setHarmonicFilter] = useState('all');
+  const [openMarket, setOpenMarket] = useState(null);
   const { t } = useTranslation();
 
   const isPremium = useIsPremium();
@@ -506,7 +508,7 @@ export default function EducationPage() {
   const EDUCATION_NAV = [
     { id: 'start', label: t('eduCatStart'), topics: [
       { value: 'start-here', label: t('shTitle') },
-      { value: 'my-setup', label: t('setupTab') },
+      { value: 'my-setup', label: t('tsysTitle') },
       { value: 'fundamentals', label: t('fundTab') },
       { value: 'mechanics', label: t('mechTab') },
       { value: 'styles', label: t('stylesTab') },
@@ -527,40 +529,48 @@ export default function EducationPage() {
       { value: 'chart-patterns', label: t('chartPatterns') },
       { value: 'candlesticks', label: t('candlestickPatterns') },
       { value: 'price-action', label: t('pacTitle') },
-      { value: 'gann-box', label: t('gannTitle') },
       { value: 'dow-theory', label: t('dowTheoryTitle') },
       { value: 'market-structure', label: t('msTitle') },
       { value: 'wyckoff', label: t('wyckoffTab') },
       { value: 'alt-charts', label: t('altChartTab') },
+      // Moved down and marked: our own research catalogue calls Gann
+      // "mostly unfalsifiable". Not deleted — the content is written and it
+      // already carries a myth-vs-reality note — but it should not carry the
+      // same authority as Wyckoff or market structure.
+      { value: 'gann-box', label: t('gannTitle'), evidence: 'disputed' },
     ]},
+    // 27 topics in one flat list put Elliott and order flow at exactly the same
+    // visual weight as Wolfe Waves — the pillar aimed at whoever most needs to
+    // be told what is core and what is a curiosity was the one that told them
+    // least. `group` splits them without removing a single line of content.
     { id: 'advanced', label: t('eduCatAdvanced'), topics: [
-      { value: 'elliott', label: t('ewTab') },
-      { value: 'ichimoku', label: t('ichiTab') },
-      { value: 'harmonic-patterns', label: t('harmonicPatternsTab') },
-      { value: 'smc', label: t('smcTitle') },
-      { value: 'order-flow', label: t('ofTitle') },
-      { value: 'session-timing', label: t('hzTitle') },
-      { value: 'advanced-ta', label: t('advTaTitle') },
-      { value: 'demark', label: t('dmkTitle') },
-      { value: 'ehlers', label: t('ehlTitle') },
-      { value: 'rrg', label: t('rrgTitle') },
-      { value: 'pitchfork', label: t('pfTitle') },
-      { value: 'bill-williams', label: t('bwTitle') },
-      { value: 'wolfe-waves', label: t('wlfTitle') },
-      { value: 'market-profile', label: t('mpTitle') },
-      { value: 'elder', label: t('eldTitle') },
-      { value: 'oscillators', label: t('oscTitle') },
-      { value: 'time-cycles', label: t('cycTitle') },
-      { value: 'sentiment', label: t('smTitle') },
-      { value: 'intermarket', label: t('imTitle') },
-      { value: 'forex-deep', label: t('fxTitle') },
-      { value: 'commodities', label: t('cmTitle') },
-      { value: 'crypto-deep', label: t('cyTitle') },
-      { value: 'indices', label: t('ixTitle') },
-      { value: 'macro', label: t('mcTitle') },
-      { value: 'net-liquidity', label: t('liqTitle') },
-      { value: 'breadth-cycles', label: t('bcTitle') },
-      { value: 'cot', label: t('cotTab') },
+      { value: 'elliott', label: t('ewTab'), group: 'core' },
+      { value: 'ichimoku', label: t('ichiTab'), group: 'core' },
+      { value: 'harmonic-patterns', label: t('harmonicPatternsTab'), group: 'core' },
+      { value: 'smc', label: t('smcTitle'), group: 'core' },
+      { value: 'order-flow', label: t('ofTitle'), group: 'core' },
+      { value: 'session-timing', label: t('hzTitle'), group: 'core' },
+      { value: 'advanced-ta', label: t('advTaTitle'), group: 'core' },
+      { value: 'market-profile', label: t('mpTitle'), group: 'core' },
+      { value: 'elder', label: t('eldTitle'), group: 'core' },
+      { value: 'demark', label: t('dmkTitle'), group: 'alt' },
+      { value: 'ehlers', label: t('ehlTitle'), group: 'alt' },
+      { value: 'rrg', label: t('rrgTitle'), group: 'alt' },
+      { value: 'pitchfork', label: t('pfTitle'), group: 'alt' },
+      { value: 'bill-williams', label: t('bwTitle'), group: 'alt' },
+      { value: 'wolfe-waves', label: t('wlfTitle'), group: 'alt' },
+      { value: 'oscillators', label: t('oscTitle'), group: 'alt' },
+      { value: 'time-cycles', label: t('cycTitle'), group: 'alt' },
+      { value: 'sentiment', label: t('smTitle'), group: 'macro' },
+      { value: 'intermarket', label: t('imTitle'), group: 'macro' },
+      { value: 'forex-deep', label: t('fxTitle'), group: 'macro' },
+      { value: 'commodities', label: t('cmTitle'), group: 'macro' },
+      { value: 'crypto-deep', label: t('cyTitle'), group: 'macro' },
+      { value: 'indices', label: t('ixTitle'), group: 'macro' },
+      { value: 'macro', label: t('mcTitle'), group: 'macro' },
+      { value: 'net-liquidity', label: t('liqTitle'), group: 'macro' },
+      { value: 'breadth-cycles', label: t('bcTitle'), group: 'macro' },
+      { value: 'cot', label: t('cotTab'), group: 'macro' },
     ]},
     { id: 'risk', label: t('eduCatRisk'), topics: [
       { value: 'risk', label: t('riskManagement') },
@@ -622,6 +632,16 @@ export default function EducationPage() {
     const requested = searchParams.get('topic');
     if (requested && EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === requested))) {
       setActiveTopic(requested);
+    }
+    // ?market=crypto lands straight on that market's fact sheet — the static
+    // /markets/<id>/ SEO pages link here.
+    const market = searchParams.get('market');
+    if (market) {
+      const item = TRADING_FUNDAMENTALS.marketTypes.items.find(m => m.id === market);
+      if (item) {
+        setActiveTopic('fundamentals');
+        setOpenMarket(item);
+      }
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -886,24 +906,47 @@ export default function EducationPage() {
                           </span>
                         </p>
                         <div className="space-y-0.5">
-                          {topics.map(tp => (
-                            <button
-                              key={tp.value}
-                              type="button"
-                              onClick={() => setActiveTopic(tp.value)}
-                              data-testid={`edunav-${tp.value}`}
-                              className={`w-full flex items-center justify-between gap-2 text-left px-3 py-1.5 rounded-md text-[13px] leading-snug transition-colors border-l-2 ${
-                                activeTopic === tp.value
-                                  ? 'border-primary bg-primary/10 text-primary font-medium'
-                                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
-                              }`}
-                            >
-                              <span className="min-w-0 truncate">{tp.label}</span>
-                              {eduDone.includes(tp.value) && (
-                                <CheckCircle2 className="w-3 h-3 flex-shrink-0 text-primary" />
-                              )}
-                            </button>
-                          ))}
+                          {topics.map((tp, ti) => {
+                            // Sub-header whenever the group changes, so a long
+                            // pillar reads as "core / alternative / macro"
+                            // instead of one undifferentiated wall.
+                            const prevGroup = ti > 0 ? topics[ti - 1].group : null;
+                            const showGroup = tp.group && tp.group !== prevGroup;
+                            return (
+                              <div key={tp.value}>
+                                {showGroup && (
+                                  <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                                    {t(`eduGroup_${tp.group}`)}
+                                  </p>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTopic(tp.value)}
+                                  data-testid={`edunav-${tp.value}`}
+                                  className={`w-full flex items-center justify-between gap-2 text-left px-3 py-1.5 rounded-md text-[13px] leading-snug transition-colors border-l-2 ${
+                                    activeTopic === tp.value
+                                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                  }`}
+                                >
+                                  <span className="min-w-0 truncate flex items-center gap-1.5">
+                                    {tp.label}
+                                    {tp.evidence === 'disputed' && (
+                                      <span
+                                        title={t('eduDisputedHint')}
+                                        className="flex-shrink-0 text-[8px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded border border-amber-500/40 text-amber-500/80"
+                                      >
+                                        {t('eduDisputedTag')}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {eduDone.includes(tp.value) && (
+                                    <CheckCircle2 className="w-3 h-3 flex-shrink-0 text-primary" />
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -2266,14 +2309,24 @@ export default function EducationPage() {
                       key={item.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setSelectedMarketType(item)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedMarketType(item); } }}
-                      className="bg-card border-border hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer group"
-                      data-testid={`market-type-card-${item.id}`}
+                      onClick={() => setOpenMarket(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMarket(item); }
+                      }}
+                      data-testid={`market-card-${item.id}`}
+                      /* Cada mercado con su color, ya desde la tarjeta: el oro
+                         se ve dorado antes incluso de abrirlo. */
+                      style={themeVars(themeForMarket(item.id))}
+                      className="bg-card border-border hover:border-[color:var(--mk-accent)] hover:shadow-[0_8px_28px_-8px_var(--mk-glow)] hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[color:var(--mk-accent)] focus-visible:outline-none transition-all cursor-pointer group"
                     >
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-base">
-                          <span className="text-2xl">{item.icon}</span>
+                          <span
+                            className="text-2xl w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ background: 'var(--mk-soft)' }}
+                          >
+                            {themeForMarket(item.id).emoji || item.icon}
+                          </span>
                           {item.name}
                         </CardTitle>
                       </CardHeader>
@@ -2281,14 +2334,19 @@ export default function EducationPage() {
                         <p className="text-sm text-muted-foreground leading-relaxed mb-3">{item.desc}</p>
                         <div className="flex items-center justify-between gap-2">
                           <Badge variant="secondary" className="text-xs">{item.volume}</Badge>
-                          <span className="text-[11px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                            {t('mktModalOpenDetail')} →
+                          <span className="text-[11px] font-medium text-primary opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity flex items-center gap-1">
+                            {t('mktOpenCard')} <ChevronRight className="w-3 h-3" />
                           </span>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
+                <MarketTypeModal
+                  market={openMarket}
+                  open={!!openMarket}
+                  onOpenChange={(v) => { if (!v) setOpenMarket(null); }}
+                />
               </div>
 
               {/* Market Participants */}
@@ -4528,6 +4586,9 @@ export default function EducationPage() {
             <TabsContent value="candlesticks" className="space-y-8">
               {/* Anatomy primer with SVG candles */}
               <CandleAnatomy />
+              {/* Después de VER la anatomía, tocarla: el laboratorio deja
+                  construir la vela y ver qué regla se cumple y cuál no. */}
+              <CandleLab />
 
               {/* Live pattern detector — scans real Yahoo Finance OHLC */}
               <LivePatternDetector />
@@ -5300,21 +5361,6 @@ export default function EducationPage() {
           <PatternDetailModal
             pattern={selectedPattern}
             onClose={() => setSelectedPattern(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Market-type interactive detail modal (Fundamentals) */}
-      <AnimatePresence>
-        {selectedMarketType && (
-          <MarketTypeDetailModal
-            market={selectedMarketType}
-            onClose={() => setSelectedMarketType(null)}
-            onLearnMore={(topicId) => {
-              setSelectedMarketType(null);
-              setActiveTopic(topicId);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
           />
         )}
       </AnimatePresence>

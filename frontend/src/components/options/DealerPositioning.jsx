@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Info, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import { fetchGammaExposure, calculateAdvancedGreeks } from '../../services/optionsApi';
+import { fetchPositioning, calculateAdvancedGreeks } from '../../services/optionsApi';
 
 // Compact money formatter for GEX magnitudes (they run into millions/billions).
 const compact = (v) => {
@@ -26,6 +26,11 @@ const Tile = ({ label, value, hint, color = 'text-foreground', testId }) => (
  * DealerPositioning — gamma exposure (GEX) by strike plus second-order Greeks
  * (vanna/charm) for the active strategy.
  *
+ * Reads `/options/positioning`, the single endpoint that publishes every
+ * observed-positioning metric. There is deliberately no GEX-only route: the
+ * engine lives in `options_positioning.gamma_exposure`, which also reports the
+ * flip strike and the dealer-side convention the sign depends on.
+ *
  * Honesty contract (mirrors the backend): GEX is shown ONLY when the chain has
  * real open interest. On a modelled chain the backend returns gex=null with
  * synthetic=true and we render an explicit warning instead of inventing levels.
@@ -40,7 +45,7 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
     let cancelled = false;
     if (!ticker) return undefined;
     setLoading(true);
-    fetchGammaExposure(ticker, expirationIdx).then((res) => {
+    fetchPositioning(ticker, expirationIdx).then((res) => {
       if (!cancelled) {
         setData(res);
         setLoading(false);
@@ -60,19 +65,19 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
   }, [legs, stock?.price]);
 
   const gex = data?.gex;
-  const spot = data?.spot ?? stock?.price ?? null;
+  const spot = data?.stock?.price ?? stock?.price ?? null;
 
   // Scale bars to the largest absolute exposure on the chain.
   const maxAbs = useMemo(() => {
-    if (!gex?.by_strike?.length) return 0;
-    return Math.max(...gex.by_strike.map((r) => Math.abs(r.gex)));
+    if (!gex?.byStrike?.length) return 0;
+    return Math.max(...gex.byStrike.map((r) => Math.abs(r.gex)));
   }, [gex]);
 
   // Show the strikes nearest the spot — the ones that actually matter.
   const visible = useMemo(() => {
-    if (!gex?.by_strike?.length) return [];
-    if (spot == null) return gex.by_strike.slice(0, 24);
-    return [...gex.by_strike]
+    if (!gex?.byStrike?.length) return [];
+    if (spot == null) return gex.byStrike.slice(0, 24);
+    return [...gex.byStrike]
       .sort((a, b) => Math.abs(a.strike - spot) - Math.abs(b.strike - spot))
       .slice(0, 24)
       .sort((a, b) => b.strike - a.strike);
@@ -83,7 +88,7 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
           <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Activity className="w-4 h-4" /> {t('gexTitle')}
+            <Activity className="w-4 h-4" /> {t('gexPanelTitle')}
           </h3>
           {data?.expiration?.date && (
             <span className="text-[10px] font-mono text-muted-foreground">
@@ -91,7 +96,7 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
             </span>
           )}
         </div>
-        <p className="text-[11px] text-muted-foreground/70 mb-4">{t('gexIntro')}</p>
+        <p className="text-[11px] text-muted-foreground/70 mb-4">{t('gexPanelIntro')}</p>
 
         {loading && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
@@ -104,7 +109,9 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
           <div className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-3"
             data-testid="gex-synthetic-warning">
             <AlertTriangle className="w-4 h-4 text-[#f59e0b] flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground leading-relaxed">{t('gexSyntheticWarn')}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {data.syntheticWarning || t('gexSyntheticWarn')}
+            </p>
           </div>
         )}
 
@@ -123,10 +130,12 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
                 hint={gex.total >= 0 ? t('gexPositiveHint') : t('gexNegativeHint')}
                 color={gex.total >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}
                 testId="gex-total" />
-              <Tile label={t('gexCallWall')} value={gex.call_wall}
-                hint={t('gexCallWallHint')} color="text-[#22c55e]" testId="gex-call-wall" />
-              <Tile label={t('gexPutWall')} value={gex.put_wall}
-                hint={t('gexPutWallHint')} color="text-[#ef4444]" testId="gex-put-wall" />
+              <Tile label={t('gexFlip')}
+                value={gex.flipStrike != null ? gex.flipStrike : '—'}
+                hint={t('gexFlipHint')} testId="gex-flip" />
+              <Tile label={t('gexConvention')}
+                value={gex.convention === 'dealer_long_calls' ? '+C / −P' : '−C / +P'}
+                hint={t('gexConventionHint')} testId="gex-convention" />
               <Tile label={t('gexSpot')} value={spot != null ? spot.toFixed(2) : '—'}
                 hint={t('gexSpotHint')} testId="gex-spot" />
             </div>

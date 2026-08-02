@@ -1,18 +1,21 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Clock, GitCompare, Wrench } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { STRATEGIES, STRATEGY_CATEGORIES } from '../../data/mockData';
 import {
   calculateStrategyPayoff,
   findBreakEvenPoints,
   calculateStrategyGreeks,
   probabilityOfProfit,
+  priceRangeFromExpectedMove,
+  frontDaysToExpiry,
 } from '../../utils/blackScholes';
 import { computeStrategyStats } from '../../utils/strategyStats';
 import { useTranslation } from '@/lib/i18n';
-import { fetchStock, fetchOptionsChain, fetchExpirations } from '../../services/optionsApi';
+import { fetchStock, fetchOptionsChains, fetchExpirations } from '../../services/optionsApi';
+import useRiskFreeRate from '@/hooks/useRiskFreeRate';
+import SyntheticDataBanner from './SyntheticDataBanner';
 
 import PayoffChart from './PayoffChart';
-import StrategyBar from './StrategyBar';
 import OptionsChainView from './OptionsChainView';
 import IVSurfaceView from './IVSurfaceView';
 import DealerPositioning from './DealerPositioning';
@@ -20,18 +23,18 @@ import EducationTab from './EducationTab';
 import GuideModal from './GuideModal';
 import LegEditor from './LegEditor';
 import OptimizeView from './OptimizeView';
-import ExplainTrade from './ExplainTrade';
 import UnusualActivity from './UnusualActivity';
-import AITradeCoach from './AITradeCoach';
 import MarketFlow from './MarketFlow';
-import TradeAdvancedPanel from './TradeAdvancedPanel';
 
 import BlackScholesCalculator from './BlackScholesCalculator';
 import OptionsSubHeader from './OptionsSubHeader';
 import StatsKPIBar from './StatsKPIBar';
 import CompareBar from './CompareBar';
 import EarningsBanner from './EarningsBanner';
-import AdvancedToggles from './AdvancedToggles';
+import PositionSetupBar from './PositionSetupBar';
+import GreeksStrip from './GreeksStrip';
+import SecondaryPanels from './SecondaryPanels';
+import { SectionHeading } from './SectionCard';
 
 const readPersistedNumber = (key, fallback) => {
   try {
@@ -50,13 +53,34 @@ const writePersistedNumber = (key, value) => {
   }
 };
 
+/**
+ * Estrategia pedida por la URL (`/options/calculator?strategy=pmcc`).
+ *
+ * Es lo que hace que el botón "abrir en la calculadora" de las fichas públicas
+ * de estrategia lleve a algún sitio: sin esto, el enlace aterrizaba siempre en
+ * la long call por defecto y el usuario tenía que buscar a mano entre 66.
+ */
+const strategyFromUrl = () => {
+  try {
+    const id = new URLSearchParams(window.location.search).get('strategy');
+    return (id && STRATEGIES.find((s) => s.id === id)) || null;
+  } catch {
+    return null;
+  }
+};
+
 const CalculatorPage = () => {
   const { t } = useTranslation();
   const [ticker, setTicker] = useState('AAPL');
   const [stock, setStock] = useState(null);
   const [expirations, setExpirations] = useState([]);
-  const [chain, setChain] = useState([]);
-  const [selectedStrategy, setSelectedStrategy] = useState(STRATEGIES[0]);
+  // Una cadena POR vencimiento, no una sola. Un calendar o un PMCC tienen patas
+  // en fechas distintas: con un único `chain` no se podían ni representar.
+  // Clave: índice de vencimiento; valor: { chain, synthetic }.
+  const [chains, setChains] = useState({});
+  // ¿La cadena que se está mostrando la fabricó el modelo por falta de datos reales?
+  const [chainSynthetic, setChainSynthetic] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] = useState(() => strategyFromUrl() || STRATEGIES[0]);
   const [selectedExpIdx, setSelectedExpIdx] = useState(3);
   const [selectedStrikeIdx, setSelectedStrikeIdx] = useState(15);
   const [contracts, setContracts] = useState(1);
@@ -69,9 +93,6 @@ const CalculatorPage = () => {
   const [selectedStrategyB, setSelectedStrategyB] = useState(
     STRATEGIES.find((s) => s.id === 'short_put') || STRATEGIES[1]
   );
-  const [showKelly, setShowKelly] = useState(false);
-  const [showGreeks, setShowGreeks] = useState(false);
-  const [showPortfolio, setShowPortfolio] = useState(false);
   const [nextEarnings, setNextEarnings] = useState(null);
   // Data-quality state: set when the backend cannot return real market data
   // (price === null / error) or returns estimated (non-tradeable) expirations.
@@ -134,7 +155,7 @@ const CalculatorPage = () => {
 
     (async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/options/earnings/${ticker}`);
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/options/earnings/${ticker}`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           setNextEarnings(data.nextEarnings);
@@ -158,22 +179,40 @@ const CalculatorPage = () => {
       }
     }, 15000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker]);
 
-  // Load options chain when expiration changes
+  // Cada pata puede apuntar a un vencimiento distinto, así que la lista de
+  // cadenas que hay que tener cargadas es la unión del vencimiento seleccionado
+  // y los que usen las patas. Se pide en UNA llamada.
+  const [legExpIdxs, setLegExpIdxs] = useState([]);
+  const neededExpIdxs = useMemo(() => {
+    const set = new Set([selectedExpIdx, ...legExpIdxs]);
+    return [...set].filter((i) => Number.isInteger(i) && i >= 0).sort((a, b) => a - b);
+  }, [selectedExpIdx, legExpIdxs]);
+  const neededKey = neededExpIdxs.join(',');
+
+  // Cambiar de ticker invalida TODAS las cadenas: una cadena de AAPL bajo el
+  // símbolo MSFT no es un dato viejo, es un dato de otro activo.
   useEffect(() => {
-    const loadChain = async () => {
-      if (!ticker) return;
+    setChains({});
+    setLegExpIdxs([]);
+  }, [ticker]);
+
+  // Load options chains when the ticker or the set of needed expirations changes
+  useEffect(() => {
+    const loadChains = async () => {
+      if (!ticker || neededExpIdxs.length === 0) return;
       try {
-        const data = await fetchOptionsChain(ticker, selectedExpIdx);
-        if (data?.chain) {
-          setChain(data.chain);
-          if (data.chain.length > 0 && data.stock) {
-            const closestIdx = data.chain.reduce(
+        const data = await fetchOptionsChains(ticker, neededExpIdxs);
+        if (data?.chains) {
+          setChains(data.chains);
+          setChainSynthetic(Boolean(data.synthetic));
+          const primary = data.chains[String(selectedExpIdx)]?.chain || [];
+          if (primary.length > 0 && data.stock?.price != null) {
+            const closestIdx = primary.reduce(
               (best, s, idx) =>
                 Math.abs(s.strike - data.stock.price) <
-                Math.abs(data.chain[best].strike - data.stock.price)
+                Math.abs(primary[best].strike - data.stock.price)
                   ? idx
                   : best,
               0
@@ -183,13 +222,32 @@ const CalculatorPage = () => {
         }
       } catch (e) {
         if (process.env.NODE_ENV !== 'production') {
-          console.error('[Options] error loading options chain:', e);
+          console.error('[Options] error loading options chains:', e);
         }
       }
     };
-    loadChain();
+    loadChains();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticker, selectedExpIdx]);
+  }, [ticker, neededKey]);
+
+  // La cadena "actual" — la del vencimiento seleccionado — sigue existiendo para
+  // todo lo que es mono-expiración (preset, cadena, superficie de IV).
+  const chain = useMemo(
+    () => chains[String(selectedExpIdx)]?.chain || [],
+    [chains, selectedExpIdx]
+  );
+  const chainFor = useCallback(
+    (expIdx) => chains[String(expIdx)]?.chain || [],
+    [chains]
+  );
+
+  // Al cambiar de pestaña, el navegador conservaba la posición de scroll de la
+  // anterior: se aterrizaba a media tabla de la cadena, con la cabecera ya
+  // fuera de vista. Cada pestaña empieza por arriba.
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
 
   const handleTickerSelect = useCallback((symbol) => {
     setTicker(typeof symbol === 'string' ? symbol.toUpperCase() : symbol);
@@ -199,17 +257,35 @@ const CalculatorPage = () => {
     () => expirations[selectedExpIdx] || expirations[3] || { daysToExpiry: 30 },
     [expirations, selectedExpIdx]
   );
+  // Días a vencimiento de un índice cualquiera, con respaldo en el seleccionado:
+  // una pata cuyo vencimiento aún no ha llegado del backend no debe valorarse
+  // como si venciera hoy.
+  const dteFor = useCallback(
+    (expIdx) => expirations[expIdx]?.daysToExpiry ?? currentExp.daysToExpiry,
+    [expirations, currentExp]
+  );
   const selectedStrike = chain[selectedStrikeIdx];
 
   // Build legs from strategy + selected strike (PRESET mode)
+  // `legDef.expOffset` desplaza la pata a un vencimiento posterior: es lo que
+  // convierte un vertical en un calendar o una diagonal.
   const presetLegs = useMemo(() => {
     if (!selectedStrike || !currentExp || chain.length === 0 || !stock) return [];
     return selectedStrategy.legs.map((legDef) => {
       if (legDef.type === 'stock') {
         return { type: 'stock', action: legDef.action, quantity: legDef.qty, strike: stock.price };
       }
-      const idx = Math.max(0, Math.min(chain.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
-      const strikeData = chain[idx];
+      const legExpIdx = Math.max(
+        0,
+        Math.min(
+          Math.max(0, expirations.length - 1),
+          selectedExpIdx + (legDef.expOffset || 0)
+        )
+      );
+      const legChain = chainFor(legExpIdx);
+      const source = legChain.length > 0 ? legChain : chain;
+      const idx = Math.max(0, Math.min(source.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
+      const strikeData = source[idx];
       const opt = strikeData?.[legDef.type];
       return {
         type: legDef.type,
@@ -218,10 +294,14 @@ const CalculatorPage = () => {
         strike: strikeData?.strike || 0,
         premium: opt?.mid || 0,
         iv: opt?.iv || 0.3,
-        daysToExpiry: currentExp.daysToExpiry,
+        expIdx: legExpIdx,
+        daysToExpiry: dteFor(legExpIdx),
       };
     });
-  }, [selectedStrategy, selectedStrikeIdx, chain, currentExp, stock, contracts, selectedStrike]);
+  }, [
+    selectedStrategy, selectedStrikeIdx, chain, chainFor, currentExp, stock, contracts,
+    selectedStrike, selectedExpIdx, expirations.length, dteFor,
+  ]);
 
   // Custom legs (CUSTOM mode)
   const customBuiltLegs = useMemo(() => {
@@ -235,9 +315,18 @@ const CalculatorPage = () => {
         strike: l.strike,
         premium: l.premium,
         iv: l.iv,
-        daysToExpiry: currentExp.daysToExpiry,
+        expIdx: l.expIdx ?? selectedExpIdx,
+        daysToExpiry: dteFor(l.expIdx ?? selectedExpIdx),
       }));
-  }, [customLegs, currentExp, chain, stock]);
+  }, [customLegs, currentExp, chain, stock, selectedExpIdx, dteFor]);
+
+  // Mantiene cargadas las cadenas de los vencimientos que usan las patas.
+  useEffect(() => {
+    const used = [...new Set(customLegs.map((l) => l.expIdx ?? selectedExpIdx))];
+    setLegExpIdxs((prev) =>
+      prev.length === used.length && prev.every((v, i) => v === used[i]) ? prev : used
+    );
+  }, [customLegs, selectedExpIdx]);
 
   // Active legs — always uses the Constructor.
   // Apply the global "contracts" multiplier so premium / max loss / Greeks all scale together.
@@ -263,7 +352,9 @@ const CalculatorPage = () => {
       presetLegs
         .filter((l) => l.type !== 'stock')
         .map((l, i) => {
-          const idx = chain.findIndex((s) => s.strike === l.strike);
+          const legChain = chainFor(l.expIdx ?? selectedExpIdx);
+          const source = legChain.length > 0 ? legChain : chain;
+          const idx = source.findIndex((s) => s.strike === l.strike);
           return {
             id: `seed-${Date.now()}-${i}`,
             type: l.type,
@@ -273,11 +364,15 @@ const CalculatorPage = () => {
             strike: l.strike,
             premium: l.premium,
             iv: l.iv,
+            expIdx: l.expIdx ?? selectedExpIdx,
             enabled: true,
           };
         })
     );
-  }, [customLegs.length, presetLegs, selectedStrategy.id, ticker, selectedStrikeIdx, chain]);
+  }, [
+    customLegs.length, presetLegs, selectedStrategy.id, ticker, selectedStrikeIdx,
+    chain, chainFor, selectedExpIdx,
+  ]);
 
   // Strategy B (compare mode)
   const legsB = useMemo(() => {
@@ -286,8 +381,17 @@ const CalculatorPage = () => {
       if (legDef.type === 'stock') {
         return { type: 'stock', action: legDef.action, quantity: legDef.qty * contracts, strike: stock.price };
       }
-      const idx = Math.max(0, Math.min(chain.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
-      const strikeData = chain[idx];
+      const legExpIdx = Math.max(
+        0,
+        Math.min(
+          Math.max(0, expirations.length - 1),
+          selectedExpIdx + (legDef.expOffset || 0)
+        )
+      );
+      const legChain = chainFor(legExpIdx);
+      const source = legChain.length > 0 ? legChain : chain;
+      const idx = Math.max(0, Math.min(source.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
+      const strikeData = source[idx];
       const opt = strikeData?.[legDef.type];
       return {
         type: legDef.type,
@@ -296,36 +400,68 @@ const CalculatorPage = () => {
         strike: strikeData?.strike || 0,
         premium: opt?.mid || 0,
         iv: opt?.iv || 0.3,
-        daysToExpiry: currentExp.daysToExpiry,
+        expIdx: legExpIdx,
+        daysToExpiry: dteFor(legExpIdx),
       };
     });
-  }, [compareMode, selectedStrategyB, selectedStrikeIdx, chain, currentExp, stock, contracts, selectedStrike]);
+  }, [
+    compareMode, selectedStrategyB, selectedStrikeIdx, chain, chainFor, currentExp, stock,
+    contracts, selectedStrike, selectedExpIdx, expirations.length, dteFor,
+  ]);
+
+  // El eje temporal del gráfico va anclado a la pata MÁS CERCANA, no al
+  // vencimiento seleccionado: en un calendar, el día que manda es el que vence
+  // primero, porque es cuando la posición cambia de naturaleza.
+  const chartHorizonDays = useMemo(() => {
+    const front = frontDaysToExpiry(legs);
+    return front > 0 ? front : currentExp?.daysToExpiry || 30;
+  }, [legs, currentExp]);
 
   const daysForChart = useMemo(
-    () => Math.max(0, Math.round((currentExp?.daysToExpiry || 30) * (timeSlider / 100))),
-    [currentExp, timeSlider]
+    () => Math.max(0, Math.round(chartHorizonDays * (timeSlider / 100))),
+    [chartHorizonDays, timeSlider]
+  );
+
+  // El tipo libre de riesgo real, con su procedencia. Antes se pasaba 0.05
+  // literal mientras el backend valoraba con ^IRX: Rho era decorativo y las
+  // estructuras de puro tipo (box, jelly roll, conversion) no cuadraban.
+  const { rate: riskFreeRate, ratePct: riskFreePct, source: riskFreeSource, isLive: riskFreeLive } =
+    useRiskFreeRate();
+
+  // Rango del gráfico derivado del expected move en vez del ±35% fijo: en un
+  // 0DTE el payoff salía plano en mitad del lienzo y en un LEAPS volátil se
+  // cortaba la parte donde la posición vive.
+  const priceRange = useMemo(
+    () => (stock ? priceRangeFromExpectedMove(legs, stock.price) : 0.35),
+    [legs, stock]
+  );
+  const priceRangeB = useMemo(
+    () => (stock ? priceRangeFromExpectedMove(legsB, stock.price) : 0.35),
+    [legsB, stock]
   );
 
   const payoffData = useMemo(() => {
     if (!stock || legs.length === 0) return [];
-    return calculateStrategyPayoff(legs, stock.price, 0.35, daysForChart, 0.05, dividendYield);
-  }, [legs, stock, daysForChart, dividendYield]);
+    return calculateStrategyPayoff(legs, stock.price, priceRange, daysForChart, riskFreeRate, dividendYield);
+  }, [legs, stock, priceRange, daysForChart, riskFreeRate, dividendYield]);
 
   const payoffDataB = useMemo(() => {
     if (!compareMode || !stock || legsB.length === 0) return [];
-    return calculateStrategyPayoff(legsB, stock.price, 0.35, daysForChart, 0.05, dividendYield);
-  }, [compareMode, legsB, stock, daysForChart, dividendYield]);
+    return calculateStrategyPayoff(legsB, stock.price, priceRangeB, daysForChart, riskFreeRate, dividendYield);
+  }, [compareMode, legsB, stock, priceRangeB, daysForChart, riskFreeRate, dividendYield]);
 
   const breakEvens = useMemo(() => findBreakEvenPoints(payoffData), [payoffData]);
   const greeks = useMemo(() => {
-    if (!stock || legs.length === 0) return { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 };
-    return calculateStrategyGreeks(legs, stock.price, 0.05, dividendYield);
-  }, [legs, stock, dividendYield]);
+    if (!stock || legs.length === 0) {
+      return { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0, vanna: 0, charm: 0, vomma: 0 };
+    }
+    return calculateStrategyGreeks(legs, stock.price, riskFreeRate, dividendYield);
+  }, [legs, stock, riskFreeRate, dividendYield]);
 
   const pop = useMemo(() => {
     if (!stock || legs.length === 0) return 0;
-    return probabilityOfProfit(legs, stock.price);
-  }, [legs, stock]);
+    return probabilityOfProfit(legs, stock.price, riskFreeRate, dividendYield);
+  }, [legs, stock, riskFreeRate, dividendYield]);
 
   const stats = useMemo(
     () => computeStrategyStats(payoffData, legs, stock, pop, breakEvens, commission),
@@ -335,8 +471,8 @@ const CalculatorPage = () => {
   const breakEvensB = useMemo(() => findBreakEvenPoints(payoffDataB), [payoffDataB]);
   const popB = useMemo(() => {
     if (!compareMode || !stock || legsB.length === 0) return 0;
-    return probabilityOfProfit(legsB, stock.price);
-  }, [compareMode, legsB, stock]);
+    return probabilityOfProfit(legsB, stock.price, riskFreeRate, dividendYield);
+  }, [compareMode, legsB, stock, riskFreeRate, dividendYield]);
   const statsB = useMemo(() => {
     if (!compareMode) return computeStrategyStats([], [], null, 0, []);
     return computeStrategyStats(payoffDataB, legsB, stock, popB, breakEvensB, 0);
@@ -348,11 +484,15 @@ const CalculatorPage = () => {
       type: l.type, action: l.action,
       quantity: l.quantity || 1, strike: l.strike,
       premium: l.premium || 0, iv: l.iv || 0.3,
+      // Una posición guardada puede ser multi-expiración: conservar su expIdx
+      // es lo que evita que al recargarla se aplane en un vertical.
+      expIdx: l.expIdx ?? selectedExpIdx,
       daysToExpiry: l.daysToExpiry || 30,
+      enabled: true,
     }));
     setCustomLegs(mapped);
     if (pos.symbol && pos.symbol !== ticker) setTicker(pos.symbol);
-  }, [ticker]);
+  }, [ticker, selectedExpIdx]);
 
   const handleOpenInCalculator = useCallback((result) => {
     const mappedLegs = (result.legs || []).map((leg) => ({
@@ -363,11 +503,13 @@ const CalculatorPage = () => {
       strike: leg.strike,
       premium: leg.premium || 0,
       iv: 0.3,
+      expIdx: leg.expIdx ?? selectedExpIdx,
       daysToExpiry: result.daysToExpiry || 30,
+      enabled: true,
     }));
     setCustomLegs(mappedLegs);
     setActiveTab('calculator');
-  }, []);
+  }, [selectedExpIdx]);
 
   const handleSelectStrategy = useCallback((s) => {
     setSelectedStrategy(s);
@@ -382,31 +524,43 @@ const CalculatorPage = () => {
         stock={stock}
         loading={loading}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onTickerSelect={handleTickerSelect}
         onOpenGuide={() => setShowGuide(true)}
       />
 
       <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
 
-      {dataError && (
-        <div
-          className="mx-4 mt-3 rounded-lg border border-[#ef4444]/40 bg-[#ef4444]/10 px-4 py-3"
-          data-testid="market-data-error"
-        >
-          <p className="text-sm font-semibold text-[#ef4444]">
-            {ticker}: {t('marketDataUnavailableTitle')}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{dataError}</p>
-        </div>
-      )}
+      {/* Avisos de calidad del dato — juntos y arriba del todo: condicionan la
+          lectura de TODO lo que viene después, así que no pueden aparecer
+          intercalados a mitad de página. */}
+      {(dataError || expWarning || chainSynthetic) && (
+        <div className="px-3 md:px-4 pt-3 space-y-2" data-testid="data-quality-notices">
+          {dataError && (
+            <div
+              className="rounded-lg border border-[#ef4444]/40 bg-[#ef4444]/10 px-4 py-3"
+              data-testid="market-data-error"
+            >
+              <p className="text-sm font-semibold text-[#ef4444]">
+                {ticker}: {t('marketDataUnavailableTitle')}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{dataError}</p>
+            </div>
+          )}
 
-      {expWarning && (
-        <div
-          className="mx-4 mt-3 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-4 py-2.5"
-          data-testid="estimated-expirations-warning"
-        >
-          <p className="text-xs font-semibold text-[#f59e0b]">{expWarning}</p>
+          {expWarning && (
+            <div
+              className="rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-4 py-2.5"
+              data-testid="estimated-expirations-warning"
+            >
+              <p className="text-xs font-semibold text-[#f59e0b]">{expWarning}</p>
+            </div>
+          )}
+
+          {/* La cadena real se protege sola cuando no hay precio, pero cuando SÍ
+              hay precio y el proveedor no devuelve cadena, el backend la fabrica.
+              Ese caso llega marcado y hay que avisar antes de que nadie calcule. */}
+          <SyntheticDataBanner synthetic={chainSynthetic} />
         </div>
       )}
 
@@ -418,7 +572,6 @@ const CalculatorPage = () => {
         <OptionsChainView
           chain={chain}
           stockPrice={stock?.price}
-          expiration={currentExp}
           expirations={expirations}
           selectedExpIdx={selectedExpIdx}
           onExpChange={setSelectedExpIdx}
@@ -450,77 +603,56 @@ const CalculatorPage = () => {
       )}
 
       {activeTab === 'flow' && (
-        <div className="space-y-0">
+        <div className="p-3 md:p-4 space-y-3">
           <UnusualActivity symbol={ticker} />
-          <div className="px-4 pb-4">
-            <MarketFlow
-              onSelectSymbol={(sym) => {
-                setTicker(sym);
-                setActiveTab('calculator');
-              }}
-            />
-          </div>
+          <MarketFlow
+            onSelectSymbol={(sym) => {
+              setTicker(sym);
+              setActiveTab('calculator');
+            }}
+          />
         </div>
       )}
 
       {activeTab === 'calculator' && (
-        <>
+        <div className="p-3 md:p-4 space-y-5" data-testid="options-calculator-body">
           <EarningsBanner
             nextEarnings={nextEarnings}
             daysToExpiry={currentExp?.daysToExpiry}
           />
 
-          {/* Strategy preset bar with compare-mode toggle (rendered inline in
-              the filter row — the old absolute overlay collided with the
-              category pills on small screens) */}
-          <StrategyBar
-            strategies={STRATEGIES}
-            categories={STRATEGY_CATEGORIES}
-            selected={selectedStrategy}
-            onSelect={handleSelectStrategy}
-            rightSlot={
-              <button
-                onClick={() => setCompareMode((v) => !v)}
-                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-full text-[10px] font-bold transition-all border ${
-                  compareMode
-                    ? 'bg-[#a855f7]/20 border-[#a855f7]/50 text-[#c084fc]'
-                    : 'bg-[#a855f7]/10 border-[#a855f7]/25 text-[#c084fc] hover:bg-[#a855f7]/20'
-                }`}
-                data-testid="compare-toggle"
-              >
-                <GitCompare className="w-3 h-3" />
-                <span className="whitespace-nowrap">{compareMode ? t('optComparing') : t('optCompareToggle')}</span>
-              </button>
-            }
-          />
+          {/* ═══ 1 · Configura la posición ═════════════════════════════
+              Estrategia, vencimiento y contratos: las tres decisiones que
+              definen todo lo demás, juntas y en el orden en que se toman. */}
+          <section>
+            <SectionHeading step={1} title={t('optStepSetup')} hint={t('optStepSetupHint')} />
+            <PositionSetupBar
+              strategies={STRATEGIES}
+              categories={STRATEGY_CATEGORIES}
+              selectedStrategy={selectedStrategy}
+              onSelectStrategy={handleSelectStrategy}
+              expirations={expirations}
+              selectedExpIdx={selectedExpIdx}
+              onExpChange={setSelectedExpIdx}
+              contracts={contracts}
+              onContractsChange={setContracts}
+              compareMode={compareMode}
+              onToggleCompare={() => setCompareMode((v) => !v)}
+            />
+          </section>
 
-          {/* Constructor multi-leg header */}
-          <div className="bg-card border-b border-border px-5 py-2 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-[#f59e0b]" />
-              <h3 className="text-sm font-bold text-foreground">{t('optConstructorTitle')}</h3>
-            </div>
-            <span className="text-[10px] bg-[#f59e0b]/10 px-2 py-0.5 rounded-full text-[#fbbf24] font-semibold">
-              {customLegs.filter((l) => l.enabled).length} {t('optLegs')}
-            </span>
-            <span className="text-[10px] text-muted-foreground ml-2">· {t('optConstructorHint')}</span>
-          </div>
-
-          <div className="flex flex-col lg:flex-row">
-            <div className="flex-1 flex flex-col p-3 gap-2.5 min-w-0">
-              <StatsKPIBar
-                stats={stats}
-                breakEvens={breakEvens}
-                legs={legs}
-                ticker={ticker}
-                currentExp={currentExp}
-                commission={commission}
-                onCommissionChange={setCommission}
-                contracts={contracts}
-                onContractsChange={setContracts}
-              />
-
-              {compareMode && (
+          {/* ═══ 2 · Resultado ═════════════════════════════════════════
+              Lo que decide si la operación entra o no. Va inmediatamente
+              después de la configuración y antes que cualquier gráfico. */}
+          <section>
+            <SectionHeading step={2} title={t('optStepResult')} hint={t('optStepResultHint')} />
+            <StatsKPIBar
+              stats={stats}
+              breakEvens={breakEvens}
+              currentExp={currentExp}
+            />
+            {compareMode && (
+              <div className="mt-2">
                 <CompareBar
                   strategies={STRATEGIES}
                   categories={STRATEGY_CATEGORIES}
@@ -530,122 +662,116 @@ const CalculatorPage = () => {
                   stats={stats}
                   statsB={statsB}
                 />
-              )}
-
-              {/* Chart — fixed tall height for prominence */}
-              <div className="bg-card rounded-xl border border-border p-4 h-[520px]">
-                <PayoffChart
-                  data={payoffData}
-                  breakEvens={breakEvens}
-                  stockPrice={stock?.price}
-                  legs={legs}
-                  dataB={compareMode ? payoffDataB : null}
-                  labelA={t(selectedStrategy.name)}
-                  labelB={t(selectedStrategyB.name)}
-                  title={
-                    compareMode
-                      ? `${t(selectedStrategy.name)} vs ${t(selectedStrategyB.name)} — ${ticker}`
-                      : `${t(selectedStrategy.name)} — ${ticker}`
-                  }
-                />
               </div>
+            )}
+          </section>
 
-              {/* Time slider */}
-              <div className="flex items-center gap-3 bg-card/60 rounded-lg border border-border/60 px-3 py-2">
-                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t('vencimiento_91e0e1')}</span>
-                <div className="flex-1 relative">
-                  <input
-                    type="range" min={0} max={100} value={timeSlider}
-                    onChange={(e) => setTimeSlider(parseInt(e.target.value))}
-                    className="w-full"
+          {/* ═══ 3 · Gráfico y patas ═══════════════════════════════════
+              Se editan mirando el gráfico, así que van lado a lado en
+              escritorio y apilados en móvil. El deslizador de tiempo vive
+              DENTRO de la tarjeta del gráfico: antes flotaba suelto debajo,
+              sin decir a qué afectaba. */}
+          <section>
+            <SectionHeading step={3} title={t('optStepChart')} hint={t('optStepChartHint')} />
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-3">
+              <div className="bg-card rounded-xl border border-border flex flex-col overflow-hidden">
+                <div className="p-4 h-[420px] md:h-[480px]">
+                  <PayoffChart
+                    data={payoffData}
+                    breakEvens={breakEvens}
+                    stockPrice={stock?.price}
+                    legs={legs}
+                    dataB={compareMode ? payoffDataB : null}
+                    labelA={t(selectedStrategy.name)}
+                    labelB={t(selectedStrategyB.name)}
+                    title={
+                      compareMode
+                        ? `${t(selectedStrategy.name)} vs ${t(selectedStrategyB.name)} — ${ticker}`
+                        : `${t(selectedStrategy.name)} — ${ticker}`
+                    }
                   />
                 </div>
-                <span className="text-xs font-mono font-bold text-foreground min-w-[44px] text-right">
-                  {daysForChart}d
-                </span>
-                <span className="text-[10px] text-muted-foreground">/ {currentExp?.daysToExpiry}d</span>
-              </div>
-
-              <ExplainTrade legs={legs} stock={stock} breakEvens={breakEvens} stats={stats} />
-
-              <AITradeCoach
-                symbol={ticker}
-                stock={stock}
-                legs={legs}
-                stats={stats}
-                greeks={greeks}
-                daysToExpiry={currentExp?.daysToExpiry}
-                balance={accountBalance}
-              />
-            </div>
-
-            <aside className="w-full lg:w-[272px] lg:min-w-[272px] bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col">
-              <div className="p-4 border-b border-border">
-                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">
-                  {t('optExpirationDate')}
-                </label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {expirations.slice(0, 9).map((exp, idx) => (
-                    <button
-                      key={exp.date}
-                      onClick={() => setSelectedExpIdx(idx)}
-                      className={`px-1.5 py-2 rounded-lg text-center transition-all text-[11px] ${
-                        selectedExpIdx === idx
-                          ? 'bg-primary/15 text-primary border border-primary/40 font-semibold'
-                          : 'bg-muted text-muted-foreground border border-border hover:border-border hover:text-foreground'
-                      }`}
-                    >
-                      <div className="font-medium">{exp.label}</div>
-                      <div className="text-[9px] opacity-60 mt-0.5">{exp.daysToExpiry}d</div>
-                    </button>
-                  ))}
+                <div className="border-t border-border px-4 py-2.5 flex items-center gap-3">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  <label htmlFor="time-slider" className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {t('optTimeSliderLabel')}
+                  </label>
+                  <input
+                    id="time-slider"
+                    type="range" min={0} max={100} value={timeSlider}
+                    onChange={(e) => setTimeSlider(parseInt(e.target.value, 10))}
+                    className="flex-1 min-w-0"
+                    data-testid="time-slider"
+                  />
+                  <span className="text-xs font-mono font-bold text-foreground tabular-nums whitespace-nowrap">
+                    {daysForChart}d
+                    <span className="text-muted-foreground font-normal"> / {chartHorizonDays}d</span>
+                  </span>
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col overflow-hidden">
+              {/* En xl la celda se estira sola hasta la altura de la columna
+                  del gráfico (grid con align stretch); en móvil se le da una
+                  altura fija para que la lista tenga su propio scroll en vez
+                  de alargar la página con 6 patas. */}
+              <div className="bg-card rounded-xl border border-border overflow-hidden h-[420px] xl:h-auto">
                 <LegEditor
                   legs={customLegs}
                   chain={chain}
+                  chains={chains}
+                  expirations={expirations}
+                  defaultExpIdx={selectedExpIdx}
                   stockPrice={stock?.price || 0}
                   onLegsChange={setCustomLegs}
                 />
               </div>
-            </aside>
-          </div>
+            </div>
+          </section>
 
-          {/* Advanced sections — collapsible */}
-          <div className="border-t border-border bg-background">
-            <AdvancedToggles
-              showKelly={showKelly} onToggleKelly={() => setShowKelly((v) => !v)}
-              showGreeks={showGreeks} onToggleGreeks={() => setShowGreeks((v) => !v)}
-              showPortfolio={showPortfolio} onTogglePortfolio={() => setShowPortfolio((v) => !v)}
+          {/* ═══ 4 · Griegas ═══════════════════════════════════════════
+              Primarias en una posición de opciones: describen de qué vive y
+              de qué muere. Antes estaban escondidas tras un botón, al mismo
+              nivel que Kelly o la cartera. */}
+          <section>
+            <SectionHeading step={4} title={t('optStepGreeks')} hint={t('optStepGreeksHint')} />
+            <GreeksStrip
               greeks={greeks}
+              riskFree={{
+                ratePct: riskFreePct,
+                source: riskFreeSource,
+                isLive: riskFreeLive,
+              }}
+            />
+          </section>
+
+          {/* ═══ Más análisis ══════════════════════════════════════════
+              Todo lo accesorio, en un solo acordeón y cerrado por defecto. */}
+          <section>
+            <SectionHeading title={t('optMoreAnalysis')} hint={t('optMoreAnalysisHint')} />
+            <SecondaryPanels
               legs={legs}
               stock={stock}
+              greeks={greeks}
+              stats={stats}
+              breakEvens={breakEvens}
               currentExp={currentExp}
               ticker={ticker}
-              stats={stats}
               contracts={contracts}
               accountBalance={accountBalance}
               onAccountBalanceChange={setAccountBalance}
               onLoadPosition={handleLoadPosition}
+              commission={commission}
+              onCommissionChange={setCommission}
+              dividendYield={dividendYield}
+              onDividendChange={setDividendYield}
+              chainSynthetic={chainSynthetic}
+              riskFreeRate={riskFreeRate}
+              selectedExpIdx={selectedExpIdx}
             />
-
-            {/* Pro-grade panel: Fees + Dividends + P&L Attribution + Assignment */}
-            <div className="px-4 py-3 border-t border-border">
-              <TradeAdvancedPanel
-                legs={legs}
-                stock={stock}
-                feePerContract={commission}
-                onFeeChange={setCommission}
-                dividendYield={dividendYield}
-                onDividendChange={setDividendYield}
-              />
-            </div>
-          </div>
-        </>
+          </section>
+        </div>
       )}
+
     </div>
   );
 };

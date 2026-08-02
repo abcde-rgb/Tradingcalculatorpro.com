@@ -26,7 +26,7 @@ export default function GoogleIntegrations() {
   // Pull dynamic settings once on mount.
   useEffect(() => {
     let cancelled = false;
-    fetch(`${API}/public/settings`)
+    fetch(`${API}/public/settings`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : {}))
       .then((data) => { if (!cancelled) setRemote(data || {}); })
       .catch(() => { if (!cancelled) setRemote({}); });

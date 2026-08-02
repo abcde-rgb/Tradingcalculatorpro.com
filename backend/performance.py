@@ -23,16 +23,74 @@ import performance_metrics
 # ─── Configuration ────────────────────────────────────────────────
 # Education-aligned thresholds. These appear inside auto-error messages
 # and reference what the Education Center already teaches.
-MIN_RR_THRESHOLD = 1.5            # min recommended R:R (per Education Center)
-MAX_RISK_PCT_THRESHOLD = 2.0       # max risk per trade (% of account)
+# These are DEFAULTS, not thresholds. They apply only to a user who has not
+# written a trading plan; anyone with one is judged against `plan["risk"]`
+# instead (see `detect_errors`). Judging every trader against the same numbers
+# is what made `rule_compliance_rate` measure adherence to the app's opinion
+# rather than to the user's own rules: a scalper deliberately running 1:1 at a
+# 65% hit rate collected a `low_rr` error on every trade, and someone who caps
+# risk at 0.5% got no warning at 1.8% because the global ceiling was 2%.
+DEFAULT_MIN_RR = 1.5               # min recommended R:R (per Education Center)
+DEFAULT_MAX_RISK_PCT = 2.0         # max risk per trade (% of account)
 EARLY_CLOSE_THRESHOLD = 0.5        # closed before reaching 50% of TP
 REVENGE_TRADE_WINDOW_MIN = 30      # min between losing trade and next entry
+
+# Old names kept as aliases: they are imported by name elsewhere and read by
+# tests, and silently changing what they mean is worse than carrying two lines.
+MIN_RR_THRESHOLD = DEFAULT_MIN_RR
+MAX_RISK_PCT_THRESHOLD = DEFAULT_MAX_RISK_PCT
+
+# Risk-adjusted metrics. The Sharpe/Sortino reported to the user are
+# ANNUALIZED, which is the only convention whose thresholds ("above 1 is good")
+# mean anything. Annualizing needs a real observation window, so we refuse to do
+# it on a sample too small or too short to support it and fall back to the raw
+# per-trade figure with `annualized: false`.
+DEFAULT_RISK_FREE_RATE = 0.04      # annual; overridden with the live curve when available
+MIN_DAYS_TO_ANNUALIZE = 7
+MIN_TRADES_TO_ANNUALIZE = 10
+DAYS_PER_YEAR = 365.25
+# Ceiling on the observed frequency used to annualize. ~10 trades per session ×
+# 252 sessions. Without it a dense sample over a short span — a scalping week,
+# or a bulk CSV import of tick trades — drives trades/year into five figures and
+# the √ppy scale factor with it, turning a per-trade Sharpe of 0.05 into a
+# reported 5.5. The cap keeps the number wrong-but-bounded instead of absurd.
+MAX_TRADES_PER_YEAR = 2520.0
+# Minimum winning trades before the excursion panel is allowed to suggest a stop
+# width. A p80 estimate off fewer than this is two observations wide.
+MIN_WINNERS_FOR_STOP_ADVICE = 10
 
 
 # ─── Math helpers ─────────────────────────────────────────────────
 
 def _safe_div(a: float, b: float, default: float = 0.0) -> float:
     return a / b if b else default
+
+
+def _to_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Make a datetime comparable: naive values are assumed to be UTC."""
+    if dt is None:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _trade_close_dt(trade: dict) -> Optional[datetime]:
+    """When this trade hit the account. Exit date, entry date as a fallback."""
+    return _to_utc(_parse_dt(trade.get("exit_date"))) or _to_utc(_parse_dt(trade.get("entry_date")))
+
+
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def sort_trades_chronologically(trades: List[dict]) -> List[dict]:
+    """Oldest → newest by **exit** date.
+
+    The equity curve is a realized-P&L series, so what orders it is when each
+    trade closed, not when it was opened: a swing entered in January and closed
+    in April moves the account in April. Feeding the curve in any other order
+    silently corrupts max drawdown (drawdown is not symmetric under reversal —
+    reverse the series and the falls become rises) and the streak counters.
+    """
+    return sorted(trades, key=lambda t: _trade_close_dt(t) or _EPOCH)
 
 
 def _compute_max_drawdown(equity_curve: List[float]) -> Tuple[float, float]:
@@ -54,25 +112,103 @@ def _compute_max_drawdown(equity_curve: List[float]) -> Tuple[float, float]:
     return round(max_dd_dollars, 2), round(max_dd_pct, 2)
 
 
-def _compute_sharpe(returns: List[float]) -> float:
-    """Sharpe ratio assuming returns are per-trade. Annualization here
-    would require timestamps; we provide the raw per-trade Sharpe."""
-    if len(returns) < 2:
-        return 0.0
-    mean = statistics.mean(returns)
-    sd = statistics.pstdev(returns)
-    return round(_safe_div(mean, sd, 0), 2)
+def _period_returns(equity: List[float]) -> List[float]:
+    """Per-trade percentage returns off the equity curve.
+
+    Percentage returns (not raw dollars) are what a risk-free rate can be
+    subtracted from, which is what makes the Sharpe below an actual Sharpe.
+    Stops at the point the account would have been wiped out — returns past a
+    non-positive balance are not meaningful.
+    """
+    out: List[float] = []
+    for i in range(1, len(equity)):
+        prev = equity[i - 1]
+        if prev <= 0:
+            break
+        out.append(equity[i] / prev - 1)
+    return out
 
 
-def _compute_sortino(returns: List[float]) -> float:
+def _periods_per_year(closed: List[dict]) -> Optional[float]:
+    """Observed trading frequency, or None when the sample can't support one.
+
+    Annualizing off two trades a day apart produces a number with no
+    information in it, so we require both a minimum count and a minimum span.
+    """
+    if len(closed) < MIN_TRADES_TO_ANNUALIZE:
+        return None
+    dts = [d for d in (_trade_close_dt(t) for t in closed) if d]
+    if len(dts) < 2:
+        return None
+    span_days = (max(dts) - min(dts)).total_seconds() / 86400
+    if span_days < MIN_DAYS_TO_ANNUALIZE:
+        return None
+    return min(len(closed) / (span_days / DAYS_PER_YEAR), MAX_TRADES_PER_YEAR)
+
+
+def _compute_sharpe(returns: List[float], rf_period: float = 0.0) -> float:
+    """Sharpe over the given return series, net of the per-period risk-free rate.
+
+    Uses the *sample* standard deviation (n-1), the convention every published
+    Sharpe uses. Not annualized here — see `_risk_adjusted_metrics`.
+    """
     if len(returns) < 2:
         return 0.0
-    negatives = [r for r in returns if r < 0]
-    if not negatives:
+    excess = [r - rf_period for r in returns]
+    sd = statistics.stdev(excess)
+    if sd == 0:
         return 0.0
-    mean = statistics.mean(returns)
-    downside_dev = math.sqrt(sum(r ** 2 for r in negatives) / len(negatives))
-    return round(_safe_div(mean, downside_dev, 0), 2)
+    return statistics.mean(excess) / sd
+
+
+def _compute_sortino(returns: List[float], mar: float = 0.0) -> Optional[float]:
+    """Sortino over the given return series against a minimum acceptable return.
+
+    Downside deviation divides by the TOTAL number of observations, per the
+    Sortino/Price definition — dividing by the count of negatives (as an earlier
+    version did) inflates the denominator and systematically understates the
+    ratio. Returns None when there is no downside deviation at all: a system
+    with no losses has an undefined Sortino, and reporting 0.0 there reads as
+    "terrible" when it means the opposite.
+    """
+    if len(returns) < 2:
+        return None
+    excess = [r - mar for r in returns]
+    downside = math.sqrt(sum(min(0.0, e) ** 2 for e in excess) / len(excess))
+    if downside == 0:
+        return None
+    return statistics.mean(excess) / downside
+
+
+def _risk_adjusted_metrics(
+    equity: List[float],
+    closed: List[dict],
+    risk_free_rate: float = DEFAULT_RISK_FREE_RATE,
+) -> Dict[str, Any]:
+    """Sharpe & Sortino, annualized when the sample allows it.
+
+    Returns both the annualized figures (`sharpe_ratio`, `sortino_ratio` — what
+    the UI shows and what the "above 1 is good" thresholds are calibrated
+    against) and the raw per-trade ones, plus the observed trades/year used for
+    the conversion so the number is auditable.
+    """
+    returns = _period_returns(equity)
+    ppy = _periods_per_year(closed)
+    rf_period = risk_free_rate / ppy if ppy else 0.0
+
+    sharpe_pt = _compute_sharpe(returns, rf_period)
+    sortino_pt = _compute_sortino(returns, rf_period)
+
+    scale = math.sqrt(ppy) if ppy else 1.0
+    return {
+        "sharpe_ratio": round(sharpe_pt * scale, 2),
+        "sortino_ratio": round(sortino_pt * scale, 2) if sortino_pt is not None else None,
+        "sharpe_per_trade": round(sharpe_pt, 3),
+        "sortino_per_trade": round(sortino_pt, 3) if sortino_pt is not None else None,
+        "annualized": ppy is not None,
+        "trades_per_year": round(ppy, 1) if ppy else None,
+        "risk_free_rate": round(risk_free_rate, 4),
+    }
 
 
 # ─── Trade computation ────────────────────────────────────────────
@@ -80,10 +216,16 @@ def _compute_sortino(returns: List[float]) -> float:
 def compute_trade_pnl(trade: dict) -> dict:
     """Return a copy of `trade` with computed P&L fields.
 
-    Fills: pnl, pnl_pct, r_multiple. Required input fields:
+    Fills: pnl, pnl_pct, r_multiple, mae_r, mfe_r. Required input fields:
       side ('long'|'short'), entry_price, exit_price, quantity, sl,
-      account_balance (optional, for pnl_pct), fees (optional).
-    For OPEN trades (no exit_price), pnl/r_multiple are 0.
+      account_balance (optional, for pnl_pct), fees (optional),
+      mae_price/mfe_price (optional, for excursion analysis).
+    For OPEN trades (no exit_price), pnl is 0 and r_multiple is None.
+
+    `r_multiple` is None — not 0 — whenever it cannot be computed (no stop, or
+    trade still open). A trade taken without a stop did not return "zero R", it
+    returned an undefined number of R, and averaging it in as a zero drags the
+    mean toward the middle and puts a fake spike in the 0R..1R bucket.
     """
     out = {**trade}
     side = trade.get("side", "long")
@@ -97,10 +239,13 @@ def compute_trade_pnl(trade: dict) -> dict:
     # lo envía). Multiplica el nominal de precios×cantidad en P&L y en el riesgo.
     mult = float(trade.get("multiplier") or 1)
 
+    risk_per_unit = abs(entry - float(sl)) if sl not in (None, "") and entry else 0.0
+    out["mae_r"], out["mfe_r"] = _excursion_r(trade, side, entry, risk_per_unit)
+
     if exit_p is None or entry == 0 or qty == 0:
         out["pnl"] = 0.0
         out["pnl_pct"] = 0.0
-        out["r_multiple"] = 0.0
+        out["r_multiple"] = None
         return out
 
     exit_p = float(exit_p)
@@ -113,13 +258,44 @@ def compute_trade_pnl(trade: dict) -> dict:
     out["pnl_pct"] = round(_safe_div(pnl, balance, 0) * 100, 2) if balance else 0.0
 
     # R-multiple: P&L divided by initial risk per share/contract.
-    if sl is not None:
-        risk_per_unit = abs(entry - float(sl))
+    # Undefined (None) without a stop — see the docstring.
+    if risk_per_unit > 0:
         risk_total = risk_per_unit * qty * mult
-        out["r_multiple"] = round(_safe_div(pnl, risk_total, 0), 2)
+        out["r_multiple"] = round(_safe_div(pnl, risk_total, 0), 2) if risk_total else None
     else:
-        out["r_multiple"] = 0.0
+        out["r_multiple"] = None
     return out
+
+
+def _excursion_r(trade: dict, side: str, entry: float,
+                 risk_per_unit: float) -> Tuple[Optional[float], Optional[float]]:
+    """Maximum adverse / favourable excursion, expressed in R.
+
+    MAE = how far the trade went against you before it resolved; MFE = how far
+    it went in your favour. In R they answer the two questions a journal exists
+    to answer: is my stop wider than it needs to be (winners with a tiny MAE),
+    and am I giving back trades that were already paid (losers with a large
+    MFE). Both need a stop to be expressed in R, so both are None without one.
+    """
+    mae_price, mfe_price = trade.get("mae_price"), trade.get("mfe_price")
+    if risk_per_unit <= 0 or not entry:
+        return None, None
+
+    def _r(price, adverse: bool) -> Optional[float]:
+        if price in (None, ""):
+            return None
+        try:
+            p = float(price)
+        except (TypeError, ValueError):
+            return None
+        if side == "long":
+            excursion = (entry - p) if adverse else (p - entry)
+        else:
+            excursion = (p - entry) if adverse else (entry - p)
+        # Never negative: an "adverse" excursion that is favourable is 0 adverse.
+        return round(max(0.0, excursion) / risk_per_unit, 2)
+
+    return _r(mae_price, True), _r(mfe_price, False)
 
 
 # ─── Error detection ──────────────────────────────────────────────
@@ -127,13 +303,43 @@ def compute_trade_pnl(trade: dict) -> dict:
 def detect_errors(
     trade: dict,
     *,
+    plan: Optional[dict] = None,
     prev_trades: Optional[List[dict]] = None,
 ) -> List[Dict[str, str]]:
     """Run a set of rules against a trade and return detected mistakes.
 
-    Each error is {code, severity, message_key} so the frontend can localize.
+    Each error is {code, severity, message_key} so the frontend can localize,
+    plus `threshold` and `plan_version` when a plan supplied the limit — that is
+    what lets the UI say "your plan says 1%, this trade risked 2.3%" instead of a
+    generic scolding.
+
+    `plan` is the user's active trading plan (see `trading_plan.py`). When it is
+    None every threshold falls back to the module defaults and the behaviour is
+    exactly what it was before plans existed — a user without a plan must not
+    see their error list change. When it IS present, the plan wins on every
+    threshold it declares, and five extra rules become available that cannot
+    even be expressed without one (sessions, daily loss, trade count,
+    consecutive losses, traded market).
     """
+    from trading_plan import is_within_sessions, plan_risk  # local: avoids a cycle
+
     errors: List[Dict[str, str]] = []
+    risk_cfg = plan_risk(plan)
+    plan_version = plan.get("version") if plan else None
+
+    def _fail(code: str, severity: str, message_key: str, *,
+              value: Any = None, threshold: Any = None) -> None:
+        """Append an error, tagging it with the plan that judged it."""
+        err: Dict[str, Any] = {"code": code, "severity": severity,
+                               "message_key": message_key}
+        if value is not None:
+            err["value"] = str(value)
+        if threshold is not None:
+            err["threshold"] = str(threshold)
+        if plan_version is not None:
+            err["plan_version"] = plan_version
+        errors.append(err)
+
     side = trade.get("side", "long")
     entry = trade.get("entry_price")
     exit_p = trade.get("exit_price")
@@ -143,42 +349,35 @@ def detect_errors(
     balance = trade.get("account_balance")
     status = trade.get("status", "closed")
 
-    # Rule 1: NO STOP LOSS — cardinal sin
-    if sl is None or sl == 0:
-        errors.append({
-            "code": "no_sl",
-            "severity": "critical",
-            "message_key": "errNoSL",
-        })
+    # Rule 1: NO STOP LOSS — cardinal sin, unless the plan deliberately opts out.
+    # Some real systems (options spreads with defined max loss, mean-reversion
+    # baskets) carry no per-trade stop. Flagging those forever trained the user
+    # to ignore the whole error list, which is worse than the missing rule.
+    if (sl is None or sl == 0) and risk_cfg["require_stop_loss"]:
+        _fail("no_sl", "critical", "errNoSL")
 
-    # Rule 2: R:R below threshold
+    # Rule 2: R:R below the minimum THIS trader declared
+    min_rr = risk_cfg["min_rr"]
     if entry and sl and tp:
         try:
             risk = abs(float(entry) - float(sl))
             reward = abs(float(tp) - float(entry))
             rr = _safe_div(reward, risk, 0)
-            if rr < MIN_RR_THRESHOLD and risk > 0:
-                errors.append({
-                    "code": "low_rr",
-                    "severity": "high",
-                    "message_key": "errLowRR",
-                    "value": str(round(rr, 2)),
-                })
+            if rr < min_rr and risk > 0:
+                _fail("low_rr", "high", "errLowRR",
+                      value=round(rr, 2), threshold=min_rr)
         except (TypeError, ValueError):
             pass
 
-    # Rule 3: Position size too large (risk > MAX_RISK_PCT of balance)
+    # Rule 3: Position size above the trader's own ceiling
+    max_risk_pct = risk_cfg["max_risk_pct_per_trade"]
     if entry and sl and qty and balance:
         try:
             risk_amount = abs(float(entry) - float(sl)) * float(qty)
             risk_pct = _safe_div(risk_amount, float(balance), 0) * 100
-            if risk_pct > MAX_RISK_PCT_THRESHOLD:
-                errors.append({
-                    "code": "oversize",
-                    "severity": "high",
-                    "message_key": "errOversize",
-                    "value": str(round(risk_pct, 2)),
-                })
+            if risk_pct > max_risk_pct:
+                _fail("oversize", "high", "errOversize",
+                      value=round(risk_pct, 2), threshold=max_risk_pct)
         except (TypeError, ValueError):
             pass
 
@@ -193,12 +392,8 @@ def detect_errors(
             )
             ratio = _safe_div(actual_distance, tp_distance, 0)
             if same_dir and 0 < ratio < EARLY_CLOSE_THRESHOLD:
-                errors.append({
-                    "code": "closed_early",
-                    "severity": "medium",
-                    "message_key": "errClosedEarly",
-                    "value": f"{int(ratio * 100)}%",
-                })
+                _fail("closed_early", "medium", "errClosedEarly",
+                      value=f"{int(ratio * 100)}%")
         except (TypeError, ValueError):
             pass
 
@@ -208,17 +403,9 @@ def detect_errors(
         try:
             sl_f, exit_f, entry_f = float(sl), float(exit_p), float(entry)
             if side == "long" and exit_f < sl_f and exit_f < entry_f:
-                errors.append({
-                    "code": "sl_violated",
-                    "severity": "critical",
-                    "message_key": "errSLViolated",
-                })
+                _fail("sl_violated", "critical", "errSLViolated")
             elif side == "short" and exit_f > sl_f and exit_f > entry_f:
-                errors.append({
-                    "code": "sl_violated",
-                    "severity": "critical",
-                    "message_key": "errSLViolated",
-                })
+                _fail("sl_violated", "critical", "errSLViolated")
         except (TypeError, ValueError):
             pass
 
@@ -234,15 +421,71 @@ def detect_errors(
                 prev_exit = datetime.fromisoformat(prev["exit_date"].replace("Z", "+00:00"))
                 gap_min = (entry_dt - prev_exit).total_seconds() / 60
                 if 0 < gap_min < REVENGE_TRADE_WINDOW_MIN:
-                    errors.append({
-                        "code": "revenge_trade",
-                        "severity": "high",
-                        "message_key": "errRevengeTrade",
-                        "value": str(int(gap_min)),
-                    })
+                    _fail("revenge_trade", "high", "errRevengeTrade",
+                          value=int(gap_min))
                     break
         except (ValueError, TypeError):
             pass
+
+    # ── Rules that only exist with a plan ────────────────────────────────
+    # Each is silent unless the plan actually declares the limit: an undeclared
+    # limit is not a limit of zero, and inventing one would bury the user in
+    # violations of rules they never wrote.
+    if plan:
+        entry_dt = _parse_dt(trade.get("entry_date"))
+
+        # Rule 7: entered outside the plan's own trading windows
+        inside = is_within_sessions(entry_dt, plan.get("sessions"))
+        if inside is False:      # None = unanswerable, and stays quiet
+            _fail("outside_session", "medium", "errOutsideSession",
+                  value=entry_dt.isoformat() if entry_dt else None)
+
+        # Rule 8: symbol is not one of the markets the plan covers
+        markets = [m.upper() for m in (plan.get("markets") or [])]
+        symbol = str(trade.get("symbol") or "").upper()
+        if markets and symbol and symbol not in markets:
+            _fail("unlisted_market", "medium", "errUnlistedMarket",
+                  value=symbol, threshold=", ".join(markets[:6]))
+
+        # The remaining three need the day's history, in chronological order.
+        same_day: List[dict] = []
+        if entry_dt and prev_trades:
+            for prev in prev_trades:
+                prev_dt = _parse_dt(prev.get("entry_date"))
+                if prev_dt and prev_dt.date() == entry_dt.date() and prev_dt <= entry_dt:
+                    same_day.append(prev)
+            same_day.sort(key=lambda t: _parse_dt(t.get("entry_date")) or entry_dt)
+
+        # Rule 9: opened with the plan's daily loss already reached. Measured in
+        # R, which is why it can be compared across instruments at all.
+        max_daily_r = risk_cfg["max_daily_loss_r"]
+        if max_daily_r is not None and same_day:
+            realized_r = sum(float(t["r_multiple"]) for t in same_day
+                             if t.get("r_multiple") is not None
+                             and float(t["r_multiple"]) < 0)
+            if realized_r <= -abs(max_daily_r):
+                _fail("over_daily_limit", "critical", "errOverDailyLimit",
+                      value=round(realized_r, 2), threshold=-abs(max_daily_r))
+
+        # Rule 10: more trades in the day than the plan allows
+        max_per_day = risk_cfg["max_trades_per_day"]
+        if max_per_day is not None and len(same_day) >= max_per_day:
+            _fail("over_trade_count", "high", "errOverTradeCount",
+                  value=len(same_day) + 1, threshold=max_per_day)
+
+        # Rule 11: kept trading past the plan's consecutive-loss circuit breaker
+        max_streak = risk_cfg["max_consecutive_losses"]
+        if max_streak is not None and same_day:
+            streak = 0
+            for prev in reversed(same_day):
+                if float(prev.get("pnl") or 0) < 0:
+                    streak += 1
+                else:
+                    break
+            if streak >= max_streak:
+                _fail("traded_after_consecutive_losses", "critical",
+                      "errAfterConsecutiveLosses",
+                      value=streak, threshold=max_streak)
 
     return errors
 
@@ -337,18 +580,27 @@ def detect_behavioral_biases(trades: List[dict]) -> List[Dict[str, Any]]:
 
 # ─── Aggregate analytics (25+ metrics) ────────────────────────────
 
-def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
+def compute_analytics(
+    trades: List[dict],
+    risk_free_rate: float = DEFAULT_RISK_FREE_RATE,
+) -> Dict[str, Any]:
     """Compute the full performance dashboard for a list of (computed) trades.
 
     Expects each trade to already have pnl/pnl_pct/r_multiple via compute_trade_pnl.
+    Order of `trades` does not matter: closed trades are re-sorted by exit date
+    before anything order-sensitive (equity curve, drawdown, streaks) is built.
     """
     closed = [t for t in trades if t.get("status") in ("closed", "sl_hit", "tp_hit")
               and t.get("exit_price") is not None]
     if not closed:
         return _empty_analytics(trades)
 
+    closed = sort_trades_chronologically(closed)
+
     pnls = [float(t.get("pnl") or 0) for t in closed]
-    rs = [float(t.get("r_multiple") or 0) for t in closed]
+    # Only trades with a defined R contribute to R statistics.
+    rs = [float(t["r_multiple"]) for t in closed if t.get("r_multiple") is not None]
+    trades_without_r = len(closed) - len(rs)
     wins = [p for p in pnls if p > 0]
     losses = [p for p in pnls if p < 0]
 
@@ -364,12 +616,14 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
         + (1 - win_rate / 100) * avg_loss
     )
 
-    # Equity curve
-    starting_balance = float(closed[0].get("account_balance") or 10000)
+    # Equity curve — built over the chronologically sorted list, so the balance
+    # we start from is the one recorded on the OLDEST trade, not the newest.
+    starting_balance = float(closed[0].get("account_balance") or 0) or 10000.0
     equity = [starting_balance]
     for p in pnls:
         equity.append(equity[-1] + p)
     max_dd_dollars, max_dd_pct = _compute_max_drawdown(equity)
+    risk_adj = _risk_adjusted_metrics(equity, closed, risk_free_rate)
 
     # Streaks
     cur_w = cur_l = max_w = max_l = 0
@@ -438,6 +692,8 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
         if closed else 100
     )
 
+    excursion = compute_excursion_stats(closed)
+
     # Average emotion (1-5 scale)
     emotions = [int(t.get("emotion") or 0) for t in closed if t.get("emotion")]
     avg_emotion = round(sum(emotions) / len(emotions), 1) if emotions else 0
@@ -490,9 +746,12 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
         # Risk
         "max_drawdown_dollars": max_dd_dollars,
         "max_drawdown_pct": max_dd_pct,
-        "sharpe_ratio": _compute_sharpe(pnls),
-        "sortino_ratio": _compute_sortino(pnls),
+        **risk_adj,
         "avg_r": round(sum(rs) / len(rs), 2) if rs else 0,
+        "r_sample_size": len(rs),
+        "trades_without_r": trades_without_r,
+        # Excursion (MAE/MFE) — stop & target calibration
+        "excursion": excursion,
         # Streaks
         "max_consecutive_wins": max_w,
         "max_consecutive_losses": max_l,
@@ -511,6 +770,91 @@ def compute_analytics(trades: List[dict]) -> Dict[str, Any]:
         "avg_emotion": avg_emotion,
         # Advanced desk metrics (None where incalculable — UI renders '—')
         "advanced": advanced,
+    }
+
+
+def _percentile(sorted_vals: List[float], pct: float) -> float:
+    """Nearest-rank percentile over an already-sorted list."""
+    if not sorted_vals:
+        return 0.0
+    k = max(0, min(len(sorted_vals) - 1, int(math.ceil(pct / 100 * len(sorted_vals))) - 1))
+    return sorted_vals[k]
+
+
+def compute_excursion_stats(closed: List[dict]) -> Dict[str, Any]:
+    """MAE/MFE analysis — the highest-yield read in a trade journal.
+
+    Two questions, both answered in R so they are comparable across instruments:
+
+    * **Is my stop wider than it needs to be?** If 80% of winners never went
+      more than 0.4R against you, a 1R stop is ~2.5x wider than the evidence
+      requires, and the same dollar risk buys a bigger position.
+    * **Am I giving back trades I had already won?** Losers that reached +1R or
+      more in your favour before turning around are a management problem, not
+      an entry problem.
+
+    Everything is None/empty when no trade carries MAE/MFE data, so the UI can
+    stay hidden rather than showing confident zeros.
+    """
+    with_mae = [t for t in closed if t.get("mae_r") is not None]
+    with_mfe = [t for t in closed if t.get("mfe_r") is not None]
+    if not with_mae and not with_mfe:
+        return {"available": False, "sample_size": 0, "scatter": [],
+                "capture_ratio": None, "capture_sample": 0}
+
+    winners_mae = sorted(float(t["mae_r"]) for t in with_mae if float(t.get("pnl") or 0) > 0)
+    losers_mfe = sorted(float(t["mfe_r"]) for t in with_mfe if float(t.get("pnl") or 0) <= 0)
+
+    # p80 of winners' MAE: the stop distance that would have kept 80% of the
+    # winners alive. A small buffer on top keeps it from being knife-edge.
+    # The sample floor lives HERE, not only in `generate_insights`: the analytics
+    # panel renders `suggested_stop_r` straight from this payload, so guarding it
+    # downstream left the UI free to recommend a stop width — and therefore a
+    # position size — off two winning trades.
+    enough_winners = len(winners_mae) >= MIN_WINNERS_FOR_STOP_ADVICE
+    stop_p80 = _percentile(winners_mae, 80) if winners_mae else None
+    suggested_stop_r = (
+        round(stop_p80 * 1.2, 2) if (stop_p80 and enough_winners) else None
+    )
+
+    gave_back = sum(1 for v in losers_mfe if v >= 1.0)
+
+    # Capture: how much of the favourable move actually available you took home.
+    # MAE answers "is my stop wider than it needs to be"; nothing here answered
+    # the mirror question about the target. A capture well under half says the
+    # target sits past where price usually turns, or that the exit is late.
+    both = [t for t in closed
+            if t.get("mfe_r") not in (None, 0) and t.get("r_multiple") is not None]
+    mfe_total = sum(float(t["mfe_r"]) for t in both)
+    capture_ratio = (
+        round(sum(float(t["r_multiple"]) for t in both) / mfe_total, 2)
+        if both and mfe_total > 0 else None
+    )
+
+    return {
+        "available": True,
+        "sample_size": len({id(t) for t in with_mae + with_mfe}),
+        "avg_mae_r": round(sum(float(t["mae_r"]) for t in with_mae) / len(with_mae), 2) if with_mae else None,
+        "avg_mfe_r": round(sum(float(t["mfe_r"]) for t in with_mfe) / len(with_mfe), 2) if with_mfe else None,
+        "winners_mae_p80": round(stop_p80, 2) if stop_p80 is not None else None,
+        "winners_sample": len(winners_mae),
+        # Only suggest tightening when the evidence says the stop is >25% wider
+        # than the worst heat 80% of the winners actually took.
+        "suggested_stop_r": suggested_stop_r if (suggested_stop_r and suggested_stop_r < 0.8) else None,
+        "losers_gave_back": gave_back,
+        "losers_sample": len(losers_mfe),
+        "capture_ratio": capture_ratio,
+        "capture_sample": len(both),
+        "scatter": [
+            {
+                "mae_r": float(t["mae_r"]) if t.get("mae_r") is not None else None,
+                "mfe_r": float(t["mfe_r"]) if t.get("mfe_r") is not None else None,
+                "r": float(t["r_multiple"]) if t.get("r_multiple") is not None else None,
+                "pnl": round(float(t.get("pnl") or 0), 2),
+                "symbol": t.get("symbol") or "—",
+            }
+            for t in closed if t.get("mae_r") is not None or t.get("mfe_r") is not None
+        ][:500],
     }
 
 
@@ -534,8 +878,16 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "max_drawdown_dollars": 0,
         "max_drawdown_pct": 0,
         "sharpe_ratio": 0,
-        "sortino_ratio": 0,
+        "sortino_ratio": None,
+        "sharpe_per_trade": 0,
+        "sortino_per_trade": None,
+        "annualized": False,
+        "trades_per_year": None,
+        "risk_free_rate": DEFAULT_RISK_FREE_RATE,
         "avg_r": 0,
+        "r_sample_size": 0,
+        "trades_without_r": 0,
+        "excursion": {"available": False, "sample_size": 0, "scatter": []},
         "max_consecutive_wins": 0,
         "max_consecutive_losses": 0,
         "by_day": [],
@@ -621,16 +973,51 @@ def generate_insights(analytics: Dict[str, Any]) -> List[Dict[str, str]]:
         insights.append({"severity": "good", "key": "insightPosExpectancy",
                          "value": f"{exp:.2f}"})
 
-    # Sharpe signal
-    if sharpe >= 0.5:
-        insights.append({"severity": "good", "key": "insightSharpeOK", "value": str(sharpe)})
-    elif sharpe < 0:
-        insights.append({"severity": "critical", "key": "insightSharpeBad", "value": str(sharpe)})
+    # Sharpe signal. Thresholds apply to the ANNUALIZED ratio: >1 is a good
+    # system, >2 is excellent. They are meaningless against a per-trade Sharpe
+    # (an annualized 2.0 at 120 trades/year is only ~0.18 per trade), so when
+    # the sample was too small to annualize we stay quiet rather than judge.
+    if analytics.get("annualized"):
+        if sharpe >= 1.0:
+            insights.append({"severity": "good", "key": "insightSharpeOK", "value": str(sharpe)})
+        elif sharpe < 0:
+            insights.append({"severity": "critical", "key": "insightSharpeBad", "value": str(sharpe)})
 
     # Avg R below recommended
     if avg_r > 0 and avg_r < 1.0:
         insights.append({"severity": "warning", "key": "insightAvgRLow",
                          "value": str(avg_r)})
+
+    # R statistics computed on a partial sample — say so rather than let the
+    # user read avg_r as if it covered every trade.
+    without_r = analytics.get("trades_without_r", 0)
+    if without_r and closed and without_r / closed >= 0.2:
+        insights.append({"severity": "warning", "key": "insightRSampleIncomplete",
+                         "count": str(without_r),
+                         "pct": f"{without_r / closed * 100:.0f}"})
+
+    # MAE — stop wider than the evidence requires
+    exc = analytics.get("excursion") or {}
+    # The sample floor now lives in `_excursion_stats` (see
+    # MIN_WINNERS_FOR_STOP_ADVICE), so a non-None suggestion is already vouched
+    # for — no need to re-check the count and risk the two drifting apart.
+    if exc.get("suggested_stop_r"):
+        insights.append({"severity": "info", "key": "insightStopTooWide",
+                         "value": str(exc["winners_mae_p80"]),
+                         "suggested": str(exc["suggested_stop_r"])})
+    # MFE — winners handed back
+    if exc.get("losers_gave_back") and exc.get("losers_sample", 0) >= 10:
+        share = exc["losers_gave_back"] / exc["losers_sample"] * 100
+        if share >= 25:
+            insights.append({"severity": "warning", "key": "insightGaveBackWinners",
+                             "count": str(exc["losers_gave_back"]),
+                             "pct": f"{share:.0f}"})
+
+    # MFE — how little of the available move you keep
+    if (exc.get("capture_ratio") is not None and exc.get("capture_sample", 0) >= 20
+            and 0 < exc["capture_ratio"] < 0.4):
+        insights.append({"severity": "warning", "key": "insightLowCapture",
+                         "value": f"{exc['capture_ratio'] * 100:.0f}"})
 
     # Rule compliance
     if compliance < 80:
@@ -702,6 +1089,9 @@ def make_trade_doc(payload: dict, user_id: str) -> dict:
         "exit_price": float(payload["exit_price"]) if payload.get("exit_price") not in (None, "") else None,
         "sl": float(payload["sl"]) if payload.get("sl") not in (None, "") else None,
         "tp": float(payload["tp"]) if payload.get("tp") not in (None, "") else None,
+        # Excursion: worst / best price the trade reached while it was open.
+        "mae_price": float(payload["mae_price"]) if payload.get("mae_price") not in (None, "") else None,
+        "mfe_price": float(payload["mfe_price"]) if payload.get("mfe_price") not in (None, "") else None,
         "quantity": float(payload.get("quantity") or 0),
         "entry_date": payload.get("entry_date") or now,
         "exit_date": payload.get("exit_date"),

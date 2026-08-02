@@ -68,6 +68,28 @@ export async function fetchOptionsChain(symbol, expirationIdx = 3) {
   }
 }
 
+/**
+ * Several expirations in one request.
+ *
+ * A calendar, a diagonal or a PMCC needs quotes from two different expiries at
+ * once. Asking for them one at a time meant N round trips just to draw one
+ * payoff, and the legs could end up priced against chains fetched seconds
+ * apart. Returns the `chains` map keyed by expiration index.
+ */
+export async function fetchOptionsChains(symbol, expirationIdxs = []) {
+  if (!api) return null;
+  const idxs = [...new Set(expirationIdxs.filter((i) => Number.isInteger(i) && i >= 0))];
+  if (idxs.length === 0) return null;
+  try {
+    const res = await api.get(`/options/chain/${symbol}`, {
+      params: { expiration_idxs: idxs.join(',') },
+    });
+    return res.data;
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function calculatePayoff(legs, stockPrice, priceRange = 0.35, daysToChart = 30) {
   if (!api) return null;
   try {
@@ -99,12 +121,16 @@ export async function calculateAdvancedGreeks(legs, stockPrice) {
   }
 }
 
-// Dealer gamma exposure. The backend returns { gex: null, synthetic: true }
-// when the chain is modelled — callers must show that instead of a number.
-export async function fetchGammaExposure(symbol, expirationIdx = 3) {
+// Observed positioning: max pain, GEX, OI profile, put/call ratio, liquidity.
+// One endpoint serves all of them because they are all readings of the same
+// open interest — there is no separate GEX route to call.
+//
+// Honesty contract: on a modelled chain the backend returns every reading as
+// null with `synthetic: true`. Callers must render that, never a number.
+export async function fetchPositioning(symbol, expirationIdx = 3) {
   if (!api) return null;
   try {
-    const res = await api.get(`/options/gex/${symbol}`, {
+    const res = await api.get(`/options/positioning/${symbol}`, {
       params: { expiration_idx: expirationIdx },
     });
     return res.data;
