@@ -31,14 +31,13 @@ const it = {
           'Comunicazioni transazionali: conferme di pagamento, avvisi di rinnovo e notifiche degli avvisi di prezzo che configuri, inviati tramite SendGrid.',
           'Sicurezza e prevenzione delle frodi: rilevare accessi non autorizzati e proteggere l\'integrità del servizio.',
           'Analisi dell\'utilizzo del servizio (con il tuo consenso): tramite Google Analytics 4 con anonimizzazione dell\'IP, per migliorare la piattaforma.',
-          'Pubblicità nei contenuti gratuiti (con il tuo consenso): tramite Google AdSense, per finanziare le sezioni aperte. Gli utenti Premium non vedono pubblicità.',
         ]},
       ]},
       { t: 'Base Giuridica del Trattamento (GDPR)', b: [
         { p: 'Per gli utenti nello Spazio Economico Europeo, il trattamento si fonda sulle seguenti basi giuridiche ai sensi del Regolamento generale sulla protezione dei dati (GDPR):' },
         { list: [
           'Art. 6, par. 1, lett. b) GDPR — Esecuzione di un contratto: il trattamento è necessario per fornire il servizio contrattato, gestire il tuo abbonamento ed elaborare i pagamenti.',
-          'Art. 6, par. 1, lett. a) GDPR — Consenso: per i cookie analitici (Google Analytics 4) e le comunicazioni di marketing facoltative. Puoi revocare il consenso in qualsiasi momento. Vale anche per i cookie pubblicitari di Google AdSense nei contenuti gratuiti.',
+          'Art. 6, par. 1, lett. a) GDPR — Consenso: per i cookie analitici (Google Analytics 4) e le comunicazioni di marketing facoltative. Puoi revocare il consenso in qualsiasi momento.',
           'Art. 6, par. 1, lett. c) GDPR — Obbligo legale: conservazione dei dati di fatturazione ai sensi della normativa fiscale applicabile.',
           'Art. 6, par. 1, lett. f) GDPR — Legittimo interesse: sicurezza del servizio e prevenzione delle frodi.',
         ]},
@@ -50,7 +49,7 @@ const it = {
           'PayPal, Inc. (pagamenti): elabora i pagamenti effettuati con PayPal secondo la propria informativa sulla privacy.',
           'Revolut (Revolut Pay, include Apple Pay/Google Pay nel suo checkout): elabora i pagamenti effettuati con Revolut Pay.',
           'NOWPayments (pagamenti in criptovaluta): elabora i pagamenti in cripto. Riceve l\'importo, un identificativo d\'ordine e, se del caso, la tua email per la ricevuta.',
-          'Google LLC (OAuth e Analytics): l\'accesso con Google OAuth trasferisce il tuo nome e la tua email. Google Analytics 4 è usato con anonimizzazione dell\'IP e solo con il tuo consenso. Informativa: policies.google.com/privacy. Google AdSense mostra annunci nei contenuti gratuiti, solo con il tuo consenso e mai agli utenti Premium.',
+          'Google LLC (OAuth e Analytics): l\'accesso con Google OAuth trasferisce il tuo nome e la tua email. Google Analytics 4 è usato con anonimizzazione dell\'IP e solo con il tuo consenso. Informativa: policies.google.com/privacy.',
           'Twilio SendGrid (email transazionali): invia conferme, fatture e avvisi. Riceve solo il tuo indirizzo email.',
           'Anthropic (AI Trade Coach): quando richiedi un\'analisi con l\'IA, i parametri della strategia analizzata (asset, gambe dell\'operazione, prezzi) vengono inviati ad Anthropic. Il tuo nome e la tua email non vengono inviati con la richiesta.',
         ]},
@@ -182,11 +181,6 @@ const it = {
       ]},
       { t: 'Contenuti di Terzi Incorporati', b: [
         { p: 'Alcune pagine incorporano il grafico di **TradingView** tramite un iframe da tradingview.com. Quel contenuto è servito da TradingView e può installare cookie tecnici propri secondo la propria informativa sulla privacy e sui cookie. Non controlliamo quei cookie.' },
-      ]},
-      { t: 'Cookie Pubblicitari e di Tracciamento di Terzi', b: [
-        { p: 'Mostriamo annunci di **Google AdSense** nelle sezioni gratuite del sito per finanziare i contenuti aperti. Gli annunci e i loro cookie vengono caricati solo se hai scelto «Accetta tutto» nel banner dei cookie — senza quel consenso, lo script di Google non viene nemmeno scaricato.' },
-        { p: '**Con un abbonamento Premium attivo non vedrai pubblicità in nessuna parte del sito**, nemmeno leggendo i contenuti gratuiti: lo script di AdSense non viene mai caricato nel tuo browser e non viene installato alcun cookie pubblicitario.' },
-        { p: 'Google può usare i cookie per personalizzare gli annunci in base alle tue visite a questo e ad altri siti. Puoi disattivare tale personalizzazione nelle [Impostazioni annunci di Google](https://adssettings.google.com), oppure rifiutarla qui scegliendo «Solo essenziali» nel banner.' },
       ]},
       { t: 'Come Gestire e Disattivare i Cookie', b: [
         { p: 'La maggior parte dei browser consente di controllare i cookie dalle proprie impostazioni:' },

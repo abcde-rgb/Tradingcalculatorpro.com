@@ -31,14 +31,13 @@ const en = {
           'Transactional communications: payment confirmations, renewal notices and price-alert notifications you configure, sent via SendGrid.',
           'Security and fraud prevention: detecting unauthorised access and protecting the integrity of the service.',
           'Service usage analytics (with your consent): via Google Analytics 4 with IP anonymisation, to improve the platform.',
-          'Advertising in the free content (with your consent): via Google AdSense, to fund the open sections. Premium users see no ads.',
         ]},
       ]},
       { t: 'Legal Basis for Processing (GDPR)', b: [
         { p: 'For users in the European Economic Area, processing relies on the following legal bases under the General Data Protection Regulation (GDPR):' },
         { list: [
           'Art. 6(1)(b) GDPR — Performance of a contract: processing is necessary to provide the contracted service, manage your subscription and process payments.',
-          'Art. 6(1)(a) GDPR — Consent: for analytics cookies (Google Analytics 4) and optional marketing communications. You may withdraw consent at any time. Also for the Google AdSense advertising cookies in the free content.',
+          'Art. 6(1)(a) GDPR — Consent: for analytics cookies (Google Analytics 4) and optional marketing communications. You may withdraw consent at any time.',
           'Art. 6(1)(c) GDPR — Legal obligation: retention of billing data under applicable tax law.',
           'Art. 6(1)(f) GDPR — Legitimate interest: service security and fraud prevention.',
         ]},
@@ -50,7 +49,7 @@ const en = {
           'PayPal, Inc. (payments): processes payments made with PayPal under its own privacy policy.',
           'Revolut (Revolut Pay, includes Apple Pay/Google Pay in its checkout): processes payments made with Revolut Pay.',
           'NOWPayments (cryptocurrency payments): processes crypto payments. Receives the amount, an order identifier and, where applicable, your email for the receipt.',
-          'Google LLC (OAuth and Analytics): Google OAuth sign-in transfers your name and email. Google Analytics 4 is used with IP anonymisation and only with your consent. Policy: policies.google.com/privacy. Google AdSense serves ads in the free content, only with your consent and never to Premium users.',
+          'Google LLC (OAuth and Analytics): Google OAuth sign-in transfers your name and email. Google Analytics 4 is used with IP anonymisation and only with your consent. Policy: policies.google.com/privacy.',
           'Twilio SendGrid (transactional email): sends confirmations, invoices and alerts. Only receives your email address.',
           'Anthropic (AI Trade Coach): when you request an AI analysis, the parameters of the analysed strategy (asset, trade legs, prices) are sent to Anthropic. Your name and email are not sent with the query.',
         ]},
@@ -184,9 +183,7 @@ const en = {
         { p: 'Some pages embed the **TradingView** chart via an iframe from tradingview.com. That content is served by TradingView and may set its own technical cookies under its own privacy and cookie policy. We do not control those cookies.' },
       ]},
       { t: 'Advertising and Third-Party Tracking Cookies', b: [
-        { p: 'We show **Google AdSense** ads in the free sections of the site to fund the open content. The ads and their cookies are only loaded if you chose “Accept all” in the cookie banner — without that consent, Google’s script is never even downloaded.' },
-        { p: '**With an active Premium subscription you will not see ads anywhere on the site**, not even while reading the free content: the AdSense script is never loaded in your browser and no advertising cookie is set.' },
-        { p: 'Google may use cookies to personalise ads based on your visits to this and other websites. You can turn that personalisation off at [Google Ads Settings](https://adssettings.google.com), or refuse it here by choosing “Essential only” in the banner.' },
+        { p: '**TradingCalculator.pro does not use advertising, retargeting or third-party behavioural-tracking cookies.** We do not show third-party ads on the platform or share behavioural data with ad networks.' },
       ]},
       { t: 'How to Manage and Disable Cookies', b: [
         { p: 'Most browsers let you control cookies from their settings:' },

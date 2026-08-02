@@ -52,127 +52,18 @@ const cap = (s) => String(s).replace(/^\w/, (m) => m.toUpperCase());
 // ─── Publicidad (Google AdSense) ──────────────────────────────────
 // Estas páginas son HTML plano: no hay React, ni sesión, ni store. Para no
 // romper la promesa de "quien paga no ve anuncios" se replica aquí, en
-// JavaScript mínimo, la misma regla de `src/lib/adsPolicy.js`:
-//   1. la marca `tcp-ads=off` de localStorage (la escribe la SPA cuando el
-//      visitante tiene suscripción) apaga la publicidad ANTES de cargar nada;
-//   2. sin consentimiento de cookies no se descarga el script de Google.
-// Sin `REACT_APP_ADSENSE_CLIENT` no se emite absolutamente nada.
-const ADS = {
-  client: (process.env.REACT_APP_ADSENSE_CLIENT || '').trim(),
-  cmp: (process.env.REACT_APP_ADSENSE_CMP || '').trim().toLowerCase(),
-  slots: {
-    article: (process.env.REACT_APP_ADSENSE_SLOT_ARTICLE || '').trim(),
-    bottom: (process.env.REACT_APP_ADSENSE_SLOT_BOTTOM || '').trim(),
-  },
-};
-const adsOn = () => Boolean(ADS.client);
-
-const ADS_UI = {
-  es: { label:'Publicidad', msg:'Usamos cookies analíticas y publicitarias para financiar el contenido gratuito.', more:'Más información', yes:'Aceptar todo', no:'Solo esenciales' },
-  en: { label:'Advertisement', msg:'We use analytics and advertising cookies to fund the free content.', more:'Learn more', yes:'Accept all', no:'Essential only' },
-  de: { label:'Anzeige', msg:'Wir nutzen Analyse- und Werbe-Cookies, um die kostenlosen Inhalte zu finanzieren.', more:'Mehr erfahren', yes:'Alle akzeptieren', no:'Nur essentielle' },
-  fr: { label:'Publicité', msg:'Nous utilisons des cookies analytiques et publicitaires pour financer le contenu gratuit.', more:'En savoir plus', yes:'Tout accepter', no:'Essentiels uniquement' },
-  ru: { label:'Реклама', msg:'Мы используем аналитические и рекламные cookie, чтобы финансировать бесплатный контент.', more:'Подробнее', yes:'Принять все', no:'Только основные' },
-  zh: { label:'广告', msg:'我们使用分析和广告 Cookie 来支持免费内容。', more:'了解更多', yes:'接受所有', no:'仅必要' },
-  ja: { label:'広告', msg:'無料コンテンツを支えるため、分析クッキーと広告クッキーを使用します。', more:'詳細', yes:'すべて同意', no:'必須のみ' },
-  ar: { label:'إعلان', msg:'نستخدم ملفات ارتباط تحليلية وإعلانية لتمويل المحتوى المجاني.', more:'مزيد من المعلومات', yes:'قبول الكل', no:'الأساسية فقط' },
-  pt: { label:'Publicidade', msg:'Usamos cookies analíticos e publicitários para financiar o conteúdo gratuito.', more:'Mais informação', yes:'Aceitar tudo', no:'Só essenciais' },
-  it: { label:'Pubblicità', msg:'Usiamo cookie analitici e pubblicitari per finanziare i contenuti gratuiti.', more:'Maggiori informazioni', yes:'Accetta tutto', no:'Solo essenziali' },
-};
-
-/** Hueco de anuncio. Vacío (literalmente nada) si no hay editor o slot. */
-const adsBox = (placement) => {
-  const slot = ADS.slots[placement];
-  return adsOn() && slot ? `<div class="adbox" data-ad-slot="${esc(slot)}"></div>` : '';
-};
-
-// Sin publicidad configurada no se emite ni el CSS: la página queda byte a byte
-// como antes de existir esto.
-const ADS_CSS = !adsOn() ? '' : `
-.adbox{margin:26px 0}
-.adlabel{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#5c5c5c;margin-bottom:4px}
-.cbar{position:fixed;inset-inline:12px;bottom:12px;z-index:99;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-.cbar p{margin:0;font-size:13px;color:#c7c7c7;flex:1 1 260px}
-.cbar div{display:flex;gap:8px}
-.cbar button{font:inherit;font-size:12px;padding:8px 14px;border-radius:8px;border:1px solid #333;background:transparent;color:#a3a3a3;cursor:pointer}
-.cbar button.ok{background:#22c55e;border-color:#22c55e;color:#04120a;font-weight:700}`;
-
-/**
- * Script de anuncios de la página estática. El orden de las comprobaciones es
- * la parte importante: primero suscriptor, luego consentimiento, y sólo
- * entonces se toca la red.
- */
-const adsScript = (lang) => {
-  if (!adsOn()) return '';
-  const u = ADS_UI[lang] || ADS_UI.en;
-  const j = (s) => JSON.stringify(String(s));
-  return `<script>
-(function(){
-  var C=${j(ADS.client)},L=${j(u.label)};
-  var boxes=document.querySelectorAll('.adbox');
-  if(!boxes.length)return;
-  function get(k){try{return localStorage.getItem(k)}catch(e){return null}}
-  function set(k,v){try{localStorage.setItem(k,v)}catch(e){}}
-  // Suscriptor. Dos vías, porque una sola deja un hueco:
-  //  a) la marca que escribe la SPA (AdsBootstrap);
-  //  b) la sesión persistida de Zustand, que existe desde el primer login y
-  //     cubre al premium que aterriza aquí desde Google sin haber pasado antes
-  //     por una página con anuncios. Misma regla que src/lib/premium.js.
-  if(get('tcp-ads')==='off')return;
-  try{
-    var st=JSON.parse(get('btc-auth-storage')||'null');
-    var u=st&&st.state&&st.state.isAuthenticated?st.state.user:null;
-    if(u&&(u.is_premium===true||u.is_admin===true||u.subscription_plan==='lifetime'||
-      (u.subscription_end&&new Date(u.subscription_end)>new Date())))return;
-  }catch(e){}
-  function load(){
-    var s=document.createElement('script');
-    s.async=true;s.crossOrigin='anonymous';
-    s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(C);
-    document.head.appendChild(s);
-    for(var i=0;i<boxes.length;i++){
-      var b=boxes[i],slot=b.getAttribute('data-ad-slot');
-      if(!slot)continue;
-      var lab=document.createElement('span');lab.className='adlabel';lab.textContent=L;b.appendChild(lab);
-      var ins=document.createElement('ins');
-      ins.className='adsbygoogle';ins.style.display='block';ins.style.minHeight='100px';
-      ins.setAttribute('data-ad-client',C);ins.setAttribute('data-ad-slot',slot);
-      ins.setAttribute('data-ad-format','auto');ins.setAttribute('data-full-width-responsive','true');
-      b.appendChild(ins);
-      try{(window.adsbygoogle=window.adsbygoogle||[]).push({})}catch(e){}
-    }
-  }
-  var c=get('tcp-cookie-consent');
-  if(c==='all'||${ADS.cmp === 'google' ? 'true' : 'false'}){load();return;}
-  if(c)return;
-  var bar=document.createElement('div');bar.className='cbar';
-  bar.innerHTML='<p>'+${j(u.msg)}+' <a href="${DOMAIN}/legal?tab=cookies">'+${j(u.more)}+'</a></p>'+
-    '<div><button type="button" data-a="essential">'+${j(u.no)}+'</button>'+
-    '<button type="button" class="ok" data-a="all">'+${j(u.yes)}+'</button></div>';
-  bar.addEventListener('click',function(e){
-    var a=e.target&&e.target.getAttribute&&e.target.getAttribute('data-a');
-    if(!a)return;
-    set('tcp-cookie-consent',a);
-    if(bar.parentNode)bar.parentNode.removeChild(bar);
-    if(a==='all')load();
-  });
-  document.body.appendChild(bar);
-})();
-</script>`;
-};
-
 // ─── UI localizada mínima (breadcrumb, CTAs, etc.) ────────────────
 const UI = {
-  es: { home:'Inicio', learn:'Aprender', prices:'Precios', calcs:'Calculadoras', useCalc:'Usar la calculadora', openModule:'Abrir el módulo completo', whatGet:'Qué obtienes', whatLearn:'Qué aprenderás', formula:'Fórmula', otherCalcs:'Otras calculadoras', moreTopics:'Más temas', free:'Gratis · 10 idiomas', disc:'TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.' },
-  en: { home:'Home', learn:'Learn', prices:'Pricing', calcs:'Calculators', useCalc:'Use the calculator', openModule:'Open the full module', whatGet:'What you get', whatLearn:'What you will learn', formula:'Formula', otherCalcs:'Other calculators', moreTopics:'More topics', free:'Free · 10 languages', disc:'TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.' },
-  de: { home:'Start', learn:'Lernen', prices:'Preise', calcs:'Rechner', useCalc:'Rechner öffnen', openModule:'Vollständiges Modul öffnen', whatGet:'Was du bekommst', whatLearn:'Was du lernst', formula:'Formel', otherCalcs:'Weitere Rechner', moreTopics:'Weitere Themen', free:'Kostenlos · 10 Sprachen', disc:'TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.' },
-  fr: { home:'Accueil', learn:'Apprendre', prices:'Tarifs', calcs:'Calculatrices', useCalc:'Utiliser la calculatrice', openModule:'Ouvrir le module complet', whatGet:'Ce que vous obtenez', whatLearn:'Ce que vous apprendrez', formula:'Formule', otherCalcs:'Autres calculatrices', moreTopics:'Plus de thèmes', free:'Gratuit · 10 langues', disc:'TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.' },
-  ru: { home:'Главная', learn:'Обучение', prices:'Цены', calcs:'Калькуляторы', useCalc:'Открыть калькулятор', openModule:'Открыть полный модуль', whatGet:'Что вы получите', whatLearn:'Чему вы научитесь', formula:'Формула', otherCalcs:'Другие калькуляторы', moreTopics:'Ещё темы', free:'Бесплатно · 10 языков', disc:'TradingCalculator.Pro — инструменты и обучение трейдингу. Информационный контент, не инвестсовет. Торговля сопряжена с риском убытков.' },
-  zh: { home:'首页', learn:'学习', prices:'价格', calcs:'计算器', useCalc:'使用计算器', openModule:'打开完整模块', whatGet:'你将获得', whatLearn:'你将学到', formula:'公式', otherCalcs:'其他计算器', moreTopics:'更多主题', free:'免费 · 10 种语言', disc:'TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。' },
-  ja: { home:'ホーム', learn:'学ぶ', prices:'料金', calcs:'計算ツール', useCalc:'計算ツールを使う', openModule:'モジュール全体を開く', whatGet:'得られるもの', whatLearn:'学べること', formula:'計算式', otherCalcs:'他の計算ツール', moreTopics:'他のテーマ', free:'無料 · 10言語', disc:'TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。' },
-  ar: { home:'الرئيسية', learn:'تعلّم', prices:'الأسعار', calcs:'الحاسبات', useCalc:'استخدم الحاسبة', openModule:'افتح الوحدة كاملة', whatGet:'ما ستحصل عليه', whatLearn:'ما ستتعلمه', formula:'الصيغة', otherCalcs:'حاسبات أخرى', moreTopics:'مواضيع أخرى', free:'مجاني · 10 لغات', disc:'TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.' },
-  pt: { home:'Início', learn:'Aprender', prices:'Preços', calcs:'Calculadoras', useCalc:'Usar a calculadora', openModule:'Abrir o módulo completo', whatGet:'O que obtém', whatLearn:'O que vai aprender', formula:'Fórmula', otherCalcs:'Outras calculadoras', moreTopics:'Mais temas', free:'Grátis · 10 idiomas', disc:'TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.' },
-  it: { home:'Home', learn:'Impara', prices:'Prezzi', calcs:'Calcolatrici', useCalc:'Usa la calcolatrice', openModule:'Apri il modulo completo', whatGet:'Cosa ottieni', whatLearn:'Cosa imparerai', formula:'Formula', otherCalcs:'Altre calcolatrici', moreTopics:'Altri temi', free:'Gratis · 10 lingue', disc:'TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.' },
+  es: { trial:'Empieza 7 días gratis', home:'Inicio', learn:'Aprender', prices:'Precios', calcs:'Calculadoras', useCalc:'Usar la calculadora', openModule:'Abrir el módulo completo', whatGet:'Qué obtienes', whatLearn:'Qué aprenderás', formula:'Fórmula', otherCalcs:'Otras calculadoras', moreTopics:'Más temas', free:'7 días gratis', disc:'TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.' },
+  en: { trial:'Start your 7-day free trial', home:'Home', learn:'Learn', prices:'Pricing', calcs:'Calculators', useCalc:'Use the calculator', openModule:'Open the full module', whatGet:'What you get', whatLearn:'What you will learn', formula:'Formula', otherCalcs:'Other calculators', moreTopics:'More topics', free:'7-day free trial', disc:'TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.' },
+  de: { trial:'7 Tage gratis starten', home:'Start', learn:'Lernen', prices:'Preise', calcs:'Rechner', useCalc:'Rechner öffnen', openModule:'Vollständiges Modul öffnen', whatGet:'Was du bekommst', whatLearn:'Was du lernst', formula:'Formel', otherCalcs:'Weitere Rechner', moreTopics:'Weitere Themen', free:'7 Tage gratis', disc:'TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.' },
+  fr: { trial:'Commencer 7 jours gratuits', home:'Accueil', learn:'Apprendre', prices:'Tarifs', calcs:'Calculatrices', useCalc:'Utiliser la calculatrice', openModule:'Ouvrir le module complet', whatGet:'Ce que vous obtenez', whatLearn:'Ce que vous apprendrez', formula:'Formule', otherCalcs:'Autres calculatrices', moreTopics:'Plus de thèmes', free:'7 jours gratuits', disc:'TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.' },
+  ru: { trial:'Начать 7 дней бесплатно', home:'Главная', learn:'Обучение', prices:'Цены', calcs:'Калькуляторы', useCalc:'Открыть калькулятор', openModule:'Открыть полный модуль', whatGet:'Что вы получите', whatLearn:'Чему вы научитесь', formula:'Формула', otherCalcs:'Другие калькуляторы', moreTopics:'Ещё темы', free:'7 дней бесплатно', disc:'TradingCalculator.Pro — инструменты и обучение трейдингу. Информационный контент, не инвестсовет. Торговля сопряжена с риском убытков.' },
+  zh: { trial:'开始 7 天免费试用', home:'首页', learn:'学习', prices:'价格', calcs:'计算器', useCalc:'使用计算器', openModule:'打开完整模块', whatGet:'你将获得', whatLearn:'你将学到', formula:'公式', otherCalcs:'其他计算器', moreTopics:'更多主题', free:'7 天免费试用', disc:'TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。' },
+  ja: { trial:'7日間の無料体験を始める', home:'ホーム', learn:'学ぶ', prices:'料金', calcs:'計算ツール', useCalc:'計算ツールを使う', openModule:'モジュール全体を開く', whatGet:'得られるもの', whatLearn:'学べること', formula:'計算式', otherCalcs:'他の計算ツール', moreTopics:'他のテーマ', free:'7日間無料', disc:'TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。' },
+  ar: { trial:'ابدأ 7 أيام مجانًا', home:'الرئيسية', learn:'تعلّم', prices:'الأسعار', calcs:'الحاسبات', useCalc:'استخدم الحاسبة', openModule:'افتح الوحدة كاملة', whatGet:'ما ستحصل عليه', whatLearn:'ما ستتعلمه', formula:'الصيغة', otherCalcs:'حاسبات أخرى', moreTopics:'مواضيع أخرى', free:'7 أيام مجانًا', disc:'TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.' },
+  pt: { trial:'Comece 7 dias grátis', home:'Início', learn:'Aprender', prices:'Preços', calcs:'Calculadoras', useCalc:'Usar a calculadora', openModule:'Abrir o módulo completo', whatGet:'O que obtém', whatLearn:'O que vai aprender', formula:'Fórmula', otherCalcs:'Outras calculadoras', moreTopics:'Mais temas', free:'7 dias grátis', disc:'TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.' },
+  it: { trial:'Inizia 7 giorni gratis', home:'Home', learn:'Impara', prices:'Prezzi', calcs:'Calcolatrici', useCalc:'Usa la calcolatrice', openModule:'Apri il modulo completo', whatGet:'Cosa ottieni', whatLearn:'Cosa imparerai', formula:'Formula', otherCalcs:'Altre calcolatrici', moreTopics:'Altri temi', free:'7 giorni gratis', disc:'TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.' },
 };
 
 // ─── Calculadoras: es + en (páginas comerciales) ──────────────────
@@ -466,10 +357,10 @@ h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
 .card h2{font-size:18px;color:#fff;margin:0 0 10px}
 .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
 ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
 .free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
 footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
 footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
-${ADS_CSS}
 </style>
 </head>
 <body>
@@ -482,19 +373,17 @@ ${ADS_CSS}
   <span class="free">${esc(ui.free)}</span>
   <h1>${esc(h1)}</h1>
   <p class="lead">${esc(lead)}</p>
-  <a class="cta" href="${esc(ctaUrl)}">${esc(ctaLabel)} →</a>
+  <a class="cta" href="${DOMAIN}/pricing">${esc(ui.trial)} →</a>
+  <p class="sub"><a href="${esc(ctaUrl)}">${esc(ctaLabel)} →</a></p>
   ${formula ? `<div class="card"><h2>${esc(ui.formula)}</h2><code class="formula">${esc(formula)}</code></div>` : ''}
   ${points && points.length ? `<div class="card"><h2>${esc(sectionKind === 'tools' ? ui.whatGet : ui.whatLearn)}</h2><ul>${pointsHtml}</ul></div>` : ''}
-  ${adsBox('article')}
-  <a class="cta" href="${esc(ctaUrl)}">${esc(ctaLabel)} →</a>
+  <a class="cta" href="${DOMAIN}/pricing">${esc(ui.trial)} →</a>
   <div class="related card"><h2>${esc(sectionKind === 'tools' ? ui.otherCalcs : ui.moreTopics)}</h2><ul>${relatedHtml}</ul></div>
-  ${adsBox('bottom')}
 </main>
 <footer><div class="wrap">
   <div><a href="${DOMAIN}/">${esc(ui.home)}</a><a href="${DOMAIN}/education">${esc(ui.learn)}</a><a href="${DOMAIN}/legal">Legal</a></div>
   <div class="disc">${esc(ui.disc)}</div>
 </div></footer>
-${adsScript(lang)}
 </body>
 </html>`;
 }
@@ -600,9 +489,6 @@ function renderMarket({ lang, url, alts, id, name, body, mui, related }) {
     `\n<link rel="alternate" hreflang="x-default" href="${esc((alts.find(a => a[0] === 'es') || [null, url])[1])}">`;
   const title = `${name} — ${mui.what} · TradingCalculator.Pro`;
   const description = String(body.what).slice(0, 155);
-  const measureHtml = body.measure.map(m => `<tr><th scope="row">${esc(m.k)}</th><td>${esc(m.v)}</td></tr>`).join('');
-  const exampleHtml = body.example.rows.map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td class="num">${esc(v)}</td></tr>`).join('');
-  const faqHtml = body.faq.map(f => `<div class="qa"><h3>${esc(f.q)}</h3><p>${esc(f.a)}</p></div>`).join('');
   const relatedHtml = related.map(r => `<li><a href="${esc(r.url)}">${esc(r.label)}</a></li>`).join('');
 
   return `<!doctype html>
@@ -623,9 +509,6 @@ ${hreflang}
 <meta property="og:image" content="${esc(OG_IMAGE)}">
 <meta property="og:locale" content="${lang}">
 <meta name="twitter:card" content="summary_large_image">
-${ld({ '@context':'https://schema.org','@type':'FAQPage', inLanguage: lang, mainEntity: body.faq.map(f => ({
-  '@type':'Question', name: f.q, acceptedAnswer: { '@type':'Answer', text: f.a },
-})) })}
 ${ld({ '@context':'https://schema.org','@type':'BreadcrumbList', itemListElement:[
   { '@type':'ListItem', position:1, name: MARKET_UI[lang].section, item: DOMAIN + '/education' },
   { '@type':'ListItem', position:2, name: name, item: url },
@@ -655,7 +538,6 @@ td.num{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-align:end;co
 ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
 footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
-${ADS_CSS}
 </style>
 </head>
 <body>
@@ -667,26 +549,16 @@ ${ADS_CSS}
   <div class="crumb"><a href="${DOMAIN}/">${esc(UI[lang].home)}</a> › <a href="${DOMAIN}/education">${esc(mui.section)}</a> › ${esc(name)}</div>
   <h1>${esc(name)}</h1>
   <p class="lead">${esc(body.what)}</p>
-  <a class="cta" href="${DOMAIN}/education?topic=fundamentals&amp;market=${esc(id)}">${esc(mui.cta)} →</a>
+  <a class="cta" href="${DOMAIN}/pricing">${esc(UI[lang].trial)} →</a>
+  <p class="sub"><a href="${DOMAIN}/education?topic=fundamentals&amp;market=${esc(id)}">${esc(mui.cta)} →</a></p>
 
-  <div class="card"><h2>${esc(mui.measure)}</h2><table><tbody>${measureHtml}</tbody></table></div>
-
-  <div class="card"><h2>${esc(body.example.title)}</h2><table><tbody>${exampleHtml}</tbody></table>
-    ${body.example.note ? `<p class="note">${esc(body.example.note)}</p>` : ''}</div>
-
-  <div class="card"><h2>${esc(mui.faq)}</h2>${faqHtml}</div>
-
-  ${adsBox('article')}
-
-  <a class="cta" href="${DOMAIN}/education?topic=fundamentals&amp;market=${esc(id)}">${esc(mui.cta)} →</a>
+  <a class="cta" href="${DOMAIN}/pricing">${esc(UI[lang].trial)} →</a>
   <div class="card"><h2>${esc(mui.other)}</h2><ul>${relatedHtml}</ul></div>
-  ${adsBox('bottom')}
 </main>
 <footer><div class="wrap">
   <div><a href="${DOMAIN}/">${esc(UI[lang].home)}</a><a href="${DOMAIN}/education">${esc(UI[lang].learn)}</a><a href="${DOMAIN}/legal">Legal</a></div>
   <div class="disc">${esc(UI[lang].disc)}</div>
 </div></footer>
-${adsScript(lang)}
 </body>
 </html>`;
 }
@@ -774,24 +646,22 @@ STRATEGIES.forEach((s, i) => {
       .filter((r, j) => j !== i && r.category === s.category)
       .slice(0, 6)
       .map((r) => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}options/strategies/${slugOf(r)}/`, label: tr(lang, r.name) }));
-    const points = [
-      `${sui.risk}: ${tr(lang, s.risk)}`,
-      `${sui.reward}: ${tr(lang, s.reward)}`,
-      `${sui.maxP}: ${tr(lang, s.maxProfit)}`,
-      `${sui.maxL}: ${tr(lang, s.maxLoss)}`,
-      `${sui.when}: ${tr(lang, s.whenToUse)}`,
-    ];
-    if (multiExpiry) points.push(sui.multi);
+    // Anzuelo: la ficha enseña qué es la estructura y para qué sirve, pero NO
+    // la receta (patas, riesgo, máximos, cuándo usarla). Eso vive dentro de la
+    // app, tras el muro de pago.
+    const points = multiExpiry ? [sui.multi] : [];
     const description = String(lead).slice(0, 158);
     const html = render({
       lang, url, alts, title: `${name} | ${sui.section}`, description, h1: name, kw: name, ui,
       sectionLabel: sui.section, sectionUrl: `${DOMAIN}/options`,
-      lead, formula: s.legs.map(legLine).join('  ·  '), points,
+      lead, formula: '', points,
       ctaUrl: `${DOMAIN}/options/calculator?strategy=${s.id}`, ctaLabel: sui.open,
       related, sectionKind: 'options',
+      // Sin HowTo: sus pasos eran las patas de la estrategia y ya no se
+      // publican. Un schema que describa contenido ausente es un problema,
+      // no una ventaja.
       jsonld: {
-        '@context': 'https://schema.org', '@type': 'HowTo', name, url, inLanguage: lang, description,
-        step: s.legs.map((leg, n) => ({ '@type': 'HowToStep', position: n + 1, name: legLine(leg) })),
+        '@context': 'https://schema.org', '@type': 'WebPage', name, url, inLanguage: lang, description,
       },
     });
     write(rel, html);
@@ -810,6 +680,6 @@ fs.writeFileSync(path.join(BUILD, 'sitemap.xml'), sitemap, 'utf8');
 
 console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × ${LANGS.length} idiomas)`);
 console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} temas × ${LANGS.length} idiomas)`);
-console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × ${LANGS.length} idiomas, FAQPage)`);
-console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × ${LANGS.length} idiomas, HowTo)`);
+console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × ${LANGS.length} idiomas)`);
+console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × ${LANGS.length} idiomas)`);
 console.log(`✅ sitemap.xml: ${all.length} URLs`);

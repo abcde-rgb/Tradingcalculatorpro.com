@@ -8,7 +8,6 @@ import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
 import CookieBanner from "@/components/common/CookieBanner";
-import AdsBootstrap from "@/components/ads/AdsBootstrap";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { reloadFreshShell } from "@/lib/appShell";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -119,7 +118,6 @@ const AppContent = () => (
   <div className="App">
     <BrowserRouter basename={process.env.PUBLIC_URL}>
       <AnalyticsTracker />
-      <AdsBootstrap />
       <LangSync />
       <RefCapture />
       <Suspense fallback={<PageLoader />}>
@@ -128,18 +126,18 @@ const AppContent = () => (
           <Route path="/dashboard"       element={<ProtectedRoute premiumOnly><DashboardPage /></ProtectedRoute>} />
           <Route path="/pricing"         element={<PricingPage />} />
           <Route path="/settings"        element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-          <Route path="/education"       element={<EducationPage />} />
+          <Route path="/education"       element={<ProtectedRoute premiumOnly><EducationPage /></ProtectedRoute>} />
           <Route path="/subscription"    element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           {/* La referencia es pública y tiene URL propia; el workspace en vivo
               sigue siendo premium y se ha movido a /options/calculator. Las
               rutas más específicas van ANTES que /options/:algo para que
               `strategies` no se coma a `calculator`. */}
-          <Route path="/options"                    element={<OptionsHubPage />} />
-          <Route path="/options/calculator"         element={<OptionsPage />} />
-          <Route path="/options/strategies"         element={<OptionsStrategiesIndexPage />} />
-          <Route path="/options/strategies/:slug"   element={<OptionsStrategyPage />} />
+          <Route path="/options"                    element={<ProtectedRoute premiumOnly><OptionsHubPage /></ProtectedRoute>} />
+          <Route path="/options/calculator"         element={<ProtectedRoute premiumOnly><OptionsPage /></ProtectedRoute>} />
+          <Route path="/options/strategies"         element={<ProtectedRoute premiumOnly><OptionsStrategiesIndexPage /></ProtectedRoute>} />
+          <Route path="/options/strategies/:slug"   element={<ProtectedRoute premiumOnly><OptionsStrategyPage /></ProtectedRoute>} />
           <Route path="/performance"     element={<ProtectedRoute premiumOnly><PerformancePage /></ProtectedRoute>} />
-          <Route path="/news"            element={<NewsPage />} />
+          <Route path="/news"            element={<ProtectedRoute premiumOnly><NewsPage /></ProtectedRoute>} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/affiliate"       element={<ProtectedRoute><AffiliatePage /></ProtectedRoute>} />
           <Route path="/login"           element={<LoginPage />} />

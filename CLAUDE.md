@@ -74,9 +74,6 @@ cd frontend && npx eslint src scripts
 # Paridad de los 10 idiomas y motor del simulador (ambos offline)
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
 
-# Publicidad: que ningún suscriptor pueda ver un anuncio (offline, corre en CI)
-cd frontend && node scripts/ads-check.js
-
 # Los enlaces relativos de la doc resuelven. Existe porque ya se colaron
 # referencias a archivos inexistentes y nada las detectaba.
 python scripts/check-doc-links.py
@@ -179,7 +176,6 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `REACT_APP_BACKEND_URL` | URL de Cloud Run (sin `/api`). Si falta, `API = null` y todas las llamadas fallan silenciosamente. |
 | `REACT_APP_GOOGLE_CLIENT_ID` | Google OAuth en frontend |
 | `REACT_APP_GA4_MEASUREMENT_ID` / `REACT_APP_GTM_ID` | Analytics |
-| `REACT_APP_ADSENSE_CLIENT` + `..._SLOT_ARTICLE` / `..._SLOT_BOTTOM` / `..._CMP` | Google AdSense en el contenido gratuito. Van como **variables** del repositorio (no secretos). Vacías = sin publicidad. Ver [`docs/MONETIZACION_ADS.md`](./docs/MONETIZACION_ADS.md) |
 
 ## CI/CD
 
@@ -250,14 +246,6 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
 - **`plan_version` se sella al crear la operación y no se reescribe.** Cambiar el
   plan no debe re-juzgar retroactivamente la historia que se supone que mide.
 
-- **Un suscriptor no puede ver publicidad en NINGUNA ruta, ni siquiera en el
-  contenido gratuito.** La regla vive en `frontend/src/lib/adsPolicy.js`
-  (`shouldShowAds`, módulo puro sin imports) y la consumen tres runtimes: el hook
-  de React, el generador de páginas estáticas y `scripts/ads-check.js`, que corre
-  en CI. Con premium el script de AdSense **ni se descarga**. Poner un `<AdSlot>`
-  en una página no basta: la ruta tiene que estar en `AD_SURFACES`, y las páginas
-  de pago/conversión/legales están prohibidas por test. Detalle y encendido en
-  [`docs/MONETIZACION_ADS.md`](./docs/MONETIZACION_ADS.md).
 - **`_archive/` es código retirado, no se importa.** Contiene `backend_test_security.py`
   (obsoleto: hace `sys.exit(1)` inmediatamente, usaba MongoDB y el puerto equivocado) y
   `backend_test.py`. Los tests vivos son los de `backend/tests/`.

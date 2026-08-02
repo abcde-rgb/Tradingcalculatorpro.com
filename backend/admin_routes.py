@@ -45,7 +45,6 @@ PUBLIC_SETTING_KEYS = {
     "ga4_measurement_id",
     "gtm_container_id",
     "gsc_verification_code",
-    "adsense_publisher_id",
     "bing_verification_code",
     "clarity_project_id",
     # Google OAuth (client_id es público por diseño)
@@ -188,14 +187,6 @@ ALL_CONNECTORS: List[Dict[str, Any]] = [
         "description": "Verificación de propiedad para SEO",
         "keys": [
             {"key": "gsc_verification_code", "label": "Verification Code", "secret": False, "placeholder": "google-site-verification=..."},
-        ],
-    },
-    {
-        "group": "analytics",
-        "label": "Google AdSense",
-        "description": "Monetización con anuncios",
-        "keys": [
-            {"key": "adsense_publisher_id", "label": "Publisher ID", "secret": False, "placeholder": "ca-pub-XXXXXXXXXX"},
         ],
     },
     {

@@ -541,7 +541,6 @@ const INTEGRATION_SECTIONS = [
       { id: 'ga4_measurement_id',   label: 'Analytics 4 Measurement', secret: false, placeholder: 'G-XXXXXXXXXX',                      hint: 'analytics.google.com → Admin → Data Streams' },
       { id: 'gtm_id',               label: 'Tag Manager Container',   secret: false, placeholder: 'GTM-XXXXXXX',                       hint: 'tagmanager.google.com → workspace overview' },
       { id: 'gsc_verification',     label: 'Search Console (meta)',   secret: false, placeholder: 'AbC123…',                           hint: 'search.google.com/search-console → HTML tag' },
-      { id: 'adsense_publisher_id', label: 'AdSense Publisher ID',    secret: false, placeholder: 'ca-pub-XXXXXXXXXXXXXXXX',          hint: 'adsense.google.com → Account' },
     ],
   },
   {

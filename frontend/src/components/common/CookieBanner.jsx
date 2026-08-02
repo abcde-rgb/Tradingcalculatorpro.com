@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import { CONSENT_KEY } from '@/lib/adsPolicy';
-import { CONSENT_EVENT } from '@/lib/ads';
+
+// Clave de consentimiento. Vivía en `adsPolicy.js`; al retirar la publicidad
+// se queda aquí, que es el único sitio que la usa.
+export const CONSENT_KEY = 'tcp-cookie-consent';
 
 export function getCookieConsent() {
   try {
@@ -20,16 +22,11 @@ function applyConsent(level) {
 
   const granted = level === 'all' ? 'granted' : 'denied';
 
-  // Google Consent Mode v2. La publicidad (AdSense en el contenido gratuito)
-  // va atada al mismo "Aceptar todo" que la analítica y, como ella, sale
-  // denegada por defecto desde `index.html`.
+  // Google Consent Mode v2. Ya no hay publicidad en el sitio, así que sólo se
+  // actualiza la analítica; las señales `ad_*` siguen denegadas desde
+  // `index.html` y nadie las concede.
   if (typeof window.gtag === 'function') {
-    window.gtag('consent', 'update', {
-      analytics_storage: granted,
-      ad_storage: granted,
-      ad_user_data: granted,
-      ad_personalization: granted,
-    });
+    window.gtag('consent', 'update', { analytics_storage: granted });
   }
 
   // PostHog — opt in/out
@@ -39,14 +36,6 @@ function applyConsent(level) {
     } else {
       window.posthog.opt_out_capturing();
     }
-  }
-
-  // Los huecos de AdSense ya montados escuchan esto: sin el aviso, aceptar
-  // cookies no haría aparecer los anuncios hasta el siguiente cambio de ruta.
-  try {
-    window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: level }));
-  } catch {
-    /* navegador sin CustomEvent: el consentimiento se aplicará al recargar */
   }
 }
 

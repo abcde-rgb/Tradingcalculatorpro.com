@@ -7,7 +7,6 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
  *
  *  - Google Analytics 4 (gtag.js)        → ga4_measurement_id
  *  - Google Tag Manager                  → gtm_id
- *  - Google AdSense (auto-ads)           → adsense_publisher_id
  *  - Search Console verification meta    → gsc_verification
  *  - Bing Webmaster verification meta    → bing_verification
  *
@@ -41,7 +40,6 @@ export default function GoogleIntegrations() {
 
     const ga    = pick('ga4_measurement_id',   'REACT_APP_GA4_MEASUREMENT_ID');
     const gtm   = pick('gtm_id',               'REACT_APP_GTM_ID');
-    const ads   = pick('adsense_publisher_id', 'REACT_APP_ADSENSE_PUBLISHER_ID');
     const gsc   = pick('gsc_verification',     'REACT_APP_GSC_VERIFICATION');
     const bing  = pick('bing_verification',    'REACT_APP_BING_VERIFICATION');
 
@@ -86,16 +84,6 @@ export default function GoogleIntegrations() {
         ns.appendChild(iframe);
         document.body.prepend(ns);
       }
-    }
-
-    // ───────── Google AdSense (auto ads) ─────────
-    if (ads && !document.getElementById('adsense-loader')) {
-      const s = document.createElement('script');
-      s.id = 'adsense-loader';
-      s.async = true;
-      s.crossOrigin = 'anonymous';
-      s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ads}`;
-      document.head.appendChild(s);
     }
 
     // ───────── Search Console verification meta ─────────
