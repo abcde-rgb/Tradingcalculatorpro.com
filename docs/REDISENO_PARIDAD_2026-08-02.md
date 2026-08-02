@@ -333,7 +333,93 @@ incumple. Es el primer commit que hay que rescatar, antes que cualquier rediseñ
 
 **Total: 48 ramas remotas para un repo de un solo desarrollador.**
 
-### 6.5 Orden de integración recomendado
+### 6.5 El diario y el plan de trading: qué está hecho de verdad
+
+Verificado fichero a fichero en `main` y en las ramas, porque la pregunta
+«¿el journal está hecho?» tiene tres respuestas distintas según de qué pieza se
+hable.
+
+**✅ Hecho y en `main` — el diario bueno.** `PerformancePage` monta
+`TradeJournal.jsx` sobre `POST/GET/PUT/DELETE /performance/trades` (colección
+`db.trades`, `server.py:6376`):
+
+- CRUD completo, alta masiva (`/performance/trades/bulk`), import/export CSV
+  (`TradeImportExport.jsx`) e importador guiado (`TradeImportWizard.jsx`).
+- **Operaciones de opciones**: `instrument_type: 'option'` con `option_type`,
+  `strike` y `expiry` (`TradeFormModal.jsx:59-116`).
+- `AnalyticsDashboard.jsx` (540 líneas) pinta curva de equity, **calendario de
+  PnL**, distribución de R, **MAE/MFE** con sugerencia de stop, **sesgos de
+  comportamiento**, insights automáticos y KPIs: expectancy, profit factor,
+  Sharpe por operación, max drawdown, rachas, errores detectados y tasa de
+  cumplimiento.
+- El backend enriquece cada operación al crearla y **ya pasa el plan** a
+  `detect_errors` (`server.py:6358, 6373, 6405, 6439`).
+
+**⚠️ Hecho dos veces — y una de las dos no lleva a ninguna parte.** El
+dashboard monta **otro** diario distinto:
+
+| | Diario del **dashboard** | Diario de **rendimiento** |
+|---|---|---|
+| Componente | `components/tools/TradingJournal.jsx` (`DashboardPage.jsx:445`) | `components/performance/TradeJournal.jsx` |
+| Dónde guarda | `localStorage['trading-journal-storage']` (Zustand `persist`) | `db.trades`, en el servidor |
+| Toca la red | **No.** Cero `fetch`/`axios` en el fichero | Sí, `performanceApi.js` |
+| Alimenta la analítica | **No** | Sí |
+| Sobrevive a cambiar de dispositivo | **No** | Sí |
+
+Y en la **misma página**, `DashboardPage.jsx:276` monta `<JournalStats />`, que
+lee `GET /api/journal/stats` → `db.trades`. Es decir: **la tarjeta de
+estadísticas del dashboard enseña las cifras del diario de rendimiento, mientras
+el diario que hay justo debajo escribe en el navegador.** Quien apunte una
+operación ahí verá que las estadísticas de arriba no se mueven, y perderá lo
+apuntado al cambiar de equipo o limpiar el navegador.
+
+Detalle relacionado: los cuatro endpoints `POST/GET/PUT/DELETE /journal/trades`
+existen en el backend y **ningún fichero del frontend los llama** en ninguna
+rama. De la familia `/journal/*` sólo se usa `/journal/stats`
+(`JournalStats.jsx:20`, `ExpectancyCalculator.jsx:67`).
+
+**🌿 Hecho, pero sólo en una rama — las métricas de mesa.** `main` **no** tiene
+SQN, Calmar, Ulcer, Z-score de rachas ni VaR/CVaR (`grep` en `performance.py`:
+0 apariciones). Están en `claude/opciones-vanna-charm-metricas` (**PR #163**) y
+en su superconjunto `trading-web-full-audit-xmcxz9`:
+
+- `backend/performance_metrics.py`, módulo nuevo de 195 líneas con
+  `sqn`, `calmar`, `ulcer_index`, `streak_zscore`,
+  `value_at_risk_parametric`, `value_at_risk_historical`, `conditional_var`
+  y `mae_mfe_stats`.
+- `backend/tests/test_advanced_metrics_unit.py`.
+- Se cuelga de `compute_analytics` como bloque `"advanced"` y son 24 líneas en
+  `performance.py` + 41 en `AnalyticsDashboard.jsx`. **65 líneas de integración
+  para 195 de motor ya escrito y probado.**
+- Respeta la regla de honestidad: Calmar se queda en `None` porque no hay
+  retornos fechados fiables, y los R se toman sólo de operaciones con R
+  definido — nunca se fabrica un 0-R para una operación sin stop.
+
+**❌ No está hecho en ninguna rama — la interfaz del plan de trading.** Esto es
+lo más importante de esta sección:
+
+- El backend está **completo**: `trading_plan.py`, tabla `trading_plans`,
+  versionado con `change_reason` obligatorio desde la v2, sellado de
+  `plan_version` por operación, 5 reglas nuevas en `detect_errors` y las cinco
+  rutas `GET/POST /plan`, `/plan/history`, `PATCH /plan/draft`,
+  `GET /plan/compliance`.
+- **Ningún fichero de `frontend/src` llama a ninguna de esas cinco rutas.**
+  Comprobado en `main` y en las cinco ramas vivas: 0 coincidencias.
+- Lo que el usuario sí rellena hoy es otra cosa: el modelo de sistema de la
+  academia (`components/education/tradingSystemModel.js`, clave heredada
+  `tcp-trading-setup`), que vive **en localStorage** y no habla con el backend.
+  `printTradingPlan()` (`EducationPage.jsx:690`) imprime desde ahí.
+
+**La consecuencia, que es un bug de producto en toda regla:** como
+`get_active_plan()` no puede devolver nada (nadie puede crear un plan desde la
+web), `detect_errors` cae **siempre** en `DEFAULT_MIN_RR` y
+`DEFAULT_MAX_RISK_PCT`. Es decir, la tarjeta «tasa de cumplimiento» del
+dashboard de analítica **sigue midiendo la opinión de la app, no el plan del
+usuario** — exactamente el bug que el trabajo del 2026-07-30 se escribió para
+arreglar. El arreglo está hecho al 100% en el backend y no llega al usuario por
+falta de un formulario.
+
+### 6.6 Orden de integración recomendado
 
 ```
 1. ba8b09ed              (§6.1 — corrección numérica, sola, con sus tests)
