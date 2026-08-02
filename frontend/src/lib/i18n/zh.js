@@ -2430,7 +2430,7 @@ export default {
   "journalCsvEmpty": "CSV 文件为空",
   "journalCsvNothingToExport": "没有可导出的交易",
   "seoLandingTitle": "专业交易计算器与模拟器",
-  "seoLandingDesc": "专业平台：杠杆、仓位与期权(Black-Scholes)计算器，Monte Carlo模拟，42+图形形态和K线，支持10种语言。免费。",
+  "seoLandingDesc": "专业平台：杠杆、仓位与期权(Black-Scholes)计算器，Monte Carlo模拟，42+图形形态和K线，支持10种语言。7 天免费试用。",
   "seoDashboardTitle": "仪表板 — 杠杆、仓位等多种计算器",
   "seoDashboardDesc": "9个专业计算器：杠杆、仓位、Spot、手数、Fibonacci、Monte Carlo、Simulator Pro等。覆盖250+资产的通用搜索。",
   "seoOptionsTitle": "期权套件 — Black-Scholes、希腊字母与策略优化",

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { TrendingUp, Sun, Moon, Globe, Linkedin, Mail, CandlestickChart } from 'lucide-react';
+import { Sun, Moon, Globe, Linkedin, Mail, CandlestickChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import BrandMark from '@/components/common/BrandMark';
 import { useTranslation, languages } from '@/lib/i18n';
 import { FlagIcon, LOCALE_FLAG } from '@/components/common/FlagIcon';
 import { useThemeStore } from '@/lib/theme';
@@ -55,7 +56,7 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-6 h-6 text-primary" />
+              <BrandMark className="w-6 h-6 shrink-0" />
               <span className="font-bold text-lg">{t('appName') || 'Trading Calculator PRO'}</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">

@@ -2430,7 +2430,7 @@ export default {
   "journalCsvEmpty": "CSVファイルが空です",
   "journalCsvNothingToExport": "エクスポートするトレードがありません",
   "seoLandingTitle": "プロ向けトレーディング電卓 & シミュレーター",
-  "seoLandingDesc": "プロ向けプラットフォーム：レバレッジ、ポジション、オプション(Black-Scholes)電卓、Monte Carlo、42+チャートパターンとローソク足、10言語。無料。",
+  "seoLandingDesc": "プロ向けプラットフォーム：レバレッジ、ポジション、オプション(Black-Scholes)電卓、Monte Carlo、42+チャートパターンとローソク足、10言語。7日間無料。",
   "seoDashboardTitle": "ダッシュボード — レバレッジ・ポジションサイズ等の電卓",
   "seoDashboardDesc": "9種のプロ電卓：レバレッジ、ポジション、Spot、ロット、Fibonacci、Monte Carlo、Simulator Proなど。250+銘柄の総合検索。",
   "seoOptionsTitle": "オプションスイート — Black-Scholes・Greeks・最適化",

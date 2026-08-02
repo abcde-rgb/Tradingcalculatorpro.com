@@ -2430,7 +2430,7 @@ export default {
   "journalCsvEmpty": "CSV-Datei ist leer",
   "journalCsvNothingToExport": "Keine Trades zum Exportieren",
   "seoLandingTitle": "Professionelle Trading-Rechner und Simulatoren",
-  "seoLandingDesc": "Professionelle Plattform mit Hebel-, Positions- und Optionsrechnern (Black-Scholes), Monte Carlo, 42+ Chartmustern und Kerzen in 10 Sprachen. Gratis.",
+  "seoLandingDesc": "Professionelle Plattform mit Hebel-, Positions- und Optionsrechnern (Black-Scholes), Monte Carlo, 42+ Chartmustern und Kerzen in 10 Sprachen. 7 Tage gratis testen.",
   "seoDashboardTitle": "Dashboard — Rechner für Hebel, Positionsgröße und mehr",
   "seoDashboardDesc": "9 professionelle Rechner: Hebel, Positionsgröße, Spot, Lot, Fibonacci, Monte Carlo, Simulator Pro und mehr. Universelle Suche mit 250+ Assets.",
   "seoOptionsTitle": "Options-Suite — Black-Scholes, Greeks & Strategy Optimizer",

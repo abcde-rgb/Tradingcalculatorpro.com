@@ -2430,7 +2430,7 @@ export default {
   "journalCsvEmpty": "ملف CSV فارغ",
   "journalCsvNothingToExport": "لا توجد صفقات للتصدير",
   "seoLandingTitle": "حاسبات ومحاكيات تداول احترافية",
-  "seoLandingDesc": "منصة احترافية: حاسبات الرافعة، حجم الصفقة، الخيارات (Black-Scholes)، Monte Carlo، 42+ نموذج رسومي وشموع يابانية بـ 10 لغات. مجاناً.",
+  "seoLandingDesc": "منصة احترافية: حاسبات الرافعة، حجم الصفقة، الخيارات (Black-Scholes)، Monte Carlo، 42+ نموذج رسومي وشموع يابانية بـ 10 لغات. 7 أيام مجانًا.",
   "seoDashboardTitle": "لوحة التحكم — حاسبات الرافعة وحجم الصفقة وغيرها",
   "seoDashboardDesc": "9 حاسبات احترافية: الرافعة، حجم الصفقة، Spot، اللوت، Fibonacci، Monte Carlo، Simulator Pro والمزيد. بحث شامل لأكثر من 250 أصلاً.",
   "seoOptionsTitle": "مجموعة الخيارات — Black-Scholes، اليونانيات ومحسّن الاستراتيجيات",
