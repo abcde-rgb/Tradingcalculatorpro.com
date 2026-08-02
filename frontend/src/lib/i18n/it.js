@@ -2356,7 +2356,7 @@ export default {
   "journalCsvEmpty": "Il file CSV è vuoto",
   "journalCsvNothingToExport": "Non ci sono trade da esportare",
   "seoLandingTitle": "Calcolatrici e Simulatori di Trading Professionale",
-  "seoLandingDesc": "Piattaforma professionale con calcolatrici di leva, posizione, opzioni (Black-Scholes), Monte Carlo, 42+ pattern grafici e candele in 10 lingue. Gratis.",
+  "seoLandingDesc": "Piattaforma professionale con calcolatrici di leva, posizione, opzioni (Black-Scholes), Monte Carlo, 42+ pattern grafici e candele in 10 lingue. 7 giorni gratis.",
   "seoDashboardTitle": "Dashboard — Calcolatrici di Leva, Posizione e Altro",
   "seoDashboardDesc": "9 calcolatrici professionali: leva, dimensione della posizione, Spot, Lotti, Fibonacci, Monte Carlo, Simulatore Pro e altro. Ricerca con 250+ asset.",
   "seoOptionsTitle": "Suite Opzioni — Black-Scholes, Greche e Strategy Optimizer",

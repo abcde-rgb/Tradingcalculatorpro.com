@@ -2356,7 +2356,7 @@ export default {
   "journalCsvEmpty": "O ficheiro CSV está vazio",
   "journalCsvNothingToExport": "Não há trades para exportar",
   "seoLandingTitle": "Calculadoras e Simuladores de Trading Profissional",
-  "seoLandingDesc": "Plataforma profissional com calculadoras de alavancagem, posição, opções (Black-Scholes), Monte Carlo, 42+ padrões gráficos e velas em 10 idiomas. Grátis.",
+  "seoLandingDesc": "Plataforma profissional com calculadoras de alavancagem, posição, opções (Black-Scholes), Monte Carlo, 42+ padrões gráficos e velas em 10 idiomas. 7 dias grátis.",
   "seoDashboardTitle": "Dashboard — Calculadoras de Alavancagem, Posição e Mais",
   "seoDashboardDesc": "9 calculadoras profissionais: alavancagem, tamanho de posição, Spot, Lotes, Fibonacci, Monte Carlo, Simulador Pro e mais. Pesquisa com 250+ ativos.",
   "seoOptionsTitle": "Suite de Opções — Black-Scholes, Gregas e Strategy Optimizer",

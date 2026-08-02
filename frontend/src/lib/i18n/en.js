@@ -2356,7 +2356,7 @@ export default {
   "journalCsvEmpty": "CSV file is empty",
   "journalCsvNothingToExport": "No trades to export",
   "seoLandingTitle": "Professional Trading Calculators & Simulators",
-  "seoLandingDesc": "Professional platform with leverage, position, and options (Black-Scholes) calculators, Monte Carlo, 42+ chart patterns and candlesticks in 10 languages. Free.",
+  "seoLandingDesc": "Professional platform with leverage, position, and options (Black-Scholes) calculators, Monte Carlo, 42+ chart patterns and candlesticks in 10 languages. 7-day free trial.",
   "seoDashboardTitle": "Dashboard — Leverage, Position Size and More Calculators",
   "seoDashboardDesc": "9 professional calculators: leverage, position size, Spot, Lot Size, Fibonacci, Monte Carlo, Simulator Pro and more. Universal search with 250+ assets.",
   "seoOptionsTitle": "Options Suite — Black-Scholes, Greeks & Strategy Optimizer",

@@ -2702,3 +2702,52 @@ el sitio pasa a ser **de pago íntegro**, con prueba de 7 días como única puer
 - ⚠️ **Pendiente de decidir**: `/affiliate` sigue siendo sólo-auth. Un registrado
   sin plan ve la página aunque el backend (`_is_paying_member`) no le deje entrar
   al programa. Si debe caer también tras el muro, es una línea.
+
+### 2026-08-02 (3) — Marca nueva y tarjeta social
+Llega el pack de marca (monograma TC + velas, fondo `#080808`, primario `#17CF63`)
+y se aplica a todo lo que lleva logo.
+
+- ✅ **Iconografía completa** en `public/`: `favicon.svg` (variante simplificada a
+  2 velas, que a 16 px las 3 se empastan), `favicon.ico` con 16 y 32 px dentro
+  —Google lo pide para el icono de resultados y algún navegador viejo ignora el
+  SVG—, `apple-touch-icon.png` (180), `icon-192`, `icon-512` y
+  `icon-512-maskable` con la zona de seguridad de Android. `manifest.json`
+  apunta a todos y `theme-color` pasa de `#22c55e` a `#080808`.
+- ✅ **`BrandMark.jsx`**: el monograma como SVG inline, no `<img>`, para que
+  herede el tamaño por clase y no añada una petición a lo primero que pinta la
+  web. Sustituye al icono genérico `TrendingUp` en cabecera y pie, y se inyecta
+  también en el `.brand` de las páginas estáticas.
+- ⛔ **El wordmark NO sale del pack.** Su SVG horizontal lleva el nombre como
+  `<text>` con una pila de fuentes del sistema: se vería distinto en cada
+  máquina. El propio README del pack pide convertirlo a curvas antes de
+  publicar. Hasta entonces la cabecera lo escribe con `font-unbounded`, que es
+  la fuente real del sitio.
+- ✅ **`og-image` rehecha** (`scripts/gen-og-image.js`, herramienta manual, NO
+  entra en el build). Marca nueva, titular real de la landing y la oferta de 7
+  días. El texto sale **vectorizado** glifo a glifo desde Unbounded e Inter: un
+  `<text>` con fuentes del sistema se renderiza distinto en cada máquina, y esta
+  imagen es exactamente lo que ve quien recibe el enlace.
+  - `og-image.svg` deja de ser editable a mano a cambio de no depender de
+    ninguna fuente instalada. Se edita el script y se regenera.
+  - Detalle de implementación: se compone glifo a glifo en vez de con
+    `font.getPath()`, que revienta con las tablas `ccmp` de Inter
+    (`lookupType: 6 substFormat: 2 is not yet supported` en opentype.js).
+- ✅ **Los textos de la tarjeta ya no mienten.** Seguían diciendo «Gratis» y
+  «8 Idiomas» después de cerrar el muro: corregidos `<title>`, `description`,
+  `og:description`, `twitter:description` y los dos `image:alt` de `index.html`,
+  más `seoLandingDesc` en los 10 idiomas.
+  - También el JSON-LD: fuera la oferta «Free Plan» a 0 € (quedan mensual 17 €,
+    trimestral 45 € y anual 200 €) y fuera el `Course` a precio 0 «Free». Un
+    marcado que promete gratis lo que está tras el muro es un problema con
+    Google, no una ventaja.
+- ℹ️ **El enlace de afiliado comparte la misma tarjeta.** `/?ref=CODE` devuelve
+  el `index.html` de la SPA, así que WhatsApp, Telegram y X leen sus `og:*` y
+  enseñan `og-image.png`. Verificado sirviendo el build y pidiendo la URL con
+  `User-Agent` de WhatsApp: `http=200` y la tarjeta completa. Si algún día se
+  quiere una imagen distinta para invitaciones, hace falta una página estática
+  propia (`/invite/`) con sus metas; no se puede variar por query string.
+- ✅ **Verificado**: ESLint 0 errores · i18n 10/10 (5650 claves) · `npm run build`
+  exit 0 con 1589 URLs · monograma comprobado en navegador real (cabecera SPA y
+  página estática) · favicons revisados a 16/32/180 px.
+- ⚠️ **Pendiente**: `favicon` por tema (el pack trae variantes oro y nasdaq, ya
+  copiadas a `public/`) y revisión nativa de las traducciones pt/it.

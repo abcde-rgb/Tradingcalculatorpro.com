@@ -2430,7 +2430,7 @@ export default {
   "journalCsvEmpty": "Le fichier CSV est vide",
   "journalCsvNothingToExport": "Aucun trade à exporter",
   "seoLandingTitle": "Calculatrices et Simulateurs de Trading Professionnels",
-  "seoLandingDesc": "Plateforme pro avec calculatrices de levier, position et options (Black-Scholes), Monte Carlo, 42+ figures et chandeliers en 10 langues. Gratuit.",
+  "seoLandingDesc": "Plateforme pro avec calculatrices de levier, position et options (Black-Scholes), Monte Carlo, 42+ figures et chandeliers en 10 langues. 7 jours gratuits.",
   "seoDashboardTitle": "Tableau de Bord — Calculatrices de Levier, Position et plus",
   "seoDashboardDesc": "9 calculatrices pro : levier, taille de position, Spot, lot, Fibonacci, Monte Carlo, Simulateur Pro et plus. Recherche universelle 250+ actifs.",
   "seoOptionsTitle": "Suite Options — Black-Scholes, Greeks et Strategy Optimizer",

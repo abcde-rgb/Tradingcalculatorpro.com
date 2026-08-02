@@ -2430,7 +2430,7 @@ export default {
   "journalCsvEmpty": "CSV-файл пуст",
   "journalCsvNothingToExport": "Нет сделок для экспорта",
   "seoLandingTitle": "Профессиональные торговые калькуляторы и симуляторы",
-  "seoLandingDesc": "Платформа для трейдеров: калькуляторы плеча, позиции, опционов (Black-Scholes), Monte Carlo, 42+ паттернов и свечей. 10 языков. Бесплатно.",
+  "seoLandingDesc": "Платформа для трейдеров: калькуляторы плеча, позиции, опционов (Black-Scholes), Monte Carlo, 42+ паттернов и свечей. 10 языков. 7 дней бесплатно.",
   "seoDashboardTitle": "Панель — Калькуляторы плеча, размера позиции и других",
   "seoDashboardDesc": "9 профи-калькуляторов: плечо, позиция, Spot, лот, Fibonacci, Monte Carlo, Simulator Pro. Универсальный поиск по 250+ активам.",
   "seoOptionsTitle": "Опционы — Black-Scholes, греки и Strategy Optimizer",
