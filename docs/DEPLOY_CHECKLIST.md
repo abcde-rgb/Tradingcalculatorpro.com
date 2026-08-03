@@ -19,7 +19,7 @@ Repo → Settings → Secrets and variables → Actions. Los usa `deploy-gh-page
 
 ## B. Secretos de GitHub Actions (backend → Cloud Run)
 
-Los usa `deploy-cloud-run.yml`:
+Los usa el despliegue del backend (`cloudbuild.yaml`, manual desde GCP):
 - [ ] 🔴 `GCP_WORKLOAD_IDENTITY_PROVIDER` — federación de identidad (sin claves JSON)
 - [ ] 🔴 `GCP_SERVICE_ACCOUNT` — SA de despliegue
 - [ ] `ADMIN_EMAILS` — emails admin (coma-separados)

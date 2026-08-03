@@ -2,7 +2,7 @@
 
 > ⚠️ **Este documento describe el proyecto ACTUAL.** El proyecto y la región no
 > están fijados en el workflow: salen de las variables de repositorio
-> `GCP_PROJECT` y `GCP_REGION` (ver `.github/workflows/deploy-cloud-run.yml`).
+> `GCP_PROJECT` y `GCP_REGION` (ver `cloudbuild.yaml`).
 > Si cambias de proyecto, ajusta esas variables — no hace falta tocar el YAML.
 >
 > Antes este documento decía `us-central1` mientras el deploy real usaba

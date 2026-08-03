@@ -1,7 +1,7 @@
 # ============================================================
 # CI de Pull Request — valida backend y frontend antes de merge.
-# No despliega nada (eso lo hacen deploy-gh-pages.yml y deploy-cloud-run.yml
-# al hacer push a main). Objetivo: frenar regresiones en PR.
+# No despliega nada (el frontend lo hace deploy-gh-pages.yml al hacer push a
+# main; el backend se despliega a mano). Objetivo: frenar regresiones en PR.
 # ============================================================
 name: CI (Pull Request)
 

@@ -120,7 +120,7 @@ En GitHub, en tu repositorio:
 - **Value**: `neon`
 
 Esto hace que el próximo despliegue **no monte el socket de Cloud SQL** (ver
-`deploy-cloud-run.yml`). Mientras esta variable no exista o valga `cloudsql`, todo sigue
+`cloudbuild.yaml`). Mientras esta variable no exista o valga `cloudsql`, todo sigue
 como hasta ahora.
 
 *(Opcional, mismo sitio, para ahorrar más: variable `MIN_INSTANCES` = `0`.)*
