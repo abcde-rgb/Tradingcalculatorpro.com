@@ -182,7 +182,7 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | Trigger | Workflow | Resultado |
 |---|---|---|
 | Push a `main` con cambios en `frontend/**` | `deploy-gh-pages.yml` | Build React → GitHub Pages en `https://abcde-rgb.github.io/Tradingcalculatorpro.com` |
-| Push a `main` con cambios en `backend/**` | `deploy-cloud-run.yml` | Tests → Docker build → Cloud Run (`tradingcalculator-api`, `europe-west1`) |
+| Push a `main` con cambios en `backend/**` | — | **Nada automático.** El workflow se retiró; el backend se despliega a mano con `cloudbuild.yaml` |
 | Manual desde GCP | `cloudbuild.yaml` | Equivalente al workflow de backend |
 
 Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).

@@ -2896,3 +2896,17 @@ en el histórico de la sesión.
   «Yahoo» y «yfinance» en todo lo que se publica · 501 tests pasan (3 nuevos,
   2 reescritos para fijar que el error público no nombre al proveedor) ·
   ESLint 0 errores · i18n 10/10 · build con 1589 URLs.
+
+### 2026-08-03 — Retirado el workflow de despliegue del backend
+Decisión del propietario: se elimina `.github/workflows/deploy-cloud-run.yml`.
+
+- ✅ **Borrado el workflow.** No tocaba el código del backend: fallaba en el paso
+  de autenticación (`google-github-actions/auth`, error `invalid_target` sobre el
+  pool de Workload Identity Federation).
+- ✅ Referencias actualizadas en `README.md`, `CLAUDE.md`, `DEPLOY_CHECKLIST.md`,
+  `MIGRACION_NEON.md` y `setup/GOOGLE_CLOUD_SETUP.md`. Las entradas fechadas del
+  histórico se dejan como estaban: describen lo que era cierto entonces.
+- ℹ️ **`cloudbuild.yaml` se queda.** Es el camino equivalente lanzado a mano desde
+  GCP y no depende de GitHub, así que sigue siendo la vía para desplegar backend.
+- ℹ️ **`ci.yml` no se toca**: sigue compilando y pasando los tests del backend en
+  cada PR. Lo que desaparece es el despliegue automático, no la validación.
