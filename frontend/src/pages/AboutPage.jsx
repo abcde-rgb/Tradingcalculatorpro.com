@@ -18,7 +18,7 @@ const VALUES = [
     icon: Zap,
     title: 'Datos en tiempo real',
     description:
-      'Precios actualizados al instante vía yfinance y CoinGecko para acciones, crypto, forex y commodities.',
+      'Precios de mercado para acciones, cripto, forex y materias primas.',
   },
   {
     icon: Shield,

@@ -221,9 +221,9 @@ async def get_indices_prices_real():
                     price = float(series.iloc[-1])
                     prev = float(series.iloc[-2])
                     change = round((price - prev) / prev * 100, 4) if prev else 0.0
-                    result[label] = {"price": round(price, 2), "change": change, "source": "yfinance"}
+                    result[label] = {"price": round(price, 2), "change": change, "source": "market"}
                 elif len(series) == 1:
-                    result[label] = {"price": round(float(series.iloc[-1]), 2), "change": 0.0, "source": "yfinance"}
+                    result[label] = {"price": round(float(series.iloc[-1]), 2), "change": 0.0, "source": "market"}
             except Exception:
                 if label in _INDICES_STATIC_FALLBACK:
                     result[label] = _INDICES_STATIC_FALLBACK[label]
@@ -291,7 +291,7 @@ async def get_commodities_prices_real():
                     "eur": round(price * eur_usd, 4),
                     "usd_24h_change": change,
                     "symbol": sym,
-                    "source": "yfinance",
+                    "source": "market",
                 }
             except Exception as e:
                 logging.warning(f"Commodity {sym} fetch error: {e}")
@@ -366,12 +366,12 @@ async def get_ohlc_universal(symbol: str, days: int = 30) -> Dict[str, Any]:
     # Also try appending -USD for bare crypto symbols not in CoinGecko map
     candles = _ohlc_from_yfinance(yf_sym, days)
     if candles:
-        return {"ohlc": candles, "symbol": sym_upper, "source": "yfinance"}
+        return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
     # Last attempt: try adding -USD suffix
     if not any(c in symbol for c in ["-", "=", "^", "."]):
         candles = _ohlc_from_yfinance(f"{sym_upper}-USD", days)
         if candles:
-            return {"ohlc": candles, "symbol": sym_upper, "source": "yfinance_crypto"}
+            return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
 
     return empty
 

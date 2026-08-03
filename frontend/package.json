@@ -68,7 +68,7 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "craco build",
+    "build": "GENERATE_SOURCEMAP=false craco build",
     "postbuild": "node scripts/gen-seo-pages.js",
     "test": "react-scripts test"
   },

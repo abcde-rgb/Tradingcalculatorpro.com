@@ -45,7 +45,7 @@ const FAQ_ITEMS = [
     icon: MessageSquare,
     question: '¿Los datos de mercado son en tiempo real?',
     answer:
-      'Sí. Utilizamos fuentes en tiempo real (yfinance, CoinGecko) para acciones, crypto, forex y commodities.',
+      'Sí. Los datos de cripto son en tiempo real; acciones, forex y materias primas pueden ir con retardo.',
     linkText: null,
     linkHref: null,
   },

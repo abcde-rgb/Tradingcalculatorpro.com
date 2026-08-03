@@ -139,7 +139,10 @@ def test_stale_value_is_served_and_flagged_when_everything_fails():
     assert stale["price"] == 100.0
     assert stale["stale"] is True          # the caller MUST be able to tell
     assert "stale_seconds" in stale
-    assert "down" in stale["error"]
+    # Hay error y se dice, pero SIN nombrar al proveedor: esta respuesta viaja
+    # al navegador por /quote/{symbol}, que es público. El detalle va al log.
+    assert stale["error"]
+    assert "down" not in stale["error"]
 
 
 def test_never_invents_a_price_when_there_is_nothing_cached():
@@ -147,7 +150,27 @@ def test_never_invents_a_price_when_there_is_nothing_cached():
     q = md.get_quote("NOPE")
     assert q["price"] is None
     assert q["stale"] is False
-    assert "provider down" in q["error"]
+    assert q["error"]                       # falla, y se dice que falla
+
+
+def test_the_public_error_never_names_the_provider(caplog):
+    """`/quote/{symbol}` es público: su campo `error` lo lee cualquiera.
+
+    El nombre del proveedor y el detalle de la excepción se quedan en el log,
+    donde sirven para depurar. `provider_status()` sí los da enteros, pero
+    cuelga de /admin/market-data-health.
+    """
+    import logging
+
+    md.PROVIDERS[:] = [_provider("proveedor-secreto", _boom())]
+    with caplog.at_level(logging.WARNING):
+        q = md.get_quote("NOPE")
+
+    assert "proveedor-secreto" not in q["error"]
+    assert "provider down" not in q["error"]
+    assert "RuntimeError" not in q["error"]
+    # Pero sigue siendo depurable.
+    assert "proveedor-secreto" in caplog.text
 
 
 def test_empty_symbol_is_rejected_without_calling_providers():

@@ -13,7 +13,7 @@ DESIGN
 ------
     get_quote(symbol)
       1. cache hit (TTL) ......................... return
-      2. primary   provider (Yahoo, no key) ...... return on success
+      2. primary   provider (sin clave) ............ return on success
       3. secondary provider (Finnhub, free key) .. only if primary failed
       4. tertiary  provider (Twelve Data) ........ last resort
       5. last known good value + stale=True + as_of
@@ -180,7 +180,7 @@ def _fetch_yahoo(symbol: str) -> Optional[dict]:
         meta.get("longName") or meta.get("shortName") or symbol,
         meta.get("regularMarketPrice"),
         meta.get("chartPreviousClose") or meta.get("previousClose"),
-        source="yahoo",
+        source="market",
         volume=meta.get("regularMarketVolume"),
         currency=meta.get("currency") or "USD",
     )
@@ -276,16 +276,21 @@ def get_quote(symbol: str, *, ttl: Optional[int] = None) -> dict:
             stale = dict(hit[0])
             stale["stale"] = True
             stale["stale_seconds"] = int(age)
-            stale["error"] = "; ".join(errors)
+            stale["error"] = f"{len(errors)} proveedor(es) sin respuesta"
             logger.warning("[market_data] serving STALE %s (%ss old)", symbol, int(age))
             return stale
 
     # Never invent a price: an explicit failure beats a made-up number.
+    # El detalle nombra al proveedor y esta respuesta es pública, así que el
+    # nombre se queda en el log. `provider_status()` sí los da enteros, pero
+    # cuelga de /admin/market-data-health.
+    logger.warning("[market_data] %s sin cotización: %s", symbol, "; ".join(errors))
     return {
         "symbol": symbol,
         "price": None,
         "stale": False,
-        "error": "; ".join(errors) or "no providers available",
+        "error": (f"{len(errors)} proveedor(es) sin respuesta" if errors
+                  else "no hay proveedores disponibles"),
     }
 
 

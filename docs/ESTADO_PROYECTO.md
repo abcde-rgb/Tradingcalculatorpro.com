@@ -2853,3 +2853,46 @@ señalado abajo.
   equivalentes, para esquivar la licencia del dueño del índice), los 15 futuros
   de materias primas (→ ETF) y la cadena de opciones (→ la sintética que ya
   existe). Eso sí cambia lo que ve el usuario.
+
+### 2026-08-02 (6) — Yahoo desaparece de todo lo que se publica
+Decisión del propietario: se mantiene Yahoo como fuente de acciones, índices,
+materias primas y cadena de opciones —el Grupo B queda pendiente de presupuesto—
+pero **deja de aparecer en cualquier superficie pública**.
+
+⚠️ **Esto reduce la prueba, no el problema.** El riesgo de licencia sigue ahí
+mientras Yahoo sea la fuente; lo que se retira es haberlo estado anunciando como
+argumento de venta, que era lo que lo agravaba. Ver la revisión de proveedores
+en el histórico de la sesión.
+
+- ✅ **Cuatro claves i18n reescritas en los 10 idiomas**: `livePatternIntro`,
+  `optionsChainRealtime`, `optionsGateDescription` y `faqA3_l061`. De paso caen
+  dos afirmaciones que además eran **falsas**: la cadena de opciones no es «en
+  tiempo real» (Yahoo la sirve con retardo) y el forex ya no lo es tampoco,
+  porque el BCE publica una vez al día. La FAQ ahora dice la verdad: cripto en
+  tiempo real, el resto puede ir con retardo.
+- ✅ **`dataAttribution` corregida**: decía «CoinGecko y TradingView» y CoinGecko
+  ya no interviene. Ahora acredita a TradingView —cuya atribución es requisito
+  de licencia, no cortesía— y al BCE.
+- ✅ **Tres textos fijos** fuera de i18n: `PortfolioGreeks`, `ContactPage` y
+  `AboutPage`.
+- ✅ **El campo `source` de las respuestas** pasa de `yfinance`/`yahoo` a
+  `market`. Viajaba al navegador y se leía en la pestaña de red.
+- ✅ **`/quote/{symbol}` es público y su campo `error` nombraba al proveedor que
+  había fallado.** Ahora devuelve el recuento; el detalle va al log, que es
+  donde sirve. `provider_status()` sigue dando los nombres enteros pero cuelga
+  de `/admin/market-data-health`, que es sólo admin.
+- ✅ **Source maps apagados** (`GENERATE_SOURCEMAP=false` en el script de build).
+  Eran el último sitio donde quedaba el nombre, porque publican el código fuente
+  entero —comentarios incluidos— y ahí sí hay comentarios que citan a Yahoo.
+  Se iban **20 MB por despliegue** que no consumía nadie: no hay Sentry ni nada
+  que los lea. Se apaga en `package.json` y no en el workflow para que un build
+  local produzca exactamente lo que se publica.
+- ℹ️ **Lo que NO se ha tocado, a propósito**: los comentarios de código y el
+  identificador `toYahooSymbol` de `StructureScanner.jsx`. No son visibles (la
+  minificación los borra o los renombra, y ya no hay source maps), y renombrarlos
+  haría que el código mintiera sobre lo que hace: ese conversor existe porque el
+  backend pide tickers en formato Yahoo. Cuando caiga el Grupo B se van solos.
+- ✅ **Verificado**: `grep` sobre `build/` entero → **cero apariciones** de
+  «Yahoo» y «yfinance» en todo lo que se publica · 501 tests pasan (3 nuevos,
+  2 reescritos para fijar que el error público no nombre al proveedor) ·
+  ESLint 0 errores · i18n 10/10 · build con 1589 URLs.

@@ -2760,7 +2760,7 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
                         "volume": float(row.get("Volume", 0) or 0),
                     })
                 if candles:
-                    return {"ohlc": candles, "symbol": sym_upper, "source": "yfinance"}
+                    return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
             except Exception as e:
                 logging.warning(f"yfinance OHLC for {cand}: {e}")
 
@@ -7868,8 +7868,8 @@ async def admin_market_data_health(admin: dict = Depends(require_admin)):
 
 @api_router.get("/quote/{symbol}")
 async def get_quote_with_failover(symbol: str):
-    """Single quote through the multi-provider chain (Yahoo → Finnhub → Twelve
-    Data → last known good).
+    """Single quote through the multi-provider chain, with failover al último
+    valor bueno conocido.
 
     The response carries ``stale`` and ``as_of``: the UI MUST show when a price
     could not be refreshed. Showing an old price as if it were live is a legal
