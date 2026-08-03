@@ -73,6 +73,8 @@ from trading_plan import (
     save_draft,
 )
 from market_rates import get_risk_free_rate, get_risk_free_info
+import crypto_data
+import ecb_rates
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -2627,40 +2629,49 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
 
 @api_router.get("/prices")
 async def get_prices():
-    """Real-time crypto prices from CoinGecko + real commodities (gold, silver, oil) from yfinance."""
+    """Precios de cripto desde las bolsas + materias primas reales.
+
+    Antes salía de CoinGecko sin clave contra su endpoint público, cuyo plan
+    gratuito no trae licencia comercial. Ahora viene de Binance y Kraken, que
+    publican sus propios datos de mercado y no arrastran licencias de bolsa
+    regulada. La respuesta sigue indexada por el id estilo CoinGecko para no
+    romper al frontend, que es quien elige esas claves.
+    """
     data: Dict[str, Any] = {}
+
+    symbol_by_id = {cid: sym for sym, cid in COINGECKO_SYMBOL_TO_ID.items()}
     try:
-        async with httpx.AsyncClient() as http_client:
-            response = await http_client.get(
-                "https://api.coingecko.com/api/v3/simple/price",
-                params={
-                    "ids": ",".join(dict.fromkeys(COINGECKO_SYMBOL_TO_ID.values())),
-                    "vs_currencies": "usd,eur",
-                    "include_24hr_change": "true",
-                    "include_24hr_vol": "true"
-                },
-                timeout=10.0
-            )
-            if response.status_code == 200:
-                data = response.json()
+        precios = await crypto_data.fetch_usd_prices(list(symbol_by_id.values()))
     except Exception as e:
         logging.error(f"Error fetching crypto prices: {e}")
+        precios = {}
 
-    # Crypto fallback if CoinGecko failed entirely
-    if not data:
-        data = {
-            "bitcoin": {"usd": 97000, "eur": 89000, "usd_24h_change": 2.1},
-            "ethereum": {"usd": 3600, "eur": 3300, "usd_24h_change": 1.5},
-            "solana": {"usd": 195, "eur": 178, "usd_24h_change": 3.2},
-            "binancecoin": {"usd": 680, "eur": 620, "usd_24h_change": 1.1},
-            "ripple": {"usd": 0.62, "eur": 0.57, "usd_24h_change": 0.8},
-            "cardano": {"usd": 0.48, "eur": 0.44, "usd_24h_change": -0.5},
-            "dogecoin": {"usd": 0.14, "eur": 0.13, "usd_24h_change": 4.2},
-            "avalanche-2": {"usd": 38, "eur": 35, "usd_24h_change": 2.1},
-            "polkadot": {"usd": 7.8, "eur": 7.1, "usd_24h_change": 1.3},
-            "chainlink": {"usd": 16, "eur": 14.5, "usd_24h_change": 0.7},
-            "litecoin": {"usd": 88, "eur": 80, "usd_24h_change": 1.2},
+    # El euro es derivado, no cotizado — igual que hacía CoinGecko por dentro.
+    # Sin tipo de cambio no se inventa uno: se omite el campo.
+    eur_por_usd: Optional[float] = None
+    try:
+        fx = await ecb_rates.fetch_rates(["EURUSD"])
+        eurusd = (fx.get("EURUSD") or {}).get("price")
+        if eurusd:
+            eur_por_usd = 1.0 / float(eurusd)
+    except Exception as e:
+        logging.warning(f"EURUSD del BCE no disponible: {e}")
+
+    for coin_id, sym in symbol_by_id.items():
+        cotizacion = precios.get(sym)
+        if not cotizacion:
+            # Una moneda que no se ha podido leer se omite. Rellenarla con un
+            # número plausible es indistinguible en pantalla de una real.
+            continue
+        fila: Dict[str, Any] = {
+            "usd": cotizacion["usd"],
+            "usd_24h_change": cotizacion.get("usd_24h_change"),
+            "usd_24h_vol": cotizacion.get("usd_24h_vol"),
+            "source": cotizacion.get("source"),
         }
+        if eur_por_usd:
+            fila["eur"] = round(cotizacion["usd"] * eur_por_usd, 6)
+        data[coin_id] = fila
 
     # ── REAL commodities via yfinance (GC=F gold, SI=F silver, CL=F oil) ──
     try:
@@ -2700,80 +2711,22 @@ async def get_prices():
 # Note: /forex-prices, /indices-prices, /commodities-prices, /ohlc/{symbol} (universal)
 # are provided by `missing_apis.py` (registered at startup with REAL data via yfinance).
 
-_COINGECKO_COIN_MAP: Dict[str, str] = {
-    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
-    "XRP": "ripple", "ADA": "cardano", "DOGE": "dogecoin", "AVAX": "avalanche-2",
-    "DOT": "polkadot", "LINK": "chainlink", "LTC": "litecoin",
-}
-
-
-def _pick_ohlc_interval_ms(days: int) -> int:
-    """Pick aggregation bucket size (ms) based on the requested time range."""
-    if days <= 7:
-        return 3600 * 1000               # 1 hour
-    if days <= 30:
-        return 4 * 3600 * 1000           # 4 hours
-    return 24 * 3600 * 1000              # 1 day
-
-
-def _candle_from_bucket(bucket_start_ms: int, prices: List[float]) -> Dict[str, Any]:
-    """Build an OHLC candle from the prices that fell into one time bucket."""
-    return {
-        "time": bucket_start_ms // 1000,
-        "open": prices[0],
-        "high": max(prices),
-        "low": min(prices),
-        "close": prices[-1],
-    }
-
-
-def _group_prices_into_ohlc(
-    prices: List[List[float]], interval_ms: int
-) -> List[Dict[str, Any]]:
-    """Group raw [timestamp_ms, price] tuples into OHLC candles."""
-    ohlc: List[Dict[str, Any]] = []
-    bucket_start: Optional[int] = None
-    bucket_prices: List[float] = []
-
-    for timestamp, price in prices:
-        interval_start = (int(timestamp) // interval_ms) * interval_ms
-        if bucket_start is None or interval_start != bucket_start:
-            if bucket_prices and bucket_start is not None:
-                ohlc.append(_candle_from_bucket(bucket_start, bucket_prices))
-            bucket_start = interval_start
-            bucket_prices = [price]
-        else:
-            bucket_prices.append(price)
-
-    if bucket_prices and bucket_start is not None:
-        ohlc.append(_candle_from_bucket(bucket_start, bucket_prices))
-    return ohlc
-
-
 @api_router.get("/ohlc/{symbol}")
 async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
     """Universal OHLC for ANY asset (crypto, stocks, forex, indices, commodities).
-    1) Try CoinGecko (for known crypto). 2) Fall back to yfinance for any symbol."""
+    1) Binance para cripto. 2) yfinance para cualquier otro símbolo."""
     sym_upper = symbol.upper()
     empty: Dict[str, Any] = {"ohlc": [], "symbol": sym_upper, "source": "none"}
 
-    # 1) CoinGecko for the well-known crypto coins
-    coin_id = _COINGECKO_COIN_MAP.get(sym_upper)
-    if coin_id:
-        try:
-            async with httpx.AsyncClient() as http_client:
-                response = await http_client.get(
-                    f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart",
-                    params={"vs_currency": "usd", "days": days},
-                    timeout=15.0,
-                )
-            if response.status_code == 200:
-                prices = response.json().get("prices", [])
-                if prices:
-                    ohlc = _group_prices_into_ohlc(prices, _pick_ohlc_interval_ms(days))
-                    return {"ohlc": ohlc, "symbol": sym_upper, "source": "coingecko"}
-        except Exception as e:
-            logging.warning(f"CoinGecko OHLC for {sym_upper}: {e}")
+    # 1) Binance para cripto: velas OHLC de verdad.
+    #    CoinGecko sólo daba una serie de precios y había que agruparla en
+    #    cubos; el máximo y el mínimo de una vela así son los de las muestras
+    #    que cayeron dentro, no los del periodo. Estas son las del periodo.
+    if crypto_data.binance_symbol(sym_upper):
+        interval, limit = crypto_data.interval_for_days(days)
+        velas = await crypto_data.fetch_ohlc(sym_upper, interval=interval, limit=limit)
+        if velas:
+            return {"ohlc": velas, "symbol": sym_upper, "source": "binance"}
 
     # 2) yfinance fallback — works for stocks, forex (EURUSD=X), indices (^GSPC),
     #    commodities (GC=F), and any crypto via SYMBOL-USD pair.

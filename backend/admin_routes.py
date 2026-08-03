@@ -25,6 +25,8 @@ import re
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
+import ecb_rates
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
@@ -70,7 +72,6 @@ SECRET_SETTING_KEYS = {
     "google_client_secret",
     "finnhub_api_key",
     "alpha_vantage_api_key",
-    "coingecko_api_key",
     "emergent_llm_key",
     "paypal_client_id",
     "paypal_client_secret",
@@ -133,11 +134,11 @@ ALL_CONNECTORS: List[Dict[str, Any]] = [
     # ---- DATOS DE MERCADO ----
     {
         "group": "market_data",
-        "label": "CoinGecko",
-        "description": "Precios de criptomonedas en tiempo real (el plan gratuito no necesita clave)",
-        "keys": [
-            {"key": "coingecko_api_key", "label": "API Key (Pro)", "secret": True, "placeholder": "CG-..."},
-        ],
+        "label": "Criptomonedas",
+        "description": ("Los precios salen de Binance y Kraken, que publican sus propios "
+                        "datos de mercado sin clave ni licencia comercial. No hay nada "
+                        "que configurar aquí."),
+        "keys": [],
     },
     {
         "group": "market_data",
@@ -500,14 +501,29 @@ def build_admin_router(
         results.append({"connector": "Google OAuth", "status": "configured" if g_client else "not_configured",
                         "configured": bool(g_client)})
 
-        # -- CoinGecko --
+        # -- Cripto (Binance) --
+        # Se comprueba el proveedor que se usa de verdad. Antes hacía ping a
+        # CoinGecko, que ya no interviene en ninguna petición.
         try:
             async with httpx.AsyncClient(timeout=5) as c:
-                r = await c.get("https://api.coingecko.com/api/v3/ping")
-            results.append({"connector": "CoinGecko", "status": "ok" if r.status_code == 200 else "error",
-                             "http_code": r.status_code, "configured": True})
+                r = await c.get("https://api.binance.com/api/v3/ping")
+            results.append({"connector": "Binance (cripto)",
+                            "status": "ok" if r.status_code == 200 else "error",
+                            "http_code": r.status_code, "configured": True})
         except Exception as e:
-            results.append({"connector": "CoinGecko", "status": "error", "error": str(e), "configured": True})
+            results.append({"connector": "Binance (cripto)", "status": "error",
+                            "error": str(e), "configured": True})
+
+        # -- Tipos de cambio (BCE) --
+        try:
+            async with httpx.AsyncClient(timeout=5) as c:
+                r = await c.get(ecb_rates.ECB_HIST_90D)
+            results.append({"connector": "BCE (forex)",
+                            "status": "ok" if r.status_code == 200 else "error",
+                            "http_code": r.status_code, "configured": True})
+        except Exception as e:
+            results.append({"connector": "BCE (forex)", "status": "error",
+                            "error": str(e), "configured": True})
 
         # -- Finnhub --
         fh_key = raw.get("finnhub_api_key", "")

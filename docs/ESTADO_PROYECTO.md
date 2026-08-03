@@ -2787,3 +2787,69 @@ tocar este código.
   ⚠️ `tests/test_route_uniqueness_unit.py` falla 2 casos en este contenedor,
   **también sin mis cambios** (comprobado revirtiendo): es del entorno, no del
   código, y en la CI pasa.
+
+### 2026-08-02 (5) — Grupo A: fuera Yahoo y CoinGecko de forex, tipos y cripto
+Primer tramo del saneamiento de licencias de datos. Sustituye las fuentes **sin
+licencia** por otras que sí permiten mostrar el dato en un producto de pago.
+Mismo número en pantalla, distinta procedencia: no hay cambio visible salvo el
+señalado abajo.
+
+- ✅ **Tipo libre de riesgo: `^IRX` de Yahoo → Tesoro de EE. UU.**
+  `market_rates.py` lee el `BC_3MONTH` de la Daily Treasury Par Yield Curve. Es
+  publicación del gobierno estadounidense, o sea **dominio público**: se puede
+  reutilizar dentro de un producto de pago sin contrato ni cuota. De paso es
+  marginalmente más correcto — `^IRX` cotiza el *discount rate* del billete a 13
+  semanas y la curva par da un rendimiento equivalente a bono, que es lo que
+  quiere Black-Scholes. El feed es por año natural, así que en enero mira
+  también el año anterior.
+- ✅ **Forex: ExchangeRate-API + Yahoo → BCE** (`ecb_rates.py`).
+  El BCE publica sus tipos de referencia para que se reutilicen. Se lee el feed
+  de 90 días, no el diario, porque así sale **la variación real**: la ruta
+  anterior mandaba `change: 0.0` en todos los pares siempre — un cero que no era
+  un cero sino un «no lo sé» disfrazado. ⚠️ Contrapartida honesta: el BCE
+  publica **una vez por día hábil**, sobre las 16:00 CET; estos tipos no se
+  mueven intradía. Los 10 pares que sirve `/forex-prices` los cubre enteros.
+  - El BCE cotiza todo contra el euro, así que cualquier par se arma cruzando
+    por él. Lo que no publique **no se sustituye** por un primo cercano: un
+    USD/CNH servido con yuan onshore se lee en pantalla igual que el bueno.
+- ✅ **Cripto: CoinGecko → Binance + Kraken** (`crypto_data.py`).
+  Todas las llamadas a CoinGecko salían **sin clave** contra su endpoint
+  público, cuyo plan gratuito no trae licencia comercial. Se han sustituido las
+  cuatro rutas: `/prices`, el OHLC universal de `server.py`, el de
+  `missing_apis.py` y el poller de `realtime_alerts.py`. Las 76 monedas caben en
+  **una sola petición por lotes** a Binance, lo que además quita de encima los
+  429 que daba CoinGecko en un bucle de 30 s.
+  - **Kraken manda sobre Binance** en los 20 pares que cubre: cotiza contra
+    dólar de verdad y Binance contra Tether. La sustitución va etiquetada en
+    `source` (`binance:USDT` / `kraken:USD`).
+  - Las velas pasan a ser **OHLC de verdad**. Antes se agrupaba la serie de
+    precios de CoinGecko en cubos y se llamaba a eso velas: el máximo y el
+    mínimo de una vela así son los de las muestras que cayeron dentro, no los
+    del periodo.
+  - El precio en euros es **derivado** del dólar con el tipo del BCE, que es lo
+    que hacía CoinGecko por dentro. Sin tipo de cambio no se inventa: se omite.
+- ✅ **Fuera los datos inventados del fallback de `/prices`.** Servía
+  `bitcoin: {usd: 97000}` y diez monedas más **sin etiquetar** cuando CoinGecko
+  fallaba. Ahora una moneda que no se ha podido leer simplemente falta.
+  - 🔸 **Único cambio visible**: `PriceTicker` ya no pinta «$0» para una moneda
+    sin dato — la oculta. Y si hay precio pero no variación, pinta `—` en vez de
+    una flecha verde al 0,00%.
+- ✅ **Fuera el ajuste muerto `coingecko_api_key`.** El panel de admin ofrecía un
+  campo «API Key (Pro)» que se guardaba y **no leía ninguna petición**: daba
+  sensación de estar licenciado sin estarlo. El chequeo de conectores hacía ping
+  a CoinGecko, que ya no interviene; ahora comprueba Binance y el BCE.
+- ✅ **Verificado**: 47 tests nuevos (500 pasan en total) · `py_compile` de todos
+  los módulos · ESLint 0 errores · i18n 10/10 (5652 claves) · `npm run build` con
+  1589 URLs.
+  ⚠️ **Nada de esto se ha probado contra la red**: el sandbox sólo deja salir a
+  registros de paquetes. Los parsers se prueban contra muestras de las
+  respuestas reales; el primer contacto de verdad será en Cloud Run. Hay un
+  probador en el historial de la conversación para lanzarlo desde una máquina
+  con salida.
+  ⚠️ `tests/test_route_uniqueness_unit.py` falla 2 casos en este contenedor,
+  **también sin estos cambios** (comprobado revirtiendo): es del entorno.
+- ⏭️ **Grupo B, pendiente y con decisión de negocio detrás**: acciones y ETFs de
+  EE. UU. (→ IEX, que no cobra cuotas de licencia), los 23 índices (→ ETF
+  equivalentes, para esquivar la licencia del dueño del índice), los 15 futuros
+  de materias primas (→ ETF) y la cadena de opciones (→ la sintética que ya
+  existe). Eso sí cambia lo que ve el usuario.

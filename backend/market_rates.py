@@ -5,16 +5,26 @@ on a hardcoded `0.0525` — a 2023-24 level. On long-dated expiries rho is not
 negligible, so a stale rate leaks straight into the Greeks and the pricing; on
 the performance side it silently changes what counts as "excess" return.
 
-This module reads the short end of the live curve (^IRX, the 13-week T-bill
-discount rate, quoted in percent) and caches it. Every path is defensive: if
-the network is unavailable — which it always is in the sandbox, and can be on a
-cold Cloud Run instance — the caller gets `FALLBACK_RISK_FREE` and a
-`stale`/`source` marker rather than an exception.
+The source is the **US Treasury's own Daily Treasury Par Yield Curve**, field
+`BC_3MONTH`. Two reasons it is not `^IRX` scraped from Yahoo any more:
+
+  1. Licensing. Treasury data is a US government publication and therefore
+     public domain — free to reuse, including inside a paid product. Yahoo's
+     endpoints are unlicensed and their terms forbid deriving income from them.
+  2. Correctness, marginally. `^IRX` quotes the 13-week bill's *discount rate*;
+     the par yield curve quotes a bond-equivalent yield, which is the thing
+     Black-Scholes actually wants. The gap is a few basis points, so this is a
+     tidying-up, not a fix.
+
+Every path is defensive: if the network is unavailable — which it always is in
+the sandbox, and can be on a cold Cloud Run instance — the caller gets
+`FALLBACK_RISK_FREE` and a `stale`/`source` marker rather than an exception.
 """
 from __future__ import annotations
 
 import logging
 import threading
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -38,9 +48,8 @@ CACHE_TTL_SECONDS: int = 6 * 3600
 # pricing request the user was waiting on.
 FAILURE_BACKOFF_SECONDS: int = 15 * 60
 
-# Per-host timeout for the rate lookup. Deliberately far below the 15s default
-# of `_yahoo_get`: the rate is a refinement, and no user request should stall on
-# it. Two hosts, so the worst case is twice this.
+# Timeout for the rate lookup. Deliberately short: the rate is a refinement,
+# and no user request should stall on it.
 FETCH_TIMEOUT_SECONDS: int = 4
 
 # Sanity band. A parse error or a units mix-up (percent vs fraction) shows up
@@ -49,29 +58,96 @@ FETCH_TIMEOUT_SECONDS: int = 4
 MIN_PLAUSIBLE_RATE: float = -0.01
 MAX_PLAUSIBLE_RATE: float = 0.25
 
-_RATE_SYMBOL = "^IRX"  # 13-week US Treasury bill, quoted as a percentage
+_RATE_SYMBOL = "UST 3M"  # 3-month point of the Treasury par yield curve
+_TREASURY_FEED = (
+    "https://home.treasury.gov/resource-center/data-chart-center/interest-rates"
+    "/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value={year}"
+)
+_YIELD_FIELD = "BC_3MONTH"
+_DATE_FIELD = "NEW_DATE"
 
 _lock = threading.Lock()
 _cache: Dict[str, Any] = {"rate": None, "fetched_at": None, "source": "fallback",
                            "failed_at": None}
 
 
-def _fetch_live_rate() -> Optional[float]:
-    """Read ^IRX from Yahoo. Returns a decimal fraction, or None on any failure."""
-    try:
-        from stock_data import _yahoo_get  # local import: keeps this module import-safe
+def _local(tag: str) -> str:
+    """Element tag without its namespace.
 
-        data = _yahoo_get(f"/v8/finance/chart/{_RATE_SYMBOL}?range=5d&interval=1d",
-                          timeout=FETCH_TIMEOUT_SECONDS)
-        meta = (data.get("chart", {}).get("result") or [{}])[0].get("meta", {})
-        raw = meta.get("regularMarketPrice")
-        if raw is None:
-            return None
-        rate = float(raw) / 100.0  # ^IRX is quoted in percent
-        if not (MIN_PLAUSIBLE_RATE <= rate <= MAX_PLAUSIBLE_RATE):
-            logger.warning("Discarding implausible risk-free rate %.4f from %s", rate, _RATE_SYMBOL)
-            return None
-        return rate
+    The feed is OData/Atom, so every tag arrives as `{namespace}NAME` and the
+    namespaces have changed before (Treasury publishes a developer notice when
+    they do). Matching on the local name survives that.
+    """
+    return tag.rsplit("}", 1)[-1]
+
+
+def parse_treasury_yield_curve(xml_text: str) -> Optional[float]:
+    """Newest 3-month par yield in the feed, as a decimal fraction.
+
+    Separate from the fetch so it can be tested against a fixture without a
+    network round trip. Returns None if the feed carries no usable reading —
+    which is the normal state of the current-year feed on 1 January, not an
+    error.
+    """
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        logger.info("Treasury feed is not parseable XML: %s", exc)
+        return None
+
+    best_date, best_rate = "", None
+    for entry in root.iter():
+        if _local(entry.tag) != "entry":
+            continue
+        date_str, raw = "", None
+        for field in entry.iter():
+            name = _local(field.tag)
+            if name == _DATE_FIELD and field.text:
+                date_str = field.text.strip()
+            elif name == _YIELD_FIELD and field.text and field.text.strip():
+                raw = field.text.strip()
+        # ISO-8601 dates sort lexicographically, so no parsing needed to pick
+        # the newest row. Rows with an empty yield (holidays) fall out here.
+        if raw is not None and date_str >= best_date:
+            best_date, best_rate = date_str, raw
+
+    if best_rate is None:
+        return None
+    try:
+        return float(best_rate) / 100.0  # published in percent
+    except ValueError:
+        logger.info("Treasury %s is not a number: %r", _YIELD_FIELD, best_rate)
+        return None
+
+
+def _get_feed(year: int) -> Optional[str]:
+    import httpx  # local import: keeps this module import-safe offline
+
+    resp = httpx.get(_TREASURY_FEED.format(year=year), timeout=FETCH_TIMEOUT_SECONDS,
+                     follow_redirects=True)
+    return resp.text if resp.status_code == 200 else None
+
+
+def _fetch_live_rate() -> Optional[float]:
+    """Read the 3-month par yield from Treasury. Decimal fraction, or None."""
+    try:
+        year = datetime.now(timezone.utc).year
+        # The feed is per calendar year, so in the first days of January the
+        # current-year file can be empty or not yet published. One look back
+        # covers that without turning this into a crawl.
+        for candidate in (year, year - 1):
+            xml_text = _get_feed(candidate)
+            if not xml_text:
+                continue
+            rate = parse_treasury_yield_curve(xml_text)
+            if rate is None:
+                continue
+            if not (MIN_PLAUSIBLE_RATE <= rate <= MAX_PLAUSIBLE_RATE):
+                logger.warning("Discarding implausible risk-free rate %.4f from %s",
+                               rate, _RATE_SYMBOL)
+                return None
+            return rate
+        return None
     except Exception as exc:  # noqa: BLE001 — never let a rate lookup break pricing
         logger.info("Risk-free rate lookup failed, using fallback: %s", exc)
         return None
