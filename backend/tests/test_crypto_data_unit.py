@@ -6,6 +6,8 @@ contra la red. Lo que se fija aquí es sobre todo lo que NO debe pasar — que u
 par retirado, una respuesta rara o un símbolo que no cotiza acaben convertidos
 en un número plausible.
 """
+import asyncio
+
 import pytest
 
 import crypto_data
@@ -169,11 +171,11 @@ def test_every_catalogued_coin_resolves_to_a_pair():
     assert len(COINGECKO_SYMBOL_TO_ID) >= 70, "el catálogo se ha encogido sin querer"
 
 
-@pytest.mark.asyncio
-async def test_network_failure_gives_an_empty_dict(monkeypatch):
+def test_network_failure_gives_an_empty_dict(monkeypatch):
+    """Una caída de red no debe propagarse: dato ausente, no excepción."""
     async def _boom(url, params=None):
         raise RuntimeError("DNS caído")
 
     monkeypatch.setattr(crypto_data, "_get_json", _boom)
-    assert await crypto_data.fetch_usd_prices(["BTC", "ETH"]) == {}
-    assert await crypto_data.fetch_ohlc("BTC") == []
+    assert asyncio.run(crypto_data.fetch_usd_prices(["BTC", "ETH"])) == {}
+    assert asyncio.run(crypto_data.fetch_ohlc("BTC")) == []
