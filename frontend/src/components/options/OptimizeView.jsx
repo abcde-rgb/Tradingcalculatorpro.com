@@ -334,7 +334,7 @@ const StrategyCard = ({ rank, result, onOpen }) => {
         {result.cvar5 !== undefined && (
           <Metric icon={ShieldAlert} label={t('metricCVaR')} value={`$${result.cvar5}`} color="text-[#f87171]" />
         )}
-        <Metric icon={Zap} label="ROI" value={`${result.roi}%`} color="text-[#fbbf24]" />
+        <Metric icon={Zap} label="ROI" value={result.roi == null ? '—' : `${result.roi}%`} color="text-[#fbbf24]" />
         <Metric icon={Percent} label="POP" value={`${result.pop}%`} color="text-primary" />
         {result.probTouchBreakEven != null && (
           <Metric icon={Activity} label={t('metricTouch')} value={`${result.probTouchBreakEven}%`} color="text-[#fbbf24]" />

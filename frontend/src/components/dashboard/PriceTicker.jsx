@@ -39,9 +39,14 @@ export const PriceTicker = () => {
       <div className="flex gap-3 min-w-max">
         {CRYPTO_CONFIG.map(crypto => {
           const data = prices?.[crypto.id];
-          const price = data?.usd || 0;
-          const change = data?.usd_24h_change || 0;
-          
+          // Una moneda que el backend no ha podido leer no sale. Antes caía a
+          // `|| 0` y se pintaba "$0", que no es "no lo sé": es un precio.
+          if (!data || !data.usd) return null;
+          const price = data.usd;
+          // La variación sí puede faltar teniendo precio (el proveedor no
+          // siempre la da). Sin ella no se pinta flecha ni porcentaje.
+          const change = typeof data.usd_24h_change === 'number' ? data.usd_24h_change : null;
+
           return (
             <div 
               key={crypto.id} 
@@ -53,10 +58,14 @@ export const PriceTicker = () => {
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm">{crypto.symbol}</span>
-                  <span className={`flex items-center gap-0.5 text-xs ${change >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                    {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    {formatPercentage(change)}
-                  </span>
+                  {change === null ? (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  ) : (
+                    <span className={`flex items-center gap-0.5 text-xs ${change >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                      {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {formatPercentage(change)}
+                    </span>
+                  )}
                 </div>
                 <span className="font-mono text-lg font-semibold">{formatPrice(price)}</span>
               </div>

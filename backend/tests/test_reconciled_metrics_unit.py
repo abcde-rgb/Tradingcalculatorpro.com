@@ -221,4 +221,7 @@ def test_recovery_clears_the_backoff(clean_rate_cache, monkeypatch):
     monkeypatch.setattr(market_rates, "_fetch_live_rate", lambda: 0.0417)
     assert market_rates.get_risk_free_rate(force_refresh=True) == 0.0417
     assert market_rates._cache["failed_at"] is None
-    assert market_rates._cache["source"] == "^IRX"
+    # Contra la constante, no contra el literal: lo que se fija es que la
+    # procedencia deja de ser "fallback", no cómo se llame la fuente del día.
+    assert market_rates._cache["source"] == market_rates._RATE_SYMBOL
+    assert market_rates._cache["source"] != "fallback"

@@ -2751,3 +2751,148 @@ y se aplica a todo lo que lleva logo.
   página estática) · favicons revisados a 16/32/180 px.
 - ⚠️ **Pendiente**: `favicon` por tema (el pack trae variantes oro y nasdaq, ya
   copiadas a `public/`) y revisión nativa de las traducciones pt/it.
+
+### 2026-08-02 (4) — Los extremos del payoff se medían sobre el gráfico
+Reportado por el propietario: en opciones, «beneficio máximo» ponía un número
+fijo donde en algunos casos es ilimitado. Detalle y causa raíz en
+[`DIARIO_BUGS.md`](./DIARIO_BUGS.md) (BUG-036); aquí lo que hay que saber para
+tocar este código.
+
+- ✅ **`payoffBounds` (JS) / `payoff_bounds` (Py) es ahora la única fuente de los
+  extremos.** Los tres sitios que hacían `max()/min()` sobre los puntos del
+  gráfico —`strategyStats.js`, `_payoff_summary`, `_score_strategy`— llaman a
+  ella. La rejilla del gráfico sigue siendo la rejilla del gráfico: sirve para
+  dibujar, no para decidir el peor caso.
+- ✅ **Lo acotado se decide por la estructura, no muestreando.** `far_upside_slope`
+  suma la pendiente del payoff en el límite S→∞: una call comprada aporta
+  +100 por contrato, una vendida −100, una put 0 (vale cero ahí arriba) y la
+  acción ±su número de títulos. Pendiente positiva ⇒ beneficio sin acotar;
+  negativa ⇒ pérdida sin acotar. Sale gratis y es exacto, también para una pata
+  que aún conserva valor temporal (calendars): es una afirmación sobre el
+  límite, no sobre un precio.
+  - Cae solo: una covered call (100 acciones + 1 call vendida) da pendiente 0 y
+    queda acotada por ambos lados, sin lista de excepciones que mantener.
+- ✅ **El extremo finito se evalúa en S=0 y en cada strike.** Son los únicos
+  vértices de una función lineal a trozos, así que el resultado es exacto. Esto
+  arregla un tercer caso que no era «ilimitado» sino directamente **mal**: una
+  put comprada K=100 vale como mucho 9.800 € y la rejilla devolvía 3.300.
+- ✅ **Sin acotar es `null`, nunca un número.** Y lo que se deriva de ello queda
+  indefinido: ROI sobre un beneficio sin acotar y R/R sobre un riesgo sin acotar
+  se pintan `—`, no `Infinity%` ni 0. Kelly se declara no aplicable en vez de
+  concluir «sin edge» (antes `parseFloat('Unlimited') || 0` lo mandaba a 0).
+- ✅ **Verificado**: 11 tests nuevos en `test_options_math_unit.py` (452 pasan en
+  total) · paridad exacta entre el motor JS y el de Python sobre 8 estructuras ·
+  ESLint 0 errores · i18n 10/10 (5652 claves, 2 nuevas para Kelly) ·
+  `engine-check` 60/60 · `npm run build` con 1589 URLs.
+  ⚠️ `tests/test_route_uniqueness_unit.py` falla 2 casos en este contenedor,
+  **también sin mis cambios** (comprobado revirtiendo): es del entorno, no del
+  código, y en la CI pasa.
+
+### 2026-08-02 (5) — Grupo A: fuera Yahoo y CoinGecko de forex, tipos y cripto
+Primer tramo del saneamiento de licencias de datos. Sustituye las fuentes **sin
+licencia** por otras que sí permiten mostrar el dato en un producto de pago.
+Mismo número en pantalla, distinta procedencia: no hay cambio visible salvo el
+señalado abajo.
+
+- ✅ **Tipo libre de riesgo: `^IRX` de Yahoo → Tesoro de EE. UU.**
+  `market_rates.py` lee el `BC_3MONTH` de la Daily Treasury Par Yield Curve. Es
+  publicación del gobierno estadounidense, o sea **dominio público**: se puede
+  reutilizar dentro de un producto de pago sin contrato ni cuota. De paso es
+  marginalmente más correcto — `^IRX` cotiza el *discount rate* del billete a 13
+  semanas y la curva par da un rendimiento equivalente a bono, que es lo que
+  quiere Black-Scholes. El feed es por año natural, así que en enero mira
+  también el año anterior.
+- ✅ **Forex: ExchangeRate-API + Yahoo → BCE** (`ecb_rates.py`).
+  El BCE publica sus tipos de referencia para que se reutilicen. Se lee el feed
+  de 90 días, no el diario, porque así sale **la variación real**: la ruta
+  anterior mandaba `change: 0.0` en todos los pares siempre — un cero que no era
+  un cero sino un «no lo sé» disfrazado. ⚠️ Contrapartida honesta: el BCE
+  publica **una vez por día hábil**, sobre las 16:00 CET; estos tipos no se
+  mueven intradía. Los 10 pares que sirve `/forex-prices` los cubre enteros.
+  - El BCE cotiza todo contra el euro, así que cualquier par se arma cruzando
+    por él. Lo que no publique **no se sustituye** por un primo cercano: un
+    USD/CNH servido con yuan onshore se lee en pantalla igual que el bueno.
+- ✅ **Cripto: CoinGecko → Binance + Kraken** (`crypto_data.py`).
+  Todas las llamadas a CoinGecko salían **sin clave** contra su endpoint
+  público, cuyo plan gratuito no trae licencia comercial. Se han sustituido las
+  cuatro rutas: `/prices`, el OHLC universal de `server.py`, el de
+  `missing_apis.py` y el poller de `realtime_alerts.py`. Las 76 monedas caben en
+  **una sola petición por lotes** a Binance, lo que además quita de encima los
+  429 que daba CoinGecko en un bucle de 30 s.
+  - **Kraken manda sobre Binance** en los 20 pares que cubre: cotiza contra
+    dólar de verdad y Binance contra Tether. La sustitución va etiquetada en
+    `source` (`binance:USDT` / `kraken:USD`).
+  - Las velas pasan a ser **OHLC de verdad**. Antes se agrupaba la serie de
+    precios de CoinGecko en cubos y se llamaba a eso velas: el máximo y el
+    mínimo de una vela así son los de las muestras que cayeron dentro, no los
+    del periodo.
+  - El precio en euros es **derivado** del dólar con el tipo del BCE, que es lo
+    que hacía CoinGecko por dentro. Sin tipo de cambio no se inventa: se omite.
+- ✅ **Fuera los datos inventados del fallback de `/prices`.** Servía
+  `bitcoin: {usd: 97000}` y diez monedas más **sin etiquetar** cuando CoinGecko
+  fallaba. Ahora una moneda que no se ha podido leer simplemente falta.
+  - 🔸 **Único cambio visible**: `PriceTicker` ya no pinta «$0» para una moneda
+    sin dato — la oculta. Y si hay precio pero no variación, pinta `—` en vez de
+    una flecha verde al 0,00%.
+- ✅ **Fuera el ajuste muerto `coingecko_api_key`.** El panel de admin ofrecía un
+  campo «API Key (Pro)» que se guardaba y **no leía ninguna petición**: daba
+  sensación de estar licenciado sin estarlo. El chequeo de conectores hacía ping
+  a CoinGecko, que ya no interviene; ahora comprueba Binance y el BCE.
+- ✅ **Verificado**: 47 tests nuevos (500 pasan en total) · `py_compile` de todos
+  los módulos · ESLint 0 errores · i18n 10/10 (5652 claves) · `npm run build` con
+  1589 URLs.
+  ⚠️ **Nada de esto se ha probado contra la red**: el sandbox sólo deja salir a
+  registros de paquetes. Los parsers se prueban contra muestras de las
+  respuestas reales; el primer contacto de verdad será en Cloud Run. Hay un
+  probador en el historial de la conversación para lanzarlo desde una máquina
+  con salida.
+  ⚠️ `tests/test_route_uniqueness_unit.py` falla 2 casos en este contenedor,
+  **también sin estos cambios** (comprobado revirtiendo): es del entorno.
+- ⏭️ **Grupo B, pendiente y con decisión de negocio detrás**: acciones y ETFs de
+  EE. UU. (→ IEX, que no cobra cuotas de licencia), los 23 índices (→ ETF
+  equivalentes, para esquivar la licencia del dueño del índice), los 15 futuros
+  de materias primas (→ ETF) y la cadena de opciones (→ la sintética que ya
+  existe). Eso sí cambia lo que ve el usuario.
+
+### 2026-08-02 (6) — Yahoo desaparece de todo lo que se publica
+Decisión del propietario: se mantiene Yahoo como fuente de acciones, índices,
+materias primas y cadena de opciones —el Grupo B queda pendiente de presupuesto—
+pero **deja de aparecer en cualquier superficie pública**.
+
+⚠️ **Esto reduce la prueba, no el problema.** El riesgo de licencia sigue ahí
+mientras Yahoo sea la fuente; lo que se retira es haberlo estado anunciando como
+argumento de venta, que era lo que lo agravaba. Ver la revisión de proveedores
+en el histórico de la sesión.
+
+- ✅ **Cuatro claves i18n reescritas en los 10 idiomas**: `livePatternIntro`,
+  `optionsChainRealtime`, `optionsGateDescription` y `faqA3_l061`. De paso caen
+  dos afirmaciones que además eran **falsas**: la cadena de opciones no es «en
+  tiempo real» (Yahoo la sirve con retardo) y el forex ya no lo es tampoco,
+  porque el BCE publica una vez al día. La FAQ ahora dice la verdad: cripto en
+  tiempo real, el resto puede ir con retardo.
+- ✅ **`dataAttribution` corregida**: decía «CoinGecko y TradingView» y CoinGecko
+  ya no interviene. Ahora acredita a TradingView —cuya atribución es requisito
+  de licencia, no cortesía— y al BCE.
+- ✅ **Tres textos fijos** fuera de i18n: `PortfolioGreeks`, `ContactPage` y
+  `AboutPage`.
+- ✅ **El campo `source` de las respuestas** pasa de `yfinance`/`yahoo` a
+  `market`. Viajaba al navegador y se leía en la pestaña de red.
+- ✅ **`/quote/{symbol}` es público y su campo `error` nombraba al proveedor que
+  había fallado.** Ahora devuelve el recuento; el detalle va al log, que es
+  donde sirve. `provider_status()` sigue dando los nombres enteros pero cuelga
+  de `/admin/market-data-health`, que es sólo admin.
+- ✅ **Source maps apagados** (`GENERATE_SOURCEMAP=false` en el script de build).
+  Eran el último sitio donde quedaba el nombre, porque publican el código fuente
+  entero —comentarios incluidos— y ahí sí hay comentarios que citan a Yahoo.
+  Se iban **20 MB por despliegue** que no consumía nadie: no hay Sentry ni nada
+  que los lea. Se apaga en `package.json` y no en el workflow para que un build
+  local produzca exactamente lo que se publica.
+- ℹ️ **Lo que NO se ha tocado, a propósito**: los comentarios de código y el
+  identificador `toYahooSymbol` de `StructureScanner.jsx`. No son visibles (la
+  minificación los borra o los renombra, y ya no hay source maps), y renombrarlos
+  haría que el código mintiera sobre lo que hace: ese conversor existe porque el
+  backend pide tickers en formato Yahoo. Cuando caiga el Grupo B se van solos.
+- ✅ **Verificado**: `grep` sobre `build/` entero → **cero apariciones** de
+  «Yahoo» y «yfinance» en todo lo que se publica · 501 tests pasan (3 nuevos,
+  2 reescritos para fijar que el error público no nombre al proveedor) ·
+  ESLint 0 errores · i18n 10/10 · build con 1589 URLs.

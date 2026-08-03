@@ -2,7 +2,7 @@
 
 All the missing/incomplete APIs from TradingCalculator PRO:
 
-1. Forex real prices (ExchangeRate-API + yfinance fallback)
+1. Forex real prices (BCE — tipos de referencia, reutilización libre)
 2. Indices real prices (yfinance)
 3. Commodities real prices (yfinance GC=F, CL=F, SI=F, etc.)
 4. Crypto OHLC for any symbol via yfinance (not only CoinGecko 11)
@@ -28,6 +28,9 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+
+import crypto_data
+import ecb_rates
 
 import httpx
 import stripe
@@ -148,88 +151,27 @@ _FOREX_STATIC_FALLBACK: Dict[str, Dict[str, float]] = {
 }
 
 
-async def _fetch_forex_exchangerate() -> Optional[Dict[str, Any]]:
-    """Try ExchangeRate-API (free tier, no key for base USD)."""
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            r = await client.get("https://open.er-api.com/v6/latest/USD")
-            if r.status_code != 200:
-                return None
-            data = r.json()
-            rates = data.get("rates", {})
-            result: Dict[str, Any] = {}
-            # We need USD-centric pairs and cross rates
-            usd_eur = rates.get("EUR", 0)
-            usd_gbp = rates.get("GBP", 0)
-            usd_jpy = rates.get("JPY", 0)
-            usd_chf = rates.get("CHF", 0)
-            usd_aud = rates.get("AUD", 0)
-            usd_cad = rates.get("CAD", 0)
-            usd_nzd = rates.get("NZD", 0)
+async def _fetch_forex_ecb() -> Optional[Dict[str, Any]]:
+    """Tipos del BCE. Sustituye a ExchangeRate-API y a yfinance.
 
-            def safe_div(a, b):
-                return round(a / b, 5) if b else 0
+    El motivo es de licencia: el BCE publica sus tipos de referencia para que
+    se reutilicen, sin contrato ni cuota y sin que importe que quien los
+    muestre cobre por su servicio. Yahoo no tiene licencia para esto y
+    ExchangeRate-API exige una atribución que la web no estaba dando.
 
-            result["EURUSD"] = {"price": safe_div(1, usd_eur), "change": 0.0, "source": "exchangerate-api"}
-            result["GBPUSD"] = {"price": safe_div(1, usd_gbp), "change": 0.0, "source": "exchangerate-api"}
-            result["USDJPY"] = {"price": round(usd_jpy, 3), "change": 0.0, "source": "exchangerate-api"}
-            result["USDCHF"] = {"price": round(usd_chf, 5), "change": 0.0, "source": "exchangerate-api"}
-            result["AUDUSD"] = {"price": safe_div(1, usd_aud), "change": 0.0, "source": "exchangerate-api"}
-            result["USDCAD"] = {"price": round(usd_cad, 5), "change": 0.0, "source": "exchangerate-api"}
-            result["NZDUSD"] = {"price": safe_div(1, usd_nzd), "change": 0.0, "source": "exchangerate-api"}
-            result["EURGBP"] = {"price": safe_div(usd_gbp, usd_eur) if usd_eur else 0, "change": 0.0, "source": "exchangerate-api"}
-            eur_usd = safe_div(1, usd_eur)
-            result["EURJPY"] = {"price": round(eur_usd * usd_jpy, 3), "change": 0.0, "source": "exchangerate-api"}
-            gbp_usd = safe_div(1, usd_gbp)
-            result["GBPJPY"] = {"price": round(gbp_usd * usd_jpy, 3), "change": 0.0, "source": "exchangerate-api"}
-            return result
-    except Exception as e:
-        logging.warning(f"ExchangeRate-API forex fetch failed: {e}")
-        return None
-
-
-async def _fetch_forex_yfinance() -> Optional[Dict[str, Any]]:
-    """Fallback: use yfinance =X suffix pairs."""
-    try:
-        import yfinance as yf
-        yf_pairs = {
-            "EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X", "USDJPY": "USDJPY=X",
-            "USDCHF": "USDCHF=X", "AUDUSD": "AUDUSD=X", "USDCAD": "USDCAD=X",
-            "NZDUSD": "NZDUSD=X", "EURGBP": "EURGBP=X", "EURJPY": "EURJPY=X",
-            "GBPJPY": "GBPJPY=X",
-        }
-        symbols = " ".join(yf_pairs.values())
-        tickers = yf.download(symbols, period="2d", interval="1h", progress=False, auto_adjust=True)
-        result: Dict[str, Any] = {}
-        close = tickers.get("Close", {})
-        for pair, sym in yf_pairs.items():
-            try:
-                series = close[sym].dropna()
-                if len(series) >= 2:
-                    price = float(series.iloc[-1])
-                    prev = float(series.iloc[-2])
-                    change = round((price - prev) / prev * 100, 4) if prev else 0.0
-                elif len(series) == 1:
-                    price = float(series.iloc[-1])
-                    change = 0.0
-                else:
-                    continue
-                result[pair] = {"price": round(price, 5), "change": change, "source": "yfinance"}
-            except Exception:
-                continue
-        return result if result else None
-    except Exception as e:
-        logging.warning(f"yfinance forex fetch failed: {e}")
-        return None
+    Contrapartida honesta: el BCE publica UNA VEZ por día hábil, sobre las
+    16:00 CET, así que estos tipos no se mueven intradía. A cambio la variación
+    diaria pasa a ser real — la ruta anterior mandaba `change: 0.0` en todos
+    los pares siempre, que no era un cero sino un "no lo sé" disfrazado.
+    """
+    result = await ecb_rates.fetch_rates(FOREX_PAIRS)
+    return result or None
 
 
 @router.get("/forex-prices")
 async def get_forex_prices_real():
-    """Real forex prices: ExchangeRate-API → yfinance → static fallback."""
-    result = await _fetch_forex_exchangerate()
-    if result:
-        return result
-    result = await _fetch_forex_yfinance()
+    """Precios de forex reales, del BCE."""
+    result = await _fetch_forex_ecb()
     if result:
         return result
     return _FOREX_STATIC_FALLBACK
@@ -279,9 +221,9 @@ async def get_indices_prices_real():
                     price = float(series.iloc[-1])
                     prev = float(series.iloc[-2])
                     change = round((price - prev) / prev * 100, 4) if prev else 0.0
-                    result[label] = {"price": round(price, 2), "change": change, "source": "yfinance"}
+                    result[label] = {"price": round(price, 2), "change": change, "source": "market"}
                 elif len(series) == 1:
-                    result[label] = {"price": round(float(series.iloc[-1]), 2), "change": 0.0, "source": "yfinance"}
+                    result[label] = {"price": round(float(series.iloc[-1]), 2), "change": 0.0, "source": "market"}
             except Exception:
                 if label in _INDICES_STATIC_FALLBACK:
                     result[label] = _INDICES_STATIC_FALLBACK[label]
@@ -349,7 +291,7 @@ async def get_commodities_prices_real():
                     "eur": round(price * eur_usd, 4),
                     "usd_24h_change": change,
                     "symbol": sym,
-                    "source": "yfinance",
+                    "source": "market",
                 }
             except Exception as e:
                 logging.warning(f"Commodity {sym} fetch error: {e}")
@@ -362,15 +304,8 @@ async def get_commodities_prices_real():
 
 
 # ---------------------------------------------------------------------------
-# 4.  CRYPTO OHLC — universal (any yfinance -USD symbol, not only 11 coins)
+# 4.  CRYPTO OHLC — universal (Binance para cripto, yfinance para el resto)
 # ---------------------------------------------------------------------------
-
-_COINGECKO_COIN_MAP: Dict[str, str] = {
-    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
-    "XRP": "ripple", "ADA": "cardano", "DOGE": "dogecoin", "AVAX": "avalanche-2",
-    "DOT": "polkadot", "LINK": "chainlink", "LTC": "litecoin",
-}
-
 
 def _ohlc_from_yfinance(symbol: str, days: int) -> Optional[List[Dict[str, Any]]]:
     """Fetch OHLC candles from yfinance for ANY asset symbol."""
@@ -407,7 +342,7 @@ def _ohlc_from_yfinance(symbol: str, days: int) -> Optional[List[Dict[str, Any]]
 async def get_ohlc_universal(symbol: str, days: int = 30) -> Dict[str, Any]:
     """
     Universal OHLC endpoint that works for ANY asset:
-    - Crypto (BTC, ETH, SOL, MATIC, etc.) via CoinGecko first, yfinance fallback
+    - Crypto (BTC, ETH, SOL, MATIC, etc.) via Binance first, yfinance fallback
     - Stocks / ETFs (AAPL, SPY, etc.) via yfinance
     - Forex (EURUSD=X) via yfinance
     - Commodities (GC=F) via yfinance
@@ -416,51 +351,27 @@ async def get_ohlc_universal(symbol: str, days: int = 30) -> Dict[str, Any]:
     sym_upper = symbol.upper()
     empty: Dict[str, Any] = {"ohlc": [], "symbol": sym_upper, "source": "none"}
 
-    # Step 1: Try CoinGecko for known crypto coins
-    coin_id = _COINGECKO_COIN_MAP.get(sym_upper)
-    if coin_id:
-        try:
-            async with httpx.AsyncClient(timeout=12) as client:
-                r = await client.get(
-                    f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart",
-                    params={"vs_currency": "usd", "days": days},
-                )
-            if r.status_code == 200:
-                prices = r.json().get("prices", [])
-                if prices:
-                    interval_ms = (3600 * 1000) if days <= 7 else (4 * 3600 * 1000) if days <= 30 else (24 * 3600 * 1000)
-                    ohlc: List[Dict[str, Any]] = []
-                    bucket_start: Optional[int] = None
-                    bucket_prices: List[float] = []
-                    for ts, price in prices:
-                        bucket = (int(ts) // interval_ms) * interval_ms
-                        if bucket_start is None or bucket != bucket_start:
-                            if bucket_prices and bucket_start is not None:
-                                ohlc.append({"time": bucket_start // 1000, "open": bucket_prices[0],
-                                             "high": max(bucket_prices), "low": min(bucket_prices),
-                                             "close": bucket_prices[-1]})
-                            bucket_start, bucket_prices = bucket, [price]
-                        else:
-                            bucket_prices.append(price)
-                    if bucket_prices and bucket_start:
-                        ohlc.append({"time": bucket_start // 1000, "open": bucket_prices[0],
-                                     "high": max(bucket_prices), "low": min(bucket_prices),
-                                     "close": bucket_prices[-1]})
-                    return {"ohlc": ohlc, "symbol": sym_upper, "source": "coingecko"}
-        except Exception:
-            pass
+    # Paso 1: Binance para cripto — velas OHLC reales.
+    # CoinGecko sólo daba una serie de precios que había que agrupar en cubos;
+    # el máximo y el mínimo de una vela así son los de las muestras que cayeron
+    # dentro, no los del periodo. Y su plan gratuito no trae licencia comercial.
+    if crypto_data.binance_symbol(sym_upper):
+        interval, limit = crypto_data.interval_for_days(days)
+        velas = await crypto_data.fetch_ohlc(sym_upper, interval=interval, limit=limit)
+        if velas:
+            return {"ohlc": velas, "symbol": sym_upper, "source": "binance"}
 
     # Step 2: yfinance for everything (crypto as BTC-USD, stocks, forex, commodities)
     yf_sym = symbol  # Pass as-is (user may pass BTC-USD, AAPL, GC=F, etc.)
     # Also try appending -USD for bare crypto symbols not in CoinGecko map
     candles = _ohlc_from_yfinance(yf_sym, days)
     if candles:
-        return {"ohlc": candles, "symbol": sym_upper, "source": "yfinance"}
+        return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
     # Last attempt: try adding -USD suffix
     if not any(c in symbol for c in ["-", "=", "^", "."]):
         candles = _ohlc_from_yfinance(f"{sym_upper}-USD", days)
         if candles:
-            return {"ohlc": candles, "symbol": sym_upper, "source": "yfinance_crypto"}
+            return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
 
     return empty
 

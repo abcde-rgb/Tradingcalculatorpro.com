@@ -122,7 +122,7 @@ const PortfolioGreeks = () => {
           </details>
 
           <p className="text-[9px] text-muted-foreground/70 mt-3 leading-snug">
-            Calculadas con precios spot actuales de Yahoo Finance. Δ positivo = exposición larga net; Θ positivo = cobras theta neta; ν alto = sensibilidad a cambios en IV.
+            Calculadas con los precios spot actuales. Δ positivo = exposición larga net; Θ positivo = cobras theta neta; ν alto = sensibilidad a cambios en IV.
           </p>
         </>
       )}

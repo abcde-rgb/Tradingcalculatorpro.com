@@ -139,10 +139,11 @@ const CompareBar = ({
           b={statsB.rr}
           winner={compareNumeric(stats.rr, statsB.rr, 'higher')}
         />
+        {/* ROI es null cuando el beneficio máximo no está acotado. */}
         <CompareCell
           label="ROI %"
-          a={`${stats.roi}%`}
-          b={`${statsB.roi}%`}
+          a={stats.roi == null ? '—' : `${stats.roi}%`}
+          b={statsB.roi == null ? '—' : `${statsB.roi}%`}
           winner={compareNumeric(stats.roi, statsB.roi, 'higher')}
         />
       </div>

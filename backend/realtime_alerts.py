@@ -1,7 +1,7 @@
 """realtime_alerts.py — WebSocket-based real-time price alerts.
 
 Architecture:
-- Background asyncio task polls market prices (CoinGecko + yfinance) every 30s.
+- Background asyncio task polls market prices (Binance/Kraken + yfinance) every 30s.
 - For every active alert, checks if the trigger condition is met.
 - When triggered: marks alert.triggered=True in MongoDB, pushes a JSON
   message to the user's WebSocket connections, optionally sends email.
@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
 import httpx
+
+import crypto_data
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
 router = APIRouter()
@@ -73,57 +75,42 @@ async def _push_to_user(user_id: str, payload: dict) -> int:
 # Price fetcher (lightweight, cached)
 # ---------------------------------------------------------------------------
 
-_COINGECKO_MAP: Dict[str, str] = {
-    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
-    "XRP": "ripple", "ADA": "cardano", "DOGE": "dogecoin", "AVAX": "avalanche-2",
-    "DOT": "polkadot", "LINK": "chainlink", "LTC": "litecoin", "MATIC": "matic-network",
-    "TRX": "tron", "ATOM": "cosmos", "NEAR": "near", "APT": "aptos",
-    "ARB": "arbitrum", "OP": "optimism", "INJ": "injective-protocol",
-    "SUI": "sui", "TIA": "celestia",
+# Qué símbolos son cripto. Antes era un mapa símbolo → id de CoinGecko; los ids
+# ya no hacen falta (Binance y Kraken usan el símbolo), así que queda lo único
+# que se consultaba de verdad: si un símbolo va por la ruta de cripto o por la
+# de yfinance.
+_CRYPTO_SYMBOLS: Set[str] = {
+    "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX",
+    "DOT", "LINK", "LTC", "MATIC", "TRX", "ATOM", "NEAR", "APT",
+    "ARB", "OP", "INJ", "SUI", "TIA",
 }
 
-# Widen with the canonical shared map (keeps the local entries as overrides).
+# Ampliado con el catálogo compartido, que es el que manda el frontend.
 try:
     from stock_data import COINGECKO_SYMBOL_TO_ID as _SHARED_CG_MAP
-    _COINGECKO_MAP = {**_SHARED_CG_MAP, **_COINGECKO_MAP}
-except Exception:  # pragma: no cover — poller still works with the local map
+    _CRYPTO_SYMBOLS |= set(_SHARED_CG_MAP)
+except Exception:  # pragma: no cover — el poller sigue con la lista local
     pass
 
 
 async def _fetch_crypto_prices(symbols: Set[str]) -> Dict[str, float]:
-    """Fetch crypto prices from CoinGecko (free, cached). Retries once on 429."""
-    coin_ids = [_COINGECKO_MAP[s] for s in symbols if s in _COINGECKO_MAP]
-    if not coin_ids:
+    """Precios de cripto desde las bolsas (Binance + Kraken).
+
+    Antes salía de CoinGecko sin clave, cuyo plan gratuito no trae licencia
+    comercial y que además devolvía 429 con frecuencia en este bucle: el poller
+    corre cada 30 s y su límite gratuito no está pensado para eso. Binance
+    acepta las 76 monedas en una sola petición por lotes.
+    """
+    if not symbols:
         return {}
-    for attempt in range(2):
-        try:
-            async with httpx.AsyncClient(timeout=12) as client:
-                r = await client.get(
-                    "https://api.coingecko.com/api/v3/simple/price",
-                    params={"ids": ",".join(coin_ids), "vs_currencies": "usd"},
-                )
-            if r.status_code == 429:
-                if attempt == 0:
-                    logging.warning("[ws-alerts] CoinGecko rate limited (429), retrying in 10s")
-                    await asyncio.sleep(10)
-                    continue
-                logging.warning("[ws-alerts] CoinGecko rate limited (429), skipping cycle")
-                return {}
-            if r.status_code != 200:
-                logging.warning("[ws-alerts] CoinGecko returned HTTP %s", r.status_code)
-                return {}
-            data = r.json()
-            result: Dict[str, float] = {}
-            for sym in symbols:
-                cid = _COINGECKO_MAP.get(sym)
-                if cid and cid in data:
-                    result[sym] = float(data[cid].get("usd", 0))
-            return result
-        except Exception as e:
-            logging.warning("[ws-alerts] CoinGecko fetch failed (attempt %d): %s", attempt + 1, e)
-            if attempt == 0:
-                await asyncio.sleep(5)
-    return {}
+    try:
+        cotizaciones = await crypto_data.fetch_usd_prices(sorted(symbols))
+    except Exception as e:  # noqa: BLE001 — una alerta no debe tumbar el poller
+        logging.warning("[ws-alerts] fallo al leer precios de cripto: %s", e)
+        return {}
+    # Sólo lo que se ha podido leer. Un símbolo ausente no dispara alertas, que
+    # es justo lo que debe pasar: no se sabe su precio.
+    return {sym: float(d["usd"]) for sym, d in cotizaciones.items() if d.get("usd")}
 
 
 async def _fetch_yfinance_prices(symbols: Set[str]) -> Dict[str, float]:
@@ -171,7 +158,7 @@ async def _refresh_price_cache(needed: Set[str]) -> None:
     now = datetime.now(timezone.utc)
     if _cache_ts and (now - _cache_ts).total_seconds() < CACHE_TTL_SECONDS:
         return
-    crypto = {s for s in needed if s in _COINGECKO_MAP}
+    crypto = {s for s in needed if s in _CRYPTO_SYMBOLS}
     other = needed - crypto
     crypto_prices = await _fetch_crypto_prices(crypto) if crypto else {}
     yf_prices = await _fetch_yfinance_prices(other) if other else {}

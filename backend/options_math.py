@@ -403,6 +403,82 @@ def calculate_payoff(legs: list[dict], stock_price: float, price_range: float = 
     return points
 
 
+def far_upside_slope(legs: list[dict]) -> float:
+    """Slope of the payoff (€ per €1 of underlying) in the limit S → ∞.
+
+    Structural, not sampled: far above every strike a call behaves like the
+    stock itself (delta → 1) and a put is worthless (delta → 0). Sign of this
+    number is the whole answer to "is this position unbounded?", and it holds
+    for a leg that still has time value at the front expiry — a calendar's back
+    month — because it is a statement about the limit, not about a price grid.
+    """
+    slope = 0.0
+    for leg in legs or []:
+        sign = 1 if leg.get("action") == "buy" else -1
+        qty = _leg_qty(leg)
+        if leg.get("type") == "call":
+            slope += sign * qty * SHARES_PER_CONTRACT
+        elif leg.get("type") == "stock":
+            slope += sign * qty
+    return slope
+
+
+def payoff_bounds(legs: list[dict], stock_price: float,
+                  r: float = DEFAULT_RISK_FREE,
+                  fee_per_contract: float = 0.0, q: float = 0.0) -> dict:
+    """Best and worst case of the expiry payoff. `None` means unbounded.
+
+    Taking max()/min() over `calculate_payoff` cannot answer this: that grid
+    stops at ±35% of spot, so a long call's "max profit" came out as whatever
+    P&L happened to sit at the right edge of the chart, and a naked short
+    call's "max loss" the same. Both are unbounded, and printing a finite
+    number for them is exactly the kind of figure a trader sizes a position
+    with. Unbounded is reported as `None`, never as a number.
+
+    The bounded side is exact here: `_leg_pnl_at_price` prices the expiry leg
+    at T=0 whatever its own expiry, so the payoff is piecewise linear with
+    kinks only at the strikes and its extreme sits at a strike or at S=0 —
+    both sampled. The extra sampling in between costs nothing and keeps the
+    function honest if that ever stops being true.
+    """
+    if not legs:
+        return {"maxProfit": None, "maxLoss": None,
+                "isMaxProfitUnlimited": False, "isMaxLossUnlimited": False}
+
+    slope = far_upside_slope(legs)
+    strikes = [leg["strike"] for leg in legs
+               if leg.get("type") != "stock" and leg.get("strike") is not None]
+
+    total_open_fees = sum(
+        _leg_qty(leg) * fee_per_contract for leg in legs if leg.get("type") != "stock"
+    )
+
+    def pnl_at(price: float) -> float:
+        total = 0.0
+        for leg in legs:
+            total += _leg_pnl_at_price(leg, price, 0.0, r, q)[1]
+        return total - total_open_fees
+
+    # S = 0 and every strike are the kinks; the rest is for curved payoffs.
+    ceiling = max([stock_price or 0.0] + strikes + [1.0]) * 3.0
+    prices = {0.0, *strikes}
+    steps = 400
+    prices.update(ceiling * i / steps for i in range(steps + 1))
+
+    values = [pnl_at(p) for p in sorted(prices)]
+    values = [v for v in values if math.isfinite(v)]
+    if not values:
+        return {"maxProfit": None, "maxLoss": None,
+                "isMaxProfitUnlimited": False, "isMaxLossUnlimited": False}
+
+    return {
+        "maxProfit": None if slope > 0 else max(values),
+        "maxLoss": None if slope < 0 else min(values),
+        "isMaxProfitUnlimited": slope > 0,
+        "isMaxLossUnlimited": slope < 0,
+    }
+
+
 def find_break_evens(payoff_data: list[dict]) -> list[float]:
     """Find break-even points where P&L crosses zero."""
     break_evens: list[float] = []

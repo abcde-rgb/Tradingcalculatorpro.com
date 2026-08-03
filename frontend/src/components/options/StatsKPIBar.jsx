@@ -79,10 +79,11 @@ const StatsKPIBar = ({ stats, breakEvens, currentExp }) => {
           color="text-primary"
           testid="kpi-pop"
         />
+        {/* Sin beneficio máximo acotado no hay ROI: es indefinido, no un número. */}
         <StatCard
           icon={ArrowUpRight}
           label="ROI"
-          value={`${stats.roi}%`}
+          value={stats.roi === null || stats.roi === undefined ? '—' : `${stats.roi}%`}
           color="text-primary"
           testid="kpi-roi"
         />
