@@ -14,10 +14,10 @@ leen en el mismo momento ni con la misma intención.
 
 | Documento | Para qué | Tamaño |
 |---|---|---|
-| [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) | **Fuente de verdad.** Semáforo, inventario, huecos, backlog y registro de sesiones. Se actualiza al cerrar cada sesión | 2.369 |
-| [`../CLAUDE.md`](../CLAUDE.md) | Arquitectura real y trampas conocidas. Lectura obligatoria antes de tocar código | 380 |
-| [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs con su causa raíz. Se consulta para no repetir un error ya pagado | 422 |
-| [`PENDIENTES.md`](./PENDIENTES.md) | Lo inmediato, en crudo | 40 |
+| [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) | **Fuente de verdad.** Semáforo, inventario, huecos, backlog y registro de sesiones. Se actualiza al cerrar cada sesión | 2.996 |
+| [`../CLAUDE.md`](../CLAUDE.md) | Arquitectura real y trampas conocidas. Lectura obligatoria antes de tocar código | 302 |
+| [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs con su causa raíz. Se consulta para no repetir un error ya pagado | 450 |
+| [`PENDIENTES.md`](./PENDIENTES.md) | Lo inmediato, en crudo. Revisado contra el código el 2026-08-03 | 97 |
 
 ## 🔧 Voy a escribir código
 
@@ -27,7 +27,7 @@ leen en el mismo momento ni con la misma intención.
 | [`ESCANER_ESTRUCTURA.md`](./ESCANER_ESTRUCTURA.md) | Manual del escáner de estructura de precio (`price_action.py`): swings, BOS/CHoCH, FVG |
 | [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) | Gráficos y personalización por usuario |
 | [`MIGRACION_NEON.md`](./MIGRACION_NEON.md) | Conmutar la BD entre Cloud SQL y Neon (`DB_PROVIDER`) |
-| [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) | Especificación del plan de trading versionado. Backend hecho; frontend pendiente |
+| [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) | Especificación del plan de trading versionado. **Backend terminado; sigue sin una sola pantalla** (G-14) |
 
 ## 🚀 Voy a desplegar
 

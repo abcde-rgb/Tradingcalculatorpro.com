@@ -5,15 +5,16 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-02
-> - 🌿 **Rama de trabajo actual:** `claude/google-ads-monetization-nd9l81`
+> - 📅 **Última verificación real contra el código:** 2026-08-03 (commit `7864406` de `main`)
+> - 🌿 **Rama de trabajo actual:** `claude/gallant-noether-x33hjd` (idéntica a `main`)
 >
-> ⚠️ **Aviso de método (2026-07-27).** Las §1, §2 y §6 se habían quedado un mes
-> por detrás del código mientras el registro de sesiones (§7) sí se actualizaba.
-> El caso peor: §1 y §6 seguían pidiendo configurar **OxaPay** como pasarela
-> cripto cuando OxaPay se retiró y hoy el código llama a **NOWPayments** — quien
-> siguiera este documento se pondría a dar de alta una cuenta que la web no usa.
-> Al cerrar sesión, actualiza también la cabecera y §1–§6, no sólo §7.
+> ⚠️ **Aviso de método (2026-07-27, y volvió a pasar el 2026-08-03).** Las §1, §2 y
+> §6 se quedan por detrás del código mientras el registro de sesiones (§7) sí se
+> actualiza. El caso peor de julio: §1 y §6 pedían configurar **OxaPay** cuando el
+> código ya llamaba a **NOWPayments**. El caso peor de agosto: §6 seguía mandando
+> dar de alta **Google AdSense** un día después de borrarlo del repositorio — el
+> mismo error, con otro nombre. Al cerrar sesión, actualiza también la cabecera y
+> §1–§6, no sólo §7.
 > - 📚 Documentos hermanos: [`ANALISIS_2026-06-25.md`](./ANALISIS_2026-06-25.md) ·
 >   [`GUIA_EXTENSION.md`](./GUIA_EXTENSION.md) ·
 >   [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) ·
@@ -25,15 +26,18 @@
 
 | Área | Estado | Nota |
 |---|:--:|---|
-| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
-| **Backend import + sintaxis** | 🟢 | `import server` OK → **188 rutas**; los **20** módulos compilan (2026-07-29) |
-| **Tests offline** | 🟢 | `pytest tests/` → **345 passed, 74 skipped** (2026-07-29) |
+| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
+| **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
+| **Tests offline** | 🟢 | `pytest tests/` → **503 passed, 74 skipped** en 12 s (2026-08-03). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — las 2 caídas que anotaron las sesiones del 2026-08-02 eran del contenedor de aquel día |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
-| **Lint del frontend (ESLint)** | 🟡→🟢 | **Estaba roto**: el parser abortaba en los 283 ficheros, así que lintaba 0. Arreglado 2026-07-27 y añadido a CI → **0 errores**, 128 avisos de limpieza |
+| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-03). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5652 claves × 10 idiomas, 0 huecos** · `engine-check` **60/60** (2026-08-03) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
-| **CI backend (Cloud Run)** | 🟢 | `py_compile *.py` (antes la lista iba a mano y omitía 6 módulos) + pytest |
+| **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
+| **Despliegue del backend** | 🟠 | **No hay nada automático desde el 2026-08-03**: el workflow se retiró (fallaba la federación de identidad). Se despliega a mano con `cloudbuild.yaml` desde GCP |
 | **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) + i18n + credentials + **lint** |
+| **Backend con interfaz de usuario** | 🔴 | **4 módulos (~1770 líneas) y ~8 endpoints no los llama nadie desde el frontend**: plan de trading, backtest con validación, riesgo de cartera y opciones americanas. Ver G-14 |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |
 | **Stripe (operación)** | 🔴 | Falta verificar productos/claves en dashboard real |
 | **NOWPayments / crypto (código)** | 🟢 | Invoice + IPN con HMAC-SHA512 verificado (`backend/nowpayments.py`) |
@@ -49,11 +53,12 @@
 ## 2. Qué HAY (inventario verificado)
 
 ### Frontend — React 19 + CRACO + Tailwind + shadcn/ui
-- **24 rutas** declaradas en `App.js` (Landing, Dashboard, Pricing, Settings, Education,
-  Subscription, Options, Performance, Admin, Login, Register, Forgot/Reset password,
-  Verify-email, Magic-link, Payment success/cancel, Legal, Contact, About, 404…).
+- **26 rutas** declaradas en `App.js` (Landing, Dashboard, Pricing, Settings, Education,
+  Subscription, Options hub + calculator + strategies + strategies/:slug, Performance,
+  News, Admin, Affiliate, Login, Register, Forgot/Reset password, Verify-email,
+  Magic-link, Payment success/cancel, Legal, Contact, About, 404).
 - **14 calculadoras** (`components/calculators/`, contadas por fichero `.jsx`).
-- **~28 componentes de opciones** (`components/options/`): cadena, payoff, griegas
+- **37 componentes de opciones** (`components/options/`): cadena, payoff, griegas
   (display/panel/time-chart), IV surface, IV rank, unusual activity, market flow,
   optimizador, Kelly, AI Trade Coach, comparador, posiciones guardadas, etc.
 - **Gráfico TradingView** (`components/charts/TradingViewChart.jsx`): embed iframe con
@@ -62,7 +67,7 @@
 - **~186 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
   en `lib/assets.js` (los "47" de la primera versión se ampliaron el 2026-07-04).
 - **i18n: 10 idiomas** (`lib/i18n/`): es, en, de, fr, ru, zh, ja, ar, **pt** (Portugal) e **it**.
-  **5635 claves por idioma, 0 huecos** (`node scripts/i18n-check.js`, verificado 2026-08-02).
+  **5652 claves por idioma, 0 huecos** (`node scripts/i18n-check.js`, verificado 2026-08-03).
   Los textos legales (`lib/legalContent/`) también están en los 10; la versión
   vinculante sigue siendo la española.
 - **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **Revolut Pay** +
@@ -86,16 +91,25 @@
 - **Journal de trading**, alertas de precio (WebSocket), historial de cálculos.
 
 ### Backend — FastAPI + asyncpg (shim Mongo→PostgreSQL)
-- **181 rutas registradas** en la app (contadas sobre `server.app.routes`, 2026-07-27).
-- **16 módulos** (`backend/*.py`, 15 508 líneas en total): `server.py` (monolito,
-  **7377 líneas**), `admin_routes.py` (1143), `missing_apis.py` (1075),
-  `affiliate_program.py` (859), `performance.py` (694), `price_action.py` (646)
-  —estructura de mercado: swings/BOS-CHoCH/S-R/FVG—, `stock_data.py` (608),
-  `candle_patterns.py` (518), `options_math.py` (462), `options_optimize.py` (395),
-  `referrals.py` (373), `realtime_alerts.py` (366), `market_data.py` (323),
-  `timeframes.py` (273), `revolut.py` (215), `nowpayments.py` (181).
-- **Datos de mercado**: yfinance + CoinGecko (todas las llamadas de red ya van por
-  `asyncio.to_thread`/executor → no bloquean el event loop; ver BUG-010).
+- **195 rutas registradas** en la app (contadas sobre `server.app.routes`, 2026-08-03).
+- **24 módulos** (`backend/*.py`, **19 831 líneas** en total): `server.py` (monolito,
+  **8232 líneas**), `admin_routes.py` (1150), `performance.py` (1084),
+  `missing_apis.py` (986), `affiliate_program.py` (859), `options_math.py` (679),
+  `price_action.py` (646) —swings/BOS-CHoCH/S-R/FVG—, `backtest.py` (642),
+  `stock_data.py` (615), `options_optimize.py` (587), `trading_plan.py` (558),
+  `candle_patterns.py` (518), `referrals.py` (373), `options_positioning.py` (370),
+  `realtime_alerts.py` (353), `market_data.py` (328), `portfolio_risk.py` (290),
+  `american_options.py` (282), `timeframes.py` (273), `crypto_data.py` (255),
+  `revolut.py` (215), `market_rates.py` (212), `nowpayments.py` (181),
+  `ecb_rates.py` (143).
+  > ⚠️ **Cuatro de ellos no tienen ninguna interfaz**: `trading_plan.py`,
+  > `backtest.py`, `portfolio_risk.py` y `american_options.py`. Están escritos,
+  > enrutados y con tests, y **el usuario no puede llegar a ellos**. Ver G-14.
+- **Datos de mercado**: Binance + Kraken (cripto), BCE (forex), Tesoro de EE. UU.
+  (tipo libre de riesgo) y **Yahoo** para acciones, índices, materias primas y la
+  cadena de opciones — este último **sin licencia comercial resuelta** (Grupo B,
+  ver G-16). Todas las llamadas de red van por `asyncio.to_thread`/executor → no
+  bloquean el event loop (ver BUG-010).
 - **IA**: Anthropic SDK (AI Trade Coach) en `POST /api/options/ai-analyze`.
 - **Email**: SendGrid. **Rate limiting**: slowapi.
 - **Shim de BD**: clase `Collection` que traduce operadores Mongo (`$set/$inc/$push/$or/
@@ -108,12 +122,12 @@
 | ID | Hueco | Severidad | Acción |
 |---|---|:--:|---|
 | G-01 | **Stripe en producción sin verificar** (productos, price IDs, webhook secret) | 🔴 | Validar dashboard + webhook endpoint. Ver DEPLOY_CHECKLIST |
-| G-02 | **Sin tests unitarios offline** (antes de esta sesión) | 🟠 | ✅ Mitigado: añadidos 10 tests de `options_math`. Faltan para `performance.py`, shim de BD |
-| G-03 | `conftest.py` con skip roto → CI podía fallar | 🟠 | ✅ Corregido esta sesión |
-| C-08 | API keys (Stripe/SendGrid) almacenables en `app_settings` (DB) en claro | 🟠 | Decisión de producto: usar solo Secret Manager; quitar override por DB |
-| BUG-007 | Preferencias de usuario solo en `localStorage` (no cross-device) | 🟡 | Endpoint `PATCH /api/user/preferences` + carga en perfil |
-| BUG-008 | `server.py` monolítico (6107 líneas) | 🟠 | Refactor a `app/routers/` (requiere tests antes). Deuda técnica |
-| G-04 | **Route shadowing**: ~21 endpoints de `admin_routes.py` son código muerto (los de `server.py` ganan por orden de registro) | 🟡 | Unificar en un solo router admin |
+| G-02 | ~~**Sin tests unitarios offline**~~ | 🟢 | ✅ **Cerrado (2026-08-03)**: **503 tests** en 34 ficheros cubren opciones, performance, price action, pagos, seguridad, plan de trading y datos de mercado. Lo que sigue sin cubrirse es el **shim `Collection`** (ver G-17) |
+| G-03 | `conftest.py` con skip roto → CI podía fallar | 🟠 | ✅ Corregido |
+| C-08 | API keys (Stripe/SendGrid) almacenables en `app_settings` (DB) en claro | 🟠 | **Sigue abierto** (verificado 2026-08-03: `sendgrid_api_key` continúa en la lista de ajustes de `server.py` y `admin_routes.py`). Decisión de producto: usar solo Secret Manager; quitar el override por DB |
+| BUG-007 | Preferencias de usuario solo en `localStorage` (no cross-device) | 🟡 | **Sigue abierto**: no existe ningún endpoint `/user/preferences` en el backend (verificado 2026-08-03) |
+| BUG-008 | `server.py` monolítico (**8232 líneas**, +2100 desde que se anotó) | 🟠 | Refactor a `app/routers/` (requiere G-17 antes). Deuda técnica |
+| G-04 | ~~**Route shadowing** en admin~~ | 🟢 | ✅ **Cerrado**: `test_route_uniqueness_unit.py` pasa sobre las 195 rutas registradas — no queda ningún (método, path) duplicado |
 | G-05 | TradingView: sin guardar análisis/dibujos/layouts por usuario | 🟡 | Roadmap en TRADINGVIEW_PERSONALIZACION.md |
 | G-06 | Sin CI de PR (lint/build/tests antes de merge); solo deploy en push a `main` | 🟡 | ✅ Añadido `ci.yml` esta sesión |
 | G-07 | Sin Dependabot/CodeQL/secret-scanning declarados en repo | 🟡 | Activar en ajustes del repo |
@@ -123,15 +137,24 @@
 | G-12 | **ESLint no analizaba nada** (283/283 ficheros con error de parseo) y no corría en CI. Dejó pasar a producción un `idx` no definido que reventaba la calculadora de Fibonacci | 🟠 | ✅ **Cerrado (2026-07-27)**: config arreglada, lint en CI, 0 errores. Quedan **128 avisos** de símbolos muertos como deuda de limpieza |
 | G-13 | **11 tarjetas del panel admin se quedaban vacías tras recargar** (efecto con deps `[]` que disparaba `Bearer null` y nunca reintentaba) | 🟠 | ✅ **Cerrado (2026-07-27)**: hook `useAuthedLoad` compartido, que espera al token real y relanza la carga cuando llega |
 | G-09 | ~~**i18n incompleto**: 6 idiomas con ~290 claves sin traducir → caían a español~~ | 🟢 | ✅ **Cerrado (2026-07-11)**: backfill completo (candlestick, armónicos, opciones Black-Scholes/futuros/volatilidad/griegas, estrategias 6-9, auth, sesgos). Los 8 locales con sets idénticos (4401 c/u), 0 huecos. Eliminadas 9 claves muertas de de/fr/ru |
+| G-14 | **Cuatro módulos de backend terminados que ningún usuario puede usar.** `trading_plan.py` (558 líneas, `/plan`, `/plan/history`, `/plan/draft`, `/plan/compliance`), `backtest.py` (642, `/backtest/validate`, `/backtest/strategies`), `portfolio_risk.py` (290, `/performance/portfolio-risk`) y `american_options.py` (282, riesgo de asignación temprana). Grep en `frontend/src`: **cero llamadas** a esos endpoints. Lo mismo con `/options/term-structure` — `PositioningPanel` sólo consume `/options/positioning` | 🔴 | Es el mayor hueco abierto del proyecto: ~1770 líneas escritas, probadas y pagadas que no producen valor. `PLAN_DE_TRADING_spec.md` ya especifica el asistente del plan; empezar por ahí, porque además es la fuente de umbrales de `detect_errors` |
+| G-15 | **`trading_plans` no entra en las tres rutas del RGPD.** La colección guarda `user_id` (tiene índice propio) pero no aparece en la lista de `delete_account`, ni en `_USER_DATA_COLLECTIONS` (purga por retención), ni en el export de `/auth/my-data`. Borrar la cuenta deja los planes en la base de datos | 🟠 | Añadir `"trading_plans"` a las tres listas de `server.py` y un test que recorra las colecciones con `user_id` para que no vuelva a pasar con la siguiente |
+| G-16 | **Grupo B del saneamiento de licencias, sin hacer.** Acciones y ETFs de EE. UU., los 23 índices, los 15 futuros de materias primas y la cadena de opciones siguen saliendo de **Yahoo**, cuya licencia no permite redistribuir el dato en un producto de pago. El 2026-08-02 se retiró la *mención* pública, no la dependencia | 🟠 | Decisión de negocio con coste: IEX para acciones, ETF equivalentes para índices y materias primas, cadena sintética para opciones. **Cambia lo que ve el usuario**, por eso está parado |
+| G-17 | **El shim `Collection` sigue sin tests.** Es la capa casera (~750 líneas) que traduce Mongo→SQL y de la que depende **todo** el backend. Bloquea el refactor de `server.py` (BUG-008): partir 8232 líneas sin red es cambiar deuda por riesgo | 🟠 | T-03 del backlog de auditoría: `$set/$inc/$push/$unset/$or/$in/$regex`, agregación y `find_one_and_update`, contra PostgreSQL real |
+| G-18 | **`check-doc-links.py` no corre en CI.** Existe, funciona (47 documentos, 0 roturas) y sólo se ejecuta si alguien se acuerda. `PENDIENTES.md` acumuló dos referencias a documentos inexistentes (`CRECIMIENTO_GOOGLE.md`, `CHECKLIST_MODO_CASI_GRATIS.md`) sin que nada avisara — sobrevivieron porque iban en `código` y no como enlace markdown | 🟡 | Añadir el paso a `ci.yml`. Coste: 3 líneas |
+| G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
 
 ---
 
 ## 4. Qué hay que PROBAR (plan de test)
 
-**Automático (ya disponible):**
-- `cd backend && pytest tests/ -q` → 10 unit offline pasan, 74 integración se saltan. ✔
-- `cd backend && python -m py_compile server.py admin_routes.py options_math.py ...` ✔
-- `cd frontend && npm run build` ✔
+**Automático (ya disponible, todo verificado el 2026-08-03):**
+- `cd backend && pytest tests/ -q` → **503 passed, 74 skipped** (integración se salta sin `BACKEND_URL`). ✔
+- `cd backend && python -m py_compile *.py` → los 24 módulos. ✔
+- `cd frontend && npx eslint src scripts` → 0 errores, 126 avisos. ✔
+- `cd frontend && node scripts/i18n-check.js` → 5652 × 10, 0 huecos · `node scripts/engine-check.js` → 60/60. ✔
+- `cd frontend && npm run build` → exit 0, 1589 URLs. ✔
+- `python scripts/check-doc-links.py` → 47 documentos, 0 roturas. ✔ *(no está en CI — G-18)*
 
 **Manual / E2E pendiente de hacer en un entorno con backend vivo:**
 1. **Registro + verificación email** (SendGrid) → recibir y validar enlace.
@@ -158,17 +181,26 @@
 - [ ] Confirmar **Google OAuth**: origen `https://abcde-rgb.github.io` autorizado.
 
 ### P1 — Robustez antes de escalar
+- [ ] **Dar interfaz a lo que ya está escrito** (G-14) — plan de trading primero.
+- [ ] **`trading_plans` en las tres listas del RGPD** (G-15) — pequeño y con multa detrás.
 - [ ] Cerrar **C-08** (API keys solo en Secret Manager).
-- [ ] Activar **Dependabot + CodeQL + secret scanning** en el repo.
-- [ ] Ampliar tests offline a `performance.py` y al shim `Collection`.
+- [ ] `FRONTEND_URL` obligatoria en producción (T-02 del backlog de auditoría).
+- [ ] **CSP** en el HTML de Pages, verificada en navegador (T-01 / G-10).
+- [ ] Confirmar **Dependabot + CodeQL + secret scanning** activos *(los ficheros `.github/dependabot.yml` y `.github/workflows/codeql.yml` ya existen; falta comprobar el interruptor en Settings)*.
+- [ ] Tests del shim `Collection` (G-17).
+- [ ] `check-doc-links.py` en CI (G-18).
 
 ### P2 — Producto
 - [ ] **BUG-007**: sincronizar preferencias de usuario al backend.
 - [ ] **TradingView**: guardar layouts/indicadores por usuario (ver doc dedicado).
-- [ ] Resolver **route shadowing** admin (G-04).
+- [ ] Decidir el **Grupo B** de proveedores de datos (G-16).
+- [ ] Revisión **nativa** de las traducciones `pt` e `it` antes de anunciarlas.
+- [ ] Decidir si `/affiliate` cae tras el muro de pago (hoy es sólo-auth y el backend ya rechaza a quien no paga).
 
 ### P3 — Deuda técnica
-- [ ] Refactor de `server.py` monolítico a `app/routers/`.
+- [ ] `on_event` → `lifespan` y `class Config` → `ConfigDict` (G-19).
+- [ ] Bajar los 126 avisos de ESLint a 0 y subir el linter a `error`.
+- [ ] Refactor de `server.py` monolítico a `app/routers/` — **después** de G-17.
 
 ---
 
@@ -178,12 +210,12 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - **GCP**: Cloud Run service, Cloud SQL `trading-db` (europe-west1), Secret Manager,
   Workload Identity Federation, Artifact Registry `trading-repo`.
 - **Stripe**: productos/precios, webhook endpoint apuntando a `…/api/webhook/stripe`.
-- **Google AdSense**: alta de la cuenta, dos bloques de anuncio y las variables
-  de repositorio `REACT_APP_ADSENSE_CLIENT` / `..._SLOT_ARTICLE` / `..._SLOT_BOTTOM`.
-  **Requiere el dominio propio antes que nada** (`ads.txt` debe servirse en la raíz
-  y hay que acreditar la propiedad del sitio; con `github.io` ninguna de las dos
-  cosas es posible). Para tráfico del EEE, además, CMP certificada — lo más simple
-  es activar la de Google y poner `REACT_APP_ADSENSE_CMP=google`.
+  > ⛔ **Aquí había un punto de Google AdSense. No lo busques: no aplica.** La
+  > publicidad se retiró de raíz el 2026-08-02 (borrados `lib/ads.js`,
+  > `lib/adsPolicy.js`, `components/ads/*` y las cuatro variables del workflow) y
+  > el sitio pasó a ser **de pago íntegro**. Este párrafo se quedó aquí un día
+  > entero mandando dar de alta una cuenta que la web no usa — el mismo error que
+  > el aviso de la cabecera denuncia con OxaPay.
 - **NOWPayments** (crypto): ajustes `nowpayments_api_key` y `nowpayments_ipn_secret`
   en el panel admin (o sus variables de entorno), `nowpayments_sandbox` = `true`|`false`,
   y registrar el callback `…/api/webhook/nowpayments` en su dashboard. El IPN se firma con
@@ -2910,3 +2942,55 @@ Decisión del propietario: se elimina `.github/workflows/deploy-cloud-run.yml`.
   GCP y no depende de GitHub, así que sigue siendo la vía para desplegar backend.
 - ℹ️ **`ci.yml` no se toca**: sigue compilando y pasando los tests del backend en
   cada PR. Lo que desaparece es el despliegue automático, no la validación.
+
+### 2026-08-03 (2) — Revisión de toda la documentación contra el código de `main`
+Petición del propietario: revisar y estudiar **todos** los documentos del repositorio,
+actualizarlos y redactar qué falta a día de hoy comparado con el código real. Sin
+tocar código de producto: esta sesión sólo mide y corrige documentación.
+
+**Cómo se ha medido** (no de memoria: ejecutado sobre `main` @ `7864406`):
+`pytest` **503 passed / 74 skipped** · `import server` → **195 rutas** · `py_compile`
+de los **24** módulos · ESLint **0 errores / 126 avisos** · `i18n-check` **5652 × 10,
+0 huecos** · `engine-check` **60/60** · `npm run build` exit 0 → **1589 URLs**, 38 MB ·
+`check-doc-links` 47 documentos, 0 roturas.
+
+- ✅ **§1, §2, §4 y §5 reescritas con cifras medidas.** La deriva era grande y toda
+  en la misma dirección —el documento se quedaba corto—: 16 módulos declarados
+  contra 24 reales, 15 508 líneas contra 19 831, `server.py` 7377 contra 8232, 181
+  rutas contra 195, 345 tests contra 503, 5635 claves i18n contra 5652, 24 rutas de
+  frontend contra 26, 28 componentes de opciones contra 37.
+- ✅ **§6 ya no manda dar de alta AdSense.** Sobrevivió un día entero al borrado de
+  la publicidad. Es literalmente el fallo que el aviso de la cabecera denuncia con
+  OxaPay, repetido con otro nombre, así que en su lugar queda una nota que lo
+  explica en vez de un hueco silencioso.
+- ✅ **G-02 y G-04 cerrados con prueba**, no por antigüedad: 503 tests en 34 ficheros
+  y `test_route_uniqueness_unit.py` en verde sobre las 195 rutas. De paso queda
+  anotado que las 2 caídas de ese test que registraron las sesiones del 2026-08-02
+  eran del contenedor de aquel día: aquí pasa.
+- ✅ **Seis huecos nuevos (G-14 … G-19)**, todos verificados en el código:
+  - **G-14 es el grande.** `trading_plan.py`, `backtest.py`, `portfolio_risk.py` y
+    `american_options.py` —**~1770 líneas**, enrutadas y con tests— no los llama
+    **nadie** desde el frontend. Grep de los ocho endpoints en `frontend/src`: cero
+    resultados. `perfFeatBacktesting` en `PerformancePage` es una viñeta de
+    marketing, no una pantalla; `rule_compliance_rate` sale de `performance.py`, no
+    del plan de trading. Es trabajo terminado que no llega al usuario.
+  - **G-15**: `trading_plans` guarda `user_id` y tiene índice propio, pero no está
+    en `delete_account`, ni en `_USER_DATA_COLLECTIONS`, ni en `/auth/my-data`.
+    Borrar la cuenta deja los planes en la base de datos. Es la misma trampa que
+    ya obligó a listarla a mano en `known`: la colección se añadió tarde y sólo se
+    enchufó donde daba error inmediato.
+  - **G-16** (Grupo B: Yahoo sigue sirviendo acciones, índices, materias primas y
+    la cadena de opciones), **G-17** (el shim `Collection` sigue sin tests y por eso
+    bloquea el refactor), **G-18** (`check-doc-links.py` no corre en CI) y **G-19**
+    (`on_event` y `class Config` deprecados).
+- ✅ **Documentos hermanos corregidos**: `PENDIENTES.md` (Binance ya estaba hecho y
+  seguía en la lista; dos referencias a documentos inexistentes), `docs/README.md`
+  (tamaños), `CLAUDE.md` (faltaban `crypto_data.py` y `ecb_rates.py` en la tabla de
+  módulos) y `DEPLOY_CHECKLIST.md` (§G afirmaba que `frontend/public/CNAME` ya
+  existe y tres párrafos después decía lo contrario; no existe).
+- ℹ️ **Los documentos fechados no se han tocado**, por convención: `AUDITORIA_2026-07-27`,
+  `BACKLOG_AUDITORIA_2026-07-27` y `EXAMEN_FINAL_2026-07-26` describen lo que era
+  cierto entonces. Lo que de ellos sigue abierto se ha traído a §3 y §5, que es
+  donde se mira.
+- ⚠️ **Nada de esto se ha probado contra la red**: el sandbox sólo deja salir a los
+  registros de paquetes. Lo verificado es lo que corre offline.
