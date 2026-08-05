@@ -2994,3 +2994,40 @@ de los **24** módulos · ESLint **0 errores / 126 avisos** · `i18n-check` **56
   donde se mira.
 - ⚠️ **Nada de esto se ha probado contra la red**: el sandbox sólo deja salir a los
   registros de paquetes. Lo verificado es lo que corre offline.
+### 2026-08-05 — El login dependía de una variable de entorno del despliegue
+Reportado por el propietario: no se puede iniciar sesión. Causa raíz y detalle en
+[`DIARIO_BUGS.md`](./DIARIO_BUGS.md) (BUG-037); aquí lo que hay que saber para no
+repetirlo.
+
+- 🔍 **Cómo se encontró.** Leyendo el código no salía: el flujo de login es
+  correcto de punta a punta. Se levantó el backend contra un PostgreSQL real y se
+  reprodujo el login en Chromium sobre el build de producción, servido bajo la
+  misma ruta base que GitHub Pages (`/Tradingcalculatorpro.com`). Registro, login,
+  muro de pago, cookies, recarga y refresh silencioso: todo verde. El fallo sólo
+  aparece al mandar el `Origin` **real** de producción.
+- ⚠️ **Por qué nadie lo vio antes.** Sin cabecera CORS el backend responde **200 y
+  con las cookies puestas**; es el navegador quien tira la respuesta. En los logs
+  de Cloud Run el login se ve perfecto, y `curl` tampoco lo reproduce porque
+  ignora CORS. En pantalla sale «No se puede conectar al servidor», que manda a
+  investigar la red en vez de la configuración.
+- ✅ **El origen servido entra por código.** `https://abcde-rgb.github.io` estaba
+  sólo en la variable `CORS_ORIGINS` del despliegue, y la lista del código
+  contenía únicamente el dominio propio, **que no está en uso**. Desde el
+  2026-08-03 el backend se despliega a mano: un `gcloud run deploy` sin
+  `--set-env-vars` borra las variables y tumba el login del sitio entero.
+- ✅ **`FRONTEND_URL` unificada.** Caía a `https://tradingcalculatorpro.com` en
+  cuatro puntos de `server.py` y en `_trusted_link_base` de `missing_apis.py` —un
+  dominio que no se sirve—, así que la misma variable perdida mandaba los enlaces
+  de verificación, reset y magic link a la nada. Ahora hay una sola constante,
+  `DEFAULT_FRONTEND_URL`, con el mismo valor que ya ponía el despliegue.
+- 🔒 **La seguridad no se relaja.** La lista sigue siendo fija y nunca derivada de
+  la petición: `evil.com` sigue sin recibir cabecera (verificado), y los tests de
+  host-header injection de `_trusted_link_base` siguen en verde.
+- ✅ **Verificado**: `pytest` **506 passed / 74 skipped** (+3) · `py_compile` de los
+  24 módulos · preflight `OPTIONS` y `POST` desde el origen real **sin ninguna
+  variable de entorno** → `access-control-allow-origin` correcto · login en
+  Chromium sobre el build de producción, con recarga y `/performance` · ESLint 0
+  errores · i18n 10/10 · enlaces de doc OK.
+- ⏭️ **Queda para operación**: al desplegar el backend a mano, `cloudbuild.yaml`
+  sigue siendo la vía correcta porque lleva las variables. El arreglo hace que el
+  login sobreviva a un despliegue que se las olvide, no sustituye a desplegar bien.

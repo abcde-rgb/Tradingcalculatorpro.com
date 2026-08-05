@@ -59,8 +59,21 @@ def _trusted_link_base(request: Optional[Request] = None) -> str:
     (matches the CORS allow-list); otherwise we fall back to the canonical
     ``FRONTEND_URL``. Never falls back to ``request.base_url``.
     """
-    canonical = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com").strip().rstrip("/")
-    allowed = {canonical, "https://tradingcalculatorpro.com", "https://www.tradingcalculatorpro.com"}
+    # El defecto tiene que ser DONDE SE SIRVE la web (hoy GitHub Pages), no el
+    # dominio propio, que todavía no está en uso: si `FRONTEND_URL` se pierde en
+    # un despliegue manual, un enlace de reset apuntando a un dominio muerto deja
+    # al usuario igual de fuera que un login roto. Mismo valor que server.py.
+    canonical = os.environ.get(
+        "FRONTEND_URL", "https://abcde-rgb.github.io/Tradingcalculatorpro.com"
+    ).strip().rstrip("/")
+    # Lista fija, nunca derivada de la petición (ver la nota de seguridad arriba).
+    allowed = {
+        canonical,
+        "https://abcde-rgb.github.io",
+        "https://abcde-rgb.github.io/Tradingcalculatorpro.com",
+        "https://tradingcalculatorpro.com",
+        "https://www.tradingcalculatorpro.com",
+    }
     for extra in os.environ.get("CORS_ORIGINS", "").split(","):
         extra = extra.strip().rstrip("/")
         if extra:
