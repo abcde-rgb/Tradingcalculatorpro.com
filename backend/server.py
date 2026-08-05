@@ -52,7 +52,7 @@ from stock_data import (
     get_ohlc_history,
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
-from price_action import detect_structure
+from price_action import detect_structure, scan_levels, apply_confluence
 import timeframes
 from performance import (
     compute_trade_pnl,
@@ -6187,6 +6187,40 @@ def _bar_is_forming(rows: List[dict], minutes: int) -> bool:
     return (time.time() - float(last_ts)) < minutes * 60
 
 
+async def _fetch_bars(symbol: str, rng: str, tf: Any) -> List[dict]:
+    """Bars for one rung of the ladder, ready to scan.
+
+    Fetches at the interval the provider actually serves and merges them up if
+    this rung is composed (4h is built out of 1h — see timeframes.resample).
+    """
+    rows = await asyncio.to_thread(get_ohlc_history, symbol, rng, tf.fetch_interval)
+    return timeframes.resample(rows, tf.bucket_minutes)
+
+
+async def _higher_timeframe_levels(symbol: str, interval: Optional[str]) -> Dict[str, Any]:
+    """Support/resistance of the rung ABOVE `interval`, for the confluence pass.
+
+    Only the cheap read (`scan_levels`): where the bigger chart has levels, not
+    how each has behaved bar by bar. Anything that goes wrong — no rung above,
+    the provider refusing a second call, too few bars — leaves the main scan
+    untouched and comes back as "not checked". A failed second fetch must never
+    be reported as "checked, no confluence": those are different statements and
+    only one of them is true.
+    """
+    htf = timeframes.higher(interval)
+    if htf is None:
+        return {"tf": None, "levels": []}
+    try:
+        rows = await _fetch_bars(symbol, htf.default_range, htf)
+        if not rows:
+            return {"tf": None, "levels": []}
+        levels = await asyncio.to_thread(scan_levels, rows, htf.strength)
+        return {"tf": htf, "levels": levels}
+    except Exception as e:
+        logging.warning(f"HTF confluence scan failed for {symbol} ({interval}): {e}")
+        return {"tf": None, "levels": []}
+
+
 def _trim_structure(res: Dict[str, Any]) -> Dict[str, Any]:
     """Bound the arrays before they go over the wire.
 
@@ -6267,6 +6301,7 @@ async def education_pattern_scan(
 async def education_structure_scan(
     request: Request, symbol: str, period: Optional[str] = None,
     interval: Optional[str] = None, strength: Optional[int] = None,
+    htf: bool = True,
 ) -> Dict[str, Any]:
     """Scan real OHLC and return the PRICE-ACTION STRUCTURE: swing highs/lows,
     market structure (HH/HL/LH/LL → trend), Break of Structure / Change of
@@ -6275,6 +6310,11 @@ async def education_structure_scan(
 
     `strength` (fractal half-window) defaults to the rung's own value: a
     2-bar fractal is right on daily bars and far too twitchy on 5-minute ones.
+
+    `htf` also reads the rung above and marks the levels both timeframes agree
+    on (`confluence`). It costs one extra upstream call, runs concurrently with
+    the main one, and degrades to `confluence.checked = false` if it fails —
+    set it to 0 to skip it entirely.
     """
     sym = symbol.upper().strip()
     win = _scan_window(interval, period)
@@ -6287,19 +6327,25 @@ async def education_structure_scan(
             "aggregatedFrom": tf.source_interval,
             "adjustments": win["adjustments"]}
     try:
-        # 4h no lo sirve el proveedor: se pide en 1h y se compone aquí.
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.fetch_interval)
-        rows = timeframes.resample(rows, tf.bucket_minutes)
+        # Ambas series a la vez: la del escalón pedido y la del escalón superior
+        # para la confluencia. En serie, el escaneo tardaría el doble.
+        # 4h no lo sirve el proveedor: se pide en 1h y se compone en _fetch_bars.
+        rows, htf_read = await asyncio.gather(
+            _fetch_bars(sym, rng, tf),
+            _higher_timeframe_levels(sym, tf.interval if htf else None),
+        )
         if not rows:
-            return {**meta, "rowsScanned": 0, "trend": "range",
-                    "swings": [], "events": [], "levels": [], "fvgs": []}
+            # Misma FORMA que una respuesta completa, toda vacía: el cliente
+            # nunca ramifica por "¿vino corta o larga?".
+            return {**meta, "lastBarForming": False, **detect_structure([], strn)}
         res = await asyncio.to_thread(detect_structure, rows, strn)
+        if htf_read["tf"] is not None:
+            apply_confluence(res, htf_read["levels"], htf_read["tf"].interval)
         return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
                 **_trim_structure(res)}
     except Exception as e:
         logging.error(f"Structure scan error for {sym}: {e}")
-        return {**meta, "error": "scan_failed", "trend": "range",
-                "swings": [], "events": [], "levels": [], "fvgs": []}
+        return {**meta, "error": "scan_failed", **detect_structure([], strn)}
 
 
 # ============================================================

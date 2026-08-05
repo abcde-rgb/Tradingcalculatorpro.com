@@ -125,7 +125,7 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `crypto_data.py` | Cripto: Binance por lotes + Kraken (que manda en los 20 pares que cotiza contra dólar). Sustituyó a CoinGecko el 2026-08-02 |
 | `ecb_rates.py` | Forex desde el feed de 90 días del BCE. Publica **una vez por día hábil**: estos tipos no se mueven intradía |
 | `candle_patterns.py` | Detección de patrones de velas japonesas |
-| `price_action.py` | Estructura de precio: swings, BOS/CHoCH, S/R, FVG, rupturas ([manual](./docs/ESCANER_ESTRUCTURA.md)) |
+| `price_action.py` | Estructura de precio: swings, BOS/CHoCH, S/R (con zona), FVG, rupturas, confluencia con el escalón superior y contexto ([manual](./docs/ESCANER_ESTRUCTURA.md)). Módulo puro: la confluencia necesita una segunda serie, así que la pide `server.py` y se aplica con `apply_confluence` |
 | `timeframes.py` | Escalera de temporalidades (5m–1mes) y pares (vela, histórico) legales del proveedor |
 | `performance.py` | Cálculo de PnL, analytics del diario de trading |
 | `missing_apis.py` | Forex real, índices, commodities, password reset, magic links |
@@ -234,6 +234,15 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   ventana `FAILURE_BACKOFF_SECONDS`: sin ella, con el proveedor caído, `get_risk_free_rate`
   vuelve a salir a la red en cada llamada, y está dentro de `/options/chain`, `/optimize`,
   `/calculate/*` y `/performance/analytics`. Hay test que lo fija.
+- **El escáner de estructura ordena por importancia, igual que el panel de opciones.**
+  `StructureScanner.jsx` sólo compone: 1 configurar → 2 lectura → 3 escalera de
+  niveles → lo accesorio en `SectionCard` **plegado y con contador**. Las piezas
+  viven en `frontend/src/components/charts/structure/` (constantes, hook de
+  escaneo y un panel por bloque); no vuelvas a meter lógica de fetch ni tablas de
+  tickers en el archivo que compone. En el backend, *sin comprobar* y *comprobado
+  sin coincidencias* son distintos: `counts.confluent` es `null` cuando no se ha
+  leído el escalón superior, nunca `0`, y la confluencia **no** suma a la
+  puntuación de confirmación (esa mide sólo las velas escaneadas).
 - **Un número que dispare un consejo de tamaño de posición necesita muestra EN EL ORIGEN**,
   no sólo en el sitio que lo pinta. `suggested_stop_r` vale `None` por debajo de
   `MIN_WINNERS_FOR_STOP_ADVICE`; no lo calcules "y que el consumidor decida".

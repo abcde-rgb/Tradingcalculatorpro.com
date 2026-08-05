@@ -456,3 +456,11 @@ a `round(plan["price"], 2)` con comentario explicativo.
 ---
 
 *Última actualización: 2026-08-05 — el origen donde se sirve la web no estaba permitido por el código, así que el login dependía de una variable de entorno del despliegue (BUG-037).*
+
+---
+
+| BUG-038 | **La respuesta vacía del escáner de estructura no tenía la forma que la documentación prometía.** `docs/ESCANER_ESTRUCTURA.md` §8 afirmaba —y el motor cumplía— que *"una respuesta vacía conserva exactamente las mismas claves que una completa: el cliente nunca tiene que ramificar por forma de respuesta"*. `detect_structure([])` devolvía en efecto la lectura completa con todo a cero, pero **la ruta no la usaba**: cuando el proveedor no devolvía velas, `education_structure_scan` construía a mano `{rowsScanned, trend, swings, events, levels, fvgs}` —seis claves de veinte— y el camino de error, cinco. Faltaban `counts`, `currentPrice`, `atr`, `tolerancePct`, `nearestResistance`, `nearestSupport`, `levelsAnalysed` y `lastBarForming`. No llegó a romper la interfaz porque el frontend leía todo con `\|\| {}` y `\|\| []` de forma defensiva, que es precisamente lo que enmascara este tipo de fallo: cualquier consumidor que se creyera el contrato documentado (o cualquier `data.counts.levels` escrito sin la guarda) habría reventado justo en el caso en que el proveedor se cae, que es el peor momento para descubrirlo. Fix: los dos caminos devuelven `detect_structure([], strength)`, y `test_structure_scan_routes_unit.py` compara el conjunto de claves de una respuesta vacía con el de una completa, incluidas las de `counts`. | 🟡 | ✅ Resuelto (2026-08-05) |
+
+---
+
+*Última actualización: 2026-08-05 (2) — la respuesta vacía del escáner de estructura no respetaba el contrato documentado (BUG-038).*
