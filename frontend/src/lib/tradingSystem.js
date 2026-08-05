@@ -169,6 +169,48 @@ export function missingEssentials(s) {
   return missing;
 }
 
+// ── The system judges the trade ─────────────────────────────────────────────
+// El diario avisaba con dos constantes (R:R < 1,5 y riesgo > 2 %) mientras el
+// usuario tenía escrito en su propio setup "R:R mínimo 2, riesgo 1 %". Dos
+// reglas distintas para la misma operación: la que el trader se puso y la que
+// le juzgaba. Manda la suya; las constantes son sólo el respaldo de quien no ha
+// definido nada, y la interfaz dice cuál de las dos está aplicando.
+
+/** Respaldo para quien no tiene la regla escrita en su setup. */
+export const DEFAULT_MIN_RR = 1.5;
+export const DEFAULT_MAX_RISK_PCT = 2;
+
+const numeric = (v) => {
+  const n = parseFloat(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/**
+ * Las reglas que aplican a una operación etiquetada con `names`.
+ *
+ * Con varios setups gana **el más estricto** de cada regla (el R:R más alto y
+ * el riesgo más bajo): si la operación responde a dos condiciones, tiene que
+ * cumplir las dos. `source` distingue una regla propia de un valor por defecto,
+ * porque presentar el respaldo como si fuera decisión del usuario es lo que
+ * hace que un aviso se ignore.
+ */
+export function setupRulesFor(system, names) {
+  const picked = (Array.isArray(names) ? names : [])
+    .map((n) => (system?.setups || []).find((s) => normName(s.name) === normName(n)))
+    .filter(Boolean);
+
+  const rrs = picked.map((s) => numeric(s.rr)).filter(Boolean);
+  const risks = picked.map((s) => numeric(s.riskPerTrade)).filter(Boolean);
+
+  return {
+    minRR: rrs.length ? Math.max(...rrs) : DEFAULT_MIN_RR,
+    maxRiskPct: risks.length ? Math.min(...risks) : DEFAULT_MAX_RISK_PCT,
+    rrSource: rrs.length ? 'setup' : 'default',
+    riskSource: risks.length ? 'setup' : 'default',
+    from: picked.map((s) => s.name).filter(Boolean),
+  };
+}
+
 // ── The system meets the journal ────────────────────────────────────────────
 // A setup you cannot measure is a wish. The journal stores `setup` as a plain
 // string and the backend groups analytics by that string, so the join key is

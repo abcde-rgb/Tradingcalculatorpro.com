@@ -46,11 +46,21 @@ const KpiCard = ({ icon: Ic, label, value, subValue, color = 'text-foreground', 
   </div>
 );
 
-const Bar = ({ label, n, total, pnl }) => {
+const Bar = ({ label, n, total, pnl, onClick }) => {
   const pct = total > 0 ? (n / total) * 100 : 0;
+  // Una operación con dos setups cuenta en los dos grupos, así que un grupo
+  // puede pasar del 100 % del total. El porcentaje que se imprime es el real;
+  // lo que se acota es la barra, que si no se saldría del contenedor.
+  const barPct = Math.min(100, Math.max(0, pct));
   const pnlPositive = pnl > 0;
   return (
-    <div className="space-y-1">
+    <div
+      className={`space-y-1 ${onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter') onClick(); } : undefined}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <div className="flex justify-between text-[11px]">
         <span className="font-semibold">{label}</span>
         <span className="text-muted-foreground">
@@ -62,7 +72,7 @@ const Bar = ({ label, n, total, pnl }) => {
       </div>
       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
         <div className={`h-full ${pnlPositive ? 'bg-[#22c55e]' : pnl < 0 ? 'bg-[#ef4444]' : 'bg-primary'}`}
-             style={{ width: `${pct}%` }} />
+             style={{ width: `${barPct}%` }} />
       </div>
     </div>
   );
@@ -245,7 +255,7 @@ const PnLCalendar = ({ data }) => {
   );
 };
 
-export default function AnalyticsDashboard({ refreshKey, onGoToJournal }) {
+export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSetups, onPickSetup }) {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -362,12 +372,37 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal }) {
           </h3>
           <div className="space-y-2.5">
             {a.by_setup.slice(0, 6).map((s) => (
-              <Bar key={s.group} label={s.group} n={s.n} total={a.closed_trades} pnl={s.pnl} />
+              <Bar
+                key={s.group}
+                label={s.group}
+                n={s.n}
+                total={a.closed_trades}
+                pnl={s.pnl}
+                onClick={onPickSetup ? () => onPickSetup(s.group) : undefined}
+              />
             ))}
             {a.by_setup.length === 0 && (
               <p className="text-xs text-muted-foreground">{t('breakdownEmpty')}</p>
             )}
           </div>
+          {/* El mismo aviso que en la pestaña Setups: los grupos se solapan.
+              Dicho en un sitio y callado en el otro, los dos números se leen
+              como si uno de los dos estuviera mal. */}
+          {a.setups_multi_tagged > 0 && (
+            <p className="text-[10px] text-muted-foreground/80 leading-relaxed mt-3">
+              {t('setupPerfMultiNote').replace('{n}', String(a.setups_multi_tagged))}
+            </p>
+          )}
+          {onGoToSetups && (
+            <button
+              type="button"
+              onClick={onGoToSetups}
+              className="text-[11px] text-primary hover:underline mt-2"
+              data-testid="analytics-go-setups"
+            >
+              {t('analyticsGoToSetups')}
+            </button>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-xl p-5">

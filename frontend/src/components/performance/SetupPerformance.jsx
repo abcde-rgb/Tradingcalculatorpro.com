@@ -24,7 +24,7 @@ const money = (v) => `${v > 0 ? '+' : ''}$${Number(v || 0).toFixed(2)}`;
  *   · operado sin estar en el sistema → o es una errata, o es una operación
  *     fuera del plan; en ambos casos hay que verlo, no sumarlo a otra cosa
  */
-export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJournal }) {
+export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJournal, onPickSetup }) {
   const { t } = useTranslation();
   const [analytics, setAnalytics] = useState(null);
   const [system, setSystem] = useState(() => loadSystem());
@@ -103,11 +103,23 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
       <div className="space-y-2">
         {defined.map(({ setup, stats }) => {
           const gaps = missingEssentials(setup);
+          const openTrades = stats && onPickSetup
+            ? () => onPickSetup(setup.name)
+            : undefined;
           return (
             <div
               key={setup.id}
-              className="bg-card border border-border rounded-xl px-4 py-3"
+              className={`bg-card border border-border rounded-xl px-4 py-3 ${
+                openTrades ? 'cursor-pointer hover:border-primary/40 transition-colors' : ''
+              }`}
               data-testid="setupperf-row"
+              // Del número a las operaciones que lo producen: un marcador que no
+              // deja abrir su muestra obliga a buscarla a mano en la tabla.
+              onClick={openTrades}
+              onKeyDown={openTrades ? (e) => { if (e.key === 'Enter') openTrades(); } : undefined}
+              role={openTrades ? 'button' : undefined}
+              tabIndex={openTrades ? 0 : undefined}
+              title={openTrades ? t('setupPerfOpenTrades') : undefined}
             >
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-sm truncate">
@@ -177,7 +189,14 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
           </div>
           <div className="space-y-1">
             {offSystem.slice(0, 6).map((r) => (
-              <div key={r.group} className="flex items-center gap-3 text-xs">
+              <div
+                key={r.group}
+                className={`flex items-center gap-3 text-xs ${onPickSetup ? 'cursor-pointer hover:text-foreground' : ''}`}
+                onClick={onPickSetup ? () => onPickSetup(r.group) : undefined}
+                onKeyDown={onPickSetup ? (e) => { if (e.key === 'Enter') onPickSetup(r.group); } : undefined}
+                role={onPickSetup ? 'button' : undefined}
+                tabIndex={onPickSetup ? 0 : undefined}
+              >
                 <span className="truncate max-w-[220px]">{r.group}</span>
                 <span className="font-mono text-muted-foreground">
                   {t('setupPerfTrades').replace('{n}', String(r.n))} · {r.win_rate}%

@@ -32,7 +32,7 @@
 | **Tests offline** | 🟢 | `pytest tests/` → **540 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5703 claves × 10 idiomas, 0 huecos** · `engine-check` **76/76** (2026-08-05) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5711 claves × 10 idiomas, 0 huecos** · `engine-check` **83/83** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3150,3 +3150,35 @@ diario obligaba a elegir: la otra razón no existía para la analítica.
   idiomas, 0 huecos** (+5) · `npm run build` exit 0.
 - ⚠️ **Requiere desplegar el backend a mano** (`cloudbuild.yaml`) para que `setups`
   llegue a la base de datos como lista. Hasta entonces, todo se guarda en la cadena.
+
+### 2026-08-05 (5) — Setup, diario y analítica, cogidos de la mano
+Recordatorio del propietario: los tres tienen que ir juntos. Auditado el ciclo
+completo (**definir → registrar → medir → volver al setup**) y cerradas las tres
+costuras que quedaban abiertas.
+
+- ✅ **El diario juzga con las reglas DEL setup, no con dos constantes.** El
+  formulario avisaba con `R:R < 1,5` y `riesgo > 2 %` fijos mientras el usuario tenía
+  escrito en su propio setup "R:R mínimo 2, riesgo 1 %": dos reglas distintas para la
+  misma operación, la que se puso y la que le juzgaba. Ahora manda la suya
+  (`setupRulesFor`), con **varios setups gana la más estricta de cada una** —si la
+  operación responde a dos condiciones tiene que cumplir las dos— y el umbral se pinta
+  con su procedencia: en azul si es tuya, apagado si es el valor por defecto. Una regla
+  propia se respeta; una constante ajena se ignora.
+- ✅ **Del número a la muestra.** Pinchar un setup —en el marcador de la pestaña Setups
+  o en el desglose de la analítica— abre el diario **filtrado por ese setup**, con su
+  etiqueta y una × para quitarlo. Antes el marcador daba un número y dejaba al usuario
+  buscando a mano en la tabla qué operaciones había detrás. Filtrar sin coincidencias
+  dice «ninguna operación con ese setup», que no es lo mismo que «no tienes operaciones».
+- ✅ **La analítica dice lo mismo que el marcador.** El aviso de solape
+  (`setups_multi_tagged`) estaba sólo en la pestaña Setups; dicho en un sitio y callado
+  en el otro, los dos números se leen como si uno estuviera mal. Y la barra del desglose
+  se acota al 100 %: con multi-etiqueta un grupo puede superar el total de operaciones
+  y la barra se salía del contenedor (el porcentaje impreso sigue siendo el real).
+- ✅ **Verificado**: `engine-check` **83/83** (+7 de las reglas por setup) · `pytest`
+  **540 passed / 74 skipped** · ESLint 0 errores · `i18n-check` **5711 claves × 10
+  idiomas, 0 huecos** (+8) · `npm run build` exit 0.
+- ⏭️ **Lo que sigue sin cerrar del ciclo** (necesita el backend, G-14): las reglas de
+  cuenta del sistema —pérdida máxima diaria y semanal, condiciones de no-operar,
+  exposición correlacionada— se definen en el constructor y **no** juzgan nada todavía;
+  `detect_errors` sigue usando el plan del backend, que no tiene interfaz. Conectar
+  `SetupBuilder` con `POST /plan` cierra eso y de paso arregla G-15.

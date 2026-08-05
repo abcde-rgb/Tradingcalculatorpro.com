@@ -7,7 +7,8 @@ import { useTranslation } from '@/lib/i18n';
 import { createTrade, updateTrade } from '@/services/performanceApi';
 import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
 import {
-  loadSystem, tradeSetups, addSetup, SETUP_SEPARATOR, MAX_SETUPS_PER_TRADE,
+  loadSystem, tradeSetups, addSetup, setupRulesFor,
+  SETUP_SEPARATOR, MAX_SETUPS_PER_TRADE,
 } from '@/lib/tradingSystem';
 import { toast } from 'sonner';
 
@@ -114,8 +115,16 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
   const liveRR = liveRisk > 0 ? (liveReward / liveRisk).toFixed(2) : '—';
   const liveRiskPct = balance > 0 ? ((liveRisk / balance) * 100).toFixed(2) : '—';
 
-  const rrWarn = liveRR !== '—' && parseFloat(liveRR) < 1.5;
-  const riskWarn = liveRiskPct !== '—' && parseFloat(liveRiskPct) > 2;
+  // Las reglas salen del setup elegido, no de dos constantes: si tienes escrito
+  // "R:R mínimo 2, riesgo 1 %", es contra eso contra lo que hay que avisarte.
+  // Con varios setups gana el más estricto de cada regla. Sin setup con reglas,
+  // se usan los valores por defecto y se dice que lo son.
+  const rules = useMemo(() => setupRulesFor(loadSystem(), setups), [setups]);
+  const rrWarn = liveRR !== '—' && parseFloat(liveRR) < rules.minRR;
+  const riskWarn = liveRiskPct !== '—' && parseFloat(liveRiskPct) > rules.maxRiskPct;
+  const ruleTip = (source) => (source === 'setup'
+    ? t('tradeRuleFromSetup').replace('{setups}', rules.from.join(', '))
+    : t('tradeRuleDefault'));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -478,6 +487,15 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               <div className={`text-base font-bold font-mono ${rrWarn ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
                 {liveRR !== '—' ? `1:${liveRR}` : '—'}
               </div>
+              {/* El umbral, a la vista y con su procedencia: una regla tuya se
+                  respeta; una constante ajena se ignora. */}
+              <div
+                className={`text-[9px] mt-0.5 ${rules.rrSource === 'setup' ? 'text-primary' : 'text-muted-foreground/70'}`}
+                title={ruleTip(rules.rrSource)}
+                data-testid="trade-rule-rr"
+              >
+                {t('tradeRuleMinRR').replace('{v}', String(rules.minRR))}
+              </div>
               {rrWarn && (
                 <div className="text-[9px] text-[#ef4444] flex items-center gap-1 mt-0.5">
                   <AlertCircle className="w-3 h-3" />{t('tradeWarnLowRR')}
@@ -488,6 +506,13 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               <div className="text-[10px] text-muted-foreground uppercase">{t('tradeRiskPct')}</div>
               <div className={`text-base font-bold font-mono ${riskWarn ? 'text-[#ef4444]' : 'text-foreground'}`}>
                 {liveRiskPct === '—' ? '—' : `${liveRiskPct}%`}
+              </div>
+              <div
+                className={`text-[9px] mt-0.5 ${rules.riskSource === 'setup' ? 'text-primary' : 'text-muted-foreground/70'}`}
+                title={ruleTip(rules.riskSource)}
+                data-testid="trade-rule-risk"
+              >
+                {t('tradeRuleMaxRisk').replace('{v}', String(rules.maxRiskPct))}
               </div>
               {riskWarn && (
                 <div className="text-[9px] text-[#ef4444] flex items-center gap-1 mt-0.5">

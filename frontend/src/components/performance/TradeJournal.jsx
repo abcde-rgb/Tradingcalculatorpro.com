@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Trash2, Plus, AlertTriangle, TrendingUp, TrendingDown, BookOpen } from 'lucide-react';
+import { Edit2, Trash2, Plus, AlertTriangle, TrendingUp, TrendingDown, BookOpen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription,
@@ -25,7 +25,12 @@ const SEVERITY_COLORS = {
   medium:   'bg-[#eab308]/15 text-[#eab308] border-[#eab308]/30',
 };
 
-export default function TradeJournal({ refreshKey, onChange }) {
+/**
+ * `setupFilter` llega desde el marcador de la pestaña Setups: pinchar un setup
+ * lleva a SUS operaciones. Sin ese salto, el marcador daba un número y dejaba
+ * al usuario buscando a mano en la tabla cuáles eran las operaciones detrás.
+ */
+export default function TradeJournal({ refreshKey, onChange, setupFilter, onClearSetupFilter }) {
   const { t } = useTranslation();
   const [trades, setTrades]           = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -76,6 +81,13 @@ export default function TradeJournal({ refreshKey, onChange }) {
     onChange?.();
   };
 
+  // El filtro es del cliente a propósito: la lista ya está cargada entera y así
+  // el salto desde el marcador es instantáneo y no gasta otra petición.
+  const filterName = String(setupFilter || '').trim().toLowerCase();
+  const visible = filterName
+    ? trades.filter((tr) => tradeSetups(tr).some((s) => s.toLowerCase() === filterName))
+    : trades;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -83,7 +95,20 @@ export default function TradeJournal({ refreshKey, onChange }) {
         <div className="flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-primary" />
           <h2 className="font-unbounded text-xl font-bold">{t('tradeJournal')}</h2>
-          <span className="text-xs text-muted-foreground">({trades.length})</span>
+          <span className="text-xs text-muted-foreground">
+            ({filterName ? `${visible.length}/${trades.length}` : trades.length})
+          </span>
+          {filterName && (
+            <button
+              type="button"
+              onClick={onClearSetupFilter}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/40 text-[11px] font-semibold hover:bg-primary/25 transition-colors"
+              data-testid="journal-setup-filter"
+            >
+              {t('journalFilteredBySetup').replace('{setup}', setupFilter)}
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <TradeImportExport
@@ -134,7 +159,7 @@ export default function TradeJournal({ refreshKey, onChange }) {
               </tr>
             </thead>
             <tbody>
-              {trades.map((tr) => {
+              {visible.map((tr) => {
                 const status = STATUS_LABELS[tr.status] || STATUS_LABELS.closed;
                 const pnlPositive = (tr.pnl || 0) > 0;
                 const pnlNegative = (tr.pnl || 0) < 0;
@@ -234,6 +259,13 @@ export default function TradeJournal({ refreshKey, onChange }) {
               })}
             </tbody>
           </table>
+          {/* Con filtro puesto y sin coincidencias, la tabla vacía se leía como
+              "no tienes operaciones". Son cosas distintas. */}
+          {visible.length === 0 && (
+            <div className="text-center py-8 text-sm text-muted-foreground" data-testid="journal-filter-empty">
+              {t('journalNoTradesForSetup').replace('{setup}', setupFilter || '')}
+            </div>
+          )}
         </div>
       )}
 

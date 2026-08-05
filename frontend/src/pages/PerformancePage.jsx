@@ -30,7 +30,15 @@ export default function PerformancePage() {
   const { isAuthenticated } = useAuthStore();
   const [tab, setTab] = useState(isAuthenticated ? 'journal' : 'overview');
   const [refreshKey, setRefreshKey] = useState(0);
+  // Setup → sus operaciones: el marcador de la pestaña Setups y el desglose de
+  // la analítica llevan al diario ya filtrado, para que las tres pestañas
+  // hablen de la misma muestra en vez de dar cada una un número suelto.
+  const [journalSetup, setJournalSetup] = useState(null);
   const onChange = () => setRefreshKey((k) => k + 1);
+  const showSetupTrades = (name) => {
+    setJournalSetup(name);
+    setTab('journal');
+  };
 
   useSEO({
     titleKey: 'seoPerformanceTitle',
@@ -150,7 +158,12 @@ export default function PerformancePage() {
           {!isAuthenticated ? (
             <AuthRequired t={t} />
           ) : (
-            <TradeJournal refreshKey={refreshKey} onChange={onChange} />
+            <TradeJournal
+              refreshKey={refreshKey}
+              onChange={onChange}
+              setupFilter={journalSetup}
+              onClearSetupFilter={() => setJournalSetup(null)}
+            />
           )}
         </TabsContent>
 
@@ -159,7 +172,12 @@ export default function PerformancePage() {
           {!isAuthenticated ? (
             <AuthRequired t={t} />
           ) : (
-            <AnalyticsDashboard refreshKey={refreshKey} onGoToJournal={() => setTab('journal')} />
+            <AnalyticsDashboard
+              refreshKey={refreshKey}
+              onGoToJournal={() => setTab('journal')}
+              onGoToSetups={() => setTab('setups')}
+              onPickSetup={showSetupTrades}
+            />
           )}
         </TabsContent>
 
@@ -177,6 +195,7 @@ export default function PerformancePage() {
             <div className="space-y-8">
               <SetupPerformance
                 refreshKey={refreshKey}
+                onPickSetup={showSetupTrades}
                 onGoToJournal={() => setTab('journal')}
                 onDefineSetups={() => {
                   document.getElementById('setup-builder')?.scrollIntoView({ behavior: 'smooth' });

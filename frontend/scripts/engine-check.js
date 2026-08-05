@@ -223,6 +223,34 @@ async function checkTradingSystemModel() {
   ok('the win rate is recomputed after merging, not averaged',
     legacyJoin.defined[0].stats?.win_rate === 50);
   ok('nothing is left over as off-system', legacyJoin.offSystem.length === 0);
+
+  // ── El diario juzga con las reglas DEL setup, no con dos constantes ───────
+  const sys = m.emptySystem();
+  sys.setups = [
+    m.makeSetup({ name: 'Ruptura NY', rr: '2', riskPerTrade: '1' }),
+    m.makeSetup({ name: 'Pullback EMA20', rr: '3', riskPerTrade: '0.5' }),
+    m.makeSetup({ name: 'Sin reglas' }),
+  ];
+  const own = m.setupRulesFor(sys, ['Ruptura NY']);
+  ok('the trade is judged by its own setup rule', own.minRR === 2 && own.maxRiskPct === 1);
+  ok('and it says the rule is the user\'s, not a default',
+    own.rrSource === 'setup' && own.riskSource === 'setup');
+
+  const both = m.setupRulesFor(sys, ['Ruptura NY', 'Pullback EMA20']);
+  ok('with two setups the STRICTEST of each rule wins',
+    both.minRR === 3 && both.maxRiskPct === 0.5);
+
+  const none = m.setupRulesFor(sys, ['Sin reglas']);
+  ok('a setup without rules falls back to the defaults',
+    none.minRR === m.DEFAULT_MIN_RR && none.maxRiskPct === m.DEFAULT_MAX_RISK_PCT);
+  ok('and the fallback is labelled as such (an alien constant gets ignored)',
+    none.rrSource === 'default' && none.riskSource === 'default');
+  ok('no setup at all also falls back',
+    m.setupRulesFor(sys, []).minRR === m.DEFAULT_MIN_RR);
+  ok('a comma decimal in the rule is read, not dropped',
+    m.setupRulesFor(
+      { setups: [m.makeSetup({ name: 'x', riskPerTrade: '0,75' })] }, ['x'],
+    ).maxRiskPct === 0.75);
 }
 
 async function checkOptionsEngine() {
