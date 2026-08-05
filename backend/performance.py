@@ -640,8 +640,14 @@ def compute_analytics(
 
     # By-day breakdown
     by_day = _group_winrate_by(closed, lambda t: _weekday_name(t.get("entry_date")))
-    # By-setup breakdown
-    by_setup = _group_winrate_by(closed, lambda t: t.get("setup") or "—")
+    # By-setup breakdown. A trade tagged with two setups counts in BOTH groups:
+    # that is the question this breakdown answers ("how does this setup do?"),
+    # so the group totals deliberately add up to more than the trade count.
+    # `setups_multi_tagged` publishes how much of that overlap there is, so the
+    # client can say it instead of the reader assuming the columns are a split.
+    by_setup = _group_winrate_by_multi(
+        closed, lambda t: trade_setups(t) or [UNTAGGED_SETUP])
+    setups_multi_tagged = sum(1 for t in closed if len(trade_setups(t)) > 1)
     # By-symbol breakdown
     by_symbol = _group_winrate_by(closed, lambda t: t.get("symbol") or "—")
 
@@ -740,6 +746,7 @@ def compute_analytics(
         # Distributions
         "by_day": by_day,
         "by_setup": by_setup,
+        "setups_multi_tagged": setups_multi_tagged,
         "by_symbol": by_symbol,
         "r_distribution": r_buckets,
         "equity_curve": [round(e, 2) for e in equity],
@@ -872,6 +879,7 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "max_consecutive_losses": 0,
         "by_day": [],
         "by_setup": [],
+        "setups_multi_tagged": 0,
         "by_symbol": [],
         "r_distribution": {},
         "equity_curve": [],
@@ -895,15 +903,33 @@ def _weekday_name(iso_str: Optional[str]) -> str:
 
 
 def _group_winrate_by(trades: List[dict], key_fn) -> List[Dict[str, Any]]:
-    """Return list of {group, n, wins, win_rate, pnl} sorted by trade count desc."""
+    """Return list of {group, n, wins, win_rate, pnl} sorted by trade count desc.
+
+    One trade lands in exactly one group — use `_group_winrate_by_multi` when a
+    trade can legitimately belong to several.
+    """
+    return _group_winrate_by_multi(trades, lambda t: [key_fn(t)])
+
+
+def _group_winrate_by_multi(trades: List[dict], keys_fn) -> List[Dict[str, Any]]:
+    """Same shape, but a trade may belong to SEVERAL groups at once.
+
+    Used for setups: a trade taken on the confluence of two setups is evidence
+    about both of them. The consequence is that the group counts sum to more
+    than the number of trades, which is correct for "how does this setup do?"
+    and wrong for "how do my trades split up" — so the caller publishes the
+    overlap rather than letting a reader assume it is a partition.
+    """
     groups: Dict[str, Dict[str, Any]] = {}
     for t in trades:
-        k = key_fn(t)
-        g = groups.setdefault(k, {"group": k, "n": 0, "wins": 0, "pnl": 0.0})
-        g["n"] += 1
-        if (t.get("pnl") or 0) > 0:
-            g["wins"] += 1
-        g["pnl"] += float(t.get("pnl") or 0)
+        pnl = float(t.get("pnl") or 0)
+        won = pnl > 0
+        for k in keys_fn(t):
+            g = groups.setdefault(k, {"group": k, "n": 0, "wins": 0, "pnl": 0.0})
+            g["n"] += 1
+            if won:
+                g["wins"] += 1
+            g["pnl"] += pnl
     out = []
     for g in groups.values():
         g["win_rate"] = round(_safe_div(g["wins"], g["n"], 0) * 100, 1)
@@ -1038,6 +1064,59 @@ def generate_insights(analytics: Dict[str, Any]) -> List[Dict[str, str]]:
     return insights[:8]
 
 
+# ─── Setups: one trade, possibly several ──────────────────────────
+# A trade can answer to MORE THAN ONE setup — a confluence of two conditions is
+# as real a reason to enter as a single one, and forcing a choice made the other
+# one invisible to the analytics. `setups` (a list) is the source of truth;
+# `setup` (a string) is kept in sync so everything that already read one text —
+# CSV export, the coach prompt, the journal table — keeps working.
+#
+# The separator is deliberately padded (" · "): it has to be something a user
+# will not type inside a single setup name, because the client splits on it when
+# talking to a backend that predates this field.
+SETUP_SEPARATOR = " · "
+MAX_SETUPS_PER_TRADE = 5
+# Group name for a trade logged with no setup at all. Missing data, which is a
+# different thing from a trade taken outside the system, and is counted apart.
+UNTAGGED_SETUP = "—"
+
+
+def normalize_setups(payload: dict) -> List[str]:
+    """The setup list for a trade, from either the new field or the old string.
+
+    Trims, drops blanks, removes the separator from inside a name (it would
+    later be read as two setups) and de-duplicates case-insensitively while
+    keeping the spelling the user chose — "Ruptura NY" typed twice is one
+    setup, not two, and the analytics must not see it as two.
+    """
+    raw = payload.get("setups")
+    if raw is None:
+        text = payload.get("setup")
+        raw = [p for p in str(text or "").split(SETUP_SEPARATOR)] if text else []
+    if not isinstance(raw, (list, tuple)):
+        raw = [raw]
+
+    out: List[str] = []
+    seen = set()
+    for item in raw:
+        name = str(item or "").replace(SETUP_SEPARATOR, " ").strip()
+        if not name:
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(name)
+        if len(out) >= MAX_SETUPS_PER_TRADE:
+            break
+    return out
+
+
+def trade_setups(trade: dict) -> List[str]:
+    """Read a trade's setups, whatever era it was stored in."""
+    return normalize_setups(trade)
+
+
 # ─── DB helpers ───────────────────────────────────────────────────
 
 async def trades_for_user(db, user_id: str, *, limit: int = 500) -> List[dict]:
@@ -1049,12 +1128,14 @@ async def trades_for_user(db, user_id: str, *, limit: int = 500) -> List[dict]:
 def make_trade_doc(payload: dict, user_id: str) -> dict:
     """Build a fresh trade document from API input payload."""
     now = datetime.now(timezone.utc).isoformat()
+    setups = normalize_setups(payload)
     doc = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
         "symbol": (payload.get("symbol") or "").upper(),
         "side": payload.get("side") or "long",
-        "setup": payload.get("setup") or "",
+        "setups": setups,
+        "setup": SETUP_SEPARATOR.join(setups),
         # Instrumento: spot (por defecto) u option. Campos de opción opcionales.
         "instrument_type": payload.get("instrument_type") or "spot",
         "option_type": payload.get("option_type") or None,

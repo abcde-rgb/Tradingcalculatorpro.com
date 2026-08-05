@@ -29,10 +29,10 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **534 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **540 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5698 claves × 10 idiomas, 0 huecos** · `engine-check` **66/66** (2026-08-05) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5703 claves × 10 idiomas, 0 huecos** · `engine-check` **76/76** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3116,3 +3116,37 @@ desglose por setup de la analítica agrupaba lo que cada uno hubiera tecleado es
   natural, y arrastra G-15 (`trading_plans` no está en las tres listas del RGPD).
 - ⚠️ **Sin humo de navegador**: la pestaña exige sesión y la analítica sale del backend;
   lo verificado es lo que corre offline.
+
+### 2026-08-05 (4) — Una operación puede llevar más de un setup
+Petición del propietario: *"el setup quiero que pueda seleccionar más de una opción"*.
+Entrar por la confluencia de dos condiciones es tan real como entrar por una, y el
+diario obligaba a elegir: la otra razón no existía para la analítica.
+
+- ✅ **`setups` (lista) es la fuente de verdad** en el trade; `setup` (cadena) se
+  conserva en sincronía para todo lo que ya leía un solo texto: CSV, prompt del AI
+  Coach y tabla del diario. **No hay nada que migrar**: una operación antigua que sólo
+  guardó la cadena se lee igual de bien (`trade_setups`).
+- ✅ **El desglose por setup cuenta la operación en CADA uno de sus setups** — es la
+  pregunta que responde ("¿cómo va este setup?"). Eso hace que la suma de los grupos
+  sea mayor que el número de operaciones, así que la respuesta publica
+  `setups_multi_tagged` y la interfaz lo dice en una línea, en vez de dejar que se lea
+  como un reparto. `_group_winrate_by` pasa a ser un caso particular de
+  `_group_winrate_by_multi`.
+- ✅ **Normalización en un solo sitio** (`normalize_setups`): recorta, ignora vacíos,
+  quita el separador de dentro de un nombre —si no, volvería como dos setups— y
+  **deduplica sin distinguir mayúsculas**: "Ruptura NY" tecleado dos veces es un setup,
+  no dos. Máximo 5 por operación. La ruta de edición recalcula lista y cadena juntas:
+  editadas por separado, la analítica agrupa por una y la tabla enseña la otra.
+- ✅ **Formulario**: los setups definidos son botones que se marcan y desmarcan, lo
+  elegido se ve como etiquetas quitables, y sigue habiendo campo libre para añadir uno
+  que no esté en el sistema. La tabla del diario pinta etiquetas (2 + «+N»).
+- ✅ **Funciona también contra el backend actual**, que aún no conoce `setups`: el
+  cliente manda las dos formas, el backend viejo guarda la cadena unida y
+  `joinSetupPerformance` la parte por el separador y acredita a cada setup —con las
+  sumas rehechas, no promediadas—. Al desplegar el backend, los grupos ya llegan
+  partidos y el reparto del cliente pasa a ser un no-op.
+- ✅ **Verificado**: `pytest` **540 passed / 74 skipped** (+6 del multi-setup) ·
+  `engine-check` **76/76** (+10) · ESLint 0 errores · `i18n-check` **5703 claves × 10
+  idiomas, 0 huecos** (+5) · `npm run build` exit 0.
+- ⚠️ **Requiere desplegar el backend a mano** (`cloudbuild.yaml`) para que `setups`
+  llegue a la base de datos como lista. Hasta entonces, todo se guarda en la cadena.

@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { useTranslation } from '@/lib/i18n';
 import { listTrades, deleteTrade } from '@/services/performanceApi';
+import { tradeSetups } from '@/lib/tradingSystem';
 import TradeFormModal from './TradeFormModal';
 import TradeImportExport from './TradeImportExport';
 import { toast } from 'sonner';
@@ -148,7 +149,29 @@ export default function TradeJournal({ refreshKey, onChange }) {
                         {tr.side}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground truncate max-w-[120px]">{tr.setup || '—'}</td>
+                    {/* Una operación puede llevar varios setups: se pintan como
+                        etiquetas, no como una cadena cortada por el ancho. */}
+                    <td className="px-3 py-2 max-w-[160px]">
+                      {tradeSetups(tr).length === 0 ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <span className="flex flex-wrap gap-1" title={tradeSetups(tr).join(', ')}>
+                          {tradeSetups(tr).slice(0, 2).map((name) => (
+                            <span
+                              key={name}
+                              className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] truncate max-w-[110px]"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                          {tradeSetups(tr).length > 2 && (
+                            <span className="text-[10px] text-muted-foreground self-center">
+                              +{tradeSetups(tr).length - 2}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 font-mono text-right">${tr.entry_price?.toFixed(2)}</td>
                     <td className="px-3 py-2 font-mono text-right">{tr.exit_price ? `$${tr.exit_price.toFixed(2)}` : '—'}</td>
                     <td className={`px-3 py-2 font-mono text-right font-bold ${

@@ -4,7 +4,10 @@ Offline unit tests for performance analytics aggregation (performance.py).
 Focus: the `daily_pnl` series that powers the monthly PnL calendar. Pure function,
 no network/DB — runs in every CI job (filename ends in `_unit.py`).
 """
-from performance import compute_analytics, detect_behavioral_biases
+from performance import (
+    compute_analytics, detect_behavioral_biases, make_trade_doc,
+    normalize_setups, trade_setups,
+)
 
 
 def _ct(entry, exit_, pnl, sl=95.0, errors=None):
@@ -141,3 +144,66 @@ def test_make_trade_doc_spot_defaults():
     assert doc["instrument_type"] == "spot"
     assert doc["option_type"] is None
     assert doc["multiplier"] == 1.0
+
+
+# ── Un trade puede responder a más de un setup ──────────────────────────────
+# Obligar a elegir uno hacía que el otro no existiera para la analítica: una
+# entrada por confluencia de dos condiciones es evidencia sobre las dos.
+
+def test_setups_arrive_as_a_list_and_the_string_stays_in_sync():
+    doc = make_trade_doc({
+        "symbol": "aapl", "side": "long", "entry_price": 10, "quantity": 1,
+        "setups": ["Ruptura NY", "Pullback EMA20"],
+    }, "u1")
+    assert doc["setups"] == ["Ruptura NY", "Pullback EMA20"]
+    # La cadena la siguen leyendo el CSV, el prompt del coach y la tabla.
+    assert doc["setup"] == "Ruptura NY · Pullback EMA20"
+
+
+def test_the_same_setup_typed_twice_is_one_setup():
+    """Si no, la analítica vería dos grupos donde hay una sola razón de entrada."""
+    assert normalize_setups({"setups": ["  Ruptura NY ", "ruptura ny"]}) == ["Ruptura NY"]
+
+
+def test_a_separator_typed_inside_a_name_is_not_a_second_setup():
+    assert normalize_setups({"setups": ["A · B"]}) == ["A B"]
+
+
+def test_an_old_trade_with_only_the_string_still_has_setups():
+    """Nada que migrar: las operaciones anteriores se leen igual de bien."""
+    assert trade_setups({"setup": "Ruptura NY · Pullback EMA20"}) == ["Ruptura NY", "Pullback EMA20"]
+    assert trade_setups({"setup": "Solo uno"}) == ["Solo uno"]
+    assert trade_setups({}) == []
+
+
+def test_a_trade_with_two_setups_counts_in_both_groups():
+    """Es la pregunta que responde este desglose: cómo va ESTE setup. La suma
+    de los grupos pasa a ser mayor que el número de operaciones, y por eso la
+    respuesta publica cuánto solape hay."""
+    trades = [
+        {"status": "closed", "entry_price": 100, "exit_price": 110, "quantity": 1,
+         "entry_date": "2026-01-01T09:00:00Z", "exit_date": "2026-01-01T10:00:00Z",
+         "pnl": 100, "setups": ["Ruptura NY", "Pullback EMA20"]},
+        {"status": "closed", "entry_price": 100, "exit_price": 95, "quantity": 1,
+         "entry_date": "2026-01-02T09:00:00Z", "exit_date": "2026-01-02T10:00:00Z",
+         "pnl": -50, "setups": ["Ruptura NY"]},
+    ]
+    a = compute_analytics(trades)
+    groups = {g["group"]: g for g in a["by_setup"]}
+    assert groups["Ruptura NY"]["n"] == 2
+    assert groups["Pullback EMA20"]["n"] == 1
+    assert groups["Pullback EMA20"]["win_rate"] == 100.0
+    # El solape se dice, no se deja adivinar.
+    assert a["setups_multi_tagged"] == 1
+    assert sum(g["n"] for g in a["by_setup"]) > a["closed_trades"]
+
+
+def test_a_trade_with_no_setup_lands_in_its_own_group():
+    trades = [
+        {"status": "closed", "entry_price": 100, "exit_price": 110, "quantity": 1,
+         "entry_date": "2026-01-01T09:00:00Z", "exit_date": "2026-01-01T10:00:00Z",
+         "pnl": 100},
+    ]
+    a = compute_analytics(trades)
+    assert [g["group"] for g in a["by_setup"]] == ["—"]
+    assert a["setups_multi_tagged"] == 0

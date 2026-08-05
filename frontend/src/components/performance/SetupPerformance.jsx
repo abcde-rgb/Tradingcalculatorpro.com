@@ -90,6 +90,15 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
         </span>
       </div>
 
+      {/* Una operación con dos setups cuenta en los dos grupos: es lo que
+          responde este desglose. Y por eso los totales suman más operaciones de
+          las que hay, cosa que se dice en vez de dejar que se deduzca mal. */}
+      {analytics?.setups_multi_tagged > 0 && (
+        <p className="text-[10px] text-muted-foreground/80 leading-relaxed" data-testid="setupperf-multi-note">
+          {t('setupPerfMultiNote').replace('{n}', String(analytics.setups_multi_tagged))}
+        </p>
+      )}
+
       {/* Definidos: con números, o con la ausencia de números bien dicha. */}
       <div className="space-y-2">
         {defined.map(({ setup, stats }) => {

@@ -178,7 +178,46 @@ export function missingEssentials(s) {
 /** What the backend uses as the group name for a trade with no setup. */
 export const UNLABELLED_GROUP = '—';
 
+/**
+ * Separator between the setups of one trade in the legacy `setup` string.
+ *
+ * A trade can answer to more than one setup, so the field is a LIST
+ * (`trade.setups`). The joined string survives for everything that already read
+ * one text — CSV, the coach prompt, the journal table — and the padded dot is
+ * chosen so it will not show up inside a single setup name. Must match
+ * `SETUP_SEPARATOR` in `backend/performance.py`.
+ */
+export const SETUP_SEPARATOR = ' · ';
+export const MAX_SETUPS_PER_TRADE = 5;
+
 const normName = (s) => String(s || '').trim().toLowerCase();
+
+/** The setups of a trade, from the list or from the old joined string. */
+export function tradeSetups(trade) {
+  if (Array.isArray(trade?.setups)) return trade.setups.filter(Boolean);
+  return splitSetups(trade?.setup);
+}
+
+/** Split a joined string, trimming and dropping blanks. */
+export function splitSetups(text) {
+  return String(text || '')
+    .split(SETUP_SEPARATOR)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Add a setup to a list: trimmed, de-duplicated case-insensitively and capped.
+ * The separator is stripped from the name — left in, it would come back as two
+ * setups the next time the string is read.
+ */
+export function addSetup(list, name) {
+  const clean = String(name || '').replace(SETUP_SEPARATOR, ' ').trim();
+  const current = Array.isArray(list) ? list : [];
+  if (!clean || current.length >= MAX_SETUPS_PER_TRADE) return current;
+  if (current.some((s) => normName(s) === normName(clean))) return current;
+  return [...current, clean];
+}
 
 /**
  * Cross the setup library with the journal's by-setup analytics.
@@ -205,7 +244,25 @@ export function joinSetupPerformance(setups, bySetup) {
       unlabelled = r;
       continue;
     }
-    byName.set(normName(r.group), r);
+    // Un grupo puede venir ya partido (backend nuevo) o como la cadena unida de
+    // un trade con varios setups (backend anterior a `setups`). En los dos
+    // casos, ese trade es evidencia sobre CADA uno de sus setups, así que se
+    // suma en todos: es lo mismo que calcula el backend actual.
+    for (const name of splitSetups(r.group)) {
+      const key = normName(name);
+      const acc = byName.get(key);
+      if (acc) {
+        acc.n += r.n || 0;
+        acc.wins += r.wins || 0;
+        acc.pnl = Math.round((acc.pnl + (r.pnl || 0)) * 100) / 100;
+        acc.win_rate = acc.n ? Math.round((acc.wins / acc.n) * 1000) / 10 : 0;
+      } else {
+        byName.set(key, {
+          group: name, n: r.n || 0, wins: r.wins || 0,
+          pnl: r.pnl || 0, win_rate: r.win_rate ?? 0,
+        });
+      }
+    }
   }
 
   const used = new Set();

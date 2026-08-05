@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
 import { createTrade, updateTrade } from '@/services/performanceApi';
 import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
-import { loadSystem } from '@/lib/tradingSystem';
+import {
+  loadSystem, tradeSetups, addSetup, SETUP_SEPARATOR, MAX_SETUPS_PER_TRADE,
+} from '@/lib/tradingSystem';
 import { toast } from 'sonner';
 
 const OPTION_MULTIPLIER = 100; // tamaño estándar de contrato de opciones sobre acciones
@@ -40,10 +42,16 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
   const isEdit = Boolean(initialTrade?.id);
   const [saving, setSaving] = useState(false);
 
+  // Los setups de la operación son una LISTA: una entrada por confluencia de
+  // dos condiciones responde a las dos, y obligar a elegir una hacía que la
+  // otra no existiera para la analítica. Al editar, se leen igual de bien las
+  // operaciones antiguas (que sólo guardaban la cadena).
+  const [setups, setSetups] = useState(() => tradeSetups(initialTrade || {}));
+  const [setupDraft, setSetupDraft] = useState('');
+
   const [form, setForm] = useState(() => initialTrade || {
     symbol: '',
     side: 'long',
-    setup: '',
     entry_price: '',
     exit_price: '',
     sl: '',
@@ -68,15 +76,27 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
     setForm((p) => ({ ...p, [k]: v }));
   };
 
-  // Los setups que el usuario ya definió en su sistema. El campo sigue siendo
-  // texto libre —una operación vieja o un setup que aún no está en el sistema
-  // tienen que poder guardarse—, pero teclearlo a mano cada vez es lo que
-  // fragmenta la analítica: "Ruptura NY", "ruptura ny" y "Rupt NY" son tres
-  // grupos distintos en el desglose por setup y ninguno tiene muestra.
+  // Los setups que el usuario ya definió en su sistema. Se pueden añadir otros
+  // a mano —una operación vieja o un setup que aún no está en el sistema tienen
+  // que poder guardarse—, pero teclearlos cada vez es lo que fragmenta la
+  // analítica: "Ruptura NY", "ruptura ny" y "Rupt NY" son tres grupos distintos
+  // en el desglose por setup y ninguno tiene muestra.
   const mySetups = useMemo(
     () => loadSystem().setups.map((s) => s.name).filter(Boolean),
     [],
   );
+
+  const isPicked = (name) => setups.some((s) => s.toLowerCase() === name.toLowerCase());
+  const toggleSetup = (name) => setSetups((prev) => (
+    prev.some((s) => s.toLowerCase() === name.toLowerCase())
+      ? prev.filter((s) => s.toLowerCase() !== name.toLowerCase())
+      : addSetup(prev, name)
+  ));
+  const addDraft = () => {
+    setSetups((prev) => addSetup(prev, setupDraft));
+    setSetupDraft('');
+  };
+  const setupsFull = setups.length >= MAX_SETUPS_PER_TRADE;
 
   const isOption = form.instrument_type === 'option';
   // Multiplicador efectivo: 100 (u otro) en opciones; 1 en spot.
@@ -108,7 +128,11 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
       const payload = {
         symbol: form.symbol,
         side: form.side,
-        setup: form.setup || '',
+        // La lista es la fuente de verdad; la cadena unida viaja igualmente
+        // para que un backend anterior a `setups` (que ignora el campo que no
+        // conoce) siga guardando algo correcto en vez de vaciar el setup.
+        setups,
+        setup: setups.join(SETUP_SEPARATOR),
         entry_price: Number(form.entry_price),
         exit_price: form.exit_price !== '' ? Number(form.exit_price) : null,
         sl: form.sl !== '' ? Number(form.sl) : null,
@@ -232,39 +256,90 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 {t('tradeSetup')}
+                <span className="ml-1.5 normal-case tracking-normal text-muted-foreground/70">
+                  {t('tradeSetupMultiHint')}
+                </span>
               </Label>
-              <Input
-                value={form.setup}
-                onChange={set('setup')}
-                placeholder={mySetups.length ? t('tradeSetupPickOrType') : t('tradeSetupExample')}
-                className="mt-1"
-                list="my-setups"
-                data-testid="trade-setup"
-              />
+
+              {/* Lo elegido, siempre a la vista y quitable de un clic. */}
+              {setups.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1" data-testid="trade-setup-selected">
+                  {setups.map((name) => (
+                    <span
+                      key={name}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-md bg-primary/15 text-primary border border-primary/40 font-semibold"
+                    >
+                      {name}
+                      <button
+                        type="button"
+                        onClick={() => toggleSetup(name)}
+                        aria-label={`${t('tradeSetupRemove')} ${name}`}
+                        className="hover:text-[#ef4444] transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Un clic escribe el nombre EXACTO del sistema: es lo que hace
+                  que el desglose por setup mida algo. */}
               {mySetups.length > 0 && (
-                <>
-                  <datalist id="my-setups">
-                    {mySetups.map((name) => <option key={name} value={name} />)}
-                  </datalist>
-                  {/* Un clic escribe el nombre EXACTO del sistema: es lo que hace
-                      que el desglose por setup mida algo. */}
-                  <div className="flex flex-wrap gap-1 mt-1.5" data-testid="trade-setup-chips">
-                    {mySetups.slice(0, 6).map((name) => (
+                <div className="flex flex-wrap gap-1 mt-1.5" data-testid="trade-setup-chips">
+                  {mySetups.map((name) => {
+                    const picked = isPicked(name);
+                    return (
                       <button
                         type="button"
                         key={name}
-                        onClick={() => set('setup')(name)}
+                        onClick={() => toggleSetup(name)}
+                        disabled={!picked && setupsFull}
                         className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${
-                          form.setup === name
+                          picked
                             ? 'bg-primary/15 text-primary border-primary/40 font-semibold'
-                            : 'border-border text-muted-foreground hover:text-foreground'
+                            : 'border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed'
                         }`}
                       >
-                        {name}
+                        {picked ? '✓ ' : '+ '}{name}
                       </button>
-                    ))}
-                  </div>
-                </>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex gap-1.5 mt-1.5">
+                <Input
+                  value={setupDraft}
+                  onChange={(e) => setSetupDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); addDraft(); }
+                  }}
+                  disabled={setupsFull}
+                  placeholder={mySetups.length ? t('tradeSetupAddOther') : t('tradeSetupExample')}
+                  list="my-setups"
+                  data-testid="trade-setup"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addDraft}
+                  disabled={!setupDraft.trim() || setupsFull}
+                  data-testid="trade-setup-add"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              {mySetups.length > 0 && (
+                <datalist id="my-setups">
+                  {mySetups.map((name) => <option key={name} value={name} />)}
+                </datalist>
+              )}
+              {setupsFull && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {t('tradeSetupMax').replace('{n}', String(MAX_SETUPS_PER_TRADE))}
+                </p>
               )}
             </div>
           </div>

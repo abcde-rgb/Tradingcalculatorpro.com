@@ -191,6 +191,38 @@ async function checkTradingSystemModel() {
   const emptyJoin = m.joinSetupPerformance(null, null);
   ok('an empty library and empty analytics do not throw',
     emptyJoin.defined.length === 0 && emptyJoin.offSystem.length === 0);
+
+  // ── Un trade puede llevar VARIOS setups ──────────────────────────────────
+  ok('a trade reads its setups from the list',
+    m.tradeSetups({ setups: ['A', 'B'] }).join('|') === 'A|B');
+  ok('an old trade reads them from the joined string',
+    m.tradeSetups({ setup: `Ruptura NY${m.SETUP_SEPARATOR}Pullback EMA20` }).length === 2);
+  ok('a trade with no setup has none', m.tradeSetups({}).length === 0);
+  ok('the same setup is not added twice',
+    m.addSetup(['Ruptura NY'], ' ruptura ny ').length === 1);
+  ok('the separator is stripped from a typed name',
+    m.addSetup([], `A${m.SETUP_SEPARATOR}B`)[0] === 'A B');
+  ok('the cap is respected',
+    m.addSetup(['a', 'b', 'c', 'd', 'e'], 'f').length === m.MAX_SETUPS_PER_TRADE);
+
+  // Contra un backend anterior a `setups`, un trade con dos setups llega como
+  // UN grupo con la cadena unida. Debe acreditar a los dos, igual que hace ya
+  // el backend nuevo — si no, el marcador diría "sin muestra" sobre setups
+  // que sí se han operado.
+  const legacyJoin = m.joinSetupPerformance(
+    [m.makeSetup({ name: 'Ruptura NY' }), m.makeSetup({ name: 'Pullback EMA20' })],
+    [
+      { group: `Ruptura NY${m.SETUP_SEPARATOR}Pullback EMA20`, n: 3, wins: 2, win_rate: 66.7, pnl: 300 },
+      { group: 'Ruptura NY', n: 1, wins: 0, win_rate: 0, pnl: -100 },
+    ],
+  );
+  ok('a joined group credits every setup in it',
+    legacyJoin.defined[1].stats?.n === 3);
+  ok('a setup present in two rows adds them up',
+    legacyJoin.defined[0].stats?.n === 4 && legacyJoin.defined[0].stats?.pnl === 200);
+  ok('the win rate is recomputed after merging, not averaged',
+    legacyJoin.defined[0].stats?.win_rate === 50);
+  ok('nothing is left over as off-system', legacyJoin.offSystem.length === 0);
 }
 
 async function checkOptionsEngine() {
