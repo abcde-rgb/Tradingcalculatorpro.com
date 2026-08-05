@@ -119,7 +119,9 @@ export default function PerformancePage() {
       <Header />
 
       {/* Tab navigation — sticky-ish under header */}
-      <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-16 z-30">
+      {/* Barra de pestañas opaca, sin desenfoque: al hacer scroll, lo que pasa
+          por debajo se veía borroso a través de ella. Fondo sólido y ya. */}
+      <div className="border-b border-border bg-background sticky top-16 z-30">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <Tabs value={tab} onValueChange={setTab}>
             {/* max-w-full + overflow-x-auto: tabs scroll inside the pill on

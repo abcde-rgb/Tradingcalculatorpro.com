@@ -142,8 +142,10 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
 
   if (!open) return null;
 
+  // El fondo se oscurece, pero no se difumina: el desenfoque no separaba mejor
+  // el modal y emborronaba la página entera detrás.
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto" data-testid="trade-form-modal">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/70 p-4 overflow-y-auto" data-testid="trade-form-modal">
       <div className="w-full max-w-3xl my-8 bg-card border border-border rounded-2xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
