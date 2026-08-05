@@ -8,7 +8,11 @@
  * them at a time — `localStorage.setItem('tcp-trading-setup', ...)` was a
  * single key, so saving a second setup destroyed the first.
  *
- * Kept free of React so it can be unit-tested and reused.
+ * Kept free of React so it can be unit-tested and reused. It lives in `lib/`
+ * (it used to sit inside `components/education/`) because the setups are not an
+ * Academy topic: they are defined in the Academy and *used* in the journal, so
+ * both sides import the same model rather than one reaching into the other's
+ * folder. Verified by `scripts/engine-check.js`.
  */
 
 export const STORAGE_KEY = 'tcp-trading-system';
@@ -163,4 +167,71 @@ export function missingEssentials(s) {
   if (!s?.stopRule) missing.push('stopRule');
   if (!s?.riskPerTrade) missing.push('riskPerTrade');
   return missing;
+}
+
+// ── The system meets the journal ────────────────────────────────────────────
+// A setup you cannot measure is a wish. The journal stores `setup` as a plain
+// string and the backend groups analytics by that string, so the join key is
+// the setup NAME — matched case-insensitively and trimmed, because "Ruptura NY"
+// and "ruptura ny " are one setup being typed twice, not two setups.
+
+/** What the backend uses as the group name for a trade with no setup. */
+export const UNLABELLED_GROUP = '—';
+
+const normName = (s) => String(s || '').trim().toLowerCase();
+
+/**
+ * Cross the setup library with the journal's by-setup analytics.
+ *
+ * Returns three buckets, and the difference between them is the whole point:
+ *
+ *   `defined`     — setups in the system. `stats` is null when none has been
+ *                   traded yet: NO SAMPLE, which is not the same as a 0 % win
+ *                   rate and must never be drawn as one.
+ *   `offSystem`   — setups that appear in trades but not in the system. Either
+ *                   a typo or a trade taken outside the plan; both are worth
+ *                   seeing, and neither should be quietly folded into the
+ *                   totals of a setup that was actually defined.
+ *   `unlabelled`  — closed trades logged with no setup at all. Not a failure of
+ *                   discipline, just missing data, so it is counted apart.
+ */
+export function joinSetupPerformance(setups, bySetup) {
+  const rows = Array.isArray(bySetup) ? bySetup : [];
+  const byName = new Map();
+  let unlabelled = null;
+  for (const r of rows) {
+    if (!r || typeof r !== 'object') continue;
+    if (r.group === UNLABELLED_GROUP || !normName(r.group)) {
+      unlabelled = r;
+      continue;
+    }
+    byName.set(normName(r.group), r);
+  }
+
+  const used = new Set();
+  const defined = (Array.isArray(setups) ? setups : []).map((s) => {
+    const key = normName(s?.name);
+    const stats = key ? byName.get(key) : undefined;
+    if (stats) used.add(key);
+    return { setup: s, stats: stats || null };
+  });
+
+  const offSystem = [];
+  for (const [key, stats] of byName) {
+    if (!used.has(key)) offSystem.push(stats);
+  }
+  offSystem.sort((a, b) => (b.n || 0) - (a.n || 0));
+
+  return {
+    defined,
+    offSystem,
+    unlabelled,
+    counts: {
+      defined: defined.length,
+      traded: defined.filter((d) => d.stats).length,
+      untraded: defined.filter((d) => !d.stats).length,
+      offSystem: offSystem.length,
+      offSystemTrades: offSystem.reduce((acc, r) => acc + (r.n || 0), 0),
+    },
+  };
 }

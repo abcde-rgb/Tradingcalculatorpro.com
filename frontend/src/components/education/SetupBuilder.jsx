@@ -11,7 +11,7 @@ import { getChartPatterns, getCandlestickPatterns, CANDLE_PATTERN_STATS } from '
 import {
   loadSystem, saveSystem, makeSetup, setupHasContent, missingEssentials,
   EMPTY_SYSTEM_RULES,
-} from './tradingSystemModel';
+} from '@/lib/tradingSystem';
 
 // {id} is stored; {k} is an i18n key, {s} a static (language-neutral) label.
 const TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1D', '1W', '1M'];
@@ -92,7 +92,12 @@ const Section = ({ icon: Icon, title, hint, children }) => (
   </div>
 );
 
-export default function SetupBuilder() {
+/**
+ * `onSaved` lo usa Performance: allí este constructor convive con el marcador
+ * de rendimiento por setup, que lee el mismo almacén. Sin el aviso, definir un
+ * setup no refrescaba la tabla de al lado hasta recargar la página.
+ */
+export default function SetupBuilder({ onSaved }) {
   const { t } = useTranslation();
   const [system, setSystem] = useState(() => loadSystem());
   const [editingId, setEditingId] = useState(null);
@@ -164,7 +169,12 @@ export default function SetupBuilder() {
     patchRules({ noTradeConditions: arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id] });
   };
 
-  const doSave = () => { saveSystem(system); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const doSave = () => {
+    saveSystem(system);
+    onSaved?.();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   const setupSummary = (s) => {
     const nameOf = (list, id) => { const f = list.find((x) => x.id === id); return f ? lbl(f) : id; };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, Save, Plus, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
 import { createTrade, updateTrade } from '@/services/performanceApi';
 import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
+import { loadSystem } from '@/lib/tradingSystem';
 import { toast } from 'sonner';
 
 const OPTION_MULTIPLIER = 100; // tamaño estándar de contrato de opciones sobre acciones
@@ -66,6 +67,16 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
     const v = e?.target ? e.target.value : e;
     setForm((p) => ({ ...p, [k]: v }));
   };
+
+  // Los setups que el usuario ya definió en su sistema. El campo sigue siendo
+  // texto libre —una operación vieja o un setup que aún no está en el sistema
+  // tienen que poder guardarse—, pero teclearlo a mano cada vez es lo que
+  // fragmenta la analítica: "Ruptura NY", "ruptura ny" y "Rupt NY" son tres
+  // grupos distintos en el desglose por setup y ninguno tiene muestra.
+  const mySetups = useMemo(
+    () => loadSystem().setups.map((s) => s.name).filter(Boolean),
+    [],
+  );
 
   const isOption = form.instrument_type === 'option';
   // Multiplicador efectivo: 100 (u otro) en opciones; 1 en spot.
@@ -131,8 +142,10 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
 
   if (!open) return null;
 
+  // El fondo se oscurece, pero no se difumina: el desenfoque no separaba mejor
+  // el modal y emborronaba la página entera detrás.
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto" data-testid="trade-form-modal">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/70 p-4 overflow-y-auto" data-testid="trade-form-modal">
       <div className="w-full max-w-3xl my-8 bg-card border border-border rounded-2xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
@@ -220,7 +233,39 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 {t('tradeSetup')}
               </Label>
-              <Input value={form.setup} onChange={set('setup')} placeholder={t('tradeSetupExample')} className="mt-1" data-testid="trade-setup" />
+              <Input
+                value={form.setup}
+                onChange={set('setup')}
+                placeholder={mySetups.length ? t('tradeSetupPickOrType') : t('tradeSetupExample')}
+                className="mt-1"
+                list="my-setups"
+                data-testid="trade-setup"
+              />
+              {mySetups.length > 0 && (
+                <>
+                  <datalist id="my-setups">
+                    {mySetups.map((name) => <option key={name} value={name} />)}
+                  </datalist>
+                  {/* Un clic escribe el nombre EXACTO del sistema: es lo que hace
+                      que el desglose por setup mida algo. */}
+                  <div className="flex flex-wrap gap-1 mt-1.5" data-testid="trade-setup-chips">
+                    {mySetups.slice(0, 6).map((name) => (
+                      <button
+                        type="button"
+                        key={name}
+                        onClick={() => set('setup')(name)}
+                        className={`px-2 py-0.5 text-[11px] rounded-md border transition-colors ${
+                          form.setup === name
+                            ? 'bg-primary/15 text-primary border-primary/40 font-semibold'
+                            : 'border-border text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

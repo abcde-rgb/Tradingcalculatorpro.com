@@ -32,7 +32,7 @@
 | **Tests offline** | 🟢 | `pytest tests/` → **534 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5681 claves × 10 idiomas, 0 huecos** · `engine-check` **60/60** (2026-08-05) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5698 claves × 10 idiomas, 0 huecos** · `engine-check` **66/66** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3078,3 +3078,41 @@ qué más se le puede añadir. Manual completo en
 - ⚠️ **Sin humo de navegador**: el proveedor de OHLC está bloqueado en el sandbox, así
   que la interfaz nueva no se ha visto con datos reales. Lo verificado es lo que corre
   offline; el contrato de la ruta está cubierto por test con el lector mockeado.
+
+### 2026-08-05 (3) — Los setups llegan a Performance
+Petición del propietario: *"setup lo quiero en performance"*. Los setups se definían
+en la Academia y **morían ahí**: el diario pedía el setup como texto libre, así que el
+desglose por setup de la analítica agrupaba lo que cada uno hubiera tecleado esa vez.
+
+- 🧩 **El modelo pasa a `lib/tradingSystem.js`** (estaba en `components/education/`).
+  Los setups no son un tema de la Academia: se **definen** allí y se **usan** en el
+  diario, así que las dos pantallas importan el mismo modelo en vez de que una meta la
+  mano en la carpeta de la otra. `engine-check.js` actualizado.
+- ✅ **Nueva pestaña "Setups"** en `/performance`, junto a Diario y Analítica. Arriba el
+  marcador —qué ha hecho cada setup en el diario— y debajo el constructor. Es el
+  **mismo componente** que monta la Academia, leyendo el mismo almacén: definir un setup
+  en cualquiera de los dos sitios lo deja disponible en el otro, sin duplicar 541 líneas.
+- ✅ **El campo `setup` del diario deja de ser texto libre a ciegas**: `datalist` +
+  botones con los setups definidos, que escriben el nombre EXACTO. Sigue admitiendo
+  texto libre —una operación vieja o un setup que aún no está en el sistema tienen que
+  poder guardarse—, pero teclearlo a mano cada vez es lo que rompía la medición:
+  "Ruptura NY", "ruptura ny" y "Rupt NY" eran tres grupos y ninguno con muestra.
+- ✅ **`joinSetupPerformance()`** cruza la librería con `analytics.by_setup` y separa
+  tres cosas que no son la misma:
+  - **definido y operado** → sus números (nº de ops., acierto, PnL);
+  - **definido y sin operar** → **sin muestra**, que NO es un 0 % de acierto y no se
+    dibuja como tal;
+  - **operado sin estar en el sistema** → aviso ámbar: o es una errata (y entonces esas
+    operaciones le faltan al setup de verdad) o es una operación fuera del plan.
+  Las operaciones cerradas **sin setup** van a su propio contador: es un dato que falta,
+  no indisciplina. El emparejamiento ignora mayúsculas y espacios.
+- ✅ **Verificado**: `engine-check` **66/66** (+6, todos del cruce librería×diario) ·
+  ESLint 0 errores · `i18n-check` **5698 claves × 10 idiomas, 0 huecos** (+17) ·
+  `npm run build` exit 0 → 1589 URLs · `pytest` sin tocar (no hay cambio de backend).
+- ⚠️ **Sigue siendo `localStorage`.** Los setups no viajan entre dispositivos, no están
+  en el export del RGPD y se pierden al limpiar el navegador. El sitio donde deberían
+  vivir ya existe y está escrito: `trading_plan.py` con `POST /plan` y `/plan/compliance`,
+  sin interfaz (G-14). Conectar el constructor a ese endpoint es el siguiente paso
+  natural, y arrastra G-15 (`trading_plans` no está en las tres listas del RGPD).
+- ⚠️ **Sin humo de navegador**: la pestaña exige sesión y la analítica sale del backend;
+  lo verificado es lo que corre offline.

@@ -102,8 +102,8 @@ async function checkSimulatorEngine() {
 }
 
 async function checkTradingSystemModel() {
-  console.log('\ntradingSystemModel.js');
-  const m = await imp('components/education/tradingSystemModel.js');
+  console.log('\ntradingSystem.js');
+  const m = await imp('lib/tradingSystem.js');
 
   // The v1 builder kept ONE setup under one localStorage key and overwrote it
   // on every save. Migration must not lose that setup.
@@ -161,6 +161,36 @@ async function checkTradingSystemModel() {
   ok('setupHasContent is false for a blank setup', m.setupHasContent(m.makeSetup()) === false);
   ok('setupHasContent is true once a trigger exists',
     m.setupHasContent(m.makeSetup({ entryTrigger: 'x' })) === true);
+
+  // ── The library crossed with the journal's analytics ──────────────────────
+  // A setup you cannot measure is a wish. This join is what turns the builder
+  // from a form into a scoreboard, so its edge cases are worth fixing here.
+  const setups = [
+    m.makeSetup({ name: 'Ruptura NY' }),
+    m.makeSetup({ name: 'Pullback EMA20' }),
+    m.makeSetup({ name: 'Sin operar' }),
+  ];
+  const analytics = [
+    { group: 'ruptura ny ', n: 12, wins: 7, win_rate: 58.3, pnl: 940 },  // same setup, typed loosely
+    { group: 'Pullback EMA20', n: 5, wins: 2, win_rate: 40, pnl: -120 },
+    { group: 'Impulso a la contra', n: 3, wins: 0, win_rate: 0, pnl: -430 },
+    { group: '—', n: 4, wins: 2, win_rate: 50, pnl: 60 },
+  ];
+  const joined = m.joinSetupPerformance(setups, analytics);
+  ok('setup names match case- and space-insensitively',
+    joined.defined[0].stats?.n === 12);
+  ok('a setup never traded has NO stats (no sample ≠ 0% win rate)',
+    joined.defined[2].stats === null);
+  ok('a traded setup that is not in the system is flagged apart',
+    joined.offSystem.length === 1 && joined.offSystem[0].group === 'Impulso a la contra');
+  ok('trades logged without a setup are their own bucket',
+    joined.unlabelled?.n === 4);
+  ok('counts describe the library, not the analytics',
+    joined.counts.defined === 3 && joined.counts.traded === 2
+    && joined.counts.untraded === 1 && joined.counts.offSystemTrades === 3);
+  const emptyJoin = m.joinSetupPerformance(null, null);
+  ok('an empty library and empty analytics do not throw',
+    emptyJoin.defined.length === 0 && emptyJoin.offSystem.length === 0);
 }
 
 async function checkOptionsEngine() {
