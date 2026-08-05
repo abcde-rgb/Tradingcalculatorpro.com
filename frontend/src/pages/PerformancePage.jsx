@@ -15,6 +15,8 @@ import { useSEO } from '@/hooks/useSEO';
 import { useAuthStore } from '@/lib/store';
 import TradeJournal from '@/components/performance/TradeJournal';
 import AnalyticsDashboard from '@/components/performance/AnalyticsDashboard';
+import SetupPerformance from '@/components/performance/SetupPerformance';
+import SetupBuilder from '@/components/education/SetupBuilder';
 
 // Animation tokens (reused from LandingPage style)
 const FADE_UP = {
@@ -132,6 +134,9 @@ export default function PerformancePage() {
               <TabsTrigger value="analytics" data-testid="perftab-analytics">
                 <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabAnalytics')}
               </TabsTrigger>
+              <TabsTrigger value="setups" data-testid="perftab-setups">
+                <Layers className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabSetups')}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -153,6 +158,32 @@ export default function PerformancePage() {
             <AuthRequired t={t} />
           ) : (
             <AnalyticsDashboard refreshKey={refreshKey} onGoToJournal={() => setTab('journal')} />
+          )}
+        </TabsContent>
+
+        {/* Setups tab — where the system meets the numbers it produced.
+            Primero el marcador (qué ha hecho cada setup en el diario) y debajo
+            el constructor con el que se definen: medir antes que editar, porque
+            lo que se viene a mirar aquí es si el setup funciona. Es el MISMO
+            componente que la Academia monta en su lección, leyendo el mismo
+            almacén, así que definir un setup en cualquiera de los dos sitios lo
+            deja disponible en el otro. */}
+        <TabsContent value="setups" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
+          {!isAuthenticated ? (
+            <AuthRequired t={t} />
+          ) : (
+            <div className="space-y-8">
+              <SetupPerformance
+                refreshKey={refreshKey}
+                onGoToJournal={() => setTab('journal')}
+                onDefineSetups={() => {
+                  document.getElementById('setup-builder')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
+              <div id="setup-builder" className="scroll-mt-32">
+                <SetupBuilder onSaved={onChange} />
+              </div>
+            </div>
           )}
         </TabsContent>
 

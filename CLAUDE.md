@@ -234,6 +234,16 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   ventana `FAILURE_BACKOFF_SECONDS`: sin ella, con el proveedor caído, `get_risk_free_rate`
   vuelve a salir a la red en cada llamada, y está dentro de `/options/chain`, `/optimize`,
   `/calculate/*` y `/performance/analytics`. Hay test que lo fija.
+- **Los setups del usuario viven en `frontend/src/lib/tradingSystem.js`, no en la
+  Academia.** Se definen en `SetupBuilder` —montado en dos sitios, Academia y la
+  pestaña Setups de `/performance`, con el mismo `localStorage`— y se **usan** en
+  el diario, cuyo campo `setup` sigue admitiendo texto libre a propósito. Al
+  cruzarlos con la analítica (`joinSetupPerformance`), un setup definido y sin
+  operar es **sin muestra**, nunca un 0 % de acierto, y lo operado con un nombre
+  que no está en el sistema va aparte: puede ser una errata o una operación fuera
+  del plan, y fundirlo con otro grupo borra las dos lecturas. ⚠️ Todo esto es
+  local al navegador: el sitio donde debería persistir (`trading_plan.py`, `POST
+  /plan`) está escrito y sin interfaz — es el hueco G-14.
 - **El escáner de estructura ordena por importancia, igual que el panel de opciones.**
   `StructureScanner.jsx` sólo compone: 1 configurar → 2 lectura → 3 escalera de
   niveles → lo accesorio en `SectionCard` **plegado y con contador**. Las piezas
