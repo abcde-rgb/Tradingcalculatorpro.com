@@ -1,13 +1,15 @@
 # Escáner de Estructura de Precio — qué hace bien, qué no, y cómo confirma
 
-**Última revisión:** 2026-07-27
+**Última revisión:** 2026-08-05
 **Código:** `backend/price_action.py`, `backend/timeframes.py`, `backend/candle_patterns.py`,
 `backend/server.py` (`/api/education/structure-scan/{symbol}`,
 `/api/education/pattern-scan/{symbol}`, `/api/education/scan-timeframes`),
-`frontend/src/components/charts/StructureScanner.jsx`, `frontend/src/lib/structureLog.js`
-**Tests:** `backend/tests/test_price_action_unit.py` (42),
-`backend/tests/test_timeframes_unit.py` (37),
-`backend/tests/test_candle_patterns_unit.py` (23)
+`frontend/src/components/charts/StructureScanner.jsx` + `frontend/src/components/charts/structure/`,
+`frontend/src/lib/structureLog.js`
+**Tests:** `backend/tests/test_price_action_unit.py` (60),
+`backend/tests/test_timeframes_unit.py` (40),
+`backend/tests/test_candle_patterns_unit.py` (23),
+`backend/tests/test_structure_scan_routes_unit.py` (6, ruta con el lector OHLC mockeado)
 
 Este documento es el manual honesto del escáner: lo que detecta de forma fiable,
 lo que **no** detecta, dónde se equivoca y por qué, y qué significa exactamente
@@ -29,14 +31,61 @@ Lo que produce:
 |---|---|
 | Swings (pivotes fractales) | Máximos/mínimos locales: el esqueleto de la tendencia |
 | Estructura HH/HL/LH/LL | Etiqueta cada swing contra el anterior del mismo tipo → tendencia |
-| BOS / CHoCH | Rupturas de estructura a favor / en contra de la tendencia previa |
-| Soportes y resistencias | Niveles horizontales por agrupación de swings **+ el lado del precio actual** |
-| Fair Value Gaps | Desequilibrios de 3 velas, marcados como abiertos o rellenados |
+| BOS / CHoCH | Rupturas de estructura a favor / en contra de la tendencia previa, **numeradas** cuando caen sobre el mismo nivel |
+| Soportes y resistencias | Niveles horizontales por agrupación de swings **+ el lado del precio actual**, con su **zona** y su distancia en % y en ATR |
+| Confluencia | Niveles que **también** existen en el escalón superior de la escalera |
+| Contexto | Recorrido hasta el nivel más cercano por lado y posición dentro de ese rango |
+| Fair Value Gaps | Desequilibrios de 3 velas, marcados como abiertos, rellenados o **hueco de sesión** |
 | Breakouts / fakeouts | Ruptura confirmada de un nivel vs. barrido de liquidez |
 
 Lo que **no** es: no es una señal de compra/venta, no calcula probabilidad de
 éxito, no tiene en cuenta fundamentales, noticias ni contexto macro, y no sabe
 en qué sesión (Londres/Nueva York) está el mercado.
+
+---
+
+## 1b. Cómo está organizado el código (revisión 2026-08-05)
+
+Los dos archivos habían crecido por acumulación: los ayudantes quedaban por
+debajo de quien los llamaba y el orden de lectura ya no coincidía con el orden
+del cálculo.
+
+**`backend/price_action.py`** está apilado en el orden en que fluyen los datos,
+lo barato primero, con el índice en el docstring del módulo:
+
+```
+§0  Ayudantes         ATR, volumen medio, lado de la banda, espaciado de velas
+§1  Swings            §2 Estructura      §3 Rupturas (+ agrupación de repetidas)
+§4  Niveles           §5 Evidencia       §6 Desequilibrios   §7 Breakouts
+§8  Confluencia       §9 Contexto        §10 Entrada pública (detect_structure)
+```
+
+De §1 a §7 se responde *qué hay en este gráfico*; §8 y §9 responden *qué
+significa para el precio de ahora*. La frontera importa: la confluencia con
+otra temporalidad **no** entra en la puntuación de confirmación, porque esa
+puntuación mide sólo las velas escaneadas. Un número que significara dos cosas
+a la vez no significaría ninguna.
+
+**La interfaz** era un archivo de 730 líneas donde la tabla de tickers, la
+lógica de reintento y el marcado de cada nivel compartían sitio. Ahora
+`StructureScanner.jsx` **sólo compone** (~200 líneas) y el resto vive en
+`frontend/src/components/charts/structure/`:
+
+| Archivo | Qué es |
+|---|---|
+| `scannerMeta.js` | Constantes: tickers del proveedor, escalera de respaldo, mapas de color, códigos→claves i18n, formato de precio |
+| `useStructureScan.js` | Lo que *hace*: escalera, los dos escaneos, supersesión de peticiones, registro persistente |
+| `ScanControls.jsx` | Paso 1: vela + histórico, y los avisos honestos (ajuste, vela compuesta, vela sin cerrar) |
+| `ScanReading.jsx` | Paso 2: tendencia, recorrido por lado (% y ATR) y posición en el rango |
+| `LevelLadder.jsx` | Paso 3: la escalera de precio, con zona, polaridad y confluencia |
+| `StructureEvents.jsx` · `CandleSignals.jsx` · `FvgList.jsx` · `ScanLog.jsx` · `ScanStats.jsx` | Los bloques accesorios |
+
+**El orden de la pantalla es la funcionalidad**, igual que en el panel de
+opciones: 1 configurar → 2 lectura → 3 niveles → lo accesorio dentro de
+`SectionCard` plegado. Antes los ocho bloques se apilaban siempre abiertos y
+con el mismo peso visual, así que la respuesta —¿estoy comprando contra una
+resistencia?— había que buscarla. Nada se ha escondido: cada sección plegada
+lleva su contador en la cabecera.
 
 ---
 
@@ -323,6 +372,119 @@ valga 100 o 100 000.
 
 ---
 
+## 5c. Lo añadido en la revisión 2026-08-05
+
+Cuatro de las cinco cosas de esta sección estaban en la lista de "siguientes
+mejoras" del propio documento. La quinta —el contexto— no estaba, y era la que
+más se echaba en falta al usarlo.
+
+### 5c.1 Confluencia multi-temporal (era la mejora #1 pendiente)
+
+Es lo único que un escaneo de una sola temporalidad **no puede saber**: que la
+resistencia que está leyendo en 15 minutos es también un nivel diario, y que por
+tanto la miran traders que jamás abrirán un gráfico de 15 minutos.
+
+Cada escaneo pide en paralelo una segunda serie —el escalón superior— y marca
+los niveles que coinciden dentro de la misma tolerancia con la que se agrupan.
+El mapa de escalones vive en `timeframes.py` y **no es "el siguiente de la
+lista"**: subir de 5m a 15m casi no cambia la respuesta, así que salta lo
+suficiente para que sea otra pregunta.
+
+| Escalón | Se compara con | | Escalón | Se compara con |
+|---|---|---|---|---|
+| 5m | 1h | | 4h | 1d |
+| 15m | 1h | | 1d | 1wk |
+| 30m | 4h | | 1wk | 1mo |
+| 1h | 4h | | 1mo | — (nada por encima) |
+
+Tres decisiones deliberadas:
+
+1. **No suma a la puntuación de confirmación.** Esa puntuación responde "cómo se
+   comportó este nivel en las velas que escaneé"; una coincidencia en otro
+   gráfico no es una observación sobre esas velas. Va como etiqueta propia.
+2. **Si la segunda petición falla, el escaneo principal no cae.** La respuesta
+   dice `confluence.checked = false` y `counts.confluent = null`. *Sin comprobar*
+   y *comprobado sin coincidencias* son afirmaciones distintas y sólo una es
+   cierta; publicar `0` para las dos sería mentir en el caso caro.
+3. **Cuesta una llamada más al proveedor**, lanzada a la vez que la principal
+   (`asyncio.gather`), no después. Con `?htf=0` no se pide.
+
+> Verificado en `test_a_level_the_higher_timeframe_also_has_is_marked`,
+> `test_unchecked_confluence_is_unknown_not_zero`,
+> `test_confluence_does_not_touch_the_confirmation_score`,
+> `test_a_failed_second_fetch_does_not_take_the_scan_down`.
+
+### 5c.2 Huecos de sesión: el FVG que no era un FVG (limitación #1)
+
+En intradía de acciones, el salto entre el cierre de una sesión y la apertura
+siguiente **pasa el test de tres velas todas las noches**. No es un
+desequilibrio que alguien haya dejado atrás: es el mercado cerrado.
+
+Se detectan por los **timestamps**, nunca por los precios: si el hueco temporal
+entre velas del grupo supera el doble del espaciado mediano de la serie, es un
+cambio de sesión. Se marcan con `sessionGap: true`, bajan al final de la lista y
+**no cuentan** en `fvgOpen` (van en `fvgSessionGap`). No se borran: el hueco de
+precio es real y hay quien lo opera.
+
+Sólo se aplica a series intradía. En velas diarias un salto de viernes a lunes
+**sí** es un hueco, y filtrarlo borraría gaps reales. Sin `ts` en las velas la
+marca es `false`: desconocido, no adivinado.
+
+> Verificado en `test_an_overnight_reopen_is_flagged_as_a_session_gap`,
+> `test_a_weekend_on_daily_bars_is_not_a_session_gap`,
+> `test_without_timestamps_nothing_is_claimed_about_sessions`.
+
+### 5c.3 Rupturas repetidas, numeradas (limitación #6)
+
+Si el precio cruza tres veces el mismo swing high se emiten tres BOS, y los tres
+son reales. Pero listados uno debajo de otro se leen como tres pruebas
+independientes de fuerza, que es justo lo contrario de lo que son: un nivel que
+ya no frena a nadie.
+
+Cada evento lleva `repeat` (1 = primera vez que se rompe ese nivel en ese
+sentido) y `repeatOf` (índice de la primera). La interfaz pinta **una fila por
+nivel** con un contador `×N`, y `counts.repeatedBreaks` dice cuántas fueron
+repeticiones. No se descarta nada en el backend: agrupar es decisión del cliente.
+
+### 5c.4 El nivel es una zona, y la distancia también se mide en ATR
+
+`detect_sr_levels` publica ahora la banda con la que agrupó (`zone.low`,
+`zone.high`) — la misma contra la que la evidencia cuenta visitas. Dibujar una
+línea única sugería una precisión que el método no tiene.
+
+Y cada nivel trae `distanceAtr` además de `distancePct`: un 1 % no significa lo
+mismo en un índice que en una small cap, y el porcentaje solo no viaja entre
+activos.
+
+### 5c.5 Contexto: recorrido y posición en el rango
+
+Aritmética sobre números que ya estaban en la respuesta, pero que había que
+hacer a ojo. En `context`:
+
+| Campo | Qué es |
+|---|---|
+| `roomAbovePct` / `roomAboveAtr` | Recorrido hasta la resistencia más cercana, en % y en ATR |
+| `roomBelowPct` / `roomBelowAtr` | Ídem hasta el soporte más cercano |
+| `rangeWidthPct` | Anchura entre ambos, en % del precio |
+| `rangePositionPct` | 0 % = pegado al soporte · 100 % = pegado a la resistencia |
+
+Lo que no se puede calcular es `None`, nunca `0`: sin nivel por encima, el
+recorrido hacia arriba es **indefinido**, y un `0 %` en pantalla se leería como
+"resistencia justo aquí", que es lo contrario de la verdad.
+
+> Verificado en `test_range_position_says_where_between_the_levels_price_is`,
+> `test_missing_room_is_none_not_zero`.
+
+### 5c.6 Una respuesta vacía ya tiene de verdad la misma forma
+
+Este documento prometía que "una respuesta vacía conserva exactamente las mismas
+claves que una completa". El motor (`detect_structure`) lo cumplía; **el
+endpoint no**: cuando el proveedor no devolvía velas, o fallaba, la ruta
+construía a mano un diccionario de cinco claves. Ahora los dos caminos devuelven
+la lectura vacía completa, y hay un test de ruta que lo fija.
+
+---
+
 ## 6. Qué hace BIEN
 
 1. **Roles de S/R correctos por definición.** Arriba resistencia, abajo soporte,
@@ -347,6 +509,10 @@ valga 100 o 100 000.
 8. **Registro persistente por activo** con deduplicación correcta también en
    intradía (las velas intradía ya llevan hora en `date`; antes las 78 velas de
    una sesión compartían la cadena `2026-07-27` y el registro las fundía en una).
+9. **Cada número mide una sola cosa.** La confluencia con otra temporalidad se
+   publica aparte y no se suma a la puntuación de confirmación; lo que no se ha
+   podido comprobar viaja como `null` y no como `0`. Es lo que permite leer un
+   85/100 sabiendo exactamente de dónde sale.
 
 ---
 
@@ -355,12 +521,12 @@ valga 100 o 100 000.
 Esta sección es la importante. Ninguna de estas cosas es un bug pendiente
 disimulado: son límites conocidos del enfoque.
 
-1. **Huecos de sesión en intradía.** En acciones, entre el cierre y la apertura
-   siguiente hay un salto que el escáner ve como una vela normal. Eso genera
-   **FVG falsos** (el hueco nocturno no es un desequilibrio intradía) y puede
-   crear swings artificiales en la primera vela del día. En cripto y forex 24/7
-   el problema casi desaparece. *Mitigación disponible: filtrar gaps de más de N
-   veces el ATR en el primer bar de sesión. No implementado.*
+1. **Huecos de sesión en intradía: resuelto a medias.** Los **FVG** que nacen del
+   salto nocturno ya se detectan y se etiquetan (§5c.2), así que no se cuentan
+   como desequilibrios abiertos. Lo que sigue en pie es la otra mitad: ese mismo
+   salto puede crear **swings artificiales** en la primera vela del día, y de ahí
+   niveles y rupturas que no vienen de negociación real. En cripto y forex 24/7
+   el problema no existe.
 
 2. **Los swings de las últimas velas no están confirmados.** Un pivote necesita
    `strength` velas a cada lado. Las últimas 2–3 velas nunca pueden ser swing
@@ -376,13 +542,17 @@ disimulado: son límites conocidos del enfoque.
    agrupan por tramos UTC porque no tenemos calendario de sesiones. En cripto y
    forex el problema no existe.
 
-5. **No hay confluencia multi-temporal.** Cada escaneo mira **una** temporalidad.
-   El escáner no sabe que la resistencia que está viendo en 15m es un soporte
-   diario. Es la mejora individual con más valor pendiente.
+5. **La confluencia mira UN escalón, no toda la escalera.** Desde 2026-08-05 el
+   escaneo compara con el escalón superior (§5c.1), pero sólo con ése: en 15m se
+   compara con 1h, no con el diario ni el semanal. Un nivel que coincide en tres
+   temporalidades se ve igual que uno que coincide en una. Y el escalón superior
+   se lee con **su ventana por defecto**, no con la equivalente a la que estás
+   mirando.
 
-6. **BOS repetidos sobre el mismo nivel.** Si el precio cruza tres veces el mismo
-   swing high, se emiten tres eventos. Son reales, pero saturan el registro. No
-   hay agrupación por nivel.
+6. **BOS repetidos: agrupados, no filtrados.** Cada cruce sigue emitiendo su
+   evento; lo que hay es numeración (`repeat`) y una fila por nivel en pantalla
+   (§5c.3). El registro persistente sigue guardando las repeticiones por
+   separado.
 
 7. **La tendencia sale de las dos últimas etiquetas.** `label_structure` mira el
    último máximo y el último mínimo etiquetados. Es simple y transparente, pero
@@ -428,16 +598,21 @@ disimulado: son límites conocidos del enfoque.
 ```
 GET /api/education/scan-timeframes
     → { timeframes: [{interval, minutes, intraday, ranges[], defaultRange,
-                      defaultStrength, maxDays}], defaultInterval }
+                      defaultStrength, maxDays, aggregatedFrom,
+                      higherInterval}], defaultInterval }
 
-GET /api/education/structure-scan/{symbol}?interval=15m&period=5d&strength=3
-    → symbol, period, interval, intraday, strength, adjustments[],
-      lastBarForming, rowsScanned,
+GET /api/education/structure-scan/{symbol}?interval=15m&period=5d&strength=3&htf=1
+    → symbol, period, interval, intraday, strength, aggregatedFrom,
+      adjustments[], lastBarForming, rowsScanned,
       currentPrice, atr, atrPct, tolerancePct, levelsAnalysed,
       trend, nearestResistance, nearestSupport,
+      context{roomAbovePct,roomBelowPct,roomAboveAtr,roomBelowAtr,
+              rangeWidthPct,rangePositionPct},
+      confluence{checked,interval,htfLevels,matched},
       swings[], events[], levels[], fvgs[], breakouts[],
       counts{swings,bos,choch,levels,resistances,supports,flipped,
-             confirmedLevels,confirmedEvents,fvgOpen,breakouts,fakeouts},
+             confirmedLevels,confirmedEvents,repeatedBreaks,confluent,
+             fvgOpen,fvgSessionGap,breakouts,fakeouts},
       truncated{...}          // solo si se recortó alguna lista
 
 GET /api/education/pattern-scan/{symbol}?interval=15m&period=5d&limit=20
@@ -445,20 +620,32 @@ GET /api/education/pattern-scan/{symbol}?interval=15m&period=5d&limit=20
       rowsScanned, totalDetections, detections[]
 ```
 
-Ambos escaneos están limitados a **30 peticiones/minuto** por cliente.
-Una respuesta vacía conserva **exactamente las mismas claves** que una completa:
-el cliente nunca tiene que ramificar por forma de respuesta.
+`htf` (por defecto `1`) lee además el escalón superior y marca la confluencia;
+cuesta una petición más al proveedor, lanzada en paralelo. Ambos escaneos están
+limitados a **30 peticiones/minuto** por cliente. Una respuesta vacía conserva
+**exactamente las mismas claves** que una completa —también cuando el proveedor
+no devuelve velas o falla—: el cliente nunca tiene que ramificar por forma de
+respuesta.
 
 Cada nivel:
 
 ```json
 { "price": 120.6, "type": "resistance", "origin": "highs", "flipped": false,
-  "distancePct": 7.68, "touches": 6, "strength": 5,
+  "distancePct": 7.68, "distanceAtr": 2.4, "touches": 6, "strength": 5,
+  "zone": { "low": 119.9, "high": 121.3 },
+  "confluence": { "interval": "1d", "price": 120.55, "gapPct": -0.04,
+                  "touches": 4, "type": "resistance" },
   "confirmation": { "visits": 6, "held": 5, "broken": 1, "holdRatePct": 83.3,
                     "barsSince": 4, "lastVisit": "2026-07-24 14:30",
                     "score": 85, "confirmed": true,
                     "reasons": ["multiTest", "held", "recent"] } }
 ```
+
+`confluence` es `null` mientras no se haya comprobado o no haya coincidencia; el
+bloque de nivel superior distingue las dos cosas con `checked`.
+
+Cada evento (BOS/CHoCH) añade `repeat` y `repeatOf`; cada FVG añade
+`sessionGap`.
 
 ---
 
@@ -469,35 +656,50 @@ que sí corre siempre:
 
 ```bash
 cd backend
-python -m py_compile server.py price_action.py timeframes.py stock_data.py
+python -m py_compile *.py
 pytest tests/test_price_action_unit.py tests/test_timeframes_unit.py -v
-pytest tests/ -q                                  # suite completa
+pytest tests/test_structure_scan_routes_unit.py -v   # la ruta, con OHLC mockeado
+pytest tests/ -q                                     # suite completa
 
 cd ../frontend
-node scripts/i18n-check.js                        # paridad de los 8 idiomas
+node scripts/i18n-check.js                        # paridad de los 10 idiomas
 node scripts/check-fetch-credentials.js
 npm run build
 ```
 
-Para un end-to-end real de las rutas hay que **mockear** el lector de OHLC
-(sustituir `server.get_ohlc_history` por una serie sintética) y usar
-`fastapi.testclient.TestClient`. Cualquier prueba que llame a la red real desde
-el sandbox es una prueba que no se puede creer.
+El end-to-end de las rutas ya está escrito:
+`tests/test_structure_scan_routes_unit.py` sustituye `server.get_ohlc_history`
+por una serie sintética y usa `fastapi.testclient.TestClient` **sin** el gestor
+de contexto, para que no arranque el pool de base de datos. Fija qué intervalo
+se pide arriba, que una respuesta vacía tenga la forma completa y que un fallo
+del escalón superior no tumbe el escaneo. Cualquier prueba que llame a la red
+real desde el sandbox es una prueba que no se puede creer.
 
 ---
 
 ## 10. Siguientes mejoras, por valor
 
-1. **Confluencia multi-temporal** — marcar los niveles del escalón superior que
-   coinciden con los del actual. Es la mejora más valiosa que falta.
-2. **Filtro de hueco de sesión** en intradía de acciones (elimina los FVG falsos
-   de la apertura y los swings artificiales).
-3. **Agrupar BOS repetidos** por nivel, con contador, en vez de N eventos.
-4. **Zonas en lugar de líneas**: el nivel ya tiene banda (`tolerancePct`);
-   dibujarla como zona sería más honesto visualmente que una línea única.
-5. **Proveedor de histórico con contrato** (Finnhub tiene velas gratuitas) como
+Hechas en la revisión 2026-08-05: confluencia multi-temporal (§5c.1), filtro de
+hueco de sesión en los FVG (§5c.2), agrupación de BOS repetidos (§5c.3) y zonas
+en vez de líneas (§5c.4). Lo que queda, por valor:
+
+1. **Confluencia con más de un escalón**, y con la ventana equivalente a la que
+   se está mirando en vez de la ventana por defecto del escalón superior. Un
+   nivel que coincide en tres temporalidades debería distinguirse de uno que
+   coincide en una.
+2. **Swings artificiales en la apertura** — la mitad del hueco de sesión que
+   sigue pendiente: la primera vela del día puede crear pivotes que no vienen de
+   negociación real (limitación #1).
+3. **Tolerancia de las pinzas por ATR** en `candle_patterns.py`. Es el mismo
+   defecto que tenían los niveles de S/R antes de pasar a ATR: un 0,15 % fijo es
+   demasiado estrecho en activos volátiles y demasiado ancho en los tranquilos
+   (limitación #12).
+4. **Proveedor de histórico con contrato** (Finnhub tiene velas gratuitas) como
    failover de Yahoo para OHLC, igual que ya existe para precios.
-6. **Estadística por activo**: cuántas de las últimas N rupturas confirmadas en
+5. **Estadística por activo**: cuántas de las últimas N rupturas confirmadas en
    ESTE activo tuvieron continuación. Convertiría la puntuación de "evidencia
    presente" en "fiabilidad medida" — pero requiere almacenamiento histórico y
    hay que presentarlo con mucho cuidado para no parecer una promesa.
+6. **Cruzar el calendario macro** con las rupturas: una rotura en el minuto del
+   IPC no es la misma que una en una tarde muerta de agosto, y los datos macro
+   ya están en el dashboard (limitación #11).

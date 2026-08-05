@@ -5,8 +5,9 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-03 (commit `7864406` de `main`)
-> - 🌿 **Rama de trabajo actual:** `claude/gallant-noether-x33hjd` (idéntica a `main`)
+> - 📅 **Última verificación real contra el código:** 2026-08-05 (escáner de estructura;
+>   antes 2026-08-03, commit `7864406` de `main`)
+> - 🌿 **Rama de trabajo actual:** `claude/restructure-org-scanner-f5a8i6`
 >
 > ⚠️ **Aviso de método (2026-07-27, y volvió a pasar el 2026-08-03).** Las §1, §2 y
 > §6 se quedan por detrás del código mientras el registro de sesiones (§7) sí se
@@ -28,10 +29,10 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **503 passed, 74 skipped** en 12 s (2026-08-03). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — las 2 caídas que anotaron las sesiones del 2026-08-02 eran del contenedor de aquel día |
+| **Tests offline** | 🟢 | `pytest tests/` → **534 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
-| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-03). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5652 claves × 10 idiomas, 0 huecos** · `engine-check` **60/60** (2026-08-03) |
+| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5681 claves × 10 idiomas, 0 huecos** · `engine-check` **60/60** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3031,3 +3032,49 @@ repetirlo.
 - ⏭️ **Queda para operación**: al desplegar el backend a mano, `cloudbuild.yaml`
   sigue siendo la vía correcta porque lleva las variables. El arreglo hace que el
   login sobreviva a un despliegue que se las olvide, no sustituye a desplegar bien.
+
+### 2026-08-05 (2) — Escáner de estructura: reorganizado y con confluencia multi-temporal
+Petición del propietario: reestructurar el escáner de estructura, dejarlo claro y ver
+qué más se le puede añadir. Manual completo en
+[`ESCANER_ESTRUCTURA.md`](./ESCANER_ESTRUCTURA.md) (§1b para el código, §5c para lo nuevo).
+
+- 🧱 **`price_action.py` apilado en el orden en que fluyen los datos**, con el índice
+  en el docstring: ayudantes → swings → estructura → rupturas → niveles → evidencia →
+  desequilibrios → breakouts → **confluencia** → **contexto** → entrada pública. Antes
+  los ayudantes (`_avg_true_range`) vivían por debajo de quien los llamaba.
+- 🧩 **La interfaz deja de ser un archivo de 730 líneas.** `StructureScanner.jsx` pasa
+  a **componer y nada más** (~200 líneas); la tabla de tickers, los mapas de color, el
+  hook de escaneo y los ocho paneles viven en `components/charts/structure/`.
+  **El orden es la funcionalidad**, como en el panel de opciones: 1 configurar →
+  2 lectura → 3 niveles → lo accesorio en `SectionCard` **plegado y con contador**.
+  Antes los ocho bloques se apilaban abiertos y con el mismo peso: la respuesta
+  («¿estoy comprando contra una resistencia?») había que buscarla.
+- ✅ **Confluencia multi-temporal** — era la mejora #1 pendiente del manual. Cada
+  escaneo lee **en paralelo** el escalón superior (`timeframes.higher`: 15m→1h,
+  4h→1d, 1d→1wk…) y marca los niveles que coinciden. **No suma a la puntuación de
+  confirmación** —esa mide sólo las velas escaneadas—, y si la segunda petición falla
+  el escaneo principal sigue: `confluence.checked = false` y `counts.confluent = null`,
+  porque *sin comprobar* y *comprobado sin coincidencias* no son lo mismo.
+- ✅ **Huecos de sesión**: en intradía de acciones, el salto del cierre a la apertura
+  siguiente pasaba el test de FVG **todas las noches**. Ahora se detecta por
+  `ts` (nunca por precio), se etiqueta y **no cuenta** como desequilibrio abierto.
+  En velas diarias no se aplica: ahí un viernes→lunes sí es un hueco de verdad.
+- ✅ **Rupturas repetidas numeradas** (`repeat` / `repeatOf`): tres cruces del mismo
+  máximo se leían como tres pruebas de fuerza y son lo contrario. Una fila con `×N`.
+- ✅ **El nivel es una zona** (`zone.low`/`high`, la misma banda con la que se agrupó)
+  y la distancia va también **en ATR**; un 1 % no significa lo mismo en un índice que
+  en una small cap.
+- ✅ **Bloque `context`**: recorrido hasta el nivel más cercano por lado (% y ATR),
+  anchura del rango y posición dentro de él (0 % = sobre el soporte, 100 % = sobre la
+  resistencia). Lo que no se puede calcular es `null`, nunca `0`: sin nivel arriba, el
+  recorrido es indefinido, y un `0 %` se leería como «resistencia justo aquí».
+- 🐛 **La respuesta vacía del endpoint no tenía la forma que el manual prometía.** El
+  motor sí, pero la ruta construía a mano un diccionario de cinco claves cuando el
+  proveedor no devolvía velas o fallaba. Corregido y fijado por test de ruta.
+- ✅ **Verificado**: `pytest` **534 passed / 74 skipped** (+28: 18 de acción del precio,
+  4 de la escalera y 6 de ruta con el lector OHLC mockeado) · `py_compile` de los 24
+  módulos · ESLint **0 errores** · `i18n-check` **5681 claves × 10 idiomas, 0 huecos**
+  (+29) · `npm run build` exit 0 → 1589 URLs.
+- ⚠️ **Sin humo de navegador**: el proveedor de OHLC está bloqueado en el sandbox, así
+  que la interfaz nueva no se ha visto con datos reales. Lo verificado es lo que corre
+  offline; el contrato de la ruta está cubierto por test con el lector mockeado.
