@@ -1106,6 +1106,18 @@ security = HTTPBearer(auto_error=False)
 #  CORS — must be registered first so every response gets headers
 # ============================================================
 _CORS_ORIGINS = [
+    # DONDE SE SIRVE LA WEB HOY. No hay `CNAME` en `frontend/public/` y el
+    # `homepage` de package.json apunta aquí, así que este es el Origin real de
+    # todas las peticiones del navegador. Va en el código a propósito: estaba
+    # sólo en la variable `CORS_ORIGINS` del despliegue, y desde que el backend
+    # se despliega a mano un `gcloud run deploy` sin `--set-env-vars` borra esa
+    # variable y tumba el login de todo el sitio.
+    #
+    # El fallo no se ve en los logs: sin cabecera CORS el backend responde 200
+    # con las cookies puestas y es el navegador quien descarta la respuesta.
+    # `curl` tampoco lo reproduce, porque ignora CORS.
+    "https://abcde-rgb.github.io",
+    # Dominio propio, para el día del cutover de DNS (ver DEPLOY_CHECKLIST §G).
     "https://tradingcalculatorpro.com",
     "https://www.tradingcalculatorpro.com",
 ]
@@ -1117,6 +1129,16 @@ for _o in _extra.split(","):
     _o = _o.strip()
     if _o and _o not in _CORS_ORIGINS:
         _CORS_ORIGINS.append(_o)
+
+# Base de los enlaces que se ENVÍAN POR CORREO (verificación, reset, magic
+# link). Por defecto apunta a donde se sirve la web hoy, que es lo que ponen
+# `cloudbuild.yaml` y ponía el workflow retirado: el valor del código no puede
+# contradecir al del despliegue, porque si la variable se pierde los correos
+# llevan a un dominio que no existe y el usuario tampoco puede entrar.
+# Una sola constante para que los cuatro sitios que la usaban no vuelvan a
+# divergir. El día del cutover de DNS se cambia aquí (ver DEPLOY_CHECKLIST §G).
+DEFAULT_FRONTEND_URL = "https://abcde-rgb.github.io/Tradingcalculatorpro.com"
+FRONTEND_URL = os.environ.get("FRONTEND_URL", DEFAULT_FRONTEND_URL).strip().rstrip("/")
 
 app.add_middleware(
     CORSMiddleware,
@@ -2074,7 +2096,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
         "expires_at": expires_at,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
+    frontend_url = FRONTEND_URL
     magic_url = f"{frontend_url}/magic?token={token}"
     # Send email (non-blocking)
     import asyncio as _asyncio
@@ -2175,7 +2197,7 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
             }},
             upsert=True,
         )
-        frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
+        frontend_url = FRONTEND_URL
         verify_url = f"{frontend_url}/verify-email?token={token}"
         if not SENDGRID_API_KEY:
             logging.info(f"[verify-email] DEV MODE — link for {to_email}: {verify_url}")
@@ -2221,7 +2243,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
         upsert=True,
     )
 
-    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
+    frontend_url = FRONTEND_URL
     reset_url = f"{frontend_url}/reset-password#{reset_token}"
     try:
         import asyncio as _asyncio
@@ -8128,7 +8150,7 @@ except Exception as _e:
 
 app.include_router(api_router)
 
-_FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculatorpro.com')
+_FRONTEND_URL = FRONTEND_URL
 
 _AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/me",
                "/api/auth/logout", "/api/auth/refresh", "/api/auth/google",

@@ -121,7 +121,9 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `admin_routes.py` | Panel admin (`/api/admin/*`) — se registra dinámicamente en startup |
 | `options_math.py` | Black-Scholes, griegas, payoff diagrams, cadenas de opciones |
 | `options_positioning.py` | Posicionamiento observado: max pain, GEX, perfil de OI, ratio put/call, liquidez por contrato, term structure de IV y expected move. **Todo devuelve `None` sobre cadena modelada** |
-| `stock_data.py` | Precios en tiempo real (yfinance, CoinGecko) y búsqueda de tickers |
+| `stock_data.py` | Precios de acciones/índices/materias primas y búsqueda de tickers |
+| `crypto_data.py` | Cripto: Binance por lotes + Kraken (que manda en los 20 pares que cotiza contra dólar). Sustituyó a CoinGecko el 2026-08-02 |
+| `ecb_rates.py` | Forex desde el feed de 90 días del BCE. Publica **una vez por día hábil**: estos tipos no se mueven intradía |
 | `candle_patterns.py` | Detección de patrones de velas japonesas |
 | `price_action.py` | Estructura de precio: swings, BOS/CHoCH, S/R, FVG, rupturas ([manual](./docs/ESCANER_ESTRUCTURA.md)) |
 | `timeframes.py` | Escalera de temporalidades (5m–1mes) y pares (vela, histórico) legales del proveedor |
@@ -132,11 +134,11 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `affiliate_program.py` | Programa de afiliados: comisiones, tramos y solicitudes de pago |
 | `market_data.py` | Capa de datos de mercado multi-proveedor |
 | `options_optimize.py` | Optimizador de estrategias de opciones |
-| `market_rates.py` | Tipo libre de riesgo en vivo (^IRX) con caché y fallback — **no** hardcodear 0.0525 |
-| `american_options.py` | Opciones americanas: binomial CRR, Barone-Adesi-Whaley, riesgo de asignación temprana por dividendo |
-| `portfolio_risk.py` | Riesgo a nivel de cuenta: heat abierto, correlación, límites de pérdida con bloqueo, sizing por ATR |
-| `backtest.py` | Backtest con validación: in-sample/out-of-sample, walk-forward, corrección por data snooping |
-| `trading_plan.py` | Plan de trading versionado: modelo, activación/archivado e informe de cumplimiento. **Fuente de verdad de los umbrales de riesgo** que consume `detect_errors` |
+| `market_rates.py` | Tipo libre de riesgo en vivo con caché y fallback — **no** hardcodear 0.0525. Desde el 2026-08-02 la fuente es el `BC_3MONTH` de la Daily Treasury Par Yield Curve (dominio público), no `^IRX` |
+| `american_options.py` | Opciones americanas: binomial CRR, Barone-Adesi-Whaley, riesgo de asignación temprana por dividendo. ⚠️ **Sin interfaz** |
+| `portfolio_risk.py` | Riesgo a nivel de cuenta: heat abierto, correlación, límites de pérdida con bloqueo, sizing por ATR. ⚠️ **Sin interfaz** |
+| `backtest.py` | Backtest con validación: in-sample/out-of-sample, walk-forward, corrección por data snooping. ⚠️ **Sin interfaz** |
+| `trading_plan.py` | Plan de trading versionado: modelo, activación/archivado e informe de cumplimiento. **Fuente de verdad de los umbrales de riesgo** que consume `detect_errors`. ⚠️ **Sin interfaz** |
 | `nowpayments.py` | Cripto: creación de factura + verificación HMAC-SHA512 del IPN |
 | `revolut.py` | Revolut Pay: creación de pedido y confirmación |
 
@@ -227,7 +229,7 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   calculadora, la cadena, la superficie de IV y el optimizador — si añades una
   vista que consuma esas respuestas, móntalo también.
 - **El tipo libre de riesgo de la UI sale de `GET /api/market/risk-free`**, nunca de un
-  literal. Ese endpoint publica también la procedencia (`^IRX` / `stale` / `fallback`).
+  literal. Ese endpoint publica también la procedencia (`treasury` / `stale` / `fallback`).
 - **`market_rates` cachea también los fallos.** Si toqueas esa lógica, no quites la
   ventana `FAILURE_BACKOFF_SECONDS`: sin ella, con el proveedor caído, `get_risk_free_rate`
   vuelve a salir a la red en cada llamada, y está dentro de `/options/chain`, `/optimize`,
@@ -242,10 +244,19 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   límite sin declarar es `None` (regla callada), nunca 0.
 - **`trading_plans` está en la lista `known` de tablas de `server.py`.** El shim
   **no** autocrea tablas: una colección nueva que no esté en esa lista falla en
-  cuanto se consulta.
+  cuanto se consulta. ⚠️ Y `known` **no es la única lista** en la que hay que
+  darla de alta: una colección con `user_id` va además en `delete_account`, en
+  `_USER_DATA_COLLECTIONS` (purga por retención) y en el export de
+  `/auth/my-data`. `trading_plans` no está en ninguna de las tres — es el hueco
+  G-15, y es la trampa exacta que crea listar tablas a mano.
 - **`plan_version` se sella al crear la operación y no se reescribe.** Cambiar el
   plan no debe re-juzgar retroactivamente la historia que se supone que mide.
 
+- **Cuatro módulos del backend están terminados y no tienen interfaz**:
+  `trading_plan.py`, `backtest.py`, `portfolio_risk.py` y `american_options.py`
+  (~1770 líneas, ocho endpoints, con tests). Antes de escribir un módulo nuevo,
+  mira si lo que te piden ya está ahí esperando una pantalla — ver G-14 en
+  `docs/ESTADO_PROYECTO.md`.
 - **`_archive/` es código retirado, no se importa.** Contiene `backend_test_security.py`
   (obsoleto: hace `sys.exit(1)` inmediatamente, usaba MongoDB y el puerto equivocado) y
   `backend_test.py`. Los tests vivos son los de `backend/tests/`.

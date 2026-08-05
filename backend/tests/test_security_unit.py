@@ -202,3 +202,78 @@ def test_emailed_link_base_honours_explicit_cors_allowlist(monkeypatch):
     assert trusted_link_base(_FakeRequest(origin=ok)) == ok
     # something NOT on the list still falls back to canonical
     assert trusted_link_base(_FakeRequest(origin="https://evil.com")) == "https://tradingcalculatorpro.com"
+
+
+# ============================================================
+#  El origen donde SE SIRVE la web tiene que estar permitido
+#  sin depender de una variable de entorno del despliegue
+# ============================================================
+#
+# Contexto del fallo que fija esto (2026-08-05): la web se publica en
+# `https://abcde-rgb.github.io/Tradingcalculatorpro.com` — no hay `CNAME` en
+# `frontend/public/` y el `homepage` de `package.json` apunta ahí. Pero la lista
+# de CORS del código sólo traía `tradingcalculatorpro.com`, que es el dominio que
+# NO está en uso. Lo único que hacía funcionar el login era la variable
+# `CORS_ORIGINS` que ponía el despliegue.
+#
+# Por qué es grave y por qué se ve tan mal: sin la cabecera CORS el backend
+# responde **200 con las cookies puestas** y es el NAVEGADOR quien descarta la
+# respuesta. En los logs de Cloud Run el login se ve perfecto; en la web no se
+# puede entrar y no hay ningún error que mirar. `curl` tampoco lo reproduce,
+# porque curl ignora CORS.
+#
+# Y desde el 2026-08-03 el backend se despliega A MANO (`cloudbuild.yaml`): un
+# `gcloud run deploy` sin `--set-env-vars` borra las variables del servicio y
+# tumba el login de todo el sitio. El origen real no puede depender de que
+# alguien se acuerde de una variable.
+
+def _cors_origins_with_env(env: dict) -> list:
+    """Evalúa el bloque `_CORS_ORIGINS` de server.py con un entorno dado.
+
+    Se extrae con `ast` en vez de importar server.py porque la lista se calcula
+    en tiempo de import: una vez importado el módulo, cambiar la variable de
+    entorno ya no tiene efecto, y el test no probaría nada.
+    """
+    src = _SERVER.read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    chunks, capturing = [], False
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            getattr(t, "id", None) == "_CORS_ORIGINS" for t in node.targets
+        ):
+            capturing = True
+        if capturing:
+            chunks.append(ast.get_source_segment(src, node))
+            # el bloque acaba en el bucle que añade los orígenes extra
+            if isinstance(node, ast.For):
+                break
+    assert chunks, "no se pudo extraer _CORS_ORIGINS de server.py"
+    ns = {"os": type("_os", (), {"environ": env})()}
+    exec("\n".join(chunks), ns)  # noqa: S102 — código propio
+    return ns["_CORS_ORIGINS"]
+
+
+SERVED_ORIGIN = "https://abcde-rgb.github.io"
+
+
+def test_served_origin_is_allowed_without_any_env_var():
+    """El origen donde vive la web hoy entra por código, no por despliegue."""
+    origins = _cors_origins_with_env({})
+    assert SERVED_ORIGIN in origins, (
+        "El frontend se sirve en " + SERVED_ORIGIN + " y no está en la lista de "
+        "CORS. Sin la cabecera el navegador descarta la respuesta del login: el "
+        "backend devuelve 200 y el usuario no puede entrar."
+    )
+
+
+def test_own_domain_stays_allowed_for_the_dns_cutover():
+    """El dominio propio sigue permitido: el día del cutover no debe romperse."""
+    origins = _cors_origins_with_env({})
+    assert "https://tradingcalculatorpro.com" in origins
+    assert "https://www.tradingcalculatorpro.com" in origins
+
+
+def test_extra_origins_from_env_still_work_and_do_not_duplicate():
+    origins = _cors_origins_with_env({"CORS_ORIGINS": "https://staging.example.com," + SERVED_ORIGIN})
+    assert "https://staging.example.com" in origins
+    assert origins.count(SERVED_ORIGIN) == 1, "un origen repetido no debe duplicarse"
