@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
-import { loadSystem, setupRulesFor } from '@/lib/tradingSystem';
+import { loadSystem, setupRulesFor, cashflowRules } from '@/lib/tradingSystem';
 import {
   project, sensitivity, breakevenWinRate,
   MIN_SAMPLE_FOR_PROJECTION, MIN_SAMPLE_TO_PROJECT_AT_ALL, RUIN_THRESHOLD,
@@ -84,10 +84,16 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
   const [loading, setLoading] = useState(true);
   const [groupName, setGroupName] = useState('');       // '' = todas
   const [overrides, setOverrides] = useState({});
+  // Las reglas de caja se escriben en el sistema (pestaña Setups → Reglas) y se
+  // leen aquí: el usuario las define una vez y la proyección las aplica.
+  const [cash, setCash] = useState(() => cashflowRules(loadSystem()));
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    // Releer el sistema en cada refresco: el constructor está en la pestaña de
+    // al lado y las reglas pueden haber cambiado hace un segundo.
+    setCash(cashflowRules(loadSystem()));
     fetchAnalytics()
       .then((d) => { if (!cancelled) setAnalytics(d?.analytics || null); })
       .catch(() => {})
@@ -128,8 +134,21 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
     if (seeded.trades == null) {
       seeded.trades = Math.max(20, group ? group.n : (analytics.closed_trades || 100));
     }
+    // Reglas de caja del sistema, salvo que el usuario las esté moviendo aquí.
+    if (seeded.contribution == null && cash.monthlyContribution != null) {
+      seeded.contribution = cash.monthlyContribution;
+      seeded.contributionSource = 'measured';
+    }
+    if (seeded.capPct == null && cash.monthlyProfitCapPct != null) {
+      seeded.capPct = cash.monthlyProfitCapPct;
+      seeded.capSource = 'measured';
+    }
+    if (seeded.withdrawAbove == null && cash.withdrawAboveBalance != null) {
+      seeded.withdrawAbove = cash.withdrawAboveBalance;
+      seeded.withdrawSource = 'measured';
+    }
     return project(analytics, { group, overrides: seeded });
-  }, [analytics, group, overrides, setupRisk]);
+  }, [analytics, group, overrides, setupRisk, cash]);
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">{t('loading')}…</div>;
   if (!result) return null;
@@ -221,6 +240,12 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
               value={inputs.balance.value} onChange={set('balance')}
               measured={analytics?.current_balance ?? null} source={inputs.balance.source}
             />
+            <VarField
+              t={t} label={t('projTradesPerMonth')} step="1"
+              value={inputs.tradesPerMonth.value} onChange={set('tradesPerMonth')}
+              measured={measured.tradesPerMonth} source={inputs.tradesPerMonth.source}
+              sample={sample}
+            />
             <label className="rounded-lg border border-border bg-muted/30 px-3 py-2 flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -229,6 +254,26 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
               />
               <span className="text-[11px] font-semibold">{t('projCompound')}</span>
             </label>
+          </div>
+
+          {/* 1b · Reglas de caja: lo que entra y sale cada mes. Se definen en
+              el sistema (Setups → Reglas) y se pueden probar aquí sin tocarlo. */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <VarField
+              t={t} label={t('projContribution')} suffix="$" step="50"
+              value={inputs.contribution.value} onChange={set('contribution')}
+              measured={cash.monthlyContribution} source={inputs.contribution.source}
+            />
+            <VarField
+              t={t} label={t('projMonthlyCap')} suffix="%" step="0.5"
+              value={inputs.capPct.value} onChange={set('capPct')}
+              measured={cash.monthlyProfitCapPct} source={inputs.capPct.source}
+            />
+            <VarField
+              t={t} label={t('projWithdrawAbove')} suffix="$" step="100"
+              value={inputs.withdrawAbove.value} onChange={set('withdrawAbove')}
+              measured={cash.withdrawAboveBalance} source={inputs.withdrawAbove.source}
+            />
           </div>
 
           {/* 2 · La cuenta que decide si el resto importa */}
@@ -309,6 +354,37 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                   color={distribution.probabilityOfRuin > 5 ? 'text-[#ef4444]' : 'text-muted-foreground'}
                 />
               </div>
+
+              {/* Caja: sin esto, retirar el exceso parece empeorar el
+                  resultado cuando lo que hace es ponerlo a salvo. */}
+              {(distribution.contributed.p50 > 0 || distribution.withdrawn.p50 > 0
+                || distribution.monthsCapped.p50 > 0) && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1" data-testid="proj-cashflow">
+                  <Stat
+                    label={t('projContributed')}
+                    value={money(distribution.contributed.p50)}
+                    sub={t('projOverMonths').replace('{n}', String(distribution.months.p50))}
+                  />
+                  <Stat
+                    label={t('projWithdrawn')}
+                    value={money(distribution.withdrawn.p50)}
+                    sub={t('projWithdrawnSub')}
+                    color="text-[#22c55e]"
+                  />
+                  <Stat
+                    label={t('projNetWorth')}
+                    value={`$${distribution.netWorth.p50.toFixed(0)}`}
+                    sub={t('projNetWorthSub')}
+                    color={tone(distribution.netWorth.p50 - inputs.balance.value)}
+                  />
+                  <Stat
+                    label={t('projMonthsCapped')}
+                    value={`${distribution.monthsCapped.p50}`}
+                    sub={t('projMonthsCappedSub')}
+                    color={distribution.monthsCapped.p50 > 0 ? 'text-[#f59e0b]' : 'text-muted-foreground'}
+                  />
+                </div>
+              )}
 
               {distribution.roi.p5 <= -100 && (
                 <p className="text-[10px] text-[#ef4444] leading-relaxed">{t('projBelowZeroNote')}</p>

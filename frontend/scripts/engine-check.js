@@ -436,6 +436,56 @@ async function checkProjection() {
     losing.expectancyR < 0 && losing.distribution.roi.p50 < 0
     && losing.distribution.probabilityOfRuin > 0);
 
+  // ── Reglas de caja mensuales ─────────────────────────────────────────────
+  // Aportar, topar el mes y sacar el exceso cambian el resultado tanto como la
+  // operativa, así que la proyección tiene que aplicarlas de verdad.
+  const cash = (over) => pj.project(analytics, {
+    overrides: {
+      balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20, ...over,
+    },
+  }).distribution;
+
+  const plain = cash({});
+  ok('without cash rules nothing is contributed or withdrawn',
+    plain.contributed.p50 === 0 && plain.withdrawn.p50 === 0);
+  ok('the horizon is split into months', plain.months.p50 === 12);
+
+  const withDeposits = cash({ contribution: 500 });
+  ok('a fixed monthly contribution is paid in every month',
+    withDeposits.contributed.p50 === 500 * 12);
+  ok('and it raises the final balance', withDeposits.finalBalance.p50 > plain.finalBalance.p50);
+  // Y no debe disimular el drawdown: el máximo histórico sube con el dinero
+  // nuevo, así que aportar no puede "curar" una caída.
+  ok('contributing does not paper over the drawdown',
+    withDeposits.maxDrawdown.p50 >= plain.maxDrawdown.p50 * 0.6);
+
+  const withCap = cash({ capPct: 3 });
+  ok('a monthly profit cap stops some months early',
+    withCap.monthsCapped.p50 > 0);
+  ok('capping the month cuts the upside too (that is what the rule asks for)',
+    withCap.roi.p95 < plain.roi.p95);
+
+  const withSkim = cash({ withdrawAbove: 10000 });
+  ok('the monthly excess is taken out', withSkim.withdrawn.p50 > 0);
+  ok('the trading account stops growing past the ceiling',
+    withSkim.finalBalance.p95 <= 10000 + 1e-6);
+  ok('but the net worth counts the money taken out',
+    withSkim.netWorth.p50 > withSkim.finalBalance.p50);
+  ok('skimming never invents money',
+    withSkim.netWorth.p50 <= plain.netWorth.p50 + 1e-6);
+
+  const all = cash({ contribution: 300, capPct: 4, withdrawAbove: 12000 });
+  ok('the three rules coexist',
+    all.contributed.p50 > 0 && all.withdrawn.p50 > 0 && all.monthsCapped.p50 > 0);
+  // Un mes que se corta al llegar al tope deja operaciones sin hacer, así que
+  // completar las mismas 240 lleva MÁS meses — y por tanto más aportaciones.
+  // Publicar "aportarás 3600" cuando en la mitad de los casos son 5700 sería
+  // mentir sobre el dinero que hay que poner.
+  ok('capping stretches the calendar, so contributions grow with it',
+    all.months.p50 > plain.months.p50 && all.contributed.p50 > 300 * plain.months.p50);
+  ok('the withdrawal ceiling still holds with the other two rules on',
+    all.finalBalance.p95 <= 12000 + 1e-6);
+
   // Sensibilidad: qué le pasa a la ventaja si cambia la decisión.
   const sens = pj.sensitivity(45, 2);
   ok('sensitivity is monotonic in win rate',

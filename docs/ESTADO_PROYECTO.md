@@ -29,10 +29,10 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **543 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **545 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5752 claves × 10 idiomas, 0 huecos** · `engine-check` **106/106** (2026-08-05) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5770 claves × 10 idiomas, 0 huecos** · `engine-check` **120/120** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3228,3 +3228,40 @@ haga previsiones a futuro cruzando setup, diario y analítica (decisiones, TP, S
 - ⏭️ **Pendiente para cerrar del todo el bucle**: usar MAE/MFE (`excursion`) para
   proyectar «¿y si el stop fuera 0,8R?» con datos reales por operación, no sólo variando
   el payoff a mano. El backend ya calcula la excursión; falta llevarla a este panel.
+
+### 2026-08-05 (7) — Reglas de caja: aportar, topar y sacar el exceso
+Petición del propietario: que el setup permita **sacar excesos mensuales**, poner
+**topes de rentabilidad mensual en %** y meter una **aportación fija mensual**.
+
+- ✅ **Tres reglas nuevas en el sistema** (Setups → Reglas, sección «Caja»):
+  aportación fija mensual, tope de rentabilidad mensual en % y retirada de todo lo
+  que pase de un saldo. Van al resumen copiable del sistema, como el resto de reglas.
+  Vacío = **no aplica** (`null`), que no es 0: un tope del 0 % pararía la cuenta el
+  primer día y un techo de retirada de 0 la vaciaría entera.
+- ✅ **La proyección las aplica de verdad.** El motor pasa a simular **meses**, no sólo
+  operaciones: al principio de cada mes entra la aportación, durante el mes se deja de
+  operar si se alcanza el tope, y al cierre se retira lo que pase del techo. El
+  simulador general no servía —no sabe de meses—, así que la proyección lleva su propio
+  recorrido, que se reduce exactamente al caso de siempre cuando no hay ninguna regla.
+- ✅ **Tres decisiones que cambian el número y por eso se explican en el código**:
+  - el **drawdown** ajusta el máximo histórico en cada movimiento de caja — meter 500 €
+    no borra una caída y sacar 500 € no es una pérdida de 500 €; sin eso, aportar
+    mensualmente disimularía el drawdown entero;
+  - la **ruina** se mide contra el dinero realmente puesto (inicial + aportado), no
+    contra el saldo del primer día: quien lleva dos años aportando ha arriesgado mucho
+    más que su saldo inicial;
+  - el **ROI** es sobre el capital aportado y se publica además el **patrimonio**
+    (saldo + retirado): sin eso, retirar el exceso parece empeorar el resultado cuando
+    lo que hace es ponerlo a salvo.
+- ✅ **Aportado y meses son distribuciones, no cifras fijas.** Un mes que se corta al
+  llegar al tope deja operaciones sin hacer, así que completar las mismas operaciones
+  lleva más meses — y más aportaciones. Publicar «aportarás 3.600» cuando en la mitad de
+  los casos son 5.700 sería mentir sobre el dinero que hay que poner.
+- ✅ **El ritmo mensual se mide, no se inventa**: `trades_per_month` sale del histórico
+  real y es `None` si el diario no cubre 21 días — la diferencia entre «no lo sé» y
+  «cero al mes».
+- ✅ **Verificado**: `engine-check` **120/120** (+14 de las reglas de caja: aportación
+  pagada cada mes, tope que corta meses y recorta también el lado bueno, techo de
+  retirada que el saldo no supera, patrimonio que cuenta lo retirado, y que retirar no
+  inventa dinero) · `pytest` **545 passed / 74 skipped** (+2) · ESLint 0 errores ·
+  `i18n-check` **5770 claves × 10 idiomas, 0 huecos** (+18) · `npm run build` exit 0.

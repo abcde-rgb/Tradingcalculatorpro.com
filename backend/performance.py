@@ -144,6 +144,27 @@ def _periods_per_year(closed: List[dict]) -> Optional[float]:
     return min(len(closed) / (span_days / DAYS_PER_YEAR), MAX_TRADES_PER_YEAR)
 
 
+# Días mínimos de historial antes de estimar un ritmo mensual. Por debajo, la
+# cifra habla del calendario (una semana intensa, un puente) y no del trader.
+MIN_DAYS_FOR_MONTHLY_RATE = 21
+
+
+def _trades_per_month(closed: List[dict]) -> Optional[float]:
+    """Operaciones cerradas al mes, medidas sobre el histórico real.
+
+    None cuando el histórico es demasiado corto para que la cifra signifique
+    algo: es la diferencia entre "no lo sé" y "cero al mes", y quien la consuma
+    tiene que poder distinguirlas.
+    """
+    dts = [d for d in (_trade_close_dt(t) for t in closed) if d]
+    if len(dts) < 2:
+        return None
+    span_days = (max(dts) - min(dts)).total_seconds() / 86400
+    if span_days < MIN_DAYS_FOR_MONTHLY_RATE:
+        return None
+    return round(len(dts) / (span_days / 30.44), 1)
+
+
 def _compute_sharpe(returns: List[float], rf_period: float = 0.0) -> float:
     """Sharpe over the given return series, net of the per-period risk-free rate.
 
@@ -731,6 +752,12 @@ def compute_analytics(
         # cuenta que no es la suya.
         "starting_balance": round(starting_balance, 2),
         "current_balance": round(starting_balance + total_pnl, 2),
+        # Ritmo real de operativa. Lo necesita cualquier proyección con reglas
+        # MENSUALES (aportación, tope de rentabilidad, retirada del exceso):
+        # sin él habría que inventarse cuántas operaciones caben en un mes.
+        # None cuando la muestra no cubre tiempo suficiente: un ritmo estimado
+        # sobre cuatro días dice más del calendario que del trader.
+        "trades_per_month": _trades_per_month(closed),
         # Quality
         "profit_factor": round(profit_factor, 2) if profit_factor != float("inf") else None,
         "expectancy": round(expectancy, 2),
@@ -865,6 +892,7 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "total_pnl_pct": 0,
         "starting_balance": 0,
         "current_balance": 0,
+        "trades_per_month": None,
         "profit_factor": 0,
         "expectancy": 0,
         "avg_win": 0,

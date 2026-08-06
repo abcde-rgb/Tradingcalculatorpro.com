@@ -50,6 +50,15 @@ export const EMPTY_SYSTEM_RULES = {
   noTradeConditions: [],    // high-impact-news | ranging-market | outside-session | ...
   maxCorrelatedExposure: '',
   checklistEnabled: true,
+  // ── Caja: lo que entra y sale de la cuenta cada mes ──────────────────────
+  // No son reglas de entrada, son reglas de CUENTA, y cambian el resultado
+  // tanto como la operativa: aportar mensualmente acelera el interés compuesto,
+  // retirar el exceso lo frena a cambio de asegurar dinero fuera, y un tope de
+  // rentabilidad mensual corta las rachas —las buenas también—. La proyección
+  // las aplica, así que dejan de ser una intención y pasan a verse.
+  monthlyContribution: '',    // dinero que entra al principio de cada mes
+  monthlyProfitCapPct: '',    // alcanzado ese % en el mes, se deja de operar
+  withdrawAboveBalance: '',   // a fin de mes se retira todo lo que pase de aquí
 };
 
 export function emptySystem() {
@@ -208,6 +217,23 @@ export function setupRulesFor(system, names) {
     rrSource: rrs.length ? 'setup' : 'default',
     riskSource: risks.length ? 'setup' : 'default',
     from: picked.map((s) => s.name).filter(Boolean),
+  };
+}
+
+/**
+ * Las reglas de caja del sistema, ya en números.
+ *
+ * Vacío significa "no aplica" y sale como `null`, no como 0: un tope de
+ * rentabilidad de 0 % pararía la cuenta el primer día, y un techo de retirada
+ * de 0 la vaciaría entera. Son estados distintos y confundirlos rompe la
+ * proyección de la peor manera, en silencio.
+ */
+export function cashflowRules(system) {
+  const r = system?.systemRules || {};
+  return {
+    monthlyContribution: numeric(r.monthlyContribution),
+    monthlyProfitCapPct: numeric(r.monthlyProfitCapPct),
+    withdrawAboveBalance: numeric(r.withdrawAboveBalance),
   };
 }
 

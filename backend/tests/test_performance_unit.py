@@ -252,3 +252,21 @@ def test_a_setup_without_r_data_reports_no_r_sample():
     a = compute_analytics([_setup_trade(50, None, ["Sin R"], "01")])
     g = {x["group"]: x for x in a["by_setup"]}["Sin R"]
     assert g["avg_r"] is None and g["r_sample"] == 0
+
+
+def test_monthly_trade_rate_is_measured_not_guessed():
+    """Las reglas mensuales (aportación, tope, retirada) necesitan saber cuántas
+    operaciones caben en un mes. Se mide sobre el histórico real."""
+    trades = [_setup_trade(10, day=f"{d:02d}") for d in range(1, 29)]
+    for t, d in zip(trades, range(1, 29)):
+        t["exit_date"] = f"2026-01-{d:02d}T10:00:00Z"
+    a = compute_analytics(trades)
+    assert a["trades_per_month"] is not None
+    assert 25 < a["trades_per_month"] < 40   # 28 ops en 27 días ≈ 31/mes
+
+
+def test_a_short_history_reports_no_monthly_rate():
+    """Un ritmo estimado sobre cuatro días habla del calendario, no del trader:
+    None (no lo sé), que no es lo mismo que 0 al mes."""
+    trades = [_setup_trade(10, day=f"{d:02d}") for d in range(1, 5)]
+    assert compute_analytics(trades)["trades_per_month"] is None
