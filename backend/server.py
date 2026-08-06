@@ -62,7 +62,9 @@ from performance import (
     trades_for_user,
     make_trade_doc,
     normalize_setups,
+    normalize_trade_schema,
     sort_trades_chronologically,
+    LEGACY_TRADE_KEYS,
     SETUP_SEPARATOR,
 )
 from trading_plan import (
@@ -966,6 +968,13 @@ class Database:
             # risk thresholds (see trading_plan.py). Must be listed here: the
             # comment above is load-bearing, Collection does not auto-create.
             "trading_plans",
+            # Copias previas a la migración de esquema del diario (BUG-039).
+            # Mismo motivo que arriba: Collection no autocrea tablas.
+            "trades_migration_backup",
+            # `journal_entries` se borra, se purga y se exporta desde
+            # `_USER_DATA_COLLECTIONS`, así que la tabla tiene que existir o esas
+            # tres rutas fallan en la primera consulta.
+            "journal_entries",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -1630,9 +1639,61 @@ async def require_premium(user: dict = Depends(require_user)) -> dict:
 DATA_RETENTION_DAYS = int(os.environ.get("DATA_RETENTION_DAYS", "90"))
 # Colecciones con datos personales del usuario (NO se borra la cuenta en sí,
 # para que pueda volver a suscribirse; solo sus datos de trading).
+#
+# ⚠️ FUENTE DE VERDAD ÚNICA de las colecciones con datos personales.
+#
+# Antes había CUATRO listas escritas a mano —purga por retención, `delete_account`,
+# el export de `/auth/my-data` y el `known` de tablas— y dar de alta una colección
+# exigía acordarse de las cuatro. `trading_plans` se quedó fuera de las tres
+# primeras (G-15): borrar la cuenta dejaba los planes del usuario en la base de
+# datos, que es exactamente la multa que el RGPD contempla. Con una sola tupla,
+# olvidarse deja de ser posible; `test_user_data_collections_unit.py` fija que
+# ninguna colección con `user_id` se quede fuera.
 _USER_DATA_COLLECTIONS = (
     "trades", "calculations", "alerts", "saved_positions", "portfolio",
-    "user_states", "journal_entries",
+    "user_states", "journal_entries", "trading_plans",
+    # Copias de seguridad de la migración de esquema (BUG-039). Contienen
+    # operaciones del usuario, así que se borran y se exportan con lo demás.
+    "trades_migration_backup",
+)
+
+# Datos del usuario que se exportan y se borran con la cuenta, pero que la purga
+# por impago NO toca: los referidos son contabilidad del programa, no datos de
+# trading, y purgarlos a los 90 días borraría créditos ya ganados.
+_USER_NON_PURGED_COLLECTIONS = ("referrals",)
+
+# Facturación: se borra con la cuenta y se exporta (en forma resumida), pero la
+# purga por impago NO la toca — quien deja de pagar conserva su histórico.
+_BILLING_COLLECTIONS = ("transactions", "payment_transactions")
+
+# Artefactos de seguridad: se borran con la cuenta y **no se exportan nunca**.
+# Son tokens y revocaciones; mandárselos al usuario en un JSON sería una
+# regresión de seguridad, no portabilidad.
+_SECURITY_ARTEFACT_COLLECTIONS = (
+    "usage_events", "email_verification_tokens", "password_resets",
+    "password_reset_tokens", "user_revocations", "referral_redemptions",
+)
+
+# Todo lo que desaparece al borrar la cuenta (RGPD art. 17).
+_ALL_USER_COLLECTIONS = (
+    *_USER_DATA_COLLECTIONS, *_USER_NON_PURGED_COLLECTIONS,
+    *_BILLING_COLLECTIONS, *_SECURITY_ARTEFACT_COLLECTIONS,
+)
+
+# Copias internas cuyo contenido YA viaja en el export bajo otra clave. Se
+# borran y se purgan como datos del usuario que son, pero exportarlas duplicaría
+# fila por fila lo que ya va en `trades`, con la envoltura de la migración
+# encima. Portabilidad es que el usuario se lleve sus datos, no que se los lleve
+# dos veces.
+_INTERNAL_DUPLICATE_COLLECTIONS = ("trades_migration_backup",)
+
+# Lo que el usuario se puede LLEVAR (RGPD art. 20). Regla que fija el test:
+# todo lo que se borra debe poder exportarse, **menos** los artefactos de
+# seguridad y los duplicados internos. Exportar menos de lo que se borra es
+# precisamente el hueco por el que se colaron `trading_plans` y `journal_entries`.
+_EXPORTABLE_COLLECTIONS = tuple(
+    c for c in (*_USER_DATA_COLLECTIONS, *_USER_NON_PURGED_COLLECTIONS)
+    if c not in _INTERNAL_DUPLICATE_COLLECTIONS
 )
 
 
@@ -2469,11 +2530,10 @@ async def delete_account(request: Request, user: dict = Depends(require_user)):
     await _cancel_stripe_subscriptions_for_user(user_doc)
 
     # 2) Delete all user data across every collection that stores a user_id.
-    for collection in ["trades", "calculations", "alerts", "portfolio",
-                        "user_states", "payment_transactions", "saved_positions",
-                        "referrals", "referral_redemptions", "usage_events",
-                        "email_verification_tokens", "password_resets",
-                        "user_revocations"]:
+    #    Deriva de la tupla única: esta lista escrita a mano se había quedado sin
+    #    `trading_plans` ni `journal_entries` (G-15), así que borrar la cuenta
+    #    dejaba atrás datos personales que el RGPD obliga a eliminar.
+    for collection in _ALL_USER_COLLECTIONS:
         try:
             await getattr(db, collection).delete_many({"user_id": user_id})
         except Exception:
@@ -2511,14 +2571,12 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     # GDPR Art. 20 exists to close. Deliberately excluded: email verification
     # tokens, password resets and token revocations (credentials, not personal
     # data, and shipping them out would be a security regression).
-    trades           = await collect("trades",           {"user_id": user_id})
-    calculations     = await collect("calculations",     {"user_id": user_id})
-    alerts           = await collect("alerts",           {"user_id": user_id})
-    portfolio        = await collect("portfolio",        {"user_id": user_id})
-    saved_positions  = await collect("saved_positions",  {"user_id": user_id})
-    user_states      = await collect("user_states",      {"user_id": user_id})
-    journal_entries  = await collect("journal_entries",  {"user_id": user_id})
-    referrals        = await collect("referrals",        {"user_id": user_id})
+    # Recorre la tupla en vez de enumerar a mano: así una colección nueva entra
+    # en el export por el hecho de estar declarada, y no por acordarse aquí.
+    exported: Dict[str, Any] = {
+        name: await collect(name, {"user_id": user_id})
+        for name in _EXPORTABLE_COLLECTIONS
+    }
 
     # Billing history is the user's own data, but the raw rows carry gateway
     # internals. Ship the fields a person would actually need for their records.
@@ -2531,16 +2589,13 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
 
     payload = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
-        "format_version": 2,
+        "format_version": 3,
         "profile":          safe_user,
-        "trades":           trades,
-        "calculations":     calculations,
-        "alerts":           alerts,
-        "portfolio":        portfolio,
-        "saved_positions":  saved_positions,
-        "preferences":      user_states,
-        "journal_entries":  journal_entries,
-        "referrals":        referrals,
+        **exported,
+        # Alias histórico: `user_states` se publicaba como `preferences`. Se
+        # mantiene para no romper a quien ya parsea el export, además de la
+        # clave con el nombre real de la colección.
+        "preferences":      exported.get("user_states", []),
         "payments":         payments,
     }
 
@@ -2812,31 +2867,43 @@ JOURNAL_STATS_MAX_TRADES = 1000
 ANALYTICS_MAX_TRADES = 1000
 
 
+def _roe_pct(trade: Dict[str, Any]) -> Optional[float]:
+    """Retorno sobre el nominal de entrada, en %. Campo propio del diario legado.
+
+    Se conserva en la RESPUESTA por compatibilidad de API, pero ya no se
+    almacena: es derivable, y un campo derivado guardado es un campo que se
+    queda desfasado en cuanto se edita la operación.
+    """
+    entry = float(trade.get("entry_price") or 0)
+    exit_p = trade.get("exit_price")
+    if not entry or exit_p in (None, ""):
+        return None
+    mult = float(trade.get("multiplier") or 1)
+    direction = 1 if trade.get("side") == "long" else -1
+    return round(((float(exit_p) - entry) / entry) * 100 * mult * direction, 2)
+
+
 @api_router.post("/journal/trades")
 async def create_trade(trade: TradeEntry, user: dict = Depends(require_premium)):
-    trade_doc = {
-        "id": str(uuid.uuid4()),
-        "user_id": user["id"],
-        **trade.dict(),
-        "pnl": None,
-        "roe": None,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    # Calculate P&L if trade is closed
-    if trade.status == "closed" and trade.exitPrice:
-        if trade.direction == "long":
-            pnl = (trade.exitPrice - trade.entryPrice) * trade.quantity * trade.leverage
-            roe = ((trade.exitPrice - trade.entryPrice) / trade.entryPrice) * 100 * trade.leverage
-        else:
-            pnl = (trade.entryPrice - trade.exitPrice) * trade.quantity * trade.leverage
-            roe = ((trade.entryPrice - trade.exitPrice) / trade.entryPrice) * 100 * trade.leverage
-        trade_doc["pnl"] = round(pnl, 2)
-        trade_doc["roe"] = round(roe, 2)
-    
-    await db.trades.insert_one(trade_doc)
-    trade_doc.pop("_id", None)
-    return trade_doc
+    """⚠️ OBSOLETO — usar `POST /performance/trades`.
+
+    Se mantiene por compatibilidad de API (acepta el mismo payload camelCase de
+    siempre), pero **persiste ya en el esquema canónico snake_case**. Antes
+    guardaba camelCase en la misma colección que el módulo de performance, y ese
+    choque de esquemas hacía que el P&L se leyera como 0 y se persistiera como 0
+    al primer edit (BUG-039). Escribir dos esquemas en una colección no se
+    arregla traduciendo al leer: hay que dejar de generarlos.
+    """
+    # `normalize_trade_schema` traduce el payload camelCase al canónico, y
+    # `make_trade_doc` lo completa igual que la ruta viva: un solo esquema.
+    payload = normalize_trade_schema(trade.dict())
+    doc = make_trade_doc(payload, user["id"])
+    plan = await get_active_plan(db, user["id"])
+    if plan:
+        doc["plan_version"] = plan.get("version")
+    enriched = _enrich_trade(doc, plan=plan)
+    await db.trades.insert_one({k: v for k, v in enriched.items() if k != "_id"})
+    return {**enriched, "roe": _roe_pct(enriched)}
 
 @api_router.get("/journal/trades")
 async def get_trades(
@@ -2870,35 +2937,38 @@ class TradeUpdate(BaseModel):
 
 @api_router.put("/journal/trades/{trade_id}")
 async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends(require_premium)):
-    trade = await db.trades.find_one({"id": trade_id, "user_id": user["id"]})
-    if not trade:
+    """⚠️ OBSOLETO — usar `PUT /performance/trades/{id}`.
+
+    Traduce el documento almacenado y el parche al esquema canónico antes de
+    recalcular. Esta ruta era la mitad del BUG-039: recalculaba el P&L leyendo
+    `entryPrice`/`leverage` sobre un documento que podía ser del otro esquema, y
+    escribía el resultado sin tocar las claves del esquema contrario.
+    """
+    existing = await db.trades.find_one({"id": trade_id, "user_id": user["id"]}, {"_id": 0})
+    if not existing:
         raise HTTPException(status_code=404, detail="Trade no encontrado")
 
-    safe_updates = {k: v for k, v in updates.dict(exclude_unset=True).items() if v is not None}
+    patch = normalize_trade_schema(
+        {k: v for k, v in updates.dict(exclude_unset=True).items() if v is not None}
+    )
+    merged = {**normalize_trade_schema(existing), **patch}
+    if merged.get("exit_price") not in (None, "") and not patch.get("status"):
+        merged["status"] = "closed"
 
-    # Recalculate P&L if closing
-    if safe_updates.get("status") == "closed" and safe_updates.get("exitPrice"):
-        direction = trade.get("direction", safe_updates.get("direction"))
-        entry = trade.get("entryPrice", safe_updates.get("entryPrice"))
-        exit_price = safe_updates.get("exitPrice")
-        quantity = trade.get("quantity", safe_updates.get("quantity", 1))
-        leverage = trade.get("leverage", safe_updates.get("leverage", 1))
-
-        if direction == "long":
-            pnl = (exit_price - entry) * quantity * leverage
-            roe = ((exit_price - entry) / entry) * 100 * leverage
-        else:
-            pnl = (entry - exit_price) * quantity * leverage
-            roe = ((entry - exit_price) / entry) * 100 * leverage
-
-        safe_updates["pnl"] = round(pnl, 2)
-        safe_updates["roe"] = round(roe, 2)
+    prev = [t for t in await trades_for_user(db, user["id"], limit=50)
+            if t.get("id") != trade_id]
+    enriched = _enrich_trade(merged, prev_trades=prev,
+                             plan=await get_active_plan(db, user["id"]))
+    enriched.pop("_id", None)
 
     await db.trades.update_one(
         {"id": trade_id, "user_id": user["id"]},
-        {"$set": safe_updates}
+        # `$set` no borra: sin el `$unset`, las claves camelCase del documento
+        # viejo sobreviven junto a las canónicas recién escritas y el choque de
+        # esquemas se reproduce en el mismo documento que acabamos de arreglar.
+        {"$set": enriched, "$unset": {k: "" for k in LEGACY_TRADE_KEYS if k in existing}},
     )
-    return {"message": "Trade actualizado"}
+    return {"message": "Trade actualizado", **enriched}
 
 @api_router.delete("/journal/trades/{trade_id}")
 async def journal_delete_trade(trade_id: str, user: dict = Depends(require_premium)):
@@ -6576,7 +6646,11 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
         updates["setups"] = names
         updates["setup"] = SETUP_SEPARATOR.join(names)
 
-    merged = {**existing, **updates}
+    # Normalizar ANTES de fusionar: si el documento almacenado es del diario
+    # legado, `{**existing, **updates}` dejaría `entryPrice` conviviendo con el
+    # `entry_price` del parche, y el enriquecido se escribiría sobre un
+    # documento con los dos esquemas dentro.
+    merged = {**normalize_trade_schema(existing), **updates}
     prev = [t for t in await trades_for_user(db, user["id"], limit=50)
             if t.get("id") != trade_id]
     enriched = _enrich_trade(merged, prev_trades=prev)
@@ -6584,7 +6658,9 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
 
     await db.trades.update_one(
         {"id": trade_id, "user_id": user["id"]},
-        {"$set": enriched},
+        # `$set` no borra claves: el `$unset` es lo que impide que un documento
+        # migrado al vuelo conserve las camelCase que lo hacían ilegible.
+        {"$set": enriched, "$unset": {k: "" for k in LEGACY_TRADE_KEYS if k in existing}},
     )
     return enriched
 
@@ -7310,8 +7386,9 @@ async def admin_delete_user(request: Request, user_id: str, admin: dict = Depend
         raise HTTPException(status_code=400, detail="No se puede borrar el usuario demo")
 
     await db.users.delete_one({"id": user_id})
-    # Best-effort cascade (ignore if collections don't exist)
-    for coll in ("calculations", "trades", "journal_entries", "alerts", "transactions"):
+    # Best-effort cascade (ignore if collections don't exist). Deriva de la
+    # tupla única: enumerarlas aquí a mano es lo que dejó fuera `trading_plans`.
+    for coll in (*_USER_DATA_COLLECTIONS, *_ACCOUNT_ONLY_COLLECTIONS):
         try:
             await db[coll].delete_many({"user_id": user_id})
         except Exception:

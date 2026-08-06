@@ -15,7 +15,7 @@ hallazgo se contrastó contra el código; uno de ellos resultó estar mal diagno
 
 | # | Hallazgo | Verificado | Estado |
 |---|---|---|---|
-| 1 | Dos esquemas incompatibles en `db.trades`; el P&L se reescribe a 0 | ✅ **Reproducido ejecutando el código** | ⏳ BUG-039 — Fase 1+2 |
+| 1 | Dos esquemas incompatibles en `db.trades`; el P&L se reescribe a 0 | ✅ **Reproducido ejecutando el código** | ✅ **Resuelto** — BUG-039 |
 | 2 | Tres diarios paralelos, uno solo en `localStorage` | ✅ Confirmado | ✅ BUG-042 — congelado |
 | 3 | Diario de una sola pata: no admite spreads, condors, calendars ni PMCC | ✅ Confirmado (cero apariciones de `legs`) | ⏳ Fase 1 |
 | 4 | `/journal/stats` calcula drawdown y rachas sin ordenar | ✅ Confirmado | ✅ BUG-040 |
@@ -85,20 +85,36 @@ Verificación: 564 tests del backend en verde (14 nuevos en
 `tests/test_journal_stats_unit.py`), `py_compile` de todos los módulos, eslint sin
 errores, paridad de los 10 idiomas, `engine-check` 141/141 y `npm run build`.
 
-## 4. Lo que sigue pendiente
+## 4. El arreglo del esquema (2026-08-06)
 
-Por orden de dependencia:
+BUG-039 está **cerrado**, en cuatro capas — traducir al leer no basta si se
+siguen generando documentos divergentes:
+
+1. `normalize_trade_schema` dentro de `compute_trade_pnl`: punto único por el que
+   pasa todo el P&L, así que un documento legado vale su importe real en cualquier
+   ruta desde el despliegue. `leverage` → `multiplier` recupera el importe
+   **exacto** (misma posición en la fórmula), no una aproximación.
+2. `POST /journal/trades` **persiste ya en el esquema canónico**: se corta la
+   fuente, que es lo que impide que el problema se regenere.
+3. Los dos `PUT` hacen `$unset` de las claves viejas — `$set` no borra.
+4. `migrate_trades_schema.py`: idempotente, dry-run por defecto, backup y
+   `--rollback`. Un documento cuyo importe recalculado no cuadre con el guardado
+   se marca para revisión y **no se toca**.
+
+Verificado contra Postgres 16 real, no solo unitario.
+
+> ⚠️ La colección nueva `trades_migration_backup` obligó a dar de alta la tabla en
+> `known` y en las rutas del RGPD. Ese trámite ya no es manual: las cuatro listas
+> derivan ahora de una sola tupla (BUG-044), que además cerró G-15.
+
+## 5. Lo que sigue pendiente
 
 1. **Modelo unificado multi-pata** (`Position` → `Leg` → `Execution`, colección
-   nueva `positions`). Bloquea todo lo demás: la analítica de opciones sobre el
-   esquema actual es deuda garantizada, y sin P&L neteado entre patas un credit
-   spread no tiene número correcto posible. Recordatorio de `CLAUDE.md`: una
-   colección nueva se da de alta en **cuatro** listas (`known`, `delete_account`,
-   `_USER_DATA_COLLECTIONS` y el export de `/auth/my-data`), no solo en la primera.
-2. **Migración con recuperación del P&L a cero** (BUG-039). Cuanto más se tarde,
-   más documentos corrompe `perf_update_trade`. Normalizar camelCase → snake_case
-   **antes** de convertir es la única forma de recuperar el importe original.
-3. **Vocabulario de opciones en el plan** (IV rank, DTE, delta, gestión a X DTE,
+   nueva `positions`). Es lo que queda del cuello de botella: sin P&L neteado
+   entre patas un credit spread no tiene número correcto posible, y el diario
+   sigue sin poder registrar un spread, un condor, un calendar ni un PMCC (G-21).
+   Es una **reconstrucción**, no un arreglo.
+2. **Vocabulario de opciones en el plan** (IV rank, DTE, delta, gestión a X DTE,
    límite de buying power). `require_stop_loss` no debe aplicarse a riesgo
    definido: hoy penaliza como error una operación correctamente construida.
 4. **Analítica y gráficos de opciones**, y visibilidad pública.

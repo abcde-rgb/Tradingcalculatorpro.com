@@ -297,6 +297,86 @@ def _risk_adjusted_metrics(
     }
 
 
+# ─── Legacy schema normalisation ──────────────────────────────────
+
+# `POST /journal/trades` (el diario legado) y `POST /performance/trades` escriben
+# en la MISMA colección `db.trades` con esquemas distintos, y ninguno filtraba al
+# leer. Un documento camelCase llegaba a `compute_trade_pnl`, que busca
+# `entry_price`, no lo encontraba, y salía por la rama de `entry == 0` con
+# `pnl = 0.0`. Como `perf_update_trade` hace `{"$set": enriched}`, ese cero se
+# PERSISTÍA al primer edit y el importe original se perdía (BUG-039).
+#
+# El mapeo clave es `leverage` → `multiplier`: en el diario legado el P&L es
+# `(exit − entry) × quantity × leverage` y en el nuevo
+# `(exit − entry) × quantity × multiplier`. Misma estructura, así que la
+# traducción reproduce el importe **exacto** que el usuario vio. No es una
+# aproximación.
+_LEGACY_FIELD_MAP = {
+    "entryPrice": "entry_price",
+    "exitPrice": "exit_price",
+    "stopLoss": "sl",
+    "takeProfit": "tp",
+    "direction": "side",
+    "leverage": "multiplier",
+}
+
+
+# Claves que deben desaparecer del documento almacenado. Incluye `roe`, que era
+# un campo DERIVADO guardado: se recalcula al vuelo en la respuesta, y guardarlo
+# sólo garantizaba que quedara desfasado en cuanto se editara la operación.
+LEGACY_TRADE_KEYS = frozenset(_LEGACY_FIELD_MAP) | {"roe"}
+
+
+def is_legacy_trade(trade: dict) -> bool:
+    """¿Este documento viene del diario legado (camelCase)?"""
+    return any(k in trade for k in _LEGACY_FIELD_MAP)
+
+
+def normalize_trade_schema(trade: dict) -> dict:
+    """Traduce un documento del diario legado al esquema canónico snake_case.
+
+    **Idempotente**: un documento ya canónico sale igual que entró, así que es
+    seguro llamarla en cualquier punto de lectura y llamarla dos veces.
+
+    Ante un conflicto (existen las dos claves) **manda la canónica**: es la que
+    escribe el módulo vivo, y la camelCase sólo puede ser un resto sin migrar.
+
+    Las claves legacy se **retiran** de la salida: dejarlas ahí es lo que
+    mantiene vivos dos esquemas en la misma colección. La limpieza de lo ya
+    almacenado la hace `scripts/migrate_trades_schema.py` con `$unset`.
+    """
+    if not is_legacy_trade(trade):
+        return trade
+
+    # Se filtra por LEGACY_TRADE_KEYS, no por el mapa: además de los campos
+    # renombrados hay que soltar `roe`, que era un derivado ALMACENADO y ahora
+    # se recalcula en la respuesta.
+    out = {k: v for k, v in trade.items() if k not in LEGACY_TRADE_KEYS}
+    for legacy_key, canonical_key in _LEGACY_FIELD_MAP.items():
+        if legacy_key not in trade:
+            continue
+        # Canónica presente y con valor → gana ella, se descarta la legacy.
+        if out.get(canonical_key) not in (None, ""):
+            continue
+        value = trade[legacy_key]
+        if value not in (None, ""):
+            out[canonical_key] = value
+
+    # El diario legado no tenía `entry_date`: sólo `created_at`. Sin rellenarlo,
+    # `sort_trades_chronologically` lo manda a la época y `perf_list_trades`
+    # (que ordena por `entry_date`) lo hunde al final — justo el orden que
+    # acabamos de arreglar en /journal/stats.
+    if not out.get("entry_date") and trade.get("created_at"):
+        out["entry_date"] = trade["created_at"]
+
+    # `instrument_type` y `multiplier` tienen defaults en el esquema canónico;
+    # un documento legado sin ellos debe leerse como spot ×1, no como ausente.
+    out.setdefault("instrument_type", "spot")
+    if out.get("multiplier") in (None, ""):
+        out["multiplier"] = 1.0
+    return out
+
+
 # ─── Trade computation ────────────────────────────────────────────
 
 def compute_trade_pnl(trade: dict) -> dict:
@@ -313,6 +393,10 @@ def compute_trade_pnl(trade: dict) -> dict:
     returned an undefined number of R, and averaging it in as a zero drags the
     mean toward the middle and puts a fake spike in the 0R..1R bucket.
     """
+    # Punto único por el que pasa TODO cálculo de P&L, así que es donde se
+    # traduce el esquema legado: con esto un documento del diario antiguo vale
+    # su importe real en cualquier ruta de lectura, sin esperar a la migración.
+    trade = normalize_trade_schema(trade)
     out = {**trade}
     side = trade.get("side", "long")
     entry = float(trade.get("entry_price") or 0)

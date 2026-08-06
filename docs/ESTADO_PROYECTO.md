@@ -139,11 +139,11 @@
 | G-13 | **11 tarjetas del panel admin se quedaban vacías tras recargar** (efecto con deps `[]` que disparaba `Bearer null` y nunca reintentaba) | 🟠 | ✅ **Cerrado (2026-07-27)**: hook `useAuthedLoad` compartido, que espera al token real y relanza la carga cuando llega |
 | G-09 | ~~**i18n incompleto**: 6 idiomas con ~290 claves sin traducir → caían a español~~ | 🟢 | ✅ **Cerrado (2026-07-11)**: backfill completo (candlestick, armónicos, opciones Black-Scholes/futuros/volatilidad/griegas, estrategias 6-9, auth, sesgos). Los 8 locales con sets idénticos (4401 c/u), 0 huecos. Eliminadas 9 claves muertas de de/fr/ru |
 | G-14 | **Cuatro módulos de backend terminados que ningún usuario puede usar.** `trading_plan.py` (558 líneas, `/plan`, `/plan/history`, `/plan/draft`, `/plan/compliance`), `backtest.py` (642, `/backtest/validate`, `/backtest/strategies`), `portfolio_risk.py` (290, `/performance/portfolio-risk`) y `american_options.py` (282, riesgo de asignación temprana). Grep en `frontend/src`: **cero llamadas** a esos endpoints. Lo mismo con `/options/term-structure` — `PositioningPanel` sólo consume `/options/positioning` | 🔴 | Es el mayor hueco abierto del proyecto: ~1770 líneas escritas, probadas y pagadas que no producen valor. `PLAN_DE_TRADING_spec.md` ya especifica el asistente del plan; empezar por ahí, porque además es la fuente de umbrales de `detect_errors` |
-| G-15 | **`trading_plans` no entra en las tres rutas del RGPD.** La colección guarda `user_id` (tiene índice propio) pero no aparece en la lista de `delete_account`, ni en `_USER_DATA_COLLECTIONS` (purga por retención), ni en el export de `/auth/my-data`. Borrar la cuenta deja los planes en la base de datos | 🟠 | Añadir `"trading_plans"` a las tres listas de `server.py` y un test que recorra las colecciones con `user_id` para que no vuelva a pasar con la siguiente |
+| G-15 | ~~**`trading_plans` no entra en las tres rutas del RGPD.**~~ La colección guardaba `user_id` pero no aparecía en `delete_account`, ni en `_USER_DATA_COLLECTIONS`, ni en el export de `/auth/my-data` | 🟢 | ✅ **Cerrado (2026-08-06)**: arreglada la CAUSA, no el síntoma — había **cuatro listas escritas a mano** y ahora derivan de una sola tupla (`_USER_DATA_COLLECTIONS` → `_ALL_USER_COLLECTIONS` → `_EXPORTABLE_COLLECTIONS`). El borrado de cuenta también se había quedado sin `journal_entries`. `test_user_data_collections_unit.py` fija que lo que se purga se borra y lo que se borra se puede exportar (salvo artefactos de seguridad) |
 | G-16 | **Grupo B del saneamiento de licencias, sin hacer.** Acciones y ETFs de EE. UU., los 23 índices, los 15 futuros de materias primas y la cadena de opciones siguen saliendo de **Yahoo**, cuya licencia no permite redistribuir el dato en un producto de pago. El 2026-08-02 se retiró la *mención* pública, no la dependencia | 🟠 | Decisión de negocio con coste: IEX para acciones, ETF equivalentes para índices y materias primas, cadena sintética para opciones. **Cambia lo que ve el usuario**, por eso está parado |
 | G-17 | **El shim `Collection` sigue sin tests.** Es la capa casera (~750 líneas) que traduce Mongo→SQL y de la que depende **todo** el backend. Bloquea el refactor de `server.py` (BUG-008): partir 8232 líneas sin red es cambiar deuda por riesgo | 🟠 | T-03 del backlog de auditoría: `$set/$inc/$push/$unset/$or/$in/$regex`, agregación y `find_one_and_update`, contra PostgreSQL real |
 | G-18 | **`check-doc-links.py` no corre en CI.** Existe, funciona (47 documentos, 0 roturas) y sólo se ejecuta si alguien se acuerda. `PENDIENTES.md` acumuló dos referencias a documentos inexistentes (`CRECIMIENTO_GOOGLE.md`, `CHECKLIST_MODO_CASI_GRATIS.md`) sin que nada avisara — sobrevivieron porque iban en `código` y no como enlace markdown | 🟡 | Añadir el paso a `ci.yml`. Coste: 3 líneas |
-| G-20 | **Dos esquemas incompatibles escribiendo en `db.trades`, y el P&L se pierde.** `POST /journal/trades` guarda en camelCase (`entryPrice`) y `POST /performance/trades` en snake_case (`entry_price`), **en la misma colección**, y ninguno filtra por esquema al leer. `compute_trade_pnl` no encuentra `entry_price` en un documento del diario legado, sale por la rama temprana y devuelve `pnl = 0.0`; `perf_update_trade` hace `{"$set": enriched}`, así que **el cero se persiste al primer edit**. Reproducido ejecutando el código (BUG-039) | 🔴 | Modelo unificado multi-pata (`Position`→`Leg`→`Execution`) + migración que normalice camelCase **antes** de convertir. Parchear solo la lectura no recupera lo ya corrompido. Ver `AUDITORIA_DIARIO.md` |
+| G-20 | ~~**Dos esquemas incompatibles escribiendo en `db.trades`, y el P&L se pierde.**~~ `POST /journal/trades` guardaba camelCase (`entryPrice`) y `POST /performance/trades` snake_case (`entry_price`), **en la misma colección**, y ninguno filtraba al leer: `compute_trade_pnl` no encontraba `entry_price`, salía por la rama de `entry == 0` y devolvía `pnl = 0.0`, que `perf_update_trade` **persistía** al primer edit | 🟢 | ✅ **Cerrado (2026-08-06)**: `normalize_trade_schema` traduce en `compute_trade_pnl` (punto único por el que pasa todo el P&L), el endpoint legado **escribe ya en el esquema canónico**, los dos `PUT` hacen `$unset` de las claves viejas, y `migrate_trades_schema.py` limpia lo almacenado con backup y rollback. El mapeo `leverage`→`multiplier` recupera el importe **exacto**: misma posición en la fórmula. Verificado contra Postgres real |
 | G-21 | **El diario no puede registrar una operación de opciones de más de una pata.** `make_trade_doc` tiene `option_type`, `strike` y `expiry` en **singular**; cero apariciones de `legs` en todo el módulo. En una web de opciones, el diario no admite un spread, un iron condor, un calendar ni un PMCC. Arrastra el R-múltiplo: en riesgo definido no hay stop de precio, así que `r_multiple` sale `None` en casi toda operación de opciones y con él se caen la distribución de R y el scatter MAE/MFE | 🔴 | Es el cuello de botella de la analítica de opciones. El riesgo debe definirse como `max_loss` de la estructura, no como `\|entry − sl\|` |
 | G-22 | **Dos fuentes de verdad para las mismas estadísticas.** `dashboard/JournalStats.jsx` y `education/ExpectancyCalculator.jsx` leen `/journal/stats`; `services/performanceApi.js` y `education/JournalEdgeButton.jsx` leen `/performance/analytics`. Fórmulas distintas sobre la misma colección → el usuario ve **dos expectancies distintas** según la pantalla | 🟠 | Converge al unificar el modelo (G-20). Mientras tanto, las dos rutas ya ordenan cronológicamente y tratan igual el breakeven |
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
@@ -3418,3 +3418,73 @@ Por orden de dependencia: **modelo unificado multi-pata** (G-20/G-21) → **migr
 con recuperación del P&L a cero** → vocabulario de opciones en el plan → analítica y
 gráficos. Antes de escribir módulo nuevo, mirar **G-14**: cuatro módulos ya escritos y
 con tests siguen esperando interfaz.
+
+---
+
+## 2026-08-06 (2) — El backend, entero: se deja de perder el P&L
+
+Segunda pasada sobre la auditoría, esta vez arreglando lo que la Fase 0 dejó
+documentado a propósito.
+
+### BUG-039 cerrado — el P&L ya no se pierde
+
+Cuatro capas, porque **traducir al leer no basta si se siguen generando
+documentos divergentes**:
+
+1. **`normalize_trade_schema`** llamada desde `compute_trade_pnl`, que es el punto
+   único por el que pasa todo cálculo de P&L: un documento del diario legado vale
+   su importe real en cualquier ruta de lectura desde el despliegue, sin esperar
+   a la migración. El mapeo que lo hace posible es `leverage` → `multiplier`:
+   ambos ocupan **la misma posición en la fórmula** (`(exit−entry) × qty × X`),
+   así que la traducción reproduce el importe **exacto**. Verificado con
+   apalancamiento 1, 3, 5 y 10, y en corto.
+2. **`POST /journal/trades` persiste ya en snake_case.** Sigue aceptando el
+   payload camelCase de siempre (compatibilidad de API), pero deja de crear
+   documentos del esquema viejo. Cortar la fuente es lo que impide que esto se
+   regenere solo.
+3. **Los dos `PUT` hacen `$unset`** de las claves legacy. `$set` no borra: sin
+   esto, un documento migrado al vuelo conservaba las camelCase junto a las
+   canónicas y el choque se reproducía en el documento recién arreglado.
+4. **`backend/migrate_trades_schema.py`**: idempotente, **dry-run por defecto**,
+   copia en `trades_migration_backup` y `--rollback`. Un documento cuyo P&L
+   recalculado no cuadre con el guardado se marca para revisión y **no se toca**
+   — migrarlo escribiría una cifra que el usuario nunca vio.
+
+`roe` deja de almacenarse: era un campo derivado guardado, es decir, condenado a
+desfasarse en cuanto se editara la operación. Se recalcula en la respuesta.
+
+### BUG-044 — las cuatro listas del RGPD, unificadas (cierra G-15)
+
+`trading_plans` no estaba en la purga por retención, ni en `delete_account`, ni
+en el export. Al arreglarlo apareció que el borrado de cuenta del **usuario**
+tenía *otra* lista distinta de la del admin, también incompleta (le faltaba
+`journal_entries`).
+
+**La causa no era que la lista estuviera mal: era que había cuatro.** Ahora
+derivan de una sola tupla, con las categorías que tienen semántica propia
+declaradas como tales: facturación (se borra, no se purga por impago),
+referidos (créditos ganados, no datos de trading) y artefactos de seguridad
+(se borran y **nunca** se exportan — mandarle sus tokens al usuario es una
+regresión de seguridad, no portabilidad).
+
+### Verificado contra Postgres real, no solo unitario
+
+Se tocó persistencia, así que los unitarios no bastaban. Con Postgres 16 por
+socket: `$unset` efectivo, tablas nuevas creadas, importes intactos tras migrar
+(10,0 / 40,0 / 60,0 exactos), el documento sospechoso sin tocar, y rollback
+restaurando. El script de migración se ejecutó de verdad: dry-run → apply →
+segunda pasada (0 migrables, idempotente) → rollback.
+
+`pytest` **601 passed / 74 skipped** (+37) · `py_compile` OK · ESLint 0 errores ·
+i18n 10 idiomas · `engine-check` 141/141 · `check-doc-links` 49 documentos.
+
+### Lo que queda
+
+**G-21, el diario de una sola pata.** Sigue sin poder registrar un spread, un
+condor, un calendar ni un PMCC. Eso ya no es un arreglo: es la reconstrucción del
+modelo (`Position` → `Leg` → `Execution`). El trámite que antes la hacía cara
+—dar de alta la colección en cuatro listas— ya no existe.
+
+⚠️ **El backend no se despliega solo.** Nada de esto está vivo hasta un
+`cloudbuild.yaml` a mano, y la migración es un paso aparte que se lanza contra la
+base de producción (`--apply`) **después** de desplegar.
