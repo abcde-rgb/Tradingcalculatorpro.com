@@ -32,7 +32,7 @@
 | **Tests offline** | 🟢 | `pytest tests/` → **545 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5770 claves × 10 idiomas, 0 huecos** · `engine-check` **120/120** (2026-08-05) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5793 claves × 10 idiomas, 0 huecos** · `engine-check` **133/133** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3265,3 +3265,39 @@ Petición del propietario: que el setup permita **sacar excesos mensuales**, pon
   retirada que el saldo no supera, patrimonio que cuenta lo retirado, y que retirar no
   inventa dinero) · `pytest` **545 passed / 74 skipped** (+2) · ESLint 0 errores ·
   `i18n-check` **5770 claves × 10 idiomas, 0 huecos** (+18) · `npm run build` exit 0.
+
+### 2026-08-05 (8) — Modelo por mes/trimestre/año y el precio de la caja
+Petición del propietario: analizar los resultados que da el panel, estudiar si el R:R se
+mide mejor por operación o sobre el conjunto mensual, modelar **trimestre y año**, y que
+el trader entienda por qué esto es lo que más le da a largo plazo.
+
+- 🐛 **Bug encontrado ejecutando el análisis, no leyendo el código.** La ruina se medía
+  sobre el SALDO de la cuenta: quien retira el exceso todos los meses deja el saldo
+  pegado al techo a propósito, así que salía **«ruina 100 %»** teniendo el triple fuera.
+  Ahora se mide sobre el **patrimonio** (saldo + retirado) contra el dinero puesto
+  (inicial + aportado), y se publica aparte **`probabilityOfAccountWiped`**: quedarse sin
+  cuenta con la que operar es otro suceso, y quien retira puede sufrirlo sin arruinarse.
+- ✅ **Rendimiento por periodo (mes / trimestre / año)**, compuesto y no sumado —un +10 %
+  seguido de un −10 % no es 0, es −1 %—: típico, malo (p5), bueno (p95) y **porcentaje de
+  periodos en rojo**, que es lo que hay que aguantar para llegar al resultado final.
+- ✅ **«¿Cada cuánto llego al objetivo?»** Un objetivo mensual se traduce a su compuesto
+  trimestral y anual (10 % mensual = 33 % trimestral = **214 % anual**) y se dice qué
+  porcentaje de periodos lo alcanza. Es la forma de ver que un número «normal» al mes es
+  extraordinario al año.
+- ✅ **El precio de la caja** (`cashflowCost`): con los MISMOS números, patrimonio mediano
+  aplicando las reglas del usuario frente a dejarlo componer. En el escenario de prueba
+  (0,5 R por operación, 20 ops/mes, 5 años) sale **$70.000 retirando** frente a
+  **$3.477.121 componiendo**: ×50. Las dos son decisiones legítimas —lo retirado ya no lo
+  pierde una racha— pero la diferencia se subestima siempre porque la intuición es lineal
+  y el compuesto no.
+- 📊 **Estudio del R:R por operación vs agregado mensual** (números en la respuesta de la
+  sesión): con el MISMO 0,5 R por operación, pasar de 5 a 40 operaciones al mes lleva la
+  mediana mensual del 2,5 % al 22 % y los meses en rojo del 18,6 % al 1,9 %. **Miden cosas
+  distintas**: el R:R por operación mide la ventaja (converge rápido, ~240 datos al año);
+  el agregado mensual mide lo que esa ventaja produce en tu calendario (12 datos al año,
+  converge 20 veces más lento — por eso hay que simularlo). Un tope o una retirada
+  mensuales se deciden con el segundo, nunca con el primero.
+- ✅ **Verificado**: `engine-check` **133/133** (+13: ruina bien medida con retiradas,
+  cuenta arrasada, periodos compuestos y no sumados, menos periodos rojos al alargar el
+  periodo, la traducción 10 %→33 %→214 % y el coste del compuesto) · `pytest` **545
+  passed** · ESLint 0 errores · `i18n-check` **5793 claves × 10 idiomas** (+23) · build OK.

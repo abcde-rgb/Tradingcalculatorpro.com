@@ -120,6 +120,11 @@ function runOnePath(cfg, rnd) {
   let withdrawn = 0;
   let monthsCapped = 0;
   let months = 0;
+  let minBalance = initialBalance;
+  // Rentabilidad de cada mes, sobre el saldo con el que empezó ese mes. Es la
+  // unidad sobre la que actúan las reglas de caja, así que es la que hay que
+  // publicar: un tope mensual no se decide mirando la media por operación.
+  const monthlyReturns = [];
   const fixedRisk = initialBalance * (riskPct / 100);
 
   let done = 0;
@@ -149,9 +154,13 @@ function runOnePath(cfg, rnd) {
       const risk = compound ? Math.max(0, balance) * (riskPct / 100) : fixedRisk;
       balance += rnd() < winRate / 100 ? risk * payoff : -risk;
       if (balance > peak) peak = balance;
+      if (balance < minBalance) minBalance = balance;
       const dd = peak > 0 ? ((peak - balance) / peak) * 100 : 0;
       if (dd > maxDD) maxDD = dd;
     }
+
+    // Lo que ha rendido el mes, antes de tocar la caja.
+    if (monthStart > 0) monthlyReturns.push(((balance - monthStart) / monthStart) * 100);
 
     // 3) Fin de mes: se retira lo que pase del techo. El máximo histórico baja
     //    con el dinero retirado, o el mes siguiente arrancaría "en drawdown".
@@ -172,9 +181,17 @@ function runOnePath(cfg, rnd) {
     withdrawn,
     monthsCapped,
     months,
+    monthlyReturns,
     maxDrawdown: maxDD,
     roi: capitalIn > 0 ? ((netWorth - capitalIn) / capitalIn) * 100 : 0,
-    ruined: balance <= capitalIn * (1 - RUIN_THRESHOLD),
+    // RUINA = haber perdido la mitad del dinero PUESTO, contando lo que ya
+    // sacaste. Medirla sobre el saldo de la cuenta daba "ruina" a quien retira
+    // el exceso todos los meses —su saldo se queda a propósito en el suelo—
+    // aunque tenga el triple fuera. Eso decía justo lo contrario de la verdad.
+    ruined: netWorth <= capitalIn * (1 - RUIN_THRESHOLD),
+    // Y aparte: quedarse sin cuenta con la que operar. Es otro suceso, no una
+    // pérdida de patrimonio, y al trader le importan los dos.
+    wiped: minBalance <= initialBalance * 0.05,
     profitable: netWorth > capitalIn,
   };
 }
@@ -201,6 +218,22 @@ const summarize = (values) => {
   };
 };
 
+/**
+ * Agrupa las rentabilidades mensuales de un camino en periodos y las compone.
+ *
+ * Componer y no sumar no es un detalle: un +10 % seguido de un −10 % no es 0,
+ * es −1 %. Sumar meses haría que el panel prometiera trimestres que no existen.
+ */
+function compoundPeriods(monthly, size) {
+  const out = [];
+  for (let i = 0; i + size <= monthly.length; i += size) {
+    let factor = 1;
+    for (let k = 0; k < size; k += 1) factor *= 1 + monthly[i + k] / 100;
+    out.push((factor - 1) * 100);
+  }
+  return out;
+}
+
 /** Muchas secuencias de la misma configuración → la distribución. */
 export function runPaths(cfg, iterations = DEFAULT_MC_ITERATIONS) {
   const n = Math.max(1, Math.min(20000, Math.floor(iterations)));
@@ -226,7 +259,75 @@ export function runPaths(cfg, iterations = DEFAULT_MC_ITERATIONS) {
     months: summarize(paths.map((p) => p.months)),
     monthsCapped: summarize(paths.map((p) => p.monthsCapped)),
     probabilityOfRuin: round2((paths.filter((p) => p.ruined).length / n) * 100),
+    probabilityOfAccountWiped: round2((paths.filter((p) => p.wiped).length / n) * 100),
     probabilityOfProfit: round2((paths.filter((p) => p.profitable).length / n) * 100),
+    // El rendimiento POR PERIODO, que es lo que se puede comparar con "quiero
+    // un 10 % al mes". El total de una proyección no dice si ese 10 % se toca
+    // alguna vez: la media puede salir de dos meses excelentes y diez planos.
+    periods: periodStats(paths),
+  };
+}
+
+/**
+ * Distribución del rendimiento por mes, trimestre y año.
+ *
+ * Un objetivo mensual sólo se puede juzgar mirando LA DISTRIBUCIÓN DE MESES, no
+ * el resultado final: con la misma ventaja, la mitad de los meses puede quedar
+ * por debajo del objetivo y aun así el año sale redondo. `hitRate` responde
+ * exactamente a "¿cada cuánto llego de verdad?" y `negativeRate` a "¿cada
+ * cuánto me toca un periodo en rojo?", que es lo que de verdad hay que
+ * aguantar.
+ */
+function periodStats(paths) {
+  const build = (size) => {
+    const all = [];
+    for (const p of paths) all.push(...compoundPeriods(p.monthlyReturns, size));
+    if (!all.length) return null;
+    const sorted = Float64Array.from(all).sort();
+    return {
+      ...summarize(all),
+      count: all.length,
+      // Periodos en rojo: lo que de verdad hay que aguantar para llegar al
+      // resultado de arriba.
+      negativeRate: round2((all.filter((v) => v < 0).length / all.length) * 100),
+      samples: sorted,
+    };
+  };
+  return { month: build(1), quarter: build(3), year: build(12) };
+}
+
+/** Proporción de periodos que llegan al objetivo (sobre la muestra ordenada). */
+function rateAtLeast(sorted, target) {
+  if (!sorted || !sorted.length) return null;
+  let lo = 0;
+  let hi = sorted.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid] < target) lo = mid + 1;
+    else hi = mid;
+  }
+  return round2(((sorted.length - lo) / sorted.length) * 100);
+}
+
+/**
+ * ¿Cada cuánto se llega de verdad a un objetivo mensual?
+ *
+ * Se expone aparte porque el objetivo es una pregunta del usuario ("quiero un
+ * 10 % al mes"), no una propiedad de la simulación. Y se traduce a trimestre y
+ * año COMPUESTOS, que es donde se ve lo que se está pidiendo: un 10 % mensual
+ * es un 33 % trimestral y un 214 % anual. Ver esas tres cifras juntas es la
+ * mitad de la lección.
+ */
+export function hitRates(distribution, monthlyTargetPct) {
+  const t = num(monthlyTargetPct);
+  const p = distribution?.periods;
+  if (t == null || !p?.month) return null;
+  const q = ((1 + t / 100) ** 3 - 1) * 100;
+  const y = ((1 + t / 100) ** 12 - 1) * 100;
+  return {
+    month: { target: round2(t), rate: rateAtLeast(p.month.samples, t) },
+    quarter: { target: round2(q), rate: rateAtLeast(p.quarter?.samples, q) },
+    year: { target: round2(y), rate: rateAtLeast(p.year?.samples, y) },
   };
 }
 
@@ -327,6 +428,47 @@ export function project(analytics, { group = null, overrides = {}, iterations } 
   }, iterations || DEFAULT_MC_ITERATIONS);
 
   return { ...base, ok: true, reason: null, distribution: mc };
+}
+
+/**
+ * El precio de las reglas de caja, con los MISMOS números del usuario.
+ *
+ * Es la comparación que decide una vida de trading y que casi nadie hace:
+ * dejar correr el interés compuesto frente a cobrar el exceso cada mes. Las dos
+ * son decisiones legítimas —el dinero retirado no lo puede perder una racha
+ * mala— pero cuestan lo que cuestan, y sin verlas juntas la diferencia se
+ * subestima siempre, porque una crece de forma exponencial y la intuición
+ * humana es lineal.
+ *
+ * Devuelve el patrimonio mediano de cada variante y su cociente.
+ */
+export function cashflowCost(analytics, { group = null, overrides = {}, iterations = 2000 } = {}) {
+  const withRules = project(analytics, { group, overrides, iterations });
+  if (!withRules.ok) return null;
+  const compounded = project(analytics, {
+    group,
+    overrides: {
+      ...overrides,
+      compound: true,
+      contribution: null,
+      capPct: null,
+      withdrawAbove: null,
+    },
+    iterations,
+  });
+  if (!compounded.ok) return null;
+
+  const a = withRules.distribution.netWorth.p50;
+  const b = compounded.distribution.netWorth.p50;
+  return {
+    withRules: round2(a),
+    compounded: round2(b),
+    ratio: a > 0 ? round2(b / a) : null,
+    months: withRules.distribution.months.p50,
+    // Sin ninguna regla puesta las dos ramas sólo se diferencian en el
+    // compuesto, que ya es la mitad de la lección.
+    hasRules: Boolean(overrides.contribution || overrides.capPct || overrides.withdrawAbove),
+  };
 }
 
 /**

@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  TrendingUp, AlertTriangle, RotateCcw, Dice5, Target, Gauge,
+  TrendingUp, AlertTriangle, RotateCcw, Dice5, Target, Gauge, CalendarRange, PiggyBank,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
 import { loadSystem, setupRulesFor, cashflowRules } from '@/lib/tradingSystem';
 import {
-  project, sensitivity, breakevenWinRate,
+  project, sensitivity, breakevenWinRate, hitRates, cashflowCost,
   MIN_SAMPLE_FOR_PROJECTION, MIN_SAMPLE_TO_PROJECT_AT_ALL, RUIN_THRESHOLD,
 } from '@/lib/projection';
 
@@ -87,6 +87,11 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
   // Las reglas de caja se escriben en el sistema (pestaña Setups → Reglas) y se
   // leen aquí: el usuario las define una vez y la proyección las aplica.
   const [cash, setCash] = useState(() => cashflowRules(loadSystem()));
+  // Periodo con el que se lee el rendimiento y objetivo contra el que medirlo.
+  // Un objetivo mensual sólo se puede juzgar mirando la distribución de MESES:
+  // el total de la proyección no dice si ese 10 % se toca alguna vez.
+  const [period, setPeriod] = useState('month');
+  const [target, setTarget] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -158,6 +163,24 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
   const edge = be != null && inputs.winRate.value != null ? inputs.winRate.value - be : null;
   const sens = sensitivity(inputs.winRate.value, inputs.payoff.value);
   const set = (k) => (v) => setOverrides((p) => ({ ...p, [k]: v === '' ? null : Number(v) }));
+  // El objetivo por defecto es el tope mensual si lo hay: es el número que el
+  // usuario ya ha declarado querer.
+  const targetPct = target === '' ? (inputs.capPct.value ?? null) : Number(target);
+  const hits = distribution ? hitRates(distribution, targetPct) : null;
+  const per = distribution?.periods?.[period] || null;
+  const cost = result.ok ? cashflowCost(analytics, {
+    group,
+    overrides: {
+      ...overrides,
+      balance: inputs.balance.value,
+      riskPct: inputs.riskPct.value,
+      trades: inputs.trades.value,
+      tradesPerMonth: inputs.tradesPerMonth.value,
+      contribution: inputs.contribution.value,
+      capPct: inputs.capPct.value,
+      withdrawAbove: inputs.withdrawAbove.value,
+    },
+  }) : null;
 
   return (
     <div className="space-y-4" data-testid="projection-panel">
@@ -353,6 +376,16 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                   sub={t('projRuinSub').replace('{v}', String(RUIN_THRESHOLD * 100))}
                   color={distribution.probabilityOfRuin > 5 ? 'text-[#ef4444]' : 'text-muted-foreground'}
                 />
+                {/* Perder la mitad del patrimonio y quedarse sin cuenta con la
+                    que operar son sucesos distintos: al trader le importan los
+                    dos, y quien retira el exceso puede sufrir el segundo sin el
+                    primero. */}
+                <Stat
+                  label={t('projAccountWiped')}
+                  value={`${distribution.probabilityOfAccountWiped.toFixed(1)}%`}
+                  sub={t('projAccountWipedSub')}
+                  color={distribution.probabilityOfAccountWiped > 5 ? 'text-[#ef4444]' : 'text-muted-foreground'}
+                />
               </div>
 
               {/* Caja: sin esto, retirar el exceso parece empeorar el
@@ -389,6 +422,101 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
               {distribution.roi.p5 <= -100 && (
                 <p className="text-[10px] text-[#ef4444] leading-relaxed">{t('projBelowZeroNote')}</p>
               )}
+            </div>
+          )}
+
+
+          {/* 3b · POR PERIODO — mes, trimestre y año.
+              Es la lectura que decide si un objetivo mensual es realista: la
+              media puede salir de dos meses excelentes y diez planos, y eso no
+              se ve en el total. */}
+          {per && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3" data-testid="proj-periods">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CalendarRange className="w-4 h-4 text-primary" />
+                <h4 className="text-xs font-bold uppercase tracking-wider">{t('projPeriodTitle')}</h4>
+                <div className="ml-auto flex gap-1 bg-muted rounded-md border border-border p-0.5">
+                  {['month', 'quarter', 'year'].map((k) => (
+                    <button
+                      type="button"
+                      key={k}
+                      onClick={() => setPeriod(k)}
+                      className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
+                        period === k ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                      data-testid={`proj-period-${k}`}
+                    >
+                      {t(`projPeriod_${k}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <Stat label={t('projPeriodTypical')} value={pct(per.p50)} color={tone(per.p50)}
+                  sub={t('projPeriodTypicalSub')} />
+                <Stat label={t('projPeriodBad')} value={pct(per.p5)} color={tone(per.p5)}
+                  sub={t('projPercentile5')} />
+                <Stat label={t('projPeriodGood')} value={pct(per.p95)} color={tone(per.p95)}
+                  sub={t('projPercentile95')} />
+                <Stat label={t('projPeriodRed')} value={`${per.negativeRate}%`}
+                  color={per.negativeRate > 33 ? 'text-[#ef4444]' : 'text-[#f59e0b]'}
+                  sub={t('projPeriodRedSub')} />
+              </div>
+
+              {/* ¿Cada cuánto llego de verdad al objetivo? Y qué estoy pidiendo
+                  en trimestre y año cuando pido ese número al mes. */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] text-muted-foreground">{t('projTargetLabel')}</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={target === '' ? (inputs.capPct.value ?? '') : target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  placeholder="10"
+                  className="w-20 bg-muted border border-border rounded-md px-2 py-1 text-xs font-mono"
+                  data-testid="proj-target"
+                />
+                <span className="text-[11px] text-muted-foreground">%</span>
+              </div>
+              {hits && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2" data-testid="proj-hitrates">
+                  {['month', 'quarter', 'year'].map((k) => (
+                    <div key={k} className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        {t(`projPeriod_${k}`)} · {pct(hits[k].target)}
+                      </div>
+                      <div className={`font-mono font-bold text-base ${
+                        (hits[k].rate ?? 0) >= 50 ? 'text-[#22c55e]' : (hits[k].rate ?? 0) >= 20 ? 'text-[#f59e0b]' : 'text-[#ef4444]'
+                      }`}
+                      >
+                        {hits[k].rate == null ? '—' : `${hits[k].rate}%`}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">{t('projHitSub')}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{t('projTargetNote')}</p>
+            </div>
+          )}
+
+          {/* 3c · EL PRECIO DE LA CAJA — la comparación que decide una vida de
+              trading y que casi nadie hace. */}
+          {cost && cost.ratio && cost.ratio > 1.05 && (
+            <div className="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-4" data-testid="proj-cashflow-cost">
+              <div className="flex items-center gap-2 mb-2">
+                <PiggyBank className="w-4 h-4 text-[#f59e0b]" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#f59e0b]">
+                  {t('projCostTitle')}
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <Stat label={t('projCostWithRules')} value={`$${cost.withRules.toFixed(0)}`} sub={t('projCostWithRulesSub')} />
+                <Stat label={t('projCostCompounded')} value={`$${cost.compounded.toFixed(0)}`} sub={t('projCostCompoundedSub')} color="text-[#22c55e]" />
+                <Stat label={t('projCostRatio')} value={`×${cost.ratio}`} sub={t('projCostRatioSub').replace('{n}', String(cost.months))} color="text-[#f59e0b]" />
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed mt-2">{t('projCostNote')}</p>
             </div>
           )}
 

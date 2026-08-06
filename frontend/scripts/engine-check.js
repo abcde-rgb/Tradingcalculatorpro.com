@@ -486,6 +486,55 @@ async function checkProjection() {
   ok('the withdrawal ceiling still holds with the other two rules on',
     all.finalBalance.p95 <= 12000 + 1e-6);
 
+  // Retirar el exceso deja el saldo pegado al techo A PROPÓSITO. Medir la
+  // ruina sobre ese saldo daba "ruina 100 %" a quien tiene el triple fuera:
+  // decía exactamente lo contrario de la verdad. Se mide sobre el patrimonio.
+  const skimmed = cash({ withdrawAbove: 10000, contribution: 300, trades: 1200 });
+  ok('withdrawing every month is not ruin', skimmed.probabilityOfRuin < 5);
+  ok('and the account was never wiped either', skimmed.probabilityOfAccountWiped < 5);
+  const doomedCash = pj.project(
+    { closed_trades: 80, win_rate: 25, avg_win: 100, avg_loss: -100 },
+    { overrides: { balance: 10000, riskPct: 5, trades: 400, tradesPerMonth: 20 } },
+  ).distribution;
+  ok('a losing system still reports ruin', doomedCash.probabilityOfRuin > 50);
+  ok('and reports the account being wiped', doomedCash.probabilityOfAccountWiped > 50);
+
+  // ── Por periodo: mes, trimestre y año ────────────────────────────────────
+  // Un objetivo mensual sólo se juzga mirando la distribución de MESES: el
+  // total no dice si ese 10 % se toca alguna vez.
+  const periods = cash({ trades: 240, tradesPerMonth: 20 }).periods;
+  ok('monthly, quarterly and annual returns are reported',
+    Boolean(periods.month && periods.quarter && periods.year));
+  ok('there are 12 monthly observations per path, 4 quarters and 1 year',
+    periods.month.count === periods.quarter.count * 3
+    && periods.quarter.count === periods.year.count * 4);
+  ok('longer periods are compounded, not summed',
+    periods.quarter.p50 > periods.month.p50 * 2.5
+    && periods.quarter.p50 < ((1 + periods.month.p95 / 100) ** 3 - 1) * 100);
+  ok('the share of losing periods shrinks as the period grows',
+    periods.month.negativeRate >= periods.quarter.negativeRate
+    && periods.quarter.negativeRate >= periods.year.negativeRate);
+
+  // El objetivo mensual, traducido a lo que de verdad se está pidiendo.
+  const hr = pj.hitRates(cash({ trades: 240, tradesPerMonth: 20, compound: true }), 10);
+  ok('a 10% monthly target is a 33% quarter and a 214% year',
+    Math.round(hr.quarter.target) === 33 && Math.round(hr.year.target) === 214);
+  ok('hit rates are percentages',
+    hr.month.rate >= 0 && hr.month.rate <= 100 && hr.year.rate >= 0);
+  ok('reaching the target every month is rarer than the average suggests',
+    hr.month.rate < 100);
+
+  // ── El precio de la caja ─────────────────────────────────────────────────
+  const cost = pj.cashflowCost(analytics, {
+    overrides: {
+      balance: 10000, riskPct: 1, trades: 1200, tradesPerMonth: 20, withdrawAbove: 10000,
+    },
+    iterations: 500,
+  });
+  ok('skimming the excess costs compounding, and the panel can say by how much',
+    cost.ratio > 2, `ratio ${cost && cost.ratio}`);
+  ok('the comparison keeps both figures', cost.withRules > 0 && cost.compounded > cost.withRules);
+
   // Sensibilidad: qué le pasa a la ventaja si cambia la decisión.
   const sens = pj.sensitivity(45, 2);
   ok('sensitivity is monotonic in win rate',
