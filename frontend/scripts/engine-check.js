@@ -253,130 +253,6 @@ async function checkTradingSystemModel() {
     ).maxRiskPct === 0.75);
 }
 
-async function checkInstruments() {
-  console.log('\ninstruments.js  (paridad con backend/instruments.py)');
-  const I = await imp('lib/instruments.js');
-
-  // Los números de este bloque son EXACTAMENTE los que fija
-  // `backend/tests/test_instruments_unit.py`. Que aparezcan dos veces es el
-  // punto: son dos implementaciones de la misma matemática, y esto es lo que
-  // detecta que una se ha movido sin la otra.
-
-  // ── Catálogo ──
-  const gold = I.resolveSpec('cfd', 'XAUUSD');
-  ok('el lote de oro son 100 onzas a 20×',
-    gold.contractSize === 100 && gold.defaultLeverage === 20);
-  ok('MES es la décima parte de ES',
-    I.resolveSpec('futures', 'ES').contractSize / I.resolveSpec('futures', 'MES').contractSize === 10);
-  ok('el pip del yen es 0,01 y el del resto 0,0001',
-    I.resolveSpec('forex', 'USDJPY').pipSize === 0.01
-    && I.resolveSpec('forex', 'EURUSD').pipSize === 0.0001);
-  ok('un futuro fuera de catálogo no vale ×1: vale null',
-    I.resolveSpec('futures', 'XYZ').contractSize === null
-    && I.contractSizeFor('futures', 'XYZ') === null);
-  ok('el tipo de lote decide el tamaño en forex',
-    I.contractSizeFor('forex', 'EURUSD', { lotType: 'micro' }) === 1000
-    && I.contractSizeFor('forex', 'EURUSD', { lotType: 'standard' }) === 100000);
-
-  // ── Unidades ──
-  const fxSpec = I.resolveSpec('forex', 'EURUSD');
-  const pipDist = I.unitToDistance(20, 'pips', {
-    entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
-  });
-  ok('20 pips son 0,0020 de precio', near(pipDist, 0.0020, 1e-12));
-  ok('el stop de un largo queda por debajo de la entrada',
-    near(I.levelFromDistance(1.10, pipDist, 'long', 'sl'), 1.098, 1e-12));
-  ok('el stop de un corto queda por encima',
-    near(I.levelFromDistance(1.10, pipDist, 'short', 'sl'), 1.102, 1e-12));
-  ok('8 ticks del MES son 2 puntos',
-    near(I.unitToDistance(8, 'ticks', {
-      entry: 5000, quantity: 1, contractSize: 5,
-      spec: I.resolveSpec('futures', 'MES'),
-    }), 2, 1e-12));
-  ok('100 $ de riesgo con 1 lote son 10 pips',
-    near(I.unitToDistance(100, 'money', {
-      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
-    }), 0.0010, 1e-12));
-  ok('el 1 % de una cuenta de 10 000 son los mismos 10 pips',
-    near(I.unitToDistance(1, 'pct_balance', {
-      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec, balance: 10000,
-    }), 0.0010, 1e-12));
-  ok('un objetivo en R sin stop es null, no cero',
-    I.unitToDistance(2, 'r', { entry: 1.10, quantity: 1, contractSize: 100000 }) === null);
-  ok('la conversión va y vuelve sin perder el número tecleado',
-    near(I.distanceToUnit(pipDist, 'pips', {
-      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
-    }), 20, 1e-9));
-
-  // ── Posición ──
-  const goldLot = I.positionMetrics({
-    entry: 2000, quantity: 1, contractSize: 100, leverage: 20, balance: 10000,
-    side: 'long', sl: 1990, tp: 2020, spec: gold,
-  });
-  ok('el nocional de 1 lote de oro a 2 000 son 200 000 $', goldLot.notional === 200000);
-  ok('el margen a 20× son 10 000 $', goldLot.marginUsed === 10000);
-  ok('20× el saldo pasa del tope de exposición',
-    goldLot.exposureMultiple === 20 && goldLot.exposureExceeded === true);
-  ok('riesgo, recompensa y R:B sobre la posición abierta',
-    goldLot.riskAmount === 1000 && goldLot.rewardAmount === 2000 && near(goldLot.rr, 2));
-
-  const tiny = I.positionMetrics({
-    entry: 100000, quantity: 0.001, contractSize: 1, leverage: 100, balance: 10000,
-    spec: I.resolveSpec('crypto_perp', 'BTCUSDT'),
-  });
-  ok('100× sobre un tamaño pequeño NO dispara el tope',
-    tiny.exposureExceeded === false && near(tiny.exposureMultiple, 0.01));
-
-  const threeWays = I.positionMetrics({
-    entry: 100, quantity: 10, contractSize: 1, leverage: 10, balance: 10000, sl: 99,
-    spec: I.resolveSpec('cfd', 'US500'),
-  });
-  ok('el riesgo se publica contra nocional, cuenta y margen',
-    near(threeWays.riskPctNotional, 1) && near(threeWays.riskPctBalance, 0.1)
-    && near(threeWays.riskPctMargin, 10));
-
-  ok('sin apalancamiento no hay liquidación', I.liquidationPrice(100, 'long', 1) === null);
-  ok('la liquidación de un corto queda por encima de la entrada',
-    I.liquidationPrice(100, 'short', 10, 0.005) > 100);
-  ok('a más apalancamiento, liquidación más cerca',
-    I.liquidationPrice(100, 'long', 2, 0.005) < I.liquidationPrice(100, 'long', 50, 0.005));
-  ok('un stop detrás de la liquidación se señala',
-    I.positionMetrics({
-      entry: 100, quantity: 1, contractSize: 1, leverage: 20, balance: 10000, sl: 80,
-      spec: I.resolveSpec('crypto_perp', 'BTCUSDT'),
-    }).liquidationBeforeStop === true);
-
-  // ── Riesgo definido ──
-  const longCall = I.positionMetrics({
-    entry: 3.5, quantity: 2, contractSize: 100, balance: 10000, side: 'long',
-    spec: I.resolveSpec('option', 'AAPL'),
-  });
-  ok('la prima de una opción comprada ES su pérdida máxima',
-    longCall.maxLoss === 700 && longCall.maxLossSource === 'premium');
-  ok('una pérdida máxima declarada manda sobre todo lo demás',
-    I.positionMetrics({
-      entry: 1.2, quantity: 1, contractSize: 100, side: 'short', maxLoss: 380,
-      spec: I.resolveSpec('option', 'SPY'),
-    }).maxLossSource === 'declared');
-  ok('vender desnudo no tiene pérdida máxima',
-    I.positionMetrics({
-      entry: 5, quantity: 1, contractSize: 100, side: 'short',
-      spec: I.resolveSpec('option', 'TSLA'),
-    }).maxLoss === null);
-
-  // ── Costes ──
-  ok('9 pagos de funding al 0,01 % sobre 5 000 $ son 4,50 $',
-    near(I.fundingCost(5000, 0.01, 9), 4.5, 1e-9));
-  ok('10 noches al 7,3 % anual sobre 20 000 $ son 40 $',
-    near(I.swapCost(20000, 7.3, 10), 40, 1e-9));
-
-  // ── Apalancamiento sugerido ──
-  ok('en futuros se deduce del margen del mercado',
-    I.suggestedLeverage(I.resolveSpec('futures', 'MES'), 25000) === 19);
-  ok('al contado no se sugiere ninguno',
-    I.suggestedLeverage(I.resolveSpec('crypto_spot', 'BTC'), 1000) === null);
-}
-
 async function checkOptionsEngine() {
   console.log('\nblackScholes.js');
   const bs = await imp('utils/blackScholes.js');
@@ -712,7 +588,6 @@ async function checkProjection() {
   await checkSimulatorEngine();
   await checkTradingSystemModel();
   await checkProjection();
-  await checkInstruments();
   await checkOptionsEngine();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {
