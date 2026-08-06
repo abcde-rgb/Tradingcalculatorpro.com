@@ -86,3 +86,16 @@ export async function bulkCreateTrades(trades) {
   bumpData('trades');
   return data;
 }
+
+/**
+ * Qué canales de aviso están operativos ahora mismo.
+ *
+ * El formulario lo pregunta para poder marcar SMS como no disponible en vez de
+ * ofrecer una casilla que no hace nada. Si la llamada falla se ofrece todo: la
+ * alerta se guarda igual y el resultado por canal queda escrito al dispararse,
+ * que es donde de verdad se comprueba.
+ */
+export async function getNotifyChannels() {
+  const { data } = await client.get('/alerts/channels');
+  return data;
+}

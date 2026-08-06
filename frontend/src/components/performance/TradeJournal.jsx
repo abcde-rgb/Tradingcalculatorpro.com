@@ -8,6 +8,7 @@ import {
 import { useTranslation } from '@/lib/i18n';
 import { listTrades, deleteTrade } from '@/services/performanceApi';
 import { tradeSetups } from '@/lib/tradingSystem';
+import { productLabelKey } from './form/productMeta';
 import TradeFormModal from './TradeFormModal';
 import TradeImportExport from './TradeImportExport';
 import { toast } from 'sonner';
@@ -173,6 +174,9 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
             <thead className="bg-muted/40 border-b border-border">
               <tr className="text-left">
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeSymbol')}</th>
+                {/* El producto va junto al símbolo porque sin él "AAPL 10" es
+                    ambiguo: ¿diez acciones o diez contratos de opciones? */}
+                <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeProduct')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeSide')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeSetup')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradeEntry')}</th>
@@ -180,6 +184,10 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradePnL')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">R</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradePctAccount')}</th>
+                {/* Coste total (comisión + funding/swap). Sin esta columna, lo
+                    que se paga por mantener abierta una posición no aparece en
+                    ninguna parte del diario y se descubre en el extracto. */}
+                <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradeCosts')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeStatus')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeErrors')}</th>
                 <th className="px-3 py-2"></th>
@@ -193,6 +201,21 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                 return (
                   <tr key={tr.id} className="border-b border-border hover:bg-muted/30 transition-colors" data-testid={`trade-row-${tr.id}`}>
                     <td className="px-3 py-2 font-bold">{tr.symbol}</td>
+                    <td className="px-3 py-2">
+                      <span className="inline-flex items-center gap-1">
+                        <span className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] uppercase tracking-wide">
+                          {t(productLabelKey(tr.instrument_type))}
+                        </span>
+                        {/* El apalancamiento sólo se pinta donde existe: un "1×"
+                            en una acción al contado es ruido, y un "—" invita a
+                            pensar que falta el dato. */}
+                        {tr.leverage > 1 && (
+                          <span className="px-1 py-0.5 rounded bg-[#f59e0b]/15 text-[#f59e0b] text-[10px] font-bold">
+                            {tr.leverage}×
+                          </span>
+                        )}
+                      </span>
+                    </td>
                     <td className="px-3 py-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                         tr.side === 'long' ? 'bg-[#22c55e]/15 text-[#22c55e]' : 'bg-[#ef4444]/15 text-[#ef4444]'
@@ -246,6 +269,14 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                       {tr.exit_price && tr.account_balance
                         ? `${tr.pnl > 0 ? '+' : ''}${((tr.pnl / tr.account_balance) * 100).toFixed(2)}%`
                         : '—'}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-right text-muted-foreground"
+                      title={tr.carry_total ? t('tradeCostsBreakdown')
+                        .replace('{fees}', String(tr.fees || 0))
+                        .replace('{carry}', String(tr.carry_total)) : undefined}
+                    >
+                      {tr.costs_total ? `$${Number(tr.costs_total).toFixed(2)}` : '—'}
+                      {tr.carry_total ? <span className="text-[#f59e0b]"> •</span> : null}
                     </td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${status.color}`}>

@@ -18,6 +18,18 @@ import math
 import statistics
 import uuid
 
+from instruments import (
+    DEFAULT_MAX_EXPOSURE_MULTIPLE,
+    DEFAULT_PRODUCT,
+    MIN_RR_FLOOR,
+    PRODUCTS,
+    carry_cost,
+    contract_size_for,
+    position_metrics,
+    resolve_levels,
+    resolve_spec,
+)
+
 # ─── Configuration ────────────────────────────────────────────────
 # Education-aligned thresholds. These appear inside auto-error messages
 # and reference what the Education Center already teaches.
@@ -311,14 +323,22 @@ def _risk_adjusted_metrics(
 # `(exit − entry) × quantity × multiplier`. Misma estructura, así que la
 # traducción reproduce el importe **exacto** que el usuario vio. No es una
 # aproximación.
-_LEGACY_FIELD_MAP = {
+#
+# ⚠️ `leverage` es HOY un campo canónico con significado propio (el que decide
+# el margen y la liquidación, y que NO multiplica el P&L). Por eso la detección
+# de documento legado mira sólo las claves camelCase: un documento nuevo que
+# declare `leverage: 20` no es legado, y traducirlo a `multiplier` multiplicaría
+# su P&L por veinte. La equivalencia sigue viva **dentro** de un documento
+# legado, donde `leverage` sí ocupaba la posición del multiplicador.
+_LEGACY_CAMEL_MAP = {
     "entryPrice": "entry_price",
     "exitPrice": "exit_price",
     "stopLoss": "sl",
     "takeProfit": "tp",
     "direction": "side",
-    "leverage": "multiplier",
 }
+_LEGACY_ALIAS_MAP = {"leverage": "multiplier"}
+_LEGACY_FIELD_MAP = {**_LEGACY_CAMEL_MAP, **_LEGACY_ALIAS_MAP}
 
 
 # Claves que deben desaparecer del documento almacenado. Incluye `roe`, que era
@@ -326,10 +346,26 @@ _LEGACY_FIELD_MAP = {
 # sólo garantizaba que quedara desfasado en cuanto se editara la operación.
 LEGACY_TRADE_KEYS = frozenset(_LEGACY_FIELD_MAP) | {"roe"}
 
+# Lo que se borra de CUALQUIER documento, sea legado o no: `roe` es un derivado
+# almacenado y no tiene lectura canónica que preservar.
+_ALWAYS_UNSET_KEYS = frozenset({"roe"})
+
 
 def is_legacy_trade(trade: dict) -> bool:
     """¿Este documento viene del diario legado (camelCase)?"""
-    return any(k in trade for k in _LEGACY_FIELD_MAP)
+    return any(k in trade for k in _LEGACY_CAMEL_MAP)
+
+
+def legacy_keys_to_unset(stored: dict) -> Dict[str, str]:
+    """Las claves a `$unset` de un documento almacenado, listas para el update.
+
+    Existe porque el `$unset` del shim se aplica **después** del `$set`: borrar
+    `leverage` de un documento canónico recién escrito le quitaría el
+    apalancamiento que se acababa de guardar. Sólo un documento legado tiene
+    claves legadas que retirar; del resto se limpia únicamente el derivado.
+    """
+    keys = LEGACY_TRADE_KEYS if is_legacy_trade(stored) else _ALWAYS_UNSET_KEYS
+    return {k: "" for k in keys if k in stored}
 
 
 def normalize_trade_schema(trade: dict) -> dict:
@@ -346,7 +382,9 @@ def normalize_trade_schema(trade: dict) -> dict:
     almacenado la hace `scripts/migrate_trades_schema.py` con `$unset`.
     """
     if not is_legacy_trade(trade):
-        return trade
+        # Aun sin ser legado puede arrastrar el derivado almacenado.
+        return {k: v for k, v in trade.items() if k not in _ALWAYS_UNSET_KEYS} \
+            if any(k in trade for k in _ALWAYS_UNSET_KEYS) else trade
 
     # Se filtra por LEGACY_TRADE_KEYS, no por el mapa: además de los campos
     # renombrados hay que soltar `roe`, que era un derivado ALMACENADO y ahora
@@ -382,7 +420,9 @@ def normalize_trade_schema(trade: dict) -> dict:
 def compute_trade_pnl(trade: dict) -> dict:
     """Return a copy of `trade` with computed P&L fields.
 
-    Fills: pnl, pnl_pct, r_multiple, mae_r, mfe_r. Required input fields:
+    Fills: pnl, pnl_pct, r_multiple, mae_r, mfe_r, más el bloque de posición
+    (nocional, margen, exposición, riesgo/recompensa, liquidación estimada) y el
+    coste de mantenerla abierta. Required input fields:
       side ('long'|'short'), entry_price, exit_price, quantity, sl,
       account_balance (optional, for pnl_pct), fees (optional),
       mae_price/mfe_price (optional, for excursion analysis).
@@ -392,6 +432,19 @@ def compute_trade_pnl(trade: dict) -> dict:
     trade still open). A trade taken without a stop did not return "zero R", it
     returned an undefined number of R, and averaging it in as a zero drags the
     mean toward the middle and puts a fake spike in the 0R..1R bucket.
+
+    **El apalancamiento no entra en el P&L y nunca debe entrar.** Una posición de
+    1 000 $ de nocional gana lo mismo con 1× que con 20×: lo que cambia es el
+    dinero inmovilizado (el margen) y, con él, la rentabilidad sobre ese margen y
+    la distancia a la liquidación. Meter la palanca en `(salida − entrada) × qty`
+    multiplica el resultado por veinte y es el error que hace que un diario
+    apalancado no cuadre nunca con el extracto del bróker. Lo que sí multiplica
+    es el **tamaño de contrato** (`multiplier`): 100 onzas por lote de oro, 50 $
+    por punto del E-mini, 100 acciones por contrato de opciones.
+
+    El coste de mantener la posición abierta —funding en un perpetuo, comisión
+    nocturna en un CFD o en forex— se resta como cualquier otra comisión, porque
+    salió de la cuenta igual que ella.
     """
     # Punto único por el que pasa TODO cálculo de P&L, así que es donde se
     # traduce el esquema legado: con esto un documento del diario antiguo vale
@@ -405,9 +458,19 @@ def compute_trade_pnl(trade: dict) -> dict:
     sl = trade.get("sl")
     fees = float(trade.get("fees") or 0)
     balance = float(trade.get("account_balance") or 0)
-    # Tamaño de contrato: 1 en spot; 100 en opciones sobre acciones (el frontend
-    # lo envía). Multiplica el nominal de precios×cantidad en P&L y en el riesgo.
-    mult = float(trade.get("multiplier") or 1)
+    # Tamaño de contrato: 1 en spot; 100 en opciones sobre acciones; 100 000 en
+    # un lote de forex; el del contrato en futuros. Sale de la operación y, si
+    # no lo trae, del catálogo — nunca de una suposición silenciosa.
+    mult = _effective_contract_size(trade)
+
+    # El bloque de posición y el coste de mantenerla: describen el TAMAÑO, no el
+    # resultado, así que se calculan igual con la operación abierta.
+    metrics = position_metrics(trade)
+    carry = carry_cost(trade, metrics.get("notional"))
+    out.update({k: v for k, v in metrics.items() if k not in ("product",)})
+    out.update(carry)
+    carry_total = float(carry.get("carry_total") or 0)
+    out["costs_total"] = round(fees + carry_total, 2)
 
     risk_per_unit = abs(entry - float(sl)) if sl not in (None, "") and entry else 0.0
     out["mae_r"], out["mfe_r"] = _excursion_r(trade, side, entry, risk_per_unit)
@@ -416,6 +479,7 @@ def compute_trade_pnl(trade: dict) -> dict:
         out["pnl"] = 0.0
         out["pnl_pct"] = 0.0
         out["r_multiple"] = None
+        out["roe_pct"] = None
         return out
 
     exit_p = float(exit_p)
@@ -423,18 +487,46 @@ def compute_trade_pnl(trade: dict) -> dict:
         gross = (exit_p - entry) * qty * mult
     else:
         gross = (entry - exit_p) * qty * mult
-    pnl = gross - fees
+    pnl = gross - fees - carry_total
+    out["gross_pnl"] = round(gross, 2)
     out["pnl"] = round(pnl, 2)
     out["pnl_pct"] = round(_safe_div(pnl, balance, 0) * 100, 2) if balance else 0.0
 
-    # R-multiple: P&L divided by initial risk per share/contract.
-    # Undefined (None) without a stop — see the docstring.
-    if risk_per_unit > 0:
-        risk_total = risk_per_unit * qty * mult
-        out["r_multiple"] = round(_safe_div(pnl, risk_total, 0), 2) if risk_total else None
-    else:
-        out["r_multiple"] = None
+    # Rentabilidad sobre el margen inmovilizado. Es la cifra que enseña el
+    # exchange y la que hace que un +1 % del precio se lea como un +20 %: no
+    # sustituye a `pnl_pct` (que mide contra la cuenta entera), la acompaña.
+    margin = metrics.get("margin_used")
+    out["roe_pct"] = round(pnl / margin * 100, 2) if margin else None
+
+    # R-multiple: P&L dividido por lo que se arriesgaba de verdad.
+    #
+    # El denominador es la PÉRDIDA MÁXIMA de la operación, no `|entrada − stop|`
+    # sin más. Coinciden siempre que hay stop de precio; se separan justo donde
+    # antes se rompía el diario: en riesgo definido (una opción comprada, un
+    # spread) no hay stop y la pérdida máxima es la prima o la anchura de la
+    # estructura. Con la fórmula vieja, casi toda operación de opciones salía con
+    # `r_multiple = None` y se caía sola de la distribución de R y del scatter.
+    risk_total = metrics.get("max_loss")
+    out["r_multiple"] = (
+        round(_safe_div(pnl, risk_total, 0), 2) if risk_total else None
+    )
     return out
+
+
+def _effective_contract_size(trade: dict) -> float:
+    """El multiplicador con el que se calcula el P&L de esta operación.
+
+    Prioridad: lo que declara la operación → lo que dice el catálogo del
+    producto y el símbolo → 1. El último escalón sólo se alcanza en un futuro
+    fuera de catálogo sin tamaño declarado, y ese caso se **señala** con el error
+    `contract_size_missing` en vez de calcularse en silencio: un contrato de
+    crudo a ×1 en lugar de ×1000 no da un P&L aproximado, da uno mil veces menor.
+    """
+    size = contract_size_for(
+        trade.get("instrument_type"), trade.get("symbol"),
+        override=trade.get("multiplier"), lot_type=trade.get("lot_type"),
+    )
+    return float(size) if size else 1.0
 
 
 def _excursion_r(trade: dict, side: str, entry: float,
@@ -526,30 +618,81 @@ def detect_errors(
     if (sl is None or sl == 0) and risk_cfg["require_stop_loss"]:
         _fail("no_sl", "critical", "errNoSL")
 
-    # Rule 2: R:R below the minimum THIS trader declared
+    # Rule 2: R:R below what this trade needs to be worth taking.
+    #
+    # Dos umbrales, no uno, y NO se disparan a la vez. El de abajo (1:1) es
+    # aritmética: si arriesgas más de lo que puedes ganar necesitas acertar más
+    # de la mitad de las veces sólo para empatar, y eso es una apuesta sobre tu
+    # tasa de acierto, no una operación. El de arriba es la ambición que el
+    # trader escribió en su plan (1,5 por defecto). Emitir los dos por la misma
+    # operación la contaría dos veces en `rule_compliance_rate`.
     min_rr = risk_cfg["min_rr"]
     if entry and sl and tp:
         try:
             risk = abs(float(entry) - float(sl))
             reward = abs(float(tp) - float(entry))
             rr = _safe_div(reward, risk, 0)
-            if rr < min_rr and risk > 0:
+            if risk > 0 and rr < MIN_RR_FLOOR:
+                _fail("rr_below_1", "critical", "errRRBelow1",
+                      value=round(rr, 2), threshold=MIN_RR_FLOOR)
+            elif rr < min_rr and risk > 0:
                 _fail("low_rr", "high", "errLowRR",
                       value=round(rr, 2), threshold=min_rr)
         except (TypeError, ValueError):
             pass
 
-    # Rule 3: Position size above the trader's own ceiling
+    # Rule 3: Position size above the trader's own ceiling.
+    # El riesgo se mide con el TAMAÑO DE CONTRATO puesto: sin él, un contrato de
+    # opciones (×100) o un lote de forex (×100 000) declaraban un riesgo cien mil
+    # veces menor que el real y jamás disparaban esta regla.
     max_risk_pct = risk_cfg["max_risk_pct_per_trade"]
     if entry and sl and qty and balance:
         try:
-            risk_amount = abs(float(entry) - float(sl)) * float(qty)
+            units = float(qty) * _effective_contract_size(trade)
+            risk_amount = abs(float(entry) - float(sl)) * units
             risk_pct = _safe_div(risk_amount, float(balance), 0) * 100
             if risk_pct > max_risk_pct:
                 _fail("oversize", "high", "errOversize",
                       value=round(risk_pct, 2), threshold=max_risk_pct)
         except (TypeError, ValueError):
             pass
+
+    # Rule 3b: exposición — el nocional contra el saldo de la cuenta.
+    # Es la regla que el apalancamiento hace necesaria: el riesgo por operación
+    # mide lo que pierdes SI el stop se ejecuta, y esto mide lo que tienes
+    # delante si no llega a ejecutarse (hueco de apertura, mecha, desconexión).
+    # 100× sobre un tamaño pequeño no dispara nada; 20× sobre medio patrimonio,
+    # sí. El límite sale del plan cuando el trader lo declara.
+    max_exposure = risk_cfg.get("max_exposure_multiple") or DEFAULT_MAX_EXPOSURE_MULTIPLE
+    exposure = trade.get("exposure_multiple")
+    if exposure is None and entry and qty and balance:
+        try:
+            exposure = (abs(float(entry)) * float(qty)
+                        * _effective_contract_size(trade)) / float(balance)
+        except (TypeError, ValueError, ZeroDivisionError):
+            exposure = None
+    if exposure is not None and float(exposure) > max_exposure:
+        _fail("over_exposure", "critical", "errOverExposure",
+              value=round(float(exposure), 2), threshold=max_exposure)
+
+    # Rule 3c: el tamaño de contrato que hace falta y no está.
+    # Sólo puede pasar en un producto que se mide en contratos cuyo símbolo no
+    # está en el catálogo. Callarlo dejaría un P&L calculado a ×1.
+    product_id = trade.get("instrument_type") or DEFAULT_PRODUCT
+    if PRODUCTS.get(product_id, {}).get("default_contract_size") is None:
+        if contract_size_for(product_id, trade.get("symbol"),
+                             override=trade.get("multiplier")) is None:
+            _fail("contract_size_missing", "critical", "errContractSizeMissing",
+                  value=trade.get("symbol"))
+
+    # Rule 3d: el stop está detrás de la liquidación.
+    # Un stop que el bróker nunca llegará a ejecutar porque cierra antes no es un
+    # stop: es una pérdida máxima igual al margen entero, disfrazada de riesgo
+    # controlado. `liquidation_before_stop` sólo vale True cuando ambas cifras
+    # existen; None (no calculable) no dispara nada.
+    if trade.get("liquidation_before_stop") is True:
+        _fail("stop_behind_liquidation", "critical", "errStopBehindLiquidation",
+              value=trade.get("liquidation_price"))
 
     # Rule 4: Closed early (manual close before reaching ~50% of TP)
     if status == "closed" and entry and tp and exit_p:
@@ -822,6 +965,12 @@ def compute_analytics(
     setups_multi_tagged = sum(1 for t in closed if len(trade_setups(t)) > 1)
     # By-symbol breakdown
     by_symbol = _group_winrate_by(closed, lambda t: t.get("symbol") or "—")
+    # By-product breakdown. Un diario que mezcla acciones al contado, futuros y
+    # perpetuos apalancados y sólo publica un total dice muy poco: la pregunta
+    # que responde este desglose es en qué producto tienes ventaja de verdad,
+    # que casi nunca es el mismo en el que crees tenerla.
+    by_product = _group_winrate_by(
+        closed, lambda t: t.get("instrument_type") or DEFAULT_PRODUCT)
 
     # R-multiple distribution buckets
     r_buckets = {"<-2R": 0, "-2R..-1R": 0, "-1R..0R": 0, "0R..1R": 0, "1R..2R": 0, ">2R": 0}
@@ -937,6 +1086,14 @@ def compute_analytics(
         "by_setup": by_setup,
         "setups_multi_tagged": setups_multi_tagged,
         "by_symbol": by_symbol,
+        "by_product": by_product,
+        # Lo que costó operar y lo que costó tener la posición abierta. Se
+        # publica aparte porque no es lo mismo perder por dirección que perder
+        # por peaje: un scalper con ventaja bruta puede acabar en rojo sólo por
+        # comisiones, y un perpetuo mantenido semanas, sólo por funding.
+        "costs": _cost_summary(closed),
+        # Cómo se está usando el apalancamiento en el conjunto del histórico.
+        "leverage_usage": _leverage_summary(closed),
         "r_distribution": r_buckets,
         "equity_curve": [round(e, 2) for e in equity],
         "daily_pnl": daily_pnl,
@@ -946,6 +1103,65 @@ def compute_analytics(
         "errors_breakdown": error_counts,
         "rule_compliance_rate": round(rule_compliance_rate, 2),
         "avg_emotion": avg_emotion,
+    }
+
+
+def _cost_summary(closed: List[dict]) -> Dict[str, Any]:
+    """Comisiones + coste de mantenimiento, y qué parte del bruto se llevaron.
+
+    `pct_of_gross_profit` es `None` —no 0— cuando no hubo beneficio bruto: sin
+    denominador la pregunta "¿qué porcentaje de lo que gané se fue en costes?"
+    no tiene respuesta, y un 0 se leería como "no me costó nada".
+    """
+    fees = sum(float(t.get("fees") or 0) for t in closed)
+    funding = sum(float(t.get("funding_fees") or 0) for t in closed)
+    swap = sum(float(t.get("swap_fees") or 0) for t in closed)
+    total = fees + funding + swap
+
+    def _gross(t: dict) -> float:
+        if t.get("gross_pnl") is not None:
+            return float(t["gross_pnl"])
+        # Operación guardada antes de que el bruto se publicara: se reconstruye.
+        return (float(t.get("pnl") or 0) + float(t.get("fees") or 0)
+                + float(t.get("funding_fees") or 0) + float(t.get("swap_fees") or 0))
+
+    gross_profit = sum(g for g in (_gross(t) for t in closed) if g > 0)
+    return {
+        "fees": round(fees, 2),
+        "funding": round(funding, 2),
+        "swap": round(swap, 2),
+        "total": round(total, 2),
+        "trades_with_carry": sum(
+            1 for t in closed
+            if t.get("funding_fees") is not None or t.get("swap_fees") is not None
+        ),
+        "gross_profit": round(gross_profit, 2),
+        "pct_of_gross_profit": (
+            round(total / gross_profit * 100, 2) if gross_profit > 0 else None
+        ),
+    }
+
+
+def _leverage_summary(closed: List[dict]) -> Dict[str, Any]:
+    """Cómo se usó el apalancamiento, y cuántas veces se pasó del tope.
+
+    Todo `None` cuando ninguna operación declara apalancamiento: es lo que le
+    pasa a un diario de acciones al contado, y ahí un "apalancamiento medio de
+    0×" sería una afirmación falsa sobre algo que nadie midió.
+    """
+    levs = [float(t["leverage"]) for t in closed
+            if t.get("leverage") not in (None, "") and float(t["leverage"]) > 0]
+    exposures = [float(t["exposure_multiple"]) for t in closed
+                 if t.get("exposure_multiple") not in (None, "")]
+    over = sum(1 for e in exposures if e > DEFAULT_MAX_EXPOSURE_MULTIPLE)
+    return {
+        "sample": len(levs),
+        "avg_leverage": round(sum(levs) / len(levs), 2) if levs else None,
+        "max_leverage": round(max(levs), 2) if levs else None,
+        "avg_exposure": round(sum(exposures) / len(exposures), 2) if exposures else None,
+        "max_exposure": round(max(exposures), 2) if exposures else None,
+        "over_exposure_trades": over if exposures else None,
+        "max_exposure_multiple": DEFAULT_MAX_EXPOSURE_MULTIPLE,
     }
 
 
@@ -1074,6 +1290,9 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "by_setup": [],
         "setups_multi_tagged": 0,
         "by_symbol": [],
+        "by_product": [],
+        "costs": _cost_summary([]),
+        "leverage_usage": _leverage_summary([]),
         "r_distribution": {},
         "equity_curve": [],
         "daily_pnl": [],
@@ -1259,6 +1478,25 @@ def generate_insights(analytics: Dict[str, Any]) -> List[Dict[str, str]]:
         insights.append({"severity": "warning", "key": "insightLowCapture",
                          "value": f"{exc['capture_ratio'] * 100:.0f}"})
 
+    # Costes: cuánto del beneficio bruto se fue en peaje. Un tercio es el umbral
+    # a partir del cual el problema deja de ser la estrategia y pasa a ser el
+    # coste por operación (o el tiempo que se mantiene abierta, si es funding).
+    costs = analytics.get("costs") or {}
+    if (costs.get("pct_of_gross_profit") is not None
+            and costs["pct_of_gross_profit"] >= 30):
+        insights.append({"severity": "warning", "key": "insightCostsEatProfit",
+                         "value": f"{costs['pct_of_gross_profit']:.0f}",
+                         "amount": str(costs.get("total"))})
+
+    # Exposición por encima del tope: es un aviso sobre el tamaño, y por eso va
+    # aunque las operaciones hayan salido bien — sobre todo si salieron bien.
+    lev = analytics.get("leverage_usage") or {}
+    if lev.get("over_exposure_trades"):
+        insights.append({"severity": "critical", "key": "insightOverExposure",
+                         "count": str(lev["over_exposure_trades"]),
+                         "value": str(lev.get("max_exposure")),
+                         "threshold": str(lev.get("max_exposure_multiple"))})
+
     # Rule compliance
     if compliance < 80:
         insights.append({"severity": "warning", "key": "insightLowCompliance",
@@ -1363,27 +1601,110 @@ async def trades_for_user(db, user_id: str, *, limit: int = 500) -> List[dict]:
     return await cursor.to_list(length=limit)
 
 
+def _num(payload: dict, key: str) -> Optional[float]:
+    """Un número del payload, o None. Ausente y cero son cosas distintas."""
+    value = payload.get(key)
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def make_trade_doc(payload: dict, user_id: str) -> dict:
-    """Build a fresh trade document from API input payload."""
+    """Build a fresh trade document from API input payload.
+
+    Dos cosas se resuelven aquí y sólo aquí, para que lo almacenado sea siempre
+    canónico y el resto del sistema no tenga que saber que existen:
+
+    1. **El tamaño de contrato**, que sale del catálogo si el usuario no lo
+       declara. Un lote de forex son 100 000 unidades lo escriba quien lo
+       escriba, y no puede depender de que el formulario acertara a rellenarlo.
+    2. **Los niveles de stop y objetivo**, que se calculan a partir de la unidad
+       elegida (pips, ticks, %, dinero, R…). Lo que se guarda es SIEMPRE un
+       precio; la unidad y el número tecleado viajan al lado sólo para poder
+       repintar el formulario tal cual se dejó. Por eso toda la analítica —R,
+       drawdown, MAE/MFE, distribución— sigue leyendo exactamente los mismos
+       campos que leía antes de que las unidades existieran.
+    """
     now = datetime.now(timezone.utc).isoformat()
     setups = normalize_setups(payload)
+    product = payload.get("instrument_type") or DEFAULT_PRODUCT
+    if product not in PRODUCTS:
+        product = DEFAULT_PRODUCT
+    symbol = (payload.get("symbol") or "").upper()
+    contract_size = contract_size_for(product, symbol,
+                                      override=payload.get("multiplier"),
+                                      lot_type=payload.get("lot_type"))
+
+    # Los niveles se resuelven sobre el payload ya normalizado en lo que la
+    # conversión necesita: entrada, cantidad, tamaño de contrato y saldo.
+    levels = resolve_levels({
+        **payload, "instrument_type": product, "symbol": symbol,
+        "multiplier": contract_size,
+    })
+
     doc = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
-        "symbol": (payload.get("symbol") or "").upper(),
+        "symbol": symbol,
         "side": payload.get("side") or "long",
         "setups": setups,
         "setup": SETUP_SEPARATOR.join(setups),
-        # Instrumento: spot (por defecto) u option. Campos de opción opcionales.
-        "instrument_type": payload.get("instrument_type") or "spot",
+        # Producto financiero. `spot` sigue siendo el valor por defecto porque es
+        # lo que llevan guardado las operaciones anteriores: ninguna cambia de
+        # significado al leerse con el catálogo nuevo.
+        "instrument_type": product,
         "option_type": payload.get("option_type") or None,
         "strike": float(payload["strike"]) if payload.get("strike") not in (None, "") else None,
         "expiry": payload.get("expiry") or None,
-        "multiplier": float(payload.get("multiplier") or 1),
+        # Tamaño de contrato. Se llama `multiplier` desde antes de que hubiera
+        # productos y se queda así: renombrarlo obligaría a migrar cada
+        # documento y a tocar la fórmula del P&L por un cambio cosmético.
+        "multiplier": contract_size,
+        # Apalancamiento. NO multiplica el P&L: decide el margen inmovilizado, la
+        # rentabilidad sobre ese margen y la distancia a la liquidación.
+        "leverage": _num(payload, "leverage"),
+        "lot_type": payload.get("lot_type") or None,
+        "maintenance_margin_rate": _num(payload, "maintenance_margin_rate"),
+        # Unidades con las que el trader escribió el stop y el objetivo.
+        "sl_unit": payload.get("sl_unit") or "price",
+        "sl_input": _num(payload, "sl_input"),
+        "tp_unit": payload.get("tp_unit") or "price",
+        "tp_input": _num(payload, "tp_input"),
+        "risk_unit": payload.get("risk_unit") or "pct_balance",
+        # Riesgo definido: lo que como mucho se puede perder y ganar cuando la
+        # estructura lo fija (opciones, spreads) y no un stop de precio.
+        "max_loss": _num(payload, "max_loss"),
+        "max_profit": _num(payload, "max_profit"),
+        # Coste de mantener la posición abierta.
+        "funding_fees": _num(payload, "funding_fees"),
+        "funding_rate_pct": _num(payload, "funding_rate_pct"),
+        "funding_periods": _num(payload, "funding_periods"),
+        "funding_interval_hours": _num(payload, "funding_interval_hours"),
+        "swap_fees": _num(payload, "swap_fees"),
+        "swap_rate_pct": _num(payload, "swap_rate_pct"),
+        "nights_held": _num(payload, "nights_held"),
+        # Contexto de opciones: sin esto, una operación de opciones no se puede
+        # revisar (no se sabe si la volatilidad la pagó o la cobró).
+        "option_strategy": payload.get("option_strategy") or None,
+        "iv_entry": _num(payload, "iv_entry"),
+        "iv_exit": _num(payload, "iv_exit"),
+        "delta_entry": _num(payload, "delta_entry"),
+        "underlying_entry": _num(payload, "underlying_entry"),
+        "underlying_exit": _num(payload, "underlying_exit"),
+        "option_outcome": payload.get("option_outcome") or None,
+        # Aviso de la posición (nivel + canales). El envío lo hace el poller de
+        # alertas; aquí sólo se guarda lo que el usuario pidió.
+        "notify": payload.get("notify") or None,
         "entry_price": float(payload.get("entry_price") or 0),
         "exit_price": float(payload["exit_price"]) if payload.get("exit_price") not in (None, "") else None,
-        "sl": float(payload["sl"]) if payload.get("sl") not in (None, "") else None,
-        "tp": float(payload["tp"]) if payload.get("tp") not in (None, "") else None,
+        # El nivel calculado a partir de la unidad manda sobre el que venga
+        # suelto: si el usuario escribió "50 pips", el precio es el que sale de
+        # esos 50 pips, no uno tecleado antes de cambiar de unidad.
+        "sl": levels.get("sl", float(payload["sl"]) if payload.get("sl") not in (None, "") else None),
+        "tp": levels.get("tp", float(payload["tp"]) if payload.get("tp") not in (None, "") else None),
         # Excursion: worst / best price the trade reached while it was open.
         "mae_price": float(payload["mae_price"]) if payload.get("mae_price") not in (None, "") else None,
         "mfe_price": float(payload["mfe_price"]) if payload.get("mfe_price") not in (None, "") else None,

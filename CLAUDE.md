@@ -71,8 +71,14 @@ cd backend && python -m py_compile *.py
 # los avisos de símbolos muertos no bloquean. Corre también en CI.
 cd frontend && npx eslint src scripts
 
-# Paridad de los 10 idiomas y motor del simulador (ambos offline)
+# Paridad de los 10 idiomas y motor del simulador (ambos offline).
+# engine-check cubre también la matemática de instrumentos del frontend con los
+# MISMOS números que el pytest del backend: es lo que detecta que una de las dos
+# copias se ha movido sin la otra.
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
+
+# El catálogo de instrumentos del frontend está generado desde el backend
+python scripts/gen-instruments-js.py --check
 
 # Los enlaces relativos de la doc resuelven. Existe porque ya se colaron
 # referencias a archivos inexistentes y nada las detectaba.
@@ -128,6 +134,8 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `price_action.py` | Estructura de precio: swings, BOS/CHoCH, S/R (con zona), FVG, rupturas, confluencia con el escalón superior y contexto ([manual](./docs/ESCANER_ESTRUCTURA.md)). Módulo puro: la confluencia necesita una segunda serie, así que la pide `server.py` y se aplica con `apply_confluence` |
 | `timeframes.py` | Escalera de temporalidades (5m–1mes) y pares (vela, histórico) legales del proveedor |
 | `performance.py` | Cálculo de PnL, analytics del diario de trading |
+| `instruments.py` | **Catálogo de productos** (acciones, CFD, futuros, forex, cripto spot/perpetuo, opciones) y su matemática: tamaño de contrato por símbolo, tick/pip, conversión de unidades (pips/ticks/%/dinero/%cuenta/R → nivel de precio), nocional, margen, exposición, liquidación estimada, funding y comisión nocturna. **Fuente única**: `scripts/gen-instruments-js.py` genera desde aquí el espejo del frontend |
+| `notifications.py` | Reparto de avisos por WebSocket, correo y SMS (Twilio). Publica qué canales están **realmente** operativos; nunca lanza y siempre dice por qué no salió un envío |
 | `missing_apis.py` | Forex real, índices, commodities, password reset, magic links |
 | `realtime_alerts.py` | Poller de alertas de precio (WebSocket) |
 | `referrals.py` | Sistema de referidos |
@@ -167,6 +175,7 @@ Tres reglas que ya costaron bugs y están fijadas por tests:
 | `STRIPE_WEBHOOK_SECRET` | Webhooks | `whsec_...` |
 | `SENDGRID_API_KEY` | Email | |
 | `ANTHROPIC_API_KEY` | AI Coach | |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | SMS | Avisos del diario por SMS. **Las tres o ninguna**: sin ellas `notifications.py` responde `not_configured` y la interfaz marca el canal como no disponible. No queda código pendiente, sólo el alta de la cuenta |
 | `ENVIRONMENT` | No | Setear a `development` en local → habilita CORS localhost y JWT_SECRET auto |
 | `CORS_ORIGINS` | No | Orígenes extra separados por coma. Hardcodeados: `tradingcalculatorpro.com`, `www.tradingcalculatorpro.com` |
 | `ADMIN_EMAILS` | No | Emails admin separados por coma; no requiere cambio en BD |
@@ -279,6 +288,49 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   G-15, y es la trampa exacta que crea listar tablas a mano.
 - **`plan_version` se sella al crear la operación y no se reescribe.** Cambiar el
   plan no debe re-juzgar retroactivamente la historia que se supone que mide.
+- **El apalancamiento NO entra en el P&L. Nunca.** `(salida − entrada) × cantidad ×
+  multiplicador`, y `multiplier` es el **tamaño de contrato** (100 onzas por lote de
+  oro, 50 $/punto del E-mini, 100 acciones por contrato de opciones), no la palanca.
+  El apalancamiento decide el **margen** (`nocional / leverage`), la rentabilidad
+  sobre ese margen (`roe_pct`) y la liquidación. Meterlo en la fórmula multiplica el
+  resultado por veinte y hace que el diario no cuadre jamás con el extracto. Hay un
+  test parametrizado a 1/5/20/100× que lo fija, y existe porque **el diario legado sí
+  lo metía**: `normalize_trade_schema` mapea `leverage`→`multiplier` sólo dentro de un
+  documento camelCase, y por eso `is_legacy_trade` mira **únicamente** las claves
+  camelCase — si `leverage` a secas marcara un documento como legado, una operación
+  nueva a 20× vería su P&L multiplicado por veinte (BUG-046).
+- **El `$unset` del shim corre DESPUÉS del `$set`.** Por eso las claves a borrar en
+  los dos `PUT` salen de `legacy_keys_to_unset(existing)` y no de `LEGACY_TRADE_KEYS`
+  a secas: sobre un documento canónico con `leverage`, la lista cruda lo habría
+  borrado en la misma escritura que lo guardaba.
+- **Un riesgo sin tamaño de contrato es un riesgo falso.** La regla `oversize` medía
+  `|entrada − stop| × cantidad` y no saltaba nunca en opciones (×100) ni en forex
+  (×100 000) — BUG-045. Cualquier cifra de riesgo nueva se calcula sobre
+  `_effective_contract_size(trade)`, que es el mismo resolutor que usa el P&L.
+- **El tope de tamaño se mide en exposición, no en la X.** `nocional / saldo`, tope
+  10× por defecto y declarable en `plan["risk"]["max_exposure_multiple"]`. 100× sobre
+  un tamaño pequeño no es una posición grande; 20× sobre medio patrimonio, sí.
+- **Las unidades del stop y del objetivo son una capa de ENTRADA.** El usuario
+  escribe en pips, ticks, dinero, % de la cuenta o R; lo que se almacena es siempre
+  un **nivel de precio** en `sl` y `tp`. `sl_input`/`sl_unit` viajan al lado sólo para
+  repintar el formulario, y ninguna métrica los mira — es lo que permite que R,
+  drawdown, MAE/MFE y la distribución sigan midiendo lo mismo que antes de que las
+  unidades existieran. Si tocas `resolve_levels`, recuerda que el objetivo en R
+  necesita el stop ya resuelto, y que lo no convertible es `None`, nunca 0.
+- **En riesgo definido, el R sale de `max_loss`, no del stop.** Una opción comprada
+  arriesga la prima; un spread, anchura − crédito; una vendida desnuda **no tiene**
+  pérdida máxima (`None`, y por tanto sin R). Es lo que permite que opciones y
+  futuros se midan con la misma regla en el mismo diario.
+- **El catálogo de instrumentos se GENERA hacia el frontend.** `instruments.py` es la
+  fuente; `python scripts/gen-instruments-js.py` escribe
+  `frontend/src/lib/instrumentSpecs.generated.js` y `--check` falla si divergen. No
+  edites el `.generated.js` a mano. La **matemática** sí está escrita dos veces a
+  propósito (`lib/instruments.js`): el navegador tiene que avisar del tope mientras
+  escribes y el backend no puede fiarse del cliente. Las dos copias se comprueban con
+  los mismos números en `test_instruments_unit.py` y en `engine-check.js`.
+- **Un símbolo fuera de catálogo vale `None`, no 1.** Un contrato de crudo a ×1 en
+  vez de ×1000 no da un P&L aproximado, da uno mil veces menor. El caso se señala con
+  el error `contract_size_missing` y el formulario pide el número.
 
 - **Cuatro módulos del backend están terminados y no tienen interfaz**:
   `trading_plan.py`, `backtest.py`, `portfolio_risk.py` y `american_options.py`
