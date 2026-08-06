@@ -144,6 +144,9 @@
 | G-17 | **El shim `Collection` sigue sin tests.** Es la capa casera (~750 líneas) que traduce Mongo→SQL y de la que depende **todo** el backend. Bloquea el refactor de `server.py` (BUG-008): partir 8232 líneas sin red es cambiar deuda por riesgo | 🟠 | T-03 del backlog de auditoría: `$set/$inc/$push/$unset/$or/$in/$regex`, agregación y `find_one_and_update`, contra PostgreSQL real |
 | G-18 | **`check-doc-links.py` no corre en CI.** Existe, funciona (47 documentos, 0 roturas) y sólo se ejecuta si alguien se acuerda. `PENDIENTES.md` acumuló dos referencias a documentos inexistentes (`CRECIMIENTO_GOOGLE.md`, `CHECKLIST_MODO_CASI_GRATIS.md`) sin que nada avisara — sobrevivieron porque iban en `código` y no como enlace markdown | 🟡 | Añadir el paso a `ci.yml`. Coste: 3 líneas |
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
+| G-20 | **`/performance/analytics` devuelve `compliance` y `plan` en cada petición y la pantalla los tira.** `server.py:6795-6799` calcula el informe completo —matriz proceso × resultado, coste por regla ordenado por dinero, `ready_for_review`, `next_review_due`— y `AnalyticsDashboard.jsx:279-280` sólo lee `analytics` e `insights`. La pieza más diferencial del producto se computa y se descarta | 🔴 | **Cero backend**: un componente que pinte `data.compliance`. Es el M-4 de [`PLAN_DIARIO_ANALITICA_MAESTRO.md`](./PLAN_DIARIO_ANALITICA_MAESTRO.md) y la mejor relación valor/línea del proyecto |
+| G-21 | **Dos sistemas de reglas paralelos que no se hablan.** El aviso en vivo de `TradeFormModal` sale de `localStorage` (`tradingSystem.js:206`) y el error del servidor de `trading_plan.py`; con setups definidos en el navegador, el usuario ve un umbral y el backend le apunta otro. Además los setups —el corazón de su sistema— no sobreviven a un cambio de navegador ni salen en el export RGPD | 🟠 | M-2 del plan maestro: sección `setups[]` en el plan, migración explícita desde `localStorage` (nunca en silencio) y `TradeFormModal` leyendo del plan activo |
+| G-22 | **Campos del modelo del diario que ningún componente usa**: `screenshot_urls` y `tags` (modelados, aceptados por la API, invisibles) y `fees` (se captura y se descuenta del PnL, pero no se agrega en ningún sitio — nadie puede responder «¿cuánto me han costado las comisiones?»). `notes` y `emotion` se guardan y la tabla no los enseña | 🟡 | M-7, M-8 y `fees_total` en la analítica |
 
 ---
 
@@ -183,7 +186,11 @@
 
 ### P1 — Robustez antes de escalar
 - [ ] **Dar interfaz a lo que ya está escrito** (G-14) — plan de trading primero.
+      Plan maestro con las fases y los criterios de aceptación:
+      [`PLAN_DIARIO_ANALITICA_MAESTRO.md`](./PLAN_DIARIO_ANALITICA_MAESTRO.md).
 - [ ] **`trading_plans` en las tres listas del RGPD** (G-15) — pequeño y con multa detrás.
+- [ ] **Pintar `compliance` y `plan`, que ya viajan en `/performance/analytics` y se tiran**
+      (G-20) — cero backend, un componente.
 - [ ] Cerrar **C-08** (API keys solo en Secret Manager).
 - [ ] `FRONTEND_URL` obligatoria en producción (T-02 del backlog de auditoría).
 - [ ] **CSP** en el HTML de Pages, verificada en navegador (T-01 / G-10).
@@ -3340,3 +3347,45 @@ riesgo de las **reglas del sistema** y el resultado de la **Analítica**.
 - ✅ **Verificado**: `engine-check` **141/141** (+8 del puente, incluido que subir riesgo
   daña el drawdown mucho más que subir la ventaja) · `pytest` **550 passed / 74 skipped**
   (+5) · ESLint 0 errores · `i18n-check` **5817 claves × 10 idiomas** (+24) · build OK.
+
+---
+
+### 2026-08-06 — Estudio a fondo del área plan + diario + analítica (plan maestro)
+
+Sesión de **estudio y documentación**, sin cambios de código. Se auditó el área entera contra
+el commit `5b5872b` y se redactó [`PLAN_DIARIO_ANALITICA_MAESTRO.md`](./PLAN_DIARIO_ANALITICA_MAESTRO.md):
+inventario verificado fichero a fichero, las cuatro fracturas, benchmark honesto contra la
+competencia, **doce movimientos ordenados por valor ÷ esfuerzo**, contratos de datos y un orden
+de ejecución en diez fases con criterios de aceptación.
+
+**Hallazgos nuevos, todos verificados contra el código:**
+
+- 🔴 **G-20 — la analítica tira lo mejor que calcula.** `GET /performance/analytics` devuelve
+  `compliance` y `plan` (`server.py:6795-6799`) y `AnalyticsDashboard.jsx:279-280` sólo lee
+  `analytics` e `insights`. La matriz proceso × resultado y el coste por regla **ordenado por
+  dinero** se computan en cada petición y se descartan. Coste de arreglarlo: **cero backend**.
+- 🟠 **G-21 — dos sistemas de reglas paralelos.** El aviso en vivo del formulario sale de
+  `localStorage` (`tradingSystem.js:206`) y el error del servidor de `trading_plan.py`. Con un
+  setup que declara «R:R mínimo 2», el usuario ve un umbral y el backend le apunta otro contra
+  1,5, porque `DEFAULT_MIN_RR` es el respaldo de quien no tiene plan y **nadie puede tener plan**
+  (G-14). Además los setups no sobreviven a un cambio de navegador ni salen en el export RGPD.
+- 🟡 **G-22 — campos modelados y nunca usados**: `screenshot_urls` y `tags` (aceptados por la API,
+  invisibles en toda la interfaz) y `fees` (se descuenta del PnL y no se agrega en ningún sitio:
+  nadie puede responder «¿cuánto me han costado las comisiones?»).
+- **G-15 sigue abierto y confirmado**: `trading_plans` está en `known` (`server.py:968`) con su
+  índice, pero **no** en `delete_account` (`server.py:2472`), **no** en `_USER_DATA_COLLECTIONS`
+  (`server.py:1633`) y **no** en el export de `/auth/my-data` (`server.py:2514`).
+
+**La tesis del documento**, para no tener que releerlo entero: no se gana a TradeZella en número
+de informes (300) ni de brókeres (500). Se gana siendo **el único diario donde el plan escrito es
+código ejecutable que juzga, valora en dinero y versiona la operativa** — con una pieza que nadie
+tiene: la **retro-simulación de reglas** (cambias un umbral del plan y ves, en el acto, qué le
+habría hecho a tu historial real; `detect_errors` ya es una función pura, así que es un endpoint
+de veinte líneas).
+
+**Orden acordado** (cada fase deja el producto publicable): RGPD → bloque de cumplimiento (cero
+backend) → editor del plan + `/plan/simulate` → setups al servidor → estructura y barra de estado
+del día → diario como superficie → atribución y gráficos → ritual de revisión → capturas e
+importación → referencia pública indexable.
+
+- ✅ **Verificado**: `check-doc-links.py` sin roturas · sin cambios de código, nada que compilar.

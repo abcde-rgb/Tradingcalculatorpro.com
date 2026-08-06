@@ -28,6 +28,7 @@ leen en el mismo momento ni con la misma intención.
 | [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) | Gráficos y personalización por usuario |
 | [`MIGRACION_NEON.md`](./MIGRACION_NEON.md) | Conmutar la BD entre Cloud SQL y Neon (`DB_PROVIDER`) |
 | [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) | Especificación del plan de trading versionado. **Backend terminado; sigue sin una sola pantalla** (G-14) |
+| [`PLAN_DIARIO_ANALITICA_MAESTRO.md`](./PLAN_DIARIO_ANALITICA_MAESTRO.md) | **Plan maestro del área plan + diario + analítica.** Inventario verificado, las cuatro fracturas, benchmark, 12 movimientos ordenados por valor/esfuerzo, contratos de datos y orden de ejecución |
 
 ## 🚀 Voy a desplegar
 
