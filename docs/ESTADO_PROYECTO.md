@@ -29,10 +29,10 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **534 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **550 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5698 claves × 10 idiomas, 0 huecos** · `engine-check` **66/66** (2026-08-05) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5817 claves × 10 idiomas, 0 huecos** · `engine-check` **141/141** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3116,3 +3116,227 @@ desglose por setup de la analítica agrupaba lo que cada uno hubiera tecleado es
   natural, y arrastra G-15 (`trading_plans` no está en las tres listas del RGPD).
 - ⚠️ **Sin humo de navegador**: la pestaña exige sesión y la analítica sale del backend;
   lo verificado es lo que corre offline.
+
+### 2026-08-05 (4) — Una operación puede llevar más de un setup
+Petición del propietario: *"el setup quiero que pueda seleccionar más de una opción"*.
+Entrar por la confluencia de dos condiciones es tan real como entrar por una, y el
+diario obligaba a elegir: la otra razón no existía para la analítica.
+
+- ✅ **`setups` (lista) es la fuente de verdad** en el trade; `setup` (cadena) se
+  conserva en sincronía para todo lo que ya leía un solo texto: CSV, prompt del AI
+  Coach y tabla del diario. **No hay nada que migrar**: una operación antigua que sólo
+  guardó la cadena se lee igual de bien (`trade_setups`).
+- ✅ **El desglose por setup cuenta la operación en CADA uno de sus setups** — es la
+  pregunta que responde ("¿cómo va este setup?"). Eso hace que la suma de los grupos
+  sea mayor que el número de operaciones, así que la respuesta publica
+  `setups_multi_tagged` y la interfaz lo dice en una línea, en vez de dejar que se lea
+  como un reparto. `_group_winrate_by` pasa a ser un caso particular de
+  `_group_winrate_by_multi`.
+- ✅ **Normalización en un solo sitio** (`normalize_setups`): recorta, ignora vacíos,
+  quita el separador de dentro de un nombre —si no, volvería como dos setups— y
+  **deduplica sin distinguir mayúsculas**: "Ruptura NY" tecleado dos veces es un setup,
+  no dos. Máximo 5 por operación. La ruta de edición recalcula lista y cadena juntas:
+  editadas por separado, la analítica agrupa por una y la tabla enseña la otra.
+- ✅ **Formulario**: los setups definidos son botones que se marcan y desmarcan, lo
+  elegido se ve como etiquetas quitables, y sigue habiendo campo libre para añadir uno
+  que no esté en el sistema. La tabla del diario pinta etiquetas (2 + «+N»).
+- ✅ **Funciona también contra el backend actual**, que aún no conoce `setups`: el
+  cliente manda las dos formas, el backend viejo guarda la cadena unida y
+  `joinSetupPerformance` la parte por el separador y acredita a cada setup —con las
+  sumas rehechas, no promediadas—. Al desplegar el backend, los grupos ya llegan
+  partidos y el reparto del cliente pasa a ser un no-op.
+- ✅ **Verificado**: `pytest` **540 passed / 74 skipped** (+6 del multi-setup) ·
+  `engine-check` **76/76** (+10) · ESLint 0 errores · `i18n-check` **5703 claves × 10
+  idiomas, 0 huecos** (+5) · `npm run build` exit 0.
+- ⚠️ **Requiere desplegar el backend a mano** (`cloudbuild.yaml`) para que `setups`
+  llegue a la base de datos como lista. Hasta entonces, todo se guarda en la cadena.
+
+### 2026-08-05 (5) — Setup, diario y analítica, cogidos de la mano
+Recordatorio del propietario: los tres tienen que ir juntos. Auditado el ciclo
+completo (**definir → registrar → medir → volver al setup**) y cerradas las tres
+costuras que quedaban abiertas.
+
+- ✅ **El diario juzga con las reglas DEL setup, no con dos constantes.** El
+  formulario avisaba con `R:R < 1,5` y `riesgo > 2 %` fijos mientras el usuario tenía
+  escrito en su propio setup "R:R mínimo 2, riesgo 1 %": dos reglas distintas para la
+  misma operación, la que se puso y la que le juzgaba. Ahora manda la suya
+  (`setupRulesFor`), con **varios setups gana la más estricta de cada una** —si la
+  operación responde a dos condiciones tiene que cumplir las dos— y el umbral se pinta
+  con su procedencia: en azul si es tuya, apagado si es el valor por defecto. Una regla
+  propia se respeta; una constante ajena se ignora.
+- ✅ **Del número a la muestra.** Pinchar un setup —en el marcador de la pestaña Setups
+  o en el desglose de la analítica— abre el diario **filtrado por ese setup**, con su
+  etiqueta y una × para quitarlo. Antes el marcador daba un número y dejaba al usuario
+  buscando a mano en la tabla qué operaciones había detrás. Filtrar sin coincidencias
+  dice «ninguna operación con ese setup», que no es lo mismo que «no tienes operaciones».
+- ✅ **La analítica dice lo mismo que el marcador.** El aviso de solape
+  (`setups_multi_tagged`) estaba sólo en la pestaña Setups; dicho en un sitio y callado
+  en el otro, los dos números se leen como si uno estuviera mal. Y la barra del desglose
+  se acota al 100 %: con multi-etiqueta un grupo puede superar el total de operaciones
+  y la barra se salía del contenedor (el porcentaje impreso sigue siendo el real).
+- ✅ **Verificado**: `engine-check` **83/83** (+7 de las reglas por setup) · `pytest`
+  **540 passed / 74 skipped** · ESLint 0 errores · `i18n-check` **5711 claves × 10
+  idiomas, 0 huecos** (+8) · `npm run build` exit 0.
+- ⏭️ **Lo que sigue sin cerrar del ciclo** (necesita el backend, G-14): las reglas de
+  cuenta del sistema —pérdida máxima diaria y semanal, condiciones de no-operar,
+  exposición correlacionada— se definen en el constructor y **no** juzgan nada todavía;
+  `detect_errors` sigue usando el plan del backend, que no tiene interfaz. Conectar
+  `SetupBuilder` con `POST /plan` cierra eso y de paso arregla G-15.
+
+### 2026-08-05 (6) — Proyección a futuro sobre la operativa real
+Petición del propietario: que **todo sea variable** pero que **calcule real**, y que
+haga previsiones a futuro cruzando setup, diario y analítica (decisiones, TP, SL).
+
+- ✅ **Nueva pestaña "Proyección"** en `/performance`, la última a propósito: proyectar
+  antes de tener diario y analítica es justo el error que el panel intenta evitar.
+- ✅ **Todo variable, todo con origen.** Acierto, payoff, riesgo por operación, número de
+  operaciones, saldo y capitalización son editables, pero **arrancan en lo que mide tu
+  diario** y cada campo lleva una etiqueta: `medido` (con el tamaño de muestra detrás) o
+  `supuesto` (lo has cambiado tú). Confundir una medición con una hipótesis es lo que
+  hace que alguien dimensione una cuenta real contra un número inventado. Un botón
+  devuelve cada campo a su valor medido.
+- ✅ **Se proyecta una DISTRIBUCIÓN, no una línea.** Monte Carlo (motor compartido con el
+  simulador, 5000 secuencias, **semilla fija** para que los mismos números den siempre el
+  mismo dibujo): mediana, percentil 5 y 95 del ROI, drawdown máximo mediano y del 5 %
+  peor, probabilidad de acabar en verde y **riesgo de ruina** (perder la mitad de la
+  cuenta, no llegar a cero: de una cuenta partida por la mitad ya casi nadie vuelve).
+- ✅ **La cuenta que decide, aparte**: esperanza por operación en R y en dinero, **acierto
+  de equilibrio** para ese payoff —«por debajo del 36 %, este setup pierde», que es una
+  frase accionable— y el margen entre tu acierto y ese equilibrio.
+- ✅ **Sensibilidad a la decisión**: qué le pasa a la esperanza si el acierto se mueve
+  ±5/±10 puntos con el payoff actual. Cerrar antes sube el acierto y baja el payoff;
+  aguantar al objetivo hace lo contrario — es el enlace entre las métricas y lo que uno
+  **hace** con el TP y el SL.
+- ✅ **Se puede proyectar POR SETUP.** Para eso, `by_setup` publica ahora `avg_win`,
+  `avg_loss`, `payoff`, `avg_r` y `r_sample` por grupo: una proyección construida sobre
+  los números globales no es una proyección de ese setup. Sin operaciones perdedoras el
+  payoff es `null` (desconocido), nunca 0. Y el riesgo por operación sale del **setup**
+  cuando lo tiene escrito.
+- ✅ **La muestra manda.** Por debajo de 30 operaciones cerradas se avisa en ámbar; por
+  debajo de 10 **no se proyecta nada**: una previsión sobre cuatro operaciones no es una
+  previsión con mucho error, es ruido con formato de gráfico.
+- ✅ **`starting_balance` y `current_balance` se publican** en la analítica: la proyección
+  arranca del dinero real del usuario, no de una cifra redonda inventada.
+- ✅ **Verificado**: `engine-check` **106/106** (+23 del motor de proyección: esperanza,
+  equilibrio, muestra mínima, medido vs supuesto, determinismo y ventaja negativa →
+  ruina) · `pytest` **543 passed / 74 skipped** (+3) · ESLint 0 errores · `i18n-check`
+  **5752 claves × 10 idiomas, 0 huecos** (+41) · `npm run build` exit 0.
+- ⚠️ **Límites declarados en pantalla**: se remuestrea la muestra propia suponiendo que el
+  futuro se parece al pasado y que las operaciones son independientes —no lo son del
+  todo—, y la simulación sigue operando por debajo de cero, así que un ROI bajo −100 % es
+  aritmética; ahí lo que vale es la probabilidad de ruina.
+- ⏭️ **Pendiente para cerrar del todo el bucle**: usar MAE/MFE (`excursion`) para
+  proyectar «¿y si el stop fuera 0,8R?» con datos reales por operación, no sólo variando
+  el payoff a mano. El backend ya calcula la excursión; falta llevarla a este panel.
+
+### 2026-08-05 (7) — Reglas de caja: aportar, topar y sacar el exceso
+Petición del propietario: que el setup permita **sacar excesos mensuales**, poner
+**topes de rentabilidad mensual en %** y meter una **aportación fija mensual**.
+
+- ✅ **Tres reglas nuevas en el sistema** (Setups → Reglas, sección «Caja»):
+  aportación fija mensual, tope de rentabilidad mensual en % y retirada de todo lo
+  que pase de un saldo. Van al resumen copiable del sistema, como el resto de reglas.
+  Vacío = **no aplica** (`null`), que no es 0: un tope del 0 % pararía la cuenta el
+  primer día y un techo de retirada de 0 la vaciaría entera.
+- ✅ **La proyección las aplica de verdad.** El motor pasa a simular **meses**, no sólo
+  operaciones: al principio de cada mes entra la aportación, durante el mes se deja de
+  operar si se alcanza el tope, y al cierre se retira lo que pase del techo. El
+  simulador general no servía —no sabe de meses—, así que la proyección lleva su propio
+  recorrido, que se reduce exactamente al caso de siempre cuando no hay ninguna regla.
+- ✅ **Tres decisiones que cambian el número y por eso se explican en el código**:
+  - el **drawdown** ajusta el máximo histórico en cada movimiento de caja — meter 500 €
+    no borra una caída y sacar 500 € no es una pérdida de 500 €; sin eso, aportar
+    mensualmente disimularía el drawdown entero;
+  - la **ruina** se mide contra el dinero realmente puesto (inicial + aportado), no
+    contra el saldo del primer día: quien lleva dos años aportando ha arriesgado mucho
+    más que su saldo inicial;
+  - el **ROI** es sobre el capital aportado y se publica además el **patrimonio**
+    (saldo + retirado): sin eso, retirar el exceso parece empeorar el resultado cuando
+    lo que hace es ponerlo a salvo.
+- ✅ **Aportado y meses son distribuciones, no cifras fijas.** Un mes que se corta al
+  llegar al tope deja operaciones sin hacer, así que completar las mismas operaciones
+  lleva más meses — y más aportaciones. Publicar «aportarás 3.600» cuando en la mitad de
+  los casos son 5.700 sería mentir sobre el dinero que hay que poner.
+- ✅ **El ritmo mensual se mide, no se inventa**: `trades_per_month` sale del histórico
+  real y es `None` si el diario no cubre 21 días — la diferencia entre «no lo sé» y
+  «cero al mes».
+- ✅ **Verificado**: `engine-check` **120/120** (+14 de las reglas de caja: aportación
+  pagada cada mes, tope que corta meses y recorta también el lado bueno, techo de
+  retirada que el saldo no supera, patrimonio que cuenta lo retirado, y que retirar no
+  inventa dinero) · `pytest` **545 passed / 74 skipped** (+2) · ESLint 0 errores ·
+  `i18n-check` **5770 claves × 10 idiomas, 0 huecos** (+18) · `npm run build` exit 0.
+
+### 2026-08-05 (8) — Modelo por mes/trimestre/año y el precio de la caja
+Petición del propietario: analizar los resultados que da el panel, estudiar si el R:R se
+mide mejor por operación o sobre el conjunto mensual, modelar **trimestre y año**, y que
+el trader entienda por qué esto es lo que más le da a largo plazo.
+
+- 🐛 **Bug encontrado ejecutando el análisis, no leyendo el código.** La ruina se medía
+  sobre el SALDO de la cuenta: quien retira el exceso todos los meses deja el saldo
+  pegado al techo a propósito, así que salía **«ruina 100 %»** teniendo el triple fuera.
+  Ahora se mide sobre el **patrimonio** (saldo + retirado) contra el dinero puesto
+  (inicial + aportado), y se publica aparte **`probabilityOfAccountWiped`**: quedarse sin
+  cuenta con la que operar es otro suceso, y quien retira puede sufrirlo sin arruinarse.
+- ✅ **Rendimiento por periodo (mes / trimestre / año)**, compuesto y no sumado —un +10 %
+  seguido de un −10 % no es 0, es −1 %—: típico, malo (p5), bueno (p95) y **porcentaje de
+  periodos en rojo**, que es lo que hay que aguantar para llegar al resultado final.
+- ✅ **«¿Cada cuánto llego al objetivo?»** Un objetivo mensual se traduce a su compuesto
+  trimestral y anual (10 % mensual = 33 % trimestral = **214 % anual**) y se dice qué
+  porcentaje de periodos lo alcanza. Es la forma de ver que un número «normal» al mes es
+  extraordinario al año.
+- ✅ **El precio de la caja** (`cashflowCost`): con los MISMOS números, patrimonio mediano
+  aplicando las reglas del usuario frente a dejarlo componer. En el escenario de prueba
+  (0,5 R por operación, 20 ops/mes, 5 años) sale **$70.000 retirando** frente a
+  **$3.477.121 componiendo**: ×50. Las dos son decisiones legítimas —lo retirado ya no lo
+  pierde una racha— pero la diferencia se subestima siempre porque la intuición es lineal
+  y el compuesto no.
+- 📊 **Estudio del R:R por operación vs agregado mensual** (números en la respuesta de la
+  sesión): con el MISMO 0,5 R por operación, pasar de 5 a 40 operaciones al mes lleva la
+  mediana mensual del 2,5 % al 22 % y los meses en rojo del 18,6 % al 1,9 %. **Miden cosas
+  distintas**: el R:R por operación mide la ventaja (converge rápido, ~240 datos al año);
+  el agregado mensual mide lo que esa ventaja produce en tu calendario (12 datos al año,
+  converge 20 veces más lento — por eso hay que simularlo). Un tope o una retirada
+  mensuales se deciden con el segundo, nunca con el primero.
+- ✅ **Verificado**: `engine-check` **133/133** (+13: ruina bien medida con retiradas,
+  cuenta arrasada, periodos compuestos y no sumados, menos periodos rojos al alargar el
+  periodo, la traducción 10 %→33 %→214 % y el coste del compuesto) · `pytest` **545
+  passed** · ESLint 0 errores · `i18n-check` **5793 claves × 10 idiomas** (+23) · build OK.
+
+### 2026-08-05 (9) — El puente: una ecuación que ordena los tres paneles
+Petición del propietario tras el estudio: implementar lo propuesto. La respuesta al
+«¿R:R o rentabilidad?» no era elegir, sino **medir en R y presentar en rentabilidad**,
+con una sola ecuación uniendo las tres pantallas:
+
+```
+rentabilidad mensual ≈ esperanza (R/op) × operaciones al mes × riesgo por operación (%)
+```
+
+Cada factor tiene dueño: la ventaja es del **Setup**, la frecuencia del **Diario**, el
+riesgo de las **reglas del sistema** y el resultado de la **Analítica**.
+
+- ✅ **Modo objetivo en Proyección** (`routesToTarget`): escribes «quiero un 10 % al mes»
+  y la ecuación se lee al revés, dando los **tres caminos** con su precio: más ventaja
+  (qué acierto haría falta con tu payoff), más operaciones (cuántas al mes) o más riesgo
+  (qué %). Cada camino trae su proyección hecha —cada cuánto se llega, drawdown p95 y
+  meses en rojo—, y ahí se ve la lección: en el escenario de prueba los tres llegan al
+  mismo sitio, pero el drawdown p95 es **11 % por ventaja, 20 % por frecuencia y 31 % por
+  riesgo**. El riesgo es la palanca fácil y la única que puede echarte del juego. Lo
+  aritméticamente imposible (acierto > 100 %) se marca, no se maquilla.
+- ✅ **Contribución de cada setup a la rentabilidad mensual**: `≈ +3,1 % (0,26 R × 12
+  ops/mes × 1 % de riesgo)`. Convierte la lista de setups en un orden accionable — un
+  setup de 0,4 R que se da dos veces al mes aporta menos que uno de 0,15 R que se da
+  quince, y sin esta línea los dos se leían igual. Para eso `by_setup` publica ahora
+  **`trades_per_month` por grupo** (None sin 21 días de recorrido).
+- ✅ **La Analítica encabeza con rentabilidad por periodo** (mes/trimestre/año), medida
+  del diario: `returns_by_period`. Cada mes se mide sobre **el saldo con el que empezó
+  ese mes**, los trimestres y años se **componen** (un +10 % y un −10 % son −1 %, no 0),
+  y un mes sin operaciones **no se rellena con 0 %** — no operar no es rendir cero.
+- ✅ **El Diario dice qué le falta al dato**: columna **% de cuenta** junto a R (un +2R
+  puede ser un +0,4 % o un +4 % según el tamaño) y aviso de las operaciones cerradas
+  **sin stop** (sin R no cuentan para la ventaja ni para la proyección) y **sin saldo**
+  (fuera de la rentabilidad por periodo). El diario es la fuente de todo lo demás:
+  callar lo que falta hace que los otros paneles midan sobre menos muestra de la que el
+  usuario cree.
+- ✅ **Verificado**: `engine-check` **141/141** (+8 del puente, incluido que subir riesgo
+  daña el drawdown mucho más que subir la ventaja) · `pytest` **550 passed / 74 skipped**
+  (+5) · ESLint 0 errores · `i18n-check` **5817 claves × 10 idiomas** (+24) · build OK.

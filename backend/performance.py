@@ -144,6 +144,94 @@ def _periods_per_year(closed: List[dict]) -> Optional[float]:
     return min(len(closed) / (span_days / DAYS_PER_YEAR), MAX_TRADES_PER_YEAR)
 
 
+# Días mínimos de historial antes de estimar un ritmo mensual. Por debajo, la
+# cifra habla del calendario (una semana intensa, un puente) y no del trader.
+MIN_DAYS_FOR_MONTHLY_RATE = 21
+
+
+def _trades_per_month(closed: List[dict]) -> Optional[float]:
+    """Operaciones cerradas al mes, medidas sobre el histórico real.
+
+    None cuando el histórico es demasiado corto para que la cifra signifique
+    algo: es la diferencia entre "no lo sé" y "cero al mes", y quien la consuma
+    tiene que poder distinguirlas.
+    """
+    dts = [d for d in (_trade_close_dt(t) for t in closed) if d]
+    if len(dts) < 2:
+        return None
+    span_days = (max(dts) - min(dts)).total_seconds() / 86400
+    if span_days < MIN_DAYS_FOR_MONTHLY_RATE:
+        return None
+    return round(len(dts) / (span_days / 30.44), 1)
+
+
+def returns_by_period(closed: List[dict], starting_balance: float) -> Dict[str, List[dict]]:
+    """Rentabilidad REAL por mes, trimestre y año.
+
+    Es la unidad en la que se cobra y en la que se piensan los objetivos ("un
+    10 % al mes"), y hasta ahora la analítica sólo publicaba el total y el PnL
+    diario: no había forma de responder "¿qué renta mi cuenta al mes?".
+
+    Se compone, NO se suma: un +10 % seguido de un −10 % no es 0, es −1 %. Los
+    trimestres y los años se construyen encadenando los factores mensuales, que
+    es lo mismo que hace la cuenta real.
+
+    El porcentaje de cada mes se mide sobre el saldo con el que **empezó ese
+    mes**, no sobre el saldo inicial de todo el histórico: ganar 500 € sobre
+    10 000 no es lo mismo que ganarlos sobre 50 000, y sumarlos como si lo fuera
+    es lo que hace que una racha vieja infle la rentabilidad de hoy.
+    """
+    rows = sort_trades_chronologically([t for t in closed if _trade_close_dt(t)])
+    if not rows:
+        return {"month": [], "quarter": [], "year": []}
+
+    equity = starting_balance
+    months: Dict[str, Dict[str, Any]] = {}
+    for t in rows:
+        dt = _trade_close_dt(t)
+        key = f"{dt.year:04d}-{dt.month:02d}"
+        slot = months.get(key)
+        if slot is None:
+            slot = months[key] = {"period": key, "start": equity, "pnl": 0.0, "n": 0, "wins": 0}
+        pnl = float(t.get("pnl") or 0)
+        slot["pnl"] += pnl
+        slot["n"] += 1
+        if pnl > 0:
+            slot["wins"] += 1
+        equity += pnl
+
+    monthly = []
+    for key in sorted(months):
+        s = months[key]
+        pct = _safe_div(s["pnl"], s["start"], 0) * 100 if s["start"] > 0 else 0.0
+        monthly.append({
+            "period": key, "pnl": round(s["pnl"], 2), "pct": round(pct, 2),
+            "n": s["n"], "wins": s["wins"],
+        })
+
+    def _roll(size: int, label) -> List[dict]:
+        out: Dict[str, Dict[str, Any]] = {}
+        for row in monthly:
+            year, month = row["period"].split("-")
+            key = label(int(year), int(month))
+            slot = out.setdefault(key, {"period": key, "factor": 1.0, "pnl": 0.0, "n": 0, "months": 0})
+            slot["factor"] *= 1 + row["pct"] / 100
+            slot["pnl"] += row["pnl"]
+            slot["n"] += row["n"]
+            slot["months"] += 1
+        return [
+            {"period": k, "pct": round((v["factor"] - 1) * 100, 2),
+             "pnl": round(v["pnl"], 2), "n": v["n"], "months": v["months"]}
+            for k, v in sorted(out.items())
+        ]
+
+    return {
+        "month": monthly,
+        "quarter": _roll(3, lambda y, m: f"{y:04d}-Q{(m - 1) // 3 + 1}"),
+        "year": _roll(12, lambda y, m: f"{y:04d}"),
+    }
+
+
 def _compute_sharpe(returns: List[float], rf_period: float = 0.0) -> float:
     """Sharpe over the given return series, net of the per-period risk-free rate.
 
@@ -640,8 +728,14 @@ def compute_analytics(
 
     # By-day breakdown
     by_day = _group_winrate_by(closed, lambda t: _weekday_name(t.get("entry_date")))
-    # By-setup breakdown
-    by_setup = _group_winrate_by(closed, lambda t: t.get("setup") or "—")
+    # By-setup breakdown. A trade tagged with two setups counts in BOTH groups:
+    # that is the question this breakdown answers ("how does this setup do?"),
+    # so the group totals deliberately add up to more than the trade count.
+    # `setups_multi_tagged` publishes how much of that overlap there is, so the
+    # client can say it instead of the reader assuming the columns are a split.
+    by_setup = _group_winrate_by_multi(
+        closed, lambda t: trade_setups(t) or [UNTAGGED_SETUP])
+    setups_multi_tagged = sum(1 for t in closed if len(trade_setups(t)) > 1)
     # By-symbol breakdown
     by_symbol = _group_winrate_by(closed, lambda t: t.get("symbol") or "—")
 
@@ -718,6 +812,23 @@ def compute_analytics(
         "breakeven_trades": len(closed) - len(wins) - len(losses),
         "total_pnl": round(total_pnl, 2),
         "total_pnl_pct": round(_safe_div(total_pnl, starting_balance, 0) * 100, 2),
+        # El saldo con el que se empezó y el de ahora. Se publican porque una
+        # proyección a futuro tiene que arrancar del dinero REAL del usuario: si
+        # parte de una cifra redonda inventada, todo lo que salga de ella —el
+        # riesgo por operación, el drawdown en dinero, la ruina— es de otra
+        # cuenta que no es la suya.
+        "starting_balance": round(starting_balance, 2),
+        "current_balance": round(starting_balance + total_pnl, 2),
+        # Ritmo real de operativa. Lo necesita cualquier proyección con reglas
+        # MENSUALES (aportación, tope de rentabilidad, retirada del exceso):
+        # sin él habría que inventarse cuántas operaciones caben en un mes.
+        # None cuando la muestra no cubre tiempo suficiente: un ritmo estimado
+        # sobre cuatro días dice más del calendario que del trader.
+        "trades_per_month": _trades_per_month(closed),
+        # Rentabilidad medida por periodo: es la unidad en la que se cobra y en
+        # la que se piensan los objetivos, y hasta ahora sólo se publicaba el
+        # total y el PnL diario.
+        "returns_by_period": returns_by_period(closed, starting_balance),
         # Quality
         "profit_factor": round(profit_factor, 2) if profit_factor != float("inf") else None,
         "expectancy": round(expectancy, 2),
@@ -740,6 +851,7 @@ def compute_analytics(
         # Distributions
         "by_day": by_day,
         "by_setup": by_setup,
+        "setups_multi_tagged": setups_multi_tagged,
         "by_symbol": by_symbol,
         "r_distribution": r_buckets,
         "equity_curve": [round(e, 2) for e in equity],
@@ -849,6 +961,10 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "breakeven_trades": 0,
         "total_pnl": 0,
         "total_pnl_pct": 0,
+        "starting_balance": 0,
+        "current_balance": 0,
+        "trades_per_month": None,
+        "returns_by_period": {"month": [], "quarter": [], "year": []},
         "profit_factor": 0,
         "expectancy": 0,
         "avg_win": 0,
@@ -872,6 +988,7 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "max_consecutive_losses": 0,
         "by_day": [],
         "by_setup": [],
+        "setups_multi_tagged": 0,
         "by_symbol": [],
         "r_distribution": {},
         "equity_curve": [],
@@ -895,19 +1012,82 @@ def _weekday_name(iso_str: Optional[str]) -> str:
 
 
 def _group_winrate_by(trades: List[dict], key_fn) -> List[Dict[str, Any]]:
-    """Return list of {group, n, wins, win_rate, pnl} sorted by trade count desc."""
+    """Return list of {group, n, wins, win_rate, pnl} sorted by trade count desc.
+
+    One trade lands in exactly one group — use `_group_winrate_by_multi` when a
+    trade can legitimately belong to several.
+    """
+    return _group_winrate_by_multi(trades, lambda t: [key_fn(t)])
+
+
+def _group_winrate_by_multi(trades: List[dict], keys_fn) -> List[Dict[str, Any]]:
+    """Same shape, but a trade may belong to SEVERAL groups at once.
+
+    Used for setups: a trade taken on the confluence of two setups is evidence
+    about both of them. The consequence is that the group counts sum to more
+    than the number of trades, which is correct for "how does this setup do?"
+    and wrong for "how do my trades split up" — so the caller publishes the
+    overlap rather than letting a reader assume it is a partition.
+
+    Each group also carries what a FORWARD PROJECTION needs — average win,
+    average loss, payoff and average R with its own sample size — because a
+    projection built on the global numbers is not a projection of that setup.
+    Everything the sample cannot support is ``None``, never 0: a payoff with no
+    losing trade yet is undefined, and a 0 would read as "this setup loses
+    everything it makes".
+    """
     groups: Dict[str, Dict[str, Any]] = {}
     for t in trades:
-        k = key_fn(t)
-        g = groups.setdefault(k, {"group": k, "n": 0, "wins": 0, "pnl": 0.0})
-        g["n"] += 1
-        if (t.get("pnl") or 0) > 0:
-            g["wins"] += 1
-        g["pnl"] += float(t.get("pnl") or 0)
+        pnl = float(t.get("pnl") or 0)
+        r = t.get("r_multiple")
+        closed_at = _trade_close_dt(t)
+        for k in keys_fn(t):
+            g = groups.setdefault(k, {
+                "group": k, "n": 0, "wins": 0, "pnl": 0.0,
+                "_win_sum": 0.0, "_loss_sum": 0.0, "_losses": 0, "_rs": [],
+                "_dates": [],
+            })
+            if closed_at:
+                g["_dates"].append(closed_at)
+            g["n"] += 1
+            g["pnl"] += pnl
+            if pnl > 0:
+                g["wins"] += 1
+                g["_win_sum"] += pnl
+            elif pnl < 0:
+                g["_losses"] += 1
+                g["_loss_sum"] += abs(pnl)
+            if isinstance(r, (int, float)):
+                g["_rs"].append(float(r))
     out = []
     for g in groups.values():
+        wins, losses = g["wins"], g["_losses"]
+        avg_win = (g["_win_sum"] / wins) if wins else None
+        avg_loss = (g["_loss_sum"] / losses) if losses else None
+        rs = g["_rs"]
         g["win_rate"] = round(_safe_div(g["wins"], g["n"], 0) * 100, 1)
         g["pnl"] = round(g["pnl"], 2)
+        g["avg_win"] = round(avg_win, 2) if avg_win is not None else None
+        g["avg_loss"] = round(avg_loss, 2) if avg_loss is not None else None
+        # Payoff = cuánto gana el ganador medio por cada unidad que pierde el
+        # perdedor medio. Sin perdedores todavía no está definido.
+        g["payoff"] = (round(avg_win / avg_loss, 2)
+                       if (avg_win is not None and avg_loss) else None)
+        g["avg_r"] = round(sum(rs) / len(rs), 2) if rs else None
+        g["r_sample"] = len(rs)
+        # Ritmo propio del grupo. Hace falta para traducir su ventaja en R a
+        # cuánto aporta a la rentabilidad MENSUAL: un setup con 0,4 R que se da
+        # dos veces al mes aporta menos que uno de 0,15 R que se da quince.
+        # None con menos de 21 días de recorrido: es "no lo sé", no "ninguna".
+        dates = g.pop("_dates", [])
+        rate = None
+        if len(dates) >= 2:
+            span_days = (max(dates) - min(dates)).total_seconds() / 86400
+            if span_days >= MIN_DAYS_FOR_MONTHLY_RATE:
+                rate = round(len(dates) / (span_days / 30.44), 1)
+        g["trades_per_month"] = rate
+        for tmp in ("_win_sum", "_loss_sum", "_losses", "_rs"):
+            g.pop(tmp, None)
         out.append(g)
     out.sort(key=lambda x: x["n"], reverse=True)
     return out
@@ -1038,6 +1218,59 @@ def generate_insights(analytics: Dict[str, Any]) -> List[Dict[str, str]]:
     return insights[:8]
 
 
+# ─── Setups: one trade, possibly several ──────────────────────────
+# A trade can answer to MORE THAN ONE setup — a confluence of two conditions is
+# as real a reason to enter as a single one, and forcing a choice made the other
+# one invisible to the analytics. `setups` (a list) is the source of truth;
+# `setup` (a string) is kept in sync so everything that already read one text —
+# CSV export, the coach prompt, the journal table — keeps working.
+#
+# The separator is deliberately padded (" · "): it has to be something a user
+# will not type inside a single setup name, because the client splits on it when
+# talking to a backend that predates this field.
+SETUP_SEPARATOR = " · "
+MAX_SETUPS_PER_TRADE = 5
+# Group name for a trade logged with no setup at all. Missing data, which is a
+# different thing from a trade taken outside the system, and is counted apart.
+UNTAGGED_SETUP = "—"
+
+
+def normalize_setups(payload: dict) -> List[str]:
+    """The setup list for a trade, from either the new field or the old string.
+
+    Trims, drops blanks, removes the separator from inside a name (it would
+    later be read as two setups) and de-duplicates case-insensitively while
+    keeping the spelling the user chose — "Ruptura NY" typed twice is one
+    setup, not two, and the analytics must not see it as two.
+    """
+    raw = payload.get("setups")
+    if raw is None:
+        text = payload.get("setup")
+        raw = [p for p in str(text or "").split(SETUP_SEPARATOR)] if text else []
+    if not isinstance(raw, (list, tuple)):
+        raw = [raw]
+
+    out: List[str] = []
+    seen = set()
+    for item in raw:
+        name = str(item or "").replace(SETUP_SEPARATOR, " ").strip()
+        if not name:
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(name)
+        if len(out) >= MAX_SETUPS_PER_TRADE:
+            break
+    return out
+
+
+def trade_setups(trade: dict) -> List[str]:
+    """Read a trade's setups, whatever era it was stored in."""
+    return normalize_setups(trade)
+
+
 # ─── DB helpers ───────────────────────────────────────────────────
 
 async def trades_for_user(db, user_id: str, *, limit: int = 500) -> List[dict]:
@@ -1049,12 +1282,14 @@ async def trades_for_user(db, user_id: str, *, limit: int = 500) -> List[dict]:
 def make_trade_doc(payload: dict, user_id: str) -> dict:
     """Build a fresh trade document from API input payload."""
     now = datetime.now(timezone.utc).isoformat()
+    setups = normalize_setups(payload)
     doc = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
         "symbol": (payload.get("symbol") or "").upper(),
         "side": payload.get("side") or "long",
-        "setup": payload.get("setup") or "",
+        "setups": setups,
+        "setup": SETUP_SEPARATOR.join(setups),
         # Instrumento: spot (por defecto) u option. Campos de opción opcionales.
         "instrument_type": payload.get("instrument_type") or "spot",
         "option_type": payload.get("option_type") or None,

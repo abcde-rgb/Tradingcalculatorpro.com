@@ -191,6 +191,66 @@ async function checkTradingSystemModel() {
   const emptyJoin = m.joinSetupPerformance(null, null);
   ok('an empty library and empty analytics do not throw',
     emptyJoin.defined.length === 0 && emptyJoin.offSystem.length === 0);
+
+  // ── Un trade puede llevar VARIOS setups ──────────────────────────────────
+  ok('a trade reads its setups from the list',
+    m.tradeSetups({ setups: ['A', 'B'] }).join('|') === 'A|B');
+  ok('an old trade reads them from the joined string',
+    m.tradeSetups({ setup: `Ruptura NY${m.SETUP_SEPARATOR}Pullback EMA20` }).length === 2);
+  ok('a trade with no setup has none', m.tradeSetups({}).length === 0);
+  ok('the same setup is not added twice',
+    m.addSetup(['Ruptura NY'], ' ruptura ny ').length === 1);
+  ok('the separator is stripped from a typed name',
+    m.addSetup([], `A${m.SETUP_SEPARATOR}B`)[0] === 'A B');
+  ok('the cap is respected',
+    m.addSetup(['a', 'b', 'c', 'd', 'e'], 'f').length === m.MAX_SETUPS_PER_TRADE);
+
+  // Contra un backend anterior a `setups`, un trade con dos setups llega como
+  // UN grupo con la cadena unida. Debe acreditar a los dos, igual que hace ya
+  // el backend nuevo — si no, el marcador diría "sin muestra" sobre setups
+  // que sí se han operado.
+  const legacyJoin = m.joinSetupPerformance(
+    [m.makeSetup({ name: 'Ruptura NY' }), m.makeSetup({ name: 'Pullback EMA20' })],
+    [
+      { group: `Ruptura NY${m.SETUP_SEPARATOR}Pullback EMA20`, n: 3, wins: 2, win_rate: 66.7, pnl: 300 },
+      { group: 'Ruptura NY', n: 1, wins: 0, win_rate: 0, pnl: -100 },
+    ],
+  );
+  ok('a joined group credits every setup in it',
+    legacyJoin.defined[1].stats?.n === 3);
+  ok('a setup present in two rows adds them up',
+    legacyJoin.defined[0].stats?.n === 4 && legacyJoin.defined[0].stats?.pnl === 200);
+  ok('the win rate is recomputed after merging, not averaged',
+    legacyJoin.defined[0].stats?.win_rate === 50);
+  ok('nothing is left over as off-system', legacyJoin.offSystem.length === 0);
+
+  // ── El diario juzga con las reglas DEL setup, no con dos constantes ───────
+  const sys = m.emptySystem();
+  sys.setups = [
+    m.makeSetup({ name: 'Ruptura NY', rr: '2', riskPerTrade: '1' }),
+    m.makeSetup({ name: 'Pullback EMA20', rr: '3', riskPerTrade: '0.5' }),
+    m.makeSetup({ name: 'Sin reglas' }),
+  ];
+  const own = m.setupRulesFor(sys, ['Ruptura NY']);
+  ok('the trade is judged by its own setup rule', own.minRR === 2 && own.maxRiskPct === 1);
+  ok('and it says the rule is the user\'s, not a default',
+    own.rrSource === 'setup' && own.riskSource === 'setup');
+
+  const both = m.setupRulesFor(sys, ['Ruptura NY', 'Pullback EMA20']);
+  ok('with two setups the STRICTEST of each rule wins',
+    both.minRR === 3 && both.maxRiskPct === 0.5);
+
+  const none = m.setupRulesFor(sys, ['Sin reglas']);
+  ok('a setup without rules falls back to the defaults',
+    none.minRR === m.DEFAULT_MIN_RR && none.maxRiskPct === m.DEFAULT_MAX_RISK_PCT);
+  ok('and the fallback is labelled as such (an alien constant gets ignored)',
+    none.rrSource === 'default' && none.riskSource === 'default');
+  ok('no setup at all also falls back',
+    m.setupRulesFor(sys, []).minRR === m.DEFAULT_MIN_RR);
+  ok('a comma decimal in the rule is read, not dropped',
+    m.setupRulesFor(
+      { setups: [m.makeSetup({ name: 'x', riskPerTrade: '0,75' })] }, ['x'],
+    ).maxRiskPct === 0.75);
 }
 
 async function checkOptionsEngine() {
@@ -302,10 +362,232 @@ async function checkOptionsEngine() {
     popCal > 1 && popCal < 99, `${popCal}`);
 }
 
+async function checkProjection() {
+  console.log('\nprojection.js');
+  const pj = await imp('lib/projection.js');
+
+  // Las entradas salen del diario, no de la imaginación.
+  const analytics = {
+    closed_trades: 60, win_rate: 45, avg_win: 300, avg_loss: -150,
+    avg_r: 0.3, r_sample_size: 60,
+  };
+  const measured = pj.measuredInputs(analytics);
+  ok('win rate and payoff come from the journal',
+    measured.winRate.value === 45 && measured.payoff.value === 2);
+  ok('and they say they are measured, with their sample',
+    measured.winRate.source === 'measured' && measured.winRate.sample === 60);
+
+  const group = { group: 'Ruptura NY', n: 40, win_rate: 60, avg_win: 100, avg_loss: -100 };
+  ok('a setup projects with ITS numbers, not the global ones',
+    pj.measuredInputs(analytics, group).payoff.value === 1);
+
+  const noLosers = pj.measuredInputs({ closed_trades: 12, win_rate: 100, avg_win: 100, avg_loss: null });
+  ok('no losing trade yet = payoff unknown, not zero',
+    noLosers.payoff.value === null && noLosers.payoff.source === 'unavailable');
+
+  // Esperanza: la cuenta que decide si proyectar más operaciones ayuda o mata.
+  ok('expectancy in R is win_rate × payoff − losses',
+    pj.expectancyR(50, 2) === 0.5);
+  ok('a coin flip at 1:1 has zero expectancy', pj.expectancyR(50, 1) === 0);
+  ok('expectancy is negative when the edge is not there',
+    pj.expectancyR(30, 1) < 0);
+  ok('breakeven win rate inverts the payoff',
+    pj.breakevenWinRate(1) === 50 && pj.breakevenWinRate(3) === 25);
+  ok('breakeven is undefined without a payoff', pj.breakevenWinRate(null) === null);
+
+  // Lo que el usuario toca queda marcado como supuesto: una proyección sobre
+  // supuestos es una hipótesis, y confundirla con una medición es lo que hace
+  // que alguien dimensione una cuenta real contra un número inventado.
+  const assumed = pj.resolveInputs(measured, { winRate: 70 });
+  ok('an edited input is flagged as assumed', assumed.winRate.source === 'assumed');
+  ok('an untouched input stays measured', assumed.payoff.source === 'measured');
+  ok('re-typing the measured value is not an assumption',
+    pj.resolveInputs(measured, { winRate: 45 }).winRate.source === 'measured');
+
+  // Muestra: por debajo del suelo no se proyecta.
+  const tiny = pj.project({ closed_trades: 4, win_rate: 50, avg_win: 100, avg_loss: -100 });
+  ok('four trades are not a forecast', tiny.ok === false && tiny.reason === 'sample');
+  ok('and nothing is drawn from it', tiny.distribution === null);
+
+  const thin = pj.project({ closed_trades: 15, win_rate: 50, avg_win: 200, avg_loss: -100 });
+  ok('a thin sample still projects but warns', thin.ok === true && thin.sampleWarning === true);
+
+  const solid = pj.project(analytics, { overrides: { balance: 10000, riskPct: 1, trades: 100 } });
+  ok('a solid sample projects', solid.ok === true && solid.sampleWarning === false);
+  ok('the projection is a DISTRIBUTION, not a number',
+    solid.distribution.roi.p5 < solid.distribution.roi.p50
+    && solid.distribution.roi.p50 < solid.distribution.roi.p95);
+  ok('ruin probability is reported', typeof solid.distribution.probabilityOfRuin === 'number');
+
+  // Mismos números, mismo dibujo: sin semilla fija el panel cambiaría solo.
+  const again = pj.project(analytics, { overrides: { balance: 10000, riskPct: 1, trades: 100 } });
+  ok('the same inputs give the same projection',
+    solid.distribution.roi.p50 === again.distribution.roi.p50);
+
+  // Una ventaja positiva medida tiene que proyectar mediana positiva.
+  ok('a positive edge projects a positive median ROI',
+    solid.expectancyR > 0 && solid.distribution.roi.p50 > 0);
+
+  const losing = pj.project(
+    { closed_trades: 80, win_rate: 30, avg_win: 100, avg_loss: -100 },
+    { overrides: { balance: 10000, riskPct: 2, trades: 200 } },
+  );
+  ok('a negative edge projects a negative median and real ruin risk',
+    losing.expectancyR < 0 && losing.distribution.roi.p50 < 0
+    && losing.distribution.probabilityOfRuin > 0);
+
+  // ── Reglas de caja mensuales ─────────────────────────────────────────────
+  // Aportar, topar el mes y sacar el exceso cambian el resultado tanto como la
+  // operativa, así que la proyección tiene que aplicarlas de verdad.
+  const cash = (over) => pj.project(analytics, {
+    overrides: {
+      balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20, ...over,
+    },
+  }).distribution;
+
+  const plain = cash({});
+  ok('without cash rules nothing is contributed or withdrawn',
+    plain.contributed.p50 === 0 && plain.withdrawn.p50 === 0);
+  ok('the horizon is split into months', plain.months.p50 === 12);
+
+  const withDeposits = cash({ contribution: 500 });
+  ok('a fixed monthly contribution is paid in every month',
+    withDeposits.contributed.p50 === 500 * 12);
+  ok('and it raises the final balance', withDeposits.finalBalance.p50 > plain.finalBalance.p50);
+  // Y no debe disimular el drawdown: el máximo histórico sube con el dinero
+  // nuevo, así que aportar no puede "curar" una caída.
+  ok('contributing does not paper over the drawdown',
+    withDeposits.maxDrawdown.p50 >= plain.maxDrawdown.p50 * 0.6);
+
+  const withCap = cash({ capPct: 3 });
+  ok('a monthly profit cap stops some months early',
+    withCap.monthsCapped.p50 > 0);
+  ok('capping the month cuts the upside too (that is what the rule asks for)',
+    withCap.roi.p95 < plain.roi.p95);
+
+  const withSkim = cash({ withdrawAbove: 10000 });
+  ok('the monthly excess is taken out', withSkim.withdrawn.p50 > 0);
+  ok('the trading account stops growing past the ceiling',
+    withSkim.finalBalance.p95 <= 10000 + 1e-6);
+  ok('but the net worth counts the money taken out',
+    withSkim.netWorth.p50 > withSkim.finalBalance.p50);
+  ok('skimming never invents money',
+    withSkim.netWorth.p50 <= plain.netWorth.p50 + 1e-6);
+
+  const all = cash({ contribution: 300, capPct: 4, withdrawAbove: 12000 });
+  ok('the three rules coexist',
+    all.contributed.p50 > 0 && all.withdrawn.p50 > 0 && all.monthsCapped.p50 > 0);
+  // Un mes que se corta al llegar al tope deja operaciones sin hacer, así que
+  // completar las mismas 240 lleva MÁS meses — y por tanto más aportaciones.
+  // Publicar "aportarás 3600" cuando en la mitad de los casos son 5700 sería
+  // mentir sobre el dinero que hay que poner.
+  ok('capping stretches the calendar, so contributions grow with it',
+    all.months.p50 > plain.months.p50 && all.contributed.p50 > 300 * plain.months.p50);
+  ok('the withdrawal ceiling still holds with the other two rules on',
+    all.finalBalance.p95 <= 12000 + 1e-6);
+
+  // Retirar el exceso deja el saldo pegado al techo A PROPÓSITO. Medir la
+  // ruina sobre ese saldo daba "ruina 100 %" a quien tiene el triple fuera:
+  // decía exactamente lo contrario de la verdad. Se mide sobre el patrimonio.
+  const skimmed = cash({ withdrawAbove: 10000, contribution: 300, trades: 1200 });
+  ok('withdrawing every month is not ruin', skimmed.probabilityOfRuin < 5);
+  ok('and the account was never wiped either', skimmed.probabilityOfAccountWiped < 5);
+  const doomedCash = pj.project(
+    { closed_trades: 80, win_rate: 25, avg_win: 100, avg_loss: -100 },
+    { overrides: { balance: 10000, riskPct: 5, trades: 400, tradesPerMonth: 20 } },
+  ).distribution;
+  ok('a losing system still reports ruin', doomedCash.probabilityOfRuin > 50);
+  ok('and reports the account being wiped', doomedCash.probabilityOfAccountWiped > 50);
+
+  // ── Por periodo: mes, trimestre y año ────────────────────────────────────
+  // Un objetivo mensual sólo se juzga mirando la distribución de MESES: el
+  // total no dice si ese 10 % se toca alguna vez.
+  const periods = cash({ trades: 240, tradesPerMonth: 20 }).periods;
+  ok('monthly, quarterly and annual returns are reported',
+    Boolean(periods.month && periods.quarter && periods.year));
+  ok('there are 12 monthly observations per path, 4 quarters and 1 year',
+    periods.month.count === periods.quarter.count * 3
+    && periods.quarter.count === periods.year.count * 4);
+  ok('longer periods are compounded, not summed',
+    periods.quarter.p50 > periods.month.p50 * 2.5
+    && periods.quarter.p50 < ((1 + periods.month.p95 / 100) ** 3 - 1) * 100);
+  ok('the share of losing periods shrinks as the period grows',
+    periods.month.negativeRate >= periods.quarter.negativeRate
+    && periods.quarter.negativeRate >= periods.year.negativeRate);
+
+  // El objetivo mensual, traducido a lo que de verdad se está pidiendo.
+  const hr = pj.hitRates(cash({ trades: 240, tradesPerMonth: 20, compound: true }), 10);
+  ok('a 10% monthly target is a 33% quarter and a 214% year',
+    Math.round(hr.quarter.target) === 33 && Math.round(hr.year.target) === 214);
+  ok('hit rates are percentages',
+    hr.month.rate >= 0 && hr.month.rate <= 100 && hr.year.rate >= 0);
+  ok('reaching the target every month is rarer than the average suggests',
+    hr.month.rate < 100);
+
+  // ── El precio de la caja ─────────────────────────────────────────────────
+  const cost = pj.cashflowCost(analytics, {
+    overrides: {
+      balance: 10000, riskPct: 1, trades: 1200, tradesPerMonth: 20, withdrawAbove: 10000,
+    },
+    iterations: 500,
+  });
+  ok('skimming the excess costs compounding, and the panel can say by how much',
+    cost.ratio > 2, `ratio ${cost && cost.ratio}`);
+  ok('the comparison keeps both figures', cost.withRules > 0 && cost.compounded > cost.withRules);
+
+  // ── El puente entre las tres pantallas ───────────────────────────────────
+  //   rentabilidad mensual ≈ esperanza (R/op) × operaciones al mes × riesgo %
+  ok('the bridge equation multiplies the three levers',
+    pj.monthlyFromEdge(0.26, 20, 1) === 5.2);
+  ok('and it is undefined if any lever is missing',
+    pj.monthlyFromEdge(null, 20, 1) === null);
+
+  const routes = pj.routesToTarget(analytics, {
+    overrides: { balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20 },
+    targetMonthlyPct: 10,
+    iterations: 400,
+  });
+  ok('the three routes to the target are solved',
+    routes.edge.needed > 0 && routes.frequency.needed > 0 && routes.risk.needed > 0);
+  const edgeNow = routes.edge.currentEdge;
+  ok('each route, applied, actually reaches the target on average',
+    Math.abs(pj.monthlyFromEdge(routes.edge.needed, 20, 1) - 10) < 0.05
+    && Math.abs(pj.monthlyFromEdge(edgeNow, routes.frequency.needed, 1) - 10) < 0.6
+    && Math.abs(pj.monthlyFromEdge(edgeNow, 20, routes.risk.needed) - 10) < 0.05,
+    `ventaja actual ${edgeNow}`);
+  // La lección entera del panel: los tres caminos llegan igual de lejos y NO
+  // cuestan lo mismo. El riesgo es la palanca fácil y la que puede echarte.
+  ok('raising risk hurts the drawdown far more than raising the edge',
+    routes.risk.outcome.drawdownP95 > routes.edge.outcome.drawdownP95 * 1.5,
+    `riesgo ${routes.risk.outcome.drawdownP95}% vs ventaja ${routes.edge.outcome.drawdownP95}%`);
+  ok('and it leaves many more months in the red',
+    routes.risk.outcome.redMonths > routes.edge.outcome.redMonths);
+  ok('a target that needs an impossible win rate is flagged, not faked',
+    pj.routesToTarget(analytics, {
+      overrides: { balance: 10000, riskPct: 0.1, trades: 240, tradesPerMonth: 5 },
+      targetMonthlyPct: 50,
+      iterations: 100,
+    }).edge.feasible === false);
+  ok('a target already reached says so instead of proposing routes',
+    pj.routesToTarget(analytics, {
+      overrides: { balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20 },
+      targetMonthlyPct: 1,
+      iterations: 100,
+    }).alreadyThere === true);
+
+  // Sensibilidad: qué le pasa a la ventaja si cambia la decisión.
+  const sens = pj.sensitivity(45, 2);
+  ok('sensitivity is monotonic in win rate',
+    sens[0].expectancyR < sens[sens.length - 1].expectancyR);
+  ok('sensitivity clamps the win rate to a real percentage',
+    pj.sensitivity(95, 2, [10])[0].winRate === 100);
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
   await checkTradingSystemModel();
+  await checkProjection();
   await checkOptionsEngine();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {

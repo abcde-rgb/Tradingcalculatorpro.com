@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Settings2, Save, Copy, Check, Trash2, Plus, Clock, Layers, Wrench, Shield,
-  Target, Crosshair, ShieldAlert, ListChecks, AlertTriangle, Pencil, X,
+  Target, Crosshair, ShieldAlert, ListChecks, AlertTriangle, Pencil, X, Wallet,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { getChartPatterns, getCandlestickPatterns, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
@@ -217,6 +217,11 @@ export default function SetupBuilder({ onSaved }) {
     }
     if (r.maxCorrelatedExposure) parts.push(`${t('tsysMaxCorr')}: ${r.maxCorrelatedExposure}%`);
     if (r.checklistEnabled) parts.push(`${t('tsysChecklistOn')}`);
+    // La caja también va en el resumen copiable: son reglas del sistema, no
+    // ajustes de una pantalla.
+    if (r.monthlyContribution) parts.push(`${t('tsysMonthlyContribution')}: ${r.monthlyContribution}`);
+    if (r.monthlyProfitCapPct) parts.push(`${t('tsysMonthlyCap')}: ${r.monthlyProfitCapPct}%`);
+    if (r.withdrawAboveBalance) parts.push(`${t('tsysWithdrawAbove')}: ${r.withdrawAboveBalance}`);
     return parts.join('\n');
   };
 
@@ -285,6 +290,36 @@ export default function SetupBuilder({ onSaved }) {
                 onClick={() => patchRules({ checklistEnabled: !system.systemRules.checklistEnabled })}>
                 {system.systemRules.checklistEnabled ? t('tsysChecklistOn') : t('tsysChecklistOff')}
               </Chip>
+            </Section>
+
+            {/* Caja: no son reglas de entrada, son reglas de CUENTA, y mueven el
+                resultado tanto como la operativa. La pestaña Proyección las
+                aplica, así que dejan de ser una intención y se ven. */}
+            <Section icon={Wallet} title={t('tsysCashTitle')} hint={t('tsysCashHint')}>
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                {t('tsysMonthlyContribution')}
+                <Input type="number" min="0" step="50" className="w-28"
+                  value={system.systemRules.monthlyContribution}
+                  onChange={(e) => patchRules({ monthlyContribution: e.target.value })}
+                  data-testid="tsys-monthly-contribution" />
+              </label>
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                {t('tsysMonthlyCap')}
+                <Input type="number" min="0" step="0.5" className="w-24"
+                  value={system.systemRules.monthlyProfitCapPct}
+                  onChange={(e) => patchRules({ monthlyProfitCapPct: e.target.value })}
+                  data-testid="tsys-monthly-cap" />
+              </label>
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                {t('tsysWithdrawAbove')}
+                <Input type="number" min="0" step="100" className="w-28"
+                  value={system.systemRules.withdrawAboveBalance}
+                  onChange={(e) => patchRules({ withdrawAboveBalance: e.target.value })}
+                  data-testid="tsys-withdraw-above" />
+              </label>
+              <p className="text-[11px] text-muted-foreground/80 leading-relaxed w-full">
+                {t('tsysCashNote')}
+              </p>
             </Section>
           </div>
         ) : !editing ? (

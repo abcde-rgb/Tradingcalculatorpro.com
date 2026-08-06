@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Trash2, Plus, AlertTriangle, TrendingUp, TrendingDown, BookOpen } from 'lucide-react';
+import { Edit2, Trash2, Plus, AlertTriangle, TrendingUp, TrendingDown, BookOpen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription,
@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { useTranslation } from '@/lib/i18n';
 import { listTrades, deleteTrade } from '@/services/performanceApi';
+import { tradeSetups } from '@/lib/tradingSystem';
 import TradeFormModal from './TradeFormModal';
 import TradeImportExport from './TradeImportExport';
 import { toast } from 'sonner';
@@ -24,7 +25,12 @@ const SEVERITY_COLORS = {
   medium:   'bg-[#eab308]/15 text-[#eab308] border-[#eab308]/30',
 };
 
-export default function TradeJournal({ refreshKey, onChange }) {
+/**
+ * `setupFilter` llega desde el marcador de la pestaña Setups: pinchar un setup
+ * lleva a SUS operaciones. Sin ese salto, el marcador daba un número y dejaba
+ * al usuario buscando a mano en la tabla cuáles eran las operaciones detrás.
+ */
+export default function TradeJournal({ refreshKey, onChange, setupFilter, onClearSetupFilter }) {
   const { t } = useTranslation();
   const [trades, setTrades]           = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -75,6 +81,22 @@ export default function TradeJournal({ refreshKey, onChange }) {
     onChange?.();
   };
 
+  // El filtro es del cliente a propósito: la lista ya está cargada entera y así
+  // el salto desde el marcador es instantáneo y no gasta otra petición.
+  const filterName = String(setupFilter || '').trim().toLowerCase();
+  const visible = filterName
+    ? trades.filter((tr) => tradeSetups(tr).some((s) => s.toLowerCase() === filterName))
+    : trades;
+
+  // Calidad del dato. El diario es la fuente de TODO lo demás: una operación
+  // sin stop no tiene R, así que no cuenta para medir la ventaja de un setup;
+  // una sin saldo de cuenta no tiene % y no entra en la rentabilidad. Callarlo
+  // hace que el resto de paneles midan sobre menos muestra de la que el usuario
+  // cree tener.
+  const closed = trades.filter((tr) => tr.exit_price != null);
+  const noStop = closed.filter((tr) => tr.sl == null || tr.r_multiple == null).length;
+  const noBalance = closed.filter((tr) => !tr.account_balance).length;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -82,7 +104,20 @@ export default function TradeJournal({ refreshKey, onChange }) {
         <div className="flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-primary" />
           <h2 className="font-unbounded text-xl font-bold">{t('tradeJournal')}</h2>
-          <span className="text-xs text-muted-foreground">({trades.length})</span>
+          <span className="text-xs text-muted-foreground">
+            ({filterName ? `${visible.length}/${trades.length}` : trades.length})
+          </span>
+          {filterName && (
+            <button
+              type="button"
+              onClick={onClearSetupFilter}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/40 text-[11px] font-semibold hover:bg-primary/25 transition-colors"
+              data-testid="journal-setup-filter"
+            >
+              {t('journalFilteredBySetup').replace('{setup}', setupFilter)}
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <TradeImportExport
@@ -99,6 +134,23 @@ export default function TradeJournal({ refreshKey, onChange }) {
           </Button>
         </div>
       </div>
+
+      {(noStop > 0 || noBalance > 0) && !loading && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2"
+          data-testid="journal-quality"
+        >
+          <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
+          <div className="text-[11px] text-[#f59e0b] leading-relaxed">
+            {noStop > 0 && (
+              <div>{t('journalNoStopWarn').replace('{n}', String(noStop)).replace('{total}', String(closed.length))}</div>
+            )}
+            {noBalance > 0 && (
+              <div>{t('journalNoBalanceWarn').replace('{n}', String(noBalance))}</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">{t('loading')}…</div>
@@ -127,13 +179,14 @@ export default function TradeJournal({ refreshKey, onChange }) {
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradeExit')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradePnL')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">R</th>
+                <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradePctAccount')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeStatus')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeErrors')}</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody>
-              {trades.map((tr) => {
+              {visible.map((tr) => {
                 const status = STATUS_LABELS[tr.status] || STATUS_LABELS.closed;
                 const pnlPositive = (tr.pnl || 0) > 0;
                 const pnlNegative = (tr.pnl || 0) < 0;
@@ -148,7 +201,29 @@ export default function TradeJournal({ refreshKey, onChange }) {
                         {tr.side}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground truncate max-w-[120px]">{tr.setup || '—'}</td>
+                    {/* Una operación puede llevar varios setups: se pintan como
+                        etiquetas, no como una cadena cortada por el ancho. */}
+                    <td className="px-3 py-2 max-w-[160px]">
+                      {tradeSetups(tr).length === 0 ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <span className="flex flex-wrap gap-1" title={tradeSetups(tr).join(', ')}>
+                          {tradeSetups(tr).slice(0, 2).map((name) => (
+                            <span
+                              key={name}
+                              className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] truncate max-w-[110px]"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                          {tradeSetups(tr).length > 2 && (
+                            <span className="text-[10px] text-muted-foreground self-center">
+                              +{tradeSetups(tr).length - 2}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 font-mono text-right">${tr.entry_price?.toFixed(2)}</td>
                     <td className="px-3 py-2 font-mono text-right">{tr.exit_price ? `$${tr.exit_price.toFixed(2)}` : '—'}</td>
                     <td className={`px-3 py-2 font-mono text-right font-bold ${
@@ -160,6 +235,17 @@ export default function TradeJournal({ refreshKey, onChange }) {
                       (tr.r_multiple || 0) > 0 ? 'text-[#22c55e]' : (tr.r_multiple || 0) < 0 ? 'text-[#ef4444]' : 'text-muted-foreground'
                     }`}>
                       {tr.r_multiple ? `${tr.r_multiple > 0 ? '+' : ''}${tr.r_multiple}R` : '—'}
+                    </td>
+                    {/* % sobre el saldo con el que se operó: es la unidad de la
+                        analítica, y tenerla junto a R deja ver de un vistazo que
+                        un +2R puede ser un +0,4 % o un +4 % según el tamaño. */}
+                    <td className={`px-3 py-2 font-mono text-right ${
+                      (tr.pnl || 0) > 0 ? 'text-[#22c55e]' : (tr.pnl || 0) < 0 ? 'text-[#ef4444]' : 'text-muted-foreground'
+                    }`}
+                    >
+                      {tr.exit_price && tr.account_balance
+                        ? `${tr.pnl > 0 ? '+' : ''}${((tr.pnl / tr.account_balance) * 100).toFixed(2)}%`
+                        : '—'}
                     </td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${status.color}`}>
@@ -211,6 +297,13 @@ export default function TradeJournal({ refreshKey, onChange }) {
               })}
             </tbody>
           </table>
+          {/* Con filtro puesto y sin coincidencias, la tabla vacía se leía como
+              "no tienes operaciones". Son cosas distintas. */}
+          {visible.length === 0 && (
+            <div className="text-center py-8 text-sm text-muted-foreground" data-testid="journal-filter-empty">
+              {t('journalNoTradesForSetup').replace('{setup}', setupFilter || '')}
+            </div>
+          )}
         </div>
       )}
 

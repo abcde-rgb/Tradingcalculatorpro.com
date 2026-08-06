@@ -61,7 +61,9 @@ from performance import (
     generate_insights,
     trades_for_user,
     make_trade_doc,
+    normalize_setups,
     sort_trades_chronologically,
+    SETUP_SEPARATOR,
 )
 from trading_plan import (
     activate_plan,
@@ -6356,6 +6358,12 @@ class TradeIn(BaseModel):
     """Payload for creating/updating a trade."""
     symbol: str
     side: str = Field(..., pattern="^(long|short)$")
+    # Un trade puede responder a MÁS DE UN setup: la confluencia de dos
+    # condiciones es una razón de entrada tan real como una sola, y obligar a
+    # elegir una hacía que la otra no existiera para la analítica. `setups` es
+    # la fuente de verdad; `setup` se conserva como cadena derivada para todo lo
+    # que ya leía un solo texto (CSV, prompt del coach, tabla del diario).
+    setups: Optional[List[str]] = None
     setup: Optional[str] = ""
     entry_price: float
     exit_price: Optional[float] = None
@@ -6509,6 +6517,13 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
     # If exit_price now set and status omitted, mark closed
     if updates.get("exit_price") is not None and not updates.get("status"):
         updates["status"] = "closed"
+    # `setups` (lista) y `setup` (cadena) tienen que salir siempre de aquí a la
+    # vez: si se editan por separado, la analítica agrupa por una y la tabla
+    # enseña la otra, y acaban diciendo cosas distintas del mismo trade.
+    if "setups" in updates or "setup" in updates:
+        names = normalize_setups(updates)
+        updates["setups"] = names
+        updates["setup"] = SETUP_SEPARATOR.join(names)
 
     merged = {**existing, **updates}
     prev = [t for t in await trades_for_user(db, user["id"], limit=50)

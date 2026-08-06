@@ -50,6 +50,15 @@ export const EMPTY_SYSTEM_RULES = {
   noTradeConditions: [],    // high-impact-news | ranging-market | outside-session | ...
   maxCorrelatedExposure: '',
   checklistEnabled: true,
+  // ── Caja: lo que entra y sale de la cuenta cada mes ──────────────────────
+  // No son reglas de entrada, son reglas de CUENTA, y cambian el resultado
+  // tanto como la operativa: aportar mensualmente acelera el interés compuesto,
+  // retirar el exceso lo frena a cambio de asegurar dinero fuera, y un tope de
+  // rentabilidad mensual corta las rachas —las buenas también—. La proyección
+  // las aplica, así que dejan de ser una intención y pasan a verse.
+  monthlyContribution: '',    // dinero que entra al principio de cada mes
+  monthlyProfitCapPct: '',    // alcanzado ese % en el mes, se deja de operar
+  withdrawAboveBalance: '',   // a fin de mes se retira todo lo que pase de aquí
 };
 
 export function emptySystem() {
@@ -169,6 +178,65 @@ export function missingEssentials(s) {
   return missing;
 }
 
+// ── The system judges the trade ─────────────────────────────────────────────
+// El diario avisaba con dos constantes (R:R < 1,5 y riesgo > 2 %) mientras el
+// usuario tenía escrito en su propio setup "R:R mínimo 2, riesgo 1 %". Dos
+// reglas distintas para la misma operación: la que el trader se puso y la que
+// le juzgaba. Manda la suya; las constantes son sólo el respaldo de quien no ha
+// definido nada, y la interfaz dice cuál de las dos está aplicando.
+
+/** Respaldo para quien no tiene la regla escrita en su setup. */
+export const DEFAULT_MIN_RR = 1.5;
+export const DEFAULT_MAX_RISK_PCT = 2;
+
+const numeric = (v) => {
+  const n = parseFloat(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/**
+ * Las reglas que aplican a una operación etiquetada con `names`.
+ *
+ * Con varios setups gana **el más estricto** de cada regla (el R:R más alto y
+ * el riesgo más bajo): si la operación responde a dos condiciones, tiene que
+ * cumplir las dos. `source` distingue una regla propia de un valor por defecto,
+ * porque presentar el respaldo como si fuera decisión del usuario es lo que
+ * hace que un aviso se ignore.
+ */
+export function setupRulesFor(system, names) {
+  const picked = (Array.isArray(names) ? names : [])
+    .map((n) => (system?.setups || []).find((s) => normName(s.name) === normName(n)))
+    .filter(Boolean);
+
+  const rrs = picked.map((s) => numeric(s.rr)).filter(Boolean);
+  const risks = picked.map((s) => numeric(s.riskPerTrade)).filter(Boolean);
+
+  return {
+    minRR: rrs.length ? Math.max(...rrs) : DEFAULT_MIN_RR,
+    maxRiskPct: risks.length ? Math.min(...risks) : DEFAULT_MAX_RISK_PCT,
+    rrSource: rrs.length ? 'setup' : 'default',
+    riskSource: risks.length ? 'setup' : 'default',
+    from: picked.map((s) => s.name).filter(Boolean),
+  };
+}
+
+/**
+ * Las reglas de caja del sistema, ya en números.
+ *
+ * Vacío significa "no aplica" y sale como `null`, no como 0: un tope de
+ * rentabilidad de 0 % pararía la cuenta el primer día, y un techo de retirada
+ * de 0 la vaciaría entera. Son estados distintos y confundirlos rompe la
+ * proyección de la peor manera, en silencio.
+ */
+export function cashflowRules(system) {
+  const r = system?.systemRules || {};
+  return {
+    monthlyContribution: numeric(r.monthlyContribution),
+    monthlyProfitCapPct: numeric(r.monthlyProfitCapPct),
+    withdrawAboveBalance: numeric(r.withdrawAboveBalance),
+  };
+}
+
 // ── The system meets the journal ────────────────────────────────────────────
 // A setup you cannot measure is a wish. The journal stores `setup` as a plain
 // string and the backend groups analytics by that string, so the join key is
@@ -178,7 +246,46 @@ export function missingEssentials(s) {
 /** What the backend uses as the group name for a trade with no setup. */
 export const UNLABELLED_GROUP = '—';
 
+/**
+ * Separator between the setups of one trade in the legacy `setup` string.
+ *
+ * A trade can answer to more than one setup, so the field is a LIST
+ * (`trade.setups`). The joined string survives for everything that already read
+ * one text — CSV, the coach prompt, the journal table — and the padded dot is
+ * chosen so it will not show up inside a single setup name. Must match
+ * `SETUP_SEPARATOR` in `backend/performance.py`.
+ */
+export const SETUP_SEPARATOR = ' · ';
+export const MAX_SETUPS_PER_TRADE = 5;
+
 const normName = (s) => String(s || '').trim().toLowerCase();
+
+/** The setups of a trade, from the list or from the old joined string. */
+export function tradeSetups(trade) {
+  if (Array.isArray(trade?.setups)) return trade.setups.filter(Boolean);
+  return splitSetups(trade?.setup);
+}
+
+/** Split a joined string, trimming and dropping blanks. */
+export function splitSetups(text) {
+  return String(text || '')
+    .split(SETUP_SEPARATOR)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Add a setup to a list: trimmed, de-duplicated case-insensitively and capped.
+ * The separator is stripped from the name — left in, it would come back as two
+ * setups the next time the string is read.
+ */
+export function addSetup(list, name) {
+  const clean = String(name || '').replace(SETUP_SEPARATOR, ' ').trim();
+  const current = Array.isArray(list) ? list : [];
+  if (!clean || current.length >= MAX_SETUPS_PER_TRADE) return current;
+  if (current.some((s) => normName(s) === normName(clean))) return current;
+  return [...current, clean];
+}
 
 /**
  * Cross the setup library with the journal's by-setup analytics.
@@ -205,7 +312,25 @@ export function joinSetupPerformance(setups, bySetup) {
       unlabelled = r;
       continue;
     }
-    byName.set(normName(r.group), r);
+    // Un grupo puede venir ya partido (backend nuevo) o como la cadena unida de
+    // un trade con varios setups (backend anterior a `setups`). En los dos
+    // casos, ese trade es evidencia sobre CADA uno de sus setups, así que se
+    // suma en todos: es lo mismo que calcula el backend actual.
+    for (const name of splitSetups(r.group)) {
+      const key = normName(name);
+      const acc = byName.get(key);
+      if (acc) {
+        acc.n += r.n || 0;
+        acc.wins += r.wins || 0;
+        acc.pnl = Math.round((acc.pnl + (r.pnl || 0)) * 100) / 100;
+        acc.win_rate = acc.n ? Math.round((acc.wins / acc.n) * 1000) / 10 : 0;
+      } else {
+        byName.set(key, {
+          group: name, n: r.n || 0, wins: r.wins || 0,
+          pnl: r.pnl || 0, win_rate: r.win_rate ?? 0,
+        });
+      }
+    }
   }
 
   const used = new Set();

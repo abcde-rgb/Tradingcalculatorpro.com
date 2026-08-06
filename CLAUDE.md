@@ -234,10 +234,19 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   ventana `FAILURE_BACKOFF_SECONDS`: sin ella, con el proveedor caído, `get_risk_free_rate`
   vuelve a salir a la red en cada llamada, y está dentro de `/options/chain`, `/optimize`,
   `/calculate/*` y `/performance/analytics`. Hay test que lo fija.
+- **Un trade lleva `setups` (LISTA), no `setup`.** La cadena `setup` sobrevive
+  como campo derivado —unida por `SETUP_SEPARATOR` (`" · "`, el mismo literal en
+  `backend/performance.py` y en `lib/tradingSystem.js`)— para el CSV, el prompt
+  del coach y la tabla del diario. Normaliza siempre con `normalize_setups`
+  (recorta, deduplica sin distinguir mayúsculas, quita el separador de dentro de
+  un nombre y corta en 5), y si tocas la edición, recalcula lista y cadena
+  **juntas**. En la analítica, un trade con dos setups cuenta en **los dos**
+  grupos: por eso la suma de `by_setup` supera el número de operaciones y la
+  respuesta publica `setups_multi_tagged` para poder decirlo.
 - **Los setups del usuario viven en `frontend/src/lib/tradingSystem.js`, no en la
   Academia.** Se definen en `SetupBuilder` —montado en dos sitios, Academia y la
   pestaña Setups de `/performance`, con el mismo `localStorage`— y se **usan** en
-  el diario, cuyo campo `setup` sigue admitiendo texto libre a propósito. Al
+  el diario, cuyo campo de setup admite además texto libre a propósito. Al
   cruzarlos con la analítica (`joinSetupPerformance`), un setup definido y sin
   operar es **sin muestra**, nunca un 0 % de acierto, y lo operado con un nombre
   que no está en el sistema va aparte: puede ser una errata o una operación fuera
