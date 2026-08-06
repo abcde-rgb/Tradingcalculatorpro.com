@@ -535,6 +535,46 @@ async function checkProjection() {
     cost.ratio > 2, `ratio ${cost && cost.ratio}`);
   ok('the comparison keeps both figures', cost.withRules > 0 && cost.compounded > cost.withRules);
 
+  // ── El puente entre las tres pantallas ───────────────────────────────────
+  //   rentabilidad mensual ≈ esperanza (R/op) × operaciones al mes × riesgo %
+  ok('the bridge equation multiplies the three levers',
+    pj.monthlyFromEdge(0.26, 20, 1) === 5.2);
+  ok('and it is undefined if any lever is missing',
+    pj.monthlyFromEdge(null, 20, 1) === null);
+
+  const routes = pj.routesToTarget(analytics, {
+    overrides: { balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20 },
+    targetMonthlyPct: 10,
+    iterations: 400,
+  });
+  ok('the three routes to the target are solved',
+    routes.edge.needed > 0 && routes.frequency.needed > 0 && routes.risk.needed > 0);
+  const edgeNow = routes.edge.currentEdge;
+  ok('each route, applied, actually reaches the target on average',
+    Math.abs(pj.monthlyFromEdge(routes.edge.needed, 20, 1) - 10) < 0.05
+    && Math.abs(pj.monthlyFromEdge(edgeNow, routes.frequency.needed, 1) - 10) < 0.6
+    && Math.abs(pj.monthlyFromEdge(edgeNow, 20, routes.risk.needed) - 10) < 0.05,
+    `ventaja actual ${edgeNow}`);
+  // La lección entera del panel: los tres caminos llegan igual de lejos y NO
+  // cuestan lo mismo. El riesgo es la palanca fácil y la que puede echarte.
+  ok('raising risk hurts the drawdown far more than raising the edge',
+    routes.risk.outcome.drawdownP95 > routes.edge.outcome.drawdownP95 * 1.5,
+    `riesgo ${routes.risk.outcome.drawdownP95}% vs ventaja ${routes.edge.outcome.drawdownP95}%`);
+  ok('and it leaves many more months in the red',
+    routes.risk.outcome.redMonths > routes.edge.outcome.redMonths);
+  ok('a target that needs an impossible win rate is flagged, not faked',
+    pj.routesToTarget(analytics, {
+      overrides: { balance: 10000, riskPct: 0.1, trades: 240, tradesPerMonth: 5 },
+      targetMonthlyPct: 50,
+      iterations: 100,
+    }).edge.feasible === false);
+  ok('a target already reached says so instead of proposing routes',
+    pj.routesToTarget(analytics, {
+      overrides: { balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20 },
+      targetMonthlyPct: 1,
+      iterations: 100,
+    }).alreadyThere === true);
+
   // Sensibilidad: qué le pasa a la ventaja si cambia la decisión.
   const sens = pj.sensitivity(45, 2);
   ok('sensitivity is monotonic in win rate',

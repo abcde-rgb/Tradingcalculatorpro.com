@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Layers, AlertTriangle, HelpCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
-import { loadSystem, joinSetupPerformance, missingEssentials } from '@/lib/tradingSystem';
+import {
+  loadSystem, joinSetupPerformance, missingEssentials, setupRulesFor,
+} from '@/lib/tradingSystem';
+import { expectancyR, monthlyFromEdge } from '@/lib/projection';
 
 const pnlColor = (v) => (v > 0 ? 'text-[#22c55e]' : v < 0 ? 'text-[#ef4444]' : 'text-muted-foreground');
 const money = (v) => `${v > 0 ? '+' : ''}$${Number(v || 0).toFixed(2)}`;
@@ -103,6 +106,17 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
       <div className="space-y-2">
         {defined.map(({ setup, stats }) => {
           const gaps = missingEssentials(setup);
+          // Lo que este setup aporta a la rentabilidad MENSUAL de la cuenta:
+          //     esperanza (R) × sus operaciones al mes × riesgo por operación
+          // Es lo que convierte la lista en un orden accionable: un setup de
+          // 0,4 R que se da dos veces al mes aporta menos que uno de 0,15 R
+          // que se da quince, y sin esta línea los dos se leen igual.
+          const payoff = (stats?.avg_win != null && stats?.avg_loss)
+            ? stats.avg_win / Math.abs(stats.avg_loss) : null;
+          const edge = payoff != null ? expectancyR(stats.win_rate, payoff) : null;
+          const risk = setupRulesFor(system, [setup.name]).maxRiskPct;
+          const contribution = (edge != null && stats?.trades_per_month != null)
+            ? monthlyFromEdge(edge, stats.trades_per_month, risk) : null;
           const openTrades = stats && onPickSetup
             ? () => onPickSetup(setup.name)
             : undefined;
@@ -149,6 +163,23 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
                   </span>
                 )}
               </div>
+              {/* El puente al resultado de la cuenta. Sin ritmo medido o sin
+                  payoff todavía, se dice que falta el dato en vez de estimarlo. */}
+              {stats && (
+                <div className="mt-1.5 text-[11px]" data-testid="setupperf-contribution">
+                  {contribution != null ? (
+                    <span className={contribution > 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}>
+                      {t('setupPerfContribution')
+                        .replace('{v}', `${contribution > 0 ? '+' : ''}${contribution}`)
+                        .replace('{r}', String(edge))
+                        .replace('{n}', String(stats.trades_per_month))
+                        .replace('{risk}', String(risk))}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/70">{t('setupPerfContributionUnknown')}</span>
+                  )}
+                </div>
+              )}
               {stats && (
                 <div className="flex items-center gap-4 mt-2 text-[11px] font-mono text-muted-foreground">
                   <span>{t('setupPerfTrades').replace('{n}', String(stats.n))}</span>

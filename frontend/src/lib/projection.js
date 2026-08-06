@@ -430,6 +430,113 @@ export function project(analytics, { group = null, overrides = {}, iterations } 
   return { ...base, ok: true, reason: null, distribution: mc };
 }
 
+// ── El puente entre las tres pantallas ──────────────────────────────────────
+//
+//   rentabilidad mensual ≈ esperanza (R/op) × operaciones al mes × riesgo (%)
+//
+// Es la única ecuación que une el Setup (la ventaja, en R), el Diario (la
+// frecuencia, medida) y la Analítica (la rentabilidad, en %). Leída al derecho
+// dice cuánto renta un sistema; leída al revés dice qué hace falta para llegar
+// a un objetivo — y esa segunda lectura es la que convierte "quiero un 10 % al
+// mes" en tres decisiones concretas con su precio cada una.
+
+/** Rentabilidad mensual que produce una ventaja dada, a esa frecuencia y riesgo. */
+export function monthlyFromEdge(expectancy, tradesPerMonth, riskPct) {
+  const e = num(expectancy);
+  const n = num(tradesPerMonth);
+  const r = num(riskPct);
+  if (e == null || n == null || r == null) return null;
+  return round2(e * n * r);
+}
+
+/**
+ * Los tres caminos hacia un objetivo mensual, y lo que cuesta cada uno.
+ *
+ * Subir la ventaja, operar más o arriesgar más. La ecuación es simétrica pero
+ * las consecuencias NO lo son, y ese es justo el punto: el riesgo es la palanca
+ * fácil —multiplica la rentabilidad de forma exactamente proporcional— y es la
+ * única de las tres que multiplica también el drawdown y la probabilidad de
+ * ruina. Por eso cada camino se devuelve con su proyección hecha, no sólo con
+ * el número que haría falta.
+ *
+ * `feasible: false` marca lo aritméticamente imposible (un acierto por encima
+ * del 100 %) en vez de devolver un número que no significa nada.
+ */
+export function routesToTarget(analytics, {
+  group = null, overrides = {}, targetMonthlyPct, iterations = 1500,
+} = {}) {
+  const target = num(targetMonthlyPct);
+  const base = project(analytics, { group, overrides, iterations: 1 });
+  if (target == null || !base.ok) return null;
+
+  const { winRate, payoff, riskPct, tradesPerMonth } = base.inputs;
+  const edge = base.expectancyR;
+  if (edge == null) return null;
+
+  const current = monthlyFromEdge(edge, tradesPerMonth.value, riskPct.value);
+  const run = (over) => {
+    // Riesgo proporcional a propósito: la ecuación del puente da un % MENSUAL,
+    // y ese porcentaje sólo se mantiene si el tamaño acompaña a la cuenta. Con
+    // riesgo fijo en dinero, el mismo sistema rinde cada mes un poco menos en
+    // % según crece el saldo, y la comparación entre los tres caminos dejaría
+    // de ser entre iguales.
+    const p = project(analytics, {
+      group,
+      overrides: { ...overrides, compound: true, ...over },
+      iterations,
+    });
+    if (!p.ok) return null;
+    const d = p.distribution;
+    return {
+      monthlyMedian: d.periods?.month?.p50 ?? null,
+      hitRate: rateAtLeast(d.periods?.month?.samples, target),
+      drawdownP95: d.maxDrawdown.p95,
+      ruin: d.probabilityOfRuin,
+      redMonths: d.periods?.month?.negativeRate ?? null,
+    };
+  };
+
+  // 1) Misma frecuencia y mismo riesgo: hace falta MÁS VENTAJA.
+  const neededEdge = round2(target / (tradesPerMonth.value * riskPct.value));
+  // Con el payoff actual, ¿qué acierto haría falta? E = p(b+1) − 1.
+  const neededWinRate = round2(((neededEdge + 1) / (payoff.value + 1)) * 100);
+  const edgeFeasible = neededWinRate <= 100;
+
+  // 2) Misma ventaja y mismo riesgo: hacen falta MÁS OPERACIONES.
+  const neededTrades = edge > 0 ? Math.ceil(target / (edge * riskPct.value)) : null;
+
+  // 3) Misma ventaja y misma frecuencia: hace falta MÁS RIESGO.
+  const neededRisk = edge > 0 ? round2(target / (edge * tradesPerMonth.value)) : null;
+
+  return {
+    target: round2(target),
+    current,
+    alreadyThere: current != null && current >= target,
+    edge: {
+      needed: neededEdge,
+      neededWinRate,
+      currentWinRate: winRate.value,
+      currentEdge: edge,
+      feasible: edgeFeasible,
+      outcome: edgeFeasible ? run({ winRate: neededWinRate }) : null,
+    },
+    frequency: {
+      needed: neededTrades,
+      current: tradesPerMonth.value,
+      feasible: neededTrades != null,
+      outcome: neededTrades != null
+        ? run({ tradesPerMonth: neededTrades, trades: Math.max(neededTrades * 12, 60) })
+        : null,
+    },
+    risk: {
+      needed: neededRisk,
+      current: riskPct.value,
+      feasible: neededRisk != null,
+      outcome: neededRisk != null ? run({ riskPct: neededRisk }) : null,
+    },
+  };
+}
+
 /**
  * El precio de las reglas de caja, con los MISMOS números del usuario.
  *

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Activity, Target, AlertTriangle,
-  CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight, Brain, PlusCircle,
+  CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight, Brain, PlusCircle, CalendarRange,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
@@ -259,6 +259,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [periodKey, setPeriodKey] = useState('month');
 
   useEffect(() => {
     let cancelled = false;
@@ -301,9 +302,68 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   }
 
   const pnlColor = a.total_pnl > 0 ? 'text-[#22c55e]' : a.total_pnl < 0 ? 'text-[#ef4444]' : 'text-foreground';
+  const periodRows = (a.returns_by_period?.[periodKey]) || [];
+  // Escala común a todas las barras del bloque, para que se comparen entre sí.
+  const periodMax = Math.max(1, ...periodRows.map((r) => Math.abs(r.pct)));
 
   return (
     <div className="space-y-6" data-testid="analytics-dashboard">
+
+      {/* RENTABILIDAD POR PERIODO — lo primero, porque es la unidad en la que
+          se cobra. El win rate solo no significa nada: un 70 % de acierto con
+          payoff 0,5 pierde dinero, y encabezar con él invita a optimizar la
+          métrica equivocada. */}
+      {periodRows.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-5" data-testid="analytics-periods">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <CalendarRange className="w-4 h-4 text-primary" />
+            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">
+              {t('analyticsReturnsTitle')}
+            </h3>
+            <div className="ml-auto flex gap-1 bg-muted rounded-md border border-border p-0.5">
+              {['month', 'quarter', 'year'].map((k) => (
+                <button
+                  type="button"
+                  key={k}
+                  onClick={() => setPeriodKey(k)}
+                  className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
+                    periodKey === k ? 'bg-primary/15 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  data-testid={`analytics-period-${k}`}
+                >
+                  {t(`projPeriod_${k}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            {periodRows.slice(-12).reverse().map((row) => (
+              <div key={row.period} className="flex items-center gap-3 text-xs">
+                <span className="font-mono text-muted-foreground w-20 shrink-0">{row.period}</span>
+                <span className={`font-mono font-bold w-16 shrink-0 ${
+                  row.pct > 0 ? 'text-[#22c55e]' : row.pct < 0 ? 'text-[#ef4444]' : 'text-muted-foreground'
+                }`}
+                >
+                  {row.pct > 0 ? '+' : ''}{row.pct}%
+                </span>
+                <span className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <span
+                    className={`block h-full ${row.pct >= 0 ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}
+                    style={{ width: `${Math.min(100, (Math.abs(row.pct) / periodMax) * 100)}%` }}
+                  />
+                </span>
+                <span className="font-mono text-muted-foreground/70 w-24 text-right shrink-0">
+                  {row.pnl > 0 ? '+' : ''}${row.pnl.toFixed(0)} · {row.n}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground/70 leading-relaxed mt-2">
+            {t('analyticsReturnsNote')}
+          </p>
+        </div>
+      )}
+
       {/* KPI grid — 8 metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard icon={TrendingUp} label={t('kpiWinRate')}

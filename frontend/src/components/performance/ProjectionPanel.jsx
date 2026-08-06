@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  TrendingUp, AlertTriangle, RotateCcw, Dice5, Target, Gauge, CalendarRange, PiggyBank,
+  TrendingUp, AlertTriangle, RotateCcw, Dice5, Target, Gauge, CalendarRange, PiggyBank, Route,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
 import { loadSystem, setupRulesFor, cashflowRules } from '@/lib/tradingSystem';
 import {
-  project, sensitivity, breakevenWinRate, hitRates, cashflowCost,
+  project, sensitivity, breakevenWinRate, hitRates, cashflowCost, routesToTarget,
   MIN_SAMPLE_FOR_PROJECTION, MIN_SAMPLE_TO_PROJECT_AT_ALL, RUIN_THRESHOLD,
 } from '@/lib/projection';
 
@@ -168,6 +168,19 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
   const targetPct = target === '' ? (inputs.capPct.value ?? null) : Number(target);
   const hits = distribution ? hitRates(distribution, targetPct) : null;
   const per = distribution?.periods?.[period] || null;
+  // Modo objetivo: la ecuación del puente leída al revés. Sólo se calcula si
+  // hay un objetivo escrito, porque son tres proyecciones más.
+  const routes = (result.ok && targetPct) ? routesToTarget(analytics, {
+    group,
+    overrides: {
+      ...overrides,
+      balance: inputs.balance.value,
+      riskPct: inputs.riskPct.value,
+      trades: inputs.trades.value,
+      tradesPerMonth: inputs.tradesPerMonth.value,
+    },
+    targetMonthlyPct: targetPct,
+  }) : null;
   const cost = result.ok ? cashflowCost(analytics, {
     group,
     overrides: {
@@ -498,6 +511,86 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                 </div>
               )}
               <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{t('projTargetNote')}</p>
+            </div>
+          )}
+
+
+          {/* 3d · MODO OBJETIVO — la ecuación leída al revés.
+              Tres caminos al mismo sitio, y sólo uno es barato. */}
+          {routes && !routes.alreadyThere && (
+            <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 space-y-3" data-testid="proj-routes">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Route className="w-4 h-4 text-primary" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary">
+                  {t('projRoutesTitle').replace('{target}', String(routes.target))}
+                </h4>
+                <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                  {t('projRoutesNow').replace('{v}', String(routes.current ?? '—'))}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {t('projBridgeEquation')}
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {[
+                  {
+                    k: 'edge',
+                    label: t('projRouteEdge'),
+                    need: routes.edge.feasible
+                      ? t('projRouteEdgeNeed')
+                        .replace('{r}', String(routes.edge.needed))
+                        .replace('{wr}', String(routes.edge.neededWinRate))
+                        .replace('{cur}', String(routes.edge.currentWinRate))
+                      : t('projRouteImpossible'),
+                    o: routes.edge.outcome,
+                    hint: t('projRouteEdgeHint'),
+                  },
+                  {
+                    k: 'frequency',
+                    label: t('projRouteFrequency'),
+                    need: t('projRouteFrequencyNeed')
+                      .replace('{n}', String(routes.frequency.needed))
+                      .replace('{cur}', String(routes.frequency.current)),
+                    o: routes.frequency.outcome,
+                    hint: t('projRouteFrequencyHint'),
+                  },
+                  {
+                    k: 'risk',
+                    label: t('projRouteRisk'),
+                    need: t('projRouteRiskNeed')
+                      .replace('{v}', String(routes.risk.needed))
+                      .replace('{cur}', String(routes.risk.current)),
+                    o: routes.risk.outcome,
+                    hint: t('projRouteRiskHint'),
+                  },
+                ].map(({ k, label, need, o, hint }) => (
+                  <div key={k} className="rounded-lg border border-border bg-card p-3" data-testid={`proj-route-${k}`}>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</div>
+                    <div className="text-sm font-bold font-mono mt-0.5">{need}</div>
+                    {o && (
+                      <div className="mt-2 space-y-0.5 text-[11px] font-mono">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{t('projRouteHit')}</span>
+                          <span className={o.hitRate >= 50 ? 'text-[#22c55e]' : 'text-[#f59e0b]'}>{o.hitRate}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{t('projRouteDD')}</span>
+                          <span className={o.drawdownP95 > 25 ? 'text-[#ef4444]' : o.drawdownP95 > 15 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}>
+                            {o.drawdownP95}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{t('projRouteRed')}</span>
+                          <span className={o.redMonths > 20 ? 'text-[#ef4444]' : 'text-muted-foreground'}>{o.redMonths}%</span>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground/80 leading-relaxed mt-2">{hint}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-[#f59e0b] leading-relaxed">{t('projRoutesLesson')}</p>
             </div>
           )}
 

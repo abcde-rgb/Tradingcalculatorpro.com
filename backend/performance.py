@@ -165,6 +165,73 @@ def _trades_per_month(closed: List[dict]) -> Optional[float]:
     return round(len(dts) / (span_days / 30.44), 1)
 
 
+def returns_by_period(closed: List[dict], starting_balance: float) -> Dict[str, List[dict]]:
+    """Rentabilidad REAL por mes, trimestre y año.
+
+    Es la unidad en la que se cobra y en la que se piensan los objetivos ("un
+    10 % al mes"), y hasta ahora la analítica sólo publicaba el total y el PnL
+    diario: no había forma de responder "¿qué renta mi cuenta al mes?".
+
+    Se compone, NO se suma: un +10 % seguido de un −10 % no es 0, es −1 %. Los
+    trimestres y los años se construyen encadenando los factores mensuales, que
+    es lo mismo que hace la cuenta real.
+
+    El porcentaje de cada mes se mide sobre el saldo con el que **empezó ese
+    mes**, no sobre el saldo inicial de todo el histórico: ganar 500 € sobre
+    10 000 no es lo mismo que ganarlos sobre 50 000, y sumarlos como si lo fuera
+    es lo que hace que una racha vieja infle la rentabilidad de hoy.
+    """
+    rows = sort_trades_chronologically([t for t in closed if _trade_close_dt(t)])
+    if not rows:
+        return {"month": [], "quarter": [], "year": []}
+
+    equity = starting_balance
+    months: Dict[str, Dict[str, Any]] = {}
+    for t in rows:
+        dt = _trade_close_dt(t)
+        key = f"{dt.year:04d}-{dt.month:02d}"
+        slot = months.get(key)
+        if slot is None:
+            slot = months[key] = {"period": key, "start": equity, "pnl": 0.0, "n": 0, "wins": 0}
+        pnl = float(t.get("pnl") or 0)
+        slot["pnl"] += pnl
+        slot["n"] += 1
+        if pnl > 0:
+            slot["wins"] += 1
+        equity += pnl
+
+    monthly = []
+    for key in sorted(months):
+        s = months[key]
+        pct = _safe_div(s["pnl"], s["start"], 0) * 100 if s["start"] > 0 else 0.0
+        monthly.append({
+            "period": key, "pnl": round(s["pnl"], 2), "pct": round(pct, 2),
+            "n": s["n"], "wins": s["wins"],
+        })
+
+    def _roll(size: int, label) -> List[dict]:
+        out: Dict[str, Dict[str, Any]] = {}
+        for row in monthly:
+            year, month = row["period"].split("-")
+            key = label(int(year), int(month))
+            slot = out.setdefault(key, {"period": key, "factor": 1.0, "pnl": 0.0, "n": 0, "months": 0})
+            slot["factor"] *= 1 + row["pct"] / 100
+            slot["pnl"] += row["pnl"]
+            slot["n"] += row["n"]
+            slot["months"] += 1
+        return [
+            {"period": k, "pct": round((v["factor"] - 1) * 100, 2),
+             "pnl": round(v["pnl"], 2), "n": v["n"], "months": v["months"]}
+            for k, v in sorted(out.items())
+        ]
+
+    return {
+        "month": monthly,
+        "quarter": _roll(3, lambda y, m: f"{y:04d}-Q{(m - 1) // 3 + 1}"),
+        "year": _roll(12, lambda y, m: f"{y:04d}"),
+    }
+
+
 def _compute_sharpe(returns: List[float], rf_period: float = 0.0) -> float:
     """Sharpe over the given return series, net of the per-period risk-free rate.
 
@@ -758,6 +825,10 @@ def compute_analytics(
         # None cuando la muestra no cubre tiempo suficiente: un ritmo estimado
         # sobre cuatro días dice más del calendario que del trader.
         "trades_per_month": _trades_per_month(closed),
+        # Rentabilidad medida por periodo: es la unidad en la que se cobra y en
+        # la que se piensan los objetivos, y hasta ahora sólo se publicaba el
+        # total y el PnL diario.
+        "returns_by_period": returns_by_period(closed, starting_balance),
         # Quality
         "profit_factor": round(profit_factor, 2) if profit_factor != float("inf") else None,
         "expectancy": round(expectancy, 2),
@@ -893,6 +964,7 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "starting_balance": 0,
         "current_balance": 0,
         "trades_per_month": None,
+        "returns_by_period": {"month": [], "quarter": [], "year": []},
         "profit_factor": 0,
         "expectancy": 0,
         "avg_win": 0,
@@ -968,11 +1040,15 @@ def _group_winrate_by_multi(trades: List[dict], keys_fn) -> List[Dict[str, Any]]
     for t in trades:
         pnl = float(t.get("pnl") or 0)
         r = t.get("r_multiple")
+        closed_at = _trade_close_dt(t)
         for k in keys_fn(t):
             g = groups.setdefault(k, {
                 "group": k, "n": 0, "wins": 0, "pnl": 0.0,
                 "_win_sum": 0.0, "_loss_sum": 0.0, "_losses": 0, "_rs": [],
+                "_dates": [],
             })
+            if closed_at:
+                g["_dates"].append(closed_at)
             g["n"] += 1
             g["pnl"] += pnl
             if pnl > 0:
@@ -999,6 +1075,17 @@ def _group_winrate_by_multi(trades: List[dict], keys_fn) -> List[Dict[str, Any]]
                        if (avg_win is not None and avg_loss) else None)
         g["avg_r"] = round(sum(rs) / len(rs), 2) if rs else None
         g["r_sample"] = len(rs)
+        # Ritmo propio del grupo. Hace falta para traducir su ventaja en R a
+        # cuánto aporta a la rentabilidad MENSUAL: un setup con 0,4 R que se da
+        # dos veces al mes aporta menos que uno de 0,15 R que se da quince.
+        # None con menos de 21 días de recorrido: es "no lo sé", no "ninguna".
+        dates = g.pop("_dates", [])
+        rate = None
+        if len(dates) >= 2:
+            span_days = (max(dates) - min(dates)).total_seconds() / 86400
+            if span_days >= MIN_DAYS_FOR_MONTHLY_RATE:
+                rate = round(len(dates) / (span_days / 30.44), 1)
+        g["trades_per_month"] = rate
         for tmp in ("_win_sum", "_loss_sum", "_losses", "_rs"):
             g.pop(tmp, None)
         out.append(g)

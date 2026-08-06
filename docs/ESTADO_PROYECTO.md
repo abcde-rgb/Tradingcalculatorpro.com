@@ -29,10 +29,10 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **545 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **550 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5793 claves × 10 idiomas, 0 huecos** · `engine-check` **133/133** (2026-08-05) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5817 claves × 10 idiomas, 0 huecos** · `engine-check` **141/141** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3301,3 +3301,42 @@ el trader entienda por qué esto es lo que más le da a largo plazo.
   cuenta arrasada, periodos compuestos y no sumados, menos periodos rojos al alargar el
   periodo, la traducción 10 %→33 %→214 % y el coste del compuesto) · `pytest` **545
   passed** · ESLint 0 errores · `i18n-check` **5793 claves × 10 idiomas** (+23) · build OK.
+
+### 2026-08-05 (9) — El puente: una ecuación que ordena los tres paneles
+Petición del propietario tras el estudio: implementar lo propuesto. La respuesta al
+«¿R:R o rentabilidad?» no era elegir, sino **medir en R y presentar en rentabilidad**,
+con una sola ecuación uniendo las tres pantallas:
+
+```
+rentabilidad mensual ≈ esperanza (R/op) × operaciones al mes × riesgo por operación (%)
+```
+
+Cada factor tiene dueño: la ventaja es del **Setup**, la frecuencia del **Diario**, el
+riesgo de las **reglas del sistema** y el resultado de la **Analítica**.
+
+- ✅ **Modo objetivo en Proyección** (`routesToTarget`): escribes «quiero un 10 % al mes»
+  y la ecuación se lee al revés, dando los **tres caminos** con su precio: más ventaja
+  (qué acierto haría falta con tu payoff), más operaciones (cuántas al mes) o más riesgo
+  (qué %). Cada camino trae su proyección hecha —cada cuánto se llega, drawdown p95 y
+  meses en rojo—, y ahí se ve la lección: en el escenario de prueba los tres llegan al
+  mismo sitio, pero el drawdown p95 es **11 % por ventaja, 20 % por frecuencia y 31 % por
+  riesgo**. El riesgo es la palanca fácil y la única que puede echarte del juego. Lo
+  aritméticamente imposible (acierto > 100 %) se marca, no se maquilla.
+- ✅ **Contribución de cada setup a la rentabilidad mensual**: `≈ +3,1 % (0,26 R × 12
+  ops/mes × 1 % de riesgo)`. Convierte la lista de setups en un orden accionable — un
+  setup de 0,4 R que se da dos veces al mes aporta menos que uno de 0,15 R que se da
+  quince, y sin esta línea los dos se leían igual. Para eso `by_setup` publica ahora
+  **`trades_per_month` por grupo** (None sin 21 días de recorrido).
+- ✅ **La Analítica encabeza con rentabilidad por periodo** (mes/trimestre/año), medida
+  del diario: `returns_by_period`. Cada mes se mide sobre **el saldo con el que empezó
+  ese mes**, los trimestres y años se **componen** (un +10 % y un −10 % son −1 %, no 0),
+  y un mes sin operaciones **no se rellena con 0 %** — no operar no es rendir cero.
+- ✅ **El Diario dice qué le falta al dato**: columna **% de cuenta** junto a R (un +2R
+  puede ser un +0,4 % o un +4 % según el tamaño) y aviso de las operaciones cerradas
+  **sin stop** (sin R no cuentan para la ventaja ni para la proyección) y **sin saldo**
+  (fuera de la rentabilidad por periodo). El diario es la fuente de todo lo demás:
+  callar lo que falta hace que los otros paneles midan sobre menos muestra de la que el
+  usuario cree.
+- ✅ **Verificado**: `engine-check` **141/141** (+8 del puente, incluido que subir riesgo
+  daña el drawdown mucho más que subir la ventaja) · `pytest` **550 passed / 74 skipped**
+  (+5) · ESLint 0 errores · `i18n-check` **5817 claves × 10 idiomas** (+24) · build OK.

@@ -270,3 +270,66 @@ def test_a_short_history_reports_no_monthly_rate():
     None (no lo sé), que no es lo mismo que 0 al mes."""
     trades = [_setup_trade(10, day=f"{d:02d}") for d in range(1, 5)]
     assert compute_analytics(trades)["trades_per_month"] is None
+
+
+# ── Rentabilidad por periodo: la unidad en la que se cobra ───────────────────
+
+def _month_trade(month, day, pnl, balance=10000):
+    return {
+        "status": "closed", "entry_price": 100, "exit_price": 110, "quantity": 1,
+        "account_balance": balance,
+        "entry_date": f"2026-{month:02d}-{day:02d}T09:00:00Z",
+        "exit_date": f"2026-{month:02d}-{day:02d}T10:00:00Z",
+        "pnl": pnl,
+    }
+
+
+def test_monthly_return_is_measured_over_the_balance_that_month_started_with():
+    """Ganar 500 sobre 10 000 no es lo mismo que ganarlos sobre 50 000. Medir
+    todo sobre el saldo inicial del histórico deja que una racha vieja infle la
+    rentabilidad de hoy."""
+    a = compute_analytics([
+        _month_trade(1, 10, 1000),     # enero: +1000 sobre 10 000 → +10 %
+        _month_trade(2, 10, 1000),     # febrero: +1000 sobre 11 000 → +9,09 %
+    ])
+    months = {m["period"]: m for m in a["returns_by_period"]["month"]}
+    assert months["2026-01"]["pct"] == 10.0
+    assert months["2026-02"]["pct"] == 9.09
+
+
+def test_quarters_and_years_are_compounded_not_summed():
+    """Un +10 % y un −10 % no son 0: son −1 %."""
+    a = compute_analytics([
+        _month_trade(1, 10, 1000),      # +10 % sobre 10 000
+        _month_trade(2, 10, -1100),     # −10 % sobre 11 000
+    ])
+    q = a["returns_by_period"]["quarter"][0]
+    assert q["period"] == "2026-Q1"
+    assert q["pct"] == -1.0
+    assert a["returns_by_period"]["year"][0]["pct"] == -1.0
+
+
+def test_a_month_with_no_trades_is_not_invented():
+    """No se rellenan meses vacíos con un 0 %: no operar no es rendir cero, y
+    un cero falso arrastraría la media y el recuento de meses en rojo."""
+    a = compute_analytics([_month_trade(1, 10, 500), _month_trade(4, 10, 500)])
+    periods = [m["period"] for m in a["returns_by_period"]["month"]]
+    assert periods == ["2026-01", "2026-04"]
+
+
+def test_each_setup_carries_its_own_monthly_rate():
+    """Un setup de 0,4 R que se da dos veces al mes aporta menos que uno de
+    0,15 R que se da quince: sin el ritmo propio no se pueden comparar."""
+    trades = []
+    for d in range(1, 25):
+        trades.append({**_month_trade(1, d, 100), "setups": ["Frecuente"]})
+    trades.append({**_month_trade(1, 1, 100), "setups": ["Raro"]})
+    trades.append({**_month_trade(1, 28, 100), "setups": ["Raro"]})
+    groups = {g["group"]: g for g in compute_analytics(trades)["by_setup"]}
+    assert groups["Frecuente"]["trades_per_month"] > groups["Raro"]["trades_per_month"]
+
+
+def test_a_setup_without_enough_history_has_no_rate():
+    trades = [{**_month_trade(1, d, 100), "setups": ["Nuevo"]} for d in (1, 2, 3)]
+    groups = {g["group"]: g for g in compute_analytics(trades)["by_setup"]}
+    assert groups["Nuevo"]["trades_per_month"] is None

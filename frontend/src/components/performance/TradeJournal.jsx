@@ -88,6 +88,15 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
     ? trades.filter((tr) => tradeSetups(tr).some((s) => s.toLowerCase() === filterName))
     : trades;
 
+  // Calidad del dato. El diario es la fuente de TODO lo demás: una operación
+  // sin stop no tiene R, así que no cuenta para medir la ventaja de un setup;
+  // una sin saldo de cuenta no tiene % y no entra en la rentabilidad. Callarlo
+  // hace que el resto de paneles midan sobre menos muestra de la que el usuario
+  // cree tener.
+  const closed = trades.filter((tr) => tr.exit_price != null);
+  const noStop = closed.filter((tr) => tr.sl == null || tr.r_multiple == null).length;
+  const noBalance = closed.filter((tr) => !tr.account_balance).length;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -126,6 +135,23 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
         </div>
       </div>
 
+      {(noStop > 0 || noBalance > 0) && !loading && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2"
+          data-testid="journal-quality"
+        >
+          <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
+          <div className="text-[11px] text-[#f59e0b] leading-relaxed">
+            {noStop > 0 && (
+              <div>{t('journalNoStopWarn').replace('{n}', String(noStop)).replace('{total}', String(closed.length))}</div>
+            )}
+            {noBalance > 0 && (
+              <div>{t('journalNoBalanceWarn').replace('{n}', String(noBalance))}</div>
+            )}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">{t('loading')}…</div>
       ) : trades.length === 0 ? (
@@ -153,6 +179,7 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradeExit')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradePnL')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">R</th>
+                <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px] text-right">{t('tradePctAccount')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeStatus')}</th>
                 <th className="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">{t('tradeErrors')}</th>
                 <th className="px-3 py-2"></th>
@@ -208,6 +235,17 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                       (tr.r_multiple || 0) > 0 ? 'text-[#22c55e]' : (tr.r_multiple || 0) < 0 ? 'text-[#ef4444]' : 'text-muted-foreground'
                     }`}>
                       {tr.r_multiple ? `${tr.r_multiple > 0 ? '+' : ''}${tr.r_multiple}R` : '—'}
+                    </td>
+                    {/* % sobre el saldo con el que se operó: es la unidad de la
+                        analítica, y tenerla junto a R deja ver de un vistazo que
+                        un +2R puede ser un +0,4 % o un +4 % según el tamaño. */}
+                    <td className={`px-3 py-2 font-mono text-right ${
+                      (tr.pnl || 0) > 0 ? 'text-[#22c55e]' : (tr.pnl || 0) < 0 ? 'text-[#ef4444]' : 'text-muted-foreground'
+                    }`}
+                    >
+                      {tr.exit_price && tr.account_balance
+                        ? `${tr.pnl > 0 ? '+' : ''}${((tr.pnl / tr.account_balance) * 100).toFixed(2)}%`
+                        : '—'}
                     </td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${status.color}`}>
