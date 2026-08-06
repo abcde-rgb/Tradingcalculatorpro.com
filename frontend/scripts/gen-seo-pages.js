@@ -11,12 +11,15 @@
  * Cada página lleva hreflang a todas sus versiones de idioma + x-default.
  * Se ejecuta como `postbuild` (tras craco build) y regenera build/sitemap.xml.
  *
- * ⚠️ DOMINIO: debe coincidir con useSEO.js / robots.txt.
+ * ⚠️ DOMINIO: sale de `SITE_ORIGIN` y debe coincidir con useSEO.js, robots.txt,
+ * el canonical de index.html y el PUBLIC_URL del workflow. Cambiarlo solo aquí
+ * deja el canonical apuntando a otro sitio. Ver docs/MIGRACION_DOMINIO.md.
  */
 const fs = require('fs');
 const path = require('path');
 
-const DOMAIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DEFAULT_ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const BUILD = path.join(__dirname, '..', 'build');
 const I18N_DIR = path.join(__dirname, '..', 'src', 'lib', 'i18n');
 const OG_IMAGE = `${DOMAIN}/og-image.png`;

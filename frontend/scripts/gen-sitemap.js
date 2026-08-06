@@ -7,13 +7,20 @@
  *
  * Uso:  node scripts/gen-sitemap.js
  *
- * ⚠️ DOMINIO: revisa `DOMAIN` — debe ser el dominio de producción real y coincidir
- * con el canonical de `src/hooks/useSEO.js`, `public/robots.txt` y el CORS del backend.
+ * ⚠️ DOMINIO: sale de `SITE_ORIGIN`, con el de GitHub Pages por defecto porque
+ * es el que sirve hoy (el workflow compila con PUBLIC_URL=/Tradingcalculatorpro.com
+ * y publica sin CNAME). NO lo cambies aquí suelto: el sitemap tiene que coincidir
+ * con el canonical de `src/hooks/useSEO.js`, el de `public/index.html`, el
+ * `Sitemap:` de `public/robots.txt`, `homepage` en package.json y el PUBLIC_URL
+ * del workflow. Un sitemap que anuncia un dominio y un canonical que apunta a
+ * otro es peor que no tener sitemap: Google descarta las URLs anunciadas.
+ * Checklist completo de la mudanza: docs/MIGRACION_DOMINIO.md
  */
 const fs = require('fs');
 const path = require('path');
 
-const DOMAIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DEFAULT_ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const LASTMOD = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 const LANGS = [['en', 'en'], ['de', 'de'], ['fr', 'fr'], ['ru', 'ru'], ['zh-CN', 'zh'], ['ja', 'ja'], ['ar', 'ar']];
 

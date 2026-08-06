@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Body
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Body, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import Response
 from dotenv import load_dotenv
@@ -2795,6 +2795,23 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
 
 # ============= TRADING JOURNAL =============
 
+# `limit` arrives from the query string, so it is user input. Uncapped, a single
+# `?limit=1000000` turns one request into a full-table read and re-enrichment
+# pass. FastAPI enforces the ceiling at validation time (Query(le=...)), so an
+# over-limit request is rejected instead of silently served something else.
+TRADES_LIMIT_MAX = 500
+TRADES_LIMIT_DEFAULT = 100
+
+# Ceiling for the stats aggregation. Kept separate from the list ceiling: this
+# one is not user-controlled, it bounds how much history one stats call walks.
+JOURNAL_STATS_MAX_TRADES = 1000
+
+# Same idea for /performance/analytics. When a record is longer than this the
+# response says so (`truncated`) instead of passing a window off as the whole
+# history — see the endpoint.
+ANALYTICS_MAX_TRADES = 1000
+
+
 @api_router.post("/journal/trades")
 async def create_trade(trade: TradeEntry, user: dict = Depends(require_premium)):
     trade_doc = {
@@ -2822,7 +2839,10 @@ async def create_trade(trade: TradeEntry, user: dict = Depends(require_premium))
     return trade_doc
 
 @api_router.get("/journal/trades")
-async def get_trades(user: dict = Depends(require_premium), limit: int = 100):
+async def get_trades(
+    user: dict = Depends(require_premium),
+    limit: int = Query(TRADES_LIMIT_DEFAULT, ge=1, le=TRADES_LIMIT_MAX),
+):
     trades = await db.trades.find(
         {"user_id": user["id"]},
         {"_id": 0}
@@ -2889,7 +2909,7 @@ async def journal_delete_trade(trade_id: str, user: dict = Depends(require_premi
 
 def _empty_journal_stats() -> Dict[str, Any]:
     return {
-        "totalTrades": 0, "wins": 0, "losses": 0, "winRate": 0,
+        "totalTrades": 0, "wins": 0, "losses": 0, "breakeven": 0, "winRate": 0,
         "totalPnl": 0, "avgWin": 0, "avgLoss": 0,
         "profitFactor": 0, "expectancy": 0,
         "maxDrawdown": 0, "consecutiveLosses": 0,
@@ -2897,10 +2917,22 @@ def _empty_journal_stats() -> Dict[str, Any]:
 
 
 def _aggregate_journal_trades(trades: List[Dict[str, Any]]) -> Dict[str, float]:
-    """Single-pass aggregation over a list of closed trades."""
+    """Single-pass aggregation over a list of closed trades.
+
+    ⚠️ Order-sensitive: the caller MUST pass the trades already sorted oldest →
+    newest by close date (`sort_trades_chronologically`). The equity curve, the
+    drawdown and the losing streak are built by walking this list in order, and
+    drawdown is not symmetric under reversal — feeding it in query order makes
+    both numbers depend on how the rows happened to come back.
+
+    A scratch (pnl == 0) is its own category, neither winner nor loser: counting
+    it as a loss dragged the win rate down and inflated the losing streak. It
+    does not extend the streak (it is not a loss) and does not reset it either
+    (the run of trades that failed to make money is genuinely unbroken).
+    """
     agg = {
         "total_pnl": 0.0, "gross_profit": 0.0, "gross_loss": 0.0,
-        "wins": 0, "losses": 0,
+        "wins": 0, "losses": 0, "breakeven": 0,
         "max_consecutive_losses": 0, "max_drawdown": 0.0,
     }
     current_streak = 0
@@ -2914,12 +2946,14 @@ def _aggregate_journal_trades(trades: List[Dict[str, Any]]) -> Dict[str, float]:
             agg["wins"] += 1
             agg["gross_profit"] += pnl
             current_streak = 0
-        else:
+        elif pnl < 0:
             agg["losses"] += 1
             agg["gross_loss"] += abs(pnl)
             current_streak += 1
             if current_streak > agg["max_consecutive_losses"]:
                 agg["max_consecutive_losses"] = current_streak
+        else:
+            agg["breakeven"] += 1
         equity += pnl
         if equity > peak:
             peak = equity
@@ -2934,18 +2968,31 @@ def _journal_stats_from_aggregate(agg: Dict[str, float], total: int) -> Dict[str
     wins, losses = agg["wins"], agg["losses"]
     avg_win = agg["gross_profit"] / wins if wins else 0
     avg_loss = -agg["gross_loss"] / losses if losses else 0
-    profit_factor = agg["gross_profit"] / agg["gross_loss"] if agg["gross_loss"] > 0 else 0
+    # No losses is not a profit factor of zero — zero is the WORST possible
+    # reading, and a trader with ten winners and no losers would be shown it.
+    # Undefined (None) here; the UI prints ∞. Same rule as the rest of the
+    # module: what cannot be computed is None, never 0.
+    profit_factor = (
+        round(agg["gross_profit"] / agg["gross_loss"], 2)
+        if agg["gross_loss"] > 0 else None
+    )
     win_rate = (wins / total) * 100 if total else 0
-    expectancy = (win_rate / 100 * avg_win) + ((100 - win_rate) / 100 * avg_loss)
+    # Expectancy is mean P&L per trade. Stated directly rather than as
+    # winRate·avgWin + lossRate·avgLoss, because that identity only holds when
+    # every trade is a winner or a loser — with scratches in the mix the second
+    # term charges the breakevens at the average loss. Identical result when
+    # there are none, correct when there are.
+    expectancy = agg["total_pnl"] / total if total else 0
     return {
         "totalTrades": total,
         "wins": wins,
         "losses": losses,
+        "breakeven": agg["breakeven"],
         "winRate": round(win_rate, 2),
         "totalPnl": round(agg["total_pnl"], 2),
         "avgWin": round(avg_win, 2),
         "avgLoss": round(avg_loss, 2),
-        "profitFactor": round(profit_factor, 2),
+        "profitFactor": profit_factor,
         "expectancy": round(expectancy, 2),
         "maxDrawdown": round(agg["max_drawdown"], 2),
         "consecutiveLosses": agg["max_consecutive_losses"],
@@ -2958,10 +3005,14 @@ async def get_journal_stats(user: dict = Depends(require_premium)) -> Dict[str, 
     trades = await db.trades.find(
         {"user_id": user["id"], "status": "closed"},
         {"_id": 0},
-    ).to_list(1000)
+    ).to_list(JOURNAL_STATS_MAX_TRADES)
     if not trades:
         return _empty_journal_stats()
-    agg = _aggregate_journal_trades(trades)
+    # Sort before aggregating: the equity curve, the drawdown and the streak are
+    # order-sensitive, and the query returns rows in whatever order the store
+    # hands them back. Without this the same trades yield a different drawdown
+    # depending on insertion order.
+    agg = _aggregate_journal_trades(sort_trades_chronologically(trades))
     return _journal_stats_from_aggregate(agg, len(trades))
 
 # ============= PORTFOLIO =============
@@ -6468,7 +6519,7 @@ async def perf_bulk_create_trades(
 @api_router.get("/performance/trades")
 async def perf_list_trades(
     user: dict = Depends(require_premium),
-    limit: int = 100,
+    limit: int = Query(TRADES_LIMIT_DEFAULT, ge=1, le=TRADES_LIMIT_MAX),
     status: Optional[str] = None,
     symbol: Optional[str] = None,
 ):
@@ -6722,7 +6773,17 @@ async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
 
 @api_router.get("/performance/analytics")
 async def performance_analytics(user: dict = Depends(require_premium)):
-    rows = await trades_for_user(db, user["id"], limit=1000)
+    # Ask for one row beyond the ceiling: that extra row is how we tell "exactly
+    # at the limit" from "there is more history than we are showing". Without it
+    # a user with precisely ANALYTICS_MAX_TRADES trades gets a false warning.
+    rows = await trades_for_user(db, user["id"], limit=ANALYTICS_MAX_TRADES + 1)
+    truncated = len(rows) > ANALYTICS_MAX_TRADES
+    if truncated:
+        # trades_for_user sorts by entry_date desc, so the rows kept are the most
+        # recent ones and what falls off is the oldest history. Every figure
+        # below is therefore computed over a window, not over the whole record —
+        # which is exactly what the response has to admit to.
+        rows = rows[:ANALYTICS_MAX_TRADES]
     # One plan lookup for the whole request: every trade is judged against the
     # same active version, and the query does not repeat per row.
     plan = await get_active_plan(db, user["id"])
@@ -6745,6 +6806,16 @@ async def performance_analytics(user: dict = Depends(require_premium)):
         # write a plan to anyone still being judged by the defaults.
         "plan": {"version": plan.get("version"), "name": plan.get("name")} if plan else None,
         "compliance": compliance_report(enriched, plan) if plan else None,
+        # Metrics over a window must say so. Silently analysing the newest 1000
+        # of a longer record shows an active trader a subset presented as their
+        # whole history — the same class of lie as an unlabelled synthetic chain.
+        "truncated": truncated,
+        "trades_analyzed": len(enriched),
+        "truncation_notice": (
+            f"Mostrando las {ANALYTICS_MAX_TRADES} operaciones más recientes. "
+            "Tu historial es más largo: las más antiguas no entran en estas "
+            "métricas."
+        ) if truncated else None,
     }
 
 

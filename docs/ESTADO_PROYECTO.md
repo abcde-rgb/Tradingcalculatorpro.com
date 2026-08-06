@@ -143,6 +143,9 @@
 | G-16 | **Grupo B del saneamiento de licencias, sin hacer.** Acciones y ETFs de EE. UU., los 23 índices, los 15 futuros de materias primas y la cadena de opciones siguen saliendo de **Yahoo**, cuya licencia no permite redistribuir el dato en un producto de pago. El 2026-08-02 se retiró la *mención* pública, no la dependencia | 🟠 | Decisión de negocio con coste: IEX para acciones, ETF equivalentes para índices y materias primas, cadena sintética para opciones. **Cambia lo que ve el usuario**, por eso está parado |
 | G-17 | **El shim `Collection` sigue sin tests.** Es la capa casera (~750 líneas) que traduce Mongo→SQL y de la que depende **todo** el backend. Bloquea el refactor de `server.py` (BUG-008): partir 8232 líneas sin red es cambiar deuda por riesgo | 🟠 | T-03 del backlog de auditoría: `$set/$inc/$push/$unset/$or/$in/$regex`, agregación y `find_one_and_update`, contra PostgreSQL real |
 | G-18 | **`check-doc-links.py` no corre en CI.** Existe, funciona (47 documentos, 0 roturas) y sólo se ejecuta si alguien se acuerda. `PENDIENTES.md` acumuló dos referencias a documentos inexistentes (`CRECIMIENTO_GOOGLE.md`, `CHECKLIST_MODO_CASI_GRATIS.md`) sin que nada avisara — sobrevivieron porque iban en `código` y no como enlace markdown | 🟡 | Añadir el paso a `ci.yml`. Coste: 3 líneas |
+| G-20 | **Dos esquemas incompatibles escribiendo en `db.trades`, y el P&L se pierde.** `POST /journal/trades` guarda en camelCase (`entryPrice`) y `POST /performance/trades` en snake_case (`entry_price`), **en la misma colección**, y ninguno filtra por esquema al leer. `compute_trade_pnl` no encuentra `entry_price` en un documento del diario legado, sale por la rama temprana y devuelve `pnl = 0.0`; `perf_update_trade` hace `{"$set": enriched}`, así que **el cero se persiste al primer edit**. Reproducido ejecutando el código (BUG-039) | 🔴 | Modelo unificado multi-pata (`Position`→`Leg`→`Execution`) + migración que normalice camelCase **antes** de convertir. Parchear solo la lectura no recupera lo ya corrompido. Ver `AUDITORIA_DIARIO.md` |
+| G-21 | **El diario no puede registrar una operación de opciones de más de una pata.** `make_trade_doc` tiene `option_type`, `strike` y `expiry` en **singular**; cero apariciones de `legs` en todo el módulo. En una web de opciones, el diario no admite un spread, un iron condor, un calendar ni un PMCC. Arrastra el R-múltiplo: en riesgo definido no hay stop de precio, así que `r_multiple` sale `None` en casi toda operación de opciones y con él se caen la distribución de R y el scatter MAE/MFE | 🔴 | Es el cuello de botella de la analítica de opciones. El riesgo debe definirse como `max_loss` de la estructura, no como `\|entry − sl\|` |
+| G-22 | **Dos fuentes de verdad para las mismas estadísticas.** `dashboard/JournalStats.jsx` y `education/ExpectancyCalculator.jsx` leen `/journal/stats`; `services/performanceApi.js` y `education/JournalEdgeButton.jsx` leen `/performance/analytics`. Fórmulas distintas sobre la misma colección → el usuario ve **dos expectancies distintas** según la pantalla | 🟠 | Converge al unificar el modelo (G-20). Mientras tanto, las dos rutas ya ordenan cronológicamente y tratan igual el breakeven |
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
 
 ---
@@ -3340,3 +3343,78 @@ riesgo de las **reglas del sistema** y el resultado de la **Analítica**.
 - ✅ **Verificado**: `engine-check` **141/141** (+8 del puente, incluido que subir riesgo
   daña el drawdown mucho más que subir la ventaja) · `pytest` **550 passed / 74 skipped**
   (+5) · ESLint 0 errores · `i18n-check` **5817 claves × 10 idiomas** (+24) · build OK.
+
+---
+
+## 2026-08-06 — Auditoría del diario: verificación y Fase 0
+
+Llega una auditoría externa del diario, el plan y la analítica. Antes de tocar nada
+se contrastó **hallazgo por hallazgo contra el código**. El registro completo está en
+[`AUDITORIA_DIARIO.md`](./AUDITORIA_DIARIO.md); aquí, lo que cambió.
+
+### Lo que resultó cierto (y grave)
+
+- ✅ **El P&L se pierde de verdad.** Dos esquemas incompatibles conviven en
+  `db.trades`. Reproducido ejecutando el código del repo: un trade guardado por
+  `/journal/trades` con `pnl 10.0` se lee desde analítica como `0.0`, y
+  `perf_update_trade` lo **persiste** al primer edit. Nuevo hueco **G-20**, BUG-039.
+  No se arregla en Fase 0 a propósito: el parche de lectura no recupera lo ya
+  corrompido, hace falta el modelo unificado y la migración.
+- ✅ **El diario es de una sola pata** — cero apariciones de `legs`. Hueco **G-21**.
+- ✅ **Dos fuentes de verdad** para las mismas estadísticas. Hueco **G-22**.
+
+### Lo que resultó mal diagnosticado
+
+- ❌ **El sitemap.** La auditoría lo vendía como «diez minutos y arregla el SEO del
+  sitio entero»: cambiar `DOMAIN` al dominio propio. **Habría roto el SEO en vez de
+  arreglarlo.** El workflow compila con `PUBLIC_URL=/Tradingcalculatorpro.com`,
+  publica con `keep_files: false` y **sin** paso `cname:`; no hay `public/CNAME`; y
+  canonical, hreflang, OG, JSON-LD, `robots.txt` y `homepage` apuntan **todos**
+  coherentemente a GitHub Pages. Cambiar solo el sitemap deja las URLs anunciadas
+  contradiciendo al canonical, y Google descarta las anunciadas. Además
+  `tradingcalculatorpro.com` resuelve a Cloudflare, no a GitHub Pages — y **BUG-037
+  ya lo decía**: es «el dominio que todavía no está en uso».
+  Hecho en su lugar: el origen sale de `SITE_ORIGIN` (mismo valor por defecto, cambio
+  sin efecto funcional), de modo que la mudanza sea **un interruptor** y no ocho
+  ediciones descoordinadas. Checklist en [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md).
+
+### Fase 0 — hecho
+
+- ✅ **`/journal/stats` ordena** (BUG-040). Era el único sitio que no llamaba a
+  `sort_trades_chronologically`, teniéndola ya importada. Verificado sobre las 24
+  permutaciones de un caso de 4 operaciones: antes salían dos drawdowns distintos
+  (50 y 80), ahora uno. Hay un test que **comprueba que sin ordenar el bug es real**,
+  para que el de arriba no acabe probando nada.
+- ✅ **El breakeven deja de ser una pérdida y el profit factor deja de ser 0**
+  (BUG-041). Categoría propia `breakeven`, que ni extiende ni reinicia la racha;
+  `profitFactor` es `None` sin pérdidas y la UI pinta `∞`. De paso, `expectancy` pasa
+  a ser la media de P&L por operación: la fórmula anterior **cobraba cada scratch al
+  precio de una pérdida media**, y es idéntica cuando no hay scratches.
+  `JournalStats.jsx` hacía `.toFixed(2)` sobre lo que ahora puede ser `null` —
+  corregido a la vez.
+- ✅ **`limit` topado a 500** en los dos listados y **la analítica avisa cuando
+  trunca** (BUG-043): se piden `MAX+1` filas para distinguir «justo en el límite» de
+  «hay más», y la respuesta publica `truncated`, `trades_analyzed` y
+  `truncation_notice`. Primera regla de honestidad numérica aplicada a una ventana.
+  ⚠️ `Query` **no estaba importado** en `server.py`: sin detectarlo, el arranque
+  habría caído con `NameError`.
+- ✅ **Diario de `localStorage` congelado, no borrado** (BUG-042). Guardaba bajo clave
+  global sin `user_id` —dos cuentas en el mismo navegador compartían operaciones— con
+  una tercera fórmula de P&L y una tercera implementación de estadísticas. Ahora el
+  store no acepta escrituras (`addTrade`/`updateTrade` retirados, `getStats`
+  eliminado) y el componente es un archivo de solo lectura que **exporta a CSV y
+  JSON** antes de que el usuario borre. Quien no tenga datos ahí no ve nada.
+
+### Verificado
+
+`pytest` **564 passed / 74 skipped** (+14 en `tests/test_journal_stats_unit.py`) ·
+`py_compile` de todos los módulos · ESLint **0 errores** (122 avisos, −1) ·
+`i18n-check` 5817 claves × 10 idiomas · `engine-check` **141/141** ·
+`npm run build` OK · `check-doc-links` 48 documentos, 0 roturas.
+
+### Lo siguiente
+
+Por orden de dependencia: **modelo unificado multi-pata** (G-20/G-21) → **migración
+con recuperación del P&L a cero** → vocabulario de opciones en el plan → analítica y
+gráficos. Antes de escribir módulo nuevo, mirar **G-14**: cuatro módulos ya escritos y
+con tests siguen esperando interfaz.
