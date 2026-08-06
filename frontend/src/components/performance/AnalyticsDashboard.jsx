@@ -2,7 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Activity, Target, AlertTriangle,
   CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight, Brain, PlusCircle, CalendarRange,
+  Boxes, Receipt,
 } from 'lucide-react';
+import { productLabelKey } from './form/productMeta';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
   ScatterChart, Scatter,
@@ -43,6 +45,19 @@ const KpiCard = ({ icon: Ic, label, value, subValue, color = 'text-foreground', 
     </div>
     <div className={`text-2xl font-bold font-mono ${color}`}>{value}</div>
     {subValue && <div className="text-[10px] text-muted-foreground mt-1">{subValue}</div>}
+  </div>
+);
+
+/**
+ * Una cifra de coste. `null` se pinta como raya: no es lo mismo "no pagué
+ * funding" que "este producto no cobra funding", y un 0 borra la diferencia.
+ */
+const CostCell = ({ label, value, strong }) => (
+  <div className={`rounded-lg border p-3 ${strong ? 'border-border bg-muted/60' : 'border-border/40 bg-muted/30'}`}>
+    <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
+    <p className={`font-mono font-bold ${strong ? 'text-base' : 'text-sm'}`}>
+      {value === null || value === undefined ? '—' : `$${Number(value).toFixed(2)}`}
+    </p>
   </div>
 );
 
@@ -474,6 +489,80 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
               <Bar key={d.group} label={d.group} n={d.n} total={a.closed_trades} pnl={d.pnl} />
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Producto y costes. Un diario que mezcla acciones, futuros y perpetuos
+          y sólo publica un total dice muy poco: la pregunta es en cuál tienes
+          ventaja de verdad, y cuánto de lo que ganas se va en peaje. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-xl p-5" data-testid="breakdown-product">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+            <Boxes className="w-4 h-4" /> {t('breakdownByProduct')}
+          </h3>
+          <div className="space-y-2.5">
+            {(a.by_product || []).map((p) => (
+              <Bar
+                key={p.group}
+                label={t(productLabelKey(p.group))}
+                n={p.n}
+                total={a.closed_trades}
+                pnl={p.pnl}
+              />
+            ))}
+            {!(a.by_product || []).length && (
+              <p className="text-xs text-muted-foreground">{t('breakdownEmpty')}</p>
+            )}
+          </div>
+          {a.leverage_usage?.sample > 0 && (
+            <div className="mt-4 pt-3 border-t border-border text-[11px] text-muted-foreground space-y-1"
+              data-testid="leverage-usage"
+            >
+              <div>
+                {t('levUsageAvg')}: <span className="font-mono text-foreground font-semibold">
+                  {a.leverage_usage.avg_leverage}×
+                </span>
+                {' · '}
+                {t('levUsageMax')}: <span className="font-mono text-foreground font-semibold">
+                  {a.leverage_usage.max_leverage}×
+                </span>
+              </div>
+              {a.leverage_usage.max_exposure != null && (
+                <div>
+                  {t('levUsageMaxExposure')}: <span className="font-mono text-foreground font-semibold">
+                    {a.leverage_usage.max_exposure}×
+                  </span>
+                </div>
+              )}
+              {a.leverage_usage.over_exposure_trades > 0 && (
+                <div className="text-[#ef4444] font-semibold">
+                  {t('levUsageOverCap')
+                    .replace('{n}', String(a.leverage_usage.over_exposure_trades))
+                    .replace('{cap}', String(a.leverage_usage.max_exposure_multiple))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-5" data-testid="costs-card">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
+            <Receipt className="w-4 h-4" /> {t('costsTitle')}
+          </h3>
+          <p className="text-xs text-muted-foreground/80 mb-4">{t('costsIntro')}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <CostCell label={t('costsFees')} value={a.costs?.fees} />
+            <CostCell label={t('costsFunding')} value={a.costs?.funding} />
+            <CostCell label={t('costsSwap')} value={a.costs?.swap} />
+            <CostCell label={t('costsTotal')} value={a.costs?.total} strong />
+          </div>
+          {/* `null` no es 0: sin beneficio bruto la pregunta "¿qué parte se fue
+              en costes?" no tiene respuesta, y un 0 % se leería como "nada". */}
+          <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+            {a.costs?.pct_of_gross_profit == null
+              ? t('costsShareUnknown')
+              : t('costsShare').replace('{v}', String(a.costs.pct_of_gross_profit))}
+          </p>
         </div>
       </div>
 

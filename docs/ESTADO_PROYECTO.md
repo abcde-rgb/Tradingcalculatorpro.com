@@ -144,7 +144,9 @@
 | G-17 | **El shim `Collection` sigue sin tests.** Es la capa casera (~750 líneas) que traduce Mongo→SQL y de la que depende **todo** el backend. Bloquea el refactor de `server.py` (BUG-008): partir 8232 líneas sin red es cambiar deuda por riesgo | 🟠 | T-03 del backlog de auditoría: `$set/$inc/$push/$unset/$or/$in/$regex`, agregación y `find_one_and_update`, contra PostgreSQL real |
 | G-18 | **`check-doc-links.py` no corre en CI.** Existe, funciona (47 documentos, 0 roturas) y sólo se ejecuta si alguien se acuerda. `PENDIENTES.md` acumuló dos referencias a documentos inexistentes (`CRECIMIENTO_GOOGLE.md`, `CHECKLIST_MODO_CASI_GRATIS.md`) sin que nada avisara — sobrevivieron porque iban en `código` y no como enlace markdown | 🟡 | Añadir el paso a `ci.yml`. Coste: 3 líneas |
 | G-20 | ~~**Dos esquemas incompatibles escribiendo en `db.trades`, y el P&L se pierde.**~~ `POST /journal/trades` guardaba camelCase (`entryPrice`) y `POST /performance/trades` snake_case (`entry_price`), **en la misma colección**, y ninguno filtraba al leer: `compute_trade_pnl` no encontraba `entry_price`, salía por la rama de `entry == 0` y devolvía `pnl = 0.0`, que `perf_update_trade` **persistía** al primer edit | 🟢 | ✅ **Cerrado (2026-08-06)**: `normalize_trade_schema` traduce en `compute_trade_pnl` (punto único por el que pasa todo el P&L), el endpoint legado **escribe ya en el esquema canónico**, los dos `PUT` hacen `$unset` de las claves viejas, y `migrate_trades_schema.py` limpia lo almacenado con backup y rollback. El mapeo `leverage`→`multiplier` recupera el importe **exacto**: misma posición en la fórmula. Verificado contra Postgres real |
-| G-21 | **El diario no puede registrar una operación de opciones de más de una pata.** `make_trade_doc` tiene `option_type`, `strike` y `expiry` en **singular**; cero apariciones de `legs` en todo el módulo. En una web de opciones, el diario no admite un spread, un iron condor, un calendar ni un PMCC. Arrastra el R-múltiplo: en riesgo definido no hay stop de precio, así que `r_multiple` sale `None` en casi toda operación de opciones y con él se caen la distribución de R y el scatter MAE/MFE | 🔴 | Es el cuello de botella de la analítica de opciones. El riesgo debe definirse como `max_loss` de la estructura, no como `\|entry − sl\|` |
+| G-21 | **El diario no guarda las patas de una operación de opciones.** Cero apariciones de `legs`: no hay griegas agregadas de la estructura, ni cierre de una pata suelta, ni rolar media posición | 🟠 | **Media parte cerrada (2026-08-06)**: el R-múltiplo ya no se cae. El riesgo de una estructura sale de `max_loss` —la prima en una opción comprada, anchura − crédito en un spread— y no de `\|entry − sl\|`, así que una operación de opciones entra en la distribución de R y compara con el resto del diario. Lo que queda es el detalle por pata: reconstrucción `Position` → `Leg` → `Execution` |
+| G-23 | **Una operación tiene un único precio de salida: no hay cierres parciales.** Afecta a todos los productos, no sólo a opciones — un scale-out de tres tramos hay que apuntarlo como tres operaciones, y entonces cada una lleva su propio saldo de cuenta y la analítica cuenta tres entradas donde hubo una | 🟠 | Misma reconstrucción que G-21: es `Execution` quien la resuelve. Mientras tanto, apuntarlo como una operación con el precio medio de salida es lo más fiel |
+| G-24 | **La divisa de la cuenta no se convierte.** Todo se mide en la divisa en la que estén los precios. Un cruce sin USD (EURGBP) o un futuro europeo en una cuenta en dólares suman importes de divisas distintas como si fueran la misma | 🟡 | Necesita tipo de cambio a fecha de cierre; `ecb_rates.py` ya sirve el feed diario del BCE. El P&L de cada operación es correcto en su divisa: lo que no lo es, es el total |
 | G-22 | **Dos fuentes de verdad para las mismas estadísticas.** `dashboard/JournalStats.jsx` y `education/ExpectancyCalculator.jsx` leen `/journal/stats`; `services/performanceApi.js` y `education/JournalEdgeButton.jsx` leen `/performance/analytics`. Fórmulas distintas sobre la misma colección → el usuario ve **dos expectancies distintas** según la pantalla | 🟠 | Converge al unificar el modelo (G-20). Mientras tanto, las dos rutas ya ordenan cronológicamente y tratan igual el breakeven |
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
 
@@ -3488,3 +3490,126 @@ modelo (`Position` → `Leg` → `Execution`). El trámite que antes la hacía c
 ⚠️ **El backend no se despliega solo.** Nada de esto está vivo hasta un
 `cloudbuild.yaml` a mano, y la migración es un paso aparte que se lanza contra la
 base de producción (`--apply`) **después** de desplegar.
+
+---
+
+## 2026-08-06 (3) — El diario deja de ser un diario de acciones
+
+El diario sabía registrar una cosa: *comprar N unidades a un precio*. Eso describe
+una acción al contado y **ninguna otra cosa**. Un lote de forex son 100 000 unidades
+de la divisa base; un contrato de oro en COMEX son 100 onzas; un micro E-mini vale
+5 $ por punto; un perpetuo paga funding cada ocho horas; un CFD de oro a 20× no
+mueve 20 veces el P&L, mueve 20 veces el **margen**. Sin esos datos, dos operaciones
+con los mismos números en pantalla significaban cosas distintas y la analítica las
+sumaba como si no.
+
+### El catálogo: `backend/instruments.py` (nuevo)
+
+Siete productos —acciones, CFD, futuros, forex, cripto spot, cripto perpetuo y
+opciones— más `spot`, que es lo que llevan guardado las operaciones anteriores y
+sigue comportándose **exactamente igual** (×1, sin apalancamiento, sin coste de
+mantenimiento): ninguna operación existente cambia de valor al leerse.
+
+Con ficha por símbolo: 29 contratos de futuros con su tick y su valor de tick, 35
+pares de forex con el pip correcto (0,01 contra el yen, 0,0001 en el resto), 16
+subyacentes de CFD con su tamaño de lote y su apalancamiento típico —ahí vive el
+«CFD del oro a 20×»— y 10 perpetuos con su tope y su tasa de mantenimiento.
+
+⚠️ **El catálogo PREFIJA, no decide.** Cada operación guarda su propio tamaño de
+contrato y su propio apalancamiento; el catálogo sólo los rellena la primera vez.
+Un símbolo fuera de catálogo devuelve `contract_size: None` —no 1— y dispara el
+error `contract_size_missing`: un contrato de crudo a ×1 en lugar de ×1000 no da un
+P&L aproximado, da uno mil veces menor.
+
+### Lo que decidió la forma del módulo
+
+- **El apalancamiento NO multiplica el P&L.** Multiplica el margen, y con él la
+  rentabilidad sobre ese margen y la cercanía de la liquidación. 1 000 $ de nocional
+  ganan lo mismo a 1× que a 100×. Fijado con un test parametrizado a 1/5/20/100×,
+  porque es lo primero que se rompe al refactorizar —el diario legado sí lo metía en
+  la fórmula, y el mapeo de compatibilidad sigue vivo.
+- **Lo que sí multiplica es el tamaño de contrato**, y de ahí salió BUG-045: la
+  regla del 1-2 % de riesgo lo ignoraba, así que **no saltaba jamás** en opciones,
+  futuros ni forex. Sobrevivió porque en `spot` multiplicar por 1 no se nota.
+- **La exposición, no la X.** El tope que pidió el usuario —que la posición no
+  supere 10 veces el saldo— se mide sobre el **nocional contra la cuenta**, no sobre
+  el número del apalancamiento: 100× sobre 100 $ en una cuenta de 10 000 son 10 000 $
+  de nocional y no tienen nada de malo; 20× sobre 20 000 $ en esa misma cuenta son
+  400 000 $ y una vela normal se los lleva. El umbral vive en `plan["risk"]`
+  (`max_exposure_multiple`), como manda la regla del proyecto.
+
+### Las unidades: el trader escribe en lo suyo, se guarda un precio
+
+Stop y objetivo se escriben en precio, pips, ticks, puntos, % del precio, importe
+fijo, % de la cuenta o múltiplos de R. **Lo que se almacena es siempre un nivel de
+precio**, y por eso R, drawdown, MAE/MFE y la distribución siguen leyendo los mismos
+campos que leían: la analítica no se entera de que existen unidades. El número
+tecleado y su unidad viajan al lado sólo para repintar el formulario tal cual se
+dejó. Un objetivo en R sin stop es `None`, no cero — un cero pondría el objetivo en
+la entrada.
+
+### Costes: comisión y lo que cuesta NO cerrar
+
+Funding en perpetuos (por periodo de 8 h) y comisión nocturna en CFD y forex
+(interés anual prorrateado por noches). Se puede dar el importe o la tasa: **el
+importe declarado gana siempre**, porque ninguna fórmula nuestra mejora un extracto,
+y la respuesta dice cuál de las dos cosas es (`carry_source`). Un perpetuo al 0,01 %
+cada 8 h cuesta ~0,9 % del nocional al mes; con 20× eso es el 18 % del margen, y era
+invisible en el diario.
+
+### Opciones: parejas, no aparte
+
+Mismo formulario, mismo modelo, misma analítica. Lo único distinto es de dónde sale
+el riesgo: **`max_loss`**, no `|entrada − stop|`. Con eso, una opción comprada tiene
+R (la prima ES la pérdida máxima) y un spread de crédito también (anchura − crédito),
+así que entran en la distribución de R, en el R medio y en la comparación con el
+resto del diario. Antes, casi toda operación de opciones salía con `r_multiple =
+None` y se caía sola de la analítica — la mitad del hueco **G-21**. Vender desnudo
+sigue sin tener pérdida máxima definida: `None`, no un número tranquilizador.
+Se añaden IV de entrada/salida, delta, subyacente y desenlace (asignada, vencida sin
+valor, ejercida, roleada): sin eso no se puede saber si la operación salió por
+dirección o porque se pagó cara la volatilidad.
+
+### Avisos y SMS
+
+`notifications.py` (nuevo) reparte un aviso por tres canales y **dice cuáles
+funcionan de verdad** (`GET /alerts/channels`). Las alertas del diario no montan un
+vigilante nuevo: escriben en la misma colección `alerts` con `trade_id`, así que las
+recorre el poller que ya existía; editar el stop mueve el aviso y cerrar la operación
+lo retira. El SMS está implementado contra Twilio y queda operativo en cuanto existan
+`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_FROM_NUMBER` en Secret Manager —
+**no queda código pendiente, queda el alta de la cuenta**. Sin ellas responde
+`not_configured` y la interfaz lo dice antes de que el usuario cuente con ello. Tope
+de 20 SMS por usuario y hora: un bucle en el poller no puede convertirse en factura.
+
+### Paridad backend ↔ frontend
+
+El catálogo se genera: `scripts/gen-instruments-js.py` escribe
+`frontend/src/lib/instrumentSpecs.generated.js` desde `instruments.py`, y `--check`
+falla si divergen. La **matemática** sí está escrita dos veces a propósito (el
+navegador no puede esperar a la red para avisarte del tope mientras escribes, y el
+backend no puede fiarse del cliente): las dos están cubiertas con los **mismos
+números** en `test_instruments_unit.py` y en `engine-check.js`.
+
+### Verificado
+
+`pytest` **679 passed / 74 skipped** (+76) · `py_compile` de todos los módulos ·
+ESLint **0 errores** · `i18n-check` **5979 claves × 10 idiomas** (+162) ·
+`engine-check` **171/171** (+30) · `gen-instruments-js --check` en paridad ·
+`npm run build` OK · `check-doc-links` 49 documentos.
+
+### Lo que NO entra (y por qué)
+
+- **Multi-pata real (G-21 completo).** Un spread se registra hoy como una posición
+  con su prima neta y su pérdida máxima declarada —que es lo que hace falta para que
+  tenga R y compare con el resto—, pero **no guarda pata por pata**: no hay `legs`, y
+  con ello no hay griegas agregadas de la estructura, ni cierre parcial de una pata,
+  ni rolar media posición. Sigue siendo la reconstrucción del modelo
+  (`Position` → `Leg` → `Execution`) que ya estaba anotada.
+- **Cierres parciales** en cualquier producto: una operación sigue teniendo un único
+  precio de salida.
+- **Conversión de divisa de la cuenta.** Todo se mide en la divisa en la que estén
+  los precios; un par cruzado sin USD y una cuenta en euros no llevan tipo de cambio.
+- **Márgenes reales del bróker.** Los del catálogo son de referencia y editables; el
+  precio de liquidación es una estimación de margen aislado y se publica etiquetada
+  como tal, con sus supuestos al lado.
