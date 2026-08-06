@@ -845,6 +845,8 @@ def compute_analytics(
         "trades_without_r": trades_without_r,
         # Excursion (MAE/MFE) — stop & target calibration
         "excursion": excursion,
+        # Qué habría pasado con otro stop, releyendo las operaciones reales.
+        "stop_calibration": stop_calibration(closed),
         # Streaks
         "max_consecutive_wins": max_w,
         "max_consecutive_losses": max_l,
@@ -950,6 +952,101 @@ def compute_excursion_stats(closed: List[dict]) -> Dict[str, Any]:
     }
 
 
+# Mínimo de operaciones con MAE antes de dibujar la curva del stop. Por debajo,
+# mover el stop "según los datos" es mover el stop según dos operaciones.
+MIN_TRADES_FOR_STOP_CURVE = 20
+# Anchuras de stop que se prueban, en múltiplos del stop que se usó de verdad.
+STOP_CURVE_WIDTHS = (0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.5, 2.0)
+
+
+def stop_calibration(closed: List[dict]) -> Dict[str, Any]:
+    """Qué habría pasado con un stop más ancho o más estrecho, sobre TUS trades.
+
+    Es la única forma honesta de responder a "¿mi stop es el correcto?": no con
+    una regla general, sino releyendo las operaciones que ya hiciste. Cada una
+    guarda su MAE (lo máximo que fue en contra antes de resolverse) en R, y eso
+    basta para saber si habría sobrevivido a otro stop:
+
+      · MAE < stop nuevo  → la operación sigue viva y termina donde terminó.
+        Su resultado en R **se reescala**: con la mitad de stop, el mismo
+        recorrido son el doble de R (y se arriesga la mitad de dinero, así que
+        el porcentaje de cuenta es el mismo... a igualdad de tamaño; el sentido
+        de esto es que con riesgo fijo en % puedes poner el doble de posición).
+      · MAE ≥ stop nuevo  → te habrían sacado: −1R.
+
+    Lo que NO puede decir, y por eso no se insinúa: si un stop más estrecho
+    habría cambiado el comportamiento del precio (no lo hace) ni si la ventaja
+    del setup sobrevive a estar más cerca del ruido (eso depende del mercado, no
+    de la aritmética). Es un "qué habría pasado", no una promesa.
+    """
+    usable = [
+        t for t in closed
+        if t.get("mae_r") is not None and t.get("r_multiple") is not None
+    ]
+    if len(usable) < MIN_TRADES_FOR_STOP_CURVE:
+        return {"available": False, "sample_size": len(usable),
+                "min_sample": MIN_TRADES_FOR_STOP_CURVE, "curve": [], "best": None}
+
+    curve = []
+    for width in STOP_CURVE_WIDTHS:
+        rs: List[float] = []
+        stopped_out = 0
+        for t in usable:
+            mae = float(t["mae_r"])
+            if mae >= width:
+                # Con este stop te habrían echado antes de que se resolviera.
+                rs.append(-1.0)
+                stopped_out += 1
+            else:
+                # Mismo recorrido, distinta unidad de riesgo.
+                rs.append(float(t["r_multiple"]) / width)
+        n = len(rs)
+        wins = sum(1 for r in rs if r > 0)
+        expectancy = sum(rs) / n
+        sd = statistics.pstdev(rs) if n > 1 else 0.0
+        curve.append({
+            "width": width,
+            "expectancy_r": round(expectancy, 3),
+            "win_rate": round(wins / n * 100, 1),
+            "stopped_out": stopped_out,
+            "stopped_pct": round(stopped_out / n * 100, 1),
+            # Esperanza por unidad de ruido: un sistema con el doble de
+            # esperanza y el triple de dispersión es PEOR, aunque el titular
+            # diga lo contrario, porque su drawdown y su tiempo hasta saberlo
+            # crecen más rápido que su rendimiento.
+            "per_unit_risk": round(expectancy / sd, 3) if sd > 0 else None,
+        })
+
+    # "Mejor" por esperanza por unidad de riesgo, no por esperanza a secas: es
+    # lo que sobrevive a que el futuro no se parezca exactamente al pasado.
+    #
+    # El desempate importa y no es cosmético: en cuanto el stop supera el peor
+    # MAE de la muestra ya no salta ninguna operación, así que ensancharlo más
+    # sólo divide todos los R por el mismo número — la RELACIÓN se queda
+    # idéntica y la esperanza baja. Sin desempate, el "mejor" podía salir un
+    # stop del doble de ancho que rinde la mitad. A igualdad de relación gana
+    # el que más esperanza deja, que es siempre el más estrecho de los empatados.
+    scored = [c for c in curve if c["per_unit_risk"] is not None]
+    best = (max(scored, key=lambda c: (round(c["per_unit_risk"], 3), c["expectancy_r"]))
+            if scored else None)
+    current = next((c for c in curve if c["width"] == 1.0), None)
+    return {
+        "available": True,
+        "sample_size": len(usable),
+        "min_sample": MIN_TRADES_FOR_STOP_CURVE,
+        "curve": curve,
+        "current": current,
+        "best": best,
+        # Sólo se sugiere mover el stop si la mejora es apreciable: un 3 % mejor
+        # está dentro del ruido de la propia muestra y no justifica tocar nada.
+        "suggests_change": bool(
+            best and current and best["width"] != 1.0
+            and current["per_unit_risk"] is not None
+            and best["per_unit_risk"] > current["per_unit_risk"] * 1.15
+        ),
+    }
+
+
 def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
     return {
         "total_trades": len(trades),
@@ -984,6 +1081,8 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "r_sample_size": 0,
         "trades_without_r": 0,
         "excursion": {"available": False, "sample_size": 0, "scatter": []},
+        "stop_calibration": {"available": False, "sample_size": 0,
+                             "min_sample": MIN_TRADES_FOR_STOP_CURVE, "curve": [], "best": None},
         "max_consecutive_wins": 0,
         "max_consecutive_losses": 0,
         "by_day": [],

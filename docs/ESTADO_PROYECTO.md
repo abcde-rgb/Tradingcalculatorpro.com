@@ -29,7 +29,7 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **550 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **555 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
 | **Paridad i18n / motor** | 🟢 | `i18n-check` **5817 claves × 10 idiomas, 0 huecos** · `engine-check` **141/141** (2026-08-05) |
@@ -3340,3 +3340,39 @@ riesgo de las **reglas del sistema** y el resultado de la **Analítica**.
 - ✅ **Verificado**: `engine-check` **141/141** (+8 del puente, incluido que subir riesgo
   daña el drawdown mucho más que subir la ventaja) · `pytest` **550 passed / 74 skipped**
   (+5) · ESLint 0 errores · `i18n-check` **5817 claves × 10 idiomas** (+24) · build OK.
+
+### 2026-08-05 (10) — Estudio del factor del stop loss + curva sobre datos reales
+Petición del propietario: estudiar el factor de los stop loss. Simulación propia
+(recorrido del precio, no razonamiento) y, de ahí, una herramienta que responde con
+**las operaciones del usuario** en vez de con una regla general.
+
+- 🐛 **Primer modelo descartado por incorrecto.** Con pasos del tamaño de la
+  volatilidad diaria, un stop de 0,5σ se saltaba entero en un paso y la pérdida real
+  era mucho mayor que 1R, pero se apuntaba como 1R. El control salía con esperanza
+  **positiva sin ventaja**, que es imposible. Rehecho con dt = 1/100: sin ventaja la
+  esperanza sale ≈ 0 pongas el stop donde lo pongas, que es lo que tiene que salir.
+- 📊 **Qué dice la simulación** (objetivo fijo a 3σ, misma ventaja, riesgo 1 % fijo):
+  estrechar el stop de 3σ a 0,5σ sube la esperanza de **+0,75 R a +1,35 R** por
+  operación, baja el acierto del 88,5 % al 35 % y **empeora la relación
+  esperanza/ruido de 1,20 a 0,40**. El deslizamiento se lleva un **2 % de la ventaja
+  con stop de 3σ y un 11 % con 0,25σ**. Conclusión: el stop no crea ventaja, reparte
+  la misma entre acierto y payoff, y su coste real es de ejecución y de varianza.
+- ✅ **`stop_calibration()`**: relee las operaciones cerradas con MAE y calcula qué
+  habría pasado con el stop al 0,5× … 2× del que se usó. `MAE ≥ stop nuevo` → −1R;
+  si no, el mismo recorrido **reescalado** (con la mitad de stop, el doble de R).
+  Publica esperanza, acierto, % de operaciones que habrían saltado y **esperanza por
+  unidad de riesgo**, que es el criterio para elegir.
+- ⚠️ **Hallazgo del propio cálculo**: pasado el peor MAE de la muestra ya no salta
+  ninguna operación, así que ensanchar más **sólo divide todos los R por el mismo
+  número** — la relación se queda idéntica y la esperanza baja. Sin desempate, el
+  "mejor stop" salía uno del doble de ancho que rinde la mitad; ahora a igualdad de
+  relación gana el más estrecho. Fijado por test.
+- 🔒 **Lo que NO afirma**: mínimo de 20 operaciones con MAE, y no se insinúa que un
+  stop más estrecho habría cambiado el comportamiento del precio ni que la ventaja
+  sobreviva a estar más cerca del ruido — eso depende del mercado, no de la
+  aritmética. Es un "qué habría pasado", no una promesa.
+- ✅ **Verificado**: `pytest` **555 passed / 74 skipped** (+5 del stop) · `py_compile`
+  OK · enlaces de doc OK.
+- ⏭️ **Pendiente**: llevar la curva a pantalla (bloque en la Analítica, junto a la
+  excursión que ya existe) y conectarla con la proyección para ver el efecto del stop
+  en la rentabilidad mensual.

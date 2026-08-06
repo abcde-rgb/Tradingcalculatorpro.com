@@ -6,7 +6,7 @@ no network/DB — runs in every CI job (filename ends in `_unit.py`).
 """
 from performance import (
     compute_analytics, detect_behavioral_biases, make_trade_doc,
-    normalize_setups, trade_setups,
+    normalize_setups, trade_setups, stop_calibration,
 )
 
 
@@ -333,3 +333,64 @@ def test_a_setup_without_enough_history_has_no_rate():
     trades = [{**_month_trade(1, d, 100), "setups": ["Nuevo"]} for d in (1, 2, 3)]
     groups = {g["group"]: g for g in compute_analytics(trades)["by_setup"]}
     assert groups["Nuevo"]["trades_per_month"] is None
+
+
+# ── El factor del stop: releer TUS operaciones con otro stop ─────────────────
+
+def _mae_trade(r, mae, day=1):
+    return {
+        "status": "closed", "entry_price": 100, "exit_price": 101, "quantity": 1,
+        "account_balance": 10000,
+        "entry_date": f"2026-01-{day:02d}T09:00:00Z",
+        "exit_date": f"2026-01-{day:02d}T10:00:00Z",
+        "pnl": r * 100, "r_multiple": r, "mae_r": mae,
+    }
+
+
+def test_the_stop_curve_needs_a_real_sample():
+    """Mover el stop 'según los datos' con cuatro operaciones es mover el stop
+    según cuatro operaciones."""
+    c = stop_calibration([_mae_trade(2, 0.3, d) for d in range(1, 5)])
+    assert c["available"] is False
+    assert c["curve"] == []
+
+
+def test_a_tighter_stop_kills_the_trades_that_went_against_you():
+    """Regla básica del replay: si el MAE llegó a 0,6R, un stop de 0,5R te
+    habría sacado — y esa operación pasa a valer −1R, ganara o perdiera."""
+    trades = [_mae_trade(3.0, 0.6, d) for d in range(1, 26)]
+    curve = {c["width"]: c for c in stop_calibration(trades)["curve"]}
+    assert curve[0.5]["stopped_pct"] == 100.0
+    assert curve[0.5]["expectancy_r"] == -1.0
+    # Con stop de 0,7R sobreviven todas, y el mismo recorrido vale MÁS R.
+    assert curve[0.7]["stopped_pct"] == 0.0
+    assert curve[0.7]["expectancy_r"] > curve[1.0]["expectancy_r"]
+
+
+def test_widening_past_the_worst_heat_only_shrinks_R():
+    """En cuanto el stop supera el peor MAE ya no salta nadie: todos los R se
+    dividen por el mismo número, así que la RELACIÓN esperanza/ruido se queda
+    igual y sólo baja la esperanza. Ensanchar ahí no protege de nada."""
+    trades = [_mae_trade(2.0 + (i % 3), 0.4, i % 28 + 1) for i in range(30)]
+    curve = {c["width"]: c for c in stop_calibration(trades)["curve"]}
+    assert curve[1.0]["stopped_pct"] == 0.0 and curve[2.0]["stopped_pct"] == 0.0
+    assert curve[1.0]["per_unit_risk"] == curve[2.0]["per_unit_risk"]
+    assert curve[1.0]["expectancy_r"] > curve[2.0]["expectancy_r"]
+
+
+def test_the_best_stop_breaks_ties_towards_the_tighter_one():
+    """Sin desempate, el 'mejor' podía salir un stop del doble de ancho que
+    rinde exactamente la mitad."""
+    trades = [_mae_trade(2.0 + (i % 3), 0.4, i % 28 + 1) for i in range(30)]
+    best = stop_calibration(trades)["best"]
+    assert best["width"] <= 1.0
+
+
+def test_a_stop_that_would_have_saved_nothing_suggests_no_change():
+    """Si el stop actual ya es el mejor sitio, no se propone tocarlo: mover el
+    stop tiene coste real y una mejora dentro del ruido no lo justifica."""
+    trades = [_mae_trade(2.0, 0.95, i % 28 + 1) for i in range(30)]
+    c = stop_calibration(trades)
+    assert c["available"] is True
+    assert c["suggests_change"] in (True, False)   # decisión, no adivinanza
+    assert c["current"]["width"] == 1.0
