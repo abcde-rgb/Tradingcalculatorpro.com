@@ -724,6 +724,13 @@ def compute_analytics(
         "breakeven_trades": len(closed) - len(wins) - len(losses),
         "total_pnl": round(total_pnl, 2),
         "total_pnl_pct": round(_safe_div(total_pnl, starting_balance, 0) * 100, 2),
+        # El saldo con el que se empezó y el de ahora. Se publican porque una
+        # proyección a futuro tiene que arrancar del dinero REAL del usuario: si
+        # parte de una cifra redonda inventada, todo lo que salga de ella —el
+        # riesgo por operación, el drawdown en dinero, la ruina— es de otra
+        # cuenta que no es la suya.
+        "starting_balance": round(starting_balance, 2),
+        "current_balance": round(starting_balance + total_pnl, 2),
         # Quality
         "profit_factor": round(profit_factor, 2) if profit_factor != float("inf") else None,
         "expectancy": round(expectancy, 2),
@@ -856,6 +863,8 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "breakeven_trades": 0,
         "total_pnl": 0,
         "total_pnl_pct": 0,
+        "starting_balance": 0,
+        "current_balance": 0,
         "profit_factor": 0,
         "expectancy": 0,
         "avg_win": 0,
@@ -919,21 +928,51 @@ def _group_winrate_by_multi(trades: List[dict], keys_fn) -> List[Dict[str, Any]]
     than the number of trades, which is correct for "how does this setup do?"
     and wrong for "how do my trades split up" — so the caller publishes the
     overlap rather than letting a reader assume it is a partition.
+
+    Each group also carries what a FORWARD PROJECTION needs — average win,
+    average loss, payoff and average R with its own sample size — because a
+    projection built on the global numbers is not a projection of that setup.
+    Everything the sample cannot support is ``None``, never 0: a payoff with no
+    losing trade yet is undefined, and a 0 would read as "this setup loses
+    everything it makes".
     """
     groups: Dict[str, Dict[str, Any]] = {}
     for t in trades:
         pnl = float(t.get("pnl") or 0)
-        won = pnl > 0
+        r = t.get("r_multiple")
         for k in keys_fn(t):
-            g = groups.setdefault(k, {"group": k, "n": 0, "wins": 0, "pnl": 0.0})
+            g = groups.setdefault(k, {
+                "group": k, "n": 0, "wins": 0, "pnl": 0.0,
+                "_win_sum": 0.0, "_loss_sum": 0.0, "_losses": 0, "_rs": [],
+            })
             g["n"] += 1
-            if won:
-                g["wins"] += 1
             g["pnl"] += pnl
+            if pnl > 0:
+                g["wins"] += 1
+                g["_win_sum"] += pnl
+            elif pnl < 0:
+                g["_losses"] += 1
+                g["_loss_sum"] += abs(pnl)
+            if isinstance(r, (int, float)):
+                g["_rs"].append(float(r))
     out = []
     for g in groups.values():
+        wins, losses = g["wins"], g["_losses"]
+        avg_win = (g["_win_sum"] / wins) if wins else None
+        avg_loss = (g["_loss_sum"] / losses) if losses else None
+        rs = g["_rs"]
         g["win_rate"] = round(_safe_div(g["wins"], g["n"], 0) * 100, 1)
         g["pnl"] = round(g["pnl"], 2)
+        g["avg_win"] = round(avg_win, 2) if avg_win is not None else None
+        g["avg_loss"] = round(avg_loss, 2) if avg_loss is not None else None
+        # Payoff = cuánto gana el ganador medio por cada unidad que pierde el
+        # perdedor medio. Sin perdedores todavía no está definido.
+        g["payoff"] = (round(avg_win / avg_loss, 2)
+                       if (avg_win is not None and avg_loss) else None)
+        g["avg_r"] = round(sum(rs) / len(rs), 2) if rs else None
+        g["r_sample"] = len(rs)
+        for tmp in ("_win_sum", "_loss_sum", "_losses", "_rs"):
+            g.pop(tmp, None)
         out.append(g)
     out.sort(key=lambda x: x["n"], reverse=True)
     return out

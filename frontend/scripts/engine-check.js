@@ -362,10 +362,93 @@ async function checkOptionsEngine() {
     popCal > 1 && popCal < 99, `${popCal}`);
 }
 
+async function checkProjection() {
+  console.log('\nprojection.js');
+  const pj = await imp('lib/projection.js');
+
+  // Las entradas salen del diario, no de la imaginación.
+  const analytics = {
+    closed_trades: 60, win_rate: 45, avg_win: 300, avg_loss: -150,
+    avg_r: 0.3, r_sample_size: 60,
+  };
+  const measured = pj.measuredInputs(analytics);
+  ok('win rate and payoff come from the journal',
+    measured.winRate.value === 45 && measured.payoff.value === 2);
+  ok('and they say they are measured, with their sample',
+    measured.winRate.source === 'measured' && measured.winRate.sample === 60);
+
+  const group = { group: 'Ruptura NY', n: 40, win_rate: 60, avg_win: 100, avg_loss: -100 };
+  ok('a setup projects with ITS numbers, not the global ones',
+    pj.measuredInputs(analytics, group).payoff.value === 1);
+
+  const noLosers = pj.measuredInputs({ closed_trades: 12, win_rate: 100, avg_win: 100, avg_loss: null });
+  ok('no losing trade yet = payoff unknown, not zero',
+    noLosers.payoff.value === null && noLosers.payoff.source === 'unavailable');
+
+  // Esperanza: la cuenta que decide si proyectar más operaciones ayuda o mata.
+  ok('expectancy in R is win_rate × payoff − losses',
+    pj.expectancyR(50, 2) === 0.5);
+  ok('a coin flip at 1:1 has zero expectancy', pj.expectancyR(50, 1) === 0);
+  ok('expectancy is negative when the edge is not there',
+    pj.expectancyR(30, 1) < 0);
+  ok('breakeven win rate inverts the payoff',
+    pj.breakevenWinRate(1) === 50 && pj.breakevenWinRate(3) === 25);
+  ok('breakeven is undefined without a payoff', pj.breakevenWinRate(null) === null);
+
+  // Lo que el usuario toca queda marcado como supuesto: una proyección sobre
+  // supuestos es una hipótesis, y confundirla con una medición es lo que hace
+  // que alguien dimensione una cuenta real contra un número inventado.
+  const assumed = pj.resolveInputs(measured, { winRate: 70 });
+  ok('an edited input is flagged as assumed', assumed.winRate.source === 'assumed');
+  ok('an untouched input stays measured', assumed.payoff.source === 'measured');
+  ok('re-typing the measured value is not an assumption',
+    pj.resolveInputs(measured, { winRate: 45 }).winRate.source === 'measured');
+
+  // Muestra: por debajo del suelo no se proyecta.
+  const tiny = pj.project({ closed_trades: 4, win_rate: 50, avg_win: 100, avg_loss: -100 });
+  ok('four trades are not a forecast', tiny.ok === false && tiny.reason === 'sample');
+  ok('and nothing is drawn from it', tiny.distribution === null);
+
+  const thin = pj.project({ closed_trades: 15, win_rate: 50, avg_win: 200, avg_loss: -100 });
+  ok('a thin sample still projects but warns', thin.ok === true && thin.sampleWarning === true);
+
+  const solid = pj.project(analytics, { overrides: { balance: 10000, riskPct: 1, trades: 100 } });
+  ok('a solid sample projects', solid.ok === true && solid.sampleWarning === false);
+  ok('the projection is a DISTRIBUTION, not a number',
+    solid.distribution.roi.p5 < solid.distribution.roi.p50
+    && solid.distribution.roi.p50 < solid.distribution.roi.p95);
+  ok('ruin probability is reported', typeof solid.distribution.probabilityOfRuin === 'number');
+
+  // Mismos números, mismo dibujo: sin semilla fija el panel cambiaría solo.
+  const again = pj.project(analytics, { overrides: { balance: 10000, riskPct: 1, trades: 100 } });
+  ok('the same inputs give the same projection',
+    solid.distribution.roi.p50 === again.distribution.roi.p50);
+
+  // Una ventaja positiva medida tiene que proyectar mediana positiva.
+  ok('a positive edge projects a positive median ROI',
+    solid.expectancyR > 0 && solid.distribution.roi.p50 > 0);
+
+  const losing = pj.project(
+    { closed_trades: 80, win_rate: 30, avg_win: 100, avg_loss: -100 },
+    { overrides: { balance: 10000, riskPct: 2, trades: 200 } },
+  );
+  ok('a negative edge projects a negative median and real ruin risk',
+    losing.expectancyR < 0 && losing.distribution.roi.p50 < 0
+    && losing.distribution.probabilityOfRuin > 0);
+
+  // Sensibilidad: qué le pasa a la ventaja si cambia la decisión.
+  const sens = pj.sensitivity(45, 2);
+  ok('sensitivity is monotonic in win rate',
+    sens[0].expectancyR < sens[sens.length - 1].expectancyR);
+  ok('sensitivity clamps the win rate to a real percentage',
+    pj.sensitivity(95, 2, [10])[0].winRate === 100);
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
   await checkTradingSystemModel();
+  await checkProjection();
   await checkOptionsEngine();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {

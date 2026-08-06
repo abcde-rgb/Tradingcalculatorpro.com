@@ -17,6 +17,7 @@ import TradeJournal from '@/components/performance/TradeJournal';
 import AnalyticsDashboard from '@/components/performance/AnalyticsDashboard';
 import SetupPerformance from '@/components/performance/SetupPerformance';
 import SetupBuilder from '@/components/education/SetupBuilder';
+import ProjectionPanel from '@/components/performance/ProjectionPanel';
 
 // Animation tokens (reused from LandingPage style)
 const FADE_UP = {
@@ -147,6 +148,9 @@ export default function PerformancePage() {
               <TabsTrigger value="setups" data-testid="perftab-setups">
                 <Layers className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabSetups')}
               </TabsTrigger>
+              <TabsTrigger value="projection" data-testid="perftab-projection">
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabProjection')}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -205,6 +209,17 @@ export default function PerformancePage() {
                 <SetupBuilder onSaved={onChange} />
               </div>
             </div>
+          )}
+        </TabsContent>
+
+        {/* Projection tab — el futuro, calculado sobre el pasado REAL.
+            Va la última a propósito: proyectar antes de tener diario y
+            analítica es exactamente el error que este panel intenta evitar. */}
+        <TabsContent value="projection" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
+          {!isAuthenticated ? (
+            <AuthRequired t={t} />
+          ) : (
+            <ProjectionPanel refreshKey={refreshKey} onGoToJournal={() => setTab('journal')} />
           )}
         </TabsContent>
 

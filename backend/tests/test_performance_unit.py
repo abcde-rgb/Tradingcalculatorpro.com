@@ -207,3 +207,48 @@ def test_a_trade_with_no_setup_lands_in_its_own_group():
     a = compute_analytics(trades)
     assert [g["group"] for g in a["by_setup"]] == ["—"]
     assert a["setups_multi_tagged"] == 0
+
+
+# ── Lo que hace falta para PROYECTAR, por setup ─────────────────────────────
+# Una proyección construida sobre los números globales no es una proyección de
+# ese setup, así que cada grupo trae su propio payoff y su propia muestra.
+
+def _setup_trade(pnl, r=None, setups=None, day="01"):
+    t = {
+        "status": "closed", "entry_price": 100, "exit_price": 110, "quantity": 1,
+        "entry_date": f"2026-01-{day}T09:00:00Z", "exit_date": f"2026-01-{day}T10:00:00Z",
+        "pnl": pnl,
+    }
+    if r is not None:
+        t["r_multiple"] = r
+    if setups is not None:
+        t["setups"] = setups
+    return t
+
+
+def test_each_setup_carries_its_own_payoff_and_sample():
+    a = compute_analytics([
+        _setup_trade(200, 2.0, ["Ruptura NY"], "01"),
+        _setup_trade(-100, -1.0, ["Ruptura NY"], "02"),
+        _setup_trade(100, 1.0, ["Ruptura NY"], "03"),
+    ])
+    g = {x["group"]: x for x in a["by_setup"]}["Ruptura NY"]
+    assert g["avg_win"] == 150.0 and g["avg_loss"] == 100.0
+    assert g["payoff"] == 1.5
+    assert g["avg_r"] == round((2.0 - 1.0 + 1.0) / 3, 2)
+    assert g["r_sample"] == 3
+
+
+def test_a_setup_with_no_losing_trade_has_an_undefined_payoff():
+    """No es un payoff infinito ni cero: es que todavía no se sabe. Un 0 se
+    leería como 'este setup devuelve todo lo que gana'."""
+    a = compute_analytics([_setup_trade(200, 2.0, ["Solo ganadoras"], "01")])
+    g = {x["group"]: x for x in a["by_setup"]}["Solo ganadoras"]
+    assert g["avg_loss"] is None
+    assert g["payoff"] is None
+
+
+def test_a_setup_without_r_data_reports_no_r_sample():
+    a = compute_analytics([_setup_trade(50, None, ["Sin R"], "01")])
+    g = {x["group"]: x for x in a["by_setup"]}["Sin R"]
+    assert g["avg_r"] is None and g["r_sample"] == 0

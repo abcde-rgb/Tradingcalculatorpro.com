@@ -29,10 +29,10 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **540 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **543 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5711 claves × 10 idiomas, 0 huecos** · `engine-check` **83/83** (2026-08-05) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5752 claves × 10 idiomas, 0 huecos** · `engine-check` **106/106** (2026-08-05) |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -3182,3 +3182,49 @@ costuras que quedaban abiertas.
   exposición correlacionada— se definen en el constructor y **no** juzgan nada todavía;
   `detect_errors` sigue usando el plan del backend, que no tiene interfaz. Conectar
   `SetupBuilder` con `POST /plan` cierra eso y de paso arregla G-15.
+
+### 2026-08-05 (6) — Proyección a futuro sobre la operativa real
+Petición del propietario: que **todo sea variable** pero que **calcule real**, y que
+haga previsiones a futuro cruzando setup, diario y analítica (decisiones, TP, SL).
+
+- ✅ **Nueva pestaña "Proyección"** en `/performance`, la última a propósito: proyectar
+  antes de tener diario y analítica es justo el error que el panel intenta evitar.
+- ✅ **Todo variable, todo con origen.** Acierto, payoff, riesgo por operación, número de
+  operaciones, saldo y capitalización son editables, pero **arrancan en lo que mide tu
+  diario** y cada campo lleva una etiqueta: `medido` (con el tamaño de muestra detrás) o
+  `supuesto` (lo has cambiado tú). Confundir una medición con una hipótesis es lo que
+  hace que alguien dimensione una cuenta real contra un número inventado. Un botón
+  devuelve cada campo a su valor medido.
+- ✅ **Se proyecta una DISTRIBUCIÓN, no una línea.** Monte Carlo (motor compartido con el
+  simulador, 5000 secuencias, **semilla fija** para que los mismos números den siempre el
+  mismo dibujo): mediana, percentil 5 y 95 del ROI, drawdown máximo mediano y del 5 %
+  peor, probabilidad de acabar en verde y **riesgo de ruina** (perder la mitad de la
+  cuenta, no llegar a cero: de una cuenta partida por la mitad ya casi nadie vuelve).
+- ✅ **La cuenta que decide, aparte**: esperanza por operación en R y en dinero, **acierto
+  de equilibrio** para ese payoff —«por debajo del 36 %, este setup pierde», que es una
+  frase accionable— y el margen entre tu acierto y ese equilibrio.
+- ✅ **Sensibilidad a la decisión**: qué le pasa a la esperanza si el acierto se mueve
+  ±5/±10 puntos con el payoff actual. Cerrar antes sube el acierto y baja el payoff;
+  aguantar al objetivo hace lo contrario — es el enlace entre las métricas y lo que uno
+  **hace** con el TP y el SL.
+- ✅ **Se puede proyectar POR SETUP.** Para eso, `by_setup` publica ahora `avg_win`,
+  `avg_loss`, `payoff`, `avg_r` y `r_sample` por grupo: una proyección construida sobre
+  los números globales no es una proyección de ese setup. Sin operaciones perdedoras el
+  payoff es `null` (desconocido), nunca 0. Y el riesgo por operación sale del **setup**
+  cuando lo tiene escrito.
+- ✅ **La muestra manda.** Por debajo de 30 operaciones cerradas se avisa en ámbar; por
+  debajo de 10 **no se proyecta nada**: una previsión sobre cuatro operaciones no es una
+  previsión con mucho error, es ruido con formato de gráfico.
+- ✅ **`starting_balance` y `current_balance` se publican** en la analítica: la proyección
+  arranca del dinero real del usuario, no de una cifra redonda inventada.
+- ✅ **Verificado**: `engine-check` **106/106** (+23 del motor de proyección: esperanza,
+  equilibrio, muestra mínima, medido vs supuesto, determinismo y ventaja negativa →
+  ruina) · `pytest` **543 passed / 74 skipped** (+3) · ESLint 0 errores · `i18n-check`
+  **5752 claves × 10 idiomas, 0 huecos** (+41) · `npm run build` exit 0.
+- ⚠️ **Límites declarados en pantalla**: se remuestrea la muestra propia suponiendo que el
+  futuro se parece al pasado y que las operaciones son independientes —no lo son del
+  todo—, y la simulación sigue operando por debajo de cero, así que un ROI bajo −100 % es
+  aritmética; ahí lo que vale es la probabilidad de ruina.
+- ⏭️ **Pendiente para cerrar del todo el bucle**: usar MAE/MFE (`excursion`) para
+  proyectar «¿y si el stop fuera 0,8R?» con datos reales por operación, no sólo variando
+  el payoff a mano. El backend ya calcula la excursión; falta llevarla a este panel.
