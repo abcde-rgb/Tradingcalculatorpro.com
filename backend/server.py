@@ -64,11 +64,9 @@ from performance import (
     normalize_setups,
     normalize_trade_schema,
     sort_trades_chronologically,
-    legacy_keys_to_unset,
+    LEGACY_TRADE_KEYS,
     SETUP_SEPARATOR,
 )
-from instruments import catalog as instruments_catalog, resolve_levels, resolve_spec
-from notifications import CHANNELS as NOTIFY_CHANNELS, channel_status, normalize_phone
 from trading_plan import (
     activate_plan,
     compliance_report,
@@ -977,9 +975,6 @@ class Database:
             # `_USER_DATA_COLLECTIONS`, así que la tabla tiene que existir o esas
             # tres rutas fallan en la primera consulta.
             "journal_entries",
-            # Registro de SMS enviados: lo consulta el tope por usuario y hora
-            # de `notifications.py` en cada envío.
-            "sms_log",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -1677,10 +1672,6 @@ _BILLING_COLLECTIONS = ("transactions", "payment_transactions")
 _SECURITY_ARTEFACT_COLLECTIONS = (
     "usage_events", "email_verification_tokens", "password_resets",
     "password_reset_tokens", "user_revocations", "referral_redemptions",
-    # Registro de SMS enviados (sólo los 4 últimos dígitos y la hora, para el
-    # tope por usuario). Se borra con la cuenta y no se exporta: no es un dato
-    # que el usuario venga a llevarse, es contabilidad de un canal de envío.
-    "sms_log",
 )
 
 # Todo lo que desaparece al borrar la cuenta (RGPD art. 17).
@@ -2975,7 +2966,7 @@ async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends
         # `$set` no borra: sin el `$unset`, las claves camelCase del documento
         # viejo sobreviven junto a las canónicas recién escritas y el choque de
         # esquemas se reproduce en el mismo documento que acabamos de arreglar.
-        {"$set": enriched, "$unset": legacy_keys_to_unset(existing)},
+        {"$set": enriched, "$unset": {k: "" for k in LEGACY_TRADE_KEYS if k in existing}},
     )
     return {"message": "Trade actualizado", **enriched}
 
@@ -6484,24 +6475,6 @@ async def education_structure_scan(
 # PERFORMANCE — Trade Journal & Analytics
 # ============================================================
 
-class TradeNotifyIn(BaseModel):
-    """Aviso de la posición: qué niveles vigilar y por dónde avisar.
-
-    Los canales se piden aquí, pero **quién puede de verdad** lo dice
-    `GET /alerts/channels`: pedir SMS con el proveedor sin configurar guarda la
-    preferencia y la alerta queda vigilando; lo que no hace es fingir que el
-    mensaje salió. El resultado por canal se escribe en la alerta al dispararse.
-    """
-    enabled: bool = False
-    # inapp = la pestaña abierta (WebSocket) · email · sms
-    channels: List[str] = Field(default_factory=lambda: ["inapp"], max_length=3)
-    # Qué niveles vigilar. Sólo tienen sentido los que la operación tenga puestos.
-    on: List[str] = Field(default_factory=lambda: ["sl", "tp"], max_length=3)
-    # E.164 obligatorio para SMS: adivinar el prefijo del país manda el aviso al
-    # teléfono de otra persona.
-    phone: Optional[str] = Field(None, max_length=20)
-
-
 class TradeIn(BaseModel):
     """Payload for creating/updating a trade."""
     symbol: str
@@ -6532,132 +6505,14 @@ class TradeIn(BaseModel):
     tags: Optional[List[str]] = []
     emotion: Optional[int] = None  # 1..5
     screenshot_urls: Optional[List[str]] = []
-    # ── Producto financiero ────────────────────────────────────────────
-    # `spot` sigue siendo el valor por defecto porque es lo que llevan guardado
-    # las operaciones anteriores. Los demás productos traen consigo su forma de
-    # medirse: contrato, lote, tick, pip, funding, comisión nocturna.
-    # En opciones, entry/exit_price = prima por acción, quantity = nº de
-    # contratos, multiplier = tamaño del contrato (100 en opciones sobre acciones).
-    instrument_type: Optional[str] = Field(
-        "spot", pattern="^(spot|stock|crypto_spot|crypto_perp|futures|cfd|forex|option)$")
+    # Instrument: 'spot' (acciones/cripto/forex/futuros — comportamiento clásico)
+    # u 'option'. En opciones, entry/exit_price = prima por acción, quantity =
+    # nº de contratos, multiplier = tamaño del contrato (100 en opciones sobre acciones).
+    instrument_type: Optional[str] = Field("spot", pattern="^(spot|option)$")
     option_type: Optional[str] = Field(None, pattern="^(call|put)$")
     strike: Optional[float] = None
     expiry: Optional[str] = None
-    # Tamaño de contrato. `None` = "resuélvelo del catálogo": es lo que permite
-    # que el cliente no tenga que saberse de memoria que un lote de forex son
-    # 100 000 unidades. Se guarda ya resuelto.
-    multiplier: Optional[float] = None
-    # Apalancamiento. Nunca multiplica el P&L; decide margen, ROE y liquidación.
-    # El tope de 1000 es un cordón de seguridad contra el dedo gordo, no una
-    # opinión sobre cuánto apalancamiento es sensato — de eso ya avisa la regla
-    # de exposición, que mide el nocional contra el saldo real de la cuenta.
-    leverage: Optional[float] = Field(None, gt=0, le=1000)
-    lot_type: Optional[str] = Field(None, pattern="^(standard|mini|micro|nano|units)$")
-    maintenance_margin_rate: Optional[float] = Field(None, ge=0, lt=1)
-    # ── Unidades elegidas por el trader ────────────────────────────────
-    # El stop y el objetivo se escriben en lo que cada uno usa; lo que se guarda
-    # es siempre un nivel de precio.
-    sl_unit: Optional[str] = Field(
-        "price", pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
-    sl_input: Optional[float] = None
-    tp_unit: Optional[str] = Field(
-        "price", pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
-    tp_input: Optional[float] = None
-    risk_unit: Optional[str] = Field(
-        None, pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
-    # ── Riesgo definido (opciones y spreads) ───────────────────────────
-    max_loss: Optional[float] = Field(None, ge=0)
-    max_profit: Optional[float] = Field(None, ge=0)
-    # ── Coste de mantener la posición abierta ──────────────────────────
-    funding_fees: Optional[float] = None
-    funding_rate_pct: Optional[float] = None
-    funding_periods: Optional[float] = Field(None, ge=0)
-    funding_interval_hours: Optional[float] = Field(None, gt=0)
-    swap_fees: Optional[float] = None
-    swap_rate_pct: Optional[float] = None
-    nights_held: Optional[float] = Field(None, ge=0)
-    # ── Contexto de opciones ───────────────────────────────────────────
-    option_strategy: Optional[str] = None
-    iv_entry: Optional[float] = None
-    iv_exit: Optional[float] = None
-    delta_entry: Optional[float] = None
-    underlying_entry: Optional[float] = None
-    underlying_exit: Optional[float] = None
-    option_outcome: Optional[str] = Field(
-        None, pattern="^(closed|expired_worthless|assigned|exercised|rolled)$")
-    # ── Aviso de la posición ───────────────────────────────────────────
-    notify: Optional["TradeNotifyIn"] = None
-
-
-_NOTIFY_LEVELS = ("sl", "tp")
-
-
-async def _sync_trade_alerts(trade: dict, user: dict) -> int:
-    """Pone al día las alertas de precio ligadas a una operación del diario.
-
-    Reutiliza la colección `alerts` y el poller que ya existían: una alerta de
-    diario es una alerta de precio con el `trade_id` puesto, así que no hay un
-    segundo vigilante que mantener ni un segundo sitio donde se puedan
-    desincronizar.
-
-    Es idempotente y **destructiva sobre lo suyo**: borra las alertas de esta
-    operación que aún no han saltado y las vuelve a crear con los niveles
-    actuales. Editar el stop tiene que mover el aviso; si no, el usuario recibe
-    un aviso del stop que ya no tiene. Las que **ya saltaron** no se tocan: son
-    historial.
-
-    Sólo se vigila una posición ABIERTA. Cerrada, el nivel ya no significa nada.
-    """
-    trade_id = trade.get("id")
-    if not trade_id:
-        return 0
-    try:
-        await db.alerts.delete_many({"user_id": user["id"], "trade_id": trade_id,
-                                     "triggered": False})
-    except Exception as exc:  # noqa: BLE001 — un aviso no puede tumbar el guardado
-        logging.warning("[journal-alerts] limpieza fallida %s: %s", trade_id, exc)
-        return 0
-
-    notify = trade.get("notify") or {}
-    if not notify.get("enabled") or trade.get("status") != "open":
-        return 0
-
-    symbol = (trade.get("symbol") or "").upper()
-    side = trade.get("side") or "long"
-    channels = [c for c in (notify.get("channels") or ["inapp"])
-                if c in NOTIFY_CHANNELS] or ["inapp"]
-    phone = normalize_phone(notify.get("phone")) if "sms" in channels else None
-    wanted = [k for k in (notify.get("on") or list(_NOTIFY_LEVELS))
-              if k in _NOTIFY_LEVELS]
-
-    created = 0
-    now = datetime.now(timezone.utc).isoformat()
-    for kind in wanted:
-        level = trade.get(kind)
-        if level in (None, ""):
-            continue
-        # El lado decide de qué parte se cruza el nivel: el stop de un largo se
-        # cruza cayendo y el de un corto, subiendo. Al revés, la alerta salta
-        # nada más crearla o no salta nunca.
-        below = (kind == "sl") == (side == "long")
-        await db.alerts.insert_one({
-            "id": str(uuid.uuid4()),
-            "user_id": user["id"],
-            "user_email": user.get("email"),
-            "trade_id": trade_id,
-            "kind": kind,
-            "symbol": symbol,
-            "targetPrice": float(level),
-            "condition": "below" if below else "above",
-            "channels": channels,
-            "phone": phone,
-            "notifyEmail": "email" in channels,
-            "is_active": True,
-            "triggered": False,
-            "created_at": now,
-        })
-        created += 1
-    return created
+    multiplier: Optional[float] = 1
 
 
 def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
@@ -6674,19 +6529,6 @@ def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
     return enriched
 
 
-@api_router.get("/performance/instruments")
-async def perf_instruments():
-    """El catálogo de productos e instrumentos que usa el diario.
-
-    Público y sin muro: es una tabla de referencia (cuánto vale un contrato,
-    cuánto es un pip), no un cálculo. El formulario NO depende de esta llamada
-    —lleva el mismo catálogo compilado dentro para poder calcular sin red—, pero
-    publicarlo permite comprobar desde fuera que las dos copias dicen lo mismo.
-    Junto al catálogo va el estado real de los canales de aviso.
-    """
-    return {**instruments_catalog(), "notifyChannels": channel_status()}
-
-
 @api_router.post("/performance/trades")
 async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premium)):
     user_id = user["id"]
@@ -6701,7 +6543,6 @@ async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premi
     # Strip computed read-only fields before persisting (keep stored doc minimal)
     to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
     await db.trades.insert_one(to_store)
-    enriched["alerts_created"] = await _sync_trade_alerts(enriched, user)
     return enriched
 
 
@@ -6810,10 +6651,6 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
     # `entry_price` del parche, y el enriquecido se escribiría sobre un
     # documento con los dos esquemas dentro.
     merged = {**normalize_trade_schema(existing), **updates}
-    # Los niveles se recalculan tras el parche: cambiar la cantidad mueve un stop
-    # escrito en dinero, y cambiar la unidad lo mueve entero. Si no se rehiciera
-    # aquí, el nivel guardado seguiría siendo el de los datos anteriores.
-    merged.update(resolve_levels(merged))
     prev = [t for t in await trades_for_user(db, user["id"], limit=50)
             if t.get("id") != trade_id]
     enriched = _enrich_trade(merged, prev_trades=prev)
@@ -6822,14 +6659,9 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
     await db.trades.update_one(
         {"id": trade_id, "user_id": user["id"]},
         # `$set` no borra claves: el `$unset` es lo que impide que un documento
-        # migrado al vuelo conserve las camelCase que lo hacían ilegible. La
-        # lista sale de `legacy_keys_to_unset` y no de `LEGACY_TRADE_KEYS` a
-        # secas porque el shim aplica el `$unset` DESPUÉS del `$set`: sobre un
-        # documento canónico, borrar `leverage` le quitaría el apalancamiento
-        # que se acababa de guardar.
-        {"$set": enriched, "$unset": legacy_keys_to_unset(existing)},
+        # migrado al vuelo conserve las camelCase que lo hacían ilegible.
+        {"$set": enriched, "$unset": {k: "" for k in LEGACY_TRADE_KEYS if k in existing}},
     )
-    enriched["alerts_created"] = await _sync_trade_alerts(enriched, user)
     return enriched
 
 
@@ -8520,9 +8352,6 @@ try:
     })
     register_realtime_alerts(api_router, db, {
         "decode_token": decode_token,
-        # El poller necesita poder mandar correo: sin esto, una alerta con canal
-        # de correo pedido se dispararía y no saldría de la pestaña.
-        "send_email": _send_email,
     })
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:

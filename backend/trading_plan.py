@@ -73,12 +73,6 @@ DEFAULT_RISK: Dict[str, Any] = {
     "max_open_risk_r": None,
     "max_correlated_positions": None,
     "require_stop_loss": True,
-    # Exposición máxima: cuántas veces el saldo de la cuenta puede llegar a
-    # valer el nocional de una posición. Tiene default (10×) y no None, porque a
-    # diferencia de los límites de arriba éste NO es opcional: sin él, un
-    # apalancamiento alto sobre un tamaño grande no dispara ninguna regla. El
-    # trader puede subirlo o bajarlo, no quitarlo.
-    "max_exposure_multiple": 10.0,
 }
 
 
@@ -178,7 +172,7 @@ def _normalize_risk(raw: Any) -> Dict[str, Any]:
 
     # The two with legacy defaults keep them when omitted, so behaviour is
     # unchanged for a plan that says nothing about them.
-    for key in ("max_risk_pct_per_trade", "min_rr", "max_exposure_multiple"):
+    for key in ("max_risk_pct_per_trade", "min_rr"):
         if key in src:
             got = _pos_float(src.get(key))
             if got is not None:
