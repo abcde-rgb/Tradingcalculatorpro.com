@@ -188,7 +188,9 @@
 
 ### P1 — Robustez antes de escalar
 - [ ] **Dar interfaz a lo que ya está escrito** (G-14) — plan de trading primero.
-- [ ] **`trading_plans` en las tres listas del RGPD** (G-15) — pequeño y con multa detrás.
+- [x] ~~**`trading_plans` en las tres listas del RGPD** (G-15)~~ — cerrado en BUG-044 y
+      **verificado contra Postgres** el 2026-08-07: el plan viaja en el export y el
+      borrado de cuenta lo elimina (0 filas en 6 tablas).
 - [ ] Cerrar **C-08** (API keys solo en Secret Manager).
 - [ ] `FRONTEND_URL` obligatoria en producción (T-02 del backlog de auditoría).
 - [ ] **CSP** en el HTML de Pages, verificada en navegador (T-01 / G-10).
@@ -3737,3 +3739,75 @@ Los **cuatro módulos sin interfaz** (G-14): `trading_plan.py`, `backtest.py`,
 `portfolio_risk.py` y `american_options.py`. `portfolio_risk.py` es el que más pega
 con esto: mide el riesgo abierto a nivel de cuenta, que es justo lo que el aviso de
 cuentas mezcladas deja a medias.
+
+---
+
+## 2026-08-07 (cont.) — Examen de autorización: qué pasa cuando dos cuentas se cruzan
+
+### Por qué este examen y no otro
+
+La cobertura real del backend, medida y no supuesta, parte el proyecto en dos:
+
+| Zona | Cobertura |
+|---|---|
+| La matemática (`price_action` 97 %, `portfolio_risk` 95 %, `backtest` 94 %, `performance` 92 %, `trading_plan` 92 %, `instruments` 88 %) | muy alta |
+| Las rutas HTTP (`server.py` **26 %**, `missing_apis` 23 %, `realtime_alerts` 23 %, `stock_data` 22 %, `admin_routes` 25 %) | casi nada |
+
+Los 693 tests comprueban casi todos **funciones puras**. Lo que rodea a esas
+funciones —autenticación, autorización, validación, rutas de error— estaba sin
+tocar. Y la pregunta que ese hueco deja sin responder es la única cuyo «no» hay
+que poder demostrar en un producto donde el usuario guarda su historial.
+
+### Resultado: la autorización aguanta
+
+Dos cuentas reales, la víctima crea un objeto de cada tipo y la atacante intenta
+leerlo, editarlo y borrarlo cambiando el id de la URL. **21/21.** Detalles que
+importan:
+
+- Responde **404, no 403**: no confirma siquiera que el objeto exista.
+- La operación **sigue intacta** después de los tres intentos, comprobado
+  releyéndola con el token de su dueña — no basta con que la respuesta sea un error.
+- La **ruta legada** (`/journal/trades/{id}`) es otra puerta al mismo dato y
+  también cierra.
+- Un `user_id` en el cuerpo de un POST **se ignora**: no se puede escribir en el
+  diario de otro.
+- Escribir `is_premium`, `is_admin`, `subscription_plan`, `role` o `email` en el
+  perfil **no mueve nada** (medido por diferencia antes/después, no por valor
+  absoluto: las cuentas de prueba ya eran premium y mirar el valor daba un falso
+  positivo).
+
+### RGPD: G-15 cerrado, verificado contra Postgres
+
+El export incluye la operación, el plan de trading y el estado guardado; **no**
+lleva el hash de la contraseña (lo único que aparece es `"auth_provider":
+"password"`, que es el método de acceso); y los artefactos de seguridad no viajan
+en el JSON, que es el contrato correcto. El borrado de cuenta deja **0 filas en
+las 6 tablas** que tenían datos. Esto no se leyó en el código: se contó en la
+base de datos.
+
+De paso quedan confirmados tres límites de tasa, agotándolos: registro 3/hora,
+borrado de cuenta 3/hora, export 5/hora.
+
+### Lo que sí estaba roto: BUG-048
+
+Cinco rutas convertían su propio 4xx en un 500 —tres de ellas de facturación—
+porque `HTTPException` hereda de `Exception` y el `except Exception` final se lo
+tragaba. Ver `DIARIO_BUGS.md`. El test que lo fija recorre el árbol sintáctico,
+no las rutas: el fallo es estructural y así cubre también todo lo que no tiene
+test de integración.
+
+### Nota de método
+
+Cuatro de los «fallos» de las primeras vueltas eran de la sonda, no del producto:
+un PUT incompleto que se quedaba en el 422 de validación sin llegar a comprobar
+la propiedad; un premium que había concedido yo por SQL dos minutos antes; una
+búsqueda de «password» que casaba con `auth_provider`; y un 429 del limitador
+leído como borrado roto. Los cuatro están corregidos **en la sonda**, y las
+guardas que lo evitan quedan escritas ahí: una prueba que acusa al producto de lo
+que hace el banco de pruebas es peor que no tener prueba.
+
+### Verificado
+
+`pytest` **698 passed / 74 skipped** (+5) · `py_compile` OK · autorización
+cruzada **21/21** · export RGPD **8/8** · borrado RGPD **0 filas en 6 tablas** ·
+enlaces de doc OK.

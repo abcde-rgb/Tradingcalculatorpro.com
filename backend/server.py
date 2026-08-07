@@ -4609,6 +4609,15 @@ async def cancel_subscription(
             }
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error canceling subscription: {e}")
         raise HTTPException(status_code=500, detail="Error canceling subscription")
@@ -4646,6 +4655,15 @@ async def resume_subscription(user: dict = Depends(require_user)):
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error resuming subscription: {e}")
         raise HTTPException(status_code=500, detail="Error resuming subscription")
@@ -4689,6 +4707,15 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         return {"url": session.url}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error creating portal session: {e}")
         raise HTTPException(status_code=500, detail="Error creating portal session")
@@ -4764,6 +4791,15 @@ async def save_user_state(request: dict, user: dict = Depends(require_user)):
         )
         
         return {"success": True, "message": "State saved"}
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error saving state: {e}")
         raise HTTPException(status_code=500, detail="Error saving state")
@@ -6211,6 +6247,15 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"AI analyze error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
