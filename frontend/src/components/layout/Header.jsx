@@ -17,6 +17,20 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+/**
+ * Los temas premium, en un solo sitio.
+ *
+ * Estaban escritos dentro del menú de escritorio, así que el menú móvil no los
+ * tenía: no era una decisión, era una copia que faltaba. Con la lista aquí,
+ * añadir un tema lo añade en los dos.
+ */
+const PREMIUM_THEMES = [
+  { id: 'gold',   labelKey: 'goldMode',   sw: 'linear-gradient(135deg,#181614,#c9a24a 70%,#e8c46a)' },
+  { id: 'crypto', labelKey: 'cryptoMode', sw: 'linear-gradient(135deg,#0a0912,#f7931a 55%,#8b5cf6)' },
+  { id: 'forex',  labelKey: 'forexMode',  sw: 'linear-gradient(135deg,#060b16,#1e8f5a 60%,#3b82f6)' },
+  { id: 'nasdaq', labelKey: 'nasdaqMode', sw: 'linear-gradient(135deg,#05070a,#00c2ff)' },
+];
+
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -132,15 +146,10 @@ export function Header() {
                 </DropdownMenuItem>
                 <div className="my-1 h-px bg-border" />
                 <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('premiumThemes')}</div>
-                {[
-                  { id: 'gold', label: t('goldMode'), sw: 'linear-gradient(135deg,#181614,#c9a24a 70%,#e8c46a)' },
-                  { id: 'crypto', label: t('cryptoMode'), sw: 'linear-gradient(135deg,#0a0912,#f7931a 55%,#8b5cf6)' },
-                  { id: 'forex', label: t('forexMode'), sw: 'linear-gradient(135deg,#060b16,#1e8f5a 60%,#3b82f6)' },
-                  { id: 'nasdaq', label: t('nasdaqMode'), sw: 'linear-gradient(135deg,#05070a,#00c2ff)' },
-                ].map((th) => (
+                {PREMIUM_THEMES.map((th) => (
                   <DropdownMenuItem key={th.id} onClick={() => setTheme(th.id)} data-testid={`theme-${th.id}`}>
                     <span className="w-4 h-4 mr-2 rounded-full border border-white/20 shrink-0" style={{ background: th.sw }} />
-                    {th.label}
+                    {t(th.labelKey)}
                     {theme === th.id && <span className="ml-auto text-primary">✓</span>}
                   </DropdownMenuItem>
                 ))}
@@ -327,12 +336,46 @@ export function Header() {
                 );
               })}
               <div className="flex items-center gap-2 px-4 pt-2 border-t border-border mt-2">
-                <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </Button>
+                {/* El mismo selector que en escritorio, no un interruptor.
+                    Antes esto sólo alternaba claro/oscuro, así que desde el
+                    móvil los cuatro temas premium eran inalcanzables: existían,
+                    se pagaban y no había forma de llegar a ellos. */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" data-testid="mobile-theme-toggle">
+                      {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={() => setTheme('light')}>
+                      <Sun className="w-4 h-4 mr-2" /> {t('lightMode')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme('dark')}>
+                      <Moon className="w-4 h-4 mr-2" /> {t('darkMode')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme('system')}>
+                      <Globe className="w-4 h-4 mr-2" /> {t('systemMode')}
+                    </DropdownMenuItem>
+                    <div className="my-1 h-px bg-border" />
+                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {t('premiumThemes')}
+                    </div>
+                    {PREMIUM_THEMES.map((th) => (
+                      <DropdownMenuItem
+                        key={th.id}
+                        onClick={() => setTheme(th.id)}
+                        data-testid={`mobile-theme-${th.id}`}
+                      >
+                        <span className="w-4 h-4 mr-2 rounded-full border border-white/20 shrink-0" style={{ background: th.sw }} />
+                        {t(th.labelKey)}
+                        {theme === th.id && <span className="ml-auto text-primary">✓</span>}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" data-testid="mobile-language-toggle">
                       <Globe className="w-5 h-5" />
                     </Button>
                   </DropdownMenuTrigger>

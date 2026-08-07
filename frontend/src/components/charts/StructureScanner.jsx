@@ -48,7 +48,7 @@ const StructureScanner = () => {
   const {
     ladder, periods, tfInterval, activePeriod,
     loading, data, candles, log,
-    scan, changeInterval, changePeriod, clearLog,
+    scan, changeInterval, changePeriod, clearLog, lastScanAt,
   } = useStructureScan(yahoo);
 
   const counts = data?.counts || {};
@@ -105,6 +105,7 @@ const StructureScanner = () => {
             ladder={ladder}
             periods={periods}
             tfInterval={tfInterval}
+            lastScanAt={lastScanAt}
             activePeriod={activePeriod}
             loading={loading}
             disabled={!yahoo}

@@ -91,7 +91,7 @@ function AuthShell({ children }) {
   const trust = [
     { icon: Shield, label: tr('authTrustEncrypted', 'Cifrado de extremo a extremo') },
     { icon: Zap,    label: tr('authTrustNoCard',    'Empieza gratis, sin tarjeta') },
-    { icon: Globe,  label: tr('authTrustLangs',     '8 idiomas') },
+    { icon: Globe,  label: tr('authTrustLangs',     '10 idiomas') },
   ];
   return (
     <div className="min-h-screen flex bg-background">

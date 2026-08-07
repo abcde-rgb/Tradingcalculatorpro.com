@@ -391,6 +391,34 @@ async function checkInstruments() {
     I.resolveSpec('spot', 'AAPL').contractSize === 1);
 }
 
+async function checkScannerMeta() {
+  console.log('\nscannerMeta.js  (ritmo de refresco del escáner)');
+  const M = await imp('components/charts/structure/scannerMeta.js');
+
+  // El escalón del escáner NO publica los minutos de la vela, así que leerlos
+  // de ahí caía siempre al valor por defecto y un gráfico de 5 minutos se
+  // refrescaba al ritmo de uno diario. Se derivan de la etiqueta.
+  ok('5m son 5 minutos', M.intervalMinutes('5m') === 5);
+  ok('1h son 60', M.intervalMinutes('1h') === 60);
+  ok('4h son 240', M.intervalMinutes('4h') === 240);
+  ok('1d son 1440', M.intervalMinutes('1d') === 1440);
+  ok('1wk son 10080', M.intervalMinutes('1wk') === 10080);
+  ok('1mo son 43200', M.intervalMinutes('1mo') === 43200);
+  ok('lo que no se reconoce vale null, no un numero inventado',
+    M.intervalMinutes('zzz') === null && M.intervalMinutes('') === null
+    && M.intervalMinutes(undefined) === null);
+
+  // El ritmo que sale de ahi: un tercio de la vela, con suelo de 1 min y techo
+  // de 15. Es la formula de useStructureScan, comprobada aqui porque es la que
+  // decide cuanta cuota se gasta contra el proveedor.
+  const rate = (iv) => Math.min(15 * 60 * 1000,
+    Math.max(60 * 1000, ((M.intervalMinutes(iv) || 1440) * 60 * 1000) / 3));
+  ok('en 5m se refresca cada 100 s (un tercio de la vela)', rate('5m') === 100 * 1000);
+  ok('el suelo de 1 min protege a la vela mas corta', rate('1m') === 60 * 1000);
+  ok('en 1h se refresca a los 20 min -> topado a 15', rate('1h') === 15 * 60 * 1000);
+  ok('en diario tambien topa en 15 min', rate('1d') === 15 * 60 * 1000);
+}
+
 async function checkOptionsEngine() {
   console.log('\nblackScholes.js');
   const bs = await imp('utils/blackScholes.js');
@@ -727,6 +755,7 @@ async function checkProjection() {
   await checkTradingSystemModel();
   await checkProjection();
   await checkInstruments();
+  await checkScannerMeta();
   await checkOptionsEngine();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
 import { loadLogFor, mergeLogFor, clearLogFor, purgeLegacyLogs } from '@/lib/structureLog';
-import { FALLBACK_LADDER, INTERVAL_KEY, PERIOD_KEY, loadStored, store } from './scannerMeta';
+import { FALLBACK_LADDER, INTERVAL_KEY, PERIOD_KEY, intervalMinutes, loadStored, store } from './scannerMeta';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -25,6 +25,10 @@ export default function useStructureScan(symbol) {
   const [data, setData] = useState(null);
   const [candles, setCandles] = useState([]);    // reversal/continuation candle signals
   const [log, setLog] = useState([]);            // persisted registro for current asset
+  // Cuándo se trajeron estos datos. Sin esto la pantalla no puede decir de
+  // cuándo es lo que enseña, y una lectura vieja es indistinguible de una recién
+  // hecha — que es justo lo que hacía que el panel pareciera colgado.
+  const [lastScanAt, setLastScanAt] = useState(null);
   const reqId = useRef(0);
 
   const rung = ladder.find((r) => r.interval === tfInterval)
@@ -92,6 +96,7 @@ export default function useStructureScan(symbol) {
         return;
       }
       setData(structJson);
+      setLastScanAt(Date.now());
 
       // Candle signals that carry a directional message: reversal / continuation.
       const dets = Array.isArray(patternJson?.detections) ? patternJson.detections : [];
@@ -129,6 +134,42 @@ export default function useStructureScan(symbol) {
   // Auto-scan whenever the chart's asset, candle size or window changes.
   useEffect(() => { scan(); }, [scan]);
 
+  /**
+   * Y además, refrescar solo. Hasta ahora el escáner sólo volvía a pedir datos
+   * si cambiabas de activo, de vela o de ventana: abierto y quieto, la lectura
+   * se quedaba congelada en el momento en que se abrió, con un precio que podía
+   * tener horas. Parecía colgado porque, de hecho, lo estaba.
+   *
+   * Dos disparadores, los dos baratos:
+   *  · **Volver a la pestaña.** Es cuando el usuario mira, y es el momento en
+   *    que un dato viejo molesta.
+   *  · **Un temporizador atado al tamaño de la vela.** Refrescar un gráfico
+   *    diario cada treinta segundos no aporta nada y castiga al proveedor: lo
+   *    que puede cambiar es como mucho una vela, así que se refresca a un
+   *    tercio de su duración, con un suelo de un minuto y un techo de quince.
+   *
+   * Nunca mientras la pestaña está oculta: un escáner en una pestaña de fondo
+   * no lo mira nadie y sí gasta cuota.
+   */
+  const refreshMs = Math.min(
+    15 * 60 * 1000,
+    Math.max(60 * 1000, ((intervalMinutes(tfInterval) || 1440) * 60 * 1000) / 3),
+  );
+
+  useEffect(() => {
+    if (!API || !symbol) return undefined;
+    const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+    const tick = () => { if (!hidden()) scan(); };
+    const onVisible = () => { if (!hidden()) scan(); };
+
+    const id = setInterval(tick, refreshMs);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(id);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [scan, refreshMs, symbol]);
+
   const clearLog = useCallback(() => {
     clearLogFor(symbol, tfInterval);
     setLog([]);
@@ -136,7 +177,7 @@ export default function useStructureScan(symbol) {
 
   return {
     ladder, rung, periods, tfInterval, activePeriod,
-    loading, data, candles, log,
+    loading, data, candles, log, lastScanAt, refreshMs,
     scan, changeInterval, changePeriod, clearLog,
   };
 }
