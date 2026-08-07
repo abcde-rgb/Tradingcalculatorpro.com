@@ -99,3 +99,32 @@ export async function getNotifyChannels() {
   const { data } = await client.get('/alerts/channels');
   return data;
 }
+
+/**
+ * ¿El backend que hay delante conoce el catálogo de productos?
+ *
+ * El frontend se publica solo al mergear a `main`; el backend se despliega a
+ * mano. Esa asimetría hace que, durante un rato, el navegador vaya por delante
+ * del servidor — y un formulario que ofrece CFD contra un backend que sólo
+ * acepta `spot` y `option` no degrada: da 422 y el usuario no puede guardar
+ * nada.
+ *
+ * `GET /performance/instruments` existe **sólo** en la versión que entiende los
+ * productos, así que sirve de sonda: es pública, no toca la base de datos y se
+ * pregunta una vez por sesión.
+ *
+ * Sólo un 404/405 —el servidor contesta, pero esa ruta no existe— se interpreta
+ * como "backend anterior". Un fallo de red o un 5xx devuelven `null`: no se sabe,
+ * y ante la duda se ofrece todo. Recortar la aplicación por un corte de red
+ * sería peor que el problema que esto evita.
+ */
+let _instrumentsSupport = null;   // Promise<boolean|null>, memoizada por sesión
+
+export function backendSupportsProducts() {
+  if (!_instrumentsSupport) {
+    _instrumentsSupport = client.get('/performance/instruments')
+      .then(() => true)
+      .catch((err) => ([404, 405].includes(err?.response?.status) ? false : null));
+  }
+  return _instrumentsSupport;
+}

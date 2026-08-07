@@ -41,6 +41,41 @@ export const SELECTABLE_PRODUCTS = [
   'stock', 'cfd', 'futures', 'forex', 'crypto_spot', 'crypto_perp', 'option',
 ];
 
+/**
+ * Los únicos productos que acepta un backend anterior al catálogo.
+ *
+ * No es una lista de conveniencia: es literalmente lo que valida el modelo de
+ * aquella versión (`^(spot|option)$`). Cualquier otro valor le llega y responde
+ * 422.
+ */
+export const LEGACY_BACKEND_PRODUCTS = ['spot', 'option'];
+
+/**
+ * Qué productos se pueden ofrecer contra el backend que haya delante.
+ *
+ * Este proyecto despliega las dos mitades por caminos distintos: el frontend
+ * sale solo al mergear y el backend hay que lanzarlo a mano. O sea que la
+ * ventana en la que el navegador va por delante del servidor no es un accidente
+ * raro, **es el estado normal durante un rato** — y hasta ahora la interfaz no
+ * lo sabía: ofrecía siete productos y el servidor rechazaba cinco.
+ *
+ * `capable` es tri-estado a propósito:
+ *   · `true`  → el backend publica el catálogo: todo disponible.
+ *   · `false` → respondió que esa ruta no existe: es una versión anterior, así
+ *               que se ofrece sólo lo que sabe guardar.
+ *   · `null`  → todavía no se sabe (o la comprobación falló por red). Se ofrece
+ *               todo: un corte de red no es motivo para recortar la aplicación,
+ *               y si acaba fallando el guardado, el mensaje lo explica.
+ */
+export function selectableProducts(capable) {
+  return capable === false ? LEGACY_BACKEND_PRODUCTS : SELECTABLE_PRODUCTS;
+}
+
+/** El producto por defecto del formulario, según lo que acepte el backend. */
+export function defaultProductFor(capable) {
+  return capable === false ? 'spot' : 'stock';
+}
+
 const num = (v) => {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);

@@ -3879,4 +3879,5 @@ export default {
   "errStopBehindLiquidation": "止损在强平价之后",
   "insightCostsEatProfit": "⚠️ 成本吃掉了毛利的 {value}%（{amount}）。超过这个比例，问题就不再是策略，而是每笔的费用或持仓时间。",
   "insightOverExposure": "🚨 有 {count} 笔交易的持仓价值超过账户的 {threshold}×（峰值 {value}×）。止损管不住这个：跳空或插针能跳过止损，却跳不过仓位规模。",
+  "tfProductsRestricted": "服务器还不认识新产品，所以目前只能记录现货和期权交易。这是部署问题，与你的数据无关：后端更新后，差价合约、期货、外汇和加密会自动出现。",
 }
