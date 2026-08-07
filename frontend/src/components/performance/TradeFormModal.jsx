@@ -1,18 +1,18 @@
-import React, { useMemo, useState } from 'react';
-import { X, Save, Plus, AlertCircle, Gauge, Target, NotebookPen } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X, Save, Plus, AlertCircle, Gauge, Target, NotebookPen, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import SectionCard, { SectionHeading } from '@/components/options/SectionCard';
 import { useTranslation } from '@/lib/i18n';
-import { createTrade, updateTrade } from '@/services/performanceApi';
+import { createTrade, updateTrade, backendSupportsProducts } from '@/services/performanceApi';
 import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
 import {
   loadSystem, tradeSetups, addSetup, setupRulesFor,
   SETUP_SEPARATOR, MAX_SETUPS_PER_TRADE,
 } from '@/lib/tradingSystem';
 import {
-  SELECTABLE_PRODUCTS, FOREX_LOT_TYPES, MIN_RR_FLOOR,
+  FOREX_LOT_TYPES, MIN_RR_FLOOR, selectableProducts, defaultProductFor,
   resolveSpec, contractSizeFor, unitToDistance, levelFromDistance,
   positionMetrics, fundingCost, swapCost, suggestedLeverage, sizingLabelKey,
 } from '@/lib/instruments';
@@ -114,6 +114,32 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
     const v = e?.target ? e.target.value : e;
     setForm((p) => ({ ...p, [k]: v }));
   };
+
+  // ── Qué productos sabe guardar el backend que hay delante ─────────
+  // El frontend se publica solo al mergear y el backend se sube a mano, así que
+  // hay una ventana en la que el navegador va por delante del servidor. Ofrecer
+  // ahí un CFD no degrada: el servidor responde 422 y no se guarda nada. Se
+  // pregunta una vez y, si el backend es anterior, el selector se queda con lo
+  // que sí sabe registrar y se dice por qué.
+  const [backendProducts, setBackendProducts] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    backendSupportsProducts().then((ok) => { if (alive) setBackendProducts(ok); });
+    return () => { alive = false; };
+  }, []);
+
+  const products = selectableProducts(backendProducts);
+  const restricted = backendProducts === false;
+
+  // Si el producto elegido no lo acepta este backend, se cae al equivalente que
+  // sí: `spot` se comporta exactamente igual que antes (×1, sin apalancamiento).
+  // Al editar una operación vieja no se toca nada — ya está guardada.
+  useEffect(() => {
+    if (!restricted || isEdit) return;
+    setForm((p) => (products.includes(p.instrument_type)
+      ? p
+      : { ...p, instrument_type: defaultProductFor(false), leverage: '' }));
+  }, [restricted, isEdit]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const mySetups = useMemo(
     () => loadSystem().setups.map((s) => s.name).filter(Boolean),
@@ -308,7 +334,19 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
       onSaved?.(saved);
       onClose?.();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || t('tradeSaveError'));
+      // Un 422 sobre `instrument_type` sólo puede significar una cosa: el
+      // backend desplegado es anterior a los productos. El detalle de Pydantic
+      // ("string does not match regex") no le dice nada a nadie; esto sí.
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail;
+      const isProductRejection = status === 422
+        && JSON.stringify(detail || '').includes('instrument_type');
+      if (isProductRejection) {
+        setBackendProducts(false);
+        toast.error(t('tfProductsRestricted'));
+      } else {
+        toast.error(typeof detail === 'string' ? detail : t('tradeSaveError'));
+      }
     } finally {
       setSaving(false);
     }
@@ -337,7 +375,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
           <div>
             <SectionHeading step={1} title={t('tfProduct')} hint={t('tfProductHint')} />
             <div className="flex flex-wrap gap-1.5" data-testid="trade-product-picker">
-              {SELECTABLE_PRODUCTS.map((id) => {
+              {products.map((id) => {
                 const meta = PRODUCT_META[id];
                 const Ic = meta.icon;
                 const active = product === id;
@@ -360,6 +398,17 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               })}
             </div>
             <InstrumentCard spec={spec} contractSize={contractSize} t={t} />
+            {/* Decirlo es la mitad del arreglo: sin este aviso, el usuario ve
+                menos productos de los que la web anuncia y no sabe por qué. */}
+            {restricted && (
+              <p
+                className="mt-2 flex items-start gap-1.5 text-[11px] text-[#f59e0b] leading-relaxed"
+                data-testid="trade-products-restricted"
+              >
+                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                {t('tfProductsRestricted')}
+              </p>
+            )}
           </div>
 
           {/* ── 2 · La posición ──────────────────────────────────────── */}

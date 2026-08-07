@@ -6,6 +6,42 @@
 
 ---
 
+## 0. Orden: **el backend PRIMERO, siempre** 🔴
+
+Las dos mitades se despliegan por caminos distintos y a velocidades distintas: el
+frontend sale solo en cuanto se toca `frontend/**` en `main`, y el backend **no sale
+nunca solo** — hay que lanzar `cloudbuild.yaml` a mano. Esa asimetría hace que el
+orden por defecto sea justo el peligroso.
+
+Un frontend por delante de su backend **no degrada, rompe**. El caso real: el diario
+multiproducto (2026-08-06) manda `instrument_type` con siete valores nuevos; el
+backend anterior los valida contra `^(spot|option)$` y responde **422 a todo**,
+incluido el valor por defecto del formulario. No se pierde nada y se arregla
+desplegando el backend, pero mientras tanto el usuario no puede guardar ni una
+operación.
+
+```bash
+# 1) Backend (desde la raíz del repo, con el proyecto de GCP activo)
+gcloud builds submit --config=cloudbuild.yaml .
+
+# 2) Comprobar que respondió ANTES de tocar el frontend
+gcloud run services describe tradingcalculator-api --region=europe-west1 \
+  --format='value(status.url)'
+curl -fsS "$(gcloud run services describe tradingcalculator-api \
+  --region=europe-west1 --format='value(status.url)')/api/health"
+
+# 3) Frontend: sale solo al mergear a `main`. Si el workflow no se disparó,
+#    Actions → «Build & Deploy to GitHub Pages» → Run workflow (tiene
+#    workflow_dispatch). Un merge que no dispara nada NO es un despliegue.
+```
+
+⚠️ **Comprueba siempre que el merge disparó el workflow.** El 2026-08-06 el merge del
+PR #177 tocó 23 archivos de `frontend/**` y no generó ninguna ejecución: el sitio se
+quedó en la versión anterior sin que nada avisara, porque la ausencia de un run no
+produce ningún error en ninguna pantalla.
+
+---
+
 ## A. Secretos de GitHub Actions (frontend → GitHub Pages)
 
 Repo → Settings → Secrets and variables → Actions. Los usa `deploy-gh-pages.yml`:

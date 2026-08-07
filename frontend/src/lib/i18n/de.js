@@ -3879,4 +3879,5 @@ export default {
   "errStopBehindLiquidation": "Stop hinter der Liquidation",
   "insightCostsEatProfit": "⚠️ Die Kosten fressen {value}% deines Bruttogewinns ({amount}). Ab da ist nicht mehr die Strategie das Problem, sondern was du pro Trade zahlst — oder wie lange du hältst.",
   "insightOverExposure": "🚨 {count} Trades, bei denen die Position mehr als {threshold}× dein Konto wert war (Spitze: {value}×). Das steuert kein Stop: ein Gap oder ein Docht überspringt den Stop, nie die Größe.",
+  "tfProductsRestricted": "Der Server kennt die neuen Produkte noch nicht, daher lassen sich vorerst nur Spot- und Optionstrades erfassen. Das ist eine Frage des Deployments, nicht deiner Daten: sobald das Backend aktualisiert ist, erscheinen CFDs, Futures, Forex und Krypto von selbst.",
 }

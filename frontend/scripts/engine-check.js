@@ -375,6 +375,20 @@ async function checkInstruments() {
     I.suggestedLeverage(I.resolveSpec('futures', 'MES'), 25000) === 19);
   ok('al contado no se sugiere ninguno',
     I.suggestedLeverage(I.resolveSpec('crypto_spot', 'BTC'), 1000) === null);
+
+  // ── Ventana de despliegue: el frontend por delante del backend ──
+  // El frontend se publica solo al mergear y el backend se sube a mano, así que
+  // este desfase es el estado normal durante un rato, no una rareza.
+  ok('contra un backend anterior sólo se ofrece lo que sabe guardar',
+    JSON.stringify(I.selectableProducts(false)) === JSON.stringify(['spot', 'option']));
+  ok('con el backend al día se ofrece todo',
+    I.selectableProducts(true).length === I.SELECTABLE_PRODUCTS.length);
+  ok('sin saberlo todavía NO se recorta la aplicación',
+    I.selectableProducts(null).length === I.SELECTABLE_PRODUCTS.length);
+  ok('el producto por defecto cae a spot contra un backend anterior',
+    I.defaultProductFor(false) === 'spot' && I.defaultProductFor(true) === 'stock');
+  ok('spot sigue existiendo y sigue valiendo x1 sin apalancamiento',
+    I.resolveSpec('spot', 'AAPL').contractSize === 1);
 }
 
 async function checkOptionsEngine() {

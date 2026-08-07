@@ -3613,3 +3613,61 @@ ESLint **0 errores** · `i18n-check` **5979 claves × 10 idiomas** (+162) ·
 - **Márgenes reales del bróker.** Los del catálogo son de referencia y editables; el
   precio de liquidación es una estimación de margen aislado y se publica etiquetada
   como tal, con sus supuestos al lado.
+
+---
+
+## 2026-08-07 — La interfaz aprende que el backend puede ir por detrás
+
+El PR #177 se mergeó a `main` y **no se publicó**: el push no disparó
+`deploy-gh-pages.yml` (workflow activo, cero ejecuciones para `61a8fa2`), así que
+`gh-pages` se quedó en `deploy: 578a220a` y la web siguió sirviendo el build
+anterior. Verificado sobre la rama publicada, no sobre suposiciones: los textos del
+PR #176 sí están en el bundle vivo y los del #177 no.
+
+Al ir a publicarlo apareció el problema real, que no era el workflow:
+
+> El frontend se publica **solo** al mergear; el backend se sube **a mano**. Esa
+> asimetría no es un accidente: es la forma permanente del proyecto desde que se
+> retiró el workflow de backend (2026-08-03). O sea que la ventana en la que el
+> navegador va por delante del servidor es **el estado normal durante un rato**.
+
+Y en esa ventana el diario multiproducto no degradaba: **rompía**. El backend
+anterior valida `instrument_type` contra `^(spot|option)$`, así que los cinco
+productos nuevos —y el valor por defecto del formulario, `stock`— recibían un 422.
+Publicar el frontend habría dejado el diario sin poder guardar ni una operación.
+
+### Lo que se ha hecho
+
+La interfaz ahora **pregunta** en vez de suponer. `GET /performance/instruments`
+existe sólo en la versión que entiende los productos, así que sirve de sonda: es
+pública, no toca la base de datos y se consulta una vez por sesión.
+
+- **404/405** (el servidor contesta pero no conoce la ruta) → backend anterior: el
+  selector se queda en spot y opciones, y una línea explica por qué. Decirlo es la
+  mitad del arreglo: sin el aviso, el usuario ve menos productos de los que la web
+  anuncia y no sabe si es un fallo suyo.
+- **Fallo de red o 5xx** → `null`, y se ofrece todo. Recortar la aplicación por un
+  corte de red sería peor que el problema que esto evita.
+- **Además, la red de seguridad**: si aun así llega un 422 sobre `instrument_type`,
+  se traduce al mismo mensaje y el selector se ajusta solo. El detalle de Pydantic
+  («string does not match regex») no le dice nada a nadie.
+
+Con esto, **el orden de despliegue deja de importar**: se puede publicar el
+frontend antes que el backend y lo peor que pasa es que durante un rato se opera
+con menos productos, diciéndolo. El backend sigue teniendo que subirse a mano
+(`gcloud builds submit --config=cloudbuild.yaml .`), pero ya no es un requisito
+previo para publicar.
+
+### Verificado
+
+`pytest` **679 passed / 74 skipped** · ESLint **0 errores** · `i18n-check` **5980
+claves × 10 idiomas** (+1) · `engine-check` **176/176** (+5, incluidos los tres
+estados de la sonda) · catálogo backend↔frontend en paridad · build OK.
+
+### Lo que sigue sin resolverse
+
+**Por qué GitHub no disparó el workflow** en ese merge. Los cinco workflows figuran
+como `active` y `CI (Pull Request)` sí corrió sobre la rama. Queda anotado en el
+`DEPLOY_CHECKLIST.md` §0: después de mergear, **comprobar que hay ejecución**, porque
+un merge que no dispara nada no produce error en ninguna pantalla y se confunde con
+un despliegue que sí ocurrió.

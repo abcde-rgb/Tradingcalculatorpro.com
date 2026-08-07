@@ -3879,4 +3879,5 @@ export default {
   "errStopBehindLiquidation": "Stop atrás da liquidação",
   "insightCostsEatProfit": "⚠️ Os custos levam {value}% do teu lucro bruto ({amount}). A partir daí o problema deixa de ser a estratégia e passa a ser o que pagas por operação, ou quanto demoras a fechar.",
   "insightOverExposure": "🚨 {count} operações com a posição a valer mais de {threshold}× a tua conta (máximo: {value}×). Isso não o controla o stop: um gap ou um pavio salta o stop e nunca salta o tamanho.",
+  "tfProductsRestricted": "O servidor ainda não conhece os produtos novos, por isso de momento só se podem registar operações de spot e de opções. É uma questão de deploy, não dos teus dados: assim que o backend for atualizado, aparecem CFD, futuros, forex e cripto sem teres de fazer nada.",
 }
