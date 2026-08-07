@@ -3884,4 +3884,8 @@ export default {
   "structPriceForming": "شمعة قيد التكوّن",
   "structScannedJustNow": "قُرئ قبل أقل من دقيقة",
   "structScannedAgo": "قُرئ قبل {n} دقيقة",
+  "analyticsScope": "محسوب على",
+  "analyticsScopeAll": "الكل",
+  "analyticsMixedAccounts": "يبدو أن هذه الصفقات تأتي من أكثر من حساب.",
+  "analyticsMixedAccountsFix": "منحنى رأس المال والتراجع ونسبة العائد تُبنى على حساب واحد، وهي الآن تجمع أرصدة مختلفة. أما R ونسبة النجاح والتفصيل حسب المنتج فتبقى صحيحة. صفِّ حسب المنتج بالأعلى للحصول على منحنى ذي معنى.",
 }

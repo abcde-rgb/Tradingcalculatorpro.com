@@ -3884,4 +3884,8 @@ export default {
   "structPriceForming": "Vela en curso",
   "structScannedJustNow": "leído hace menos de un minuto",
   "structScannedAgo": "leído hace {n} min",
+  "analyticsScope": "Calculado sobre",
+  "analyticsScopeAll": "Todo",
+  "analyticsMixedAccounts": "Parece que estas operaciones vienen de más de una cuenta.",
+  "analyticsMixedAccountsFix": "La curva, el drawdown y el % de rentabilidad se construyen sobre una sola cuenta, así que ahora mismo están sumando saldos distintos. El R, el acierto y el desglose por producto sí son válidos. Filtra por producto arriba para ver una curva que signifique algo.",
 }

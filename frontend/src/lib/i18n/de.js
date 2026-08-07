@@ -3884,4 +3884,8 @@ export default {
   "structPriceForming": "Laufende Kerze",
   "structScannedJustNow": "vor weniger als einer Minute gelesen",
   "structScannedAgo": "vor {n} Min gelesen",
+  "analyticsScope": "Berechnet über",
+  "analyticsScopeAll": "Alles",
+  "analyticsMixedAccounts": "Diese Trades scheinen aus mehr als einem Konto zu stammen.",
+  "analyticsMixedAccountsFix": "Equity-Kurve, Drawdown und Prozentrendite basieren auf einem einzigen Konto und addieren gerade verschiedene Salden. R, Trefferquote und die Aufschlüsselung je Produkt bleiben gültig. Filtere oben nach Produkt für eine aussagekräftige Kurve.",
 }

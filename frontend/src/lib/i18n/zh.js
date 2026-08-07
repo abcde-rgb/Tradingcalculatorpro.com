@@ -3884,4 +3884,8 @@ export default {
   "structPriceForming": "当前K线",
   "structScannedJustNow": "读取于不到一分钟前",
   "structScannedAgo": "读取于 {n} 分钟前",
+  "analyticsScope": "统计范围",
+  "analyticsScopeAll": "全部",
+  "analyticsMixedAccounts": "这些交易看起来来自不止一个账户。",
+  "analyticsMixedAccountsFix": "资金曲线、回撤和收益率都基于单一账户，现在它们把不同的余额加在了一起。R、胜率和按产品的拆分仍然有效。请在上方按产品筛选，才能得到有意义的曲线。",
 }

@@ -3671,3 +3671,69 @@ como `active` y `CI (Pull Request)` sí corrió sobre la rama. Queda anotado en 
 `DEPLOY_CHECKLIST.md` §0: después de mergear, **comprobar que hay ejecución**, porque
 un merge que no dispara nada no produce error en ninguna pantalla y se confunde con
 un despliegue que sí ocurrió.
+
+---
+
+## 2026-08-07 — Las opciones y el resto de productos acababan en el mismo sitio
+
+### El problema
+
+Con el diario ya multiproducto, `/performance` → Analytics seguía siendo **un solo
+panel para todo**. Eso deja tres cifras mintiendo a la vez:
+
+- **la curva de capital** arranca del saldo de la operación más antigua y le va
+  sumando P&L de productos que pueden estar en **cuentas distintas** — una de
+  fondeo de 50 000 para futuros y la personal de 10 000 para CFD dan una curva
+  que no es la de ninguna de las dos;
+- **el max drawdown** hereda el mismo defecto, y encima no es simétrico: no se
+  puede "descontar" después;
+- **el % de rentabilidad** divide por un saldo inicial que ya no significa nada.
+
+Y la pregunta que un trader hace de verdad —«¿tengo ventaja en opciones o me la
+están dando los futuros?»— no se podía responder: el desglose `by_product` daba
+P&L y acierto por producto, pero no una **curva ni un drawdown** por producto.
+
+### Lo que se ha hecho
+
+**1 · El filtro se calcula en el backend, no se recorta en el navegador.**
+`GET /performance/analytics?product=<id>` filtra **antes** de calcular y antes del
+techo de `ANALYTICS_MAX_TRADES`. La curva, el drawdown y el Sharpe no se pueden
+reconstruir desde un resultado ya agregado: hay que volver a construirlos desde las
+operaciones de ese producto. Filtrar después del techo, además, dejaría un producto
+minoritario calculado sobre las migajas de una ventana llena de otro — y diciendo
+que no hay truncado. La respuesta publica `product_filter`: un panel filtrado sin
+decirlo es indistinguible de uno completo con muy pocas operaciones.
+
+**2 · El selector no se dibuja con el desglose filtrado.** `products_available` se
+calcula sobre el historial completo, con el mismo criterio de «cerrada» que usa la
+analítica (`is_closed_trade`, sacado a función porque estaba escrito tres veces como
+literal). Construirlo sobre `by_product` —que sí va filtrado— dejaba **un solo botón**
+en cuanto elegías un producto: sin forma de volver al conjunto. La barra va también
+en el estado vacío, porque se puede llegar a él con un filtro puesto.
+
+**3 · Cuando hay más de una cuenta, se dice.** `detect_mixed_accounts` compara la
+**mediana** del `account_balance` por producto (mediana, no media: un saldo mal
+tecleado no decide) y marca `suspected` con un cociente ≥ 2. El aviso lista el saldo
+por producto y separa lo que sigue siendo válido —R, acierto, desglose— de lo que no.
+Es una **sospecha**, no una afirmación: el diario no sabe cuántas cuentas hay, sabe
+que los saldos no cuadran.
+
+### Verificado
+
+`pytest` **689 passed / 74 skipped** (+10) · ESLint **0 errores** · `i18n-check`
+**5988 claves × 10 idiomas** (+8) · `engine-check` **187/187** · catálogo
+backend↔frontend en paridad · enlaces de doc OK · build OK.
+
+E2E con Postgres + backend vivos y el **build de producción real** servido bajo
+`/Tradingcalculatorpro.com`: **16/16 en escritorio (1440×900) y 16/16 en móvil
+(390×844)**, comprobando que el filtro dispara una llamada nueva con `product=` en
+la query, que las cifras cambian (3 471,86 → 1 496,50 en futuros → 544,80 en
+opciones), que la suma de los P&L por producto es exactamente el total, que el aviso
+desaparece al filtrar y vuelve al quitar el filtro, y que nada desborda.
+
+### Sigue pendiente
+
+Los **cuatro módulos sin interfaz** (G-14): `trading_plan.py`, `backtest.py`,
+`portfolio_risk.py` y `american_options.py`. `portfolio_risk.py` es el que más pega
+con esto: mide el riesgo abierto a nivel de cuenta, que es justo lo que el aviso de
+cuentas mezcladas deja a medias.

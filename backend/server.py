@@ -59,6 +59,7 @@ from performance import (
     detect_errors,
     compute_analytics,
     generate_insights,
+    is_closed_trade,
     trades_for_user,
     make_trade_doc,
     normalize_setups,
@@ -67,7 +68,12 @@ from performance import (
     legacy_keys_to_unset,
     SETUP_SEPARATOR,
 )
-from instruments import catalog as instruments_catalog, resolve_levels, resolve_spec
+from instruments import (
+    DEFAULT_PRODUCT,
+    catalog as instruments_catalog,
+    resolve_levels,
+    resolve_spec,
+)
 from notifications import CHANNELS as NOTIFY_CHANNELS, channel_status, normalize_phone
 from trading_plan import (
     activate_plan,
@@ -7016,11 +7022,43 @@ async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
 
 
 @api_router.get("/performance/analytics")
-async def performance_analytics(user: dict = Depends(require_premium)):
+async def performance_analytics(
+    user: dict = Depends(require_premium),
+    product: Optional[str] = Query(
+        None, pattern="^(spot|stock|crypto_spot|crypto_perp|futures|cfd|forex|option)$"),
+):
+    """La analítica del diario, entera o de un solo producto.
+
+    `product` filtra ANTES de calcular, no después: con él, la curva de equity
+    arranca del saldo de la operación más antigua **de ese producto** y el
+    drawdown mide sólo esa serie. Es la única forma de responder "¿tengo ventaja
+    en opciones?", porque sin filtro el panel mezcla productos que pueden vivir
+    en cuentas distintas y el que se opera más grande domina cada cifra.
+
+    `products_available` es la lista de productos con los que dibujar el
+    selector, y se calcula ANTES de filtrar. `by_product`, en cambio, se calcula
+    después: con filtro sólo trae el producto elegido. Construir el selector
+    sobre él dejaría un único botón en cuanto se filtra, sin forma de volver al
+    conjunto — que es exactamente el callejón sin salida que esto evita.
+    """
     # Ask for one row beyond the ceiling: that extra row is how we tell "exactly
     # at the limit" from "there is more history than we are showing". Without it
     # a user with precisely ANALYTICS_MAX_TRADES trades gets a false warning.
     rows = await trades_for_user(db, user["id"], limit=ANALYTICS_MAX_TRADES + 1)
+    # Los productos que el selector puede ofrecer, leídos del historial COMPLETO
+    # y con el mismo criterio de "cerrada" que usa la analítica (`is_closed_trade`):
+    # un producto sin nada cerrado no tiene panel que enseñar, y ofrecerlo sería
+    # un botón que lleva al estado vacío.
+    products_available = sorted({
+        (r.get("instrument_type") or DEFAULT_PRODUCT)
+        for r in rows if is_closed_trade(r)
+    })
+    # El filtro se aplica ANTES del techo: filtrar después dejaría el panel de
+    # un producto minoritario calculado sobre las migajas de una ventana llena
+    # de otro, y encima diría que no hay truncado.
+    if product:
+        rows = [r for r in rows
+                if (r.get("instrument_type") or DEFAULT_PRODUCT) == product]
     truncated = len(rows) > ANALYTICS_MAX_TRADES
     if truncated:
         # trades_for_user sorts by entry_date desc, so the rows kept are the most
@@ -7055,6 +7093,12 @@ async def performance_analytics(user: dict = Depends(require_premium)):
         # whole history — the same class of lie as an unlabelled synthetic chain.
         "truncated": truncated,
         "trades_analyzed": len(enriched),
+        # Qué filtro produjo estas cifras. Sin decirlo, un panel filtrado es
+        # indistinguible de uno completo con muy pocas operaciones.
+        "product_filter": product,
+        # Con qué productos se dibuja el selector. No depende del filtro puesto:
+        # es la única forma de que el botón para volver al conjunto siga ahí.
+        "products_available": products_available,
         "truncation_notice": (
             f"Mostrando las {ANALYTICS_MAX_TRADES} operaciones más recientes. "
             "Tu historial es más largo: las más antiguas no entran en estas "

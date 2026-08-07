@@ -275,16 +275,20 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [periodKey, setPeriodKey] = useState('month');
+  // Producto sobre el que se calcula TODO el panel. `null` = el conjunto.
+  // Va al backend, no filtra aquí: la curva y el drawdown hay que reconstruirlos
+  // desde las operaciones, no se pueden recortar del resultado ya agregado.
+  const [product, setProduct] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetchAnalytics()
+    fetchAnalytics(product)
       .then((d) => { if (!cancelled) setData(d); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, [refreshKey, product]);
 
   if (loading) {
     return <div className="text-center py-12 text-muted-foreground">{t('loading')}…</div>;
@@ -294,24 +298,74 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   const a = data.analytics;
   const insights = data.insights || [];
 
+  // Sobre QUÉ está calculado todo lo de abajo. Va lo primero porque cambia el
+  // significado de cada cifra de la página: sin filtro, la curva y el drawdown
+  // mezclan productos que pueden vivir en cuentas distintas.
+  //
+  // La lista sale de `products_available`, que el backend calcula SIN aplicar el
+  // filtro. Con `by_product` —que sí está filtrado— la barra se quedaba con un
+  // solo botón en cuanto elegías un producto, y ya no había forma de volver al
+  // conjunto. El respaldo a `by_product` es para un backend anterior, que aún no
+  // publica el campo: ahí la barra vale para elegir, no para volver.
+  const productsSeen = data.products_available || (a.by_product || []).map((g) => g.group);
+  const scopeBar = productsSeen.length > 1 && (
+    <div className="flex flex-wrap items-center gap-1.5" data-testid="analytics-product-filter">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mr-1">
+        {t('analyticsScope')}
+      </span>
+      <button
+        type="button"
+        onClick={() => setProduct(null)}
+        className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+          product === null
+            ? 'bg-primary/15 text-primary border-primary/40'
+            : 'border-border text-muted-foreground hover:text-foreground'
+        }`}
+        data-testid="analytics-product-all"
+      >
+        {t('analyticsScopeAll')}
+      </button>
+      {productsSeen.map((id) => (
+        <button
+          type="button"
+          key={id}
+          onClick={() => setProduct(id)}
+          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+            product === id
+              ? 'bg-primary/15 text-primary border-primary/40'
+              : 'border-border text-muted-foreground hover:text-foreground'
+          }`}
+          data-testid={`analytics-product-${id}`}
+        >
+          {t(productLabelKey(id))}
+        </button>
+      ))}
+    </div>
+  );
+
   if (a.closed_trades === 0) {
     return (
-      <div className="text-center py-16 px-4 bg-card border border-dashed border-border rounded-xl"
-        data-testid="analytics-empty">
-        <BarChart3 className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-foreground mb-2">{t('analyticsEmptyTitle')}</h3>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">{t('analyticsNoData')}</p>
-        {onGoToJournal && (
-          <button
-            type="button"
-            onClick={onGoToJournal}
-            data-testid="analytics-empty-cta"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] text-white text-sm font-semibold transition-colors"
-          >
-            <PlusCircle className="w-4 h-4" />
-            {t('addFirstTrade')}
-          </button>
-        )}
+      // La barra va también aquí: se puede llegar al panel vacío CON un filtro
+      // puesto, y sin ella el único camino de vuelta sería recargar la página.
+      <div className="space-y-4" data-testid="analytics-dashboard">
+        {scopeBar}
+        <div className="text-center py-16 px-4 bg-card border border-dashed border-border rounded-xl"
+          data-testid="analytics-empty">
+          <BarChart3 className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-foreground mb-2">{t('analyticsEmptyTitle')}</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">{t('analyticsNoData')}</p>
+          {onGoToJournal && (
+            <button
+              type="button"
+              onClick={onGoToJournal}
+              data-testid="analytics-empty-cta"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] text-white text-sm font-semibold transition-colors"
+            >
+              <PlusCircle className="w-4 h-4" />
+              {t('addFirstTrade')}
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -321,8 +375,34 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   // Escala común a todas las barras del bloque, para que se comparen entre sí.
   const periodMax = Math.max(1, ...periodRows.map((r) => Math.abs(r.pct)));
 
+  const mixed = a.mixed_accounts || {};
+
   return (
     <div className="space-y-6" data-testid="analytics-dashboard">
+
+      {scopeBar}
+
+      {/* La curva de equity, el drawdown y el % de rentabilidad se construyen
+          sobre UNA cuenta. Si los saldos por producto se separan, es que hay
+          varias — y entonces esas tres cifras están sumando cuentas distintas.
+          Se dice y se ofrece el filtro, en vez de dibujar la curva callando. */}
+      {mixed.suspected && product === null && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2.5"
+          data-testid="analytics-mixed-accounts"
+        >
+          <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
+          <div className="text-[11px] text-[#f59e0b] leading-relaxed">
+            <div className="font-semibold">{t('analyticsMixedAccounts')}</div>
+            <div className="mt-0.5 text-[#f59e0b]/85">
+              {Object.entries(mixed.balance_by_product || {})
+                .map(([p, b]) => `${t(productLabelKey(p))}: $${Number(b).toLocaleString('en-US')}`)
+                .join(' · ')}
+            </div>
+            <div className="mt-1 text-[#f59e0b]/85">{t('analyticsMixedAccountsFix')}</div>
+          </div>
+        </div>
+      )}
 
       {/* RENTABILIDAD POR PERIODO — lo primero, porque es la unidad en la que
           se cobra. El win rate solo no significa nada: un 70 % de acierto con

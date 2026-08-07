@@ -3884,4 +3884,8 @@ export default {
   "structPriceForming": "Candela in corso",
   "structScannedJustNow": "letto meno di un minuto fa",
   "structScannedAgo": "letto {n} min fa",
+  "analyticsScope": "Calcolato su",
+  "analyticsScopeAll": "Tutto",
+  "analyticsMixedAccounts": "Sembra che queste operazioni vengano da più di un conto.",
+  "analyticsMixedAccountsFix": "La curva, il drawdown e la % di rendimento si costruiscono su un solo conto, quindi ora stanno sommando saldi diversi. R, percentuale di successo e dettaglio per prodotto restano validi. Filtra per prodotto sopra per una curva che significhi qualcosa.",
 }
