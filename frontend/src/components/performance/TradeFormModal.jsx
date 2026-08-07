@@ -85,30 +85,35 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
   const [setups, setSetups] = useState(() => tradeSetups(initialTrade || {}));
   const [setupDraft, setSetupDraft] = useState('');
 
-  const [form, setForm] = useState(() => initialTrade || {
-    symbol: '',
-    side: 'long',
-    instrument_type: 'stock',
-    entry_price: '',
-    exit_price: '',
-    sl: '', sl_unit: 'price', sl_input: '',
-    tp: '', tp_unit: 'price', tp_input: '',
-    mae_price: '',
-    mfe_price: '',
-    quantity: '',
-    lot_type: 'standard',
-    multiplier: '',
-    leverage: '',
-    account_balance: 10000,
-    fees: 0,
-    status: 'open',
-    emotion: 3,
-    notes: '',
-    option_type: 'call',
-    strike: '',
-    expiry: '',
-    notify: null,
-  });
+  // Al EDITAR, el apalancamiento guardado es del usuario por definición: se
+  // marca como tocado para que cambiar de activo no se lo reescriba.
+  const [form, setForm] = useState(() => (initialTrade
+    ? { ...initialTrade, leverage_touched: true }
+    : {
+      symbol: '',
+      side: 'long',
+      instrument_type: 'stock',
+      entry_price: '',
+      exit_price: '',
+      sl: '', sl_unit: 'price', sl_input: '',
+      tp: '', tp_unit: 'price', tp_input: '',
+      mae_price: '',
+      mfe_price: '',
+      quantity: '',
+      lot_type: 'standard',
+      multiplier: '',
+      leverage: '',
+      leverage_touched: false,
+      account_balance: 10000,
+      fees: 0,
+      status: 'open',
+      emotion: 3,
+      notes: '',
+      option_type: 'call',
+      strike: '',
+      expiry: '',
+      notify: null,
+    }));
 
   const set = (k) => (e) => {
     const v = e?.target ? e.target.value : e;
@@ -178,6 +183,10 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
   // Cambiar de producto rehace lo que el producto decide y NO toca lo que el
   // usuario escribió. Si arrastrara el tamaño de contrato del producto anterior,
   // un CFD de oro pasado a acciones seguiría contando 100 onzas por unidad.
+  //
+  // `leverage_touched` vuelve a false: el apalancamiento que hay ahora lo hemos
+  // puesto nosotros por defecto del producto, así que el activo que se elija
+  // después todavía puede afinarlo.
   const changeProduct = (id) => {
     const next = resolveSpec(id, form.symbol);
     setForm((p) => ({
@@ -186,6 +195,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
       multiplier: '',
       lot_type: id === 'forex' ? (p.lot_type || 'standard') : p.lot_type,
       leverage: next.usesLeverage ? (next.defaultLeverage ?? p.leverage ?? '') : '',
+      leverage_touched: false,
       // Las unidades del producto anterior pueden no existir en el nuevo
       // (pips en futuros, ticks en forex): se vuelve a precio, que siempre vale.
       sl_unit: (next.quoteUnits || []).includes(p.sl_unit) ? p.sl_unit : 'price',
@@ -193,8 +203,14 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
     }));
   };
 
-  // Elegir activo rellena el apalancamiento típico de ESE activo — el CFD del
-  // oro a 20×, el par mayor a 30× — y se puede cambiar a mano acto seguido.
+  // Elegir activo afina el apalancamiento al típico de ESE activo: el CFD del
+  // oro a 20×, el par mayor a 30×, un futuro al que sale de su margen inicial.
+  //
+  // ⚠️ La condición NO puede ser "sólo si está vacío". Elegir el producto ya deja
+  // puesto su valor genérico —10× en CFD—, así que con esa guarda el 20× del oro
+  // no entraba nunca y el margen salía al doble de lo real. Lo que decide es si
+  // el número lo escribió el TRADER: mientras no lo toque, mandan los datos del
+  // instrumento; en cuanto lo toca, manda él y no se lo volvemos a pisar.
   const changeSymbol = (raw) => {
     const symbol = String(raw || '').toUpperCase();
     const next = resolveSpec(product, symbol);
@@ -206,7 +222,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
       return {
         ...p,
         symbol,
-        leverage: (!p.leverage && suggested) ? suggested : p.leverage,
+        leverage: (!p.leverage_touched && suggested) ? suggested : p.leverage,
       };
     });
   };
@@ -474,7 +490,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
                 operación es grande. */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground block min-h-[2.4em] md:min-h-0">
                   {t(sizingLabelKey(spec))} *
                 </Label>
                 <Input type="number" step="any" value={form.quantity}
@@ -496,7 +512,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground block min-h-[2.4em] md:min-h-0">
                   {t('tfContractSize')}
                 </Label>
                 <Input
@@ -513,14 +529,19 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground block min-h-[2.4em] md:min-h-0">
                   {t('tfLeverage')}
                 </Label>
                 {spec.usesLeverage ? (
                   <>
                     <Input
                       type="number" step="any" min="1" value={form.leverage ?? ''}
-                      onChange={set('leverage')} className="mt-1"
+                      // Escribirlo aquí es lo que hace que el catálogo deje de
+                      // proponer: a partir de este momento manda el trader.
+                      onChange={(e) => setForm((p) => ({
+                        ...p, leverage: e.target.value, leverage_touched: true,
+                      }))}
+                      className="mt-1"
                       placeholder={spec.defaultLeverage ? String(spec.defaultLeverage) : '1'}
                       data-testid="trade-leverage"
                     />
@@ -540,7 +561,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground block min-h-[2.4em] md:min-h-0">
                   {t('tradeBalance')}
                 </Label>
                 <Input type="number" step="any" value={form.account_balance}
