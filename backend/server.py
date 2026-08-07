@@ -6975,9 +6975,7 @@ async def performance_portfolio_risk(req: PortfolioRiskQuery,
     enriched = [_enrich_trade(t) for t in sort_trades_chronologically(rows)]
 
     open_positions = [t for t in enriched if (t.get("status") or "open") == "open"]
-    closed = [t for t in enriched
-              if t.get("status") in ("closed", "sl_hit", "tp_hit")
-              and t.get("exit_price") is not None]
+    closed = [t for t in enriched if is_closed_trade(t)]
 
     # Balance: explicit override, else the most recent trade's recorded balance.
     balance = req.accountBalance
