@@ -2792,13 +2792,18 @@ async def get_prices():
                 }
             except Exception as ce:
                 logging.warning(f"Commodity {label} ({sym}) fetch error: {ce}")
-        # Static fallback only if yfinance returned nothing
-        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
-        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
+        # Una materia prima que no se ha podido leer se OMITE, igual que una
+        # moneda ilegible veinte líneas más arriba. Aquí había un respaldo fijo
+        # —oro a 2 680 $, plata a 31,50 $, y una variación de +0,5 % / +0,8 %
+        # inventada— servido con HTTP 200 y sin marca alguna. Con el proveedor
+        # caído, el ticker enseñaba XAU a un precio de hace meses con flecha
+        # verde, indistinguible de uno real; y la variación era peor todavía:
+        # una observación fabricada, la misma clase de dato que el volumen por
+        # `rng.randint` que ya se retiró de las cadenas de opciones.
+        # El frontend ya trata la ausencia bien (`if (!data || !data.usd) return
+        # null`): omitir es lo que hace que ese cuidado sirva de algo.
     except Exception as e:
         logging.error(f"Commodities (yfinance) error: {e}")
-        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
-        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
 
     return data
 
