@@ -4759,50 +4759,78 @@ async def get_billing_history(user: dict = Depends(require_user)):
 
 # ============= USER STATE PERSISTENCE ROUTES =============
 
+# Tope por documento. Los ajustes de un usuario son kilobytes; un sistema de
+# trading con muchos setups, algunas decenas. Medio mega es margen de sobra y a
+# la vez impide que esta ruta acabe usándose como almacén de ficheros.
+MAX_USER_STATE_BYTES = 512 * 1024
+
+
 @api_router.post("/user-states/save")
 async def save_user_state(request: dict, user: dict = Depends(require_user)):
     """
-    Save user state for calculators, charts, etc.
+    Save user state for calculators, charts and user preferences.
     Body: { "state_id": "percentage_calculator", "state": {...} }
-    """
-    try:
-        state_id = request.get("state_id")
-        state_data = request.get("state")
 
-        if not state_id:
-            raise HTTPException(status_code=400, detail="state_id is required")
-        import re as _re_val
-        if not _re_val.match(r'^[a-zA-Z0-9_-]{1,64}$', str(state_id)):
-            raise HTTPException(status_code=400, detail="state_id must be alphanumeric (1-64 chars)")
-        
-        # Upsert the state
-        now = datetime.now(timezone.utc)
+    Aquí NO caduca nada. El documento llevaba `expires_at` a 90 días con el
+    comentario «TTL: state is auto-deleted 90 days after last update», pero
+    ninguna tarea lo aplicaba nunca: la promesa era falsa en los dos sentidos y
+    el único desenlace posible de hacerla verdad era borrarle al usuario cosas
+    que él escribió. Desde que esta tabla guarda también los AJUSTES de la
+    cuenta —tema, idioma, preferencias y el sistema de trading con sus setups—
+    caducar sería directamente perder trabajo suyo. La tabla no crece sin
+    control: es una fila por (usuario, state_id) y los state_id son un puñado
+    fijo. El borrado por RGPD sigue cubierto — `user_states` está en
+    `_USER_DATA_COLLECTIONS`, así que se exporta y se purga con la cuenta.
+    """
+    state_id = request.get("state_id")
+    state_data = request.get("state")
+
+    if not state_id:
+        raise HTTPException(status_code=400, detail="state_id is required")
+    import re as _re_val
+    if not _re_val.match(r'^[a-zA-Z0-9_-]{1,64}$', str(state_id)):
+        raise HTTPException(status_code=400, detail="state_id must be alphanumeric (1-64 chars)")
+
+    # Se mide lo que se va a escribir, no lo que llegó: si el cuerpo no es
+    # serializable el fallo es del cliente (400), no del servidor.
+    try:
+        size = len(_json_module.dumps(state_data, default=_json_default).encode("utf-8"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="state must be JSON-serialisable")
+    if size > MAX_USER_STATE_BYTES:
+        raise HTTPException(status_code=413, detail="state too large")
+
+    # Las validaciones de arriba están FUERA del `try` a propósito (BUG-048).
+    # `HTTPException` hereda de `Exception`: metidas dentro, el `except Exception`
+    # de abajo reetiquetaría como 500 los 400 y el 413 que esta función acaba de
+    # escribir, y el cliente dejaría de poder distinguir «lo has pedido mal» de
+    # «el servidor está roto». La alternativa que usa el resto del repo —dejar
+    # pasar antes el `HTTPException`— también vale; aquí no hace falta guarda
+    # porque dentro del `try` sólo queda la escritura, que no lanza 4xx.
+    # `test_http_error_codes_unit.py` comprueba las dos formas sobre el AST.
+    try:
         await db.user_states.update_one(
             {"user_id": user["id"], "state_id": state_id},
-            {"$set": {
-                "user_id": user["id"],
-                "state_id": state_id,
-                "state": state_data,
-                "last_updated": now.isoformat(),
-                # TTL: state is auto-deleted 90 days after last update.
-                "expires_at": now + timedelta(days=90),
-            }},
+            {
+                "$set": {
+                    "user_id": user["id"],
+                    "state_id": state_id,
+                    "state": state_data,
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
+                },
+                # El shim aplica el `$unset` DESPUÉS del `$set`, así que esto
+                # limpia el `expires_at` que dejaron escrito las versiones
+                # anteriores. Sin él, un ajuste guardado hoy seguiría llevando
+                # encima una fecha de caducidad que ya no significa nada.
+                "$unset": {"expires_at": ""},
+            },
             upsert=True
         )
-        
-        return {"success": True, "message": "State saved"}
-    except HTTPException:
-        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
-        # `HTTPException` hereda de `Exception`, así que sin esta línea el
-        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
-        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
-        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
-        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
-        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
-        raise
     except Exception as e:
         logging.error(f"Error saving state: {e}")
         raise HTTPException(status_code=500, detail="Error saving state")
+
+    return {"success": True, "message": "State saved"}
 
 @api_router.get("/user-states/get/{state_id}")
 async def get_user_state(state_id: str, user: dict = Depends(require_user)):

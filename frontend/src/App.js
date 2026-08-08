@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useI18nStore, languages } from "@/lib/i18n";
 import { REF_STORAGE_KEY } from "@/lib/store";
+import { startCloudPrefsSync } from "@/lib/cloudPrefs";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
@@ -101,6 +102,15 @@ function LangSync() {
   return null;
 }
 
+// Los ajustes del usuario (tema, idioma, preferencias, favoritos, progreso de
+// la Academia y el sistema de trading con sus setups) viajan con la cuenta, no
+// con el navegador. Se engancha una sola vez y reacciona a la sesión: en una
+// recarga el token no está hasta que la cookie lo repone. Ver `lib/cloudPrefs.js`.
+function CloudPrefsSync() {
+  useEffect(() => startCloudPrefsSync(), []);
+  return null;
+}
+
 // Capture a referral code from ?ref=CODE on any landing and remember it, so it can
 // be attributed when the visitor registers (see trackReferral in store.js).
 function RefCapture() {
@@ -120,6 +130,7 @@ const AppContent = () => (
       <AnalyticsTracker />
       <LangSync />
       <RefCapture />
+      <CloudPrefsSync />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/"                element={<LandingPage />} />

@@ -5,9 +5,9 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-05 (escáner de estructura;
->   antes 2026-08-03, commit `7864406` de `main`)
-> - 🌿 **Rama de trabajo actual:** `claude/restructure-org-scanner-f5a8i6`
+> - 📅 **Última verificación real contra el código:** 2026-08-08 (persistencia de los
+>   ajustes del usuario; antes 2026-08-05, escáner de estructura)
+> - 🌿 **Rama de trabajo actual:** `claude/github-branches-cleanup-cfef9j`
 >
 > ⚠️ **Aviso de método (2026-07-27, y volvió a pasar el 2026-08-03).** Las §1, §2 y
 > §6 se quedan por detrás del código mientras el registro de sesiones (§7) sí se
@@ -29,10 +29,11 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **550 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **718 passed, 74 skipped** en 16 s (2026-08-08). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
-| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5817 claves × 10 idiomas, 0 huecos** · `engine-check` **141/141** (2026-08-05) |
+| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5995 claves × 10 idiomas, 0 huecos** · `engine-check` **197/197** (2026-08-08) |
+| **Ajustes del usuario entre dispositivos** | 🟢 | Tema, idioma, preferencias, favoritos, progreso de la Academia y **setups** viajan con la cuenta desde el 2026-08-08 (`lib/cloudPrefs.js`). Ver G-25 |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -147,6 +148,8 @@
 | G-21 | **El diario no guarda las patas de una operación de opciones.** Cero apariciones de `legs`: no hay griegas agregadas de la estructura, ni cierre de una pata suelta, ni rolar media posición | 🟠 | **Media parte cerrada (2026-08-06)**: el R-múltiplo ya no se cae. El riesgo de una estructura sale de `max_loss` —la prima en una opción comprada, anchura − crédito en un spread— y no de `\|entry − sl\|`, así que una operación de opciones entra en la distribución de R y compara con el resto del diario. Lo que queda es el detalle por pata: reconstrucción `Position` → `Leg` → `Execution` |
 | G-23 | **Una operación tiene un único precio de salida: no hay cierres parciales.** Afecta a todos los productos, no sólo a opciones — un scale-out de tres tramos hay que apuntarlo como tres operaciones, y entonces cada una lleva su propio saldo de cuenta y la analítica cuenta tres entradas donde hubo una | 🟠 | Misma reconstrucción que G-21: es `Execution` quien la resuelve. Mientras tanto, apuntarlo como una operación con el precio medio de salida es lo más fiel |
 | G-24 | **La divisa de la cuenta no se convierte.** Todo se mide en la divisa en la que estén los precios. Un cruce sin USD (EURGBP) o un futuro europeo en una cuenta en dólares suman importes de divisas distintas como si fueran la misma | 🟡 | Necesita tipo de cambio a fecha de cierre; `ecb_rates.py` ya sirve el feed diario del BCE. El P&L de cada operación es correcto en su divisa: lo que no lo es, es el total |
+| G-25 | ~~**Los ajustes del usuario no salían del navegador.**~~ Cuenta, suscripción, diario, alertas y estado de las calculadoras sí persistían; el tema, el idioma, las preferencias, los favoritos, el progreso de la Academia y **los setups del sistema de trading** vivían sólo en `localStorage`. Entrar desde el móvil era empezar de cero y vaciar la caché era perder los setups escritos a mano | 🟢 | ✅ **Cerrado (2026-08-08)**: `lib/cloudPrefs.js` respalda `localStorage` contra un único documento de `user_states` (`preferences_v1`), con **una fecha por ajuste** (para que cambiar el tema en un equipo no borre los setups de otro) y **dueño registrado** (para que dos cuentas en el mismo navegador no se hereden nada). Las reglas de fusión están en `lib/prefsMerge.js`, sin importaciones, probadas en `engine-check`. Verificado end-to-end en Chromium contra Postgres real |
+| G-26 | **No se puede editar el perfil.** No existe `PUT /auth/profile` ni pantalla: el nombre y la foto son los del registro para siempre. En Ajustes sólo se puede cambiar contraseña, gestionar 2FA, exportar los datos y borrar la cuenta | 🟡 | Descubierto al cerrar G-25. Es un hueco distinto: no es que el dato no se guarde, es que no hay forma de cambiarlo |
 | G-22 | **Dos fuentes de verdad para las mismas estadísticas.** `dashboard/JournalStats.jsx` y `education/ExpectancyCalculator.jsx` leen `/journal/stats`; `services/performanceApi.js` y `education/JournalEdgeButton.jsx` leen `/performance/analytics`. Fórmulas distintas sobre la misma colección → el usuario ve **dos expectancies distintas** según la pantalla | 🟠 | Converge al unificar el modelo (G-20). Mientras tanto, las dos rutas ya ordenan cronológicamente y tratan igual el breakeven |
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
 
@@ -3811,3 +3814,104 @@ que hace el banco de pruebas es peor que no tener prueba.
 `pytest` **698 passed / 74 skipped** (+5) · `py_compile` OK · autorización
 cruzada **21/21** · export RGPD **8/8** · borrado RGPD **0 filas en 6 tablas** ·
 enlaces de doc OK.
+
+---
+
+## 2026-08-08 — Los ajustes dejan de vivir en un navegador
+
+### El agujero
+
+La pregunta era simple: *¿todo lo que configuro se guarda en la base de datos?*
+La respuesta era **no**, y la parte que no se guardaba resultó ser justo la que
+más trabajo cuesta escribir.
+
+Persistía lo transaccional —cuenta, plan de suscripción, diario, alertas y el
+estado de las once calculadoras vía `user_states`—, pero **todo lo que el
+usuario ajusta** vivía en `localStorage` y por tanto en UN equipo:
+
+| Qué se perdía | Clave |
+|---|---|
+| **Los setups del sistema de trading** (escritos a mano, uno por uno) | `tcp-trading-system` |
+| Preferencias de la pantalla de Ajustes | `tcp-preferences` |
+| Idioma | `trading-i18n-storage` |
+| Tema visual | `trading-theme-storage` |
+| Activos favoritos | `trading-assets-storage` |
+| Favoritos y recientes de calculadoras | `tcp-calc-favs`, `tcp-calc-recents` |
+| Progreso de la Academia | `tcp-edu-progress` |
+| Recientes del buscador de opciones | `opc_recents` |
+
+Entrar desde el móvil era empezar de cero. Vaciar la caché del navegador era
+perder los setups. Y la pantalla de Ajustes llevaba desde siempre enseñando un
+«preferencias guardadas» que era falso fuera de ese equipo.
+
+### Lo que se ha hecho
+
+`frontend/src/lib/cloudPrefs.js` — una capa de sincronización que **no sustituye
+`localStorage`, lo respalda**. El navegador sigue siendo la copia inmediata
+(funciona sin red, sin cuenta y en modo demo) y el servidor la copia que cruza
+dispositivos. Todo viaja en UN documento de `user_states` (`preferences_v1`), así
+que sincronizar cuesta una lectura y una escritura, no una por ajuste.
+
+Tres decisiones que parecen detalles y no lo son:
+
+1. **Cada ajuste lleva su propia fecha.** Con una sola fecha por documento,
+   cambiar el tema en el ordenador borraría los setups escritos en el móvil diez
+   minutos antes. Gana el más reciente **de cada ajuste por separado**.
+2. **El documento local recuerda de quién es.** Dos cuentas en el mismo
+   navegador es exactamente lo que ya rompió el diario legado. Si el dueño del
+   `localStorage` no es quien acaba de entrar, lo local **no compite**: manda la
+   cuenta, y lo que la cuenta no tenga vuelve a su valor por defecto en vez de
+   quedarse enseñando los setups del anterior.
+3. **Un ajuste sin fecha local no es una preferencia, es el valor por defecto**, y
+   no se sube. Subirlo lo convertiría en una elección que el usuario nunca hizo
+   y a partir de ahí ganaría a lo que sí eligió en otro sitio. Por lo mismo, el
+   idioma **sólo** marca fecha desde el selector: `detectBrowserLanguage` es una
+   suposición del navegador, y un `?lang=` compartido cambia lo que ves, no lo
+   que has elegido.
+
+Las reglas de quién gana viven en `lib/prefsMerge.js`, **sin una sola
+importación**, para poder probarlas sin React ni navegador.
+
+### En el backend
+
+`POST /user-states/save` guardaba `expires_at` a 90 días bajo el comentario «TTL:
+state is auto-deleted 90 days after last update» y **ninguna tarea lo aplicaba
+jamás**. La promesa era falsa en los dos sentidos: ni caducaba, ni podía
+caducar sin borrarle al usuario cosas suyas. Ahora la tabla no caduca nada
+—desde que guarda los ajustes, hacerlo verdad sería perder trabajo del usuario—
+y el `$unset` limpia el `expires_at` que dejaron escrito las versiones
+anteriores. No crece sin control: es una fila por (usuario, `state_id`) y los
+`state_id` son un puñado fijo. El RGPD sigue cubierto, `user_states` ya estaba en
+`_USER_DATA_COLLECTIONS`.
+
+De paso, la ruta **dejó de convertir sus propios 4xx en 500**: todo el cuerpo
+estaba dentro de un `try` con `except Exception`, así que un `state_id` inválido
+se le devolvía al cliente como error de servidor. Y se añadió un tope por
+documento (512 KB) ahora que ahí dentro va contenido escrito por el usuario.
+
+### Verificado
+
+- `pytest` **718 passed / 74 skipped** (+12 nuevos en
+  `test_user_prefs_persistence_unit.py`, ya sobre `main` con el PR #180 dentro).
+- `engine-check` **197/197** (+10 sobre las reglas de fusión).
+- ESLint **0 errores** (123 avisos) · `i18n-check` 5995 × 10 · catálogo en
+  paridad · `check-doc-links` OK · `npm run build` OK.
+- **Contra PostgreSQL real**: que el `$unset` sobre un upsert borre de verdad el
+  `expires_at` heredado —traducido a SQL, no contra un doble— y que el documento
+  haga ida y vuelta sin perder tipos.
+- **End-to-end en Chromium** contra backend + Postgres vivos: que cambiar un
+  ajuste suba; que un dispositivo virgen (con el `localStorage` vaciado) reciba
+  tema, progreso y **setups completos**; y que una segunda cuenta en el mismo
+  navegador no herede los setups del anterior ni se los suba a su propia cuenta,
+  mientras la cuenta original los conserva intactos.
+
+### Lo que NO se ha tocado
+
+No hay forma de editar el perfil (nombre, foto): no existe endpoint ni pantalla,
+sólo cambiar contraseña, 2FA, exportar datos y borrar la cuenta. Es un hueco
+distinto —no es que no se guarde, es que no se puede cambiar— y sigue abierto.
+
+Y los setups **siguen sin pasar por `trading_plan.py`**, que es donde
+conceptualmente deberían vivir (G-14). Esto los pone a salvo y los hace viajar
+entre dispositivos hoy; migrarlos a `POST /plan` sigue pendiente y ahora es una
+migración de datos, no un rescate.

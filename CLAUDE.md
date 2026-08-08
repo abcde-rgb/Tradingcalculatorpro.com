@@ -259,9 +259,30 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   cruzarlos con la analítica (`joinSetupPerformance`), un setup definido y sin
   operar es **sin muestra**, nunca un 0 % de acierto, y lo operado con un nombre
   que no está en el sistema va aparte: puede ser una errata o una operación fuera
-  del plan, y fundirlo con otro grupo borra las dos lecturas. ⚠️ Todo esto es
-  local al navegador: el sitio donde debería persistir (`trading_plan.py`, `POST
-  /plan`) está escrito y sin interfaz — es el hueco G-14.
+  del plan, y fundirlo con otro grupo borra las dos lecturas. Los setups **ya
+  viajan con la cuenta** (`lib/cloudPrefs.js`, ver la trampa de abajo); lo que
+  sigue pendiente es moverlos a su sitio conceptual, `trading_plan.py` / `POST
+  /plan`, escrito y todavía sin interfaz — el hueco G-14.
+- **Un ajuste del usuario no se guarda con `localStorage` a pelo.** Tema, idioma,
+  preferencias, favoritos, progreso de la Academia y el sistema de trading van a
+  la cuenta a través de `lib/cloudPrefs.js`: `useCloudPref('nombre')` se usa igual
+  que `useState` y además baja lo que haya en el servidor. Un `localStorage.setItem`
+  suelto vuelve a atar el ajuste a un navegador, que es justo el bug que esto cierra
+  (G-25). Para añadir uno nuevo, da de alta un *slice* en `PREF_SLICES` — nada más;
+  la subida, la fusión y el reparto a los componentes montados ya están. Tres reglas
+  que no se pueden romper: cada ajuste lleva **su propia fecha** (una sola fecha por
+  documento haría que cambiar el tema borrase los setups escritos en otro equipo);
+  un ajuste **sin fecha local no se sube** (es el valor por defecto, no una
+  elección); y el `localStorage` **recuerda de qué cuenta es**, porque dos cuentas
+  en el mismo navegador es lo que ya rompió el diario legado. Las reglas de quién
+  gana están en `lib/prefsMerge.js`, sin importaciones y con pruebas en
+  `engine-check.js`.
+- **`user_states` NO caduca.** Llevaba `expires_at` a 90 días y un comentario que
+  prometía un borrado automático que **nadie ejecutaba nunca**. Desde que ahí
+  dentro viven los ajustes —incluidos los setups escritos a mano—, hacer verdad esa
+  promesa sería perder trabajo del usuario. No la reintroduzcas: la tabla es una
+  fila por (usuario, `state_id`) con un puñado fijo de `state_id`, no crece sola, y
+  el borrado por RGPD ya está cubierto porque está en `_USER_DATA_COLLECTIONS`.
 - **El escáner de estructura ordena por importancia, igual que el panel de opciones.**
   `StructureScanner.jsx` sólo compone: 1 configurar → 2 lectura → 3 escalera de
   niveles → lo accesorio en `SectionCard` **plegado y con contador**. Las piezas

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
+import { useCloudPref } from '@/lib/cloudPrefs';
 import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
@@ -645,16 +646,12 @@ export default function EducationPage() {
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Per-module completion (localStorage) → progress bars in sidebar/header.
-  const [eduDone, setEduDone] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tcp-edu-progress') || '[]'); } catch { return []; }
-  });
+  // Per-module completion → progress bars in sidebar/header. Va con la cuenta:
+  // avanzar en el móvil y seguir en el ordenador es justo lo que se espera de
+  // un progreso (ver `lib/cloudPrefs.js`).
+  const [eduDone, setEduDone] = useCloudPref('eduProgress');
   const toggleTopicDone = (value) => {
-    setEduDone(prev => {
-      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
-      try { localStorage.setItem('tcp-edu-progress', JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setEduDone(prev => (prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]));
   };
   const doneCount = eduDone.filter(v => EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === v))).length;
 

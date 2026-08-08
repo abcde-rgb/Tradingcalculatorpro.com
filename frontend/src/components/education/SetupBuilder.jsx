@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 import { getChartPatterns, getCandlestickPatterns, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import {
   loadSystem, saveSystem, makeSetup, setupHasContent, missingEssentials,
-  EMPTY_SYSTEM_RULES,
+  onSystemChange, EMPTY_SYSTEM_RULES,
 } from '@/lib/tradingSystem';
 
 // {id} is stored; {k} is an i18n key, {s} a static (language-neutral) label.
@@ -110,6 +110,14 @@ export default function SetupBuilder({ onSaved }) {
   // Persist on every change — the library is the user's own plan, losing it to
   // a closed tab is not acceptable.
   useEffect(() => { saveSystem(system); }, [system]);
+
+  // El sistema va con la cuenta, así que puede llegar de OTRO dispositivo con
+  // esta pantalla ya abierta (ver `lib/cloudPrefs.js`). Sólo se atienden los
+  // avisos `silent`, que son los que vienen de fuera: los propios ya están
+  // pintados, y recargarlos aquí borraría la edición a medio escribir.
+  useEffect(() => onSystemChange((ev) => {
+    if (ev?.silent) setSystem(loadSystem());
+  }), []);
 
   const chartPatterns = useMemo(() => {
     const groups = getChartPatterns(t);

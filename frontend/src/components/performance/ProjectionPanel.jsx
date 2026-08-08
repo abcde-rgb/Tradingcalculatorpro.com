@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
-import { loadSystem, setupRulesFor, cashflowRules } from '@/lib/tradingSystem';
+import { loadSystem, setupRulesFor, cashflowRules, onSystemChange } from '@/lib/tradingSystem';
 import {
   project, sensitivity, breakevenWinRate, hitRates, cashflowCost, routesToTarget,
   MIN_SAMPLE_FOR_PROJECTION, MIN_SAMPLE_TO_PROJECT_AT_ALL, RUIN_THRESHOLD,
@@ -105,6 +105,10 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [refreshKey]);
+
+  // Y también sin refresco: las reglas de caja pueden llegar de otro
+  // dispositivo con la proyección ya en pantalla (`lib/cloudPrefs.js`).
+  useEffect(() => onSystemChange(() => setCash(cashflowRules(loadSystem()))), []);
 
   const group = useMemo(
     () => (analytics?.by_setup || []).find((g) => g.group === groupName) || null,

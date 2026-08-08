@@ -749,10 +749,73 @@ async function checkProjection() {
     pj.sensitivity(95, 2, [10])[0].winRate === 100);
 }
 
+// ── Ajustes: este navegador contra la cuenta ────────────────────────────────
+// La sincronización decide qué copia de cada ajuste sobrevive. Equivocarse aquí
+// no da un número raro: borra los setups que el usuario escribió a mano. Por eso
+// las reglas viven en un módulo sin importaciones y se comprueban aquí.
+async function checkPrefsMerge() {
+  console.log('\nprefsMerge.js');
+  const { planMerge } = await imp('lib/prefsMerge.js');
+
+  const names = ['theme', 'tradingSystem'];
+  const resettable = { theme: false, tradingSystem: true };
+
+  // Lo más reciente gana, ajuste por ajuste. El tema es más nuevo aquí y el
+  // sistema es más nuevo en la cuenta: tienen que ganar uno cada uno, que es
+  // justo lo que una sola fecha por documento haría imposible.
+  const mixed = planMerge(
+    names,
+    { theme: 2000, tradingSystem: 1000 },
+    { theme: 'gold', tradingSystem: { setups: ['local'] } },
+    { theme: { at: 1500, value: 'crypto' }, tradingSystem: { at: 3000, value: { setups: ['remoto'] } } },
+    { resettable },
+  );
+  ok('el ajuste más reciente de cada lado gana por separado',
+    mixed.apply.tradingSystem?.setups[0] === 'remoto' && mixed.apply.theme === undefined);
+  ok('lo local más nuevo se sube con SU fecha, no con la de ahora',
+    mixed.push.theme?.at === 2000 && mixed.push.theme?.value === 'gold');
+
+  // Un ajuste que nadie ha tocado no es una preferencia y no debe subirse: si
+  // subiera, el valor por defecto de este equipo ganaría a la elección hecha en
+  // otro la próxima vez.
+  const untouched = planMerge(names, {}, { theme: 'dark', tradingSystem: {} }, {}, { resettable });
+  ok('un ajuste sin fecha local no se sube', Object.keys(untouched.push).length === 0);
+  ok('un ajuste sin fecha local tampoco marca fecha', Object.keys(untouched.stamps).length === 0);
+
+  // La cuenta gana el empate, y por eso conciliar dos veces no cambia nada.
+  const tie = planMerge(['theme'], { theme: 500 }, { theme: 'gold' },
+    { theme: { at: 500, value: 'forex' } }, { resettable });
+  ok('el empate lo gana la cuenta (conciliar es idempotente)', tie.apply.theme === 'forex');
+
+  // Dos cuentas en el mismo navegador: lo local es de otro y no compite.
+  const other = planMerge(
+    names,
+    { theme: 9_999_999, tradingSystem: 9_999_999 },
+    { theme: 'gold', tradingSystem: { setups: ['de otro'] } },
+    { theme: { at: 1, value: 'nasdaq' } },
+    { foreign: true, resettable },
+  );
+  ok('con el localStorage de otra cuenta manda la cuenta, por vieja que sea',
+    other.apply.theme === 'nasdaq');
+  ok('lo que la cuenta nueva no tiene se vacía, no se hereda',
+    other.reset.includes('tradingSystem'));
+  ok('los setups de otra cuenta NUNCA se suben a esta',
+    other.push.tradingSystem === undefined);
+  ok('lo que es pura apariencia no se resetea al entrar otra cuenta',
+    !other.reset.includes('theme'));
+
+  // Una fecha corrupta no puede ganar: valdría cualquier cosa menos un dato.
+  const corrupt = planMerge(['theme'], { theme: 100 }, { theme: 'gold' },
+    { theme: { at: 'ayer', value: 'crypto' } }, { resettable });
+  ok('una fecha ilegible en la cuenta pierde contra la local',
+    corrupt.push.theme?.value === 'gold');
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
   await checkTradingSystemModel();
+  await checkPrefsMerge();
   await checkProjection();
   await checkInstruments();
   await checkScannerMeta();
