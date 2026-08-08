@@ -89,6 +89,30 @@ export default function useStructureScan(symbol) {
       const [structJson, patternJson] = await Promise.all([structRes.json(), patternRes.json()]);
       if (myReq !== reqId.current) return;   // a newer request superseded this one
 
+      // `res.ok` primero: el limitador (30/min) responde 429 con `{detail: ...}`,
+
+
+      // que no tiene clave `error`. Sin esto, un rechazo por exceso de
+
+
+      // peticiones se guardaba como lectura buena y se sellaba «leído ahora
+
+
+      // mismo» — el escáner enseñando datos viejos con cara de frescos, que es
+
+
+      // el fallo que el aviso de antigüedad venía a resolver.
+
+
+      if (!structRes.ok) {
+
+
+        throw new Error(structJson.detail || structJson.error || `HTTP ${structRes.status}`);
+
+
+      }
+
+
       if (structJson.error) {
         setData(null);
         setCandles([]);

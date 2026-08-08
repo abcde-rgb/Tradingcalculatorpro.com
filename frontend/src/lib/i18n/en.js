@@ -3892,6 +3892,7 @@ export default {
   "structScannedAgo": "read {n} min ago",
   "analyticsScope": "Computed over",
   "analyticsScopeAll": "Everything",
+  "analyticsFilterMismatch": "These figures may not match the selected filter: the server did not confirm it applied. Reload the page.",
   "analyticsMixedAccounts": "These trades look like they come from more than one account.",
   "analyticsMixedAccountsFix": "The equity curve, the drawdown and the % return are built on a single account, so right now they are adding up different balances. R, win rate and the per-product breakdown are still valid. Filter by product above to get a curve that means something.",
 }

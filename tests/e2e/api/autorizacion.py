@@ -252,14 +252,28 @@ else:
 
 # Y ahora change-password, que sí revoca la sesión: se comprueba por separado y
 # releyendo con una sesión NUEVA.
-llama("POST", "/auth/change-password",
-      {"current_password": ATACANTE[1], "new_password": ATACANTE[1], **CONTRABANDO}, tok_a)
+# Se relee justo antes: entre `antes` y aquí ha pasado el bloque anterior de
+# escrituras, y comparar contra una foto vieja mezcla dos experimentos.
+_, previo = llama("GET", "/auth/me", None, tok_a)
+cod_cp, _ = llama("POST", "/auth/change-password",
+                  {"current_password": ATACANTE[1], "new_password": ATACANTE[1],
+                   **CONTRABANDO}, tok_a)
 tok_a2 = entra(*ATACANTE)
-_, tras_cambio = llama("GET", "/auth/me", None, tok_a2)
-movidos2 = [c for c in VIGILADOS if (antes or {}).get(c) != (tras_cambio or {}).get(c)]
-marca("colar campos privilegiados en change-password no cambia nada",
-      not movidos2, f"cambian: {movidos2}" if movidos2 else "ninguno se movió")
-tok_a = tok_a2
+cod_t, tras_cambio = llama("GET", "/auth/me", None, tok_a2)
+# La misma guarda que arriba: si la relectura no es un usuario, comparar campo a
+# campo dice «han cambiado todos» y eso se lee como una escalada de privilegios
+# en toda regla. Ya produjo esa falsa alarma una vez.
+if cod_cp != 200:
+    marca("change-password responde para poder medirlo", False, f"HTTP {cod_cp}")
+elif cod_t != 200 or not isinstance(tras_cambio, dict) or "id" not in tras_cambio:
+    marca("la sesión nueva sirve para releer el usuario", False,
+          f"HTTP {cod_t} — sin esto la comparación no significa nada")
+else:
+    movidos2 = [c for c in VIGILADOS if (previo or {}).get(c) != tras_cambio.get(c)]
+    marca("colar campos privilegiados en change-password no cambia nada",
+          not movidos2,
+          f"cambian: {movidos2}" if movidos2 else "ninguno se movió")
+    tok_a = tok_a2
 
 # ¿Puede crear una operación A NOMBRE DE OTRO usuario?
 cod, t2 = llama("POST", "/performance/trades", {

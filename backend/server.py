@@ -7093,22 +7093,33 @@ async def performance_analytics(
     # at the limit" from "there is more history than we are showing". Without it
     # a user with precisely ANALYTICS_MAX_TRADES trades gets a false warning.
     rows = await trades_for_user(db, user["id"], limit=ANALYTICS_MAX_TRADES + 1)
-    # Los productos que el selector puede ofrecer, leídos del historial COMPLETO
-    # y con el mismo criterio de "cerrada" que usa la analítica (`is_closed_trade`):
-    # un producto sin nada cerrado no tiene panel que enseñar, y ofrecerlo sería
-    # un botón que lleva al estado vacío.
+    # La ventana la impone la CONSULTA, no el filtro. Se pide una fila de más:
+    # si llega, es que hay historial fuera de lo que estamos mirando.
+    #
+    # Y eso no se arregla filtrando después. Con 5.000 operaciones se leen 1.001;
+    # si al filtrar por opciones quedan 50, esas 50 son las opciones que había
+    # DENTRO de esa ventana, no las del historial — puede haber cientos más entre
+    # las 4.000 que no se leyeron. Calcular `truncated` sobre las filas ya
+    # filtradas daba `false` en ese caso: un panel de una ventana presentado
+    # como el historial completo, que es justo lo que `truncated` existe para
+    # impedir.
+    ventana_incompleta = len(rows) > ANALYTICS_MAX_TRADES
+
+    # Los productos que el selector puede ofrecer, con el mismo criterio de
+    # "cerrada" que usa la analítica (`is_closed_trade`): un producto sin nada
+    # cerrado no tiene panel que enseñar y sería un botón al estado vacío.
+    # Ojo: sale de la MISMA ventana, así que un producto que sólo se operó hace
+    # mucho puede no aparecer. Por eso la respuesta publica también
+    # `products_available_partial`, en vez de dar la lista por completa.
     products_available = sorted({
         (r.get("instrument_type") or DEFAULT_PRODUCT)
         for r in rows if is_closed_trade(r)
     })
-    # El filtro se aplica ANTES del techo: filtrar después dejaría el panel de
-    # un producto minoritario calculado sobre las migajas de una ventana llena
-    # de otro, y encima diría que no hay truncado.
     if product:
         rows = [r for r in rows
                 if (r.get("instrument_type") or DEFAULT_PRODUCT) == product]
-    truncated = len(rows) > ANALYTICS_MAX_TRADES
-    if truncated:
+    truncated = ventana_incompleta
+    if len(rows) > ANALYTICS_MAX_TRADES:
         # trades_for_user sorts by entry_date desc, so the rows kept are the most
         # recent ones and what falls off is the oldest history. Every figure
         # below is therefore computed over a window, not over the whole record —
@@ -7147,6 +7158,9 @@ async def performance_analytics(
         # Con qué productos se dibuja el selector. No depende del filtro puesto:
         # es la única forma de que el botón para volver al conjunto siga ahí.
         "products_available": products_available,
+        # La lista sale de la misma ventana que las cifras: si el historial es
+        # más largo, puede faltar un producto que sólo se operó hace tiempo.
+        "products_available_partial": ventana_incompleta,
         "truncation_notice": (
             f"Mostrando las {ANALYTICS_MAX_TRADES} operaciones más recientes. "
             "Tu historial es más largo: las más antiguas no entran en estas "

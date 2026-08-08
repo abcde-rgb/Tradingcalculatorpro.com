@@ -56,8 +56,28 @@ export default function ScanReading({ data }) {
   // en diario o superior, la hora no aporta nada y estorba en la tarjeta.
   const barLabel = (() => {
     if (!data.lastBarDate) return null;
-    const d = new Date(data.lastBarDate);
-    if (Number.isNaN(d.getTime())) return String(data.lastBarDate).slice(0, 16);
+    // `new Date()` no sirve con ninguno de los dos formatos que manda el backend:
+    //  · diario `"2026-08-07"` → ISO sin hora, que la norma manda interpretar
+    //    como UTC medianoche; al pintarlo en local, quien esté al oeste de UTC
+    //    ve el día ANTERIOR — la vela de hoy rotulada como la de ayer;
+    //  · intradía `"2026-08-07 14:30"` (UTC) → se interpreta como hora local,
+    //    así que la hora se desplaza el desfase del que mira.
+    // Como lo que se enseña es *la etiqueta de la vela*, se formatea el texto
+    // tal cual en vez de convertirlo a una zona que no es la del dato.
+    const cruda = String(data.lastBarDate);
+    const m = cruda.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (m) {
+      const [, a, mes, dia, hh, mm] = m;
+      // Se construye en hora LOCAL con esos mismos números: el formateador
+      // pinta el día y la hora que trae el dato, sin moverlos.
+      const local = new Date(Number(a), Number(mes) - 1, Number(dia),
+                             Number(hh || 0), Number(mm || 0));
+      return data.intraday && hh
+        ? `${local.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} UTC`
+        : local.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    const d = new Date(cruda);
+    if (Number.isNaN(d.getTime())) return cruda.slice(0, 16);
     return data.intraday
       ? d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
       : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });

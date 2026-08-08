@@ -308,6 +308,13 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   // conjunto. El respaldo a `by_product` es para un backend anterior, que aún no
   // publica el campo: ahí la barra vale para elegir, no para volver.
   const productsSeen = data.products_available || (a.by_product || []).map((g) => g.group);
+  // ¿El backend aplicó DE VERDAD el filtro que pedimos? El frontend se publica
+  // solo al mergear y el backend se sube a mano, así que durante un rato el
+  // navegador va por delante: una versión anterior ignora `?product=` y responde
+  // 200 con TODO el historial, que se pintaría bajo el rótulo «Calculado sobre:
+  // Opciones». Un fetch fallido que deja el estado anterior da lo mismo. Antes
+  // de rotular unas cifras hay que comprobar de qué son.
+  const desajusteFiltro = product !== null && data.product_filter !== product;
   const scopeBar = productsSeen.length > 1 && (
     <div className="flex flex-wrap items-center gap-1.5" data-testid="analytics-product-filter">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mr-1">
@@ -349,6 +356,18 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
       // puesto, y sin ella el único camino de vuelta sería recargar la página.
       <div className="space-y-4" data-testid="analytics-dashboard">
         {scopeBar}
+
+      {desajusteFiltro && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2.5"
+          data-testid="analytics-filter-mismatch"
+        >
+          <AlertTriangle className="w-4 h-4 text-[#fbbf24] shrink-0 mt-0.5" />
+          <div className="text-[11px] text-[#fbbf24] leading-relaxed">
+            {t('analyticsFilterMismatch')}
+          </div>
+        </div>
+      )}
         <div className="text-center py-16 px-4 bg-card border border-dashed border-border rounded-xl"
           data-testid="analytics-empty">
           <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

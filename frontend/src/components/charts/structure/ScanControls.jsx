@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
@@ -18,7 +18,18 @@ export default function ScanControls({
   const { t } = useTranslation();
   // Cuánto hace que se leyó. Es la diferencia entre "esto está al día" y
   // "esto lleva media hora congelado", y sin decirlo las dos se ven igual.
-  const ageMin = lastScanAt ? Math.floor((Date.now() - lastScanAt) / 60000) : null;
+  //
+  // Hace falta un reloj: calculado sólo al renderizar, el rótulo se congela en
+  // «hace menos de un minuto» y no vuelve a moverse mientras nadie toque nada
+  // — que es justo cuando el aviso haría falta. Un tic por minuto basta y no
+  // repinta más de lo necesario.
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!lastScanAt) return undefined;
+    const id = setInterval(() => setAhora(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, [lastScanAt]);
+  const ageMin = lastScanAt ? Math.floor((ahora - lastScanAt) / 60000) : null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">

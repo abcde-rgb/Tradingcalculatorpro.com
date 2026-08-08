@@ -3892,6 +3892,7 @@ export default {
   "structScannedAgo": "lido há {n} min",
   "analyticsScope": "Calculado sobre",
   "analyticsScopeAll": "Tudo",
+  "analyticsFilterMismatch": "Estes números podem não corresponder ao filtro escolhido: o servidor não confirmou tê-lo aplicado. Recarrega a página.",
   "analyticsMixedAccounts": "Parece que estas operações vêm de mais de uma conta.",
   "analyticsMixedAccountsFix": "A curva, o drawdown e a % de rentabilidade constroem-se sobre uma só conta, por isso estão a somar saldos diferentes. O R, a taxa de acerto e o detalhe por produto continuam válidos. Filtra por produto acima para veres uma curva que signifique algo.",
 }

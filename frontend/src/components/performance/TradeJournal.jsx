@@ -339,7 +339,16 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
         </div>
       )}
 
+      {/* `key` es lo que hace que editar funcione. El modal se renderiza
+          SIEMPRE —devuelve null cuando está cerrado, pero después de los
+          hooks—, así que sin `key` nunca se desmonta y el inicializador de
+          `useState` corre una sola vez, en la carga de la página, cuando
+          `initialTrade` todavía es null. Resultado: pulsar «editar» abría el
+          formulario VACÍO, y al guardar se reemplazaba la operación por los
+          valores por defecto. Cambiar la `key` fuerza un montaje nuevo por
+          operación, que es cuando el estado inicial se lee de verdad. */}
       <TradeFormModal
+        key={editingTrade?.id || 'nueva'}
         open={modalOpen}
         onClose={() => { setModalOpen(false); setEditingTrade(null); }}
         onSaved={handleSaved}

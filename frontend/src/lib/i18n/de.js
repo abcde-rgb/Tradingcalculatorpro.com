@@ -3892,6 +3892,7 @@ export default {
   "structScannedAgo": "vor {n} Min gelesen",
   "analyticsScope": "Berechnet über",
   "analyticsScopeAll": "Alles",
+  "analyticsFilterMismatch": "Diese Zahlen passen womöglich nicht zum gewählten Filter: Der Server hat die Anwendung nicht bestätigt. Lade die Seite neu.",
   "analyticsMixedAccounts": "Diese Trades scheinen aus mehr als einem Konto zu stammen.",
   "analyticsMixedAccountsFix": "Equity-Kurve, Drawdown und Prozentrendite basieren auf einem einzigen Konto und addieren gerade verschiedene Salden. R, Trefferquote und die Aufschlüsselung je Produkt bleiben gültig. Filtere oben nach Produkt für eine aussagekräftige Kurve.",
 }

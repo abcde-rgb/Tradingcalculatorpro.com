@@ -3892,6 +3892,7 @@ export default {
   "structScannedAgo": "{n}分前に取得",
   "analyticsScope": "集計対象",
   "analyticsScopeAll": "すべて",
+  "analyticsFilterMismatch": "この数値は選択したフィルターと一致しない可能性があります。サーバーが適用を確認していません。ページを再読み込みしてください。",
   "analyticsMixedAccounts": "これらの取引は複数の口座にまたがっているようです。",
   "analyticsMixedAccountsFix": "資産曲線・ドローダウン・％リターンは単一口座を前提としており、いまは異なる残高を合算しています。R、勝率、商品別の内訳は有効です。上で商品を絞ると意味のある曲線になります。",
 }

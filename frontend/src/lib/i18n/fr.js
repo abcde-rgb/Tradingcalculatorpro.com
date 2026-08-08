@@ -3892,6 +3892,7 @@ export default {
   "structScannedAgo": "lu il y a {n} min",
   "analyticsScope": "Calculé sur",
   "analyticsScopeAll": "Tout",
+  "analyticsFilterMismatch": "Ces chiffres peuvent ne pas correspondre au filtre choisi : le serveur n'a pas confirmé l'avoir appliqué. Rechargez la page.",
   "analyticsMixedAccounts": "Ces opérations semblent venir de plus d'un compte.",
   "analyticsMixedAccountsFix": "La courbe, le drawdown et le % de rentabilité se construisent sur un seul compte : ils additionnent donc des soldes différents. Le R, le taux de réussite et la ventilation par produit restent valables. Filtre par produit ci-dessus pour une courbe qui veut dire quelque chose.",
 }
