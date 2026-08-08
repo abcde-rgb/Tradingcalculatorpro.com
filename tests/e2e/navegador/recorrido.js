@@ -14,11 +14,11 @@ const { chromium } = require('../lib/playwright-core');
 const fs = require('fs');
 const path = require('path');
 
-const { rutaChromium } = require('../entorno');
+const { BASE, rutaChromium } = require('../entorno');
 const EXE = rutaChromium();
 // Bajo la misma base que en producción (`PUBLIC_URL=/Tradingcalculatorpro.com`),
 // para probar el artefacto que de verdad se publica.
-const BASE = 'http://127.0.0.1:3100/Tradingcalculatorpro.com';
+
 const MODE = process.argv[2] === 'mobile' ? 'mobile' : 'desktop';
 const OUT = path.join(__dirname, '..', '..', '..', '.qa-capturas', 'recorrido');
 const VIEWPORT = MODE === 'mobile'

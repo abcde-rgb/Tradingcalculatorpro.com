@@ -47,7 +47,7 @@ Para una sonda suelta: `tests/e2e/correr.sh analitica autorizacion`.
 | `navegador/analitica.js` | El alcance por producto: que filtrar **recalcula en el backend** y las cifras cambian, y el aviso de cuentas mezcladas. 16 × 2 vistas |
 | `navegador/temas.js` | Los 6 temas y los 10 idiomas en el menú móvil, comprobando que el tema **se aplica**, no sólo que aparece listado |
 | `navegador/ticker.js` | Que el dashboard degrada con honestidad cuando el proveedor de precios está caído (BUG-047) |
-| `api/autorizacion.py` | **Dos cuentas**: que una no puede leer, editar ni borrar los datos de la otra cambiando el id de la URL — y que el dato sigue intacto después. Escalada de privilegios y confusión de tokens. 21 comprobaciones |
+| `api/autorizacion.py` | **Dos cuentas**: que una no puede leer, editar ni borrar los datos de la otra cambiando el id de la URL — y que el dato sigue intacto después. Escalada de privilegios y confusión de tokens. 29 comprobaciones |
 | `api/rgpd.py` | Que el export se lleva todo lo que el borrado destruye, y que borrar la cuenta **no deja ninguna fila** — contado en Postgres, no leído del código |
 | `api/persistencia.py` | Que la cifra que la pantalla enseña antes de guardar es **exactamente** la que queda almacenada (hay dos copias de la matemática: navegador y backend) |
 
@@ -69,6 +69,14 @@ la disciplina no se puede automatizar: **un ❌ es una hipótesis, no un veredic
 Compruébalo a mano antes de escribir un arreglo, porque una prueba que acusa al
 producto de lo que hace el banco de pruebas es peor que no tener prueba.
 
+El modo de fallo más traicionero no es el ❌ falso: es el **✅ que no ha probado
+nada**. Una revisión de este mismo banco encontró comprobaciones que sólo podían
+pasar — escribían contra `PUT /auth/profile`, que no existe, y contaban el 404
+como «no se pudo escalar privilegios»; o aceptaban el 404 de `/admin/stats`, que
+tampoco existe, como prueba de denegación. Al tocar una sonda, pregúntate qué
+tendría que romperse en el producto para que se pusiera roja. Si no hay
+respuesta, la comprobación no vale.
+
 Señales de que el fallo es del banco:
 - **429** en cualquier sitio → límite de tasa agotado por repetir la tanda
   (registro 3/h, borrado de cuenta 3/h, export 5/h, login 10/min). Espera.
@@ -77,6 +85,10 @@ Señales de que el fallo es del banco:
   de que se ejecute lo que querías medir. La comprobación no ha probado nada.
 - **Cifras que no cuadran tras varias tandas** → las sondas dejan datos. Compara
   por contenido, no por número de filas.
+- **«Han cambiado todos los campos»** → probablemente la sesión murió en medio
+  (`/auth/change-password` revoca todas) y estás comparando un usuario con un
+  cuerpo de error. Comprueba que la segunda lectura sigue siendo un usuario
+  antes de concluir que hay una escalada de privilegios.
 
 ## Qué NO cubre
 

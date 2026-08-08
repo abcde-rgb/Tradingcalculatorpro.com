@@ -80,8 +80,19 @@ else
 fi
 
 # ── 3 · El frontend, servido como en producción ──────────────────────────
+# Un build ya existente puede llevar incrustado OTRO backend: el de producción,
+# si se compiló para desplegar. Las sondas de navegador ESCRIBEN (crean y borran
+# operaciones), así que apuntarlas sin querer a producción no es un test que
+# falla, es datos reales modificados. Se recompila salvo que el build actual
+# apunte a este backend.
+DESTINO="http://127.0.0.1:$PUERTO_API"
+if [ -f "$RAIZ/frontend/build/index.html" ] \
+   && ! grep -rqlF "$DESTINO" "$RAIZ/frontend/build/static/js/" 2>/dev/null; then
+  aviso "el build existente NO apunta a $DESTINO — se recompila"
+  rm -f "$RAIZ/frontend/build/index.html"
+fi
 if [ ! -f "$RAIZ/frontend/build/index.html" ]; then
-  aviso "no hay build; compilando (tarda unos minutos)"
+  aviso "compilando el frontend (tarda unos minutos)"
   ( cd "$RAIZ/frontend" && env REACT_APP_BACKEND_URL="http://127.0.0.1:$PUERTO_API" \
       GENERATE_SOURCEMAP=false CI=false npx craco build > "$ESTADO/build.log" 2>&1 ) \
     || { echo "  ✗ el build falló (ver $ESTADO/build.log)" >&2; exit 1; }
@@ -98,7 +109,25 @@ else
     || { echo "  ✗ el servidor estático no respondió" >&2; exit 1; }
 fi
 
-# ── 4 · Chromium ─────────────────────────────────────────────────────────
+# ── 4 · Los datos de prueba ──────────────────────────────────────────────
+# `recorrido.js` y `analitica.js` afirman sobre cifras concretas (13 filas, 8
+# botones de producto, +$3.471,86). Sin sembrar, esas comprobaciones fallan y el
+# informe acusa al producto de un fallo que es «no hay datos».
+CUENTA_QA="${QA_EMAIL:-qa@example.com}"
+YA=$(psql -U "$BD_USUARIO" -d "$BD" -tAc \
+     "SELECT count(*) FROM trades t JOIN users u ON t.data->>'user_id' = u.data->>'id' \
+      WHERE u.data->>'email' = '$CUENTA_QA'" 2>/dev/null || echo 0)
+if [ "${YA:-0}" -lt 10 ]; then
+  aviso "sembrando datos de prueba (hay ${YA:-0} operaciones, se esperan 13)"
+  "${QA_VENV:-$ESTADO/venv}/bin/python" "$RAIZ/tests/e2e/stack/sembrar.py" \
+    > "$ESTADO/sembrar.log" 2>&1 \
+    && verde "datos sembrados" \
+    || aviso "la siembra falló (ver $ESTADO/sembrar.log) — las sondas de navegador fallarán"
+else
+  verde "datos de prueba ya presentes ($YA operaciones)"
+fi
+
+# ── 5 · Chromium ─────────────────────────────────────────────────────────
 if [ ! -d "$RAIZ/tests/e2e/lib/playwright-core" ]; then
   aviso "instalando playwright-core (sólo la primera vez)"
   mkdir -p "$RAIZ/tests/e2e/lib"

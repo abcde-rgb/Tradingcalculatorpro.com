@@ -8,8 +8,8 @@
 const { chromium } = require('../lib/playwright-core');
 const path = require('path');
 const fs = require('fs');
-const { rutaChromium } = require('../entorno');
-const BASE = 'http://127.0.0.1:3100/Tradingcalculatorpro.com';
+const { BASE, rutaChromium } = require('../entorno');
+
 const OUT = path.join(__dirname, '..', '..', '..', '.qa-capturas', 'ticker');
 fs.mkdirSync(OUT, { recursive: true });
 const results = [];

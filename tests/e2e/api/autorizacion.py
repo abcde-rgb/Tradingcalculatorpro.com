@@ -37,15 +37,9 @@ def marca(nombre, ok, detalle=""):
 
 
 def entra(email, password):
-    """Login; si la cuenta no existe, la registra."""
-    cod, cuerpo = llama("POST", "/auth/login", {"email": email, "password": password})
-    if cod == 200:
-        return cuerpo["token"]
-    cod, cuerpo = llama("POST", "/auth/register",
-                        {"email": email, "password": password, "name": email.split("@")[0]})
-    if cod in (200, 201):
-        return cuerpo["token"]
-    raise SystemExit(f"no se pudo entrar como {email}: {cod} {cuerpo}")
+    """Token de la cuenta, creándola si hace falta. El entorno distingue un
+    429 del limitador de una cuenta que no existe."""
+    return cuenta(email, password)
 
 
 print("\n" + "=" * 78)
@@ -94,12 +88,25 @@ objetos["estado guardado"] = ("/user-states/get/{}", "borrador-privado", cod)
 cod, p = llama("POST", "/plan", {
     "name": "Plan privado de la victima",
     "risk": {"max_risk_pct_per_trade": 1.0, "min_rr": 2.0},
+    # Obligatorio al reemplazar uno existente, y en la segunda vuelta siempre lo
+    # hay. Sin esto la respuesta es un 422 que parece un fallo y es versionado
+    # funcionando como debe.
+    "change_reason": "siembra de la sonda de autorización",
 }, tok_v)
-objetos["plan de trading"] = (None, (p or {}).get("id"), cod)
+# La respuesta anida el plan bajo "plan"; leer `id` en la raíz daba None y
+# la sonda reportaba «no se creó» sobre un HTTP 200.
+objetos["plan de trading"] = (None, ((p or {}).get("plan") or {}).get("id"), cod)
 
 for nombre, (_, oid, cod) in objetos.items():
     print(f"  {nombre:22} creado: {'sí' if oid else 'NO'}  (HTTP {cod})"
           + (f"  id={str(oid)[:8]}…" if oid else ""))
+
+# Si algo no se creó, el bloque que lo usa se salta EN SILENCIO y la sonda sale
+# en verde sin haber probado lo único que de verdad hay que demostrar. Eso ya
+# pasó: sin premium, la operación daba 403 y las seis comprobaciones de acceso
+# cruzado desaparecían del informe sin dejar rastro.
+for _nombre, (_ruta, _oid, _cod) in objetos.items():
+    marca(f"la víctima pudo crear: {_nombre}", bool(_oid), f"HTTP {_cod}")
 
 tid = objetos["operación del diario"][1]
 cid = objetos["cálculo guardado"][1]
@@ -174,33 +181,85 @@ cod, an_a = llama("GET", "/performance/analytics", None, tok_a)
 cod, an_v = llama("GET", "/performance/analytics", None, tok_v)
 n_a = ((an_a or {}).get("analytics") or {}).get("total_trades") or 0
 n_v = ((an_v or {}).get("analytics") or {}).get("total_trades") or 0
-propias = len([o for o in ops])
-marca("la analítica del atacante cuenta sólo sus propias operaciones",
-      n_a == propias, f"analítica={n_a}, listado propio={propias}, víctima={n_v}")
+# Por CONTENIDO, no por número: el listado trae 100 filas por defecto y la
+# analítica mira hasta 1000, así que igualar los dos contadores se rompe solo en
+# cuanto la cuenta acumula historial. Lo que hay que demostrar es que el símbolo
+# privado de la víctima no aparece y que la víctima sigue teniendo lo suyo.
+texto_a = json.dumps(an_a or {}, ensure_ascii=False)
+marca("la analítica del atacante no menciona la operación de la víctima",
+      "SECRETO" not in texto_a, f"suyas={n_a}, de la víctima={n_v}")
 
 # ── Escalada de privilegios ──────────────────────────────────────────────
 print("\n── escalada de privilegios ──")
-for ruta in ("/admin/users", "/admin/stats", "/admin/feature-flags"):
+# Sólo rutas que EXISTEN, y exigiendo 401/403: un 404 sobre una ruta inexistente
+# no demuestra que se deniegue el acceso, demuestra que no hay nada ahí.
+# `/admin/stats` estaba en esta lista y no existe — su 404 se contaba como éxito.
+for ruta in ("/admin/users", "/admin/feature-flags", "/admin/coupons"):
     cod, _ = llama("GET", ruta, None, tok_a)
-    marca(f"un usuario normal no entra en {ruta}", cod in (401, 403, 404), f"HTTP {cod}")
+    marca(f"un usuario normal no entra en {ruta}", cod in (401, 403),
+          f"HTTP {cod}" + (" ← 404: ¿existe esa ruta?" if cod == 404 else ""))
 
 # Asignación masiva: ¿puede alguien hacerse premium o admin escribiéndolo?
-# Se compara ANTES contra DESPUÉS, no contra un valor absoluto: estas cuentas
-# ya son premium a propósito (el diario lo exige), así que mirar `is_premium`
-# a secas daría un falso positivo. Lo que importa es si la escritura CAMBIA algo.
+# Asignación masiva. La versión anterior escribía contra `PUT /auth/profile` y
+# `PUT /auth/me`, que NO EXISTEN en este backend: los 404 dejaban el usuario
+# intacto y la comprobación pasaba sin haber probado nada. Una prueba que sólo
+# puede pasar es peor que ninguna, porque además certifica.
+#
+# Aquí se hacen dos cosas distintas:
+#   a) dejar constancia de que no hay ruta de perfil — si algún día se añade,
+#      esta comprobación se pone roja y obliga a escribir el test de verdad;
+#   b) atacar las rutas que SÍ existen y SÍ escriben en `db.users`.
+print("  rutas de perfil (no deben existir; si aparecen, hay que probarlas):")
+for ruta in ("/auth/profile", "/auth/me"):
+    cod, _ = llama("PUT", ruta, {"name": "x", "is_premium": True}, tok_a)
+    marca(f"PUT {ruta} sigue sin existir", cod in (404, 405),
+          f"HTTP {cod}" + (" ← ¡AHORA EXISTE! hay que probar la asignación masiva"
+                           if cod not in (404, 405) else ""))
+
+# Las rutas reales por las que un usuario normal puede provocar una escritura en
+# su propio documento. Se les cuelan campos privilegiados y se mide por
+# DIFERENCIA antes/después: las cuentas de prueba ya son premium a propósito, así
+# que mirar el valor absoluto daría un falso positivo.
 VIGILADOS = ("is_premium", "is_admin", "subscription_plan", "role",
              "subscription_end", "id", "email")
 _, antes = llama("GET", "/auth/me", None, tok_a)
-for campo, valor in (("is_premium", True), ("is_admin", True),
-                     ("subscription_plan", "lifetime"), ("role", "admin"),
-                     ("subscription_end", "2099-01-01T00:00:00Z"),
-                     ("email", "atacante-cambiado@example.com")):
-    llama("PUT", "/auth/profile", {"name": "atacante", campo: valor}, tok_a)
-    llama("PUT", "/auth/me", {campo: valor}, tok_a)
-_, despues = llama("GET", "/auth/me", None, tok_a)
-movidos = [c for c in VIGILADOS if antes.get(c) != despues.get(c)]
-marca("escribir campos privilegiados en el perfil no cambia nada", not movidos,
-      f"cambian: {movidos}" if movidos else "ningún campo sensible se movió")
+CONTRABANDO = {"is_premium": True, "is_admin": True, "role": "admin",
+               "subscription_plan": "lifetime",
+               "subscription_end": "2099-01-01T00:00:00Z"}
+# `POST /auth/change-password` queda FUERA a propósito: revoca todas las sesiones
+# del usuario, así que la lectura de después devolvería un 401 y los siete campos
+# vigilados «cambiarían» de golpe. Eso ya produjo una falsa alarma que parecía
+# una escalada de privilegios en toda regla. Se prueba aparte, al final.
+llama("POST", "/performance/trades",
+      {"symbol": "AAPL", "instrument_type": "stock", "side": "long",
+       "entry_price": 1, "quantity": 1, "account_balance": 100,
+       "status": "open", **CONTRABANDO}, tok_a)
+llama("POST", "/user-states/save",
+      {"state_id": "contrabando", "state": {"x": 1}, **CONTRABANDO}, tok_a)
+llama("POST", "/plan", {"name": "p", "change_reason": "x", **CONTRABANDO}, tok_a)
+cod_d, despues = llama("GET", "/auth/me", None, tok_a)
+# Guarda: si la lectura de después no es un usuario, comparar campo a campo dice
+# que «han cambiado todos» y eso se lee como una escalada de privilegios. Antes
+# de acusar hay que asegurarse de que se está comparando lo mismo.
+if cod_d != 200 or not isinstance(despues, dict) or "id" not in despues:
+    marca("la sesión sigue viva para poder comparar el después", False,
+          f"HTTP {cod_d} — sin esto, la comparación no significa nada")
+else:
+    movidos = [c for c in VIGILADOS if (antes or {}).get(c) != despues.get(c)]
+    marca("colar campos privilegiados en trades, user-states y plan no cambia nada",
+          not movidos, f"cambian: {movidos}" if movidos else
+          "ningún campo sensible se movió")
+
+# Y ahora change-password, que sí revoca la sesión: se comprueba por separado y
+# releyendo con una sesión NUEVA.
+llama("POST", "/auth/change-password",
+      {"current_password": ATACANTE[1], "new_password": ATACANTE[1], **CONTRABANDO}, tok_a)
+tok_a2 = entra(*ATACANTE)
+_, tras_cambio = llama("GET", "/auth/me", None, tok_a2)
+movidos2 = [c for c in VIGILADOS if (antes or {}).get(c) != (tras_cambio or {}).get(c)]
+marca("colar campos privilegiados en change-password no cambia nada",
+      not movidos2, f"cambian: {movidos2}" if movidos2 else "ninguno se movió")
+tok_a = tok_a2
 
 # ¿Puede crear una operación A NOMBRE DE OTRO usuario?
 cod, t2 = llama("POST", "/performance/trades", {

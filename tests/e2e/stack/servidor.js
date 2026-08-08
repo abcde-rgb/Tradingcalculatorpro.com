@@ -28,6 +28,11 @@ const TYPES = {
 const BASE_PATH = '/Tradingcalculatorpro.com';
 
 http.createServer((req, res) => {
+  // Todo el manejador va dentro de un try: una URL con un %-escape inválido hace
+  // que `decodeURIComponent` lance, y una excepción sin capturar aquí **tumba el
+  // servidor** a mitad de tanda. Lo que se ve entonces son sondas fallando por
+  // «conexión rechazada», que se parece mucho a un fallo del producto.
+  try {
   let url = decodeURIComponent((req.url || '/').split('?')[0]);
   if (url === BASE_PATH) url = '/';
   else if (url.startsWith(BASE_PATH + '/')) url = url.slice(BASE_PATH.length);
@@ -41,5 +46,10 @@ http.createServer((req, res) => {
     'Content-Type': TYPES[ext] || 'application/octet-stream',
     'Cache-Control': 'no-store',
   });
-  fs.createReadStream(file).pipe(res);
+  const stream = fs.createReadStream(file);
+  stream.on('error', () => { try { res.destroy(); } catch { /* ya cerrado */ } });
+  stream.pipe(res);
+  } catch (e) {
+    try { res.writeHead(400).end('peticion mal formada'); } catch { /* ya cerrado */ }
+  }
 }).listen(PORT, '127.0.0.1', () => console.log(`sirviendo ${ROOT} en http://127.0.0.1:${PORT}`));

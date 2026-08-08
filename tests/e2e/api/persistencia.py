@@ -82,4 +82,8 @@ persiste = all(abs(float(vuelta.get(k) or 0) - float(got.get(k) or 0)) < 0.011
 print(f"\nreleído desde la BD idéntico: {'✅' if persiste else '❌'}")
 req("DELETE", f"/performance/trades/{tid}", None, tok)
 print("operación de prueba borrada")
-print(f"\n{'TODO CUADRA' if fallos == 0 and persiste else 'HAY DESVIACIONES'}")
+cuadra = fallos == 0 and persiste
+print(f"\n{'TODO CUADRA' if cuadra else 'HAY DESVIACIONES'}")
+# El código de salida es lo que lee `correr.sh`: sin esto, imprimir «HAY
+# DESVIACIONES» y salir con 0 hace que la tanda entera se reporte en verde.
+raise SystemExit(0 if cuadra else 1)

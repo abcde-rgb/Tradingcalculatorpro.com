@@ -55,9 +55,16 @@ def sql(consulta: str) -> str:
     API dice haber hecho: «el borrado responde 200» y «no queda ninguna fila»
     son afirmaciones distintas, y sólo la segunda es la que importa.
     """
-    return subprocess.run(
-        ["psql", "-U", BD_USUARIO, "-d", BD, "-tAc", consulta],
-        capture_output=True, text=True).stdout.strip()
+    r = subprocess.run(["psql", "-U", BD_USUARIO, "-d", BD, "-tAc", consulta],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        # Sin esto, un psql que falla devuelve "" y se lee como «0 filas»: la
+        # comprobación de que el borrado no dejó restos pasaría SIEMPRE, incluso
+        # con la base de datos caída. Un banco de pruebas que no puede consultar
+        # tiene que pararse, no dar por bueno lo que no ha podido mirar.
+        raise SystemExit(f"psql falló ({r.returncode}) en: {consulta[:80]}\n"
+                         f"{r.stderr.strip()[:300]}")
+    return r.stdout.strip()
 
 
 def tablas_con_user_id() -> list[str]:
@@ -87,7 +94,8 @@ def da_premium(uid: str) -> None:
             WHERE data->>'id' = '{uid}'""")
 
 
-def cuenta(email: str, password: str, *, clon_de: Optional[str] = None) -> str:
+def cuenta(email: str, password: str, *, clon_de: Optional[str] = None,
+           clon_password: Optional[str] = None) -> str:
     """Token de una cuenta de prueba. Login → registro → clonado por SQL.
 
     `POST /auth/register` está limitado a 3/hora, y las sondas que borran la
@@ -99,6 +107,14 @@ def cuenta(email: str, password: str, *, clon_de: Optional[str] = None) -> str:
     cod, sesion = llama("POST", "/auth/login", {"email": email, "password": password})
     if cod == 200:
         return sesion["token"]
+    if cod == 429:
+        # Se dice por su nombre. Si no, el flujo cae al registro, que responde
+        # «no se pudo completar el registro» porque la cuenta ya existe, y el
+        # mensaje que llega no tiene nada que ver con la causa. Ha despistado
+        # cinco veces en una sola sesión.
+        raise SystemExit(f"⏸  límite de login alcanzado (10/min) para {email}. "
+                         "Espera un minuto y repite: el limitador funciona, que "
+                         "también es una de las cosas a comprobar.")
 
     cod, sesion = llama("POST", "/auth/register",
                         {"email": email, "password": password,
@@ -115,9 +131,16 @@ def cuenta(email: str, password: str, *, clon_de: Optional[str] = None) -> str:
                              to_jsonb(gen_random_uuid()::text)),
                              '{{email}}', '"{email}"')
             FROM users WHERE data->>'email' = '{clon_de}' LIMIT 1""")
-    cod, sesion = llama("POST", "/auth/login", {"email": email, "password": password})
+    # La fila clonada conserva el hash del DONANTE, así que se entra con SU
+    # contraseña, no con la pedida. Intentarlo con la pedida es lo que hacía que
+    # este camino no funcionara nunca y el escape al límite fuera decorativo.
+    cod, sesion = llama("POST", "/auth/login",
+                        {"email": email, "password": clon_password or password})
     if cod != 200:
-        raise SystemExit(f"el clonado no sirvió para entrar como {email}: HTTP {cod}")
+        raise SystemExit(
+            f"el clonado no sirvió para entrar como {email}: HTTP {cod}. "
+            f"La fila lleva el hash de {clon_de}; pasa `clon_password` con la "
+            "contraseña de esa cuenta.")
     return sesion["token"]
 
 

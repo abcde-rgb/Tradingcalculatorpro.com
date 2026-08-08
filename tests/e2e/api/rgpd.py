@@ -134,22 +134,31 @@ hashes = _re.findall(r"\$2[aby]\$\d\d\$[./A-Za-z0-9]{53}|\$argon2", texto)
 marca("el export no lleva el hash de la contraseña", not hashes,
       f"{len(hashes)} hash(es)" if hashes else "ninguno")
 marca("el perfil exportado no tiene clave `password`",
-      "password" not in (export.get("profile") or {}),
-      f"claves: {sorted((export.get('profile') or {}).keys())}")
+      "password" not in ((export or {}).get("profile") or {}),
+      f"claves: {sorted(((export or {}).get('profile') or {}).keys())}")
 
 # Artefactos de seguridad: tokens y revocaciones. El contrato del proyecto es
 # que se BORREN con la cuenta y NO se exporten nunca — mandárselos al usuario en
 # un JSON sería una regresión de seguridad, no portabilidad. Así que aquí se
 # exige justo lo contrario que para los datos: ausencia en el export.
-ARTEFACTOS = ("email_verification_tokens", "password_resets", "password_reset_tokens",
-              "user_revocations", "referral_redemptions", "sms_log", "usage_events")
+# Espejo de `_SECURITY_ARTEFACT_COLLECTIONS` en server.py: se borran con la
+# cuenta y NO se exportan nunca.
+ARTEFACTOS = ("usage_events", "email_verification_tokens", "password_resets",
+              "password_reset_tokens", "user_revocations", "referral_redemptions",
+              "sms_log")
+# Tablas que SÍ se exportan pero bajo otra clave, así que buscarlas por su nombre
+# de tabla da un falso negativo: facturación viaja como `payments`, y la copia de
+# la migración va dentro de `trades` (duplicarla no es portabilidad).
+OTRO_NOMBRE = {"transactions": "payments", "payment_transactions": "payments",
+               "trades_migration_backup": "trades"}
 filtrados = [t for t in ARTEFACTOS if t in (export or {})]
 marca("los artefactos de seguridad NO se exportan", not filtrados,
       f"se filtran: {filtrados}" if filtrados else "ninguno viaja en el JSON")
 
 # Y de los datos de verdad, ninguno puede quedarse fuera.
 sin_exportar = [t for t in antes
-                if t not in ("users",) and t not in ARTEFACTOS and t not in (export or {})]
+                if t not in ("users",) and t not in ARTEFACTOS
+                and OTRO_NOMBRE.get(t, t) not in (export or {})]
 marca("ninguna tabla de DATOS se queda fuera del export", not sin_exportar,
       f"faltan: {sin_exportar}" if sin_exportar else "todas presentes")
 
@@ -185,8 +194,12 @@ marca("no queda ninguna fila del usuario en ninguna tabla", not restos,
 quedan_users = sql(f"SELECT count(*) FROM users WHERE data->>'id' = '{uid}'")
 marca("la propia cuenta ya no existe", int(quedan_users or 0) == 0)
 
-cod, _ = llama("POST", "/auth/login", {"email": CUENTA[0], "password": CUENTA[1]})
-marca("no se puede volver a entrar con esa cuenta", cod in (401, 404), f"HTTP {cod}")
+# Comprobado contra la BASE DE DATOS y no por login: si la cuenta se preparó
+# clonando, lleva el hash de la donante y un 401 significaría «contraseña
+# equivocada», no «cuenta borrada». Dos causas para el mismo código.
+quedan_email = sql(f"SELECT count(*) FROM users WHERE data->>'email' = '{CUENTA[0]}'")
+marca("no queda ninguna fila de usuario con ese correo", int(quedan_email or 0) == 0,
+      f"{quedan_email} fila(s)")
 
 print("\n" + "=" * 78)
 fallos = len([r for r in resultados if not r])

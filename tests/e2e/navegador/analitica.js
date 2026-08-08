@@ -11,11 +11,11 @@
 const { chromium } = require('../lib/playwright-core');
 const path = require('path');
 const fs = require('fs');
-const { rutaChromium } = require('../entorno');
+const { BASE, rutaChromium } = require('../entorno');
 
 const MODE = process.argv[2] === 'mobile' ? 'mobile' : 'desktop';
 const VIEWPORT = MODE === 'mobile' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
-const BASE = 'http://127.0.0.1:3100/Tradingcalculatorpro.com';
+
 const OUT = path.join(__dirname, '..', '..', '..', '.qa-capturas', 'analitica');
 fs.mkdirSync(OUT, { recursive: true });
 
