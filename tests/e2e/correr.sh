@@ -25,7 +25,7 @@ corre() {  # corre <nombre> <orden...>
 quiere() { [ $# -eq 0 ] && return 0; for q in "$@"; do [ "$q" = "$OBJETIVO" ] && return 0; done; return 1; }
 
 TODO=("$@")
-for OBJETIVO in recorrido analitica temas ticker accesibilidad autorizacion rgpd persistencia; do
+for OBJETIVO in recorrido analitica temas ticker idiomas accesibilidad autorizacion rgpd persistencia; do
   if [ ${#TODO[@]} -gt 0 ]; then
     encontrado=0
     for q in "${TODO[@]}"; do [ "$q" = "$OBJETIVO" ] && encontrado=1; done
@@ -40,6 +40,7 @@ for OBJETIVO in recorrido analitica temas ticker accesibilidad autorizacion rgpd
       corre "analítica · móvil"      node "$E2E/navegador/analitica.js" mobile ;;
     temas)        corre "temas e idiomas (móvil)" node "$E2E/navegador/temas.js" ;;
     ticker)       corre "ticker sin proveedor"    node "$E2E/navegador/ticker.js" ;;
+    idiomas)      corre "los 10 idiomas · escritorio" node "$E2E/navegador/idiomas.js" escritorio ;;
     accesibilidad)
       # Sin axe-core la sonda sale con 2 y lo dice; no se cuenta como fallo del
       # producto, pero tampoco se calla: una comprobación que no puede correr no

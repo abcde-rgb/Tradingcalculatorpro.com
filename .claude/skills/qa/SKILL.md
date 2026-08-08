@@ -56,6 +56,7 @@ node navegador/accesibilidad.js escritorio   # y `movil`
 | `navegador/ticker.js` | Que el dashboard degrada con honestidad cuando el proveedor de precios está caído (BUG-047) |
 | `api/autorizacion.py` | **Dos cuentas**: que una no puede leer, editar ni borrar los datos de la otra cambiando el id de la URL — y que el dato sigue intacto después. Escalada de privilegios y confusión de tokens. 29 comprobaciones |
 | `api/rgpd.py` | Que el export se lleva todo lo que el borrado destruye, y que borrar la cuenta **no deja ninguna fila** — contado en Postgres, no leído del código |
+| `navegador/idiomas.js` | Los 10 idiomas **en pantalla**: `<html lang>`/`dir` correctos, sin desbordes y sin claves i18n crudas coladas como texto. Incluye el árabe en RTL, que `i18n-check` no puede ver |
 | `navegador/accesibilidad.js` | WCAG 2.1 AA con axe-core sobre 4 páginas: nombres accesibles, contraste y ARIA. Sólo reporta lo `critical`/`serious` — los avisos menores esconden lo que de verdad bloquea a alguien |
 | `api/persistencia.py` | Que la cifra que la pantalla enseña antes de guardar es **exactamente** la que queda almacenada (hay dos copias de la matemática: navegador y backend) |
 
