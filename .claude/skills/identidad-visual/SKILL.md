@@ -26,10 +26,45 @@ propia y prohíbe los tics que delatan generación automática.
 | `Sparkles` | 14 usos | Icono-firma del contenido generado por IA. Fuera. |
 | Tipografías cargadas | **4** (Inter, Unbounded, JetBrains Mono, Space Grotesk) | Nadie eligió; se acumularon. |
 | `.font-unbounded` | **216 usos**, y definida **dos veces** en conflicto | `App.css:21` dice Unbounded, `index.css:25` dice Space Grotesk. Gana la que cargue después. Una clase que miente sobre lo que hace es podredumbre del sistema. |
-| Colisión semántica | `--primary: 145 80% 45%` (verde ácido) | El verde es a la vez **color de marca** y **color de beneficio**. En una herramienta financiera eso es un fallo grave: el usuario no puede distinguir "esto es la marca" de "esto está en verde porque ganas dinero". |
+> ⚠️ **Las cifras de arriba son del diagnóstico inicial (2026-08-08, antes de
+> trabajar).** Estado real medido al final de esa sesión, más abajo en §1.bis.
+> Vuelve a medir antes de citar cualquiera de estos números.
 
-Ese último punto es el que hay que arreglar primero. **En este producto el verde y el rojo
-están reservados para el P&L. La marca no puede usarlos.**
+## 1.bis Estado real (medido 2026-08-08, después de trabajar)
+
+| Señal | Antes | Ahora | Estado |
+|---|---:|---:|---|
+| Tipografías cargadas | 4 | **3** | ✅ Archivo / Inter Tight / IBM Plex Mono |
+| `.font-unbounded` duplicada y en conflicto | sí | **no** | ✅ Definición única `.font-display`, nombre viejo como alias |
+| `cubic-bezier` propios | 0 | **8** | ✅ Curvas y duraciones en `tailwind.config.js` |
+| `prefers-reduced-motion` | 2 archivos | **global** | ✅ |
+| Radios | 1 para todo | **2** | ✅ `--radius-sharp` + `--radius`; `rounded-xl` remapeado |
+| `bg-gradient-to-*` | 124 | **121** | ⬜ Limpiada la portada; quedan páginas internas |
+| `blur-3xl` | 7 | **6** | ⬜ Fuera los orbes del hero; quedan Dashboard/Education/Options/Auth |
+| `Sparkles` | 14 | **10** | ⬜ Fuera de portada y precios |
+| `shadow-lg` | 18 | **16** | ⬜ |
+| Usos de la display | 216 | **216** | ⬜ **Sin empezar.** Objetivo <20 |
+
+### Decisión de color — TOMADA, no la revuelvas
+
+El diagnóstico original decía que el verde de marca era "un fallo grave" y
+proponía ámbar. **Se implementó, se comparó en captura y el propietario lo
+rechazó.** La marca es **verde** (`145 80% 45%` oscuro / `145 70% 35%` claro),
+está mergeada y desplegada en producción desde el PR #183.
+
+Lo que sí se conservó de aquel intento, y hay que mantener: el P&L tiene
+**tokens propios** `--long` / `--short` en vez de `text-green-500` suelto por el
+código. Visualmente coinciden con el verde de marca —es la decisión tomada— pero
+si algún día se quieren despegar los dos verdes, se toca en un solo sitio.
+
+**Lo que NO hay que hacer:** volver a proponer ámbar como color de marca, ni
+"arreglar" la coincidencia entre verde de marca y verde de beneficio. Está
+documentado como decisión deliberada en `frontend/src/index.css`, en la cabecera
+del bloque de tokens.
+
+Lo que sigue vigente de la regla original: **un solo acento**. Si algo necesita
+destacar y no es P&L, usa el verde de marca o no destaca. No metas un segundo
+color de acento.
 
 ## 2. Dirección: "instrumento de precisión"
 
@@ -38,22 +73,30 @@ regleta, escala de ticks, cinta de cotizaciones. Todo sale de ahí.
 
 ### Color
 
+Esto es lo que hay **implementado y desplegado** (`frontend/src/index.css`, en
+HSL de shadcn; los hex van al lado sólo como referencia):
+
 ```css
 /* Tema oscuro (por defecto) */
---ink:        #101319;   /* grafito azulado, NO negro puro #0a0a0a */
---ink-raised: #171B22;   /* superficie elevada */
---rule:       #262C36;   /* filete de 1px, el separador principal */
---bone:       #E7E2D6;   /* texto: hueso, no blanco puro */
---bone-dim:   #8B8E96;   /* texto secundario */
---amber:      #E0A03C;   /* MARCA. Acento único. Ámbar de instrumento. */
---long:       #3E8E6B;   /* verde apagado, contable. Solo P&L positivo. */
---short:      #C25A47;   /* rojo óxido. Solo P&L negativo. */
+--background: 220 22% 8%;    /* #101319 grafito azulado, NO negro puro */
+--card:       218 19% 11%;   /* #171B22 superficie elevada */
+--rule:       218 17% 18%;   /* #262C36 filete de 1px, separador principal */
+--foreground: 42 26% 87%;    /* #E7E2D6 texto hueso, no blanco puro */
+--muted-foreground: 224 6% 60%;
+--primary:    145 80% 45%;   /* MARCA. Verde. Decisión tomada — ver §1.bis */
+--long:       142 71% 45%;   /* P&L positivo. Token propio. */
+--short:      0 84% 60%;     /* P&L negativo. Token propio. */
 ```
 
+En claro, el papel es hueso (`42 24% 96%`) y el verde baja a `145 70% 35%` para
+que el texto blanco sobre el botón primario mantenga contraste.
+
 Reglas:
-- **Un solo acento**: ámbar. Si algo necesita destacar y no es P&L, es ámbar o no destaca.
-- Verde y rojo **nunca** en botones, links, badges de marca ni iconos decorativos.
-- El fondo se separa por **filete de 1px (`--rule`)**, no por sombra ni por degradado.
+- **Un solo acento.** Si algo necesita destacar y no es P&L, es el verde de
+  marca o no destaca. No añadas un segundo color de acento.
+- El P&L sale **siempre** de `--long` / `--short`, nunca de `text-green-500` ni
+  `text-red-500` sueltos. Es lo que permite ajustarlo por tema desde un sitio.
+- El fondo se separa por **filete de 1px (`--rule`)**, no por sombra ni degradado.
 - Cero `blur-3xl`. Cero `bg-gradient-to-*` fuera de gráficos de datos.
 
 ### Tipografía
@@ -68,11 +111,14 @@ Tres familias, todas variables (pesan menos que las 4 actuales):
 
 - Todo número lleva `font-variant-numeric: tabular-nums`. Sin excepción — si las cifras
   bailan al actualizarse, el instrumento parece barato.
-- **Regla dura:** la display se usa con restricción. Hoy `.font-unbounded` aparece 216
-  veces; el objetivo es **menos de 20**. Una tipografía con carácter usada en todas partes
-  deja de tener carácter.
-- Borra la definición duplicada: una sola declaración, en `index.css`, con nombre honesto
-  (`.font-display`, no `.font-unbounded`).
+- ✅ **Hecho:** las tres familias están cargadas (`public/index.html`, de 4 a 3) y la
+  definición duplicada ya no existe. Hay una sola declaración en `index.css` con el nombre
+  honesto `.font-display`; `.font-unbounded` se mantiene como alias por los usos heredados.
+- ⬜ **Pendiente, y es el trabajo tipográfico que queda:** la display sigue apareciendo
+  **216 veces**; el objetivo es **menos de 20**. Una tipografía con carácter usada en todas
+  partes deja de tener carácter. No es un renombrado mecánico: hay que decidir sitio por
+  sitio si ese titular merece la display o va en Inter Tight, así que se hace por pantallas,
+  no con un `sed`.
 
 ### Forma y espacio
 
@@ -118,8 +164,8 @@ adorno.
 ## 5. Reglas duras (checklist antes de commitear cualquier UI)
 
 - [ ] ¿He añadido un degradado? → Bórralo salvo que sea un fill de gráfico de datos.
-- [ ] ¿He usado verde o rojo para algo que no es P&L? → Cámbialo a ámbar o neutro.
-- [ ] ¿He usado más de un color de acento en la vista? → Reduce a uno.
+- [ ] ¿He pintado un P&L con `text-green-500` / `text-red-500`? → Usa `--long` / `--short`.
+- [ ] ¿He usado más de un color de acento en la vista? → Reduce a uno (el verde de marca).
 - [ ] ¿Hay iconos con chip de color de fondo? → Icono monocromo, sin chip.
 - [ ] ¿He usado `Sparkles`, `Zap` o `Rocket`? → Sustituye por un icono del dominio.
 - [ ] ¿Los números son `tabular-nums`? → Obligatorio.
