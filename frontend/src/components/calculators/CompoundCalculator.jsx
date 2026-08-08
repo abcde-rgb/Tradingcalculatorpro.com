@@ -119,7 +119,7 @@ export const CompoundCalculator = () => {
           </div>
         )}
 
-        <p className="text-[11px] text-muted-foreground/80 leading-relaxed flex items-start gap-1.5">
+        <p className="text-[11px] text-muted-foreground leading-relaxed flex items-start gap-1.5">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-yellow-500" />
           {t('cmpNote')}
         </p>

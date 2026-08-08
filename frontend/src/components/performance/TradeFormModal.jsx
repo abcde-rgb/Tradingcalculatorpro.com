@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import SectionCard, { SectionHeading } from '@/components/options/SectionCard';
+import { aISOConZona, desdeISO, paraInput, zonaLocal } from '@/lib/tradeDates';
 import { useTranslation } from '@/lib/i18n';
 import { createTrade, updateTrade, backendSupportsProducts } from '@/services/performanceApi';
 import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
@@ -25,14 +26,14 @@ import AlertSection from './form/AlertSection';
 import { toast } from 'sonner';
 
 const SIDES = [
-  { id: 'long',  labelKey: 'tradeFormSideLong',  color: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/40' },
-  { id: 'short', labelKey: 'tradeFormSideShort', color: 'bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/40' },
+  { id: 'long',  labelKey: 'tradeFormSideLong',  color: 'bg-[#22c55e]/15 text-[#4ade80] border-[#22c55e]/40' },
+  { id: 'short', labelKey: 'tradeFormSideShort', color: 'bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/40' },
 ];
 
 // Compra/venta de la opción (long = comprada, short = vendida/emitida)
 const OPTION_SIDES = [
-  { id: 'long',  labelKey: 'tradeOptionBuy',  color: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/40' },
-  { id: 'short', labelKey: 'tradeOptionSell', color: 'bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/40' },
+  { id: 'long',  labelKey: 'tradeOptionBuy',  color: 'bg-[#22c55e]/15 text-[#4ade80] border-[#22c55e]/40' },
+  { id: 'short', labelKey: 'tradeOptionSell', color: 'bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/40' },
 ];
 
 const STATUS_OPTIONS = [
@@ -85,30 +86,42 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
   const [setups, setSetups] = useState(() => tradeSetups(initialTrade || {}));
   const [setupDraft, setSetupDraft] = useState('');
 
-  const [form, setForm] = useState(() => initialTrade || {
-    symbol: '',
-    side: 'long',
-    instrument_type: 'stock',
-    entry_price: '',
-    exit_price: '',
-    sl: '', sl_unit: 'price', sl_input: '',
-    tp: '', tp_unit: 'price', tp_input: '',
-    mae_price: '',
-    mfe_price: '',
-    quantity: '',
-    lot_type: 'standard',
-    multiplier: '',
-    leverage: '',
-    account_balance: 10000,
-    fees: 0,
-    status: 'open',
-    emotion: 3,
-    notes: '',
-    option_type: 'call',
-    strike: '',
-    expiry: '',
-    notify: null,
-  });
+  // Al EDITAR, el apalancamiento guardado es del usuario por definición: se
+  // marca como tocado para que cambiar de activo no se lo reescriba.
+  const [form, setForm] = useState(() => (initialTrade
+    ? { ...initialTrade, leverage_touched: true,
+        entry_at: desdeISO(initialTrade.entry_date),
+        exit_at: desdeISO(initialTrade.exit_date) }
+    : {
+      symbol: '',
+      side: 'long',
+      instrument_type: 'stock',
+      entry_price: '',
+      exit_price: '',
+      sl: '', sl_unit: 'price', sl_input: '',
+      tp: '', tp_unit: 'price', tp_input: '',
+      mae_price: '',
+      mfe_price: '',
+      quantity: '',
+      lot_type: 'standard',
+      multiplier: '',
+      leverage: '',
+      leverage_touched: false,
+      account_balance: 10000,
+      fees: 0,
+      status: 'open',
+      // Cuándo ocurrió, en hora del trader. Por defecto ahora, pero editable:
+      // quien apunta por la noche las operaciones del día necesita poder decir
+      // a qué hora fue cada una, o el diario cuenta una historia que no pasó.
+      entry_at: paraInput(),
+      exit_at: '',
+      emotion: 3,
+      notes: '',
+      option_type: 'call',
+      strike: '',
+      expiry: '',
+      notify: null,
+    }));
 
   const set = (k) => (e) => {
     const v = e?.target ? e.target.value : e;
@@ -178,6 +191,10 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
   // Cambiar de producto rehace lo que el producto decide y NO toca lo que el
   // usuario escribió. Si arrastrara el tamaño de contrato del producto anterior,
   // un CFD de oro pasado a acciones seguiría contando 100 onzas por unidad.
+  //
+  // `leverage_touched` vuelve a false: el apalancamiento que hay ahora lo hemos
+  // puesto nosotros por defecto del producto, así que el activo que se elija
+  // después todavía puede afinarlo.
   const changeProduct = (id) => {
     const next = resolveSpec(id, form.symbol);
     setForm((p) => ({
@@ -186,6 +203,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
       multiplier: '',
       lot_type: id === 'forex' ? (p.lot_type || 'standard') : p.lot_type,
       leverage: next.usesLeverage ? (next.defaultLeverage ?? p.leverage ?? '') : '',
+      leverage_touched: false,
       // Las unidades del producto anterior pueden no existir en el nuevo
       // (pips en futuros, ticks en forex): se vuelve a precio, que siempre vale.
       sl_unit: (next.quoteUnits || []).includes(p.sl_unit) ? p.sl_unit : 'price',
@@ -193,8 +211,14 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
     }));
   };
 
-  // Elegir activo rellena el apalancamiento típico de ESE activo — el CFD del
-  // oro a 20×, el par mayor a 30× — y se puede cambiar a mano acto seguido.
+  // Elegir activo afina el apalancamiento al típico de ESE activo: el CFD del
+  // oro a 20×, el par mayor a 30×, un futuro al que sale de su margen inicial.
+  //
+  // ⚠️ La condición NO puede ser "sólo si está vacío". Elegir el producto ya deja
+  // puesto su valor genérico —10× en CFD—, así que con esa guarda el 20× del oro
+  // no entraba nunca y el margen salía al doble de lo real. Lo que decide es si
+  // el número lo escribió el TRADER: mientras no lo toque, mandan los datos del
+  // instrumento; en cuanto lo toca, manda él y no se lo volvemos a pisar.
   const changeSymbol = (raw) => {
     const symbol = String(raw || '').toUpperCase();
     const next = resolveSpec(product, symbol);
@@ -206,7 +230,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
       return {
         ...p,
         symbol,
-        leverage: (!p.leverage && suggested) ? suggested : p.leverage,
+        leverage: (!p.leverage_touched && suggested) ? suggested : p.leverage,
       };
     });
   };
@@ -313,6 +337,10 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
         max_loss: nz(form.max_loss),
         max_profit: nz(form.max_profit),
         status: form.status,
+        // Con desfase local: es lo que hace que la analítica agrupe por el
+        // día del trader y no por el de UTC.
+        entry_date: aISOConZona(form.entry_at),
+        exit_date: form.status === 'open' ? null : aISOConZona(form.exit_at),
         emotion: form.emotion ? Number(form.emotion) : null,
         notes: form.notes || '',
         option_type: isOption ? (form.option_type || 'call') : null,
@@ -474,7 +502,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
                 operación es grande. */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground block min-h-[2.4em] md:min-h-0">
                   {t(sizingLabelKey(spec))} *
                 </Label>
                 <Input type="number" step="any" value={form.quantity}
@@ -496,7 +524,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground block min-h-[2.4em] md:min-h-0">
                   {t('tfContractSize')}
                 </Label>
                 <Input
@@ -513,14 +541,19 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground block min-h-[2.4em] md:min-h-0">
                   {t('tfLeverage')}
                 </Label>
                 {spec.usesLeverage ? (
                   <>
                     <Input
                       type="number" step="any" min="1" value={form.leverage ?? ''}
-                      onChange={set('leverage')} className="mt-1"
+                      // Escribirlo aquí es lo que hace que el catálogo deje de
+                      // proponer: a partir de este momento manda el trader.
+                      onChange={(e) => setForm((p) => ({
+                        ...p, leverage: e.target.value, leverage_touched: true,
+                      }))}
+                      className="mt-1"
                       placeholder={spec.defaultLeverage ? String(spec.defaultLeverage) : '1'}
                       data-testid="trade-leverage"
                     />
@@ -540,7 +573,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground block min-h-[2.4em] md:min-h-0">
                   {t('tradeBalance')}
                 </Label>
                 <Input type="number" step="any" value={form.account_balance}
@@ -607,6 +640,35 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
               </div>
             </div>
 
+            {/* CUÁNDO ocurrió, en hora del trader. Antes no se preguntaba y se
+                sellaba el instante de teclearlo en UTC: quien apunta por la
+                noche tenía todas las operaciones del día con la misma marca, y
+                el «¿qué día opero mejor?» respondía sobre el día UTC, que para
+                medio mundo no es el suyo. La fecha viaja con su desfase. */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {t('tradeEntryAt')}
+                </Label>
+                <Input type="datetime-local" value={form.entry_at || ''}
+                  onChange={set('entry_at')} className="mt-1"
+                  data-testid="trade-entry-at" />
+              </div>
+              {form.status !== 'open' && (
+                <div>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                    {t('tradeExitAt')}
+                  </Label>
+                  <Input type="datetime-local" value={form.exit_at || ''}
+                    onChange={set('exit_at')} className="mt-1"
+                    data-testid="trade-exit-at" />
+                </div>
+              )}
+            </div>
+            <p className="mt-1 text-[10px] text-muted-foreground" data-testid="trade-tz-note">
+              {t('tradeTimezoneNote').replace('{tz}', zonaLocal() || 'local')}
+            </p>
+
             {/* Los avisos que salen de las reglas del propio trader. El suelo
                 1:1 lo pinta el panel de arriba; esto es lo que él escribió. */}
             {(rrWarn || riskWarn) && (
@@ -640,7 +702,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
                       onClick={() => set('option_type')(o.id)}
                       className={`flex-1 px-2 py-2 rounded-md text-xs font-bold uppercase border transition-all ${
                         form.option_type === o.id
-                          ? (o.id === 'call' ? 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/40' : 'bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/40')
+                          ? (o.id === 'call' ? 'bg-[#22c55e]/15 text-[#4ade80] border-[#22c55e]/40' : 'bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/40')
                           : 'border-border text-muted-foreground hover:text-foreground'
                       }`}
                       data-testid={`trade-option-${o.id}`}
@@ -713,7 +775,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 {t('tradeSetup')}
-                <span className="ml-1.5 normal-case tracking-normal text-muted-foreground/70">
+                <span className="ml-1.5 normal-case tracking-normal text-muted-foreground">
                   {t('tradeSetupMultiHint')}
                 </span>
               </Label>

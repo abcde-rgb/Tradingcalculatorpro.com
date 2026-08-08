@@ -122,7 +122,7 @@ const UnusualActivity = ({ symbol }) => {
           <p className="text-sm text-muted-foreground">
             No se detectó actividad inusual con ratio ≥ {minRatio}x en las próximas 5 expiraciones.
           </p>
-          <p className="text-[11px] text-muted-foreground/70 mt-1">{t('pruebaBajarElRatioMinimo_5339a2')}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">{t('pruebaBajarElRatioMinimo_5339a2')}</p>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">

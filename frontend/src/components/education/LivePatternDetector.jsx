@@ -197,7 +197,7 @@ const LivePatternDetector = () => {
 
         {/* Reliability figures are approximate historical stats — not a promise. */}
         {data && data.detections && data.detections.length > 0 && (
-          <p className="text-[10px] text-muted-foreground/70 leading-relaxed pt-1">
+          <p className="text-[10px] text-muted-foreground leading-relaxed pt-1">
             {t('patStatsNote')}
           </p>
         )}

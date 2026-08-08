@@ -154,7 +154,7 @@ export const PriceAlerts = () => {
             className="flex-1 font-mono bg-muted border-border"
             data-testid="alert-price-input"
           />
-          <Button onClick={createAlert} size="icon" className="bg-yellow-500 text-black hover:bg-yellow-400" data-testid="create-alert-btn">
+          <Button onClick={createAlert} size="icon" className="bg-yellow-500 text-black hover:bg-yellow-400" data-testid="create-alert-btn" aria-label={t('createAlert')}>
             <Plus className="w-4 h-4" />
           </Button>
         </div>

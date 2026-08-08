@@ -26,7 +26,7 @@ const StoreBadge = ({ icon, top, bottom, soon }) => (
   <div
     className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 min-w-[168px] ${
       soon
-        ? 'border-border bg-muted/30 opacity-80'
+        ? 'border-border bg-muted/30'
         : 'border-primary/40 bg-primary/5 hover:border-primary transition-colors'
     }`}
   >

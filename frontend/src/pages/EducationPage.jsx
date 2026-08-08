@@ -267,7 +267,7 @@ function PatternDetailModal({ pattern, onClose }) {
                 </span>
               )}
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} data-testid="pattern-modal-close">
+            <Button variant="ghost" size="icon" onClick={onClose} data-testid="pattern-modal-close" aria-label={t('close')}>
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -346,7 +346,7 @@ function PatternDetailModal({ pattern, onClose }) {
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('patRankLabel')}</p>
                       <p className="font-semibold font-mono mt-0.5">#{s.rank}/103</p>
                     </div>
-                    <p className="col-span-3 text-[10px] text-muted-foreground/70 leading-relaxed">{t('patStatsNote')}</p>
+                    <p className="col-span-3 text-[10px] text-muted-foreground leading-relaxed">{t('patStatsNote')}</p>
                   </div>
                 );
               })()}
@@ -912,7 +912,7 @@ export default function EducationPage() {
                             return (
                               <div key={tp.value}>
                                 {showGroup && (
-                                  <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                                  <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                                     {t(`eduGroup_${tp.group}`)}
                                   </p>
                                 )}
@@ -5266,8 +5266,8 @@ export default function EducationPage() {
                           const chosen = quizSel[qi] === oi;
                           const correct = QUIZ_CORRECT[qi] === oi;
                           let cls = 'border-border bg-background text-muted-foreground hover:text-foreground';
-                          if (quizDone && correct) cls = 'border-[#22c55e]/60 bg-[#22c55e]/10 text-[#22c55e] font-medium';
-                          else if (quizDone && chosen && !correct) cls = 'border-[#ef4444]/60 bg-[#ef4444]/10 text-[#ef4444]';
+                          if (quizDone && correct) cls = 'border-[#22c55e]/60 bg-[#22c55e]/10 text-[#4ade80] font-medium';
+                          else if (quizDone && chosen && !correct) cls = 'border-[#ef4444]/60 bg-[#ef4444]/10 text-[#f87171]';
                           else if (chosen) cls = 'border-primary text-primary bg-primary/10 font-medium';
                           return (
                             <button

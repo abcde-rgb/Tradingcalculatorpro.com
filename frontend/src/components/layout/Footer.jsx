@@ -132,8 +132,8 @@ export function Footer() {
             <p className="text-muted-foreground text-xs">
               © {year} {t('appName')}. {t('allRightsReserved')}.
             </p>
-            <span className="hidden md:inline text-muted-foreground/40">·</span>
-            <p className="text-muted-foreground/70 text-[11px] max-w-xl leading-snug">
+            <span className="hidden md:inline text-muted-foreground">·</span>
+            <p className="text-muted-foreground text-[11px] max-w-xl leading-snug">
               {t('disclaimer')} {t('dataAttribution')}
             </p>
           </div>

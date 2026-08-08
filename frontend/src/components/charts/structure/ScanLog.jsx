@@ -72,13 +72,13 @@ export default function ScanLog({ log, onClear }) {
               )}
               {dir && <span className={`font-mono ${dir.color}`}>{dir.icon}</span>}
               {e.price != null && <span className="font-mono text-muted-foreground">{fmtPrice(e.price)}</span>}
-              <span className="font-mono text-muted-foreground/70 text-[10px] ml-auto shrink-0">{e.date}</span>
-              <span className="text-[9px] text-muted-foreground/60 shrink-0 hidden sm:inline">· {relTime(e.ts, t)}</span>
+              <span className="font-mono text-muted-foreground text-[10px] ml-auto shrink-0">{e.date}</span>
+              <span className="text-[9px] text-muted-foreground shrink-0 hidden sm:inline">· {relTime(e.ts, t)}</span>
             </div>
           );
         })}
       </div>
-      <p className="text-[10px] text-muted-foreground/70 leading-relaxed pt-1.5">
+      <p className="text-[10px] text-muted-foreground leading-relaxed pt-1.5">
         {t('structLogNote')} {t('structLogScopeNote')}
       </p>
     </div>

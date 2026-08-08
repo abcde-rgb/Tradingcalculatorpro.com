@@ -223,7 +223,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
           <h2 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
             <span className="text-primary">◆</span> {t('volatilityConceptsTitle')}
           </h2>
-          <p className="text-xs text-muted-foreground/80 mb-4">
+          <p className="text-xs text-muted-foreground mb-4">
             {t('canonicalVolNote')}{' '}
             <CanonicalLink topic="options-vol" label={t('canonicalVolLink')} />
           </p>
@@ -274,7 +274,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
             <span className="text-primary">◆</span> {t('greeksDeepDiveTitle')}
           </h2>
           <p className="text-sm text-muted-foreground mb-2">{t('greeksDeepDiveIntro')}</p>
-          <p className="text-xs text-muted-foreground/80 mb-4">
+          <p className="text-xs text-muted-foreground mb-4">
             {t('canonicalGreeksNote')}{' '}
             <CanonicalLink topic="option-greeks" label={t('canonicalGreeksLink')} />
           </p>

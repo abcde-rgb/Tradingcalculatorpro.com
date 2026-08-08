@@ -140,15 +140,15 @@ function Cell({ label, value, hint, tone, testid }) {
     <div data-testid={testid}>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={`text-base font-bold font-mono ${TONES[tone] || 'text-foreground'}`}>{value}</div>
-      {hint && <div className="text-[9px] text-muted-foreground/80 mt-0.5 leading-tight">{hint}</div>}
+      {hint && <div className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{hint}</div>}
     </div>
   );
 }
 
 function Banner({ tone, icon, children, testid }) {
   const cls = tone === 'bad'
-    ? 'bg-[#ef4444]/10 border-[#ef4444]/40 text-[#ef4444]'
-    : 'bg-[#f59e0b]/10 border-[#f59e0b]/40 text-[#f59e0b]';
+    ? 'bg-[#ef4444]/10 border-[#ef4444]/40 text-[#f87171]'
+    : 'bg-[#f59e0b]/10 border-[#f59e0b]/40 text-[#fbbf24]';
   return (
     <div className={`flex items-start gap-2 px-4 py-2 border-t text-[11px] font-semibold leading-relaxed ${cls}`}
       data-testid={testid}

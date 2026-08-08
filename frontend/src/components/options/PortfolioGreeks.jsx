@@ -89,7 +89,7 @@ const PortfolioGreeks = () => {
                   <div className={`text-base font-bold font-mono mt-0.5 ${colorCls}`}>
                     {val >= 0 ? '+' : ''}{val.toFixed(key === 'gamma' ? 4 : 2)}
                   </div>
-                  <div className="text-[8px] text-muted-foreground/70 mt-0.5">{t(subKey)}</div>
+                  <div className="text-[8px] text-muted-foreground mt-0.5">{t(subKey)}</div>
                 </div>
               );
             })}
@@ -121,7 +121,7 @@ const PortfolioGreeks = () => {
             </div>
           </details>
 
-          <p className="text-[9px] text-muted-foreground/70 mt-3 leading-snug">
+          <p className="text-[9px] text-muted-foreground mt-3 leading-snug">
             Calculadas con los precios spot actuales. Δ positivo = exposición larga net; Θ positivo = cobras theta neta; ν alto = sensibilidad a cambios en IV.
           </p>
         </>

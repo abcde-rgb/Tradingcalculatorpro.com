@@ -216,7 +216,7 @@ const LegEditor = ({
               <button onClick={() => duplicateLeg(idx)} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-primary" title="Duplicar">
                 <Copy className="w-3 h-3" />
               </button>
-              <button onClick={() => removeLeg(idx)} className="p-1 rounded hover:bg-[#ef4444]/10 transition-colors text-muted-foreground hover:text-[#ef4444]" title="Eliminar">
+              <button onClick={() => removeLeg(idx)} className="p-1 rounded hover:bg-[#ef4444]/10 transition-colors text-muted-foreground hover:text-[#f87171]" title="Eliminar">
                 <Trash2 className="w-3 h-3" />
               </button>
             </div>

@@ -95,3 +95,11 @@ android/
 # Informes de test generados (el .gitkeep sí se versiona)
 test_reports/*.json
 test_reports/pytest/
+
+# Banco de pruebas E2E (tests/e2e): estado y capturas de una tanda concreta,
+# no artefactos del repositorio.
+.qa-estado/
+.qa-capturas/
+tests/e2e/node_modules/
+tests/e2e/lib/
+tests/e2e/package-lock.json

@@ -196,7 +196,7 @@ const PayoffChart = ({
             <div className="w-3 h-3 rounded-sm bg-[#ef4444]/20"></div>
             <span className="text-muted-foreground">Loss</span>
           </div>
-          <span className="text-muted-foreground/40">|</span>
+          <span className="text-muted-foreground">|</span>
           <div className="flex items-center gap-1.5" title="In-The-Money zone (Call: S>K, Put: S<K)">
             <div className="w-3 h-3 rounded-sm bg-[#4ade80]/25 border border-[#4ade80]/40"></div>
             <span className="text-muted-foreground">ITM</span>

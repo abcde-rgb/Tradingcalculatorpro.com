@@ -17,7 +17,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { RecommendedTools } from '@/components/common/RecommendedTools';
 import { useAuthStore } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, languages } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useThemeStore } from '@/lib/theme';
 
@@ -179,7 +179,10 @@ export default function LandingPage() {
               {[
                 { value: '24/7', labelKey: 'statsAvailable',  delay: 0.2, icon: Clock },
                 { value: '50+',  labelKey: 'statsAssets',     delay: 0.3, icon: Layers },
-                { value: '8',    labelKey: 'statsLanguages',  delay: 0.4, icon: Globe },
+                // La cifra sale de la lista de idiomas, no de un literal: escrita
+                // a mano se quedó en 8 mientras la etiqueta ya decía 10, así que
+                // la propia tarjeta se contradecía. Añadir un idioma la actualiza.
+                { value: String(languages.length), labelKey: 'statsLanguages', delay: 0.4, icon: Globe },
                 { value: '99.9%',labelKey: 'statsUptime',     delay: 0.5, icon: Zap },
               ].map((stat) => {
                 const Ic = stat.icon;

@@ -25,6 +25,8 @@ from performance import (  # noqa: E402
     compute_analytics,
     compute_trade_pnl,
     detect_errors,
+    detect_mixed_accounts,
+    is_closed_trade,
     is_legacy_trade,
     legacy_keys_to_unset,
     make_trade_doc,
@@ -457,3 +459,100 @@ class TestBackwardCompatibility:
         })
         # Riesgo = |100 − 95| × 10 = 50 $; 95 / 50 = 1,9 R.
         assert out["pnl"] == 95.0 and out["r_multiple"] == round(95 / 50, 2)
+
+
+# ─── Alcance de la analítica: una cuenta o varias ─────────────────
+
+class TestMixedAccounts:
+    """La curva, el drawdown y el % de rentabilidad asumen UNA cuenta.
+
+    Cuando no la hay, la respuesta tiene que decirlo: es la diferencia entre un
+    drawdown que ocurrió y uno que sale de sumar dos cuentas distintas.
+    """
+
+    def _t(self, product, balance, pnl=10.0):
+        return {"instrument_type": product, "account_balance": balance, "pnl": pnl,
+                "status": "closed", "exit_price": 1.0}
+
+    def test_one_product_is_never_suspicious(self):
+        out = detect_mixed_accounts([self._t("cfd", 10000)] * 5)
+        assert out["suspected"] is False and out["products"] == 1
+
+    def test_same_account_across_products_is_not_suspicious(self):
+        """Operar tres productos en la misma cuenta es lo normal."""
+        trades = [self._t("cfd", 10000), self._t("forex", 10200),
+                  self._t("option", 10450), self._t("futures", 9800)]
+        out = detect_mixed_accounts(trades)
+        assert out["suspected"] is False, out
+
+    def test_balances_that_do_not_overlap_are_flagged(self):
+        """Opciones en 10 000 y perpetuos en 50 000 son dos cuentas."""
+        trades = [self._t("option", 10000), self._t("option", 10300),
+                  self._t("crypto_perp", 50000), self._t("crypto_perp", 51000)]
+        out = detect_mixed_accounts(trades)
+        assert out["suspected"] is True
+        assert out["ratio"] >= 2.0
+        assert set(out["balance_by_product"]) == {"option", "crypto_perp"}
+
+    def test_a_single_mistyped_balance_does_not_decide_it(self):
+        """Por eso es la mediana y no la media."""
+        trades = ([self._t("cfd", 10000)] * 6 + [self._t("cfd", 999999)]
+                  + [self._t("forex", 10100)] * 6)
+        assert detect_mixed_accounts(trades)["suspected"] is False
+
+    def test_trades_without_balance_are_ignored_not_counted_as_zero(self):
+        trades = [self._t("cfd", 10000), self._t("forex", None)]
+        out = detect_mixed_accounts(trades)
+        assert out["products"] == 1 and out["suspected"] is False
+
+    def test_the_flag_travels_in_the_analytics_payload(self):
+        trades = [compute_trade_pnl(make_trade_doc({
+            "symbol": "AAPL", "side": "long", "instrument_type": "option",
+            "option_type": "call", "entry_price": 3, "quantity": 1,
+            "exit_price": 4, "status": "closed", "account_balance": 10000,
+            "exit_date": "2026-08-01T00:00:00Z"}, "u")),
+            compute_trade_pnl(make_trade_doc({
+                "symbol": "BTCUSDT", "side": "long", "instrument_type": "crypto_perp",
+                "entry_price": 100000, "quantity": 0.01, "exit_price": 101000,
+                "status": "closed", "account_balance": 60000,
+                "exit_date": "2026-08-02T00:00:00Z"}, "u"))]
+        assert compute_analytics(trades)["mixed_accounts"]["suspected"] is True
+
+
+class TestClosedTradePredicate:
+    """El selector de alcance y la analítica tienen que leer «cerrada» igual.
+
+    La barra de productos se dibuja con los que tienen algo cerrado. Si ese
+    criterio se separa del que usa `compute_analytics`, aparece un botón de
+    filtro que lleva a un panel vacío — y el panel vacío no tiene cifras que
+    explicar por qué.
+    """
+
+    def test_a_status_alone_is_not_a_closed_trade(self):
+        """Sin precio de salida no hay P&L: contarla metería un cero en la curva."""
+        assert is_closed_trade({"status": "closed", "exit_price": None}) is False
+        assert is_closed_trade({"status": "closed", "exit_price": 101.0}) is True
+
+    def test_the_three_final_states_count(self):
+        for st in ("closed", "sl_hit", "tp_hit"):
+            assert is_closed_trade({"status": st, "exit_price": 1.0}) is True
+
+    def test_an_open_position_never_counts(self):
+        assert is_closed_trade({"status": "open", "exit_price": 1.0}) is False
+        assert is_closed_trade({}) is False
+
+    def test_it_is_the_same_criterion_analytics_uses(self):
+        """Lo que cuente aquí tiene que ser lo que `closed_trades` cuenta allí."""
+        trades = [
+            compute_trade_pnl(make_trade_doc({
+                "symbol": "MSFT", "side": "long", "instrument_type": "stock",
+                "entry_price": 400, "quantity": 1, "exit_price": 410,
+                "status": "closed", "account_balance": 10000,
+                "exit_date": "2026-08-01T00:00:00Z"}, "u")),
+            compute_trade_pnl(make_trade_doc({
+                "symbol": "GC", "side": "long", "instrument_type": "futures",
+                "entry_price": 2450, "quantity": 1, "status": "open",
+                "account_balance": 10000}, "u")),
+        ]
+        assert sum(1 for t in trades if is_closed_trade(t)) == 1
+        assert compute_analytics(trades)["closed_trades"] == 1

@@ -90,6 +90,24 @@ def _trade_close_dt(trade: dict) -> Optional[datetime]:
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
+#: Estados en los que una operación ya no está viva.
+CLOSED_STATUSES = ("closed", "sl_hit", "tp_hit")
+
+
+def is_closed_trade(trade: Dict[str, Any]) -> bool:
+    """¿Esta operación cuenta como cerrada para la analítica?
+
+    Cerrada es estado final **y** precio de salida: sin salida no hay P&L, y una
+    marcada como cerrada a la que le falte el precio metería un cero en la curva.
+
+    La condición estaba escrita tres veces como literal. Se saca aquí porque la
+    barra de alcance de la analítica tiene que usar EXACTAMENTE la misma: si las
+    dos lecturas se separan, aparece un botón de filtro que lleva a un panel
+    vacío del que no se puede volver.
+    """
+    return (trade.get("status") in CLOSED_STATUSES
+            and trade.get("exit_price") is not None)
+
 
 def sort_trades_chronologically(trades: List[dict]) -> List[dict]:
     """Oldest → newest by **exit** date.
@@ -822,8 +840,7 @@ def detect_behavioral_biases(trades: List[dict]) -> List[Dict[str, Any]]:
     Returns a list of {code, severity, title_key, detail_key, ...numbers} sorted
     by severity. Empty when there isn't enough data or no bias stands out.
     """
-    closed = [t for t in trades if t.get("status") in ("closed", "sl_hit", "tp_hit")
-              and t.get("exit_price") is not None]
+    closed = [t for t in trades if is_closed_trade(t)]
     n = len(closed)
     biases: List[Dict[str, Any]] = []
     if n < 3:
@@ -903,8 +920,7 @@ def compute_analytics(
     Order of `trades` does not matter: closed trades are re-sorted by exit date
     before anything order-sensitive (equity curve, drawdown, streaks) is built.
     """
-    closed = [t for t in trades if t.get("status") in ("closed", "sl_hit", "tp_hit")
-              and t.get("exit_price") is not None]
+    closed = [t for t in trades if is_closed_trade(t)]
     if not closed:
         return _empty_analytics(trades)
 
@@ -1087,6 +1103,10 @@ def compute_analytics(
         "setups_multi_tagged": setups_multi_tagged,
         "by_symbol": by_symbol,
         "by_product": by_product,
+        # ¿Una cuenta o varias? La curva, el drawdown y el % de rentabilidad se
+        # construyen sobre UNA, así que cuando hay indicios de varias hay que
+        # decirlo en vez de dibujar una curva que mezcla cuentas.
+        "mixed_accounts": detect_mixed_accounts(closed),
         # Lo que costó operar y lo que costó tener la posición abierta. Se
         # publica aparte porque no es lo mismo perder por dirección que perder
         # por peaje: un scalper con ventaja bruta puede acabar en rojo sólo por
@@ -1103,6 +1123,56 @@ def compute_analytics(
         "errors_breakdown": error_counts,
         "rule_compliance_rate": round(rule_compliance_rate, 2),
         "avg_emotion": avg_emotion,
+    }
+
+
+def detect_mixed_accounts(closed: List[dict]) -> Dict[str, Any]:
+    """¿Estas operaciones vienen de UNA cuenta o de varias?
+
+    Importa porque la curva de equity, el drawdown, el Sharpe y el % de
+    rentabilidad se construyen **sobre una sola cuenta**: arrancan del
+    `account_balance` de la operación más antigua y le van sumando el P&L de
+    todas. Si el usuario apunta opciones en una cuenta de 10 000 y perpetuos en
+    otra de 50 000 —que es lo normal: cada producto en su bróker—, la curva
+    empieza en 10 000 y le suma importes dimensionados para 50 000. El drawdown
+    que sale de ahí **no ocurrió nunca**, y es una cifra con la que se decide
+    tamaño de posición.
+
+    El detector compara la MEDIANA del saldo por producto. Con una sola cuenta
+    todos los productos comparten la misma trayectoria de saldo y las medianas
+    quedan juntas; con cuentas distintas se separan. Se usa la mediana y no la
+    media porque una sola operación con el saldo mal tecleado no debe decidir
+    esto.
+
+    Nunca afirma; **sospecha**. Un trader puede tener de verdad una cuenta que
+    se triplicó, y llamar a eso "dos cuentas" sería inventar. Por eso el campo
+    se llama `suspected` y la respuesta publica los números en los que se basa,
+    para que quien lo lea pueda no estar de acuerdo.
+    """
+    by_product: Dict[str, List[float]] = {}
+    for t in closed:
+        bal = t.get("account_balance")
+        if not bal:
+            continue
+        by_product.setdefault(t.get("instrument_type") or DEFAULT_PRODUCT, []).append(float(bal))
+
+    medians = {
+        p: round(statistics.median(v), 2)
+        for p, v in by_product.items() if v
+    }
+    if len(medians) < 2:
+        return {"suspected": False, "products": len(medians),
+                "balance_by_product": medians, "ratio": None}
+
+    lo, hi = min(medians.values()), max(medians.values())
+    ratio = round(hi / lo, 2) if lo > 0 else None
+    return {
+        # Dos veces de diferencia entre las medianas de dos productos no es la
+        # deriva de una cuenta que crece: es otra cuenta.
+        "suspected": bool(ratio and ratio >= 2.0),
+        "products": len(medians),
+        "balance_by_product": medians,
+        "ratio": ratio,
     }
 
 
@@ -1291,6 +1361,7 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "setups_multi_tagged": 0,
         "by_symbol": [],
         "by_product": [],
+        "mixed_accounts": detect_mixed_accounts([]),
         "costs": _cost_summary([]),
         "leverage_usage": _leverage_summary([]),
         "r_distribution": {},

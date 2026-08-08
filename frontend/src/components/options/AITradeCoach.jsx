@@ -110,7 +110,7 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
           >
             {analysis}
           </ReactMarkdown>
-          <p className="text-[9px] text-muted-foreground/60 mt-3 italic">
+          <p className="text-[9px] text-muted-foreground mt-3 italic">
             {t('aiCoachDisclaimer_91e0eb')}
           </p>
         </div>

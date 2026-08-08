@@ -29,10 +29,10 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **691 passed, 74 skipped** en 15 s (2026-08-08). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **718 passed, 74 skipped** en 16 s (2026-08-08). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5980 claves × 10 idiomas, 0 huecos** · `engine-check` **186/186** (2026-08-08) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5995 claves × 10 idiomas, 0 huecos** · `engine-check` **197/197** (2026-08-08) |
 | **Ajustes del usuario entre dispositivos** | 🟢 | Tema, idioma, preferencias, favoritos, progreso de la Academia y **setups** viajan con la cuenta desde el 2026-08-08 (`lib/cloudPrefs.js`). Ver G-25 |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
@@ -191,7 +191,9 @@
 
 ### P1 — Robustez antes de escalar
 - [ ] **Dar interfaz a lo que ya está escrito** (G-14) — plan de trading primero.
-- [ ] **`trading_plans` en las tres listas del RGPD** (G-15) — pequeño y con multa detrás.
+- [x] ~~**`trading_plans` en las tres listas del RGPD** (G-15)~~ — cerrado en BUG-044 y
+      **verificado contra Postgres** el 2026-08-07: el plan viaja en el export y el
+      borrado de cuenta lo elimina (0 filas en 6 tablas).
 - [ ] Cerrar **C-08** (API keys solo en Secret Manager).
 - [ ] `FRONTEND_URL` obligatoria en producción (T-02 del backlog de auditoría).
 - [ ] **CSP** en el HTML de Pages, verificada en navegador (T-01 / G-10).
@@ -3677,6 +3679,144 @@ un despliegue que sí ocurrió.
 
 ---
 
+## 2026-08-07 — Las opciones y el resto de productos acababan en el mismo sitio
+
+### El problema
+
+Con el diario ya multiproducto, `/performance` → Analytics seguía siendo **un solo
+panel para todo**. Eso deja tres cifras mintiendo a la vez:
+
+- **la curva de capital** arranca del saldo de la operación más antigua y le va
+  sumando P&L de productos que pueden estar en **cuentas distintas** — una de
+  fondeo de 50 000 para futuros y la personal de 10 000 para CFD dan una curva
+  que no es la de ninguna de las dos;
+- **el max drawdown** hereda el mismo defecto, y encima no es simétrico: no se
+  puede "descontar" después;
+- **el % de rentabilidad** divide por un saldo inicial que ya no significa nada.
+
+Y la pregunta que un trader hace de verdad —«¿tengo ventaja en opciones o me la
+están dando los futuros?»— no se podía responder: el desglose `by_product` daba
+P&L y acierto por producto, pero no una **curva ni un drawdown** por producto.
+
+### Lo que se ha hecho
+
+**1 · El filtro se calcula en el backend, no se recorta en el navegador.**
+`GET /performance/analytics?product=<id>` filtra **antes** de calcular y antes del
+techo de `ANALYTICS_MAX_TRADES`. La curva, el drawdown y el Sharpe no se pueden
+reconstruir desde un resultado ya agregado: hay que volver a construirlos desde las
+operaciones de ese producto. Filtrar después del techo, además, dejaría un producto
+minoritario calculado sobre las migajas de una ventana llena de otro — y diciendo
+que no hay truncado. La respuesta publica `product_filter`: un panel filtrado sin
+decirlo es indistinguible de uno completo con muy pocas operaciones.
+
+**2 · El selector no se dibuja con el desglose filtrado.** `products_available` se
+calcula sobre el historial completo, con el mismo criterio de «cerrada» que usa la
+analítica (`is_closed_trade`, sacado a función porque estaba escrito tres veces como
+literal). Construirlo sobre `by_product` —que sí va filtrado— dejaba **un solo botón**
+en cuanto elegías un producto: sin forma de volver al conjunto. La barra va también
+en el estado vacío, porque se puede llegar a él con un filtro puesto.
+
+**3 · Cuando hay más de una cuenta, se dice.** `detect_mixed_accounts` compara la
+**mediana** del `account_balance` por producto (mediana, no media: un saldo mal
+tecleado no decide) y marca `suspected` con un cociente ≥ 2. El aviso lista el saldo
+por producto y separa lo que sigue siendo válido —R, acierto, desglose— de lo que no.
+Es una **sospecha**, no una afirmación: el diario no sabe cuántas cuentas hay, sabe
+que los saldos no cuadran.
+
+### Verificado
+
+`pytest` **689 passed / 74 skipped** (+10) · ESLint **0 errores** · `i18n-check`
+**5988 claves × 10 idiomas** (+8) · `engine-check` **187/187** · catálogo
+backend↔frontend en paridad · enlaces de doc OK · build OK.
+
+E2E con Postgres + backend vivos y el **build de producción real** servido bajo
+`/Tradingcalculatorpro.com`: **16/16 en escritorio (1440×900) y 16/16 en móvil
+(390×844)**, comprobando que el filtro dispara una llamada nueva con `product=` en
+la query, que las cifras cambian (3 471,86 → 1 496,50 en futuros → 544,80 en
+opciones), que la suma de los P&L por producto es exactamente el total, que el aviso
+desaparece al filtrar y vuelve al quitar el filtro, y que nada desborda.
+
+### Sigue pendiente
+
+Los **cuatro módulos sin interfaz** (G-14): `trading_plan.py`, `backtest.py`,
+`portfolio_risk.py` y `american_options.py`. `portfolio_risk.py` es el que más pega
+con esto: mide el riesgo abierto a nivel de cuenta, que es justo lo que el aviso de
+cuentas mezcladas deja a medias.
+
+---
+
+## 2026-08-07 (cont.) — Examen de autorización: qué pasa cuando dos cuentas se cruzan
+
+### Por qué este examen y no otro
+
+La cobertura real del backend, medida y no supuesta, parte el proyecto en dos:
+
+| Zona | Cobertura |
+|---|---|
+| La matemática (`price_action` 97 %, `portfolio_risk` 95 %, `backtest` 94 %, `performance` 92 %, `trading_plan` 92 %, `instruments` 88 %) | muy alta |
+| Las rutas HTTP (`server.py` **26 %**, `missing_apis` 23 %, `realtime_alerts` 23 %, `stock_data` 22 %, `admin_routes` 25 %) | casi nada |
+
+Los 693 tests comprueban casi todos **funciones puras**. Lo que rodea a esas
+funciones —autenticación, autorización, validación, rutas de error— estaba sin
+tocar. Y la pregunta que ese hueco deja sin responder es la única cuyo «no» hay
+que poder demostrar en un producto donde el usuario guarda su historial.
+
+### Resultado: la autorización aguanta
+
+Dos cuentas reales, la víctima crea un objeto de cada tipo y la atacante intenta
+leerlo, editarlo y borrarlo cambiando el id de la URL. **21/21.** Detalles que
+importan:
+
+- Responde **404, no 403**: no confirma siquiera que el objeto exista.
+- La operación **sigue intacta** después de los tres intentos, comprobado
+  releyéndola con el token de su dueña — no basta con que la respuesta sea un error.
+- La **ruta legada** (`/journal/trades/{id}`) es otra puerta al mismo dato y
+  también cierra.
+- Un `user_id` en el cuerpo de un POST **se ignora**: no se puede escribir en el
+  diario de otro.
+- Escribir `is_premium`, `is_admin`, `subscription_plan`, `role` o `email` en el
+  perfil **no mueve nada** (medido por diferencia antes/después, no por valor
+  absoluto: las cuentas de prueba ya eran premium y mirar el valor daba un falso
+  positivo).
+
+### RGPD: G-15 cerrado, verificado contra Postgres
+
+El export incluye la operación, el plan de trading y el estado guardado; **no**
+lleva el hash de la contraseña (lo único que aparece es `"auth_provider":
+"password"`, que es el método de acceso); y los artefactos de seguridad no viajan
+en el JSON, que es el contrato correcto. El borrado de cuenta deja **0 filas en
+las 6 tablas** que tenían datos. Esto no se leyó en el código: se contó en la
+base de datos.
+
+De paso quedan confirmados tres límites de tasa, agotándolos: registro 3/hora,
+borrado de cuenta 3/hora, export 5/hora.
+
+### Lo que sí estaba roto: BUG-048
+
+Cinco rutas convertían su propio 4xx en un 500 —tres de ellas de facturación—
+porque `HTTPException` hereda de `Exception` y el `except Exception` final se lo
+tragaba. Ver `DIARIO_BUGS.md`. El test que lo fija recorre el árbol sintáctico,
+no las rutas: el fallo es estructural y así cubre también todo lo que no tiene
+test de integración.
+
+### Nota de método
+
+Cuatro de los «fallos» de las primeras vueltas eran de la sonda, no del producto:
+un PUT incompleto que se quedaba en el 422 de validación sin llegar a comprobar
+la propiedad; un premium que había concedido yo por SQL dos minutos antes; una
+búsqueda de «password» que casaba con `auth_provider`; y un 429 del limitador
+leído como borrado roto. Los cuatro están corregidos **en la sonda**, y las
+guardas que lo evitan quedan escritas ahí: una prueba que acusa al producto de lo
+que hace el banco de pruebas es peor que no tener prueba.
+
+### Verificado
+
+`pytest` **698 passed / 74 skipped** (+5) · `py_compile` OK · autorización
+cruzada **21/21** · export RGPD **8/8** · borrado RGPD **0 filas en 6 tablas** ·
+enlaces de doc OK.
+
+---
+
 ## 2026-08-08 — Los ajustes dejan de vivir en un navegador
 
 ### El agujero
@@ -3751,11 +3891,11 @@ documento (512 KB) ahora que ahí dentro va contenido escrito por el usuario.
 
 ### Verificado
 
-- `pytest` **691 passed / 74 skipped** (+12 nuevos en
-  `test_user_prefs_persistence_unit.py`).
-- `engine-check` **186/186** (+10 sobre las reglas de fusión).
-- ESLint **0 errores** (123 avisos, uno menos que antes) · `i18n-check` 5980 ×
-  10 · catálogo en paridad · `check-doc-links` OK · `npm run build` OK.
+- `pytest` **718 passed / 74 skipped** (+12 nuevos en
+  `test_user_prefs_persistence_unit.py`, ya sobre `main` con el PR #180 dentro).
+- `engine-check` **197/197** (+10 sobre las reglas de fusión).
+- ESLint **0 errores** (123 avisos) · `i18n-check` 5995 × 10 · catálogo en
+  paridad · `check-doc-links` OK · `npm run build` OK.
 - **Contra PostgreSQL real**: que el `$unset` sobre un upsert borre de verdad el
   `expires_at` heredado —traducido a SQL, no contra un doble— y que el documento
   haga ida y vuelta sin perder tipos.
