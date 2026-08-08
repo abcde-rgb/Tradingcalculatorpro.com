@@ -27,8 +27,8 @@ const VarField = ({ label, value, onChange, measured, source, sample, suffix, st
       <span
         className={`text-[9px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${
           source === 'measured'
-            ? 'bg-[#22c55e]/15 text-[#22c55e]'
-            : 'bg-[#f59e0b]/15 text-[#f59e0b]'
+            ? 'bg-[#22c55e]/15 text-[#4ade80]'
+            : 'bg-[#f59e0b]/15 text-[#fbbf24]'
         }`}
         title={source === 'measured'
           ? t('projFromJournalTip').replace('{n}', String(sample ?? 0))
@@ -221,7 +221,7 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
       {sample < MIN_SAMPLE_TO_PROJECT_AT_ALL ? (
         <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center"
              data-testid="proj-no-sample">
-          <Dice5 className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+          <Dice5 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             {t('projNoSample')
               .replace('{n}', String(sample))
@@ -510,7 +510,7 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                   ))}
                 </div>
               )}
-              <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{t('projTargetNote')}</p>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">{t('projTargetNote')}</p>
             </div>
           )}
 
@@ -586,7 +586,7 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                         </div>
                       </div>
                     )}
-                    <p className="text-[10px] text-muted-foreground/80 leading-relaxed mt-2">{hint}</p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed mt-2">{hint}</p>
                   </div>
                 ))}
               </div>
@@ -639,7 +639,7 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
         </>
       )}
 
-      <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{t('projDisclaimer')}</p>
+      <p className="text-[10px] text-muted-foreground leading-relaxed">{t('projDisclaimer')}</p>
     </div>
   );
 }

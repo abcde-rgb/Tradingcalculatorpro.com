@@ -25,7 +25,7 @@ corre() {  # corre <nombre> <orden...>
 quiere() { [ $# -eq 0 ] && return 0; for q in "$@"; do [ "$q" = "$OBJETIVO" ] && return 0; done; return 1; }
 
 TODO=("$@")
-for OBJETIVO in recorrido analitica temas ticker autorizacion rgpd persistencia; do
+for OBJETIVO in recorrido analitica temas ticker accesibilidad autorizacion rgpd persistencia; do
   if [ ${#TODO[@]} -gt 0 ]; then
     encontrado=0
     for q in "${TODO[@]}"; do [ "$q" = "$OBJETIVO" ] && encontrado=1; done
@@ -40,6 +40,18 @@ for OBJETIVO in recorrido analitica temas ticker autorizacion rgpd persistencia;
       corre "analítica · móvil"      node "$E2E/navegador/analitica.js" mobile ;;
     temas)        corre "temas e idiomas (móvil)" node "$E2E/navegador/temas.js" ;;
     ticker)       corre "ticker sin proveedor"    node "$E2E/navegador/ticker.js" ;;
+    accesibilidad)
+      # Sin axe-core la sonda sale con 2 y lo dice; no se cuenta como fallo del
+      # producto, pero tampoco se calla: una comprobación que no puede correr no
+      # es una comprobación que pasa.
+      if [ -d "$E2E/node_modules/axe-core" ]; then
+        corre "accesibilidad · escritorio" node "$E2E/navegador/accesibilidad.js" escritorio
+        corre "accesibilidad · móvil"      node "$E2E/navegador/accesibilidad.js" movil
+      else
+        echo "══ accesibilidad ══"
+        echo "  ⏭  falta axe-core: cd tests/e2e && npm install --no-save axe-core"
+        echo
+      fi ;;
     autorizacion) corre "autorización cruzada"    "$PY" "$E2E/api/autorizacion.py" ;;
     rgpd)         corre "RGPD: export y borrado"  "$PY" "$E2E/api/rgpd.py" ;;
     persistencia) corre "pantalla vs base de datos" "$PY" "$E2E/api/persistencia.py" ;;

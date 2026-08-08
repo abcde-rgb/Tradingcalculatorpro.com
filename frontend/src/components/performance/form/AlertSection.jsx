@@ -160,7 +160,7 @@ function Chip({ active, muted, onClick, children, testid }) {
       className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
         active
           ? 'bg-primary/15 text-primary border-primary/40'
-          : `border-border hover:text-foreground ${muted ? 'text-muted-foreground/60' : 'text-muted-foreground'}`
+          : `border-border hover:text-foreground ${muted ? 'text-muted-foreground' : 'text-muted-foreground'}`
       }`}
     >
       {children}

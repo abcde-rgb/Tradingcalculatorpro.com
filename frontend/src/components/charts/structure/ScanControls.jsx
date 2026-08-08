@@ -106,7 +106,7 @@ export function ScanNotices({ data }) {
     <>
       {adjusted && (
         <div
-          className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#f59e0b] px-2.5 py-1.5"
+          className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#fbbf24] px-2.5 py-1.5"
           data-testid="struct-adjusted"
         >
           {t('structAdjustedNotice')

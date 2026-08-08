@@ -155,7 +155,7 @@ const CandleLab = ({ theme }) => {
                 <div className="flex items-center gap-1.5">
                   {r.ok
                     ? <Check className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
-                    : <X className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />}
+                    : <X className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                   <span className={`text-xs font-semibold ${r.ok ? '' : 'text-muted-foreground'}`}>
                     {PATTERN_NAME_KEY[r.id] ? t(PATTERN_NAME_KEY[r.id]) : t('labSoldierCandle')}
                   </span>
@@ -196,7 +196,7 @@ const CandleLab = ({ theme }) => {
           </Button>
         </div>
 
-        <p className="text-[10px] text-muted-foreground/70 leading-relaxed">{t('labNote')}</p>
+        <p className="text-[10px] text-muted-foreground leading-relaxed">{t('labNote')}</p>
       </CardContent>
     </Card>
   );

@@ -116,7 +116,7 @@ const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
               key={key}
               onClick={() => setVisible((v) => ({ ...v, [key]: !v[key] }))}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all ${
-                visible[key] ? 'bg-muted border-border text-foreground' : 'bg-background border-border/50 text-muted-foreground/60 line-through'
+                visible[key] ? 'bg-muted border-border text-foreground' : 'bg-background border-border/50 text-muted-foreground line-through'
               }`}
               data-testid={`greek-toggle-${key}`}
             >

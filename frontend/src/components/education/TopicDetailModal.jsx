@@ -46,7 +46,7 @@ export default function TopicDetailModal({ title, subtitle, onClose, children })
               variant="ghost"
               size="icon"
               onClick={onClose}
-              data-testid="topic-modal-close"
+              data-testid="topic-modal-close" aria-label={t('close')}
               aria-label="Close"
               className="flex-shrink-0"
             >

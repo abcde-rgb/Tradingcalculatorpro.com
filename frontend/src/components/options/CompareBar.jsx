@@ -70,7 +70,7 @@ const CompareBar = ({
         </span>
         <span className="text-[11px] text-muted-foreground">
           <span className="text-[#4ade80] font-bold">A:</span> {t(selectedStrategy.name)}
-          <span className="mx-2 text-muted-foreground/50">vs</span>
+          <span className="mx-2 text-muted-foreground">vs</span>
           <span className="text-[#c084fc] font-bold">B:</span>
         </span>
         <Select
@@ -89,7 +89,7 @@ const CompareBar = ({
           <SelectContent className="max-h-[60vh]">
             {categories.map((cat) => (
               <SelectGroup key={cat}>
-                <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-2 py-1">
+                <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1">
                   {cat}
                 </SelectLabel>
                 {strategies.filter((s) => s.category === cat).map((s) => (

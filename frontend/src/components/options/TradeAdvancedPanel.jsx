@@ -117,7 +117,7 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
                     data-testid="fee-input"
                   />
                 </div>
-                <p className="text-[8px] text-muted-foreground/60 mt-1">{t('feeHint_adv004')}</p>
+                <p className="text-[8px] text-muted-foreground mt-1">{t('feeHint_adv004')}</p>
               </div>
               <div>
                 <label className="text-[9px] text-muted-foreground font-semibold uppercase mb-1 block">
@@ -136,7 +136,7 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
                   />
                   <span className="text-xs text-muted-foreground">%</span>
                 </div>
-                <p className="text-[8px] text-muted-foreground/60 mt-1">{t('dividendHint_adv006')}</p>
+                <p className="text-[8px] text-muted-foreground mt-1">{t('dividendHint_adv006')}</p>
               </div>
             </div>
           </div>

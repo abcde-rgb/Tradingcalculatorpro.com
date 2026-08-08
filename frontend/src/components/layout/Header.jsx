@@ -130,7 +130,7 @@ export function Header() {
             {/* Theme Toggle */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="hidden sm:flex" data-testid="theme-toggle">
+                <Button variant="ghost" size="icon" className="hidden sm:flex" data-testid="theme-toggle" aria-label={t('theme')}>
                   {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
                 </Button>
               </DropdownMenuTrigger>
@@ -159,7 +159,7 @@ export function Header() {
             {/* Language Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="hidden sm:flex" data-testid="language-toggle">
+                <Button variant="ghost" size="icon" className="hidden sm:flex" data-testid="language-toggle" aria-label={t('language')}>
                   <Globe className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -184,6 +184,10 @@ export function Header() {
                   size="icon"
                   className="hidden sm:flex"
                   onClick={() => setAlertsOpen(!alertsOpen)}
+                  aria-label={unreadCount > 0
+                    ? `${t('notifications')} (${unreadCount})`
+                    : t('notifications')}
+                  data-testid="notifications-toggle"
                 >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
@@ -234,7 +238,8 @@ export function Header() {
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2" data-testid="user-menu">
+                  <Button variant="ghost" className="gap-2" data-testid="user-menu"
+                    aria-label={`${t('account')}: ${user?.name || t('userFallback')}`}>
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <User className="w-4 h-4 text-primary" />
                     </div>
@@ -311,7 +316,7 @@ export function Header() {
               size="icon" 
               className="md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              data-testid="mobile-menu-toggle"
+              data-testid="mobile-menu-toggle" aria-label={t('menu')}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
@@ -342,7 +347,7 @@ export function Header() {
                     se pagaban y no había forma de llegar a ellos. */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" data-testid="mobile-theme-toggle">
+                    <Button variant="ghost" size="icon" data-testid="mobile-theme-toggle" aria-label={t('theme')}>
                       {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
                     </Button>
                   </DropdownMenuTrigger>
@@ -375,7 +380,7 @@ export function Header() {
                 </DropdownMenu>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" data-testid="mobile-language-toggle">
+                    <Button variant="ghost" size="icon" data-testid="mobile-language-toggle" aria-label={t('language')}>
                       <Globe className="w-5 h-5" />
                     </Button>
                   </DropdownMenuTrigger>

@@ -223,7 +223,7 @@ const PnLCalendar = ({ data }) => {
 
       <div className="grid grid-cols-7 gap-1 mb-1">
         {dows.map((d, i) => (
-          <div key={i} className="text-center text-[10px] font-bold text-muted-foreground/70">{d}</div>
+          <div key={i} className="text-center text-[10px] font-bold text-muted-foreground">{d}</div>
         ))}
       </div>
 
@@ -351,7 +351,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
         {scopeBar}
         <div className="text-center py-16 px-4 bg-card border border-dashed border-border rounded-xl"
           data-testid="analytics-empty">
-          <BarChart3 className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+          <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-bold text-foreground mb-2">{t('analyticsEmptyTitle')}</h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">{t('analyticsNoData')}</p>
           {onGoToJournal && (
@@ -447,13 +447,13 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
                     style={{ width: `${Math.min(100, (Math.abs(row.pct) / periodMax) * 100)}%` }}
                   />
                 </span>
-                <span className="font-mono text-muted-foreground/70 w-24 text-right shrink-0">
+                <span className="font-mono text-muted-foreground w-24 text-right shrink-0">
                   {row.pnl > 0 ? '+' : ''}${row.pnl.toFixed(0)} · {row.n}
                 </span>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground/70 leading-relaxed mt-2">
+          <p className="text-[10px] text-muted-foreground leading-relaxed mt-2">
             {t('analyticsReturnsNote')}
           </p>
         </div>
@@ -544,7 +544,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
               Dicho en un sitio y callado en el otro, los dos números se leen
               como si uno de los dos estuviera mal. */}
           {a.setups_multi_tagged > 0 && (
-            <p className="text-[10px] text-muted-foreground/80 leading-relaxed mt-3">
+            <p className="text-[10px] text-muted-foreground leading-relaxed mt-3">
               {t('setupPerfMultiNote').replace('{n}', String(a.setups_multi_tagged))}
             </p>
           )}
@@ -629,7 +629,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
           <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
             <Receipt className="w-4 h-4" /> {t('costsTitle')}
           </h3>
-          <p className="text-xs text-muted-foreground/80 mb-4">{t('costsIntro')}</p>
+          <p className="text-xs text-muted-foreground mb-4">{t('costsIntro')}</p>
           <div className="grid grid-cols-2 gap-3">
             <CostCell label={t('costsFees')} value={a.costs?.fees} />
             <CostCell label={t('costsFunding')} value={a.costs?.funding} />
@@ -652,7 +652,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
           <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1">
             {t('excTitle')}
           </h3>
-          <p className="text-xs text-muted-foreground/80 mb-4">{t('excIntro')}</p>
+          <p className="text-xs text-muted-foreground mb-4">{t('excIntro')}</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
             <div className="bg-muted/40 rounded-lg border border-border/40 p-3">
               <p className="text-[11px] text-muted-foreground mb-1">{t('excAvgMae')}</p>

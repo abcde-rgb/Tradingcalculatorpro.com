@@ -2992,7 +2992,7 @@ function PlansEditorCard({ headers }) {
             })}
           </tbody>
         </table>
-        <p className="px-3 py-2 text-[10px] text-muted-foreground/60">⚠ Cambiar el Stripe Price ID requiere actualizar también en el dashboard de Stripe.</p>
+        <p className="px-3 py-2 text-[10px] text-muted-foreground">⚠ Cambiar el Stripe Price ID requiere actualizar también en el dashboard de Stripe.</p>
       </CardContent>
     </Card>
   );

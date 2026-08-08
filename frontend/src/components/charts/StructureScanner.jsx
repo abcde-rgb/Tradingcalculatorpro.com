@@ -215,7 +215,7 @@ const StructureScanner = () => {
           </div>
         )}
 
-        <p className="text-[10px] text-muted-foreground/70 leading-relaxed pt-1">
+        <p className="text-[10px] text-muted-foreground leading-relaxed pt-1">
           {t('structScanNote')}
         </p>
       </CardContent>

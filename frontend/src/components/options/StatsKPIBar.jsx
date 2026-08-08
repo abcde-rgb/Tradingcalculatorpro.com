@@ -114,7 +114,7 @@ const StatsKPIBar = ({ stats, breakEvens, currentExp }) => {
           testid="fact-commissions"
         />
         {currentExp?.fullLabel && (
-          <span className="text-muted-foreground/70 ml-auto whitespace-nowrap tabular-nums">
+          <span className="text-muted-foreground ml-auto whitespace-nowrap tabular-nums">
             {currentExp.fullLabel} · {currentExp.daysToExpiry}d
           </span>
         )}

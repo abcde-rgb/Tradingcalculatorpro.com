@@ -100,10 +100,10 @@ const RiskOfRuinCalculator = () => {
   const expectancy = (winRate / 100) * rRatio - (1 - winRate / 100);
 
   const verdict = expectancy <= 0
-    ? { key: 'rorVerdictNegative', Icon: AlertCircle, cls: 'border-[#ef4444]/40 bg-[#ef4444]/10 text-[#ef4444]' }
+    ? { key: 'rorVerdictNegative', Icon: AlertCircle, cls: 'border-[#ef4444]/40 bg-[#ef4444]/10 text-[#f87171]' }
     : res.probDD50 >= 15
-      ? { key: 'rorVerdictHigh', Icon: AlertTriangle, cls: 'border-[#f59e0b]/40 bg-[#f59e0b]/10 text-[#f59e0b]' }
-      : { key: 'rorVerdictOk', Icon: CheckCircle2, cls: 'border-[#22c55e]/40 bg-[#22c55e]/10 text-[#22c55e]' };
+      ? { key: 'rorVerdictHigh', Icon: AlertTriangle, cls: 'border-[#f59e0b]/40 bg-[#f59e0b]/10 text-[#fbbf24]' }
+      : { key: 'rorVerdictOk', Icon: CheckCircle2, cls: 'border-[#22c55e]/40 bg-[#22c55e]/10 text-[#4ade80]' };
   const VIcon = verdict.Icon;
   const fmtX = (v) => `${v >= 10 ? v.toFixed(0) : v.toFixed(2)}x`;
 
@@ -177,7 +177,7 @@ const RiskOfRuinCalculator = () => {
           </div>
         </div>
 
-        <p className="text-[10px] text-muted-foreground/70 leading-relaxed">{t('rorNote')}</p>
+        <p className="text-[10px] text-muted-foreground leading-relaxed">{t('rorNote')}</p>
       </CardContent>
     </Card>
   );

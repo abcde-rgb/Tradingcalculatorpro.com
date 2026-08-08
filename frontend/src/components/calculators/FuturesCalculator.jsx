@@ -176,8 +176,8 @@ function PnLTab({ t }) {
               className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${
                 side === s
                   ? s === 'long'
-                    ? 'bg-[#22c55e]/20 text-[#22c55e] border-[#22c55e]/50'
-                    : 'bg-[#ef4444]/20 text-[#ef4444] border-[#ef4444]/50'
+                    ? 'bg-[#22c55e]/20 text-[#4ade80] border-[#22c55e]/50'
+                    : 'bg-[#ef4444]/20 text-[#f87171] border-[#ef4444]/50'
                   : 'bg-muted text-muted-foreground border-border'
               }`}
             >
@@ -232,7 +232,7 @@ function MarginTab({ t }) {
       {results && (
         <>
           {highMargin && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] text-xs font-semibold">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#f87171] text-xs font-semibold">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               {t('futMarginWarning')}
             </div>
@@ -306,9 +306,9 @@ function FairValueTab({ t }) {
 
       <div className={`px-3 py-2 rounded-lg border text-xs font-semibold ${
         results.marketState === 'contango'
-          ? 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#f59e0b]'
+          ? 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#fbbf24]'
           : results.marketState === 'backwardation'
-          ? 'bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e]'
+          ? 'bg-[#22c55e]/10 border-[#22c55e]/30 text-[#4ade80]'
           : 'bg-muted border-border text-muted-foreground'
       }`}>
         {stateLabels[results.marketState]}

@@ -39,6 +39,13 @@ mitad de trabajo — por eso está escrito así.
 
 Para una sonda suelta: `tests/e2e/correr.sh analitica autorizacion`.
 
+La de accesibilidad va aparte porque necesita `axe-core`:
+
+```bash
+cd tests/e2e && npm install --no-save axe-core
+node navegador/accesibilidad.js escritorio   # y `movil`
+```
+
 ## Qué hay dentro
 
 | Sonda | Qué demuestra |
@@ -49,6 +56,7 @@ Para una sonda suelta: `tests/e2e/correr.sh analitica autorizacion`.
 | `navegador/ticker.js` | Que el dashboard degrada con honestidad cuando el proveedor de precios está caído (BUG-047) |
 | `api/autorizacion.py` | **Dos cuentas**: que una no puede leer, editar ni borrar los datos de la otra cambiando el id de la URL — y que el dato sigue intacto después. Escalada de privilegios y confusión de tokens. 29 comprobaciones |
 | `api/rgpd.py` | Que el export se lleva todo lo que el borrado destruye, y que borrar la cuenta **no deja ninguna fila** — contado en Postgres, no leído del código |
+| `navegador/accesibilidad.js` | WCAG 2.1 AA con axe-core sobre 4 páginas: nombres accesibles, contraste y ARIA. Sólo reporta lo `critical`/`serious` — los avisos menores esconden lo que de verdad bloquea a alguien |
 | `api/persistencia.py` | Que la cifra que la pantalla enseña antes de guardar es **exactamente** la que queda almacenada (hay dos copias de la matemática: navegador y backend) |
 
 `entorno.js` y `entorno.py` tienen lo compartido: dónde está Chromium, cómo se

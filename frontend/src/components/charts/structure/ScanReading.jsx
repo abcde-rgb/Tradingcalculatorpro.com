@@ -89,7 +89,7 @@ export default function ScanReading({ data }) {
                 .replace('{tf}', conf.interval || '')}
             </span>
           ) : (
-            <span className="text-[10px] text-muted-foreground/70">{t('structConfluenceUnchecked')}</span>
+            <span className="text-[10px] text-muted-foreground">{t('structConfluenceUnchecked')}</span>
           )}
         </div>
       </div>
