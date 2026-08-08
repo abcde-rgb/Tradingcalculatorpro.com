@@ -60,25 +60,25 @@ const CandleSVG = ({
         <>
           {/* High */}
           <text x={cx + bodyWidth / 2 + 4} y={wickTop + 4}
-                fontSize={9} fontFamily="JetBrains Mono, monospace"
+                fontSize={9} fontFamily="IBM Plex Mono, monospace"
                 fill="#94a3b8">
             {labels.high || 'H'}
           </text>
           {/* Low */}
           <text x={cx + bodyWidth / 2 + 4} y={wickBottom + 1}
-                fontSize={9} fontFamily="JetBrains Mono, monospace"
+                fontSize={9} fontFamily="IBM Plex Mono, monospace"
                 fill="#94a3b8">
             {labels.low || 'L'}
           </text>
           {/* Open */}
           <text x={cx - bodyWidth / 2 - 4} y={yOf(o) + 3}
-                fontSize={9} fontFamily="JetBrains Mono, monospace"
+                fontSize={9} fontFamily="IBM Plex Mono, monospace"
                 fill={isBull ? '#94a3b8' : '#fca5a5'} textAnchor="end">
             {labels.open || 'O'}
           </text>
           {/* Close */}
           <text x={cx - bodyWidth / 2 - 4} y={yOf(c) + 3}
-                fontSize={9} fontFamily="JetBrains Mono, monospace"
+                fontSize={9} fontFamily="IBM Plex Mono, monospace"
                 fill={isBull ? '#86efac' : '#94a3b8'} textAnchor="end">
             {labels.close || 'C'}
           </text>
