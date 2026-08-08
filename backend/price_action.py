@@ -837,6 +837,7 @@ def _empty_read(rows_scanned: int) -> Dict[str, Any]:
     return {
         "trend": "range", "swings": [], "events": [], "levels": [], "fvgs": [],
         "breakouts": [], "rowsScanned": rows_scanned, "currentPrice": None,
+        "lastBarDate": None,
         "tolerancePct": None, "atr": None, "atrPct": None,
         "nearestResistance": None, "nearestSupport": None,
         "levelsAnalysed": 0,
@@ -900,6 +901,11 @@ def detect_structure(rows: List[Row], strength: int = 2,
 
     return {
         "currentPrice": round(current_price, 6) if current_price else None,
+        # De CUÁNDO es ese precio. `currentPrice` es el cierre de la última vela
+        # escaneada, no una cotización en vivo: en diario puede tener horas o
+        # días. Publicarla es lo que permite que la interfaz diga la verdad en
+        # vez de llamar "ahora" al cierre de anteayer.
+        "lastBarDate": rows[-1].get("date") if rows else None,
         "tolerancePct": round(tol * 100, 3),
         "atr": round(atr, 6) if atr else None,
         "atrPct": round(atr / current_price * 100, 3) if (atr and current_price) else None,

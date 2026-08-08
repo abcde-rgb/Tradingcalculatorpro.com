@@ -76,8 +76,18 @@ export async function deleteTrade(id) {
   return data;
 }
 
-export async function fetchAnalytics() {
-  const { data } = await client.get('/performance/analytics');
+/**
+ * La analítica del diario. Con `product`, sólo la de ese producto.
+ *
+ * El filtro viaja al BACKEND en vez de recortar aquí lo recibido, porque las
+ * cifras que importan —curva de equity, drawdown, Sharpe— no se pueden
+ * recalcular desde el resultado ya agregado: hay que volver a construirlas
+ * desde las operaciones de ese producto.
+ */
+export async function fetchAnalytics(product) {
+  const { data } = await client.get('/performance/analytics', {
+    params: product ? { product } : undefined,
+  });
   return data;
 }
 

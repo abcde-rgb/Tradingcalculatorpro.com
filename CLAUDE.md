@@ -283,9 +283,14 @@ Auth GCP en GitHub Actions: **Workload Identity Federation** (sin JSON keys).
   **no** autocrea tablas: una colección nueva que no esté en esa lista falla en
   cuanto se consulta. ⚠️ Y `known` **no es la única lista** en la que hay que
   darla de alta: una colección con `user_id` va además en `delete_account`, en
-  `_USER_DATA_COLLECTIONS` (purga por retención) y en el export de
-  `/auth/my-data`. `trading_plans` no está en ninguna de las tres — es el hueco
-  G-15, y es la trampa exacta que crea listar tablas a mano.
+  la purga por retención y en el export de `/auth/my-data`. Eso era el hueco
+  G-15 —`trading_plans` no estaba en ninguna de las tres— y **ya está cerrado**:
+  las cuatro listas escritas a mano derivan ahora de una sola tupla
+  (`_USER_DATA_COLLECTIONS` → `_ALL_USER_COLLECTIONS` → `_EXPORTABLE_COLLECTIONS`).
+  Añade la colección a `_USER_DATA_COLLECTIONS` y las tres rutas la heredan.
+  Los artefactos de seguridad van aparte a propósito: se borran con la cuenta y
+  **no se exportan nunca** — mandarle sus tokens al usuario en un JSON no es
+  portabilidad. Verificado contra Postgres el 2026-08-07 (borrado y export).
 - **`plan_version` se sella al crear la operación y no se reescribe.** Cambiar el
   plan no debe re-juzgar retroactivamente la historia que se supone que mide.
 - **El apalancamiento NO entra en el P&L. Nunca.** `(salida − entrada) × cantidad ×

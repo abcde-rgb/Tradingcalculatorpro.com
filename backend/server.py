@@ -59,6 +59,7 @@ from performance import (
     detect_errors,
     compute_analytics,
     generate_insights,
+    is_closed_trade,
     trades_for_user,
     make_trade_doc,
     normalize_setups,
@@ -67,7 +68,12 @@ from performance import (
     legacy_keys_to_unset,
     SETUP_SEPARATOR,
 )
-from instruments import catalog as instruments_catalog, resolve_levels, resolve_spec
+from instruments import (
+    DEFAULT_PRODUCT,
+    catalog as instruments_catalog,
+    resolve_levels,
+    resolve_spec,
+)
 from notifications import CHANNELS as NOTIFY_CHANNELS, channel_status, normalize_phone
 from trading_plan import (
     activate_plan,
@@ -2786,13 +2792,18 @@ async def get_prices():
                 }
             except Exception as ce:
                 logging.warning(f"Commodity {label} ({sym}) fetch error: {ce}")
-        # Static fallback only if yfinance returned nothing
-        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
-        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
+        # Una materia prima que no se ha podido leer se OMITE, igual que una
+        # moneda ilegible veinte líneas más arriba. Aquí había un respaldo fijo
+        # —oro a 2 680 $, plata a 31,50 $, y una variación de +0,5 % / +0,8 %
+        # inventada— servido con HTTP 200 y sin marca alguna. Con el proveedor
+        # caído, el ticker enseñaba XAU a un precio de hace meses con flecha
+        # verde, indistinguible de uno real; y la variación era peor todavía:
+        # una observación fabricada, la misma clase de dato que el volumen por
+        # `rng.randint` que ya se retiró de las cadenas de opciones.
+        # El frontend ya trata la ausencia bien (`if (!data || !data.usd) return
+        # null`): omitir es lo que hace que ese cuidado sirva de algo.
     except Exception as e:
         logging.error(f"Commodities (yfinance) error: {e}")
-        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
-        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
 
     return data
 
@@ -4598,6 +4609,15 @@ async def cancel_subscription(
             }
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error canceling subscription: {e}")
         raise HTTPException(status_code=500, detail="Error canceling subscription")
@@ -4635,6 +4655,15 @@ async def resume_subscription(user: dict = Depends(require_user)):
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error resuming subscription: {e}")
         raise HTTPException(status_code=500, detail="Error resuming subscription")
@@ -4678,6 +4707,15 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         return {"url": session.url}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error creating portal session: {e}")
         raise HTTPException(status_code=500, detail="Error creating portal session")
@@ -4753,6 +4791,15 @@ async def save_user_state(request: dict, user: dict = Depends(require_user)):
         )
         
         return {"success": True, "message": "State saved"}
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error saving state: {e}")
         raise HTTPException(status_code=500, detail="Error saving state")
@@ -6200,6 +6247,15 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"AI analyze error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
@@ -6969,9 +7025,7 @@ async def performance_portfolio_risk(req: PortfolioRiskQuery,
     enriched = [_enrich_trade(t) for t in sort_trades_chronologically(rows)]
 
     open_positions = [t for t in enriched if (t.get("status") or "open") == "open"]
-    closed = [t for t in enriched
-              if t.get("status") in ("closed", "sl_hit", "tp_hit")
-              and t.get("exit_price") is not None]
+    closed = [t for t in enriched if is_closed_trade(t)]
 
     # Balance: explicit override, else the most recent trade's recorded balance.
     balance = req.accountBalance
@@ -7016,13 +7070,56 @@ async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
 
 
 @api_router.get("/performance/analytics")
-async def performance_analytics(user: dict = Depends(require_premium)):
+async def performance_analytics(
+    user: dict = Depends(require_premium),
+    product: Optional[str] = Query(
+        None, pattern="^(spot|stock|crypto_spot|crypto_perp|futures|cfd|forex|option)$"),
+):
+    """La analítica del diario, entera o de un solo producto.
+
+    `product` filtra ANTES de calcular, no después: con él, la curva de equity
+    arranca del saldo de la operación más antigua **de ese producto** y el
+    drawdown mide sólo esa serie. Es la única forma de responder "¿tengo ventaja
+    en opciones?", porque sin filtro el panel mezcla productos que pueden vivir
+    en cuentas distintas y el que se opera más grande domina cada cifra.
+
+    `products_available` es la lista de productos con los que dibujar el
+    selector, y se calcula ANTES de filtrar. `by_product`, en cambio, se calcula
+    después: con filtro sólo trae el producto elegido. Construir el selector
+    sobre él dejaría un único botón en cuanto se filtra, sin forma de volver al
+    conjunto — que es exactamente el callejón sin salida que esto evita.
+    """
     # Ask for one row beyond the ceiling: that extra row is how we tell "exactly
     # at the limit" from "there is more history than we are showing". Without it
     # a user with precisely ANALYTICS_MAX_TRADES trades gets a false warning.
     rows = await trades_for_user(db, user["id"], limit=ANALYTICS_MAX_TRADES + 1)
-    truncated = len(rows) > ANALYTICS_MAX_TRADES
-    if truncated:
+    # La ventana la impone la CONSULTA, no el filtro. Se pide una fila de más:
+    # si llega, es que hay historial fuera de lo que estamos mirando.
+    #
+    # Y eso no se arregla filtrando después. Con 5.000 operaciones se leen 1.001;
+    # si al filtrar por opciones quedan 50, esas 50 son las opciones que había
+    # DENTRO de esa ventana, no las del historial — puede haber cientos más entre
+    # las 4.000 que no se leyeron. Calcular `truncated` sobre las filas ya
+    # filtradas daba `false` en ese caso: un panel de una ventana presentado
+    # como el historial completo, que es justo lo que `truncated` existe para
+    # impedir.
+    ventana_incompleta = len(rows) > ANALYTICS_MAX_TRADES
+
+    # Los productos que el selector puede ofrecer, con el mismo criterio de
+    # "cerrada" que usa la analítica (`is_closed_trade`): un producto sin nada
+    # cerrado no tiene panel que enseñar y sería un botón al estado vacío.
+    # Ojo: sale de la MISMA ventana, así que un producto que sólo se operó hace
+    # mucho puede no aparecer. Por eso la respuesta publica también
+    # `products_available_partial`, en vez de dar la lista por completa.
+    products_available = sorted({
+        (r.get("instrument_type") or DEFAULT_PRODUCT)
+        for r in rows if is_closed_trade(r)
+    })
+    if product:
+        rows = [r for r in rows
+                if (r.get("instrument_type") or DEFAULT_PRODUCT) == product]
+    truncated = ventana_incompleta
+    if len(rows) > ANALYTICS_MAX_TRADES:
         # trades_for_user sorts by entry_date desc, so the rows kept are the most
         # recent ones and what falls off is the oldest history. Every figure
         # below is therefore computed over a window, not over the whole record —
@@ -7055,6 +7152,15 @@ async def performance_analytics(user: dict = Depends(require_premium)):
         # whole history — the same class of lie as an unlabelled synthetic chain.
         "truncated": truncated,
         "trades_analyzed": len(enriched),
+        # Qué filtro produjo estas cifras. Sin decirlo, un panel filtrado es
+        # indistinguible de uno completo con muy pocas operaciones.
+        "product_filter": product,
+        # Con qué productos se dibuja el selector. No depende del filtro puesto:
+        # es la única forma de que el botón para volver al conjunto siga ahí.
+        "products_available": products_available,
+        # La lista sale de la misma ventana que las cifras: si el historial es
+        # más largo, puede faltar un producto que sólo se operó hace tiempo.
+        "products_available_partial": ventana_incompleta,
         "truncation_notice": (
             f"Mostrando las {ANALYTICS_MAX_TRADES} operaciones más recientes. "
             "Tu historial es más largo: las más antiguas no entran en estas "

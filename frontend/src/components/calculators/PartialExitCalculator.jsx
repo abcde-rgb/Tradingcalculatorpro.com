@@ -96,7 +96,7 @@ export function PartialExitCalculator() {
           <button
             onClick={() => set('dir')('long')}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-md border py-1.5 text-sm font-semibold transition-colors ${
-              isLong ? 'border-[#22c55e]/40 bg-[#22c55e]/10 text-[#22c55e]' : 'border-border text-muted-foreground'
+              isLong ? 'border-[#22c55e]/40 bg-[#22c55e]/10 text-[#4ade80]' : 'border-border text-muted-foreground'
             }`}
             data-testid="pxc-long"
           >
@@ -105,7 +105,7 @@ export function PartialExitCalculator() {
           <button
             onClick={() => set('dir')('short')}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-md border py-1.5 text-sm font-semibold transition-colors ${
-              !isLong ? 'border-[#ef4444]/40 bg-[#ef4444]/10 text-[#ef4444]' : 'border-border text-muted-foreground'
+              !isLong ? 'border-[#ef4444]/40 bg-[#ef4444]/10 text-[#f87171]' : 'border-border text-muted-foreground'
             }`}
             data-testid="pxc-short"
           >
@@ -194,7 +194,7 @@ export function PartialExitCalculator() {
               </div>
             </div>
 
-            <p className="text-[11px] text-muted-foreground/80 leading-relaxed flex items-start gap-1.5">
+            <p className="text-[11px] text-muted-foreground leading-relaxed flex items-start gap-1.5">
               <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
               {t('pxcNote')}
             </p>

@@ -401,7 +401,7 @@ export default function SimulatorConfigPanel({
                         <Slider value={[fixedPartialCont]} onValueChange={(v) => setFixedPartialCont(v[0])}
                                 min={0} max={100} step={5} className="py-2" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground/80 leading-relaxed">{t('simPartialNote')}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">{t('simPartialNote')}</p>
                     </div>
                   )}
                 </div>

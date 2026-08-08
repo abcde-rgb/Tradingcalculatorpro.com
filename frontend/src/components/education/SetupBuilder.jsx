@@ -87,7 +87,7 @@ const Section = ({ icon: Icon, title, hint, children }) => (
     <h3 className="font-semibold text-sm flex items-center gap-2">
       {Icon && <Icon className="w-4 h-4 text-primary" />} {title}
     </h3>
-    {hint && <p className="text-xs text-muted-foreground/80 -mt-1">{hint}</p>}
+    {hint && <p className="text-xs text-muted-foreground -mt-1">{hint}</p>}
     <div className="flex flex-wrap gap-2">{children}</div>
   </div>
 );
@@ -317,7 +317,7 @@ export default function SetupBuilder({ onSaved }) {
                   onChange={(e) => patchRules({ withdrawAboveBalance: e.target.value })}
                   data-testid="tsys-withdraw-above" />
               </label>
-              <p className="text-[11px] text-muted-foreground/80 leading-relaxed w-full">
+              <p className="text-[11px] text-muted-foreground leading-relaxed w-full">
                 {t('tsysCashNote')}
               </p>
             </Section>
@@ -382,7 +382,7 @@ export default function SetupBuilder({ onSaved }) {
                 </div>
               </>
             )}
-            <p className="text-xs text-muted-foreground/70">{t('setupSavedHint')}</p>
+            <p className="text-xs text-muted-foreground">{t('setupSavedHint')}</p>
           </div>
         ) : (
           /* ── EDITOR ──────────────────────────────────────────────── */
@@ -496,11 +496,11 @@ export default function SetupBuilder({ onSaved }) {
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   <Crosshair className="w-4 h-4 text-primary" /> {t('tsysTriggerLabel')}
                 </h3>
-                <p className="text-xs text-muted-foreground/80">{t('tsysTriggerHint')}</p>
+                <p className="text-xs text-muted-foreground">{t('tsysTriggerHint')}</p>
                 <Input value={editing.entryTrigger} onChange={(e) => patchSetup({ entryTrigger: e.target.value })}
                   placeholder={t('tsysTriggerPh')} maxLength={160} data-testid="tsys-trigger" />
                 <h3 className="font-semibold text-sm pt-2">{t('tsysInvalidationLabel')}</h3>
-                <p className="text-xs text-muted-foreground/80">{t('tsysInvalidationHint')}</p>
+                <p className="text-xs text-muted-foreground">{t('tsysInvalidationHint')}</p>
                 <Input value={editing.invalidation} onChange={(e) => patchSetup({ invalidation: e.target.value })}
                   placeholder={t('tsysInvalidationPh')} maxLength={160} data-testid="tsys-invalidation" />
               </div>
@@ -549,7 +549,7 @@ export default function SetupBuilder({ onSaved }) {
                     {setupSummary(editing)}
                   </pre>
                 ) : (
-                  <p className="text-sm text-muted-foreground/70">{t('setupEmpty')}</p>
+                  <p className="text-sm text-muted-foreground">{t('setupEmpty')}</p>
                 )}
               </div>
 

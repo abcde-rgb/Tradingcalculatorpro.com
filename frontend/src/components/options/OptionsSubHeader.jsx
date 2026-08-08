@@ -83,7 +83,7 @@ const OptionsSubHeader = ({
               ${stock.price.toFixed(2)}
             </span>
             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums ${
-              stock.change >= 0 ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-[#ef4444]/10 text-[#ef4444]'
+              stock.change >= 0 ? 'bg-[#22c55e]/10 text-[#4ade80]' : 'bg-[#ef4444]/10 text-[#f87171]'
             }`}>
               {stock.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
               {stock.change >= 0 ? '+' : ''}{stock.change} ({stock.changePercent}%)
@@ -126,7 +126,7 @@ const OptionsSubHeader = ({
         <div className="hidden lg:flex items-center gap-4 overflow-x-auto [scrollbar-width:thin]">
           {GROUPS.map((g) => (
             <div key={g.id} className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                 {t(g.labelKey)}
               </span>
               <div className="flex bg-muted rounded-lg border border-border overflow-hidden">
@@ -151,7 +151,7 @@ const OptionsSubHeader = ({
         </div>
 
         <div className="lg:hidden flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold shrink-0">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold shrink-0">
             {t(activeGroup.labelKey)}
           </span>
           {/* Radix, no <select> nativo: en móvil el nativo abre la hoja a
@@ -169,7 +169,7 @@ const OptionsSubHeader = ({
             <SelectContent className="max-h-[60vh]">
               {GROUPS.map((g) => (
                 <SelectGroup key={g.id}>
-                  <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-2 py-1">
+                  <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1">
                     {t(g.labelKey)}
                   </SelectLabel>
                   {g.tabs.map(({ id, icon: Icon, labelKey }) => (

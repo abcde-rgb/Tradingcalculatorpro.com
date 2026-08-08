@@ -503,7 +503,7 @@ const UniversalAssetSearch = ({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || 'Buscar acción, ETF, índice, crypto, forex...'}
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           autoComplete="off"
           spellCheck={false}
         />
@@ -623,7 +623,7 @@ const UniversalAssetSearch = ({
                   <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
                     {meta?.label || cat}
                   </span>
-                  <span className="text-[9px] text-muted-foreground/60">({items.length})</span>
+                  <span className="text-[9px] text-muted-foreground">({items.length})</span>
                   <div className="flex-1 h-px bg-border/60" />
                 </div>
                 {items.map((a) => {
@@ -686,11 +686,11 @@ const UniversalAssetSearch = ({
               className="px-4 py-8 text-center"
               data-testid={`${testId}-empty`}
             >
-              <Search className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
+              <Search className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">
                 Sin resultados para "<span className="text-foreground font-bold">{query}</span>"
               </p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1">
                 Prueba con otro símbolo o cambia de categoría
               </p>
             </div>

@@ -64,7 +64,7 @@ export const RecommendedTools = () => {
                   <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <p className="text-sm text-muted-foreground mb-2">{t(partner.descKey)}</p>
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
                   {t('sponsoredLabel')}
                 </span>
               </div>

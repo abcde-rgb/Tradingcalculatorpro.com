@@ -55,7 +55,7 @@ export default function OptionsSection({ form, set, isOption }) {
             className="mt-1"
             data-testid="trade-option-strategy"
           />
-          <div className="text-[10px] text-muted-foreground/80 mt-0.5">{t('tfOptionStrategyHint')}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">{t('tfOptionStrategyHint')}</div>
         </div>
       </div>
 
@@ -104,7 +104,7 @@ function Field({ label, hint, value, onChange, testid }) {
         onChange={(e) => onChange(e.target.value)}
         className="mt-1" data-testid={testid}
       />
-      {hint && <div className="text-[10px] text-muted-foreground/80 mt-0.5 leading-tight">{hint}</div>}
+      {hint && <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{hint}</div>}
     </div>
   );
 }

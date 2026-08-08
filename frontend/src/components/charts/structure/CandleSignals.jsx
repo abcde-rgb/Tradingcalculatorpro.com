@@ -66,7 +66,7 @@ export default function CandleSignals({ signals, fallbackInterval, limit = 6 }) 
             </div>
             {/* Un patrón de 3 velas ocupa 3 barras: sin la fecha de apertura
                 había que contar velas hacia atrás a mano. */}
-            <span className="font-mono text-muted-foreground/70 text-[10px] ml-auto shrink-0 text-right leading-tight">
+            <span className="font-mono text-muted-foreground text-[10px] ml-auto shrink-0 text-right leading-tight">
               {d.start_date && d.start_date !== d.date && (
                 <>{t('structPatternOpens')} {d.start_date}<br /></>
               )}
