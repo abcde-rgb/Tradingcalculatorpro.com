@@ -45,13 +45,16 @@ code {
 
 @layer base {
     /* ============================================================
-       Tema por defecto — "instrumento de precisión": grafito azulado,
-       hueso y un ÚNICO acento ámbar.
+       Tema por defecto: superficies grafito azulado + texto hueso, con el
+       VERDE de marca de siempre como acento.
 
-       Regla que da forma a todo lo de abajo: en este producto el verde y
-       el rojo significan P&L y NADA MÁS. Antes `--primary` era verde
-       ácido (145 80% 45%), así que el mismo verde decía "esto es la marca"
-       y "estás ganando dinero". El ámbar libera los dos colores.
+       Nota para quien venga luego: el verde es a la vez color de marca y
+       color de beneficio, y eso es una DECISIÓN TOMADA, no un descuido.
+       Se probó a separarlos (marca ámbar, verde sólo para P&L) y se
+       descartó por criterio de producto. Lo que sí se conserva de aquel
+       intento es que el P&L tiene tokens propios —`--long` / `--short`—
+       en vez de `text-green-500` suelto por el código: si algún día hay
+       que despegar los dos verdes, se toca aquí y en ningún sitio más.
        ============================================================ */
     :root {
         --background: 220 22% 8%;
@@ -60,37 +63,38 @@ code {
         --card-foreground: 42 26% 87%;
         --popover: 218 19% 11%;
         --popover-foreground: 42 26% 87%;
-        --primary: 37 73% 56%;
-        --primary-foreground: 220 25% 8%;
+        --primary: 145 80% 45%;
+        --primary-foreground: 0 0% 0%;
         --secondary: 218 17% 18%;
         --secondary-foreground: 42 26% 87%;
         --muted: 218 17% 16%;
         --muted-foreground: 224 6% 60%;
-        --accent: 37 55% 68%;
+        --accent: 145 65% 62%;
         --accent-foreground: 220 25% 8%;
-        --destructive: 9 50% 52%;
-        --destructive-foreground: 42 26% 92%;
+        --destructive: 0 85% 60%;
+        --destructive-foreground: 0 0% 100%;
         --border: 218 17% 18%;
         --input: 218 17% 18%;
-        --ring: 37 73% 56%;
-        --chart-1: 37 73% 56%;
-        --chart-2: 154 39% 40%;
-        --chart-3: 9 50% 52%;
-        --chart-4: 224 15% 62%;
-        --chart-5: 197 42% 52%;
+        --ring: 145 80% 45%;
+        --chart-1: 145 80% 45%;
+        --chart-2: 217 90% 60%;
+        --chart-3: 0 85% 60%;
+        --chart-4: 45 100% 51%;
+        --chart-5: 280 100% 60%;
         --radius: 0.625rem;
         --radius-sharp: 2px;
 
         /* P&L y filete. Se declaran una sola vez: los temas con nombre
            los heredan a propósito, porque "verde = ganas" no debe cambiar
            según el tema que el usuario elija. */
-        --long: 154 39% 40%;
-        --short: 9 50% 52%;
+        --long: 142 71% 45%;
+        --short: 0 84% 60%;
         --rule: 218 17% 18%;
     }
 
-    /* Tema claro — papel hueso, no blanco puro. El ámbar baja de luminosidad
-       para mantener el contraste del texto sobre botón primario. */
+    /* Tema claro — papel hueso, no blanco puro. El verde baja de luminosidad
+       (145 70% 35%) para que el texto blanco sobre el botón primario mantenga
+       contraste: el verde del tema oscuro sobre papel no lo aguanta. */
     .light {
         --background: 42 24% 96%;
         --foreground: 220 22% 12%;
@@ -98,29 +102,29 @@ code {
         --card-foreground: 220 22% 12%;
         --popover: 40 20% 98%;
         --popover-foreground: 220 22% 12%;
-        --primary: 33 66% 40%;
-        --primary-foreground: 42 30% 97%;
+        --primary: 145 70% 35%;
+        --primary-foreground: 0 0% 100%;
         --secondary: 42 16% 90%;
         --secondary-foreground: 220 22% 12%;
         --muted: 42 16% 91%;
         --muted-foreground: 220 8% 40%;
-        --accent: 33 58% 46%;
+        --accent: 145 60% 32%;
         --accent-foreground: 42 30% 97%;
-        --destructive: 9 55% 42%;
-        --destructive-foreground: 42 30% 97%;
+        --destructive: 0 80% 50%;
+        --destructive-foreground: 0 0% 100%;
         --border: 40 12% 85%;
         --input: 40 12% 85%;
-        --ring: 33 66% 40%;
-        --chart-1: 33 66% 40%;
-        --chart-2: 154 45% 30%;
-        --chart-3: 9 55% 42%;
-        --chart-4: 220 12% 45%;
-        --chart-5: 197 45% 38%;
+        --ring: 145 70% 35%;
+        --chart-1: 145 70% 35%;
+        --chart-2: 217 80% 50%;
+        --chart-3: 0 80% 50%;
+        --chart-4: 45 90% 45%;
+        --chart-5: 280 90% 50%;
 
         /* El P&L se oscurece sobre papel: el verde/rojo del tema oscuro no
            llega a contraste suficiente sobre fondo claro. */
-        --long: 154 45% 30%;
-        --short: 9 55% 42%;
+        --long: 142 71% 30%;
+        --short: 0 74% 44%;
         --rule: 40 12% 85%;
     }
 
@@ -132,21 +136,21 @@ code {
         --card-foreground: 42 26% 87%;
         --popover: 218 19% 11%;
         --popover-foreground: 42 26% 87%;
-        --primary: 37 73% 56%;
-        --primary-foreground: 220 25% 8%;
+        --primary: 145 80% 45%;
+        --primary-foreground: 0 0% 0%;
         --secondary: 218 17% 18%;
         --secondary-foreground: 42 26% 87%;
         --muted: 218 17% 16%;
         --muted-foreground: 224 6% 60%;
-        --accent: 37 55% 68%;
+        --accent: 145 65% 62%;
         --accent-foreground: 220 25% 8%;
-        --destructive: 9 50% 52%;
-        --destructive-foreground: 42 26% 92%;
+        --destructive: 0 85% 60%;
+        --destructive-foreground: 0 0% 100%;
         --border: 218 17% 18%;
         --input: 218 17% 18%;
-        --ring: 37 73% 56%;
-        --long: 154 39% 40%;
-        --short: 9 50% 52%;
+        --ring: 145 80% 45%;
+        --long: 142 71% 45%;
+        --short: 0 84% 60%;
         --rule: 218 17% 18%;
     }
 
@@ -214,7 +218,7 @@ code {
         --rule: 252 24% 18%;
     }
 
-    /* Forex — mesa institucional: azul marino profundo + latón */
+    /* Forex — mesa institucional: azul marino profundo + verde billete */
     .theme-forex {
         --background: 217 45% 6%;
         --foreground: 215 35% 92%;
@@ -222,10 +226,7 @@ code {
         --card-foreground: 215 35% 92%;
         --popover: 217 42% 10%;
         --popover-foreground: 215 35% 92%;
-        /* Latón, no "verde billete": este tema tenía el mismo choque que el
-           antiguo tema por defecto — el verde de marca era indistinguible
-           del verde de beneficio. La identidad azul marino se mantiene. */
-        --primary: 42 60% 55%;
+        --primary: 152 58% 44%;
         --primary-foreground: 217 45% 6%;
         --secondary: 217 34% 16%;
         --secondary-foreground: 215 35% 92%;
@@ -237,8 +238,8 @@ code {
         --destructive-foreground: 0 0% 100%;
         --border: 217 30% 18%;
         --input: 217 30% 18%;
-        --ring: 42 60% 55%;
-        --chart-1: 42 60% 55%;
+        --ring: 152 58% 44%;
+        --chart-1: 152 58% 44%;
         --chart-2: 217 91% 60%;
         --chart-3: 0 72% 55%;
         --chart-4: 45 90% 55%;

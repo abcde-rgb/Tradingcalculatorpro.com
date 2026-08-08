@@ -42,7 +42,9 @@ module.exports = {
   			arc: '520ms'
   		},
   		colors: {
-  			/* P&L. Reservados: no usar para marca, links ni iconos decorativos. */
+  			/* P&L. Comparten familia con el verde de marca a propósito, pero
+  			   son tokens aparte: `--long`/`--short` se ajustan por tema sin
+  			   tocar `--primary`, y son el único sitio donde vive ese color. */
   			long: 'hsl(var(--long))',
   			short: 'hsl(var(--short))',
   			/* Filete de 1px: el separador principal, en vez de sombra. */

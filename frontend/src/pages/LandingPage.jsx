@@ -33,9 +33,10 @@ const TRANSITION_STAGGER_SM = { delay: 0.05 };
 const TRANSITION_STAGGER_MD = { delay: 0.1 };
 
 // Features will use t() in component  
-// Sin `color` por feature. Eran ocho chips de ocho colores distintos: un
-// arcoíris de categorías que decora pero no informa (el color no significaba
-// nada), y que además gastaba el verde y el rojo reservados al P&L.
+// Sin `color` por feature. Eran ocho chips de ocho colores distintos (verde,
+// naranja, azul, morado, amarillo, rojo, cian, rosa): un arcoíris de categorías
+// donde el color no codificaba nada, así que decoraba sin informar. Ahora el
+// icono va monocromo en el color de marca.
 const featuresData = [
   { icon: Calculator, key: 'professionalCalculators' },
   { icon: Sigma, key: 'optionsSuite' },
@@ -150,11 +151,7 @@ export default function LandingPage() {
             
             <h1 className="font-unbounded text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               Trading Calculator<br />
-              {/* Sólido, no degradado a verde. Este `PRO` era
-                  `from-primary via-green-400 to-emerald-500`: el nombre del
-                  producto pintado en el color que en el resto de la web
-                  significa "vas ganando". El verde es del P&L, no de la marca. */}
-              <span className="text-primary">PRO</span>
+              <span className="bg-gradient-to-r from-primary via-green-400 to-emerald-500 bg-clip-text text-transparent">PRO</span>
             </h1>
             
             <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
