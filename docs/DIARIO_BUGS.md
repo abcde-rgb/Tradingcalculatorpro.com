@@ -202,10 +202,49 @@ de BUG-009 generase el bundle sin ese ID. Resuelto al eliminar ese job.
 autorizada en Google Console.
 
 ### BUG-007 — Preferencias de usuario solo en localStorage
-**Severidad:** 🟡 MENOR · **Archivo:** `frontend/src/pages/SettingsPage.jsx` · **Estado:** ❌ PENDIENTE
+**Severidad:** 🟡 MENOR → 🟠 resultó ser IMPORTANTE · **Archivo:** `frontend/src/pages/SettingsPage.jsx` y siete sitios más · **Estado:** ✅ RESUELTO (2026-08-08)
 
-`tcp-preferences` se guarda en localStorage; no se sincroniza entre dispositivos.
-Requiere endpoint `PATCH /api/user/preferences` + carga en el perfil. Prioridad baja.
+Anotado como «prioridad baja» porque parecía afectar sólo a `tcp-preferences` (dos
+interruptores). Al revisarlo entero resultó que el mismo patrón ataba al navegador
+**ocho** ajustes, y uno de ellos era grave: `tcp-trading-system`, los **setups
+escritos a mano** por el usuario. Vaciar la caché los borraba y entrar desde el
+móvil no los mostraba. Una preferencia mal guardada es una molestia; el sistema de
+trading es la parte del producto que más trabajo cuesta rellenar.
+
+**Causa raíz:** cada pantalla resolvía la persistencia por su cuenta con
+`localStorage.setItem` a pelo, así que no había un sitio donde arreglarlo — había
+ocho. La pantalla de Ajustes llegaba a enseñar un toast de «preferencias
+guardadas» que era falso en cuanto cambiabas de equipo.
+
+**Solución:** `frontend/src/lib/cloudPrefs.js` respalda (no sustituye)
+`localStorage` contra un único documento de `user_states`. El descarte del
+`PATCH /api/user/preferences` que proponía la nota original fue deliberado: habría
+sido un endpoint por familia de ajuste, y `user_states` ya era un almacén
+clave-valor por usuario dado de alta en las listas del RGPD.
+
+Lo que no era obvio y costó las tres reglas del módulo: **una fecha por ajuste**
+(con una sola por documento, cambiar el tema en el ordenador borraba los setups
+escritos en el móvil), **un ajuste sin fecha local no se sube** (es el valor por
+defecto, no una elección, y subirlo lo haría ganar a lo que sí se eligió en otro
+sitio) y **el `localStorage` recuerda de qué cuenta es** (dos cuentas en el mismo
+navegador es exactamente lo que ya rompió el diario legado, y aquí habría
+significado subir los setups de uno a la cuenta de otro).
+
+**Verificado:** `engine-check` +10 sobre las reglas de fusión · 12 tests nuevos de
+la ruta · contra PostgreSQL real · y end-to-end en Chromium, incluido el caso de
+las dos cuentas en el mismo navegador.
+
+### BUG-007b — `POST /user-states/save` devolvía 500 por sus propias validaciones
+**Severidad:** 🟡 MENOR · **Archivo:** `backend/server.py` · **Estado:** ✅ RESUELTO (2026-08-08)
+
+Todo el cuerpo de la ruta estaba dentro de un `try` cerrado por
+`except Exception → HTTPException(500)`. Como `HTTPException` es una `Exception`,
+el `raise HTTPException(400, "state_id must be alphanumeric")` de dos líneas antes
+lo capturaba ese mismo `except` y salía como **500**: el cliente no podía
+distinguir «me has mandado basura» de «se me ha caído la base de datos», y un
+reintento automático ante un 5xx era lo peor que podía hacer. Encontrado al
+añadir el tope de tamaño (413), que habría heredado el mismo defecto.
+**Solución:** validar fuera del `try`; el `try` envuelve sólo la escritura.
 
 ### BUG-008 — server.py monolítico (~5.500 líneas)
 **Severidad:** 🟠 IMPORTANTE · **Archivo:** `backend/server.py` · **Estado:** ❌ PENDIENTE

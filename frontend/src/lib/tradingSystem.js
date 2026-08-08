@@ -139,15 +139,46 @@ export function loadSystem(storage) {
   return emptySystem();
 }
 
-export function saveSystem(system, storage) {
+/**
+ * Quién quiere enterarse de que el sistema ha cambiado.
+ *
+ * El sistema se edita en un sitio (`SetupBuilder`) y se lee en cuatro más —el
+ * diario, la analítica por setup, la proyección—, y desde que además viaja a la
+ * cuenta puede llegar de OTRO dispositivo mientras la pantalla ya está abierta.
+ * Sin aviso, cada lector se queda con la copia que leyó al montarse. Es una
+ * lista de funciones a pelo, no un store: este módulo tiene que seguir siendo
+ * ejecutable sin React ni navegador (lo comprueba `scripts/engine-check.js`).
+ */
+const systemListeners = new Set();
+
+/** Suscribirse a los cambios del sistema. Devuelve la función para darse de baja. */
+export function onSystemChange(fn) {
+  if (typeof fn !== 'function') return () => {};
+  systemListeners.add(fn);
+  return () => systemListeners.delete(fn);
+}
+
+/** Avisar a los suscriptores. `silent` lo usa la sincronización al aplicar lo
+ *  que acaba de bajar del servidor: los lectores deben repintarse igual, pero
+ *  eso no es una edición del usuario que haya que volver a subir. */
+function notifySystemChange(silent) {
+  for (const fn of systemListeners) {
+    try { fn({ silent: Boolean(silent) }); } catch (_) { /* un lector roto no rompe al resto */ }
+  }
+}
+
+export function saveSystem(system, storage, options) {
   const store = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
   if (!store) return false;
   try {
     store.setItem(STORAGE_KEY, JSON.stringify(normalizeSystem(system)));
-    return true;
   } catch (_) {
     return false;
   }
+  // Fuera del try: un suscriptor que lance no puede hacer creer que no se ha
+  // guardado — ya está escrito.
+  notifySystemChange(options && options.silent);
+  return true;
 }
 
 /** True when the setup carries enough to be worth saving. */

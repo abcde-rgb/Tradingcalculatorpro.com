@@ -5,6 +5,7 @@ import BrandMark from '@/components/common/BrandMark';
 import { useAuthStore } from '@/lib/store';
 import { useThemeStore } from '@/lib/theme';
 import { useTranslation, languages } from '@/lib/i18n';
+import { pickLocale } from '@/lib/cloudPrefs';
 import { FlagIcon, LOCALE_FLAG } from '@/components/common/FlagIcon';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -22,7 +23,7 @@ export function Header() {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { theme, setTheme, initTheme } = useThemeStore();
-  const { locale, setLocale, t } = useTranslation();
+  const { locale, t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   useEffect(() => {
@@ -158,7 +159,7 @@ export function Header() {
                 {languages.map(lang => (
                   <DropdownMenuItem 
                     key={lang.code}
-                    onClick={() => setLocale(lang.code)}
+                    onClick={() => pickLocale(lang.code)}
                     className={locale === lang.code ? 'bg-primary/10' : ''}
                   >
                     <FlagIcon code={LOCALE_FLAG[lang.code]} title={lang.name} className="w-5 h-[13px] mr-2" /> {lang.name}
@@ -340,7 +341,7 @@ export function Header() {
                     {languages.map(lang => (
                       <DropdownMenuItem
                         key={lang.code}
-                        onClick={() => setLocale(lang.code)}
+                        onClick={() => pickLocale(lang.code)}
                         className={locale === lang.code ? 'bg-primary/10' : ''}
                       >
                         <FlagIcon code={LOCALE_FLAG[lang.code]} title={lang.name} className="w-5 h-[13px] mr-2" /> {lang.name}

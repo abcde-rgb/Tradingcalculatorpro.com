@@ -3,7 +3,7 @@ import { Layers, AlertTriangle, HelpCircle, CheckCircle2, ArrowRight } from 'luc
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
 import {
-  loadSystem, joinSetupPerformance, missingEssentials, setupRulesFor,
+  loadSystem, joinSetupPerformance, missingEssentials, setupRulesFor, onSystemChange,
 } from '@/lib/tradingSystem';
 import { expectancyR, monthlyFromEdge } from '@/lib/projection';
 
@@ -45,6 +45,10 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [refreshKey]);
+
+  // El sistema también puede cambiar sin que haya un refresco: lo edita la
+  // pestaña de al lado, o llega de otro dispositivo (`lib/cloudPrefs.js`).
+  useEffect(() => onSystemChange(() => setSystem(loadSystem())), []);
 
   const joined = useMemo(
     () => joinSetupPerformance(system.setups, analytics?.by_setup),
