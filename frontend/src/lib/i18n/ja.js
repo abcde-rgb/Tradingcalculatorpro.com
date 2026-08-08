@@ -443,6 +443,7 @@ export default {
   "twoFactorEnableBtn": "2FAを有効化",
   "twoFactorDisableBtn": "2FAを無効化",
   "twoFactorSetupInstructions": "アプリでQRコードをスキャンするか、このキーを手動で入力してください:",
+  "twoFactorManualKey": "スキャンできない場合は、このキーを手動で入力してください:",
   "twoFactorEnterCode": "アプリに表示された6桁のコードを入力:",
   "twoFactorConfirmBtn": "確認して有効化",
   "twoFactorCancelBtn": "キャンセル",

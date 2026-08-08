@@ -423,6 +423,7 @@ export default {
   "twoFactorEnableBtn": "تفعيل 2FA",
   "twoFactorDisableBtn": "تعطيل 2FA",
   "twoFactorSetupInstructions": "امسح رمز QR بتطبيقك أو أدخل هذا المفتاح يدويًا:",
+  "twoFactorManualKey": "لا يمكنك مسحه ضوئيًا؟ أدخل هذا المفتاح يدويًا:",
   "twoFactorEnterCode": "أدخل الرمز المكوّن من 6 أرقام الظاهر في تطبيقك:",
   "twoFactorConfirmBtn": "تأكيد وتفعيل",
   "twoFactorCancelBtn": "إلغاء",

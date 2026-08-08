@@ -580,6 +580,7 @@ export default {
   "twoFactorEnableBtn": "Включить 2FA",
   "twoFactorDisableBtn": "Отключить 2FA",
   "twoFactorSetupInstructions": "Отсканируйте QR-код в приложении или введите этот ключ вручную:",
+  "twoFactorManualKey": "Не удаётся отсканировать? Введите этот ключ вручную:",
   "twoFactorEnterCode": "Введите 6-значный код из приложения:",
   "twoFactorConfirmBtn": "Подтвердить и включить",
   "twoFactorCancelBtn": "Отмена",
