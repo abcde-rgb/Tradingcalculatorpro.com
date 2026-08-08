@@ -8114,37 +8114,66 @@ async def admin_refund_subscription(request: Request, user_id: str, admin: dict 
 async def admin_revenue(admin: dict = Depends(require_admin)):
     now = datetime.now(timezone.utc)
 
-    # MRR history — last 6 months from payment_transactions
-    mrr_history = []
-    for i in range(5, -1, -1):
-        month_start = (now.replace(day=1) - timedelta(days=i * 30)).replace(
-            hour=0, minute=0, second=0, microsecond=0
+    # Caja COBRADA por mes natural, no MRR. Son cosas distintas y llamarlas
+    # igual hacía que este panel y el MRR de `/admin/metrics` se contradijeran:
+    # un Lifetime de 299 € entra entero en un mes e infla la línea, y al mes
+    # siguiente cae a cero. `/admin/metrics.mrr_usd` sí es recurrente mensual.
+    #
+    # Los límites de mes se calculan por CALENDARIO. Antes se restaban `i*30`
+    # días al día 1, y como los meses no duran 30 días, cinco de los seis
+    # tramos no empezaban el día 1: el bucket de marzo iba del 4 de marzo al 1
+    # de abril, así que lo cobrado del 1 al 3 no caía en NINGÚN tramo y
+    # desaparecía del gráfico. Eran 9 días de ingresos perdidos cada 6 meses, y
+    # la deriva crecía cuanto más atrás se miraba.
+    month_starts: List[datetime] = []
+    cursor_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    for _ in range(6):
+        month_starts.append(cursor_month)
+        cursor_month = (cursor_month - timedelta(days=1)).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
         )
-        month_end = (month_start + timedelta(days=32)).replace(day=1)
+    month_starts.reverse()
+
+    revenue_history = []
+    for idx, month_start in enumerate(month_starts):
+        if idx + 1 < len(month_starts):
+            month_end = month_starts[idx + 1]
+        else:
+            month_end = (month_start + timedelta(days=32)).replace(day=1)
         total = 0.0
         async for tx in db.payment_transactions.find({
             "status": "paid",
             "created_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()},
         }, {"amount": 1}):
             total += float(tx.get("amount") or 0)
-        mes_label = month_start.strftime("%b")
-        mrr_history.append({"mes": mes_label, "mrr": round(total, 2)})
+        revenue_history.append({
+            "mes": month_start.strftime("%b"),
+            # Clave ISO por si dos tramos cayeran en el mismo nombre de mes.
+            "month": month_start.strftime("%Y-%m"),
+            "collected": round(total, 2),
+        })
 
-    # LTV per plan: plan price (one-payment average; no churn-adjusted history yet)
-    ltv: Dict[str, float] = {
+    # NO es LTV: es el precio del plan, sin ajustar por churn ni por vida media
+    # del cliente. Se publica con `ltv_is_plan_price` para que la interfaz pueda
+    # decirlo — un precio etiquetado como LTV es una cifra inventada, porque el
+    # LTV de un plan mensual depende de cuántos meses aguanta el cliente.
+    plan_price: Dict[str, float] = {
         plan_id: round(plan["price"], 2)
         for plan_id, plan in SUBSCRIPTION_PLANS.items()
     }
 
-    # Churn: users who had premium and no longer do (cancelled last 30 days)
+    # Churn y conversión: `None` cuando NO HAY MUESTRA, nunca 0.
+    # Antes dividían por `max(denominador, 1)`, así que una base de cero premium
+    # daba un 0,0 % de churn con toda la confianza — y el `'—'` que la interfaz
+    # ya tenía preparado para el caso sin dato no llegaba a dispararse nunca.
     churn_count = await db.users.count_documents({
         "subscription_status": {"$in": ["canceled", "past_due", "unpaid"]},
         "subscription_canceled_at": {"$gte": (now - timedelta(days=30)).isoformat()},
     })
-    premium_30d_ago = await db.users.count_documents({"is_premium": True}) + churn_count
-    churn_rate = round((churn_count / max(premium_30d_ago, 1)) * 100, 1)
+    premium_now = await db.users.count_documents({"is_premium": True})
+    premium_base = premium_now + churn_count
+    churn_rate = round((churn_count / premium_base) * 100, 1) if premium_base else None
 
-    # Conversion: new users last 30 days who became premium
     new_30d = await db.users.count_documents({
         "created_at": {"$gte": (now - timedelta(days=30)).isoformat()}
     })
@@ -8152,13 +8181,21 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
         "created_at": {"$gte": (now - timedelta(days=30)).isoformat()},
         "is_premium": True,
     })
-    conversion_rate = round((new_premium_30d / max(new_30d, 1)) * 100, 1)
+    conversion_rate = round((new_premium_30d / new_30d) * 100, 1) if new_30d else None
 
     return {
-        "history": mrr_history,
+        "history": revenue_history,
         "churn": churn_rate,
         "conversion": conversion_rate,
-        "ltv": ltv,
+        "ltv": plan_price,
+        # Metadatos de procedencia: la interfaz no debería tener que adivinar
+        # qué mide cada cifra ni sobre cuántos casos se calculó.
+        "meta": {
+            "history_metric": "collected",   # caja cobrada, NO mrr recurrente
+            "ltv_is_plan_price": True,
+            "churn_base": premium_base,
+            "conversion_base": new_30d,
+        },
     }
 
 
@@ -8493,7 +8530,11 @@ async def admin_usage_heatmap(days: int = 30, admin: dict = Depends(require_admi
     cutoff = (now - timedelta(days=days)).isoformat()
 
     # Bounded fetch — at launch scale this is small; cap protects memory.
-    events = await db.usage_events.find({"ts": {"$gte": cutoff}}).limit(100000).to_list(100000)
+    EVENT_CAP = 100000
+    events = await db.usage_events.find({"ts": {"$gte": cutoff}}).limit(EVENT_CAP).to_list(EVENT_CAP)
+    # Al llegar al tope, `len(events)` es el tope, no el total: publicarlo como
+    # "vistas totales" convertía un recuento truncado en una cifra exacta.
+    truncated = len(events) >= EVENT_CAP
 
     path_counts: Counter = Counter()
     section_counts: Counter = Counter()
@@ -8516,7 +8557,14 @@ async def admin_usage_heatmap(days: int = 30, admin: dict = Depends(require_admi
     return {
         "days": days,
         "total_views": len(events),
+        # Sólo se cuentan eventos CON `user_id`, así que son usuarios
+        # identificados, no visitantes: el tráfico anónimo no entra aquí. El
+        # nombre se mantiene por compatibilidad de API y se aclara con el flag.
         "unique_visitors": len(visitors),
+        "unique_visitors_are_logged_in_only": True,
+        # `total_views` es un recuento truncado cuando esto es True.
+        "truncated": truncated,
+        "event_cap": EVENT_CAP,
         "top_paths": [{"name": k, "views": v} for k, v in path_counts.most_common(15)],
         "top_sections": [{"name": k, "views": v} for k, v in section_counts.most_common(15)],
         "timeseries": [{"day": d, "views": day_counts[d]} for d in sorted(day_counts)],
