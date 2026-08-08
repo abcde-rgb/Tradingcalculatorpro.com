@@ -451,6 +451,7 @@ export default {
   "twoFactorEnableBtn": "启用 2FA",
   "twoFactorDisableBtn": "禁用 2FA",
   "twoFactorSetupInstructions": "用你的应用扫描二维码,或手动输入此密钥:",
+  "twoFactorManualKey": "无法扫描？请手动输入此密钥：",
   "twoFactorEnterCode": "输入应用显示的 6 位验证码:",
   "twoFactorConfirmBtn": "确认并启用",
   "twoFactorCancelBtn": "取消",

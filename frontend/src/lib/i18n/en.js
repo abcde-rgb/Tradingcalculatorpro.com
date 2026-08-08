@@ -627,6 +627,7 @@ export default {
   "twoFactorEnableBtn": "Enable 2FA",
   "twoFactorDisableBtn": "Disable 2FA",
   "twoFactorSetupInstructions": "Scan the QR code with your app or enter this key manually:",
+  "twoFactorManualKey": "Can't scan it? Enter this key manually:",
   "twoFactorEnterCode": "Enter the 6-digit code shown in your app:",
   "twoFactorConfirmBtn": "Confirm & enable",
   "twoFactorCancelBtn": "Cancel",
