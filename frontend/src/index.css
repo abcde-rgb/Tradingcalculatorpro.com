@@ -12,99 +12,142 @@ body {
 
 body {
     margin: 0;
-    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: 'Inter Tight', Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-    font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, monospace;
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* Display. ÚNICA definición: antes esta clase estaba declarada dos veces y en
+   conflicto (`App.css` decía Unbounded, este archivo decía Space Grotesk), y
+   ganaba App.css por orden de importación. Una clase que miente sobre lo que
+   hace es podredumbre del sistema.
+
+   `.font-unbounded` se mantiene como alias del nombre honesto porque hay 218
+   usos heredados; el nombre a usar en código nuevo es `.font-display`. Pendiente
+   (juicio por sitio, no renombrado mecánico): bajar esos 218 usos a <20 — una
+   tipografía con carácter usada en todas partes deja de tener carácter. */
+.font-display,
 .font-unbounded {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Archivo', system-ui, sans-serif;
     font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* Todo número, en cualquier sitio: las cifras no bailan al actualizarse. */
+.font-mono,
+[class*="font-mono"] {
+    font-variant-numeric: tabular-nums;
 }
 
 @layer base {
-    /* Dark Theme (Default) */
+    /* ============================================================
+       Tema por defecto — "instrumento de precisión": grafito azulado,
+       hueso y un ÚNICO acento ámbar.
+
+       Regla que da forma a todo lo de abajo: en este producto el verde y
+       el rojo significan P&L y NADA MÁS. Antes `--primary` era verde
+       ácido (145 80% 45%), así que el mismo verde decía "esto es la marca"
+       y "estás ganando dinero". El ámbar libera los dos colores.
+       ============================================================ */
     :root {
-        --background: 0 0% 3%;
-        --foreground: 0 0% 95%;
-        --card: 0 0% 6%;
-        --card-foreground: 0 0% 95%;
-        --popover: 0 0% 6%;
-        --popover-foreground: 0 0% 95%;
-        --primary: 145 80% 45%;
-        --primary-foreground: 0 0% 0%;
-        --secondary: 0 0% 12%;
-        --secondary-foreground: 0 0% 95%;
-        --muted: 0 0% 12%;
-        --muted-foreground: 0 0% 55%;
-        --accent: 217 90% 60%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 85% 60%;
-        --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 15%;
-        --input: 0 0% 15%;
-        --ring: 145 80% 45%;
-        --chart-1: 145 80% 45%;
-        --chart-2: 217 90% 60%;
-        --chart-3: 0 85% 60%;
-        --chart-4: 45 100% 51%;
-        --chart-5: 280 100% 60%;
-        --radius: 0.75rem;
+        --background: 220 22% 8%;
+        --foreground: 42 26% 87%;
+        --card: 218 19% 11%;
+        --card-foreground: 42 26% 87%;
+        --popover: 218 19% 11%;
+        --popover-foreground: 42 26% 87%;
+        --primary: 37 73% 56%;
+        --primary-foreground: 220 25% 8%;
+        --secondary: 218 17% 18%;
+        --secondary-foreground: 42 26% 87%;
+        --muted: 218 17% 16%;
+        --muted-foreground: 224 6% 60%;
+        --accent: 37 55% 68%;
+        --accent-foreground: 220 25% 8%;
+        --destructive: 9 50% 52%;
+        --destructive-foreground: 42 26% 92%;
+        --border: 218 17% 18%;
+        --input: 218 17% 18%;
+        --ring: 37 73% 56%;
+        --chart-1: 37 73% 56%;
+        --chart-2: 154 39% 40%;
+        --chart-3: 9 50% 52%;
+        --chart-4: 224 15% 62%;
+        --chart-5: 197 42% 52%;
+        --radius: 0.625rem;
+        --radius-sharp: 2px;
+
+        /* P&L y filete. Se declaran una sola vez: los temas con nombre
+           los heredan a propósito, porque "verde = ganas" no debe cambiar
+           según el tema que el usuario elija. */
+        --long: 154 39% 40%;
+        --short: 9 50% 52%;
+        --rule: 218 17% 18%;
     }
 
-    /* Light Theme */
+    /* Tema claro — papel hueso, no blanco puro. El ámbar baja de luminosidad
+       para mantener el contraste del texto sobre botón primario. */
     .light {
-        --background: 0 0% 100%;
-        --foreground: 0 0% 10%;
-        --card: 0 0% 98%;
-        --card-foreground: 0 0% 10%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 10%;
-        --primary: 145 70% 35%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 0 0% 96%;
-        --secondary-foreground: 0 0% 10%;
-        --muted: 0 0% 96%;
-        --muted-foreground: 0 0% 45%;
-        --accent: 217 80% 50%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 80% 50%;
-        --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 90%;
-        --input: 0 0% 90%;
-        --ring: 145 70% 35%;
-        --chart-1: 145 70% 35%;
-        --chart-2: 217 80% 50%;
-        --chart-3: 0 80% 50%;
-        --chart-4: 45 90% 45%;
-        --chart-5: 280 90% 50%;
+        --background: 42 24% 96%;
+        --foreground: 220 22% 12%;
+        --card: 40 20% 98%;
+        --card-foreground: 220 22% 12%;
+        --popover: 40 20% 98%;
+        --popover-foreground: 220 22% 12%;
+        --primary: 33 66% 40%;
+        --primary-foreground: 42 30% 97%;
+        --secondary: 42 16% 90%;
+        --secondary-foreground: 220 22% 12%;
+        --muted: 42 16% 91%;
+        --muted-foreground: 220 8% 40%;
+        --accent: 33 58% 46%;
+        --accent-foreground: 42 30% 97%;
+        --destructive: 9 55% 42%;
+        --destructive-foreground: 42 30% 97%;
+        --border: 40 12% 85%;
+        --input: 40 12% 85%;
+        --ring: 33 66% 40%;
+        --chart-1: 33 66% 40%;
+        --chart-2: 154 45% 30%;
+        --chart-3: 9 55% 42%;
+        --chart-4: 220 12% 45%;
+        --chart-5: 197 45% 38%;
+
+        /* El P&L se oscurece sobre papel: el verde/rojo del tema oscuro no
+           llega a contraste suficiente sobre fondo claro. */
+        --long: 154 45% 30%;
+        --short: 9 55% 42%;
+        --rule: 40 12% 85%;
     }
 
-    /* Dark Theme class */
+    /* Tema oscuro explícito — espejo del :root de arriba. */
     .dark {
-        --background: 0 0% 3%;
-        --foreground: 0 0% 95%;
-        --card: 0 0% 6%;
-        --card-foreground: 0 0% 95%;
-        --popover: 0 0% 6%;
-        --popover-foreground: 0 0% 95%;
-        --primary: 145 80% 45%;
-        --primary-foreground: 0 0% 0%;
-        --secondary: 0 0% 12%;
-        --secondary-foreground: 0 0% 95%;
-        --muted: 0 0% 12%;
-        --muted-foreground: 0 0% 55%;
-        --accent: 217 90% 60%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 85% 60%;
-        --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 15%;
-        --input: 0 0% 15%;
-        --ring: 145 80% 45%;
+        --background: 220 22% 8%;
+        --foreground: 42 26% 87%;
+        --card: 218 19% 11%;
+        --card-foreground: 42 26% 87%;
+        --popover: 218 19% 11%;
+        --popover-foreground: 42 26% 87%;
+        --primary: 37 73% 56%;
+        --primary-foreground: 220 25% 8%;
+        --secondary: 218 17% 18%;
+        --secondary-foreground: 42 26% 87%;
+        --muted: 218 17% 16%;
+        --muted-foreground: 224 6% 60%;
+        --accent: 37 55% 68%;
+        --accent-foreground: 220 25% 8%;
+        --destructive: 9 50% 52%;
+        --destructive-foreground: 42 26% 92%;
+        --border: 218 17% 18%;
+        --input: 218 17% 18%;
+        --ring: 37 73% 56%;
+        --long: 154 39% 40%;
+        --short: 9 50% 52%;
+        --rule: 218 17% 18%;
     }
 
     /* ============================================================
@@ -139,6 +182,7 @@ code {
         --chart-3: 11 45% 48%;
         --chart-4: 40 6% 60%;
         --chart-5: 36 60% 40%;
+        --rule: 38 15% 14%;
     }
 
     /* Cripto — neón: violeta-negro + naranja Bitcoin + violeta eléctrico */
@@ -167,9 +211,10 @@ code {
         --chart-3: 160 78% 51%;
         --chart-4: 190 95% 55%;
         --chart-5: 320 85% 62%;
+        --rule: 252 24% 18%;
     }
 
-    /* Forex — mesa institucional: azul marino profundo + verde billete */
+    /* Forex — mesa institucional: azul marino profundo + latón */
     .theme-forex {
         --background: 217 45% 6%;
         --foreground: 215 35% 92%;
@@ -177,7 +222,10 @@ code {
         --card-foreground: 215 35% 92%;
         --popover: 217 42% 10%;
         --popover-foreground: 215 35% 92%;
-        --primary: 152 58% 44%;
+        /* Latón, no "verde billete": este tema tenía el mismo choque que el
+           antiguo tema por defecto — el verde de marca era indistinguible
+           del verde de beneficio. La identidad azul marino se mantiene. */
+        --primary: 42 60% 55%;
         --primary-foreground: 217 45% 6%;
         --secondary: 217 34% 16%;
         --secondary-foreground: 215 35% 92%;
@@ -189,12 +237,13 @@ code {
         --destructive-foreground: 0 0% 100%;
         --border: 217 30% 18%;
         --input: 217 30% 18%;
-        --ring: 152 58% 44%;
-        --chart-1: 152 58% 44%;
+        --ring: 42 60% 55%;
+        --chart-1: 42 60% 55%;
         --chart-2: 217 91% 60%;
         --chart-3: 0 72% 55%;
         --chart-4: 45 90% 55%;
         --chart-5: 190 80% 50%;
+        --rule: 217 30% 18%;
     }
 
     /* Nasdaq — pantalla tech: casi-negro + cian/azul vívido */
@@ -223,6 +272,7 @@ code {
         --chart-3: 4 85% 60%;
         --chart-4: 145 70% 48%;
         --chart-5: 260 85% 68%;
+        --rule: 205 24% 17%;
     }
 }
 
@@ -241,6 +291,30 @@ code {
             radial-gradient(ellipse at 90% 100%, hsl(43 72% 66% / 0.04), transparent 50%),
             url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
     }
+}
+
+/* Accesibilidad. Hasta ahora sólo `AnimatedHeroChart.jsx` y
+   `AuroraBackground.jsx` respetaban esta preferencia; el resto de la web
+   la ignoraba. Va aquí para que valga globalmente y no haya que acordarse
+   componente a componente. */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Anillo de foco de teclado, global y en ámbar. Aparece SIN transición a
+   propósito: quien navega con teclado necesita saber dónde está de
+   inmediato, no dentro de 90 ms. */
+:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
 }
 
 /* Custom scrollbar */
@@ -263,65 +337,25 @@ code {
     background: hsl(var(--foreground));
 }
 
-/* Gradient text */
-.text-gradient {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
+/* Aquí vivían `.text-gradient`, `.glass` y las animaciones `pulse-glow` /
+   `slide-up`. Las cuatro estaban declaradas por duplicado (aquí y en
+   `App.css`) y con CERO usos en todo `src/`: texto con degradado, cristal
+   difuminado y halo pulsante son el vocabulario genérico que el sistema de
+   diseño descarta, así que se van en vez de reescribirse. La elevación se
+   comunica con superficie + filete de 1px (`--rule`), no con halo. */
 
-/* Glass effect */
-.glass {
-    background: hsl(var(--card) / 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-}
-
-/* Animations */
-@keyframes pulse-glow {
-    0%, 100% {
-        box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
-    }
-    50% {
-        box-shadow: 0 0 40px hsl(var(--primary) / 0.5);
-    }
-}
-
-.animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-}
-
-@keyframes slide-up {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.animate-slide-up {
-    animation: slide-up 0.5s ease-out;
-}
-
-/* Trading specific styles */
-.profit {
-    @apply text-green-500;
-}
-
-.loss {
-    @apply text-red-500;
-}
-
+/* P&L. Salen de los tokens `--long`/`--short`, no de `text-green-500`/
+   `text-red-500`: el verde y el rojo del P&L son ahora los ÚNICOS verdes y
+   rojos del sistema, y tienen que poder ajustarse por tema (sobre papel
+   necesitan más oscuridad para contrastar) desde un solo sitio. */
+.profit,
 .long {
-    @apply text-green-500;
+    color: hsl(var(--long));
 }
 
+.loss,
 .short {
-    @apply text-red-500;
+    color: hsl(var(--short));
 }
 
 /* TradingView widget container */

@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Calculator, ArrowRight, Sparkles } from 'lucide-react';
+import { Calculator, ArrowRight, Gauge } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 const num = (v) => {
@@ -40,12 +40,12 @@ export default function LandingDemoCalculator() {
     <section className="py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <Card
-          className="border-primary/30 bg-gradient-to-br from-primary/5 to-blue-500/10 shadow-lg shadow-primary/10"
+          className="border-primary/30 bg-card"
           data-testid="landing-demo-calc"
         >
           <CardContent className="p-6 md:p-8">
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 rounded-full px-3 py-1 mb-3">
-              <Sparkles className="w-3.5 h-3.5" /> {t('dcalcBadge')}
+              <Gauge className="w-3.5 h-3.5" /> {t('dcalcBadge')}
             </div>
             <h2 className="font-unbounded text-2xl md:text-3xl font-bold mb-1 flex items-center gap-2">
               <Calculator className="w-6 h-6 text-primary" /> {t('dcalcTitle')}

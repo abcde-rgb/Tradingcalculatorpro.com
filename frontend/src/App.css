@@ -1,136 +1,63 @@
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+/* Complemento de `index.css`, no un segundo sistema.
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+   Este archivo llegó a duplicar media hoja de estilos: definía otra vez la
+   scrollbar, `.glass`, los keyframes `slide-up`/`pulse-glow` y la regla de los
+   spinners de `input[type=number]`, y como `App.css` se importa DESPUÉS que
+   `index.css` (index.js → index.css, luego App → App.css), sus versiones
+   ganaban en silencio. El caso peor era `.font-unbounded`: declarada aquí como
+   Unbounded y allí como Space Grotesk, con 218 usos dependiendo de cuál cargara
+   última. Todo eso vive ahora en `index.css`, en una sola copia.
 
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
-}
+   Lo que quedaba además estaba clavado al verde ácido `rgba(0,230,118,…)` —
+   anillo de foco, glows y `::selection` — que es justo el color que ya no es
+   de marca. Lo que sobrevive aquí sale de los tokens. */
 
-::-webkit-scrollbar-thumb:hover {
-  background: #444;
-}
-
-/* Font utilities */
-.font-unbounded {
-  font-family: 'Unbounded', 'Space Grotesk', sans-serif;
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
-}
-
-/* Remove default App styles */
 .App {
-  min-height: 100vh;
+    min-height: 100vh;
 }
 
-/* Smooth transitions for interactive elements */
-button, a, input, select {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+/* Transición base de los elementos interactivos. Es la red de seguridad para
+   los ~330 `hover:` del repo que no declaran transición propia y hasta ahora
+   cambiaban de golpe, en un frame. Sólo propiedades de color: `transform` y
+   `opacity` se animan en cada componente, y nunca `width`/`height`. */
+button,
+a,
+input,
+select,
+textarea,
+[role="tab"],
+[role="menuitem"] {
+    transition: background-color 90ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 90ms cubic-bezier(0.22, 1, 0.36, 1),
+        color 90ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Focus styles */
-input:focus, select:focus, button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.3);
-}
-
-/* Card hover animation */
-.card-hover {
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-
-.card-hover:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Glow effects */
-.glow-primary {
-  box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
-}
-
-.glow-destructive {
-  box-shadow: 0 0 20px rgba(255, 23, 68, 0.3);
-}
-
-/* Glass effect */
-.glass {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: rgba(0, 0, 0, 0.6);
-}
-
-/* Animation keyframes */
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 5px rgba(0, 230, 118, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 230, 118, 0.5); }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* Chart container */
-.tv-lightweight-charts {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Tabs styling override */
 [data-state="active"] {
-  transition: background-color 0.2s ease, color 0.2s ease;
+    transition: background-color 90ms cubic-bezier(0.22, 1, 0.36, 1),
+        color 90ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Number inputs - hide spinners */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+/* Contenedor de gráfico */
+.tv-lightweight-charts {
+    border-radius: var(--radius);
+    overflow: hidden;
 }
 
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
-/* Selection color */
 ::selection {
-  background: rgba(0, 230, 118, 0.3);
-  color: white;
+    background: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
 }
 
 /* Loading spinner */
 .spinner {
-  border: 2px solid transparent;
-  border-top-color: currentColor;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }

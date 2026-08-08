@@ -88,7 +88,7 @@ const PayoffChart = ({
           position: 'insideBottom',
           fill: l.type === 'call' ? '#4ade80' : '#f87171',
           fontSize: 10,
-          fontFamily: 'JetBrains Mono',
+          fontFamily: 'IBM Plex Mono',
           offset: 8,
         },
       }));
@@ -109,7 +109,7 @@ const PayoffChart = ({
         position: 'insideTopRight',
         fill: '#a78bfa',
         fontSize: 9,
-        fontFamily: 'JetBrains Mono',
+        fontFamily: 'IBM Plex Mono',
       })),
     [breakEvens]
   );
@@ -131,14 +131,14 @@ const PayoffChart = ({
 
   // Performance optimization: memoize inline objects
   const chartMargin = useMemo(() => ({ top: 10, right: 30, left: 10, bottom: 5 }), []);
-  const xAxisTick = useMemo(() => ({ fill: '#4a5568', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }), []);
-  const yAxisTick = useMemo(() => ({ fill: '#4a5568', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }), []);
+  const xAxisTick = useMemo(() => ({ fill: '#4a5568', fontSize: 10, fontFamily: 'IBM Plex Mono, monospace' }), []);
+  const yAxisTick = useMemo(() => ({ fill: '#4a5568', fontSize: 10, fontFamily: 'IBM Plex Mono, monospace' }), []);
   const refLineLabel = useMemo(() => ({
     value: `$${stockPrice}`,
     position: 'top',
     fill: '#f59e0b',
     fontSize: 10,
-    fontFamily: 'JetBrains Mono'
+    fontFamily: 'IBM Plex Mono'
   }), [stockPrice]);
 
   // Máximo y mínimo de 52 semanas del subyacente.
@@ -154,11 +154,11 @@ const PayoffChart = ({
   const show52wLow = low52wX !== null;
   const high52wLabel = useMemo(() => ({
     value: `52W ${high52w}`, position: 'insideTopRight', fill: '#38bdf8', fontSize: 9,
-    fontFamily: 'JetBrains Mono',
+    fontFamily: 'IBM Plex Mono',
   }), [high52w]);
   const low52wLabel = useMemo(() => ({
     value: `52W ${low52w}`, position: 'insideTopLeft', fill: '#38bdf8', fontSize: 9,
-    fontFamily: 'JetBrains Mono',
+    fontFamily: 'IBM Plex Mono',
   }), [low52w]);
 
   if (!data || data.length === 0) {
