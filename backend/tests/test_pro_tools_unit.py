@@ -150,6 +150,52 @@ def test_position_without_a_stop_is_counted_separately_not_as_zero_risk():
     assert heat["positions"][0]["has_stop"] is False
 
 
+@pytest.mark.parametrize("product,symbol,entry,sl,qty,expected", [
+    # El tamaño de contrato sale del catálogo, NO del campo `multiplier`, que
+    # es opcional al crear la operación y por tanto llega a None.
+    ("forex",  "EURUSD", 1.0850, 1.0800, 1.0,   500.0),   # ×100 000
+    ("option", "AAPL",   5.00,   2.50,   2.0,   500.0),   # ×100
+    ("cfd",    "XAUUSD", 2000.0, 1990.0, 0.2,   200.0),   # ×100
+    ("stock",  "AAPL",   150.0,  148.0,  100.0, 200.0),   # ×1
+])
+def test_open_heat_sizes_risk_with_the_instrument_catalogue(
+        product, symbol, entry, sl, qty, expected):
+    """BUG-045, segunda aparición: `_position_risk` leía `multiplier` en crudo
+    con un `or 1` de respaldo y nunca consultaba el catálogo.
+
+    Como `multiplier` es opcional al crear la operación, en un forex normal
+    llegaba a None y el riesgo salía ×100 000 más pequeño: 1 lote de EURUSD con
+    50 pips de stop se leía como 0,005 $ en vez de 500 $, y `/performance/
+    portfolio-risk` devolvía un heat del 0 % con la cuenta al 5 %.
+    """
+    pos = {"symbol": symbol, "instrument_type": product, "status": "open",
+           "side": "long", "entry_price": entry, "sl": sl, "quantity": qty}
+    heat = compute_open_heat([pos], 10000)
+    assert heat["total_risk"] == pytest.approx(expected, abs=0.01)
+    assert heat["heat_pct"] == pytest.approx(expected / 100.0, abs=0.01)
+    assert heat["positions_risk_unquantifiable"] == 0
+
+
+def test_unknown_contract_size_is_unquantifiable_not_zero_risk():
+    """Con stop pero sin tamaño de contrato resoluble, el riesgo no se sabe.
+
+    Antes caía en el `or 1` y entraba en la suma con un número mil veces menor
+    que el real; además, al ser > 0 pasaba el filtro `has_stop` y ni siquiera
+    aparecía en un contador. Ahora no suma y se cuenta aparte del "sin stop",
+    porque el usuario arregla cada caso de una forma distinta.
+    """
+    pos = {"symbol": "ZZZZ", "instrument_type": "futures", "status": "open",
+           "side": "long", "entry_price": 100.0, "sl": 98.0, "quantity": 1.0}
+    heat = compute_open_heat([pos], 10000)
+    assert heat["positions_risk_unquantifiable"] == 1
+    assert heat["positions_without_stop"] == 0      # stop sí tiene
+    assert heat["positions"][0]["has_stop"] is True
+    assert heat["positions"][0]["risk"] is None     # None, nunca 0
+    assert heat["positions"][0]["risk_quantifiable"] is False
+    assert heat["total_risk"] == 0.0                # no suma como si fuera 0
+    assert heat["heat_pct"] == 0.0
+
+
 def test_heat_escalates_through_warning_to_critical():
     small = compute_open_heat([_pos("SPY", qty=100)], 100000)
     big = compute_open_heat([_pos("SPY", qty=1000) for _ in range(1)], 10000)
