@@ -3,7 +3,7 @@ import { X, Save, Plus, AlertCircle, Gauge, Target, NotebookPen, Info } from 'lu
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import SectionCard, { SectionHeading } from '@/components/options/SectionCard';
+import SectionCard, { SectionHeading } from '@/components/common/SectionCard';
 import { aISOConZona, desdeISO, paraInput, zonaLocal } from '@/lib/tradeDates';
 import { useTranslation } from '@/lib/i18n';
 import { createTrade, updateTrade, backendSupportsProducts } from '@/services/performanceApi';

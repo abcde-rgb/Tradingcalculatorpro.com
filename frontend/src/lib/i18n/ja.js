@@ -1666,6 +1666,7 @@ export default {
   "initialBalance": "初期残高",
   "totalPhases": "総フェーズ数",
   "tradingCommission": "取引手数料",
+  "simCostsSubtitle": "各取引に適用される手数料（両モード共通）",
   "platformCommission": "プラットフォーム手数料",
   "compoundInterest": "複利有効",
   "operations": "取引",

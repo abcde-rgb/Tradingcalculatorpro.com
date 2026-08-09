@@ -1674,6 +1674,7 @@ export default {
   "initialBalance": "初始余额",
   "totalPhases": "总阶段数",
   "tradingCommission": "交易佣金",
+  "simCostsSubtitle": "对每笔交易收取的佣金，两种模式均适用",
   "platformCommission": "平台佣金",
   "compoundInterest": "启用复利",
   "operations": "操作数",
