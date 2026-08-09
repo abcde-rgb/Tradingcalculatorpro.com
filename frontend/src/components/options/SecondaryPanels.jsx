@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calculator, Crosshair, Grid3x3, Layers, Lightbulb, Settings2, Sparkles } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import SectionCard from './SectionCard';
+import SectionCard from '@/components/common/SectionCard';
 import PriceIVHeatmap from './PriceIVHeatmap';
 import PositioningPanel from './PositioningPanel';
 import ExplainTrade from './ExplainTrade';

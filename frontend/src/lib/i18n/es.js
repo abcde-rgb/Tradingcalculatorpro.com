@@ -327,6 +327,7 @@ export default {
   "initialBalance": "Saldo Inicial",
   "totalPhases": "Total de Fases",
   "tradingCommission": "Comisión Trading",
+  "simCostsSubtitle": "Comisiones aplicadas a cada operación, en los dos modos",
   "platformCommission": "Comisión Plataforma",
   "compoundInterest": "Interés Compuesto Activado",
   "operations": "Operaciones",

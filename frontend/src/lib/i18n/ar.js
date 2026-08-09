@@ -1665,6 +1665,7 @@ export default {
   "initialBalance": "الرصيد الأولي",
   "totalPhases": "إجمالي المراحل",
   "tradingCommission": "عمولة التداول",
+  "simCostsSubtitle": "العمولات المطبقة على كل صفقة، في كلا الوضعين",
   "platformCommission": "عمولة المنصة",
   "compoundInterest": "الفائدة المركبة مفعلة",
   "operations": "العمليات",

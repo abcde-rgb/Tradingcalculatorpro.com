@@ -3915,3 +3915,41 @@ Y los setups **siguen sin pasar por `trading_plan.py`**, que es donde
 conceptualmente deberían vivir (G-14). Esto los pone a salvo y los hace viajar
 entre dispositivos hoy; migrarlos a `POST /plan` sigue pendiente y ahora es una
 migración de datos, no un rescate.
+
+### 2026-08-08 — Dos formatos de datos estructurados que ya no rinden
+
+Al valorar si merecía la pena una herramienta de investigación de preguntas
+(AlsoAsked) salió algo que afecta más que la herramienta: **el proyecto emite
+marcado para dos formatos que Google ya retiró**.
+
+| Tipo | Dónde | Estado |
+|---|---|---|
+| `HowTo` | `gen-seo-pages.js` → **660 páginas** (66 estrategias × 10 idiomas) | Retirado: fuera de móvil en ago-2023 y de escritorio en sep-2023. Google borró hasta la documentación. |
+| `FAQPage` | portada (`public/index.html`) y fichas de `/markets/<id>/` | Retirado del todo el **7-may-2026**. Antes, restringido a webs gubernamentales/sanitarias desde ago-2023. Sale de Search Console en jun-2026 y de la API en ago-2026. |
+
+**No se ha tocado el código, y es deliberado.** Los dos siguen siendo Schema.org
+válido, Google los parsea para entender la página y no penalizan. Borrarlos no
+gana nada; lo que había que corregir era la **expectativa**, porque quien leyera
+`gen-seo-pages.js` podía pensar que esas 660 páginas salían en Google con pasos
+desplegables, y no ocurre desde 2023.
+
+Siguen vigentes y son donde sí conviene invertir: `WebApplication`,
+`Organization`, `WebSite` + `SearchAction`, `BreadcrumbList`, `Course` /
+`CourseInstance` y `Offer`.
+
+Documentado en [`setup/SEO_GUIDE.md`](./setup/SEO_GUIDE.md) §5, con la tabla
+completa y el criterio de qué no hacer. Se corrigió además el skill
+`mejorar-seo`, que en su §5 recomendaba *"FAQ con schema `FAQPage`"* como mejora
+prioritaria: mantenerlo habría hecho que la próxima sesión repitiera la
+inversión en un formato muerto.
+
+### Aviso añadido sobre contenido a escala
+
+El sitio genera ya ~1.589 URLs automáticamente y es **YMYL** (finanzas), la
+categoría con el listón de E-E-A-T más alto. Ampliar el corpus generando páginas
+nuevas desde listas de preguntas (AlsoAsked, AnswerThePublic, People Also Ask)
+es el patrón que persigue la política de *scaled content abuse* desde marzo de
+2024. La investigación de preguntas es útil, pero su destino correcto es
+**enriquecer las páginas existentes** —empezando por las FAQ, que hoy son las
+mismas cinco traducidas a 10 idiomas en vez de las preguntas reales de cada
+mercado— y no crear páginas nuevas. Queda escrito en la guía y en el skill.

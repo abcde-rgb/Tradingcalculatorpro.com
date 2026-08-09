@@ -328,6 +328,7 @@ export default {
   "initialBalance": "Anfangssaldo",
   "totalPhases": "Gesamtphasen",
   "tradingCommission": "Trading-Provision",
+  "simCostsSubtitle": "Gebühren für jeden Trade – in beiden Modi",
   "platformCommission": "Plattform-Provision",
   "compoundInterest": "Zinseszins Aktiviert",
   "operations": "Operationen",
