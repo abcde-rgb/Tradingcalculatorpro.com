@@ -32,6 +32,7 @@ import { useIsPremium } from '@/lib/premium';
 import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { useSEO } from '@/hooks/useSEO';
+import { useCloudPref } from '@/lib/cloudPrefs';
 import OnboardingModal from '@/components/common/OnboardingModal';
 import {
   Calculator, Target, FlaskConical, Star, Clock, Search,
@@ -82,26 +83,16 @@ export default function DashboardPage() {
   const activeCalcGroup = CALC_NAV.find(g => g.items.some(it => it.value === activeTab)) || CALC_NAV[0];
   const ALL_CALC_TOOLS = CALC_NAV.flatMap(g => g.items);
 
-  // Quick access: starred favourites + auto-tracked recents (localStorage).
-  const [calcFavs, setCalcFavs] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tcp-calc-favs') || '[]'); } catch { return []; }
-  });
-  const [calcRecents, setCalcRecents] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tcp-calc-recents') || '[]'); } catch { return []; }
-  });
+  // Quick access: starred favourites + auto-tracked recents. Van con la cuenta,
+  // así que las calculadoras que fijaste en el ordenador ya están arriba en el
+  // móvil (ver `lib/cloudPrefs.js`).
+  const [calcFavs, setCalcFavs] = useCloudPref('calcFavorites');
+  const [calcRecents, setCalcRecents] = useCloudPref('calcRecents');
   useEffect(() => {
-    setCalcRecents(prev => {
-      const next = [activeTab, ...prev.filter(v => v !== activeTab)].slice(0, 4);
-      try { localStorage.setItem('tcp-calc-recents', JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }, [activeTab]);
+    setCalcRecents(prev => [activeTab, ...prev.filter(v => v !== activeTab)].slice(0, 4));
+  }, [activeTab, setCalcRecents]);
   const toggleCalcFav = (value) => {
-    setCalcFavs(prev => {
-      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value].slice(0, 6);
-      try { localStorage.setItem('tcp-calc-favs', JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setCalcFavs(prev => (prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value].slice(0, 6)));
   };
   const quickAccess = [
     ...calcFavs.map(v => ({ value: v, fav: true })),

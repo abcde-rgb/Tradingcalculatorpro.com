@@ -2,7 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Activity, Target, AlertTriangle,
   CheckCircle2, Calendar, Layers, BarChart3, ChevronLeft, ChevronRight, Brain, PlusCircle, CalendarRange,
+  Boxes, Receipt,
 } from 'lucide-react';
+import { productLabelKey } from './form/productMeta';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
   ScatterChart, Scatter,
@@ -43,6 +45,19 @@ const KpiCard = ({ icon: Ic, label, value, subValue, color = 'text-foreground', 
     </div>
     <div className={`text-2xl font-bold font-mono ${color}`}>{value}</div>
     {subValue && <div className="text-[10px] text-muted-foreground mt-1">{subValue}</div>}
+  </div>
+);
+
+/**
+ * Una cifra de coste. `null` se pinta como raya: no es lo mismo "no pagué
+ * funding" que "este producto no cobra funding", y un 0 borra la diferencia.
+ */
+const CostCell = ({ label, value, strong }) => (
+  <div className={`rounded-lg border p-3 ${strong ? 'border-border bg-muted/60' : 'border-border/40 bg-muted/30'}`}>
+    <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
+    <p className={`font-mono font-bold ${strong ? 'text-base' : 'text-sm'}`}>
+      {value === null || value === undefined ? '—' : `$${Number(value).toFixed(2)}`}
+    </p>
   </div>
 );
 
@@ -208,7 +223,7 @@ const PnLCalendar = ({ data }) => {
 
       <div className="grid grid-cols-7 gap-1 mb-1">
         {dows.map((d, i) => (
-          <div key={i} className="text-center text-[10px] font-bold text-muted-foreground/70">{d}</div>
+          <div key={i} className="text-center text-[10px] font-bold text-muted-foreground">{d}</div>
         ))}
       </div>
 
@@ -260,16 +275,20 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [periodKey, setPeriodKey] = useState('month');
+  // Producto sobre el que se calcula TODO el panel. `null` = el conjunto.
+  // Va al backend, no filtra aquí: la curva y el drawdown hay que reconstruirlos
+  // desde las operaciones, no se pueden recortar del resultado ya agregado.
+  const [product, setProduct] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetchAnalytics()
+    fetchAnalytics(product)
       .then((d) => { if (!cancelled) setData(d); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, [refreshKey, product]);
 
   if (loading) {
     return <div className="text-center py-12 text-muted-foreground">{t('loading')}…</div>;
@@ -279,24 +298,93 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   const a = data.analytics;
   const insights = data.insights || [];
 
+  // Sobre QUÉ está calculado todo lo de abajo. Va lo primero porque cambia el
+  // significado de cada cifra de la página: sin filtro, la curva y el drawdown
+  // mezclan productos que pueden vivir en cuentas distintas.
+  //
+  // La lista sale de `products_available`, que el backend calcula SIN aplicar el
+  // filtro. Con `by_product` —que sí está filtrado— la barra se quedaba con un
+  // solo botón en cuanto elegías un producto, y ya no había forma de volver al
+  // conjunto. El respaldo a `by_product` es para un backend anterior, que aún no
+  // publica el campo: ahí la barra vale para elegir, no para volver.
+  const productsSeen = data.products_available || (a.by_product || []).map((g) => g.group);
+  // ¿El backend aplicó DE VERDAD el filtro que pedimos? El frontend se publica
+  // solo al mergear y el backend se sube a mano, así que durante un rato el
+  // navegador va por delante: una versión anterior ignora `?product=` y responde
+  // 200 con TODO el historial, que se pintaría bajo el rótulo «Calculado sobre:
+  // Opciones». Un fetch fallido que deja el estado anterior da lo mismo. Antes
+  // de rotular unas cifras hay que comprobar de qué son.
+  const desajusteFiltro = product !== null && data.product_filter !== product;
+  const scopeBar = productsSeen.length > 1 && (
+    <div className="flex flex-wrap items-center gap-1.5" data-testid="analytics-product-filter">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mr-1">
+        {t('analyticsScope')}
+      </span>
+      <button
+        type="button"
+        onClick={() => setProduct(null)}
+        className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+          product === null
+            ? 'bg-primary/15 text-primary border-primary/40'
+            : 'border-border text-muted-foreground hover:text-foreground'
+        }`}
+        data-testid="analytics-product-all"
+      >
+        {t('analyticsScopeAll')}
+      </button>
+      {productsSeen.map((id) => (
+        <button
+          type="button"
+          key={id}
+          onClick={() => setProduct(id)}
+          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${
+            product === id
+              ? 'bg-primary/15 text-primary border-primary/40'
+              : 'border-border text-muted-foreground hover:text-foreground'
+          }`}
+          data-testid={`analytics-product-${id}`}
+        >
+          {t(productLabelKey(id))}
+        </button>
+      ))}
+    </div>
+  );
+
   if (a.closed_trades === 0) {
     return (
-      <div className="text-center py-16 px-4 bg-card border border-dashed border-border rounded-xl"
-        data-testid="analytics-empty">
-        <BarChart3 className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-foreground mb-2">{t('analyticsEmptyTitle')}</h3>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">{t('analyticsNoData')}</p>
-        {onGoToJournal && (
-          <button
-            type="button"
-            onClick={onGoToJournal}
-            data-testid="analytics-empty-cta"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] text-white text-sm font-semibold transition-colors"
-          >
-            <PlusCircle className="w-4 h-4" />
-            {t('addFirstTrade')}
-          </button>
-        )}
+      // La barra va también aquí: se puede llegar al panel vacío CON un filtro
+      // puesto, y sin ella el único camino de vuelta sería recargar la página.
+      <div className="space-y-4" data-testid="analytics-dashboard">
+        {scopeBar}
+
+      {desajusteFiltro && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2.5"
+          data-testid="analytics-filter-mismatch"
+        >
+          <AlertTriangle className="w-4 h-4 text-[#fbbf24] shrink-0 mt-0.5" />
+          <div className="text-[11px] text-[#fbbf24] leading-relaxed">
+            {t('analyticsFilterMismatch')}
+          </div>
+        </div>
+      )}
+        <div className="text-center py-16 px-4 bg-card border border-dashed border-border rounded-xl"
+          data-testid="analytics-empty">
+          <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-foreground mb-2">{t('analyticsEmptyTitle')}</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">{t('analyticsNoData')}</p>
+          {onGoToJournal && (
+            <button
+              type="button"
+              onClick={onGoToJournal}
+              data-testid="analytics-empty-cta"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] text-white text-sm font-semibold transition-colors"
+            >
+              <PlusCircle className="w-4 h-4" />
+              {t('addFirstTrade')}
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -306,8 +394,34 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
   // Escala común a todas las barras del bloque, para que se comparen entre sí.
   const periodMax = Math.max(1, ...periodRows.map((r) => Math.abs(r.pct)));
 
+  const mixed = a.mixed_accounts || {};
+
   return (
     <div className="space-y-6" data-testid="analytics-dashboard">
+
+      {scopeBar}
+
+      {/* La curva de equity, el drawdown y el % de rentabilidad se construyen
+          sobre UNA cuenta. Si los saldos por producto se separan, es que hay
+          varias — y entonces esas tres cifras están sumando cuentas distintas.
+          Se dice y se ofrece el filtro, en vez de dibujar la curva callando. */}
+      {mixed.suspected && product === null && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2.5"
+          data-testid="analytics-mixed-accounts"
+        >
+          <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
+          <div className="text-[11px] text-[#f59e0b] leading-relaxed">
+            <div className="font-semibold">{t('analyticsMixedAccounts')}</div>
+            <div className="mt-0.5 text-[#f59e0b]/85">
+              {Object.entries(mixed.balance_by_product || {})
+                .map(([p, b]) => `${t(productLabelKey(p))}: $${Number(b).toLocaleString('en-US')}`)
+                .join(' · ')}
+            </div>
+            <div className="mt-1 text-[#f59e0b]/85">{t('analyticsMixedAccountsFix')}</div>
+          </div>
+        </div>
+      )}
 
       {/* RENTABILIDAD POR PERIODO — lo primero, porque es la unidad en la que
           se cobra. El win rate solo no significa nada: un 70 % de acierto con
@@ -352,13 +466,13 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
                     style={{ width: `${Math.min(100, (Math.abs(row.pct) / periodMax) * 100)}%` }}
                   />
                 </span>
-                <span className="font-mono text-muted-foreground/70 w-24 text-right shrink-0">
+                <span className="font-mono text-muted-foreground w-24 text-right shrink-0">
                   {row.pnl > 0 ? '+' : ''}${row.pnl.toFixed(0)} · {row.n}
                 </span>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground/70 leading-relaxed mt-2">
+          <p className="text-[10px] text-muted-foreground leading-relaxed mt-2">
             {t('analyticsReturnsNote')}
           </p>
         </div>
@@ -449,7 +563,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
               Dicho en un sitio y callado en el otro, los dos números se leen
               como si uno de los dos estuviera mal. */}
           {a.setups_multi_tagged > 0 && (
-            <p className="text-[10px] text-muted-foreground/80 leading-relaxed mt-3">
+            <p className="text-[10px] text-muted-foreground leading-relaxed mt-3">
               {t('setupPerfMultiNote').replace('{n}', String(a.setups_multi_tagged))}
             </p>
           )}
@@ -477,13 +591,87 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
         </div>
       </div>
 
+      {/* Producto y costes. Un diario que mezcla acciones, futuros y perpetuos
+          y sólo publica un total dice muy poco: la pregunta es en cuál tienes
+          ventaja de verdad, y cuánto de lo que ganas se va en peaje. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-xl p-5" data-testid="breakdown-product">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+            <Boxes className="w-4 h-4" /> {t('breakdownByProduct')}
+          </h3>
+          <div className="space-y-2.5">
+            {(a.by_product || []).map((p) => (
+              <Bar
+                key={p.group}
+                label={t(productLabelKey(p.group))}
+                n={p.n}
+                total={a.closed_trades}
+                pnl={p.pnl}
+              />
+            ))}
+            {!(a.by_product || []).length && (
+              <p className="text-xs text-muted-foreground">{t('breakdownEmpty')}</p>
+            )}
+          </div>
+          {a.leverage_usage?.sample > 0 && (
+            <div className="mt-4 pt-3 border-t border-border text-[11px] text-muted-foreground space-y-1"
+              data-testid="leverage-usage"
+            >
+              <div>
+                {t('levUsageAvg')}: <span className="font-mono text-foreground font-semibold">
+                  {a.leverage_usage.avg_leverage}×
+                </span>
+                {' · '}
+                {t('levUsageMax')}: <span className="font-mono text-foreground font-semibold">
+                  {a.leverage_usage.max_leverage}×
+                </span>
+              </div>
+              {a.leverage_usage.max_exposure != null && (
+                <div>
+                  {t('levUsageMaxExposure')}: <span className="font-mono text-foreground font-semibold">
+                    {a.leverage_usage.max_exposure}×
+                  </span>
+                </div>
+              )}
+              {a.leverage_usage.over_exposure_trades > 0 && (
+                <div className="text-[#ef4444] font-semibold">
+                  {t('levUsageOverCap')
+                    .replace('{n}', String(a.leverage_usage.over_exposure_trades))
+                    .replace('{cap}', String(a.leverage_usage.max_exposure_multiple))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-5" data-testid="costs-card">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
+            <Receipt className="w-4 h-4" /> {t('costsTitle')}
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">{t('costsIntro')}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <CostCell label={t('costsFees')} value={a.costs?.fees} />
+            <CostCell label={t('costsFunding')} value={a.costs?.funding} />
+            <CostCell label={t('costsSwap')} value={a.costs?.swap} />
+            <CostCell label={t('costsTotal')} value={a.costs?.total} strong />
+          </div>
+          {/* `null` no es 0: sin beneficio bruto la pregunta "¿qué parte se fue
+              en costes?" no tiene respuesta, y un 0 % se leería como "nada". */}
+          <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+            {a.costs?.pct_of_gross_profit == null
+              ? t('costsShareUnknown')
+              : t('costsShare').replace('{v}', String(a.costs.pct_of_gross_profit))}
+          </p>
+        </div>
+      </div>
+
       {/* MAE / MFE — stop and target calibration */}
       {a.excursion?.available && (
         <div className="bg-card border border-border rounded-xl p-5" data-testid="excursion-card">
           <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1">
             {t('excTitle')}
           </h3>
-          <p className="text-xs text-muted-foreground/80 mb-4">{t('excIntro')}</p>
+          <p className="text-xs text-muted-foreground mb-4">{t('excIntro')}</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
             <div className="bg-muted/40 rounded-lg border border-border/40 p-3">
               <p className="text-[11px] text-muted-foreground mb-1">{t('excAvgMae')}</p>

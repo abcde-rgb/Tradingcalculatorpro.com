@@ -54,7 +54,7 @@ export function LevelRow({ lv, nearest }) {
       )}
       {lv.flipped && (
         <span
-          className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#f59e0b]"
+          className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#fbbf24]"
           title={t('structFlippedTip').replace('{origin}', t(ORIGIN_KEY[lv.origin] || 'structOriginMixed'))}
         >
           {t('structFlippedTag')}

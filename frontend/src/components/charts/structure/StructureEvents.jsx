@@ -44,7 +44,7 @@ export default function StructureEvents({ events, limit = 8 }) {
             <span className={`font-mono ${dir.color}`}>{dir.icon} {t(`structDir_${e.direction}`)}</span>
             {e.times > 1 && (
               <span
-                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#f59e0b]"
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#fbbf24]"
                 title={t('structRepeatTip').replace('{n}', String(e.times))}
                 data-testid="struct-event-repeat"
               >
@@ -56,14 +56,14 @@ export default function StructureEvents({ events, limit = 8 }) {
                 cuál exactamente. */}
             <span
               className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                conf.confirmed ? 'bg-[#22c55e]/15 text-[#22c55e]' : 'bg-muted text-muted-foreground'
+                conf.confirmed ? 'bg-[#22c55e]/15 text-[#4ade80]' : 'bg-muted text-muted-foreground'
               }`}
               title={`${t('structEvidence')}: ${conf.score ?? 0}/100${conf.reasons?.length ? ` — ${reasonList(conf.reasons)}` : ''}`}
             >
               {conf.confirmed ? `✓ ${t('structConfirmedTag')}` : t('structUnconfirmedTag')}
             </span>
             <span className="font-mono text-muted-foreground ml-auto">{fmtPrice(e.price)}</span>
-            <span className="font-mono text-muted-foreground/70 text-[10px]">{e.date}</span>
+            <span className="font-mono text-muted-foreground text-[10px]">{e.date}</span>
           </div>
         );
       })}

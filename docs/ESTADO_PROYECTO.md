@@ -5,9 +5,9 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-05 (escáner de estructura;
->   antes 2026-08-03, commit `7864406` de `main`)
-> - 🌿 **Rama de trabajo actual:** `claude/restructure-org-scanner-f5a8i6`
+> - 📅 **Última verificación real contra el código:** 2026-08-08 (persistencia de los
+>   ajustes del usuario; antes 2026-08-05, escáner de estructura)
+> - 🌿 **Rama de trabajo actual:** `claude/github-branches-cleanup-cfef9j`
 >
 > ⚠️ **Aviso de método (2026-07-27, y volvió a pasar el 2026-08-03).** Las §1, §2 y
 > §6 se quedan por detrás del código mientras el registro de sesiones (§7) sí se
@@ -29,10 +29,11 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK → **195 rutas registradas**; los **24** módulos compilan (2026-08-03) |
-| **Tests offline** | 🟢 | `pytest tests/` → **550 passed, 74 skipped** en 16 s (2026-08-05). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **718 passed, 74 skipped** en 16 s (2026-08-08). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
-| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-05). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` **5817 claves × 10 idiomas, 0 huecos** · `engine-check` **141/141** (2026-08-05) |
+| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` **5995 claves × 10 idiomas, 0 huecos** · `engine-check` **197/197** (2026-08-08) |
+| **Ajustes del usuario entre dispositivos** | 🟢 | Tema, idioma, preferencias, favoritos, progreso de la Academia y **setups** viajan con la cuenta desde el 2026-08-08 (`lib/cloudPrefs.js`). Ver G-25 |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **No corre `check-doc-links.py`** — por eso la doc se desvía sin que nada avise (ver G-18) |
@@ -144,7 +145,11 @@
 | G-17 | **El shim `Collection` sigue sin tests.** Es la capa casera (~750 líneas) que traduce Mongo→SQL y de la que depende **todo** el backend. Bloquea el refactor de `server.py` (BUG-008): partir 8232 líneas sin red es cambiar deuda por riesgo | 🟠 | T-03 del backlog de auditoría: `$set/$inc/$push/$unset/$or/$in/$regex`, agregación y `find_one_and_update`, contra PostgreSQL real |
 | G-18 | **`check-doc-links.py` no corre en CI.** Existe, funciona (47 documentos, 0 roturas) y sólo se ejecuta si alguien se acuerda. `PENDIENTES.md` acumuló dos referencias a documentos inexistentes (`CRECIMIENTO_GOOGLE.md`, `CHECKLIST_MODO_CASI_GRATIS.md`) sin que nada avisara — sobrevivieron porque iban en `código` y no como enlace markdown | 🟡 | Añadir el paso a `ci.yml`. Coste: 3 líneas |
 | G-20 | ~~**Dos esquemas incompatibles escribiendo en `db.trades`, y el P&L se pierde.**~~ `POST /journal/trades` guardaba camelCase (`entryPrice`) y `POST /performance/trades` snake_case (`entry_price`), **en la misma colección**, y ninguno filtraba al leer: `compute_trade_pnl` no encontraba `entry_price`, salía por la rama de `entry == 0` y devolvía `pnl = 0.0`, que `perf_update_trade` **persistía** al primer edit | 🟢 | ✅ **Cerrado (2026-08-06)**: `normalize_trade_schema` traduce en `compute_trade_pnl` (punto único por el que pasa todo el P&L), el endpoint legado **escribe ya en el esquema canónico**, los dos `PUT` hacen `$unset` de las claves viejas, y `migrate_trades_schema.py` limpia lo almacenado con backup y rollback. El mapeo `leverage`→`multiplier` recupera el importe **exacto**: misma posición en la fórmula. Verificado contra Postgres real |
-| G-21 | **El diario no puede registrar una operación de opciones de más de una pata.** `make_trade_doc` tiene `option_type`, `strike` y `expiry` en **singular**; cero apariciones de `legs` en todo el módulo. En una web de opciones, el diario no admite un spread, un iron condor, un calendar ni un PMCC. Arrastra el R-múltiplo: en riesgo definido no hay stop de precio, así que `r_multiple` sale `None` en casi toda operación de opciones y con él se caen la distribución de R y el scatter MAE/MFE | 🔴 | Es el cuello de botella de la analítica de opciones. El riesgo debe definirse como `max_loss` de la estructura, no como `\|entry − sl\|` |
+| G-21 | **El diario no guarda las patas de una operación de opciones.** Cero apariciones de `legs`: no hay griegas agregadas de la estructura, ni cierre de una pata suelta, ni rolar media posición | 🟠 | **Media parte cerrada (2026-08-06)**: el R-múltiplo ya no se cae. El riesgo de una estructura sale de `max_loss` —la prima en una opción comprada, anchura − crédito en un spread— y no de `\|entry − sl\|`, así que una operación de opciones entra en la distribución de R y compara con el resto del diario. Lo que queda es el detalle por pata: reconstrucción `Position` → `Leg` → `Execution` |
+| G-23 | **Una operación tiene un único precio de salida: no hay cierres parciales.** Afecta a todos los productos, no sólo a opciones — un scale-out de tres tramos hay que apuntarlo como tres operaciones, y entonces cada una lleva su propio saldo de cuenta y la analítica cuenta tres entradas donde hubo una | 🟠 | Misma reconstrucción que G-21: es `Execution` quien la resuelve. Mientras tanto, apuntarlo como una operación con el precio medio de salida es lo más fiel |
+| G-24 | **La divisa de la cuenta no se convierte.** Todo se mide en la divisa en la que estén los precios. Un cruce sin USD (EURGBP) o un futuro europeo en una cuenta en dólares suman importes de divisas distintas como si fueran la misma | 🟡 | Necesita tipo de cambio a fecha de cierre; `ecb_rates.py` ya sirve el feed diario del BCE. El P&L de cada operación es correcto en su divisa: lo que no lo es, es el total |
+| G-25 | ~~**Los ajustes del usuario no salían del navegador.**~~ Cuenta, suscripción, diario, alertas y estado de las calculadoras sí persistían; el tema, el idioma, las preferencias, los favoritos, el progreso de la Academia y **los setups del sistema de trading** vivían sólo en `localStorage`. Entrar desde el móvil era empezar de cero y vaciar la caché era perder los setups escritos a mano | 🟢 | ✅ **Cerrado (2026-08-08)**: `lib/cloudPrefs.js` respalda `localStorage` contra un único documento de `user_states` (`preferences_v1`), con **una fecha por ajuste** (para que cambiar el tema en un equipo no borre los setups de otro) y **dueño registrado** (para que dos cuentas en el mismo navegador no se hereden nada). Las reglas de fusión están en `lib/prefsMerge.js`, sin importaciones, probadas en `engine-check`. Verificado end-to-end en Chromium contra Postgres real |
+| G-26 | **No se puede editar el perfil.** No existe `PUT /auth/profile` ni pantalla: el nombre y la foto son los del registro para siempre. En Ajustes sólo se puede cambiar contraseña, gestionar 2FA, exportar los datos y borrar la cuenta | 🟡 | Descubierto al cerrar G-25. Es un hueco distinto: no es que el dato no se guarde, es que no hay forma de cambiarlo |
 | G-22 | **Dos fuentes de verdad para las mismas estadísticas.** `dashboard/JournalStats.jsx` y `education/ExpectancyCalculator.jsx` leen `/journal/stats`; `services/performanceApi.js` y `education/JournalEdgeButton.jsx` leen `/performance/analytics`. Fórmulas distintas sobre la misma colección → el usuario ve **dos expectancies distintas** según la pantalla | 🟠 | Converge al unificar el modelo (G-20). Mientras tanto, las dos rutas ya ordenan cronológicamente y tratan igual el breakeven |
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
 
@@ -186,7 +191,9 @@
 
 ### P1 — Robustez antes de escalar
 - [ ] **Dar interfaz a lo que ya está escrito** (G-14) — plan de trading primero.
-- [ ] **`trading_plans` en las tres listas del RGPD** (G-15) — pequeño y con multa detrás.
+- [x] ~~**`trading_plans` en las tres listas del RGPD** (G-15)~~ — cerrado en BUG-044 y
+      **verificado contra Postgres** el 2026-08-07: el plan viaja en el export y el
+      borrado de cuenta lo elimina (0 filas en 6 tablas).
 - [ ] Cerrar **C-08** (API keys solo en Secret Manager).
 - [ ] `FRONTEND_URL` obligatoria en producción (T-02 del backlog de auditoría).
 - [ ] **CSP** en el HTML de Pages, verificada en navegador (T-01 / G-10).
@@ -3488,3 +3495,423 @@ modelo (`Position` → `Leg` → `Execution`). El trámite que antes la hacía c
 ⚠️ **El backend no se despliega solo.** Nada de esto está vivo hasta un
 `cloudbuild.yaml` a mano, y la migración es un paso aparte que se lanza contra la
 base de producción (`--apply`) **después** de desplegar.
+
+---
+
+## 2026-08-06 (3) — El diario deja de ser un diario de acciones
+
+El diario sabía registrar una cosa: *comprar N unidades a un precio*. Eso describe
+una acción al contado y **ninguna otra cosa**. Un lote de forex son 100 000 unidades
+de la divisa base; un contrato de oro en COMEX son 100 onzas; un micro E-mini vale
+5 $ por punto; un perpetuo paga funding cada ocho horas; un CFD de oro a 20× no
+mueve 20 veces el P&L, mueve 20 veces el **margen**. Sin esos datos, dos operaciones
+con los mismos números en pantalla significaban cosas distintas y la analítica las
+sumaba como si no.
+
+### El catálogo: `backend/instruments.py` (nuevo)
+
+Siete productos —acciones, CFD, futuros, forex, cripto spot, cripto perpetuo y
+opciones— más `spot`, que es lo que llevan guardado las operaciones anteriores y
+sigue comportándose **exactamente igual** (×1, sin apalancamiento, sin coste de
+mantenimiento): ninguna operación existente cambia de valor al leerse.
+
+Con ficha por símbolo: 29 contratos de futuros con su tick y su valor de tick, 35
+pares de forex con el pip correcto (0,01 contra el yen, 0,0001 en el resto), 16
+subyacentes de CFD con su tamaño de lote y su apalancamiento típico —ahí vive el
+«CFD del oro a 20×»— y 10 perpetuos con su tope y su tasa de mantenimiento.
+
+⚠️ **El catálogo PREFIJA, no decide.** Cada operación guarda su propio tamaño de
+contrato y su propio apalancamiento; el catálogo sólo los rellena la primera vez.
+Un símbolo fuera de catálogo devuelve `contract_size: None` —no 1— y dispara el
+error `contract_size_missing`: un contrato de crudo a ×1 en lugar de ×1000 no da un
+P&L aproximado, da uno mil veces menor.
+
+### Lo que decidió la forma del módulo
+
+- **El apalancamiento NO multiplica el P&L.** Multiplica el margen, y con él la
+  rentabilidad sobre ese margen y la cercanía de la liquidación. 1 000 $ de nocional
+  ganan lo mismo a 1× que a 100×. Fijado con un test parametrizado a 1/5/20/100×,
+  porque es lo primero que se rompe al refactorizar —el diario legado sí lo metía en
+  la fórmula, y el mapeo de compatibilidad sigue vivo.
+- **Lo que sí multiplica es el tamaño de contrato**, y de ahí salió BUG-045: la
+  regla del 1-2 % de riesgo lo ignoraba, así que **no saltaba jamás** en opciones,
+  futuros ni forex. Sobrevivió porque en `spot` multiplicar por 1 no se nota.
+- **La exposición, no la X.** El tope que pidió el usuario —que la posición no
+  supere 10 veces el saldo— se mide sobre el **nocional contra la cuenta**, no sobre
+  el número del apalancamiento: 100× sobre 100 $ en una cuenta de 10 000 son 10 000 $
+  de nocional y no tienen nada de malo; 20× sobre 20 000 $ en esa misma cuenta son
+  400 000 $ y una vela normal se los lleva. El umbral vive en `plan["risk"]`
+  (`max_exposure_multiple`), como manda la regla del proyecto.
+
+### Las unidades: el trader escribe en lo suyo, se guarda un precio
+
+Stop y objetivo se escriben en precio, pips, ticks, puntos, % del precio, importe
+fijo, % de la cuenta o múltiplos de R. **Lo que se almacena es siempre un nivel de
+precio**, y por eso R, drawdown, MAE/MFE y la distribución siguen leyendo los mismos
+campos que leían: la analítica no se entera de que existen unidades. El número
+tecleado y su unidad viajan al lado sólo para repintar el formulario tal cual se
+dejó. Un objetivo en R sin stop es `None`, no cero — un cero pondría el objetivo en
+la entrada.
+
+### Costes: comisión y lo que cuesta NO cerrar
+
+Funding en perpetuos (por periodo de 8 h) y comisión nocturna en CFD y forex
+(interés anual prorrateado por noches). Se puede dar el importe o la tasa: **el
+importe declarado gana siempre**, porque ninguna fórmula nuestra mejora un extracto,
+y la respuesta dice cuál de las dos cosas es (`carry_source`). Un perpetuo al 0,01 %
+cada 8 h cuesta ~0,9 % del nocional al mes; con 20× eso es el 18 % del margen, y era
+invisible en el diario.
+
+### Opciones: parejas, no aparte
+
+Mismo formulario, mismo modelo, misma analítica. Lo único distinto es de dónde sale
+el riesgo: **`max_loss`**, no `|entrada − stop|`. Con eso, una opción comprada tiene
+R (la prima ES la pérdida máxima) y un spread de crédito también (anchura − crédito),
+así que entran en la distribución de R, en el R medio y en la comparación con el
+resto del diario. Antes, casi toda operación de opciones salía con `r_multiple =
+None` y se caía sola de la analítica — la mitad del hueco **G-21**. Vender desnudo
+sigue sin tener pérdida máxima definida: `None`, no un número tranquilizador.
+Se añaden IV de entrada/salida, delta, subyacente y desenlace (asignada, vencida sin
+valor, ejercida, roleada): sin eso no se puede saber si la operación salió por
+dirección o porque se pagó cara la volatilidad.
+
+### Avisos y SMS
+
+`notifications.py` (nuevo) reparte un aviso por tres canales y **dice cuáles
+funcionan de verdad** (`GET /alerts/channels`). Las alertas del diario no montan un
+vigilante nuevo: escriben en la misma colección `alerts` con `trade_id`, así que las
+recorre el poller que ya existía; editar el stop mueve el aviso y cerrar la operación
+lo retira. El SMS está implementado contra Twilio y queda operativo en cuanto existan
+`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_FROM_NUMBER` en Secret Manager —
+**no queda código pendiente, queda el alta de la cuenta**. Sin ellas responde
+`not_configured` y la interfaz lo dice antes de que el usuario cuente con ello. Tope
+de 20 SMS por usuario y hora: un bucle en el poller no puede convertirse en factura.
+
+### Paridad backend ↔ frontend
+
+El catálogo se genera: `scripts/gen-instruments-js.py` escribe
+`frontend/src/lib/instrumentSpecs.generated.js` desde `instruments.py`, y `--check`
+falla si divergen. La **matemática** sí está escrita dos veces a propósito (el
+navegador no puede esperar a la red para avisarte del tope mientras escribes, y el
+backend no puede fiarse del cliente): las dos están cubiertas con los **mismos
+números** en `test_instruments_unit.py` y en `engine-check.js`.
+
+### Verificado
+
+`pytest` **679 passed / 74 skipped** (+76) · `py_compile` de todos los módulos ·
+ESLint **0 errores** · `i18n-check` **5979 claves × 10 idiomas** (+162) ·
+`engine-check` **171/171** (+30) · `gen-instruments-js --check` en paridad ·
+`npm run build` OK · `check-doc-links` 49 documentos.
+
+### Lo que NO entra (y por qué)
+
+- **Multi-pata real (G-21 completo).** Un spread se registra hoy como una posición
+  con su prima neta y su pérdida máxima declarada —que es lo que hace falta para que
+  tenga R y compare con el resto—, pero **no guarda pata por pata**: no hay `legs`, y
+  con ello no hay griegas agregadas de la estructura, ni cierre parcial de una pata,
+  ni rolar media posición. Sigue siendo la reconstrucción del modelo
+  (`Position` → `Leg` → `Execution`) que ya estaba anotada.
+- **Cierres parciales** en cualquier producto: una operación sigue teniendo un único
+  precio de salida.
+- **Conversión de divisa de la cuenta.** Todo se mide en la divisa en la que estén
+  los precios; un par cruzado sin USD y una cuenta en euros no llevan tipo de cambio.
+- **Márgenes reales del bróker.** Los del catálogo son de referencia y editables; el
+  precio de liquidación es una estimación de margen aislado y se publica etiquetada
+  como tal, con sus supuestos al lado.
+
+---
+
+## 2026-08-07 — La interfaz aprende que el backend puede ir por detrás
+
+El PR #177 se mergeó a `main` y **no se publicó**: el push no disparó
+`deploy-gh-pages.yml` (workflow activo, cero ejecuciones para `61a8fa2`), así que
+`gh-pages` se quedó en `deploy: 578a220a` y la web siguió sirviendo el build
+anterior. Verificado sobre la rama publicada, no sobre suposiciones: los textos del
+PR #176 sí están en el bundle vivo y los del #177 no.
+
+Al ir a publicarlo apareció el problema real, que no era el workflow:
+
+> El frontend se publica **solo** al mergear; el backend se sube **a mano**. Esa
+> asimetría no es un accidente: es la forma permanente del proyecto desde que se
+> retiró el workflow de backend (2026-08-03). O sea que la ventana en la que el
+> navegador va por delante del servidor es **el estado normal durante un rato**.
+
+Y en esa ventana el diario multiproducto no degradaba: **rompía**. El backend
+anterior valida `instrument_type` contra `^(spot|option)$`, así que los cinco
+productos nuevos —y el valor por defecto del formulario, `stock`— recibían un 422.
+Publicar el frontend habría dejado el diario sin poder guardar ni una operación.
+
+### Lo que se ha hecho
+
+La interfaz ahora **pregunta** en vez de suponer. `GET /performance/instruments`
+existe sólo en la versión que entiende los productos, así que sirve de sonda: es
+pública, no toca la base de datos y se consulta una vez por sesión.
+
+- **404/405** (el servidor contesta pero no conoce la ruta) → backend anterior: el
+  selector se queda en spot y opciones, y una línea explica por qué. Decirlo es la
+  mitad del arreglo: sin el aviso, el usuario ve menos productos de los que la web
+  anuncia y no sabe si es un fallo suyo.
+- **Fallo de red o 5xx** → `null`, y se ofrece todo. Recortar la aplicación por un
+  corte de red sería peor que el problema que esto evita.
+- **Además, la red de seguridad**: si aun así llega un 422 sobre `instrument_type`,
+  se traduce al mismo mensaje y el selector se ajusta solo. El detalle de Pydantic
+  («string does not match regex») no le dice nada a nadie.
+
+Con esto, **el orden de despliegue deja de importar**: se puede publicar el
+frontend antes que el backend y lo peor que pasa es que durante un rato se opera
+con menos productos, diciéndolo. El backend sigue teniendo que subirse a mano
+(`gcloud builds submit --config=cloudbuild.yaml .`), pero ya no es un requisito
+previo para publicar.
+
+### Verificado
+
+`pytest` **679 passed / 74 skipped** · ESLint **0 errores** · `i18n-check` **5980
+claves × 10 idiomas** (+1) · `engine-check` **176/176** (+5, incluidos los tres
+estados de la sonda) · catálogo backend↔frontend en paridad · build OK.
+
+### Lo que sigue sin resolverse
+
+**Por qué GitHub no disparó el workflow** en ese merge. Los cinco workflows figuran
+como `active` y `CI (Pull Request)` sí corrió sobre la rama. Queda anotado en el
+`DEPLOY_CHECKLIST.md` §0: después de mergear, **comprobar que hay ejecución**, porque
+un merge que no dispara nada no produce error en ninguna pantalla y se confunde con
+un despliegue que sí ocurrió.
+
+---
+
+## 2026-08-07 — Las opciones y el resto de productos acababan en el mismo sitio
+
+### El problema
+
+Con el diario ya multiproducto, `/performance` → Analytics seguía siendo **un solo
+panel para todo**. Eso deja tres cifras mintiendo a la vez:
+
+- **la curva de capital** arranca del saldo de la operación más antigua y le va
+  sumando P&L de productos que pueden estar en **cuentas distintas** — una de
+  fondeo de 50 000 para futuros y la personal de 10 000 para CFD dan una curva
+  que no es la de ninguna de las dos;
+- **el max drawdown** hereda el mismo defecto, y encima no es simétrico: no se
+  puede "descontar" después;
+- **el % de rentabilidad** divide por un saldo inicial que ya no significa nada.
+
+Y la pregunta que un trader hace de verdad —«¿tengo ventaja en opciones o me la
+están dando los futuros?»— no se podía responder: el desglose `by_product` daba
+P&L y acierto por producto, pero no una **curva ni un drawdown** por producto.
+
+### Lo que se ha hecho
+
+**1 · El filtro se calcula en el backend, no se recorta en el navegador.**
+`GET /performance/analytics?product=<id>` filtra **antes** de calcular y antes del
+techo de `ANALYTICS_MAX_TRADES`. La curva, el drawdown y el Sharpe no se pueden
+reconstruir desde un resultado ya agregado: hay que volver a construirlos desde las
+operaciones de ese producto. Filtrar después del techo, además, dejaría un producto
+minoritario calculado sobre las migajas de una ventana llena de otro — y diciendo
+que no hay truncado. La respuesta publica `product_filter`: un panel filtrado sin
+decirlo es indistinguible de uno completo con muy pocas operaciones.
+
+**2 · El selector no se dibuja con el desglose filtrado.** `products_available` se
+calcula sobre el historial completo, con el mismo criterio de «cerrada» que usa la
+analítica (`is_closed_trade`, sacado a función porque estaba escrito tres veces como
+literal). Construirlo sobre `by_product` —que sí va filtrado— dejaba **un solo botón**
+en cuanto elegías un producto: sin forma de volver al conjunto. La barra va también
+en el estado vacío, porque se puede llegar a él con un filtro puesto.
+
+**3 · Cuando hay más de una cuenta, se dice.** `detect_mixed_accounts` compara la
+**mediana** del `account_balance` por producto (mediana, no media: un saldo mal
+tecleado no decide) y marca `suspected` con un cociente ≥ 2. El aviso lista el saldo
+por producto y separa lo que sigue siendo válido —R, acierto, desglose— de lo que no.
+Es una **sospecha**, no una afirmación: el diario no sabe cuántas cuentas hay, sabe
+que los saldos no cuadran.
+
+### Verificado
+
+`pytest` **689 passed / 74 skipped** (+10) · ESLint **0 errores** · `i18n-check`
+**5988 claves × 10 idiomas** (+8) · `engine-check` **187/187** · catálogo
+backend↔frontend en paridad · enlaces de doc OK · build OK.
+
+E2E con Postgres + backend vivos y el **build de producción real** servido bajo
+`/Tradingcalculatorpro.com`: **16/16 en escritorio (1440×900) y 16/16 en móvil
+(390×844)**, comprobando que el filtro dispara una llamada nueva con `product=` en
+la query, que las cifras cambian (3 471,86 → 1 496,50 en futuros → 544,80 en
+opciones), que la suma de los P&L por producto es exactamente el total, que el aviso
+desaparece al filtrar y vuelve al quitar el filtro, y que nada desborda.
+
+### Sigue pendiente
+
+Los **cuatro módulos sin interfaz** (G-14): `trading_plan.py`, `backtest.py`,
+`portfolio_risk.py` y `american_options.py`. `portfolio_risk.py` es el que más pega
+con esto: mide el riesgo abierto a nivel de cuenta, que es justo lo que el aviso de
+cuentas mezcladas deja a medias.
+
+---
+
+## 2026-08-07 (cont.) — Examen de autorización: qué pasa cuando dos cuentas se cruzan
+
+### Por qué este examen y no otro
+
+La cobertura real del backend, medida y no supuesta, parte el proyecto en dos:
+
+| Zona | Cobertura |
+|---|---|
+| La matemática (`price_action` 97 %, `portfolio_risk` 95 %, `backtest` 94 %, `performance` 92 %, `trading_plan` 92 %, `instruments` 88 %) | muy alta |
+| Las rutas HTTP (`server.py` **26 %**, `missing_apis` 23 %, `realtime_alerts` 23 %, `stock_data` 22 %, `admin_routes` 25 %) | casi nada |
+
+Los 693 tests comprueban casi todos **funciones puras**. Lo que rodea a esas
+funciones —autenticación, autorización, validación, rutas de error— estaba sin
+tocar. Y la pregunta que ese hueco deja sin responder es la única cuyo «no» hay
+que poder demostrar en un producto donde el usuario guarda su historial.
+
+### Resultado: la autorización aguanta
+
+Dos cuentas reales, la víctima crea un objeto de cada tipo y la atacante intenta
+leerlo, editarlo y borrarlo cambiando el id de la URL. **21/21.** Detalles que
+importan:
+
+- Responde **404, no 403**: no confirma siquiera que el objeto exista.
+- La operación **sigue intacta** después de los tres intentos, comprobado
+  releyéndola con el token de su dueña — no basta con que la respuesta sea un error.
+- La **ruta legada** (`/journal/trades/{id}`) es otra puerta al mismo dato y
+  también cierra.
+- Un `user_id` en el cuerpo de un POST **se ignora**: no se puede escribir en el
+  diario de otro.
+- Escribir `is_premium`, `is_admin`, `subscription_plan`, `role` o `email` en el
+  perfil **no mueve nada** (medido por diferencia antes/después, no por valor
+  absoluto: las cuentas de prueba ya eran premium y mirar el valor daba un falso
+  positivo).
+
+### RGPD: G-15 cerrado, verificado contra Postgres
+
+El export incluye la operación, el plan de trading y el estado guardado; **no**
+lleva el hash de la contraseña (lo único que aparece es `"auth_provider":
+"password"`, que es el método de acceso); y los artefactos de seguridad no viajan
+en el JSON, que es el contrato correcto. El borrado de cuenta deja **0 filas en
+las 6 tablas** que tenían datos. Esto no se leyó en el código: se contó en la
+base de datos.
+
+De paso quedan confirmados tres límites de tasa, agotándolos: registro 3/hora,
+borrado de cuenta 3/hora, export 5/hora.
+
+### Lo que sí estaba roto: BUG-048
+
+Cinco rutas convertían su propio 4xx en un 500 —tres de ellas de facturación—
+porque `HTTPException` hereda de `Exception` y el `except Exception` final se lo
+tragaba. Ver `DIARIO_BUGS.md`. El test que lo fija recorre el árbol sintáctico,
+no las rutas: el fallo es estructural y así cubre también todo lo que no tiene
+test de integración.
+
+### Nota de método
+
+Cuatro de los «fallos» de las primeras vueltas eran de la sonda, no del producto:
+un PUT incompleto que se quedaba en el 422 de validación sin llegar a comprobar
+la propiedad; un premium que había concedido yo por SQL dos minutos antes; una
+búsqueda de «password» que casaba con `auth_provider`; y un 429 del limitador
+leído como borrado roto. Los cuatro están corregidos **en la sonda**, y las
+guardas que lo evitan quedan escritas ahí: una prueba que acusa al producto de lo
+que hace el banco de pruebas es peor que no tener prueba.
+
+### Verificado
+
+`pytest` **698 passed / 74 skipped** (+5) · `py_compile` OK · autorización
+cruzada **21/21** · export RGPD **8/8** · borrado RGPD **0 filas en 6 tablas** ·
+enlaces de doc OK.
+
+---
+
+## 2026-08-08 — Los ajustes dejan de vivir en un navegador
+
+### El agujero
+
+La pregunta era simple: *¿todo lo que configuro se guarda en la base de datos?*
+La respuesta era **no**, y la parte que no se guardaba resultó ser justo la que
+más trabajo cuesta escribir.
+
+Persistía lo transaccional —cuenta, plan de suscripción, diario, alertas y el
+estado de las once calculadoras vía `user_states`—, pero **todo lo que el
+usuario ajusta** vivía en `localStorage` y por tanto en UN equipo:
+
+| Qué se perdía | Clave |
+|---|---|
+| **Los setups del sistema de trading** (escritos a mano, uno por uno) | `tcp-trading-system` |
+| Preferencias de la pantalla de Ajustes | `tcp-preferences` |
+| Idioma | `trading-i18n-storage` |
+| Tema visual | `trading-theme-storage` |
+| Activos favoritos | `trading-assets-storage` |
+| Favoritos y recientes de calculadoras | `tcp-calc-favs`, `tcp-calc-recents` |
+| Progreso de la Academia | `tcp-edu-progress` |
+| Recientes del buscador de opciones | `opc_recents` |
+
+Entrar desde el móvil era empezar de cero. Vaciar la caché del navegador era
+perder los setups. Y la pantalla de Ajustes llevaba desde siempre enseñando un
+«preferencias guardadas» que era falso fuera de ese equipo.
+
+### Lo que se ha hecho
+
+`frontend/src/lib/cloudPrefs.js` — una capa de sincronización que **no sustituye
+`localStorage`, lo respalda**. El navegador sigue siendo la copia inmediata
+(funciona sin red, sin cuenta y en modo demo) y el servidor la copia que cruza
+dispositivos. Todo viaja en UN documento de `user_states` (`preferences_v1`), así
+que sincronizar cuesta una lectura y una escritura, no una por ajuste.
+
+Tres decisiones que parecen detalles y no lo son:
+
+1. **Cada ajuste lleva su propia fecha.** Con una sola fecha por documento,
+   cambiar el tema en el ordenador borraría los setups escritos en el móvil diez
+   minutos antes. Gana el más reciente **de cada ajuste por separado**.
+2. **El documento local recuerda de quién es.** Dos cuentas en el mismo
+   navegador es exactamente lo que ya rompió el diario legado. Si el dueño del
+   `localStorage` no es quien acaba de entrar, lo local **no compite**: manda la
+   cuenta, y lo que la cuenta no tenga vuelve a su valor por defecto en vez de
+   quedarse enseñando los setups del anterior.
+3. **Un ajuste sin fecha local no es una preferencia, es el valor por defecto**, y
+   no se sube. Subirlo lo convertiría en una elección que el usuario nunca hizo
+   y a partir de ahí ganaría a lo que sí eligió en otro sitio. Por lo mismo, el
+   idioma **sólo** marca fecha desde el selector: `detectBrowserLanguage` es una
+   suposición del navegador, y un `?lang=` compartido cambia lo que ves, no lo
+   que has elegido.
+
+Las reglas de quién gana viven en `lib/prefsMerge.js`, **sin una sola
+importación**, para poder probarlas sin React ni navegador.
+
+### En el backend
+
+`POST /user-states/save` guardaba `expires_at` a 90 días bajo el comentario «TTL:
+state is auto-deleted 90 days after last update» y **ninguna tarea lo aplicaba
+jamás**. La promesa era falsa en los dos sentidos: ni caducaba, ni podía
+caducar sin borrarle al usuario cosas suyas. Ahora la tabla no caduca nada
+—desde que guarda los ajustes, hacerlo verdad sería perder trabajo del usuario—
+y el `$unset` limpia el `expires_at` que dejaron escrito las versiones
+anteriores. No crece sin control: es una fila por (usuario, `state_id`) y los
+`state_id` son un puñado fijo. El RGPD sigue cubierto, `user_states` ya estaba en
+`_USER_DATA_COLLECTIONS`.
+
+De paso, la ruta **dejó de convertir sus propios 4xx en 500**: todo el cuerpo
+estaba dentro de un `try` con `except Exception`, así que un `state_id` inválido
+se le devolvía al cliente como error de servidor. Y se añadió un tope por
+documento (512 KB) ahora que ahí dentro va contenido escrito por el usuario.
+
+### Verificado
+
+- `pytest` **718 passed / 74 skipped** (+12 nuevos en
+  `test_user_prefs_persistence_unit.py`, ya sobre `main` con el PR #180 dentro).
+- `engine-check` **197/197** (+10 sobre las reglas de fusión).
+- ESLint **0 errores** (123 avisos) · `i18n-check` 5995 × 10 · catálogo en
+  paridad · `check-doc-links` OK · `npm run build` OK.
+- **Contra PostgreSQL real**: que el `$unset` sobre un upsert borre de verdad el
+  `expires_at` heredado —traducido a SQL, no contra un doble— y que el documento
+  haga ida y vuelta sin perder tipos.
+- **End-to-end en Chromium** contra backend + Postgres vivos: que cambiar un
+  ajuste suba; que un dispositivo virgen (con el `localStorage` vaciado) reciba
+  tema, progreso y **setups completos**; y que una segunda cuenta en el mismo
+  navegador no herede los setups del anterior ni se los suba a su propia cuenta,
+  mientras la cuenta original los conserva intactos.
+
+### Lo que NO se ha tocado
+
+No hay forma de editar el perfil (nombre, foto): no existe endpoint ni pantalla,
+sólo cambiar contraseña, 2FA, exportar datos y borrar la cuenta. Es un hueco
+distinto —no es que no se guarde, es que no se puede cambiar— y sigue abierto.
+
+Y los setups **siguen sin pasar por `trading_plan.py`**, que es donde
+conceptualmente deberían vivir (G-14). Esto los pone a salvo y los hace viajar
+entre dispositivos hoy; migrarlos a `POST /plan` sigue pendiente y ahora es una
+migración de datos, no un rescate.

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, ShieldAlert, Loader2, Copy, Check } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -143,7 +144,28 @@ export default function TwoFactorCard() {
         {!enabled && mode === 'enrolling' && setup && (
           <div className="space-y-4">
             <div>
-              <p className="text-sm mb-2">{t('twoFactorSetupInstructions')}</p>
+              <p className="text-sm mb-3">{t('twoFactorSetupInstructions')}</p>
+
+              {/* El QR se genera EN EL CLIENTE, nunca con un servicio externo
+                  (api.qrserver.com, chart.googleapis.com y similares): la URI
+                  lleva el secreto TOTP dentro, así que pedirle la imagen a un
+                  tercero es entregarle el segundo factor de cada usuario.
+                  `qrcode.react` dibuja un SVG en local y no hace red.
+
+                  La URI la monta el backend con `pyotp.provisioning_uri` y
+                  llega en `otpauth_uri`; no se reconstruye aquí para que no
+                  haya dos fuentes que puedan divergir en emisor o parámetros.
+                  Hasta ahora el texto de arriba prometía un código QR que no
+                  se dibujaba en ninguna parte: sólo se veía la clave. */}
+              {setup.otpauth_uri && (
+                <div className="flex justify-center mb-3">
+                  <div className="p-3 rounded-lg bg-white inline-block" data-testid="totp-qr">
+                    <QRCodeSVG value={setup.otpauth_uri} size={180} level="M" marginSize={0} />
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground mb-1.5">{t('twoFactorManualKey')}</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 px-3 py-2 rounded-md bg-muted/50 border font-mono text-sm break-all">{setup.secret}</code>
                 <Button variant="outline" size="icon" onClick={copySecret} aria-label="Copy">

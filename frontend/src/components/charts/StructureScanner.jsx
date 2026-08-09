@@ -48,7 +48,7 @@ const StructureScanner = () => {
   const {
     ladder, periods, tfInterval, activePeriod,
     loading, data, candles, log,
-    scan, changeInterval, changePeriod, clearLog,
+    scan, changeInterval, changePeriod, clearLog, lastScanAt,
   } = useStructureScan(yahoo);
 
   const counts = data?.counts || {};
@@ -105,6 +105,7 @@ const StructureScanner = () => {
             ladder={ladder}
             periods={periods}
             tfInterval={tfInterval}
+            lastScanAt={lastScanAt}
             activePeriod={activePeriod}
             loading={loading}
             disabled={!yahoo}
@@ -214,7 +215,7 @@ const StructureScanner = () => {
           </div>
         )}
 
-        <p className="text-[10px] text-muted-foreground/70 leading-relaxed pt-1">
+        <p className="text-[10px] text-muted-foreground leading-relaxed pt-1">
           {t('structScanNote')}
         </p>
       </CardContent>

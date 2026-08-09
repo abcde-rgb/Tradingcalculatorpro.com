@@ -3,6 +3,7 @@ import { useTranslation } from '@/lib/i18n';
 import { Search, Clock, TrendingUp, Star, ArrowUpRight, ArrowDownRight, X, Flame } from 'lucide-react';
 import { fetchStock, searchTickersAPI } from '../../services/optionsApi';
 import { searchTickersLocal } from '../../data/mockData';
+import { useCloudPref } from '@/lib/cloudPrefs';
 
 const TRENDING = ['SPY', 'NVDA', 'TSLA', 'AAPL', 'META', 'AMZN'];
 
@@ -26,22 +27,17 @@ const SearchBar = ({ currentTicker, stockData, onSelect }) => {
   const [results, setResults] = useState([]);
   const [activeIdx, setActiveIdx] = useState(-1);
   const [loading, setLoading] = useState(false);
-  const [recents, setRecents] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('opc_recents') || '[]'); } catch { return []; }
-  });
+  // Los últimos activos consultados van con la cuenta, no con el equipo
+  // (ver `lib/cloudPrefs.js`).
+  const [recents, setRecents] = useCloudPref('optionsRecents');
 
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // Save recents to localStorage
   const addRecent = useCallback((symbol) => {
-    setRecents(prev => {
-      const updated = [symbol, ...prev.filter(s => s !== symbol)].slice(0, 6);
-      localStorage.setItem('opc_recents', JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+    setRecents(prev => [symbol, ...prev.filter(s => s !== symbol)].slice(0, 6));
+  }, [setRecents]);
 
   // Fetch results with smart debounce
   useEffect(() => {

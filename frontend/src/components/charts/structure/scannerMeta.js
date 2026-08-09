@@ -51,6 +51,22 @@ export const FALLBACK_LADDER = [
   { interval: '1mo', intraday: false, ranges: ['1y', '2y', '5y', 'max'], defaultRange: '5y', higherInterval: null },
 ];
 
+/**
+ * Cuántos minutos dura una vela de este intervalo.
+ *
+ * Se deriva de la etiqueta y no del escalón porque el escalón no publica esa
+ * cifra: leerla de ahí caería siempre al valor por defecto y un gráfico de 5
+ * minutos se refrescaría al ritmo de uno diario. `null` para lo que no se
+ * reconozca — quien lo consuma decide, en vez de recibir un número inventado.
+ */
+export const intervalMinutes = (interval) => {
+  const m = /^(\d+)(m|h|d|wk|mo)$/.exec(String(interval || ''));
+  if (!m) return null;
+  const n = Number(m[1]);
+  const unit = { m: 1, h: 60, d: 1440, wk: 10080, mo: 43200 }[m[2]];
+  return unit ? n * unit : null;
+};
+
 export const PERIOD_KEY = 'tcp_struct_period';        // persisted history window
 export const INTERVAL_KEY = 'tcp_struct_interval';    // persisted candle size
 

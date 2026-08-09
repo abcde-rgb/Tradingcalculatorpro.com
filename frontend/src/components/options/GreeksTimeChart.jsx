@@ -20,7 +20,7 @@ const GREEKS_CONFIG = [
 
 // Chart layout constants (module-level to avoid inline-object re-renders)
 const CHART_MARGIN = { top: 5, right: 20, left: 0, bottom: 5 };
-const AXIS_TICK = { fill: '#8b9ab8', fontSize: 10, fontFamily: 'JetBrains Mono' };
+const AXIS_TICK = { fill: '#8b9ab8', fontSize: 10, fontFamily: 'IBM Plex Mono' };
 const TOOLTIP_STYLE = { background: '#0a0a0a', border: '1px solid #262626', borderRadius: 8, fontSize: 11 };
 const LEGEND_STYLE = { fontSize: 10, paddingTop: 8 };
 
@@ -116,7 +116,7 @@ const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
               key={key}
               onClick={() => setVisible((v) => ({ ...v, [key]: !v[key] }))}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all ${
-                visible[key] ? 'bg-muted border-border text-foreground' : 'bg-background border-border/50 text-muted-foreground/60 line-through'
+                visible[key] ? 'bg-muted border-border text-foreground' : 'bg-background border-border/50 text-muted-foreground line-through'
               }`}
               data-testid={`greek-toggle-${key}`}
             >

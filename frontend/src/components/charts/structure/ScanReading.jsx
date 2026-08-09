@@ -5,16 +5,27 @@ import { TREND_UI, fmtPrice, signed } from './scannerMeta';
 
 const TREND_ICON = { uptrend: TrendingUp, downtrend: TrendingDown, range: Minus };
 
-/** Una cifra del bloque de lectura. Lo que no se puede calcular es «—». */
+/**
+ * Una cifra del bloque de lectura. Lo que no se puede calcular es «—».
+ *
+ * El valor lleva `truncate` y su propio `title`: la etiqueta ya lo llevaba, pero
+ * la cifra no, y en tres columnas un precio largo —un índice de cinco dígitos,
+ * una cripto con ocho decimales— se salía de la tarjeta y pisaba a la de al
+ * lado. Recortar y dejar el número completo en el tooltip es lo que hace que la
+ * rejilla aguante cualquier activo.
+ */
 const Metric = ({ label, value, sub, tone = 'text-foreground', testid }) => (
-  <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 min-w-0" data-testid={testid}>
-    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold truncate">
+  <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 min-w-0 overflow-hidden" data-testid={testid}>
+    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold truncate" title={label}>
       {label}
     </div>
-    <div className={`font-mono font-bold text-sm ${value == null ? 'text-muted-foreground' : tone}`}>
+    <div
+      className={`font-mono font-bold text-sm truncate ${value == null ? 'text-muted-foreground' : tone}`}
+      title={value == null ? undefined : String(value)}
+    >
       {value == null ? '—' : value}
     </div>
-    {sub && <div className="text-[10px] text-muted-foreground font-mono">{sub}</div>}
+    {sub && <div className="text-[10px] text-muted-foreground font-mono truncate" title={sub}>{sub}</div>}
   </div>
 );
 
@@ -40,6 +51,37 @@ export default function ScanReading({ data }) {
   const pos = ctx.rangePositionPct;
 
   const atrLabel = (n) => (n == null ? null : t('structDistanceAtr').replace('{n}', String(n)));
+
+  // La fecha de la vela de la que sale el precio. Intradía se enseña con hora;
+  // en diario o superior, la hora no aporta nada y estorba en la tarjeta.
+  const barLabel = (() => {
+    if (!data.lastBarDate) return null;
+    // `new Date()` no sirve con ninguno de los dos formatos que manda el backend:
+    //  · diario `"2026-08-07"` → ISO sin hora, que la norma manda interpretar
+    //    como UTC medianoche; al pintarlo en local, quien esté al oeste de UTC
+    //    ve el día ANTERIOR — la vela de hoy rotulada como la de ayer;
+    //  · intradía `"2026-08-07 14:30"` (UTC) → se interpreta como hora local,
+    //    así que la hora se desplaza el desfase del que mira.
+    // Como lo que se enseña es *la etiqueta de la vela*, se formatea el texto
+    // tal cual en vez de convertirlo a una zona que no es la del dato.
+    const cruda = String(data.lastBarDate);
+    const m = cruda.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (m) {
+      const [, a, mes, dia, hh, mm] = m;
+      // Se construye en hora LOCAL con esos mismos números: el formateador
+      // pinta el día y la hora que trae el dato, sin moverlos.
+      const local = new Date(Number(a), Number(mes) - 1, Number(dia),
+                             Number(hh || 0), Number(mm || 0));
+      return data.intraday && hh
+        ? `${local.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} UTC`
+        : local.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    const d = new Date(cruda);
+    if (Number.isNaN(d.getTime())) return cruda.slice(0, 16);
+    return data.intraday
+      ? d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  })();
 
   return (
     <section className="space-y-2" data-testid="struct-reading">
@@ -67,7 +109,7 @@ export default function ScanReading({ data }) {
                 .replace('{tf}', conf.interval || '')}
             </span>
           ) : (
-            <span className="text-[10px] text-muted-foreground/70">{t('structConfluenceUnchecked')}</span>
+            <span className="text-[10px] text-muted-foreground">{t('structConfluenceUnchecked')}</span>
           )}
         </div>
       </div>
@@ -80,9 +122,15 @@ export default function ScanReading({ data }) {
           tone="text-[#ef4444]"
           testid="struct-room-above"
         />
+        {/* NO es una cotización en vivo: es el cierre de la última vela
+            escaneada. En diario puede tener horas o días, así que la etiqueta
+            dice cuál de las dos cosas es y debajo va la fecha de esa vela.
+            Llamarlo «precio ahora» a secas era prometer algo que el dato no
+            cumple — y es exactamente lo que hacía que pareciera «pillado». */}
         <Metric
-          label={t('structPriceNow')}
+          label={data.lastBarForming ? t('structPriceForming') : t('structPriceLastClose')}
           value={data.currentPrice == null ? null : fmtPrice(data.currentPrice)}
+          sub={barLabel}
           tone="text-primary"
           testid="struct-price-now"
         />

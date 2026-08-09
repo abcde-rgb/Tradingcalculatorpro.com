@@ -59,14 +59,22 @@ from performance import (
     detect_errors,
     compute_analytics,
     generate_insights,
+    is_closed_trade,
     trades_for_user,
     make_trade_doc,
     normalize_setups,
     normalize_trade_schema,
     sort_trades_chronologically,
-    LEGACY_TRADE_KEYS,
+    legacy_keys_to_unset,
     SETUP_SEPARATOR,
 )
+from instruments import (
+    DEFAULT_PRODUCT,
+    catalog as instruments_catalog,
+    resolve_levels,
+    resolve_spec,
+)
+from notifications import CHANNELS as NOTIFY_CHANNELS, channel_status, normalize_phone
 from trading_plan import (
     activate_plan,
     compliance_report,
@@ -975,6 +983,9 @@ class Database:
             # `_USER_DATA_COLLECTIONS`, así que la tabla tiene que existir o esas
             # tres rutas fallan en la primera consulta.
             "journal_entries",
+            # Registro de SMS enviados: lo consulta el tope por usuario y hora
+            # de `notifications.py` en cada envío.
+            "sms_log",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -1672,6 +1683,10 @@ _BILLING_COLLECTIONS = ("transactions", "payment_transactions")
 _SECURITY_ARTEFACT_COLLECTIONS = (
     "usage_events", "email_verification_tokens", "password_resets",
     "password_reset_tokens", "user_revocations", "referral_redemptions",
+    # Registro de SMS enviados (sólo los 4 últimos dígitos y la hora, para el
+    # tope por usuario). Se borra con la cuenta y no se exporta: no es un dato
+    # que el usuario venga a llevarse, es contabilidad de un canal de envío.
+    "sms_log",
 )
 
 # Todo lo que desaparece al borrar la cuenta (RGPD art. 17).
@@ -2777,13 +2792,18 @@ async def get_prices():
                 }
             except Exception as ce:
                 logging.warning(f"Commodity {label} ({sym}) fetch error: {ce}")
-        # Static fallback only if yfinance returned nothing
-        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
-        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
+        # Una materia prima que no se ha podido leer se OMITE, igual que una
+        # moneda ilegible veinte líneas más arriba. Aquí había un respaldo fijo
+        # —oro a 2 680 $, plata a 31,50 $, y una variación de +0,5 % / +0,8 %
+        # inventada— servido con HTTP 200 y sin marca alguna. Con el proveedor
+        # caído, el ticker enseñaba XAU a un precio de hace meses con flecha
+        # verde, indistinguible de uno real; y la variación era peor todavía:
+        # una observación fabricada, la misma clase de dato que el volumen por
+        # `rng.randint` que ya se retiró de las cadenas de opciones.
+        # El frontend ya trata la ausencia bien (`if (!data || !data.usd) return
+        # null`): omitir es lo que hace que ese cuidado sirva de algo.
     except Exception as e:
         logging.error(f"Commodities (yfinance) error: {e}")
-        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
-        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
 
     return data
 
@@ -2966,7 +2986,7 @@ async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends
         # `$set` no borra: sin el `$unset`, las claves camelCase del documento
         # viejo sobreviven junto a las canónicas recién escritas y el choque de
         # esquemas se reproduce en el mismo documento que acabamos de arreglar.
-        {"$set": enriched, "$unset": {k: "" for k in LEGACY_TRADE_KEYS if k in existing}},
+        {"$set": enriched, "$unset": legacy_keys_to_unset(existing)},
     )
     return {"message": "Trade actualizado", **enriched}
 
@@ -4589,6 +4609,15 @@ async def cancel_subscription(
             }
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error canceling subscription: {e}")
         raise HTTPException(status_code=500, detail="Error canceling subscription")
@@ -4626,6 +4655,15 @@ async def resume_subscription(user: dict = Depends(require_user)):
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error resuming subscription: {e}")
         raise HTTPException(status_code=500, detail="Error resuming subscription")
@@ -4669,6 +4707,15 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         return {"url": session.url}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error creating portal session: {e}")
         raise HTTPException(status_code=500, detail="Error creating portal session")
@@ -4712,41 +4759,78 @@ async def get_billing_history(user: dict = Depends(require_user)):
 
 # ============= USER STATE PERSISTENCE ROUTES =============
 
+# Tope por documento. Los ajustes de un usuario son kilobytes; un sistema de
+# trading con muchos setups, algunas decenas. Medio mega es margen de sobra y a
+# la vez impide que esta ruta acabe usándose como almacén de ficheros.
+MAX_USER_STATE_BYTES = 512 * 1024
+
+
 @api_router.post("/user-states/save")
 async def save_user_state(request: dict, user: dict = Depends(require_user)):
     """
-    Save user state for calculators, charts, etc.
+    Save user state for calculators, charts and user preferences.
     Body: { "state_id": "percentage_calculator", "state": {...} }
-    """
-    try:
-        state_id = request.get("state_id")
-        state_data = request.get("state")
 
-        if not state_id:
-            raise HTTPException(status_code=400, detail="state_id is required")
-        import re as _re_val
-        if not _re_val.match(r'^[a-zA-Z0-9_-]{1,64}$', str(state_id)):
-            raise HTTPException(status_code=400, detail="state_id must be alphanumeric (1-64 chars)")
-        
-        # Upsert the state
-        now = datetime.now(timezone.utc)
+    Aquí NO caduca nada. El documento llevaba `expires_at` a 90 días con el
+    comentario «TTL: state is auto-deleted 90 days after last update», pero
+    ninguna tarea lo aplicaba nunca: la promesa era falsa en los dos sentidos y
+    el único desenlace posible de hacerla verdad era borrarle al usuario cosas
+    que él escribió. Desde que esta tabla guarda también los AJUSTES de la
+    cuenta —tema, idioma, preferencias y el sistema de trading con sus setups—
+    caducar sería directamente perder trabajo suyo. La tabla no crece sin
+    control: es una fila por (usuario, state_id) y los state_id son un puñado
+    fijo. El borrado por RGPD sigue cubierto — `user_states` está en
+    `_USER_DATA_COLLECTIONS`, así que se exporta y se purga con la cuenta.
+    """
+    state_id = request.get("state_id")
+    state_data = request.get("state")
+
+    if not state_id:
+        raise HTTPException(status_code=400, detail="state_id is required")
+    import re as _re_val
+    if not _re_val.match(r'^[a-zA-Z0-9_-]{1,64}$', str(state_id)):
+        raise HTTPException(status_code=400, detail="state_id must be alphanumeric (1-64 chars)")
+
+    # Se mide lo que se va a escribir, no lo que llegó: si el cuerpo no es
+    # serializable el fallo es del cliente (400), no del servidor.
+    try:
+        size = len(_json_module.dumps(state_data, default=_json_default).encode("utf-8"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="state must be JSON-serialisable")
+    if size > MAX_USER_STATE_BYTES:
+        raise HTTPException(status_code=413, detail="state too large")
+
+    # Las validaciones de arriba están FUERA del `try` a propósito (BUG-048).
+    # `HTTPException` hereda de `Exception`: metidas dentro, el `except Exception`
+    # de abajo reetiquetaría como 500 los 400 y el 413 que esta función acaba de
+    # escribir, y el cliente dejaría de poder distinguir «lo has pedido mal» de
+    # «el servidor está roto». La alternativa que usa el resto del repo —dejar
+    # pasar antes el `HTTPException`— también vale; aquí no hace falta guarda
+    # porque dentro del `try` sólo queda la escritura, que no lanza 4xx.
+    # `test_http_error_codes_unit.py` comprueba las dos formas sobre el AST.
+    try:
         await db.user_states.update_one(
             {"user_id": user["id"], "state_id": state_id},
-            {"$set": {
-                "user_id": user["id"],
-                "state_id": state_id,
-                "state": state_data,
-                "last_updated": now.isoformat(),
-                # TTL: state is auto-deleted 90 days after last update.
-                "expires_at": now + timedelta(days=90),
-            }},
+            {
+                "$set": {
+                    "user_id": user["id"],
+                    "state_id": state_id,
+                    "state": state_data,
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
+                },
+                # El shim aplica el `$unset` DESPUÉS del `$set`, así que esto
+                # limpia el `expires_at` que dejaron escrito las versiones
+                # anteriores. Sin él, un ajuste guardado hoy seguiría llevando
+                # encima una fecha de caducidad que ya no significa nada.
+                "$unset": {"expires_at": ""},
+            },
             upsert=True
         )
-        
-        return {"success": True, "message": "State saved"}
     except Exception as e:
         logging.error(f"Error saving state: {e}")
         raise HTTPException(status_code=500, detail="Error saving state")
+
+    return {"success": True, "message": "State saved"}
 
 @api_router.get("/user-states/get/{state_id}")
 async def get_user_state(state_id: str, user: dict = Depends(require_user)):
@@ -6191,6 +6275,15 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"AI analyze error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
@@ -6475,6 +6568,24 @@ async def education_structure_scan(
 # PERFORMANCE — Trade Journal & Analytics
 # ============================================================
 
+class TradeNotifyIn(BaseModel):
+    """Aviso de la posición: qué niveles vigilar y por dónde avisar.
+
+    Los canales se piden aquí, pero **quién puede de verdad** lo dice
+    `GET /alerts/channels`: pedir SMS con el proveedor sin configurar guarda la
+    preferencia y la alerta queda vigilando; lo que no hace es fingir que el
+    mensaje salió. El resultado por canal se escribe en la alerta al dispararse.
+    """
+    enabled: bool = False
+    # inapp = la pestaña abierta (WebSocket) · email · sms
+    channels: List[str] = Field(default_factory=lambda: ["inapp"], max_length=3)
+    # Qué niveles vigilar. Sólo tienen sentido los que la operación tenga puestos.
+    on: List[str] = Field(default_factory=lambda: ["sl", "tp"], max_length=3)
+    # E.164 obligatorio para SMS: adivinar el prefijo del país manda el aviso al
+    # teléfono de otra persona.
+    phone: Optional[str] = Field(None, max_length=20)
+
+
 class TradeIn(BaseModel):
     """Payload for creating/updating a trade."""
     symbol: str
@@ -6505,14 +6616,132 @@ class TradeIn(BaseModel):
     tags: Optional[List[str]] = []
     emotion: Optional[int] = None  # 1..5
     screenshot_urls: Optional[List[str]] = []
-    # Instrument: 'spot' (acciones/cripto/forex/futuros — comportamiento clásico)
-    # u 'option'. En opciones, entry/exit_price = prima por acción, quantity =
-    # nº de contratos, multiplier = tamaño del contrato (100 en opciones sobre acciones).
-    instrument_type: Optional[str] = Field("spot", pattern="^(spot|option)$")
+    # ── Producto financiero ────────────────────────────────────────────
+    # `spot` sigue siendo el valor por defecto porque es lo que llevan guardado
+    # las operaciones anteriores. Los demás productos traen consigo su forma de
+    # medirse: contrato, lote, tick, pip, funding, comisión nocturna.
+    # En opciones, entry/exit_price = prima por acción, quantity = nº de
+    # contratos, multiplier = tamaño del contrato (100 en opciones sobre acciones).
+    instrument_type: Optional[str] = Field(
+        "spot", pattern="^(spot|stock|crypto_spot|crypto_perp|futures|cfd|forex|option)$")
     option_type: Optional[str] = Field(None, pattern="^(call|put)$")
     strike: Optional[float] = None
     expiry: Optional[str] = None
-    multiplier: Optional[float] = 1
+    # Tamaño de contrato. `None` = "resuélvelo del catálogo": es lo que permite
+    # que el cliente no tenga que saberse de memoria que un lote de forex son
+    # 100 000 unidades. Se guarda ya resuelto.
+    multiplier: Optional[float] = None
+    # Apalancamiento. Nunca multiplica el P&L; decide margen, ROE y liquidación.
+    # El tope de 1000 es un cordón de seguridad contra el dedo gordo, no una
+    # opinión sobre cuánto apalancamiento es sensato — de eso ya avisa la regla
+    # de exposición, que mide el nocional contra el saldo real de la cuenta.
+    leverage: Optional[float] = Field(None, gt=0, le=1000)
+    lot_type: Optional[str] = Field(None, pattern="^(standard|mini|micro|nano|units)$")
+    maintenance_margin_rate: Optional[float] = Field(None, ge=0, lt=1)
+    # ── Unidades elegidas por el trader ────────────────────────────────
+    # El stop y el objetivo se escriben en lo que cada uno usa; lo que se guarda
+    # es siempre un nivel de precio.
+    sl_unit: Optional[str] = Field(
+        "price", pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
+    sl_input: Optional[float] = None
+    tp_unit: Optional[str] = Field(
+        "price", pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
+    tp_input: Optional[float] = None
+    risk_unit: Optional[str] = Field(
+        None, pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
+    # ── Riesgo definido (opciones y spreads) ───────────────────────────
+    max_loss: Optional[float] = Field(None, ge=0)
+    max_profit: Optional[float] = Field(None, ge=0)
+    # ── Coste de mantener la posición abierta ──────────────────────────
+    funding_fees: Optional[float] = None
+    funding_rate_pct: Optional[float] = None
+    funding_periods: Optional[float] = Field(None, ge=0)
+    funding_interval_hours: Optional[float] = Field(None, gt=0)
+    swap_fees: Optional[float] = None
+    swap_rate_pct: Optional[float] = None
+    nights_held: Optional[float] = Field(None, ge=0)
+    # ── Contexto de opciones ───────────────────────────────────────────
+    option_strategy: Optional[str] = None
+    iv_entry: Optional[float] = None
+    iv_exit: Optional[float] = None
+    delta_entry: Optional[float] = None
+    underlying_entry: Optional[float] = None
+    underlying_exit: Optional[float] = None
+    option_outcome: Optional[str] = Field(
+        None, pattern="^(closed|expired_worthless|assigned|exercised|rolled)$")
+    # ── Aviso de la posición ───────────────────────────────────────────
+    notify: Optional["TradeNotifyIn"] = None
+
+
+_NOTIFY_LEVELS = ("sl", "tp")
+
+
+async def _sync_trade_alerts(trade: dict, user: dict) -> int:
+    """Pone al día las alertas de precio ligadas a una operación del diario.
+
+    Reutiliza la colección `alerts` y el poller que ya existían: una alerta de
+    diario es una alerta de precio con el `trade_id` puesto, así que no hay un
+    segundo vigilante que mantener ni un segundo sitio donde se puedan
+    desincronizar.
+
+    Es idempotente y **destructiva sobre lo suyo**: borra las alertas de esta
+    operación que aún no han saltado y las vuelve a crear con los niveles
+    actuales. Editar el stop tiene que mover el aviso; si no, el usuario recibe
+    un aviso del stop que ya no tiene. Las que **ya saltaron** no se tocan: son
+    historial.
+
+    Sólo se vigila una posición ABIERTA. Cerrada, el nivel ya no significa nada.
+    """
+    trade_id = trade.get("id")
+    if not trade_id:
+        return 0
+    try:
+        await db.alerts.delete_many({"user_id": user["id"], "trade_id": trade_id,
+                                     "triggered": False})
+    except Exception as exc:  # noqa: BLE001 — un aviso no puede tumbar el guardado
+        logging.warning("[journal-alerts] limpieza fallida %s: %s", trade_id, exc)
+        return 0
+
+    notify = trade.get("notify") or {}
+    if not notify.get("enabled") or trade.get("status") != "open":
+        return 0
+
+    symbol = (trade.get("symbol") or "").upper()
+    side = trade.get("side") or "long"
+    channels = [c for c in (notify.get("channels") or ["inapp"])
+                if c in NOTIFY_CHANNELS] or ["inapp"]
+    phone = normalize_phone(notify.get("phone")) if "sms" in channels else None
+    wanted = [k for k in (notify.get("on") or list(_NOTIFY_LEVELS))
+              if k in _NOTIFY_LEVELS]
+
+    created = 0
+    now = datetime.now(timezone.utc).isoformat()
+    for kind in wanted:
+        level = trade.get(kind)
+        if level in (None, ""):
+            continue
+        # El lado decide de qué parte se cruza el nivel: el stop de un largo se
+        # cruza cayendo y el de un corto, subiendo. Al revés, la alerta salta
+        # nada más crearla o no salta nunca.
+        below = (kind == "sl") == (side == "long")
+        await db.alerts.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "user_email": user.get("email"),
+            "trade_id": trade_id,
+            "kind": kind,
+            "symbol": symbol,
+            "targetPrice": float(level),
+            "condition": "below" if below else "above",
+            "channels": channels,
+            "phone": phone,
+            "notifyEmail": "email" in channels,
+            "is_active": True,
+            "triggered": False,
+            "created_at": now,
+        })
+        created += 1
+    return created
 
 
 def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
@@ -6529,6 +6758,19 @@ def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
     return enriched
 
 
+@api_router.get("/performance/instruments")
+async def perf_instruments():
+    """El catálogo de productos e instrumentos que usa el diario.
+
+    Público y sin muro: es una tabla de referencia (cuánto vale un contrato,
+    cuánto es un pip), no un cálculo. El formulario NO depende de esta llamada
+    —lleva el mismo catálogo compilado dentro para poder calcular sin red—, pero
+    publicarlo permite comprobar desde fuera que las dos copias dicen lo mismo.
+    Junto al catálogo va el estado real de los canales de aviso.
+    """
+    return {**instruments_catalog(), "notifyChannels": channel_status()}
+
+
 @api_router.post("/performance/trades")
 async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premium)):
     user_id = user["id"]
@@ -6543,6 +6785,7 @@ async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premi
     # Strip computed read-only fields before persisting (keep stored doc minimal)
     to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
     await db.trades.insert_one(to_store)
+    enriched["alerts_created"] = await _sync_trade_alerts(enriched, user)
     return enriched
 
 
@@ -6651,6 +6894,10 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
     # `entry_price` del parche, y el enriquecido se escribiría sobre un
     # documento con los dos esquemas dentro.
     merged = {**normalize_trade_schema(existing), **updates}
+    # Los niveles se recalculan tras el parche: cambiar la cantidad mueve un stop
+    # escrito en dinero, y cambiar la unidad lo mueve entero. Si no se rehiciera
+    # aquí, el nivel guardado seguiría siendo el de los datos anteriores.
+    merged.update(resolve_levels(merged))
     prev = [t for t in await trades_for_user(db, user["id"], limit=50)
             if t.get("id") != trade_id]
     enriched = _enrich_trade(merged, prev_trades=prev)
@@ -6659,9 +6906,14 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
     await db.trades.update_one(
         {"id": trade_id, "user_id": user["id"]},
         # `$set` no borra claves: el `$unset` es lo que impide que un documento
-        # migrado al vuelo conserve las camelCase que lo hacían ilegible.
-        {"$set": enriched, "$unset": {k: "" for k in LEGACY_TRADE_KEYS if k in existing}},
+        # migrado al vuelo conserve las camelCase que lo hacían ilegible. La
+        # lista sale de `legacy_keys_to_unset` y no de `LEGACY_TRADE_KEYS` a
+        # secas porque el shim aplica el `$unset` DESPUÉS del `$set`: sobre un
+        # documento canónico, borrar `leverage` le quitaría el apalancamiento
+        # que se acababa de guardar.
+        {"$set": enriched, "$unset": legacy_keys_to_unset(existing)},
     )
+    enriched["alerts_created"] = await _sync_trade_alerts(enriched, user)
     return enriched
 
 
@@ -6801,9 +7053,7 @@ async def performance_portfolio_risk(req: PortfolioRiskQuery,
     enriched = [_enrich_trade(t) for t in sort_trades_chronologically(rows)]
 
     open_positions = [t for t in enriched if (t.get("status") or "open") == "open"]
-    closed = [t for t in enriched
-              if t.get("status") in ("closed", "sl_hit", "tp_hit")
-              and t.get("exit_price") is not None]
+    closed = [t for t in enriched if is_closed_trade(t)]
 
     # Balance: explicit override, else the most recent trade's recorded balance.
     balance = req.accountBalance
@@ -6848,13 +7098,56 @@ async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
 
 
 @api_router.get("/performance/analytics")
-async def performance_analytics(user: dict = Depends(require_premium)):
+async def performance_analytics(
+    user: dict = Depends(require_premium),
+    product: Optional[str] = Query(
+        None, pattern="^(spot|stock|crypto_spot|crypto_perp|futures|cfd|forex|option)$"),
+):
+    """La analítica del diario, entera o de un solo producto.
+
+    `product` filtra ANTES de calcular, no después: con él, la curva de equity
+    arranca del saldo de la operación más antigua **de ese producto** y el
+    drawdown mide sólo esa serie. Es la única forma de responder "¿tengo ventaja
+    en opciones?", porque sin filtro el panel mezcla productos que pueden vivir
+    en cuentas distintas y el que se opera más grande domina cada cifra.
+
+    `products_available` es la lista de productos con los que dibujar el
+    selector, y se calcula ANTES de filtrar. `by_product`, en cambio, se calcula
+    después: con filtro sólo trae el producto elegido. Construir el selector
+    sobre él dejaría un único botón en cuanto se filtra, sin forma de volver al
+    conjunto — que es exactamente el callejón sin salida que esto evita.
+    """
     # Ask for one row beyond the ceiling: that extra row is how we tell "exactly
     # at the limit" from "there is more history than we are showing". Without it
     # a user with precisely ANALYTICS_MAX_TRADES trades gets a false warning.
     rows = await trades_for_user(db, user["id"], limit=ANALYTICS_MAX_TRADES + 1)
-    truncated = len(rows) > ANALYTICS_MAX_TRADES
-    if truncated:
+    # La ventana la impone la CONSULTA, no el filtro. Se pide una fila de más:
+    # si llega, es que hay historial fuera de lo que estamos mirando.
+    #
+    # Y eso no se arregla filtrando después. Con 5.000 operaciones se leen 1.001;
+    # si al filtrar por opciones quedan 50, esas 50 son las opciones que había
+    # DENTRO de esa ventana, no las del historial — puede haber cientos más entre
+    # las 4.000 que no se leyeron. Calcular `truncated` sobre las filas ya
+    # filtradas daba `false` en ese caso: un panel de una ventana presentado
+    # como el historial completo, que es justo lo que `truncated` existe para
+    # impedir.
+    ventana_incompleta = len(rows) > ANALYTICS_MAX_TRADES
+
+    # Los productos que el selector puede ofrecer, con el mismo criterio de
+    # "cerrada" que usa la analítica (`is_closed_trade`): un producto sin nada
+    # cerrado no tiene panel que enseñar y sería un botón al estado vacío.
+    # Ojo: sale de la MISMA ventana, así que un producto que sólo se operó hace
+    # mucho puede no aparecer. Por eso la respuesta publica también
+    # `products_available_partial`, en vez de dar la lista por completa.
+    products_available = sorted({
+        (r.get("instrument_type") or DEFAULT_PRODUCT)
+        for r in rows if is_closed_trade(r)
+    })
+    if product:
+        rows = [r for r in rows
+                if (r.get("instrument_type") or DEFAULT_PRODUCT) == product]
+    truncated = ventana_incompleta
+    if len(rows) > ANALYTICS_MAX_TRADES:
         # trades_for_user sorts by entry_date desc, so the rows kept are the most
         # recent ones and what falls off is the oldest history. Every figure
         # below is therefore computed over a window, not over the whole record —
@@ -6887,6 +7180,15 @@ async def performance_analytics(user: dict = Depends(require_premium)):
         # whole history — the same class of lie as an unlabelled synthetic chain.
         "truncated": truncated,
         "trades_analyzed": len(enriched),
+        # Qué filtro produjo estas cifras. Sin decirlo, un panel filtrado es
+        # indistinguible de uno completo con muy pocas operaciones.
+        "product_filter": product,
+        # Con qué productos se dibuja el selector. No depende del filtro puesto:
+        # es la única forma de que el botón para volver al conjunto siga ahí.
+        "products_available": products_available,
+        # La lista sale de la misma ventana que las cifras: si el historial es
+        # más largo, puede faltar un producto que sólo se operó hace tiempo.
+        "products_available_partial": ventana_incompleta,
         "truncation_notice": (
             f"Mostrando las {ANALYTICS_MAX_TRADES} operaciones más recientes. "
             "Tu historial es más largo: las más antiguas no entran en estas "
@@ -7812,37 +8114,66 @@ async def admin_refund_subscription(request: Request, user_id: str, admin: dict 
 async def admin_revenue(admin: dict = Depends(require_admin)):
     now = datetime.now(timezone.utc)
 
-    # MRR history — last 6 months from payment_transactions
-    mrr_history = []
-    for i in range(5, -1, -1):
-        month_start = (now.replace(day=1) - timedelta(days=i * 30)).replace(
-            hour=0, minute=0, second=0, microsecond=0
+    # Caja COBRADA por mes natural, no MRR. Son cosas distintas y llamarlas
+    # igual hacía que este panel y el MRR de `/admin/metrics` se contradijeran:
+    # un Lifetime de 299 € entra entero en un mes e infla la línea, y al mes
+    # siguiente cae a cero. `/admin/metrics.mrr_usd` sí es recurrente mensual.
+    #
+    # Los límites de mes se calculan por CALENDARIO. Antes se restaban `i*30`
+    # días al día 1, y como los meses no duran 30 días, cinco de los seis
+    # tramos no empezaban el día 1: el bucket de marzo iba del 4 de marzo al 1
+    # de abril, así que lo cobrado del 1 al 3 no caía en NINGÚN tramo y
+    # desaparecía del gráfico. Eran 9 días de ingresos perdidos cada 6 meses, y
+    # la deriva crecía cuanto más atrás se miraba.
+    month_starts: List[datetime] = []
+    cursor_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    for _ in range(6):
+        month_starts.append(cursor_month)
+        cursor_month = (cursor_month - timedelta(days=1)).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
         )
-        month_end = (month_start + timedelta(days=32)).replace(day=1)
+    month_starts.reverse()
+
+    revenue_history = []
+    for idx, month_start in enumerate(month_starts):
+        if idx + 1 < len(month_starts):
+            month_end = month_starts[idx + 1]
+        else:
+            month_end = (month_start + timedelta(days=32)).replace(day=1)
         total = 0.0
         async for tx in db.payment_transactions.find({
             "status": "paid",
             "created_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()},
         }, {"amount": 1}):
             total += float(tx.get("amount") or 0)
-        mes_label = month_start.strftime("%b")
-        mrr_history.append({"mes": mes_label, "mrr": round(total, 2)})
+        revenue_history.append({
+            "mes": month_start.strftime("%b"),
+            # Clave ISO por si dos tramos cayeran en el mismo nombre de mes.
+            "month": month_start.strftime("%Y-%m"),
+            "collected": round(total, 2),
+        })
 
-    # LTV per plan: plan price (one-payment average; no churn-adjusted history yet)
-    ltv: Dict[str, float] = {
+    # NO es LTV: es el precio del plan, sin ajustar por churn ni por vida media
+    # del cliente. Se publica con `ltv_is_plan_price` para que la interfaz pueda
+    # decirlo — un precio etiquetado como LTV es una cifra inventada, porque el
+    # LTV de un plan mensual depende de cuántos meses aguanta el cliente.
+    plan_price: Dict[str, float] = {
         plan_id: round(plan["price"], 2)
         for plan_id, plan in SUBSCRIPTION_PLANS.items()
     }
 
-    # Churn: users who had premium and no longer do (cancelled last 30 days)
+    # Churn y conversión: `None` cuando NO HAY MUESTRA, nunca 0.
+    # Antes dividían por `max(denominador, 1)`, así que una base de cero premium
+    # daba un 0,0 % de churn con toda la confianza — y el `'—'` que la interfaz
+    # ya tenía preparado para el caso sin dato no llegaba a dispararse nunca.
     churn_count = await db.users.count_documents({
         "subscription_status": {"$in": ["canceled", "past_due", "unpaid"]},
         "subscription_canceled_at": {"$gte": (now - timedelta(days=30)).isoformat()},
     })
-    premium_30d_ago = await db.users.count_documents({"is_premium": True}) + churn_count
-    churn_rate = round((churn_count / max(premium_30d_ago, 1)) * 100, 1)
+    premium_now = await db.users.count_documents({"is_premium": True})
+    premium_base = premium_now + churn_count
+    churn_rate = round((churn_count / premium_base) * 100, 1) if premium_base else None
 
-    # Conversion: new users last 30 days who became premium
     new_30d = await db.users.count_documents({
         "created_at": {"$gte": (now - timedelta(days=30)).isoformat()}
     })
@@ -7850,13 +8181,21 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
         "created_at": {"$gte": (now - timedelta(days=30)).isoformat()},
         "is_premium": True,
     })
-    conversion_rate = round((new_premium_30d / max(new_30d, 1)) * 100, 1)
+    conversion_rate = round((new_premium_30d / new_30d) * 100, 1) if new_30d else None
 
     return {
-        "history": mrr_history,
+        "history": revenue_history,
         "churn": churn_rate,
         "conversion": conversion_rate,
-        "ltv": ltv,
+        "ltv": plan_price,
+        # Metadatos de procedencia: la interfaz no debería tener que adivinar
+        # qué mide cada cifra ni sobre cuántos casos se calculó.
+        "meta": {
+            "history_metric": "collected",   # caja cobrada, NO mrr recurrente
+            "ltv_is_plan_price": True,
+            "churn_base": premium_base,
+            "conversion_base": new_30d,
+        },
     }
 
 
@@ -8191,7 +8530,11 @@ async def admin_usage_heatmap(days: int = 30, admin: dict = Depends(require_admi
     cutoff = (now - timedelta(days=days)).isoformat()
 
     # Bounded fetch — at launch scale this is small; cap protects memory.
-    events = await db.usage_events.find({"ts": {"$gte": cutoff}}).limit(100000).to_list(100000)
+    EVENT_CAP = 100000
+    events = await db.usage_events.find({"ts": {"$gte": cutoff}}).limit(EVENT_CAP).to_list(EVENT_CAP)
+    # Al llegar al tope, `len(events)` es el tope, no el total: publicarlo como
+    # "vistas totales" convertía un recuento truncado en una cifra exacta.
+    truncated = len(events) >= EVENT_CAP
 
     path_counts: Counter = Counter()
     section_counts: Counter = Counter()
@@ -8214,7 +8557,14 @@ async def admin_usage_heatmap(days: int = 30, admin: dict = Depends(require_admi
     return {
         "days": days,
         "total_views": len(events),
+        # Sólo se cuentan eventos CON `user_id`, así que son usuarios
+        # identificados, no visitantes: el tráfico anónimo no entra aquí. El
+        # nombre se mantiene por compatibilidad de API y se aclara con el flag.
         "unique_visitors": len(visitors),
+        "unique_visitors_are_logged_in_only": True,
+        # `total_views` es un recuento truncado cuando esto es True.
+        "truncated": truncated,
+        "event_cap": EVENT_CAP,
         "top_paths": [{"name": k, "views": v} for k, v in path_counts.most_common(15)],
         "top_sections": [{"name": k, "views": v} for k, v in section_counts.most_common(15)],
         "timeseries": [{"day": d, "views": day_counts[d]} for d in sorted(day_counts)],
@@ -8352,6 +8702,9 @@ try:
     })
     register_realtime_alerts(api_router, db, {
         "decode_token": decode_token,
+        # El poller necesita poder mandar correo: sin esto, una alerta con canal
+        # de correo pedido se dispararía y no saldría de la pestaña.
+        "send_email": _send_email,
     })
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:

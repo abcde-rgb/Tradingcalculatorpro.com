@@ -253,6 +253,172 @@ async function checkTradingSystemModel() {
     ).maxRiskPct === 0.75);
 }
 
+async function checkInstruments() {
+  console.log('\ninstruments.js  (paridad con backend/instruments.py)');
+  const I = await imp('lib/instruments.js');
+
+  // Los números de este bloque son EXACTAMENTE los que fija
+  // `backend/tests/test_instruments_unit.py`. Que aparezcan dos veces es el
+  // punto: son dos implementaciones de la misma matemática, y esto es lo que
+  // detecta que una se ha movido sin la otra.
+
+  // ── Catálogo ──
+  const gold = I.resolveSpec('cfd', 'XAUUSD');
+  ok('el lote de oro son 100 onzas a 20×',
+    gold.contractSize === 100 && gold.defaultLeverage === 20);
+  ok('MES es la décima parte de ES',
+    I.resolveSpec('futures', 'ES').contractSize / I.resolveSpec('futures', 'MES').contractSize === 10);
+  ok('el pip del yen es 0,01 y el del resto 0,0001',
+    I.resolveSpec('forex', 'USDJPY').pipSize === 0.01
+    && I.resolveSpec('forex', 'EURUSD').pipSize === 0.0001);
+  ok('un futuro fuera de catálogo no vale ×1: vale null',
+    I.resolveSpec('futures', 'XYZ').contractSize === null
+    && I.contractSizeFor('futures', 'XYZ') === null);
+  ok('el tipo de lote decide el tamaño en forex',
+    I.contractSizeFor('forex', 'EURUSD', { lotType: 'micro' }) === 1000
+    && I.contractSizeFor('forex', 'EURUSD', { lotType: 'standard' }) === 100000);
+
+  // ── Unidades ──
+  const fxSpec = I.resolveSpec('forex', 'EURUSD');
+  const pipDist = I.unitToDistance(20, 'pips', {
+    entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
+  });
+  ok('20 pips son 0,0020 de precio', near(pipDist, 0.0020, 1e-12));
+  ok('el stop de un largo queda por debajo de la entrada',
+    near(I.levelFromDistance(1.10, pipDist, 'long', 'sl'), 1.098, 1e-12));
+  ok('el stop de un corto queda por encima',
+    near(I.levelFromDistance(1.10, pipDist, 'short', 'sl'), 1.102, 1e-12));
+  ok('8 ticks del MES son 2 puntos',
+    near(I.unitToDistance(8, 'ticks', {
+      entry: 5000, quantity: 1, contractSize: 5,
+      spec: I.resolveSpec('futures', 'MES'),
+    }), 2, 1e-12));
+  ok('100 $ de riesgo con 1 lote son 10 pips',
+    near(I.unitToDistance(100, 'money', {
+      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
+    }), 0.0010, 1e-12));
+  ok('el 1 % de una cuenta de 10 000 son los mismos 10 pips',
+    near(I.unitToDistance(1, 'pct_balance', {
+      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec, balance: 10000,
+    }), 0.0010, 1e-12));
+  ok('un objetivo en R sin stop es null, no cero',
+    I.unitToDistance(2, 'r', { entry: 1.10, quantity: 1, contractSize: 100000 }) === null);
+  ok('la conversión va y vuelve sin perder el número tecleado',
+    near(I.distanceToUnit(pipDist, 'pips', {
+      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
+    }), 20, 1e-9));
+
+  // ── Posición ──
+  const goldLot = I.positionMetrics({
+    entry: 2000, quantity: 1, contractSize: 100, leverage: 20, balance: 10000,
+    side: 'long', sl: 1990, tp: 2020, spec: gold,
+  });
+  ok('el nocional de 1 lote de oro a 2 000 son 200 000 $', goldLot.notional === 200000);
+  ok('el margen a 20× son 10 000 $', goldLot.marginUsed === 10000);
+  ok('20× el saldo pasa del tope de exposición',
+    goldLot.exposureMultiple === 20 && goldLot.exposureExceeded === true);
+  ok('riesgo, recompensa y R:B sobre la posición abierta',
+    goldLot.riskAmount === 1000 && goldLot.rewardAmount === 2000 && near(goldLot.rr, 2));
+
+  const tiny = I.positionMetrics({
+    entry: 100000, quantity: 0.001, contractSize: 1, leverage: 100, balance: 10000,
+    spec: I.resolveSpec('crypto_perp', 'BTCUSDT'),
+  });
+  ok('100× sobre un tamaño pequeño NO dispara el tope',
+    tiny.exposureExceeded === false && near(tiny.exposureMultiple, 0.01));
+
+  const threeWays = I.positionMetrics({
+    entry: 100, quantity: 10, contractSize: 1, leverage: 10, balance: 10000, sl: 99,
+    spec: I.resolveSpec('cfd', 'US500'),
+  });
+  ok('el riesgo se publica contra nocional, cuenta y margen',
+    near(threeWays.riskPctNotional, 1) && near(threeWays.riskPctBalance, 0.1)
+    && near(threeWays.riskPctMargin, 10));
+
+  ok('sin apalancamiento no hay liquidación', I.liquidationPrice(100, 'long', 1) === null);
+  ok('la liquidación de un corto queda por encima de la entrada',
+    I.liquidationPrice(100, 'short', 10, 0.005) > 100);
+  ok('a más apalancamiento, liquidación más cerca',
+    I.liquidationPrice(100, 'long', 2, 0.005) < I.liquidationPrice(100, 'long', 50, 0.005));
+  ok('un stop detrás de la liquidación se señala',
+    I.positionMetrics({
+      entry: 100, quantity: 1, contractSize: 1, leverage: 20, balance: 10000, sl: 80,
+      spec: I.resolveSpec('crypto_perp', 'BTCUSDT'),
+    }).liquidationBeforeStop === true);
+
+  // ── Riesgo definido ──
+  const longCall = I.positionMetrics({
+    entry: 3.5, quantity: 2, contractSize: 100, balance: 10000, side: 'long',
+    spec: I.resolveSpec('option', 'AAPL'),
+  });
+  ok('la prima de una opción comprada ES su pérdida máxima',
+    longCall.maxLoss === 700 && longCall.maxLossSource === 'premium');
+  ok('una pérdida máxima declarada manda sobre todo lo demás',
+    I.positionMetrics({
+      entry: 1.2, quantity: 1, contractSize: 100, side: 'short', maxLoss: 380,
+      spec: I.resolveSpec('option', 'SPY'),
+    }).maxLossSource === 'declared');
+  ok('vender desnudo no tiene pérdida máxima',
+    I.positionMetrics({
+      entry: 5, quantity: 1, contractSize: 100, side: 'short',
+      spec: I.resolveSpec('option', 'TSLA'),
+    }).maxLoss === null);
+
+  // ── Costes ──
+  ok('9 pagos de funding al 0,01 % sobre 5 000 $ son 4,50 $',
+    near(I.fundingCost(5000, 0.01, 9), 4.5, 1e-9));
+  ok('10 noches al 7,3 % anual sobre 20 000 $ son 40 $',
+    near(I.swapCost(20000, 7.3, 10), 40, 1e-9));
+
+  // ── Apalancamiento sugerido ──
+  ok('en futuros se deduce del margen del mercado',
+    I.suggestedLeverage(I.resolveSpec('futures', 'MES'), 25000) === 19);
+  ok('al contado no se sugiere ninguno',
+    I.suggestedLeverage(I.resolveSpec('crypto_spot', 'BTC'), 1000) === null);
+
+  // ── Ventana de despliegue: el frontend por delante del backend ──
+  // El frontend se publica solo al mergear y el backend se sube a mano, así que
+  // este desfase es el estado normal durante un rato, no una rareza.
+  ok('contra un backend anterior sólo se ofrece lo que sabe guardar',
+    JSON.stringify(I.selectableProducts(false)) === JSON.stringify(['spot', 'option']));
+  ok('con el backend al día se ofrece todo',
+    I.selectableProducts(true).length === I.SELECTABLE_PRODUCTS.length);
+  ok('sin saberlo todavía NO se recorta la aplicación',
+    I.selectableProducts(null).length === I.SELECTABLE_PRODUCTS.length);
+  ok('el producto por defecto cae a spot contra un backend anterior',
+    I.defaultProductFor(false) === 'spot' && I.defaultProductFor(true) === 'stock');
+  ok('spot sigue existiendo y sigue valiendo x1 sin apalancamiento',
+    I.resolveSpec('spot', 'AAPL').contractSize === 1);
+}
+
+async function checkScannerMeta() {
+  console.log('\nscannerMeta.js  (ritmo de refresco del escáner)');
+  const M = await imp('components/charts/structure/scannerMeta.js');
+
+  // El escalón del escáner NO publica los minutos de la vela, así que leerlos
+  // de ahí caía siempre al valor por defecto y un gráfico de 5 minutos se
+  // refrescaba al ritmo de uno diario. Se derivan de la etiqueta.
+  ok('5m son 5 minutos', M.intervalMinutes('5m') === 5);
+  ok('1h son 60', M.intervalMinutes('1h') === 60);
+  ok('4h son 240', M.intervalMinutes('4h') === 240);
+  ok('1d son 1440', M.intervalMinutes('1d') === 1440);
+  ok('1wk son 10080', M.intervalMinutes('1wk') === 10080);
+  ok('1mo son 43200', M.intervalMinutes('1mo') === 43200);
+  ok('lo que no se reconoce vale null, no un numero inventado',
+    M.intervalMinutes('zzz') === null && M.intervalMinutes('') === null
+    && M.intervalMinutes(undefined) === null);
+
+  // El ritmo que sale de ahi: un tercio de la vela, con suelo de 1 min y techo
+  // de 15. Es la formula de useStructureScan, comprobada aqui porque es la que
+  // decide cuanta cuota se gasta contra el proveedor.
+  const rate = (iv) => Math.min(15 * 60 * 1000,
+    Math.max(60 * 1000, ((M.intervalMinutes(iv) || 1440) * 60 * 1000) / 3));
+  ok('en 5m se refresca cada 100 s (un tercio de la vela)', rate('5m') === 100 * 1000);
+  ok('el suelo de 1 min protege a la vela mas corta', rate('1m') === 60 * 1000);
+  ok('en 1h se refresca a los 20 min -> topado a 15', rate('1h') === 15 * 60 * 1000);
+  ok('en diario tambien topa en 15 min', rate('1d') === 15 * 60 * 1000);
+}
+
 async function checkOptionsEngine() {
   console.log('\nblackScholes.js');
   const bs = await imp('utils/blackScholes.js');
@@ -583,11 +749,76 @@ async function checkProjection() {
     pj.sensitivity(95, 2, [10])[0].winRate === 100);
 }
 
+// ── Ajustes: este navegador contra la cuenta ────────────────────────────────
+// La sincronización decide qué copia de cada ajuste sobrevive. Equivocarse aquí
+// no da un número raro: borra los setups que el usuario escribió a mano. Por eso
+// las reglas viven en un módulo sin importaciones y se comprueban aquí.
+async function checkPrefsMerge() {
+  console.log('\nprefsMerge.js');
+  const { planMerge } = await imp('lib/prefsMerge.js');
+
+  const names = ['theme', 'tradingSystem'];
+  const resettable = { theme: false, tradingSystem: true };
+
+  // Lo más reciente gana, ajuste por ajuste. El tema es más nuevo aquí y el
+  // sistema es más nuevo en la cuenta: tienen que ganar uno cada uno, que es
+  // justo lo que una sola fecha por documento haría imposible.
+  const mixed = planMerge(
+    names,
+    { theme: 2000, tradingSystem: 1000 },
+    { theme: 'gold', tradingSystem: { setups: ['local'] } },
+    { theme: { at: 1500, value: 'crypto' }, tradingSystem: { at: 3000, value: { setups: ['remoto'] } } },
+    { resettable },
+  );
+  ok('el ajuste más reciente de cada lado gana por separado',
+    mixed.apply.tradingSystem?.setups[0] === 'remoto' && mixed.apply.theme === undefined);
+  ok('lo local más nuevo se sube con SU fecha, no con la de ahora',
+    mixed.push.theme?.at === 2000 && mixed.push.theme?.value === 'gold');
+
+  // Un ajuste que nadie ha tocado no es una preferencia y no debe subirse: si
+  // subiera, el valor por defecto de este equipo ganaría a la elección hecha en
+  // otro la próxima vez.
+  const untouched = planMerge(names, {}, { theme: 'dark', tradingSystem: {} }, {}, { resettable });
+  ok('un ajuste sin fecha local no se sube', Object.keys(untouched.push).length === 0);
+  ok('un ajuste sin fecha local tampoco marca fecha', Object.keys(untouched.stamps).length === 0);
+
+  // La cuenta gana el empate, y por eso conciliar dos veces no cambia nada.
+  const tie = planMerge(['theme'], { theme: 500 }, { theme: 'gold' },
+    { theme: { at: 500, value: 'forex' } }, { resettable });
+  ok('el empate lo gana la cuenta (conciliar es idempotente)', tie.apply.theme === 'forex');
+
+  // Dos cuentas en el mismo navegador: lo local es de otro y no compite.
+  const other = planMerge(
+    names,
+    { theme: 9_999_999, tradingSystem: 9_999_999 },
+    { theme: 'gold', tradingSystem: { setups: ['de otro'] } },
+    { theme: { at: 1, value: 'nasdaq' } },
+    { foreign: true, resettable },
+  );
+  ok('con el localStorage de otra cuenta manda la cuenta, por vieja que sea',
+    other.apply.theme === 'nasdaq');
+  ok('lo que la cuenta nueva no tiene se vacía, no se hereda',
+    other.reset.includes('tradingSystem'));
+  ok('los setups de otra cuenta NUNCA se suben a esta',
+    other.push.tradingSystem === undefined);
+  ok('lo que es pura apariencia no se resetea al entrar otra cuenta',
+    !other.reset.includes('theme'));
+
+  // Una fecha corrupta no puede ganar: valdría cualquier cosa menos un dato.
+  const corrupt = planMerge(['theme'], { theme: 100 }, { theme: 'gold' },
+    { theme: { at: 'ayer', value: 'crypto' } }, { resettable });
+  ok('una fecha ilegible en la cuenta pierde contra la local',
+    corrupt.push.theme?.value === 'gold');
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
   await checkTradingSystemModel();
+  await checkPrefsMerge();
   await checkProjection();
+  await checkInstruments();
+  await checkScannerMeta();
   await checkOptionsEngine();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {

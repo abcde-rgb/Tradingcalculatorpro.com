@@ -127,12 +127,15 @@ export default function PerformancePage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
+      {/* UNA sola raíz de pestañas para la barra y los paneles. Con dos raíces,
+          los ids que genera Radix no coinciden y el `aria-controls` de cada
+          pestaña apunta a un panel inexistente (axe: aria-valid-attr-value). */}
+      <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1">
       {/* Tab navigation — sticky-ish under header */}
       {/* Barra de pestañas opaca, sin desenfoque: al hacer scroll, lo que pasa
           por debajo se veía borroso a través de ella. Fondo sólido y ya. */}
       <div className="border-b border-border bg-background sticky top-16 z-30">
         <div className="max-w-6xl mx-auto px-4 py-3">
-          <Tabs value={tab} onValueChange={setTab}>
             {/* max-w-full + overflow-x-auto: tabs scroll inside the pill on
                 narrow screens instead of widening the page (mobile +99px) */}
             <TabsList data-testid="performance-tabs" className="max-w-full justify-start overflow-x-auto [scrollbar-width:thin]">
@@ -152,11 +155,9 @@ export default function PerformancePage() {
                 <Sparkles className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabProjection')}
               </TabsTrigger>
             </TabsList>
-          </Tabs>
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab} className="flex-1">
         {/* Journal tab — pt-24 clears fixed header (h-16) + sticky tab bar (~58px) */}
         <TabsContent value="journal" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
           {!isAuthenticated ? (
@@ -275,7 +276,7 @@ export default function PerformancePage() {
                   <div className="text-sm text-foreground font-semibold mb-2">
                     {t(stat.labelKey)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
                     {t(stat.sourceKey)}
                   </div>
                 </motion.div>
@@ -453,7 +454,7 @@ export default function PerformancePage() {
 
 const AuthRequired = ({ t }) => (
   <div className="text-center py-16 bg-card border border-dashed border-border rounded-xl max-w-xl mx-auto">
-    <Lock className="w-10 h-10 text-muted-foreground/40 mx-auto mb-4" />
+    <Lock className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
     <h3 className="font-bold text-lg mb-2">{t('perfAuthRequiredTitle')}</h3>
     <p className="text-sm text-muted-foreground mb-6">{t('perfAuthRequiredDesc')}</p>
     <div className="flex justify-center gap-2">

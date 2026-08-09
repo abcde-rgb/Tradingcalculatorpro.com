@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
@@ -13,9 +13,23 @@ import { useTranslation } from '@/lib/i18n';
  */
 export default function ScanControls({
   ladder, periods, tfInterval, activePeriod, loading, disabled,
-  onInterval, onPeriod, onRescan,
+  onInterval, onPeriod, onRescan, lastScanAt,
 }) {
   const { t } = useTranslation();
+  // Cuánto hace que se leyó. Es la diferencia entre "esto está al día" y
+  // "esto lleva media hora congelado", y sin decirlo las dos se ven igual.
+  //
+  // Hace falta un reloj: calculado sólo al renderizar, el rótulo se congela en
+  // «hace menos de un minuto» y no vuelve a moverse mientras nadie toque nada
+  // — que es justo cuando el aviso haría falta. Un tic por minuto basta y no
+  // repinta más de lo necesario.
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!lastScanAt) return undefined;
+    const id = setInterval(() => setAhora(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, [lastScanAt]);
+  const ageMin = lastScanAt ? Math.floor((ahora - lastScanAt) / 60000) : null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -76,6 +90,13 @@ export default function ScanControls({
         <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
         {loading ? t('livePatternScanning') : t('structScanRescan')}
       </Button>
+      {/* De cuándo es lo que se está viendo. Va junto al botón de releer porque
+          es la respuesta a la pregunta que hace pulsarlo. */}
+      {ageMin != null && !loading && (
+        <span className="text-[10px] text-muted-foreground w-full text-right -mt-1" data-testid="struct-scan-age">
+          {ageMin < 1 ? t('structScannedJustNow') : t('structScannedAgo').replace('{n}', String(ageMin))}
+        </span>
+      )}
     </div>
   );
 }
@@ -96,7 +117,7 @@ export function ScanNotices({ data }) {
     <>
       {adjusted && (
         <div
-          className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#f59e0b] px-2.5 py-1.5"
+          className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#fbbf24] px-2.5 py-1.5"
           data-testid="struct-adjusted"
         >
           {t('structAdjustedNotice')

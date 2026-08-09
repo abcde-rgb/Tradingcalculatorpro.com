@@ -307,7 +307,10 @@ export default function AdminPage() {
             <MetricCard icon={Crown} label={t('adminMetricPremium')}
               value={metrics.premium_users} valueClass="text-primary" testId="metric-premium" />
             <MetricCard icon={DollarSign} label="MRR"
-              value={`$${metrics.mrr_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+              value={metrics.mrr_usd != null
+                ? `$${metrics.mrr_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                : '—'}
+              hint="equivalente mensual de los planes activos · excluye Lifetime"
               valueClass="text-green-500" testId="metric-mrr" />
             <MetricCard icon={TrendingUp} label={t('adminMetricNew30d')}
               value={metrics.new_users_30d} testId="metric-new-30d" />
@@ -510,15 +513,19 @@ const Th = ({ children }) => (
   <th className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{children}</th>
 );
 
-const MetricCard = ({ icon: Icon, label, value, valueClass = '', testId }) => (
+// `hint` documenta DE DÓNDE sale la cifra. Dos paneles distintos pueden mostrar
+// números legítimamente distintos (MRR recurrente vs caja cobrada) y sin decir
+// cuál es cuál parecen una contradicción.
+const MetricCard = ({ icon: Icon, label, value, valueClass = '', testId, hint }) => (
   <Card className="bg-card border-border" data-testid={testId}>
     <CardContent className="p-4 flex items-center gap-3">
       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
         <Icon className="w-5 h-5 text-primary" />
       </div>
       <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground" title={hint || undefined}>{label}</p>
         <p className={`text-xl font-bold ${valueClass}`}>{value}</p>
+        {hint && <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p>}
       </div>
     </CardContent>
   </Card>
@@ -1296,17 +1303,33 @@ function AuditLogPanel({ headers }) {
 function RevenueAnalyticsCard({ metrics, headers }) {
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState({ churn: null, conversion: null, ltv: {} });
+  const [meta, setMeta] = useState(null);
+  // Un fallo de carga NO puede parecerse a "no hay ingresos". Antes el
+  // `.catch(() => {})` se lo tragaba y la tarjeta pintaba "$0": un 500 del
+  // backend era indistinguible de una cuenta sin facturación.
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
-    fetch(`${API}/admin/revenue`, { credentials: 'include', headers }).then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.history) setHistory(d.history);
-      if (d?.churn !== undefined) setStats(s => ({ ...s, churn: d.churn, conversion: d.conversion, ltv: d.ltv || {} }));
-    }).catch(() => {});
+    fetch(`${API}/admin/revenue`, { credentials: 'include', headers })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(d => {
+        setLoadError(null);
+        if (d?.history) setHistory(d.history);
+        if (d?.meta) setMeta(d.meta);
+        if (d?.churn !== undefined) setStats(s => ({ ...s, churn: d.churn, conversion: d.conversion, ltv: d.ltv || {} }));
+      })
+      .catch(err => setLoadError(err.message || 'error de red'));
   }, []); // eslint-disable-line
 
-  const currentMrr = history[history.length - 1]?.mrr || 0;
-  const prevMrr = history[history.length - 2]?.mrr || 0;
-  const growth = prevMrr ? (((currentMrr - prevMrr) / prevMrr) * 100).toFixed(1) : 0;
+  // `null` cuando no hay dato, nunca 0: un cero aquí afirma "no facturaste
+  // nada", que es una cifra, no la ausencia de una cifra.
+  const currentCollected = history.length ? history[history.length - 1]?.collected ?? null : null;
+  const prevCollected = history.length > 1 ? history[history.length - 2]?.collected ?? null : null;
+  // Sin mes anterior con el que comparar no hay crecimiento que mostrar. El
+  // "+0% vs mes anterior" de antes afirmaba estabilidad donde no había medida.
+  const growth = (prevCollected != null && prevCollected !== 0 && currentCollected != null)
+    ? (((currentCollected - prevCollected) / prevCollected) * 100).toFixed(1)
+    : null;
 
   return (
     <Card className="bg-card border-border">
@@ -1318,30 +1341,52 @@ function RevenueAnalyticsCard({ metrics, headers }) {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
-            <p className="text-xs text-muted-foreground">MRR actual</p>
-            <p className="text-xl font-bold text-green-500">${currentMrr.toLocaleString()}</p>
-            <p className={`text-xs ${growth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {growth >= 0 ? '+' : ''}{growth}% vs mes anterior
+            <p className="text-xs text-muted-foreground">Cobrado este mes</p>
+            <p className="text-xl font-bold text-green-500">
+              {currentCollected != null ? `$${currentCollected.toLocaleString()}` : '—'}
             </p>
+            {growth != null ? (
+              <p className={`text-xs ${Number(growth) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {Number(growth) >= 0 ? '+' : ''}{growth}% vs mes anterior
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">sin mes anterior con el que comparar</p>
+            )}
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Churn rate</p>
             <p className="text-xl font-bold text-red-400">{stats.churn != null ? `${stats.churn}%` : '—'}</p>
-            <p className="text-xs text-muted-foreground">mensual</p>
+            <p className="text-xs text-muted-foreground">
+              {stats.churn != null ? `mensual · base ${meta?.churn_base ?? '?'}` : 'sin base premium'}
+            </p>
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Conversión Free→Premium</p>
             <p className="text-xl font-bold text-blue-400">{stats.conversion != null ? `${stats.conversion}%` : '—'}</p>
-            <p className="text-xs text-muted-foreground">este mes</p>
+            <p className="text-xs text-muted-foreground">
+              {stats.conversion != null ? `30 días · base ${meta?.conversion_base ?? '?'}` : 'sin altas en 30 días'}
+            </p>
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
-            <p className="text-xs text-muted-foreground">LTV Lifetime</p>
+            <p className="text-xs text-muted-foreground">Precio Lifetime</p>
             <p className="text-xl font-bold text-amber-400">{stats.ltv?.lifetime != null ? `$${stats.ltv.lifetime}` : '—'}</p>
-            <p className="text-xs text-muted-foreground">pago único</p>
+            <p className="text-xs text-muted-foreground">precio de tarifa, no LTV</p>
           </div>
         </div>
+        {loadError && (
+          <p className="text-xs text-red-400 border border-red-500/30 bg-red-500/10 rounded px-2 py-1.5">
+            No se pudieron cargar los datos de facturación ({loadError}). Las cifras de
+            arriba están vacías porque falló la carga, no porque valgan cero.
+          </p>
+        )}
         <div>
-          <p className="text-xs text-muted-foreground mb-2">Evolución MRR (6 meses)</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            Caja cobrada por mes (6 meses)
+            <span className="ml-1 opacity-70">
+              — suma de pagos con estado <code>paid</code>, por mes natural. No es MRR:
+              un pago Lifetime entra entero en su mes.
+            </span>
+          </p>
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={history}>
               <defs>
@@ -1353,13 +1398,19 @@ function RevenueAnalyticsCard({ metrics, headers }) {
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
               <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#6b7280' }} />
               <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} tickFormatter={v => `$${v}`} />
-              <Tooltip formatter={v => [`$${v}`, 'MRR']} contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
-              <Area type="monotone" dataKey="mrr" stroke="#10b981" fill="url(#mrrGrad)" strokeWidth={2} />
+              <Tooltip formatter={v => [`$${v}`, 'Cobrado']} contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
+              <Area type="monotone" dataKey="collected" stroke="#10b981" fill="url(#mrrGrad)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground mb-1">LTV por plan</p>
+          <p className="text-xs text-muted-foreground mb-1">
+            Precio por plan
+            <span className="ml-1 opacity-70">
+              — tarifa vigente. {meta?.ltv_is_plan_price !== false
+                && 'NO es LTV: no está ajustado por churn ni por vida media del cliente.'}
+            </span>
+          </p>
           <div className="flex gap-3 flex-wrap">
             {Object.entries(stats.ltv).map(([plan, ltv]) => (
               <div key={plan} className="flex items-center gap-1.5">
@@ -2992,7 +3043,7 @@ function PlansEditorCard({ headers }) {
             })}
           </tbody>
         </table>
-        <p className="px-3 py-2 text-[10px] text-muted-foreground/60">⚠ Cambiar el Stripe Price ID requiere actualizar también en el dashboard de Stripe.</p>
+        <p className="px-3 py-2 text-[10px] text-muted-foreground">⚠ Cambiar el Stripe Price ID requiere actualizar también en el dashboard de Stripe.</p>
       </CardContent>
     </Card>
   );

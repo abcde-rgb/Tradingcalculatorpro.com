@@ -3,6 +3,7 @@ import { Sun, Moon, Globe, Linkedin, Mail, CandlestickChart } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import BrandMark from '@/components/common/BrandMark';
 import { useTranslation, languages } from '@/lib/i18n';
+import { pickLocale } from '@/lib/cloudPrefs';
 import { FlagIcon, LOCALE_FLAG } from '@/components/common/FlagIcon';
 import { useThemeStore } from '@/lib/theme';
 import {
@@ -44,7 +45,7 @@ const TradingViewLogo = (props) => <CandlestickChart {...props} />;
  * Uses i18n strings from LandingPage for consistency.
  */
 export function Footer() {
-  const { t, locale, setLocale } = useTranslation();
+  const { t, locale } = useTranslation();
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const year = new Date().getFullYear();
@@ -131,8 +132,8 @@ export function Footer() {
             <p className="text-muted-foreground text-xs">
               © {year} {t('appName')}. {t('allRightsReserved')}.
             </p>
-            <span className="hidden md:inline text-muted-foreground/40">·</span>
-            <p className="text-muted-foreground/70 text-[11px] max-w-xl leading-snug">
+            <span className="hidden md:inline text-muted-foreground">·</span>
+            <p className="text-muted-foreground text-[11px] max-w-xl leading-snug">
               {t('disclaimer')} {t('dataAttribution')}
             </p>
           </div>
@@ -150,7 +151,7 @@ export function Footer() {
                 {languages.map((lang) => (
                   <DropdownMenuItem
                     key={lang.code}
-                    onClick={() => setLocale(lang.code)}
+                    onClick={() => pickLocale(lang.code)}
                     className={locale === lang.code ? 'bg-primary/10' : ''}
                   >
                     <FlagIcon code={LOCALE_FLAG[lang.code]} title={lang.name} className="w-5 h-[13px] mr-2" /> {lang.name}

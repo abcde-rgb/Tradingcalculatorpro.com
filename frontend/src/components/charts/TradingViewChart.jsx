@@ -187,7 +187,7 @@ function TradingViewWidgetComponent() {
                 value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}
                 placeholder={t('tvSearchAsset')}
-                className="w-full bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/60"
+                className="w-full bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground"
                 data-testid="chart-search"
                 autoComplete="off"
                 spellCheck={false}
@@ -210,7 +210,7 @@ function TradingViewWidgetComponent() {
                   >
                     <span className="font-bold text-xs w-16 shrink-0">{a.symbol}</span>
                     <span className="text-[11px] text-muted-foreground truncate flex-1">{a.name}</span>
-                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70 shrink-0">
+                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground shrink-0">
                       {ASSET_CATEGORIES[a.category]?.name || a.category}
                     </span>
                   </button>
@@ -253,7 +253,7 @@ function TradingViewWidgetComponent() {
             size="icon" 
             className="h-8 w-8"
             onClick={toggleFavorite}
-            data-testid="favorite-btn"
+            data-testid="favorite-btn" aria-label={t('favorite')}
           >
             {isFavorite ? (
               <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />

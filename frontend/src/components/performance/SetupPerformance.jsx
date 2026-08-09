@@ -3,7 +3,7 @@ import { Layers, AlertTriangle, HelpCircle, CheckCircle2, ArrowRight } from 'luc
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
 import {
-  loadSystem, joinSetupPerformance, missingEssentials, setupRulesFor,
+  loadSystem, joinSetupPerformance, missingEssentials, setupRulesFor, onSystemChange,
 } from '@/lib/tradingSystem';
 import { expectancyR, monthlyFromEdge } from '@/lib/projection';
 
@@ -46,6 +46,10 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
     return () => { cancelled = true; };
   }, [refreshKey]);
 
+  // El sistema también puede cambiar sin que haya un refresco: lo edita la
+  // pestaña de al lado, o llega de otro dispositivo (`lib/cloudPrefs.js`).
+  useEffect(() => onSystemChange(() => setSystem(loadSystem())), []);
+
   const joined = useMemo(
     () => joinSetupPerformance(system.setups, analytics?.by_setup),
     [system, analytics],
@@ -63,7 +67,7 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
         className="text-center py-12 px-4 bg-card border border-dashed border-border rounded-xl"
         data-testid="setupperf-empty"
       >
-        <Layers className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+        <Layers className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-bold text-foreground mb-2">{t('setupPerfEmptyTitle')}</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">{t('setupPerfEmptyBody')}</p>
         {onDefineSetups && (
@@ -97,7 +101,7 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
           responde este desglose. Y por eso los totales suman más operaciones de
           las que hay, cosa que se dice en vez de dejar que se deduzca mal. */}
       {analytics?.setups_multi_tagged > 0 && (
-        <p className="text-[10px] text-muted-foreground/80 leading-relaxed" data-testid="setupperf-multi-note">
+        <p className="text-[10px] text-muted-foreground leading-relaxed" data-testid="setupperf-multi-note">
           {t('setupPerfMultiNote').replace('{n}', String(analytics.setups_multi_tagged))}
         </p>
       )}
@@ -146,7 +150,7 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
                 )}
                 {gaps.length > 0 && (
                   <span
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#f59e0b] font-semibold"
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#fbbf24] font-semibold"
                     title={t('setupPerfGapsTip')}
                   >
                     {t('setupPerfGaps').replace('{n}', String(gaps.length))}
@@ -176,7 +180,7 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
                         .replace('{risk}', String(risk))}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground/70">{t('setupPerfContributionUnknown')}</span>
+                    <span className="text-muted-foreground">{t('setupPerfContributionUnknown')}</span>
                   )}
                 </div>
               )}
@@ -236,7 +240,7 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground/80 leading-relaxed mt-2">
+          <p className="text-[10px] text-muted-foreground leading-relaxed mt-2">
             {t('setupPerfOffSystemNote')}
           </p>
         </div>
