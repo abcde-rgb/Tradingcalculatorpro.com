@@ -1258,6 +1258,8 @@ export default {
   "sentToJournal": "Сделка записана в дневник (Performance → Дневник)",
   "sendToJournalError": "Не удалось записать сделку. Войдите и попробуйте снова.",
   "journalFromCalcNote": "Создано из калькулятора Position Size",
+  "calcSearchTool": "Поиск калькулятора…",
+  "calcNoMatches": "Нет подходящих калькуляторов",
   "calcQuickAccess": "Быстрый доступ",
   "calcFavToggle": "Закрепить/убрать из избранного",
   "tplTitle": "Торговый план",

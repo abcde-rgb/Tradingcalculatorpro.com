@@ -1121,6 +1121,8 @@ export default {
   "sentToJournal": "トレードを日誌に記録しました（Performance → 日誌）",
   "sendToJournalError": "トレードを記録できませんでした。ログインして再試行してください。",
   "journalFromCalcNote": "ポジションサイズ計算機から作成",
+  "calcSearchTool": "計算ツールを検索…",
+  "calcNoMatches": "該当する計算ツールがありません",
   "calcQuickAccess": "クイックアクセス",
   "calcFavToggle": "お気に入りに固定/解除",
   "tplTitle": "トレード計画",

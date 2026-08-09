@@ -1250,6 +1250,8 @@ export default {
   "sentToJournal": "Trade im Journal erfasst (Performance → Journal)",
   "sendToJournalError": "Trade konnte nicht erfasst werden. Melde dich an und versuche es erneut.",
   "journalFromCalcNote": "Aus dem Position-Size-Rechner erstellt",
+  "calcSearchTool": "Rechner suchen…",
+  "calcNoMatches": "Kein Rechner gefunden",
   "calcQuickAccess": "Schnellzugriff",
   "calcFavToggle": "Favorit anheften/entfernen",
   "tplTitle": "Trading-Plan",

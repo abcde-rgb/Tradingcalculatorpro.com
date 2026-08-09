@@ -1163,6 +1163,8 @@ export default {
   "sentToJournal": "Trade registrato nel diario (Performance → Diario)",
   "sendToJournalError": "Non è stato possibile registrare il trade. Accedi e riprova.",
   "journalFromCalcNote": "Creato dalla calcolatrice Position Size",
+  "calcSearchTool": "Cerca calcolatrice…",
+  "calcNoMatches": "Nessuna calcolatrice corrisponde",
   "calcQuickAccess": "Accesso rapido",
   "calcFavToggle": "Aggiungi o togli dai preferiti",
   "tplTitle": "Piano di Trading",

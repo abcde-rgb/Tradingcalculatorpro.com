@@ -1129,6 +1129,8 @@ export default {
   "sentToJournal": "交易已记入日志（Performance → 日志）",
   "sendToJournalError": "无法记录交易。请登录后重试。",
   "journalFromCalcNote": "由仓位计算器创建",
+  "calcSearchTool": "搜索计算器…",
+  "calcNoMatches": "没有匹配的计算器",
   "calcQuickAccess": "快速访问",
   "calcFavToggle": "固定或取消收藏",
   "tplTitle": "交易计划",

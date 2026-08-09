@@ -1128,6 +1128,8 @@ export default {
   "sentToJournal": "Trade logged to your journal (Performance → Journal)",
   "sendToJournalError": "Couldn't log the trade. Sign in and try again.",
   "journalFromCalcNote": "Created from the Position Size calculator",
+  "calcSearchTool": "Search calculator…",
+  "calcNoMatches": "No calculator matches",
   "calcQuickAccess": "Quick access",
   "calcFavToggle": "Pin or unpin favourite",
   "tplTitle": "Trading Plan",

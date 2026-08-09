@@ -1101,6 +1101,8 @@ export default {
   "sentToJournal": "سُجّلت الصفقة في اليومية (الأداء → اليومية)",
   "sendToJournalError": "تعذّر تسجيل الصفقة. سجّل الدخول وحاول مجددًا.",
   "journalFromCalcNote": "أُنشئت من حاسبة حجم المركز",
+  "calcSearchTool": "ابحث عن حاسبة…",
+  "calcNoMatches": "لا توجد حاسبة مطابقة",
   "calcQuickAccess": "وصول سريع",
   "calcFavToggle": "تثبيت أو إزالة من المفضلة",
   "tplTitle": "خطة التداول",
