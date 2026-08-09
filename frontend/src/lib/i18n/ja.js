@@ -979,7 +979,6 @@ export default {
   "cmpModeAnnual": "年次",
   "cmpAnnualPct": "年間リターン (%)",
   "cmpYears": "年数",
-  "cmpAnnualAdd": "年間積立 ($)",
   "cmpEquivAnnual": "年複利 {pct}% に相当",
   "cmpEquivMonthly": "月複利 {pct}% に相当",
   "cmpUnitMonthShort": "ヶ月",

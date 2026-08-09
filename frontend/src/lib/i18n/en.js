@@ -986,7 +986,6 @@ export default {
   "cmpModeAnnual": "Annual",
   "cmpAnnualPct": "Annual return (%)",
   "cmpYears": "Years",
-  "cmpAnnualAdd": "Annual contribution ($)",
   "cmpEquivAnnual": "Equals {pct}% annual compounded",
   "cmpEquivMonthly": "Equals {pct}% monthly compounded",
   "cmpUnitMonthShort": "m",

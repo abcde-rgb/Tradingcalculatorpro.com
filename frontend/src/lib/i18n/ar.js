@@ -959,7 +959,6 @@ export default {
   "cmpModeAnnual": "سنوي",
   "cmpAnnualPct": "العائد السنوي (%)",
   "cmpYears": "سنوات",
-  "cmpAnnualAdd": "المساهمة السنوية ($)",
   "cmpEquivAnnual": "يعادل {pct}% سنويًا مركبًا",
   "cmpEquivMonthly": "يعادل {pct}% شهريًا مركبًا",
   "cmpUnitMonthShort": "ش",

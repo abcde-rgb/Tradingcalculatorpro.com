@@ -1021,7 +1021,6 @@ export default {
   "cmpModeAnnual": "Annuale",
   "cmpAnnualPct": "Rendimento annuo (%)",
   "cmpYears": "Anni",
-  "cmpAnnualAdd": "Versamento annuo ($)",
   "cmpEquivAnnual": "Equivale al {pct}% annuo composto",
   "cmpEquivMonthly": "Equivale al {pct}% mensile composto",
   "cmpUnitMonthShort": "m",

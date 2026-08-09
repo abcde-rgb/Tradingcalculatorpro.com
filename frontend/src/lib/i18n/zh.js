@@ -987,7 +987,6 @@ export default {
   "cmpModeAnnual": "每年",
   "cmpAnnualPct": "年化收益率 (%)",
   "cmpYears": "年数",
-  "cmpAnnualAdd": "每年追加 ($)",
   "cmpEquivAnnual": "相当于年化复利 {pct}%",
   "cmpEquivMonthly": "相当于每月复利 {pct}%",
   "cmpUnitMonthShort": "月",

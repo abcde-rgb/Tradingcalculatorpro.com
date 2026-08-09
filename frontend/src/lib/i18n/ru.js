@@ -1116,7 +1116,6 @@ export default {
   "cmpModeAnnual": "Годовой",
   "cmpAnnualPct": "Годовая доходность (%)",
   "cmpYears": "Годы",
-  "cmpAnnualAdd": "Ежегодное пополнение ($)",
   "cmpEquivAnnual": "Эквивалентно {pct}% годовых сложным процентом",
   "cmpEquivMonthly": "Эквивалентно {pct}% в месяц сложным процентом",
   "cmpUnitMonthShort": "м",

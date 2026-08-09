@@ -1108,7 +1108,6 @@ export default {
   "cmpModeAnnual": "Jährlich",
   "cmpAnnualPct": "Jahresrendite (%)",
   "cmpYears": "Jahre",
-  "cmpAnnualAdd": "Jährliche Einzahlung ($)",
   "cmpEquivAnnual": "Entspricht {pct}% jährlich mit Zinseszins",
   "cmpEquivMonthly": "Entspricht {pct}% monatlich mit Zinseszins",
   "cmpUnitMonthShort": "M",
