@@ -571,3 +571,11 @@ a `round(plan["price"], 2)` con comentario explicativo.
 ---
 
 *Actualizado 2026-08-10 — auditoría ofensiva: bypass de 2FA por confusión de tipo de token (BUG-054, verificado con PoC), inyección de fórmulas en el CSV admin (BUG-055), `/performance` fuera del sitemap (BUG-056) y parcheo de aiohttp (SEC-DEPS). Sin IDOR, sin XSS DOM, sin SSRF, sin fugas de credenciales; el shim SQL y los webhooks de pago verificados.*
+
+---
+
+| BUG-057 | **Account pre-hijacking: el enlazado federado dejaba la contraseña del atacante viva.** El registro no exige demostrar posesión del email (`email_verified: False`) y el login funciona igualmente sin verificarlo. `google_auth` busca la cuenta **por email** y, si existe, la reutiliza rellenando `google_sub` — sin tocar la contraseña. Ataque completo (Sudhodanan & Paverd, 2022): el atacante registra el correo de la víctima, se guarda la contraseña y espera; cuando la víctima entra con Google aterriza en **esa misma cuenta**, y el atacante conserva acceso permanente a su diario, sus posiciones y sus datos. **Verificado con PoC contra el backend real**: tras el enlazado, `POST /auth/login` con la contraseña del atacante seguía devolviendo HTTP 200. Fix: Google acaba de PROBAR la posesión del correo, así que una contraseña previa sobre un email **nunca verificado** la puso alguien que jamás demostró ser el dueño — se retira (`password: None`), se marca `email_verified: True` y se **revocan las sesiones vivas** por si el atacante tenía un token abierto (sin eso seguiría dentro hasta una hora). El dueño real recupera contraseña con "he olvidado mi contraseña", que sí prueba posesión del buzón. Si el email **ya estaba verificado**, el enlazado es legítimo y no se toca nada — o el arreglo sería una denegación de servicio para usuarios reales. Tras el fix el PoC devuelve 401. 4 tests, incluido el caso legítimo. | 🔴 | ✅ Resuelto (2026-08-10) |
+
+---
+
+*Actualizado 2026-08-10 (2) — account pre-hijacking en el enlazado con Google (BUG-057), encontrado al auditar el flujo de alta y acceso.*

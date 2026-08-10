@@ -358,3 +358,45 @@ def test_server_has_the_csv_guard_wired_into_the_export():
     assert "def _csv_safe(" in src, "falta el helper _csv_safe en server.py"
     # Se aplica sobre las filas del export, no sólo definido y sin usar.
     assert "_csv_safe(v)" in src, "el export de usuarios no aplica _csv_safe"
+
+
+# ── Account pre-hijacking en el enlazado federado (SEC-2026-PREHIJACK) ─────────
+# El registro no exige demostrar posesión del email y el login funciona sin
+# verificarlo. Un atacante registraba el correo de la víctima, se guardaba la
+# contraseña y esperaba: al entrar la víctima con Google, `google_auth` enlazaba
+# por email y la contraseña del atacante seguía sirviendo. Verificado con PoC.
+
+def _prehijack_decision(has_password: bool, email_verified: bool) -> bool:
+    """Réplica de la condición del enlazado: ¿hay que retirar la contraseña?"""
+    return bool(has_password) and not email_verified
+
+
+def test_password_is_dropped_when_linking_over_an_unverified_email():
+    """El caso del ataque: contraseña puesta sobre un email nunca verificado."""
+    assert _prehijack_decision(has_password=True, email_verified=False) is True
+
+
+def test_legitimate_linking_keeps_the_password():
+    """Mismo usuario que verificó su correo y ahora además usa Google: su
+    contraseña NO se toca, o el arreglo se convertiría en una denegación de
+    servicio para gente legítima."""
+    assert _prehijack_decision(has_password=True, email_verified=True) is False
+
+
+def test_google_only_account_is_untouched():
+    assert _prehijack_decision(has_password=False, email_verified=True) is False
+    assert _prehijack_decision(has_password=False, email_verified=False) is False
+
+
+def test_google_handler_wires_the_guard_and_revokes_sessions():
+    """La guarda existe en el handler real y revoca sesiones: sin la revocación,
+    un token ya emitido al atacante seguiría vivo hasta una hora."""
+    src = _SERVER.read_text(encoding="utf-8")
+    handler = src.split("async def google_auth", 1)[1].split("\n@api_router", 1)[0]
+    assert 'not user.get("email_verified")' in handler, "falta la guarda de pre-hijacking"
+    assert '"password"] = None' in handler or '"password": None' in handler, (
+        "el enlazado no retira la contraseña no verificada"
+    )
+    assert "_revoke_all_tokens_for_user" in handler, (
+        "el enlazado no revoca las sesiones vivas del atacante"
+    )

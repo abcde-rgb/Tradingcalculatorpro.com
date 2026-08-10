@@ -2717,9 +2717,44 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             updates["google_sub"] = info.get("sub")
         if not user.get("picture") and info.get("picture"):
             updates["picture"] = info.get("picture")
+
+        # ── Account pre-hijacking (Sudhodanan & Paverd, 2022) ──────────────
+        # El registro no exige demostrar que el email es tuyo, y el login
+        # funciona sin verificarlo. Así que un atacante podía registrar el
+        # correo de la víctima, guardarse la contraseña y esperar: cuando la
+        # víctima entrase con Google, este bloque la metía en LA MISMA cuenta
+        # —enlazada sólo por email— y la contraseña del atacante seguía
+        # sirviendo. Acceso permanente al diario y a las posiciones de la
+        # víctima. Verificado con PoC.
+        #
+        # Google acaba de PROBAR que el correo es de quien está entrando. Una
+        # contraseña anterior sobre un email nunca verificado la puso alguien
+        # que jamás demostró ser el dueño: se retira, y se revocan las sesiones
+        # vivas por si el atacante tenía uno abierto. El dueño real puede
+        # ponerse contraseña con "he olvidado mi contraseña", que sí prueba
+        # posesión del buzón.
+        #
+        # Si el email YA estaba verificado, el enlazado es legítimo (la misma
+        # persona verificó el correo y ahora usa Google): no se toca nada.
+        hijack_risk = bool(user.get("password")) and not user.get("email_verified")
+        if hijack_risk:
+            updates["password"] = None
+            updates["auth_provider"] = "google"
+            logging.warning(
+                "[auth] Contraseña retirada al enlazar Google sobre un email sin "
+                "verificar (posible pre-hijacking). user_id=%s", user["id"],
+            )
+        # Google verifica el correo; a partir de aquí consta como verificado.
+        if not user.get("email_verified"):
+            updates["email_verified"] = True
+
         if updates:
             await db.users.update_one({"id": user["id"]}, {"$set": updates})
             user.update(updates)
+        if hijack_risk:
+            # Fuera del `if updates` a propósito: la revocación tiene que
+            # ocurrir aunque el `$set` fallara por lo que fuera.
+            await _revoke_all_tokens_for_user(user["id"])
 
     token = create_token(user["id"], user["email"])
     refresh_token = create_refresh_token(user["id"], user["email"])
