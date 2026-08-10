@@ -5,9 +5,11 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-08 (persistencia de los
->   ajustes del usuario; antes 2026-08-05, escáner de estructura)
-> - 🌿 **Rama de trabajo actual:** `claude/github-branches-cleanup-cfef9j`
+> - 📅 **Última verificación real contra el código:** 2026-08-10 (auditoría integral: contenido,
+>   cálculos, APIs, fuentes de datos, normativa y admin — ver
+>   [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md); antes 2026-08-08,
+>   persistencia de los ajustes del usuario)
+> - 🌿 **Rama de trabajo actual:** `claude/project-complete-audit-a6qg1c`
 >
 > ⚠️ **Aviso de método (2026-07-27, y volvió a pasar el 2026-08-03).** Las §1, §2 y
 > §6 se quedan por detrás del código mientras el registro de sesiones (§7) sí se
@@ -3953,3 +3955,77 @@ es el patrón que persigue la política de *scaled content abuse* desde marzo de
 **enriquecer las páginas existentes** —empezando por las FAQ, que hoy son las
 mismas cinco traducidas a 10 idiomas en vez de las preguntas reales de cada
 mercado— y no crear páginas nuevas. Queda escrito en la guía y en el skill.
+
+---
+
+### 2026-08-10 — Auditoría integral (contenido, cálculos, APIs, datos, normativa, admin)
+
+Examen completo pedido de punta a punta. Informe entero en
+[`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md). Resumen de lo **nuevo**
+(lo ya conocido —G-14, G-16, C-08, G-26— sólo se reevaluó):
+
+**Base medida hoy:** `pytest` **761 passed / 74 skipped** (Postgres 16 real) ·
+`npm run build` exit 0, 39 MB, 1589 URLs · ESLint 0 errores / 123 avisos ·
+i18n **6019 × 10, 0 huecos** · engine-check **197/197** · instrumentos en
+paridad · 55 documentos sin enlaces rotos.
+
+**Hallazgos nuevos, por gravedad:**
+
+- 🔴 **Testimonios fabricados en portada** (`i18n/es.js:2454-2465` × 10 idiomas):
+  tres personas inventadas con antigüedad y «5 estrellas», más «Cientos de
+  traders». La Directiva Ómnibus (UE) 2019/2161 los metió en el **Anexo I** de la
+  2005/29/CE: desleales *en toda circunstancia*, hasta 4 % de facturación o 2 M€.
+  Uno de ellos es además una promesa implícita de rentabilidad, que contradice la
+  propia página de Advertencia de Riesgo.
+- 🔴 **El panel admin pierde el 100 % de tres tipos de escritura** — PROBADO
+  contra Postgres real. `app_settings` tiene dos esquemas incompatibles: se
+  escribe con el documento único `{_id:"global"}` y se lee buscando documentos
+  por `key`. Afecta al editor de planes (`admin_routes.py:892` vs `:934`, dentro
+  del mismo par de funciones), al gestor i18n (`:692` vs `:724`) y a
+  `/public/settings` (`:1144`). El admin recibe `{"success": true}` y no pasa
+  nada; GA4/GTM/Clarity/Trustpilot **no se pueden activar desde el panel**.
+- 🔴 **`days_to_expiry` pierde hasta un día entero** (`stock_data.py:601`):
+  `.days` trunca la fracción y mezcla naive-UTC con naive-local. Un contrato a 7
+  días se reporta como 6 → **−7,3 % en una call ATM semanal**, medido. Máximo
+  error justo en semanales y 0DTE. Irónico: `year_fraction()` se escribió para
+  contar las horas de sesión y recibe un entero al que ya se las han quitado.
+- 🔴 **Normativa, cuatro bloqueantes**: responsable sin identificar («una LLC
+  registrada en EE. UU.»), **sin representante en la UE** (RGPD art. 27), **sin
+  derecho de desistimiento** (0 apariciones; la política de reembolsos lo
+  condiciona a «no uso significativo», que es ilegal) y **PostHog con grabación
+  de sesión sin declarar** — con la Política de Cookies afirmando en negrita lo
+  contrario. Añadido: 🟠 sin IVA en el checkout (ni `automatic_tax` ni OSS), 🟠
+  rectificación anunciada y sin endpoint, 🟠 teléfono/Twilio SMS sin declarar,
+  🟡 cookies desfasadas por G-25.
+- 🟠 **La cadena REAL fabrica cifras sin marcarlas** (`stock_data.py:552`, `:564`):
+  `iv: 0.3`, `openInterest: 0`, `mid: 0` para el lado que no cotiza, y `or 0.3`
+  cuando Yahoo publica IV 0. Viola la regla nº 2 del proyecto y **anula el
+  cuidado de `_leg_oi()`**, que devuelve `None` «cuando nunca se observó» y al
+  que nunca le llega un `None`, sino un `0` indistinguible de una observación.
+- 🟠 **hreflang autodestructivo**: canonical a la URL desnuda y alternativas a
+  `?lang=xx` de la *misma* URL, sirviendo el mismo HTML. Google canonicaliza y
+  descarta las alternativas → 9 de 10 idiomas no se indexan. La inversión en
+  6019 claves × 10 idiomas no se está cobrando.
+- 🟠 **1589 páginas con 76 % de plantilla compartida** — PROBADO: 38 de 50 líneas
+  de texto idénticas entre dos estrategias distintas; lo único propio es una
+  frase. Patrón *doorway* + *thin content* en un sitio YMYL.
+- 🟠 **G-16 es peor de lo anotado**: no es «Yahoo sin licencia», es **evasión
+  deliberada de su detección de bots** (`curl_cffi impersonate="chrome"`,
+  `stock_data.py:34`, con el motivo escrito en el comentario) monetizada a
+  17-500 €. Cambia la naturaleza del riesgo y añade el derecho *sui generis* de
+  base de datos. Un cambio de fingerprint apaga el producto estrella.
+- 🟠 **`99.9 %` de uptime** en portada sin SLA y desmentido por los propios
+  Términos. 🟡 «50+ activos» cuando hay ~186.
+- 🔴 **Dominio**: sigue todo en `abcde-rgb.github.io/…`. Con un plan de 500 €, es
+  el mayor freno a la conversión y regala la autoridad SEO a github.io. Es el
+  arreglo con mejor relación impacto/esfuerzo del repositorio.
+
+**Lectura de conjunto:** el problema es de **frontera**, no de fondo. Cada módulo
+por dentro está por encima de la media; lo que falla es el contrato *entre*
+piezas (shim ↔ admin, adaptador de Yahoo ↔ honestidad numérica, código ↔
+políticas legales, producto ↔ portada). Ninguna de las siete comprobaciones
+automáticas del proyecto puede ver un fallo de esa clase — de ahí que G-17
+(tests del shim) suba de prioridad.
+
+**No se ha tocado código:** el encargo era el examen. El plan priorizado en 15
+pasos está en el §9 del informe.

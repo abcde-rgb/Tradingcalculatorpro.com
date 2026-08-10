@@ -73,6 +73,7 @@ Fotos de un momento concreto. Se leen por su fecha, no como estado actual.
 
 | Documento | Fecha |
 |---|---|
+| [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md) — integral: contenido, cálculos, APIs, datos, normativa y admin | 2026-08-10 |
 | [`EXAMEN_FINAL_2026-07-26.md`](./EXAMEN_FINAL_2026-07-26.md) | 2026-07-26 |
 | [`AUDITORIA_2026-07-27.md`](./AUDITORIA_2026-07-27.md) | 2026-07-27 |
 | [`BACKLOG_AUDITORIA_2026-07-27.md`](./BACKLOG_AUDITORIA_2026-07-27.md) | 2026-07-27 |
