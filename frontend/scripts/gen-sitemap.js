@@ -2,8 +2,9 @@
 /**
  * Regenera frontend/public/sitemap.xml con SOLO las rutas públicas e indexables.
  *
- * Excluidas a propósito: /dashboard y /subscription (premium/login), /login y
- * /register (utilidad, sin contenido), /settings y /admin (privadas).
+ * Excluidas a propósito: /dashboard, /performance y /subscription (premium tras
+ * login, y bloqueadas en robots.txt), /login y /register (utilidad, sin
+ * contenido), /settings y /admin (privadas).
  *
  * Uso:  node scripts/gen-sitemap.js
  *
@@ -30,7 +31,11 @@ const PAGES = [
   ['/options',            '0.9',  'weekly'],
   ['/options/strategies', '0.85', 'weekly'],
   ['/education',   '0.9',  'weekly'],
-  ['/performance', '0.9',  'weekly'],
+  // /performance NO va aquí: es una ruta premium (ProtectedRoute premiumOnly) y
+  // robots.txt la bloquea. Anunciarla en el sitemap mientras robots la prohíbe
+  // es una contradicción que Google marca en Search Console ("enviada pero
+  // bloqueada por robots.txt") y que resta autoridad al resto del sitemap. La
+  // referencia pública del diario, cuando exista, irá con ruta propia sin muro.
   ['/pricing',     '0.85', 'monthly'],
   ['/about',       '0.7',  'monthly'],
   ['/contact',     '0.6',  'monthly'],

@@ -1513,6 +1513,16 @@ async def get_current_user(
         return None
     try:
         payload = decode_token(token)
+        # SÓLO un token de acceso autoriza. `require_user`/`require_admin` ya lo
+        # exigen; esta función se saltaba la comprobación, así que aceptaba un
+        # refresh —y, peor, el `2fa_pending`— como si fueran un acceso válido.
+        # El pending token se emite tras la contraseña pero ANTES del segundo
+        # factor: sin este filtro, tener la contraseña bastaba para operar en
+        # los endpoints que dependen de esta función, anulando el 2FA (verificado
+        # con PoC: leer, escribir y borrar posiciones). El propio docstring de
+        # `_create_2fa_pending_token` promete "Never a valid access token".
+        if payload.get("type") != "access":
+            return None
         if await _is_token_revoked(payload) or await _is_user_session_revoked(payload):
             return None
         user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
@@ -2592,6 +2602,18 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
         name: await collect(name, {"user_id": user_id})
         for name in _EXPORTABLE_COLLECTIONS
     }
+    # El payload extiende `**exported` junto a claves fijas (profile, payments,
+    # preferences, format_version…). Si una colección futura se llamara igual que
+    # una de ellas, se pisarían en silencio y esa colección se borraría con la
+    # cuenta pero NO se exportaría — el hueco exacto que este export cierra. Se
+    # falla ruidosamente en vez de esconderlo.
+    _reserved = {"exported_at", "format_version", "profile", "preferences", "payments"}
+    _collision = _reserved & set(exported)
+    if _collision:
+        raise RuntimeError(
+            f"Colección exportable colisiona con una clave reservada del payload: "
+            f"{sorted(_collision)}. Renómbrala o ajusta el payload de /auth/my-data."
+        )
 
     # Billing history is the user's own data, but the raw rows carry gateway
     # internals. Ship the fields a person would actually need for their records.
@@ -7419,13 +7441,32 @@ async def admin_list_users(
     return {"users": users, "total": total, "skip": skip, "limit": limit}
 
 
+def _csv_safe(value: Any) -> Any:
+    """Neutraliza la inyección de fórmulas (CSV/Excel/LibreOffice).
+
+    Una celda que empieza por = + - @, tabulador o retorno de carro la evalúa la
+    hoja de cálculo al abrirla: `=HYPERLINK(...)` exfiltra datos con un clic y con
+    DDE se llega a ejecución de comandos. El dato de mayor riesgo aquí es `name`,
+    que el usuario elige libremente y que **abre un admin** — el clásico
+    atacante-almacena / víctima-abre. `csv.DictWriter` entrecomilla, pero eso no
+    desactiva la fórmula. Se antepone un apóstrofo, que la hoja trata como "texto
+    literal" y no muestra. Verificado con test.
+    """
+    if isinstance(value, str) and value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
 @api_router.get("/admin/users.csv")
 async def admin_export_users_csv(admin: dict = Depends(require_admin)):
     """Export the full user list as CSV (one row per user)."""
     import csv
     import io
     cursor = db.users.find({}, {"_id": 0, "password": 0})
-    rows = [_serialize_admin_user(u) async for u in cursor]
+    rows = [
+        {k: _csv_safe(v) for k, v in _serialize_admin_user(u).items()}
+        async for u in cursor
+    ]
 
     cols = [
         "email", "name", "auth_provider", "is_premium", "is_admin",
