@@ -328,6 +328,7 @@ export default {
   "initialBalance": "Начальный Баланс",
   "totalPhases": "Всего Фаз",
   "tradingCommission": "Торговая Комиссия",
+  "simCostsSubtitle": "Комиссии, применяемые к каждой сделке, в обоих режимах",
   "platformCommission": "Комиссия Платформы",
   "compoundInterest": "Сложный Процент Включен",
   "operations": "Операции",

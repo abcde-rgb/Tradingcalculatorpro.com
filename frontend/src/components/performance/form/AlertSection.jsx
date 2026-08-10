@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BellRing, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import SectionCard from '@/components/options/SectionCard';
+import SectionCard from '@/components/common/SectionCard';
 import { useTranslation } from '@/lib/i18n';
 import { getNotifyChannels } from '@/services/performanceApi';
 

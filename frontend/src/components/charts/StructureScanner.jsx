@@ -1,7 +1,7 @@
 import React from 'react';
 import { Activity, Waves, GitBranch, CandlestickChart, History, SlidersHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import SectionCard, { SectionHeading } from '@/components/options/SectionCard';
+import SectionCard, { SectionHeading } from '@/components/common/SectionCard';
 import { useTranslation } from '@/lib/i18n';
 import { useAssetsStore, ALL_ASSETS } from '@/lib/assets';
 import { DAY_MS } from '@/lib/structureLog';

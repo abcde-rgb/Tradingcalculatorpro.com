@@ -26,33 +26,46 @@ const DEFAULT_PHASES = [
 export function SimulatorPro() {
   const isPremium = useIsPremium();
 
-  // Global config
-  const [initialBalance, setInitialBalance] = useState(1000);
+  // El estado va agrupado por MODO, no suelto. Antes eran 22 `useState` planos
+  // que se pasaban uno a uno al panel de configuración, y en torno a la mitad
+  // estaban muertos en cualquier momento porque pertenecían al modo que no
+  // estaba activo. Agrupar deja explícito qué configura qué y baja el paso de
+  // props de 22 a 8.
   const [capitalMode, setCapitalMode] = useState('compound');  // 'compound' | 'fixed'
+  const [initialBalance, setInitialBalance] = useState(1000);
+
+  // Costes: se aplican en LOS DOS modos (el motor los mete en `totalCommRate`
+  // sin mirar el modo), así que viven fuera de la configuración de cada uno.
+  // Estaban dentro del bloque de compuesto, y eso los hacía ineditables en
+  // riesgo fijo mientras se seguían cobrando: 0,15 % por operación invisible.
+  const [costs, setCosts] = useState({ trading: 0.1, platform: 0.05 });
+  const setCost = (field, value) =>
+    setCosts((prev) => ({ ...prev, [field]: parseFloat(value) || 0 }));
+
+  // Modo COMPUESTO: fases con su propia configuración.
   const [totalPhases, setTotalPhases] = useState(6);
-  const [tradingComm, setTradingComm] = useState(0.1);
-  const [platformComm, setPlatformComm] = useState(0.05);
   const [compoundInterest, setCompoundInterest] = useState(true);
   const [phases, setPhases] = useState(DEFAULT_PHASES);
 
-  // Fixed risk config
-  const [fixedCapitalPerOp, setFixedCapitalPerOp] = useState(100);
-  const [fixedTotalOps, setFixedTotalOps] = useState(100);
-  const [fixedWinRate, setFixedWinRate] = useState(55);
-  const [fixedTakeProfit, setFixedTakeProfit] = useState(2);
-  const [fixedStopLoss, setFixedStopLoss] = useState(1);
-  // Partial take-profits (scale-out) for fixed mode
-  const [fixedPartialTps, setFixedPartialTps] = useState(false);
-  const [fixedPartialLegs, setFixedPartialLegs] = useState([
-    { r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 },
-  ]);
-  const [fixedPartialCont, setFixedPartialCont] = useState(60);
+  // Modo RIESGO FIJO.
+  const [fixed, setFixed] = useState({
+    capitalPerOp: 100,
+    totalOps: 100,
+    winRate: 55,
+    takeProfit: 2,
+    stopLoss: 1,
+    partialTps: false,
+    partialLegs: [{ r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 }],
+    partialCont: 60,
+  });
+  const setFixedField = (field, value) =>
+    setFixed((prev) => ({ ...prev, [field]: value }));
 
   const updatePartialLeg = (index, field, value) => {
-    setFixedPartialLegs((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: parseFloat(value) || 0 };
-      return next;
+    setFixed((prev) => {
+      const legs = prev.partialLegs.map((l) => ({ ...l }));
+      legs[index] = { ...legs[index], [field]: parseFloat(value) || 0 };
+      return { ...prev, partialLegs: legs };
     });
   };
 
@@ -133,11 +146,20 @@ export function SimulatorPro() {
     return { start, end };
   };
 
+  // El motor mantiene su contrato plano (`fixedX`, `tradingComm`…): agrupar es
+  // una decisión de la interfaz, y traducir aquí evita tocar `simulatorEngine`
+  // y sus pruebas por un cambio que es de organización, no de cálculo.
   const buildConfig = () => ({
     initialBalance, capitalMode, phases, compoundInterest,
-    tradingComm, platformComm,
-    fixedCapitalPerOp, fixedTotalOps, fixedWinRate, fixedTakeProfit, fixedStopLoss,
-    fixedPartialTps, fixedPartialLegs, fixedPartialCont,
+    tradingComm: costs.trading, platformComm: costs.platform,
+    fixedCapitalPerOp: fixed.capitalPerOp,
+    fixedTotalOps: fixed.totalOps,
+    fixedWinRate: fixed.winRate,
+    fixedTakeProfit: fixed.takeProfit,
+    fixedStopLoss: fixed.stopLoss,
+    fixedPartialTps: fixed.partialTps,
+    fixedPartialLegs: fixed.partialLegs,
+    fixedPartialCont: fixed.partialCont,
   });
 
   const executeSimulation = () => {
@@ -169,20 +191,12 @@ export function SimulatorPro() {
         showConfig={showConfig} setShowConfig={setShowConfig}
         initialBalance={initialBalance} setInitialBalance={setInitialBalance}
         capitalMode={capitalMode} setCapitalMode={setCapitalMode}
-        totalPhases={totalPhases} setTotalPhases={setTotalPhases}
-        tradingComm={tradingComm} setTradingComm={setTradingComm}
-        platformComm={platformComm} setPlatformComm={setPlatformComm}
-        compoundInterest={compoundInterest} setCompoundInterest={setCompoundInterest}
-        phases={phases} updatePhase={updatePhase} getOperationRange={getOperationRange}
-        togglePhasePartial={togglePhasePartial} updatePhaseLeg={updatePhaseLeg}
-        fixedCapitalPerOp={fixedCapitalPerOp} setFixedCapitalPerOp={setFixedCapitalPerOp}
-        fixedTotalOps={fixedTotalOps} setFixedTotalOps={setFixedTotalOps}
-        fixedTakeProfit={fixedTakeProfit} setFixedTakeProfit={setFixedTakeProfit}
-        fixedStopLoss={fixedStopLoss} setFixedStopLoss={setFixedStopLoss}
-        fixedWinRate={fixedWinRate} setFixedWinRate={setFixedWinRate}
-        fixedPartialTps={fixedPartialTps} setFixedPartialTps={setFixedPartialTps}
-        fixedPartialLegs={fixedPartialLegs} updatePartialLeg={updatePartialLeg}
-        fixedPartialCont={fixedPartialCont} setFixedPartialCont={setFixedPartialCont}
+        costs={costs} setCost={setCost}
+        compound={{
+          totalPhases, setTotalPhases, compoundInterest, setCompoundInterest,
+          phases, updatePhase, getOperationRange, togglePhasePartial, updatePhaseLeg,
+        }}
+        fixed={fixed} setFixedField={setFixedField} updatePartialLeg={updatePartialLeg}
         onExecute={executeSimulation} isLoading={isLoading}
       />
 
