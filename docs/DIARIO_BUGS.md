@@ -579,3 +579,11 @@ a `round(plan["price"], 2)` con comentario explicativo.
 ---
 
 *Actualizado 2026-08-10 (2) — account pre-hijacking en el enlazado con Google (BUG-057), encontrado al auditar el flujo de alta y acceso.*
+
+---
+
+| FEAT-PASSKEYS | **Passkeys (WebAuthn/FIDO2): alta y acceso sin contraseña.** Añadido el único método de acceso de la app que **resiste el phishing**: la clave privada no sale del dispositivo y el navegador sólo la ofrece al origen exacto que la registró, así que una web clonada no puede pedirla aunque el usuario caiga. Módulo `passkeys.py` **puro** (no importa `server.py`, no toca la BD, no conoce FastAPI) + seis rutas en `server.py` + `lib/passkeys.js`, `PasskeyButton` en el login y `PasskeysCard` en Ajustes. Tres invariantes fijadas por tests: el **reto es de un solo uso y caduca a los 5 min** (si se pudiera repetir, capturar una respuesta válida bastaría para repetir el acceso); el **`sign_count` sólo puede subir** (si no avanza, o es replay o el autenticador está clonado — salvo los que siempre reportan 0, donde exigir avance rompería el acceso legítimo); y el **origen/RP ID son los del FRONTEND, no los del backend** (la web va en Pages y la API en Cloud Run: configurarlo con el de la API haría que ninguna passkey validara). El acceso es *usernameless*, así que **no revela si una cuenta existe**. Una passkey ya son dos factores, así que no se vuelve a pedir el TOTP. Colecciones `passkey_credentials` y `webauthn_challenges` dadas de alta en `known` y en los artefactos de seguridad: se borran con la cuenta y **no se exportan** (son material de autenticación). **Verificado con el autenticador virtual de Chrome contra el backend real**: ceremonia completa de alta y acceso, los dos replays rechazados (400/401), y por la interfaz real alta desde Ajustes + entrada al dashboard sin escribir correo ni contraseña. 18 tests. | 🟢 | ✅ Hecho (2026-08-10) |
+
+---
+
+*Actualizado 2026-08-10 (3) — passkeys operativas de punta a punta (FEAT-PASSKEYS).*

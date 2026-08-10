@@ -165,6 +165,20 @@ export const useAuthStore = create(
         }
       },
 
+      /**
+       * Instala una sesión ya emitida por el backend.
+       *
+       * Las passkeys hacen su propia ceremonia contra `/auth/passkey/*` (el
+       * navegador tiene que manejar `ArrayBuffer`, que no viaja por este store),
+       * así que llegan aquí con el usuario y el token ya resueltos. El estado
+       * que se fija es EXACTAMENTE el mismo que en `login` y `loginWithGoogle`:
+       * si divergiera, media app creería que hay sesión y la otra media no.
+       */
+      setSession: (user, token) => {
+        set({ user, token, isAuthenticated: true, isLoading: false });
+        trackEvent('login', { method: 'passkey' });
+      },
+
       logout: async () => {
         const token = get().token;
         if (API) {

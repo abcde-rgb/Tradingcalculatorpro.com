@@ -14,6 +14,7 @@ import { useAuthStore } from '@/lib/store';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import TwoFactorCard from '@/components/settings/TwoFactorCard';
+import PasskeysCard from '@/components/settings/PasskeysCard';
 import { useCloudPref } from '@/lib/cloudPrefs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -400,6 +401,9 @@ export default function SettingsPage() {
             </div>
           )}
           {user?.auth_provider === 'password' && <TwoFactorCard />}
+
+          {/* Passkeys: para cualquier cuenta, también las de Google */}
+          <PasskeysCard />
 
           {/* Preferences Card */}
           <Card className="bg-card border-border">

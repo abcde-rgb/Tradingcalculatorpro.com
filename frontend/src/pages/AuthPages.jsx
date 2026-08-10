@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+import PasskeyButton from '@/components/auth/PasskeyButton';
 import { motion } from 'framer-motion';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -379,6 +380,8 @@ export const LoginPage = () => {
               </div>
             )}
           </form>
+
+          <PasskeyButton />
 
           <GoogleSignInButton />
 

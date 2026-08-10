@@ -87,6 +87,7 @@ from trading_plan import (
 from market_rates import get_risk_free_rate, get_risk_free_info
 import crypto_data
 import ecb_rates
+import passkeys
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -986,6 +987,10 @@ class Database:
             # Registro de SMS enviados: lo consulta el tope por usuario y hora
             # de `notifications.py` en cada envío.
             "sms_log",
+            # Passkeys (WebAuthn). El shim no autocrea tablas: sin darlas de alta
+            # aquí, la primera ceremonia revienta al consultar.
+            "passkey_credentials",
+            "webauthn_challenges",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -1697,6 +1702,14 @@ _SECURITY_ARTEFACT_COLLECTIONS = (
     # tope por usuario). Se borra con la cuenta y no se exporta: no es un dato
     # que el usuario venga a llevarse, es contabilidad de un canal de envío.
     "sms_log",
+    # Passkeys: id de credencial, clave PÚBLICA y contador de uso. Se borran con
+    # la cuenta (si no, quedarían autenticadores huérfanos apuntando a un usuario
+    # que ya no existe) y NO se exportan: son material de autenticación, y
+    # mandárselo al usuario en un JSON es lo mismo que exportarle sus tokens.
+    # El usuario las ve y las borra desde Ajustes, que es lo que necesita.
+    "passkey_credentials",
+    # Retos WebAuthn en vuelo. Efímeros (5 min) y de un solo uso.
+    "webauthn_challenges",
 )
 
 # Todo lo que desaparece al borrar la cuenta (RGPD art. 17).
@@ -2519,6 +2532,196 @@ async def totp_verify(request: Request, response: Response, body: TotpVerifyRequ
             "two_factor_enabled": True,
         },
     }
+
+
+# ============= PASSKEYS (WebAuthn / FIDO2) =============
+# El único método de acceso de esta app que resiste el phishing: la clave privada
+# no sale del dispositivo y el navegador sólo la ofrece al origen exacto que la
+# registró, así que una web clonada no puede pedirla aunque el usuario caiga.
+# La matemática y las reglas viven en `passkeys.py`; aquí sólo persistencia.
+
+
+class PasskeyRegisterComplete(BaseModel):
+    credential: Dict[str, Any]
+    name: Optional[str] = Field(None, max_length=60)
+
+
+class PasskeyLoginComplete(BaseModel):
+    credential: Dict[str, Any]
+
+
+async def _store_challenge(kind: str, challenge: str, user_id: Optional[str] = None) -> None:
+    """Un reto por (tipo, valor). De un solo uso y con caducidad — las dos cosas
+    las comprueba `passkeys.challenge_is_valid` al consumirlo."""
+    await db.webauthn_challenges.insert_one({
+        "id": str(uuid.uuid4()),
+        "kind": kind,
+        "challenge": challenge,
+        "user_id": user_id,
+        "used": False,
+        "expires_at": passkeys.challenge_expiry(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+async def _consume_challenge(kind: str, challenge: str) -> bool:
+    """Valida y **quema** el reto. Se borra en vez de marcarse: un reto ya usado
+    no tiene ningún valor futuro, y así la tabla no crece sin límite."""
+    stored = await db.webauthn_challenges.find_one(
+        {"kind": kind, "challenge": challenge}, {"_id": 0},
+    )
+    ok = passkeys.challenge_is_valid(stored)
+    if stored:
+        await db.webauthn_challenges.delete_one({"id": stored["id"]})
+    return ok
+
+
+@api_router.get("/auth/passkey/available")
+async def passkey_available() -> Dict[str, Any]:
+    """Si el canal está operativo. La interfaz pregunta antes de pintar el botón,
+    igual que hace con los demás canales, para no ofrecer algo que va a fallar."""
+    return {"available": passkeys.is_configured(), "rp_id": passkeys.relying_party()["rp_id"]}
+
+
+@api_router.post("/auth/passkey/register/begin")
+@limiter.limit("20/hour")
+async def passkey_register_begin(request: Request, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    """Opciones para dar de alta una passkey. Requiere sesión iniciada: una
+    passkey se añade a una cuenta que YA has demostrado ser tuya."""
+    existing = await db.passkey_credentials.find(
+        {"user_id": user["id"]}, {"_id": 0},
+    ).to_list(50)
+    out = passkeys.registration_options(
+        user_id=user["id"],
+        user_name=user["email"],
+        display_name=user.get("name") or user["email"],
+        existing_credential_ids=[c["credential_id"] for c in existing],
+    )
+    await _store_challenge("register", out["challenge"], user["id"])
+    return {"options": _json_module.loads(out["options"])}
+
+
+@api_router.post("/auth/passkey/register/complete")
+@limiter.limit("20/hour")
+async def passkey_register_complete(
+    request: Request, body: PasskeyRegisterComplete, user: dict = Depends(require_user),
+) -> Dict[str, Any]:
+    challenge = (body.credential.get("response") or {}).get("__challenge") \
+        or body.credential.pop("challenge", None)
+    if not challenge:
+        raise HTTPException(status_code=400, detail="Falta el reto de la ceremonia.")
+    if not await _consume_challenge("register", challenge):
+        raise HTTPException(status_code=400, detail="Reto inválido, caducado o ya usado.")
+    try:
+        verified = passkeys.verify_registration(
+            credential=body.credential, expected_challenge=challenge,
+        )
+    except Exception as exc:
+        logging.warning("[passkey] alta rechazada: %s", exc)
+        raise HTTPException(status_code=400, detail="No se pudo verificar la passkey.") from exc
+
+    # Una credencial sólo puede pertenecer a una cuenta.
+    if await db.passkey_credentials.find_one({"credential_id": verified["credential_id"]}, {"_id": 1}):
+        raise HTTPException(status_code=409, detail="Esa passkey ya está registrada.")
+
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "name": (body.name or "").strip() or "Passkey",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "last_used_at": None,
+        **verified,
+    }
+    await db.passkey_credentials.insert_one(doc)
+    return {"ok": True, "passkey": passkeys.describe(doc)}
+
+
+@api_router.post("/auth/passkey/login/begin")
+@limiter.limit("30/minute")
+async def passkey_login_begin(request: Request) -> Dict[str, Any]:
+    """Ceremonia *usernameless*: no se pide el correo, así que esta ruta **no
+    revela si una cuenta existe**. El navegador enseña las passkeys que tenga
+    para este sitio y el usuario elige."""
+    out = passkeys.authentication_options()
+    await _store_challenge("login", out["challenge"])
+    return {"options": _json_module.loads(out["options"])}
+
+
+@api_router.post("/auth/passkey/login/complete")
+@limiter.limit("30/minute")
+async def passkey_login_complete(
+    request: Request, response: Response, body: PasskeyLoginComplete,
+) -> Dict[str, Any]:
+    challenge = body.credential.pop("challenge", None)
+    if not challenge:
+        raise HTTPException(status_code=400, detail="Falta el reto de la ceremonia.")
+    if not await _consume_challenge("login", challenge):
+        raise HTTPException(status_code=401, detail="Reto inválido, caducado o ya usado.")
+
+    cred_id = body.credential.get("id") or body.credential.get("rawId")
+    stored = await db.passkey_credentials.find_one({"credential_id": cred_id}, {"_id": 0})
+    if not stored:
+        raise HTTPException(status_code=401, detail="Passkey no reconocida.")
+
+    try:
+        result = passkeys.verify_authentication(
+            credential=body.credential, expected_challenge=challenge,
+            public_key=stored["public_key"], stored_sign_count=int(stored.get("sign_count") or 0),
+        )
+    except passkeys.SignCountError as exc:
+        # No es un fallo cualquiera: o alguien reprodujo una respuesta capturada
+        # o hay una copia del autenticador. Se registra para poder investigarlo.
+        logging.error("[passkey] contador no avanzó (posible clonado) cred=%s: %s", cred_id, exc)
+        raise HTTPException(status_code=401, detail="Passkey rechazada por seguridad.") from exc
+    except Exception as exc:
+        logging.warning("[passkey] acceso rechazado: %s", exc)
+        raise HTTPException(status_code=401, detail="No se pudo verificar la passkey.") from exc
+
+    user = await db.users.find_one({"id": stored["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Passkey no reconocida.")
+
+    await db.passkey_credentials.update_one(
+        {"id": stored["id"]},
+        {"$set": {"sign_count": result["sign_count"],
+                  "last_used_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    # Una passkey ya es dos factores (algo que tienes + algo que eres/sabes para
+    # desbloquearla), así que NO se vuelve a pedir el TOTP: exigirlo convertiría
+    # el método más seguro en el más incómodo y nadie lo usaría.
+    token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
+    _set_auth_cookies(response, token, refresh_token)
+    return {
+        "token": token,
+        "user": {
+            "id": user["id"], "email": user["email"], "name": user.get("name"),
+            "picture": user.get("picture"),
+            "subscription_plan": user.get("subscription_plan"),
+            "subscription_end": user.get("subscription_end"),
+            "subscription_status": user.get("subscription_status"),
+            "is_premium": check_premium(user),
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            "auth_provider": user.get("auth_provider", "password"),
+            "email_verified": bool(user.get("email_verified", False)),
+            "two_factor_enabled": bool(user.get("totp_enabled")),
+        },
+    }
+
+
+@api_router.get("/auth/passkey/list")
+async def passkey_list(user: dict = Depends(require_user)) -> Dict[str, Any]:
+    rows = await db.passkey_credentials.find({"user_id": user["id"]}, {"_id": 0}).to_list(50)
+    return {"passkeys": [passkeys.describe(r) for r in rows]}
+
+
+@api_router.delete("/auth/passkey/{passkey_id}")
+async def passkey_delete(passkey_id: str, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    res = await db.passkey_credentials.delete_one({"id": passkey_id, "user_id": user["id"]})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Passkey no encontrada")
+    return {"ok": True}
 
 
 async def _cancel_stripe_subscriptions_for_user(user_doc: dict) -> None:

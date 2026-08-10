@@ -60,3 +60,4 @@ starlette==0.41.3
 
 # 2FA (TOTP)
 pyotp==2.10.0
+webauthn==2.5.2
