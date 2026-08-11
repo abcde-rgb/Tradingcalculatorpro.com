@@ -243,3 +243,114 @@ serio, y es una decisión de negocio con coste, no un detalle de implementación
   [ESMA: aplicación de los requisitos de marketing de MiFID II](https://www.esma.europa.eu/press-news/esma-news/esma-reports-application-mifid-ii-marketing-requirements) ·
   [Cumplimiento publicitario para afiliados de forex](https://track360.io/blog/forex-affiliate-advertising-compliance-esma-fca-cysec-operator-guide)
 - [CoinLedger: guía de acceso por API a exchanges](https://coinledger.io/blog/the-ultimate-guide-to-api-access-for-your-crypto-exchange-accounts)
+
+---
+
+## 6. «Un bróker regulado que me deje redistribuir sus datos gratis»
+
+Respuesta corta: **no existe, y no puede existir — porque el bróker no es el dueño del
+derecho que habría que conceder.**
+
+### 6.1 Por qué ningún bróker puede darte eso
+
+Los datos de mercado de acciones, futuros y opciones son propiedad de **los mercados**
+(NYSE, Nasdaq, Cboe, CME…), no del bróker. IBKR o Saxo tienen licencia para **mostrar** ese
+dato **a sus propios titulares de cuenta**. Esa licencia les prohíbe expresamente pasarlo a
+terceros. Pedirle a un bróker permiso para redistribuir es como pedirle al inquilino que te
+venda el piso.
+
+Está escrito en sus propias condiciones:
+
+- **IBKR** — *«El uso de la TWS API como medio de difundir información, incluidos datos de
+  mercado o cualquier otra información licenciada o con copyright, a terceros o a clientes
+  no registrados de IB está estrictamente prohibido sin aprobación previa por escrito.»* Y
+  además la licencia de la API se concede *«únicamente para fines no comerciales»*. Un
+  producto de 17 €/mes no cabe ahí ni de lejos.
+- **Saxo** — las herramientas de terceros están disponibles **sólo para clientes directos
+  de Saxo**. Los datos de mercado vienen desactivados por defecto fuera de sus plataformas;
+  hay que solicitarlos y aceptar condiciones aparte, y los de BATS Europe/US exigen un
+  **acuerdo de licencia separado con sus tasas**. Lo único gratis y de serie es el
+  *streaming* de divisas y unos 5 000 bonos — **para el titular de la cuenta**.
+
+### 6.2 La distinción que resuelve el 90 % del problema
+
+Hay dos cosas que se llaman «datos del bróker» y no tienen nada que ver:
+
+| | Qué es | ¿Licencia? | Coste |
+|---|---|---|---|
+| **Redistribución** | Coges un feed y se lo enseñas a **tus** usuarios | Sí, del **mercado** | 💰 |
+| **Paso a través por usuario** | Cada usuario conecta **su** cuenta y ve **sus** datos | **No** | **0 €** |
+
+**El diario no necesita redistribución.** Necesita las posiciones y las ejecuciones **del
+propio usuario**, que el bróker le entrega a él porque son suyas. Eso es exactamente lo que
+hacen TradeZella y TraderSync con sus 500 y 50 integraciones: no redistribuyen nada, cada
+usuario autoriza su cuenta. Es gratis, es limpio y es todo lo que hace falta para el §2.
+
+La frontera es nítida: **datos de cuenta del usuario, autenticados, sólo para él** → libre.
+**Cotizaciones para cualquier visitante** → licencia.
+
+### 6.3 Lo que SÍ puedes redistribuir gratis (y ya lo haces)
+
+| Fuente | Estado | Ya en uso |
+|---|---|:--:|
+| **Cripto** (Binance, Kraken, OKX, Bybit, Hyperliquid) | Público y gratis, sin licencia | ✅ |
+| **Divisas — tipos de referencia del BCE** | Dominio público | ✅ |
+| **Tipo libre de riesgo — Tesoro de EE. UU.** | Dominio público | ✅ |
+| **Gráficos en tiempo real — widget de TradingView** | **Gratis**: TradingView paga las licencias | ✅ |
+
+> 💡 **El widget de TradingView ya es tu solución legal y gratuita para el gráfico en
+> tiempo real.** Lo que no puedes es sacar los números de ahí para tus propios cálculos:
+> el permiso cubre mostrar su gráfico, no alimentar tu motor.
+
+### 6.4 Lo que cuesta, y cuánto
+
+- **Retardado 15 minutos.** Es la vía barata. **MiFIR art. 13 obliga a los centros de
+  negociación europeos a publicar los datos con 15 minutos de retardo gratuitamente**, y
+  Nasdaq los publica libremente para productos regulados. En EE. UU. hay que firmar igual:
+  Cboe cobra **250 $/año de administración + 250 $/mes** como redistribuidor de datos
+  retardados. Para calculadoras y para un diario, **15 minutos de retardo no cambian
+  absolutamente nada**.
+- **Tiempo real de acciones de EE. UU.** No hay atajo. **IEX Cloud, que era la opción
+  gratuita, cerró el 31 de agosto de 2024.** Hoy toca pagar: Databento, Polygon,
+  Finnhub, Twelve Data, EODHD. Alpaca da tiempo real de IEX gratis con cuenta, pero IEX es
+  un solo centro de negociación (una fracción del volumen) y **sus condiciones de
+  redistribución hay que verificarlas antes de contar con ellas**.
+
+### 6.5 Y esto además arregla el mayor riesgo del proyecto
+
+El §4 de la auditoría del 2026-08-10: acciones, índices, materias primas y **toda la cadena
+de opciones** salen hoy de **Yahoo, evadiendo su detección de bots** (`curl_cffi`,
+`impersonate="chrome"`), en un producto de pago. La salida no es negociar con un bróker —
+es exactamente esto:
+
+1. **Retardado 15 min con acuerdo de redistribuidor** para acciones e índices. Coste de
+   tres cifras al año, y legal.
+2. **TradingView** para el gráfico en vivo, que ya está.
+3. **Un proveedor de pago** (Databento/Polygon) sólo si de verdad hace falta tiempo real en
+   el motor.
+4. **Cripto, BCE y Tesoro** se quedan como están: son irreprochables.
+
+### 6.6 Lo que sí puedes conseguir «a cambio de algo»
+
+No datos gratis, sino **acceso y distribución**: IBKR tiene su *Investors' Marketplace*
+para proveedores externos y Saxo su programa de soluciones avanzadas / marca blanca. En
+esos programas el bróker te da acceso a la API y a la relación con el cliente **a cambio de
+llevarle cuentas** — pero las **tasas de datos del mercado se le siguen cobrando al usuario
+final**, porque el bróker tampoco puede regalar lo que no es suyo.
+
+---
+
+## Fuentes de la sección 6
+
+- [IBKR — suscripciones de datos de mercado y API](https://www.interactivebrokers.com/campus/ibkr-api-page/market-data-subscriptions/) ·
+  [IBKR TWS API](https://interactivebrokers.github.io/index.html)
+- [Saxo — herramientas de terceros (sólo clientes directos)](https://www.home.saxo/platforms/third-party-tools) ·
+  [Saxo — cómo habilitar datos de mercado](https://openapi.help.saxo/hc/en-us/articles/4418427366289-How-do-I-enable-market-data) ·
+  [Saxo — uso de OpenAPI](https://openapi.help.saxo/hc/en-us/sections/4416632602385-Use-of-OpenAPI)
+- [Cboe — políticas de datos de mercado 2026 (PDF)](https://cdn.cboe.com/resources/membership/Market_Data_Policies.pdf) ·
+  [Cboe — tasas SIP](https://datashop.cboe.com/sip-fees)
+- [Nasdaq — políticas europeas de datos, enero 2026](https://www.nasdaq.com/docs/Nasdaq_European_Data_Policies_January_2026_New)
+- [NYSE — tarifas de datos propietarios 2026 (PDF)](https://www.nyse.com/publicdocs/nyse/data/NYSE_Market_Data_Pricing.pdf)
+- [Cierre de IEX Cloud y alternativas](https://iexcloud.org/) ·
+  [Guía de migración desde IEX Cloud (Databento)](https://databento.com/blog/migrating-from-iex-cloud-to-databento)
+- [Alpaca — API de datos de mercado](https://alpaca.markets/data)
