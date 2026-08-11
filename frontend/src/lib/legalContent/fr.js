@@ -10,7 +10,10 @@ const fr = {
     title: 'Politique de Confidentialité',
     sections: [
       { t: 'Responsable du Traitement', b: [
-        { p: 'Le responsable du traitement de vos données personnelles est **TradingCalculator.pro**, exploité par une société à responsabilité limitée (LLC) enregistrée aux États-Unis. Pour toute question relative à la confidentialité, contactez-nous à {email}.' },
+        { p: 'Le responsable du traitement de vos données personnelles est **TradingCalculator.pro**, exploité par {entity}. Pour toute question relative à la confidentialité, contactez-nous à {email}.' },
+      ]},
+      { t: 'Représentant dans l’Union européenne', b: [
+        { p: 'Le responsable étant établi hors de l’Espace économique européen et proposant son service à des résidents de l’Union, nous avons désigné un représentant conformément à l’**article 27 du RGPD**. Vous pouvez vous adresser à lui, comme à nous, pour toute question relative au traitement de vos données : {euRepresentative}' },
       ]},
       { t: 'Données que Nous Collectons', b: [
         { p: 'Nous ne collectons que les données nécessaires à la fourniture du service :' },
@@ -50,7 +53,9 @@ const fr = {
           'Revolut (Revolut Pay, avec Apple Pay/Google Pay dans son checkout) : traite les paiements Revolut Pay.',
           'NOWPayments (paiements en cryptomonnaies) : traite les paiements crypto. Reçoit le montant, un identifiant de commande et, le cas échéant, votre e-mail pour le reçu.',
           'Google LLC (OAuth et Analytics) : la connexion Google transfère nom et e-mail. Google Analytics 4 est utilisé avec anonymisation de l’IP et uniquement avec votre consentement. Politique : policies.google.com/privacy.',
+          'PostHog (analyse produit et enregistrement de session) : enregistre de façon anonyme la navigation dans l\'application — clics, routes et erreurs — afin de diagnostiquer les pannes et d\'améliorer l\'interface. Activé uniquement si vous acceptez les cookies non essentiels.',
           'Twilio SendGrid (e-mails transactionnels) : envoi des confirmations, factures et alertes. Ne reçoit que votre adresse e-mail.',
+          'Twilio (SMS) : si vous activez les alertes du journal par SMS, Twilio reçoit votre numéro de téléphone et le texte de l\'alerte. Uniquement si vous l\'activez ; nos journaux ne conservent que les quatre derniers chiffres et l\'heure d\'envoi.',
           'Anthropic (AI Trade Coach) : lorsque vous demandez une analyse IA, les paramètres de la stratégie analysée (actif, jambes, prix) sont envoyés à Anthropic. Votre nom et votre e-mail ne sont pas transmis avec la requête.',
         ]},
         { p: 'Les prestataires sont liés par des accords de traitement des données ou s’appuient sur des mécanismes de transfert international valides (clauses contractuelles types ou autres mécanismes reconnus).' },
@@ -92,7 +97,7 @@ const fr = {
     title: 'Conditions d’Utilisation',
     sections: [
       { t: 'Acceptation des Conditions', b: [
-        { p: 'En accédant à TradingCalculator.pro (le « Service ») et en l’utilisant, vous acceptez d’être lié par ces Conditions d’Utilisation. Si vous êtes en désaccord avec l’une d’elles, vous devez vous abstenir d’utiliser le Service. Ces conditions constituent un accord juridiquement contraignant entre vous et la société à responsabilité limitée (LLC) enregistrée aux États-Unis qui exploite TradingCalculator.pro (la « Société »).' },
+        { p: 'En accédant à TradingCalculator.pro (le « Service ») et en l’utilisant, vous acceptez d’être lié par ces Conditions d’Utilisation. Si vous êtes en désaccord avec l’une d’elles, vous devez vous abstenir d’utiliser le Service. Ces conditions constituent un accord juridiquement contraignant entre vous et {entity} (la « Société »).' },
       ]},
       { t: 'Nature du Service — Pas de Conseil Financier', b: [
         { p: 'TradingCalculator.pro est une plateforme d’outils d’information financière : calculateurs d’options (Black-Scholes, grecques), prix d’actifs en temps réel et simulations de stratégies. Le Service a un caractère exclusivement informatif et éducatif.' },
@@ -112,6 +117,25 @@ const fr = {
         ]},
         { p: '**Essai gratuit de 7 jours** (formules récurrentes uniquement, nouveaux abonnés uniquement) : un moyen de paiement valide est demandé au démarrage. Si vous n’annulez pas avant la fin de l’essai, le premier prélèvement de la formule choisie est effectué automatiquement. Vous pouvez annuler pendant l’essai, sans frais, depuis « Mon Abonnement ».' },
         { p: 'Les paiements sont traités de manière sécurisée via **Stripe** (carte, SEPA, Klarna et portefeuilles comme Apple Pay/Google Pay), **PayPal**, **Revolut Pay** et **NOWPayments** (cryptomonnaies). Les prix sont indiqués en euros (EUR), taxes applicables incluses le cas échéant. En souscrivant une formule à renouvellement automatique, vous autorisez les prélèvements récurrents jusqu’à annulation. Vous pouvez annuler à tout moment depuis « Mon Abonnement » ; l’accès est maintenu jusqu’à la fin de la période de facturation en cours.' },
+      ]},
+      { t: 'Droit de Rétractation (consommateurs de l’UE)', b: [
+        { p: 'Si vous êtes un consommateur résidant dans l’Union européenne, vous disposez de **14 jours calendaires à compter de la souscription** pour vous rétracter **sans avoir à motiver votre décision et sans pénalité**. Ce droit est distinct et s’ajoute à la politique commerciale de remboursement décrite ci-dessous ; il ne peut être subordonné à l’usage que vous avez fait du Service.' },
+        { p: 'Pour l’exercer, il suffit de nous notifier votre décision de façon non équivoque — par exemple par e-mail à {email} en indiquant vos nom, date de souscription et formule — avant l’expiration du délai. Vous pouvez utiliser le formulaire de la section suivante, sans obligation. Nous accuserons réception sans délai.' },
+        { p: '**Remboursement.** Nous vous rembourserons tous les paiements reçus, sans retard injustifié et en tout état de cause **dans les 14 jours** suivant la réception de votre décision, en utilisant le même moyen de paiement, sans frais pour vous. Pour les paiements en cryptomonnaies, irréversibles, le montant équivalent sera remboursé en euros par un autre moyen.' },
+        { p: '**Accès immédiat et perte du droit.** Le Service est un contenu numérique à accès immédiat. Lors de la souscription, il vous est demandé de consentir expressément à ce que l’exécution commence immédiatement et de reconnaître que, une fois pleinement exécutée, **vous perdez le droit de rétractation** (art. 16, m, de la directive 2011/83/UE). À défaut de ce consentement, l’exécution ne commence qu’au terme des 14 jours. Si vous vous rétractez après avoir consenti, seule la part du service déjà fournie vous sera facturée.' },
+        { p: 'Ce qui précède ne limite pas les droits impératifs que vous tenez, en tant que consommateur, de la loi de votre pays de résidence.' },
+      ]},
+      { t: 'Modèle de Formulaire de Rétractation', b: [
+        { p: 'Ne remplissez et ne renvoyez ce formulaire que si vous souhaitez vous rétracter du contrat. Son usage n’est pas obligatoire.' },
+        { list: [
+          'À l’attention de TradingCalculator.pro, {email} :',
+          'Je vous notifie par la présente ma rétractation du contrat portant sur la prestation du service suivant : [formule souscrite].',
+          'Date de souscription : [date].',
+          'Nom du consommateur : [nom].',
+          'Adresse du consommateur : [adresse].',
+          'E-mail du compte : [e-mail].',
+          'Date : [date de la demande].',
+        ]},
       ]},
       { t: 'Politique de Remboursement', b: [
         { list: [
@@ -175,6 +199,7 @@ const fr = {
           rows: [
             ['_ga', 'Google Analytics', 'Distinguer les utilisateurs uniques (ID anonymisé)', '12 mois'],
             ['_ga_*', 'Google Analytics', 'Maintenir l’état de la session analytique', '12 mois'],
+            ['ph_*', 'PostHog', 'Analyse produit et enregistrement de session (clics, routes, erreurs)', '12 mois'],
           ],
         }},
         { p: 'Google Analytics 4 est configuré avec l’anonymisation de l’IP : l’adresse IP est tronquée avant stockage. Aucune information personnellement identifiable n’est transmise à Google via ces cookies.' },

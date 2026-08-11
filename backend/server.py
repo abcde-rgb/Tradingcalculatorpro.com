@@ -2059,6 +2059,65 @@ async def get_me(user: dict = Depends(require_user)):
     }
 
 
+class ProfileUpdate(BaseModel):
+    """Lo único que el usuario puede rectificar de su perfil.
+
+    El correo NO está: es el identificador de la cuenta y el destino de la
+    verificación, así que cambiarlo es un flujo con confirmación por email, no
+    un `$set`. El plan, el rol y el estado de la suscripción tampoco: eso lo
+    fijan los pagos y el panel de administración, y aceptarlos aquí sería
+    regalar una escalada de privilegios por el formulario de perfil.
+    """
+    name: Optional[str] = Field(None, min_length=1, max_length=80)
+    picture: Optional[str] = Field(None, max_length=500)
+
+
+@api_router.put("/auth/profile", response_model=dict)
+async def update_profile(user: dict = Depends(require_user), payload: ProfileUpdate = Body(...)):
+    """Rectificar el nombre y la foto de la cuenta (art. 16 RGPD).
+
+    La Política de Privacidad prometía que el usuario podía corregir sus datos
+    «en cualquier momento desde los ajustes de tu cuenta» y no existía ni el
+    endpoint ni la pantalla: el nombre y la foto eran los del registro para
+    siempre. Un derecho anunciado y no ejercitable es doblemente un problema,
+    porque el incumplimiento queda documentado en el propio texto legal.
+    """
+    updates: Dict[str, Any] = {}
+
+    if payload.name is not None:
+        name = payload.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
+        updates["name"] = name
+
+    if payload.picture is not None:
+        picture = payload.picture.strip()
+        if picture:
+            # Sólo http(s) absolutos: un `javascript:` o un `data:` aquí acaba
+            # en el `src` de un <img> del frontend.
+            if not picture.startswith(("https://", "http://")):
+                raise HTTPException(
+                    status_code=400,
+                    detail="La foto debe ser una URL http(s)",
+                )
+            updates["picture"] = picture
+        else:
+            updates["picture"] = None  # vaciarla es una rectificación válida
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="Nada que actualizar")
+
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.users.update_one({"id": user["id"]}, {"$set": updates})
+
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or user
+    return {
+        "success": True,
+        "name": fresh.get("name"),
+        "picture": fresh.get("picture"),
+    }
+
+
 @api_router.post("/auth/logout")
 async def logout(
     request: Request,
@@ -3992,7 +4051,8 @@ async def delete_calculation(calc_id: str, user: dict = Depends(require_user)):
 
 @api_router.get("/plans")
 async def get_plans():
-    return SUBSCRIPTION_PLANS
+    # Los overrides del panel, o el editor de precios vuelve a ser decorativo.
+    return await get_effective_plans()
 
 _PAYMENT_METHODS_MAP = {
     "stripe": ["card"],
@@ -4117,9 +4177,39 @@ async def _create_stripe_session(
         "cancel_url": cancel_url,
         "metadata": metadata,
         "idempotency_key": idempotency_key,
+
+        # ---- IVA de servicios digitales B2C ----
+        # Sin esto no se determinaba el país del cliente ni se repercutía el
+        # tipo de destino, y cada suscripción a un consumidor de la UE devengaba
+        # un IVA que no se recaudaba: un pasivo que crece en línea recta con las
+        # ventas y que después hay que pagar del margen y con recargo.
+        # `automatic_tax` exige tener Stripe Tax activo y el alta en la
+        # ventanilla única (OSS, régimen exterior a la Unión para una LLC de
+        # EE. UU.) — ver docs/DEPLOY_CHECKLIST.md §IVA.
+        "automatic_tax": {"enabled": True},
+        # La dirección es lo que fija el tipo aplicable; sin recogerla, Stripe
+        # no puede calcular nada.
+        "billing_address_collection": "required",
+        # Un cliente con NIF-IVA intracomunitario factura sin IVA (inversión del
+        # sujeto pasivo). Recogerlo evita cobrarle de más a las empresas.
+        "tax_id_collection": {"enabled": True},
+
+        # ---- Derecho de desistimiento (Directiva 2011/83/UE) ----
+        # El acceso es inmediato, así que el art. 16(m) sólo exime del reembolso
+        # si el consumidor ha consentido EXPRESAMENTE la ejecución inmediata y
+        # ha reconocido que pierde el desistimiento. Sin esta casilla, los 14
+        # días siguen corriendo enteros por mucho que digan los Términos.
+        "consent_collection": {"terms_of_service": "required"},
     }
-    if mode == "subscription" and trial_days and trial_days > 0:
-        session_kwargs["subscription_data"] = {"trial_period_days": int(trial_days)}
+    if mode == "subscription":
+        # Stripe exige decirle qué hacer con el IVA en las renovaciones.
+        subscription_data: Dict[str, Any] = {"automatic_tax": {"enabled": True}}
+        if trial_days and trial_days > 0:
+            subscription_data["trial_period_days"] = int(trial_days)
+        session_kwargs["subscription_data"] = subscription_data
+    else:
+        # En pago único (De Por Vida) la factura también lleva su IVA.
+        session_kwargs["invoice_creation"] = {"enabled": True}
     session = await _asyncio.get_event_loop().run_in_executor(
         None,
         lambda: stripe.checkout.Session.create(**session_kwargs),
@@ -4138,7 +4228,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
 
     _validate_origin_url(origin_url, "origin_url")
 
-    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    plan = (await get_effective_plans()).get(plan_id)
     if not plan:
         raise HTTPException(status_code=400, detail="Plan no válido")
 
@@ -4339,7 +4429,7 @@ async def paypal_capture_order(
         )
 
     plan_id = transaction["plan_id"]
-    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    plan = (await get_effective_plans()).get(plan_id)
     if not plan:
         raise HTTPException(status_code=400, detail="Plan no válido")
 
@@ -4568,7 +4658,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             meta = data_obj.get("metadata") or {}
             user_id = meta.get("user_id")
             plan_id = meta.get("plan_id")
-            plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
+            plan = (await get_effective_plans()).get(plan_id) if plan_id else None
             if not (user_id and plan_id and plan):
                 logging.warning(f"[stripe-webhook] checkout.session.completed missing metadata: {meta}")
                 return {"status": "received"}
@@ -4661,7 +4751,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
         return {"status": "already_processed"}
 
     plan_id = transaction["plan_id"]
-    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    plan = (await get_effective_plans()).get(plan_id)
     if not plan:
         logging.error("[revolut-webhook] invalid plan for order %s: %s", order_id, plan_id)
         await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
@@ -4742,7 +4832,7 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
         return {"status": "already_processed"}
 
     plan_id = transaction["plan_id"]
-    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    plan = (await get_effective_plans()).get(plan_id)
     if not plan:
         logging.error("[nowpayments-webhook] invalid plan for order %s: %s", order_id, plan_id)
         await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
@@ -5438,29 +5528,52 @@ async def _build_chain_for_expiration(
     if not chain:
         return generate_options_chain(stock["price"], expiration["daysToExpiry"], r=r), True
 
-    # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
-    from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
+    # Enrich real chain from Yahoo with computed Greeks (it doesn't return them).
+    #
+    # La volatilidad con la que se calculan sale, por este orden:
+    #   1. la que publica el proveedor, si publica alguna;
+    #   2. si no, la que se despeja del precio de mercado (`implied_volatility`),
+    #      que es una MEDIDA, no un supuesto;
+    #   3. si tampoco —contrato sin horquilla, o precio fuera de las cotas de no
+    #      arbitraje—, las griegas de esa pata son `None`.
+    #
+    # Antes había aquí un `iv = leg.get("iv") or 0.3`: un 30 % fijo que se
+    # colaba en delta, gamma, theta y vega y salía a pantalla indistinguible de
+    # lo medido. Es la misma cifra inventada que se quitó del adaptador; sin
+    # tocar este punto, volvía a entrar por la puerta de al lado.
+    from options_math import (
+        delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v,
+        implied_volatility as _iv_solve,
+    )
     T = year_fraction(expiration["daysToExpiry"])
+    _GREEKS = ("delta", "gamma", "theta", "vega")
     for item in chain:
         K = item["strike"]
         for side in ("call", "put"):
-            leg = item.get(side, {})
-            iv = leg.get("iv") or 0.3
-            if iv <= 0:
-                iv = 0.3
+            leg = item.get(side)
+            if not leg:
+                continue  # ese lado no cotiza: no hay contrato que enriquecer
+            iv = leg.get("iv")
+            if not iv or iv <= 0:
+                iv = _iv_solve(leg.get("mid"), stock["price"], K, T, r, side)
+                # Se publica de dónde salió: una IV despejada del precio no es lo
+                # mismo que una IV publicada por el mercado.
+                leg["ivSource"] = "solved" if iv else None
+            else:
+                leg["ivSource"] = "provider"
+            leg["iv"] = iv
+            if not iv:
+                for name in _GREEKS:
+                    leg[name] = None
+                continue
             try:
                 leg["delta"] = round(_d(stock["price"], K, T, r, iv, side), 4)
                 leg["gamma"] = round(_g(stock["price"], K, T, r, iv), 6)
                 leg["theta"] = round(_th(stock["price"], K, T, r, iv, side), 4)
                 leg["vega"] = round(_v(stock["price"], K, T, r, iv), 4)
             except (ValueError, ZeroDivisionError):
-                leg["delta"] = 0.0
-                leg["gamma"] = 0.0
-                leg["theta"] = 0.0
-                leg["vega"] = 0.0
-            # Ensure mid is present
-            if "mid" not in leg or leg.get("mid") is None:
-                leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
+                for name in _GREEKS:
+                    leg[name] = None
     return chain, synthetic
 
 
@@ -5603,11 +5716,17 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
         for item in chain:
             strike = item["strike"]
             all_strikes.add(strike)
+            # Una IV no publicada es `None`, y la media de dos números de los que
+            # uno no existe tampoco existe. Antes, un lado sin cotizar entraba
+            # como 0.3 fijo y torcía la superficie con una sonrisa inventada.
+            call_iv = (item.get("call") or {}).get("iv")
+            put_iv = (item.get("put") or {}).get("iv")
+            observed = [v for v in (call_iv, put_iv) if v]
             exp_data["ivData"].append({
                 "strike": float(strike),
-                "call_iv": item["call"]["iv"],
-                "put_iv": item["put"]["iv"],
-                "avg_iv": (item["call"]["iv"] + item["put"]["iv"]) / 2,
+                "call_iv": call_iv,
+                "put_iv": put_iv,
+                "avg_iv": (sum(observed) / len(observed)) if observed else None,
             })
         surface_data.append(exp_data)
     sorted_strikes = sorted(list(all_strikes))
@@ -6176,7 +6295,10 @@ def _fetch_atm_iv_proxy(symbol: str, spot: float) -> Optional[float]:
         if not chain:
             return None
         atm = min(chain, key=lambda c: abs(c["strike"] - spot))
-        ivs = [v for v in [atm.get("call", {}).get("iv"), atm.get("put", {}).get("iv")] if v and v > 0]
+        # `or {}` y no `get(..., {})`: la clave existe con valor vacío cuando ese
+        # lado no cotiza, y el valor por defecto del `get` no llega a aplicarse.
+        ivs = [v for v in [(atm.get("call") or {}).get("iv"),
+                           (atm.get("put") or {}).get("iv")] if v and v > 0]
         return sum(ivs) / len(ivs) if ivs else None
     except Exception as e:
         logging.warning(f"IV rank ATM IV fetch failed: {e}")
@@ -6264,12 +6386,20 @@ def _scan_chain_for_unusual(symbol: str, chain: List[Dict[str, Any]], exp: Dict[
     rows: List[Dict[str, Any]] = []
     for row in chain:
         for side in ("call", "put"):
-            opt = row.get(side, {})
-            vol = opt.get("volume", 0) or 0
-            oi = opt.get("openInterest", 0) or 0
+            opt = row.get(side) or {}
+            vol = opt.get("volume") or 0
+            oi = opt.get("openInterest")
             if vol < min_volume:
                 continue
-            ratio = vol / max(oi, 1)
+            # Sin interés abierto OBSERVADO no hay ratio que calcular. El
+            # `max(oi, 1)` de antes convertía un OI desconocido en un 1 y
+            # devolvía `ratio = volumen`, así que cualquier contrato con volumen
+            # entraba en la lista como "actividad inusual". Es justo lo que
+            # denuncia la regla nº1 del proyecto: un ratio volumen/OI construido
+            # sobre un denominador inventado lee ruido.
+            if not oi or oi <= 0:
+                continue
+            ratio = vol / oi
             if ratio < min_ratio:
                 continue
             rows.append(_build_unusual_row(symbol, side, row, opt, exp, stock, ratio))
@@ -6579,12 +6709,20 @@ def _scan_chain_for_flow(sym: str, chain: List[Dict[str, Any]], exp: Dict[str, A
     rows: List[Dict[str, Any]] = []
     for row in chain:
         for side in ("call", "put"):
-            opt = row.get(side, {})
-            vol = opt.get("volume", 0) or 0
-            oi = opt.get("openInterest", 0) or 0
+            opt = row.get(side) or {}
+            vol = opt.get("volume") or 0
+            oi = opt.get("openInterest")
             if vol < min_volume:
                 continue
-            ratio = vol / max(oi, 1)
+            # Sin interés abierto OBSERVADO no hay ratio que calcular. El
+            # `max(oi, 1)` de antes convertía un OI desconocido en un 1 y
+            # devolvía `ratio = volumen`, así que cualquier contrato con volumen
+            # entraba en la lista como "actividad inusual". Es justo lo que
+            # denuncia la regla nº1 del proyecto: un ratio volumen/OI construido
+            # sobre un denominador inventado lee ruido.
+            if not oi or oi <= 0:
+                continue
+            ratio = vol / oi
             if ratio < min_ratio:
                 continue
             rows.append(_build_market_flow_row(sym, side, row, opt, exp, stock, ratio))
@@ -7745,9 +7883,10 @@ async def admin_metrics(admin: dict = Depends(require_admin)):
     premium = total - free
 
     # MRR — monthly equivalent of each plan's price using SUBSCRIPTION_PLANS (real prices)
+    _plans = await get_effective_plans()
     plan_mrr = {
         pid: (plan["price"] / (plan["days"] / 30) if plan["days"] < 36500 else 0)
-        for pid, plan in SUBSCRIPTION_PLANS.items()
+        for pid, plan in _plans.items()
     }
     mrr = 0.0
     for r in by_plan:
@@ -8178,6 +8317,36 @@ async def get_setting(key: str) -> str:
     return os.environ.get(_SETTING_ENV_FALLBACK.get(key, ""), "") or ""
 
 
+async def get_effective_plans() -> Dict[str, Dict[str, Any]]:
+    """`SUBSCRIPTION_PLANS` with the admin panel's overrides applied.
+
+    Punto único por el que pasa todo lo que muestra o cobra un plan. Antes el
+    panel guardaba un `plan_<id>` que **nadie leía**: el editor de precios
+    respondía `{"success": true}` y ni la web ni Stripe se enteraban. Con un
+    único resolutor, lo que el admin ve en `/admin/plans` es lo que anuncia
+    `/plans` y lo que cobra `/checkout/create`.
+
+    `update_plan` obliga a mover importe y `stripe_price_id` a la vez, así que
+    un override siempre trae los dos y no puede desincronizar lo anunciado de
+    lo cobrado.
+    """
+    import json as _json
+    doc = await _load_settings_doc()
+    plans: Dict[str, Dict[str, Any]] = {}
+    for plan_id, plan in SUBSCRIPTION_PLANS.items():
+        merged = dict(plan)
+        raw = doc.get(f"plan_{plan_id}")
+        if raw:
+            try:
+                override = _json.loads(raw)
+                if isinstance(override, dict):
+                    merged.update(override)
+            except Exception as _e:  # noqa: BLE001 — un override ilegible no puede tumbar el checkout
+                logging.warning("[plans] override de %s ilegible, se ignora: %s", plan_id, _e)
+        plans[plan_id] = merged
+    return plans
+
+
 def _mask_secret(val: str) -> str:
     """Show only the last 4 chars of a secret so admin can verify it without re-exposing."""
     if not val:
@@ -8438,7 +8607,7 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
     # LTV de un plan mensual depende de cuántos meses aguanta el cliente.
     plan_price: Dict[str, float] = {
         plan_id: round(plan["price"], 2)
-        for plan_id, plan in SUBSCRIPTION_PLANS.items()
+        for plan_id, plan in (await get_effective_plans()).items()
     }
 
     # Churn y conversión: `None` cuando NO HAY MUESTRA, nunca 0.
@@ -8629,7 +8798,7 @@ async def admin_payment_grant(
         return {"ok": True, "already_premium": True, "granted": False}
 
     plan_id = tx.get("plan_id")
-    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    plan = (await get_effective_plans()).get(plan_id)
     if not plan:
         raise HTTPException(status_code=400, detail=f"Plan desconocido: {plan_id}")
 

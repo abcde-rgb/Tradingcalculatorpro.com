@@ -38,10 +38,16 @@ export default function GoogleIntegrations() {
     const pick = (dbKey, envKey) =>
       (remote && remote[dbKey]) || process.env[envKey] || '';
 
-    const ga    = pick('ga4_measurement_id',   'REACT_APP_GA4_MEASUREMENT_ID');
-    const gtm   = pick('gtm_id',               'REACT_APP_GTM_ID');
-    const gsc   = pick('gsc_verification',     'REACT_APP_GSC_VERIFICATION');
-    const bing  = pick('bing_verification',    'REACT_APP_BING_VERIFICATION');
+    // Los nombres de clave son los que publica el backend en PUBLIC_SETTING_KEYS
+    // (admin_routes.py). Tres de los cuatro no coincidían —`gtm_id` frente a
+    // `gtm_container_id`, `gsc_verification` frente a `gsc_verification_code`,
+    // igual con Bing—, así que aunque `/public/settings` hubiera respondido,
+    // sólo GA4 habría llegado. Un nombre de clave escrito dos veces es un
+    // contrato: si se cambia en un lado, se cambia en los dos.
+    const ga    = pick('ga4_measurement_id',      'REACT_APP_GA4_MEASUREMENT_ID');
+    const gtm   = pick('gtm_container_id',        'REACT_APP_GTM_ID');
+    const gsc   = pick('gsc_verification_code',   'REACT_APP_GSC_VERIFICATION');
+    const bing  = pick('bing_verification_code',  'REACT_APP_BING_VERIFICATION');
 
     // ───────── Google Analytics 4 ─────────
     if (ga && !document.getElementById('ga4-loader')) {

@@ -10,7 +10,10 @@ const it = {
     title: 'Informativa sulla Privacy',
     sections: [
       { t: 'Titolare del Trattamento', b: [
-        { p: 'Il titolare del trattamento dei tuoi dati personali è **TradingCalculator.pro**, gestito da una società a responsabilità limitata (LLC) registrata negli Stati Uniti. Per qualsiasi questione relativa alla privacy, scrivici a {email}.' },
+        { p: 'Il titolare del trattamento dei tuoi dati personali è **TradingCalculator.pro**, gestito da {entity}. Per qualsiasi questione relativa alla privacy, scrivici a {email}.' },
+      ]},
+      { t: 'Rappresentante nell’Unione Europea', b: [
+        { p: 'Poiché il titolare è stabilito fuori dallo Spazio economico europeo e offre il servizio a residenti nell’Unione, abbiamo designato un rappresentante ai sensi dell’**articolo 27 del GDPR**. Puoi rivolgerti a lui, oltre che a noi, per qualsiasi questione relativa al trattamento dei tuoi dati: {euRepresentative}' },
       ]},
       { t: 'Dati che Raccogliamo', b: [
         { p: 'Raccogliamo solo i dati necessari a fornire il servizio:' },
@@ -50,6 +53,7 @@ const it = {
           'Revolut (Revolut Pay, include Apple Pay/Google Pay nel suo checkout): elabora i pagamenti effettuati con Revolut Pay.',
           'NOWPayments (pagamenti in criptovaluta): elabora i pagamenti in cripto. Riceve l\'importo, un identificativo d\'ordine e, se del caso, la tua email per la ricevuta.',
           'Google LLC (OAuth e Analytics): l\'accesso con Google OAuth trasferisce il tuo nome e la tua email. Google Analytics 4 è usato con anonimizzazione dell\'IP e solo con il tuo consenso. Informativa: policies.google.com/privacy.',
+          'PostHog (analisi di prodotto e registrazione di sessione): registra in forma anonima la navigazione nell\'applicazione — clic, percorsi ed errori — per diagnosticare guasti e migliorare l\'interfaccia. Si attiva solo se accetti i cookie non essenziali.',
           'Twilio SendGrid (email transazionali): invia conferme, fatture e avvisi. Riceve solo il tuo indirizzo email.',
           'Anthropic (AI Trade Coach): quando richiedi un\'analisi con l\'IA, i parametri della strategia analizzata (asset, gambe dell\'operazione, prezzi) vengono inviati ad Anthropic. Il tuo nome e la tua email non vengono inviati con la richiesta.',
         ]},
@@ -92,7 +96,7 @@ const it = {
     title: 'Termini di Utilizzo',
     sections: [
       { t: 'Accettazione dei Termini', b: [
-        { p: 'Accedendo e utilizzando TradingCalculator.pro (il «Servizio»), accetti di essere vincolato dai presenti Termini di Utilizzo. Se non concordi con una delle condizioni qui indicate, devi astenerti dall\'utilizzare il Servizio. Questi termini costituiscono un accordo giuridicamente vincolante tra te e la società a responsabilità limitata (LLC) registrata negli Stati Uniti che gestisce TradingCalculator.pro (la «Società»).' },
+        { p: 'Accedendo e utilizzando TradingCalculator.pro (il «Servizio»), accetti di essere vincolato dai presenti Termini di Utilizzo. Se non concordi con una delle condizioni qui indicate, devi astenerti dall\'utilizzare il Servizio. Questi termini costituiscono un accordo giuridicamente vincolante tra te e {entity} (la «Società»).' },
       ]},
       { t: 'Natura del Servizio — Non è Consulenza Finanziaria', b: [
         { p: 'TradingCalculator.pro è una piattaforma di strumenti di informazione finanziaria che comprende calcolatrici di opzioni (Black-Scholes, greche), prezzi degli asset in tempo reale e simulazioni di strategie. Il Servizio è strettamente informativo ed educativo.' },
@@ -112,6 +116,25 @@ const it = {
         ]},
         { p: '**Prova gratuita di 7 giorni** (solo per i piani ricorrenti e solo per i nuovi abbonati): per attivarla è necessario un metodo di pagamento valido. Se non disdici prima della fine della prova, il primo addebito del piano scelto viene effettuato automaticamente. Puoi disdire durante la prova senza alcun costo da «Il mio abbonamento».' },
         { p: 'I pagamenti sono elaborati in sicurezza tramite **Stripe** (carta, SEPA, Klarna e wallet come Apple Pay/Google Pay), **PayPal**, **Revolut Pay** e **NOWPayments** (criptovalute). I prezzi sono indicati in euro (EUR) e includono le imposte applicabili ove pertinente. Sottoscrivendo un piano a rinnovo automatico autorizzi addebiti ricorrenti sul tuo metodo di pagamento fino alla disdetta. Puoi disdire in qualsiasi momento da «Il mio abbonamento»; l\'accesso prosegue fino alla fine del periodo di fatturazione in corso.' },
+      ]},
+      { t: 'Diritto di Recesso (consumatori UE)', b: [
+        { p: 'Se sei un consumatore residente nell’Unione europea, hai **14 giorni di calendario dalla sottoscrizione** per recedere dal contratto **senza dover fornire alcuna motivazione e senza penali**. Questo diritto è distinto e si aggiunge alla politica commerciale di rimborso descritta sotto, e non può essere subordinato all’uso che hai fatto del Servizio.' },
+        { p: 'Per esercitarlo è sufficiente comunicarci la tua decisione in modo inequivocabile — ad esempio con un’email a {email} indicando nome, data di acquisto e piano — prima della scadenza del termine. Puoi usare il modulo della sezione successiva, ma non è obbligatorio. Confermeremo la ricezione senza indugio.' },
+        { p: '**Rimborso.** Ti restituiremo tutti i pagamenti ricevuti senza ritardo ingiustificato e comunque **entro 14 giorni** dalla comunicazione della tua decisione, con lo stesso mezzo di pagamento da te utilizzato e senza costi a tuo carico. Per i pagamenti in criptovalute, irreversibili, l’importo equivalente sarà rimborsato in euro con altro mezzo.' },
+        { p: '**Accesso immediato e perdita del diritto.** Il Servizio è contenuto digitale ad accesso immediato. Al momento dell’acquisto ti viene chiesto di acconsentire espressamente all’inizio immediato della prestazione e di riconoscere che, una volta eseguita integralmente, **perdi il diritto di recesso** (art. 16, lett. m, della Direttiva 2011/83/UE). In mancanza di tale consenso, la prestazione non inizia prima che siano decorsi i 14 giorni. Se receds dopo aver acconsentito, ti addebiteremo solo la parte di servizio già fornita.' },
+        { p: 'Quanto precede non limita i diritti inderogabili che ti spettano come consumatore secondo la legge del tuo paese di residenza.' },
+      ]},
+      { t: 'Modulo Tipo di Recesso', b: [
+        { p: 'Compila e invia questo modulo solo se desideri recedere dal contratto. Il suo uso non è obbligatorio.' },
+        { list: [
+          'Alla cortese attenzione di TradingCalculator.pro, {email}:',
+          'Con la presente comunico il recesso dal contratto di fornitura del seguente servizio: [piano sottoscritto].',
+          'Data di sottoscrizione: [data].',
+          'Nome del consumatore: [nome].',
+          'Indirizzo del consumatore: [indirizzo].',
+          'Email dell’account: [email].',
+          'Data: [data della richiesta].',
+        ]},
       ]},
       { t: 'Politica di Rimborso', b: [
         { list: [
@@ -175,6 +198,7 @@ const it = {
           rows: [
             ['_ga', 'Google Analytics', 'Distinguere gli utenti unici (ID anonimizzato)', '12 mesi'],
             ['_ga_*', 'Google Analytics', 'Mantenere lo stato della sessione di analisi', '12 mesi'],
+            ['ph_*', 'PostHog', 'Analisi di prodotto e registrazione di sessione (clic, percorsi, errori)', '12 mesi'],
           ],
         }},
         { p: 'Google Analytics 4 è configurato con anonimizzazione dell\'IP: l\'indirizzo IP viene troncato prima dell\'archiviazione. Attraverso questi cookie non viene trasmessa a Google alcuna informazione personalmente identificabile.' },

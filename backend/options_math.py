@@ -22,7 +22,11 @@ from scipy.stats import norm
 DEFAULT_RISK_FREE: float = 0.04
 DEFAULT_IV: float = 0.30
 SHARES_PER_CONTRACT: int = 100
-SECONDS_PER_YEAR: int = 365  # market days approximation
+DAYS_PER_YEAR: int = 365  # días naturales; NO son días de mercado (serían 252)
+# Alias retirado: se llamaba SECONDS_PER_YEAR y valía 365. Ni segundos ni
+# días de mercado, como decía su comentario. Se mantiene por compatibilidad
+# con cualquier importador externo que aún lo use.
+SECONDS_PER_YEAR: int = DAYS_PER_YEAR
 
 # Options expire at the close, 16:00 New York time.
 MARKET_CLOSE_HOUR_ET: int = 16
@@ -112,7 +116,7 @@ def theta_val(S: float, K: float, T: float, r: float, sigma: float,
         rest = -r * K * math.exp(-r * T) * norm.cdf(d2) + q * S * math.exp(-q * T) * norm.cdf(d1)
     else:
         rest = r * K * math.exp(-r * T) * norm.cdf(-d2) - q * S * math.exp(-q * T) * norm.cdf(-d1)
-    return (term1 + rest) / SECONDS_PER_YEAR
+    return (term1 + rest) / DAYS_PER_YEAR
 
 
 def vega_val(S: float, K: float, T: float, r: float, sigma: float,
@@ -166,7 +170,7 @@ def year_fraction(days_to_expiry: float, now: Optional[datetime] = None) -> floa
     fraction_of_day_now = (et.hour + et.minute / 60 + et.second / 3600) / 24
     fraction_at_close = MARKET_CLOSE_HOUR_ET / 24
     remaining_days = float(days_to_expiry) + fraction_at_close - fraction_of_day_now
-    return max(remaining_days, 1.0 / 24 / 365) / SECONDS_PER_YEAR
+    return max(remaining_days, 1.0 / 24 / DAYS_PER_YEAR) / DAYS_PER_YEAR
 
 
 # ---------------------------------------------------------------------------
@@ -386,7 +390,7 @@ def calculate_payoff(legs: list[dict], stock_price: float, price_range: float = 
         _leg_qty(leg) * fee_per_contract for leg in legs if leg.get("type") != "stock"
     )
 
-    T_current = max(days_to_chart / SECONDS_PER_YEAR, 0.0)
+    T_current = max(days_to_chart / DAYS_PER_YEAR, 0.0)
     points: list[dict] = []
     for i in range(n_points + 1):
         price = min_price + i * step
@@ -509,7 +513,11 @@ def calculate_greeks(legs: list[dict], stock_price: float,
         if leg["type"] == "stock":
             total["delta"] += multiplier * qty / SHARES_PER_CONTRACT
             continue
-        T = max(leg.get("daysToExpiry", 30), 1) / SECONDS_PER_YEAR
+        # Mismo reloj que el precio. Antes era `días / 365` a secas, así que el
+        # panel de griegas y la valoración miraban relojes distintos: en un 0DTE
+        # la diferencia es la que va de un día entero a las horas que quedan de
+        # sesión, que es justo cuando gamma y theta se mueven de verdad.
+        T = year_fraction(max(leg.get("daysToExpiry", 30), 0))
         iv = leg.get("iv", DEFAULT_IV)
         K = leg["strike"]
         otype = leg["type"]
@@ -576,7 +584,7 @@ def calculate_pnl_attribution(legs: list[dict], S0: float, S1: float, T0: float,
     total_actual (full revaluation), residual, dS, dT_days, dIV_pct.
     """
     p = AttributionParams(S0=S0, S1=S1, T0=T0, T1=T1, iv_change=IV_change, r=r, q=q)
-    dT_days = (T0 - T1) * SECONDS_PER_YEAR
+    dT_days = (T0 - T1) * DAYS_PER_YEAR
     dS = S1 - S0
 
     delta_pnl = gamma_pnl = theta_pnl = vega_pnl = 0.0

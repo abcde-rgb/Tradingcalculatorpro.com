@@ -524,3 +524,111 @@ identidad legal declarada y el IVA recaudado**.
 
 El camino a que esto genere dinero no pasa por añadir funciones: pasa por hacer cobrable y
 defendible lo que ya existe.
+
+---
+
+## 11. Correcciones aplicadas (misma sesión, 2026-08-10)
+
+Se pidió corregirlo todo. Esto es lo que se cambió, con el estado final medido:
+
+| Comprobación | Antes | Después |
+|---|---|---|
+| `pytest tests/` | 761 passed | **775 passed**, 74 skipped (+14 de regresión) |
+| `npm run build` | exit 0 · 1589 URLs | exit 0 · 39 MB · 1589 URLs |
+| ESLint | 0 errores | **0 errores** |
+| i18n | 6019 × 10 | **6021 × 10, 0 huecos** |
+| engine-check | 197/197 | **197/197** |
+| instrumentos · enlaces doc | OK | OK |
+
+### Contenido
+- **Testimonios eliminados** de los 10 idiomas (11 claves) y el componente
+  retirado de `LandingPage`. En su lugar, «Cómo tratamos tus números»: tres
+  compromisos que el repositorio **sí** cumple y que los tests fijan (dato
+  modelado etiquetado · lo indeterminado queda vacío · sin promesas de
+  rentabilidad), con enlace a la advertencia de riesgo. Queda un comentario en
+  el código explicando por qué no vuelven sin consentimiento por escrito.
+- **`99.9 %` de uptime retirado** — no había SLA y los propios Términos lo
+  desmentían. Su hueco lo ocupa el número de estrategias de opciones.
+- **`50+` activos → 186**, y tanto ésa como la de estrategias se **cuentan desde
+  la fuente** (`ALL_ASSETS`, `STRATEGIES`). Escritas a mano se desincronizan; era
+  la causa de que la portada dijera 50 habiendo 186.
+
+### Cálculos
+- **`days_to_expiry`**: `math.ceil` sobre segundos y ambos lados en UTC
+  (`_calendar_days_to_expiry`). Se acabó el −7,3 % en la call ATM semanal.
+- **Cadena real sin cifras fabricadas**: `iv`, `openInterest` y `mid` valen
+  `None` cuando no hay observación; el lado que no cotiza conserva la forma y
+  vacía los valores (poner `None` la pata entera rompía seis consumidores).
+- **La misma cifra inventada, una capa más arriba**: el `iv = leg.get("iv") or
+  0.3` de `_build_chain_for_expiration` se sustituye por → IV publicada → si no,
+  **despejada del precio** (`implied_volatility`, que es una medida) → si no,
+  griegas `None`. Se publica `ivSource` para distinguirlas.
+- **Ratio volumen/OI**: sin interés abierto observado no se calcula. El
+  `max(oi, 1)` de antes convertía un OI desconocido en 1 y metía en «actividad
+  inusual» cualquier contrato con volumen.
+- **Optimizador**: rechaza una estructura si alguna pata no tiene precio o IV
+  reales, en vez de optimizar sobre un 30 % supuesto.
+- **Griegas agregadas** con el mismo reloj que el precio (`year_fraction`).
+- **`SECONDS_PER_YEAR` → `DAYS_PER_YEAR`** (ni segundos ni días de mercado).
+
+### Panel de administración
+- **`app_settings` unificado**: los tres lectores rotos pasan por
+  `_get_setting_raw`/`_get_all_settings`. Verificado con la misma sonda que
+  probó el fallo: plan, i18n y `/public/settings` leen lo que se escribió.
+- **Segunda capa del mismo fallo**: el frontend pedía `gtm_id`,
+  `gsc_verification` y `bing_verification`; el backend publica
+  `gtm_container_id`, `gsc_verification_code` y `bing_verification_code`. Tres de
+  cuatro integraciones no habrían funcionado ni con `/public/settings` arreglado.
+- **El editor de precios ya no es decorativo**: `get_effective_plans()` es el
+  punto único que usan `/plans`, el checkout, los tres webhooks y las métricas.
+  Cambiar el importe **exige mandar el `stripe_price_id` nuevo a la vez**, o se
+  rechaza con 400: mover uno sin el otro no arregla el editor, hace que la web
+  anuncie 17 € y la pasarela cobre 29.
+- **`user_state_ttl_days` retirado** del panel, con un comentario que explica por
+  qué no debe volver.
+
+### Normativa
+- **Desistimiento de 14 días** + **modelo de formulario del Anexo I(B)** en los
+  10 idiomas. El reembolso comercial pasa a declararse como lo que es: una
+  política que **se suma** al derecho legal y no lo condiciona.
+- **Checkout**: `automatic_tax`, `tax_id_collection`,
+  `billing_address_collection` y `consent_collection` (la casilla del art. 16(m)
+  sin la cual los 14 días corren enteros). Requisitos de operación en
+  [`DEPLOY_CHECKLIST.md`](./DEPLOY_CHECKLIST.md) §E-bis.
+- **PostHog declarado** en los 10 idiomas: como destinatario en privacidad y
+  como fila `ph_*` en la tabla de cookies. **Corregida la frase falsa** que
+  negaba el seguimiento comportamental de terceros.
+- **Teléfono y Twilio SMS** declarados como categoría de dato y destinatario.
+- **Identidad legal a fuente única**: `legalContent/entity.js`, con los tokens
+  `{entity}` y `{euRepresentative}`. Repetida en diez ficheros, la fórmula
+  genérica no se sustituía nunca; ahora rellenarla es **una edición**.
+- **Representante en la UE (art. 27)**: sección añadida en los 10 idiomas, que
+  se **oculta sola** mientras no haya representante designado — publicar el
+  epígrafe con la frase a medias es peor que no publicarlo.
+- **Rectificación (art. 16) ejecutable**: `PUT /auth/profile` + formulario en
+  Ajustes. La política prometía esto y no existía (cierra G-26).
+- **Precios con impuestos incluidos**, sin el «cuando corresponda».
+- **Cookies al día**: las preferencias ya no «viven sólo en tu dispositivo»
+  (G-25), y se declara la retención de `usage_events` y del registro de SMS.
+
+### SEO
+- **hreflang contradictorio retirado** del shell del SPA y de
+  `gen-sitemap.js`. Las diez variantes `?lang=xx` servían el mismo HTML y el
+  canonical las anulaba: era gasto de rastreo a cambio de nada. Las páginas
+  **estáticas** ya lo hacían bien (URL propia por idioma, canonical
+  autorreferente) y no se han tocado.
+
+### Lo que NO se ha tocado, y por qué
+
+- **Dominio propio** (§7): es DNS y ajustes de GitHub Pages, fuera del
+  repositorio. Sigue siendo el arreglo con mejor retorno por hora.
+- **Datos reales del titular y del representante en la UE** (§3 N1, N2): son
+  datos que no están en el código. El sitio donde ponerlos ya existe y es uno
+  solo: `frontend/src/lib/legalContent/entity.js`.
+- **Grupo B de proveedores de datos** (§4): decisión de negocio con coste. La
+  dependencia de Yahoo por evasión de detección de bots sigue en pie y sigue
+  siendo el mayor riesgo estructural.
+- **Las 1589 páginas anzuelo** (§6): reducir el corpus o engordarlo es una
+  decisión de producto, no un defecto que corregir a ciegas.
+- **G-14** (los cuatro módulos sin interfaz): son cuatro pantallas nuevas, no
+  una corrección.

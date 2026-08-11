@@ -5,12 +5,12 @@ import LandingDemoCalculator from '@/components/landing/LandingDemoCalculator';
 import AnimatedHeroChart from '@/components/landing/AnimatedHeroChart';
 import AppComingSoon from '@/components/landing/AppComingSoon';
 import { 
-  TrendingUp, Calculator, Shield, Zap, Crown, ArrowRight, Check, 
+  TrendingUp, Calculator, Shield, Crown, ArrowRight, Check, 
   CandlestickChart, History, Bell, BookOpen, Wallet, Target, 
   Scale, FlaskConical, BarChart3, Globe, Moon, Sun, 
   LineChart, PieChart, DollarSign, Percent, Users, Award,
-  ChevronRight, Play, Star, Briefcase, GraduationCap, ChevronDown,
-  Sigma, MessageSquare, Clock, Layers
+  ChevronRight, Play, Briefcase, GraduationCap, ChevronDown,
+  Sigma, MessageSquare, Clock, Layers, BadgeCheck, ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -20,6 +20,8 @@ import { useAuthStore } from '@/lib/store';
 import { useTranslation, languages } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useThemeStore } from '@/lib/theme';
+import { ALL_ASSETS } from '@/lib/assets';
+import { STRATEGIES } from '@/data/mockData';
 
 // ===== Motion variants (module-level constants to avoid inline-object re-renders) =====
 const MOTION_FADE_UP = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
@@ -92,11 +94,25 @@ const plansData = [
   { id: 'lifetime' },
 ];
 
-// Testimonials data — names and roles preserved across locales (translation keys handle copy)
-const TESTIMONIALS = [
-  { quoteKey: 'testimonial1Quote_l010', authorKey: 'testimonial1Author_l011', roleKey: 'testimonial1Role_l012', initial: 'C' },
-  { quoteKey: 'testimonial2Quote_l020', authorKey: 'testimonial2Author_l021', roleKey: 'testimonial2Role_l022', initial: 'A' },
-  { quoteKey: 'testimonial3Quote_l030', authorKey: 'testimonial3Author_l031', roleKey: 'testimonial3Role_l032', initial: 'D' },
+// Cifras de portada contadas desde la fuente, nunca escritas a mano (ver el
+// bloque de stats más abajo para el porqué).
+const ASSET_COUNT = Object.keys(ALL_ASSETS).length;
+const STRATEGY_COUNT = STRATEGIES.length;
+
+// Aquí vivían tres testimonios inventados —nombre, antigüedad y cinco estrellas—
+// bajo el reclamo «cientos de traders», sobre un producto que aún no ha cobrado
+// a nadie. El Anexo I de la Directiva 2005/29/CE, tras la Ómnibus (UE) 2019/2161,
+// declara desleal EN TODA CIRCUNSTANCIA publicar recomendaciones de consumidores
+// falsas: no hay ponderación caso por caso ni defensa posible.
+//
+// Lo que ocupa su sitio son compromisos que este repositorio cumple y que los
+// tests fijan, no opiniones de nadie. Cuando haya clientes reales, la prueba
+// social vuelve por la vía verificable (Trustpilot, ya previsto en el panel
+// admin) y con consentimiento por escrito.
+const TRUST_RULES = [
+  { titleKey: 'trustNumbers1Title', bodyKey: 'trustNumbers1Body', icon: BadgeCheck },
+  { titleKey: 'trustNumbers2Title', bodyKey: 'trustNumbers2Body', icon: Sigma },
+  { titleKey: 'trustNumbers3Title', bodyKey: 'trustNumbers3Body', icon: ShieldAlert },
 ];
 
 // FAQ data
@@ -181,13 +197,20 @@ export default function LandingPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
               {[
+                // Ninguna de estas cuatro cifras es un literal, y es a propósito.
+                // Escritas a mano se desincronizan del producto y la portada
+                // acaba mintiendo: los idiomas se quedaron en 8 con la etiqueta
+                // diciendo 10, y los activos en «50+» cuando ya había 186.
+                // Contarlas desde la fuente hace que añadir un activo, un idioma
+                // o una estrategia actualice la portada sola.
                 { value: '24/7', labelKey: 'statsAvailable',  delay: 0.2, icon: Clock },
-                { value: '50+',  labelKey: 'statsAssets',     delay: 0.3, icon: Layers },
-                // La cifra sale de la lista de idiomas, no de un literal: escrita
-                // a mano se quedó en 8 mientras la etiqueta ya decía 10, así que
-                // la propia tarjeta se contradecía. Añadir un idioma la actualiza.
+                { value: String(ASSET_COUNT), labelKey: 'statsAssets', delay: 0.3, icon: Layers },
                 { value: String(languages.length), labelKey: 'statsLanguages', delay: 0.4, icon: Globe },
-                { value: '99.9%',labelKey: 'statsUptime',     delay: 0.5, icon: Zap },
+                // Aquí había un «99.9%» de tiempo activo. No hay SLA que lo
+                // respalde —GitHub Pages en plan gratuito no ofrece ninguno— y
+                // los propios Términos dicen que no se garantiza la
+                // disponibilidad, así que la portada contradecía al contrato.
+                { value: String(STRATEGY_COUNT), labelKey: 'statsStrategies', delay: 0.5, icon: Sigma },
               ].map((stat) => {
                 const Ic = stat.icon;
                 return (
@@ -593,7 +616,7 @@ export default function LandingPage() {
       {/* Recommended Tools / Affiliate Partners */}
       <RecommendedTools />
 
-      {/* Testimonials Section */}
+      {/* Cómo tratamos tus números — sustituye a los testimonios inventados */}
       <section className="py-20 px-4 bg-muted/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
@@ -601,45 +624,48 @@ export default function LandingPage() {
               {...MOTION_FADE_UP_VIEW}
               className="font-unbounded text-3xl md:text-4xl font-bold mb-4"
             >
-              {t('testimonialsTitle_l001')}
+              {t('trustNumbersTitle')}
             </motion.h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t('testimonialsSubtitle_l002')}
+              {t('trustNumbersSubtitle')}
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((testimonial, idx) => (
-              <motion.div
-                key={testimonial.authorKey}
-                {...MOTION_FADE_UP_VIEW}
-                transition={{ delay: idx * 0.1 }}
-                className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors flex flex-col"
-                data-testid={`testimonial-${idx}`}
-              >
-                <div className="flex gap-1 mb-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={`star-${testimonial.authorKey}-${i}`} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                  ))}
-                </div>
-                <p className="text-sm leading-relaxed text-foreground/90 mb-4 flex-1">
-                  "{t(testimonial.quoteKey)}"
-                </p>
-                <div className="flex items-center gap-3 pt-3 border-t border-border">
-                  <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center font-bold text-primary">
-                    {testimonial.initial}
+            {TRUST_RULES.map((rule, idx) => {
+              const Ic = rule.icon;
+              return (
+                <motion.div
+                  key={rule.titleKey}
+                  {...MOTION_FADE_UP_VIEW}
+                  transition={{ delay: idx * 0.1 }}
+                  className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors flex flex-col"
+                  data-testid={`trust-rule-${idx}`}
+                >
+                  <div className="w-10 h-10 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center mb-4">
+                    <Ic className="w-5 h-5 text-primary" />
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm">{t(testimonial.authorKey)}</p>
-                    <p className="text-xs text-muted-foreground">{t(testimonial.roleKey)}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                  <h3 className="font-semibold mb-2">{t(rule.titleKey)}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground flex-1">
+                    {t(rule.bodyKey)}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <div className="text-center mt-8">
+            <Link
+              to="/legal?tab=risk"
+              className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+              data-testid="trust-risk-link"
+            >
+              {t('trustNumbersRiskLink')} <ChevronRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
-      
+
       {/* FAQ Section */}
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">

@@ -23,7 +23,6 @@ const path = require('path');
 const DEFAULT_ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
 const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const LASTMOD = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-const LANGS = [['en', 'en'], ['de', 'de'], ['fr', 'fr'], ['ru', 'ru'], ['zh-CN', 'zh'], ['ja', 'ja'], ['ar', 'ar']];
 
 // [path, priority, changefreq]
 const PAGES = [
@@ -44,20 +43,27 @@ const PAGES = [
 
 const alt = (hreflang, url) => `        <xhtml:link rel="alternate" hreflang="${hreflang}" href="${url}" />`;
 
+// Estas páginas las sirve el SPA, que traduce en CLIENTE: `?lang=en` devuelve
+// byte por byte el mismo HTML que la URL desnuda. Declararlas como alternativas
+// `hreflang` no indexaba diez idiomas — Google las canonicaliza a una sola y
+// descarta las alternativas, y encima el `canonical` de `index.html` apunta a la
+// URL desnuda, así que las dos señales se contradecían.
+//
+// Las páginas ESTÁTICAS de `gen-seo-pages.js` sí tienen una URL por idioma
+// (`/en/options/strategies/...`) y emiten su propio juego de alternativas
+// correcto; este generador no las toca. Cuando exista una home estática por
+// idioma, aquí se declararán esas URLs reales.
 function block([p, priority, changefreq]) {
   const base = `${DOMAIN}${p}`;
-  const sep = base.includes('?') ? '&' : '?';
-  const lines = [
+  return [
     '    <url>',
     `        <loc>${base}</loc>`,
     `        <lastmod>${LASTMOD}</lastmod>`,
     `        <changefreq>${changefreq}</changefreq>`,
     `        <priority>${priority}</priority>`,
-    alt('es', base),
-  ];
-  for (const [hreflang, code] of LANGS) lines.push(alt(hreflang, `${base}${sep}lang=${code}`));
-  lines.push(alt('x-default', base), '    </url>');
-  return lines.join('\n');
+    alt('x-default', base),
+    '    </url>',
+  ].join('\n');
 }
 
 const xml =

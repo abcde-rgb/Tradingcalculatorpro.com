@@ -4029,3 +4029,65 @@ automáticas del proyecto puede ver un fallo de esa clase — de ahí que G-17
 
 **No se ha tocado código:** el encargo era el examen. El plan priorizado en 15
 pasos está en el §9 del informe.
+
+---
+
+### 2026-08-10 (cont.) — Se corrigen los hallazgos de la auditoría
+
+Segunda mitad de la sesión: se pidió corregirlo todo y quitar los testimonios.
+Detalle completo en el §11 de [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md).
+
+**Estado final medido:** `pytest` **775 passed / 74 skipped** (eran 761; +14 de
+regresión) · `npm run build` exit 0, 39 MB, 1589 URLs · ESLint **0 errores** ·
+i18n **6021 × 10, 0 huecos** · engine-check **197/197** · instrumentos en
+paridad · 56 documentos sin enlaces rotos.
+
+- 🔴→🟢 **Testimonios fabricados eliminados** de los 10 idiomas y de
+  `LandingPage`. Los sustituye «Cómo tratamos tus números»: tres compromisos que
+  el repositorio cumple y los tests fijan. También fuera el **`99.9 %`** de
+  uptime (sin SLA y desmentido por los Términos) y el **«50+» activos** (hay
+  186): las cuatro cifras de portada se **cuentan ahora desde la fuente**.
+- 🔴→🟢 **`app_settings` unificado.** Los tres lectores rotos leen por donde se
+  escribe; verificado con la misma sonda que probó el fallo. Apareció una
+  **segunda capa**: el frontend pedía `gtm_id`/`gsc_verification`/
+  `bing_verification` y el backend publica `gtm_container_id`/
+  `gsc_verification_code`/`bing_verification_code` — tres de cuatro
+  integraciones no habrían funcionado ni con `/public/settings` arreglado.
+  Nuevo `test_app_settings_roundtrip_unit.py` (7 tests) — cubre parte de G-17.
+- 🔴→🟢 **El editor de precios deja de ser decorativo.** `get_effective_plans()`
+  es el punto único de `/plans`, checkout, los tres webhooks y las métricas.
+  Cambiar el importe **exige** mandar el `stripe_price_id` nuevo a la vez, o 400:
+  mover uno sin el otro haría que la web anunciara 17 € y Stripe cobrara 29.
+- 🔴→🟢 **`days_to_expiry`** con `ceil` sobre segundos y ambos lados en UTC. Se
+  acabó el −7,3 % en la call ATM semanal. Nuevo `test_chain_honesty_unit.py`
+  (7 tests) que fija tanto el día como la honestidad de la cadena.
+- 🟠→🟢 **La cadena real deja de fabricar cifras.** `iv`/`openInterest`/`mid` son
+  `None` sin observación. El `iv or 0.3` de `_build_chain_for_expiration` pasa a
+  → IV publicada → **despejada del precio** (que es una medida) → griegas `None`,
+  publicando `ivSource`. El ratio volumen/OI ya no calcula sobre un denominador
+  inventado, y el optimizador rechaza patas sin precio o sin IV reales.
+- 🔴→🟢 **Normativa**: desistimiento de 14 días + formulario del Anexo I(B) en
+  los 10 idiomas · `automatic_tax` + `tax_id_collection` +
+  `billing_address_collection` + `consent_collection` en el checkout (requisitos
+  de operación en DEPLOY_CHECKLIST §E-bis) · **PostHog declarado** y corregida la
+  frase falsa sobre seguimiento comportamental · teléfono y Twilio SMS
+  declarados · cookies al día tras G-25 · retención de `usage_events` y del
+  registro de SMS.
+- 🟡→🟢 **G-26 cerrado**: `PUT /auth/profile` + formulario en Ajustes. El derecho
+  de rectificación que la política prometía ya se puede ejercer.
+- 🟠 **N1/N2 preparados, no cerrados**: la identidad legal y el representante del
+  art. 27 pasan a **fuente única** (`lib/legalContent/entity.js`) con los tokens
+  `{entity}` y `{euRepresentative}`. Rellenarla es ahora **una edición** en vez
+  de diez ficheros. La sección del representante **se oculta sola** mientras no
+  haya uno designado. Faltan los datos reales, que no están en el código.
+- 🟠→🟢 **hreflang contradictorio retirado** del shell del SPA y de
+  `gen-sitemap.js`. Las páginas estáticas ya lo hacían bien y no se tocaron.
+  Queda pendiente la home estática por idioma para que la portada tenga hreflang
+  de verdad.
+- 🟡→🟢 **`user_state_ttl_days`** fuera del panel, con un comentario que explica
+  por qué no debe volver.
+
+**Sigue abierto y es decisión de negocio, no de código:** el dominio propio
+(§7), los datos reales del titular y del representante en la UE (§3), el Grupo B
+de proveedores de datos (§4, G-16 — evasión de la detección de bots de Yahoo,
+el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
