@@ -468,3 +468,84 @@ gorda, entonces sí tiene sentido separarlos y pasar al C.
 - [OPRA — políticas de reporte y tarifas por uso (PDF)](https://cdn.opraplan.com/documents/OPRA_Usage_Based_Fee_Policy.pdf)
 - [Estatus profesional explicado](https://www.marketdata.app/education/stocks/professional-status-explained/) ·
   [Tarifas de mercado y suscripciones de datos](https://godeldiscount.com/blog/exchange-fees-market-data-subscriptions)
+
+---
+
+## 8. IBKR en concreto: quién paga qué
+
+De IBKR salen **dos cosas que no tienen nada que ver**, y toda la confusión viene de
+llamarlas igual. Una es gratis y es la que necesitas; la otra la paga el cliente y además
+no la puedes usar.
+
+### 8.1 Vía A — los datos de la CUENTA del usuario · **coste 0 € · es la tuya**
+
+Las operaciones, posiciones y extractos de un usuario **son suyos**, no son datos de
+mercado licenciados. IBKR los entrega por el **Flex Web Service**: una API HTTP pequeña e
+independiente que genera y descarga *Flex Queries* preconfiguradas.
+
+Cómo funciona en la práctica:
+
+1. El usuario entra en su Client Portal y **configura una Flex Query** (qué campos, qué
+   periodo).
+2. Genera un **token** y te da el token + el **Query ID**.
+3. Tu backend consulta con esos dos datos y recibe el XML con sus operaciones.
+
+Lo que lo hace la vía correcta:
+
+- Es **de solo lectura por construcción**: no puede operar ni modificar la cuenta.
+- **El usuario NO te entrega sus credenciales de acceso** — sólo un token revocable.
+- Es la vía **oficial** de IBKR para aplicaciones de terceros, y es exactamente la que usan
+  TradeZella, TradesViz y TradeBB para integrar IBKR.
+- **No hay tasas de datos de mercado**, porque no son datos de mercado.
+
+**Quién paga: nadie.** Ni tú ni el cliente. Cero.
+
+⚠️ Dos avisos operativos: la Flex Query **no es tiempo real** (se genera por extracto,
+aunque existe una de *confirmaciones de operación* que va casi en directo), y **el token
+caduca** y hay que regenerarlo — es la primera causa de tickets de soporte en todas las
+integraciones de IBKR. Conviene avisar al usuario antes de que se le rompa la sincronía.
+
+### 8.2 Vía B — las cotizaciones en tiempo real · **las paga el cliente · y tú no puedes usarlas**
+
+Esto son datos de mercado licenciados, y hay dos respuestas separadas:
+
+**¿Puedes usarlos tú en TradingCalculator.Pro?** **No.** La licencia de la API de IBKR se
+concede *«únicamente para fines no comerciales»* y prohíbe expresamente difundir datos de
+mercado a terceros o a no clientes de IB sin autorización escrita. Da igual quién los
+pague: el problema no es el coste, es el permiso.
+
+**¿Y si el usuario los quiere en su propio TWS?** Los paga **él, en su cuenta de IBKR**,
+como suscripción mensual:
+
+| Concepto | Coste |
+|---|---|
+| *US Securities Snapshot and Futures Value Bundle* (no profesional) | **10 $/mes** |
+| El mismo, si genera **≥ 30 $ de comisiones** ese mes | **Exento** |
+| Exención mensual de cotizaciones puntuales, todas las cuentas | 1 $/mes |
+| Tarifa **profesional** | Bastante más — y la clasificación no la elige el usuario |
+
+Es decir: **el bróker se cobra el dato con comisiones o con cuota, lo que llegue antes.**
+Quien opera lo suficiente no paga el dato; quien no opera, sí. Pero eso ocurre entre el
+cliente e IBKR, y no pasa por ti en ningún momento.
+
+### 8.3 La conclusión práctica
+
+| Lo que necesitas | Vía | Quién paga |
+|---|---|---|
+| **Operaciones del usuario para el diario** | Flex Web Service | **Nadie** |
+| **Cotizaciones para tus calculadoras y el motor de opciones** | ❌ IBKR no vale | Proveedor del §7, dentro del precio del plan |
+
+**IBKR resuelve el diario y no resuelve las cotizaciones.** Son dos proyectos con dos
+respuestas distintas, y mezclarlos es lo que hace que la pregunta «¿quién paga los datos?»
+no tenga una respuesta única. Y esto vale igual para Saxo o cualquier otro regulado: la
+cuenta del usuario es gratis y limpia; el feed de mercado no sale de ahí.
+
+### Fuentes de la sección 8
+
+- [IBKR — Flex Web Service (IBKR Campus)](https://ibkrcampus.com/ibkr-api-page/flex-web-service/) ·
+  [Glosario: Flex Web Service](https://www.interactivebrokers.com/campus/glossary-terms/flex-web-service/)
+- [IBKR — precios de datos de mercado](https://www.interactivebrokers.com/en/pricing/market-data-pricing.php) ·
+  [IBKR — datos de mercado, investigación y noticias](https://www.interactivebrokers.com/en/pricing/research-news-marketdata.php)
+- [TradesViz — importación automática desde IBKR](https://www.tradesviz.com/blog/auto-import-interactive-brokers/) ·
+  [TradeZella — integración con IBKR](https://www.tradezella.com/integrations/interactive-brokers) ·
+  [Guía de configuración del Flex Web Service](https://deskfi.app/blog/ibkr-flex-web-service-setup-guide)
