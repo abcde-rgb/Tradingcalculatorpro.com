@@ -77,6 +77,7 @@ Fotos de un momento concreto. Se leen por su fecha, no como estado actual.
 | [`EXAMEN_FINAL_2026-07-26.md`](./EXAMEN_FINAL_2026-07-26.md) | 2026-07-26 |
 | [`AUDITORIA_2026-07-27.md`](./AUDITORIA_2026-07-27.md) | 2026-07-27 |
 | [`BACKLOG_AUDITORIA_2026-07-27.md`](./BACKLOG_AUDITORIA_2026-07-27.md) | 2026-07-27 |
+| [`COMPETENCIA_Y_PASARELA_BROKERS.md`](./COMPETENCIA_Y_PASARELA_BROKERS.md) — diario/setups/analítica frente a la competencia, pasarela de solo lectura y modelos de ingreso de brokers | 2026-08-11 |
 | [`ANALISIS_COMPETENCIA_2026-07-19.md`](./ANALISIS_COMPETENCIA_2026-07-19.md) | 2026-07-19 |
 | [`ANALISIS_2026-06-25.md`](./ANALISIS_2026-06-25.md) | 2026-06-25 |
 | [`ROADMAP_IDEAS.md`](./ROADMAP_IDEAS.md) | sin fecha |
