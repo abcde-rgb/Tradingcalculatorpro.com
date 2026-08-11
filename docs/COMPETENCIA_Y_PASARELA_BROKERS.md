@@ -354,3 +354,117 @@ final**, porque el bróker tampoco puede regalar lo que no es suyo.
 - [Cierre de IEX Cloud y alternativas](https://iexcloud.org/) ·
   [Guía de migración desde IEX Cloud (Databento)](https://databento.com/blog/migrating-from-iex-cloud-to-databento)
 - [Alpaca — API de datos de mercado](https://alpaca.markets/data)
+
+---
+
+## 7. Cómo se hace legal: los cuatro modelos y cuál es el tuyo
+
+> No soy abogado, y los contratos de datos de mercado son un mundo con vocabulario propio.
+> Lo de aquí es el mapa del sector y una lista de qué exigir antes de firmar; **la revisión
+> del contrato concreto la tiene que hacer alguien especializado en licencias de market
+> data**. Es de las pocas áreas donde eso está justificado de verdad.
+
+### 7.1 Los cuatro modelos
+
+| | Modelo | Quién lo usa | Coste | Complejidad |
+|:--:|---|---|---|---|
+| **A** | **BYO — el usuario trae sus datos.** Conecta su cuenta de bróker y la app le pinta **lo suyo** | Los diarios (TradeZella, TraderSync) | **0 €** | Baja |
+| **B** | **Proveedor con redistribución incluida.** Pagas a un vendor que ya tiene los acuerdos con los mercados y te **sublicencia** mostrárselo a tus usuarios | **La inmensa mayoría de productos indie y pymes** | Cuota fija | **Baja** |
+| **C** | **Acuerdo directo con cada mercado + cobrar aparte** | IBKR, TradingView, Sierra Chart | Por usuario | **Muy alta** |
+| **D** | **Retardado 15 min / fin de día** | Muchas calculadoras y screeners | Muy bajo | Baja |
+
+### 7.2 Lo que hace la mayoría: el modelo B
+
+**Firmas con un proveedor cuyo contrato ya dice que puedes redistribuir a tus usuarios
+finales.** El proveedor mantiene los acuerdos con NYSE, Nasdaq, Cboe, OPRA, etc., hace el
+reporte mensual y aguanta las auditorías. Tú pagas **una factura** y te olvidas.
+
+De los que hay, **Twelve Data es el que tiene el lenguaje público más maduro sobre uso en
+pantalla, uso *non-display*, derechos de redistribución y marca blanca**, que es
+exactamente el vocabulario que hay que poder leer antes de firmar. EODHD publica precios
+personales y comerciales por separado. Databento está orientado a quants e infraestructura
+(libro completo, OPRA de los 17 centros de opciones de EE. UU.); es más de lo que necesitas
+y se paga por uso. Polygon va a tiempo real de EE. UU. de alta frecuencia.
+
+> La frase que resume el asunto: **acceder al dato no es lo mismo que tener derecho a
+> mostrarlo, redistribuirlo o empaquetarlo dentro de un producto.** Una API barata con
+> términos ambiguos sale cara el día que el producto sale del laboratorio.
+
+### 7.3 «Cobrar por separado»: qué es de verdad, y por qué todavía no
+
+Sí, es un modelo real y legal — es el **modelo C**, y es literalmente lo que hace IBKR:
+plataforma por un lado, suscripciones de datos como complemento aparte. Pero lo que hay
+detrás de esa línea en la factura es esto:
+
+1. **Vendor/Redistributor Agreement con cada mercado**, uno por uno.
+2. **Sistema de titularidades** (*entitlements*): saber en todo momento qué usuario tiene
+   derecho a qué dato, y cortarlo cuando deja de pagar.
+3. **Autocertificación Profesional / No Profesional de cada usuario.** Aquí está el dinero:
+   un **no profesional** cuesta del orden de **1–3 $/mes**, y un **profesional entre 30 y
+   85 $/mes**. La definición de no profesional es persona física, uso personal y no
+   empresarial, y que no sea asesor de inversiones registrado.
+4. **Reporte mensual de uso** a cada mercado.
+5. **Auditorías.** Los mercados auditan a los distribuidores.
+
+⚠️ **Y la trampa que arruina a quien entra sin saberlo:** si clasificas a un profesional
+como no profesional, **el distribuidor —tú— responde retroactivamente por la diferencia a
+tarifa profesional**. Con un puñado de usuarios mal clasificados durante un año, eso es una
+factura de cinco cifras por un producto de 17 €/mes.
+
+**Recomendación:** el modelo C **no** a tu escala. El coste administrativo se come el
+margen antes de que el primer euro llegue. **Métete en el modelo B y mete el coste dentro
+del precio del plan.** Cuando tengas miles de usuarios de pago y los datos sean una partida
+gorda, entonces sí tiene sentido separarlos y pasar al C.
+
+### 7.4 Tres trampas que te tocan a ti en concreto
+
+1. 🔴 **«Si no lo enseño, sólo lo calculo, no necesito licencia» — es falso, y al revés.**
+   Usar el dato sólo para cálculos es ***non-display use***, tiene su propia licencia y a
+   menudo es **más cara** que mostrarlo. **Tus calculadoras y el motor de opciones son
+   exactamente eso.** Cualquier contrato que firmes tiene que decir *non-display* por
+   escrito, o estarás fuera de cobertura justo en tu función principal.
+2. 🟠 **La caché tiene plazo contractual.** `stock_data.py` cachea 5 minutos
+   (`_cache_duration = 300`) y la colección `stock_cache` guarda más. Casi todas las
+   licencias limitan cuánto tiempo se puede almacenar el dato y si se puede servir desde
+   almacén. Hay que contrastar el número con el contrato, no con lo que va bien de latencia.
+3. 🟢 **Las 1589 páginas estáticas están limpias** — verificado: no publican cotizaciones.
+   Mantenerlo así. Un dato con licencia en una página pública e indexable es
+   redistribución a personas que no son suscriptores tuyos, y es el error más fácil de
+   cometer y el más fácil de detectar desde fuera.
+
+   Vigila también el **AI Trade Coach**: si el prompt que va a Anthropic llevara
+   cotizaciones licenciadas, eso es enviar el dato a un tercero.
+
+### 7.5 Qué hacer, en orden
+
+1. **Cripto, divisas y tipos se quedan como están.** Binance/Kraken/Hyperliquid, BCE y
+   Tesoro son libres. Es tu terreno fuerte y no cuesta nada.
+2. **Sustituir Yahoo por un proveedor del modelo B** para acciones, índices, materias
+   primas y cadena de opciones. Es la salida al riesgo del §6.5 y, de paso, deja de
+   depender de que no cambien su detector de bots.
+3. **Pedir por escrito, antes de firmar**, y no dar nada por supuesto:
+   - redistribución a usuarios finales, **display**;
+   - **non-display** (los cálculos);
+   - si las tasas de los mercados van **incluidas** o se repercuten;
+   - **quién clasifica** Profesional / No Profesional y quién reporta;
+   - **tramos por número de aplicaciones** (los mercados tarifican por aplicación: 1,
+     2–3, 4 o más);
+   - **límites de caché y de almacenamiento histórico**;
+   - **auditoría e indemnización**: quién responde si audita el mercado;
+   - **qué pasa con el dato almacenado al terminar el contrato**.
+4. **Si el tiempo real no sale a cuenta, empezar en retardado 15 min** (modelo D). Para un
+   diario y unas calculadoras no cambia nada, y compra tiempo para crecer.
+5. **El precio, dentro del plan.** Separar la línea de datos cuando el modelo C compense,
+   no antes.
+
+### Fuentes de la sección 7
+
+- [Comparativa de proveedores de datos 2026 (EODHD Academy)](https://eodhd.com/financial-academy/financial-faq/the-2026-market-data-api-scorecard-comparing-6-leading-providers) ·
+  [Comparativa para quants: Databento, Polygon, EODHD, Barchart](https://waylandz.com/quant-book-en/Data-Provider-Comparison/)
+- [NYSE — política de suscriptores no profesionales (PDF)](https://www.nyse.com/publicdocs/nyse/data/Policy-Non-ProfessionalSubscribers_PDP.pdf) ·
+  [NYSE — paquete completo de políticas de datos (PDF)](https://www.nyse.com/publicdocs/nyse/data/NYSE_Market_Data_Complete_Policy_Package.pdf)
+- [CME — lista de tarifas de datos, enero 2026 (PDF)](https://www.cmegroup.com/market-data/files/january-2026-market-data-fee-list.pdf) ·
+  [CME — autocertificación de no profesional (PDF)](https://assets.tastyworks.com/production/documents/cme_market_data_subscriber_agreement.pdf)
+- [OPRA — políticas de reporte y tarifas por uso (PDF)](https://cdn.opraplan.com/documents/OPRA_Usage_Based_Fee_Policy.pdf)
+- [Estatus profesional explicado](https://www.marketdata.app/education/stocks/professional-status-explained/) ·
+  [Tarifas de mercado y suscripciones de datos](https://godeldiscount.com/blog/exchange-fees-market-data-subscriptions)
