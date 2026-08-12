@@ -30,6 +30,7 @@
    problemas distintos:
 
      EN GLOSARIO  hay una entrada propia: el usuario puede buscarlo
+     FICHA PROPIA es una estrategia del catálogo, con ficha y página indexable
      EN PROSA     se explica dentro de la Academia, pero no es buscable
      SOLO UI      aparece en la interfaz y NO se explica en ninguna parte
      AUSENTE      no aparece
@@ -237,6 +238,42 @@ const PROSA_FILES = [
   path.join(SRC, 'lib', 'macroCalendar.js'),
 ].filter((f) => fs.existsSync(f));
 
+/* Catálogo de estrategias: `STRATEGIES` en mockData.js. Cada entrada es una
+   ficha de siete campos (riesgo, recompensa, máximo beneficio, máxima pérdida,
+   cuándo usarla…) y `gen-seo-pages.js` le emite una página por idioma. Es una
+   superficie de referencia propia, así que una estrategia que está ahí NO es
+   un hueco del glosario: meterla como entrada duplicaría su ficha. Sin esto,
+   el auditor marcaba «backspread» como deuda teniendo dos fichas publicadas. */
+function textoFichas() {
+  const file = path.join(SRC, 'data', 'mockData.js');
+  if (!fs.existsSync(file)) return '';
+  const src = fs.readFileSync(file, 'utf8');
+  const ini = src.indexOf('export const STRATEGIES');
+  const fin = src.indexOf('export const', ini + 1);
+  if (ini === -1) return '';
+  const bloque = src.slice(ini, fin === -1 ? undefined : fin);
+
+  /* Los campos son claves i18n (`mock_ironCondor_…`); hay que resolverlas
+     contra es.js para recuperar el texto que el usuario acaba leyendo. */
+  const dicc = fs.readFileSync(path.join(I18N, 'es.js'), 'utf8');
+  const valor = (clave) => {
+    const esc = clave.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const m = new RegExp(`["']${esc}["']\\s*:\\s*(?:"((?:[^"\\\\]|\\\\.)*)"|'((?:[^'\\\\]|\\\\.)*)')`).exec(dicc);
+    return m ? (m[1] ?? m[2] ?? '') : '';
+  };
+  /* Los identificadores y algunos nombres van con guion bajo
+     (`protective_put`); sin normalizarlo, «protective put» no casaba y la
+     estrategia salía como hueco teniendo ficha publicada. */
+  const crudos = (bloque.match(/'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"/g) ?? [])
+    .map((s) => s.slice(1, -1));
+  const resueltos = crudos
+    .filter((s) => /^(mock|strat)_[A-Za-z0-9_]+$/.test(s))
+    .map(valor);
+  return [...crudos, ...resueltos].join('\n').replace(/_/g, ' ');
+}
+
+const FICHAS_TEXT = textoFichas();
+
 /* Interfaz: las etiquetas de i18n que no son el glosario. */
 const UI_TEXT = literales(path.join(I18N, 'es.js')).join('\n');
 const PROSA_TEXT = PROSA_FILES.flatMap(literales).join('\n');
@@ -258,7 +295,7 @@ function contar(needle, hay) {
 }
 
 function evaluar(variantes) {
-  let enGlosario = false, enDef = false, enProsa = false, enUI = 0;
+  let enGlosario = false, enDef = false, enProsa = false, enFicha = false, enUI = 0;
   let entrada = null;
 
   for (const v of variantes) {
@@ -270,11 +307,13 @@ function evaluar(variantes) {
     }
     if (hace(needle, GLOS_DEFS)) enDef = true;
     if (hace(needle, PROSA_TEXT)) enProsa = true;
+    if (hace(needle, FICHAS_TEXT)) enFicha = true;
     enUI += contar(needle, UI_TEXT);
   }
 
   let estado;
   if (enGlosario) estado = 'EN GLOSARIO';
+  else if (enFicha) estado = 'FICHA PROPIA';
   else if (enProsa || enDef) estado = 'EN PROSA';
   else if (enUI > 0) estado = 'SOLO UI';
   else estado = 'AUSENTE';
@@ -285,7 +324,7 @@ function evaluar(variantes) {
 /* -------------------------------------------------------------------------- */
 
 const resultados = [];
-const resumen = { 'EN GLOSARIO': 0, 'EN PROSA': 0, 'SOLO UI': 0, AUSENTE: 0 };
+const resumen = { 'EN GLOSARIO': 0, 'FICHA PROPIA': 0, 'EN PROSA': 0, 'SOLO UI': 0, AUSENTE: 0 };
 
 for (const [tier, grupos] of Object.entries(INVENTARIO)) {
   if (ONLY_TIER && tier !== ONLY_TIER) continue;
@@ -306,6 +345,7 @@ console.log(`\nCobertura terminológica — glosario de ${GLOSARIO.length} entra
 console.log(`${PROSA_FILES.length} módulos de prosa · ${total} términos del inventario`);
 console.log(linea);
 console.log(`  EN GLOSARIO  ${String(resumen['EN GLOSARIO']).padStart(3)}  ${pct(resumen['EN GLOSARIO'])}   buscable`);
+console.log(`  FICHA PROPIA ${String(resumen['FICHA PROPIA']).padStart(3)}  ${pct(resumen['FICHA PROPIA'])}   catálogo de estrategias`);
 console.log(`  EN PROSA     ${String(resumen['EN PROSA']).padStart(3)}  ${pct(resumen['EN PROSA'])}   explicado, no buscable`);
 console.log(`  SOLO UI      ${String(resumen['SOLO UI']).padStart(3)}  ${pct(resumen['SOLO UI'])}   ← en pantalla, sin explicar`);
 console.log(`  AUSENTE      ${String(resumen.AUSENTE).padStart(3)}  ${pct(resumen.AUSENTE)}`);
@@ -344,6 +384,7 @@ if (WRITE_MD) {
       `Glosario de ${GLOSARIO.length} entradas; ${total} términos del inventario canónico.\n\n` +
       `| Estado | N | % |\n|---|---|---|\n` +
       `| En glosario (buscable) | ${resumen['EN GLOSARIO']} | ${pct(resumen['EN GLOSARIO']).trim()} |\n` +
+      `| Ficha propia (catálogo) | ${resumen['FICHA PROPIA']} | ${pct(resumen['FICHA PROPIA']).trim()} |\n` +
       `| En prosa (no buscable) | ${resumen['EN PROSA']} | ${pct(resumen['EN PROSA']).trim()} |\n` +
       `| Solo UI (sin explicar) | ${resumen['SOLO UI']} | ${pct(resumen['SOLO UI']).trim()} |\n` +
       `| Ausente | ${resumen.AUSENTE} | ${pct(resumen.AUSENTE).trim()} |\n\n` +

@@ -3953,3 +3953,91 @@ es el patrón que persigue la política de *scaled content abuse* desde marzo de
 **enriquecer las páginas existentes** —empezando por las FAQ, que hoy son las
 mismas cinco traducidas a 10 idiomas en vez de las preguntas reales de cada
 mercado— y no crear páginas nuevas. Queda escrito en la guía y en el skill.
+
+## 2026-08-12 — El glosario se detenía justo donde empieza el producto
+
+### El agujero
+
+Auditoría terminológica del inventario canónico (99 términos de nivel 1-2)
+contra lo que el usuario puede realmente consultar. El glosario tenía **68
+entradas** y ni una sola de opciones: buscar «delta», «strike» o «prima» en su
+buscador devolvía el estado vacío (`—`). El producto insignia es la calculadora
+de opciones, donde «volatilidad implícita» aparece 89 veces en la interfaz,
+«prima» 71 y «strike» 43.
+
+No era falta de contenido: la Academia tiene 751 pares nombre+descripción y
+cinco módulos de opciones (`option-greeks`, `options-vol`, `options-income`,
+`options-strat`, `gamma-exposure`). Lo que faltaba era la **capa de consulta**:
+lo explicado no era buscable desde donde surge la duda.
+
+### Lo que se ha hecho
+
+- ✅ **Glosario 68→109 términos** (`gl69..gl109`, 41 nuevos × 10 idiomas = 820
+  textos). Dos bloques:
+  - **Opciones (29)**: call, put, strike, prima, vencimiento, moneyness
+    (ITM/ATM/OTM), valor intrínseco y temporal, multiplicador, open interest,
+    IV, IV Rank, skew, superficie de volatilidad, volatility crush, delta,
+    gamma, theta, vega, rho, Black-Scholes, paridad put-call, asignación,
+    ejercicio temprano, max pain, GEX, stop limitada, ejecución parcial,
+    riesgo de cartera.
+  - **Riesgo y dimensionamiento (12)**: tamaño de posición, riesgo por
+    operación, múltiplo R, drawdown máximo, payoff medio, profit factor,
+    Sharpe, Sortino, Kelly, ATR, correlación, volatilidad realizada.
+- ✅ **Enlace al módulo canónico** (`GLOSSARY_TOPIC` en `EducationPage.jsx`): 26
+  entradas llevan un «Ver el módulo completo →» que salta al módulo de la
+  Academia que ya posee el concepto. **Una entrada define en una línea; no
+  reexplica.** Es la misma regla que `CanonicalLink` en
+  `components/options/EducationTab.jsx`, que existe porque delta, gamma, theta
+  e IV llegaron a estar explicados en seis sitios a la vez. El enlace lleva un
+  guard: si el destino no está en `EDUCATION_NAV`, no se pinta.
+- ✅ **El recuento del glosario se deriva**, ya no es el literal `68`. `t()`
+  devuelve la clave cuando falta, así que la lista para en el primer hueco:
+  añadir `gl110t/gl110d` a los diez diccionarios basta. Antes había que
+  acordarse de tocar esa línea o el término nuevo no salía en pantalla.
+- ✅ **`scripts/auditar-glosario.mjs`**: auditor de cobertura terminológica,
+  con foto en `docs/historico/cobertura-glosario-2026-08-12.md`.
+
+### La trampa del auditor (por qué la primera medición era mentira)
+
+La primera versión contaba subcadenas sobre todo `frontend/src` y daba **92 %
+de cobertura**. Tres fallos: contaba identificadores (`delta` y `gamma` salen
+cientos de veces por ser nombres de variable, no porque se expliquen), contaba
+clases de Tailwind (`gap` quedaba cubierto por los `gap-3` del layout; `prima`,
+por `primary`) y trataba cualquier ruta con `content`/`education` como
+contenido, así que una aparición de pasada bastaba.
+
+El auditor ahora mira **sólo texto que ve el usuario** (literales de i18n y de
+los módulos de contenido), casa por palabra completa y separa cuatro
+superficies, porque son cuatro problemas distintos: entrada de glosario
+(buscable), ficha del catálogo de estrategias, prosa de la Academia (explicada
+pero no buscable) y sólo interfaz (deuda). Reconocer el catálogo importa: sin
+él marcaba «backspread» como hueco teniendo dos fichas publicadas
+(`call_ratio_backspread`, `put_ratio_backspread`).
+
+| | Antes | Ahora |
+|---|---|---|
+| En glosario (buscable) | 30 % | **66 %** |
+| Ficha propia del catálogo | — | 10 % |
+| En prosa, no buscable | 60 % | 21 % |
+| **Sólo UI (sin explicar)** | **4** | **0** |
+| Ausente | 6 | 3 |
+
+### Verificado
+
+`i18n-check` 6102 claves × 10 idiomas sin faltantes ni sobrantes; `eslint` 0
+errores; `engine-check` 197/197; build de producción OK (1589 URLs). Captura
+headless con backend apagado (el glosario es puro i18n): 109 tarjetas, «delta»
+→ Delta, «sortino» → Ratio de Sortino, «ejecución parcial» → Ejecución parcial,
+y el enlace canónico de Delta lleva al módulo de griegas. 0 errores de consola.
+
+### Lo que NO se ha hecho, a propósito
+
+- **Las estrategias no entran al glosario.** Iron condor, straddle, mariposa y
+  compañía tienen ficha de siete campos en `STRATEGIES` y página indexable por
+  idioma; una entrada de glosario duplicaría su ficha.
+- **Modelo binomial**: `american_options.py` está escrito pero **sin interfaz**
+  (hueco G-14). Definir en el glosario algo que el producto no expone sería
+  prometer una pantalla que no existe. Entra cuando entre el módulo.
+- **PCE subyacente y regla del 16**: nivel 2 macro. Las definiciones macro
+  envejecen y tendrían que ir con fecha de revisión visible; sin ese mecanismo,
+  mejor fuera.
