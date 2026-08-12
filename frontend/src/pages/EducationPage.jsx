@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -384,6 +384,41 @@ function PatternDetailModal({ pattern, onClose }) {
   );
 }
 
+// Glossary entries whose concept is already OWNED by a full Academy module.
+// The card links there instead of restating the explanation: delta, gamma,
+// theta and IV were once explained independently in up to six places, and the
+// fix was to name one canonical source per concept (see CanonicalLink in
+// components/options/EducationTab.jsx). A glossary entry defines in one line;
+// it must not become a seventh copy of the module.
+const GLOSSARY_TOPIC = {
+  79: 'options-vol',      // Volatilidad implícita
+  80: 'options-vol',      // IV Rank
+  81: 'options-vol',      // Skew
+  82: 'options-vol',      // Superficie de volatilidad
+  83: 'options-vol',      // Volatility crush
+  84: 'option-greeks',    // Delta
+  85: 'option-greeks',    // Gamma
+  86: 'option-greeks',    // Theta
+  87: 'option-greeks',    // Vega
+  88: 'option-greeks',    // Rho
+  91: 'options-income',   // Asignación
+  92: 'options-income',   // Ejercicio temprano
+  93: 'gamma-exposure',   // Max pain
+  94: 'gamma-exposure',   // Gamma exposure (GEX)
+  98: 'capital',          // Tamaño de posición
+  99: 'capital',          // Riesgo por operación
+  100: 'risk',            // Múltiplo R
+  101: 'risk',            // Drawdown máximo
+  102: 'probability',     // Payoff medio
+  103: 'probability',     // Profit factor
+  104: 'probability',     // Ratio de Sharpe
+  105: 'probability',     // Ratio de Sortino
+  106: 'capital',         // Criterio de Kelly
+  107: 'stops-targets',   // ATR
+  108: 'risk',            // Correlación
+  109: 'options-vol',     // Volatilidad realizada
+};
+
 export default function EducationPage() {
   const [activeTopic, setActiveTopic] = useState('start-here');
   const [topicQuery, setTopicQuery] = useState('');
@@ -656,7 +691,19 @@ export default function EducationPage() {
   const doneCount = eduDone.filter(v => EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === v))).length;
 
   // Glossary + quiz data (localized via i18n keys; answers are key-order-fixed).
-  const GLOSSARY = Array.from({ length: 68 }, (_, i) => ({ n: i + 1, term: t(`gl${i + 1}t`), def: t(`gl${i + 1}d`) }));
+  // The length is DERIVED, not hard-coded: t() echoes the key back when it is
+  // missing, so the list stops at the first gap. It used to be a literal 68,
+  // which meant adding a term to the ten dictionaries silently changed nothing
+  // on screen until somebody remembered this line.
+  const GLOSSARY = useMemo(() => {
+    const out = [];
+    for (let n = 1; n < 500; n++) {
+      const term = t(`gl${n}t`);
+      if (!term || term === `gl${n}t`) break;
+      out.push({ n, term, def: t(`gl${n}d`) });
+    }
+    return out;
+  }, [t]);
   const [glossQ, setGlossQ] = useState('');
   const glossFiltered = GLOSSARY.filter(g =>
     !glossQ || (g.term + ' ' + g.def).toLowerCase().includes(glossQ.toLowerCase())
@@ -5211,6 +5258,19 @@ export default function EducationPage() {
                     <p className="text-xs text-muted-foreground leading-relaxed">{g.def}</p>
                     <GlossaryVisual n={g.n} />
                     <FillBlanksExample n={g.n} />
+                    {/* El guard evita que una errata en GLOSSARY_TOPIC deje al
+                        usuario en una pestaña que no existe: sin destino, no
+                        se pinta el enlace. */}
+                    {FLAT_TOPICS.some((tp) => tp.value === GLOSSARY_TOPIC[g.n]) && (
+                      <button
+                        type="button"
+                        onClick={() => goToTopic(GLOSSARY_TOPIC[g.n])}
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        data-testid={`glossary-topic-${g.n}`}
+                      >
+                        {t('glossarySeeModule')} <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 {glossFiltered.length === 0 && (
