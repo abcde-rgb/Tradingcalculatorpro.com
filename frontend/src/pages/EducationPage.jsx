@@ -1029,6 +1029,18 @@ export default function EducationPage() {
                       }`}
                     >
                       {tp.label}
+                      {/* El aviso de método discutido se pintaba SÓLO en la
+                          barra lateral de escritorio: en móvil, Gann quedaba
+                          indistinguible de Wyckoff. Un aviso de rigor que se
+                          cae en la mitad de las pantallas no es un aviso. */}
+                      {tp.evidence === 'disputed' && (
+                        <span
+                          title={t('eduDisputedHint')}
+                          className="ml-1.5 text-[8px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded border border-amber-500/40 text-amber-500/80"
+                        >
+                          {t('eduDisputedTag')}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
