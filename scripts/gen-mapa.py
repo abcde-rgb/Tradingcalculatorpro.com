@@ -174,11 +174,17 @@ def mas_grandes(n: int = 12) -> list[tuple[str, int]]:
     out = []
     for base, patrones in ((BACKEND, ("*.py",)), (FRONT, ("**/*.jsx", "**/*.js"))):
         for pat in patrones:
-            for f in base.glob(pat):
+            for f in sorted(base.glob(pat)):
                 if "node_modules" in str(f):
                     continue
                 out.append((str(f.relative_to(RAIZ)), f.read_text(errors="ignore").count("\n") + 1))
-    out.sort(key=lambda x: -x[1])
+    # La ruta desempata. Sin ella el orden de dos ficheros con el mismo número
+    # de líneas lo decidía el sistema de ficheros, que no es el mismo en un
+    # portátil que en el runner de CI: `--check` fallaba en CI con un MAPA.md
+    # recién generado, y regenerarlo no arreglaba nada porque el problema era el
+    # empate, no el contenido. Con los 10 idiomas creciendo a la par, los
+    # empates son la norma aquí, no la excepción.
+    out.sort(key=lambda x: (-x[1], x[0]))
     return out[:n]
 
 

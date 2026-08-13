@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Scale, Calculator, Info, Trash2 } from 'lucide-react';
 import { useCalculatorStore } from '@/lib/store';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useTranslation } from '@/lib/i18n';
+import { LabelWithHelp } from '@/components/common/FieldHelp';
 import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
 
 const FOREX_PAIRS = [
@@ -99,6 +100,9 @@ export function LotSizeCalculator() {
           </div>
           {t('lotSizeCalcTitle_p001')}
         </CardTitle>
+        <CardDescription className="text-xs leading-relaxed max-w-2xl">
+          {t('calcDescLotsize')}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -125,7 +129,7 @@ export function LotSizeCalculator() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-sm">{t('riesgoPorTrade_c5f760')}</Label>
+            <Label className="text-sm"><LabelWithHelp bodyKey="helpRiskPerTrade">{t('riesgoPorTrade_c5f760')}</LabelWithHelp></Label>
             <Input
               type="number"
               value={riskPercent}
@@ -160,7 +164,7 @@ export function LotSizeCalculator() {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 rounded-lg bg-primary/10 text-center">
-                <p className="text-xs text-muted-foreground">{t('tamanoDeLote_6ff2de')}</p>
+                <p className="text-xs text-muted-foreground"><LabelWithHelp bodyKey="helpLotSize">{t('tamanoDeLote_6ff2de')}</LabelWithHelp></p>
                 <p className="text-2xl font-bold text-primary" data-testid="result-lot-size">{results.lotSize}</p>
                 <p className="text-xs text-muted-foreground">{t('lotesEstandar_a4b8ec')}</p>
               </div>
@@ -180,7 +184,7 @@ export function LotSizeCalculator() {
                 <p className="font-semibold">{results.microLots}</p>
               </div>
               <div className="p-2 rounded bg-muted">
-                <p className="text-xs text-muted-foreground">{t('valorPorPip_61cdca')}</p>
+                <p className="text-xs text-muted-foreground"><LabelWithHelp bodyKey="helpPipValue">{t('valorPorPip_61cdca')}</LabelWithHelp></p>
                 <p className="font-semibold">${results.pipValue}</p>
               </div>
             </div>

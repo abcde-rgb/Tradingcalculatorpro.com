@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePersistedState } from '@/hooks/usePersistedState';
@@ -120,6 +120,9 @@ export const CompoundCalculator = () => {
           <TrendingUp className="w-5 h-5 text-primary" />
           {t('cmpCalcTitle')}
         </CardTitle>
+        <CardDescription className="text-xs leading-relaxed max-w-2xl">
+          {t('calcDescCompound')}
+        </CardDescription>
         {/* Mensual o anual. No es una preferencia de formato: cambia qué
             significa cada paso de la serie, así que va junto al título y no
             escondido entre los campos. */}

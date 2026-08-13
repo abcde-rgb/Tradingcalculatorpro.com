@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -121,6 +121,9 @@ export function MonteCarloSimulator() {
             {t('monteCarloLockedTitle_p003')}
             <Crown className="w-4 h-4 text-yellow-500" />
           </CardTitle>
+          <CardDescription className="text-xs leading-relaxed max-w-2xl">
+            {t('calcDescMontecarlo')}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">

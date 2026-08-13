@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Target, Save, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -71,6 +71,9 @@ export const TargetPriceCalculator = () => {
           <Target className="w-5 h-5 text-accent" />
           {t('targetPriceCalc')}
         </CardTitle>
+        <CardDescription className="text-xs leading-relaxed max-w-2xl">
+          {t('calcDescTarget')}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

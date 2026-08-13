@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useIsPremium } from '@/lib/premium';
+import { useTranslation } from '@/lib/i18n';
 import { runSimulation } from './simulator/simulatorEngine';
 import MonteCarloPanel from './simulator/MonteCarloPanel';
 import SimulatorLocked from './simulator/SimulatorLocked';
@@ -24,6 +25,7 @@ const DEFAULT_PHASES = [
  * pure `runSimulation` engine.
  */
 export function SimulatorPro() {
+  const { t } = useTranslation();
   const isPremium = useIsPremium();
 
   // El estado va agrupado por MODO, no suelto. Antes eran 22 `useState` planos
@@ -187,6 +189,9 @@ export function SimulatorPro() {
 
   return (
     <div className="space-y-4" data-testid="simulator-pro">
+      <p className="text-xs leading-relaxed text-muted-foreground max-w-2xl">
+        {t('calcDescSimulator')}
+      </p>
       <SimulatorConfigPanel
         showConfig={showConfig} setShowConfig={setShowConfig}
         initialBalance={initialBalance} setInitialBalance={setInitialBalance}

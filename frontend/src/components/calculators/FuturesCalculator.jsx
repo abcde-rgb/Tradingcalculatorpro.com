@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -329,6 +329,9 @@ export function FuturesCalculator() {
           <TrendingUp className="w-5 h-5 text-primary" />
           {t('futuresCalcTitle')}
         </CardTitle>
+        <CardDescription className="text-xs leading-relaxed max-w-2xl">
+          {t('calcDescFutures')}
+        </CardDescription>
         <p className="text-xs text-muted-foreground">{t('futuresCalcSubtitle')}</p>
       </CardHeader>
       <CardContent>

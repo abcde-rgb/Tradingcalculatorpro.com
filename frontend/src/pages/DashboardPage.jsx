@@ -58,29 +58,29 @@ export default function DashboardPage() {
   // style: one accent colour, two-level nav (group row + tool row).
   const CALC_NAV = [
     { id: 'risk', label: t('calcCatRisk'), Icon: Scale, items: [
-      { value: 'position', label: t('positionSize') },
-      { value: 'lotsize', label: t('lotSize') },
-      { value: 'partial-exit', label: t('pxcTitle') },
-      { value: 'leverage', label: t('leverage') },
-      { value: 'futures', label: t('futuresTabLabel') },
+      { value: 'position', label: t('positionSize'), descKey: 'calcDescPosition' },
+      { value: 'lotsize', label: t('lotSize'), descKey: 'calcDescLotsize' },
+      { value: 'partial-exit', label: t('pxcTitle'), descKey: 'calcDescPartialExit' },
+      { value: 'leverage', label: t('leverage'), descKey: 'calcDescLeverage' },
+      { value: 'futures', label: t('futuresTabLabel'), descKey: 'calcDescFutures' },
     ]},
     { id: 'price', label: t('calcCatPrice'), Icon: Target, items: [
-      { value: 'target', label: t('targetPrice') },
-      { value: 'percentage', label: t('percentageRequired') },
-      { value: 'spot', label: t('spot') },
-      { value: 'measure', label: t('measureTarget') },
+      { value: 'target', label: t('targetPrice'), descKey: 'calcDescTarget' },
+      { value: 'percentage', label: t('percentageRequired'), descKey: 'calcDescPercentage' },
+      { value: 'spot', label: t('spot'), descKey: 'calcDescSpot' },
+      { value: 'measure', label: t('measureTarget'), descKey: 'calcDescMeasure' },
     ]},
     { id: 'tech', label: t('calcCatTech'), Icon: TrendingUp, items: [
-      { value: 'fibonacci', label: t('fibonacci') },
-      { value: 'pattern', label: t('patternTrading') },
+      { value: 'fibonacci', label: t('fibonacci'), descKey: 'calcDescFibonacci' },
+      { value: 'pattern', label: t('patternTrading'), descKey: 'calcDescPattern' },
     ]},
     { id: 'sim', label: t('calcCatSim'), Icon: FlaskConical, items: [
-      { value: 'montecarlo', label: t('monteCarlo') },
-      { value: 'simulator', label: t('simulator') },
+      { value: 'montecarlo', label: t('monteCarlo'), descKey: 'calcDescMontecarlo' },
+      { value: 'simulator', label: t('simulator'), descKey: 'calcDescSimulator' },
       // `cmpTitle` la usa la tabla de estilos de la Academia
       // (`TradingStylesCompare`); el prefijo `cmp` valía para «comparar» y para
       // «compound», y el título de aquélla se estaba colando aquí.
-      { value: 'compound', label: t('cmpCalcTitle') },
+      { value: 'compound', label: t('cmpCalcTitle'), descKey: 'calcDescCompound' },
     ]},
   ];
   const activeCalcGroup = CALC_NAV.find(g => g.items.some(it => it.value === activeTab)) || CALC_NAV[0];
