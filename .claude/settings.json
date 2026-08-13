@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "permissions": {
+    "deny": [
+      "Read(./_archive/**)",
+      "Read(./backend/patches/**)",
+      "Read(./backend/FIXES_README.md)",
+      "Read(./backend/ADMIN_INTEGRATION.md)",
+      "Read(./memory/PRD.md)",
+      "Read(./.emergent/**)",
+      "Edit(./frontend/src/lib/instrumentSpecs.generated.js)",
+      "Edit(./docs/MAPA.md)"
+    ],
+
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git for-each-ref:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git merge-base:*)",
+      "Bash(git fetch:*)",
+      "Bash(git ls-remote:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(python scripts/check-doc-links.py)",
+      "Bash(python scripts/gen-instruments-js.py --check)",
+      "Bash(python scripts/gen-mapa.py)",
+      "Bash(python scripts/gen-mapa.py --check)",
+      "Bash(pytest:*)",
+      "Bash(node scripts/i18n-check.js:*)",
+      "Bash(node scripts/engine-check.js)",
+      "Bash(node scripts/check-fetch-credentials.js)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run build)",
+      "Bash(npm ci:*)"
+    ]
+  },
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/orientacion.sh",
+            "timeout": 10,
+            "statusMessage": "Leyendo el estado del proyecto..."
+          }
+        ]
+      }
+    ]
+  }
+}

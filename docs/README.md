@@ -14,10 +14,12 @@ leen en el mismo momento ni con la misma intención.
 
 | Documento | Para qué | Tamaño |
 |---|---|---|
-| [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) | **Fuente de verdad.** Semáforo, inventario, huecos, backlog y registro de sesiones. Se actualiza al cerrar cada sesión | 2.996 |
-| [`../CLAUDE.md`](../CLAUDE.md) | Arquitectura real y trampas conocidas. Lectura obligatoria antes de tocar código | 302 |
-| [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs con su causa raíz. Se consulta para no repetir un error ya pagado | 450 |
-| [`PENDIENTES.md`](./PENDIENTES.md) | Lo inmediato, en crudo. Revisado contra el código el 2026-08-03 | 97 |
+| [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) | **Fuente de verdad del estado.** Semáforo, inventario, huecos `G-xx`, plan de test y backlog. Criterio, no conteos | ~300 |
+| [`MAPA.md`](./MAPA.md) | **Dónde está cada cosa.** Módulos, rutas con `fichero:línea`, rutas sin consumidor, carpetas y ficheros grandes. **Generado** — `--check` en CI | generado |
+| [`../CLAUDE.md`](../CLAUDE.md) | Invariantes que aplican siempre. Se carga en cada sesión; lo específico por zona vive en `.claude/rules/` | 173 |
+| [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs con su causa raíz. Se consulta para no repetir un error ya pagado | 589 |
+| [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md) | Histórico de 126 sesiones. **No se lee entero** (~3.900 líneas): se busca por fecha o palabra | 3.940 |
+| [`PENDIENTES.md`](./PENDIENTES.md) | Lo inmediato, en crudo. ⚠️ Con datos caducados: ver auditoría del 13-08 §3.3 | 97 |
 
 ## 🔧 Voy a escribir código
 
@@ -97,7 +99,12 @@ retirado) y análisis de mayo de 2026.
 - **La doc refleja el código real, no intenciones.** Antes de escribir que algo
   está hecho: compílalo, ejecútalo o léelo.
 - **Un documento fechado no se actualiza**, se sustituye por otro con fecha nueva.
-  `ESTADO_PROYECTO.md` y `DIARIO_BUGS.md` son las dos excepciones: son vivos.
+  `ESTADO_PROYECTO.md`, `DIARIO_BUGS.md` y `REGISTRO_SESIONES.md` son las excepciones:
+  son vivos.
+- **Lo que se puede contar no se escribe a mano.** Módulos, rutas, líneas, componentes y
+  claves i18n van en [`MAPA.md`](./MAPA.md), que se genera con `scripts/gen-mapa.py` y
+  cuyo `--check` corre en CI. Escribir un número a mano es garantizar que envejezca: la
+  doc llegó a decir 24 módulos con 28 en el repo.
 - **Los enlaces relativos se verifican.** `python scripts/check-doc-links.py`
   falla si un enlace markdown apunta a un archivo que no existe. Ya pasó que un
   doc citara un archivo inexistente y nadie lo detectara.
