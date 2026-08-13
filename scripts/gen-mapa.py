@@ -29,6 +29,7 @@ fallaría cada día por sí solo y el aviso dejaría de significar nada.
 from __future__ import annotations
 
 import ast
+import random
 import re
 import sys
 from pathlib import Path
@@ -73,8 +74,14 @@ def modulos_backend() -> list[dict]:
     return out
 
 
-def rutas() -> list[dict]:
-    """Todas las rutas declaradas, con el fichero y la línea donde viven."""
+# Claves de orden, con nombre propio para que `_comprobar_determinismo` pueda
+# probarlas. Tienen que ser TOTALES: incluir siempre un campo único al final.
+_CLAVE_RUTA = lambda r: (r["path"], r["metodo"], r["fichero"], r["linea"])
+_CLAVE_TAMANO = lambda x: (-x[1], x[0])
+
+
+def _rutas_sin_ordenar() -> list[dict]:
+    """Las rutas tal y como salen del disco, sin ordenar."""
     out = []
     for py in sorted(BACKEND.glob("*.py")):
         src = py.read_text(errors="ignore")
@@ -85,11 +92,12 @@ def rutas() -> list[dict]:
                 "fichero": py.name,
                 "linea": src.count("\n", 0, m.start()) + 1,
             })
-    # Orden TOTAL, no parcial: si dos rutas empatan en (path, método) el
-    # desempate tiene que salir de los datos, no del orden en que se leyeron los
-    # ficheros. Ver la nota sobre determinismo en `mas_grandes`.
-    out.sort(key=lambda r: (r["path"], r["metodo"], r["fichero"], r["linea"]))
     return out
+
+
+def rutas() -> list[dict]:
+    """Todas las rutas declaradas, con el fichero y la línea donde viven."""
+    return sorted(_rutas_sin_ordenar(), key=_CLAVE_RUTA)
 
 
 def blob_frontend() -> str:
@@ -172,6 +180,18 @@ def carpetas_frontend() -> list[tuple[str, int, int]]:
     return out
 
 
+def _ficheros_por_tamano() -> list[tuple[str, int]]:
+    """(ruta, líneas) de todo el código, sin ordenar."""
+    out = []
+    for base, patrones in ((BACKEND, ("*.py",)), (FRONT, ("**/*.jsx", "**/*.js"))):
+        for pat in patrones:
+            for f in base.glob(pat):
+                if "node_modules" in str(f):
+                    continue
+                out.append((str(f.relative_to(RAIZ)), f.read_text(errors="ignore").count("\n") + 1))
+    return out
+
+
 def mas_grandes(n: int = 12) -> list[tuple[str, int]]:
     """Los ficheros que más cuesta leer enteros.
 
@@ -182,15 +202,7 @@ def mas_grandes(n: int = 12) -> list[tuple[str, int]]:
     runner, y `--check` fallaba sin que nada hubiera cambiado. Un verificador
     que da falsas alarmas se acaba ignorando, así que el desempate va por ruta.
     """
-    out = []
-    for base, patrones in ((BACKEND, ("*.py",)), (FRONT, ("**/*.jsx", "**/*.js"))):
-        for pat in patrones:
-            for f in sorted(base.glob(pat)):
-                if "node_modules" in str(f):
-                    continue
-                out.append((str(f.relative_to(RAIZ)), f.read_text(errors="ignore").count("\n") + 1))
-    out.sort(key=lambda x: (-x[1], x[0]))
-    return out[:n]
+    return sorted(_ficheros_por_tamano(), key=_CLAVE_TAMANO)[:n]
 
 
 def tests() -> tuple[int, int]:
@@ -369,31 +381,44 @@ def construir() -> str:
     return "\n".join(L) + "\n"
 
 
-def _comprobar_orden_total() -> None:
-    """Falla si alguna lista del mapa tiene un orden ambiguo.
+def _comprobar_determinismo() -> None:
+    """Falla si la salida depende del orden en que el sistema entrega los ficheros.
 
-    Sin esto el fallo es *flaky*: sólo salta cuando dos máquinas devuelven los
-    ficheros en orden distinto, que es justo lo que pasó la primera vez que este
-    job corrió en CI. Aquí se comprueba la propiedad de verdad —que ninguna
-    clave de orden se repita— y falla siempre, en cualquier máquina.
+    ⚠️ La primera versión de esta comprobación **no comprobaba nada**. Miraba si
+    las claves de orden se repetían, pero las construía ella misma incluyendo la
+    ruta del fichero, que es única por definición: pasaba siempre, con el `sort`
+    arreglado y con el `sort` roto. Una guarda tautológica es peor que ninguna,
+    porque da confianza falsa.
+
+    Lo que se comprueba ahora es **la propiedad de verdad**: barajar la entrada y
+    volver a ordenar tiene que dar exactamente el mismo resultado. Si la clave de
+    orden es parcial —si dos elementos empatan—, `sorted` es estable y conserva el
+    orden de entrada, así que barajar cambia la salida y aquí salta. Es justo el
+    fallo que rompió el job de CI la primera vez que corrió, y ahora se reproduce
+    en cualquier máquina en vez de sólo cuando hay mala suerte.
     """
-    listas = {
-        "ficheros más grandes": [(-n, f) for f, n in mas_grandes(10_000)],
-        "rutas": [(r["path"], r["metodo"], r["fichero"], r["linea"]) for r in rutas()],
-    }
-    for nombre, claves in listas.items():
-        if len(claves) != len(set(claves)):
-            repetidas = {k for k in claves if claves.count(k) > 1}
-            raise SystemExit(
-                f"✗ El orden de «{nombre}» es ambiguo: {len(repetidas)} clave(s) repetida(s), "
-                f"p. ej. {sorted(repetidas)[0]}.\n"
-                f"  Con claves repetidas el fichero generado depende del orden del sistema de "
-                f"ficheros y `--check` falla según la máquina. Añade un desempate a la clave."
-            )
+    casos = [
+        ("ficheros más grandes", _ficheros_por_tamano(), _CLAVE_TAMANO),
+        ("rutas", _rutas_sin_ordenar(), _CLAVE_RUTA),
+    ]
+    rnd = random.Random(20260813)
+    for nombre, datos, clave in casos:
+        referencia = sorted(datos, key=clave)
+        for _ in range(5):
+            barajado = list(datos)
+            rnd.shuffle(barajado)
+            if sorted(barajado, key=clave) != referencia:
+                raise SystemExit(
+                    f"✗ El orden de «{nombre}» NO es total: barajar la entrada cambia la "
+                    f"salida.\n"
+                    f"  El fichero generado dependería del orden del sistema de ficheros, y "
+                    f"`--check` fallaría en unas máquinas y no en otras.\n"
+                    f"  Añade a la clave de orden un campo que desempate (la ruta, por ejemplo)."
+                )
 
 
 def main() -> int:
-    _comprobar_orden_total()
+    _comprobar_determinismo()
     contenido = construir()
     comprobar = "--check" in sys.argv
 
