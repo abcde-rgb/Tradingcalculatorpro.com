@@ -658,6 +658,7 @@ que sí corre siempre:
 cd backend
 python -m py_compile *.py
 pytest tests/test_price_action_unit.py tests/test_timeframes_unit.py -v
+pytest tests/test_scanner_math_unit.py -v            # la ARITMÉTICA, a mano
 pytest tests/test_structure_scan_routes_unit.py -v   # la ruta, con OHLC mockeado
 pytest tests/ -q                                     # suite completa
 
@@ -771,3 +772,67 @@ silencio.
 **El anclaje de la 4H compuesta en acciones** sigue como está (§3): se avisa de
 que la vela se compone, pero el aviso no dice que en acciones el anclaje UTC no
 coincide con el de la plataforma del usuario.
+
+
+---
+
+## 12. Auditoría de los cálculos (2026-08-13)
+
+Repaso de **todas** las cifras que el escáner publica, para responder a una
+pregunta concreta: ¿sale cada número de las velas de entrada, o hay algo
+inventado?
+
+### Resultado
+
+**No hay nada aleatorio ni fabricado en la ruta del escáner.** Ni un
+`random`, ni un valor por defecto que simule dato. Los `rng` del código son
+*range* (máximo − mínimo), no generadores. Y `stock_data.get_ohlc_history`
+**nunca** sintetiza: si el proveedor falla devuelve `[]`, y una lectura vacía
+conserva las mismas claves que una completa, con las cifras a `None`.
+
+### El hueco que había: la aritmética no estaba clavada
+
+Los 60 tests de `test_price_action_unit.py` comprueban el COMPORTAMIENTO —que
+un nivel se detecte, que una ruptura se confirme—. Lo que no había era un test
+que fijara el VALOR de los cálculos base. Cinco alimentaban la pantalla sin
+red de seguridad:
+
+| Cálculo | De dónde sale | Qué mueve si cambia |
+|---|---|---|
+| `_avg_true_range` | media de los 14 rangos verdaderos | tolerancia de agrupación, distancias en ATR, expansión |
+| `_avg_vol` | media del volumen previo, ceros fuera | si una ruptura cuenta como acompañada |
+| `_bar_spacing_seconds` | **mediana** de los saltos entre velas | si un hueco es cambio de sesión |
+| `strip_bars` | cola de las velas escaneadas | lo que dibuja la tira de prueba |
+| puntuación de nivel | visitas, aguantes, recencia, giro | la etiqueta «confirmado» |
+
+`tests/test_scanner_math_unit.py` (19 tests) los fija contra valores
+calculados a mano. El más importante: **el rango verdadero cuenta el hueco**
+—una vela de 1 de alto que abre 4 por encima del cierre previo tiene TR 4, no
+1—, porque medir sólo máximo−mínimo subestima la volatilidad justo en las
+sesiones que más se mueven.
+
+### Invariantes que ahora fallan si alguien los rompe
+
+- El precio publicado es el cierre de la última vela, redondeado a 6 decimales.
+- Todo nivel cae dentro del recorrido real de la serie y dentro de su zona.
+- Todo pivote tiene el precio del máximo o el mínimo de **su** vela.
+- La puntuación de confirmación va de 0 a 100, y `held + broken ≤ visits`.
+- `distancePct` y `distanceAtr` se reconstruyen desde el precio publicado.
+- Una serie plana no inventa estructura: niveles vacíos y contexto a `None`.
+- `bars[i]` es exactamente `rows[barsOffset + i]`, y un pivote dibujado cae
+  sobre su propia vela.
+
+### Una convención que quedó documentada, no corregida
+
+`distancePct` lleva **signo** y `distanceAtr` es una **magnitud**. Parecía una
+incoherencia y no lo es: el porcentaje dice el lado, la escalera además separa
+resistencias de soportes, y el ATR se publica como «cuánto hay que andar» —
+igual que `roomAboveAtr` y `roomBelowAtr`, positivos por construcción. Firmar
+el ATR rompería el paralelismo con esos dos sin añadir información. Hay un test
+que fija la convención para que nadie la «arregle».
+
+### Dónde `strip_bars` vive ahora
+
+Estaba en `server.py`, donde no se podía probar sin levantar la aplicación web
+entera. Es una función pura sobre las velas, así que se ha movido a
+`price_action.py` §9b, junto a los detectores.

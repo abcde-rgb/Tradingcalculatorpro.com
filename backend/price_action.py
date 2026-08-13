@@ -802,6 +802,41 @@ def summarise_context(current_price: Optional[float],
 
 
 # ---------------------------------------------------------------------------
+# §9b) Evidence for the client: the bars the read was actually computed on
+# ---------------------------------------------------------------------------
+def strip_bars(rows: List[Row], cap: int = 90) -> Dict[str, Any]:
+    """The last `cap` bars that were SCANNED, so the client can draw them.
+
+    The scanner used to claim "resistance at 4,512.30 with three touches" with
+    no way to check it short of going to the chart and drawing the line by
+    hand; when you could not see it, you could not tell "it is not there" from
+    "I did not find it". Shipping the bars the read was computed on lets the UI
+    draw the claim on top of its own evidence.
+
+    ``barsOffset`` is not optional: swings carry their index into the FULL
+    series, so without the offset of the first bar sent they would be drawn
+    shifted — and a pivot in the wrong place invalidates the whole picture.
+    ``bars[i]`` is exactly ``rows[barsOffset + i]``; the unit test pins that.
+
+    One-letter keys because this travels on every scan.
+
+    Lives here, next to the detectors, because it is the same kind of thing:
+    a pure function over the OHLC rows. In `server.py` it could not be unit
+    tested without standing up the whole web app.
+    """
+    if not rows:
+        return {"bars": [], "barsOffset": 0}
+    corte = max(0, len(rows) - max(1, int(cap)))
+    return {
+        "barsOffset": corte,
+        "bars": [
+            {"t": r.get("date"), "o": r["open"], "h": r["high"], "l": r["low"], "c": r["close"]}
+            for r in rows[corte:]
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
 # §10) Public entry point: one call → full structural read
 # ---------------------------------------------------------------------------
 def auto_tolerance(rows: List[Row]) -> float:

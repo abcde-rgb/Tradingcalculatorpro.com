@@ -122,3 +122,35 @@ def test_the_four_hour_rung_is_requested_as_hourly_candles(upstream):
     assert ("AAPL", "6mo", "1h") in upstream.calls
     assert body["aggregatedFrom"] == "1h"
     assert body["confluence"]["interval"] in (None, "1d")
+
+
+def test_the_response_carries_the_bars_the_read_was_computed_on(upstream):
+    """La tira de prueba no puede dibujar una serie distinta de la escaneada.
+
+    El endpoint publica `bars` (la cola de lo escaneado) y `barsOffset`. Sin el
+    desplazamiento, los pivotes —que vienen indexados sobre la serie COMPLETA—
+    se pintarían corridos, y un pivote mal puesto invalida el dibujo entero.
+    """
+    r = client.get(f"{SCAN}?interval=1d&period=6mo&htf=0").json()
+
+    assert r["bars"], "una lectura con velas tiene que publicar las velas"
+    assert set(r["bars"][0]) == {"t", "o", "h", "l", "c"}
+    assert r["barsOffset"] + len(r["bars"]) == r["rowsScanned"], (
+        "la cola enviada tiene que terminar en la última vela escaneada")
+
+    # El precio publicado es el cierre de la última vela enviada.
+    assert r["currentPrice"] == round(r["bars"][-1]["c"], 6)
+
+    # Y cada pivote visible cae sobre su propia vela.
+    for s in r["swings"]:
+        i = s["index"] - r["barsOffset"]
+        if 0 <= i < len(r["bars"]):
+            vela = r["bars"][i]
+            assert s["price"] == round(vela["h"] if s["type"] == "high" else vela["l"], 6)
+
+
+def test_a_scan_without_candles_draws_nothing_instead_of_inventing_a_chart(monkeypatch):
+    """Proveedor sin datos: `bars` vacío. La tira no se pinta, no se rellena."""
+    monkeypatch.setattr(server, "get_ohlc_history", lambda *a, **k: [])
+    r = client.get(f"{SCAN}?interval=1d&period=6mo").json()
+    assert r["bars"] == [] and r["barsOffset"] == 0
