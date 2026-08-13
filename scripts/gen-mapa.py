@@ -85,7 +85,10 @@ def rutas() -> list[dict]:
                 "fichero": py.name,
                 "linea": src.count("\n", 0, m.start()) + 1,
             })
-    out.sort(key=lambda r: (r["path"], r["metodo"]))
+    # Orden TOTAL, no parcial: si dos rutas empatan en (path, método) el
+    # desempate tiene que salir de los datos, no del orden en que se leyeron los
+    # ficheros. Ver la nota sobre determinismo en `mas_grandes`.
+    out.sort(key=lambda r: (r["path"], r["metodo"], r["fichero"], r["linea"]))
     return out
 
 
@@ -170,15 +173,23 @@ def carpetas_frontend() -> list[tuple[str, int, int]]:
 
 
 def mas_grandes(n: int = 12) -> list[tuple[str, int]]:
-    """Los ficheros que más cuesta leer enteros."""
+    """Los ficheros que más cuesta leer enteros.
+
+    ⚠️ El orden tiene que ser TOTAL y no depender del sistema de ficheros.
+    Los 10 ficheros de `lib/i18n/` tienen exactamente el mismo número de líneas,
+    y ordenar sólo por tamaño dejaba el desempate en manos de `glob()`, cuyo
+    orden varía entre máquinas: el fichero salía distinto en local y en el
+    runner, y `--check` fallaba sin que nada hubiera cambiado. Un verificador
+    que da falsas alarmas se acaba ignorando, así que el desempate va por ruta.
+    """
     out = []
     for base, patrones in ((BACKEND, ("*.py",)), (FRONT, ("**/*.jsx", "**/*.js"))):
         for pat in patrones:
-            for f in base.glob(pat):
+            for f in sorted(base.glob(pat)):
                 if "node_modules" in str(f):
                     continue
                 out.append((str(f.relative_to(RAIZ)), f.read_text(errors="ignore").count("\n") + 1))
-    out.sort(key=lambda x: -x[1])
+    out.sort(key=lambda x: (-x[1], x[0]))
     return out[:n]
 
 
@@ -305,7 +316,7 @@ def construir() -> str:
         a("")
         a("| Método | Ruta | Línea | Front |")
         a("|---|---|---:|:---:|")
-        for r in sorted(por_fichero[fichero], key=lambda x: (x["path"], x["metodo"])):
+        for r in sorted(por_fichero[fichero], key=lambda x: (x["path"], x["metodo"], x["linea"])):
             a(f"| `{r['metodo']}` | `{r['path']}` | {r['linea']} | {'✅' if r['consumida'] else '❌'} |")
         a("")
 
@@ -358,7 +369,31 @@ def construir() -> str:
     return "\n".join(L) + "\n"
 
 
+def _comprobar_orden_total() -> None:
+    """Falla si alguna lista del mapa tiene un orden ambiguo.
+
+    Sin esto el fallo es *flaky*: sólo salta cuando dos máquinas devuelven los
+    ficheros en orden distinto, que es justo lo que pasó la primera vez que este
+    job corrió en CI. Aquí se comprueba la propiedad de verdad —que ninguna
+    clave de orden se repita— y falla siempre, en cualquier máquina.
+    """
+    listas = {
+        "ficheros más grandes": [(-n, f) for f, n in mas_grandes(10_000)],
+        "rutas": [(r["path"], r["metodo"], r["fichero"], r["linea"]) for r in rutas()],
+    }
+    for nombre, claves in listas.items():
+        if len(claves) != len(set(claves)):
+            repetidas = {k for k in claves if claves.count(k) > 1}
+            raise SystemExit(
+                f"✗ El orden de «{nombre}» es ambiguo: {len(repetidas)} clave(s) repetida(s), "
+                f"p. ej. {sorted(repetidas)[0]}.\n"
+                f"  Con claves repetidas el fichero generado depende del orden del sistema de "
+                f"ficheros y `--check` falla según la máquina. Añade un desempate a la clave."
+            )
+
+
 def main() -> int:
+    _comprobar_orden_total()
     contenido = construir()
     comprobar = "--check" in sys.argv
 
