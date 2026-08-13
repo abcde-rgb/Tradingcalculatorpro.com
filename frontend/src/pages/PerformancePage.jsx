@@ -15,6 +15,9 @@ import { useSEO } from '@/hooks/useSEO';
 import { useAuthStore } from '@/lib/store';
 import TradeJournal from '@/components/performance/TradeJournal';
 import AnalyticsDashboard from '@/components/performance/AnalyticsDashboard';
+import SetupPerformance from '@/components/performance/SetupPerformance';
+import SetupBuilder from '@/components/education/SetupBuilder';
+import ProjectionPanel from '@/components/performance/ProjectionPanel';
 
 // Animation tokens (reused from LandingPage style)
 const FADE_UP = {
@@ -28,7 +31,15 @@ export default function PerformancePage() {
   const { isAuthenticated } = useAuthStore();
   const [tab, setTab] = useState(isAuthenticated ? 'journal' : 'overview');
   const [refreshKey, setRefreshKey] = useState(0);
+  // Setup → sus operaciones: el marcador de la pestaña Setups y el desglose de
+  // la analítica llevan al diario ya filtrado, para que las tres pestañas
+  // hablen de la misma muestra en vez de dar cada una un número suelto.
+  const [journalSetup, setJournalSetup] = useState(null);
   const onChange = () => setRefreshKey((k) => k + 1);
+  const showSetupTrades = (name) => {
+    setJournalSetup(name);
+    setTab('journal');
+  };
 
   useSEO({
     titleKey: 'seoPerformanceTitle',
@@ -116,10 +127,15 @@ export default function PerformancePage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
+      {/* UNA sola raíz de pestañas para la barra y los paneles. Con dos raíces,
+          los ids que genera Radix no coinciden y el `aria-controls` de cada
+          pestaña apunta a un panel inexistente (axe: aria-valid-attr-value). */}
+      <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1">
       {/* Tab navigation — sticky-ish under header */}
-      <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-16 z-30">
+      {/* Barra de pestañas opaca, sin desenfoque: al hacer scroll, lo que pasa
+          por debajo se veía borroso a través de ella. Fondo sólido y ya. */}
+      <div className="border-b border-border bg-background sticky top-16 z-30">
         <div className="max-w-6xl mx-auto px-4 py-3">
-          <Tabs value={tab} onValueChange={setTab}>
             {/* max-w-full + overflow-x-auto: tabs scroll inside the pill on
                 narrow screens instead of widening the page (mobile +99px) */}
             <TabsList data-testid="performance-tabs" className="max-w-full justify-start overflow-x-auto [scrollbar-width:thin]">
@@ -132,18 +148,27 @@ export default function PerformancePage() {
               <TabsTrigger value="analytics" data-testid="perftab-analytics">
                 <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabAnalytics')}
               </TabsTrigger>
+              <TabsTrigger value="setups" data-testid="perftab-setups">
+                <Layers className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabSetups')}
+              </TabsTrigger>
+              <TabsTrigger value="projection" data-testid="perftab-projection">
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabProjection')}
+              </TabsTrigger>
             </TabsList>
-          </Tabs>
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab} className="flex-1">
         {/* Journal tab — pt-24 clears fixed header (h-16) + sticky tab bar (~58px) */}
         <TabsContent value="journal" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
           {!isAuthenticated ? (
             <AuthRequired t={t} />
           ) : (
-            <TradeJournal refreshKey={refreshKey} onChange={onChange} />
+            <TradeJournal
+              refreshKey={refreshKey}
+              onChange={onChange}
+              setupFilter={journalSetup}
+              onClearSetupFilter={() => setJournalSetup(null)}
+            />
           )}
         </TabsContent>
 
@@ -152,7 +177,50 @@ export default function PerformancePage() {
           {!isAuthenticated ? (
             <AuthRequired t={t} />
           ) : (
-            <AnalyticsDashboard refreshKey={refreshKey} onGoToJournal={() => setTab('journal')} />
+            <AnalyticsDashboard
+              refreshKey={refreshKey}
+              onGoToJournal={() => setTab('journal')}
+              onGoToSetups={() => setTab('setups')}
+              onPickSetup={showSetupTrades}
+            />
+          )}
+        </TabsContent>
+
+        {/* Setups tab — where the system meets the numbers it produced.
+            Primero el marcador (qué ha hecho cada setup en el diario) y debajo
+            el constructor con el que se definen: medir antes que editar, porque
+            lo que se viene a mirar aquí es si el setup funciona. Es el MISMO
+            componente que la Academia monta en su lección, leyendo el mismo
+            almacén, así que definir un setup en cualquiera de los dos sitios lo
+            deja disponible en el otro. */}
+        <TabsContent value="setups" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
+          {!isAuthenticated ? (
+            <AuthRequired t={t} />
+          ) : (
+            <div className="space-y-8">
+              <SetupPerformance
+                refreshKey={refreshKey}
+                onPickSetup={showSetupTrades}
+                onGoToJournal={() => setTab('journal')}
+                onDefineSetups={() => {
+                  document.getElementById('setup-builder')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
+              <div id="setup-builder" className="scroll-mt-32">
+                <SetupBuilder onSaved={onChange} />
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Projection tab — el futuro, calculado sobre el pasado REAL.
+            Va la última a propósito: proyectar antes de tener diario y
+            analítica es exactamente el error que este panel intenta evitar. */}
+        <TabsContent value="projection" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
+          {!isAuthenticated ? (
+            <AuthRequired t={t} />
+          ) : (
+            <ProjectionPanel refreshKey={refreshKey} onGoToJournal={() => setTab('journal')} />
           )}
         </TabsContent>
 
@@ -208,7 +276,7 @@ export default function PerformancePage() {
                   <div className="text-sm text-foreground font-semibold mb-2">
                     {t(stat.labelKey)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
                     {t(stat.sourceKey)}
                   </div>
                 </motion.div>
@@ -386,7 +454,7 @@ export default function PerformancePage() {
 
 const AuthRequired = ({ t }) => (
   <div className="text-center py-16 bg-card border border-dashed border-border rounded-xl max-w-xl mx-auto">
-    <Lock className="w-10 h-10 text-muted-foreground/40 mx-auto mb-4" />
+    <Lock className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
     <h3 className="font-bold text-lg mb-2">{t('perfAuthRequiredTitle')}</h3>
     <p className="text-sm text-muted-foreground mb-6">{t('perfAuthRequiredDesc')}</p>
     <div className="flex justify-center gap-2">

@@ -51,7 +51,7 @@ const PatternFilterBar = ({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder={t('patternsSearchPlaceholder')}
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           autoComplete="off"
           spellCheck={false}
           data-testid={`${testIdPrefix}-search-input`}

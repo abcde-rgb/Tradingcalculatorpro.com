@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
+import { useCloudPref } from '@/lib/cloudPrefs';
 import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
@@ -266,7 +267,7 @@ function PatternDetailModal({ pattern, onClose }) {
                 </span>
               )}
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} data-testid="pattern-modal-close">
+            <Button variant="ghost" size="icon" onClick={onClose} data-testid="pattern-modal-close" aria-label={t('close')}>
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -345,7 +346,7 @@ function PatternDetailModal({ pattern, onClose }) {
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('patRankLabel')}</p>
                       <p className="font-semibold font-mono mt-0.5">#{s.rank}/103</p>
                     </div>
-                    <p className="col-span-3 text-[10px] text-muted-foreground/70 leading-relaxed">{t('patStatsNote')}</p>
+                    <p className="col-span-3 text-[10px] text-muted-foreground leading-relaxed">{t('patStatsNote')}</p>
                   </div>
                 );
               })()}
@@ -382,6 +383,87 @@ function PatternDetailModal({ pattern, onClose }) {
     </motion.div>
   );
 }
+
+/* ---------------------------------------------------------------------------
+   REVISIÓN DE CONTENIDO — fecha visible por módulo.
+
+   Regla, y es la de siempre en este proyecto: lo que no se ha comprobado NO
+   lleva sello. Un módulo sin entrada aquí no pinta nada; jamás una fecha
+   inventada. Sellar los 85 de golpe habría sido exactamente la clase de cifra
+   falsa que el resto del código se prohíbe.
+
+   `evidencia` es la fecha en que se revisó la BASE EMPÍRICA del método (no su
+   redacción). El barrido del 2026-08-12 leyó las cautelas que el propio
+   contenido declara y de ahí sale `evidence` en EDUCATION_NAV: los métodos
+   marcados lo están porque el texto ya decía que no hay validación, no porque
+   nadie opine.
+
+   Al editar un módulo, actualiza su fecha aquí. Si revisas uno que no está,
+   añádelo.
+   ------------------------------------------------------------------------- */
+const TOPIC_REVIEW = {
+  'gann-box':      { evidencia: '2026-08-12' },
+  'wolfe-waves':   { evidencia: '2026-08-12' },
+  'time-cycles':   { evidencia: '2026-08-12' },
+  'bill-williams': { evidencia: '2026-08-12' },
+  elliott:         { evidencia: '2026-08-12' },
+};
+
+/* Distintivo de evidencia. Vive aquí y no repetido en cada navegación porque
+   ya se escapó una vez: la etiqueta existía sólo en la barra de escritorio y
+   en el móvil no salía. Una sola pieza, tres puntos de uso. */
+const EVIDENCE_STYLE = {
+  disputed: 'border-amber-500/40 text-amber-500/80',
+  caution: 'border-sky-500/40 text-sky-500/80',
+};
+
+function EvidenceTag({ kind, t, className = '' }) {
+  if (!EVIDENCE_STYLE[kind]) return null;
+  return (
+    <span
+      title={t(kind === 'disputed' ? 'eduDisputedHint' : 'eduCautionHint')}
+      data-testid={`evidence-${kind}`}
+      className={`flex-shrink-0 text-[8px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded border ${EVIDENCE_STYLE[kind]} ${className}`}
+    >
+      {t(kind === 'disputed' ? 'eduDisputedTag' : 'eduCautionTag')}
+    </span>
+  );
+}
+
+// Glossary entries whose concept is already OWNED by a full Academy module.
+// The card links there instead of restating the explanation: delta, gamma,
+// theta and IV were once explained independently in up to six places, and the
+// fix was to name one canonical source per concept (see CanonicalLink in
+// components/options/EducationTab.jsx). A glossary entry defines in one line;
+// it must not become a seventh copy of the module.
+const GLOSSARY_TOPIC = {
+  79: 'options-vol',      // Volatilidad implícita
+  80: 'options-vol',      // IV Rank
+  81: 'options-vol',      // Skew
+  82: 'options-vol',      // Superficie de volatilidad
+  83: 'options-vol',      // Volatility crush
+  84: 'option-greeks',    // Delta
+  85: 'option-greeks',    // Gamma
+  86: 'option-greeks',    // Theta
+  87: 'option-greeks',    // Vega
+  88: 'option-greeks',    // Rho
+  91: 'options-income',   // Asignación
+  92: 'options-income',   // Ejercicio temprano
+  93: 'gamma-exposure',   // Max pain
+  94: 'gamma-exposure',   // Gamma exposure (GEX)
+  98: 'capital',          // Tamaño de posición
+  99: 'capital',          // Riesgo por operación
+  100: 'risk',            // Múltiplo R
+  101: 'risk',            // Drawdown máximo
+  102: 'probability',     // Payoff medio
+  103: 'probability',     // Profit factor
+  104: 'probability',     // Ratio de Sharpe
+  105: 'probability',     // Ratio de Sortino
+  106: 'capital',         // Criterio de Kelly
+  107: 'stops-targets',   // ATR
+  108: 'risk',            // Correlación
+  109: 'options-vol',     // Volatilidad realizada
+};
 
 export default function EducationPage() {
   const [activeTopic, setActiveTopic] = useState('start-here');
@@ -557,10 +639,19 @@ export default function EducationPage() {
       { value: 'ehlers', label: t('ehlTitle'), group: 'alt' },
       { value: 'rrg', label: t('rrgTitle'), group: 'alt' },
       { value: 'pitchfork', label: t('pfTitle'), group: 'alt' },
-      { value: 'bill-williams', label: t('bwTitle'), group: 'alt' },
-      { value: 'wolfe-waves', label: t('wlfTitle'), group: 'alt' },
+      // Los tres marcados lo están porque el PROPIO contenido ya lo declara, no
+      // por criterio de nadie: wolfe («MUY subjetiva y carece de validación
+      // estadística seria»), ciclos («no hay evidencia sólida de que estas
+      // fechas tengan poder predictivo») y Bill Williams, que avisa del
+      // sobreajuste de sus cinco indicadores — una cautela de USO, no una
+      // ausencia de base, y por eso lleva `caution` y no `disputed`.
+      // Elliott, armónicos y SMC se quedan sin marcar a propósito: su texto no
+      // afirma nada sobre su base empírica, y ponerles un veredicto sería
+      // inventarlo.
+      { value: 'bill-williams', label: t('bwTitle'), group: 'alt', evidence: 'caution' },
+      { value: 'wolfe-waves', label: t('wlfTitle'), group: 'alt', evidence: 'disputed' },
       { value: 'oscillators', label: t('oscTitle'), group: 'alt' },
-      { value: 'time-cycles', label: t('cycTitle'), group: 'alt' },
+      { value: 'time-cycles', label: t('cycTitle'), group: 'alt', evidence: 'disputed' },
       { value: 'sentiment', label: t('smTitle'), group: 'macro' },
       { value: 'intermarket', label: t('imTitle'), group: 'macro' },
       { value: 'forex-deep', label: t('fxTitle'), group: 'macro' },
@@ -645,21 +736,29 @@ export default function EducationPage() {
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Per-module completion (localStorage) → progress bars in sidebar/header.
-  const [eduDone, setEduDone] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tcp-edu-progress') || '[]'); } catch { return []; }
-  });
+  // Per-module completion → progress bars in sidebar/header. Va con la cuenta:
+  // avanzar en el móvil y seguir en el ordenador es justo lo que se espera de
+  // un progreso (ver `lib/cloudPrefs.js`).
+  const [eduDone, setEduDone] = useCloudPref('eduProgress');
   const toggleTopicDone = (value) => {
-    setEduDone(prev => {
-      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
-      try { localStorage.setItem('tcp-edu-progress', JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setEduDone(prev => (prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]));
   };
   const doneCount = eduDone.filter(v => EDUCATION_NAV.some(c => c.topics.some(tp => tp.value === v))).length;
 
   // Glossary + quiz data (localized via i18n keys; answers are key-order-fixed).
-  const GLOSSARY = Array.from({ length: 68 }, (_, i) => ({ n: i + 1, term: t(`gl${i + 1}t`), def: t(`gl${i + 1}d`) }));
+  // The length is DERIVED, not hard-coded: t() echoes the key back when it is
+  // missing, so the list stops at the first gap. It used to be a literal 68,
+  // which meant adding a term to the ten dictionaries silently changed nothing
+  // on screen until somebody remembered this line.
+  const GLOSSARY = useMemo(() => {
+    const out = [];
+    for (let n = 1; n < 500; n++) {
+      const term = t(`gl${n}t`);
+      if (!term || term === `gl${n}t`) break;
+      out.push({ n, term, def: t(`gl${n}d`) });
+    }
+    return out;
+  }, [t]);
   const [glossQ, setGlossQ] = useState('');
   const glossFiltered = GLOSSARY.filter(g =>
     !glossQ || (g.term + ' ' + g.def).toLowerCase().includes(glossQ.toLowerCase())
@@ -915,7 +1014,7 @@ export default function EducationPage() {
                             return (
                               <div key={tp.value}>
                                 {showGroup && (
-                                  <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                                  <p className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                                     {t(`eduGroup_${tp.group}`)}
                                   </p>
                                 )}
@@ -929,16 +1028,15 @@ export default function EducationPage() {
                                       : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
                                   }`}
                                 >
-                                  <span className="min-w-0 truncate flex items-center gap-1.5">
-                                    {tp.label}
-                                    {tp.evidence === 'disputed' && (
-                                      <span
-                                        title={t('eduDisputedHint')}
-                                        className="flex-shrink-0 text-[8px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded border border-amber-500/40 text-amber-500/80"
-                                      >
-                                        {t('eduDisputedTag')}
-                                      </span>
-                                    )}
+                                  {/* El `truncate` va en el TEXTO, no en el
+                                      contenedor: con la etiqueta larga (Wolfe,
+                                      ciclos) el recorte se comía el distintivo
+                                      de evidencia, que es justo lo que no puede
+                                      faltar. Se corta el título, nunca el
+                                      aviso. */}
+                                  <span className="min-w-0 flex items-center gap-1.5">
+                                    <span className="truncate">{tp.label}</span>
+                                    <EvidenceTag kind={tp.evidence} t={t} />
                                   </span>
                                   {eduDone.includes(tp.value) && (
                                     <CheckCircle2 className="w-3 h-3 flex-shrink-0 text-primary" />
@@ -985,6 +1083,11 @@ export default function EducationPage() {
                       }`}
                     >
                       {tp.label}
+                      {/* El aviso se pintaba SÓLO en la barra lateral de
+                          escritorio: en móvil, Gann quedaba indistinguible de
+                          Wyckoff. Un aviso de rigor que se cae en la mitad de
+                          las pantallas no es un aviso. */}
+                      <EvidenceTag kind={tp.evidence} t={t} className="ml-1.5 inline-block align-middle" />
                     </button>
                   ))}
                 </div>
@@ -997,6 +1100,15 @@ export default function EducationPage() {
                     {activeCategory?.label}
                     <span className="mx-1.5 opacity-50">/</span>
                     <span className="text-foreground">{activeCategory?.topics.find(tp => tp.value === activeTopic)?.label}</span>
+                    {/* Sello de revisión. Sin entrada en TOPIC_REVIEW no se
+                        pinta nada: un módulo sin revisar debe verse sin
+                        revisar, no con una fecha de relleno. */}
+                    {TOPIC_REVIEW[activeTopic]?.evidencia && (
+                      <span className="ml-2 opacity-80" data-testid="edu-reviewed">
+                        <span className="mx-1.5 opacity-50">/</span>
+                        {t('eduEvidenceReviewed')} {TOPIC_REVIEW[activeTopic].evidencia}
+                      </span>
+                    )}
                   </p>
                   <button
                     type="button"
@@ -5214,6 +5326,19 @@ export default function EducationPage() {
                     <p className="text-xs text-muted-foreground leading-relaxed">{g.def}</p>
                     <GlossaryVisual n={g.n} />
                     <FillBlanksExample n={g.n} />
+                    {/* El guard evita que una errata en GLOSSARY_TOPIC deje al
+                        usuario en una pestaña que no existe: sin destino, no
+                        se pinta el enlace. */}
+                    {FLAT_TOPICS.some((tp) => tp.value === GLOSSARY_TOPIC[g.n]) && (
+                      <button
+                        type="button"
+                        onClick={() => goToTopic(GLOSSARY_TOPIC[g.n])}
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        data-testid={`glossary-topic-${g.n}`}
+                      >
+                        {t('glossarySeeModule')} <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 {glossFiltered.length === 0 && (
@@ -5269,8 +5394,8 @@ export default function EducationPage() {
                           const chosen = quizSel[qi] === oi;
                           const correct = QUIZ_CORRECT[qi] === oi;
                           let cls = 'border-border bg-background text-muted-foreground hover:text-foreground';
-                          if (quizDone && correct) cls = 'border-[#22c55e]/60 bg-[#22c55e]/10 text-[#22c55e] font-medium';
-                          else if (quizDone && chosen && !correct) cls = 'border-[#ef4444]/60 bg-[#ef4444]/10 text-[#ef4444]';
+                          if (quizDone && correct) cls = 'border-[#22c55e]/60 bg-[#22c55e]/10 text-[#4ade80] font-medium';
+                          else if (quizDone && chosen && !correct) cls = 'border-[#ef4444]/60 bg-[#ef4444]/10 text-[#f87171]';
                           else if (chosen) cls = 'border-primary text-primary bg-primary/10 font-medium';
                           return (
                             <button

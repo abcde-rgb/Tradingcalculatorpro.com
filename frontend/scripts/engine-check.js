@@ -102,8 +102,8 @@ async function checkSimulatorEngine() {
 }
 
 async function checkTradingSystemModel() {
-  console.log('\ntradingSystemModel.js');
-  const m = await imp('components/education/tradingSystemModel.js');
+  console.log('\ntradingSystem.js');
+  const m = await imp('lib/tradingSystem.js');
 
   // The v1 builder kept ONE setup under one localStorage key and overwrote it
   // on every save. Migration must not lose that setup.
@@ -161,6 +161,262 @@ async function checkTradingSystemModel() {
   ok('setupHasContent is false for a blank setup', m.setupHasContent(m.makeSetup()) === false);
   ok('setupHasContent is true once a trigger exists',
     m.setupHasContent(m.makeSetup({ entryTrigger: 'x' })) === true);
+
+  // ── The library crossed with the journal's analytics ──────────────────────
+  // A setup you cannot measure is a wish. This join is what turns the builder
+  // from a form into a scoreboard, so its edge cases are worth fixing here.
+  const setups = [
+    m.makeSetup({ name: 'Ruptura NY' }),
+    m.makeSetup({ name: 'Pullback EMA20' }),
+    m.makeSetup({ name: 'Sin operar' }),
+  ];
+  const analytics = [
+    { group: 'ruptura ny ', n: 12, wins: 7, win_rate: 58.3, pnl: 940 },  // same setup, typed loosely
+    { group: 'Pullback EMA20', n: 5, wins: 2, win_rate: 40, pnl: -120 },
+    { group: 'Impulso a la contra', n: 3, wins: 0, win_rate: 0, pnl: -430 },
+    { group: '—', n: 4, wins: 2, win_rate: 50, pnl: 60 },
+  ];
+  const joined = m.joinSetupPerformance(setups, analytics);
+  ok('setup names match case- and space-insensitively',
+    joined.defined[0].stats?.n === 12);
+  ok('a setup never traded has NO stats (no sample ≠ 0% win rate)',
+    joined.defined[2].stats === null);
+  ok('a traded setup that is not in the system is flagged apart',
+    joined.offSystem.length === 1 && joined.offSystem[0].group === 'Impulso a la contra');
+  ok('trades logged without a setup are their own bucket',
+    joined.unlabelled?.n === 4);
+  ok('counts describe the library, not the analytics',
+    joined.counts.defined === 3 && joined.counts.traded === 2
+    && joined.counts.untraded === 1 && joined.counts.offSystemTrades === 3);
+  const emptyJoin = m.joinSetupPerformance(null, null);
+  ok('an empty library and empty analytics do not throw',
+    emptyJoin.defined.length === 0 && emptyJoin.offSystem.length === 0);
+
+  // ── Un trade puede llevar VARIOS setups ──────────────────────────────────
+  ok('a trade reads its setups from the list',
+    m.tradeSetups({ setups: ['A', 'B'] }).join('|') === 'A|B');
+  ok('an old trade reads them from the joined string',
+    m.tradeSetups({ setup: `Ruptura NY${m.SETUP_SEPARATOR}Pullback EMA20` }).length === 2);
+  ok('a trade with no setup has none', m.tradeSetups({}).length === 0);
+  ok('the same setup is not added twice',
+    m.addSetup(['Ruptura NY'], ' ruptura ny ').length === 1);
+  ok('the separator is stripped from a typed name',
+    m.addSetup([], `A${m.SETUP_SEPARATOR}B`)[0] === 'A B');
+  ok('the cap is respected',
+    m.addSetup(['a', 'b', 'c', 'd', 'e'], 'f').length === m.MAX_SETUPS_PER_TRADE);
+
+  // Contra un backend anterior a `setups`, un trade con dos setups llega como
+  // UN grupo con la cadena unida. Debe acreditar a los dos, igual que hace ya
+  // el backend nuevo — si no, el marcador diría "sin muestra" sobre setups
+  // que sí se han operado.
+  const legacyJoin = m.joinSetupPerformance(
+    [m.makeSetup({ name: 'Ruptura NY' }), m.makeSetup({ name: 'Pullback EMA20' })],
+    [
+      { group: `Ruptura NY${m.SETUP_SEPARATOR}Pullback EMA20`, n: 3, wins: 2, win_rate: 66.7, pnl: 300 },
+      { group: 'Ruptura NY', n: 1, wins: 0, win_rate: 0, pnl: -100 },
+    ],
+  );
+  ok('a joined group credits every setup in it',
+    legacyJoin.defined[1].stats?.n === 3);
+  ok('a setup present in two rows adds them up',
+    legacyJoin.defined[0].stats?.n === 4 && legacyJoin.defined[0].stats?.pnl === 200);
+  ok('the win rate is recomputed after merging, not averaged',
+    legacyJoin.defined[0].stats?.win_rate === 50);
+  ok('nothing is left over as off-system', legacyJoin.offSystem.length === 0);
+
+  // ── El diario juzga con las reglas DEL setup, no con dos constantes ───────
+  const sys = m.emptySystem();
+  sys.setups = [
+    m.makeSetup({ name: 'Ruptura NY', rr: '2', riskPerTrade: '1' }),
+    m.makeSetup({ name: 'Pullback EMA20', rr: '3', riskPerTrade: '0.5' }),
+    m.makeSetup({ name: 'Sin reglas' }),
+  ];
+  const own = m.setupRulesFor(sys, ['Ruptura NY']);
+  ok('the trade is judged by its own setup rule', own.minRR === 2 && own.maxRiskPct === 1);
+  ok('and it says the rule is the user\'s, not a default',
+    own.rrSource === 'setup' && own.riskSource === 'setup');
+
+  const both = m.setupRulesFor(sys, ['Ruptura NY', 'Pullback EMA20']);
+  ok('with two setups the STRICTEST of each rule wins',
+    both.minRR === 3 && both.maxRiskPct === 0.5);
+
+  const none = m.setupRulesFor(sys, ['Sin reglas']);
+  ok('a setup without rules falls back to the defaults',
+    none.minRR === m.DEFAULT_MIN_RR && none.maxRiskPct === m.DEFAULT_MAX_RISK_PCT);
+  ok('and the fallback is labelled as such (an alien constant gets ignored)',
+    none.rrSource === 'default' && none.riskSource === 'default');
+  ok('no setup at all also falls back',
+    m.setupRulesFor(sys, []).minRR === m.DEFAULT_MIN_RR);
+  ok('a comma decimal in the rule is read, not dropped',
+    m.setupRulesFor(
+      { setups: [m.makeSetup({ name: 'x', riskPerTrade: '0,75' })] }, ['x'],
+    ).maxRiskPct === 0.75);
+}
+
+async function checkInstruments() {
+  console.log('\ninstruments.js  (paridad con backend/instruments.py)');
+  const I = await imp('lib/instruments.js');
+
+  // Los números de este bloque son EXACTAMENTE los que fija
+  // `backend/tests/test_instruments_unit.py`. Que aparezcan dos veces es el
+  // punto: son dos implementaciones de la misma matemática, y esto es lo que
+  // detecta que una se ha movido sin la otra.
+
+  // ── Catálogo ──
+  const gold = I.resolveSpec('cfd', 'XAUUSD');
+  ok('el lote de oro son 100 onzas a 20×',
+    gold.contractSize === 100 && gold.defaultLeverage === 20);
+  ok('MES es la décima parte de ES',
+    I.resolveSpec('futures', 'ES').contractSize / I.resolveSpec('futures', 'MES').contractSize === 10);
+  ok('el pip del yen es 0,01 y el del resto 0,0001',
+    I.resolveSpec('forex', 'USDJPY').pipSize === 0.01
+    && I.resolveSpec('forex', 'EURUSD').pipSize === 0.0001);
+  ok('un futuro fuera de catálogo no vale ×1: vale null',
+    I.resolveSpec('futures', 'XYZ').contractSize === null
+    && I.contractSizeFor('futures', 'XYZ') === null);
+  ok('el tipo de lote decide el tamaño en forex',
+    I.contractSizeFor('forex', 'EURUSD', { lotType: 'micro' }) === 1000
+    && I.contractSizeFor('forex', 'EURUSD', { lotType: 'standard' }) === 100000);
+
+  // ── Unidades ──
+  const fxSpec = I.resolveSpec('forex', 'EURUSD');
+  const pipDist = I.unitToDistance(20, 'pips', {
+    entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
+  });
+  ok('20 pips son 0,0020 de precio', near(pipDist, 0.0020, 1e-12));
+  ok('el stop de un largo queda por debajo de la entrada',
+    near(I.levelFromDistance(1.10, pipDist, 'long', 'sl'), 1.098, 1e-12));
+  ok('el stop de un corto queda por encima',
+    near(I.levelFromDistance(1.10, pipDist, 'short', 'sl'), 1.102, 1e-12));
+  ok('8 ticks del MES son 2 puntos',
+    near(I.unitToDistance(8, 'ticks', {
+      entry: 5000, quantity: 1, contractSize: 5,
+      spec: I.resolveSpec('futures', 'MES'),
+    }), 2, 1e-12));
+  ok('100 $ de riesgo con 1 lote son 10 pips',
+    near(I.unitToDistance(100, 'money', {
+      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
+    }), 0.0010, 1e-12));
+  ok('el 1 % de una cuenta de 10 000 son los mismos 10 pips',
+    near(I.unitToDistance(1, 'pct_balance', {
+      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec, balance: 10000,
+    }), 0.0010, 1e-12));
+  ok('un objetivo en R sin stop es null, no cero',
+    I.unitToDistance(2, 'r', { entry: 1.10, quantity: 1, contractSize: 100000 }) === null);
+  ok('la conversión va y vuelve sin perder el número tecleado',
+    near(I.distanceToUnit(pipDist, 'pips', {
+      entry: 1.10, quantity: 1, contractSize: 100000, spec: fxSpec,
+    }), 20, 1e-9));
+
+  // ── Posición ──
+  const goldLot = I.positionMetrics({
+    entry: 2000, quantity: 1, contractSize: 100, leverage: 20, balance: 10000,
+    side: 'long', sl: 1990, tp: 2020, spec: gold,
+  });
+  ok('el nocional de 1 lote de oro a 2 000 son 200 000 $', goldLot.notional === 200000);
+  ok('el margen a 20× son 10 000 $', goldLot.marginUsed === 10000);
+  ok('20× el saldo pasa del tope de exposición',
+    goldLot.exposureMultiple === 20 && goldLot.exposureExceeded === true);
+  ok('riesgo, recompensa y R:B sobre la posición abierta',
+    goldLot.riskAmount === 1000 && goldLot.rewardAmount === 2000 && near(goldLot.rr, 2));
+
+  const tiny = I.positionMetrics({
+    entry: 100000, quantity: 0.001, contractSize: 1, leverage: 100, balance: 10000,
+    spec: I.resolveSpec('crypto_perp', 'BTCUSDT'),
+  });
+  ok('100× sobre un tamaño pequeño NO dispara el tope',
+    tiny.exposureExceeded === false && near(tiny.exposureMultiple, 0.01));
+
+  const threeWays = I.positionMetrics({
+    entry: 100, quantity: 10, contractSize: 1, leverage: 10, balance: 10000, sl: 99,
+    spec: I.resolveSpec('cfd', 'US500'),
+  });
+  ok('el riesgo se publica contra nocional, cuenta y margen',
+    near(threeWays.riskPctNotional, 1) && near(threeWays.riskPctBalance, 0.1)
+    && near(threeWays.riskPctMargin, 10));
+
+  ok('sin apalancamiento no hay liquidación', I.liquidationPrice(100, 'long', 1) === null);
+  ok('la liquidación de un corto queda por encima de la entrada',
+    I.liquidationPrice(100, 'short', 10, 0.005) > 100);
+  ok('a más apalancamiento, liquidación más cerca',
+    I.liquidationPrice(100, 'long', 2, 0.005) < I.liquidationPrice(100, 'long', 50, 0.005));
+  ok('un stop detrás de la liquidación se señala',
+    I.positionMetrics({
+      entry: 100, quantity: 1, contractSize: 1, leverage: 20, balance: 10000, sl: 80,
+      spec: I.resolveSpec('crypto_perp', 'BTCUSDT'),
+    }).liquidationBeforeStop === true);
+
+  // ── Riesgo definido ──
+  const longCall = I.positionMetrics({
+    entry: 3.5, quantity: 2, contractSize: 100, balance: 10000, side: 'long',
+    spec: I.resolveSpec('option', 'AAPL'),
+  });
+  ok('la prima de una opción comprada ES su pérdida máxima',
+    longCall.maxLoss === 700 && longCall.maxLossSource === 'premium');
+  ok('una pérdida máxima declarada manda sobre todo lo demás',
+    I.positionMetrics({
+      entry: 1.2, quantity: 1, contractSize: 100, side: 'short', maxLoss: 380,
+      spec: I.resolveSpec('option', 'SPY'),
+    }).maxLossSource === 'declared');
+  ok('vender desnudo no tiene pérdida máxima',
+    I.positionMetrics({
+      entry: 5, quantity: 1, contractSize: 100, side: 'short',
+      spec: I.resolveSpec('option', 'TSLA'),
+    }).maxLoss === null);
+
+  // ── Costes ──
+  ok('9 pagos de funding al 0,01 % sobre 5 000 $ son 4,50 $',
+    near(I.fundingCost(5000, 0.01, 9), 4.5, 1e-9));
+  ok('10 noches al 7,3 % anual sobre 20 000 $ son 40 $',
+    near(I.swapCost(20000, 7.3, 10), 40, 1e-9));
+
+  // ── Apalancamiento sugerido ──
+  ok('en futuros se deduce del margen del mercado',
+    I.suggestedLeverage(I.resolveSpec('futures', 'MES'), 25000) === 19);
+  ok('al contado no se sugiere ninguno',
+    I.suggestedLeverage(I.resolveSpec('crypto_spot', 'BTC'), 1000) === null);
+
+  // ── Ventana de despliegue: el frontend por delante del backend ──
+  // El frontend se publica solo al mergear y el backend se sube a mano, así que
+  // este desfase es el estado normal durante un rato, no una rareza.
+  ok('contra un backend anterior sólo se ofrece lo que sabe guardar',
+    JSON.stringify(I.selectableProducts(false)) === JSON.stringify(['spot', 'option']));
+  ok('con el backend al día se ofrece todo',
+    I.selectableProducts(true).length === I.SELECTABLE_PRODUCTS.length);
+  ok('sin saberlo todavía NO se recorta la aplicación',
+    I.selectableProducts(null).length === I.SELECTABLE_PRODUCTS.length);
+  ok('el producto por defecto cae a spot contra un backend anterior',
+    I.defaultProductFor(false) === 'spot' && I.defaultProductFor(true) === 'stock');
+  ok('spot sigue existiendo y sigue valiendo x1 sin apalancamiento',
+    I.resolveSpec('spot', 'AAPL').contractSize === 1);
+}
+
+async function checkScannerMeta() {
+  console.log('\nscannerMeta.js  (ritmo de refresco del escáner)');
+  const M = await imp('components/charts/structure/scannerMeta.js');
+
+  // El escalón del escáner NO publica los minutos de la vela, así que leerlos
+  // de ahí caía siempre al valor por defecto y un gráfico de 5 minutos se
+  // refrescaba al ritmo de uno diario. Se derivan de la etiqueta.
+  ok('5m son 5 minutos', M.intervalMinutes('5m') === 5);
+  ok('1h son 60', M.intervalMinutes('1h') === 60);
+  ok('4h son 240', M.intervalMinutes('4h') === 240);
+  ok('1d son 1440', M.intervalMinutes('1d') === 1440);
+  ok('1wk son 10080', M.intervalMinutes('1wk') === 10080);
+  ok('1mo son 43200', M.intervalMinutes('1mo') === 43200);
+  ok('lo que no se reconoce vale null, no un numero inventado',
+    M.intervalMinutes('zzz') === null && M.intervalMinutes('') === null
+    && M.intervalMinutes(undefined) === null);
+
+  // El ritmo que sale de ahi: un tercio de la vela, con suelo de 1 min y techo
+  // de 15. Es la formula de useStructureScan, comprobada aqui porque es la que
+  // decide cuanta cuota se gasta contra el proveedor.
+  const rate = (iv) => Math.min(15 * 60 * 1000,
+    Math.max(60 * 1000, ((M.intervalMinutes(iv) || 1440) * 60 * 1000) / 3));
+  ok('en 5m se refresca cada 100 s (un tercio de la vela)', rate('5m') === 100 * 1000);
+  ok('el suelo de 1 min protege a la vela mas corta', rate('1m') === 60 * 1000);
+  ok('en 1h se refresca a los 20 min -> topado a 15', rate('1h') === 15 * 60 * 1000);
+  ok('en diario tambien topa en 15 min', rate('1d') === 15 * 60 * 1000);
 }
 
 async function checkOptionsEngine() {
@@ -272,10 +528,297 @@ async function checkOptionsEngine() {
     popCal > 1 && popCal < 99, `${popCal}`);
 }
 
+async function checkProjection() {
+  console.log('\nprojection.js');
+  const pj = await imp('lib/projection.js');
+
+  // Las entradas salen del diario, no de la imaginación.
+  const analytics = {
+    closed_trades: 60, win_rate: 45, avg_win: 300, avg_loss: -150,
+    avg_r: 0.3, r_sample_size: 60,
+  };
+  const measured = pj.measuredInputs(analytics);
+  ok('win rate and payoff come from the journal',
+    measured.winRate.value === 45 && measured.payoff.value === 2);
+  ok('and they say they are measured, with their sample',
+    measured.winRate.source === 'measured' && measured.winRate.sample === 60);
+
+  const group = { group: 'Ruptura NY', n: 40, win_rate: 60, avg_win: 100, avg_loss: -100 };
+  ok('a setup projects with ITS numbers, not the global ones',
+    pj.measuredInputs(analytics, group).payoff.value === 1);
+
+  const noLosers = pj.measuredInputs({ closed_trades: 12, win_rate: 100, avg_win: 100, avg_loss: null });
+  ok('no losing trade yet = payoff unknown, not zero',
+    noLosers.payoff.value === null && noLosers.payoff.source === 'unavailable');
+
+  // Esperanza: la cuenta que decide si proyectar más operaciones ayuda o mata.
+  ok('expectancy in R is win_rate × payoff − losses',
+    pj.expectancyR(50, 2) === 0.5);
+  ok('a coin flip at 1:1 has zero expectancy', pj.expectancyR(50, 1) === 0);
+  ok('expectancy is negative when the edge is not there',
+    pj.expectancyR(30, 1) < 0);
+  ok('breakeven win rate inverts the payoff',
+    pj.breakevenWinRate(1) === 50 && pj.breakevenWinRate(3) === 25);
+  ok('breakeven is undefined without a payoff', pj.breakevenWinRate(null) === null);
+
+  // Lo que el usuario toca queda marcado como supuesto: una proyección sobre
+  // supuestos es una hipótesis, y confundirla con una medición es lo que hace
+  // que alguien dimensione una cuenta real contra un número inventado.
+  const assumed = pj.resolveInputs(measured, { winRate: 70 });
+  ok('an edited input is flagged as assumed', assumed.winRate.source === 'assumed');
+  ok('an untouched input stays measured', assumed.payoff.source === 'measured');
+  ok('re-typing the measured value is not an assumption',
+    pj.resolveInputs(measured, { winRate: 45 }).winRate.source === 'measured');
+
+  // Muestra: por debajo del suelo no se proyecta.
+  const tiny = pj.project({ closed_trades: 4, win_rate: 50, avg_win: 100, avg_loss: -100 });
+  ok('four trades are not a forecast', tiny.ok === false && tiny.reason === 'sample');
+  ok('and nothing is drawn from it', tiny.distribution === null);
+
+  const thin = pj.project({ closed_trades: 15, win_rate: 50, avg_win: 200, avg_loss: -100 });
+  ok('a thin sample still projects but warns', thin.ok === true && thin.sampleWarning === true);
+
+  const solid = pj.project(analytics, { overrides: { balance: 10000, riskPct: 1, trades: 100 } });
+  ok('a solid sample projects', solid.ok === true && solid.sampleWarning === false);
+  ok('the projection is a DISTRIBUTION, not a number',
+    solid.distribution.roi.p5 < solid.distribution.roi.p50
+    && solid.distribution.roi.p50 < solid.distribution.roi.p95);
+  ok('ruin probability is reported', typeof solid.distribution.probabilityOfRuin === 'number');
+
+  // Mismos números, mismo dibujo: sin semilla fija el panel cambiaría solo.
+  const again = pj.project(analytics, { overrides: { balance: 10000, riskPct: 1, trades: 100 } });
+  ok('the same inputs give the same projection',
+    solid.distribution.roi.p50 === again.distribution.roi.p50);
+
+  // Una ventaja positiva medida tiene que proyectar mediana positiva.
+  ok('a positive edge projects a positive median ROI',
+    solid.expectancyR > 0 && solid.distribution.roi.p50 > 0);
+
+  const losing = pj.project(
+    { closed_trades: 80, win_rate: 30, avg_win: 100, avg_loss: -100 },
+    { overrides: { balance: 10000, riskPct: 2, trades: 200 } },
+  );
+  ok('a negative edge projects a negative median and real ruin risk',
+    losing.expectancyR < 0 && losing.distribution.roi.p50 < 0
+    && losing.distribution.probabilityOfRuin > 0);
+
+  // ── Reglas de caja mensuales ─────────────────────────────────────────────
+  // Aportar, topar el mes y sacar el exceso cambian el resultado tanto como la
+  // operativa, así que la proyección tiene que aplicarlas de verdad.
+  const cash = (over) => pj.project(analytics, {
+    overrides: {
+      balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20, ...over,
+    },
+  }).distribution;
+
+  const plain = cash({});
+  ok('without cash rules nothing is contributed or withdrawn',
+    plain.contributed.p50 === 0 && plain.withdrawn.p50 === 0);
+  ok('the horizon is split into months', plain.months.p50 === 12);
+
+  const withDeposits = cash({ contribution: 500 });
+  ok('a fixed monthly contribution is paid in every month',
+    withDeposits.contributed.p50 === 500 * 12);
+  ok('and it raises the final balance', withDeposits.finalBalance.p50 > plain.finalBalance.p50);
+  // Y no debe disimular el drawdown: el máximo histórico sube con el dinero
+  // nuevo, así que aportar no puede "curar" una caída.
+  ok('contributing does not paper over the drawdown',
+    withDeposits.maxDrawdown.p50 >= plain.maxDrawdown.p50 * 0.6);
+
+  const withCap = cash({ capPct: 3 });
+  ok('a monthly profit cap stops some months early',
+    withCap.monthsCapped.p50 > 0);
+  ok('capping the month cuts the upside too (that is what the rule asks for)',
+    withCap.roi.p95 < plain.roi.p95);
+
+  const withSkim = cash({ withdrawAbove: 10000 });
+  ok('the monthly excess is taken out', withSkim.withdrawn.p50 > 0);
+  ok('the trading account stops growing past the ceiling',
+    withSkim.finalBalance.p95 <= 10000 + 1e-6);
+  ok('but the net worth counts the money taken out',
+    withSkim.netWorth.p50 > withSkim.finalBalance.p50);
+  ok('skimming never invents money',
+    withSkim.netWorth.p50 <= plain.netWorth.p50 + 1e-6);
+
+  const all = cash({ contribution: 300, capPct: 4, withdrawAbove: 12000 });
+  ok('the three rules coexist',
+    all.contributed.p50 > 0 && all.withdrawn.p50 > 0 && all.monthsCapped.p50 > 0);
+  // Un mes que se corta al llegar al tope deja operaciones sin hacer, así que
+  // completar las mismas 240 lleva MÁS meses — y por tanto más aportaciones.
+  // Publicar "aportarás 3600" cuando en la mitad de los casos son 5700 sería
+  // mentir sobre el dinero que hay que poner.
+  ok('capping stretches the calendar, so contributions grow with it',
+    all.months.p50 > plain.months.p50 && all.contributed.p50 > 300 * plain.months.p50);
+  ok('the withdrawal ceiling still holds with the other two rules on',
+    all.finalBalance.p95 <= 12000 + 1e-6);
+
+  // Retirar el exceso deja el saldo pegado al techo A PROPÓSITO. Medir la
+  // ruina sobre ese saldo daba "ruina 100 %" a quien tiene el triple fuera:
+  // decía exactamente lo contrario de la verdad. Se mide sobre el patrimonio.
+  const skimmed = cash({ withdrawAbove: 10000, contribution: 300, trades: 1200 });
+  ok('withdrawing every month is not ruin', skimmed.probabilityOfRuin < 5);
+  ok('and the account was never wiped either', skimmed.probabilityOfAccountWiped < 5);
+  const doomedCash = pj.project(
+    { closed_trades: 80, win_rate: 25, avg_win: 100, avg_loss: -100 },
+    { overrides: { balance: 10000, riskPct: 5, trades: 400, tradesPerMonth: 20 } },
+  ).distribution;
+  ok('a losing system still reports ruin', doomedCash.probabilityOfRuin > 50);
+  ok('and reports the account being wiped', doomedCash.probabilityOfAccountWiped > 50);
+
+  // ── Por periodo: mes, trimestre y año ────────────────────────────────────
+  // Un objetivo mensual sólo se juzga mirando la distribución de MESES: el
+  // total no dice si ese 10 % se toca alguna vez.
+  const periods = cash({ trades: 240, tradesPerMonth: 20 }).periods;
+  ok('monthly, quarterly and annual returns are reported',
+    Boolean(periods.month && periods.quarter && periods.year));
+  ok('there are 12 monthly observations per path, 4 quarters and 1 year',
+    periods.month.count === periods.quarter.count * 3
+    && periods.quarter.count === periods.year.count * 4);
+  ok('longer periods are compounded, not summed',
+    periods.quarter.p50 > periods.month.p50 * 2.5
+    && periods.quarter.p50 < ((1 + periods.month.p95 / 100) ** 3 - 1) * 100);
+  ok('the share of losing periods shrinks as the period grows',
+    periods.month.negativeRate >= periods.quarter.negativeRate
+    && periods.quarter.negativeRate >= periods.year.negativeRate);
+
+  // El objetivo mensual, traducido a lo que de verdad se está pidiendo.
+  const hr = pj.hitRates(cash({ trades: 240, tradesPerMonth: 20, compound: true }), 10);
+  ok('a 10% monthly target is a 33% quarter and a 214% year',
+    Math.round(hr.quarter.target) === 33 && Math.round(hr.year.target) === 214);
+  ok('hit rates are percentages',
+    hr.month.rate >= 0 && hr.month.rate <= 100 && hr.year.rate >= 0);
+  ok('reaching the target every month is rarer than the average suggests',
+    hr.month.rate < 100);
+
+  // ── El precio de la caja ─────────────────────────────────────────────────
+  const cost = pj.cashflowCost(analytics, {
+    overrides: {
+      balance: 10000, riskPct: 1, trades: 1200, tradesPerMonth: 20, withdrawAbove: 10000,
+    },
+    iterations: 500,
+  });
+  ok('skimming the excess costs compounding, and the panel can say by how much',
+    cost.ratio > 2, `ratio ${cost && cost.ratio}`);
+  ok('the comparison keeps both figures', cost.withRules > 0 && cost.compounded > cost.withRules);
+
+  // ── El puente entre las tres pantallas ───────────────────────────────────
+  //   rentabilidad mensual ≈ esperanza (R/op) × operaciones al mes × riesgo %
+  ok('the bridge equation multiplies the three levers',
+    pj.monthlyFromEdge(0.26, 20, 1) === 5.2);
+  ok('and it is undefined if any lever is missing',
+    pj.monthlyFromEdge(null, 20, 1) === null);
+
+  const routes = pj.routesToTarget(analytics, {
+    overrides: { balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20 },
+    targetMonthlyPct: 10,
+    iterations: 400,
+  });
+  ok('the three routes to the target are solved',
+    routes.edge.needed > 0 && routes.frequency.needed > 0 && routes.risk.needed > 0);
+  const edgeNow = routes.edge.currentEdge;
+  ok('each route, applied, actually reaches the target on average',
+    Math.abs(pj.monthlyFromEdge(routes.edge.needed, 20, 1) - 10) < 0.05
+    && Math.abs(pj.monthlyFromEdge(edgeNow, routes.frequency.needed, 1) - 10) < 0.6
+    && Math.abs(pj.monthlyFromEdge(edgeNow, 20, routes.risk.needed) - 10) < 0.05,
+    `ventaja actual ${edgeNow}`);
+  // La lección entera del panel: los tres caminos llegan igual de lejos y NO
+  // cuestan lo mismo. El riesgo es la palanca fácil y la que puede echarte.
+  ok('raising risk hurts the drawdown far more than raising the edge',
+    routes.risk.outcome.drawdownP95 > routes.edge.outcome.drawdownP95 * 1.5,
+    `riesgo ${routes.risk.outcome.drawdownP95}% vs ventaja ${routes.edge.outcome.drawdownP95}%`);
+  ok('and it leaves many more months in the red',
+    routes.risk.outcome.redMonths > routes.edge.outcome.redMonths);
+  ok('a target that needs an impossible win rate is flagged, not faked',
+    pj.routesToTarget(analytics, {
+      overrides: { balance: 10000, riskPct: 0.1, trades: 240, tradesPerMonth: 5 },
+      targetMonthlyPct: 50,
+      iterations: 100,
+    }).edge.feasible === false);
+  ok('a target already reached says so instead of proposing routes',
+    pj.routesToTarget(analytics, {
+      overrides: { balance: 10000, riskPct: 1, trades: 240, tradesPerMonth: 20 },
+      targetMonthlyPct: 1,
+      iterations: 100,
+    }).alreadyThere === true);
+
+  // Sensibilidad: qué le pasa a la ventaja si cambia la decisión.
+  const sens = pj.sensitivity(45, 2);
+  ok('sensitivity is monotonic in win rate',
+    sens[0].expectancyR < sens[sens.length - 1].expectancyR);
+  ok('sensitivity clamps the win rate to a real percentage',
+    pj.sensitivity(95, 2, [10])[0].winRate === 100);
+}
+
+// ── Ajustes: este navegador contra la cuenta ────────────────────────────────
+// La sincronización decide qué copia de cada ajuste sobrevive. Equivocarse aquí
+// no da un número raro: borra los setups que el usuario escribió a mano. Por eso
+// las reglas viven en un módulo sin importaciones y se comprueban aquí.
+async function checkPrefsMerge() {
+  console.log('\nprefsMerge.js');
+  const { planMerge } = await imp('lib/prefsMerge.js');
+
+  const names = ['theme', 'tradingSystem'];
+  const resettable = { theme: false, tradingSystem: true };
+
+  // Lo más reciente gana, ajuste por ajuste. El tema es más nuevo aquí y el
+  // sistema es más nuevo en la cuenta: tienen que ganar uno cada uno, que es
+  // justo lo que una sola fecha por documento haría imposible.
+  const mixed = planMerge(
+    names,
+    { theme: 2000, tradingSystem: 1000 },
+    { theme: 'gold', tradingSystem: { setups: ['local'] } },
+    { theme: { at: 1500, value: 'crypto' }, tradingSystem: { at: 3000, value: { setups: ['remoto'] } } },
+    { resettable },
+  );
+  ok('el ajuste más reciente de cada lado gana por separado',
+    mixed.apply.tradingSystem?.setups[0] === 'remoto' && mixed.apply.theme === undefined);
+  ok('lo local más nuevo se sube con SU fecha, no con la de ahora',
+    mixed.push.theme?.at === 2000 && mixed.push.theme?.value === 'gold');
+
+  // Un ajuste que nadie ha tocado no es una preferencia y no debe subirse: si
+  // subiera, el valor por defecto de este equipo ganaría a la elección hecha en
+  // otro la próxima vez.
+  const untouched = planMerge(names, {}, { theme: 'dark', tradingSystem: {} }, {}, { resettable });
+  ok('un ajuste sin fecha local no se sube', Object.keys(untouched.push).length === 0);
+  ok('un ajuste sin fecha local tampoco marca fecha', Object.keys(untouched.stamps).length === 0);
+
+  // La cuenta gana el empate, y por eso conciliar dos veces no cambia nada.
+  const tie = planMerge(['theme'], { theme: 500 }, { theme: 'gold' },
+    { theme: { at: 500, value: 'forex' } }, { resettable });
+  ok('el empate lo gana la cuenta (conciliar es idempotente)', tie.apply.theme === 'forex');
+
+  // Dos cuentas en el mismo navegador: lo local es de otro y no compite.
+  const other = planMerge(
+    names,
+    { theme: 9_999_999, tradingSystem: 9_999_999 },
+    { theme: 'gold', tradingSystem: { setups: ['de otro'] } },
+    { theme: { at: 1, value: 'nasdaq' } },
+    { foreign: true, resettable },
+  );
+  ok('con el localStorage de otra cuenta manda la cuenta, por vieja que sea',
+    other.apply.theme === 'nasdaq');
+  ok('lo que la cuenta nueva no tiene se vacía, no se hereda',
+    other.reset.includes('tradingSystem'));
+  ok('los setups de otra cuenta NUNCA se suben a esta',
+    other.push.tradingSystem === undefined);
+  ok('lo que es pura apariencia no se resetea al entrar otra cuenta',
+    !other.reset.includes('theme'));
+
+  // Una fecha corrupta no puede ganar: valdría cualquier cosa menos un dato.
+  const corrupt = planMerge(['theme'], { theme: 100 }, { theme: 'gold' },
+    { theme: { at: 'ayer', value: 'crypto' } }, { resettable });
+  ok('una fecha ilegible en la cuenta pierde contra la local',
+    corrupt.push.theme?.value === 'gold');
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
   await checkTradingSystemModel();
+  await checkPrefsMerge();
+  await checkProjection();
+  await checkInstruments();
+  await checkScannerMeta();
   await checkOptionsEngine();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {

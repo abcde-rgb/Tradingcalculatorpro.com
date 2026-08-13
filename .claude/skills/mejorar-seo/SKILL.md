@@ -67,8 +67,28 @@ Validar: https://www.xml-sitemaps.com/validate-xml-sitemap.html
 4. **Prerender** de las rutas públicas (react-snap o migrar a SSG/Next) → los crawlers ven HTML
    completo sin esperar a React. Es la mayor palanca para un SPA.
 5. **Contenido**: la zona de Educación es el imán de tráfico; estructurar en URLs indexables,
-   encabezados H1/H2 claros, FAQ con schema `FAQPage`.
-6. **OG image real** y rich snippets (Product con precio para /pricing, Course para /education).
+   encabezados H1/H2 claros, y bloques de preguntas **visibles** (el schema `FAQPage` ya no
+   da resultado enriquecido — ver §5.bis; el bloque se mantiene por el usuario, no por el SERP).
+6. **OG image real** y rich snippets **vigentes**: `Offer` con precio para /pricing, `Course`
+   para /education, `BreadcrumbList`. **No** inviertas en `HowTo` ni `FAQPage`.
+
+## 5.bis Datos estructurados retirados (comprobado 2026-08-08)
+
+`HowTo` y `FAQPage` **ya no producen ningún resultado enriquecido**:
+
+- `HowTo` — fuera de móvil en agosto 2023 y de escritorio en septiembre 2023. Google
+  retiró hasta la documentación. El proyecto lo emite en **660 páginas** de estrategia.
+- `FAQPage` — restringido a webs gubernamentales/sanitarias en agosto 2023 y **suprimido
+  del todo el 7 de mayo de 2026**. Se emite en portada y en las fichas de `/markets/<id>/`.
+
+**No los borres**: siguen siendo Schema.org válido, Google los parsea para entender la
+página y no penalizan. Lo que no hay que hacer es invertir más esperando el formato visual.
+Detalle completo en [`docs/setup/SEO_GUIDE.md`](../../../docs/setup/SEO_GUIDE.md) §5.
+
+⚠️ **Contenido a escala.** El sitio ya genera ~1.589 URLs y es **YMYL** (finanzas). Generar
+más páginas a partir de listas de preguntas (AlsoAsked, AnswerThePublic, People Also Ask)
+es el patrón que persigue la política de *scaled content abuse* desde marzo de 2024. Usa
+esa investigación para **enriquecer páginas existentes**, no para crear nuevas.
 
 ## 6. Gotchas / trampas conocidas
 

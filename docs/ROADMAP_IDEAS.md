@@ -88,6 +88,54 @@
 | 7.3 | **Caché TTL de precios** (10-30 s) para reducir latencia y baneos de upstream | `stock_data` | S (back) |
 | 7.4 | **Sentimiento de noticias** por activo (titulares + tono) | nuevo + IA | M-L (full) |
 | 7.5 | **Mapa de calor de mercado** (sectores/cripto por % cambio) | nuevo endpoint | M (full) |
+| 7.6 | **Cadenas de opciones REALES** (proveedor de pago) → enciende `options_positioning` | `market_data` + `server` | M (back) · ver ↓ |
+
+### 7.6 — Datos reales de opciones (evaluado 2026-08-08, NO adoptado)
+
+**Qué desbloquea, y por qué es distinto de las demás ideas de esta lista:** no
+construye nada nuevo, **enciende algo ya escrito**. `options_positioning.py`
+—max pain, GEX, perfil de interés abierto, ratio put/call, liquidez por
+contrato— está terminado y con tests, y hoy devuelve **siempre `None`**. No es
+un bug: esas métricas se leen del interés abierto *observado*, y las cadenas del
+producto son sintéticas (`generate_options_chain` + `_synthetic_marker`), así
+que el `openInterest` es `None` y el módulo se calla a propósito. Un max pain
+inventado es indistinguible en pantalla de uno real.
+
+Con un feed real, el módulo empieza a devolver números, `synthetic` pasa a
+`false` y la banda de aviso desaparece sola en los cuatro sitios donde ya está
+montado `SyntheticDataBanner` (calculadora, cadena, superficie de IV,
+optimizador). No hay interfaz que escribir.
+
+**Candidato evaluado: EODHD.** 6.600+ acciones US, interés abierto, las cinco
+griegas, IV y 42+ campos por contrato; ~2,5 años de histórico desde Q4 2023.
+Desde **99,99 $/mes**, y **sólo opciones US**.
+
+**Cómo se integraría** (si algún día se hace):
+
+1. Un `Provider` nuevo en `market_data.py` — la capa ya tiene failover, caché y
+   circuit breakers, así que hay hueco limpio.
+2. Sustituir `generate_options_chain` por la cadena real **sólo cuando el
+   símbolo esté cubierto**, dejando la sintética como fallback **etiquetado**.
+   La regla de honestidad numérica no se toca: lo modelado sigue marcado.
+3. Nada más. `options_positioning` no necesita cambios: ya distingue observado
+   de modelado.
+
+**Por qué NO se adoptó ahora:** la pregunta es de negocio, no técnica —
+¿cuántos suscriptores operan opciones **americanas** y pagarían por
+posicionamiento real? El producto es multi-activo y multi-idioma; si la
+respuesta es "pocos", el módulo puede seguir callado sin que pase nada, que es
+exactamente para lo que está diseñado. Para precios normales (acciones, índices,
+materias primas) **no hace falta**: ya hay Yahoo → Finnhub → Twelve Data con
+failover, cripto con Binance + Kraken, forex del BCE y tipo libre de riesgo del
+Tesoro. Añadirlo ahí sería pagar por redundancia que ya existe gratis.
+
+> ⚠️ **No confundir con el MCP.** EODHD publica también un servidor MCP
+> (`claude mcp add eodhd --transport http "https://…/mcp?apikey=…"`). Eso conecta
+> el proveedor **al agente de desarrollo**, no al backend: sirve para que Claude
+> Code consulte datos mientras se programa, y **no integra nada en la app**. Si
+> se usa, tener en cuenta que la API key viaja **en la URL**, queda en la
+> configuración del MCP y las URLs acaban en logs — usar una clave de solo
+> lectura y acotada.
 
 ## 8. Producto, UX y "arte"
 

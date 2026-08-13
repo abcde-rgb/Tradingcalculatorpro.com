@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff, Settings2, Download, Loader2 } from 'lucide-react';
@@ -14,9 +14,10 @@ import { useAuthStore } from '@/lib/store';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import TwoFactorCard from '@/components/settings/TwoFactorCard';
+import PasskeysCard from '@/components/settings/PasskeysCard';
+import { useCloudPref } from '@/lib/cloudPrefs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const PREFS_KEY = 'tcp-preferences';
 
 export default function SettingsPage() {
   useSEO({ titleKey: 'seoSettingsTitle', descriptionKey: 'seoSettingsDesc', canonicalPath: '/settings', noindex: true });
@@ -59,19 +60,13 @@ export default function SettingsPage() {
   };
 
   // ── Preferences ──────────────────────────────────────────────────────────
-  const [prefs, setPrefs] = useState({ emailNotifications: true, compactMode: false });
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PREFS_KEY);
-      if (stored) setPrefs(JSON.parse(stored));
-    } catch (_) {}
-  }, []);
+  // Guardadas en la cuenta, no en el navegador: el aviso «preferencias
+  // guardadas» se enseñaba desde el principio, pero hasta ahora no salían de
+  // este equipo. `useCloudPref` escribe local y sube (ver `lib/cloudPrefs.js`).
+  const [prefs, setPrefs] = useCloudPref('settingsPrefs');
 
   const updatePref = (key, value) => {
-    const next = { ...prefs, [key]: value };
-    setPrefs(next);
-    localStorage.setItem(PREFS_KEY, JSON.stringify(next));
+    setPrefs((current) => ({ ...current, [key]: value }));
     toast.success(t('preferencesSavedToast'));
   };
 
@@ -406,6 +401,9 @@ export default function SettingsPage() {
             </div>
           )}
           {user?.auth_provider === 'password' && <TwoFactorCard />}
+
+          {/* Passkeys: para cualquier cuenta, también las de Google */}
+          <PasskeysCard />
 
           {/* Preferences Card */}
           <Card className="bg-card border-border">

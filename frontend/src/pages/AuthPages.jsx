@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+import PasskeyButton from '@/components/auth/PasskeyButton';
 import { motion } from 'framer-motion';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ function AuthShell({ children }) {
   const trust = [
     { icon: Shield, label: tr('authTrustEncrypted', 'Cifrado de extremo a extremo') },
     { icon: Zap,    label: tr('authTrustNoCard',    'Empieza gratis, sin tarjeta') },
-    { icon: Globe,  label: tr('authTrustLangs',     '8 idiomas') },
+    { icon: Globe,  label: tr('authTrustLangs',     '10 idiomas') },
   ];
   return (
     <div className="min-h-screen flex bg-background">
@@ -145,12 +146,12 @@ function AuthShell({ children }) {
           <div className="space-y-4">
             <div className="flex flex-wrap gap-x-5 gap-y-2">
               {trust.map(({ icon: Ic, label }) => (
-                <span key={label} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
+                <span key={label} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Ic className="w-3.5 h-3.5 text-primary/70" /> {label}
                 </span>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} TradingCalculator PRO
             </p>
           </div>
@@ -197,7 +198,7 @@ function AuthShell({ children }) {
 function SecureFooter() {
   const { t } = useTranslation();
   return (
-    <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70">
+    <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
       <Lock className="w-3 h-3" />
       {t('authSecureNote') || 'Conexión segura · Nunca compartimos tus datos'}
     </p>
@@ -379,6 +380,8 @@ export const LoginPage = () => {
               </div>
             )}
           </form>
+
+          <PasskeyButton />
 
           <GoogleSignInButton />
 

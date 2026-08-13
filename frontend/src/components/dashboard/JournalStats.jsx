@@ -59,12 +59,16 @@ export function JournalStats() {
       color: stats.totalPnl >= 0 ? 'text-green-500' : 'text-red-500',
       bgColor: stats.totalPnl >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'
     },
+    // profitFactor is null when there are no losses yet — gross profit over a
+    // zero divisor is undefined, not zero. Rendered as ∞ (same convention as
+    // the simulator) and coloured as the good case, because it IS the good
+    // case: a run with no losers used to be shown 0.00, the worst reading.
     {
       label: t('profitFactor'),
-      value: stats.profitFactor.toFixed(2),
+      value: stats.profitFactor == null ? '∞' : stats.profitFactor.toFixed(2),
       icon: BarChart3,
-      color: stats.profitFactor >= 1.5 ? 'text-green-500' : stats.profitFactor >= 1 ? 'text-yellow-500' : 'text-red-500',
-      bgColor: stats.profitFactor >= 1.5 ? 'bg-green-500/10' : stats.profitFactor >= 1 ? 'bg-yellow-500/10' : 'bg-red-500/10'
+      color: stats.profitFactor == null || stats.profitFactor >= 1.5 ? 'text-green-500' : stats.profitFactor >= 1 ? 'text-yellow-500' : 'text-red-500',
+      bgColor: stats.profitFactor == null || stats.profitFactor >= 1.5 ? 'bg-green-500/10' : stats.profitFactor >= 1 ? 'bg-yellow-500/10' : 'bg-red-500/10'
     },
     {
       label: t('expectancy'),
@@ -83,7 +87,11 @@ export function JournalStats() {
     {
       label: t('totalTrades'),
       value: stats.totalTrades,
-      sublabel: `${stats.wins}W / ${stats.losses}L`,
+      // Scratches are shown only when there are any: a trailing "/ 0BE" on
+      // every account would be noise, but hiding them when they exist would
+      // make W + L fail to add up to the total.
+      sublabel: `${stats.wins}W / ${stats.losses}L`
+        + (stats.breakeven ? ` / ${stats.breakeven}BE` : ''),
       icon: BarChart3,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10'

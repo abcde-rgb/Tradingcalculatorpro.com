@@ -293,3 +293,33 @@ def test_ladder_tells_the_client_when_a_candle_is_composed():
     rungs = {r["interval"]: r for r in tfm.ladder()}
     assert rungs["4h"]["aggregatedFrom"] == "1h"
     assert rungs["1h"]["aggregatedFrom"] is None
+
+
+# ---- Escalón superior (confluencia multi-temporal) -------------------------
+def test_every_higher_rung_exists_and_is_slower():
+    """Un escalón 'superior' que apunte a uno igual o más rápido no aporta
+    contexto: sería mirar la misma pregunta dos veces."""
+    for tf in tfm.TIMEFRAMES:
+        if tf.higher is None:
+            continue
+        up = tfm.BY_INTERVAL.get(tf.higher)
+        assert up is not None, f"{tf.interval} apunta a {tf.higher}, que no está en la escalera"
+        assert up.minutes > tf.minutes, f"{tf.interval} -> {tf.higher} no sube de temporalidad"
+
+
+def test_the_top_of_the_ladder_has_nothing_above_it():
+    """Y eso tiene que llegar al cliente como 'sin comprobar', no como
+    'comprobado y sin coincidencias'."""
+    assert tfm.higher("1mo") is None
+
+
+def test_higher_accepts_the_same_spellings_as_the_rest():
+    assert tfm.higher("H4").interval == tfm.higher("4h").interval
+    assert tfm.higher("banana") is None
+    assert tfm.higher(None) is None
+
+
+def test_ladder_publishes_the_higher_rung():
+    rungs = {r["interval"]: r for r in tfm.ladder()}
+    assert rungs["15m"]["higherInterval"] == "1h"
+    assert rungs["1mo"]["higherInterval"] is None

@@ -2,18 +2,26 @@
 /**
  * Regenera frontend/public/sitemap.xml con SOLO las rutas públicas e indexables.
  *
- * Excluidas a propósito: /dashboard y /subscription (premium/login), /login y
- * /register (utilidad, sin contenido), /settings y /admin (privadas).
+ * Excluidas a propósito: /dashboard, /performance y /subscription (premium tras
+ * login, y bloqueadas en robots.txt), /login y /register (utilidad, sin
+ * contenido), /settings y /admin (privadas).
  *
  * Uso:  node scripts/gen-sitemap.js
  *
- * ⚠️ DOMINIO: revisa `DOMAIN` — debe ser el dominio de producción real y coincidir
- * con el canonical de `src/hooks/useSEO.js`, `public/robots.txt` y el CORS del backend.
+ * ⚠️ DOMINIO: sale de `SITE_ORIGIN`, con el de GitHub Pages por defecto porque
+ * es el que sirve hoy (el workflow compila con PUBLIC_URL=/Tradingcalculatorpro.com
+ * y publica sin CNAME). NO lo cambies aquí suelto: el sitemap tiene que coincidir
+ * con el canonical de `src/hooks/useSEO.js`, el de `public/index.html`, el
+ * `Sitemap:` de `public/robots.txt`, `homepage` en package.json y el PUBLIC_URL
+ * del workflow. Un sitemap que anuncia un dominio y un canonical que apunta a
+ * otro es peor que no tener sitemap: Google descarta las URLs anunciadas.
+ * Checklist completo de la mudanza: docs/MIGRACION_DOMINIO.md
  */
 const fs = require('fs');
 const path = require('path');
 
-const DOMAIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DEFAULT_ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const LASTMOD = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 const LANGS = [['en', 'en'], ['de', 'de'], ['fr', 'fr'], ['ru', 'ru'], ['zh-CN', 'zh'], ['ja', 'ja'], ['ar', 'ar']];
 
@@ -23,7 +31,11 @@ const PAGES = [
   ['/options',            '0.9',  'weekly'],
   ['/options/strategies', '0.85', 'weekly'],
   ['/education',   '0.9',  'weekly'],
-  ['/performance', '0.9',  'weekly'],
+  // /performance NO va aquí: es una ruta premium (ProtectedRoute premiumOnly) y
+  // robots.txt la bloquea. Anunciarla en el sitemap mientras robots la prohíbe
+  // es una contradicción que Google marca en Search Console ("enviada pero
+  // bloqueada por robots.txt") y que resta autoridad al resto del sitemap. La
+  // referencia pública del diario, cuando exista, irá con ruta propia sin muro.
   ['/pricing',     '0.85', 'monthly'],
   ['/about',       '0.7',  'monthly'],
   ['/contact',     '0.6',  'monthly'],

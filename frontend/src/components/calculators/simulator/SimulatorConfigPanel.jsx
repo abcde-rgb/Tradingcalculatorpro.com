@@ -3,65 +3,59 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  FlaskConical, Play, Settings, ChevronDown, ChevronUp,
-  Layers, DollarSign, Activity,
+  FlaskConical, Play, ChevronDown, ChevronUp,
+  Layers, Percent, Scissors, TrendingUp, Lock,
 } from 'lucide-react';
+import SectionCard from '@/components/common/SectionCard';
+import PhaseCard from './PhaseCard';
 import { useTranslation } from '@/lib/i18n';
 
-/**
- * Configuration UI for SimulatorPro — global balance, capital-mode selector
- * and either per-phase (compound) or fixed-risk parameter sections.
- *
- * Controlled component: all state lives on the parent SimulatorPro so the
- * engine output stays in sync.
- */
-const STRATEGIES = [
-  { id: 'scalping',  nameKey: 'scalping' },
-  { id: 'daytrading', nameKey: 'daytrading' },
-  { id: 'swing',     nameKey: 'swing' },
-  { id: 'trend',     nameKey: 'trendFollowing' },
-  { id: 'breakout',  nameKey: 'breakout' },
-];
+const DEFAULT_LEGS = [{ r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 }];
 
+/**
+ * Configuración de SimulatorPro, ordenada POR IMPORTANCIA — el mismo patrón que
+ * el panel de opciones y el escáner de estructura:
+ *
+ *   1 modo  →  2 capital  →  3 config del modo activo  →  accesorio plegado  →  ejecutar
+ *
+ * El modo va PRIMERO porque decide todo lo que viene después: compuesto trabaja
+ * con fases, riesgo fijo con una cantidad por operación. Antes iba en tercer
+ * lugar, después de leer una caja de ayuda y el capital inicial, así que el
+ * usuario configuraba cosas antes de haber elegido de qué modo eran.
+ *
+ * Lo accesorio —costes y salidas parciales— va en `SectionCard` **plegado**, no
+ * como campos de primer nivel: son ajustes finos que la mayoría no toca, y
+ * ocupaban el mismo peso visual que la tasa de acierto.
+ *
+ * Componente controlado: el estado vive en `SimulatorPro`, agrupado por modo.
+ */
 export default function SimulatorConfigPanel({
   showConfig, setShowConfig,
   initialBalance, setInitialBalance,
   capitalMode, setCapitalMode,
-  // compound mode
-  totalPhases, setTotalPhases,
-  tradingComm, setTradingComm,
-  platformComm, setPlatformComm,
-  compoundInterest, setCompoundInterest,
-  phases, updatePhase, getOperationRange,
-  togglePhasePartial, updatePhaseLeg,
-  // fixed risk mode
-  fixedCapitalPerOp, setFixedCapitalPerOp,
-  fixedTotalOps, setFixedTotalOps,
-  fixedTakeProfit, setFixedTakeProfit,
-  fixedStopLoss, setFixedStopLoss,
-  fixedWinRate, setFixedWinRate,
-  fixedPartialTps, setFixedPartialTps,
-  fixedPartialLegs, updatePartialLeg,
-  fixedPartialCont, setFixedPartialCont,
-  // exec
+  costs, setCost,
+  compound,
+  fixed, setFixedField, updatePartialLeg,
   onExecute, isLoading,
 }) {
   const { t } = useTranslation();
+  const isCompound = capitalMode === 'compound';
+  const legs = Array.isArray(fixed.partialLegs) ? fixed.partialLegs : DEFAULT_LEGS;
 
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-              <FlaskConical className="w-4 h-4 text-cyan-500" />
-            </div>
-            {t('simulator')} - {t('phaseConfig')}
+            {/* Icono monocromo en el color de marca: el chip cian era un acento
+                fuera del sistema, y el sistema tiene un solo acento. */}
+            <FlaskConical className="w-5 h-5 text-primary" strokeWidth={1.5} />
+            {t('simulator')}
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => setShowConfig(!showConfig)}>
+          <Button variant="ghost" size="sm" onClick={() => setShowConfig(!showConfig)}
+                  aria-expanded={showConfig}>
             {showConfig ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </div>
@@ -69,346 +63,236 @@ export default function SimulatorConfigPanel({
 
       {showConfig && (
         <CardContent className="space-y-6">
-          {/* Info box */}
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-start gap-2">
-            <Activity className="w-4 h-4 text-primary mt-0.5" />
-            <p className="text-sm text-muted-foreground">{t('simulatorDescription')}</p>
-          </div>
+          <p className="text-sm text-muted-foreground">{t('simulatorDescription')}</p>
 
-          {/* Global Config: Initial Balance */}
-          <div className="space-y-4">
-            <h4 className="font-semibold flex items-center gap-2">
-              <Settings className="w-4 h-4 text-primary" /> {t('generalConfig')}
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm">{t('initialBalance')} (USD)</Label>
-                <Input
-                  type="number"
-                  value={initialBalance}
-                  onChange={(e) => setInitialBalance(parseFloat(e.target.value) || 0)}
-                  min={1}
-                  className="font-mono"
-                  data-testid="initial-balance"
-                />
-                <p className="text-xs text-muted-foreground">💡 {t('initialCapitalHint')}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Capital Mode Selector */}
+          {/* ── 1 · MODO. Va primero: decide todo lo demás. ─────────────── */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">{t('capitalMode')}</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Button
                 type="button"
-                variant={capitalMode === 'compound' ? 'default' : 'outline'}
+                variant={isCompound ? 'default' : 'outline'}
                 onClick={() => setCapitalMode('compound')}
-                className={`h-auto py-3 ${capitalMode === 'compound' ? 'bg-primary text-black' : ''}`}
+                className="h-auto py-3 justify-start"
                 data-testid="mode-compound"
               >
-                <div className="text-left w-full">
-                  <p className="font-semibold text-sm">📈 {t('compoundMode')}</p>
-                  <p className="text-xs opacity-80">{t('compoundModeDesc')}</p>
+                <div className="text-left w-full flex items-start gap-2">
+                  <TrendingUp className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-sm">{t('compoundMode')}</p>
+                    <p className="text-xs opacity-80 font-normal">{t('compoundModeDesc')}</p>
+                  </div>
                 </div>
               </Button>
               <Button
                 type="button"
-                variant={capitalMode === 'fixed' ? 'default' : 'outline'}
-                onClick={() => { setCapitalMode('fixed'); setCompoundInterest(false); }}
-                className={`h-auto py-3 ${capitalMode === 'fixed' ? 'bg-accent text-white' : ''}`}
+                variant={!isCompound ? 'default' : 'outline'}
+                onClick={() => { setCapitalMode('fixed'); compound.setCompoundInterest(false); }}
+                className="h-auto py-3 justify-start"
                 data-testid="mode-fixed"
               >
-                <div className="text-left w-full">
-                  <p className="font-semibold text-sm">🔒 {t('fixedRiskMode')}</p>
-                  <p className="text-xs opacity-80">{t('fixedRiskModeDesc')}</p>
+                <div className="text-left w-full flex items-start gap-2">
+                  <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-sm">{t('fixedRiskMode')}</p>
+                    <p className="text-xs opacity-80 font-normal">{t('fixedRiskModeDesc')}</p>
+                  </div>
                 </div>
               </Button>
             </div>
           </div>
 
-          {/* Compound settings */}
-          {capitalMode === 'compound' && (
-            <>
-              <div className="space-y-4">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-primary" /> {t('compoundConfig')}
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t('totalPhases')}</Label>
-                    <Input
-                      type="number"
-                      value={totalPhases}
-                      onChange={(e) => setTotalPhases(Math.min(10, Math.max(2, parseInt(e.target.value, 10) || 2)))}
-                      min={2} max={10}
-                      className="font-mono"
-                      data-testid="total-phases"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t('tradingCommission')} (%)</Label>
-                    <Input
-                      type="number"
-                      value={tradingComm}
-                      onChange={(e) => setTradingComm(parseFloat(e.target.value) || 0)}
-                      step={0.01} min={0}
-                      className="font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t('platformCommission')} (%)</Label>
-                    <Input
-                      type="number"
-                      value={platformComm}
-                      onChange={(e) => setPlatformComm(parseFloat(e.target.value) || 0)}
-                      step={0.01} min={0}
-                      className="font-mono"
-                    />
-                  </div>
-                </div>
+          {/* ── 2 · CAPITAL ────────────────────────────────────────────── */}
+          <div className="space-y-2 max-w-xs">
+            <Label className="text-sm">{t('initialBalance')} (USD)</Label>
+            <Input
+              type="number" value={initialBalance} min={1} className="font-mono"
+              onChange={(e) => setInitialBalance(parseFloat(e.target.value) || 0)}
+              data-testid="initial-balance"
+            />
+            <p className="text-xs text-muted-foreground">{t('initialCapitalHint')}</p>
+          </div>
 
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="compound"
-                    checked={compoundInterest}
-                    onCheckedChange={setCompoundInterest}
+          {/* ── 3 · CONFIGURACIÓN DEL MODO ACTIVO ──────────────────────── */}
+          {isCompound ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
+                <div className="space-y-2">
+                  <Label className="text-sm">{t('totalPhases')}</Label>
+                  <Input
+                    type="number" value={compound.totalPhases} min={2} max={10} className="font-mono"
+                    onChange={(e) => compound.setTotalPhases(
+                      Math.min(10, Math.max(2, parseInt(e.target.value, 10) || 2)))}
+                    data-testid="total-phases"
                   />
-                  <Label htmlFor="compound" className="text-sm cursor-pointer">
-                    💰 {t('compoundInterest')}
-                  </Label>
+                </div>
+                <div className="flex items-end pb-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      id="compound-interest"
+                      checked={compound.compoundInterest}
+                      onCheckedChange={compound.setCompoundInterest}
+                    />
+                    <span className="text-sm">{t('compoundInterest')}</span>
+                  </label>
                 </div>
               </div>
 
-              {/* Phase cards grid */}
-              <div className="space-y-4">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-primary" /> {t('phaseConfig')}
+              <div className="space-y-3">
+                <h4 className="font-semibold flex items-center gap-2 text-sm">
+                  <Layers className="w-4 h-4 text-primary" strokeWidth={1.5} /> {t('phaseConfig')}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {phases.map((phase, idx) => {
-                    const range = getOperationRange(idx);
-                    const capitalPerOp = (initialBalance * (phase.posSize / 100)).toFixed(2);
-                    return (
-                      <Card key={phase.id || `phase-${idx}`} className="bg-muted/30 border-border">
-                        <CardContent className="p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h5 className="font-semibold text-sm">{t('phase')} {idx + 1}</h5>
-                          </div>
-                          <div className="text-xs px-2 py-1.5 rounded bg-primary/10 text-primary">
-                            {t('operations')}: {range.start} {t('to')} {range.end}
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                              <Label className="text-[10px]">{t('operations')}</Label>
-                              <Input
-                                type="number"
-                                value={phase.numOps}
-                                onChange={(e) => updatePhase(idx, 'numOps', parseInt(e.target.value, 10) || 30)}
-                                min={1} max={200}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-[10px]">{t('positionSizePercent')}</Label>
-                              <Input
-                                type="number"
-                                value={phase.posSize}
-                                onChange={(e) => updatePhase(idx, 'posSize', parseFloat(e.target.value) || 5)}
-                                step={0.5} min={0.1} max={100}
-                                className="h-8 text-sm"
-                              />
-                              <span className="text-[10px] text-muted-foreground">${capitalPerOp}/op</span>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-[10px]">{t('takeProfit')} %</Label>
-                              <Input
-                                type="number"
-                                value={phase.tp}
-                                onChange={(e) => updatePhase(idx, 'tp', parseFloat(e.target.value) || 2)}
-                                step={0.1} min={0.1}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-[10px]">{t('stopLoss')} %</Label>
-                              <Input
-                                type="number"
-                                value={phase.sl}
-                                onChange={(e) => updatePhase(idx, 'sl', parseFloat(e.target.value) || 1)}
-                                step={0.1} min={0.1}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-[10px]">{t('winRate')}</Label>
-                              <span className="text-xs font-semibold text-primary">{phase.winRate}%</span>
-                            </div>
-                            <Slider
-                              value={[phase.winRate]}
-                              onValueChange={(v) => updatePhase(idx, 'winRate', v[0])}
-                              min={1} max={100} step={1}
-                              className="h-2"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[10px]">{t('strategy')}</Label>
-                            <Select
-                              value={phase.strategy}
-                              onValueChange={(v) => updatePhase(idx, 'strategy', v)}
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {STRATEGIES.map((s) => (
-                                  <SelectItem key={s.id} value={s.id} className="text-xs">
-                                    {t(s.nameKey)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* Per-phase partial take-profits */}
-                          <div className="space-y-2 border-t border-border pt-2">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <Checkbox
-                                checked={!!phase.partialTps}
-                                onCheckedChange={(v) => togglePhasePartial(idx, !!v)}
-                                data-testid={`phase-partial-toggle-${idx}`}
-                              />
-                              <span className="text-[11px] font-semibold">{t('simPartialTps')}</span>
-                            </label>
-                            {phase.partialTps && (
-                              <div className="space-y-1.5" data-testid={`phase-partial-config-${idx}`}>
-                                <div className="grid grid-cols-[auto_1fr_1fr] gap-1.5 text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">
-                                  <span className="w-7" /><span>{t('takeProfit')} %</span><span>{t('pxcClosePct')}</span>
-                                </div>
-                                {(phase.legs || [{ r: 1, pct: 50 }, { r: 2, pct: 30 }, { r: 3, pct: 20 }]).map((leg, li) => (
-                                  <div key={li} className="grid grid-cols-[auto_1fr_1fr] gap-1.5 items-center">
-                                    <span className="text-[10px] font-mono text-muted-foreground w-7">TP{li + 1}</span>
-                                    <Input type="number" value={leg.r} step={0.1} min={0.1}
-                                           onChange={(e) => updatePhaseLeg(idx, li, 'r', e.target.value)} className="h-7 text-xs" />
-                                    <Input type="number" value={leg.pct} step={5} min={0} max={100}
-                                           onChange={(e) => updatePhaseLeg(idx, li, 'pct', e.target.value)} className="h-7 text-xs" />
-                                  </div>
-                                ))}
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px] text-muted-foreground flex-1">{t('simContinuation')}</span>
-                                  <Input type="number" value={phase.cont ?? 60} step={5} min={0} max={100}
-                                         onChange={(e) => updatePhase(idx, 'cont', parseFloat(e.target.value) || 0)}
-                                         className="h-7 text-xs w-16" />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                  {compound.phases.map((phase, idx) => (
+                    <PhaseCard
+                      key={phase.id || `phase-${idx}`}
+                      phase={phase}
+                      index={idx}
+                      range={compound.getOperationRange(idx)}
+                      capitalPerOp={(initialBalance * (phase.posSize / 100)).toFixed(2)}
+                      updatePhase={compound.updatePhase}
+                      togglePhasePartial={compound.togglePhasePartial}
+                      updatePhaseLeg={compound.updatePhaseLeg}
+                    />
+                  ))}
                 </div>
               </div>
-            </>
-          )}
-
-          {/* Fixed-risk settings */}
-          {capitalMode === 'fixed' && (
-            <div className="space-y-4">
-              <h4 className="font-semibold flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-accent" /> {t('fixedRiskConfig')}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">{t('fixedCapitalPerOp')} (USD)</Label>
-                  <Input
-                    type="number"
-                    value={fixedCapitalPerOp}
-                    onChange={(e) => setFixedCapitalPerOp(parseFloat(e.target.value) || 100)}
-                    min={1}
-                    className="font-mono"
-                    placeholder="100"
-                  />
-                  <p className="text-xs text-muted-foreground">💡 {t('fixedCapitalHint')}</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">{t('totalOperationsNumber')}</Label>
-                  <Input
-                    type="number"
-                    value={fixedTotalOps}
-                    onChange={(e) => setFixedTotalOps(parseInt(e.target.value, 10) || 100)}
-                    min={1} max={1000}
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">{t('takeProfit')} (%)</Label>
-                  <Input
-                    type="number"
-                    value={fixedTakeProfit}
-                    onChange={(e) => setFixedTakeProfit(parseFloat(e.target.value) || 2)}
-                    min={0.1} step={0.1}
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">{t('stopLoss')} (%)</Label>
-                  <Input
-                    type="number"
-                    value={fixedStopLoss}
-                    onChange={(e) => setFixedStopLoss(parseFloat(e.target.value) || 1)}
-                    min={0.1} step={0.1}
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-sm">{t('winRate')}: {fixedWinRate}%</Label>
-                  <Slider
-                    value={[fixedWinRate]}
-                    onValueChange={(val) => setFixedWinRate(val[0])}
-                    min={1} max={100} step={1}
-                    className="py-2"
-                  />
-                </div>
-
-                {/* Partial take-profits (scale-out) */}
-                <div className="space-y-3 md:col-span-2 border-t border-border pt-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox checked={fixedPartialTps} onCheckedChange={(v) => setFixedPartialTps(!!v)} data-testid="sim-partial-toggle" />
-                    <span className="text-sm font-semibold">{t('simPartialTps')}</span>
-                  </label>
-                  {fixedPartialTps && (
-                    <div className="space-y-3 pl-1" data-testid="sim-partial-config">
-                      <p className="text-xs text-muted-foreground">{t('simPartialHint')}</p>
-                      <div className="grid grid-cols-[auto_1fr_1fr] gap-2 items-center text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                        <span className="w-8" />
-                        <span>{t('takeProfit')} (%)</span>
-                        <span>{t('pxcClosePct')}</span>
-                      </div>
-                      {(fixedPartialLegs || []).map((leg, i) => (
-                        <div key={i} className="grid grid-cols-[auto_1fr_1fr] gap-2 items-center">
-                          <span className="text-xs font-mono text-muted-foreground w-8">TP{i + 1}</span>
-                          <Input type="number" value={leg.r} min={0.1} step={0.1}
-                                 onChange={(e) => updatePartialLeg(i, 'r', e.target.value)} className="font-mono h-8" />
-                          <Input type="number" value={leg.pct} min={0} max={100} step={5}
-                                 onChange={(e) => updatePartialLeg(i, 'pct', e.target.value)} className="font-mono h-8" />
-                        </div>
-                      ))}
-                      <div className="space-y-1 pt-1">
-                        <Label className="text-sm">{t('simContinuation')}: {fixedPartialCont}%</Label>
-                        <Slider value={[fixedPartialCont]} onValueChange={(v) => setFixedPartialCont(v[0])}
-                                min={0} max={100} step={5} className="py-2" />
-                      </div>
-                      <p className="text-[11px] text-muted-foreground/80 leading-relaxed">{t('simPartialNote')}</p>
-                    </div>
-                  )}
-                </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">{t('fixedCapitalPerOp')} (USD)</Label>
+                <Input
+                  type="number" value={fixed.capitalPerOp} min={1} className="font-mono"
+                  onChange={(e) => setFixedField('capitalPerOp', parseFloat(e.target.value) || 100)}
+                />
+                <p className="text-xs text-muted-foreground">{t('fixedCapitalHint')}</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">{t('totalOperationsNumber')}</Label>
+                <Input
+                  type="number" value={fixed.totalOps} min={1} max={1000} className="font-mono"
+                  onChange={(e) => setFixedField('totalOps', parseInt(e.target.value, 10) || 100)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">{t('takeProfit')} (%)</Label>
+                <Input
+                  type="number" value={fixed.takeProfit} min={0.1} step={0.1} className="font-mono"
+                  onChange={(e) => setFixedField('takeProfit', parseFloat(e.target.value) || 2)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">{t('stopLoss')} (%)</Label>
+                <Input
+                  type="number" value={fixed.stopLoss} min={0.1} step={0.1} className="font-mono"
+                  onChange={(e) => setFixedField('stopLoss', parseFloat(e.target.value) || 1)}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-sm">
+                  {t('winRate')}: <span className="tabular-nums">{fixed.winRate}%</span>
+                </Label>
+                <Slider
+                  value={[fixed.winRate]} min={1} max={100} step={1} className="py-2"
+                  onValueChange={(v) => setFixedField('winRate', v[0])}
+                />
               </div>
             </div>
           )}
 
+          {/* ── ACCESORIO, PLEGADO ─────────────────────────────────────── */}
+
+          {/* Salidas parciales del modo fijo. En compuesto son por fase y viven
+              dentro de cada `PhaseCard`, así que esta sección sólo aplica aquí. */}
+          {!isCompound && (
+            <SectionCard
+              icon={<Scissors className="w-4 h-4" />}
+              title={t('simPartialTps')}
+              subtitle={t('simPartialHint')}
+              badge={fixed.partialTps
+                ? <span className="text-[10px] text-primary font-semibold">ON</span>
+                : null}
+              testid="sim-partial-section"
+            >
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={fixed.partialTps}
+                    onCheckedChange={(v) => setFixedField('partialTps', !!v)}
+                    data-testid="sim-partial-toggle"
+                  />
+                  <span className="text-sm font-semibold">{t('simPartialTps')}</span>
+                </label>
+
+                {fixed.partialTps && (
+                  <div className="space-y-3" data-testid="sim-partial-config">
+                    <div className="grid grid-cols-[auto_1fr_1fr] gap-2 items-center text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      <span className="w-8" />
+                      <span>{t('takeProfit')} (%)</span>
+                      <span>{t('pxcClosePct')}</span>
+                    </div>
+                    {legs.map((leg, i) => (
+                      <div key={i} className="grid grid-cols-[auto_1fr_1fr] gap-2 items-center">
+                        <span className="text-xs font-mono text-muted-foreground w-8">TP{i + 1}</span>
+                        <Input type="number" value={leg.r} min={0.1} step={0.1} className="font-mono h-8"
+                               onChange={(e) => updatePartialLeg(i, 'r', e.target.value)} />
+                        <Input type="number" value={leg.pct} min={0} max={100} step={5} className="font-mono h-8"
+                               onChange={(e) => updatePartialLeg(i, 'pct', e.target.value)} />
+                      </div>
+                    ))}
+                    <div className="space-y-1 pt-1">
+                      <Label className="text-sm">
+                        {t('simContinuation')}: <span className="tabular-nums">{fixed.partialCont}%</span>
+                      </Label>
+                      <Slider
+                        value={[fixed.partialCont]} min={0} max={100} step={5} className="py-2"
+                        onValueChange={(v) => setFixedField('partialCont', v[0])}
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{t('simPartialNote')}</p>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Costes: aplican en LOS DOS modos. Estaban dentro del bloque de
+              compuesto, así que en riesgo fijo se cobraban sin poder verlos ni
+              cambiarlos — el motor mete `(trading + platform)/100` en
+              `totalCommRate` sin mirar el modo. */}
+          <SectionCard
+            icon={<Percent className="w-4 h-4" />}
+            title={t('tradingCommission')}
+            subtitle={t('simCostsSubtitle')}
+            badge={
+              <span className="text-[10px] text-muted-foreground tabular-nums">
+                {(Number(costs.trading) + Number(costs.platform)).toFixed(2)}%
+              </span>
+            }
+            testid="sim-costs-section"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">{t('tradingCommission')} (%)</Label>
+                <Input
+                  type="number" value={costs.trading} step={0.01} min={0} className="font-mono"
+                  onChange={(e) => setCost('trading', e.target.value)}
+                  data-testid="sim-trading-comm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">{t('platformCommission')} (%)</Label>
+                <Input
+                  type="number" value={costs.platform} step={0.01} min={0} className="font-mono"
+                  onChange={(e) => setCost('platform', e.target.value)}
+                  data-testid="sim-platform-comm"
+                />
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* ── EJECUTAR ───────────────────────────────────────────────── */}
           <Button
             onClick={onExecute}
             className="w-full gap-2 h-12 text-lg"
@@ -416,7 +300,7 @@ export default function SimulatorConfigPanel({
             data-testid="execute-simulation-btn"
           >
             <Play className="w-5 h-5" />
-            {isLoading ? t('executing') : `▶ ${t('executeSimulation')}`}
+            {isLoading ? t('executing') : t('executeSimulation')}
           </Button>
         </CardContent>
       )}

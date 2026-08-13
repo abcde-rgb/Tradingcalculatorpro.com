@@ -13,6 +13,7 @@ from price_action import (  # noqa: E402
     detect_swings, label_structure, detect_structure_events,
     detect_sr_levels, detect_fvgs, detect_structure, detect_breakouts,
     auto_tolerance, annotate_levels, annotate_events,
+    cluster_repeated_events, scan_levels, apply_confluence, summarise_context,
 )
 
 
@@ -522,6 +523,218 @@ def test_fvg_detection_is_linear_enough_for_intraday_series():
     t0 = _t.perf_counter()
     detect_fvgs(rows)
     assert _t.perf_counter() - t0 < 1.0
+
+
+# ---- Session gaps: an overnight jump is not an intraday imbalance ----------
+def _bar(o, h, lo, c, ts):
+    return {"date": f"t{ts}", "ts": ts, "open": o, "high": h, "low": lo, "close": c}
+
+
+def _intraday_series_with_overnight_gap():
+    """Five-minute bars: a flat morning, then the market closes and reopens
+    17 hours later far above. The reopen satisfies the 3-candle FVG test."""
+    t = 1_700_000_000
+    rows = [_bar(100, 100.2, 99.8, 100, t + i * 300) for i in range(6)]
+    night = t + 5 * 300 + 17 * 3600
+    rows.append(_bar(110, 110.5, 109.8, 110, night))            # reopen, way above
+    rows.append(_bar(110, 110.6, 109.9, 110.2, night + 300))
+    rows.append(_bar(110.2, 110.8, 110, 110.5, night + 600))
+    return rows
+
+
+def test_an_overnight_reopen_is_flagged_as_a_session_gap():
+    """In stocks the close→open jump passes the FVG test every single night.
+    It is the market being shut, not an imbalance somebody left behind."""
+    fvgs = detect_fvgs(_intraday_series_with_overnight_gap())
+    gapped = [g for g in fvgs if g["sessionGap"]]
+    assert gapped, "the overnight gap should have been detected and flagged"
+    assert all(g["direction"] == "bullish" for g in gapped)
+
+
+def test_session_gaps_do_not_inflate_the_open_imbalance_count():
+    res = detect_structure(_intraday_series_with_overnight_gap(), strength=1)
+    counts = res["counts"]
+    assert counts["fvgSessionGap"] >= 1
+    # Every gap in this series is the overnight one, so nothing counts as open.
+    assert counts["fvgOpen"] == 0
+    # Flagged, not deleted: the price gap is real and still listed.
+    assert any(g["sessionGap"] for g in res["fvgs"])
+
+
+def test_without_timestamps_nothing_is_claimed_about_sessions():
+    """No `ts` = no way to know. The flag is False (unknown), never a guess."""
+    rows = [
+        _row(9, 10, 9, 10),
+        _row(10, 13, 10, 13),
+        _row(13, 14, 12, 13),
+    ]
+    assert detect_fvgs(rows)[0]["sessionGap"] is False
+
+
+def test_a_weekend_on_daily_bars_is_not_a_session_gap():
+    """On daily candles a Friday→Monday jump IS a gap traders trade. The
+    session filter is intraday-only, or it would erase real daily gaps."""
+    day = 86400
+    t = 1_700_000_000
+    rows = [
+        _bar(9, 10, 9, 10, t),                 # Friday
+        _bar(10, 13, 10, 13, t + 3 * day),     # Monday (weekend in between)
+        _bar(13, 14, 12, 13, t + 4 * day),
+    ]
+    assert detect_fvgs(rows)[0]["sessionGap"] is False
+
+
+# ---- Repeated breaks over the same level -----------------------------------
+def test_three_breaks_of_the_same_level_are_numbered_not_multiplied():
+    """Three crossings of one swing high are three real events, but they are
+    not three independent pieces of evidence — they are one level not holding."""
+    events = [
+        {"index": 5, "price": 100.0, "kind": "BOS", "direction": "bullish"},
+        {"index": 20, "price": 100.3, "kind": "BOS", "direction": "bullish"},
+        {"index": 40, "price": 99.8, "kind": "BOS", "direction": "bullish"},
+    ]
+    cluster_repeated_events(events, tolerance=0.01)
+    assert [e["repeat"] for e in events] == [1, 2, 3]
+    assert {e["repeatOf"] for e in events} == {5}
+
+
+def test_the_other_direction_is_a_different_group():
+    events = [
+        {"index": 5, "price": 100.0, "kind": "BOS", "direction": "bullish"},
+        {"index": 9, "price": 100.0, "kind": "BOS", "direction": "bearish"},
+    ]
+    cluster_repeated_events(events, tolerance=0.01)
+    assert [e["repeat"] for e in events] == [1, 1]
+
+
+def test_a_far_away_level_is_not_the_same_level():
+    events = [
+        {"index": 5, "price": 100.0, "kind": "BOS", "direction": "bullish"},
+        {"index": 9, "price": 140.0, "kind": "BOS", "direction": "bullish"},
+    ]
+    cluster_repeated_events(events, tolerance=0.01)
+    assert [e["repeat"] for e in events] == [1, 1]
+
+
+# ---- Levels are zones, and distance is also measured in ATR ----------------
+def _series_with_a_level_at(price, n=40):
+    """A series that keeps turning around `price` so a level forms there."""
+    rows = []
+    for i in range(n):
+        if i % 4 == 0:
+            rows.append(_row(price - 1, price, price - 2, price - 1))   # touches it
+        else:
+            rows.append(_row(price - 3, price - 2, price - 4, price - 3))
+    return rows
+
+
+def test_a_level_publishes_the_band_it_was_clustered_with():
+    """A level is a band, not a line. Publishing it is what lets the chart draw
+    a zone instead of implying a precision the method does not have."""
+    swings = [
+        {"index": 1, "price": 100.0, "type": "high"},
+        {"index": 2, "price": 100.4, "type": "high"},
+    ]
+    lv = detect_sr_levels(swings, tolerance=0.01, current_price=90.0)[0]
+    assert lv["zone"]["low"] < lv["price"] < lv["zone"]["high"]
+    assert round(lv["zone"]["high"] / lv["price"], 4) == 1.01
+
+
+def test_distance_is_also_reported_in_atr():
+    """Percentages alone do not travel between instruments: 1% is nothing on
+    one chart and three days of range on another."""
+    res = detect_structure(_series_with_a_level_at(100.0), strength=1)
+    assert res["levels"], "expected some levels on this series"
+    assert all(isinstance(lv["distanceAtr"], float) for lv in res["levels"])
+
+
+# ---- Context: where price sits between the two levels that matter ----------
+def test_range_position_says_where_between_the_levels_price_is():
+    ctx = summarise_context(110.0, {"price": 120.0}, {"price": 100.0}, atr=5.0)
+    assert ctx["rangePositionPct"] == 50.0
+    assert ctx["roomAbovePct"] == round(10 / 110 * 100, 2)
+    assert ctx["roomAboveAtr"] == 2.0 and ctx["roomBelowAtr"] == 2.0
+
+
+def test_missing_room_is_none_not_zero():
+    """With no level above, the room above is undefined. Printing 0% would read
+    as 'resistance right here' — the opposite of the truth."""
+    ctx = summarise_context(110.0, None, {"price": 100.0}, atr=5.0)
+    assert ctx["roomAbovePct"] is None and ctx["roomAboveAtr"] is None
+    assert ctx["rangePositionPct"] is None
+    assert ctx["roomBelowPct"] is not None
+
+
+def test_context_travels_in_the_full_read():
+    highs = [10, 11, 12, 15, 12, 11, 9, 7, 9, 11, 13, 10, 8, 6, 9, 12, 14, 11, 9, 12]
+    rows = [_row(h, h + 0.4, h - 0.4, h) for h in highs]
+    res = detect_structure(rows, strength=2)
+    assert set(res["context"]) == {
+        "roomAbovePct", "roomBelowPct", "roomAboveAtr", "roomBelowAtr",
+        "rangeWidthPct", "rangePositionPct",
+    }
+
+
+# ---- Multi-timeframe confluence --------------------------------------------
+def test_a_level_the_higher_timeframe_also_has_is_marked():
+    rows = _series_with_a_level_at(100.0)
+    res = detect_structure(rows, strength=1)
+    htf_levels = [{"price": res["levels"][0]["price"], "touches": 7, "type": "resistance"}]
+    apply_confluence(res, htf_levels, "1d")
+    assert res["levels"][0]["confluence"]["interval"] == "1d"
+    assert res["confluence"]["checked"] is True
+    assert res["counts"]["confluent"] == 1
+
+
+def test_a_higher_timeframe_level_somewhere_else_marks_nothing():
+    rows = _series_with_a_level_at(100.0)
+    res = detect_structure(rows, strength=1)
+    apply_confluence(res, [{"price": 500.0, "touches": 9, "type": "resistance"}], "1d")
+    assert all(lv["confluence"] is None for lv in res["levels"])
+    assert res["confluence"]["checked"] is True
+    assert res["counts"]["confluent"] == 0
+
+
+def test_unchecked_confluence_is_unknown_not_zero():
+    """No higher-timeframe read is NOT 'checked and found nothing'. Zero would
+    say the bigger chart disagrees; the truth is that nobody asked it."""
+    rows = _series_with_a_level_at(100.0)
+    res = detect_structure(rows, strength=1)
+    assert res["confluence"]["checked"] is False
+    assert res["counts"]["confluent"] is None
+
+
+def test_confluence_does_not_touch_the_confirmation_score():
+    """The score measures how the level behaved in the bars scanned. A match on
+    another chart is a different fact and gets its own flag."""
+    rows = _series_with_a_level_at(100.0)
+    res = detect_structure(rows, strength=1)
+    before = [lv["confirmation"]["score"] for lv in res["levels"]]
+    apply_confluence(res, [{"price": lv["price"], "touches": 5, "type": lv["type"]}
+                           for lv in res["levels"]], "1d")
+    assert [lv["confirmation"]["score"] for lv in res["levels"]] == before
+
+
+def test_the_nearest_levels_carry_the_confluence_mark_too():
+    """`nearestResistance` / `nearestSupport` are the same objects as in
+    `levels`; if they were copies the badge would vanish from the headline."""
+    rows = _series_with_a_level_at(100.0)
+    res = detect_structure(rows, strength=1)
+    target = res["nearestResistance"] or res["nearestSupport"]
+    if target is None:
+        return
+    apply_confluence(res, [{"price": target["price"], "touches": 4, "type": target["type"]}], "1wk")
+    assert target["confluence"] is not None
+
+
+def test_scan_levels_is_the_cheap_read_without_evidence():
+    """The higher-timeframe pass only needs WHERE the levels are; the per-bar
+    evidence is the expensive half and is not computed for it."""
+    rows = _series_with_a_level_at(100.0)
+    levels = scan_levels(rows, strength=1)
+    assert levels, "expected levels on this series"
+    assert all("confirmation" not in lv for lv in levels)
+    assert scan_levels([], strength=1) == []
 
 
 if __name__ == "__main__":

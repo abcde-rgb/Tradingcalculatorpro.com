@@ -22,7 +22,6 @@ import { EconomicCalendar } from '@/components/dashboard/EconomicCalendar';
 import { NextDataCountdown } from '@/components/dashboard/NextDataCountdown';
 import { SpeakersWatch } from '@/components/dashboard/SpeakersWatch';
 import { TargetMeasurementTool } from '@/components/tools/TargetMeasurementTool';
-import ToolMap from '@/components/dashboard/ToolMap';
 import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
 import { CalculationHistory } from '@/components/dashboard/CalculationHistory';
@@ -33,11 +32,13 @@ import { useIsPremium } from '@/lib/premium';
 import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { useSEO } from '@/hooks/useSEO';
+import { useCloudPref } from '@/lib/cloudPrefs';
 import OnboardingModal from '@/components/common/OnboardingModal';
 import {
-  Calculator, Target, FlaskConical, Star, Clock, LayoutGrid,
+  Calculator, Target, FlaskConical, Star, Clock, Search,
   BookOpen, Scale, TrendingUp, DollarSign, BarChart3
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -51,9 +52,6 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const isPremium = useIsPremium();
   const [activeTab, setActiveTab] = useState('position');
-  // El mapa se abre por encima de la herramienta activa, no la sustituye:
-  // al cerrarlo vuelves donde estabas.
-  const [showToolMap, setShowToolMap] = useState(false);
   const [searchParams] = useSearchParams();
 
   // Calculator workstation — 12 tools grouped by function, broker-terminal
@@ -79,37 +77,48 @@ export default function DashboardPage() {
     { id: 'sim', label: t('calcCatSim'), Icon: FlaskConical, items: [
       { value: 'montecarlo', label: t('monteCarlo'), descKey: 'calcDescMontecarlo' },
       { value: 'simulator', label: t('simulator'), descKey: 'calcDescSimulator' },
+      // `cmpTitle` la usa la tabla de estilos de la Academia
+      // (`TradingStylesCompare`); el prefijo `cmp` valía para «comparar» y para
+      // «compound», y el título de aquélla se estaba colando aquí.
       { value: 'compound', label: t('cmpCalcTitle'), descKey: 'calcDescCompound' },
     ]},
   ];
   const activeCalcGroup = CALC_NAV.find(g => g.items.some(it => it.value === activeTab)) || CALC_NAV[0];
   const ALL_CALC_TOOLS = CALC_NAV.flatMap(g => g.items);
 
-  // Quick access: starred favourites + auto-tracked recents (localStorage).
-  const [calcFavs, setCalcFavs] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tcp-calc-favs') || '[]'); } catch { return []; }
-  });
-  const [calcRecents, setCalcRecents] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tcp-calc-recents') || '[]'); } catch { return []; }
-  });
+  // Quick access: starred favourites + auto-tracked recents. Van con la cuenta,
+  // así que las calculadoras que fijaste en el ordenador ya están arriba en el
+  // móvil (ver `lib/cloudPrefs.js`).
+  const [calcFavs, setCalcFavs] = useCloudPref('calcFavorites');
+  const [calcRecents, setCalcRecents] = useCloudPref('calcRecents');
   useEffect(() => {
-    setCalcRecents(prev => {
-      const next = [activeTab, ...prev.filter(v => v !== activeTab)].slice(0, 4);
-      try { localStorage.setItem('tcp-calc-recents', JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }, [activeTab]);
+    setCalcRecents(prev => [activeTab, ...prev.filter(v => v !== activeTab)].slice(0, 4));
+  }, [activeTab, setCalcRecents]);
   const toggleCalcFav = (value) => {
-    setCalcFavs(prev => {
-      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value].slice(0, 6);
-      try { localStorage.setItem('tcp-calc-favs', JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setCalcFavs(prev => (prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value].slice(0, 6)));
   };
   const quickAccess = [
     ...calcFavs.map(v => ({ value: v, fav: true })),
     ...calcRecents.filter(v => !calcFavs.includes(v) && v !== activeTab).map(v => ({ value: v, fav: false })),
   ].filter(q => ALL_CALC_TOOLS.some(it => it.value === q.value)).slice(0, 6);
+
+  // Filtro de la barra lateral. Con 14 herramientas repartidas en 4 grupos, leer
+  // la lista entera cuesta más que teclear tres letras — el mismo motivo por el
+  // que la barra de la Academia lleva buscador.
+  const [calcQuery, setCalcQuery] = useState('');
+  // `idx` es la posición en el índice COMPLETO, no en el resultado filtrado: el
+  // número identifica al grupo, así que «Análisis técnico» es el 03 tanto si se
+  // ve la lista entera como si es lo único que ha sobrevivido a la búsqueda.
+  // `total` es el tamaño real del grupo por el mismo motivo.
+  const calcNavFiltered = CALC_NAV
+    .map((g, i) => ({
+      ...g,
+      idx: i,
+      total: g.items.length,
+      items: g.items.filter(it =>
+        !calcQuery || it.label.toLowerCase().includes(calcQuery.trim().toLowerCase())),
+    }))
+    .filter(g => g.items.length > 0);
 
   useSEO({
     titleKey: 'seoDashboardTitle',
@@ -285,75 +294,139 @@ export default function DashboardPage() {
           <div className="space-y-6">
             {/* Calculator workstation — 12 tools grouped by function, one accent */}
             <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.06, ease: 'easeOut' }}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <div className="rounded-xl border border-border bg-card p-3 md:p-4 space-y-3" data-testid="calc-workstation">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <h2 className="font-unbounded text-base md:text-lg font-bold flex items-center gap-2">
-                    <Calculator className="w-4 h-4 text-primary" />
-                    {t('calcWorkstationTitle')}
-                  </h2>
-                  <span className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono" data-testid="calc-breadcrumb">
-                    {activeCalcGroup.label}
-                    <span className="opacity-50">/</span>
-                    <span className="text-foreground">{activeCalcGroup.items.find(it => it.value === activeTab)?.label}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleCalcFav(activeTab)}
-                      title={t('calcFavToggle')}
-                      data-testid="calc-fav-toggle"
-                      className={`p-1 rounded transition-colors ${calcFavs.includes(activeTab) ? 'text-yellow-500' : 'text-muted-foreground hover:text-foreground'}`}
-                    >
-                      <Star className="w-3.5 h-3.5" fill={calcFavs.includes(activeTab) ? 'currentColor' : 'none'} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowToolMap(v => !v)}
-                      data-testid="tool-map-toggle"
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] transition-colors ${
-                        showToolMap
-                          ? 'border-primary/60 text-primary'
-                          : 'border-border text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <LayoutGrid className="w-3.5 h-3.5" />
-                      {showToolMap ? t('toolMapClose') : t('toolMapOpen')}
-                    </button>
-                  </span>
-                </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            {/* La estación es un layout de dos columnas: el índice de herramientas
+                vive en una barra lateral fija (mismo patrón que la Academia) y la
+                calculadora activa ocupa el resto. Antes eran dos filas de chips
+                con scroll horizontal encima del contenido: con 14 herramientas
+                obligaban a arrastrar para ver qué había, y empujaban la
+                calculadora hacia abajo en cada cambio de grupo. */}
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8" data-testid="calc-workstation">
 
-                {showToolMap && (
-                  <ToolMap
-                    groups={CALC_NAV}
-                    activeTool={activeTab}
-                    onPick={(value) => { setActiveTab(value); setShowToolMap(false); }}
-                  />
-                )}
-
-                {/* Quick access: favourites first, then recents */}
-                {!showToolMap && quickAccess.length > 0 && (
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" data-testid="calc-quick-access">
-                    <span className="flex-shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-0.5">
-                      {t('calcQuickAccess')}
-                    </span>
-                    {quickAccess.map(q => {
-                      const tool = ALL_CALC_TOOLS.find(it => it.value === q.value);
-                      const QIcon = q.fav ? Star : Clock;
-                      return (
-                        <button
-                          key={q.value}
-                          type="button"
-                          onClick={() => setActiveTab(q.value)}
-                          className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] border border-border bg-background text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <QIcon className={`w-3 h-3 ${q.fav ? 'text-yellow-500' : ''}`} fill={q.fav ? 'currentColor' : 'none'} />
-                          {tool?.label}
-                        </button>
-                      );
-                    })}
+              {/* ── Barra lateral (desktop) ───────────────────────────── */}
+              <aside className="hidden lg:block w-60 xl:w-64 flex-shrink-0" data-testid="calc-sidebar">
+                <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 pb-8 space-y-5">
+                  <div>
+                    <h2 className="flex items-center gap-2 px-1 mb-3 text-sm font-bold">
+                      <Calculator className="w-4 h-4 text-primary" />
+                      {t('calcWorkstationTitle')}
+                      <span className="ml-auto font-mono text-[11px] font-normal text-muted-foreground tabular-nums">
+                        {ALL_CALC_TOOLS.length}
+                      </span>
+                    </h2>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                      <Input
+                        value={calcQuery}
+                        onChange={(e) => setCalcQuery(e.target.value)}
+                        placeholder={t('calcSearchTool')}
+                        className="pl-9 h-9 text-sm"
+                        data-testid="calc-tool-search"
+                      />
+                    </div>
                   </div>
-                )}
-                {/* Group row */}
-                <div className={`flex gap-1.5 overflow-x-auto pb-0.5 ${showToolMap ? 'hidden' : ''}`}>
+
+                  {/* Acceso rápido: favoritos y luego recientes. Se oculta al
+                      buscar — teclear ya ES el atajo, y dejarlo compite con los
+                      resultados. */}
+                  {!calcQuery && quickAccess.length > 0 && (
+                    <div data-testid="calc-quick-access">
+                      <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                        {t('calcQuickAccess')}
+                      </p>
+                      <div className="space-y-0.5">
+                        {quickAccess.map(q => {
+                          const tool = ALL_CALC_TOOLS.find(it => it.value === q.value);
+                          const QIcon = q.fav ? Star : Clock;
+                          return (
+                            <button
+                              key={q.value}
+                              type="button"
+                              onClick={() => setActiveTab(q.value)}
+                              className="w-full flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                            >
+                              <QIcon
+                                className={`w-3 h-3 flex-shrink-0 ${q.fav ? 'text-primary' : 'opacity-60'}`}
+                                fill={q.fav ? 'currentColor' : 'none'}
+                              />
+                              <span className="min-w-0 truncate">{tool?.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {calcNavFiltered.length === 0 && (
+                    <p className="px-3 text-[13px] text-muted-foreground" data-testid="calc-no-matches">
+                      {t('calcNoMatches')}
+                    </p>
+                  )}
+
+                  {calcNavFiltered.map((g) => {
+                    const GIcon = g.Icon;
+                    return (
+                      <div key={g.id} data-testid={`calcgroup-${g.id}`}>
+                        <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                          <span className="font-mono text-primary/70 tabular-nums">
+                            {String(g.idx + 1).padStart(2, '0')}
+                          </span>
+                          <GIcon className="w-3 h-3 flex-shrink-0 opacity-70" />
+                          <span className="min-w-0 truncate">{g.label}</span>
+                          <span className="ml-auto font-mono normal-case tracking-normal opacity-70 tabular-nums">
+                            {calcQuery ? `${g.items.length}/${g.total}` : g.total}
+                          </span>
+                        </p>
+                        <div className="space-y-0.5">
+                          {g.items.map(it => {
+                            const isActive = activeTab === it.value;
+                            const isFav = calcFavs.includes(it.value);
+                            return (
+                              <div key={it.value} className="group/tool relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab(it.value)}
+                                  data-testid={`tab-${it.value}`}
+                                  className={`w-full flex items-center gap-2 text-left pl-3 pr-8 py-1.5 rounded-md text-[13px] leading-snug transition-colors border-l-2 ${
+                                    isActive
+                                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                  }`}
+                                >
+                                  <span className="min-w-0 truncate">{it.label}</span>
+                                </button>
+                                {/* Fijar cualquier herramienta, no solo la abierta:
+                                    antes había que abrirla para poder marcarla. */}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCalcFav(it.value)}
+                                  title={t('calcFavToggle')}
+                                  data-testid={`calc-fav-${it.value}`}
+                                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded transition-opacity ${
+                                    isFav
+                                      ? 'text-primary opacity-100'
+                                      : 'text-muted-foreground opacity-0 group-hover/tool:opacity-100 focus-visible:opacity-100 hover:text-foreground'
+                                  }`}
+                                >
+                                  <Star className="w-3 h-3" fill={isFav ? 'currentColor' : 'none'} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              {/* ── Navegación móvil: dos niveles, igual que la Academia ── */}
+              <div className="lg:hidden space-y-2" data-testid="calc-mobile-nav">
+                <h2 className="flex items-center gap-2 text-base font-bold">
+                  <Calculator className="w-4 h-4 text-primary" />
+                  {t('calcWorkstationTitle')}
+                </h2>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
                   {CALC_NAV.map(g => {
                     const GIcon = g.Icon;
                     const isActive = activeCalcGroup.id === g.id;
@@ -362,10 +435,9 @@ export default function DashboardPage() {
                         key={g.id}
                         type="button"
                         onClick={() => setActiveTab(g.items[0].value)}
-                        data-testid={`calcgroup-${g.id}`}
-                        className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                        className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-semibold border transition-colors ${
                           isActive
-                            ? 'bg-primary text-black border-primary'
+                            ? 'border-primary text-primary bg-primary/10'
                             : 'bg-background text-muted-foreground border-border hover:text-foreground'
                         }`}
                       >
@@ -374,14 +446,13 @@ export default function DashboardPage() {
                     );
                   })}
                 </div>
-                {/* Tool row of the active group */}
-                <div className={`flex gap-1.5 overflow-x-auto pb-0.5 ${showToolMap ? 'hidden' : ''}`}>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
                   {activeCalcGroup.items.map(it => (
                     <button
                       key={it.value}
                       type="button"
                       onClick={() => setActiveTab(it.value)}
-                      data-testid={`tab-${it.value}`}
+                      data-testid={`tabm-${it.value}`}
                       className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs border transition-colors ${
                         activeTab === it.value
                           ? 'border-primary text-primary bg-primary/10 font-medium'
@@ -394,6 +465,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* ── Calculadora activa ────────────────────────────────── */}
+              <div className="min-w-0 flex-1">
               <TabsContent value="percentage">
                 <PercentageCalculator />
               </TabsContent>
@@ -436,6 +509,8 @@ export default function DashboardPage() {
               <TabsContent value="compound">
                 <CompoundCalculator />
               </TabsContent>
+              </div>
+            </div>
             </Tabs>
             </motion.div>
 

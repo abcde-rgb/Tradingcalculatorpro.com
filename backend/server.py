@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Body
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Body, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import Response
 from dotenv import load_dotenv
@@ -52,17 +52,29 @@ from stock_data import (
     get_ohlc_history,
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
-from price_action import detect_structure
+from price_action import detect_structure, scan_levels, apply_confluence, strip_bars
 import timeframes
 from performance import (
     compute_trade_pnl,
     detect_errors,
     compute_analytics,
     generate_insights,
+    is_closed_trade,
     trades_for_user,
     make_trade_doc,
+    normalize_setups,
+    normalize_trade_schema,
     sort_trades_chronologically,
+    legacy_keys_to_unset,
+    SETUP_SEPARATOR,
 )
+from instruments import (
+    DEFAULT_PRODUCT,
+    catalog as instruments_catalog,
+    resolve_levels,
+    resolve_spec,
+)
+from notifications import CHANNELS as NOTIFY_CHANNELS, channel_status, normalize_phone
 from trading_plan import (
     activate_plan,
     compliance_report,
@@ -75,6 +87,7 @@ from trading_plan import (
 from market_rates import get_risk_free_rate, get_risk_free_info
 import crypto_data
 import ecb_rates
+import passkeys
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -964,6 +977,20 @@ class Database:
             # risk thresholds (see trading_plan.py). Must be listed here: the
             # comment above is load-bearing, Collection does not auto-create.
             "trading_plans",
+            # Copias previas a la migración de esquema del diario (BUG-039).
+            # Mismo motivo que arriba: Collection no autocrea tablas.
+            "trades_migration_backup",
+            # `journal_entries` se borra, se purga y se exporta desde
+            # `_USER_DATA_COLLECTIONS`, así que la tabla tiene que existir o esas
+            # tres rutas fallan en la primera consulta.
+            "journal_entries",
+            # Registro de SMS enviados: lo consulta el tope por usuario y hora
+            # de `notifications.py` en cada envío.
+            "sms_log",
+            # Passkeys (WebAuthn). El shim no autocrea tablas: sin darlas de alta
+            # aquí, la primera ceremonia revienta al consultar.
+            "passkey_credentials",
+            "webauthn_challenges",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -1106,6 +1133,18 @@ security = HTTPBearer(auto_error=False)
 #  CORS — must be registered first so every response gets headers
 # ============================================================
 _CORS_ORIGINS = [
+    # DONDE SE SIRVE LA WEB HOY. No hay `CNAME` en `frontend/public/` y el
+    # `homepage` de package.json apunta aquí, así que este es el Origin real de
+    # todas las peticiones del navegador. Va en el código a propósito: estaba
+    # sólo en la variable `CORS_ORIGINS` del despliegue, y desde que el backend
+    # se despliega a mano un `gcloud run deploy` sin `--set-env-vars` borra esa
+    # variable y tumba el login de todo el sitio.
+    #
+    # El fallo no se ve en los logs: sin cabecera CORS el backend responde 200
+    # con las cookies puestas y es el navegador quien descarta la respuesta.
+    # `curl` tampoco lo reproduce, porque ignora CORS.
+    "https://abcde-rgb.github.io",
+    # Dominio propio, para el día del cutover de DNS (ver DEPLOY_CHECKLIST §G).
     "https://tradingcalculatorpro.com",
     "https://www.tradingcalculatorpro.com",
 ]
@@ -1117,6 +1156,16 @@ for _o in _extra.split(","):
     _o = _o.strip()
     if _o and _o not in _CORS_ORIGINS:
         _CORS_ORIGINS.append(_o)
+
+# Base de los enlaces que se ENVÍAN POR CORREO (verificación, reset, magic
+# link). Por defecto apunta a donde se sirve la web hoy, que es lo que ponen
+# `cloudbuild.yaml` y ponía el workflow retirado: el valor del código no puede
+# contradecir al del despliegue, porque si la variable se pierde los correos
+# llevan a un dominio que no existe y el usuario tampoco puede entrar.
+# Una sola constante para que los cuatro sitios que la usaban no vuelvan a
+# divergir. El día del cutover de DNS se cambia aquí (ver DEPLOY_CHECKLIST §G).
+DEFAULT_FRONTEND_URL = "https://abcde-rgb.github.io/Tradingcalculatorpro.com"
+FRONTEND_URL = os.environ.get("FRONTEND_URL", DEFAULT_FRONTEND_URL).strip().rstrip("/")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1469,6 +1518,16 @@ async def get_current_user(
         return None
     try:
         payload = decode_token(token)
+        # SÓLO un token de acceso autoriza. `require_user`/`require_admin` ya lo
+        # exigen; esta función se saltaba la comprobación, así que aceptaba un
+        # refresh —y, peor, el `2fa_pending`— como si fueran un acceso válido.
+        # El pending token se emite tras la contraseña pero ANTES del segundo
+        # factor: sin este filtro, tener la contraseña bastaba para operar en
+        # los endpoints que dependen de esta función, anulando el 2FA (verificado
+        # con PoC: leer, escribir y borrar posiciones). El propio docstring de
+        # `_create_2fa_pending_token` promete "Never a valid access token".
+        if payload.get("type") != "access":
+            return None
         if await _is_token_revoked(payload) or await _is_user_session_revoked(payload):
             return None
         user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
@@ -1606,9 +1665,73 @@ async def require_premium(user: dict = Depends(require_user)) -> dict:
 DATA_RETENTION_DAYS = int(os.environ.get("DATA_RETENTION_DAYS", "90"))
 # Colecciones con datos personales del usuario (NO se borra la cuenta en sí,
 # para que pueda volver a suscribirse; solo sus datos de trading).
+#
+# ⚠️ FUENTE DE VERDAD ÚNICA de las colecciones con datos personales.
+#
+# Antes había CUATRO listas escritas a mano —purga por retención, `delete_account`,
+# el export de `/auth/my-data` y el `known` de tablas— y dar de alta una colección
+# exigía acordarse de las cuatro. `trading_plans` se quedó fuera de las tres
+# primeras (G-15): borrar la cuenta dejaba los planes del usuario en la base de
+# datos, que es exactamente la multa que el RGPD contempla. Con una sola tupla,
+# olvidarse deja de ser posible; `test_user_data_collections_unit.py` fija que
+# ninguna colección con `user_id` se quede fuera.
 _USER_DATA_COLLECTIONS = (
     "trades", "calculations", "alerts", "saved_positions", "portfolio",
-    "user_states", "journal_entries",
+    "user_states", "journal_entries", "trading_plans",
+    # Copias de seguridad de la migración de esquema (BUG-039). Contienen
+    # operaciones del usuario, así que se borran y se exportan con lo demás.
+    "trades_migration_backup",
+)
+
+# Datos del usuario que se exportan y se borran con la cuenta, pero que la purga
+# por impago NO toca: los referidos son contabilidad del programa, no datos de
+# trading, y purgarlos a los 90 días borraría créditos ya ganados.
+_USER_NON_PURGED_COLLECTIONS = ("referrals",)
+
+# Facturación: se borra con la cuenta y se exporta (en forma resumida), pero la
+# purga por impago NO la toca — quien deja de pagar conserva su histórico.
+_BILLING_COLLECTIONS = ("transactions", "payment_transactions")
+
+# Artefactos de seguridad: se borran con la cuenta y **no se exportan nunca**.
+# Son tokens y revocaciones; mandárselos al usuario en un JSON sería una
+# regresión de seguridad, no portabilidad.
+_SECURITY_ARTEFACT_COLLECTIONS = (
+    "usage_events", "email_verification_tokens", "password_resets",
+    "password_reset_tokens", "user_revocations", "referral_redemptions",
+    # Registro de SMS enviados (sólo los 4 últimos dígitos y la hora, para el
+    # tope por usuario). Se borra con la cuenta y no se exporta: no es un dato
+    # que el usuario venga a llevarse, es contabilidad de un canal de envío.
+    "sms_log",
+    # Passkeys: id de credencial, clave PÚBLICA y contador de uso. Se borran con
+    # la cuenta (si no, quedarían autenticadores huérfanos apuntando a un usuario
+    # que ya no existe) y NO se exportan: son material de autenticación, y
+    # mandárselo al usuario en un JSON es lo mismo que exportarle sus tokens.
+    # El usuario las ve y las borra desde Ajustes, que es lo que necesita.
+    "passkey_credentials",
+    # Retos WebAuthn en vuelo. Efímeros (5 min) y de un solo uso.
+    "webauthn_challenges",
+)
+
+# Todo lo que desaparece al borrar la cuenta (RGPD art. 17).
+_ALL_USER_COLLECTIONS = (
+    *_USER_DATA_COLLECTIONS, *_USER_NON_PURGED_COLLECTIONS,
+    *_BILLING_COLLECTIONS, *_SECURITY_ARTEFACT_COLLECTIONS,
+)
+
+# Copias internas cuyo contenido YA viaja en el export bajo otra clave. Se
+# borran y se purgan como datos del usuario que son, pero exportarlas duplicaría
+# fila por fila lo que ya va en `trades`, con la envoltura de la migración
+# encima. Portabilidad es que el usuario se lleve sus datos, no que se los lleve
+# dos veces.
+_INTERNAL_DUPLICATE_COLLECTIONS = ("trades_migration_backup",)
+
+# Lo que el usuario se puede LLEVAR (RGPD art. 20). Regla que fija el test:
+# todo lo que se borra debe poder exportarse, **menos** los artefactos de
+# seguridad y los duplicados internos. Exportar menos de lo que se borra es
+# precisamente el hueco por el que se colaron `trading_plans` y `journal_entries`.
+_EXPORTABLE_COLLECTIONS = tuple(
+    c for c in (*_USER_DATA_COLLECTIONS, *_USER_NON_PURGED_COLLECTIONS)
+    if c not in _INTERNAL_DUPLICATE_COLLECTIONS
 )
 
 
@@ -2074,7 +2197,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
         "expires_at": expires_at,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
+    frontend_url = FRONTEND_URL
     magic_url = f"{frontend_url}/magic?token={token}"
     # Send email (non-blocking)
     import asyncio as _asyncio
@@ -2175,7 +2298,7 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
             }},
             upsert=True,
         )
-        frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
+        frontend_url = FRONTEND_URL
         verify_url = f"{frontend_url}/verify-email?token={token}"
         if not SENDGRID_API_KEY:
             logging.info(f"[verify-email] DEV MODE — link for {to_email}: {verify_url}")
@@ -2221,7 +2344,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
         upsert=True,
     )
 
-    frontend_url = os.environ.get("FRONTEND_URL", "https://tradingcalculatorpro.com")
+    frontend_url = FRONTEND_URL
     reset_url = f"{frontend_url}/reset-password#{reset_token}"
     try:
         import asyncio as _asyncio
@@ -2411,6 +2534,196 @@ async def totp_verify(request: Request, response: Response, body: TotpVerifyRequ
     }
 
 
+# ============= PASSKEYS (WebAuthn / FIDO2) =============
+# El único método de acceso de esta app que resiste el phishing: la clave privada
+# no sale del dispositivo y el navegador sólo la ofrece al origen exacto que la
+# registró, así que una web clonada no puede pedirla aunque el usuario caiga.
+# La matemática y las reglas viven en `passkeys.py`; aquí sólo persistencia.
+
+
+class PasskeyRegisterComplete(BaseModel):
+    credential: Dict[str, Any]
+    name: Optional[str] = Field(None, max_length=60)
+
+
+class PasskeyLoginComplete(BaseModel):
+    credential: Dict[str, Any]
+
+
+async def _store_challenge(kind: str, challenge: str, user_id: Optional[str] = None) -> None:
+    """Un reto por (tipo, valor). De un solo uso y con caducidad — las dos cosas
+    las comprueba `passkeys.challenge_is_valid` al consumirlo."""
+    await db.webauthn_challenges.insert_one({
+        "id": str(uuid.uuid4()),
+        "kind": kind,
+        "challenge": challenge,
+        "user_id": user_id,
+        "used": False,
+        "expires_at": passkeys.challenge_expiry(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+async def _consume_challenge(kind: str, challenge: str) -> bool:
+    """Valida y **quema** el reto. Se borra en vez de marcarse: un reto ya usado
+    no tiene ningún valor futuro, y así la tabla no crece sin límite."""
+    stored = await db.webauthn_challenges.find_one(
+        {"kind": kind, "challenge": challenge}, {"_id": 0},
+    )
+    ok = passkeys.challenge_is_valid(stored)
+    if stored:
+        await db.webauthn_challenges.delete_one({"id": stored["id"]})
+    return ok
+
+
+@api_router.get("/auth/passkey/available")
+async def passkey_available() -> Dict[str, Any]:
+    """Si el canal está operativo. La interfaz pregunta antes de pintar el botón,
+    igual que hace con los demás canales, para no ofrecer algo que va a fallar."""
+    return {"available": passkeys.is_configured(), "rp_id": passkeys.relying_party()["rp_id"]}
+
+
+@api_router.post("/auth/passkey/register/begin")
+@limiter.limit("20/hour")
+async def passkey_register_begin(request: Request, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    """Opciones para dar de alta una passkey. Requiere sesión iniciada: una
+    passkey se añade a una cuenta que YA has demostrado ser tuya."""
+    existing = await db.passkey_credentials.find(
+        {"user_id": user["id"]}, {"_id": 0},
+    ).to_list(50)
+    out = passkeys.registration_options(
+        user_id=user["id"],
+        user_name=user["email"],
+        display_name=user.get("name") or user["email"],
+        existing_credential_ids=[c["credential_id"] for c in existing],
+    )
+    await _store_challenge("register", out["challenge"], user["id"])
+    return {"options": _json_module.loads(out["options"])}
+
+
+@api_router.post("/auth/passkey/register/complete")
+@limiter.limit("20/hour")
+async def passkey_register_complete(
+    request: Request, body: PasskeyRegisterComplete, user: dict = Depends(require_user),
+) -> Dict[str, Any]:
+    challenge = (body.credential.get("response") or {}).get("__challenge") \
+        or body.credential.pop("challenge", None)
+    if not challenge:
+        raise HTTPException(status_code=400, detail="Falta el reto de la ceremonia.")
+    if not await _consume_challenge("register", challenge):
+        raise HTTPException(status_code=400, detail="Reto inválido, caducado o ya usado.")
+    try:
+        verified = passkeys.verify_registration(
+            credential=body.credential, expected_challenge=challenge,
+        )
+    except Exception as exc:
+        logging.warning("[passkey] alta rechazada: %s", exc)
+        raise HTTPException(status_code=400, detail="No se pudo verificar la passkey.") from exc
+
+    # Una credencial sólo puede pertenecer a una cuenta.
+    if await db.passkey_credentials.find_one({"credential_id": verified["credential_id"]}, {"_id": 1}):
+        raise HTTPException(status_code=409, detail="Esa passkey ya está registrada.")
+
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "name": (body.name or "").strip() or "Passkey",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "last_used_at": None,
+        **verified,
+    }
+    await db.passkey_credentials.insert_one(doc)
+    return {"ok": True, "passkey": passkeys.describe(doc)}
+
+
+@api_router.post("/auth/passkey/login/begin")
+@limiter.limit("30/minute")
+async def passkey_login_begin(request: Request) -> Dict[str, Any]:
+    """Ceremonia *usernameless*: no se pide el correo, así que esta ruta **no
+    revela si una cuenta existe**. El navegador enseña las passkeys que tenga
+    para este sitio y el usuario elige."""
+    out = passkeys.authentication_options()
+    await _store_challenge("login", out["challenge"])
+    return {"options": _json_module.loads(out["options"])}
+
+
+@api_router.post("/auth/passkey/login/complete")
+@limiter.limit("30/minute")
+async def passkey_login_complete(
+    request: Request, response: Response, body: PasskeyLoginComplete,
+) -> Dict[str, Any]:
+    challenge = body.credential.pop("challenge", None)
+    if not challenge:
+        raise HTTPException(status_code=400, detail="Falta el reto de la ceremonia.")
+    if not await _consume_challenge("login", challenge):
+        raise HTTPException(status_code=401, detail="Reto inválido, caducado o ya usado.")
+
+    cred_id = body.credential.get("id") or body.credential.get("rawId")
+    stored = await db.passkey_credentials.find_one({"credential_id": cred_id}, {"_id": 0})
+    if not stored:
+        raise HTTPException(status_code=401, detail="Passkey no reconocida.")
+
+    try:
+        result = passkeys.verify_authentication(
+            credential=body.credential, expected_challenge=challenge,
+            public_key=stored["public_key"], stored_sign_count=int(stored.get("sign_count") or 0),
+        )
+    except passkeys.SignCountError as exc:
+        # No es un fallo cualquiera: o alguien reprodujo una respuesta capturada
+        # o hay una copia del autenticador. Se registra para poder investigarlo.
+        logging.error("[passkey] contador no avanzó (posible clonado) cred=%s: %s", cred_id, exc)
+        raise HTTPException(status_code=401, detail="Passkey rechazada por seguridad.") from exc
+    except Exception as exc:
+        logging.warning("[passkey] acceso rechazado: %s", exc)
+        raise HTTPException(status_code=401, detail="No se pudo verificar la passkey.") from exc
+
+    user = await db.users.find_one({"id": stored["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Passkey no reconocida.")
+
+    await db.passkey_credentials.update_one(
+        {"id": stored["id"]},
+        {"$set": {"sign_count": result["sign_count"],
+                  "last_used_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    # Una passkey ya es dos factores (algo que tienes + algo que eres/sabes para
+    # desbloquearla), así que NO se vuelve a pedir el TOTP: exigirlo convertiría
+    # el método más seguro en el más incómodo y nadie lo usaría.
+    token = create_token(user["id"], user["email"])
+    refresh_token = create_refresh_token(user["id"], user["email"])
+    _set_auth_cookies(response, token, refresh_token)
+    return {
+        "token": token,
+        "user": {
+            "id": user["id"], "email": user["email"], "name": user.get("name"),
+            "picture": user.get("picture"),
+            "subscription_plan": user.get("subscription_plan"),
+            "subscription_end": user.get("subscription_end"),
+            "subscription_status": user.get("subscription_status"),
+            "is_premium": check_premium(user),
+            "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            "auth_provider": user.get("auth_provider", "password"),
+            "email_verified": bool(user.get("email_verified", False)),
+            "two_factor_enabled": bool(user.get("totp_enabled")),
+        },
+    }
+
+
+@api_router.get("/auth/passkey/list")
+async def passkey_list(user: dict = Depends(require_user)) -> Dict[str, Any]:
+    rows = await db.passkey_credentials.find({"user_id": user["id"]}, {"_id": 0}).to_list(50)
+    return {"passkeys": [passkeys.describe(r) for r in rows]}
+
+
+@api_router.delete("/auth/passkey/{passkey_id}")
+async def passkey_delete(passkey_id: str, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    res = await db.passkey_credentials.delete_one({"id": passkey_id, "user_id": user["id"]})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Passkey no encontrada")
+    return {"ok": True}
+
+
 async def _cancel_stripe_subscriptions_for_user(user_doc: dict) -> None:
     """Best-effort: cancel any active Stripe subscription so a deleted account
     stops being billed. Never raises — GDPR deletion must proceed regardless."""
@@ -2445,11 +2758,10 @@ async def delete_account(request: Request, user: dict = Depends(require_user)):
     await _cancel_stripe_subscriptions_for_user(user_doc)
 
     # 2) Delete all user data across every collection that stores a user_id.
-    for collection in ["trades", "calculations", "alerts", "portfolio",
-                        "user_states", "payment_transactions", "saved_positions",
-                        "referrals", "referral_redemptions", "usage_events",
-                        "email_verification_tokens", "password_resets",
-                        "user_revocations"]:
+    #    Deriva de la tupla única: esta lista escrita a mano se había quedado sin
+    #    `trading_plans` ni `journal_entries` (G-15), así que borrar la cuenta
+    #    dejaba atrás datos personales que el RGPD obliga a eliminar.
+    for collection in _ALL_USER_COLLECTIONS:
         try:
             await getattr(db, collection).delete_many({"user_id": user_id})
         except Exception:
@@ -2487,14 +2799,24 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     # GDPR Art. 20 exists to close. Deliberately excluded: email verification
     # tokens, password resets and token revocations (credentials, not personal
     # data, and shipping them out would be a security regression).
-    trades           = await collect("trades",           {"user_id": user_id})
-    calculations     = await collect("calculations",     {"user_id": user_id})
-    alerts           = await collect("alerts",           {"user_id": user_id})
-    portfolio        = await collect("portfolio",        {"user_id": user_id})
-    saved_positions  = await collect("saved_positions",  {"user_id": user_id})
-    user_states      = await collect("user_states",      {"user_id": user_id})
-    journal_entries  = await collect("journal_entries",  {"user_id": user_id})
-    referrals        = await collect("referrals",        {"user_id": user_id})
+    # Recorre la tupla en vez de enumerar a mano: así una colección nueva entra
+    # en el export por el hecho de estar declarada, y no por acordarse aquí.
+    exported: Dict[str, Any] = {
+        name: await collect(name, {"user_id": user_id})
+        for name in _EXPORTABLE_COLLECTIONS
+    }
+    # El payload extiende `**exported` junto a claves fijas (profile, payments,
+    # preferences, format_version…). Si una colección futura se llamara igual que
+    # una de ellas, se pisarían en silencio y esa colección se borraría con la
+    # cuenta pero NO se exportaría — el hueco exacto que este export cierra. Se
+    # falla ruidosamente en vez de esconderlo.
+    _reserved = {"exported_at", "format_version", "profile", "preferences", "payments"}
+    _collision = _reserved & set(exported)
+    if _collision:
+        raise RuntimeError(
+            f"Colección exportable colisiona con una clave reservada del payload: "
+            f"{sorted(_collision)}. Renómbrala o ajusta el payload de /auth/my-data."
+        )
 
     # Billing history is the user's own data, but the raw rows carry gateway
     # internals. Ship the fields a person would actually need for their records.
@@ -2507,16 +2829,13 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
 
     payload = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
-        "format_version": 2,
+        "format_version": 3,
         "profile":          safe_user,
-        "trades":           trades,
-        "calculations":     calculations,
-        "alerts":           alerts,
-        "portfolio":        portfolio,
-        "saved_positions":  saved_positions,
-        "preferences":      user_states,
-        "journal_entries":  journal_entries,
-        "referrals":        referrals,
+        **exported,
+        # Alias histórico: `user_states` se publicaba como `preferences`. Se
+        # mantiene para no romper a quien ya parsea el export, además de la
+        # clave con el nombre real de la colección.
+        "preferences":      exported.get("user_states", []),
         "payments":         payments,
     }
 
@@ -2601,9 +2920,44 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             updates["google_sub"] = info.get("sub")
         if not user.get("picture") and info.get("picture"):
             updates["picture"] = info.get("picture")
+
+        # ── Account pre-hijacking (Sudhodanan & Paverd, 2022) ──────────────
+        # El registro no exige demostrar que el email es tuyo, y el login
+        # funciona sin verificarlo. Así que un atacante podía registrar el
+        # correo de la víctima, guardarse la contraseña y esperar: cuando la
+        # víctima entrase con Google, este bloque la metía en LA MISMA cuenta
+        # —enlazada sólo por email— y la contraseña del atacante seguía
+        # sirviendo. Acceso permanente al diario y a las posiciones de la
+        # víctima. Verificado con PoC.
+        #
+        # Google acaba de PROBAR que el correo es de quien está entrando. Una
+        # contraseña anterior sobre un email nunca verificado la puso alguien
+        # que jamás demostró ser el dueño: se retira, y se revocan las sesiones
+        # vivas por si el atacante tenía uno abierto. El dueño real puede
+        # ponerse contraseña con "he olvidado mi contraseña", que sí prueba
+        # posesión del buzón.
+        #
+        # Si el email YA estaba verificado, el enlazado es legítimo (la misma
+        # persona verificó el correo y ahora usa Google): no se toca nada.
+        hijack_risk = bool(user.get("password")) and not user.get("email_verified")
+        if hijack_risk:
+            updates["password"] = None
+            updates["auth_provider"] = "google"
+            logging.warning(
+                "[auth] Contraseña retirada al enlazar Google sobre un email sin "
+                "verificar (posible pre-hijacking). user_id=%s", user["id"],
+            )
+        # Google verifica el correo; a partir de aquí consta como verificado.
+        if not user.get("email_verified"):
+            updates["email_verified"] = True
+
         if updates:
             await db.users.update_one({"id": user["id"]}, {"$set": updates})
             user.update(updates)
+        if hijack_risk:
+            # Fuera del `if updates` a propósito: la revocación tiene que
+            # ocurrir aunque el `$set` fallara por lo que fuera.
+            await _revoke_all_tokens_for_user(user["id"])
 
     token = create_token(user["id"], user["email"])
     refresh_token = create_refresh_token(user["id"], user["email"])
@@ -2698,13 +3052,18 @@ async def get_prices():
                 }
             except Exception as ce:
                 logging.warning(f"Commodity {label} ({sym}) fetch error: {ce}")
-        # Static fallback only if yfinance returned nothing
-        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
-        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
+        # Una materia prima que no se ha podido leer se OMITE, igual que una
+        # moneda ilegible veinte líneas más arriba. Aquí había un respaldo fijo
+        # —oro a 2 680 $, plata a 31,50 $, y una variación de +0,5 % / +0,8 %
+        # inventada— servido con HTTP 200 y sin marca alguna. Con el proveedor
+        # caído, el ticker enseñaba XAU a un precio de hace meses con flecha
+        # verde, indistinguible de uno real; y la variación era peor todavía:
+        # una observación fabricada, la misma clase de dato que el volumen por
+        # `rng.randint` que ya se retiró de las cadenas de opciones.
+        # El frontend ya trata la ausencia bien (`if (!data || !data.usd) return
+        # null`): omitir es lo que hace que ese cuidado sirva de algo.
     except Exception as e:
         logging.error(f"Commodities (yfinance) error: {e}")
-        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
-        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
 
     return data
 
@@ -2771,34 +3130,66 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
 
 # ============= TRADING JOURNAL =============
 
+# `limit` arrives from the query string, so it is user input. Uncapped, a single
+# `?limit=1000000` turns one request into a full-table read and re-enrichment
+# pass. FastAPI enforces the ceiling at validation time (Query(le=...)), so an
+# over-limit request is rejected instead of silently served something else.
+TRADES_LIMIT_MAX = 500
+TRADES_LIMIT_DEFAULT = 100
+
+# Ceiling for the stats aggregation. Kept separate from the list ceiling: this
+# one is not user-controlled, it bounds how much history one stats call walks.
+JOURNAL_STATS_MAX_TRADES = 1000
+
+# Same idea for /performance/analytics. When a record is longer than this the
+# response says so (`truncated`) instead of passing a window off as the whole
+# history — see the endpoint.
+ANALYTICS_MAX_TRADES = 1000
+
+
+def _roe_pct(trade: Dict[str, Any]) -> Optional[float]:
+    """Retorno sobre el nominal de entrada, en %. Campo propio del diario legado.
+
+    Se conserva en la RESPUESTA por compatibilidad de API, pero ya no se
+    almacena: es derivable, y un campo derivado guardado es un campo que se
+    queda desfasado en cuanto se edita la operación.
+    """
+    entry = float(trade.get("entry_price") or 0)
+    exit_p = trade.get("exit_price")
+    if not entry or exit_p in (None, ""):
+        return None
+    mult = float(trade.get("multiplier") or 1)
+    direction = 1 if trade.get("side") == "long" else -1
+    return round(((float(exit_p) - entry) / entry) * 100 * mult * direction, 2)
+
+
 @api_router.post("/journal/trades")
 async def create_trade(trade: TradeEntry, user: dict = Depends(require_premium)):
-    trade_doc = {
-        "id": str(uuid.uuid4()),
-        "user_id": user["id"],
-        **trade.dict(),
-        "pnl": None,
-        "roe": None,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    # Calculate P&L if trade is closed
-    if trade.status == "closed" and trade.exitPrice:
-        if trade.direction == "long":
-            pnl = (trade.exitPrice - trade.entryPrice) * trade.quantity * trade.leverage
-            roe = ((trade.exitPrice - trade.entryPrice) / trade.entryPrice) * 100 * trade.leverage
-        else:
-            pnl = (trade.entryPrice - trade.exitPrice) * trade.quantity * trade.leverage
-            roe = ((trade.entryPrice - trade.exitPrice) / trade.entryPrice) * 100 * trade.leverage
-        trade_doc["pnl"] = round(pnl, 2)
-        trade_doc["roe"] = round(roe, 2)
-    
-    await db.trades.insert_one(trade_doc)
-    trade_doc.pop("_id", None)
-    return trade_doc
+    """⚠️ OBSOLETO — usar `POST /performance/trades`.
+
+    Se mantiene por compatibilidad de API (acepta el mismo payload camelCase de
+    siempre), pero **persiste ya en el esquema canónico snake_case**. Antes
+    guardaba camelCase en la misma colección que el módulo de performance, y ese
+    choque de esquemas hacía que el P&L se leyera como 0 y se persistiera como 0
+    al primer edit (BUG-039). Escribir dos esquemas en una colección no se
+    arregla traduciendo al leer: hay que dejar de generarlos.
+    """
+    # `normalize_trade_schema` traduce el payload camelCase al canónico, y
+    # `make_trade_doc` lo completa igual que la ruta viva: un solo esquema.
+    payload = normalize_trade_schema(trade.dict())
+    doc = make_trade_doc(payload, user["id"])
+    plan = await get_active_plan(db, user["id"])
+    if plan:
+        doc["plan_version"] = plan.get("version")
+    enriched = _enrich_trade(doc, plan=plan)
+    await db.trades.insert_one({k: v for k, v in enriched.items() if k != "_id"})
+    return {**enriched, "roe": _roe_pct(enriched)}
 
 @api_router.get("/journal/trades")
-async def get_trades(user: dict = Depends(require_premium), limit: int = 100):
+async def get_trades(
+    user: dict = Depends(require_premium),
+    limit: int = Query(TRADES_LIMIT_DEFAULT, ge=1, le=TRADES_LIMIT_MAX),
+):
     trades = await db.trades.find(
         {"user_id": user["id"]},
         {"_id": 0}
@@ -2826,35 +3217,38 @@ class TradeUpdate(BaseModel):
 
 @api_router.put("/journal/trades/{trade_id}")
 async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends(require_premium)):
-    trade = await db.trades.find_one({"id": trade_id, "user_id": user["id"]})
-    if not trade:
+    """⚠️ OBSOLETO — usar `PUT /performance/trades/{id}`.
+
+    Traduce el documento almacenado y el parche al esquema canónico antes de
+    recalcular. Esta ruta era la mitad del BUG-039: recalculaba el P&L leyendo
+    `entryPrice`/`leverage` sobre un documento que podía ser del otro esquema, y
+    escribía el resultado sin tocar las claves del esquema contrario.
+    """
+    existing = await db.trades.find_one({"id": trade_id, "user_id": user["id"]}, {"_id": 0})
+    if not existing:
         raise HTTPException(status_code=404, detail="Trade no encontrado")
 
-    safe_updates = {k: v for k, v in updates.dict(exclude_unset=True).items() if v is not None}
+    patch = normalize_trade_schema(
+        {k: v for k, v in updates.dict(exclude_unset=True).items() if v is not None}
+    )
+    merged = {**normalize_trade_schema(existing), **patch}
+    if merged.get("exit_price") not in (None, "") and not patch.get("status"):
+        merged["status"] = "closed"
 
-    # Recalculate P&L if closing
-    if safe_updates.get("status") == "closed" and safe_updates.get("exitPrice"):
-        direction = trade.get("direction", safe_updates.get("direction"))
-        entry = trade.get("entryPrice", safe_updates.get("entryPrice"))
-        exit_price = safe_updates.get("exitPrice")
-        quantity = trade.get("quantity", safe_updates.get("quantity", 1))
-        leverage = trade.get("leverage", safe_updates.get("leverage", 1))
-
-        if direction == "long":
-            pnl = (exit_price - entry) * quantity * leverage
-            roe = ((exit_price - entry) / entry) * 100 * leverage
-        else:
-            pnl = (entry - exit_price) * quantity * leverage
-            roe = ((entry - exit_price) / entry) * 100 * leverage
-
-        safe_updates["pnl"] = round(pnl, 2)
-        safe_updates["roe"] = round(roe, 2)
+    prev = [t for t in await trades_for_user(db, user["id"], limit=50)
+            if t.get("id") != trade_id]
+    enriched = _enrich_trade(merged, prev_trades=prev,
+                             plan=await get_active_plan(db, user["id"]))
+    enriched.pop("_id", None)
 
     await db.trades.update_one(
         {"id": trade_id, "user_id": user["id"]},
-        {"$set": safe_updates}
+        # `$set` no borra: sin el `$unset`, las claves camelCase del documento
+        # viejo sobreviven junto a las canónicas recién escritas y el choque de
+        # esquemas se reproduce en el mismo documento que acabamos de arreglar.
+        {"$set": enriched, "$unset": legacy_keys_to_unset(existing)},
     )
-    return {"message": "Trade actualizado"}
+    return {"message": "Trade actualizado", **enriched}
 
 @api_router.delete("/journal/trades/{trade_id}")
 async def journal_delete_trade(trade_id: str, user: dict = Depends(require_premium)):
@@ -2865,7 +3259,7 @@ async def journal_delete_trade(trade_id: str, user: dict = Depends(require_premi
 
 def _empty_journal_stats() -> Dict[str, Any]:
     return {
-        "totalTrades": 0, "wins": 0, "losses": 0, "winRate": 0,
+        "totalTrades": 0, "wins": 0, "losses": 0, "breakeven": 0, "winRate": 0,
         "totalPnl": 0, "avgWin": 0, "avgLoss": 0,
         "profitFactor": 0, "expectancy": 0,
         "maxDrawdown": 0, "consecutiveLosses": 0,
@@ -2873,10 +3267,22 @@ def _empty_journal_stats() -> Dict[str, Any]:
 
 
 def _aggregate_journal_trades(trades: List[Dict[str, Any]]) -> Dict[str, float]:
-    """Single-pass aggregation over a list of closed trades."""
+    """Single-pass aggregation over a list of closed trades.
+
+    ⚠️ Order-sensitive: the caller MUST pass the trades already sorted oldest →
+    newest by close date (`sort_trades_chronologically`). The equity curve, the
+    drawdown and the losing streak are built by walking this list in order, and
+    drawdown is not symmetric under reversal — feeding it in query order makes
+    both numbers depend on how the rows happened to come back.
+
+    A scratch (pnl == 0) is its own category, neither winner nor loser: counting
+    it as a loss dragged the win rate down and inflated the losing streak. It
+    does not extend the streak (it is not a loss) and does not reset it either
+    (the run of trades that failed to make money is genuinely unbroken).
+    """
     agg = {
         "total_pnl": 0.0, "gross_profit": 0.0, "gross_loss": 0.0,
-        "wins": 0, "losses": 0,
+        "wins": 0, "losses": 0, "breakeven": 0,
         "max_consecutive_losses": 0, "max_drawdown": 0.0,
     }
     current_streak = 0
@@ -2890,12 +3296,14 @@ def _aggregate_journal_trades(trades: List[Dict[str, Any]]) -> Dict[str, float]:
             agg["wins"] += 1
             agg["gross_profit"] += pnl
             current_streak = 0
-        else:
+        elif pnl < 0:
             agg["losses"] += 1
             agg["gross_loss"] += abs(pnl)
             current_streak += 1
             if current_streak > agg["max_consecutive_losses"]:
                 agg["max_consecutive_losses"] = current_streak
+        else:
+            agg["breakeven"] += 1
         equity += pnl
         if equity > peak:
             peak = equity
@@ -2910,18 +3318,31 @@ def _journal_stats_from_aggregate(agg: Dict[str, float], total: int) -> Dict[str
     wins, losses = agg["wins"], agg["losses"]
     avg_win = agg["gross_profit"] / wins if wins else 0
     avg_loss = -agg["gross_loss"] / losses if losses else 0
-    profit_factor = agg["gross_profit"] / agg["gross_loss"] if agg["gross_loss"] > 0 else 0
+    # No losses is not a profit factor of zero — zero is the WORST possible
+    # reading, and a trader with ten winners and no losers would be shown it.
+    # Undefined (None) here; the UI prints ∞. Same rule as the rest of the
+    # module: what cannot be computed is None, never 0.
+    profit_factor = (
+        round(agg["gross_profit"] / agg["gross_loss"], 2)
+        if agg["gross_loss"] > 0 else None
+    )
     win_rate = (wins / total) * 100 if total else 0
-    expectancy = (win_rate / 100 * avg_win) + ((100 - win_rate) / 100 * avg_loss)
+    # Expectancy is mean P&L per trade. Stated directly rather than as
+    # winRate·avgWin + lossRate·avgLoss, because that identity only holds when
+    # every trade is a winner or a loser — with scratches in the mix the second
+    # term charges the breakevens at the average loss. Identical result when
+    # there are none, correct when there are.
+    expectancy = agg["total_pnl"] / total if total else 0
     return {
         "totalTrades": total,
         "wins": wins,
         "losses": losses,
+        "breakeven": agg["breakeven"],
         "winRate": round(win_rate, 2),
         "totalPnl": round(agg["total_pnl"], 2),
         "avgWin": round(avg_win, 2),
         "avgLoss": round(avg_loss, 2),
-        "profitFactor": round(profit_factor, 2),
+        "profitFactor": profit_factor,
         "expectancy": round(expectancy, 2),
         "maxDrawdown": round(agg["max_drawdown"], 2),
         "consecutiveLosses": agg["max_consecutive_losses"],
@@ -2934,10 +3355,14 @@ async def get_journal_stats(user: dict = Depends(require_premium)) -> Dict[str, 
     trades = await db.trades.find(
         {"user_id": user["id"], "status": "closed"},
         {"_id": 0},
-    ).to_list(1000)
+    ).to_list(JOURNAL_STATS_MAX_TRADES)
     if not trades:
         return _empty_journal_stats()
-    agg = _aggregate_journal_trades(trades)
+    # Sort before aggregating: the equity curve, the drawdown and the streak are
+    # order-sensitive, and the query returns rows in whatever order the store
+    # hands them back. Without this the same trades yield a different drawdown
+    # depending on insertion order.
+    agg = _aggregate_journal_trades(sort_trades_chronologically(trades))
     return _journal_stats_from_aggregate(agg, len(trades))
 
 # ============= PORTFOLIO =============
@@ -4444,6 +4869,15 @@ async def cancel_subscription(
             }
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error canceling subscription: {e}")
         raise HTTPException(status_code=500, detail="Error canceling subscription")
@@ -4481,6 +4915,15 @@ async def resume_subscription(user: dict = Depends(require_user)):
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error resuming subscription: {e}")
         raise HTTPException(status_code=500, detail="Error resuming subscription")
@@ -4524,6 +4967,15 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         return {"url": session.url}
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"Error creating portal session: {e}")
         raise HTTPException(status_code=500, detail="Error creating portal session")
@@ -4567,41 +5019,78 @@ async def get_billing_history(user: dict = Depends(require_user)):
 
 # ============= USER STATE PERSISTENCE ROUTES =============
 
+# Tope por documento. Los ajustes de un usuario son kilobytes; un sistema de
+# trading con muchos setups, algunas decenas. Medio mega es margen de sobra y a
+# la vez impide que esta ruta acabe usándose como almacén de ficheros.
+MAX_USER_STATE_BYTES = 512 * 1024
+
+
 @api_router.post("/user-states/save")
 async def save_user_state(request: dict, user: dict = Depends(require_user)):
     """
-    Save user state for calculators, charts, etc.
+    Save user state for calculators, charts and user preferences.
     Body: { "state_id": "percentage_calculator", "state": {...} }
-    """
-    try:
-        state_id = request.get("state_id")
-        state_data = request.get("state")
 
-        if not state_id:
-            raise HTTPException(status_code=400, detail="state_id is required")
-        import re as _re_val
-        if not _re_val.match(r'^[a-zA-Z0-9_-]{1,64}$', str(state_id)):
-            raise HTTPException(status_code=400, detail="state_id must be alphanumeric (1-64 chars)")
-        
-        # Upsert the state
-        now = datetime.now(timezone.utc)
+    Aquí NO caduca nada. El documento llevaba `expires_at` a 90 días con el
+    comentario «TTL: state is auto-deleted 90 days after last update», pero
+    ninguna tarea lo aplicaba nunca: la promesa era falsa en los dos sentidos y
+    el único desenlace posible de hacerla verdad era borrarle al usuario cosas
+    que él escribió. Desde que esta tabla guarda también los AJUSTES de la
+    cuenta —tema, idioma, preferencias y el sistema de trading con sus setups—
+    caducar sería directamente perder trabajo suyo. La tabla no crece sin
+    control: es una fila por (usuario, state_id) y los state_id son un puñado
+    fijo. El borrado por RGPD sigue cubierto — `user_states` está en
+    `_USER_DATA_COLLECTIONS`, así que se exporta y se purga con la cuenta.
+    """
+    state_id = request.get("state_id")
+    state_data = request.get("state")
+
+    if not state_id:
+        raise HTTPException(status_code=400, detail="state_id is required")
+    import re as _re_val
+    if not _re_val.match(r'^[a-zA-Z0-9_-]{1,64}$', str(state_id)):
+        raise HTTPException(status_code=400, detail="state_id must be alphanumeric (1-64 chars)")
+
+    # Se mide lo que se va a escribir, no lo que llegó: si el cuerpo no es
+    # serializable el fallo es del cliente (400), no del servidor.
+    try:
+        size = len(_json_module.dumps(state_data, default=_json_default).encode("utf-8"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="state must be JSON-serialisable")
+    if size > MAX_USER_STATE_BYTES:
+        raise HTTPException(status_code=413, detail="state too large")
+
+    # Las validaciones de arriba están FUERA del `try` a propósito (BUG-048).
+    # `HTTPException` hereda de `Exception`: metidas dentro, el `except Exception`
+    # de abajo reetiquetaría como 500 los 400 y el 413 que esta función acaba de
+    # escribir, y el cliente dejaría de poder distinguir «lo has pedido mal» de
+    # «el servidor está roto». La alternativa que usa el resto del repo —dejar
+    # pasar antes el `HTTPException`— también vale; aquí no hace falta guarda
+    # porque dentro del `try` sólo queda la escritura, que no lanza 4xx.
+    # `test_http_error_codes_unit.py` comprueba las dos formas sobre el AST.
+    try:
         await db.user_states.update_one(
             {"user_id": user["id"], "state_id": state_id},
-            {"$set": {
-                "user_id": user["id"],
-                "state_id": state_id,
-                "state": state_data,
-                "last_updated": now.isoformat(),
-                # TTL: state is auto-deleted 90 days after last update.
-                "expires_at": now + timedelta(days=90),
-            }},
+            {
+                "$set": {
+                    "user_id": user["id"],
+                    "state_id": state_id,
+                    "state": state_data,
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
+                },
+                # El shim aplica el `$unset` DESPUÉS del `$set`, así que esto
+                # limpia el `expires_at` que dejaron escrito las versiones
+                # anteriores. Sin él, un ajuste guardado hoy seguiría llevando
+                # encima una fecha de caducidad que ya no significa nada.
+                "$unset": {"expires_at": ""},
+            },
             upsert=True
         )
-        
-        return {"success": True, "message": "State saved"}
     except Exception as e:
         logging.error(f"Error saving state: {e}")
         raise HTTPException(status_code=500, detail="Error saving state")
+
+    return {"success": True, "message": "State saved"}
 
 @api_router.get("/user-states/get/{state_id}")
 async def get_user_state(state_id: str, user: dict = Depends(require_user)):
@@ -6046,6 +6535,15 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+    except HTTPException:
+        # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
+        # `HTTPException` hereda de `Exception`, así que sin esta línea el
+        # `except` de abajo lo reetiqueta como 500: el cliente deja de poder
+        # distinguir «lo has pedido mal» de «el servidor está roto», el mensaje
+        # que se escribió aquí no le llega a nadie, y cada error de usuario entra
+        # en las alarmas como fallo del servidor, enterrando los 500 de verdad.
+        # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
+        raise
     except Exception as e:
         logging.error(f"AI analyze error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
@@ -6165,6 +6663,40 @@ def _bar_is_forming(rows: List[dict], minutes: int) -> bool:
     return (time.time() - float(last_ts)) < minutes * 60
 
 
+async def _fetch_bars(symbol: str, rng: str, tf: Any) -> List[dict]:
+    """Bars for one rung of the ladder, ready to scan.
+
+    Fetches at the interval the provider actually serves and merges them up if
+    this rung is composed (4h is built out of 1h — see timeframes.resample).
+    """
+    rows = await asyncio.to_thread(get_ohlc_history, symbol, rng, tf.fetch_interval)
+    return timeframes.resample(rows, tf.bucket_minutes)
+
+
+async def _higher_timeframe_levels(symbol: str, interval: Optional[str]) -> Dict[str, Any]:
+    """Support/resistance of the rung ABOVE `interval`, for the confluence pass.
+
+    Only the cheap read (`scan_levels`): where the bigger chart has levels, not
+    how each has behaved bar by bar. Anything that goes wrong — no rung above,
+    the provider refusing a second call, too few bars — leaves the main scan
+    untouched and comes back as "not checked". A failed second fetch must never
+    be reported as "checked, no confluence": those are different statements and
+    only one of them is true.
+    """
+    htf = timeframes.higher(interval)
+    if htf is None:
+        return {"tf": None, "levels": []}
+    try:
+        rows = await _fetch_bars(symbol, htf.default_range, htf)
+        if not rows:
+            return {"tf": None, "levels": []}
+        levels = await asyncio.to_thread(scan_levels, rows, htf.strength)
+        return {"tf": htf, "levels": levels}
+    except Exception as e:
+        logging.warning(f"HTF confluence scan failed for {symbol} ({interval}): {e}")
+        return {"tf": None, "levels": []}
+
+
 def _trim_structure(res: Dict[str, Any]) -> Dict[str, Any]:
     """Bound the arrays before they go over the wire.
 
@@ -6245,6 +6777,7 @@ async def education_pattern_scan(
 async def education_structure_scan(
     request: Request, symbol: str, period: Optional[str] = None,
     interval: Optional[str] = None, strength: Optional[int] = None,
+    htf: bool = True,
 ) -> Dict[str, Any]:
     """Scan real OHLC and return the PRICE-ACTION STRUCTURE: swing highs/lows,
     market structure (HH/HL/LH/LL → trend), Break of Structure / Change of
@@ -6253,6 +6786,11 @@ async def education_structure_scan(
 
     `strength` (fractal half-window) defaults to the rung's own value: a
     2-bar fractal is right on daily bars and far too twitchy on 5-minute ones.
+
+    `htf` also reads the rung above and marks the levels both timeframes agree
+    on (`confluence`). It costs one extra upstream call, runs concurrently with
+    the main one, and degrades to `confluence.checked = false` if it fails —
+    set it to 0 to skip it entirely.
     """
     sym = symbol.upper().strip()
     win = _scan_window(interval, period)
@@ -6265,29 +6803,61 @@ async def education_structure_scan(
             "aggregatedFrom": tf.source_interval,
             "adjustments": win["adjustments"]}
     try:
-        # 4h no lo sirve el proveedor: se pide en 1h y se compone aquí.
-        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.fetch_interval)
-        rows = timeframes.resample(rows, tf.bucket_minutes)
+        # Ambas series a la vez: la del escalón pedido y la del escalón superior
+        # para la confluencia. En serie, el escaneo tardaría el doble.
+        # 4h no lo sirve el proveedor: se pide en 1h y se compone en _fetch_bars.
+        rows, htf_read = await asyncio.gather(
+            _fetch_bars(sym, rng, tf),
+            _higher_timeframe_levels(sym, tf.interval if htf else None),
+        )
         if not rows:
-            return {**meta, "rowsScanned": 0, "trend": "range",
-                    "swings": [], "events": [], "levels": [], "fvgs": []}
+            # Misma FORMA que una respuesta completa, toda vacía: el cliente
+            # nunca ramifica por "¿vino corta o larga?".
+            return {**meta, "lastBarForming": False, **strip_bars([]),
+                    **detect_structure([], strn)}
         res = await asyncio.to_thread(detect_structure, rows, strn)
+        if htf_read["tf"] is not None:
+            apply_confluence(res, htf_read["levels"], htf_read["tf"].interval)
         return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
-                **_trim_structure(res)}
+                **strip_bars(rows), **_trim_structure(res)}
     except Exception as e:
         logging.error(f"Structure scan error for {sym}: {e}")
-        return {**meta, "error": "scan_failed", "trend": "range",
-                "swings": [], "events": [], "levels": [], "fvgs": []}
+        return {**meta, "error": "scan_failed", **strip_bars([]),
+                **detect_structure([], strn)}
 
 
 # ============================================================
 # PERFORMANCE — Trade Journal & Analytics
 # ============================================================
 
+class TradeNotifyIn(BaseModel):
+    """Aviso de la posición: qué niveles vigilar y por dónde avisar.
+
+    Los canales se piden aquí, pero **quién puede de verdad** lo dice
+    `GET /alerts/channels`: pedir SMS con el proveedor sin configurar guarda la
+    preferencia y la alerta queda vigilando; lo que no hace es fingir que el
+    mensaje salió. El resultado por canal se escribe en la alerta al dispararse.
+    """
+    enabled: bool = False
+    # inapp = la pestaña abierta (WebSocket) · email · sms
+    channels: List[str] = Field(default_factory=lambda: ["inapp"], max_length=3)
+    # Qué niveles vigilar. Sólo tienen sentido los que la operación tenga puestos.
+    on: List[str] = Field(default_factory=lambda: ["sl", "tp"], max_length=3)
+    # E.164 obligatorio para SMS: adivinar el prefijo del país manda el aviso al
+    # teléfono de otra persona.
+    phone: Optional[str] = Field(None, max_length=20)
+
+
 class TradeIn(BaseModel):
     """Payload for creating/updating a trade."""
     symbol: str
     side: str = Field(..., pattern="^(long|short)$")
+    # Un trade puede responder a MÁS DE UN setup: la confluencia de dos
+    # condiciones es una razón de entrada tan real como una sola, y obligar a
+    # elegir una hacía que la otra no existiera para la analítica. `setups` es
+    # la fuente de verdad; `setup` se conserva como cadena derivada para todo lo
+    # que ya leía un solo texto (CSV, prompt del coach, tabla del diario).
+    setups: Optional[List[str]] = None
     setup: Optional[str] = ""
     entry_price: float
     exit_price: Optional[float] = None
@@ -6308,14 +6878,132 @@ class TradeIn(BaseModel):
     tags: Optional[List[str]] = []
     emotion: Optional[int] = None  # 1..5
     screenshot_urls: Optional[List[str]] = []
-    # Instrument: 'spot' (acciones/cripto/forex/futuros — comportamiento clásico)
-    # u 'option'. En opciones, entry/exit_price = prima por acción, quantity =
-    # nº de contratos, multiplier = tamaño del contrato (100 en opciones sobre acciones).
-    instrument_type: Optional[str] = Field("spot", pattern="^(spot|option)$")
+    # ── Producto financiero ────────────────────────────────────────────
+    # `spot` sigue siendo el valor por defecto porque es lo que llevan guardado
+    # las operaciones anteriores. Los demás productos traen consigo su forma de
+    # medirse: contrato, lote, tick, pip, funding, comisión nocturna.
+    # En opciones, entry/exit_price = prima por acción, quantity = nº de
+    # contratos, multiplier = tamaño del contrato (100 en opciones sobre acciones).
+    instrument_type: Optional[str] = Field(
+        "spot", pattern="^(spot|stock|crypto_spot|crypto_perp|futures|cfd|forex|option)$")
     option_type: Optional[str] = Field(None, pattern="^(call|put)$")
     strike: Optional[float] = None
     expiry: Optional[str] = None
-    multiplier: Optional[float] = 1
+    # Tamaño de contrato. `None` = "resuélvelo del catálogo": es lo que permite
+    # que el cliente no tenga que saberse de memoria que un lote de forex son
+    # 100 000 unidades. Se guarda ya resuelto.
+    multiplier: Optional[float] = None
+    # Apalancamiento. Nunca multiplica el P&L; decide margen, ROE y liquidación.
+    # El tope de 1000 es un cordón de seguridad contra el dedo gordo, no una
+    # opinión sobre cuánto apalancamiento es sensato — de eso ya avisa la regla
+    # de exposición, que mide el nocional contra el saldo real de la cuenta.
+    leverage: Optional[float] = Field(None, gt=0, le=1000)
+    lot_type: Optional[str] = Field(None, pattern="^(standard|mini|micro|nano|units)$")
+    maintenance_margin_rate: Optional[float] = Field(None, ge=0, lt=1)
+    # ── Unidades elegidas por el trader ────────────────────────────────
+    # El stop y el objetivo se escriben en lo que cada uno usa; lo que se guarda
+    # es siempre un nivel de precio.
+    sl_unit: Optional[str] = Field(
+        "price", pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
+    sl_input: Optional[float] = None
+    tp_unit: Optional[str] = Field(
+        "price", pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
+    tp_input: Optional[float] = None
+    risk_unit: Optional[str] = Field(
+        None, pattern="^(price|pips|ticks|points|pct|money|pct_balance|r)$")
+    # ── Riesgo definido (opciones y spreads) ───────────────────────────
+    max_loss: Optional[float] = Field(None, ge=0)
+    max_profit: Optional[float] = Field(None, ge=0)
+    # ── Coste de mantener la posición abierta ──────────────────────────
+    funding_fees: Optional[float] = None
+    funding_rate_pct: Optional[float] = None
+    funding_periods: Optional[float] = Field(None, ge=0)
+    funding_interval_hours: Optional[float] = Field(None, gt=0)
+    swap_fees: Optional[float] = None
+    swap_rate_pct: Optional[float] = None
+    nights_held: Optional[float] = Field(None, ge=0)
+    # ── Contexto de opciones ───────────────────────────────────────────
+    option_strategy: Optional[str] = None
+    iv_entry: Optional[float] = None
+    iv_exit: Optional[float] = None
+    delta_entry: Optional[float] = None
+    underlying_entry: Optional[float] = None
+    underlying_exit: Optional[float] = None
+    option_outcome: Optional[str] = Field(
+        None, pattern="^(closed|expired_worthless|assigned|exercised|rolled)$")
+    # ── Aviso de la posición ───────────────────────────────────────────
+    notify: Optional["TradeNotifyIn"] = None
+
+
+_NOTIFY_LEVELS = ("sl", "tp")
+
+
+async def _sync_trade_alerts(trade: dict, user: dict) -> int:
+    """Pone al día las alertas de precio ligadas a una operación del diario.
+
+    Reutiliza la colección `alerts` y el poller que ya existían: una alerta de
+    diario es una alerta de precio con el `trade_id` puesto, así que no hay un
+    segundo vigilante que mantener ni un segundo sitio donde se puedan
+    desincronizar.
+
+    Es idempotente y **destructiva sobre lo suyo**: borra las alertas de esta
+    operación que aún no han saltado y las vuelve a crear con los niveles
+    actuales. Editar el stop tiene que mover el aviso; si no, el usuario recibe
+    un aviso del stop que ya no tiene. Las que **ya saltaron** no se tocan: son
+    historial.
+
+    Sólo se vigila una posición ABIERTA. Cerrada, el nivel ya no significa nada.
+    """
+    trade_id = trade.get("id")
+    if not trade_id:
+        return 0
+    try:
+        await db.alerts.delete_many({"user_id": user["id"], "trade_id": trade_id,
+                                     "triggered": False})
+    except Exception as exc:  # noqa: BLE001 — un aviso no puede tumbar el guardado
+        logging.warning("[journal-alerts] limpieza fallida %s: %s", trade_id, exc)
+        return 0
+
+    notify = trade.get("notify") or {}
+    if not notify.get("enabled") or trade.get("status") != "open":
+        return 0
+
+    symbol = (trade.get("symbol") or "").upper()
+    side = trade.get("side") or "long"
+    channels = [c for c in (notify.get("channels") or ["inapp"])
+                if c in NOTIFY_CHANNELS] or ["inapp"]
+    phone = normalize_phone(notify.get("phone")) if "sms" in channels else None
+    wanted = [k for k in (notify.get("on") or list(_NOTIFY_LEVELS))
+              if k in _NOTIFY_LEVELS]
+
+    created = 0
+    now = datetime.now(timezone.utc).isoformat()
+    for kind in wanted:
+        level = trade.get(kind)
+        if level in (None, ""):
+            continue
+        # El lado decide de qué parte se cruza el nivel: el stop de un largo se
+        # cruza cayendo y el de un corto, subiendo. Al revés, la alerta salta
+        # nada más crearla o no salta nunca.
+        below = (kind == "sl") == (side == "long")
+        await db.alerts.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "user_email": user.get("email"),
+            "trade_id": trade_id,
+            "kind": kind,
+            "symbol": symbol,
+            "targetPrice": float(level),
+            "condition": "below" if below else "above",
+            "channels": channels,
+            "phone": phone,
+            "notifyEmail": "email" in channels,
+            "is_active": True,
+            "triggered": False,
+            "created_at": now,
+        })
+        created += 1
+    return created
 
 
 def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
@@ -6332,6 +7020,19 @@ def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None,
     return enriched
 
 
+@api_router.get("/performance/instruments")
+async def perf_instruments():
+    """El catálogo de productos e instrumentos que usa el diario.
+
+    Público y sin muro: es una tabla de referencia (cuánto vale un contrato,
+    cuánto es un pip), no un cálculo. El formulario NO depende de esta llamada
+    —lleva el mismo catálogo compilado dentro para poder calcular sin red—, pero
+    publicarlo permite comprobar desde fuera que las dos copias dicen lo mismo.
+    Junto al catálogo va el estado real de los canales de aviso.
+    """
+    return {**instruments_catalog(), "notifyChannels": channel_status()}
+
+
 @api_router.post("/performance/trades")
 async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premium)):
     user_id = user["id"]
@@ -6346,6 +7047,7 @@ async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_premi
     # Strip computed read-only fields before persisting (keep stored doc minimal)
     to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
     await db.trades.insert_one(to_store)
+    enriched["alerts_created"] = await _sync_trade_alerts(enriched, user)
     return enriched
 
 
@@ -6392,7 +7094,7 @@ async def perf_bulk_create_trades(
 @api_router.get("/performance/trades")
 async def perf_list_trades(
     user: dict = Depends(require_premium),
-    limit: int = 100,
+    limit: int = Query(TRADES_LIMIT_DEFAULT, ge=1, le=TRADES_LIMIT_MAX),
     status: Optional[str] = None,
     symbol: Optional[str] = None,
 ):
@@ -6441,8 +7143,23 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
     # If exit_price now set and status omitted, mark closed
     if updates.get("exit_price") is not None and not updates.get("status"):
         updates["status"] = "closed"
+    # `setups` (lista) y `setup` (cadena) tienen que salir siempre de aquí a la
+    # vez: si se editan por separado, la analítica agrupa por una y la tabla
+    # enseña la otra, y acaban diciendo cosas distintas del mismo trade.
+    if "setups" in updates or "setup" in updates:
+        names = normalize_setups(updates)
+        updates["setups"] = names
+        updates["setup"] = SETUP_SEPARATOR.join(names)
 
-    merged = {**existing, **updates}
+    # Normalizar ANTES de fusionar: si el documento almacenado es del diario
+    # legado, `{**existing, **updates}` dejaría `entryPrice` conviviendo con el
+    # `entry_price` del parche, y el enriquecido se escribiría sobre un
+    # documento con los dos esquemas dentro.
+    merged = {**normalize_trade_schema(existing), **updates}
+    # Los niveles se recalculan tras el parche: cambiar la cantidad mueve un stop
+    # escrito en dinero, y cambiar la unidad lo mueve entero. Si no se rehiciera
+    # aquí, el nivel guardado seguiría siendo el de los datos anteriores.
+    merged.update(resolve_levels(merged))
     prev = [t for t in await trades_for_user(db, user["id"], limit=50)
             if t.get("id") != trade_id]
     enriched = _enrich_trade(merged, prev_trades=prev)
@@ -6450,8 +7167,15 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depend
 
     await db.trades.update_one(
         {"id": trade_id, "user_id": user["id"]},
-        {"$set": enriched},
+        # `$set` no borra claves: el `$unset` es lo que impide que un documento
+        # migrado al vuelo conserve las camelCase que lo hacían ilegible. La
+        # lista sale de `legacy_keys_to_unset` y no de `LEGACY_TRADE_KEYS` a
+        # secas porque el shim aplica el `$unset` DESPUÉS del `$set`: sobre un
+        # documento canónico, borrar `leverage` le quitaría el apalancamiento
+        # que se acababa de guardar.
+        {"$set": enriched, "$unset": legacy_keys_to_unset(existing)},
     )
+    enriched["alerts_created"] = await _sync_trade_alerts(enriched, user)
     return enriched
 
 
@@ -6591,9 +7315,7 @@ async def performance_portfolio_risk(req: PortfolioRiskQuery,
     enriched = [_enrich_trade(t) for t in sort_trades_chronologically(rows)]
 
     open_positions = [t for t in enriched if (t.get("status") or "open") == "open"]
-    closed = [t for t in enriched
-              if t.get("status") in ("closed", "sl_hit", "tp_hit")
-              and t.get("exit_price") is not None]
+    closed = [t for t in enriched if is_closed_trade(t)]
 
     # Balance: explicit override, else the most recent trade's recorded balance.
     balance = req.accountBalance
@@ -6638,8 +7360,61 @@ async def calculate_volatility_size(req: VolSizeRequest) -> Dict[str, Any]:
 
 
 @api_router.get("/performance/analytics")
-async def performance_analytics(user: dict = Depends(require_premium)):
-    rows = await trades_for_user(db, user["id"], limit=1000)
+async def performance_analytics(
+    user: dict = Depends(require_premium),
+    product: Optional[str] = Query(
+        None, pattern="^(spot|stock|crypto_spot|crypto_perp|futures|cfd|forex|option)$"),
+):
+    """La analítica del diario, entera o de un solo producto.
+
+    `product` filtra ANTES de calcular, no después: con él, la curva de equity
+    arranca del saldo de la operación más antigua **de ese producto** y el
+    drawdown mide sólo esa serie. Es la única forma de responder "¿tengo ventaja
+    en opciones?", porque sin filtro el panel mezcla productos que pueden vivir
+    en cuentas distintas y el que se opera más grande domina cada cifra.
+
+    `products_available` es la lista de productos con los que dibujar el
+    selector, y se calcula ANTES de filtrar. `by_product`, en cambio, se calcula
+    después: con filtro sólo trae el producto elegido. Construir el selector
+    sobre él dejaría un único botón en cuanto se filtra, sin forma de volver al
+    conjunto — que es exactamente el callejón sin salida que esto evita.
+    """
+    # Ask for one row beyond the ceiling: that extra row is how we tell "exactly
+    # at the limit" from "there is more history than we are showing". Without it
+    # a user with precisely ANALYTICS_MAX_TRADES trades gets a false warning.
+    rows = await trades_for_user(db, user["id"], limit=ANALYTICS_MAX_TRADES + 1)
+    # La ventana la impone la CONSULTA, no el filtro. Se pide una fila de más:
+    # si llega, es que hay historial fuera de lo que estamos mirando.
+    #
+    # Y eso no se arregla filtrando después. Con 5.000 operaciones se leen 1.001;
+    # si al filtrar por opciones quedan 50, esas 50 son las opciones que había
+    # DENTRO de esa ventana, no las del historial — puede haber cientos más entre
+    # las 4.000 que no se leyeron. Calcular `truncated` sobre las filas ya
+    # filtradas daba `false` en ese caso: un panel de una ventana presentado
+    # como el historial completo, que es justo lo que `truncated` existe para
+    # impedir.
+    ventana_incompleta = len(rows) > ANALYTICS_MAX_TRADES
+
+    # Los productos que el selector puede ofrecer, con el mismo criterio de
+    # "cerrada" que usa la analítica (`is_closed_trade`): un producto sin nada
+    # cerrado no tiene panel que enseñar y sería un botón al estado vacío.
+    # Ojo: sale de la MISMA ventana, así que un producto que sólo se operó hace
+    # mucho puede no aparecer. Por eso la respuesta publica también
+    # `products_available_partial`, en vez de dar la lista por completa.
+    products_available = sorted({
+        (r.get("instrument_type") or DEFAULT_PRODUCT)
+        for r in rows if is_closed_trade(r)
+    })
+    if product:
+        rows = [r for r in rows
+                if (r.get("instrument_type") or DEFAULT_PRODUCT) == product]
+    truncated = ventana_incompleta
+    if len(rows) > ANALYTICS_MAX_TRADES:
+        # trades_for_user sorts by entry_date desc, so the rows kept are the most
+        # recent ones and what falls off is the oldest history. Every figure
+        # below is therefore computed over a window, not over the whole record —
+        # which is exactly what the response has to admit to.
+        rows = rows[:ANALYTICS_MAX_TRADES]
     # One plan lookup for the whole request: every trade is judged against the
     # same active version, and the query does not repeat per row.
     plan = await get_active_plan(db, user["id"])
@@ -6662,6 +7437,25 @@ async def performance_analytics(user: dict = Depends(require_premium)):
         # write a plan to anyone still being judged by the defaults.
         "plan": {"version": plan.get("version"), "name": plan.get("name")} if plan else None,
         "compliance": compliance_report(enriched, plan) if plan else None,
+        # Metrics over a window must say so. Silently analysing the newest 1000
+        # of a longer record shows an active trader a subset presented as their
+        # whole history — the same class of lie as an unlabelled synthetic chain.
+        "truncated": truncated,
+        "trades_analyzed": len(enriched),
+        # Qué filtro produjo estas cifras. Sin decirlo, un panel filtrado es
+        # indistinguible de uno completo con muy pocas operaciones.
+        "product_filter": product,
+        # Con qué productos se dibuja el selector. No depende del filtro puesto:
+        # es la única forma de que el botón para volver al conjunto siga ahí.
+        "products_available": products_available,
+        # La lista sale de la misma ventana que las cifras: si el historial es
+        # más largo, puede faltar un producto que sólo se operó hace tiempo.
+        "products_available_partial": ventana_incompleta,
+        "truncation_notice": (
+            f"Mostrando las {ANALYTICS_MAX_TRADES} operaciones más recientes. "
+            "Tu historial es más largo: las más antiguas no entran en estas "
+            "métricas."
+        ) if truncated else None,
     }
 
 
@@ -6887,13 +7681,32 @@ async def admin_list_users(
     return {"users": users, "total": total, "skip": skip, "limit": limit}
 
 
+def _csv_safe(value: Any) -> Any:
+    """Neutraliza la inyección de fórmulas (CSV/Excel/LibreOffice).
+
+    Una celda que empieza por = + - @, tabulador o retorno de carro la evalúa la
+    hoja de cálculo al abrirla: `=HYPERLINK(...)` exfiltra datos con un clic y con
+    DDE se llega a ejecución de comandos. El dato de mayor riesgo aquí es `name`,
+    que el usuario elige libremente y que **abre un admin** — el clásico
+    atacante-almacena / víctima-abre. `csv.DictWriter` entrecomilla, pero eso no
+    desactiva la fórmula. Se antepone un apóstrofo, que la hoja trata como "texto
+    literal" y no muestra. Verificado con test.
+    """
+    if isinstance(value, str) and value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
 @api_router.get("/admin/users.csv")
 async def admin_export_users_csv(admin: dict = Depends(require_admin)):
     """Export the full user list as CSV (one row per user)."""
     import csv
     import io
     cursor = db.users.find({}, {"_id": 0, "password": 0})
-    rows = [_serialize_admin_user(u) async for u in cursor]
+    rows = [
+        {k: _csv_safe(v) for k, v in _serialize_admin_user(u).items()}
+        async for u in cursor
+    ]
 
     cols = [
         "email", "name", "auth_provider", "is_premium", "is_admin",
@@ -7156,8 +7969,9 @@ async def admin_delete_user(request: Request, user_id: str, admin: dict = Depend
         raise HTTPException(status_code=400, detail="No se puede borrar el usuario demo")
 
     await db.users.delete_one({"id": user_id})
-    # Best-effort cascade (ignore if collections don't exist)
-    for coll in ("calculations", "trades", "journal_entries", "alerts", "transactions"):
+    # Best-effort cascade (ignore if collections don't exist). Deriva de la
+    # tupla única: enumerarlas aquí a mano es lo que dejó fuera `trading_plans`.
+    for coll in (*_USER_DATA_COLLECTIONS, *_ACCOUNT_ONLY_COLLECTIONS):
         try:
             await db[coll].delete_many({"user_id": user_id})
         except Exception:
@@ -7581,37 +8395,66 @@ async def admin_refund_subscription(request: Request, user_id: str, admin: dict 
 async def admin_revenue(admin: dict = Depends(require_admin)):
     now = datetime.now(timezone.utc)
 
-    # MRR history — last 6 months from payment_transactions
-    mrr_history = []
-    for i in range(5, -1, -1):
-        month_start = (now.replace(day=1) - timedelta(days=i * 30)).replace(
-            hour=0, minute=0, second=0, microsecond=0
+    # Caja COBRADA por mes natural, no MRR. Son cosas distintas y llamarlas
+    # igual hacía que este panel y el MRR de `/admin/metrics` se contradijeran:
+    # un Lifetime de 299 € entra entero en un mes e infla la línea, y al mes
+    # siguiente cae a cero. `/admin/metrics.mrr_usd` sí es recurrente mensual.
+    #
+    # Los límites de mes se calculan por CALENDARIO. Antes se restaban `i*30`
+    # días al día 1, y como los meses no duran 30 días, cinco de los seis
+    # tramos no empezaban el día 1: el bucket de marzo iba del 4 de marzo al 1
+    # de abril, así que lo cobrado del 1 al 3 no caía en NINGÚN tramo y
+    # desaparecía del gráfico. Eran 9 días de ingresos perdidos cada 6 meses, y
+    # la deriva crecía cuanto más atrás se miraba.
+    month_starts: List[datetime] = []
+    cursor_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    for _ in range(6):
+        month_starts.append(cursor_month)
+        cursor_month = (cursor_month - timedelta(days=1)).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
         )
-        month_end = (month_start + timedelta(days=32)).replace(day=1)
+    month_starts.reverse()
+
+    revenue_history = []
+    for idx, month_start in enumerate(month_starts):
+        if idx + 1 < len(month_starts):
+            month_end = month_starts[idx + 1]
+        else:
+            month_end = (month_start + timedelta(days=32)).replace(day=1)
         total = 0.0
         async for tx in db.payment_transactions.find({
             "status": "paid",
             "created_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()},
         }, {"amount": 1}):
             total += float(tx.get("amount") or 0)
-        mes_label = month_start.strftime("%b")
-        mrr_history.append({"mes": mes_label, "mrr": round(total, 2)})
+        revenue_history.append({
+            "mes": month_start.strftime("%b"),
+            # Clave ISO por si dos tramos cayeran en el mismo nombre de mes.
+            "month": month_start.strftime("%Y-%m"),
+            "collected": round(total, 2),
+        })
 
-    # LTV per plan: plan price (one-payment average; no churn-adjusted history yet)
-    ltv: Dict[str, float] = {
+    # NO es LTV: es el precio del plan, sin ajustar por churn ni por vida media
+    # del cliente. Se publica con `ltv_is_plan_price` para que la interfaz pueda
+    # decirlo — un precio etiquetado como LTV es una cifra inventada, porque el
+    # LTV de un plan mensual depende de cuántos meses aguanta el cliente.
+    plan_price: Dict[str, float] = {
         plan_id: round(plan["price"], 2)
         for plan_id, plan in SUBSCRIPTION_PLANS.items()
     }
 
-    # Churn: users who had premium and no longer do (cancelled last 30 days)
+    # Churn y conversión: `None` cuando NO HAY MUESTRA, nunca 0.
+    # Antes dividían por `max(denominador, 1)`, así que una base de cero premium
+    # daba un 0,0 % de churn con toda la confianza — y el `'—'` que la interfaz
+    # ya tenía preparado para el caso sin dato no llegaba a dispararse nunca.
     churn_count = await db.users.count_documents({
         "subscription_status": {"$in": ["canceled", "past_due", "unpaid"]},
         "subscription_canceled_at": {"$gte": (now - timedelta(days=30)).isoformat()},
     })
-    premium_30d_ago = await db.users.count_documents({"is_premium": True}) + churn_count
-    churn_rate = round((churn_count / max(premium_30d_ago, 1)) * 100, 1)
+    premium_now = await db.users.count_documents({"is_premium": True})
+    premium_base = premium_now + churn_count
+    churn_rate = round((churn_count / premium_base) * 100, 1) if premium_base else None
 
-    # Conversion: new users last 30 days who became premium
     new_30d = await db.users.count_documents({
         "created_at": {"$gte": (now - timedelta(days=30)).isoformat()}
     })
@@ -7619,13 +8462,21 @@ async def admin_revenue(admin: dict = Depends(require_admin)):
         "created_at": {"$gte": (now - timedelta(days=30)).isoformat()},
         "is_premium": True,
     })
-    conversion_rate = round((new_premium_30d / max(new_30d, 1)) * 100, 1)
+    conversion_rate = round((new_premium_30d / new_30d) * 100, 1) if new_30d else None
 
     return {
-        "history": mrr_history,
+        "history": revenue_history,
         "churn": churn_rate,
         "conversion": conversion_rate,
-        "ltv": ltv,
+        "ltv": plan_price,
+        # Metadatos de procedencia: la interfaz no debería tener que adivinar
+        # qué mide cada cifra ni sobre cuántos casos se calculó.
+        "meta": {
+            "history_metric": "collected",   # caja cobrada, NO mrr recurrente
+            "ltv_is_plan_price": True,
+            "churn_base": premium_base,
+            "conversion_base": new_30d,
+        },
     }
 
 
@@ -7960,7 +8811,11 @@ async def admin_usage_heatmap(days: int = 30, admin: dict = Depends(require_admi
     cutoff = (now - timedelta(days=days)).isoformat()
 
     # Bounded fetch — at launch scale this is small; cap protects memory.
-    events = await db.usage_events.find({"ts": {"$gte": cutoff}}).limit(100000).to_list(100000)
+    EVENT_CAP = 100000
+    events = await db.usage_events.find({"ts": {"$gte": cutoff}}).limit(EVENT_CAP).to_list(EVENT_CAP)
+    # Al llegar al tope, `len(events)` es el tope, no el total: publicarlo como
+    # "vistas totales" convertía un recuento truncado en una cifra exacta.
+    truncated = len(events) >= EVENT_CAP
 
     path_counts: Counter = Counter()
     section_counts: Counter = Counter()
@@ -7983,7 +8838,14 @@ async def admin_usage_heatmap(days: int = 30, admin: dict = Depends(require_admi
     return {
         "days": days,
         "total_views": len(events),
+        # Sólo se cuentan eventos CON `user_id`, así que son usuarios
+        # identificados, no visitantes: el tráfico anónimo no entra aquí. El
+        # nombre se mantiene por compatibilidad de API y se aclara con el flag.
         "unique_visitors": len(visitors),
+        "unique_visitors_are_logged_in_only": True,
+        # `total_views` es un recuento truncado cuando esto es True.
+        "truncated": truncated,
+        "event_cap": EVENT_CAP,
         "top_paths": [{"name": k, "views": v} for k, v in path_counts.most_common(15)],
         "top_sections": [{"name": k, "views": v} for k, v in section_counts.most_common(15)],
         "timeseries": [{"day": d, "views": day_counts[d]} for d in sorted(day_counts)],
@@ -8121,6 +8983,9 @@ try:
     })
     register_realtime_alerts(api_router, db, {
         "decode_token": decode_token,
+        # El poller necesita poder mandar correo: sin esto, una alerta con canal
+        # de correo pedido se dispararía y no saldría de la pestaña.
+        "send_email": _send_email,
     })
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:
@@ -8128,7 +8993,7 @@ except Exception as _e:
 
 app.include_router(api_router)
 
-_FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://tradingcalculatorpro.com')
+_FRONTEND_URL = FRONTEND_URL
 
 _AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/me",
                "/api/auth/logout", "/api/auth/refresh", "/api/auth/google",

@@ -103,7 +103,7 @@ const TimeVsImpact = () => {
         </div>
 
         {/* Source + disclaimer */}
-        <p className="text-[10px] text-muted-foreground/70 leading-relaxed flex items-start gap-1.5">
+        <p className="text-[10px] text-muted-foreground leading-relaxed flex items-start gap-1.5">
           <Clock className="w-3 h-3 mt-0.5 flex-shrink-0" />
           {t('tviDisclaimer')}
         </p>

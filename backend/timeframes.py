@@ -69,6 +69,12 @@ class Timeframe:
     only for rungs the provider does not serve: Yahoo has no 4-hour candle, so
     4h is built by merging four 1-hour candles. Everywhere else they are None
     and the bar comes down as-is.
+
+    `higher` names the rung to read for CONTEXT above this one — the chart the
+    people trading against you are looking at. It is not simply "the next rung
+    up": stepping 5m → 15m adds almost nothing (three candles of the same
+    session), so the map jumps far enough for the answer to be different, and
+    stops at monthly, which has nothing above it.
     """
     interval: str
     minutes: int                    # nominal bar length, for ordering/labels
@@ -78,6 +84,7 @@ class Timeframe:
     intraday: bool
     source_interval: Optional[str] = None   # None = same as `interval`
     bucket_minutes: int = 0                 # 0 = no aggregation needed
+    higher: Optional[str] = None            # rung used for multi-timeframe confluence
 
     @property
     def fetch_interval(self) -> str:
@@ -88,18 +95,26 @@ class Timeframe:
 # Ordered fastest → slowest. This IS the public ladder: 5-minute candles at the
 # short end, monthly at the long end, and a 2-year window reachable from 1h up.
 TIMEFRAMES: Tuple[Timeframe, ...] = (
-    Timeframe("5m",   5,     ("1d", "5d", "1mo"),                                    "5d",  3, True),
-    Timeframe("15m",  15,    ("1d", "5d", "1mo"),                                    "5d",  3, True),
-    Timeframe("30m",  30,    ("5d", "1mo"),                                          "1mo", 2, True),
-    Timeframe("1h",   60,    ("1mo", "3mo", "6mo", "1y", "2y"),                       "3mo", 2, True),
+    Timeframe("5m",   5,     ("1d", "5d", "1mo"),                                    "5d",  3, True,
+              higher="1h"),
+    Timeframe("15m",  15,    ("1d", "5d", "1mo"),                                    "5d",  3, True,
+              higher="1h"),
+    Timeframe("30m",  30,    ("5d", "1mo"),                                          "1mo", 2, True,
+              higher="4h"),
+    Timeframe("1h",   60,    ("1mo", "3mo", "6mo", "1y", "2y"),                       "3mo", 2, True,
+              higher="4h"),
     # 4H no existe en el proveedor: se construye juntando cuatro velas de 1h.
     # Es de las temporalidades más usadas en swing, así que merece la pena
     # fabricarla en vez de fingir que no se puede. Hereda el tope de 730 días
     # del intervalo horario del que sale, de ahí que llegue justo a 2 años.
     Timeframe("4h",   240,   ("3mo", "6mo", "1y", "2y"),                              "6mo", 2, True,
-              source_interval="1h", bucket_minutes=240),
-    Timeframe("1d",   1440,  ("1mo", "3mo", "6mo", "1y", "2y", "5y", "ytd", "max"),   "6mo", 2, False),
-    Timeframe("1wk",  10080, ("6mo", "1y", "2y", "5y", "max"),                        "2y",  2, False),
+              source_interval="1h", bucket_minutes=240, higher="1d"),
+    Timeframe("1d",   1440,  ("1mo", "3mo", "6mo", "1y", "2y", "5y", "ytd", "max"),   "6mo", 2, False,
+              higher="1wk"),
+    Timeframe("1wk",  10080, ("6mo", "1y", "2y", "5y", "max"),                        "2y",  2, False,
+              higher="1mo"),
+    # Nada por encima del mensual: la confluencia se queda sin comprobar y se
+    # reporta como tal, no como "sin coincidencias".
     Timeframe("1mo",  43200, ("1y", "2y", "5y", "max"),                               "5y",  2, False),
 )
 
@@ -153,6 +168,18 @@ def get(interval: Optional[str]) -> Optional[Timeframe]:
 def is_intraday(interval: Optional[str]) -> bool:
     tf = get(interval)
     return bool(tf and tf.intraday)
+
+
+def higher(interval: Optional[str]) -> Optional[Timeframe]:
+    """The rung to scan for CONTEXT above `interval`, or None at the top.
+
+    Used for multi-timeframe confluence: a level that the bigger chart also has
+    is being watched by traders who never opened the small one. None at the top
+    of the ladder is meaningful and must reach the client as "not checked" —
+    not as "checked, no confluence".
+    """
+    tf = get(interval)
+    return BY_INTERVAL.get(tf.higher) if (tf and tf.higher) else None
 
 
 def resolve(interval: Optional[str] = None,
@@ -268,6 +295,8 @@ def ladder() -> List[Dict[str, Any]]:
             "maxDays": INTERVAL_MAX_DAYS.get(tf.fetch_interval, 0) or None,
             # El cliente puede avisar de que esta vela se compone, no se sirve.
             "aggregatedFrom": tf.source_interval,
+            # Escalón que se lee por encima para la confluencia (None en el tope).
+            "higherInterval": tf.higher,
         }
         for tf in TIMEFRAMES
     ]

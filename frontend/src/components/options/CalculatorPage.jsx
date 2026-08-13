@@ -34,7 +34,7 @@ import PositionSetupBar from './PositionSetupBar';
 import GreeksStrip from './GreeksStrip';
 import ExitTargetsTable from './ExitTargetsTable';
 import SecondaryPanels from './SecondaryPanels';
-import { SectionHeading } from './SectionCard';
+import { SectionHeading } from '@/components/common/SectionCard';
 
 const readPersistedNumber = (key, fallback) => {
   try {

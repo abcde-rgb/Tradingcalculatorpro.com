@@ -260,7 +260,20 @@ export const useAssetsStore = create(
       
       // Categoría actualmente seleccionada
       selectedCategory: 'crypto',
-      
+
+      /* Temporalidad del gráfico, en el vocabulario de TradingView
+         ('5', '60', '240', 'D'…). Vive AQUÍ y no dentro del gráfico porque el
+         escáner de estructura tiene que leer la misma que estás mirando.
+         Antes cada uno guardaba la suya y las persistía por separado: ponías
+         el gráfico en 4H y el escáner seguía informando del diario, así que
+         tendencia, niveles y distancias describían un gráfico distinto del que
+         tenías delante. */
+      chartInterval: 'D',
+
+      setChartInterval: (interval) => {
+        set({ chartInterval: interval });
+      },
+
       addFavorite: (symbol) => {
         const favorites = get().favorites;
         if (!favorites.includes(symbol)) {

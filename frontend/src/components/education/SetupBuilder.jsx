@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Settings2, Save, Copy, Check, Trash2, Plus, Clock, Layers, Wrench, Shield,
-  Target, Crosshair, ShieldAlert, ListChecks, AlertTriangle, Pencil, X,
+  Target, Crosshair, ShieldAlert, ListChecks, AlertTriangle, Pencil, X, Wallet,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { getChartPatterns, getCandlestickPatterns, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import {
   loadSystem, saveSystem, makeSetup, setupHasContent, missingEssentials,
-  EMPTY_SYSTEM_RULES,
-} from './tradingSystemModel';
+  onSystemChange, EMPTY_SYSTEM_RULES,
+} from '@/lib/tradingSystem';
 
 // {id} is stored; {k} is an i18n key, {s} a static (language-neutral) label.
 const TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1D', '1W', '1M'];
@@ -87,12 +87,17 @@ const Section = ({ icon: Icon, title, hint, children }) => (
     <h3 className="font-semibold text-sm flex items-center gap-2">
       {Icon && <Icon className="w-4 h-4 text-primary" />} {title}
     </h3>
-    {hint && <p className="text-xs text-muted-foreground/80 -mt-1">{hint}</p>}
+    {hint && <p className="text-xs text-muted-foreground -mt-1">{hint}</p>}
     <div className="flex flex-wrap gap-2">{children}</div>
   </div>
 );
 
-export default function SetupBuilder() {
+/**
+ * `onSaved` lo usa Performance: allí este constructor convive con el marcador
+ * de rendimiento por setup, que lee el mismo almacén. Sin el aviso, definir un
+ * setup no refrescaba la tabla de al lado hasta recargar la página.
+ */
+export default function SetupBuilder({ onSaved }) {
   const { t } = useTranslation();
   const [system, setSystem] = useState(() => loadSystem());
   const [editingId, setEditingId] = useState(null);
@@ -105,6 +110,14 @@ export default function SetupBuilder() {
   // Persist on every change — the library is the user's own plan, losing it to
   // a closed tab is not acceptable.
   useEffect(() => { saveSystem(system); }, [system]);
+
+  // El sistema va con la cuenta, así que puede llegar de OTRO dispositivo con
+  // esta pantalla ya abierta (ver `lib/cloudPrefs.js`). Sólo se atienden los
+  // avisos `silent`, que son los que vienen de fuera: los propios ya están
+  // pintados, y recargarlos aquí borraría la edición a medio escribir.
+  useEffect(() => onSystemChange((ev) => {
+    if (ev?.silent) setSystem(loadSystem());
+  }), []);
 
   const chartPatterns = useMemo(() => {
     const groups = getChartPatterns(t);
@@ -164,7 +177,12 @@ export default function SetupBuilder() {
     patchRules({ noTradeConditions: arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id] });
   };
 
-  const doSave = () => { saveSystem(system); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const doSave = () => {
+    saveSystem(system);
+    onSaved?.();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   const setupSummary = (s) => {
     const nameOf = (list, id) => { const f = list.find((x) => x.id === id); return f ? lbl(f) : id; };
@@ -207,6 +225,11 @@ export default function SetupBuilder() {
     }
     if (r.maxCorrelatedExposure) parts.push(`${t('tsysMaxCorr')}: ${r.maxCorrelatedExposure}%`);
     if (r.checklistEnabled) parts.push(`${t('tsysChecklistOn')}`);
+    // La caja también va en el resumen copiable: son reglas del sistema, no
+    // ajustes de una pantalla.
+    if (r.monthlyContribution) parts.push(`${t('tsysMonthlyContribution')}: ${r.monthlyContribution}`);
+    if (r.monthlyProfitCapPct) parts.push(`${t('tsysMonthlyCap')}: ${r.monthlyProfitCapPct}%`);
+    if (r.withdrawAboveBalance) parts.push(`${t('tsysWithdrawAbove')}: ${r.withdrawAboveBalance}`);
     return parts.join('\n');
   };
 
@@ -276,6 +299,36 @@ export default function SetupBuilder() {
                 {system.systemRules.checklistEnabled ? t('tsysChecklistOn') : t('tsysChecklistOff')}
               </Chip>
             </Section>
+
+            {/* Caja: no son reglas de entrada, son reglas de CUENTA, y mueven el
+                resultado tanto como la operativa. La pestaña Proyección las
+                aplica, así que dejan de ser una intención y se ven. */}
+            <Section icon={Wallet} title={t('tsysCashTitle')} hint={t('tsysCashHint')}>
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                {t('tsysMonthlyContribution')}
+                <Input type="number" min="0" step="50" className="w-28"
+                  value={system.systemRules.monthlyContribution}
+                  onChange={(e) => patchRules({ monthlyContribution: e.target.value })}
+                  data-testid="tsys-monthly-contribution" />
+              </label>
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                {t('tsysMonthlyCap')}
+                <Input type="number" min="0" step="0.5" className="w-24"
+                  value={system.systemRules.monthlyProfitCapPct}
+                  onChange={(e) => patchRules({ monthlyProfitCapPct: e.target.value })}
+                  data-testid="tsys-monthly-cap" />
+              </label>
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                {t('tsysWithdrawAbove')}
+                <Input type="number" min="0" step="100" className="w-28"
+                  value={system.systemRules.withdrawAboveBalance}
+                  onChange={(e) => patchRules({ withdrawAboveBalance: e.target.value })}
+                  data-testid="tsys-withdraw-above" />
+              </label>
+              <p className="text-[11px] text-muted-foreground leading-relaxed w-full">
+                {t('tsysCashNote')}
+              </p>
+            </Section>
           </div>
         ) : !editing ? (
           /* ── LIBRARY ─────────────────────────────────────────────── */
@@ -337,7 +390,7 @@ export default function SetupBuilder() {
                 </div>
               </>
             )}
-            <p className="text-xs text-muted-foreground/70">{t('setupSavedHint')}</p>
+            <p className="text-xs text-muted-foreground">{t('setupSavedHint')}</p>
           </div>
         ) : (
           /* ── EDITOR ──────────────────────────────────────────────── */
@@ -451,11 +504,11 @@ export default function SetupBuilder() {
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   <Crosshair className="w-4 h-4 text-primary" /> {t('tsysTriggerLabel')}
                 </h3>
-                <p className="text-xs text-muted-foreground/80">{t('tsysTriggerHint')}</p>
+                <p className="text-xs text-muted-foreground">{t('tsysTriggerHint')}</p>
                 <Input value={editing.entryTrigger} onChange={(e) => patchSetup({ entryTrigger: e.target.value })}
                   placeholder={t('tsysTriggerPh')} maxLength={160} data-testid="tsys-trigger" />
                 <h3 className="font-semibold text-sm pt-2">{t('tsysInvalidationLabel')}</h3>
-                <p className="text-xs text-muted-foreground/80">{t('tsysInvalidationHint')}</p>
+                <p className="text-xs text-muted-foreground">{t('tsysInvalidationHint')}</p>
                 <Input value={editing.invalidation} onChange={(e) => patchSetup({ invalidation: e.target.value })}
                   placeholder={t('tsysInvalidationPh')} maxLength={160} data-testid="tsys-invalidation" />
               </div>
@@ -504,7 +557,7 @@ export default function SetupBuilder() {
                     {setupSummary(editing)}
                   </pre>
                 ) : (
-                  <p className="text-sm text-muted-foreground/70">{t('setupEmpty')}</p>
+                  <p className="text-sm text-muted-foreground">{t('setupEmpty')}</p>
                 )}
               </div>
 

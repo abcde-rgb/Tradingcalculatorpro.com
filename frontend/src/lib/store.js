@@ -165,6 +165,20 @@ export const useAuthStore = create(
         }
       },
 
+      /**
+       * Instala una sesión ya emitida por el backend.
+       *
+       * Las passkeys hacen su propia ceremonia contra `/auth/passkey/*` (el
+       * navegador tiene que manejar `ArrayBuffer`, que no viaja por este store),
+       * así que llegan aquí con el usuario y el token ya resueltos. El estado
+       * que se fija es EXACTAMENTE el mismo que en `login` y `loginWithGoogle`:
+       * si divergiera, media app creería que hay sesión y la otra media no.
+       */
+      setSession: (user, token) => {
+        set({ user, token, isAuthenticated: true, isLoading: false });
+        trackEvent('login', { method: 'passkey' });
+      },
+
       logout: async () => {
         const token = get().token;
         if (API) {
@@ -307,44 +321,44 @@ export const useCalculatorStore = create((set, get) => ({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await safeJson(res);
-      set({ history: data, isLoading: false });
+      /* `safeJson` parsea, pero NO mira `res.ok`: con el token caducado la API
+         responde 200-menos con `{"detail": ...}`, un objeto. Guardarlo en
+         `history` hacía que el `history.map` de la tarjeta de historial lanzara
+         «history.map is not a function», lo recogía el ErrorBoundary y el
+         usuario veía «Algo salió mal» nada más entrar en el panel — parecía un
+         fallo de inicio de sesión cuando el login había ido bien.
+         Lo que no es una lista de cálculos se queda como lista vacía. */
+      set({ history: Array.isArray(data) ? data : [], isLoading: false });
     } catch (_) {
       set({ isLoading: false });
     }
   }
 }));
 
+/**
+ * CONGELADO — solo lectura y borrado. Ver `components/tools/TradingJournal.jsx`.
+ *
+ * Este store guardaba operaciones en `localStorage` bajo una clave global, sin
+ * `user_id`: dos cuentas en el mismo navegador compartían el diario. Ya no
+ * acepta escrituras (`addTrade` y `updateTrade` retirados a propósito, no por
+ * descuido) para que nadie más guarde aquí datos que va a perder. El diario que
+ * persiste es `/performance`.
+ *
+ * `getStats` también se retiró: era una TERCERA implementación de las
+ * estadísticas, con el breakeven contando como pérdida (`pnl <= 0`) y sobre un
+ * P&L calculado en nocional. Dos pantallas dando cifras distintas de las mismas
+ * operaciones es peor que no dar ninguna.
+ */
 export const useTradingJournalStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       trades: [],
 
-      addTrade: (trade) => {
-        set({ trades: [{ id: crypto.randomUUID(), ...trade, createdAt: new Date().toISOString() }, ...get().trades] });
+      // Se conserva para que el usuario pueda limpiar el navegador DESPUÉS de
+      // exportar. Es la única mutación que queda.
+      clearAllTrades: () => {
+        set({ trades: [] });
       },
-
-      updateTrade: (id, updates) => {
-        set({ trades: get().trades.map(t => t.id === id ? { ...t, ...updates } : t) });
-      },
-
-      deleteTrade: (id) => {
-        set({ trades: get().trades.filter(t => t.id !== id) });
-      },
-
-      getStats: () => {
-        const trades = get().trades.filter(t => t.status === 'closed');
-        const wins = trades.filter(t => t.pnl > 0);
-        const losses = trades.filter(t => t.pnl <= 0);
-        return {
-          totalTrades: trades.length,
-          wins: wins.length,
-          losses: losses.length,
-          winRate: trades.length > 0 ? (wins.length / trades.length) * 100 : 0,
-          totalPnl: trades.reduce((s, t) => s + (t.pnl || 0), 0),
-          avgWin: wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0,
-          avgLoss: losses.length > 0 ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length : 0
-        };
-      }
     }),
     { name: 'trading-journal-storage' }
   )

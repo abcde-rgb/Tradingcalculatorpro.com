@@ -12,10 +12,35 @@ detects the *structure* of price action that pro traders actually read:
   5. Fair Value Gaps (FVG)     — 3-candle imbalances (unfilled inefficiencies)
 
 Pure, deterministic functions over a list of OHLC dicts
-``[{date, open, high, low, close}]`` ascending by date. No I/O, no deps —
-unit-testable in isolation (see tests/test_price_action_unit.py).
+``[{date, ts, open, high, low, close, volume}]`` ascending by date. No I/O, no
+deps — unit-testable in isolation (see tests/test_price_action_unit.py).
+``ts`` (epoch seconds) is optional: only the session-gap logic uses it, and its
+absence degrades to "cannot tell", never to a guess.
+
+HOW THIS FILE IS LAID OUT
+-------------------------
+The module grew section by section until helpers lived below their callers and
+the reading order no longer matched the calculation order. It is now stacked in
+the order the data actually flows, cheapest first:
+
+    §0  Shared helpers        ATR, average volume, band side, bar spacing
+    §1  Swings                detect_swings
+    §2  Market structure      label_structure
+    §3  Breaks                detect_structure_events · cluster_repeated_events
+    §4  Levels                detect_sr_levels · scan_levels
+    §5  Evidence              annotate_levels · annotate_events
+    §6  Imbalances            detect_fvgs
+    §7  Breakouts             detect_breakouts
+    §8  Cross-timeframe       apply_confluence
+    §9  Context               summarise_context
+    §10 Public entry point    auto_tolerance · detect_structure
+
+Layers §1–§7 answer "what is on this chart". §8–§9 answer "what does that mean
+for the price right now", and never invent evidence: a cross-timeframe match is
+reported as its own flag instead of being folded into the confirmation score,
+which measures only the bars that were scanned.
 """
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 Row = Dict[str, float]
 
@@ -23,9 +48,61 @@ Row = Dict[str, float]
 # They are sorted nearest-price-first, so this keeps the ones that matter.
 MAX_ANALYSED_LEVELS = 30
 
+# A bar-to-bar time jump this many times the series' normal spacing is a
+# session break (overnight / weekend), not a move. Only applied to intraday
+# series: on daily bars a Friday→Monday gap IS a gap, and traders trade it.
+SESSION_GAP_FACTOR = 2.0
+_DAY_SECONDS = 24 * 60 * 60
+
 
 # ---------------------------------------------------------------------------
-# 1) Swing highs / lows (fractal pivots)
+# §0) Shared helpers
+# ---------------------------------------------------------------------------
+def _side(value: float, low: float, high: float) -> int:
+    """+1 above the band, -1 below it, 0 inside it."""
+    if value > high:
+        return 1
+    if value < low:
+        return -1
+    return 0
+
+
+def _avg_true_range(rows: List[Row], window: int = 14) -> float:
+    if len(rows) < 2:
+        return 0.0
+    trs = []
+    for i in range(1, len(rows)):
+        h, lo, pc = rows[i]["high"], rows[i]["low"], rows[i - 1]["close"]
+        trs.append(max(h - lo, abs(h - pc), abs(lo - pc)))
+    w = trs[-window:] if len(trs) > window else trs
+    return sum(w) / len(w) if w else 0.0
+
+
+def _avg_vol(rows: List[Row], i: int, window: int) -> float:
+    seg = [(r.get("volume") or 0.0) for r in rows[max(0, i - window):i]]
+    seg = [v for v in seg if v > 0]
+    return sum(seg) / len(seg) if seg else 0.0
+
+
+def _bar_spacing_seconds(rows: List[Row]) -> float:
+    """Median seconds between consecutive bars; 0 when timestamps are missing.
+
+    The MEDIAN, not the mean: an intraday series is mostly regular spacing with
+    one big jump per session break, and the mean would be dragged up by exactly
+    the jumps we are trying to identify. 0 means "no idea" and every caller
+    treats it as such rather than assuming a resolution.
+    """
+    stamps = [r.get("ts") for r in rows if r.get("ts")]
+    if len(stamps) < 3:
+        return 0.0
+    deltas = sorted(float(b) - float(a) for a, b in zip(stamps, stamps[1:]) if b > a)
+    if not deltas:
+        return 0.0
+    return deltas[len(deltas) // 2]
+
+
+# ---------------------------------------------------------------------------
+# §1) Swing highs / lows (fractal pivots)
 # ---------------------------------------------------------------------------
 def detect_swings(rows: List[Row], strength: int = 2) -> List[Dict[str, Any]]:
     """A swing high at i has the highest high of the [i-strength, i+strength]
@@ -50,7 +127,7 @@ def detect_swings(rows: List[Row], strength: int = 2) -> List[Dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# 2) Market structure — label each swing vs. the previous same-type swing
+# §2) Market structure — label each swing vs. the previous same-type swing
 # ---------------------------------------------------------------------------
 def label_structure(swings: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Tag swing highs as HH/LH and swing lows as HL/LL vs. the previous swing of
@@ -82,7 +159,7 @@ def label_structure(swings: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# 3) Break of Structure (BOS) & Change of Character (CHoCH)
+# §3) Break of Structure (BOS) & Change of Character (CHoCH)
 # ---------------------------------------------------------------------------
 def detect_structure_events(rows: List[Row], swings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Walk candles; when a close breaks the most recent confirmed swing high/low,
@@ -120,8 +197,45 @@ def detect_structure_events(rows: List[Row], swings: List[Dict[str, Any]]) -> Li
     return events
 
 
+def cluster_repeated_events(events: List[Dict[str, Any]],
+                            tolerance: float = 0.008) -> List[Dict[str, Any]]:
+    """Number the breaks that keep happening over the SAME price, same way.
+
+    If price crosses one swing high three times, three BOS events are emitted,
+    and every one of them is real. But listed side by side as three separate
+    findings they read as three independent pieces of evidence, which is the
+    opposite of what they are: one level being crossed again and again is a
+    level that is not holding anybody back.
+
+    Each event gets ``repeat`` (1 = first break of that level in that
+    direction) and ``repeatOf`` (bar index of the first one), so the client can
+    collapse a group into a single row with a counter instead of a wall of
+    near-identical lines. Nothing is dropped here — the caller decides what to
+    show, and ``counts.repeatedBreaks`` says how many were follow-ups.
+    """
+    groups: List[Dict[str, Any]] = []
+    for ev in events:
+        price = ev.get("price") or 0.0
+        direction = ev.get("direction")
+        match = None
+        if price > 0:
+            for g in groups:
+                if g["direction"] == direction and abs(price - g["price"]) / g["price"] <= tolerance:
+                    match = g
+                    break
+        if match is None:
+            groups.append({"price": price or 1e-9, "direction": direction, "first": ev.get("index"), "n": 1})
+            ev["repeat"] = 1
+            ev["repeatOf"] = ev.get("index")
+        else:
+            match["n"] += 1
+            ev["repeat"] = match["n"]
+            ev["repeatOf"] = match["first"]
+    return events
+
+
 # ---------------------------------------------------------------------------
-# 4) Support / Resistance — cluster swings within a tolerance band
+# §4) Support / Resistance — cluster swings within a tolerance band
 # ---------------------------------------------------------------------------
 def detect_sr_levels(swings: List[Dict[str, Any]], tolerance: float = 0.008,
                      min_touches: int = 2,
@@ -146,6 +260,11 @@ def detect_sr_levels(swings: List[Dict[str, Any]], tolerance: float = 0.008,
     an error: it is *polarity reversal*, one of the most reliable behaviours in
     price action (broken resistance tends to act as support, and vice versa),
     so it is worth surfacing rather than hiding.
+
+    Every level also carries the ``zone`` it was clustered with — the same band
+    the evidence pass counts visits against. A level is a band, not a line, and
+    publishing the band is what lets the UI draw it as one instead of implying
+    a precision the method does not have.
 
     When ``current_price`` is None the role cannot be determined; levels come
     back as ``pivot`` with ``flipped=False``, and the caller must not present
@@ -200,8 +319,13 @@ def detect_sr_levels(swings: List[Dict[str, Any]], tolerance: float = 0.008,
             "origin": origin,
             "flipped": flipped,
             "distancePct": distance_pct,
+            "distanceAtr": None,          # filled by detect_structure, which knows the ATR
             "touches": touches,
             "strength": min(5, touches),  # 2..5+ capped
+            # The band the cluster actually covers — a level is a zone.
+            "zone": {"low": round(price * (1 - tolerance), 6),
+                     "high": round(price * (1 + tolerance), 6)},
+            "confluence": None,           # filled by apply_confluence when a HTF read exists
         })
 
     # Nearest levels first when we know where price is — the one you are about
@@ -214,8 +338,24 @@ def detect_sr_levels(swings: List[Dict[str, Any]], tolerance: float = 0.008,
     return levels
 
 
+def scan_levels(rows: List[Row], strength: int = 2,
+                tolerance: float = None, min_touches: int = 2) -> List[Dict[str, Any]]:
+    """Levels only — swings, clustering, roles. No per-bar evidence pass.
+
+    This is the cheap read used for the HIGHER timeframe when computing
+    confluence: what is needed there is *where* the bigger chart has levels,
+    not how each of them has behaved bar by bar, and the evidence pass is the
+    expensive half (O(levels × bars)).
+    """
+    if not rows or len(rows) < 2 * strength + 1:
+        return []
+    tol = auto_tolerance(rows) if tolerance is None else tolerance
+    return detect_sr_levels(detect_swings(rows, strength=strength), tolerance=tol,
+                            min_touches=min_touches, current_price=rows[-1].get("close"))
+
+
 # ---------------------------------------------------------------------------
-# 4b) Annotated confirmation — the EVIDENCE behind every level and every break
+# §5) Annotated confirmation — the EVIDENCE behind every level and every break
 # ---------------------------------------------------------------------------
 # The scanner used to print a level and a touch count and stop there. "Support
 # at 182.40, 3 touches" says nothing about whether those touches HELD: three
@@ -224,19 +364,10 @@ def detect_sr_levels(swings: List[Dict[str, Any]], tolerance: float = 0.008,
 # bar of the week is not a break of structure, it is noise that happens to
 # cross a line.
 #
-# So every level and every event now carries a `confirmation` block: the raw
+# So every level and every event carries a `confirmation` block: the raw
 # evidence (visits, holds, breaks, follow-through, volume, recency), a 0-100
 # score and a list of stable reason CODES. The codes are translated on the
-# client — the backend never ships prose it would then have to translate 8×.
-
-def _side(value: float, low: float, high: float) -> int:
-    """+1 above the band, -1 below it, 0 inside it."""
-    if value > high:
-        return 1
-    if value < low:
-        return -1
-    return 0
-
+# client — the backend never ships prose it would then have to translate 10×.
 
 def annotate_levels(rows: List[Row], levels: List[Dict[str, Any]],
                     tolerance: float = 0.008) -> List[Dict[str, Any]]:
@@ -417,7 +548,7 @@ def annotate_events(rows: List[Row], events: List[Dict[str, Any]],
 
 
 # ---------------------------------------------------------------------------
-# 5) Fair Value Gaps (3-candle imbalance)
+# §6) Fair Value Gaps (3-candle imbalance)
 # ---------------------------------------------------------------------------
 def detect_fvgs(rows: List[Row]) -> List[Dict[str, Any]]:
     """Bullish FVG: high[i-1] < low[i+1] (gap left by a fast up-move).
@@ -432,6 +563,16 @@ def detect_fvgs(rows: List[Row]) -> List[Dict[str, Any]]:
     slightly *more* correct: a bar that blows straight through the gap without
     its range overlapping now counts as filled, which is what actually happened
     to the imbalance.
+
+    SESSION BREAKS. On intraday bars of anything that does not trade round the
+    clock, the jump from one day's close to the next day's open satisfies the
+    three-candle test on every single overnight — and it is not an imbalance,
+    it is the market being shut. Those carry ``sessionGap: True`` (detected
+    from the bar timestamps, never from the prices) and are excluded from the
+    open-imbalance count. They are still returned, because the price gap is
+    real and some traders do trade it; what changes is that it is labelled
+    instead of being passed off as an intraday inefficiency. With no ``ts`` on
+    the rows the flag is simply False: unknown, so nothing is claimed.
     """
     out: List[Dict[str, Any]] = []
     n = len(rows)
@@ -446,6 +587,12 @@ def detect_fvgs(rows: List[Row]) -> List[Dict[str, Any]]:
         suffix_min_low[k] = min(rows[k]["low"], suffix_min_low[k + 1])
         suffix_max_high[k] = max(rows[k]["high"], suffix_max_high[k + 1])
 
+    spacing = _bar_spacing_seconds(rows)
+    # Only intraday series can have a session break inside a 3-bar window. On
+    # daily and above, a weekend is not a session gap: it is the normal spacing.
+    check_gaps = 0 < spacing < _DAY_SECONDS
+    gap_threshold = spacing * SESSION_GAP_FACTOR
+
     for i in range(1, n - 1):
         p, c = rows[i - 1], rows[i + 1]
         bull = p["high"] < c["low"]
@@ -458,34 +605,26 @@ def detect_fvgs(rows: List[Row]) -> List[Dict[str, Any]]:
         else:
             bottom, top, direction = c["high"], p["low"], "bearish"
             filled = suffix_max_high[i + 2] >= bottom
+
+        session_gap = False
+        if check_gaps:
+            t0, t1, t2 = rows[i - 1].get("ts"), rows[i].get("ts"), rows[i + 1].get("ts")
+            if t0 and t1 and t2:
+                session_gap = (float(t1) - float(t0) > gap_threshold
+                               or float(t2) - float(t1) > gap_threshold)
+
         out.append({
             "index": i, "date": rows[i].get("date"),
             "top": round(top, 6), "bottom": round(bottom, 6),
             "direction": direction, "filled": bool(filled),
+            "sessionGap": bool(session_gap),
         })
     return out
 
 
 # ---------------------------------------------------------------------------
-# 6) Breakout confirmation — real break of a level + which liquidity enters
+# §7) Breakout confirmation — real break of a level + which liquidity enters
 # ---------------------------------------------------------------------------
-def _avg_true_range(rows: List[Row], window: int = 14) -> float:
-    if len(rows) < 2:
-        return 0.0
-    trs = []
-    for i in range(1, len(rows)):
-        h, lo, pc = rows[i]["high"], rows[i]["low"], rows[i - 1]["close"]
-        trs.append(max(h - lo, abs(h - pc), abs(lo - pc)))
-    w = trs[-window:] if len(trs) > window else trs
-    return sum(w) / len(w) if w else 0.0
-
-
-def _avg_vol(rows: List[Row], i: int, window: int) -> float:
-    seg = [(r.get("volume") or 0.0) for r in rows[max(0, i - window):i]]
-    seg = [v for v in seg if v > 0]
-    return sum(seg) / len(seg) if seg else 0.0
-
-
 def detect_breakouts(rows: List[Row], levels: List[Dict[str, Any]] = None,
                      strength: int = 2, vol_window: int = 20) -> List[Dict[str, Any]]:
     """Confirmed breakouts of support/resistance + which side of liquidity enters.
@@ -552,7 +691,153 @@ def detect_breakouts(rows: List[Row], levels: List[Dict[str, Any]] = None,
 
 
 # ---------------------------------------------------------------------------
-# Public: one call → full structural read
+# §8) Cross-timeframe confluence
+# ---------------------------------------------------------------------------
+def apply_confluence(result: Dict[str, Any], htf_levels: List[Dict[str, Any]],
+                     htf_interval: str, tolerance: float = None) -> Dict[str, Any]:
+    """Mark the scanned levels that a HIGHER timeframe also has a level on.
+
+    This is the one thing a single-timeframe scan structurally cannot know: that
+    the resistance it is reading on 15-minute candles is also a daily level, and
+    is therefore being watched by people who have never opened a 15-minute
+    chart. It was the most valuable gap in this tool.
+
+    Deliberately NOT folded into the confirmation score. That score answers "how
+    did this level behave in the bars I scanned", and a match on another chart
+    is not an observation about those bars — mixing them would make a number
+    that means two things at once. Confluence is its own flag, and the UI shows
+    it as its own badge.
+
+    Matching band: the same tolerance the levels were clustered with, so two
+    levels "at the same price" means exactly what it means everywhere else in
+    this module. Only the closest match is kept per level.
+
+    Mutates and returns ``result`` (the level dicts are shared with
+    ``nearestResistance`` / ``nearestSupport``, so those are marked too).
+    """
+    levels = result.get("levels") or []
+    if tolerance is None:
+        tol_pct = result.get("tolerancePct")
+        tolerance = (tol_pct / 100) if tol_pct else 0.005
+
+    matched = 0
+    for lv in levels:
+        price = lv.get("price") or 0.0
+        if price <= 0:
+            continue
+        best = None
+        for hl in htf_levels or []:
+            hp = hl.get("price") or 0.0
+            if hp <= 0:
+                continue
+            gap = abs(hp - price) / price
+            if gap <= tolerance and (best is None or gap < best[0]):
+                best = (gap, hl)
+        if best is not None:
+            _, hl = best
+            lv["confluence"] = {
+                "interval": htf_interval,
+                "price": hl["price"],
+                "gapPct": round((hl["price"] - price) / price * 100, 3),
+                "touches": hl.get("touches"),
+                "type": hl.get("type"),
+            }
+            matched += 1
+
+    result["confluence"] = {
+        "checked": True,
+        "interval": htf_interval,
+        "htfLevels": len(htf_levels or []),
+        "matched": matched,
+    }
+    result.setdefault("counts", {})["confluent"] = matched
+    return result
+
+
+# ---------------------------------------------------------------------------
+# §9) Context — where price sits between the two levels that matter
+# ---------------------------------------------------------------------------
+def summarise_context(current_price: Optional[float],
+                      nearest_resistance: Optional[Dict[str, Any]],
+                      nearest_support: Optional[Dict[str, Any]],
+                      atr: float = 0.0) -> Dict[str, Any]:
+    """Room to the nearest level on each side, and where in between price sits.
+
+    Nothing here is new information: it is arithmetic on numbers already in the
+    response. It exists because the scanner used to hand over a wall of levels
+    and leave "am I buying straight into resistance?" — the only question most
+    of those levels are consulted for — to be eyeballed.
+
+    The ATR figures are the useful half: 0.4 ATR of room above and 3 ATR below
+    is a very different chart from the reverse, and the percentages alone do
+    not say that on an unfamiliar instrument.
+
+    Anything that cannot be computed is ``None``, never 0. With no level above,
+    the room above is undefined; printing 0% would read as "resistance right
+    here", which is the opposite of the truth.
+    """
+    ctx: Dict[str, Any] = {
+        "roomAbovePct": None, "roomBelowPct": None,
+        "roomAboveAtr": None, "roomBelowAtr": None,
+        "rangeWidthPct": None, "rangePositionPct": None,
+    }
+    if not current_price or current_price <= 0:
+        return ctx
+
+    res = (nearest_resistance or {}).get("price")
+    sup = (nearest_support or {}).get("price")
+    if res and res > current_price:
+        ctx["roomAbovePct"] = round((res - current_price) / current_price * 100, 2)
+        if atr:
+            ctx["roomAboveAtr"] = round((res - current_price) / atr, 2)
+    if sup and sup < current_price:
+        ctx["roomBelowPct"] = round((current_price - sup) / current_price * 100, 2)
+        if atr:
+            ctx["roomBelowAtr"] = round((current_price - sup) / atr, 2)
+    if res and sup and res > sup:
+        ctx["rangeWidthPct"] = round((res - sup) / current_price * 100, 2)
+        # 0 % = sitting on support, 100 % = sitting on resistance.
+        ctx["rangePositionPct"] = round((current_price - sup) / (res - sup) * 100, 1)
+    return ctx
+
+
+# ---------------------------------------------------------------------------
+# §9b) Evidence for the client: the bars the read was actually computed on
+# ---------------------------------------------------------------------------
+def strip_bars(rows: List[Row], cap: int = 90) -> Dict[str, Any]:
+    """The last `cap` bars that were SCANNED, so the client can draw them.
+
+    The scanner used to claim "resistance at 4,512.30 with three touches" with
+    no way to check it short of going to the chart and drawing the line by
+    hand; when you could not see it, you could not tell "it is not there" from
+    "I did not find it". Shipping the bars the read was computed on lets the UI
+    draw the claim on top of its own evidence.
+
+    ``barsOffset`` is not optional: swings carry their index into the FULL
+    series, so without the offset of the first bar sent they would be drawn
+    shifted — and a pivot in the wrong place invalidates the whole picture.
+    ``bars[i]`` is exactly ``rows[barsOffset + i]``; the unit test pins that.
+
+    One-letter keys because this travels on every scan.
+
+    Lives here, next to the detectors, because it is the same kind of thing:
+    a pure function over the OHLC rows. In `server.py` it could not be unit
+    tested without standing up the whole web app.
+    """
+    if not rows:
+        return {"bars": [], "barsOffset": 0}
+    corte = max(0, len(rows) - max(1, int(cap)))
+    return {
+        "barsOffset": corte,
+        "bars": [
+            {"t": r.get("date"), "o": r["open"], "h": r["high"], "l": r["low"], "c": r["close"]}
+            for r in rows[corte:]
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# §10) Public entry point: one call → full structural read
 # ---------------------------------------------------------------------------
 def auto_tolerance(rows: List[Row]) -> float:
     """Level-clustering tolerance derived from the series' own volatility.
@@ -577,32 +862,60 @@ def auto_tolerance(rows: List[Row]) -> float:
     return max(0.0015, min(0.025, (atr / last_close) * 0.5))
 
 
+def _empty_read(rows_scanned: int) -> Dict[str, Any]:
+    """The exact shape of a full read, with everything empty.
+
+    Same KEYS as a complete scan so the client never has to branch on "did this
+    come back in the short shape or the long one". Counts that are genuinely
+    unknown (confluence, which needs a second timeframe) are None, not 0.
+    """
+    return {
+        "trend": "range", "swings": [], "events": [], "levels": [], "fvgs": [],
+        "breakouts": [], "rowsScanned": rows_scanned, "currentPrice": None,
+        "lastBarDate": None,
+        "tolerancePct": None, "atr": None, "atrPct": None,
+        "nearestResistance": None, "nearestSupport": None,
+        "levelsAnalysed": 0,
+        "context": summarise_context(None, None, None, 0.0),
+        "confluence": {"checked": False, "interval": None, "htfLevels": 0, "matched": None},
+        "counts": {"swings": 0, "bos": 0, "choch": 0, "levels": 0,
+                   "resistances": 0, "supports": 0, "flipped": 0,
+                   "confirmedLevels": 0, "confirmedEvents": 0,
+                   "repeatedBreaks": 0, "confluent": None,
+                   "fvgOpen": 0, "fvgSessionGap": 0, "breakouts": 0, "fakeouts": 0},
+    }
+
+
 def detect_structure(rows: List[Row], strength: int = 2,
                      tolerance: float = None) -> Dict[str, Any]:
     """Full price-action structure read for a series of OHLC rows.
 
     `tolerance` defaults to `auto_tolerance(rows)` so the same call behaves
     sensibly on a 5-minute chart and on a monthly one.
+
+    Cross-timeframe confluence is NOT computed here: it needs a second series,
+    which means a second fetch, which means I/O — and this module stays pure.
+    The caller does that fetch and passes the result to `apply_confluence`;
+    until it does, `confluence.checked` is False and `counts.confluent` is
+    None (unknown), never 0 (checked and found nothing).
     """
     if not rows or len(rows) < 2 * strength + 1:
-        # Same KEYS as a full read, all empty: the client must never have to
-        # branch on "did the scan return the short shape or the long one".
-        return {"trend": "range", "swings": [], "events": [], "levels": [], "fvgs": [],
-                "breakouts": [], "rowsScanned": len(rows or []), "currentPrice": None,
-                "tolerancePct": None, "atr": None, "atrPct": None,
-                "nearestResistance": None, "nearestSupport": None,
-                "levelsAnalysed": 0,
-                "counts": {"swings": 0, "bos": 0, "choch": 0, "levels": 0,
-                           "resistances": 0, "supports": 0, "flipped": 0,
-                           "confirmedLevels": 0, "confirmedEvents": 0,
-                           "fvgOpen": 0, "breakouts": 0, "fakeouts": 0}}
+        return _empty_read(len(rows or []))
+
     current_price = rows[-1].get("close")
     tol = auto_tolerance(rows) if tolerance is None else tolerance
     atr = _avg_true_range(rows)
+
+    # --- what is on the chart -------------------------------------------------
     swings = detect_swings(rows, strength=strength)
     structure = label_structure(swings)
     events = annotate_events(rows, detect_structure_events(rows, swings), atr=atr)
+    cluster_repeated_events(events, tolerance=tol)
     all_levels = detect_sr_levels(swings, tolerance=tol, current_price=current_price)
+    if atr:
+        for lv in all_levels:
+            lv["distanceAtr"] = round(abs(lv["price"] - current_price) / atr, 2)
+
     # Only the nearest levels get the per-bar evidence pass and the breakout
     # scan. Both are O(levels × bars): on a 10 000-bar `max` daily series with
     # 120+ levels that is a full CPU second spent on levels 40 % away from
@@ -612,20 +925,38 @@ def detect_structure(rows: List[Row], strength: int = 2,
     annotate_levels(rows, levels, tolerance=tol)
     fvgs = detect_fvgs(rows)
     breakouts = detect_breakouts(rows, levels, strength=strength)
+
+    # --- what it means for the price right now --------------------------------
+    nearest_res = next((l for l in levels if l["type"] == "resistance"), None)
+    nearest_sup = next((l for l in levels if l["type"] == "support"), None)
+
+    # Open imbalances first, then the ones the market has already closed;
+    # session breaks sink below both — they are labelled, not silently dropped.
+    fvgs.sort(key=lambda g: (g["filled"], g["sessionGap"], -g["index"]))
+
     return {
         "currentPrice": round(current_price, 6) if current_price else None,
+        # De CUÁNDO es ese precio. `currentPrice` es el cierre de la última vela
+        # escaneada, no una cotización en vivo: en diario puede tener horas o
+        # días. Publicarla es lo que permite que la interfaz diga la verdad en
+        # vez de llamar "ahora" al cierre de anteayer.
+        "lastBarDate": rows[-1].get("date") if rows else None,
         "tolerancePct": round(tol * 100, 3),
         "atr": round(atr, 6) if atr else None,
         "atrPct": round(atr / current_price * 100, 3) if (atr and current_price) else None,
         # Nearest level on each side — the two prices that actually matter for
         # the next trade, so the UI doesn't have to re-derive them.
-        "nearestResistance": next((l for l in levels if l["type"] == "resistance"), None),
-        "nearestSupport": next((l for l in levels if l["type"] == "support"), None),
+        "nearestResistance": nearest_res,
+        "nearestSupport": nearest_sup,
+        "context": summarise_context(current_price, nearest_res, nearest_sup, atr),
+        # Filled in by apply_confluence when the caller supplies a higher
+        # timeframe. Unknown until then.
+        "confluence": {"checked": False, "interval": None, "htfLevels": 0, "matched": None},
         "trend": structure["trend"],
         "swings": structure["swings"],
         "events": events,
         "levels": levels,
-        "fvgs": [g for g in fvgs if not g["filled"]] + [g for g in fvgs if g["filled"]],
+        "fvgs": fvgs,
         "breakouts": breakouts,
         "rowsScanned": len(rows),
         "levelsAnalysed": len(levels),
@@ -639,7 +970,12 @@ def detect_structure(rows: List[Row], strength: int = 2,
             "flipped": sum(1 for l in all_levels if l.get("flipped")),
             "confirmedLevels": sum(1 for l in levels if l.get("confirmation", {}).get("confirmed")),
             "confirmedEvents": sum(1 for e in events if e.get("confirmation", {}).get("confirmed")),
-            "fvgOpen": sum(1 for g in fvgs if not g["filled"]),
+            # Breaks that hit a level already broken the same way before.
+            "repeatedBreaks": sum(1 for e in events if (e.get("repeat") or 1) > 1),
+            "confluent": None,               # unknown until a HTF read is applied
+            # An overnight jump is not an intraday imbalance: counted apart.
+            "fvgOpen": sum(1 for g in fvgs if not g["filled"] and not g["sessionGap"]),
+            "fvgSessionGap": sum(1 for g in fvgs if g["sessionGap"]),
             "breakouts": sum(1 for b in breakouts if b["kind"] == "breakout" and b["confirmed"]),
             "fakeouts": sum(1 for b in breakouts if b["kind"] == "fakeout"),
         },

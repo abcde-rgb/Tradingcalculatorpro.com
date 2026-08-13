@@ -6,6 +6,42 @@
 
 ---
 
+## 0. Orden: **el backend PRIMERO, siempre** 🔴
+
+Las dos mitades se despliegan por caminos distintos y a velocidades distintas: el
+frontend sale solo en cuanto se toca `frontend/**` en `main`, y el backend **no sale
+nunca solo** — hay que lanzar `cloudbuild.yaml` a mano. Esa asimetría hace que el
+orden por defecto sea justo el peligroso.
+
+Un frontend por delante de su backend **no degrada, rompe**. El caso real: el diario
+multiproducto (2026-08-06) manda `instrument_type` con siete valores nuevos; el
+backend anterior los valida contra `^(spot|option)$` y responde **422 a todo**,
+incluido el valor por defecto del formulario. No se pierde nada y se arregla
+desplegando el backend, pero mientras tanto el usuario no puede guardar ni una
+operación.
+
+```bash
+# 1) Backend (desde la raíz del repo, con el proyecto de GCP activo)
+gcloud builds submit --config=cloudbuild.yaml .
+
+# 2) Comprobar que respondió ANTES de tocar el frontend
+gcloud run services describe tradingcalculator-api --region=europe-west1 \
+  --format='value(status.url)'
+curl -fsS "$(gcloud run services describe tradingcalculator-api \
+  --region=europe-west1 --format='value(status.url)')/api/health"
+
+# 3) Frontend: sale solo al mergear a `main`. Si el workflow no se disparó,
+#    Actions → «Build & Deploy to GitHub Pages» → Run workflow (tiene
+#    workflow_dispatch). Un merge que no dispara nada NO es un despliegue.
+```
+
+⚠️ **Comprueba siempre que el merge disparó el workflow.** El 2026-08-06 el merge del
+PR #177 tocó 23 archivos de `frontend/**` y no generó ninguna ejecución: el sitio se
+quedó en la versión anterior sin que nada avisara, porque la ausencia de un run no
+produce ningún error en ninguna pantalla.
+
+---
+
 ## A. Secretos de GitHub Actions (frontend → GitHub Pages)
 
 Repo → Settings → Secrets and variables → Actions. Los usa `deploy-gh-pages.yml`:
@@ -66,24 +102,27 @@ Los usa el despliegue del backend (`cloudbuild.yaml`, manual desde GCP):
 
 ## G. Dominio / DNS — **dominio: `tradingcalculatorpro.com`**
 
-El **código ya está unificado** a este dominio (frontend canonical/sitemap/robots, CORS y
-emails del backend, `frontend/public/CNAME`, `homepage` y `PUBLIC_URL` = raíz `/`). Falta solo
-el **cutover de DNS/Pages** (acción manual en consolas):
+⚠️ **Estado real, verificado el 2026-08-03:** el cutover **se revirtió en su día y no
+está hecho**. Hoy `frontend/public/CNAME` **no existe**, el `homepage` de `package.json`
+sigue en `https://abcde-rgb.github.io/Tradingcalculatorpro.com` y el workflow publica con
+`PUBLIC_URL: /Tradingcalculatorpro.com`. Lo que sí está unificado al dominio propio es el
+canonical/sitemap/robots del frontend y el CORS y los emails del backend. Falta reponer
+las tres piezas de la ruta base **y** el cutover de DNS/Pages (acción manual en consolas):
 
 1. **En tu registrador de dominios**, apunta el dominio a GitHub Pages:
    - Registros **A** del apex `@` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
    - Registro **CNAME** `www` → `abcde-rgb.github.io`
-2. **GitHub → Settings → Pages → Custom domain** → `tradingcalculatorpro.com` → Save
-   (el archivo `frontend/public/CNAME` ya lo fija en cada deploy).
+2. **Crear `frontend/public/CNAME`** con `tradingcalculatorpro.com` dentro, y poner el
+   `homepage` de `package.json` y el `PUBLIC_URL` del workflow en la raíz (`/`). Luego
+   **GitHub → Settings → Pages → Custom domain** → `tradingcalculatorpro.com` → Save.
 3. Activa **Enforce HTTPS** cuando GitHub emita el certificado (minutos/horas).
 4. ⚠️ **Orden:** configura el DNS (paso 1) **antes** de mergear el PR. Tras el deploy la web
    vivirá en `https://tradingcalculatorpro.com/` (raíz); el viejo
    `abcde-rgb.github.io/Tradingcalculatorpro.com` dejará de servir (el `homepage`/`PUBLIC_URL`
    cambiaron a raíz). Si mergeas sin DNS, habrá un hueco hasta que propague.
 5. Verifica: `curl -I https://tradingcalculatorpro.com` · `…/sitemap.xml` · `…/robots.txt`.
-6. ⚠️ **Comprobar antes de empezar:** hoy `frontend/public/CNAME` **no existe** y el
-   `homepage` de `package.json` sigue apuntando a `abcde-rgb.github.io/Tradingcalculatorpro.com`
-   (el cutover se revirtió en su día). Habrá que reponer ambos junto con el DNS.
+6. ⚠️ **Nada de esto es reversible en caliente:** hasta que el DNS propague, cambiar la
+   ruta base deja el sitio actual sin servir. Por eso el paso 1 va antes que el 2.
 
 ## H. SendGrid
 

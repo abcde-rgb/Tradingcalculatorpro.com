@@ -56,7 +56,12 @@ export function toCsv(rows, { columns } = {}) {
   const cols = columns || Object.keys(rows[0]);
   const esc = (v) => {
     if (v === null || v === undefined) return '';
-    const s = String(v);
+    let s = String(v);
+    // Neutraliza la inyección de fórmulas: una celda que empieza por = + - @,
+    // tabulador o retorno de carro la evalúa Excel/LibreOffice al abrir el CSV.
+    // El apóstrofo la convierte en texto literal. Va ANTES del entrecomillado,
+    // porque entrecomillar no desactiva la fórmula.
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const header = cols.join(',');

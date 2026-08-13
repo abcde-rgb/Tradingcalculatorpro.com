@@ -10,14 +10,14 @@ import {
   Scale, FlaskConical, BarChart3, Globe, Moon, Sun, 
   LineChart, PieChart, DollarSign, Percent, Users, Award,
   ChevronRight, Play, Star, Briefcase, GraduationCap, ChevronDown,
-  Sigma, MessageSquare, Sparkles, Clock, Layers
+  Sigma, MessageSquare, Clock, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { RecommendedTools } from '@/components/common/RecommendedTools';
 import { useAuthStore } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, languages } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useThemeStore } from '@/lib/theme';
 
@@ -33,15 +33,19 @@ const TRANSITION_STAGGER_SM = { delay: 0.05 };
 const TRANSITION_STAGGER_MD = { delay: 0.1 };
 
 // Features will use t() in component  
+// Sin `color` por feature. Eran ocho chips de ocho colores distintos (verde,
+// naranja, azul, morado, amarillo, rojo, cian, rosa): un arcoíris de categorías
+// donde el color no codificaba nada, así que decoraba sin informar. Ahora el
+// icono va monocromo en el color de marca.
 const featuresData = [
-  { icon: Calculator, key: 'professionalCalculators', color: 'bg-green-500/10 text-green-500' },
-  { icon: Sigma, key: 'optionsSuite', color: 'bg-orange-500/10 text-orange-500' },
-  { icon: CandlestickChart, key: 'tradingViewCharts', color: 'bg-blue-500/10 text-blue-500' },
-  { icon: BookOpen, key: 'tradingJournal', color: 'bg-purple-500/10 text-purple-500' },
-  { icon: PieChart, key: 'portfolioManagement', color: 'bg-yellow-500/10 text-yellow-500' },
-  { icon: Bell, key: 'emailAlerts', color: 'bg-red-500/10 text-red-500' },
-  { icon: FlaskConical, key: 'monteCarloSimulator', color: 'bg-cyan-500/10 text-cyan-500' },
-  { icon: GraduationCap, key: 'educationCenter', color: 'bg-pink-500/10 text-pink-500' },
+  { icon: Calculator, key: 'professionalCalculators' },
+  { icon: Sigma, key: 'optionsSuite' },
+  { icon: CandlestickChart, key: 'tradingViewCharts' },
+  { icon: BookOpen, key: 'tradingJournal' },
+  { icon: PieChart, key: 'portfolioManagement' },
+  { icon: Bell, key: 'emailAlerts' },
+  { icon: FlaskConical, key: 'monteCarloSimulator' },
+  { icon: GraduationCap, key: 'educationCenter' },
 ];
 
 // Asset types will use t() in component
@@ -130,9 +134,9 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4 relative overflow-hidden">
         <AnimatedHeroChart />
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute top-40 right-1/4 w-72 h-72 bg-accent/10 rounded-full blur-3xl" />
+        {/* Sin degradado ni orbes `blur-3xl`: el "blob difuminado" es el fondo
+            genérico de 2023-25 y aquí competía con el gráfico de velas que sí
+            dice algo. El hero se sostiene en el instrumento, no en el adorno. */}
         
         <div className="max-w-7xl mx-auto relative">
           <motion.div 
@@ -156,7 +160,7 @@ export default function LandingPage() {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link to={isAuthenticated ? '/dashboard' : '/register'}>
-                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-lg h-14 px-8 shadow-lg shadow-primary/25" data-testid="hero-cta">
+                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-lg h-14 px-8" data-testid="hero-cta">
                   {isAuthenticated ? t('goToDashboard') : t('getStartedFree')}
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -170,7 +174,7 @@ export default function LandingPage() {
             </div>
             {!isAuthenticated && (
               <p className="text-sm text-primary font-medium -mt-8 mb-12" data-testid="hero-trial-note">
-                ✨ {t('trialHeroNote')}
+                {t('trialHeroNote')}
               </p>
             )}
             
@@ -179,7 +183,10 @@ export default function LandingPage() {
               {[
                 { value: '24/7', labelKey: 'statsAvailable',  delay: 0.2, icon: Clock },
                 { value: '50+',  labelKey: 'statsAssets',     delay: 0.3, icon: Layers },
-                { value: '8',    labelKey: 'statsLanguages',  delay: 0.4, icon: Globe },
+                // La cifra sale de la lista de idiomas, no de un literal: escrita
+                // a mano se quedó en 8 mientras la etiqueta ya decía 10, así que
+                // la propia tarjeta se contradecía. Añadir un idioma la actualiza.
+                { value: String(languages.length), labelKey: 'statsLanguages', delay: 0.4, icon: Globe },
                 { value: '99.9%',labelKey: 'statsUptime',     delay: 0.5, icon: Zap },
               ].map((stat) => {
                 const Ic = stat.icon;
@@ -252,10 +259,10 @@ export default function LandingPage() {
                 key={feature.key}
                 {...MOTION_FADE_UP_VIEW}
                 transition={TRANSITION_STAGGER_MD}
-                className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group"
+                className="p-6 rounded-xl bg-card border border-border hover:border-primary/40 hover:-translate-y-px transition-[border-color,transform] duration-tick ease-out group"
               >
-                <div className={`w-14 h-14 rounded-xl ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <feature.icon className="w-7 h-7" />
+                <div className="mb-4 text-primary">
+                  <feature.icon className="w-7 h-7" strokeWidth={1.5} />
                 </div>
                 <h3 className="font-bold text-lg mb-2">{t(feature.key)}</h3>
                 <p className="text-muted-foreground text-sm">{t(`${feature.key}Desc`)}</p>
@@ -306,7 +313,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full bg-primary/10 border border-primary/30">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <Layers className="w-3.5 h-3.5 text-primary" />
               <span className="text-[11px] font-bold uppercase tracking-widest text-primary">
                 {t('comingSoonBadge')}
               </span>
@@ -421,7 +428,7 @@ export default function LandingPage() {
               className="relative"
             >
               <div className="aspect-video rounded-xl bg-card border border-border overflow-hidden shadow-2xl">
-                <div className="w-full h-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center">
+                <div className="w-full h-full bg-secondary/40 flex items-center justify-center">
                   <CandlestickChart className="w-24 h-24 text-primary/50" />
                 </div>
               </div>

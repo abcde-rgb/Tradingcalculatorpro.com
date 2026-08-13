@@ -21,6 +21,7 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+from instruments import contract_size_for
 from performance import _safe_div, _to_utc, _parse_dt
 
 # Common practice on a professional desk: total open risk above ~6% of the
@@ -35,23 +36,40 @@ DEFAULT_INTRA_CLASS_CORRELATION = 0.75
 DEFAULT_CROSS_CLASS_CORRELATION = 0.15
 
 
-def _position_risk(position: dict) -> float:
-    """Money at risk on one open position: |entry − stop| × qty × multiplier.
+def _position_risk(position: dict) -> Optional[float]:
+    """Money at risk on one open position: |entry − stop| × qty × tamaño contrato.
 
-    Returns 0.0 for a position with no stop — not because the risk is zero, but
-    because it is unquantifiable from the data given. `open_heat` counts those
-    separately so they can never be silently treated as risk-free.
+    Devuelve `None` cuando el riesgo **no se puede cuantificar** con los datos
+    dados, que son dos casos distintos y `open_heat` los cuenta por separado:
+    sin stop, y sin tamaño de contrato resoluble.
+
+    El tamaño de contrato sale de `contract_size_for` —el MISMO resolutor que
+    usa el P&L—, no del campo `multiplier` en crudo. Leerlo en crudo con un
+    `or 1` de respaldo era BUG-045 otra vez: `multiplier` es opcional al crear
+    la operación (para eso está el catálogo), así que en un forex normal llega
+    a `None` y el riesgo salía ×100 000 más pequeño — 1 lote de EURUSD con 50
+    pips de stop se leía como 0,005 $ en vez de 500 $, y `heat_pct` daba 0 %
+    con la cuenta al 5 %. Peor aún: como 0,005 > 0, la posición pasaba el
+    filtro `has_stop` y ni siquiera caía en el contador de las no cuantificables.
     """
     try:
         entry = float(position.get("entry_price") or 0)
         sl = position.get("sl")
         qty = float(position.get("quantity") or 0)
-        mult = float(position.get("multiplier") or 1)
         if sl in (None, "") or not entry or not qty:
-            return 0.0
-        return abs(entry - float(sl)) * qty * mult
+            return None
+        mult = contract_size_for(
+            position.get("instrument_type"), position.get("symbol"),
+            override=position.get("multiplier"), lot_type=position.get("lot_type"),
+        )
+        if mult is None:
+            # Símbolo fuera de catálogo y sin tamaño declarado. Un contrato de
+            # crudo a ×1 en vez de ×1000 no da un riesgo aproximado, da uno mil
+            # veces menor: es preferible decir que no se sabe.
+            return None
+        return abs(entry - float(sl)) * qty * float(mult)
     except (TypeError, ValueError):
-        return 0.0
+        return None
 
 
 def _asset_class(symbol: str) -> str:
@@ -119,24 +137,38 @@ def compute_open_heat(positions: List[dict], account_balance: float,
     by_class: Dict[str, List[float]] = {}
     by_group: Dict[str, List[float]] = {}
     no_stop = 0
+    unquantifiable = 0
     for p in open_positions:
         risk = _position_risk(p)
-        if risk <= 0:
-            no_stop += 1
+        # Dos motivos distintos para no poder medir, y el usuario los arregla
+        # de forma distinta: uno poniendo un stop, el otro declarando el tamaño
+        # de contrato. Fundirlos en un solo contador escondía el segundo.
+        has_stop = p.get("sl") not in (None, "")
+        if risk is None:
+            if has_stop:
+                unquantifiable += 1
+            else:
+                no_stop += 1
         cls = _asset_class(p.get("symbol", ""))
-        by_class.setdefault(cls, []).append(risk)
-        by_group.setdefault(_correlation_group(cls), []).append(risk)
+        # Una posición que no se puede medir NO entra en la suma como 0: eso la
+        # trataría como libre de riesgo, que es justo lo que estos contadores
+        # existen para impedir.
+        if risk is not None:
+            by_class.setdefault(cls, []).append(risk)
+            by_group.setdefault(_correlation_group(cls), []).append(risk)
         per_position.append({
             "symbol": p.get("symbol"),
             "side": p.get("side"),
-            "risk": round(risk, 2),
-            "risk_pct": round(_safe_div(risk, balance, 0) * 100, 2),
+            "risk": None if risk is None else round(risk, 2),
+            "risk_pct": (None if risk is None
+                         else round(_safe_div(risk, balance, 0) * 100, 2)),
             "asset_class": cls,
             "correlation_group": _correlation_group(cls),
-            "has_stop": risk > 0,
+            "has_stop": has_stop,
+            "risk_quantifiable": risk is not None,
         })
 
-    total_risk = sum(x["risk"] for x in per_position)
+    total_risk = sum(x["risk"] for x in per_position if x["risk"] is not None)
 
     # Within a correlation group the positions are assumed to move together;
     # across groups, much less so. Combine the per-group effective risks.
@@ -162,6 +194,10 @@ def compute_open_heat(positions: List[dict], account_balance: float,
     return {
         "open_positions": len(open_positions),
         "positions_without_stop": no_stop,
+        # Tienen stop pero falta el tamaño de contrato para traducirlo a dinero.
+        # No suman a `heat_pct`: quien lo pinte debe decir que la cifra está
+        # incompleta, o el usuario leerá un heat bajo que no es real.
+        "positions_risk_unquantifiable": unquantifiable,
         "account_balance": round(balance, 2),
         "total_risk": round(total_risk, 2),
         "heat_pct": round(heat_pct, 2),

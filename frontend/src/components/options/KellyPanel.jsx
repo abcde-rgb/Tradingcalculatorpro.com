@@ -78,7 +78,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxProfitUn
 
       {/* Account Balance Input */}
       <div className="mb-3">
-        <label className="text-[9px] text-muted-foreground/80 uppercase tracking-wider mb-1 block">{t('saldoDeCuenta_5c8520')}</label>
+        <label className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1 block">{t('saldoDeCuenta_5c8520')}</label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none font-mono">$</span>
           <input
@@ -156,7 +156,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxProfitUn
         </>
       )}
 
-      <p className="text-[9px] text-muted-foreground/60 mt-2 leading-snug">
+      <p className="text-[9px] text-muted-foreground mt-2 leading-snug">
         ½ Kelly reduce riesgo de ruina vs Kelly completo por errores de estimación del POP.
       </p>
     </div>

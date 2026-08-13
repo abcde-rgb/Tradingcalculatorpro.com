@@ -262,7 +262,7 @@ export default function PricingPage() {
                 </div>
                 {plan.id !== 'lifetime' && (
                   <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5 mb-3" data-testid={`trial-badge-${plan.id}`}>
-                    ✨ {t('trialBadge')}
+                    {t('trialBadge')}
                   </div>
                 )}
                 <ul className="space-y-2">

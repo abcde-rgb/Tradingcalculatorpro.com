@@ -21,11 +21,16 @@ import httpx
 import crypto_data
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
+from notifications import channel_status, dispatch_alert
+
 router = APIRouter()
 
 # Injected at register() time
 db = None  # type: ignore[assignment]
 decode_token = None  # type: ignore[assignment]
+# Envío de correo del servidor principal. Se inyecta porque SendGrid y su
+# remitente viven allí; si no llega, el canal de correo simplemente no sale.
+_send_email = None  # type: ignore[assignment]
 
 # user_id → set of active WebSocket connections
 _connections: Dict[str, Set[WebSocket]] = {}
@@ -209,7 +214,9 @@ async def _evaluate_alerts() -> int:
                 "trigger_price": current,
             }},
         )
-        # Push WebSocket notification
+        # Reparto por los canales que pidió el usuario. El WebSocket sigue
+        # siendo uno de ellos, pero ya no es el único: una alerta que sólo llega
+        # a la pestaña abierta avisa justo cuando no hace falta avisar.
         msg = {
             "type": "alert.triggered",
             "alert_id": alert["id"],
@@ -217,9 +224,20 @@ async def _evaluate_alerts() -> int:
             "target_price": target,
             "current_price": current,
             "condition": condition,
+            "trade_id": alert.get("trade_id"),
+            "kind": alert.get("kind"),
             "triggered_at": datetime.now(timezone.utc).isoformat(),
         }
-        await _push_to_user(alert["user_id"], msg)
+        deliveries = await dispatch_alert(
+            alert, current, db=db,
+            push_inapp=lambda: _push_to_user(alert["user_id"], msg),
+            send_email=_send_email,
+        )
+        # El resultado por canal se guarda en la propia alerta: cuando el usuario
+        # pregunte por qué no le llegó el SMS, la respuesta ya está escrita.
+        await db.alerts.update_one(
+            {"id": alert["id"]}, {"$set": {"deliveries": deliveries}},
+        )
         triggered += 1
         logging.info(f"[ws-alerts] FIRED alert {alert['id']} for user {alert['user_id']} sym={sym}")
     return triggered
@@ -346,8 +364,20 @@ async def alerts_status():
 # Registration
 # ---------------------------------------------------------------------------
 
+@router.get("/alerts/channels")
+async def alert_channels():
+    """Qué canales de aviso están operativos ahora mismo.
+
+    Público a propósito: el formulario del diario lo consulta para poder decir
+    "SMS no disponible todavía" **antes** de que el usuario cuente con él, en vez
+    de ofrecer una casilla que no hace nada.
+    """
+    return channel_status()
+
+
 def register(app_router, database, helpers: Dict[str, Any]) -> None:
-    global db, decode_token
+    global db, decode_token, _send_email
     db = database
     decode_token = helpers["decode_token"]
+    _send_email = helpers.get("send_email")
     app_router.include_router(router)

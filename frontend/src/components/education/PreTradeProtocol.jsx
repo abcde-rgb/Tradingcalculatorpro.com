@@ -128,7 +128,7 @@ function StopRules() {
             ))}
           </ul>
         </div>
-        <p className="text-[11px] text-muted-foreground/80 leading-relaxed italic">{t('brkNote')}</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed italic">{t('brkNote')}</p>
       </CardContent>
     </Card>
   );
@@ -174,7 +174,7 @@ function PreTradeChecklist() {
                       }`}
                       data-testid={`pck-item-${i}`}>
                 {on ? <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    : <Circle className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 mt-0.5" />}
+                    : <Circle className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />}
                 <span className={`text-sm leading-snug ${on ? 'text-foreground' : 'text-muted-foreground'}`}>{t(k)}</span>
               </button>
             );
