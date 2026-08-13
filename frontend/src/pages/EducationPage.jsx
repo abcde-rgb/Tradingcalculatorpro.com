@@ -384,6 +384,52 @@ function PatternDetailModal({ pattern, onClose }) {
   );
 }
 
+/* ---------------------------------------------------------------------------
+   REVISIÓN DE CONTENIDO — fecha visible por módulo.
+
+   Regla, y es la de siempre en este proyecto: lo que no se ha comprobado NO
+   lleva sello. Un módulo sin entrada aquí no pinta nada; jamás una fecha
+   inventada. Sellar los 85 de golpe habría sido exactamente la clase de cifra
+   falsa que el resto del código se prohíbe.
+
+   `evidencia` es la fecha en que se revisó la BASE EMPÍRICA del método (no su
+   redacción). El barrido del 2026-08-12 leyó las cautelas que el propio
+   contenido declara y de ahí sale `evidence` en EDUCATION_NAV: los métodos
+   marcados lo están porque el texto ya decía que no hay validación, no porque
+   nadie opine.
+
+   Al editar un módulo, actualiza su fecha aquí. Si revisas uno que no está,
+   añádelo.
+   ------------------------------------------------------------------------- */
+const TOPIC_REVIEW = {
+  'gann-box':      { evidencia: '2026-08-12' },
+  'wolfe-waves':   { evidencia: '2026-08-12' },
+  'time-cycles':   { evidencia: '2026-08-12' },
+  'bill-williams': { evidencia: '2026-08-12' },
+  elliott:         { evidencia: '2026-08-12' },
+};
+
+/* Distintivo de evidencia. Vive aquí y no repetido en cada navegación porque
+   ya se escapó una vez: la etiqueta existía sólo en la barra de escritorio y
+   en el móvil no salía. Una sola pieza, tres puntos de uso. */
+const EVIDENCE_STYLE = {
+  disputed: 'border-amber-500/40 text-amber-500/80',
+  caution: 'border-sky-500/40 text-sky-500/80',
+};
+
+function EvidenceTag({ kind, t, className = '' }) {
+  if (!EVIDENCE_STYLE[kind]) return null;
+  return (
+    <span
+      title={t(kind === 'disputed' ? 'eduDisputedHint' : 'eduCautionHint')}
+      data-testid={`evidence-${kind}`}
+      className={`flex-shrink-0 text-[8px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded border ${EVIDENCE_STYLE[kind]} ${className}`}
+    >
+      {t(kind === 'disputed' ? 'eduDisputedTag' : 'eduCautionTag')}
+    </span>
+  );
+}
+
 // Glossary entries whose concept is already OWNED by a full Academy module.
 // The card links there instead of restating the explanation: delta, gamma,
 // theta and IV were once explained independently in up to six places, and the
@@ -593,10 +639,19 @@ export default function EducationPage() {
       { value: 'ehlers', label: t('ehlTitle'), group: 'alt' },
       { value: 'rrg', label: t('rrgTitle'), group: 'alt' },
       { value: 'pitchfork', label: t('pfTitle'), group: 'alt' },
-      { value: 'bill-williams', label: t('bwTitle'), group: 'alt' },
-      { value: 'wolfe-waves', label: t('wlfTitle'), group: 'alt' },
+      // Los tres marcados lo están porque el PROPIO contenido ya lo declara, no
+      // por criterio de nadie: wolfe («MUY subjetiva y carece de validación
+      // estadística seria»), ciclos («no hay evidencia sólida de que estas
+      // fechas tengan poder predictivo») y Bill Williams, que avisa del
+      // sobreajuste de sus cinco indicadores — una cautela de USO, no una
+      // ausencia de base, y por eso lleva `caution` y no `disputed`.
+      // Elliott, armónicos y SMC se quedan sin marcar a propósito: su texto no
+      // afirma nada sobre su base empírica, y ponerles un veredicto sería
+      // inventarlo.
+      { value: 'bill-williams', label: t('bwTitle'), group: 'alt', evidence: 'caution' },
+      { value: 'wolfe-waves', label: t('wlfTitle'), group: 'alt', evidence: 'disputed' },
       { value: 'oscillators', label: t('oscTitle'), group: 'alt' },
-      { value: 'time-cycles', label: t('cycTitle'), group: 'alt' },
+      { value: 'time-cycles', label: t('cycTitle'), group: 'alt', evidence: 'disputed' },
       { value: 'sentiment', label: t('smTitle'), group: 'macro' },
       { value: 'intermarket', label: t('imTitle'), group: 'macro' },
       { value: 'forex-deep', label: t('fxTitle'), group: 'macro' },
@@ -973,16 +1028,15 @@ export default function EducationPage() {
                                       : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
                                   }`}
                                 >
-                                  <span className="min-w-0 truncate flex items-center gap-1.5">
-                                    {tp.label}
-                                    {tp.evidence === 'disputed' && (
-                                      <span
-                                        title={t('eduDisputedHint')}
-                                        className="flex-shrink-0 text-[8px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded border border-amber-500/40 text-amber-500/80"
-                                      >
-                                        {t('eduDisputedTag')}
-                                      </span>
-                                    )}
+                                  {/* El `truncate` va en el TEXTO, no en el
+                                      contenedor: con la etiqueta larga (Wolfe,
+                                      ciclos) el recorte se comía el distintivo
+                                      de evidencia, que es justo lo que no puede
+                                      faltar. Se corta el título, nunca el
+                                      aviso. */}
+                                  <span className="min-w-0 flex items-center gap-1.5">
+                                    <span className="truncate">{tp.label}</span>
+                                    <EvidenceTag kind={tp.evidence} t={t} />
                                   </span>
                                   {eduDone.includes(tp.value) && (
                                     <CheckCircle2 className="w-3 h-3 flex-shrink-0 text-primary" />
@@ -1029,18 +1083,11 @@ export default function EducationPage() {
                       }`}
                     >
                       {tp.label}
-                      {/* El aviso de método discutido se pintaba SÓLO en la
-                          barra lateral de escritorio: en móvil, Gann quedaba
-                          indistinguible de Wyckoff. Un aviso de rigor que se
-                          cae en la mitad de las pantallas no es un aviso. */}
-                      {tp.evidence === 'disputed' && (
-                        <span
-                          title={t('eduDisputedHint')}
-                          className="ml-1.5 text-[8px] font-semibold uppercase tracking-wider px-1 py-0.5 rounded border border-amber-500/40 text-amber-500/80"
-                        >
-                          {t('eduDisputedTag')}
-                        </span>
-                      )}
+                      {/* El aviso se pintaba SÓLO en la barra lateral de
+                          escritorio: en móvil, Gann quedaba indistinguible de
+                          Wyckoff. Un aviso de rigor que se cae en la mitad de
+                          las pantallas no es un aviso. */}
+                      <EvidenceTag kind={tp.evidence} t={t} className="ml-1.5 inline-block align-middle" />
                     </button>
                   ))}
                 </div>
@@ -1053,6 +1100,15 @@ export default function EducationPage() {
                     {activeCategory?.label}
                     <span className="mx-1.5 opacity-50">/</span>
                     <span className="text-foreground">{activeCategory?.topics.find(tp => tp.value === activeTopic)?.label}</span>
+                    {/* Sello de revisión. Sin entrada en TOPIC_REVIEW no se
+                        pinta nada: un módulo sin revisar debe verse sin
+                        revisar, no con una fecha de relleno. */}
+                    {TOPIC_REVIEW[activeTopic]?.evidencia && (
+                      <span className="ml-2 opacity-80" data-testid="edu-reviewed">
+                        <span className="mx-1.5 opacity-50">/</span>
+                        {t('eduEvidenceReviewed')} {TOPIC_REVIEW[activeTopic].evidencia}
+                      </span>
+                    )}
                   </p>
                   <button
                     type="button"

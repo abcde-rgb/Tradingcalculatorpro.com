@@ -4041,3 +4041,60 @@ y el enlace canónico de Delta lleva al módulo de griegas. 0 errores de consola
 - **PCE subyacente y regla del 16**: nivel 2 macro. Las definiciones macro
   envejecen y tendrían que ir con fecha de revisión visible; sin ese mecanismo,
   mejor fuera.
+
+## 2026-08-12 (2) — Qué método tiene base y cuándo se comprobó
+
+### El agujero
+
+La Academia tiene 85 módulos y un mecanismo para declarar que un método es
+discutido (`evidence: 'disputed'` → etiqueta ámbar con explicación). Estaba
+aplicado a **1 de 85**: la caja de Gann. Y no había en ninguna parte una fecha
+de revisión: el contenido no decía cuándo se había comprobado por última vez.
+
+### Cómo se decidió qué marcar (no por criterio de nadie)
+
+Barrido de las 2.100 claves de `es.edu.js` buscando cautelas declaradas
+—«mito», «infalsable», «no hay evidencia», «subjetivo», «sobreajuste»— agrupadas
+por módulo. Cinco dieron señal; una era falso positivo:
+
+| Módulo | Lo que dice su propio texto | Marca |
+|---|---|---|
+| Gann | «no hay evidencia de que los fondos operen con cajas de Gann» | `disputed` (ya estaba) |
+| Wolfe Waves | «MUY subjetiva y carece de validación estadística seria» | `disputed` |
+| Tiempo y ciclos | «no hay evidencia sólida de que estas fechas tengan poder predictivo» | `disputed` |
+| Bill Williams | «el riesgo es el sobreajuste» — cautela de USO, no ausencia de base | `caution` |
+| Elliott | «suele ser débil y dudoso» habla de la **onda 1**, no del método | ninguna |
+
+**Elliott, armónicos y SMC se quedan sin marcar a propósito.** Su texto no
+afirma nada sobre su base empírica; ponerles un veredicto sería inventarlo. La
+raya la pone el contenido, no una opinión.
+
+### Lo que se ha hecho
+
+- ✅ **Segundo nivel `caution`** (azul) además de `disputed` (ámbar): una
+  advertencia sobre cómo se aplica un método no es lo mismo que decir que no
+  tiene base, y fundirlas borra las dos lecturas.
+- ✅ **`EvidenceTag`**, una sola pieza para los tres puntos de uso. Existía
+  duplicada y por eso se escapó del móvil.
+- ✅ **Sello de revisión** en la miga de pan: «base empírica revisada
+  2026-08-12». Sale de `TOPIC_REVIEW`, y **un módulo sin entrada no pinta
+  nada** — nunca una fecha de relleno. Es la misma regla que el resto del
+  código: lo que no se ha comprobado es `None`, no `0`. Hoy lo llevan los 5
+  módulos realmente revisados; los otros 80 se ven sin revisar porque lo están.
+  Elliott lo lleva **sin etiqueta**: revisado y limpio, que es información.
+
+### Dos defectos encontrados por el camino
+
+- El aviso se pintaba **sólo en la barra lateral de escritorio**. En móvil la
+  fila de temas renderizaba `tp.label` a secas, así que en un teléfono Gann era
+  indistinguible de Wyckoff.
+- El `truncate` estaba en el **contenedor** de la etiqueta, no en el texto: con
+  un título largo (Wolfe Waves, Tiempo y ciclos) el recorte se comía el
+  distintivo. Ahora se corta el título y el aviso nunca.
+
+### Verificado
+
+`i18n-check` 6105 claves × 10 idiomas sin faltantes ni sobrantes; `eslint` 0
+errores; build OK. Sonda de navegador en 1280×900 y 390×844 sobre los 6 módulos
+relevantes: las marcas salen donde deben y **no** donde no (Wyckoff sin marca y
+sin sello), el sello aparece en los 5 revisados, 0 errores de consola.
