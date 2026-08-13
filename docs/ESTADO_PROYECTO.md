@@ -2910,3 +2910,47 @@ Decisión del propietario: se elimina `.github/workflows/deploy-cloud-run.yml`.
   GCP y no depende de GitHub, así que sigue siendo la vía para desplegar backend.
 - ℹ️ **`ci.yml` no se toca**: sigue compilando y pasando los tests del backend en
   cada PR. Lo que desaparece es el despliegue automático, no la validación.
+
+### 2026-08-03 — Las herramientas se explican solas
+Auditoría pedida por el propietario («¿mis herramientas son profesionales?»). El
+motor lo era; la explicación no. Lo que se encontró, medido:
+
+- **14 de 14 calculadoras no decían qué hacían.** Ni una tenía `CardDescription`.
+- **`components/ui/tooltip.jsx` estaba instalado y muerto**: cero importaciones.
+  La ayuda existente usaba el atributo `title` del navegador, que **en móvil no
+  existe** — no hay hover — así que era invisible para quien entra del teléfono.
+- **No había vista de conjunto.** Con 14 herramientas en pestañas, saber cuál
+  sirve exigía abrirlas una a una.
+
+Lo hecho:
+
+- ✅ **`FieldHelp.jsx`**: interrogante que abre al **pulsar**, no al pasar por
+  encima, sobre el `popover` que ya estaba instalado. `onOpenAutoFocus`
+  prevenido: sin eso, abrir la ayuda robaba el foco al campo y en móvil cerraba
+  el teclado. Exporta también `LabelWithHelp` para no repetir el `flex` en cada
+  campo y que acabe desalineado en la mitad.
+- ✅ **Una descripción por calculadora**, las 14, en los 10 idiomas. Regla al
+  escribirlas: **qué** calcula y **cuándo** se usa. Si la frase no dice algo que
+  no estuviera ya en el título, sobra.
+- ✅ **Ayuda en 6 campos** de las calculadoras de riesgo, con la misma regla. Un
+  interrogante que sólo reformula la etiqueta enseña a no pulsar ninguno, así
+  que sólo se pone donde hay un rango sensato, un error frecuente o una
+  consecuencia que no se deduce. Ej.: riesgo por operación explica que con un 2%
+  hacen falta ~35 pérdidas seguidas para dejar la cuenta a la mitad, y con un
+  10% bastan 7.
+- ✅ **`ToolMap.jsx`**: las 14 agrupadas con su frase, en una pantalla. Los
+  grupos y las descripciones **no se duplican**: salen de `CALC_NAV`, la misma
+  estructura que pinta la navegación, ahora anotada con `descKey`. Añadir una
+  calculadora allí la añade al mapa sola. Las tarjetas son botones reales
+  (`role`, `tabIndex`, Enter/Espacio), no divs con `onClick`.
+- 🐛 **Fallo previo que salió al hacer el mapa**: `CompoundCalculator` se
+  titulaba **«Estilos Comparados de un Vistazo»** y calcula interés compuesto.
+  `cmpTitle` pertenece a `TradingStylesCompare` (va con `cmpIntro`, que habla de
+  estilos de trading) y la calculadora lo había tomado prestado. Título propio:
+  `cmpCalcTitle`.
+- ✅ **Verificado en navegador real** (Playwright, modo demo): descripción
+  visible bajo el título, el popover abre con su texto, el mapa pinta las 14
+  tarjetas y al pulsar una abre esa herramienta. ESLint 0 errores · i18n 10/10
+  (5681 claves, +32) · engine 60/60 · build con 1589 URLs.
+- ⏭️ **Pendiente**: ampliar la ayuda de campo a opciones, futuros y los
+  simuladores. La infraestructura ya está; es sólo escribir los textos.

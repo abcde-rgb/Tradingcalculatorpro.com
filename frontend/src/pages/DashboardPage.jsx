@@ -22,6 +22,7 @@ import { EconomicCalendar } from '@/components/dashboard/EconomicCalendar';
 import { NextDataCountdown } from '@/components/dashboard/NextDataCountdown';
 import { SpeakersWatch } from '@/components/dashboard/SpeakersWatch';
 import { TargetMeasurementTool } from '@/components/tools/TargetMeasurementTool';
+import ToolMap from '@/components/dashboard/ToolMap';
 import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
 import { CalculationHistory } from '@/components/dashboard/CalculationHistory';
@@ -34,7 +35,7 @@ import { toast } from 'sonner';
 import { useSEO } from '@/hooks/useSEO';
 import OnboardingModal from '@/components/common/OnboardingModal';
 import {
-  Calculator, Target, FlaskConical, Star, Clock,
+  Calculator, Target, FlaskConical, Star, Clock, LayoutGrid,
   BookOpen, Scale, TrendingUp, DollarSign, BarChart3
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -50,32 +51,35 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const isPremium = useIsPremium();
   const [activeTab, setActiveTab] = useState('position');
+  // El mapa se abre por encima de la herramienta activa, no la sustituye:
+  // al cerrarlo vuelves donde estabas.
+  const [showToolMap, setShowToolMap] = useState(false);
   const [searchParams] = useSearchParams();
 
   // Calculator workstation — 12 tools grouped by function, broker-terminal
   // style: one accent colour, two-level nav (group row + tool row).
   const CALC_NAV = [
     { id: 'risk', label: t('calcCatRisk'), Icon: Scale, items: [
-      { value: 'position', label: t('positionSize') },
-      { value: 'lotsize', label: t('lotSize') },
-      { value: 'partial-exit', label: t('pxcTitle') },
-      { value: 'leverage', label: t('leverage') },
-      { value: 'futures', label: t('futuresTabLabel') },
+      { value: 'position', label: t('positionSize'), descKey: 'calcDescPosition' },
+      { value: 'lotsize', label: t('lotSize'), descKey: 'calcDescLotsize' },
+      { value: 'partial-exit', label: t('pxcTitle'), descKey: 'calcDescPartialExit' },
+      { value: 'leverage', label: t('leverage'), descKey: 'calcDescLeverage' },
+      { value: 'futures', label: t('futuresTabLabel'), descKey: 'calcDescFutures' },
     ]},
     { id: 'price', label: t('calcCatPrice'), Icon: Target, items: [
-      { value: 'target', label: t('targetPrice') },
-      { value: 'percentage', label: t('percentageRequired') },
-      { value: 'spot', label: t('spot') },
-      { value: 'measure', label: t('measureTarget') },
+      { value: 'target', label: t('targetPrice'), descKey: 'calcDescTarget' },
+      { value: 'percentage', label: t('percentageRequired'), descKey: 'calcDescPercentage' },
+      { value: 'spot', label: t('spot'), descKey: 'calcDescSpot' },
+      { value: 'measure', label: t('measureTarget'), descKey: 'calcDescMeasure' },
     ]},
     { id: 'tech', label: t('calcCatTech'), Icon: TrendingUp, items: [
-      { value: 'fibonacci', label: t('fibonacci') },
-      { value: 'pattern', label: t('patternTrading') },
+      { value: 'fibonacci', label: t('fibonacci'), descKey: 'calcDescFibonacci' },
+      { value: 'pattern', label: t('patternTrading'), descKey: 'calcDescPattern' },
     ]},
     { id: 'sim', label: t('calcCatSim'), Icon: FlaskConical, items: [
-      { value: 'montecarlo', label: t('monteCarlo') },
-      { value: 'simulator', label: t('simulator') },
-      { value: 'compound', label: t('cmpTitle') },
+      { value: 'montecarlo', label: t('monteCarlo'), descKey: 'calcDescMontecarlo' },
+      { value: 'simulator', label: t('simulator'), descKey: 'calcDescSimulator' },
+      { value: 'compound', label: t('cmpCalcTitle'), descKey: 'calcDescCompound' },
     ]},
   ];
   const activeCalcGroup = CALC_NAV.find(g => g.items.some(it => it.value === activeTab)) || CALC_NAV[0];
@@ -301,11 +305,32 @@ export default function DashboardPage() {
                     >
                       <Star className="w-3.5 h-3.5" fill={calcFavs.includes(activeTab) ? 'currentColor' : 'none'} />
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowToolMap(v => !v)}
+                      data-testid="tool-map-toggle"
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] transition-colors ${
+                        showToolMap
+                          ? 'border-primary/60 text-primary'
+                          : 'border-border text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      {showToolMap ? t('toolMapClose') : t('toolMapOpen')}
+                    </button>
                   </span>
                 </div>
 
+                {showToolMap && (
+                  <ToolMap
+                    groups={CALC_NAV}
+                    activeTool={activeTab}
+                    onPick={(value) => { setActiveTab(value); setShowToolMap(false); }}
+                  />
+                )}
+
                 {/* Quick access: favourites first, then recents */}
-                {quickAccess.length > 0 && (
+                {!showToolMap && quickAccess.length > 0 && (
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" data-testid="calc-quick-access">
                     <span className="flex-shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-0.5">
                       {t('calcQuickAccess')}
@@ -328,7 +353,7 @@ export default function DashboardPage() {
                   </div>
                 )}
                 {/* Group row */}
-                <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                <div className={`flex gap-1.5 overflow-x-auto pb-0.5 ${showToolMap ? 'hidden' : ''}`}>
                   {CALC_NAV.map(g => {
                     const GIcon = g.Icon;
                     const isActive = activeCalcGroup.id === g.id;
@@ -350,7 +375,7 @@ export default function DashboardPage() {
                   })}
                 </div>
                 {/* Tool row of the active group */}
-                <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                <div className={`flex gap-1.5 overflow-x-auto pb-0.5 ${showToolMap ? 'hidden' : ''}`}>
                   {activeCalcGroup.items.map(it => (
                     <button
                       key={it.value}

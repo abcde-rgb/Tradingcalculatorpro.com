@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePersistedState } from '@/hooks/usePersistedState';
@@ -58,8 +58,11 @@ export const CompoundCalculator = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-primary" />
-          {t('cmpTitle')}
+          {t('cmpCalcTitle')}
         </CardTitle>
+        <CardDescription className="text-xs leading-relaxed max-w-2xl">
+          {t('calcDescCompound')}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

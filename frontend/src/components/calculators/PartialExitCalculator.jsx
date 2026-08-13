@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,9 @@ export function PartialExitCalculator() {
               <Scale className="w-5 h-5 text-primary" />
               {t('pxcTitle')}
             </CardTitle>
+            <CardDescription className="text-xs leading-relaxed max-w-2xl">
+              {t('calcDescPartialExit')}
+            </CardDescription>
             <p className="text-xs text-muted-foreground mt-1.5">{t('pxcSubtitle')}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={clearData} title={t('reset') || 'Reset'}>

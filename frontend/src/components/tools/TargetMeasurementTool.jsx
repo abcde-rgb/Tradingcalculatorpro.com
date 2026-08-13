@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { Ruler, TrendingUp, TrendingDown, Target } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -80,6 +80,9 @@ export const TargetMeasurementTool = () => {
           <Ruler className="w-5 h-5 text-purple-500" />
           Medición de Targets y Fibonacci
         </CardTitle>
+        <CardDescription className="text-xs leading-relaxed max-w-2xl">
+          {t('calcDescMeasure')}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

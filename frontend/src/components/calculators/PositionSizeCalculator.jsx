@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { LabelWithHelp } from '@/components/common/FieldHelp';
 import { Calculator, Save, AlertTriangle, Trash2, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { createTrade } from '@/services/performanceApi';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -119,6 +120,9 @@ export const PositionSizeCalculator = () => {
           <Calculator className="w-5 h-5 text-blue-500" />
           {t('positionSizeCalcTitle_p002')}
         </CardTitle>
+        <CardDescription className="text-xs leading-relaxed max-w-2xl">
+          {t('calcDescPosition')}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
@@ -133,7 +137,7 @@ export const PositionSizeCalculator = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('balanceDeCuenta_89aff2')}</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground"><LabelWithHelp bodyKey="helpAccountBalance">{t('balanceDeCuenta_89aff2')}</LabelWithHelp></Label>
               <Input
                 type="number"
                 value={accountBalance}
@@ -145,7 +149,7 @@ export const PositionSizeCalculator = () => {
             
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('riesgoPorOperacion_3d966d')}</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground"><LabelWithHelp bodyKey="helpRiskPerTrade">{t('riesgoPorOperacion_3d966d')}</LabelWithHelp></Label>
                 <span className="font-mono text-lg font-bold text-blue-500">{riskPercent}%</span>
               </div>
               <Slider
@@ -212,7 +216,7 @@ export const PositionSizeCalculator = () => {
                 </div>
                 
                 <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <p className="text-xs uppercase tracking-wider text-yellow-500 mb-1">{t('apalancamientoNecesario_f6ca45')}</p>
+                  <p className="text-xs uppercase tracking-wider text-yellow-500 mb-1"><LabelWithHelp bodyKey="helpRequiredLeverage">{t('apalancamientoNecesario_f6ca45')}</LabelWithHelp></p>
                   <p className="font-mono text-xl font-bold text-yellow-500">{formatNumber(result.leverageNeeded, 1)}x</p>
                   {result.leverageNeeded > 20 && (
                     <div className="flex items-center gap-2 mt-2 text-xs text-yellow-500">

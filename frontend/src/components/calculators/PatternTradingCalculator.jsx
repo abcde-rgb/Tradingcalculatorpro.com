@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Hexagon, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -188,6 +188,9 @@ export const PatternTradingCalculator = () => {
           <Hexagon className="w-5 h-5 text-emerald-500" />
           {t('patternTrading')}
         </CardTitle>
+        <CardDescription className="text-xs leading-relaxed max-w-2xl">
+          {t('calcDescPattern')}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Position Configuration */}
