@@ -420,16 +420,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 9,098 |
 | `frontend/src/pages/EducationPage.jsx` | 5,495 |
-| `frontend/src/lib/i18n/ru.js` | 4,042 |
-| `frontend/src/lib/i18n/es.js` | 4,042 |
-| `frontend/src/lib/i18n/en.js` | 4,042 |
-| `frontend/src/lib/i18n/it.js` | 4,042 |
-| `frontend/src/lib/i18n/zh.js` | 4,042 |
-| `frontend/src/lib/i18n/de.js` | 4,042 |
-| `frontend/src/lib/i18n/pt.js` | 4,042 |
 | `frontend/src/lib/i18n/ar.js` | 4,042 |
+| `frontend/src/lib/i18n/de.js` | 4,042 |
+| `frontend/src/lib/i18n/en.js` | 4,042 |
+| `frontend/src/lib/i18n/es.js` | 4,042 |
 | `frontend/src/lib/i18n/fr.js` | 4,042 |
+| `frontend/src/lib/i18n/it.js` | 4,042 |
 | `frontend/src/lib/i18n/ja.js` | 4,042 |
+| `frontend/src/lib/i18n/pt.js` | 4,042 |
+| `frontend/src/lib/i18n/ru.js` | 4,042 |
+| `frontend/src/lib/i18n/zh.js` | 4,042 |
 
 ## Verificadores del repositorio
 
