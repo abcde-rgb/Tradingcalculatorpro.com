@@ -44,6 +44,33 @@ jobs:
           PYTHONPATH: "."
           # Sin BACKEND_URL: los tests de integración se saltan; los *_unit.py corren.
 
+  # ============================================================
+  # La documentación tiene que reflejar el código, y hasta el 2026-08-13 nada lo
+  # comprobaba: la doc llegó a decir 24 módulos con 28 en el repo, y PENDIENTES.md
+  # acumuló enlaces a documentos que no existían. Estos tres pasos cuestan
+  # segundos y hacen que la deriva rompa el PR en vez de descubrirse en una
+  # auditoría un mes después.
+  # ============================================================
+  documentacion:
+    name: 📚 Doc — mapa, enlaces y catálogo al día
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: El mapa del repositorio refleja el código
+        run: python scripts/gen-mapa.py --check
+
+      - name: Los enlaces de la documentación resuelven
+        run: python scripts/check-doc-links.py
+
+      - name: El catálogo de instrumentos está en paridad (backend ↔ frontend)
+        run: python scripts/gen-instruments-js.py --check
+
   frontend:
     name: ⚛️ Frontend — build
     runs-on: ubuntu-latest
@@ -65,7 +92,7 @@ jobs:
 
       # Dos comprobaciones estáticas que existían pero NO se ejecutaban en CI,
       # así que un fallo podía llegar a producción sin que nadie lo viera.
-      - name: Paridad de los 8 idiomas
+      - name: Paridad de los 10 idiomas
         run: node scripts/i18n-check.js
 
       - name: fetch() al backend con credentials
