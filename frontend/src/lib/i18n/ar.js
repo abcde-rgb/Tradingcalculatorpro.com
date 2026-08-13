@@ -3578,6 +3578,8 @@ export default {
   "structChartMismatch": "الرسم على {chart} والماسح يقرأ {scan}: ما تحته يصف شمعة أخرى.",
   "structUseChartTf": "اقرأ {chart}",
   "structChartUnscannable": "رسمك على {chart}: لا يوفّر أي مصدر مجاني هذه الشمعة بسجل صالح، لذا لا يقرأها الماسح. انتقل إلى 5m أو أعلى.",
+  "structProofCaption": "آخر {n} شمعة {tf} جرى مسحها فعلياً، مع المستويات ونطاق كل منها والنقاط المحورية المكتشفة. إن لم يشبه هذا رسمك، فلا يشبهه ما تحته أيضاً.",
+  "structProofAria": "آخر {n} شمعة ممسوحة على {tf}، مع المستويات والنقاط المحورية",
   "structPriceNow": "السعر الآن",
   "structAboveIsResistance": "فوق السعر · مقاومات",
   "structBelowIsSupport": "تحت السعر · دعوم",

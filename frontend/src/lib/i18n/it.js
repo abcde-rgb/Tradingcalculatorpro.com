@@ -3578,6 +3578,8 @@ export default {
   "structChartMismatch": "Il grafico è su {chart} e lo scanner legge {scan}: quanto segue descrive un'altra candela.",
   "structUseChartTf": "Leggi {chart}",
   "structChartUnscannable": "Il tuo grafico è su {chart}: nessuna fonte gratuita serve quella candela con storico, quindi lo scanner non la legge. Sali a 5m o più.",
+  "structProofCaption": "Le ultime {n} candele di {tf} realmente scansionate, con i livelli, la zona di ciascuno e i pivot rilevati. Se questo non somiglia al tuo grafico, nemmeno il resto.",
+  "structProofAria": "Le ultime {n} candele scansionate su {tf}, con livelli e pivot",
   "structPriceNow": "Prezzo adesso",
   "structAboveIsResistance": "Sopra il prezzo · resistenze",
   "structBelowIsSupport": "Sotto il prezzo · supporti",

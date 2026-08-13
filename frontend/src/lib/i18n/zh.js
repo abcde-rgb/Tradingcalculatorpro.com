@@ -3578,6 +3578,8 @@ export default {
   "structChartMismatch": "图表在 {chart}，扫描器读取的是 {scan}：下面的内容描述的是另一种周期。",
   "structUseChartTf": "改读 {chart}",
   "structChartUnscannable": "你的图表在 {chart}：没有免费数据源提供该周期的可用历史，扫描器无法读取。请切换到 5m 或更高。",
+  "structProofCaption": "实际扫描的最近 {n} 根 {tf} 蜡烛，含各价位、其区间与识别到的枢轴点。若这看起来不像你的图表，下面的内容同样不是。",
+  "structProofAria": "{tf} 上最近扫描的 {n} 根蜡烛，含价位与枢轴点",
   "structPriceNow": "当前价格",
   "structAboveIsResistance": "价格上方 · 阻力",
   "structBelowIsSupport": "价格下方 · 支撑",

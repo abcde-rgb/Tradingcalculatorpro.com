@@ -6697,6 +6697,31 @@ async def _higher_timeframe_levels(symbol: str, interval: Optional[str]) -> Dict
         return {"tf": None, "levels": []}
 
 
+def _strip_bars(rows: List[dict], cap: int = 90) -> Dict[str, Any]:
+    """Las últimas velas ESCANEADAS, para que el cliente pueda dibujarlas.
+
+    El escáner afirmaba «resistencia en 4.512,30 con tres toques» y no había
+    forma de comprobarlo sin ir al gráfico y trazar la línea a mano; cuando no
+    la veías, no podías saber si es que no estaba o es que no la habías
+    encontrado. Devolviendo las velas sobre las que se calculó, la interfaz
+    dibuja la afirmación encima de su propia evidencia.
+
+    `barsOffset` es imprescindible: los swings vienen con su índice en la serie
+    COMPLETA, así que sin el desplazamiento del primer envío se pintarían
+    corridos. Claves de una letra porque esto viaja por la red en cada escaneo.
+    """
+    if not rows:
+        return {"bars": [], "barsOffset": 0}
+    corte = max(0, len(rows) - cap)
+    return {
+        "barsOffset": corte,
+        "bars": [
+            {"t": r.get("date"), "o": r["open"], "h": r["high"], "l": r["low"], "c": r["close"]}
+            for r in rows[corte:]
+        ],
+    }
+
+
 def _trim_structure(res: Dict[str, Any]) -> Dict[str, Any]:
     """Bound the arrays before they go over the wire.
 
@@ -6813,15 +6838,17 @@ async def education_structure_scan(
         if not rows:
             # Misma FORMA que una respuesta completa, toda vacía: el cliente
             # nunca ramifica por "¿vino corta o larga?".
-            return {**meta, "lastBarForming": False, **detect_structure([], strn)}
+            return {**meta, "lastBarForming": False, **_strip_bars([]),
+                    **detect_structure([], strn)}
         res = await asyncio.to_thread(detect_structure, rows, strn)
         if htf_read["tf"] is not None:
             apply_confluence(res, htf_read["levels"], htf_read["tf"].interval)
         return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
-                **_trim_structure(res)}
+                **_strip_bars(rows), **_trim_structure(res)}
     except Exception as e:
         logging.error(f"Structure scan error for {sym}: {e}")
-        return {**meta, "error": "scan_failed", **detect_structure([], strn)}
+        return {**meta, "error": "scan_failed", **_strip_bars([]),
+                **detect_structure([], strn)}
 
 
 # ============================================================

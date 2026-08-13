@@ -3578,6 +3578,8 @@ export default {
   "structChartMismatch": "The chart is on {chart} and the scanner reads {scan}: everything below describes a different candle.",
   "structUseChartTf": "Read {chart}",
   "structChartUnscannable": "Your chart is on {chart}: no free source serves that candle with usable history, so the scanner cannot read it. Move up to 5m or higher.",
+  "structProofCaption": "The last {n} {tf} candles actually scanned, with the levels, each one's zone and the detected pivots. If this does not look like your chart, neither does anything below.",
+  "structProofAria": "The last {n} scanned candles on {tf}, with levels and pivots",
   "structPriceNow": "Price now",
   "structAboveIsResistance": "Above price · resistance",
   "structBelowIsSupport": "Below price · support",

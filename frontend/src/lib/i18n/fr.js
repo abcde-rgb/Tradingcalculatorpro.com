@@ -3578,6 +3578,8 @@ export default {
   "structChartMismatch": "Le graphique est en {chart} et le scanner lit {scan} : ce qui suit décrit une autre bougie.",
   "structUseChartTf": "Lire {chart}",
   "structChartUnscannable": "Ton graphique est en {chart} : aucune source gratuite ne sert cette bougie avec historique, le scanner ne la lit pas. Passe à 5m ou plus.",
+  "structProofCaption": "Les {n} dernières bougies de {tf} réellement scannées, avec les niveaux, la zone de chacun et les pivots détectés. Si cela ne ressemble pas à ton graphique, le reste non plus.",
+  "structProofAria": "Les {n} dernières bougies scannées en {tf}, avec niveaux et pivots",
   "structPriceNow": "Prix actuel",
   "structAboveIsResistance": "Au-dessus du prix · résistances",
   "structBelowIsSupport": "En dessous du prix · supports",

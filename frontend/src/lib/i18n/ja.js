@@ -3578,6 +3578,8 @@ export default {
   "structChartMismatch": "チャートは {chart}、スキャナーは {scan} を読んでいます。以下は別の足の話です。",
   "structUseChartTf": "{chart} を読む",
   "structChartUnscannable": "チャートが {chart} です。この足は無料のデータ源では履歴が取れないため、スキャナーは読めません。5m 以上に上げてください。",
+  "structProofCaption": "実際にスキャンした直近 {n} 本の {tf} 足。水準とその帯、検出したピボットを重ねてある。これが自分のチャートと違うなら、以下の内容も違う。",
+  "structProofAria": "{tf} でスキャンした直近 {n} 本の足。水準とピボット付き",
   "structPriceNow": "現在価格",
   "structAboveIsResistance": "価格の上 · レジスタンス",
   "structBelowIsSupport": "価格の下 · サポート",

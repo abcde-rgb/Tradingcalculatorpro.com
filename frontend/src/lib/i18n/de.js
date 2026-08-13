@@ -3578,6 +3578,8 @@ export default {
   "structChartMismatch": "Der Chart steht auf {chart}, der Scanner liest {scan}: alles darunter beschreibt eine andere Kerze.",
   "structUseChartTf": "{chart} lesen",
   "structChartUnscannable": "Dein Chart steht auf {chart}: keine kostenlose Quelle liefert diese Kerze mit Historie, der Scanner liest sie nicht. Geh auf 5m oder höher.",
+  "structProofCaption": "Die letzten {n} {tf}-Kerzen, die wirklich gescannt wurden, mit den Levels, ihrer Zone und den erkannten Pivots. Sieht das nicht aus wie dein Chart, gilt das auch für alles darunter.",
+  "structProofAria": "Die letzten {n} gescannten Kerzen auf {tf}, mit Levels und Pivots",
   "structPriceNow": "Aktueller Kurs",
   "structAboveIsResistance": "Über dem Kurs · Widerstände",
   "structBelowIsSupport": "Unter dem Kurs · Unterstützungen",

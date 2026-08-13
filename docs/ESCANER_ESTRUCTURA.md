@@ -703,3 +703,71 @@ en vez de líneas (§5c.4). Lo que queda, por valor:
 6. **Cruzar el calendario macro** con las rupturas: una rotura en el minuto del
    IPC no es la misma que una en una tarde muerta de agosto, y los datos macro
    ya están en el dashboard (limitación #11).
+
+---
+
+## 11. Correspondencia con el gráfico (revisión 2026-08-12)
+
+Las dos piezas se montan en `DashboardPage` con cinco líneas entre ellas y no
+compartían nada más que el activo. El escáner podía estar acertando y aun así
+ser inútil, porque describía **otro gráfico** distinto del que el usuario tenía
+delante.
+
+### 11.1 La temporalidad la manda el gráfico
+
+`chartInterval` vive ahora en `useAssetsStore` (vocabulario de TradingView) y el
+escáner lo sigue. La correspondencia es una tabla explícita, `TV_TO_RUNG` en
+`scannerMeta.js`, porque los dos vocabularios **no se solapan**: el gráfico
+ofrece 1m y ninguna fuente gratuita sirve esa vela con histórico utilizable.
+
+Lo que no se puede mapear **no se resuelve escaneando otra cosa en silencio**,
+que era el fallo de fondo:
+
+| Situación | Qué hace |
+|---|---|
+| Gráfico en 5m/15m/30m/1H/4H/1D/1S/1M | El escáner cambia de escalón solo |
+| Gráfico en 1m | No cambia y avisa: esa vela no se puede escanear |
+| Desvío manual a otro escalón | Se permite, con aviso y botón para volver |
+
+El aviso nombra la vela como la ve el usuario en la barra del gráfico («1m»), no
+con el código interno de TradingView («1»).
+
+### 11.2 La tira de prueba
+
+`ProofStrip.jsx` dibuja **las velas que se han escaneado de verdad** con encima
+lo que el escáner afirma: niveles con su zona, pivotes, FVG abiertos y el precio
+actual. La respuesta trae `bars` (últimas 90, claves de una letra) y
+`barsOffset`, que es imprescindible: los swings vienen indexados sobre la serie
+**completa** y sin el desplazamiento se pintarían corridos.
+
+No es un gráfico para operar —para eso está el de arriba— sino la afirmación
+dibujada sobre su propia evidencia. Antes no había una sola imagen en toda la
+herramienta: el escáner decía «resistencia en 4.512,30 con tres toques» y para
+comprobarlo había que ir al gráfico y trazar la línea a mano; si no la veías, no
+podías distinguir «no está» de «no la he encontrado».
+
+### 11.3 Lo que sigue SIN resolver
+
+**Las dos piezas leen fuentes distintas.** El escáner pide OHLC a Yahoo para los
+186 activos; el gráfico incrusta TradingView, que apunta a un mercado concreto
+por activo. Sincronizar la temporalidad no lo arregla:
+
+| Categoría | Gráfico | Escáner | Correspondencia |
+|---|---|---|---|
+| Cripto (61) | `BINANCE:BTCUSDT` | `BTC-USD` | Otro mercado: un exchange contra USDT vs. compuesto contra dólar |
+| Materias primas (8) | `TVC:GOLD` (contado) | `GC=F` (futuro COMEX) | Otro instrumento |
+| Forex (29) | `FX:EURUSD` | `EURUSD=X` | Otro agregador |
+| Acciones (64) | Sin ajustar | Ajustado por splits/dividendos | Los niveles antiguos se desplazan |
+
+`backend/crypto_data.py` **ya tiene** `fetch_ohlc()` leyendo klines de Binance
+(`BINANCE_KLINES`, `parse_binance_klines`), y el escáner no lo usa. Enrutar
+cripto por ahí en `_fetch_bars` —que es el punto único por el que entran las
+velas, y por tanto arregla también la confluencia del escalón superior— pondría
+al escáner a leer el mismo mercado que muestra el gráfico en 61 de 186 activos.
+Ojo al hacerlo: Binance sirve como máximo 1000 velas por petición, así que una
+ventana más larga tiene que declararse en `adjustments`, no recortarse en
+silencio.
+
+**El anclaje de la 4H compuesta en acciones** sigue como está (§3): se avisa de
+que la vela se compone, pero el aviso no dice que en acciones el anclaje UTC no
+coincide con el de la plataforma del usuario.

@@ -9,6 +9,7 @@ import { toYahooSymbol } from './structure/scannerMeta';
 import useStructureScan from './structure/useStructureScan';
 import ScanControls, { ScanNotices } from './structure/ScanControls';
 import ScanReading from './structure/ScanReading';
+import ProofStrip from './structure/ProofStrip';
 import LevelLadder from './structure/LevelLadder';
 import StructureEvents from './structure/StructureEvents';
 import CandleSignals from './structure/CandleSignals';
@@ -130,6 +131,12 @@ const StructureScanner = () => {
           <div>
             <SectionHeading step={2} title={t('structStepReading')} hint={t('structStepReadingHint')} />
             <ScanReading data={data} />
+            {/* La prueba, pegada a la lectura: las velas que se han escaneado
+                con los niveles y pivotes que se afirman, encima. Es lo que
+                permite decir «sí, es mi gráfico» sin salir de aquí. */}
+            <div className="mt-3">
+              <ProofStrip data={data} />
+            </div>
           </div>
         )}
 

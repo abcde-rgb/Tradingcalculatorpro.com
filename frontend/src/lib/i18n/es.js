@@ -3578,6 +3578,8 @@ export default {
   "structChartMismatch": "El gráfico está en {chart} y el escáner lee {scan}: lo de abajo describe otra vela.",
   "structUseChartTf": "Leer {chart}",
   "structChartUnscannable": "Tu gráfico está en {chart}: ninguna fuente gratuita sirve esa vela con histórico, así que el escáner no la lee. Sube a 5m o más.",
+  "structProofCaption": "Las {n} últimas velas de {tf} que se han escaneado, con los niveles, la zona de cada uno y los pivotes detectados. Si esto no se parece a tu gráfico, lo de abajo tampoco.",
+  "structProofAria": "Las {n} últimas velas escaneadas en {tf}, con niveles y pivotes",
   "structPriceNow": "Precio ahora",
   "structAboveIsResistance": "Por encima del precio · resistencias",
   "structBelowIsSupport": "Por debajo del precio · soportes",
