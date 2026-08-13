@@ -5,9 +5,17 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-08 (persistencia de los
->   ajustes del usuario; antes 2026-08-05, escáner de estructura)
-> - 🌿 **Rama de trabajo actual:** `claude/github-branches-cleanup-cfef9j`
+> - 📅 **Última verificación real contra el código:** 2026-08-13 (auditoría del
+>   repositorio; antes 2026-08-08, persistencia de los ajustes del usuario)
+> - 🌿 **Rama de trabajo actual:** `claude/tradingcalculator-audit-docs-hjqdsi`
+> - ⚠️ **Las cifras de §1 y §2 son del 3–8 de agosto y se han quedado cortas** (24→28
+>   módulos, 8232→9097 líneas de `server.py`, 5995→6110 claves i18n, 34→45 ficheros de
+>   test). Medidas y detalladas en
+>   [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) §5.
+> - 🌿 **Hay trabajo terminado que no está en `main`**: 6 PRs de producto abiertos desde
+>   el 02-08, 4 ramas con commits y sin PR, y el **PR #178, que es un *revert* del
+>   multiproducto que sí está fusionado** — no lo fusiones. Inventario completo en la
+>   auditoría del 13-08 §2.
 >
 > ⚠️ **Aviso de método (2026-07-27, y volvió a pasar el 2026-08-03).** Las §1, §2 y
 > §6 se quedan por detrás del código mientras el registro de sesiones (§7) sí se
@@ -152,6 +160,12 @@
 | G-26 | **No se puede editar el perfil.** No existe `PUT /auth/profile` ni pantalla: el nombre y la foto son los del registro para siempre. En Ajustes sólo se puede cambiar contraseña, gestionar 2FA, exportar los datos y borrar la cuenta | 🟡 | Descubierto al cerrar G-25. Es un hueco distinto: no es que el dato no se guarde, es que no hay forma de cambiarlo |
 | G-22 | **Dos fuentes de verdad para las mismas estadísticas.** `dashboard/JournalStats.jsx` y `education/ExpectancyCalculator.jsx` leen `/journal/stats`; `services/performanceApi.js` y `education/JournalEdgeButton.jsx` leen `/performance/analytics`. Fórmulas distintas sobre la misma colección → el usuario ve **dos expectancies distintas** según la pantalla | 🟠 | Converge al unificar el modelo (G-20). Mientras tanto, las dos rutas ya ordenan cronológicamente y tratan igual el breakeven |
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
+| G-27 | **Las passkeys no están documentadas en ninguna parte.** `backend/passkeys.py` (242 líneas, 10-08) añadió un método de autenticación completo: no está en la tabla de módulos de `CLAUDE.md`, no está en el inventario §2, y la sección «Autenticación» de `CLAUDE.md` sigue describiendo sólo JWT + Google OAuth. `migrate_trades_schema.py` tampoco está en la tabla | 🔴 | Dar de alta los dos módulos y reescribir la sección de autenticación. Anotar de paso por qué `passkeys.py:63` usa un origen **sin la ruta del repositorio** (WebAuthn no la lleva), para que nadie lo «arregle» y rompa el login |
+| G-28 | **Se anuncia precio 0 a Google con muro de pago duro.** `gen-seo-pages.js:421` emite `offers: {price:'0', priceCurrency:'EUR'}` en las páginas de calculadora, con títulos «Gratis»/«Free», mientras `public/index.html` declara ofertas de 17/45/200 €. El CTA lleva a `/dashboard`, que exige suscripción activa | 🟠 | Quitar el `price:'0'` y alinear los títulos con lo que el usuario encuentra al llegar. Son 12 slugs × los idiomas con traducción |
+| G-29 | **`PENDIENTES.md` da por abierto lo que está cerrado.** Afirma que `trading_plans` no se borra ni se exporta (G-15, cerrado y verificado contra Postgres el 07-08) y que `FRONTEND_URL` cae a `tradingcalculatorpro.com` (hoy cae a `github.io`, `server.py:1167`). También cita 5652 claves (son 6110) y dice que no hay selector de instrumento (el multiproducto entró el 06-08) | 🟠 | Repasar `PENDIENTES.md` contra el código. Un documento de pendientes con datos falsos cuesta una sesión entera |
+| G-30 | **Código muerto en el frontend.** 20 componentes `.jsx` que ningún fichero importa: 17 de `components/ui/` (1318 líneas) y 3 propios (`options/GreeksPanel.jsx`, `education/TradingBasicsGuide.jsx`, `education/WhyItMatters.jsx`, `dashboard/PriceTicker.jsx`, 933 líneas). **10 de los 27 paquetes `@radix-ui` del `package.json` sólo los usan esos muertos** | 🟡 | Borrar los componentes y desinstalar los 10 paquetes. Deja de generar PRs de Dependabot para código que no llega a ninguna pantalla |
+| G-31 | **Residuos que dan instrucciones falsas.** `backend/patches/server_fixes.patch` (parche manual de mayo, con `MONGO_URL` — la BD descartada), `backend/FIXES_README.md` (manda integrar un `fixes.py` que no existe), `backend/ADMIN_INTEGRATION.md` (ya integrado en `startup_event`), `memory/PRD.md`, `monitoring/`, `packaging/twa-manifest.json` y `check.sh` | 🟡 | Borrar o mover a `_archive/`. No es limpieza estética: quien los lea intentará aplicar pasos ya aplicados sobre una base de datos que no existe |
+| G-32 | **Trabajo terminado que no está en `main`.** 6 PRs de producto abiertos desde el 02-08 (cuatro de ellos en su segunda ronda tras cerrarse sin fusionar), 4 ramas con commits y **sin ningún PR** —la mayor, `claude/project-complete-audit-a6qg1c`, con dos auditorías, el estudio de pasarelas de broker, los datos de la entidad legal y 2 tests—, y 11 PRs de Dependabot | 🔴 | Decidir uno por uno: fusionar o cerrar. Empezar por **#162** (honestidad del escáner) y **cerrar el #178**, que es un revert de algo vivo. Inventario en [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) §2 |
 
 ---
 
@@ -4098,3 +4112,85 @@ raya la pone el contenido, no una opinión.
 errores; build OK. Sonda de navegador en 1280×900 y 390×844 sobre los 6 módulos
 relevantes: las marcas salen donde deben y **no** donde no (Wyckoff sin marca y
 sin sello), el sello aparece en los 5 revisados, 0 errores de consola.
+
+## 2026-08-13 — Auditoría del repositorio: lo obsoleto, lo perdido y lo que se pasó por alto
+
+Encargo: revisar el proyecto y redactar qué está obsoleto, qué se pasó por alto y
+**qué no está todavía en GitHub**. Documento completo en
+[`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md).
+
+### El hallazgo principal: lo que falta no está en el disco, está en ramas
+
+El árbol de trabajo está limpio. Lo que no ha llegado a `main` vive en **43 ramas
+remotas**, y ahí sí hay trabajo terminado:
+
+- **6 pull requests de producto abiertos desde el 2026-08-02** (11 días): #161
+  (contraste WCAG en CI), #162 (**honestidad del escáner**: el precio de referencia de
+  S/R etiquetado con fuente, fecha y antigüedad), #163 (pestaña Dealers + métricas
+  avanzadas del diario), #164 (lucide v1), #165 (acceso de cortesía), #169 (dos
+  estudios). Cuatro de ellos son la **segunda ronda** de PRs ya cerrados sin fusionar
+  el mismo día (#140, #154, #159, #117): el mismo trabajo lleva dos vidas sin entrar.
+- **⚠️ PR #178 abierto es un *revert* del multiproducto**, que **sí está en `main`**
+  desde el PR #180 (08-08). Fusionarlo por error deshace `instruments.py`, las unidades
+  y el apalancamiento. Cerrarlo.
+- **4 ramas con commits y sin ningún PR.** La peor es
+  `claude/project-complete-audit-a6qg1c` (10–11 de agosto, 6 commits, +2779 líneas):
+  dos auditorías, un estudio de competencia y pasarelas de datos de broker, los datos
+  de la entidad legal y **dos tests nuevos**. Nada de eso existe aquí.
+- Esto **explica G-18**: `PENDIENTES.md` citaba `CRECIMIENTO_GOOGLE.md` y
+  `CHECKLIST_MODO_CASI_GRATIS.md` porque **existen de verdad**, en la rama
+  `claude/competitive-feature-analysis-8mzm3p`. No eran erratas, eran huellas.
+- 11 PRs de Dependabot abiertos, el más viejo del 14 de julio (`numpy` y `scipy`
+  incluidos).
+
+### Huecos nuevos anotados
+
+- **G-32 — Trabajo terminado que no está en `main`** (todo lo anterior, con su
+  inventario rama por rama).
+- **G-27 — Las passkeys no están documentadas.** `backend/passkeys.py` (242 líneas,
+  10-08) no aparece ni en la tabla de módulos de `CLAUDE.md` ni en este inventario, y
+  la sección «Autenticación» sigue describiendo sólo JWT + Google OAuth.
+  `migrate_trades_schema.py` tampoco está en la tabla.
+- **G-28 — Se anuncia precio 0 a Google con muro de pago duro.**
+  `gen-seo-pages.js:421` emite `price: '0'` en el JSON-LD de las páginas de
+  calculadora, con títulos «Gratis»/«Free», mientras `index.html` declara 17/45/200 €.
+  Dos ofertas contradictorias del mismo producto, y un destino que exige suscripción.
+- **G-29 — `PENDIENTES.md` da por abierto lo ya cerrado.** Afirma que `trading_plans`
+  no se borra ni se exporta (G-15, **cerrado y verificado contra Postgres el 07-08**) y
+  que `FRONTEND_URL` cae a `tradingcalculatorpro.com` (hoy cae a `github.io`,
+  `server.py:1167`). Un documento de pendientes con datos falsos cuesta una sesión.
+- **G-30 — Código muerto en el frontend.** 20 componentes `.jsx` que nadie importa
+  (17 de `ui/`, 1318 líneas; 3 propios, 933), y **10 de los 27 paquetes `@radix-ui`
+  del `package.json` sólo los usan esos muertos**.
+- **G-31 — Residuos que dan instrucciones falsas.** `backend/patches/server_fixes.patch`
+  (con `MONGO_URL`), `backend/FIXES_README.md` (manda integrar un `fixes.py` que no
+  existe), `backend/ADMIN_INTEGRATION.md` (ya integrado), `memory/PRD.md`, `check.sh`.
+
+### Confirmado sin cambios
+
+**G-14 sigue intacto**: 0 llamadas desde el frontend a `/plan/*`, `/backtest/*`,
+`/performance/portfolio-risk`, opciones americanas y `/options/term-structure`.
+**Hyperliquid sigue sin enlace de referido** (`RecommendedTools.jsx:22`, anotado desde
+el 25 de julio): cada clic es comisión regalada.
+
+### Deriva de cifras (medidas hoy contra `main`)
+
+| Métrica | Decía §1/§2 | Real |
+|---|:--:|:--:|
+| Módulos backend | 24 | **28** |
+| `server.py` | 8232 | **9097** |
+| Ficheros de test | 34 | **45** (761 funciones) |
+| Claves i18n | 5995 | **6110** |
+| Rutas en `App.js` | 26 | **27** |
+| Documentos de `check-doc-links` | 47 | **56** |
+
+Y §7 no recoge 8 commits de tres días: el 09-08 (Simulador Pro), **el 10-08 entero
+—bypass de 2FA, account pre-hijacking y passkeys—** y el 13-08 (escáner). El 12-08 sí
+está bien cubierto. `DIARIO_BUGS.md` sí recoge lo de seguridad.
+
+### Verificado
+
+`py_compile` 28 módulos ✅ · `check-doc-links.py` 56 documentos, 0 roturas ✅ ·
+`gen-instruments-js.py --check` paridad ✅ · `i18n-check` 6110 × 10, 0 huecos ✅ ·
+`engine-check` 197/197 ✅. **No ejecutados** (sin dependencias en el entorno): `pytest`,
+`eslint`, `npm run build` — ninguna afirmación del documento depende de ellos.

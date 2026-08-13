@@ -37,6 +37,7 @@ leen en el mismo momento ni con la misma intención.
 | [`setup/GOOGLE_CLOUD_SETUP.md`](./setup/GOOGLE_CLOUD_SETUP.md) | Alta de Cloud Run, Cloud SQL, Secret Manager y Workload Identity |
 | [`setup/GOOGLE_OAUTH_SETUP.md`](./setup/GOOGLE_OAUTH_SETUP.md) | Credenciales de Google OAuth |
 | [`PUBLICAR_EN_TIENDAS.md`](./PUBLICAR_EN_TIENDAS.md) | Empaquetado para Play Store / App Store (TWA) |
+| [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) | Activar el dominio propio `tradingcalculatorpro.com` (hoy se sirve en `github.io`) |
 
 ## 📈 Voy a captar usuarios
 
@@ -73,6 +74,8 @@ Fotos de un momento concreto. Se leen por su fecha, no como estado actual.
 
 | Documento | Fecha |
 |---|---|
+| [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) | 2026-08-13 — **lo obsoleto, lo perdido en ramas sin fusionar y lo que se pasó por alto** |
+| [`AUDITORIA_DIARIO.md`](./AUDITORIA_DIARIO.md) | 2026-08-06 — auditoría del diario de operaciones |
 | [`EXAMEN_FINAL_2026-07-26.md`](./EXAMEN_FINAL_2026-07-26.md) | 2026-07-26 |
 | [`AUDITORIA_2026-07-27.md`](./AUDITORIA_2026-07-27.md) | 2026-07-27 |
 | [`BACKLOG_AUDITORIA_2026-07-27.md`](./BACKLOG_AUDITORIA_2026-07-27.md) | 2026-07-27 |
