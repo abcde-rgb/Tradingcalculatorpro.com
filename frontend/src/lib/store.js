@@ -321,7 +321,14 @@ export const useCalculatorStore = create((set, get) => ({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await safeJson(res);
-      set({ history: data, isLoading: false });
+      /* `safeJson` parsea, pero NO mira `res.ok`: con el token caducado la API
+         responde 200-menos con `{"detail": ...}`, un objeto. Guardarlo en
+         `history` hacía que el `history.map` de la tarjeta de historial lanzara
+         «history.map is not a function», lo recogía el ErrorBoundary y el
+         usuario veía «Algo salió mal» nada más entrar en el panel — parecía un
+         fallo de inicio de sesión cuando el login había ido bien.
+         Lo que no es una lista de cálculos se queda como lista vacía. */
+      set({ history: Array.isArray(data) ? data : [], isLoading: false });
     } catch (_) {
       set({ isLoading: false });
     }

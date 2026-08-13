@@ -30,8 +30,19 @@ export const PriceAlerts = () => {
       const res = await fetch(`${API}/api/alerts`, { credentials: 'include',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      /* `res.ok` y `Array.isArray` NO son paranoia: sin ellos, esta pantalla
+         tumbaba el dashboard entero.
+         Con el token caducado —o con el limitador de peticiones respondiendo—
+         la API devuelve `{"detail": ...}`, un OBJETO. `setAlerts` lo aceptaba
+         tal cual y el `alerts.map` del render lanzaba «alerts.map is not a
+         function». Lo recoge el ErrorBoundary, así que el usuario acababa de
+         iniciar sesión, aterrizaba en el panel y veía «Algo salió mal»: parecía
+         un fallo de login cuando el login había ido bien.
+         Una respuesta que no es una lista de alertas se trata como «no hay
+         alertas que mostrar», no como una lista. */
+      if (!res.ok) return;
       const data = await res.json();
-      setAlerts(data);
+      if (Array.isArray(data)) setAlerts(data);
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Failed to fetch alerts:', error);
