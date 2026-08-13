@@ -103,3 +103,7 @@ test_reports/pytest/
 tests/e2e/node_modules/
 tests/e2e/lib/
 tests/e2e/package-lock.json
+
+# Capturas del smoke visual rápido (scripts/capturas.js): son de una tanda
+# concreta, no artefactos del repositorio.
+.capturas/

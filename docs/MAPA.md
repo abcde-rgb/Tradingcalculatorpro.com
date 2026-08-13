@@ -445,3 +445,11 @@ dan) en vez de abrirlos de arriba abajo.
 | `python scripts/gen-mapa.py --check` | Que este mapa refleja el código |
 | `python scripts/check-doc-links.py` | Que los enlaces de la doc resuelven |
 
+Y dos que no son puertas, sino informes:
+
+| Comando | Para qué |
+|---|---|
+| `bash scripts/preparar-entorno.sh` | Instala dependencias. **Sin esto, `pytest`, `eslint` y `npm run build` no se pueden ejecutar en una sesión web** |
+| `python scripts/auditar.py` | Ramas sin fusionar, código muerto, restos de lo retirado, provisionales y contradicciones doc↔código |
+| `node scripts/capturas.js` | Smoke visual de las pantallas públicas (escritorio + móvil, claro + oscuro) con los errores de consola de cada una |
+

@@ -56,13 +56,29 @@ npm run build
 ### Verificar antes de commit — atajo: `/verify`
 
 ```bash
+bash scripts/preparar-entorno.sh            # SÓLO si falta .venv o node_modules
 cd backend && python -m py_compile *.py     # TODOS los módulos (la lista a mano omitía 6)
-cd backend && pytest tests/ -q
+backend/.venv/bin/python -m pytest backend/tests/ -q
 cd frontend && npx eslint src scripts       # 0 errores; los avisos de símbolos muertos no bloquean
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
 python scripts/gen-instruments-js.py --check   # catálogo backend ↔ frontend
 python scripts/gen-mapa.py --check             # el mapa refleja el código
 python scripts/check-doc-links.py              # los enlaces de la doc resuelven
+```
+
+**En sesiones web el contenedor viene sin dependencias**, y sin ellas `pytest`, `eslint`
+y `npm run build` no se pueden ejecutar. Lo resuelve el *setup script* del entorno
+(`scripts/preparar-entorno.sh`), que corre una vez y se cachea en una instantánea del
+disco. Si ves que faltan, ejecútalo a mano: tarda un par de minutos y no vuelve a hacer
+falta.
+
+Dos herramientas más, que no son parte de `/verify` pero ahorran sesiones enteras:
+
+```bash
+python scripts/auditar.py    # ramas sin fusionar, código muerto, restos de lo retirado,
+                             # provisionales y contradicciones doc↔código. Informe, no puerta
+node scripts/capturas.js     # smoke visual de las pantallas públicas (escritorio + móvil,
+                             # claro + oscuro) con los errores de consola de cada una
 ```
 
 ## Reglas de honestidad numérica (NO ROMPER)

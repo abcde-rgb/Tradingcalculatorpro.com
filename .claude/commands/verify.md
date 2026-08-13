@@ -1,23 +1,52 @@
-Verifica el proyecto antes de commit/push. Ejecuta estos pasos en orden y
-reporta el resultado de cada uno (no continúes al siguiente si uno falla de
-forma bloqueante; resume qué falló):
+Verifica el proyecto antes de commit/push.
 
-1. **Sintaxis Python** (desde la raíz):
-   `python -m py_compile backend/server.py backend/admin_routes.py backend/options_math.py`
-   Añade cualquier otro `.py` del backend que hayas tocado en esta sesión.
+**Antes que nada**: si `backend/.venv` o `frontend/node_modules` no existen, ejecuta
+`bash scripts/preparar-entorno.sh`. Sin eso, los pasos 3, 5 y 6 **no se pueden
+ejecutar** — y decir "no ejecutado" cuando se podía haber ejecutado es el fallo que
+esta lista existe para evitar.
 
-2. **Paridad i18n** (8 idiomas, claves exactas):
-   `cd frontend && node scripts/i18n-check.js`
-   Debe decir `faltan 0 | sobran 0` en los 8 locales. Si no, arréglalo antes de seguir.
+Ejecuta en orden y reporta cada resultado. No sigas si uno falla de forma bloqueante.
 
-3. **Tests unitarios del backend** (los `*_unit.py` corren sin red/BD real; desde `backend/`):
-   `cd backend && pytest tests/ -k "unit" -q`
-   (o el archivo concreto que aplique al cambio).
+1. **Sintaxis del backend** — TODOS los módulos, no una lista a mano
+   (la lista escrita a mano llegó a omitir seis):
+   `cd backend && python -m py_compile *.py`
 
-4. **Build de producción del frontend** (solo si tocaste `frontend/**`):
-   `cd frontend && CI=false GENERATE_SOURCEMAP=false npm run build`
-   Debe compilar; los warnings preexistentes son aceptables, los errores no.
+2. **Paridad i18n y motores del frontend** (10 idiomas, claves exactas):
+   `cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js`
+   Debe decir `faltan 0 | sobran 0` en los diez, y `197/197`.
 
-Al terminar, da un veredicto claro: ✅ todo verde / ❌ qué falló y dónde.
-Recuerda: en sesiones web, Yahoo/CoinGecko están bloqueados por red, así que
-cualquier smoke del escáner debe mockear la respuesta de la API (ver CLAUDE.md).
+3. **Tests del backend** (los `*_unit.py` corren sin red ni BD; integración se salta):
+   `backend/.venv/bin/python -m pytest backend/tests/ -q`
+
+4. **Coherencia de la documentación** — los tres corren también en CI:
+   ```
+   python scripts/gen-mapa.py --check          # el mapa refleja el código
+   python scripts/gen-instruments-js.py --check # catálogo backend ↔ frontend
+   python scripts/check-doc-links.py            # los enlaces resuelven
+   ```
+   Si `gen-mapa --check` falla porque añadiste rutas o módulos, regenera con
+   `python scripts/gen-mapa.py` y **mira el diff**: si aparecen rutas nuevas bajo
+   «sin consumidor», acabas de escribir backend sin interfaz.
+
+5. **Lint** (sólo si tocaste `frontend/**`):
+   `cd frontend && npx eslint src scripts`
+   0 errores. Los avisos de símbolos muertos son deuda conocida, no bloquean.
+
+6. **Build de producción** (sólo si tocaste `frontend/**`):
+   `cd frontend && CI=false npm run build`
+
+7. **Capturas** (sólo si tocaste algo visual, y con el build ya hecho):
+   `node scripts/capturas.js`
+   Fotografía las pantallas públicas en escritorio y móvil, tema claro y oscuro, y
+   **recoge los errores de consola**. Una captura bonita de una pantalla que escupe
+   errores engaña.
+
+Al terminar, da un veredicto claro: ✅ todo verde / ❌ qué falló y dónde. Di
+explícitamente qué **no** ejecutaste y por qué — nunca presentes como verificado algo
+que no corriste.
+
+Recuerda: en sesiones web la red de salida está restringida, así que cualquier smoke
+del escáner o de datos de mercado debe mockear la respuesta (ver CLAUDE.md).
+
+Para el estado del repositorio más allá de esta rama (ramas sin fusionar, código
+muerto, restos de lo retirado, contradicciones doc↔código): `python scripts/auditar.py`.

@@ -35,11 +35,13 @@
 
 | Área | Estado | Nota |
 |---|:--:|---|
-| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
+| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-13 **ejecutándolo**: exit 0, **39 MB** en `build/`, code-splitting OK. Source maps apagados |
 | **Backend import + sintaxis** | 🟢 | `import server` OK y todos los módulos compilan. **Los conteos (módulos, rutas, líneas) están en [`MAPA.md`](./MAPA.md)** — generado, así que no se desvía |
-| **Tests offline** | 🟢 | `pytest tests/` → **718 passed, 74 skipped** en 16 s (2026-08-08). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest` → **782 passed, 74 skipped en 13,5 s** (2026-08-13, ejecutado en sesión web tras `scripts/preparar-entorno.sh`). Ojo: `test_route_uniqueness_unit.py` falla si el contenedor lleva una FastAPI distinta de la fijada en `requirements.txt` |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
-| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
+| **Verificación en sesión web** | 🟢 | **Cerrado el 2026-08-13**: `scripts/preparar-entorno.sh` en el *setup script* del entorno instala pip+npm y se cachea. Antes, `pytest`, `eslint` y `npm run build` **no se podían ejecutar** y quedaban siempre como «no ejecutado» |
+| **Smoke visual** | 🟢 | `node scripts/capturas.js`: 9 pantallas públicas × escritorio/móvil × claro/oscuro = **36 capturas en 70 s**, sin backend, con los errores de consola de cada una |
+| **Lint del frontend (ESLint)** | 🟢 | **0 errores, 126 avisos** (2026-08-13, ejecutado). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
 | **Paridad i18n / motor** | 🟢 | `i18n-check` 0 huecos en los 10 idiomas · `engine-check` 197/197. Cifra de claves al día en [`MAPA.md`](./MAPA.md) |
 | **Ajustes del usuario entre dispositivos** | 🟢 | Tema, idioma, preferencias, favoritos, progreso de la Academia y **setups** viajan con la cuenta desde el 2026-08-08 (`lib/cloudPrefs.js`). Ver G-25 |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
@@ -269,7 +271,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 
 ## 7. Registro de sesiones
 
-**Las entradas viven en [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md)** — 127 entradas
+**Las entradas viven en [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md)** — 128 entradas
 desde el 2026-06-25. Se separaron el 2026-08-13: eran el 93 % de este documento y hacían
 que consultar el semáforo costase leer 320 KB.
 
@@ -277,11 +279,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-13 (3) | Verificar deja de ser «no ejecutado» |
 | 2026-08-13 (2) | Orientarse costaba 106.000 tokens; ahora cuesta 8.000 |
 | 2026-08-13 | Auditoría del repositorio: lo obsoleto, lo perdido y lo que se pasó por alto |
 | 2026-08-12 (2) | Qué método tiene base y cuándo se comprobó |
 | 2026-08-12 | El glosario se detenía justo donde empieza el producto |
-| 2026-08-08 | Dos formatos de datos estructurados que ya no rinden |
 
 ```bash
 # buscar una sesión por fecha o por tema

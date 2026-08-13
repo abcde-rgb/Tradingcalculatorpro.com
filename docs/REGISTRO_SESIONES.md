@@ -4019,3 +4019,95 @@ No ejecutados por falta de dependencias en el entorno: `pytest`, `eslint`, `npm 
 cuesta lo que cuesta. Eso es BUG-008, bloqueado por G-17. Y un plugin de *code
 intelligence* (`/plugin install python-lsp@claude-plugins-official`) daría salto a
 definición en vez de `grep`; hay que instalarlo desde una sesión interactiva.
+
+## 2026-08-13 (3) — Verificar deja de ser «no ejecutado»
+
+Encargo: acelerar análisis, orden y verificación, con capturas.
+
+### El agujero que se veía en mis propios informes
+
+Cada cierre de sesión reciente decía lo mismo: «no ejecutados por falta de
+dependencias en el entorno: `pytest`, `eslint`, `npm run build`». No era pereza:
+el contenedor de una sesión web **viene sin dependencias**, así que **tres de los
+ocho verificadores no se podían ejecutar nunca**, y sin `node_modules` tampoco
+había Playwright — capturas, cero. El fallo aparecía tres minutos después, en
+rojo, en un PR.
+
+### 1. `scripts/preparar-entorno.sh`
+
+pip y npm **en paralelo** (para caber en el límite de cinco minutos del *setup
+script*), todo con `|| true` y salida 0 siempre: un fallo de instalación no puede
+dejarte sin poder trabajar. Se engancha en el campo **Setup script** del entorno,
+en claude.ai/code; corre una vez y Anthropic guarda una instantánea del disco, así
+que las sesiones siguientes ya nacen con esto. Playwright **no** se instala: el
+Chromium de la imagen ya sirve.
+
+Medido hoy tras ejecutarlo: `pytest` **782 passed, 74 skipped en 13,5 s** y
+`eslint` **0 errores, 126 avisos**. Las dos primeras veces en una sesión web.
+
+### 2. `scripts/auditar.py`
+
+La auditoría de esta mañana costó ~30 pasos a mano; ahora son 15 segundos. Seis
+secciones: ramas sin fusionar, código muerto, restos de lo retirado,
+provisionales de cara al usuario, contradicciones doc↔código y rutas sin
+consumidor (delegada al mapa). Sale 0 a propósito — es un informe, no una puerta:
+un informe que rompe el build se desactiva y entonces deja de leerse. En CI va
+como paso informativo.
+
+Afinarlo fue casi todo el trabajo, y las tres correcciones son instructivas:
+
+- Buscar `placeholder` a secas daba **10 falsos positivos de CSS**
+  (`placeholder:text-muted-foreground`).
+- `TODO` con `re.I` casaba con **«todo»**, palabra corrientísima en un repo en
+  español: 62 falsos positivos. La convención lleva `:` o `(`, y exigirlo los mata.
+- `XXX` aquí es notación de divisas (`XXX/USD`), no una marca de pendiente.
+
+Y una regla **no disparaba**: al normalizar el markdown se quitaban también los
+guiones bajos, así que `trading_plans` se volvía «tradingplans» y la
+contradicción de `PENDIENTES.md` no se detectaba nunca. Mismo patrón que la
+guarda tautológica del mapa: una comprobación que no dispara es peor que ninguna.
+
+Hallazgos con el ruido ya quitado: **3 bloqueantes** (16 ramas sin fusionar, 10
+rastros de tecnología retirada —7 en código vivo—, 35 rutas sin consumidor), **2
+importantes** y **3 de limpieza** (20 componentes que nadie importa con 2.271
+líneas, y **15 paquetes de npm que sólo sirven a código muerto** — cinco más de
+los que se habían contado a mano).
+
+### 3. `scripts/capturas.js`
+
+Sirve el build estático y fotografía las **9 pantallas públicas** en escritorio y
+móvil, claro y oscuro: 36 capturas en **70 segundos**, sin Postgres ni backend. No
+sustituye al skill `qa`, lo precede. Recoge además los errores de consola de cada
+página.
+
+Cuatro fallos, y **los cuatro los descubrió mirar una captura, no leer el log**,
+que las daba todas por buenas:
+
+1. `playwright` fija una build de Chromium (1234) y la imagen trae otra (1194):
+   hay que pasar `executablePath` a mano. **Nunca `playwright install`.**
+2. El build usa `homepage`, así que los assets cuelgan de
+   `/Tradingcalculatorpro.com/`. Servir desde la raíz devolvía `index.html` por
+   cada `.js` → `SyntaxError: Unexpected token '<'` → **36 capturas en blanco**.
+3. Esperar a `networkidle` con la red de salida restringida: **8 min 32 s** por
+   tanda y un informe de consola que era 90 % ruido de túnel. Cortando todo lo
+   que no sea localhost: **70 s**.
+4. La clave del banner de cookies me la inventé (`cookie-consent`); la real es
+   `tcp-cookie-consent` con valor `all`. El banner tapaba la calculadora de la
+   portada en las 36.
+
+Y el más interesante: **medio sitio salía con título y nada debajo**. Son 51
+elementos que `whileInView` de framer-motion deja en `opacity: 0` porque el
+IntersectionObserver no dispara en una captura de página completa. Parecía un
+producto roto y era una captura rota — justo «la captura que engaña» contra la
+que avisa el propio script. Se neutraliza **de forma dirigida**, sólo lo que
+lleva la huella de framer (opacidad 0 en el `style` en línea): un
+`opacity: 1 !important` global sacaría modales y menús que deben estar ocultos, y
+la captura mentiría en el otro sentido.
+
+### Verificado
+
+Los ocho verificadores, ejecutados de verdad: `py_compile` 28 módulos ·
+`pytest` 782/74 · `eslint` 0 errores · `i18n-check` 10 idiomas sin huecos ·
+`engine-check` 197/197 · `gen-mapa --check` · `gen-instruments --check` ·
+`check-doc-links` 66 documentos · `npm run build` 39 MB · 36 capturas revisadas a
+ojo. **Por primera vez, ninguno queda como «no ejecutado».**

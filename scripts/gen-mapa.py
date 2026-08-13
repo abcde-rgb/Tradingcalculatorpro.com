@@ -377,6 +377,14 @@ def construir() -> str:
     a("| `python scripts/gen-mapa.py --check` | Que este mapa refleja el código |")
     a("| `python scripts/check-doc-links.py` | Que los enlaces de la doc resuelven |")
     a("")
+    a("Y dos que no son puertas, sino informes:")
+    a("")
+    a("| Comando | Para qué |")
+    a("|---|---|")
+    a("| `bash scripts/preparar-entorno.sh` | Instala dependencias. **Sin esto, `pytest`, `eslint` y `npm run build` no se pueden ejecutar en una sesión web** |")
+    a("| `python scripts/auditar.py` | Ramas sin fusionar, código muerto, restos de lo retirado, provisionales y contradicciones doc↔código |")
+    a("| `node scripts/capturas.js` | Smoke visual de las pantallas públicas (escritorio + móvil, claro + oscuro) con los errores de consola de cada una |")
+    a("")
 
     return "\n".join(L) + "\n"
 
