@@ -21,7 +21,7 @@ const TV_LOCALE_MAP = {
 
 function TradingViewWidgetComponent() {
   const containerRef = useRef(null);
-  const { selectedAsset, setSelectedAsset, selectedCategory, setSelectedCategory, favorites, addFavorite, removeFavorite } = useAssetsStore();
+  const { selectedAsset, setSelectedAsset, selectedCategory, setSelectedCategory, favorites, addFavorite, removeFavorite, chartInterval, setChartInterval } = useAssetsStore();
   const { theme } = useThemeStore();
   const { locale, t } = useTranslation();
   const tvLocale = TV_LOCALE_MAP[locale] || 'en';
@@ -32,7 +32,11 @@ function TradingViewWidgetComponent() {
   });
   
   const [isFullscreen, setIsFullscreen] = useState(persistedData.isFullscreen);
-  const [interval, setInterval] = useState(persistedData.interval);
+  /* La temporalidad vive en el store compartido, no aquí: el escáner de
+     estructura tiene que leer la misma que estás mirando. Mientras fue estado
+     local, ponías el gráfico en 4H y el escáner seguía informando del diario. */
+  const interval = chartInterval;
+  const setInterval = setChartInterval;
   const [loadError, setLoadError] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const searchBoxRef = useRef(null);
@@ -69,14 +73,17 @@ function TradingViewWidgetComponent() {
 
   useEffect(() => {
     if (!isLoadingPersistedState) {
-      setInterval(persistedData.interval);
+      // La temporalidad ya NO se restaura desde aquí: la guarda el store de
+      // activos, que es quien la comparte con el escáner. Restaurarla también
+      // desde este registro devolvería la copia vieja al recargar y volvería a
+      // separar las dos piezas.
       setIsFullscreen(persistedData.isFullscreen);
     }
   }, [persistedData, isLoadingPersistedState]);
 
   useEffect(() => {
-    setPersistedData({ interval, isFullscreen });
-  }, [interval, isFullscreen]);
+    setPersistedData({ isFullscreen });
+  }, [isFullscreen]);
   
   const asset = ALL_ASSETS[selectedAsset];
   const tradingviewSymbol = asset?.tradingviewSymbol || 'BINANCE:BTCUSDT';

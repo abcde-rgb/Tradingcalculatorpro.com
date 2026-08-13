@@ -68,6 +68,39 @@ export const intervalMinutes = (interval) => {
 };
 
 export const PERIOD_KEY = 'tcp_struct_period';        // persisted history window
+/**
+ * Temporalidad de TradingView → escalón del escáner.
+ *
+ * Los dos vocabularios no coinciden y NO se solapan del todo: el gráfico
+ * ofrece 1m, que ninguna fuente gratuita sirve con histórico utilizable, así
+ * que ese escalón no existe aquí. Mapear a `null` es deliberado — el escáner
+ * lo dice en pantalla en vez de escanear otra vela en silencio, que era
+ * exactamente el fallo: leías el diario creyendo que leías tu 4H.
+ */
+export const TV_TO_RUNG = {
+  1: null,          // 1m — sin histórico servible
+  3: null,
+  5: '5m',
+  15: '15m',
+  30: '30m',
+  60: '1h',
+  120: '1h',        // 2h — el escalón honesto por debajo
+  240: '4h',
+  D: '1d',
+  W: '1wk',
+  M: '1mo',
+};
+
+/** El escalón del escáner para una temporalidad del gráfico (o null). */
+export const rungForChart = (tvInterval) =>
+  Object.prototype.hasOwnProperty.call(TV_TO_RUNG, tvInterval) ? TV_TO_RUNG[tvInterval] : null;
+
+/* Cómo se llama esa temporalidad en la barra del gráfico. El aviso decía «tu
+   gráfico está en 1», que es el código interno de TradingView y no lo que el
+   usuario tiene delante (1m). */
+const TV_LABEL = { 1: '1m', 3: '3m', 5: '5m', 15: '15m', 30: '30m', 60: '1H', 120: '2H', 240: '4H', D: '1D', W: '1S', M: '1M' };
+export const chartTfLabel = (tvInterval) => TV_LABEL[tvInterval] || String(tvInterval ?? '');
+
 export const INTERVAL_KEY = 'tcp_struct_interval';    // persisted candle size
 
 // ── Backend codes → translation keys ────────────────────────────────────────

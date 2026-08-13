@@ -49,6 +49,7 @@ const StructureScanner = () => {
     ladder, periods, tfInterval, activePeriod,
     loading, data, candles, log,
     scan, changeInterval, changePeriod, clearLog, lastScanAt,
+    chartInterval, chartRung,
   } = useStructureScan(yahoo);
 
   const counts = data?.counts || {};
@@ -114,7 +115,13 @@ const StructureScanner = () => {
             onRescan={scan}
           />
           <div className="space-y-2 mt-2">
-            <ScanNotices data={data} />
+            <ScanNotices
+              data={data}
+              chartInterval={chartInterval}
+              chartRung={chartRung}
+              tfInterval={tfInterval}
+              onSyncToChart={changeInterval}
+            />
           </div>
         </div>
 

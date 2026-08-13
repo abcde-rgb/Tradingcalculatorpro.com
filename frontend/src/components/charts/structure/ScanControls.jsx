@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
+import { chartTfLabel } from './scannerMeta';
 
 /**
  * Paso 1 del escáner: qué vela y cuánto histórico.
@@ -107,14 +108,46 @@ export default function ScanControls({
  * la última vela sigue abierta. Los tres cambian lo que significan las cifras
  * de abajo, así que ninguno puede esconderse.
  */
-export function ScanNotices({ data }) {
+export function ScanNotices({ data, chartInterval, chartRung, tfInterval, onSyncToChart }) {
   const { t } = useTranslation();
-  if (!data) return null;
+
+  /* La correspondencia con el gráfico se avisa AUNQUE no haya datos todavía:
+     es la condición de que todo lo demás signifique algo. Dos casos distintos,
+     y no se pueden fundir: el gráfico está en una vela que no se puede
+     escanear (1m), o estás mirando a propósito otra distinta. */
+  const chartUnsupported = chartInterval != null && !chartRung;
+  const drifted = !!chartRung && !!tfInterval && chartRung !== tfInterval;
+
+  const mismatch = (chartUnsupported || drifted) && (
+    <div
+      className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#fbbf24] px-2.5 py-1.5 flex items-center gap-2 flex-wrap"
+      data-testid="struct-tf-mismatch"
+    >
+      <span>
+        {chartUnsupported
+          ? t('structChartUnscannable').replace('{chart}', chartTfLabel(chartInterval))
+          : t('structChartMismatch').replace('{chart}', chartRung).replace('{scan}', tfInterval)}
+      </span>
+      {drifted && onSyncToChart && (
+        <button
+          type="button"
+          onClick={() => onSyncToChart(chartRung)}
+          className="underline underline-offset-2 font-semibold hover:opacity-80"
+          data-testid="struct-sync-tf"
+        >
+          {t('structUseChartTf').replace('{chart}', chartRung)}
+        </button>
+      )}
+    </div>
+  );
+
+  if (!data) return mismatch || null;
 
   const adjusted = Array.isArray(data.adjustments) && data.adjustments.length > 0;
 
   return (
     <>
+      {mismatch}
       {adjusted && (
         <div
           className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#fbbf24] px-2.5 py-1.5"

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
 import { loadLogFor, mergeLogFor, clearLogFor, purgeLegacyLogs } from '@/lib/structureLog';
-import { FALLBACK_LADDER, INTERVAL_KEY, PERIOD_KEY, intervalMinutes, loadStored, store } from './scannerMeta';
+import { useAssetsStore } from '@/lib/assets';
+import { FALLBACK_LADDER, INTERVAL_KEY, PERIOD_KEY, intervalMinutes, loadStored, rungForChart, store } from './scannerMeta';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -18,8 +19,16 @@ const API = process.env.REACT_APP_BACKEND_URL;
 export default function useStructureScan(symbol) {
   const { t } = useTranslation();
 
+  /* La temporalidad del GRÁFICO manda. Antes el escáner guardaba la suya y la
+     persistía aparte, así que ponías el gráfico en 4H y seguía informando del
+     diario: tendencia, niveles y distancias describían otro gráfico. Se puede
+     desviar a mano (a veces quieres mirar el escalón de arriba), pero eso
+     queda a la vista y el gráfico vuelve a mandar en cuanto lo mueves. */
+  const { chartInterval } = useAssetsStore();
+  const chartRung = rungForChart(chartInterval);
+
   const [ladder, setLadder] = useState(FALLBACK_LADDER);
-  const [tfInterval, setTfInterval] = useState(() => loadStored(INTERVAL_KEY, '1d'));
+  const [tfInterval, setTfInterval] = useState(() => chartRung || loadStored(INTERVAL_KEY, '1d'));
   const [period, setPeriod] = useState(() => loadStored(PERIOD_KEY, '6mo'));
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
@@ -59,6 +68,24 @@ export default function useStructureScan(symbol) {
 
   // Registro del activo EN ESTA TEMPORALIDAD: cambiar de vela cambia de lista.
   useEffect(() => { setLog(loadLogFor(symbol, tfInterval)); }, [symbol, tfInterval]);
+
+  /* El gráfico manda: al moverlo, el escáner le sigue. Si el gráfico está en
+     una vela que ninguna fuente gratuita sirve con histórico (1m), NO se
+     cambia nada y se avisa — escanear otra vela en silencio es el fallo que
+     esto viene a cerrar. */
+  useEffect(() => {
+    if (!chartRung || chartRung === tfInterval) return;
+    setTfInterval(chartRung);
+    store(INTERVAL_KEY, chartRung);
+    const next = ladder.find((r) => r.interval === chartRung);
+    if (next && !next.ranges.includes(period)) {
+      setPeriod(next.defaultRange);
+      store(PERIOD_KEY, next.defaultRange);
+    }
+    // `period` se lee para decidir si sigue siendo legal, pero no debe
+    // reactivar este efecto: sólo el movimiento del gráfico lo dispara.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartRung, ladder]);
 
   const changeInterval = useCallback((iv) => {
     setTfInterval(iv);
@@ -203,5 +230,8 @@ export default function useStructureScan(symbol) {
     ladder, rung, periods, tfInterval, activePeriod,
     loading, data, candles, log, lastScanAt, refreshMs,
     scan, changeInterval, changePeriod, clearLog,
+    // Correspondencia con el gráfico, para que la pantalla pueda decirla:
+    // `chartRung` null = el gráfico está en una vela que no se puede escanear.
+    chartInterval, chartRung, syncedToChart: !!chartRung && chartRung === tfInterval,
   };
 }
