@@ -811,6 +811,205 @@ async function checkPrefsMerge() {
     corrupt.push.theme?.value === 'gold');
 }
 
+async function checkDeskMath() {
+  console.log('\ndeskMath.js  (la mesa: del riesgo al tamaño)');
+  const {
+    RISK_HARD_CAP_PCT, riskBudget, marginModesFor, liquidationFromBuffer,
+    liquidationView, maxSizes, minTicket, averageEntry, partialExits,
+    breakEven, commissionTotal, stepValues, requiredLeverage, snapDown,
+  } = await imp('lib/deskMath.js');
+  const { resolveSpec, liquidationPrice } = await imp('lib/instruments.js');
+
+  // ── El tope duro ────────────────────────────────────────────────
+  const okRisk = riskBudget({ capital: 10000, riskPct: 1 });
+  ok('1 % de 10 000 son 100 y no bloquea', near(okRisk.amount, 100) && !okRisk.blocked);
+
+  const over = riskBudget({ capital: 10000, riskPct: 10.5 });
+  ok('por encima del 10 % NO hay tamaño, hay motivo',
+    over.blocked && over.reason === 'over_cap', JSON.stringify(over));
+
+  const edge = riskBudget({ capital: 10000, riskPct: RISK_HARD_CAP_PCT });
+  ok('el 10 % exacto todavía pasa (el tope es "superior a")', !edge.blocked);
+
+  // El tope se mide en PORCENTAJE aunque se escriba en dinero: si no, teclear
+  // el importe sería la puerta trasera para saltárselo.
+  const money = riskBudget({ capital: 1000, riskMoney: 200, mode: 'money' });
+  ok('200 € sobre 1000 € es 20 % y se bloquea igual',
+    money.blocked && money.reason === 'over_cap' && near(money.pct, 20));
+
+  const moneyOk = riskBudget({ capital: 10000, riskMoney: 150, mode: 'money' });
+  ok('el importe fijo también sale en % de la cuenta', near(moneyOk.pct, 1.5));
+
+  ok('sin capital no se calcula nada', riskBudget({ capital: null, riskPct: 1 }).blocked);
+
+  // ── Modo de margen según el producto ────────────────────────────
+  ok('sólo el perpetuo deja elegir aislado o cruzado',
+    marginModesFor(resolveSpec('crypto_perp', 'BTCUSDT')).modes.length === 2);
+  ok('futuros, forex y CFD son cruzado y no se pregunta',
+    ['futures', 'forex', 'cfd'].every((p) => {
+      const m = marginModesFor(resolveSpec(p, ''));
+      return m.fixed && m.modes.length === 1 && m.modes[0] === 'cross';
+    }));
+  ok('el contado no tiene modo de margen',
+    marginModesFor(resolveSpec('stock', 'AAPL')).modes.length === 0
+    && marginModesFor(resolveSpec('crypto_spot', 'BTC')).modes.length === 0);
+  ok('las opciones tampoco: el riesgo lo define la estructura',
+    marginModesFor(resolveSpec('option', 'AAPL')).modes.length === 0);
+
+  // ── Liquidación: aislado tiene UNA sola fuente de verdad ─────────
+  // El colchón del modo aislado es el margen de la posición, así que la
+  // fórmula genérica tiene que dar exactamente lo que ya da instruments.js.
+  const entry = 100;
+  const notional = 10000;   // 100 unidades a 100
+  const lev = 10;
+  const mine = liquidationFromBuffer({ entry, side: 'long', buffer: notional / lev, notional });
+  const theirs = liquidationPrice(entry, 'long', lev);
+  ok('aislado da el MISMO número que instruments.js (largo)', near(mine, theirs, 1e-9),
+    `${mine} vs ${theirs}`);
+  const mineS = liquidationFromBuffer({ entry, side: 'short', buffer: notional / lev, notional });
+  ok('aislado coincide también en corto', near(mineS, liquidationPrice(entry, 'short', lev), 1e-9));
+
+  // Y el cruzado tiene que aguantar MÁS, que es justo lo que lo hace peligroso.
+  const cross = liquidationFromBuffer({ entry, side: 'long', buffer: 5000, notional });
+  ok('el cruzado liquida más lejos que el aislado', cross < mine, `${cross} vs ${mine}`);
+
+  ok('con todo el capital detrás del nocional no hay liquidación en largo',
+    liquidationFromBuffer({ entry, side: 'long', buffer: notional, notional }) === null);
+  ok('colchón por debajo del mantenimiento es null, no un precio inventado',
+    liquidationFromBuffer({ entry, side: 'long', buffer: 1, notional }) === null);
+
+  // Con 10× la liquidación cae en 90,5. Un stop en 97 se toca antes: protege.
+  // Uno en 85 no llega a existir — te cierra el bróker por el camino.
+  const view = liquidationView({
+    entry: 100, side: 'long', mode: 'isolated', notional,
+    marginUsed: notional / lev, capital: 20000, sl: 97,
+  });
+  ok('un stop dentro de la liquidación sí protege',
+    view.stopBeforeLiquidation === true, `liq=${view.price}`);
+  const view2 = liquidationView({
+    entry: 100, side: 'long', mode: 'isolated', notional,
+    marginUsed: notional / lev, capital: 20000, sl: 85,
+  });
+  ok('un stop MÁS ALLÁ de la liquidación se señala: ese stop no existe',
+    view2.stopBeforeLiquidation === false, `liq=${view2.price}`);
+  ok('el cruzado usa el capital como colchón, y lo dice',
+    liquidationView({ entry: 100, side: 'long', mode: 'cross', notional, capital: 5000 })
+      .bufferSource === 'capital');
+
+  // ── Del riesgo al tamaño ────────────────────────────────────────
+  // Acción a 100 $ con stop a 98 y 100 $ de presupuesto → 50 acciones.
+  const stock = resolveSpec('stock', 'AAPL');
+  const s1 = maxSizes({
+    entry: 100, stopDistance: 2, contractSize: 1, riskAmount: 100,
+    capital: 100000, leverage: 1, spec: stock,
+  });
+  ok('50 acciones es el tamaño que arriesga exactamente el presupuesto',
+    near(s1.byRisk, 50) && near(s1.quantity, 50) && s1.binding === 'risk');
+
+  // El margen manda cuando el stop es muy fino: 1000 $ de cuenta al contado no
+  // compran 50 acciones de 100 $ por muy poco que se arriesgue.
+  const s2 = maxSizes({
+    entry: 100, stopDistance: 2, contractSize: 1, riskAmount: 100,
+    capital: 1000, leverage: 1, spec: stock,
+  });
+  ok('con la cuenta pequeña manda el margen, no el riesgo',
+    s2.binding === 'margin' && near(s2.quantity, 10), JSON.stringify(s2));
+
+  // Y la exposición manda cuando hay palanca de sobra y stop microscópico.
+  const perp = resolveSpec('crypto_perp', 'BTCUSDT');
+  const s3 = maxSizes({
+    entry: 100, stopDistance: 0.01, contractSize: 1, riskAmount: 1000,
+    capital: 10000, leverage: 100, spec: perp,
+  });
+  ok('un stop de dos pips con toda la palanca lo frena la exposición',
+    s3.binding === 'exposure', JSON.stringify(s3));
+
+  // El escalón redondea SIEMPRE hacia abajo.
+  ok('3,9 contratos son 3, nunca 4', near(snapDown(3.9, 1), 3));
+  const fut = resolveSpec('futures', 'ES');
+  const s4 = maxSizes({
+    entry: 5000, stopDistance: 20, contractSize: 50, riskAmount: 1500,
+    capital: 100000, leverage: 20, spec: fut,
+  });
+  ok('1,5 contratos de E-mini se quedan en 1', near(s4.quantity, 1) && near(s4.byRisk, 1.5));
+
+  ok('sin distancia de stop no hay tope por riesgo (null, no cero)',
+    maxSizes({ entry: 100, contractSize: 1, capital: 10000, leverage: 1, spec: stock }).byRisk === null);
+
+  // ── El billete mínimo ───────────────────────────────────────────
+  // Un E-mini con stop de 20 puntos son 1000 $. En una cuenta de 3000 $, el
+  // tamaño más pequeño que existe ya se pasa del tope.
+  const mt = minTicket({
+    entry: 5000, stopDistance: 20, contractSize: 50, capital: 3000, leverage: 20, spec: fut,
+  });
+  ok('el contrato más pequeño arriesga 1000 $', near(mt.risk, 1000));
+  ok('y en una cuenta de 3000 eso es pasarse del tope',
+    mt.tooRisky === true && near(mt.riskPct, 1000 / 3000 * 100));
+  // 250 000 de nocional a 20× son 12 500 de margen: con 3000 en la cuenta, el
+  // contrato más pequeño ni siquiera se puede financiar.
+  ok('el margen del mínimo se compara con el capital, y aquí no llega',
+    mt.affordable === false && near(mt.margin, 12500), `margin=${mt.margin}`);
+  ok('cripto no tiene escalón: no hay billete mínimo que declarar',
+    minTicket({ entry: 100, stopDistance: 1, contractSize: 1, capital: 1000,
+      spec: resolveSpec('crypto_spot', 'BTC') }).quantity === null);
+
+  // ── Entradas y salidas por tramos ───────────────────────────────
+  const avg = averageEntry([{ price: 100, qty: 1 }, { price: 90, qty: 3 }]);
+  ok('la media de entrada es ponderada por tamaño, no de los precios',
+    near(avg.price, 92.5) && near(avg.quantity, 4), `avg=${avg.price}`);
+
+  const pe = partialExits({
+    entry: 100, side: 'long', quantity: 3, contractSize: 1,
+    exits: [{ price: 110, qty: 1 }, { price: 120, qty: 1 }],
+  });
+  ok('dos tramos cerrados realizan 10 + 20', near(pe.realized, 30));
+  ok('queda una unidad viva', near(pe.remainingQty, 1));
+  ok('el resto puede caer hasta 70 sin que la operación pierda',
+    near(pe.breakEvenRemaining, 70), `be=${pe.breakEvenRemaining}`);
+
+  const peShort = partialExits({
+    entry: 100, side: 'short', quantity: 2, contractSize: 1,
+    exits: [{ price: 90, qty: 1 }],
+  });
+  ok('en corto el tramo cerrado más abajo GANA', near(peShort.realized, 10));
+  ok('y el break-even del resto sube, no baja', near(peShort.breakEvenRemaining, 110));
+
+  const peOver = partialExits({
+    entry: 100, side: 'long', quantity: 2, contractSize: 1,
+    exits: [{ price: 110, qty: 5 }],
+  });
+  ok('no se puede cerrar más de lo que hay abierto',
+    near(peOver.closedQty, 2) && near(peOver.remainingQty, 0));
+
+  // ── Comisiones y break-even ─────────────────────────────────────
+  ok('la comisión por contrato es de ida y vuelta',
+    near(commissionTotal({ quantity: 2, perUnit: 2.5 }), 10));
+  ok('el porcentaje del nocional también',
+    near(commissionTotal({ notional: 10000, pctNotional: 0.1 }), 20));
+  ok('sin comisiones no se inventa ninguna', commissionTotal({ notional: 10000 }) === 0);
+
+  ok('el break-even se aparta de la entrada lo que cuestan las comisiones',
+    near(breakEven({ entry: 100, quantity: 10, contractSize: 1, feesTotal: 20 }), 102));
+  ok('en corto el break-even está por debajo de la entrada',
+    near(breakEven({ entry: 100, side: 'short', quantity: 10, contractSize: 1, feesTotal: 20 }), 98));
+
+  // ── Valor del movimiento ────────────────────────────────────────
+  // El pip de un lote estándar de EURUSD son 10 $. Aquí sale de la ficha del
+  // instrumento, no de una constante: es el bug que tenía la vieja calculadora
+  // de lotaje, que daba 10 $ también en USDJPY y en el oro.
+  const fx = resolveSpec('forex', 'EURUSD');
+  ok('un lote estándar de EURUSD mueve 10 $ por pip',
+    near(stepValues({ quantity: 1, contractSize: 100000, spec: fx }).perPip, 10));
+  const jpy = resolveSpec('forex', 'USDJPY');
+  ok('y en el yen el pip es 0,01, así que un lote mueve 1000 (en yenes)',
+    near(stepValues({ quantity: 1, contractSize: 100000, spec: jpy }).perPip, 1000));
+  ok('el tick del E-mini son 12,50 $',
+    near(stepValues({ quantity: 1, contractSize: 50, spec: fut }).perTick, 12.5));
+
+  ok('la palanca necesaria nunca baja de 1', near(requiredLeverage(5000, 10000), 1));
+  ok('20 000 de nocional con 10 000 de cuenta son 2×', near(requiredLeverage(20000, 10000), 2));
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -818,6 +1017,7 @@ async function checkPrefsMerge() {
   await checkPrefsMerge();
   await checkProjection();
   await checkInstruments();
+  await checkDeskMath();
   await checkScannerMeta();
   await checkOptionsEngine();
   console.log(`\n${checks - failures}/${checks} checks passed`);
