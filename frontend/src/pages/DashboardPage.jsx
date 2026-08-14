@@ -250,13 +250,15 @@ export default function DashboardPage() {
     );
   }
 
+  const needsVerifyBanner = Boolean(user && user.email_verified === false);
+
   return (
     <div className="min-h-screen bg-background">
       <OnboardingModal />
       <Header />
 
       {/* Email verification banner */}
-      {user && user.email_verified === false && (
+      {needsVerifyBanner && (
         <div className="fixed top-16 left-0 right-0 z-40 bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2 text-center text-sm text-yellow-400 flex items-center justify-center gap-2">
           <span>⚠️ {t('emailNotVerifiedBanner')}</span>
           <button
@@ -277,7 +279,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <main className="pt-20 pb-12 px-4 md:px-6 lg:px-8">
+      {/* El aviso de email es una barra FIJA en `top-16`, así que ocupa espacio
+          que el flujo no ve: con `pt-20` a secas se comía los primeros ~24 px
+          del contenido. Daba igual mientras debajo hubiera un titular; desde
+          que ahí va el campo de capital de la mesa, tapaba justo el dato del
+          que depende todo lo demás. */}
+      <main className={`${needsVerifyBanner ? 'pt-32' : 'pt-20'} pb-12 px-4 md:px-6 lg:px-8`}>
         {/* 2xl+: ultrawide screens left ~50% of the viewport empty. The
             data-dense blocks below benefit from the extra width. */}
         <div className="max-w-7xl 2xl:max-w-[1720px] mx-auto space-y-6">

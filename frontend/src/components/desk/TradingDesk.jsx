@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Wallet, Gauge, BookOpen, Receipt, Ban, AlertTriangle, RotateCcw,
 } from 'lucide-react';
@@ -16,12 +16,12 @@ import { createTrade } from '@/services/performanceApi';
 import {
   FOREX_LOT_TYPES, MIN_RR_FLOOR, SELECTABLE_PRODUCTS,
   resolveSpec, contractSizeFor, unitToDistance, levelFromDistance,
-  positionMetrics, suggestedLeverage, sizingLabelKey,
+  positionMetrics, sizingLabelKey,
 } from '@/lib/instruments';
 import {
   RISK_HARD_CAP_PCT, riskBudget, marginModesFor, liquidationView,
   maxSizes, minTicket, averageEntry, partialExits, breakEven,
-  commissionTotal, stepValues, requiredLeverage,
+  commissionTotal, stepValues, requiredLeverage, effectiveLeverage,
 } from '@/lib/deskMath';
 import { PRODUCT_META, fmtMoney, fmtNum, fmtPct } from '@/components/performance/form/productMeta';
 import LevelInput from '@/components/performance/form/LevelInput';
@@ -49,7 +49,6 @@ const EMPTY_DESK = {
   lot_type: 'standard',
   multiplier: '',
   leverage: '',
-  leverage_touched: false,
   margin_mode: '',
   option_strategy: 'long_call',
   option_type: 'call',
@@ -117,7 +116,18 @@ export default function TradingDesk() {
 
   const capital = nz(account?.capital);
   const entry = nz(form.entry_price);
-  const leverage = nz(form.leverage);
+
+  // La palanca con la que se calcula NO es sólo la del campo. Si el trader no
+  // ha escrito ninguna, manda el margen que exige el mercado por contrato, que
+  // el catálogo conoce sin necesidad de saber cuántos vas a comprar.
+  //
+  // Sin esto se caía a 1× y la mesa pedía 25 000 $ de margen por un micro
+  // E-mini que exige 1320: respondía «no te llega el capital ni para el
+  // contrato más pequeño» con una cuenta que da para diecinueve.
+  const leverage = useMemo(
+    () => effectiveLeverage({ declared: form.leverage, spec, entry, contractSize }),
+    [form.leverage, spec, entry, contractSize],
+  );
 
   // ── Modo de margen: lo decide el producto ───────────────────────
   const marginInfo = useMemo(() => marginModesFor(spec), [spec]);
@@ -133,25 +143,26 @@ export default function TradingDesk() {
       product: id,
       multiplier: '',
       lot_type: id === 'forex' ? (p.lot_type || 'standard') : p.lot_type,
-      leverage: next.usesLeverage ? (next.defaultLeverage ?? '') : '',
-      leverage_touched: false,
+      // El campo se VACÍA, no se rellena con el valor del producto. Rellenarlo
+      // hacía imposible distinguir «lo puso el catálogo» de «lo escribió el
+      // trader», que es la distinción de la que depende que el 20× del oro no
+      // pise un número escrito a mano. Vacío = manda el catálogo, y
+      // `effectiveLeverage` decide cuál con el orden correcto.
+      leverage: '',
       margin_mode: nextMargin.default || '',
       sl_unit: (next.quoteUnits || []).includes(p.sl_unit) ? p.sl_unit : 'price',
       tp_unit: p.tp_unit === 'r' || (next.quoteUnits || []).includes(p.tp_unit) ? p.tp_unit : 'price',
     }));
   };
 
-  // Misma regla que el diario: mientras el trader no toque la palanca, manda
-  // el catálogo del activo (el CFD del oro a 20×, no el 10× genérico del CFD).
+  // Cambiar de activo NO toca la palanca. En el diario sí hacía falta escribirla
+  // (allí la cantidad ya está puesta y el nocional se conoce); aquí la cantidad
+  // es justo lo que se está calculando, así que la palanca se RESUELVE en cada
+  // render con `effectiveLeverage` en vez de guardarse. Un campo vacío significa
+  // «manda el catálogo», y eso vale para el 20× del oro y para las ~19× que
+  // salen del margen inicial de un micro E-mini.
   const changeSymbol = (raw) => {
-    const symbol = String(raw || '').toUpperCase();
-    const next = resolveSpec(product, symbol);
-    setForm((p) => {
-      const notional = (nz(p.entry_price) || 0) * (nz(p.quantity) || 0)
-        * (contractSizeFor(product, symbol, { lotType: p.lot_type }) || 0);
-      const suggested = suggestedLeverage(next, notional);
-      return { ...p, symbol, leverage: (!p.leverage_touched && suggested) ? suggested : p.leverage };
-    });
+    setForm((p) => ({ ...p, symbol: String(raw || '').toUpperCase() }));
   };
 
   // ── El presupuesto de riesgo, y el tope duro ────────────────────
@@ -254,16 +265,6 @@ export default function TradingDesk() {
     ? capital - metrics.marginUsed
     : null;
   const leverageNeeded = requiredLeverage(metrics.notional, capital);
-
-  // La palanca sugerida deja de servir cuando cambia el nocional, así que se
-  // reevalúa al calcular el tamaño — pero sólo si el trader no la ha tocado.
-  useEffect(() => {
-    if (form.leverage_touched || !spec.usesLeverage) return;
-    const suggested = suggestedLeverage(spec, metrics.notional);
-    if (suggested && String(suggested) !== String(form.leverage)) {
-      setForm((p) => (p.leverage_touched ? p : { ...p, leverage: suggested }));
-    }
-  }, [spec, metrics.notional, form.leverage_touched]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Al diario ───────────────────────────────────────────────────
   const canJournal = isAuthenticated && quantity != null && entry != null
@@ -640,8 +641,8 @@ export default function TradingDesk() {
                 <>
                   <Input
                     type="number" step="any" min="1" value={form.leverage ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, leverage: e.target.value, leverage_touched: true }))}
-                    placeholder={spec.defaultLeverage ? String(spec.defaultLeverage) : '1'}
+                    onChange={(e) => setForm((p) => ({ ...p, leverage: e.target.value }))}
+                    placeholder={fmtNum(leverage, leverage < 10 ? 1 : 0)}
                     className="mt-1" data-testid="desk-leverage"
                   />
                   <p className="text-[10px] text-muted-foreground mt-0.5">

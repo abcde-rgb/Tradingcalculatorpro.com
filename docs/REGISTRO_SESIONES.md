@@ -4097,3 +4097,75 @@ con la IA viva (el sandbox no tiene salida a Anthropic); la ruta local sí, que 
 decide. Y el «modo básico simple» que se pidió para el final ya existe: son las catorce
 calculadoras de siempre, ahora con nombre y conmutador propios en vez de ser lo único que
 había.
+
+### 2026-08-14 (2) — Lo que decía estar verde y no lo estaba
+
+Sesión de auditoría de la propia infraestructura, no del producto. Se pidió
+comprobar si «el mapa y todas las actualizaciones funcionan al 100 %». No.
+
+**Lo que sí funciona.** Los verificadores offline corren y son rápidos:
+`i18n-check` 222 ms, `engine-check` 1,6 s, `check-edu-index` 42 ms,
+`check-fetch-credentials` 107 ms, `gen-mapa --check` 563 ms, `check-doc-links`
+28 ms, `gen-instruments-js --check` 30 ms. Todo el bloque estático son ~2,6 s.
+`pytest` 14 s, ESLint 5 s, `npm run build` 37 s. La velocidad **no** era el
+problema.
+
+**Tres cosas estaban rotas o mentían:**
+
+1. **El banco de pruebas E2E no arrancaba en frío** (G-35). `sembrar.py` hacía
+   login con una cuenta que nadie creaba: 401 en una base nueva, o sea en TODA
+   sesión remota. `arriba.sh` seguía con un aviso amarillo y las ocho sondas de
+   navegador fallaban acusando al producto de un fallo que era «aquí no hay
+   cuenta». `entorno.py` ya tenía `cuenta()` y `da_premium()`; este script no
+   los usaba.
+
+2. **`/verify` decía «todo verde» sobre PRs que CI iba a tumbar** (G-36).
+   Comprobaba 4 de las 10 verificaciones de `ci.yml`. Hablaba de 8 idiomas
+   (hay 10), compilaba 3 módulos de Python (hay 26) y corría `pytest -k unit`
+   en vez del suite. Reescrito para ejecutar exactamente lo de CI, con la regla
+   escrita de que las dos listas no pueden separarse.
+
+3. **`entra()` no cerraba el modal de bienvenida.** El overlay se come todos
+   los clics y Playwright responde con un timeout de 30 s sobre un botón
+   «visible, enabled y stable» — visible sí, alcanzable no. Ahora hay
+   `descartaModales()` y lo llama `entra()`, así que le vale a toda sonda nueva.
+
+**Lo que se añade para acelerar: `tests/e2e/mirar.js`.** El examen entero es
+correcto antes de mergear y demasiado caro mientras diseñas, que es cuando más
+falta hace mirar. Una orden abre una pantalla, la toca con un guion mínimo
+(`fill:`, `click:`, `select:`, `tecla:`, `esperar:`), saca la captura y reporta
+los errores de JavaScript, el desbordamiento horizontal y el texto real de los
+`data-testid` que pidas. Los recursos externos bloqueados por la red del
+sandbox se cuentan **aparte**: mezclados, cada ejecución gritaría «9 errores» y
+a la tercera nadie los leería.
+
+**Y el hook de arranque avisa del contenedor crudo.** Cada sesión remota empieza
+sin `node_modules` ni las dependencias de Python; descubrirlo a mitad de trabajo
+cuesta minutos parado, siempre cuando ya has escrito el código y sólo querías
+verificarlo. Ahora se dice al arrancar, para poder lanzarlo en segundo plano.
+
+**Dos bugs del producto que encontró la PRIMERA captura**, después de que el
+código pasara lint, 264 comprobaciones de motor y 782 tests:
+
+- **La palanca se caía a 1× en futuros.** `suggestedLeverage()` la deduce del
+  nocional, que necesita la cantidad, que es justo lo que la mesa está
+  calculando. Resultado: pedía **25 000 $ de margen por un micro E-mini** cuyo
+  margen inicial son **1320 $**, y respondía «no te llega el capital ni para el
+  contrato más pequeño» con una cuenta de 10 000 que da para diecinueve.
+  Arreglado con `leverageFromMargin()` / `effectiveLeverage()`, con el orden de
+  autoridad explícito: lo escrito > el margen del mercado > la típica del
+  producto > 1×. De paso desaparece `leverage_touched` de la mesa: la palanca
+  se **resuelve** en cada render en vez de guardarse.
+- **El aviso de email tapaba el campo de capital.** Es una barra `fixed top-16`
+  y `main` sólo reservaba `pt-20`: 24 px de solape. Daba igual mientras debajo
+  hubiera un titular; desde que ahí va el capital, tapaba el dato del que
+  depende todo lo demás.
+
+**Verificado:** `engine-check` **264/264** (7 comprobaciones nuevas de palanca) ·
+`i18n-check` 10/10 sin huecos · `check-edu-index` 85 = 85 · `check-doc-links` ·
+`gen-mapa --check` · paridad del catálogo · ESLint 0 errores · `pytest` **782
+passed, 74 skipped** · y la mesa **vista funcionando** en el navegador con
+futuros (1 contrato, margen 1320 $, tick 1,25 $, liquidación 3025 en cruzado),
+forex (0,33 lotes, 3,30 $/pip), el tope del 10 % bloqueando, los 4 contratos
+sueltos y el buscador de la Academia devolviendo «Margen y liquidación en
+derivados» con sus tres apartados.

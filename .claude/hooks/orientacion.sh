@@ -90,6 +90,23 @@ else
   echo "🗺️  Falta docs/MAPA.md — genéralo con: python scripts/gen-mapa.py"
 fi
 
+# ── El contenedor está crudo ───────────────────────────────────────────────
+# Cada sesión remota arranca con un clon fresco: `node_modules` y las
+# dependencias de Python NO están. Descubrirlo a mitad de trabajo cuesta varios
+# minutos parado, y siempre en el peor momento — cuando ya has escrito el
+# código y sólo querías verificarlo. Decirlo aquí permite lanzar la instalación
+# en segundo plano desde el primer minuto.
+frio=""
+[ -d frontend/node_modules ] || frio="npm ci --legacy-peer-deps  (desde frontend/, tarda minutos)"
+python3 -c "import fastapi" >/dev/null 2>&1   || frio="${frio:+$frio
+    }pip install -q --ignore-installed PyJWT -r requirements.txt  (desde backend/)"
+if [ -n "$frio" ]; then
+  echo ""
+  echo "📦 Contenedor crudo — falta instalar antes de poder verificar nada:"
+  echo "    $frio"
+  echo "    Lánzalo EN SEGUNDO PLANO ahora, no cuando ya hayas terminado de escribir."
+fi
+
 echo ""
 echo "Orientación: docs/ESTADO_PROYECTO.md (estado) · docs/MAPA.md (dónde está cada cosa)"
 echo "Las reglas por zona (.claude/rules/) se cargan solas al abrir ficheros de su área."

@@ -41,6 +41,7 @@
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
 | **Paridad i18n / motor** | 🟢 | `i18n-check` 0 huecos en los 10 idiomas · `engine-check` **257/257** (2026-08-14) · `check-edu-index` 85 = 85. Cifra de claves al día en [`MAPA.md`](./MAPA.md) |
+| **Banco de pruebas E2E (`qa`)** | 🟢 | Arranca en frío desde el 2026-08-14 (G-35). Nuevo `tests/e2e/mirar.js`: una pantalla, una captura, los errores de JS, el desbordamiento y el texto de los `data-testid` que pidas — para mirar mientras diseñas sin correr el examen entero |
 | **Dashboard: mesa de cálculo** | 🟢 | Nueva el 2026-08-14 (`components/desk/`). Capital arriba del todo y con la cuenta, producto, modo de margen según el producto, **tope duro del 10 % de riesgo por operación**, tamaño derivado del riesgo con los tres techos, liquidación en aislado **y cruzado**, parciales y comisiones. Las 14 calculadoras siguen ahí como **modo básico** |
 | **Ajustes del usuario entre dispositivos** | 🟢 | Tema, idioma, preferencias, favoritos, progreso de la Academia y **setups** viajan con la cuenta desde el 2026-08-08 (`lib/cloudPrefs.js`). Ver G-25 |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
@@ -191,6 +192,8 @@
 | G-32 | **Trabajo terminado que no está en `main`.** 6 PRs de producto abiertos desde el 02-08 (cuatro de ellos en su segunda ronda tras cerrarse sin fusionar), 4 ramas con commits y **sin ningún PR** —la mayor, `claude/project-complete-audit-a6qg1c`, con dos auditorías, el estudio de pasarelas de broker, los datos de la entidad legal y 2 tests—, y 11 PRs de Dependabot | 🔴 | Decidir uno por uno: fusionar o cerrar. Empezar por **#162** (honestidad del escáner) y **cerrar el #178**, que es un revert de algo vivo. Inventario en [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) §2 |
 | G-33 | **Las calculadoras del modo básico siguen con su aritmética vieja.** `LotSizeCalculator` da **10 $/pip por lote estándar siempre** (falso en USDJPY, en el oro y en cualquier cruce sin dólar) con su propia tabla de once pares escrita a mano, y `PositionSizeCalculator` pinta `BTC` fijo en el resultado sea cual sea el activo. La mesa (2026-08-14) hace lo correcto sacando el pip de la ficha del instrumento, pero las catorce sueltas no se tocaron | 🟠 | Reescribirlas sobre `lib/instruments.js` + `lib/deskMath.js`, o retirarlas y dejar la mesa con un «modo simple» que esconda campos. Lo segundo evita mantener dos aritméticas; lo primero conserva los enlaces `?tab=` y las 120 páginas SEO de calculadora |
 | G-34 | **La mesa dimensiona UNA pata, no la estructura de opciones.** Con producto `option` calcula sobre la prima y el número de contratos, que es correcto para los cuatro sueltos y para cualquier compra; pero la pérdida máxima real de un spread es *anchura − crédito* y la de un iron condor depende de las cuatro patas, y eso la mesa no lo sabe: el selector de estructura elige la etiqueta y el enlace a `/options/calculator`, no el cálculo | 🟠 | Es el mismo modelo `Position → Leg` que piden G-21 y G-23 para el diario. Mientras tanto, la mesa no miente —no publica una pérdida máxima de estructura— pero tampoco la calcula, y el usuario tiene que ir a `/options/calculator` para eso |
+| G-35 | ~~**El banco de pruebas E2E no arrancaba en un contenedor nuevo.**~~ `stack/sembrar.py` hacía `POST /auth/login` a secas con `qa@example.com`, una cuenta que **nadie creaba**: en una base recién creada devolvía 401, `arriba.sh` seguía adelante con un aviso en amarillo, y las ocho sondas de navegador fallaban porque afirman sobre 13 filas y +$3.471,86. O sea: en TODA sesión remota, que empieza con un clon fresco | 🟢 | ✅ **Cerrado (2026-08-14)**: usa `cuenta()` y `da_premium()` de `entorno.py`, los mismos helpers que ya usaban las sondas de API — registraban si el login no valía y saltaban el muro de pago. Sólo que este script no los usaba. Verificado en frío: 10 operaciones sembradas |
+| G-36 | ~~**`/verify` decía «todo verde» sobre PRs que CI iba a tumbar.**~~ Comprobaba 4 de las 10 verificaciones de `ci.yml` —faltaban `engine-check`, `check-edu-index`, `check-fetch-credentials`, `gen-mapa --check`, `check-doc-links` y la paridad del catálogo—, hablaba de **8 idiomas** cuando hay 10, compilaba **3 módulos** de Python de 26, y corría `pytest -k unit` en vez del suite | 🟢 | ✅ **Cerrado (2026-08-14)**: reescrito para ejecutar exactamente lo de CI, con los tiempos reales de cada paso, qué hacer cuando el contenedor está crudo, y una regla escrita: si se añade una comprobación a CI, se añade ahí |
 
 ---
 
@@ -301,11 +304,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-14 (2) | Lo que decía estar verde y no lo estaba |
 | 2026-08-14 | La mesa de cálculo: el dashboard deja de ser catorce calculadoras sueltas |
 | 2026-08-13 (2) | Orientarse costaba 106.000 tokens; ahora cuesta 8.000 |
 | 2026-08-13 | Auditoría del repositorio: lo obsoleto, lo perdido y lo que se pasó por alto |
 | 2026-08-12 (2) | Qué método tiene base y cuándo se comprobó |
-| 2026-08-12 | El glosario se detenía justo donde empieza el producto |
 
 ```bash
 # buscar una sesión por fecha o por tema
