@@ -4176,4 +4176,7 @@ export default {
   "deskFeeRoundTurnHint": "الإغلاق يكلّف أيضًا",
   "deskJournalNote": "حُدّد حجمها في منصة الحساب",
   "deskJournalNeeds": "ينقص الأصل أو الدخول أو الحجم",
+  "optLegDebit": "تدفع (مدين)",
+  "optLegCredit": "تقبض (دائن)",
+  "optLegOpenRisk": "مخاطرة مفتوحة",
 }

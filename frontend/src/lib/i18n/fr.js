@@ -4176,4 +4176,7 @@ export default {
   "deskFeeRoundTurnHint": "clôturer coûte aussi",
   "deskJournalNote": "Dimensionnée sur la table de calcul",
   "deskJournalNeeds": "actif, entrée ou taille manquants",
+  "optLegDebit": "Tu paies (débit)",
+  "optLegCredit": "Tu encaisses (crédit)",
+  "optLegOpenRisk": "risque ouvert",
 }

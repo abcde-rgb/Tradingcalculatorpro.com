@@ -4176,4 +4176,7 @@ export default {
   "deskFeeRoundTurnHint": "закрытие тоже стоит",
   "deskJournalNote": "Рассчитано на терминале",
   "deskJournalNeeds": "нет актива, входа или объёма",
+  "optLegDebit": "Ты платишь (дебет)",
+  "optLegCredit": "Ты получаешь (кредит)",
+  "optLegOpenRisk": "открытый риск",
 }

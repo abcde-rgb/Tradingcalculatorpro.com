@@ -4176,4 +4176,7 @@ export default {
   "deskFeeRoundTurnHint": "closing costs too",
   "deskJournalNote": "Sized on the calculation desk",
   "deskJournalNeeds": "asset, entry or size missing",
+  "optLegDebit": "You pay (debit)",
+  "optLegCredit": "You receive (credit)",
+  "optLegOpenRisk": "open risk",
 }

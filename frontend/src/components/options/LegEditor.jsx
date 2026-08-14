@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight, ChevronDown, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { optionDirection, DIRECTION_CLASSES, flowKey } from '@/lib/optionSides';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -165,15 +166,22 @@ const LegEditor = ({
 
       {/* Legs List */}
       <div className="flex-1 overflow-y-auto px-3 space-y-2 custom-scrollbar pb-2">
-        {legs.map((leg, idx) => (
+        {legs.map((leg, idx) => {
+          // El color de la pata sale de la DIRECCIÓN (alcista/bajista), no de
+          // si se compra o se vende: comprar una put es bajista y vender una
+          // put es alcista, así que el verde-comprar/rojo-vender de las
+          // acciones decía lo contrario de lo que pasa en dos de los cuatro
+          // casos. Ver `lib/optionSides.js`.
+          const dir = optionDirection(leg.action, leg.type);
+          return (
           <div
             key={leg.id}
             className={`rounded-xl border transition-all ${
               !leg.enabled
                 ? 'border-border/50 opacity-40'
-                : leg.action === 'buy'
-                ? 'border-[#22c55e]/20 bg-[#22c55e]/[0.03]'
-                : 'border-[#ef4444]/20 bg-[#ef4444]/[0.03]'
+                : dir
+                ? `${DIRECTION_CLASSES[dir.tone].border} ${DIRECTION_CLASSES[dir.tone].bg}`
+                : 'border-border'
             }`}
           >
             {/* Leg Header */}
@@ -183,10 +191,11 @@ const LegEditor = ({
               {/* Buy/Sell Toggle */}
               <button
                 onClick={() => toggleAction(idx)}
+                title={t(flowKey(leg.action))}
                 className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all ${
                   leg.action === 'buy'
-                    ? 'bg-[#22c55e]/15 text-[#4ade80] hover:bg-[#22c55e]/25'
-                    : 'bg-[#ef4444]/15 text-[#f87171] hover:bg-[#ef4444]/25'
+                    ? 'bg-muted text-foreground hover:bg-muted/70'
+                    : 'bg-foreground/10 text-foreground hover:bg-foreground/20'
                 }`}
               >
                 {leg.action === 'buy' ? 'BUY' : 'SELL'}
@@ -203,6 +212,27 @@ const LegEditor = ({
               >
                 {leg.type === 'call' ? 'CALL' : 'PUT'}
               </button>
+
+              {/* Qué hace esta combinación. Sin esto, "SELL PUT" en rojo se
+                  lee como bajista cuando es lo contrario. */}
+              {dir && (
+                <span
+                  className={`px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${DIRECTION_CLASSES[dir.tone].chip}`}
+                  title={t(dir.riskKey)}
+                  data-testid={`leg-${idx}-bias`}
+                >
+                  {t(dir.biasKey)}
+                </span>
+              )}
+              {dir && !dir.defined && (
+                <span
+                  className="text-[9px] font-bold uppercase tracking-wider text-[#fbbf24]"
+                  title={t(dir.riskKey)}
+                  data-testid={`leg-${idx}-open-risk`}
+                >
+                  {t('optLegOpenRisk')}
+                </span>
+              )}
 
               <div className="flex-1" />
 
@@ -325,11 +355,12 @@ const LegEditor = ({
             <div className="flex items-center justify-between px-3 pb-2 text-[9px] text-[#3a4f6e]">
               <span>IV: {(leg.iv * 100).toFixed(1)}%</span>
               <span>
-                {leg.action === 'buy' ? t('debito_33f877') : t('credito_93e87a')}: ${(leg.premium * leg.quantity * 100).toFixed(0)}
+                {t(flowKey(leg.action))}: ${(leg.premium * leg.quantity * 100).toFixed(0)}
               </span>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {legs.length === 0 && (
           <div className="text-center py-8">
@@ -342,30 +373,30 @@ const LegEditor = ({
       {/* Add Buttons */}
       <div className="px-3 py-3 border-t border-border space-y-2">
         <div className="grid grid-cols-2 gap-1.5">
-          <button
-            onClick={() => addLeg('call', 'buy')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 text-[#4ade80] text-[11px] font-semibold hover:bg-[#22c55e]/20 transition-all"
-          >
-            <Plus className="w-3 h-3" /> Buy Call
-          </button>
-          <button
-            onClick={() => addLeg('put', 'buy')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#a78bfa]/10 border border-[#a78bfa]/20 text-[#c4b5fd] text-[11px] font-semibold hover:bg-[#a78bfa]/20 transition-all"
-          >
-            <Plus className="w-3 h-3" /> Buy Put
-          </button>
-          <button
-            onClick={() => addLeg('call', 'sell')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#f87171] text-[11px] font-semibold hover:bg-[#ef4444]/20 transition-all"
-          >
-            <Plus className="w-3 h-3" /> Sell Call
-          </button>
-          <button
-            onClick={() => addLeg('put', 'sell')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-[#fbbf24] text-[11px] font-semibold hover:bg-[#f59e0b]/20 transition-all"
-          >
-            <Plus className="w-3 h-3" /> Sell Put
-          </button>
+          {/* Los cuatro botones, coloreados por lo que HACE cada combinación.
+              Antes eran cuatro colores decorativos (verde, violeta, rojo,
+              ámbar) que no seguían ninguna regla: "Buy Put" salía violeta y
+              "Sell Put" ámbar, cuando la primera es bajista y la segunda
+              alcista. */}
+          {[
+            { type: 'call', action: 'buy',  label: 'Buy Call' },
+            { type: 'put',  action: 'buy',  label: 'Buy Put' },
+            { type: 'call', action: 'sell', label: 'Sell Call' },
+            { type: 'put',  action: 'sell', label: 'Sell Put' },
+          ].map((b) => {
+            const d = optionDirection(b.action, b.type);
+            return (
+              <button
+                key={b.label}
+                onClick={() => addLeg(b.type, b.action)}
+                title={`${t(d.biasKey)} · ${t(d.riskKey)}`}
+                data-testid={`add-leg-${b.action}-${b.type}`}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[11px] font-semibold transition-all hover:brightness-125 ${DIRECTION_CLASSES[d.tone].chip}`}
+              >
+                <Plus className="w-3 h-3" /> {b.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Net Summary */}

@@ -4176,4 +4176,7 @@ export default {
   "deskFeeRoundTurnHint": "das Schließen kostet auch",
   "deskJournalNote": "Am Rechenpult dimensioniert",
   "deskJournalNeeds": "Asset, Einstieg oder Größe fehlt",
+  "optLegDebit": "Du zahlst (Debit)",
+  "optLegCredit": "Du bekommst (Kredit)",
+  "optLegOpenRisk": "offenes Risiko",
 }

@@ -95,8 +95,11 @@ export default function OptionStrategyPicker({ value, onChange }) {
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2" data-testid="desk-strategy-summary">
           <Fact label={t('deskStratMaxLoss')} value={t(selected.maxLoss)} tone="down" />
           <Fact label={t('deskStratMaxProfit')} value={t(selected.maxProfit)} tone="up" />
+          {/* `/options` es el hub; el panel con payoff, griegas y cadena vive
+              en `/options/calculator`, y `?strategy=` ya lo abre con la
+              estructura elegida (`strategyFromUrl`). */}
           <Link
-            to={`/options?strategy=${selected.id}`}
+            to={`/options/calculator?strategy=${selected.id}`}
             className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-primary/40 bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary/20 transition-colors"
             data-testid="desk-strategy-open-options"
           >

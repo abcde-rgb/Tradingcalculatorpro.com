@@ -39,29 +39,11 @@ export const BINDING_META = {
  */
 export const SINGLE_LEG_IDS = ['long_call', 'long_put', 'short_call', 'short_put'];
 
-/**
- * Qué significa comprar y qué significa vender, según el tipo de opción.
- *
- * Aquí es donde se aclara la confusión que hace perder dinero: "comprar" no es
- * alcista y "vender" no es bajista. Lo que orienta la posición es el par
- * (acción, tipo):
- *
- *   comprar call → alcista, riesgo limitado a la prima
- *   vender  call → bajista/neutral, pérdida SIN TECHO si va desnuda
- *   comprar put  → bajista, riesgo limitado a la prima
- *   vender  put  → alcista/neutral, pérdida hasta el strike menos la prima
- *
- * Las dos filas de la derecha son las que sorprenden: vender es cobrar hoy a
- * cambio de una obligación, y por eso el riesgo no lo marca lo que pagaste.
- */
-export const OPTION_DIRECTION = {
-  buy_call:  { biasKey: 'deskOptBiasBullish', riskKey: 'deskOptRiskPremium',  defined: true,  tone: 'up' },
-  sell_call: { biasKey: 'deskOptBiasBearish', riskKey: 'deskOptRiskUnlimited', defined: false, tone: 'down' },
-  buy_put:   { biasKey: 'deskOptBiasBearish', riskKey: 'deskOptRiskPremium',  defined: true,  tone: 'down' },
-  sell_put:  { biasKey: 'deskOptBiasBullish', riskKey: 'deskOptRiskStrike',   defined: false, tone: 'up' },
-};
-
-export const optionDirection = (action, type) => OPTION_DIRECTION[`${action}_${type}`] || null;
+// Qué significa comprar y qué significa vender según el tipo de opción vive en
+// `lib/optionSides.js`, porque la misma regla la necesita el constructor de
+// patas de `/options/calculator` — donde, hasta ahora, el color decía lo
+// contrario de lo que pasa.
+export { OPTION_DIRECTION, optionDirection } from '@/lib/optionSides';
 
 /**
  * El sesgo de una estructura completa a partir de sus patas.

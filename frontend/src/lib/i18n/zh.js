@@ -4176,4 +4176,7 @@ export default {
   "deskFeeRoundTurnHint": "平仓也要收钱",
   "deskJournalNote": "在计算台上算的仓位",
   "deskJournalNeeds": "缺品种、入场价或数量",
+  "optLegDebit": "你付出（借记）",
+  "optLegCredit": "你收到（贷记）",
+  "optLegOpenRisk": "风险敞开",
 }

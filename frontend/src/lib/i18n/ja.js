@@ -4176,4 +4176,7 @@ export default {
   "deskFeeRoundTurnHint": "決済にも費用がかかります",
   "deskJournalNote": "計算デスクでサイズ決定",
   "deskJournalNeeds": "銘柄・エントリー・数量が未入力",
+  "optLegDebit": "支払い（デビット）",
+  "optLegCredit": "受取り（クレジット）",
+  "optLegOpenRisk": "リスク無限定",
 }
