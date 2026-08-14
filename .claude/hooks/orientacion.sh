@@ -77,17 +77,21 @@ if [ -f docs/ESTADO_PROYECTO.md ]; then
 fi
 
 # ── Si el mapa generado se ha quedado atrás ────────────────────────────────
-if [ -f docs/MAPA.md ]; then
-  mapa=$(stat -c %Y docs/MAPA.md 2>/dev/null || echo 0)
-  nuevo=$(find backend frontend/src -name '*.py' -o -name '*.jsx' -o -name '*.js' 2>/dev/null \
-    | grep -v node_modules | xargs stat -c %Y 2>/dev/null | sort -rn | head -1)
-  if [ "${nuevo:-0}" -gt "${mapa:-0}" ]; then
-    echo ""
-    echo "🗺️  docs/MAPA.md es más antiguo que el código. Regenéralo: python scripts/gen-mapa.py"
-  fi
-else
+# Se pregunta al propio verificador, no a las fechas de los ficheros. La primera
+# versión comparaba `stat -c %Y` del mapa contra el código, y tras reiniciarse un
+# contenedor todos los ficheros se re-tocan: avisaba de que el mapa estaba
+# desfasado cuando `--check` decía que estaba perfecto. Un aviso que se equivoca
+# es un aviso que se deja de leer, y cuesta ~1 s preguntarlo bien.
+if [ ! -f docs/MAPA.md ]; then
   echo ""
   echo "🗺️  Falta docs/MAPA.md — genéralo con: python scripts/gen-mapa.py"
+elif command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
+  PY=$(command -v python3 || command -v python)
+  if ! timeout 10 "$PY" scripts/gen-mapa.py --check >/dev/null 2>&1; then
+    echo ""
+    echo "🗺️  docs/MAPA.md no refleja el código. Regenéralo: python scripts/gen-mapa.py"
+    echo "    (CI falla si no lo haces)"
+  fi
 fi
 
 echo ""

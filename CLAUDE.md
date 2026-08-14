@@ -9,6 +9,7 @@ Guía para Claude Code (claude.ai/code) en este repositorio.
 📌 **Antes de trabajar:** [`docs/ESTADO_PROYECTO.md`](./docs/ESTADO_PROYECTO.md) (estado
 vivo: semáforo, inventario, huecos, backlog) · [`docs/MAPA.md`](./docs/MAPA.md) (mapa
 generado: módulos, rutas, páginas — nunca escrito a mano) ·
+[`docs/DECISIONES.md`](./docs/DECISIONES.md) (por qué es así, y qué se descartó) ·
 [`docs/GUIA_EXTENSION.md`](./docs/GUIA_EXTENSION.md) (cómo añadir algo) ·
 [`docs/DEPLOY_CHECKLIST.md`](./docs/DEPLOY_CHECKLIST.md) (lanzar).
 El skill `estado-proyecto` orquesta todo esto y obliga a dejar la doc al día.

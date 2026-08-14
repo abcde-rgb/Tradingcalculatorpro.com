@@ -4111,3 +4111,74 @@ Los ocho verificadores, ejecutados de verdad: `py_compile` 28 módulos ·
 `engine-check` 197/197 · `gen-mapa --check` · `gen-instruments --check` ·
 `check-doc-links` 66 documentos · `npm run build` 39 MB · 36 capturas revisadas a
 ojo. **Por primera vez, ninguno queda como «no ejecutado».**
+
+## 2026-08-13 (4) — El guardián de los guardianes, y un almacén de decisiones
+
+Encargo abierto: qué más haría yo para que el proyecto fluya.
+
+### 1. `scripts/probar-verificadores.sh` — lo que estaba a punto de perderse
+
+Hoy aparecieron **tres comprobaciones que no comprobaban nada**: la guarda de
+orden del mapa era una tautología, una regla de `auditar.py` no disparaba jamás
+por unos guiones bajos, y `capturas.js` imprimió ✅ treinta y seis veces
+produciendo imágenes en blanco. Las tres se cazaron igual —rompiéndolas a
+propósito— y **ninguna se habría cazado ejecutándola y mirando si pasaba**.
+
+Ese método vivía en un script de `/tmp` que moría con el contenedor. Ahora está en
+el repo y **bloquea en CI**: para cada verificador, sabotear → debe fallar →
+revertir → debe volver a pasar. Siete casos, incluido el fallo real que rompió el
+job de documentación.
+
+Y al escribirlo cazó dos fallos más, **suyos**:
+
+- El `cd frontend` del caso de i18n **se filtraba al shell del script** (`eval`
+  corre en el shell actual), así que el sabotaje siguiente creaba su fichero en
+  una ruta inexistente y la auditoría parecía no detectarlo. Cualquier comando que
+  cambie de directorio va ahora entre paréntesis.
+- Con `set -o pipefail`, la tubería `auditar.py --estricto | grep -q` heredaba el
+  código de salida de `auditar` (1, porque hay hallazgos) en vez del del `grep`.
+  El verificador estaba bien; la fontanería del test, no.
+
+Que el propio test se rompiera dos veces mientras comprobaba que los demás no se
+rompen es la mejor defensa de por qué tenía que existir.
+
+### 2. `docs/DECISIONES.md` — el almacén
+
+Responder *«¿por qué seguimos con Yahoo si la licencia no deja?»* obligaba a
+rastrear 3.900 líneas de este mismo fichero. Ahora hay un documento de **sólo
+añadir**: una decisión nunca se edita; si cambia, se escribe otra que la
+sustituye. Esa regla es lo que hace que no pueda desviarse, al contrario que
+`PENDIENTES.md`, que hoy afirma dos cosas falsas.
+
+Arranca con ~18 decisiones reales reconstruidas del historial, y cada una dice
+**qué se descartó**, que es la mitad que siempre se pierde: OxaPay y MaxelPay
+retiradas, AdSense fuera con muro de pago duro, Yahoo mantenido a sabiendas
+(G-16), `min-instances=1` intencionado, el dominio propio sin activar, por qué los
+imports `@fichero` no sirven para partir `CLAUDE.md`, y por qué el apalancamiento
+no entra en el P&L.
+
+### 3. Comandos de flujo
+
+`/cerrar-sesion` (el ritual completo: regenerar, verificar, escribir la entrada,
+actualizar el semáforo, y los tres olvidos habituales —bugs, decisiones, reglas
+por zona—), `/auditar` y `/capturas`. El ritual de cierre se olvidaba: el
+2026-08-10 se cerró un bypass de 2FA y un *account pre-hijacking* sin dejar ni
+una línea.
+
+### 4. Aviso semanal automático
+
+Routine `trig_01QaqTiMKCRVaeXixA9Gs887`, lunes 07:00 UTC, sesión nueva por
+disparo, con aviso al móvil. Corre la auditoría y **sólo molesta si hay algo
+nuevo**. Cierra el único hueco que el hook de arranque no puede cerrar: el hook
+sólo avisa si abres una sesión.
+
+⚠️ Las sesiones que dispara **no llevan herramientas de GitHub**, así que el
+encargo está escrito para funcionar sólo con git: mira ramas sin fusionar, no
+pull requests. Si en algún momento hace falta que vigile PRs, hay que recrear la
+routine desde la interfaz de claude.ai con los conectores puestos.
+
+### Verificado
+
+`py_compile` 28 módulos · `pytest` **782 passed, 74 skipped** · `eslint` 0 errores
+· `i18n-check` · `gen-mapa --check` · `gen-instruments --check` ·
+`check-doc-links` 67 documentos · **`probar-verificadores.sh` 7/7**.

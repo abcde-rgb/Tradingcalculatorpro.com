@@ -18,6 +18,7 @@ leen en el mismo momento ni con la misma intención.
 | [`MAPA.md`](./MAPA.md) | **Dónde está cada cosa.** Módulos, rutas con `fichero:línea`, rutas sin consumidor, carpetas y ficheros grandes. **Generado** — `--check` en CI | generado |
 | [`../CLAUDE.md`](../CLAUDE.md) | Invariantes que aplican siempre. Se carga en cada sesión; lo específico por zona vive en `.claude/rules/` | 173 |
 | [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs con su causa raíz. Se consulta para no repetir un error ya pagado | 589 |
+| [`DECISIONES.md`](./DECISIONES.md) | **Por qué el proyecto es como es.** Sólo se añade, nunca se edita: responde «¿por qué esto es así?» sin rastrear el registro de sesiones | ~180 |
 | [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md) | Histórico de 126 sesiones. **No se lee entero** (~3.900 líneas): se busca por fecha o palabra | 3.940 |
 | [`PENDIENTES.md`](./PENDIENTES.md) | Lo inmediato, en crudo. ⚠️ Con datos caducados: ver auditoría del 13-08 §3.3 | 97 |
 

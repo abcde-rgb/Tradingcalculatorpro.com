@@ -271,7 +271,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 
 ## 7. Registro de sesiones
 
-**Las entradas viven en [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md)** — 128 entradas
+**Las entradas viven en [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md)** — 129 entradas
 desde el 2026-06-25. Se separaron el 2026-08-13: eran el 93 % de este documento y hacían
 que consultar el semáforo costase leer 320 KB.
 
@@ -279,11 +279,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-13 (4) | El guardián de los guardianes, y un almacén de decisiones |
 | 2026-08-13 (3) | Verificar deja de ser «no ejecutado» |
 | 2026-08-13 (2) | Orientarse costaba 106.000 tokens; ahora cuesta 8.000 |
 | 2026-08-13 | Auditoría del repositorio: lo obsoleto, lo perdido y lo que se pasó por alto |
 | 2026-08-12 (2) | Qué método tiene base y cuándo se comprobó |
-| 2026-08-12 | El glosario se detenía justo donde empieza el producto |
 
 ```bash
 # buscar una sesión por fecha o por tema
