@@ -6549,6 +6549,119 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
 
 
+# ─── Asistente de la Academia ─────────────────────────────────────
+
+
+class EduAssistantCandidate(BaseModel):
+    """Un módulo que el índice del navegador YA ha encontrado."""
+
+    id: str
+    title: str
+    sections: List[str] = []
+
+
+class EduAssistantRequest(BaseModel):
+    question: str
+    locale: Optional[str] = "es"
+    candidates: List[EduAssistantCandidate]
+
+
+EDU_ASSISTANT_SYSTEM = """Eres el bibliotecario de una academia de trading. Tu \
+único trabajo es decirle al usuario CUÁL de los módulos que te paso mirar \
+primero y por qué, en dos o tres frases.
+
+Reglas que no puedes romper:
+1. Sólo puedes nombrar módulos de la lista que te paso. No existe ningún otro. \
+Si ninguno encaja bien con la pregunta, dilo claramente y señala el más \
+cercano; no inventes un módulo que suene plausible.
+2. No respondas la pregunta de trading. No des cifras, niveles, porcentajes de \
+riesgo ni recomendaciones: el contenido está en los módulos y ahí es donde el \
+usuario tiene que leerlo. Tú orientas, no enseñas.
+3. Nada de consejo de inversión ni de opiniones sobre si algo funciona.
+4. Responde en el idioma que se te indique, en texto plano, sin markdown, sin \
+listas y sin encabezados. Máximo 60 palabras."""
+
+
+@api_router.post("/education/assistant")
+@limiter.limit("20/minute")
+async def education_assistant(
+    request: Request, req: EduAssistantRequest, user: dict = Depends(require_user)
+) -> Dict[str, Any]:
+    """Redacta cuál de los módulos ya encontrados conviene mirar primero.
+
+    **No busca nada.** La búsqueda la hace el índice del navegador
+    (`lib/eduIndex.js`) sobre el contenido real de la Academia, y lo que llega
+    aquí es su lista de candidatos. Este endpoint sólo pone en palabras cuál
+    mirar primero.
+
+    Esa división es deliberada y es lo que impide el fallo clásico: un modelo
+    que se inventa un módulo con nombre verosímil y manda al usuario a una
+    página que no existe. Aquí el modelo no puede elegir destino —sólo ve los
+    candidatos— y además la respuesta se descarta si nombra un `id` que no
+    estaba en la lista.
+
+    Si falta la clave de IA, se responde 200 con `answer: None`: el frontend ya
+    tiene sus enlaces y no debe enseñar un error por perder un comentario.
+    """
+    if not check_premium(user):
+        raise HTTPException(status_code=403, detail="Esta función requiere una suscripción premium")
+    if not req.candidates:
+        raise HTTPException(status_code=400, detail="No candidates to rank")
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        # No es un error: la búsqueda ya ha funcionado sin IA.
+        return {"answer": None, "reason": "ai_not_configured"}
+
+    try:
+        import anthropic as _anthropic
+        import asyncio as _asyncio
+
+        client = _anthropic.Anthropic(api_key=api_key)
+        listing = "\n".join(
+            f"- [{c.id}] {c.title}"
+            + (f" (apartados: {', '.join(c.sections[:3])})" if c.sections else "")
+            for c in req.candidates
+        )
+        prompt = (
+            f"Idioma de la respuesta: {req.locale or 'es'}\n\n"
+            f"Pregunta del usuario:\n{req.question.strip()[:500]}\n\n"
+            f"Módulos disponibles (los únicos que existen):\n{listing}"
+        )
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
+        message = await _asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: client.messages.create(
+                model=model,
+                max_tokens=300,
+                system=EDU_ASSISTANT_SYSTEM,
+                messages=[{"role": "user", "content": prompt}],
+            ),
+        )
+        answer = (message.content[0].text or "").strip()
+
+        # El modelo no puede mandar a donde no hay: si cita un identificador que
+        # no estaba entre los candidatos, la respuesta se tira entera. Es
+        # preferible quedarse sin comentario que dar una dirección falsa.
+        known = {c.id for c in req.candidates}
+        invented = [
+            token
+            for token in _re_module.findall(r"\[([a-z0-9-]+)\]", answer)
+            if token not in known
+        ]
+        if invented:
+            logging.warning(f"Edu assistant: módulos inventados descartados: {invented}")
+            return {"answer": None, "reason": "unverifiable"}
+
+        return {"answer": answer, "model": model}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        # El asistente es un extra: que se caiga no puede romper la pantalla.
+        logging.error(f"Edu assistant error: {e}")
+        return {"answer": None, "reason": "ai_failed"}
+
+
 # Popular tickers scanned by Market-Wide Flow
 MARKET_FLOW_TICKERS = [
     "SPY", "QQQ", "IWM", "DIA", "AAPL", "MSFT", "NVDA", "TSLA", "META",

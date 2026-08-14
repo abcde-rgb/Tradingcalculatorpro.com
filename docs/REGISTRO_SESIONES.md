@@ -4019,3 +4019,81 @@ No ejecutados por falta de dependencias en el entorno: `pytest`, `eslint`, `npm 
 cuesta lo que cuesta. Eso es BUG-008, bloqueado por G-17. Y un plugin de *code
 intelligence* (`/plugin install python-lsp@claude-plugins-official`) daría salto a
 definición en vez de `grep`; hay que instalarlo desde una sesión interactiva.
+
+### 2026-08-14 — La mesa de cálculo: el dashboard deja de ser catorce calculadoras sueltas
+
+**Lo que había.** Catorce calculadoras que no se hablaban entre sí. Cada una pedía otra
+vez el saldo de la cuenta; ninguna sabía qué producto se operaba (`PositionSizeCalculator`
+pintaba `BTC` fijo en el resultado, fuera cual fuera el activo); `LotSizeCalculator` tenía
+su propia tabla de once pares con el pip a mano y daba **10 $/pip por lote estándar
+siempre**, que es falso en USDJPY, en el oro y en cualquier cruce sin dólar. No había modo
+de margen en ninguna parte —sólo teoría, en el módulo `margin-liq` de la Academia— ni tope
+de riesgo: el deslizador de riesgo llegaba al 10 % y no bloqueaba nada.
+
+El diario (`TradeFormModal`) sí tenía el modelo bueno —producto, ficha del instrumento,
+nocional, margen, exposición, liquidación, unidades de stop— sólo que **después** de
+operar, cuando ya no sirve para decidir.
+
+**Lo que se ha hecho.** `components/desk/` pone ese modelo antes de la operación, en el
+orden en que se piensa: capital → producto → posición y modo de margen → riesgo máximo →
+entrada/stop/objetivo → tamaño. Las catorce calculadoras no se han tocado: son el **modo
+básico**, con conmutador, para quien sólo quiere una cifra suelta.
+
+**`lib/deskMath.js`** es la aritmética nueva y es la **inversa** de `instruments.js`: allí
+se pregunta «dada una posición, qué es»; aquí, «dado mi capital y lo que puedo perder,
+cuánto compro». Lo que no existía en ninguna parte del proyecto:
+
+- **Margen cruzado.** Una sola fórmula para los dos modos, porque los dos *son* la misma
+  con distinto colchón: aislado = margen de la posición, cruzado = capital libre. Con
+  colchón = nocional/palanca da **exactamente** lo que ya daba `liquidationPrice()`, y
+  `engine-check` lo fija — el aislado sigue teniendo una única fuente de verdad.
+- **Los tres techos del tamaño** (riesgo, margen, exposición) con cuál manda. «No puedes
+  por margen» y «no puedes por riesgo» se arreglan de forma distinta.
+- **El billete mínimo**: cuando el contrato más pequeño ya se pasa del tope, se dice, en
+  vez de dimensionar 0,33 contratos que nadie puede mandar.
+- Parciales con media ponderada y break-even del resto, valor del punto/pip/tick sacado de
+  la **ficha** del instrumento, y comisiones de ida y vuelta.
+
+**El tope duro del 10 %** (`RISK_HARD_CAP_PCT`): por encima, la mesa no calcula y devuelve
+el motivo. Escribir el tamaño a mano tampoco lo salta — si no, «manual» sería la puerta de
+atrás. El aviso amarillo del 2 % sí se puede ignorar: es criterio, no tope.
+
+**El modo de margen se ofrece según el producto**, que era la duda planteada: sólo el
+perpetuo deja elegir de verdad; futuros, forex y CFD son cruzado y no se pregunta (una
+sola bolsa de margen respalda la cuenta, lo llame así el bróker o no); contado y opciones
+no tienen. Preguntarlo siempre sería inventarse una decisión que no existe.
+
+**Opciones.** Las 66 estructuras ya estaban en `data/mockData.js` desde antes; lo que no
+había era forma de llegar a ellas desde el dashboard. El selector nuevo las ofrece con los
+**cuatro contratos sueltos arriba y aparte** —que no son cuatro añadidas: son cuatro *de*
+las 66, buscadas por su `id` para que no puedan duplicarse—. Y se corrigió un fallo real
+en `/options/calculator`: **BUY se pintaba verde y SELL rojo**, la convención de las
+acciones, cuando en opciones dos de las cuatro combinaciones salen al revés (comprar una
+put es bajista; vender una put, alcista). La regla vive ahora en `lib/optionSides.js`, el
+color va por **dirección**, BUY/SELL pasa a neutro con «Pagas (débito)» / «Cobras
+(crédito)», y las dos combinaciones sin pérdida máxima llevan «riesgo abierto».
+
+**La Academia.** Su buscador filtraba **títulos**, así que sólo encontraba lo que ya sabes
+cómo se llama. `lib/eduIndex.js` indexa el contenido real de los 85 módulos llamando a los
+mismos 82 getters que pinta la página, y la caja de preguntas contesta con el módulo **y
+el apartado**. La IA (`POST /api/education/assistant`) es una segunda capa que **sólo
+redacta**: recibe los candidatos que ya encontró el navegador, no puede elegir destino, y
+si cita un `id` que no estaba en la lista la respuesta se descarta entera. Sin clave o con
+fallo, `answer: null` y los enlaces siguen ahí.
+
+**Tres fallos los encontraron las pruebas al escribirlas**, no la revisión:
+`t()` del título estaba fuera del `try` y una sola clave rota tumbaba el índice de los 85
+módulos; las palabras de cantidad (*cuánto*, *how much*, *combien*, *сколько*, 多少) no
+estaban filtradas y decidían el orden por sí solas; y sin coincidencia por raíz,
+«arriesgo» no encontraba «arriesgas» ni «arriesgar».
+
+**Verificado:** `engine-check` 257/257 (60 comprobaciones nuevas) · `i18n-check` 6.295 × 10,
+0 huecos · `check-edu-index` 85 = 85 (nuevo, en CI) · ESLint 0 errores · `npm run build`
+exit 0, 1589 URLs · `py_compile` los 26 módulos · `pytest` **782 passed, 74 skipped** ·
+`gen-mapa --check`, `check-doc-links` y la paridad del catálogo, en verde.
+
+**Lo que se deja fuera a propósito:** el asistente de la Academia no se ha podido probar
+con la IA viva (el sandbox no tiene salida a Anthropic); la ruta local sí, que es la que
+decide. Y el «modo básico simple» que se pidió para el final ya existe: son las catorce
+calculadoras de siempre, ahora con nombre y conmutador propios en vez de ser lo único que
+había.

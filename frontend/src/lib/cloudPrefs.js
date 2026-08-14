@@ -142,6 +142,25 @@ export const PREF_SLICES = {
   },
 
   settingsPrefs: lsSlice('tcp-preferences', { emailNotifications: true, compactMode: false }, isPlainObject),
+
+  // La cuenta con la que se opera, tal y como la usa la mesa de cálculo: el
+  // capital total, el riesgo máximo por operación y con cuál de las dos vistas
+  // (mesa o calculadoras sueltas) se abre el dashboard.
+  //
+  // Va con la CUENTA y no con el navegador porque el capital es la misma cifra
+  // en todas partes: la mesa dimensiona con ella y el diario la sella en cada
+  // operación. Que el móvil creyera que tienes otro capital que el ordenador
+  // es exactamente el bug que `cloudPrefs` existe para no tener.
+  //
+  // El capital arranca VACÍO a propósito. Un 10 000 por defecto es una cifra
+  // inventada con la que alguien puede acabar dimensionando de verdad, y aquí
+  // no se enseñan números que el usuario no haya escrito.
+  deskAccount: lsSlice(
+    'tcp-desk-account',
+    { capital: '', riskPct: 1, riskMode: 'pct', riskMoney: '', mode: 'desk' },
+    isPlainObject,
+  ),
+
   calcFavorites: lsSlice('tcp-calc-favs', [], isList),
   calcRecents: lsSlice('tcp-calc-recents', [], isList),
   eduProgress: lsSlice('tcp-edu-progress', [], isList),

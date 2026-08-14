@@ -5,8 +5,8 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-13 (auditoría del
->   repositorio; antes 2026-08-08, persistencia de los ajustes del usuario)
+> - 📅 **Última verificación real contra el código:** 2026-08-14 (mesa de cálculo y
+>   buscador de la Academia; antes 2026-08-13, auditoría del repositorio)
 > - 🗺️ **Los conteos no viven aquí.** Módulos, rutas, líneas, componentes y claves i18n
 >   están en [`MAPA.md`](./MAPA.md), **generado desde el código** (`scripts/gen-mapa.py`,
 >   con `--check` en CI). Este documento describe *el estado*; el mapa mide *el tamaño*.
@@ -37,10 +37,11 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK y todos los módulos compilan. **Los conteos (módulos, rutas, líneas) están en [`MAPA.md`](./MAPA.md)** — generado, así que no se desvía |
-| **Tests offline** | 🟢 | `pytest tests/` → **718 passed, 74 skipped** en 16 s (2026-08-08). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Tests offline** | 🟢 | `pytest tests/` → **782 passed, 74 skipped** en 13 s (2026-08-14). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
-| **Paridad i18n / motor** | 🟢 | `i18n-check` 0 huecos en los 10 idiomas · `engine-check` 197/197. Cifra de claves al día en [`MAPA.md`](./MAPA.md) |
+| **Paridad i18n / motor** | 🟢 | `i18n-check` 0 huecos en los 10 idiomas · `engine-check` **257/257** (2026-08-14) · `check-edu-index` 85 = 85. Cifra de claves al día en [`MAPA.md`](./MAPA.md) |
+| **Dashboard: mesa de cálculo** | 🟢 | Nueva el 2026-08-14 (`components/desk/`). Capital arriba del todo y con la cuenta, producto, modo de margen según el producto, **tope duro del 10 % de riesgo por operación**, tamaño derivado del riesgo con los tres techos, liquidación en aislado **y cruzado**, parciales y comisiones. Las 14 calculadoras siguen ahí como **modo básico** |
 | **Ajustes del usuario entre dispositivos** | 🟢 | Tema, idioma, preferencias, favoritos, progreso de la Academia y **setups** viajan con la cuenta desde el 2026-08-08 (`lib/cloudPrefs.js`). Ver G-25 |
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
@@ -72,7 +73,19 @@
   Options (hub + calculator + strategies + strategies/:slug), Performance, News, Admin,
   Affiliate, Login, Register, Forgot/Reset password, Verify-email, Magic-link, Payment
   success/cancel, Legal, Contact, About y 404.
-- **Calculadoras** en `components/calculators/`.
+- **Calculadoras** en `components/calculators/` — hoy son el **modo básico** del
+  dashboard, con conmutador.
+- **Mesa de cálculo** en `components/desk/` (2026-08-14): un terminal de bróker que en
+  vez de mandar la orden dice qué orden mandarías. Capital total arriba del todo (va con
+  la cuenta, `cloudPrefs.deskAccount`, y arranca **vacío**), producto, modo de margen
+  **según el producto**, riesgo máximo por operación con **tope duro del 10 %**, tamaño
+  derivado del riesgo con los tres techos (riesgo/margen/exposición), billete mínimo,
+  liquidación en aislado y cruzado, parciales, comisiones y «Registrar en el diario».
+  Aritmética en `lib/deskMath.js`, la **inversa** de `lib/instruments.js`.
+- **66 estructuras de opciones** en `data/mockData.js`, accesibles desde la mesa con los
+  **cuatro contratos sueltos** (long/short call y put, que son cuatro *de* las 66) en su
+  propio grupo. Qué significa comprar y vender según el tipo vive en `lib/optionSides.js`
+  y lo comparten la mesa y el constructor de patas.
 - **Componentes de opciones** en `components/options/`: cadena, payoff, griegas
   (display/panel/time-chart), IV surface, IV rank, unusual activity, market flow,
   optimizador, Kelly, AI Trade Coach, comparador, posiciones guardadas, etc.
@@ -104,6 +117,11 @@
   párrafo y llamada a la prueba de 7 días. La receta de cada estrategia, las
   tablas de mercado y las FAQ ya no se publican.
 - **Journal de trading**, alertas de precio (WebSocket), historial de cálculos.
+- **Buscador de la Academia por pregunta** (2026-08-14): `lib/eduIndex.js` indexa el
+  contenido real de los 85 módulos llamando a los mismos 82 getters que pinta la página,
+  y contesta con el módulo **y el apartado**. Funciona sin red. La IA
+  (`POST /api/education/assistant`) es una segunda capa que **sólo redacta** sobre los
+  candidatos que ya encontró el navegador; si cita un `id` inexistente, se descarta.
 
 ### Backend — FastAPI + asyncpg (shim Mongo→PostgreSQL)
 - **195 rutas registradas** en la app (contadas sobre `server.app.routes`, 2026-08-03).
@@ -171,6 +189,8 @@
 | G-30 | **Código muerto en el frontend.** 20 componentes `.jsx` que ningún fichero importa: 17 de `components/ui/` (1318 líneas) y 3 propios (`options/GreeksPanel.jsx`, `education/TradingBasicsGuide.jsx`, `education/WhyItMatters.jsx`, `dashboard/PriceTicker.jsx`, 933 líneas). **10 de los 27 paquetes `@radix-ui` del `package.json` sólo los usan esos muertos** | 🟡 | Borrar los componentes y desinstalar los 10 paquetes. Deja de generar PRs de Dependabot para código que no llega a ninguna pantalla |
 | G-31 | **Residuos que dan instrucciones falsas.** `backend/patches/server_fixes.patch` (parche manual de mayo, con `MONGO_URL` — la BD descartada), `backend/FIXES_README.md` (manda integrar un `fixes.py` que no existe), `backend/ADMIN_INTEGRATION.md` (ya integrado en `startup_event`), `memory/PRD.md`, `monitoring/`, `packaging/twa-manifest.json` y `check.sh` | 🟡 | Borrar o mover a `_archive/`. No es limpieza estética: quien los lea intentará aplicar pasos ya aplicados sobre una base de datos que no existe |
 | G-32 | **Trabajo terminado que no está en `main`.** 6 PRs de producto abiertos desde el 02-08 (cuatro de ellos en su segunda ronda tras cerrarse sin fusionar), 4 ramas con commits y **sin ningún PR** —la mayor, `claude/project-complete-audit-a6qg1c`, con dos auditorías, el estudio de pasarelas de broker, los datos de la entidad legal y 2 tests—, y 11 PRs de Dependabot | 🔴 | Decidir uno por uno: fusionar o cerrar. Empezar por **#162** (honestidad del escáner) y **cerrar el #178**, que es un revert de algo vivo. Inventario en [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) §2 |
+| G-33 | **Las calculadoras del modo básico siguen con su aritmética vieja.** `LotSizeCalculator` da **10 $/pip por lote estándar siempre** (falso en USDJPY, en el oro y en cualquier cruce sin dólar) con su propia tabla de once pares escrita a mano, y `PositionSizeCalculator` pinta `BTC` fijo en el resultado sea cual sea el activo. La mesa (2026-08-14) hace lo correcto sacando el pip de la ficha del instrumento, pero las catorce sueltas no se tocaron | 🟠 | Reescribirlas sobre `lib/instruments.js` + `lib/deskMath.js`, o retirarlas y dejar la mesa con un «modo simple» que esconda campos. Lo segundo evita mantener dos aritméticas; lo primero conserva los enlaces `?tab=` y las 120 páginas SEO de calculadora |
+| G-34 | **La mesa dimensiona UNA pata, no la estructura de opciones.** Con producto `option` calcula sobre la prima y el número de contratos, que es correcto para los cuatro sueltos y para cualquier compra; pero la pérdida máxima real de un spread es *anchura − crédito* y la de un iron condor depende de las cuatro patas, y eso la mesa no lo sabe: el selector de estructura elige la etiqueta y el enlace a `/options/calculator`, no el cálculo | 🟠 | Es el mismo modelo `Position → Leg` que piden G-21 y G-23 para el diario. Mientras tanto, la mesa no miente —no publica una pérdida máxima de estructura— pero tampoco la calcula, y el usuario tiene que ir a `/options/calculator` para eso |
 
 ---
 
@@ -221,6 +241,10 @@
 - [ ] `check-doc-links.py` en CI (G-18).
 
 ### P2 — Producto
+- [ ] **G-33**: las catorce calculadoras del modo básico, con la aritmética de la mesa
+      (hoy `LotSizeCalculator` da 10 $/pip en el yen y en el oro).
+- [ ] **G-34**: dimensionar la ESTRUCTURA de opciones, no una pata suelta. Mismo modelo
+      `Position → Leg` que piden G-21 y G-23.
 - [ ] **BUG-007**: sincronizar preferencias de usuario al backend.
 - [ ] **TradingView**: guardar layouts/indicadores por usuario (ver doc dedicado).
 - [ ] Decidir el **Grupo B** de proveedores de datos (G-16).
@@ -277,11 +301,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-14 | La mesa de cálculo: el dashboard deja de ser catorce calculadoras sueltas |
 | 2026-08-13 (2) | Orientarse costaba 106.000 tokens; ahora cuesta 8.000 |
 | 2026-08-13 | Auditoría del repositorio: lo obsoleto, lo perdido y lo que se pasó por alto |
 | 2026-08-12 (2) | Qué método tiene base y cuándo se comprobó |
 | 2026-08-12 | El glosario se detenía justo donde empieza el producto |
-| 2026-08-08 | Dos formatos de datos estructurados que ya no rinden |
 
 ```bash
 # buscar una sesión por fecha o por tema

@@ -26,6 +26,7 @@ import { TradingJournal } from '@/components/tools/TradingJournal';
 import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
 import { CalculationHistory } from '@/components/dashboard/CalculationHistory';
 import { JournalStats } from '@/components/dashboard/JournalStats';
+import TradingDesk from '@/components/desk/TradingDesk';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useAuthStore, usePriceStore } from '@/lib/store';
 import { useIsPremium } from '@/lib/premium';
@@ -36,7 +37,7 @@ import { useCloudPref } from '@/lib/cloudPrefs';
 import OnboardingModal from '@/components/common/OnboardingModal';
 import {
   Calculator, Target, FlaskConical, Star, Clock, Search,
-  BookOpen, Scale, TrendingUp, DollarSign, BarChart3
+  BookOpen, Scale, TrendingUp, DollarSign, BarChart3, LayoutGrid, Terminal
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
@@ -127,7 +128,19 @@ export default function DashboardPage() {
     noindex: true,   // página premium tras login — no indexar
   });
 
+  // ── Mesa o calculadoras sueltas ───────────────────────────────────────────
+  // Las catorce calculadoras siguen exactamente donde estaban: son el MODO
+  // BÁSICO, y hay quien sólo quiere una cifra suelta sin declarar su capital
+  // ni su producto. La mesa es el modo por defecto porque es lo que contesta a
+  // la pregunta entera —qué compro, cuánto, con qué margen y dónde me
+  // liquidan— en vez de a una esquina de ella.
+  const [deskAccount, setDeskAccount] = useCloudPref('deskAccount');
+  const workMode = deskAccount?.mode === 'basic' ? 'basic' : 'desk';
+  const setWorkMode = (mode) => setDeskAccount(prev => ({ ...(prev || {}), mode }));
+
   // Allow deep-linking to a calculator from outside (e.g. /dashboard?tab=leverage).
+  // Pedir una calculadora concreta implica querer el modo básico: si no, el
+  // enlace llevaría al dashboard y la calculadora pedida no se vería.
   useEffect(() => {
     const requested = searchParams.get('tab');
     const allowed = [
@@ -135,8 +148,13 @@ export default function DashboardPage() {
       'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
       'futures', 'compound', 'partial-exit',
     ];
-    if (requested && allowed.includes(requested)) setActiveTab(requested);
-  }, [searchParams]);
+    if (requested && allowed.includes(requested)) {
+      setActiveTab(requested);
+      setDeskAccount(prev => ({ ...(prev || {}), mode: 'basic' }));
+    } else if (searchParams.get('mode') === 'desk') {
+      setDeskAccount(prev => ({ ...(prev || {}), mode: 'desk' }));
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     refreshUser();
@@ -292,7 +310,45 @@ export default function DashboardPage() {
 
           {/* Main Content - Full Width. Calculators first: they ARE the product. */}
           <div className="space-y-6">
-            {/* Calculator workstation — 12 tools grouped by function, one accent */}
+            {/* Conmutador mesa / calculadoras sueltas. Dos formas de trabajar,
+                no dos productos: la mesa parte del capital y resuelve la
+                operación entera; el modo básico son las mismas catorce
+                calculadoras de siempre para quien sólo quiere una cifra. */}
+            <motion.div {...RISE} transition={{ duration: 0.4, delay: 0.04, ease: 'easeOut' }}
+              className="flex flex-wrap items-center gap-2" data-testid="dashboard-mode-switch">
+              {[
+                { id: 'desk', Icon: Terminal, label: t('deskModeDesk'), hint: t('deskModeDeskHint') },
+                { id: 'basic', Icon: LayoutGrid, label: t('deskModeBasic'), hint: t('deskModeBasicHint') },
+              ].map(m => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setWorkMode(m.id)}
+                  title={m.hint}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                    workMode === m.id
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                  data-testid={`dashboard-mode-${m.id}`}
+                >
+                  <m.Icon className="w-4 h-4" /> {m.label}
+                </button>
+              ))}
+              <p className="text-xs text-muted-foreground ml-1 min-w-0 flex-1">
+                {workMode === 'desk' ? t('deskModeDeskHint') : t('deskModeBasicHint')}
+              </p>
+            </motion.div>
+
+            {/* La mesa: el capital arriba del todo y la operación entera debajo. */}
+            {workMode === 'desk' && (
+              <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.06, ease: 'easeOut' }}>
+                <TradingDesk />
+              </motion.div>
+            )}
+
+            {/* Calculator workstation — 14 tools grouped by function, one accent */}
+            {workMode === 'basic' && (
             <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.06, ease: 'easeOut' }}>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
             {/* La estación es un layout de dos columnas: el índice de herramientas
@@ -513,6 +569,7 @@ export default function DashboardPage() {
             </div>
             </Tabs>
             </motion.div>
+            )}
 
             {/* TradingView Chart */}
             <motion.div {...RISE} transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}>

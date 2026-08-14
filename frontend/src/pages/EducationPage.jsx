@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import EduAssistant from '@/components/education/EduAssistant';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -975,6 +976,15 @@ export default function EducationPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Preguntar antes que navegar. El buscador de la barra lateral
+              filtra TÍTULOS, así que sólo encuentra lo que ya sabes cómo se
+              llama — justo lo contrario de lo que necesita quien viene a
+              aprender. Esto acepta la pregunta como se piensa y contesta con
+              el módulo y el apartado donde está la respuesta. */}
+          <div className="mb-6">
+            <EduAssistant onGoToTopic={goToTopic} />
           </div>
 
           <Tabs value={activeTopic} onValueChange={setActiveTopic}>

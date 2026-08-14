@@ -104,6 +104,12 @@ jobs:
       - name: Motores del frontend (simulador + sistema de trading)
         run: node scripts/engine-check.js
 
+      # El índice de la Academia y su navegación son dos listas escritas a
+      # mano. Si se separan, un módulo existe y no se encuentra nunca — o el
+      # buscador manda a un ?topic= que la página no reconoce.
+      - name: Índice de la Academia ↔ navegación
+        run: node scripts/check-edu-index.js
+
       # ESLint existía en el repo pero su configuración no parseaba NI UN
       # fichero (0 de 283): el parser de Babel abortaba en todos. Con el linter
       # mudo llegó a producción, entre otras cosas, un `idx` no definido que
