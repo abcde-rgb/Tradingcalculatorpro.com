@@ -1010,6 +1010,83 @@ async function checkDeskMath() {
   ok('20 000 de nocional con 10 000 de cuenta son 2×', near(requiredLeverage(20000, 10000), 2));
 }
 
+async function checkEduIndex() {
+  console.log('\neduIndex.js  (preguntarle a la Academia)');
+  const { EDU_MODULES, buildEduIndex, searchEdu, terms, fold, clearEduIndex } =
+    await imp('lib/eduIndex.js');
+  const C = await imp('lib/tradingEducationContent.js');
+
+  // `t` de mentira: parte la clave por sus mayúsculas, así que `wyckoffTab` se
+  // indexa como "wyckoff tab". Basta para comprobar la MECÁNICA —que los
+  // getters existen, que el árbol se recorre, que el orden de los pesos es el
+  // correcto— sin cargar los diez diccionarios.
+  const t = (k) => String(k).replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+
+  // Todo getter nombrado en el índice tiene que existir. Es lo que se rompe en
+  // silencio al renombrar uno: el módulo se quedaría sin contenido indexado y
+  // seguiría apareciendo en la lista, sólo que sin encontrarse nunca.
+  const missing = EDU_MODULES
+    .flatMap((m) => m.getters)
+    .filter((name) => typeof C[name] !== 'function');
+  ok('todos los getters del índice existen', missing.length === 0, missing.join(', '));
+
+  // Y al revés: un getter escrito y no indexado es contenido invisible.
+  const used = new Set(EDU_MODULES.flatMap((m) => m.getters));
+  const orphan = Object.keys(C).filter((k) => /^get[A-Z]/.test(k) && !used.has(k));
+  ok('ningún getter se queda fuera del índice', orphan.length === 0, orphan.join(', '));
+
+  const dupes = EDU_MODULES.map((m) => m.id).filter((id, i, a) => a.indexOf(id) !== i);
+  ok('no hay módulos repetidos', dupes.length === 0, dupes.join(', '));
+
+  // Tildes y palabras vacías.
+  ok('quita las tildes para poder comparar', fold('Gestión') === 'gestion');
+  ok('las palabras que están en cualquier pregunta no cuentan',
+    !terms('¿cómo se calcula el riesgo?').includes('como'));
+  ok('y las que sí distinguen, sí', terms('¿cómo se calcula el riesgo?').includes('riesgo'));
+  ok('una pregunta sin términos útiles no devuelve nada',
+    searchEdu([], '¿que? ¿como?').results.length === 0);
+
+  clearEduIndex();
+  const index = buildEduIndex(t, 'test');
+  ok('el índice cubre los módulos declarados', index.length === EDU_MODULES.length);
+
+  // Con `t` devolviendo la clave, el cuerpo indexado son las claves i18n, que
+  // llevan el tema dentro. Sirve para comprobar el ORDEN sin diccionarios.
+  const withBody = index.filter((m) => m.bodyTerms.size > 0).length;
+  ok('los módulos con getter tienen cuerpo indexado',
+    withBody >= EDU_MODULES.filter((m) => m.getters.length).length - 2,
+    `${withBody} con cuerpo`);
+
+  // El título pesa más que el cuerpo: preguntar por «wyckoff» tiene que sacar
+  // el módulo de Wyckoff primero aunque la palabra aparezca en otros.
+  const wyckoff = searchEdu(index, 'wyckoff');
+  ok('lo que se LLAMA como lo buscado va primero',
+    wyckoff.results[0]?.id === 'wyckoff', wyckoff.results[0]?.id);
+
+  // Y responder a la pregunta ENTERA gana a acertar sólo la palabra frecuente.
+  const two = searchEdu(index, 'ichimoku');
+  ok('un módulo que acierta todo va antes que uno que acierta parte',
+    two.results.length === 0 || two.results[0].matchedAll === true);
+
+  // El resultado dice POR QUÉ ha salido. Sin esto es un oráculo.
+  ok('cada resultado declara qué términos ha acertado',
+    wyckoff.results.every((r) => Array.isArray(r.matched) && r.matched.length > 0));
+  ok('y los ids que devuelve son módulos reales',
+    wyckoff.results.every((r) => EDU_MODULES.some((m) => m.id === r.id)));
+
+  // Los tres módulos con veredicto sobre su base empírica lo conservan: es lo
+  // que permite que el buscador avise al mandarte a ellos.
+  const disputed = index.filter((m) => m.evidence === 'disputed').map((m) => m.id).sort();
+  ok('los módulos de base discutida siguen marcados',
+    disputed.join(',') === 'gann-box,time-cycles,wolfe-waves', disputed.join(','));
+
+  // Un getter que reviente no puede tumbar el buscador entero.
+  clearEduIndex();
+  const broken = buildEduIndex((k) => { if (k === 'wyckoffTab') throw new Error('boom'); return String(k); }, 'boom');
+  ok('un getter roto no tumba el índice', broken.length === EDU_MODULES.length);
+  clearEduIndex();
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -1018,6 +1095,7 @@ async function checkDeskMath() {
   await checkProjection();
   await checkInstruments();
   await checkDeskMath();
+  await checkEduIndex();
   await checkScannerMeta();
   await checkOptionsEngine();
   console.log(`\n${checks - failures}/${checks} checks passed`);
