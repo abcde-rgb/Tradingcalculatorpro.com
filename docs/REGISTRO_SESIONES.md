@@ -4169,3 +4169,76 @@ futuros (1 contrato, margen 1320 $, tick 1,25 $, liquidación 3025 en cruzado),
 forex (0,33 lotes, 3,30 $/pip), el tope del 10 % bloqueando, los 4 contratos
 sueltos y el buscador de la Academia devolviendo «Margen y liquidación en
 derivados» con sus tres apartados.
+
+### 2026-08-14 (3) — La mesa, rehecha: una pregunta, un botón, una respuesta
+
+El propietario rechazó la mesa del mismo día. La crítica, literal: «no sé lo que
+hace», «los cálculos parece que tengo que descifrarlos», «no tiene ni un botón
+para darle a calcular», «el diseño no respeta ni tamaños ni nada», «performance,
+diario de trading y setup están mejor». Toda ella acertada, y medible.
+
+**Lo que se midió antes de tocar nada.** El skill `identidad-visual` fija la ley
+del proyecto y no se cargó al diseñar. Contra ella, la mesa v1 tenía: **50
+colores hex escritos a mano** (la ley dice tokens `--long`/`--short`), **0
+`tabular-nums`** (la ley los exige en todo número), **dos acentos** además del
+verde (azul y ámbar en las secciones plegables), y ningún botón de calcular
+mientras las otras catorce calculadoras sí lo tienen.
+
+**La referencia estaba dentro.** Capturado `/performance`, que es lo que sí
+gusta: el color ahí **significa** algo (producto, dirección, error), los avisos
+están **escritos en palabras** —«POSICIÓN SOBREDIMENSIONADA», «SIN STOP LOSS»,
+«ARRIESGAS MÁS DE LO QUE GANAS»— y cada fila tiene una lectura. La mesa hacía lo
+contrario: veinte cifras del mismo cuerpo y ninguna era la respuesta.
+
+**Y fuera.** De lo que se pudo consultar (el proxy bloquea las descargas
+directas; sólo pasó la búsqueda): Myfxbook y BabyPips coinciden en pocos campos
+—divisa de la cuenta, capital, riesgo en % o en importe fijo, stop en pips—, un
+botón explícito y **una** salida principal, el lote, con la equivalencia en
+unidades/mini/micro debajo. Ninguna de las dos enseña veinte cifras.
+
+**Lo que se ha rehecho:**
+
+- **`DeskForm`** — siete campos a la vista (capital, riesgo, producto, activo,
+  dirección, entrada, stop, objetivo) y un **botón de Calcular**. Lo que decide
+  el producto y casi nadie cambia —tamaño de contrato, apalancamiento, modo de
+  margen, tipo de lote— se pliega bajo «Ajustes del instrumento», con lo que el
+  catálogo ya ha puesto **resumido en la cabecera** para no tener que abrirlo.
+- **`DeskAnswer`** — la respuesta es un número grande y **una frase**:
+  «Arriesgas 100 $ (1,00 % de tu cuenta) para ganar 300 $». Debajo, tres cifras
+  de control: margen, R:B y liquidación. Nada más.
+- **`DeskDetail`** — las otras catorce cifras siguen enteras, detrás de un clic,
+  porque son verificación y no respuesta. Los avisos que son motivo para no
+  mandar la orden (exposición, R:B bajo 1:1, stop detrás de la liquidación) van
+  **fuera** del plegado: un aviso que hay que desplegar llega tarde.
+- **El resultado es una foto, no un flujo.** Se congela al pulsar; si luego
+  cambias un campo, se marca como caducado en vez de mutar por debajo. Un número
+  que cambia solo no se puede copiar al bróker con confianza.
+
+Borrados `SizeVerdict.jsx`, `DeskResults.jsx` y `PartialsSection.jsx`.
+
+**Dos bugs más que encontró mirar la pantalla:**
+
+- **Un objetivo de 5060 sobrevivía al saltar del E-mini a EURUSD** y la
+  respuesta salía «arriesgas 48 $ para ganar 80 942 640 $». La aritmética era
+  correcta; el resultado, absurdo. Un nivel de precio pertenece a un
+  instrumento: cambiar de producto o de símbolo los vacía.
+- El R:B aparecía **dos veces** —como cifra de control y otra vez dentro del
+  bloque de liquidación bajo la etiqueta del suelo—, y las notas del desglose se
+  cortaban a media palabra con `truncate`.
+
+**Estado de la ley visual en `components/desk/`:** 0 hex a mano, 14
+`tabular-nums`, 25 usos de `--long`/`--short`, un solo acento, `rounded-sharp`
+en inputs y chips.
+
+**Verificado:** engine-check 264/264 · i18n 10/10 sin huecos (20 claves nuevas) ·
+check-edu-index · gen-mapa · check-doc-links · ESLint 0 errores · pytest 782
+passed · y **visto en el navegador**, escritorio y móvil: futuros (1 contrato,
+margen 1320 $, R:B 3:1, liquidación 3025), forex (0,16 lotes con 5000 € de
+cuenta, riesgo 48 $, objetivo 96 $, margen 578,67 $) y el tope del 10 %
+bloqueando con su motivo.
+
+**Lo que queda y se dice claro:** las catorce calculadoras sueltas **siguen sin
+rehacerse** (G-33). Es el siguiente trabajo, y ahora hay con qué: la ley visual
+medida, la referencia de `/performance`, el patrón de esta pantalla
+—pocos campos, un botón, una frase, desglose plegado— y `mirar.js` para no
+volver a entregar una pantalla sin verla.
