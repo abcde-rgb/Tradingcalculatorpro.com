@@ -4215,4 +4215,5 @@ export default {
   "deskKeyRRBad": "تخاطر بأكثر مما يمكن أن تربح",
   "deskKeyLiqNote": "إذا وصل السعر هناك، يغلق الوسيط مركزك",
   "deskKeyLiqNone": "هذا المنتج لا تتم تصفيته",
+  "deskRiskOverCapInline": "فوق حد {cap} %",
 }

@@ -74,6 +74,58 @@ async function ejecuta(page, paso) {
   }
 }
 
+
+/**
+ * Captura de página entera sin cabeceras repetidas.
+ *
+ * Playwright cose la página larga por tramos y **vuelve a pintar los elementos
+ * `position: fixed` en cada tramo**. El resultado es una imagen en la que la
+ * barra de navegación aparece tres veces, a media página, y parece que hay
+ * contenido por encima de ella. Es exactamente lo que pasó al enseñar el
+ * dashboard: el propietario vio «Dashboard: qa» encima de la barra y avisó de
+ * un fallo de maquetación que no existía — medido, la cabecera va de 0 a 65 px
+ * y el titular empieza en 128.
+ *
+ * Una herramienta de mirar que enseña algo que no pasa es peor que no tenerla:
+ * hace perder el tiempo persiguiendo fantasmas y, a la vez, enseña a
+ * desconfiar de las capturas buenas.
+ *
+ * El arreglo: durante la captura, lo fijo pasa a `absolute`. Con la página
+ * arriba del todo, cada elemento aterriza donde de verdad está y se pinta UNA
+ * vez. Se deshace después, por si el guion sigue tocando la página.
+ */
+async function capturaLarga(page, destino) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
+  // Elemento a elemento y no con una regla CSS global: `position: static` a
+  // todo rompe cualquier layout que dependa de `absolute`, y entonces la
+  // captura mentiría de otra manera.
+  const fijos = await page.evaluate(() => {
+    const tocados = [];
+    document.querySelectorAll('body *').forEach((el, i) => {
+      if (getComputedStyle(el).position !== 'fixed') return;
+      const r = el.getBoundingClientRect();
+      el.setAttribute('data-mirar-fijo', String(i));
+      el.style.setProperty('position', 'absolute', 'important');
+      el.style.setProperty('top', `${Math.round(r.top + window.scrollY)}px`, 'important');
+      tocados.push(i);
+    });
+    return tocados.length;
+  });
+
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: destino, fullPage: true });
+
+  await page.evaluate(() => {
+    document.querySelectorAll('[data-mirar-fijo]').forEach((el) => {
+      el.style.removeProperty('position');
+      el.style.removeProperty('top');
+      el.removeAttribute('data-mirar-fijo');
+    });
+  });
+  return fijos;
+}
+
 (async () => {
   fs.mkdirSync(salida, { recursive: true });
   const { browser, page } = await abreNavegador(chromium, vista);
@@ -128,8 +180,11 @@ async function ejecuta(page, paso) {
   }
 
   const destino = path.join(salida, `${ruta.replace(/\//g, '-')}-${vista}.png`);
-  const objetivo = recorta ? page.locator(`[data-testid="${recorta}"]`).first() : page;
-  await objetivo.screenshot({ path: destino, fullPage: !recorta });
+  if (recorta) {
+    await page.locator(`[data-testid="${recorta}"]`).first().screenshot({ path: destino });
+  } else {
+    await capturaLarga(page, destino);
+  }
   console.log(`  captura: ${destino}`);
 
   console.log(errores.length

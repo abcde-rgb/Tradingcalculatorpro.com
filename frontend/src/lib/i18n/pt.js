@@ -4215,4 +4215,5 @@ export default {
   "deskKeyRRBad": "arriscas mais do que podes ganhar",
   "deskKeyLiqNote": "se o preço lá chegar, o broker fecha-te",
   "deskKeyLiqNone": "este produto não se liquida",
+  "deskRiskOverCapInline": "Acima do limite de {cap} %",
 }

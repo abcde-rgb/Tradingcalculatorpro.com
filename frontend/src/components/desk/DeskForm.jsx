@@ -99,14 +99,26 @@ export default function DeskForm({
             />
           </Campo>
 
-          {/* Lo que el riesgo significa en dinero, al lado y sin pedirlo. */}
+          {/* Lo que el riesgo significa en dinero, al lado y sin pedirlo.
+              Y si se ha pasado del tope, se dice AQUÍ, donde se escribe el
+              riesgo — no sólo al pulsar Calcular. Enseñar «te juegas 750 $» en
+              gris tranquilo y guardarse el «esto no se puede» para después es
+              dejar que el usuario crea que va bien durante todo el formulario. */}
           <div className="pb-1 min-w-[7rem]" data-testid="desk-risk-amount">
             <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
               {t('deskRiskAmount')}
             </p>
-            <p className={`font-mono text-2xl font-bold tabular-nums ${budget?.blocked ? 'text-muted-foreground' : 'text-short'}`}>
+            <p className={`font-mono text-2xl font-bold tabular-nums ${
+              budget?.reason === 'over_cap' ? 'text-short line-through decoration-2' : 'text-short'
+            }`}>
               {fmtMoney(budget?.amount)}
             </p>
+            {budget?.reason === 'over_cap' && (
+              <p className="text-[10px] text-short font-semibold leading-snug mt-0.5"
+                data-testid="desk-risk-over-cap">
+                {t('deskRiskOverCapInline').replace('{cap}', String(budget.capPct))}
+              </p>
+            )}
           </div>
         </div>
       </div>

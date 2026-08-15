@@ -304,11 +304,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-14 (4) | La captura mentía: la barra de navegación salía tres veces |
 | 2026-08-14 (3) | La mesa, rehecha: una pregunta, un botón, una respuesta |
 | 2026-08-14 (2) | Lo que decía estar verde y no lo estaba |
 | 2026-08-14 | La mesa de cálculo: el dashboard deja de ser catorce calculadoras sueltas |
 | 2026-08-13 (2) | Orientarse costaba 106.000 tokens; ahora cuesta 8.000 |
-| 2026-08-13 | Auditoría del repositorio: lo obsoleto, lo perdido y lo que se pasó por alto |
 
 ```bash
 # buscar una sesión por fecha o por tema

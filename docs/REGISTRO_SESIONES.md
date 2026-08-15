@@ -4242,3 +4242,37 @@ rehacerse** (G-33). Es el siguiente trabajo, y ahora hay con qué: la ley visual
 medida, la referencia de `/performance`, el patrón de esta pantalla
 —pocos campos, un botón, una frase, desglose plegado— y `mirar.js` para no
 volver a entregar una pantalla sin verla.
+
+### 2026-08-14 (4) — La captura mentía: la barra de navegación salía tres veces
+
+El propietario avisó de un fallo de maquetación viendo una captura del
+dashboard: «encima de la barra de Trading Calculator Pro no debe haber nada, y
+en la captura aparece Dashboard: qa».
+
+**Medido antes de tocar nada, y no era un fallo de la web.** Con la página
+arriba del todo: la cabecera es `fixed` y ocupa de 0 a 65 px; el titular
+«Dashboard: qa» empieza en 128; y la consulta de todo lo que `main` pinta por
+encima del borde inferior de la cabecera devuelve **lista vacía**. La captura de
+ventana lo confirma: barra arriba, aviso de email debajo, contenido después.
+
+**El fallo era de `mirar.js`.** Playwright cose la página larga por tramos y
+**vuelve a pintar los elementos `position: fixed` en cada tramo**, así que la
+barra de navegación aparecía tres veces a media página y parecía haber contenido
+por encima de ella.
+
+Una herramienta de mirar que enseña algo que no pasa es peor que no tenerla:
+hace perder el tiempo persiguiendo fantasmas y enseña a desconfiar de las
+capturas buenas. Arreglado: durante la captura larga, lo fijo pasa a `absolute`
+en su posición real —elemento a elemento, porque una regla CSS global rompería
+los layouts que dependen de `absolute`— y se restaura después.
+
+**Y un fallo real que sí salió de esa misma imagen:** con el riesgo al 15 %, el
+formulario ponía «TE JUEGAS $750.00» en el mismo estilo tranquilo de siempre y
+se guardaba el «esto está por encima del tope» para cuando pulsaras Calcular.
+Dejar que el usuario rellene el formulario entero creyendo que va bien es
+justo lo que el tope existe para evitar. Ahora el importe sale tachado y con
+«Por encima del tope del 10 %» debajo, en el propio campo.
+
+**Verificado:** engine-check 264/264 · i18n 10/10 · check-edu-index · gen-mapa ·
+check-doc-links · paridad del catálogo · ESLint 0 errores · pytest 782 passed ·
+y comprobado en pantalla: con 15 % sale el aviso en el campo, con 1 % no.

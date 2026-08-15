@@ -4215,4 +4215,5 @@ export default {
   "deskKeyRRBad": "你冒的比能赚的还多",
   "deskKeyLiqNote": "价格到那里，券商就会强平你",
   "deskKeyLiqNone": "这个品种不会被强平",
+  "deskRiskOverCapInline": "超过 {cap}% 的上限",
 }

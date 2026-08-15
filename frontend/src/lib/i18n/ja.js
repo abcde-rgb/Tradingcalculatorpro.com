@@ -4215,4 +4215,5 @@ export default {
   "deskKeyRRBad": "得られる額より賭ける額が大きい",
   "deskKeyLiqNote": "そこまで来たらブローカーに決済されます",
   "deskKeyLiqNone": "この商品に清算はありません",
+  "deskRiskOverCapInline": "上限 {cap} % を超えています",
 }
