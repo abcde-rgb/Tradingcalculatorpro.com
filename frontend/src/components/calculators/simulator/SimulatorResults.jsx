@@ -78,8 +78,8 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
             <Kpi label={t('winRate')}>{winRate.toFixed(2)}%</Kpi>
             <Kpi label={t('maxDrawdown')} valueClass="text-red-500">{maxDrawdown.toFixed(2)}%</Kpi>
             <Kpi label={t('profitFactor')}
-              valueClass={profitFactor >= 1.5 ? 'text-green-500' : profitFactor >= 1 ? 'text-yellow-500' : 'text-red-500'}>
-              {profitFactor === Infinity ? '∞' : profitFactor.toFixed(2)}x
+              valueClass={profitFactor == null || profitFactor >= 1.5 ? 'text-green-500' : profitFactor >= 1 ? 'text-yellow-500' : 'text-red-500'}>
+              {profitFactor == null ? '∞' : `${profitFactor.toFixed(2)}x`}
             </Kpi>
           </div>
         </section>

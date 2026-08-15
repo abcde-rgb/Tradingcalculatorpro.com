@@ -107,6 +107,7 @@ function simulateFixed(cfg, rnd, collectOps) {
   const ops = [];
   let accountBalance = initialBalance;
   let totalWins = 0, totalOps = 0;
+  let ruinedAt = null;
   let grossGain = 0, grossLoss = 0, totalCommission = 0;
   const dd = makeDrawdownTracker(accountBalance);
 
@@ -130,15 +131,26 @@ function simulateFixed(cfg, rnd, collectOps) {
     totalCommission += commission;
     const balanceBefore = accountBalance;
     accountBalance += netResult;
-    dd.push(accountBalance);
     totalOps += 1;
+
+    // La cuenta se acaba en cero. Con tamaño fijo, cada pérdida vale lo mismo
+    // pase lo que pase con el saldo, así que una racha larga lo empujaba por
+    // DEBAJO de cero y la simulación seguía operando en negativo: salían
+    // saldos finales de −6.509 € y drawdowns del 137 %, dos cifras que no
+    // pueden pasarle a nadie. En la realidad ahí se acabó la cuenta.
+    if (accountBalance <= 0) {
+      accountBalance = 0;
+      ruinedAt = totalOps;
+    }
+    dd.push(accountBalance);
 
     if (collectOps) {
       ops.push(makeOp(totalOps, 1, fixedTotalOps, balanceBefore, fixedCapital, netResult, commission, accountBalance, isWin));
     }
+    if (ruinedAt) break;
   }
   return {
-    ops, finalBalance: accountBalance, totalWins, totalOps,
+    ops, finalBalance: accountBalance, totalWins, totalOps, ruinedAt,
     maxDrawdown: dd.maxDrawdown, maxDrawdownAbs: dd.maxDrawdownAbs,
     grossGain, grossLoss, totalCommission,
   };
@@ -149,6 +161,7 @@ function simulateCompound(cfg, rnd, collectOps) {
   const ops = [];
   let capital = initialBalance;
   let totalWins = 0, totalOps = 0;
+  let ruinedAt = null;
   let grossGain = 0, grossLoss = 0, totalCommission = 0;
   const dd = makeDrawdownTracker(capital);
 
@@ -182,17 +195,26 @@ function simulateCompound(cfg, rnd, collectOps) {
       totalCommission += commission;
       const capitalBefore = capital;
       capital += netResult;
-
-      dd.push(capital);
       totalOps += 1;
+
+      // Ver la nota de `simulateFixed`: la cuenta se acaba en cero. Con el
+      // interés compuesto apagado el tamaño sale del saldo INICIAL, así que
+      // una racha de pérdidas puede llevar el capital por debajo de cero.
+      if (capital <= 0) {
+        capital = 0;
+        ruinedAt = totalOps;
+      }
+      dd.push(capital);
 
       if (collectOps) {
         ops.push(makeOp(totalOps, phaseIdx + 1, numOps, capitalBefore, capitalInOp, netResult, commission, capital, isWin));
       }
+      if (ruinedAt) break;
     }
+    if (ruinedAt) break;
   }
   return {
-    ops, finalBalance: capital, totalWins, totalOps,
+    ops, finalBalance: capital, totalWins, totalOps, ruinedAt,
     maxDrawdown: dd.maxDrawdown, maxDrawdownAbs: dd.maxDrawdownAbs,
     grossGain, grossLoss, totalCommission,
   };
@@ -225,7 +247,7 @@ function runOnePath(cfg, rnd, collectOps) {
 function aggregate(inner, initialBalance) {
   const {
     finalBalance, totalWins, totalOps, maxDrawdown, maxDrawdownAbs,
-    grossGain, grossLoss, totalCommission,
+    grossGain, grossLoss, totalCommission, ruinedAt,
   } = inner;
   const netGain    = finalBalance - initialBalance;
   const losers     = totalOps - totalWins;
@@ -233,12 +255,22 @@ function aggregate(inner, initialBalance) {
   const avgLoss    = losers > 0 ? grossLoss / losers : 0;
   return {
     finalBalance,
+    // En qué operación se quedó sin cuenta, o `null` si aguantó. No es un
+    // detalle: es EL resultado de esa simulación, y sin él un saldo final de 0
+    // se lee igual que "no gané nada".
+    ruinedAt: ruinedAt ?? null,
     netGain,
     roi: (netGain / initialBalance) * 100,
     winRate: totalOps > 0 ? (totalWins / totalOps) * 100 : 0,
     maxDrawdown,
     maxDrawdownAbs,
-    profitFactor: grossLoss > 0 ? grossGain / grossLoss : grossGain > 0 ? Infinity : 0,
+    // Sin una sola pérdida, el factor de beneficio es INDEFINIDO, no infinito
+    // ni cero: es una división por cero. Se devuelve `null`, que es lo que ya
+    // hacía el backend (`performance.py` convierte el `inf` a `None` antes de
+    // publicarlo) y lo que espera `JournalStats`. El motor era el único de los
+    // tres caminos que devolvía `Infinity`, y un `Infinity` suelto envenena en
+    // silencio cualquier media, percentil u ordenación que lo toque después.
+    profitFactor: grossLoss > 0 ? grossGain / grossLoss : null,
     grossGain, grossLoss, totalCommission,
     expectancy: totalOps > 0
       ? (avgWin * (totalWins / totalOps)) - (avgLoss * (losers / totalOps))

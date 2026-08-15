@@ -4276,3 +4276,67 @@ justo lo que el tope existe para evitar. Ahora el importe sale tachado y con
 **Verificado:** engine-check 264/264 · i18n 10/10 · check-edu-index · gen-mapa ·
 check-doc-links · paridad del catálogo · ESLint 0 errores · pytest 782 passed ·
 y comprobado en pantalla: con 15 % sale el aviso en el campo, con 1 % no.
+
+### 2026-08-14 (5) — Mil escenarios generados, y lo que 264 comprobaciones a mano no veían
+
+Petición: probar todas las herramientas con mil simulaciones distintas y
+verificar que lo que sale tiene sentido, no sólo que no revienta.
+
+**Lo que se ha montado.** `frontend/scripts/simulacion-masiva.js`: escenarios
+**generados** con semilla fija (reproducibles con `--semilla N`), repartidos
+entre los cinco motores importables, y sobre cada uno ~20 invariantes que
+comprueban **significado**:
+
+| Motor | Qué se exige |
+|---|---|
+| Mesa | riesgo real ≤ presupuesto · nunca >10 % de la cuenta · nocional = precio×cantidad×contrato · margen = nocional/palanca · exposición ≤ 10× · el techo elegido es el menor de los tres · liquidación del lado correcto · cruzado más lejos que aislado · riesgo = pips × valor del pip |
+| Opciones | **paridad put-call** · prima ≥ intrínseco · call ≤ subyacente · Δcall−Δput = 1 · gamma y vega ≥ 0 · monotonía en precio y en volatilidad |
+| Simulador | saldo ≥ 0 · drawdown ∈ [0,100] · ganadas+perdidas = total · ROI y tasa de acierto derivados de lo ocurrido |
+| P&L | **el apalancamiento NO cambia el P&L** (probado con 1×, 5×, 20×, 50× y 125× sobre la misma operación) · el margen SÍ, en proporción exacta |
+| Proyección | esperanza en R = fórmula · en la tasa de equilibrio la esperanza es cero |
+
+**Resultado: 60.000 escenarios en 6 semillas distintas, ~1,2 millones de
+comprobaciones.** Encontró tres cosas que `engine-check` (264 casos elegidos a
+mano) no veía:
+
+1. **El simulador daba saldos negativos y drawdowns del 137 %.** Con el interés
+   compuesto apagado, el tamaño sale del saldo INICIAL, así que cada pérdida
+   vale lo mismo pase lo que pase con la cuenta: una racha larga la empujaba por
+   debajo de cero y **seguía operando en negativo**. Ninguna de las dos cifras
+   puede pasarle a nadie. Ahora la cuenta se acaba en cero, se registra
+   `ruinedAt` (en qué operación se arruinó) y deja de operar — que además es el
+   resultado que de verdad importa de esa simulación.
+2. **`profitFactor` devolvía `Infinity`** cuando no había ni una pérdida: 2
+   casos en 50.000, o sea una simulación sin una sola operación perdedora. El
+   backend ya convertía ese `inf` a `None` antes de publicarlo y `JournalStats`
+   ya esperaba `null`: el motor del simulador era **el único de los tres
+   caminos** que devolvía `Infinity`, y un `Infinity` suelto envenena en
+   silencio cualquier media, percentil u ordenación posterior.
+3. **El modo fijo del simulador no valida su entrada:** con `fixedTotalOps`
+   ausente devuelve una simulación de cero operaciones, saldo = inicial y ROI
+   0 %, sin quejarse. Desde la interfaz no se puede llegar (el formulario
+   siempre rellena esos campos), así que no se ha tocado el motor; queda dicho.
+
+**Dos fallos eran del propio banco, y se dicen porque enseñan más que los del
+producto:** dos comprobaciones miraban `results.totalTrades` y `results.wins`,
+campos que **no existen** (el motor devuelve `totalOps` y `totalWins`), y la
+guarda `!= null` las convertía en un no-op silencioso — contaban como pasadas
+sin ejecutarse nunca. Una comprobación que no corre es peor que no tenerla,
+porque además tranquiliza.
+
+**Cruce motor ↔ pantalla.** Se hizo también una sonda de navegador para
+comprobar que los números del motor llegan intactos a la pantalla. **La sonda
+salió inestable y no se conserva**: leía el margen partiendo el texto por
+saltos de línea y cogía una línea en blanco (de ahí un «NaN» que era suyo, no
+del producto). Verificado en su lugar un caso concreto de punta a punta —
+409.507 € de cuenta, 2,5 % de riesgo, AAPL a 219,70 con stop en 216,50 → 1.863
+acciones, riesgo 5.961,60 $, margen 409.301,10 $, **ningún NaN en la pantalla**—
+y coincide con el motor.
+
+**Lo que este banco NO cubre, y hay que decirlo:** las catorce calculadoras
+sueltas tienen su matemática **dentro** del componente (`const calculate = …`
+en el JSX), no exportada, así que no se pueden fuzzear sin navegador. Es
+exactamente el motivo por el que G-33 pide extraerlas. Mientras siga así, esas
+catorce pantallas son las únicas del producto sin cobertura de este tipo.
+
+Añadido a CI (1.000 escenarios, 1,5 s).
