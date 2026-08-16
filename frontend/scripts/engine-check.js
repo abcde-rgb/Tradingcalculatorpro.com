@@ -844,12 +844,18 @@ async function checkDeskMath() {
   ok('sin capital no se calcula nada', riskBudget({ capital: null, riskPct: 1 }).blocked);
 
   // ── Modo de margen según el producto ────────────────────────────
-  ok('sólo el perpetuo deja elegir aislado o cruzado',
-    marginModesFor(resolveSpec('crypto_perp', 'BTCUSDT')).modes.length === 2);
-  ok('futuros, forex y CFD son cruzado y no se pregunta',
+  ok('el perpetuo deja elegir, y por defecto aisla',
+    marginModesFor(resolveSpec('crypto_perp', 'BTCUSDT')).modes.length === 2
+    && marginModesFor(resolveSpec('crypto_perp', 'BTCUSDT')).default === 'isolated');
+  // Se ofrecen los dos, pero cruzado manda: es lo que hace la cuenta de
+  // verdad. Aislado está para dimensionar con un límite propio, no para
+  // fingir que el bróker aislará la posición.
+  ok('futuros, forex y CFD ofrecen los dos, con cruzado por defecto',
     ['futures', 'forex', 'cfd'].every((p) => {
       const m = marginModesFor(resolveSpec(p, ''));
-      return m.fixed && m.modes.length === 1 && m.modes[0] === 'cross';
+      return !m.fixed && m.modes.length === 2
+        && m.modes.includes('cross') && m.modes.includes('isolated')
+        && m.default === 'cross';
     }));
   ok('el contado no tiene modo de margen',
     marginModesFor(resolveSpec('stock', 'AAPL')).modes.length === 0

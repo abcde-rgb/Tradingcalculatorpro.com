@@ -4069,7 +4069,7 @@ export default {
   "deskMarginCross": "Incrociato",
   "deskMarginCrossHint": "tutto il capitale libero sostiene la posizione",
   "deskMarginWhyPerp": "Sui perpetui scegli tu: in isolato perdi la posizione e tieni il conto; in incrociato la posizione regge di più perché si mangia il resto del capitale — ed è proprio questo a renderla pericolosa.",
-  "deskMarginWhyCross": "Qui non si sceglie: un solo pool di margine sostiene tutte le posizioni del conto. Quello è margine incrociato, anche se il tuo broker non lo chiama così.",
+  "deskMarginWhyCross": "Il tuo broker copre tutte le posizioni con un unico fondo di margine: questo è il modo incrociato, ed è ciò che farà il tuo conto. L’isolato lo offriamo come limite che ti poni tu — dove resteresti senza margine se questa posizione fosse coperta solo dal suo. Serve a dimensionare, non a prevedere il broker.",
   "deskMarginWhyOption": "Nelle opzioni il rischio lo definisce la struttura, non un prezzo di liquidazione: una comprata rischia il premio; una venduta allo scoperto ha un requisito di margine del venditore, che è altra cosa.",
   "deskMarginWhyCash": "A pronti non c'è margine né liquidazione: quello che metti è il massimo che puoi perdere.",
   "deskSizeFromRisk": "Dal rischio",
