@@ -1160,6 +1160,17 @@ async function checkSiteFacts() {
     `siteFacts dice ${SITE_FACTS.assets}, ALL_ASSETS tiene ${activos}`);
 
   // Estrategias de opciones.
+  // Las mismas cifras aparecen en el texto que Google enseña en sus resultados,
+  // donde llegaron a decir «9 calculadoras» y «250+ activos». No se pueden
+  // interpolar —`useSEO` traduce sin parámetros— así que van escritas, y este
+  // candado obliga a repasarlas si SITE_FACTS cambia. Se mira el diccionario de
+  // referencia; `i18n-check` mantiene el resto en paridad.
+  const es = fs.readFileSync(path.join(SRC, 'lib/i18n/es.js'), 'utf8');
+  const seo = (es.match(/"seoDashboardDesc":\s*"((?:[^"\\]|\\.)*)"/) || [])[1] || '';
+  ok('la descripción del dashboard para buscadores dice las cifras reales',
+    seo.includes(String(SITE_FACTS.calculators)) && seo.includes(String(SITE_FACTS.assets)),
+    `seoDashboardDesc debería nombrar ${SITE_FACTS.calculators} y ${SITE_FACTS.assets}: «${seo}»`);
+
   const mock = lee('data/mockData.js');
   const eIni = mock.indexOf('export const STRATEGIES');
   const eFin = mock.indexOf('\n];', eIni);
