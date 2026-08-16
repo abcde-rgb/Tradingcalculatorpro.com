@@ -312,17 +312,27 @@ export function MonteCarloSimulator() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg bg-destructive/10 text-center">
+              <div className={`p-3 rounded-lg text-center ${st.riskOfRuin === 0 && st.worstCaseBalance > 0 ? 'bg-muted/50' : 'bg-destructive/10'}`}>
                 <p className="text-xs text-muted-foreground">{t('riesgoDeRuina_ce3690')}</p>
-                <p className="text-lg font-bold text-destructive flex items-center justify-center gap-1 tabular-nums"
+                <p className={`text-lg font-bold flex items-center justify-center gap-1 tabular-nums ${st.riskOfRuin === 0 && st.worstCaseBalance > 0 ? '' : 'text-destructive'}`}
                   data-testid="ruin-risk">
                   {st.riskOfRuin > 10 && <AlertTriangle className="w-4 h-4" />}
-                  {pct(st.riskOfRuin, 2)}
+                  {st.riskOfRuin === 0 && st.worstCaseBalance > 0
+                    ? t('mcRuinImpossible')
+                    : pct(st.riskOfRuin, 2)}
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {st.medianRuinTrade === null
-                    ? t('mcRuinNone')
-                    : t('mcRuinAt').replace('{n}', String(st.medianRuinTrade))}
+                {/* Un 0,00 % sin explicación parece una herramienta rota. Si la
+                    ruina no es alcanzable —perder TODAS las operaciones deja
+                    saldo— se dice, con el número: ese cero es aritmética, no
+                    resultado del sorteo. */}
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug" data-testid="mc-ruin-note">
+                  {st.medianRuinTrade !== null
+                    ? t('mcRuinAt').replace('{n}', String(st.medianRuinTrade))
+                    : st.worstCaseBalance > 0
+                      ? t('mcRuinFloor')
+                          .replace('{ops}', String(st.trades))
+                          .replace('{x}', dinero(st.worstCaseBalance))
+                      : t('mcRuinNone')}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50 text-center">

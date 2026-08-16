@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "Mauvais (25 %)",
   "mcP75": "Bon (75 %)",
   "mcRuinNone": "Aucun chemin n’a fait faillite",
+  "mcRuinImpossible": "Impossible",
+  "mcRuinFloor": "Même en perdant les {ops} d’affilée à la taille moyenne, il te resterait {x}.",
   "mcRuinAt": "La moitié a fait faillite avant le trade {n}",
   "mcWorstDd": "Pire cas {pct}",
   "mcFootnote": "{sims} tirages de {ops} trades · graine {seed}. Le compte s’arrête à zéro : ici personne ne trade avec un solde négatif.",

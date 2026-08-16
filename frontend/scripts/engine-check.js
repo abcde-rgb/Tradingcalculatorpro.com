@@ -1292,6 +1292,26 @@ async function checkMonteCarlo() {
   ok('normalizeConfig no inventa una configuración a partir de nada',
     normalizeConfig({}).cfg === null);
 
+  // El "riesgo de ruina 0 %" que hacía pensar que la herramienta estaba rota.
+  // Con los valores por defecto no se puede llegar a cero ni perdiéndolas
+  // todas, y la pantalla tiene que poder decirlo con un número.
+  const porDefecto = runMonteCarlo({ capital: 10000, trades: 100, iterations: 1000, seed: 4,
+    winRate: 55, sizing: 'fixed', avgWin: 100, avgLoss: -50, dispersion: 0.4 });
+  ok('con los valores por defecto la ruina es imposible, y se puede demostrar',
+    porDefecto.statistics.riskOfRuin === 0 && porDefecto.statistics.worstCaseBalance === 5000,
+    `ruina=${porDefecto.statistics.riskOfRuin} peorCaso=${porDefecto.statistics.worstCaseBalance}`);
+  ok('cuando el peor caso es negativo, la ruina sí puede aparecer',
+    r.statistics.worstCaseBalance < 0 && r.statistics.riskOfRuin > 0,
+    `peorCaso=${r.statistics.worstCaseBalance} ruina=${r.statistics.riskOfRuin}`);
+  // Capitalizando, cada pérdida es un porcentaje de lo que queda: nunca llega
+  // a cero, y el peor caso tiene que reflejarlo en vez de salir negativo.
+  ok('capitalizando, el peor caso decae pero no se hace negativo',
+    runMonteCarlo({ capital: 10000, trades: 200, iterations: 100, seed: 8, winRate: 30,
+      sizing: 'percent', riskPct: 5, payoff: 1, compound: true, dispersion: 0 })
+      .statistics.worstCaseBalance > 0);
+  ok('remuestreando sólo ganancias el peor caso es el capital intacto',
+    soloGanancias.statistics.worstCaseBalance === 1000);
+
   // Un solo camino se puede repetir por separado: es lo que permite enseñar
   // "esta trayectoria" sin que sea otra tirada distinta.
   const { cfg } = normalizeConfig(duro);

@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "Malo (25 %)",
   "mcP75": "Bueno (75 %)",
   "mcRuinNone": "Ningún camino se arruinó",
+  "mcRuinImpossible": "Imposible",
+  "mcRuinFloor": "Aun perdiendo las {ops} seguidas al tamaño medio, te quedarían {x}.",
   "mcRuinAt": "La mitad se arruinó antes de la operación {n}",
   "mcWorstDd": "Peor caso {pct}",
   "mcFootnote": "{sims} simulaciones de {ops} operaciones · semilla {seed}. La cuenta se detiene al llegar a cero: aquí nadie opera con saldo negativo.",

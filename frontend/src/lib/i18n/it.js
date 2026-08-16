@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "Cattivo (25 %)",
   "mcP75": "Buono (75 %)",
   "mcRuinNone": "Nessun percorso è fallito",
+  "mcRuinImpossible": "Impossibile",
+  "mcRuinFloor": "Anche perdendo tutte le {ops} di fila alla dimensione media, ti resterebbero {x}.",
   "mcRuinAt": "Metà è fallita prima dell’operazione {n}",
   "mcWorstDd": "Caso peggiore {pct}",
   "mcFootnote": "{sims} simulazioni da {ops} operazioni · seme {seed}. Il conto si ferma a zero: qui nessuno opera con saldo negativo.",

@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "Bad (25%)",
   "mcP75": "Good (75%)",
   "mcRuinNone": "No path went broke",
+  "mcRuinImpossible": "Impossible",
+  "mcRuinFloor": "Even losing all {ops} in a row at the average size, you would still have {x}.",
   "mcRuinAt": "Half went broke before trade {n}",
   "mcWorstDd": "Worst case {pct}",
   "mcFootnote": "{sims} runs of {ops} trades · seed {seed}. The account stops at zero: nobody trades a negative balance here.",

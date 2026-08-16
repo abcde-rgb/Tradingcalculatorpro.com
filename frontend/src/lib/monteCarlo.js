@@ -120,6 +120,35 @@ export function runPath(cfg, rnd) {
   return { curve, finalBalance: balance, maxDrawdown: maxDD * 100, ruinedAt };
 }
 
+/**
+ * El saldo que quedaría perdiendo **todas** las operaciones seguidas, al tamaño
+ * medio de pérdida.
+ *
+ * Existe porque un «riesgo de ruina: 0,00 %» sin explicación parece una
+ * herramienta rota. Con los valores por defecto —10.000 de capital, 50 de
+ * pérdida media, 100 operaciones— la ruina es imposible por aritmética: aun
+ * perdiéndolas las cien, quedan 5.000. Ese cero es correcto, pero solo tiene
+ * sentido si se dice por qué.
+ *
+ * Con dispersión > 0 una sola operación puede pasarse del tamaño medio, así que
+ * esto es una referencia, no una cota dura. La interfaz lo dice.
+ */
+export function worstCaseBalance(cfg) {
+  if (cfg.sample) {
+    const peor = Math.min(...cfg.sample);
+    return peor >= 0 ? cfg.capital : cfg.capital + peor * cfg.trades;
+  }
+  if (cfg.sizing === 'percent') {
+    const f = cfg.riskPct / 100;
+    // Capitalizando, cada pérdida es un porcentaje de lo que queda: decae en
+    // geométrica y no llega a cero. Sin capitalizar, es una resta lineal.
+    return cfg.compound
+      ? cfg.capital * Math.pow(1 - Math.min(f, 1), cfg.trades)
+      : cfg.capital - cfg.capital * f * cfg.trades;
+  }
+  return cfg.capital - Math.abs(cfg.avgLoss) * cfg.trades;
+}
+
 function percentil(ordenados, q) {
   if (!ordenados.length) return null;
   const i = Math.min(ordenados.length - 1, Math.max(0, Math.round((ordenados.length - 1) * q)));
@@ -224,6 +253,10 @@ export function runMonteCarlo(input) {
       /** En qué operación se arruinó la mitad de los que se arruinaron.
        *  `null` si no se arruinó ninguno: no es la operación cero, es que no aplica. */
       medianRuinTrade: ruinas.length ? percentil(ruinaOrdenada, 0.5) : null,
+      /** Saldo perdiendo TODAS las operaciones al tamaño medio. Si es > 0, la
+       *  ruina no es alcanzable con estos parámetros y el 0 % de arriba no es
+       *  un resultado del sorteo: es aritmética. */
+      worstCaseBalance: worstCaseBalance(cfg),
       avgMaxDrawdown: media(drawdowns),
       worstMaxDrawdown: drawdowns.length ? Math.max(...drawdowns) : null,
       profitProbability: (finales.filter((b) => b > cfg.capital).length / n) * 100,

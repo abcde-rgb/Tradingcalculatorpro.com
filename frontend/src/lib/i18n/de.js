@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "Schlecht (25 %)",
   "mcP75": "Gut (75 %)",
   "mcRuinNone": "Kein Pfad ging pleite",
+  "mcRuinImpossible": "Unmöglich",
+  "mcRuinFloor": "Selbst wenn alle {ops} in Folge verloren gehen, blieben dir bei durchschnittlicher Größe noch {x}.",
   "mcRuinAt": "Die Hälfte ging vor Trade {n} pleite",
   "mcWorstDd": "Schlimmster Fall {pct}",
   "mcFootnote": "{sims} Läufe zu {ops} Trades · Startwert {seed}. Das Konto stoppt bei null: hier handelt niemand mit negativem Saldo.",

@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "较差（25%）",
   "mcP75": "较好（75%）",
   "mcRuinNone": "没有任何路径爆仓",
+  "mcRuinImpossible": "不可能",
+  "mcRuinFloor": "即使按平均规模连续亏损全部 {ops} 笔，你仍会剩下 {x}。",
   "mcRuinAt": "一半在第 {n} 笔之前爆仓",
   "mcWorstDd": "最坏情况 {pct}",
   "mcFootnote": "{sims} 次模拟，每次 {ops} 笔 · 种子 {seed}。账户归零即停止：这里没人用负余额交易。",

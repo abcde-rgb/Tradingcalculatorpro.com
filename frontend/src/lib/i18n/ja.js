@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "悪い（25％）",
   "mcP75": "良い（75％）",
   "mcRuinNone": "破産した経路はありません",
+  "mcRuinImpossible": "起こりえません",
+  "mcRuinFloor": "平均サイズで {ops} 回すべて負けても、{x} が残ります。",
   "mcRuinAt": "半数は {n} 回目までに破産",
   "mcWorstDd": "最悪 {pct}",
   "mcFootnote": "{ops} トレード × {sims} 回 · シード {seed}。残高がゼロで停止します。ここではマイナス残高で取引しません。",

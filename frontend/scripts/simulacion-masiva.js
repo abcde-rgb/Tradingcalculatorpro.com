@@ -630,6 +630,14 @@ async function montecarlo(n) {
       st.medianRuinTrade === null || st.medianRuinTrade <= trades,
       `${st.medianRuinTrade} > ${trades} · ${ctx}`);
 
+    // Si perder TODAS las operaciones deja saldo, la ruina no puede ocurrir.
+    // Es lo que convierte un "0,00 %" mudo en una respuesta que se entiende.
+    if (st.worstCaseBalance > 0 && !cfg.dispersion) {
+      exige('montecarlo', caso, 'si el peor caso deja saldo, la ruina es cero',
+        st.riskOfRuin === 0, `peorCaso=${st.worstCaseBalance} ruina=${st.riskOfRuin} · ${ctx}`);
+    }
+    exige('montecarlo', caso, 'el peor caso es finito', finito(st.worstCaseBalance), `${st.worstCaseBalance} · ${ctx}`);
+
     // El invariante que se saltaba el motor viejo: ni un punto por debajo de cero.
     for (const curva of r.paths) {
       const min = Math.min(...curva);
