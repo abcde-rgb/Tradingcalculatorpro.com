@@ -47,12 +47,11 @@ export function Header() {
   const navLinks = [
     { href: '/dashboard', label: t('dashboard'), requireAuth: true },
     { href: '/options', label: t('options'), requireAuth: false },
+    // Backtesting NO va aquí: vive como pestaña dentro de Performance, que es
+    // donde se busca. Un enlace propio en la barra duplicaba el mismo destino
+    // dos veces seguidas. La página pública `/backtesting` sigue existiendo y
+    // se llega a ella desde el pie.
     { href: '/performance', label: t('performance'), requireAuth: false },
-    // Junto a Performance porque son el mismo trabajo en dos tiempos: aquí se
-    // ensaya sobre el histórico, allí se mide lo que ya se operó. En el pie y
-    // en una tarjeta de Performance no se encontraba: Performance está tras el
-    // muro premium y el pie sólo se ve al final de la página.
-    { href: '/backtesting', label: t('backtesting'), requireAuth: false },
     { href: '/news', label: t('news'), requireAuth: false },
     { href: '/pricing', label: t('pricing'), requireAuth: false },
     { href: '/education', label: t('education'), requireAuth: false },
