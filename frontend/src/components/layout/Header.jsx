@@ -48,6 +48,11 @@ export function Header() {
     { href: '/dashboard', label: t('dashboard'), requireAuth: true },
     { href: '/options', label: t('options'), requireAuth: false },
     { href: '/performance', label: t('performance'), requireAuth: false },
+    // Junto a Performance porque son el mismo trabajo en dos tiempos: aquí se
+    // ensaya sobre el histórico, allí se mide lo que ya se operó. En el pie y
+    // en una tarjeta de Performance no se encontraba: Performance está tras el
+    // muro premium y el pie sólo se ve al final de la página.
+    { href: '/backtesting', label: t('backtesting'), requireAuth: false },
     { href: '/news', label: t('news'), requireAuth: false },
     { href: '/pricing', label: t('pricing'), requireAuth: false },
     { href: '/education', label: t('education'), requireAuth: false },
@@ -105,7 +110,10 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* `lg` y no `md`: con 7 enlaces y etiquetas largas (japonés, ruso) la
+              barra se partía en varias líneas a 768px. `flex-nowrap` impide que
+              vuelva a envolverse aunque alguien añada un enlace más. */}
+          <nav className="hidden lg:flex flex-nowrap items-center gap-1">
             {navLinks.map(link => {
               if (link.requireAuth && !isAuthenticated) return null;
               const isActive = location.pathname === link.href;
@@ -113,7 +121,7 @@ export function Header() {
                 <Link
                   key={link.href}
                   to={link.href}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 xl:px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive 
                       ? 'bg-primary/10 text-primary' 
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -315,7 +323,7 @@ export function Header() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="md:hidden"
+              className="lg:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               data-testid="mobile-menu-toggle" aria-label={t('menu')}
             >
@@ -326,7 +334,7 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border">
+          <div className="lg:hidden py-4 border-t border-border">
             <nav className="flex flex-col gap-2">
               {navLinks.map(link => {
                 if (link.requireAuth && !isAuthenticated) return null;
