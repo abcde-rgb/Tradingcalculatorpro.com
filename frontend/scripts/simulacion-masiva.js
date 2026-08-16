@@ -554,14 +554,106 @@ async function proyeccion(n) {
   }
 }
 
+// ─── 6 · El Monte Carlo ───────────────────────────────────────────
+
+/**
+ * Escenarios generados para `lib/monteCarlo.js`.
+ *
+ * Su motor vivía dentro del `.jsx` y por eso nunca pasó por aquí. El fallo que
+ * arrastró —saldos negativos y drawdowns por encima del 100 %— es exactamente
+ * el tipo de cosa que estos escenarios encuentran y unas cuantas pruebas
+ * elegidas a mano no.
+ */
+async function montecarlo(n) {
+  const { runMonteCarlo } = await imp('lib/monteCarlo.js');
+
+  for (let i = 0; i < n; i++) {
+    const caso = `montecarlo#${i}`;
+    const m = apunta('montecarlo'); m.casos += 1;
+
+    const capital = logEntre(100, 1_000_000);
+    const trades = enteroEntre(5, 300);
+    const modo = ['fixed', 'percent', 'sample'][enteroEntre(0, 2)];
+    const cfg = {
+      capital,
+      trades,
+      iterations: enteroEntre(30, 200),
+      seed: enteroEntre(1, 2 ** 30),
+      dispersion: Math.random() < 0.5 ? 0 : entre(0.05, 1.5),
+      winRate: entre(0, 100),
+    };
+
+    if (modo === 'percent') {
+      cfg.sizing = 'percent';
+      cfg.riskPct = entre(0.1, 40);
+      cfg.payoff = entre(0.2, 6);
+      cfg.compound = Math.random() < 0.5;
+    } else if (modo === 'sample') {
+      // Un diario cualquiera: mezcla de ganancias y pérdidas en dinero.
+      cfg.sample = Array.from({ length: enteroEntre(1, 60) },
+        () => entre(-capital / 8, capital / 6));
+    } else {
+      cfg.sizing = 'fixed';
+      cfg.avgWin = entre(capital / 500, capital / 3);
+      cfg.avgLoss = -entre(capital / 500, capital / 3);
+    }
+
+    const r = runMonteCarlo(cfg);
+    const ctx = `${modo} cap=${capital.toFixed(0)} ops=${trades} disp=${(cfg.dispersion || 0).toFixed(2)}`;
+
+    if (r.error) {
+      // Un error es una respuesta legítima, pero tiene que venir SIN estadísticas
+      // a medio hacer: media distribución es peor que ninguna.
+      exige('montecarlo', caso, 'un error no trae estadísticas a medias',
+        r.statistics === null, `${r.error} · ${ctx}`);
+      continue;
+    }
+
+    const st = r.statistics;
+    exige('montecarlo', caso, 'ningún percentil es negativo',
+      [st.p5, st.p25, st.p50, st.p75, st.p95].every((v) => finito(v) && v >= 0), `${st.p5} · ${ctx}`);
+    exige('montecarlo', caso, 'los percentiles salen ordenados',
+      st.p5 <= st.p25 && st.p25 <= st.p50 && st.p50 <= st.p75 && st.p75 <= st.p95, ctx);
+    exige('montecarlo', caso, 'el saldo medio final no es negativo',
+      finito(st.avgFinalBalance) && st.avgFinalBalance >= 0, `${st.avgFinalBalance} · ${ctx}`);
+    exige('montecarlo', caso, 'el drawdown está entre 0 y 100',
+      st.avgMaxDrawdown >= -1e-9 && st.worstMaxDrawdown <= 100 + 1e-9,
+      `medio=${st.avgMaxDrawdown} peor=${st.worstMaxDrawdown} · ${ctx}`);
+    exige('montecarlo', caso, 'la ruina es un porcentaje',
+      st.riskOfRuin >= 0 && st.riskOfRuin <= 100, `${st.riskOfRuin} · ${ctx}`);
+    exige('montecarlo', caso, 'la probabilidad de beneficio es un porcentaje',
+      st.profitProbability >= 0 && st.profitProbability <= 100, `${st.profitProbability} · ${ctx}`);
+    exige('montecarlo', caso, 'sin ruina la operación de ruina es indefinida, no cero',
+      st.riskOfRuin > 0 ? st.medianRuinTrade >= 1 : st.medianRuinTrade === null,
+      `ruina=${st.riskOfRuin} op=${st.medianRuinTrade} · ${ctx}`);
+    exige('montecarlo', caso, 'la ruina ocurre dentro del número de operaciones',
+      st.medianRuinTrade === null || st.medianRuinTrade <= trades,
+      `${st.medianRuinTrade} > ${trades} · ${ctx}`);
+
+    // El invariante que se saltaba el motor viejo: ni un punto por debajo de cero.
+    for (const curva of r.paths) {
+      const min = Math.min(...curva);
+      exige('montecarlo', caso, 'ninguna curva baja de cero', min >= 0, `${min} · ${ctx}`);
+      const cero = curva.indexOf(0);
+      exige('montecarlo', caso, 'una cuenta arruinada deja de operar',
+        cero === -1 || cero === curva.length - 1, `cero en ${cero}/${curva.length} · ${ctx}`);
+    }
+
+    // Reproducible: sin esto un resultado no se puede compartir.
+    exige('montecarlo', caso, 'la misma semilla da el mismo resultado',
+      JSON.stringify(runMonteCarlo(cfg).statistics) === JSON.stringify(st), ctx);
+  }
+}
+
 // ─── Reparto y ejecución ──────────────────────────────────────────
 
 (async () => {
   const reparto = {
-    mesa: Math.round(N * 0.40),
-    opciones: Math.round(N * 0.25),
-    simulador: Math.round(N * 0.12),
-    pnl: Math.round(N * 0.13),
+    mesa: Math.round(N * 0.34),
+    opciones: Math.round(N * 0.22),
+    simulador: Math.round(N * 0.10),
+    montecarlo: Math.round(N * 0.12),
+    pnl: Math.round(N * 0.12),
     proyeccion: Math.round(N * 0.10),
   };
   const total = Object.values(reparto).reduce((a, b) => a + b, 0);
@@ -574,6 +666,7 @@ async function proyeccion(n) {
   await mesa(reparto.mesa);
   await opciones(reparto.opciones);
   await simulador(reparto.simulador);
+  await montecarlo(reparto.montecarlo);
   await pnl(reparto.pnl);
   await proyeccion(reparto.proyeccion);
   const ms = Date.now() - t0;

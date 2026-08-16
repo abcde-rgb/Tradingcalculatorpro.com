@@ -1160,6 +1160,17 @@ async function checkSiteFacts() {
     `siteFacts dice ${SITE_FACTS.assets}, ALL_ASSETS tiene ${activos}`);
 
   // Estrategias de opciones.
+  // Las mismas cifras aparecen en el texto que Google enseña en sus resultados,
+  // donde llegaron a decir «9 calculadoras» y «250+ activos». No se pueden
+  // interpolar —`useSEO` traduce sin parámetros— así que van escritas, y este
+  // candado obliga a repasarlas si SITE_FACTS cambia. Se mira el diccionario de
+  // referencia; `i18n-check` mantiene el resto en paridad.
+  const es = fs.readFileSync(path.join(SRC, 'lib/i18n/es.js'), 'utf8');
+  const seo = (es.match(/"seoDashboardDesc":\s*"((?:[^"\\]|\\.)*)"/) || [])[1] || '';
+  ok('la descripción del dashboard para buscadores dice las cifras reales',
+    seo.includes(String(SITE_FACTS.calculators)) && seo.includes(String(SITE_FACTS.assets)),
+    `seoDashboardDesc debería nombrar ${SITE_FACTS.calculators} y ${SITE_FACTS.assets}: «${seo}»`);
+
   const mock = lee('data/mockData.js');
   const eIni = mock.indexOf('export const STRATEGIES');
   const eFin = mock.indexOf('\n];', eIni);
@@ -1167,6 +1178,127 @@ async function checkSiteFacts() {
   ok(`las ${SITE_FACTS.strategies} estrategias de la portada existen en el catálogo`,
     estrategias === SITE_FACTS.strategies,
     `siteFacts dice ${SITE_FACTS.strategies}, STRATEGIES tiene ${estrategias}`);
+}
+
+/**
+ * El Monte Carlo, que hasta ahora no comprobaba nadie.
+ *
+ * Su motor vivía dentro del `.jsx` y por eso conservó durante meses el fallo
+ * que ya se había arreglado en el Simulador Pro: el saldo bajaba de cero y el
+ * camino seguía operando. Estas comprobaciones existen para que no vuelva.
+ */
+async function checkMonteCarlo() {
+  console.log('\nmonteCarlo.js  (la distribución de resultados)');
+  const { runMonteCarlo, runPath, magnitud, normalizeConfig } = await imp('lib/monteCarlo.js');
+  const { makeRng } = await imp('components/calculators/simulator/simulatorEngine.js');
+
+  // El caso que destapó el fallo: 45 % de acierto y ±500 sobre 10.000.
+  const duro = {
+    capital: 10000, trades: 100, iterations: 1500, seed: 7,
+    winRate: 45, sizing: 'fixed', avgWin: 500, avgLoss: -500,
+  };
+  const r = runMonteCarlo(duro);
+
+  ok('ningún camino termina con saldo negativo',
+    r.statistics.p5 >= 0 && r.statistics.avgFinalBalance >= 0,
+    `p5=${r.statistics.p5}`);
+
+  // El invariante de verdad: NINGÚN punto de NINGUNA curva puede ser negativo.
+  const minimoGlobal = Math.min(...r.paths.map((c) => Math.min(...c)));
+  ok('ningún punto de ninguna curva baja de cero', minimoGlobal >= 0, `mínimo=${minimoGlobal}`);
+
+  ok('el drawdown nunca pasa del 100 %',
+    r.statistics.worstMaxDrawdown <= 100,
+    `peor=${r.statistics.worstMaxDrawdown}`);
+
+  // Con estos parámetros la ruina existe; y medida sobre el CAMINO tiene que
+  // ser mayor o igual que contando sólo los que acaban a cero.
+  const acabanEnCero = r.paths.filter((c) => c[c.length - 1] === 0).length / r.paths.length * 100;
+  ok('la ruina se mide sobre el camino y no sólo sobre el final',
+    r.statistics.riskOfRuin >= acabanEnCero - 1e-9,
+    `camino=${r.statistics.riskOfRuin} final=${acabanEnCero}`);
+
+  ok('una cuenta arruinada deja de operar',
+    r.paths.every((c) => {
+      const i = c.indexOf(0);
+      return i === -1 || i === c.length - 1;
+    }));
+
+  ok('si nadie se arruina, la operación de ruina es indefinida y no cero',
+    runMonteCarlo({ capital: 10000, trades: 30, iterations: 200, seed: 3,
+      winRate: 100, sizing: 'fixed', avgWin: 100, avgLoss: -50 })
+      .statistics.medianRuinTrade === null);
+
+  // Reproducibilidad: sin ella un resultado no se puede compartir ni auditar.
+  const a = runMonteCarlo({ ...duro, seed: 42 });
+  const b = runMonteCarlo({ ...duro, seed: 42 });
+  const c = runMonteCarlo({ ...duro, seed: 43 });
+  ok('la misma semilla da exactamente el mismo resultado',
+    JSON.stringify(a.statistics) === JSON.stringify(b.statistics));
+  ok('una semilla distinta da un resultado distinto',
+    JSON.stringify(a.statistics) !== JSON.stringify(c.statistics));
+
+  // Dispersión: con cero, dos únicos resultados posibles; con dispersión, más
+  // cola por abajo. Es la razón de ser del cambio.
+  const sinDisp = runMonteCarlo({ ...duro, dispersion: 0, iterations: 3000 });
+  const conDisp = runMonteCarlo({ ...duro, dispersion: 0.6, iterations: 3000 });
+  ok('sin dispersión todos los resultados son múltiplos del tamaño fijo',
+    sinDisp.paths.every((c) => c.every((v) => Math.abs(v % 500) < 1e-6)));
+  ok('la dispersión ensancha la distribución',
+    (conDisp.statistics.p95 - conDisp.statistics.p5) > (sinDisp.statistics.p95 - sinDisp.statistics.p5),
+    `con=${conDisp.statistics.p95 - conDisp.statistics.p5} sin=${sinDisp.statistics.p95 - sinDisp.statistics.p5}`);
+
+  // La media de la lognormal es la que se pide: si no, la dispersión movería
+  // la esperanza y estaría cambiando la estrategia, no su varianza.
+  const rnd = makeRng(11);
+  let suma = 0;
+  const N = 200000;
+  for (let i = 0; i < N; i++) suma += magnitud(500, 0.5, rnd);
+  ok('añadir dispersión no cambia la media del resultado',
+    Math.abs(suma / N - 500) / 500 < 0.01, `media=${(suma / N).toFixed(1)}`);
+
+  // Porcentaje y capitalización.
+  const pct = runMonteCarlo({ capital: 10000, trades: 60, iterations: 800, seed: 5,
+    winRate: 50, sizing: 'percent', riskPct: 1, payoff: 2 });
+  ok('el modo porcentaje produce una distribución válida',
+    pct.error === null && pct.statistics.p50 > 0);
+  const comp = runMonteCarlo({ capital: 10000, trades: 60, iterations: 800, seed: 5,
+    winRate: 50, sizing: 'percent', riskPct: 1, payoff: 2, compound: true });
+  ok('capitalizar cambia el resultado respecto a no capitalizar',
+    comp.statistics.p50 !== pct.statistics.p50);
+
+  // Remuestreo del diario.
+  const soloGanancias = runMonteCarlo({ capital: 1000, trades: 50, iterations: 300, seed: 9,
+    sample: [10, 20, 30] });
+  ok('remuestreando operaciones ganadoras nadie se arruina',
+    soloGanancias.statistics.riskOfRuin === 0 && soloGanancias.statistics.profitProbability === 100);
+  const soloPerdidas = runMonteCarlo({ capital: 100, trades: 50, iterations: 300, seed: 9,
+    sample: [-10, -20] });
+  ok('remuestreando sólo pérdidas se arruinan todos',
+    soloPerdidas.statistics.riskOfRuin === 100);
+
+  // Los percentiles están ordenados. Suena obvio y es lo que se rompe al
+  // cambiar un índice.
+  const st = r.statistics;
+  ok('los percentiles salen ordenados',
+    st.p5 <= st.p25 && st.p25 <= st.p50 && st.p50 <= st.p75 && st.p75 <= st.p95);
+
+  // Entradas imposibles: se dice el motivo, no se devuelve una distribución
+  // construida sobre ceros.
+  ok('sin capital no se simula', runMonteCarlo({ ...duro, capital: 0 }).error === 'capital');
+  ok('sin operaciones no se simula', runMonteCarlo({ ...duro, trades: 0 }).error === 'trades');
+  ok('un acierto imposible no se simula', runMonteCarlo({ ...duro, winRate: 140 }).error === 'win_rate');
+  ok('un diario vacío no se simula', runMonteCarlo({ capital: 100, trades: 10, sample: [] }).error === 'sample_empty');
+  ok('normalizeConfig no inventa una configuración a partir de nada',
+    normalizeConfig({}).cfg === null);
+
+  // Un solo camino se puede repetir por separado: es lo que permite enseñar
+  // "esta trayectoria" sin que sea otra tirada distinta.
+  const { cfg } = normalizeConfig(duro);
+  const c1 = runPath(cfg, makeRng(123));
+  const c2 = runPath(cfg, makeRng(123));
+  ok('un camino concreto se puede volver a ejecutar igual',
+    JSON.stringify(c1) === JSON.stringify(c2));
 }
 
 (async () => {
@@ -1181,6 +1313,7 @@ async function checkSiteFacts() {
   await checkScannerMeta();
   await checkOptionsEngine();
   await checkSiteFacts();
+  await checkMonteCarlo();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {
     console.error(`\n${failures} check(s) FAILED`);

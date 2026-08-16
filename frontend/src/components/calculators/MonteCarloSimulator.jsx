@@ -1,349 +1,359 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { FlaskConical, Play, TrendingUp, TrendingDown, AlertTriangle, Crown, Trash2 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { FlaskConical, Play, AlertTriangle, Crown, Trash2, Dice5, BookOpen } from 'lucide-react';
 import { useIsPremium } from '@/lib/premium';
 import { useTranslation } from '@/lib/i18n';
 import { Link } from 'react-router-dom';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { listTrades } from '@/services/performanceApi';
+import { runMonteCarlo } from '@/lib/monteCarlo';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+/** Cuántas operaciones del diario se traen como muestra para remuestrear. */
+const MAX_TRADES_MUESTRA = 500;
+
+const dinero = (v) =>
+  v === null || v === undefined ? '—' : `$${Math.round(v).toLocaleString('en-US')}`;
+const pct = (v, d = 1) => (v === null || v === undefined ? '—' : `${v.toFixed(d)}%`);
 
 export function MonteCarloSimulator() {
-  const { user, token } = useAuthStore();
   const isPremium = useIsPremium();
   const { t } = useTranslation();
-  const [isLoadingState, setIsLoadingState] = useState(false);
+  const [corriendo, setCorriendo] = useState(false);
   const [results, setResults] = useState(null);
-  
-  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('montecarlo_simulator', {
+  const [muestra, setMuestra] = useState(null);   // P&L reales del diario
+  const [avisoDiario, setAvisoDiario] = useState(null);
+
+  const [datos, setDatos, borrarDatos] = usePersistedState('montecarlo_simulator', {
+    mode: 'fixed',            // fixed · percent · journal
     winRate: 55,
     avgWin: '100',
     avgLoss: '-50',
+    riskPct: '1',
+    payoff: '2',
+    compound: false,
+    dispersion: 40,           // % de desviación típica relativa
     initialCapital: '10000',
     numTrades: 100,
-    numSimulations: 1000
+    numSimulations: 2000,
+    seed: 1,
   });
 
-  const { winRate, avgWin, avgLoss, initialCapital, numTrades, numSimulations } = persistedData;
+  const set = (k) => (v) => setDatos((p) => ({ ...p, [k]: Array.isArray(v) ? v[0] : v }));
+  const {
+    mode, winRate, avgWin, avgLoss, riskPct, payoff, compound,
+    dispersion, initialCapital, numTrades, numSimulations, seed,
+  } = datos;
 
-  const setWinRate        = (v) => setPersistedData(prev => ({ ...prev, winRate: Array.isArray(v) ? v[0] : v }));
-  const setAvgWin         = (v) => setPersistedData(prev => ({ ...prev, avgWin: v }));
-  const setAvgLoss        = (v) => setPersistedData(prev => ({ ...prev, avgLoss: v }));
-  const setInitialCapital = (v) => setPersistedData(prev => ({ ...prev, initialCapital: v }));
-  const setNumTrades      = (v) => setPersistedData(prev => ({ ...prev, numTrades: Array.isArray(v) ? v[0] : v }));
-  const setNumSimulations = (v) => setPersistedData(prev => ({ ...prev, numSimulations: Array.isArray(v) ? v[0] : v }));
-
-  const runSimulation = async () => {
-    if (!isPremium) return;
-    
-    setIsLoadingState(true);
-    
-    // Run Monte Carlo simulation locally for immediate response
-    const simulations = [];
-    const finalBalances = [];
-    const maxDrawdowns = [];
-    
-    const winRateDecimal = winRate / 100;
-    const avgWinValue = parseFloat(avgWin) || 100;
-    const avgLossValue = parseFloat(avgLoss) || -50;
-    const capital = parseFloat(initialCapital) || 10000;
-    const trades = numTrades;
-    const sims = numSimulations;
-    
-    for (let s = 0; s < sims; s++) {
-      let balance = capital;
-      const equityCurve = [balance];
-      let peak = balance;
-      let maxDD = 0;
-      
-      for (let t = 0; t < trades; t++) {
-        // Simulate trade outcome
-        const isWin = Math.random() < winRateDecimal;
-        const pnl = isWin ? avgWinValue : avgLossValue;
-        balance += pnl;
-        
-        equityCurve.push(balance);
-        peak = Math.max(peak, balance);
-        const dd = peak > 0 ? (peak - balance) / peak : 0;
-        maxDD = Math.max(maxDD, dd);
+  /** Trae las operaciones cerradas del diario para remuestrearlas. */
+  const cargarDiario = useCallback(async () => {
+    setAvisoDiario(null);
+    try {
+      const data = await listTrades({ limit: MAX_TRADES_MUESTRA });
+      const lista = Array.isArray(data) ? data : (data?.trades || []);
+      const pnls = lista
+        .map((tr) => Number(tr.pnl))
+        .filter((v) => Number.isFinite(v) && v !== 0);
+      if (!pnls.length) {
+        setMuestra(null);
+        setAvisoDiario('vacio');
+        return;
       }
-      
-      finalBalances.push(balance);
-      maxDrawdowns.push(maxDD * 100);
-      
-      // Keep first 50 simulations for visualization
-      if (simulations.length < 50) {
-        simulations.push(equityCurve);
-      }
+      setMuestra(pnls);
+      set('mode')('journal');
+    } catch {
+      setMuestra(null);
+      setAvisoDiario('error');
     }
-    
-    // Calculate statistics
-    finalBalances.sort((a, b) => a - b);
-    const percentile5 = finalBalances[Math.floor(finalBalances.length * 0.05)];
-    const percentile50 = finalBalances[Math.floor(finalBalances.length * 0.50)];
-    const percentile95 = finalBalances[Math.floor(finalBalances.length * 0.95)];
-    
-    const avgFinalBalance = finalBalances.reduce((a, b) => a + b, 0) / finalBalances.length;
-    const riskOfRuin = (finalBalances.filter(b => b <= 0).length / finalBalances.length) * 100;
-    const avgMaxDrawdown = maxDrawdowns.reduce((a, b) => a + b, 0) / maxDrawdowns.length;
-    const profitProbability = (finalBalances.filter(b => b > capital).length / finalBalances.length) * 100;
-    
-    setResults({
-      simulations,
-      statistics: {
-        initialCapital: capital,
-        avgFinalBalance: Math.round(avgFinalBalance * 100) / 100,
-        percentile5: Math.round(percentile5 * 100) / 100,
-        percentile50: Math.round(percentile50 * 100) / 100,
-        percentile95: Math.round(percentile95 * 100) / 100,
-        riskOfRuin: Math.round(riskOfRuin * 100) / 100,
-        avgMaxDrawdown: Math.round(avgMaxDrawdown * 100) / 100,
-        profitProbability: Math.round(profitProbability * 100) / 100
-      }
-    });
-    
-    setIsLoadingState(false);
+    // `set` se recrea en cada render pero no captura nada mutable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const ejecutar = () => {
+    if (!isPremium) return;
+    setCorriendo(true);
+    const base = {
+      capital: initialCapital,
+      trades: numTrades,
+      iterations: numSimulations,
+      seed,
+      dispersion: dispersion / 100,
+    };
+    const cfg =
+      mode === 'journal' ? { ...base, sample: muestra || [] }
+      : mode === 'percent' ? { ...base, winRate, sizing: 'percent', riskPct, payoff, compound }
+      : { ...base, winRate, sizing: 'fixed', avgWin, avgLoss };
+
+    setResults(runMonteCarlo(cfg));
+    setCorriendo(false);
   };
+
+  const nuevaSemilla = () => set('seed')(Math.floor(Math.random() * 1e9) + 1);
 
   if (!isPremium) {
     return (
       <Card className="bg-card border-border" data-testid="monte-carlo-locked">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <FlaskConical className="w-4 h-4 text-purple-500" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FlaskConical className="w-4 h-4 text-primary" />
             </div>
-            {t('monteCarloLockedTitle_p003')}
-            <Crown className="w-4 h-4 text-yellow-500" />
+            {t('monteCarlo')}
           </CardTitle>
-          <CardDescription className="text-xs leading-relaxed max-w-2xl">
-            {t('calcDescMontecarlo')}
-          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <FlaskConical className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">{t('premiumFeature')}</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              {t('monteCarloDescription')}
-            </p>
-            <Link to="/pricing">
-              <Button className="gap-2">
-                <Crown className="w-4 h-4" /> {t('unlockPremium')}
-              </Button>
-            </Link>
-          </div>
+        <CardContent className="text-center py-8">
+          <Crown className="w-10 h-10 mx-auto mb-3 text-primary" />
+          <p className="text-sm text-muted-foreground mb-4">{t('monteCarloDescription')}</p>
+          <Button asChild><Link to="/pricing">{t('unlockPremium')}</Link></Button>
         </CardContent>
       </Card>
     );
   }
 
+  const st = results?.statistics;
+
   return (
     <Card className="bg-card border-border" data-testid="monte-carlo-simulator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-            <FlaskConical className="w-4 h-4 text-purple-500" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <FlaskConical className="w-4 h-4 text-primary" />
           </div>
           {t('monteCarlo')}
         </CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-4">
-        {/* Inputs */}
-        <div className="space-y-4">
+        {/* ── De dónde salen los resultados ────────────────────── */}
+        <div>
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('mcSourceLabel')}</Label>
+          <div className="mt-1.5 flex flex-wrap gap-1.5" data-testid="mc-mode">
+            {[
+              { id: 'fixed', label: t('mcModeFixed') },
+              { id: 'percent', label: t('mcModePercent') },
+              { id: 'journal', label: t('mcModeJournal') },
+            ].map((m) => (
+              <button
+                type="button" key={m.id}
+                onClick={() => (m.id === 'journal' && !muestra ? cargarDiario() : set('mode')(m.id))}
+                className={`px-3 py-2 rounded-sharp text-[11px] font-bold uppercase tracking-wider border transition-colors ${
+                  mode === m.id ? 'bg-primary/15 text-primary border-primary/50'
+                                : 'border-rule text-muted-foreground hover:text-foreground'}`}
+                data-testid={`mc-mode-${m.id}`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {mode === 'journal' && (
+            <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5" data-testid="mc-journal-state">
+              <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
+              {muestra
+                ? t('mcJournalReady').replace('{n}', String(muestra.length))
+                : avisoDiario === 'vacio' ? t('mcJournalEmpty')
+                : avisoDiario === 'error' ? t('mcJournalError')
+                : t('mcJournalLoading')}
+            </p>
+          )}
+        </div>
+
+        {/* ── Parámetros de la estrategia ──────────────────────── */}
+        {mode !== 'journal' && (
+          <>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">{t('winRate')}</Label>
+                <span className="text-sm font-semibold text-primary tabular-nums">{winRate}%</span>
+              </div>
+              <Slider value={[winRate]} onValueChange={set('winRate')} min={1} max={99} step={1}
+                data-testid="winrate-slider" />
+            </div>
+
+            {mode === 'fixed' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">{t('avgProfit')} ($)</Label>
+                  <Input type="number" value={avgWin} onChange={(e) => set('avgWin')(e.target.value)}
+                    className="tabular-nums" data-testid="avg-win-input" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">{t('avgLoss')} ($)</Label>
+                  <Input type="number" value={avgLoss} onChange={(e) => set('avgLoss')(e.target.value)}
+                    className="tabular-nums" data-testid="avg-loss-input" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">{t('mcRiskPct')}</Label>
+                    <Input type="number" step="0.1" value={riskPct} onChange={(e) => set('riskPct')(e.target.value)}
+                      className="tabular-nums" data-testid="mc-risk-pct" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">{t('mcPayoff')}</Label>
+                    <Input type="number" step="0.1" value={payoff} onChange={(e) => set('payoff')(e.target.value)}
+                      className="tabular-nums" data-testid="mc-payoff" />
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={!!compound}
+                    onChange={(e) => set('compound')(e.target.checked)} data-testid="mc-compound" />
+                  {t('mcCompound')}
+                </label>
+              </>
+            )}
+
+            {/* La dispersión es el cambio que más mueve el percentil 5 y el
+                drawdown, así que se explica en la propia pantalla. */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">{t('mcDispersion')}</Label>
+                <span className="text-sm font-semibold text-primary tabular-nums">{dispersion}%</span>
+              </div>
+              <Slider value={[dispersion]} onValueChange={set('dispersion')} min={0} max={150} step={5}
+                data-testid="mc-dispersion" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {dispersion === 0 ? t('mcDispersionZero') : t('mcDispersionHint')}
+              </p>
+            </div>
+          </>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">{t('winRate')}</Label>
-              <span className="text-sm font-semibold text-primary">{winRate}%</span>
-            </div>
-            <Slider
-              value={[winRate]}
-              onValueChange={(v) => setWinRate(v[0])}
-              min={20}
-              max={80}
-              step={1}
-              data-testid="winrate-slider"
-            />
+            <Label className="text-sm">{t('initialBalance')} ($)</Label>
+            <Input type="number" value={initialCapital} onChange={(e) => set('initialCapital')(e.target.value)}
+              className="tabular-nums" data-testid="capital-input" />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm">{t('avgProfit')} ($)</Label>
-              <Input
-                type="number"
-                value={avgWin}
-                onChange={(e) => setAvgWin(e.target.value)}
-                data-testid="avg-win-input"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">{t('avgLoss')} ($)</Label>
-              <Input
-                type="number"
-                value={avgLoss}
-                onChange={(e) => setAvgLoss(e.target.value)}
-                data-testid="avg-loss-input"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm">{t('initialBalance')} ($)</Label>
-              <Input
-                type="number"
-                value={initialCapital}
-                onChange={(e) => setInitialCapital(e.target.value)}
-                data-testid="capital-input"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">{t('numTrades')}</Label>
-              <Input
-                type="number"
-                value={numTrades}
-                onChange={(e) => setNumTrades(parseInt(e.target.value))}
-                data-testid="num-trades-input"
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">{t('simulations')}</Label>
-              <span className="text-sm text-muted-foreground">{numSimulations.toLocaleString()}</span>
-            </div>
-            <Slider
-              value={[numSimulations]}
-              onValueChange={(v) => setNumSimulations(v[0])}
-              min={100}
-              max={5000}
-              step={100}
-              data-testid="simulations-slider"
-            />
+            <Label className="text-sm">{t('numTrades')}</Label>
+            <Input type="number" value={numTrades} onChange={(e) => set('numTrades')(e.target.value)}
+              className="tabular-nums" data-testid="num-trades-input" />
           </div>
         </div>
 
-        <Button 
-          onClick={runSimulation} 
-          className="w-full gap-2" 
-          disabled={isLoadingState}
-          data-testid="run-simulation-btn"
-        >
-          {isLoadingState ? (
-            <>{t('simulating')}</>
-          ) : (
-            <>
-              <Play className="w-4 h-4" /> {t('runSimulations').replace('{n}', numSimulations.toLocaleString())}
-            </>
-          )}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">{t('simulations')}</Label>
+            <span className="text-sm text-muted-foreground tabular-nums">{numSimulations.toLocaleString()}</span>
+          </div>
+          <Slider value={[numSimulations]} onValueChange={set('numSimulations')} min={100} max={10000} step={100}
+            data-testid="simulations-slider" />
+        </div>
+
+        {/* La semilla a la vista: es lo que hace que un resultado se pueda
+            compartir y volver a comprobar. */}
+        <div className="flex items-end gap-2">
+          <div className="flex-1 space-y-2">
+            <Label className="text-sm">{t('mcSeed')}</Label>
+            <Input type="number" value={seed} onChange={(e) => set('seed')(e.target.value)}
+              className="tabular-nums" data-testid="mc-seed" />
+          </div>
+          <Button variant="outline" onClick={nuevaSemilla} className="gap-2" data-testid="mc-new-seed">
+            <Dice5 className="w-4 h-4" /> {t('mcNewSeed')}
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{t('mcSeedHint')}</p>
+
+        <Button onClick={ejecutar} className="w-full gap-2" disabled={corriendo}
+          data-testid="run-simulation-btn">
+          <Play className="w-4 h-4" />
+          {corriendo ? t('simulating') : t('runSimulations').replace('{n}', numSimulations.toLocaleString())}
         </Button>
 
-        <Button onClick={clearPersistedData} variant="outline" className="w-full">
-          <Trash2 className="w-4 h-4 mr-2" />
-          {t('clearData')}
+        <Button onClick={borrarDatos} variant="outline" className="w-full">
+          <Trash2 className="w-4 h-4 mr-2" /> {t('clearData')}
         </Button>
 
-        {/* Results */}
-        {results && (
-          <div className="mt-4 space-y-4">
-            {/* Main Stats */}
+        {/* ── Resultado ────────────────────────────────────────── */}
+        {results?.error && (
+          <p className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm" data-testid="mc-error">
+            {t(`mcError_${results.error}`)}
+          </p>
+        )}
+
+        {st && (
+          <div className="mt-4 space-y-4" data-testid="mc-results">
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-primary/10 text-center">
                 <p className="text-xs text-muted-foreground">{t('avgBalanceResult')}</p>
-                <p className="text-xl font-bold text-primary" data-testid="avg-balance">
-                  ${results.statistics.avgFinalBalance.toLocaleString()}
+                <p className="text-xl font-bold text-primary tabular-nums" data-testid="avg-balance">
+                  {dinero(st.avgFinalBalance)}
                 </p>
               </div>
-              <div className="p-3 rounded-lg bg-green-500/10 text-center">
+              <div className="p-3 rounded-lg bg-long/10 text-center">
                 <p className="text-xs text-muted-foreground">{t('profitProbability')}</p>
-                <p className="text-xl font-bold text-green-500" data-testid="profit-prob">
-                  {results.statistics.profitProbability}%
+                <p className="text-xl font-bold text-long tabular-nums" data-testid="profit-prob">
+                  {pct(st.profitProbability)}
                 </p>
               </div>
             </div>
 
-            {/* Percentiles */}
             <div className="p-4 rounded-lg bg-muted/50">
               <p className="text-sm font-medium mb-3">{t('distribucionDeResultados_032fd8')}</p>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-red-400">{t('worstFivePct_p015')}</span>
-                  <span className="font-mono font-semibold">${results.statistics.percentile5.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-yellow-500">{t('medianFiftyPct_p016')}</span>
-                  <span className="font-mono font-semibold">${results.statistics.percentile50.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-green-500">{t('mejor5_4e0b8a')}</span>
-                  <span className="font-mono font-semibold">${results.statistics.percentile95.toLocaleString()}</span>
-                </div>
+              <div className="space-y-2 text-sm">
+                {[
+                  ['p5', t('worstFivePct_p015'), 'text-short'],
+                  ['p25', t('mcP25'), 'text-muted-foreground'],
+                  ['p50', t('medianFiftyPct_p016'), 'text-foreground'],
+                  ['p75', t('mcP75'), 'text-muted-foreground'],
+                  ['p95', t('mejor5_4e0b8a'), 'text-long'],
+                ].map(([k, etiqueta, tono]) => (
+                  <div key={k} className="flex justify-between items-center">
+                    <span className={tono}>{etiqueta}</span>
+                    <span className="font-mono font-semibold tabular-nums" data-testid={`mc-${k}`}>{dinero(st[k])}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Risk Metrics */}
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-destructive/10 text-center">
                 <p className="text-xs text-muted-foreground">{t('riesgoDeRuina_ce3690')}</p>
-                <p className="text-lg font-bold text-destructive flex items-center justify-center gap-1" data-testid="ruin-risk">
-                  {results.statistics.riskOfRuin > 10 && <AlertTriangle className="w-4 h-4" />}
-                  {results.statistics.riskOfRuin}%
+                <p className="text-lg font-bold text-destructive flex items-center justify-center gap-1 tabular-nums"
+                  data-testid="ruin-risk">
+                  {st.riskOfRuin > 10 && <AlertTriangle className="w-4 h-4" />}
+                  {pct(st.riskOfRuin, 2)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {st.medianRuinTrade === null
+                    ? t('mcRuinNone')
+                    : t('mcRuinAt').replace('{n}', String(st.medianRuinTrade))}
                 </p>
               </div>
-              <div className="p-3 rounded-lg bg-orange-500/10 text-center">
+              <div className="p-3 rounded-lg bg-muted/50 text-center">
                 <p className="text-xs text-muted-foreground">{t('avgDrawdown_p017')}</p>
-                <p className="text-lg font-bold text-orange-500" data-testid="avg-dd">
-                  {results.statistics.avgMaxDrawdown}%
+                <p className="text-lg font-bold tabular-nums" data-testid="avg-dd">{pct(st.avgMaxDrawdown)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {t('mcWorstDd').replace('{pct}', pct(st.worstMaxDrawdown))}
                 </p>
               </div>
             </div>
 
-            {/* Mini Equity Chart Visual */}
-            <div className="p-4 rounded-lg bg-muted/30">
-              <p className="text-xs text-muted-foreground mb-2">{t('muestraDe5Simulaciones_359555')}</p>
-              <div className="h-32 flex items-end gap-1">
-                {results.simulations.slice(0, 5).map((sim, idx) => {
-                  const final = sim[sim.length - 1];
-                  const initial = parseFloat(initialCapital);
-                  const isProfit = final > initial;
-                  const height = Math.min(Math.abs((final - initial) / initial) * 100, 100);
-                  
-                  return (
-                    <div 
-                      key={`simulation-${idx}-${final.toFixed(2)}`}
-                      className="flex-1 flex flex-col justify-end items-center gap-1"
-                    >
-                      <div 
-                        className={`w-full rounded-t ${isProfit ? 'bg-green-500' : 'bg-red-500'}`}
-                        style={{ height: `${Math.max(height, 10)}%` }}
-                      />
-                      <span className="text-[10px] text-muted-foreground">
-                        {isProfit ? '+' : ''}{((final - initial) / initial * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed" data-testid="mc-footnote">
+              {t('mcFootnote')
+                .replace('{sims}', st.iterations.toLocaleString())
+                .replace('{ops}', String(st.trades))
+                .replace('{seed}', String(results.seed))}
+            </p>
 
-            {/* Interpretation */}
             <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
               <p className="font-medium mb-1">{t('interpretacion_1cc069')}</p>
-              {results.statistics.profitProbability >= 60 ? (
-                <p className="text-green-500">{t('tuEstrategiaTieneUnaVentaja_3ba865')}</p>
-              ) : results.statistics.profitProbability >= 45 ? (
-                <p className="text-yellow-500">{t('ventajaMarginalConsideraOptimizarPa_746aa8')}</p>
+              {st.profitProbability >= 60 ? (
+                <p className="text-long">{t('tuEstrategiaTieneUnaVentaja_3ba865')}</p>
+              ) : st.profitProbability >= 45 ? (
+                <p>{t('ventajaMarginalConsideraOptimizarPa_746aa8')}</p>
               ) : (
-                <p className="text-red-500">{t('altaProbabilidadDePerdidaRevisa_a4b9b2')}</p>
+                <p className="text-short">{t('altaProbabilidadDePerdidaRevisa_a4b9b2')}</p>
               )}
-              {results.statistics.riskOfRuin > 5 && (
-                <p className="text-red-400 mt-1">{t('highRuinRisk_p018').replace('{pct}', results.statistics.riskOfRuin)}</p>
+              {st.riskOfRuin > 5 && (
+                <p className="text-short mt-1">
+                  {t('highRuinRisk_p018').replace('{pct}', st.riskOfRuin.toFixed(2))}
+                </p>
               )}
             </div>
           </div>
@@ -352,3 +362,5 @@ export function MonteCarloSimulator() {
     </Card>
   );
 }
+
+export default MonteCarloSimulator;
