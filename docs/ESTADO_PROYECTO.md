@@ -304,10 +304,10 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-15 | Lo último que seguía atado a un navegador |
 | 2026-08-14 (5) | Mil escenarios generados, y lo que 264 comprobaciones no veían |
 | 2026-08-14 (4) | La captura mentía: la barra de navegación salía tres veces |
 | 2026-08-14 (3) | La mesa, rehecha: una pregunta, un botón, una respuesta |
-| 2026-08-14 (2) | Lo que decía estar verde y no lo estaba |
 | 2026-08-14 | La mesa de cálculo: el dashboard deja de ser catorce calculadoras sueltas |
 
 ```bash

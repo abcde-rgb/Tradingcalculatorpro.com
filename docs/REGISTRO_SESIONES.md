@@ -4340,3 +4340,54 @@ exactamente el motivo por el que G-33 pide extraerlas. Mientras siga así, esas
 catorce pantallas son las únicas del producto sin cobertura de este tipo.
 
 Añadido a CI (1.000 escenarios, 1,5 s).
+
+### 2026-08-15 — Lo último que seguía atado a un navegador
+
+Se preguntó si los datos podían guardarse en la base de datos y aparecer en los
+demás dispositivos del mismo cliente. **Casi todo ya lo hacía**, y lo primero fue
+demostrarlo en vez de suponerlo.
+
+**Prueba de dos dispositivos.** Dos contextos de navegador independientes
+—cookies, `localStorage` y sesión separados, como un ordenador y un móvil— con
+la misma cuenta. En A se escribió capital 46.649, riesgo 2,5 %, producto
+futuros, símbolo ES, entrada 5432 y un favorito de calculadora. B entró después,
+sesión limpia, sin tocar nada: **los seis datos estaban ahí**.
+
+Así que lo que ya viaja con la cuenta es: los diez *slices* de `cloudPrefs`
+(tema, idioma, favoritos de activos, preferencias, cuenta de la mesa, favoritos
+y recientes de calculadora, progreso de la Academia, recientes de opciones,
+sistema de trading) y los catorce estados de `usePersistedState` (las trece
+calculadoras, la mesa, el gráfico y la watchlist). El diario real vive en
+Postgres desde siempre.
+
+**Lo que NO viajaba, y ahora sí: el registro del escáner.** `structureLog`
+guarda las rupturas de estructura (BOS/CHoCH) y las señales de vela con la marca
+de cuándo se vieron por primera vez —la que alimenta el resaltado de las últimas
+24 h—. Escaneabas EURUSD en el ordenador y el móvil no sabía nada.
+
+Dos cosas que `lsSlice` no podía cubrir y por eso el *slice* tiene `read`/`apply`
+propios:
+
+- **Se recorta al subir.** Una entrada pesa ~127 bytes, el tope por ámbito son
+  60, y quien siga cincuenta pares en varias temporalidades pasa de 350 KB. Ese
+  documento lo comparten el tema, los setups y el capital: si engorda sin techo
+  los rompe a todos. Se sincronizan los **doce ámbitos tocados más
+  recientemente** (`SYNC_SCOPE_CAP`), y se dice que es un recorte, no un olvido.
+- **Se funde al bajar**, no se sobrescribe. Comprobado: B conservó su propio
+  ámbito `BTC-USD|1d` y recibió el `EURUSD|4h` de A, con los `ts` originales
+  intactos.
+
+El aviso de «esto ha cambiado, súbelo» va por suscripción (`onLogChange`), el
+mismo patrón que `onSystemChange` de `tradingSystem` y por el mismo motivo:
+`cloudPrefs` importa `structureLog` para leerlo, así que importarlo de vuelta
+crearía un ciclo. La primera versión usaba `require()` dentro de un módulo ESM
+—funciona en webpack y revienta en el Node de `engine-check`— y se cambió.
+
+**Lo que sigue siendo del navegador a propósito:** el diario legado del
+dashboard (`components/tools/TradingJournal.jsx`), congelado desde hace tiempo,
+de sólo lectura y con exportación. No se sincroniza porque no se puede escribir
+en él; el diario de verdad es `/performance`.
+
+**Verificado:** engine-check 264/264 · simulación masiva 20.227 · i18n 10/10 ·
+check-edu-index · gen-mapa · check-doc-links · ESLint 0 errores · pytest 782
+passed · y las dos pruebas de dos dispositivos, en el navegador real.
