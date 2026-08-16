@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "Schlecht (25 %)",
   "mcP75": "Gut (75 %)",
   "mcRuinNone": "Kein Pfad ging pleite",
+  "mcRuinImpossible": "Unmöglich",
+  "mcRuinFloor": "Selbst wenn alle {ops} in Folge verloren gehen, blieben dir bei durchschnittlicher Größe noch {x}.",
   "mcRuinAt": "Die Hälfte ging vor Trade {n} pleite",
   "mcWorstDd": "Schlimmster Fall {pct}",
   "mcFootnote": "{sims} Läufe zu {ops} Trades · Startwert {seed}. Das Konto stoppt bei null: hier handelt niemand mit negativem Saldo.",
@@ -4277,4 +4279,16 @@ export default {
   "mcError_avg_loss": "Der durchschnittliche Verlust darf nicht null sein.",
   "mcError_sample_empty": "Dein Tagebuch hat keine Trades mit Ergebnis zum Ziehen.",
   "mcError_sample_flat": "Alle Trades im Tagebuch sind null: es gibt nichts zu simulieren.",
+
+  // ─── Rachas de pérdidas (Monte Carlo) ───
+  "mcStreakTitle": "Verlustserien",
+  "mcStreakKills": "Dich ruiniert eine Serie von",
+  "mcStreakNever": "Keine (mit Verzinsung)",
+  "mcStreakOdds": "Wahrscheinlichkeit in {ops} Trades",
+  "mcStreakTypical": "Typische Serie (Hälfte aller Sitzungen)",
+  "mcStreakOneInTwenty": "1 von 20 Sitzungen erreicht",
+  "mcStreakObserved": "Beobachtet: Median · p95 · Maximum",
+  "mcStreakHint": "Die ersten beiden Zahlen sind exakt, nicht aus der Simulation gezogen. Die typische Serie plant fast niemand ein: bei 55 % Trefferquote reihst du in einer von zwanzig Sitzungen 8 Verluste aneinander.",
+  "mcRiskOverAdvised": "Über den empfohlenen {advised} %. Sieh dir die ruinöse Serie und ihre Wahrscheinlichkeit an, bevor du entscheidest.",
+  "mcRiskOverCap": "Über dem harten Limit von {cap} % des Rechners. Hier wird trotzdem simuliert — absichtlich: die Serie unten zeigt, warum der Rechner so eine Positionsgröße ablehnt.",
 }

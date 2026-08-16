@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "Mauvais (25 %)",
   "mcP75": "Bon (75 %)",
   "mcRuinNone": "Aucun chemin n’a fait faillite",
+  "mcRuinImpossible": "Impossible",
+  "mcRuinFloor": "Même en perdant les {ops} d’affilée à la taille moyenne, il te resterait {x}.",
   "mcRuinAt": "La moitié a fait faillite avant le trade {n}",
   "mcWorstDd": "Pire cas {pct}",
   "mcFootnote": "{sims} tirages de {ops} trades · graine {seed}. Le compte s’arrête à zéro : ici personne ne trade avec un solde négatif.",
@@ -4277,4 +4279,16 @@ export default {
   "mcError_avg_loss": "La perte moyenne ne peut pas être nulle.",
   "mcError_sample_empty": "Ton journal n’a aucun trade avec résultat à rééchantillonner.",
   "mcError_sample_flat": "Tous les trades du journal sont à zéro : il n’y a rien à simuler.",
+
+  // ─── Rachas de pérdidas (Monte Carlo) ───
+  "mcStreakTitle": "Séries de pertes",
+  "mcStreakKills": "Tu es ruiné par une série de",
+  "mcStreakNever": "Aucune (en capitalisant)",
+  "mcStreakOdds": "Probabilité de l’enchaîner en {ops} trades",
+  "mcStreakTypical": "Série typique (la moitié des sessions)",
+  "mcStreakOneInTwenty": "1 session sur 20 atteint",
+  "mcStreakObserved": "Observée : médiane · p95 · maximum",
+  "mcStreakHint": "Les deux premiers chiffres sont exacts, pas issus du tirage. La série typique est celle que presque personne n’anticipe : avec 55 % de réussite tu enchaîneras 8 pertes une session sur vingt.",
+  "mcRiskOverAdvised": "Au-dessus des {advised} % conseillés. Regarde la série qui te ruine et sa probabilité avant de décider.",
+  "mcRiskOverCap": "Au-dessus du plafond de {cap} % de la calculatrice. On simule quand même, exprès : la série ci-dessous montre pourquoi elle refuse de dimensionner ainsi.",
 }

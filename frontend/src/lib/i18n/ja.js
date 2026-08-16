@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "悪い（25％）",
   "mcP75": "良い（75％）",
   "mcRuinNone": "破産した経路はありません",
+  "mcRuinImpossible": "起こりえません",
+  "mcRuinFloor": "平均サイズで {ops} 回すべて負けても、{x} が残ります。",
   "mcRuinAt": "半数は {n} 回目までに破産",
   "mcWorstDd": "最悪 {pct}",
   "mcFootnote": "{ops} トレード × {sims} 回 · シード {seed}。残高がゼロで停止します。ここではマイナス残高で取引しません。",
@@ -4277,4 +4279,16 @@ export default {
   "mcError_avg_loss": "平均損失をゼロにはできません。",
   "mcError_sample_empty": "リサンプリングできる結果付きトレードが日誌にありません。",
   "mcError_sample_flat": "日誌のトレードがすべてゼロです。試行するものがありません。",
+
+  // ─── Rachas de pérdidas (Monte Carlo) ───
+  "mcStreakTitle": "連敗",
+  "mcStreakKills": "口座が飛ぶ連敗数",
+  "mcStreakNever": "なし（複利のため）",
+  "mcStreakOdds": "{ops} 回のうちに起きる確率",
+  "mcStreakTypical": "典型的な連敗（半数のセッション）",
+  "mcStreakOneInTwenty": "20回に1回のセッションで到達",
+  "mcStreakObserved": "実測：中央値 · p95 · 最大",
+  "mcStreakHint": "最初の2つは厳密解で、抽選から得た値ではありません。典型的な連敗はほとんど誰も想定しません。勝率55％なら、20セッションに1回は8連敗します。",
+  "mcRiskOverAdvised": "推奨の {advised} ％を超えています。決める前に、口座が飛ぶ連敗数とその確率を見てください。",
+  "mcRiskOverCap": "計算台の上限 {cap} ％を超えています。ここではあえてそのまま試行します。下の連敗が、計算機がこの数量を拒む理由そのものです。",
 }

@@ -4264,6 +4264,8 @@ export default {
   "mcP25": "Malo (25 %)",
   "mcP75": "Bueno (75 %)",
   "mcRuinNone": "Ningún camino se arruinó",
+  "mcRuinImpossible": "Imposible",
+  "mcRuinFloor": "Aun perdiendo las {ops} seguidas al tamaño medio, te quedarían {x}.",
   "mcRuinAt": "La mitad se arruinó antes de la operación {n}",
   "mcWorstDd": "Peor caso {pct}",
   "mcFootnote": "{sims} simulaciones de {ops} operaciones · semilla {seed}. La cuenta se detiene al llegar a cero: aquí nadie opera con saldo negativo.",
@@ -4277,4 +4279,16 @@ export default {
   "mcError_avg_loss": "La pérdida media no puede ser cero.",
   "mcError_sample_empty": "Tu diario no tiene operaciones con resultado para remuestrear.",
   "mcError_sample_flat": "Todas las operaciones del diario dan cero: no hay nada que simular.",
+
+  // ─── Rachas de pérdidas (Monte Carlo) ───
+  "mcStreakTitle": "Rachas de pérdidas",
+  "mcStreakKills": "Te mata una racha de",
+  "mcStreakNever": "Ninguna (capitalizando)",
+  "mcStreakOdds": "Probabilidad de encadenarla en {ops} operaciones",
+  "mcStreakTypical": "Racha típica (la mitad de las sesiones)",
+  "mcStreakOneInTwenty": "1 de cada 20 sesiones llega a",
+  "mcStreakObserved": "Observada: mediana · p95 · máxima",
+  "mcStreakHint": "Las dos primeras cifras son exactas, no salen del sorteo. La racha típica es la que casi nadie prevé: con un 55 % de acierto encadenarás 8 pérdidas seguidas una de cada veinte veces.",
+  "mcRiskOverAdvised": "Por encima del {advised} % aconsejado. Mira la racha que te mata y la probabilidad de encadenarla antes de decidir.",
+  "mcRiskOverCap": "Por encima del tope del {cap} % de la mesa. Aquí se simula igual, a propósito: la racha de abajo te enseña por qué la calculadora no te deja operar así.",
 }
