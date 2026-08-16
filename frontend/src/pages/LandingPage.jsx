@@ -5,12 +5,12 @@ import LandingDemoCalculator from '@/components/landing/LandingDemoCalculator';
 import AnimatedHeroChart from '@/components/landing/AnimatedHeroChart';
 import AppComingSoon from '@/components/landing/AppComingSoon';
 import { 
-  TrendingUp, Calculator, Shield, Zap, Crown, ArrowRight, Check, 
+  TrendingUp, Calculator, Shield, Crown, ArrowRight, Check, 
   CandlestickChart, History, Bell, BookOpen, Wallet, Target, 
   Scale, FlaskConical, BarChart3, Globe, Moon, Sun, 
   LineChart, PieChart, DollarSign, Percent, Users, Award,
   ChevronRight, Play, Star, Briefcase, GraduationCap, ChevronDown,
-  Sigma, MessageSquare, Clock, Layers
+  Sigma, MessageSquare, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -18,6 +18,7 @@ import { Footer } from '@/components/layout/Footer';
 import { RecommendedTools } from '@/components/common/RecommendedTools';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation, languages } from '@/lib/i18n';
+import { SITE_FACTS } from '@/lib/siteFacts';
 import { useSEO } from '@/hooks/useSEO';
 import { useThemeStore } from '@/lib/theme';
 
@@ -180,14 +181,20 @@ export default function LandingPage() {
             
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+              {/* Cuatro cifras, las cuatro comprobables.
+                  Antes eran «24/7 disponible», «50+ activos», los idiomas y
+                  «99,9 % de tiempo activo». La de activos se quedó corta —hay
+                  186— y la de disponibilidad no la medía nadie: el propio
+                  `market_data.py` dice que no hay SLA y devuelve precios con
+                  `stale=true`. Un número que no se puede defender no vende, se
+                  cae en cuanto alguien pregunta.
+                  Las tres primeras salen de `SITE_FACTS`, que `engine-check`
+                  contrasta con el código en CI; los idiomas, de la propia lista. */}
               {[
-                { value: '24/7', labelKey: 'statsAvailable',  delay: 0.2, icon: Clock },
-                { value: '50+',  labelKey: 'statsAssets',     delay: 0.3, icon: Layers },
-                // La cifra sale de la lista de idiomas, no de un literal: escrita
-                // a mano se quedó en 8 mientras la etiqueta ya decía 10, así que
-                // la propia tarjeta se contradecía. Añadir un idioma la actualiza.
-                { value: String(languages.length), labelKey: 'statsLanguages', delay: 0.4, icon: Globe },
-                { value: '99.9%',labelKey: 'statsUptime',     delay: 0.5, icon: Zap },
+                { value: String(SITE_FACTS.calculators), labelKey: 'statsCalculators', delay: 0.2, icon: Calculator },
+                { value: String(SITE_FACTS.assets),      labelKey: 'statsAssets',      delay: 0.3, icon: Layers },
+                { value: String(SITE_FACTS.strategies),  labelKey: 'statsStrategies',  delay: 0.4, icon: Sigma },
+                { value: String(languages.length),       labelKey: 'statsLanguages',   delay: 0.5, icon: Globe },
               ].map((stat) => {
                 const Ic = stat.icon;
                 return (

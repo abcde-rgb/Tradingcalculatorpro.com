@@ -419,7 +419,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 382 |
 | `components/ui/` | 46 | 2,946 |
-| `pages/` | 21 | 15,181 |
+| `pages/` | 21 | 15,188 |
 
 ## Los ficheros que más cuesta abrir
 
