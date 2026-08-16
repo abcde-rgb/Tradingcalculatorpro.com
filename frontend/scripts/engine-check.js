@@ -10,6 +10,7 @@
  *
  * Exits 1 on the first failure.
  */
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
@@ -1124,6 +1125,50 @@ async function checkEduIndex() {
   clearEduIndex();
 }
 
+/**
+ * Las cifras que la portada dice de sí misma, contra su fuente real.
+ *
+ * La portada anunciaba «50+ activos» con 186 en el catálogo y «99,9 % de tiempo
+ * activo» sin que nadie midiera nada. Se cambiaron por cifras verdaderas, y
+ * esto es lo que impide que vuelvan a envejecer: quien añada una calculadora,
+ * un activo o una estrategia y no actualice `lib/siteFacts.js` rompe el PR.
+ *
+ * Se cuentan leyendo el fichero, no importándolo: `DashboardPage.jsx` es JSX y
+ * `mockData.js` arrastraría medio bundle para contar 66 elementos.
+ */
+async function checkSiteFacts() {
+  console.log('\nsiteFacts.js  (las cifras de la portada son verdad)');
+  const { SITE_FACTS } = await imp('lib/siteFacts.js');
+  const lee = (rel) => fs.readFileSync(path.join(SRC, rel), 'utf8');
+
+  // Herramientas del banco de calculadoras: `{ value: '...' }` dentro de CALC_NAV.
+  const dash = lee('pages/DashboardPage.jsx');
+  const navIni = dash.indexOf('const CALC_NAV');
+  const navFin = dash.indexOf('\n  ];', navIni);
+  const calculadoras = (dash.slice(navIni, navFin).match(/\{ value:/g) || []).length;
+  ok(`las ${SITE_FACTS.calculators} calculadoras de la portada existen en el dashboard`,
+    calculadoras === SITE_FACTS.calculators,
+    `siteFacts dice ${SITE_FACTS.calculators}, CALC_NAV tiene ${calculadoras}`);
+
+  // Activos: claves de primer nivel de ALL_ASSETS.
+  const activosSrc = lee('lib/assets.js');
+  const aIni = activosSrc.indexOf('export const ALL_ASSETS');
+  const aFin = activosSrc.indexOf('\n};', aIni);
+  const activos = (activosSrc.slice(aIni, aFin).match(/^ {2}[A-Z0-9_.=^-]+: \{/gm) || []).length;
+  ok(`los ${SITE_FACTS.assets} activos de la portada existen en el catálogo`,
+    activos === SITE_FACTS.assets,
+    `siteFacts dice ${SITE_FACTS.assets}, ALL_ASSETS tiene ${activos}`);
+
+  // Estrategias de opciones.
+  const mock = lee('data/mockData.js');
+  const eIni = mock.indexOf('export const STRATEGIES');
+  const eFin = mock.indexOf('\n];', eIni);
+  const estrategias = (mock.slice(eIni, eFin).match(/^ {2}\{/gm) || []).length;
+  ok(`las ${SITE_FACTS.strategies} estrategias de la portada existen en el catálogo`,
+    estrategias === SITE_FACTS.strategies,
+    `siteFacts dice ${SITE_FACTS.strategies}, STRATEGIES tiene ${estrategias}`);
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -1135,6 +1180,7 @@ async function checkEduIndex() {
   await checkEduIndex();
   await checkScannerMeta();
   await checkOptionsEngine();
+  await checkSiteFacts();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {
     console.error(`\n${failures} check(s) FAILED`);
