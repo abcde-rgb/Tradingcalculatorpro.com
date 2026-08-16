@@ -112,9 +112,12 @@ def se_consume(path: str, blob: str) -> bool:
     segs = [s for s in path.split("/") if s and not s.startswith("{")]
     if not segs:
         return True
-    if len(segs) >= 2:
-        return "/".join(segs[:2]) in blob
-    return f"/{segs[0]}" in blob
+    aguja = "/".join(segs[:2]) if len(segs) >= 2 else f"/{segs[0]}"
+    # El `in` pelado casaba por prefijo: al añadir la página `/backtesting` al
+    # frontend, la ruta muerta `/backtest` pasó a contar como consumida y la
+    # evidencia de que nadie la llama desapareció del mapa. El siguiente
+    # carácter no puede continuar el identificador.
+    return re.search(re.escape(aguja) + r"(?![A-Za-z0-9_-])", blob) is not None
 
 
 def por_que_huerfana(r: dict) -> str:

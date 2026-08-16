@@ -110,6 +110,14 @@ jobs:
       - name: Índice de la Academia ↔ navegación
         run: node scripts/check-edu-index.js
 
+      # `engine-check` comprueba casos ELEGIDOS y sólo encuentra lo que a
+      # alguien se le ocurrió mirar. Esto son 1000 escenarios GENERADOS, todos
+      # distintos, con ~20.000 invariantes sobre el significado de cada cifra.
+      # Encontró el saldo negativo del simulador y el Infinity del factor de
+      # beneficio, dos cosas que 264 comprobaciones a mano no vieron.
+      - name: Simulación masiva (1000 escenarios)
+        run: node scripts/simulacion-masiva.js
+
       # ESLint existía en el repo pero su configuración no parseaba NI UN
       # fichero (0 de 283): el parser de Babel abortaba en todos. Con el linter
       # mudo llegó a producción, entre otras cosas, un `idx` no definido que

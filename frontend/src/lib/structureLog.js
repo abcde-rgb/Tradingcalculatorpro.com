@@ -17,6 +17,24 @@
 export const LOG_KEY = 'tcp_struct_log_v2';
 const LEGACY_KEYS = ['tcp_struct_log_v1'];
 
+/**
+ * Cuántos ámbitos (activo × temporalidad) viajan con la cuenta.
+ *
+ * El registro entero NO cabe en el documento de preferencias: una entrada pesa
+ * ~127 bytes, el tope por ámbito son 60, y quien escanee cincuenta pares en
+ * varias temporalidades acumula más de 350 KB. Un documento de ajustes que
+ * crece sin techo acaba siendo lento de subir, caro de fusionar y, el día que
+ * se pase de tamaño, roto para TODO lo demás que viaja con él — el tema, los
+ * setups, el capital.
+ *
+ * Así que se sincronizan los **doce ámbitos tocados más recientemente**, que
+ * cubre a quien sigue una lista de activos de verdad, y el resto se queda en
+ * el navegador donde se generó. Es un recorte declarado, no un descuido: la
+ * alternativa honesta sería una tabla propia con su endpoint, y eso es otro
+ * trabajo.
+ */
+export const SYNC_SCOPE_CAP = 12;
+
 /** Storage key for one asset on one timeframe. */
 export const scopeKey = (symbol, interval) => `${symbol}|${interval || '1d'}`;
 export const LOG_CAP = 60;
@@ -42,6 +60,80 @@ const readStore = () => {
   try { return JSON.parse(localStorage.getItem(LOG_KEY) || '{}') || {}; } catch { return {}; }
 };
 
+/**
+ * Quién quiere enterarse de que el registro ha cambiado.
+ *
+ * Mismo patrón que `onSystemChange` en `tradingSystem.js`, y por el mismo
+ * motivo: `cloudPrefs` importa ESTE módulo para leer el registro, así que si
+ * este módulo lo importara de vuelta habría un ciclo. Con una suscripción, la
+ * dependencia va en una sola dirección y quien avisa no necesita saber a quién.
+ */
+const oyentes = new Set();
+export function onLogChange(fn) {
+  oyentes.add(fn);
+  return () => oyentes.delete(fn);
+}
+
+/**
+ * Escribe y AVISA de que hay algo nuevo que subir.
+ *
+ * Sin el aviso el registro seguiría atado al navegador: `cloudPrefs` sólo sube
+ * lo que sabe que ha cambiado, y un `localStorage.setItem` suelto no se lo dice
+ * a nadie. Es el bug G-25, que el proyecto ya cerró para el resto de ajustes.
+ */
+const writeStore = (store) => {
+  try {
+    localStorage.setItem(LOG_KEY, JSON.stringify(store));
+  } catch {
+    return;   // modo privado o cuota llena: no hay nada que sincronizar
+  }
+  for (const fn of oyentes) {
+    try { fn(); } catch (_) { /* un oyente roto no rompe el escáner */ }
+  }
+};
+
+/**
+ * El registro recortado a los ámbitos más recientes, para subirlo.
+ *
+ * «Más reciente» es la marca `ts` más alta de cada ámbito: el que acabas de
+ * escanear gana al que miraste hace un mes, que es el orden en el que a
+ * cualquiera le importan.
+ */
+export const scopesToSync = (store, cap = SYNC_SCOPE_CAP) => {
+  const entries = Object.entries(store || {}).filter(([, v]) => Array.isArray(v) && v.length);
+  entries.sort((a, b) => {
+    const ta = Math.max(0, ...a[1].map((e) => e.ts || 0));
+    const tb = Math.max(0, ...b[1].map((e) => e.ts || 0));
+    return tb - ta;
+  });
+  return Object.fromEntries(entries.slice(0, cap));
+};
+
+/** Lo que `cloudPrefs` lee y aplica. Exportado para poder probarlo sin navegador. */
+export const readSyncable = () => scopesToSync(readStore());
+
+/**
+ * Funde lo que llega del servidor con lo que hay aquí, ámbito a ámbito.
+ *
+ * NO se pisa: un móvil que escaneó EURUSD ayer y un ordenador que escaneó ES
+ * hoy tienen que acabar los dos con los dos registros. Dentro de un ámbito
+ * manda `mergeEntries`, que ya sabe conservar la primera vez que se vio cada
+ * señal — y esa marca es la que alimenta el resaltado de «últimas 24 h», así
+ * que perderla al sincronizar sería perder información real.
+ */
+export const applySynced = (remote) => {
+  if (!remote || typeof remote !== 'object') return;
+  const store = readStore();
+  for (const [key, rows] of Object.entries(remote)) {
+    if (!Array.isArray(rows)) continue;
+    const prev = Array.isArray(store[key]) ? store[key] : [];
+    // `now` no se usa aquí: toda entrada remota ya trae su `ts` original.
+    store[key] = mergeEntries(prev, rows, 0)
+      .map((e) => ({ ...e, ts: e.ts || Date.now() }));
+  }
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(store)); } catch { /* no-op */ }
+};
+
 export const loadLogFor = (symbol, interval) => {
   if (!symbol) return [];
   const store = readStore();
@@ -55,10 +147,8 @@ export const mergeLogFor = (symbol, interval, candidates, now = Date.now()) => {
   const store = readStore();
   const prev = Array.isArray(store[key]) ? store[key] : [];
   const merged = mergeEntries(prev, candidates, now);
-  try {
-    store[key] = merged;
-    localStorage.setItem(LOG_KEY, JSON.stringify(store));
-  } catch { /* no-op */ }
+  store[key] = merged;
+  writeStore(store);
   return merged;
 };
 
@@ -67,7 +157,7 @@ export const clearLogFor = (symbol, interval) => {
   if (!symbol) return;
   const store = readStore();
   delete store[scopeKey(symbol, interval)];
-  try { localStorage.setItem(LOG_KEY, JSON.stringify(store)); } catch { /* no-op */ }
+  writeStore(store);
 };
 
 /** Drop the pre-timeframe store; its entries cannot be assigned a timeframe. */

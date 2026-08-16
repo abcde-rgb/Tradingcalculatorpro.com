@@ -51,8 +51,26 @@ psql -U "$BD_USUARIO" -lqt 2>/dev/null | cut -d\| -f1 | grep -qw "$BD" \
 verde "base '$BD' disponible"
 
 # ── 2 · Backend ──────────────────────────────────────────────────────────
+# El backend autoriza por CORS el puerto EN EL QUE SE SIRVE EL FRONTEND, y sólo
+# lo aprende al arrancar. Así que un backend ya en pie con otro puerto web no
+# vale: la página carga, parece correcta y el login muere en el preflight con un
+# error que sólo se ve en la consola del navegador. Por eso se anota con qué
+# puerto arrancó y se reinicia si ha cambiado — reusar un backend que no te va a
+# dejar entrar es peor que tardar cinco segundos más.
+PUERTO_WEB_ANTERIOR="$(cat "$ESTADO/puerto-web" 2>/dev/null || echo "")"
+if curl -sf -o /dev/null "http://127.0.0.1:$PUERTO_API/api/performance/instruments" \
+   && [ "$PUERTO_WEB_ANTERIOR" != "$PUERTO_WEB" ]; then
+  aviso "el backend en pie autoriza el puerto ${PUERTO_WEB_ANTERIOR:-desconocido}, no el $PUERTO_WEB — se reinicia"
+  [ -f "$ESTADO/backend.pid" ] && kill "$(cat "$ESTADO/backend.pid")" 2>/dev/null
+  rm -f "$ESTADO/backend.pid"
+  for _ in $(seq 1 20); do
+    curl -sf -o /dev/null "http://127.0.0.1:$PUERTO_API/api/performance/instruments" || break
+    sleep 0.5
+  done
+fi
+
 if curl -sf -o /dev/null "http://127.0.0.1:$PUERTO_API/api/performance/instruments"; then
-  verde "backend ya respondía en :$PUERTO_API"
+  verde "backend ya respondía en :$PUERTO_API (CORS para :$PUERTO_WEB)"
 else
   VENV="${QA_VENV:-$ESTADO/venv}"
   if [ ! -x "$VENV/bin/uvicorn" ]; then
@@ -70,6 +88,7 @@ else
   nohup "$VENV/bin/uvicorn" server:app --host 127.0.0.1 --port "$PUERTO_API" \
     --app-dir "$RAIZ/backend" > "$ESTADO/backend.log" 2>&1 &
   echo $! > "$ESTADO/backend.pid"
+  echo "$PUERTO_WEB" > "$ESTADO/puerto-web"
   for _ in $(seq 1 40); do
     curl -sf -o /dev/null "http://127.0.0.1:$PUERTO_API/api/performance/instruments" && break
     sleep 1

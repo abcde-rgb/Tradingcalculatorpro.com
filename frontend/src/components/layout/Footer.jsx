@@ -111,6 +111,7 @@ export function Footer() {
               <li><Link to="/about" className="hover:text-primary transition-colors">{t('about') || 'Sobre nosotros'}</Link></li>
               <li><Link to="/contact" className="hover:text-primary transition-colors">{t('support') || 'Contacto'}</Link></li>
               <li><Link to="/options" className="hover:text-primary transition-colors">{t('optionsAcademy')}</Link></li>
+              <li><Link to="/backtesting" className="hover:text-primary transition-colors" data-testid="footer-backtesting">{t('btTitle')}</Link></li>
             </ul>
           </div>
 

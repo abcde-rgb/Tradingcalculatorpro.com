@@ -309,6 +309,49 @@ export function maxSizes({
 }
 
 /**
+ * La palanca que sale del margen que exige el mercado, POR CONTRATO.
+ *
+ * `suggestedLeverage()` de `instruments.js` la deduce del nocional, y eso en el
+ * diario funciona —allí la cantidad ya está escrita— pero en la mesa es una
+ * pescadilla: el nocional necesita la cantidad, la cantidad necesita la
+ * palanca, y la palanca acababa cayendo a 1×.
+ *
+ * El síntoma no era sutil: con 10 000 € de cuenta, la mesa exigía 25 000 € de
+ * margen por un micro E-mini y respondía «no te llega el capital ni para el
+ * contrato más pequeño». El margen inicial de ese contrato son **1320 $**, o
+ * sea unas 19×, y la operación cabe de sobra.
+ *
+ * El margen inicial de un futuro es por contrato y está en el catálogo, así que
+ * no hace falta saber cuántos vas a comprar para conocerlo. `null` cuando el
+ * símbolo no lo declara: ahí la palanca la pone el usuario y no nos la
+ * inventamos.
+ */
+export function leverageFromMargin(spec, entry, contractSize) {
+  if (!spec?.usesLeverage) return null;
+  const margin = pos(spec.initialMargin);
+  const e = pos(entry);
+  const csize = pos(contractSize);
+  if (margin === null || e === null || csize === null) return null;
+  return Math.max(1, (e * csize) / margin);
+}
+
+/**
+ * La palanca con la que dimensionar, en orden de autoridad: la que escribió el
+ * trader, la que exige el mercado por contrato, la típica del producto, y 1×.
+ *
+ * Ese orden es el que importa: 1× sólo se usa cuando de verdad no se sabe nada,
+ * no como valor por defecto que se cuela delante de un dato del catálogo.
+ */
+export function effectiveLeverage({ declared, spec, entry, contractSize }) {
+  if (!spec?.usesLeverage) return 1;
+  const typed = pos(declared);
+  if (typed !== null) return typed;
+  return leverageFromMargin(spec, entry, contractSize)
+    ?? pos(spec.defaultLeverage)
+    ?? 1;
+}
+
+/**
  * El tamaño MÍNIMO operable y lo que cuesta.
  *
  * Existe porque hay una respuesta que ninguna calculadora da y que cambia

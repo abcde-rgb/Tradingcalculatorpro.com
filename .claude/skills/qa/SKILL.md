@@ -39,6 +39,36 @@ mitad de trabajo — por eso está escrito así.
 
 Para una sonda suelta: `tests/e2e/correr.sh analitica autorizacion`.
 
+## Mirar una pantalla mientras la diseñas
+
+El examen entero es lo correcto antes de mergear y demasiado caro mientras
+trabajas, que es justo cuando más falta hace mirar. `mirar.js` es ese hueco:
+una orden, una pantalla, una captura, y de paso los errores de JavaScript, el
+desbordamiento horizontal y el texto real de los `data-testid` que pidas.
+
+```bash
+node tests/e2e/mirar.js dashboard --movil
+node tests/e2e/mirar.js dashboard \
+  --hacer 'fill:desk-capital=10000; click:desk-product-futures; fill:desk-entry=5000; fill:desk-sl-value=4980' \
+  --leer desk-size-value,desk-size-binding,desk-per-tick \
+  --recorta trading-desk
+```
+
+Verbos de `--hacer`: `fill:`, `click:`, `select:`, `tecla:`, `esperar:`,
+separados por `;`. No es un lenguaje: en cuanto una comprobación merece
+repetirse, su sitio es una sonda de `navegador/`.
+
+Los recursos externos bloqueados por la política de red del sandbox se cuentan
+**aparte** y no tiñen el resultado: si se mezclaran, cada ejecución gritaría
+«9 errores» y a la tercera vez nadie los leería.
+
+> Esto no es opcional al añadir una pantalla. La mesa de cálculo pasó lint, 264
+> comprobaciones de motor y 782 tests, y **la primera captura encontró dos
+> fallos en treinta segundos**: el margen de un micro E-mini salía a 25 000 $
+> en vez de 1320 (la palanca se caía a 1× porque se deducía del nocional, que
+> depende de la cantidad, que es lo que se estaba calculando) y el aviso de
+> email tapaba el campo de capital.
+
 La de accesibilidad va aparte porque necesita `axe-core`:
 
 ```bash

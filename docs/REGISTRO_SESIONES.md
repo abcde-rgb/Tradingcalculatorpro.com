@@ -4097,3 +4097,297 @@ con la IA viva (el sandbox no tiene salida a Anthropic); la ruta local sí, que 
 decide. Y el «modo básico simple» que se pidió para el final ya existe: son las catorce
 calculadoras de siempre, ahora con nombre y conmutador propios en vez de ser lo único que
 había.
+
+### 2026-08-14 (2) — Lo que decía estar verde y no lo estaba
+
+Sesión de auditoría de la propia infraestructura, no del producto. Se pidió
+comprobar si «el mapa y todas las actualizaciones funcionan al 100 %». No.
+
+**Lo que sí funciona.** Los verificadores offline corren y son rápidos:
+`i18n-check` 222 ms, `engine-check` 1,6 s, `check-edu-index` 42 ms,
+`check-fetch-credentials` 107 ms, `gen-mapa --check` 563 ms, `check-doc-links`
+28 ms, `gen-instruments-js --check` 30 ms. Todo el bloque estático son ~2,6 s.
+`pytest` 14 s, ESLint 5 s, `npm run build` 37 s. La velocidad **no** era el
+problema.
+
+**Tres cosas estaban rotas o mentían:**
+
+1. **El banco de pruebas E2E no arrancaba en frío** (G-35). `sembrar.py` hacía
+   login con una cuenta que nadie creaba: 401 en una base nueva, o sea en TODA
+   sesión remota. `arriba.sh` seguía con un aviso amarillo y las ocho sondas de
+   navegador fallaban acusando al producto de un fallo que era «aquí no hay
+   cuenta». `entorno.py` ya tenía `cuenta()` y `da_premium()`; este script no
+   los usaba.
+
+2. **`/verify` decía «todo verde» sobre PRs que CI iba a tumbar** (G-36).
+   Comprobaba 4 de las 10 verificaciones de `ci.yml`. Hablaba de 8 idiomas
+   (hay 10), compilaba 3 módulos de Python (hay 26) y corría `pytest -k unit`
+   en vez del suite. Reescrito para ejecutar exactamente lo de CI, con la regla
+   escrita de que las dos listas no pueden separarse.
+
+3. **`entra()` no cerraba el modal de bienvenida.** El overlay se come todos
+   los clics y Playwright responde con un timeout de 30 s sobre un botón
+   «visible, enabled y stable» — visible sí, alcanzable no. Ahora hay
+   `descartaModales()` y lo llama `entra()`, así que le vale a toda sonda nueva.
+
+**Lo que se añade para acelerar: `tests/e2e/mirar.js`.** El examen entero es
+correcto antes de mergear y demasiado caro mientras diseñas, que es cuando más
+falta hace mirar. Una orden abre una pantalla, la toca con un guion mínimo
+(`fill:`, `click:`, `select:`, `tecla:`, `esperar:`), saca la captura y reporta
+los errores de JavaScript, el desbordamiento horizontal y el texto real de los
+`data-testid` que pidas. Los recursos externos bloqueados por la red del
+sandbox se cuentan **aparte**: mezclados, cada ejecución gritaría «9 errores» y
+a la tercera nadie los leería.
+
+**Y el hook de arranque avisa del contenedor crudo.** Cada sesión remota empieza
+sin `node_modules` ni las dependencias de Python; descubrirlo a mitad de trabajo
+cuesta minutos parado, siempre cuando ya has escrito el código y sólo querías
+verificarlo. Ahora se dice al arrancar, para poder lanzarlo en segundo plano.
+
+**Dos bugs del producto que encontró la PRIMERA captura**, después de que el
+código pasara lint, 264 comprobaciones de motor y 782 tests:
+
+- **La palanca se caía a 1× en futuros.** `suggestedLeverage()` la deduce del
+  nocional, que necesita la cantidad, que es justo lo que la mesa está
+  calculando. Resultado: pedía **25 000 $ de margen por un micro E-mini** cuyo
+  margen inicial son **1320 $**, y respondía «no te llega el capital ni para el
+  contrato más pequeño» con una cuenta de 10 000 que da para diecinueve.
+  Arreglado con `leverageFromMargin()` / `effectiveLeverage()`, con el orden de
+  autoridad explícito: lo escrito > el margen del mercado > la típica del
+  producto > 1×. De paso desaparece `leverage_touched` de la mesa: la palanca
+  se **resuelve** en cada render en vez de guardarse.
+- **El aviso de email tapaba el campo de capital.** Es una barra `fixed top-16`
+  y `main` sólo reservaba `pt-20`: 24 px de solape. Daba igual mientras debajo
+  hubiera un titular; desde que ahí va el capital, tapaba el dato del que
+  depende todo lo demás.
+
+**Verificado:** `engine-check` **264/264** (7 comprobaciones nuevas de palanca) ·
+`i18n-check` 10/10 sin huecos · `check-edu-index` 85 = 85 · `check-doc-links` ·
+`gen-mapa --check` · paridad del catálogo · ESLint 0 errores · `pytest` **782
+passed, 74 skipped** · y la mesa **vista funcionando** en el navegador con
+futuros (1 contrato, margen 1320 $, tick 1,25 $, liquidación 3025 en cruzado),
+forex (0,33 lotes, 3,30 $/pip), el tope del 10 % bloqueando, los 4 contratos
+sueltos y el buscador de la Academia devolviendo «Margen y liquidación en
+derivados» con sus tres apartados.
+
+### 2026-08-14 (3) — La mesa, rehecha: una pregunta, un botón, una respuesta
+
+El propietario rechazó la mesa del mismo día. La crítica, literal: «no sé lo que
+hace», «los cálculos parece que tengo que descifrarlos», «no tiene ni un botón
+para darle a calcular», «el diseño no respeta ni tamaños ni nada», «performance,
+diario de trading y setup están mejor». Toda ella acertada, y medible.
+
+**Lo que se midió antes de tocar nada.** El skill `identidad-visual` fija la ley
+del proyecto y no se cargó al diseñar. Contra ella, la mesa v1 tenía: **50
+colores hex escritos a mano** (la ley dice tokens `--long`/`--short`), **0
+`tabular-nums`** (la ley los exige en todo número), **dos acentos** además del
+verde (azul y ámbar en las secciones plegables), y ningún botón de calcular
+mientras las otras catorce calculadoras sí lo tienen.
+
+**La referencia estaba dentro.** Capturado `/performance`, que es lo que sí
+gusta: el color ahí **significa** algo (producto, dirección, error), los avisos
+están **escritos en palabras** —«POSICIÓN SOBREDIMENSIONADA», «SIN STOP LOSS»,
+«ARRIESGAS MÁS DE LO QUE GANAS»— y cada fila tiene una lectura. La mesa hacía lo
+contrario: veinte cifras del mismo cuerpo y ninguna era la respuesta.
+
+**Y fuera.** De lo que se pudo consultar (el proxy bloquea las descargas
+directas; sólo pasó la búsqueda): Myfxbook y BabyPips coinciden en pocos campos
+—divisa de la cuenta, capital, riesgo en % o en importe fijo, stop en pips—, un
+botón explícito y **una** salida principal, el lote, con la equivalencia en
+unidades/mini/micro debajo. Ninguna de las dos enseña veinte cifras.
+
+**Lo que se ha rehecho:**
+
+- **`DeskForm`** — siete campos a la vista (capital, riesgo, producto, activo,
+  dirección, entrada, stop, objetivo) y un **botón de Calcular**. Lo que decide
+  el producto y casi nadie cambia —tamaño de contrato, apalancamiento, modo de
+  margen, tipo de lote— se pliega bajo «Ajustes del instrumento», con lo que el
+  catálogo ya ha puesto **resumido en la cabecera** para no tener que abrirlo.
+- **`DeskAnswer`** — la respuesta es un número grande y **una frase**:
+  «Arriesgas 100 $ (1,00 % de tu cuenta) para ganar 300 $». Debajo, tres cifras
+  de control: margen, R:B y liquidación. Nada más.
+- **`DeskDetail`** — las otras catorce cifras siguen enteras, detrás de un clic,
+  porque son verificación y no respuesta. Los avisos que son motivo para no
+  mandar la orden (exposición, R:B bajo 1:1, stop detrás de la liquidación) van
+  **fuera** del plegado: un aviso que hay que desplegar llega tarde.
+- **El resultado es una foto, no un flujo.** Se congela al pulsar; si luego
+  cambias un campo, se marca como caducado en vez de mutar por debajo. Un número
+  que cambia solo no se puede copiar al bróker con confianza.
+
+Borrados `SizeVerdict.jsx`, `DeskResults.jsx` y `PartialsSection.jsx`.
+
+**Dos bugs más que encontró mirar la pantalla:**
+
+- **Un objetivo de 5060 sobrevivía al saltar del E-mini a EURUSD** y la
+  respuesta salía «arriesgas 48 $ para ganar 80 942 640 $». La aritmética era
+  correcta; el resultado, absurdo. Un nivel de precio pertenece a un
+  instrumento: cambiar de producto o de símbolo los vacía.
+- El R:B aparecía **dos veces** —como cifra de control y otra vez dentro del
+  bloque de liquidación bajo la etiqueta del suelo—, y las notas del desglose se
+  cortaban a media palabra con `truncate`.
+
+**Estado de la ley visual en `components/desk/`:** 0 hex a mano, 14
+`tabular-nums`, 25 usos de `--long`/`--short`, un solo acento, `rounded-sharp`
+en inputs y chips.
+
+**Verificado:** engine-check 264/264 · i18n 10/10 sin huecos (20 claves nuevas) ·
+check-edu-index · gen-mapa · check-doc-links · ESLint 0 errores · pytest 782
+passed · y **visto en el navegador**, escritorio y móvil: futuros (1 contrato,
+margen 1320 $, R:B 3:1, liquidación 3025), forex (0,16 lotes con 5000 € de
+cuenta, riesgo 48 $, objetivo 96 $, margen 578,67 $) y el tope del 10 %
+bloqueando con su motivo.
+
+**Lo que queda y se dice claro:** las catorce calculadoras sueltas **siguen sin
+rehacerse** (G-33). Es el siguiente trabajo, y ahora hay con qué: la ley visual
+medida, la referencia de `/performance`, el patrón de esta pantalla
+—pocos campos, un botón, una frase, desglose plegado— y `mirar.js` para no
+volver a entregar una pantalla sin verla.
+
+### 2026-08-14 (4) — La captura mentía: la barra de navegación salía tres veces
+
+El propietario avisó de un fallo de maquetación viendo una captura del
+dashboard: «encima de la barra de Trading Calculator Pro no debe haber nada, y
+en la captura aparece Dashboard: qa».
+
+**Medido antes de tocar nada, y no era un fallo de la web.** Con la página
+arriba del todo: la cabecera es `fixed` y ocupa de 0 a 65 px; el titular
+«Dashboard: qa» empieza en 128; y la consulta de todo lo que `main` pinta por
+encima del borde inferior de la cabecera devuelve **lista vacía**. La captura de
+ventana lo confirma: barra arriba, aviso de email debajo, contenido después.
+
+**El fallo era de `mirar.js`.** Playwright cose la página larga por tramos y
+**vuelve a pintar los elementos `position: fixed` en cada tramo**, así que la
+barra de navegación aparecía tres veces a media página y parecía haber contenido
+por encima de ella.
+
+Una herramienta de mirar que enseña algo que no pasa es peor que no tenerla:
+hace perder el tiempo persiguiendo fantasmas y enseña a desconfiar de las
+capturas buenas. Arreglado: durante la captura larga, lo fijo pasa a `absolute`
+en su posición real —elemento a elemento, porque una regla CSS global rompería
+los layouts que dependen de `absolute`— y se restaura después.
+
+**Y un fallo real que sí salió de esa misma imagen:** con el riesgo al 15 %, el
+formulario ponía «TE JUEGAS $750.00» en el mismo estilo tranquilo de siempre y
+se guardaba el «esto está por encima del tope» para cuando pulsaras Calcular.
+Dejar que el usuario rellene el formulario entero creyendo que va bien es
+justo lo que el tope existe para evitar. Ahora el importe sale tachado y con
+«Por encima del tope del 10 %» debajo, en el propio campo.
+
+**Verificado:** engine-check 264/264 · i18n 10/10 · check-edu-index · gen-mapa ·
+check-doc-links · paridad del catálogo · ESLint 0 errores · pytest 782 passed ·
+y comprobado en pantalla: con 15 % sale el aviso en el campo, con 1 % no.
+
+### 2026-08-14 (5) — Mil escenarios generados, y lo que 264 comprobaciones a mano no veían
+
+Petición: probar todas las herramientas con mil simulaciones distintas y
+verificar que lo que sale tiene sentido, no sólo que no revienta.
+
+**Lo que se ha montado.** `frontend/scripts/simulacion-masiva.js`: escenarios
+**generados** con semilla fija (reproducibles con `--semilla N`), repartidos
+entre los cinco motores importables, y sobre cada uno ~20 invariantes que
+comprueban **significado**:
+
+| Motor | Qué se exige |
+|---|---|
+| Mesa | riesgo real ≤ presupuesto · nunca >10 % de la cuenta · nocional = precio×cantidad×contrato · margen = nocional/palanca · exposición ≤ 10× · el techo elegido es el menor de los tres · liquidación del lado correcto · cruzado más lejos que aislado · riesgo = pips × valor del pip |
+| Opciones | **paridad put-call** · prima ≥ intrínseco · call ≤ subyacente · Δcall−Δput = 1 · gamma y vega ≥ 0 · monotonía en precio y en volatilidad |
+| Simulador | saldo ≥ 0 · drawdown ∈ [0,100] · ganadas+perdidas = total · ROI y tasa de acierto derivados de lo ocurrido |
+| P&L | **el apalancamiento NO cambia el P&L** (probado con 1×, 5×, 20×, 50× y 125× sobre la misma operación) · el margen SÍ, en proporción exacta |
+| Proyección | esperanza en R = fórmula · en la tasa de equilibrio la esperanza es cero |
+
+**Resultado: 60.000 escenarios en 6 semillas distintas, ~1,2 millones de
+comprobaciones.** Encontró tres cosas que `engine-check` (264 casos elegidos a
+mano) no veía:
+
+1. **El simulador daba saldos negativos y drawdowns del 137 %.** Con el interés
+   compuesto apagado, el tamaño sale del saldo INICIAL, así que cada pérdida
+   vale lo mismo pase lo que pase con la cuenta: una racha larga la empujaba por
+   debajo de cero y **seguía operando en negativo**. Ninguna de las dos cifras
+   puede pasarle a nadie. Ahora la cuenta se acaba en cero, se registra
+   `ruinedAt` (en qué operación se arruinó) y deja de operar — que además es el
+   resultado que de verdad importa de esa simulación.
+2. **`profitFactor` devolvía `Infinity`** cuando no había ni una pérdida: 2
+   casos en 50.000, o sea una simulación sin una sola operación perdedora. El
+   backend ya convertía ese `inf` a `None` antes de publicarlo y `JournalStats`
+   ya esperaba `null`: el motor del simulador era **el único de los tres
+   caminos** que devolvía `Infinity`, y un `Infinity` suelto envenena en
+   silencio cualquier media, percentil u ordenación posterior.
+3. **El modo fijo del simulador no valida su entrada:** con `fixedTotalOps`
+   ausente devuelve una simulación de cero operaciones, saldo = inicial y ROI
+   0 %, sin quejarse. Desde la interfaz no se puede llegar (el formulario
+   siempre rellena esos campos), así que no se ha tocado el motor; queda dicho.
+
+**Dos fallos eran del propio banco, y se dicen porque enseñan más que los del
+producto:** dos comprobaciones miraban `results.totalTrades` y `results.wins`,
+campos que **no existen** (el motor devuelve `totalOps` y `totalWins`), y la
+guarda `!= null` las convertía en un no-op silencioso — contaban como pasadas
+sin ejecutarse nunca. Una comprobación que no corre es peor que no tenerla,
+porque además tranquiliza.
+
+**Cruce motor ↔ pantalla.** Se hizo también una sonda de navegador para
+comprobar que los números del motor llegan intactos a la pantalla. **La sonda
+salió inestable y no se conserva**: leía el margen partiendo el texto por
+saltos de línea y cogía una línea en blanco (de ahí un «NaN» que era suyo, no
+del producto). Verificado en su lugar un caso concreto de punta a punta —
+409.507 € de cuenta, 2,5 % de riesgo, AAPL a 219,70 con stop en 216,50 → 1.863
+acciones, riesgo 5.961,60 $, margen 409.301,10 $, **ningún NaN en la pantalla**—
+y coincide con el motor.
+
+**Lo que este banco NO cubre, y hay que decirlo:** las catorce calculadoras
+sueltas tienen su matemática **dentro** del componente (`const calculate = …`
+en el JSX), no exportada, así que no se pueden fuzzear sin navegador. Es
+exactamente el motivo por el que G-33 pide extraerlas. Mientras siga así, esas
+catorce pantallas son las únicas del producto sin cobertura de este tipo.
+
+Añadido a CI (1.000 escenarios, 1,5 s).
+
+### 2026-08-15 — Lo último que seguía atado a un navegador
+
+Se preguntó si los datos podían guardarse en la base de datos y aparecer en los
+demás dispositivos del mismo cliente. **Casi todo ya lo hacía**, y lo primero fue
+demostrarlo en vez de suponerlo.
+
+**Prueba de dos dispositivos.** Dos contextos de navegador independientes
+—cookies, `localStorage` y sesión separados, como un ordenador y un móvil— con
+la misma cuenta. En A se escribió capital 46.649, riesgo 2,5 %, producto
+futuros, símbolo ES, entrada 5432 y un favorito de calculadora. B entró después,
+sesión limpia, sin tocar nada: **los seis datos estaban ahí**.
+
+Así que lo que ya viaja con la cuenta es: los diez *slices* de `cloudPrefs`
+(tema, idioma, favoritos de activos, preferencias, cuenta de la mesa, favoritos
+y recientes de calculadora, progreso de la Academia, recientes de opciones,
+sistema de trading) y los catorce estados de `usePersistedState` (las trece
+calculadoras, la mesa, el gráfico y la watchlist). El diario real vive en
+Postgres desde siempre.
+
+**Lo que NO viajaba, y ahora sí: el registro del escáner.** `structureLog`
+guarda las rupturas de estructura (BOS/CHoCH) y las señales de vela con la marca
+de cuándo se vieron por primera vez —la que alimenta el resaltado de las últimas
+24 h—. Escaneabas EURUSD en el ordenador y el móvil no sabía nada.
+
+Dos cosas que `lsSlice` no podía cubrir y por eso el *slice* tiene `read`/`apply`
+propios:
+
+- **Se recorta al subir.** Una entrada pesa ~127 bytes, el tope por ámbito son
+  60, y quien siga cincuenta pares en varias temporalidades pasa de 350 KB. Ese
+  documento lo comparten el tema, los setups y el capital: si engorda sin techo
+  los rompe a todos. Se sincronizan los **doce ámbitos tocados más
+  recientemente** (`SYNC_SCOPE_CAP`), y se dice que es un recorte, no un olvido.
+- **Se funde al bajar**, no se sobrescribe. Comprobado: B conservó su propio
+  ámbito `BTC-USD|1d` y recibió el `EURUSD|4h` de A, con los `ts` originales
+  intactos.
+
+El aviso de «esto ha cambiado, súbelo» va por suscripción (`onLogChange`), el
+mismo patrón que `onSystemChange` de `tradingSystem` y por el mismo motivo:
+`cloudPrefs` importa `structureLog` para leerlo, así que importarlo de vuelta
+crearía un ciclo. La primera versión usaba `require()` dentro de un módulo ESM
+—funciona en webpack y revienta en el Node de `engine-check`— y se cambió.
+
+**Lo que sigue siendo del navegador a propósito:** el diario legado del
+dashboard (`components/tools/TradingJournal.jsx`), congelado desde hace tiempo,
+de sólo lectura y con exportación. No se sincroniza porque no se puede escribir
+en él; el diario de verdad es `/performance`.
+
+**Verificado:** engine-check 264/264 · simulación masiva 20.227 · i18n 10/10 ·
+check-edu-index · gen-mapa · check-doc-links · ESLint 0 errores · pytest 782
+passed · y las dos pruebas de dos dispositivos, en el navegador real.

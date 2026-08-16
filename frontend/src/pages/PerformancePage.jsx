@@ -92,7 +92,9 @@ export default function PerformancePage() {
   // ─── Coming soon features ───
   const upcomingFeatures = [
     { icon: BookOpen,    key: 'perfFeatJournal'      },
-    { icon: BarChart3,   key: 'perfFeatBacktesting'  },
+    // La repetición manual ya existe (herramienta externa, en /backtesting);
+    // `to` es lo que distingue una tarjeta que se puede pulsar de una promesa.
+    { icon: BarChart3,   key: 'perfFeatBacktesting', to: '/backtesting' },
     { icon: Eye,         key: 'perfFeatReplay'       },
     { icon: PieChart,    key: 'perfFeatAnalytics'    },
     { icon: Layers,      key: 'perfFeatPlaybook'     },
@@ -394,9 +396,17 @@ export default function PerformancePage() {
                   className="relative bg-card border border-border rounded-xl p-6 hover:border-primary/40 transition-colors group overflow-hidden"
                   data-testid={`perf-upcoming-${i}`}
                 >
+                  {f.to && (
+                    <Link
+                      to={f.to}
+                      className="absolute inset-0 z-10"
+                      aria-label={t(`${f.key}Title`)}
+                      data-testid={`perf-upcoming-link-${i}`}
+                    />
+                  )}
                   <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-primary/10 border border-primary/30">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-primary">
-                      {t('comingSoonBadgeShort')}
+                      {t(f.to ? 'perfAvailableBadgeShort' : 'comingSoonBadgeShort')}
                     </span>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">

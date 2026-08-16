@@ -817,6 +817,7 @@ async function checkDeskMath() {
     RISK_HARD_CAP_PCT, riskBudget, marginModesFor, liquidationFromBuffer,
     liquidationView, maxSizes, minTicket, averageEntry, partialExits,
     breakEven, commissionTotal, stepValues, requiredLeverage, snapDown,
+    leverageFromMargin, effectiveLeverage,
   } = await imp('lib/deskMath.js');
   const { resolveSpec, liquidationPrice } = await imp('lib/instruments.js');
 
@@ -1005,6 +1006,36 @@ async function checkDeskMath() {
     near(stepValues({ quantity: 1, contractSize: 100000, spec: jpy }).perPip, 1000));
   ok('el tick del E-mini son 12,50 $',
     near(stepValues({ quantity: 1, contractSize: 50, spec: fut }).perTick, 12.5));
+
+  // ── La palanca que sale del catálogo ────────────────────────────
+  // Esto lo encontró una CAPTURA, no una revisión: la mesa pedía 25 000 $ de
+  // margen por un micro E-mini y decía «no te llega el capital ni para el
+  // contrato más pequeño» con una cuenta de 10 000. El margen inicial del MES
+  // son 1320 $, o sea ~19×, y caben diecinueve contratos.
+  const mes = resolveSpec('futures', 'MES');
+  ok('el micro E-mini apalanca ~19× por su margen inicial, no 1×',
+    near(leverageFromMargin(mes, 5000, 5), 25000 / 1320, 1e-9),
+    String(leverageFromMargin(mes, 5000, 5)));
+  ok('y con eso el contrato mínimo SÍ cabe en una cuenta de 10 000',
+    minTicket({ entry: 5000, stopDistance: 20, contractSize: 5, capital: 10000,
+      leverage: leverageFromMargin(mes, 5000, 5), spec: mes }).affordable === true);
+
+  // El orden de autoridad: lo escrito gana al catálogo, y el catálogo a 1×.
+  ok('lo que escribe el trader manda sobre el catálogo',
+    near(effectiveLeverage({ declared: 3, spec: mes, entry: 5000, contractSize: 5 }), 3));
+  ok('sin nada escrito manda el margen del mercado',
+    near(effectiveLeverage({ declared: '', spec: mes, entry: 5000, contractSize: 5 }), 25000 / 1320, 1e-9));
+  const cfd = resolveSpec('cfd', 'XAUUSD');
+  ok('un CFD sin margen declarado cae a su palanca típica',
+    near(effectiveLeverage({ declared: '', spec: cfd, entry: 2000, contractSize: 100 }),
+      cfd.defaultLeverage));
+  // El contado de cripto no admite margen; la ACCIÓN sí (cuenta de margen), y
+  // por eso el que fuerza el 1× aquí es `crypto_spot` y no `stock`.
+  ok('un producto sin apalancamiento es 1× y no se discute',
+    effectiveLeverage({ declared: 50, spec: resolveSpec('crypto_spot', 'BTC'),
+      entry: 100, contractSize: 1 }) === 1);
+  ok('sin datos para deducirla, no se inventa una palanca',
+    leverageFromMargin(resolveSpec('futures', 'NOEXISTE'), 100, 1) === null);
 
   ok('la palanca necesaria nunca baja de 1', near(requiredLeverage(5000, 10000), 1));
   ok('20 000 de nocional con 10 000 de cuenta son 2×', near(requiredLeverage(20000, 10000), 2));

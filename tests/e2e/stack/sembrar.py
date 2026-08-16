@@ -7,9 +7,14 @@ funding, la opción comprada tiene R sin stop, el spread lo tiene por pérdida
 máxima declarada, y hay una con R:B por debajo de 1:1 para el aviso duro.
 """
 import json
-import urllib.request
-
 import os
+import sys
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from entorno import cuenta, da_premium, llama  # noqa: E402
+
 API = os.environ.get("QA_API", "http://127.0.0.1:8080") + "/api"
 
 
@@ -23,8 +28,22 @@ def post(path, payload, token=None):
         return json.loads(r.read())
 
 
-tok = post("/auth/login", {"email": "qa@example.com", "password": "QaTest2026!"})["token"]
-print("login OK")
+# Registro-o-login, y premium, con el MISMO helper que usan las sondas de API.
+#
+# Esto hacía `POST /auth/login` a secas, que en una base recién creada devuelve
+# 401 — o sea: en un contenedor nuevo, que es TODA sesión remota, la siembra
+# fallaba siempre y `arriba.sh` seguía adelante avisando en amarillo. Las sondas
+# de navegador afirman sobre 13 filas y +$3.471,86, así que fallaban todas y el
+# informe acusaba al producto de un fallo que era «aquí no hay cuenta».
+#
+# `cuenta()` ya sabía registrar si el login no vale, y `da_premium()` ya sabía
+# saltar el muro de pago; sólo que este script no las usaba.
+EMAIL = os.environ.get("QA_EMAIL", "qa@example.com")
+PASSWORD = os.environ.get("QA_PASSWORD", "QaTest2026!")
+
+tok = cuenta(EMAIL, PASSWORD)
+da_premium(llama("GET", "/auth/me", None, tok)[1]["id"])
+print(f"cuenta {EMAIL} lista (registrada o reutilizada), premium concedido")
 
 TRADES = [
     # 1 · CFD de oro, 1 lote a 20× sobre 10 000 → 200 000 de nocional = 20× la cuenta

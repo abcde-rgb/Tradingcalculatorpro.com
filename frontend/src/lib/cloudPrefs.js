@@ -35,6 +35,7 @@ import { useI18nStore, languages } from '@/lib/i18n';
 import { useAssetsStore } from '@/lib/assets';
 import { loadSystem, saveSystem, emptySystem, onSystemChange } from '@/lib/tradingSystem';
 import { planMerge } from '@/lib/prefsMerge';
+import { LOG_KEY, readSyncable, applySynced, onLogChange } from '@/lib/structureLog';
 
 const API = process.env.REACT_APP_BACKEND_URL
   ? `${process.env.REACT_APP_BACKEND_URL}/api`
@@ -160,6 +161,32 @@ export const PREF_SLICES = {
     { capital: '', riskPct: 1, riskMode: 'pct', riskMoney: '', mode: 'desk' },
     isPlainObject,
   ),
+
+  /**
+   * El registro del escáner: rupturas de estructura y señales de vela vistas.
+   *
+   * No es un ajuste, es HISTORIAL — lo que el escáner detectó y cuándo se vio
+   * por primera vez. Era lo último del producto que se quedaba atado a un
+   * navegador: escaneabas EURUSD en el ordenador y el móvil no sabía nada.
+   *
+   * Tiene su propio `read`/`apply` en vez de `lsSlice` por dos motivos que
+   * `lsSlice` no puede cubrir:
+   *   · **Se recorta al subir** (`readSyncable`, 12 ámbitos). El registro
+   *     entero puede pasar de 350 KB y este documento lo comparte con el tema,
+   *     los setups y el capital: si engorda sin techo, los rompe a todos.
+   *   · **Se funde al bajar** (`applySynced`) en vez de sobrescribir. Dos
+   *     equipos que escanearon activos distintos tienen que acabar con los dos
+   *     registros, y la marca de «primera vez que se vio» —la que alimenta el
+   *     resaltado de las últimas 24 h— tiene que sobrevivir al viaje.
+   */
+  structureLog: {
+    resettable: true,
+    storageKey: LOG_KEY,
+    defaults: () => ({}),
+    read: () => readSyncable(),
+    apply: (value) => { if (value && typeof value === 'object') applySynced(value); },
+    reset: () => { try { localStorage.removeItem(LOG_KEY); } catch (_) { /* no-op */ } },
+  },
 
   calcFavorites: lsSlice('tcp-calc-favs', [], isList),
   calcRecents: lsSlice('tcp-calc-recents', [], isList),
@@ -518,6 +545,11 @@ export function startCloudPrefsSync() {
   offs.push(useAssetsStore.subscribe((state, prev) => {
     if (!prev || state.favorites !== prev.favorites) onStoreChanged('assetFavorites');
   }));
+
+  // El escáner escribe su registro por su cuenta; esto es lo que convierte esa
+  // escritura en una subida. Sin ello el registro se guardaría igual y no
+  // saldría nunca de este navegador.
+  offs.push(onLogChange(() => touchPref('structureLog')));
 
   offs.push(onSystemChange((ev) => {
     if (ev && ev.silent) return;

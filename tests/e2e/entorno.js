@@ -84,6 +84,33 @@ async function descartaCookies(page) {
   return false;
 }
 
+/**
+ * Cierra los diálogos que tapan la pantalla recién entrada.
+ *
+ * El banner de cookies ya estaba contemplado; el modal de bienvenida
+ * (`OnboardingModal`) no, y pinta un overlay a pantalla completa que se come
+ * TODOS los clics. El síntoma no dice nada: Playwright reintenta treinta veces
+ * y acaba con un timeout de 30 s sobre un botón que está «visible, enabled y
+ * stable» — visible sí, alcanzable no. Cuesta un buen rato descubrirlo, y le
+ * pasa a cualquiera que escriba una sonda nueva.
+ */
+async function descartaModales(page, intentos = 4) {
+  for (let i = 0; i < intentos; i++) {
+    const overlay = page.locator('div[data-state="open"][aria-hidden="true"]');
+    if (!(await overlay.count())) return true;
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(400);
+  }
+  const cerrar = page.locator(
+    '[role="dialog"] button:has-text("Empezar"), [role="dialog"] button:has-text("Cerrar"), [role="dialog"] [aria-label="Close"]',
+  ).first();
+  if (await cerrar.isVisible().catch(() => false)) {
+    await cerrar.click().catch(() => {});
+    await page.waitForTimeout(500);
+  }
+  return !(await page.locator('div[data-state="open"][aria-hidden="true"]').count());
+}
+
 /** Entra por el formulario real, no inyectando un token: el login es parte de
  *  lo que se está probando. Devuelve true si salió de /login. */
 async function entra(page, cuenta = CUENTA) {
@@ -96,6 +123,9 @@ async function entra(page, cuenta = CUENTA) {
   await page.locator('input[type="password"]').first().fill(cuenta.password);
   await page.locator('form button[type="submit"]').first().click();
   await page.waitForTimeout(3500);
+  // Nada más entrar aparece el modal de bienvenida. Si no se cierra aquí, la
+  // primera acción de CUALQUIER sonda falla con un timeout que no lo explica.
+  await descartaModales(page);
   return !page.url().includes('/login');
 }
 
@@ -138,6 +168,6 @@ function capturador(page, subcarpeta) {
 
 module.exports = {
   API, BASE, BASE_PATH, CUENTA, PUERTO_WEB, VISTAS,
-  abreNavegador, capturador, descartaCookies, desbordamiento, entra,
-  marcador, rutaChromium,
+  abreNavegador, capturador, descartaCookies, descartaModales, desbordamiento,
+  entra, marcador, rutaChromium,
 };

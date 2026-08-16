@@ -6,11 +6,21 @@ import { Input } from '@/components/ui/input';
 import { STRATEGIES, STRATEGY_CATEGORIES } from '@/data/mockData';
 import { SINGLE_LEG_IDS, CATEGORY_TONE, CATEGORY_LABEL_KEY, optionDirection } from './deskMeta';
 
+/**
+ * Alcista y bajista salen de los tokens de P&L (`--long` / `--short`): son la
+ * MISMA idea que el verde y el rojo del diario, y tenerlos escritos a mano aquí
+ * era garantizar que un día dejaran de coincidir.
+ *
+ * Neutral y volátil no son direcciones, así que no llevan color propio: la
+ * identidad de esta web es de **un solo acento**, y meter un violeta y un ámbar
+ * para distinguir dos categorías de un filtro es decorar, no informar. Se
+ * distinguen por peso y por borde.
+ */
 const TONE = {
-  up:   'text-[#4ade80] border-[#22c55e]/40 bg-[#22c55e]/10',
-  down: 'text-[#f87171] border-[#ef4444]/40 bg-[#ef4444]/10',
-  flat: 'text-[#c084fc] border-[#a855f7]/40 bg-[#a855f7]/10',
-  vol:  'text-[#fbbf24] border-[#f59e0b]/40 bg-[#f59e0b]/10',
+  up:   'text-long border-long/40 bg-long/10',
+  down: 'text-short border-short/40 bg-short/10',
+  flat: 'text-foreground border-rule bg-muted/60',
+  vol:  'text-foreground border-rule bg-muted/60',
 };
 
 /**
