@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import {
   TrendingDown, AlertTriangle, BookOpen, Activity, Brain, DollarSign,
   PieChart, BarChart3, Clock, Target, Layers, Award, ArrowRight,
-  Sparkles, Eye, Repeat, FileText, ChevronRight, Lock, Mail,
+  Sparkles, Eye, Repeat, FileText, ChevronRight, Lock, Mail, Rewind,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
@@ -18,6 +18,7 @@ import AnalyticsDashboard from '@/components/performance/AnalyticsDashboard';
 import SetupPerformance from '@/components/performance/SetupPerformance';
 import SetupBuilder from '@/components/education/SetupBuilder';
 import ProjectionPanel from '@/components/performance/ProjectionPanel';
+import ReplayEmbed from '@/components/backtesting/ReplayEmbed';
 
 // Animation tokens (reused from LandingPage style)
 const FADE_UP = {
@@ -144,6 +145,11 @@ export default function PerformancePage() {
               <TabsTrigger value="overview" data-testid="perftab-overview">
                 <BookOpen className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabOverview')}
               </TabsTrigger>
+              {/* Antes del diario a propósito: primero se ensaya sobre el
+                  histórico, luego se anota lo que se operó de verdad. */}
+              <TabsTrigger value="backtesting" data-testid="perftab-backtesting">
+                <Rewind className="w-3.5 h-3.5 mr-1.5" /> {t('backtesting')}
+              </TabsTrigger>
               <TabsTrigger value="journal" data-testid="perftab-journal">
                 <BookOpen className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabJournal')}
               </TabsTrigger>
@@ -159,6 +165,12 @@ export default function PerformancePage() {
             </TabsList>
         </div>
       </div>
+
+        {/* Backtesting de repetición. Sin `AuthRequired`: la herramienta es
+            gratuita y de terceros, así que aquí no se cobra por ella. */}
+        <TabsContent value="backtesting" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
+          <ReplayEmbed titular={false} enlaceDiario={false} />
+        </TabsContent>
 
         {/* Journal tab — pt-24 clears fixed header (h-16) + sticky tab bar (~58px) */}
         <TabsContent value="journal" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">

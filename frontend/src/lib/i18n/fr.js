@@ -4069,7 +4069,7 @@ export default {
   "deskMarginCross": "Croisé",
   "deskMarginCrossHint": "tout le capital libre soutient la position",
   "deskMarginWhyPerp": "Sur les perpétuels, c'est toi qui choisis : en isolé tu perds la position et gardes le compte ; en croisé la position tient plus longtemps parce qu'elle mange le reste du capital — et c'est précisément ce qui la rend dangereuse.",
-  "deskMarginWhyCross": "Pas de choix ici : une seule réserve de marge couvre toutes les positions du compte. C'est de la marge croisée, même si ton courtier ne l'appelle pas ainsi.",
+  "deskMarginWhyCross": "Ton courtier couvre toutes les positions avec une seule réserve de marge : c’est le mode croisé, et c’est ce que fera ton compte. L’isolé est proposé comme une limite que tu te fixes — où tu manquerais de marge si cette position n’était couverte que par la sienne. Sert à dimensionner, pas à prédire le courtier.",
   "deskMarginWhyOption": "En options, c'est la structure qui définit le risque, pas un prix de liquidation : un achat risque la prime ; une vente à nu porte une exigence de marge du vendeur, ce qui est autre chose.",
   "deskMarginWhyCash": "Au comptant, ni marge ni liquidation : ce que tu mets est le maximum que tu peux perdre.",
   "deskSizeFromRisk": "Depuis le risque",

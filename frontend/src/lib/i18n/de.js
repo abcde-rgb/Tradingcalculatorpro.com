@@ -4069,7 +4069,7 @@ export default {
   "deskMarginCross": "Cross",
   "deskMarginCrossHint": "das gesamte freie Kapital deckt die Position",
   "deskMarginWhyPerp": "Bei Perps entscheidest du: isoliert verlierst du die Position und behältst das Konto; cross hält länger durch, weil es den Rest des Kapitals frisst — und genau das macht es gefährlich.",
-  "deskMarginWhyCross": "Hier gibt es keine Wahl: ein einziger Margin-Topf deckt alle Positionen des Kontos. Das ist Cross-Margin, auch wenn dein Broker es anders nennt.",
+  "deskMarginWhyCross": "Dein Broker deckt alle Positionen aus einem einzigen Margin-Topf: Das ist Cross, und so verhält sich dein Konto. Isoliert bieten wir als selbst gesetzte Grenze an — wo dir die Margin ausginge, wenn diese Position nur durch ihre eigene gedeckt wäre. Zum Dimensionieren gedacht, nicht als Vorhersage des Brokers.",
   "deskMarginWhyOption": "Bei Optionen bestimmt die Struktur das Risiko, kein Liquidationspreis: eine gekaufte riskiert die Prämie, eine nackt verkaufte hat eine Stillhalter-Margin — etwas anderes.",
   "deskMarginWhyCash": "Im Kassageschäft gibt es weder Margin noch Liquidation: was du einsetzt, ist das Maximum, das du verlieren kannst.",
   "deskSizeFromRisk": "Aus dem Risiko",

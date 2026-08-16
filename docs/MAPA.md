@@ -401,6 +401,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | Carpeta | Ficheros | Líneas |
 |---|---:|---:|
 | `components/auth/` | 2 | 172 |
+| `components/backtesting/` | 1 | 175 |
 | `components/calculators/` | 14 | 3,747 |
 | `components/calculators/simulator/` | 6 | 1,375 |
 | `components/charts/` | 3 | 779 |
@@ -418,7 +419,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 382 |
 | `components/ui/` | 46 | 2,946 |
-| `pages/` | 21 | 15,319 |
+| `pages/` | 21 | 15,181 |
 
 ## Los ficheros que más cuesta abrir
 

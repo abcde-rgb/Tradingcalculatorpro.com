@@ -4069,7 +4069,7 @@ export default {
   "deskMarginCross": "Cross",
   "deskMarginCrossHint": "all free capital backs the position",
   "deskMarginWhyPerp": "On perps you choose: isolated loses the position and keeps the account; cross holds on longer because it eats the rest of your capital — which is exactly what makes it dangerous.",
-  "deskMarginWhyCross": "There's no choice here: a single margin pool backs every position in the account. That is cross margin, even if your broker doesn't call it that.",
+  "deskMarginWhyCross": "Your broker backs every position from a single margin pool: that is cross, and it is what your account will do. Isolated is offered as a limit you set yourself — where you would run out of margin if this position were backed only by its own. Use it to size, not to predict what the broker will do.",
   "deskMarginWhyOption": "With options the structure defines the risk, not a liquidation price: a long risks the premium; a naked short carries a writer's margin requirement, which is a different thing.",
   "deskMarginWhyCash": "Cash has no margin and no liquidation: what you put in is the most you can lose.",
   "deskSizeFromRisk": "From risk",

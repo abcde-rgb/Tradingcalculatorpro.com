@@ -124,8 +124,10 @@ export function riskBudget({ capital, riskPct, riskMoney, mode = 'pct' }) {
  *     requisito de margen del emisor, que no es lo mismo que una liquidación
  *     por precio.
  *   · Futuros, forex y CFD: una sola bolsa de margen respalda todas las
- *     posiciones de la cuenta. Eso ES margen cruzado, aunque el bróker no lo
- *     llame así ni te deje elegir.
+ *     posiciones de la cuenta. Eso ES margen cruzado, y por eso es el valor por
+ *     defecto. Aislado se ofrece como límite propio: responde a «¿dónde me
+ *     quedaría sin margen si sólo respaldara esta posición con el suyo?», que
+ *     es una forma legítima de dimensionar aunque el bróker no funcione así.
  *   · Perpetuos de cripto: es el único sitio donde el trader elige de verdad,
  *     y donde elegir cambia el precio de liquidación.
  *
@@ -138,7 +140,12 @@ export function marginModesFor(spec) {
     return { modes: ['isolated', 'cross'], default: 'isolated', fixed: false, reasonKey: 'deskMarginWhyPerp' };
   }
   if (product === 'futures' || product === 'forex' || product === 'cfd') {
-    return { modes: ['cross'], default: 'cross', fixed: true, reasonKey: 'deskMarginWhyCross' };
+    // El bróker respalda todas las posiciones con una sola bolsa: eso es
+    // cruzado, y por eso es el valor por defecto. Pero aislado sigue siendo una
+    // pregunta legítima —«¿dónde me quedo sin margen si sólo respaldo esta
+    // posición con el suyo?»— y bloquearlo dejaba al trader sin poder
+    // dimensionar con ese criterio. Se ofrece, con el aviso de qué significa.
+    return { modes: ['cross', 'isolated'], default: 'cross', fixed: false, reasonKey: 'deskMarginWhyCross' };
   }
   if (product === 'option') {
     return { modes: [], default: null, fixed: true, reasonKey: 'deskMarginWhyOption' };

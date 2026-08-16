@@ -4069,7 +4069,7 @@ export default {
   "deskMarginCross": "Cruzado",
   "deskMarginCrossHint": "todo el capital libre respalda la posición",
   "deskMarginWhyPerp": "En perpetuos eliges tú: en aislado pierdes la posición y conservas la cuenta; en cruzado la posición aguanta más porque se come el resto del capital — y eso es justo lo que la hace peligrosa.",
-  "deskMarginWhyCross": "Aquí no se elige: una sola bolsa de margen respalda todas las posiciones de la cuenta. Eso es margen cruzado, aunque tu bróker no lo llame así.",
+  "deskMarginWhyCross": "Tu bróker respalda todas las posiciones con una sola bolsa de margen: eso es cruzado, y es lo que verás en tu cuenta. Aislado te lo damos como límite propio — dónde te quedarías sin margen si sólo respaldaras esta posición con el suyo. Sirve para dimensionar, no para predecir lo que hará el bróker.",
   "deskMarginWhyOption": "En opciones el riesgo lo define la estructura, no un precio de liquidación: una comprada arriesga la prima; una vendida desnuda tiene requisito de margen del emisor, que es otra cosa.",
   "deskMarginWhyCash": "Al contado no hay margen ni liquidación: lo que pones es lo máximo que puedes perder.",
   "deskSizeFromRisk": "Desde el riesgo",
