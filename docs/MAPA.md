@@ -17,10 +17,10 @@
 | Módulos del backend | 28 |
 | Líneas de Python (backend) | 23,520 |
 | Rutas declaradas | 202 |
-| **Rutas sin consumidor en el frontend** | **45** |
+| **Rutas sin consumidor en el frontend** | **51** |
 | Ficheros de test · funciones de test | 45 · 761 |
-| Rutas del frontend (`App.js`) | 26 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 6,315 |
+| Rutas del frontend (`App.js`) | 27 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 6,339 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -28,7 +28,7 @@ Endpoints que **ningún fichero del frontend menciona**. Algunos lo están por
 diseño (un webhook lo llama la pasarela, no el navegador); el resto es código
 escrito, probado y que ningún usuario puede alcanzar.
 
-### Sospechosas (35)
+### Sospechosas (41)
 
 **Antes de escribir un módulo nuevo, mira si lo que te piden ya está aquí**
 esperando una pantalla. Esto es el hueco G-14.
@@ -60,10 +60,16 @@ esperando una pantalla. Esto es el hueco G-14.
 | `GET` | `/api/options/term-structure/{symbol}` | `backend/server.py:5692` |
 | `GET` | `/api/performance/export` | `backend/missing_apis.py:806` |
 | `POST` | `/api/performance/portfolio-risk` | `backend/server.py:7415` |
+| `GET` | `/api/plan` | `backend/server.py:7626` |
+| `POST` | `/api/plan` | `backend/server.py:7654` |
 | `GET` | `/api/plan/compliance` | `backend/server.py:7689` |
 | `PATCH` | `/api/plan/draft` | `backend/server.py:7678` |
 | `GET` | `/api/plan/history` | `backend/server.py:7635` |
+| `GET` | `/api/portfolio` | `backend/server.py:3370` |
+| `POST` | `/api/portfolio` | `backend/server.py:3378` |
 | `GET` | `/api/portfolio/rebalance` | `backend/server.py:3418` |
+| `DELETE` | `/api/portfolio/{asset_id}` | `backend/server.py:3411` |
+| `PUT` | `/api/portfolio/{asset_id}` | `backend/server.py:3400` |
 | `GET` | `/api/quote/{symbol}` | `backend/server.py:8833` |
 | `GET` | `/api/referrals/me` | `backend/referrals.py:113` |
 | `POST` | `/api/referrals/redeem-credit` | `backend/referrals.py:300` |
@@ -326,17 +332,17 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `DELETE` | `/performance/trades/{trade_id}` | 7295 | ✅ |
 | `GET` | `/performance/trades/{trade_id}` | 7232 | ✅ |
 | `PUT` | `/performance/trades/{trade_id}` | 7245 | ✅ |
-| `GET` | `/plan` | 7626 | ✅ |
-| `POST` | `/plan` | 7654 | ✅ |
+| `GET` | `/plan` | 7626 | ❌ |
+| `POST` | `/plan` | 7654 | ❌ |
 | `GET` | `/plan/compliance` | 7689 | ❌ |
 | `PATCH` | `/plan/draft` | 7678 | ❌ |
 | `GET` | `/plan/history` | 7635 | ❌ |
 | `GET` | `/plans` | 3993 | ✅ |
-| `GET` | `/portfolio` | 3370 | ✅ |
-| `POST` | `/portfolio` | 3378 | ✅ |
+| `GET` | `/portfolio` | 3370 | ❌ |
+| `POST` | `/portfolio` | 3378 | ❌ |
 | `GET` | `/portfolio/rebalance` | 3418 | ❌ |
-| `DELETE` | `/portfolio/{asset_id}` | 3411 | ✅ |
-| `PUT` | `/portfolio/{asset_id}` | 3400 | ✅ |
+| `DELETE` | `/portfolio/{asset_id}` | 3411 | ❌ |
+| `PUT` | `/portfolio/{asset_id}` | 3400 | ❌ |
 | `GET` | `/prices` | 2984 | ✅ |
 | `GET` | `/public/settings` | 8398 | ✅ |
 | `GET` | `/quote/{symbol}` | 8833 | ❌ |
@@ -358,7 +364,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 
 ## Frontend
 
-### Rutas declaradas en `App.js` (26)
+### Rutas declaradas en `App.js` (27)
 
 | Ruta | Componente |
 |---|---|
@@ -367,6 +373,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `/about` | `AboutPage` |
 | `/admin` | `ProtectedRoute` |
 | `/affiliate` | `ProtectedRoute` |
+| `/backtesting` | `BacktestingPage` |
 | `/contact` | `ContactPage` |
 | `/dashboard` | `ProtectedRoute` |
 | `/education` | `ProtectedRoute` |
@@ -404,14 +411,14 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/education/` | 78 | 13,023 |
 | `components/integrations/` | 2 | 188 |
 | `components/landing/` | 5 | 576 |
-| `components/layout/` | 2 | 578 |
+| `components/layout/` | 2 | 579 |
 | `components/options/` | 36 | 7,871 |
 | `components/performance/` | 7 | 3,428 |
 | `components/performance/form/` | 6 | 700 |
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 382 |
 | `components/ui/` | 46 | 2,946 |
-| `pages/` | 20 | 15,125 |
+| `pages/` | 21 | 15,319 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -422,16 +429,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 9,211 |
 | `frontend/src/pages/EducationPage.jsx` | 5,505 |
-| `frontend/src/lib/i18n/ar.js` | 4,220 |
-| `frontend/src/lib/i18n/de.js` | 4,220 |
-| `frontend/src/lib/i18n/en.js` | 4,220 |
-| `frontend/src/lib/i18n/es.js` | 4,220 |
-| `frontend/src/lib/i18n/fr.js` | 4,220 |
-| `frontend/src/lib/i18n/it.js` | 4,220 |
-| `frontend/src/lib/i18n/ja.js` | 4,220 |
-| `frontend/src/lib/i18n/pt.js` | 4,220 |
-| `frontend/src/lib/i18n/ru.js` | 4,220 |
-| `frontend/src/lib/i18n/zh.js` | 4,220 |
+| `frontend/src/lib/i18n/ar.js` | 4,246 |
+| `frontend/src/lib/i18n/de.js` | 4,246 |
+| `frontend/src/lib/i18n/en.js` | 4,246 |
+| `frontend/src/lib/i18n/es.js` | 4,246 |
+| `frontend/src/lib/i18n/fr.js` | 4,246 |
+| `frontend/src/lib/i18n/it.js` | 4,246 |
+| `frontend/src/lib/i18n/ja.js` | 4,246 |
+| `frontend/src/lib/i18n/pt.js` | 4,246 |
+| `frontend/src/lib/i18n/ru.js` | 4,246 |
+| `frontend/src/lib/i18n/zh.js` | 4,246 |
 
 ## Verificadores del repositorio
 

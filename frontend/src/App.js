@@ -59,6 +59,7 @@ const OptionsStrategiesIndexPage = lazyRetry(() =>
 const OptionsStrategyPage = lazyRetry(() => import("@/pages/OptionsStrategyPage"));
 const NewsPage         = lazyRetry(() => import("@/pages/NewsPage"));
 const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
+const BacktestingPage  = lazyRetry(() => import("@/pages/BacktestingPage"));
 const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
 const AffiliatePage    = lazyRetry(() => import("@/pages/AffiliatePage"));
 const LegalPage        = lazyRetry(() => import("@/pages/LegalPage"));
@@ -148,6 +149,9 @@ const AppContent = () => (
           <Route path="/options/strategies"         element={<ProtectedRoute premiumOnly><OptionsStrategiesIndexPage /></ProtectedRoute>} />
           <Route path="/options/strategies/:slug"   element={<ProtectedRoute premiumOnly><OptionsStrategyPage /></ProtectedRoute>} />
           <Route path="/performance"     element={<ProtectedRoute premiumOnly><PerformancePage /></ProtectedRoute>} />
+          {/* Sin ProtectedRoute a propósito: lo que hay dentro es una herramienta
+              gratuita de terceros y cobrar por ella sería vender lo que no es tuyo. */}
+          <Route path="/backtesting"     element={<BacktestingPage />} />
           <Route path="/news"            element={<ProtectedRoute premiumOnly><NewsPage /></ProtectedRoute>} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/affiliate"       element={<ProtectedRoute><AffiliatePage /></ProtectedRoute>} />
