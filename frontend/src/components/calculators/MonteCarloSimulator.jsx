@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { listTrades } from '@/services/performanceApi';
 import { runMonteCarlo } from '@/lib/monteCarlo';
+import { RISK_HARD_CAP_PCT, RISK_ADVISED_PCT } from '@/lib/deskMath';
 
 /** Cuántas operaciones del diario se traen como muestra para remuestrear. */
 const MAX_TRADES_MUESTRA = 500;
@@ -199,6 +200,20 @@ export function MonteCarloSimulator() {
                       className="tabular-nums" data-testid="mc-payoff" />
                   </div>
                 </div>
+                {/* La mesa se niega a dimensionar por encima del 10 %. Aquí NO se
+                    bloquea a propósito: que el usuario simule ese riesgo y vea
+                    la probabilidad de la racha que lo mata es exactamente la
+                    lección que el tope de la mesa da sin explicar. Se avisa,
+                    con la cifra del propio invariante para que no haya dos
+                    criterios distintos en la misma web. */}
+                {Number(riskPct) > RISK_ADVISED_PCT && (
+                  <p className={`text-[11px] leading-relaxed ${Number(riskPct) > RISK_HARD_CAP_PCT ? 'text-short' : 'text-muted-foreground'}`}
+                    data-testid="mc-risk-warning">
+                    {(Number(riskPct) > RISK_HARD_CAP_PCT ? t('mcRiskOverCap') : t('mcRiskOverAdvised'))
+                      .replace('{cap}', String(RISK_HARD_CAP_PCT))
+                      .replace('{advised}', String(RISK_ADVISED_PCT))}
+                  </p>
+                )}
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={!!compound}
                     onChange={(e) => set('compound')(e.target.checked)} data-testid="mc-compound" />
@@ -309,6 +324,49 @@ export function MonteCarloSimulator() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* ── Rachas ─────────────────────────────────────────
+                La pregunta que hunde cuentas no es cuánto ganas de media,
+                sino cuántas pérdidas seguidas aguantas y cada cuánto caen.
+                Las dos primeras cifras son EXACTAS (forma cerrada), no
+                salen del sorteo; la tercera es lo que salió, para contrastar. */}
+            <div className="p-4 rounded-lg bg-muted/50" data-testid="mc-streaks">
+              <p className="text-sm font-medium mb-3">{t('mcStreakTitle')}</p>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-start gap-3">
+                  <span className="text-muted-foreground">{t('mcStreakKills')}</span>
+                  <span className="font-mono font-semibold tabular-nums text-right" data-testid="mc-streak-kills">
+                    {st.killingStreak === null ? t('mcStreakNever') : st.killingStreak}
+                  </span>
+                </div>
+                {st.killingStreak !== null && (
+                  <div className="flex justify-between items-start gap-3">
+                    <span className="text-muted-foreground">{t('mcStreakOdds').replace('{ops}', String(st.trades))}</span>
+                    <span className={`font-mono font-semibold tabular-nums text-right ${st.killingStreakProb >= 1 ? 'text-short' : ''}`}
+                      data-testid="mc-streak-odds">
+                      {st.killingStreakProb < 0.01 && st.killingStreakProb > 0
+                        ? '< 0,01 %'
+                        : pct(st.killingStreakProb, 2)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-start gap-3 pt-2 border-t border-rule">
+                  <span className="text-muted-foreground">{t('mcStreakTypical')}</span>
+                  <span className="font-mono font-semibold tabular-nums" data-testid="mc-streak-typical">{st.typicalStreak}</span>
+                </div>
+                <div className="flex justify-between items-start gap-3">
+                  <span className="text-muted-foreground">{t('mcStreakOneInTwenty')}</span>
+                  <span className="font-mono font-semibold tabular-nums" data-testid="mc-streak-2020">{st.streakOneInTwenty}</span>
+                </div>
+                <div className="flex justify-between items-start gap-3 pt-2 border-t border-rule">
+                  <span className="text-muted-foreground">{t('mcStreakObserved')}</span>
+                  <span className="font-mono font-semibold tabular-nums" data-testid="mc-streak-observed">
+                    {st.observedStreakP50} · {st.observedStreakP95} · {st.observedStreakMax}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">{t('mcStreakHint')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

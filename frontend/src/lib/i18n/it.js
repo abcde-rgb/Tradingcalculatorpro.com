@@ -4279,4 +4279,16 @@ export default {
   "mcError_avg_loss": "La perdita media non può essere zero.",
   "mcError_sample_empty": "Il tuo diario non ha operazioni con risultato da ricampionare.",
   "mcError_sample_flat": "Tutte le operazioni del diario sono a zero: non c’è nulla da simulare.",
+
+  // ─── Rachas de pérdidas (Monte Carlo) ───
+  "mcStreakTitle": "Serie di perdite",
+  "mcStreakKills": "Ti azzera una serie di",
+  "mcStreakNever": "Nessuna (capitalizzando)",
+  "mcStreakOdds": "Probabilità di incatenarla in {ops} operazioni",
+  "mcStreakTypical": "Serie tipica (metà delle sessioni)",
+  "mcStreakOneInTwenty": "1 sessione su 20 arriva a",
+  "mcStreakObserved": "Osservata: mediana · p95 · massima",
+  "mcStreakHint": "I primi due numeri sono esatti, non escono dal sorteggio. La serie tipica è quella che quasi nessuno mette in conto: con il 55 % di successo incatenerai 8 perdite di fila in una sessione su venti.",
+  "mcRiskOverAdvised": "Sopra il {advised} % consigliato. Guarda la serie che ti azzera e la sua probabilità prima di decidere.",
+  "mcRiskOverCap": "Sopra il tetto del {cap} % della calcolatrice. Qui si simula lo stesso, di proposito: la serie qui sotto ti mostra perché la calcolatrice rifiuta una dimensione così.",
 }

@@ -4279,4 +4279,16 @@ export default {
   "mcError_avg_loss": "Average loss cannot be zero.",
   "mcError_sample_empty": "Your journal has no trades with a result to resample.",
   "mcError_sample_flat": "Every journal trade is zero: there is nothing to simulate.",
+
+  // ─── Rachas de pérdidas (Monte Carlo) ───
+  "mcStreakTitle": "Losing streaks",
+  "mcStreakKills": "You are wiped out by a streak of",
+  "mcStreakNever": "None (compounding)",
+  "mcStreakOdds": "Odds of hitting it in {ops} trades",
+  "mcStreakTypical": "Typical streak (half of all sessions)",
+  "mcStreakOneInTwenty": "1 in 20 sessions reaches",
+  "mcStreakObserved": "Observed: median · p95 · worst",
+  "mcStreakHint": "The first two figures are exact, not drawn from the simulation. The typical streak is the one almost nobody plans for: at a 55% win rate you will string together 8 losses one session in twenty.",
+  "mcRiskOverAdvised": "Above the {advised}% we advise. Check the streak that wipes you out, and its odds, before deciding.",
+  "mcRiskOverCap": "Above the desk’s {cap}% hard cap. It still simulates here on purpose: the streak below shows you why the calculator refuses to size a trade like this.",
 }

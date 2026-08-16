@@ -1312,6 +1312,70 @@ async function checkMonteCarlo() {
   ok('remuestreando sólo ganancias el peor caso es el capital intacto',
     soloGanancias.statistics.worstCaseBalance === 1000);
 
+  // ── Rachas ──
+  // La fórmula cerrada tiene que coincidir con lo que sale del sorteo; si no,
+  // estaríamos pintando en vivo un número que la simulación desmiente.
+  const { streakProbability, streakAtProbability, killingStreak, lossProbability } =
+    await imp('lib/monteCarlo.js');
+
+  ok('una racha imposible tiene probabilidad cero',
+    streakProbability(10, 20, 0.5) === 0 && streakProbability(0, 1, 0.5) === 0);
+  ok('sin pérdidas no hay rachas', streakProbability(100, 3, 0) === 0);
+  ok('perdiendo siempre, la racha es segura', streakProbability(100, 3, 1) === 1);
+  ok('la probabilidad decrece al pedir rachas más largas',
+    streakProbability(100, 5, 0.55) > streakProbability(100, 6, 0.55));
+  ok('y crece con más operaciones',
+    streakProbability(500, 8, 0.55) > streakProbability(100, 8, 0.55));
+
+  // Contraste con la simulación: mismo experimento, dos caminos distintos.
+  const simulaRacha = (n, k, q, sims, semilla) => {
+    const rr = makeRng(semilla);
+    let veces = 0;
+    for (let s = 0; s < sims; s++) {
+      let racha = 0, tocado = false;
+      for (let i = 0; i < n; i++) {
+        if (rr() < q) { racha++; if (racha >= k) tocado = true; } else racha = 0;
+      }
+      if (tocado) veces++;
+    }
+    return veces / sims;
+  };
+  for (const [n, k, q] of [[100, 10, 0.55], [100, 5, 0.55], [100, 8, 0.45]]) {
+    const teorica = streakProbability(n, k, q);
+    const medida = simulaRacha(n, k, q, 40000, 2024 + k);
+    ok(`la fórmula de rachas coincide con el sorteo (n=${n} k=${k})`,
+      Math.abs(teorica - medida) < 0.012,
+      `teórica=${(teorica * 100).toFixed(2)}% medida=${(medida * 100).toFixed(2)}%`);
+  }
+
+  // La racha que mata, según el modo.
+  ok('en importes fijos, la racha que mata es capital entre pérdida media',
+    killingStreak({ capital: 10000, trades: 100, sizing: 'fixed', avgLoss: -500 }) === 20);
+  ok('en porcentaje sin capitalizar, es 100 entre el riesgo',
+    killingStreak({ capital: 10000, trades: 100, sizing: 'percent', riskPct: 5, compound: false }) === 20);
+  ok('capitalizando no hay racha que mate, y se dice con null',
+    killingStreak({ capital: 10000, trades: 100, sizing: 'percent', riskPct: 5, compound: true }) === null);
+  ok('remuestreando sólo ganancias tampoco hay racha que mate',
+    killingStreak({ capital: 1000, trades: 50, sample: [10, 20] }) === null);
+  ok('la probabilidad de perder sale de la muestra en modo diario',
+    Math.abs(lossProbability({ sample: [-1, -1, 2, 2] }) - 0.5) < 1e-12);
+
+  // Lo teórico y lo observado tienen que ir de la mano.
+  const conRacha = runMonteCarlo({ capital: 10000, trades: 100, iterations: 3000, seed: 6,
+    winRate: 55, sizing: 'fixed', avgWin: 100, avgLoss: -50, dispersion: 0 }).statistics;
+  ok('la racha típica calculada coincide con la mediana observada',
+    Math.abs(conRacha.typicalStreak - conRacha.observedStreakP50) <= 1,
+    `teórica=${conRacha.typicalStreak} observada=${conRacha.observedStreakP50}`);
+  ok('la racha de 1 de cada 20 coincide con el percentil 95 observado',
+    Math.abs(conRacha.streakOneInTwenty - conRacha.observedStreakP95) <= 1,
+    `teórica=${conRacha.streakOneInTwenty} observada=${conRacha.observedStreakP95}`);
+  ok('la racha típica nunca supera a la de 1 de cada 20',
+    conRacha.typicalStreak <= conRacha.streakOneInTwenty);
+  ok('la racha observada no puede pasar del número de operaciones',
+    conRacha.observedStreakMax <= 100);
+  ok('el aviso de streakAtProbability es monótono',
+    streakAtProbability(100, 0.55, 0.5) <= streakAtProbability(100, 0.55, 0.05));
+
   // Un solo camino se puede repetir por separado: es lo que permite enseñar
   // "esta trayectoria" sin que sea otra tirada distinta.
   const { cfg } = normalizeConfig(duro);

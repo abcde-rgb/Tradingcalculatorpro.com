@@ -4279,4 +4279,16 @@ export default {
   "mcError_avg_loss": "A perda média não pode ser zero.",
   "mcError_sample_empty": "O teu diário não tem operações com resultado para reamostrar.",
   "mcError_sample_flat": "Todas as operações do diário dão zero: não há nada para simular.",
+
+  // ─── Rachas de pérdidas (Monte Carlo) ───
+  "mcStreakTitle": "Sequências de perdas",
+  "mcStreakKills": "És arruinado por uma sequência de",
+  "mcStreakNever": "Nenhuma (a capitalizar)",
+  "mcStreakOdds": "Probabilidade de a encadear em {ops} operações",
+  "mcStreakTypical": "Sequência típica (metade das sessões)",
+  "mcStreakOneInTwenty": "1 em cada 20 sessões chega a",
+  "mcStreakObserved": "Observada: mediana · p95 · máxima",
+  "mcStreakHint": "Os dois primeiros números são exatos, não saem do sorteio. A sequência típica é a que quase ninguém prevê: com 55 % de acerto vais encadear 8 perdas seguidas numa sessão em cada vinte.",
+  "mcRiskOverAdvised": "Acima dos {advised} % aconselhados. Olha para a sequência que te arruína e para a probabilidade antes de decidires.",
+  "mcRiskOverCap": "Acima do limite de {cap} % da calculadora. Simula à mesma, de propósito: a sequência abaixo mostra-te porque é que ela recusa dimensionar assim.",
 }

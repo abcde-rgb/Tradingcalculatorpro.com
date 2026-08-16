@@ -630,6 +630,23 @@ async function montecarlo(n) {
       st.medianRuinTrade === null || st.medianRuinTrade <= trades,
       `${st.medianRuinTrade} > ${trades} · ${ctx}`);
 
+    // Rachas: lo teórico y lo observado tienen que ser coherentes entre sí.
+    exige('montecarlo', caso, 'la racha típica no supera la de 1 de cada 20',
+      st.typicalStreak <= st.streakOneInTwenty, `${st.typicalStreak} > ${st.streakOneInTwenty} · ${ctx}`);
+    exige('montecarlo', caso, 'las rachas caben en el número de operaciones',
+      st.observedStreakMax <= trades && st.streakOneInTwenty <= trades,
+      `obs=${st.observedStreakMax} teo=${st.streakOneInTwenty} ops=${trades} · ${ctx}`);
+    exige('montecarlo', caso, 'la mediana de racha no supera al percentil 95',
+      st.observedStreakP50 <= st.observedStreakP95,
+      `${st.observedStreakP50} > ${st.observedStreakP95} · ${ctx}`);
+    exige('montecarlo', caso, 'la probabilidad de la racha mortal es un porcentaje',
+      st.killingStreakProb === null || (st.killingStreakProb >= 0 && st.killingStreakProb <= 100),
+      `${st.killingStreakProb} · ${ctx}`);
+    // Capitalizando no existe racha que mate, y tiene que decirlo con null.
+    exige('montecarlo', caso, 'capitalizando no se inventa una racha mortal',
+      !cfg.compound || st.killingStreak === null,
+      `compound=${cfg.compound} mata=${st.killingStreak} · ${ctx}`);
+
     // Si perder TODAS las operaciones deja saldo, la ruina no puede ocurrir.
     // Es lo que convierte un "0,00 %" mudo en una respuesta que se entiende.
     if (st.worstCaseBalance > 0 && !cfg.dispersion) {

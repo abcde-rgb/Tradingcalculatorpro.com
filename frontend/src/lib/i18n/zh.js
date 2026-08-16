@@ -4279,4 +4279,16 @@ export default {
   "mcError_avg_loss": "平均亏损不能为零。",
   "mcError_sample_empty": "日记中没有可重采样的带结果交易。",
   "mcError_sample_flat": "日记中所有交易都是零：没有可模拟的内容。",
+
+  // ─── Rachas de pérdidas (Monte Carlo) ───
+  "mcStreakTitle": "连亏",
+  "mcStreakKills": "爆仓所需的连亏次数",
+  "mcStreakNever": "不存在（复利模式）",
+  "mcStreakOdds": "在 {ops} 笔中出现的概率",
+  "mcStreakTypical": "典型连亏（一半的场次）",
+  "mcStreakOneInTwenty": "每 20 场有 1 场达到",
+  "mcStreakObserved": "实测：中位数 · p95 · 最大",
+  "mcStreakHint": "前两个数字是精确解，不是模拟抽出来的。典型连亏几乎没人预先考虑：胜率 55 % 时，每二十场就有一场会连亏 8 笔。",
+  "mcRiskOverAdvised": "高于建议的 {advised} %。决定之前先看看会让你爆仓的连亏次数和它的概率。",
+  "mcRiskOverCap": "高于计算台 {cap} % 的硬上限。这里仍然照常模拟，是有意为之：下面的连亏数据会告诉你计算器为什么不让你这样下单。",
 }
