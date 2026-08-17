@@ -1368,6 +1368,65 @@ async function checkSiteFacts() {
   ok(`las ${SITE_FACTS.strategies} estrategias de la portada existen en el catálogo`,
     estrategias === SITE_FACTS.strategies,
     `siteFacts dice ${SITE_FACTS.strategies}, STRATEGIES tiene ${estrategias}`);
+
+  // ── Las cifras de la Academia ───────────────────────────────────
+  // Vivían sueltas en el texto de venta y nadie las contaba. Decían «50+
+  // Reglas» sobre 42, y dos cadenas distintas daban 30 y 27 velas para el
+  // mismo catálogo. Un número sobre el producto o sale del código o es un
+  // eslogan, y aquí ya hay tres cifras que aprendieron esa lección.
+  const contenido = lee('lib/tradingEducationContent.js');
+  const cuenta = (fn) => {
+    const i = contenido.indexOf(fn);
+    if (i < 0) return -1;
+    const bloque = contenido.slice(i, contenido.indexOf('\n};', i));
+    return new Set([...bloque.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1])).size;
+  };
+
+  const chartistas = cuenta('getChartPatterns');
+  ok(`los ${SITE_FACTS.chartPatterns} patrones chartistas existen`,
+    chartistas === SITE_FACTS.chartPatterns,
+    `siteFacts dice ${SITE_FACTS.chartPatterns}, getChartPatterns tiene ${chartistas}`);
+
+  const reglas = cuenta('getTradingRules');
+  ok(`las ${SITE_FACTS.tradingRules} reglas de trading existen`,
+    reglas === SITE_FACTS.tradingRules,
+    `siteFacts dice ${SITE_FACTS.tradingRules}, getTradingRules tiene ${reglas}`);
+
+  // Las velas viven en el backend (`candle_patterns.py`), que este script no
+  // puede importar. Lo que sí se puede comprobar sin salir del frontend es que
+  // las dos cadenas que las citan digan LA MISMA cifra: el 30 contra 27 de
+  // `educationCenterDesc` y `seoEducationDesc` estuvo publicado en 10 idiomas.
+  const citaVelas = (clave) => {
+    const txt = (es.match(new RegExp(`"${clave}":\\s*"((?:[^"\\\\]|\\\\.)*)"`)) || [])[1] || '';
+    return txt.includes(String(SITE_FACTS.candlePatterns));
+  };
+  for (const clave of ['educationCenterDesc', 'seoEducationDesc']) {
+    ok(`${clave} dice las ${SITE_FACTS.candlePatterns} velas reales`, citaVelas(clave),
+      `debería nombrar ${SITE_FACTS.candlePatterns}`);
+  }
+  // ── El precio que se le dice a Google, en los DIEZ idiomas ──────
+  // `seoPricingDesc` anunciaba «9,99 $/mes» en alemán, francés, ruso, japonés,
+  // chino y árabe. El precio real son 17 €: ni la cifra ni la divisa. Es la
+  // única cadena traducida donde una cifra distinta por idioma no es un matiz
+  // de estilo sino un precio falso publicado en un buscador, así que se
+  // comprueban las diez y no sólo la de referencia.
+  const IDIOMAS_SEO = ['es', 'en', 'de', 'fr', 'it', 'pt', 'ru', 'ja', 'zh', 'ar'];
+  const PRECIO_MENSUAL = '17';
+  for (const idi of IDIOMAS_SEO) {
+    const dicc = fs.readFileSync(path.join(SRC, `lib/i18n/${idi}.js`), 'utf8');
+    const txt = (dicc.match(/"seoPricingDesc":\s*"((?:[^"\\]|\\.)*)"/) || [])[1] || '';
+    const otroPrecio = /\d+[.,]\d{2}\s*\$|\$\s*\d+[.,]\d{2}/.test(txt);
+    ok(`${idi}: el precio que ve Google es el real y no otro`,
+      txt.includes(PRECIO_MENSUAL) && !otroPrecio, `«${txt.slice(0, 70)}»`);
+  }
+
+  // Y que ninguna siga inflando las reglas ni las calculadoras.
+  for (const [clave, real] of [['eduFeatureRules', SITE_FACTS.tradingRules],
+    ['featureCalculators', SITE_FACTS.calculators]]) {
+    const txt = (es.match(new RegExp(`"${clave}":\\s*"((?:[^"\\\\]|\\\\.)*)"`)) || [])[1] || '';
+    ok(`${clave} no inventa una cifra`, txt.includes(String(real)),
+      `dice «${txt}» y son ${real}`);
+  }
 }
 
 /**

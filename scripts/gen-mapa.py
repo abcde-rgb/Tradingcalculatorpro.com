@@ -115,6 +115,24 @@ def rutas() -> list[dict]:
     return out
 
 
+# Comentarios de bloque y de línea. El `(?<!:)` protege `https://`, que es una
+# barra doble dentro de una cadena y no un comentario.
+_BLOQUE = re.compile(r"/\*[\s\S]*?\*/")
+_LINEA = re.compile(r"(?<!:)//[^\n]*")
+
+
+def sin_comentarios(src: str) -> str:
+    """El código sin sus comentarios.
+
+    Un comentario que NOMBRA una ruta no la consume. Se descubrió al retirar de
+    `/pricing` la promesa de rebalanceo de cartera: el comentario que explicaba
+    por qué se retiraba citaba `/api/portfolio/rebalance`, y la ruta —que sigue
+    sin tener una sola pantalla— pasó a contar como consumida. El control lo
+    cazó en el acto, que es exactamente para lo que está.
+    """
+    return _LINEA.sub("", _BLOQUE.sub("", src))
+
+
 def blob_frontend() -> str:
     """Todo el código del frontend en una cadena, sin los ficheros de texto."""
     trozos = []
@@ -122,7 +140,7 @@ def blob_frontend() -> str:
         ruta = str(p)
         if any(x in ruta for x in EXCLUIR_DE_BUSQUEDA):
             continue
-        trozos.append(p.read_text(errors="ignore"))
+        trozos.append(sin_comentarios(p.read_text(errors="ignore")))
     return "\n".join(trozos)
 
 

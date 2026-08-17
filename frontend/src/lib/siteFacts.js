@@ -22,6 +22,12 @@ export const SITE_FACTS = {
   assets: 186,
   /** Estrategias de opciones · fuente: `STRATEGIES` en `data/mockData.js` */
   strategies: 66,
+  /** Patrones chartistas · fuente: `getChartPatterns` en `lib/tradingEducationContent.js` */
+  chartPatterns: 42,
+  /** Patrones de vela · fuente: `get_pattern_catalog()` en `backend/candle_patterns.py` */
+  candlePatterns: 30,
+  /** Reglas de trading · fuente: `getTradingRules` en `lib/tradingEducationContent.js` */
+  tradingRules: 42,
 };
 
 export default SITE_FACTS;

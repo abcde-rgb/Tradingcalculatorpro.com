@@ -2056,6 +2056,11 @@ async def get_me(user: dict = Depends(require_user)):
         "picture": user.get("picture"),
         "last_seen": user.get("last_seen"),
         "login_count": user.get("login_count", 0),
+        # La prueba de 7 dias se concede UNA vez y solo con tarjeta. El frontend
+        # no lo sabia y enseñaba «7 dias gratis · sin cargo hoy» a quien ya la
+        # habia gastado: se le cobraba al instante. Prometer algo que el propio
+        # backend va a denegar tres lineas mas abajo no es un fallo de copia.
+        "trial_used": bool(user.get("trial_used")) or bool(user.get("stripe_subscription_id")),
     }
 
 
