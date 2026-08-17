@@ -819,8 +819,9 @@ async function checkDeskMath() {
     liquidationView, maxSizes, minTicket, averageEntry, partialExits,
     breakEven, commissionTotal, stepValues, requiredLeverage, snapDown,
     leverageFromMargin, effectiveLeverage, quantityFromMargin, riskForQuantity,
+    quoteCurrency, quoteToAccount, quoteStep, pipValue, lotSizing,
   } = await imp('lib/deskMath.js');
-  const { resolveSpec, liquidationPrice } = await imp('lib/instruments.js');
+  const { resolveSpec, liquidationPrice, FUTURES_SPECS } = await imp('lib/instruments.js');
 
   // ── El tope duro ────────────────────────────────────────────────
   const okRisk = riskBudget({ capital: 10000, riskPct: 1 });
@@ -1002,6 +1003,88 @@ async function checkDeskMath() {
     near(riskForQuantity({ quantity: 2, stopDistance: 20, contractSize: 5 }), 200));
   ok('sin stop el riesgo de ese tamaño es indefinido, no cero',
     riskForQuantity({ quantity: 2, contractSize: 5 }) === null);
+
+  // ── El pip vale lo que dice el catálogo, no diez dólares ────────
+  // La vieja calculadora de lotaje llevaba `pipValuePerStandardLot = 10` y se
+  // lo aplicaba a todo: en oro daba diez veces menos tamaño del debido y
+  // anunciaba una pérdida máxima diez veces mayor que la real.
+  const eurusd = resolveSpec('forex', 'EURUSD');
+  const usdjpy = resolveSpec('forex', 'USDJPY');
+  const eurgbp = resolveSpec('forex', 'EURGBP');
+  const oro = resolveSpec('cfd', 'XAUUSD');
+
+  ok('la cotizada de EURUSD son dólares y la de USDJPY yenes',
+    quoteCurrency(eurusd) === 'USD' && quoteCurrency(usdjpy) === 'JPY');
+  ok('fuera de forex el catálogo habla en dólares', quoteCurrency(oro) === 'USD');
+
+  ok('cotizar en la divisa de la cuenta no convierte nada',
+    quoteToAccount({ spec: eurusd, price: 1.0854 }) === 1);
+  ok('si la cuenta es la divisa BASE, el factor sale del propio precio',
+    near(quoteToAccount({ spec: usdjpy, price: 157 }), 1 / 157));
+  ok('un cruce sin tercer cambio es null, no 1',
+    quoteToAccount({ spec: eurgbp, price: 0.842 }) === null);
+
+  // El pip de forex y el tick de un CFD son el mismo concepto con dos nombres.
+  ok('el paso de EURUSD es su pip', near(quoteStep(eurusd), 0.0001));
+  ok('el paso del oro es su tick, aunque no se llame pip', near(quoteStep(oro), 0.01));
+
+  ok('un lote estándar de EURUSD mueve 10 $ por pip',
+    near(pipValue({ quantity: 1, contractSize: 100000, spec: eurusd, price: 1.0854 }).account, 10));
+  ok('el mismo lote de USDJPY mueve 1000 ¥, que a 157 son 6,37 $',
+    near(pipValue({ quantity: 1, contractSize: 100000, spec: usdjpy, price: 157 }).account, 1000 / 157));
+  ok('un lote de oro son 100 onzas y su pip vale 1 $, no 10',
+    near(pipValue({ quantity: 1, contractSize: 100, spec: oro, price: 2400 }).account, 1));
+  ok('el pip de un cruce no se inventa: null',
+    pipValue({ quantity: 1, contractSize: 100000, spec: eurgbp, price: 0.842 }).account === null);
+
+  // Contra el catálogo de futuros, que publica su propio valor de tick: dos
+  // caminos independientes tienen que dar el mismo número.
+  for (const sym of ['MES', 'ES', 'CL', 'GC']) {
+    const f = FUTURES_SPECS[sym];
+    const sp = resolveSpec('futures', sym);
+    ok(`el valor del tick de ${sym} sale igual del catálogo que de la fórmula`,
+      near(pipValue({ quantity: 1, contractSize: f.contract_size, spec: sp, price: 5000 }).account,
+        f.tick_value),
+      `${sym}: ${f.tick_value}`);
+  }
+
+  // ── Dimensionar en lotes con dos divisas por medio ──────────────
+  // Cuenta de 10 000 $, 1 % de riesgo (100 $), stop de 50 pips.
+  const lotesEur = lotSizing({
+    entry: 1.0854, stopDistance: 50 * 0.0001, contractSize: 100000, spec: eurusd,
+    capital: 10000, riskAmount: 100, leverage: 30,
+  });
+  ok('0,20 lotes de EURUSD arriesgan exactamente los 100 $ pedidos',
+    near(lotesEur.lots, 0.2) && near(lotesEur.riskAccount, 100), JSON.stringify(lotesEur));
+
+  const lotesJpy = lotSizing({
+    entry: 157, stopDistance: 50 * 0.01, contractSize: 100000, spec: usdjpy,
+    capital: 10000, riskAmount: 100, leverage: 30,
+  });
+  ok('en USDJPY salen 0,31 lotes, no 0,20: el pip no vale 10 $',
+    near(lotesJpy.lots, 0.31), JSON.stringify(lotesJpy));
+  ok('y el riesgo real se queda por debajo del presupuesto, nunca encima',
+    lotesJpy.riskAccount <= 100 + 1e-9, `${lotesJpy.riskAccount}`);
+
+  ok('un cruce no se dimensiona a medias: convertible false y todo null',
+    lotSizing({
+      entry: 0.842, stopDistance: 50 * 0.0001, contractSize: 100000, spec: eurgbp,
+      capital: 10000, riskAmount: 100, leverage: 30,
+    }).lots === null);
+
+  // El pip por lote es la cifra que la vieja calculadora daba siempre como 10.
+  ok('el pip por lote se publica aunque el tamaño lo frene otro tope',
+    near(lotSizing({
+      entry: 2400, stopDistance: 50 * 0.01, contractSize: 100, spec: oro,
+      capital: 10000, riskAmount: 100, leverage: 20,
+    }).pipPerLot, 1));
+
+  // ── El escalón no deja basura binaria ───────────────────────────
+  // `0,41000000000000003` acaba copiado en la casilla del bróker.
+  ok('0,41 lotes son 0,41 y no 0,41000000000000003',
+    String(snapDown(0.4123, 0.01)) === '0.41');
+  ok('el escalón de un contrato sigue dando enteros limpios',
+    String(snapDown(7.99, 1)) === '7');
 
   // ── El billete mínimo ───────────────────────────────────────────
   // Un E-mini con stop de 20 puntos son 1000 $. En una cuenta de 3000 $, el

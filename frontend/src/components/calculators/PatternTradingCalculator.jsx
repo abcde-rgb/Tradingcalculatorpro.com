@@ -8,6 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatNumber } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { resolveSpec, positionMetrics, liquidationPrice } from '@/lib/instruments';
+import { riskBudget, maxSizes, RISK_HARD_CAP_PCT } from '@/lib/deskMath';
+
+// Un perpetuo genérico: apalancamiento sí, tamaño de contrato 1 (los precios
+// que se escriben aquí son por unidad) y sin escalón. Sale del catálogo para
+// que el modelo de liquidación y el de margen sean los mismos que en la mesa.
+const SPEC = resolveSpec('crypto_perp', '');
+const CONTRACT_SIZE = 1;
+
+const nz = (v) => {
+  const n = Number(v);
+  return v === '' || v === null || v === undefined || !Number.isFinite(n) ? null : n;
+};
 
 export const PatternTradingCalculator = () => {
   const { t } = useTranslation();
@@ -31,6 +44,10 @@ export const PatternTradingCalculator = () => {
   } = persistedData;
   const [result, setResult] = useState(null);
 
+  // Quien tenga guardado el modo `fixed` —«toda la cuenta al maximo
+  // apalancamiento», que no era un modo sino la averia— entra por importe.
+  const modoRiesgo = slMode === 'riskPercent' ? 'riskPercent' : 'maxLoss';
+
   const setAccountBalance  = (v) => setPersistedData(prev => ({ ...prev, accountBalance: v }));
   const setLeverage        = (v) => setPersistedData(prev => ({ ...prev, leverage: v }));
   const setDirection       = (v) => setPersistedData(prev => ({ ...prev, direction: v }));
@@ -43,141 +60,99 @@ export const PatternTradingCalculator = () => {
   const setRiskPercent     = (v) => setPersistedData(prev => ({ ...prev, riskPercent: v }));
 
   const calculate = () => {
-    const balance = parseFloat(accountBalance);
-    const lev = parseFloat(leverage);
-    const entry = parseFloat(activationPrice);
-    const breakout = parseFloat(breakoutPrice);
-    const targetPct = parseFloat(targetPercent);
-    
-    let slPrice;
-    let positionSize;
-    
-    // Calcular precio objetivo
-    const targetPrice = direction === 'long' 
+    const balance = nz(accountBalance);
+    const lev = nz(leverage);
+    const entry = nz(activationPrice);
+    const targetPct = nz(targetPercent);
+    const sl = nz(slPriceFixed);
+
+    // El presupuesto de riesgo, con el mismo tope duro que la mesa: por encima
+    // del 10 % de la cuenta no hay tamaño, hay motivo.
+    const budget = riskBudget({
+      capital: balance,
+      riskPct: nz(riskPercent),
+      riskMoney: nz(maxLoss),
+      mode: modoRiesgo === 'riskPercent' ? 'pct' : 'money',
+    });
+    if (budget.blocked) {
+      setResult({ blocked: budget.reason, budget });
+      return;
+    }
+    if (entry === null || sl === null || targetPct === null || entry === sl) {
+      setResult({ blocked: 'incomplete' });
+      return;
+    }
+
+    const targetPrice = direction === 'long'
       ? entry * (1 + targetPct / 100)
       : entry * (1 - targetPct / 100);
-    
-    // Calcular precio de liquidación
-    const liquidationPrice = direction === 'long'
-      ? entry * (1 - (1 / lev) * 0.9) // 90% del margen antes de liquidación
-      : entry * (1 + (1 / lev) * 0.9);
-    
-    // Calcular SL y tamaño de posición según modo
-    if (slMode === 'maxLoss') {
-      const maxLossUSD = parseFloat(maxLoss);
-      
-      // Estimar SL basado en pérdida máxima
-      // Para LONG: SL debe estar por debajo del precio de entrada
-      // Para SHORT: SL debe estar por encima del precio de entrada
-      const slDistance = (maxLossUSD / balance) * 100;
-      
-      slPrice = direction === 'long'
-        ? entry * (1 - slDistance / 100)
-        : entry * (1 + slDistance / 100);
-      
-      // Calcular position size que respeta el maxLoss
-      const priceDiffPercent = Math.abs((slPrice - entry) / entry) * 100;
-      positionSize = (maxLossUSD / priceDiffPercent) * lev;
-      
-    } else if (slMode === 'fixed') {
-      slPrice = parseFloat(slPriceFixed);
-      
-      // Calcular position size basado en SL fijo
-      const priceDiffPercent = Math.abs((slPrice - entry) / entry) * 100;
-      const maxLossFromSL = (priceDiffPercent / lev) * balance;
-      positionSize = balance * lev;
-      
-    } else { // riskPercent mode
-      const riskPct = parseFloat(riskPercent);
-      const riskAmount = balance * (riskPct / 100);
-      
-      // SL automático basado en % de riesgo
-      const slDistance = (riskAmount / balance) * 100;
-      slPrice = direction === 'long'
-        ? entry * (1 - slDistance / 100)
-        : entry * (1 + slDistance / 100);
-      
-      const priceDiffPercent = Math.abs((slPrice - entry) / entry) * 100;
-      positionSize = (riskAmount / priceDiffPercent) * lev;
+
+    // La liquidación sale del catálogo, con su margen de mantenimiento. Antes
+    // era `entry × (1 − 1/lev × 0,9)`: un 0,9 sin explicación y sin liquidación
+    // declarada como imposible cuando no hay apalancamiento.
+    const liquidation = liquidationPrice(entry, direction, lev);
+
+    // El tamaño sale del riesgo y de la distancia al stop, NUNCA del
+    // apalancamiento. Ésta era la avería: `positionValue = balance × lev`
+    // ignoraba el riesgo que pedías y anunciaba una pérdida máxima multiplicada
+    // por la palanca — con 10 000 al 10×, pedir 100 $ de riesgo te decía 1 000.
+    // El apalancamiento decide el MARGEN y dónde te liquidan, no cuánto pierdes.
+    const stopDistance = Math.abs(entry - sl);
+    const sizes = maxSizes({
+      entry, stopDistance, contractSize: CONTRACT_SIZE, spec: SPEC,
+      riskAmount: budget.amount, capital: balance, leverage: lev,
+    });
+    const quantity = sizes.quantity;
+    if (quantity === null) {
+      setResult({ blocked: 'too_small', budget, sizes });
+      return;
     }
-    
-    // Calcular valor de posición
-    const positionValue = balance * lev;
-    
-    // Calcular ganancia objetivo
-    const targetProfit = direction === 'long'
-      ? (targetPrice - entry) * (positionValue / entry)
-      : (entry - targetPrice) * (positionValue / entry);
-    
-    // Calcular pérdida máxima en SL
-    const maxLossAtSL = direction === 'long'
-      ? (entry - slPrice) * (positionValue / entry)
-      : (slPrice - entry) * (positionValue / entry);
-    
-    // Calcular ratio R/R
-    const rrRatio = Math.abs(targetProfit / maxLossAtSL);
-    
-    // Warnings
+
+    const metrics = positionMetrics({
+      entry, quantity, contractSize: CONTRACT_SIZE, leverage: lev, balance,
+      side: direction, sl, tp: targetPrice, spec: SPEC,
+    });
+
+    // Beneficio y pérdida con la MISMA fórmula: distancia × cantidad × contrato.
+    const targetProfit = Math.abs(targetPrice - entry) * quantity * CONTRACT_SIZE;
+    const maxLossAtSL = stopDistance * quantity * CONTRACT_SIZE;
+    const rrRatio = maxLossAtSL > 0 ? targetProfit / maxLossAtSL : null;
+
     const warnings = [];
-    
-    // Check if SL is beyond liquidation
-    const slBeyondLiquidation = direction === 'long' 
-      ? slPrice < liquidationPrice
-      : slPrice > liquidationPrice;
-    
-    if (slBeyondLiquidation) {
-      warnings.push({
-        type: 'danger',
-        message: t('dangerSlLiquidation')
-      });
-    } else {
-      warnings.push({
-        type: 'success',
-        message: t('safeSlAlert')
-      });
+    // Un stop más allá de la liquidación no es un stop: nunca llega a saltar.
+    const slBeyondLiquidation = liquidation !== null && (direction === 'long'
+      ? sl < liquidation
+      : sl > liquidation);
+    warnings.push(slBeyondLiquidation
+      ? { type: 'danger', message: t('dangerSlLiquidation') }
+      : { type: 'success', message: t('safeSlAlert') });
+
+    if (rrRatio !== null && rrRatio < 1) {
+      warnings.push({ type: 'warning', message: t('unfavorableRr') });
+    } else if (rrRatio !== null && rrRatio >= 2) {
+      warnings.push({ type: 'success', message: t('excellentRr') });
     }
-    
-    // Check if target is reachable
-    const targetBeyondLiquidation = direction === 'long'
-      ? targetPrice > liquidationPrice
-      : targetPrice < liquidationPrice;
-    
-    if (targetBeyondLiquidation) {
-      warnings.push({
-        type: 'success',
-        message: t('targetReachable')
-      });
-    } else {
-      warnings.push({
-        type: 'danger',
-        message: t('targetUnreachable')
-      });
+    // Que el tamaño lo frene el margen o la exposición no es un detalle: es la
+    // diferencia entre la posición que querías y la que la cuenta aguanta.
+    if (sizes.binding !== 'risk') {
+      warnings.push({ type: 'warning', message: t(`patternCapped_${sizes.binding}`) });
     }
-    
-    // Check R/R ratio
-    if (rrRatio < 1) {
-      warnings.push({
-        type: 'warning',
-        message: t('unfavorableRr')
-      });
-    } else if (rrRatio >= 2) {
-      warnings.push({
-        type: 'success',
-        message: t('excellentRr')
-      });
-    }
-    
+
     setResult({
-      positionValue,
-      positionSize: positionValue / entry,
-      liquidationPrice,
+      positionValue: metrics.notional,
+      positionSize: quantity,
+      marginUsed: metrics.marginUsed,
+      exposure: metrics.exposureMultiple,
+      liquidationPrice: liquidation,
       targetPrice,
       targetProfit,
       maxLossAtSL,
-      slPrice,
+      slPrice: sl,
       breakoutPrice,
       rrRatio,
-      warnings
+      binding: sizes.binding,
+      budget,
+      warnings,
     });
   };
 
@@ -289,23 +264,40 @@ export const PatternTradingCalculator = () => {
         <div>
           <h3 className="text-sm font-semibold text-primary mb-4">{t('riskManagement')}</h3>
           <div className="space-y-4">
+            {/* El STOP siempre se pide. Antes, en dos de los tres modos, la
+                herramienta se lo inventaba: cogía tu pérdida máxima como % de
+                la cuenta y plantaba el stop a esa distancia del precio, que son
+                dos cosas sin ninguna relación. El stop lo pone el patrón; lo
+                que el riesgo decide es el TAMAÑO. */}
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('slPriceFixed')} (USD)
+              </Label>
+              <Input
+                type="number"
+                value={slPriceFixed}
+                onChange={(e) => setSlPriceFixed(e.target.value)}
+                className="font-mono bg-muted border-border"
+                data-testid="pattern-sl"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 {t('slMode')}
               </Label>
-              <Select value={slMode} onValueChange={setSlMode}>
-                <SelectTrigger className="bg-muted border-border">
+              <Select value={modoRiesgo} onValueChange={setSlMode}>
+                <SelectTrigger className="bg-muted border-border" data-testid="pattern-riskmode">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="maxLoss">{t('maxLossMode')}</SelectItem>
-                  <SelectItem value="fixed">{t('fixedSlMode')}</SelectItem>
                   <SelectItem value="riskPercent">{t('riskPercentMode')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
-            {slMode === 'maxLoss' && (
+
+            {modoRiesgo === 'maxLoss' ? (
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                   {t('maxLossAccept')} (USD)
@@ -315,25 +307,10 @@ export const PatternTradingCalculator = () => {
                   value={maxLoss}
                   onChange={(e) => setMaxLoss(e.target.value)}
                   className="font-mono bg-muted border-border"
+                  data-testid="pattern-maxloss"
                 />
               </div>
-            )}
-            
-            {slMode === 'fixed' && (
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {t('slPriceFixed')} (USD)
-                </Label>
-                <Input
-                  type="number"
-                  value={slPriceFixed}
-                  onChange={(e) => setSlPriceFixed(e.target.value)}
-                  className="font-mono bg-muted border-border"
-                />
-              </div>
-            )}
-            
-            {slMode === 'riskPercent' && (
+            ) : (
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                   {t('riskPercentAccount')}
@@ -344,6 +321,8 @@ export const PatternTradingCalculator = () => {
                   onChange={(e) => setRiskPercent(e.target.value)}
                   className="font-mono bg-muted border-border"
                   step="0.1"
+                  max={RISK_HARD_CAP_PCT}
+                  data-testid="pattern-riskpct"
                 />
               </div>
             )}
@@ -358,7 +337,19 @@ export const PatternTradingCalculator = () => {
         {result && (
           <div className="space-y-4">
             {/* Warnings */}
-            {result.warnings.map((warning, index) => (
+            {result.blocked && (
+              <div className="p-4 rounded-lg border bg-destructive/10 border-destructive/50 text-destructive flex items-start gap-3"
+                data-testid="pattern-blocked">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <p className="text-sm font-medium">
+                  {result.blocked === 'over_cap'
+                    ? t('deskRiskOverCapInline').replace('{cap}', String(RISK_HARD_CAP_PCT))
+                    : t(`patternBlocked_${result.blocked}`)}
+                </p>
+              </div>
+            )}
+
+            {!result.blocked && result.warnings.map((warning, index) => (
               <div
                 key={`alert-${index}`}
                 className={`p-4 rounded-lg border flex items-start gap-3 ${
@@ -377,10 +368,15 @@ export const PatternTradingCalculator = () => {
             ))}
             
             {/* Results Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 rounded-xl bg-muted/50 border border-border">
+            {!result.blocked && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 rounded-xl bg-muted/50 border border-border"
+              data-testid="pattern-results">
               <div>
                 <p className="text-xs text-muted-foreground">{t('positionValue')}</p>
-                <p className="font-mono text-lg text-primary">${formatNumber(result.positionValue)}</p>
+                <p className="font-mono text-lg text-primary" data-testid="pattern-notional">${formatNumber(result.positionValue)}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t('lotMargin')}: ${formatNumber(result.marginUsed)} · {formatNumber(result.exposure, 2)}× {t('lotOfAccount')}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('positionSizeUnits')}</p>
@@ -388,7 +384,10 @@ export const PatternTradingCalculator = () => {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('liquidationPrice')}</p>
-                <p className="font-mono text-lg text-destructive">${formatNumber(result.liquidationPrice)}</p>
+                {/* Sin apalancamiento no hay liquidacion. Antes pintaba $0,00. */}
+                <p className="font-mono text-lg text-destructive">
+                  {result.liquidationPrice === null ? '—' : `$${formatNumber(result.liquidationPrice)}`}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('targetPriceResult')}</p>
@@ -400,7 +399,7 @@ export const PatternTradingCalculator = () => {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('maxLossSl')}</p>
-                <p className="font-mono text-lg text-destructive">-${formatNumber(result.maxLossAtSL)}</p>
+                <p className="font-mono text-lg text-destructive" data-testid="pattern-maxloss-result">-${formatNumber(result.maxLossAtSL)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('stopLossPrice')}</p>
@@ -409,10 +408,11 @@ export const PatternTradingCalculator = () => {
               <div>
                 <p className="text-xs text-muted-foreground">{t('rrRatio')}</p>
                 <p className={`font-mono text-lg ${result.rrRatio >= 2 ? 'text-primary' : result.rrRatio >= 1 ? 'text-accent' : 'text-destructive'}`}>
-                  {formatNumber(result.rrRatio, 2)}:1
+                  {result.rrRatio === null ? '—' : `${formatNumber(result.rrRatio, 2)}:1`}
                 </p>
               </div>
             </div>
+            )}
           </div>
         )}
 
