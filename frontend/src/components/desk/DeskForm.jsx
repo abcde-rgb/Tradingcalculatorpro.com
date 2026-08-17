@@ -43,7 +43,12 @@ export default function DeskForm({
 }) {
   const { t } = useTranslation();
   const esOpcion = form.product === 'option';
-  const riskMode = account?.riskMode === 'money' ? 'money' : 'pct';
+  // Tres modos, y lo que no se reconozca cae a porcentaje. Cuando esto era un
+  // ternario de dos ramas, añadir «margen» dejaba el botón encendiéndose en el
+  // almacén y la pantalla enseñando el campo de porcentaje: el modo existía y
+  // no se veía por ninguna parte.
+  const MODOS_RIESGO = ['pct', 'money', 'margin'];
+  const riskMode = MODOS_RIESGO.includes(account?.riskMode) ? account.riskMode : 'pct';
 
   const set = (k) => (e) => {
     const v = e?.target ? e.target.value : e;
@@ -71,10 +76,16 @@ export default function DeskForm({
           </Campo>
 
           <Campo
-            etiqueta={t('deskRiskLabel')}
+            etiqueta={riskMode === 'margin' ? t('deskMarginToCommit') : t('deskRiskLabel')}
             derecha={(
               <div className="flex rounded-sharp border border-rule overflow-hidden">
-                {['pct', 'money'].map((mo) => (
+                {/* Tercera entrada: el margen. La mesa dimensiona por riesgo
+                    porque es lo que protege la cuenta, pero delante de la
+                    pantalla también se piensa al revés — «comprometo 2.000 de
+                    margen, ¿cuántos contratos son?». El tope del 10 % se sigue
+                    aplicando al riesgo que ESO implica, así que no es una
+                    puerta trasera para saltárselo. */}
+                {['pct', 'money', 'margin'].map((mo) => (
                   <button
                     key={mo} type="button"
                     onClick={() => patchAccount('riskMode', mo)}
@@ -83,7 +94,7 @@ export default function DeskForm({
                     }`}
                     data-testid={`desk-risk-mode-${mo}`}
                   >
-                    {mo === 'pct' ? '%' : t('deskRiskMoneyShort')}
+                    {mo === 'pct' ? '%' : mo === 'money' ? t('deskRiskMoneyShort') : t('deskMarginShort')}
                   </button>
                 ))}
               </div>
@@ -91,11 +102,16 @@ export default function DeskForm({
           >
             <Input
               type="number" step={riskMode === 'pct' ? '0.1' : 'any'} min="0"
-              value={(riskMode === 'pct' ? account?.riskPct : account?.riskMoney) ?? ''}
-              onChange={(e) => patchAccount(riskMode === 'pct' ? 'riskPct' : 'riskMoney', e.target.value)}
-              placeholder={riskMode === 'pct' ? '1' : '100'}
+              value={(riskMode === 'pct' ? account?.riskPct
+                : riskMode === 'margin' ? account?.marginAmount
+                : account?.riskMoney) ?? ''}
+              onChange={(e) => patchAccount(
+                riskMode === 'pct' ? 'riskPct' : riskMode === 'margin' ? 'marginAmount' : 'riskMoney',
+                e.target.value)}
+              placeholder={riskMode === 'pct' ? '1' : riskMode === 'margin' ? '2000' : '100'}
               className="font-mono tabular-nums text-xl h-12"
-              data-testid={riskMode === 'pct' ? 'desk-risk-pct' : 'desk-risk-money'}
+              data-testid={riskMode === 'pct' ? 'desk-risk-pct'
+                : riskMode === 'margin' ? 'desk-margin-amount' : 'desk-risk-money'}
             />
           </Campo>
 
@@ -319,8 +335,10 @@ export default function DeskForm({
                   ))}
                 </select>
               ) : (
-                <p className="mt-1.5 h-10 flex items-center px-3 rounded-sharp bg-muted/50 border border-rule text-xs text-muted-foreground">
-                  {t('deskSizeFromRiskHint')}
+                /* `min-h-10` y no `h-10`: la frase es más larga en alemán y en
+                   ruso que en español, y con altura fija se salía de la caja. */
+                <p className="mt-1.5 min-h-10 flex items-center px-3 py-1.5 rounded-sharp bg-muted/50 border border-rule text-[11px] leading-snug text-muted-foreground">
+                  {t(riskMode === 'margin' ? 'deskSizeFromMarginHint' : 'deskSizeFromRiskHint')}
                 </p>
               )}
             </div>

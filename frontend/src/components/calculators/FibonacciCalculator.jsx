@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, TrendingDown, Calculator, Trash2 } from 'lucide-react';
 import { useCalculatorStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
+import { swingDecimals } from '@/components/performance/form/productMeta';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
 const FIBO_RETRACEMENT = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
@@ -37,19 +38,22 @@ export function FibonacciCalculator() {
     if (!high || !low || high <= low) return;
 
     const diff = high - low;
+    // Los decimales salen del swing, no de una constante: con dos fijos,
+    // seis de los siete niveles de un swing de EURUSD son el mismo numero.
+    const dp = swingDecimals(high, low);
     
     let levels;
     if (trend === 'uptrend') {
       // En uptrend, retroceso desde el máximo hacia el mínimo
       levels = FIBO_RETRACEMENT.map(level => ({
         level: (level * 100).toFixed(1) + '%',
-        price: (high - (diff * level)).toFixed(2)
+        price: (high - (diff * level)).toFixed(dp)
       }));
     } else {
       // En downtrend, retroceso desde el mínimo hacia el máximo
       levels = FIBO_RETRACEMENT.map(level => ({
         level: (level * 100).toFixed(1) + '%',
-        price: (low + (diff * level)).toFixed(2)
+        price: (low + (diff * level)).toFixed(dp)
       }));
     }
 
@@ -64,19 +68,22 @@ export function FibonacciCalculator() {
     if (!high || !low || high <= low) return;
 
     const diff = high - low;
+    // Los decimales salen del swing, no de una constante: con dos fijos,
+    // seis de los siete niveles de un swing de EURUSD son el mismo numero.
+    const dp = swingDecimals(high, low);
     
     let levels;
     if (trend === 'uptrend') {
       // Extensiones hacia arriba desde el mínimo
       levels = FIBO_EXTENSION.map(level => ({
         level: (level * 100).toFixed(1) + '%',
-        price: (low + (diff * level)).toFixed(2)
+        price: (low + (diff * level)).toFixed(dp)
       }));
     } else {
       // Extensiones hacia abajo desde el máximo
       levels = FIBO_EXTENSION.map(level => ({
         level: (level * 100).toFixed(1) + '%',
-        price: (high - (diff * level)).toFixed(2)
+        price: (high - (diff * level)).toFixed(dp)
       }));
     }
 
@@ -189,8 +196,11 @@ export function FibonacciCalculator() {
                     <span className={`font-medium ${getLevelColor(item.level)}`}>
                       {item.level}
                     </span>
+                    {/* `item.price` ya trae los decimales del swing. Volver a
+                        pasarlo por toLocaleString() sin opciones lo recorta a tres
+                        y devuelve el bug que se acaba de arreglar. */}
                     <span className="font-mono font-semibold" data-testid={`ret-level-${idx}`}>
-                      ${parseFloat(item.price).toLocaleString()}
+                      ${item.price}
                     </span>
                   </div>
                 ))}
@@ -226,7 +236,7 @@ export function FibonacciCalculator() {
                       )}
                     </span>
                     <span className="font-mono font-semibold" data-testid={`ext-level-${idx}`}>
-                      ${parseFloat(item.price).toLocaleString()}
+                      ${item.price}
                     </span>
                   </div>
                 ))}

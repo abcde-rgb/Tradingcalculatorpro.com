@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,33 +6,53 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
+import { FUTURES_SPECS } from '@/lib/instruments';
+import useRiskFreeRate from '@/hooks/useRiskFreeRate';
 
-const FUTURES_CONTRACTS = [
-  { symbol: 'ES',  name: 'E-mini S&P 500',       category: 'index',  tickSize: 0.25,      tickValue: 12.50,  contractSize: 50,       pointValue: 50,       initialMargin: 13200, exchange: 'CME' },
-  { symbol: 'NQ',  name: 'E-mini Nasdaq 100',    category: 'index',  tickSize: 0.25,      tickValue: 5.00,   contractSize: 20,       pointValue: 20,       initialMargin: 17600, exchange: 'CME' },
-  { symbol: 'YM',  name: 'E-mini Dow',           category: 'index',  tickSize: 1,         tickValue: 5.00,   contractSize: 5,        pointValue: 5,        initialMargin: 10500, exchange: 'CBOT' },
-  { symbol: 'RTY', name: 'E-mini Russell 2000',  category: 'index',  tickSize: 0.10,      tickValue: 5.00,   contractSize: 50,       pointValue: 50,       initialMargin: 7000,  exchange: 'CME' },
-  { symbol: 'MES', name: 'Micro E-mini S&P 500', category: 'index',  tickSize: 0.25,      tickValue: 1.25,   contractSize: 5,        pointValue: 5,        initialMargin: 1320,  exchange: 'CME' },
-  { symbol: 'MNQ', name: 'Micro E-mini Nasdaq',  category: 'index',  tickSize: 0.25,      tickValue: 0.50,   contractSize: 2,        pointValue: 2,        initialMargin: 1760,  exchange: 'CME' },
-  { symbol: 'CL',  name: 'Crude Oil WTI',        category: 'energy', tickSize: 0.01,      tickValue: 10.00,  contractSize: 1000,     pointValue: 1000,     initialMargin: 6500,  exchange: 'NYMEX' },
-  { symbol: 'NG',  name: 'Natural Gas',          category: 'energy', tickSize: 0.001,     tickValue: 10.00,  contractSize: 10000,    pointValue: 10000,    initialMargin: 3300,  exchange: 'NYMEX' },
-  { symbol: 'RB',  name: 'RBOB Gasoline',        category: 'energy', tickSize: 0.0001,    tickValue: 4.20,   contractSize: 42000,    pointValue: 42000,    initialMargin: 7700,  exchange: 'NYMEX' },
-  { symbol: 'GC',  name: 'Gold',                 category: 'metals', tickSize: 0.10,      tickValue: 10.00,  contractSize: 100,      pointValue: 100,      initialMargin: 10000, exchange: 'COMEX' },
-  { symbol: 'SI',  name: 'Silver',               category: 'metals', tickSize: 0.005,     tickValue: 25.00,  contractSize: 5000,     pointValue: 5000,     initialMargin: 15500, exchange: 'COMEX' },
-  { symbol: 'HG',  name: 'Copper',               category: 'metals', tickSize: 0.0005,    tickValue: 12.50,  contractSize: 25000,    pointValue: 25000,    initialMargin: 6500,  exchange: 'COMEX' },
-  { symbol: 'PL',  name: 'Platinum',             category: 'metals', tickSize: 0.10,      tickValue: 5.00,   contractSize: 50,       pointValue: 50,       initialMargin: 4400,  exchange: 'NYMEX' },
-  { symbol: '6E',  name: 'Euro FX',              category: 'fx',     tickSize: 0.00005,   tickValue: 6.25,   contractSize: 125000,   pointValue: 125000,   initialMargin: 2800,  exchange: 'CME' },
-  { symbol: '6B',  name: 'British Pound',        category: 'fx',     tickSize: 0.0001,    tickValue: 6.25,   contractSize: 62500,    pointValue: 62500,    initialMargin: 2700,  exchange: 'CME' },
-  { symbol: '6J',  name: 'Japanese Yen',         category: 'fx',     tickSize: 0.0000005, tickValue: 6.25,   contractSize: 12500000, pointValue: 12500000, initialMargin: 3000,  exchange: 'CME' },
-  { symbol: '6A',  name: 'Australian Dollar',    category: 'fx',     tickSize: 0.0001,    tickValue: 10.00,  contractSize: 100000,   pointValue: 100000,   initialMargin: 2200,  exchange: 'CME' },
-  { symbol: '6C',  name: 'Canadian Dollar',      category: 'fx',     tickSize: 0.00005,   tickValue: 5.00,   contractSize: 100000,   pointValue: 100000,   initialMargin: 1900,  exchange: 'CME' },
-  { symbol: 'ZB',  name: '30-Year T-Bond',       category: 'bonds',  tickSize: 0.03125,   tickValue: 31.25,  contractSize: 100000,   pointValue: 1000,     initialMargin: 5000,  exchange: 'CBOT' },
-  { symbol: 'ZN',  name: '10-Year T-Note',       category: 'bonds',  tickSize: 0.015625,  tickValue: 15.625, contractSize: 100000,   pointValue: 1000,     initialMargin: 2400,  exchange: 'CBOT' },
-  { symbol: 'ZF',  name: '5-Year T-Note',        category: 'bonds',  tickSize: 0.0078125, tickValue: 7.8125, contractSize: 100000,   pointValue: 1000,     initialMargin: 1800,  exchange: 'CBOT' },
-  { symbol: 'ZS',  name: 'Soybeans',             category: 'grains', tickSize: 0.25,      tickValue: 12.50,  contractSize: 5000,     pointValue: 50,       initialMargin: 4000,  exchange: 'CBOT' },
-  { symbol: 'ZC',  name: 'Corn',                 category: 'grains', tickSize: 0.25,      tickValue: 12.50,  contractSize: 5000,     pointValue: 50,       initialMargin: 2200,  exchange: 'CBOT' },
-  { symbol: 'ZW',  name: 'Wheat',                category: 'grains', tickSize: 0.25,      tickValue: 12.50,  contractSize: 5000,     pointValue: 50,       initialMargin: 2900,  exchange: 'CBOT' },
-];
+/**
+ * La bolsa donde cotiza cada contrato. Es lo ÚNICO que sigue aquí, porque es
+ * una etiqueta y no entra en ningún cálculo: el catálogo no la lleva y ponerla
+ * en un `.jsx` no puede desviar una cifra.
+ */
+const BOLSAS = {
+  ES: 'CME', NQ: 'CME', YM: 'CBOT', RTY: 'CME', MES: 'CME', MNQ: 'CME',
+  M2K: 'CME', MYM: 'CBOT', CL: 'NYMEX', MCL: 'NYMEX', NG: 'NYMEX', RB: 'NYMEX',
+  GC: 'COMEX', MGC: 'COMEX', SI: 'COMEX', SIL: 'COMEX', HG: 'COMEX', PL: 'NYMEX',
+  '6E': 'CME', '6B': 'CME', '6J': 'CME', '6A': 'CME', '6C': 'CME',
+  ZB: 'CBOT', ZN: 'CBOT', ZF: 'CBOT', ZS: 'CBOT', ZC: 'CBOT', ZW: 'CBOT',
+};
+
+/**
+ * Los contratos, DERIVADOS del catálogo del proyecto.
+ *
+ * Antes esto era una tabla de 24 contratos escrita a mano dentro de este mismo
+ * fichero, y se había desincronizado en seis: en bonos (ZB, ZN, ZF) y granos
+ * (ZS, ZC, ZW) confundía el **tamaño de contrato** —el valor facial: 100 000 $
+ * de nominal, 5 000 bushels— con el **valor del punto**, que es lo que mueve un
+ * dólar de precio. La pestaña de margen multiplicaba el precio por el facial y
+ * publicaba nocionales cien veces mayores: un T-Bond salía con 12 millones de
+ * nocional y **2400× de apalancamiento real** donde son 120 000 y 24×.
+ *
+ * Ahora sale de `FUTURES_SPECS`, que `gen-instruments-js.py --check` mantiene en
+ * paridad con `backend/instruments.py` en cada PR. Aquí no queda ninguna cifra
+ * que pueda divergir, y de paso aparecen los cinco micros que la tabla a mano
+ * no tenía (M2K, MCL, MGC, MYM, SIL).
+ *
+ * `pointValue` y `contractSize` son el MISMO número —lo que vale un punto— y se
+ * publican los dos porque las mesas usan los dos nombres. Lo que no vuelve es
+ * el facial: no participaba en ningún cálculo correcto.
+ */
+const FUTURES_CONTRACTS = Object.entries(FUTURES_SPECS).map(([symbol, f]) => ({
+  symbol,
+  name: f.name,
+  category: f.category,
+  tickSize: f.tick_size,
+  tickValue: f.tick_value,
+  contractSize: f.contract_size,
+  pointValue: f.contract_size,
+  initialMargin: f.initial_margin,
+  exchange: BOLSAS[symbol] || '—',
+}));
 
 const CATEGORY_COLORS = {
   index: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
@@ -254,13 +274,25 @@ function MarginTab({ t }) {
 }
 
 function FairValueTab({ t }) {
+  // El tipo libre de riesgo NO se escribe a mano. Era `useState(5.0)`, y el
+  // proyecto tiene una regla explícita al respecto: un 5 % suelto es un bug,
+  // porque el backend valora con el rendimiento real del ^IRX y las dos mitades
+  // de la app acaban discrepando sobre el mismo contrato. Se propone el vivo y
+  // el usuario puede cambiarlo; lo que no se hace es inventarlo.
+  const { ratePct, isLive, source } = useRiskFreeRate();
   const [spotPrice, setSpotPrice] = useState(5000);
-  const [rPct, setRPct] = useState(5.0);
+  const [rPct, setRPct] = useState(null);
   const [qPct, setQPct] = useState(0.0);
+
+  // Cuando llega el tipo vivo, entra en el campo — salvo que ya lo hayas tocado.
+  useEffect(() => {
+    setRPct((prev) => (prev === null ? ratePct : prev));
+  }, [ratePct]);
+  const rEfectivo = rPct === null ? ratePct : rPct;
   const [daysToExpiry, setDaysToExpiry] = useState(30);
 
   const results = useMemo(() => {
-    const r = rPct / 100;
+    const r = rEfectivo / 100;
     const q = qPct / 100;
     const T = daysToExpiry / 365;
     const fairValue = spotPrice * Math.exp((r - q) * T);
@@ -270,7 +302,7 @@ function FairValueTab({ t }) {
     if (basis > 0.01) marketState = 'contango';
     if (basis < -0.01) marketState = 'backwardation';
     return { fairValue, basis, basisPct, marketState };
-  }, [spotPrice, rPct, qPct, daysToExpiry]);
+  }, [spotPrice, rEfectivo, qPct, daysToExpiry]);
 
   const stateColors = {
     contango: 'text-[#f59e0b]',
@@ -287,7 +319,15 @@ function FairValueTab({ t }) {
   return (
     <div className="space-y-4">
       <NumInput label={t('futSpotPrice')} value={spotPrice} onChange={setSpotPrice} step={0.01} />
-      <NumInput label={t('futRiskFreeRate')} value={rPct} onChange={setRPct} step={0.1} />
+      <div>
+        <NumInput label={t('futRiskFreeRate')} value={rEfectivo} onChange={setRPct} step={0.1} />
+        {/* De dónde sale el tipo. Presentarlo sin procedencia es presentarlo
+            como una cotización cuando puede ser un valor de reserva. */}
+        <p className="text-[10px] text-muted-foreground mt-1" data-testid="fut-rate-source">
+          {isLive ? t('optRiskFreeLive') : t('optRiskFreeFallback')}
+          {source ? ` (${source})` : ''}
+        </p>
+      </div>
       <NumInput label={t('futConvYield')} value={qPct} onChange={setQPct} step={0.1} />
       <NumInput label={t('futDaysToExpiry')} value={daysToExpiry} onChange={setDaysToExpiry} step={1} min={1} />
 

@@ -106,7 +106,8 @@ async function mesa(n) {
   const {
     RISK_HARD_CAP_PCT, riskBudget, marginModesFor, liquidationView,
     maxSizes, minTicket, breakEven, commissionTotal, stepValues,
-    effectiveLeverage, liquidationFromBuffer,
+    effectiveLeverage, liquidationFromBuffer, quantityFromMargin, riskForQuantity,
+    lotSizing, quoteStep, quoteToAccount, snapDown,
   } = await imp('lib/deskMath.js');
 
   const PRODUCTOS = ['stock', 'cfd', 'futures', 'forex', 'crypto_spot', 'crypto_perp', 'option'];
@@ -264,6 +265,116 @@ async function mesa(n) {
     if (min.quantity != null) {
       exige('mesa', caso, 'el mínimo operable no supera al tamaño propuesto',
         min.quantity <= qty + 1e-9, `min=${min.quantity} qty=${qty} · ${ctx}`);
+    }
+
+    // ── El camino inverso: del margen al número de contratos ─────
+    // El usuario dice cuánto capital quiere comprometer y la mesa le devuelve
+    // los contratos que salen con SU apalancamiento. Es la misma aritmética
+    // recorrida al revés, así que tiene que cerrar por los dos lados.
+    const margenPedido = logEntre(1, Math.max(2, capital));
+    const porMargen = quantityFromMargin({
+      margin: margenPedido, leverage, entry, contractSize, spec,
+    });
+    todoFinito('mesa', caso, porMargen, 'porMargen.');
+    const ctxM = `${ctx} margen=${margenPedido.toFixed(2)}`;
+
+    if (porMargen.quantity != null) {
+      // Nunca se compromete más dinero del que el usuario ofreció: el tamaño
+      // baja al escalón, jamás sube.
+      exige('mesa', caso, 'el margen usado nunca supera el ofrecido',
+        porMargen.marginUsed <= margenPedido * 1.000001,
+        `${porMargen.marginUsed} > ${margenPedido} · ${ctxM}`);
+
+      exige('mesa', caso, 'el capital movido es precio × cantidad × contrato',
+        cerca(porMargen.notional, porMargen.quantity * entry * contractSize),
+        `${porMargen.notional} · ${ctxM}`);
+
+      // La cadena que pidió el usuario: unidad → entre palanca → margen.
+      const palancaReal = spec.usesLeverage ? leverage : 1;
+      exige('mesa', caso, 'el margen es el capital movido entre la palanca',
+        cerca(porMargen.marginUsed, porMargen.notional / palancaReal),
+        `${porMargen.marginUsed} vs ${porMargen.notional / palancaReal} · ${ctxM}`);
+
+      // El escalón se respeta: no existen 1,3 contratos.
+      // «Cae en el escalón» se comprueba volviendo a ajustar: si ya estaba en
+      // la rejilla, ajustar otra vez no puede moverla. Dividir y comparar con
+      // el entero más cercano parece lo mismo y no lo es — a 1,6e10 el error
+      // del propio cociente supera cualquier tolerancia fija.
+      if (porMargen.step != null) {
+        exige('mesa', caso, 'la cantidad por margen cae en el escalón',
+          snapDown(porMargen.quantity, porMargen.step) === porMargen.quantity,
+          `q=${porMargen.quantity} paso=${porMargen.step} · ${ctxM}`);
+      }
+
+      // Ida y vuelta: devolver el margen calculado no puede inflar el tamaño.
+      const vuelta = quantityFromMargin({
+        margin: porMargen.marginUsed, leverage, entry, contractSize, spec,
+      });
+      exige('mesa', caso, 'reintroducir el margen no infla el tamaño',
+        vuelta.quantity != null && vuelta.quantity <= porMargen.quantity * (1 + 1e-9),
+        `vuelta=${vuelta.quantity} ida=${porMargen.quantity} · ${ctxM}`);
+
+      // El riesgo de ese tamaño es el de siempre: no cambia por venir del margen.
+      const riesgoM = riskForQuantity({ quantity: porMargen.quantity, stopDistance, contractSize });
+      const metricsM = positionMetrics({
+        entry, quantity: porMargen.quantity, contractSize, leverage, balance: capital, side,
+        sl: side === 'long' ? entry - stopDistance : entry + stopDistance,
+        spec,
+      });
+      exige('mesa', caso, 'el riesgo no depende de por dónde se entró al cálculo',
+        cerca(riesgoM, metricsM.riskAmount, 1e-6),
+        `${riesgoM} vs ${metricsM.riskAmount} · ${ctxM}`);
+    }
+
+    // Más dinero jamás puede comprar menos contratos.
+    const doble = quantityFromMargin({
+      margin: margenPedido * 2, leverage, entry, contractSize, spec,
+    });
+    exige('mesa', caso, 'el doble de margen no da menos contratos',
+      (doble.quantity ?? 0) >= (porMargen.quantity ?? 0) - 1e-9,
+      `doble=${doble.quantity} simple=${porMargen.quantity} · ${ctxM}`);
+
+    // ── Lotaje con la cuenta en otra divisa ──────────────────────
+    // El riesgo se convierte a divisa cotizada para dimensionar y vuelve
+    // convertido. Lo que NO puede pasar es que el viaje de ida y vuelta deje
+    // al usuario arriesgando más de lo que dijo.
+    if (product === 'forex' || product === 'cfd') {
+      const paso = quoteStep(spec);
+      const pasos = enteroEntre(5, 300);
+      const distLote = paso !== null ? pasos * paso : null;
+      const lote = lotSizing({
+        entry, stopDistance: distLote, contractSize, spec,
+        capital, riskAmount: budget.amount, leverage,
+      });
+      todoFinito('mesa', caso, lote, 'lote.');
+      const factor = quoteToAccount({ spec, price: entry });
+
+      exige('mesa', caso, 'el lotaje se declara convertible sólo si hay factor',
+        lote.convertible === (factor !== null),
+        `convertible=${lote.convertible} factor=${factor} · ${ctx}`);
+
+      if (!lote.convertible) {
+        // Un cruce sin tercer cambio no da lotes a medias: no da ninguno.
+        exige('mesa', caso, 'sin conversión no se inventa un tamaño',
+          lote.lots === null && lote.riskAccount === null && lote.notionalAccount === null,
+          `${JSON.stringify(lote)} · ${ctx}`);
+      } else if (lote.lots !== null) {
+        exige('mesa', caso, 'el riesgo en lotes no supera el presupuesto',
+          lote.riskAccount <= budget.amount * 1.000001,
+          `${lote.riskAccount} > ${budget.amount} · ${ctx}`);
+        exige('mesa', caso, 'el nocional en lotes es precio × unidades × factor',
+          cerca(lote.notionalAccount, entry * lote.units * factor),
+          `${lote.notionalAccount} · ${ctx}`);
+        exige('mesa', caso, 'las unidades son lotes × tamaño de contrato',
+          cerca(lote.units, lote.lots * contractSize), `${lote.units} · ${ctx}`);
+        // El pip por lote nunca es la constante de 10 $ salvo por coincidencia:
+        // lo que se exige es que salga del paso del catálogo.
+        if (lote.pipPerLot !== null) {
+          exige('mesa', caso, 'el pip por lote sale del paso del catálogo',
+            cerca(lote.pipPerLot, contractSize * paso * factor),
+            `${lote.pipPerLot} vs ${contractSize * paso * factor} · ${ctx}`);
+        }
+      }
     }
 
     // ── Valor del movimiento ─────────────────────────────────────

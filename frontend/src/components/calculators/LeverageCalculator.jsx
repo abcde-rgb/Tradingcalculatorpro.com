@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useAuthStore, useCalculatorStore, usePriceStore } from '@/lib/store';
 import { formatNumber, formatCurrency, formatPercentage } from '@/lib/utils';
+import { liquidationPrice } from '@/lib/instruments';
 import { useTranslation } from '@/lib/i18n';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
@@ -66,13 +67,15 @@ export const LeverageCalculator = () => {
     const finalCapital = cap + pnl;
     const buyingPower = cap * lev;
     
-    // Precio de liquidación
-    // En LONG: se liquida si el precio baja lo suficiente
-    // En SHORT: se liquida si el precio sube lo suficiente
-    const liquidationPercent = 100 / lev;
-    const liquidationPrice = isLong 
-      ? entry * (1 - liquidationPercent / 100)
-      : entry * (1 + liquidationPercent / 100);
+    // Precio de liquidación, del catálogo.
+    //
+    // Era `entry × (1 ∓ 1/lev)`: ignoraba el margen de mantenimiento, así que
+    // se pasaba de largo un 0,50 % del precio SIEMPRE en la misma dirección —
+    // te decía que aguantabas más de lo que aguantas. Y como el deslizador
+    // llega hasta 1×, a esa altura daba `entry × 0` = **0,00 $**: al contado no
+    // hay liquidación, y un cero ahí no es un precio, es una respuesta falsa.
+    const liq = liquidationPrice(entry, isLong ? 'long' : 'short', lev);
+    const liquidationPercent = liq === null ? null : Math.abs((liq - entry) / entry) * 100;
     
     const res = {
       buyingPower,
@@ -80,7 +83,7 @@ export const LeverageCalculator = () => {
       roi,
       finalCapital,
       priceMovement,
-      liquidationPrice,
+      liquidationPrice: liq,
       liquidationPercent,
       leverage: lev,
       isProfit: pnl >= 0
@@ -238,12 +241,22 @@ export const LeverageCalculator = () => {
                 
                 <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
                   <p className="text-xs uppercase tracking-wider text-destructive mb-1">{t('precioDeLiquidacion_df5984')}</p>
-                  <p className="font-mono text-lg text-destructive">
-                    ${formatNumber(result.liquidationPrice)}
+                  {/* Sin apalancamiento no hay liquidación: raya, no cero. */}
+                  <p className="font-mono text-lg text-destructive" data-testid="lev-liquidation">
+                    {result.liquidationPrice === null ? '—' : `$${formatNumber(result.liquidationPrice)}`}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {t('atPercentOfEntry_lev005').replace('{pct}', formatNumber(result.liquidationPercent))}
+                    {result.liquidationPrice === null
+                      ? t('levNoLiquidation')
+                      : t('atPercentOfEntry_lev005').replace('{pct}', formatNumber(result.liquidationPercent))}
                   </p>
+                  {/* Es una estimación y se dice, como en la mesa: no lleva
+                      comisiones, ni funding acumulado, ni aportes. */}
+                  {result.liquidationPrice !== null && (
+                    <p className="text-[10px] text-muted-foreground mt-1.5 leading-snug" data-testid="lev-liq-disclaimer">
+                      {t('levLiquidationEstimate')}
+                    </p>
+                  )}
                 </div>
                 
                 <div className="p-3 rounded-lg bg-accent/10 border border-accent/20 text-xs">

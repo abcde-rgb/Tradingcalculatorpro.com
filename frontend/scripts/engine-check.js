@@ -812,15 +812,46 @@ async function checkPrefsMerge() {
     corrupt.push.theme?.value === 'gold');
 }
 
+/**
+ * Ninguna pantalla puede llevar su propio catálogo de instrumentos.
+ *
+ * La calculadora de futuros tenía una tabla de 24 contratos escrita a mano y se
+ * había desincronizado en seis: publicaba nocionales y apalancamientos reales
+ * cien veces mayores en bonos y granos. `gen-instruments-js.py --check` mantiene
+ * el catálogo en paridad con el backend, pero no puede ver una tabla escondida
+ * dentro de un `.jsx`. Esto sí.
+ */
+async function checkSinCatalogosParalelos() {
+  console.log('\ncatálogo único  (ninguna pantalla con su propia tabla)');
+  const fs = await import('fs');
+  const path = await import('path');
+  const dirs = ['components/calculators', 'components/tools', 'components/desk', 'components/options'];
+  const sospechosas = [];
+  for (const d of dirs) {
+    const abs = path.join(SRC, d);
+    if (!fs.existsSync(abs)) continue;
+    for (const f of fs.readdirSync(abs).filter((n) => n.endsWith('.jsx'))) {
+      const txt = fs.readFileSync(path.join(abs, f), 'utf8');
+      // Una tabla de instrumentos se reconoce por llevar tick y contrato juntos.
+      if (/tickSize\s*:\s*[\d.]/.test(txt) && /contractSize\s*:\s*\d/.test(txt)) {
+        sospechosas.push(`${d}/${f}`);
+      }
+    }
+  }
+  ok('ninguna pantalla define tick y tamaño de contrato a mano',
+    sospechosas.length === 0, sospechosas.join(', '));
+}
+
 async function checkDeskMath() {
   console.log('\ndeskMath.js  (la mesa: del riesgo al tamaño)');
   const {
     RISK_HARD_CAP_PCT, riskBudget, marginModesFor, liquidationFromBuffer,
     liquidationView, maxSizes, minTicket, averageEntry, partialExits,
     breakEven, commissionTotal, stepValues, requiredLeverage, snapDown,
-    leverageFromMargin, effectiveLeverage,
+    leverageFromMargin, effectiveLeverage, quantityFromMargin, riskForQuantity,
+    quoteCurrency, quoteToAccount, quoteStep, pipValue, lotSizing,
   } = await imp('lib/deskMath.js');
-  const { resolveSpec, liquidationPrice } = await imp('lib/instruments.js');
+  const { resolveSpec, liquidationPrice, FUTURES_SPECS } = await imp('lib/instruments.js');
 
   // ── El tope duro ────────────────────────────────────────────────
   const okRisk = riskBudget({ capital: 10000, riskPct: 1 });
@@ -943,6 +974,165 @@ async function checkDeskMath() {
 
   ok('sin distancia de stop no hay tope por riesgo (null, no cero)',
     maxSizes({ entry: 100, contractSize: 1, capital: 10000, leverage: 1, spec: stock }).byRisk === null);
+
+  // ── Del margen al tamaño (el camino inverso) ────────────────────
+  // El usuario que dice "quiero comprometer 1320 $" está diciendo el margen, no
+  // el riesgo. La cadena es: contrato → lo que vale esa unidad (precio × tamaño
+  // de contrato) → entre el apalancamiento → margen. Aquí se recorre al revés.
+  const mesSpec = resolveSpec('futures', 'MES');
+  // La palanca no se inventa: sale del margen que el bróker pide por contrato.
+  const palancaMes = leverageFromMargin(mesSpec, 5000, 5);
+  const q1 = quantityFromMargin({
+    margin: 1320, leverage: palancaMes, entry: 5000, contractSize: 5, spec: mesSpec,
+  });
+  ok('el margen de un contrato compra exactamente un contrato',
+    near(q1.quantity, 1), JSON.stringify(q1));
+  ok('y el capital que mueve es precio × tamaño de contrato',
+    near(q1.notional, 25000), `notional=${q1.notional}`);
+  ok('el margen realmente usado es el nocional entre la palanca',
+    near(q1.marginUsed, 1320), `usado=${q1.marginUsed}`);
+
+  // Redondear hacia arriba sería pedirle al usuario más dinero del que dijo.
+  const q2 = quantityFromMargin({
+    margin: 3000, leverage: palancaMes, entry: 5000, contractSize: 5, spec: mesSpec,
+  });
+  ok('2,27 contratos se quedan en 2: nunca se pide más margen del ofrecido',
+    near(q2.quantity, 2) && q2.marginUsed <= 3000, JSON.stringify(q2));
+
+  // Monotonía: más dinero jamás puede dar menos contratos.
+  let previo = 0;
+  let monotono = true;
+  for (let m = 500; m <= 20000; m += 250) {
+    const q = quantityFromMargin({
+      margin: m, leverage: palancaMes, entry: 5000, contractSize: 5, spec: mesSpec,
+    });
+    const actual = q.quantity ?? 0;
+    if (actual < previo) monotono = false;
+    previo = actual;
+  }
+  ok('más margen nunca da menos contratos', monotono);
+
+  ok('por debajo del escalón no hay medio contrato: es null, no cero',
+    quantityFromMargin({ margin: 100, leverage: palancaMes, entry: 5000, contractSize: 5, spec: mesSpec })
+      .quantity === null);
+
+  // Al contado no hay palanca que dividir: el margen ES el capital.
+  const spot = resolveSpec('crypto_spot', 'BTC');
+  const q3 = quantityFromMargin({
+    margin: 5000, leverage: 20, entry: 50000, contractSize: 1, spec: spot,
+  });
+  ok('al contado la palanca se ignora: 5000 $ compran 0,1 BTC',
+    near(q3.quantity, 0.1) && near(q3.marginUsed, 5000), JSON.stringify(q3));
+
+  ok('sin margen no se inventa un tamaño',
+    quantityFromMargin({ leverage: 10, entry: 5000, contractSize: 5, spec: mesSpec })
+      .quantity === null);
+
+  // El riesgo del tamaño que salió del margen: sigue siendo distancia × unidades.
+  ok('el riesgo de un tamaño dado es distancia × cantidad × tamaño de contrato',
+    near(riskForQuantity({ quantity: 2, stopDistance: 20, contractSize: 5 }), 200));
+  ok('sin stop el riesgo de ese tamaño es indefinido, no cero',
+    riskForQuantity({ quantity: 2, contractSize: 5 }) === null);
+
+  // ── El pip vale lo que dice el catálogo, no diez dólares ────────
+  // La vieja calculadora de lotaje llevaba `pipValuePerStandardLot = 10` y se
+  // lo aplicaba a todo: en oro daba diez veces menos tamaño del debido y
+  // anunciaba una pérdida máxima diez veces mayor que la real.
+  const eurusd = resolveSpec('forex', 'EURUSD');
+  const usdjpy = resolveSpec('forex', 'USDJPY');
+  const eurgbp = resolveSpec('forex', 'EURGBP');
+  const oro = resolveSpec('cfd', 'XAUUSD');
+
+  ok('la cotizada de EURUSD son dólares y la de USDJPY yenes',
+    quoteCurrency(eurusd) === 'USD' && quoteCurrency(usdjpy) === 'JPY');
+  ok('fuera de forex el catálogo habla en dólares', quoteCurrency(oro) === 'USD');
+
+  ok('cotizar en la divisa de la cuenta no convierte nada',
+    quoteToAccount({ spec: eurusd, price: 1.0854 }) === 1);
+  ok('si la cuenta es la divisa BASE, el factor sale del propio precio',
+    near(quoteToAccount({ spec: usdjpy, price: 157 }), 1 / 157));
+  ok('un cruce sin tercer cambio es null, no 1',
+    quoteToAccount({ spec: eurgbp, price: 0.842 }) === null);
+
+  // El pip de forex y el tick de un CFD son el mismo concepto con dos nombres.
+  ok('el paso de EURUSD es su pip', near(quoteStep(eurusd), 0.0001));
+  ok('el paso del oro es su tick, aunque no se llame pip', near(quoteStep(oro), 0.01));
+
+  ok('un lote estándar de EURUSD mueve 10 $ por pip',
+    near(pipValue({ quantity: 1, contractSize: 100000, spec: eurusd, price: 1.0854 }).account, 10));
+  ok('el mismo lote de USDJPY mueve 1000 ¥, que a 157 son 6,37 $',
+    near(pipValue({ quantity: 1, contractSize: 100000, spec: usdjpy, price: 157 }).account, 1000 / 157));
+  ok('un lote de oro son 100 onzas y su pip vale 1 $, no 10',
+    near(pipValue({ quantity: 1, contractSize: 100, spec: oro, price: 2400 }).account, 1));
+  ok('el pip de un cruce no se inventa: null',
+    pipValue({ quantity: 1, contractSize: 100000, spec: eurgbp, price: 0.842 }).account === null);
+
+  // Contra el catálogo de futuros, que publica su propio valor de tick: dos
+  // caminos independientes tienen que dar el mismo número.
+  for (const sym of ['MES', 'ES', 'CL', 'GC']) {
+    const f = FUTURES_SPECS[sym];
+    const sp = resolveSpec('futures', sym);
+    ok(`el valor del tick de ${sym} sale igual del catálogo que de la fórmula`,
+      near(pipValue({ quantity: 1, contractSize: f.contract_size, spec: sp, price: 5000 }).account,
+        f.tick_value),
+      `${sym}: ${f.tick_value}`);
+  }
+
+  // ── Dimensionar en lotes con dos divisas por medio ──────────────
+  // Cuenta de 10 000 $, 1 % de riesgo (100 $), stop de 50 pips.
+  const lotesEur = lotSizing({
+    entry: 1.0854, stopDistance: 50 * 0.0001, contractSize: 100000, spec: eurusd,
+    capital: 10000, riskAmount: 100, leverage: 30,
+  });
+  ok('0,20 lotes de EURUSD arriesgan exactamente los 100 $ pedidos',
+    near(lotesEur.lots, 0.2) && near(lotesEur.riskAccount, 100), JSON.stringify(lotesEur));
+
+  const lotesJpy = lotSizing({
+    entry: 157, stopDistance: 50 * 0.01, contractSize: 100000, spec: usdjpy,
+    capital: 10000, riskAmount: 100, leverage: 30,
+  });
+  ok('en USDJPY salen 0,31 lotes, no 0,20: el pip no vale 10 $',
+    near(lotesJpy.lots, 0.31), JSON.stringify(lotesJpy));
+  ok('y el riesgo real se queda por debajo del presupuesto, nunca encima',
+    lotesJpy.riskAccount <= 100 + 1e-9, `${lotesJpy.riskAccount}`);
+
+  ok('un cruce no se dimensiona a medias: convertible false y todo null',
+    lotSizing({
+      entry: 0.842, stopDistance: 50 * 0.0001, contractSize: 100000, spec: eurgbp,
+      capital: 10000, riskAmount: 100, leverage: 30,
+    }).lots === null);
+
+  // El pip por lote es la cifra que la vieja calculadora daba siempre como 10.
+  ok('el pip por lote se publica aunque el tamaño lo frene otro tope',
+    near(lotSizing({
+      entry: 2400, stopDistance: 50 * 0.01, contractSize: 100, spec: oro,
+      capital: 10000, riskAmount: 100, leverage: 20,
+    }).pipPerLot, 1));
+
+  // ── El escalón no deja basura binaria ───────────────────────────
+  // `0,41000000000000003` acaba copiado en la casilla del bróker.
+  ok('0,41 lotes son 0,41 y no 0,41000000000000003',
+    String(snapDown(0.4123, 0.01)) === '0.41');
+  ok('el escalón de un contrato sigue dando enteros limpios',
+    String(snapDown(7.99, 1)) === '7');
+
+  // ── La liquidación con margen de mantenimiento ──────────────────
+  // La calculadora de apalancamiento usaba `entry × (1 ∓ 1/lev)`, que ignora el
+  // mantenimiento y se pasa SIEMPRE en la misma dirección: te dice que aguantas
+  // más de lo que aguantas. Y a 1× daba `entry × 0` = 0, que no es un precio.
+  ok('sin apalancamiento no hay liquidación: null, no cero',
+    liquidationPrice(95000, 'long', 1) === null);
+  ok('la liquidación del largo queda por DEBAJO de la entrada',
+    liquidationPrice(95000, 'long', 10) < 95000);
+  ok('y la del corto por encima',
+    liquidationPrice(95000, 'short', 10) > 95000);
+  // El modelo ingenuo siempre está más lejos: esa distancia es el mantenimiento.
+  for (const lev of [2, 10, 25, 100]) {
+    const ingenua = 95000 * (1 - 1 / lev);
+    const real = liquidationPrice(95000, 'long', lev);
+    ok(`a ${lev}× el modelo sin mantenimiento liquida más tarde de lo real`,
+      ingenua < real, `${ingenua} vs ${real}`);
+  }
 
   // ── El billete mínimo ───────────────────────────────────────────
   // Un E-mini con stop de 20 puntos son 1000 $. En una cuenta de 3000 $, el
@@ -1178,6 +1368,65 @@ async function checkSiteFacts() {
   ok(`las ${SITE_FACTS.strategies} estrategias de la portada existen en el catálogo`,
     estrategias === SITE_FACTS.strategies,
     `siteFacts dice ${SITE_FACTS.strategies}, STRATEGIES tiene ${estrategias}`);
+
+  // ── Las cifras de la Academia ───────────────────────────────────
+  // Vivían sueltas en el texto de venta y nadie las contaba. Decían «50+
+  // Reglas» sobre 42, y dos cadenas distintas daban 30 y 27 velas para el
+  // mismo catálogo. Un número sobre el producto o sale del código o es un
+  // eslogan, y aquí ya hay tres cifras que aprendieron esa lección.
+  const contenido = lee('lib/tradingEducationContent.js');
+  const cuenta = (fn) => {
+    const i = contenido.indexOf(fn);
+    if (i < 0) return -1;
+    const bloque = contenido.slice(i, contenido.indexOf('\n};', i));
+    return new Set([...bloque.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1])).size;
+  };
+
+  const chartistas = cuenta('getChartPatterns');
+  ok(`los ${SITE_FACTS.chartPatterns} patrones chartistas existen`,
+    chartistas === SITE_FACTS.chartPatterns,
+    `siteFacts dice ${SITE_FACTS.chartPatterns}, getChartPatterns tiene ${chartistas}`);
+
+  const reglas = cuenta('getTradingRules');
+  ok(`las ${SITE_FACTS.tradingRules} reglas de trading existen`,
+    reglas === SITE_FACTS.tradingRules,
+    `siteFacts dice ${SITE_FACTS.tradingRules}, getTradingRules tiene ${reglas}`);
+
+  // Las velas viven en el backend (`candle_patterns.py`), que este script no
+  // puede importar. Lo que sí se puede comprobar sin salir del frontend es que
+  // las dos cadenas que las citan digan LA MISMA cifra: el 30 contra 27 de
+  // `educationCenterDesc` y `seoEducationDesc` estuvo publicado en 10 idiomas.
+  const citaVelas = (clave) => {
+    const txt = (es.match(new RegExp(`"${clave}":\\s*"((?:[^"\\\\]|\\\\.)*)"`)) || [])[1] || '';
+    return txt.includes(String(SITE_FACTS.candlePatterns));
+  };
+  for (const clave of ['educationCenterDesc', 'seoEducationDesc']) {
+    ok(`${clave} dice las ${SITE_FACTS.candlePatterns} velas reales`, citaVelas(clave),
+      `debería nombrar ${SITE_FACTS.candlePatterns}`);
+  }
+  // ── El precio que se le dice a Google, en los DIEZ idiomas ──────
+  // `seoPricingDesc` anunciaba «9,99 $/mes» en alemán, francés, ruso, japonés,
+  // chino y árabe. El precio real son 17 €: ni la cifra ni la divisa. Es la
+  // única cadena traducida donde una cifra distinta por idioma no es un matiz
+  // de estilo sino un precio falso publicado en un buscador, así que se
+  // comprueban las diez y no sólo la de referencia.
+  const IDIOMAS_SEO = ['es', 'en', 'de', 'fr', 'it', 'pt', 'ru', 'ja', 'zh', 'ar'];
+  const PRECIO_MENSUAL = '17';
+  for (const idi of IDIOMAS_SEO) {
+    const dicc = fs.readFileSync(path.join(SRC, `lib/i18n/${idi}.js`), 'utf8');
+    const txt = (dicc.match(/"seoPricingDesc":\s*"((?:[^"\\]|\\.)*)"/) || [])[1] || '';
+    const otroPrecio = /\d+[.,]\d{2}\s*\$|\$\s*\d+[.,]\d{2}/.test(txt);
+    ok(`${idi}: el precio que ve Google es el real y no otro`,
+      txt.includes(PRECIO_MENSUAL) && !otroPrecio, `«${txt.slice(0, 70)}»`);
+  }
+
+  // Y que ninguna siga inflando las reglas ni las calculadoras.
+  for (const [clave, real] of [['eduFeatureRules', SITE_FACTS.tradingRules],
+    ['featureCalculators', SITE_FACTS.calculators]]) {
+    const txt = (es.match(new RegExp(`"${clave}":\\s*"((?:[^"\\\\]|\\\\.)*)"`)) || [])[1] || '';
+    ok(`${clave} no inventa una cifra`, txt.includes(String(real)),
+      `dice «${txt}» y son ${real}`);
+  }
 }
 
 /**
@@ -1392,6 +1641,7 @@ async function checkMonteCarlo() {
   await checkPrefsMerge();
   await checkProjection();
   await checkInstruments();
+  await checkSinCatalogosParalelos();
   await checkDeskMath();
   await checkEduIndex();
   await checkScannerMeta();

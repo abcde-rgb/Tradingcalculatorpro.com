@@ -250,7 +250,19 @@ export function snapDown(quantity, step) {
   if (q === null) return null;
   const s = pos(step);
   if (s === null) return q;
-  return Math.floor(q / s + 1e-9) * s;
+  // El epsilon absorbe el ruido de dividir en binario, y ese ruido CRECE con la
+  // magnitud: en 3,9/1 sobra 1e-9, pero en 164.778.415,98/0,01 el error del
+  // propio cociente ya vale 4e-6 y el redondeo se comía un escalón entero. Un
+  // epsilon fijo aquí es un epsilon que sólo vale para números pequeños.
+  const cociente = q / s;
+  const eps = Math.max(1e-9, Math.abs(cociente) * 1e-15);
+  const bruto = Math.floor(cociente + eps) * s;
+  // `0,41000000000000003` no es un tamaño distinto de `0,41`: es basura binaria
+  // de multiplicar el escalón. Se limpia con los decimales que tiene el propio
+  // escalón —ni uno más, para no inventar precisión que el producto no permite—
+  // porque esa cifra acaba copiada en la casilla del bróker.
+  const dp = Math.max(0, Math.min(12, Math.ceil(-Math.log10(s))));
+  return Number(bruto.toFixed(dp));
 }
 
 /**
@@ -333,6 +345,61 @@ export function maxSizes({
  * símbolo no lo declara: ahí la palanca la pone el usuario y no nos la
  * inventamos.
  */
+/**
+ * Entrar por el otro lado: **del margen a los contratos**.
+ *
+ * La mesa dimensiona por riesgo —presupuesto entre distancia al stop— porque
+ * es lo que protege la cuenta. Pero delante de la pantalla también se piensa
+ * al revés: «quiero comprometer 2.000 € de margen, ¿cuántos contratos son?».
+ * Y la cadena es la que es:
+ *
+ *     margen × apalancamiento = nocional
+ *     nocional ÷ (precio × tamaño de contrato) = contratos
+ *
+ * Sin apalancamiento (contado, opciones) la palanca es 1 y el margen ES el
+ * nocional, así que la misma fórmula sirve sin caso especial.
+ *
+ * Devuelve también el nocional y el margen REAL: al ajustar la cantidad al
+ * escalón del instrumento (no se compran 1,7 contratos), el margen que acaba
+ * comprometido no es exactamente el pedido, y decir el pedido sería mentir.
+ */
+export function quantityFromMargin({ margin, leverage, entry, contractSize, spec, step }) {
+  const m = pos(margin);
+  const e = pos(entry);
+  const csize = pos(contractSize);
+  const paso = step ?? sizeStepFor(spec);
+  const out = { quantity: null, raw: null, notional: null, marginUsed: null, step: paso };
+  if (m === null || e === null || csize === null) return out;
+
+  const usesLev = spec ? spec.usesLeverage : true;
+  const lev = usesLev ? (pos(leverage) ?? 1) : 1;
+
+  out.raw = (m * lev) / (e * csize);
+  const q = snapDown(out.raw, paso);
+  // Por debajo del escalón no hay media unidad: no es cero, es "no te llega".
+  if (q === null || q <= 0) return out;
+
+  out.quantity = q;
+  out.notional = q * e * csize;
+  out.marginUsed = out.notional / lev;
+  return out;
+}
+
+/**
+ * Lo que ese tamaño arriesga de verdad, para poder contrastarlo con el tope.
+ *
+ * `null` sin stop, y es lo correcto: sin stop el riesgo no está definido: es
+ * todo el capital. Devolver 0 diría "no arriesgas nada", que es la mentira
+ * más cara que puede contar esta herramienta.
+ */
+export function riskForQuantity({ quantity, stopDistance, contractSize }) {
+  const q = pos(quantity);
+  const d = pos(stopDistance);
+  const csize = pos(contractSize);
+  if (q === null || d === null || csize === null) return null;
+  return q * d * csize;
+}
+
 export function leverageFromMargin(spec, entry, contractSize) {
   if (!spec?.usesLeverage) return null;
   const margin = pos(spec.initialMargin);
@@ -526,6 +593,141 @@ export function stepValues({ quantity, contractSize, spec }) {
  * que es como se descubre que un stop muy fino exige una palanca que la cuenta
  * no tiene. Menos de 1 no es apalancamiento: es no usarlo.
  */
+/**
+ * La divisa en la que cotiza el instrumento, deducida del símbolo.
+ *
+ * En forex el par lo dice entero: en `USDJPY` cotizas yenes, en `EURUSD`
+ * dólares. Fuera de forex, el catálogo expresa márgenes y valores de tick en
+ * dólares (es lo que publican CME, COMEX y los CFD que llevamos), así que la
+ * cotizada es USD.
+ */
+export function quoteCurrency(spec) {
+  const sym = String(spec?.symbol || '').toUpperCase();
+  if (spec?.product === 'forex' && sym.length === 6) return sym.slice(3);
+  return 'USD';
+}
+
+/**
+ * Cuánto vale UNA unidad de la divisa cotizada en la divisa de la cuenta.
+ *
+ * Es la pieza que faltaba para que un valor de pip signifique algo. Un pip de
+ * un lote estándar de USDJPY son 1.000 **yenes**; llamar a eso «1.000 $» es un
+ * error de un orden de magnitud y medio, y es exactamente lo que hacía la vieja
+ * calculadora de lotaje al dar 10 $ por pip para todo.
+ *
+ * Sólo hay tres casos, y el tercero se admite en voz alta:
+ *   · Cotizas en la divisa de la cuenta (`EURUSD` con cuenta en dólares) → 1.
+ *   · La cuenta es la divisa BASE (`USDJPY` con cuenta en dólares) → `1/precio`,
+ *     que sale del propio precio sin pedir nada más.
+ *   · Un cruce (`EURGBP`, `GBPJPY` con cuenta en dólares) → hace falta un tercer
+ *     tipo de cambio que aquí no existe. Devuelve `null`, y `null` se pinta como
+ *     una raya: preferimos no dar la cifra a darla mal.
+ */
+export function quoteToAccount({ spec, price, account = 'USD' }) {
+  const cuenta = String(account || 'USD').toUpperCase();
+  const cotizada = quoteCurrency(spec);
+  if (cotizada === cuenta) return 1;
+
+  const sym = String(spec?.symbol || '').toUpperCase();
+  const base = spec?.product === 'forex' && sym.length === 6 ? sym.slice(0, 3) : null;
+  const p = pos(price);
+  if (base === cuenta && p !== null) return 1 / p;
+
+  return null;
+}
+
+/**
+ * El incremento más pequeño con el que cotiza el instrumento.
+ *
+ * En forex se llama pip y el catálogo lo guarda en `pipSize`; en un CFD de oro
+ * o en un futuro se llama tick y lo guarda en `tickSize`. Es el mismo concepto
+ * con dos nombres de mesa, y quien pregunta «¿cuánto vale un pip de oro?» está
+ * preguntando por su tick de 0,01. Devolver `null` porque el campo se llama de
+ * otra forma sería un tecnicismo, no una respuesta.
+ */
+export function quoteStep(spec) {
+  return pos(spec?.pipSize) ?? pos(spec?.tickSize) ?? null;
+}
+
+/**
+ * Lo que vale un pip (o un tick) de esta posición en la divisa de la cuenta.
+ *
+ * Devuelve las dos cifras a propósito: enseñar sólo la convertida esconde de
+ * dónde sale, y enseñar sólo la cotizada no responde a la pregunta que se hizo.
+ */
+export function pipValue({ quantity, contractSize, spec, price, account = 'USD' }) {
+  const qty = pos(quantity);
+  const csize = pos(contractSize);
+  const step = quoteStep(spec);
+  const factor = quoteToAccount({ spec, price, account });
+  const quote = qty !== null && csize !== null && step !== null ? qty * csize * step : null;
+  return {
+    step,
+    quote,
+    quoteCurrency: quoteCurrency(spec),
+    factor,
+    account: quote !== null && factor !== null ? quote * factor : null,
+  };
+}
+
+/**
+ * Dimensionar en lotes cuando la cuenta y el instrumento no cotizan igual.
+ *
+ * `maxSizes` trabaja entero en divisa COTIZADA: multiplica precios por tamaños
+ * de contrato y le sale dinero del país del par. Eso está bien mientras las dos
+ * divisas coincidan, y deja de estarlo en cuanto alguien dimensiona USDJPY con
+ * una cuenta en dólares — que es la mitad del forex.
+ *
+ * Aquí la cuenta entra convertida a cotizada, se dimensiona con el motor de
+ * siempre, y el resultado vuelve convertido a la cuenta. Un solo sitio con la
+ * conversión, y el motor sin enterarse.
+ *
+ * Si el par es un cruce y no hay tercer tipo de cambio, NO se dimensiona: sale
+ * `convertible: false` y todo a `null`. Dar lotes calculados con una divisa
+ * equivocada es peor que no dar ninguno, porque parecen buenos.
+ */
+export function lotSizing({
+  entry, stopDistance, contractSize, spec, capital, riskAmount, leverage, account = 'USD',
+}) {
+  const factor = quoteToAccount({ spec, price: entry, account });
+  const out = {
+    factor,
+    convertible: factor !== null,
+    lots: null, units: null, binding: null, step: sizeStepFor(spec),
+    riskAccount: null, notionalAccount: null, marginAccount: null,
+    pipAccount: null, pipPerLot: null,
+  };
+  if (factor === null) return out;
+
+  const cap = pos(capital);
+  const riesgo = pos(riskAmount);
+  const sizes = maxSizes({
+    entry, stopDistance, contractSize, spec, leverage,
+    riskAmount: riesgo === null ? null : riesgo / factor,
+    capital: cap === null ? null : cap / factor,
+  });
+  out.binding = sizes.binding;
+  out.step = sizes.step;
+
+  // Lo que vale un pip de UN lote: la cifra que la vieja calculadora daba
+  // siempre como 10 $, y que en oro son 1 $ y en USDJPY 6,37 $.
+  out.pipPerLot = pipValue({ quantity: 1, contractSize, spec, price: entry, account }).account;
+
+  const lots = sizes.quantity;
+  if (lots === null) return out;
+
+  const csize = pos(contractSize);
+  const dist = pos(stopDistance);
+  out.lots = lots;
+  out.units = lots * csize;
+  out.notionalAccount = pos(entry) * out.units * factor;
+  const lev = (spec ? spec.usesLeverage : true) ? (pos(leverage) ?? 1) : 1;
+  out.marginAccount = out.notionalAccount / lev;
+  out.riskAccount = dist === null ? null : dist * out.units * factor;
+  out.pipAccount = pipValue({ quantity: lots, contractSize, spec, price: entry, account }).account;
+  return out;
+}
+
 export function requiredLeverage(notional, capital) {
   const nom = pos(notional);
   const cap = pos(capital);

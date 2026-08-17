@@ -80,6 +80,30 @@ export const fmtPct = (v, dp = 2) => (
   v === null || v === undefined || !Number.isFinite(Number(v)) ? '—' : `${Number(v).toFixed(dp)}%`
 );
 
+/**
+ * Los decimales que hace falta enseñar para que los niveles de un swing no se
+ * pisen entre sí.
+ *
+ * Existe porque la calculadora de Fibonacci pintaba `toFixed(2)` a pelo, y un
+ * swing de EURUSD de 1,07900 a 1,08542 salía como «1,08 · 1,08 · 1,08 · 1,08 ·
+ * 1,08 · 1,08»: seis de los siete niveles eran el mismo número. Con dos
+ * decimales la herramienta no sirve en forex ni en ninguna cripto por debajo de
+ * 0,01, que es media pantalla del catálogo.
+ *
+ * El hueco más justo entre dos niveles contiguos es el de 0,5 → 0,618, un
+ * 11,8 % del rango: si ESE se distingue, se distinguen todos. Dos decimales de
+ * suelo (una acción a 100 se lee mejor con céntimos que sin ellos) y ocho de
+ * techo (más allá es ruido de coma flotante, no precisión).
+ */
+export const swingDecimals = (high, low) => {
+  const a = Number(high);
+  const b = Number(low);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 2;
+  const hueco = Math.abs(a - b) * 0.118;
+  if (!(hueco > 0)) return 2;
+  return Math.min(8, Math.max(2, Math.ceil(-Math.log10(hueco)) + 1));
+};
+
 /** Precio con los decimales que pide el instrumento (un pip de EURUSD son 5). */
 export const fmtPrice = (v, tick) => {
   if (v === null || v === undefined || !Number.isFinite(Number(v))) return '—';

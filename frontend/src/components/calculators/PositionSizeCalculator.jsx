@@ -200,7 +200,7 @@ export const PositionSizeCalculator = () => {
                   <p className="text-xs uppercase tracking-wider text-blue-500 mb-1">{t('tamanoDePosicionRecomendado_7d9b61')}</p>
                   <p className="font-mono text-3xl font-bold text-blue-500">{formatCurrency(result.positionSize)}</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {formatNumber(result.positionInCoins, 6)} BTC
+                    {formatNumber(result.positionInCoins, 6)} {journalSymbol}
                   </p>
                 </div>
                 

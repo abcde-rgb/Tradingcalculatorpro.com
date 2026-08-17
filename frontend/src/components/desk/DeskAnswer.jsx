@@ -28,7 +28,7 @@ import { sizingLabelKey } from '@/lib/instruments';
  */
 export default function DeskAnswer({
   budget, quantity, spec, metrics, liquidation, marginMode,
-  symbol, side, blockedReason, isOption,
+  symbol, side, blockedReason, isOption, sizedBy, marginRequested,
 }) {
   const { t } = useTranslation();
   const unidad = t(sizingLabelKey(spec));
@@ -89,6 +89,18 @@ export default function DeskAnswer({
             {fmtNum(quantity, dp)}
           </span>
           <span className="text-lg text-muted-foreground">{unidad}</span>
+          {/* «1 contratos» no le dice a nadie cuánto dinero mueve. Un micro
+              E-mini son 25.000 $ de posición, y esa cifra vivía escondida
+              tras «Ver el desglose». La cantidad es la respuesta; el dinero
+              es lo que la hace entendible. Van juntos. */}
+          {metrics?.notional != null && (
+            <span className="text-lg text-muted-foreground" data-testid="desk-answer-notional">
+              · <b className="font-mono font-semibold text-foreground tabular-nums">
+                {fmtMoney(metrics.notional)}
+              </b>{' '}
+              {t('deskAnswerNotionalInline')}
+            </span>
+          )}
         </p>
 
         {/* ── 2 · Lo que te juegas, en una frase ─────────────────── */}
@@ -102,6 +114,21 @@ export default function DeskAnswer({
             }}
           />
         </p>
+
+        {/* Dimensionado por margen: se dice de dónde sale el tamaño y, si el
+            margen que queda comprometido no es el pedido, cuánto es de verdad.
+            No se compran 2,27 contratos, así que 3.000 pedidos son 2.640
+            puestos, y callarse esa diferencia es callarse dinero. */}
+        {sizedBy === 'margin' && metrics?.marginUsed != null && (
+          <p className="mt-2 text-xs text-muted-foreground" data-testid="desk-answer-sizedby">
+            {t('deskSizedByMargin').replace('{margin}', fmtMoney(metrics.marginUsed))}
+            {marginRequested != null && Math.abs(marginRequested - metrics.marginUsed) > 0.01 && (
+              <> {t('deskMarginLeftover')
+                .replace('{asked}', fmtMoney(marginRequested))
+                .replace('{diff}', fmtMoney(marginRequested - metrics.marginUsed))}</>
+            )}
+          </p>
+        )}
 
         {budget?.warn && (
           <p className="mt-2 text-xs text-primary" data-testid="desk-answer-warn">

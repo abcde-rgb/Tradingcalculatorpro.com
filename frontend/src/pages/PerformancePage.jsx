@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import {
   TrendingDown, AlertTriangle, BookOpen, Activity, Brain, DollarSign,
   PieChart, BarChart3, Clock, Target, Layers, Award, ArrowRight,
-  Sparkles, Eye, Repeat, FileText, ChevronRight, Lock, Mail, Rewind,
+  Sparkles, Eye, Repeat, FileText, ChevronRight, Lock, Mail, Rewind, ClipboardList,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
@@ -19,6 +19,7 @@ import SetupPerformance from '@/components/performance/SetupPerformance';
 import SetupBuilder from '@/components/education/SetupBuilder';
 import ProjectionPanel from '@/components/performance/ProjectionPanel';
 import ReplayEmbed from '@/components/backtesting/ReplayEmbed';
+import TradingPlanPage from '@/pages/TradingPlanPage';
 
 // Animation tokens (reused from LandingPage style)
 const FADE_UP = {
@@ -156,6 +157,9 @@ export default function PerformancePage() {
               <TabsTrigger value="analytics" data-testid="perftab-analytics">
                 <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabAnalytics')}
               </TabsTrigger>
+              <TabsTrigger value="plan" data-testid="perftab-plan">
+                <ClipboardList className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabPlan')}
+              </TabsTrigger>
               <TabsTrigger value="setups" data-testid="perftab-setups">
                 <Layers className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabSetups')}
               </TabsTrigger>
@@ -207,6 +211,13 @@ export default function PerformancePage() {
             componente que la Academia monta en su lección, leyendo el mismo
             almacén, así que definir un setup en cualquiera de los dos sitios lo
             deja disponible en el otro. */}
+        {/* El plan vive aquí y no en la barra: fija las reglas con las que el
+            diario juzga cada operación, así que se lee al lado de lo que mide.
+            Un séptimo enlace arriba ya desbordó la barra en japonés una vez. */}
+        <TabsContent value="plan" className="px-4 pt-24 pb-12 w-full">
+          {!isAuthenticated ? <AuthRequired t={t} /> : <TradingPlanPage />}
+        </TabsContent>
+
         <TabsContent value="setups" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
           {!isAuthenticated ? (
             <AuthRequired t={t} />

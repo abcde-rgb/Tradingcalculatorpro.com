@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { swingDecimals } from '@/components/performance/form/productMeta';
 import { Ruler, TrendingUp, TrendingDown, Target } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,10 @@ export const TargetMeasurementTool = () => {
     const confirmation = confirmationPoint ? parseFloat(confirmationPoint) : null;
     
     const height = Math.abs(b - a);
+    // Los decimales salen del swing, no de una constante. Con los dos fijos de
+    // `formatNumber`, un swing de EURUSD dejaba 3 niveles distintos de 13 y una
+    // cripto por debajo de 0,01 los dejaba TODOS en «0,00».
+    const dp = swingDecimals(a, b);
     const percentageMove = ((b - a) / a) * 100;
     const isUptrend = b > a;
     
@@ -61,6 +66,7 @@ export const TargetMeasurementTool = () => {
     }
     
     setResult({
+      dp,
       pointA: a,
       pointB: b,
       height,
@@ -139,7 +145,7 @@ export const TargetMeasurementTool = () => {
             </div>
             
             <Button onClick={calculate} className="w-full bg-purple-500 text-white hover:bg-purple-400" data-testid="measure-btn">
-              Calcular Target
+              {t('calculateTargets')}
             </Button>
           </div>
           
@@ -157,7 +163,7 @@ export const TargetMeasurementTool = () => {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Altura:</p>
-                      <p className="font-mono font-bold">${formatNumber(result.height)}</p>
+                      <p className="font-mono font-bold">${formatNumber(result.height, result.dp)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Porcentaje:</p>
@@ -184,7 +190,7 @@ export const TargetMeasurementTool = () => {
                     {result.targets.map((target, idx) => (
                       <div key={`target-${target.label}-${idx}`} className="p-2 rounded-lg bg-white/5 border border-white/10">
                         <p className="text-xs text-muted-foreground">{target.label}</p>
-                        <p className="font-mono font-bold text-primary">${formatNumber(target.price)}</p>
+                        <p className="font-mono font-bold text-primary">${formatNumber(target.price, result.dp)}</p>
                       </div>
                     ))}
                   </div>
@@ -197,7 +203,7 @@ export const TargetMeasurementTool = () => {
                     {result.fibLevels.map((fib, idx) => (
                       <div key={`fib-${fib.label}-${idx}`} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10">
                         <span className="text-xs text-muted-foreground">{fib.label}</span>
-                        <span className="font-mono text-sm">${formatNumber(fib.price)}</span>
+                        <span className="font-mono text-sm">${formatNumber(fib.price, result.dp)}</span>
                       </div>
                     ))}
                   </div>

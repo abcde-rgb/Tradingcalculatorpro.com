@@ -13,7 +13,7 @@ import {
   positionMetrics,
 } from '@/lib/instruments';
 import {
-  riskBudget, marginModesFor, liquidationView,
+  riskBudget, marginModesFor, liquidationView, quantityFromMargin, riskForQuantity,
   maxSizes, minTicket, breakEven, commissionTotal, stepValues,
   requiredLeverage, effectiveLeverage,
 } from '@/lib/deskMath';
@@ -137,20 +137,52 @@ export default function TradingDesk() {
   // ── Qué falta para poder contestar ──────────────────────────────
   // Se nombra el hueco concreto en vez de dejar el botón muerto sin decir por
   // qué: un botón deshabilitado y mudo es la peor forma de pedir un dato.
+  const porMargen = account?.riskMode === 'margin';
+
   const falta = useMemo(() => {
     if (capital == null) return 'capital';
-    if (budget.reason === 'no_risk') return 'risk';
+    if (porMargen) {
+      if (!(Number(account?.marginAmount) > 0)) return 'margin';
+    } else if (budget.reason === 'no_risk') return 'risk';
     if (entry == null) return 'entry';
-    if (levels.riskDistance == null) return 'stop';
+    // Por margen el stop no hace falta para saber CUÁNTOS contratos salen: sólo
+    // para saber qué se arriesga. Pedirlo sería negar una respuesta que existe.
+    if (!porMargen && levels.riskDistance == null) return 'stop';
     if (contractSize == null) return 'contract';
     return null;
-  }, [capital, budget.reason, entry, levels.riskDistance, contractSize]);
+  }, [capital, porMargen, account?.marginAmount, budget.reason, entry,
+      levels.riskDistance, contractSize]);
 
   const puedeCalcular = !falta || budget.reason === 'over_cap';
 
+  // ── Lo que se juega quien dimensiona por margen ─────────────────
+  // El recuadro «te juegas» es lo único que el formulario afirma antes de
+  // pulsar, así que en modo margen no puede seguir enseñando el % de la cuenta:
+  // ese número ya no manda nada. Lo que se arriesga es lo que pierden los
+  // contratos que salen del margen si el stop toca — y sin stop NO SE SABE, que
+  // se dice con una raya y no con un cero.
+  const budgetVista = useMemo(() => {
+    if (!porMargen) return budget;
+    const q = quantityFromMargin({
+      margin: account?.marginAmount, leverage, entry, contractSize, spec,
+    });
+    const amount = riskForQuantity({
+      quantity: q.quantity, stopDistance: levels.riskDistance, contractSize,
+    });
+    const pct = amount != null && capital ? (amount / capital) * 100 : null;
+    return {
+      ...budget,
+      amount,
+      pct,
+      blocked: pct != null && pct > budget.capPct,
+      reason: pct != null && pct > budget.capPct ? 'over_cap' : null,
+    };
+  }, [porMargen, budget, account?.marginAmount, leverage, entry, contractSize,
+      spec, levels.riskDistance, capital]);
+
   // ── Calcular: la foto ───────────────────────────────────────────
   const calcular = () => {
-    if (budget.blocked) {
+    if (!porMargen && budget.blocked) {
       setResultado({ blockedReason: budget.reason, budget, sello: Date.now() });
       return;
     }
@@ -163,7 +195,14 @@ export default function TradingDesk() {
       entry, stopDistance: levels.riskDistance, contractSize,
       riskAmount: budget.amount, capital, leverage, spec,
     });
-    const quantity = sizes.quantity;
+    // Por margen, el usuario dice cuánto compromete y el tamaño sale de ahí.
+    // `sizes` se sigue calculando porque los topes informativos (riesgo, margen,
+    // exposición) se enseñan igual: saber que podrías poner 8 sigue importando
+    // aunque hayas pedido 2.
+    const porMargenCalc = quantityFromMargin({
+      margin: account?.marginAmount, leverage, entry, contractSize, spec,
+    });
+    const quantity = porMargen ? porMargenCalc.quantity : sizes.quantity;
     const minimo = minTicket({
       entry, stopDistance: levels.riskDistance, contractSize, capital, leverage, spec,
     });
@@ -177,6 +216,19 @@ export default function TradingDesk() {
       entry, quantity, contractSize, leverage, balance: capital, side: form.side,
       sl: levels.sl, tp: levels.tp, spec,
     });
+    // El tope del 10 % no se salta por entrar por la otra puerta. Al dimensionar
+    // por margen el riesgo no se elige: sale de los contratos y del stop. Si eso
+    // pasa del tope, la mesa se niega igual — con el porcentaje real, para que se
+    // vea de cuánto se ha pasado.
+    if (porMargen && metrics.riskPctBalance != null
+        && metrics.riskPctBalance > budget.capPct) {
+      setResultado({
+        blockedReason: 'over_cap', sello: Date.now(),
+        budget: { ...budget, pct: metrics.riskPctBalance, amount: metrics.riskAmount, blocked: true },
+      });
+      return;
+    }
+
     const fees = commissionTotal({
       notional: metrics.notional, quantity,
       perUnit: form.fee_per_unit, pctNotional: form.fee_pct, flat: form.fee_flat,
@@ -185,7 +237,13 @@ export default function TradingDesk() {
     setResultado({
       sello: Date.now(),
       firma: firmaDe(form, account),
-      budget, sizes, minimo, metrics, quantity, spec, contractSize, leverage,
+      budget: porMargen
+        ? { ...budget, amount: metrics.riskAmount, pct: metrics.riskPctBalance,
+            warn: metrics.riskPctBalance != null && metrics.riskPctBalance > budget.advisedPct }
+        : budget,
+      sizedBy: porMargen ? 'margin' : 'risk',
+      marginRequested: porMargen ? Number(account?.marginAmount) : null,
+      sizes, minimo, metrics, quantity, spec, contractSize, leverage, entry,
       marginMode, levels, symbol: form.symbol, side: form.side, esOpcion,
       liquidation: liquidationView({
         entry, side: form.side, mode: marginMode, notional: metrics.notional,
@@ -291,7 +349,7 @@ export default function TradingDesk() {
           spec={spec} contractSize={contractSize} leverage={leverage}
           marginInfo={marginInfo} marginMode={marginMode}
           products={SELECTABLE_PRODUCTS}
-          budget={budget} levels={levels}
+          budget={budgetVista} levels={levels}
           onProduct={cambiarProducto}
           onSymbol={cambiarSimbolo}
           onCalcular={calcular}
@@ -336,6 +394,8 @@ export default function TradingDesk() {
               side={resultado.side}
               isOption={resultado.esOpcion}
               blockedReason={resultado.blockedReason}
+              sizedBy={resultado.sizedBy}
+              marginRequested={resultado.marginRequested}
             />
 
             {resultado.quantity != null && (

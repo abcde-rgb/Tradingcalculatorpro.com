@@ -418,7 +418,13 @@ CALCS.forEach((c, i) => {
       lang, url, alts, title: d.title, description, h1: cap(d.kw), kw: d.kw, ui,
       sectionLabel: ui.calcs, sectionUrl: `${DOMAIN}/dashboard`, lead: d.lead, formula: c.formula, points: d.pts,
       ctaUrl: `${DOMAIN}/dashboard?tab=${c.tab}`, ctaLabel: ui.useCalc, related, sectionKind: 'tools',
-      jsonld: { '@context':'https://schema.org','@type':'SoftwareApplication', name: d.title, applicationCategory:'FinanceApplication', operatingSystem:'Web', url, inLanguage: lang, offers:{ '@type':'Offer', price:'0', priceCurrency:'EUR' }, description },
+      // SIN bloque `offers`. Emitia `price:'0'` en las 120 paginas de
+      // calculadora mientras `public/index.html` declara 17/45/200 EUR y el
+      // dashboard exige suscripcion: le deciamos «gratis» a Google sobre algo
+      // de pago. Y una calculadora suelta tampoco se vende por separado, asi
+      // que no tiene precio propio que declarar. La oferta real vive donde
+      // corresponde, en el `Product` de la portada.
+      jsonld: { '@context':'https://schema.org','@type':'SoftwareApplication', name: d.title, applicationCategory:'FinanceApplication', operatingSystem:'Web', url, inLanguage: lang, description },
     });
     write(rel, html);
     sitemapUrls.push([`/${rel}/`, '0.8']);

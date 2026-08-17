@@ -55,6 +55,18 @@ export default function PricingPage() {
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState(searchParams.get('plan') || 'annual');
   const [selectedPayment, setSelectedPayment] = useState('card');
+
+  /**
+   * ¿Este usuario, con este método, va a tener de verdad los 7 días?
+   *
+   * El badge los prometía a todo el mundo. El backend los concede sólo si la
+   * suscripción es nueva Y va por Stripe (`_PAYMENT_METHODS_MAP`), así que
+   * había dos formas de enseñar «sin cargo hoy» y cobrar al instante: quien ya
+   * gastó la prueba —el frontend ni siquiera conocía `trial_used`, ahora sí— y
+   * quien paga con cripto, PayPal o Revolut, que no pasan por Stripe.
+   */
+  const METODOS_CON_PRUEBA = ['card', 'sepa', 'klarna'];
+  const hayPrueba = !user?.trial_used && METODOS_CON_PRUEBA.includes(selectedPayment);
   const [isLoading, setIsLoading] = useState(false);
   const [paypalClientId, setPaypalClientId] = useState('');
 
@@ -260,7 +272,7 @@ export default function PricingPage() {
                   <span className="font-unbounded text-3xl font-bold">{t(plan.id + 'Price')}</span>
                   <span className="text-muted-foreground text-sm">{t(plan.id + 'Period')}</span>
                 </div>
-                {plan.id !== 'lifetime' && (
+                {plan.id !== 'lifetime' && hayPrueba && (
                   <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5 mb-3" data-testid={`trial-badge-${plan.id}`}>
                     {t('trialBadge')}
                   </div>
@@ -405,7 +417,7 @@ export default function PricingPage() {
                           <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
                         ) : isPremium ? (
                           <>{t('alreadyPremiumButton')}</>
-                        ) : selectedPlan !== 'lifetime' ? (
+                        ) : selectedPlan !== 'lifetime' && hayPrueba ? (
                           <>{t('trialCtaButton')} <ArrowRight className="ml-2" /></>
                         ) : (
                           <>{t('payButton')} {t(selectedPlan + 'Price')} <ArrowRight className="ml-2" /></>
@@ -414,7 +426,7 @@ export default function PricingPage() {
                     )}
 
                     <div className="text-xs text-center text-muted-foreground space-y-1">
-                      {selectedPlan !== 'lifetime' && !isPremium && (
+                      {selectedPlan !== 'lifetime' && !isPremium && hayPrueba && (
                         <p className="text-primary font-medium" data-testid="trial-reassure">{t('trialReassure')}</p>
                       )}
                       <p>
@@ -488,10 +500,14 @@ export default function PricingPage() {
                       <Check className="w-4 h-4 text-primary" />
                       {t('completeStatistics')}
                     </li>
-                    <li className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-primary" />
-                      {t('portfolioRebalancing')}
-                    </li>
+                    {/* «Rebalanceo de cartera» estaba aquí con su marca de
+                        verificación, en el plan de pago, y no existe: el backend
+                        tiene `/api/portfolio` entero y `/portfolio/rebalance`,
+                        pero NINGUNA pantalla los consume (hueco G-14). Cobrar
+                        por una función que no se puede abrir no es un descuido
+                        de copia, es vender lo que no hay. La portada ya la
+                        anuncia donde toca, en «próximamente». Cuando exista
+                        pantalla, esta línea vuelve. */}
                   </ul>
                 </CardContent>
               </Card>

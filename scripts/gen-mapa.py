@@ -73,20 +73,64 @@ def modulos_backend() -> list[dict]:
     return out
 
 
+# `include_router(..., prefix="/x")` mueve TODAS las rutas de un módulo.
+_MONTAJE = re.compile(
+    r"from\s+(\w+)\s+import\s+build_\w+_router[\s\S]{0,400}?prefix\s*=\s*[\"\']([^\"\']+)[\"\']"
+)
+
+
+def prefijos_de_router() -> dict[str, str]:
+    """Qué prefijo añade cada módulo al montarse.
+
+    `admin_routes.py` declara `@router.post("/campaigns/{id}/send")` pero se
+    monta con `prefix="/admin"`, así que la ruta REAL es
+    `/api/admin/campaigns/{id}/send`. Sin esto el mapa publicaba la ruta sin su
+    prefijo, no encontraba quién la llama y la daba por muerta — cinco rutas del
+    panel de administración que `AdminPage` usa a diario.
+    """
+    fuente = (BACKEND / "server.py").read_text(errors="ignore")
+    return {f"{mod}.py": pref for mod, pref in _MONTAJE.findall(fuente)}
+
+
 def rutas() -> list[dict]:
     """Todas las rutas declaradas, con el fichero y la línea donde viven."""
+    prefijos = prefijos_de_router()
     out = []
     for py in sorted(BACKEND.glob("*.py")):
         src = py.read_text(errors="ignore")
+        pref = prefijos.get(py.name, "")
         for m in DECORADOR.finditer(src):
             out.append({
                 "metodo": m.group(1).upper(),
-                "path": m.group(2),
+                "path": pref + m.group(2),
+                # `admin_routes.py` monta DOS routers y sólo uno lleva `/admin`
+                # (`build_public_settings_router` va sin prefijo), así que el
+                # prefijo es una posibilidad y no una certeza: al buscar
+                # consumidor valen las dos formas.
+                "alt": m.group(2) if pref else None,
                 "fichero": py.name,
                 "linea": src.count("\n", 0, m.start()) + 1,
             })
     out.sort(key=lambda r: (r["path"], r["metodo"]))
     return out
+
+
+# Comentarios de bloque y de línea. El `(?<!:)` protege `https://`, que es una
+# barra doble dentro de una cadena y no un comentario.
+_BLOQUE = re.compile(r"/\*[\s\S]*?\*/")
+_LINEA = re.compile(r"(?<!:)//[^\n]*")
+
+
+def sin_comentarios(src: str) -> str:
+    """El código sin sus comentarios.
+
+    Un comentario que NOMBRA una ruta no la consume. Se descubrió al retirar de
+    `/pricing` la promesa de rebalanceo de cartera: el comentario que explicaba
+    por qué se retiraba citaba `/api/portfolio/rebalance`, y la ruta —que sigue
+    sin tener una sola pantalla— pasó a contar como consumida. El control lo
+    cazó en el acto, que es exactamente para lo que está.
+    """
+    return _LINEA.sub("", _BLOQUE.sub("", src))
 
 
 def blob_frontend() -> str:
@@ -96,28 +140,54 @@ def blob_frontend() -> str:
         ruta = str(p)
         if any(x in ruta for x in EXCLUIR_DE_BUSQUEDA):
             continue
-        trozos.append(p.read_text(errors="ignore"))
+        trozos.append(sin_comentarios(p.read_text(errors="ignore")))
     return "\n".join(trozos)
+
+
+# Lo que un `{parametro}` puede ser en el frontend: una interpolación de
+# plantilla (`${id}`), una concatenación o un valor escrito a pelo.
+_PARAMETRO = r"(?:\$\{[^}]*\}|[A-Za-z0-9_.$-]+)"
 
 
 def se_consume(path: str, blob: str) -> bool:
     """¿Menciona el frontend esta ruta?
 
-    Heurística deliberadamente conservadora: se queda con los segmentos fijos
-    (sin `{parametros}`) y exige que aparezcan juntos. Con dos o más segmentos
-    la señal es fuerte; con uno solo se exige la barra inicial para no casar con
-    una palabra suelta. Puede dar algún falso positivo, nunca un falso negativo:
-    si dice que NO se consume, es que no aparece en ninguna parte.
+    Se busca la ruta ENTERA, con sus barras, dejando que cada `{parametro}` case
+    con una interpolación. Las dos versiones anteriores se equivocaban en
+    direcciones opuestas y las dos costaron caro:
+
+      · El `in` pelado casaba por prefijo. Al añadir la página `/backtesting`,
+        la ruta muerta `/backtest` pasó a contar como consumida.
+      · Quedarse con los dos primeros segmentos FIJOS descartaba el parámetro y
+        todo lo que viniera detrás: `/campaigns/{campaign_id}/send` se buscaba
+        como «campaigns/send», que no aparece en ningún sitio porque el frontend
+        escribe `campaigns/${id}/send`. La docstring prometía «nunca un falso
+        negativo» y daba cinco: las rutas de admin con parámetro salían como
+        muertas mientras `AdminPage` las llamaba.
+
+    El anclaje admite `}` además de comilla y `/api` porque una URL construida
+    empieza justo después de `${API}`.
     """
-    segs = [s for s in path.split("/") if s and not s.startswith("{")]
+    segs = [s for s in path.split("/") if s]
     if not segs:
         return True
-    aguja = "/".join(segs[:2]) if len(segs) >= 2 else f"/{segs[0]}"
-    # El `in` pelado casaba por prefijo: al añadir la página `/backtesting` al
-    # frontend, la ruta muerta `/backtest` pasó a contar como consumida y la
-    # evidencia de que nadie la llama desapareció del mapa. El siguiente
-    # carácter no puede continuar el identificador.
-    return re.search(re.escape(aguja) + r"(?![A-Za-z0-9_-])", blob) is not None
+    # Del TERCER segmento en adelante, uno fijo también puede venir interpolado:
+    # `AdminPage` construye `affiliates/${id}/${verb}` para aprobar, rechazar y
+    # suspender con la misma línea, y exigir el literal ahí daba por muertas
+    # tres rutas vivas. Los dos primeros se exigen literales porque son el
+    # nombre del recurso —nadie interpola «affiliates»— y sin ese ancla
+    # `/backtest` casaría con cualquier `${loQueSea}` del código.
+    partes = []
+    for i, seg in enumerate(segs):
+        if seg.startswith("{"):
+            partes.append(_PARAMETRO)
+        elif i < 2:
+            partes.append(re.escape(seg))
+        else:
+            partes.append(f"(?:{re.escape(seg)}|{_PARAMETRO})")
+    cuerpo = "/".join(partes)
+    patron = r"""(?:["'`}]|/api)/""" + cuerpo + r"(?![A-Za-z0-9_-])"
+    return re.search(patron, blob) is not None
 
 
 def por_que_huerfana(r: dict) -> str:
@@ -223,7 +293,8 @@ def construir() -> str:
     rs = rutas()
     blob = blob_frontend()
     for r in rs:
-        r["consumida"] = se_consume(r["path"], blob)
+        r["consumida"] = (se_consume(r["path"], blob)
+                          or (r.get("alt") is not None and se_consume(r["alt"], blob)))
     huerfanas = [r for r in rs if not r["consumida"]]
     n_tf, n_tt = tests()
     n_idiomas, n_claves = claves_i18n()
@@ -367,11 +438,73 @@ def construir() -> str:
     return "\n".join(L) + "\n"
 
 
+# Rutas cuyo destino se ha comprobado A MANO contra el código del frontend.
+# Son el control del detector: si `se_consume` se rompe otra vez, esto lo dice
+# antes de que el mapa publique una cifra falsa.
+#
+# Existe porque el detector ya se equivocó dos veces en direcciones opuestas —
+# casaba `/backtest` con la página `/backtesting`, y daba por muertas cinco
+# rutas de admin que `AdminPage` llama con la URL interpolada— y en ninguna de
+# las dos ocasiones hubo nada que avisara. El mapa decía un número y nadie podía
+# saber si significaba algo.
+CONTROLES: tuple[tuple[str, bool], ...] = (
+    # Consumidas, con el parámetro y hasta el verbo interpolados.
+    ("/admin/campaigns/{campaign_id}/send", True),
+    ("/admin/errors/{error_id}/resolve", True),
+    ("/admin/gdpr-exports/{export_id}/deliver", True),
+    ("/admin/users/{user_id}/payments", True),
+    ("/admin/affiliates/{aid}/approve", True),
+    ("/admin/affiliates/payout-requests/{rid}/mark-paid", True),
+    # Consumidas sin prefijo, del router que se monta aparte.
+    ("/public/settings", True),
+    # Consumidas del todo normales.
+    ("/performance/trades", True),
+    ("/performance/trades/{trade_id}", True),
+    ("/prices", True),
+    # El plan de trading, desde que tiene pantalla (2026-08-17). Estaba en la
+    # lista de muertas y el control lo cazó en cuanto dejó de serlo: cuando una
+    # ruta cambia de bando, esto obliga a moverla a mano, que es exactamente lo
+    # que impide que la lista se pudra en silencio.
+    ("/plan", True),
+    ("/plan/compliance", True),
+    ("/plan/history", True),
+    # Muertas. `/backtest` es la trampa: existe la página `/backtesting`.
+    ("/backtest", False),
+    ("/journal/trades", False),
+    ("/monte-carlo", False),
+    ("/portfolio/rebalance", False),
+    ("/subscriptions/change-plan-legacy", False),
+    ("/no/existe/esto", False),
+)
+
+
+def controlar_detector() -> int:
+    """Comprueba el detector contra rutas de destino conocido."""
+    blob = blob_frontend()
+    fallos = [
+        (ruta, esperado)
+        for ruta, esperado in CONTROLES
+        if se_consume(ruta, blob) is not esperado
+    ]
+    if fallos:
+        print("✗ el detector de consumidores no es fiable:")
+        for ruta, esperado in fallos:
+            dice = "consumida" if not esperado else "sin consumidor"
+            debe = "sin consumidor" if not esperado else "consumida"
+            print(f"    {ruta} → dice «{dice}», y está {debe}")
+        print("  Mientras esto falle, la cifra de rutas sin consumidor no vale nada.")
+        return 1
+    print(f"✓ detector de consumidores validado ({len(CONTROLES)} controles)")
+    return 0
+
+
 def main() -> int:
     contenido = construir()
     comprobar = "--check" in sys.argv
 
     if comprobar:
+        if controlar_detector() != 0:
+            return 1
         if not SALIDA.exists():
             print("✗ docs/MAPA.md no existe. Genéralo: python scripts/gen-mapa.py")
             return 1
