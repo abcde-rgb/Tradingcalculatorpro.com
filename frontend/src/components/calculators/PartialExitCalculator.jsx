@@ -8,7 +8,7 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 import { useTranslation } from '@/lib/i18n';
 
 const DEFAULTS = {
-  dir: 'long', entry: '100', stop: '95', size: '100',
+  dir: 'long', entry: '100', stop: '95', size: '100', mult: '1',
   t1p: '105', t1pct: '50', t2p: '110', t2pct: '25', t3p: '120', t3pct: '25',
 };
 
@@ -24,10 +24,15 @@ export function PartialExitCalculator() {
 
   const r = useMemo(() => {
     const entry = num(data.entry), stop = num(data.stop), size = num(data.size);
+    // El multiplicador es el TAMAÑO DE CONTRATO, no la palanca: 5 en un MES,
+    // 100 en un contrato de opciones, 100 000 en un lote de forex. Sin él, el
+    // dinero de esta pantalla sólo era cierto cuando una unidad valía uno —o
+    // sea, en acciones y contado— y en un MES salía dividido por cinco.
+    const mult = num(data.mult) || 1;
     const riskPerUnit = Math.abs(entry - stop);
     if (!entry || !size || riskPerUnit <= 0) return { valid: false };
     const dir = data.dir === 'short' ? -1 : 1;
-    const riskMoney = riskPerUnit * size;
+    const riskMoney = riskPerUnit * size * mult;
     const rOf = (price) => (dir * (price - entry)) / riskPerUnit;
 
     const legs = [
@@ -40,7 +45,7 @@ export function PartialExitCalculator() {
     const rows = legs.map((l) => {
       const rMult = rOf(l.price);
       const units = size * (l.pct / 100);
-      const profit = dir * (l.price - entry) * units;
+      const profit = dir * (l.price - entry) * units * mult;
       closedPct += l.pct;
       realized += profit;
       positionR += (l.pct / 100) * rMult;
@@ -53,10 +58,12 @@ export function PartialExitCalculator() {
     const ifRunnerTopR = positionR + (runnerPct / 100) * topR;
     // Full hold: close 100% at the highest target.
     const holdAllR = topR;
-    const weightedR = closedPct > 0 ? positionR / (closedPct / 100) : 0;
+    // Sin ningún tramo cerrado la R media no es cero: no existe. Un 0,00R
+    // ahí dice «has salido plano» cuando lo que pasa es que no has salido.
+    const weightedR = closedPct > 0 ? positionR / (closedPct / 100) : null;
 
     return {
-      valid: true, riskPerUnit, riskMoney, rows, closedPct, runnerPct,
+      valid: true, riskPerUnit, riskMoney, rows, closedPct, runnerPct, mult,
       realized, positionR, ifRunnerTopR, holdAllR, weightedR, topPrice,
       over: closedPct > 100,
     };
@@ -121,6 +128,12 @@ export function PartialExitCalculator() {
           <Field label={t('pxcEntry')} k="entry" />
           <Field label={t('pxcStop')} k="stop" />
           <Field label={t('pxcSize')} k="size" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label={t('pxcMultiplier')} k="mult" placeholder="1" />
+          <p className="col-span-2 self-end text-[11px] text-muted-foreground leading-snug pb-1">
+            {t('pxcMultiplierHint')}
+          </p>
         </div>
 
         {/* Partial targets */}

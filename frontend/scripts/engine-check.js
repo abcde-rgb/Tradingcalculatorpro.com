@@ -812,6 +812,36 @@ async function checkPrefsMerge() {
     corrupt.push.theme?.value === 'gold');
 }
 
+/**
+ * Ninguna pantalla puede llevar su propio catálogo de instrumentos.
+ *
+ * La calculadora de futuros tenía una tabla de 24 contratos escrita a mano y se
+ * había desincronizado en seis: publicaba nocionales y apalancamientos reales
+ * cien veces mayores en bonos y granos. `gen-instruments-js.py --check` mantiene
+ * el catálogo en paridad con el backend, pero no puede ver una tabla escondida
+ * dentro de un `.jsx`. Esto sí.
+ */
+async function checkSinCatalogosParalelos() {
+  console.log('\ncatálogo único  (ninguna pantalla con su propia tabla)');
+  const fs = await import('fs');
+  const path = await import('path');
+  const dirs = ['components/calculators', 'components/tools', 'components/desk', 'components/options'];
+  const sospechosas = [];
+  for (const d of dirs) {
+    const abs = path.join(SRC, d);
+    if (!fs.existsSync(abs)) continue;
+    for (const f of fs.readdirSync(abs).filter((n) => n.endsWith('.jsx'))) {
+      const txt = fs.readFileSync(path.join(abs, f), 'utf8');
+      // Una tabla de instrumentos se reconoce por llevar tick y contrato juntos.
+      if (/tickSize\s*:\s*[\d.]/.test(txt) && /contractSize\s*:\s*\d/.test(txt)) {
+        sospechosas.push(`${d}/${f}`);
+      }
+    }
+  }
+  ok('ninguna pantalla define tick y tamaño de contrato a mano',
+    sospechosas.length === 0, sospechosas.join(', '));
+}
+
 async function checkDeskMath() {
   console.log('\ndeskMath.js  (la mesa: del riesgo al tamaño)');
   const {
@@ -1085,6 +1115,24 @@ async function checkDeskMath() {
     String(snapDown(0.4123, 0.01)) === '0.41');
   ok('el escalón de un contrato sigue dando enteros limpios',
     String(snapDown(7.99, 1)) === '7');
+
+  // ── La liquidación con margen de mantenimiento ──────────────────
+  // La calculadora de apalancamiento usaba `entry × (1 ∓ 1/lev)`, que ignora el
+  // mantenimiento y se pasa SIEMPRE en la misma dirección: te dice que aguantas
+  // más de lo que aguantas. Y a 1× daba `entry × 0` = 0, que no es un precio.
+  ok('sin apalancamiento no hay liquidación: null, no cero',
+    liquidationPrice(95000, 'long', 1) === null);
+  ok('la liquidación del largo queda por DEBAJO de la entrada',
+    liquidationPrice(95000, 'long', 10) < 95000);
+  ok('y la del corto por encima',
+    liquidationPrice(95000, 'short', 10) > 95000);
+  // El modelo ingenuo siempre está más lejos: esa distancia es el mantenimiento.
+  for (const lev of [2, 10, 25, 100]) {
+    const ingenua = 95000 * (1 - 1 / lev);
+    const real = liquidationPrice(95000, 'long', lev);
+    ok(`a ${lev}× el modelo sin mantenimiento liquida más tarde de lo real`,
+      ingenua < real, `${ingenua} vs ${real}`);
+  }
 
   // ── El billete mínimo ───────────────────────────────────────────
   // Un E-mini con stop de 20 puntos son 1000 $. En una cuenta de 3000 $, el
@@ -1534,6 +1582,7 @@ async function checkMonteCarlo() {
   await checkPrefsMerge();
   await checkProjection();
   await checkInstruments();
+  await checkSinCatalogosParalelos();
   await checkDeskMath();
   await checkEduIndex();
   await checkScannerMeta();
