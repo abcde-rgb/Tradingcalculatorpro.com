@@ -333,6 +333,61 @@ export function maxSizes({
  * símbolo no lo declara: ahí la palanca la pone el usuario y no nos la
  * inventamos.
  */
+/**
+ * Entrar por el otro lado: **del margen a los contratos**.
+ *
+ * La mesa dimensiona por riesgo —presupuesto entre distancia al stop— porque
+ * es lo que protege la cuenta. Pero delante de la pantalla también se piensa
+ * al revés: «quiero comprometer 2.000 € de margen, ¿cuántos contratos son?».
+ * Y la cadena es la que es:
+ *
+ *     margen × apalancamiento = nocional
+ *     nocional ÷ (precio × tamaño de contrato) = contratos
+ *
+ * Sin apalancamiento (contado, opciones) la palanca es 1 y el margen ES el
+ * nocional, así que la misma fórmula sirve sin caso especial.
+ *
+ * Devuelve también el nocional y el margen REAL: al ajustar la cantidad al
+ * escalón del instrumento (no se compran 1,7 contratos), el margen que acaba
+ * comprometido no es exactamente el pedido, y decir el pedido sería mentir.
+ */
+export function quantityFromMargin({ margin, leverage, entry, contractSize, spec, step }) {
+  const m = pos(margin);
+  const e = pos(entry);
+  const csize = pos(contractSize);
+  const paso = step ?? sizeStepFor(spec);
+  const out = { quantity: null, raw: null, notional: null, marginUsed: null, step: paso };
+  if (m === null || e === null || csize === null) return out;
+
+  const usesLev = spec ? spec.usesLeverage : true;
+  const lev = usesLev ? (pos(leverage) ?? 1) : 1;
+
+  out.raw = (m * lev) / (e * csize);
+  const q = snapDown(out.raw, paso);
+  // Por debajo del escalón no hay media unidad: no es cero, es "no te llega".
+  if (q === null || q <= 0) return out;
+
+  out.quantity = q;
+  out.notional = q * e * csize;
+  out.marginUsed = out.notional / lev;
+  return out;
+}
+
+/**
+ * Lo que ese tamaño arriesga de verdad, para poder contrastarlo con el tope.
+ *
+ * `null` sin stop, y es lo correcto: sin stop el riesgo no está definido: es
+ * todo el capital. Devolver 0 diría "no arriesgas nada", que es la mentira
+ * más cara que puede contar esta herramienta.
+ */
+export function riskForQuantity({ quantity, stopDistance, contractSize }) {
+  const q = pos(quantity);
+  const d = pos(stopDistance);
+  const csize = pos(contractSize);
+  if (q === null || d === null || csize === null) return null;
+  return q * d * csize;
+}
+
 export function leverageFromMargin(spec, entry, contractSize) {
   if (!spec?.usesLeverage) return null;
   const margin = pos(spec.initialMargin);

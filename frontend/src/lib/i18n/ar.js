@@ -4075,6 +4075,7 @@ export default {
   "deskSizeFromRisk": "من المخاطرة",
   "deskSizeManual": "يدوي",
   "deskSizeFromRiskHint": "يُشتق من مخاطرتك ومن الوقف: هذا هو الترتيب الصحيح",
+  "deskSizeFromMarginHint": "يُشتق من الهامش الذي تخصّصه ومن رافعتك",
   "deskSizeManualHint": "تكتب الحجم فيظهر ما يعنيه من مخاطرة",
   "deskSizeSuggested": "حجمك",
   "deskSizeYours": "حجمك",
@@ -4293,4 +4294,11 @@ export default {
   "mcRiskOverCap": "أعلى من الحد الصارم {cap} % في الحاسبة. تُحاكى هنا عمدًا: السلسلة أدناه تُريك لماذا ترفض الحاسبة حجمًا كهذا.",
   // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "حجم المركز",
+
+  // ─── Dimensionar por margen ───
+  "deskMarginShort": "الهامش",
+  "deskMarginToCommit": "الهامش المراد التزامه",
+  "deskSizedByMargin": "الحجم محسوب من الهامش: {margin} مُجمّدة.",
+  "deskMarginLeftover": "طلبت {asked}؛ يتبقى {diff} لأن الحجم يسير بوحدات كاملة.",
+  "deskMissing_margin": "أدخل الهامش الذي تريد التزامه.",
 }

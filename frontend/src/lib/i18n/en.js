@@ -4075,6 +4075,7 @@ export default {
   "deskSizeFromRisk": "From risk",
   "deskSizeManual": "Manual",
   "deskSizeFromRiskHint": "derived from your risk and the stop: that's the right order",
+  "deskSizeFromMarginHint": "derived from the margin you commit and your leverage",
   "deskSizeManualHint": "you type the size and the implied risk comes out",
   "deskSizeSuggested": "Your size",
   "deskSizeYours": "Your size",
@@ -4293,4 +4294,11 @@ export default {
   "mcRiskOverCap": "Above the desk’s {cap}% hard cap. It still simulates here on purpose: the streak below shows you why the calculator refuses to size a trade like this.",
   // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "of position",
+
+  // ─── Dimensionar por margen ───
+  "deskMarginShort": "Margin",
+  "deskMarginToCommit": "Margin to commit",
+  "deskSizedByMargin": "Size derived from margin: {margin} tied up.",
+  "deskMarginLeftover": "You asked for {asked}; {diff} is left over because size moves in whole units.",
+  "deskMissing_margin": "Enter the margin you want to commit.",
 }

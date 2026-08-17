@@ -4075,6 +4075,7 @@ export default {
   "deskSizeFromRisk": "リスクから",
   "deskSizeManual": "手入力",
   "deskSizeFromRiskHint": "リスクとストップから導きます。この順序が正しい",
+  "deskSizeFromMarginHint": "拠出する証拠金とレバレッジから導きます",
   "deskSizeManualHint": "数量を入力すると、そのリスクが出ます",
   "deskSizeSuggested": "あなたの数量",
   "deskSizeYours": "入力した数量",
@@ -4293,4 +4294,11 @@ export default {
   "mcRiskOverCap": "計算台の上限 {cap} ％を超えています。ここではあえてそのまま試行します。下の連敗が、計算機がこの数量を拒む理由そのものです。",
   // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "相当のポジション",
+
+  // ─── Dimensionar por margen ───
+  "deskMarginShort": "証拠金",
+  "deskMarginToCommit": "投入する証拠金",
+  "deskSizedByMargin": "証拠金から数量を算出：{margin} を拘束。",
+  "deskMarginLeftover": "{asked} を指定しましたが、数量は整数単位のため {diff} が余ります。",
+  "deskMissing_margin": "投入する証拠金を入力してください。",
 }

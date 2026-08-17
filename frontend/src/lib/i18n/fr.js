@@ -4075,6 +4075,7 @@ export default {
   "deskSizeFromRisk": "Depuis le risque",
   "deskSizeManual": "Manuel",
   "deskSizeFromRiskHint": "découle de ton risque et du stop : c'est le bon ordre",
+  "deskSizeFromMarginHint": "découle de la marge que tu engages et de ton levier",
   "deskSizeManualHint": "tu saisis la taille et le risque impliqué apparaît",
   "deskSizeSuggested": "Ta taille",
   "deskSizeYours": "Ta taille",
@@ -4293,4 +4294,11 @@ export default {
   "mcRiskOverCap": "Au-dessus du plafond de {cap} % de la calculatrice. On simule quand même, exprès : la série ci-dessous montre pourquoi elle refuse de dimensionner ainsi.",
   // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "de position",
+
+  // ─── Dimensionar por margen ───
+  "deskMarginShort": "Marge",
+  "deskMarginToCommit": "Marge à engager",
+  "deskSizedByMargin": "Taille déduite de la marge : {margin} immobilisés.",
+  "deskMarginLeftover": "Tu demandais {asked} ; il reste {diff} car la taille va par unités entières.",
+  "deskMissing_margin": "Indique la marge que tu veux engager.",
 }

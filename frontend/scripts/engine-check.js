@@ -818,7 +818,7 @@ async function checkDeskMath() {
     RISK_HARD_CAP_PCT, riskBudget, marginModesFor, liquidationFromBuffer,
     liquidationView, maxSizes, minTicket, averageEntry, partialExits,
     breakEven, commissionTotal, stepValues, requiredLeverage, snapDown,
-    leverageFromMargin, effectiveLeverage,
+    leverageFromMargin, effectiveLeverage, quantityFromMargin, riskForQuantity,
   } = await imp('lib/deskMath.js');
   const { resolveSpec, liquidationPrice } = await imp('lib/instruments.js');
 
@@ -943,6 +943,65 @@ async function checkDeskMath() {
 
   ok('sin distancia de stop no hay tope por riesgo (null, no cero)',
     maxSizes({ entry: 100, contractSize: 1, capital: 10000, leverage: 1, spec: stock }).byRisk === null);
+
+  // ── Del margen al tamaño (el camino inverso) ────────────────────
+  // El usuario que dice "quiero comprometer 1320 $" está diciendo el margen, no
+  // el riesgo. La cadena es: contrato → lo que vale esa unidad (precio × tamaño
+  // de contrato) → entre el apalancamiento → margen. Aquí se recorre al revés.
+  const mesSpec = resolveSpec('futures', 'MES');
+  // La palanca no se inventa: sale del margen que el bróker pide por contrato.
+  const palancaMes = leverageFromMargin(mesSpec, 5000, 5);
+  const q1 = quantityFromMargin({
+    margin: 1320, leverage: palancaMes, entry: 5000, contractSize: 5, spec: mesSpec,
+  });
+  ok('el margen de un contrato compra exactamente un contrato',
+    near(q1.quantity, 1), JSON.stringify(q1));
+  ok('y el capital que mueve es precio × tamaño de contrato',
+    near(q1.notional, 25000), `notional=${q1.notional}`);
+  ok('el margen realmente usado es el nocional entre la palanca',
+    near(q1.marginUsed, 1320), `usado=${q1.marginUsed}`);
+
+  // Redondear hacia arriba sería pedirle al usuario más dinero del que dijo.
+  const q2 = quantityFromMargin({
+    margin: 3000, leverage: palancaMes, entry: 5000, contractSize: 5, spec: mesSpec,
+  });
+  ok('2,27 contratos se quedan en 2: nunca se pide más margen del ofrecido',
+    near(q2.quantity, 2) && q2.marginUsed <= 3000, JSON.stringify(q2));
+
+  // Monotonía: más dinero jamás puede dar menos contratos.
+  let previo = 0;
+  let monotono = true;
+  for (let m = 500; m <= 20000; m += 250) {
+    const q = quantityFromMargin({
+      margin: m, leverage: palancaMes, entry: 5000, contractSize: 5, spec: mesSpec,
+    });
+    const actual = q.quantity ?? 0;
+    if (actual < previo) monotono = false;
+    previo = actual;
+  }
+  ok('más margen nunca da menos contratos', monotono);
+
+  ok('por debajo del escalón no hay medio contrato: es null, no cero',
+    quantityFromMargin({ margin: 100, leverage: palancaMes, entry: 5000, contractSize: 5, spec: mesSpec })
+      .quantity === null);
+
+  // Al contado no hay palanca que dividir: el margen ES el capital.
+  const spot = resolveSpec('crypto_spot', 'BTC');
+  const q3 = quantityFromMargin({
+    margin: 5000, leverage: 20, entry: 50000, contractSize: 1, spec: spot,
+  });
+  ok('al contado la palanca se ignora: 5000 $ compran 0,1 BTC',
+    near(q3.quantity, 0.1) && near(q3.marginUsed, 5000), JSON.stringify(q3));
+
+  ok('sin margen no se inventa un tamaño',
+    quantityFromMargin({ leverage: 10, entry: 5000, contractSize: 5, spec: mesSpec })
+      .quantity === null);
+
+  // El riesgo del tamaño que salió del margen: sigue siendo distancia × unidades.
+  ok('el riesgo de un tamaño dado es distancia × cantidad × tamaño de contrato',
+    near(riskForQuantity({ quantity: 2, stopDistance: 20, contractSize: 5 }), 200));
+  ok('sin stop el riesgo de ese tamaño es indefinido, no cero',
+    riskForQuantity({ quantity: 2, contractSize: 5 }) === null);
 
   // ── El billete mínimo ───────────────────────────────────────────
   // Un E-mini con stop de 20 puntos son 1000 $. En una cuenta de 3000 $, el

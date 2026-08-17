@@ -4075,6 +4075,7 @@ export default {
   "deskSizeFromRisk": "按风险算",
   "deskSizeManual": "手动",
   "deskSizeFromRiskHint": "由你的风险和止损推出来：顺序就该是这样",
+  "deskSizeFromMarginHint": "由你投入的保证金和杠杆推出来",
   "deskSizeManualHint": "你填数量，算出它意味着多少风险",
   "deskSizeSuggested": "你该开的仓位",
   "deskSizeYours": "你填的仓位",
@@ -4293,4 +4294,11 @@ export default {
   "mcRiskOverCap": "高于计算台 {cap} % 的硬上限。这里仍然照常模拟，是有意为之：下面的连亏数据会告诉你计算器为什么不让你这样下单。",
   // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "的头寸规模",
+
+  // ─── Dimensionar por margen ───
+  "deskMarginShort": "保证金",
+  "deskMarginToCommit": "投入的保证金",
+  "deskSizedByMargin": "仓位由保证金推算：占用 {margin}。",
+  "deskMarginLeftover": "你要投入 {asked}，剩下 {diff}，因为仓位只能按整数单位计。",
+  "deskMissing_margin": "请填写你要投入的保证金。",
 }

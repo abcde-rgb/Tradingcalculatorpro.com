@@ -4075,6 +4075,7 @@ export default {
   "deskSizeFromRisk": "От риска",
   "deskSizeManual": "Вручную",
   "deskSizeFromRiskHint": "выводится из риска и стопа — именно в этом порядке",
+  "deskSizeFromMarginHint": "выводится из вносимой маржи и вашего плеча",
   "deskSizeManualHint": "ты вводишь объём — выходит подразумеваемый риск",
   "deskSizeSuggested": "Твой объём",
   "deskSizeYours": "Твой объём",
@@ -4293,4 +4294,11 @@ export default {
   "mcRiskOverCap": "Выше жёсткого лимита в {cap} %. Здесь всё равно моделируется — намеренно: серия ниже показывает, почему калькулятор отказывается считать такой объём.",
   // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "позиции",
+
+  // ─── Dimensionar por margen ───
+  "deskMarginShort": "Маржа",
+  "deskMarginToCommit": "Маржа к внесению",
+  "deskSizedByMargin": "Объём рассчитан от маржи: заморожено {margin}.",
+  "deskMarginLeftover": "Вы просили {asked}; остаётся {diff}, потому что объём идёт целыми единицами.",
+  "deskMissing_margin": "Укажите маржу, которую хотите внести.",
 }

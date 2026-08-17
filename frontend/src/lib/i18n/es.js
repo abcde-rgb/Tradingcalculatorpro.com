@@ -4075,6 +4075,7 @@ export default {
   "deskSizeFromRisk": "Desde el riesgo",
   "deskSizeManual": "A mano",
   "deskSizeFromRiskHint": "sale de tu riesgo y del stop: es el orden correcto",
+  "deskSizeFromMarginHint": "sale del margen que comprometes y de tu apalancamiento",
   "deskSizeManualHint": "escribes tú el tamaño y sale el riesgo que implica",
   "deskSizeSuggested": "Tamaño que te toca",
   "deskSizeYours": "Tu tamaño",
@@ -4293,4 +4294,11 @@ export default {
   "mcRiskOverCap": "Por encima del tope del {cap} % de la mesa. Aquí se simula igual, a propósito: la racha de abajo te enseña por qué la calculadora no te deja operar así.",
   // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "de posición",
+
+  // ─── Dimensionar por margen ───
+  "deskMarginShort": "Margen",
+  "deskMarginToCommit": "Margen a comprometer",
+  "deskSizedByMargin": "Tamaño calculado desde el margen: quedan {margin} inmovilizados.",
+  "deskMarginLeftover": "Pediste {asked}; sobran {diff} porque el tamaño va por unidades enteras.",
+  "deskMissing_margin": "Falta el margen que quieres comprometer.",
 }
