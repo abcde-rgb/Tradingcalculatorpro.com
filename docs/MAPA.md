@@ -17,7 +17,7 @@
 | Módulos del backend | 28 |
 | Líneas de Python (backend) | 23,520 |
 | Rutas declaradas | 202 |
-| **Rutas sin consumidor en el frontend** | **51** |
+| **Rutas sin consumidor en el frontend** | **48** |
 | Ficheros de test · funciones de test | 45 · 761 |
 | Rutas del frontend (`App.js`) | 27 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,411 |
@@ -28,7 +28,7 @@ Endpoints que **ningún fichero del frontend menciona**. Algunos lo están por
 diseño (un webhook lo llama la pasarela, no el navegador); el resto es código
 escrito, probado y que ningún usuario puede alcanzar.
 
-### Sospechosas (41)
+### Sospechosas (43)
 
 **Antes de escribir un módulo nuevo, mira si lo que te piden ya está aquí**
 esperando una pantalla. Esto es el hueco G-14.
@@ -65,30 +65,27 @@ esperando una pantalla. Esto es el hueco G-14.
 | `GET` | `/api/plan/compliance` | `backend/server.py:7689` |
 | `PATCH` | `/api/plan/draft` | `backend/server.py:7678` |
 | `GET` | `/api/plan/history` | `backend/server.py:7635` |
+| `GET` | `/api/plans` | `backend/server.py:3993` |
 | `GET` | `/api/portfolio` | `backend/server.py:3370` |
 | `POST` | `/api/portfolio` | `backend/server.py:3378` |
 | `GET` | `/api/portfolio/rebalance` | `backend/server.py:3418` |
 | `DELETE` | `/api/portfolio/{asset_id}` | `backend/server.py:3411` |
 | `PUT` | `/api/portfolio/{asset_id}` | `backend/server.py:3400` |
 | `GET` | `/api/quote/{symbol}` | `backend/server.py:8833` |
+| `GET` | `/api/referrals/leaderboard` | `backend/referrals.py:276` |
 | `GET` | `/api/referrals/me` | `backend/referrals.py:113` |
 | `POST` | `/api/referrals/redeem-credit` | `backend/referrals.py:300` |
 | `POST` | `/api/subscriptions/change-plan` | `backend/missing_apis.py:563` |
 | `POST` | `/api/subscriptions/change-plan-legacy` | `backend/server.py:4931` |
 | `GET` | `/api/user-states/list` | `backend/server.py:5136` |
 
-### Huérfanas por diseño (10)
+### Huérfanas por diseño (5)
 
 | Método | Ruta | Por qué |
 |---|---|---|
-| `POST` | `/api/campaigns/{campaign_id}/send` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
-| `POST` | `/api/churn-surveys/{survey_id}/follow-up` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
-| `GET` | `/api/connectors/status` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
-| `POST` | `/api/errors/{error_id}/resolve` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
-| `POST` | `/api/gdpr-exports/{export_id}/deliver` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
+| `GET` | `/api/admin/connectors/status` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
+| `POST` | `/api/admin/set-plan` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
 | `GET` | `/api/health` | infra — sonda de salud |
-| `POST` | `/api/set-plan` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
-| `GET` | `/api/users/{user_id}/payments` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
 | `POST` | `/api/webhook/stripe` | externo — lo llama la pasarela de pago |
 | `POST` | `/api/webhook/stripe/subscription` | externo — lo llama la pasarela de pago |
 
@@ -134,31 +131,31 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 
 | Método | Ruta | Línea | Front |
 |---|---|---:|:---:|
-| `GET` | `/campaigns` | 579 | ✅ |
-| `POST` | `/campaigns` | 585 | ✅ |
-| `POST` | `/campaigns/{campaign_id}/send` | 620 | ❌ |
-| `GET` | `/churn-surveys` | 753 | ✅ |
-| `POST` | `/churn-surveys/{survey_id}/follow-up` | 769 | ❌ |
-| `GET` | `/cohorts` | 791 | ✅ |
-| `GET` | `/connectors/status` | 468 | ❌ |
-| `GET` | `/errors` | 971 | ✅ |
-| `POST` | `/errors/{error_id}/resolve` | 997 | ❌ |
-| `GET` | `/gdpr-exports` | 1048 | ✅ |
-| `POST` | `/gdpr-exports/{export_id}/deliver` | 1058 | ❌ |
-| `GET` | `/i18n` | 689 | ✅ |
-| `POST` | `/i18n` | 714 | ✅ |
-| `GET` | `/maintenance` | 942 | ✅ |
-| `POST` | `/maintenance` | 955 | ✅ |
-| `GET` | `/plans` | 887 | ✅ |
-| `POST` | `/plans/{plan_id}` | 910 | ✅ |
-| `GET` | `/public/settings` | 1138 | ✅ |
-| `GET` | `/rate-limits` | 1023 | ✅ |
-| `GET` | `/referrals` | 834 | ✅ |
-| `GET` | `/referrals/leaderboard` | 856 | ✅ |
-| `POST` | `/set-plan` | 348 | ❌ |
-| `POST` | `/settings` | 424 | ✅ |
-| `POST` | `/users/{user_id}` | 376 | ✅ |
-| `GET` | `/users/{user_id}/payments` | 732 | ❌ |
+| `GET` | `/admin/campaigns` | 579 | ✅ |
+| `POST` | `/admin/campaigns` | 585 | ✅ |
+| `POST` | `/admin/campaigns/{campaign_id}/send` | 620 | ✅ |
+| `GET` | `/admin/churn-surveys` | 753 | ✅ |
+| `POST` | `/admin/churn-surveys/{survey_id}/follow-up` | 769 | ✅ |
+| `GET` | `/admin/cohorts` | 791 | ✅ |
+| `GET` | `/admin/connectors/status` | 468 | ❌ |
+| `GET` | `/admin/errors` | 971 | ✅ |
+| `POST` | `/admin/errors/{error_id}/resolve` | 997 | ✅ |
+| `GET` | `/admin/gdpr-exports` | 1048 | ✅ |
+| `POST` | `/admin/gdpr-exports/{export_id}/deliver` | 1058 | ✅ |
+| `GET` | `/admin/i18n` | 689 | ✅ |
+| `POST` | `/admin/i18n` | 714 | ✅ |
+| `GET` | `/admin/maintenance` | 942 | ✅ |
+| `POST` | `/admin/maintenance` | 955 | ✅ |
+| `GET` | `/admin/plans` | 887 | ✅ |
+| `POST` | `/admin/plans/{plan_id}` | 910 | ✅ |
+| `GET` | `/admin/public/settings` | 1138 | ✅ |
+| `GET` | `/admin/rate-limits` | 1023 | ✅ |
+| `GET` | `/admin/referrals` | 834 | ✅ |
+| `GET` | `/admin/referrals/leaderboard` | 856 | ✅ |
+| `POST` | `/admin/set-plan` | 348 | ❌ |
+| `POST` | `/admin/settings` | 424 | ✅ |
+| `POST` | `/admin/users/{user_id}` | 376 | ✅ |
+| `GET` | `/admin/users/{user_id}/payments` | 732 | ✅ |
 
 ### `backend/affiliate_program.py` — 18 rutas
 
@@ -210,7 +207,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 
 | Método | Ruta | Línea | Front |
 |---|---|---:|:---:|
-| `GET` | `/referrals/leaderboard` | 276 | ✅ |
+| `GET` | `/referrals/leaderboard` | 276 | ❌ |
 | `GET` | `/referrals/me` | 113 | ❌ |
 | `POST` | `/referrals/redeem-credit` | 300 | ❌ |
 | `POST` | `/referrals/track` | 156 | ✅ |
@@ -337,7 +334,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `GET` | `/plan/compliance` | 7689 | ❌ |
 | `PATCH` | `/plan/draft` | 7678 | ❌ |
 | `GET` | `/plan/history` | 7635 | ❌ |
-| `GET` | `/plans` | 3993 | ✅ |
+| `GET` | `/plans` | 3993 | ❌ |
 | `GET` | `/portfolio` | 3370 | ❌ |
 | `POST` | `/portfolio` | 3378 | ❌ |
 | `GET` | `/portfolio/rebalance` | 3418 | ❌ |
