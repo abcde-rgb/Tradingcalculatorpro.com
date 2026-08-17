@@ -53,6 +53,7 @@ require_admin = None  # type: ignore[assignment]
 get_setting = None  # type: ignore[assignment]
 _encrypt = lambda v: v  # type: ignore[assignment]
 _decrypt = lambda v: v  # type: ignore[assignment]
+_free_access_emails: set = set()  # correos con acceso libre (comp) — cuentan como de pago
 
 # Defaults (overridable via app settings)
 DEFAULT_BLOCK_SIZE = 1000
@@ -172,6 +173,9 @@ def _is_active_lifetime(u: dict) -> bool:
 def _is_paying_member(u: dict) -> bool:
     """El PROPIO usuario es suscriptor de pago (requisito para ser afiliado).
     Excluye la prueba de 7 días (`trialing`). Lifetime y de pago activo sí valen."""
+    # Cuentas con acceso libre (comp) cuentan como de pago (mientras no hay facturación).
+    if (u.get("email") or "").lower() in _free_access_emails:
+        return True
     if not u.get("is_premium"):
         return False
     if u.get("subscription_status") == "trialing":   # durante la prueba NO
@@ -845,11 +849,13 @@ async def ensure_affiliate_indexes(database) -> None:
 # Registration
 # ---------------------------------------------------------------------------
 def register(app_router, database, helpers: Dict[str, Any]) -> None:
-    global db, require_user, require_admin, get_setting, _encrypt, _decrypt
+    global db, require_user, require_admin, get_setting, _encrypt, _decrypt, _free_access_emails
     db = database
     require_user = helpers["require_user"]
     require_admin = helpers["require_admin"]
     get_setting = helpers.get("get_setting")
+    if helpers.get("free_access_emails"):
+        _free_access_emails = {e.lower() for e in helpers["free_access_emails"]}
     if helpers.get("encrypt"):
         _encrypt = helpers["encrypt"]
     if helpers.get("decrypt"):
