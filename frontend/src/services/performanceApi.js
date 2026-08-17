@@ -4,7 +4,10 @@ import { useAuthStore } from '@/lib/store';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
-const client = axios.create({ baseURL: API || undefined, timeout: 15000, withCredentials: true });
+// Se exporta para que otros clientes —el del plan, el de la cartera— reusen
+// el interceptor de refresco silencioso en vez de duplicarlo. Un segundo
+// axios sin ese interceptor cierra la sesión al primer 401.
+export const client = axios.create({ baseURL: API || undefined, timeout: 15000, withCredentials: true });
 
 // Auto-attach the JWT bearer from the auth store
 client.interceptors.request.use((config) => {

@@ -59,6 +59,7 @@ const OptionsStrategiesIndexPage = lazyRetry(() =>
 const OptionsStrategyPage = lazyRetry(() => import("@/pages/OptionsStrategyPage"));
 const NewsPage         = lazyRetry(() => import("@/pages/NewsPage"));
 const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
+const TradingPlanPage  = lazyRetry(() => import("@/pages/TradingPlanPage"));
 const BacktestingPage  = lazyRetry(() => import("@/pages/BacktestingPage"));
 const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
 const AffiliatePage    = lazyRetry(() => import("@/pages/AffiliatePage"));
@@ -149,6 +150,8 @@ const AppContent = () => (
           <Route path="/options/strategies"         element={<ProtectedRoute premiumOnly><OptionsStrategiesIndexPage /></ProtectedRoute>} />
           <Route path="/options/strategies/:slug"   element={<ProtectedRoute premiumOnly><OptionsStrategyPage /></ProtectedRoute>} />
           <Route path="/performance"     element={<ProtectedRoute premiumOnly><PerformancePage /></ProtectedRoute>} />
+          {/* El plan de trading: escrito, versionado y medido contra el diario. */}
+          <Route path="/plan"            element={<ProtectedRoute premiumOnly><TradingPlanPage /></ProtectedRoute>} />
           {/* Sin ProtectedRoute a propósito: lo que hay dentro es una herramienta
               gratuita de terceros y cobrar por ella sería vender lo que no es tuyo. */}
           <Route path="/backtesting"     element={<BacktestingPage />} />

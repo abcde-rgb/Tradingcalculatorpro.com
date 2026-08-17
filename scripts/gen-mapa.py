@@ -443,11 +443,17 @@ CONTROLES: tuple[tuple[str, bool], ...] = (
     ("/performance/trades", True),
     ("/performance/trades/{trade_id}", True),
     ("/prices", True),
+    # El plan de trading, desde que tiene pantalla (2026-08-17). Estaba en la
+    # lista de muertas y el control lo cazó en cuanto dejó de serlo: cuando una
+    # ruta cambia de bando, esto obliga a moverla a mano, que es exactamente lo
+    # que impide que la lista se pudra en silencio.
+    ("/plan", True),
+    ("/plan/compliance", True),
+    ("/plan/history", True),
     # Muertas. `/backtest` es la trampa: existe la página `/backtesting`.
     ("/backtest", False),
     ("/journal/trades", False),
     ("/monte-carlo", False),
-    ("/plan/compliance", False),
     ("/portfolio/rebalance", False),
     ("/subscriptions/change-plan-legacy", False),
     ("/no/existe/esto", False),
