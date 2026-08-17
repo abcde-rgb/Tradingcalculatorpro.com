@@ -89,6 +89,18 @@ export default function DeskAnswer({
             {fmtNum(quantity, dp)}
           </span>
           <span className="text-lg text-muted-foreground">{unidad}</span>
+          {/* «1 contratos» no le dice a nadie cuánto dinero mueve. Un micro
+              E-mini son 25.000 $ de posición, y esa cifra vivía escondida
+              tras «Ver el desglose». La cantidad es la respuesta; el dinero
+              es lo que la hace entendible. Van juntos. */}
+          {metrics?.notional != null && (
+            <span className="text-lg text-muted-foreground" data-testid="desk-answer-notional">
+              · <b className="font-mono font-semibold text-foreground tabular-nums">
+                {fmtMoney(metrics.notional)}
+              </b>{' '}
+              {t('deskAnswerNotionalInline')}
+            </span>
+          )}
         </p>
 
         {/* ── 2 · Lo que te juegas, en una frase ─────────────────── */}

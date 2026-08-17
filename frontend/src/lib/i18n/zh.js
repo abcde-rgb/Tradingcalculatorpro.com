@@ -4291,4 +4291,6 @@ export default {
   "mcStreakHint": "前两个数字是精确解，不是模拟抽出来的。典型连亏几乎没人预先考虑：胜率 55 % 时，每二十场就有一场会连亏 8 笔。",
   "mcRiskOverAdvised": "高于建议的 {advised} %。决定之前先看看会让你爆仓的连亏次数和它的概率。",
   "mcRiskOverCap": "高于计算台 {cap} % 的硬上限。这里仍然照常模拟，是有意为之：下面的连亏数据会告诉你计算器为什么不让你这样下单。",
+  // La cantidad, acompañada del capital que mueve
+  "deskAnswerNotionalInline": "的头寸规模",
 }

@@ -4291,4 +4291,6 @@ export default {
   "mcStreakHint": "I primi due numeri sono esatti, non escono dal sorteggio. La serie tipica è quella che quasi nessuno mette in conto: con il 55 % di successo incatenerai 8 perdite di fila in una sessione su venti.",
   "mcRiskOverAdvised": "Sopra il {advised} % consigliato. Guarda la serie che ti azzera e la sua probabilità prima di decidere.",
   "mcRiskOverCap": "Sopra il tetto del {cap} % della calcolatrice. Qui si simula lo stesso, di proposito: la serie qui sotto ti mostra perché la calcolatrice rifiuta una dimensione così.",
+  // La cantidad, acompañada del capital que mueve
+  "deskAnswerNotionalInline": "di posizione",
 }

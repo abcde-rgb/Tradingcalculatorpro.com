@@ -31,6 +31,10 @@ export const SpotCalculator = () => {
   const setSellPrice  = (v) => setPersistedData(prev => ({ ...prev, sellPrice: v }));
   const setAsset      = (v) => setPersistedData(prev => ({ ...prev, asset: v }));
 
+  // La etiqueta decía «BTC» aunque el desplegable estuviera en Ethereum: el
+  // activo se elige y luego se ignoraba al pintarlo.
+  const simbolo = String(asset || '').toUpperCase().slice(0, 8) || 'BTC';
+
   const handleAssetChange = (a) => {
     setAsset(a.id);
     const p = prices?.[a.id]?.usd;
@@ -132,8 +136,8 @@ export const SpotCalculator = () => {
             {result && (
               <div className="space-y-4">
                 <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">BTC</p>
-                  <p className="font-mono text-2xl font-bold">{formatNumber(result.btcBought, 8)} BTC</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{simbolo}</p>
+                  <p className="font-mono text-2xl font-bold">{formatNumber(result.btcBought, 8)} {simbolo}</p>
                 </div>
                 
                 <div className="p-4 rounded-xl bg-muted/50 border border-border">

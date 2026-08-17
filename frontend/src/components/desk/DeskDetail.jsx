@@ -29,10 +29,20 @@ export default function DeskDetail({ resultado }) {
 
   const {
     metrics: m = {}, spec, liquidation, steps, breakEvenPrice, fees,
-    freeCapital, leverageNeeded, sizes, minimo, marginMode,
+    freeCapital, leverageNeeded, sizes, minimo, marginMode, entry,
   } = resultado || {};
 
   const unidad = t(sizingLabelKey(spec));
+
+  /**
+   * «3 lotes» y «300.000 $» son la misma frase para quien opera, pero sólo la
+   * segunda se compara con la cuenta. El precio de entrada y el tamaño de
+   * contrato ya están aquí, así que no hay excusa para no decirlo.
+   */
+  const enDinero = (cantidad) => {
+    if (cantidad == null || entry == null || !spec?.contractSize) return unidad;
+    return `${unidad} · ${fmtMoney(cantidad * entry * spec.contractSize)}`;
+  };
   const dp = spec?.sizing === 'contracts' || spec?.sizing === 'shares' ? 0 : 4;
   const modeMeta = marginMode ? MARGIN_MODE_META[marginMode] : null;
   const bind = sizes?.binding ? BINDING_META[sizes.binding] : null;
@@ -93,11 +103,18 @@ export default function DeskDetail({ resultado }) {
           </Bloque>
 
           <Bloque titulo={t('deskBlockLimits')}>
-            <Dato etiqueta={t('deskMaxByRisk')} valor={fmtNum(sizes?.byRisk, dp)} nota={unidad}
+            {/* Los topes decían «1 contratos» y punto. Un tope que no dice
+                cuánto dinero es no se puede comparar con la cuenta, que es
+                justo para lo que sirve un tope. La unidad y el capital que
+                representa van en la misma nota. */}
+            <Dato etiqueta={t('deskMaxByRisk')} valor={fmtNum(sizes?.byRisk, dp)}
+              nota={enDinero(sizes?.byRisk)}
               destacado={sizes?.binding === 'risk'} testid="desk-cap-risk" />
-            <Dato etiqueta={t('deskMaxByMargin')} valor={fmtNum(sizes?.byMargin, dp)} nota={unidad}
+            <Dato etiqueta={t('deskMaxByMargin')} valor={fmtNum(sizes?.byMargin, dp)}
+              nota={enDinero(sizes?.byMargin)}
               destacado={sizes?.binding === 'margin'} testid="desk-cap-margin" />
-            <Dato etiqueta={t('deskMaxByExposure')} valor={fmtNum(sizes?.byExposure, dp)} nota={unidad}
+            <Dato etiqueta={t('deskMaxByExposure')} valor={fmtNum(sizes?.byExposure, dp)}
+              nota={enDinero(sizes?.byExposure)}
               destacado={sizes?.binding === 'exposure'} testid="desk-cap-exposure" />
             <Dato etiqueta={t('deskMinTicket')}
               valor={minimo?.quantity == null ? '—' : fmtNum(minimo.quantity, dp)}

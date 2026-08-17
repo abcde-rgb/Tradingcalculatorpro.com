@@ -4291,4 +4291,6 @@ export default {
   "mcStreakHint": "Die ersten beiden Zahlen sind exakt, nicht aus der Simulation gezogen. Die typische Serie plant fast niemand ein: bei 55 % Trefferquote reihst du in einer von zwanzig Sitzungen 8 Verluste aneinander.",
   "mcRiskOverAdvised": "Über den empfohlenen {advised} %. Sieh dir die ruinöse Serie und ihre Wahrscheinlichkeit an, bevor du entscheidest.",
   "mcRiskOverCap": "Über dem harten Limit von {cap} % des Rechners. Hier wird trotzdem simuliert — absichtlich: die Serie unten zeigt, warum der Rechner so eine Positionsgröße ablehnt.",
+  // La cantidad, acompañada del capital que mueve
+  "deskAnswerNotionalInline": "Positionswert",
 }

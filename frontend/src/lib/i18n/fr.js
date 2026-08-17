@@ -4291,4 +4291,6 @@ export default {
   "mcStreakHint": "Les deux premiers chiffres sont exacts, pas issus du tirage. La série typique est celle que presque personne n’anticipe : avec 55 % de réussite tu enchaîneras 8 pertes une session sur vingt.",
   "mcRiskOverAdvised": "Au-dessus des {advised} % conseillés. Regarde la série qui te ruine et sa probabilité avant de décider.",
   "mcRiskOverCap": "Au-dessus du plafond de {cap} % de la calculatrice. On simule quand même, exprès : la série ci-dessous montre pourquoi elle refuse de dimensionner ainsi.",
+  // La cantidad, acompañada del capital que mueve
+  "deskAnswerNotionalInline": "de position",
 }

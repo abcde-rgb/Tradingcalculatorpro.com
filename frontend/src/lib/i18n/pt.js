@@ -4291,4 +4291,6 @@ export default {
   "mcStreakHint": "Os dois primeiros números são exatos, não saem do sorteio. A sequência típica é a que quase ninguém prevê: com 55 % de acerto vais encadear 8 perdas seguidas numa sessão em cada vinte.",
   "mcRiskOverAdvised": "Acima dos {advised} % aconselhados. Olha para a sequência que te arruína e para a probabilidade antes de decidires.",
   "mcRiskOverCap": "Acima do limite de {cap} % da calculadora. Simula à mesma, de propósito: a sequência abaixo mostra-te porque é que ela recusa dimensionar assim.",
+  // La cantidad, acompañada del capital que mueve
+  "deskAnswerNotionalInline": "de posição",
 }

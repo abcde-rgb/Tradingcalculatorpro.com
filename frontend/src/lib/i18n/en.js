@@ -4291,4 +4291,6 @@ export default {
   "mcStreakHint": "The first two figures are exact, not drawn from the simulation. The typical streak is the one almost nobody plans for: at a 55% win rate you will string together 8 losses one session in twenty.",
   "mcRiskOverAdvised": "Above the {advised}% we advise. Check the streak that wipes you out, and its odds, before deciding.",
   "mcRiskOverCap": "Above the desk’s {cap}% hard cap. It still simulates here on purpose: the streak below shows you why the calculator refuses to size a trade like this.",
+  // La cantidad, acompañada del capital que mueve
+  "deskAnswerNotionalInline": "of position",
 }

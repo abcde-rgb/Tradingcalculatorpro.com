@@ -185,7 +185,7 @@ export default function TradingDesk() {
     setResultado({
       sello: Date.now(),
       firma: firmaDe(form, account),
-      budget, sizes, minimo, metrics, quantity, spec, contractSize, leverage,
+      budget, sizes, minimo, metrics, quantity, spec, contractSize, leverage, entry,
       marginMode, levels, symbol: form.symbol, side: form.side, esOpcion,
       liquidation: liquidationView({
         entry, side: form.side, mode: marginMode, notional: metrics.notional,
