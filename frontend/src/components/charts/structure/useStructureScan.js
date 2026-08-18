@@ -226,8 +226,24 @@ export default function useStructureScan(symbol) {
     setLog([]);
   }, [symbol, tfInterval]);
 
+  /**
+   * Mide la probabilidad histórica del montaje actual.
+   *
+   * No entra en `scan()` a propósito: recorre el histórico barra a barra
+   * redetectando niveles y encima lo repite sobre series barajadas, así que
+   * tarda segundos. Colgarlo del escaneo automático haría el escáner inusable
+   * y además mediría lo mismo una y otra vez sin que nadie lo pidiera.
+   */
+  const measureOdds = useCallback(async ({ symbol: sym, interval, period }) => {
+    if (!API) return { error: 'no_backend' };
+    const q = new URLSearchParams({ interval, period, horizon: '10', shuffles: '12' });
+    const r = await fetch(`${API}/api/education/level-odds/${sym}?${q}`, { credentials: 'include' });
+    if (!r.ok) return { error: `http_${r.status}` };
+    return r.json();
+  }, []);
+
   return {
-    ladder, rung, periods, tfInterval, activePeriod,
+    ladder, rung, periods, tfInterval, activePeriod, measureOdds,
     loading, data, candles, log, lastScanAt, refreshMs,
     scan, changeInterval, changePeriod, clearLog,
     // Correspondencia con el gráfico, para que la pantalla pueda decirla:
