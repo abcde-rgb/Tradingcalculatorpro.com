@@ -48,7 +48,7 @@ import random
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from candle_patterns import detect_all_patterns
-from price_action import _avg_true_range, detect_sr_levels, detect_swings, label_structure
+from price_action import detect_sr_levels, detect_swings, label_structure
 
 Row = Dict[str, Any]
 
@@ -148,16 +148,21 @@ def _baseline_support(precio: float, arriba: float, abajo: float) -> Optional[fl
     jugador de toda la vida. Comprobado contra simulación: a 91 entre 90 y 100
     da 0,900 teórico y 0,890 simulado.
 
-    ⚠️ Esto es lo que separa una herramienta de un horóscopo. Sobre un paseo
-    aleatorio PURO, sin estructura ninguna, este motor mide «69 % de irse al
-    soporte» cuando el precio está pegado al soporte. Suena a ventaja enorme y
-    es una tautología: está cerca, lo toca antes. Publicar esa cifra sola
-    vendería geometría como información.
+    Sirve para VER cuánta de la cifra es pura distancia: sobre un paseo
+    aleatorio, este motor mide «69 % de irse al soporte» cuando el precio está
+    pegado al soporte, y eso es una tautología, no una lectura del mercado.
 
-    Lo que sí dice algo es la DIFERENCIA entre lo observado y esta línea base.
-    Si el activo se va al soporte el 69 % de las veces y la distancia ya
-    explicaba un 71 %, no hay ventaja: hay ruido. Y si se va el 85 %, entonces
-    sí ha pasado algo que la geometría no explica.
+    ⚠️ Pero NO es el nulo con el que se calcula la ventaja, y en su día lo fue.
+    La ruina del jugador supone horizonte INFINITO y barreras exactas; aquí el
+    horizonte son diez barras y los niveles los pone un detector con su
+    tolerancia. Con esos dos supuestos rotos daba −14 puntos de «ventaja» sobre
+    un paseo aleatorio puro: inventaba ventaja donde por construcción no hay
+    ninguna. El nulo real es `_nulo_por_barajado`, que baraja los retornos de la
+    MISMA serie y la vuelve a medir con el mismo horizonte y el mismo detector,
+    que es lo único que comparte todos los supuestos con la medición real.
+
+    Esta función se queda como diagnóstico informativo (`geometrySupport`) y no
+    alimenta ninguna cifra publicada.
     """
     ancho = arriba - abajo
     if ancho <= 0:
