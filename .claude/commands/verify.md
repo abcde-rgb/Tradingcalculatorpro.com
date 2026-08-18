@@ -1,78 +1,61 @@
-Verifica el repositorio antes de commit/push. **Ejecuta exactamente lo que
-ejecuta CI**, en este orden, y reporta el resultado de cada paso.
+Verifica el proyecto antes de commit/push.
 
-> ⚠️ Esta lista tiene que ser la MISMA que la de `.github/workflows/ci.yml`. Si
-> añades una comprobación a CI, añádela aquí; si no, `/verify` vuelve a decir
-> «todo verde» sobre un PR que CI va a tumbar — que es exactamente lo que hacía
-> hasta el 2026-08-14: comprobaba 4 cosas de las 10 y hablaba de 8 idiomas
-> cuando hay 10.
+**Antes que nada**: si `backend/.venv` o `frontend/node_modules` no existen, ejecuta
+`bash scripts/preparar-entorno.sh`. Sin eso, los pasos 3, 5 y 6 **no se pueden
+ejecutar** — y decir "no ejecutado" cuando se podía haber ejecutado es el fallo que
+esta lista existe para evitar.
 
-## 1 · Sin arrancar nada (~3 s en total, córrelas siempre)
+Ejecuta en orden y reporta cada resultado. No sigas si uno falla de forma bloqueante.
 
-```bash
-cd frontend
-node scripts/i18n-check.js              # 10 idiomas · debe decir «faltan 0 | sobran 0»
-node scripts/engine-check.js            # motores del navegador · N/N passed
-node scripts/check-edu-index.js         # índice de la Academia ↔ navegación
-node scripts/check-fetch-credentials.js # todo fetch al backend con credentials
-cd ..
-python3 scripts/gen-mapa.py --check          # el mapa refleja el código
-python3 scripts/gen-instruments-js.py --check # catálogo backend ↔ frontend
-python3 scripts/check-doc-links.py            # los enlaces de la doc resuelven
-```
+1. **Sintaxis del backend** — TODOS los módulos, no una lista a mano
+   (la lista escrita a mano llegó a omitir seis):
+   `cd backend && python -m py_compile *.py`
 
-Si `gen-mapa --check` falla, **no es un error**: has añadido rutas, módulos o
-páginas. Corre `python3 scripts/gen-mapa.py` (sin `--check`) y commitea el
-mapa.
+2. **Paridad i18n y motores del frontend** (10 idiomas, claves exactas):
+   `cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js`
+   Debe decir `faltan 0 | sobran 0` en los diez —y **ninguna clave duplicada**, que no
+   cambia el recuento porque el objeto las colapsa— y que pasan todas las
+   comprobaciones del motor.
 
-## 2 · Backend (~14 s)
+3. **Tests del backend** (los `*_unit.py` corren sin red ni BD; integración se salta):
+   `backend/.venv/bin/python -m pytest backend/tests/ -q`
 
-```bash
-cd backend
-python -m py_compile *.py    # TODOS los módulos — la lista a mano omitía seis
-python -m pytest tests/ -q   # entero, no sólo `-k unit`
-```
+4. **Coherencia de la documentación** — los tres corren también en CI:
+   ```
+   python scripts/gen-mapa.py --check           # el mapa refleja el código
+   python scripts/gen-instruments-js.py --check # catálogo backend ↔ frontend
+   python scripts/check-doc-links.py            # los enlaces resuelven
+   ```
+   Si `gen-mapa --check` falla porque añadiste rutas o módulos, regenera con
+   `python scripts/gen-mapa.py` y **mira el diff**: si aparecen rutas nuevas bajo
+   «sin consumidor», acabas de escribir backend sin interfaz.
 
-Si `pytest` no encuentra `fastapi`/`scipy`/`webauthn`, el contenedor está
-crudo: `pip install -q --ignore-installed PyJWT -r requirements.txt` (el
-`--ignore-installed` es por el PyJWT de Debian, que no se puede desinstalar).
+5. **Lint** (sólo si tocaste `frontend/**`):
+   `cd frontend && npx eslint src scripts`
+   0 errores. Los avisos de símbolos muertos son deuda conocida, no bloquean.
+   Ojo con los errores de *parseo*: eslint se para en el primero y **deja de mirar el
+   resto del fichero**, así que un `✖ 1 error` puede estar tapando lo que venga detrás.
 
-## 3 · Frontend (~5 s + ~40 s)
+5.b **Si tocaste un verificador** (`scripts/*check*`, `gen-*`, `engine-check`):
+   `bash scripts/probar-verificadores.sh`
+   Sabotea cada comprobación y exige que falle. Una comprobación que no puede fallar da
+   confianza falsa, que es peor que no tenerla.
 
-```bash
-cd frontend
-npx eslint src scripts   # 0 ERRORES. Los avisos de símbolos muertos no bloquean
-npm run build            # exit 0
-```
+6. **Build de producción** (sólo si tocaste `frontend/**`):
+   `cd frontend && CI=false npm run build`
 
-Si `npx eslint` se queja de que no encuentra `@eslint/js`, faltan las
-dependencias: `npm ci --legacy-peer-deps` (tarda varios minutos — lánzalo en
-segundo plano en cuanto sepas que vas a tocar el frontend, no cuando ya has
-terminado).
+7. **Capturas** (sólo si tocaste algo visual, y con el build ya hecho):
+   `node scripts/capturas.js`
+   Fotografía las pantallas públicas en escritorio y móvil, tema claro y oscuro, y
+   **recoge los errores de consola**. Una captura bonita de una pantalla que escupe
+   errores engaña.
 
-## 4 · Verlo funcionar (sólo si has tocado una pantalla)
+Al terminar, da un veredicto claro: ✅ todo verde / ❌ qué falló y dónde. Di
+explícitamente qué **no** ejecutaste y por qué — nunca presentes como verificado algo
+que no corriste.
 
-`/verify` comprueba el repositorio; **no comprueba que lo que has construido se
-vea bien ni haga lo que dice**. Para eso está el skill `qa`, que levanta
-Postgres, el backend y el build de producción:
+Recuerda: en sesiones web la red de salida está restringida, así que cualquier smoke
+del escáner o de datos de mercado debe mockear la respuesta (ver CLAUDE.md).
 
-```bash
-tests/e2e/stack/arriba.sh      # idempotente; la primera vez tarda unos minutos
-tests/e2e/correr.sh            # el examen entero
-```
-
-No es opcional cuando el cambio añade o modifica una pantalla. Una captura de
-la mesa de cálculo encontró en treinta segundos dos fallos que habían pasado
-lint, 264 comprobaciones de motor y 782 tests: el margen de un micro E-mini
-salía a 25 000 $ en vez de 1320 (la palanca se caía a 1×) y el aviso de email
-tapaba el campo de capital.
-
-## Veredicto
-
-Al terminar, di claramente: ✅ todo verde / ❌ qué falló, dónde, y con qué
-salida. No des por bueno un paso que no hayas ejecutado en esta sesión.
-
-Recuerda: en sesiones web, **Yahoo y los proveedores de precio están
-bloqueados**, así que cualquier smoke del escáner o de datos de mercado tiene
-que mockear la respuesta. Una prueba que llame a la red real aquí no prueba
-nada.
+Para el estado del repositorio más allá de esta rama (ramas sin fusionar, código
+muerto, restos de lo retirado, contradicciones doc↔código): `python scripts/auditar.py`.

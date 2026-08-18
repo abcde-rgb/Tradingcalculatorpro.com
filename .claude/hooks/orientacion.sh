@@ -64,11 +64,19 @@ fi
 
 # ── Si la doc se ha quedado atrás ──────────────────────────────────────────
 if [ -f docs/ESTADO_PROYECTO.md ]; then
-  ver=$(grep -o 'Última verificación real contra el código:\*\* [0-9-]\{10\}' docs/ESTADO_PROYECTO.md 2>/dev/null | grep -o '[0-9-]\{10\}$')
-  if [ -n "${ver:-}" ]; then
-    hoy=$(date +%Y-%m-%d)
-    dias=$(( ( $(date -d "$hoy" +%s 2>/dev/null || echo 0) - $(date -d "$ver" +%s 2>/dev/null || echo 0) ) / 86400 ))
-    if [ "${dias:-0}" -ge 7 ]; then
+  # ⚠️ `sort -r | head -1`, y no el primer match. La frase aparece varias veces
+  # en el documento, y sin esto `$ver` acababa siendo DOS fechas pegadas
+  # ("2026-08-14 2026-08-10"): `date -d` fallaba, el fallback ponía 0 y el aviso
+  # anunciaba «hace 20683 días», es decir 56 años. Un aviso que da una cifra
+  # absurda enseña a ignorar el aviso entero.
+  ver=$(grep -o 'Última verificación real contra el código:\*\* [0-9-]\{10\}' docs/ESTADO_PROYECTO.md 2>/dev/null \
+        | grep -o '[0-9-]\{10\}$' | sort -r | head -1)
+  ts_ver=$(date -d "${ver:-}" +%s 2>/dev/null || echo "")
+  if [ -n "${ver:-}" ] && [ -n "$ts_ver" ]; then
+    dias=$(( ( $(date +%s) - ts_ver ) / 86400 ))
+    # Una fecha en el futuro o imposiblemente vieja significa que el documento
+    # dice algo raro, no que hayan pasado 56 años: mejor callarse que mentir.
+    if [ "$dias" -ge 7 ] && [ "$dias" -le 3650 ]; then
       echo ""
       echo "📅 ESTADO_PROYECTO.md no se verifica contra el código desde hace $dias días ($ver)."
       echo "    Las cifras de §1 y §2 son las que más se desvían."
@@ -77,34 +85,21 @@ if [ -f docs/ESTADO_PROYECTO.md ]; then
 fi
 
 # ── Si el mapa generado se ha quedado atrás ────────────────────────────────
-if [ -f docs/MAPA.md ]; then
-  mapa=$(stat -c %Y docs/MAPA.md 2>/dev/null || echo 0)
-  nuevo=$(find backend frontend/src -name '*.py' -o -name '*.jsx' -o -name '*.js' 2>/dev/null \
-    | grep -v node_modules | xargs stat -c %Y 2>/dev/null | sort -rn | head -1)
-  if [ "${nuevo:-0}" -gt "${mapa:-0}" ]; then
-    echo ""
-    echo "🗺️  docs/MAPA.md es más antiguo que el código. Regenéralo: python scripts/gen-mapa.py"
-  fi
-else
+# Se pregunta al propio verificador, no a las fechas de los ficheros. La primera
+# versión comparaba `stat -c %Y` del mapa contra el código, y tras reiniciarse un
+# contenedor todos los ficheros se re-tocan: avisaba de que el mapa estaba
+# desfasado cuando `--check` decía que estaba perfecto. Un aviso que se equivoca
+# es un aviso que se deja de leer, y cuesta ~1 s preguntarlo bien.
+if [ ! -f docs/MAPA.md ]; then
   echo ""
   echo "🗺️  Falta docs/MAPA.md — genéralo con: python scripts/gen-mapa.py"
-fi
-
-# ── El contenedor está crudo ───────────────────────────────────────────────
-# Cada sesión remota arranca con un clon fresco: `node_modules` y las
-# dependencias de Python NO están. Descubrirlo a mitad de trabajo cuesta varios
-# minutos parado, y siempre en el peor momento — cuando ya has escrito el
-# código y sólo querías verificarlo. Decirlo aquí permite lanzar la instalación
-# en segundo plano desde el primer minuto.
-frio=""
-[ -d frontend/node_modules ] || frio="npm ci --legacy-peer-deps  (desde frontend/, tarda minutos)"
-python3 -c "import fastapi" >/dev/null 2>&1   || frio="${frio:+$frio
-    }pip install -q --ignore-installed PyJWT -r requirements.txt  (desde backend/)"
-if [ -n "$frio" ]; then
-  echo ""
-  echo "📦 Contenedor crudo — falta instalar antes de poder verificar nada:"
-  echo "    $frio"
-  echo "    Lánzalo EN SEGUNDO PLANO ahora, no cuando ya hayas terminado de escribir."
+elif command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
+  PY=$(command -v python3 || command -v python)
+  if ! timeout 10 "$PY" scripts/gen-mapa.py --check >/dev/null 2>&1; then
+    echo ""
+    echo "🗺️  docs/MAPA.md no refleja el código. Regenéralo: python scripts/gen-mapa.py"
+    echo "    (CI falla si no lo haces)"
+  fi
 fi
 
 echo ""
