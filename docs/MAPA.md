@@ -15,10 +15,10 @@
 | | |
 |---|---:|
 | Módulos del backend | 32 |
-| Líneas de Python (backend) | 25,536 |
+| Líneas de Python (backend) | 25,562 |
 | Rutas declaradas | 205 |
 | **Rutas sin consumidor en el frontend** | **43** |
-| Ficheros de test · funciones de test | 52 · 857 |
+| Ficheros de test · funciones de test | 52 · 859 |
 | Rutas del frontend (`App.js`) | 28 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,596 |
 
@@ -99,7 +99,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `stock_data.py` | 703 |  | Stock data provider — hits Yahoo Finance's JSON API directly (via curl_cffi |
 | `backtest.py` | 643 |  | Backtest engine with validation — does this system have an edge, or am I fooling myself? |
 | `options_optimize.py` | 608 |  | Options Strategy Optimizer. |
-| `level_odds.py` | 597 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
+| `level_odds.py` | 603 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
 | `trading_plan.py` | 565 |  | Trading plan: the user's own rules, versioned server-side. |
 | `candle_patterns.py` | 519 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
 | `level_research.py` | 385 |  | ¿Cuál de todos estos rasgos aporta algo, y cuál sólo lo parece? |
@@ -108,7 +108,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `options_positioning.py` | 371 |  | Positioning metrics derived from open interest: max pain, GEX, OI profile, |
 | `market_data.py` | 329 |  | Multi-provider market data layer with failover, caching and circuit breakers. |
 | `portfolio_risk.py` | 327 |  | Account-level risk — heat, correlation, loss limits, volatility sizing. |
-| `level_features.py` | 303 |  | Los rasgos del montaje, tal y como se veían EN esa barra y no después. |
+| `level_features.py` | 323 |  | Los rasgos del montaje, tal y como se veían EN esa barra y no después. |
 | `timeframes.py` | 303 |  | The timeframe ladder for the price-action scanners (structure + patterns). |
 | `american_options.py` | 283 |  | American option pricing — early exercise, which Black-Scholes cannot see. |
 | `crypto_data.py` | 256 |  | Precios de criptomonedas desde las propias bolsas. |

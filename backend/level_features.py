@@ -80,8 +80,8 @@ def secuencia_swings(swings: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def eventos_as_of(rows: Sequence[Row], i: int, swings: Sequence[Dict[str, Any]]
-                  ) -> List[Dict[str, Any]]:
+def eventos_as_of(rows: Sequence[Row], i: int, swings: Sequence[Dict[str, Any]],
+                  strength: int = 2) -> List[Dict[str, Any]]:
     """BOS y CHoCH ocurridos hasta la barra `i`, con swings ya confirmados.
 
     Reimplementa el recorrido de `detect_structure_events` en vez de llamarlo,
@@ -89,6 +89,26 @@ def eventos_as_of(rows: Sequence[Row], i: int, swings: Sequence[Dict[str, Any]]
     La lógica de qué es BOS y qué es CHoCH es la misma: romper por CIERRE el
     último swing contrario; si va a favor de la tendencia vigente es BOS, si va
     en contra es CHoCH y la tendencia se da la vuelta.
+
+    Sobre el `+ strength` del bucle, que estuvo cableado a `+ 2`
+    -----------------------------------------------------------
+    Lo di por fallo —con `strength=5` parecía soltar cada swing tres barras
+    antes de que existiera— y **no lo era**: la prueba que escribí para cazarlo
+    pasaba también con el sabotaje puesto, y hasta con el retardo a cero.
+
+    El motivo es que, para los swings que salen de `detect_swings`, el retardo
+    es redundante. Un máximo en `k` lo es porque `high[k]` supera a las
+    `strength` barras siguientes; un BOS alcista necesita `close[j] > high[k]`,
+    y en toda esa ventana `close[j] <= high[j] < high[k]`. La ruptura es
+    imposible ahí dentro por construcción, así que gatear o no gatear daba los
+    mismos eventos. Igual por abajo.
+
+    Ahora bien, el gateo no sobra: es lo que sostiene la propiedad si los swings
+    NO cumplen esa definición, y con una lista fabricada la diferencia se ve
+    (evento en la barra 10 sin gateo, en la 15 con él). Se deja `strength` en
+    vez de un 2 para no depender de una propiedad sutil de `detect_swings` que
+    un cambio ahí rompería en silencio. Pero no cuenta como arreglo de un fallo,
+    porque no lo hubo.
     """
     eventos: List[Dict[str, Any]] = []
     tendencia = None
@@ -98,7 +118,7 @@ def eventos_as_of(rows: Sequence[Row], i: int, swings: Sequence[Dict[str, Any]]
     orden = sorted(swings, key=lambda s: s["index"])
     for j in range(max(0, i + 1 - VENTANA), i + 1):
         # Un swing entra en juego cuando ya está confirmado en la barra `j`.
-        while si < len(orden) and orden[si]["index"] + 2 <= j:
+        while si < len(orden) and orden[si]["index"] + strength <= j:
             s = orden[si]
             if s["type"] == "high":
                 ult_alto = s["price"]
@@ -287,7 +307,7 @@ def extraer(rows: Sequence[Row], i: int, *, resistencia: Optional[float],
     precio = rows[i].get("close")
     sw = swings_confirmados(rows, i, strength)
     sec = secuencia_swings(sw)
-    ev = evento_reciente(eventos_as_of(rows, i, sw), i)
+    ev = evento_reciente(eventos_as_of(rows, i, sw, strength), i)
     return {
         "trend": sec["trend"],
         "swing_pair": sec["pair"],

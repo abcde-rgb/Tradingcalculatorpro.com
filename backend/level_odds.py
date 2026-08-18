@@ -285,6 +285,12 @@ def _observaciones(rows: Sequence[Row], *, horizonte: int, strength: int,
             "support": abajo,
             "zone": _zona(float(precio), arriba, abajo),
             "pattern": _pattern_at(rows, i, patrones),
+            # Se apunta pero NO se agrupa ni se publica por él, a propósito: que
+            # un rasgo esté disponible no es razón para sacarlo en pantalla. Quien
+            # decide si `trend` separa de verdad es `level_research`, con su nulo
+            # barajado y su corrección por haber mirado diez rasgos. Hasta que ese
+            # arnés lo diga sobre datos reales, esto es materia prima de la
+            # investigación y no una cifra.
             "trend": caracter,
             "baseline_support": _baseline_support(float(precio), arriba, abajo),
             "outcome": _first_touch(rows, i, arriba, abajo, horizonte),

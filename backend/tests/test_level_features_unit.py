@@ -111,8 +111,78 @@ def test_los_eventos_solo_usan_swings_ya_confirmados():
     filas = paseo(6, 250)
     for i in (100, 150, 200):
         sw = swings_confirmados(filas, i, 2)
-        for e in eventos_as_of(filas, i, sw):
+        for e in eventos_as_of(filas, i, sw, 2):
             assert e["index"] <= i
+
+
+@pytest.mark.parametrize("fuerza", [2, 3, 4, 5])
+def test_ningun_evento_cae_dentro_del_plazo_de_confirmacion(fuerza):
+    """Ningún evento se fecha antes de que su swing se pudiera conocer.
+
+    ⚠️ Escribí esta prueba creyendo que cazaba un fallo —el bucle usaba un `+ 2`
+    fijo en vez de `+ strength`— y **pasaba igual con el sabotaje puesto, y
+    también con el retardo a cero**. Así que el fallo no existía, y lo que la
+    prueba demuestra es otra cosa, más interesante: la propiedad se cumple SOLA,
+    por cómo está definido un swing. `high[k]` supera a las `strength` barras
+    siguientes, luego `close[j] <= high[j] < high[k]` en toda esa ventana y la
+    ruptura es imposible ahí dentro.
+
+    Se queda porque eso es exactamente lo que hay que vigilar: si `detect_swings`
+    cambiara —admitir máximos iguales, por ejemplo— la garantía se caería sin
+    hacer ruido, y esta prueba lo diría. Lo que NO puede es servir de guardia del
+    parámetro `strength`; para eso no discrimina, y decirlo aquí evita que el
+    siguiente que la lea se fíe de más.
+
+    El control de debajo (`test_es_el_gateo_el_que_sostiene…`) es lo que impide
+    que esto sea una aserción decorativa.
+    """
+    filas = paseo(6, 320)
+    comprobados = 0
+    for i in (140, 200, 260, 310):
+        sw = swings_confirmados(filas, i, fuerza)
+        por_precio = {}
+        for s in sw:
+            por_precio.setdefault(round(s["price"], 6), []).append(s["index"])
+        for e in eventos_as_of(filas, i, sw, fuerza):
+            idxs = por_precio.get(round(e["price"], 6))
+            if not idxs:
+                continue
+            origen = max(k for k in idxs if k <= e["index"])
+            assert origen + fuerza <= e["index"], (
+                f"fuerza={fuerza}: evento en {e['index']} sobre un swing de "
+                f"{origen}, que no se confirmaba hasta {origen + fuerza}")
+            comprobados += 1
+    assert comprobados > 0, "la prueba no llegó a mirar ningún evento"
+
+
+def test_es_el_gateo_el_que_sostiene_el_plazo_y_no_la_suerte():
+    """El control que la anterior necesita para significar algo.
+
+    Se le pasa una lista de swings FABRICADA que viola la definición: un
+    «máximo» en la barra 10 a un precio que la serie supera enseguida. Con
+    swings así, la propiedad ya no se cumple sola.
+
+      · con `strength=0` (sin gateo) el evento cae en la barra 10, dentro de lo
+        que sería el plazo de confirmación → la propiedad SE ROMPE;
+      · con `strength=5` el gateo lo retiene hasta la 15 → se cumple.
+
+    Eso deja el reparto claro, y corrige a medias lo que escribí arriba: el
+    gateo es redundante para los swings que salen de `detect_swings`, porque
+    ésos ya no se pueden romper dentro de su ventana; pero es lo que sostiene la
+    propiedad en general. No sobra.
+    """
+    filas = [barra(k, 100 + k, 101 + k, 99 + k, 100 + k) for k in range(40)]
+    inventados = [{"index": 10, "type": "high", "price": 105.0}]
+
+    sin_gateo = eventos_as_of(filas, 39, inventados, 0)
+    assert sin_gateo, "sin evento no hay nada que comprobar"
+    assert min(e["index"] for e in sin_gateo) < 10 + 5, (
+        "sin gateo la propiedad tendría que romperse; si no, la prueba de "
+        "arriba es decorativa")
+
+    con_gateo = eventos_as_of(filas, 39, inventados, 5)
+    assert con_gateo, "el gateo no puede tragarse el evento entero"
+    assert min(e["index"] for e in con_gateo) >= 10 + 5, con_gateo
 
 
 # ══════════════════════════════════════════════════════════════════════════
