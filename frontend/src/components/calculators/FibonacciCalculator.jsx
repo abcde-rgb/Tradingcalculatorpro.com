@@ -197,8 +197,12 @@ export function FibonacciCalculator() {
                       {item.level}
                     </span>
                     {/* `item.price` ya trae los decimales del swing. Volver a
-                        pasarlo por toLocaleString() sin opciones lo recorta a tres
-                        y devuelve el bug que se acaba de arreglar. */}
+                        pasarlo por toLocaleString() sin opciones lo recorta a TRES
+                        decimales, y con eso vuelven a pisarse los niveles en cuanto
+                        el swing es estrecho: en 1,08480–1,08542 los siete colapsan
+                        en uno, y en una cripto de 0,0000xx también. Con el swing
+                        ancho de 1,07900–1,08542 aún salen siete distintos —por eso
+                        no basta con probar ese— pero ya con precisión perdida. */}
                     <span className="font-mono font-semibold" data-testid={`ret-level-${idx}`}>
                       ${item.price}
                     </span>

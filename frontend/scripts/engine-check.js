@@ -1109,6 +1109,29 @@ async function checkDeskMath() {
       capital: 10000, riskAmount: 100, leverage: 20,
     }).pipPerLot, 1));
 
+  // ⚠️ El oro es el caso donde el riesgo NO es lo que manda, y conviene que
+  // quede clavado con las dos cifras. Por riesgo puro salen 2,00 lotes; pero
+  // 2 lotes son 200 onzas × 2.400 = 480.000 $ de exposición, 48 veces una
+  // cuenta de 10.000, así que el tope de exposición del catálogo (10×) frena
+  // antes y deja 0,41. Las dos cosas son correctas y dependen del tamaño de la
+  // cuenta: decir «lo correcto son 2,00» sin decir con qué cuenta es falso en
+  // la cuenta con la que se probaron EURUSD y USDJPY aquí arriba.
+  const oroChico = lotSizing({
+    entry: 2400, stopDistance: 50 * 0.01, contractSize: 100, spec: oro,
+    capital: 10000, riskAmount: 100, leverage: 20,
+  });
+  ok('oro en cuenta de 10.000: frena la EXPOSICIÓN, 0,41 lotes y 20,50 $ de riesgo real',
+    near(oroChico.lots, 0.41) && oroChico.binding === 'exposure' && near(oroChico.riskAccount, 20.5),
+    JSON.stringify(oroChico));
+
+  const oroGrande = lotSizing({
+    entry: 2400, stopDistance: 50 * 0.01, contractSize: 100, spec: oro,
+    capital: 50000, riskAmount: 100, leverage: 20,
+  });
+  ok('oro en cuenta de 50.000: ya manda el RIESGO, 2,00 lotes y los 100 $ pedidos',
+    near(oroGrande.lots, 2) && oroGrande.binding === 'risk' && near(oroGrande.riskAccount, 100),
+    JSON.stringify(oroGrande));
+
   // ── El escalón no deja basura binaria ───────────────────────────
   // `0,41000000000000003` acaba copiado en la casilla del bróker.
   ok('0,41 lotes son 0,41 y no 0,41000000000000003',
