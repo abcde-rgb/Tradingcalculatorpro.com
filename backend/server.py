@@ -35,6 +35,7 @@ from options_math import (
     payoff_bounds,
     find_break_evens,
     calculate_greeks,
+    calculate_second_order_greeks,
     calculate_pnl_attribution,
     simulate_assignment,
     implied_volatility,
@@ -5575,9 +5576,6 @@ async def opt_get_options_chain(
     """
     stock = await asyncio.to_thread(get_stock_data, symbol)
     if stock.get("price") is None:
-        # No real spot price — don't fabricate a synthetic chain on top of
-        # missing data. Surface the error so the frontend can warn the user
-        # and disable calculations instead of showing invented quotes.
         return {
             "stock": stock,
             "expiration": None,
@@ -5633,6 +5631,24 @@ async def opt_get_options_chain(
         **_synthetic_marker(synthetic),
         "riskFreeRate": round(r, 5),
     }
+
+
+@api_router.post("/calculate/greeks-advanced")
+async def opt_calculate_second_order_greeks(request: GreeksRequest) -> Dict[str, Any]:
+    """Second-order Greeks (vanna, charm) for the current strategy legs.
+
+    Vanna and charm are model output, not observed positioning, so unlike the
+    readings in `/options/positioning` they are computable from the legs alone
+    and need no open interest.
+    """
+    try:
+        legs_dicts = _legs_to_dicts(request.legs)
+        return calculate_second_order_greeks(
+            legs_dicts, request.stockPrice, q=request.dividendYield or 0.0
+        )
+    except Exception:
+        logging.exception("Second-order Greeks calculation error")
+        raise HTTPException(status_code=500, detail="Could not calculate advanced Greeks")
 
 
 @api_router.get("/options/iv-surface/{symbol}")

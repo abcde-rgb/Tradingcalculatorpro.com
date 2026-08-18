@@ -4150,3 +4150,73 @@ paridad · 56 documentos sin enlaces rotos.
 (§7), los datos reales del titular y del representante en la UE (§3), el Grupo B
 de proveedores de datos (§4, G-16 — evasión de la detección de bots de Yahoo,
 el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
+### 2026-08-01 — Auditoría integral 100% (documento, sin cambios de código todavía)
+- 📄 **Nuevo doc [`AUDITORIA_INTEGRAL_2026-08-01.md`](./AUDITORIA_INTEGRAL_2026-08-01.md)**:
+  auditoría a petición del dueño de **todo** el proyecto (frontend 19 páginas/~200 componentes,
+  backend 169 rutas, 20+ docs), verificada contra el código real. Incluye: inventario, **matriz de
+  trazabilidad de las 26 peticiones** (cada una → estado → acción), hallazgos por bloque
+  (datos/APIs, TradingView, dashboard inteligente, educación, opciones, app móvil/desktop, SEO,
+  journal, seguridad, i18n, performance) y roadmap P0-P3.
+- 🔎 Hallazgos clave: (1) el gráfico usa el **embed iframe** → **no puede guardar dibujos** (necesita
+  migrar a **Advanced Charts**, hueco G-05); (2) los **tipos de mercado** en Educación son tarjetas
+  **estáticas** → falta la pestaña interactiva pedida (preguntas/ejemplos/calculadora/widget);
+  (3) el **calendario** no tiene cuenta atrás ni banderas, y no hay panel de **ponentes** ni de
+  **noticias**; (4) sin **badges de tiendas** ni apps nativas (PWA sí existe); (5) **Twelve Data**
+  solo está en PENDIENTES, no integrado (backend usa Yahoo curl_cffi + CoinGecko); (6) **seguridad
+  y ciclo de cuenta muy sólidos** (2FA, borrado RGPD, IP con x-forwarded-for) con endurecimiento
+  menor pendiente (10× `detail=str(e)`, Dependabot/CodeQL, C-08).
+- ✅ Confirmado ya implementado (no re-hacer): buscador universal con autocompletado, 8 idiomas a la
+  par con banderas, lotes/pips/valor-pip, borrado de cuenta RGPD, 3+ pasarelas de pago.
+- 🎯 Próximos pasos P1 recomendados: schema FAQ/HowTo en páginas prerenderizadas para featured
+  snippets, Twelve Data conmutable + caché, buscador del gráfico con backend, presets de indicadores,
+  Advanced Charts (dibujos guardables), calendario con cuenta atrás + banderas.
+- ✅ **Implementado y verificado en esta sesión** (build exit 0 + i18n-check 5185×8):
+  1. **Sección "Próximamente App"** en la landing (`components/landing/AppStorePromo.jsx`): badges
+     teaser de Google Play / App Store / Microsoft Store (SVG inline) + CTA "Avísame" + nota
+     multiplataforma Android/iOS/Windows/macOS/Linux. i18n ×8. (P-19)
+  2. **Tipos de mercado interactivos** en Educación → Fundamentos
+     (`components/education/MarketTypeDetailModal.jsx` + `data/marketTypeDetails.js`): las tarjetas
+     ahora abren un modal con cómo-se-mide + unidades, widget TradingView en vivo por mercado, FAQ
+     (inglés, para snippets), ejemplo y accesos a calculadora + módulo profundo. 10 mercados. i18n ×8.
+     (P-07/P-08/P-09; parte SEO de P-10 pendiente = JSON-LD en el generador de páginas SEO).
+
+### 2026-08-01 (cont.) — Aplicar la investigación del dueño + red estructural de asistente
+- 🧠 **Red estructural de Claude Code** (`.claude/`): 5 skills (`auditar-formulas`,
+  `revisar-contenido-trading`, `auditar-seo-spa`, `seguridad-pagos`, `consistencia-diseno`),
+  4 subagentes (`auditor-formulas`, `crawler-visual`, `revisor-seguridad`, `revisor-i18n-contenido`),
+  2 comandos (`/examen-web`, `/pre-deploy`) y `ARQUITECTURA_ASISTENTE.md` (índice que interconecta
+  skills/subagentes/comandos/docs/código). Adaptado al stack REAL (shim PostgreSQL, no MongoDB).
+- 🧮 **Huecos financieros deterministas implementados y verificados offline:**
+  - `options_math.py`: **vanna, charm** (griegas 2º orden, verificadas por diferencias finitas) +
+    `calculate_second_order_greeks()` + **`gamma_exposure()` (GEX)** con honestidad (OI sintético→None).
+  - `performance_metrics.py` (nuevo, stdlib): **SQN, Calmar, Ulcer, z-score de rachas, VaR
+    (paramétrico+histórico), CVaR, MAE/MFE** — todo con regla None-no-0. 15 tests nuevos con valores
+    de referencia; cableado aditivo en `compute_analytics` → clave `advanced`; 0 regresiones.
+  - **UI:** panel "Métricas de mesa (avanzadas)" en `AnalyticsDashboard.jsx` (SQN/Calmar/Ulcer/
+    Z/VaR/CVaR) con "—" honesto. i18n ×8 (5198 claves).
+- 📄 **Investigación preservada en el repo:** `docs/ROADMAP_JOURNAL_OPCIONES.md` (journal/opciones:
+  métricas + fases + estado) y `docs/AUDITORIA_FINAL_PRELANZAMIENTO.md` (huecos GEX/vol/VaR/vanna/
+  funding/roll + checklist de deploy). El reparto free/paid NO se toca (solo estudio).
+- 🔴 **Pendiente grande de estos docs** (mapeado, no hecho): panel UI de GEX + vanna/charm en el
+  workspace; skew/term-structure/expected-move; funding/basis cripto y roll yield futuros;
+  constructor visual de estrategias; journal de opciones multi-pata + import CSV por broker; CSP meta.
+- ✅ Verificado: `pytest` 15 nuevos + 38/7-skip sin regresiones; `i18n-check` 5198×8; `npm run build` exit 0.
+
+### 2026-08-01 (cont. 2) — Pestaña "Dealers": GEX + vanna/charm en el workspace de opciones
+- 🎯 **Los huecos A y D de la auditoría pasan de "motor listo" a producto usable.**
+- **Backend:** `_load_options_chain()` (helper compartido; elimina el cuerpo duplicado del endpoint
+  de cadena) · `GET /options/gex/{symbol}` (GEX por strike, total, call/put wall) ·
+  `POST /calculate/greeks-advanced` (vanna/charm de las patas) · `flatten_chain_for_gex()`.
+- **Frontend:** `components/options/DealerPositioning.jsx` + pestaña **Dealers** en `OptionsSubHeader`:
+  tiles de GEX total/muros/spot, barras de exposición por strike centradas en el spot, y vanna/charm
+  de la estrategia activa. i18n ×8 (21 claves nuevas → 5217 c/u).
+- 🐛 **BUG DE HONESTIDAD ENCONTRADO Y CORREGIDO:** la cadena **sintética fabricaba `openInterest` y
+  `volume` aleatorios** y el endpoint los devolvía **sin marcar**. (El informe del dueño daba por
+  existente un `SyntheticDataBanner` que **no estaba en el código**.) Ahora la respuesta lleva
+  `synthetic: true` y **el GEX se niega a calcularse** sobre datos modelados o sin interés abierto
+  real → `gex: null` + aviso explícito en la UI, en vez de inventar muros de gamma.
+- ✅ Verificado: **144 passed / 74 skipped** (0 regresiones), 8 tests nuevos de GEX/flatten, la app
+  importa con **180 rutas**, `i18n-check` 5217×8, `npm run build` exit 0.
+- 🔴 Sigue pendiente de estos docs: skew/term-structure/expected-move; funding/basis cripto y roll
+  yield futuros; constructor visual de estrategias; journal de opciones multi-pata + import CSV;
+  CSP meta; ficha educativa `/learn/gex/`.

@@ -18,6 +18,7 @@ import SyntheticDataBanner from './SyntheticDataBanner';
 import PayoffChart from './PayoffChart';
 import OptionsChainView from './OptionsChainView';
 import IVSurfaceView from './IVSurfaceView';
+import DealerPositioning from './DealerPositioning';
 import EducationTab from './EducationTab';
 import GuideModal from './GuideModal';
 import LegEditor from './LegEditor';
@@ -639,6 +640,17 @@ const CalculatorPage = () => {
       )}
 
       {activeTab === 'iv-surface' && <IVSurfaceView stock={stock} chain={chain} />}
+
+      {activeTab === 'dealers' && (
+        <div className="p-4">
+          <DealerPositioning
+            ticker={ticker}
+            stock={stock}
+            legs={legs}
+            expirationIdx={selectedExpIdx}
+          />
+        </div>
+      )}
 
       {activeTab === 'black-scholes' && <BlackScholesCalculator />}
 

@@ -110,4 +110,33 @@ export async function calculateGreeks(legs, stockPrice) {
   }
 }
 
+// Second-order Greeks (vanna, charm) for the current strategy legs.
+export async function calculateAdvancedGreeks(legs, stockPrice) {
+  if (!api) return null;
+  try {
+    const res = await api.post('/calculate/greeks-advanced', { legs, stockPrice });
+    return res.data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Observed positioning: max pain, GEX, OI profile, put/call ratio, liquidity.
+// One endpoint serves all of them because they are all readings of the same
+// open interest — there is no separate GEX route to call.
+//
+// Honesty contract: on a modelled chain the backend returns every reading as
+// null with `synthetic: true`. Callers must render that, never a number.
+export async function fetchPositioning(symbol, expirationIdx = 3) {
+  if (!api) return null;
+  try {
+    const res = await api.get(`/options/positioning/${symbol}`, {
+      params: { expiration_idx: expirationIdx },
+    });
+    return res.data;
+  } catch (e) {
+    return null;
+  }
+}
+
 export default api;

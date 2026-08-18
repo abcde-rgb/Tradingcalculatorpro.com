@@ -30,6 +30,7 @@ const GROUPS = [
       { id: 'chain', icon: LayoutGrid, labelKey: 'optTabChain', testid: 'tab-chain' },
       { id: 'iv-surface', icon: Sigma, labelKey: 'optTabIVSurface', testid: 'tab-iv-surface' },
       { id: 'flow', icon: Activity, labelKey: 'optTabFlow', testid: 'tab-flow' },
+      { id: 'dealers', icon: ArrowUpRight, labelKey: 'optTabDealers', testid: 'tab-dealers' },
     ],
   },
   {

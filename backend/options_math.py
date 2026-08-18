@@ -257,6 +257,54 @@ def implied_volatility(market_price: float, S: float, K: float, T: float, r: flo
     return finish((lo + hi) / 2)
 
 
+# Second-order Greeks (vanna, charm) — dealer-positioning analytics.
+# Raw analytical derivatives (verified vs. finite differences of delta):
+#   vanna_val = ∂Δ/∂σ   (per 1.00 of vol; divide by 100 for "per 1% IV")
+#   charm_val = ∂Δ/∂t    (per YEAR of calendar time; divide by 365 for "per day")
+# Same for call and put where the constant term drops (vanna is identical).
+# ---------------------------------------------------------------------------
+
+
+def vanna_val(S: float, K: float, T: float, r: float, sigma: float,
+              q: float = 0.0) -> float:
+    """Vanna = ∂Delta/∂sigma = ∂Vega/∂S. Identical for call and put."""
+    if T <= 0 or sigma <= 0:
+        return 0.0
+    d1, d2 = _d1_d2(S, K, T, r, sigma, q)
+    return -math.exp(-q * T) * norm.pdf(d1) * d2 / sigma
+
+
+def charm_val(S: float, K: float, T: float, r: float, sigma: float,
+              option_type: str, q: float = 0.0) -> float:
+    """Charm = ∂Delta/∂t (calendar time, per year). Also called delta decay."""
+    if T <= 0 or sigma <= 0:
+        return 0.0
+    d1, d2 = _d1_d2(S, K, T, r, sigma, q)
+    common = math.exp(-q * T) * norm.pdf(d1) * (2 * (r - q) * T - d2 * sigma * math.sqrt(T)) / (2 * T * sigma * math.sqrt(T))
+    if option_type == "call":
+        return q * math.exp(-q * T) * norm.cdf(d1) - common
+    return -q * math.exp(-q * T) * norm.cdf(-d1) - common
+
+
+def calculate_second_order_greeks(legs: list[dict], stock_price: float,
+                                  r: float = DEFAULT_RISK_FREE, q: float = 0.0) -> dict[str, float]:
+    """Aggregate vanna and charm for a multi-leg strategy (mirrors calculate_greeks).
+    Returned per-position: vanna in Δ per 1% IV, charm in Δ per day (practical units)."""
+    total = {"vanna": 0.0, "charm": 0.0}
+    for leg in legs:
+        if leg.get("type") == "stock":
+            continue
+        multiplier = 1 if leg["action"] == "buy" else -1
+        qty = _leg_qty(leg)
+        T = max(leg.get("daysToExpiry", 30), 1) / SECONDS_PER_YEAR
+        iv = leg.get("iv", DEFAULT_IV)
+        K = leg["strike"]
+        otype = leg["type"]
+        total["vanna"] += (vanna_val(stock_price, K, T, r, iv, q) / 100) * multiplier * qty
+        total["charm"] += (charm_val(stock_price, K, T, r, iv, otype, q) / SECONDS_PER_YEAR) * multiplier * qty
+    return {k: round(v, 4) for k, v in total.items()}
+
+
 # ---------------------------------------------------------------------------
 # Synthetic chain generator (split into clear helpers)
 # ---------------------------------------------------------------------------
