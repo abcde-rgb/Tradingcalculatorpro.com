@@ -170,6 +170,16 @@ import pathlib, re
 p = pathlib.Path('frontend/src/lib/i18n/en.js'); t = p.read_text()
 m = re.search(r'\n  \\\"[A-Za-z0-9_]+\\\": .*?,\n', t)
 if m: p.write_text(t[:m.start()] + '\n' + t[m.end():])\""
+  # Una clave que el código usa y NINGÚN idioma define sale CRUDA en pantalla,
+  # y la paridad entre idiomas no la ve: faltar en los diez es «consistente».
+  # Llegaron 26 así al build compilado antes de que existiera esta guarda.
+  probar "una clave que el código usa y ningún idioma define" \
+    "(cd frontend && node scripts/i18n-check.js)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/src/lib/i18n/es.js'); t = p.read_text()
+p.write_text(re.sub(r'\n  .advSqnHint.: .*?,\n', '\n', t, count=1))\""
+
   # Una clave repetida NO cambia el número de claves: el objeto colapsa las dos
   # en una y `Object.keys()` cuenta igual. Por eso el detector lee el TEXTO del
   # fichero. Resolver un conflicto de i18n «quedándose con los dos lados» metió

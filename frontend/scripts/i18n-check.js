@@ -66,6 +66,42 @@ function duplicadas(lang) {
   return out;
 }
 
+/**
+ * Claves que el código pide con `t('…')` y que NO define ningún idioma.
+ *
+ * ⚠️ La paridad entre idiomas NO las ve. Este verificador compara los diez
+ * ficheros entre sí, así que una clave que falta en LOS DIEZ es perfectamente
+ * «consistente»: faltan 0, sobran 0, verde. Y en pantalla sale la clave cruda.
+ *
+ * Pasó de verdad: 26 claves —`advSqnHint`, `gexFlipHint`, `longTermRange`,
+ * `settingsProfileSave`…— llegaron al build compilado y se leían tal cual en
+ * los diez idiomas. Ninguna de las puertas de CI podía verlo, porque ninguna
+ * cruzaba el CÓDIGO con el DICCIONARIO: sólo el diccionario consigo mismo.
+ *
+ * Sólo se miran las llamadas con una cadena literal. Las claves construidas
+ * (`t(\`calcDesc${id}\`)`) no se pueden resolver sin ejecutar la aplicación, y
+ * fingir que sí llenaría esto de falsos positivos hasta que nadie lo mirase.
+ */
+function clavesUsadasSinDefinir(definidas) {
+  const RAIZ = path.join(__dirname, '..', 'src');
+  const usadas = new Map();
+  const recorrer = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (!/[\\/]i18n$|node_modules/.test(p)) recorrer(p);
+      } else if (/\.(jsx|js)$/.test(e.name)) {
+        const src = fs.readFileSync(p, 'utf8');
+        for (const m of src.matchAll(/\bt\(\s*['"]([A-Za-z0-9_]+)['"]\s*[),]/g)) {
+          if (!usadas.has(m[1])) usadas.set(m[1], path.relative(RAIZ, p));
+        }
+      }
+    }
+  };
+  recorrer(RAIZ);
+  return [...usadas].filter(([k]) => !definidas.has(k));
+}
+
 const full = process.argv.includes('--full');
 const asJson = process.argv.includes('--json');
 
@@ -109,4 +145,17 @@ if (asJson) {
   console.log('\nPista: usa --full para ver las claves; las que faltan caen a español por t().');
 }
 
-process.exit(anyMissing ? 1 : 0);
+// `loadKeys` ya fusiona el diccionario general con el de la Academia, así que
+// `ref` es el conjunto completo de lo definido.
+const huerfanas = clavesUsadasSinDefinir(ref);
+if (huerfanas.length) {
+  console.error(`\n❌ ${huerfanas.length} clave(s) que el código usa y NINGÚN idioma define:`);
+  for (const [k, f] of huerfanas.slice(0, 30)) console.error(`   ${k}  ←  ${f}`);
+  if (huerfanas.length > 30) console.error(`   … y ${huerfanas.length - 30} más`);
+  console.error('   Se pintan CRUDAS en pantalla, en los diez idiomas. La paridad entre');
+  console.error('   idiomas no las ve: faltar en todos es «consistente».');
+} else {
+  console.log('✅ ninguna clave usada en el código se queda sin definir.');
+}
+
+process.exit(anyMissing || huerfanas.length ? 1 : 0);

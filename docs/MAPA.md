@@ -20,7 +20,7 @@
 | **Rutas sin consumidor en el frontend** | **43** |
 | Ficheros de test · funciones de test | 49 · 798 |
 | Rutas del frontend (`App.js`) | 28 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 6,543 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 6,569 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -426,16 +426,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 9,391 |
 | `frontend/src/pages/EducationPage.jsx` | 5,505 |
-| `frontend/src/lib/i18n/ar.js` | 4,457 |
-| `frontend/src/lib/i18n/de.js` | 4,457 |
-| `frontend/src/lib/i18n/en.js` | 4,457 |
-| `frontend/src/lib/i18n/es.js` | 4,457 |
-| `frontend/src/lib/i18n/fr.js` | 4,457 |
-| `frontend/src/lib/i18n/it.js` | 4,457 |
-| `frontend/src/lib/i18n/ja.js` | 4,457 |
-| `frontend/src/lib/i18n/pt.js` | 4,457 |
-| `frontend/src/lib/i18n/ru.js` | 4,457 |
-| `frontend/src/lib/i18n/zh.js` | 4,457 |
+| `frontend/src/lib/i18n/ar.js` | 4,483 |
+| `frontend/src/lib/i18n/de.js` | 4,483 |
+| `frontend/src/lib/i18n/en.js` | 4,483 |
+| `frontend/src/lib/i18n/es.js` | 4,483 |
+| `frontend/src/lib/i18n/fr.js` | 4,483 |
+| `frontend/src/lib/i18n/it.js` | 4,483 |
+| `frontend/src/lib/i18n/ja.js` | 4,483 |
+| `frontend/src/lib/i18n/pt.js` | 4,483 |
+| `frontend/src/lib/i18n/ru.js` | 4,483 |
+| `frontend/src/lib/i18n/zh.js` | 4,483 |
 
 ## Verificadores del repositorio
 
