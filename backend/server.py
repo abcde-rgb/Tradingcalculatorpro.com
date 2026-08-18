@@ -1914,6 +1914,28 @@ async def startup_event():
     except Exception as e:
         logging.error(f"Extended modules startup error: {e}", exc_info=True)
 
+def log_safe(value: Any, limite: int = 64) -> str:
+    """Un valor de fuera, apto para meter en una línea de log.
+
+    Un símbolo llega por la ruta o por la query, y va tal cual a `logging`. Si
+    lleva un salto de línea dentro, lo que escribe no es una línea con un salto:
+    son DOS líneas, y la segunda la redacta quien hizo la petición. Con eso se
+    fabrican entradas falsas —un `ERROR` inventado, un login que nadie hizo— y
+    quien lea el log después no tiene forma de distinguirlas de las de verdad.
+    Es lo que CodeQL llama *log injection*, y lo cazó en la ruta de level-odds.
+
+    ⚠️ `.strip()` NO vale, y era lo que había: quita los saltos de los extremos
+    y deja intactos los de en medio, que son justamente los que parten la línea.
+
+    Aquí se sustituye cualquier carácter de control por `?`, se recorta a
+    `limite` y se marca el recorte. No se descarta el valor: el símbolo que
+    provocó el error es lo que uno quiere ver en el log.
+    """
+    texto = str(value)
+    limpio = "".join(c if c.isprintable() else "?" for c in texto)
+    return limpio[:limite] + "…" if len(limpio) > limite else limpio
+
+
 # ============= AUTH ROUTES =============
 
 # Los diez idiomas que la interfaz sabe pintar. Un `preferred_locale` fuera de
@@ -3123,7 +3145,7 @@ async def get_prices():
                     "usd_24h_change": change,
                 }
             except Exception as ce:
-                logging.warning(f"Commodity {label} ({sym}) fetch error: {ce}")
+                logging.warning(f"Commodity {log_safe(label)} ({log_safe(sym)}) fetch error: {ce}")
         # Una materia prima que no se ha podido leer se OMITE, igual que una
         # moneda ilegible veinte líneas más arriba. Aquí había un respaldo fijo
         # —oro a 2 680 $, plata a 31,50 $, y una variación de +0,5 % / +0,8 %
@@ -5356,7 +5378,7 @@ async def opt_get_stock(symbol: str):
     try:
         data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
-        logging.error(f"Error getting stock data for {symbol}: {e}")
+        logging.error(f"Error getting stock data for {log_safe(symbol)}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     try:
         now = datetime.now(timezone.utc)
@@ -5370,7 +5392,7 @@ async def opt_get_stock(symbol: str):
             upsert=True
         )
     except Exception as e:
-        logging.warning(f"Failed to cache stock data for {symbol}: {e}")
+        logging.warning(f"Failed to cache stock data for {log_safe(symbol)}: {e}")
     return data
 
 
@@ -6133,7 +6155,7 @@ async def get_next_earnings(symbol: str):
                     earnings_date = str(ed[0] if isinstance(ed, list) else ed)[:10]
         return {"symbol": symbol.upper(), "nextEarnings": earnings_date}
     except Exception as e:
-        logging.warning(f"earnings lookup failed for {symbol}: {e}")
+        logging.warning(f"earnings lookup failed for {log_safe(symbol)}: {e}")
         return {"symbol": symbol.upper(), "nextEarnings": None}
 
 
@@ -6315,7 +6337,7 @@ async def get_iv_rank(symbol: str) -> Dict[str, Any]:
             "recommendation": _iv_rank_recommendation(iv_rank),
         }
     except Exception as e:
-        logging.error(f"IV rank error for {symbol}: {e}")
+        logging.error(f"IV rank error for {log_safe(symbol)}: {e}")
         return {"symbol": symbol.upper(), "available": False, "error": str(e)}
 
 
@@ -6437,7 +6459,7 @@ async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: i
             "results": all_unusual[:50],
         }
     except Exception as e:
-        logging.error(f"Unusual options error for {symbol}: {e}")
+        logging.error(f"Unusual options error for {log_safe(symbol)}: {e}")
         return {"symbol": symbol.upper(), "error": str(e), "results": []}
 
 
@@ -6857,7 +6879,7 @@ def _scan_ticker_flow(sym: str, min_ratio: float, min_volume: int) -> List[Dict[
             rows.extend(_scan_chain_for_flow(sym, chain, exp, stock, min_ratio, min_volume))
         return rows
     except Exception as e:
-        logging.warning(f"market-flow skipping {sym}: {e}")
+        logging.warning(f"market-flow skipping {log_safe(sym)}: {e}")
         return []
 
 
@@ -6948,7 +6970,7 @@ async def _higher_timeframe_levels(symbol: str, interval: Optional[str]) -> Dict
         levels = await asyncio.to_thread(scan_levels, rows, htf.strength)
         return {"tf": htf, "levels": levels}
     except Exception as e:
-        logging.warning(f"HTF confluence scan failed for {symbol} ({interval}): {e}")
+        logging.warning(f"HTF confluence scan failed for {log_safe(symbol)} ({log_safe(interval)}): {e}")
         return {"tf": None, "levels": []}
 
 
@@ -7048,7 +7070,7 @@ async def education_pattern_scan(
             "detections": detections[:limit],
         }
     except Exception as e:
-        logging.error(f"Pattern scan error for {sym}: {e}")
+        logging.error(f"Pattern scan error for {log_safe(sym)}: {e}")
         return {"symbol": sym, "error": str(e), "detections": []}
 
 
@@ -7106,7 +7128,7 @@ async def education_structure_scan(
             quote = await asyncio.to_thread(get_stock_data, sym)
             live_price = quote.get("price")
         except Exception as quote_err:  # noqa: BLE001
-            logging.info(f"structure-scan: sin cotización viva para {sym}: {quote_err}")
+            logging.info(f"structure-scan: sin cotización viva para {log_safe(sym)}: {quote_err}")
 
         res = await asyncio.to_thread(detect_structure, rows, strn, None, live_price)
         if htf_read["tf"] is not None:
@@ -7114,7 +7136,7 @@ async def education_structure_scan(
         return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
                 **strip_bars(rows), **_trim_structure(res)}
     except Exception as e:
-        logging.error(f"Structure scan error for {sym}: {e}")
+        logging.error(f"Structure scan error for {log_safe(sym)}: {e}")
         return {**meta, "error": "scan_failed", **strip_bars([]),
                 **detect_structure([], strn)}
 
@@ -7160,7 +7182,7 @@ async def education_level_odds(
         )
         return {**meta, **res}
     except Exception as e:  # noqa: BLE001
-        logging.error(f"Level odds error for {sym}: {e}")
+        logging.error(f"Level odds error for {log_safe(sym)}: {e}")
         return {**meta, "error": "odds_failed", "verdict": None,
                 "observations": 0}
 
