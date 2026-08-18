@@ -14,6 +14,14 @@ function trackEvent(eventName, params = {}) {
   try { window.gtag?.('event', eventName, params); } catch (_) {}
 }
 
+// Apply a user's saved UI language so it follows the account across sessions/devices.
+function applyUserLocale(user) {
+  try {
+    const loc = user?.preferred_locale;
+    if (loc) useI18nStore.getState().setLocale(loc);
+  } catch (_) { /* non-fatal: keep current locale */ }
+}
+
 // Referral attribution: a visitor who lands on /?ref=CODE has the code stored in
 // localStorage (see RefCapture in App.js). On a NEW signup we tell the backend so
 // the referee gets linked to the referrer (referred_by_id). Best-effort, never blocks signup.
@@ -85,6 +93,7 @@ export const useAuthStore = create(
           }
           if (!data.token || !data.user) throw new Error(t('invalidCredentials'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          applyUserLocale(data.user);
           trackEvent('login', { method: 'email' });
           return { success: true };
         } catch (error) {
@@ -109,6 +118,7 @@ export const useAuthStore = create(
           if (!res.ok) throw new Error(data.detail || 'Código incorrecto');
           if (!data.token || !data.user) throw new Error('Código incorrecto');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          applyUserLocale(data.user);
           trackEvent('login', { method: 'email_2fa' });
           return { success: true };
         } catch (error) {
@@ -117,16 +127,19 @@ export const useAuthStore = create(
         }
       },
 
-      register: async (name, email, password) => {
+      register: async (name, email, password, opts = {}) => {
         if (!API) {
           return { success: false, error: t('backendNotConfigured') };
         }
         set({ isLoading: true });
         try {
+          const body = { name, email, password };
+          if (opts.country) body.country = opts.country;
+          if (opts.preferredLocale) body.preferred_locale = opts.preferredLocale;
           const res = await fetchWithTimeout(`${API}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify(body)
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('registrationError'));
@@ -141,24 +154,28 @@ export const useAuthStore = create(
         }
       },
 
-      loginWithGoogle: async (credential) => {
+      loginWithGoogle: async (credential, opts = {}) => {
         if (!API) {
           return { success: false, error: t('backendNotConfigured') };
         }
         set({ isLoading: true });
         try {
+          const body = { credential };
+          if (opts.country) body.country = opts.country;
+          if (opts.preferredLocale) body.preferred_locale = opts.preferredLocale;
           const res = await fetchWithTimeout(`${API}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ credential })
+            body: JSON.stringify(body)
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
           if (!data.token || !data.user) throw new Error(t('googleLoginError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          applyUserLocale(data.user);
           trackEvent('login', { method: 'google' });
           if (data.is_new_user) await trackReferral(data.user?.email);
-          return { success: true };
+          return { success: true, isNewUser: !!data.is_new_user };
         } catch (error) {
           set({ isLoading: false });
           return { success: false, error: error.message };
@@ -177,6 +194,36 @@ export const useAuthStore = create(
       setSession: (user, token) => {
         set({ user, token, isAuthenticated: true, isLoading: false });
         trackEvent('login', { method: 'passkey' });
+      },
+
+      // El usuario fija su propio país e idioma de interfaz. Es lo que mueve el
+      // paso de «completa tu perfil» de quien entra con Google, que no trae
+      // ninguno de los dos.
+      // Update the signed-in user's own profile fields (country / UI language).
+      // Powers the "complete your profile" step for Google sign-ups.
+      updateProfile: async ({ country, preferredLocale } = {}) => {
+        const token = get().token;
+        if (!API || !token || token === DEMO_TOKEN) {
+          return { success: false, error: t('backendNotConfigured') };
+        }
+        try {
+          const body = {};
+          if (country !== undefined) body.country = country;
+          if (preferredLocale !== undefined) body.preferred_locale = preferredLocale;
+          const res = await fetchWithTimeout(`${API}/auth/profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            credentials: 'include',
+            body: JSON.stringify(body),
+          });
+          const data = await safeJson(res);
+          if (!res.ok) throw new Error(data.detail || t('registrationError'));
+          set((s) => ({ user: { ...s.user, country: data.country, preferred_locale: data.preferred_locale } }));
+          if (data.preferred_locale) applyUserLocale({ preferred_locale: data.preferred_locale });
+          return { success: true };
+        } catch (error) {
+          return { success: false, error: error.message };
+        }
       },
 
       logout: async () => {

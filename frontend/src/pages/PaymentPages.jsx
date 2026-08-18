@@ -36,7 +36,21 @@ export const PaymentSuccessPage = () => {
       
       if (data.payment_status === 'paid') {
         if (mountedRef.current) setStatus('success');
-        try { window.gtag?.('event', 'purchase', { transaction_id: sessionId }); } catch (_) {}
+        // GA4 conversión: dispara 'purchase' UNA sola vez por sesión (evita
+        // recontar al recargar). Sin `value` a propósito: el importe se guarda en
+        // unidades distintas según la vía de pago y reportaría un valor erróneo;
+        // enviar solo campos seguros (moneda/plan). trackEvent respeta consentimiento.
+        try {
+          const purchaseKey = `tcp_purchase_${sessionId}`;
+          if (!localStorage.getItem(purchaseKey)) {
+            window.gtag?.('event', 'purchase', {
+              transaction_id: sessionId,
+              currency: data.currency || undefined,
+              items: data.plan_id ? [{ item_id: data.plan_id }] : undefined,
+            });
+            try { localStorage.setItem(purchaseKey, '1'); } catch (_) {}
+          }
+        } catch (_) {}
         await refreshUser();
       } else if (attemptsRef.current < 15) {
         attemptsRef.current += 1;

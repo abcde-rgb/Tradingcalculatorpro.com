@@ -12,6 +12,7 @@ import CookieBanner from "@/components/common/CookieBanner";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { reloadFreshShell } from "@/lib/appShell";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import ProfileCompletionPrompt from "@/components/auth/ProfileCompletionPrompt";
 
 // Eagerly loaded — visible immediately on first paint
 import LandingPage from "@/pages/LandingPage";
@@ -172,6 +173,7 @@ const AppContent = () => (
           <Route path="*"                element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+      <ProfileCompletionPrompt />
       <CookieBanner />
     </BrowserRouter>
     <Toaster position="top-right" richColors />

@@ -1914,6 +1914,28 @@ async def startup_event():
 
 # ============= AUTH ROUTES =============
 
+# Los diez idiomas que la interfaz sabe pintar. Un `preferred_locale` fuera de
+# esta lista no se guarda: guardarlo dejaria al usuario con una preferencia que
+# ninguna pantalla puede cumplir.
+_SUPPORTED_LOCALES = {"es", "en", "de", "fr", "ru", "zh", "ja", "ar", "pt", "it"}
+
+
+def _norm_locale(value: Optional[str]) -> Optional[str]:
+    """El idioma pedido, si es uno de los soportados. Si no, None."""
+    if not value:
+        return None
+    code = str(value).strip().lower().split("-")[0]
+    return code if code in _SUPPORTED_LOCALES else None
+
+
+def _norm_country(value: Optional[str]) -> Optional[str]:
+    """Pais como codigo ISO 3166-1 alfa-2 en mayusculas. Si no lo es, None."""
+    if not value:
+        return None
+    code = str(value).strip().upper()
+    return code if len(code) == 2 and code.isalpha() else None
+
+
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
 async def register(request: Request, response: Response, user_data: UserCreate):
@@ -2994,6 +3016,38 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "auth_provider": user.get("auth_provider", "google"),
         },
     }
+
+class ProfileUpdateRequest(BaseModel):
+    country: Optional[str] = None
+    preferred_locale: Optional[str] = None
+
+
+@api_router.post("/auth/profile")
+async def update_own_profile(payload: ProfileUpdateRequest, user: dict = Depends(require_user)):
+    """El usuario fija su propio pais e idioma de interfaz.
+
+    Cierra la mitad de G-26: hasta ahora el nombre y los datos del registro eran
+    los del alta para siempre porque NO habia endpoint que los cambiara. Lo que
+    sigue faltando es la pantalla.
+
+    Un valor que no se reconoce se guarda como None en vez de tal cual: una
+    preferencia de idioma que ninguna pantalla puede cumplir es peor que no
+    tener ninguna.
+    """
+    updates: Dict[str, Any] = {}
+    if payload.country is not None:
+        updates["country"] = _norm_country(payload.country)
+    if payload.preferred_locale is not None:
+        updates["preferred_locale"] = _norm_locale(payload.preferred_locale)
+    if updates:
+        await db.users.update_one({"id": user["id"]}, {"$set": updates})
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or user
+    return {
+        "ok": True,
+        "country": fresh.get("country"),
+        "preferred_locale": fresh.get("preferred_locale"),
+    }
+
 
 # ============= PRICES - Real-time Data =============
 
