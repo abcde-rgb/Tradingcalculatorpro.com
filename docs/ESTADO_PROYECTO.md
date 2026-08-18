@@ -5,8 +5,10 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-14 (mesa de cálculo y
->   buscador de la Academia; antes 2026-08-13, auditoría del repositorio)
+> - 📅 **Última verificación real contra el código:** 2026-08-18 (55 commits fusionados a
+>   `main` y desplegados: calculadoras corregidas, mesa por margen, plan de trading,
+>   métricas avanzadas, G-32 cerrado. Verificado en navegador sobre el build compilado —
+>   `tests/e2e/navegador/pre-despliegue.js`; antes 2026-08-14, mesa y buscador)
 > - 🗺️ **Los conteos no viven aquí.** Módulos, rutas, líneas, componentes y claves i18n
 >   están en [`MAPA.md`](./MAPA.md), **generado desde el código** (`scripts/gen-mapa.py`,
 >   con `--check` en CI). Este documento describe *el estado*; el mapa mide *el tamaño*.
