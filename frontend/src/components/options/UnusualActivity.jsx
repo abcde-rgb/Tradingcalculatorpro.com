@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Zap, RefreshCw, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Zap, RefreshCw, Loader2, TrendingUp, TrendingDown, Info } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -112,6 +112,17 @@ const UnusualActivity = ({ symbol }) => {
         </div>
       </div>
 
+      {/* Open interest is a once-a-day figure: this ratio compares today's
+          volume against the previous session's OI. Saying so at the point of
+          use is the difference between a screening hint and a claim. */}
+      {data?.oiNote && (
+        <div className="mb-3 flex gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2"
+             data-testid="oi-staleness-note">
+          <Info className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] leading-snug text-muted-foreground">{t('flowOiStaleNote')}</p>
+        </div>
+      )}
+
       {/* Table */}
       {loading && !data ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -157,8 +168,15 @@ const UnusualActivity = ({ symbol }) => {
                   <td className="px-3 py-2 text-right font-mono text-foreground">{r.volume.toLocaleString()}</td>
                   <td className="px-3 py-2 text-right font-mono text-muted-foreground">{r.openInterest.toLocaleString()}</td>
                   <td className="px-3 py-2 text-right">
-                    <span className={`font-mono font-bold ${r.ratio > 10 ? 'text-[#fbbf24]' : r.ratio > 5 ? 'text-[#f59e0b]' : 'text-foreground'}`}>
-                      {r.ratio}x
+                    {/* No open interest means no ratio. Rendering `null`
+                        here — or, as the backend used to, a ratio equal to the
+                        whole volume — presents the most ordinary row on the
+                        board as the most unusual one. */}
+                    <span
+                      className={`font-mono font-bold ${r.ratio == null ? 'text-muted-foreground' : r.ratio > 10 ? 'text-[#fbbf24]' : r.ratio > 5 ? 'text-[#f59e0b]' : 'text-foreground'}`}
+                      title={r.ratio == null ? t('flowNoOiHint') : undefined}
+                    >
+                      {r.ratio == null ? t('flowNoOi') : `${r.ratio}x`}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right font-mono text-muted-foreground">{(r.iv * 100).toFixed(0)}%</td>

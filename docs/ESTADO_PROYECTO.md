@@ -38,6 +38,9 @@
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
 | **Backend import + sintaxis** | 🟢 | `import server` OK y todos los módulos compilan. **Los conteos (módulos, rutas, líneas) están en [`MAPA.md`](./MAPA.md)** — generado, así que no se desvía |
 | **Tests offline** | 🟢 | `pytest tests/` → **782 passed, 74 skipped** en 13 s (2026-08-14). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
+| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
+| **Backend import + sintaxis** | 🟢 | `import server` OK → **188 rutas**; los **20** módulos compilan (2026-07-29) |
+| **Tests offline** | 🟢 | `pytest tests/` → **361 passed, 74 skipped** (2026-07-29) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
 | **Paridad i18n / motor** | 🟢 | `i18n-check` 0 huecos en los 10 idiomas · `engine-check` **264/264** · `simulacion-masiva` **1.000 escenarios generados / ~20.000 invariantes** (60.000 probados en 6 semillas) · `check-edu-index` 85 = 85. Cifra de claves al día en [`MAPA.md`](./MAPA.md) |
@@ -2134,6 +2137,111 @@ sobrescribía. Reconstruido como **"Mi Sistema de Trading"**:
 - **UI para el bloqueo por límite de pérdida**: `compute_loss_limits` devuelve
   `blocked`, pero nada en el frontend lo hace cumplir aún.
 
+### 2026-07-29 (cont.) — Revisión de los datos de los escáneres
+
+Auditoría de los cuatro escáneres a petición del dueño, aplicando el mismo
+criterio que el resto de la sesión: **lo que no se puede calcular no es un
+número, y lo provisional lo dice**. Tres defectos reales encontrados.
+
+#### 🔴 El ratio volumen/OI convertía el caso más normal en el más "inusual"
+
+`_scan_chain_for_unusual` calculaba `ratio = vol / max(oi, 1)`. Cuando el interés
+abierto es **cero** —el estado ordinario de un strike recién listado en su primer
+día— el denominador pasaba a valer 1 y el ratio se volvía **el volumen entero**:
+un strike con 500 contratos negociados y 0 de interés abierto puntuaba 500 y
+encabezaba el ranking de "actividad más inusual". Es exactamente la misma clase
+de fallo que el `r_multiple = 0` sin stop: una cantidad indefinida coaccionada a
+un número que además domina una ordenación.
+
+- `server.py → _volume_oi_ratio()`: devuelve `None` cuando no hay OI.
+- `server.py → _rank_flow_rows()`: las filas sin ratio van **después** de todas
+  las que tienen uno real, ordenadas entre sí por nocional. Antes, ordenar la
+  lista mezclada por `ratio` las ponía arriba del todo.
+- No se filtran por un `min_ratio` que no tienen: se conservan (volumen real en
+  un strike nuevo puede interesar) pero marcadas con `oiUnavailable: true`.
+- Frontend: `UnusualActivity.jsx` y `MarketFlow.jsx` renderizaban `{r.ratio}x`,
+  que con `null` habría pintado literalmente **"nullx"**. Ahora muestran
+  "sin OI" con su explicación.
+
+#### 🟠 El desfase del interés abierto no llegaba al usuario
+
+Yahoo publica el OI **una vez al día, tras el cierre**, así que todo ratio
+compara el volumen de hoy contra el interés abierto de la sesión anterior: sale
+alto a primera hora y es menos fiable tras un fin de semana. Está señalado en
+`ANALISIS_TRADER §3.2` pero no aparecía en ninguna parte del producto. Añadido
+`OI_STALENESS_NOTE` a las respuestas de `/options/unusual` y `/options/market-flow`,
+y banda de aviso en ambas vistas. **No lo arregla** —eso exige otro proveedor de
+datos, que es la decisión de negocio pendiente— pero deja de presentarse como
+una medición.
+
+#### 🟠 Patrones detectados sobre una vela sin cerrar se mostraban como confirmados
+
+`_bar_is_forming()` ya existía y su docstring decía que era "para que el cliente
+deje de presentar una ruptura provisional como un hecho" — pero la respuesta solo
+llevaba **un booleano global**, así que el cliente no podía saber *cuál* de las
+detecciones era la provisional. Y `LivePatternDetector.jsx` **ignoraba la bandera
+por completo**: un martillo sobre una vela a medio formar se pintaba igual que
+uno cerrado, aunque la figura pueda desaparecer en el siguiente tick.
+
+- `/education/pattern-scan`: cada detección lleva ahora `provisional`,
+  comparando su `index` con la última barra.
+- `/education/structure-scan`: `_mark_provisional()` hace lo mismo con swings,
+  eventos, FVGs y rupturas — un BOS "confirmado" por una vela en curso puede
+  deshacerse antes del cierre.
+- `LivePatternDetector.jsx`: etiqueta ámbar "Provisional" con explicación.
+  `StructureScanner.jsx` ya tenía la banda global y se mantiene.
+
+#### ✅ Revisado y correcto (para no repetir el trabajo)
+
+- **La cadena sintética no entra en los escáneres.** `/options/unusual` y
+  market-flow hacen `if not chain: continue` sobre `get_options_chain_real`, así
+  que solo ven datos reales. Con el cambio de esta sesión (volumen/OI sintéticos
+  a `None`), el `or 0` posterior los dejaría fuera igualmente por `min_volume`.
+- **`max(x, 1)` restantes**: son guardas numéricas legítimas
+  (`american_options.py:90-91`, `backtest.py:465`, `candle_patterns.py:197`).
+- **`churn_rate` y `conversion_rate`** (`server.py:7309`, `:7319`) usan el mismo
+  patrón `max(n, 1)`, pero ahí el numerador es **cero por construcción** cuando
+  el denominador lo sería (es un subconjunto), así que no producen una cifra
+  falsa. Comprobado, no tocado.
+- `pattern-scan` y `structure-scan` ya traían buena higiene previa:
+  `adjustments`, `aggregatedFrom` (4h compuesto desde 1h) e `interval` por
+  detección.
+
+#### 🔴 El "Precio ahora" del escáner de estructura no era el precio de ahora
+
+Lo más grave de esta revisión, y afecta directamente a **soportes y resistencias**.
+`detect_structure` usaba `current_price = rows[-1]["close"]` —el cierre de la
+última vela de la temporalidad pedida— y la UI lo etiquetaba **"Precio ahora"**.
+No lo es: en diario tras el cierre es el cierre de hoy, un sábado es el del
+viernes, en mensual es el cierre corriente del mes, y el feed de Yahoo va con
+retardo en muchos mercados.
+
+Importa más aquí que en ningún otro sitio del escáner porque **todo el rol de
+soporte/resistencia se decide comparando contra ese precio**. El propio
+docstring de `detect_sr_levels` dice que equivocar ese rol es *"lo más engañoso
+que este escáner podría decir, porque invierte la operación"* — y se estaba
+alimentando con un precio potencialmente rancio. Reproducido: con el precio
+un 1,2 % por encima del cierre, el nivel 115,02 pasa de **resistencia** a
+**soporte**.
+
+- `/education/structure-scan` pide ahora la **cotización en vivo**
+  (`get_stock_data`, ya cacheada 5 min) y clasifica contra ella. Si falla, cae al
+  último cierre y **lo dice** en `referenceSource`.
+- Nuevos campos: `referencePrice`, `referenceSource` (`live` | `last_close`),
+  `lastClose`, `livePrice`, `liveVsCloseDivergencePct`, `referenceDate`,
+  `referenceAgeSeconds` y `levelsBetweenLiveAndClose` — este último cuenta
+  exactamente los niveles cuyo rol depende de qué precio se use.
+- `StructureScanner.jsx`: la etiqueta pasa de "Precio ahora" a **"Precio en
+  vivo"** o **"Último cierre"** según lo que sea de verdad, con la fecha de la
+  vela y un aviso ámbar cuando hay niveles en la zona de divergencia.
+- ⚠️ Un test que ya existía (`test_empty_read_has_the_same_keys_as_a_full_one`)
+  detectó que había añadido las claves nuevas solo a la respuesta completa y no
+  a la vacía. El contrato es correcto —el cliente no debe ramificar según la
+  forma que le llegue— y se corrigió.
+
+**Verificación**: `pytest` **361 passed / 74 skipped** (+16 en
+`tests/test_scanner_data_unit.py`), 188 rutas, i18n **5490 × 8 sin huecos**,
+ESLint 0 errores, build exit 0.
 
 ### 2026-07-30 — Rediseño del panel de opciones: jerarquía de arriba abajo
 

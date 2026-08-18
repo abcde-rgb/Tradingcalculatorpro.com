@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Globe, Loader2, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { Globe, Loader2, TrendingUp, TrendingDown, ArrowRight, Info } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -89,6 +89,16 @@ const MarketFlow = ({ onSelectSymbol }) => {
             <span className="text-muted-foreground">Tickers escaneados: <span className="text-foreground font-bold">{data.scannedTickers}</span></span>
             <span className="text-muted-foreground">{t('senalesDetectadas_d07517')} <span className="text-foreground font-bold">{data.totalFound}</span></span>
           </div>
+      {/* Open interest is a once-a-day figure: this ratio compares today's
+          volume against the previous session's OI. Saying so at the point of
+          use is the difference between a screening hint and a claim. */}
+      {data?.oiNote && (
+        <div className="mb-3 flex gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2"
+             data-testid="oi-staleness-note">
+          <Info className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] leading-snug text-muted-foreground">{t('flowOiStaleNote')}</p>
+        </div>
+      )}
           <div className="max-h-[380px] overflow-y-auto rounded-lg border border-border">
             <table className="w-full text-xs">
               <thead className="bg-muted/60 border-b border-border sticky top-0 z-10">
@@ -115,7 +125,10 @@ const MarketFlow = ({ onSelectSymbol }) => {
                     <td className="px-2 py-1.5 text-right font-mono text-foreground">${r.strike}</td>
                     <td className="px-2 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">{r.expiration}</td>
                     <td className="px-2 py-1.5 text-right font-mono text-foreground">{r.volume.toLocaleString()}</td>
-                    <td className="px-2 py-1.5 text-right font-mono font-bold text-[#fbbf24]">{r.ratio}x</td>
+                    <td className={`px-2 py-1.5 text-right font-mono font-bold ${r.ratio == null ? 'text-muted-foreground' : 'text-[#fbbf24]'}`}
+                        title={r.ratio == null ? t('flowNoOiHint') : undefined}>
+                      {r.ratio == null ? t('flowNoOi') : `${r.ratio}x`}
+                    </td>
                     <td className="px-2 py-1.5 text-right font-mono text-[#a78bfa]">${(r.estNotional / 1000).toFixed(0)}k</td>
                     <td className="px-2 py-1.5">
                       {onSelectSymbol && (

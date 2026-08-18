@@ -145,6 +145,19 @@ const LivePatternDetector = () => {
                       <span className={`text-[10px] font-mono uppercase ${badge.color}`}>
                         {badge.icon} {d.type}
                       </span>
+                      {/* The pattern's last candle has not closed. Its body is
+                          still moving, so the shape that matched may not be
+                          there in a minute — it must not look like a confirmed
+                          detection. */}
+                      {d.provisional && (
+                        <span
+                          className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border border-amber-500/50 text-amber-500"
+                          title={t('patProvisionalHint')}
+                          data-testid={`live-pattern-provisional-${i}`}
+                        >
+                          {t('patProvisionalTag')}
+                        </span>
+                      )}
                     </div>
                     {/* Reliability stats (Bulkowski) — behavior · success rate · rank */}
                     {d.behavior && (

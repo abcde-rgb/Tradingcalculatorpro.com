@@ -6248,8 +6248,38 @@ async def get_iv_rank(symbol: str) -> Dict[str, Any]:
         return {"symbol": symbol.upper(), "available": False, "error": str(e)}
 
 
+# Open interest is published once a day, after the close. Every volume/OI ratio
+# in this file therefore compares TODAY's volume against YESTERDAY's open
+# interest. That is not a bug we can fix without a different data provider, but
+# it is a caveat the user has to see: the ratio reads high early in the session
+# (volume accumulating against a stale denominator) and is at its least
+# meaningful on a Monday, when the denominator is three days old.
+OI_STALENESS_NOTE = (
+    "Open interest is published once per day after the close, so this ratio "
+    "compares today's volume against the previous session's open interest. It "
+    "reads high early in the session and is least reliable after a weekend. "
+    "Treat it as a screening hint, not a measurement."
+)
+
+
+def _volume_oi_ratio(volume: int, open_interest: int) -> Optional[float]:
+    """Volume / open interest, or None when open interest is unavailable.
+
+    The previous form was `vol / max(oi, 1)`, which turns a zero denominator
+    into a ratio equal to the entire volume: a strike with 500 contracts traded
+    and no open interest scored 500 and went straight to the top of "most
+    unusual". But volume against zero open interest is the ORDINARY state of a
+    newly listed strike on its first day — the least unusual thing on the board,
+    ranked first. The ratio there is undefined, not enormous.
+    """
+    if not open_interest or open_interest <= 0:
+        return None
+    return volume / open_interest
+
+
 def _build_unusual_row(symbol: str, side: str, row: Dict[str, Any], opt: Dict[str, Any],
-                       exp: Dict[str, Any], stock: Dict[str, Any], ratio: float) -> Dict[str, Any]:
+                       exp: Dict[str, Any], stock: Dict[str, Any],
+                       ratio: Optional[float]) -> Dict[str, Any]:
     """Construct one normalized unusual-options row."""
     moneyness_pct = ((row["strike"] - stock["price"]) / stock["price"]) * 100
     is_itm = (side == "call" and row["strike"] < stock["price"]) or \
@@ -6262,7 +6292,9 @@ def _build_unusual_row(symbol: str, side: str, row: Dict[str, Any], opt: Dict[st
         "daysToExpiry": exp["daysToExpiry"],
         "volume": opt.get("volume", 0) or 0,
         "openInterest": opt.get("openInterest", 0) or 0,
-        "ratio": round(ratio, 2),
+        # None — not a big number — when open interest is unavailable.
+        "ratio": round(ratio, 2) if ratio is not None else None,
+        "oiUnavailable": ratio is None,
         "iv": round(opt.get("iv", 0) or 0, 4),
         "premium": opt.get("mid", 0),
         "bid": opt.get("bid"),
@@ -6285,11 +6317,28 @@ def _scan_chain_for_unusual(symbol: str, chain: List[Dict[str, Any]], exp: Dict[
             oi = opt.get("openInterest", 0) or 0
             if vol < min_volume:
                 continue
-            ratio = vol / max(oi, 1)
-            if ratio < min_ratio:
+            ratio = _volume_oi_ratio(vol, oi)
+            # Strikes with no open interest cannot demonstrate "volume >> OI",
+            # so they are not filtered on a ratio they do not have. They are
+            # kept (real volume on a fresh strike can still be worth a look) and
+            # flagged, but they rank below every row that has a real ratio.
+            if ratio is not None and ratio < min_ratio:
                 continue
             rows.append(_build_unusual_row(symbol, side, row, opt, exp, stock, ratio))
     return rows
+
+
+def _rank_flow_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Rank by ratio, with the open-interest-less rows last, by notional.
+
+    Sorting a mixed list on `ratio` alone used to put the rows whose ratio was
+    fabricated from a zero denominator at the very top.
+    """
+    with_ratio = [r for r in rows if r.get("ratio") is not None]
+    without = [r for r in rows if r.get("ratio") is None]
+    with_ratio.sort(key=lambda x: (x["ratio"], x.get("estNotional") or 0), reverse=True)
+    without.sort(key=lambda x: x.get("estNotional") or 0, reverse=True)
+    return with_ratio + without
 
 
 @api_router.get("/options/unusual/{symbol}")
@@ -6306,12 +6355,14 @@ async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: i
                 continue
             all_unusual.extend(_scan_chain_for_unusual(symbol, chain, exp, stock, min_ratio, min_volume))
 
-        all_unusual.sort(key=lambda x: (x["ratio"], x["estNotional"]), reverse=True)
+        all_unusual = _rank_flow_rows(all_unusual)
         return {
             "symbol": symbol.upper(),
             "stock": stock,
             "totalFound": len(all_unusual),
+            "withoutOpenInterest": sum(1 for r in all_unusual if r.get("oiUnavailable")),
             "filters": {"minRatio": min_ratio, "minVolume": min_volume},
+            "oiNote": OI_STALENESS_NOTE,
             "results": all_unusual[:50],
         }
     except Exception as e:
@@ -6687,7 +6738,8 @@ MARKET_FLOW_TICKERS = [
 
 
 def _build_market_flow_row(sym: str, side: str, row: Dict[str, Any], opt: Dict[str, Any],
-                           exp: Dict[str, Any], stock: Dict[str, Any], ratio: float) -> Dict[str, Any]:
+                           exp: Dict[str, Any], stock: Dict[str, Any],
+                           ratio: Optional[float]) -> Dict[str, Any]:
     """Slimmer flow row used by the market-wide scan (skips bid/ask/last)."""
     vol = opt.get("volume", 0) or 0
     return {
@@ -6695,7 +6747,8 @@ def _build_market_flow_row(sym: str, side: str, row: Dict[str, Any], opt: Dict[s
         "type": side, "strike": row["strike"],
         "expiration": exp["fullLabel"], "daysToExpiry": exp["daysToExpiry"],
         "volume": vol, "openInterest": opt.get("openInterest", 0) or 0,
-        "ratio": round(ratio, 2),
+        "ratio": round(ratio, 2) if ratio is not None else None,
+        "oiUnavailable": ratio is None,
         "iv": round(opt.get("iv", 0) or 0, 4),
         "premium": opt.get("mid", 0),
         "estNotional": round(vol * (opt.get("mid", 0) or 0) * 100, 0),
@@ -6713,8 +6766,8 @@ def _scan_chain_for_flow(sym: str, chain: List[Dict[str, Any]], exp: Dict[str, A
             oi = opt.get("openInterest", 0) or 0
             if vol < min_volume:
                 continue
-            ratio = vol / max(oi, 1)
-            if ratio < min_ratio:
+            ratio = _volume_oi_ratio(vol, oi)
+            if ratio is not None and ratio < min_ratio:
                 continue
             rows.append(_build_market_flow_row(sym, side, row, opt, exp, stock, ratio))
     return rows
@@ -6757,6 +6810,8 @@ async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume:
         return {
             "scannedTickers": len(MARKET_FLOW_TICKERS),
             "totalFound": len(all_flow),
+            "withoutOpenInterest": sum(1 for r in all_flow if r.get("oiUnavailable")),
+            "oiNote": OI_STALENESS_NOTE,
             "results": all_flow[:max_results],
         }
     except Exception as e:
@@ -6826,6 +6881,21 @@ async def _higher_timeframe_levels(symbol: str, interval: Optional[str]) -> Dict
         return {"tf": None, "levels": []}
 
 
+def _mark_provisional(res: Dict[str, Any], forming: bool, last_index: int) -> None:
+    """Flag structure items that sit on a bar which has not closed yet.
+
+    A break of structure "confirmed" by a candle still in progress can un-happen
+    before the close — the level is only broken while the price stays there. The
+    response already carried one `lastBarForming` boolean, but a client showing
+    a list of events had no way to know WHICH of them was the provisional one.
+    Mutates in place; every item in these lists carries its bar `index`.
+    """
+    for key in ("swings", "events", "fvgs", "breakouts"):
+        for item in res.get(key) or []:
+            if isinstance(item, dict):
+                item["provisional"] = bool(forming and item.get("index") == last_index)
+
+
 def _trim_structure(res: Dict[str, Any]) -> Dict[str, Any]:
     """Bound the arrays before they go over the wire.
 
@@ -6877,12 +6947,22 @@ async def education_pattern_scan(
                     "adjustments": win["adjustments"],
                     "rowsScanned": 0, "totalDetections": 0, "detections": []}
         detections = detect_all_patterns(rows)
+        forming = _bar_is_forming(rows, tf.minutes)
+        last_index = len(rows) - 1
         # Cada detección se marca con la temporalidad en la que se encontró. Sin
         # esto el cliente no puede distinguir un patrón de 15m de uno diario, y
         # el registro persistente los mezclaba: el usuario veía "3 soldados",
         # miraba su gráfico y no estaban, porque eran de otra temporalidad.
         for det in detections:
             det["interval"] = tf.interval
+            # A pattern whose last candle has not closed yet can un-happen on
+            # the next tick: the body is still moving, so the shape that
+            # matched may not be there in a minute. The response already
+            # carried a single `lastBarForming` flag for the whole payload, but
+            # the client had no way to tell WHICH detection was the provisional
+            # one — so a hammer on an unclosed bar was rendered exactly like a
+            # confirmed one.
+            det["provisional"] = bool(forming and det.get("index") == last_index)
         # Most recent first, capped at `limit`.
         detections.reverse()
         return {
@@ -6944,7 +7024,20 @@ async def education_structure_scan(
             # nunca ramifica por "¿vino corta o larga?".
             return {**meta, "lastBarForming": False, **strip_bars([]),
                     **detect_structure([], strn)}
-        res = await asyncio.to_thread(detect_structure, rows, strn)
+        # El reparto soporte/resistencia se decide contra un precio de
+        # referencia, y el cierre de la última vela no es «el precio ahora» una
+        # vez cerrada la sesión. Se pide la cotización viva para que el reparto
+        # conteste a la pregunta que el panel hace de verdad; fallar aquí no es
+        # fatal — `detect_structure` cae al último cierre y lo dice en
+        # `referenceSource`.
+        live_price = None
+        try:
+            quote = await asyncio.to_thread(get_stock_data, sym)
+            live_price = quote.get("price")
+        except Exception as quote_err:  # noqa: BLE001
+            logging.info(f"structure-scan: sin cotización viva para {sym}: {quote_err}")
+
+        res = await asyncio.to_thread(detect_structure, rows, strn, None, live_price)
         if htf_read["tf"] is not None:
             apply_confluence(res, htf_read["levels"], htf_read["tf"].interval)
         return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
