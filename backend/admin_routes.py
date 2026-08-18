@@ -61,7 +61,6 @@ PUBLIC_SETTING_KEYS = {
     "default_currency",
     "default_locale",
     "maintenance_mode",
-    "user_state_ttl_days",
 }
 
 # Claves que son secretas: se enmascaran con *** en GET
@@ -226,7 +225,14 @@ ALL_CONNECTORS: List[Dict[str, Any]] = [
             {"key": "default_currency",  "label": "Moneda por defecto",     "secret": False, "placeholder": "EUR"},
             {"key": "default_locale",    "label": "Idioma por defecto",     "secret": False, "placeholder": "es"},
             {"key": "maintenance_mode",  "label": "Modo mantenimiento",     "secret": False, "placeholder": "false"},
-            {"key": "user_state_ttl_days","label": "TTL estados (días)",   "secret": False, "placeholder": "90"},
+            # NO añadir aquí un TTL para `user_states`. Existió como
+            # "TTL estados (días)" y era un mando desconectado: la tabla ya no
+            # caduca, a propósito. Dentro viven las preferencias del usuario,
+            # incluidos los setups escritos a mano, así que "arreglarlo"
+            # conectándolo significaría borrar trabajo del usuario a los 90
+            # días. Es una fila por (usuario, state_id) con un puñado fijo de
+            # state_id: no crece sola, y el borrado por RGPD ya lo cubre
+            # `_USER_DATA_COLLECTIONS`.
         ],
     },
 ]
@@ -242,7 +248,7 @@ def _mask(value: Optional[str]) -> str:
 
 
 async def _get_all_settings(db) -> Dict[str, str]:
-    """Load all settings from app_settings (Scheme A: single global doc keyed by _id='global')."""
+    """Load all settings from app_settings (single global doc keyed by _id='global')."""
     doc = await db.app_settings.find_one({"_id": "global"}) or {}
     for k in ("_id", "updated_at", "updated_by"):
         doc.pop(k, None)
@@ -262,6 +268,27 @@ async def _delete_setting(db, key: str) -> None:
         {"_id": "global"},
         {"$unset": {key: ""}},
     )
+
+
+async def _get_setting_raw(db, key: str) -> Optional[str]:
+    """Read one setting back, through the same door it was written.
+
+    Every setting lives as a FIELD of the single `{_id: "global"}` document.
+    Three readers used to look for a *document per key* instead
+    (`find_one({"key": ...})`, `find({"key": {"$regex": "^i18n_"}})`), a shape
+    nothing in the codebase has ever written — the shim turns that filter into
+    `data->>'key' = $1` and the global document has no `key` field, so the query
+    matched zero rows every time.
+
+    The effect was silent and total: the plan editor, the i18n manager and
+    `/public/settings` returned empty forever while the writes landed correctly
+    one field over, and the admin got `{"success": true}` for changes that were
+    never readable. Verified against PostgreSQL. Anything reading a setting must
+    go through here or `_get_all_settings`, never query by a `key` field.
+    """
+    doc = await db.app_settings.find_one({"_id": "global"}) or {}
+    value = doc.get(key)
+    return None if value is None else str(value)
 
 
 # ---------------------------------------------------------------------------
@@ -689,21 +716,25 @@ def build_admin_router(
     @router.get("/i18n")
     async def list_i18n_keys(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
         """List all i18n overrides stored in app_settings (prefix 'i18n_')."""
-        docs = await db.app_settings.find(
-            {"key": {"$regex": "^i18n_"}},
-            {"_id": 0, "key": 1, "value": 1},
-        ).to_list(1000)
+        import json as _json
+        settings = await _get_all_settings(db)
         keys = []
-        for d in docs:
-            raw_key = d["key"][5:]  # strip "i18n_"
-            value = d.get("value", {})
+        for setting_key, raw in sorted(settings.items()):
+            if not setting_key.startswith("i18n_"):
+                continue
+            value = raw
             if isinstance(value, str):
                 try:
-                    import json as _json
                     value = _json.loads(value)
                 except Exception:
-                    value = {"es": value, "en": value}
-            keys.append({"key": raw_key, "es": value.get("es", ""), "en": value.get("en", "")})
+                    value = {"es": raw, "en": raw}
+            if not isinstance(value, dict):
+                value = {"es": str(raw), "en": str(raw)}
+            keys.append({
+                "key": setting_key[5:],  # strip "i18n_"
+                "es": value.get("es", ""),
+                "en": value.get("en", ""),
+            })
         return {"keys": keys, "count": len(keys)}
 
     class I18nUpsert(BaseModel):
@@ -887,13 +918,14 @@ def build_admin_router(
     @router.get("/plans")
     async def list_plans(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
         """Return current subscription plans (app_settings overrides + hardcoded fallback)."""
+        import json as _json
+        settings = await _get_all_settings(db)
         plans_out = []
         for plan_id, plan_data in subscription_plans.items():
-            override_doc = await db.app_settings.find_one({"key": f"plan_{plan_id}"}, {"_id": 0, "value": 1})
-            if override_doc and override_doc.get("value"):
-                import json as _json
+            raw = settings.get(f"plan_{plan_id}")
+            if raw:
                 try:
-                    override = _json.loads(override_doc["value"])
+                    override = _json.loads(raw)
                     merged = {**plan_data, **override, "id": plan_id, "overridden": True}
                 except Exception:
                     merged = {**plan_data, "id": plan_id, "overridden": False}
@@ -906,6 +938,7 @@ def build_admin_router(
         price: Optional[float] = None
         label: Optional[str] = None
         days: Optional[int] = None
+        stripe_price_id: Optional[str] = None
 
     @router.post("/plans/{plan_id}")
     async def update_plan(
@@ -914,19 +947,38 @@ def build_admin_router(
         request: Request,
         admin: dict = Depends(require_admin_dep),
     ) -> Dict[str, Any]:
-        """Update a plan's price/label/days (stored in app_settings as override)."""
+        """Update a plan's label, price/days (stored in app_settings as override).
+
+        Cambiar el importe exige mandar **también** el `stripe_price_id` nuevo, y
+        al revés. El precio que se cobra lo decide el objeto Price de Stripe, no
+        esta tabla: dejar mover uno sin el otro no arregla el editor, lo
+        convierte en una forma de que la web anuncie 17 € y la pasarela cobre 29.
+        Para cambiar de precio se crea un Price nuevo en Stripe y se mandan los
+        dos campos juntos.
+        """
         if plan_id not in subscription_plans:
             raise HTTPException(status_code=404, detail=f"Plan '{plan_id}' not found")
+        if (body.price is None) != (body.stripe_price_id is None):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "El importe y el stripe_price_id se cambian juntos o no se cambian. "
+                    "Crea un Price nuevo en Stripe con el importe deseado y envía los dos "
+                    "campos; si sólo se mueve uno, lo anunciado y lo cobrado dejan de "
+                    "coincidir."
+                ),
+            )
         import json as _json
-        existing_doc = await db.app_settings.find_one({"key": f"plan_{plan_id}"}, {"_id": 0, "value": 1})
+        raw = await _get_setting_raw(db, f"plan_{plan_id}")
         existing = {}
-        if existing_doc and existing_doc.get("value"):
+        if raw:
             try:
-                existing = _json.loads(existing_doc["value"])
+                existing = _json.loads(raw)
             except Exception:
                 existing = {}
         if body.price is not None:
             existing["price"] = body.price
+            existing["stripe_price_id"] = body.stripe_price_id
         if body.label is not None:
             existing["name"] = body.label
         if body.days is not None:
@@ -1140,11 +1192,13 @@ def build_public_settings_router(db) -> APIRouter:
         """
         Devuelve solo las claves públicas (no secretas) para que el frontend
         pueda inyectar scripts de analytics, tracking, etc. sin rebuilds.
+
+        Lee del documento global, que es donde `_upsert_setting` escribe. La
+        versión anterior buscaba un documento por clave y devolvía `{}` siempre,
+        así que GA4, GTM, Clarity y Trustpilot no se podían activar desde el
+        panel por mucho que el admin los guardase.
         """
-        docs = await db.app_settings.find(
-            {"key": {"$in": list(PUBLIC_SETTING_KEYS)}},
-            {"_id": 0, "key": 1, "value": 1},
-        ).to_list(200)
-        return {d["key"]: d.get("value", "") for d in docs}
+        settings = await _get_all_settings(db)
+        return {k: settings[k] for k in PUBLIC_SETTING_KEYS if settings.get(k)}
 
 

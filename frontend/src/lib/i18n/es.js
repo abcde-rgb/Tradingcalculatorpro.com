@@ -4133,7 +4133,6 @@ export default {
   "insightCostsEatProfit": "⚠️ Los costes se llevan el {value}% de tu beneficio bruto ({amount}). A partir de ahí el problema deja de ser la estrategia y pasa a ser lo que pagas por operación o lo que tardas en cerrar.",
   "insightOverExposure": "🚨 {count} operaciones con la posición valiendo más de {threshold}× tu cuenta (máximo: {value}×). Eso no lo controla el stop: un hueco de apertura o una mecha se salta el stop y no se salta el tamaño.",
   "tfProductsRestricted": "El servidor todavía no conoce los productos nuevos, así que de momento sólo se pueden registrar operaciones de spot y de opciones. Es cosa del despliegue, no de tus datos: en cuanto se actualice el backend aparecen CFD, futuros, forex y cripto sin que tengas que tocar nada.",
-  "structPriceLastClose": "Último cierre",
   "structPriceForming": "Vela en curso",
   "structScannedJustNow": "leído hace menos de un minuto",
   "structScannedAgo": "leído hace {n} min",

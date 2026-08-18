@@ -10,7 +10,10 @@ const de = {
     title: 'Datenschutzerklärung',
     sections: [
       { t: 'Verantwortlicher', b: [
-        { p: 'Verantwortlicher für die Verarbeitung deiner personenbezogenen Daten ist **TradingCalculator.pro**, betrieben von einer in den Vereinigten Staaten registrierten Gesellschaft mit beschränkter Haftung (LLC). Bei Datenschutzfragen erreichst du uns unter {email}.' },
+        { p: 'Verantwortlicher für die Verarbeitung deiner personenbezogenen Daten ist **TradingCalculator.pro**, betrieben von {entity}. Bei Datenschutzfragen erreichst du uns unter {email}.' },
+      ]},
+      { t: 'Vertreter in der Europäischen Union', b: [
+        { p: 'Da der Verantwortliche außerhalb des Europäischen Wirtschaftsraums niedergelassen ist und seinen Dienst Personen in der Union anbietet, haben wir einen Vertreter gemäß **Art. 27 DSGVO** benannt. Du kannst dich in allen Fragen der Verarbeitung deiner Daten an ihn oder an uns wenden: {euRepresentative}' },
       ]},
       { t: 'Welche Daten wir erheben', b: [
         { p: 'Wir erheben nur die Daten, die zur Erbringung des Dienstes erforderlich sind:' },
@@ -50,6 +53,7 @@ const de = {
           'Revolut (Revolut Pay, inkl. Apple Pay/Google Pay im Checkout): verarbeitet Zahlungen mit Revolut Pay.',
           'NOWPayments (Krypto-Zahlungen): verarbeitet Zahlungen in Kryptowährungen. Erhält Betrag, Bestellkennung und ggf. deine E-Mail für den Beleg.',
           'Google LLC (OAuth und Analytics): Die Google-Anmeldung überträgt Name und E-Mail. Google Analytics 4 wird mit IP-Anonymisierung und nur mit deiner Einwilligung genutzt. Richtlinie: policies.google.com/privacy.',
+          'PostHog (Produktanalyse und Sitzungsaufzeichnung): zeichnet anonym auf, wie die App bedient wird — Klicks, Routen und Fehler —, um Störungen zu diagnostizieren und die Oberfläche zu verbessern. Nur aktiv, wenn du nicht-essenzielle Cookies akzeptierst.',
           'Twilio SendGrid (Transaktions-E-Mails): Versand von Bestätigungen, Rechnungen und Alarmen. Erhält nur deine E-Mail-Adresse.',
           'Anthropic (AI Trade Coach): Wenn du eine KI-Analyse anforderst, werden die Parameter der analysierten Strategie (Asset, Trade-Legs, Preise) an Anthropic gesendet. Name und E-Mail werden nicht mitgesendet.',
         ]},
@@ -92,7 +96,7 @@ const de = {
     title: 'Nutzungsbedingungen',
     sections: [
       { t: 'Annahme der Bedingungen', b: [
-        { p: 'Mit dem Zugriff auf und der Nutzung von TradingCalculator.pro (der „Dienst“) erklärst du dich an diese Nutzungsbedingungen gebunden. Bist du mit einer Bedingung nicht einverstanden, musst du von der Nutzung absehen. Diese Bedingungen bilden eine rechtsverbindliche Vereinbarung zwischen dir und der in den Vereinigten Staaten registrierten Gesellschaft mit beschränkter Haftung (LLC), die TradingCalculator.pro betreibt (das „Unternehmen“).' },
+        { p: 'Mit dem Zugriff auf und der Nutzung von TradingCalculator.pro (der „Dienst“) erklärst du dich an diese Nutzungsbedingungen gebunden. Bist du mit einer Bedingung nicht einverstanden, musst du von der Nutzung absehen. Diese Bedingungen bilden eine rechtsverbindliche Vereinbarung zwischen dir und {entity} (das „Unternehmen“).' },
       ]},
       { t: 'Art des Dienstes — Keine Finanzberatung', b: [
         { p: 'TradingCalculator.pro ist eine Plattform mit Finanzinformations-Tools: Optionsrechner (Black-Scholes, Griechen), Echtzeitkurse und Strategiesimulationen. Der Dienst hat ausschließlich informativen und bildenden Charakter.' },
@@ -112,6 +116,25 @@ const de = {
         ]},
         { p: '**7-tägige kostenlose Testphase** (nur wiederkehrende Pläne, nur Neukunden): Zum Start ist eine gültige Zahlungsmethode erforderlich. Kündigst du nicht vor Ablauf der Testphase, erfolgt automatisch die erste Abbuchung des gewählten Plans. Während der Testphase kannst du kostenfrei unter „Mein Abo“ kündigen.' },
         { p: 'Zahlungen werden sicher über **Stripe** (Karte, SEPA, Klarna sowie Wallets wie Apple Pay/Google Pay), **PayPal**, **Revolut Pay** und **NOWPayments** (Kryptowährungen) abgewickelt. Preise sind in Euro (EUR) angegeben und enthalten ggf. anfallende Steuern. Mit einem Abo mit automatischer Verlängerung autorisierst du wiederkehrende Abbuchungen, bis du kündigst. Eine Kündigung ist jederzeit unter „Mein Abo“ möglich; der Zugang bleibt bis zum Ende des laufenden Abrechnungszeitraums bestehen.' },
+      ]},
+      { t: 'Widerrufsrecht (Verbraucher in der EU)', b: [
+        { p: 'Als Verbraucher mit Wohnsitz in der Europäischen Union hast du **14 Kalendertage ab Vertragsschluss** Zeit, den Vertrag **ohne Angabe von Gründen und ohne Nachteile** zu widerrufen. Dieses Recht besteht unabhängig von und zusätzlich zu der unten beschriebenen kommerziellen Erstattungsregelung und darf nicht davon abhängig gemacht werden, wie intensiv du den Dienst genutzt hast.' },
+        { p: 'Zur Ausübung genügt eine eindeutige Erklärung — etwa eine E-Mail an {email} mit Name, Kaufdatum und Tarif — vor Ablauf der Frist. Du kannst das Formular im nächsten Abschnitt verwenden, musst es aber nicht. Wir bestätigen den Eingang unverzüglich.' },
+        { p: '**Erstattung.** Wir erstatten alle erhaltenen Zahlungen unverzüglich und in jedem Fall **binnen 14 Tagen** ab Zugang deiner Erklärung, über dasselbe Zahlungsmittel, das du verwendet hast, ohne Kosten für dich. Bei Zahlungen mit Kryptowährungen, die unumkehrbar sind, wird der entsprechende Betrag in Euro auf anderem Weg erstattet.' },
+        { p: '**Sofortiger Zugang und Erlöschen des Rechts.** Der Dienst ist sofort verfügbarer digitaler Inhalt. Beim Kauf wirst du gebeten, ausdrücklich zuzustimmen, dass die Leistung sofort beginnt, und zu bestätigen, dass **das Widerrufsrecht mit vollständiger Erbringung erlischt** (Art. 16 Buchst. m der Richtlinie 2011/83/EU). Ohne diese Zustimmung beginnt die Leistung erst nach Ablauf der 14 Tage. Widerrufst du nach erteilter Zustimmung, berechnen wir nur den bereits erbrachten Anteil.' },
+        { p: 'Zwingende Verbraucherrechte nach dem Recht deines Wohnsitzlandes bleiben davon unberührt.' },
+      ]},
+      { t: 'Muster-Widerrufsformular', b: [
+        { p: 'Fülle dieses Formular nur aus, wenn du den Vertrag widerrufen möchtest. Die Verwendung ist nicht verpflichtend.' },
+        { list: [
+          'An TradingCalculator.pro, {email}:',
+          'Hiermit widerrufe ich meinen Vertrag über die Erbringung der folgenden Dienstleistung: [gebuchter Tarif].',
+          'Datum des Vertragsschlusses: [Datum].',
+          'Name des Verbrauchers: [Name].',
+          'Anschrift des Verbrauchers: [Anschrift].',
+          'E-Mail-Adresse des Kontos: [E-Mail].',
+          'Datum: [Datum dieser Erklärung].',
+        ]},
       ]},
       { t: 'Erstattungsrichtlinie', b: [
         { list: [
@@ -175,6 +198,7 @@ const de = {
           rows: [
             ['_ga', 'Google Analytics', 'Eindeutige Nutzer unterscheiden (anonymisierte ID)', '12 Monate'],
             ['_ga_*', 'Google Analytics', 'Status der Analyse-Sitzung aufrechterhalten', '12 Monate'],
+            ['ph_*', 'PostHog', 'Produktanalyse und Sitzungsaufzeichnung (Klicks, Routen, Fehler)', '12 Monate'],
           ],
         }},
         { p: 'Google Analytics 4 ist mit IP-Anonymisierung konfiguriert: Die IP-Adresse wird vor der Speicherung gekürzt. Über diese Cookies werden keine personenbezogenen Informationen an Google übertragen.' },
@@ -183,7 +207,7 @@ const de = {
         { p: 'Einige Seiten betten den **TradingView**-Chart über ein iframe von tradingview.com ein. Diese Inhalte liefert TradingView aus; dabei können eigene technische Cookies gemäß der TradingView-Richtlinien gesetzt werden. Auf diese Cookies haben wir keinen Einfluss.' },
       ]},
       { t: 'Werbe- und Dritt-Tracking-Cookies', b: [
-        { p: '**TradingCalculator.pro verwendet keine Werbe-, Retargeting- oder Verhaltens-Tracking-Cookies Dritter.** Wir zeigen keine Werbung Dritter und teilen keine Verhaltensdaten mit Werbenetzwerken.' },
+        { p: '**Wir zeigen keine Werbung Dritter und teilen keine Daten mit Werbenetzwerken; Werbe- und Retargeting-Cookies setzen wir nicht ein.** Wir nutzen jedoch **PostHog** (Produktanalyse und Sitzungsaufzeichnung), um die Nutzung der Plattform zu verstehen und Fehler zu erkennen; es wird nur aktiviert, wenn du nicht-essenzielle Cookies akzeptierst, und du kannst es über das Banner ablehnen.' },
       ]},
       { t: 'Cookies verwalten und deaktivieren', b: [
         { p: 'Die meisten Browser erlauben die Cookie-Verwaltung in den Einstellungen:' },

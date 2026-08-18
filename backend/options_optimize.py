@@ -11,7 +11,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from typing import Optional
-from options_math import option_price, calculate_payoff, find_break_evens, payoff_bounds
+from options_math import (
+    option_price, calculate_payoff, find_break_evens, payoff_bounds, DEFAULT_IV,
+)
 
 DEFAULT_R: float = 0.0525
 SHARES_PER_CONTRACT: int = 100
@@ -123,7 +125,17 @@ def _build_legs_for_strategy(strategy_id: str, chain: list[dict], atm_idx: int,
         if not strike_entry or side not in strike_entry:
             return None
         opt_data = strike_entry[side]
-        if not opt_data or opt_data.get("mid", 0) <= 0:
+        if not opt_data:
+            return None
+        # Una pata sin horquilla no tiene precio, y una sin volatilidad no se
+        # puede valorar: la estrategia entera no es construible sobre esos
+        # datos. Antes se rellenaba la IV con un 0.3 fijo (`or 0.3`) y se
+        # optimizaba sobre una volatilidad que nadie había medido; el ranking
+        # salía de ahí. `mid` puede llegar como None desde el adaptador, así que
+        # la comparación va después de comprobar que existe — `None <= 0` lanza.
+        mid = opt_data.get("mid")
+        iv = opt_data.get("iv")
+        if not mid or mid <= 0 or not iv or iv <= 0:
             return None
         legs.append({
             "type": opt_type,
@@ -131,8 +143,8 @@ def _build_legs_for_strategy(strategy_id: str, chain: list[dict], atm_idx: int,
             "quantity": 1,
             "qty": 1,
             "strike": strike_entry["strike"],
-            "premium": opt_data["mid"],
-            "iv": opt_data.get("iv", 0.3) or 0.3,
+            "premium": mid,
+            "iv": iv,
             "daysToExpiry": days_to_expiry,
         })
     return legs
@@ -175,8 +187,16 @@ def _normal_cdf(x: float) -> float:
 
 
 def _avg_iv(legs: list[dict]) -> float:
-    ivs = [leg.get("iv", 0.3) for leg in legs if leg["type"] != "stock"]
-    return sum(ivs) / len(ivs) if ivs else 0.3
+    """Volatilidad media de las patas de opciones de la estructura.
+
+    `_build_legs` rechaza cualquier estructura con una pata sin IV medida, así
+    que aquí siempre hay volatilidad real. El respaldo sólo cubre el caso
+    degenerado de una estructura sin patas de opciones (sólo acciones), donde la
+    cifra no llega a usarse para nada sensible a la volatilidad.
+    """
+    ivs = [leg["iv"] for leg in legs
+           if leg["type"] != "stock" and leg.get("iv")]
+    return sum(ivs) / len(ivs) if ivs else DEFAULT_IV
 
 
 def _terminal_sigma(legs: list[dict]) -> float:

@@ -9,16 +9,19 @@ import { Shield, FileText, Cookie, ChevronRight, AlertTriangle, Languages } from
 import { useSEO } from '@/hooks/useSEO';
 import { useTranslation } from '@/lib/i18n';
 import { getLegalContent } from '@/lib/legalContent';
+import { LEGAL_ENTITY } from '@/lib/legalContent/entity';
 
 const CONTACT_EMAIL = 'contact@tradingcalculatorpro.com';
 
 // ---------------------------------------------------------------------------
 // Rich-text renderer for the legal content files. Supports:
 //   **bold**  ·  [label](https://url)  ·  {email}  ·  {terms}
+//   {entity}            identidad legal del titular (fuente única: entity.js)
+//   {euRepresentative}  representante del art. 27 RGPD (idem)
 // ---------------------------------------------------------------------------
-const TOKEN_RE = /(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)|\{email\}|\{terms\})/g;
+const TOKEN_RE = /(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)|\{email\}|\{terms\}|\{entity\}|\{euRepresentative\})/g;
 
-function Rich({ text, termsLabel }) {
+function Rich({ text, termsLabel, locale }) {
   const parts = String(text).split(TOKEN_RE);
   return (
     <>
@@ -40,6 +43,12 @@ function Rich({ text, termsLabel }) {
               {CONTACT_EMAIL}
             </a>
           );
+        }
+        if (part === '{entity}') {
+          return <span key={i}>{LEGAL_ENTITY.describe(locale)}</span>;
+        }
+        if (part === '{euRepresentative}') {
+          return <span key={i}>{LEGAL_ENTITY.describeEuRepresentative()}</span>;
         }
         if (part === '{terms}') {
           return (
@@ -71,11 +80,11 @@ function StatCallout({ figure, children }) {
   );
 }
 
-function Block({ block, termsLabel }) {
+function Block({ block, termsLabel, locale }) {
   if (block.p) {
     return (
       <p className="text-muted-foreground text-sm leading-relaxed mb-3">
-        <Rich text={block.p} termsLabel={termsLabel} />
+        <Rich text={block.p} termsLabel={termsLabel} locale={locale} />
       </p>
     );
   }
@@ -84,7 +93,7 @@ function Block({ block, termsLabel }) {
       <ul className="list-disc list-inside space-y-1 mb-3">
         {block.list.map((item, i) => (
           <li key={i} className="text-muted-foreground text-sm leading-relaxed">
-            <Rich text={item} termsLabel={termsLabel} />
+            <Rich text={item} termsLabel={termsLabel} locale={locale} />
           </li>
         ))}
       </ul>
@@ -118,14 +127,14 @@ function Block({ block, termsLabel }) {
   if (block.stat) {
     return (
       <StatCallout figure={block.stat.fig}>
-        <Rich text={block.stat.text} termsLabel={termsLabel} />
+        <Rich text={block.stat.text} termsLabel={termsLabel} locale={locale} />
       </StatCallout>
     );
   }
   return null;
 }
 
-function LegalDocument({ doc, meta, icon: Icon, iconClass, termsLabel }) {
+function LegalDocument({ doc, meta, icon: Icon, iconClass, termsLabel, locale }) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
@@ -145,14 +154,22 @@ function LegalDocument({ doc, meta, icon: Icon, iconClass, termsLabel }) {
         </div>
       )}
 
-      {doc.sections.map((section, i) => (
-        <div key={i}>
-          <SectionTitle number={i + 1} title={section.t} />
-          {section.b.map((block, j) => (
-            <Block key={j} block={block} termsLabel={termsLabel} />
-          ))}
-        </div>
-      ))}
+      {doc.sections
+        .filter((section) => (
+          // El bloque del representante del art. 27 se oculta mientras no haya
+          // uno designado: publicar el epígrafe con la frase cortada a medias
+          // es peor que no publicarlo. Ver lib/legalContent/entity.js.
+          LEGAL_ENTITY.hasEuRepresentative ||
+          !section.b.some((b) => typeof b.p === 'string' && b.p.includes('{euRepresentative}'))
+        ))
+        .map((section, i) => (
+          <div key={section.t}>
+            <SectionTitle number={i + 1} title={section.t} />
+            {section.b.map((block, j) => (
+              <Block key={j} block={block} termsLabel={termsLabel} locale={locale} />
+            ))}
+          </div>
+        ))}
     </div>
   );
 }
@@ -228,6 +245,7 @@ export default function LegalPage() {
                     icon={TAB_META[tab].icon}
                     iconClass={TAB_META[tab].iconClass}
                     termsLabel={termsLabel}
+                    locale={locale}
                   />
                 </CardContent>
               </Card>

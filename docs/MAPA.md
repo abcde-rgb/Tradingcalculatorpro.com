@@ -15,12 +15,12 @@
 | | |
 |---|---:|
 | Módulos del backend | 28 |
-| Líneas de Python (backend) | 23,698 |
+| Líneas de Python (backend) | 23,867 |
 | Rutas declaradas | 202 |
 | **Rutas sin consumidor en el frontend** | **43** |
-| Ficheros de test · funciones de test | 46 · 778 |
+| Ficheros de test · funciones de test | 48 · 785 |
 | Rutas del frontend (`App.js`) | 28 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 6,495 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 6,494 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -90,15 +90,15 @@ esperando una pantalla. Esto es el hueco G-14.
 |---|---:|---:|---|
 | `server.py` | 9,321 | 142 | — |
 | `performance.py` | 1,796 |  | Performance analytics — trade journal, metrics, error detection. |
-| `admin_routes.py` | 1,151 | 25 | admin_routes.py — Endpoints del panel de administración |
+| `admin_routes.py` | 1,205 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
 | `missing_apis.py` | 1,000 | 10 | missing_apis.py |
 | `instruments.py` | 902 |  | instruments.py — qué es cada producto financiero, como dato y no como suposición. |
 | `affiliate_program.py` | 866 | 18 | affiliate_program.py — Programa de Afiliados (pagos mensuales por volumen). |
-| `options_math.py` | 680 |  | Black-Scholes-Merton Option Pricing and Greeks. |
+| `stock_data.py` | 703 |  | Stock data provider — hits Yahoo Finance's JSON API directly (via curl_cffi |
+| `options_math.py` | 688 |  | Black-Scholes-Merton Option Pricing and Greeks. |
 | `backtest.py` | 643 |  | Backtest engine with validation — does this system have an edge, or am I fooling myself? |
-| `stock_data.py` | 616 |  | Stock data provider — hits Yahoo Finance's JSON API directly (via curl_cffi |
-| `options_optimize.py` | 588 |  | Options Strategy Optimizer. |
+| `options_optimize.py` | 608 |  | Options Strategy Optimizer. |
 | `trading_plan.py` | 565 |  | Trading plan: the user's own rules, versioned server-side. |
 | `candle_patterns.py` | 519 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
 | `realtime_alerts.py` | 384 | 3 | realtime_alerts.py — WebSocket-based real-time price alerts. |
@@ -126,31 +126,31 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 
 | Método | Ruta | Línea | Front |
 |---|---|---:|:---:|
-| `GET` | `/admin/campaigns` | 579 | ✅ |
-| `POST` | `/admin/campaigns` | 585 | ✅ |
-| `POST` | `/admin/campaigns/{campaign_id}/send` | 620 | ✅ |
-| `GET` | `/admin/churn-surveys` | 753 | ✅ |
-| `POST` | `/admin/churn-surveys/{survey_id}/follow-up` | 769 | ✅ |
-| `GET` | `/admin/cohorts` | 791 | ✅ |
-| `GET` | `/admin/connectors/status` | 468 | ❌ |
-| `GET` | `/admin/errors` | 971 | ✅ |
-| `POST` | `/admin/errors/{error_id}/resolve` | 997 | ✅ |
-| `GET` | `/admin/gdpr-exports` | 1048 | ✅ |
-| `POST` | `/admin/gdpr-exports/{export_id}/deliver` | 1058 | ✅ |
-| `GET` | `/admin/i18n` | 689 | ✅ |
-| `POST` | `/admin/i18n` | 714 | ✅ |
-| `GET` | `/admin/maintenance` | 942 | ✅ |
-| `POST` | `/admin/maintenance` | 955 | ✅ |
-| `GET` | `/admin/plans` | 887 | ✅ |
-| `POST` | `/admin/plans/{plan_id}` | 910 | ✅ |
-| `GET` | `/admin/public/settings` | 1138 | ✅ |
-| `GET` | `/admin/rate-limits` | 1023 | ✅ |
-| `GET` | `/admin/referrals` | 834 | ✅ |
-| `GET` | `/admin/referrals/leaderboard` | 856 | ✅ |
-| `POST` | `/admin/set-plan` | 348 | ❌ |
-| `POST` | `/admin/settings` | 424 | ✅ |
-| `POST` | `/admin/users/{user_id}` | 376 | ✅ |
-| `GET` | `/admin/users/{user_id}/payments` | 732 | ✅ |
+| `GET` | `/admin/campaigns` | 606 | ✅ |
+| `POST` | `/admin/campaigns` | 612 | ✅ |
+| `POST` | `/admin/campaigns/{campaign_id}/send` | 647 | ✅ |
+| `GET` | `/admin/churn-surveys` | 784 | ✅ |
+| `POST` | `/admin/churn-surveys/{survey_id}/follow-up` | 800 | ✅ |
+| `GET` | `/admin/cohorts` | 822 | ✅ |
+| `GET` | `/admin/connectors/status` | 495 | ❌ |
+| `GET` | `/admin/errors` | 1023 | ✅ |
+| `POST` | `/admin/errors/{error_id}/resolve` | 1049 | ✅ |
+| `GET` | `/admin/gdpr-exports` | 1100 | ✅ |
+| `POST` | `/admin/gdpr-exports/{export_id}/deliver` | 1110 | ✅ |
+| `GET` | `/admin/i18n` | 716 | ✅ |
+| `POST` | `/admin/i18n` | 745 | ✅ |
+| `GET` | `/admin/maintenance` | 994 | ✅ |
+| `POST` | `/admin/maintenance` | 1007 | ✅ |
+| `GET` | `/admin/plans` | 918 | ✅ |
+| `POST` | `/admin/plans/{plan_id}` | 943 | ✅ |
+| `GET` | `/admin/public/settings` | 1190 | ✅ |
+| `GET` | `/admin/rate-limits` | 1075 | ✅ |
+| `GET` | `/admin/referrals` | 865 | ✅ |
+| `GET` | `/admin/referrals/leaderboard` | 887 | ✅ |
+| `POST` | `/admin/set-plan` | 375 | ❌ |
+| `POST` | `/admin/settings` | 451 | ✅ |
+| `POST` | `/admin/users/{user_id}` | 403 | ✅ |
+| `GET` | `/admin/users/{user_id}/payments` | 763 | ✅ |
 
 ### `backend/affiliate_program.py` — 18 rutas
 
@@ -403,7 +403,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/dashboard/` | 8 | 989 |
 | `components/desk/` | 6 | 1,553 |
 | `components/education/` | 78 | 13,036 |
-| `components/integrations/` | 2 | 188 |
+| `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 586 |
 | `components/options/` | 36 | 7,902 |
@@ -412,7 +412,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 46 | 2,946 |
-| `pages/` | 22 | 15,720 |
+| `pages/` | 22 | 15,814 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -423,16 +423,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 9,321 |
 | `frontend/src/pages/EducationPage.jsx` | 5,505 |
-| `frontend/src/lib/i18n/ar.js` | 4,409 |
-| `frontend/src/lib/i18n/de.js` | 4,409 |
-| `frontend/src/lib/i18n/en.js` | 4,409 |
-| `frontend/src/lib/i18n/es.js` | 4,409 |
-| `frontend/src/lib/i18n/fr.js` | 4,409 |
-| `frontend/src/lib/i18n/ja.js` | 4,409 |
-| `frontend/src/lib/i18n/ru.js` | 4,409 |
-| `frontend/src/lib/i18n/zh.js` | 4,409 |
+| `frontend/src/lib/i18n/ar.js` | 4,408 |
+| `frontend/src/lib/i18n/de.js` | 4,408 |
+| `frontend/src/lib/i18n/en.js` | 4,408 |
+| `frontend/src/lib/i18n/es.js` | 4,408 |
+| `frontend/src/lib/i18n/fr.js` | 4,408 |
 | `frontend/src/lib/i18n/it.js` | 4,408 |
+| `frontend/src/lib/i18n/ja.js` | 4,408 |
 | `frontend/src/lib/i18n/pt.js` | 4,408 |
+| `frontend/src/lib/i18n/ru.js` | 4,408 |
+| `frontend/src/lib/i18n/zh.js` | 4,408 |
 
 ## Verificadores del repositorio
 

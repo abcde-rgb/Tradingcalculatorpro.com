@@ -94,6 +94,32 @@ Los usa el despliegue del backend (`cloudbuild.yaml`, manual desde GCP):
 - [ ] (Hardening C-08) Asegurar que las claves Stripe **no** se sobreescriben desde la DB
       (`app_settings`); usar solo Secret Manager.
 
+### E-bis. IVA y desistimiento — **obligatorio antes de la primera venta** 🔴
+
+Desde la auditoría del 2026-08-10, `_create_stripe_checkout_session` manda
+`automatic_tax`, `tax_id_collection`, `billing_address_collection` y
+`consent_collection`. Esos cuatro campos **fallan la creación de la sesión** si
+lo de abajo no está hecho en el dashboard de Stripe:
+
+- [ ] **Stripe Tax activado** (Settings → Tax). Sin él, `automatic_tax.enabled`
+      devuelve error y el checkout no abre.
+- [ ] **Dirección de origen y categoría de producto** configuradas en Stripe Tax
+      (servicio digital / *electronically supplied services*).
+- [ ] **Alta en la ventanilla única del IVA** — para una LLC estadounidense que
+      vende a consumidores de la UE, el régimen **OSS exterior a la Unión**
+      (non-Union OSS). Sin el alta se recauda el impuesto y no hay dónde
+      declararlo, que es peor que no recaudarlo.
+- [ ] **URL de Términos y de Privacidad** en Stripe (Settings → Public details).
+      `consent_collection.terms_of_service = "required"` pinta la casilla de
+      aceptación y **exige** que esa URL exista.
+- [ ] Comprobar en una sesión de prueba que el IVA aparece **desglosado** antes
+      de confirmar: los Términos dicen que el total mostrado es el que se cobra.
+
+> Por qué está aquí: se vendían servicios digitales B2C en euros sin determinar
+> el país del cliente ni repercutir el tipo de destino. Cada suscripción
+> devengaba un IVA no recaudado — un pasivo que crece con las ventas y que luego
+> se paga del margen y con recargo.
+
 ## F. Google OAuth 🔴
 
 - [ ] En Google Cloud Console → Credenciales → OAuth client:

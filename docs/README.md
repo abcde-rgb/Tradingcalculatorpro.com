@@ -78,9 +78,11 @@ Fotos de un momento concreto. Se leen por su fecha, no como estado actual.
 |---|---|
 | [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) | 2026-08-13 — **lo obsoleto, lo perdido en ramas sin fusionar y lo que se pasó por alto** |
 | [`AUDITORIA_DIARIO.md`](./AUDITORIA_DIARIO.md) | 2026-08-06 — auditoría del diario de operaciones |
+| [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md) — integral: contenido, cálculos, APIs, datos, normativa y admin | 2026-08-10 |
 | [`EXAMEN_FINAL_2026-07-26.md`](./EXAMEN_FINAL_2026-07-26.md) | 2026-07-26 |
 | [`AUDITORIA_2026-07-27.md`](./AUDITORIA_2026-07-27.md) | 2026-07-27 |
 | [`BACKLOG_AUDITORIA_2026-07-27.md`](./BACKLOG_AUDITORIA_2026-07-27.md) | 2026-07-27 |
+| [`COMPETENCIA_Y_PASARELA_BROKERS.md`](./COMPETENCIA_Y_PASARELA_BROKERS.md) — diario/setups/analítica frente a la competencia, pasarela de solo lectura y modelos de ingreso de brokers | 2026-08-11 |
 | [`ANALISIS_COMPETENCIA_2026-07-19.md`](./ANALISIS_COMPETENCIA_2026-07-19.md) | 2026-07-19 |
 | [`ANALISIS_2026-06-25.md`](./ANALISIS_2026-06-25.md) | 2026-06-25 |
 | [`ROADMAP_IDEAS.md`](./ROADMAP_IDEAS.md) | sin fecha |

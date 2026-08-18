@@ -15,6 +15,11 @@
 >   multiproducto que sí está fusionado** — no lo fusiones. Inventario completo en
 >   [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) §2.
 >   El hook de arranque te lo recuerda en cada sesión.
+> - 📅 **Última verificación real contra el código:** 2026-08-10 (auditoría integral: contenido,
+>   cálculos, APIs, fuentes de datos, normativa y admin — ver
+>   [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md); antes 2026-08-08,
+>   persistencia de los ajustes del usuario)
+> - 🌿 **Rama de trabajo actual:** `claude/project-complete-audit-a6qg1c`
 >
 > ⚠️ **Aviso de método (2026-07-27, otra vez el 2026-08-03, y atacado de raíz el
 > 2026-08-13).** Las §1, §2 y §6 se quedaban por detrás del código mientras el registro
@@ -3010,3 +3015,1138 @@ Lo hecho:
   (para admin, usar `ADMIN_EMAILS`).
 - ✅ Verificado: 10 tests afiliados; import 178 rutas; `check_premium`/`_is_paying_member` True para el
   correo comp y False para un usuario gratis normal.
+### 2026-08-03 (2) — Revisión de toda la documentación contra el código de `main`
+Petición del propietario: revisar y estudiar **todos** los documentos del repositorio,
+actualizarlos y redactar qué falta a día de hoy comparado con el código real. Sin
+tocar código de producto: esta sesión sólo mide y corrige documentación.
+
+**Cómo se ha medido** (no de memoria: ejecutado sobre `main` @ `7864406`):
+`pytest` **503 passed / 74 skipped** · `import server` → **195 rutas** · `py_compile`
+de los **24** módulos · ESLint **0 errores / 126 avisos** · `i18n-check` **5652 × 10,
+0 huecos** · `engine-check` **60/60** · `npm run build` exit 0 → **1589 URLs**, 38 MB ·
+`check-doc-links` 47 documentos, 0 roturas.
+
+- ✅ **§1, §2, §4 y §5 reescritas con cifras medidas.** La deriva era grande y toda
+  en la misma dirección —el documento se quedaba corto—: 16 módulos declarados
+  contra 24 reales, 15 508 líneas contra 19 831, `server.py` 7377 contra 8232, 181
+  rutas contra 195, 345 tests contra 503, 5635 claves i18n contra 5652, 24 rutas de
+  frontend contra 26, 28 componentes de opciones contra 37.
+- ✅ **§6 ya no manda dar de alta AdSense.** Sobrevivió un día entero al borrado de
+  la publicidad. Es literalmente el fallo que el aviso de la cabecera denuncia con
+  OxaPay, repetido con otro nombre, así que en su lugar queda una nota que lo
+  explica en vez de un hueco silencioso.
+- ✅ **G-02 y G-04 cerrados con prueba**, no por antigüedad: 503 tests en 34 ficheros
+  y `test_route_uniqueness_unit.py` en verde sobre las 195 rutas. De paso queda
+  anotado que las 2 caídas de ese test que registraron las sesiones del 2026-08-02
+  eran del contenedor de aquel día: aquí pasa.
+- ✅ **Seis huecos nuevos (G-14 … G-19)**, todos verificados en el código:
+  - **G-14 es el grande.** `trading_plan.py`, `backtest.py`, `portfolio_risk.py` y
+    `american_options.py` —**~1770 líneas**, enrutadas y con tests— no los llama
+    **nadie** desde el frontend. Grep de los ocho endpoints en `frontend/src`: cero
+    resultados. `perfFeatBacktesting` en `PerformancePage` es una viñeta de
+    marketing, no una pantalla; `rule_compliance_rate` sale de `performance.py`, no
+    del plan de trading. Es trabajo terminado que no llega al usuario.
+  - **G-15**: `trading_plans` guarda `user_id` y tiene índice propio, pero no está
+    en `delete_account`, ni en `_USER_DATA_COLLECTIONS`, ni en `/auth/my-data`.
+    Borrar la cuenta deja los planes en la base de datos. Es la misma trampa que
+    ya obligó a listarla a mano en `known`: la colección se añadió tarde y sólo se
+    enchufó donde daba error inmediato.
+  - **G-16** (Grupo B: Yahoo sigue sirviendo acciones, índices, materias primas y
+    la cadena de opciones), **G-17** (el shim `Collection` sigue sin tests y por eso
+    bloquea el refactor), **G-18** (`check-doc-links.py` no corre en CI) y **G-19**
+    (`on_event` y `class Config` deprecados).
+- ✅ **Documentos hermanos corregidos**: `PENDIENTES.md` (Binance ya estaba hecho y
+  seguía en la lista; dos referencias a documentos inexistentes), `docs/README.md`
+  (tamaños), `CLAUDE.md` (faltaban `crypto_data.py` y `ecb_rates.py` en la tabla de
+  módulos) y `DEPLOY_CHECKLIST.md` (§G afirmaba que `frontend/public/CNAME` ya
+  existe y tres párrafos después decía lo contrario; no existe).
+- ℹ️ **Los documentos fechados no se han tocado**, por convención: `AUDITORIA_2026-07-27`,
+  `BACKLOG_AUDITORIA_2026-07-27` y `EXAMEN_FINAL_2026-07-26` describen lo que era
+  cierto entonces. Lo que de ellos sigue abierto se ha traído a §3 y §5, que es
+  donde se mira.
+- ⚠️ **Nada de esto se ha probado contra la red**: el sandbox sólo deja salir a los
+  registros de paquetes. Lo verificado es lo que corre offline.
+### 2026-08-05 — El login dependía de una variable de entorno del despliegue
+Reportado por el propietario: no se puede iniciar sesión. Causa raíz y detalle en
+[`DIARIO_BUGS.md`](./DIARIO_BUGS.md) (BUG-037); aquí lo que hay que saber para no
+repetirlo.
+
+- 🔍 **Cómo se encontró.** Leyendo el código no salía: el flujo de login es
+  correcto de punta a punta. Se levantó el backend contra un PostgreSQL real y se
+  reprodujo el login en Chromium sobre el build de producción, servido bajo la
+  misma ruta base que GitHub Pages (`/Tradingcalculatorpro.com`). Registro, login,
+  muro de pago, cookies, recarga y refresh silencioso: todo verde. El fallo sólo
+  aparece al mandar el `Origin` **real** de producción.
+- ⚠️ **Por qué nadie lo vio antes.** Sin cabecera CORS el backend responde **200 y
+  con las cookies puestas**; es el navegador quien tira la respuesta. En los logs
+  de Cloud Run el login se ve perfecto, y `curl` tampoco lo reproduce porque
+  ignora CORS. En pantalla sale «No se puede conectar al servidor», que manda a
+  investigar la red en vez de la configuración.
+- ✅ **El origen servido entra por código.** `https://abcde-rgb.github.io` estaba
+  sólo en la variable `CORS_ORIGINS` del despliegue, y la lista del código
+  contenía únicamente el dominio propio, **que no está en uso**. Desde el
+  2026-08-03 el backend se despliega a mano: un `gcloud run deploy` sin
+  `--set-env-vars` borra las variables y tumba el login del sitio entero.
+- ✅ **`FRONTEND_URL` unificada.** Caía a `https://tradingcalculatorpro.com` en
+  cuatro puntos de `server.py` y en `_trusted_link_base` de `missing_apis.py` —un
+  dominio que no se sirve—, así que la misma variable perdida mandaba los enlaces
+  de verificación, reset y magic link a la nada. Ahora hay una sola constante,
+  `DEFAULT_FRONTEND_URL`, con el mismo valor que ya ponía el despliegue.
+- 🔒 **La seguridad no se relaja.** La lista sigue siendo fija y nunca derivada de
+  la petición: `evil.com` sigue sin recibir cabecera (verificado), y los tests de
+  host-header injection de `_trusted_link_base` siguen en verde.
+- ✅ **Verificado**: `pytest` **506 passed / 74 skipped** (+3) · `py_compile` de los
+  24 módulos · preflight `OPTIONS` y `POST` desde el origen real **sin ninguna
+  variable de entorno** → `access-control-allow-origin` correcto · login en
+  Chromium sobre el build de producción, con recarga y `/performance` · ESLint 0
+  errores · i18n 10/10 · enlaces de doc OK.
+- ⏭️ **Queda para operación**: al desplegar el backend a mano, `cloudbuild.yaml`
+  sigue siendo la vía correcta porque lleva las variables. El arreglo hace que el
+  login sobreviva a un despliegue que se las olvide, no sustituye a desplegar bien.
+
+### 2026-08-05 (2) — Escáner de estructura: reorganizado y con confluencia multi-temporal
+Petición del propietario: reestructurar el escáner de estructura, dejarlo claro y ver
+qué más se le puede añadir. Manual completo en
+[`ESCANER_ESTRUCTURA.md`](./ESCANER_ESTRUCTURA.md) (§1b para el código, §5c para lo nuevo).
+
+- 🧱 **`price_action.py` apilado en el orden en que fluyen los datos**, con el índice
+  en el docstring: ayudantes → swings → estructura → rupturas → niveles → evidencia →
+  desequilibrios → breakouts → **confluencia** → **contexto** → entrada pública. Antes
+  los ayudantes (`_avg_true_range`) vivían por debajo de quien los llamaba.
+- 🧩 **La interfaz deja de ser un archivo de 730 líneas.** `StructureScanner.jsx` pasa
+  a **componer y nada más** (~200 líneas); la tabla de tickers, los mapas de color, el
+  hook de escaneo y los ocho paneles viven en `components/charts/structure/`.
+  **El orden es la funcionalidad**, como en el panel de opciones: 1 configurar →
+  2 lectura → 3 niveles → lo accesorio en `SectionCard` **plegado y con contador**.
+  Antes los ocho bloques se apilaban abiertos y con el mismo peso: la respuesta
+  («¿estoy comprando contra una resistencia?») había que buscarla.
+- ✅ **Confluencia multi-temporal** — era la mejora #1 pendiente del manual. Cada
+  escaneo lee **en paralelo** el escalón superior (`timeframes.higher`: 15m→1h,
+  4h→1d, 1d→1wk…) y marca los niveles que coinciden. **No suma a la puntuación de
+  confirmación** —esa mide sólo las velas escaneadas—, y si la segunda petición falla
+  el escaneo principal sigue: `confluence.checked = false` y `counts.confluent = null`,
+  porque *sin comprobar* y *comprobado sin coincidencias* no son lo mismo.
+- ✅ **Huecos de sesión**: en intradía de acciones, el salto del cierre a la apertura
+  siguiente pasaba el test de FVG **todas las noches**. Ahora se detecta por
+  `ts` (nunca por precio), se etiqueta y **no cuenta** como desequilibrio abierto.
+  En velas diarias no se aplica: ahí un viernes→lunes sí es un hueco de verdad.
+- ✅ **Rupturas repetidas numeradas** (`repeat` / `repeatOf`): tres cruces del mismo
+  máximo se leían como tres pruebas de fuerza y son lo contrario. Una fila con `×N`.
+- ✅ **El nivel es una zona** (`zone.low`/`high`, la misma banda con la que se agrupó)
+  y la distancia va también **en ATR**; un 1 % no significa lo mismo en un índice que
+  en una small cap.
+- ✅ **Bloque `context`**: recorrido hasta el nivel más cercano por lado (% y ATR),
+  anchura del rango y posición dentro de él (0 % = sobre el soporte, 100 % = sobre la
+  resistencia). Lo que no se puede calcular es `null`, nunca `0`: sin nivel arriba, el
+  recorrido es indefinido, y un `0 %` se leería como «resistencia justo aquí».
+- 🐛 **La respuesta vacía del endpoint no tenía la forma que el manual prometía.** El
+  motor sí, pero la ruta construía a mano un diccionario de cinco claves cuando el
+  proveedor no devolvía velas o fallaba. Corregido y fijado por test de ruta.
+- ✅ **Verificado**: `pytest` **534 passed / 74 skipped** (+28: 18 de acción del precio,
+  4 de la escalera y 6 de ruta con el lector OHLC mockeado) · `py_compile` de los 24
+  módulos · ESLint **0 errores** · `i18n-check` **5681 claves × 10 idiomas, 0 huecos**
+  (+29) · `npm run build` exit 0 → 1589 URLs.
+- ⚠️ **Sin humo de navegador**: el proveedor de OHLC está bloqueado en el sandbox, así
+  que la interfaz nueva no se ha visto con datos reales. Lo verificado es lo que corre
+  offline; el contrato de la ruta está cubierto por test con el lector mockeado.
+
+### 2026-08-05 (3) — Los setups llegan a Performance
+Petición del propietario: *"setup lo quiero en performance"*. Los setups se definían
+en la Academia y **morían ahí**: el diario pedía el setup como texto libre, así que el
+desglose por setup de la analítica agrupaba lo que cada uno hubiera tecleado esa vez.
+
+- 🧩 **El modelo pasa a `lib/tradingSystem.js`** (estaba en `components/education/`).
+  Los setups no son un tema de la Academia: se **definen** allí y se **usan** en el
+  diario, así que las dos pantallas importan el mismo modelo en vez de que una meta la
+  mano en la carpeta de la otra. `engine-check.js` actualizado.
+- ✅ **Nueva pestaña "Setups"** en `/performance`, junto a Diario y Analítica. Arriba el
+  marcador —qué ha hecho cada setup en el diario— y debajo el constructor. Es el
+  **mismo componente** que monta la Academia, leyendo el mismo almacén: definir un setup
+  en cualquiera de los dos sitios lo deja disponible en el otro, sin duplicar 541 líneas.
+- ✅ **El campo `setup` del diario deja de ser texto libre a ciegas**: `datalist` +
+  botones con los setups definidos, que escriben el nombre EXACTO. Sigue admitiendo
+  texto libre —una operación vieja o un setup que aún no está en el sistema tienen que
+  poder guardarse—, pero teclearlo a mano cada vez es lo que rompía la medición:
+  "Ruptura NY", "ruptura ny" y "Rupt NY" eran tres grupos y ninguno con muestra.
+- ✅ **`joinSetupPerformance()`** cruza la librería con `analytics.by_setup` y separa
+  tres cosas que no son la misma:
+  - **definido y operado** → sus números (nº de ops., acierto, PnL);
+  - **definido y sin operar** → **sin muestra**, que NO es un 0 % de acierto y no se
+    dibuja como tal;
+  - **operado sin estar en el sistema** → aviso ámbar: o es una errata (y entonces esas
+    operaciones le faltan al setup de verdad) o es una operación fuera del plan.
+  Las operaciones cerradas **sin setup** van a su propio contador: es un dato que falta,
+  no indisciplina. El emparejamiento ignora mayúsculas y espacios.
+- ✅ **Verificado**: `engine-check` **66/66** (+6, todos del cruce librería×diario) ·
+  ESLint 0 errores · `i18n-check` **5698 claves × 10 idiomas, 0 huecos** (+17) ·
+  `npm run build` exit 0 → 1589 URLs · `pytest` sin tocar (no hay cambio de backend).
+- ⚠️ **Sigue siendo `localStorage`.** Los setups no viajan entre dispositivos, no están
+  en el export del RGPD y se pierden al limpiar el navegador. El sitio donde deberían
+  vivir ya existe y está escrito: `trading_plan.py` con `POST /plan` y `/plan/compliance`,
+  sin interfaz (G-14). Conectar el constructor a ese endpoint es el siguiente paso
+  natural, y arrastra G-15 (`trading_plans` no está en las tres listas del RGPD).
+- ⚠️ **Sin humo de navegador**: la pestaña exige sesión y la analítica sale del backend;
+  lo verificado es lo que corre offline.
+
+### 2026-08-05 (4) — Una operación puede llevar más de un setup
+Petición del propietario: *"el setup quiero que pueda seleccionar más de una opción"*.
+Entrar por la confluencia de dos condiciones es tan real como entrar por una, y el
+diario obligaba a elegir: la otra razón no existía para la analítica.
+
+- ✅ **`setups` (lista) es la fuente de verdad** en el trade; `setup` (cadena) se
+  conserva en sincronía para todo lo que ya leía un solo texto: CSV, prompt del AI
+  Coach y tabla del diario. **No hay nada que migrar**: una operación antigua que sólo
+  guardó la cadena se lee igual de bien (`trade_setups`).
+- ✅ **El desglose por setup cuenta la operación en CADA uno de sus setups** — es la
+  pregunta que responde ("¿cómo va este setup?"). Eso hace que la suma de los grupos
+  sea mayor que el número de operaciones, así que la respuesta publica
+  `setups_multi_tagged` y la interfaz lo dice en una línea, en vez de dejar que se lea
+  como un reparto. `_group_winrate_by` pasa a ser un caso particular de
+  `_group_winrate_by_multi`.
+- ✅ **Normalización en un solo sitio** (`normalize_setups`): recorta, ignora vacíos,
+  quita el separador de dentro de un nombre —si no, volvería como dos setups— y
+  **deduplica sin distinguir mayúsculas**: "Ruptura NY" tecleado dos veces es un setup,
+  no dos. Máximo 5 por operación. La ruta de edición recalcula lista y cadena juntas:
+  editadas por separado, la analítica agrupa por una y la tabla enseña la otra.
+- ✅ **Formulario**: los setups definidos son botones que se marcan y desmarcan, lo
+  elegido se ve como etiquetas quitables, y sigue habiendo campo libre para añadir uno
+  que no esté en el sistema. La tabla del diario pinta etiquetas (2 + «+N»).
+- ✅ **Funciona también contra el backend actual**, que aún no conoce `setups`: el
+  cliente manda las dos formas, el backend viejo guarda la cadena unida y
+  `joinSetupPerformance` la parte por el separador y acredita a cada setup —con las
+  sumas rehechas, no promediadas—. Al desplegar el backend, los grupos ya llegan
+  partidos y el reparto del cliente pasa a ser un no-op.
+- ✅ **Verificado**: `pytest` **540 passed / 74 skipped** (+6 del multi-setup) ·
+  `engine-check` **76/76** (+10) · ESLint 0 errores · `i18n-check` **5703 claves × 10
+  idiomas, 0 huecos** (+5) · `npm run build` exit 0.
+- ⚠️ **Requiere desplegar el backend a mano** (`cloudbuild.yaml`) para que `setups`
+  llegue a la base de datos como lista. Hasta entonces, todo se guarda en la cadena.
+
+### 2026-08-05 (5) — Setup, diario y analítica, cogidos de la mano
+Recordatorio del propietario: los tres tienen que ir juntos. Auditado el ciclo
+completo (**definir → registrar → medir → volver al setup**) y cerradas las tres
+costuras que quedaban abiertas.
+
+- ✅ **El diario juzga con las reglas DEL setup, no con dos constantes.** El
+  formulario avisaba con `R:R < 1,5` y `riesgo > 2 %` fijos mientras el usuario tenía
+  escrito en su propio setup "R:R mínimo 2, riesgo 1 %": dos reglas distintas para la
+  misma operación, la que se puso y la que le juzgaba. Ahora manda la suya
+  (`setupRulesFor`), con **varios setups gana la más estricta de cada una** —si la
+  operación responde a dos condiciones tiene que cumplir las dos— y el umbral se pinta
+  con su procedencia: en azul si es tuya, apagado si es el valor por defecto. Una regla
+  propia se respeta; una constante ajena se ignora.
+- ✅ **Del número a la muestra.** Pinchar un setup —en el marcador de la pestaña Setups
+  o en el desglose de la analítica— abre el diario **filtrado por ese setup**, con su
+  etiqueta y una × para quitarlo. Antes el marcador daba un número y dejaba al usuario
+  buscando a mano en la tabla qué operaciones había detrás. Filtrar sin coincidencias
+  dice «ninguna operación con ese setup», que no es lo mismo que «no tienes operaciones».
+- ✅ **La analítica dice lo mismo que el marcador.** El aviso de solape
+  (`setups_multi_tagged`) estaba sólo en la pestaña Setups; dicho en un sitio y callado
+  en el otro, los dos números se leen como si uno estuviera mal. Y la barra del desglose
+  se acota al 100 %: con multi-etiqueta un grupo puede superar el total de operaciones
+  y la barra se salía del contenedor (el porcentaje impreso sigue siendo el real).
+- ✅ **Verificado**: `engine-check` **83/83** (+7 de las reglas por setup) · `pytest`
+  **540 passed / 74 skipped** · ESLint 0 errores · `i18n-check` **5711 claves × 10
+  idiomas, 0 huecos** (+8) · `npm run build` exit 0.
+- ⏭️ **Lo que sigue sin cerrar del ciclo** (necesita el backend, G-14): las reglas de
+  cuenta del sistema —pérdida máxima diaria y semanal, condiciones de no-operar,
+  exposición correlacionada— se definen en el constructor y **no** juzgan nada todavía;
+  `detect_errors` sigue usando el plan del backend, que no tiene interfaz. Conectar
+  `SetupBuilder` con `POST /plan` cierra eso y de paso arregla G-15.
+
+### 2026-08-05 (6) — Proyección a futuro sobre la operativa real
+Petición del propietario: que **todo sea variable** pero que **calcule real**, y que
+haga previsiones a futuro cruzando setup, diario y analítica (decisiones, TP, SL).
+
+- ✅ **Nueva pestaña "Proyección"** en `/performance`, la última a propósito: proyectar
+  antes de tener diario y analítica es justo el error que el panel intenta evitar.
+- ✅ **Todo variable, todo con origen.** Acierto, payoff, riesgo por operación, número de
+  operaciones, saldo y capitalización son editables, pero **arrancan en lo que mide tu
+  diario** y cada campo lleva una etiqueta: `medido` (con el tamaño de muestra detrás) o
+  `supuesto` (lo has cambiado tú). Confundir una medición con una hipótesis es lo que
+  hace que alguien dimensione una cuenta real contra un número inventado. Un botón
+  devuelve cada campo a su valor medido.
+- ✅ **Se proyecta una DISTRIBUCIÓN, no una línea.** Monte Carlo (motor compartido con el
+  simulador, 5000 secuencias, **semilla fija** para que los mismos números den siempre el
+  mismo dibujo): mediana, percentil 5 y 95 del ROI, drawdown máximo mediano y del 5 %
+  peor, probabilidad de acabar en verde y **riesgo de ruina** (perder la mitad de la
+  cuenta, no llegar a cero: de una cuenta partida por la mitad ya casi nadie vuelve).
+- ✅ **La cuenta que decide, aparte**: esperanza por operación en R y en dinero, **acierto
+  de equilibrio** para ese payoff —«por debajo del 36 %, este setup pierde», que es una
+  frase accionable— y el margen entre tu acierto y ese equilibrio.
+- ✅ **Sensibilidad a la decisión**: qué le pasa a la esperanza si el acierto se mueve
+  ±5/±10 puntos con el payoff actual. Cerrar antes sube el acierto y baja el payoff;
+  aguantar al objetivo hace lo contrario — es el enlace entre las métricas y lo que uno
+  **hace** con el TP y el SL.
+- ✅ **Se puede proyectar POR SETUP.** Para eso, `by_setup` publica ahora `avg_win`,
+  `avg_loss`, `payoff`, `avg_r` y `r_sample` por grupo: una proyección construida sobre
+  los números globales no es una proyección de ese setup. Sin operaciones perdedoras el
+  payoff es `null` (desconocido), nunca 0. Y el riesgo por operación sale del **setup**
+  cuando lo tiene escrito.
+- ✅ **La muestra manda.** Por debajo de 30 operaciones cerradas se avisa en ámbar; por
+  debajo de 10 **no se proyecta nada**: una previsión sobre cuatro operaciones no es una
+  previsión con mucho error, es ruido con formato de gráfico.
+- ✅ **`starting_balance` y `current_balance` se publican** en la analítica: la proyección
+  arranca del dinero real del usuario, no de una cifra redonda inventada.
+- ✅ **Verificado**: `engine-check` **106/106** (+23 del motor de proyección: esperanza,
+  equilibrio, muestra mínima, medido vs supuesto, determinismo y ventaja negativa →
+  ruina) · `pytest` **543 passed / 74 skipped** (+3) · ESLint 0 errores · `i18n-check`
+  **5752 claves × 10 idiomas, 0 huecos** (+41) · `npm run build` exit 0.
+- ⚠️ **Límites declarados en pantalla**: se remuestrea la muestra propia suponiendo que el
+  futuro se parece al pasado y que las operaciones son independientes —no lo son del
+  todo—, y la simulación sigue operando por debajo de cero, así que un ROI bajo −100 % es
+  aritmética; ahí lo que vale es la probabilidad de ruina.
+- ⏭️ **Pendiente para cerrar del todo el bucle**: usar MAE/MFE (`excursion`) para
+  proyectar «¿y si el stop fuera 0,8R?» con datos reales por operación, no sólo variando
+  el payoff a mano. El backend ya calcula la excursión; falta llevarla a este panel.
+
+### 2026-08-05 (7) — Reglas de caja: aportar, topar y sacar el exceso
+Petición del propietario: que el setup permita **sacar excesos mensuales**, poner
+**topes de rentabilidad mensual en %** y meter una **aportación fija mensual**.
+
+- ✅ **Tres reglas nuevas en el sistema** (Setups → Reglas, sección «Caja»):
+  aportación fija mensual, tope de rentabilidad mensual en % y retirada de todo lo
+  que pase de un saldo. Van al resumen copiable del sistema, como el resto de reglas.
+  Vacío = **no aplica** (`null`), que no es 0: un tope del 0 % pararía la cuenta el
+  primer día y un techo de retirada de 0 la vaciaría entera.
+- ✅ **La proyección las aplica de verdad.** El motor pasa a simular **meses**, no sólo
+  operaciones: al principio de cada mes entra la aportación, durante el mes se deja de
+  operar si se alcanza el tope, y al cierre se retira lo que pase del techo. El
+  simulador general no servía —no sabe de meses—, así que la proyección lleva su propio
+  recorrido, que se reduce exactamente al caso de siempre cuando no hay ninguna regla.
+- ✅ **Tres decisiones que cambian el número y por eso se explican en el código**:
+  - el **drawdown** ajusta el máximo histórico en cada movimiento de caja — meter 500 €
+    no borra una caída y sacar 500 € no es una pérdida de 500 €; sin eso, aportar
+    mensualmente disimularía el drawdown entero;
+  - la **ruina** se mide contra el dinero realmente puesto (inicial + aportado), no
+    contra el saldo del primer día: quien lleva dos años aportando ha arriesgado mucho
+    más que su saldo inicial;
+  - el **ROI** es sobre el capital aportado y se publica además el **patrimonio**
+    (saldo + retirado): sin eso, retirar el exceso parece empeorar el resultado cuando
+    lo que hace es ponerlo a salvo.
+- ✅ **Aportado y meses son distribuciones, no cifras fijas.** Un mes que se corta al
+  llegar al tope deja operaciones sin hacer, así que completar las mismas operaciones
+  lleva más meses — y más aportaciones. Publicar «aportarás 3.600» cuando en la mitad de
+  los casos son 5.700 sería mentir sobre el dinero que hay que poner.
+- ✅ **El ritmo mensual se mide, no se inventa**: `trades_per_month` sale del histórico
+  real y es `None` si el diario no cubre 21 días — la diferencia entre «no lo sé» y
+  «cero al mes».
+- ✅ **Verificado**: `engine-check` **120/120** (+14 de las reglas de caja: aportación
+  pagada cada mes, tope que corta meses y recorta también el lado bueno, techo de
+  retirada que el saldo no supera, patrimonio que cuenta lo retirado, y que retirar no
+  inventa dinero) · `pytest` **545 passed / 74 skipped** (+2) · ESLint 0 errores ·
+  `i18n-check` **5770 claves × 10 idiomas, 0 huecos** (+18) · `npm run build` exit 0.
+
+### 2026-08-05 (8) — Modelo por mes/trimestre/año y el precio de la caja
+Petición del propietario: analizar los resultados que da el panel, estudiar si el R:R se
+mide mejor por operación o sobre el conjunto mensual, modelar **trimestre y año**, y que
+el trader entienda por qué esto es lo que más le da a largo plazo.
+
+- 🐛 **Bug encontrado ejecutando el análisis, no leyendo el código.** La ruina se medía
+  sobre el SALDO de la cuenta: quien retira el exceso todos los meses deja el saldo
+  pegado al techo a propósito, así que salía **«ruina 100 %»** teniendo el triple fuera.
+  Ahora se mide sobre el **patrimonio** (saldo + retirado) contra el dinero puesto
+  (inicial + aportado), y se publica aparte **`probabilityOfAccountWiped`**: quedarse sin
+  cuenta con la que operar es otro suceso, y quien retira puede sufrirlo sin arruinarse.
+- ✅ **Rendimiento por periodo (mes / trimestre / año)**, compuesto y no sumado —un +10 %
+  seguido de un −10 % no es 0, es −1 %—: típico, malo (p5), bueno (p95) y **porcentaje de
+  periodos en rojo**, que es lo que hay que aguantar para llegar al resultado final.
+- ✅ **«¿Cada cuánto llego al objetivo?»** Un objetivo mensual se traduce a su compuesto
+  trimestral y anual (10 % mensual = 33 % trimestral = **214 % anual**) y se dice qué
+  porcentaje de periodos lo alcanza. Es la forma de ver que un número «normal» al mes es
+  extraordinario al año.
+- ✅ **El precio de la caja** (`cashflowCost`): con los MISMOS números, patrimonio mediano
+  aplicando las reglas del usuario frente a dejarlo componer. En el escenario de prueba
+  (0,5 R por operación, 20 ops/mes, 5 años) sale **$70.000 retirando** frente a
+  **$3.477.121 componiendo**: ×50. Las dos son decisiones legítimas —lo retirado ya no lo
+  pierde una racha— pero la diferencia se subestima siempre porque la intuición es lineal
+  y el compuesto no.
+- 📊 **Estudio del R:R por operación vs agregado mensual** (números en la respuesta de la
+  sesión): con el MISMO 0,5 R por operación, pasar de 5 a 40 operaciones al mes lleva la
+  mediana mensual del 2,5 % al 22 % y los meses en rojo del 18,6 % al 1,9 %. **Miden cosas
+  distintas**: el R:R por operación mide la ventaja (converge rápido, ~240 datos al año);
+  el agregado mensual mide lo que esa ventaja produce en tu calendario (12 datos al año,
+  converge 20 veces más lento — por eso hay que simularlo). Un tope o una retirada
+  mensuales se deciden con el segundo, nunca con el primero.
+- ✅ **Verificado**: `engine-check` **133/133** (+13: ruina bien medida con retiradas,
+  cuenta arrasada, periodos compuestos y no sumados, menos periodos rojos al alargar el
+  periodo, la traducción 10 %→33 %→214 % y el coste del compuesto) · `pytest` **545
+  passed** · ESLint 0 errores · `i18n-check` **5793 claves × 10 idiomas** (+23) · build OK.
+
+### 2026-08-05 (9) — El puente: una ecuación que ordena los tres paneles
+Petición del propietario tras el estudio: implementar lo propuesto. La respuesta al
+«¿R:R o rentabilidad?» no era elegir, sino **medir en R y presentar en rentabilidad**,
+con una sola ecuación uniendo las tres pantallas:
+
+```
+rentabilidad mensual ≈ esperanza (R/op) × operaciones al mes × riesgo por operación (%)
+```
+
+Cada factor tiene dueño: la ventaja es del **Setup**, la frecuencia del **Diario**, el
+riesgo de las **reglas del sistema** y el resultado de la **Analítica**.
+
+- ✅ **Modo objetivo en Proyección** (`routesToTarget`): escribes «quiero un 10 % al mes»
+  y la ecuación se lee al revés, dando los **tres caminos** con su precio: más ventaja
+  (qué acierto haría falta con tu payoff), más operaciones (cuántas al mes) o más riesgo
+  (qué %). Cada camino trae su proyección hecha —cada cuánto se llega, drawdown p95 y
+  meses en rojo—, y ahí se ve la lección: en el escenario de prueba los tres llegan al
+  mismo sitio, pero el drawdown p95 es **11 % por ventaja, 20 % por frecuencia y 31 % por
+  riesgo**. El riesgo es la palanca fácil y la única que puede echarte del juego. Lo
+  aritméticamente imposible (acierto > 100 %) se marca, no se maquilla.
+- ✅ **Contribución de cada setup a la rentabilidad mensual**: `≈ +3,1 % (0,26 R × 12
+  ops/mes × 1 % de riesgo)`. Convierte la lista de setups en un orden accionable — un
+  setup de 0,4 R que se da dos veces al mes aporta menos que uno de 0,15 R que se da
+  quince, y sin esta línea los dos se leían igual. Para eso `by_setup` publica ahora
+  **`trades_per_month` por grupo** (None sin 21 días de recorrido).
+- ✅ **La Analítica encabeza con rentabilidad por periodo** (mes/trimestre/año), medida
+  del diario: `returns_by_period`. Cada mes se mide sobre **el saldo con el que empezó
+  ese mes**, los trimestres y años se **componen** (un +10 % y un −10 % son −1 %, no 0),
+  y un mes sin operaciones **no se rellena con 0 %** — no operar no es rendir cero.
+- ✅ **El Diario dice qué le falta al dato**: columna **% de cuenta** junto a R (un +2R
+  puede ser un +0,4 % o un +4 % según el tamaño) y aviso de las operaciones cerradas
+  **sin stop** (sin R no cuentan para la ventaja ni para la proyección) y **sin saldo**
+  (fuera de la rentabilidad por periodo). El diario es la fuente de todo lo demás:
+  callar lo que falta hace que los otros paneles midan sobre menos muestra de la que el
+  usuario cree.
+- ✅ **Verificado**: `engine-check` **141/141** (+8 del puente, incluido que subir riesgo
+  daña el drawdown mucho más que subir la ventaja) · `pytest` **550 passed / 74 skipped**
+  (+5) · ESLint 0 errores · `i18n-check` **5817 claves × 10 idiomas** (+24) · build OK.
+
+---
+
+## 2026-08-06 — Auditoría del diario: verificación y Fase 0
+
+Llega una auditoría externa del diario, el plan y la analítica. Antes de tocar nada
+se contrastó **hallazgo por hallazgo contra el código**. El registro completo está en
+[`AUDITORIA_DIARIO.md`](./AUDITORIA_DIARIO.md); aquí, lo que cambió.
+
+### Lo que resultó cierto (y grave)
+
+- ✅ **El P&L se pierde de verdad.** Dos esquemas incompatibles conviven en
+  `db.trades`. Reproducido ejecutando el código del repo: un trade guardado por
+  `/journal/trades` con `pnl 10.0` se lee desde analítica como `0.0`, y
+  `perf_update_trade` lo **persiste** al primer edit. Nuevo hueco **G-20**, BUG-039.
+  No se arregla en Fase 0 a propósito: el parche de lectura no recupera lo ya
+  corrompido, hace falta el modelo unificado y la migración.
+- ✅ **El diario es de una sola pata** — cero apariciones de `legs`. Hueco **G-21**.
+- ✅ **Dos fuentes de verdad** para las mismas estadísticas. Hueco **G-22**.
+
+### Lo que resultó mal diagnosticado
+
+- ❌ **El sitemap.** La auditoría lo vendía como «diez minutos y arregla el SEO del
+  sitio entero»: cambiar `DOMAIN` al dominio propio. **Habría roto el SEO en vez de
+  arreglarlo.** El workflow compila con `PUBLIC_URL=/Tradingcalculatorpro.com`,
+  publica con `keep_files: false` y **sin** paso `cname:`; no hay `public/CNAME`; y
+  canonical, hreflang, OG, JSON-LD, `robots.txt` y `homepage` apuntan **todos**
+  coherentemente a GitHub Pages. Cambiar solo el sitemap deja las URLs anunciadas
+  contradiciendo al canonical, y Google descarta las anunciadas. Además
+  `tradingcalculatorpro.com` resuelve a Cloudflare, no a GitHub Pages — y **BUG-037
+  ya lo decía**: es «el dominio que todavía no está en uso».
+  Hecho en su lugar: el origen sale de `SITE_ORIGIN` (mismo valor por defecto, cambio
+  sin efecto funcional), de modo que la mudanza sea **un interruptor** y no ocho
+  ediciones descoordinadas. Checklist en [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md).
+
+### Fase 0 — hecho
+
+- ✅ **`/journal/stats` ordena** (BUG-040). Era el único sitio que no llamaba a
+  `sort_trades_chronologically`, teniéndola ya importada. Verificado sobre las 24
+  permutaciones de un caso de 4 operaciones: antes salían dos drawdowns distintos
+  (50 y 80), ahora uno. Hay un test que **comprueba que sin ordenar el bug es real**,
+  para que el de arriba no acabe probando nada.
+- ✅ **El breakeven deja de ser una pérdida y el profit factor deja de ser 0**
+  (BUG-041). Categoría propia `breakeven`, que ni extiende ni reinicia la racha;
+  `profitFactor` es `None` sin pérdidas y la UI pinta `∞`. De paso, `expectancy` pasa
+  a ser la media de P&L por operación: la fórmula anterior **cobraba cada scratch al
+  precio de una pérdida media**, y es idéntica cuando no hay scratches.
+  `JournalStats.jsx` hacía `.toFixed(2)` sobre lo que ahora puede ser `null` —
+  corregido a la vez.
+- ✅ **`limit` topado a 500** en los dos listados y **la analítica avisa cuando
+  trunca** (BUG-043): se piden `MAX+1` filas para distinguir «justo en el límite» de
+  «hay más», y la respuesta publica `truncated`, `trades_analyzed` y
+  `truncation_notice`. Primera regla de honestidad numérica aplicada a una ventana.
+  ⚠️ `Query` **no estaba importado** en `server.py`: sin detectarlo, el arranque
+  habría caído con `NameError`.
+- ✅ **Diario de `localStorage` congelado, no borrado** (BUG-042). Guardaba bajo clave
+  global sin `user_id` —dos cuentas en el mismo navegador compartían operaciones— con
+  una tercera fórmula de P&L y una tercera implementación de estadísticas. Ahora el
+  store no acepta escrituras (`addTrade`/`updateTrade` retirados, `getStats`
+  eliminado) y el componente es un archivo de solo lectura que **exporta a CSV y
+  JSON** antes de que el usuario borre. Quien no tenga datos ahí no ve nada.
+
+### Verificado
+
+`pytest` **564 passed / 74 skipped** (+14 en `tests/test_journal_stats_unit.py`) ·
+`py_compile` de todos los módulos · ESLint **0 errores** (122 avisos, −1) ·
+`i18n-check` 5817 claves × 10 idiomas · `engine-check` **141/141** ·
+`npm run build` OK · `check-doc-links` 48 documentos, 0 roturas.
+
+### Lo siguiente
+
+Por orden de dependencia: **modelo unificado multi-pata** (G-20/G-21) → **migración
+con recuperación del P&L a cero** → vocabulario de opciones en el plan → analítica y
+gráficos. Antes de escribir módulo nuevo, mirar **G-14**: cuatro módulos ya escritos y
+con tests siguen esperando interfaz.
+
+---
+
+## 2026-08-06 (2) — El backend, entero: se deja de perder el P&L
+
+Segunda pasada sobre la auditoría, esta vez arreglando lo que la Fase 0 dejó
+documentado a propósito.
+
+### BUG-039 cerrado — el P&L ya no se pierde
+
+Cuatro capas, porque **traducir al leer no basta si se siguen generando
+documentos divergentes**:
+
+1. **`normalize_trade_schema`** llamada desde `compute_trade_pnl`, que es el punto
+   único por el que pasa todo cálculo de P&L: un documento del diario legado vale
+   su importe real en cualquier ruta de lectura desde el despliegue, sin esperar
+   a la migración. El mapeo que lo hace posible es `leverage` → `multiplier`:
+   ambos ocupan **la misma posición en la fórmula** (`(exit−entry) × qty × X`),
+   así que la traducción reproduce el importe **exacto**. Verificado con
+   apalancamiento 1, 3, 5 y 10, y en corto.
+2. **`POST /journal/trades` persiste ya en snake_case.** Sigue aceptando el
+   payload camelCase de siempre (compatibilidad de API), pero deja de crear
+   documentos del esquema viejo. Cortar la fuente es lo que impide que esto se
+   regenere solo.
+3. **Los dos `PUT` hacen `$unset`** de las claves legacy. `$set` no borra: sin
+   esto, un documento migrado al vuelo conservaba las camelCase junto a las
+   canónicas y el choque se reproducía en el documento recién arreglado.
+4. **`backend/migrate_trades_schema.py`**: idempotente, **dry-run por defecto**,
+   copia en `trades_migration_backup` y `--rollback`. Un documento cuyo P&L
+   recalculado no cuadre con el guardado se marca para revisión y **no se toca**
+   — migrarlo escribiría una cifra que el usuario nunca vio.
+
+`roe` deja de almacenarse: era un campo derivado guardado, es decir, condenado a
+desfasarse en cuanto se editara la operación. Se recalcula en la respuesta.
+
+### BUG-044 — las cuatro listas del RGPD, unificadas (cierra G-15)
+
+`trading_plans` no estaba en la purga por retención, ni en `delete_account`, ni
+en el export. Al arreglarlo apareció que el borrado de cuenta del **usuario**
+tenía *otra* lista distinta de la del admin, también incompleta (le faltaba
+`journal_entries`).
+
+**La causa no era que la lista estuviera mal: era que había cuatro.** Ahora
+derivan de una sola tupla, con las categorías que tienen semántica propia
+declaradas como tales: facturación (se borra, no se purga por impago),
+referidos (créditos ganados, no datos de trading) y artefactos de seguridad
+(se borran y **nunca** se exportan — mandarle sus tokens al usuario es una
+regresión de seguridad, no portabilidad).
+
+### Verificado contra Postgres real, no solo unitario
+
+Se tocó persistencia, así que los unitarios no bastaban. Con Postgres 16 por
+socket: `$unset` efectivo, tablas nuevas creadas, importes intactos tras migrar
+(10,0 / 40,0 / 60,0 exactos), el documento sospechoso sin tocar, y rollback
+restaurando. El script de migración se ejecutó de verdad: dry-run → apply →
+segunda pasada (0 migrables, idempotente) → rollback.
+
+`pytest` **601 passed / 74 skipped** (+37) · `py_compile` OK · ESLint 0 errores ·
+i18n 10 idiomas · `engine-check` 141/141 · `check-doc-links` 49 documentos.
+
+### Lo que queda
+
+**G-21, el diario de una sola pata.** Sigue sin poder registrar un spread, un
+condor, un calendar ni un PMCC. Eso ya no es un arreglo: es la reconstrucción del
+modelo (`Position` → `Leg` → `Execution`). El trámite que antes la hacía cara
+—dar de alta la colección en cuatro listas— ya no existe.
+
+⚠️ **El backend no se despliega solo.** Nada de esto está vivo hasta un
+`cloudbuild.yaml` a mano, y la migración es un paso aparte que se lanza contra la
+base de producción (`--apply`) **después** de desplegar.
+
+---
+
+## 2026-08-06 (3) — El diario deja de ser un diario de acciones
+
+El diario sabía registrar una cosa: *comprar N unidades a un precio*. Eso describe
+una acción al contado y **ninguna otra cosa**. Un lote de forex son 100 000 unidades
+de la divisa base; un contrato de oro en COMEX son 100 onzas; un micro E-mini vale
+5 $ por punto; un perpetuo paga funding cada ocho horas; un CFD de oro a 20× no
+mueve 20 veces el P&L, mueve 20 veces el **margen**. Sin esos datos, dos operaciones
+con los mismos números en pantalla significaban cosas distintas y la analítica las
+sumaba como si no.
+
+### El catálogo: `backend/instruments.py` (nuevo)
+
+Siete productos —acciones, CFD, futuros, forex, cripto spot, cripto perpetuo y
+opciones— más `spot`, que es lo que llevan guardado las operaciones anteriores y
+sigue comportándose **exactamente igual** (×1, sin apalancamiento, sin coste de
+mantenimiento): ninguna operación existente cambia de valor al leerse.
+
+Con ficha por símbolo: 29 contratos de futuros con su tick y su valor de tick, 35
+pares de forex con el pip correcto (0,01 contra el yen, 0,0001 en el resto), 16
+subyacentes de CFD con su tamaño de lote y su apalancamiento típico —ahí vive el
+«CFD del oro a 20×»— y 10 perpetuos con su tope y su tasa de mantenimiento.
+
+⚠️ **El catálogo PREFIJA, no decide.** Cada operación guarda su propio tamaño de
+contrato y su propio apalancamiento; el catálogo sólo los rellena la primera vez.
+Un símbolo fuera de catálogo devuelve `contract_size: None` —no 1— y dispara el
+error `contract_size_missing`: un contrato de crudo a ×1 en lugar de ×1000 no da un
+P&L aproximado, da uno mil veces menor.
+
+### Lo que decidió la forma del módulo
+
+- **El apalancamiento NO multiplica el P&L.** Multiplica el margen, y con él la
+  rentabilidad sobre ese margen y la cercanía de la liquidación. 1 000 $ de nocional
+  ganan lo mismo a 1× que a 100×. Fijado con un test parametrizado a 1/5/20/100×,
+  porque es lo primero que se rompe al refactorizar —el diario legado sí lo metía en
+  la fórmula, y el mapeo de compatibilidad sigue vivo.
+- **Lo que sí multiplica es el tamaño de contrato**, y de ahí salió BUG-045: la
+  regla del 1-2 % de riesgo lo ignoraba, así que **no saltaba jamás** en opciones,
+  futuros ni forex. Sobrevivió porque en `spot` multiplicar por 1 no se nota.
+- **La exposición, no la X.** El tope que pidió el usuario —que la posición no
+  supere 10 veces el saldo— se mide sobre el **nocional contra la cuenta**, no sobre
+  el número del apalancamiento: 100× sobre 100 $ en una cuenta de 10 000 son 10 000 $
+  de nocional y no tienen nada de malo; 20× sobre 20 000 $ en esa misma cuenta son
+  400 000 $ y una vela normal se los lleva. El umbral vive en `plan["risk"]`
+  (`max_exposure_multiple`), como manda la regla del proyecto.
+
+### Las unidades: el trader escribe en lo suyo, se guarda un precio
+
+Stop y objetivo se escriben en precio, pips, ticks, puntos, % del precio, importe
+fijo, % de la cuenta o múltiplos de R. **Lo que se almacena es siempre un nivel de
+precio**, y por eso R, drawdown, MAE/MFE y la distribución siguen leyendo los mismos
+campos que leían: la analítica no se entera de que existen unidades. El número
+tecleado y su unidad viajan al lado sólo para repintar el formulario tal cual se
+dejó. Un objetivo en R sin stop es `None`, no cero — un cero pondría el objetivo en
+la entrada.
+
+### Costes: comisión y lo que cuesta NO cerrar
+
+Funding en perpetuos (por periodo de 8 h) y comisión nocturna en CFD y forex
+(interés anual prorrateado por noches). Se puede dar el importe o la tasa: **el
+importe declarado gana siempre**, porque ninguna fórmula nuestra mejora un extracto,
+y la respuesta dice cuál de las dos cosas es (`carry_source`). Un perpetuo al 0,01 %
+cada 8 h cuesta ~0,9 % del nocional al mes; con 20× eso es el 18 % del margen, y era
+invisible en el diario.
+
+### Opciones: parejas, no aparte
+
+Mismo formulario, mismo modelo, misma analítica. Lo único distinto es de dónde sale
+el riesgo: **`max_loss`**, no `|entrada − stop|`. Con eso, una opción comprada tiene
+R (la prima ES la pérdida máxima) y un spread de crédito también (anchura − crédito),
+así que entran en la distribución de R, en el R medio y en la comparación con el
+resto del diario. Antes, casi toda operación de opciones salía con `r_multiple =
+None` y se caía sola de la analítica — la mitad del hueco **G-21**. Vender desnudo
+sigue sin tener pérdida máxima definida: `None`, no un número tranquilizador.
+Se añaden IV de entrada/salida, delta, subyacente y desenlace (asignada, vencida sin
+valor, ejercida, roleada): sin eso no se puede saber si la operación salió por
+dirección o porque se pagó cara la volatilidad.
+
+### Avisos y SMS
+
+`notifications.py` (nuevo) reparte un aviso por tres canales y **dice cuáles
+funcionan de verdad** (`GET /alerts/channels`). Las alertas del diario no montan un
+vigilante nuevo: escriben en la misma colección `alerts` con `trade_id`, así que las
+recorre el poller que ya existía; editar el stop mueve el aviso y cerrar la operación
+lo retira. El SMS está implementado contra Twilio y queda operativo en cuanto existan
+`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_FROM_NUMBER` en Secret Manager —
+**no queda código pendiente, queda el alta de la cuenta**. Sin ellas responde
+`not_configured` y la interfaz lo dice antes de que el usuario cuente con ello. Tope
+de 20 SMS por usuario y hora: un bucle en el poller no puede convertirse en factura.
+
+### Paridad backend ↔ frontend
+
+El catálogo se genera: `scripts/gen-instruments-js.py` escribe
+`frontend/src/lib/instrumentSpecs.generated.js` desde `instruments.py`, y `--check`
+falla si divergen. La **matemática** sí está escrita dos veces a propósito (el
+navegador no puede esperar a la red para avisarte del tope mientras escribes, y el
+backend no puede fiarse del cliente): las dos están cubiertas con los **mismos
+números** en `test_instruments_unit.py` y en `engine-check.js`.
+
+### Verificado
+
+`pytest` **679 passed / 74 skipped** (+76) · `py_compile` de todos los módulos ·
+ESLint **0 errores** · `i18n-check` **5979 claves × 10 idiomas** (+162) ·
+`engine-check` **171/171** (+30) · `gen-instruments-js --check` en paridad ·
+`npm run build` OK · `check-doc-links` 49 documentos.
+
+### Lo que NO entra (y por qué)
+
+- **Multi-pata real (G-21 completo).** Un spread se registra hoy como una posición
+  con su prima neta y su pérdida máxima declarada —que es lo que hace falta para que
+  tenga R y compare con el resto—, pero **no guarda pata por pata**: no hay `legs`, y
+  con ello no hay griegas agregadas de la estructura, ni cierre parcial de una pata,
+  ni rolar media posición. Sigue siendo la reconstrucción del modelo
+  (`Position` → `Leg` → `Execution`) que ya estaba anotada.
+- **Cierres parciales** en cualquier producto: una operación sigue teniendo un único
+  precio de salida.
+- **Conversión de divisa de la cuenta.** Todo se mide en la divisa en la que estén
+  los precios; un par cruzado sin USD y una cuenta en euros no llevan tipo de cambio.
+- **Márgenes reales del bróker.** Los del catálogo son de referencia y editables; el
+  precio de liquidación es una estimación de margen aislado y se publica etiquetada
+  como tal, con sus supuestos al lado.
+
+---
+
+## 2026-08-07 — La interfaz aprende que el backend puede ir por detrás
+
+El PR #177 se mergeó a `main` y **no se publicó**: el push no disparó
+`deploy-gh-pages.yml` (workflow activo, cero ejecuciones para `61a8fa2`), así que
+`gh-pages` se quedó en `deploy: 578a220a` y la web siguió sirviendo el build
+anterior. Verificado sobre la rama publicada, no sobre suposiciones: los textos del
+PR #176 sí están en el bundle vivo y los del #177 no.
+
+Al ir a publicarlo apareció el problema real, que no era el workflow:
+
+> El frontend se publica **solo** al mergear; el backend se sube **a mano**. Esa
+> asimetría no es un accidente: es la forma permanente del proyecto desde que se
+> retiró el workflow de backend (2026-08-03). O sea que la ventana en la que el
+> navegador va por delante del servidor es **el estado normal durante un rato**.
+
+Y en esa ventana el diario multiproducto no degradaba: **rompía**. El backend
+anterior valida `instrument_type` contra `^(spot|option)$`, así que los cinco
+productos nuevos —y el valor por defecto del formulario, `stock`— recibían un 422.
+Publicar el frontend habría dejado el diario sin poder guardar ni una operación.
+
+### Lo que se ha hecho
+
+La interfaz ahora **pregunta** en vez de suponer. `GET /performance/instruments`
+existe sólo en la versión que entiende los productos, así que sirve de sonda: es
+pública, no toca la base de datos y se consulta una vez por sesión.
+
+- **404/405** (el servidor contesta pero no conoce la ruta) → backend anterior: el
+  selector se queda en spot y opciones, y una línea explica por qué. Decirlo es la
+  mitad del arreglo: sin el aviso, el usuario ve menos productos de los que la web
+  anuncia y no sabe si es un fallo suyo.
+- **Fallo de red o 5xx** → `null`, y se ofrece todo. Recortar la aplicación por un
+  corte de red sería peor que el problema que esto evita.
+- **Además, la red de seguridad**: si aun así llega un 422 sobre `instrument_type`,
+  se traduce al mismo mensaje y el selector se ajusta solo. El detalle de Pydantic
+  («string does not match regex») no le dice nada a nadie.
+
+Con esto, **el orden de despliegue deja de importar**: se puede publicar el
+frontend antes que el backend y lo peor que pasa es que durante un rato se opera
+con menos productos, diciéndolo. El backend sigue teniendo que subirse a mano
+(`gcloud builds submit --config=cloudbuild.yaml .`), pero ya no es un requisito
+previo para publicar.
+
+### Verificado
+
+`pytest` **679 passed / 74 skipped** · ESLint **0 errores** · `i18n-check` **5980
+claves × 10 idiomas** (+1) · `engine-check` **176/176** (+5, incluidos los tres
+estados de la sonda) · catálogo backend↔frontend en paridad · build OK.
+
+### Lo que sigue sin resolverse
+
+**Por qué GitHub no disparó el workflow** en ese merge. Los cinco workflows figuran
+como `active` y `CI (Pull Request)` sí corrió sobre la rama. Queda anotado en el
+`DEPLOY_CHECKLIST.md` §0: después de mergear, **comprobar que hay ejecución**, porque
+un merge que no dispara nada no produce error en ninguna pantalla y se confunde con
+un despliegue que sí ocurrió.
+
+---
+
+## 2026-08-07 — Las opciones y el resto de productos acababan en el mismo sitio
+
+### El problema
+
+Con el diario ya multiproducto, `/performance` → Analytics seguía siendo **un solo
+panel para todo**. Eso deja tres cifras mintiendo a la vez:
+
+- **la curva de capital** arranca del saldo de la operación más antigua y le va
+  sumando P&L de productos que pueden estar en **cuentas distintas** — una de
+  fondeo de 50 000 para futuros y la personal de 10 000 para CFD dan una curva
+  que no es la de ninguna de las dos;
+- **el max drawdown** hereda el mismo defecto, y encima no es simétrico: no se
+  puede "descontar" después;
+- **el % de rentabilidad** divide por un saldo inicial que ya no significa nada.
+
+Y la pregunta que un trader hace de verdad —«¿tengo ventaja en opciones o me la
+están dando los futuros?»— no se podía responder: el desglose `by_product` daba
+P&L y acierto por producto, pero no una **curva ni un drawdown** por producto.
+
+### Lo que se ha hecho
+
+**1 · El filtro se calcula en el backend, no se recorta en el navegador.**
+`GET /performance/analytics?product=<id>` filtra **antes** de calcular y antes del
+techo de `ANALYTICS_MAX_TRADES`. La curva, el drawdown y el Sharpe no se pueden
+reconstruir desde un resultado ya agregado: hay que volver a construirlos desde las
+operaciones de ese producto. Filtrar después del techo, además, dejaría un producto
+minoritario calculado sobre las migajas de una ventana llena de otro — y diciendo
+que no hay truncado. La respuesta publica `product_filter`: un panel filtrado sin
+decirlo es indistinguible de uno completo con muy pocas operaciones.
+
+**2 · El selector no se dibuja con el desglose filtrado.** `products_available` se
+calcula sobre el historial completo, con el mismo criterio de «cerrada» que usa la
+analítica (`is_closed_trade`, sacado a función porque estaba escrito tres veces como
+literal). Construirlo sobre `by_product` —que sí va filtrado— dejaba **un solo botón**
+en cuanto elegías un producto: sin forma de volver al conjunto. La barra va también
+en el estado vacío, porque se puede llegar a él con un filtro puesto.
+
+**3 · Cuando hay más de una cuenta, se dice.** `detect_mixed_accounts` compara la
+**mediana** del `account_balance` por producto (mediana, no media: un saldo mal
+tecleado no decide) y marca `suspected` con un cociente ≥ 2. El aviso lista el saldo
+por producto y separa lo que sigue siendo válido —R, acierto, desglose— de lo que no.
+Es una **sospecha**, no una afirmación: el diario no sabe cuántas cuentas hay, sabe
+que los saldos no cuadran.
+
+### Verificado
+
+`pytest` **689 passed / 74 skipped** (+10) · ESLint **0 errores** · `i18n-check`
+**5988 claves × 10 idiomas** (+8) · `engine-check` **187/187** · catálogo
+backend↔frontend en paridad · enlaces de doc OK · build OK.
+
+E2E con Postgres + backend vivos y el **build de producción real** servido bajo
+`/Tradingcalculatorpro.com`: **16/16 en escritorio (1440×900) y 16/16 en móvil
+(390×844)**, comprobando que el filtro dispara una llamada nueva con `product=` en
+la query, que las cifras cambian (3 471,86 → 1 496,50 en futuros → 544,80 en
+opciones), que la suma de los P&L por producto es exactamente el total, que el aviso
+desaparece al filtrar y vuelve al quitar el filtro, y que nada desborda.
+
+### Sigue pendiente
+
+Los **cuatro módulos sin interfaz** (G-14): `trading_plan.py`, `backtest.py`,
+`portfolio_risk.py` y `american_options.py`. `portfolio_risk.py` es el que más pega
+con esto: mide el riesgo abierto a nivel de cuenta, que es justo lo que el aviso de
+cuentas mezcladas deja a medias.
+
+---
+
+## 2026-08-07 (cont.) — Examen de autorización: qué pasa cuando dos cuentas se cruzan
+
+### Por qué este examen y no otro
+
+La cobertura real del backend, medida y no supuesta, parte el proyecto en dos:
+
+| Zona | Cobertura |
+|---|---|
+| La matemática (`price_action` 97 %, `portfolio_risk` 95 %, `backtest` 94 %, `performance` 92 %, `trading_plan` 92 %, `instruments` 88 %) | muy alta |
+| Las rutas HTTP (`server.py` **26 %**, `missing_apis` 23 %, `realtime_alerts` 23 %, `stock_data` 22 %, `admin_routes` 25 %) | casi nada |
+
+Los 693 tests comprueban casi todos **funciones puras**. Lo que rodea a esas
+funciones —autenticación, autorización, validación, rutas de error— estaba sin
+tocar. Y la pregunta que ese hueco deja sin responder es la única cuyo «no» hay
+que poder demostrar en un producto donde el usuario guarda su historial.
+
+### Resultado: la autorización aguanta
+
+Dos cuentas reales, la víctima crea un objeto de cada tipo y la atacante intenta
+leerlo, editarlo y borrarlo cambiando el id de la URL. **21/21.** Detalles que
+importan:
+
+- Responde **404, no 403**: no confirma siquiera que el objeto exista.
+- La operación **sigue intacta** después de los tres intentos, comprobado
+  releyéndola con el token de su dueña — no basta con que la respuesta sea un error.
+- La **ruta legada** (`/journal/trades/{id}`) es otra puerta al mismo dato y
+  también cierra.
+- Un `user_id` en el cuerpo de un POST **se ignora**: no se puede escribir en el
+  diario de otro.
+- Escribir `is_premium`, `is_admin`, `subscription_plan`, `role` o `email` en el
+  perfil **no mueve nada** (medido por diferencia antes/después, no por valor
+  absoluto: las cuentas de prueba ya eran premium y mirar el valor daba un falso
+  positivo).
+
+### RGPD: G-15 cerrado, verificado contra Postgres
+
+El export incluye la operación, el plan de trading y el estado guardado; **no**
+lleva el hash de la contraseña (lo único que aparece es `"auth_provider":
+"password"`, que es el método de acceso); y los artefactos de seguridad no viajan
+en el JSON, que es el contrato correcto. El borrado de cuenta deja **0 filas en
+las 6 tablas** que tenían datos. Esto no se leyó en el código: se contó en la
+base de datos.
+
+De paso quedan confirmados tres límites de tasa, agotándolos: registro 3/hora,
+borrado de cuenta 3/hora, export 5/hora.
+
+### Lo que sí estaba roto: BUG-048
+
+Cinco rutas convertían su propio 4xx en un 500 —tres de ellas de facturación—
+porque `HTTPException` hereda de `Exception` y el `except Exception` final se lo
+tragaba. Ver `DIARIO_BUGS.md`. El test que lo fija recorre el árbol sintáctico,
+no las rutas: el fallo es estructural y así cubre también todo lo que no tiene
+test de integración.
+
+### Nota de método
+
+Cuatro de los «fallos» de las primeras vueltas eran de la sonda, no del producto:
+un PUT incompleto que se quedaba en el 422 de validación sin llegar a comprobar
+la propiedad; un premium que había concedido yo por SQL dos minutos antes; una
+búsqueda de «password» que casaba con `auth_provider`; y un 429 del limitador
+leído como borrado roto. Los cuatro están corregidos **en la sonda**, y las
+guardas que lo evitan quedan escritas ahí: una prueba que acusa al producto de lo
+que hace el banco de pruebas es peor que no tener prueba.
+
+### Verificado
+
+`pytest` **698 passed / 74 skipped** (+5) · `py_compile` OK · autorización
+cruzada **21/21** · export RGPD **8/8** · borrado RGPD **0 filas en 6 tablas** ·
+enlaces de doc OK.
+
+---
+
+## 2026-08-08 — Los ajustes dejan de vivir en un navegador
+
+### El agujero
+
+La pregunta era simple: *¿todo lo que configuro se guarda en la base de datos?*
+La respuesta era **no**, y la parte que no se guardaba resultó ser justo la que
+más trabajo cuesta escribir.
+
+Persistía lo transaccional —cuenta, plan de suscripción, diario, alertas y el
+estado de las once calculadoras vía `user_states`—, pero **todo lo que el
+usuario ajusta** vivía en `localStorage` y por tanto en UN equipo:
+
+| Qué se perdía | Clave |
+|---|---|
+| **Los setups del sistema de trading** (escritos a mano, uno por uno) | `tcp-trading-system` |
+| Preferencias de la pantalla de Ajustes | `tcp-preferences` |
+| Idioma | `trading-i18n-storage` |
+| Tema visual | `trading-theme-storage` |
+| Activos favoritos | `trading-assets-storage` |
+| Favoritos y recientes de calculadoras | `tcp-calc-favs`, `tcp-calc-recents` |
+| Progreso de la Academia | `tcp-edu-progress` |
+| Recientes del buscador de opciones | `opc_recents` |
+
+Entrar desde el móvil era empezar de cero. Vaciar la caché del navegador era
+perder los setups. Y la pantalla de Ajustes llevaba desde siempre enseñando un
+«preferencias guardadas» que era falso fuera de ese equipo.
+
+### Lo que se ha hecho
+
+`frontend/src/lib/cloudPrefs.js` — una capa de sincronización que **no sustituye
+`localStorage`, lo respalda**. El navegador sigue siendo la copia inmediata
+(funciona sin red, sin cuenta y en modo demo) y el servidor la copia que cruza
+dispositivos. Todo viaja en UN documento de `user_states` (`preferences_v1`), así
+que sincronizar cuesta una lectura y una escritura, no una por ajuste.
+
+Tres decisiones que parecen detalles y no lo son:
+
+1. **Cada ajuste lleva su propia fecha.** Con una sola fecha por documento,
+   cambiar el tema en el ordenador borraría los setups escritos en el móvil diez
+   minutos antes. Gana el más reciente **de cada ajuste por separado**.
+2. **El documento local recuerda de quién es.** Dos cuentas en el mismo
+   navegador es exactamente lo que ya rompió el diario legado. Si el dueño del
+   `localStorage` no es quien acaba de entrar, lo local **no compite**: manda la
+   cuenta, y lo que la cuenta no tenga vuelve a su valor por defecto en vez de
+   quedarse enseñando los setups del anterior.
+3. **Un ajuste sin fecha local no es una preferencia, es el valor por defecto**, y
+   no se sube. Subirlo lo convertiría en una elección que el usuario nunca hizo
+   y a partir de ahí ganaría a lo que sí eligió en otro sitio. Por lo mismo, el
+   idioma **sólo** marca fecha desde el selector: `detectBrowserLanguage` es una
+   suposición del navegador, y un `?lang=` compartido cambia lo que ves, no lo
+   que has elegido.
+
+Las reglas de quién gana viven en `lib/prefsMerge.js`, **sin una sola
+importación**, para poder probarlas sin React ni navegador.
+
+### En el backend
+
+`POST /user-states/save` guardaba `expires_at` a 90 días bajo el comentario «TTL:
+state is auto-deleted 90 days after last update» y **ninguna tarea lo aplicaba
+jamás**. La promesa era falsa en los dos sentidos: ni caducaba, ni podía
+caducar sin borrarle al usuario cosas suyas. Ahora la tabla no caduca nada
+—desde que guarda los ajustes, hacerlo verdad sería perder trabajo del usuario—
+y el `$unset` limpia el `expires_at` que dejaron escrito las versiones
+anteriores. No crece sin control: es una fila por (usuario, `state_id`) y los
+`state_id` son un puñado fijo. El RGPD sigue cubierto, `user_states` ya estaba en
+`_USER_DATA_COLLECTIONS`.
+
+De paso, la ruta **dejó de convertir sus propios 4xx en 500**: todo el cuerpo
+estaba dentro de un `try` con `except Exception`, así que un `state_id` inválido
+se le devolvía al cliente como error de servidor. Y se añadió un tope por
+documento (512 KB) ahora que ahí dentro va contenido escrito por el usuario.
+
+### Verificado
+
+- `pytest` **718 passed / 74 skipped** (+12 nuevos en
+  `test_user_prefs_persistence_unit.py`, ya sobre `main` con el PR #180 dentro).
+- `engine-check` **197/197** (+10 sobre las reglas de fusión).
+- ESLint **0 errores** (123 avisos) · `i18n-check` 5995 × 10 · catálogo en
+  paridad · `check-doc-links` OK · `npm run build` OK.
+- **Contra PostgreSQL real**: que el `$unset` sobre un upsert borre de verdad el
+  `expires_at` heredado —traducido a SQL, no contra un doble— y que el documento
+  haga ida y vuelta sin perder tipos.
+- **End-to-end en Chromium** contra backend + Postgres vivos: que cambiar un
+  ajuste suba; que un dispositivo virgen (con el `localStorage` vaciado) reciba
+  tema, progreso y **setups completos**; y que una segunda cuenta en el mismo
+  navegador no herede los setups del anterior ni se los suba a su propia cuenta,
+  mientras la cuenta original los conserva intactos.
+
+### Lo que NO se ha tocado
+
+No hay forma de editar el perfil (nombre, foto): no existe endpoint ni pantalla,
+sólo cambiar contraseña, 2FA, exportar datos y borrar la cuenta. Es un hueco
+distinto —no es que no se guarde, es que no se puede cambiar— y sigue abierto.
+
+Y los setups **siguen sin pasar por `trading_plan.py`**, que es donde
+conceptualmente deberían vivir (G-14). Esto los pone a salvo y los hace viajar
+entre dispositivos hoy; migrarlos a `POST /plan` sigue pendiente y ahora es una
+migración de datos, no un rescate.
+
+### 2026-08-08 — Dos formatos de datos estructurados que ya no rinden
+
+Al valorar si merecía la pena una herramienta de investigación de preguntas
+(AlsoAsked) salió algo que afecta más que la herramienta: **el proyecto emite
+marcado para dos formatos que Google ya retiró**.
+
+| Tipo | Dónde | Estado |
+|---|---|---|
+| `HowTo` | `gen-seo-pages.js` → **660 páginas** (66 estrategias × 10 idiomas) | Retirado: fuera de móvil en ago-2023 y de escritorio en sep-2023. Google borró hasta la documentación. |
+| `FAQPage` | portada (`public/index.html`) y fichas de `/markets/<id>/` | Retirado del todo el **7-may-2026**. Antes, restringido a webs gubernamentales/sanitarias desde ago-2023. Sale de Search Console en jun-2026 y de la API en ago-2026. |
+
+**No se ha tocado el código, y es deliberado.** Los dos siguen siendo Schema.org
+válido, Google los parsea para entender la página y no penalizan. Borrarlos no
+gana nada; lo que había que corregir era la **expectativa**, porque quien leyera
+`gen-seo-pages.js` podía pensar que esas 660 páginas salían en Google con pasos
+desplegables, y no ocurre desde 2023.
+
+Siguen vigentes y son donde sí conviene invertir: `WebApplication`,
+`Organization`, `WebSite` + `SearchAction`, `BreadcrumbList`, `Course` /
+`CourseInstance` y `Offer`.
+
+Documentado en [`setup/SEO_GUIDE.md`](./setup/SEO_GUIDE.md) §5, con la tabla
+completa y el criterio de qué no hacer. Se corrigió además el skill
+`mejorar-seo`, que en su §5 recomendaba *"FAQ con schema `FAQPage`"* como mejora
+prioritaria: mantenerlo habría hecho que la próxima sesión repitiera la
+inversión en un formato muerto.
+
+### Aviso añadido sobre contenido a escala
+
+El sitio genera ya ~1.589 URLs automáticamente y es **YMYL** (finanzas), la
+categoría con el listón de E-E-A-T más alto. Ampliar el corpus generando páginas
+nuevas desde listas de preguntas (AlsoAsked, AnswerThePublic, People Also Ask)
+es el patrón que persigue la política de *scaled content abuse* desde marzo de
+2024. La investigación de preguntas es útil, pero su destino correcto es
+**enriquecer las páginas existentes** —empezando por las FAQ, que hoy son las
+mismas cinco traducidas a 10 idiomas en vez de las preguntas reales de cada
+mercado— y no crear páginas nuevas. Queda escrito en la guía y en el skill.
+
+---
+
+### 2026-08-10 — Auditoría integral (contenido, cálculos, APIs, datos, normativa, admin)
+
+Examen completo pedido de punta a punta. Informe entero en
+[`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md). Resumen de lo **nuevo**
+(lo ya conocido —G-14, G-16, C-08, G-26— sólo se reevaluó):
+
+**Base medida hoy:** `pytest` **761 passed / 74 skipped** (Postgres 16 real) ·
+`npm run build` exit 0, 39 MB, 1589 URLs · ESLint 0 errores / 123 avisos ·
+i18n **6019 × 10, 0 huecos** · engine-check **197/197** · instrumentos en
+paridad · 55 documentos sin enlaces rotos.
+
+**Hallazgos nuevos, por gravedad:**
+
+- 🔴 **Testimonios fabricados en portada** (`i18n/es.js:2454-2465` × 10 idiomas):
+  tres personas inventadas con antigüedad y «5 estrellas», más «Cientos de
+  traders». La Directiva Ómnibus (UE) 2019/2161 los metió en el **Anexo I** de la
+  2005/29/CE: desleales *en toda circunstancia*, hasta 4 % de facturación o 2 M€.
+  Uno de ellos es además una promesa implícita de rentabilidad, que contradice la
+  propia página de Advertencia de Riesgo.
+- 🔴 **El panel admin pierde el 100 % de tres tipos de escritura** — PROBADO
+  contra Postgres real. `app_settings` tiene dos esquemas incompatibles: se
+  escribe con el documento único `{_id:"global"}` y se lee buscando documentos
+  por `key`. Afecta al editor de planes (`admin_routes.py:892` vs `:934`, dentro
+  del mismo par de funciones), al gestor i18n (`:692` vs `:724`) y a
+  `/public/settings` (`:1144`). El admin recibe `{"success": true}` y no pasa
+  nada; GA4/GTM/Clarity/Trustpilot **no se pueden activar desde el panel**.
+- 🔴 **`days_to_expiry` pierde hasta un día entero** (`stock_data.py:601`):
+  `.days` trunca la fracción y mezcla naive-UTC con naive-local. Un contrato a 7
+  días se reporta como 6 → **−7,3 % en una call ATM semanal**, medido. Máximo
+  error justo en semanales y 0DTE. Irónico: `year_fraction()` se escribió para
+  contar las horas de sesión y recibe un entero al que ya se las han quitado.
+- 🔴 **Normativa, cuatro bloqueantes**: responsable sin identificar («una LLC
+  registrada en EE. UU.»), **sin representante en la UE** (RGPD art. 27), **sin
+  derecho de desistimiento** (0 apariciones; la política de reembolsos lo
+  condiciona a «no uso significativo», que es ilegal) y **PostHog con grabación
+  de sesión sin declarar** — con la Política de Cookies afirmando en negrita lo
+  contrario. Añadido: 🟠 sin IVA en el checkout (ni `automatic_tax` ni OSS), 🟠
+  rectificación anunciada y sin endpoint, 🟠 teléfono/Twilio SMS sin declarar,
+  🟡 cookies desfasadas por G-25.
+- 🟠 **La cadena REAL fabrica cifras sin marcarlas** (`stock_data.py:552`, `:564`):
+  `iv: 0.3`, `openInterest: 0`, `mid: 0` para el lado que no cotiza, y `or 0.3`
+  cuando Yahoo publica IV 0. Viola la regla nº 2 del proyecto y **anula el
+  cuidado de `_leg_oi()`**, que devuelve `None` «cuando nunca se observó» y al
+  que nunca le llega un `None`, sino un `0` indistinguible de una observación.
+- 🟠 **hreflang autodestructivo**: canonical a la URL desnuda y alternativas a
+  `?lang=xx` de la *misma* URL, sirviendo el mismo HTML. Google canonicaliza y
+  descarta las alternativas → 9 de 10 idiomas no se indexan. La inversión en
+  6019 claves × 10 idiomas no se está cobrando.
+- 🟠 **1589 páginas con 76 % de plantilla compartida** — PROBADO: 38 de 50 líneas
+  de texto idénticas entre dos estrategias distintas; lo único propio es una
+  frase. Patrón *doorway* + *thin content* en un sitio YMYL.
+- 🟠 **G-16 es peor de lo anotado**: no es «Yahoo sin licencia», es **evasión
+  deliberada de su detección de bots** (`curl_cffi impersonate="chrome"`,
+  `stock_data.py:34`, con el motivo escrito en el comentario) monetizada a
+  17-500 €. Cambia la naturaleza del riesgo y añade el derecho *sui generis* de
+  base de datos. Un cambio de fingerprint apaga el producto estrella.
+- 🟠 **`99.9 %` de uptime** en portada sin SLA y desmentido por los propios
+  Términos. 🟡 «50+ activos» cuando hay ~186.
+- 🔴 **Dominio**: sigue todo en `abcde-rgb.github.io/…`. Con un plan de 500 €, es
+  el mayor freno a la conversión y regala la autoridad SEO a github.io. Es el
+  arreglo con mejor relación impacto/esfuerzo del repositorio.
+
+**Lectura de conjunto:** el problema es de **frontera**, no de fondo. Cada módulo
+por dentro está por encima de la media; lo que falla es el contrato *entre*
+piezas (shim ↔ admin, adaptador de Yahoo ↔ honestidad numérica, código ↔
+políticas legales, producto ↔ portada). Ninguna de las siete comprobaciones
+automáticas del proyecto puede ver un fallo de esa clase — de ahí que G-17
+(tests del shim) suba de prioridad.
+
+**No se ha tocado código:** el encargo era el examen. El plan priorizado en 15
+pasos está en el §9 del informe.
+
+---
+
+### 2026-08-10 (cont.) — Se corrigen los hallazgos de la auditoría
+
+Segunda mitad de la sesión: se pidió corregirlo todo y quitar los testimonios.
+Detalle completo en el §11 de [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md).
+
+**Estado final medido:** `pytest` **775 passed / 74 skipped** (eran 761; +14 de
+regresión) · `npm run build` exit 0, 39 MB, 1589 URLs · ESLint **0 errores** ·
+i18n **6021 × 10, 0 huecos** · engine-check **197/197** · instrumentos en
+paridad · 56 documentos sin enlaces rotos.
+
+- 🔴→🟢 **Testimonios fabricados eliminados** de los 10 idiomas y de
+  `LandingPage`. Los sustituye «Cómo tratamos tus números»: tres compromisos que
+  el repositorio cumple y los tests fijan. También fuera el **`99.9 %`** de
+  uptime (sin SLA y desmentido por los Términos) y el **«50+» activos** (hay
+  186): las cuatro cifras de portada se **cuentan ahora desde la fuente**.
+- 🔴→🟢 **`app_settings` unificado.** Los tres lectores rotos leen por donde se
+  escribe; verificado con la misma sonda que probó el fallo. Apareció una
+  **segunda capa**: el frontend pedía `gtm_id`/`gsc_verification`/
+  `bing_verification` y el backend publica `gtm_container_id`/
+  `gsc_verification_code`/`bing_verification_code` — tres de cuatro
+  integraciones no habrían funcionado ni con `/public/settings` arreglado.
+  Nuevo `test_app_settings_roundtrip_unit.py` (7 tests) — cubre parte de G-17.
+- 🔴→🟢 **El editor de precios deja de ser decorativo.** `get_effective_plans()`
+  es el punto único de `/plans`, checkout, los tres webhooks y las métricas.
+  Cambiar el importe **exige** mandar el `stripe_price_id` nuevo a la vez, o 400:
+  mover uno sin el otro haría que la web anunciara 17 € y Stripe cobrara 29.
+- 🔴→🟢 **`days_to_expiry`** con `ceil` sobre segundos y ambos lados en UTC. Se
+  acabó el −7,3 % en la call ATM semanal. Nuevo `test_chain_honesty_unit.py`
+  (7 tests) que fija tanto el día como la honestidad de la cadena.
+- 🟠→🟢 **La cadena real deja de fabricar cifras.** `iv`/`openInterest`/`mid` son
+  `None` sin observación. El `iv or 0.3` de `_build_chain_for_expiration` pasa a
+  → IV publicada → **despejada del precio** (que es una medida) → griegas `None`,
+  publicando `ivSource`. El ratio volumen/OI ya no calcula sobre un denominador
+  inventado, y el optimizador rechaza patas sin precio o sin IV reales.
+- 🔴→🟢 **Normativa**: desistimiento de 14 días + formulario del Anexo I(B) en
+  los 10 idiomas · `automatic_tax` + `tax_id_collection` +
+  `billing_address_collection` + `consent_collection` en el checkout (requisitos
+  de operación en DEPLOY_CHECKLIST §E-bis) · **PostHog declarado** y corregida la
+  frase falsa sobre seguimiento comportamental · teléfono y Twilio SMS
+  declarados · cookies al día tras G-25 · retención de `usage_events` y del
+  registro de SMS.
+- 🟡→🟢 **G-26 cerrado**: `PUT /auth/profile` + formulario en Ajustes. El derecho
+  de rectificación que la política prometía ya se puede ejercer.
+- 🟠 **N1/N2 preparados, no cerrados**: la identidad legal y el representante del
+  art. 27 pasan a **fuente única** (`lib/legalContent/entity.js`) con los tokens
+  `{entity}` y `{euRepresentative}`. Rellenarla es ahora **una edición** en vez
+  de diez ficheros. La sección del representante **se oculta sola** mientras no
+  haya uno designado. Faltan los datos reales, que no están en el código.
+- 🟠→🟢 **hreflang contradictorio retirado** del shell del SPA y de
+  `gen-sitemap.js`. Las páginas estáticas ya lo hacían bien y no se tocaron.
+  Queda pendiente la home estática por idioma para que la portada tenga hreflang
+  de verdad.
+- 🟡→🟢 **`user_state_ttl_days`** fuera del panel, con un comentario que explica
+  por qué no debe volver.
+
+**Sigue abierto y es decisión de negocio, no de código:** el dominio propio
+(§7), los datos reales del titular y del representante en la UE (§3), el Grupo B
+de proveedores de datos (§4, G-16 — evasión de la detección de bots de Yahoo,
+el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.

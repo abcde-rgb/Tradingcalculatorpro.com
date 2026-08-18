@@ -37,6 +37,35 @@ function loadKeys(lang) {
   });
 }
 
+/**
+ * Claves repetidas dentro del MISMO fichero.
+ *
+ * `loadFile` evalúa el diccionario como objeto JavaScript, y un objeto se queda
+ * callado con la clave repetida: la segunda pisa a la primera y `Object.keys`
+ * devuelve una sola. Así que este script podía dar «10 idiomas en paridad»
+ * sobre ocho ficheros con una clave duplicada cada uno — que es exactamente lo
+ * que pasó al fusionar una rama conservando los dos lados de un conflicto. Lo
+ * cazó ESLint (`no-dupe-keys`), no esto, y el que mide la paridad debería
+ * verlo antes.
+ *
+ * Se cuenta sobre el TEXTO, no sobre el objeto, porque en el objeto ya no está.
+ */
+function duplicadas(lang) {
+  const out = [];
+  for (const sufijo of ['.js', '.edu.js']) {
+    const f = path.join(I18N_DIR, `${lang}${sufijo}`);
+    if (!fs.existsSync(f)) continue;
+    const vistas = new Set();
+    for (const linea of fs.readFileSync(f, 'utf8').split('\n')) {
+      const m = linea.match(/^\s*["']?([a-zA-Z_0-9]+)["']?\s*:/);
+      if (!m) continue;
+      if (vistas.has(m[1])) out.push(`${lang}${sufijo}:${m[1]}`);
+      else vistas.add(m[1]);
+    }
+  }
+  return out;
+}
+
 const full = process.argv.includes('--full');
 const asJson = process.argv.includes('--json');
 
@@ -49,8 +78,20 @@ for (const lang of LANGS) {
   const keys = new Set(loadKeys(lang));
   const missing = [...ref].filter((k) => !keys.has(k));
   const extra = [...keys].filter((k) => !ref.has(k));
-  report[lang] = { total: keys.size, missing, extra };
-  if (missing.length) anyMissing = true;
+  const dup = duplicadas(lang);
+  report[lang] = { total: keys.size, missing, extra, duplicadas: dup };
+  if (missing.length || dup.length) anyMissing = true;
+}
+
+// La referencia también puede tenerlas, y no entra en el bucle de arriba.
+const dupRef = duplicadas(REF);
+if (dupRef.length) anyMissing = true;
+const todasDup = [...dupRef, ...LANGS.flatMap((l) => (report[l]?.duplicadas) || [])];
+if (todasDup.length) {
+  console.error(`\n❌ ${todasDup.length} clave(s) repetida(s) dentro de su fichero:`);
+  for (const d of todasDup) console.error(`   ${d}`);
+  console.error('   La segunda pisa a la primera en silencio: el diccionario dice una');
+  console.error('   cosa y el fichero otra.');
 }
 
 if (asJson) {

@@ -10,7 +10,10 @@ const en = {
     title: 'Privacy Policy',
     sections: [
       { t: 'Data Controller', b: [
-        { p: 'The controller of your personal data is **TradingCalculator.pro**, operated by a limited liability company (LLC) registered in the United States. For any privacy inquiry, contact us at {email}.' },
+        { p: 'The controller of your personal data is **TradingCalculator.pro**, operated by {entity}. For any privacy inquiry, contact us at {email}.' },
+      ]},
+      { t: 'Representative in the European Union', b: [
+        { p: 'As the controller is established outside the European Economic Area and offers its service to residents of the Union, we have designated a representative pursuant to **Article 27 GDPR**. You may address them, as well as us, on any matter relating to the processing of your data: {euRepresentative}' },
       ]},
       { t: 'Data We Collect', b: [
         { p: 'We collect only the data needed to provide the service:' },
@@ -50,6 +53,7 @@ const en = {
           'Revolut (Revolut Pay, includes Apple Pay/Google Pay in its checkout): processes payments made with Revolut Pay.',
           'NOWPayments (cryptocurrency payments): processes crypto payments. Receives the amount, an order identifier and, where applicable, your email for the receipt.',
           'Google LLC (OAuth and Analytics): Google OAuth sign-in transfers your name and email. Google Analytics 4 is used with IP anonymisation and only with your consent. Policy: policies.google.com/privacy.',
+          'PostHog (product analytics and session recording): anonymously records how the app is navigated — clicks, routes, and errors — to diagnose faults and improve the interface. Enabled only if you accept non-essential cookies.',
           'Twilio SendGrid (transactional email): sends confirmations, invoices and alerts. Only receives your email address.',
           'Anthropic (AI Trade Coach): when you request an AI analysis, the parameters of the analysed strategy (asset, trade legs, prices) are sent to Anthropic. Your name and email are not sent with the query.',
         ]},
@@ -92,7 +96,7 @@ const en = {
     title: 'Terms of Use',
     sections: [
       { t: 'Acceptance of the Terms', b: [
-        { p: 'By accessing and using TradingCalculator.pro (the “Service”), you agree to be bound by these Terms of Use. If you disagree with any condition set out here, you must refrain from using the Service. These terms form a legally binding agreement between you and the limited liability company (LLC) registered in the United States that operates TradingCalculator.pro (the “Company”).' },
+        { p: 'By accessing and using TradingCalculator.pro (the “Service”), you agree to be bound by these Terms of Use. If you disagree with any condition set out here, you must refrain from using the Service. These terms form a legally binding agreement between you and {entity} (the “Company”).' },
       ]},
       { t: 'Nature of the Service — Not Financial Advice', b: [
         { p: 'TradingCalculator.pro is a financial-information tools platform including options calculators (Black-Scholes, Greeks), real-time asset prices and strategy simulations. The Service is strictly informational and educational.' },
@@ -112,6 +116,25 @@ const en = {
         ]},
         { p: '**7-day free trial** (recurring plans only, new subscribers only): a valid payment method is required to start it. If you do not cancel before the trial ends, the first charge for the chosen plan is made automatically. You can cancel during the trial at no cost from “My Subscription”.' },
         { p: 'Payments are processed securely via **Stripe** (card, SEPA, Klarna and wallets such as Apple Pay/Google Pay), **PayPal**, **Revolut Pay** and **NOWPayments** (cryptocurrencies). Prices are shown in euros (EUR) and include applicable taxes where relevant. By subscribing to an auto-renewing plan you authorise recurring charges to your payment method until you cancel. You can cancel at any time from “My Subscription”; access continues until the end of the current billing period.' },
+      ]},
+      { t: 'Right of Withdrawal (EU consumers)', b: [
+        { p: 'If you are a consumer resident in the European Union, you have **14 calendar days from the date of purchase** to withdraw from the contract **without giving any reason and without penalty**. This right is separate from, and additional to, the commercial refund policy described below, and it cannot be made conditional on how much you have used the Service.' },
+        { p: 'To exercise it, simply notify us of your decision unambiguously — for example, by email to {email} stating your name, the purchase date and the plan — before the deadline expires. You may use the form in the next section, though you are not required to. We will acknowledge receipt without delay.' },
+        { p: '**Refund.** We will reimburse all payments received without undue delay and in any case **within 14 days** of being informed of your decision, using the same means of payment you used, at no cost to you. For cryptocurrency payments, which are irreversible, the equivalent amount will be refunded in euros by an alternative means.' },
+        { p: '**Immediate access and loss of the right.** The Service is digital content with immediate access. At checkout you are asked to expressly consent to performance beginning immediately and to acknowledge that, once fully performed, **you lose the right of withdrawal** (Art. 16(m) of Directive 2011/83/EU). If you do not give that consent, performance does not begin until the 14 days have elapsed. If you withdraw after consenting to immediate performance, we will charge only the proportion of the service already supplied.' },
+        { p: 'None of the above limits any mandatory consumer rights you may have under the law of your country of residence.' },
+      ]},
+      { t: 'Model Withdrawal Form', b: [
+        { p: 'Complete and return this form only if you wish to withdraw from the contract. Its use is not mandatory.' },
+        { list: [
+          'To TradingCalculator.pro, {email}:',
+          'I hereby give notice that I withdraw from my contract for the supply of the following service: [state the plan purchased].',
+          'Date of purchase: [date].',
+          'Consumer name: [name].',
+          'Consumer address: [address].',
+          'Account email: [email].',
+          'Date: [date of this request].',
+        ]},
       ]},
       { t: 'Refund Policy', b: [
         { list: [
@@ -175,6 +198,7 @@ const en = {
           rows: [
             ['_ga', 'Google Analytics', 'Distinguish unique users (anonymised ID)', '12 months'],
             ['_ga_*', 'Google Analytics', 'Maintain the analytics session state', '12 months'],
+            ['ph_*', 'PostHog', 'Product analytics and session recording (clicks, routes, errors)', '12 months'],
           ],
         }},
         { p: 'Google Analytics 4 is configured with IP anonymisation: the IP address is truncated before storage. No personally identifiable information is transmitted to Google through these cookies.' },
@@ -183,7 +207,7 @@ const en = {
         { p: 'Some pages embed the **TradingView** chart via an iframe from tradingview.com. That content is served by TradingView and may set its own technical cookies under its own privacy and cookie policy. We do not control those cookies.' },
       ]},
       { t: 'Advertising and Third-Party Tracking Cookies', b: [
-        { p: '**TradingCalculator.pro does not use advertising, retargeting or third-party behavioural-tracking cookies.** We do not show third-party ads on the platform or share behavioural data with ad networks.' },
+        { p: '**We do not show third-party ads or share data with ad networks, and we use no advertising or retargeting cookies.** We do use **PostHog** (product analytics and session recording) to understand how the platform is used and to detect errors; it is enabled only if you accept non-essential cookies and you can refuse it from the banner.' },
       ]},
       { t: 'How to Manage and Disable Cookies', b: [
         { p: 'Most browsers let you control cookies from their settings:' },

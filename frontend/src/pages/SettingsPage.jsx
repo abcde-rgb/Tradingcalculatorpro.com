@@ -30,6 +30,42 @@ export default function SettingsPage() {
   // otherwise landing on Settings out of nowhere looks like a bug.
   const need2fa = location.state?.need2fa === true;
 
+  // ── Perfil (rectificación, art. 16 RGPD) ─────────────────────────────────
+  const [profileName, setProfileName] = useState(user?.name || '');
+  const [profilePicture, setProfilePicture] = useState(user?.picture || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const profileDirty =
+    profileName !== (user?.name || '') || profilePicture !== (user?.picture || '');
+
+  async function handleSaveProfile() {
+    setSavingProfile(true);
+    try {
+      const token = useAuthStore.getState().token;
+      const res = await fetch(`${BACKEND_URL}/api/auth/profile`, {
+        credentials: 'include',
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: profileName.trim(),
+          picture: profilePicture.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || data.message || `Error ${res.status}`);
+      }
+      await useAuthStore.getState().refreshUser();
+      toast.success(t('settingsProfileSavedToast'));
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
   // ── Change Password ──────────────────────────────────────────────────────
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -242,8 +278,10 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="w-8 h-8 text-primary" />
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                  {user.picture
+                    ? <img src={user.picture} alt="" className="w-full h-full object-cover" />
+                    : <User className="w-8 h-8 text-primary" />}
                 </div>
                 <div>
                   <p className="font-semibold text-lg">{user.name}</p>
@@ -251,6 +289,44 @@ export default function SettingsPage() {
                     <Mail className="w-4 h-4" /> {user.email}
                   </p>
                 </div>
+              </div>
+
+              {/* Rectificación (art. 16 RGPD). La Política de Privacidad ya
+                  prometía que esto se podía hacer «desde los ajustes de tu
+                  cuenta»; hasta ahora no existía ni el formulario ni el
+                  endpoint, así que el derecho se anunciaba y no se podía
+                  ejercer. El correo no se edita aquí a propósito: es el
+                  identificador de la cuenta y cambiarlo exige reverificación. */}
+              <div className="pt-4 border-t border-border space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="profile-name">{t('settingsProfileNameLabel')}</Label>
+                  <Input
+                    id="profile-name"
+                    value={profileName}
+                    maxLength={80}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    data-testid="profile-name-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-picture">{t('settingsProfilePictureLabel')}</Label>
+                  <Input
+                    id="profile-picture"
+                    value={profilePicture}
+                    maxLength={500}
+                    placeholder="https://…"
+                    onChange={(e) => setProfilePicture(e.target.value)}
+                    data-testid="profile-picture-input"
+                  />
+                </div>
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={savingProfile || !profileName.trim() || !profileDirty}
+                  data-testid="profile-save-button"
+                >
+                  {savingProfile && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {t('settingsProfileSave')}
+                </Button>
               </div>
             </CardContent>
           </Card>

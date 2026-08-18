@@ -7,10 +7,10 @@
  * [etiqueta](https://url) enlace externo, {email} correo de contacto,
  * {terms} enlace interno a Términos.
  *
- * ⚠️ Identidad del titular: LLC registrada en EE. UU. Cuando se disponga del
- * nombre legal exacto y el estado de constitución, sustituir la fórmula
- * genérica «una sociedad de responsabilidad limitada (LLC) registrada en los
- * Estados Unidos» por la denominación completa en los 8 idiomas.
+ * ⚠️ Identidad del titular y representante en la UE: ya NO se escriben aquí.
+ * Viven en `./entity.js`, que es la fuente única, y llegan al texto por los
+ * tokens {entity} y {euRepresentative}. Repetida en diez ficheros, la fórmula
+ * genérica no se sustituía nunca; con un solo sitio, rellenarla es una edición.
  */
 const es = {
   meta: {
@@ -23,7 +23,10 @@ const es = {
     title: 'Política de Privacidad',
     sections: [
       { t: 'Responsable del Tratamiento', b: [
-        { p: 'El responsable del tratamiento de tus datos personales es **TradingCalculator.pro**, operado por una sociedad de responsabilidad limitada (LLC) registrada en los Estados Unidos. Para cualquier consulta sobre privacidad, contáctanos en {email}.' },
+        { p: 'El responsable del tratamiento de tus datos personales es **TradingCalculator.pro**, operado por {entity}. Para cualquier consulta sobre privacidad, contáctanos en {email}.' },
+      ]},
+      { t: 'Representante en la Unión Europea', b: [
+        { p: 'Al estar el responsable establecido fuera del Espacio Económico Europeo y dirigir su servicio a residentes en la Unión, hemos designado un representante conforme al **artículo 27 del RGPD**. Puedes dirigirte a él, además de a nosotros, para cualquier cuestión relativa al tratamiento de tus datos: {euRepresentative}' },
       ]},
       { t: 'Datos que Recogemos', b: [
         { p: 'Recogemos únicamente los datos necesarios para prestarte el servicio:' },
@@ -63,7 +66,9 @@ const es = {
           'Revolut (Revolut Pay, incluye Apple Pay/Google Pay en su checkout): procesa los pagos realizados con Revolut Pay.',
           'NOWPayments (pagos con criptomonedas): procesa los pagos en criptomonedas. Recibe el importe, un identificador de pedido y, en su caso, tu email para el recibo.',
           'Google LLC (OAuth y Analytics): la autenticación con Google OAuth transfiere nombre y correo electrónico. Google Analytics 4 se usa con anonimización de IP y solo si otorgas tu consentimiento. Política: policies.google.com/privacy.',
+          'PostHog (analítica de producto y grabación de sesión): registra de forma anónima cómo se navega por la aplicación —clics, rutas y errores— para diagnosticar fallos y mejorar la interfaz. Solo se activa si aceptas las cookies no esenciales.',
           'Twilio SendGrid (email transaccional): envío de correos de confirmación, facturas y alertas. Solo recibe tu dirección de email.',
+          'Twilio (SMS): si activas los avisos del diario por SMS, recibe tu número de teléfono y el texto del aviso. Solo se usa si das de alta esa vía; en nuestros registros guardamos únicamente los cuatro últimos dígitos y la hora del envío.',
           'Anthropic (AI Trade Coach): cuando solicitas un análisis con IA, se envían a Anthropic los parámetros de la estrategia analizada (activo, patas de la operación, precios). No se envían tu nombre ni tu email junto con la consulta.',
         ]},
         { p: 'Los proveedores están sujetos a acuerdos de tratamiento de datos o cuentan con mecanismos de transferencia internacional adecuados (cláusulas contractuales tipo u otros mecanismos reconocidos).' },
@@ -87,6 +92,8 @@ const es = {
           'Registros técnicos (logs): 90 días, con fines de seguridad y diagnóstico.',
           'Datos de pago y facturación: conservados durante el plazo exigido por las obligaciones fiscales y contables aplicables (hasta 10 años según la jurisdicción).',
           'Datos analíticos (Google Analytics 4): máximo 14 meses, con IP anonimizada.',
+          'Eventos de uso del producto (qué secciones se visitan, sin datos identificativos): 120 días, tras los cuales se purgan automáticamente.',
+          'Registro de envíos por SMS: solo los cuatro últimos dígitos del número y la hora, mientras la cuenta esté activa; se elimina al borrar la cuenta.',
         ]},
       ]},
       { t: 'Seguridad de los Datos', b: [
@@ -105,7 +112,7 @@ const es = {
     title: 'Términos de Uso',
     sections: [
       { t: 'Aceptación de los Términos', b: [
-        { p: 'Al acceder y utilizar TradingCalculator.pro (en adelante, «el Servicio»), aceptas quedar vinculado por estos Términos de Uso. Si no estás de acuerdo con alguna de las condiciones aquí establecidas, debes abstenerte de usar el Servicio. Estos términos constituyen un acuerdo legalmente vinculante entre tú y la sociedad de responsabilidad limitada (LLC) registrada en los Estados Unidos que opera TradingCalculator.pro (la «Empresa»).' },
+        { p: 'Al acceder y utilizar TradingCalculator.pro (en adelante, «el Servicio»), aceptas quedar vinculado por estos Términos de Uso. Si no estás de acuerdo con alguna de las condiciones aquí establecidas, debes abstenerte de usar el Servicio. Estos términos constituyen un acuerdo legalmente vinculante entre tú y {entity} (la «Empresa»).' },
       ]},
       { t: 'Naturaleza del Servicio — No es Asesoramiento Financiero', b: [
         { p: 'TradingCalculator.pro es una plataforma de herramientas de información financiera que incluye calculadoras de opciones (Black-Scholes, griegas), precios de activos en tiempo real y simulaciones de estrategias. El Servicio tiene carácter exclusivamente informativo y educativo.' },
@@ -124,16 +131,35 @@ const es = {
           'Plan Lifetime (de por vida): €500, pago único, acceso permanente sin renovaciones.',
         ]},
         { p: '**Prueba gratuita de 7 días** (solo planes de renovación automática y nuevos suscriptores): al iniciarla se solicita un método de pago válido. Si no cancelas antes de que finalice la prueba, se efectuará automáticamente el primer cargo del plan elegido. Puedes cancelar durante la prueba, sin coste alguno, desde la sección «Mi Suscripción».' },
-        { p: 'Los pagos se procesan de forma segura a través de **Stripe** (tarjeta, SEPA, Klarna y carteras como Apple Pay/Google Pay), **PayPal**, **Revolut Pay** y **NOWPayments** (criptomonedas). Los precios se indican en euros (EUR) e incluyen los impuestos aplicables cuando corresponda. Al suscribirte a un plan de renovación automática, autorizas los cargos recurrentes en tu método de pago hasta que canceles la suscripción. Puedes cancelar en cualquier momento desde «Mi Suscripción»; el acceso se mantiene hasta el final del período de facturación en curso.' },
+        { p: 'Los pagos se procesan de forma segura a través de **Stripe** (tarjeta, SEPA, Klarna y carteras como Apple Pay/Google Pay), **PayPal**, **Revolut Pay** y **NOWPayments** (criptomonedas). Los precios se indican en euros (EUR). El IVA aplicable se calcula en el momento del pago según tu país de residencia y se muestra desglosado antes de que confirmes la compra; el importe total que verás en la pantalla de pago es el que se cobrará. Al suscribirte a un plan de renovación automática, autorizas los cargos recurrentes en tu método de pago hasta que canceles la suscripción. Puedes cancelar en cualquier momento desde «Mi Suscripción»; el acceso se mantiene hasta el final del período de facturación en curso.' },
+      ]},
+      { t: 'Derecho de Desistimiento (consumidores de la UE)', b: [
+        { p: 'Si eres consumidor con residencia en la Unión Europea, dispones de **14 días naturales desde la contratación** para desistir del contrato **sin necesidad de justificación y sin penalización alguna**. Este derecho es independiente y adicional a la política comercial de reembolsos descrita más abajo, y no puede condicionarse al uso que hayas hecho del Servicio.' },
+        { p: 'Para ejercerlo, basta con que nos comuniques tu decisión de forma inequívoca —por ejemplo, con un correo a {email} indicando tu nombre, la fecha de contratación y el plan— antes de que venza el plazo. Puedes usar el formulario del apartado siguiente, aunque no es obligatorio. Te confirmaremos la recepción sin demora.' },
+        { p: '**Reembolso.** Te devolveremos todos los pagos recibidos, sin demora indebida y en todo caso **antes de 14 días** desde que nos comuniques tu decisión, empleando el mismo medio de pago que usaste, sin gastos para ti. En pagos con criptomonedas, al ser transacciones irreversibles, se abonará el importe equivalente en euros por un medio alternativo.' },
+        { p: '**Acceso inmediato y pérdida del derecho.** El Servicio es contenido digital de acceso inmediato. Al contratar, se te pide que consientas expresamente que la prestación comience de inmediato y que reconozcas que, una vez ejecutada por completo, **pierdes el derecho de desistimiento** (art. 16.m de la Directiva 2011/83/UE). Si no prestas ese consentimiento, la prestación no comienza hasta que transcurran los 14 días. Si desistes tras haber consentido el inicio inmediato, te cobraremos únicamente la parte proporcional al servicio ya prestado.' },
+        { p: 'Nada de lo anterior limita los derechos irrenunciables que te correspondan como consumidor según la legislación de tu país de residencia.' },
+      ]},
+      { t: 'Modelo de Formulario de Desistimiento', b: [
+        { p: 'Solo tienes que rellenar y enviar este formulario si deseas desistir del contrato. Su uso no es obligatorio.' },
+        { list: [
+          'A la atención de TradingCalculator.pro, {email}:',
+          'Por la presente le comunico que desisto de mi contrato de prestación del siguiente servicio: [indica el plan contratado].',
+          'Fecha de contratación: [fecha].',
+          'Nombre del consumidor: [nombre].',
+          'Domicilio del consumidor: [domicilio].',
+          'Correo electrónico de la cuenta: [email].',
+          'Fecha: [fecha de la solicitud].',
+        ]},
       ]},
       { t: 'Política de Reembolsos', b: [
         { list: [
-          'Plan Mensual (€17/mes): reembolso completo dentro de los primeros 14 días naturales desde la activación, siempre que no hayas realizado uso significativo de las funcionalidades premium.',
+          'Plan Mensual (€17/mes): reembolso comercial completo dentro de los primeros 14 días naturales desde la activación (el derecho legal de desistimiento, descrito arriba, no está sujeto a esta ni a ninguna otra condición).',
           'Plan Trimestral (€45/trimestre): reembolso completo dentro de los primeros 14 días naturales desde la activación, bajo las mismas condiciones.',
           'Plan Anual (€200/año): reembolso completo dentro de los primeros 14 días naturales desde la activación, bajo las mismas condiciones.',
           'Plan Lifetime (€500): no reembolsable una vez efectuado el pago, sin perjuicio de los derechos irrenunciables que te correspondan como consumidor según la legislación de tu país de residencia.',
         ]},
-        { p: 'Para solicitar un reembolso, contacta con nosotros en {email} dentro del plazo aplicable. Los reembolsos se procesan en el método de pago original en un plazo de 5 a 10 días hábiles. **Pagos con criptomonedas:** al ser transacciones irreversibles, los reembolsos aprobados se abonarán en euros mediante un medio alternativo equivalente. Esta política no limita los derechos que como consumidor te correspondan según la legislación de tu país de residencia en la UE.' },
+        { p: 'Esta política de reembolsos es un compromiso **comercial** y se suma —sin sustituirlo ni limitarlo— al **derecho de desistimiento de 14 días** descrito más arriba, que es incondicional y no depende del uso que hayas hecho del Servicio. Para solicitar un reembolso comercial, contacta con nosotros en {email} dentro del plazo aplicable. Los reembolsos se procesan en el método de pago original en un plazo de 5 a 10 días hábiles. **Pagos con criptomonedas:** al ser transacciones irreversibles, los reembolsos aprobados se abonarán en euros mediante un medio alternativo equivalente. Esta política no limita los derechos que como consumidor te correspondan según la legislación de tu país de residencia en la UE.' },
       ]},
       { t: 'Propiedad Intelectual', b: [
         { p: 'Todo el contenido del Servicio —incluyendo código fuente, algoritmos, diseño de la interfaz, textos, gráficos, logotipos y bases de datos— es propiedad exclusiva de la Empresa y está protegido por las leyes de propiedad intelectual aplicables. Se te concede una licencia limitada, no exclusiva, intransferible y revocable para usar el Servicio exclusivamente para tus fines personales y no comerciales.' },
@@ -179,7 +205,7 @@ const es = {
             ['refresh_token', 'Renovar la sesión sin volver a iniciar sesión (httpOnly)', '7 días'],
           ],
         }},
-        { p: 'Además, utilizamos **almacenamiento local del navegador (localStorage — no son cookies)** para recordar preferencias en tu propio dispositivo: idioma seleccionado, tema visual, tu elección de consentimiento de cookies y el estado de la interfaz de tu cuenta. Estos datos no se transmiten a terceros.' },
+        { p: 'Además, utilizamos **almacenamiento local del navegador (localStorage — no son cookies)** para recordar tu elección de consentimiento de cookies y el estado de la interfaz en ese dispositivo. Si has iniciado sesión, tus preferencias de cuenta —idioma, tema, favoritos, progreso de la Academia y los setups de tu sistema de trading— **se guardan también en tu cuenta en nuestros servidores**, para que te acompañen al cambiar de dispositivo; se borran cuando eliminas la cuenta y se incluyen en la exportación de tus datos. No se transmiten a terceros.' },
       ]},
       { t: 'Cookies Analíticas (Requieren Consentimiento)', b: [
         { p: 'Utilizamos Google Analytics 4 para comprender cómo los usuarios interactúan con el Servicio y mejorar su funcionalidad. Estas cookies solo se instalan si previamente has otorgado tu consentimiento a través del banner de cookies (Google Consent Mode v2, denegado por defecto).' },
@@ -188,6 +214,7 @@ const es = {
           rows: [
             ['_ga', 'Google Analytics', 'Distinguir usuarios únicos (ID anonimizado)', '12 meses'],
             ['_ga_*', 'Google Analytics', 'Mantener el estado de la sesión analítica', '12 meses'],
+            ['ph_*', 'PostHog', 'Analítica de producto y grabación de sesión (clics, rutas y errores)', '12 meses'],
           ],
         }},
         { p: 'Google Analytics 4 se ha configurado con anonimización de IP activada: la dirección IP se trunca antes de ser almacenada. No se transmite información personal identificable a Google a través de estas cookies.' },
@@ -196,7 +223,7 @@ const es = {
         { p: 'Algunas páginas incorporan el gráfico de **TradingView** mediante un iframe de tradingview.com. Ese contenido lo sirve TradingView y puede establecer sus propias cookies técnicas conforme a su propia política de privacidad y cookies. No controlamos esas cookies.' },
       ]},
       { t: 'Cookies de Publicidad y Tracking de Terceros', b: [
-        { p: '**TradingCalculator.pro no utiliza cookies de publicidad, retargeting ni de seguimiento comportamental de terceros.** No mostramos anuncios de terceros en la plataforma ni compartimos datos de comportamiento con redes publicitarias.' },
+        { p: '**No mostramos anuncios de terceros ni compartimos datos con redes publicitarias, y no usamos cookies de publicidad ni de retargeting.** Sí utilizamos **PostHog** (analítica de producto y grabación de sesión) para entender cómo se usa la plataforma y detectar errores; se activa únicamente si aceptas las cookies no esenciales y puedes rechazarlo desde el banner. Consulta la tabla siguiente.' },
       ]},
       { t: 'Cómo Gestionar y Desactivar las Cookies', b: [
         { p: 'La mayoría de los navegadores permiten controlar las cookies a través de sus ajustes de configuración:' },

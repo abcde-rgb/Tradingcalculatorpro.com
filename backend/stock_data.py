@@ -3,6 +3,7 @@ Chrome impersonation) for real market data. No yfinance/pandas at import time.""
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,33 @@ def _yahoo_get(path: str, *, timeout: int = 15) -> dict:
     raise RuntimeError(f"Yahoo request failed ({path}): {last}")
 
 
+def _calendar_days_to_expiry(exp_unix: int, now: Optional[datetime] = None) -> int:
+    """Días naturales que faltan hasta un vencimiento, sin perder el último.
+
+    Yahoo marca los vencimientos a **medianoche UTC** del día de expiración. La
+    versión anterior hacía `(exp_naive_utc - datetime.now()).days`, y eso fallaba
+    dos veces a la vez:
+
+    1. `.days` **trunca**. Un contrato que vence dentro de 7 días naturales, mirado
+       a las 14:30, deja 6 días y 10 horas → `.days` devuelve **6**.
+    2. Restaba un naive-UTC de un naive-**local**, así que en un servidor que no
+       estuviera en UTC se sumaba el desfase del huso encima.
+
+    El día perdido no es cosmético: entra en `year_fraction()` y de ahí en el
+    precio. Sobre una call ATM semanal son **−7,3 %**, siempre infravalorando, y
+    el error relativo crece según se acorta el vencimiento — es máximo justo en
+    los semanales y los 0DTE, que es donde el usuario más se juega.
+
+    Redondeo hacia arriba: mientras quede algo de sesión, queda un día por vivir.
+    `year_fraction()` ya descuenta las horas transcurridas del día en curso.
+    """
+    now_utc = now or datetime.now(timezone.utc)
+    if now_utc.tzinfo is None:
+        now_utc = now_utc.replace(tzinfo=timezone.utc)
+    exp_utc = datetime.fromtimestamp(int(exp_unix), tz=timezone.utc)
+    return math.ceil((exp_utc - now_utc).total_seconds() / 86400)
+
+
 def _yf_safe_float(val, default=0.0):
     try:
         f = float(val)
@@ -54,6 +82,41 @@ def _yf_safe_int(val, default=0):
         return default if f != f else int(f)
     except (TypeError, ValueError):
         return default
+
+
+def _yf_safe_int_or_none(val) -> Optional[int]:
+    """Entero observado, o `None` cuando el proveedor no publicó nada.
+
+    Para el interés abierto la diferencia importa: `null` significa
+    «desconocido», y convertirlo en `0` inventa una observación. `_leg_oi()` en
+    `options_positioning` está escrito para callarse ante un `None` — con un `0`
+    no puede, porque un cero también es una lectura legítima.
+    """
+    if val is None:
+        return None
+    try:
+        f = float(val)
+    except (TypeError, ValueError):
+        return None
+    return None if f != f else int(f)  # NaN → desconocido
+
+
+def _yf_positive_float_or_none(val) -> Optional[float]:
+    """Volatilidad implícita publicada, o `None`.
+
+    Yahoo devuelve 0 (o nada) en contratos ilíquidos: no es una volatilidad del
+    0 %, es que no hay precio del que sacarla. La versión anterior lo sustituía
+    por un 0.3 fijo —`or 0.3`— y lo presentaba como medida.
+    """
+    if val is None:
+        return None
+    try:
+        f = float(val)
+    except (TypeError, ValueError):
+        return None
+    if f != f or f <= 0:  # NaN o cero → indeterminado
+        return None
+    return f
 
 # Sector mapping for fallback
 SECTOR_MAP = {
@@ -549,19 +612,44 @@ def get_options_chain_real(symbol: str, expiration_date: str) -> Optional[dict]:
         if not calls and not puts:
             return None
 
-        _empty = {"bid": 0, "ask": 0, "mid": 0, "last": 0, "volume": 0, "openInterest": 0, "iv": 0.3}
+        # El lado que no cotiza conserva la FORMA de una pata y vacía los VALORES.
+        #
+        # Antes era `{"bid": 0, ..., "openInterest": 0, "iv": 0.3}`, y eso rompía
+        # la regla nº2 del proyecto («lo que no se puede calcular es None, no 0»)
+        # justo donde más daño hace: en la ruta de datos REALES, que no lleva
+        # banda de aviso porque `_synthetic_marker` sólo cubre la cadena modelada.
+        # Un 30 % de volatilidad inventado se leía en pantalla igual que uno
+        # medido, y `options_positioning._leg_oi()` —escrito para devolver `None`
+        # «cuando nunca se observó»— nunca recibía un `None`, sino un `0`
+        # indistinguible de una observación real.
+        #
+        # Se mantiene el diccionario en vez de poner `None` la pata entera a
+        # propósito: media docena de consumidores hacen `item["call"]["iv"]` y un
+        # `None` ahí los rompe a todos. Con la forma intacta, quien lea un campo
+        # obtiene `None` —que es la respuesta correcta— en lugar de reventar.
+        _empty = {
+            "bid": None, "ask": None, "mid": None, "last": None,
+            "volume": None, "openInterest": None, "iv": None,
+        }
 
         def _leg(o):
             bid = _yf_safe_float(o.get("bid"))
             ask = _yf_safe_float(o.get("ask"))
+            # Un mid sólo existe si hay horquilla. Sin cotización, `(0+0)/2 = 0`
+            # no es «vale cero», es «no hay precio»: se publica como None y el
+            # optimizador y la superficie de IV pueden saltárselo.
+            mid = (bid + ask) / 2 if (bid > 0 and ask > 0) else None
+            # Volumen `null` sí es cero (no se ha negociado hoy). El interés
+            # abierto `null` es DESCONOCIDO: ponerlo a 0 hace que max pain, GEX y
+            # el ratio put/call lean una observación que nadie hizo.
             return {
                 "bid": bid,
                 "ask": ask,
-                "mid": (bid + ask) / 2,
+                "mid": mid,
                 "last": _yf_safe_float(o.get("lastPrice")),
                 "volume": _yf_safe_int(o.get("volume")),
-                "openInterest": _yf_safe_int(o.get("openInterest")),
-                "iv": _yf_safe_float(o.get("impliedVolatility"), 0.3) or 0.3,
+                "openInterest": _yf_safe_int_or_none(o.get("openInterest")),
+                "iv": _yf_positive_float_or_none(o.get("impliedVolatility")),
             }
 
         by_strike: dict = {}
@@ -574,8 +662,8 @@ def get_options_chain_real(symbol: str, expiration_date: str) -> Optional[dict]:
         for strike in sorted(by_strike):
             chain.append({
                 "strike": float(strike),
-                "call": by_strike[strike].get("call", dict(_empty)),
-                "put": by_strike[strike].get("put", dict(_empty)),
+                "call": by_strike[strike].get("call") or dict(_empty),
+                "put": by_strike[strike].get("put") or dict(_empty),
             })
         return chain
 
@@ -594,11 +682,10 @@ def get_available_expirations(symbol: str) -> Optional[list]:
         if not exp_unix:
             return None
 
-        today = datetime.now()
         result = []
         for ts in exp_unix[:15]:  # Limit to first 15 expirations
             exp_date = datetime.fromtimestamp(int(ts), tz=timezone.utc).replace(tzinfo=None)
-            days_to_expiry = (exp_date - today).days
+            days_to_expiry = _calendar_days_to_expiry(int(ts))
             result.append({
                 "date": exp_date.strftime("%Y-%m-%d"),
                 "daysToExpiry": days_to_expiry,

@@ -4133,7 +4133,6 @@ export default {
   "insightCostsEatProfit": "⚠️ コストが粗利益の {value}%（{amount}）を消費しています。ここを超えると問題は戦略ではなく、1トレードあたりの費用か保有期間です。",
   "insightOverExposure": "🚨 {count} 件で、ポジションが口座の {threshold}× を超えていました（最大 {value}×）。これはストップでは制御できません。窓やヒゲはストップを飛び越えますが、サイズは飛び越えません。",
   "tfProductsRestricted": "サーバーがまだ新しい商品を認識していないため、現時点ではスポットとオプションの取引のみ記録できます。これはデプロイの問題でデータの問題ではありません。バックエンドが更新されれば、CFD・先物・FX・暗号資産が自動で現れます。",
-  "structPriceLastClose": "直近の終値",
   "structPriceForming": "形成中の足",
   "structScannedJustNow": "1分未満前に取得",
   "structScannedAgo": "{n}分前に取得",

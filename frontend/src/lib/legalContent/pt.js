@@ -10,7 +10,10 @@ const pt = {
     title: 'Política de Privacidade',
     sections: [
       { t: 'Responsável pelo Tratamento', b: [
-        { p: 'O responsável pelos seus dados pessoais é a **TradingCalculator.pro**, operada por uma sociedade de responsabilidade limitada (LLC) registada nos Estados Unidos. Para qualquer questão de privacidade, contacte-nos em {email}.' },
+        { p: 'O responsável pelos seus dados pessoais é a **TradingCalculator.pro**, operada por {entity}. Para qualquer questão de privacidade, contacte-nos em {email}.' },
+      ]},
+      { t: 'Representante na União Europeia', b: [
+        { p: 'Estando o responsável estabelecido fora do Espaço Económico Europeu e dirigindo o seu serviço a residentes na União, designámos um representante nos termos do **artigo 27.º do RGPD**. Podes dirigir-te a ele, além de a nós, para qualquer questão relativa ao tratamento dos teus dados: {euRepresentative}' },
       ]},
       { t: 'Dados que Recolhemos', b: [
         { p: 'Recolhemos apenas os dados necessários para prestar o serviço:' },
@@ -50,6 +53,7 @@ const pt = {
           'Revolut (Revolut Pay, inclui Apple Pay/Google Pay no seu checkout): processa os pagamentos feitos com Revolut Pay.',
           'NOWPayments (pagamentos em criptomoeda): processa os pagamentos em cripto. Recebe o montante, um identificador de encomenda e, quando aplicável, o seu email para o recibo.',
           'Google LLC (OAuth e Analytics): o início de sessão com Google OAuth transfere o seu nome e email. O Google Analytics 4 é usado com anonimização de IP e apenas com o seu consentimento. Política: policies.google.com/privacy.',
+          'PostHog (analítica de produto e gravação de sessão): regista de forma anónima a navegação na aplicação — cliques, rotas e erros — para diagnosticar falhas e melhorar a interface. Só é ativado se aceitares as cookies não essenciais.',
           'Twilio SendGrid (email transacional): envia confirmações, faturas e alertas. Recebe apenas o seu endereço de email.',
           'Anthropic (AI Trade Coach): quando pede uma análise de IA, os parâmetros da estratégia analisada (ativo, pernas da operação, preços) são enviados à Anthropic. O seu nome e email não são enviados com a consulta.',
         ]},
@@ -92,7 +96,7 @@ const pt = {
     title: 'Termos de Utilização',
     sections: [
       { t: 'Aceitação dos Termos', b: [
-        { p: 'Ao aceder e utilizar o TradingCalculator.pro (o «Serviço»), concorda em ficar vinculado a estes Termos de Utilização. Se discordar de alguma condição aqui estabelecida, deve abster-se de utilizar o Serviço. Estes termos constituem um acordo juridicamente vinculativo entre si e a sociedade de responsabilidade limitada (LLC) registada nos Estados Unidos que opera o TradingCalculator.pro (a «Empresa»).' },
+        { p: 'Ao aceder e utilizar o TradingCalculator.pro (o «Serviço»), concorda em ficar vinculado a estes Termos de Utilização. Se discordar de alguma condição aqui estabelecida, deve abster-se de utilizar o Serviço. Estes termos constituem um acordo juridicamente vinculativo entre si e {entity} (a «Empresa»).' },
       ]},
       { t: 'Natureza do Serviço — Não é Aconselhamento Financeiro', b: [
         { p: 'O TradingCalculator.pro é uma plataforma de ferramentas de informação financeira que inclui calculadoras de opções (Black-Scholes, gregas), preços de ativos em tempo real e simulações de estratégias. O Serviço é estritamente informativo e educativo.' },
@@ -112,6 +116,25 @@ const pt = {
         ]},
         { p: '**Período gratuito de 7 dias** (apenas planos recorrentes e apenas para novos subscritores): é necessário um meio de pagamento válido para o iniciar. Se não cancelar antes do fim do período gratuito, a primeira cobrança do plano escolhido é efetuada automaticamente. Pode cancelar durante o período gratuito sem qualquer custo a partir de «A minha subscrição».' },
         { p: 'Os pagamentos são processados em segurança através da **Stripe** (cartão, SEPA, Klarna e carteiras como Apple Pay/Google Pay), do **PayPal**, do **Revolut Pay** e da **NOWPayments** (criptomoedas). Os preços são apresentados em euros (EUR) e incluem os impostos aplicáveis quando relevante. Ao subscrever um plano de renovação automática autoriza cobranças recorrentes ao seu meio de pagamento até que cancele. Pode cancelar a qualquer momento a partir de «A minha subscrição»; o acesso mantém-se até ao final do período de faturação em curso.' },
+      ]},
+      { t: 'Direito de Livre Resolução (consumidores da UE)', b: [
+        { p: 'Se és consumidor residente na União Europeia, dispões de **14 dias de calendário a contar da contratação** para resolver o contrato **sem necessidade de justificação e sem qualquer penalização**. Este direito é independente e adicional à política comercial de reembolso descrita abaixo, e não pode ser condicionado ao uso que tenhas feito do Serviço.' },
+        { p: 'Para o exercer, basta comunicares-nos a tua decisão de forma inequívoca — por exemplo, por email para {email} indicando o teu nome, a data de contratação e o plano — antes do fim do prazo. Podes usar o formulário da secção seguinte, embora não seja obrigatório. Confirmaremos a receção sem demora.' },
+        { p: '**Reembolso.** Devolveremos todos os pagamentos recebidos, sem demora indevida e em qualquer caso **no prazo de 14 dias** a contar da comunicação da tua decisão, através do mesmo meio de pagamento que utilizaste, sem custos para ti. Em pagamentos com criptomoedas, por serem irreversíveis, o montante equivalente será reembolsado em euros por meio alternativo.' },
+        { p: '**Acesso imediato e perda do direito.** O Serviço é conteúdo digital de acesso imediato. Na contratação, pedimos-te que consintas expressamente no início imediato da prestação e que reconheças que, uma vez integralmente executada, **perdes o direito de livre resolução** (art. 16.º, alínea m, da Diretiva 2011/83/UE). Sem esse consentimento, a prestação só começa depois de decorridos os 14 dias. Se resolveres após teres consentido, cobraremos apenas a parte proporcional ao serviço já prestado.' },
+        { p: 'Nada do acima exposto limita os direitos irrenunciáveis que te assistem como consumidor ao abrigo da lei do teu país de residência.' },
+      ]},
+      { t: 'Modelo de Formulário de Livre Resolução', b: [
+        { p: 'Preenche e envia este formulário apenas se desejares resolver o contrato. O seu uso não é obrigatório.' },
+        { list: [
+          'À atenção de TradingCalculator.pro, {email}:',
+          'Pela presente comunico que resolvo o meu contrato de prestação do seguinte serviço: [plano contratado].',
+          'Data de contratação: [data].',
+          'Nome do consumidor: [nome].',
+          'Morada do consumidor: [morada].',
+          'Email da conta: [email].',
+          'Data: [data do pedido].',
+        ]},
       ]},
       { t: 'Política de Reembolso', b: [
         { list: [
@@ -175,6 +198,7 @@ const pt = {
           rows: [
             ['_ga', 'Google Analytics', 'Distinguir utilizadores únicos (ID anonimizado)', '12 meses'],
             ['_ga_*', 'Google Analytics', 'Manter o estado da sessão de analítica', '12 meses'],
+            ['ph_*', 'PostHog', 'Analítica de produto e gravação de sessão (cliques, rotas, erros)', '12 meses'],
           ],
         }},
         { p: 'O Google Analytics 4 está configurado com anonimização de IP: o endereço IP é truncado antes de ser armazenado. Não é transmitida à Google qualquer informação pessoalmente identificável através destes cookies.' },
