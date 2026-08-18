@@ -34,14 +34,15 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
 FALLOS=0
 TEMPORALES=()
 
-# Pase lo que pase —error, Ctrl-C, salida anticipada— el repositorio queda como
-# estaba. Un test que ensucia el árbol es un test que nadie vuelve a ejecutar.
-limpiar() {
-  for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -f "$f"; done
-  git checkout -- . 2>/dev/null
-}
-trap limpiar EXIT INT TERM
-
+# La guarda va ANTES del trap, y el orden no es estético.
+#
+# Estuvo al revés y la consecuencia fue exactamente la que la guarda existe para
+# evitar: el `trap ... EXIT` se instalaba primero, la guarda detectaba el árbol
+# sucio, imprimía «haz commit antes» y hacía `exit 1` — lo que disparaba el trap
+# y ejecutaba `git checkout -- .`, borrando los cambios que acababa de negarse a
+# pisar. Una guarda que provoca el daño del que avisa es peor que no tenerla:
+# quien la lee se queda tranquilo.
+#
 # Sólo importan los ficheros CON SEGUIMIENTO y modificados: la restauración es
 # `git checkout -- .`, que no toca lo que no está en el índice. Bloquear también
 # por ficheros nuevos sin seguimiento haría el test inejecutable justo cuando se
@@ -54,6 +55,14 @@ if [ -n "$(git diff --name-only; git diff --cached --name-only)" ]; then
   echo "  se llevaría esos cambios por delante. Haz commit o stash antes."
   exit 1
 fi
+
+# Pase lo que pase —error, Ctrl-C, salida anticipada— el repositorio queda como
+# estaba. Un test que ensucia el árbol es un test que nadie vuelve a ejecutar.
+limpiar() {
+  for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -f "$f"; done
+  git checkout -- . 2>/dev/null
+}
+trap limpiar EXIT INT TERM
 
 # ── utilidades ──────────────────────────────────────────────────────────────
 titulo() { printf '\n\033[1m%s\033[0m\n' "$1"; }

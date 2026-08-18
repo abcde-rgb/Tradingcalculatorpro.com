@@ -11,6 +11,7 @@ import ScanControls, { ScanNotices } from './structure/ScanControls';
 import ScanReading from './structure/ScanReading';
 import ProofStrip from './structure/ProofStrip';
 import LevelLadder from './structure/LevelLadder';
+import LevelOdds from './structure/LevelOdds';
 import StructureEvents from './structure/StructureEvents';
 import CandleSignals from './structure/CandleSignals';
 import FvgList from './structure/FvgList';
@@ -47,7 +48,7 @@ const StructureScanner = () => {
   const yahoo = toYahooSymbol(asset);
 
   const {
-    ladder, periods, tfInterval, activePeriod,
+    ladder, periods, tfInterval, activePeriod, measureOdds,
     loading, data, candles, log,
     scan, changeInterval, changePeriod, clearLog, lastScanAt,
     chartInterval, chartRung,
@@ -145,6 +146,23 @@ const StructureScanner = () => {
           <div>
             <SectionHeading step={3} title={t('structLevelsTitle')} hint={t('structStepLevelsHint')} />
             <LevelLadder data={data} />
+          </div>
+        )}
+
+        {/* ── 4 · PROBABILIDAD MEDIDA ────────────────────────────────────
+            Va DESPUÉS de los niveles porque contesta sobre ellos: sin saber
+            dónde está el soporte y dónde la resistencia, «69 %» no significa
+            nada. Y va con botón propio: la medición tarda segundos y no debe
+            colgarse del escaneo automático. */}
+        {scanned && levels.length > 0 && (
+          <div>
+            <SectionHeading step={4} title={t('oddsTitle')} hint={t('oddsIntro')} />
+            <LevelOdds
+              symbol={yahoo}
+              interval={tfInterval}
+              period={activePeriod}
+              onFetch={measureOdds}
+            />
           </div>
         )}
 

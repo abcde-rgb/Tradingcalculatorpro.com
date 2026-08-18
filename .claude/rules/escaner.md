@@ -31,17 +31,37 @@ escaneadas.
 La confluencia necesita una segunda serie, así que la pide `server.py` y se aplica con
 `apply_confluence`. No metas fetch dentro del módulo.
 
-## ⚠️ El precio de referencia de soportes/resistencias no está etiquetado
+## El precio de referencia va etiquetado — no lo vuelvas a llamar «ahora»
 
-`detect_sr_levels` reparte soporte/resistencia comparando contra
-`current_price = rows[-1].get("close")` — **el cierre de la última vela de la
-temporalidad pedida**, que no es «el precio ahora»: en diario después del cierre es el
-cierre de hoy, un sábado es el del viernes, y el feed de Yahoo va retrasado en muchos
-mercados.
+`detect_structure` publica `referencePrice`, `referenceSource` (`live` | `last_close`),
+`referenceTs`, `referenceAgeSeconds`, `livePrice`, `lastClose` y
+`levelsBetweenLiveAndClose`. `server.py` pide la cotización viva y se la pasa; si falla,
+cae al último cierre **y lo dice en `referenceSource`**.
 
-El arreglo (etiquetar fuente, fecha y antigüedad de la referencia, y aceptar cotización
-viva) **está escrito y sin fusionar** en el PR #162, rama
-`claude/escaneres-datos-honestos`. Si tocas esta zona, mira ese PR antes de reescribirlo.
+El backend hacía todo eso desde el 2026-08-17 y **la pantalla lo ignoraba**: enseñaba el
+número con la etiqueta «último cierre» clavada aunque la fuente fuera la viva. Eso es lo
+que hacía que el precio pareciera mal calculado. `ScanReading` ya lee las tres cosas —
+fuente, antigüedad y niveles en disputa.
+
+⚠️ `levelsBetweenLiveAndClose` no es decorativo: esos niveles son **soporte con una
+referencia y resistencia con la otra**. Cuando hay alguno, el reparto de la escalera es
+una elección, no un hecho, y hay que decirlo.
+
+## La probabilidad se MIDE, y nunca sale sin su muestra
+
+`level_odds.py` cuenta qué pasó en el histórico desde montajes como el actual. Tres cosas
+que no se pueden relajar:
+
+- **Los niveles de la barra `i` salen sólo de `rows[:i+1]`.** Detectarlos sobre toda la
+  serie mete futuro en el pasado y todas las cifras salen infladas. Es el único fallo del
+  módulo que NO se ve en el resultado.
+- **`neither` se cuenta.** Descartar los casos en que no pasó nada reparte el 100 % entre
+  los otros dos.
+- **El porcentaje crudo no se publica solo.** Pegado al soporte, «69 % de irse al
+  soporte» es geometría: está más cerca. Lo que dice algo es la ventaja contra la misma
+  medición sobre la serie con los retornos barajados (`null_shuffles`). Una fórmula
+  analítica no sirve: la de la ruina del jugador daba −14 puntos de «ventaja» sobre un
+  paseo aleatorio puro.
 
 ## En el sandbox no hay red
 

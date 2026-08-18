@@ -54,6 +54,7 @@ from stock_data import (
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
 from price_action import detect_structure, scan_levels, apply_confluence, strip_bars
+from level_odds import measure_level_odds
 import timeframes
 from performance import (
     compute_trade_pnl,
@@ -7116,6 +7117,52 @@ async def education_structure_scan(
         logging.error(f"Structure scan error for {sym}: {e}")
         return {**meta, "error": "scan_failed", **strip_bars([]),
                 **detect_structure([], strn)}
+
+
+@api_router.get("/education/level-odds/{symbol}")
+@limiter.limit("10/minute")
+async def education_level_odds(
+    request: Request, symbol: str, period: Optional[str] = None,
+    interval: Optional[str] = None, horizon: int = 10,
+    strength: Optional[int] = None, shuffles: int = 12,
+) -> Dict[str, Any]:
+    """Qué ha hecho ESTE activo desde montajes como el de ahora.
+
+    No predice: cuenta. Recorre el histórico buscando cada vez que el precio
+    estuvo donde está hoy respecto a su soporte y su resistencia, y apunta qué
+    tocó antes. Devuelve esa frecuencia con su muestra y su intervalo, y —lo
+    que de verdad importa— la ventaja sobre la MISMA medición hecha sobre la
+    serie con los retornos barajados: sin ese contraste, «69 % de irse al
+    soporte» estando pegado al soporte es geometría, no información.
+
+    El límite es de 10/minuto y no de 30: cada llamada recorre el histórico
+    barra a barra redetectando niveles, y encima lo repite `shuffles` veces
+    sobre series barajadas. Es la ruta más cara del backend con diferencia.
+    """
+    sym = symbol.strip().upper()
+    tf = resolve_timeframe(interval, period)
+    strn = max(1, min(5, strength or 2))
+    horizonte = max(1, min(60, horizon))
+    # El barajado es lo que cuesta: 12 vueltas sobre 600 barras son ~5 s. Se
+    # deja pedir menos (o ninguno), pero no más, para que nadie se cuelgue el
+    # servidor con `?shuffles=500`.
+    vueltas = max(0, min(25, shuffles))
+    meta = {"symbol": sym, "interval": tf.interval, "period": tf.period,
+            "horizon": horizonte}
+    try:
+        rows = await _fetch_bars(sym, tf.period, tf)
+        if not rows:
+            return {**meta, "error": "no_data", "verdict": None,
+                    "observations": 0}
+        res = await asyncio.to_thread(
+            measure_level_odds, rows, horizon=horizonte, strength=strn,
+            null_shuffles=vueltas,
+        )
+        return {**meta, **res}
+    except Exception as e:  # noqa: BLE001
+        logging.error(f"Level odds error for {sym}: {e}")
+        return {**meta, "error": "odds_failed", "verdict": None,
+                "observations": 0}
 
 
 # ============================================================

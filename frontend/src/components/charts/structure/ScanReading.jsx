@@ -52,6 +52,18 @@ export default function ScanReading({ data }) {
 
   const atrLabel = (n) => (n == null ? null : t('structDistanceAtr').replace('{n}', String(n)));
 
+  // Cuánto hace que se tomó la cotización viva. Una «cotización en vivo» de
+  // hace veinte minutos sigue siendo mejor que el cierre de anteayer, pero
+  // llamarla «ahora» sin decir la edad es lo mismo que no etiquetarla.
+  const edadLabel = (() => {
+    const s = data.referenceAgeSeconds;
+    if (s == null) return null;
+    if (s < 90) return t('structRefFresh');
+    const min = Math.round(s / 60);
+    if (min < 90) return t('structRefAgeMin').replace('{n}', String(min));
+    return t('structRefAgeHours').replace('{n}', String(Math.round(min / 60)));
+  })();
+
   // La fecha de la vela de la que sale el precio. Intradía se enseña con hora;
   // en diario o superior, la hora no aporta nada y estorba en la tarjeta.
   const barLabel = (() => {
@@ -114,6 +126,22 @@ export default function ScanReading({ data }) {
         </div>
       </div>
 
+      {/* Los niveles que caen ENTRE la cotización viva y el último cierre son
+          los únicos cuyo bando depende de cuál se use como referencia: con uno
+          son soporte y con el otro resistencia. Cuando los hay, el reparto de
+          la escalera no es una verdad sino una elección, y se dice. */}
+      {data.levelsBetweenLiveAndClose > 0 && (
+        <div className="flex items-start gap-2 rounded-md border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2"
+             data-testid="struct-ref-disputed">
+          <span className="text-[11px] leading-snug">
+            {t('structRefDisputed')
+              .replace('{n}', String(data.levelsBetweenLiveAndClose))
+              .replace('{live}', fmtPrice(data.livePrice))
+              .replace('{close}', fmtPrice(data.lastClose))}
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <Metric
           label={t('structRoomAbove')}
@@ -122,15 +150,23 @@ export default function ScanReading({ data }) {
           tone="text-[#ef4444]"
           testid="struct-room-above"
         />
-        {/* NO es una cotización en vivo: es el cierre de la última vela
-            escaneada. En diario puede tener horas o días, así que la etiqueta
-            dice cuál de las dos cosas es y debajo va la fecha de esa vela.
-            Llamarlo «precio ahora» a secas era prometer algo que el dato no
-            cumple — y es exactamente lo que hacía que pareciera «pillado». */}
+        {/* El precio contra el que se reparte soporte/resistencia. Puede ser
+            la cotización VIVA o el cierre de la última vela, y no es lo mismo:
+            con el mercado cerrado el cierre tiene horas o días, y un nivel que
+            queda entre los dos cambia de bando según cuál se use.
+
+            El backend publica `referenceSource` y `referenceAgeSeconds` desde
+            el 2026-08-17 y la pantalla los ignoraba: enseñaba el número con la
+            etiqueta «último cierre» clavada aunque la fuente fuera la viva. Es
+            justo lo que hacía que el precio pareciera mal calculado. */}
         <Metric
-          label={data.lastBarForming ? t('structPriceForming') : t('structPriceLastClose')}
+          label={
+            data.referenceSource === 'live' ? t('structPriceLive')
+              : data.lastBarForming ? t('structPriceForming')
+                : t('structPriceLastClose')
+          }
           value={data.currentPrice == null ? null : fmtPrice(data.currentPrice)}
-          sub={barLabel}
+          sub={data.referenceSource === 'live' ? edadLabel : barLabel}
           tone="text-primary"
           testid="struct-price-now"
         />
