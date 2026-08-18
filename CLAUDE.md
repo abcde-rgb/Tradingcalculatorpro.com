@@ -9,6 +9,7 @@ Guía para Claude Code (claude.ai/code) en este repositorio.
 📌 **Antes de trabajar:** [`docs/ESTADO_PROYECTO.md`](./docs/ESTADO_PROYECTO.md) (estado
 vivo: semáforo, inventario, huecos, backlog) · [`docs/MAPA.md`](./docs/MAPA.md) (mapa
 generado: módulos, rutas, páginas — nunca escrito a mano) ·
+[`docs/DECISIONES.md`](./docs/DECISIONES.md) (por qué es así, y qué se descartó) ·
 [`docs/GUIA_EXTENSION.md`](./docs/GUIA_EXTENSION.md) (cómo añadir algo) ·
 [`docs/DEPLOY_CHECKLIST.md`](./docs/DEPLOY_CHECKLIST.md) (lanzar).
 El skill `estado-proyecto` orquesta todo esto y obliga a dejar la doc al día.
@@ -63,6 +64,22 @@ cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
 python scripts/gen-instruments-js.py --check   # catálogo backend ↔ frontend
 python scripts/gen-mapa.py --check             # el mapa refleja el código
 python scripts/check-doc-links.py              # los enlaces de la doc resuelven
+bash scripts/probar-verificadores.sh           # ¿y esos verificadores verifican?
+```
+
+**La última línea no es opcional cuando tocas un verificador.** Sabotea cada comprobación
+a propósito y exige que falle. Han aparecido ya varias que no comprobaban nada —una guarda
+de determinismo tautológica, una regla que nunca disparaba, un smoke visual que imprimía ✅
+generando imágenes en blanco— y ninguna se habría cazado ejecutándola y mirando si pasaba:
+pasaban. Si añades un verificador, añade aquí su sabotaje.
+
+Dos herramientas más, que no son puertas sino informes:
+
+```bash
+python scripts/auditar.py    # ramas sin fusionar, código muerto, restos de lo retirado,
+                             # provisionales y contradicciones doc↔código
+node scripts/capturas.js     # smoke visual de las pantallas públicas (escritorio + móvil,
+                             # claro + oscuro) con los errores de consola de cada una
 ```
 
 ## Reglas de honestidad numérica (NO ROMPER)

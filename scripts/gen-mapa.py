@@ -29,6 +29,7 @@ fallaría cada día por sí solo y el aviso dejaría de significar nada.
 from __future__ import annotations
 
 import ast
+import random
 import re
 import sys
 from pathlib import Path
@@ -92,8 +93,19 @@ def prefijos_de_router() -> dict[str, str]:
     return {f"{mod}.py": pref for mod, pref in _MONTAJE.findall(fuente)}
 
 
-def rutas() -> list[dict]:
-    """Todas las rutas declaradas, con el fichero y la línea donde viven."""
+# Las claves de orden llevan nombre propio para que `comprobar_determinismo`
+# pueda probarlas de verdad. Tienen que ser TOTALES —terminar en algo único— o
+# el desempate acaba en manos del sistema de ficheros.
+def _clave_ruta(r: dict) -> tuple:
+    return (r["path"], r["metodo"], r["fichero"], r["linea"])
+
+
+def _clave_tamano(x: tuple[str, int]) -> tuple:
+    return (-x[1], x[0])
+
+
+def _rutas_sin_ordenar() -> list[dict]:
+    """Las rutas tal y como salen del disco, sin ordenar."""
     prefijos = prefijos_de_router()
     out = []
     for py in sorted(BACKEND.glob("*.py")):
@@ -111,8 +123,12 @@ def rutas() -> list[dict]:
                 "fichero": py.name,
                 "linea": src.count("\n", 0, m.start()) + 1,
             })
-    out.sort(key=lambda r: (r["path"], r["metodo"]))
     return out
+
+
+def rutas() -> list[dict]:
+    """Todas las rutas declaradas, con el fichero y la línea donde viven."""
+    return sorted(_rutas_sin_ordenar(), key=_clave_ruta)
 
 
 # Comentarios de bloque y de línea. El `(?<!:)` protege `https://`, que es una
@@ -242,8 +258,8 @@ def carpetas_frontend() -> list[tuple[str, int, int]]:
     return out
 
 
-def mas_grandes(n: int = 12) -> list[tuple[str, int]]:
-    """Los ficheros que más cuesta leer enteros."""
+def _ficheros_por_tamano() -> list[tuple[str, int]]:
+    """(ruta, líneas) de todo el código, sin ordenar."""
     out = []
     for base, patrones in ((BACKEND, ("*.py",)), (FRONT, ("**/*.jsx", "**/*.js"))):
         for pat in patrones:
@@ -251,14 +267,20 @@ def mas_grandes(n: int = 12) -> list[tuple[str, int]]:
                 if "node_modules" in str(f):
                     continue
                 out.append((str(f.relative_to(RAIZ)), f.read_text(errors="ignore").count("\n") + 1))
-    # La ruta desempata. Sin ella el orden de dos ficheros con el mismo número
-    # de líneas lo decidía el sistema de ficheros, que no es el mismo en un
-    # portátil que en el runner de CI: `--check` fallaba en CI con un MAPA.md
-    # recién generado, y regenerarlo no arreglaba nada porque el problema era el
-    # empate, no el contenido. Con los 10 idiomas creciendo a la par, los
-    # empates son la norma aquí, no la excepción.
-    out.sort(key=lambda x: (-x[1], x[0]))
-    return out[:n]
+    return out
+
+
+def mas_grandes(n: int = 12) -> list[tuple[str, int]]:
+    """Los ficheros que más cuesta leer enteros.
+
+    ⚠️ La ruta desempata. Sin ella el orden de dos ficheros con el mismo número
+    de líneas lo decidía el sistema de ficheros, que no es el mismo en un
+    portátil que en el runner de CI: `--check` fallaba en CI con un MAPA.md
+    recién generado, y regenerarlo no arreglaba nada porque el problema era el
+    empate, no el contenido. Con los 10 idiomas creciendo a la par, los empates
+    son la norma aquí, no la excepción.
+    """
+    return sorted(_ficheros_por_tamano(), key=_clave_tamano)[:n]
 
 
 def tests() -> tuple[int, int]:
@@ -498,12 +520,53 @@ def controlar_detector() -> int:
     return 0
 
 
+def comprobar_determinismo() -> int:
+    """Falla si la salida depende del orden en que el disco entrega los ficheros.
+
+    ⚠️ La forma obvia de escribir esto **no comprueba nada**: mirar si las claves
+    de orden se repiten, construyéndolas aquí con la ruta del fichero incluida
+    —que es única por definición—, pasa siempre, con el `sort` bien y con el
+    `sort` roto. Una guarda tautológica es peor que ninguna: da confianza falsa.
+
+    Lo que se comprueba es **la propiedad de verdad**: barajar la entrada y
+    volver a ordenar tiene que dar exactamente el mismo resultado. Si la clave es
+    parcial —si dos elementos empatan—, `sorted` es estable y conserva el orden
+    de entrada, así que barajar mueve la salida y aquí salta. Es el fallo que
+    rompió CI con un MAPA.md recién generado, y así se reproduce en cualquier
+    máquina en vez de sólo cuando hay mala suerte con el `glob()`.
+    """
+    rng = random.Random(20260818)
+    fallos = []
+    for nombre, crudo, clave in (
+        ("rutas()", _rutas_sin_ordenar(), _clave_ruta),
+        ("mas_grandes()", _ficheros_por_tamano(), _clave_tamano),
+    ):
+        referencia = sorted(crudo, key=clave)
+        for _ in range(20):
+            barajado = list(crudo)
+            rng.shuffle(barajado)
+            if sorted(barajado, key=clave) != referencia:
+                fallos.append(nombre)
+                break
+
+    if fallos:
+        print("✗ el orden del mapa no es determinista:")
+        for nombre in fallos:
+            print(f"    {nombre} — su clave empata, y el desempate lo decide el disco")
+        print("  El fichero saldrá distinto en cada máquina y `--check` fallará solo.")
+        return 1
+    print("✓ orden determinista (claves totales en rutas y tamaños)")
+    return 0
+
+
 def main() -> int:
     contenido = construir()
     comprobar = "--check" in sys.argv
 
     if comprobar:
         if controlar_detector() != 0:
+            return 1
+        if comprobar_determinismo() != 0:
             return 1
         if not SALIDA.exists():
             print("✗ docs/MAPA.md no existe. Genéralo: python scripts/gen-mapa.py")

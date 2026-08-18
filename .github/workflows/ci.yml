@@ -71,6 +71,21 @@ jobs:
       - name: El catálogo de instrumentos está en paridad (backend ↔ frontend)
         run: python scripts/gen-instruments-js.py --check
 
+      # Este SÍ bloquea. Comprueba que cada verificador falla cuando debe
+      # fallar, saboteándolo y revirtiendo. Existe porque han aparecido varias
+      # comprobaciones que no comprobaban nada —una guarda tautológica sobre el
+      # orden del mapa, una regla que no disparaba nunca, un smoke visual que
+      # imprimía ✅ produciendo imágenes en blanco—, y ninguna se habría cazado
+      # ejecutándola y mirando si pasaba: pasaban.
+      - name: ¿Los verificadores verifican? (sabotaje controlado)
+        run: bash scripts/probar-verificadores.sh
+
+      # Informativo, NO bloquea: `auditar.py` sale 0 salvo con --estricto. Un
+      # informe que rompe el build se acaba desactivando, y entonces deja de
+      # leerse. Aquí queda en el log del PR, que es donde se mira.
+      - name: Auditoría del repositorio (informativa)
+        run: python scripts/auditar.py --breve
+
   frontend:
     name: ⚛️ Frontend — build
     runs-on: ubuntu-latest
