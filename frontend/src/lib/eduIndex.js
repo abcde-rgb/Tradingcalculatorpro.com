@@ -118,6 +118,7 @@ export const EDU_MODULES = [
   // ── Psicología ───────────────────────────────────────────────
   { id: 'psychology', titleKey: 'tradingPsychologyTitle', getters: ['getTradingPsychology'] },
   { id: 'psych-solutions', titleKey: 'pssTitle', getters: ['getPsychSolutions'] },
+  { id: 'gambling-harm', titleKey: 'gmbTitle', getters: ['getGamblingHarm'] },
   { id: 'system-adherence', titleKey: 'sysTitle', getters: ['getSystemAdherence'] },
   { id: 'time-impact', titleKey: 'tviTitle', getters: [] },
   { id: 'pre-trade-protocol', titleKey: 'protoTitle', getters: [] },

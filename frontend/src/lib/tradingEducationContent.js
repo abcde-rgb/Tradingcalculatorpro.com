@@ -2254,6 +2254,55 @@ export const getTailRisk = (t) => ({
   note: t('tailNote'),
 });
 
+// Gambling harm — the module the academy was missing. The rest of these pages
+// use the casino as a FLATTERING metaphor ("be the house, have an edge"), which
+// is sound pedagogy for expectancy and dead wrong as a description of what
+// happens to a person who has stopped being able to stop. Both belong here, and
+// only one of them was written.
+//
+// Everything factual in this module is sourced (see `gmbSources`): DSM-5 moved
+// gambling disorder in with the addictions in 2013, ICD-11 codes it 6C50, and
+// Grall-Bronnec et al. (2017) found excessive trading meets those same criteria.
+// The screening questions are the validated Lie/Bet screen — TWO questions, not
+// a diagnosis, and the copy says so where the user cannot miss it.
+export const getGamblingHarm = (t) => ({
+  title: t('gmbTitle'),
+  intro: t('gmbIntro'),
+  disclaimer: t('gmbDisclaimer'),
+  items: [
+    { id: 'disorder',   name: t('gmbDisorderName'),   desc: t('gmbDisorderDesc'),   type: 'neutral' },
+    { id: 'sameline',   name: t('gmbSameLineName'),   desc: t('gmbSameLineDesc'),   type: 'bearish' },
+    { id: 'variable',   name: t('gmbVariableName'),   desc: t('gmbVariableDesc'),   type: 'bearish' },
+    { id: 'nearmiss',   name: t('gmbNearMissName'),   desc: t('gmbNearMissDesc'),   type: 'bearish' },
+    { id: 'chasing',    name: t('gmbChasingName'),    desc: t('gmbChasingDesc'),    type: 'bearish' },
+    { id: 'illusion',   name: t('gmbIllusionName'),   desc: t('gmbIllusionDesc'),   type: 'bearish' },
+    { id: 'tolerance',  name: t('gmbToleranceName'),  desc: t('gmbToleranceDesc'),  type: 'bearish' },
+    { id: 'numbers',    name: t('gmbNumbersName'),    desc: t('gmbNumbersDesc'),    type: 'neutral' },
+    { id: 'border',     name: t('gmbBorderName'),     desc: t('gmbBorderDesc'),     type: 'bullish' },
+    { id: 'guardrails', name: t('gmbGuardrailsName'), desc: t('gmbGuardrailsDesc'), type: 'bullish' },
+  ],
+  screen: {
+    title: t('gmbScreenTitle'),
+    intro: t('gmbScreenIntro'),
+    questions: [t('gmbScreenQ1'), t('gmbScreenQ2')],
+    yes: t('gmbScreenYes'),
+    no: t('gmbScreenNo'),
+    negative: t('gmbScreenNegative'),
+    positive: t('gmbScreenPositive'),
+    caveat: t('gmbScreenCaveat'),
+    reset: t('gmbScreenReset'),
+  },
+  help: {
+    title: t('gmbHelpTitle'),
+    intro: t('gmbHelpIntro'),
+    selfExclude: t('gmbHelpSelfExclude'),
+    broker: t('gmbHelpBroker'),
+    peer: t('gmbHelpPeer'),
+  },
+  note: t('gmbNote'),
+  sources: t('gmbSources'),
+});
+
 // Self-diagnosis catalogue: the most common behaviours that blow up accounts.
 // tag: which pillar the cause belongs to (psych | risk | discipline | system).
 export const getAccountKillers = (t) => ({

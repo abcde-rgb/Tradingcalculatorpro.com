@@ -1,5 +1,4 @@
 export default {
-  // ── Academia: Ichimoku spiegato (legenda dei colori + rialzo/ribasso) ──
   "ichiVisTenkan": "Tenkan (veloce, 9)",
   "ichiVisKijun": "Kijun (lenta, 26)",
   "ichiVisChikou": "Chikou (prezzo di adesso, 26 candele indietro)",
@@ -4369,8 +4368,6 @@ export default {
   "deskKeyLiqNote": "se il prezzo ci arriva, il broker ti chiude",
   "deskKeyLiqNone": "questo prodotto non si liquida",
   "deskRiskOverCapInline": "Sopra il limite del {cap} %",
-
-  // ─── Backtesting de repetición (StrategyTune, herramienta externa) ───
   "btEyebrow": "Strumento esterno · gratuito",
   "btTitle": "Backtesting in replay",
   "btLede": "Riproduci lo storico come un video e allena i tuoi ingressi a mano, con dati tick e spread denaro/lettera reali. Lo fornisce StrategyTune e si apre dentro questa pagina.",
@@ -4395,8 +4392,6 @@ export default {
   "perfAvailableBadgeShort": "Disponibile",
   "seoBacktestingTitle": "Backtesting in replay — allenati sullo storico",
   "seoBacktestingDesc": "Riproduci i grafici storici e allena i tuoi ingressi a mano con dati tick e spread reali, senza uscire da TradingCalculator.Pro.",
-
-  // ─── Monte Carlo (motor en lib/monteCarlo.js) ───
   "mcSourceLabel": "Da dove arrivano i risultati",
   "mcModeFixed": "Importi fissi",
   "mcModePercent": "% di rischio",
@@ -4432,8 +4427,6 @@ export default {
   "mcError_avg_loss": "La perdita media non può essere zero.",
   "mcError_sample_empty": "Il tuo diario non ha operazioni con risultato da ricampionare.",
   "mcError_sample_flat": "Tutte le operazioni del diario sono a zero: non c’è nulla da simulare.",
-
-  // ─── Rachas de pérdidas (Monte Carlo) ───
   "mcStreakTitle": "Serie di perdite",
   "mcStreakKills": "Ti azzera una serie di",
   "mcStreakNever": "Nessuna (capitalizzando)",
@@ -4444,10 +4437,7 @@ export default {
   "mcStreakHint": "I primi due numeri sono esatti, non escono dal sorteggio. La serie tipica è quella che quasi nessuno mette in conto: con il 55 % di successo incatenerai 8 perdite di fila in una sessione su venti.",
   "mcRiskOverAdvised": "Sopra il {advised} % consigliato. Guarda la serie che ti azzera e la sua probabilità prima di decidere.",
   "mcRiskOverCap": "Sopra il tetto del {cap} % della calcolatrice. Qui si simula lo stesso, di proposito: la serie qui sotto ti mostra perché la calcolatrice rifiuta una dimensione così.",
-  // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "di posizione",
-
-  // ─── Dimensionar por margen ───
   "deskMarginShort": "Margine",
   "deskMarginToCommit": "Margine da impegnare",
   "deskSizedByMargin": "Dimensione ricavata dal margine: {margin} immobilizzati.",
@@ -4506,4 +4496,13 @@ export default {
   "structRefAgeMin": "{n} min old",
   "structRefAgeHours": "{n} h old",
   "structRefDisputed": "{n} level(s) sit between the live quote ({live}) and the last close ({close}): with one reference they are support, with the other resistance. The ladder below uses the live one.",
+  "gmbTitle": "Ludopatia e trading: dov'è la linea",
+  "gmbFigTitle": "Perché perdere non spegne il comportamento",
+  "gmbFigIntro": "Due serie di dodici operazioni con ESATTAMENTE lo stesso numero di vincenti (verde). Cambia solo lo schema: sopra, premio ogni tre, prevedibile; sotto, premio imprevedibile.",
+  "gmbFigFixed": "Premio prevedibile (ogni 3)",
+  "gmbFigVariable": "Premio imprevedibile — il mercato",
+  "gmbFigNote": "Con premio prevedibile smetti di tirare appena smette di pagare. Con premio imprevedibile continui molto più a lungo, e continui anche quando non paga più: è lo schema più resistente all'estinzione che si conosca. Le due file vincono lo stesso; solo una aggancia.",
+  "stratWinRateTag": "indicativo",
+  "stratWinRateCaveat": "Intervallo indicativo dello stile, non una misurazione: senza campione, periodo o fonte.",
+  "stratWinRateNote": "Sulle percentuali di successo di questa pagina: sono intervalli INDICATIVI con cui si descrive di solito ogni stile, non risultati misurati. Non portano campione, né periodo, né strumento, né fonte, quindi non servono a dimensionare nulla. E anche se fossero misurate direbbero poco da sole: un 45 % con vincite tripli rispetto alle perdite guadagna, e un 70 % con perdite tripli rispetto alle vincite perde. A decidere è l'aspettativa — successo × vincita media − fallimento × perdita media —, non la percentuale. La tua esce dal tuo diario, non da questa tabella.",
 }

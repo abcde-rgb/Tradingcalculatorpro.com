@@ -1,5 +1,4 @@
 export default {
-  // ── Academia: Ichimoku explicado (legenda de cores + alta/baixa) ──
   "ichiVisTenkan": "Tenkan (rápida, 9)",
   "ichiVisKijun": "Kijun (lenta, 26)",
   "ichiVisChikou": "Chikou (preço de agora, 26 velas atrás)",
@@ -4369,8 +4368,6 @@ export default {
   "deskKeyLiqNote": "se o preço lá chegar, o broker fecha-te",
   "deskKeyLiqNone": "este produto não se liquida",
   "deskRiskOverCapInline": "Acima do limite de {cap} %",
-
-  // ─── Backtesting de repetición (StrategyTune, herramienta externa) ───
   "btEyebrow": "Ferramenta externa · gratuita",
   "btTitle": "Backtesting por repetição",
   "btLede": "Reproduz o histórico como um vídeo e treina as tuas entradas à mão, com dados tick e spreads bid/ask reais. É da StrategyTune e abre dentro desta página.",
@@ -4395,8 +4392,6 @@ export default {
   "perfAvailableBadgeShort": "Disponível",
   "seoBacktestingTitle": "Backtesting por repetição — treina sobre o histórico",
   "seoBacktestingDesc": "Repete gráficos históricos e treina as tuas entradas à mão com dados tick e spreads reais, sem sair da TradingCalculator.Pro.",
-
-  // ─── Monte Carlo (motor en lib/monteCarlo.js) ───
   "mcSourceLabel": "De onde saem os resultados",
   "mcModeFixed": "Montantes fixos",
   "mcModePercent": "% de risco",
@@ -4432,8 +4427,6 @@ export default {
   "mcError_avg_loss": "A perda média não pode ser zero.",
   "mcError_sample_empty": "O teu diário não tem operações com resultado para reamostrar.",
   "mcError_sample_flat": "Todas as operações do diário dão zero: não há nada para simular.",
-
-  // ─── Rachas de pérdidas (Monte Carlo) ───
   "mcStreakTitle": "Sequências de perdas",
   "mcStreakKills": "És arruinado por uma sequência de",
   "mcStreakNever": "Nenhuma (a capitalizar)",
@@ -4444,10 +4437,7 @@ export default {
   "mcStreakHint": "Os dois primeiros números são exatos, não saem do sorteio. A sequência típica é a que quase ninguém prevê: com 55 % de acerto vais encadear 8 perdas seguidas numa sessão em cada vinte.",
   "mcRiskOverAdvised": "Acima dos {advised} % aconselhados. Olha para a sequência que te arruína e para a probabilidade antes de decidires.",
   "mcRiskOverCap": "Acima do limite de {cap} % da calculadora. Simula à mesma, de propósito: a sequência abaixo mostra-te porque é que ela recusa dimensionar assim.",
-  // La cantidad, acompañada del capital que mueve
   "deskAnswerNotionalInline": "de posição",
-
-  // ─── Dimensionar por margen ───
   "deskMarginShort": "Margem",
   "deskMarginToCommit": "Margem a comprometer",
   "deskSizedByMargin": "Tamanho calculado a partir da margem: ficam {margin} imobilizados.",
@@ -4506,4 +4496,13 @@ export default {
   "structRefAgeMin": "{n} min old",
   "structRefAgeHours": "{n} h old",
   "structRefDisputed": "{n} level(s) sit between the live quote ({live}) and the last close ({close}): with one reference they are support, with the other resistance. The ladder below uses the live one.",
+  "gmbTitle": "Ludopatia e trading: onde está a linha",
+  "gmbFigTitle": "Porque perder não apaga o comportamento",
+  "gmbFigIntro": "Duas séries de doze operações com EXACTAMENTE o mesmo número de vencedoras (verde). Só muda o padrão: em cima, prémio a cada três, previsível; em baixo, prémio imprevisível.",
+  "gmbFigFixed": "Prémio previsível (a cada 3)",
+  "gmbFigVariable": "Prémio imprevisível — o mercado",
+  "gmbFigNote": "Com prémio previsível, deixas de puxar assim que deixa de pagar. Com prémio imprevisível continuas muito mais tempo, e continuas também quando já não paga: é o esquema mais resistente à extinção que se conhece. As duas filas ganham o mesmo; só uma prende.",
+  "stratWinRateTag": "orientativo",
+  "stratWinRateCaveat": "Intervalo orientativo do estilo, não uma medição: sem amostra, sem período, sem fonte.",
+  "stratWinRateNote": "Sobre as taxas de acerto desta página: são intervalos ORIENTATIVOS com que se costuma descrever cada estilo, não resultados medidos. Não trazem amostra, nem período, nem activo, nem fonte, por isso não servem para dimensionar nada. E mesmo que estivessem medidas continuariam a dizer pouco sozinhas: 45 % com ganhos do triplo das perdas ganha dinheiro, e 70 % com perdas do triplo dos ganhos perde-o. O que decide é a esperança — acerto × ganho médio − falha × perda média —, não a percentagem. A tua sai do teu próprio diário, não desta tabela.",
 }
