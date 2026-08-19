@@ -41,7 +41,19 @@ def iter_markdown(base: Path):
 def check(base: Path) -> list[tuple[Path, int, str]]:
     broken: list[tuple[Path, int, str]] = []
     for doc in iter_markdown(base):
+        # Los bloques de código NO llevan enlaces: lo que hay dentro es texto que
+        # se muestra tal cual. Sin esta guarda, cualquier documento que enseñe una
+        # expresión regular queda marcado como roto — un `[a-z0-9-]+` seguido de
+        # un paréntesis de grupo tiene exactamente la forma de `[texto](destino)`.
+        # Pasó al documentar cómo se mide la academia, y el fallo apuntaba a una
+        # línea que no contenía ningún enlace.
+        en_bloque = False
         for lineno, line in enumerate(doc.read_text(encoding="utf-8").splitlines(), 1):
+            if line.lstrip().startswith("```"):
+                en_bloque = not en_bloque
+                continue
+            if en_bloque:
+                continue
             for target in LINK_RE.findall(line):
                 if target.startswith(EXTERNAL):
                     continue

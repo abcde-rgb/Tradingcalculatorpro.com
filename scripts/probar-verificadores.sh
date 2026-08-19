@@ -102,6 +102,39 @@ probar() {
   }
 }
 
+# probar_inverso <nombre> <comando> <cebo> [restaurar]
+#   La otra mitad, y hace falta: un verificador que grita con TODO tampoco
+#   verifica nada, sólo que de otra manera —se desactiva a la semana y ya no
+#   protege—. Aquí se aplica un <cebo> que NO es un fallo y se exige que el
+#   verificador siga pasando.
+#
+#   Sin esto, «arreglar» un falso positivo desactivando el verificador entero
+#   pasaría igual el sabotaje normal, porque un verificador apagado detecta lo
+#   mismo que uno roto: nada.
+probar_inverso() {
+  local nombre="$1" comando="$2" cebo="$3" restaurar="${4:-git checkout -- .}"
+
+  if ! eval "$comando" >/dev/null 2>&1; then
+    echo "  ⚠️  $nombre: no pasa ni ANTES del cebo — hay algo roto de verdad"
+    FALLOS=$((FALLOS + 1)); return
+  fi
+
+  eval "$cebo" >/dev/null 2>&1
+
+  if eval "$comando" >/dev/null 2>&1; then
+    echo "  ✅ $nombre: no salta con un falso positivo"
+  else
+    echo "  ❌ $nombre: SALTA con algo que no es un fallo — falso positivo"
+    FALLOS=$((FALLOS + 1))
+  fi
+
+  eval "$restaurar" >/dev/null 2>&1
+  eval "$comando" >/dev/null 2>&1 || {
+    echo "  ❌ $nombre: NO vuelve a pasar tras restaurar — el cebo dejó residuo"
+    FALLOS=$((FALLOS + 1))
+  }
+}
+
 echo "═══ ¿Los verificadores verifican? ═══"
 
 # ── El mapa detecta que el código cambió ────────────────────────────────────
@@ -168,6 +201,16 @@ titulo "Enlaces de la doc (check-doc-links.py)"
 probar "enlace a un documento inexistente" \
   "python scripts/check-doc-links.py" \
   "printf '\n[enlace roto](./NO_EXISTE_SABOTAJE.md)\n' >> docs/README.md"
+
+# La otra mitad, que es la que faltaba: el verificador tiene que CALLARSE dentro
+# de un bloque de código. Sin esta comprobación, «arreglar» el falso positivo
+# desactivando el verificador entero también habría pasado el sabotaje de arriba.
+# El falso positivo era real: un `[a-z0-9-]+` seguido de un paréntesis de grupo
+# tiene la forma exacta de `[texto](destino)`, y cualquier documento que enseñe
+# una expresión regular quedaba marcado como roto.
+probar_inverso "un enlace roto DENTRO de un bloque de código no cuenta" \
+  "python scripts/check-doc-links.py" \
+  "printf '\n\`\`\`\n[enlace roto](./NO_EXISTE_SABOTAJE.md)\n\`\`\`\n' >> docs/README.md"
 
 # ── Paridad de idiomas ──────────────────────────────────────────────────────
 titulo "Paridad i18n (i18n-check.js)"
