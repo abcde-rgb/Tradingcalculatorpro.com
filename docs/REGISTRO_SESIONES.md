@@ -4449,6 +4449,20 @@ el escalón superior, `_mark_provisional`, `_trim_structure`) y la interfaz en
   tasa de aguante (0,66→0,60), desactivar la detección de cortes de sesión o mover la
   ventana del ATR (14→20) rompe el test. Ninguno sobrevive.
 
+- 🔎 **El guardián de los guardianes cazó un control mío a la primera.** El del
+  presupuesto de dibujos era `"max_labels_count" not in codigo`, y el sabotaje de
+  `probar-verificadores.sh` escribe `max_labels_countX`: el nombre bueno sigue ahí
+  **como prefijo**, así que el control pasaba con un parámetro que TradingView
+  habría rechazado. Ahora exige el nombre completo seguido de `=` y **dentro** de
+  la llamada a `indicator(...)`. Cuatro sabotajes nuevos lo confirman, incluido
+  «no hay llamada a `indicator()`».
+
+- 🔎 **Una divergencia más, cerrada:** con menos de `2 × strength + 1` velas el
+  backend devuelve `_empty_read` (referencia, tolerancia y ATR **vacíos**) y el
+  indicador seguía publicando un precio y una tolerancia sacada del ATR de tres
+  barras. Sólo ocurre en un activo recién listado — es decir, justo donde nadie lo
+  comprobaría. Alineado y con su test de paridad.
+
 - 📄 **`docs/INDICADOR_TRADINGVIEW.md`**: manual completo — instalación, los 8 grupos de
   controles, qué significa cada distintivo de la etiqueta de un nivel, las tres capas de
   verificación y los límites heredados del backend (entre ellos que `detectEvents` usa

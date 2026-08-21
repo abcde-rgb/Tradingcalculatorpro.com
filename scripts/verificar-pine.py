@@ -140,6 +140,27 @@ SOLO_GLOBAL = ("plot", "plotshape", "plotchar", "plotcandle", "plotbar",
                "alertcondition", "indicator", "strategy", "library")
 
 
+def _llamada_indicator(codigo: str) -> str | None:
+    """El texto de la llamada `indicator(...)`, paréntesis equilibrados.
+
+    La llamada puede ocupar varias líneas, así que no vale con leer una.
+    Devuelve None si no hay ninguna.
+    """
+    pos = re.search(r"^indicator\s*\(", codigo, re.MULTILINE)
+    if pos is None:
+        return None
+    inicio = codigo.index("(", pos.start())
+    profundidad = 0
+    for i in range(inicio, len(codigo)):
+        if codigo[i] == "(":
+            profundidad += 1
+        elif codigo[i] == ")":
+            profundidad -= 1
+            if profundidad == 0:
+                return codigo[inicio:i + 1]
+    return None
+
+
 def fallo(problemas: list[str], linea: int, texto: str) -> None:
     problemas.append(f"  línea {linea}: {texto}")
 
@@ -248,10 +269,22 @@ def comprobar(ruta: str) -> list[str]:
                 fallo(problemas, numero, f"`{nombre}(...)` no puede ir dentro de un bloque")
 
     # 6) presupuesto de dibujos
+    #
+    # ⚠️ Esto empezó siendo `parametro not in codigo`, y `probar-verificadores.sh`
+    # lo tumbó al primer intento: su sabotaje escribe `max_labels_countX`, donde
+    # el nombre bueno sigue estando COMO PREFIJO, así que la subcadena aparecía
+    # y el control pasaba con un parámetro que TradingView habría rechazado.
+    # Ahora se busca el nombre COMPLETO seguido de `=` y sólo DENTRO de la
+    # llamada a `indicator(...)`, que es el único sitio donde significa algo.
+    llamada = _llamada_indicator(codigo)
+    if llamada is None:
+        problemas.append("  no hay ninguna llamada a `indicator(...)`: sin ella no es "
+                         "un indicador de TradingView")
+        llamada = ""
     for objeto, parametro in (("line.new", "max_lines_count"),
                               ("box.new", "max_boxes_count"),
                               ("label.new", "max_labels_count")):
-        if objeto in codigo and parametro not in codigo:
+        if objeto in codigo and not re.search(rf"\b{parametro}\s*=", llamada):
             problemas.append(f"  el script usa `{objeto}` pero `indicator()` no declara "
                              f"`{parametro}`: TradingView limitaría a 50 y el usuario "
                              f"vería el análisis a medias sin ningún aviso")

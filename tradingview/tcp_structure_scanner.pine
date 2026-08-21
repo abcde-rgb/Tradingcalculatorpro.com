@@ -866,9 +866,16 @@ scanLevels(Win w, int strength, int minTouches) =>
 // afirmaciones distintas y sólo una de ellas es cierta en cada caso.
 runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLevels, bool htfChecked) =>
     int n = array.size(w.c)
-    float reference = n > 0 ? array.get(w.c, n - 1) : na
-    float tol = na(tolOverride) ? autoTolerance(w) : tolOverride
-    float atr = avgTrueRange(w, 14)
+    // Menos velas que las que un fractal necesita = NO HAY LECTURA. El backend
+    // devuelve ahí su `_empty_read`, con el precio de referencia, la tolerancia
+    // y el ATR VACÍOS, no calculados sobre cuatro velas. Publicar una tolerancia
+    // derivada de un ATR de tres barras sería inventarse una precisión que no
+    // existe, y además separaría al indicador de la web justo donde nadie lo
+    // comprobaría: un activo recién listado.
+    bool tooShort = n < 2 * strength + 1
+    float reference = (n > 0 and not tooShort) ? array.get(w.c, n - 1) : na
+    float tol = tooShort ? na : (na(tolOverride) ? autoTolerance(w) : tolOverride)
+    float atr = tooShort ? na : avgTrueRange(w, 14)
 
     // --- qué hay en este gráfico --------------------------------------------
     array<Swing> swings = detectSwings(w, strength)
@@ -890,7 +897,7 @@ runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLev
         for i = 0 to math.min(array.size(allLevels), MAX_ANALYSED_LEVELS) - 1
             array.push(levels, array.get(allLevels, i))
     levels := annotateLevels(w, levels, tol)
-    array<Fvg> fvgs = detectFvgs(w)
+    array<Fvg> fvgs = tooShort ? array.new<Fvg>() : detectFvgs(w)
     array<Brk> breakouts = detectBreakouts(w, levels, strength)
 
     int confluent = na

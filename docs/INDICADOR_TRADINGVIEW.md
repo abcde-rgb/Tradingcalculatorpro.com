@@ -191,6 +191,13 @@ usuario ve el análisis a medias sin que nada avise).
 Los cuatro controles están saboteados en `scripts/probar-verificadores.sh`, y la
 paridad numérica también con `PINE_LENTO=1`.
 
+> Y sirvió a la primera: el control del presupuesto de dibujos era
+> `"max_labels_count" not in codigo`, y el sabotaje escribe `max_labels_countX`,
+> donde el nombre bueno **sigue estando como prefijo**. Pasaba con un parámetro
+> que TradingView habría rechazado. Ahora busca el nombre completo seguido de `=`
+> y sólo dentro de la llamada a `indicator(...)`. Un control que no puede fallar
+> no es un control.
+
 ### Lo que estas tres capas NO cubren
 
 Que TradingView **compile** el fichero. La gramática de `pynescript` es de Pine,
@@ -211,6 +218,10 @@ el algoritmo diga algo distinto de lo que dice la web.
   la web digan lo mismo. **Para medir un sistema con esto, aplica el retardo de
   `strength` velas.**
 - **Los últimos `strength` velas no tienen pivotes**, por definición del fractal.
+- **Con menos de `2 × strength + 1` velas no hay lectura**: referencia, tolerancia
+  y ATR salen vacíos, igual que el `_empty_read` del backend. Una tolerancia
+  derivada del ATR de tres barras sería una precisión inventada. Sólo pasa en un
+  activo recién listado, que es justo donde nadie lo comprobaría.
 - **La confluencia depende del histórico del gráfico.** Los niveles del escalón
   superior se acumulan a medida que se cierran sus velas; en un gráfico recién
   abierto con poco histórico habrá menos que en la web, que pide su propia serie.

@@ -310,6 +310,28 @@ def test_la_confluencia_marca_niveles_cuando_hay_escalon_superior():
     assert [round(l.score) for l in con_confluencia.levels] == [round(l.score) for l in twin.levels]
 
 
+def test_una_serie_demasiado_corta_no_es_una_lectura():
+    """Menos velas que las que pide el fractal: los DOS devuelven vacío.
+
+    Es el caso de un activo recién listado, y es justo donde nadie lo miraría.
+    El backend devuelve `_empty_read` —referencia, tolerancia y ATR sin valor—
+    porque una tolerancia derivada del ATR de tres velas es una precisión
+    inventada. El indicador tiene que decir lo mismo, no un número bonito.
+    """
+    filas = _serie(97, 4)
+    backend = detect_structure(filas, strength=2)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False)
+    assert backend["currentPrice"] is None and math.isnan(twin.referencePrice)
+    assert backend["tolerancePct"] is None and math.isnan(twin.tolerance)
+    assert backend["atr"] is None and math.isnan(twin.atr)
+    assert twin.trend == backend["trend"] == "range"
+    assert twin.rowsScanned == backend["rowsScanned"] == 4
+    assert len(twin.swings) == len(twin.levels) == len(twin.fvgs) == len(twin.breakouts) == 0
+    assert twin.counts.levels == backend["counts"]["levels"] == 0
+    assert twin.counts.fvgOpen == backend["counts"]["fvgOpen"] == 0
+    assert math.isnan(twin.context.roomAbovePct) and backend["context"]["roomAbovePct"] is None
+
+
 def test_la_tolerancia_manual_se_respeta():
     filas = CASOS["diario_tendencial"]
     twin = pine.runScan(_ventana(filas), 2, 0.008, 2, [], False)

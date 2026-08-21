@@ -776,9 +776,10 @@ def scanLevels(w, strength, minTouches):
 
 def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked):
     n = _arr_size(w.c)
-    reference = ((_arr_get(w.c, (n - 1))) if ((n > 0)) else (NA))
-    tol = ((autoTolerance(w)) if (_is_na(tolOverride)) else (tolOverride))
-    atr = avgTrueRange(w, 14)
+    tooShort = (n < ((2 * strength) + 1))
+    reference = ((_arr_get(w.c, (n - 1))) if (((n > 0) and (not tooShort))) else (NA))
+    tol = ((NA) if (tooShort) else (((autoTolerance(w)) if (_is_na(tolOverride)) else (tolOverride))))
+    atr = ((NA) if (tooShort) else (avgTrueRange(w, 14)))
     swings = detectSwings(w, strength)
     trend = labelStructure(swings)
     events = annotateEvents(w, detectEvents(w, swings), atr)
@@ -794,7 +795,7 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked):
         for i in _rango(0, (_math_min(_arr_size(allLevels), MAX_ANALYSED_LEVELS) - 1)):
             _arr_push(levels, _arr_get(allLevels, i))
     levels = annotateLevels(w, levels, tol)
-    fvgs = detectFvgs(w)
+    fvgs = ((_arr_new()) if (tooShort) else (detectFvgs(w)))
     breakouts = detectBreakouts(w, levels, strength)
     confluent = NA
     if htfChecked:
