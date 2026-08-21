@@ -27,6 +27,7 @@ leen en el mismo momento ni con la misma intención.
 |---|---|
 | [`GUIA_EXTENSION.md`](./GUIA_EXTENSION.md) | Cómo añadir una calculadora, página, endpoint, idioma o sección admin sin romper nada |
 | [`ESCANER_ESTRUCTURA.md`](./ESCANER_ESTRUCTURA.md) | Manual del escáner de estructura de precio (`price_action.py`): swings, BOS/CHoCH, FVG |
+| [`INDICADOR_TRADINGVIEW.md`](./INDICADOR_TRADINGVIEW.md) | El escáner portado a Pine Script v6 para TradingView, y cómo se verifica sin TradingView |
 | [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) | Gráficos y personalización por usuario |
 | [`MIGRACION_NEON.md`](./MIGRACION_NEON.md) | Conmutar la BD entre Cloud SQL y Neon (`DB_PROVIDER`) |
 | [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) | Especificación del plan de trading versionado. **Backend terminado; sigue sin una sola pantalla** (G-14) |

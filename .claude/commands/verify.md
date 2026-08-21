@@ -36,6 +36,18 @@ Ejecuta en orden y reporta cada resultado. No sigas si uno falla de forma bloque
    Ojo con los errores de *parseo*: eslint se para en el primero y **deja de mirar el
    resto del fichero**, así que un `✖ 1 error` puede estar tapando lo que venga detrás.
 
+5.a **Si tocaste el escáner o el indicador de TradingView**
+   (`backend/price_action.py`, `tradingview/*.pine`):
+   ```
+   python scripts/verificar-pine.py                          # cabecera, integrados, ámbitos
+   python scripts/gen-pine-twin.py --check                   # el gemelo Python está al día
+   python -m pytest backend/tests/test_pine_parity_unit.py -q # el indicador dice lo mismo
+   ```
+   El indicador de TradingView es el MISMO algoritmo que `price_action.py`. Si tocas un
+   umbral en el backend y no en el `.pine`, la paridad falla y dice qué cifra se separó.
+   `gen-pine-twin.py` necesita `pynescript` y tarda ~2,5 min la primera vez (después
+   cachea el árbol por hash). Detalle: `docs/INDICADOR_TRADINGVIEW.md`.
+
 5.b **Si tocaste un verificador** (`scripts/*check*`, `gen-*`, `engine-check`):
    `bash scripts/probar-verificadores.sh`
    Sabotea cada comprobación y exige que falle. Una comprobación que no puede fallar da

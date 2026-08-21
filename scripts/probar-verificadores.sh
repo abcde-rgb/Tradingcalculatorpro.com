@@ -257,6 +257,57 @@ probar "un componente que nadie importa" \
   "printf 'export const ZzSabotajeHuerfano = () => null;\n' > $COMPONENTE_MUERTO" \
   "rm -f $COMPONENTE_MUERTO"
 
+# ── El indicador de TradingView ─────────────────────────────────────────────
+# `verificar-pine.py` no compila Pine (aquí no hay TradingView): comprueba lo que
+# se puede comprobar sin él, y lo que comprueba tiene que poder fallar.
+titulo "Indicador Pine (verificar-pine.py)"
+PINE="tradingview/tcp_structure_scanner.pine"
+
+probar "una llamada a un integrado que no existe" \
+  "python scripts/verificar-pine.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('$PINE'); t = p.read_text()
+p.write_text(t.replace('array.push(out, Swing.new', 'array.append(out, Swing.new', 1))\""
+
+probar "un constructor con un argumento de menos" \
+  "python scripts/verificar-pine.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('$PINE'); t = p.read_text()
+p.write_text(t.replace('Fvg.new(i, math.round(top, 6), math.round(bottom, 6), bull, filled, sessionGap)', 'Fvg.new(i, math.round(top, 6), math.round(bottom, 6), bull, filled)', 1))\""
+
+probar "una función declarada dentro de un bloque" \
+  "python scripts/verificar-pine.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('$PINE'); t = p.read_text()
+p.write_text(t.replace('autoHtf() =>', '    autoHtf() =>', 1))\""
+
+probar "el presupuesto de dibujos desaparece de indicator()" \
+  "python scripts/verificar-pine.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('$PINE'); t = p.read_text()
+p.write_text(t.replace('max_labels_count = 500', 'max_labels_countX = 500', 1))\""
+
+# La paridad numérica contra el backend es el verificador que de verdad importa,
+# pero cada sabotaje suyo obliga a reparsear el .pine con la gramática de Pine
+# (~2,5 min). Va detrás de una variable de entorno para no convertir este script
+# en algo que nadie ejecuta. Con PINE_LENTO=1 se comprueba de verdad.
+if [ "${PINE_LENTO:-0}" = "1" ]; then
+  titulo "Paridad indicador ↔ backend (test_pine_parity_unit.py)"
+  probar "el umbral de nivel confirmado cambia en el indicador" \
+    "python scripts/gen-pine-twin.py >/dev/null && python -m pytest backend/tests/test_pine_parity_unit.py -q" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('$PINE'); t = p.read_text()
+p.write_text(t.replace('lv.score >= 55', 'lv.score >= 50', 1))\""
+else
+  echo ""
+  echo "  ⏭️  paridad indicador ↔ backend: sólo con PINE_LENTO=1 (reparsea el .pine, ~2,5 min)"
+fi
+
 # ── Veredicto ───────────────────────────────────────────────────────────────
 echo ""
 echo "══════════════════════════════════════════════════════"

@@ -65,6 +65,11 @@ python scripts/gen-instruments-js.py --check   # catálogo backend ↔ frontend
 python scripts/gen-mapa.py --check             # el mapa refleja el código
 python scripts/check-doc-links.py              # los enlaces de la doc resuelven
 bash scripts/probar-verificadores.sh           # ¿y esos verificadores verifican?
+
+# Sólo si tocas el escáner o el indicador de TradingView (tradingview/*.pine):
+python scripts/verificar-pine.py                            # integrados, aridad, ámbitos
+python scripts/gen-pine-twin.py --check                     # el gemelo Python está al día
+python -m pytest backend/tests/test_pine_parity_unit.py -q  # el indicador da las MISMAS cifras
 ```
 
 **La última línea no es opcional cuando tocas un verificador.** Sabotea cada comprobación

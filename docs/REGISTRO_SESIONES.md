@@ -4391,3 +4391,72 @@ en él; el diario de verdad es `/performance`.
 **Verificado:** engine-check 264/264 · simulación masiva 20.227 · i18n 10/10 ·
 check-edu-index · gen-mapa · check-doc-links · ESLint 0 errores · pytest 782
 passed · y las dos pruebas de dos dispositivos, en el navegador real.
+
+### 2026-08-21 — El escáner, dentro de TradingView — y cómo comprobar Pine sin TradingView
+
+**Petición:** analizar el escáner de la web y hacer un indicador para TradingView en la
+última versión de Pine Script, verificando que funciona.
+
+**Lo que se leyó antes de escribir nada:** `backend/price_action.py` entero (1 044
+líneas, §0–§10), `timeframes.py` (la escalera y la `strength` por escalón),
+`server.py` (`/api/education/structure-scan/{symbol}`: cotización viva, confluencia con
+el escalón superior, `_mark_provisional`, `_trim_structure`) y la interfaz en
+`components/charts/structure/`.
+
+- ✅ **`tradingview/tcp_structure_scanner.pine`** (Pine Script **v6**, ~1 320 líneas):
+  el escáner portado. Swings fractales, HH/HL/LH/LL, BOS/CHoCH con su puntuación de
+  confirmación y sus códigos, soportes/resistencias con **zona**, distancia en % y en
+  ATR, polaridad invertida, evidencia visita a visita, FVG con hueco de sesión aparte,
+  breakouts y fakeouts, confluencia con la temporalidad superior y panel de lectura.
+  Corre **una vez sobre la última vela** (una foto, como el panel de la web) sobre una
+  ventana que se mantiene incremental, así que no necesita `max_bars_back`.
+  Las tres reglas de honestidad viajan con él: el papel lo decide el precio de ahora,
+  lo indeterminado sale «—» y no 0, y *sin comprobar* no es *sin coincidencias*.
+
+- ✅ **La verificación es la mitad del trabajo.** Pine sólo se ejecuta dentro de
+  TradingView, así que «lo he repasado» no vale. Tres capas:
+  1. **Gramática**: `scripts/gen-pine-twin.py` parsea el `.pine` con un parser de Pine
+     (`pynescript`). Un error de sintaxis no llega ni a generar nada.
+  2. **Números**: el mismo script **traduce el árbol sintáctico** del bloque puro del
+     indicador a Python (`tradingview/pine_twin_generated.py`, generado, con `--check`
+     como los demás artefactos del repo) y `backend/tests/test_pine_parity_unit.py`
+     lo corre contra `price_action.py` sobre las mismas velas: **52 comprobaciones**
+     sobre 6 series (diaria tendencial, volátil, sin volumen, intradía con cortes de
+     sesión, cripto cara, serie corta), comparando swings, rupturas con sus códigos,
+     niveles con su zona y su evidencia, FVG, breakouts, contexto y los 14 recuentos.
+  3. **Plataforma**: `scripts/verificar-pine.py` (sin dependencias, <1 s) para lo que
+     la gramática no ve — integrados inventados, aridad de constructores, funciones o
+     `plot()` en ámbito local, presupuesto de dibujos en `indicator()`.
+
+- 🔎 **Lo que la paridad encontró y no se habría visto de otra forma:** `detect_breakouts`
+  del backend genera la lista **por nivel** y luego la ordena por vela con un `sort`
+  estable; el Pine la generaba por nivel y no ordenaba. Los recuentos salían iguales
+  —por eso ningún test de conteo lo habría cazado— pero el dibujo se queda con las
+  ÚLTIMAS marcas, y en orden por nivel «las últimas» no son las más recientes. Se
+  arregló invirtiendo el anidamiento (vela fuera, nivel dentro), que da exactamente el
+  mismo orden que el `sort` del backend sin ordenar nada.
+
+- 🔎 **Dos cosas que el `.pine` no debía apoyar en suerte:** el `while` que consumía
+  swings dependía de que Pine cortocircuite el `and` (v6 lo hace, v5 no) para no salirse
+  del array — se sacó el acceso del test; y `panelRow` estaba declarada **dentro** de un
+  bloque `if`, que Pine no admite y cuyo error no señala la causa. La segunda la cazó
+  `verificar-pine.py`, que es exactamente para lo que existe.
+
+- ✅ **Saboteado, no supuesto.** Los cuatro controles de `verificar-pine.py` están en
+  `scripts/probar-verificadores.sh` y fallan cuando deben. La paridad numérica también
+  (`PINE_LENTO=1`, va detrás de la variable porque cada sabotaje reparsea el `.pine`,
+  ~2,5 min): se comprobó que cambiar el umbral de nivel confirmado (55→50), el de la
+  tasa de aguante (0,66→0,60), desactivar la detección de cortes de sesión o mover la
+  ventana del ATR (14→20) rompe el test. Ninguno sobrevive.
+
+- 📄 **`docs/INDICADOR_TRADINGVIEW.md`**: manual completo — instalación, los 8 grupos de
+  controles, qué significa cada distintivo de la etiqueta de un nivel, las tres capas de
+  verificación y los límites heredados del backend (entre ellos que `detectEvents` usa
+  un swing antes de que fuera confirmable: para medir un sistema con esto hay que
+  aplicar el retardo de `strength` velas).
+
+**Lo que NO está verificado y se dice en el propio documento:** que TradingView
+**compile** el fichero. La gramática de `pynescript` no es el compilador de TradingView
+y podría aceptar algo que aquél rechace por reglas de cualificadores
+(`const`/`simple`/`series`). La prueba final es pegarlo en el Pine Editor. Lo que sí
+está descartado es que el algoritmo diga algo distinto de lo que dice la web.

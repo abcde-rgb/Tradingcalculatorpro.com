@@ -1,6 +1,7 @@
 ---
 paths:
   - "backend/price_action.py"
+  - "tradingview/**/*.pine"
   - "backend/candle_patterns.py"
   - "backend/timeframes.py"
   - "frontend/src/components/charts/**"
@@ -62,6 +63,24 @@ que no se pueden relajar:
   medición sobre la serie con los retornos barajados (`null_shuffles`). Una fórmula
   analítica no sirve: la de la ruina del jugador daba −14 puntos de «ventaja» sobre un
   paseo aleatorio puro.
+
+## El indicador de TradingView es el MISMO algoritmo, no una versión libre
+
+`tradingview/tcp_structure_scanner.pine` (Pine Script v6) es `price_action.py` portado.
+Si cambias un umbral, una puntuación o una regla aquí, **cámbialo también allí**:
+
+```bash
+python scripts/gen-pine-twin.py                            # traduce el .pine a Python
+python -m pytest backend/tests/test_pine_parity_unit.py -q  # 52 comprobaciones cifra a cifra
+python scripts/verificar-pine.py                            # lo específico de la plataforma
+```
+
+`tradingview/pine_twin_generated.py` es **generado**: sale del árbol sintáctico del
+`.pine`, no se escribe a mano. Todo lo numérico del indicador vive en `runScan()`; por
+debajo de §11 sólo hay dibujo, y ahí no debe quedar aritmética — lo que no se puede
+ejecutar fuera de TradingView tampoco se puede verificar.
+
+Manual: [`docs/INDICADOR_TRADINGVIEW.md`](../../docs/INDICADOR_TRADINGVIEW.md).
 
 ## En el sandbox no hay red
 

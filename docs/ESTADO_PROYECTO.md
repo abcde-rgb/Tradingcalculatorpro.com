@@ -159,6 +159,25 @@
 - **Shim de BD**: clase `Collection` que traduce operadores Mongo (`$set/$inc/$push/$or/
   $in/$regex/$unset/...`) a SQL paramétrico sobre JSONB. **Nunca usar SQL directo.**
 
+
+### Indicador de TradingView (Pine Script v6)
+- `tradingview/tcp_structure_scanner.pine` (~1 320 líneas): el escáner de estructura
+  portado a Pine v6, para que corra dentro de TradingView sobre cualquier activo y
+  temporalidad. Mismos pivotes, mismos umbrales, mismos códigos de evidencia.
+- **No es una versión libre: está comprobado.** `scripts/gen-pine-twin.py` parsea el
+  `.pine` con una gramática de Pine y traduce su bloque puro a
+  `tradingview/pine_twin_generated.py` (código **generado**, no editable a mano);
+  `backend/tests/test_pine_parity_unit.py` corre esa traducción y `price_action.py`
+  sobre las mismas velas y exige que coincidan cifra a cifra (**52 comprobaciones**,
+  6 series: diaria, volátil, sin volumen, intradía con cortes de sesión, cripto cara
+  y una serie corta).
+- `scripts/verificar-pine.py` cubre lo que la gramática no ve: integrados que no
+  existen, aridad de los constructores, funciones o `plot()` en ámbito local y el
+  presupuesto de dibujos de `indicator()`. Sus cuatro controles están saboteados en
+  `probar-verificadores.sh`; la paridad también, con `PINE_LENTO=1`.
+- **Lo que no está cubierto**: que TradingView lo compile. La gramática no es su
+  compilador. Manual: [`INDICADOR_TRADINGVIEW.md`](./INDICADOR_TRADINGVIEW.md).
+
 ---
 
 ## 3. Qué FALTA / huecos conocidos
@@ -315,11 +334,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-21 | El escáner, dentro de TradingView — y cómo comprobar Pine sin TradingView |
 | 2026-08-15 | Lo último que seguía atado a un navegador |
 | 2026-08-14 (5) | Mil escenarios generados, y lo que 264 comprobaciones no veían |
 | 2026-08-14 (4) | La captura mentía: la barra de navegación salía tres veces |
 | 2026-08-14 (3) | La mesa, rehecha: una pregunta, un botón, una respuesta |
-| 2026-08-14 | La mesa de cálculo: el dashboard deja de ser catorce calculadoras sueltas |
 
 ```bash
 # buscar una sesión por fecha o por tema
