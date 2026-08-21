@@ -43,14 +43,26 @@ DESTINO = os.path.join(RAIZ, "tradingview", "pine_twin_generated.py")
 # El bloque PURO del indicador, nombre por nombre. Se traduce esto y nada más:
 # si mañana alguien renombra una función, el script falla en vez de generar un
 # gemelo silenciosamente incompleto que dejaría pasar la prueba de paridad.
-TIPOS = ["Win", "Swing", "Ev", "Lv", "Fvg", "Brk", "Cluster", "Ctx", "Counts", "Scan"]
+TIPOS = ["Win", "Swing", "Ev", "Lv", "Fvg", "Brk", "Cluster", "Ctx", "Counts", "Scan",
+         "Cm", "PatMeta", "Pat"]
 CONSTANTES = ["MAX_ANALYSED_LEVELS", "SESSION_GAP_FACTOR", "DAY_SECONDS", "VOL_WINDOW"]
 FUNCIONES = [
     "sideOf", "avgTrueRange", "avgVolume", "barSpacingSeconds",
     "detectSwings", "labelStructure", "detectEvents", "clusterRepeatedEvents",
     "detectSrLevels", "sortLevels", "annotateLevels", "annotateEvents",
     "detectFvgs", "detectBreakouts", "applyConfluence", "summariseContext",
-    "autoTolerance", "scanLevels", "runScan",
+    "autoTolerance", "scanLevels", "trendOf", "runScan",
+    # §10c — el motor de patrones de vela, port de candle_patterns.py
+    "candleMetrics", "isDoji", "isDragonflyDoji", "isGravestoneDoji",
+    "isLongLeggedDoji", "isHighWave", "isHammer", "isShootingStar", "isMarubozu",
+    "isSpinningTop", "isBullishEngulfing", "isBearishEngulfing",
+    "isBullishHarami", "isBearishHarami", "isPiercingLine", "isDarkCloudCover",
+    "approxEqual", "isTweezerBottom", "isTweezerTop", "isBullishKicker",
+    "isBearishKicker", "isMorningStar", "isEveningStar", "isMorningDojiStar",
+    "isEveningDojiStar", "longBodyCloseNearHigh", "longBodyCloseNearLow",
+    "isThreeWhiteSoldiers", "isThreeBlackCrows", "isThreeInsideUp",
+    "isThreeInsideDown", "trendBefore", "patternMeta", "detectAtIndex",
+    "detectPatterns", "markPatternsAtLevels",
 ]
 
 # ---------------------------------------------------------------------------
@@ -66,6 +78,7 @@ LLAMADAS = {
     "array.shift": "_arr_shift",
     "array.sort": "_arr_sort",
     "array.sort_indices": "_arr_sort_indices",
+    "array.includes": "_arr_includes",
     "math.max": "_math_max",
     "math.min": "_math_min",
     "math.abs": "_math_abs",
@@ -144,6 +157,10 @@ def _arr_sort(a, orden="asc"):
 
 def _arr_sort_indices(a, orden="asc"):
     return sorted(range(len(a)), key=lambda i: a[i], reverse=(orden == "desc"))
+
+
+def _arr_includes(a, v):
+    return v in a
 
 
 def _math_max(*xs):
@@ -330,6 +347,9 @@ class Traductor:
                 self.cuerpo(interno.body, False)
                 self.nivel -= 1
                 return
+            if isinstance(interno, a.Switch):
+                self.sentencia_switch(interno, devolver)
+                return
             if isinstance(interno, a.While):
                 self.emitir(f"while {self.expr(interno.test)}:")
                 self.nivel += 1
@@ -340,6 +360,35 @@ class Traductor:
             self.emitir(f"return {texto}" if devolver else texto)
             return
         raise ErrorTraduccion(f"sentencia no soportada: {type(nodo).__name__}")
+
+    def sentencia_switch(self, nodo, devolver: bool) -> None:
+        """`switch` de Pine → escalera de `if/elif` sobre el sujeto.
+
+        El caso sin patrón es el `else`. Un `switch` sin sujeto (la forma
+        `switch` a secas con condiciones) no se usa en este indicador y se
+        rechaza en vez de traducirse a medias.
+        """
+        a = self.ast
+        if nodo.subject is None:
+            raise ErrorTraduccion("`switch` sin sujeto no soportado")
+        sujeto = self.expr(nodo.subject)
+        primero = True
+        por_defecto = None
+        for caso in nodo.cases:
+            if caso.pattern is None:
+                por_defecto = caso
+                continue
+            palabra = "if" if primero else "elif"
+            primero = False
+            self.emitir(f"{palabra} {sujeto} == {self.expr(caso.pattern)}:")
+            self.nivel += 1
+            self.cuerpo(caso.body, devolver)
+            self.nivel -= 1
+        if por_defecto is not None:
+            self.emitir("else:" if not primero else "if True:")
+            self.nivel += 1
+            self.cuerpo(por_defecto.body, devolver)
+            self.nivel -= 1
 
     def sentencia_if(self, nodo) -> None:
         self.emitir(f"if {self.expr(nodo.test)}:")

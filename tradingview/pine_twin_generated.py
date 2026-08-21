@@ -56,6 +56,10 @@ def _arr_sort_indices(a, orden="asc"):
     return sorted(range(len(a)), key=lambda i: a[i], reverse=(orden == "desc"))
 
 
+def _arr_includes(a, v):
+    return v in a
+
+
 def _math_max(*xs):
     return NA if any(_is_na(x) for x in xs) else max(xs)
 
@@ -196,6 +200,48 @@ class Cluster:
         self.lows = lows
 
 
+class Cm:
+    __slots__ = ('body', 'rng', 'upper', 'lower', 'isBull', 'isBear', 'bodyPct',)
+    def __init__(self, body=NA, rng=NA, upper=NA, lower=NA, isBull=False, isBear=False, bodyPct=NA):
+        self.body = body
+        self.rng = rng
+        self.upper = upper
+        self.lower = lower
+        self.isBull = isBull
+        self.isBear = isBear
+        self.bodyPct = bodyPct
+
+
+class PatMeta:
+    __slots__ = ('kind', 'behavior', 'rate', 'rank', 'candles', 'basis',)
+    def __init__(self, kind="", behavior="", rate=NA, rank=NA, candles=NA, basis=""):
+        self.kind = kind
+        self.behavior = behavior
+        self.rate = rate
+        self.rank = rank
+        self.candles = candles
+        self.basis = basis
+
+
+class Pat:
+    __slots__ = ('idx', 'startIdx', 'id', 'kind', 'behavior', 'rate', 'rank', 'candles', 'basis', 'bodyPct', 'upperWickPct', 'lowerWickPct', 'levelPrice', 'levelRole',)
+    def __init__(self, idx=NA, startIdx=NA, id="", kind="", behavior="", rate=NA, rank=NA, candles=NA, basis="", bodyPct=NA, upperWickPct=NA, lowerWickPct=NA, levelPrice=NA, levelRole=""):
+        self.idx = idx
+        self.startIdx = startIdx
+        self.id = id
+        self.kind = kind
+        self.behavior = behavior
+        self.rate = rate
+        self.rank = rank
+        self.candles = candles
+        self.basis = basis
+        self.bodyPct = bodyPct
+        self.upperWickPct = upperWickPct
+        self.lowerWickPct = lowerWickPct
+        self.levelPrice = levelPrice
+        self.levelRole = levelRole
+
+
 class Ctx:
     __slots__ = ('roomAbovePct', 'roomBelowPct', 'roomAboveAtr', 'roomBelowAtr', 'rangeWidthPct', 'rangePositionPct',)
     def __init__(self, roomAbovePct=NA, roomBelowPct=NA, roomAboveAtr=NA, roomBelowAtr=NA, rangeWidthPct=NA, rangePositionPct=NA):
@@ -208,8 +254,8 @@ class Ctx:
 
 
 class Counts:
-    __slots__ = ('swings', 'bos', 'choch', 'confirmedEvents', 'repeatedBreaks', 'levels', 'resistances', 'supports', 'flipped', 'confirmedLevels', 'confluent', 'fvgOpen', 'fvgSessionGap', 'breakouts', 'fakeouts',)
-    def __init__(self, swings=NA, bos=NA, choch=NA, confirmedEvents=NA, repeatedBreaks=NA, levels=NA, resistances=NA, supports=NA, flipped=NA, confirmedLevels=NA, confluent=NA, fvgOpen=NA, fvgSessionGap=NA, breakouts=NA, fakeouts=NA):
+    __slots__ = ('swings', 'bos', 'choch', 'confirmedEvents', 'repeatedBreaks', 'levels', 'resistances', 'supports', 'flipped', 'confirmedLevels', 'confluent', 'patterns', 'bullishPatterns', 'bearishPatterns', 'patternsAtLevel', 'fvgOpen', 'fvgSessionGap', 'breakouts', 'fakeouts',)
+    def __init__(self, swings=NA, bos=NA, choch=NA, confirmedEvents=NA, repeatedBreaks=NA, levels=NA, resistances=NA, supports=NA, flipped=NA, confirmedLevels=NA, confluent=NA, patterns=NA, bullishPatterns=NA, bearishPatterns=NA, patternsAtLevel=NA, fvgOpen=NA, fvgSessionGap=NA, breakouts=NA, fakeouts=NA):
         self.swings = swings
         self.bos = bos
         self.choch = choch
@@ -221,6 +267,10 @@ class Counts:
         self.flipped = flipped
         self.confirmedLevels = confirmedLevels
         self.confluent = confluent
+        self.patterns = patterns
+        self.bullishPatterns = bullishPatterns
+        self.bearishPatterns = bearishPatterns
+        self.patternsAtLevel = patternsAtLevel
         self.fvgOpen = fvgOpen
         self.fvgSessionGap = fvgSessionGap
         self.breakouts = breakouts
@@ -228,8 +278,8 @@ class Counts:
 
 
 class Scan:
-    __slots__ = ('rowsScanned', 'referencePrice', 'tolerance', 'atr', 'trend', 'swings', 'events', 'allLevels', 'levels', 'fvgs', 'breakouts', 'nearestResistance', 'nearestSupport', 'context', 'counts',)
-    def __init__(self, rowsScanned=NA, referencePrice=NA, tolerance=NA, atr=NA, trend="", swings=None, events=None, allLevels=None, levels=None, fvgs=None, breakouts=None, nearestResistance=NA, nearestSupport=NA, context=NA, counts=NA):
+    __slots__ = ('rowsScanned', 'referencePrice', 'tolerance', 'atr', 'trend', 'swings', 'events', 'allLevels', 'levels', 'fvgs', 'breakouts', 'patterns', 'htfTrend', 'nearestResistance', 'nearestSupport', 'context', 'counts',)
+    def __init__(self, rowsScanned=NA, referencePrice=NA, tolerance=NA, atr=NA, trend="", swings=None, events=None, allLevels=None, levels=None, fvgs=None, breakouts=None, patterns=None, htfTrend="", nearestResistance=NA, nearestSupport=NA, context=NA, counts=NA):
         self.rowsScanned = rowsScanned
         self.referencePrice = referencePrice
         self.tolerance = tolerance
@@ -241,6 +291,8 @@ class Scan:
         self.levels = levels
         self.fvgs = fvgs
         self.breakouts = breakouts
+        self.patterns = patterns
+        self.htfTrend = htfTrend
         self.nearestResistance = nearestResistance
         self.nearestSupport = nearestSupport
         self.context = context
@@ -345,7 +397,7 @@ def labelStructure(swings):
     return trend
 
 
-def detectEvents(w, swings):
+def detectEvents(w, swings, confirmDelay):
     events = _arr_new()
     trend = ''
     lastSh = NA
@@ -357,7 +409,7 @@ def detectEvents(w, swings):
         for i in _rango(0, (n - 1)):
             while (si < total):
                 s = _arr_get(swings, si)
-                if (s.idx >= i):
+                if ((s.idx + confirmDelay) >= i):
                     break
                 if s.isHigh:
                     lastSh = s.price
@@ -774,7 +826,411 @@ def scanLevels(w, strength, minTouches):
     return out
 
 
-def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked):
+def trendOf(w, strength):
+    return labelStructure(detectSwings(w, strength))
+
+
+def candleMetrics(w, i):
+    o = _arr_get(w.o, i)
+    h = _arr_get(w.h, i)
+    lo = _arr_get(w.l, i)
+    c = _arr_get(w.c, i)
+    body = _math_abs((c - o))
+    rng = _math_max((h - lo), 1e-09)
+    return Cm(body, rng, (h - _math_max(o, c)), (_math_min(o, c) - lo), (c > o), (c < o), (body / rng))
+
+
+def isDoji(m):
+    return (m.bodyPct <= 0.07)
+
+
+def isDragonflyDoji(m):
+    return ((m.bodyPct <= 0.07) and (m.upper <= (0.05 * m.rng)) and (m.lower >= (0.6 * m.rng)))
+
+
+def isGravestoneDoji(m):
+    return ((m.bodyPct <= 0.07) and (m.lower <= (0.05 * m.rng)) and (m.upper >= (0.6 * m.rng)))
+
+
+def isLongLeggedDoji(m):
+    return (isDoji(m) and (m.upper >= (0.35 * m.rng)) and (m.lower >= (0.35 * m.rng)))
+
+
+def isHighWave(m):
+    return ((m.bodyPct > 0.07) and (m.bodyPct <= 0.25) and (m.upper >= (0.3 * m.rng)) and (m.lower >= (0.3 * m.rng)))
+
+
+def isHammer(m):
+    return ((m.body > 0) and (m.lower >= (1.8 * m.body)) and (m.upper <= (0.4 * m.body)) and (m.bodyPct >= 0.05))
+
+
+def isShootingStar(m):
+    return ((m.body > 0) and (m.upper >= (1.8 * m.body)) and (m.lower <= (0.4 * m.body)) and (m.bodyPct >= 0.05))
+
+
+def isMarubozu(m):
+    return ((m.bodyPct >= 0.85) and (m.upper <= (0.05 * m.rng)) and (m.lower <= (0.05 * m.rng)))
+
+
+def isSpinningTop(m):
+    return ((m.bodyPct > 0.1) and (m.bodyPct < 0.35) and (m.upper > m.body) and (m.lower > m.body))
+
+
+def isBullishEngulfing(w, p, c):
+    po = _arr_get(w.o, p)
+    pc = _arr_get(w.c, p)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    return ((pc < po) and (cc > co) and (co <= pc) and (cc >= po) and (_math_abs((cc - co)) > _math_abs((pc - po))))
+
+
+def isBearishEngulfing(w, p, c):
+    po = _arr_get(w.o, p)
+    pc = _arr_get(w.c, p)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    return ((pc > po) and (cc < co) and (co >= pc) and (cc <= po) and (_math_abs((cc - co)) > _math_abs((pc - po))))
+
+
+def isBullishHarami(w, p, c):
+    po = _arr_get(w.o, p)
+    pc = _arr_get(w.c, p)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    return ((pc < po) and (cc > co) and (_math_max(co, cc) <= po) and (_math_min(co, cc) >= pc) and (_math_abs((cc - co)) < _math_abs((pc - po))))
+
+
+def isBearishHarami(w, p, c):
+    po = _arr_get(w.o, p)
+    pc = _arr_get(w.c, p)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    return ((pc > po) and (cc < co) and (_math_max(co, cc) <= pc) and (_math_min(co, cc) >= po) and (_math_abs((cc - co)) < _math_abs((pc - po))))
+
+
+def isPiercingLine(w, p, c):
+    po = _arr_get(w.o, p)
+    pc = _arr_get(w.c, p)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    ok = ((pc < po) and (cc > co))
+    mid = ((po + pc) / 2)
+    return (ok and (co < pc) and (cc > mid) and (cc < po))
+
+
+def isDarkCloudCover(w, p, c):
+    po = _arr_get(w.o, p)
+    pc = _arr_get(w.c, p)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    ok = ((pc > po) and (cc < co))
+    mid = ((po + pc) / 2)
+    return (ok and (co > pc) and (cc > po) and (cc < mid))
+
+
+def approxEqual(a, b, ref):
+    return (_math_abs((a - b)) <= (0.0015 * _math_max(_math_abs(ref), 1e-09)))
+
+
+def isTweezerBottom(w, p, c):
+    return ((_arr_get(w.c, p) < _arr_get(w.o, p)) and (_arr_get(w.c, c) > _arr_get(w.o, c)) and approxEqual(_arr_get(w.l, p), _arr_get(w.l, c), _arr_get(w.l, p)))
+
+
+def isTweezerTop(w, p, c):
+    return ((_arr_get(w.c, p) > _arr_get(w.o, p)) and (_arr_get(w.c, c) < _arr_get(w.o, c)) and approxEqual(_arr_get(w.h, p), _arr_get(w.h, c), _arr_get(w.h, p)))
+
+
+def isBullishKicker(w, p, c):
+    return ((_arr_get(w.c, p) < _arr_get(w.o, p)) and (_arr_get(w.c, c) > _arr_get(w.o, c)) and (_arr_get(w.o, c) > _arr_get(w.o, p)))
+
+
+def isBearishKicker(w, p, c):
+    return ((_arr_get(w.c, p) > _arr_get(w.o, p)) and (_arr_get(w.c, c) < _arr_get(w.o, c)) and (_arr_get(w.o, c) < _arr_get(w.o, p)))
+
+
+def isMorningStar(w, a, b, c):
+    ao = _arr_get(w.o, a)
+    ac = _arr_get(w.c, a)
+    bo = _arr_get(w.o, b)
+    bc = _arr_get(w.c, b)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    body1 = _math_abs((ac - ao))
+    body2 = _math_abs((bc - bo))
+    mid1 = ((ao + ac) / 2)
+    return ((ac < ao) and (body2 < (0.5 * body1)) and (_math_max(bo, bc) < ac) and (cc > co) and (cc > mid1))
+
+
+def isEveningStar(w, a, b, c):
+    ao = _arr_get(w.o, a)
+    ac = _arr_get(w.c, a)
+    bo = _arr_get(w.o, b)
+    bc = _arr_get(w.c, b)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    body1 = _math_abs((ac - ao))
+    body2 = _math_abs((bc - bo))
+    mid1 = ((ao + ac) / 2)
+    return ((ac > ao) and (body2 < (0.5 * body1)) and (_math_min(bo, bc) > ac) and (cc < co) and (cc < mid1))
+
+
+def isMorningDojiStar(w, a, b, c):
+    ao = _arr_get(w.o, a)
+    ac = _arr_get(w.c, a)
+    mid1 = ((ao + ac) / 2)
+    return ((ac < ao) and isDoji(candleMetrics(w, b)) and (_math_max(_arr_get(w.o, b), _arr_get(w.c, b)) < ac) and (_arr_get(w.c, c) > _arr_get(w.o, c)) and (_arr_get(w.c, c) > mid1))
+
+
+def isEveningDojiStar(w, a, b, c):
+    ao = _arr_get(w.o, a)
+    ac = _arr_get(w.c, a)
+    mid1 = ((ao + ac) / 2)
+    return ((ac > ao) and isDoji(candleMetrics(w, b)) and (_math_min(_arr_get(w.o, b), _arr_get(w.c, b)) > ac) and (_arr_get(w.c, c) < _arr_get(w.o, c)) and (_arr_get(w.c, c) < mid1))
+
+
+def longBodyCloseNearHigh(m):
+    return ((m.bodyPct >= 0.55) and (m.upper <= (0.25 * m.rng)))
+
+
+def longBodyCloseNearLow(m):
+    return ((m.bodyPct >= 0.55) and (m.lower <= (0.25 * m.rng)))
+
+
+def isThreeWhiteSoldiers(w, a, b, c):
+    ao = _arr_get(w.o, a)
+    ac = _arr_get(w.c, a)
+    bo = _arr_get(w.o, b)
+    bc = _arr_get(w.c, b)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    alcistas = ((ac > ao) and (bc > bo) and (cc > co))
+    progresa = ((bc > ac) and (cc > bc))
+    ordenado = ((ao < bo) and (bo < ac) and (bo < co) and (co < bc))
+    return (alcistas and progresa and ordenado and longBodyCloseNearHigh(candleMetrics(w, a)) and longBodyCloseNearHigh(candleMetrics(w, b)) and longBodyCloseNearHigh(candleMetrics(w, c)))
+
+
+def isThreeBlackCrows(w, a, b, c):
+    ao = _arr_get(w.o, a)
+    ac = _arr_get(w.c, a)
+    bo = _arr_get(w.o, b)
+    bc = _arr_get(w.c, b)
+    co = _arr_get(w.o, c)
+    cc = _arr_get(w.c, c)
+    bajistas = ((ac < ao) and (bc < bo) and (cc < co))
+    progresa = ((bc < ac) and (cc < bc))
+    ordenado = ((ac < bo) and (bo < ao) and (bc < co) and (co < bo))
+    return (bajistas and progresa and ordenado and longBodyCloseNearLow(candleMetrics(w, a)) and longBodyCloseNearLow(candleMetrics(w, b)) and longBodyCloseNearLow(candleMetrics(w, c)))
+
+
+def isThreeInsideUp(w, a, b, c):
+    return (isBullishHarami(w, a, b) and (_arr_get(w.c, c) > _arr_get(w.o, c)) and (_arr_get(w.c, c) > _arr_get(w.o, a)))
+
+
+def isThreeInsideDown(w, a, b, c):
+    return (isBearishHarami(w, a, b) and (_arr_get(w.c, c) < _arr_get(w.o, c)) and (_arr_get(w.c, c) < _arr_get(w.o, a)))
+
+
+def trendBefore(w, i, lookback):
+    out = 'flat'
+    j = (i - 1)
+    k = _math_max(0, (i - lookback))
+    if (j > k):
+        total = 0.0
+        for x in _rango(k, (i - 1)):
+            total += _math_max((_arr_get(w.h, x) - _arr_get(w.l, x)), 0.0)
+        avgRange = (total / _math_max((i - k), 1))
+        if (avgRange > 0):
+            move = (_arr_get(w.c, j) - _arr_get(w.c, k))
+            out = (('up') if ((move >= avgRange)) else ((('down') if ((move <= (-avgRange))) else ('flat'))))
+    return out
+
+
+def patternMeta(id):
+    if id == 'hammer':
+        return PatMeta('bullish', 'reversal', 60, 26, 1, 'wicks')
+    elif id == 'hanging-man':
+        return PatMeta('bearish', 'reversal', 59, 51, 1, 'wicks')
+    elif id == 'inverted-hammer':
+        return PatMeta('bullish', 'reversal', 65, 14, 1, 'wicks')
+    elif id == 'shooting-star':
+        return PatMeta('bearish', 'reversal', 59, 31, 1, 'wicks')
+    elif id == 'doji':
+        return PatMeta('neutral', 'indecision', 50, 75, 1, 'body')
+    elif id == 'dragonfly-doji':
+        return PatMeta('bullish', 'reversal', 50, 72, 1, 'both')
+    elif id == 'gravestone-doji':
+        return PatMeta('bearish', 'reversal', 51, 77, 1, 'both')
+    elif id == 'long-legged-doji':
+        return PatMeta('neutral', 'indecision', 51, 80, 1, 'both')
+    elif id == 'high-wave':
+        return PatMeta('neutral', 'indecision', 50, 82, 1, 'both')
+    elif id == 'bullish-marubozu':
+        return PatMeta('bullish', 'continuation', 56, 58, 1, 'both')
+    elif id == 'bearish-marubozu':
+        return PatMeta('bearish', 'continuation', 55, 60, 1, 'both')
+    elif id == 'spinning-top':
+        return PatMeta('neutral', 'indecision', 50, 78, 1, 'both')
+    elif id == 'bullish-engulfing':
+        return PatMeta('bullish', 'reversal', 63, 22, 2, 'body')
+    elif id == 'bearish-engulfing':
+        return PatMeta('bearish', 'reversal', 79, 9, 2, 'body')
+    elif id == 'bullish-harami':
+        return PatMeta('bullish', 'reversal', 53, 68, 2, 'body')
+    elif id == 'bearish-harami':
+        return PatMeta('bearish', 'reversal', 53, 65, 2, 'body')
+    elif id == 'piercing-line':
+        return PatMeta('bullish', 'reversal', 64, 19, 2, 'body')
+    elif id == 'dark-cloud-cover':
+        return PatMeta('bearish', 'reversal', 60, 30, 2, 'body')
+    elif id == 'tweezer-bottom':
+        return PatMeta('bullish', 'reversal', 56, 56, 2, 'wicks')
+    elif id == 'tweezer-top':
+        return PatMeta('bearish', 'reversal', 55, 57, 2, 'wicks')
+    elif id == 'bullish-kicker':
+        return PatMeta('bullish', 'reversal', 68, 7, 2, 'both')
+    elif id == 'bearish-kicker':
+        return PatMeta('bearish', 'reversal', 67, 8, 2, 'both')
+    elif id == 'morning-star':
+        return PatMeta('bullish', 'reversal', 78, 6, 3, 'body')
+    elif id == 'evening-star':
+        return PatMeta('bearish', 'reversal', 72, 11, 3, 'body')
+    elif id == 'morning-doji-star':
+        return PatMeta('bullish', 'reversal', 76, 10, 3, 'both')
+    elif id == 'evening-doji-star':
+        return PatMeta('bearish', 'reversal', 71, 13, 3, 'both')
+    elif id == 'three-white-soldiers':
+        return PatMeta('bullish', 'reversal', 82, 3, 3, 'both')
+    elif id == 'three-black-crows':
+        return PatMeta('bearish', 'reversal', 78, 5, 3, 'both')
+    elif id == 'three-inside-up':
+        return PatMeta('bullish', 'reversal', 65, 16, 3, 'body')
+    elif id == 'three-inside-down':
+        return PatMeta('bearish', 'reversal', 60, 28, 3, 'body')
+    else:
+        return PatMeta('neutral', 'indecision', 50, 99, 1, 'body')
+
+
+def detectAtIndex(w, i):
+    hits = _arr_new()
+    m = candleMetrics(w, i)
+    trend = trendBefore(w, i, 5)
+    if isDragonflyDoji(m):
+        _arr_push(hits, 'dragonfly-doji')
+    else:
+        if isGravestoneDoji(m):
+            _arr_push(hits, 'gravestone-doji')
+        else:
+            if isLongLeggedDoji(m):
+                _arr_push(hits, 'long-legged-doji')
+            else:
+                if isDoji(m):
+                    _arr_push(hits, 'doji')
+    if isHammer(m):
+        _arr_push(hits, (('hanging-man') if ((trend == 'up')) else ('hammer')))
+    if isShootingStar(m):
+        _arr_push(hits, (('inverted-hammer') if ((trend == 'down')) else ('shooting-star')))
+    if isMarubozu(m):
+        _arr_push(hits, (('bullish-marubozu') if (m.isBull) else ('bearish-marubozu')))
+    if (isHighWave(m) and (_arr_size(hits) == 0)):
+        _arr_push(hits, 'high-wave')
+    if (isSpinningTop(m) and (not _arr_includes(hits, 'doji')) and (not _arr_includes(hits, 'high-wave'))):
+        _arr_push(hits, 'spinning-top')
+    if (i >= 1):
+        if (isBullishKicker(w, (i - 1), i) and isMarubozu(m)):
+            _arr_push(hits, 'bullish-kicker')
+        else:
+            if isBullishEngulfing(w, (i - 1), i):
+                _arr_push(hits, 'bullish-engulfing')
+            else:
+                if (isBearishKicker(w, (i - 1), i) and isMarubozu(m)):
+                    _arr_push(hits, 'bearish-kicker')
+                else:
+                    if isBearishEngulfing(w, (i - 1), i):
+                        _arr_push(hits, 'bearish-engulfing')
+        if isBullishHarami(w, (i - 1), i):
+            _arr_push(hits, 'bullish-harami')
+        else:
+            if isBearishHarami(w, (i - 1), i):
+                _arr_push(hits, 'bearish-harami')
+        if isPiercingLine(w, (i - 1), i):
+            _arr_push(hits, 'piercing-line')
+        else:
+            if isDarkCloudCover(w, (i - 1), i):
+                _arr_push(hits, 'dark-cloud-cover')
+        if isTweezerBottom(w, (i - 1), i):
+            _arr_push(hits, 'tweezer-bottom')
+        else:
+            if isTweezerTop(w, (i - 1), i):
+                _arr_push(hits, 'tweezer-top')
+    if (i >= 2):
+        if isMorningDojiStar(w, (i - 2), (i - 1), i):
+            _arr_push(hits, 'morning-doji-star')
+        else:
+            if isMorningStar(w, (i - 2), (i - 1), i):
+                _arr_push(hits, 'morning-star')
+            else:
+                if isEveningDojiStar(w, (i - 2), (i - 1), i):
+                    _arr_push(hits, 'evening-doji-star')
+                else:
+                    if isEveningStar(w, (i - 2), (i - 1), i):
+                        _arr_push(hits, 'evening-star')
+        if isThreeWhiteSoldiers(w, (i - 2), (i - 1), i):
+            _arr_push(hits, 'three-white-soldiers')
+        else:
+            if isThreeBlackCrows(w, (i - 2), (i - 1), i):
+                _arr_push(hits, 'three-black-crows')
+        if isThreeInsideUp(w, (i - 2), (i - 1), i):
+            _arr_push(hits, 'three-inside-up')
+        else:
+            if isThreeInsideDown(w, (i - 2), (i - 1), i):
+                _arr_push(hits, 'three-inside-down')
+    out = _arr_new()
+    if (_arr_size(hits) > 0):
+        for k in _rango(0, (_arr_size(hits) - 1)):
+            h = _arr_get(hits, k)
+            if (not _arr_includes(out, h)):
+                _arr_push(out, h)
+    return out
+
+
+def detectPatterns(w):
+    out = _arr_new()
+    n = _arr_size(w.c)
+    if (n > 0):
+        for i in _rango(0, (n - 1)):
+            ids = detectAtIndex(w, i)
+            if (_arr_size(ids) > 0):
+                m = candleMetrics(w, i)
+                for k in _rango(0, (_arr_size(ids) - 1)):
+                    id = _arr_get(ids, k)
+                    meta = patternMeta(id)
+                    _arr_push(out, Pat(i, _math_max(0, (i - (meta.candles - 1))), id, meta.kind, meta.behavior, meta.rate, meta.rank, meta.candles, meta.basis, _math_round((m.bodyPct * 100), 1), _math_round(((m.upper / m.rng) * 100), 1), _math_round(((m.lower / m.rng) * 100), 1), NA, ''))
+    return out
+
+
+def markPatternsAtLevels(w, pats, levels):
+    marcados = 0
+    if ((_arr_size(pats) > 0) and (_arr_size(levels) > 0)):
+        for pi in _rango(0, (_arr_size(pats) - 1)):
+            p = _arr_get(pats, pi)
+            hi = _arr_get(w.h, p.idx)
+            lo = _arr_get(w.l, p.idx)
+            mejor = NA
+            rol = ''
+            for li in _rango(0, (_arr_size(levels) - 1)):
+                lv = _arr_get(levels, li)
+                if (lv.confirmed and (hi >= lv.zoneLow) and (lo <= lv.zoneHigh)):
+                    if (_is_na(mejor) or (_math_abs((lv.price - _arr_get(w.c, p.idx))) < _math_abs((mejor - _arr_get(w.c, p.idx))))):
+                        mejor = lv.price
+                        rol = lv.role
+            if (not _is_na(mejor)):
+                p.levelPrice = mejor
+                p.levelRole = rol
+                marcados += 1
+    return marcados
+
+
+def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTrend, confirmDelay):
     n = _arr_size(w.c)
     tooShort = (n < ((2 * strength) + 1))
     reference = ((_arr_get(w.c, (n - 1))) if (((n > 0) and (not tooShort))) else (NA))
@@ -782,7 +1238,7 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked):
     atr = ((NA) if (tooShort) else (avgTrueRange(w, 14)))
     swings = detectSwings(w, strength)
     trend = labelStructure(swings)
-    events = annotateEvents(w, detectEvents(w, swings), atr)
+    events = annotateEvents(w, detectEvents(w, swings, confirmDelay), atr)
     events = clusterRepeatedEvents(events, tol)
     allLevels = detectSrLevels(swings, tol, minTouches, reference)
     allLevels = sortLevels(allLevels, ((not _is_na(reference)) and (reference > 0)))
@@ -797,6 +1253,8 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked):
     levels = annotateLevels(w, levels, tol)
     fvgs = ((_arr_new()) if (tooShort) else (detectFvgs(w)))
     breakouts = detectBreakouts(w, levels, strength)
+    patterns = detectPatterns(w)
+    patternsAtLevel = markPatternsAtLevels(w, patterns, levels)
     confluent = NA
     if htfChecked:
         confluent = applyConfluence(levels, htfLevels, tol)
@@ -851,6 +1309,16 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked):
                 cFvgOpen += 1
             if g.sessionGap:
                 cFvgSession += 1
+    cBullishPat = 0
+    cBearishPat = 0
+    if (_arr_size(patterns) > 0):
+        for i in _rango(0, (_arr_size(patterns) - 1)):
+            pat = _arr_get(patterns, i)
+            if (pat.kind == 'bullish'):
+                cBullishPat += 1
+            else:
+                if (pat.kind == 'bearish'):
+                    cBearishPat += 1
     cBreakouts = 0
     cFakeouts = 0
     if (_arr_size(breakouts) > 0):
@@ -861,5 +1329,5 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked):
             else:
                 if b.confirmed:
                     cBreakouts += 1
-    counts = Counts(_arr_size(swings), cBos, cChoch, cConfirmedEvents, cRepeated, _arr_size(allLevels), cRes, cSup, cFlipped, cConfirmedLevels, confluent, cFvgOpen, cFvgSession, cBreakouts, cFakeouts)
-    return Scan(n, reference, tol, atr, trend, swings, events, allLevels, levels, fvgs, breakouts, nearestRes, nearestSup, ctx, counts)
+    counts = Counts(_arr_size(swings), cBos, cChoch, cConfirmedEvents, cRepeated, _arr_size(allLevels), cRes, cSup, cFlipped, cConfirmedLevels, confluent, _arr_size(patterns), cBullishPat, cBearishPat, patternsAtLevel, cFvgOpen, cFvgSession, cBreakouts, cFakeouts)
+    return Scan(n, reference, tol, atr, trend, swings, events, allLevels, levels, fvgs, breakouts, patterns, htfTrend, nearestRes, nearestSup, ctx, counts)

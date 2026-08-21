@@ -34,11 +34,22 @@ Lo que dibuja:
 | Confluencia | Niveles que **también** existen en el escalón superior | Distintivo `◎` en la etiqueta del nivel |
 | Fair Value Gaps | Desequilibrios de 3 velas, separando el **hueco de sesión** | Cajas de color |
 | Breakouts / fakeouts | Ruptura confirmada de un nivel vs. barrido de liquidez | Triángulos (desactivados por defecto) |
+| **Patrones de vela** | Los 30 canónicos, con su tasa, su rango y en qué se fija cada uno | Etiqueta con el nombre; `◆` si cae sobre un nivel confirmado |
+| **Tendencia superior** | La misma lectura HH/HL/LH/LL en el escalón de arriba | Fila del panel |
+| **Sesión** | Asia / Londres / Nueva York, con su solape | Fila del panel + sombreado opcional |
+| **PDH/PDL · PWH/PWL** | Máximo y mínimo del día y la semana anteriores | Líneas discontinuas etiquetadas |
 | Contexto | Recorrido a cada lado y posición dentro del rango | Panel |
 
 Lo que **no** es: no es una señal de compra o venta, no calcula probabilidad de
-éxito, no mira fundamentales ni noticias y no sabe en qué sesión está el mercado.
-Igual que la web.
+éxito y no mira fundamentales ni noticias.
+
+**Qué está portado y qué es añadido.** Los siete primeros bloques salen de
+`price_action.py` y los patrones de `candle_patterns.py`: portados y verificados
+cifra a cifra (§6). Los tres últimos —tendencia superior, sesión y niveles de
+calendario— son **añadidos**: el backend recibe velas y ya, no sabe de sesiones
+ni de calendario. No tocan un solo número de la lectura portada; se dibujan al
+lado. El cruce patrón ↔ nivel (`◆`) también es añadido: en la web los dos
+escáneres son endpoints separados y nadie los junta.
 
 ---
 
@@ -94,11 +105,19 @@ tope del control.
 | 3 Niveles | Cuántos dibujar | 8 | Los más cercanos al precio |
 | | Dibujar la zona | sí | Un nivel es una banda, no una línea |
 | | Sólo confirmados | no | Filtra por `visitas ≥ 2 y puntuación ≥ 55` |
-| 4 Estructura | Etiquetar swings · Marcar BOS/CHoCH | sí | |
-| 5 FVG | Abiertos · rellenados · huecos de sesión | sí · no · no | |
-| 6 Rupturas | Breakouts · fakeouts | no · no | Ruidosos en intradía; se activan a mano |
-| 7 Panel | Posición y tamaño | Arriba dcha., pequeño | |
-| 8 Avisos | BOS · CHoCH · zona | sí · sí · no | Sólo al **cerrar** la vela |
+| 4 Estructura | Etiquetar swings · Marcar BOS/CHoCH | sí | Los swings van **topados** (30): Pine descarta los dibujos que pasan de 500 sin avisar |
+| | Modo tiempo real honesto | no | Retardo de confirmación en las rupturas (§7) |
+| 5 Patrones | Marcar patrones · cuántos · tasa mínima | sí · 10 · 0 % | |
+| | Sólo sobre nivel confirmado | no | El cruce `◆` |
+| | Incluir neutros (doji, peonza, onda alta) | no | Son los más frecuentes y los que menos dicen |
+| 6 FVG | Abiertos · rellenados · huecos de sesión | sí · no · no | |
+| 7 Rupturas | Breakouts · fakeouts | no · no | Ruidosos en intradía; se activan a mano |
+| 8 Sesión y referencia | Zona horaria y las tres sesiones | GMT · 00-09 / 08-17 / 13-22 | Ajusta los horarios a tu mercado |
+| | Sombrear la sesión · rango de la anterior | no · Ninguna | |
+| | PDH/PDL · PWH/PWL | sí · no | Se ocultan solos donde no aportan (PDH en diario es la vela de al lado) |
+| 9 Panel | Posición, tamaño, compacto | Arriba dcha., pequeño, no | Compacto = las 11 filas de cabecera |
+| 10 Avisos | BOS · CHoCH · zona | sí · sí · no | Sólo al **cerrar** la vela |
+| | Ruptura · barrido · patrón · proximidad | no | La proximidad se mide en **ATR**, no en % |
 
 ### Los distintivos de la etiqueta de un nivel
 
@@ -164,11 +183,18 @@ traducción y `price_action.py` sobre las mismas velas y compara:
 | Niveles | precio, papel, origen, polaridad, distancia en % y ATR, toques, zona, visitas, aguantes, roturas, tasa, antigüedad, puntuación y códigos |
 | FVG | índice, techo, suelo, dirección, relleno y hueco de sesión |
 | Breakouts / fakeouts | índice, nivel, dirección, tipo, confirmado y puntuación |
-| Contexto y los 14 recuentos | exacto |
+| **Patrones de vela** | identificador, vela que confirma, vela donde empieza, tipo, comportamiento, tasa, rango, nº de velas, en qué se fija y las tres medidas (cuerpo y mechas) |
+| **El catálogo de los 30** | tabla escrita dos veces (un `switch` en Pine, un dict en Python) y comparada entrada a entrada |
+| Contexto y los 18 recuentos | exacto |
 
 Seis series sintéticas y deterministas: diaria tendencial, diaria volátil, sin
 volumen (forex/índices), intradía con cortes de sesión, cripto de precio alto y
-una serie muy corta.
+una serie muy corta. Más una **escrita a mano** para el único caso en el que el
+retardo de confirmación cambia algo (§7) — ese no sale en un paseo aleatorio.
+
+Y una guarda contra el test vacío: `test_los_fixtures_disparan_patrones_de_verdad`
+exige más de 200 detecciones en total y que haya patrones de una, dos **y** tres
+velas. Sin ella, comparar dos listas vacías pasaría por verificación.
 
 ```bash
 python scripts/gen-pine-twin.py            # regenera el gemelo desde el .pine
@@ -208,15 +234,46 @@ el algoritmo diga algo distinto de lo que dice la web.
 
 ---
 
+## 6b. Lo que el indicador tiene y la web no
+
+Tres cosas, todas por el mismo motivo: existen dentro de TradingView y el backend
+no las puede ver.
+
+- **Sesión.** El manual del escáner dice literalmente que *«no sabe en qué sesión
+  está el mercado»*. Aquí sí: Asia / Londres / Nueva York, con el **solape**
+  Londres-NY nombrado en vez de escondido detrás de una de las dos, y el rango de
+  la sesión anterior de la que elijas.
+- **PDH/PDL y PWH/PWL.** Bordes de calendario, no pivotes: la agrupación de
+  swings no los produce nunca y todo el mundo los mira.
+- **Patrón sobre nivel (`◆`).** En la web `structure-scan` y `pattern-scan` son
+  endpoints separados y nadie los cruza. Aquí los niveles y las velas están en la
+  misma pasada, así que el cruce sale gratis — y sólo contra niveles
+  **confirmados**, porque cruzar un patrón con una línea que nadie ha vuelto a
+  visitar es fabricar una coincidencia.
+
+Y una cuarta, propia del medio: **las alertas**. TradingView te avisa en el móvil
+sin que tu backend haga nada — BOS, CHoCH, entrada en zona, ruptura confirmada,
+barrido, patrón y proximidad a un nivel (medida en ATR, que significa lo mismo en
+el yen y en el bitcoin; un 0,5 % no).
+
+---
+
 ## 7. Límites conocidos (heredados del backend, a propósito)
 
-- **Las rupturas usan un swing antes de que fuera confirmable.** `detectEvents`
-  consume un swing en cuanto su índice es menor que la vela mirada, no cuando el
-  fractal quedó confirmado (`strength` velas después). Es un escaneo histórico,
-  no una simulación en vivo: una ruptura antigua puede aparecer unas velas antes
-  de que fuera observable en tiempo real. Se mantiene así para que el indicador y
-  la web digan lo mismo. **Para medir un sistema con esto, aplica el retardo de
-  `strength` velas.**
+- **El sesgo de anticipación de las rupturas es mucho menor de lo que decía este
+  documento.** `detectEvents` consume un swing en cuanto queda por detrás de la
+  vela mirada, no cuando el fractal quedó confirmado. Suena a mirar el futuro.
+  Al medirlo resulta que casi no lo es, y se puede demostrar: un swing alto en
+  `k` es *por definición* el máximo de `[k-s, k+s]`, así que ninguna vela de
+  `(k, k+s]` puede **cerrar** por encima de él —su propio máximo ya está acotado
+  por el del pivote— y ese nivel no se puede romper antes de `k+s+1`, que es
+  cuando el pivote ya era observable. En las seis series de prueba los dos modos
+  dan **exactamente** las mismas rupturas.
+  Queda un caso, y sólo uno: cuando un pivote nuevo —una vela de mecha enorme y
+  cierre bajo— **tapa** a otro anterior más bajo dentro de esas `strength` velas.
+  Está reproducido en `test_pero_el_interruptor_no_es_un_adorno`. Para eso está
+  el interruptor «modo tiempo real honesto»; por defecto manda la paridad con la
+  web.
 - **Los últimos `strength` velas no tienen pivotes**, por definición del fractal.
 - **Con menos de `2 × strength + 1` velas no hay lectura**: referencia, tolerancia
   y ATR salen vacíos, igual que el `_empty_read` del backend. Una tolerancia
@@ -234,8 +291,8 @@ el algoritmo diga algo distinto de lo que dice la web.
 
 ## 8. Si tocas el escáner del backend
 
-`backend/price_action.py` es **la referencia**. Si cambias un umbral, una
-puntuación o una regla ahí:
+`backend/price_action.py` y `backend/candle_patterns.py` son **la referencia**.
+Si cambias un umbral, una puntuación, una tasa del catálogo o una regla ahí:
 
 1. Haz el mismo cambio en `tradingview/tcp_structure_scanner.pine`.
 2. `python scripts/gen-pine-twin.py`

@@ -161,16 +161,22 @@
 
 
 ### Indicador de TradingView (Pine Script v6)
-- `tradingview/tcp_structure_scanner.pine` (~1 320 líneas): el escáner de estructura
-  portado a Pine v6, para que corra dentro de TradingView sobre cualquier activo y
-  temporalidad. Mismos pivotes, mismos umbrales, mismos códigos de evidencia.
+- `tradingview/tcp_structure_scanner.pine` (~2 030 líneas): el escáner de estructura
+  **y** los 30 patrones de vela portados a Pine v6, para que corran dentro de
+  TradingView sobre cualquier activo y temporalidad. Mismos pivotes, mismos umbrales,
+  mismos códigos de evidencia, mismo catálogo de patrones.
+- **Tres bloques que la web no tiene** (y van marcados como añadidos, no portados):
+  tendencia del escalón superior, sesión Asia/Londres/NY con PDH/PDL y PWH/PWL, y el
+  cruce patrón ↔ nivel confirmado. Ninguno toca un número de la lectura portada.
+  Más siete alertas nativas de TradingView (BOS, CHoCH, zona, ruptura, barrido,
+  patrón y proximidad medida en ATR).
 - **No es una versión libre: está comprobado.** `scripts/gen-pine-twin.py` parsea el
   `.pine` con una gramática de Pine y traduce su bloque puro a
   `tradingview/pine_twin_generated.py` (código **generado**, no editable a mano);
   `backend/tests/test_pine_parity_unit.py` corre esa traducción y `price_action.py`
-  sobre las mismas velas y exige que coincidan cifra a cifra (**52 comprobaciones**,
+  sobre las mismas velas y exige que coincidan cifra a cifra (**79 comprobaciones**,
   6 series: diaria, volátil, sin volumen, intradía con cortes de sesión, cripto cara
-  y una serie corta).
+  y una serie corta, más una escrita a mano para el caso del pivote que tapa a otro).
 - `scripts/verificar-pine.py` cubre lo que la gramática no ve: integrados que no
   existen, aridad de los constructores, funciones o `plot()` en ámbito local y el
   presupuesto de dibujos de `indicator()`. Sus cuatro controles están saboteados en
@@ -334,11 +340,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-21 (2) | Los 30 patrones de vela, el contexto de TradingView, y un límite menor de lo que dije |
 | 2026-08-21 | El escáner, dentro de TradingView — y cómo comprobar Pine sin TradingView |
 | 2026-08-15 | Lo último que seguía atado a un navegador |
 | 2026-08-14 (5) | Mil escenarios generados, y lo que 264 comprobaciones no veían |
 | 2026-08-14 (4) | La captura mentía: la barra de navegación salía tres veces |
-| 2026-08-14 (3) | La mesa, rehecha: una pregunta, un botón, una respuesta |
 
 ```bash
 # buscar una sesión por fecha o por tema

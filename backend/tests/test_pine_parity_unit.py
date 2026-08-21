@@ -24,7 +24,8 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(RAIZ, "backend"))
 sys.path.insert(0, os.path.join(RAIZ, "tradingview"))
 
-from price_action import detect_structure  # noqa: E402
+from price_action import detect_structure, detect_swings, label_structure  # noqa: E402
+from candle_patterns import detect_all_patterns  # noqa: E402
 
 try:
     import pine_twin_generated as pine
@@ -118,7 +119,7 @@ def _casi(a, b, tol=1e-9):
 
 def _reads(filas, strength=2):
     backend = detect_structure(filas, strength=strength)
-    twin = pine.runScan(_ventana(filas), strength, pine.NA, 2, [], False)
+    twin = pine.runScan(_ventana(filas), strength, pine.NA, 2, [], False, "", 0)
     return backend, twin
 
 
@@ -286,7 +287,7 @@ def test_sin_comprobar_no_es_cero():
 
 def test_la_confluencia_marca_niveles_cuando_hay_escalon_superior():
     filas = CASOS["diario_tendencial"]
-    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0)
     # El "escalón superior" es la misma serie remuestreada de 5 en 5 velas:
     # basta para que existan niveles cerca de los del gráfico base.
     superior = []
@@ -302,7 +303,7 @@ def test_la_confluencia_marca_niveles_cuando_hay_escalon_superior():
             "close": trozo[-1]["close"], "volume": sum(r["volume"] for r in trozo),
         })
     htf = pine.scanLevels(_ventana(superior), 2, 2)
-    con_confluencia = pine.runScan(_ventana(filas), 2, pine.NA, 2, htf, True)
+    con_confluencia = pine.runScan(_ventana(filas), 2, pine.NA, 2, htf, True, "", 0)
     assert len(htf) > 0
     assert not math.isnan(con_confluencia.counts.confluent)
     assert con_confluencia.counts.confluent >= 0
@@ -320,7 +321,7 @@ def test_una_serie_demasiado_corta_no_es_una_lectura():
     """
     filas = _serie(97, 4)
     backend = detect_structure(filas, strength=2)
-    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0)
     assert backend["currentPrice"] is None and math.isnan(twin.referencePrice)
     assert backend["tolerancePct"] is None and math.isnan(twin.tolerance)
     assert backend["atr"] is None and math.isnan(twin.atr)
@@ -334,7 +335,193 @@ def test_una_serie_demasiado_corta_no_es_una_lectura():
 
 def test_la_tolerancia_manual_se_respeta():
     filas = CASOS["diario_tendencial"]
-    twin = pine.runScan(_ventana(filas), 2, 0.008, 2, [], False)
+    twin = pine.runScan(_ventana(filas), 2, 0.008, 2, [], False, "", 0)
     assert _casi(twin.tolerance, 0.008)
     backend = detect_structure(filas, strength=2, tolerance=0.008)
     assert [l.price for l in twin.levels] == [l["price"] for l in backend["levels"]]
+
+
+# ---------------------------------------------------------------------------
+# §10c Patrones de vela — el port de candle_patterns.py
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("nombre", sorted(CASOS))
+def test_patrones_de_vela_identicos(nombre):
+    """Los treinta detectores, uno a uno, sobre las mismas velas.
+
+    Se compara TODO lo que viaja con cada detección, no sólo el identificador:
+    dónde empieza, dónde confirma, en qué se fija el detector y las medidas
+    reales de la vela. Un patrón bien identificado en la barra equivocada sigue
+    siendo un aviso que no se puede contrastar con el gráfico.
+    """
+    filas = CASOS[nombre]
+    esperados = detect_all_patterns(filas)
+    obtenidos = pine.detectPatterns(_ventana(filas))
+    assert len(obtenidos) == len(esperados), (
+        f"{nombre}: {len(obtenidos)} detecciones frente a {len(esperados)}")
+    for esperado, p in zip(esperados, obtenidos):
+        etiqueta = f"{nombre} @ {esperado['index']} {esperado['pattern_id']}"
+        assert p.id == esperado["pattern_id"], etiqueta
+        assert p.idx == esperado["index"], etiqueta
+        assert p.startIdx == esperado["start_index"], etiqueta
+        assert p.kind == esperado["type"], etiqueta
+        assert p.behavior == esperado["behavior"], etiqueta
+        assert p.rate == esperado["rate"], etiqueta
+        assert p.rank == esperado["rank"], etiqueta
+        assert p.candles == esperado["candle_count"], etiqueta
+        assert p.basis == esperado["basis"], etiqueta
+        assert _casi(p.bodyPct, esperado["metrics"]["bodyPct"], 1e-9), etiqueta
+        assert _casi(p.upperWickPct, esperado["metrics"]["upperWickPct"], 1e-9), etiqueta
+        assert _casi(p.lowerWickPct, esperado["metrics"]["lowerWickPct"], 1e-9), etiqueta
+
+
+def test_los_fixtures_disparan_patrones_de_verdad():
+    """Sin esto, el test de arriba pasaría comparando dos listas vacías."""
+    total = sum(len(detect_all_patterns(f)) for f in CASOS.values())
+    assert total > 200, total
+    familias = {d["pattern_id"] for f in CASOS.values() for d in detect_all_patterns(f)}
+    # Que haya de una, de dos y de tres velas: si sólo saltaran dojis, el port
+    # de las dieciocho condiciones multi-vela estaría sin comprobar.
+    assert any(pine.patternMeta(pid).candles == 2 for pid in familias), familias
+    assert any(pine.patternMeta(pid).candles == 3 for pid in familias), familias
+
+
+def test_el_catalogo_de_patrones_coincide():
+    """Los treinta identificadores traen en Pine los mismos metadatos.
+
+    La tabla está escrita dos veces —un `switch` en Pine y un dict en Python—
+    y nada impide que una tasa se teclee mal en una de las dos. Esto lo impide.
+    """
+    from candle_patterns import PATTERN_META
+    for pid, meta in PATTERN_META.items():
+        m = pine.patternMeta(pid)
+        assert (m.kind, m.behavior, m.rate, m.rank, m.candles, m.basis) == (
+            meta["type"], meta["behavior"], meta["rate"], meta["rank"],
+            meta["candles"], meta["basis"]), pid
+    assert len(PATTERN_META) == 30, len(PATTERN_META)
+
+
+def test_un_id_desconocido_no_inventa_metadatos():
+    m = pine.patternMeta("no-existe")
+    assert m.kind == "neutral" and m.rank == 99
+
+
+# ---------------------------------------------------------------------------
+# El cruce patrón ↔ nivel (AÑADIDO: no está en el backend)
+# ---------------------------------------------------------------------------
+def test_el_cruce_patron_nivel_solo_marca_niveles_confirmados():
+    filas = CASOS["diario_tendencial"]
+    w = _ventana(filas)
+    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0)
+    confirmados = [l for l in sc.levels if l.confirmed]
+    for p in sc.patterns:
+        if math.isnan(p.levelPrice):
+            continue
+        hi, lo = w.h[p.idx], w.l[p.idx]
+        # El nivel marcado existe, está confirmado y la vela lo toca de verdad.
+        tocados = [l for l in confirmados
+                   if l.zoneLow <= hi and l.zoneHigh >= lo and l.price == p.levelPrice]
+        assert tocados, f"patrón {p.id}@{p.idx} marcado en {p.levelPrice} sin nivel que lo respalde"
+        assert p.levelRole in ("support", "resistance", "pivot")
+    assert sc.counts.patternsAtLevel == sum(
+        1 for p in sc.patterns if not math.isnan(p.levelPrice))
+
+
+def test_los_patrones_no_tocan_la_lectura_portada():
+    """Añadir patrones no puede mover un solo número del escáner original."""
+    filas = CASOS["diario_volatil"]
+    backend = detect_structure(filas, strength=2)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0)
+    assert twin.counts.levels == backend["counts"]["levels"]
+    assert twin.counts.bos == backend["counts"]["bos"]
+    assert [round(l.score) for l in twin.levels] == [
+        l["confirmation"]["score"] for l in backend["levels"]]
+
+
+# ---------------------------------------------------------------------------
+# Modo tiempo real honesto y tendencia del escalón superior
+# ---------------------------------------------------------------------------
+# La serie está escrita a mano porque el caso que separa los dos modos NO sale
+# en un paseo aleatorio: hace falta un pivote alto con MECHA enorme y cierre bajo
+# (barra 12, máximo 110, cierre 95) seguido de un cierre que supera un pivote
+# anterior MÁS BAJO (barra 6, máximo 100).
+SERIE_PIVOTE_QUE_TAPA = [
+    {"date": f"b-{i:02d}", "ts": 1_700_000_000 + i * 86400, "open": o, "high": h,
+     "low": lo, "close": c, "volume": 0}
+    for i, (o, h, lo, c) in enumerate([
+        (90, 92, 89, 91), (91, 93, 90, 92), (92, 94, 91, 93), (93, 95, 92, 94),
+        (94, 96, 93, 95), (95, 98, 94, 97), (97, 100, 96, 99), (99, 99.5, 96, 97),
+        (97, 98, 95, 96), (96, 97, 94, 95), (95, 96, 93, 94), (94, 96, 93, 95),
+        (95, 110, 94, 95), (95, 106, 94, 105), (105, 106, 100, 101),
+        (101, 103, 99, 100), (100, 102, 98, 99),
+    ])
+]
+
+
+@pytest.mark.parametrize("nombre", sorted(CASOS))
+def test_una_ruptura_nunca_cae_dentro_de_las_velas_que_forman_su_pivote(nombre):
+    """La propiedad que hace que el «sesgo de anticipación» casi no exista.
+
+    Un swing alto en `k` es, por definición, el máximo de `[k-s, k+s]`. Entonces
+    ninguna vela de `(k, k+s]` puede CERRAR por encima de él: su máximo ya está
+    acotado por el del pivote. O sea que una ruptura de ese nivel no puede
+    ocurrir antes de `k+s+1`, que es justo cuando el pivote ya era observable.
+
+    Esto se comprueba, no se razona: si algún día alguien relaja la detección de
+    pivotes a `>` en vez de `>=`, o cambia la ventana, la propiedad se cae y
+    este test lo dice.
+    """
+    filas = CASOS[nombre]
+    w = _ventana(filas)
+    swings = pine.detectSwings(w, 2)
+    for ev in pine.detectEvents(w, pine.detectSwings(w, 2), 0):
+        confirmables = [sw for sw in swings
+                        if abs(sw.price - ev.price) < 1e-9 and sw.idx + 2 < ev.idx]
+        assert confirmables, (
+            f"{nombre}: ruptura en {ev.idx} sobre {ev.price} sin ningún pivote "
+            f"de ese precio ya confirmado")
+
+
+@pytest.mark.parametrize("nombre", sorted(CASOS))
+def test_el_retardo_de_confirmacion_casi_nunca_cambia_nada(nombre):
+    """Y en estas seis series, nada en absoluto. No es casualidad: es el teorema
+    de arriba. Documentarlo como «las rupturas aparecen unas velas antes» era
+    exagerar el problema."""
+    w = _ventana(CASOS[nombre])
+    como_la_web = pine.detectEvents(w, pine.detectSwings(w, 2), 0)
+    honesto = pine.detectEvents(w, pine.detectSwings(w, 2), 2)
+    assert [(e.idx, e.price) for e in honesto] == [(e.idx, e.price) for e in como_la_web]
+
+
+def test_pero_el_interruptor_no_es_un_adorno():
+    """El único caso en el que sí difieren: un pivote nuevo TAPA a uno anterior.
+
+    Sin retardo, la barra 12 (mecha hasta 110, cierre en 95) se convierte en el
+    swing alto vigente en cuanto queda atrás, y tapa el de la barra 6 (100). El
+    cierre de 105 de la barra 13 no supera 110, así que no rompe nada. Con
+    retardo, el pivote de la 12 todavía no existe, el vigente sigue siendo el de
+    100 — y 105 sí lo rompe.
+
+    Cuál de los dos es «el correcto» depende de para qué: para reproducir el
+    panel de la web, el primero; para medir un sistema en tiempo real, el
+    segundo, porque el pivote de la 12 aquel día aún no se podía ver.
+    """
+    w = _ventana(SERIE_PIVOTE_QUE_TAPA)
+    swings = pine.detectSwings(w, 2)
+    assert [(s.idx, s.price) for s in swings if s.isHigh] == [(6, 100.0), (12, 110.0)]
+    como_la_web = pine.detectEvents(w, pine.detectSwings(w, 2), 0)
+    honesto = pine.detectEvents(w, pine.detectSwings(w, 2), 2)
+    assert [(e.idx, e.price) for e in como_la_web] == []
+    assert [(e.idx, e.price) for e in honesto] == [(13, 100.0)]
+
+
+def test_por_defecto_el_indicador_sigue_diciendo_lo_que_dice_la_web():
+    filas = CASOS["diario_tendencial"]
+    backend = detect_structure(filas, strength=2)
+    w = _ventana(filas)
+    assert len(pine.detectEvents(w, pine.detectSwings(w, 2), 0)) == len(backend["events"])
+
+
+def test_la_tendencia_de_otra_ventana_usa_las_mismas_reglas():
+    filas = CASOS["diario_tendencial"]
+    w = _ventana(filas)
+    assert pine.trendOf(w, 2) == label_structure(detect_swings(filas, strength=2))["trend"]

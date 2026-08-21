@@ -19,6 +19,12 @@
 //   5. Confluencia con el escalón superior de la escalera de temporalidades
 //   6. Fair Value Gaps (3 velas), separando el hueco de sesión del desequilibrio
 //   7. Breakouts confirmados y fakeouts (barridos de liquidez)
+//   8. Los 30 patrones de vela canónicos, con su tasa, su rango y aquello en lo
+//      que se fija cada uno (cuerpo, mechas o ambos) — y CRUZADOS con la
+//      escalera: un martillo sobre un soporte confirmado lleva ◆
+//   9. Contexto que sólo existe dentro de TradingView: tendencia del escalón
+//      superior, sesión (Asia / Londres / Nueva York) y los máximos y mínimos
+//      del día y la semana anteriores (PDH/PDL, PWH/PWL)
 //
 // LAS TRES REGLAS DE HONESTIDAD DEL PROYECTO, TAMBIÉN AQUÍ
 //   · El papel (soporte / resistencia) lo decide DÓNDE ESTÁ EL PRECIO AHORA, no
@@ -38,14 +44,34 @@
 //   Por eso los niveles no «repintan» hacia atrás — se recalculan enteros con
 //   cada vela nueva, que es lo que hace también el backend.
 //
-// LÍMITE CONOCIDO (heredado del backend, y a propósito)
-//   `detectEvents` consume un swing en cuanto su índice es menor que la vela
-//   que se está mirando, no cuando el fractal quedó confirmado (`strength`
-//   velas después). Es un escaneo histórico, no una simulación en vivo: las
-//   rupturas más antiguas pueden aparecer unas velas antes de que fueran
-//   observables en tiempo real. Se mantiene así para que el indicador y la web
-//   digan LO MISMO. Para medir un sistema con esto, usa el retardo de
-//   `strength` velas.
+// QUÉ ESTÁ PORTADO Y QUÉ ES AÑADIDO
+//   Portado y verificado cifra a cifra contra el backend: los puntos 1 a 8
+//   (`price_action.py` y `candle_patterns.py`). El punto 9 es AÑADIDO —el
+//   backend recibe velas y ya, no sabe de sesiones ni de calendario— y no toca
+//   un solo número de la lectura portada: se dibuja al lado.
+//
+// EL SESGO DE ANTICIPACIÓN, MEDIDO (y resulta ser casi inexistente)
+//   `detectEvents` consume un swing en cuanto su índice queda por detrás de la
+//   vela mirada, no cuando el fractal quedó confirmado (`strength` velas
+//   después). Suena a mirar el futuro, y es lo que este fichero decía al
+//   principio. Es MENOS de lo que parece, y se puede demostrar:
+//
+//     Un swing alto en `k` es, por definición, el máximo de `[k-s, k+s]`.
+//     Entonces ninguna vela de `(k, k+s]` puede CERRAR por encima de él —su
+//     propio máximo ya está acotado por el del pivote—, así que ese nivel no
+//     se puede romper antes de `k+s+1`, que es justo cuando el pivote ya era
+//     observable.
+//
+//   Queda un solo caso en el que los dos modos difieren: cuando un pivote nuevo
+//   —típicamente una vela de mecha enorme y cierre bajo— TAPA a otro anterior
+//   más bajo dentro de esas `strength` velas. Sin retardo, el vigente es el
+//   nuevo (más alto) y no se rompe nada; con retardo, sigue vigente el viejo y
+//   sí se rompe. Está reproducido en `test_pero_el_interruptor_no_es_un_adorno`.
+//
+//   Por defecto se usa el modo de la web (retardo 0), porque un indicador que
+//   dice cosas distintas del panel del que sale no sirve para contrastar nada.
+//   El interruptor «modo tiempo real honesto» pone el retardo en `strength`
+//   para quien vaya a MEDIR un sistema con esto.
 //
 //   Web: https://tradingcalculatorpro.com   ·   Escáner: panel de estructura del Dashboard
 //   Código de referencia: backend/price_action.py · docs/INDICADOR_TRADINGVIEW.md
@@ -148,6 +174,45 @@ type Cluster
     int   highs
     int   lows
 
+// Las medidas de UNA vela, calculadas una vez y reutilizadas por los treinta
+// detectores. `range` nunca es 0: se acota, porque hay velas con máximo igual
+// al mínimo y una división entre cero se lleva por delante el escaneo entero.
+type Cm
+    float body
+    float rng
+    float upper
+    float lower
+    bool  isBull
+    bool  isBear
+    float bodyPct
+
+// Lo que el catálogo sabe de un patrón. `rate` y `rank` son las cifras
+// aproximadas de Bulkowski que ya usa la web: educación, no garantía.
+type PatMeta
+    string kind          // "bullish" | "bearish" | "neutral"
+    string behavior      // "reversal" | "continuation" | "indecision"
+    int    rate
+    int    rank
+    int    candles
+    string basis         // "body" | "wicks" | "both" — en qué se fija el detector
+
+type Pat
+    int    idx           // vela que CONFIRMA el patrón
+    int    startIdx      // primera vela del patrón
+    string id
+    string kind
+    string behavior
+    int    rate
+    int    rank
+    int    candles
+    string basis
+    float  bodyPct
+    float  upperWickPct
+    float  lowerWickPct
+    // Cruce con la escalera: el nivel confirmado sobre el que cae, si cae en uno.
+    float  levelPrice
+    string levelRole
+
 type Ctx
     float roomAbovePct
     float roomBelowPct
@@ -168,6 +233,10 @@ type Counts
     int flipped
     int confirmedLevels
     int confluent          // `na` = SIN COMPROBAR, que no es lo mismo que 0
+    int patterns
+    int bullishPatterns
+    int bearishPatterns
+    int patternsAtLevel    // patrones que caen sobre un nivel CONFIRMADO
     int fvgOpen
     int fvgSessionGap
     int breakouts
@@ -189,6 +258,8 @@ type Scan
     array<Lv>    levels
     array<Fvg>   fvgs
     array<Brk>   breakouts
+    array<Pat>   patterns
+    string       htfTrend      // "" = sin escalón superior leído
     Lv           nearestResistance
     Lv           nearestSupport
     Ctx          context
@@ -316,7 +387,12 @@ labelStructure(array<Swing> swings) =>
 // Recorre las velas; cuando un CIERRE rompe el último swing alto/bajo vigente,
 // emite BOS (a favor de la tendencia) o CHoCH (la primera en contra). La
 // tendencia gira con el CHoCH. El swing roto se consume: hace falta uno nuevo.
-detectEvents(Win w, array<Swing> swings) =>
+// `confirmDelay` = 0 reproduce EXACTAMENTE el backend: consume un swing en cuanto
+// su índice es menor que la vela mirada. Con `strength` sólo usa los que aquel
+// día ya se podían ver —un fractal necesita `strength` velas a cada lado— y
+// cierra el sesgo de anticipación. Cero es el valor por defecto porque la
+// paridad con la web manda; el otro es para quien vaya a MEDIR con esto.
+detectEvents(Win w, array<Swing> swings, int confirmDelay) =>
     array<Ev> events = array.new<Ev>()
     string trend = ""                 // "up" | "down" | "" (todavía sin decidir)
     float lastSh = na
@@ -328,7 +404,7 @@ detectEvents(Win w, array<Swing> swings) =>
         for i = 0 to n - 1
             while si < total
                 Swing s = array.get(swings, si)
-                if s.idx >= i
+                if s.idx + confirmDelay >= i
                     break
                 if s.isHigh
                     lastSh := s.price
@@ -854,6 +930,391 @@ scanLevels(Win w, int strength, int minTouches) =>
         out := sortLevels(out, true)
     out
 
+// La tendencia de una ventana cualquiera. Existe para poder leer la del escalón
+// SUPERIOR con las mismas dos funciones que la del gráfico: mirar 15 minutos sin
+// saber hacia dónde va el diario es la mitad de la información.
+trendOf(Win w, int strength) =>
+    labelStructure(detectSwings(w, strength))
+
+
+// =============================================================================
+// §10c) PATRONES DE VELA — port de `backend/candle_patterns.py`
+// =============================================================================
+// Los treinta patrones canónicos de la literatura japonesa, con las MISMAS
+// condiciones y los MISMOS umbrales que el backend. Sin IA, sin modelo: sólo
+// aritmética sobre el cuerpo y las mechas.
+//
+// El panel de la web enseña estas señales debajo de la escalera de niveles
+// (pide `pattern-scan` además de `structure-scan`), así que esto no es una
+// función nueva: es un bloque que al indicador le faltaba.
+//
+// Los umbrales están afinados «un poco relajados» a propósito, igual que en el
+// backend: visibilidad educativa sin falsos positivos evidentes.
+
+candleMetrics(Win w, int i) =>
+    float o = array.get(w.o, i)
+    float h = array.get(w.h, i)
+    float lo = array.get(w.l, i)
+    float c = array.get(w.c, i)
+    float body = math.abs(c - o)
+    float rng = math.max(h - lo, 0.000000001)
+    Cm.new(body, rng, h - math.max(o, c), math.min(o, c) - lo, c > o, c < o, body / rng)
+
+// ---------- Una vela ----------
+isDoji(Cm m) =>
+    m.bodyPct <= 0.07
+
+isDragonflyDoji(Cm m) =>
+    m.bodyPct <= 0.07 and m.upper <= 0.05 * m.rng and m.lower >= 0.6 * m.rng
+
+isGravestoneDoji(Cm m) =>
+    m.bodyPct <= 0.07 and m.lower <= 0.05 * m.rng and m.upper >= 0.6 * m.rng
+
+isLongLeggedDoji(Cm m) =>
+    isDoji(m) and m.upper >= 0.35 * m.rng and m.lower >= 0.35 * m.rng
+
+// Cuerpo pequeño pero NO doji, con mechas largas por los dos lados.
+isHighWave(Cm m) =>
+    m.bodyPct > 0.07 and m.bodyPct <= 0.25 and m.upper >= 0.30 * m.rng and m.lower >= 0.30 * m.rng
+
+isHammer(Cm m) =>
+    m.body > 0 and m.lower >= 1.8 * m.body and m.upper <= 0.4 * m.body and m.bodyPct >= 0.05
+
+isShootingStar(Cm m) =>
+    m.body > 0 and m.upper >= 1.8 * m.body and m.lower <= 0.4 * m.body and m.bodyPct >= 0.05
+
+isMarubozu(Cm m) =>
+    m.bodyPct >= 0.85 and m.upper <= 0.05 * m.rng and m.lower <= 0.05 * m.rng
+
+isSpinningTop(Cm m) =>
+    m.bodyPct > 0.10 and m.bodyPct < 0.35 and m.upper > m.body and m.lower > m.body
+
+// ---------- Dos velas ----------
+isBullishEngulfing(Win w, int p, int c) =>
+    float po = array.get(w.o, p)
+    float pc = array.get(w.c, p)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    pc < po and cc > co and co <= pc and cc >= po and math.abs(cc - co) > math.abs(pc - po)
+
+isBearishEngulfing(Win w, int p, int c) =>
+    float po = array.get(w.o, p)
+    float pc = array.get(w.c, p)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    pc > po and cc < co and co >= pc and cc <= po and math.abs(cc - co) > math.abs(pc - po)
+
+isBullishHarami(Win w, int p, int c) =>
+    float po = array.get(w.o, p)
+    float pc = array.get(w.c, p)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    pc < po and cc > co and math.max(co, cc) <= po and math.min(co, cc) >= pc and math.abs(cc - co) < math.abs(pc - po)
+
+isBearishHarami(Win w, int p, int c) =>
+    float po = array.get(w.o, p)
+    float pc = array.get(w.c, p)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    pc > po and cc < co and math.max(co, cc) <= pc and math.min(co, cc) >= po and math.abs(cc - co) < math.abs(pc - po)
+
+isPiercingLine(Win w, int p, int c) =>
+    float po = array.get(w.o, p)
+    float pc = array.get(w.c, p)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    bool ok = pc < po and cc > co
+    float mid = (po + pc) / 2
+    ok and co < pc and cc > mid and cc < po
+
+isDarkCloudCover(Win w, int p, int c) =>
+    float po = array.get(w.o, p)
+    float pc = array.get(w.c, p)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    bool ok = pc > po and cc < co
+    float mid = (po + pc) / 2
+    ok and co > pc and cc > po and cc < mid
+
+// «Aproximadamente al mismo precio»: 0,15 % de la referencia. Es lo que
+// convierte dos mínimos casi iguales en unas pinzas y no en dos velas sueltas.
+approxEqual(float a, float b, float ref) =>
+    math.abs(a - b) <= 0.0015 * math.max(math.abs(ref), 0.000000001)
+
+isTweezerBottom(Win w, int p, int c) =>
+    array.get(w.c, p) < array.get(w.o, p) and array.get(w.c, c) > array.get(w.o, c) and approxEqual(array.get(w.l, p), array.get(w.l, c), array.get(w.l, p))
+
+isTweezerTop(Win w, int p, int c) =>
+    array.get(w.c, p) > array.get(w.o, p) and array.get(w.c, c) < array.get(w.o, c) and approxEqual(array.get(w.h, p), array.get(w.h, c), array.get(w.h, p))
+
+isBullishKicker(Win w, int p, int c) =>
+    array.get(w.c, p) < array.get(w.o, p) and array.get(w.c, c) > array.get(w.o, c) and array.get(w.o, c) > array.get(w.o, p)
+
+isBearishKicker(Win w, int p, int c) =>
+    array.get(w.c, p) > array.get(w.o, p) and array.get(w.c, c) < array.get(w.o, c) and array.get(w.o, c) < array.get(w.o, p)
+
+// ---------- Tres velas ----------
+isMorningStar(Win w, int a, int b, int c) =>
+    float ao = array.get(w.o, a)
+    float ac = array.get(w.c, a)
+    float bo = array.get(w.o, b)
+    float bc = array.get(w.c, b)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    float body1 = math.abs(ac - ao)
+    float body2 = math.abs(bc - bo)
+    float mid1 = (ao + ac) / 2
+    ac < ao and body2 < 0.5 * body1 and math.max(bo, bc) < ac and cc > co and cc > mid1
+
+isEveningStar(Win w, int a, int b, int c) =>
+    float ao = array.get(w.o, a)
+    float ac = array.get(w.c, a)
+    float bo = array.get(w.o, b)
+    float bc = array.get(w.c, b)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    float body1 = math.abs(ac - ao)
+    float body2 = math.abs(bc - bo)
+    float mid1 = (ao + ac) / 2
+    ac > ao and body2 < 0.5 * body1 and math.min(bo, bc) > ac and cc < co and cc < mid1
+
+isMorningDojiStar(Win w, int a, int b, int c) =>
+    float ao = array.get(w.o, a)
+    float ac = array.get(w.c, a)
+    float mid1 = (ao + ac) / 2
+    ac < ao and isDoji(candleMetrics(w, b)) and math.max(array.get(w.o, b), array.get(w.c, b)) < ac and array.get(w.c, c) > array.get(w.o, c) and array.get(w.c, c) > mid1
+
+isEveningDojiStar(Win w, int a, int b, int c) =>
+    float ao = array.get(w.o, a)
+    float ac = array.get(w.c, a)
+    float mid1 = (ao + ac) / 2
+    ac > ao and isDoji(candleMetrics(w, b)) and math.min(array.get(w.o, b), array.get(w.c, b)) > ac and array.get(w.c, c) < array.get(w.o, c) and array.get(w.c, c) < mid1
+
+// Un «soldado» o un «cuervo» tiene que ser una vela CON CUERPO que cierra cerca
+// de su extremo. Sin estos dos umbrales el patrón se disparaba con tres velas
+// diminutas de mecha enorme que nadie llamaría tres soldados.
+longBodyCloseNearHigh(Cm m) =>
+    m.bodyPct >= 0.55 and m.upper <= 0.25 * m.rng
+
+longBodyCloseNearLow(Cm m) =>
+    m.bodyPct >= 0.55 and m.lower <= 0.25 * m.rng
+
+isThreeWhiteSoldiers(Win w, int a, int b, int c) =>
+    float ao = array.get(w.o, a)
+    float ac = array.get(w.c, a)
+    float bo = array.get(w.o, b)
+    float bc = array.get(w.c, b)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    bool alcistas = ac > ao and bc > bo and cc > co
+    bool progresa = bc > ac and cc > bc
+    // Cada apertura, dentro del cuerpo de la anterior: avance ordenado, sin hueco.
+    bool ordenado = ao < bo and bo < ac and bo < co and co < bc
+    alcistas and progresa and ordenado and longBodyCloseNearHigh(candleMetrics(w, a)) and longBodyCloseNearHigh(candleMetrics(w, b)) and longBodyCloseNearHigh(candleMetrics(w, c))
+
+isThreeBlackCrows(Win w, int a, int b, int c) =>
+    float ao = array.get(w.o, a)
+    float ac = array.get(w.c, a)
+    float bo = array.get(w.o, b)
+    float bc = array.get(w.c, b)
+    float co = array.get(w.o, c)
+    float cc = array.get(w.c, c)
+    bool bajistas = ac < ao and bc < bo and cc < co
+    bool progresa = bc < ac and cc < bc
+    bool ordenado = ac < bo and bo < ao and bc < co and co < bo
+    bajistas and progresa and ordenado and longBodyCloseNearLow(candleMetrics(w, a)) and longBodyCloseNearLow(candleMetrics(w, b)) and longBodyCloseNearLow(candleMetrics(w, c))
+
+isThreeInsideUp(Win w, int a, int b, int c) =>
+    isBullishHarami(w, a, b) and array.get(w.c, c) > array.get(w.o, c) and array.get(w.c, c) > array.get(w.o, a)
+
+isThreeInsideDown(Win w, int a, int b, int c) =>
+    isBearishHarami(w, a, b) and array.get(w.c, c) < array.get(w.o, c) and array.get(w.c, c) < array.get(w.o, a)
+
+// ---------- El contexto que desambigua ----------
+// La misma forma significa cosas distintas según lo que venga antes: un martillo
+// que corona una subida es un hombre colgado; una estrella fugaz que cierra una
+// caída es un martillo invertido.
+//
+// El umbral se mide en RANGOS MEDIOS DE VELA, no en un porcentaje fijo. Con un
+// 1 % fijo, en velas de 5 minutos casi cualquier ventana lo supera —todo parecía
+// tendencia y los martillos se reetiquetaban al azar— y en mensuales casi nada
+// lo supera. La misma forma tiene que significar lo mismo en todos los escalones.
+trendBefore(Win w, int i, int lookback) =>
+    string out = "flat"
+    int j = i - 1
+    int k = math.max(0, i - lookback)
+    if j > k
+        float total = 0.0
+        for x = k to i - 1
+            total += math.max(array.get(w.h, x) - array.get(w.l, x), 0.0)
+        float avgRange = total / math.max(i - k, 1)
+        if avgRange > 0
+            float move = array.get(w.c, j) - array.get(w.c, k)
+            out := move >= avgRange ? "up" : move <= -avgRange ? "down" : "flat"
+    out
+
+// ---------- El catálogo ----------
+patternMeta(string id) =>
+    switch id
+        "hammer" => PatMeta.new("bullish", "reversal", 60, 26, 1, "wicks")
+        "hanging-man" => PatMeta.new("bearish", "reversal", 59, 51, 1, "wicks")
+        "inverted-hammer" => PatMeta.new("bullish", "reversal", 65, 14, 1, "wicks")
+        "shooting-star" => PatMeta.new("bearish", "reversal", 59, 31, 1, "wicks")
+        "doji" => PatMeta.new("neutral", "indecision", 50, 75, 1, "body")
+        "dragonfly-doji" => PatMeta.new("bullish", "reversal", 50, 72, 1, "both")
+        "gravestone-doji" => PatMeta.new("bearish", "reversal", 51, 77, 1, "both")
+        "long-legged-doji" => PatMeta.new("neutral", "indecision", 51, 80, 1, "both")
+        "high-wave" => PatMeta.new("neutral", "indecision", 50, 82, 1, "both")
+        "bullish-marubozu" => PatMeta.new("bullish", "continuation", 56, 58, 1, "both")
+        "bearish-marubozu" => PatMeta.new("bearish", "continuation", 55, 60, 1, "both")
+        "spinning-top" => PatMeta.new("neutral", "indecision", 50, 78, 1, "both")
+        "bullish-engulfing" => PatMeta.new("bullish", "reversal", 63, 22, 2, "body")
+        "bearish-engulfing" => PatMeta.new("bearish", "reversal", 79, 9, 2, "body")
+        "bullish-harami" => PatMeta.new("bullish", "reversal", 53, 68, 2, "body")
+        "bearish-harami" => PatMeta.new("bearish", "reversal", 53, 65, 2, "body")
+        "piercing-line" => PatMeta.new("bullish", "reversal", 64, 19, 2, "body")
+        "dark-cloud-cover" => PatMeta.new("bearish", "reversal", 60, 30, 2, "body")
+        "tweezer-bottom" => PatMeta.new("bullish", "reversal", 56, 56, 2, "wicks")
+        "tweezer-top" => PatMeta.new("bearish", "reversal", 55, 57, 2, "wicks")
+        "bullish-kicker" => PatMeta.new("bullish", "reversal", 68, 7, 2, "both")
+        "bearish-kicker" => PatMeta.new("bearish", "reversal", 67, 8, 2, "both")
+        "morning-star" => PatMeta.new("bullish", "reversal", 78, 6, 3, "body")
+        "evening-star" => PatMeta.new("bearish", "reversal", 72, 11, 3, "body")
+        "morning-doji-star" => PatMeta.new("bullish", "reversal", 76, 10, 3, "both")
+        "evening-doji-star" => PatMeta.new("bearish", "reversal", 71, 13, 3, "both")
+        "three-white-soldiers" => PatMeta.new("bullish", "reversal", 82, 3, 3, "both")
+        "three-black-crows" => PatMeta.new("bearish", "reversal", 78, 5, 3, "both")
+        "three-inside-up" => PatMeta.new("bullish", "reversal", 65, 16, 3, "body")
+        "three-inside-down" => PatMeta.new("bearish", "reversal", 60, 28, 3, "body")
+        => PatMeta.new("neutral", "indecision", 50, 99, 1, "body")
+
+// Qué patrones dispara la vela `i`. El ORDEN y las exclusiones importan tanto
+// como las condiciones: la familia doji va de lo específico a lo genérico, y
+// una envolvente no se anuncia además como kicker.
+detectAtIndex(Win w, int i) =>
+    array<string> hits = array.new<string>()
+    Cm m = candleMetrics(w, i)
+    string trend = trendBefore(w, i, 5)
+
+    if isDragonflyDoji(m)
+        array.push(hits, "dragonfly-doji")
+    else if isGravestoneDoji(m)
+        array.push(hits, "gravestone-doji")
+    else if isLongLeggedDoji(m)
+        array.push(hits, "long-legged-doji")
+    else if isDoji(m)
+        array.push(hits, "doji")
+
+    // Forma de martillo (mecha inferior larga): alcista tras una caída, bajista
+    // —hombre colgado— cuando corona una subida.
+    if isHammer(m)
+        array.push(hits, trend == "up" ? "hanging-man" : "hammer")
+    // Forma de estrella (mecha superior larga): martillo invertido haciendo
+    // suelo, estrella fugaz haciendo techo.
+    if isShootingStar(m)
+        array.push(hits, trend == "down" ? "inverted-hammer" : "shooting-star")
+    if isMarubozu(m)
+        array.push(hits, m.isBull ? "bullish-marubozu" : "bearish-marubozu")
+    if isHighWave(m) and array.size(hits) == 0
+        array.push(hits, "high-wave")
+    if isSpinningTop(m) and not array.includes(hits, "doji") and not array.includes(hits, "high-wave")
+        array.push(hits, "spinning-top")
+
+    if i >= 1
+        if isBullishKicker(w, i - 1, i) and isMarubozu(m)
+            array.push(hits, "bullish-kicker")
+        else if isBullishEngulfing(w, i - 1, i)
+            array.push(hits, "bullish-engulfing")
+        else if isBearishKicker(w, i - 1, i) and isMarubozu(m)
+            array.push(hits, "bearish-kicker")
+        else if isBearishEngulfing(w, i - 1, i)
+            array.push(hits, "bearish-engulfing")
+        if isBullishHarami(w, i - 1, i)
+            array.push(hits, "bullish-harami")
+        else if isBearishHarami(w, i - 1, i)
+            array.push(hits, "bearish-harami")
+        if isPiercingLine(w, i - 1, i)
+            array.push(hits, "piercing-line")
+        else if isDarkCloudCover(w, i - 1, i)
+            array.push(hits, "dark-cloud-cover")
+        if isTweezerBottom(w, i - 1, i)
+            array.push(hits, "tweezer-bottom")
+        else if isTweezerTop(w, i - 1, i)
+            array.push(hits, "tweezer-top")
+
+    if i >= 2
+        if isMorningDojiStar(w, i - 2, i - 1, i)
+            array.push(hits, "morning-doji-star")
+        else if isMorningStar(w, i - 2, i - 1, i)
+            array.push(hits, "morning-star")
+        else if isEveningDojiStar(w, i - 2, i - 1, i)
+            array.push(hits, "evening-doji-star")
+        else if isEveningStar(w, i - 2, i - 1, i)
+            array.push(hits, "evening-star")
+        if isThreeWhiteSoldiers(w, i - 2, i - 1, i)
+            array.push(hits, "three-white-soldiers")
+        else if isThreeBlackCrows(w, i - 2, i - 1, i)
+            array.push(hits, "three-black-crows")
+        if isThreeInsideUp(w, i - 2, i - 1, i)
+            array.push(hits, "three-inside-up")
+        else if isThreeInsideDown(w, i - 2, i - 1, i)
+            array.push(hits, "three-inside-down")
+
+    // Sin repetidos, conservando el orden de detección.
+    array<string> out = array.new<string>()
+    if array.size(hits) > 0
+        for k = 0 to array.size(hits) - 1
+            string h = array.get(hits, k)
+            if not array.includes(out, h)
+                array.push(out, h)
+    out
+
+// Todas las detecciones de la ventana. Cada una dice CUÁNDO EMPIEZA y CUÁNDO SE
+// CONFIRMA: un patrón de tres velas ocupa tres barras, y publicar sólo la última
+// obliga a contar hacia atrás para encontrarlo en el gráfico.
+detectPatterns(Win w) =>
+    array<Pat> out = array.new<Pat>()
+    int n = array.size(w.c)
+    if n > 0
+        for i = 0 to n - 1
+            array<string> ids = detectAtIndex(w, i)
+            if array.size(ids) > 0
+                Cm m = candleMetrics(w, i)
+                for k = 0 to array.size(ids) - 1
+                    string id = array.get(ids, k)
+                    PatMeta meta = patternMeta(id)
+                    array.push(out, Pat.new(i, math.max(0, i - (meta.candles - 1)), id, meta.kind, meta.behavior, meta.rate, meta.rank, meta.candles, meta.basis, math.round(m.bodyPct * 100, 1), math.round(m.upper / m.rng * 100, 1), math.round(m.lower / m.rng * 100, 1), na, ""))
+    out
+
+// El cruce que la web NO hace hoy: sus dos escáneres son endpoints separados y
+// nadie los junta. Un martillo pegado a un soporte confirmado con tres toques no
+// es lo mismo que un martillo en medio de la nada, y aquí sale gratis porque los
+// niveles y las velas están en la misma pasada.
+//
+// Es un AÑADIDO, no algo portado: no lo busques en `price_action.py`.
+markPatternsAtLevels(Win w, array<Pat> pats, array<Lv> levels) =>
+    int marcados = 0
+    if array.size(pats) > 0 and array.size(levels) > 0
+        for pi = 0 to array.size(pats) - 1
+            Pat p = array.get(pats, pi)
+            float hi = array.get(w.h, p.idx)
+            float lo = array.get(w.l, p.idx)
+            float mejor = na
+            string rol = ""
+            for li = 0 to array.size(levels) - 1
+                Lv lv = array.get(levels, li)
+                // Sólo niveles CONFIRMADOS: cruzar un patrón con una línea que
+                // nadie ha vuelto a visitar es fabricar una coincidencia.
+                if lv.confirmed and hi >= lv.zoneLow and lo <= lv.zoneHigh
+                    if na(mejor) or math.abs(lv.price - array.get(w.c, p.idx)) < math.abs(mejor - array.get(w.c, p.idx))
+                        mejor := lv.price
+                        rol := lv.role
+            if not na(mejor)
+                p.levelPrice := mejor
+                p.levelRole := rol
+                marcados += 1
+    marcados
+
 // =============================================================================
 // §10b) LA LECTURA COMPLETA — una sola función, todo lo que es un número
 // =============================================================================
@@ -864,7 +1325,7 @@ scanLevels(Win w, int strength, int minTouches) =>
 // `tolOverride` a `na` = tolerancia automática. `htfChecked` a false deja
 // `counts.confluent` en `na`: SIN COMPROBAR y COMPROBADO SIN COINCIDENCIAS son
 // afirmaciones distintas y sólo una de ellas es cierta en cada caso.
-runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLevels, bool htfChecked) =>
+runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLevels, bool htfChecked, string htfTrend, int confirmDelay) =>
     int n = array.size(w.c)
     // Menos velas que las que un fractal necesita = NO HAY LECTURA. El backend
     // devuelve ahí su `_empty_read`, con el precio de referencia, la tolerancia
@@ -880,7 +1341,7 @@ runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLev
     // --- qué hay en este gráfico --------------------------------------------
     array<Swing> swings = detectSwings(w, strength)
     string trend = labelStructure(swings)
-    array<Ev> events = annotateEvents(w, detectEvents(w, swings), atr)
+    array<Ev> events = annotateEvents(w, detectEvents(w, swings, confirmDelay), atr)
     events := clusterRepeatedEvents(events, tol)
     array<Lv> allLevels = detectSrLevels(swings, tol, minTouches, reference)
     allLevels := sortLevels(allLevels, not na(reference) and reference > 0)
@@ -899,6 +1360,10 @@ runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLev
     levels := annotateLevels(w, levels, tol)
     array<Fvg> fvgs = tooShort ? array.new<Fvg>() : detectFvgs(w)
     array<Brk> breakouts = detectBreakouts(w, levels, strength)
+    // Los patrones se detectan sobre las MISMAS velas y se cruzan con los
+    // niveles ya anotados, así que el cruce no cuesta una segunda pasada.
+    array<Pat> patterns = detectPatterns(w)
+    int patternsAtLevel = markPatternsAtLevels(w, patterns, levels)
 
     int confluent = na
     if htfChecked
@@ -958,6 +1423,15 @@ runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLev
                 cFvgOpen += 1
             if g.sessionGap
                 cFvgSession += 1
+    int cBullishPat = 0
+    int cBearishPat = 0
+    if array.size(patterns) > 0
+        for i = 0 to array.size(patterns) - 1
+            Pat pat = array.get(patterns, i)
+            if pat.kind == "bullish"
+                cBullishPat += 1
+            else if pat.kind == "bearish"
+                cBearishPat += 1
     int cBreakouts = 0
     int cFakeouts = 0
     if array.size(breakouts) > 0
@@ -968,8 +1442,8 @@ runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLev
             else if b.confirmed
                 cBreakouts += 1
 
-    Counts counts = Counts.new(array.size(swings), cBos, cChoch, cConfirmedEvents, cRepeated, array.size(allLevels), cRes, cSup, cFlipped, cConfirmedLevels, confluent, cFvgOpen, cFvgSession, cBreakouts, cFakeouts)
-    Scan.new(n, reference, tol, atr, trend, swings, events, allLevels, levels, fvgs, breakouts, nearestRes, nearestSup, ctx, counts)
+    Counts counts = Counts.new(array.size(swings), cBos, cChoch, cConfirmedEvents, cRepeated, array.size(allLevels), cRes, cSup, cFlipped, cConfirmedLevels, confluent, array.size(patterns), cBullishPat, cBearishPat, patternsAtLevel, cFvgOpen, cFvgSession, cBreakouts, cFakeouts)
+    Scan.new(n, reference, tol, atr, trend, swings, events, allLevels, levels, fvgs, breakouts, patterns, htfTrend, nearestRes, nearestSup, ctx, counts)
 
 // =============================================================================
 // §11) ENTRADAS
@@ -978,10 +1452,12 @@ string GRP_SCAN = "1 · Escaneo"
 string GRP_HTF = "2 · Temporalidad superior"
 string GRP_LEV = "3 · Niveles"
 string GRP_STR = "4 · Estructura"
-string GRP_FVG = "5 · Desequilibrios (FVG)"
-string GRP_BRK = "6 · Rupturas"
-string GRP_UI = "7 · Panel"
-string GRP_ALERT = "8 · Avisos"
+string GRP_PAT = "5 · Patrones de vela"
+string GRP_FVG = "6 · Desequilibrios (FVG)"
+string GRP_BRK = "7 · Rupturas"
+string GRP_REF = "8 · Sesión y niveles de referencia"
+string GRP_UI = "9 · Panel"
+string GRP_ALERT = "10 · Avisos"
 
 // El escaneo completo corre sobre esta ventana, una sola vez, en la última vela.
 // Con 300 velas y 30 niveles analizados son ~40 000 iteraciones: sobra margen.
@@ -1016,6 +1492,17 @@ int  inMaxEvents = input.int(12, "Cuántas rupturas dibujar (las últimas)", min
 // etiquetar menos swings que perder la escalera de precio en silencio.
 int  inMaxSwings = input.int(30, "Cuántos swings etiquetar (los últimos)", minval = 1, maxval = 200, group = GRP_STR)
 
+// El modo honesto NO es el de por defecto, y no por comodidad: la web usa el
+// otro, y un indicador que dice cosas distintas que el panel del que sale no
+// sirve para contrastar nada. Se enciende para MEDIR, no para mirar.
+bool inHonestMode = input.bool(false, "Modo tiempo real honesto (rupturas con retardo de confirmación)", group = GRP_STR, tooltip = "Un fractal necesita `strength` velas a cada lado para existir. El backend consume el swing en cuanto queda atrás, lo que adelanta esas velas en el histórico. Con esto activado sólo se usan los swings que ese día ya se podían ver.")
+
+bool inShowPatterns = input.bool(true, "Marcar patrones de vela", group = GRP_PAT)
+int  inMaxPatterns = input.int(10, "Cuántos patrones marcar (los últimos)", minval = 1, maxval = 60, group = GRP_PAT)
+int  inMinPatternRate = input.int(0, "Tasa mínima del patrón (%)", minval = 0, maxval = 90, step = 5, group = GRP_PAT, tooltip = "Cifras aproximadas de Bulkowski, las mismas que usa la web. Son educación, no una garantía: 0 no filtra nada.")
+bool inPatternsAtLevelOnly = input.bool(false, "Sólo patrones sobre un nivel confirmado", group = GRP_PAT, tooltip = "Un martillo pegado a un soporte con tres toques no es lo mismo que un martillo en medio de la nada. Este cruce NO lo hace la web: allí los dos escáneres son endpoints separados.")
+bool inShowNeutralPatterns = input.bool(false, "Incluir los neutros (doji, peonza, onda alta)", group = GRP_PAT)
+
 bool inShowFvg = input.bool(true, "Dibujar FVG abiertos", group = GRP_FVG)
 bool inShowFilledFvg = input.bool(false, "Dibujar también los rellenados", group = GRP_FVG)
 bool inShowSessionGaps = input.bool(false, "Dibujar los huecos de sesión", group = GRP_FVG, tooltip = "El salto de una sesión a otra cumple la prueba de 3 velas todas las noches y NO es un desequilibrio. Va aparte a propósito.")
@@ -1025,13 +1512,31 @@ bool inShowBreakouts = input.bool(false, "Marcar breakouts confirmados", group =
 bool inShowFakeouts = input.bool(false, "Marcar fakeouts (barridos)", group = GRP_BRK)
 int  inMaxBrk = input.int(10, "Cuántas marcas dibujar (las últimas)", minval = 1, maxval = 40, group = GRP_BRK)
 
+string inTz = input.string("GMT", "Zona horaria de las sesiones", options = ["GMT", "America/New_York", "Europe/London", "Europe/Madrid", "Asia/Tokyo"], group = GRP_REF)
+string inSesAsia = input.session("0000-0900", "Asia", group = GRP_REF)
+string inSesLondres = input.session("0800-1700", "Londres", group = GRP_REF)
+string inSesNY = input.session("1300-2200", "Nueva York", group = GRP_REF)
+bool inShadeSession = input.bool(false, "Sombrear la sesión en el fondo", group = GRP_REF)
+string inRangeSession = input.string("Ninguna", "Dibujar el rango de la sesión anterior", options = ["Ninguna", "Asia", "Londres", "Nueva York"], group = GRP_REF)
+// Máximos y mínimos que mira todo el mundo y que la agrupación de swings no
+// produce nunca: no son pivotes, son bordes de calendario.
+bool inShowPdhPdl = input.bool(true, "Máximo/mínimo del día anterior (PDH/PDL)", group = GRP_REF)
+bool inShowPwhPwl = input.bool(false, "Máximo/mínimo de la semana anterior (PWH/PWL)", group = GRP_REF)
+
 bool inShowTable = input.bool(true, "Mostrar el panel de lectura", group = GRP_UI)
 string inTablePos = input.string("Arriba derecha", "Posición", options = ["Arriba derecha", "Arriba izquierda", "Abajo derecha", "Abajo izquierda", "Centro derecha"], group = GRP_UI)
 string inTextSize = input.string("Pequeño", "Tamaño del texto", options = ["Diminuto", "Pequeño", "Normal"], group = GRP_UI)
 
+bool inCompactPanel = input.bool(false, "Panel compacto (sólo lo esencial)", group = GRP_UI)
+
 bool inAlertBos = input.bool(true, "Avisar de un BOS en la vela actual", group = GRP_ALERT)
 bool inAlertChoch = input.bool(true, "Avisar de un CHoCH en la vela actual", group = GRP_ALERT)
 bool inAlertZone = input.bool(false, "Avisar cuando el precio entra en la zona de un nivel", group = GRP_ALERT)
+bool inAlertBreakout = input.bool(false, "Avisar de una ruptura confirmada de nivel", group = GRP_ALERT)
+bool inAlertFakeout = input.bool(false, "Avisar de un barrido (fakeout)", group = GRP_ALERT)
+bool inAlertPattern = input.bool(false, "Avisar de un patrón de vela en la vela actual", group = GRP_ALERT)
+bool inAlertNear = input.bool(false, "Avisar al acercarse a un nivel", group = GRP_ALERT)
+float inNearAtr = input.float(0.5, "…a menos de esta distancia en ATR", minval = 0.1, maxval = 5.0, step = 0.1, group = GRP_ALERT)
 
 // =============================================================================
 // §12) VENTANA DE VELAS — se mantiene incremental, sin acceso dinámico al histórico
@@ -1101,6 +1606,57 @@ if htfAvailable and htfNewBar and not na(htfC)
         array.shift(H.t)
 
 // =============================================================================
+// §12b) SESIÓN Y NIVELES DE CALENDARIO
+// =============================================================================
+// El manual del escáner dice, con todas las letras, que «no sabe en qué sesión
+// está el mercado». En la web es verdad —el backend recibe velas y ya— pero
+// dentro de TradingView esa información está ahí, y no usarla sería tirarla.
+//
+// Nada de esto entra en `runScan`: no altera un solo número de la lectura
+// portada. Es contexto que se dibuja al lado.
+enSesion(string spec) =>
+    timeframe.isintraday and not na(time(timeframe.period, spec, inTz))
+
+bool sesAsia = enSesion(inSesAsia)
+bool sesLondres = enSesion(inSesLondres)
+bool sesNY = enSesion(inSesNY)
+// El solapamiento Londres–Nueva York es la franja de más volumen del día: se
+// nombra, no se esconde detrás de una de las dos.
+string sesionActual = sesLondres and sesNY ? "Londres + NY (solape)" : sesNY ? "Nueva York" : sesLondres ? "Londres" : sesAsia ? "Asia" : timeframe.isintraday ? "Fuera de sesión" : "—"
+
+// `bgcolor` va SIEMPRE al ámbito global —Pine no la admite dentro de un bloque—
+// así que el interruptor se resuelve dentro del color, no fuera de la llamada.
+color colorSesion = not inShadeSession ? na : sesLondres and sesNY ? color.new(color.orange, 93) : sesNY ? color.new(color.blue, 94) : sesLondres ? color.new(color.green, 94) : sesAsia ? color.new(color.purple, 94) : na
+bgcolor(colorSesion, title = "Sesión")
+
+// Rango de la sesión ANTERIOR de la que se elija. Una sola sesión y no las tres:
+// con Londres y Nueva York solapadas, «la sesión anterior» de un bloque continuo
+// no significa nada concreto, y un número que no se puede señalar en el gráfico
+// es peor que ninguno.
+bool sesSeguida = inRangeSession == "Asia" ? sesAsia : inRangeSession == "Londres" ? sesLondres : inRangeSession == "Nueva York" ? sesNY : false
+var float sesHigh = na
+var float sesLow = na
+var float prevSesHigh = na
+var float prevSesLow = na
+if sesSeguida and not sesSeguida[1]
+    prevSesHigh := sesHigh
+    prevSesLow := sesLow
+    sesHigh := high
+    sesLow := low
+else if sesSeguida
+    sesHigh := math.max(nz(sesHigh, high), high)
+    sesLow := math.min(nz(sesLow, low), low)
+
+// Máximo y mínimo del día y de la semana anteriores. `[1]` + lookahead_on = el
+// periodo YA CERRADO, el mismo modismo que la confluencia.
+[pdh, pdl] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[pwh, pwl] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+// En diario, «el máximo de ayer» es la vela de al lado: dibujarlo es ruido. Se
+// muestran sólo donde aportan, y donde no, la fila del panel lo dice.
+bool pdhAplica = timeframe.in_seconds() <= 14400
+bool pwhAplica = timeframe.in_seconds() <= 86400
+
+// =============================================================================
 // §13) DIBUJO — utilidades
 // =============================================================================
 var array<line> DRAWN_LINES = array.new<line>()
@@ -1150,6 +1706,49 @@ trendText(string t) =>
 trendColor(string t) =>
     t == "uptrend" ? inSupColor : t == "downtrend" ? inResColor : inPivColor
 
+// El nombre que se lee en el gráfico. `bullish-engulfing` no lo entiende nadie
+// mirando una vela, y el identificador se queda en el tooltip para quien quiera
+// buscarlo en la academia de la web.
+patternName(string id) =>
+    switch id
+        "hammer" => "Martillo"
+        "hanging-man" => "Hombre colgado"
+        "inverted-hammer" => "Martillo invertido"
+        "shooting-star" => "Estrella fugaz"
+        "doji" => "Doji"
+        "dragonfly-doji" => "Doji libélula"
+        "gravestone-doji" => "Doji lápida"
+        "long-legged-doji" => "Doji piernas largas"
+        "high-wave" => "Onda alta"
+        "bullish-marubozu" => "Marubozu alcista"
+        "bearish-marubozu" => "Marubozu bajista"
+        "spinning-top" => "Peonza"
+        "bullish-engulfing" => "Envolvente alcista"
+        "bearish-engulfing" => "Envolvente bajista"
+        "bullish-harami" => "Harami alcista"
+        "bearish-harami" => "Harami bajista"
+        "piercing-line" => "Línea penetrante"
+        "dark-cloud-cover" => "Nube oscura"
+        "tweezer-bottom" => "Pinzas suelo"
+        "tweezer-top" => "Pinzas techo"
+        "bullish-kicker" => "Kicker alcista"
+        "bearish-kicker" => "Kicker bajista"
+        "morning-star" => "Estrella de la mañana"
+        "evening-star" => "Estrella de la tarde"
+        "morning-doji-star" => "Estrella mañana doji"
+        "evening-doji-star" => "Estrella tarde doji"
+        "three-white-soldiers" => "Tres soldados blancos"
+        "three-black-crows" => "Tres cuervos negros"
+        "three-inside-up" => "Tres dentro alcista"
+        "three-inside-down" => "Tres dentro bajista"
+        => id
+
+behaviorName(string b) =>
+    b == "reversal" ? "reversión" : b == "continuation" ? "continuación" : "indecisión"
+
+basisName(string b) =>
+    b == "body" ? "cuerpo" : b == "wicks" ? "mechas" : "cuerpo + mechas"
+
 // Una fila del panel. Va aquí arriba y no dentro del bloque de dibujo porque
 // Pine sólo admite declarar funciones en el ámbito global.
 panelRow(table t, int r, string clave, string valor, color colorValor, color colorClave, color fondo, string tam) =>
@@ -1159,11 +1758,11 @@ panelRow(table t, int r, string clave, string valor, color colorValor, color col
 // =============================================================================
 // §14) LA FOTO — todo el escaneo, una vez, sobre la última vela
 // =============================================================================
-var table PANEL = table.new(position.top_right, 2, 20, border_width = 1)
+var table PANEL = table.new(position.top_right, 2, 26, border_width = 1)
 
 if barstate.islast
     clearDrawings()
-    table.clear(PANEL, 0, 0, 1, 19)
+    table.clear(PANEL, 0, 0, 1, 25)
 
     int n = windowSize
     // La vela en curso sigue moviéndose, así que todo lo que salga de ella
@@ -1174,19 +1773,25 @@ if barstate.islast
 
     // Niveles del escalón superior: la lectura barata, sin evidencia barra a barra.
     array<Lv> htfLevels = array.new<Lv>()
+    string htfTrend = ""
     bool confluenceChecked = false
     if htfAvailable and array.size(H.c) >= 2 * inHtfStrength + 1
         htfLevels := scanLevels(H, inHtfStrength, 2)
+        // La tendencia del escalón de arriba sale de las MISMAS dos funciones
+        // que la del gráfico, sobre la serie que ya se había traído para la
+        // confluencia: no cuesta una segunda petición.
+        htfTrend := trendOf(H, inHtfStrength)
         confluenceChecked := true
 
     // TODO lo numérico sale de aquí. Debajo sólo se dibuja.
-    Scan sc = runScan(W, inStrength, inTolMode == "Automática" ? na : inTolPct / 100.0, inMinTouches, htfLevels, confluenceChecked)
+    Scan sc = runScan(W, inStrength, inTolMode == "Automática" ? na : inTolPct / 100.0, inMinTouches, htfLevels, confluenceChecked, htfTrend, inHonestMode ? inStrength : 0)
 
     array<Swing> swings = sc.swings
     array<Ev> events = sc.events
     array<Lv> levels = sc.levels
     array<Fvg> fvgs = sc.fvgs
     array<Brk> breakouts = sc.breakouts
+    array<Pat> patterns = sc.patterns
     Ctx ctx = sc.context
     Counts counts = sc.counts
     float referencePrice = sc.referencePrice
@@ -1283,6 +1888,62 @@ if barstate.islast
                     array.push(DRAWN_LABELS, lb)
                     shown += 1
 
+    // El patrón más reciente de la ventana, para la fila del panel: es lo que se
+    // mira primero y no debería obligar a buscarlo entre las etiquetas.
+    string ultimoPatron = "—"
+    color ultimoPatronColor = color.new(color.gray, 20)
+    if array.size(patterns) > 0
+        for i = array.size(patterns) - 1 to 0
+            Pat pt = array.get(patterns, i)
+            if ultimoPatron == "—" and (inShowNeutralPatterns or pt.kind != "neutral") and pt.rate >= inMinPatternRate
+                int atras = n - 1 - pt.idx
+                ultimoPatron := patternName(pt.id) + (atras == 0 ? " (vela actual)" : " (hace " + str.tostring(atras) + ")") + (na(pt.levelPrice) ? "" : " ◆ en " + pt.levelRole)
+                ultimoPatronColor := pt.kind == "bullish" ? inSupColor : pt.kind == "bearish" ? inResColor : inPivColor
+
+    // --- patrones de vela -----------------------------------------------------
+    if inShowPatterns and array.size(patterns) > 0
+        int shown = 0
+        for i = array.size(patterns) - 1 to 0
+            if shown < inMaxPatterns
+                Pat pt = array.get(patterns, i)
+                bool neutro = pt.kind == "neutral"
+                bool wanted = (inShowNeutralPatterns or not neutro) and pt.rate >= inMinPatternRate and (not inPatternsAtLevelOnly or not na(pt.levelPrice))
+                if wanted
+                    color col = pt.kind == "bullish" ? inSupColor : pt.kind == "bearish" ? inResColor : inPivColor
+                    bool abajo = pt.kind == "bullish"
+                    // El identificador va en el tooltip: es lo que se busca en la
+                    // academia de la web, y no cabe en la etiqueta.
+                    string tip = patternName(pt.id) + "  (" + pt.id + ")" + "\n" + behaviorName(pt.behavior) + " · tasa ~" + str.tostring(pt.rate) + " % · rango " + str.tostring(pt.rank) + "\nse decide por: " + basisName(pt.basis) + "\ncuerpo " + str.tostring(pt.bodyPct, "#.#") + " % · mecha sup. " + str.tostring(pt.upperWickPct, "#.#") + " % · mecha inf. " + str.tostring(pt.lowerWickPct, "#.#") + " %" + (pt.candles > 1 ? "\nocupa " + str.tostring(pt.candles) + " velas (empieza " + str.tostring(pt.candles - 1) + " atrás)" : "") + (na(pt.levelPrice) ? "" : "\n◆ sobre " + pt.levelRole + " confirmado en " + fmtPrice(pt.levelPrice))
+                    string texto = patternName(pt.id) + (na(pt.levelPrice) ? "" : " ◆")
+                    label lb = label.new(xFirst + pt.idx, abajo ? array.get(W.l, pt.idx) : array.get(W.h, pt.idx), texto, xloc = xloc.bar_index, yloc = yloc.price, style = abajo ? label.style_label_up : label.style_label_down, color = color.new(col, na(pt.levelPrice) ? 88 : 70), textcolor = col, size = size.tiny, tooltip = tip)
+                    array.push(DRAWN_LABELS, lb)
+                    // El patrón de tres velas ocupa tres barras: sin marcar dónde
+                    // empieza hay que contarlas hacia atrás a ojo.
+                    if pt.candles > 1
+                        line ln = line.new(xFirst + pt.startIdx, array.get(W.l, pt.startIdx), xFirst + pt.idx, array.get(W.l, pt.idx), xloc = xloc.bar_index, color = color.new(col, 65), width = 1, style = line.style_dotted)
+                        array.push(DRAWN_LINES, ln)
+                    shown += 1
+
+    // --- niveles de calendario y rango de sesión --------------------------------
+    if inShowPdhPdl and pdhAplica and not na(pdh)
+        line l1 = line.new(bar_index - 1, pdh, bar_index, pdh, xloc = xloc.bar_index, extend = extend.both, color = color.new(inPivColor, 40), width = 1, style = line.style_dashed)
+        line l2 = line.new(bar_index - 1, pdl, bar_index, pdl, xloc = xloc.bar_index, extend = extend.both, color = color.new(inPivColor, 40), width = 1, style = line.style_dashed)
+        array.push(DRAWN_LINES, l1)
+        array.push(DRAWN_LINES, l2)
+        array.push(DRAWN_LABELS, label.new(bar_index, pdh, "PDH " + fmtPrice(pdh), xloc = xloc.bar_index, style = label.style_label_left, color = color.new(inPivColor, 88), textcolor = inPivColor, size = size.tiny))
+        array.push(DRAWN_LABELS, label.new(bar_index, pdl, "PDL " + fmtPrice(pdl), xloc = xloc.bar_index, style = label.style_label_left, color = color.new(inPivColor, 88), textcolor = inPivColor, size = size.tiny))
+    if inShowPwhPwl and pwhAplica and not na(pwh)
+        line l3 = line.new(bar_index - 1, pwh, bar_index, pwh, xloc = xloc.bar_index, extend = extend.both, color = color.new(inPivColor, 55), width = 1, style = line.style_dotted)
+        line l4 = line.new(bar_index - 1, pwl, bar_index, pwl, xloc = xloc.bar_index, extend = extend.both, color = color.new(inPivColor, 55), width = 1, style = line.style_dotted)
+        array.push(DRAWN_LINES, l3)
+        array.push(DRAWN_LINES, l4)
+        array.push(DRAWN_LABELS, label.new(bar_index, pwh, "PWH " + fmtPrice(pwh), xloc = xloc.bar_index, style = label.style_label_left, color = color.new(inPivColor, 90), textcolor = inPivColor, size = size.tiny))
+        array.push(DRAWN_LABELS, label.new(bar_index, pwl, "PWL " + fmtPrice(pwl), xloc = xloc.bar_index, style = label.style_label_left, color = color.new(inPivColor, 90), textcolor = inPivColor, size = size.tiny))
+    if inRangeSession != "Ninguna" and not na(prevSesHigh)
+        box bs = box.new(xFirst, prevSesHigh, bar_index, prevSesLow, xloc = xloc.bar_index, extend = extend.right, border_color = color.new(inPivColor, 65), border_style = line.style_dotted, bgcolor = color.new(inPivColor, 94))
+        array.push(DRAWN_BOXES, bs)
+        array.push(DRAWN_LABELS, label.new(bar_index, prevSesHigh, inRangeSession + " previa", xloc = xloc.bar_index, style = label.style_label_left, color = color.new(inPivColor, 88), textcolor = inPivColor, size = size.tiny))
+
     // --- panel de lectura ----------------------------------------------------
     if inShowTable
         table.set_position(PANEL, tablePosition(inTablePos))
@@ -1296,25 +1957,36 @@ if barstate.islast
 
         panelRow(PANEL, 0, "TCP Structure", str.tostring(sc.rowsScanned) + " velas · " + timeframe.period, fg, dim, bg, sz)
         panelRow(PANEL, 1, "Tendencia", trendText(sc.trend), trendColor(sc.trend), dim, bg, sz)
-        panelRow(PANEL, 2, "Referencia", fmtPrice(referencePrice) + "  (" + referenceSource + ")", forming ? inResColor : fg, dim, bg, sz)
-        panelRow(PANEL, 3, "Resistencia + cercana", na(nres) ? "—" : fmtPrice(nres.price) + "  " + fmt(nres.distancePct, " %", "#.##"), inResColor, dim, bg, sz)
-        panelRow(PANEL, 4, "Soporte + cercano", na(nsup) ? "—" : fmtPrice(nsup.price) + "  " + fmt(nsup.distancePct, " %", "#.##"), inSupColor, dim, bg, sz)
-        panelRow(PANEL, 5, "Recorrido arriba", fmt(ctx.roomAbovePct, " %", "#.##") + " · " + fmt(ctx.roomAboveAtr, " ATR", "#.##"), fg, dim, bg, sz)
-        panelRow(PANEL, 6, "Recorrido abajo", fmt(ctx.roomBelowPct, " %", "#.##") + " · " + fmt(ctx.roomBelowAtr, " ATR", "#.##"), fg, dim, bg, sz)
-        panelRow(PANEL, 7, "Posición en el rango", fmt(ctx.rangePositionPct, " %", "#.#") + (na(ctx.rangeWidthPct) ? "" : "  (ancho " + str.tostring(ctx.rangeWidthPct, "#.##") + " %)"), fg, dim, bg, sz)
-        panelRow(PANEL, 8, "ATR(14) · tolerancia", fmtPrice(sc.atr) + " · ±" + str.tostring(sc.tolerance * 100, "#.###") + " %", fg, dim, bg, sz)
-        panelRow(PANEL, 9, "Swings", str.tostring(counts.swings), fg, dim, bg, sz)
-        panelRow(PANEL, 10, "BOS / CHoCH", str.tostring(counts.bos) + " / " + str.tostring(counts.choch) + "  (" + str.tostring(counts.confirmedEvents) + " confirmadas)", fg, dim, bg, sz)
-        panelRow(PANEL, 11, "Rupturas repetidas", str.tostring(counts.repeatedBreaks), counts.repeatedBreaks > 0 ? inResColor : fg, dim, bg, sz)
-        panelRow(PANEL, 12, "Niveles (R / S)", str.tostring(counts.resistances) + " / " + str.tostring(counts.supports) + "  · " + str.tostring(counts.confirmedLevels) + "★ de " + str.tostring(array.size(levels)) + " analizados", fg, dim, bg, sz)
-        panelRow(PANEL, 13, "Polaridad invertida ⇄", str.tostring(counts.flipped), fg, dim, bg, sz)
-        // SIN COMPROBAR no es COMPROBADO SIN COINCIDENCIAS. La fila lo distingue.
-        panelRow(PANEL, 14, "Confluencia " + (confChecked ? htfTf : "—"), confChecked ? str.tostring(counts.confluent) + " de " + str.tostring(array.size(htfLevels)) + " niveles" : "sin comprobar", confChecked ? fg : dim, dim, bg, sz)
-        panelRow(PANEL, 15, "FVG abiertos", str.tostring(counts.fvgOpen) + (counts.fvgSessionGap > 0 ? "  (+" + str.tostring(counts.fvgSessionGap) + " huecos de sesión)" : ""), fg, dim, bg, sz)
-        panelRow(PANEL, 16, "Rupturas / barridos", str.tostring(counts.breakouts) + " / " + str.tostring(counts.fakeouts), fg, dim, bg, sz)
-        panelRow(PANEL, 17, "Vela en curso", forming ? "SÍ — lo de esta vela puede des-ocurrir" : "no", forming ? inResColor : dim, dim, bg, sz)
-        panelRow(PANEL, 18, "Niveles en disputa", disputed > 0 ? str.tostring(disputed) + " cambian de papel según la referencia" : "—", disputed > 0 ? inResColor : dim, dim, bg, sz)
-        panelRow(PANEL, 19, "No es una señal", "reglas deterministas · tradingcalculatorpro.com", dim, dim, bg, sz)
+        // La tendencia de arriba, al lado de la de aquí: mirar 15 minutos sin
+        // saber hacia dónde va el diario es la mitad de la información.
+        panelRow(PANEL, 2, "Tendencia " + (sc.htfTrend == "" ? "superior" : htfTf), sc.htfTrend == "" ? "sin comprobar" : trendText(sc.htfTrend), sc.htfTrend == "" ? dim : trendColor(sc.htfTrend), dim, bg, sz)
+        panelRow(PANEL, 3, "Referencia", fmtPrice(referencePrice) + "  (" + referenceSource + ")", forming ? inResColor : fg, dim, bg, sz)
+        panelRow(PANEL, 4, "Resistencia + cercana", na(nres) ? "—" : fmtPrice(nres.price) + "  " + fmt(nres.distancePct, " %", "#.##"), inResColor, dim, bg, sz)
+        panelRow(PANEL, 5, "Soporte + cercano", na(nsup) ? "—" : fmtPrice(nsup.price) + "  " + fmt(nsup.distancePct, " %", "#.##"), inSupColor, dim, bg, sz)
+        panelRow(PANEL, 6, "Recorrido arriba", fmt(ctx.roomAbovePct, " %", "#.##") + " · " + fmt(ctx.roomAboveAtr, " ATR", "#.##"), fg, dim, bg, sz)
+        panelRow(PANEL, 7, "Recorrido abajo", fmt(ctx.roomBelowPct, " %", "#.##") + " · " + fmt(ctx.roomBelowAtr, " ATR", "#.##"), fg, dim, bg, sz)
+        panelRow(PANEL, 8, "Posición en el rango", fmt(ctx.rangePositionPct, " %", "#.#") + (na(ctx.rangeWidthPct) ? "" : "  (ancho " + str.tostring(ctx.rangeWidthPct, "#.##") + " %)"), fg, dim, bg, sz)
+        panelRow(PANEL, 9, "ATR(14) · tolerancia", fmtPrice(sc.atr) + " · ±" + str.tostring(sc.tolerance * 100, "#.###") + " %", fg, dim, bg, sz)
+        panelRow(PANEL, 10, "Último patrón", ultimoPatron, ultimoPatronColor, dim, bg, sz)
+
+        if not inCompactPanel
+            panelRow(PANEL, 11, "Patrones (alc / baj)", str.tostring(counts.bullishPatterns) + " / " + str.tostring(counts.bearishPatterns) + "  · " + str.tostring(counts.patternsAtLevel) + " sobre nivel", fg, dim, bg, sz)
+            panelRow(PANEL, 12, "Sesión", sesionActual, timeframe.isintraday ? fg : dim, dim, bg, sz)
+            panelRow(PANEL, 13, "Swings", str.tostring(counts.swings), fg, dim, bg, sz)
+            panelRow(PANEL, 14, "BOS / CHoCH", str.tostring(counts.bos) + " / " + str.tostring(counts.choch) + "  (" + str.tostring(counts.confirmedEvents) + " confirmadas)", fg, dim, bg, sz)
+            panelRow(PANEL, 15, "Rupturas repetidas", str.tostring(counts.repeatedBreaks), counts.repeatedBreaks > 0 ? inResColor : fg, dim, bg, sz)
+            panelRow(PANEL, 16, "Niveles (R / S)", str.tostring(counts.resistances) + " / " + str.tostring(counts.supports) + "  · " + str.tostring(counts.confirmedLevels) + "★ de " + str.tostring(array.size(levels)) + " analizados", fg, dim, bg, sz)
+            panelRow(PANEL, 17, "Polaridad invertida ⇄", str.tostring(counts.flipped), fg, dim, bg, sz)
+            // SIN COMPROBAR no es COMPROBADO SIN COINCIDENCIAS. La fila lo distingue.
+            panelRow(PANEL, 18, "Confluencia " + (confChecked ? htfTf : "—"), confChecked ? str.tostring(counts.confluent) + " de " + str.tostring(array.size(htfLevels)) + " niveles" : "sin comprobar", confChecked ? fg : dim, dim, bg, sz)
+            panelRow(PANEL, 19, "FVG abiertos", str.tostring(counts.fvgOpen) + (counts.fvgSessionGap > 0 ? "  (+" + str.tostring(counts.fvgSessionGap) + " huecos de sesión)" : ""), fg, dim, bg, sz)
+            panelRow(PANEL, 20, "Rupturas / barridos", str.tostring(counts.breakouts) + " / " + str.tostring(counts.fakeouts), fg, dim, bg, sz)
+            panelRow(PANEL, 21, "PDH / PDL", pdhAplica and not na(pdh) ? fmtPrice(pdh) + " / " + fmtPrice(pdl) : "—", pdhAplica ? fg : dim, dim, bg, sz)
+            panelRow(PANEL, 22, "Vela en curso", forming ? "SÍ — lo de esta vela puede des-ocurrir" : "no", forming ? inResColor : dim, dim, bg, sz)
+            panelRow(PANEL, 23, "Niveles en disputa", disputed > 0 ? str.tostring(disputed) + " cambian de papel según la referencia" : "—", disputed > 0 ? inResColor : dim, dim, bg, sz)
+            // Que quede claro cuándo se está mirando algo que YA NO es la web.
+            panelRow(PANEL, 24, "Modo", inHonestMode ? "tiempo real honesto (retardo " + str.tostring(inStrength) + ")" : "paridad con la web", inHonestMode ? inResColor : dim, dim, bg, sz)
+            panelRow(PANEL, 25, "No es una señal", "reglas deterministas · tradingcalculatorpro.com", dim, dim, bg, sz)
 
     // =========================================================================
     // AVISOS
@@ -1334,6 +2006,31 @@ if barstate.islast
             if lv.inPlay and lv.confirmed
                 alert("Precio dentro de la zona " + lv.role + " " + fmtPrice(lv.price) + " en " + syminfo.ticker + " (" + timeframe.period + ") · " + str.tostring(lv.touches) + " toques, " + str.tostring(lv.score, "#") + "/100", alert.freq_once_per_bar_close)
                 break
+    if (inAlertBreakout or inAlertFakeout) and array.size(breakouts) > 0
+        for i = array.size(breakouts) - 1 to 0
+            Brk b = array.get(breakouts, i)
+            if b.idx == n - 1
+                if b.isFakeout and inAlertFakeout
+                    alert("Barrido de liquidez " + (b.bullish ? "alcista" : "bajista") + " sobre " + fmtPrice(b.level) + " en " + syminfo.ticker + " (" + timeframe.period + "): la mecha lo perforó y el cierre volvió", alert.freq_once_per_bar_close)
+                    break
+                if not b.isFakeout and b.confirmed and inAlertBreakout
+                    alert("Ruptura confirmada " + (b.bullish ? "alcista" : "bajista") + " de " + fmtPrice(b.level) + " en " + syminfo.ticker + " (" + timeframe.period + ") · " + str.tostring(b.score, "#") + "/100", alert.freq_once_per_bar_close)
+                    break
+    if inAlertPattern and array.size(patterns) > 0
+        for i = array.size(patterns) - 1 to 0
+            Pat pt = array.get(patterns, i)
+            if pt.idx == n - 1 and (inShowNeutralPatterns or pt.kind != "neutral") and pt.rate >= inMinPatternRate and (not inPatternsAtLevelOnly or not na(pt.levelPrice))
+                alert(patternName(pt.id) + " en " + syminfo.ticker + " (" + timeframe.period + ") · " + behaviorName(pt.behavior) + ", tasa ~" + str.tostring(pt.rate) + " %" + (na(pt.levelPrice) ? "" : " · sobre " + pt.levelRole + " confirmado en " + fmtPrice(pt.levelPrice)), alert.freq_once_per_bar_close)
+                break
+    // «Se está acercando» medido en ATR y no en porcentaje: medio ATR significa
+    // lo mismo en el yen y en el bitcoin, y un 0,5 % no.
+    if inAlertNear and not na(sc.atr) and sc.atr > 0
+        Lv nr = sc.nearestResistance
+        Lv ns = sc.nearestSupport
+        if not na(nr) and not na(nr.distanceAtr) and nr.distanceAtr <= inNearAtr
+            alert("Precio a " + str.tostring(nr.distanceAtr, "#.##") + " ATR de la resistencia " + fmtPrice(nr.price) + " en " + syminfo.ticker + " (" + timeframe.period + ")", alert.freq_once_per_bar_close)
+        else if not na(ns) and not na(ns.distanceAtr) and ns.distanceAtr <= inNearAtr
+            alert("Precio a " + str.tostring(ns.distanceAtr, "#.##") + " ATR del soporte " + fmtPrice(ns.price) + " en " + syminfo.ticker + " (" + timeframe.period + ")", alert.freq_once_per_bar_close)
 
 // Sin serie que pintar: todo el resultado son dibujos y el panel. El plot vacío
 // mantiene el indicador válido y deja la ventana de datos limpia.

@@ -4474,3 +4474,57 @@ el escalón superior, `_mark_provisional`, `_trim_structure`) y la interfaz en
 y podría aceptar algo que aquél rechace por reglas de cualificadores
 (`const`/`simple`/`series`). La prueba final es pegarlo en el Pine Editor. Lo que sí
 está descartado es que el algoritmo diga algo distinto de lo que dice la web.
+
+### 2026-08-21 (2) — Los 30 patrones de vela, el contexto que sólo existe en TradingView, y un límite que era menor de lo que dije
+
+El indicador daba la tendencia (fila 1 del panel) pero **no** reconocía patrones de
+vela. No era una idea nueva: `useStructureScan.js` pide los **dos** escaneos
+—`structure-scan` y `pattern-scan`— y `CandleSignals.jsx` los pinta debajo de la
+escalera. O sea que al indicador le faltaba un bloque que el panel de la web sí
+enseña. Se añade eso y lo que faltaba alrededor.
+
+- ✅ **`candle_patterns.py` portado entero**: los 30 detectores canónicos con sus
+  umbrales exactos, el catálogo (tipo, comportamiento, tasa, rango, `basis`) y el
+  contexto de tendencia previa que distingue martillo de hombre colgado y estrella
+  fugaz de martillo invertido. Cada detección lleva dónde EMPIEZA y dónde CONFIRMA
+  —un patrón de tres velas ocupa tres barras— y las medidas reales de la vela.
+- ✅ **El cruce que la web no hace**: patrón sobre nivel **confirmado** (`◆`). Sus dos
+  escáneres son endpoints separados y nadie los junta; aquí niveles y velas están en
+  la misma pasada. Sólo contra niveles confirmados: cruzar un patrón con una línea
+  que nadie ha vuelto a visitar es fabricar una coincidencia.
+- ✅ **Contexto propio del medio**: tendencia del escalón superior (con las mismas dos
+  funciones, sobre la serie que ya se traía para la confluencia), sesión Asia /
+  Londres / Nueva York —con el solape Londres-NY **nombrado**, no escondido— y
+  PDH/PDL y PWH/PWL, que son bordes de calendario y la agrupación de swings no
+  produce nunca. El manual del escáner decía que "no sabe en qué sesión está el
+  mercado": dentro de TradingView sí se puede, y no usarlo era tirarlo.
+- ✅ **Modo tiempo real honesto** y siete alertas (BOS, CHoCH, zona, ruptura, barrido,
+  patrón y proximidad medida en **ATR**, que significa lo mismo en el yen y en el
+  bitcoin).
+- ✅ **79 comprobaciones de paridad** (antes 53). El `switch` de Pine ya lo entiende el
+  transpilador, así que el catálogo de los 30 se compara entrada a entrada contra el
+  dict del backend: la tabla está escrita dos veces y nada impedía teclear mal una
+  tasa. Con guarda contra el test vacío (>200 detecciones y patrones de una, dos y
+  tres velas).
+
+🔴 **CORRECCIÓN de lo que escribí esta misma mañana.** Documenté como límite que
+"las rupturas más antiguas pueden aparecer unas velas antes de que fueran
+observables". **Exageré.** Al intentar escribir el test que lo demostrara, no
+fallaba nunca — y la razón es demostrable: un swing alto en `k` es *por definición*
+el máximo de `[k-s, k+s]`, así que ninguna vela de `(k, k+s]` puede CERRAR por
+encima de él, y ese nivel no se puede romper antes de `k+s+1`, que es cuando el
+pivote ya era observable. En las seis series de prueba los dos modos dan
+exactamente las mismas rupturas.
+
+Queda **un** caso, y hubo que construirlo a mano porque no sale en un paseo
+aleatorio: cuando un pivote nuevo —vela de mecha enorme y cierre bajo— **tapa** a
+otro anterior más bajo dentro de esas `strength` velas. Está en
+`test_pero_el_interruptor_no_es_un_adorno`, con la serie escrita barra a barra. Es
+lo que hace que el interruptor no sea un adorno, y lo único que hace.
+
+- 🔎 **Y el verificador léxico volvió a ganarse el sueldo**: cazó `bgcolor()` dentro de
+  un bloque `if` mientras escribía el sombreado de sesión. Pine sólo la admite en el
+  ámbito global y el error que da no señala la causa.
+
+**Sigue sin verificarse** lo mismo que ayer: que TradingView **compile** el fichero.
+La gramática no es su compilador.

@@ -66,8 +66,9 @@ que no se pueden relajar:
 
 ## El indicador de TradingView es el MISMO algoritmo, no una versión libre
 
-`tradingview/tcp_structure_scanner.pine` (Pine Script v6) es `price_action.py` portado.
-Si cambias un umbral, una puntuación o una regla aquí, **cámbialo también allí**:
+`tradingview/tcp_structure_scanner.pine` (Pine Script v6) es `price_action.py` **y**
+`candle_patterns.py` portados. Si cambias un umbral, una puntuación, una tasa del
+catálogo de patrones o una regla aquí, **cámbialo también allí**:
 
 ```bash
 python scripts/gen-pine-twin.py                            # traduce el .pine a Python
@@ -79,6 +80,11 @@ python scripts/verificar-pine.py                            # lo específico de 
 `.pine`, no se escribe a mano. Todo lo numérico del indicador vive en `runScan()`; por
 debajo de §11 sólo hay dibujo, y ahí no debe quedar aritmética — lo que no se puede
 ejecutar fuera de TradingView tampoco se puede verificar.
+
+Tres cosas del indicador **no** están en el backend y van marcadas como añadidas: la
+tendencia del escalón superior, la sesión con sus máximos de calendario (PDH/PDL) y el
+cruce patrón ↔ nivel confirmado (`◆`). Ninguna toca un número de la lectura portada. Si
+alguna de ellas te parece buena idea para la web, el sitio es el backend, no el `.pine`.
 
 Manual: [`docs/INDICADOR_TRADINGVIEW.md`](../../docs/INDICADOR_TRADINGVIEW.md).
 
