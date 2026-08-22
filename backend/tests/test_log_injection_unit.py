@@ -1,4 +1,4 @@
-"""Que un símbolo de fuera no pueda escribir líneas de log por su cuenta.
+"""Que un valor de fuera no pueda escribir líneas de log por su cuenta.
 
 CodeQL lo cazó en `GET /education/level-odds/{symbol}`: el símbolo llega por la
 ruta y va tal cual a `logging.error`. Con un salto de línea dentro, lo que se
@@ -9,13 +9,13 @@ de las de verdad al leer el log después.
 Estas pruebas fijan las dos mitades:
 
   · `log_safe` neutraliza los caracteres de control (la unidad);
-  · y NINGUNA línea de log del fichero mete un símbolo crudo (la regla), que es
-    lo que impide que el siguiente endpoint reintroduzca el agujero sin que
+  · y NINGUNA llamada a logging del backend mete un valor crudo (la regla), que
+    es lo que impide que el siguiente endpoint reintroduzca el agujero sin que
     nadie se entere hasta el próximo escaneo.
 """
+import ast
 import os
 import pathlib
-import re
 import sys
 
 import pytest
@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.environ.setdefault("ENVIRONMENT", "development")
 os.environ.setdefault("JWT_SECRET", "test-only-secret")
 
-from server import log_safe  # noqa: E402
+from log_seguro import log_safe  # noqa: E402
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -81,111 +81,179 @@ def test_el_recorte_no_muerde_lo_que_cabe():
 # ══════════════════════════════════════════════════════════════════════════
 # La regla — para que el agujero no vuelva por otra ruta
 # ══════════════════════════════════════════════════════════════════════════
-SERVER = pathlib.Path(__file__).resolve().parent.parent / "server.py"
+BACKEND = pathlib.Path(__file__).resolve().parent.parent
 
-# LA REGLA: en un f-string de logging, todo `{...}` tiene que ser `log_safe(...)`.
+_NIVELES = {"debug", "info", "warning", "error", "exception", "critical"}
+_NOMBRES_LOGGER = {"logging", "logger", "log", "_log", "LOG", "LOGGER"}
+
+# LA REGLA: en una llamada a logging, TODO valor interpolado pasa por log_safe.
 #
-# ⚠️ La he corregido TRES veces, y lo que enseña es el patrón, no cada fallo.
-# Las tres veces la encontró CodeQL, no yo, y las tres veces mi regla dio verde:
+# ⚠️ La he corregido CUATRO veces, y lo que enseña es el patrón, no cada fallo.
+# Las cuatro las encontró CodeQL, no yo, y las cuatro veces mi regla dio verde:
 #
 #   v1  miraba `sym|symbol|interval`
 #       → yo saneaba el símbolo y dejaba `{e}` crudo al lado. Un mensaje de
-#         excepción es dato externo por definición: lo redacta una librería o la
-#         respuesta de un proveedor y arrastra dentro el valor que le pasaste.
-#         Comprobado: la línea salía partida en dos, y la segunda era una
-#         entrada de log falsa.
+#         excepción es dato externo por definición.
 #   v2  añadió los nombres típicos de excepción
-#       → se le escapó `{cand}`, un símbolo candidato que no estaba en la lista.
+#       → se le escapó `{cand}`, un símbolo candidato fuera de la lista.
 #   v3  cualquier IDENTIFICADOR suelto, sin lista
-#       → se le escapó `{user['id']}` y `{request.url.path}`, porque no son
-#         identificadores sueltos sino un subíndice y una cadena de atributos.
+#       → se le escapó `{user['id']}` y `{request.url.path}`: un subíndice y una
+#         cadena de atributos no son identificadores.
+#   v4  cualquier `{...}` que no empiece por `log_safe(` — pero LÍNEA A LÍNEA y
+#       sólo sobre `server.py`.
+#       → se le escapó mi propia llamada nueva, partida en tres líneas: la
+#         primera es `logging.info(` sin f-string, así que la regla no la miraba,
+#         y las otras dos no dicen `logging`. Y además no veía NINGÚN otro
+#         módulo ni el estilo `logging.info("%s", valor)`. Medido el 2026-08-22:
+#         48 interpolaciones crudas y 88 argumentos `%` que la regla nunca miró.
 #
-# Las tres versiones describían una FORMA («qué nombres», «qué sintaxis») y las
-# tres tenían un hueco fuera de esa forma. Ésta describe la propiedad que de
-# verdad importa —que el valor pase por el saneador— y no deja hueco: da igual
-# si dentro hay un nombre, un atributo, un subíndice o una llamada.
-DENTRO = re.compile(r"\{([^{}]+)\}")
-ES_LOG = re.compile(r'logging\.\w+\(\s*f["\']')
+# Las cuatro versiones describían una FORMA —qué nombres, qué sintaxis, qué
+# fichero, qué línea— y las cuatro tenían un hueco fuera de esa forma. Ésta no
+# mira texto: recorre el ÁRBOL SINTÁCTICO. Una llamada a logging es una llamada
+# a logging esté en una línea o en seis, y sus valores interpolados son sus
+# `FormattedValue` y sus argumentos de formato, se escriban como se escriban.
 
 
-def interpolaciones_crudas(linea):
-    """Los `{...}` de esta línea que NO pasan por log_safe(). Vacío si es sana."""
-    if not ES_LOG.search(linea):
+def _es_llamada_de_log(nodo: ast.AST) -> bool:
+    f = getattr(nodo, "func", None)
+    return (isinstance(nodo, ast.Call) and isinstance(f, ast.Attribute)
+            and f.attr in _NIVELES and isinstance(f.value, ast.Name)
+            and f.value.id in _NOMBRES_LOGGER)
+
+
+def _es_saneado(nodo: ast.AST) -> bool:
+    """¿Este valor pasa por el saneador?
+
+    Se acepta `log_safe(x)` y también un literal constante: una cadena escrita
+    en el propio código no es un dato de fuera.
+    """
+    if isinstance(nodo, ast.Constant):
+        return True
+    if isinstance(nodo, ast.Call):
+        f = nodo.func
+        nombre = getattr(f, "id", None) or getattr(f, "attr", None)
+        return nombre == "log_safe"
+    return False
+
+
+def interpolaciones_crudas(codigo: str) -> list[str]:
+    """Los valores de las llamadas a logging que NO pasan por log_safe().
+
+    Acepta tanto un fichero entero como un fragmento de una línea, porque los
+    controles de abajo pasan fragmentos y el test de verdad pasa el fichero: la
+    misma función mirando lo mismo en los dos casos.
+    """
+    try:
+        arbol = ast.parse(codigo)
+    except SyntaxError:
         return []
     fuera = []
-    for m in DENTRO.finditer(linea):
-        nucleo = m.group(1).split("!")[0].split(":")[0].strip()
-        if not nucleo.startswith("log_safe("):
-            fuera.append(m.group(0))
+    for nodo in ast.walk(arbol):
+        if not _es_llamada_de_log(nodo):
+            continue
+        # 1) f-strings: cada `{...}` es un FormattedValue.
+        for arg in nodo.args:
+            for hijo in ast.walk(arg):
+                if isinstance(hijo, ast.FormattedValue) and not _es_saneado(hijo.value):
+                    fuera.append(f"{{{ast.unparse(hijo.value)}}}")
+        # 2) estilo `logging.info("algo %s", valor)`: el formateo lo hace la
+        #    librería, pero el salto de línea del valor entra en el mensaje
+        #    exactamente igual. La regla anterior no miraba esto en absoluto.
+        if nodo.args and not isinstance(nodo.args[0], ast.JoinedStr):
+            for extra in nodo.args[1:]:
+                if not _es_saneado(extra):
+                    fuera.append(f"%-arg {ast.unparse(extra)}")
     return fuera
 
 
-def test_ninguna_linea_de_log_mete_un_simbolo_crudo():
-    """La regla de verdad, sobre el fichero entero.
+def _modulos_del_backend():
+    return [p for p in sorted(BACKEND.glob("*.py")) if p.name != "log_seguro.py"]
 
-    CodeQL sólo mira lo que cambia en la PR, así que marcó la ruta nueva y no
-    las once hermanas que llevaban el mismo patrón desde antes. Esto las mira
-    todas, y sobre todo mira las que aún no existen.
+
+def test_ninguna_llamada_de_log_mete_un_valor_crudo():
+    """La regla de verdad, sobre TODOS los módulos del backend.
+
+    CodeQL sólo mira lo que cambia en la PR, así que marcó la ruta nueva y no las
+    hermanas que llevaban el mismo patrón desde antes. Esto las mira todas, en
+    todos los ficheros, y sobre todo mira las que aún no existen.
     """
-    ofensores = [
-        f"server.py:{n}: {crudas} en  {linea.strip()}"
-        for n, linea in enumerate(SERVER.read_text().splitlines(), 1)
-        for crudas in [interpolaciones_crudas(linea)]
-        if crudas
-    ]
+    ofensores = []
+    for py in _modulos_del_backend():
+        crudas = interpolaciones_crudas(py.read_text(errors="ignore"))
+        if crudas:
+            ofensores.append(f"{py.name}: {len(crudas)} → {', '.join(crudas[:4])}")
     assert not ofensores, (
-        "estas líneas dejan que un valor de fuera escriba en el log; "
+        "estas llamadas dejan que un valor de fuera escriba en el log; "
         "envuélvelo en log_safe(...):\n  " + "\n  ".join(ofensores))
 
 
-@pytest.mark.parametrize("linea, motivo", [
+@pytest.mark.parametrize("codigo, motivo", [
     ('logging.error(f"Level odds error for {sym}: {e}")',
      "el caso original: identificador suelto"),
     ('logging.warning(f"x {symbol} y")', "identificador en medio del texto"),
     ('logging.info(f"{interval}")', "la línea entera es una interpolación"),
-    # v1 → el símbolo saneado y la excepción cruda al lado. Media línea limpia
-    # no sirve de nada: el salto entra igual por `{e}`.
+    # v1 → el símbolo saneado y la excepción cruda al lado.
     ('logging.error(f"Level odds error for {log_safe(sym)}: {e}")',
      "v1: símbolo saneado, excepción cruda"),
     # v2 → un nombre que no estaba en ninguna lista.
     ('logging.warning(f"yfinance OHLC for {cand}: {log_safe(e)}")',
      "v2: nombre fuera de la lista"),
-    ('logging.warning(f"{cualquier_nombre_que_no_existia_ayer}")',
-     "v2: un nombre que aún no se ha inventado"),
     # v3 → ni un subíndice ni una cadena de atributos son identificadores.
     ('logging.info(f"user={user[\'id\']}")', "v3: subíndice"),
     ('logging.exception(f"on {request.method} {request.url.path}")',
      "v3: cadena de atributos"),
     ('logging.warning(f"skipping {pos.get(\'id\')}")', "v3: llamada a método"),
-    # Y una que ninguna versión anterior habría mirado: saneado a medias dentro
-    # de una especificación de formato.
     ('logging.info(f"{valor:>10}")', "con especificación de formato"),
+    # v4 → los dos huecos que destapó CodeQL sobre mi propio código nuevo.
+    ('logging.info(\n    f"stock {log_safe(sym)} servido por "\n    f"{quote.get(\'source\')}")',
+     "v4: llamada partida en varias líneas"),
+    ('logging.info("[referrals] referrer %s es afiliado", referee["referred_by_id"])',
+     "v4: estilo %-args, que la regla no miraba en absoluto"),
+    ('logger.warning("provider %s failed: %s", provider, exc)',
+     "v4: %-args a través de `logger`, no de `logging`"),
 ])
-def test_la_regla_caza_todo_lo_que_se_le_escapo_alguna_vez(linea, motivo):
-    """El control, con los cuatro casos que me pillaron, uno por versión.
+def test_la_regla_caza_todo_lo_que_se_le_escapo_alguna_vez(codigo, motivo):
+    """El control, con los casos que me pillaron, uno por versión.
 
     Sin esto, una regla que no case con nada pasaría el test de arriba para
     siempre y en verde. Este repositorio ya ha tenido varias guardas así — y
-    esta regla concreta ya dio verde tres veces con el agujero abierto.
+    esta regla concreta ya dio verde CUATRO veces con el agujero abierto.
     """
-    assert interpolaciones_crudas(linea), motivo
+    assert interpolaciones_crudas(codigo), motivo
 
 
-@pytest.mark.parametrize("linea", [
+@pytest.mark.parametrize("codigo", [
     'logging.error(f"Level odds error for {log_safe(sym)}: {log_safe(e)}")',
     'logging.info(f"user={log_safe(user[\'id\'])}")',
     'logging.exception(f"on {log_safe(request.method)} {log_safe(request.url.path)}")',
     'logging.info(f"{log_safe(valor):>10}")',
     'logging.error(f"algo sin variables")',
+    'logging.info("mensaje sin argumentos")',
+    'logging.info("[referrals] referrer %s", log_safe(rid))',
+    'logging.info(\n    f"stock {log_safe(sym)} servido por "\n    f"{log_safe(fuente)}")',
     'print(f"esto no es logging {sym}")',
+    'otra_cosa.info(f"tampoco es logging {sym}")',
 ])
-def test_la_regla_no_grita_con_lo_que_esta_bien(linea):
+def test_la_regla_no_grita_con_lo_que_esta_bien(codigo):
     """La otra mitad: una regla que salta con todo tampoco verifica nada.
 
     Se desactiva a la semana y deja de proteger, que es la misma nada por otro
     camino. Lo saneado entero —y lo que ni siquiera es un log— tiene que pasar.
     """
-    assert not interpolaciones_crudas(linea)
+    assert not interpolaciones_crudas(codigo)
+
+
+def test_la_regla_mira_de_verdad_todos_los_modulos():
+    """Control del ALCANCE, que es por donde se escapó la v4.
+
+    La versión anterior leía un solo fichero. Si ésta volviera a hacerlo, el
+    test de arriba pasaría en verde con diez módulos sin mirar.
+    """
+    nombres = {p.name for p in _modulos_del_backend()}
+    assert len(nombres) > 25, f"sólo {len(nombres)} módulos"
+    for imprescindible in ("server.py", "stock_data.py", "referrals.py",
+                           "missing_apis.py", "realtime_alerts.py"):
+        assert imprescindible in nombres
 
 
 if __name__ == "__main__":

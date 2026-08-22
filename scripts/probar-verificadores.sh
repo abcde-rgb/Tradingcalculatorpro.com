@@ -196,12 +196,26 @@ probar "una ruta nueva que ninguna pantalla llama" \
   "python scripts/check-rutas-muertas.py" \
   "printf '\n\n@api_router.get(\"/sabotaje/sin/decision\")\nasync def sabotaje_sin_decision():\n    return {}\n' >> backend/timeframes.py"
 
+# ⚠️ Este sabotaje nombraba una ruta y su decisión a pelo
+# (`/api/quote/{symbol}` … CONSTRUIR). El día que esa ruta cambió de decisión, el
+# `replace` dejó de encontrar nada: el fichero quedaba INTACTO, el verificador
+# pasaba con toda la razón, y la suite lo cantó como «SOBREVIVE al sabotaje».
+# Un sabotaje que no sabotea es la misma nada que un verificador que no verifica,
+# sólo que además acusa a quien no ha hecho nada. Ahora se borra la PRIMERA fila
+# de decisión que haya, sea cual sea, y se comprueba que de verdad ha cambiado
+# algo antes de dar el sabotaje por aplicado.
 probar "una fila que desaparece de la tabla" \
   "python scripts/check-rutas-muertas.py" \
   "python -c \"
-import pathlib
+import pathlib, re, sys
 p = pathlib.Path('docs/RUTAS_MUERTAS.md'); t = p.read_text()
-p.write_text(t.replace('| \\\`GET\\\` | \\\`/api/quote/{symbol}\\\` | CONSTRUIR |', '| x |', 1))\""
+corte = t.index('## Las decisiones')
+# El ancla es el backtick: las filas de DECISIÓN empiezan por '| \\\`GET\\\`…'. Sin
+# él, el primer '|' de la sección es la cabecera de la tabla, borrarla no quita
+# ninguna decisión y el verificador pasa — otro sabotaje que no sabotea.
+nuevo = t[:corte] + re.sub(r'^\\| \\\`[^\\n]*\\n', '| x |\\n', t[corte:], count=1, flags=re.M)
+if nuevo == t: sys.exit('el sabotaje no cambió nada: no hay filas de decisión')
+p.write_text(nuevo)\""
 
 # La dirección que de verdad pudre las listas: una ruta que YA tiene pantalla y
 # se queda en la tabla de deuda. Le pasó a `/plan` —estuvo en la lista de muertas

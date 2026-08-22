@@ -42,6 +42,7 @@ from options_math import (
     year_fraction,
     option_price,
 )
+from log_seguro import log_safe
 from stock_data import (
     COINGECKO_SYMBOL_TO_ID,
     _get_sector,
@@ -182,7 +183,7 @@ def _build_where_clause(filter_dict: dict, start_param: int = 1):
             continue
 
         if not _SAFE_FIELD_RE.match(key):
-            logging.warning("Ignored invalid field name in query filter: %r", key)
+            logging.warning("Ignored invalid field name in query filter: %r", log_safe(key))
             continue
 
         if isinstance(value, dict) and any(k.startswith("$") for k in value):
@@ -1845,7 +1846,7 @@ async def startup_event():
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
-        logging.info("Demo user created: %s (premium, non-admin)", DEMO_EMAIL)
+        logging.info("Demo user created: %s (premium, non-admin)", log_safe(DEMO_EMAIL))
     else:
         # Idempotent self-heal: keep demo on lifetime premium and NOT admin.
         patch: Dict[str, Any] = {}
@@ -1857,32 +1858,32 @@ async def startup_event():
             patch["auth_provider"] = "password"
         if patch:
             await db.users.update_one({"email": DEMO_EMAIL}, {"$set": patch})
-            logging.info("Demo user patched: %s", patch)
+            logging.info("Demo user patched: %s", log_safe(patch))
 
     # ── Purge expired JWT revocations (safe: expired tokens can't be used anyway) ─
     try:
         expired_cutoff = datetime.now(timezone.utc).isoformat()
         result = await db.revoked_tokens.delete_many({"expires_at": {"$lt": expired_cutoff}})
-        logging.info("[startup] Purged %d expired revoked_tokens", result.deleted_count)
+        logging.info("[startup] Purged %d expired revoked_tokens", log_safe(result.deleted_count))
     except Exception as e:
-        logging.warning("[startup] Could not purge revoked_tokens: %s", e)
+        logging.warning("[startup] Could not purge revoked_tokens: %s", log_safe(e))
 
     # ── Purge old usage_events (retain ~120 days for the admin heatmap) ──
     try:
         ue_cutoff = (datetime.now(timezone.utc) - timedelta(days=120)).isoformat()
         ue_res = await db.usage_events.delete_many({"ts": {"$lt": ue_cutoff}})
-        logging.info("[startup] Purged %d old usage_events", ue_res.deleted_count)
+        logging.info("[startup] Purged %d old usage_events", log_safe(ue_res.deleted_count))
     except Exception as e:
-        logging.warning("[startup] Could not purge usage_events: %s", e)
+        logging.warning("[startup] Could not purge usage_events: %s", log_safe(e))
 
     # ── Retención: purgar datos de clientes sin pago > DATA_RETENTION_DAYS ──
     try:
         purged = await purge_lapsed_user_data(db)
         if purged:
             logging.info("[startup] Retención: purgados los datos de %d usuario(s) sin pago > %d días",
-                         purged, DATA_RETENTION_DAYS)
+                         log_safe(purged), log_safe(DATA_RETENTION_DAYS))
     except Exception as e:
-        logging.warning("[startup] Retención/purga falló: %s", e)
+        logging.warning("[startup] Retención/purga falló: %s", log_safe(e))
 
     # ── Extended modules ─────────────────────────────────────────────────
     try:
@@ -1898,34 +1899,6 @@ async def startup_event():
         logging.info("✅ Extended modules: indexes ensured & WS poller started")
     except Exception as e:
         logging.error(f"Extended modules startup error: {log_safe(e)}", exc_info=True)
-
-def log_safe(value: Any, limite: int = 200) -> str:
-    """Un valor de fuera, apto para meter en una línea de log.
-
-    Un símbolo llega por la ruta o por la query, y va tal cual a `logging`. Si
-    lleva un salto de línea dentro, lo que escribe no es una línea con un salto:
-    son DOS líneas, y la segunda la redacta quien hizo la petición. Con eso se
-    fabrican entradas falsas —un `ERROR` inventado, un login que nadie hizo— y
-    quien lea el log después no tiene forma de distinguirlas de las de verdad.
-    Es lo que CodeQL llama *log injection*, y lo cazó en la ruta de level-odds.
-
-    ⚠️ `.strip()` NO vale, y era lo que había: quita los saltos de los extremos
-    y deja intactos los de en medio, que son justamente los que parten la línea.
-
-    Aquí se sustituye cualquier carácter de control por `?`, se recorta a
-    `limite` y se marca el recorte. No se descarta el valor: el símbolo que
-    provocó el error es lo que uno quiere ver en el log.
-
-    El límite es 200 y no 64 porque esto envuelve también EXCEPCIONES, y un
-    mensaje de excepción útil pasa de 64 con facilidad — «HTTPSConnectionPool(
-    host='...', port=443): Max retries exceeded with url: ...» son 150 de
-    salida. Con 64 el log quedaba a salvo y sin servir para depurar, que es
-    cambiar un problema por otro.
-    """
-    texto = str(value)
-    limpio = "".join(c if c.isprintable() else "?" for c in texto)
-    return limpio[:limite] + "…" if len(limpio) > limite else limpio
-
 
 # ============= AUTH ROUTES =============
 
@@ -2068,16 +2041,16 @@ async def _sync_stripe_subscription(user: dict) -> None:
                 {"id": user["id"]},
                 {"$set": {"subscription_end": new_end, "is_premium": True}},
             )
-            logging.info("[auth/me] Stripe sync: extended subscription for %s → %s", user["id"], new_end)
+            logging.info("[auth/me] Stripe sync: extended subscription for %s → %s", log_safe(user["id"]), log_safe(new_end))
         else:
             await db.users.update_one(
                 {"id": user["id"]},
                 {"$set": {"is_premium": False, "subscription_plan": None, "subscription_end": None,
                           "premium_lapsed_at": _lapse_stamp(user)}},
             )
-            logging.info("[auth/me] Stripe sync: subscription expired for %s", user["id"])
+            logging.info("[auth/me] Stripe sync: subscription expired for %s", log_safe(user["id"]))
     except Exception as exc:
-        logging.warning("[auth/me] Stripe sync failed for %s: %s", user["id"], exc)
+        logging.warning("[auth/me] Stripe sync failed for %s: %s", log_safe(user["id"]), log_safe(exc))
 
 
 @api_router.get("/auth/me", response_model=dict)
@@ -2670,7 +2643,7 @@ async def passkey_register_complete(
             credential=body.credential, expected_challenge=challenge,
         )
     except Exception as exc:
-        logging.warning("[passkey] alta rechazada: %s", exc)
+        logging.warning("[passkey] alta rechazada: %s", log_safe(exc))
         raise HTTPException(status_code=400, detail="No se pudo verificar la passkey.") from exc
 
     # Una credencial sólo puede pertenecer a una cuenta.
@@ -2724,10 +2697,10 @@ async def passkey_login_complete(
     except passkeys.SignCountError as exc:
         # No es un fallo cualquiera: o alguien reprodujo una respuesta capturada
         # o hay una copia del autenticador. Se registra para poder investigarlo.
-        logging.error("[passkey] contador no avanzó (posible clonado) cred=%s: %s", cred_id, exc)
+        logging.error("[passkey] contador no avanzó (posible clonado) cred=%s: %s", log_safe(cred_id), log_safe(exc))
         raise HTTPException(status_code=401, detail="Passkey rechazada por seguridad.") from exc
     except Exception as exc:
-        logging.warning("[passkey] acceso rechazado: %s", exc)
+        logging.warning("[passkey] acceso rechazado: %s", log_safe(exc))
         raise HTTPException(status_code=401, detail="No se pudo verificar la passkey.") from exc
 
     user = await db.users.find_one({"id": stored["user_id"]}, {"_id": 0})
@@ -2791,11 +2764,11 @@ async def _cancel_stripe_subscriptions_for_user(user_doc: dict) -> None:
         for sub in subs.data:
             try:
                 await asyncio.to_thread(stripe.Subscription.delete, sub.id)
-                logging.info("[RGPD] Cancelled Stripe subscription %s before account delete", sub.id)
+                logging.info("[RGPD] Cancelled Stripe subscription %s before account delete", log_safe(sub.id))
             except Exception as exc:
-                logging.error("[RGPD] Failed to cancel Stripe sub %s: %s", sub.id, exc)
+                logging.error("[RGPD] Failed to cancel Stripe sub %s: %s", log_safe(sub.id), log_safe(exc))
     except Exception as exc:
-        logging.error("[RGPD] Stripe cancellation lookup failed for %s: %s", customer_id, exc)
+        logging.error("[RGPD] Stripe cancellation lookup failed for %s: %s", log_safe(customer_id), log_safe(exc))
 
 
 @api_router.delete("/auth/account")
@@ -2940,7 +2913,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
         )
     except ValueError as exc:
         # Bad signature, expired token, or wrong audience
-        logging.warning("Google token validation failed: %s", exc)
+        logging.warning("Google token validation failed: %s", log_safe(exc))
         raise HTTPException(status_code=401, detail="Token de Google inválido") from exc
 
     email = (info.get("email") or "").lower()
@@ -2999,7 +2972,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             updates["auth_provider"] = "google"
             logging.warning(
                 "[auth] Contraseña retirada al enlazar Google sobre un email sin "
-                "verificar (posible pre-hijacking). user_id=%s", user["id"],
+                "verificar (posible pre-hijacking). user_id=%s", log_safe(user["id"]),
             )
         # Google verifica el correo; a partir de aquí consta como verificado.
         if not user.get("email_verified"):
@@ -4297,7 +4270,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     {"stripe_session_id": session_id_val, "status": "paid"}
                 )
                 if already:
-                    logging.info("[stripe-webhook] checkout already processed: %s", session_id_val)
+                    logging.info("[stripe-webhook] checkout already processed: %s", log_safe(session_id_val))
                     return {"status": "already_processed"}
 
             meta = data_obj.get("metadata") or {}
@@ -4372,7 +4345,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
         if rev_oid:
             transaction = await db.payment_transactions.find_one({"revolut_order_id": rev_oid}, {"_id": 0})
     if not transaction:
-        logging.warning("[revolut-webhook] unknown order: ext_ref=%s", ext_ref)
+        logging.warning("[revolut-webhook] unknown order: ext_ref=%s", log_safe(ext_ref))
         return {"status": "ignored"}
 
     order_id = transaction["id"]
@@ -4398,7 +4371,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
     plan_id = transaction["plan_id"]
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
-        logging.error("[revolut-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        logging.error("[revolut-webhook] invalid plan for order %s: %s", log_safe(order_id), log_safe(plan_id))
         await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
         return {"status": "error"}
 
@@ -4423,7 +4396,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
 
     logging.info(
         "[revolut-webhook] subscription activated: user=%s plan=%s order=%s",
-        transaction["user_id"], plan_id, order_id,
+        log_safe(transaction["user_id"]), log_safe(plan_id), log_safe(order_id),
     )
     return {"status": "received"}
 
@@ -4450,12 +4423,12 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
     data = parse_ipn(raw_body)
     order_id = ipn_order_id(data)
     if not order_id:
-        logging.warning("[nowpayments-webhook] missing order id in payload: %s", str(data)[:300])
+        logging.warning("[nowpayments-webhook] missing order id in payload: %s", log_safe(str(data)[:300]))
         return {"status": "ignored"}
 
     transaction = await db.payment_transactions.find_one({"id": order_id}, {"_id": 0})
     if not transaction:
-        logging.warning("[nowpayments-webhook] unknown order id: %s", order_id)
+        logging.warning("[nowpayments-webhook] unknown order id: %s", log_safe(order_id))
         return {"status": "ignored"}
     if transaction.get("status") == "paid":
         return {"status": "already_processed"}
@@ -4479,7 +4452,7 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
     plan_id = transaction["plan_id"]
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
-        logging.error("[nowpayments-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        logging.error("[nowpayments-webhook] invalid plan for order %s: %s", log_safe(order_id), log_safe(plan_id))
         await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
         return {"status": "error"}
 
@@ -4504,7 +4477,7 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
 
     logging.info(
         "[nowpayments-webhook] subscription activated: user=%s plan=%s order=%s",
-        transaction["user_id"], plan_id, order_id,
+        log_safe(transaction["user_id"]), log_safe(plan_id), log_safe(order_id),
     )
     return {"status": "received"}
 
@@ -7012,7 +6985,7 @@ async def _sync_trade_alerts(trade: dict, user: dict) -> int:
         await db.alerts.delete_many({"user_id": user["id"], "trade_id": trade_id,
                                      "triggered": False})
     except Exception as exc:  # noqa: BLE001 — un aviso no puede tumbar el guardado
-        logging.warning("[journal-alerts] limpieza fallida %s: %s", trade_id, exc)
+        logging.warning("[journal-alerts] limpieza fallida %s: %s", log_safe(trade_id), log_safe(exc))
         return 0
 
     notify = trade.get("notify") or {}
@@ -8553,7 +8526,7 @@ async def _record_webhook_seen(provider: str) -> None:
             upsert=True,
         )
     except Exception as exc:  # noqa: BLE001
-        logging.warning("[webhook-health] could not record %s: %s", provider, exc)
+        logging.warning("[webhook-health] could not record %s: %s", log_safe(provider), log_safe(exc))
 
 
 # A checkout older than this with no resolution is worth a human look. Long
@@ -8699,7 +8672,7 @@ async def admin_payment_grant(
         request=request,
     )
     logging.info("[reconciliation] admin %s granted %s to %s (tx %s)",
-                 admin.get("email"), plan_id, user.get("email"), transaction_id)
+                 log_safe(admin.get("email")), log_safe(plan_id), log_safe(user.get("email")), log_safe(transaction_id))
     return {"ok": True, "already_premium": False, "granted": True, "plan_id": plan_id}
 
 

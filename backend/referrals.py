@@ -28,6 +28,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
+from log_seguro import log_safe
 
 router = APIRouter()
 _security = HTTPBearer(auto_error=False)
@@ -232,7 +233,7 @@ async def track_referral(request: Request, payload: TrackReferralRequest):
         }},
     )
 
-    logging.info(f"[referrals] tracked: {referrer['email']} → {referee_email} (code={code})")
+    logging.info(f"[referrals] tracked: {log_safe(referrer['email'])} → {log_safe(referee_email)} (code={log_safe(code)})")
     return {"ok": True, "referral_id": ref_doc["id"]}
 
 
@@ -258,10 +259,10 @@ async def credit_referrer_for_payment(referee_user_id: str, plan_id: str,
             {"user_id": referee["referred_by_id"], "status": "approved"}, {"_id": 0, "id": 1})
         if aff:
             logging.info("[referrals] referrer %s es afiliado → wallet omitido (programa de afiliados)",
-                         referee["referred_by_id"])
+                         log_safe(referee["referred_by_id"]))
             return None
     except Exception as _e:
-        logging.warning("[referrals] affiliate check failed: %s", _e)
+        logging.warning("[referrals] affiliate check failed: %s", log_safe(_e))
 
     referral = await db.referrals.find_one({
         "referrer_id": referee["referred_by_id"],
@@ -292,7 +293,7 @@ async def credit_referrer_for_payment(referee_user_id: str, plan_id: str,
         {"id": referee["referred_by_id"]},
         {"$inc": {"referral_wallet": commission}},
     )
-    logging.info(f"[referrals] credited {commission} {plan_currency} to {referral['referrer_email']} for {referee['email']}")
+    logging.info(f"[referrals] credited {log_safe(commission)} {log_safe(plan_currency)} to {log_safe(referral['referrer_email'])} for {log_safe(referee['email'])}")
     return await db.referrals.find_one({"id": referral["id"]}, {"_id": 0})
 
 
@@ -395,7 +396,7 @@ async def ensure_referral_indexes(database) -> None:
         await database.referrals.create_index("status")
         logging.info("✅ referrals indexes ensured")
     except Exception as e:
-        logging.error(f"referrals index error: {e}")
+        logging.error(f"referrals index error: {log_safe(e)}")
 
 
 # ---------------------------------------------------------------------------

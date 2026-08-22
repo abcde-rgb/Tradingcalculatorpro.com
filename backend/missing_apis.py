@@ -38,6 +38,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
+from log_seguro import log_safe
 
 
 def _hash_token(token: str) -> str:
@@ -137,7 +138,7 @@ async def ensure_email_unique_index(database) -> None:
         )
         logging.info("✅ unique index on users.email ensured")
     except Exception as e:
-        logging.error(f"Could not create unique index on users.email: {e}")
+        logging.error(f"Could not create unique index on users.email: {log_safe(e)}")
 
 
 # ---------------------------------------------------------------------------
@@ -243,7 +244,7 @@ async def get_indices_prices_real():
         if result:
             return result
     except Exception as e:
-        logging.error(f"Indices yfinance error: {e}")
+        logging.error(f"Indices yfinance error: {log_safe(e)}")
     return _INDICES_STATIC_FALLBACK
 
 
@@ -307,12 +308,12 @@ async def get_commodities_prices_real():
                     "source": "market",
                 }
             except Exception as e:
-                logging.warning(f"Commodity {sym} fetch error: {e}")
+                logging.warning(f"Commodity {log_safe(sym)} fetch error: {log_safe(e)}")
                 if label in _COMMODITY_STATIC:
                     result[label] = _COMMODITY_STATIC[label]
         return result if result else _COMMODITY_STATIC
     except Exception as e:
-        logging.error(f"Commodities error: {e}")
+        logging.error(f"Commodities error: {log_safe(e)}")
         return _COMMODITY_STATIC
 
 
@@ -362,7 +363,7 @@ async def _send_reset_email(to_email: str, reset_url: str) -> bool:
         sg.send(msg)
         return True
     except Exception as e:
-        logging.error(f"Reset email error: {e}")
+        logging.error(f"Reset email error: {log_safe(e)}")
         return False
 
 
@@ -418,7 +419,7 @@ async def _send_verification_email(to_email: str, verify_url: str) -> bool:
         sg.send(msg)
         return True
     except Exception as e:
-        logging.error(f"Verification email error: {e}")
+        logging.error(f"Verification email error: {log_safe(e)}")
         return False
 
 
@@ -578,7 +579,7 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=f"Error de Stripe: {e.user_message or str(e)}")
     except Exception as e:
-        logging.error(f"change_plan_real error: {e}")
+        logging.error(f"change_plan_real error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error cambiando plan")
 
 
@@ -612,7 +613,7 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
     except stripe.error.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
     except Exception as e:
-        logging.error(f"Stripe webhook parse error: {e}")
+        logging.error(f"Stripe webhook parse error: {log_safe(e)}")
         raise HTTPException(status_code=400, detail="Bad webhook payload")
 
     event_type = event["type"]
@@ -634,7 +635,7 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
                         "subscription_canceled_at": datetime.now(timezone.utc).isoformat(),
                     }},
                 )
-                logging.info(f"Subscription deleted for customer {customer_id} ({user.get('email')})")
+                logging.info(f"Subscription deleted for customer {log_safe(customer_id)} ({log_safe(user.get('email'))})")
 
     elif event_type == "invoice.payment_failed":
         customer_id = data_obj.get("customer")
@@ -646,7 +647,7 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
                 update["is_premium"] = False
                 update["subscription_plan"] = None
                 update["subscription_status"] = "unpaid"
-                logging.warning(f"Payment failed {attempt}x for {customer_id} — premium revoked")
+                logging.warning(f"Payment failed {log_safe(attempt)}x for {log_safe(customer_id)} — premium revoked")
             await db.users.update_one(
                 {"stripe_customer_id": customer_id},
                 {"$set": update},
@@ -880,7 +881,7 @@ async def ensure_missing_api_indexes(database) -> None:
 
         logging.info("✅ missing_apis indexes ensured")
     except Exception as e:
-        logging.error(f"missing_apis index error: {e}")
+        logging.error(f"missing_apis index error: {log_safe(e)}")
 
 
 # ---------------------------------------------------------------------------

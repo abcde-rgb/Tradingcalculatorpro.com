@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional, Tuple
+from log_seguro import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ def parse_ecb_history(xml_text: str) -> List[Tuple[str, Dict[str, float]]]:
     try:
         root = ET.fromstring(xml_text)
     except ET.ParseError as exc:
-        logger.info("El feed del BCE no es XML parseable: %s", exc)
+        logger.info("El feed del BCE no es XML parseable: %s", log_safe(exc))
         return []
 
     dias: List[Tuple[str, Dict[str, float]]] = []
@@ -135,9 +136,9 @@ async def fetch_rates(pares: List[str]) -> Dict[str, Any]:
         async with httpx.AsyncClient(timeout=FETCH_TIMEOUT_SECONDS) as client:
             r = await client.get(ECB_HIST_90D)
         if r.status_code != 200:
-            logger.warning("El feed del BCE respondió %s", r.status_code)
+            logger.warning("El feed del BCE respondió %s", log_safe(r.status_code))
             return {}
         return build_pairs(pares, parse_ecb_history(r.text))
     except Exception as exc:  # noqa: BLE001 — el forex nunca debe tumbar la petición
-        logger.warning("Fallo al leer los tipos del BCE: %s", exc)
+        logger.warning("Fallo al leer los tipos del BCE: %s", log_safe(exc))
         return {}
