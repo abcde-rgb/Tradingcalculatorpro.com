@@ -90,6 +90,8 @@ import ObscureOscillatorsVisual from '@/components/education/ObscureOscillatorsV
 import TimeCyclesVisual from '@/components/education/TimeCyclesVisual';
 import PsychSolutionsVisual from '@/components/education/PsychSolutionsVisual';
 import GamblingHarmVisual from '@/components/education/GamblingHarmVisual';
+import OptionGreeksVisual from '@/components/education/OptionGreeksVisual';
+import OptionsStratVisual from '@/components/education/OptionsStratVisual';
 import SystemAdherenceVisual from '@/components/education/SystemAdherenceVisual';
 import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
@@ -3256,6 +3258,12 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* Vivía en `capital`, que es donde nadie la buscaba: este es el
+                  módulo que trata de stops y no tenía ninguna figura. Va ANTES
+                  de la rejilla porque la filosofía del stop es lo que da sentido
+                  a los nueve apartados de debajo, no un apéndice. */}
+              <StopLossGuide />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {STOPS_TARGETS.items.map(s => (
                   <Card key={s.id} className="bg-card border-border">
@@ -3349,6 +3357,10 @@ export default function EducationPage() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground leading-relaxed">{o.desc}</p>
+                      {/* El diagrama de pago no ilustra la descripción: la define.
+                          Un iron condor y un butterfly se describen con la misma
+                          frase y se distinguen sólo por la forma. */}
+                      <OptionsStratVisual id={o.id} />
                     </CardContent>
                   </Card>
                 ))}
@@ -4271,9 +4283,6 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
-
-              {/* Stop-loss philosophy + break-even R:R by win rate */}
-              <StopLossGuide />
 
               {/* Risk/Reward Ratios */}
               <div>
@@ -5305,7 +5314,7 @@ export default function EducationPage() {
               { value: 'breadth-cycles', data: BREADTH_CYCLES, Icon: Activity, color: 'text-teal-500', grad: 'from-teal-500/5 to-primary/10 border-teal-500/20' },
               { value: 'broker-safety', data: BROKER_SAFETY, Icon: Shield, color: 'text-primary', grad: 'from-primary/5 to-red-500/10 border-primary/20' },
               { value: 'margin-liq', data: MARGIN_LIQ, Icon: Scale, color: 'text-red-500', grad: 'from-red-500/5 to-orange-500/10 border-red-500/20' },
-              { value: 'option-greeks', data: OPTION_GREEKS, Icon: Sigma, color: 'text-cyan-500', grad: 'from-cyan-500/5 to-blue-500/10 border-cyan-500/20' },
+              { value: 'option-greeks', data: OPTION_GREEKS, Icon: Sigma, color: 'text-cyan-500', grad: 'from-cyan-500/5 to-blue-500/10 border-cyan-500/20', Visual: OptionGreeksVisual },
               { value: 'inst-desk', data: INST_DESK, Icon: Landmark, color: 'text-indigo-500', grad: 'from-indigo-500/5 to-blue-500/10 border-indigo-500/20' },
               { value: 'pro-discipline', data: PRO_DISCIPLINE, Icon: Focus, color: 'text-emerald-500', grad: 'from-emerald-500/5 to-primary/10 border-emerald-500/20' },
             ].map(mod => (
@@ -5329,6 +5338,11 @@ export default function EducationPage() {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
+                        {/* Punto de extensión de la plantilla compartida. Sin
+                            esto, los NUEVE módulos que pasan por aquí estaban
+                            condenados a ser sólo texto, sin que fuera decisión
+                            de nadie: no había dónde poner una figura. */}
+                        {mod.Visual ? <mod.Visual id={it.id} /> : null}
                       </CardContent>
                     </Card>
                   ))}

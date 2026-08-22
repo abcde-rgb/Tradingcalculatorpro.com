@@ -409,7 +409,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/common/` | 11 | 1,831 |
 | `components/dashboard/` | 8 | 989 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 79 | 13,251 |
+| `components/education/` | 82 | 13,654 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 586 |
@@ -419,7 +419,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 46 | 2,946 |
-| `pages/` | 22 | 15,940 |
+| `pages/` | 22 | 15,954 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -429,7 +429,7 @@ dan) en vez de abrirlos de arriba abajo.
 | Fichero | Líneas |
 |---|---:|
 | `backend/server.py` | 9,460 |
-| `frontend/src/pages/EducationPage.jsx` | 5,553 |
+| `frontend/src/pages/EducationPage.jsx` | 5,567 |
 | `frontend/src/lib/i18n/ar.js` | 4,509 |
 | `frontend/src/lib/i18n/de.js` | 4,509 |
 | `frontend/src/lib/i18n/en.js` | 4,509 |
