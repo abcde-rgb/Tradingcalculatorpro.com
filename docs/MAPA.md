@@ -14,11 +14,11 @@
 
 | | |
 |---|---:|
-| Módulos del backend | 33 |
-| Líneas de Python (backend) | 25,296 |
+| Módulos del backend | 34 |
+| Líneas de Python (backend) | 25,562 |
 | Rutas declaradas | 197 |
 | **Rutas sin consumidor en el frontend** | **34** |
-| Ficheros de test · funciones de test | 55 · 892 |
+| Ficheros de test · funciones de test | 56 · 909 |
 | Rutas del frontend (`App.js`) | 28 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,646 |
 
@@ -102,6 +102,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `level_features.py` | 323 |  | Los rasgos del montaje, tal y como se veían EN esa barra y no después. |
 | `timeframes.py` | 303 |  | The timeframe ladder for the price-action scanners (structure + patterns). |
 | `american_options.py` | 283 |  | American option pricing — early exercise, which Black-Scholes cannot see. |
+| `brokers_referidos.py` | 266 |  | Los brókers a los que referimos, y las condiciones bajo las que se pueden mostrar. |
 | `crypto_data.py` | 257 |  | Precios de criptomonedas desde las propias bolsas. |
 | `passkeys.py` | 243 |  | Passkeys (WebAuthn / FIDO2) — alta y acceso sin contraseña. |
 | `revolut.py` | 216 |  | Revolut — Revolut Pay / Merchant API integration (order + webhook helpers). |
