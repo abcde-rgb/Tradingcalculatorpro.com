@@ -94,6 +94,32 @@ día se convierte en un porcentaje, tiene que pasar por lo mismo que `level_odds
 medición contra el histórico **y** contraste contra la serie barajada. Un número que
 parece una probabilidad sin serlo es exactamente lo que este proyecto no publica.
 
+## La tolerancia hacía cinco trabajos, y la banda dibujada era relleno
+
+Medido (2026-08-21, seis series de prueba): la extensión REAL de los pivotes que forman
+un nivel es el **39 % de la banda ±tolerancia** (mediana). O sea que la zona era dos
+veces y media más ancha de lo que los toques justifican, porque `zone` es
+`precio ± tol` y punto, sin mirar dónde imprimieron.
+
+El indicador dibuja ahora **dos cajas**: el **núcleo** (`coreLow`/`coreHigh`, la
+extensión real de los pivotes — el dato) y el **área de reacción** (±tol, tenue — el
+criterio con el que se cuentan visitas). Las dos, porque ocultar la segunda haría que
+un «3 toques» sobre una caja estrecha que el precio nunca pisó pareciera un error.
+
+Y separa dos preguntas que la misma tolerancia contestaba: *¿son el mismo nivel?*
+(agrupación) y *¿está tocándolo?* (banda de visitas). Los dos controles van a **1,00
+por defecto = paridad exacta con la web**, y el panel avisa en rojo cuando se mueven.
+
+⚠️ **La banda ±tol no siempre contiene los pivotes del nivel.** El agrupador compara
+contra la media CORRIENTE del grupo, que se mueve: un pivote que entró antes puede
+quedar fuera de la banda final (4 % de los niveles, fuga máxima 1,29 × tol). Está
+FIJADO con un test, no arreglado: tocar el agrupador rompe la paridad con el backend.
+
+⚠️ **No estreches la agrupación por dentro «porque sale mejor».** A ×0,25 la tasa de
+aguante sube del 55,8 % al 63,4 %, pero los niveles caen a 2,30 toques de media —el
+mínimo—, o sea casi todos sostenidos por dos pivotes. Es un canje, y quien opera decide.
+Las cifras completas están en `docs/INDICADOR_TRADINGVIEW.md` § 5a.
+
 ⚠️ **`levelReactions` y `annotateLevels` recorren la MISMA definición de visita.** Si
 tocas una, toca la otra: hay un test que exige que los recuentos cuadren nivel a nivel.
 

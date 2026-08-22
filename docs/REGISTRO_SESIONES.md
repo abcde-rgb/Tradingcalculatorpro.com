@@ -4579,3 +4579,61 @@ decidir dónde está la frontera entre medir y adivinar.
   de lo portado.
 
 **Sigue sin verificarse** que TradingView compile el fichero.
+
+### 2026-08-21 (4) — La banda era relleno: medido, el núcleo es el 39 % de ella
+
+Pregunta del dueño: *¿deberían ser más estrechas las zonas de soporte y
+resistencia? Analízalo para saber exactamente dónde están.* Se midió antes de
+tocar nada, y salieron tres cosas.
+
+**1. La banda dibujada era 2,5 veces más ancha que los datos.** `zone` es
+`precio ± tolerancia` — un relleno fijo que no mira dónde imprimieron los
+pivotes. La extensión REAL de los toques resultó ser el **39 % de esa banda**
+(mediana sobre 56 clusters; p90 71 %).
+
+**2. Un solo número hacía cinco trabajos**: agrupar pivotes, ancho de la zona
+dibujada, decidir si el precio toca, emparejar temporalidades y agrupar rupturas
+repetidas. Cinco preguntas distintas midiéndose igual sin ninguna razón.
+
+**3. El 50 % de los niveles se apoya en DOS pivotes** (28 de 56). Ahí «el nivel»
+es la media de dos números y la precisión afirmable es la que den esos dos.
+
+**Lo que se hizo.** Dos cajas en vez de una: el **núcleo** (`coreLow`/`coreHigh`,
+la extensión real de los pivotes — el dato, marcado) y el **área de reacción**
+(±tol, tenue y punteada — el criterio con el que se cuentan visitas). Las dos,
+porque ocultar la segunda haría que un «3 toques» sobre una caja estrecha que el
+precio nunca pisó pareciera un error. Cuando todos los pivotes cayeron al mismo
+precio el núcleo tiene ancho cero y **no se dibuja caja**: la línea ya es la
+respuesta, y una caja de ancho inventado sería fingir una imprecisión que no
+existe. La etiqueta dice ahora la precisión (`±0,04 %` o `exacto`).
+
+**Lo que NO se hizo, a propósito.** Estrechar la agrupación por dentro «porque
+sale mejor». Medido con la banda de visitas fija para aislar el efecto: a ×0,25
+la tasa de aguante sube del 55,8 % al 63,4 %… pero los niveles caen a 2,30 toques
+de media, que es el mínimo — casi todos sostenidos por dos pivotes y nada más.
+Es un **canje**, no una mejora, y lo decide quien opera. Van dos controles
+separados (agrupación y banda de visitas) con las cifras en el tooltip, **ambos a
+1,00 = paridad exacta con la web**, y el panel marca la fila de la tolerancia en
+rojo cuando se mueven: nunca se está fuera de paridad sin saberlo.
+
+🔴 **Dos correcciones de lecturas mías a media sesión.** La primera métrica de
+«¿está la media centrada en el cluster?» dividía por un ancho casi nulo y escupió
+un 449 699 %. Con el metro arreglado: la media se aparta más de un 15 % del ancho
+sólo en **3 de 56** clusters (5 %). O sea que la asimetría **no** es un problema
+real, y la afirmación intermedia de que «los toques no están repartidos
+simétricamente» era falsa. No entró en el código ni en la doc.
+
+Y la segunda: escribí que «el agrupador greedy no encadena» porque ningún grupo
+superaba la tolerancia en **semi-amplitud media**. Ese metro no mira cada pivote,
+sólo el ancho total: un grupo puede caber en 2 × tol y aun así tener un extremo
+fuera de la banda por estar descentrado. Con el metro correcto, el 4 % se fuga.
+La frase llegó a escribirse en la doc y en este registro; está corregida en los
+dos sitios, y ahora hay un test que fija el comportamiento.
+
+**116 comprobaciones** (antes 105): que los extremos del núcleo SON pivotes y no
+un cálculo parecido, que el precio del nivel cae dentro de su núcleo, que la fuga
+de pivotes fuera de la banda sigue en el 4 % y no se dispara, que la mediana
+núcleo/banda sigue por
+debajo del 55 % —si dejara de serlo, dibujar dos cajas ya no aportaría—, que los
+dos ajustes a 1,00 reproducen el backend al decimal, y que cada control hace lo
+que promete su tooltip.

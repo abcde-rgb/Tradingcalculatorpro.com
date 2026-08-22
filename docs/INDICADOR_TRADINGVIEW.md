@@ -257,6 +257,96 @@ el algoritmo diga algo distinto de lo que dice la web.
 
 ---
 
+## 5a. ¿Dónde está el nivel EXACTAMENTE? (y por qué la banda era relleno)
+
+Pregunta directa: *¿deberían ser más estrechas las zonas?* La respuesta, medida
+sobre las seis series de prueba, tiene tres partes.
+
+### Lo que se midió
+
+**1. La banda dibujada era 2,5 veces más ancha que los datos.** La zona era
+`precio ± tolerancia`, un relleno fijo. La **extensión real de los pivotes** que
+forman cada nivel resultó ser el **39 % de esa banda** (mediana; p90 = 71 %).
+
+| Serie | Banda ±tol | Extensión real | Reducción |
+|---|---:|---:|---:|
+| diario tendencial | 0,959 % | 0,412 % | 57 % |
+| diario volátil | 2,625 % | 1,046 % | 60 % |
+| intradía con huecos | 0,881 % | 0,387 % | 56 % |
+| cripto caro | 1,303 % | 0,494 % | 62 % |
+| sin volumen | 1,273 % | 0,384 % | 70 % |
+
+**2. Un solo número hacía cinco trabajos.** La misma tolerancia decidía: si dos
+pivotes son el mismo nivel, el ancho de la zona dibujada, si el precio está
+tocando el nivel, si dos temporalidades coinciden y si dos rupturas son la misma.
+Son cinco preguntas distintas y no hay razón para que se midan igual.
+
+**3. Y la banda no siempre contiene sus propios toques.** Parece imposible y no
+lo es: el agrupador compara cada pivote contra la media **corriente** del grupo,
+y esa media se mueve según entran más. Un pivote que entró cuando la media estaba
+en otro sitio puede acabar **fuera** de la banda final. Le pasa al **4 %** de los
+niveles (2 de 56), con una fuga máxima de 1,29 × la tolerancia. El núcleo, por
+construcción, sí los contiene siempre.
+
+**4. La mitad de los niveles se apoya en sólo DOS pivotes.** De 56 clusters: 28
+con 2 toques, 9 con 3, 7 con 4, 5 con 5 y 7 con 6 o más. Donde hay dos, «el
+nivel» es la media de dos números, y la precisión que se puede afirmar es la que
+den esos dos.
+
+### Lo que se cambió
+
+Se dibujan **dos cajas** en vez de una, porque son dos cosas distintas:
+
+- **El núcleo** (marcado): del pivote más bajo al más alto que formaron el nivel.
+  Es el **dato**: aquí es donde el precio imprimió de verdad. Cuando los pivotes
+  cayeron todos al mismo precio, el núcleo tiene ancho cero y **no se dibuja
+  caja** — la línea ya es la respuesta, y una caja de ancho inventado sería
+  fingir una imprecisión que no existe.
+- **El área de reacción** (tenue, punteada): la banda ±tolerancia con la que se
+  cuentan visitas, rechazos y rupturas. Se sigue viendo a propósito: si se
+  ocultara, un «3 toques» sobre una caja estrecha que el precio nunca pisó sería
+  una contradicción.
+
+Y la etiqueta del nivel dice ahora su precisión: `129.166 ±0,25 % 4T · 94/100`,
+o `exacto` cuando todos los pivotes cayeron en el mismo precio.
+
+**En pantalla**: la franja que dice *dónde está el nivel* es **2,6 veces más
+estrecha** que la caja de antes (mediana; p25 = 21 %, p75 = 53 % de la banda). Un
+ejemplo real de las series de prueba — nivel en 117,867 formado por dos pivotes
+en 117,826 y 117,908: la caja anterior iba de 117,30 a 118,43 (1,13 de ancho) y
+los toques ocupan 0,08. **Catorce veces más estrecho.**
+
+### Lo que NO se cambió, y por qué
+
+**La tolerancia de agrupación sigue en su valor por defecto.** Estrecharla mejora
+la pureza de los niveles, pero no es gratis:
+
+| Agrupación | Niveles | Toques/nivel | Confirmados | Tasa de aguante |
+|---|---:|---:|---:|---:|
+| ×0,25 | 44 | 2,30 | 43 | **63,4 %** |
+| ×0,50 | 53 | 2,75 | 50 | 58,2 % |
+| **×1,00 (web)** | 56 | 3,38 | 51 | 55,8 % |
+| ×2,00 | 52 | 4,25 | 45 | 56,0 % |
+
+*(banda de visitas fija, para aislar el efecto del agrupador)*
+
+Estrechando a ×0,25 la tasa de aguante sube 7,6 puntos… pero los niveles bajan a
+**2,30 toques de media**, que es el mínimo: casi todos pasan a estar sostenidos
+por dos pivotes y nada más. **Eso es un canje, no una mejora**, y la decisión es
+de quien opera. Por eso hay dos controles —*Ajuste de la agrupación* y *Ajuste de
+la banda de visitas*— con las cifras en su tooltip, **ambos a 1,00 por defecto**,
+que es exactamente lo que dice la web. Cuando los mueves, el panel marca la fila
+de la tolerancia en rojo con el factor aplicado: nunca estás fuera de paridad sin
+saberlo.
+
+> **Sobre estas cifras.** Salen de seis series sintéticas deterministas, no de
+> mercado real (aquí no hay red). Lo que miden es la **coherencia interna del
+> algoritmo** —cuánta de la banda es relleno, qué hace cada tolerancia— y eso no
+> depende de que las velas sean reales. Lo que sí dependería es afirmar que un
+> ajuste «funciona mejor operando»: eso no se afirma en ninguna parte.
+
+---
+
 ## 5b. Las tres capas que contestan «¿y ahora qué?»
 
 ### Invalidación: hasta dónde vale una ruptura

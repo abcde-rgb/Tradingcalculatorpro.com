@@ -119,7 +119,7 @@ def _casi(a, b, tol=1e-9):
 
 def _reads(filas, strength=2):
     backend = detect_structure(filas, strength=strength)
-    twin = pine.runScan(_ventana(filas), strength, pine.NA, 2, [], False, "", 0, True, True)
+    twin = pine.runScan(_ventana(filas), strength, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
     return backend, twin
 
 
@@ -287,7 +287,7 @@ def test_sin_comprobar_no_es_cero():
 
 def test_la_confluencia_marca_niveles_cuando_hay_escalon_superior():
     filas = CASOS["diario_tendencial"]
-    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
     # El "escalón superior" es la misma serie remuestreada de 5 en 5 velas:
     # basta para que existan niveles cerca de los del gráfico base.
     superior = []
@@ -303,7 +303,7 @@ def test_la_confluencia_marca_niveles_cuando_hay_escalon_superior():
             "close": trozo[-1]["close"], "volume": sum(r["volume"] for r in trozo),
         })
     htf = pine.scanLevels(_ventana(superior), 2, 2)
-    con_confluencia = pine.runScan(_ventana(filas), 2, pine.NA, 2, htf, True, "", 0, True, True)
+    con_confluencia = pine.runScan(_ventana(filas), 2, pine.NA, 2, htf, True, "", 0, True, True, 1.0, 1.0)
     assert len(htf) > 0
     assert not math.isnan(con_confluencia.counts.confluent)
     assert con_confluencia.counts.confluent >= 0
@@ -321,7 +321,7 @@ def test_una_serie_demasiado_corta_no_es_una_lectura():
     """
     filas = _serie(97, 4)
     backend = detect_structure(filas, strength=2)
-    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
     assert backend["currentPrice"] is None and math.isnan(twin.referencePrice)
     assert backend["tolerancePct"] is None and math.isnan(twin.tolerance)
     assert backend["atr"] is None and math.isnan(twin.atr)
@@ -335,7 +335,7 @@ def test_una_serie_demasiado_corta_no_es_una_lectura():
 
 def test_la_tolerancia_manual_se_respeta():
     filas = CASOS["diario_tendencial"]
-    twin = pine.runScan(_ventana(filas), 2, 0.008, 2, [], False, "", 0, True, True)
+    twin = pine.runScan(_ventana(filas), 2, 0.008, 2, [], False, "", 0, True, True, 1.0, 1.0)
     assert _casi(twin.tolerance, 0.008)
     backend = detect_structure(filas, strength=2, tolerance=0.008)
     assert [l.price for l in twin.levels] == [l["price"] for l in backend["levels"]]
@@ -411,7 +411,7 @@ def test_un_id_desconocido_no_inventa_metadatos():
 def test_el_cruce_patron_nivel_solo_marca_niveles_confirmados():
     filas = CASOS["diario_tendencial"]
     w = _ventana(filas)
-    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True)
+    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
     confirmados = [l for l in sc.levels if l.confirmed]
     for p in sc.patterns:
         if math.isnan(p.levelPrice):
@@ -430,7 +430,7 @@ def test_los_patrones_no_tocan_la_lectura_portada():
     """Añadir patrones no puede mover un solo número del escáner original."""
     filas = CASOS["diario_volatil"]
     backend = detect_structure(filas, strength=2)
-    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
     assert twin.counts.levels == backend["counts"]["levels"]
     assert twin.counts.bos == backend["counts"]["bos"]
     assert [round(l.score) for l in twin.levels] == [
@@ -546,7 +546,7 @@ def test_las_reacciones_cuadran_con_la_puntuacion_del_nivel(nombre):
     """
     filas = CASOS[nombre]
     w = _ventana(filas)
-    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True)
+    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
     for li, lv in enumerate(sc.levels):
         propias = [rx for rx in sc.reactions if rx.levelIdx == li]
         assert len(propias) == lv.visits, f"{nombre}: nivel {lv.price}"
@@ -561,7 +561,7 @@ def test_los_fixtures_producen_rechazos_y_rupturas_de_verdad():
     """Sin esto, el test de arriba pasaría comparando ceros con ceros."""
     total_r = total_b = 0
     for filas in CASOS.values():
-        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
         total_r += sc.counts.rejections
         total_b += sc.counts.zoneBreaks
     assert total_r > 20, total_r
@@ -574,7 +574,7 @@ def test_una_reaccion_describe_lo_que_de_verdad_hizo_el_precio(nombre):
     donde dice que salió."""
     filas = CASOS[nombre]
     w = _ventana(filas)
-    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True)
+    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
     tol = sc.tolerance
     for rx in sc.reactions:
         low = rx.levelPrice * (1 - tol)
@@ -654,7 +654,7 @@ def test_la_invalidacion_nunca_mira_hacia_atras(nombre):
 def test_los_fixtures_invalidan_alguna_estructura():
     total = 0
     for filas in CASOS.values():
-        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
         total += sc.counts.invalidated
     assert total > 0, "ningún fixture invalida nada: el test anterior no probaría nada"
 
@@ -662,7 +662,7 @@ def test_los_fixtures_invalidan_alguna_estructura():
 # --- presión de la zona en curso -------------------------------------------
 def test_la_presion_solo_habla_cuando_el_precio_esta_en_una_zona():
     for nombre, filas in CASOS.items():
-        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
         if sc.pressure.active:
             assert any(l.inPlay for l in sc.levels), nombre
             assert 0 <= sc.pressure.score <= 100, nombre
@@ -725,7 +725,7 @@ def test_la_presion_publica_todos_sus_ingredientes():
 def test_apagar_patrones_y_rupturas_deja_sus_recuentos_en_NO_CALCULADO():
     """`na`, no 0: 0 significaría «se calculó y no hay». No es lo mismo."""
     filas = CASOS["diario_tendencial"]
-    sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, False, False)
+    sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, False, False, 1.0, 1.0)
     assert sc.patterns == [] and sc.breakouts == []
     for campo in ("patterns", "bullishPatterns", "bearishPatterns", "patternsAtLevel",
                   "breakouts", "fakeouts"):
@@ -736,3 +736,122 @@ def test_apagar_patrones_y_rupturas_deja_sus_recuentos_en_NO_CALCULADO():
     assert sc.counts.bos == backend["counts"]["bos"]
     assert [round(l.score) for l in sc.levels] == [
         l["confirmation"]["score"] for l in backend["levels"]]
+
+
+# ---------------------------------------------------------------------------
+# El NÚCLEO del nivel y los dos ajustes de tolerancia
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("nombre", sorted(CASOS))
+def test_el_nucleo_es_la_extension_real_de_los_pivotes(nombre):
+    """`coreLow`/`coreHigh` tienen que ser el mínimo y el máximo REALES de los
+    pivotes agrupados, no un cálculo aparte que se le parezca."""
+    filas = CASOS[nombre]
+    w = _ventana(filas)
+    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
+    swings = pine.detectSwings(w, 2)
+    tol = sc.tolerance
+    for lv in sc.levels:
+        dentro = [s.price for s in swings
+                  if lv.coreLow - 1e-9 <= s.price <= lv.coreHigh + 1e-9]
+        assert dentro, f"{nombre}: nivel {lv.price} con un núcleo que no contiene ningún pivote"
+        # Los extremos del núcleo SON pivotes, no valores redondeados a ojo.
+        assert any(abs(p - lv.coreLow) < 1e-6 for p in dentro), lv.price
+        assert any(abs(p - lv.coreHigh) < 1e-6 for p in dentro), lv.price
+        # Y el precio del nivel cae dentro de su propio núcleo.
+        assert lv.coreLow - 1e-6 <= lv.price <= lv.coreHigh + 1e-6, lv.price
+        # OJO: NO se exige que el núcleo quepa dentro del área de reacción. No
+        # cabe siempre — ver el test de abajo, que es donde se explica por qué.
+        assert _casi(lv.touchSpreadPct,
+                     round((lv.coreHigh - lv.coreLow) / lv.price * 100, 4), 1e-9)
+
+
+def test_la_banda_no_siempre_contiene_sus_propios_toques():
+    """La banda ±tolerancia NO garantiza contener los pivotes que formaron el nivel.
+
+    Parece imposible y no lo es. El agrupador compara cada pivote contra la
+    media CORRIENTE del grupo, y esa media se mueve según entran más: uno que
+    entró cuando la media estaba en otro sitio puede acabar fuera de la banda
+    final. Medido: le pasa al 4 % de los niveles (2 de 56), con una fuga máxima
+    de 1,29 × la tolerancia.
+
+    Es exactamente el argumento que justifica dibujar el núcleo: la caja ancha
+    puede no contener los toques que dice tener, y el núcleo los contiene por
+    construcción.
+
+    El test FIJA el comportamiento en vez de arreglarlo: cambiar el agrupador
+    rompería la paridad con el backend, que es la referencia. Si algún día la
+    fuga se dispara, esto lo dirá.
+    """
+    con_fuga = total = 0
+    peor = 0.0
+    for filas in CASOS.values():
+        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
+        for lv in sc.levels:
+            total += 1
+            if lv.coreLow < lv.zoneLow - 1e-9 or lv.coreHigh > lv.zoneHigh + 1e-9:
+                con_fuga += 1
+                media = lv.price
+                fuga = max(abs(lv.coreLow - media), abs(lv.coreHigh - media)) / media
+                peor = max(peor, fuga / (sc.tolerance))
+    assert total > 30, total
+    assert con_fuga > 0, ("si ya no se fuga ninguno, alguien cambió el agrupador "
+                          "y hay que revisar la paridad con el backend")
+    assert con_fuga / total <= 0.15, f"la fuga se ha disparado: {con_fuga}/{total}"
+    assert peor <= 1.6, f"fuga máxima {peor:.2f}× la tolerancia, antes era 1,29×"
+
+
+def test_el_nucleo_es_de_verdad_mas_estrecho_que_la_banda():
+    """La afirmación que justifica dibujarlo: la banda es relleno, esto es dato.
+
+    Si algún día dejara de ser cierto —porque cambie la tolerancia o el
+    agrupador— dibujar dos cajas ya no aportaría nada y este test lo diría.
+    """
+    razones = []
+    for filas in CASOS.values():
+        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
+        for lv in sc.levels:
+            ancho_banda = lv.zoneHigh - lv.zoneLow
+            if ancho_banda > 0:
+                razones.append((lv.coreHigh - lv.coreLow) / ancho_banda)
+    assert len(razones) > 30, len(razones)
+    mediana = sorted(razones)[len(razones) // 2]
+    assert mediana < 0.55, f"el núcleo ya no es claramente más estrecho: {mediana:.2%}"
+    assert max(razones) <= 1.0 + 1e-9, "un núcleo se sale de su propia banda"
+
+
+def test_los_dos_ajustes_a_uno_reproducen_exactamente_la_web():
+    """El valor por defecto no puede desviarse del backend ni un decimal."""
+    for nombre, filas in CASOS.items():
+        backend = detect_structure(filas, strength=2)
+        twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
+        assert [l.price for l in twin.levels] == [l["price"] for l in backend["levels"]], nombre
+        assert [round(l.score) for l in twin.levels] == [
+            l["confirmation"]["score"] for l in backend["levels"]], nombre
+
+
+def test_estrechar_la_agrupacion_hace_lo_que_dice_el_tooltip():
+    """El tooltip promete un canje concreto: menos toques por nivel a cambio de
+    niveles más puros. Si el control no hiciera eso, el texto mentiría."""
+    filas = CASOS["diario_tendencial"]
+    w = _ventana(filas)
+    normal = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
+    estrecho = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True, 0.25, 1.0)
+    toques_normal = sum(l.touches for l in normal.levels) / len(normal.levels)
+    toques_estrecho = sum(l.touches for l in estrecho.levels) / len(estrecho.levels)
+    assert toques_estrecho < toques_normal, (toques_estrecho, toques_normal)
+    # Y los núcleos se estrechan de verdad, que es el efecto que se busca.
+    ancho_normal = sorted(l.touchSpreadPct for l in normal.levels)[len(normal.levels) // 2]
+    ancho_estrecho = sorted(l.touchSpreadPct for l in estrecho.levels)[len(estrecho.levels) // 2]
+    assert ancho_estrecho <= ancho_normal, (ancho_estrecho, ancho_normal)
+
+
+def test_la_banda_de_visitas_solo_afecta_a_la_evidencia_no_a_los_niveles():
+    """Cambiar qué cuenta como «tocar» no puede mover dónde están los niveles."""
+    filas = CASOS["diario_tendencial"]
+    w = _ventana(filas)
+    a = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 1.0)
+    b = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True, 1.0, 0.5)
+    assert [l.price for l in a.levels] == [l.price for l in b.levels]
+    assert [l.touches for l in a.levels] == [l.touches for l in b.levels]
+    # …pero sí tiene que mover la evidencia, o el control sería un adorno.
+    assert [l.visits for l in a.levels] != [l.visits for l in b.levels]

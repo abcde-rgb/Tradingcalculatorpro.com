@@ -178,13 +178,19 @@
   `.pine` con una gramática de Pine y traduce su bloque puro a
   `tradingview/pine_twin_generated.py` (código **generado**, no editable a mano);
   `backend/tests/test_pine_parity_unit.py` corre esa traducción y `price_action.py`
-  sobre las mismas velas y exige que coincidan cifra a cifra (**105 comprobaciones**,
+  sobre las mismas velas y exige que coincidan cifra a cifra (**116 comprobaciones**,
   6 series: diaria, volátil, sin volumen, intradía con cortes de sesión, cripto cara
   y una serie corta, más una escrita a mano para el caso del pivote que tapa a otro).
 - `scripts/verificar-pine.py` cubre lo que la gramática no ve: integrados que no
   existen, aridad de los constructores, funciones o `plot()` en ámbito local y el
   presupuesto de dibujos de `indicator()`. Sus cuatro controles están saboteados en
   `probar-verificadores.sh`; la paridad también, con `PINE_LENTO=1`.
+- **Medido, no supuesto**: la banda `precio ± tolerancia` era **2,5 veces más ancha**
+  que la extensión real de los pivotes que forman el nivel (39 % de mediana). El
+  indicador dibuja ahora el **núcleo** (el dato) además del área de reacción (el
+  criterio de conteo), y separa la tolerancia de agrupación de la de visitas — las
+  dos a 1,00 = paridad exacta con la web. Cifras y canje en
+  [`INDICADOR_TRADINGVIEW.md`](./INDICADOR_TRADINGVIEW.md) § 5a.
 - **Lo que no está cubierto**: que TradingView lo compile. La gramática no es su
   compilador. Manual: [`INDICADOR_TRADINGVIEW.md`](./INDICADOR_TRADINGVIEW.md).
 
@@ -344,11 +350,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-21 (4) | La banda era relleno: medido, el núcleo es el 39 % de ella |
 | 2026-08-21 (3) | Invalidación, rechazos, y una lectura en vivo que no finge predecir |
 | 2026-08-21 (2) | Los 30 patrones de vela, el contexto de TradingView, y un límite menor de lo que dije |
 | 2026-08-21 | El escáner, dentro de TradingView — y cómo comprobar Pine sin TradingView |
 | 2026-08-15 | Lo último que seguía atado a un navegador |
-| 2026-08-14 (5) | Mil escenarios generados, y lo que 264 comprobaciones no veían |
 
 ```bash
 # buscar una sesión por fecha o por tema

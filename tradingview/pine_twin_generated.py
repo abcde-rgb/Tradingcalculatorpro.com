@@ -146,8 +146,8 @@ class Ev:
 
 
 class Lv:
-    __slots__ = ('price', 'role', 'origin', 'flipped', 'distancePct', 'distanceAtr', 'touches', 'strength', 'zoneLow', 'zoneHigh', 'visits', 'held', 'broken', 'holdRatePct', 'barsSince', 'score', 'confirmed', 'inPlay', 'reasons', 'confluent', 'confluencePrice', 'confluenceTouches',)
-    def __init__(self, price=NA, role="", origin="", flipped=False, distancePct=NA, distanceAtr=NA, touches=NA, strength=NA, zoneLow=NA, zoneHigh=NA, visits=NA, held=NA, broken=NA, holdRatePct=NA, barsSince=NA, score=NA, confirmed=False, inPlay=False, reasons="", confluent=False, confluencePrice=NA, confluenceTouches=NA):
+    __slots__ = ('price', 'role', 'origin', 'flipped', 'distancePct', 'distanceAtr', 'touches', 'strength', 'zoneLow', 'zoneHigh', 'coreLow', 'coreHigh', 'touchSpreadPct', 'visits', 'held', 'broken', 'holdRatePct', 'barsSince', 'score', 'confirmed', 'inPlay', 'reasons', 'confluent', 'confluencePrice', 'confluenceTouches',)
+    def __init__(self, price=NA, role="", origin="", flipped=False, distancePct=NA, distanceAtr=NA, touches=NA, strength=NA, zoneLow=NA, zoneHigh=NA, coreLow=NA, coreHigh=NA, touchSpreadPct=NA, visits=NA, held=NA, broken=NA, holdRatePct=NA, barsSince=NA, score=NA, confirmed=False, inPlay=False, reasons="", confluent=False, confluencePrice=NA, confluenceTouches=NA):
         self.price = price
         self.role = role
         self.origin = origin
@@ -158,6 +158,9 @@ class Lv:
         self.strength = strength
         self.zoneLow = zoneLow
         self.zoneHigh = zoneHigh
+        self.coreLow = coreLow
+        self.coreHigh = coreHigh
+        self.touchSpreadPct = touchSpreadPct
         self.visits = visits
         self.held = held
         self.broken = broken
@@ -195,12 +198,14 @@ class Brk:
 
 
 class Cluster:
-    __slots__ = ('sum', 'count', 'highs', 'lows',)
-    def __init__(self, sum=NA, count=NA, highs=NA, lows=NA):
+    __slots__ = ('sum', 'count', 'highs', 'lows', 'lo', 'hi',)
+    def __init__(self, sum=NA, count=NA, highs=NA, lows=NA, lo=NA, hi=NA):
         self.sum = sum
         self.count = count
         self.highs = highs
         self.lows = lows
+        self.lo = lo
+        self.hi = hi
 
 
 class Rx:
@@ -518,6 +523,8 @@ def detectSrLevels(swings, tolerance, minTouches, currentPrice):
                     if ((_math_abs((s.price - ref)) / ref) <= tolerance):
                         c.sum = (c.sum + s.price)
                         c.count = (c.count + 1)
+                        c.lo = _math_min(c.lo, s.price)
+                        c.hi = _math_max(c.hi, s.price)
                         if s.isHigh:
                             c.highs = (c.highs + 1)
                         else:
@@ -525,7 +532,7 @@ def detectSrLevels(swings, tolerance, minTouches, currentPrice):
                         placed = True
                         break
             if (not placed):
-                _arr_push(clusters, Cluster(s.price, 1, ((1) if (s.isHigh) else (0)), ((0) if (s.isHigh) else (1))))
+                _arr_push(clusters, Cluster(s.price, 1, ((1) if (s.isHigh) else (0)), ((0) if (s.isHigh) else (1)), s.price, s.price))
         for ci in _rango(0, (_arr_size(clusters) - 1)):
             c = _arr_get(clusters, ci)
             if (c.count >= minTouches):
@@ -538,7 +545,7 @@ def detectSrLevels(swings, tolerance, minTouches, currentPrice):
                     role = (('resistance') if ((price > currentPrice)) else ((('support') if ((price < currentPrice)) else ('pivot'))))
                     distancePct = _math_round((((price - currentPrice) / currentPrice) * 100), 3)
                     flipped = (((origin == 'highs') and (role == 'support')) or ((origin == 'lows') and (role == 'resistance')))
-                _arr_push(levels, Lv(price, role, origin, flipped, distancePct, NA, c.count, _math_min(5, c.count), _math_round((price * (1 - tolerance)), 6), _math_round((price * (1 + tolerance)), 6), 0, 0, 0, NA, NA, 0.0, False, False, '', False, NA, NA))
+                _arr_push(levels, Lv(price, role, origin, flipped, distancePct, NA, c.count, _math_min(5, c.count), _math_round((price * (1 - tolerance)), 6), _math_round((price * (1 + tolerance)), 6), _math_round(c.lo, 6), _math_round(c.hi, 6), _math_round((((c.hi - c.lo) / price) * 100), 4), 0, 0, 0, NA, NA, 0.0, False, False, '', False, NA, NA))
     return levels
 
 
@@ -1425,7 +1432,7 @@ def markPatternsAtLevels(w, pats, levels):
     return marcados
 
 
-def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTrend, confirmDelay, wantPatterns, wantBreakouts):
+def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTrend, confirmDelay, wantPatterns, wantBreakouts, clusterMult, visitMult):
     n = _arr_size(w.c)
     tooShort = (n < ((2 * strength) + 1))
     reference = ((_arr_get(w.c, (n - 1))) if (((n > 0) and (not tooShort))) else (NA))
@@ -1435,7 +1442,7 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTren
     trend = labelStructure(swings)
     events = annotateEvents(w, detectEvents(w, swings, confirmDelay), atr)
     events = clusterRepeatedEvents(events, tol)
-    allLevels = detectSrLevels(swings, tol, minTouches, reference)
+    allLevels = detectSrLevels(swings, (tol * clusterMult), minTouches, reference)
     allLevels = sortLevels(allLevels, ((not _is_na(reference)) and (reference > 0)))
     if ((atr > 0) and (_arr_size(allLevels) > 0)):
         for i in _rango(0, (_arr_size(allLevels) - 1)):
@@ -1445,13 +1452,13 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTren
     if (_arr_size(allLevels) > 0):
         for i in _rango(0, (_math_min(_arr_size(allLevels), MAX_ANALYSED_LEVELS) - 1)):
             _arr_push(levels, _arr_get(allLevels, i))
-    levels = annotateLevels(w, levels, tol)
+    levels = annotateLevels(w, levels, (tol * visitMult))
     fvgs = ((_arr_new()) if (tooShort) else (detectFvgs(w)))
     breakouts = ((detectBreakouts(w, levels, strength)) if (wantBreakouts) else (_arr_new()))
     patterns = ((detectPatterns(w)) if (wantPatterns) else (_arr_new()))
     patternsAtLevel = ((markPatternsAtLevels(w, patterns, levels)) if (wantPatterns) else (NA))
     invalidadas = markInvalidations(w, events, swings)
-    reactions = levelReactions(w, levels, tol, MAX_ANALYSED_LEVELS)
+    reactions = levelReactions(w, levels, (tol * visitMult), MAX_ANALYSED_LEVELS)
     rechazos = 0
     rupturasZona = 0
     if (_arr_size(reactions) > 0):
@@ -1480,7 +1487,7 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTren
         for i in _rango(0, (_arr_size(levels) - 1)):
             lv = _arr_get(levels, i)
             if (lv.inPlay and (not pressure.active)):
-                pressure = zonePressure(w, lv, tol, atr)
+                pressure = zonePressure(w, lv, (tol * visitMult), atr)
     lastStructure = ((_arr_get(events, (_arr_size(events) - 1))) if ((_arr_size(events) > 0)) else (NA))
     cBos = 0
     cChoch = 0
