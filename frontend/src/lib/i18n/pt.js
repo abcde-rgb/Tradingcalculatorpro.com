@@ -1,5 +1,12 @@
 export default {
   "ichiVisTenkan": "Tenkan (rápida, 9)",
+  "brokersTitle": "Corretoras",
+  "brokersIntro": "Onde abrir conta se negoceias o que aqui calculas. Publicamos o verificável — a entidade que assina o contrato, quem a regula e com que número de licença — e não uma comparação: dizer qual é «a melhor» exigiria dados de comissões que não medimos.",
+  "brokersAfiliacion": "Estes são links de afiliado: se abrires conta através deles, recebemos uma comissão da corretora. Não altera o que pagas nem condiciona o que podes ler aqui. Só ligamos a entidades autorizadas na UE.",
+  "brokersAbrirCuenta": "Ir para a corretora",
+  "brokersVacio": "Ainda não há nenhuma corretora publicada aqui. Só ligamos a entidades autorizadas na UE com o aviso de risco atualizado, e de momento nenhuma cumpre as duas coisas. Preferimos deixar vazio.",
+  "seoBrokersTitle": "Corretoras · TradingCalculator.Pro",
+  "seoBrokersDesc": "Onde abrir conta: entidade, regulador e licença. Links de afiliado declarados.",
   "ichiVisKijun": "Kijun (lenta, 26)",
   "ichiVisChikou": "Chikou (preço de agora, 26 velas atrás)",
   "ichiVisCloudLegend": "Nuvem: verde = de alta · vermelha = de baixa",

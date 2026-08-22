@@ -1,5 +1,12 @@
 export default {
   "ichiVisTenkan": "Tenkan (schnell, 9)",
+  "brokersTitle": "Broker",
+  "brokersIntro": "Wo du ein Konto eröffnen kannst, wenn du handelst, was du hier berechnest. Wir veröffentlichen das Nachprüfbare — die vertragschließende Gesellschaft, ihre Aufsicht und ihre Lizenznummer — und keinen Vergleich: «der beste» zu sagen bräuchte Gebührendaten, die wir nicht gemessen haben.",
+  "brokersAfiliacion": "Dies sind Affiliate-Links: Eröffnest du darüber ein Konto, erhalten wir eine Provision vom Broker. Für dich ändert sich der Preis nicht, und es beeinflusst nicht, was du hier lesen kannst. Wir verlinken nur in der EU zugelassene Gesellschaften.",
+  "brokersAbrirCuenta": "Zum Broker",
+  "brokersVacio": "Hier ist noch kein Broker gelistet. Wir verlinken nur in der EU zugelassene Gesellschaften mit aktueller Risikowarnung, und derzeit erfüllt keiner beides. Lieber leer als aufgefüllt.",
+  "seoBrokersTitle": "Broker · TradingCalculator.Pro",
+  "seoBrokersDesc": "Wo ein Konto eröffnen: Gesellschaft, Aufsicht und Lizenz. Affiliate-Links offengelegt.",
   "ichiVisKijun": "Kijun (langsam, 26)",
   "ichiVisChikou": "Chikou (aktueller Kurs, 26 Kerzen zurück)",
   "ichiVisCloudLegend": "Wolke: grün = bullisch · rot = bärisch",

@@ -1,5 +1,12 @@
 export default {
   "ichiVisTenkan": "転換線 Tenkan（速い、9）",
+  "brokersTitle": "ブローカー",
+  "brokersIntro": "ここで計算した商品を実際に取引する場合の口座開設先です。検証できること——契約する法人、その監督当局、ライセンス番号——だけを掲載し、順位付けはしません。「最良」と言うには、当方が測定していない手数料データが必要になるからです。",
+  "brokersAfiliacion": "これらはアフィリエイトリンクです。ここから口座を開設された場合、当方はブローカーから手数料を受け取ります。お客様の支払額は変わらず、掲載内容にも影響しません。EUで認可された法人のみを掲載します。",
+  "brokersAbrirCuenta": "ブローカーへ",
+  "brokersVacio": "まだ掲載しているブローカーはありません。EUで認可され、かつリスク警告が最新である法人のみを掲載しており、現時点で両方を満たすものはありません。埋めるより空のままにします。",
+  "seoBrokersTitle": "ブローカー · TradingCalculator.Pro",
+  "seoBrokersDesc": "口座開設先：法人、監督当局、ライセンス。アフィリエイトリンクを明示。",
   "ichiVisKijun": "基準線 Kijun（遅い、26）",
   "ichiVisChikou": "遅行線 Chikou（現在値を26本前に）",
   "ichiVisCloudLegend": "雲：緑＝強気 · 赤＝弱気",

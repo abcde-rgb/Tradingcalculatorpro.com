@@ -181,5 +181,44 @@ def test_pendientes_dice_exactamente_que_falta(monkeypatch):
     assert "porcentaje de pérdidas" in faltas["ibkr"]
 
 
+
+# ══════════════════════════════════════════════════════════════════════════
+# La ruta pública que consume la pantalla
+# ══════════════════════════════════════════════════════════════════════════
+@pytest.mark.asyncio
+async def test_la_ruta_no_publica_brokers_que_no_cumplen(monkeypatch):
+    """La pantalla no puede enseñar lo que no recibe: el filtro está aquí.
+
+    Si esto devolviera la lista entera y dejara filtrar a la plantilla, bastaría
+    un `.map()` sin condición en un componente nuevo para publicar un bróker sin
+    autorización.
+    """
+    os.environ.setdefault("ENVIRONMENT", "development")
+    os.environ.setdefault("JWT_SECRET", "test-only-secret")
+    import server
+
+    for b in br.BROKERS:
+        monkeypatch.delenv(f"BROKER_REF_{b.id.upper()}", raising=False)
+    r = await server.listar_brokers()
+    assert r["brokers"] == []
+    assert r["afiliacion"] is True, "la relación comercial se declara siempre"
+
+
+@pytest.mark.asyncio
+async def test_un_broker_completo_sale_con_su_advertencia(monkeypatch):
+    """El control: si nada saliera nunca, el test de arriba pasaría vacío."""
+    import server
+
+    completo = _broker(id="axi", nombre="Axi")
+    monkeypatch.setattr(br, "publicables", lambda *a, **k: [completo])
+    monkeypatch.setenv("BROKER_REF_AXI", "https://ejemplo.test/?ref=abc")
+
+    r = await server.listar_brokers()
+    assert len(r["brokers"]) == 1
+    fila = r["brokers"][0]
+    assert fila["url"] == "https://ejemplo.test/?ref=abc"
+    assert fila["entidad"] and fila["regulador"] and fila["licencia"]
+    assert "70 %" in fila["advertencia"], fila["advertencia"]
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))

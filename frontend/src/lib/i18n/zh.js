@@ -1,5 +1,12 @@
 export default {
   "ichiVisTenkan": "转换线 Tenkan（快，9）",
+  "brokersTitle": "券商",
+  "brokersIntro": "如果你交易在这里计算的产品，可以在哪里开户。我们只发布可核实的内容——签约的法律实体、监管机构及牌照编号——而不是排行榜：说谁「最好」需要我们尚未测量的费用数据。",
+  "brokersAfiliacion": "这些是联盟链接：若你通过它们开户，我们会从券商获得佣金。这不会改变你支付的费用，也不影响你在此处能读到的内容。我们只链接在欧盟获得授权的实体。",
+  "brokersAbrirCuenta": "前往券商",
+  "brokersVacio": "此处尚未列出任何券商。我们只链接在欧盟获得授权且风险警示为最新的实体，目前没有一家同时满足这两项。宁可留空，也不填充。",
+  "seoBrokersTitle": "券商 · TradingCalculator.Pro",
+  "seoBrokersDesc": "在哪里开户：实体、监管机构与牌照。联盟链接已披露。",
   "ichiVisKijun": "基准线 Kijun（慢，26）",
   "ichiVisChikou": "迟行线 Chikou（当前价，后移26根）",
   "ichiVisCloudLegend": "云：绿=偏多 · 红=偏空",
