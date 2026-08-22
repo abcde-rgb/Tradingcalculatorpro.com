@@ -83,28 +83,41 @@ def test_el_recorte_no_muerde_lo_que_cabe():
 # ══════════════════════════════════════════════════════════════════════════
 SERVER = pathlib.Path(__file__).resolve().parent.parent / "server.py"
 
-# Un f-string de logging que interpola CUALQUIER identificador a pelo.
-# `{log_safe(sym)}` no casa, que es justo la diferencia que se persigue.
+# LA REGLA: en un f-string de logging, todo `{...}` tiene que ser `log_safe(...)`.
 #
-# ⚠️ Esta regla la he tenido que corregir DOS veces, y la lección está en el
-# patrón de los dos fallos, no en cada uno:
+# ⚠️ La he corregido TRES veces, y lo que enseña es el patrón, no cada fallo.
+# Las tres veces la encontró CodeQL, no yo, y las tres veces mi regla dio verde:
 #
-#   v1 — miraba `sym|symbol|interval`. Verde con el agujero abierto: yo saneaba
-#        el símbolo y dejaba `{e}` al lado. Un mensaje de excepción es dato
-#        externo por definición —lo redacta una librería o la respuesta de un
-#        proveedor, y arrastra dentro el valor que le pasaste—, así que el salto
-#        de línea entraba igual. Comprobado: la línea salía partida en dos y la
-#        segunda era una entrada de log falsa.
-#   v2 — añadí los nombres de excepción. Verde otra vez, y CodeQL encontró
-#        `{cand}` (un símbolo candidato) en la línea 3218: no estaba en la lista.
+#   v1  miraba `sym|symbol|interval`
+#       → yo saneaba el símbolo y dejaba `{e}` crudo al lado. Un mensaje de
+#         excepción es dato externo por definición: lo redacta una librería o la
+#         respuesta de un proveedor y arrastra dentro el valor que le pasaste.
+#         Comprobado: la línea salía partida en dos, y la segunda era una
+#         entrada de log falsa.
+#   v2  añadió los nombres típicos de excepción
+#       → se le escapó `{cand}`, un símbolo candidato que no estaba en la lista.
+#   v3  cualquier IDENTIFICADOR suelto, sin lista
+#       → se le escapó `{user['id']}` y `{request.url.path}`, porque no son
+#         identificadores sueltos sino un subíndice y una cadena de atributos.
 #
-# El fallo no era la lista: era TENER una lista. Una lista negra siempre tiene
-# un punto ciego y lo descubre otro. Así que la regla se invierte: ninguna
-# interpolación suelta en un log, sea cual sea el nombre. Envolver un entero en
-# `log_safe()` no cuesta nada; olvidarse de uno que venía de fuera cuesta una
-# entrada de log falsificada.
-CRUDO = re.compile(
-    r'logging\.\w+\(\s*f["\'][^"\']*\{\s*[A-Za-z_][A-Za-z0-9_]*\s*[}!:]')
+# Las tres versiones describían una FORMA («qué nombres», «qué sintaxis») y las
+# tres tenían un hueco fuera de esa forma. Ésta describe la propiedad que de
+# verdad importa —que el valor pase por el saneador— y no deja hueco: da igual
+# si dentro hay un nombre, un atributo, un subíndice o una llamada.
+DENTRO = re.compile(r"\{([^{}]+)\}")
+ES_LOG = re.compile(r'logging\.\w+\(\s*f["\']')
+
+
+def interpolaciones_crudas(linea):
+    """Los `{...}` de esta línea que NO pasan por log_safe(). Vacío si es sana."""
+    if not ES_LOG.search(linea):
+        return []
+    fuera = []
+    for m in DENTRO.finditer(linea):
+        nucleo = m.group(1).split("!")[0].split(":")[0].strip()
+        if not nucleo.startswith("log_safe("):
+            fuera.append(m.group(0))
+    return fuera
 
 
 def test_ninguna_linea_de_log_mete_un_simbolo_crudo():
@@ -115,40 +128,64 @@ def test_ninguna_linea_de_log_mete_un_simbolo_crudo():
     todas, y sobre todo mira las que aún no existen.
     """
     ofensores = [
-        f"server.py:{n}: {linea.strip()}"
+        f"server.py:{n}: {crudas} en  {linea.strip()}"
         for n, linea in enumerate(SERVER.read_text().splitlines(), 1)
-        if CRUDO.search(linea)
+        for crudas in [interpolaciones_crudas(linea)]
+        if crudas
     ]
     assert not ofensores, (
         "estas líneas dejan que un valor de fuera escriba en el log; "
         "envuélvelo en log_safe(...):\n  " + "\n  ".join(ofensores))
 
 
-def test_la_regla_no_es_decorativa():
-    """El control: la expresión TIENE que cazar el patrón malo.
+@pytest.mark.parametrize("linea, motivo", [
+    ('logging.error(f"Level odds error for {sym}: {e}")',
+     "el caso original: identificador suelto"),
+    ('logging.warning(f"x {symbol} y")', "identificador en medio del texto"),
+    ('logging.info(f"{interval}")', "la línea entera es una interpolación"),
+    # v1 → el símbolo saneado y la excepción cruda al lado. Media línea limpia
+    # no sirve de nada: el salto entra igual por `{e}`.
+    ('logging.error(f"Level odds error for {log_safe(sym)}: {e}")',
+     "v1: símbolo saneado, excepción cruda"),
+    # v2 → un nombre que no estaba en ninguna lista.
+    ('logging.warning(f"yfinance OHLC for {cand}: {log_safe(e)}")',
+     "v2: nombre fuera de la lista"),
+    ('logging.warning(f"{cualquier_nombre_que_no_existia_ayer}")',
+     "v2: un nombre que aún no se ha inventado"),
+    # v3 → ni un subíndice ni una cadena de atributos son identificadores.
+    ('logging.info(f"user={user[\'id\']}")', "v3: subíndice"),
+    ('logging.exception(f"on {request.method} {request.url.path}")',
+     "v3: cadena de atributos"),
+    ('logging.warning(f"skipping {pos.get(\'id\')}")', "v3: llamada a método"),
+    # Y una que ninguna versión anterior habría mirado: saneado a medias dentro
+    # de una especificación de formato.
+    ('logging.info(f"{valor:>10}")', "con especificación de formato"),
+])
+def test_la_regla_caza_todo_lo_que_se_le_escapo_alguna_vez(linea, motivo):
+    """El control, con los cuatro casos que me pillaron, uno por versión.
 
-    Sin esto, un regex que no case con nada pasaría el test de arriba para
-    siempre y en verde. Este repositorio ya ha tenido varias guardas así.
+    Sin esto, una regla que no case con nada pasaría el test de arriba para
+    siempre y en verde. Este repositorio ya ha tenido varias guardas así — y
+    esta regla concreta ya dio verde tres veces con el agujero abierto.
     """
-    assert CRUDO.search('        logging.error(f"Level odds error for {sym}: {e}")')
-    assert CRUDO.search('logging.warning(f"x {symbol} y")')
-    assert CRUDO.search('logging.info(f"{interval}")')
+    assert interpolaciones_crudas(linea), motivo
 
-    # El caso que de verdad importa, y con el que este control me pilló: el
-    # SÍMBOLO saneado y la EXCEPCIÓN cruda al lado. Media línea limpia no sirve
-    # de nada — el salto de línea entra igual por `{e}` — y la regla tiene que
-    # seguir cazándolo.
-    assert CRUDO.search('logging.error(f"Level odds error for {log_safe(sym)}: {e}")')
 
-    # Y el que se le escapó a la v2: un nombre que no está en ninguna lista.
-    # Este es el que justifica haber tirado la lista entera.
-    assert CRUDO.search('logging.warning(f"yfinance OHLC for {cand}: {log_safe(e)}")')
-    assert CRUDO.search('logging.warning(f"{cualquier_nombre_nuevo}")')
+@pytest.mark.parametrize("linea", [
+    'logging.error(f"Level odds error for {log_safe(sym)}: {log_safe(e)}")',
+    'logging.info(f"user={log_safe(user[\'id\'])}")',
+    'logging.exception(f"on {log_safe(request.method)} {log_safe(request.url.path)}")',
+    'logging.info(f"{log_safe(valor):>10}")',
+    'logging.error(f"algo sin variables")',
+    'print(f"esto no es logging {sym}")',
+])
+def test_la_regla_no_grita_con_lo_que_esta_bien(linea):
+    """La otra mitad: una regla que salta con todo tampoco verifica nada.
 
-    # Y lo que NO debe cazar: la versión saneada ENTERA.
-    assert not CRUDO.search(
-        'logging.error(f"Level odds error for {log_safe(sym)}: {log_safe(e)}")')
-    assert not CRUDO.search('logging.error(f"algo sin variables")')
+    Se desactiva a la semana y deja de proteger, que es la misma nada por otro
+    camino. Lo saneado entero —y lo que ni siquiera es un log— tiene que pasar.
+    """
+    assert not interpolaciones_crudas(linea)
 
 
 if __name__ == "__main__":

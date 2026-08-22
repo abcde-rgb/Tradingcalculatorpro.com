@@ -1272,7 +1272,7 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
     from fastapi.responses import JSONResponse
     if isinstance(exc, HTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-    logging.exception(f"[500] Unhandled exception on {request.method} {request.url.path}")
+    logging.exception(f"[500] Unhandled exception on {log_safe(request.method)} {log_safe(request.url.path)}")
     return JSONResponse(
         status_code=500,
         content={"detail": "Error interno del servidor. Inténtalo de nuevo o contacta soporte."},
@@ -4473,7 +4473,7 @@ async def paypal_capture_order(
     except Exception as _e:
         logging.warning(f"[paypal] confirmation email failed: {log_safe(_e)}")
 
-    logging.info(f"[paypal] subscription activated: user={user['id']} plan={log_safe(plan_id)} order={log_safe(order_id)}")
+    logging.info(f"[paypal] subscription activated: user={log_safe(user['id'])} plan={log_safe(plan_id)} order={log_safe(order_id)}")
     return {
         "status": "paid",
         "plan_id": plan_id,
@@ -6259,7 +6259,7 @@ async def portfolio_greeks(user=Depends(get_current_user)):
                 "expiration": pos.get("expiration"),
             })
         except Exception as e:
-            logging.warning(f"skipping position {pos.get('id')} in aggregation: {log_safe(e)}")
+            logging.warning(f"skipping position {log_safe(pos.get('id'))} in aggregation: {log_safe(e)}")
     return {
         "aggregated": {k: round(v, 4) for k, v in agg.items()},
         "positionCount": len(positions),
