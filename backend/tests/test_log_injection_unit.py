@@ -78,6 +78,22 @@ def test_el_recorte_no_muerde_lo_que_cabe():
     assert not log_safe("A" * 200).endswith("…")
 
 
+def test_los_replace_explicitos_no_cambian_nada_de_lo_que_sale():
+    """Los `.replace()` de `\\r` y `\\n` son para que CodeQL vea el saneador.
+
+    Están porque su análisis de taint modela `str.replace` y no modela un
+    `isprintable()` dentro de un generador. Esta prueba fija que sean lo que
+    dicen ser —redundantes— comparando contra el barrido a secas: si alguien
+    los convirtiera en la ÚNICA defensa, `\\x1b` y U+2028 pasarían y esto lo
+    diría.
+    """
+    def solo_barrido(v):
+        return "".join(c if c.isprintable() else "?" for c in str(v))
+
+    for caso in ("AAPL", "a\nb", "a\r\nb", "a\x1bb", "a\x00b", "a b", "€", ""):
+        assert log_safe(caso) == solo_barrido(caso), repr(caso)
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # La regla — para que el agujero no vuelva por otra ruta
 # ══════════════════════════════════════════════════════════════════════════

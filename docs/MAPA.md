@@ -15,10 +15,10 @@
 | | |
 |---|---:|
 | Módulos del backend | 33 |
-| Líneas de Python (backend) | 25,285 |
+| Líneas de Python (backend) | 25,296 |
 | Rutas declaradas | 197 |
 | **Rutas sin consumidor en el frontend** | **34** |
-| Ficheros de test · funciones de test | 55 · 891 |
+| Ficheros de test · funciones de test | 55 · 892 |
 | Rutas del frontend (`App.js`) | 28 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,646 |
 
@@ -111,7 +111,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `nowpayments.py` | 182 |  | NOWPayments — crypto payment gateway integration (invoice + IPN helpers). |
 | `migrate_trades_schema.py` | 169 |  | Migra los documentos del diario legado (camelCase) al esquema canónico. |
 | `ecb_rates.py` | 145 |  | Tipos de cambio del Banco Central Europeo. |
-| `log_seguro.py` | 44 |  | Un valor de fuera, apto para meter en una línea de log. |
+| `log_seguro.py` | 55 |  | Un valor de fuera, apto para meter en una línea de log. |
 
 ## Rutas de la API
 

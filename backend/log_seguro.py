@@ -37,7 +37,18 @@ def log_safe(value: Any, limite: int = LIMITE_POR_DEFECTO) -> str:
     Se sustituye cualquier carácter no imprimible por `?`, se recorta a `limite`
     y se marca el recorte. No se descarta el valor: el símbolo que provocó el
     error es justo lo que uno quiere ver en el log.
+
+    ⚠️ Los dos `.replace()` de abajo son REDUNDANTES para el comportamiento: el
+    barrido de `isprintable()` ya se lleva `\\r` y `\\n` por delante. Están porque
+    el análisis de taint de CodeQL sí modela `str.replace` y NO modela un
+    `isprintable()` dentro de un generador, así que sin ellos marcaba como *log
+    injection* las 17 llamadas que pasan justamente por aquí. No es maquillaje
+    para el escáner: quitarlos no cambia una sola salida de esta función, y
+    ponerlos hace que la intención sea legible para una persona y para una
+    herramienta. La garantía de verdad sigue siendo el barrido, que además cubre
+    lo que un `replace` de saltos de línea no ve — `\\x1b` (secuencias ANSI),
+    `\\x00` y el separador de línea Unicode U+2028.
     """
-    texto = str(value)
+    texto = str(value).replace("\r", "?").replace("\n", "?")
     limpio = "".join(c if c.isprintable() else "?" for c in texto)
     return limpio[:limite] + "…" if len(limpio) > limite else limpio
