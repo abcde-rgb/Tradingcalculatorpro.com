@@ -2142,6 +2142,8 @@ export default {
   "listoParaOperar_98196f": "Prêt à trader ?",
   "entiendeEstaOperacion_11df0f": "Comprendre cette opération",
   "precioEnVivoRefrescoCada_73be80": "Prix en direct (rafraîchissement toutes les 15s)",
+  "precioDesfasado": "Non actualisé",
+  "precioDesfasadoAviso": "Ce prix n'a pas pu être actualisé : c'est la dernière valeur valide connue, pas la cotation actuelle. Vérifie-le avant de dimensionner une position.",
   "noSeEncontraronResultadosPara_035a76": "Aucun résultat trouvé pour \"",
   "pulsaEnterParaBuscarDe_12c630": "Appuyez sur Entrée pour rechercher quand même",
   "cerrar_92eb39": "Fermer",

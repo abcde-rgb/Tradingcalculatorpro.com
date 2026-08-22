@@ -2142,6 +2142,8 @@ export default {
   "listoParaOperar_98196f": "Готовы торговать?",
   "entiendeEstaOperacion_11df0f": "Разберитесь в сделке",
   "precioEnVivoRefrescoCada_73be80": "Цена в реальном времени (обновление каждые 15с)",
+  "precioDesfasado": "Не обновлено",
+  "precioDesfasadoAviso": "Эту цену не удалось обновить: это последнее известное корректное значение, а не текущая котировка. Проверьте её перед расчётом размера позиции.",
   "noSeEncontraronResultadosPara_035a76": "Результатов не найдено для \"",
   "pulsaEnterParaBuscarDe_12c630": "Нажмите Enter для поиска в любом случае",
   "cerrar_92eb39": "Закрыть",

@@ -2183,6 +2183,8 @@ export default {
   "listoParaOperar_98196f": "准备好交易了吗?",
   "entiendeEstaOperacion_11df0f": "理解此交易",
   "precioEnVivoRefrescoCada_73be80": "实时价格(每15秒刷新)",
+  "precioDesfasado": "未刷新",
+  "precioDesfasadoAviso": "此价格未能刷新：这是最后一次已知的有效价格，而非当前报价。在计算仓位规模前请先核实。",
   "noSeEncontraronResultadosPara_035a76": "未找到相关结果 \"",
   "pulsaEnterParaBuscarDe_12c630": "按Enter键继续搜索",
   "cerrar_92eb39": "关闭",

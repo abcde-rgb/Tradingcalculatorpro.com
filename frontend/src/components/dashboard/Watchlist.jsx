@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import EmptyState from '@/components/common/EmptyState';
+import { edadLegible } from '@/components/common/EstadoPrecio';
 import { useTranslation } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -151,7 +152,22 @@ export const Watchlist = () => {
               >
                 <div className="min-w-0">
                   <p className="text-sm font-mono font-bold leading-tight">{sym}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{q?.name || ''}</p>
+                  {/* Un precio que no se pudo refrescar se dice, aquí también:
+                      la watchlist se mira de un vistazo y es donde más fácil
+                      resulta tomar un valor de ayer por el de ahora. */}
+                  {q?.stale ? (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-500"
+                          title={t('precioDesfasadoAviso')}
+                          data-testid={`watchlist-stale-${sym}`}>
+                      <span className="inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+                      {t('precioDesfasado')}
+                      {edadLegible(q?.as_of) && (
+                        <span className="font-mono tabular-nums opacity-80">· {edadLegible(q?.as_of)}</span>
+                      )}
+                    </span>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground truncate">{q?.name || ''}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="text-right">

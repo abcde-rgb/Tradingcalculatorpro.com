@@ -2303,6 +2303,8 @@ export default {
   "listoParaOperar_98196f": "¿Listo para operar?",
   "entiendeEstaOperacion_11df0f": "Entiende esta operación",
   "precioEnVivoRefrescoCada_73be80": "Precio en vivo (refresco cada 15s)",
+  "precioDesfasado": "Sin actualizar",
+  "precioDesfasadoAviso": "Este precio no se ha podido refrescar: es el último valor bueno conocido, no la cotización de ahora. Compruébalo antes de dimensionar una posición.",
   "noSeEncontraronResultadosPara_035a76": "No se encontraron resultados para \"",
   "pulsaEnterParaBuscarDe_12c630": "Pulsa Enter para buscar de todos modos",
   "cerrar_92eb39": "Cerrar",

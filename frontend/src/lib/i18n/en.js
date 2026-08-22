@@ -2059,6 +2059,8 @@ export default {
   "listoParaOperar_98196f": "Ready to trade?",
   "entiendeEstaOperacion_11df0f": "Understand this trade",
   "precioEnVivoRefrescoCada_73be80": "Live price (refreshes every 15s)",
+  "precioDesfasado": "Not refreshed",
+  "precioDesfasadoAviso": "This price could not be refreshed: it is the last known good value, not the current quote. Check it before sizing a position.",
   "noSeEncontraronResultadosPara_035a76": "No results found for \"",
   "pulsaEnterParaBuscarDe_12c630": "Press Enter to search anyway",
   "cerrar_92eb39": "Close",

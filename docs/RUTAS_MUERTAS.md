@@ -17,10 +17,10 @@ la quite de la tabla quien la conectó, en vez de que la lista se pudra.
 
 ## Lo que hay debajo del número
 
-Tres cosas que sólo se ven leyendo las rutas una a una — la tercera ya
-resuelta, y las otras dos en marcha:
+Tres cosas que sólo se ven leyendo las rutas una a una. La 1 y la 3 ya están
+resueltas; la 2 sigue abierta y es dinero.
 
-**1. La capa de failover de precios está construida y desconectada.**
+**1. La capa de failover de precios estaba construida y desconectada.** *(resuelto)*
 `market_data.py` (329 líneas, con cortacircuitos, cuota por proveedor y
 `stale`/`as_of`) existe para que el producto no dependa de Yahoo. Su propia
 cabecera lo dice: *«the day Yahoo tightens its anti-bot, prices, watchlist,
@@ -30,13 +30,31 @@ price all go dark at once»*. Ese módulo se alcanzaba **sólo** por
 muertas: el punto de fallo que el módulo se escribió para quitar seguía ahí, con
 la solución al lado.
 
-La mitad de diagnóstico ya está conectada —`MarketDataHealthCard` en el panel de
-admin dice qué proveedor responde, cuál tiene el cortacircuito abierto y, sobre
-todo, **si hay o no cadena de reserva**: con `FINNHUB_API_KEY` y
-`TWELVEDATA_API_KEY` sin configurar, la cadena tiene un solo eslabón y el failover
-es teórico. Falta la otra mitad, que es la de verdad: que los precios que ve el
-usuario salgan de `/api/quote/{symbol}` en vez de `/api/stock/{symbol}`, con
-`stale` y `as_of` pintados en la interfaz.
+**Resuelto el 2026-08-22, y no por donde parecía.** Cambiar la URL que llama el
+frontend habría movido el problema: `/api/quote/{symbol}` devuelve precio y
+cierre anterior, y `/api/stock/{symbol}` devuelve además nombre largo, 52
+semanas, sector y volumen formateado, con nombres en camelCase que la interfaz
+ya consume. Lo que hacía falta no era otra URL, era el failover — así que **la
+cadena se enchufó a la ruta viva**: Yahoo sigue siendo el primario (es el único
+con la ficha completa) y la cascada entra **cuando Yahoo no devuelve precio**,
+que es exactamente el caso que antes acababa en un error. Lo heredan de golpe la
+watchlist, las cadenas de opciones, el IV rank, las alertas y todas las
+calculadoras alimentadas por precio.
+
+Con ello van las dos mitades que el módulo exige en su cabecera —*«A price we
+could not refresh is returned with stale=True and as_of. The caller MUST surface
+it»*—: la respuesta arrastra `stale`, `as_of` y `source`, y la interfaz los
+pinta. El «LIVE» verde del panel de opciones estaba **escrito a mano** y se
+pintaba igual con un precio de hace un segundo que con uno de ayer; ahora sale de
+`stock.stale`, y con un precio sin refrescar es ámbar, sin el punto que palpita
+—lo que palpita dice «esto se está actualizando», que es justo lo que no pasa— y
+con la antigüedad al lado.
+
+Y la mitad de diagnóstico ya estaba: `MarketDataHealthCard` en el panel de admin
+dice qué proveedor responde, cuál tiene el cortacircuito abierto y, sobre todo,
+**si hay o no cadena de reserva** — con `FINNHUB_API_KEY` y `TWELVEDATA_API_KEY`
+sin configurar la cascada tiene un solo eslabón y el failover es teórico. Eso es
+ahora una tarea de operaciones, no de código.
 
 **2. El monedero de referidos se llena y no se puede ni ver ni gastar.**
 `credit_referrer_for_payment` está enganchado a los tres caminos de cobro
@@ -90,7 +108,7 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 `CONSTRUIR` — el backend está terminado y lo que falta es la pantalla (G-14).
 `ARREGLAR` — hay que tocar el backend antes de poder enseñarla.
 
-### BORRAR — quedan 6 (8 ya retiradas el 2026-08-22)
+### BORRAR — quedan 7 (8 ya retiradas el 2026-08-22)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
@@ -99,13 +117,13 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 | `GET` | `/api/indices-prices` | BORRAR | `yf.download` directo de seis índices. Mismo motivo. |
 | `GET` | `/api/commodities-prices` | BORRAR | Ídem, con una conversión EUR/USD escrita a mano (`eur_usd = 0.917`) como reserva. |
 | `POST` | `/api/alerts/send-email` | BORRAR | Relé de SendGrid pedido desde el navegador. El aviso de una alerta que salta ya lo manda el poller por `notifications.py`, que es donde tiene que estar. |
+| `GET` | `/api/quote/{symbol}` | BORRAR | Era la única puerta a `market_data.py`, y por eso estaba marcada CONSTRUIR. Ya no lo es: desde el 2026-08-22 la cadena de reserva entra por `/api/stock/{symbol}`, que devuelve lo mismo **más** la ficha completa de Yahoo y con los nombres que la interfaz ya consume. Lo que queda aquí es la forma cruda de `_norm()` sin consumidor. |
 | `GET` | `/api/user-states/list` | BORRAR | «List all saved states for debugging». |
 
-### CONSTRUIR (21)
+### CONSTRUIR (20)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
-| `GET` | `/api/quote/{symbol}` | CONSTRUIR | **La más urgente.** Única puerta a `market_data.py` desde el navegador. Devuelve `stale` y `as_of`, y la UI *debe* pintarlos: enseñar un precio viejo como si fuera de ahora es un problema legal en un sitio de finanzas. |
 | `GET` | `/api/performance/export` | CONSTRUIR | CSV y Excel del diario, con filtros por estado, símbolo y fechas. Un botón. Es lo que más se pide y lo más barato de la lista. |
 | `POST` | `/api/performance/portfolio-risk` | CONSTRUIR | Riesgo de cuenta: calor abierto, correlación y estado de los límites de pérdida (`portfolio_risk.py`). Todo lo demás del diario razona operación a operación; esto es la vista que un prop trader mira primero. |
 | `POST` | `/api/calculate/volatility-size` | CONSTRUIR | Tamaño de posición por ATR. Sin esto, 1R no significa lo mismo entre instrumentos y las estadísticas por R no son comparables. |

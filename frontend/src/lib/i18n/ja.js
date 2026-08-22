@@ -2134,6 +2134,8 @@ export default {
   "listoParaOperar_98196f": "取引を開始しますか?",
   "entiendeEstaOperacion_11df0f": "この取引を理解する",
   "precioEnVivoRefrescoCada_73be80": "リアルタイム価格(15秒毎更新)",
+  "precioDesfasado": "未更新",
+  "precioDesfasadoAviso": "この価格は更新できませんでした。現在の気配値ではなく、最後に取得できた有効な価格です。ポジションサイズを決める前に確認してください。",
   "noSeEncontraronResultadosPara_035a76": "「",
   "pulsaEnterParaBuscarDe_12c630": "Enterキーを押して検索",
   "cerrar_92eb39": "閉じる",

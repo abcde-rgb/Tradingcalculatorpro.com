@@ -2302,6 +2302,8 @@ export default {
   "listoParaOperar_98196f": "Pronto para operar?",
   "entiendeEstaOperacion_11df0f": "Perceba esta operação",
   "precioEnVivoRefrescoCada_73be80": "Preço em direto (atualiza a cada 15s)",
+  "precioDesfasado": "Não atualizado",
+  "precioDesfasadoAviso": "Este preço não pôde ser atualizado: é o último valor válido conhecido, não a cotação atual. Verifique antes de dimensionar uma posição.",
   "noSeEncontraronResultadosPara_035a76": "Não se encontraram resultados para \"",
   "pulsaEnterParaBuscarDe_12c630": "Prima Enter para procurar mesmo assim",
   "cerrar_92eb39": "Fechar",

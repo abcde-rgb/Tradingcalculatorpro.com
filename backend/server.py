@@ -44,6 +44,7 @@ from options_math import (
 )
 from stock_data import (
     COINGECKO_SYMBOL_TO_ID,
+    _get_sector,
     get_stock_data,
     search_tickers,
     generate_expirations,
@@ -4996,13 +4997,79 @@ def _payoff_summary(
     }
 
 
+def quote_a_contrato_stock(quote: Dict[str, Any], symbol: str) -> Dict[str, Any]:
+    """Una cotización de la cadena de reserva, en el contrato de `/api/stock`.
+
+    Los proveedores de reserva dan precio, cierre anterior y poco más. Los
+    campos que sólo trae Yahoo —máximo y mínimo de 52 semanas, dividendo— se
+    quedan en `None`: **no** se rellenan con el precio de hoy ni con cero. Un
+    máximo de 52 semanas igual al precio actual no es «desconocido», es una
+    afirmación concreta y falsa, y el usuario dimensiona posiciones con ella.
+
+    `volume` va formateado como lo espera el frontend ("12.3M"), y "N/A" cuando
+    el proveedor no lo publica — que es lo que pasa con Finnhub.
+    """
+    vol = quote.get("volume")
+    try:
+        vol_txt = f"{float(vol) / 1_000_000:.1f}M" if vol and float(vol) > 0 else "N/A"
+    except (TypeError, ValueError):
+        vol_txt = "N/A"
+    pct = quote.get("change_percent")
+    return {
+        "symbol": quote.get("symbol") or symbol,
+        "name": quote.get("name") or symbol,
+        "price": round(float(quote["price"]), 2),
+        "change": round(float(quote.get("change") or 0.0), 2),
+        "changePercent": round(float(pct), 2) if pct is not None else None,
+        "high52w": None,
+        "low52w": None,
+        "volume": vol_txt,
+        "sector": _get_sector(symbol),
+        "dividendYield": None,
+        # Lo que obliga a la interfaz a no mentir: de dónde salió y si es viejo.
+        "source": quote.get("source"),
+        "stale": bool(quote.get("stale")),
+        "as_of": quote.get("as_of"),
+    }
+
+
 @api_router.get("/stock/{symbol}")
 async def opt_get_stock(symbol: str):
+    """Precio en vivo, con la cadena de reserva detrás.
+
+    Antes esto era Yahoo y nada más: si Yahoo se caía o apretaba su anti-bot, se
+    caían con él los precios, la watchlist, las alertas, las cadenas de opciones,
+    el IV rank y todas las calculadoras alimentadas por precio. `market_data.py`
+    se escribió para quitar ese punto único —tres proveedores, cortacircuitos y
+    último valor bueno conocido— y sólo se alcanzaba por dos rutas que ninguna
+    pantalla llamaba.
+
+    Yahoo sigue siendo el primario porque es el único que trae la ficha completa
+    (52 semanas, nombre largo, volumen). La cadena entra **cuando Yahoo no
+    devuelve precio**, que es justo el caso que antes acababa en un error.
+    """
     try:
         data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
         logging.error(f"Error getting stock data for {log_safe(symbol)}: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+    if data.get("price") is None:
+        try:
+            import market_data
+            quote = await asyncio.to_thread(market_data.get_quote, symbol)
+            if quote.get("price") is not None:
+                logging.info(
+                    f"stock {log_safe(symbol)}: Yahoo sin precio, servido por "
+                    f"{log_safe(quote.get('source'))} (stale={log_safe(quote.get('stale'))})")
+                data = quote_a_contrato_stock(quote, symbol)
+        except Exception as e:  # noqa: BLE001
+            # La reserva es una mejora, no un requisito: si falla, se devuelve
+            # el estado de error honesto de siempre en vez de un 500.
+            logging.warning(f"cadena de reserva falló para {log_safe(symbol)}: {log_safe(e)}")
+
+    # Un precio que no se pudo refrescar SIEMPRE se marca, venga de donde venga.
+    data.setdefault("stale", False)
     try:
         now = datetime.now(timezone.utc)
         await db.stock_cache.update_one(

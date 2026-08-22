@@ -2142,6 +2142,8 @@ export default {
   "listoParaOperar_98196f": "جاهز للتداول؟",
   "entiendeEstaOperacion_11df0f": "افهم هذه العملية",
   "precioEnVivoRefrescoCada_73be80": "السعر المباشر (تحديث كل 15 ثانية)",
+  "precioDesfasado": "غير محدَّث",
+  "precioDesfasadoAviso": "تعذّر تحديث هذا السعر: إنه آخر قيمة صحيحة معروفة، وليس التسعيرة الحالية. تحقّق منه قبل تحديد حجم الصفقة.",
   "noSeEncontraronResultadosPara_035a76": "لم يتم العثور على نتائج لـ \"",
   "pulsaEnterParaBuscarDe_12c630": "اضغط Enter للبحث على أي حال",
   "cerrar_92eb39": "إغلاق",

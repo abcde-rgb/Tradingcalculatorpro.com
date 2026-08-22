@@ -207,8 +207,12 @@ def get_stock_data(symbol: str) -> dict:
             "price": round(float(price), 2),
             "change": round(change, 2),
             "changePercent": round(change_pct, 2),
-            "high52w": round(float(meta.get("fiftyTwoWeekHigh") or price), 2),
-            "low52w": round(float(meta.get("fiftyTwoWeekLow") or price), 2),
+            # `or price` fabricaba el dato: un máximo de 52 semanas igual al
+            # precio de hoy no es «no lo sé», es una afirmación concreta y falsa
+            # —dice que el valor nunca ha estado más alto en un año—. Cuando
+            # Yahoo no lo publica (índices, muchos futuros, cripto), va None.
+            "high52w": _redondea_o_nada(meta.get("fiftyTwoWeekHigh")),
+            "low52w": _redondea_o_nada(meta.get("fiftyTwoWeekLow")),
             "volume": f"{vol / 1_000_000:.1f}M" if vol and vol > 0 else "N/A",
             "sector": _get_sector(symbol),
             "dividendYield": 0.0,
@@ -272,6 +276,18 @@ def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> 
     except Exception as e:  # noqa: BLE001
         logger.error(f"Error fetching OHLC history for {symbol}: {e}")
         return []
+
+
+def _redondea_o_nada(valor) -> Optional[float]:
+    """El número redondeado, o None si no hay número. Nunca un sustituto.
+
+    Lo que no se puede saber va como None, no como 0 ni como «lo más parecido
+    que tenía a mano» — es la regla 2 de honestidad numérica de este producto.
+    """
+    try:
+        return round(float(valor), 2)
+    except (TypeError, ValueError):
+        return None
 
 
 def _get_fallback_stock_data(symbol: str) -> dict:
