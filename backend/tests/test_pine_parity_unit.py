@@ -119,7 +119,7 @@ def _casi(a, b, tol=1e-9):
 
 def _reads(filas, strength=2):
     backend = detect_structure(filas, strength=strength)
-    twin = pine.runScan(_ventana(filas), strength, pine.NA, 2, [], False, "", 0)
+    twin = pine.runScan(_ventana(filas), strength, pine.NA, 2, [], False, "", 0, True, True)
     return backend, twin
 
 
@@ -287,7 +287,7 @@ def test_sin_comprobar_no_es_cero():
 
 def test_la_confluencia_marca_niveles_cuando_hay_escalon_superior():
     filas = CASOS["diario_tendencial"]
-    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
     # El "escalón superior" es la misma serie remuestreada de 5 en 5 velas:
     # basta para que existan niveles cerca de los del gráfico base.
     superior = []
@@ -303,7 +303,7 @@ def test_la_confluencia_marca_niveles_cuando_hay_escalon_superior():
             "close": trozo[-1]["close"], "volume": sum(r["volume"] for r in trozo),
         })
     htf = pine.scanLevels(_ventana(superior), 2, 2)
-    con_confluencia = pine.runScan(_ventana(filas), 2, pine.NA, 2, htf, True, "", 0)
+    con_confluencia = pine.runScan(_ventana(filas), 2, pine.NA, 2, htf, True, "", 0, True, True)
     assert len(htf) > 0
     assert not math.isnan(con_confluencia.counts.confluent)
     assert con_confluencia.counts.confluent >= 0
@@ -321,7 +321,7 @@ def test_una_serie_demasiado_corta_no_es_una_lectura():
     """
     filas = _serie(97, 4)
     backend = detect_structure(filas, strength=2)
-    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
     assert backend["currentPrice"] is None and math.isnan(twin.referencePrice)
     assert backend["tolerancePct"] is None and math.isnan(twin.tolerance)
     assert backend["atr"] is None and math.isnan(twin.atr)
@@ -335,7 +335,7 @@ def test_una_serie_demasiado_corta_no_es_una_lectura():
 
 def test_la_tolerancia_manual_se_respeta():
     filas = CASOS["diario_tendencial"]
-    twin = pine.runScan(_ventana(filas), 2, 0.008, 2, [], False, "", 0)
+    twin = pine.runScan(_ventana(filas), 2, 0.008, 2, [], False, "", 0, True, True)
     assert _casi(twin.tolerance, 0.008)
     backend = detect_structure(filas, strength=2, tolerance=0.008)
     assert [l.price for l in twin.levels] == [l["price"] for l in backend["levels"]]
@@ -411,7 +411,7 @@ def test_un_id_desconocido_no_inventa_metadatos():
 def test_el_cruce_patron_nivel_solo_marca_niveles_confirmados():
     filas = CASOS["diario_tendencial"]
     w = _ventana(filas)
-    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0)
+    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True)
     confirmados = [l for l in sc.levels if l.confirmed]
     for p in sc.patterns:
         if math.isnan(p.levelPrice):
@@ -430,7 +430,7 @@ def test_los_patrones_no_tocan_la_lectura_portada():
     """Añadir patrones no puede mover un solo número del escáner original."""
     filas = CASOS["diario_volatil"]
     backend = detect_structure(filas, strength=2)
-    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0)
+    twin = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
     assert twin.counts.levels == backend["counts"]["levels"]
     assert twin.counts.bos == backend["counts"]["bos"]
     assert [round(l.score) for l in twin.levels] == [
@@ -525,3 +525,214 @@ def test_la_tendencia_de_otra_ventana_usa_las_mismas_reglas():
     filas = CASOS["diario_tendencial"]
     w = _ventana(filas)
     assert pine.trendOf(w, 2) == label_structure(detect_swings(filas, strength=2))["trend"]
+
+
+# ---------------------------------------------------------------------------
+# §9b–§9d  Invalidación, reacciones y presión — AÑADIDOS
+# ---------------------------------------------------------------------------
+# No hay original contra el que compararlos: no están en `price_action.py`. Se
+# comprueban contra sí mismos y contra la puntuación de los niveles, que sí está
+# verificada. Un añadido sin comprobación es exactamente lo que este repositorio
+# no acepta, aunque no rompa la paridad.
+
+@pytest.mark.parametrize("nombre", sorted(CASOS))
+def test_las_reacciones_cuadran_con_la_puntuacion_del_nivel(nombre):
+    """La lista de rechazos y rupturas sale de la MISMA pasada que puntúa el
+    nivel, así que sus recuentos tienen que coincidir con `visits/held/broken`.
+
+    Es la comprobación que impide que la capa nueva se desincronice de la
+    portada sin que nadie se entere: si alguien toca la definición de visita en
+    un sitio y no en el otro, esto salta.
+    """
+    filas = CASOS[nombre]
+    w = _ventana(filas)
+    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True)
+    for li, lv in enumerate(sc.levels):
+        propias = [rx for rx in sc.reactions if rx.levelIdx == li]
+        assert len(propias) == lv.visits, f"{nombre}: nivel {lv.price}"
+        assert sum(1 for rx in propias if rx.outcome == "rechazo") == lv.held
+        assert sum(1 for rx in propias if rx.outcome == "ruptura") == lv.broken
+        assert sum(1 for rx in propias if rx.outcome == "enCurso") == (1 if lv.inPlay else 0)
+    assert sc.counts.rejections == sum(1 for rx in sc.reactions if rx.outcome == "rechazo")
+    assert sc.counts.zoneBreaks == sum(1 for rx in sc.reactions if rx.outcome == "ruptura")
+
+
+def test_los_fixtures_producen_rechazos_y_rupturas_de_verdad():
+    """Sin esto, el test de arriba pasaría comparando ceros con ceros."""
+    total_r = total_b = 0
+    for filas in CASOS.values():
+        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+        total_r += sc.counts.rejections
+        total_b += sc.counts.zoneBreaks
+    assert total_r > 20, total_r
+    assert total_b > 20, total_b
+
+
+@pytest.mark.parametrize("nombre", sorted(CASOS))
+def test_una_reaccion_describe_lo_que_de_verdad_hizo_el_precio(nombre):
+    """Cada visita tiene que tocar la banda en todas sus velas, y salir por
+    donde dice que salió."""
+    filas = CASOS[nombre]
+    w = _ventana(filas)
+    sc = pine.runScan(w, 2, pine.NA, 2, [], False, "", 0, True, True)
+    tol = sc.tolerance
+    for rx in sc.reactions:
+        low = rx.levelPrice * (1 - tol)
+        high = rx.levelPrice * (1 + tol)
+        assert rx.startIdx <= rx.endIdx
+        for i in range(rx.startIdx, rx.endIdx + 1):
+            assert w.h[i] >= low and w.l[i] <= high, f"{nombre}: vela {i} fuera de la banda"
+        if rx.outcome in ("rechazo", "ruptura"):
+            # La vela siguiente ya no toca: por eso se cerró la visita ahí.
+            assert rx.endIdx + 1 < len(w.c)
+            assert not (w.h[rx.endIdx + 1] >= low and w.l[rx.endIdx + 1] <= high)
+        if rx.outcome == "rechazo":
+            assert rx.exitSide == rx.entrySide != 0
+        if rx.outcome == "ruptura":
+            assert rx.exitSide == -rx.entrySide and rx.entrySide != 0
+
+
+# --- invalidación de estructura --------------------------------------------
+def test_una_estructura_se_invalida_cuando_pierde_el_nivel_que_la_sostenia():
+    """Ruptura alcista, y después un cierre por debajo del mínimo que la lanzó."""
+    w = _ventana(SERIE_PIVOTE_QUE_TAPA)
+    swings = pine.detectSwings(w, 2)
+    ev = pine.detectEvents(w, pine.detectSwings(w, 2), 2)
+    pine.markInvalidations(w, ev, swings)
+    assert len(ev) == 1
+    e = ev[0]
+    # El nivel protegido es el swing BAJO más reciente anterior a la ruptura.
+    bajos = [s for s in swings if not s.isHigh and s.idx < e.idx]
+    assert bajos, "el fixture debería tener un mínimo antes de la ruptura"
+    assert _casi(e.invalidationPrice, bajos[-1].price)
+    # En esta serie el precio no vuelve a perder ese mínimo.
+    assert e.invalidated is False and math.isnan(e.invalidatedAt)
+
+
+def test_la_invalidacion_usa_el_cierre_y_no_la_mecha():
+    """Una mecha que perfora y vuelve es un barrido, no una invalidación."""
+    # Mínimo protegido en 93 (barra 10-11). Se añade una vela cuya MECHA baja a
+    # 90 pero cierra en 96: no puede invalidar nada.
+    filas = list(SERIE_PIVOTE_QUE_TAPA)
+    filas.append({"date": "b-17", "ts": filas[-1]["ts"] + 86400, "open": 99,
+                  "high": 100, "low": 90, "close": 96, "volume": 0})
+    w = _ventana(filas)
+    swings = pine.detectSwings(w, 2)
+    ev = pine.detectEvents(w, pine.detectSwings(w, 2), 2)
+    pine.markInvalidations(w, ev, swings)
+    assert ev and ev[0].invalidated is False
+    # Y ahora una que CIERRA por debajo: esa sí.
+    filas.append({"date": "b-18", "ts": filas[-1]["ts"] + 86400, "open": 96,
+                  "high": 97, "low": 91, "close": 92, "volume": 0})
+    w2 = _ventana(filas)
+    swings2 = pine.detectSwings(w2, 2)
+    ev2 = pine.detectEvents(w2, pine.detectSwings(w2, 2), 2)
+    pine.markInvalidations(w2, ev2, swings2)
+    assert ev2 and ev2[0].invalidated is True
+    assert ev2[0].invalidatedAt == len(filas) - 1
+
+
+@pytest.mark.parametrize("nombre", sorted(CASOS))
+def test_la_invalidacion_nunca_mira_hacia_atras(nombre):
+    """El nivel protegido siempre es un pivote ANTERIOR a la ruptura, y la
+    invalidación siempre ocurre DESPUÉS. Lo contrario sería inventar."""
+    filas = CASOS[nombre]
+    w = _ventana(filas)
+    swings = pine.detectSwings(w, 2)
+    ev = pine.detectEvents(w, pine.detectSwings(w, 2), 0)
+    pine.markInvalidations(w, ev, swings)
+    for e in ev:
+        if not math.isnan(e.invalidationPrice):
+            origen = [s for s in swings
+                      if s.idx < e.idx and s.isHigh != e.bullish
+                      and abs(s.price - e.invalidationPrice) < 1e-9]
+            assert origen, f"{nombre}: nivel de invalidación sin pivote que lo respalde"
+        if e.invalidated:
+            assert e.invalidatedAt > e.idx
+
+
+def test_los_fixtures_invalidan_alguna_estructura():
+    total = 0
+    for filas in CASOS.values():
+        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+        total += sc.counts.invalidated
+    assert total > 0, "ningún fixture invalida nada: el test anterior no probaría nada"
+
+
+# --- presión de la zona en curso -------------------------------------------
+def test_la_presion_solo_habla_cuando_el_precio_esta_en_una_zona():
+    for nombre, filas in CASOS.items():
+        sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, True, True)
+        if sc.pressure.active:
+            assert any(l.inPlay for l in sc.levels), nombre
+            assert 0 <= sc.pressure.score <= 100, nombre
+            assert sc.pressure.verdict in ("empuje", "rechazo", "sinDefinir"), nombre
+            assert sc.pressure.barsInside >= 1, nombre
+        else:
+            assert math.isnan(sc.pressure.score), nombre
+            assert sc.pressure.verdict == "sinDefinir", nombre
+
+
+def test_la_presion_distingue_un_rechazo_de_un_empuje():
+    """Dos velas idénticas salvo por dónde cierran dentro de la banda.
+
+    Si las dos dieran el mismo veredicto, la puntuación no estaría midiendo
+    nada — que es la única forma en que un número así engaña.
+    """
+    base = [{"date": f"b{i}", "ts": 1_700_000_000 + i * 86400, "open": 100.0,
+             "high": 100.6, "low": 99.4, "close": 100.0, "volume": 1000.0}
+            for i in range(40)]
+    # El precio viene de ABAJO y ataca una banda alrededor de 101.
+    for i in range(30, 38):
+        base[i] = {**base[i], "open": 99.0, "high": 99.5, "low": 98.5, "close": 99.2}
+
+    def con_ultima(o, h, lo, c):
+        filas = [dict(r) for r in base]
+        filas.append({"date": "ult", "ts": filas[-1]["ts"] + 86400, "open": o,
+                      "high": h, "low": lo, "close": c, "volume": 3000.0})
+        return _ventana(filas)
+
+    lv = pine.Lv(price=100.0, role="resistance", confirmed=True, holdRatePct=pine.NA,
+                 zoneLow=99.5, zoneHigh=100.5, inPlay=True)
+    tol = 0.005
+    # Cierra arriba del todo de la banda, vela grande y de cuerpo: empuje.
+    empuje = pine.zonePressure(con_ultima(99.3, 100.7, 99.3, 100.65), lv, tol, 0.5)
+    # Misma incursión pero devuelta: mecha enorme por arriba y cierre abajo.
+    rechazo = pine.zonePressure(con_ultima(99.9, 100.7, 99.4, 99.55), lv, tol, 0.5)
+    assert empuje.active and rechazo.active
+    assert empuje.score > rechazo.score, (empuje.score, rechazo.score)
+    assert empuje.verdict == "empuje", (empuje.score, empuje.reasons)
+    assert rechazo.verdict == "rechazo", (rechazo.score, rechazo.reasons)
+    assert "mechaEnContra" in rechazo.reasons
+
+
+def test_la_presion_publica_todos_sus_ingredientes():
+    """Una puntuación sin sus ingredientes es una opinión con aspecto de dato."""
+    base = [{"date": f"b{i}", "ts": 1_700_000_000 + i * 86400, "open": 99.0,
+             "high": 99.5, "low": 98.5, "close": 99.2, "volume": 1000.0}
+            for i in range(40)]
+    base.append({"date": "ult", "ts": base[-1]["ts"] + 86400, "open": 99.3,
+                 "high": 100.7, "low": 99.3, "close": 100.65, "volume": 3000.0})
+    lv = pine.Lv(price=100.0, role="resistance", confirmed=True, holdRatePct=pine.NA,
+                 zoneLow=99.5, zoneHigh=100.5, inPlay=True)
+    p = pine.zonePressure(_ventana(base), lv, 0.005, 0.5)
+    for campo in ("posPct", "wickAgainstPct", "bodyPct", "expansion", "volExpansion"):
+        assert not math.isnan(getattr(p, campo)), campo
+    assert p.reasons != ""
+
+
+# --- las palancas de coste --------------------------------------------------
+def test_apagar_patrones_y_rupturas_deja_sus_recuentos_en_NO_CALCULADO():
+    """`na`, no 0: 0 significaría «se calculó y no hay». No es lo mismo."""
+    filas = CASOS["diario_tendencial"]
+    sc = pine.runScan(_ventana(filas), 2, pine.NA, 2, [], False, "", 0, False, False)
+    assert sc.patterns == [] and sc.breakouts == []
+    for campo in ("patterns", "bullishPatterns", "bearishPatterns", "patternsAtLevel",
+                  "breakouts", "fakeouts"):
+        assert math.isnan(getattr(sc.counts, campo)), campo
+    # Y lo portado sigue intacto: apagar una capa añadida no toca el escáner.
+    backend = detect_structure(filas, strength=2)
+    assert sc.counts.levels == backend["counts"]["levels"]
+    assert sc.counts.bos == backend["counts"]["bos"]
+    assert [round(l.score) for l in sc.levels] == [
+        l["confirmation"]["score"] for l in backend["levels"]]

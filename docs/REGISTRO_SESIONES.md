@@ -4528,3 +4528,54 @@ lo que hace que el interruptor no sea un adorno, y lo único que hace.
 
 **Sigue sin verificarse** lo mismo que ayer: que TradingView **compile** el fichero.
 La gramática no es su compilador.
+
+### 2026-08-21 (3) — Invalidación, rechazos, y una lectura en vivo que no finge predecir
+
+Seis peticiones sobre el indicador. Cinco son mecánica; la sexta obligaba a
+decidir dónde está la frontera entre medir y adivinar.
+
+- ✅ **Más velas.** El control llega a 20 000 y hay un interruptor «usar TODAS las
+  del gráfico». El tope real no lo pone el control sino el límite de tiempo de
+  ejecución de Pine, así que se añaden las dos palancas que lo hacen viable:
+  apagar patrones y rupturas —las dos pasadas caras— deja sus recuentos en `na`
+  (**no calculado**, que no es 0) y el resto del escaneo sigue. El panel dice
+  siempre cuántas velas se escanearon de verdad.
+- ✅ **Invalidación de estructura.** Un BOS deja por detrás el mínimo que lanzó la
+  pierna; mientras aguante, la estructura vive. Dos filas nuevas: *Última
+  estructura* (✓ vigente / ✗ invalidada) y *…se invalida en*. Por CIERRE, no por
+  mecha —una mecha que perfora y vuelve es un barrido— y con el nivel protegido
+  buscado sólo entre pivotes anteriores a la ruptura.
+- ✅ **Panel legible en fondo claro.** Iba en negro semitransparente con letra
+  blanca: sobre fondo claro, gris pálido con texto blanco encima. Ahora sale de
+  `chart.bg_color` / `chart.fg_color` y se lee en los dos temas.
+- ✅ **Etiquetas de patrón más grandes y separadas.** Tamaño configurable
+  (Pequeño→Enorme, por defecto Normal) y separación en **ATR** —para que se
+  comporte igual en cualquier activo— con un hilo punteado que ata la etiqueta a
+  su vela: separarla ayuda a leerla, pero sin el hilo se pierde a cuál se refiere.
+- ✅ **Rechazos y rupturas de zona, uno a uno.** `annotateLevels` contaba visitas y
+  se quedaba con el número; ahora sale la lista con entrada, salida, duración y
+  cuánto se metió en la banda, pintada donde ocurrió (▲▼ / ⇧⇩). Sale de la MISMA
+  pasada que puntúa el nivel, y hay un test que exige que los recuentos cuadren
+  nivel a nivel: «por construcción» es una afirmación, y aquí se comprueban.
+
+- 🟠 **La sexta: «¿hay rechazo o fuerza para atravesar?», en tiempo real.** Esto
+  no se puede contestar sin predecir, y predecir aquí sería inventar. Lo que se
+  ha hecho es publicar **la evidencia de la vela en curso** —por qué lado entró,
+  dónde cierra dentro de la banda, cuánta mecha lleva EN CONTRA, expansión,
+  volumen, cuántas velas lleva picoteando y el historial de aguante del propio
+  nivel— y resumirla en una puntuación acotada de EMPUJE con su veredicto y sus
+  códigos. **No es una probabilidad, no está calibrada contra nada y no dice qué
+  va a pasar.** El panel lo marca con `⚠ vela en curso` y la alerta se dispara
+  sólo al CERRAR: avisar de algo que puede des-ocurrir en el siguiente tick es
+  avisar de nada. Hay un test que exige que la puntuación DISCRIMINE (misma
+  incursión, cierre arriba vs. devuelta con mecha: veredictos opuestos); un
+  número que diera lo mismo en los dos casos sería un adorno con aspecto de dato.
+
+- ✅ **105 comprobaciones** (antes 79). Las tres capas nuevas son añadidos sin
+  original contra el que compararse, así que se comprueban contra sí mismas y
+  contra la puntuación —ya verificada— de los niveles, con guardas contra el test
+  vacío (>20 rechazos y >20 rupturas en los fixtures, y al menos una estructura
+  invalidada). Y una que exige que apagar las capas caras no mueva un solo número
+  de lo portado.
+
+**Sigue sin verificarse** que TradingView compile el fichero.

@@ -81,10 +81,21 @@ python scripts/verificar-pine.py                            # lo específico de 
 debajo de §11 sólo hay dibujo, y ahí no debe quedar aritmética — lo que no se puede
 ejecutar fuera de TradingView tampoco se puede verificar.
 
-Tres cosas del indicador **no** están en el backend y van marcadas como añadidas: la
-tendencia del escalón superior, la sesión con sus máximos de calendario (PDH/PDL) y el
-cruce patrón ↔ nivel confirmado (`◆`). Ninguna toca un número de la lectura portada. Si
-alguna de ellas te parece buena idea para la web, el sitio es el backend, no el `.pine`.
+Seis cosas del indicador **no** están en el backend y van marcadas como añadidas: la
+tendencia del escalón superior, la sesión con sus máximos de calendario (PDH/PDL), el
+cruce patrón ↔ nivel confirmado (`◆`), la **invalidación de estructura**, la **lista de
+rechazos y rupturas de zona** y la **presión de la zona en curso**. Ninguna toca un
+número de la lectura portada. Si alguna te parece buena idea para la web, el sitio es el
+backend, no el `.pine`.
+
+⚠️ **La presión de la zona no es una probabilidad.** Es la evidencia de la vela en curso,
+acotada a 0-100 y con sus códigos. No está calibrada contra nada y no predice. Si algún
+día se convierte en un porcentaje, tiene que pasar por lo mismo que `level_odds.py`:
+medición contra el histórico **y** contraste contra la serie barajada. Un número que
+parece una probabilidad sin serlo es exactamente lo que este proyecto no publica.
+
+⚠️ **`levelReactions` y `annotateLevels` recorren la MISMA definición de visita.** Si
+tocas una, toca la otra: hay un test que exige que los recuentos cuadren nivel a nivel.
 
 Manual: [`docs/INDICADOR_TRADINGVIEW.md`](../../docs/INDICADOR_TRADINGVIEW.md).
 

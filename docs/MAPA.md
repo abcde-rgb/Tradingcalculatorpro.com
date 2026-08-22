@@ -18,7 +18,7 @@
 | Líneas de Python (backend) | 25,562 |
 | Rutas declaradas | 205 |
 | **Rutas sin consumidor en el frontend** | **43** |
-| Ficheros de test · funciones de test | 53 · 883 |
+| Ficheros de test · funciones de test | 53 · 894 |
 | Rutas del frontend (`App.js`) | 28 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,596 |
 

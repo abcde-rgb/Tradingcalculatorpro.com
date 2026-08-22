@@ -124,8 +124,8 @@ class Swing:
 
 
 class Ev:
-    __slots__ = ('idx', 'price', 'bullish', 'isBos', 'repeat', 'repeatOf', 'score', 'confirmed', 'closeThroughAtr', 'rangeExpansion', 'volExpansion', 'followThrough', 'retested', 'reasons',)
-    def __init__(self, idx=NA, price=NA, bullish=False, isBos=False, repeat=NA, repeatOf=NA, score=NA, confirmed=False, closeThroughAtr=NA, rangeExpansion=NA, volExpansion=NA, followThrough=False, retested=False, reasons=""):
+    __slots__ = ('idx', 'price', 'bullish', 'isBos', 'repeat', 'repeatOf', 'score', 'confirmed', 'closeThroughAtr', 'rangeExpansion', 'volExpansion', 'followThrough', 'retested', 'reasons', 'invalidationPrice', 'invalidated', 'invalidatedAt',)
+    def __init__(self, idx=NA, price=NA, bullish=False, isBos=False, repeat=NA, repeatOf=NA, score=NA, confirmed=False, closeThroughAtr=NA, rangeExpansion=NA, volExpansion=NA, followThrough=False, retested=False, reasons="", invalidationPrice=NA, invalidated=False, invalidatedAt=NA):
         self.idx = idx
         self.price = price
         self.bullish = bullish
@@ -140,6 +140,9 @@ class Ev:
         self.followThrough = followThrough
         self.retested = retested
         self.reasons = reasons
+        self.invalidationPrice = invalidationPrice
+        self.invalidated = invalidated
+        self.invalidatedAt = invalidatedAt
 
 
 class Lv:
@@ -200,6 +203,38 @@ class Cluster:
         self.lows = lows
 
 
+class Rx:
+    __slots__ = ('levelIdx', 'levelPrice', 'levelRole', 'startIdx', 'endIdx', 'entrySide', 'exitSide', 'outcome', 'bullish', 'extreme', 'penetrationPct',)
+    def __init__(self, levelIdx=NA, levelPrice=NA, levelRole="", startIdx=NA, endIdx=NA, entrySide=NA, exitSide=NA, outcome="", bullish=False, extreme=NA, penetrationPct=NA):
+        self.levelIdx = levelIdx
+        self.levelPrice = levelPrice
+        self.levelRole = levelRole
+        self.startIdx = startIdx
+        self.endIdx = endIdx
+        self.entrySide = entrySide
+        self.exitSide = exitSide
+        self.outcome = outcome
+        self.bullish = bullish
+        self.extreme = extreme
+        self.penetrationPct = penetrationPct
+
+
+class Pressure:
+    __slots__ = ('active', 'side', 'posPct', 'wickAgainstPct', 'bodyPct', 'expansion', 'volExpansion', 'barsInside', 'score', 'verdict', 'reasons',)
+    def __init__(self, active=False, side=NA, posPct=NA, wickAgainstPct=NA, bodyPct=NA, expansion=NA, volExpansion=NA, barsInside=NA, score=NA, verdict="", reasons=""):
+        self.active = active
+        self.side = side
+        self.posPct = posPct
+        self.wickAgainstPct = wickAgainstPct
+        self.bodyPct = bodyPct
+        self.expansion = expansion
+        self.volExpansion = volExpansion
+        self.barsInside = barsInside
+        self.score = score
+        self.verdict = verdict
+        self.reasons = reasons
+
+
 class Cm:
     __slots__ = ('body', 'rng', 'upper', 'lower', 'isBull', 'isBear', 'bodyPct',)
     def __init__(self, body=NA, rng=NA, upper=NA, lower=NA, isBull=False, isBear=False, bodyPct=NA):
@@ -254,8 +289,8 @@ class Ctx:
 
 
 class Counts:
-    __slots__ = ('swings', 'bos', 'choch', 'confirmedEvents', 'repeatedBreaks', 'levels', 'resistances', 'supports', 'flipped', 'confirmedLevels', 'confluent', 'patterns', 'bullishPatterns', 'bearishPatterns', 'patternsAtLevel', 'fvgOpen', 'fvgSessionGap', 'breakouts', 'fakeouts',)
-    def __init__(self, swings=NA, bos=NA, choch=NA, confirmedEvents=NA, repeatedBreaks=NA, levels=NA, resistances=NA, supports=NA, flipped=NA, confirmedLevels=NA, confluent=NA, patterns=NA, bullishPatterns=NA, bearishPatterns=NA, patternsAtLevel=NA, fvgOpen=NA, fvgSessionGap=NA, breakouts=NA, fakeouts=NA):
+    __slots__ = ('swings', 'bos', 'choch', 'confirmedEvents', 'repeatedBreaks', 'levels', 'resistances', 'supports', 'flipped', 'confirmedLevels', 'confluent', 'patterns', 'bullishPatterns', 'bearishPatterns', 'patternsAtLevel', 'invalidated', 'rejections', 'zoneBreaks', 'fvgOpen', 'fvgSessionGap', 'breakouts', 'fakeouts',)
+    def __init__(self, swings=NA, bos=NA, choch=NA, confirmedEvents=NA, repeatedBreaks=NA, levels=NA, resistances=NA, supports=NA, flipped=NA, confirmedLevels=NA, confluent=NA, patterns=NA, bullishPatterns=NA, bearishPatterns=NA, patternsAtLevel=NA, invalidated=NA, rejections=NA, zoneBreaks=NA, fvgOpen=NA, fvgSessionGap=NA, breakouts=NA, fakeouts=NA):
         self.swings = swings
         self.bos = bos
         self.choch = choch
@@ -271,6 +306,9 @@ class Counts:
         self.bullishPatterns = bullishPatterns
         self.bearishPatterns = bearishPatterns
         self.patternsAtLevel = patternsAtLevel
+        self.invalidated = invalidated
+        self.rejections = rejections
+        self.zoneBreaks = zoneBreaks
         self.fvgOpen = fvgOpen
         self.fvgSessionGap = fvgSessionGap
         self.breakouts = breakouts
@@ -278,8 +316,8 @@ class Counts:
 
 
 class Scan:
-    __slots__ = ('rowsScanned', 'referencePrice', 'tolerance', 'atr', 'trend', 'swings', 'events', 'allLevels', 'levels', 'fvgs', 'breakouts', 'patterns', 'htfTrend', 'nearestResistance', 'nearestSupport', 'context', 'counts',)
-    def __init__(self, rowsScanned=NA, referencePrice=NA, tolerance=NA, atr=NA, trend="", swings=None, events=None, allLevels=None, levels=None, fvgs=None, breakouts=None, patterns=None, htfTrend="", nearestResistance=NA, nearestSupport=NA, context=NA, counts=NA):
+    __slots__ = ('rowsScanned', 'referencePrice', 'tolerance', 'atr', 'trend', 'swings', 'events', 'allLevels', 'levels', 'fvgs', 'breakouts', 'patterns', 'reactions', 'pressure', 'lastStructure', 'htfTrend', 'nearestResistance', 'nearestSupport', 'context', 'counts',)
+    def __init__(self, rowsScanned=NA, referencePrice=NA, tolerance=NA, atr=NA, trend="", swings=None, events=None, allLevels=None, levels=None, fvgs=None, breakouts=None, patterns=None, reactions=None, pressure=NA, lastStructure=NA, htfTrend="", nearestResistance=NA, nearestSupport=NA, context=NA, counts=NA):
         self.rowsScanned = rowsScanned
         self.referencePrice = referencePrice
         self.tolerance = tolerance
@@ -292,6 +330,9 @@ class Scan:
         self.fvgs = fvgs
         self.breakouts = breakouts
         self.patterns = patterns
+        self.reactions = reactions
+        self.pressure = pressure
+        self.lastStructure = lastStructure
         self.htfTrend = htfTrend
         self.nearestResistance = nearestResistance
         self.nearestSupport = nearestSupport
@@ -418,12 +459,12 @@ def detectEvents(w, swings, confirmDelay):
                 si += 1
             c = _arr_get(w.c, i)
             if ((not _is_na(lastSh)) and (c > lastSh)):
-                _arr_push(events, Ev(i, _math_round(lastSh, 6), True, (trend == 'up'), 1, i, 0.0, False, NA, NA, NA, False, False, ''))
+                _arr_push(events, Ev(i, _math_round(lastSh, 6), True, (trend == 'up'), 1, i, 0.0, False, NA, NA, NA, False, False, '', NA, False, NA))
                 trend = 'up'
                 lastSh = NA
             else:
                 if ((not _is_na(lastSl)) and (c < lastSl)):
-                    _arr_push(events, Ev(i, _math_round(lastSl, 6), False, (trend == 'down'), 1, i, 0.0, False, NA, NA, NA, False, False, ''))
+                    _arr_push(events, Ev(i, _math_round(lastSl, 6), False, (trend == 'down'), 1, i, 0.0, False, NA, NA, NA, False, False, '', NA, False, NA))
                     trend = 'down'
                     lastSl = NA
     return events
@@ -803,6 +844,160 @@ def summariseContext(currentPrice, resPrice, supPrice, atr):
             ctx.rangeWidthPct = _math_round((((resPrice - supPrice) / currentPrice) * 100), 2)
             ctx.rangePositionPct = _math_round((((currentPrice - supPrice) / (resPrice - supPrice)) * 100), 1)
     return ctx
+
+
+def markInvalidations(w, events, swings):
+    n = _arr_size(w.c)
+    invalidados = 0
+    if (_arr_size(events) > 0):
+        for e in _rango(0, (_arr_size(events) - 1)):
+            ev = _arr_get(events, e)
+            protegido = NA
+            if (_arr_size(swings) > 0):
+                for si in _rango(0, (_arr_size(swings) - 1)):
+                    sw = _arr_get(swings, si)
+                    if ((sw.idx < ev.idx) and (sw.isHigh != ev.bullish)):
+                        protegido = sw.price
+            ev.invalidationPrice = protegido
+            ev.invalidated = False
+            ev.invalidatedAt = NA
+            if ((not _is_na(protegido)) and ((ev.idx + 1) <= (n - 1))):
+                for k in _rango((ev.idx + 1), (n - 1)):
+                    c = _arr_get(w.c, k)
+                    if ((ev.bullish and (c < protegido)) or ((not ev.bullish) and (c > protegido))):
+                        ev.invalidated = True
+                        ev.invalidatedAt = k
+                        invalidados += 1
+                        break
+    return invalidados
+
+
+def levelReactions(w, levels, tolerance, maxLevels):
+    out = _arr_new()
+    n = _arr_size(w.c)
+    tope = _math_min(_arr_size(levels), maxLevels)
+    if ((n > 0) and (tope > 0)):
+        for li in _rango(0, (tope - 1)):
+            lv = _arr_get(levels, li)
+            if ((not _is_na(lv.price)) and (lv.price > 0)):
+                lowBand = (lv.price * (1 - tolerance))
+                highBand = (lv.price * (1 + tolerance))
+                ancho = _math_max((highBand - lowBand), 1e-09)
+                openVisit = False
+                openEntry = 0
+                openStart = 0
+                extHigh = NA
+                extLow = NA
+                lastSide = 0
+                for i in _rango(0, (n - 1)):
+                    hi = _arr_get(w.h, i)
+                    lo = _arr_get(w.l, i)
+                    touching = ((hi >= lowBand) and (lo <= highBand))
+                    closeSide = sideOf(_arr_get(w.c, i), lowBand, highBand)
+                    if (touching and (not openVisit)):
+                        openVisit = True
+                        openEntry = lastSide
+                        openStart = i
+                        extHigh = hi
+                        extLow = lo
+                    else:
+                        if (touching and openVisit):
+                            extHigh = _math_max(extHigh, hi)
+                            extLow = _math_min(extLow, lo)
+                        else:
+                            if ((not touching) and openVisit):
+                                extremo = ((extLow) if ((openEntry >= 0)) else (extHigh))
+                                pen = (((((highBand - extremo) / ancho) * 100)) if ((openEntry >= 0)) else ((((extremo - lowBand) / ancho) * 100)))
+                                outcome = (('sinResolver') if ((openEntry == 0)) else ((('rechazo') if ((closeSide == openEntry)) else ((('ruptura') if ((closeSide == (-openEntry))) else ('sinResolver'))))))
+                                alcista = ((((False) if ((openEntry < 0)) else (True))) if ((outcome == 'rechazo')) else ((closeSide > 0)))
+                                _arr_push(out, Rx(li, lv.price, lv.role, openStart, (i - 1), openEntry, closeSide, outcome, alcista, _math_round(extremo, 6), _math_round(pen, 1)))
+                                openVisit = False
+                    if (closeSide != 0):
+                        lastSide = closeSide
+                if openVisit:
+                    extremo = ((extLow) if ((openEntry >= 0)) else (extHigh))
+                    pen = (((((highBand - extremo) / ancho) * 100)) if ((openEntry >= 0)) else ((((extremo - lowBand) / ancho) * 100)))
+                    _arr_push(out, Rx(li, lv.price, lv.role, openStart, (n - 1), openEntry, 0, 'enCurso', False, _math_round(extremo, 6), _math_round(pen, 1)))
+    return out
+
+
+def zonePressure(w, lv, tolerance, atr):
+    p = Pressure(False, 0, NA, NA, NA, NA, NA, 0, NA, 'sinDefinir', '')
+    n = _arr_size(w.c)
+    if ((n > 0) and (not _is_na(lv.price)) and (lv.price > 0)):
+        lowBand = (lv.price * (1 - tolerance))
+        highBand = (lv.price * (1 + tolerance))
+        ancho = _math_max((highBand - lowBand), 1e-09)
+        last = (n - 1)
+        dentro = ((_arr_get(w.h, last) >= lowBand) and (_arr_get(w.l, last) <= highBand))
+        if dentro:
+            start = last
+            while ((start > 0) and (_arr_get(w.h, (start - 1)) >= lowBand) and (_arr_get(w.l, (start - 1)) <= highBand)):
+                start -= 1
+            entrada = 0
+            j = (start - 1)
+            while ((j >= 0) and (entrada == 0)):
+                entrada = sideOf(_arr_get(w.c, j), lowBand, highBand)
+                j -= 1
+            side = ((1) if ((entrada < 0)) else ((((-1)) if ((entrada > 0)) else (0))))
+            o = _arr_get(w.o, last)
+            h = _arr_get(w.h, last)
+            lo = _arr_get(w.l, last)
+            c = _arr_get(w.c, last)
+            rng = _math_max((h - lo), 1e-09)
+            posPct = (((((c - lowBand) / ancho) * 100)) if ((side >= 0)) else ((((highBand - c) / ancho) * 100)))
+            wickAgainst = (((((h - _math_max(o, c))) if ((side >= 0)) else ((_math_min(o, c) - lo))) / rng) * 100)
+            bodyPct = ((_math_abs((c - o)) / rng) * 100)
+            expansion = (((rng / atr)) if ((atr > 0)) else (NA))
+            avgV = avgVolume(w, last, VOL_WINDOW)
+            volExp = (((_arr_get(w.v, last) / avgV)) if ((avgV > 0)) else (NA))
+            barsInside = ((last - start) + 1)
+            reasons = ''
+            score = 0.0
+            if (posPct >= 66):
+                score += 25
+                reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'cruzandoLaBanda')
+            else:
+                if (posPct > 33):
+                    score += 10
+            fuera = (((c > highBand)) if ((side >= 0)) else ((c < lowBand)))
+            if fuera:
+                score += 20
+                reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'cierraFuera')
+            if (wickAgainst >= 40):
+                score -= 25
+                reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'mechaEnContra')
+            cuerpoAFavor = (((c > o)) if ((side >= 0)) else ((c < o)))
+            if (cuerpoAFavor and (bodyPct >= 60)):
+                score += 15
+                reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'cuerpoAFavor')
+            else:
+                if ((not cuerpoAFavor) and (bodyPct >= 60)):
+                    score -= 15
+                    reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'cuerpoEnContra')
+            if ((not _is_na(expansion)) and (expansion >= 1.2)):
+                score += 15
+                reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'expansion')
+            if _is_na(volExp):
+                score += 8
+            else:
+                if (volExp >= 1.3):
+                    score += 15
+                    reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'volumen')
+            if (barsInside >= 5):
+                score -= 10
+                reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'picoteo')
+            if (not _is_na(lv.holdRatePct)):
+                if (lv.holdRatePct >= 66):
+                    score -= 10
+                    reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'nivelQueAguanta')
+                else:
+                    if (lv.holdRatePct < 40):
+                        score += 10
+                        reasons = ((reasons + (('') if ((reasons == '')) else (','))) + 'nivelQueNoAguanta')
+            score = _math_max(0, _math_min(100, score))
+            p = Pressure(True, side, _math_round(posPct, 1), _math_round(wickAgainst, 1), _math_round(bodyPct, 1), ((NA) if (_is_na(expansion)) else (_math_round(expansion, 2))), ((NA) if (_is_na(volExp)) else (_math_round(volExp, 2))), barsInside, score, (('empuje') if ((score >= 60)) else ((('rechazo') if ((score <= 35)) else ('sinDefinir')))), reasons)
+    return p
 
 
 def autoTolerance(w):
@@ -1230,7 +1425,7 @@ def markPatternsAtLevels(w, pats, levels):
     return marcados
 
 
-def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTrend, confirmDelay):
+def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTrend, confirmDelay, wantPatterns, wantBreakouts):
     n = _arr_size(w.c)
     tooShort = (n < ((2 * strength) + 1))
     reference = ((_arr_get(w.c, (n - 1))) if (((n > 0) and (not tooShort))) else (NA))
@@ -1252,9 +1447,21 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTren
             _arr_push(levels, _arr_get(allLevels, i))
     levels = annotateLevels(w, levels, tol)
     fvgs = ((_arr_new()) if (tooShort) else (detectFvgs(w)))
-    breakouts = detectBreakouts(w, levels, strength)
-    patterns = detectPatterns(w)
-    patternsAtLevel = markPatternsAtLevels(w, patterns, levels)
+    breakouts = ((detectBreakouts(w, levels, strength)) if (wantBreakouts) else (_arr_new()))
+    patterns = ((detectPatterns(w)) if (wantPatterns) else (_arr_new()))
+    patternsAtLevel = ((markPatternsAtLevels(w, patterns, levels)) if (wantPatterns) else (NA))
+    invalidadas = markInvalidations(w, events, swings)
+    reactions = levelReactions(w, levels, tol, MAX_ANALYSED_LEVELS)
+    rechazos = 0
+    rupturasZona = 0
+    if (_arr_size(reactions) > 0):
+        for i in _rango(0, (_arr_size(reactions) - 1)):
+            rx = _arr_get(reactions, i)
+            if (rx.outcome == 'rechazo'):
+                rechazos += 1
+            else:
+                if (rx.outcome == 'ruptura'):
+                    rupturasZona += 1
     confluent = NA
     if htfChecked:
         confluent = applyConfluence(levels, htfLevels, tol)
@@ -1268,6 +1475,13 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTren
             if (_is_na(nearestSup) and (lv.role == 'support')):
                 nearestSup = lv
     ctx = summariseContext(reference, ((NA) if (_is_na(nearestRes)) else (nearestRes.price)), ((NA) if (_is_na(nearestSup)) else (nearestSup.price)), atr)
+    pressure = Pressure(False, 0, NA, NA, NA, NA, NA, 0, NA, 'sinDefinir', '')
+    if (_arr_size(levels) > 0):
+        for i in _rango(0, (_arr_size(levels) - 1)):
+            lv = _arr_get(levels, i)
+            if (lv.inPlay and (not pressure.active)):
+                pressure = zonePressure(w, lv, tol, atr)
+    lastStructure = ((_arr_get(events, (_arr_size(events) - 1))) if ((_arr_size(events) > 0)) else (NA))
     cBos = 0
     cChoch = 0
     cConfirmedEvents = 0
@@ -1329,5 +1543,5 @@ def runScan(w, strength, tolOverride, minTouches, htfLevels, htfChecked, htfTren
             else:
                 if b.confirmed:
                     cBreakouts += 1
-    counts = Counts(_arr_size(swings), cBos, cChoch, cConfirmedEvents, cRepeated, _arr_size(allLevels), cRes, cSup, cFlipped, cConfirmedLevels, confluent, _arr_size(patterns), cBullishPat, cBearishPat, patternsAtLevel, cFvgOpen, cFvgSession, cBreakouts, cFakeouts)
-    return Scan(n, reference, tol, atr, trend, swings, events, allLevels, levels, fvgs, breakouts, patterns, htfTrend, nearestRes, nearestSup, ctx, counts)
+    counts = Counts(_arr_size(swings), cBos, cChoch, cConfirmedEvents, cRepeated, _arr_size(allLevels), cRes, cSup, cFlipped, cConfirmedLevels, confluent, ((_arr_size(patterns)) if (wantPatterns) else (NA)), ((cBullishPat) if (wantPatterns) else (NA)), ((cBearishPat) if (wantPatterns) else (NA)), patternsAtLevel, invalidadas, rechazos, rupturasZona, cFvgOpen, cFvgSession, ((cBreakouts) if (wantBreakouts) else (NA)), ((cFakeouts) if (wantBreakouts) else (NA)))
+    return Scan(n, reference, tol, atr, trend, swings, events, allLevels, levels, fvgs, breakouts, patterns, reactions, pressure, lastStructure, htfTrend, nearestRes, nearestSup, ctx, counts)

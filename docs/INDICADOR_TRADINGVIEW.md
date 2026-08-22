@@ -38,6 +38,9 @@ Lo que dibuja:
 | **Tendencia superior** | La misma lectura HH/HL/LH/LL en el escalón de arriba | Fila del panel |
 | **Sesión** | Asia / Londres / Nueva York, con su solape | Fila del panel + sombreado opcional |
 | **PDH/PDL · PWH/PWL** | Máximo y mínimo del día y la semana anteriores | Líneas discontinuas etiquetadas |
+| **Invalidación de estructura** | Hasta dónde vale cada BOS/CHoCH, y si ya dejó de valer | Filas del panel |
+| **Rechazos y rupturas de zona** | Cada visita a una banda y cómo acabó | ▲▼ rechazo · ⇧⇩ ruptura, donde ocurrió |
+| **Presión de la zona en curso** | La evidencia de la vela que se está formando dentro de una banda | Dos filas del panel |
 | Contexto | Recorrido a cada lado y posición dentro del rango | Panel |
 
 Lo que **no** es: no es una señal de compra o venta, no calcula probabilidad de
@@ -85,10 +88,22 @@ tocar `max_bars_back`.
 
 ### Presupuesto de cálculo
 
-Con los valores por defecto (300 velas, 30 niveles analizados) el escaneo son
-unas 40 000 iteraciones, una vez. Subir `Velas a escanear` a 1 500 lo multiplica
-por cinco y acerca el límite de tiempo de ejecución de Pine; por eso 1 500 es el
-tope del control.
+Con los valores por defecto (500 velas, 30 niveles analizados) son unas 70 000
+iteraciones, **una vez**. El control llega a 20 000 velas y hay un interruptor
+**«Usar TODAS las velas del gráfico»**, pero el tope real no lo pone el control:
+lo pone el **límite de tiempo de ejecución de Pine**.
+
+Las dos pasadas caras son los **patrones** (O(velas)) y las **rupturas**
+(O(niveles × velas)). Si TradingView aborta el script por tiempo:
+
+1. Apaga *Marcar patrones de vela* y *Marcar breakouts / fakeouts*. Sus recuentos
+   pasan a `—` (**no calculado**, que no es lo mismo que 0) y el resto sigue.
+   Medido sobre el gemelo Python: apagar las dos quita entre el **64 %** (2 000
+   velas) y el **73 %** (500 velas) del trabajo.
+2. Si aún así, baja el número de velas.
+
+El panel dice **siempre** cuántas velas se escanearon de verdad, así que nunca
+tienes que suponerlo.
 
 ---
 
@@ -96,7 +111,8 @@ tope del control.
 
 | Grupo | Control | Por defecto | Qué hace |
 |---|---|---|---|
-| 1 Escaneo | Velas a escanear | 300 | La ventana sobre la que se calcula todo |
+| 1 Escaneo | Usar TODAS las velas del gráfico | no | Sin tope; el límite lo pone Pine, no el control (§3) |
+| | Velas a escanear | 500 | La ventana sobre la que se calcula todo. Hasta 20 000 |
 | | Fuerza del fractal | 2 | Velas a cada lado de un pivote. **En 5m y 15m usa 3**, como la web: con 2, el ruido genera pivotes que no lo son |
 | | Tolerancia | Automática | Medio ATR en % del precio, acotado a [0,15 %, 2,5 %] |
 | | Toques mínimos | 2 | Un nivel de un solo toque es el swing que lo creó, no un nivel |
@@ -108,16 +124,23 @@ tope del control.
 | 4 Estructura | Etiquetar swings · Marcar BOS/CHoCH | sí | Los swings van **topados** (30): Pine descarta los dibujos que pasan de 500 sin avisar |
 | | Modo tiempo real honesto | no | Retardo de confirmación en las rupturas (§7) |
 | 5 Patrones | Marcar patrones · cuántos · tasa mínima | sí · 10 · 0 % | |
+| | Tamaño de la etiqueta | Normal | Pequeño / Normal / Grande / Enorme |
+| | Separación de la vela (ATR) | 1,2 | La etiqueta se aparta del máximo o del mínimo, con un hilo fino que la ata a su vela |
 | | Sólo sobre nivel confirmado | no | El cruce `◆` |
 | | Incluir neutros (doji, peonza, onda alta) | no | Son los más frecuentes y los que menos dicen |
 | 6 FVG | Abiertos · rellenados · huecos de sesión | sí · no · no | |
-| 7 Rupturas | Breakouts · fakeouts | no · no | Ruidosos en intradía; se activan a mano |
+| 7 Rupturas | **Rechazos y rupturas de zona** | sí | ▲▼ rechazo · ⇧⇩ ruptura, en la vela donde ocurrió |
+| | Sólo en niveles confirmados | sí | |
+| | **Presión de la zona en curso** | sí | La evidencia de la vela que se está formando (§5b) |
+| | Breakouts · fakeouts | no · no | Ruidosos en intradía; se activan a mano |
 | 8 Sesión y referencia | Zona horaria y las tres sesiones | GMT · 00-09 / 08-17 / 13-22 | Ajusta los horarios a tu mercado |
 | | Sombrear la sesión · rango de la anterior | no · Ninguna | |
 | | PDH/PDL · PWH/PWL | sí · no | Se ocultan solos donde no aportan (PDH en diario es la vela de al lado) |
-| 9 Panel | Posición, tamaño, compacto | Arriba dcha., pequeño, no | Compacto = las 11 filas de cabecera |
+| 9 Panel | Posición, tamaño, compacto | Arriba dcha., pequeño, no | Compacto = las 15 filas de cabecera, presión y estructura incluidas |
 | 10 Avisos | BOS · CHoCH · zona | sí · sí · no | Sólo al **cerrar** la vela |
+| | **Invalidación de la estructura** | sí | La que más falta hace: tu idea dejó de estar vigente |
 | | Ruptura · barrido · patrón · proximidad | no | La proximidad se mide en **ATR**, no en % |
+| | Rechazo/ruptura de zona · veredicto de presión | no | Los dos, **al cerrar** la vela |
 
 ### Los distintivos de la etiqueta de un nivel
 
@@ -234,6 +257,62 @@ el algoritmo diga algo distinto de lo que dice la web.
 
 ---
 
+## 5b. Las tres capas que contestan «¿y ahora qué?»
+
+### Invalidación: hasta dónde vale una ruptura
+
+Un BOS no vale para siempre. Cuando el precio rompe al alza el último máximo,
+deja por detrás **el mínimo que lanzó esa pierna**: mientras aguante, la
+estructura sigue viva; en cuanto un **cierre** lo pierde, deja de estarlo. El
+panel lo dice en dos filas: *Última estructura* (✓ vigente / ✗ invalidada) y
+*…se invalida en* (el precio exacto).
+
+Se usa el **cierre**, no la mecha, por lo mismo que en el resto del módulo: una
+mecha que perfora y vuelve es un barrido, no una invalidación. Y el nivel
+protegido se busca entre los pivotes **anteriores** a la ruptura — usar uno
+posterior daría una invalidación que aquel día nadie podía ver.
+
+### Rechazos y rupturas, uno a uno
+
+`annotateLevels` ya contaba cuántas visitas aguantaron y cuántas rompieron, pero
+se quedaba con el número. Ahora sale la **lista**: cada visita a la banda, con
+cuándo entró, cuándo salió, por qué lado llegó, por cuál se fue y **cuánto se
+metió** en la zona. Se pinta donde ocurrió (▲▼ rechazo, ⇧⇩ ruptura) y el tooltip
+trae los detalles.
+
+Sale de la **misma pasada** que puntúa el nivel, así que los recuentos cuadran
+por construcción — y hay un test que lo exige, porque «por construcción» es una
+afirmación y aquí las afirmaciones se comprueban.
+
+### Presión de la zona: qué está pasando AHORA
+
+> **Esto no predice, y no puede.** No es una probabilidad, no está calibrada
+> contra nada y no dice qué va a pasar. Dice **qué está pasando, medido**, con
+> todos los ingredientes a la vista para que puedas contrastarlo con el gráfico
+> en lugar de creértelo.
+
+Cuando el precio está metido en la banda de un nivel, el panel publica:
+
+| Ingrediente | Qué mide |
+|---|---|
+| Cierre al X % de la banda | 0 % = pegado al borde por el que entró · 100 % = al opuesto |
+| Mecha **en contra** | La sombra que va contra el ataque, en % del rango de la vela |
+| × ATR | Si la vela es de expansión o de las de andar por casa |
+| Volumen | Frente a la media de 20 (`—` si el activo no trae volumen) |
+| Velas dentro | Muchas no es fuerza: es picoteo, y el nivel se está comiendo |
+| Historial del nivel | Uno que aguanta siempre pesa distinto que uno que no aguanta nunca |
+
+Y los resume en una puntuación acotada de **empuje** (0-100) con su veredicto:
+`EMPUJE` (≥ 60), `RECHAZO` (≤ 35) o `sin definir`. Cada ingrediente que suma o
+resta deja su código en el tooltip.
+
+**La vela en curso se mueve**, así que el veredicto puede darse la vuelta con el
+siguiente tick — y el panel lo dice con esas letras (`⚠ vela en curso`). Por eso
+la **alerta** de presión se dispara sólo **al cerrar** la vela: avisar de algo
+que puede des-ocurrir en el siguiente tick es avisar de nada.
+
+---
+
 ## 6b. Lo que el indicador tiene y la web no
 
 Tres cosas, todas por el mismo motivo: existen dentro de TradingView y el backend
@@ -255,6 +334,16 @@ Y una cuarta, propia del medio: **las alertas**. TradingView te avisa en el móv
 sin que tu backend haga nada — BOS, CHoCH, entrada en zona, ruptura confirmada,
 barrido, patrón y proximidad a un nivel (medida en ATR, que significa lo mismo en
 el yen y en el bitcoin; un 0,5 % no).
+
+---
+
+## 6c. El panel se lee en fondo claro y en fondo oscuro
+
+Iba en negro semitransparente con letra blanca. Sobre un gráfico de fondo claro
+eso es gris pálido con texto blanco encima: ilegible. Ahora los colores salen del
+**propio tema del gráfico** (`chart.bg_color` / `chart.fg_color`), así que se lee
+en los dos sin tocar nada. Los colores con significado —rojo resistencia, verde
+soporte— siguen siendo tuyos y se configuran en el grupo 3.
 
 ---
 

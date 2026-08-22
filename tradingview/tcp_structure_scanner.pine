@@ -25,6 +25,12 @@
 //   9. Contexto que sólo existe dentro de TradingView: tendencia del escalón
 //      superior, sesión (Asia / Londres / Nueva York) y los máximos y mínimos
 //      del día y la semana anteriores (PDH/PDL, PWH/PWL)
+//  10. INVALIDACIÓN de estructura: hasta dónde vale cada BOS/CHoCH, y si ya
+//      dejó de valer
+//  11. RECHAZOS y RUPTURAS de zona, una por una, donde ocurrieron
+//  12. PRESIÓN de la zona en curso: la evidencia de la vela que se está
+//      formando cuando el precio está metido en una banda. NO es una
+//      probabilidad y no predice — mide, y publica todos los ingredientes
 //
 // LAS TRES REGLAS DE HONESTIDAD DEL PROYECTO, TAMBIÉN AQUÍ
 //   · El papel (soporte / resistencia) lo decide DÓNDE ESTÁ EL PRECIO AHORA, no
@@ -46,9 +52,11 @@
 //
 // QUÉ ESTÁ PORTADO Y QUÉ ES AÑADIDO
 //   Portado y verificado cifra a cifra contra el backend: los puntos 1 a 8
-//   (`price_action.py` y `candle_patterns.py`). El punto 9 es AÑADIDO —el
-//   backend recibe velas y ya, no sabe de sesiones ni de calendario— y no toca
-//   un solo número de la lectura portada: se dibuja al lado.
+//   (`price_action.py` y `candle_patterns.py`). Los puntos 9 a 12 son AÑADIDOS
+//   —el backend recibe velas y ya— y no tocan un solo número de la lectura
+//   portada: se calculan aparte y se dibujan al lado. Van igualmente traducidos
+//   y probados, pero contra sí mismos y contra la puntuación de los niveles, no
+//   contra un original que no existe.
 //
 // EL SESGO DE ANTICIPACIÓN, MEDIDO (y resulta ser casi inexistente)
 //   `detectEvents` consume un swing en cuanto su índice queda por detrás de la
@@ -127,6 +135,12 @@ type Ev
     bool   followThrough
     bool   retested
     string reasons
+    // Invalidación (AÑADIDO: el backend no lo tiene). Una ruptura alcista deja
+    // por detrás el mínimo que la lanzó; si el precio cierra por debajo de él,
+    // la estructura que esa ruptura abrió deja de estar vigente.
+    float  invalidationPrice
+    bool   invalidated
+    int    invalidatedAt
 
 type Lv
     float  price
@@ -177,6 +191,38 @@ type Cluster
 // Las medidas de UNA vela, calculadas una vez y reutilizadas por los treinta
 // detectores. `range` nunca es 0: se acota, porque hay velas con máximo igual
 // al mínimo y una división entre cero se lleva por delante el escaneo entero.
+// Una reacción del precio en la banda de un nivel: la visita, y cómo acabó.
+// Sale de LA MISMA pasada que puntúa el nivel (`annotateLevels`), así que los
+// recuentos cuadran por construcción — y hay un test que lo exige.
+type Rx
+    int    levelIdx
+    float  levelPrice
+    string levelRole
+    int    startIdx
+    int    endIdx
+    int    entrySide     // +1 llegó desde arriba · -1 desde abajo · 0 no se sabe
+    int    exitSide
+    string outcome       // "rechazo" | "ruptura" | "enCurso" | "sinResolver"
+    bool   bullish       // hacia dónde resolvió (para pintar la flecha)
+    float  extreme       // lo más adentro que llegó
+    float  penetrationPct // 0 = borde de entrada · 100 = borde opuesto · >100 lo atravesó
+
+// Lo que está pasando AHORA MISMO en la zona que el precio está pisando.
+// No es una probabilidad y no predice nada: es la evidencia de la vela en curso,
+// publicada entera para que se pueda contrastar. Y la vela en curso se mueve.
+type Pressure
+    bool   active
+    int    side          // +1 ataca desde abajo · -1 desde arriba
+    float  posPct        // dónde cierra dentro de la banda (0 entrada · 100 opuesto)
+    float  wickAgainstPct // mecha en CONTRA del ataque, % del rango de la vela
+    float  bodyPct
+    float  expansion     // rango de la vela / ATR
+    float  volExpansion  // na si el activo no trae volumen
+    int    barsInside
+    float  score         // 0..100 de EMPUJE (100 = todo apunta a atravesar)
+    string verdict       // "empuje" | "rechazo" | "sinDefinir"
+    string reasons
+
 type Cm
     float body
     float rng
@@ -237,6 +283,9 @@ type Counts
     int bullishPatterns
     int bearishPatterns
     int patternsAtLevel    // patrones que caen sobre un nivel CONFIRMADO
+    int invalidated        // rupturas cuya estructura ya no está vigente
+    int rejections         // visitas que el nivel AGUANTÓ
+    int zoneBreaks         // visitas que lo atravesaron
     int fvgOpen
     int fvgSessionGap
     int breakouts
@@ -259,6 +308,9 @@ type Scan
     array<Fvg>   fvgs
     array<Brk>   breakouts
     array<Pat>   patterns
+    array<Rx>    reactions
+    Pressure     pressure
+    Ev           lastStructure   // la última ruptura; `invalidated` dice si sigue viva
     string       htfTrend      // "" = sin escalón superior leído
     Lv           nearestResistance
     Lv           nearestSupport
@@ -413,11 +465,11 @@ detectEvents(Win w, array<Swing> swings, int confirmDelay) =>
                 si += 1
             float c = array.get(w.c, i)
             if not na(lastSh) and c > lastSh
-                array.push(events, Ev.new(i, math.round(lastSh, 6), true, trend == "up", 1, i, 0.0, false, na, na, na, false, false, ""))
+                array.push(events, Ev.new(i, math.round(lastSh, 6), true, trend == "up", 1, i, 0.0, false, na, na, na, false, false, "", na, false, na))
                 trend := "up"
                 lastSh := na
             else if not na(lastSl) and c < lastSl
-                array.push(events, Ev.new(i, math.round(lastSl, 6), false, trend == "down", 1, i, 0.0, false, na, na, na, false, false, ""))
+                array.push(events, Ev.new(i, math.round(lastSl, 6), false, trend == "down", 1, i, 0.0, false, na, na, na, false, false, "", na, false, na))
                 trend := "down"
                 lastSl := na
     events
@@ -896,6 +948,214 @@ summariseContext(float currentPrice, float resPrice, float supPrice, float atr) 
     ctx
 
 // =============================================================================
+// §9b) INVALIDACIÓN DE ESTRUCTURA  (AÑADIDO — no está en `price_action.py`)
+// =============================================================================
+// Una ruptura no vale para siempre. Cuando el precio rompe al alza el último
+// máximo, deja por detrás el MÍNIMO que lanzó esa pierna: mientras ese mínimo
+// aguante, la estructura alcista que la ruptura abrió sigue viva; en cuanto un
+// cierre lo pierde, deja de estarlo. Es la pregunta que hace cualquiera después
+// de ver un BOS —«¿y hasta dónde vale esto?»— y el escáner no la contestaba.
+//
+// Se usa el CIERRE, no la mecha, por lo mismo que en todo el resto del módulo:
+// una mecha que perfora y vuelve es un barrido, no una invalidación.
+//
+// El nivel protegido se busca entre los swings ya vigentes en la vela de la
+// ruptura (`idx < ev.idx`), nunca entre los posteriores: usar uno que aquel día
+// todavía no existía daría una invalidación que nadie podía ver.
+markInvalidations(Win w, array<Ev> events, array<Swing> swings) =>
+    int n = array.size(w.c)
+    int invalidados = 0
+    if array.size(events) > 0
+        for e = 0 to array.size(events) - 1
+            Ev ev = array.get(events, e)
+            float protegido = na
+            if array.size(swings) > 0
+                for si = 0 to array.size(swings) - 1
+                    Swing sw = array.get(swings, si)
+                    if sw.idx < ev.idx and sw.isHigh != ev.bullish
+                        // El más RECIENTE de los del lado contrario: es el que
+                        // sostiene la pierna, no el de hace cincuenta velas.
+                        protegido := sw.price
+            ev.invalidationPrice := protegido
+            ev.invalidated := false
+            ev.invalidatedAt := na
+            if not na(protegido) and ev.idx + 1 <= n - 1
+                for k = ev.idx + 1 to n - 1
+                    float c = array.get(w.c, k)
+                    if (ev.bullish and c < protegido) or (not ev.bullish and c > protegido)
+                        ev.invalidated := true
+                        ev.invalidatedAt := k
+                        invalidados += 1
+                        break
+    invalidados
+
+
+// =============================================================================
+// §9c) REACCIONES EN LA ZONA — cada rechazo y cada ruptura, una por una
+// =============================================================================
+// `annotateLevels` cuenta cuántas visitas aguantaron y cuántas rompieron, pero
+// se queda con el recuento. Aquí sale la LISTA: cada visita, cuándo entró,
+// cuándo salió, por qué lado llegó, por cuál se fue y cuánto se metió en la
+// banda. Es lo que permite pintar el rechazo donde ocurrió en vez de fiarse de
+// un número al margen del gráfico.
+//
+// Recorre exactamente la misma pasada que la puntuación —misma banda, misma
+// definición de visita, mismo criterio de aguante— así que los recuentos cuadran
+// por construcción. Hay un test que lo exige, porque «por construcción» es una
+// afirmación y aquí las afirmaciones se comprueban.
+levelReactions(Win w, array<Lv> levels, float tolerance, int maxLevels) =>
+    array<Rx> out = array.new<Rx>()
+    int n = array.size(w.c)
+    int tope = math.min(array.size(levels), maxLevels)
+    if n > 0 and tope > 0
+        for li = 0 to tope - 1
+            Lv lv = array.get(levels, li)
+            if not na(lv.price) and lv.price > 0
+                float lowBand = lv.price * (1 - tolerance)
+                float highBand = lv.price * (1 + tolerance)
+                float ancho = math.max(highBand - lowBand, 0.000000001)
+                bool openVisit = false
+                int openEntry = 0
+                int openStart = 0
+                float extHigh = na
+                float extLow = na
+                int lastSide = 0
+                for i = 0 to n - 1
+                    float hi = array.get(w.h, i)
+                    float lo = array.get(w.l, i)
+                    bool touching = hi >= lowBand and lo <= highBand
+                    int closeSide = sideOf(array.get(w.c, i), lowBand, highBand)
+                    if touching and not openVisit
+                        openVisit := true
+                        openEntry := lastSide
+                        openStart := i
+                        extHigh := hi
+                        extLow := lo
+                    else if touching and openVisit
+                        extHigh := math.max(extHigh, hi)
+                        extLow := math.min(extLow, lo)
+                    else if not touching and openVisit
+                        // Llegó desde arriba → lo que importa es hasta dónde bajó.
+                        float extremo = openEntry >= 0 ? extLow : extHigh
+                        float pen = openEntry >= 0 ? (highBand - extremo) / ancho * 100 : (extremo - lowBand) / ancho * 100
+                        string outcome = openEntry == 0 ? "sinResolver" : closeSide == openEntry ? "rechazo" : closeSide == -openEntry ? "ruptura" : "sinResolver"
+                        bool alcista = outcome == "rechazo" ? openEntry < 0 ? false : true : closeSide > 0
+                        array.push(out, Rx.new(li, lv.price, lv.role, openStart, i - 1, openEntry, closeSide, outcome, alcista, math.round(extremo, 6), math.round(pen, 1)))
+                        openVisit := false
+                    if closeSide != 0
+                        lastSide := closeSide
+                if openVisit
+                    float extremo = openEntry >= 0 ? extLow : extHigh
+                    float pen = openEntry >= 0 ? (highBand - extremo) / ancho * 100 : (extremo - lowBand) / ancho * 100
+                    array.push(out, Rx.new(li, lv.price, lv.role, openStart, n - 1, openEntry, 0, "enCurso", false, math.round(extremo, 6), math.round(pen, 1)))
+    out
+
+
+// =============================================================================
+// §9d) PRESIÓN EN LA ZONA — qué está pasando en la vela EN CURSO
+// =============================================================================
+// Lo que se pregunta cualquiera con el precio metido en un soporte: ¿está
+// rebotando o va a atravesarlo?
+//
+// ESTO NO LO CONTESTA, y no puede. Lo que hace es publicar la evidencia que se
+// está formando ahora mismo —por qué lado entró, dónde cierra dentro de la
+// banda, cuánta mecha lleva EN CONTRA del ataque, si la vela es de expansión, si
+// hay volumen y cuántas velas lleva picoteando— y resumirla en una puntuación
+// acotada de EMPUJE. No es una probabilidad, no está calibrada contra nada y no
+// dice qué va a pasar: dice qué está pasando, medido, con todos los ingredientes
+// a la vista para que se pueda contrastar con el gráfico.
+//
+// Y va sobre la vela EN CURSO, que por definición todavía se mueve: el veredicto
+// puede darse la vuelta con el siguiente tick. El panel lo dice con esas letras.
+zonePressure(Win w, Lv lv, float tolerance, float atr) =>
+    Pressure p = Pressure.new(false, 0, na, na, na, na, na, 0, na, "sinDefinir", "")
+    int n = array.size(w.c)
+    if n > 0 and not na(lv.price) and lv.price > 0
+        float lowBand = lv.price * (1 - tolerance)
+        float highBand = lv.price * (1 + tolerance)
+        float ancho = math.max(highBand - lowBand, 0.000000001)
+        int last = n - 1
+        bool dentro = array.get(w.h, last) >= lowBand and array.get(w.l, last) <= highBand
+        if dentro
+            // Dónde empezó la visita en curso y por qué lado se entró.
+            int start = last
+            while start > 0 and array.get(w.h, start - 1) >= lowBand and array.get(w.l, start - 1) <= highBand
+                start -= 1
+            int entrada = 0
+            int j = start - 1
+            while j >= 0 and entrada == 0
+                entrada := sideOf(array.get(w.c, j), lowBand, highBand)
+                j -= 1
+            // Ataca desde abajo (+1) cuando venía por debajo de la banda.
+            int side = entrada < 0 ? 1 : entrada > 0 ? -1 : 0
+
+            float o = array.get(w.o, last)
+            float h = array.get(w.h, last)
+            float lo = array.get(w.l, last)
+            float c = array.get(w.c, last)
+            float rng = math.max(h - lo, 0.000000001)
+            // 0 = pegado al borde por el que entró · 100 = pegado al opuesto.
+            float posPct = side >= 0 ? (c - lowBand) / ancho * 100 : (highBand - c) / ancho * 100
+            // La mecha que va CONTRA el ataque: atacando al alza, la de arriba.
+            float wickAgainst = (side >= 0 ? h - math.max(o, c) : math.min(o, c) - lo) / rng * 100
+            float bodyPct = math.abs(c - o) / rng * 100
+            float expansion = atr > 0 ? rng / atr : na
+            float avgV = avgVolume(w, last, VOL_WINDOW)
+            float volExp = avgV > 0 ? array.get(w.v, last) / avgV : na
+            int barsInside = last - start + 1
+
+            string reasons = ""
+            float score = 0.0
+            if posPct >= 66
+                score += 25
+                reasons := reasons + (reasons == "" ? "" : ",") + "cruzandoLaBanda"
+            else if posPct > 33
+                score += 10
+            // Un cierre YA al otro lado de la banda es lo más parecido a fuerza
+            // que se puede medir sin esperar a la vela siguiente.
+            bool fuera = side >= 0 ? c > highBand : c < lowBand
+            if fuera
+                score += 20
+                reasons := reasons + (reasons == "" ? "" : ",") + "cierraFuera"
+            if wickAgainst >= 40
+                score -= 25
+                reasons := reasons + (reasons == "" ? "" : ",") + "mechaEnContra"
+            bool cuerpoAFavor = side >= 0 ? c > o : c < o
+            if cuerpoAFavor and bodyPct >= 60
+                score += 15
+                reasons := reasons + (reasons == "" ? "" : ",") + "cuerpoAFavor"
+            else if not cuerpoAFavor and bodyPct >= 60
+                score -= 15
+                reasons := reasons + (reasons == "" ? "" : ",") + "cuerpoEnContra"
+            if not na(expansion) and expansion >= 1.2
+                score += 15
+                reasons := reasons + (reasons == "" ? "" : ",") + "expansion"
+            if na(volExp)
+                score += 8                                  // sin feed de volumen
+            else if volExp >= 1.3
+                score += 15
+                reasons := reasons + (reasons == "" ? "" : ",") + "volumen"
+            // Muchas velas dentro de la banda no es fuerza: es que ni una cosa
+            // ni la otra, y el nivel se está comiendo poco a poco.
+            if barsInside >= 5
+                score -= 10
+                reasons := reasons + (reasons == "" ? "" : ",") + "picoteo"
+            // El historial del propio nivel: si nunca ha aguantado, atravesarlo
+            // es lo normal; si aguanta siempre, lo raro.
+            if not na(lv.holdRatePct)
+                if lv.holdRatePct >= 66
+                    score -= 10
+                    reasons := reasons + (reasons == "" ? "" : ",") + "nivelQueAguanta"
+                else if lv.holdRatePct < 40
+                    score += 10
+                    reasons := reasons + (reasons == "" ? "" : ",") + "nivelQueNoAguanta"
+
+            score := math.max(0, math.min(100, score))
+            p := Pressure.new(true, side, math.round(posPct, 1), math.round(wickAgainst, 1), math.round(bodyPct, 1), na(expansion) ? na : math.round(expansion, 2), na(volExp) ? na : math.round(volExp, 2), barsInside, score, score >= 60 ? "empuje" : score <= 35 ? "rechazo" : "sinDefinir", reasons)
+    p
+
+
+// =============================================================================
 // §10) TOLERANCIA AUTOMÁTICA
 // =============================================================================
 // Tolerancia de agrupación derivada de la volatilidad de la propia serie. Un
@@ -1325,7 +1585,11 @@ markPatternsAtLevels(Win w, array<Pat> pats, array<Lv> levels) =>
 // `tolOverride` a `na` = tolerancia automática. `htfChecked` a false deja
 // `counts.confluent` en `na`: SIN COMPROBAR y COMPROBADO SIN COINCIDENCIAS son
 // afirmaciones distintas y sólo una de ellas es cierta en cada caso.
-runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLevels, bool htfChecked, string htfTrend, int confirmDelay) =>
+// `wantPatterns` y `wantBreakouts` no son cosmética: las dos pasadas son
+// O(velas) y O(niveles × velas), y son justo las que impiden escanear diez mil
+// velas dentro del límite de tiempo de Pine. Apagadas, sus recuentos salen `na`
+// —NO CALCULADO— y nunca 0, que significaría «calculado y no hay».
+runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLevels, bool htfChecked, string htfTrend, int confirmDelay, bool wantPatterns, bool wantBreakouts) =>
     int n = array.size(w.c)
     // Menos velas que las que un fractal necesita = NO HAY LECTURA. El backend
     // devuelve ahí su `_empty_read`, con el precio de referencia, la tolerancia
@@ -1359,11 +1623,24 @@ runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLev
             array.push(levels, array.get(allLevels, i))
     levels := annotateLevels(w, levels, tol)
     array<Fvg> fvgs = tooShort ? array.new<Fvg>() : detectFvgs(w)
-    array<Brk> breakouts = detectBreakouts(w, levels, strength)
+    array<Brk> breakouts = wantBreakouts ? detectBreakouts(w, levels, strength) : array.new<Brk>()
     // Los patrones se detectan sobre las MISMAS velas y se cruzan con los
     // niveles ya anotados, así que el cruce no cuesta una segunda pasada.
-    array<Pat> patterns = detectPatterns(w)
-    int patternsAtLevel = markPatternsAtLevels(w, patterns, levels)
+    array<Pat> patterns = wantPatterns ? detectPatterns(w) : array.new<Pat>()
+    int patternsAtLevel = wantPatterns ? markPatternsAtLevels(w, patterns, levels) : na
+    // Cada rechazo y cada ruptura de zona, una a una, y la estructura que sigue
+    // viva. Las dos son AÑADIDOS: no están en `price_action.py`.
+    int invalidadas = markInvalidations(w, events, swings)
+    array<Rx> reactions = levelReactions(w, levels, tol, MAX_ANALYSED_LEVELS)
+    int rechazos = 0
+    int rupturasZona = 0
+    if array.size(reactions) > 0
+        for i = 0 to array.size(reactions) - 1
+            Rx rx = array.get(reactions, i)
+            if rx.outcome == "rechazo"
+                rechazos += 1
+            else if rx.outcome == "ruptura"
+                rupturasZona += 1
 
     int confluent = na
     if htfChecked
@@ -1380,6 +1657,18 @@ runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLev
             if na(nearestSup) and lv.role == "support"
                 nearestSup := lv
     Ctx ctx = summariseContext(reference, na(nearestRes) ? na : nearestRes.price, na(nearestSup) ? na : nearestSup.price, atr)
+
+    // La zona que el precio está pisando AHORA (la más cercana en juego) y la
+    // evidencia que se está formando dentro de ella.
+    Pressure pressure = Pressure.new(false, 0, na, na, na, na, na, 0, na, "sinDefinir", "")
+    if array.size(levels) > 0
+        for i = 0 to array.size(levels) - 1
+            Lv lv = array.get(levels, i)
+            if lv.inPlay and not pressure.active
+                pressure := zonePressure(w, lv, tol, atr)
+    // La última ruptura, con su nivel de invalidación: contesta «¿hasta dónde
+    // vale esto?», que es lo que se pregunta cualquiera después de ver un BOS.
+    Ev lastStructure = array.size(events) > 0 ? array.get(events, array.size(events) - 1) : na
 
     // --- recuentos -----------------------------------------------------------
     int cBos = 0
@@ -1442,8 +1731,8 @@ runScan(Win w, int strength, float tolOverride, int minTouches, array<Lv> htfLev
             else if b.confirmed
                 cBreakouts += 1
 
-    Counts counts = Counts.new(array.size(swings), cBos, cChoch, cConfirmedEvents, cRepeated, array.size(allLevels), cRes, cSup, cFlipped, cConfirmedLevels, confluent, array.size(patterns), cBullishPat, cBearishPat, patternsAtLevel, cFvgOpen, cFvgSession, cBreakouts, cFakeouts)
-    Scan.new(n, reference, tol, atr, trend, swings, events, allLevels, levels, fvgs, breakouts, patterns, htfTrend, nearestRes, nearestSup, ctx, counts)
+    Counts counts = Counts.new(array.size(swings), cBos, cChoch, cConfirmedEvents, cRepeated, array.size(allLevels), cRes, cSup, cFlipped, cConfirmedLevels, confluent, wantPatterns ? array.size(patterns) : na, wantPatterns ? cBullishPat : na, wantPatterns ? cBearishPat : na, patternsAtLevel, invalidadas, rechazos, rupturasZona, cFvgOpen, cFvgSession, wantBreakouts ? cBreakouts : na, wantBreakouts ? cFakeouts : na)
+    Scan.new(n, reference, tol, atr, trend, swings, events, allLevels, levels, fvgs, breakouts, patterns, reactions, pressure, lastStructure, htfTrend, nearestRes, nearestSup, ctx, counts)
 
 // =============================================================================
 // §11) ENTRADAS
@@ -1463,7 +1752,13 @@ string GRP_ALERT = "10 · Avisos"
 // Con 300 velas y 30 niveles analizados son ~40 000 iteraciones: sobra margen.
 // Subirlo a 1 500 multiplica por cinco el trabajo y acerca el límite de tiempo
 // de ejecución de Pine, así que ahí está el tope.
-int  inBars = input.int(300, "Velas a escanear", minval = 30, maxval = 1500, step = 10, group = GRP_SCAN, tooltip = "La ventana sobre la que se calcula TODO. Equivale al histórico que pides en la web.")
+// El tope real no lo pone este control: lo pone el LÍMITE DE TIEMPO DE EJECUCIÓN
+// de Pine. Escanear diez mil velas con patrones y rupturas encendidos puede
+// hacer que TradingView aborte el script. Por eso están las dos palancas del
+// grupo 1: apagar patrones y rupturas es lo que hace viable una ventana enorme,
+// y el panel dice siempre cuántas velas se escanearon DE VERDAD.
+bool inAllBars = input.bool(false, "Usar TODAS las velas del gráfico", group = GRP_SCAN, tooltip = "Escanea todo el histórico cargado. Si TradingView aborta por tiempo de ejecución, apaga los patrones y las rupturas —son las dos pasadas caras— o baja el número de abajo.")
+int  inBars = input.int(500, "Velas a escanear (si no usas todas)", minval = 30, maxval = 20000, step = 50, group = GRP_SCAN, tooltip = "La ventana sobre la que se calcula TODO. Equivale al histórico que pides en la web.")
 int  inStrength = input.int(2, "Fuerza del fractal (velas a cada lado)", minval = 1, maxval = 5, group = GRP_SCAN, tooltip = "2 es lo correcto en diario. En 5 y 15 minutos la web usa 3, porque con 2 el ruido genera pivotes que no lo son.")
 string inTolMode = input.string("Automática", "Tolerancia de agrupación", options = ["Automática", "Manual"], group = GRP_SCAN, tooltip = "Automática = medio ATR en % del precio, acotado a [0,15 %, 2,5 %]. Es lo que hace la web.")
 float inTolPct = input.float(0.8, "Tolerancia manual (%)", minval = 0.05, maxval = 5.0, step = 0.05, group = GRP_SCAN)
@@ -1499,6 +1794,8 @@ bool inHonestMode = input.bool(false, "Modo tiempo real honesto (rupturas con re
 
 bool inShowPatterns = input.bool(true, "Marcar patrones de vela", group = GRP_PAT)
 int  inMaxPatterns = input.int(10, "Cuántos patrones marcar (los últimos)", minval = 1, maxval = 60, group = GRP_PAT)
+string inPatternSize = input.string("Normal", "Tamaño de la etiqueta", options = ["Pequeño", "Normal", "Grande", "Enorme"], group = GRP_PAT)
+float inPatternGap = input.float(1.2, "Separación de la vela (en ATR)", minval = 0.0, maxval = 6.0, step = 0.1, group = GRP_PAT, tooltip = "La etiqueta se aparta del máximo o del mínimo esta distancia, medida en ATR para que se comporte igual en cualquier activo y temporalidad.")
 int  inMinPatternRate = input.int(0, "Tasa mínima del patrón (%)", minval = 0, maxval = 90, step = 5, group = GRP_PAT, tooltip = "Cifras aproximadas de Bulkowski, las mismas que usa la web. Son educación, no una garantía: 0 no filtra nada.")
 bool inPatternsAtLevelOnly = input.bool(false, "Sólo patrones sobre un nivel confirmado", group = GRP_PAT, tooltip = "Un martillo pegado a un soporte con tres toques no es lo mismo que un martillo en medio de la nada. Este cruce NO lo hace la web: allí los dos escáneres son endpoints separados.")
 bool inShowNeutralPatterns = input.bool(false, "Incluir los neutros (doji, peonza, onda alta)", group = GRP_PAT)
@@ -1508,6 +1805,10 @@ bool inShowFilledFvg = input.bool(false, "Dibujar también los rellenados", grou
 bool inShowSessionGaps = input.bool(false, "Dibujar los huecos de sesión", group = GRP_FVG, tooltip = "El salto de una sesión a otra cumple la prueba de 3 velas todas las noches y NO es un desequilibrio. Va aparte a propósito.")
 int  inMaxFvg = input.int(8, "Cuántos FVG dibujar", minval = 1, maxval = 40, group = GRP_FVG)
 
+bool inShowReactions = input.bool(true, "Marcar rechazos y rupturas de zona", group = GRP_BRK, tooltip = "Cada visita a la banda de un nivel, con cómo acabó: el precio salió por donde entró (rechazo) o por el lado contrario (ruptura).")
+int  inMaxReactions = input.int(12, "Cuántas reacciones marcar (las últimas)", minval = 1, maxval = 60, group = GRP_BRK)
+bool inReactionsConfirmedOnly = input.bool(true, "Sólo en niveles confirmados", group = GRP_BRK)
+bool inShowPressure = input.bool(true, "Leer la presión de la zona en curso", group = GRP_BRK, tooltip = "Publica la evidencia de la vela EN CURSO cuando el precio está dentro de una banda. No es una probabilidad y no predice: mide.")
 bool inShowBreakouts = input.bool(false, "Marcar breakouts confirmados", group = GRP_BRK)
 bool inShowFakeouts = input.bool(false, "Marcar fakeouts (barridos)", group = GRP_BRK)
 int  inMaxBrk = input.int(10, "Cuántas marcas dibujar (las últimas)", minval = 1, maxval = 40, group = GRP_BRK)
@@ -1535,6 +1836,9 @@ bool inAlertZone = input.bool(false, "Avisar cuando el precio entra en la zona d
 bool inAlertBreakout = input.bool(false, "Avisar de una ruptura confirmada de nivel", group = GRP_ALERT)
 bool inAlertFakeout = input.bool(false, "Avisar de un barrido (fakeout)", group = GRP_ALERT)
 bool inAlertPattern = input.bool(false, "Avisar de un patrón de vela en la vela actual", group = GRP_ALERT)
+bool inAlertInvalidation = input.bool(true, "Avisar cuando se INVALIDA la estructura", group = GRP_ALERT)
+bool inAlertReaction = input.bool(false, "Avisar de un rechazo o una ruptura de zona", group = GRP_ALERT)
+bool inAlertPressure = input.bool(false, "Avisar del veredicto de presión de la zona", group = GRP_ALERT, tooltip = "Se dispara al CERRAR la vela. Con la vela abierta el veredicto se mueve, y avisar de algo que puede des-ocurrir en el siguiente tick es avisar de nada.")
 bool inAlertNear = input.bool(false, "Avisar al acercarse a un nivel", group = GRP_ALERT)
 float inNearAtr = input.float(0.5, "…a menos de esta distancia en ATR", minval = 0.1, maxval = 5.0, step = 0.1, group = GRP_ALERT)
 
@@ -1569,7 +1873,8 @@ feedWindow(Win w, int cap) =>
         array.set(w.v, last, nz(volume))
     array.size(w.c)
 
-int windowSize = feedWindow(W, inBars)
+// 100 000 = «lo que haya»: ningún plan de TradingView carga tantas velas.
+int windowSize = feedWindow(W, inAllBars ? 100000 : inBars)
 
 // --- Temporalidad superior ---------------------------------------------------
 // La escalera de la web, tal cual: 5m/15m→1h · 30m/1h→4h · 4h→1D · 1D→1W ·
@@ -1743,6 +2048,13 @@ patternName(string id) =>
         "three-inside-down" => "Tres dentro bajista"
         => id
 
+labelSizeOf(string name) =>
+    switch name
+        "Pequeño" => size.small
+        "Grande" => size.large
+        "Enorme" => size.huge
+        => size.normal
+
 behaviorName(string b) =>
     b == "reversal" ? "reversión" : b == "continuation" ? "continuación" : "indecisión"
 
@@ -1758,11 +2070,11 @@ panelRow(table t, int r, string clave, string valor, color colorValor, color col
 // =============================================================================
 // §14) LA FOTO — todo el escaneo, una vez, sobre la última vela
 // =============================================================================
-var table PANEL = table.new(position.top_right, 2, 26, border_width = 1)
+var table PANEL = table.new(position.top_right, 2, 31, border_width = 1)
 
 if barstate.islast
     clearDrawings()
-    table.clear(PANEL, 0, 0, 1, 25)
+    table.clear(PANEL, 0, 0, 1, 30)
 
     int n = windowSize
     // La vela en curso sigue moviéndose, así que todo lo que salga de ella
@@ -1784,7 +2096,7 @@ if barstate.islast
         confluenceChecked := true
 
     // TODO lo numérico sale de aquí. Debajo sólo se dibuja.
-    Scan sc = runScan(W, inStrength, inTolMode == "Automática" ? na : inTolPct / 100.0, inMinTouches, htfLevels, confluenceChecked, htfTrend, inHonestMode ? inStrength : 0)
+    Scan sc = runScan(W, inStrength, inTolMode == "Automática" ? na : inTolPct / 100.0, inMinTouches, htfLevels, confluenceChecked, htfTrend, inHonestMode ? inStrength : 0, inShowPatterns or inAlertPattern, inShowBreakouts or inShowFakeouts or inAlertBreakout or inAlertFakeout)
 
     array<Swing> swings = sc.swings
     array<Ev> events = sc.events
@@ -1792,6 +2104,8 @@ if barstate.islast
     array<Fvg> fvgs = sc.fvgs
     array<Brk> breakouts = sc.breakouts
     array<Pat> patterns = sc.patterns
+    array<Rx> reactions = sc.reactions
+    Pressure pressure = sc.pressure
     Ctx ctx = sc.context
     Counts counts = sc.counts
     float referencePrice = sc.referencePrice
@@ -1915,13 +2229,40 @@ if barstate.islast
                     // academia de la web, y no cabe en la etiqueta.
                     string tip = patternName(pt.id) + "  (" + pt.id + ")" + "\n" + behaviorName(pt.behavior) + " · tasa ~" + str.tostring(pt.rate) + " % · rango " + str.tostring(pt.rank) + "\nse decide por: " + basisName(pt.basis) + "\ncuerpo " + str.tostring(pt.bodyPct, "#.#") + " % · mecha sup. " + str.tostring(pt.upperWickPct, "#.#") + " % · mecha inf. " + str.tostring(pt.lowerWickPct, "#.#") + " %" + (pt.candles > 1 ? "\nocupa " + str.tostring(pt.candles) + " velas (empieza " + str.tostring(pt.candles - 1) + " atrás)" : "") + (na(pt.levelPrice) ? "" : "\n◆ sobre " + pt.levelRole + " confirmado en " + fmtPrice(pt.levelPrice))
                     string texto = patternName(pt.id) + (na(pt.levelPrice) ? "" : " ◆")
-                    label lb = label.new(xFirst + pt.idx, abajo ? array.get(W.l, pt.idx) : array.get(W.h, pt.idx), texto, xloc = xloc.bar_index, yloc = yloc.price, style = abajo ? label.style_label_up : label.style_label_down, color = color.new(col, na(pt.levelPrice) ? 88 : 70), textcolor = col, size = size.tiny, tooltip = tip)
+                    // Separada de la vela una distancia medida en ATR, para que
+                    // no se pise con el precio y se comporte igual en cualquier
+                    // activo. Sin ATR (serie muy corta) se pega a la vela.
+                    float gap = na(sc.atr) ? 0.0 : sc.atr * inPatternGap
+                    float ancla = abajo ? array.get(W.l, pt.idx) - gap : array.get(W.h, pt.idx) + gap
+                    label lb = label.new(xFirst + pt.idx, ancla, texto, xloc = xloc.bar_index, yloc = yloc.price, style = abajo ? label.style_label_up : label.style_label_down, color = color.new(col, na(pt.levelPrice) ? 80 : 55), textcolor = col, size = labelSizeOf(inPatternSize), tooltip = tip)
+                    // Una línea fina de la etiqueta a la vela: separarla ayuda a
+                    // leerla, pero sin el hilo se pierde a qué vela se refiere.
+                    if gap > 0
+                        line hilo = line.new(xFirst + pt.idx, abajo ? array.get(W.l, pt.idx) : array.get(W.h, pt.idx), xFirst + pt.idx, ancla, xloc = xloc.bar_index, color = color.new(col, 70), width = 1, style = line.style_dotted)
+                        array.push(DRAWN_LINES, hilo)
                     array.push(DRAWN_LABELS, lb)
                     // El patrón de tres velas ocupa tres barras: sin marcar dónde
                     // empieza hay que contarlas hacia atrás a ojo.
                     if pt.candles > 1
                         line ln = line.new(xFirst + pt.startIdx, array.get(W.l, pt.startIdx), xFirst + pt.idx, array.get(W.l, pt.idx), xloc = xloc.bar_index, color = color.new(col, 65), width = 1, style = line.style_dotted)
                         array.push(DRAWN_LINES, ln)
+                    shown += 1
+
+    // --- rechazos y rupturas de zona -------------------------------------------
+    if inShowReactions and array.size(reactions) > 0
+        int shown = 0
+        for i = array.size(reactions) - 1 to 0
+            if shown < inMaxReactions
+                Rx rx = array.get(reactions, i)
+                Lv lvr = array.get(levels, rx.levelIdx)
+                bool wanted = (not inReactionsConfirmedOnly or lvr.confirmed) and (rx.outcome == "rechazo" or rx.outcome == "ruptura")
+                if wanted
+                    bool esRechazo = rx.outcome == "rechazo"
+                    color col = rx.bullish ? inSupColor : inResColor
+                    string marca = esRechazo ? (rx.bullish ? "▲" : "▼") : (rx.bullish ? "⇧" : "⇩")
+                    string tip = (esRechazo ? "RECHAZO" : "RUPTURA") + " en " + fmtPrice(rx.levelPrice) + " (" + rx.levelRole + ")" + "\nllegó desde " + (rx.entrySide > 0 ? "arriba" : rx.entrySide < 0 ? "abajo" : "?") + " y salió por " + (rx.exitSide > 0 ? "arriba" : rx.exitSide < 0 ? "abajo" : "?") + "\nse metió un " + str.tostring(rx.penetrationPct, "#.#") + " % de la banda (extremo " + fmtPrice(rx.extreme) + ")" + "\nduró " + str.tostring(rx.endIdx - rx.startIdx + 1) + " velas"
+                    label lb = label.new(xFirst + rx.endIdx, rx.bullish ? array.get(W.l, rx.endIdx) : array.get(W.h, rx.endIdx), marca, xloc = xloc.bar_index, yloc = rx.bullish ? yloc.belowbar : yloc.abovebar, style = label.style_none, textcolor = col, size = size.small, tooltip = tip)
+                    array.push(DRAWN_LABELS, lb)
                     shown += 1
 
     // --- niveles de calendario y rango de sesión --------------------------------
@@ -1947,9 +2288,13 @@ if barstate.islast
     // --- panel de lectura ----------------------------------------------------
     if inShowTable
         table.set_position(PANEL, tablePosition(inTablePos))
-        color bg = color.new(color.black, 82)
-        color fg = color.new(color.white, 0)
-        color dim = color.new(color.gray, 20)
+        // El panel iba en negro semitransparente con letra blanca: sobre un
+        // gráfico de fondo claro eso es gris pálido con texto blanco encima,
+        // o sea ilegible. Ahora sale del PROPIO tema del gráfico —
+        // `chart.bg_color` y `chart.fg_color`— así que se lee en los dos.
+        color bg = color.new(chart.bg_color, 8)
+        color fg = chart.fg_color
+        color dim = color.new(chart.fg_color, 45)
         string sz = textSizeOf(inTextSize)
         Lv nres = sc.nearestResistance
         Lv nsup = sc.nearestSupport
@@ -1968,25 +2313,38 @@ if barstate.islast
         panelRow(PANEL, 8, "Posición en el rango", fmt(ctx.rangePositionPct, " %", "#.#") + (na(ctx.rangeWidthPct) ? "" : "  (ancho " + str.tostring(ctx.rangeWidthPct, "#.##") + " %)"), fg, dim, bg, sz)
         panelRow(PANEL, 9, "ATR(14) · tolerancia", fmtPrice(sc.atr) + " · ±" + str.tostring(sc.tolerance * 100, "#.###") + " %", fg, dim, bg, sz)
         panelRow(PANEL, 10, "Último patrón", ultimoPatron, ultimoPatronColor, dim, bg, sz)
+        // --- lo que está pasando AHORA en la zona -------------------------
+        // Va arriba porque es lo que se mira en vivo, y lleva la advertencia
+        // pegada: sale de la vela en curso, que todavía se mueve.
+        string presionTxt = not inShowPressure ? "desactivado" : not pressure.active ? "el precio no está en ninguna zona" : (pressure.verdict == "empuje" ? "EMPUJE" : pressure.verdict == "rechazo" ? "RECHAZO" : "sin definir") + "  " + str.tostring(pressure.score, "#") + "/100" + (forming ? "  ⚠ vela en curso" : "")
+        color presionCol = not pressure.active or not inShowPressure ? dim : pressure.verdict == "empuje" ? (pressure.side > 0 ? inSupColor : inResColor) : pressure.verdict == "rechazo" ? (pressure.side > 0 ? inResColor : inSupColor) : fg
+        panelRow(PANEL, 11, "Zona en curso", presionTxt, presionCol, dim, bg, sz)
+        panelRow(PANEL, 12, "…su evidencia", not pressure.active ? "—" : "cierre al " + str.tostring(pressure.posPct, "#") + " % de la banda · mecha en contra " + str.tostring(pressure.wickAgainstPct, "#") + " % · " + fmt(pressure.expansion, "× ATR", "#.##") + " · " + str.tostring(pressure.barsInside) + " velas dentro", pressure.active ? fg : dim, dim, bg, sz)
+        // --- la estructura y hasta dónde vale ----------------------------
+        Ev le = sc.lastStructure
+        string estructuraTxt = na(le) ? "—" : (le.isBos ? "BOS " : "CHoCH ") + (le.bullish ? "alcista" : "bajista") + " en " + fmtPrice(le.price) + (le.invalidated ? "  ✗ INVALIDADA" : "  ✓ vigente")
+        panelRow(PANEL, 13, "Última estructura", estructuraTxt, na(le) ? dim : le.invalidated ? inResColor : (le.bullish ? inSupColor : inResColor), dim, bg, sz)
+        panelRow(PANEL, 14, "…se invalida en", na(le) or na(le.invalidationPrice) ? "—" : fmtPrice(le.invalidationPrice) + (le.invalidated ? " (ya perdido)" : " · cierre " + (le.bullish ? "por debajo" : "por encima")), na(le) or na(le.invalidationPrice) ? dim : fg, dim, bg, sz)
 
         if not inCompactPanel
-            panelRow(PANEL, 11, "Patrones (alc / baj)", str.tostring(counts.bullishPatterns) + " / " + str.tostring(counts.bearishPatterns) + "  · " + str.tostring(counts.patternsAtLevel) + " sobre nivel", fg, dim, bg, sz)
-            panelRow(PANEL, 12, "Sesión", sesionActual, timeframe.isintraday ? fg : dim, dim, bg, sz)
-            panelRow(PANEL, 13, "Swings", str.tostring(counts.swings), fg, dim, bg, sz)
-            panelRow(PANEL, 14, "BOS / CHoCH", str.tostring(counts.bos) + " / " + str.tostring(counts.choch) + "  (" + str.tostring(counts.confirmedEvents) + " confirmadas)", fg, dim, bg, sz)
-            panelRow(PANEL, 15, "Rupturas repetidas", str.tostring(counts.repeatedBreaks), counts.repeatedBreaks > 0 ? inResColor : fg, dim, bg, sz)
-            panelRow(PANEL, 16, "Niveles (R / S)", str.tostring(counts.resistances) + " / " + str.tostring(counts.supports) + "  · " + str.tostring(counts.confirmedLevels) + "★ de " + str.tostring(array.size(levels)) + " analizados", fg, dim, bg, sz)
-            panelRow(PANEL, 17, "Polaridad invertida ⇄", str.tostring(counts.flipped), fg, dim, bg, sz)
+            panelRow(PANEL, 15, "Patrones (alc / baj)", str.tostring(counts.bullishPatterns) + " / " + str.tostring(counts.bearishPatterns) + "  · " + str.tostring(counts.patternsAtLevel) + " sobre nivel", fg, dim, bg, sz)
+            panelRow(PANEL, 16, "Sesión", sesionActual, timeframe.isintraday ? fg : dim, dim, bg, sz)
+            panelRow(PANEL, 17, "Swings", str.tostring(counts.swings), fg, dim, bg, sz)
+            panelRow(PANEL, 18, "BOS / CHoCH", str.tostring(counts.bos) + " / " + str.tostring(counts.choch) + "  (" + str.tostring(counts.confirmedEvents) + " confirmadas)", fg, dim, bg, sz)
+            panelRow(PANEL, 19, "Rupturas repetidas", str.tostring(counts.repeatedBreaks), counts.repeatedBreaks > 0 ? inResColor : fg, dim, bg, sz)
+            panelRow(PANEL, 20, "Niveles (R / S)", str.tostring(counts.resistances) + " / " + str.tostring(counts.supports) + "  · " + str.tostring(counts.confirmedLevels) + "★ de " + str.tostring(array.size(levels)) + " analizados", fg, dim, bg, sz)
+            panelRow(PANEL, 21, "Polaridad invertida ⇄", str.tostring(counts.flipped), fg, dim, bg, sz)
             // SIN COMPROBAR no es COMPROBADO SIN COINCIDENCIAS. La fila lo distingue.
-            panelRow(PANEL, 18, "Confluencia " + (confChecked ? htfTf : "—"), confChecked ? str.tostring(counts.confluent) + " de " + str.tostring(array.size(htfLevels)) + " niveles" : "sin comprobar", confChecked ? fg : dim, dim, bg, sz)
-            panelRow(PANEL, 19, "FVG abiertos", str.tostring(counts.fvgOpen) + (counts.fvgSessionGap > 0 ? "  (+" + str.tostring(counts.fvgSessionGap) + " huecos de sesión)" : ""), fg, dim, bg, sz)
-            panelRow(PANEL, 20, "Rupturas / barridos", str.tostring(counts.breakouts) + " / " + str.tostring(counts.fakeouts), fg, dim, bg, sz)
-            panelRow(PANEL, 21, "PDH / PDL", pdhAplica and not na(pdh) ? fmtPrice(pdh) + " / " + fmtPrice(pdl) : "—", pdhAplica ? fg : dim, dim, bg, sz)
-            panelRow(PANEL, 22, "Vela en curso", forming ? "SÍ — lo de esta vela puede des-ocurrir" : "no", forming ? inResColor : dim, dim, bg, sz)
-            panelRow(PANEL, 23, "Niveles en disputa", disputed > 0 ? str.tostring(disputed) + " cambian de papel según la referencia" : "—", disputed > 0 ? inResColor : dim, dim, bg, sz)
+            panelRow(PANEL, 22, "Confluencia " + (confChecked ? htfTf : "—"), confChecked ? str.tostring(counts.confluent) + " de " + str.tostring(array.size(htfLevels)) + " niveles" : "sin comprobar", confChecked ? fg : dim, dim, bg, sz)
+            panelRow(PANEL, 23, "FVG abiertos", str.tostring(counts.fvgOpen) + (counts.fvgSessionGap > 0 ? "  (+" + str.tostring(counts.fvgSessionGap) + " huecos de sesión)" : ""), fg, dim, bg, sz)
+            panelRow(PANEL, 24, "Rechazos / rupturas de zona", str.tostring(counts.rejections) + " / " + str.tostring(counts.zoneBreaks) + "  · " + str.tostring(counts.invalidated) + " estructuras invalidadas", fg, dim, bg, sz)
+            panelRow(PANEL, 25, "Rupturas / barridos", str.tostring(counts.breakouts) + " / " + str.tostring(counts.fakeouts), fg, dim, bg, sz)
+            panelRow(PANEL, 26, "PDH / PDL", pdhAplica and not na(pdh) ? fmtPrice(pdh) + " / " + fmtPrice(pdl) : "—", pdhAplica ? fg : dim, dim, bg, sz)
+            panelRow(PANEL, 27, "Vela en curso", forming ? "SÍ — lo de esta vela puede des-ocurrir" : "no", forming ? inResColor : dim, dim, bg, sz)
+            panelRow(PANEL, 28, "Niveles en disputa", disputed > 0 ? str.tostring(disputed) + " cambian de papel según la referencia" : "—", disputed > 0 ? inResColor : dim, dim, bg, sz)
             // Que quede claro cuándo se está mirando algo que YA NO es la web.
-            panelRow(PANEL, 24, "Modo", inHonestMode ? "tiempo real honesto (retardo " + str.tostring(inStrength) + ")" : "paridad con la web", inHonestMode ? inResColor : dim, dim, bg, sz)
-            panelRow(PANEL, 25, "No es una señal", "reglas deterministas · tradingcalculatorpro.com", dim, dim, bg, sz)
+            panelRow(PANEL, 29, "Modo", inHonestMode ? "tiempo real honesto (retardo " + str.tostring(inStrength) + ")" : "paridad con la web", inHonestMode ? inResColor : dim, dim, bg, sz)
+            panelRow(PANEL, 30, "No es una señal", "reglas deterministas · tradingcalculatorpro.com", dim, dim, bg, sz)
 
     // =========================================================================
     // AVISOS
@@ -2022,6 +2380,20 @@ if barstate.islast
             if pt.idx == n - 1 and (inShowNeutralPatterns or pt.kind != "neutral") and pt.rate >= inMinPatternRate and (not inPatternsAtLevelOnly or not na(pt.levelPrice))
                 alert(patternName(pt.id) + " en " + syminfo.ticker + " (" + timeframe.period + ") · " + behaviorName(pt.behavior) + ", tasa ~" + str.tostring(pt.rate) + " %" + (na(pt.levelPrice) ? "" : " · sobre " + pt.levelRole + " confirmado en " + fmtPrice(pt.levelPrice)), alert.freq_once_per_bar_close)
                 break
+    // La invalidación es la que más falta hace: te dice que la idea con la que
+    // entraste ya no está vigente, y eso no se ve mirando el precio.
+    if inAlertInvalidation and not na(sc.lastStructure)
+        if sc.lastStructure.invalidated and sc.lastStructure.invalidatedAt == n - 1
+            alert("ESTRUCTURA INVALIDADA en " + syminfo.ticker + " (" + timeframe.period + "): el " + (sc.lastStructure.isBos ? "BOS" : "CHoCH") + " " + (sc.lastStructure.bullish ? "alcista" : "bajista") + " de " + fmtPrice(sc.lastStructure.price) + " pierde su nivel de invalidación " + fmtPrice(sc.lastStructure.invalidationPrice), alert.freq_once_per_bar_close)
+    if inAlertReaction and array.size(reactions) > 0
+        for i = array.size(reactions) - 1 to 0
+            Rx rx = array.get(reactions, i)
+            if rx.endIdx == n - 1 and (rx.outcome == "rechazo" or rx.outcome == "ruptura")
+                alert((rx.outcome == "rechazo" ? "RECHAZO" : "RUPTURA") + " en la zona " + fmtPrice(rx.levelPrice) + " (" + rx.levelRole + ") de " + syminfo.ticker + " (" + timeframe.period + ") · se metió un " + str.tostring(rx.penetrationPct, "#") + " % de la banda", alert.freq_once_per_bar_close)
+                break
+    if inAlertPressure and pressure.active and pressure.verdict != "sinDefinir"
+        alert("Zona en juego en " + syminfo.ticker + " (" + timeframe.period + "): " + (pressure.verdict == "empuje" ? "EMPUJE" : "RECHAZO") + " " + str.tostring(pressure.score, "#") + "/100 · cierre al " + str.tostring(pressure.posPct, "#") + " % de la banda, mecha en contra " + str.tostring(pressure.wickAgainstPct, "#") + " %. Medido sobre la vela cerrada, no es una predicción.", alert.freq_once_per_bar_close)
+
     // «Se está acercando» medido en ATR y no en porcentaje: medio ATR significa
     // lo mismo en el yen y en el bitcoin, y un 0,5 % no.
     if inAlertNear and not na(sc.atr) and sc.atr > 0

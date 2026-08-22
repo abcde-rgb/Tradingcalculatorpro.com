@@ -44,7 +44,7 @@ DESTINO = os.path.join(RAIZ, "tradingview", "pine_twin_generated.py")
 # si mañana alguien renombra una función, el script falla en vez de generar un
 # gemelo silenciosamente incompleto que dejaría pasar la prueba de paridad.
 TIPOS = ["Win", "Swing", "Ev", "Lv", "Fvg", "Brk", "Cluster", "Ctx", "Counts", "Scan",
-         "Cm", "PatMeta", "Pat"]
+         "Cm", "PatMeta", "Pat", "Rx", "Pressure"]
 CONSTANTES = ["MAX_ANALYSED_LEVELS", "SESSION_GAP_FACTOR", "DAY_SECONDS", "VOL_WINDOW"]
 FUNCIONES = [
     "sideOf", "avgTrueRange", "avgVolume", "barSpacingSeconds",
@@ -63,6 +63,8 @@ FUNCIONES = [
     "isThreeWhiteSoldiers", "isThreeBlackCrows", "isThreeInsideUp",
     "isThreeInsideDown", "trendBefore", "patternMeta", "detectAtIndex",
     "detectPatterns", "markPatternsAtLevels",
+    # §9b–§9d — invalidación, reacciones y presión (AÑADIDOS)
+    "markInvalidations", "levelReactions", "zonePressure",
 ]
 
 # ---------------------------------------------------------------------------
