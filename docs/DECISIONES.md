@@ -157,6 +157,32 @@ de contrato. El apalancamiento decide el margen y la liquidación, no el
 resultado. Está aquí porque el diario legado **sí lo metía** y multiplicaba el
 P&L por veinte (BUG-046). Fijado por un test parametrizado a 1/5/20/100×.
 
+### 2026-08-22 · El sentido de una escalera de entradas lo declara quien la pide
+`buildLadder` recibe `direction: 'with' | 'against'` en vez de deducirlo de un signo.
+Piramidar (añadir a favor) y promediar a la baja (añadir en contra) son la misma
+aritmética y planes opuestos, y la versión que llegó tenía el signo invertido con
+un comentario que decía lo contrario: un largo bajaba de precio. Un plan que
+convierte una técnica en su contraria sin decirlo no es un bug de cálculo, es una
+mentira sobre lo que el usuario está simulando.
+
+### 2026-08-22 · En margen cruzado el margen se evalúa en el precio del stop-out
+`sizeForCushion` resuelve `L = saldo / (contrato · (colchón + th/100 · P'/lev))`
+con `P' = P ∓ colchón`, no con `P`. Usar el precio de entrada era contradecir, en
+la propia fórmula, el módulo que explica que el margen de un CFD se recalcula a
+mercado. Y no es cosmético: es lo que hace que el resultado **converja al techo**
+`saldo / (contrato · colchón)` cuando el apalancamiento tiende a infinito, que es
+el argumento entero del módulo 08.
+
+### 2026-08-22 · El aislado y el cruzado son dos lecturas, no una aproximación de la otra
+En aislado la distancia hasta perder el margen es `precio ÷ apalancamiento` y no
+depende del tamaño. En cruzado el corte es `equity / margen_usado < umbral` y
+depende del saldo, del tamaño y del bróker. Con oro a 4.328,15 y 1:500 son 8,66 $
+frente a 5,68 $: **la cuenta con más colateral detrás liquida antes**. Se enseñan
+las dos juntas en el simulador porque leer una creyendo que vale por la otra es el
+error que el módulo 04 existe para corregir. Recalcular el margen a mercado, en
+cambio, sólo mueve el colchón de 5,672 $ a 5,678 $ y a favor: quien lo cita como
+el gran problema del cruzado no ha hecho la cuenta.
+
 ### Lo que no se puede calcular es `None`, nunca `0`
 Un R sin stop, un Sortino sin pérdidas, una IV que el precio no determina, un max
 pain sobre cadena sintética. Un cero se promedia y falsea la distribución; un

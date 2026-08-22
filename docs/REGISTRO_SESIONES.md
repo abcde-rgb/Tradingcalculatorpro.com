@@ -4391,3 +4391,87 @@ en él; el diario de verdad es `/performance`.
 **Verificado:** engine-check 264/264 · simulación masiva 20.227 · i18n 10/10 ·
 check-edu-index · gen-mapa · check-doc-links · ESLint 0 errores · pytest 782
 passed · y las dos pruebas de dos dispositivos, en el navegador real.
+
+### 2026-08-22 — Margen cruzado: la pregunta que ninguna calculadora responde
+
+Llegó una herramienta empaquetada aparte —motor, componente y currículo— para
+integrar. Lo primero fue no creérsela: **cada cifra que afirmaba se recalculó**,
+y de las que sobrevivieron salieron las comprobaciones de `engine-check`. Tres
+de ellas eran falsas.
+
+**Lo que decía y lo que sale.** El texto sostenía que la diferencia entre
+congelar el margen en la entrada y recalcularlo a mercado eran «5,68 $ frente a
+8,66 $ de colchón, un 52 % de error». Las dos cifras existen, pero **no son eso**:
+recalcular el margen mueve el colchón de 5,672 $ a 5,678 $ —un 0,1 %, y a
+favor—. Los 8,66 $ son otra cosa: la distancia hasta perder el margen en
+**aislado**, que es `precio ÷ apalancamiento`. Puestas una al lado de la otra
+dicen algo mucho mejor que el error que se les atribuía: *el cruzado, con los
+5.000 $ de la cuenta entera detrás, liquida ANTES que el aislado*, porque el
+umbral del bróker no es perder el margen sino bajar de la mitad de él. El módulo
+se reescribió alrededor de eso y el simulador enseña las dos lecturas juntas.
+
+También decía que el segundo tramo se desbloquea en 4.337,35. Sale **4.335,49**
+(la condición es `499·P − 2.159.075 ≥ P`, y se comprueba por bisección en
+`engine-check`). Y que completar la escalera exigía «16.641 $ de balance», que
+era el *extra*, no el balance. Se sustituyó por la comparación que sí se
+reproduce con un clic: con 5 céntimos de separación el plan muere en el tramo 2;
+con 10 $, entra entero y el colchón **crece** de 5,68 $ a 17,65 $.
+
+**Cuatro fallos de código, cada uno con su sabotaje.**
+
+- `sizeForCushion` evaluaba el margen en el precio de **entrada**, contradiciendo
+  la tesis del módulo que lo acompaña. Ahora lo evalúa en el del stop-out
+  (`P ∓ colchón`), lo que corrige 0,619 → 0,620 lotes a 1:200 y 0,703 → 0,704 a
+  1:2000. El techo (`saldo ÷ (contrato × colchón)` = 0,714) no se mueve: es el
+  límite cuando el apalancamiento tiende a infinito, y ahora la función converge
+  a él de verdad.
+- La cota superior de la bisección de `canOpen` salía del margen libre. Al
+  **cubrir** en modelo neto caben lotes que no cuestan margen ninguno, así que
+  esa cota los cortaba en silencio: daba 3,1 donde caben 10,78. Ahora `hi` se
+  duplica hasta que el predicado falla.
+- `minCushionAt` buscaba la posición del mínimo en una lista ya filtrada de
+  nulos y la usaba para indexar otra sin filtrar: en cuanto un peldaño tenía
+  colchón indefinido, el aviso señalaba al tramo equivocado.
+- La escalera se construía **en contra** de la posición con el comentario «se
+  escala a favor»: un largo bajaba de precio. Eso convierte piramidar en
+  promediar a la baja, que es exactamente lo que el módulo 06 advierte que no se
+  haga. Ahora el sentido es un campo del usuario (*a favor* / *en contra*) y vive
+  en `buildLadder`, no escondido en un signo.
+
+Los cuatro están en `scripts/probar-verificadores.sh`: se reintroducen a
+propósito y `engine-check` tiene que caerse. Se cae.
+
+**El componente no se podía pintar.** Usaba un vocabulario de tokens que este
+repositorio no tiene —`bg-ink`, `text-bone`, `rounded-soft` y **ámbar como color
+de acento**, que es justo lo que el dueño rechazó y `identidad-visual` prohíbe
+volver a proponer—. Reescrito sobre el sistema real (`bg-card`, `border-rule`,
+`text-primary`, `--long`/`--short`). Los colores en línea y los de Recharts iban
+como `var(--short)`, que es CSS inválido: las variables guardan el trío HSL
+suelto, así que la marca del stop-out salía invisible. Ahora van en
+`hsl(var(--short))` y el gráfico cambia con el tema. Y `resolveSpec(símbolo)`
+llevaba un argumento de dos: resolvía el producto por defecto —contado— y
+devolvía un tamaño de contrato genérico en vez de las 100 onzas del oro.
+
+**Lo que hay ahora.** `lib/crossMargin.js` (funciones puras),
+`CrossMarginSimulator` como decimoquinta herramienta del panel
+(`?tab=cross-margin`) con cuatro escenarios de un clic —piramidar, el tramo que
+no entra, promediar a la baja, tramos decrecientes—, la curva de margen libre
+por precio, la regleta a escala, el candado bajo los tres modelos de margen y el
+aviso cuando el apalancamiento supera el tope minorista de la UE del catálogo.
+Y en la Academia → Riesgo, el curso **«Margen cruzado»** (`?topic=cross-margin`):
+once módulos con la creencia que corrige cada uno, su comprobación de una
+pregunta —con la correcta rotando de posición— y la tabla de lo que se cree
+frente a lo que ocurre. Los escenarios del simulador son los casos trabajados
+del curso, para que se puedan reproducir en vez de creer.
+
+**Verificado:** `engine-check` **422/422** (52 comprobaciones nuevas, todas
+atadas a una frase del curso) · `i18n-check` 6.858 claves × 10 idiomas, 0
+huecos, 0 sobrantes · `check-edu-index` 86 = 86 · `check-fetch-credentials` ·
+`gen-instruments-js --check` · `gen-mapa --check` · `check-doc-links` · ESLint 0
+errores · `npm run build` exit 0 · `probar-verificadores.sh`.
+
+**Lo que NO cierra:** G-33 sigue abierto. Ésta es una herramienta nueva escrita
+ya sobre el catálogo, no una de las catorce viejas rehechas. Y la aritmética
+vive en `lib/`, así que sí es importable desde `simulacion-masiva`, aunque
+todavía no se le ha añadido un generador de escenarios: hoy la cubren las 52
+comprobaciones de referencia de `engine-check`.

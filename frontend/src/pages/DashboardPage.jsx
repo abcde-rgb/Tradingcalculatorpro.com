@@ -17,6 +17,7 @@ import { SimulatorPro } from '@/components/calculators/SimulatorPro';
 import { PatternTradingCalculator } from '@/components/calculators/PatternTradingCalculator';
 import { FuturesCalculator } from '@/components/calculators/FuturesCalculator';
 import { CompoundCalculator } from '@/components/calculators/CompoundCalculator';
+import { CrossMarginSimulator } from '@/components/calculators/CrossMarginSimulator';
 import { Watchlist } from '@/components/dashboard/Watchlist';
 import { EconomicCalendar } from '@/components/dashboard/EconomicCalendar';
 import { NextDataCountdown } from '@/components/dashboard/NextDataCountdown';
@@ -63,6 +64,7 @@ export default function DashboardPage() {
       { value: 'lotsize', label: t('lotSize'), descKey: 'calcDescLotsize' },
       { value: 'partial-exit', label: t('pxcTitle'), descKey: 'calcDescPartialExit' },
       { value: 'leverage', label: t('leverage'), descKey: 'calcDescLeverage' },
+      { value: 'cross-margin', label: t('xmTitle'), descKey: 'calcDescCrossMargin' },
       { value: 'futures', label: t('futuresTabLabel'), descKey: 'calcDescFutures' },
     ]},
     { id: 'price', label: t('calcCatPrice'), Icon: Target, items: [
@@ -146,7 +148,7 @@ export default function DashboardPage() {
     const allowed = [
       'percentage', 'target', 'leverage', 'position', 'lotsize',
       'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
-      'futures', 'compound', 'partial-exit',
+      'futures', 'compound', 'partial-exit', 'cross-margin',
     ];
     if (requested && allowed.includes(requested)) {
       setActiveTab(requested);
@@ -571,6 +573,9 @@ export default function DashboardPage() {
               </TabsContent>
               <TabsContent value="compound">
                 <CompoundCalculator />
+              </TabsContent>
+              <TabsContent value="cross-margin">
+                <CrossMarginSimulator />
               </TabsContent>
               </div>
             </div>

@@ -21,7 +21,7 @@
 >   cálculos, APIs, fuentes de datos, normativa y admin — ver
 >   [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md); antes 2026-08-08,
 >   persistencia de los ajustes del usuario)
-> - 🌿 **Rama de trabajo actual:** `claude/project-complete-audit-a6qg1c`
+> - 🌿 **Rama de trabajo actual:** `claude/herramienta-analisis-implementacion-iygv2y`
 >
 > ⚠️ **Aviso de método (2026-07-27, otra vez el 2026-08-03, y atacado de raíz el
 > 2026-08-13).** Las §1, §2 y §6 se quedaban por detrás del código mientras el registro
@@ -86,6 +86,15 @@
   success/cancel, Legal, Contact, About y 404.
 - **Calculadoras** en `components/calculators/` — hoy son el **modo básico** del
   dashboard, con conmutador.
+- **Simulador de escalera en margen cruzado** (2026-08-22): la decimoquinta herramienta
+  del banco (`?tab=cross-margin`), y la única escrita desde cero sobre el catálogo. No
+  contesta «¿dónde me liquidan?» sino **«¿me deja el bróker abrir el siguiente tramo?»**,
+  que es donde muere la mayoría de los planes de piramidación. Aritmética pura en
+  `lib/crossMargin.js` —margin level de la cuenta, coste real de un tramo como diferencia
+  de margen usado, colchón hasta el stop-out, curva de margen libre por precio, tamaño
+  defendible frente al techo de la cuenta y ruina del jugador con deriva— con **52 cifras
+  de referencia fijadas en `engine-check`**, cada una atada a una frase del curso que lo
+  acompaña. Cuatro escenarios de un clic reproducen los casos trabajados de ese curso.
 - **Mesa de cálculo** en `components/desk/` (2026-08-14): un terminal de bróker que en
   vez de mandar la orden dice qué orden mandarías. Capital total arriba del todo (va con
   la cuenta, `cloudPrefs.deskAccount`, y arranca **vacío**), producto, modo de margen
@@ -105,6 +114,12 @@
   → Detalle y límites en [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md).
 - **~186 activos** en 6 categorías (crypto, forex, stocks, indices, commodities, futures)
   en `lib/assets.js` (los "47" de la primera versión se ampliaron el 2026-07-04).
+- **Academia → Riesgo → «Margen cruzado»** (2026-08-22, `?topic=cross-margin`): once
+  módulos con carcasa propia (`components/education/CrossMarginCourse.jsx`) porque aquí el
+  orden es una secuencia, no un catálogo. Cada módulo declara **el error concreto que
+  corrige** y lleva una comprobación de una pregunta, con la correcta rotando de posición.
+  Todas sus cifras se reproducen en el simulador y están fijadas en `engine-check`: si el
+  motor cambia, el texto se cae con él en vez de quedarse mintiendo.
 - **i18n: 10 idiomas** (`lib/i18n/`): es, en, de, fr, ru, zh, ja, ar, **pt** (Portugal) e **it**.
   Mismo juego de claves en los diez, **0 huecos** (`node scripts/i18n-check.js`, en CI).
   Los textos legales (`lib/legalContent/`) también están en los 10; la versión

@@ -20,7 +20,7 @@
 | **Rutas sin consumidor en el frontend** | **43** |
 | Ficheros de test · funciones de test | 52 · 859 |
 | Rutas del frontend (`App.js`) | 28 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 6,596 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 6,858 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -402,14 +402,14 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 |---|---:|---:|
 | `components/auth/` | 3 | 290 |
 | `components/backtesting/` | 1 | 175 |
-| `components/calculators/` | 14 | 3,979 |
+| `components/calculators/` | 15 | 4,634 |
 | `components/calculators/simulator/` | 6 | 1,436 |
 | `components/charts/` | 3 | 797 |
 | `components/charts/structure/` | 12 | 1,705 |
 | `components/common/` | 11 | 1,831 |
 | `components/dashboard/` | 8 | 989 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 78 | 13,036 |
+| `components/education/` | 79 | 13,235 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 586 |
@@ -419,7 +419,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 46 | 2,946 |
-| `pages/` | 22 | 15,892 |
+| `pages/` | 22 | 15,905 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -429,17 +429,17 @@ dan) en vez de abrirlos de arriba abajo.
 | Fichero | Líneas |
 |---|---:|
 | `backend/server.py` | 9,438 |
-| `frontend/src/pages/EducationPage.jsx` | 5,505 |
-| `frontend/src/lib/i18n/ar.js` | 4,510 |
-| `frontend/src/lib/i18n/de.js` | 4,510 |
-| `frontend/src/lib/i18n/en.js` | 4,510 |
-| `frontend/src/lib/i18n/es.js` | 4,510 |
-| `frontend/src/lib/i18n/fr.js` | 4,510 |
-| `frontend/src/lib/i18n/it.js` | 4,510 |
-| `frontend/src/lib/i18n/ja.js` | 4,510 |
-| `frontend/src/lib/i18n/pt.js` | 4,510 |
-| `frontend/src/lib/i18n/ru.js` | 4,510 |
-| `frontend/src/lib/i18n/zh.js` | 4,510 |
+| `frontend/src/pages/EducationPage.jsx` | 5,513 |
+| `frontend/src/lib/i18n/ar.js` | 4,592 |
+| `frontend/src/lib/i18n/de.js` | 4,592 |
+| `frontend/src/lib/i18n/en.js` | 4,592 |
+| `frontend/src/lib/i18n/es.js` | 4,592 |
+| `frontend/src/lib/i18n/fr.js` | 4,592 |
+| `frontend/src/lib/i18n/it.js` | 4,592 |
+| `frontend/src/lib/i18n/ja.js` | 4,592 |
+| `frontend/src/lib/i18n/pt.js` | 4,592 |
+| `frontend/src/lib/i18n/ru.js` | 4,592 |
+| `frontend/src/lib/i18n/zh.js` | 4,592 |
 
 ## Verificadores del repositorio
 
