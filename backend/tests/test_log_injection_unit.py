@@ -83,10 +83,22 @@ def test_el_recorte_no_muerde_lo_que_cabe():
 # ══════════════════════════════════════════════════════════════════════════
 SERVER = pathlib.Path(__file__).resolve().parent.parent / "server.py"
 
-# Un f-string de logging que interpola `sym`, `symbol` o `interval` a pelo.
+# Un f-string de logging que interpola a pelo un valor de fuera.
 # `{log_safe(sym)}` no casa, que es justo la diferencia que se persigue.
+#
+# ⚠️ La primera versión sólo miraba `sym|symbol|interval`, y con eso di el
+# agujero por cerrado. CodeQL siguió marcando las MISMAS diez líneas y tenía
+# razón: yo saneaba el símbolo y dejaba la excepción cruda al lado. Un mensaje
+# de excepción es dato externo por definición —lo redacta una librería o la
+# respuesta de un proveedor, y arrastra dentro el valor que le pasaste—, así
+# que `{e}` reintroduce el salto de línea que `{log_safe(sym)}` acababa de
+# quitar. Comprobado: la línea salía partida en dos y la segunda era una
+# entrada de log falsa.
+#
+# Por eso la regla ahora cubre también los nombres típicos de excepción.
+FUERA = r'sym|symbol|interval|e|ce|err|exc|quote_err|error'
 CRUDO = re.compile(
-    r'logging\.\w+\(\s*f["\'][^"\']*\{\s*(sym|symbol|interval)\s*[}!:]')
+    r'logging\.\w+\(\s*f["\'][^"\']*\{\s*(?:' + FUERA + r')\s*[}!:]')
 
 
 def test_ninguna_linea_de_log_mete_un_simbolo_crudo():
@@ -115,8 +127,16 @@ def test_la_regla_no_es_decorativa():
     assert CRUDO.search('        logging.error(f"Level odds error for {sym}: {e}")')
     assert CRUDO.search('logging.warning(f"x {symbol} y")')
     assert CRUDO.search('logging.info(f"{interval}")')
-    # Y lo que NO debe cazar: la versión ya saneada.
-    assert not CRUDO.search('logging.error(f"Level odds error for {log_safe(sym)}: {e}")')
+
+    # El caso que de verdad importa, y con el que este control me pilló: el
+    # SÍMBOLO saneado y la EXCEPCIÓN cruda al lado. Media línea limpia no sirve
+    # de nada — el salto de línea entra igual por `{e}` — y la regla tiene que
+    # seguir cazándolo.
+    assert CRUDO.search('logging.error(f"Level odds error for {log_safe(sym)}: {e}")')
+
+    # Y lo que NO debe cazar: la versión saneada ENTERA.
+    assert not CRUDO.search(
+        'logging.error(f"Level odds error for {log_safe(sym)}: {log_safe(e)}")')
     assert not CRUDO.search('logging.error(f"algo sin variables")')
 
 

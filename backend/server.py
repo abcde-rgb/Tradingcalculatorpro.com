@@ -1643,7 +1643,7 @@ async def log_admin_action(
             "timestamp": datetime.now(timezone.utc),
         })
     except Exception as e:
-        logging.error(f"audit log failed for action={action}: {e}")
+        logging.error(f"audit log failed for action={action}: {log_safe(e)}")
 
 def check_premium(user: dict) -> bool:
     """Check if user has premium access. Demo user always has premium."""
@@ -1834,7 +1834,7 @@ async def startup_event():
                 logging.error(f"DB init attempt {_attempt}/5 timed out", exc_info=True)
             except Exception as e:
                 _db_init_error = f"{type(e).__name__}: {e}"
-                logging.error(f"DB init attempt {_attempt}/5 failed: {e}", exc_info=True)
+                logging.error(f"DB init attempt {_attempt}/5 failed: {log_safe(e)}", exc_info=True)
             if _attempt < 5:
                 await asyncio.sleep(2 * _attempt)  # 2s, 4s, 6s, 8s
 
@@ -1912,7 +1912,7 @@ async def startup_event():
         start_poller()
         logging.info("✅ Extended modules: indexes ensured & WS poller started")
     except Exception as e:
-        logging.error(f"Extended modules startup error: {e}", exc_info=True)
+        logging.error(f"Extended modules startup error: {log_safe(e)}", exc_info=True)
 
 def log_safe(value: Any, limite: int = 64) -> str:
     """Un valor de fuera, apto para meter en una línea de log.
@@ -2342,7 +2342,7 @@ async def _send_magic_link_email(to_email: str, name: str, magic_url: str) -> No
                 headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
             )
     except Exception as e:
-        logging.warning(f"[magic-link] email error: {e}")
+        logging.warning(f"[magic-link] email error: {log_safe(e)}")
 
 
 async def _send_email_verification(user_id: str, to_email: str, name: str) -> None:
@@ -2386,7 +2386,7 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
                 headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
             )
     except Exception as e:
-        logging.warning(f"[verify-email] send error: {e}")
+        logging.warning(f"[verify-email] send error: {log_safe(e)}")
 
 
 @api_router.post("/auth/forgot-password")
@@ -3091,7 +3091,7 @@ async def get_prices():
     try:
         precios = await crypto_data.fetch_usd_prices(list(symbol_by_id.values()))
     except Exception as e:
-        logging.error(f"Error fetching crypto prices: {e}")
+        logging.error(f"Error fetching crypto prices: {log_safe(e)}")
         precios = {}
 
     # El euro es derivado, no cotizado — igual que hacía CoinGecko por dentro.
@@ -3103,7 +3103,7 @@ async def get_prices():
         if eurusd:
             eur_por_usd = 1.0 / float(eurusd)
     except Exception as e:
-        logging.warning(f"EURUSD del BCE no disponible: {e}")
+        logging.warning(f"EURUSD del BCE no disponible: {log_safe(e)}")
 
     for coin_id, sym in symbol_by_id.items():
         cotizacion = precios.get(sym)
@@ -3145,7 +3145,7 @@ async def get_prices():
                     "usd_24h_change": change,
                 }
             except Exception as ce:
-                logging.warning(f"Commodity {log_safe(label)} ({log_safe(sym)}) fetch error: {ce}")
+                logging.warning(f"Commodity {log_safe(label)} ({log_safe(sym)}) fetch error: {log_safe(ce)}")
         # Una materia prima que no se ha podido leer se OMITE, igual que una
         # moneda ilegible veinte líneas más arriba. Aquí había un respaldo fijo
         # —oro a 2 680 $, plata a 31,50 $, y una variación de +0,5 % / +0,8 %
@@ -3157,7 +3157,7 @@ async def get_prices():
         # El frontend ya trata la ausencia bien (`if (!data || !data.usd) return
         # null`): omitir es lo que hace que ese cuidado sirva de algo.
     except Exception as e:
-        logging.error(f"Commodities (yfinance) error: {e}")
+        logging.error(f"Commodities (yfinance) error: {log_safe(e)}")
 
     return data
 
@@ -3215,10 +3215,10 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
                 if candles:
                     return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
             except Exception as e:
-                logging.warning(f"yfinance OHLC for {cand}: {e}")
+                logging.warning(f"yfinance OHLC for {cand}: {log_safe(e)}")
 
     except Exception as e:
-        logging.error(f"OHLC error: {e}")
+        logging.error(f"OHLC error: {log_safe(e)}")
 
     return empty
 
@@ -3606,7 +3606,7 @@ async def _send_email(to_email: str, subject: str, html_content: str) -> bool:
         logging.info(f"[email] sent '{subject}' → {to_email}")
         return True
     except Exception as e:
-        logging.error(f"[email] SendGrid error: {e}")
+        logging.error(f"[email] SendGrid error: {log_safe(e)}")
         return False
 
 _EMAIL_BASE = """
@@ -3744,7 +3744,7 @@ async def send_alert_email(request: EmailAlertRequest, user: dict = Depends(requ
         response = sg.send(message)
         return {"status": "sent", "code": response.status_code}
     except Exception as e:
-        logging.error(f"Error sending email: {e}")
+        logging.error(f"Error sending email: {log_safe(e)}")
         return {"status": "error", "message": str(e)}
 
 # ============= MONTE CARLO SIMULATION =============
@@ -4024,7 +4024,7 @@ async def run_backtest(request: dict, user: dict = Depends(require_user)) -> Dic
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"backtest error: {e}")
+        logging.error(f"backtest error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=f"Error ejecutando backtest: {e}")
 
     final = sim["balance"]
@@ -4481,7 +4481,7 @@ def _stripe_session_ids(session_id: str) -> Dict[str, Optional[str]]:
         session = stripe.checkout.Session.retrieve(session_id)
         return {"customer": session.customer, "subscription": session.subscription}
     except Exception as e:
-        logging.error(f"Error retrieving Stripe session: {e}")
+        logging.error(f"Error retrieving Stripe session: {log_safe(e)}")
         return {"customer": None, "subscription": None}
 
 
@@ -4555,10 +4555,10 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
         raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
         raw_event_type = raw_event.get("type", "")
     except stripe.error.SignatureVerificationError as e:
-        logging.error(f"[stripe-webhook] Invalid signature: {e}")
+        logging.error(f"[stripe-webhook] Invalid signature: {log_safe(e)}")
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
     except Exception as e:
-        logging.error(f"[stripe-webhook] Parse error: {e}")
+        logging.error(f"[stripe-webhook] Parse error: {log_safe(e)}")
         raise HTTPException(status_code=400, detail="Webhook parse error")
 
     # ── Log every Stripe event to stripe_webhook_logs ──
@@ -4639,7 +4639,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     )
             return {"status": "received", "event": raw_event_type}
         except Exception as e:
-            logging.error(f"[stripe-webhook] subscription event error: {e}")
+            logging.error(f"[stripe-webhook] subscription event error: {log_safe(e)}")
             return {"status": "error"}
 
     # ── Handle checkout.session.completed via native Stripe SDK ──
@@ -4684,10 +4684,10 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     transaction_id=meta.get("transaction_id"),
                 )
             except Exception as e:
-                logging.warning(f"[stripe-webhook] referral credit error: {e}")
+                logging.warning(f"[stripe-webhook] referral credit error: {log_safe(e)}")
             return {"status": "received"}
         except Exception as e:
-            logging.error(f"[stripe-webhook] checkout.session.completed error: {e}")
+            logging.error(f"[stripe-webhook] checkout.session.completed error: {log_safe(e)}")
             return {"status": "error"}
 
     return {"status": "received"}
@@ -4778,7 +4778,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
             transaction_id=order_id,
         )
     except Exception as e:
-        logging.warning(f"[revolut-webhook] referral credit error: {e}")
+        logging.warning(f"[revolut-webhook] referral credit error: {log_safe(e)}")
 
     logging.info(
         "[revolut-webhook] subscription activated: user=%s plan=%s order=%s",
@@ -4859,7 +4859,7 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
             transaction_id=order_id,
         )
     except Exception as e:
-        logging.warning(f"[nowpayments-webhook] referral credit error: {e}")
+        logging.warning(f"[nowpayments-webhook] referral credit error: {log_safe(e)}")
 
     logging.info(
         "[nowpayments-webhook] subscription activated: user=%s plan=%s order=%s",
@@ -4911,7 +4911,7 @@ async def get_current_subscription(user: dict = Depends(require_user)):
             "is_premium": sub.status in ["active", "trialing"]
         }
     except Exception as e:
-        logging.error(f"Error fetching subscription: {e}")
+        logging.error(f"Error fetching subscription: {log_safe(e)}")
         return {
             "has_subscription": False,
             "is_premium": user.get("is_premium", False)
@@ -4973,7 +4973,7 @@ async def cancel_subscription(
         # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
         raise
     except Exception as e:
-        logging.error(f"Error canceling subscription: {e}")
+        logging.error(f"Error canceling subscription: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error canceling subscription")
 
 @api_router.post("/subscriptions/resume")
@@ -5019,7 +5019,7 @@ async def resume_subscription(user: dict = Depends(require_user)):
         # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
         raise
     except Exception as e:
-        logging.error(f"Error resuming subscription: {e}")
+        logging.error(f"Error resuming subscription: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error resuming subscription")
 
 @api_router.post("/subscriptions/change-plan-legacy")
@@ -5071,7 +5071,7 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
         raise
     except Exception as e:
-        logging.error(f"Error creating portal session: {e}")
+        logging.error(f"Error creating portal session: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error creating portal session")
 
 @api_router.get("/billing/history")
@@ -5106,7 +5106,7 @@ async def get_billing_history(user: dict = Depends(require_user)):
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logging.error(f"Error fetching billing history: {e}")
+        logging.error(f"Error fetching billing history: {log_safe(e)}")
         return {"invoices": []}
 
 # ============= ROOT ROUTES =============
@@ -5181,7 +5181,7 @@ async def save_user_state(request: dict, user: dict = Depends(require_user)):
             upsert=True
         )
     except Exception as e:
-        logging.error(f"Error saving state: {e}")
+        logging.error(f"Error saving state: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error saving state")
 
     return {"success": True, "message": "State saved"}
@@ -5200,7 +5200,7 @@ async def get_user_state(state_id: str, user: dict = Depends(require_user)):
         
         return {"state": state_doc.get("state"), "last_updated": state_doc.get("last_updated")}
     except Exception as e:
-        logging.error(f"Error getting state: {e}")
+        logging.error(f"Error getting state: {log_safe(e)}")
         return {"state": None}
 
 @api_router.delete("/user-states/delete/{state_id}")
@@ -5213,7 +5213,7 @@ async def delete_user_state(state_id: str, user: dict = Depends(require_user)):
         
         return {"success": True, "deleted": result.deleted_count > 0}
     except Exception as e:
-        logging.error(f"Error deleting state: {e}")
+        logging.error(f"Error deleting state: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error deleting state")
 
 @api_router.delete("/user-states/reset-all")
@@ -5224,7 +5224,7 @@ async def reset_all_user_states(user: dict = Depends(require_user)):
         
         return {"success": True, "deleted_count": result.deleted_count}
     except Exception as e:
-        logging.error(f"Error resetting states: {e}")
+        logging.error(f"Error resetting states: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error resetting states")
 
 @api_router.get("/user-states/list")
@@ -5238,7 +5238,7 @@ async def list_user_states(user: dict = Depends(require_user)):
         
         return {"states": states}
     except Exception as e:
-        logging.error(f"Error listing states: {e}")
+        logging.error(f"Error listing states: {log_safe(e)}")
         return {"states": []}
 
 
@@ -5255,7 +5255,7 @@ async def health():
             await conn.fetchval("SELECT 1")
         return {"status": "healthy", "db": "ok"}
     except Exception as e:
-        logging.error(f"[health] DB check failed: {e}")
+        logging.error(f"[health] DB check failed: {log_safe(e)}")
         raise HTTPException(status_code=503, detail={"status": "degraded", "db": f"error: {e}"})
 
 # ============= OPTIONS CALCULATOR ROUTES (merged from OPTIONS app) =============
@@ -5378,7 +5378,7 @@ async def opt_get_stock(symbol: str):
     try:
         data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
-        logging.error(f"Error getting stock data for {log_safe(symbol)}: {e}")
+        logging.error(f"Error getting stock data for {log_safe(symbol)}: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     try:
         now = datetime.now(timezone.utc)
@@ -5392,7 +5392,7 @@ async def opt_get_stock(symbol: str):
             upsert=True
         )
     except Exception as e:
-        logging.warning(f"Failed to cache stock data for {log_safe(symbol)}: {e}")
+        logging.warning(f"Failed to cache stock data for {log_safe(symbol)}: {log_safe(e)}")
     return data
 
 
@@ -5865,7 +5865,7 @@ async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
             "stats": _payoff_summary(legs_dicts, points, fee, request.stockPrice),
         }
     except Exception as e:
-        logging.error(f"Payoff calculation error: {e}")
+        logging.error(f"Payoff calculation error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5935,7 +5935,7 @@ async def opt_calculate_greeks(request: GreeksRequest) -> Dict[str, Any]:
         legs_dicts = _legs_to_dicts(request.legs)
         return calculate_greeks(legs_dicts, request.stockPrice, q=request.dividendYield or 0.0)
     except Exception as e:
-        logging.error(f"Greeks calculation error: {e}")
+        logging.error(f"Greeks calculation error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5956,7 +5956,7 @@ async def opt_pnl_attribution(request: PnlAttributionRequest) -> Dict[str, Any]:
             q=request.dividendYield or 0.0,
         )
     except Exception as e:
-        logging.error(f"PnL attribution error: {e}")
+        logging.error(f"PnL attribution error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5999,7 +5999,7 @@ async def opt_assignment(request: AssignmentRequest) -> Dict[str, Any]:
         result["earlyAssignmentAtRisk"] = any(e.get("at_risk") for e in early)
         return result
     except Exception as e:
-        logging.error(f"Assignment simulation error: {e}")
+        logging.error(f"Assignment simulation error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6123,7 +6123,7 @@ async def optimize_options_strategy(req: OptimizeRequest):
             "riskFreeRate": round(risk_free, 5),
         }
     except Exception as e:
-        logging.error(f"Optimize error: {e}")
+        logging.error(f"Optimize error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6155,7 +6155,7 @@ async def get_next_earnings(symbol: str):
                     earnings_date = str(ed[0] if isinstance(ed, list) else ed)[:10]
         return {"symbol": symbol.upper(), "nextEarnings": earnings_date}
     except Exception as e:
-        logging.warning(f"earnings lookup failed for {log_safe(symbol)}: {e}")
+        logging.warning(f"earnings lookup failed for {log_safe(symbol)}: {log_safe(e)}")
         return {"symbol": symbol.upper(), "nextEarnings": None}
 
 
@@ -6253,7 +6253,7 @@ async def portfolio_greeks(user=Depends(get_current_user)):
                 "expiration": pos.get("expiration"),
             })
         except Exception as e:
-            logging.warning(f"skipping position {pos.get('id')} in aggregation: {e}")
+            logging.warning(f"skipping position {pos.get('id')} in aggregation: {log_safe(e)}")
     return {
         "aggregated": {k: round(v, 4) for k, v in agg.items()},
         "positionCount": len(positions),
@@ -6288,7 +6288,7 @@ def _fetch_atm_iv_proxy(symbol: str, spot: float) -> Optional[float]:
         ivs = [v for v in [atm.get("call", {}).get("iv"), atm.get("put", {}).get("iv")] if v and v > 0]
         return sum(ivs) / len(ivs) if ivs else None
     except Exception as e:
-        logging.warning(f"IV rank ATM IV fetch failed: {e}")
+        logging.warning(f"IV rank ATM IV fetch failed: {log_safe(e)}")
         return None
 
 
@@ -6337,7 +6337,7 @@ async def get_iv_rank(symbol: str) -> Dict[str, Any]:
             "recommendation": _iv_rank_recommendation(iv_rank),
         }
     except Exception as e:
-        logging.error(f"IV rank error for {log_safe(symbol)}: {e}")
+        logging.error(f"IV rank error for {log_safe(symbol)}: {log_safe(e)}")
         return {"symbol": symbol.upper(), "available": False, "error": str(e)}
 
 
@@ -6459,7 +6459,7 @@ async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: i
             "results": all_unusual[:50],
         }
     except Exception as e:
-        logging.error(f"Unusual options error for {log_safe(symbol)}: {e}")
+        logging.error(f"Unusual options error for {log_safe(symbol)}: {log_safe(e)}")
         return {"symbol": symbol.upper(), "error": str(e), "results": []}
 
 
@@ -6693,7 +6693,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
             ),
         }
     except _anthropic.APIError as e:
-        logging.error(f"AI analyze API error: {e}")
+        logging.error(f"AI analyze API error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
@@ -6705,7 +6705,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
         raise
     except Exception as e:
-        logging.error(f"AI analyze error: {e}")
+        logging.error(f"AI analyze error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
 
 
@@ -6818,7 +6818,7 @@ async def education_assistant(
         raise
     except Exception as e:  # noqa: BLE001
         # El asistente es un extra: que se caiga no puede romper la pantalla.
-        logging.error(f"Edu assistant error: {e}")
+        logging.error(f"Edu assistant error: {log_safe(e)}")
         return {"answer": None, "reason": "ai_failed"}
 
 
@@ -6879,7 +6879,7 @@ def _scan_ticker_flow(sym: str, min_ratio: float, min_volume: int) -> List[Dict[
             rows.extend(_scan_chain_for_flow(sym, chain, exp, stock, min_ratio, min_volume))
         return rows
     except Exception as e:
-        logging.warning(f"market-flow skipping {log_safe(sym)}: {e}")
+        logging.warning(f"market-flow skipping {log_safe(sym)}: {log_safe(e)}")
         return []
 
 
@@ -6908,7 +6908,7 @@ async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume:
             "results": all_flow[:max_results],
         }
     except Exception as e:
-        logging.error(f"Market flow error: {e}")
+        logging.error(f"Market flow error: {log_safe(e)}")
         return {"error": str(e), "results": []}
 
 
@@ -6970,7 +6970,7 @@ async def _higher_timeframe_levels(symbol: str, interval: Optional[str]) -> Dict
         levels = await asyncio.to_thread(scan_levels, rows, htf.strength)
         return {"tf": htf, "levels": levels}
     except Exception as e:
-        logging.warning(f"HTF confluence scan failed for {log_safe(symbol)} ({log_safe(interval)}): {e}")
+        logging.warning(f"HTF confluence scan failed for {log_safe(symbol)} ({log_safe(interval)}): {log_safe(e)}")
         return {"tf": None, "levels": []}
 
 
@@ -7070,7 +7070,7 @@ async def education_pattern_scan(
             "detections": detections[:limit],
         }
     except Exception as e:
-        logging.error(f"Pattern scan error for {log_safe(sym)}: {e}")
+        logging.error(f"Pattern scan error for {log_safe(sym)}: {log_safe(e)}")
         return {"symbol": sym, "error": str(e), "detections": []}
 
 
@@ -7128,7 +7128,7 @@ async def education_structure_scan(
             quote = await asyncio.to_thread(get_stock_data, sym)
             live_price = quote.get("price")
         except Exception as quote_err:  # noqa: BLE001
-            logging.info(f"structure-scan: sin cotización viva para {log_safe(sym)}: {quote_err}")
+            logging.info(f"structure-scan: sin cotización viva para {log_safe(sym)}: {log_safe(quote_err)}")
 
         res = await asyncio.to_thread(detect_structure, rows, strn, None, live_price)
         if htf_read["tf"] is not None:
@@ -7136,7 +7136,7 @@ async def education_structure_scan(
         return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
                 **strip_bars(rows), **_trim_structure(res)}
     except Exception as e:
-        logging.error(f"Structure scan error for {log_safe(sym)}: {e}")
+        logging.error(f"Structure scan error for {log_safe(sym)}: {log_safe(e)}")
         return {**meta, "error": "scan_failed", **strip_bars([]),
                 **detect_structure([], strn)}
 
@@ -7182,7 +7182,7 @@ async def education_level_odds(
         )
         return {**meta, **res}
     except Exception as e:  # noqa: BLE001
-        logging.error(f"Level odds error for {log_safe(sym)}: {e}")
+        logging.error(f"Level odds error for {log_safe(sym)}: {log_safe(e)}")
         return {**meta, "error": "odds_failed", "verdict": None,
                 "observations": 0}
 
