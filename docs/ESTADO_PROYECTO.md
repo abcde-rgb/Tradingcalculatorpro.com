@@ -206,6 +206,9 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 | G-35 | ~~**El banco de pruebas E2E no arrancaba en un contenedor nuevo.**~~ `stack/sembrar.py` hacía `POST /auth/login` a secas con `qa@example.com`, una cuenta que **nadie creaba**: en una base recién creada devolvía 401, `arriba.sh` seguía adelante con un aviso en amarillo, y las ocho sondas de navegador fallaban porque afirman sobre 13 filas y +$3.471,86. O sea: en TODA sesión remota, que empieza con un clon fresco | 🟢 | ✅ **Cerrado (2026-08-14)**: usa `cuenta()` y `da_premium()` de `entorno.py`, los mismos helpers que ya usaban las sondas de API — registraban si el login no valía y saltaban el muro de pago. Sólo que este script no los usaba. Verificado en frío: 10 operaciones sembradas |
 | G-36 | ~~**`/verify` decía «todo verde» sobre PRs que CI iba a tumbar.**~~ Comprobaba 4 de las 10 verificaciones de `ci.yml` —faltaban `engine-check`, `check-edu-index`, `check-fetch-credentials`, `gen-mapa --check`, `check-doc-links` y la paridad del catálogo—, hablaba de **8 idiomas** cuando hay 10, compilaba **3 módulos** de Python de 26, y corría `pytest -k unit` en vez del suite | 🟢 | ✅ **Cerrado (2026-08-14)**: reescrito para ejecutar exactamente lo de CI, con los tiempos reales de cada paso, qué hacer cuando el contenedor está crudo, y una regla escrita: si se añade una comprobación a CI, se añade ahí |
 
+| G-37 | **El consumo de tokens de un solo uso es una carrera.** `POST /auth/magic-link/verify` (`server.py` ~2255-2263) y el reset de contraseña (~2404-2416) hacen `find_one({used: False})` y **después** `update_one({used: True})`. El shim `update_one` es SELECT → operadores en Python → UPDATE, **sin transacción ni bloqueo**: dos peticiones concurrentes con el mismo enlace pasan las dos la condición y las dos canjean. No es el patrón de claim atómico que sí usan los pagos | 🟡 | Cambiar los dos a `find_one_and_update({..., "used": False}, {"$set": {"used": True}})`, que ya existe en el shim y hace `SELECT … FOR UPDATE` en transacción. Impacto real bajo (hay que tener ya el enlace, caduca a los 15 min y está limitado a 10/min), coste de arreglo ~2 líneas. Detectado 2026-08-22 |
+| G-38 | **La IP del expediente de fraude la escribe el atacante.** `referrals.py:196` y `affiliate_program.py:294` guardan la IP con `x-forwarded-for.split(",")[0]` — el primer elemento es el que el cliente antepone. El limitador y el log de admin ya no caen en esto: usan `_real_client_ip()`, que cuenta **desde la derecha** con `TRUSTED_PROXY_HOPS`. Hoy nadie **lee** ese campo, así que no hay control burlado: lo que se corrompe es la prueba guardada en `referrals` y en la solicitud de afiliado | 🟡 | Helper compartido: ninguno de los dos módulos importa de `server.py`, así que no vale copiar la función. Importa antes de construir **cualquier** deduplicación por IP (autorreferidos, granjas de cuentas): nacería sobre un dato falsificable. Detectado 2026-08-22 |
+
 ---
 
 ## 4. Qué hay que PROBAR (plan de test)
@@ -251,6 +254,10 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 - [ ] `FRONTEND_URL` obligatoria en producción (T-02 del backlog de auditoría).
 - [ ] **CSP** en el HTML de Pages, verificada en navegador (T-01 / G-10).
 - [ ] Confirmar **Dependabot + CodeQL + secret scanning** activos *(los ficheros `.github/dependabot.yml` y `.github/workflows/codeql.yml` ya existen; falta comprobar el interruptor en Settings)*.
+- [ ] **Claim atómico en los tokens de un solo uso** (G-37) — `find_one_and_update` en magic link
+      y reset de contraseña.
+- [ ] **IP no falsificable en referidos y afiliados** (G-38) — helper compartido, antes de
+      cualquier dedup por IP.
 - [ ] Tests del shim `Collection` (G-17).
 - [ ] `check-doc-links.py` en CI (G-18).
 
