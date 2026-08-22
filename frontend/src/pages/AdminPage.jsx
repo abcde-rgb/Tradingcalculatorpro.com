@@ -498,6 +498,7 @@ export default function AdminPage() {
         <WebhookLogsCard headers={headers} />
 
         {/* ── NEW FEATURES ── */}
+        <MarketDataHealthCard headers={headers} />
         <MaintenanceModeCard headers={headers} />
         <EmailCampaignsCard headers={headers} />
         <PaymentHistoryCard headers={headers} />
@@ -2004,6 +2005,152 @@ function WebhookLogsCard({ headers }) {
             ))}
           </tbody>
         </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SALUD DE LOS PROVEEDORES DE PRECIO
+   `market_data.py` es la cadena con failover, caché y cortacircuitos de la que
+   depende TODO precio en vivo del producto. Estaba construida y sin una sola
+   pantalla: se alcanzaba sólo por dos rutas que nadie llamaba (hueco G-14, ver
+   docs/RUTAS_MUERTAS.md). Esta tarjeta es la mitad de diagnóstico.
+═══════════════════════════════════════════════════════════════════════════ */
+function MarketDataHealthCard({ headers }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const res = await fetch(`${API}/admin/market-data-health`, { credentials: 'include', headers }).catch(() => null);
+    setLoading(false);
+    if (res?.ok) setData(await res.json());
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line
+
+  const providers = data?.providers || [];
+  const configurados = providers.filter((p) => p.configured);
+  // Lo que de verdad hay que saber de un vistazo: con un solo proveedor en pie
+  // no hay cadena de reserva, y la caída de ése deja el producto sin precios.
+  const sinReserva = data?.available && configurados.length < 2;
+  const abiertos = providers.filter((p) => p.circuit_open);
+  const alLimite = providers.filter((p) => p.near_limit);
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Activity className="w-4 h-4 text-primary" /> Proveedores de precio
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={load} className="gap-1 h-7" data-testid="market-health-refresh">
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Refrescar
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Quién responde, quién falla y qué cortacircuito está abierto. Cuando los precios
+          se tuercen, se mira aquí antes que en ningún otro sitio.
+        </p>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {data && !data.available && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm">
+            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <span>La capa de datos de mercado no se pudo cargar: <span className="font-mono text-xs">{data.error}</span></span>
+          </div>
+        )}
+
+        {sinReserva && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm"
+               data-testid="market-health-sin-reserva">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <span>
+              <span className="font-semibold">Sin cadena de reserva.</span> Sólo hay{' '}
+              {configurados.length === 1 ? `un proveedor configurado (${configurados[0].name})` : 'ninguno configurado'}:
+              si cae, el producto se queda sin precios en vivo. Configura{' '}
+              <span className="font-mono text-xs">FINNHUB_API_KEY</span> o{' '}
+              <span className="font-mono text-xs">TWELVEDATA_API_KEY</span> para que haya relevo.
+            </span>
+          </div>
+        )}
+
+        {abiertos.length > 0 && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <span>
+              Cortacircuito abierto en <span className="font-semibold">{abiertos.map((p) => p.name).join(', ')}</span>:
+              está fuera de rotación hasta que pase el enfriamiento.
+            </span>
+          </div>
+        )}
+
+        {alLimite.length > 0 && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+            <Gauge className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <span>Cerca de la cuota diaria: <span className="font-semibold">{alLimite.map((p) => p.name).join(', ')}</span>.</span>
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40">
+              <tr className="text-left">
+                {['Proveedor', 'Estado', 'Llamadas', 'Fallos', 'Servidas', 'Cuota hoy'].map((h) => (
+                  <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {providers.map((p) => (
+                <tr key={p.name} className="border-t border-border hover:bg-muted/20" data-testid={`market-health-${p.name}`}>
+                  <td className="px-3 py-2 font-medium">{p.name}</td>
+                  <td className="px-3 py-2">
+                    {!p.configured ? (
+                      <Badge className="bg-muted text-muted-foreground text-[10px]">sin clave</Badge>
+                    ) : p.circuit_open ? (
+                      <Badge className="bg-red-500/15 text-red-500 text-[10px]">circuito abierto</Badge>
+                    ) : (
+                      <Badge className="bg-green-500/15 text-green-500 text-[10px]">en rotación</Badge>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs">{p.calls}</td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {p.failures}
+                    {p.consecutive_failures > 0 && (
+                      <span className="text-amber-500"> ({p.consecutive_failures} seguidos)</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs">{p.served}</td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {/* Yahoo no tiene cuota publicada: se raspa, no se licencia.
+                        Un «0/0» ahí sería inventarse un límite que no existe. */}
+                    {p.daily_quota
+                      ? `${p.used_today}/${p.daily_quota} (${p.pct_used}%)`
+                      : <span className="text-muted-foreground">{p.used_today} · sin cuota publicada</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {data?.cache && (
+          <p className="text-[11px] text-muted-foreground">
+            Caché: {data.cache.symbols_cached} símbolo(s), TTL {data.cache.ttl_seconds}s.
+          </p>
+        )}
+
+        {/* Sin esto, un cero se lee como «no ha fallado nadie» cuando puede ser
+            «esta instancia acaba de arrancar». Los contadores viven en memoria
+            del proceso, y Cloud Run puede tener más de uno. */}
+        <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+          Los contadores son de <span className="font-semibold">la instancia que ha respondido</span>,
+          no del servicio entero, y se reinician con ella. Sirven para ver qué está roto ahora,
+          no como histórico.
+        </p>
       </CardContent>
     </Card>
   );

@@ -1,11 +1,11 @@
-# Las 38 rutas sin consumidor — una decisión por cada una
+# Las rutas sin consumidor — una decisión por cada una
 
 `docs/MAPA.md` las **cuenta**; este fichero las **decide**. Son endpoints del
 backend que ningún fichero del frontend menciona: código escrito, desplegado y
 autenticado que ningún usuario puede alcanzar desde ninguna pantalla.
 
 La lista la genera `scripts/gen-mapa.py` a partir del código, y su detector está
-validado contra 19 rutas de destino conocido (`CONTROLES`), así que el 38 no es
+validado contra 19 rutas de destino conocido (`CONTROLES`), así que la cifra no es
 una impresión. Lo que faltaba era qué hacer con cada una.
 
 **`scripts/check-rutas-muertas.py` comprueba que esta tabla y el código dicen lo
@@ -24,10 +24,18 @@ Tres cosas que sólo se ven leyendo las rutas una a una:
 `stale`/`as_of`) existe para que el producto no dependa de Yahoo. Su propia
 cabecera lo dice: *«the day Yahoo tightens its anti-bot, prices, watchlist,
 alerts, option chains, IV rank, unusual activity and every calculator fed by live
-price all go dark at once»*. Ese módulo se alcanza **sólo** por `/api/quote/{symbol}`
-y `/api/admin/market-data-health`, y las dos están muertas. Todos los precios de
-producción siguen saliendo del camino único de `stock_data.py` — el punto de
-fallo que el módulo se escribió para quitar sigue ahí, con la solución al lado.
+price all go dark at once»*. Ese módulo se alcanzaba **sólo** por
+`/api/quote/{symbol}` y `/api/admin/market-data-health`, y las dos estaban
+muertas: el punto de fallo que el módulo se escribió para quitar seguía ahí, con
+la solución al lado.
+
+La mitad de diagnóstico ya está conectada —`MarketDataHealthCard` en el panel de
+admin dice qué proveedor responde, cuál tiene el cortacircuito abierto y, sobre
+todo, **si hay o no cadena de reserva**: con `FINNHUB_API_KEY` y
+`TWELVEDATA_API_KEY` sin configurar, la cadena tiene un solo eslabón y el failover
+es teórico. Falta la otra mitad, que es la de verdad: que los precios que ve el
+usuario salgan de `/api/quote/{symbol}` en vez de `/api/stock/{symbol}`, con
+`stale` y `as_of` pintados en la interfaz.
 
 **2. El monedero de referidos se llena y no se puede ni ver ni gastar.**
 `credit_referrer_for_payment` está enganchado a los tres caminos de cobro
@@ -75,12 +83,11 @@ que hace bien esta ruta ya lo hace `POST /backtest/validate` sobre
 | `POST` | `/api/subscriptions/change-plan-legacy` | BORRAR | Su docstring: «[Legacy stub] superseded by `/subscriptions/change-plan`». No cambia el plan: devuelve un mensaje diciendo qué ruta usar. |
 | `GET` | `/api/user-states/list` | BORRAR | «List all saved states for debugging». |
 
-### CONSTRUIR (22)
+### CONSTRUIR (21)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
 | `GET` | `/api/quote/{symbol}` | CONSTRUIR | **La más urgente.** Única puerta a `market_data.py` desde el navegador. Devuelve `stale` y `as_of`, y la UI *debe* pintarlos: enseñar un precio viejo como si fuera de ahora es un problema legal en un sitio de finanzas. |
-| `GET` | `/api/admin/market-data-health` | CONSTRUIR | Qué proveedor responde, cuál falla y qué cortacircuito está abierto. Es lo primero que se mira cuando los precios se tuercen, y `AdminPage` no lo pinta. |
 | `GET` | `/api/performance/export` | CONSTRUIR | CSV y Excel del diario, con filtros por estado, símbolo y fechas. Un botón. Es lo que más se pide y lo más barato de la lista. |
 | `POST` | `/api/performance/portfolio-risk` | CONSTRUIR | Riesgo de cuenta: calor abierto, correlación y estado de los límites de pérdida (`portfolio_risk.py`). Todo lo demás del diario razona operación a operación; esto es la vista que un prop trader mira primero. |
 | `POST` | `/api/calculate/volatility-size` | CONSTRUIR | Tamaño de posición por ATR. Sin esto, 1R no significa lo mismo entre instrumentos y las estadísticas por R no son comparables. |

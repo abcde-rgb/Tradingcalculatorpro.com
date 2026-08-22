@@ -17,7 +17,7 @@
 | Módulos del backend | 32 |
 | Líneas de Python (backend) | 25,665 |
 | Rutas declaradas | 205 |
-| **Rutas sin consumidor en el frontend** | **43** |
+| **Rutas sin consumidor en el frontend** | **42** |
 | Ficheros de test · funciones de test | 54 · 881 |
 | Rutas del frontend (`App.js`) | 28 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,644 |
@@ -28,14 +28,13 @@ Endpoints que **ningún fichero del frontend menciona**. Algunos lo están por
 diseño (un webhook lo llama la pasarela, no el navegador); el resto es código
 escrito, probado y que ningún usuario puede alcanzar.
 
-### Sospechosas (38)
+### Sospechosas (37)
 
 **Antes de escribir un módulo nuevo, mira si lo que te piden ya está aquí**
 esperando una pantalla. Esto es el hueco G-14.
 
 | Método | Ruta | Definida en |
 |---|---|---|
-| `GET` | `/api/admin/market-data-health` | `backend/server.py:9067` |
 | `POST` | `/api/admin/subscriptions/{user_id}/refund` | `backend/server.py:8728` |
 | `GET` | `/api/alerts/realtime/status` | `backend/realtime_alerts.py:351` |
 | `POST` | `/api/alerts/send-email` | `backend/server.py:3712` |
@@ -223,7 +222,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `GET` | `/admin/feature-flags` | 9273 | ✅ |
 | `PATCH` | `/admin/feature-flags/{flag_id}` | 9282 | ✅ |
 | `POST` | `/admin/impersonate/{user_id}` | 8698 | ✅ |
-| `GET` | `/admin/market-data-health` | 9067 | ❌ |
+| `GET` | `/admin/market-data-health` | 9067 | ✅ |
 | `GET` | `/admin/metrics` | 8097 | ✅ |
 | `GET` | `/admin/payments/reconciliation` | 8880 | ✅ |
 | `GET` | `/admin/payments/webhook-health` | 9021 | ✅ |
@@ -419,7 +418,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 46 | 2,946 |
-| `pages/` | 22 | 15,954 |
+| `pages/` | 22 | 16,101 |
 
 ## Los ficheros que más cuesta abrir
 

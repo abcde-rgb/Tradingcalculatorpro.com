@@ -113,12 +113,12 @@ ya costaron bugs y están fijadas por tests:
 - **Lo generado no se edita a mano**: `instrumentSpecs.generated.js` y `docs/MAPA.md`
   salen de un script, y CI falla si divergen.
 - **Secretos nunca en el repo**: `.env.example` + Secret Manager / GitHub Secrets.
-- **Antes de escribir un módulo nuevo, comprueba si ya existe.** Hay 38 rutas que
-  ninguna pantalla llama, con una decisión escrita cada una en
-  [`docs/RUTAS_MUERTAS.md`](./docs/RUTAS_MUERTAS.md) (22 son backends terminados
-  esperando interfaz: `backtest.py`, `portfolio_risk.py`, `american_options.py`,
-  `market_data.py`…). Es el hueco G-14, y `check-rutas-muertas.py` impide que crezca
-  en silencio.
+- **Antes de escribir un módulo nuevo, comprueba si ya existe.** Decenas de rutas que
+  ninguna pantalla llama tienen una decisión escrita en
+  [`docs/RUTAS_MUERTAS.md`](./docs/RUTAS_MUERTAS.md) —la mayoría son backends
+  terminados esperando interfaz: `backtest.py`, `portfolio_risk.py`,
+  `american_options.py`, `market_data.py`… Es el hueco G-14, y
+  `check-rutas-muertas.py` impide que la lista crezca (o se pudra) en silencio.
 
 ## Arquitectura en cinco líneas
 
