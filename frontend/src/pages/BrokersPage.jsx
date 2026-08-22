@@ -114,14 +114,17 @@ export default function BrokersPage() {
                   </a>
                 </div>
 
-                {/* La advertencia, dentro de la misma tarjeta y del mismo
-                    tamaño que el resto. ESMA pide que sea tan prominente como
-                    la promoción; empequeñecerla es incumplir con estilo. */}
+                {/* La advertencia, en la misma tarjeta y MÁS GRANDE que el
+                    botón (16 px frente a 14). ESMA pide que sea tan prominente
+                    como la promoción; empequeñecerla es incumplir con estilo, e
+                    igualarla deja la discusión abierta por un píxel. Un párrafo
+                    legal a 16 px pesa en la página — que es exactamente lo que
+                    la norma quiere que pese. */}
                 {b.advertencia && (
                   <div className="flex items-start gap-2 mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30"
                        data-testid={`broker-advertencia-${b.id}`}>
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-sm text-amber-200/90 dark:text-amber-200/90">{b.advertencia}</p>
+                    <p className="text-base leading-snug text-amber-200/90 dark:text-amber-200/90">{b.advertencia}</p>
                   </div>
                 )}
               </CardContent>

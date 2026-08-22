@@ -95,7 +95,15 @@ async function abre(nav, cuerpo, salida, nombre) {
 
       // «Tan prominente como la promoción»: si el aviso se pinta más pequeño
       // que el botón, se está cumpliendo con la letra y no con la norma.
-      const tAviso = await aviso.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      //
+      // ⚠️ Se mide el PÁRRAFO, no su contenedor. La primera versión medía el
+      // `div` del aviso, que no lleva clase de tamaño y hereda los 16 px del
+      // cuerpo: daba 16 px y pasaba aunque el texto estuviera puesto a 10.
+      // Comprobado poniéndolo a `text-[10px]` — la sonda seguía en verde con la
+      // advertencia en letra diminuta, que es justo el incumplimiento que esta
+      // comprobación existe para cazar.
+      const parrafo = aviso.locator('p').first();
+      const tAviso = await parrafo.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
       const tBoton = await enlace.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
       marca('no está empequeñecida frente al botón', tAviso >= tBoton,
             `aviso ${tAviso}px vs botón ${tBoton}px`);
