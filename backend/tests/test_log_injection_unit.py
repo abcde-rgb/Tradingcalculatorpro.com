@@ -68,14 +68,14 @@ def test_strip_no_habria_bastado():
 
 def test_lo_muy_largo_se_recorta_y_se_nota():
     salida = log_safe("A" * 500)
-    assert len(salida) <= 65, len(salida)
+    assert len(salida) <= 201, len(salida)
     assert salida.endswith("…")
 
 
 def test_el_recorte_no_muerde_lo_que_cabe():
     """Un símbolo de largo normal no puede salir con puntos suspensivos."""
-    assert log_safe("A" * 64) == "A" * 64
-    assert not log_safe("A" * 64).endswith("…")
+    assert log_safe("A" * 200) == "A" * 200
+    assert not log_safe("A" * 200).endswith("…")
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -83,22 +83,28 @@ def test_el_recorte_no_muerde_lo_que_cabe():
 # ══════════════════════════════════════════════════════════════════════════
 SERVER = pathlib.Path(__file__).resolve().parent.parent / "server.py"
 
-# Un f-string de logging que interpola a pelo un valor de fuera.
+# Un f-string de logging que interpola CUALQUIER identificador a pelo.
 # `{log_safe(sym)}` no casa, que es justo la diferencia que se persigue.
 #
-# ⚠️ La primera versión sólo miraba `sym|symbol|interval`, y con eso di el
-# agujero por cerrado. CodeQL siguió marcando las MISMAS diez líneas y tenía
-# razón: yo saneaba el símbolo y dejaba la excepción cruda al lado. Un mensaje
-# de excepción es dato externo por definición —lo redacta una librería o la
-# respuesta de un proveedor, y arrastra dentro el valor que le pasaste—, así
-# que `{e}` reintroduce el salto de línea que `{log_safe(sym)}` acababa de
-# quitar. Comprobado: la línea salía partida en dos y la segunda era una
-# entrada de log falsa.
+# ⚠️ Esta regla la he tenido que corregir DOS veces, y la lección está en el
+# patrón de los dos fallos, no en cada uno:
 #
-# Por eso la regla ahora cubre también los nombres típicos de excepción.
-FUERA = r'sym|symbol|interval|e|ce|err|exc|quote_err|error'
+#   v1 — miraba `sym|symbol|interval`. Verde con el agujero abierto: yo saneaba
+#        el símbolo y dejaba `{e}` al lado. Un mensaje de excepción es dato
+#        externo por definición —lo redacta una librería o la respuesta de un
+#        proveedor, y arrastra dentro el valor que le pasaste—, así que el salto
+#        de línea entraba igual. Comprobado: la línea salía partida en dos y la
+#        segunda era una entrada de log falsa.
+#   v2 — añadí los nombres de excepción. Verde otra vez, y CodeQL encontró
+#        `{cand}` (un símbolo candidato) en la línea 3218: no estaba en la lista.
+#
+# El fallo no era la lista: era TENER una lista. Una lista negra siempre tiene
+# un punto ciego y lo descubre otro. Así que la regla se invierte: ninguna
+# interpolación suelta en un log, sea cual sea el nombre. Envolver un entero en
+# `log_safe()` no cuesta nada; olvidarse de uno que venía de fuera cuesta una
+# entrada de log falsificada.
 CRUDO = re.compile(
-    r'logging\.\w+\(\s*f["\'][^"\']*\{\s*(?:' + FUERA + r')\s*[}!:]')
+    r'logging\.\w+\(\s*f["\'][^"\']*\{\s*[A-Za-z_][A-Za-z0-9_]*\s*[}!:]')
 
 
 def test_ninguna_linea_de_log_mete_un_simbolo_crudo():
@@ -133,6 +139,11 @@ def test_la_regla_no_es_decorativa():
     # de nada — el salto de línea entra igual por `{e}` — y la regla tiene que
     # seguir cazándolo.
     assert CRUDO.search('logging.error(f"Level odds error for {log_safe(sym)}: {e}")')
+
+    # Y el que se le escapó a la v2: un nombre que no está en ninguna lista.
+    # Este es el que justifica haber tirado la lista entera.
+    assert CRUDO.search('logging.warning(f"yfinance OHLC for {cand}: {log_safe(e)}")')
+    assert CRUDO.search('logging.warning(f"{cualquier_nombre_nuevo}")')
 
     # Y lo que NO debe cazar: la versión saneada ENTERA.
     assert not CRUDO.search(

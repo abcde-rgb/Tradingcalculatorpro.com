@@ -1643,7 +1643,7 @@ async def log_admin_action(
             "timestamp": datetime.now(timezone.utc),
         })
     except Exception as e:
-        logging.error(f"audit log failed for action={action}: {log_safe(e)}")
+        logging.error(f"audit log failed for action={log_safe(action)}: {log_safe(e)}")
 
 def check_premium(user: dict) -> bool:
     """Check if user has premium access. Demo user always has premium."""
@@ -1831,10 +1831,10 @@ async def startup_event():
                 break
             except asyncio.TimeoutError:
                 _db_init_error = "TimeoutError: DB connection/bring-up exceeded timeout"
-                logging.error(f"DB init attempt {_attempt}/5 timed out", exc_info=True)
+                logging.error(f"DB init attempt {log_safe(_attempt)}/5 timed out", exc_info=True)
             except Exception as e:
                 _db_init_error = f"{type(e).__name__}: {e}"
-                logging.error(f"DB init attempt {_attempt}/5 failed: {log_safe(e)}", exc_info=True)
+                logging.error(f"DB init attempt {log_safe(_attempt)}/5 failed: {log_safe(e)}", exc_info=True)
             if _attempt < 5:
                 await asyncio.sleep(2 * _attempt)  # 2s, 4s, 6s, 8s
 
@@ -1914,7 +1914,7 @@ async def startup_event():
     except Exception as e:
         logging.error(f"Extended modules startup error: {log_safe(e)}", exc_info=True)
 
-def log_safe(value: Any, limite: int = 64) -> str:
+def log_safe(value: Any, limite: int = 200) -> str:
     """Un valor de fuera, apto para meter en una línea de log.
 
     Un símbolo llega por la ruta o por la query, y va tal cual a `logging`. Si
@@ -1930,6 +1930,12 @@ def log_safe(value: Any, limite: int = 64) -> str:
     Aquí se sustituye cualquier carácter de control por `?`, se recorta a
     `limite` y se marca el recorte. No se descarta el valor: el símbolo que
     provocó el error es lo que uno quiere ver en el log.
+
+    El límite es 200 y no 64 porque esto envuelve también EXCEPCIONES, y un
+    mensaje de excepción útil pasa de 64 con facilidad — «HTTPSConnectionPool(
+    host='...', port=443): Max retries exceeded with url: ...» son 150 de
+    salida. Con 64 el log quedaba a salvo y sin servir para depurar, que es
+    cambiar un problema por otro.
     """
     texto = str(value)
     limpio = "".join(c if c.isprintable() else "?" for c in texto)
@@ -2266,7 +2272,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
     _asyncio.create_task(_send_magic_link_email(email, user.get("name", ""), magic_url))
     # In dev (no SendGrid), log the link
     if not SENDGRID_API_KEY:
-        logging.info(f"[magic-link] DEV MODE — link for {email}: {magic_url}")
+        logging.info(f"[magic-link] DEV MODE — link for {log_safe(email)}: {log_safe(magic_url)}")
     return {"ok": True, "message": "Si el email existe, recibirás el enlace en breve."}
 
 
@@ -2363,7 +2369,7 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
         frontend_url = FRONTEND_URL
         verify_url = f"{frontend_url}/verify-email?token={token}"
         if not SENDGRID_API_KEY:
-            logging.info(f"[verify-email] DEV MODE — link for {to_email}: {verify_url}")
+            logging.info(f"[verify-email] DEV MODE — link for {log_safe(to_email)}: {log_safe(verify_url)}")
             return
         import httpx as _httpx
         payload = {
@@ -2829,7 +2835,7 @@ async def delete_account(request: Request, user: dict = Depends(require_user)):
         except Exception:
             pass
     await db.users.delete_one({"id": user_id})
-    logging.info(f"[RGPD] Account deleted: {user_id}")
+    logging.info(f"[RGPD] Account deleted: {log_safe(user_id)}")
     return {"ok": True, "message": "Cuenta eliminada permanentemente"}
 
 
@@ -3215,7 +3221,7 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
                 if candles:
                     return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
             except Exception as e:
-                logging.warning(f"yfinance OHLC for {cand}: {log_safe(e)}")
+                logging.warning(f"yfinance OHLC for {log_safe(cand)}: {log_safe(e)}")
 
     except Exception as e:
         logging.error(f"OHLC error: {log_safe(e)}")
@@ -3595,7 +3601,7 @@ async def delete_alert(alert_id: str, user: dict = Depends(require_user)):
 async def _send_email(to_email: str, subject: str, html_content: str) -> bool:
     """Send a transactional email via SendGrid. Returns True on success."""
     if not SENDGRID_API_KEY:
-        logging.info(f"[email] SendGrid not configured, skipping: {subject} → {to_email}")
+        logging.info(f"[email] SendGrid not configured, skipping: {log_safe(subject)} → {log_safe(to_email)}")
         return False
     try:
         from sendgrid import SendGridAPIClient
@@ -3603,7 +3609,7 @@ async def _send_email(to_email: str, subject: str, html_content: str) -> bool:
         message = Mail(from_email=SENDER_EMAIL, to_emails=to_email, subject=subject, html_content=html_content)
         sg = SendGridAPIClient(SENDGRID_API_KEY)
         await asyncio.to_thread(sg.send, message)
-        logging.info(f"[email] sent '{subject}' → {to_email}")
+        logging.info(f"[email] sent '{log_safe(subject)}' → {log_safe(to_email)}")
         return True
     except Exception as e:
         logging.error(f"[email] SendGrid error: {log_safe(e)}")
@@ -4258,7 +4264,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
                 pp_client_id, pp_client_secret, pp_mode,
             )
         except Exception as _e:
-            logging.error(f"[paypal] create_order error: {_e}")
+            logging.error(f"[paypal] create_order error: {log_safe(_e)}")
             raise HTTPException(status_code=502, detail="Error al crear orden PayPal. Inténtalo de nuevo.")
         transaction["paypal_order_id"] = order["id"]
         # approval_url for mobile/fallback redirect
@@ -4290,7 +4296,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
                 sandbox=rev_sandbox,
             )
         except RevolutError as _e:
-            logging.error(f"[revolut] create order error: {_e}")
+            logging.error(f"[revolut] create order error: {log_safe(_e)}")
             raise HTTPException(status_code=502, detail="Error al crear el pago con Revolut. Inténtalo de nuevo.")
         transaction["revolut_order_id"] = rev_order.get("order_id")
         transaction["revolut_sandbox"] = rev_sandbox
@@ -4323,7 +4329,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
                 sandbox=np_sandbox,
             )
         except NowPaymentsError as _e:
-            logging.error(f"[nowpayments] create invoice error: {_e}")
+            logging.error(f"[nowpayments] create invoice error: {log_safe(_e)}")
             raise HTTPException(status_code=502, detail="Error al crear el pago con criptomonedas. Inténtalo de nuevo.")
         transaction["nowpayments_invoice_id"] = np_invoice.get("invoice_id")
         transaction["nowpayments_sandbox"] = np_sandbox
@@ -4422,7 +4428,7 @@ async def paypal_capture_order(
     try:
         capture_result = await _paypal_capture_order(order_id, pp_client_id, pp_client_secret, pp_mode)
     except Exception as _e:
-        logging.error(f"[paypal] capture error for {order_id}: {_e}")
+        logging.error(f"[paypal] capture error for {log_safe(order_id)}: {log_safe(_e)}")
         raise HTTPException(status_code=502, detail="Error al capturar pago PayPal. Contacta soporte.")
 
     capture_status = capture_result.get("status")
@@ -4465,9 +4471,9 @@ async def paypal_capture_order(
                 subscription_end=subscription_end.isoformat(),
             ))
     except Exception as _e:
-        logging.warning(f"[paypal] confirmation email failed: {_e}")
+        logging.warning(f"[paypal] confirmation email failed: {log_safe(_e)}")
 
-    logging.info(f"[paypal] subscription activated: user={user['id']} plan={plan_id} order={order_id}")
+    logging.info(f"[paypal] subscription activated: user={user['id']} plan={log_safe(plan_id)} order={log_safe(order_id)}")
     return {
         "status": "paid",
         "plan_id": plan_id,
@@ -4525,7 +4531,7 @@ async def _activate_paid_subscription(
                 subscription_end=subscription_end.isoformat(),
             ))
     except Exception as _e:
-        logging.warning(f"[email] subscription confirmation email failed: {_e}")
+        logging.warning(f"[email] subscription confirmation email failed: {log_safe(_e)}")
 
 
 @api_router.post("/webhook/stripe")
@@ -4599,7 +4605,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                         "premium_lapsed_at": _lapse_stamp(_u_lapse or {}),
                     }},
                 )
-                logging.info(f"[stripe-webhook] subscription deleted for {customer_id}")
+                logging.info(f"[stripe-webhook] subscription deleted for {log_safe(customer_id)}")
                 try:
                     _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
                     if _u:
@@ -4614,7 +4620,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     _u_pf = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "premium_lapsed_at": 1})
                     update.update({"is_premium": False, "subscription_plan": None, "subscription_status": "unpaid",
                                    "premium_lapsed_at": _lapse_stamp(_u_pf or {})})
-                    logging.warning(f"[stripe-webhook] payment failed {attempt}x for {customer_id} → premium revoked")
+                    logging.warning(f"[stripe-webhook] payment failed {log_safe(attempt)}x for {log_safe(customer_id)} → premium revoked")
                 await db.users.update_one({"stripe_customer_id": customer_id}, {"$set": update})
                 try:
                     _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
@@ -4664,7 +4670,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             plan_id = meta.get("plan_id")
             plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
             if not (user_id and plan_id and plan):
-                logging.warning(f"[stripe-webhook] checkout.session.completed missing metadata: {meta}")
+                logging.warning(f"[stripe-webhook] checkout.session.completed missing metadata: {log_safe(meta)}")
                 return {"status": "received"}
 
             await _activate_paid_subscription(
@@ -6669,7 +6675,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
                     seen.append(e)
                 analytics = compute_analytics(enriched)
         except Exception as ctx_err:  # noqa: BLE001
-            logging.warning(f"AI coach: could not load trader context: {ctx_err}")
+            logging.warning(f"AI coach: could not load trader context: {log_safe(ctx_err)}")
 
         prompt = _build_ai_trade_prompt(req, analytics)
         model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
@@ -6810,7 +6816,7 @@ async def education_assistant(
             if token not in known
         ]
         if invented:
-            logging.warning(f"Edu assistant: módulos inventados descartados: {invented}")
+            logging.warning(f"Edu assistant: módulos inventados descartados: {log_safe(invented)}")
             return {"answer": None, "reason": "unverifiable"}
 
         return {"answer": answer, "model": model}
@@ -7989,7 +7995,7 @@ try:
     )
     logging.info("✅ admin_routes registered (campaigns, i18n, connectors, maintenance, cohorts, referrals-leaderboard, gdpr)")
 except Exception as _e:
-    logging.error(f"admin_routes early registration error: {_e}", exc_info=True)
+    logging.error(f"admin_routes early registration error: {log_safe(_e)}", exc_info=True)
 
 
 @api_router.get("/admin/users")
@@ -8507,7 +8513,7 @@ def _get_fernet():
         from cryptography.fernet import Fernet
         return Fernet(key.encode())
     except Exception as _e:
-        logging.warning(f"[settings] Fernet init failed: {_e}")
+        logging.warning(f"[settings] Fernet init failed: {log_safe(_e)}")
         return None
 
 def _encrypt_setting(value: str) -> str:
@@ -8526,7 +8532,7 @@ def _decrypt_setting(value: str) -> str:
         try:
             return f.decrypt(value[len(_ENC_PREFIX):].encode()).decode()
         except Exception as _e:
-            logging.warning(f"[settings] Fernet decrypt failed: {_e}")
+            logging.warning(f"[settings] Fernet decrypt failed: {log_safe(_e)}")
     return value
 
 
@@ -9351,7 +9357,7 @@ try:
     })
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:
-    logging.error(f"Module-level extended modules registration error: {_e}", exc_info=True)
+    logging.error(f"Module-level extended modules registration error: {log_safe(_e)}", exc_info=True)
 
 app.include_router(api_router)
 
