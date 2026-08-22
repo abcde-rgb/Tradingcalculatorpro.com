@@ -1,6 +1,8 @@
 export default {
   "ichiVisTenkan": "Tenkan (rápida, 9)",
   "brokersTitle": "Brókers",
+  "brokersLeerMas": "Leer más",
+  "brokersEnlaceDirecto": "Enlace directo",
   "brokersIntro": "Con quién puedes abrir cuenta si operas lo que aquí calculas. Publicamos lo comprobable —la entidad que firma el contrato, quién la regula y con qué número de licencia— y no una comparativa: decir cuál es «el mejor» exigiría datos de comisiones que no hemos medido.",
   "brokersAfiliacion": "Estos enlaces son de afiliado: si abres cuenta a través de ellos, recibimos una comisión del bróker. No cambia lo que pagas tú, y no condiciona lo que puedes leer aquí. Sólo enlazamos entidades autorizadas en la UE.",
   "brokersAbrirCuenta": "Ir al bróker",

@@ -140,6 +140,33 @@ Vale para los cinco que sigan en pie:
 7. **Cookie / atribución**: duración, y qué pasa si el usuario vuelve por otro canal.
 8. **Cómo y cuándo se cancela**, y qué ocurre con las comisiones pendientes.
 
+## Decisión del 2026-08-22: se publican los seis
+
+El propietario opera bajo **regulación suiza en régimen de sola promoción** y se
+dirige a **público internacional**, y decide publicarlos ya, con la web pública
+de cada uno mientras no haya enlace de referido — el mismo patrón que ya seguía
+Hyperliquid.
+
+Lo que eso cambia y lo que **no**:
+
+- `publicables()` devuelve ahora los seis. Antes devolvía los que pasaban el
+  listón de la UE, que hoy son cero.
+- **El listón sigue existiendo entero.** `puede_mostrarse()` no se ha tocado y
+  cada bróker publica `cumpleUe` en la API. Borrar el dato en vez de decidir
+  sobre él es lo que no se puede hacer: si algún día el público objetivo pasa a
+  ser explícitamente la UE, está ahí para volver a aplicarlo.
+- **Todos llevan aviso de riesgo.** Con cifra donde la hay —en la forma
+  abreviada que la propia ESMA admite donde hay límite de espacio— y sin número
+  donde no la hay.
+- **Ninguna cifra se publica sin fuente.** Los porcentajes de un mismo bróker
+  varían por jurisdicción (Swissquote: 55,05 % en la UE, 78,23 % en Reino
+  Unido), así que elegir uno «que suene bien» sería inventarse una estadística
+  sobre pérdidas ajenas. `perdida_pct_fuente` es obligatorio para que la cifra
+  salga a pantalla, y los dos que hay están marcados como **pendientes de
+  confirmar en la web del bróker**.
+- Sólo se etiqueta «enlace de afiliado» el que de verdad paga. Los demás salen
+  como «enlace directo».
+
 ## Lo que ya está montado
 
 `backend/brokers_referidos.py` — los seis, con lo confirmado y lo pendiente

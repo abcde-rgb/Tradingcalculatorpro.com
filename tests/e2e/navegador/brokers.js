@@ -39,6 +39,9 @@ const CON_BROKERS = {
     regulador: 'CySEC',
     licencia: '433/23',
     url: 'https://ejemplo.test/?ref=PRUEBA',
+    esReferido: true,
+    cumpleUe: true,
+    advertenciaCorta: 'El 67.24 % de las cuentas de CFD minoristas pierden dinero con este proveedor.',
     advertencia: 'Los CFD son instrumentos complejos y conllevan un alto riesgo de perder '
       + 'dinero rápidamente debido al apalancamiento. El 67.24 % de las cuentas de '
       + 'inversores minoristas pierden dinero al operar CFD con este proveedor. Debe '
@@ -165,13 +168,34 @@ async function abre(nav, cuerpo, salida, nombre) {
     marca('con su advertencia normalizada', await avisoP.count() === 1);
     if (await avisoP.count() && await tarjetaP.count()) {
       const texto = (await avisoP.innerText()).replace(/\s+/g, ' ');
-      marca('y con el porcentaje real', /67\.24\s*%/.test(texto), texto.slice(0, 60));
-      const tAviso = await avisoP.locator('p').first()
+      // Lo que NO puede irse detrás del «leer más» es la CIFRA: un aviso que
+      // esconde el porcentaje deja la tarjeta promocionando sin avisar.
+      marca('el porcentaje sigue VISIBLE en la tarjeta', /67\.24\s*%/.test(texto), texto.slice(0, 70));
+      const tAviso = await avisoP.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      const tInfo = await tarjetaP.locator('p').first()
         .evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
-      const tNombre = await tarjetaP.locator('h3').first()
-        .evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
-      marca('no más pequeña que el nombre del bróker', tAviso >= tNombre,
-            `aviso ${tAviso}px vs nombre ${tNombre}px`);
+      marca('no más pequeña que la línea de información', tAviso >= tInfo,
+            `aviso ${tAviso}px vs info ${tInfo}px`);
+
+      const leerMas = portada.locator('[data-testid="partner-leermas-axi"]');
+      marca('hay un «leer más»', await leerMas.count() === 1);
+      if (await leerMas.count()) {
+        const [nueva] = await Promise.all([
+          ctxP.waitForEvent('page', { timeout: 10000 }).catch(() => null),
+          leerMas.click(),
+        ]);
+        marca('que abre en OTRA pestaña', !!nueva,
+              nueva ? await nueva.url() : 'no se abrió ninguna pestaña');
+        if (nueva) {
+          marca('y lleva a la advertencia completa, no al bróker',
+                /\/brokers/.test(nueva.url()) && !/ejemplo\.test/.test(nueva.url()),
+                await nueva.url());
+          await nueva.close();
+        }
+        marca('la tarjeta NO se abrió al pulsar «leer más»',
+              portada.url().endsWith('/') || /Tradingcalculatorpro\.com\/?$/.test(portada.url()),
+              portada.url());
+      }
     }
 
     // Los dos socios de cripto que ya estaban siguen ahí: esto añade, no pisa.

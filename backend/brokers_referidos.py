@@ -65,6 +65,14 @@ class Broker:
     # El porcentaje de cuentas minoristas que pierden dinero, y CUÁNDO se leyó.
     perdida_pct: Optional[float]
     perdida_pct_leido_el: Optional[date]
+    # De DÓNDE salió la cifra. No prueba que sea correcta —ningún test puede—,
+    # pero obliga a que inventarse una exija inventarse también su procedencia,
+    # y deja la afirmación auditable por quien venga detrás. Sin fuente, el
+    # porcentaje no se publica.
+    perdida_pct_fuente: Optional[str] = None
+    # La web pública del bróker. Se usa mientras no haya enlace de referido —
+    # es el patrón que ya seguía Hyperliquid en `RecommendedTools`.
+    url_publica: str = ""
     # Notas que hay que tener delante antes de firmar nada.
     aviso: str = ""
 
@@ -74,8 +82,25 @@ class Broker:
         return bool(self.entidad_ue and self.regulador_ue and self.licencia_ue)
 
     def url_referido(self) -> Optional[str]:
-        """El enlace, del entorno. Vacío o ausente cuentan igual: no hay enlace."""
+        """El enlace de referido, del entorno. Vacío o ausente: no hay enlace."""
         return (os.environ.get(f"BROKER_REF_{self.id.upper()}") or "").strip() or None
+
+    def url(self) -> Optional[str]:
+        """A dónde lleva la tarjeta: el referido si existe, si no la web pública.
+
+        Sin ninguno de los dos no hay tarjeta — un enlace a ninguna parte es
+        peor que no enlazar.
+        """
+        return self.url_referido() or (self.url_publica or None)
+
+    @property
+    def es_referido(self) -> bool:
+        """¿Nos pagan por este enlace? Decide si se etiqueta como afiliado.
+
+        Llamar «enlace de afiliado» a uno que no lo es también es una
+        declaración falsa, sólo que en la dirección que no suele preocupar.
+        """
+        return self.url_referido() is not None
 
     def esta_al_dia(self, hoy: Optional[date] = None) -> bool:
         """¿El porcentaje sigue dentro de la ventana trimestral?
@@ -85,7 +110,8 @@ class Broker:
         """
         if not self.ofrece_cfd_minorista:
             return True
-        if self.perdida_pct is None or self.perdida_pct_leido_el is None:
+        if (self.perdida_pct is None or self.perdida_pct_leido_el is None
+                or not self.perdida_pct_fuente):
             return False
         hoy = hoy or date.today()
         return hoy - self.perdida_pct_leido_el <= timedelta(days=DIAS_VALIDEZ_PORCENTAJE)
@@ -102,6 +128,27 @@ class Broker:
             and self.url_referido()
         )
 
+    def advertencia_corta(self) -> str:
+        """La línea que cabe en una tarjeta, para acompañar al «leer más».
+
+        Con porcentaje: es la **forma abreviada que la propia ESMA admite**
+        donde hay límite de espacio («[X] % de las cuentas de CFD minoristas
+        pierden dinero»). Una tarjeta de 288 px es exactamente ese caso.
+
+        Sin porcentaje: aviso genérico y SIN número. Los porcentajes de un mismo
+        bróker varían por jurisdicción —Swissquote publica 55,05 % en la UE y
+        78,23 % en Reino Unido— así que elegir uno «que suene bien» sería
+        inventarse una estadística sobre pérdidas ajenas.
+        """
+        if not self.ofrece_cfd_minorista:
+            return ""
+        if self.perdida_pct is None or not self.perdida_pct_fuente:
+            return ("Producto apalancado: alto riesgo de perder dinero "
+                    "rápidamente.")
+        pct = f"{self.perdida_pct:.2f}".rstrip("0").rstrip(".")
+        return (f"El {pct} % de las cuentas de CFD minoristas pierden dinero "
+                f"con este proveedor.")
+
     def advertencia(self) -> Optional[str]:
         """La advertencia normalizada de ESMA, con el porcentaje de ESTE bróker.
 
@@ -113,7 +160,7 @@ class Broker:
         """
         if not self.ofrece_cfd_minorista:
             return None
-        if self.perdida_pct is None:
+        if self.perdida_pct is None or not self.perdida_pct_fuente:
             return None
         pct = f"{self.perdida_pct:.2f}".rstrip("0").rstrip(".")
         return (
@@ -134,6 +181,7 @@ class Broker:
 BROKERS: tuple[Broker, ...] = (
     Broker(
         id="axi",
+        url_publica="https://www.axi.com/",
         nombre="Axi",
         entidad_ue="Solaris EMEA Ltd (HE376148, Chipre)",
         regulador_ue="CySEC",
@@ -141,12 +189,15 @@ BROKERS: tuple[Broker, ...] = (
         ofrece_cfd_minorista=True,
         perdida_pct=67.24,
         perdida_pct_leido_el=date(2026, 8, 22),
+        perdida_pct_fuente="buscador, 2026-08-22 — PENDIENTE de confirmar en axi.com "
+                           "(bloqueado por el proxy de este entorno)",
         aviso="Programa de afiliados por región: el de la UE no es el mismo que "
               "el internacional. Confirmar que el contrato es con la entidad "
               "CySEC y no con la australiana.",
     ),
     Broker(
         id="dukascopy",
+        url_publica="https://www.dukascopy.com/europe/",
         nombre="Dukascopy Europe",
         entidad_ue="Dukascopy Europe IBS AS (Letonia)",
         regulador_ue="Latvijas Banka",
@@ -154,6 +205,8 @@ BROKERS: tuple[Broker, ...] = (
         ofrece_cfd_minorista=True,
         perdida_pct=68.82,
         perdida_pct_leido_el=date(2026, 8, 22),
+        perdida_pct_fuente="buscador, 2026-08-22 — PENDIENTE de confirmar en "
+                           "dukascopy.com/europe (bloqueado por el proxy)",
         aviso="«Business Introducer», aprobación en ~7 días. Sus condiciones se "
               "reservan revisar el marketing y exigir cambios a su discreción: "
               "eso es lo normal y lo correcto, pero implica que cada texto "
@@ -161,6 +214,7 @@ BROKERS: tuple[Broker, ...] = (
     ),
     Broker(
         id="swissquote",
+        url_publica="https://www.swissquote.com/",
         nombre="Swissquote",
         entidad_ue=None,           # confirmar la entidad de la UE (Luxemburgo)
         regulador_ue=None,
@@ -175,6 +229,7 @@ BROKERS: tuple[Broker, ...] = (
     ),
     Broker(
         id="saxo",
+        url_publica="https://www.home.saxo/",
         nombre="Saxo",
         entidad_ue="Saxo Bank A/S (Dinamarca)",
         regulador_ue=None,         # confirmar; el programa es institucional
@@ -190,6 +245,7 @@ BROKERS: tuple[Broker, ...] = (
     ),
     Broker(
         id="ibkr",
+        url_publica="https://www.interactivebrokers.com/",
         nombre="Interactive Brokers",
         entidad_ue=None,           # IBKR Ireland; confirmar cuál aplica
         regulador_ue=None,
@@ -205,6 +261,7 @@ BROKERS: tuple[Broker, ...] = (
     ),
     Broker(
         id="vtmarkets",
+        url_publica="https://www.vtmarkets.com/",
         nombre="VT Markets",
         entidad_ue=None,
         regulador_ue=None,
@@ -229,8 +286,28 @@ def por_id(broker_id: str) -> Optional[Broker]:
 
 
 def publicables(hoy: Optional[date] = None) -> list[Broker]:
-    """Los que hoy se pueden enlazar. Puede ser una lista vacía, y está bien."""
-    return [b for b in BROKERS if b.puede_mostrarse(hoy)]
+    """Los que se muestran: todos los que tienen a dónde enlazar.
+
+    ⚠️ Esto CAMBIÓ el 2026-08-22 por decisión del propietario, y conviene que
+    quede escrito cuál era la alternativa.
+
+    Antes esta función sólo devolvía los que pasaban el listón de la UE
+    (`puede_mostrarse`): autorización europea, porcentaje de pérdidas dentro de
+    la ventana trimestral y enlace configurado. Con ese listón, hoy no se
+    publicaba ninguno.
+
+    El propietario opera bajo **regulación suiza, en régimen de sola promoción**
+    y para **público internacional**, y decide publicarlos. Esta función respeta
+    esa decisión: muestra todos los que tienen enlace.
+
+    Lo que NO se ha quitado, porque sería borrar la información en vez de
+    decidir sobre ella: `puede_mostrarse()` sigue existiendo y cada bróker sigue
+    diciendo si cumple el listón europeo (`cumple_ue` en la respuesta de la
+    API). Y todos llevan aviso de riesgo, con cifra cuando la hay y sin número
+    inventado cuando no. Si algún día el público objetivo pasa a ser
+    explícitamente la UE, el listón está aquí, entero, para volver a aplicarlo.
+    """
+    return [b for b in BROKERS if b.url()]
 
 
 def pendientes() -> list[tuple[str, str]]:

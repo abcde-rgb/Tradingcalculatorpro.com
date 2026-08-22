@@ -1,6 +1,8 @@
 export default {
   "ichiVisTenkan": "Tenkan (fast, 9)",
   "brokersTitle": "Brokers",
+  "brokersLeerMas": "Read more",
+  "brokersEnlaceDirecto": "Direct link",
   "brokersIntro": "Where you can open an account if you trade what you calculate here. We publish what can be checked — the legal entity behind the contract, its regulator and its licence number — not a ranking: calling one «the best» would need fee data we have not measured.",
   "brokersAfiliacion": "These are affiliate links: if you open an account through them, we receive a commission from the broker. It does not change what you pay, and it does not shape what you can read here. We only link entities authorised in the EU.",
   "brokersAbrirCuenta": "Go to broker",

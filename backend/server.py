@@ -8339,10 +8339,19 @@ async def listar_brokers():
                 "entidad": b.entidad_ue,
                 "regulador": b.regulador_ue,
                 "licencia": b.licencia_ue,
-                "url": b.url_referido(),
-                # `None` cuando no aplica (no ofrece CFDs a minoristas). La UI
-                # distingue «no le toca advertencia» de «no la tenemos».
+                "url": b.url(),
+                # Si NO nos pagan por este enlace, no se etiqueta como
+                # afiliado. Llamar afiliado a lo que no lo es también es una
+                # declaración falsa, sólo que en la dirección que no preocupa.
+                "esReferido": b.es_referido,
+                # La corta va en la tarjeta; la larga, detrás del «leer más».
+                # `None` cuando no aplica (no ofrece CFDs a minoristas).
+                "advertenciaCorta": b.advertencia_corta() or None,
                 "advertencia": b.advertencia(),
+                # Si este bróker pasa el listón europeo. Se publica aunque no lo
+                # pase —decisión del propietario, que opera bajo regulación
+                # suiza y para público internacional— pero el dato no se pierde.
+                "cumpleUe": b.puede_mostrarse(),
             }
             for b in brokers_referidos.publicables()
         ],

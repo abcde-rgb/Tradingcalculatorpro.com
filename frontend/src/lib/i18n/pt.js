@@ -1,6 +1,8 @@
 export default {
   "ichiVisTenkan": "Tenkan (rápida, 9)",
   "brokersTitle": "Corretoras",
+  "brokersLeerMas": "Ler mais",
+  "brokersEnlaceDirecto": "Ligação direta",
   "brokersIntro": "Onde abrir conta se negoceias o que aqui calculas. Publicamos o verificável — a entidade que assina o contrato, quem a regula e com que número de licença — e não uma comparação: dizer qual é «a melhor» exigiria dados de comissões que não medimos.",
   "brokersAfiliacion": "Estes são links de afiliado: se abrires conta através deles, recebemos uma comissão da corretora. Não altera o que pagas nem condiciona o que podes ler aqui. Só ligamos a entidades autorizadas na UE.",
   "brokersAbrirCuenta": "Ir para a corretora",

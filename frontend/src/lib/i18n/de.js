@@ -1,6 +1,8 @@
 export default {
   "ichiVisTenkan": "Tenkan (schnell, 9)",
   "brokersTitle": "Broker",
+  "brokersLeerMas": "Mehr lesen",
+  "brokersEnlaceDirecto": "Direktlink",
   "brokersIntro": "Wo du ein Konto eröffnen kannst, wenn du handelst, was du hier berechnest. Wir veröffentlichen das Nachprüfbare — die vertragschließende Gesellschaft, ihre Aufsicht und ihre Lizenznummer — und keinen Vergleich: «der beste» zu sagen bräuchte Gebührendaten, die wir nicht gemessen haben.",
   "brokersAfiliacion": "Dies sind Affiliate-Links: Eröffnest du darüber ein Konto, erhalten wir eine Provision vom Broker. Für dich ändert sich der Preis nicht, und es beeinflusst nicht, was du hier lesen kannst. Wir verlinken nur in der EU zugelassene Gesellschaften.",
   "brokersAbrirCuenta": "Zum Broker",

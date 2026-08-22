@@ -1,6 +1,8 @@
 export default {
   "ichiVisTenkan": "Tenkan (rapide, 9)",
   "brokersTitle": "Courtiers",
+  "brokersLeerMas": "En savoir plus",
+  "brokersEnlaceDirecto": "Lien direct",
   "brokersIntro": "Où ouvrir un compte si vous négociez ce que vous calculez ici. Nous publions ce qui est vérifiable — l'entité qui signe le contrat, son régulateur et son numéro de licence — et non un comparatif : dire lequel est « le meilleur » exigerait des données de frais que nous n'avons pas mesurées.",
   "brokersAfiliacion": "Ces liens sont affiliés : si vous ouvrez un compte via eux, nous recevons une commission du courtier. Cela ne change rien à ce que vous payez et n'influence pas ce que vous pouvez lire ici. Nous ne lions que des entités agréées dans l'UE.",
   "brokersAbrirCuenta": "Aller au courtier",
