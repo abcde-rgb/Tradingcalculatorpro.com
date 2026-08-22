@@ -179,10 +179,16 @@ export function CrossMarginSimulator() {
     return {
       sim, spec, contractSize, curve, entry, target, atr, lock, stopOutPct,
       leverage,
-      // Las dos lecturas del MISMO trade. `isolatedStopDistance` no depende del
-      // tamaño: en aislado la distancia sólo la fijan precio y apalancamiento.
+      // Las dos lecturas del MISMO trade, y «mismo» es la palabra que importa:
+      // ambas se miden sobre el PRIMER tramo, al precio de entrada. Enfrentar
+      // la distancia aislada en la entrada contra el colchón al final de la
+      // escalera compara dos posiciones distintas en dos momentos distintos, y
+      // sale al revés —el cruzado parece dar más aire— porque el flotante de
+      // los tramos ya cerrados no estaba en la otra lectura.
+      // `isolatedStopDistance` no depende del tamaño: en aislado la distancia
+      // sólo la fijan precio y apalancamiento.
       isolated: isolatedStopDistance({ price: entry, leverage }),
-      crossCushion: sim.finalCushion,
+      crossCushion: accepted[0]?.cushion ?? null,
       safeLots: sizeForCushion({
         balance, price: entry, leverage, contractSize, cushionPrice: atr,
         thresholdPct: stopOutPct, side: d.side,
@@ -616,7 +622,11 @@ function TickScale({ marks, format, caption }) {
   const at = (v) => ((v - lo) / span) * 100;
 
   return (
-    <section aria-label={caption} className="pt-2" data-testid="xm-scale">
+    // El acolchado lateral no es estético: las etiquetas de los extremos se
+    // anclan en el 0 % y el 100 % de la regla, así que sin él la del stop-out y
+    // la del objetivo se comen el borde de la tarjeta y pierden un dígito —que
+    // en una cifra de precio es un orden de magnitud—.
+    <section aria-label={caption} className="px-6 pt-2" data-testid="xm-scale">
       <div className="relative h-14">
         <div className="absolute inset-x-0 top-8 h-px bg-rule" />
         {Array.from({ length: 41 }, (_, i) => (
