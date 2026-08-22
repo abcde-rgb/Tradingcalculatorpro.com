@@ -186,6 +186,38 @@ import pathlib
 p = pathlib.Path('scripts/gen-mapa.py'); t = p.read_text()
 p.write_text(t.replace('def se_consume(', 'def se_consume(*_a, **_k):\n    return True\n\n\ndef _se_consume_original(', 1))\""
 
+# ── Las rutas muertas llevan decisión escrita ───────────────────────────────
+titulo "Decisión por ruta muerta (check-rutas-muertas.py)"
+
+# El mapa CUENTA las rutas sin consumidor; esto exige que cada una tenga escrito
+# qué se hace con ella. Sin ello el número sube de 38 a 39, se regenera el mapa,
+# y CI se pone verde con una ruta más que nadie puede alcanzar.
+probar "una ruta nueva que ninguna pantalla llama" \
+  "python scripts/check-rutas-muertas.py" \
+  "printf '\n\n@api_router.get(\"/sabotaje/sin/decision\")\nasync def sabotaje_sin_decision():\n    return {}\n' >> backend/timeframes.py"
+
+probar "una fila que desaparece de la tabla" \
+  "python scripts/check-rutas-muertas.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('docs/RUTAS_MUERTAS.md'); t = p.read_text()
+p.write_text(t.replace('| \\\`GET\\\` | \\\`/api/quote/{symbol}\\\` | CONSTRUIR |', '| x |', 1))\""
+
+# La dirección que de verdad pudre las listas: una ruta que YA tiene pantalla y
+# se queda en la tabla de deuda. Le pasó a `/plan` —estuvo en la lista de muertas
+# después de tener pantalla— y sólo se cazó por los controles de `gen-mapa.py`.
+probar "una ruta de la tabla que ya tiene consumidor" \
+  "python scripts/check-rutas-muertas.py" \
+  "printf '\nexport const _sab = () => fetch(\`\${API}/education/pattern-catalog\`);\n' >> frontend/src/lib/store.js"
+
+# Y el falso positivo simétrico: un COMENTARIO que nombra una ruta no la consume.
+# `gen-mapa.py` los quita a propósito (lo descubrió el comentario de `/pricing`
+# que citaba `/api/portfolio/rebalance` al explicar por qué se retiraba). Si esto
+# saltara, la forma de callarlo sería borrar el comentario que explica las cosas.
+probar_inverso "un comentario que NOMBRA una ruta no la consume" \
+  "python scripts/check-rutas-muertas.py" \
+  "printf '\n// TODO: conectar \`\${API}/education/pattern-catalog\` algún día\n' >> frontend/src/lib/store.js"
+
 # ── El catálogo de instrumentos ─────────────────────────────────────────────
 titulo "Catálogo backend ↔ frontend (gen-instruments-js.py --check)"
 probar "el catálogo del backend cambia y el generado no" \

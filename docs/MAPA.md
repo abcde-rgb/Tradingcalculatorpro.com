@@ -15,10 +15,10 @@
 | | |
 |---|---:|
 | Módulos del backend | 32 |
-| Líneas de Python (backend) | 25,590 |
+| Líneas de Python (backend) | 25,665 |
 | Rutas declaradas | 205 |
 | **Rutas sin consumidor en el frontend** | **43** |
-| Ficheros de test · funciones de test | 53 · 867 |
+| Ficheros de test · funciones de test | 54 · 881 |
 | Rutas del frontend (`App.js`) | 28 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,644 |
 
@@ -67,9 +67,9 @@ esperando una pantalla. Esto es el hueco G-14.
 | `DELETE` | `/api/portfolio/{asset_id}` | `backend/server.py:3511` |
 | `PUT` | `/api/portfolio/{asset_id}` | `backend/server.py:3500` |
 | `GET` | `/api/quote/{symbol}` | `backend/server.py:9087` |
-| `GET` | `/api/referrals/leaderboard` | `backend/referrals.py:276` |
-| `GET` | `/api/referrals/me` | `backend/referrals.py:113` |
-| `POST` | `/api/referrals/redeem-credit` | `backend/referrals.py:300` |
+| `GET` | `/api/referrals/leaderboard` | `backend/referrals.py:310` |
+| `GET` | `/api/referrals/me` | `backend/referrals.py:143` |
+| `POST` | `/api/referrals/redeem-credit` | `backend/referrals.py:367` |
 | `POST` | `/api/subscriptions/change-plan` | `backend/missing_apis.py:563` |
 | `POST` | `/api/subscriptions/change-plan-legacy` | `backend/server.py:5031` |
 | `GET` | `/api/user-states/list` | `backend/server.py:5236` |
@@ -102,9 +102,9 @@ esperando una pantalla. Esto es el hueco G-14.
 | `level_odds.py` | 603 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
 | `trading_plan.py` | 565 |  | Trading plan: the user's own rules, versioned server-side. |
 | `candle_patterns.py` | 519 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
+| `referrals.py` | 449 | 4 | referrals.py — Referral / Affiliate program API. |
 | `level_research.py` | 385 |  | ¿Cuál de todos estos rasgos aporta algo, y cuál sólo lo parece? |
 | `realtime_alerts.py` | 384 | 3 | realtime_alerts.py — WebSocket-based real-time price alerts. |
-| `referrals.py` | 374 | 4 | referrals.py — Referral / Affiliate program API. |
 | `options_positioning.py` | 371 |  | Positioning metrics derived from open interest: max pain, GEX, OI profile, |
 | `market_data.py` | 329 |  | Multi-provider market data layer with failover, caching and circuit breakers. |
 | `portfolio_risk.py` | 327 |  | Account-level risk — heat, correlation, loss limits, volatility sizing. |
@@ -206,10 +206,10 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 
 | Método | Ruta | Línea | Front |
 |---|---|---:|:---:|
-| `GET` | `/referrals/leaderboard` | 276 | ❌ |
-| `GET` | `/referrals/me` | 113 | ❌ |
-| `POST` | `/referrals/redeem-credit` | 300 | ❌ |
-| `POST` | `/referrals/track` | 156 | ✅ |
+| `GET` | `/referrals/leaderboard` | 310 | ❌ |
+| `GET` | `/referrals/me` | 143 | ❌ |
+| `POST` | `/referrals/redeem-credit` | 367 | ❌ |
+| `POST` | `/referrals/track` | 190 | ✅ |
 
 ### `backend/server.py` — 145 rutas
 

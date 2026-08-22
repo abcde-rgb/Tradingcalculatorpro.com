@@ -16,6 +16,7 @@ leen en el mismo momento ni con la misma intención.
 |---|---|---|
 | [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) | **Fuente de verdad del estado.** Semáforo, inventario, huecos `G-xx`, plan de test y backlog. Criterio, no conteos | ~300 |
 | [`MAPA.md`](./MAPA.md) | **Dónde está cada cosa.** Módulos, rutas con `fichero:línea`, rutas sin consumidor, carpetas y ficheros grandes. **Generado** — `--check` en CI | generado |
+| [`RUTAS_MUERTAS.md`](./RUTAS_MUERTAS.md) | **Qué se hace con cada una de las 38 rutas que ninguna pantalla llama** (borrar / construir / arreglar). El mapa las cuenta; esto las decide. `check-rutas-muertas.py` en CI | 120 |
 | [`../CLAUDE.md`](../CLAUDE.md) | Invariantes que aplican siempre. Se carga en cada sesión; lo específico por zona vive en `.claude/rules/` | 173 |
 | [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs con su causa raíz. Se consulta para no repetir un error ya pagado | 589 |
 | [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md) | Histórico de 126 sesiones. **No se lee entero** (~3.900 líneas): se busca por fecha o palabra | 3.940 |

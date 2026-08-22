@@ -76,6 +76,12 @@ jobs:
       - name: El catálogo de instrumentos está en paridad (backend ↔ frontend)
         run: python scripts/gen-instruments-js.py --check
 
+      # El mapa CUENTA las rutas que ninguna pantalla llama; esto exige que cada
+      # una lleve escrito qué se hace con ella. Sin ello, una ruta nueva e
+      # inalcanzable sólo sube el contador y CI se queda verde.
+      - name: Cada ruta sin consumidor tiene una decisión escrita
+        run: python scripts/check-rutas-muertas.py
+
       # Este SÍ bloquea. Comprueba que cada verificador falla cuando debe
       # fallar, saboteándolo y revirtiendo. Existe porque han aparecido varias
       # comprobaciones que no comprobaban nada —una guarda tautológica sobre el
