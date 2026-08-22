@@ -104,7 +104,7 @@ que hace bien esta ruta ya lo hace `POST /backtest/validate` sobre
 | `DELETE` | `/api/portfolio/{asset_id}` | CONSTRUIR | Ídem — baja. |
 | `GET` | `/api/portfolio/rebalance` | CONSTRUIR | Sugerencias de rebalanceo cruzando la cartera con el rendimiento por símbolo del diario. Es la función que se anunciaba. |
 | `GET` | `/api/ohlc/{symbol}` | CONSTRUIR | OHLC universal (Binance para cripto, yfinance para el resto). Hoy las velas llegan incrustadas en las respuestas del escáner; esta es la puerta para pedirlas sueltas. |
-| `GET` | `/api/plans` | CONSTRUIR | `SUBSCRIPTION_PLANS` del backend. Los precios están además escritos a mano en el frontend: dos fuentes para el mismo número es cómo se acaba cobrando algo distinto de lo que se anuncia. |
+| `GET` | `/api/plans` | CONSTRUIR | `SUBSCRIPTION_PLANS` del backend, que es lo que de verdad se cobra. El mismo precio está escrito a mano en `PLANS_DATA` de `PricingPage.jsx` **y** como clave i18n (`monthlyPrice: "€17"`, `lifetimePrice: "€500"`…) en los **10 idiomas**: doce sitios para un número, y el que manda al cobrar es el único que la página no consulta. Subir un precio hoy es editar doce ficheros y confiar en no olvidar ninguno. |
 | `POST` | `/api/subscriptions/change-plan` | CONSTRUIR | Subida o bajada de plan con prorrateo real de Stripe. No hay ninguna pantalla de cambio de plan; hoy sólo se puede cancelar. |
 | `POST` | `/api/admin/subscriptions/{user_id}/refund` | CONSTRUIR | Reembolso por Stripe desde el panel. La política de reembolso de 14 días está publicada en los términos legales y se ejecuta a mano. |
 | `GET` | `/api/alerts/realtime/status` | CONSTRUIR | Estado del poller de alertas en vivo: si corre, cuántos conectados, antigüedad de la caché. Diagnóstico para el panel. |

@@ -2094,7 +2094,10 @@ function MarketDataHealthCard({ headers }) {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        {/* Sin proveedores no se pinta una cabecera de tabla vacía: cuando la
+            capa entera no carga, debajo del error salía una fila de títulos sin
+            nada, que sólo distrae del único dato que importa ahí. */}
+        <div className={`overflow-x-auto ${providers.length ? '' : 'hidden'}`}>
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
               <tr className="text-left">
@@ -2125,11 +2128,18 @@ function MarketDataHealthCard({ headers }) {
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{p.served}</td>
                   <td className="px-3 py-2 font-mono text-xs">
-                    {/* Yahoo no tiene cuota publicada: se raspa, no se licencia.
-                        Un «0/0» ahí sería inventarse un límite que no existe. */}
-                    {p.daily_quota
-                      ? `${p.used_today}/${p.daily_quota} (${p.pct_used}%)`
-                      : <span className="text-muted-foreground">{p.used_today} · sin cuota publicada</span>}
+                    {/* Tres casos distintos, y confundirlos engaña:
+                        · sin clave → no consume nada porque NO ESTÁ EN JUEGO. Pintar
+                          «0/86400 (0%)» se lee como «le sobra cuota», que es lo
+                          contrario de lo que pasa. Se vio mirando la captura.
+                        · Yahoo → no tiene cuota publicada: se raspa, no se licencia,
+                          así que un número ahí sería un límite inventado.
+                        · el resto → consumo real sobre su tope documentado. */}
+                    {!p.configured
+                      ? <span className="text-muted-foreground">— sin clave</span>
+                      : p.daily_quota
+                        ? `${p.used_today}/${p.daily_quota} (${p.pct_used}%)`
+                        : <span className="text-muted-foreground">{p.used_today} · sin cuota publicada</span>}
                   </td>
                 </tr>
               ))}
