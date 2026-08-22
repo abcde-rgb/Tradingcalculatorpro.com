@@ -155,30 +155,6 @@ class TestPremiumFeatures:
             f"Monte Carlo working - Avg Balance: ${data['statistics']['avgFinalBalance']}"
         )
 
-    def test_backtest_simulation(self, auth_token: str) -> None:
-        """Test backtest endpoint"""
-        response = requests.post(
-            f"{BASE_URL}/api/backtest",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "strategy": "SMA Crossover",
-                "initial_capital": 10000,
-                "take_profit": 5,
-                "stop_loss": 2,
-                "leverage": 1,
-            },
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "final_balance" in data
-        assert "win_rate" in data
-        assert "roi" in data
-        print(
-            f"Backtest working - Final Balance: ${data['final_balance']}, "
-            f"Win Rate: {data['win_rate']}%"
-        )
-
-
 class TestOHLCData:
     """OHLC data endpoint tests"""
 

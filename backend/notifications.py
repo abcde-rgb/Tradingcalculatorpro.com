@@ -32,6 +32,7 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+from log_seguro import log_safe
 
 # Canales posibles de un aviso. `inapp` es el WebSocket que ya existía.
 CHANNELS = ("inapp", "email", "sms")
@@ -97,7 +98,7 @@ async def _sms_quota_ok(db, user_id: str) -> bool:
         ).to_list(SMS_MAX_PER_HOUR + 1)
         return len(recent) < SMS_MAX_PER_HOUR
     except Exception as exc:  # noqa: BLE001 — el tope no puede tumbar el aviso
-        logging.warning("[sms] no se pudo comprobar la cuota: %s", exc)
+        logging.warning("[sms] no se pudo comprobar la cuota: %s", log_safe(exc))
         return True
 
 
@@ -109,7 +110,7 @@ async def send_sms(to: Any, body: str, *, db=None, user_id: str = "") -> Dict[st
     if not sms_configured():
         # Ni un log de error ni un reintento: no es un fallo, es que el canal
         # todavía no está dado de alta.
-        logging.info("[sms] proveedor sin configurar; aviso no enviado a %s", phone[-4:])
+        logging.info("[sms] proveedor sin configurar; aviso no enviado a %s", log_safe(phone[-4:]))
         return {"sent": False, "channel": "sms", "reason": "not_configured"}
     if not await _sms_quota_ok(db, user_id):
         return {"sent": False, "channel": "sms", "reason": "rate_limited"}
@@ -128,10 +129,10 @@ async def send_sms(to: Any, body: str, *, db=None, user_id: str = "") -> Dict[st
                 data={"To": phone, "From": sender, "Body": text},
             )
         if resp.status_code >= 400:
-            logging.error("[sms] Twilio %s: %s", resp.status_code, resp.text[:200])
+            logging.error("[sms] Twilio %s: %s", log_safe(resp.status_code), log_safe(resp.text[:200]))
             return {"sent": False, "channel": "sms", "reason": f"provider_error_{resp.status_code}"}
     except Exception as exc:  # noqa: BLE001 — un aviso no puede tumbar el poller
-        logging.error("[sms] envío fallido: %s", exc)
+        logging.error("[sms] envío fallido: %s", log_safe(exc))
         return {"sent": False, "channel": "sms", "reason": "provider_error"}
 
     if db is not None:
@@ -146,7 +147,7 @@ async def send_sms(to: Any, body: str, *, db=None, user_id: str = "") -> Dict[st
                 "created_at": datetime.now(timezone.utc).isoformat(),
             })
         except Exception as exc:  # noqa: BLE001
-            logging.warning("[sms] no se pudo registrar el envío: %s", exc)
+            logging.warning("[sms] no se pudo registrar el envío: %s", log_safe(exc))
     return {"sent": True, "channel": "sms", "reason": None}
 
 

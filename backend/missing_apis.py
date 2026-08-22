@@ -38,6 +38,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
+from log_seguro import log_safe
 
 
 def _hash_token(token: str) -> str:
@@ -137,7 +138,7 @@ async def ensure_email_unique_index(database) -> None:
         )
         logging.info("✅ unique index on users.email ensured")
     except Exception as e:
-        logging.error(f"Could not create unique index on users.email: {e}")
+        logging.error(f"Could not create unique index on users.email: {log_safe(e)}")
 
 
 # ---------------------------------------------------------------------------
@@ -243,7 +244,7 @@ async def get_indices_prices_real():
         if result:
             return result
     except Exception as e:
-        logging.error(f"Indices yfinance error: {e}")
+        logging.error(f"Indices yfinance error: {log_safe(e)}")
     return _INDICES_STATIC_FALLBACK
 
 
@@ -307,86 +308,13 @@ async def get_commodities_prices_real():
                     "source": "market",
                 }
             except Exception as e:
-                logging.warning(f"Commodity {sym} fetch error: {e}")
+                logging.warning(f"Commodity {log_safe(sym)} fetch error: {log_safe(e)}")
                 if label in _COMMODITY_STATIC:
                     result[label] = _COMMODITY_STATIC[label]
         return result if result else _COMMODITY_STATIC
     except Exception as e:
-        logging.error(f"Commodities error: {e}")
+        logging.error(f"Commodities error: {log_safe(e)}")
         return _COMMODITY_STATIC
-
-
-# ---------------------------------------------------------------------------
-# 4.  CRYPTO OHLC — universal (Binance para cripto, yfinance para el resto)
-# ---------------------------------------------------------------------------
-
-def _ohlc_from_yfinance(symbol: str, days: int) -> Optional[List[Dict[str, Any]]]:
-    """Fetch OHLC candles from yfinance for ANY asset symbol."""
-    try:
-        import yfinance as yf
-        if days <= 7:
-            interval = "1h"
-        elif days <= 60:
-            interval = "1d"
-        else:
-            interval = "1wk"
-        period_str = f"{days}d" if days <= 730 else "2y"
-        hist = yf.Ticker(symbol).history(period=period_str, interval=interval)
-        if hist.empty:
-            return None
-        candles = []
-        for idx, row in hist.iterrows():
-            ts = int(idx.timestamp())
-            candles.append({
-                "time": ts,
-                "open": round(float(row["Open"]), 6),
-                "high": round(float(row["High"]), 6),
-                "low":  round(float(row["Low"]), 6),
-                "close": round(float(row["Close"]), 6),
-                "volume": float(row.get("Volume", 0) or 0),
-            })
-        return candles
-    except Exception as e:
-        logging.warning(f"yfinance OHLC for {symbol}: {e}")
-        return None
-
-
-@router.get("/ohlc-universal/{symbol}")
-async def get_ohlc_universal(symbol: str, days: int = 30) -> Dict[str, Any]:
-    """
-    Universal OHLC endpoint that works for ANY asset:
-    - Crypto (BTC, ETH, SOL, MATIC, etc.) via Binance first, yfinance fallback
-    - Stocks / ETFs (AAPL, SPY, etc.) via yfinance
-    - Forex (EURUSD=X) via yfinance
-    - Commodities (GC=F) via yfinance
-    - Indices (^GSPC) via yfinance
-    """
-    sym_upper = symbol.upper()
-    empty: Dict[str, Any] = {"ohlc": [], "symbol": sym_upper, "source": "none"}
-
-    # Paso 1: Binance para cripto — velas OHLC reales.
-    # CoinGecko sólo daba una serie de precios que había que agrupar en cubos;
-    # el máximo y el mínimo de una vela así son los de las muestras que cayeron
-    # dentro, no los del periodo. Y su plan gratuito no trae licencia comercial.
-    if crypto_data.binance_symbol(sym_upper):
-        interval, limit = crypto_data.interval_for_days(days)
-        velas = await crypto_data.fetch_ohlc(sym_upper, interval=interval, limit=limit)
-        if velas:
-            return {"ohlc": velas, "symbol": sym_upper, "source": "binance"}
-
-    # Step 2: yfinance for everything (crypto as BTC-USD, stocks, forex, commodities)
-    yf_sym = symbol  # Pass as-is (user may pass BTC-USD, AAPL, GC=F, etc.)
-    # Also try appending -USD for bare crypto symbols not in CoinGecko map
-    candles = _ohlc_from_yfinance(yf_sym, days)
-    if candles:
-        return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
-    # Last attempt: try adding -USD suffix
-    if not any(c in symbol for c in ["-", "=", "^", "."]):
-        candles = _ohlc_from_yfinance(f"{sym_upper}-USD", days)
-        if candles:
-            return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
-
-    return empty
 
 
 # ---------------------------------------------------------------------------
@@ -435,7 +363,7 @@ async def _send_reset_email(to_email: str, reset_url: str) -> bool:
         sg.send(msg)
         return True
     except Exception as e:
-        logging.error(f"Reset email error: {e}")
+        logging.error(f"Reset email error: {log_safe(e)}")
         return False
 
 
@@ -491,7 +419,7 @@ async def _send_verification_email(to_email: str, verify_url: str) -> bool:
         sg.send(msg)
         return True
     except Exception as e:
-        logging.error(f"Verification email error: {e}")
+        logging.error(f"Verification email error: {log_safe(e)}")
         return False
 
 
@@ -651,7 +579,7 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=f"Error de Stripe: {e.user_message or str(e)}")
     except Exception as e:
-        logging.error(f"change_plan_real error: {e}")
+        logging.error(f"change_plan_real error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error cambiando plan")
 
 
@@ -685,7 +613,7 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
     except stripe.error.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
     except Exception as e:
-        logging.error(f"Stripe webhook parse error: {e}")
+        logging.error(f"Stripe webhook parse error: {log_safe(e)}")
         raise HTTPException(status_code=400, detail="Bad webhook payload")
 
     event_type = event["type"]
@@ -707,7 +635,7 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
                         "subscription_canceled_at": datetime.now(timezone.utc).isoformat(),
                     }},
                 )
-                logging.info(f"Subscription deleted for customer {customer_id} ({user.get('email')})")
+                logging.info(f"Subscription deleted for customer {log_safe(customer_id)} ({log_safe(user.get('email'))})")
 
     elif event_type == "invoice.payment_failed":
         customer_id = data_obj.get("customer")
@@ -719,7 +647,7 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
                 update["is_premium"] = False
                 update["subscription_plan"] = None
                 update["subscription_status"] = "unpaid"
-                logging.warning(f"Payment failed {attempt}x for {customer_id} — premium revoked")
+                logging.warning(f"Payment failed {log_safe(attempt)}x for {log_safe(customer_id)} — premium revoked")
             await db.users.update_one(
                 {"stripe_customer_id": customer_id},
                 {"$set": update},
@@ -953,7 +881,7 @@ async def ensure_missing_api_indexes(database) -> None:
 
         logging.info("✅ missing_apis indexes ensured")
     except Exception as e:
-        logging.error(f"missing_apis index error: {e}")
+        logging.error(f"missing_apis index error: {log_safe(e)}")
 
 
 # ---------------------------------------------------------------------------

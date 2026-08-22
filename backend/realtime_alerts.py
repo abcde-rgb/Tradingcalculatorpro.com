@@ -22,6 +22,7 @@ import crypto_data
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
 from notifications import channel_status, dispatch_alert
+from log_seguro import log_safe
 
 router = APIRouter()
 
@@ -49,7 +50,7 @@ CACHE_TTL_SECONDS = 60  # refresh once per minute, well within free API limits
 
 async def _register(user_id: str, ws: WebSocket) -> None:
     _connections.setdefault(user_id, set()).add(ws)
-    logging.info(f"[ws-alerts] connected user_id={user_id} (total={len(_connections[user_id])})")
+    logging.info(f"[ws-alerts] connected user_id={log_safe(user_id)} (total={log_safe(len(_connections[user_id]))})")
 
 
 async def _unregister(user_id: str, ws: WebSocket) -> None:
@@ -111,7 +112,7 @@ async def _fetch_crypto_prices(symbols: Set[str]) -> Dict[str, float]:
     try:
         cotizaciones = await crypto_data.fetch_usd_prices(sorted(symbols))
     except Exception as e:  # noqa: BLE001 — una alerta no debe tumbar el poller
-        logging.warning("[ws-alerts] fallo al leer precios de cripto: %s", e)
+        logging.warning("[ws-alerts] fallo al leer precios de cripto: %s", log_safe(e))
         return {}
     # Sólo lo que se ha podido leer. Un símbolo ausente no dispara alertas, que
     # es justo lo que debe pasar: no se sabe su precio.
@@ -151,7 +152,7 @@ async def _fetch_yfinance_prices(symbols: Set[str]) -> Dict[str, float]:
         logging.warning("[ws-alerts] yfinance fetch timed out after 30s — skipping cycle")
         return {}
     except Exception as e:
-        logging.warning("[ws-alerts] yfinance fetch failed: %s", e)
+        logging.warning("[ws-alerts] yfinance fetch failed: %s", log_safe(e))
         return {}
 
 
@@ -239,7 +240,7 @@ async def _evaluate_alerts() -> int:
             {"id": alert["id"]}, {"$set": {"deliveries": deliveries}},
         )
         triggered += 1
-        logging.info(f"[ws-alerts] FIRED alert {alert['id']} for user {alert['user_id']} sym={sym}")
+        logging.info(f"[ws-alerts] FIRED alert {log_safe(alert['id'])} for user {log_safe(alert['user_id'])} sym={log_safe(sym)}")
     return triggered
 
 
@@ -253,9 +254,9 @@ async def _poller_loop() -> None:
             try:
                 fired = await _evaluate_alerts()
                 if fired:
-                    logging.info(f"[ws-alerts] {fired} alerts triggered this cycle")
+                    logging.info(f"[ws-alerts] {log_safe(fired)} alerts triggered this cycle")
             except Exception as e:
-                logging.error(f"[ws-alerts] poller iteration error: {e}")
+                logging.error(f"[ws-alerts] poller iteration error: {log_safe(e)}")
             await asyncio.sleep(30)
     finally:
         _poller_running = False
@@ -299,7 +300,7 @@ async def ws_alerts(websocket: WebSocket, token: str = Query("")):
                 await websocket.close(code=4401, reason="invalid_token")
                 return
         except Exception as exc:
-            logging.warning("[ws-alerts] token validation failed: %s", exc)
+            logging.warning("[ws-alerts] token validation failed: %s", log_safe(exc))
             await websocket.close(code=4401, reason="invalid_token")
             return
 
@@ -338,7 +339,7 @@ async def ws_alerts(websocket: WebSocket, token: str = Query("")):
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        logging.error(f"[ws-alerts] websocket error: {e}")
+        logging.error(f"[ws-alerts] websocket error: {log_safe(e)}")
     finally:
         if user_id:
             await _unregister(user_id, websocket)

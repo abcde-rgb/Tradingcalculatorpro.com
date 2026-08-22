@@ -7,9 +7,16 @@ is requested upstream, what happens when the provider answers nothing, and —
 new — that reading the rung above for confluence can fail without taking the
 main scan down with it.
 
-The OHLC reader is mocked. It has to be: the upstream provider is blocked from
-CI and from the sandbox, so any test that reached the real network would be a
-test whose green means nothing.
+Both upstream calls are mocked — the OHLC reader AND the live quote. Any test
+that reached the real network would be a test whose green means nothing.
+
+⚠️ This file used to say the provider "is blocked from CI and from the sandbox".
+Half of that was wrong: **CI has network**. Only the sandbox is blocked, and the
+difference hid a real failure — the live quote was never mocked, so the sandbox
+passed (call fails → endpoint falls back to the last close → matches the
+synthetic series) and CI failed (`assert 309.87 == 100.0`, a genuine AAPL
+price against a fixture bar). Mock every upstream call, not the one that
+happens to be blocked where you are running.
 """
 import os
 
@@ -58,6 +65,20 @@ def upstream(monkeypatch):
 
     reader = Reader()
     monkeypatch.setattr(server, "get_ohlc_history", reader)
+
+    # La cotización VIVA también, y no es opcional. El endpoint pide dos cosas
+    # al proveedor: la serie (`get_ohlc_history`) y el precio de ahora
+    # (`get_stock_data`), porque el reparto soporte/resistencia se decide contra
+    # el segundo. Mockeando sólo la primera, la serie es sintética y el precio
+    # es REAL, y entonces `currentPrice` no tiene nada que ver con la última
+    # vela: `assert 309.87 == 100.0`.
+    #
+    # En el sandbox no se veía —ahí la red está cerrada, la llamada falla, el
+    # endpoint cae al último cierre y la prueba pasa por el motivo equivocado—.
+    # En CI hay red, y salió a la primera. Una prueba que depende de que la red
+    # esté rota no es una prueba: es una moneda.
+    monkeypatch.setattr(server, "get_stock_data",
+                        lambda *a, **k: {"price": None})
     reader.calls = calls
     return reader
 

@@ -96,10 +96,24 @@ async function checkSimulatorEngine() {
   ok('negative-edge system shows ruin risk', doomed.probabilityOfRuin > 50,
     `got ${doomed.probabilityOfRuin.toFixed(1)}%`);
 
-  // A single path is a sample: two runs of the same config should differ.
-  const a = runSimulation(base).results.finalBalance;
-  const b = runSimulation(base).results.finalBalance;
-  ok('single path is stochastic (why the distribution matters)', a !== b);
+  // A single path is a sample: runs of the same config should differ.
+  //
+  // ⚠️ This compared exactly TWO runs and failed ~1 in 220 times — it went red
+  // on CI with nothing wrong in the product. The reason is arithmetic, not
+  // luck: compounding by a PERCENTAGE makes the final balance
+  // 10000 × ∏(1 ± r), and multiplication commutes, so the result depends only
+  // on HOW MANY winners there were, not their order. 120 trades ⇒ ~121 possible
+  // balances, concentrated in the middle. Measured: 0.455% collisions over
+  // 20,000 pairs, 636 distinct values in 20,000 draws.
+  //
+  // A verifier that fails without a defect is as corrosive as one that passes
+  // without testing: both teach people to re-run until green. So the claim is
+  // asserted the way it is actually meant — over a handful of draws, not two.
+  // With 12, all-identical has probability ~0.0045^11, which is never.
+  const balances = new Set(
+    Array.from({ length: 12 }, () => runSimulation(base).results.finalBalance));
+  ok('single path is stochastic (why the distribution matters)',
+    balances.size > 1, `12 runs produced ${balances.size} distinct balance(s)`);
 }
 
 async function checkTradingSystemModel() {

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 import logging
 import math
+from log_seguro import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ def _get_cached_stock(symbol: str) -> Optional[dict]:
         return None
     cached_data, cached_time = _ticker_cache[cache_key]
     if (datetime.now() - cached_time).total_seconds() < _cache_duration:
-        logger.info(f"Using cached data for {symbol}")
+        logger.info(f"Using cached data for {log_safe(symbol)}")
         return cached_data
     return None
 
@@ -190,7 +191,7 @@ def get_stock_data(symbol: str) -> dict:
         return cached
 
     try:
-        logger.info(f"Fetching real data for {symbol} from Yahoo Finance")
+        logger.info(f"Fetching real data for {log_safe(symbol)} from Yahoo Finance")
         data = _yahoo_get(f"/v8/finance/chart/{symbol}?range=5d&interval=1d")
         res = (data.get("chart", {}).get("result") or [None])[0]
         meta = (res or {}).get("meta") or {}
@@ -207,8 +208,12 @@ def get_stock_data(symbol: str) -> dict:
             "price": round(float(price), 2),
             "change": round(change, 2),
             "changePercent": round(change_pct, 2),
-            "high52w": round(float(meta.get("fiftyTwoWeekHigh") or price), 2),
-            "low52w": round(float(meta.get("fiftyTwoWeekLow") or price), 2),
+            # `or price` fabricaba el dato: un máximo de 52 semanas igual al
+            # precio de hoy no es «no lo sé», es una afirmación concreta y falsa
+            # —dice que el valor nunca ha estado más alto en un año—. Cuando
+            # Yahoo no lo publica (índices, muchos futuros, cripto), va None.
+            "high52w": _redondea_o_nada(meta.get("fiftyTwoWeekHigh")),
+            "low52w": _redondea_o_nada(meta.get("fiftyTwoWeekLow")),
             "volume": f"{vol / 1_000_000:.1f}M" if vol and vol > 0 else "N/A",
             "sector": _get_sector(symbol),
             "dividendYield": 0.0,
@@ -216,7 +221,7 @@ def get_stock_data(symbol: str) -> dict:
         _ticker_cache[f"stock_{symbol}"] = (result, datetime.now())
         return result
     except Exception as e:
-        logger.error(f"Error fetching data for {symbol}: {str(e)}")
+        logger.error(f"Error fetching data for {log_safe(symbol)}: {log_safe(str(e))}")
         return _get_fallback_stock_data(symbol)
 
 
@@ -270,8 +275,20 @@ def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> 
             })
         return rows
     except Exception as e:  # noqa: BLE001
-        logger.error(f"Error fetching OHLC history for {symbol}: {e}")
+        logger.error(f"Error fetching OHLC history for {log_safe(symbol)}: {log_safe(e)}")
         return []
+
+
+def _redondea_o_nada(valor) -> Optional[float]:
+    """El número redondeado, o None si no hay número. Nunca un sustituto.
+
+    Lo que no se puede saber va como None, no como 0 ni como «lo más parecido
+    que tenía a mano» — es la regla 2 de honestidad numérica de este producto.
+    """
+    try:
+        return round(float(valor), 2)
+    except (TypeError, ValueError):
+        return None
 
 
 def _get_fallback_stock_data(symbol: str) -> dict:
@@ -282,7 +299,7 @@ def _get_fallback_stock_data(symbol: str) -> dict:
     greeks and P&L on top of fabricated data. Instead we surface a null price
     plus an ``error`` message so the frontend can disable calculations.
     """
-    logger.warning(f"No real data available for {symbol} — returning error state")
+    logger.warning(f"No real data available for {log_safe(symbol)} — returning error state")
     return {
         "symbol": symbol,
         "name": symbol,
@@ -369,7 +386,7 @@ def yahoo_search_symbols(query: str, limit: int = 20) -> list:
             "&newsCount=0&listsCount=0&enableFuzzyQuery=false"
         )
     except Exception as e:  # noqa: BLE001
-        logger.info("Yahoo search failed for %r: %s", q, e)
+        logger.info("Yahoo search failed for %r: %s", log_safe(q), log_safe(e))
         return []
     out = []
     for item in (data.get("quotes") or []):
@@ -599,7 +616,7 @@ def generate_expirations():
 def get_options_chain_real(symbol: str, expiration_date: str) -> Optional[dict]:
     """Get real options chain from Yahoo Finance (v7 options JSON API)."""
     try:
-        logger.info(f"Fetching options chain for {symbol} expiration {expiration_date}")
+        logger.info(f"Fetching options chain for {log_safe(symbol)} expiration {log_safe(expiration_date)}")
         exp_unix = int(datetime.strptime(expiration_date, "%Y-%m-%d")
                        .replace(tzinfo=timezone.utc).timestamp())
         data = _yahoo_get(f"/v7/finance/options/{symbol}?date={exp_unix}")
@@ -668,14 +685,14 @@ def get_options_chain_real(symbol: str, expiration_date: str) -> Optional[dict]:
         return chain
 
     except Exception as e:
-        logger.error(f"Error fetching options chain for {symbol}: {str(e)}")
+        logger.error(f"Error fetching options chain for {log_safe(symbol)}: {log_safe(str(e))}")
         return None
 
 
 def get_available_expirations(symbol: str) -> Optional[list]:
     """Get available expiration dates from Yahoo Finance."""
     try:
-        logger.info(f"Fetching available expirations for {symbol}")
+        logger.info(f"Fetching available expirations for {log_safe(symbol)}")
         data = _yahoo_get(f"/v7/finance/options/{symbol}")
         res = (data.get("optionChain", {}).get("result") or [None])[0]
         exp_unix = (res or {}).get("expirationDates") or []
@@ -698,5 +715,5 @@ def get_available_expirations(symbol: str) -> Optional[list]:
         return result
 
     except Exception as e:
-        logger.error(f"Error fetching expirations for {symbol}: {str(e)}")
+        logger.error(f"Error fetching expirations for {log_safe(symbol)}: {log_safe(str(e))}")
         return None

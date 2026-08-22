@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any, Dict, Iterable, List, Optional
+from log_seguro import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +181,7 @@ async def fetch_usd_prices(symbols: List[str]) -> Dict[str, Dict[str, Any]]:
             )
             salida.update(parse_binance_tickers(payload, simbolos))
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Fallo al leer los tickers de Binance: %s", exc)
+            logger.warning("Fallo al leer los tickers de Binance: %s", log_safe(exc))
 
     kraken_symbols = [s for s in simbolos if s in _KRAKEN_PAIRS]
     if kraken_symbols:
@@ -192,7 +193,7 @@ async def fetch_usd_prices(symbols: List[str]) -> Dict[str, Dict[str, Any]]:
             # Pisa a Binance: dólar real por encima de Tether.
             salida.update(parse_kraken_tickers(payload, kraken_symbols))
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Fallo al leer los tickers de Kraken: %s", exc)
+            logger.warning("Fallo al leer los tickers de Kraken: %s", log_safe(exc))
 
     return salida
 
@@ -251,5 +252,5 @@ async def fetch_ohlc(symbol: str, interval: str = "1d", limit: int = 200) -> Lis
         )
         return parse_binance_klines(payload)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Fallo al leer las velas de %s en Binance: %s", par, exc)
+        logger.warning("Fallo al leer las velas de %s en Binance: %s", log_safe(par), log_safe(exc))
         return []

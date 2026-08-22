@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/select';
 import SearchBar from './SearchBar';
 import IVRankBadge from './IVRankBadge';
+import EstadoPrecio from '@/components/common/EstadoPrecio';
 
 // Seven tabs in one flat row overflowed every screen below ~1280px and forced
 // horizontal scrolling. Grouping them into three intents (trade / analyse /
@@ -77,9 +78,18 @@ const OptionsSubHeader = ({
         {stock && (
           <div className="flex items-center gap-2.5 ml-1 shrink-0">
             {loading && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
+            {/* El aviso de «sin actualizar» vive en la esquina opuesta, que es
+                donde estaba el LIVE. Ahí solo no basta: lo que el usuario mira
+                para dimensionar es ESTE número, y a 1.300 px de distancia las
+                dos cosas no se relacionan. Cuando el precio es viejo, el propio
+                precio lo dice. */}
             <span
-              className="text-xl font-bold text-foreground font-mono tabular-nums"
+              className={`text-xl font-bold font-mono tabular-nums ${
+                stock.stale ? 'text-amber-500' : 'text-foreground'
+              }`}
+              title={stock.stale ? t('precioDesfasadoAviso') : undefined}
               data-testid="live-price"
+              data-stale={stock.stale ? 'true' : 'false'}
             >
               ${stock.price.toFixed(2)}
             </span>
@@ -98,18 +108,15 @@ const OptionsSubHeader = ({
 
         {/* Un solo indicador de "en vivo". Antes había dos —un punto que
             palpitaba junto al precio y una etiqueta LIVE a la derecha— diciendo
-            exactamente lo mismo desde dos sitios distintos. */}
+            exactamente lo mismo desde dos sitios distintos.
+
+            Y hasta el 2026-08-22 ese «LIVE» verde estaba escrito a mano: se
+            pintaba igual con un precio de hace un segundo que con uno de ayer.
+            Ahora sale de `stock.stale`, que es lo que responde el backend desde
+            que `/api/stock/{symbol}` tiene detrás la cadena de reserva. Sobre
+            este precio se construyen strikes, griegas y P&L. */}
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          <span
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#22c55e]"
-            title={t('precioEnVivoRefrescoCada_73be80')}
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22c55e]"></span>
-            </span>
-            LIVE
-          </span>
+          <EstadoPrecio stale={stock?.stale} asOf={stock?.as_of} source={stock?.source} />
           <button
             onClick={onOpenGuide}
             className="p-1.5 rounded-lg hover:bg-muted transition-colors"

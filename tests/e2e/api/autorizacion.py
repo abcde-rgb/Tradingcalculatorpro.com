@@ -141,14 +141,30 @@ if tid:
     marca("la operación sigue intacta tras los tres intentos", intacta,
           f"symbol={(sigue or {}).get('symbol')}")
 
-    # La misma operación por la ruta LEGADA, que es otra puerta al mismo dato.
-    cod, _ = llama("PUT", f"/journal/trades/{tid}", {"symbol": "PIRATEADO"}, tok_a)
-    marca("la ruta legada tampoco deja editarla", cod in (403, 404), f"HTTP {cod}")
-    cod, _ = llama("DELETE", f"/journal/trades/{tid}", None, tok_a)
-    marca("la ruta legada tampoco deja borrarla", cod in (403, 404), f"HTTP {cod}")
-    cod, sigue = llama("GET", f"/performance/trades/{tid}", None, tok_v)
-    marca("sigue intacta tras probar la ruta legada",
-          cod == 200 and sigue.get("symbol") == "SECRETO")
+    # Aquí había una segunda tanda contra `/journal/trades`, que era otra puerta
+    # autenticada a ESTA MISMA operación: comprobaba que la puerta legada también
+    # estuviera cerrada. Se retiró el 2026-08-22 (duplicaba `/performance/trades`
+    # sobre la misma colección con otro esquema — BUG-039), así que ya no hay
+    # cerrojo que comprobar: hay que comprobar que no hay puerta.
+    #
+    # No sirve pedirle un 404 a la ruta: FastAPI devuelve 404 tanto para un
+    # camino que no existe como para una operación que no es tuya, así que un
+    # 404 no distingue «retirada» de «bien protegida». Se mira el índice que el
+    # propio servidor publica.
+    caminos = set()
+    try:
+        with urllib.request.urlopen(f"{API}/openapi.json", timeout=15) as r:
+            caminos = set(json.load(r).get("paths", {}))
+    except (urllib.error.URLError, ValueError) as e:
+        marca("se puede leer el índice de rutas del servidor", False, str(e))
+    if caminos:
+        legadas = sorted(p for p in caminos if p.startswith("/api/journal/trades"))
+        marca("la puerta legada al diario ya no existe", not legadas,
+              ", ".join(legadas) if legadas else f"{len(caminos)} rutas publicadas")
+        # Control: si esto fallara, el conjunto estaría vacío o mal leído y la
+        # comprobación de arriba pasaría sin haber mirado nada.
+        marca("y el índice sí contiene la ruta VIVA del diario",
+              "/api/performance/trades" in caminos)
 
 if cid:
     cod, _ = llama("DELETE", f"/calculations/{cid}", None, tok_a)
