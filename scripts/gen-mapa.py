@@ -490,12 +490,16 @@ CONTROLES: tuple[tuple[str, bool], ...] = (
     ("/plan", True),
     ("/plan/compliance", True),
     ("/plan/history", True),
-    # Muertas. `/backtest` es la trampa: existe la página `/backtesting`.
+    # Sin consumidor. Ojo: estos controles prueban el DETECTOR, no la existencia
+    # de la ruta —`se_consume` sólo mira si el frontend la nombra—, así que
+    # siguen valiendo para rutas ya retiradas. `/backtest` y `/journal/trades` se
+    # borraron el 2026-08-22 y se quedan aquí a propósito: `/backtest` es la
+    # trampa que importa (existe la página `/backtesting`, y el `in` pelado la
+    # daba por consumida), y `/journal/trades` cubre la forma con parámetro.
     ("/backtest", False),
     ("/journal/trades", False),
     ("/monte-carlo", False),
     ("/portfolio/rebalance", False),
-    ("/subscriptions/change-plan-legacy", False),
     ("/no/existe/esto", False),
 )
 

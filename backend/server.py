@@ -1292,19 +1292,6 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
-class TradeEntry(BaseModel):
-    symbol: str
-    direction: str  # "long" or "short"
-    entryPrice: float
-    exitPrice: Optional[float] = None
-    quantity: float
-    leverage: float = 1.0
-    stopLoss: Optional[float] = None
-    takeProfit: Optional[float] = None
-    notes: Optional[str] = None
-    tags: Optional[List[str]] = []
-    status: str = "open"  # "open" or "closed"
-
 class PortfolioAsset(BaseModel):
     symbol: str
     quantity: float
@@ -1316,9 +1303,6 @@ class PriceAlert(BaseModel):
     targetPrice: float
     condition: str  # "above" or "below"
     notifyEmail: bool = True
-
-class ChangePlanRequest(BaseModel):
-    new_plan_id: str
 
 class CancelSubscriptionRequest(BaseModel):
     immediate: bool = False  # If True, cancel immediately. If False, cancel at period end
@@ -2856,10 +2840,11 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
         except Exception:
             return []
 
-    # NOTE: both /journal/trades and /performance/trades persist into db.trades
-    # (there is no separate "performance_trades" collection — see BUG fixed
-    # 2026-06-06), so "trades" below already contains the user's full trading
-    # journal including performance-module entries. No separate collect() needed.
+    # NOTE: el diario entero vive en db.trades — no hay una colección
+    # "performance_trades" aparte (BUG arreglado el 2026-06-06), así que "trades"
+    # de abajo ya lleva todo lo del usuario. No hace falta un collect() extra.
+    # (Hasta el 2026-08-22 había además un `/journal/trades` que escribía en esta
+    # misma colección con OTRO esquema; era el BUG-039 y ya no existe.)
     #
     # The export must cover everything `delete_account` erases, minus pure
     # security artefacts. Anything the user can have DELETED they must be able
@@ -3246,116 +3231,6 @@ JOURNAL_STATS_MAX_TRADES = 1000
 # history — see the endpoint.
 ANALYTICS_MAX_TRADES = 1000
 
-
-def _roe_pct(trade: Dict[str, Any]) -> Optional[float]:
-    """Retorno sobre el nominal de entrada, en %. Campo propio del diario legado.
-
-    Se conserva en la RESPUESTA por compatibilidad de API, pero ya no se
-    almacena: es derivable, y un campo derivado guardado es un campo que se
-    queda desfasado en cuanto se edita la operación.
-    """
-    entry = float(trade.get("entry_price") or 0)
-    exit_p = trade.get("exit_price")
-    if not entry or exit_p in (None, ""):
-        return None
-    mult = float(trade.get("multiplier") or 1)
-    direction = 1 if trade.get("side") == "long" else -1
-    return round(((float(exit_p) - entry) / entry) * 100 * mult * direction, 2)
-
-
-@api_router.post("/journal/trades")
-async def create_trade(trade: TradeEntry, user: dict = Depends(require_premium)):
-    """⚠️ OBSOLETO — usar `POST /performance/trades`.
-
-    Se mantiene por compatibilidad de API (acepta el mismo payload camelCase de
-    siempre), pero **persiste ya en el esquema canónico snake_case**. Antes
-    guardaba camelCase en la misma colección que el módulo de performance, y ese
-    choque de esquemas hacía que el P&L se leyera como 0 y se persistiera como 0
-    al primer edit (BUG-039). Escribir dos esquemas en una colección no se
-    arregla traduciendo al leer: hay que dejar de generarlos.
-    """
-    # `normalize_trade_schema` traduce el payload camelCase al canónico, y
-    # `make_trade_doc` lo completa igual que la ruta viva: un solo esquema.
-    payload = normalize_trade_schema(trade.dict())
-    doc = make_trade_doc(payload, user["id"])
-    plan = await get_active_plan(db, user["id"])
-    if plan:
-        doc["plan_version"] = plan.get("version")
-    enriched = _enrich_trade(doc, plan=plan)
-    await db.trades.insert_one({k: v for k, v in enriched.items() if k != "_id"})
-    return {**enriched, "roe": _roe_pct(enriched)}
-
-@api_router.get("/journal/trades")
-async def get_trades(
-    user: dict = Depends(require_premium),
-    limit: int = Query(TRADES_LIMIT_DEFAULT, ge=1, le=TRADES_LIMIT_MAX),
-):
-    trades = await db.trades.find(
-        {"user_id": user["id"]},
-        {"_id": 0}
-    ).sort("created_at", -1).limit(limit).to_list(limit)
-    return trades
-
-class TradeUpdate(BaseModel):
-    """Allowed fields for updating a trade — prevents mass-assignment attacks."""
-    symbol: Optional[str] = None
-    direction: Optional[str] = None
-    entryPrice: Optional[float] = None
-    exitPrice: Optional[float] = None
-    stopLoss: Optional[float] = None
-    takeProfit: Optional[float] = None
-    quantity: Optional[float] = None
-    leverage: Optional[float] = None
-    status: Optional[str] = None
-    notes: Optional[str] = None
-    tags: Optional[List[str]] = None
-    emotion: Optional[int] = None
-    screenshot_urls: Optional[List[str]] = None
-    exit_date: Optional[str] = None
-    fees: Optional[float] = None
-
-
-@api_router.put("/journal/trades/{trade_id}")
-async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends(require_premium)):
-    """⚠️ OBSOLETO — usar `PUT /performance/trades/{id}`.
-
-    Traduce el documento almacenado y el parche al esquema canónico antes de
-    recalcular. Esta ruta era la mitad del BUG-039: recalculaba el P&L leyendo
-    `entryPrice`/`leverage` sobre un documento que podía ser del otro esquema, y
-    escribía el resultado sin tocar las claves del esquema contrario.
-    """
-    existing = await db.trades.find_one({"id": trade_id, "user_id": user["id"]}, {"_id": 0})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Trade no encontrado")
-
-    patch = normalize_trade_schema(
-        {k: v for k, v in updates.dict(exclude_unset=True).items() if v is not None}
-    )
-    merged = {**normalize_trade_schema(existing), **patch}
-    if merged.get("exit_price") not in (None, "") and not patch.get("status"):
-        merged["status"] = "closed"
-
-    prev = [t for t in await trades_for_user(db, user["id"], limit=50)
-            if t.get("id") != trade_id]
-    enriched = _enrich_trade(merged, prev_trades=prev,
-                             plan=await get_active_plan(db, user["id"]))
-    enriched.pop("_id", None)
-
-    await db.trades.update_one(
-        {"id": trade_id, "user_id": user["id"]},
-        # `$set` no borra: sin el `$unset`, las claves camelCase del documento
-        # viejo sobreviven junto a las canónicas recién escritas y el choque de
-        # esquemas se reproduce en el mismo documento que acabamos de arreglar.
-        {"$set": enriched, "$unset": legacy_keys_to_unset(existing)},
-    )
-    return {"message": "Trade actualizado", **enriched}
-
-@api_router.delete("/journal/trades/{trade_id}")
-async def journal_delete_trade(trade_id: str, user: dict = Depends(require_premium)):
-    result = await db.trades.delete_one({"id": trade_id, "user_id": user["id"]})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Trade no encontrado")
-    return {"message": "Trade eliminado"}
 
 def _empty_journal_stats() -> Dict[str, Any]:
     return {
@@ -3816,247 +3691,6 @@ async def run_monte_carlo(request: dict, user: dict = Depends(require_user)) -> 
             curves.append(path["curve"])
 
     return {"simulations": curves[:50], "statistics": _summarize_mc_runs(initial, finals, drawdowns)}
-
-# ============= BACKTESTING =============
-
-def _simulate_backtest_trades(
-    n: int, initial_balance: float, win_rate: float,
-    take_profit_pct: float, stop_loss_pct: float, leverage: float,
-    rng: secrets.SystemRandom,
-) -> Dict[str, Any]:
-    """Run a single synthetic backtest pass, return trades list + summary fields."""
-    trades: List[Dict[str, Any]] = []
-    balance = initial_balance
-    wins = 0
-    losses = 0
-    peak = balance
-    max_drawdown = 0.0
-
-    for i in range(n):
-        is_win = rng.random() < win_rate
-        if is_win:
-            wins += 1
-            pnl = balance * (take_profit_pct / 100) * leverage
-        else:
-            losses += 1
-            pnl = -balance * (stop_loss_pct / 100) * leverage
-        balance += pnl
-        if balance > peak:
-            peak = balance
-        drawdown = (peak - balance) / peak * 100 if peak > 0 else 0
-        if drawdown > max_drawdown:
-            max_drawdown = drawdown
-        trades.append({
-            "trade_num": i + 1,
-            "type": "LONG" if rng.random() > 0.5 else "SHORT",
-            "result": "WIN" if is_win else "LOSS",
-            "pnl": round(pnl, 2),
-            "balance": round(balance, 2),
-        })
-    return {"trades": trades, "balance": balance, "wins": wins, "losses": losses,
-            "max_drawdown": max_drawdown}
-
-
-def _run_real_backtest(
-    symbol: str,
-    strategy: str,
-    days: int,
-    initial_capital: float,
-    take_profit_pct: float,
-    stop_loss_pct: float,
-    leverage: float,
-) -> Dict[str, Any]:
-    """REAL backtest using historical data from yfinance.
-    Strategies supported:
-      - SMA Crossover (10/30)
-      - RSI 14 (oversold<30 long / overbought>70 short)
-      - Buy & Hold
-    Returns: {trades, balance, wins, losses, max_drawdown, equity_curve}.
-    """
-    import yfinance as yf
-    import pandas as pd
-
-    # Pick yfinance symbol — auto-add -USD for bare crypto tickers
-    yf_sym = symbol
-    if not any(c in symbol for c in ["-", "=", "^", "."]):
-        if symbol.upper() in ("BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "DOT", "LINK", "LTC", "MATIC"):
-            yf_sym = f"{symbol.upper()}-USD"
-    period_str = f"{max(days, 30)}d" if days <= 730 else "2y"
-    interval = "1d" if days >= 30 else "1h"
-
-    hist = yf.Ticker(yf_sym).history(period=period_str, interval=interval)
-    if hist.empty or len(hist) < 30:
-        # Fall back to BTC-USD if symbol not found
-        hist = yf.Ticker("BTC-USD").history(period=period_str, interval=interval)
-
-    closes = hist["Close"].astype(float).tolist()
-    times = [int(t.timestamp()) for t in hist.index]
-    if len(closes) < 30:
-        raise HTTPException(status_code=400, detail="No hay datos históricos suficientes para este símbolo")
-
-    # ── Generate entry signals depending on strategy ──
-    signals: List[int] = [0] * len(closes)  # 1=long, -1=short, 0=flat
-    s_lower = strategy.lower().replace("_", " ")
-
-    if "rsi" in s_lower:
-        period_rsi = 14
-        gains, losses = [], []
-        for i in range(1, len(closes)):
-            diff = closes[i] - closes[i - 1]
-            gains.append(max(diff, 0)); losses.append(max(-diff, 0))
-        rsi: List[Optional[float]] = [None] * len(closes)
-        for i in range(period_rsi, len(closes)):
-            avg_gain = sum(gains[i - period_rsi:i]) / period_rsi
-            avg_loss = sum(losses[i - period_rsi:i]) / period_rsi or 1e-9
-            rs = avg_gain / avg_loss
-            rsi[i] = 100 - 100 / (1 + rs)
-        for i in range(len(closes)):
-            r = rsi[i]
-            if r is None:
-                continue
-            if r < 30:
-                signals[i] = 1
-            elif r > 70:
-                signals[i] = -1
-    elif "buy" in s_lower or "hold" in s_lower:
-        signals[0] = 1  # enter long once, hold forever
-    else:
-        # Default: SMA Crossover 10/30
-        short_w, long_w = 10, 30
-        for i in range(long_w, len(closes)):
-            sma_s = sum(closes[i - short_w:i]) / short_w
-            sma_l = sum(closes[i - long_w:i]) / long_w
-            sma_s_prev = sum(closes[i - short_w - 1:i - 1]) / short_w
-            sma_l_prev = sum(closes[i - long_w - 1:i - 1]) / long_w
-            if sma_s_prev <= sma_l_prev and sma_s > sma_l:
-                signals[i] = 1
-            elif sma_s_prev >= sma_l_prev and sma_s < sma_l:
-                signals[i] = -1
-
-    # ── Simulate trades with TP/SL ──
-    balance = float(initial_capital)
-    equity: List[float] = [balance]
-    trades: List[Dict[str, Any]] = []
-    peak = balance
-    max_dd = 0.0
-    in_pos = False
-    side = 0  # 1 long, -1 short
-    entry_price = 0.0
-    entry_idx = 0
-    risk_per_trade = 0.02  # 2% risk per trade
-    wins, losses = 0, 0
-
-    for i, price in enumerate(closes):
-        if not in_pos and signals[i] != 0 and i < len(closes) - 1:
-            in_pos = True
-            side = signals[i]
-            entry_price = price
-            entry_idx = i
-            continue
-        if in_pos:
-            move_pct = ((price - entry_price) / entry_price) * 100 * side * leverage
-            should_exit = (
-                move_pct >= take_profit_pct or
-                move_pct <= -stop_loss_pct or
-                signals[i] == -side or          # opposite signal
-                i == len(closes) - 1            # close on last bar
-            )
-            if should_exit:
-                pnl = balance * risk_per_trade * (move_pct / max(stop_loss_pct, 0.01))
-                pnl = max(min(pnl, balance * risk_per_trade * (take_profit_pct / max(stop_loss_pct, 0.01))),
-                          -balance * risk_per_trade)
-                balance += pnl
-                if pnl > 0:
-                    wins += 1
-                else:
-                    losses += 1
-                trades.append({
-                    "id": str(uuid.uuid4()),
-                    "side": "LONG" if side == 1 else "SHORT",
-                    "entry_time": times[entry_idx],
-                    "exit_time": times[i],
-                    "entry_price": round(entry_price, 6),
-                    "exit_price": round(price, 6),
-                    "move_pct": round(move_pct, 2),
-                    "pnl": round(pnl, 2),
-                    "balance": round(balance, 2),
-                })
-                in_pos = False
-                side = 0
-        peak = max(peak, balance)
-        dd = ((peak - balance) / peak * 100) if peak > 0 else 0
-        max_dd = max(max_dd, dd)
-        equity.append(round(balance, 2))
-
-    return {
-        "trades": trades,
-        "balance": balance,
-        "wins": wins,
-        "losses": losses,
-        "max_drawdown": max_dd,
-        "equity_curve": equity,
-    }
-
-
-@api_router.post("/backtest")
-async def run_backtest(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
-    if not check_premium(user):
-        raise HTTPException(status_code=403, detail="Función premium requerida")
-
-    strategy = request.get("strategy", "SMA Crossover")
-    initial_capital = float(request.get("initial_capital", 10000))
-    take_profit = float(request.get("take_profit", 5))
-    stop_loss = float(request.get("stop_loss", 2))
-    leverage = float(request.get("leverage", 1))
-    symbol = (request.get("symbol") or "BTC-USD").upper()
-    days = int(request.get("days", 180))
-
-    try:
-        # _run_real_backtest does synchronous yfinance I/O + number crunching;
-        # run it in a thread so it doesn't block the event loop.
-        loop = asyncio.get_event_loop()
-        sim = await loop.run_in_executor(
-            None,
-            lambda: _run_real_backtest(
-                symbol=symbol,
-                strategy=strategy,
-                days=days,
-                initial_capital=initial_capital,
-                take_profit_pct=take_profit,
-                stop_loss_pct=stop_loss,
-                leverage=leverage,
-            ),
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"backtest error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=f"Error ejecutando backtest: {e}")
-
-    final = sim["balance"]
-    n = len(sim["trades"])
-    wins, losses = sim["wins"], sim["losses"]
-    roi = ((final - initial_capital) / initial_capital) * 100
-    profit_factor = round((wins * take_profit) / (losses * stop_loss), 2) if losses > 0 else 0.0
-
-    return {
-        "id": str(uuid.uuid4()),
-        "symbol": symbol,
-        "strategy": strategy,
-        "days": days,
-        "initial_capital": initial_capital,
-        "final_balance": round(final, 2),
-        "total_trades": n,
-        "wins": wins,
-        "losses": losses,
-        "win_rate": round(wins / n * 100, 2) if n else 0.0,
-        "roi": round(roi, 2),
-        "max_drawdown": round(sim["max_drawdown"], 2),
-        "profit_factor": profit_factor,
-        "trades": sim["trades"][-30:],
-        "equity_curve": sim["equity_curve"],
-        "data_source": "yfinance",
-    }
 
 # ============= CALCULATIONS =============
 
@@ -5027,23 +4661,6 @@ async def resume_subscription(user: dict = Depends(require_user)):
     except Exception as e:
         logging.error(f"Error resuming subscription: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error resuming subscription")
-
-@api_router.post("/subscriptions/change-plan-legacy")
-async def change_plan_legacy(
-    request: ChangePlanRequest,
-    user: dict = Depends(require_user)
-):
-    """[Legacy stub] superseded by /subscriptions/change-plan from missing_apis.py
-    which performs a real Stripe proration. Kept for backwards-compat tests."""
-    if request.new_plan_id not in SUBSCRIPTION_PLANS:
-        raise HTTPException(status_code=400, detail="Invalid plan")
-    new_plan = SUBSCRIPTION_PLANS[request.new_plan_id]
-    return {
-        "message": "Use POST /api/subscriptions/change-plan (real Stripe proration upgrade/downgrade)",
-        "requested_plan": request.new_plan_id,
-        "requested_plan_price": new_plan["price"],
-        "requested_plan_currency": new_plan["currency"],
-    }
 
 @api_router.post("/billing/create-portal-session")
 async def create_portal_session(request: dict, user: dict = Depends(require_user)):
@@ -7580,9 +7197,10 @@ async def run_validated_backtest_endpoint(request: Request, req: BacktestRequest
                                           user: dict = Depends(require_premium)) -> Dict[str, Any]:
     """Backtest a system, with the validation that decides if the result means anything.
 
-    Distinct from the older `POST /backtest`, which runs a single pass with one
-    fixed parameter set. What is added here is the part that answers "does this
-    have an edge, or did I find it by looking hard enough":
+    Hubo un `POST /backtest` que hacía una sola pasada con parámetros fijos; se
+    retiró el 2026-08-22 (metía el apalancamiento en el P&L y devolvía una curva
+    de equity que no salía del precio). Lo que aporta ésta es la parte que
+    responde «¿esto tiene ventaja, o la he encontrado de tanto mirar?»:
 
     * `validated` holds a slice of history back from the parameter search and
       evaluates on it exactly once.

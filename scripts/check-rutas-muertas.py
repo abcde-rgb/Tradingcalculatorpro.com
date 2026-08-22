@@ -68,11 +68,25 @@ def muertas_segun_el_codigo(gm) -> set[tuple[str, str]]:
     }
 
 
+# El documento tiene prosa y tablas de contexto —el histórico de bajas, por
+# ejemplo— cuyas filas también empiezan por «| `». Sólo cuenta lo que va DESPUÉS
+# de este encabezado, que es donde viven las decisiones. Sin acotarlo, una tabla
+# explicativa nueva rompe el verificador y la tentación es relajar el patrón,
+# que es justo lo que haría dejar pasar una fila de decisión mal escrita.
+ENCABEZADO_DECISIONES = "## Las decisiones"
+
+
 def decididas_en_la_tabla() -> tuple[dict[tuple[str, str], str], list[str]]:
     """Lo que dice la tabla: {(método, ruta): decisión}, y las filas ilegibles."""
     decididas: dict[tuple[str, str], str] = {}
     malas: list[str] = []
-    for n, linea in enumerate(TABLA.read_text(encoding="utf-8").splitlines(), 1):
+    texto = TABLA.read_text(encoding="utf-8")
+    if ENCABEZADO_DECISIONES not in texto:
+        return {}, [f"docs/RUTAS_MUERTAS.md: falta el encabezado «{ENCABEZADO_DECISIONES}», "
+                    "sin el cual no se sabe qué filas son decisiones"]
+    corte = texto.index(ENCABEZADO_DECISIONES)
+    saltadas = texto[:corte].count("\n")
+    for n, linea in enumerate(texto[corte:].splitlines(), saltadas + 1):
         if not linea.startswith("| `"):
             continue
         m = FILA.match(linea)

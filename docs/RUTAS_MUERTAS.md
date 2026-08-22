@@ -17,7 +17,8 @@ la quite de la tabla quien la conectó, en vez de que la lista se pudra.
 
 ## Lo que hay debajo del número
 
-Tres cosas que sólo se ven leyendo las rutas una a una:
+Tres cosas que sólo se ven leyendo las rutas una a una — la tercera ya
+resuelta, y las otras dos en marcha:
 
 **1. La capa de failover de precios está construida y desconectada.**
 `market_data.py` (329 líneas, con cortacircuitos, cuota por proveedor y
@@ -46,17 +47,42 @@ muertas, y la de canjear además mentía dos veces —ver la fila `ARREGLAR`. En
 panel de admin hay una bandera `referrals` etiquetada «Wallet + leaderboard» y
 `enabled: True` (`server.py:9269`).
 
-**3. `POST /backtest` mete el apalancamiento en el P&L.**
-`_run_real_backtest` calcula `move_pct = ((price − entry) / entry) × 100 × side ×
-leverage` (`server.py:3956`), que es exactamente el invariante que este
-repositorio tiene escrito en mayúsculas. Y el P&L que devuelve no sale del
-movimiento del precio sino de `balance × 2% × (move_pct / stop_loss_pct)`
-recortado a una banda: una curva de equity inventada, etiquetada
-`data_source: "yfinance"`. `profit_factor` se calcula encima con otra definición
-distinta —`(wins × TP)/(losses × SL)`, como si toda ganancia cerrara justo en el
-objetivo— y vale `0.0` cuando no hay pérdidas, que es indefinido, no cero. Lo
-que hace bien esta ruta ya lo hace `POST /backtest/validate` sobre
-`backtest.py`, con hold-out y walk-forward.
+**3. `POST /backtest` metía el apalancamiento en el P&L.** *(retirada)*
+`_run_real_backtest` calculaba `move_pct = ((price − entry) / entry) × 100 × side
+× leverage`, que es exactamente el invariante que este repositorio tiene escrito
+en mayúsculas. Y el P&L que devolvía no salía del movimiento del precio sino de
+`balance × 2% × (move_pct / stop_loss_pct)` recortado a una banda: una curva de
+equity inventada, etiquetada `data_source: "yfinance"`. `profit_factor` se
+calculaba encima con otra definición distinta —`(wins × TP)/(losses × SL)`, como
+si toda ganancia cerrara justo en el objetivo— y valía `0.0` cuando no había
+pérdidas, que es indefinido, no cero. Se llevó por delante también
+`_simulate_backtest_trades`, que multiplicaba igual por la palanca y **no la
+llamaba nadie**. Lo que esa ruta hacía bien ya lo hace `POST /backtest/validate`
+sobre `backtest.py`, con hold-out y walk-forward.
+
+## Las 8 bajas del 2026-08-22
+
+De las 14 marcadas `BORRAR`, se ejecutaron las **8 cuyo sucesor estaba escrito en
+el propio código** —no hacía falta decidir nada de producto, sólo dejar de servir
+dos veces lo mismo:
+
+| Retirada | Quién hace ya su trabajo |
+|---|---|
+| `POST/GET/PUT/DELETE /api/journal/trades` | `…/performance/trades`, viva y consumida por `performanceApi.js`. Escribían en la **misma** colección `db.trades` con otro esquema: eso era el BUG-039, y su propio docstring ya ponía «⚠️ OBSOLETO». |
+| `POST /api/subscriptions/change-plan-legacy` | `POST /api/subscriptions/change-plan`, que sí prorratea en Stripe. La legada sólo devolvía un mensaje diciendo cuál usar. |
+| `POST /api/backtest` | `POST /api/backtest/validate` (§3 arriba). |
+| `GET /api/ohlc-universal/{symbol}` | `GET /api/ohlc/{symbol}`, copia casi literal en otro fichero. |
+| `GET /api/referrals/leaderboard` | `GET /api/admin/referrals/leaderboard`, que es la que llama `AdminPage.jsx:2536`. |
+
+Con ellas se fueron los modelos y ayudantes que sólo ellas usaban (`TradeEntry`,
+`TradeUpdate`, `_roe_pct`, `_run_real_backtest`, `_simulate_backtest_trades`,
+`_ohlc_from_yfinance`, el proxy de admin de `referrals.py`): **~500 líneas**.
+
+Lo que **no** se borró, y por qué importa la diferencia: la sonda de autorización
+cruzada comprobaba que la puerta legada al diario también estuviera cerrada.
+Ahora comprueba que **no haya puerta**, leyendo el `openapi.json` que publica el
+propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelve
+404 igual para un camino inexistente que para una operación que no es tuya.
 
 ## Las decisiones
 
@@ -64,23 +90,15 @@ que hace bien esta ruta ya lo hace `POST /backtest/validate` sobre
 `CONSTRUIR` — el backend está terminado y lo que falta es la pantalla (G-14).
 `ARREGLAR` — hay que tocar el backend antes de poder enseñarla.
 
-### BORRAR (14)
+### BORRAR — quedan 6 (8 ya retiradas el 2026-08-22)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
-| `POST` | `/api/journal/trades` | BORRAR | Duplicado de `POST /api/performance/trades`, que sí usa `performanceApi.js`. Escriben en la **misma** colección `db.trades` (`server.py:2859`) y su propio docstring ya dice «⚠️ OBSOLETO» por el BUG-039. Segunda puerta autenticada al mismo dato. |
-| `GET` | `/api/journal/trades` | BORRAR | Duplicado de `GET /api/performance/trades`. |
-| `PUT` | `/api/journal/trades/{trade_id}` | BORRAR | Duplicado de `PUT /api/performance/trades/{trade_id}`. `tests/e2e/api/autorizacion.py` la llama «la ruta legada, que es otra puerta al mismo dato» y comprueba que también esté cerrada: quitar la puerta es mejor que comprobar el cerrojo. |
-| `DELETE` | `/api/journal/trades/{trade_id}` | BORRAR | Ídem. |
-| `POST` | `/api/backtest` | BORRAR | Mete el apalancamiento en el P&L y devuelve una curva de equity inventada con etiqueta de datos reales (ver §3 arriba). Superada por `POST /backtest/validate`. |
 | `POST` | `/api/monte-carlo` | BORRAR | La simulación vive en el cliente (`frontend/src/lib/simulator/engine.js`, verificada por `engine-check.js`) y es la que ve el usuario. Además la del backend la cobra como premium mientras la del cliente es gratis: dos productos distintos para el mismo botón. |
-| `GET` | `/api/ohlc-universal/{symbol}` | BORRAR | Copia casi literal de `GET /api/ohlc/{symbol}` en otro fichero. Dos implementaciones de la misma cascada Binance→yfinance. |
 | `GET` | `/api/forex-prices` | BORRAR | Divisas del BCE con una tabla estática de reserva. El frontend pide precios por `/prices` y `/api/stock/{symbol}`; esto no pasa por `market_data`, así que ni cachea ni falla con `stale`. |
 | `GET` | `/api/indices-prices` | BORRAR | `yf.download` directo de seis índices. Mismo motivo. |
 | `GET` | `/api/commodities-prices` | BORRAR | Ídem, con una conversión EUR/USD escrita a mano (`eur_usd = 0.917`) como reserva. |
 | `POST` | `/api/alerts/send-email` | BORRAR | Relé de SendGrid pedido desde el navegador. El aviso de una alerta que salta ya lo manda el poller por `notifications.py`, que es donde tiene que estar. |
-| `GET` | `/api/referrals/leaderboard` | BORRAR | `AdminPage.jsx:2536` usa `GET /api/admin/referrals/leaderboard`, de `admin_routes.py`. Esta es la segunda. |
-| `POST` | `/api/subscriptions/change-plan-legacy` | BORRAR | Su docstring: «[Legacy stub] superseded by `/subscriptions/change-plan`». No cambia el plan: devuelve un mensaje diciendo qué ruta usar. |
 | `GET` | `/api/user-states/list` | BORRAR | «List all saved states for debugging». |
 
 ### CONSTRUIR (21)

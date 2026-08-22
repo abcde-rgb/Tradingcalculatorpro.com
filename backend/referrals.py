@@ -14,7 +14,6 @@ descuento que no va a aplicarse. El saldo no se pierde.
 Endpoints:
   GET  /referrals/me               — my code, stats, recent referrals
   POST /referrals/track            — track a referral signup (body: {code, referee_email})
-  GET  /referrals/leaderboard      — top 10 referrers (admin)
   POST /referrals/redeem-credit    — apply wallet to next purchase
 """
 from __future__ import annotations
@@ -36,7 +35,6 @@ _security = HTTPBearer(auto_error=False)
 # Injected at register()
 db = None  # type: ignore[assignment]
 require_user = None  # type: ignore[assignment]
-require_admin = None  # type: ignore[assignment]
 
 # Commission % credited to the referrer when referee makes a paid purchase
 COMMISSION_PCT = 10.0  # 10% of the plan price
@@ -78,15 +76,6 @@ async def _require_user_proxy(
         raise HTTPException(status_code=503, detail="Service not initialized")
     # require_user's signature is (request, credentials) — pass both.
     return await require_user(request, credentials)
-
-
-async def _require_admin_proxy(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(_security),
-) -> Dict[str, Any]:
-    if require_admin is None:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-    return await require_admin(request, credentials)
 
 
 # ---------------------------------------------------------------------------
@@ -307,30 +296,6 @@ async def credit_referrer_for_payment(referee_user_id: str, plan_id: str,
     return await db.referrals.find_one({"id": referral["id"]}, {"_id": 0})
 
 
-@router.get("/referrals/leaderboard")
-async def referral_leaderboard(admin: dict = Depends(_require_admin_proxy), limit: int = 20):
-    """Top referrers by total earnings."""
-    pipeline = [
-        {"$match": {"status": "paid"}},
-        {"$group": {
-            "_id": "$referrer_id",
-            "referrer_email": {"$first": "$referrer_email"},
-            "total_earned": {"$sum": "$commission_amount"},
-            "total_referees": {"$sum": 1},
-        }},
-        {"$sort": {"total_earned": -1}},
-        {"$limit": limit},
-    ]
-    results = await db.referrals.aggregate(pipeline).to_list(limit)
-    cleaned = [{
-        "referrer_id": r["_id"],
-        "referrer_email": r["referrer_email"],
-        "total_earned": round(r["total_earned"], 2),
-        "total_referees": r["total_referees"],
-    } for r in results]
-    return {"leaderboard": cleaned, "limit": limit}
-
-
 def saldo_disponible(usuario: dict) -> float:
     """Lo que al usuario le queda por canjear: lo ganado menos lo ya canjeado.
 
@@ -438,10 +403,9 @@ async def ensure_referral_indexes(database) -> None:
 # ---------------------------------------------------------------------------
 
 def register(app_router, database, helpers: Dict[str, Any]) -> None:
-    global db, require_user, require_admin
+    global db, require_user
     db = database
     require_user = helpers["require_user"]
-    require_admin = helpers["require_admin"]
     # Apply rate limit to the unauthenticated track endpoint before including router
     if helpers.get("limiter"):
         helpers["limiter"].limit("5/minute")(track_referral)
