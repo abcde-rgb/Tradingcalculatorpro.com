@@ -4464,11 +4464,35 @@ pregunta —con la correcta rotando de posición— y la tabla de lo que se cree
 frente a lo que ocurre. Los escenarios del simulador son los casos trabajados
 del curso, para que se puedan reproducir en vez de creer.
 
+**Y dos fallos que sólo aparecieron al MIRAR.** El banco E2E se levantó y se
+abrió la pantalla, como manda el skill `qa`, y encontró en la primera captura lo
+que ni el lint ni las 422 comprobaciones podían ver:
+
+- el panel de «las dos lecturas» enfrentaba la distancia en aislado medida en la
+  **entrada** contra el colchón cruzado al **final de la escalera**. Dos
+  posiciones distintas en dos momentos distintos: salía 8,66 frente a 17,65 y el
+  cruzado parecía dar más aire, justo lo contrario del módulo. Ahora ambas se
+  miden sobre el primer tramo → 8,66 frente a 5,68;
+- las etiquetas de los extremos de la regleta se anclan en el 0 % y el 100 %, así
+  que sin acolchado lateral el stop-out y el objetivo se comían el borde de la
+  tarjeta y perdían un dígito. En un precio, un orden de magnitud.
+
 **Verificado:** `engine-check` **422/422** (52 comprobaciones nuevas, todas
 atadas a una frase del curso) · `i18n-check` 6.858 claves × 10 idiomas, 0
 huecos, 0 sobrantes · `check-edu-index` 86 = 86 · `check-fetch-credentials` ·
 `gen-instruments-js --check` · `gen-mapa --check` · `check-doc-links` · ESLint 0
-errores · `npm run build` exit 0 · `probar-verificadores.sh`.
+errores · `npm run build` exit 0 · `probar-verificadores.sh` (los cuatro
+sabotajes nuevos detectados) · `pytest` **890 passed / 74 skipped** · y en el
+navegador sobre el build de producción, escritorio y móvil, sin errores de
+JavaScript ni desbordamiento: con el escenario «El tramo que no entra» la
+pantalla reproduce las cifras del curso —rechazo en el tramo 2 pidiendo 4.328,20
+con 696,80 disponibles, y el candado en 0 / ∞, 4.328,15 / 116 % y 8.656,30 / 58 %
+según el modelo de margen—.
+
+> ⚠️ **Nota para quien ejecute `pytest` en el venv del banco E2E:** sin
+> `pytest-asyncio` instalado, los siete tests de `test_app_settings_roundtrip_unit.py`
+> salen en rojo. No es el producto: son `@pytest.mark.asyncio` que nunca se
+> ejecutan. Con el plugin, 890 pasan. Un ❌ es una hipótesis, no un veredicto.
 
 **Lo que NO cierra:** G-33 sigue abierto. Ésta es una herramienta nueva escrita
 ya sobre el catálogo, no una de las catorce viejas rehechas. Y la aritmética
