@@ -393,7 +393,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/calculators/simulator/` | 6 | 1,436 |
 | `components/charts/` | 3 | 797 |
 | `components/charts/structure/` | 12 | 1,705 |
-| `components/common/` | 12 | 1,901 |
+| `components/common/` | 12 | 1,984 |
 | `components/dashboard/` | 8 | 1,005 |
 | `components/desk/` | 6 | 1,553 |
 | `components/education/` | 82 | 13,654 |
@@ -406,7 +406,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 46 | 2,946 |
-| `pages/` | 23 | 16,247 |
+| `pages/` | 23 | 16,250 |
 
 ## Los ficheros que más cuesta abrir
 

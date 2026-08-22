@@ -139,6 +139,49 @@ async function abre(nav, cuerpo, salida, nombre) {
     marca('sin errores de consola', errores.length === 0, errores[0]?.slice(0, 90) || '');
     await ctx.close();
 
+    // ── Y lo mismo en la PORTADA, que es donde está la sección de socios ──
+    //
+    // No basta con que /brokers cumpla: la tarjeta de la portada es promoción
+    // igual, y es la que ve todo el mundo. Si la advertencia se quedara sólo en
+    // la página de detalle, el sitio estaría promocionando CFDs sin ella en su
+    // pantalla más vista.
+    console.log('\n── La misma tarjeta en la portada ────────────────────────');
+    const ctxP = await nav.newContext({ viewport: { width: 1400, height: 1000 } });
+    const portada = await ctxP.newPage();
+    const erroresP = [];
+    portada.on('pageerror', (e) => erroresP.push(String(e)));
+    await portada.route('**/api/brokers', (r) =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(CON_BROKERS) }));
+    await portada.goto(`${BASE}/`, { waitUntil: 'networkidle', timeout: 60000 });
+    await descartaModales(portada).catch(() => {});
+    await portada.locator('[data-testid="recommended-tools"]').scrollIntoViewIfNeeded().catch(() => {});
+    await portada.waitForTimeout(1200);
+    await portada.screenshot({ path: path.join(salida, 'portada.png'), fullPage: false });
+
+    const tarjetaP = portada.locator('[data-testid="partner-card-axi"]');
+    marca('el bróker aparece en la sección de socios', await tarjetaP.count() === 1);
+
+    const avisoP = portada.locator('[data-testid="partner-advertencia-axi"]');
+    marca('con su advertencia normalizada', await avisoP.count() === 1);
+    if (await avisoP.count() && await tarjetaP.count()) {
+      const texto = (await avisoP.innerText()).replace(/\s+/g, ' ');
+      marca('y con el porcentaje real', /67\.24\s*%/.test(texto), texto.slice(0, 60));
+      const tAviso = await avisoP.locator('p').first()
+        .evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      const tNombre = await tarjetaP.locator('h3').first()
+        .evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      marca('no más pequeña que el nombre del bróker', tAviso >= tNombre,
+            `aviso ${tAviso}px vs nombre ${tNombre}px`);
+    }
+
+    // Los dos socios de cripto que ya estaban siguen ahí: esto añade, no pisa.
+    marca('los socios que ya había siguen en su sitio',
+          await portada.locator('[data-testid="partner-card-margex"]').count() === 1);
+
+    marca('sin errores de consola en la portada', erroresP.length === 0,
+          erroresP[0]?.slice(0, 90) || '');
+    await ctxP.close();
+
     console.log(`\n  capturas en ${salida}`);
   } finally {
     await nav.close();
