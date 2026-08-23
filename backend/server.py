@@ -8314,6 +8314,54 @@ async def public_settings():
     return {k: (doc.get(k) or "") for k in PUBLIC_SETTING_KEYS}
 
 
+@api_router.get("/brokers")
+async def listar_brokers():
+    """Los brókers que HOY se pueden enlazar legalmente. Puede venir vacío.
+
+    La decisión de si uno es publicable no se toma aquí ni en la plantilla: la
+    toma `brokers_referidos.puede_mostrarse()`, que exige a la vez autorización
+    en la UE, porcentaje de pérdidas dentro de la ventana trimestral de ESMA y
+    enlace configurado en el entorno. Ver `docs/BROKERS_REFERIDOS.md`.
+
+    El endpoint es público a propósito —es contenido comercial, no dato de
+    usuario— y sirve el enlace desde el servidor para que cambiar un porcentaje
+    o retirar un bróker no necesite un despliegue del frontend. Con la
+    advertencia normalizada eso importa: si el bróker publica un porcentaje
+    nuevo, la web tiene que poder decirlo el mismo día.
+    """
+    import brokers_referidos
+
+    return {
+        "brokers": [
+            {
+                "id": b.id,
+                "nombre": b.nombre,
+                "entidad": b.entidad_ue,
+                "regulador": b.regulador_ue,
+                "licencia": b.licencia_ue,
+                "url": b.url(),
+                # Si NO nos pagan por este enlace, no se etiqueta como
+                # afiliado. Llamar afiliado a lo que no lo es también es una
+                # declaración falsa, sólo que en la dirección que no preocupa.
+                "esReferido": b.es_referido,
+                # La corta va en la tarjeta; la larga, detrás del «leer más».
+                # `None` cuando no aplica (no ofrece CFDs a minoristas).
+                "advertenciaCorta": b.advertencia_corta() or None,
+                "advertencia": b.advertencia(),
+                # Si este bróker pasa el listón europeo. Se publica aunque no lo
+                # pase —decisión del propietario, que opera bajo regulación
+                # suiza y para público internacional— pero el dato no se pierde.
+                "cumpleUe": b.puede_mostrarse(),
+            }
+            for b in brokers_referidos.publicables()
+        ],
+        # La relación comercial se declara siempre, la haya o no. Es exigencia
+        # de la Directiva Omnibus para el contenido comercial, y que la ponga el
+        # servidor evita que una pantalla nueva se olvide de pintarla.
+        "afiliacion": True,
+    }
+
+
 # ============= ADMIN — AUDIT LOG VIEW =============
 
 @api_router.get("/admin/audit-log")

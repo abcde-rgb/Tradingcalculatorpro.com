@@ -150,13 +150,24 @@ def _get_cached_stock(symbol: str) -> Optional[dict]:
     return None
 
 
-def _normalize_dividend_yield(raw: Optional[float]) -> float:
-    """Yahoo sometimes returns dividendYield as decimal (0.005) and sometimes
-    as percentage (0.5). Normalize defensively to a decimal in [0, 1)."""
-    div = raw or 0.0
+def _normaliza_dividendo_o_nada(raw: Optional[float]) -> Optional[float]:
+    """El dividendo como decimal en [0, 1), o None si no hay dato.
+
+    Yahoo lo devuelve unas veces en decimal (0.005) y otras en porcentaje
+    (0.5), así que hay que normalizarlo. Lo que **no** se puede hacer es lo que
+    hacía la versión anterior: `raw or 0.0`, que convertía «no lo sé» en «esta
+    acción no paga dividendo» — falso de KO, de JNJ y de la mitad del S&P 500,
+    y encima entra en el Black-Scholes como el rendimiento `q`.
+    """
+    if raw is None:
+        return None
+    try:
+        div = float(raw)
+    except (TypeError, ValueError):
+        return None
     if div > 1:
         div = div / 100.0
-    return float(div)
+    return round(div, 6)
 
 
 def _build_stock_dict(symbol: str, hist, info: dict) -> dict:
@@ -174,11 +185,17 @@ def _build_stock_dict(symbol: str, hist, info: dict) -> dict:
         "price": round(current_price, 2),
         "change": round(change, 2),
         "changePercent": round(change_percent, 2),
-        "high52w": round(float(info.get("fiftyTwoWeekHigh", current_price * 1.3)), 2),
-        "low52w":  round(float(info.get("fiftyTwoWeekLow",  current_price * 0.7)), 2),
+        # ⚠️ Esto inventaba el rango anual: sin dato, el máximo salía a
+        # `precio × 1.3` y el mínimo a `precio × 0.7`. No es una aproximación
+        # conservadora, es un número inventado con forma de medida, y el
+        # usuario dimensiona posiciones con él. Va None, como en el resto del
+        # módulo. (Esta función hoy no la llama nadie; se arregla igual, porque
+        # el día que se conecte nadie va a releer estas dos líneas.)
+        "high52w": _redondea_o_nada(info.get("fiftyTwoWeekHigh")),
+        "low52w":  _redondea_o_nada(info.get("fiftyTwoWeekLow")),
         "volume": f"{volume / 1_000_000:.1f}M" if volume > 0 else "N/A",
         "sector": info.get("sector") or _get_sector(symbol),
-        "dividendYield": round(_normalize_dividend_yield(info.get("dividendYield")), 6),
+        "dividendYield": _normaliza_dividendo_o_nada(info.get("dividendYield")),
     }
 
 
@@ -216,7 +233,12 @@ def get_stock_data(symbol: str) -> dict:
             "low52w": _redondea_o_nada(meta.get("fiftyTwoWeekLow")),
             "volume": f"{vol / 1_000_000:.1f}M" if vol and vol > 0 else "N/A",
             "sector": _get_sector(symbol),
-            "dividendYield": 0.0,
+            # El endpoint de chart NO publica el dividendo: no viene en `meta`.
+            # Un 0.0 aquí no es «no lo sé», es «esta acción no paga dividendo»,
+            # que de KO y JNJ es falso. Va None, como en la cadena de reserva
+            # (`quote_a_contrato_stock`), y el frontend conserva su propio valor
+            # editable en vez de recibir una afirmación del servidor.
+            "dividendYield": None,
         }
         _ticker_cache[f"stock_{symbol}"] = (result, datetime.now())
         return result
@@ -310,7 +332,10 @@ def _get_fallback_stock_data(symbol: str) -> dict:
         "low52w": None,
         "volume": "N/A",
         "sector": _get_sector(symbol),
-        "dividendYield": 0.0,
+        # Todo lo demás de este estado de error va None a propósito; el
+        # dividendo también. Era el único campo que seguía afirmando algo
+        # («no paga») justo en la respuesta que existe para decir «no sé nada».
+        "dividendYield": None,
         "error": f"No market data available for {symbol}. "
                  f"The market may be closed or the symbol may be invalid.",
     }

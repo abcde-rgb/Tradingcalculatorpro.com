@@ -1,0 +1,221 @@
+/**
+ * La página de brókers, en un navegador real y sobre el BUILD compilado.
+ *
+ * Lo que se comprueba aquí no lo ve un test de unidad, porque es de pantalla y
+ * es justo lo que la ley mira:
+ *
+ *   · la advertencia normalizada de ESMA aparece **en la misma tarjeta que el
+ *     enlace** y no en una nota al pie — «tan prominente como la promoción»;
+ *   · la relación de afiliación se declara ANTES de cualquier enlace;
+ *   · los enlaces salientes llevan `rel="sponsored"` y no dejan `window.opener`;
+ *   · y con la lista vacía la página lo DICE, en vez de quedarse muda.
+ *
+ * El backend se intercepta: el estado que hay que probar es el de «hay brókers
+ * publicados», y hoy no hay ninguno configurado. Probarlo con el estado real
+ * sería probar sólo el caso vacío.
+ *
+ * ⚠️ Necesita el stack en pie sólo para servir el build; /brokers es pública.
+ *
+ *   tests/e2e/stack/arriba.sh     (o node tests/e2e/stack/servidor.js)
+ *   node tests/e2e/navegador/brokers.js
+ */
+const fs = require('fs');
+const path = require('path');
+const { chromium } = require('../lib/playwright-core');
+const { rutaChromium, descartaModales, BASE } = require('../entorno');
+
+const fallos = [];
+const marca = (n, ok, d = '') => {
+  console.log(`  ${ok ? '✅' : '❌'} ${n}${d ? ' — ' + d : ''}`);
+  if (!ok) fallos.push(n);
+};
+
+const CON_BROKERS = {
+  afiliacion: true,
+  brokers: [{
+    id: 'axi',
+    nombre: 'Axi',
+    entidad: 'Solaris EMEA Ltd (HE376148, Chipre)',
+    regulador: 'CySEC',
+    licencia: '433/23',
+    url: 'https://ejemplo.test/?ref=PRUEBA',
+    esReferido: true,
+    cumpleUe: true,
+    advertenciaCorta: 'El 67.24 % de las cuentas de CFD minoristas pierden dinero con este proveedor.',
+    advertencia: 'Los CFD son instrumentos complejos y conllevan un alto riesgo de perder '
+      + 'dinero rápidamente debido al apalancamiento. El 67.24 % de las cuentas de '
+      + 'inversores minoristas pierden dinero al operar CFD con este proveedor. Debe '
+      + 'considerar si comprende cómo funcionan los CFD y si puede permitirse asumir un '
+      + 'riesgo elevado de perder su dinero.',
+  }],
+};
+const VACIO = { afiliacion: true, brokers: [] };
+
+async function abre(nav, cuerpo, salida, nombre) {
+  const ctx = await nav.newContext({ viewport: { width: 1200, height: 1000 } });
+  const page = await ctx.newPage();
+  const errores = [];
+  page.on('pageerror', (e) => errores.push(String(e)));
+  await page.route('**/api/brokers', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cuerpo) }));
+  await page.goto(`${BASE}/brokers`, { waitUntil: 'networkidle', timeout: 60000 });
+  await descartaModales(page).catch(() => {});
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: path.join(salida, `${nombre}.png`), fullPage: true });
+  return { page, ctx, errores };
+}
+
+(async () => {
+  const nav = await chromium.launch({ executablePath: rutaChromium(), args: ['--no-sandbox'] });
+  const salida = path.join(__dirname, '..', '..', '..', '.qa-capturas', 'brokers');
+  fs.mkdirSync(salida, { recursive: true });
+
+  try {
+    console.log('\n── Con brókers publicados ────────────────────────────────');
+    let { page, ctx, errores } = await abre(nav, CON_BROKERS, salida, 'con-brokers');
+
+    const tarjeta = page.locator('[data-testid="broker-axi"]');
+    marca('la tarjeta del bróker se pinta', await tarjeta.count() === 1);
+
+    const enlace = page.locator('[data-testid="broker-enlace-axi"]');
+    marca('hay enlace al bróker', await enlace.count() === 1);
+    if (await enlace.count()) {
+      const rel = (await enlace.getAttribute('rel')) || '';
+      marca('el enlace va como `sponsored`', /sponsored/.test(rel), rel);
+      marca('y no le deja el window.opener a un tercero',
+            /noopener/.test(rel) && /noreferrer/.test(rel), rel);
+    }
+
+    // Lo que de verdad exige ESMA: que la advertencia esté al lado, no al pie.
+    const aviso = page.locator('[data-testid="broker-advertencia-axi"]');
+    const hayAviso = await aviso.count() === 1;
+    marca('la advertencia normalizada está en la MISMA tarjeta',
+          hayAviso && await tarjeta.locator('[data-testid="broker-advertencia-axi"]').count() === 1);
+    if (hayAviso) {
+      const texto = (await aviso.innerText()).replace(/\s+/g, ' ');
+      marca('lleva el porcentaje real del bróker', /67\.24\s*%/.test(texto), texto.slice(0, 70));
+      marca('y dice de qué producto habla', /CFD/.test(texto));
+
+      // «Tan prominente como la promoción»: si el aviso se pinta más pequeño
+      // que el botón, se está cumpliendo con la letra y no con la norma.
+      //
+      // ⚠️ Se mide el PÁRRAFO, no su contenedor. La primera versión medía el
+      // `div` del aviso, que no lleva clase de tamaño y hereda los 16 px del
+      // cuerpo: daba 16 px y pasaba aunque el texto estuviera puesto a 10.
+      // Comprobado poniéndolo a `text-[10px]` — la sonda seguía en verde con la
+      // advertencia en letra diminuta, que es justo el incumplimiento que esta
+      // comprobación existe para cazar.
+      const parrafo = aviso.locator('p').first();
+      const tAviso = await parrafo.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      const tBoton = await enlace.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      marca('no está empequeñecida frente al botón', tAviso >= tBoton,
+            `aviso ${tAviso}px vs botón ${tBoton}px`);
+
+      // Y por encima del enlace en el flujo de lectura, o al menos visible sin
+      // buscarla: ambos tienen que caber en la misma pantalla.
+      const cAviso = await aviso.boundingBox();
+      const cEnlace = await enlace.boundingBox();
+      marca('se ve a la vez que el enlace, sin desplazarse',
+            cAviso && cEnlace && Math.abs(cAviso.y - cEnlace.y) < 400,
+            cAviso && cEnlace ? `Δy=${Math.round(Math.abs(cAviso.y - cEnlace.y))}px` : 'sin caja');
+    }
+
+    const afil = page.locator('[data-testid="brokers-afiliacion"]');
+    marca('la relación de afiliación se declara', await afil.count() === 1);
+    if (await afil.count() && await enlace.count()) {
+      const yAfil = (await afil.boundingBox())?.y ?? 1e9;
+      const yEnlace = (await enlace.boundingBox())?.y ?? 0;
+      marca('y ANTES del primer enlace', yAfil < yEnlace, `${Math.round(yAfil)} < ${Math.round(yEnlace)}`);
+    }
+
+    marca('sin errores de consola', errores.length === 0, errores[0]?.slice(0, 90) || '');
+    await ctx.close();
+
+    console.log('\n── Sin brókers publicados (el estado de hoy) ─────────────');
+    ({ page, ctx, errores } = await abre(nav, VACIO, salida, 'vacio'));
+    marca('lo dice en vez de quedarse muda',
+          await page.locator('[data-testid="brokers-vacio"]').count() === 1);
+    marca('y NO pinta ninguna tarjeta de bróker',
+          await page.locator('[data-testid^="broker-"]').count() === 0);
+    marca('la declaración de afiliación sigue estando',
+          await page.locator('[data-testid="brokers-afiliacion"]').count() === 1);
+    marca('sin errores de consola', errores.length === 0, errores[0]?.slice(0, 90) || '');
+    await ctx.close();
+
+    // ── Y lo mismo en la PORTADA, que es donde está la sección de socios ──
+    //
+    // No basta con que /brokers cumpla: la tarjeta de la portada es promoción
+    // igual, y es la que ve todo el mundo. Si la advertencia se quedara sólo en
+    // la página de detalle, el sitio estaría promocionando CFDs sin ella en su
+    // pantalla más vista.
+    console.log('\n── La misma tarjeta en la portada ────────────────────────');
+    const ctxP = await nav.newContext({ viewport: { width: 1400, height: 1000 } });
+    const portada = await ctxP.newPage();
+    const erroresP = [];
+    portada.on('pageerror', (e) => erroresP.push(String(e)));
+    await portada.route('**/api/brokers', (r) =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(CON_BROKERS) }));
+    await portada.goto(`${BASE}/`, { waitUntil: 'networkidle', timeout: 60000 });
+    await descartaModales(portada).catch(() => {});
+    await portada.locator('[data-testid="recommended-tools"]').scrollIntoViewIfNeeded().catch(() => {});
+    await portada.waitForTimeout(1200);
+    await portada.screenshot({ path: path.join(salida, 'portada.png'), fullPage: false });
+
+    const tarjetaP = portada.locator('[data-testid="partner-card-axi"]');
+    marca('el bróker aparece en la sección de socios', await tarjetaP.count() === 1);
+
+    const avisoP = portada.locator('[data-testid="partner-advertencia-axi"]');
+    marca('con su advertencia normalizada', await avisoP.count() === 1);
+    if (await avisoP.count() && await tarjetaP.count()) {
+      const texto = (await avisoP.innerText()).replace(/\s+/g, ' ');
+      // Lo que NO puede irse detrás del «leer más» es la CIFRA: un aviso que
+      // esconde el porcentaje deja la tarjeta promocionando sin avisar.
+      marca('el porcentaje sigue VISIBLE en la tarjeta', /67\.24\s*%/.test(texto), texto.slice(0, 70));
+      const tAviso = await avisoP.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      const tInfo = await tarjetaP.locator('p').first()
+        .evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      marca('no más pequeña que la línea de información', tAviso >= tInfo,
+            `aviso ${tAviso}px vs info ${tInfo}px`);
+
+      const leerMas = portada.locator('[data-testid="partner-leermas-axi"]');
+      marca('hay un «leer más»', await leerMas.count() === 1);
+      if (await leerMas.count()) {
+        const [nueva] = await Promise.all([
+          ctxP.waitForEvent('page', { timeout: 10000 }).catch(() => null),
+          leerMas.click(),
+        ]);
+        marca('que abre en OTRA pestaña', !!nueva,
+              nueva ? await nueva.url() : 'no se abrió ninguna pestaña');
+        if (nueva) {
+          marca('y lleva a la advertencia completa, no al bróker',
+                /\/brokers/.test(nueva.url()) && !/ejemplo\.test/.test(nueva.url()),
+                await nueva.url());
+          await nueva.close();
+        }
+        marca('la tarjeta NO se abrió al pulsar «leer más»',
+              portada.url().endsWith('/') || /Tradingcalculatorpro\.com\/?$/.test(portada.url()),
+              portada.url());
+      }
+    }
+
+    // Los dos socios de cripto que ya estaban siguen ahí: esto añade, no pisa.
+    marca('los socios que ya había siguen en su sitio',
+          await portada.locator('[data-testid="partner-card-margex"]').count() === 1);
+
+    marca('sin errores de consola en la portada', erroresP.length === 0,
+          erroresP[0]?.slice(0, 90) || '');
+    await ctxP.close();
+
+    console.log(`\n  capturas en ${salida}`);
+  } finally {
+    await nav.close();
+  }
+
+  console.log('');
+  if (fallos.length) {
+    console.log(`❌ ${fallos.length} comprobación(es) en rojo:`);
+    fallos.forEach((f) => console.log(`   · ${f}`));
+    process.exit(1);
+  }
+  console.log('✅ La página de brókers dice lo que la ley obliga a decir.');
+})();

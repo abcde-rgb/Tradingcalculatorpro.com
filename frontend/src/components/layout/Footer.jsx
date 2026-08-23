@@ -112,6 +112,10 @@ export function Footer() {
               <li><Link to="/contact" className="hover:text-primary transition-colors">{t('support') || 'Contacto'}</Link></li>
               <li><Link to="/options" className="hover:text-primary transition-colors">{t('optionsAcademy')}</Link></li>
               <li><Link to="/backtesting" className="hover:text-primary transition-colors" data-testid="footer-backtesting">{t('btTitle')}</Link></li>
+              {/* Enlaces de referido. Se enlaza aunque hoy la lista esté vacía:
+                  la página lo dice y explica por qué, y el día que se configure
+                  el primer bróker queda publicada sin tocar nada más. */}
+              <li><Link to="/brokers" className="hover:text-primary transition-colors" data-testid="footer-brokers">{t('brokersTitle')}</Link></li>
             </ul>
           </div>
 

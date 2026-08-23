@@ -86,6 +86,73 @@ def test_cuando_yahoo_sí_publica_el_rango_se_respeta(monkeypatch):
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# El dividendo: mismo error, otro campo
+# ══════════════════════════════════════════════════════════════════════════
+class TestDividendo:
+    """`raw or 0.0` convertía «no lo sé» en «no paga dividendo».
+
+    No es un matiz: `q` entra en el Black-Scholes de toda la app, y suponer 0
+    en una acción que reparte sobrevalora las calls e infravalora las puts.
+    """
+
+    def test_sin_dato_es_None_y_no_cero(self):
+        assert stock_data._normaliza_dividendo_o_nada(None) is None
+
+    @pytest.mark.parametrize("basura", ["", "N/A", {}, []])
+    def test_lo_que_no_es_un_numero_tampoco_se_vuelve_cero(self, basura):
+        assert stock_data._normaliza_dividendo_o_nada(basura) is None
+
+    def test_un_cero_publicado_sí_es_cero(self):
+        """Una acción que de verdad no reparte dividendo lo dice, y se cree."""
+        assert stock_data._normaliza_dividendo_o_nada(0) == 0.0
+
+    def test_en_decimal_se_deja_como_está(self):
+        assert stock_data._normaliza_dividendo_o_nada(0.0052) == 0.0052
+
+    def test_en_porcentaje_se_normaliza(self):
+        """Yahoo lo manda de las dos formas; 2.4 son 2,4 %, no 240 %."""
+        assert stock_data._normaliza_dividendo_o_nada(2.4) == 0.024
+
+    def test_la_ruta_en_vivo_no_afirma_que_no_paga(self, monkeypatch):
+        """El endpoint de chart NO publica dividendo, así que el 0.0 que había
+        no venía de Yahoo: lo escribía nuestro código."""
+        stock_data._ticker_cache.clear()
+        monkeypatch.setattr(stock_data, "_yahoo_get", lambda _ruta: {
+            "chart": {"result": [{"meta": {
+                "regularMarketPrice": 61.30, "chartPreviousClose": 61.00,
+            }}]}
+        })
+        d = stock_data.get_stock_data("KO")   # Coca-Cola reparte desde 1920
+        assert d["dividendYield"] is None, "el servidor afirmaba «no paga dividendo»"
+
+    def test_el_estado_de_error_no_afirma_nada(self):
+        """La respuesta que existe para decir «no sé nada» lo decía de todo
+        menos del dividendo, que iba a 0.0."""
+        d = stock_data._get_fallback_stock_data("LOQUESEA")
+        assert d["price"] is None and d["dividendYield"] is None
+
+
+def test_build_stock_dict_no_inventa_el_rango_anual():
+    """`_build_stock_dict` hoy no la llama nadie, y aun así se arregla.
+
+    Tenía `info.get("fiftyTwoWeekHigh", current_price * 1.3)`: sin dato, el
+    máximo anual salía como el precio de hoy **más un 30 %** y el mínimo un 30 %
+    por debajo. Eso no es una aproximación conservadora, es un número inventado
+    con forma de medida. El día que alguien conecte esta función no va a releer
+    esas dos líneas.
+    """
+    class _Col:
+        def __init__(self, valores):
+            self.iloc = valores
+
+    hist = {"Close": _Col([100.0, 110.0])}
+    d = stock_data._build_stock_dict("XYZ", hist, {"previousClose": 100.0})
+    assert d["price"] == 110.0
+    assert d["high52w"] is None and d["low52w"] is None, "rango anual inventado"
+    assert d["dividendYield"] is None
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # La traducción al contrato que consume el frontend
 # ══════════════════════════════════════════════════════════════════════════
 def _quote(**extra):

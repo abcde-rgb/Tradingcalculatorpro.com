@@ -1,0 +1,308 @@
+"""Que un enlace de referido no se pueda publicar sin lo que la ley exige al lado.
+
+Un enlace a un bróker de CFDs dirigido a minoristas de la UE es una promoción
+financiera. La intervención de producto de ESMA obliga a la advertencia
+normalizada **con el porcentaje real de ese bróker**, recalculado cada trimestre;
+MiFID II art. 24 exige que la comunicación no sea engañosa; y promocionar a una
+entidad sin autorización en la UE es el caso que la CNMV persigue.
+
+Nada de eso se sostiene con buenas intenciones en una plantilla. Aquí se fija que
+la condición viva en el dato: sin entidad, sin regulador, sin licencia, sin
+porcentaje fresco o sin enlace, `puede_mostrarse()` dice que no.
+"""
+import os
+import sys
+from datetime import date, timedelta
+
+import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+import brokers_referidos as br  # noqa: E402
+
+HOY = date(2026, 8, 22)
+
+
+def _broker(**cambios):
+    base = dict(
+        id="prueba", nombre="Prueba",
+        entidad_ue="Entidad UE SA", regulador_ue="CySEC", licencia_ue="000/00",
+        ofrece_cfd_minorista=True,
+        perdida_pct=70.0, perdida_pct_leido_el=HOY,
+        perdida_pct_fuente="fuente de prueba",
+    )
+    base.update(cambios)
+    return br.Broker(**base)
+
+
+@pytest.fixture
+def con_enlace(monkeypatch):
+    monkeypatch.setenv("BROKER_REF_PRUEBA", "https://ejemplo.test/?ref=abc")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Las cuatro condiciones, una a una
+# ══════════════════════════════════════════════════════════════════════════
+def test_con_todo_en_regla_se_muestra(con_enlace):
+    assert _broker().puede_mostrarse(HOY) is True
+
+
+@pytest.mark.parametrize("falta", ["entidad_ue", "regulador_ue", "licencia_ue"])
+def test_sin_autorizacion_en_la_ue_no_se_muestra(con_enlace, falta):
+    """La marca no es la entidad: quien responde ante el minorista es la sociedad
+    con licencia, y si no la hay, no hay enlace."""
+    b = _broker(**{falta: None})
+    assert b.autorizado_ue is False
+    assert b.puede_mostrarse(HOY) is False
+
+
+def test_sin_enlace_configurado_no_se_muestra(monkeypatch):
+    monkeypatch.delenv("BROKER_REF_PRUEBA", raising=False)
+    assert _broker().puede_mostrarse(HOY) is False
+
+
+def test_un_enlace_en_blanco_cuenta_como_no_configurado(monkeypatch):
+    """`BROKER_REF_X=""` en el entorno no puede pasar por enlace válido."""
+    monkeypatch.setenv("BROKER_REF_PRUEBA", "   ")
+    assert _broker().url_referido() is None
+    assert _broker().puede_mostrarse(HOY) is False
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# El porcentaje caduca — que es lo que casi nadie implementa
+# ══════════════════════════════════════════════════════════════════════════
+def test_sin_porcentaje_no_se_muestra_un_broker_de_cfd(con_enlace):
+    """Una advertencia sin cifra no cumple, y una cifra inventada es peor."""
+    b = _broker(perdida_pct=None, perdida_pct_leido_el=None)
+    assert b.esta_al_dia(HOY) is False
+    assert b.puede_mostrarse(HOY) is False
+    assert b.advertencia() is None
+
+
+def test_el_porcentaje_recien_leido_vale(con_enlace):
+    assert _broker(perdida_pct_leido_el=HOY).esta_al_dia(HOY) is True
+
+
+def test_el_porcentaje_dentro_de_la_ventana_vale(con_enlace):
+    leido = HOY - timedelta(days=br.DIAS_VALIDEZ_PORCENTAJE)
+    assert _broker(perdida_pct_leido_el=leido).esta_al_dia(HOY) is True
+
+
+def test_un_porcentaje_de_hace_dos_trimestres_deja_de_valer(con_enlace):
+    """ESMA obliga al bróker a recalcularlo CADA TRIMESTRE. Enseñar el de hace
+    seis meses como si fuera el de ahora es exactamente lo que la advertencia
+    existe para evitar — el mismo criterio que `stale` en los precios."""
+    viejo = HOY - timedelta(days=br.DIAS_VALIDEZ_PORCENTAJE + 1)
+    b = _broker(perdida_pct_leido_el=viejo)
+    assert b.esta_al_dia(HOY) is False
+    assert b.puede_mostrarse(HOY) is False
+
+
+def test_quien_no_ofrece_cfd_a_minoristas_no_necesita_porcentaje(con_enlace):
+    """La advertencia normalizada es de la intervención sobre CFDs. Exigírsela a
+    un bróker de acciones al contado sería pintar un aviso que no le toca."""
+    b = _broker(ofrece_cfd_minorista=False, perdida_pct=None, perdida_pct_leido_el=None)
+    assert b.esta_al_dia(HOY) is True
+    assert b.puede_mostrarse(HOY) is True
+    assert b.advertencia() is None
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# La advertencia
+# ══════════════════════════════════════════════════════════════════════════
+def test_la_advertencia_lleva_el_porcentaje_de_ESE_broker():
+    texto = _broker(perdida_pct=67.24).advertencia()
+    assert "67.24 %" in texto
+    assert "instrumentos complejos" in texto
+    assert "apalancamiento" in texto
+
+
+def test_el_porcentaje_se_escribe_sin_ceros_de_adorno():
+    assert "70 %" in _broker(perdida_pct=70.0).advertencia()
+    assert "68.8 %" in _broker(perdida_pct=68.80).advertencia()
+
+
+def test_no_hay_puerta_trasera_para_saltarse_la_comprobacion():
+    """Un `forzar=True` acabaría puesto un viernes y nadie lo quitaría."""
+    import inspect
+    firma = inspect.signature(br.Broker.puede_mostrarse)
+    assert set(firma.parameters) == {"self", "hoy"}, firma
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# El registro real
+# ══════════════════════════════════════════════════════════════════════════
+def test_los_seis_se_publican_pero_ninguno_pasa_el_liston_europeo(monkeypatch):
+    """El contrato cambió el 2026-08-22, y las dos mitades importan.
+
+    El propietario opera bajo regulación suiza en régimen de sola promoción y
+    para público internacional, y decidió publicar los seis. `publicables()` lo
+    respeta. Pero la información de si cada uno cumpliría el listón de la UE NO
+    se ha borrado: sigue ahí, y hoy no lo pasa ninguno. Borrar el dato en vez de
+    decidir sobre él es lo que no se puede hacer.
+    """
+    for b in br.BROKERS:
+        monkeypatch.delenv(f"BROKER_REF_{b.id.upper()}", raising=False)
+    assert len(br.publicables(HOY)) == 6
+    assert [b.id for b in br.BROKERS if b.puede_mostrarse(HOY)] == []
+
+
+def test_sin_enlace_de_referido_no_se_llama_enlace_de_afiliado(monkeypatch):
+    """Llamar afiliado a lo que no lo es también es una declaración falsa."""
+    monkeypatch.delenv("BROKER_REF_AXI", raising=False)
+    assert br.por_id("axi").es_referido is False
+    monkeypatch.setenv("BROKER_REF_AXI", "https://ejemplo.test/?ref=X")
+    assert br.por_id("axi").es_referido is True
+
+
+def test_el_enlace_de_referido_gana_a_la_web_publica(monkeypatch):
+    axi = br.por_id("axi")
+    monkeypatch.delenv("BROKER_REF_AXI", raising=False)
+    assert axi.url() == axi.url_publica
+    monkeypatch.setenv("BROKER_REF_AXI", "https://ejemplo.test/?ref=X")
+    assert axi.url() == "https://ejemplo.test/?ref=X"
+
+
+def test_todos_llevan_aviso_de_riesgo():
+    """Ninguna tarjeta de un producto apalancado sale sin avisar."""
+    for b in br.BROKERS:
+        if b.ofrece_cfd_minorista:
+            assert b.advertencia_corta(), f"{b.id} sin aviso corto"
+
+
+def test_un_porcentaje_sin_fuente_no_se_publica():
+    """Lo único que un test PUEDE exigir aquí.
+
+    Ningún test puede saber si 55,05 % es el dato real de Swissquote. Lo que sí
+    puede es exigir que toda cifra publicada venga con su fecha y su
+    procedencia: así, inventarse un porcentaje obliga a inventarse también de
+    dónde salió, y quien venga detrás puede comprobarlo.
+
+    Lo descubrí saboteando: puse un 55,05 % a Swissquote y la suite pasó en
+    verde. Mi test anterior comprobaba que la cifra APARECIERA, no que fuera
+    defendible.
+    """
+    sin_fuente = _broker(perdida_pct=55.05, perdida_pct_leido_el=HOY,
+                         perdida_pct_fuente=None)
+    assert sin_fuente.advertencia() is None
+    assert "55" not in sin_fuente.advertencia_corta()
+    assert sin_fuente.esta_al_dia(HOY) is False
+
+    con_fuente = _broker(perdida_pct=55.05, perdida_pct_leido_el=HOY,
+                         perdida_pct_fuente="swissquote.com/en-eu, leído el 2026-08-22")
+    assert "55.05" in con_fuente.advertencia_corta()
+
+
+def test_toda_cifra_del_registro_declara_de_donde_sale():
+    for b in br.BROKERS:
+        if b.perdida_pct is not None:
+            assert b.perdida_pct_fuente, f"{b.id}: porcentaje sin procedencia"
+            assert b.perdida_pct_leido_el, f"{b.id}: porcentaje sin fecha"
+
+
+def test_no_se_inventa_un_porcentaje_donde_no_lo_hay():
+    """La regresión que más caro saldría.
+
+    Los porcentajes varían por jurisdicción —Swissquote publica 55,05 % en la UE
+    y 78,23 % en Reino Unido—, así que elegir uno «que suene bien» sería
+    inventarse una estadística sobre pérdidas ajenas. Sin cifra confirmada, el
+    aviso va SIN número.
+    """
+    import re
+    for b in br.BROKERS:
+        if b.perdida_pct is None:
+            assert not re.search(r"\d+([.,]\d+)?\s*%", b.advertencia_corta()), \
+                f"{b.id} enseña un porcentaje que no tiene"
+        else:
+            assert f"{b.perdida_pct:.2f}".rstrip("0").rstrip(".") in b.advertencia_corta()
+
+
+def test_los_seis_estan_y_con_su_aviso():
+    ids = {b.id for b in br.BROKERS}
+    assert ids == {"axi", "dukascopy", "swissquote", "saxo", "ibkr", "vtmarkets"}
+    for b in br.BROKERS:
+        assert b.aviso, f"{b.id} sin aviso: lo que falta por confirmar se escribe"
+
+
+def test_vt_markets_no_figura_como_autorizado_en_la_ue():
+    """El hallazgo que decide su caso, fijado como prueba.
+
+    Su propia entidad chipriota declara que no ofrece productos regulados ni
+    servicios de negociación; opera bajo ASIC, FSCA y FSC Mauricio. Si alguien le
+    pone una licencia de la UE sin traer el número y el registro, esto lo dice.
+    """
+    vt = br.por_id("vtmarkets")
+    assert vt is not None
+    assert vt.autorizado_ue is False
+    assert vt.puede_mostrarse(HOY) is False
+
+
+def test_ningun_enlace_esta_escrito_en_el_codigo():
+    """Los enlaces van en el entorno. Uno en el repositorio acaba apuntando a la
+    cuenta de otro el día que se copie el fichero."""
+    import pathlib
+    fuente = pathlib.Path(br.__file__).read_text()
+    for pista in ("?ref=", "&ref=", "aff_id", "affid", "utm_source=trading"):
+        assert pista not in fuente, f"parece un enlace de referido incrustado: {pista}"
+
+
+def test_pendientes_dice_exactamente_que_falta(monkeypatch):
+    for b in br.BROKERS:
+        monkeypatch.delenv(f"BROKER_REF_{b.id.upper()}", raising=False)
+    faltas = dict(br.pendientes())
+    assert set(faltas) == {b.id for b in br.BROKERS}, "todos deberían tener algo pendiente"
+    assert "enlace" in faltas["axi"]
+    assert "número de licencia" in faltas["dukascopy"]
+    assert "porcentaje de pérdidas" in faltas["ibkr"]
+
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# La ruta pública que consume la pantalla
+# ══════════════════════════════════════════════════════════════════════════
+@pytest.mark.asyncio
+async def test_la_ruta_dice_de_cada_uno_si_cumple_y_si_paga(monkeypatch):
+    """La pantalla pinta lo que recibe, así que la respuesta tiene que ser exacta.
+
+    Se publican los seis por decisión del propietario, pero cada fila declara si
+    cumple el listón europeo y si el enlace nos paga. Sin esos dos campos, la
+    tarjeta no puede decidir si etiquetarse «enlace de afiliado» ni la doc puede
+    saber qué falta.
+    """
+    os.environ.setdefault("ENVIRONMENT", "development")
+    os.environ.setdefault("JWT_SECRET", "test-only-secret")
+    import server
+
+    for b in br.BROKERS:
+        monkeypatch.delenv(f"BROKER_REF_{b.id.upper()}", raising=False)
+    r = await server.listar_brokers()
+    assert r["afiliacion"] is True, "la relación comercial se declara siempre"
+    assert len(r["brokers"]) == 6
+    for fila in r["brokers"]:
+        # Ninguno cumple el listón europeo hoy, y la respuesta lo dice.
+        assert fila["cumpleUe"] is False, fila["id"]
+        # Ninguno es enlace de referido todavía, y la respuesta lo dice.
+        assert fila["esReferido"] is False, fila["id"]
+        # Y ninguno sale sin aviso.
+        assert fila["advertenciaCorta"], fila["id"]
+        assert fila["url"], fila["id"]
+
+
+@pytest.mark.asyncio
+async def test_un_broker_completo_sale_con_su_advertencia(monkeypatch):
+    """El control: si nada saliera nunca, el test de arriba pasaría vacío."""
+    import server
+
+    completo = _broker(id="axi", nombre="Axi")
+    monkeypatch.setattr(br, "publicables", lambda *a, **k: [completo])
+    monkeypatch.setenv("BROKER_REF_AXI", "https://ejemplo.test/?ref=abc")
+
+    r = await server.listar_brokers()
+    assert len(r["brokers"]) == 1
+    fila = r["brokers"][0]
+    assert fila["url"] == "https://ejemplo.test/?ref=abc"
+    assert fila["entidad"] and fila["regulador"] and fila["licencia"]
+    assert "70 %" in fila["advertencia"], fila["advertencia"]
+
+if __name__ == "__main__":
+    sys.exit(pytest.main([__file__, "-v"]))
