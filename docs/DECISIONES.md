@@ -88,6 +88,23 @@ Se descartó migrar ya (IEX para acciones, ETF equivalentes para índices y mate
 primas, cadena sintética para opciones) porque **cambia lo que ve el usuario** y
 tiene coste. Es una decisión de negocio aplazada, no un olvido. Hueco **G-16**.
 
+### 2026-08-23 · Candidatos de proveedor rastreados, pero **ninguno adoptado**
+Se rastreó el índice `public-apis/public-apis` (60 entradas de «Finance», 20 de
+divisas) buscando salida a G-16 y segundo eslabón para la cadena de reserva. El
+resultado, con su razonamiento, está en
+[`PROVEEDORES_DATOS.md`](./PROVEEDORES_DATOS.md).
+**No se adoptó ninguno, y el motivo es la regla de la casa:** desde este entorno
+el proxy responde 403 a todos los dominios de datos de mercado, así que **no se
+pudo ver responder a ninguno**. Escribir un adaptador contra una API que no has
+visto responder es escribirlo contra una suposición.
+Lo que sí sale de ahí: **`goldprice.dev` (sin clave) es el mejor candidato para
+los futuros de materias primas**, y **no existe ninguna opción de acciones en
+tiempo real que sea gratuita, sin clave y con licencia comercial** — lo que
+confirma que G-16 es una decisión con coste y no un descuido.
+⚠️ Y una alerta sobre el plan escrito: **G-16 nombra «IEX para acciones», y hay
+que verificarlo** antes de contar con él — IEX Cloud anunció el cierre de su API
+pública. Que el índice comunitario lo siga listando no prueba que exista.
+
 ### 2026-08-02 · El tipo libre de riesgo sale del Tesoro de EE. UU., no de `^IRX`
 `BC_3MONTH` de la Daily Treasury Par Yield Curve, que es dominio público. Se
 descartó el literal `0.0525` y se descartó `^IRX` (Yahoo).
@@ -144,6 +161,44 @@ demanda.
 **Excepción deliberada:** los invariantes universales se quedan en el
 `CLAUDE.md` raíz, porque las reglas con `paths:` **no se reinyectan tras un
 `/compact`** y las de la raíz sí.
+
+### 2026-08-23 · No se instalan colecciones de *skills* de terceros
+Se evaluaron cinco: [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills)
+(`/spec /plan /build /test /review /ship /code-simplify /webperf`),
+[`coreyhaines31/marketingskills`](https://github.com/coreyhaines31/marketingskills)
+(CRO, copy, SEO, analítica),
+[`mukul975/Anthropic-Cybersecurity-Skills`](https://github.com/mukul975/Anthropic-Cybersecurity-Skills)
+(817 skills sobre tácticas MITRE),
+[`headroomlabs-ai/headroom`](https://github.com/headroomlabs-ai/headroom)
+(compresión de contexto) y
+[`diegosouzapw/OmniRoute`](https://github.com/diegosouzapw/OmniRoute) (pasarela de
+IA que agrega planes gratuitos). Dos enlaces más —el plugin `claude-code-setup` de
+claude.com y la skill `task-observer` de claudemarketplaces.com— **no se pudieron
+leer**: el proxy de este entorno los bloquea, así que no se opina sobre ellos.
+
+**Se descartan los cinco, por tres motivos distintos:**
+
+1. **Duplican lo que el repositorio ya tiene, y peor.** Las catorce skills de
+   `.claude/skills/` no son genéricas: `auditar-formulas` conoce los invariantes
+   de honestidad numérica, `qa` conoce las trampas del stack local, `no-me-fio`
+   existe porque aquí ya han pasado por buenas tres comprobaciones que no
+   comprobaban nada. Una skill genérica de «review» compite con `/verify` y con
+   `probar-verificadores.sh` sin conocer ninguno de los dos.
+2. **Cargar instrucciones de terceros es superficie de ataque.** Una skill es
+   texto que entra en el contexto del agente y le dice qué hacer. En un
+   repositorio con autenticación, pasarelas de pago y webhooks, eso es cadena de
+   suministro, no comodidad. Si algún día se adopta una, se lee entera antes y se
+   fija a un commit.
+3. **OmniRoute, además, por producto.** Enrutar el AI Trade Coach —que es una
+   función de un producto **de pago**— por un agregador de planes gratuitos
+   choca con las condiciones de esos planes, no da fiabilidad ninguna y hace
+   pasar las posiciones del usuario por una pasarela de terceros. Es un no
+   independiente de lo bien hecha que esté la herramienta.
+
+**Lo que sí se apunta, porque son huecos reales que estas colecciones señalan:**
+no hay skill de **rendimiento web** (el build son 38 MB y 1589 páginas estáticas)
+ni de **CRO / pricing / paywall**, y el producto vive de una suscripción con
+prueba de 7 días. Si se escriben, se escriben aquí y con los datos de aquí.
 
 ### 2026-08-13 · Un verificador tiene que poder fallar
 Tres comprobaciones resultaron no comprobar nada: una guarda tautológica, una
