@@ -30,6 +30,7 @@ import ecb_rates
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
+from log_seguro import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -366,7 +367,7 @@ def build_admin_router(
             try:
                 await log_admin_action_fn(admin=admin, action=action, **kwargs)
             except Exception as exc:
-                logger.warning(f"audit log failed: {exc}")
+                logger.warning(f"audit log failed: {log_safe(exc)}")
 
     # =========================================================================
     # GET /admin/metrics
@@ -695,7 +696,7 @@ def build_admin_router(
                         if r.status_code in (200, 202):
                             sent_count += 1
             except Exception as e:
-                logger.error(f"SendGrid error in campaign send: {e}")
+                logger.error(f"SendGrid error in campaign send: {log_safe(e)}")
         else:
             raise HTTPException(
                 status_code=503,
@@ -1158,7 +1159,7 @@ def build_admin_router(
                     )
                     sent = r.status_code in (200, 202)
             except Exception as e:
-                logger.error(f"GDPR deliver email error: {e}")
+                logger.error(f"GDPR deliver email error: {log_safe(e)}")
 
         now_iso = datetime.now(timezone.utc).isoformat()
         await db.gdpr_exports.update_one(

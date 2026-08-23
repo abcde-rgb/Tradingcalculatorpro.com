@@ -41,6 +41,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
+from log_seguro import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +268,7 @@ def get_quote(symbol: str, *, ttl: Optional[int] = None) -> dict:
             provider.failures += 1
             provider.breaker.record_failure(now)
             errors.append(f"{provider.name}: {type(exc).__name__}: {exc}")
-            logger.warning("[market_data] %s failed for %s: %s", provider.name, symbol, exc)
+            logger.warning("[market_data] %s failed for %s: %s", log_safe(provider.name), log_safe(symbol), log_safe(exc))
 
     # Every provider failed — serve the last known good value, clearly marked.
     if hit:
@@ -277,14 +278,14 @@ def get_quote(symbol: str, *, ttl: Optional[int] = None) -> dict:
             stale["stale"] = True
             stale["stale_seconds"] = int(age)
             stale["error"] = f"{len(errors)} proveedor(es) sin respuesta"
-            logger.warning("[market_data] serving STALE %s (%ss old)", symbol, int(age))
+            logger.warning("[market_data] serving STALE %s (%ss old)", log_safe(symbol), log_safe(int(age)))
             return stale
 
     # Never invent a price: an explicit failure beats a made-up number.
     # El detalle nombra al proveedor y esta respuesta es pública, así que el
     # nombre se queda en el log. `provider_status()` sí los da enteros, pero
     # cuelga de /admin/market-data-health.
-    logger.warning("[market_data] %s sin cotización: %s", symbol, "; ".join(errors))
+    logger.warning("[market_data] %s sin cotización: %s", log_safe(symbol), log_safe("; ".join(errors)))
     return {
         "symbol": symbol,
         "price": None,

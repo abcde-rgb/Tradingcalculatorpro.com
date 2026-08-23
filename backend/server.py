@@ -42,8 +42,10 @@ from options_math import (
     year_fraction,
     option_price,
 )
+from log_seguro import log_safe
 from stock_data import (
     COINGECKO_SYMBOL_TO_ID,
+    _get_sector,
     get_stock_data,
     search_tickers,
     generate_expirations,
@@ -181,7 +183,7 @@ def _build_where_clause(filter_dict: dict, start_param: int = 1):
             continue
 
         if not _SAFE_FIELD_RE.match(key):
-            logging.warning("Ignored invalid field name in query filter: %r", key)
+            logging.warning("Ignored invalid field name in query filter: %r", log_safe(key))
             continue
 
         if isinstance(value, dict) and any(k.startswith("$") for k in value):
@@ -1272,7 +1274,7 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
     from fastapi.responses import JSONResponse
     if isinstance(exc, HTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-    logging.exception(f"[500] Unhandled exception on {request.method} {request.url.path}")
+    logging.exception(f"[500] Unhandled exception on {log_safe(request.method)} {log_safe(request.url.path)}")
     return JSONResponse(
         status_code=500,
         content={"detail": "Error interno del servidor. Inténtalo de nuevo o contacta soporte."},
@@ -1292,19 +1294,6 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
-class TradeEntry(BaseModel):
-    symbol: str
-    direction: str  # "long" or "short"
-    entryPrice: float
-    exitPrice: Optional[float] = None
-    quantity: float
-    leverage: float = 1.0
-    stopLoss: Optional[float] = None
-    takeProfit: Optional[float] = None
-    notes: Optional[str] = None
-    tags: Optional[List[str]] = []
-    status: str = "open"  # "open" or "closed"
-
 class PortfolioAsset(BaseModel):
     symbol: str
     quantity: float
@@ -1316,9 +1305,6 @@ class PriceAlert(BaseModel):
     targetPrice: float
     condition: str  # "above" or "below"
     notifyEmail: bool = True
-
-class ChangePlanRequest(BaseModel):
-    new_plan_id: str
 
 class CancelSubscriptionRequest(BaseModel):
     immediate: bool = False  # If True, cancel immediately. If False, cancel at period end
@@ -1643,7 +1629,7 @@ async def log_admin_action(
             "timestamp": datetime.now(timezone.utc),
         })
     except Exception as e:
-        logging.error(f"audit log failed for action={action}: {e}")
+        logging.error(f"audit log failed for action={log_safe(action)}: {log_safe(e)}")
 
 def check_premium(user: dict) -> bool:
     """Check if user has premium access. Demo user always has premium."""
@@ -1831,10 +1817,10 @@ async def startup_event():
                 break
             except asyncio.TimeoutError:
                 _db_init_error = "TimeoutError: DB connection/bring-up exceeded timeout"
-                logging.error(f"DB init attempt {_attempt}/5 timed out", exc_info=True)
+                logging.error(f"DB init attempt {log_safe(_attempt)}/5 timed out", exc_info=True)
             except Exception as e:
                 _db_init_error = f"{type(e).__name__}: {e}"
-                logging.error(f"DB init attempt {_attempt}/5 failed: {e}", exc_info=True)
+                logging.error(f"DB init attempt {log_safe(_attempt)}/5 failed: {log_safe(e)}", exc_info=True)
             if _attempt < 5:
                 await asyncio.sleep(2 * _attempt)  # 2s, 4s, 6s, 8s
 
@@ -1860,7 +1846,7 @@ async def startup_event():
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
-        logging.info("Demo user created: %s (premium, non-admin)", DEMO_EMAIL)
+        logging.info("Demo user created: %s (premium, non-admin)", log_safe(DEMO_EMAIL))
     else:
         # Idempotent self-heal: keep demo on lifetime premium and NOT admin.
         patch: Dict[str, Any] = {}
@@ -1872,32 +1858,32 @@ async def startup_event():
             patch["auth_provider"] = "password"
         if patch:
             await db.users.update_one({"email": DEMO_EMAIL}, {"$set": patch})
-            logging.info("Demo user patched: %s", patch)
+            logging.info("Demo user patched: %s", log_safe(patch))
 
     # ── Purge expired JWT revocations (safe: expired tokens can't be used anyway) ─
     try:
         expired_cutoff = datetime.now(timezone.utc).isoformat()
         result = await db.revoked_tokens.delete_many({"expires_at": {"$lt": expired_cutoff}})
-        logging.info("[startup] Purged %d expired revoked_tokens", result.deleted_count)
+        logging.info("[startup] Purged %d expired revoked_tokens", log_safe(result.deleted_count))
     except Exception as e:
-        logging.warning("[startup] Could not purge revoked_tokens: %s", e)
+        logging.warning("[startup] Could not purge revoked_tokens: %s", log_safe(e))
 
     # ── Purge old usage_events (retain ~120 days for the admin heatmap) ──
     try:
         ue_cutoff = (datetime.now(timezone.utc) - timedelta(days=120)).isoformat()
         ue_res = await db.usage_events.delete_many({"ts": {"$lt": ue_cutoff}})
-        logging.info("[startup] Purged %d old usage_events", ue_res.deleted_count)
+        logging.info("[startup] Purged %d old usage_events", log_safe(ue_res.deleted_count))
     except Exception as e:
-        logging.warning("[startup] Could not purge usage_events: %s", e)
+        logging.warning("[startup] Could not purge usage_events: %s", log_safe(e))
 
     # ── Retención: purgar datos de clientes sin pago > DATA_RETENTION_DAYS ──
     try:
         purged = await purge_lapsed_user_data(db)
         if purged:
             logging.info("[startup] Retención: purgados los datos de %d usuario(s) sin pago > %d días",
-                         purged, DATA_RETENTION_DAYS)
+                         log_safe(purged), log_safe(DATA_RETENTION_DAYS))
     except Exception as e:
-        logging.warning("[startup] Retención/purga falló: %s", e)
+        logging.warning("[startup] Retención/purga falló: %s", log_safe(e))
 
     # ── Extended modules ─────────────────────────────────────────────────
     try:
@@ -1912,7 +1898,7 @@ async def startup_event():
         start_poller()
         logging.info("✅ Extended modules: indexes ensured & WS poller started")
     except Exception as e:
-        logging.error(f"Extended modules startup error: {e}", exc_info=True)
+        logging.error(f"Extended modules startup error: {log_safe(e)}", exc_info=True)
 
 # ============= AUTH ROUTES =============
 
@@ -2055,16 +2041,16 @@ async def _sync_stripe_subscription(user: dict) -> None:
                 {"id": user["id"]},
                 {"$set": {"subscription_end": new_end, "is_premium": True}},
             )
-            logging.info("[auth/me] Stripe sync: extended subscription for %s → %s", user["id"], new_end)
+            logging.info("[auth/me] Stripe sync: extended subscription for %s → %s", log_safe(user["id"]), log_safe(new_end))
         else:
             await db.users.update_one(
                 {"id": user["id"]},
                 {"$set": {"is_premium": False, "subscription_plan": None, "subscription_end": None,
                           "premium_lapsed_at": _lapse_stamp(user)}},
             )
-            logging.info("[auth/me] Stripe sync: subscription expired for %s", user["id"])
+            logging.info("[auth/me] Stripe sync: subscription expired for %s", log_safe(user["id"]))
     except Exception as exc:
-        logging.warning("[auth/me] Stripe sync failed for %s: %s", user["id"], exc)
+        logging.warning("[auth/me] Stripe sync failed for %s: %s", log_safe(user["id"]), log_safe(exc))
 
 
 @api_router.get("/auth/me", response_model=dict)
@@ -2244,7 +2230,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
     _asyncio.create_task(_send_magic_link_email(email, user.get("name", ""), magic_url))
     # In dev (no SendGrid), log the link
     if not SENDGRID_API_KEY:
-        logging.info(f"[magic-link] DEV MODE — link for {email}: {magic_url}")
+        logging.info(f"[magic-link] DEV MODE — link for {log_safe(email)}: {log_safe(magic_url)}")
     return {"ok": True, "message": "Si el email existe, recibirás el enlace en breve."}
 
 
@@ -2320,7 +2306,7 @@ async def _send_magic_link_email(to_email: str, name: str, magic_url: str) -> No
                 headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
             )
     except Exception as e:
-        logging.warning(f"[magic-link] email error: {e}")
+        logging.warning(f"[magic-link] email error: {log_safe(e)}")
 
 
 async def _send_email_verification(user_id: str, to_email: str, name: str) -> None:
@@ -2341,7 +2327,7 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
         frontend_url = FRONTEND_URL
         verify_url = f"{frontend_url}/verify-email?token={token}"
         if not SENDGRID_API_KEY:
-            logging.info(f"[verify-email] DEV MODE — link for {to_email}: {verify_url}")
+            logging.info(f"[verify-email] DEV MODE — link for {log_safe(to_email)}: {log_safe(verify_url)}")
             return
         import httpx as _httpx
         payload = {
@@ -2364,7 +2350,7 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
                 headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
             )
     except Exception as e:
-        logging.warning(f"[verify-email] send error: {e}")
+        logging.warning(f"[verify-email] send error: {log_safe(e)}")
 
 
 @api_router.post("/auth/forgot-password")
@@ -2657,7 +2643,7 @@ async def passkey_register_complete(
             credential=body.credential, expected_challenge=challenge,
         )
     except Exception as exc:
-        logging.warning("[passkey] alta rechazada: %s", exc)
+        logging.warning("[passkey] alta rechazada: %s", log_safe(exc))
         raise HTTPException(status_code=400, detail="No se pudo verificar la passkey.") from exc
 
     # Una credencial sólo puede pertenecer a una cuenta.
@@ -2711,10 +2697,10 @@ async def passkey_login_complete(
     except passkeys.SignCountError as exc:
         # No es un fallo cualquiera: o alguien reprodujo una respuesta capturada
         # o hay una copia del autenticador. Se registra para poder investigarlo.
-        logging.error("[passkey] contador no avanzó (posible clonado) cred=%s: %s", cred_id, exc)
+        logging.error("[passkey] contador no avanzó (posible clonado) cred=%s: %s", log_safe(cred_id), log_safe(exc))
         raise HTTPException(status_code=401, detail="Passkey rechazada por seguridad.") from exc
     except Exception as exc:
-        logging.warning("[passkey] acceso rechazado: %s", exc)
+        logging.warning("[passkey] acceso rechazado: %s", log_safe(exc))
         raise HTTPException(status_code=401, detail="No se pudo verificar la passkey.") from exc
 
     user = await db.users.find_one({"id": stored["user_id"]}, {"_id": 0})
@@ -2778,11 +2764,11 @@ async def _cancel_stripe_subscriptions_for_user(user_doc: dict) -> None:
         for sub in subs.data:
             try:
                 await asyncio.to_thread(stripe.Subscription.delete, sub.id)
-                logging.info("[RGPD] Cancelled Stripe subscription %s before account delete", sub.id)
+                logging.info("[RGPD] Cancelled Stripe subscription %s before account delete", log_safe(sub.id))
             except Exception as exc:
-                logging.error("[RGPD] Failed to cancel Stripe sub %s: %s", sub.id, exc)
+                logging.error("[RGPD] Failed to cancel Stripe sub %s: %s", log_safe(sub.id), log_safe(exc))
     except Exception as exc:
-        logging.error("[RGPD] Stripe cancellation lookup failed for %s: %s", customer_id, exc)
+        logging.error("[RGPD] Stripe cancellation lookup failed for %s: %s", log_safe(customer_id), log_safe(exc))
 
 
 @api_router.delete("/auth/account")
@@ -2807,7 +2793,7 @@ async def delete_account(request: Request, user: dict = Depends(require_user)):
         except Exception:
             pass
     await db.users.delete_one({"id": user_id})
-    logging.info(f"[RGPD] Account deleted: {user_id}")
+    logging.info(f"[RGPD] Account deleted: {log_safe(user_id)}")
     return {"ok": True, "message": "Cuenta eliminada permanentemente"}
 
 
@@ -2828,10 +2814,11 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
         except Exception:
             return []
 
-    # NOTE: both /journal/trades and /performance/trades persist into db.trades
-    # (there is no separate "performance_trades" collection — see BUG fixed
-    # 2026-06-06), so "trades" below already contains the user's full trading
-    # journal including performance-module entries. No separate collect() needed.
+    # NOTE: el diario entero vive en db.trades — no hay una colección
+    # "performance_trades" aparte (BUG arreglado el 2026-06-06), así que "trades"
+    # de abajo ya lleva todo lo del usuario. No hace falta un collect() extra.
+    # (Hasta el 2026-08-22 había además un `/journal/trades` que escribía en esta
+    # misma colección con OTRO esquema; era el BUG-039 y ya no existe.)
     #
     # The export must cover everything `delete_account` erases, minus pure
     # security artefacts. Anything the user can have DELETED they must be able
@@ -2926,7 +2913,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
         )
     except ValueError as exc:
         # Bad signature, expired token, or wrong audience
-        logging.warning("Google token validation failed: %s", exc)
+        logging.warning("Google token validation failed: %s", log_safe(exc))
         raise HTTPException(status_code=401, detail="Token de Google inválido") from exc
 
     email = (info.get("email") or "").lower()
@@ -2985,7 +2972,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             updates["auth_provider"] = "google"
             logging.warning(
                 "[auth] Contraseña retirada al enlazar Google sobre un email sin "
-                "verificar (posible pre-hijacking). user_id=%s", user["id"],
+                "verificar (posible pre-hijacking). user_id=%s", log_safe(user["id"]),
             )
         # Google verifica el correo; a partir de aquí consta como verificado.
         if not user.get("email_verified"):
@@ -3069,7 +3056,7 @@ async def get_prices():
     try:
         precios = await crypto_data.fetch_usd_prices(list(symbol_by_id.values()))
     except Exception as e:
-        logging.error(f"Error fetching crypto prices: {e}")
+        logging.error(f"Error fetching crypto prices: {log_safe(e)}")
         precios = {}
 
     # El euro es derivado, no cotizado — igual que hacía CoinGecko por dentro.
@@ -3081,7 +3068,7 @@ async def get_prices():
         if eurusd:
             eur_por_usd = 1.0 / float(eurusd)
     except Exception as e:
-        logging.warning(f"EURUSD del BCE no disponible: {e}")
+        logging.warning(f"EURUSD del BCE no disponible: {log_safe(e)}")
 
     for coin_id, sym in symbol_by_id.items():
         cotizacion = precios.get(sym)
@@ -3123,7 +3110,7 @@ async def get_prices():
                     "usd_24h_change": change,
                 }
             except Exception as ce:
-                logging.warning(f"Commodity {label} ({sym}) fetch error: {ce}")
+                logging.warning(f"Commodity {log_safe(label)} ({log_safe(sym)}) fetch error: {log_safe(ce)}")
         # Una materia prima que no se ha podido leer se OMITE, igual que una
         # moneda ilegible veinte líneas más arriba. Aquí había un respaldo fijo
         # —oro a 2 680 $, plata a 31,50 $, y una variación de +0,5 % / +0,8 %
@@ -3135,7 +3122,7 @@ async def get_prices():
         # El frontend ya trata la ausencia bien (`if (!data || !data.usd) return
         # null`): omitir es lo que hace que ese cuidado sirva de algo.
     except Exception as e:
-        logging.error(f"Commodities (yfinance) error: {e}")
+        logging.error(f"Commodities (yfinance) error: {log_safe(e)}")
 
     return data
 
@@ -3193,10 +3180,10 @@ async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
                 if candles:
                     return {"ohlc": candles, "symbol": sym_upper, "source": "market"}
             except Exception as e:
-                logging.warning(f"yfinance OHLC for {cand}: {e}")
+                logging.warning(f"yfinance OHLC for {log_safe(cand)}: {log_safe(e)}")
 
     except Exception as e:
-        logging.error(f"OHLC error: {e}")
+        logging.error(f"OHLC error: {log_safe(e)}")
 
     return empty
 
@@ -3218,116 +3205,6 @@ JOURNAL_STATS_MAX_TRADES = 1000
 # history — see the endpoint.
 ANALYTICS_MAX_TRADES = 1000
 
-
-def _roe_pct(trade: Dict[str, Any]) -> Optional[float]:
-    """Retorno sobre el nominal de entrada, en %. Campo propio del diario legado.
-
-    Se conserva en la RESPUESTA por compatibilidad de API, pero ya no se
-    almacena: es derivable, y un campo derivado guardado es un campo que se
-    queda desfasado en cuanto se edita la operación.
-    """
-    entry = float(trade.get("entry_price") or 0)
-    exit_p = trade.get("exit_price")
-    if not entry or exit_p in (None, ""):
-        return None
-    mult = float(trade.get("multiplier") or 1)
-    direction = 1 if trade.get("side") == "long" else -1
-    return round(((float(exit_p) - entry) / entry) * 100 * mult * direction, 2)
-
-
-@api_router.post("/journal/trades")
-async def create_trade(trade: TradeEntry, user: dict = Depends(require_premium)):
-    """⚠️ OBSOLETO — usar `POST /performance/trades`.
-
-    Se mantiene por compatibilidad de API (acepta el mismo payload camelCase de
-    siempre), pero **persiste ya en el esquema canónico snake_case**. Antes
-    guardaba camelCase en la misma colección que el módulo de performance, y ese
-    choque de esquemas hacía que el P&L se leyera como 0 y se persistiera como 0
-    al primer edit (BUG-039). Escribir dos esquemas en una colección no se
-    arregla traduciendo al leer: hay que dejar de generarlos.
-    """
-    # `normalize_trade_schema` traduce el payload camelCase al canónico, y
-    # `make_trade_doc` lo completa igual que la ruta viva: un solo esquema.
-    payload = normalize_trade_schema(trade.dict())
-    doc = make_trade_doc(payload, user["id"])
-    plan = await get_active_plan(db, user["id"])
-    if plan:
-        doc["plan_version"] = plan.get("version")
-    enriched = _enrich_trade(doc, plan=plan)
-    await db.trades.insert_one({k: v for k, v in enriched.items() if k != "_id"})
-    return {**enriched, "roe": _roe_pct(enriched)}
-
-@api_router.get("/journal/trades")
-async def get_trades(
-    user: dict = Depends(require_premium),
-    limit: int = Query(TRADES_LIMIT_DEFAULT, ge=1, le=TRADES_LIMIT_MAX),
-):
-    trades = await db.trades.find(
-        {"user_id": user["id"]},
-        {"_id": 0}
-    ).sort("created_at", -1).limit(limit).to_list(limit)
-    return trades
-
-class TradeUpdate(BaseModel):
-    """Allowed fields for updating a trade — prevents mass-assignment attacks."""
-    symbol: Optional[str] = None
-    direction: Optional[str] = None
-    entryPrice: Optional[float] = None
-    exitPrice: Optional[float] = None
-    stopLoss: Optional[float] = None
-    takeProfit: Optional[float] = None
-    quantity: Optional[float] = None
-    leverage: Optional[float] = None
-    status: Optional[str] = None
-    notes: Optional[str] = None
-    tags: Optional[List[str]] = None
-    emotion: Optional[int] = None
-    screenshot_urls: Optional[List[str]] = None
-    exit_date: Optional[str] = None
-    fees: Optional[float] = None
-
-
-@api_router.put("/journal/trades/{trade_id}")
-async def update_trade(trade_id: str, updates: TradeUpdate, user: dict = Depends(require_premium)):
-    """⚠️ OBSOLETO — usar `PUT /performance/trades/{id}`.
-
-    Traduce el documento almacenado y el parche al esquema canónico antes de
-    recalcular. Esta ruta era la mitad del BUG-039: recalculaba el P&L leyendo
-    `entryPrice`/`leverage` sobre un documento que podía ser del otro esquema, y
-    escribía el resultado sin tocar las claves del esquema contrario.
-    """
-    existing = await db.trades.find_one({"id": trade_id, "user_id": user["id"]}, {"_id": 0})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Trade no encontrado")
-
-    patch = normalize_trade_schema(
-        {k: v for k, v in updates.dict(exclude_unset=True).items() if v is not None}
-    )
-    merged = {**normalize_trade_schema(existing), **patch}
-    if merged.get("exit_price") not in (None, "") and not patch.get("status"):
-        merged["status"] = "closed"
-
-    prev = [t for t in await trades_for_user(db, user["id"], limit=50)
-            if t.get("id") != trade_id]
-    enriched = _enrich_trade(merged, prev_trades=prev,
-                             plan=await get_active_plan(db, user["id"]))
-    enriched.pop("_id", None)
-
-    await db.trades.update_one(
-        {"id": trade_id, "user_id": user["id"]},
-        # `$set` no borra: sin el `$unset`, las claves camelCase del documento
-        # viejo sobreviven junto a las canónicas recién escritas y el choque de
-        # esquemas se reproduce en el mismo documento que acabamos de arreglar.
-        {"$set": enriched, "$unset": legacy_keys_to_unset(existing)},
-    )
-    return {"message": "Trade actualizado", **enriched}
-
-@api_router.delete("/journal/trades/{trade_id}")
-async def journal_delete_trade(trade_id: str, user: dict = Depends(require_premium)):
-    result = await db.trades.delete_one({"id": trade_id, "user_id": user["id"]})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Trade no encontrado")
-    return {"message": "Trade eliminado"}
 
 def _empty_journal_stats() -> Dict[str, Any]:
     return {
@@ -3573,7 +3450,7 @@ async def delete_alert(alert_id: str, user: dict = Depends(require_user)):
 async def _send_email(to_email: str, subject: str, html_content: str) -> bool:
     """Send a transactional email via SendGrid. Returns True on success."""
     if not SENDGRID_API_KEY:
-        logging.info(f"[email] SendGrid not configured, skipping: {subject} → {to_email}")
+        logging.info(f"[email] SendGrid not configured, skipping: {log_safe(subject)} → {log_safe(to_email)}")
         return False
     try:
         from sendgrid import SendGridAPIClient
@@ -3581,10 +3458,10 @@ async def _send_email(to_email: str, subject: str, html_content: str) -> bool:
         message = Mail(from_email=SENDER_EMAIL, to_emails=to_email, subject=subject, html_content=html_content)
         sg = SendGridAPIClient(SENDGRID_API_KEY)
         await asyncio.to_thread(sg.send, message)
-        logging.info(f"[email] sent '{subject}' → {to_email}")
+        logging.info(f"[email] sent '{log_safe(subject)}' → {log_safe(to_email)}")
         return True
     except Exception as e:
-        logging.error(f"[email] SendGrid error: {e}")
+        logging.error(f"[email] SendGrid error: {log_safe(e)}")
         return False
 
 _EMAIL_BASE = """
@@ -3722,7 +3599,7 @@ async def send_alert_email(request: EmailAlertRequest, user: dict = Depends(requ
         response = sg.send(message)
         return {"status": "sent", "code": response.status_code}
     except Exception as e:
-        logging.error(f"Error sending email: {e}")
+        logging.error(f"Error sending email: {log_safe(e)}")
         return {"status": "error", "message": str(e)}
 
 # ============= MONTE CARLO SIMULATION =============
@@ -3788,247 +3665,6 @@ async def run_monte_carlo(request: dict, user: dict = Depends(require_user)) -> 
             curves.append(path["curve"])
 
     return {"simulations": curves[:50], "statistics": _summarize_mc_runs(initial, finals, drawdowns)}
-
-# ============= BACKTESTING =============
-
-def _simulate_backtest_trades(
-    n: int, initial_balance: float, win_rate: float,
-    take_profit_pct: float, stop_loss_pct: float, leverage: float,
-    rng: secrets.SystemRandom,
-) -> Dict[str, Any]:
-    """Run a single synthetic backtest pass, return trades list + summary fields."""
-    trades: List[Dict[str, Any]] = []
-    balance = initial_balance
-    wins = 0
-    losses = 0
-    peak = balance
-    max_drawdown = 0.0
-
-    for i in range(n):
-        is_win = rng.random() < win_rate
-        if is_win:
-            wins += 1
-            pnl = balance * (take_profit_pct / 100) * leverage
-        else:
-            losses += 1
-            pnl = -balance * (stop_loss_pct / 100) * leverage
-        balance += pnl
-        if balance > peak:
-            peak = balance
-        drawdown = (peak - balance) / peak * 100 if peak > 0 else 0
-        if drawdown > max_drawdown:
-            max_drawdown = drawdown
-        trades.append({
-            "trade_num": i + 1,
-            "type": "LONG" if rng.random() > 0.5 else "SHORT",
-            "result": "WIN" if is_win else "LOSS",
-            "pnl": round(pnl, 2),
-            "balance": round(balance, 2),
-        })
-    return {"trades": trades, "balance": balance, "wins": wins, "losses": losses,
-            "max_drawdown": max_drawdown}
-
-
-def _run_real_backtest(
-    symbol: str,
-    strategy: str,
-    days: int,
-    initial_capital: float,
-    take_profit_pct: float,
-    stop_loss_pct: float,
-    leverage: float,
-) -> Dict[str, Any]:
-    """REAL backtest using historical data from yfinance.
-    Strategies supported:
-      - SMA Crossover (10/30)
-      - RSI 14 (oversold<30 long / overbought>70 short)
-      - Buy & Hold
-    Returns: {trades, balance, wins, losses, max_drawdown, equity_curve}.
-    """
-    import yfinance as yf
-    import pandas as pd
-
-    # Pick yfinance symbol — auto-add -USD for bare crypto tickers
-    yf_sym = symbol
-    if not any(c in symbol for c in ["-", "=", "^", "."]):
-        if symbol.upper() in ("BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "DOT", "LINK", "LTC", "MATIC"):
-            yf_sym = f"{symbol.upper()}-USD"
-    period_str = f"{max(days, 30)}d" if days <= 730 else "2y"
-    interval = "1d" if days >= 30 else "1h"
-
-    hist = yf.Ticker(yf_sym).history(period=period_str, interval=interval)
-    if hist.empty or len(hist) < 30:
-        # Fall back to BTC-USD if symbol not found
-        hist = yf.Ticker("BTC-USD").history(period=period_str, interval=interval)
-
-    closes = hist["Close"].astype(float).tolist()
-    times = [int(t.timestamp()) for t in hist.index]
-    if len(closes) < 30:
-        raise HTTPException(status_code=400, detail="No hay datos históricos suficientes para este símbolo")
-
-    # ── Generate entry signals depending on strategy ──
-    signals: List[int] = [0] * len(closes)  # 1=long, -1=short, 0=flat
-    s_lower = strategy.lower().replace("_", " ")
-
-    if "rsi" in s_lower:
-        period_rsi = 14
-        gains, losses = [], []
-        for i in range(1, len(closes)):
-            diff = closes[i] - closes[i - 1]
-            gains.append(max(diff, 0)); losses.append(max(-diff, 0))
-        rsi: List[Optional[float]] = [None] * len(closes)
-        for i in range(period_rsi, len(closes)):
-            avg_gain = sum(gains[i - period_rsi:i]) / period_rsi
-            avg_loss = sum(losses[i - period_rsi:i]) / period_rsi or 1e-9
-            rs = avg_gain / avg_loss
-            rsi[i] = 100 - 100 / (1 + rs)
-        for i in range(len(closes)):
-            r = rsi[i]
-            if r is None:
-                continue
-            if r < 30:
-                signals[i] = 1
-            elif r > 70:
-                signals[i] = -1
-    elif "buy" in s_lower or "hold" in s_lower:
-        signals[0] = 1  # enter long once, hold forever
-    else:
-        # Default: SMA Crossover 10/30
-        short_w, long_w = 10, 30
-        for i in range(long_w, len(closes)):
-            sma_s = sum(closes[i - short_w:i]) / short_w
-            sma_l = sum(closes[i - long_w:i]) / long_w
-            sma_s_prev = sum(closes[i - short_w - 1:i - 1]) / short_w
-            sma_l_prev = sum(closes[i - long_w - 1:i - 1]) / long_w
-            if sma_s_prev <= sma_l_prev and sma_s > sma_l:
-                signals[i] = 1
-            elif sma_s_prev >= sma_l_prev and sma_s < sma_l:
-                signals[i] = -1
-
-    # ── Simulate trades with TP/SL ──
-    balance = float(initial_capital)
-    equity: List[float] = [balance]
-    trades: List[Dict[str, Any]] = []
-    peak = balance
-    max_dd = 0.0
-    in_pos = False
-    side = 0  # 1 long, -1 short
-    entry_price = 0.0
-    entry_idx = 0
-    risk_per_trade = 0.02  # 2% risk per trade
-    wins, losses = 0, 0
-
-    for i, price in enumerate(closes):
-        if not in_pos and signals[i] != 0 and i < len(closes) - 1:
-            in_pos = True
-            side = signals[i]
-            entry_price = price
-            entry_idx = i
-            continue
-        if in_pos:
-            move_pct = ((price - entry_price) / entry_price) * 100 * side * leverage
-            should_exit = (
-                move_pct >= take_profit_pct or
-                move_pct <= -stop_loss_pct or
-                signals[i] == -side or          # opposite signal
-                i == len(closes) - 1            # close on last bar
-            )
-            if should_exit:
-                pnl = balance * risk_per_trade * (move_pct / max(stop_loss_pct, 0.01))
-                pnl = max(min(pnl, balance * risk_per_trade * (take_profit_pct / max(stop_loss_pct, 0.01))),
-                          -balance * risk_per_trade)
-                balance += pnl
-                if pnl > 0:
-                    wins += 1
-                else:
-                    losses += 1
-                trades.append({
-                    "id": str(uuid.uuid4()),
-                    "side": "LONG" if side == 1 else "SHORT",
-                    "entry_time": times[entry_idx],
-                    "exit_time": times[i],
-                    "entry_price": round(entry_price, 6),
-                    "exit_price": round(price, 6),
-                    "move_pct": round(move_pct, 2),
-                    "pnl": round(pnl, 2),
-                    "balance": round(balance, 2),
-                })
-                in_pos = False
-                side = 0
-        peak = max(peak, balance)
-        dd = ((peak - balance) / peak * 100) if peak > 0 else 0
-        max_dd = max(max_dd, dd)
-        equity.append(round(balance, 2))
-
-    return {
-        "trades": trades,
-        "balance": balance,
-        "wins": wins,
-        "losses": losses,
-        "max_drawdown": max_dd,
-        "equity_curve": equity,
-    }
-
-
-@api_router.post("/backtest")
-async def run_backtest(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
-    if not check_premium(user):
-        raise HTTPException(status_code=403, detail="Función premium requerida")
-
-    strategy = request.get("strategy", "SMA Crossover")
-    initial_capital = float(request.get("initial_capital", 10000))
-    take_profit = float(request.get("take_profit", 5))
-    stop_loss = float(request.get("stop_loss", 2))
-    leverage = float(request.get("leverage", 1))
-    symbol = (request.get("symbol") or "BTC-USD").upper()
-    days = int(request.get("days", 180))
-
-    try:
-        # _run_real_backtest does synchronous yfinance I/O + number crunching;
-        # run it in a thread so it doesn't block the event loop.
-        loop = asyncio.get_event_loop()
-        sim = await loop.run_in_executor(
-            None,
-            lambda: _run_real_backtest(
-                symbol=symbol,
-                strategy=strategy,
-                days=days,
-                initial_capital=initial_capital,
-                take_profit_pct=take_profit,
-                stop_loss_pct=stop_loss,
-                leverage=leverage,
-            ),
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"backtest error: {e}")
-        raise HTTPException(status_code=500, detail=f"Error ejecutando backtest: {e}")
-
-    final = sim["balance"]
-    n = len(sim["trades"])
-    wins, losses = sim["wins"], sim["losses"]
-    roi = ((final - initial_capital) / initial_capital) * 100
-    profit_factor = round((wins * take_profit) / (losses * stop_loss), 2) if losses > 0 else 0.0
-
-    return {
-        "id": str(uuid.uuid4()),
-        "symbol": symbol,
-        "strategy": strategy,
-        "days": days,
-        "initial_capital": initial_capital,
-        "final_balance": round(final, 2),
-        "total_trades": n,
-        "wins": wins,
-        "losses": losses,
-        "win_rate": round(wins / n * 100, 2) if n else 0.0,
-        "roi": round(roi, 2),
-        "max_drawdown": round(sim["max_drawdown"], 2),
-        "profit_factor": profit_factor,
-        "trades": sim["trades"][-30:],
-        "equity_curve": sim["equity_curve"],
-        "data_source": "yfinance",
-    }
 
 # ============= CALCULATIONS =============
 
@@ -4236,7 +3872,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
                 pp_client_id, pp_client_secret, pp_mode,
             )
         except Exception as _e:
-            logging.error(f"[paypal] create_order error: {_e}")
+            logging.error(f"[paypal] create_order error: {log_safe(_e)}")
             raise HTTPException(status_code=502, detail="Error al crear orden PayPal. Inténtalo de nuevo.")
         transaction["paypal_order_id"] = order["id"]
         # approval_url for mobile/fallback redirect
@@ -4268,7 +3904,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
                 sandbox=rev_sandbox,
             )
         except RevolutError as _e:
-            logging.error(f"[revolut] create order error: {_e}")
+            logging.error(f"[revolut] create order error: {log_safe(_e)}")
             raise HTTPException(status_code=502, detail="Error al crear el pago con Revolut. Inténtalo de nuevo.")
         transaction["revolut_order_id"] = rev_order.get("order_id")
         transaction["revolut_sandbox"] = rev_sandbox
@@ -4301,7 +3937,7 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
                 sandbox=np_sandbox,
             )
         except NowPaymentsError as _e:
-            logging.error(f"[nowpayments] create invoice error: {_e}")
+            logging.error(f"[nowpayments] create invoice error: {log_safe(_e)}")
             raise HTTPException(status_code=502, detail="Error al crear el pago con criptomonedas. Inténtalo de nuevo.")
         transaction["nowpayments_invoice_id"] = np_invoice.get("invoice_id")
         transaction["nowpayments_sandbox"] = np_sandbox
@@ -4400,7 +4036,7 @@ async def paypal_capture_order(
     try:
         capture_result = await _paypal_capture_order(order_id, pp_client_id, pp_client_secret, pp_mode)
     except Exception as _e:
-        logging.error(f"[paypal] capture error for {order_id}: {_e}")
+        logging.error(f"[paypal] capture error for {log_safe(order_id)}: {log_safe(_e)}")
         raise HTTPException(status_code=502, detail="Error al capturar pago PayPal. Contacta soporte.")
 
     capture_status = capture_result.get("status")
@@ -4443,9 +4079,9 @@ async def paypal_capture_order(
                 subscription_end=subscription_end.isoformat(),
             ))
     except Exception as _e:
-        logging.warning(f"[paypal] confirmation email failed: {_e}")
+        logging.warning(f"[paypal] confirmation email failed: {log_safe(_e)}")
 
-    logging.info(f"[paypal] subscription activated: user={user['id']} plan={plan_id} order={order_id}")
+    logging.info(f"[paypal] subscription activated: user={log_safe(user['id'])} plan={log_safe(plan_id)} order={log_safe(order_id)}")
     return {
         "status": "paid",
         "plan_id": plan_id,
@@ -4459,7 +4095,7 @@ def _stripe_session_ids(session_id: str) -> Dict[str, Optional[str]]:
         session = stripe.checkout.Session.retrieve(session_id)
         return {"customer": session.customer, "subscription": session.subscription}
     except Exception as e:
-        logging.error(f"Error retrieving Stripe session: {e}")
+        logging.error(f"Error retrieving Stripe session: {log_safe(e)}")
         return {"customer": None, "subscription": None}
 
 
@@ -4503,7 +4139,7 @@ async def _activate_paid_subscription(
                 subscription_end=subscription_end.isoformat(),
             ))
     except Exception as _e:
-        logging.warning(f"[email] subscription confirmation email failed: {_e}")
+        logging.warning(f"[email] subscription confirmation email failed: {log_safe(_e)}")
 
 
 @api_router.post("/webhook/stripe")
@@ -4533,10 +4169,10 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
         raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
         raw_event_type = raw_event.get("type", "")
     except stripe.error.SignatureVerificationError as e:
-        logging.error(f"[stripe-webhook] Invalid signature: {e}")
+        logging.error(f"[stripe-webhook] Invalid signature: {log_safe(e)}")
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
     except Exception as e:
-        logging.error(f"[stripe-webhook] Parse error: {e}")
+        logging.error(f"[stripe-webhook] Parse error: {log_safe(e)}")
         raise HTTPException(status_code=400, detail="Webhook parse error")
 
     # ── Log every Stripe event to stripe_webhook_logs ──
@@ -4577,7 +4213,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                         "premium_lapsed_at": _lapse_stamp(_u_lapse or {}),
                     }},
                 )
-                logging.info(f"[stripe-webhook] subscription deleted for {customer_id}")
+                logging.info(f"[stripe-webhook] subscription deleted for {log_safe(customer_id)}")
                 try:
                     _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
                     if _u:
@@ -4592,7 +4228,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     _u_pf = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "premium_lapsed_at": 1})
                     update.update({"is_premium": False, "subscription_plan": None, "subscription_status": "unpaid",
                                    "premium_lapsed_at": _lapse_stamp(_u_pf or {})})
-                    logging.warning(f"[stripe-webhook] payment failed {attempt}x for {customer_id} → premium revoked")
+                    logging.warning(f"[stripe-webhook] payment failed {log_safe(attempt)}x for {log_safe(customer_id)} → premium revoked")
                 await db.users.update_one({"stripe_customer_id": customer_id}, {"$set": update})
                 try:
                     _u = await db.users.find_one({"stripe_customer_id": customer_id}, {"_id": 0, "email": 1, "name": 1})
@@ -4617,7 +4253,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     )
             return {"status": "received", "event": raw_event_type}
         except Exception as e:
-            logging.error(f"[stripe-webhook] subscription event error: {e}")
+            logging.error(f"[stripe-webhook] subscription event error: {log_safe(e)}")
             return {"status": "error"}
 
     # ── Handle checkout.session.completed via native Stripe SDK ──
@@ -4634,7 +4270,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     {"stripe_session_id": session_id_val, "status": "paid"}
                 )
                 if already:
-                    logging.info("[stripe-webhook] checkout already processed: %s", session_id_val)
+                    logging.info("[stripe-webhook] checkout already processed: %s", log_safe(session_id_val))
                     return {"status": "already_processed"}
 
             meta = data_obj.get("metadata") or {}
@@ -4642,7 +4278,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             plan_id = meta.get("plan_id")
             plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
             if not (user_id and plan_id and plan):
-                logging.warning(f"[stripe-webhook] checkout.session.completed missing metadata: {meta}")
+                logging.warning(f"[stripe-webhook] checkout.session.completed missing metadata: {log_safe(meta)}")
                 return {"status": "received"}
 
             await _activate_paid_subscription(
@@ -4662,10 +4298,10 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
                     transaction_id=meta.get("transaction_id"),
                 )
             except Exception as e:
-                logging.warning(f"[stripe-webhook] referral credit error: {e}")
+                logging.warning(f"[stripe-webhook] referral credit error: {log_safe(e)}")
             return {"status": "received"}
         except Exception as e:
-            logging.error(f"[stripe-webhook] checkout.session.completed error: {e}")
+            logging.error(f"[stripe-webhook] checkout.session.completed error: {log_safe(e)}")
             return {"status": "error"}
 
     return {"status": "received"}
@@ -4709,7 +4345,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
         if rev_oid:
             transaction = await db.payment_transactions.find_one({"revolut_order_id": rev_oid}, {"_id": 0})
     if not transaction:
-        logging.warning("[revolut-webhook] unknown order: ext_ref=%s", ext_ref)
+        logging.warning("[revolut-webhook] unknown order: ext_ref=%s", log_safe(ext_ref))
         return {"status": "ignored"}
 
     order_id = transaction["id"]
@@ -4735,7 +4371,7 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
     plan_id = transaction["plan_id"]
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
-        logging.error("[revolut-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        logging.error("[revolut-webhook] invalid plan for order %s: %s", log_safe(order_id), log_safe(plan_id))
         await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
         return {"status": "error"}
 
@@ -4756,11 +4392,11 @@ async def revolut_webhook(request: Request) -> Dict[str, str]:
             transaction_id=order_id,
         )
     except Exception as e:
-        logging.warning(f"[revolut-webhook] referral credit error: {e}")
+        logging.warning(f"[revolut-webhook] referral credit error: {log_safe(e)}")
 
     logging.info(
         "[revolut-webhook] subscription activated: user=%s plan=%s order=%s",
-        transaction["user_id"], plan_id, order_id,
+        log_safe(transaction["user_id"]), log_safe(plan_id), log_safe(order_id),
     )
     return {"status": "received"}
 
@@ -4787,12 +4423,12 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
     data = parse_ipn(raw_body)
     order_id = ipn_order_id(data)
     if not order_id:
-        logging.warning("[nowpayments-webhook] missing order id in payload: %s", str(data)[:300])
+        logging.warning("[nowpayments-webhook] missing order id in payload: %s", log_safe(str(data)[:300]))
         return {"status": "ignored"}
 
     transaction = await db.payment_transactions.find_one({"id": order_id}, {"_id": 0})
     if not transaction:
-        logging.warning("[nowpayments-webhook] unknown order id: %s", order_id)
+        logging.warning("[nowpayments-webhook] unknown order id: %s", log_safe(order_id))
         return {"status": "ignored"}
     if transaction.get("status") == "paid":
         return {"status": "already_processed"}
@@ -4816,7 +4452,7 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
     plan_id = transaction["plan_id"]
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
-        logging.error("[nowpayments-webhook] invalid plan for order %s: %s", order_id, plan_id)
+        logging.error("[nowpayments-webhook] invalid plan for order %s: %s", log_safe(order_id), log_safe(plan_id))
         await db.payment_transactions.update_one({"id": order_id}, {"$set": {"status": "pending"}})
         return {"status": "error"}
 
@@ -4837,11 +4473,11 @@ async def nowpayments_webhook(request: Request) -> Dict[str, str]:
             transaction_id=order_id,
         )
     except Exception as e:
-        logging.warning(f"[nowpayments-webhook] referral credit error: {e}")
+        logging.warning(f"[nowpayments-webhook] referral credit error: {log_safe(e)}")
 
     logging.info(
         "[nowpayments-webhook] subscription activated: user=%s plan=%s order=%s",
-        transaction["user_id"], plan_id, order_id,
+        log_safe(transaction["user_id"]), log_safe(plan_id), log_safe(order_id),
     )
     return {"status": "received"}
 
@@ -4889,7 +4525,7 @@ async def get_current_subscription(user: dict = Depends(require_user)):
             "is_premium": sub.status in ["active", "trialing"]
         }
     except Exception as e:
-        logging.error(f"Error fetching subscription: {e}")
+        logging.error(f"Error fetching subscription: {log_safe(e)}")
         return {
             "has_subscription": False,
             "is_premium": user.get("is_premium", False)
@@ -4951,7 +4587,7 @@ async def cancel_subscription(
         # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
         raise
     except Exception as e:
-        logging.error(f"Error canceling subscription: {e}")
+        logging.error(f"Error canceling subscription: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error canceling subscription")
 
 @api_router.post("/subscriptions/resume")
@@ -4997,25 +4633,8 @@ async def resume_subscription(user: dict = Depends(require_user)):
         # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
         raise
     except Exception as e:
-        logging.error(f"Error resuming subscription: {e}")
+        logging.error(f"Error resuming subscription: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error resuming subscription")
-
-@api_router.post("/subscriptions/change-plan-legacy")
-async def change_plan_legacy(
-    request: ChangePlanRequest,
-    user: dict = Depends(require_user)
-):
-    """[Legacy stub] superseded by /subscriptions/change-plan from missing_apis.py
-    which performs a real Stripe proration. Kept for backwards-compat tests."""
-    if request.new_plan_id not in SUBSCRIPTION_PLANS:
-        raise HTTPException(status_code=400, detail="Invalid plan")
-    new_plan = SUBSCRIPTION_PLANS[request.new_plan_id]
-    return {
-        "message": "Use POST /api/subscriptions/change-plan (real Stripe proration upgrade/downgrade)",
-        "requested_plan": request.new_plan_id,
-        "requested_plan_price": new_plan["price"],
-        "requested_plan_currency": new_plan["currency"],
-    }
 
 @api_router.post("/billing/create-portal-session")
 async def create_portal_session(request: dict, user: dict = Depends(require_user)):
@@ -5049,7 +4668,7 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
         raise
     except Exception as e:
-        logging.error(f"Error creating portal session: {e}")
+        logging.error(f"Error creating portal session: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error creating portal session")
 
 @api_router.get("/billing/history")
@@ -5084,7 +4703,7 @@ async def get_billing_history(user: dict = Depends(require_user)):
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logging.error(f"Error fetching billing history: {e}")
+        logging.error(f"Error fetching billing history: {log_safe(e)}")
         return {"invoices": []}
 
 # ============= ROOT ROUTES =============
@@ -5159,7 +4778,7 @@ async def save_user_state(request: dict, user: dict = Depends(require_user)):
             upsert=True
         )
     except Exception as e:
-        logging.error(f"Error saving state: {e}")
+        logging.error(f"Error saving state: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error saving state")
 
     return {"success": True, "message": "State saved"}
@@ -5178,7 +4797,7 @@ async def get_user_state(state_id: str, user: dict = Depends(require_user)):
         
         return {"state": state_doc.get("state"), "last_updated": state_doc.get("last_updated")}
     except Exception as e:
-        logging.error(f"Error getting state: {e}")
+        logging.error(f"Error getting state: {log_safe(e)}")
         return {"state": None}
 
 @api_router.delete("/user-states/delete/{state_id}")
@@ -5191,7 +4810,7 @@ async def delete_user_state(state_id: str, user: dict = Depends(require_user)):
         
         return {"success": True, "deleted": result.deleted_count > 0}
     except Exception as e:
-        logging.error(f"Error deleting state: {e}")
+        logging.error(f"Error deleting state: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error deleting state")
 
 @api_router.delete("/user-states/reset-all")
@@ -5202,7 +4821,7 @@ async def reset_all_user_states(user: dict = Depends(require_user)):
         
         return {"success": True, "deleted_count": result.deleted_count}
     except Exception as e:
-        logging.error(f"Error resetting states: {e}")
+        logging.error(f"Error resetting states: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error resetting states")
 
 @api_router.get("/user-states/list")
@@ -5216,7 +4835,7 @@ async def list_user_states(user: dict = Depends(require_user)):
         
         return {"states": states}
     except Exception as e:
-        logging.error(f"Error listing states: {e}")
+        logging.error(f"Error listing states: {log_safe(e)}")
         return {"states": []}
 
 
@@ -5233,7 +4852,7 @@ async def health():
             await conn.fetchval("SELECT 1")
         return {"status": "healthy", "db": "ok"}
     except Exception as e:
-        logging.error(f"[health] DB check failed: {e}")
+        logging.error(f"[health] DB check failed: {log_safe(e)}")
         raise HTTPException(status_code=503, detail={"status": "degraded", "db": f"error: {e}"})
 
 # ============= OPTIONS CALCULATOR ROUTES (merged from OPTIONS app) =============
@@ -5351,13 +4970,79 @@ def _payoff_summary(
     }
 
 
+def quote_a_contrato_stock(quote: Dict[str, Any], symbol: str) -> Dict[str, Any]:
+    """Una cotización de la cadena de reserva, en el contrato de `/api/stock`.
+
+    Los proveedores de reserva dan precio, cierre anterior y poco más. Los
+    campos que sólo trae Yahoo —máximo y mínimo de 52 semanas, dividendo— se
+    quedan en `None`: **no** se rellenan con el precio de hoy ni con cero. Un
+    máximo de 52 semanas igual al precio actual no es «desconocido», es una
+    afirmación concreta y falsa, y el usuario dimensiona posiciones con ella.
+
+    `volume` va formateado como lo espera el frontend ("12.3M"), y "N/A" cuando
+    el proveedor no lo publica — que es lo que pasa con Finnhub.
+    """
+    vol = quote.get("volume")
+    try:
+        vol_txt = f"{float(vol) / 1_000_000:.1f}M" if vol and float(vol) > 0 else "N/A"
+    except (TypeError, ValueError):
+        vol_txt = "N/A"
+    pct = quote.get("change_percent")
+    return {
+        "symbol": quote.get("symbol") or symbol,
+        "name": quote.get("name") or symbol,
+        "price": round(float(quote["price"]), 2),
+        "change": round(float(quote.get("change") or 0.0), 2),
+        "changePercent": round(float(pct), 2) if pct is not None else None,
+        "high52w": None,
+        "low52w": None,
+        "volume": vol_txt,
+        "sector": _get_sector(symbol),
+        "dividendYield": None,
+        # Lo que obliga a la interfaz a no mentir: de dónde salió y si es viejo.
+        "source": quote.get("source"),
+        "stale": bool(quote.get("stale")),
+        "as_of": quote.get("as_of"),
+    }
+
+
 @api_router.get("/stock/{symbol}")
 async def opt_get_stock(symbol: str):
+    """Precio en vivo, con la cadena de reserva detrás.
+
+    Antes esto era Yahoo y nada más: si Yahoo se caía o apretaba su anti-bot, se
+    caían con él los precios, la watchlist, las alertas, las cadenas de opciones,
+    el IV rank y todas las calculadoras alimentadas por precio. `market_data.py`
+    se escribió para quitar ese punto único —tres proveedores, cortacircuitos y
+    último valor bueno conocido— y sólo se alcanzaba por dos rutas que ninguna
+    pantalla llamaba.
+
+    Yahoo sigue siendo el primario porque es el único que trae la ficha completa
+    (52 semanas, nombre largo, volumen). La cadena entra **cuando Yahoo no
+    devuelve precio**, que es justo el caso que antes acababa en un error.
+    """
     try:
         data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
-        logging.error(f"Error getting stock data for {symbol}: {e}")
+        logging.error(f"Error getting stock data for {log_safe(symbol)}: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+    if data.get("price") is None:
+        try:
+            import market_data
+            quote = await asyncio.to_thread(market_data.get_quote, symbol)
+            if quote.get("price") is not None:
+                logging.info(
+                    f"stock {log_safe(symbol)}: Yahoo sin precio, servido por "
+                    f"{log_safe(quote.get('source'))} (stale={log_safe(quote.get('stale'))})")
+                data = quote_a_contrato_stock(quote, symbol)
+        except Exception as e:  # noqa: BLE001
+            # La reserva es una mejora, no un requisito: si falla, se devuelve
+            # el estado de error honesto de siempre en vez de un 500.
+            logging.warning(f"cadena de reserva falló para {log_safe(symbol)}: {log_safe(e)}")
+
+    # Un precio que no se pudo refrescar SIEMPRE se marca, venga de donde venga.
+    data.setdefault("stale", False)
     try:
         now = datetime.now(timezone.utc)
         await db.stock_cache.update_one(
@@ -5370,7 +5055,7 @@ async def opt_get_stock(symbol: str):
             upsert=True
         )
     except Exception as e:
-        logging.warning(f"Failed to cache stock data for {symbol}: {e}")
+        logging.warning(f"Failed to cache stock data for {log_safe(symbol)}: {log_safe(e)}")
     return data
 
 
@@ -5843,7 +5528,7 @@ async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
             "stats": _payoff_summary(legs_dicts, points, fee, request.stockPrice),
         }
     except Exception as e:
-        logging.error(f"Payoff calculation error: {e}")
+        logging.error(f"Payoff calculation error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5913,7 +5598,7 @@ async def opt_calculate_greeks(request: GreeksRequest) -> Dict[str, Any]:
         legs_dicts = _legs_to_dicts(request.legs)
         return calculate_greeks(legs_dicts, request.stockPrice, q=request.dividendYield or 0.0)
     except Exception as e:
-        logging.error(f"Greeks calculation error: {e}")
+        logging.error(f"Greeks calculation error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5934,7 +5619,7 @@ async def opt_pnl_attribution(request: PnlAttributionRequest) -> Dict[str, Any]:
             q=request.dividendYield or 0.0,
         )
     except Exception as e:
-        logging.error(f"PnL attribution error: {e}")
+        logging.error(f"PnL attribution error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5977,7 +5662,7 @@ async def opt_assignment(request: AssignmentRequest) -> Dict[str, Any]:
         result["earlyAssignmentAtRisk"] = any(e.get("at_risk") for e in early)
         return result
     except Exception as e:
-        logging.error(f"Assignment simulation error: {e}")
+        logging.error(f"Assignment simulation error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6101,7 +5786,7 @@ async def optimize_options_strategy(req: OptimizeRequest):
             "riskFreeRate": round(risk_free, 5),
         }
     except Exception as e:
-        logging.error(f"Optimize error: {e}")
+        logging.error(f"Optimize error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6133,7 +5818,7 @@ async def get_next_earnings(symbol: str):
                     earnings_date = str(ed[0] if isinstance(ed, list) else ed)[:10]
         return {"symbol": symbol.upper(), "nextEarnings": earnings_date}
     except Exception as e:
-        logging.warning(f"earnings lookup failed for {symbol}: {e}")
+        logging.warning(f"earnings lookup failed for {log_safe(symbol)}: {log_safe(e)}")
         return {"symbol": symbol.upper(), "nextEarnings": None}
 
 
@@ -6231,7 +5916,7 @@ async def portfolio_greeks(user=Depends(get_current_user)):
                 "expiration": pos.get("expiration"),
             })
         except Exception as e:
-            logging.warning(f"skipping position {pos.get('id')} in aggregation: {e}")
+            logging.warning(f"skipping position {log_safe(pos.get('id'))} in aggregation: {log_safe(e)}")
     return {
         "aggregated": {k: round(v, 4) for k, v in agg.items()},
         "positionCount": len(positions),
@@ -6266,7 +5951,7 @@ def _fetch_atm_iv_proxy(symbol: str, spot: float) -> Optional[float]:
         ivs = [v for v in [atm.get("call", {}).get("iv"), atm.get("put", {}).get("iv")] if v and v > 0]
         return sum(ivs) / len(ivs) if ivs else None
     except Exception as e:
-        logging.warning(f"IV rank ATM IV fetch failed: {e}")
+        logging.warning(f"IV rank ATM IV fetch failed: {log_safe(e)}")
         return None
 
 
@@ -6315,7 +6000,7 @@ async def get_iv_rank(symbol: str) -> Dict[str, Any]:
             "recommendation": _iv_rank_recommendation(iv_rank),
         }
     except Exception as e:
-        logging.error(f"IV rank error for {symbol}: {e}")
+        logging.error(f"IV rank error for {log_safe(symbol)}: {log_safe(e)}")
         return {"symbol": symbol.upper(), "available": False, "error": str(e)}
 
 
@@ -6437,7 +6122,7 @@ async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: i
             "results": all_unusual[:50],
         }
     except Exception as e:
-        logging.error(f"Unusual options error for {symbol}: {e}")
+        logging.error(f"Unusual options error for {log_safe(symbol)}: {log_safe(e)}")
         return {"symbol": symbol.upper(), "error": str(e), "results": []}
 
 
@@ -6647,7 +6332,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
                     seen.append(e)
                 analytics = compute_analytics(enriched)
         except Exception as ctx_err:  # noqa: BLE001
-            logging.warning(f"AI coach: could not load trader context: {ctx_err}")
+            logging.warning(f"AI coach: could not load trader context: {log_safe(ctx_err)}")
 
         prompt = _build_ai_trade_prompt(req, analytics)
         model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
@@ -6671,7 +6356,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
             ),
         }
     except _anthropic.APIError as e:
-        logging.error(f"AI analyze API error: {e}")
+        logging.error(f"AI analyze API error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
@@ -6683,7 +6368,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         # El idioma ya estaba en el repo (líneas 2052 y 3670); esto lo completa.
         raise
     except Exception as e:
-        logging.error(f"AI analyze error: {e}")
+        logging.error(f"AI analyze error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
 
 
@@ -6788,7 +6473,7 @@ async def education_assistant(
             if token not in known
         ]
         if invented:
-            logging.warning(f"Edu assistant: módulos inventados descartados: {invented}")
+            logging.warning(f"Edu assistant: módulos inventados descartados: {log_safe(invented)}")
             return {"answer": None, "reason": "unverifiable"}
 
         return {"answer": answer, "model": model}
@@ -6796,7 +6481,7 @@ async def education_assistant(
         raise
     except Exception as e:  # noqa: BLE001
         # El asistente es un extra: que se caiga no puede romper la pantalla.
-        logging.error(f"Edu assistant error: {e}")
+        logging.error(f"Edu assistant error: {log_safe(e)}")
         return {"answer": None, "reason": "ai_failed"}
 
 
@@ -6857,7 +6542,7 @@ def _scan_ticker_flow(sym: str, min_ratio: float, min_volume: int) -> List[Dict[
             rows.extend(_scan_chain_for_flow(sym, chain, exp, stock, min_ratio, min_volume))
         return rows
     except Exception as e:
-        logging.warning(f"market-flow skipping {sym}: {e}")
+        logging.warning(f"market-flow skipping {log_safe(sym)}: {log_safe(e)}")
         return []
 
 
@@ -6886,7 +6571,7 @@ async def market_wide_flow(request: Request, min_ratio: float = 3.0, min_volume:
             "results": all_flow[:max_results],
         }
     except Exception as e:
-        logging.error(f"Market flow error: {e}")
+        logging.error(f"Market flow error: {log_safe(e)}")
         return {"error": str(e), "results": []}
 
 
@@ -6948,7 +6633,7 @@ async def _higher_timeframe_levels(symbol: str, interval: Optional[str]) -> Dict
         levels = await asyncio.to_thread(scan_levels, rows, htf.strength)
         return {"tf": htf, "levels": levels}
     except Exception as e:
-        logging.warning(f"HTF confluence scan failed for {symbol} ({interval}): {e}")
+        logging.warning(f"HTF confluence scan failed for {log_safe(symbol)} ({log_safe(interval)}): {log_safe(e)}")
         return {"tf": None, "levels": []}
 
 
@@ -7048,7 +6733,7 @@ async def education_pattern_scan(
             "detections": detections[:limit],
         }
     except Exception as e:
-        logging.error(f"Pattern scan error for {sym}: {e}")
+        logging.error(f"Pattern scan error for {log_safe(sym)}: {log_safe(e)}")
         return {"symbol": sym, "error": str(e), "detections": []}
 
 
@@ -7106,7 +6791,7 @@ async def education_structure_scan(
             quote = await asyncio.to_thread(get_stock_data, sym)
             live_price = quote.get("price")
         except Exception as quote_err:  # noqa: BLE001
-            logging.info(f"structure-scan: sin cotización viva para {sym}: {quote_err}")
+            logging.info(f"structure-scan: sin cotización viva para {log_safe(sym)}: {log_safe(quote_err)}")
 
         res = await asyncio.to_thread(detect_structure, rows, strn, None, live_price)
         if htf_read["tf"] is not None:
@@ -7114,7 +6799,7 @@ async def education_structure_scan(
         return {**meta, "lastBarForming": _bar_is_forming(rows, tf.minutes),
                 **strip_bars(rows), **_trim_structure(res)}
     except Exception as e:
-        logging.error(f"Structure scan error for {sym}: {e}")
+        logging.error(f"Structure scan error for {log_safe(sym)}: {log_safe(e)}")
         return {**meta, "error": "scan_failed", **strip_bars([]),
                 **detect_structure([], strn)}
 
@@ -7160,7 +6845,7 @@ async def education_level_odds(
         )
         return {**meta, **res}
     except Exception as e:  # noqa: BLE001
-        logging.error(f"Level odds error for {sym}: {e}")
+        logging.error(f"Level odds error for {log_safe(sym)}: {log_safe(e)}")
         return {**meta, "error": "odds_failed", "verdict": None,
                 "observations": 0}
 
@@ -7300,7 +6985,7 @@ async def _sync_trade_alerts(trade: dict, user: dict) -> int:
         await db.alerts.delete_many({"user_id": user["id"], "trade_id": trade_id,
                                      "triggered": False})
     except Exception as exc:  # noqa: BLE001 — un aviso no puede tumbar el guardado
-        logging.warning("[journal-alerts] limpieza fallida %s: %s", trade_id, exc)
+        logging.warning("[journal-alerts] limpieza fallida %s: %s", log_safe(trade_id), log_safe(exc))
         return 0
 
     notify = trade.get("notify") or {}
@@ -7552,9 +7237,10 @@ async def run_validated_backtest_endpoint(request: Request, req: BacktestRequest
                                           user: dict = Depends(require_premium)) -> Dict[str, Any]:
     """Backtest a system, with the validation that decides if the result means anything.
 
-    Distinct from the older `POST /backtest`, which runs a single pass with one
-    fixed parameter set. What is added here is the part that answers "does this
-    have an edge, or did I find it by looking hard enough":
+    Hubo un `POST /backtest` que hacía una sola pasada con parámetros fijos; se
+    retiró el 2026-08-22 (metía el apalancamiento en el P&L y devolvía una curva
+    de equity que no salía del precio). Lo que aporta ésta es la parte que
+    responde «¿esto tiene ventaja, o la he encontrado de tanto mirar?»:
 
     * `validated` holds a slice of history back from the parameter search and
       evaluates on it exactly once.
@@ -7967,7 +7653,7 @@ try:
     )
     logging.info("✅ admin_routes registered (campaigns, i18n, connectors, maintenance, cohorts, referrals-leaderboard, gdpr)")
 except Exception as _e:
-    logging.error(f"admin_routes early registration error: {_e}", exc_info=True)
+    logging.error(f"admin_routes early registration error: {log_safe(_e)}", exc_info=True)
 
 
 @api_router.get("/admin/users")
@@ -8485,7 +8171,7 @@ def _get_fernet():
         from cryptography.fernet import Fernet
         return Fernet(key.encode())
     except Exception as _e:
-        logging.warning(f"[settings] Fernet init failed: {_e}")
+        logging.warning(f"[settings] Fernet init failed: {log_safe(_e)}")
         return None
 
 def _encrypt_setting(value: str) -> str:
@@ -8504,7 +8190,7 @@ def _decrypt_setting(value: str) -> str:
         try:
             return f.decrypt(value[len(_ENC_PREFIX):].encode()).decode()
         except Exception as _e:
-            logging.warning(f"[settings] Fernet decrypt failed: {_e}")
+            logging.warning(f"[settings] Fernet decrypt failed: {log_safe(_e)}")
     return value
 
 
@@ -8626,6 +8312,77 @@ async def public_settings():
     """Non-sensitive subset, readable by anyone (frontend boot uses this)."""
     doc = await _load_settings_doc()
     return {k: (doc.get(k) or "") for k in PUBLIC_SETTING_KEYS}
+
+
+@api_router.get("/brokers")
+async def listar_brokers():
+    """Los brókers que HOY se pueden enlazar legalmente. Puede venir vacío.
+
+    La decisión de si uno es publicable no se toma aquí ni en la plantilla: la
+    toma `brokers_referidos.puede_mostrarse()`, que exige a la vez autorización
+    en la UE, porcentaje de pérdidas dentro de la ventana trimestral de ESMA y
+    enlace configurado en el entorno. Ver `docs/BROKERS_REFERIDOS.md`.
+
+    El endpoint es público a propósito —es contenido comercial, no dato de
+    usuario— y sirve el enlace desde el servidor para que cambiar un porcentaje
+    o retirar un bróker no necesite un despliegue del frontend. Con la
+    advertencia normalizada eso importa: si el bróker publica un porcentaje
+    nuevo, la web tiene que poder decirlo el mismo día.
+    """
+    import brokers_referidos
+
+    def _ficha(b):
+        # ⚠️ La ficha legal describe **a dónde lleva NUESTRO enlace**, no a la
+        # entidad europea del bróker sin más. No es lo mismo: el Partner
+        # Agreement público de Axi lo firma AxiTrader LLC (San Vicente y las
+        # Granadinas), así que un enlace de ese programa NO lleva a Solaris
+        # EMEA (CySEC) y enseñar la ficha chipriota al lado sería decirle al
+        # usuario que contrata con alguien con quien no contrata.
+        f = b.contrato_del_cliente()
+        return {
+            "id": b.id,
+            "nombre": b.nombre,
+            "entidad": f.entidad,
+            "regulador": f.regulador,
+            "licencia": f.licencia,
+            # A QUÉ PÚBLICO sirve esa entidad. Sin esto la ficha afirma en
+            # silencio que es la del lector, y con público internacional eso es
+            # falso para la mayoría: la marca tiene una entidad por región.
+            "jurisdiccion": f.jurisdiccion,
+            # El código va aparte del texto para que la interfaz pueda
+            # traducirlo. Una etiqueta traducida junto a un valor en castellano
+            # —«entity for Unión Europea»— es peor que no traducir ninguna.
+            "jurisdiccionCodigo": f.jurisdiccion_codigo,
+            # A quién no acepta el alta. Se dice antes de que pulse, no después
+            # de que rellene el formulario y le rechacen.
+            "noAdmiteResidentes": list(b.no_admite_residentes),
+            "url": b.url(),
+        }
+
+    return {
+        "brokers": [
+            {
+                **_ficha(b),
+                # Si NO nos pagan por este enlace, no se etiqueta como
+                # afiliado. Llamar afiliado a lo que no lo es también es una
+                # declaración falsa, sólo que en la dirección que no preocupa.
+                "esReferido": b.es_referido,
+                # La corta va en la tarjeta; la larga, detrás del «leer más».
+                # `None` cuando no aplica (no ofrece CFDs a minoristas).
+                "advertenciaCorta": b.advertencia_corta() or None,
+                "advertencia": b.advertencia(),
+                # Si este bróker pasa el listón europeo. Se publica aunque no lo
+                # pase —decisión del propietario, que opera bajo regulación
+                # suiza y para público internacional— pero el dato no se pierde.
+                "cumpleUe": b.puede_mostrarse(),
+            }
+            for b in brokers_referidos.publicables()
+        ],
+        # La relación comercial se declara siempre, la haya o no. Es exigencia
+        # de la Directiva Omnibus para el contenido comercial, y que la ponga el
+        # servidor evita que una pantalla nueva se olvide de pintarla.
+        "afiliacion": True,
+    }
 
 
 # ============= ADMIN — AUDIT LOG VIEW =============
@@ -8840,7 +8597,7 @@ async def _record_webhook_seen(provider: str) -> None:
             upsert=True,
         )
     except Exception as exc:  # noqa: BLE001
-        logging.warning("[webhook-health] could not record %s: %s", provider, exc)
+        logging.warning("[webhook-health] could not record %s: %s", log_safe(provider), log_safe(exc))
 
 
 # A checkout older than this with no resolution is worth a human look. Long
@@ -8986,7 +8743,7 @@ async def admin_payment_grant(
         request=request,
     )
     logging.info("[reconciliation] admin %s granted %s to %s (tx %s)",
-                 admin.get("email"), plan_id, user.get("email"), transaction_id)
+                 log_safe(admin.get("email")), log_safe(plan_id), log_safe(user.get("email")), log_safe(transaction_id))
     return {"ok": True, "already_premium": False, "granted": True, "plan_id": plan_id}
 
 
@@ -9329,7 +9086,7 @@ try:
     })
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:
-    logging.error(f"Module-level extended modules registration error: {_e}", exc_info=True)
+    logging.error(f"Module-level extended modules registration error: {log_safe(_e)}", exc_info=True)
 
 app.include_router(api_router)
 

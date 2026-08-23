@@ -27,6 +27,7 @@ import threading
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
+from log_seguro import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ def parse_treasury_yield_curve(xml_text: str) -> Optional[float]:
     try:
         root = ET.fromstring(xml_text)
     except ET.ParseError as exc:
-        logger.info("Treasury feed is not parseable XML: %s", exc)
+        logger.info("Treasury feed is not parseable XML: %s", log_safe(exc))
         return None
 
     best_date, best_rate = "", None
@@ -116,7 +117,7 @@ def parse_treasury_yield_curve(xml_text: str) -> Optional[float]:
     try:
         return float(best_rate) / 100.0  # published in percent
     except ValueError:
-        logger.info("Treasury %s is not a number: %r", _YIELD_FIELD, best_rate)
+        logger.info("Treasury %s is not a number: %r", log_safe(_YIELD_FIELD), log_safe(best_rate))
         return None
 
 
@@ -144,12 +145,12 @@ def _fetch_live_rate() -> Optional[float]:
                 continue
             if not (MIN_PLAUSIBLE_RATE <= rate <= MAX_PLAUSIBLE_RATE):
                 logger.warning("Discarding implausible risk-free rate %.4f from %s",
-                               rate, _RATE_SYMBOL)
+                               log_safe(rate), log_safe(_RATE_SYMBOL))
                 return None
             return rate
         return None
     except Exception as exc:  # noqa: BLE001 — never let a rate lookup break pricing
-        logger.info("Risk-free rate lookup failed, using fallback: %s", exc)
+        logger.info("Risk-free rate lookup failed, using fallback: %s", log_safe(exc))
         return None
 
 

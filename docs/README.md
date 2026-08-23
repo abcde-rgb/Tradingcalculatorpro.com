@@ -16,6 +16,7 @@ leen en el mismo momento ni con la misma intención.
 |---|---|---|
 | [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) | **Fuente de verdad del estado.** Semáforo, inventario, huecos `G-xx`, plan de test y backlog. Criterio, no conteos | ~300 |
 | [`MAPA.md`](./MAPA.md) | **Dónde está cada cosa.** Módulos, rutas con `fichero:línea`, rutas sin consumidor, carpetas y ficheros grandes. **Generado** — `--check` en CI | generado |
+| [`RUTAS_MUERTAS.md`](./RUTAS_MUERTAS.md) | **Qué se hace con cada ruta que ninguna pantalla llama** (borrar / construir / arreglar). El mapa las cuenta; esto las decide. `check-rutas-muertas.py` en CI | 130 |
 | [`../CLAUDE.md`](../CLAUDE.md) | Invariantes que aplican siempre. Se carga en cada sesión; lo específico por zona vive en `.claude/rules/` | 173 |
 | [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs con su causa raíz. Se consulta para no repetir un error ya pagado | 589 |
 | [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md) | Histórico de 126 sesiones. **No se lee entero** (~3.900 líneas): se busca por fecha o palabra | 3.940 |
@@ -84,6 +85,7 @@ Fotos de un momento concreto. Se leen por su fecha, no como estado actual.
 | [`AUDITORIA_2026-07-27.md`](./AUDITORIA_2026-07-27.md) | 2026-07-27 |
 | [`BACKLOG_AUDITORIA_2026-07-27.md`](./BACKLOG_AUDITORIA_2026-07-27.md) | 2026-07-27 |
 | [`COMPETENCIA_Y_PASARELA_BROKERS.md`](./COMPETENCIA_Y_PASARELA_BROKERS.md) — diario/setups/analítica frente a la competencia, pasarela de solo lectura y modelos de ingreso de brokers | 2026-08-11 |
+| [`BROKERS_REFERIDOS.md`](./BROKERS_REFERIDOS.md) — expediente de los seis brókers para enlaces de referido: entidad, licencia, % de pérdidas y qué exigirle a cada uno. Ejecuta el §4 del anterior | 2026-08-22 |
 | [`ANALISIS_COMPETENCIA_2026-07-19.md`](./ANALISIS_COMPETENCIA_2026-07-19.md) | 2026-07-19 |
 | [`ANALISIS_2026-06-25.md`](./ANALISIS_2026-06-25.md) | 2026-06-25 |
 | [`ROADMAP_IDEAS.md`](./ROADMAP_IDEAS.md) | sin fecha |

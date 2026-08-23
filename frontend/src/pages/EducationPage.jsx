@@ -18,7 +18,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useCloudPref } from '@/lib/cloudPrefs';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -90,6 +90,9 @@ import ElderVisual from '@/components/education/ElderVisual';
 import ObscureOscillatorsVisual from '@/components/education/ObscureOscillatorsVisual';
 import TimeCyclesVisual from '@/components/education/TimeCyclesVisual';
 import PsychSolutionsVisual from '@/components/education/PsychSolutionsVisual';
+import GamblingHarmVisual from '@/components/education/GamblingHarmVisual';
+import OptionGreeksVisual from '@/components/education/OptionGreeksVisual';
+import OptionsStratVisual from '@/components/education/OptionsStratVisual';
 import SystemAdherenceVisual from '@/components/education/SystemAdherenceVisual';
 import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
@@ -577,6 +580,7 @@ export default function EducationPage() {
   const OSCILLATORS = getObscureOscillators(t);
   const TIME_CYCLES = getTimeCycles(t);
   const PSYCH_SOLUTIONS = getPsychSolutions(t);
+  const GAMBLING_HARM = getGamblingHarm(t);
   const SYSTEM_ADHERENCE = getSystemAdherence(t);
   const GAMMA_EXPOSURE = getGammaExposure(t);
   const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
@@ -679,6 +683,7 @@ export default function EducationPage() {
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
       { value: 'psych-solutions', label: t('pssTitle') },
+      { value: 'gambling-harm', label: t('gmbTitle') },
       { value: 'system-adherence', label: t('sysTitle') },
       { value: 'time-impact', label: t('tviTitle') },
       { value: 'pre-trade-protocol', label: t('protoTitle') },
@@ -1767,6 +1772,24 @@ export default function EducationPage() {
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{TIME_CYCLES.note}</p>
               </div>
+            </TabsContent>
+
+            {/* Gambling harm — the case where the rest of the psychology pillar's
+                central assumption (that you can stop when you want) does not hold. */}
+            <TabsContent value="gambling-harm" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-destructive/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <HeartPulse className="w-6 h-6 text-amber-500" />
+                    {GAMBLING_HARM.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{GAMBLING_HARM.intro}</p>
+                </CardContent>
+              </Card>
+
+              <GamblingHarmVisual data={GAMBLING_HARM} />
             </TabsContent>
 
             {/* Psychology: problem -> solution — the actionable fix layer (if-then, Steenbarger) */}
@@ -3237,6 +3260,12 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* Vivía en `capital`, que es donde nadie la buscaba: este es el
+                  módulo que trata de stops y no tenía ninguna figura. Va ANTES
+                  de la rejilla porque la filosofía del stop es lo que da sentido
+                  a los nueve apartados de debajo, no un apéndice. */}
+              <StopLossGuide />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {STOPS_TARGETS.items.map(s => (
                   <Card key={s.id} className="bg-card border-border">
@@ -3330,6 +3359,10 @@ export default function EducationPage() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground leading-relaxed">{o.desc}</p>
+                      {/* El diagrama de pago no ilustra la descripción: la define.
+                          Un iron condor y un butterfly se describen con la misma
+                          frase y se distinguen sólo por la forma. */}
+                      <OptionsStratVisual id={o.id} />
                     </CardContent>
                   </Card>
                 ))}
@@ -4253,9 +4286,6 @@ export default function EducationPage() {
                 </div>
               </div>
 
-              {/* Stop-loss philosophy + break-even R:R by win rate */}
-              <StopLossGuide />
-
               {/* Risk/Reward Ratios */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
@@ -4309,6 +4339,19 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* El aviso va ARRIBA, antes de las nueve fichas, y no al pie:
+                  quien lee «60-65 %» en la primera tarjeta y se va ya no vuelve
+                  a por la nota. */}
+              <div
+                className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4"
+                data-testid="strat-winrate-note"
+              >
+                <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t('stratWinRateNote')}
+                </p>
+              </div>
+
               <div className="grid gap-6">
                 {TRADING_STRATEGIES.strategies.map((strategy, index) => (
                   <Card key={strategy.id} className="bg-card border-border">
@@ -4328,8 +4371,22 @@ export default function EducationPage() {
                             </Badge>
                           )}
                           <Badge variant="secondary">{strategy.timeframe}</Badge>
-                          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-                            {strategy.winRate}
+                          {/* La tasa de acierto iba en VERDE, que en el resto del
+                              producto significa «medido y bueno». Estas cifras no
+                              están medidas: son el rango típico con el que se
+                              describe cada estilo, sin muestra, sin periodo y sin
+                              fuente. Pintarlas como un dato verificado es
+                              exactamente lo que el proyecto prohíbe («nada de datos
+                              inventados sin etiquetar»), y es la clase de número con
+                              el que alguien dimensiona una posición. Se queda la
+                              cifra, con el «≈» y en gris, y el módulo explica debajo
+                              por qué sola no dice nada. */}
+                          <Badge
+                            variant="outline"
+                            className="border-border bg-muted/40 text-muted-foreground font-normal"
+                            title={t('stratWinRateCaveat')}
+                          >
+                            ≈ {strategy.winRate} · {t('stratWinRateTag')}
                           </Badge>
                         </div>
                       </div>
@@ -5265,7 +5322,7 @@ export default function EducationPage() {
               { value: 'breadth-cycles', data: BREADTH_CYCLES, Icon: Activity, color: 'text-teal-500', grad: 'from-teal-500/5 to-primary/10 border-teal-500/20' },
               { value: 'broker-safety', data: BROKER_SAFETY, Icon: Shield, color: 'text-primary', grad: 'from-primary/5 to-red-500/10 border-primary/20' },
               { value: 'margin-liq', data: MARGIN_LIQ, Icon: Scale, color: 'text-red-500', grad: 'from-red-500/5 to-orange-500/10 border-red-500/20' },
-              { value: 'option-greeks', data: OPTION_GREEKS, Icon: Sigma, color: 'text-cyan-500', grad: 'from-cyan-500/5 to-blue-500/10 border-cyan-500/20' },
+              { value: 'option-greeks', data: OPTION_GREEKS, Icon: Sigma, color: 'text-cyan-500', grad: 'from-cyan-500/5 to-blue-500/10 border-cyan-500/20', Visual: OptionGreeksVisual },
               { value: 'inst-desk', data: INST_DESK, Icon: Landmark, color: 'text-indigo-500', grad: 'from-indigo-500/5 to-blue-500/10 border-indigo-500/20' },
               { value: 'pro-discipline', data: PRO_DISCIPLINE, Icon: Focus, color: 'text-emerald-500', grad: 'from-emerald-500/5 to-primary/10 border-emerald-500/20' },
             ].map(mod => (
@@ -5289,6 +5346,11 @@ export default function EducationPage() {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
+                        {/* Punto de extensión de la plantilla compartida. Sin
+                            esto, los NUEVE módulos que pasan por aquí estaban
+                            condenados a ser sólo texto, sin que fuera decisión
+                            de nadie: no había dónde poner una figura. */}
+                        {mod.Visual ? <mod.Visual id={it.id} /> : null}
                       </CardContent>
                     </Card>
                   ))}

@@ -1,5 +1,7 @@
-"""P2 refactor regression tests: journal/stats, monte-carlo, backtest, iv-rank,
-plus spec-exact math validation for payoff/greeks/assignment after helper extraction.
+"""P2 refactor regression tests: journal/stats, monte-carlo, iv-rank, plus
+spec-exact math validation for payoff/greeks/assignment after helper extraction.
+
+(Había también un bloque de `POST /backtest`; esa ruta se retiró el 2026-08-22.)
 
 Auth: demo@btccalc.pro / 1234 (auto-seeded premium lifetime).
 """
@@ -166,30 +168,6 @@ class TestMonteCarlo:
         assert stats["avgFinalBalance"] > 10000
         assert stats["profitProbability"] > 50
         assert "simulations" in d and isinstance(d["simulations"], list)
-
-
-# ============= Backtest — refactor with _simulate_backtest_trades =============
-
-class TestBacktest:
-    def test_backtest_sma(self, auth_headers: Dict[str, str]) -> None:
-        body = {
-            "strategy": "SMA",
-            "initial_capital": 10000,
-            "take_profit": 5,
-            "stop_loss": 2,
-            "leverage": 1,
-        }
-        r = requests.post(f"{BASE_URL}/api/backtest",
-                          json=body, headers=auth_headers, timeout=60)
-        assert r.status_code == 200, r.text
-        d = r.json()
-        for k in ("final_balance", "total_trades", "wins", "losses",
-                  "win_rate", "roi", "max_drawdown", "profit_factor", "trades"):
-            assert k in d, f"missing {k}"
-        assert 50 <= d["total_trades"] <= 150
-        assert d["wins"] + d["losses"] == d["total_trades"]
-        assert isinstance(d["trades"], list)
-        assert len(d["trades"]) <= 20  # last 20 only
 
 
 # ============= IV Rank — refactor with _compute_realized_vol_series etc =============

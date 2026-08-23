@@ -345,6 +345,105 @@ code {
    diseño descarta, así que se van en vez de reescribirse. La elevación se
    comunica con superficie + filete de 1px (`--rule`), no con halo. */
 
+/* ── Marquesina de socios ────────────────────────────────────────────────
+   La fila de socios de la portada, moviéndose sola de derecha a izquierda.
+
+   Tres decisiones que no son de estilo:
+
+   1. **Sin barra de desplazamiento.** El movimiento ya dice que hay más a
+      los lados; la barra bajo la fila sólo ensuciaba la sección. Va oculta
+      en los tres motores, no sólo en Firefox.
+   2. **Se para al pasar el ratón o al enfocar con el teclado.** Una tarjeta
+      que se mueve no se puede pulsar: sin la pausa, esto sería una
+      animación bonita con enlaces inservibles.
+   3. **El desvanecido de los bordes es una máscara, no un degradado
+      encima.** Un degradado del color de fondo se ve como una franja opaca
+      en cuanto el tema cambia; la máscara recorta la opacidad y funciona
+      igual en claro y en oscuro sin conocer el color del fondo. */
+.marquesina {
+    overflow: hidden;
+    scrollbar-width: none;
+    /* stylelint-disable-next-line property-no-vendor-prefix */
+    -ms-overflow-style: none;
+    -webkit-mask-image: linear-gradient(to right,
+            transparent 0, #000 5rem, #000 calc(100% - 5rem), transparent 100%);
+    mask-image: linear-gradient(to right,
+            transparent 0, #000 5rem, #000 calc(100% - 5rem), transparent 100%);
+}
+
+.marquesina::-webkit-scrollbar {
+    display: none;
+}
+
+/* En móvil el desvanecido se recorta: 5 rem a cada lado sobre una pantalla de
+   390 px se come 160 px de los 390, y la tarjeta visible queda estrangulada. */
+@media (max-width: 640px) {
+    .marquesina {
+        -webkit-mask-image: linear-gradient(to right,
+                transparent 0, #000 1.5rem, #000 calc(100% - 1.5rem), transparent 100%);
+        mask-image: linear-gradient(to right,
+                transparent 0, #000 1.5rem, #000 calc(100% - 1.5rem), transparent 100%);
+    }
+}
+
+/* La luminosidad del monograma de la ficha de marca. Sobre papel hay que
+   bajarla: el mismo tono que contrasta sobre grafito se lava sobre hueso.
+   Va como variable y no como dos clases porque el tono lo pone el componente
+   (uno por bróker) y la luminosidad la pone el tema — son dos ejes distintos
+   y mezclarlos obligaría a duplicar la regla por cada marca. */
+.marquesina {
+    --ficha-l: 62%;
+}
+
+.light .marquesina {
+    --ficha-l: 34%;
+}
+
+.marquesina-pista {
+    display: flex;
+    width: max-content;
+    animation: marquesina var(--marquesina-duracion, 60s) linear infinite;
+}
+
+.marquesina:hover .marquesina-pista,
+.marquesina:focus-within .marquesina-pista {
+    animation-play-state: paused;
+}
+
+/* La pista lleva DOS copias de las tarjetas, así que al llegar a -50 % está
+   exactamente donde empezó y el salto no se ve. Por eso la separación entre
+   tarjetas va como margen de cada una y no como `gap` del contenedor: con
+   `gap`, la mitad del ancho total no coincide con un número entero de
+   tarjetas y el empalme da un tirón cada vuelta. */
+@keyframes marquesina {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    /* ⚠️ La regla global de accesibilidad de más arriba deja TODA animación
+       en 0,01 ms con una sola iteración. Aplicada a esto, la pista saltaría
+       de golpe a −50 % y se quedaría ahí: la mitad de las tarjetas fuera de
+       la pantalla y sin forma de alcanzarlas. Así que aquí la animación no
+       se acelera, se QUITA, y la fila vuelve a ser una fila que se arrastra
+       con el dedo o con la rueda. */
+    .marquesina {
+        overflow-x: auto;
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+
+    .marquesina-pista {
+        animation: none !important;
+    }
+}
+
 /* P&L. Salen de los tokens `--long`/`--short`, no de `text-green-500`/
    `text-red-500`: el verde y el rojo del P&L son ahora los ÚNICOS verdes y
    rojos del sistema, y tienen que poder ajustarse por tema (sobre papel

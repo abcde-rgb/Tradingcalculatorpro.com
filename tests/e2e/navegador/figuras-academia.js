@@ -1,0 +1,150 @@
+/**
+ * Las figuras nuevas de la academia, en navegador y sobre el BUILD COMPILADO.
+ *
+ * Esta sonda existe por una razón concreta que el repositorio ya ha pagado: un
+ * SVG que no pinta nada pasa cualquier test que no mire el resultado. Un
+ * `<svg>` con el viewBox mal, un `<path>` con la `d` vacía o un contenedor de
+ * altura cero devuelven un componente perfectamente montado y un hueco en
+ * pantalla. Por eso aquí no se comprueba que el componente exista: se cuenta
+ * cuántos trazos tiene y se mide la caja que ocupa.
+ *
+ * ⚠️ Hace falta el stack: `/education` es `premiumOnly`.
+ *
+ *   tests/e2e/stack/arriba.sh
+ *   node tests/e2e/navegador/figuras-academia.js
+ */
+const fs = require('fs');
+const path = require('path');
+const { chromium } = require('../lib/playwright-core');
+const { rutaChromium, entra, descartaModales, BASE } = require('../entorno');
+
+const fallos = [];
+const marca = (n, ok, d = '') => {
+  console.log(`  ${ok ? '✅' : '❌'} ${n}${d ? ' — ' + d : ''}`);
+  if (!ok) fallos.push(n);
+};
+
+const abre = async (page, topic) => {
+  await page.goto(`${BASE}/education?topic=${topic}`,
+                  { waitUntil: 'networkidle', timeout: 60000 });
+  await descartaModales(page).catch(() => {});
+  await page.waitForTimeout(700);
+};
+
+/**
+ * La comprobación de verdad: la figura existe, DIBUJA y OCUPA.
+ * Menos de `minTrazos` trazos es un esqueleto; menos de 40 px de alto es un
+ * hueco aunque el DOM diga que está.
+ */
+async function figuraDibuja(page, testid, minTrazos = 3) {
+  const cont = page.locator(`[data-testid="${testid}"]`);
+  if (await cont.count() === 0) return { ok: false, detalle: 'no existe' };
+  const svg = cont.locator('svg').first();
+  if (await svg.count() === 0) return { ok: false, detalle: 'sin <svg>' };
+
+  const trazos = await svg.locator('path, polyline, rect, circle, line').count();
+  const caja = await svg.boundingBox();
+  if (!caja) return { ok: false, detalle: 'sin caja (display:none?)' };
+
+  const ok = trazos >= minTrazos && caja.height >= 40 && caja.width >= 120;
+  return {
+    ok,
+    detalle: `${trazos} trazos · ${Math.round(caja.width)}×${Math.round(caja.height)}`,
+  };
+}
+
+(async () => {
+  const navegador = await chromium.launch({ executablePath: rutaChromium(), args: ['--no-sandbox'] });
+  const salida = path.join(__dirname, '..', '..', '..', '.qa-capturas', 'figuras');
+  fs.mkdirSync(salida, { recursive: true });
+
+  try {
+    const ctx = await navegador.newContext({ viewport: { width: 1440, height: 1000 } });
+    const page = await ctx.newPage();
+    const errores = [];
+    page.on('pageerror', (e) => errores.push(String(e)));
+
+    if (!(await entra(page))) {
+      console.error('✗ No se pudo entrar. ¿Está el stack en pie? tests/e2e/stack/arriba.sh');
+      process.exit(1);
+    }
+
+    // ── Las griegas ────────────────────────────────────────────────────
+    console.log('\n── option-greeks: seis curvas donde no había ninguna ─────');
+    await abre(page, 'option-greeks');
+    for (const g of ['delta', 'gamma', 'theta', 'vega', 'rho', 'iv']) {
+      const r = await figuraDibuja(page, `greek-fig-${g}`);
+      marca(`${g} dibuja y ocupa`, r.ok, r.detalle);
+    }
+    await page.screenshot({ path: path.join(salida, '01-griegas.png'), fullPage: true });
+
+    // ── Los payoffs ────────────────────────────────────────────────────
+    console.log('\n── options-strat: siete diagramas de pago ────────────────');
+    await abre(page, 'options-strat');
+    const estrategias = ['coveredcall', 'cashput', 'bullspread', 'bearspread',
+                         'ironcondor', 'straddle', 'protectiveput'];
+    for (const e of estrategias) {
+      const r = await figuraDibuja(page, `payoff-fig-${e}`, 5);
+      marca(`${e} dibuja y ocupa`, r.ok, r.detalle);
+    }
+
+    // El condor y el butterfly se describen igual y se distinguen por la forma.
+    // Si el condor perdiera su meseta, el módulo dejaría de enseñar lo único que
+    // no cabe en el texto — y ninguna otra comprobación lo vería.
+    // ⚠️ `.first()` cogía el polyline de los EJES, que se dibuja antes que el
+    //   pago, y la comprobación salía roja con el producto perfectamente bien
+    //   (leía «20,12 20,98», que es la vertical del eje). La línea de pago es
+    //   siempre la que MÁS vértices tiene: los ejes tienen dos.
+    const polys = await page.locator('[data-testid="payoff-fig-ironcondor"] polyline')
+      .evaluateAll(ns => ns.map(n => n.getAttribute('points') || ''));
+    const pts = polys.sort((a, b) => b.trim().split(/\s+/).length - a.trim().split(/\s+/).length)[0];
+    let meseta = false;
+    if (pts) {
+      // Dos vértices consecutivos a la MISMA altura, y arriba: eso es la meseta.
+      const ys = pts.trim().split(/\s+/).map(p => Number(p.split(',')[1]));
+      meseta = ys.some((y, i) => i < ys.length - 1 && y === ys[i + 1] && y < 60);
+    }
+    marca('el iron condor tiene MESETA, no pico (es lo que lo separa del butterfly)',
+          meseta, pts ? pts.slice(0, 44) + '…' : 'sin points');
+
+    await page.screenshot({ path: path.join(salida, '02-payoffs.png'), fullPage: true });
+
+    // ── La guía de stops, en el módulo correcto ────────────────────────
+    console.log('\n── StopLossGuide vive donde se busca ─────────────────────');
+    await abre(page, 'stops-targets');
+    const enStops = await page.locator('text=/stop/i').count();
+    marca('stops-targets tiene contenido de stops visible', enStops > 0, `${enStops} coincidencias`);
+    const svgsStops = await page.locator('main svg, [role="tabpanel"] svg').count();
+    marca('stops-targets ya tiene figuras', svgsStops > 2, `${svgsStops} svg`);
+
+    await abre(page, 'capital');
+    marca('capital sigue en pie tras quitarle la guía',
+          await page.locator('[role="tabpanel"]').count() > 0);
+
+    // ── Móvil oscuro: donde se rompe la maquetación de un SVG ──────────
+    console.log('\n── Móvil y modo oscuro ──────────────────────────────────');
+    const movil = await navegador.newContext({
+      viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+      colorScheme: 'dark',
+    });
+    const pm = await movil.newPage();
+    await entra(pm);
+    await abre(pm, 'option-greeks');
+    const rm = await figuraDibuja(pm, 'greek-fig-gamma');
+    marca('en móvil oscuro gamma sigue dibujando', rm.ok, rm.detalle);
+    const desborda = await pm.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
+    marca('sin desbordamiento horizontal en móvil', !desborda);
+    await pm.screenshot({ path: path.join(salida, '03-griegas-movil-oscuro.png'), fullPage: true });
+    await movil.close();
+
+    marca('sin errores de consola', errores.length === 0, errores.slice(0, 2).join(' | '));
+    console.log(`\n  capturas → ${salida}`);
+  } finally {
+    await navegador.close();
+  }
+
+  console.log(fallos.length ? `\n❌ ${fallos.length} fallo(s): ${fallos.join(', ')}\n`
+                            : '\n✅ Las figuras nuevas dibujan de verdad.\n');
+  process.exit(fallos.length ? 1 : 0);
+})();

@@ -148,7 +148,10 @@ class TestLimitsAreCapped:
     """`limit` es entrada de usuario: sin tope, un ?limit=1000000 convierte una
     petición en una lectura de tabla completa."""
 
-    @pytest.mark.parametrize("path", ["/api/journal/trades", "/api/performance/trades"])
+    # Era una parametrización sobre las DOS rutas del diario. `/journal/trades`
+    # se retiró el 2026-08-22 —era un duplicado que escribía en la misma
+    # colección con otro esquema, el BUG-039—, así que sólo queda la viva.
+    @pytest.mark.parametrize("path", ["/api/performance/trades"])
     def test_limit_has_a_declared_ceiling(self, path):
         route = next(
             r for r in server.app.routes

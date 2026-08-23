@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from log_seguro import log_safe
 
 router = APIRouter()
 _security = HTTPBearer(auto_error=False)
@@ -310,7 +311,7 @@ async def affiliate_apply(payload: AffiliateApply, request: Request,
         "approved_at": None,
     }
     await db.affiliates.insert_one(doc)
-    logging.info("[affiliate] solicitud de alta: %s (code=%s)", user.get("email"), code)
+    logging.info("[affiliate] solicitud de alta: %s (code=%s)", log_safe(user.get("email")), log_safe(code))
     return {"ok": True, "status": "pending"}
 
 
@@ -446,7 +447,7 @@ async def affiliate_request_payout(user: dict = Depends(_require_user_proxy)):
         "created_at": _iso(),
     }
     await db.affiliate_payout_requests.insert_one(req)
-    logging.info("[affiliate] SOLICITUD DE PAGO de %s: %s €", aff.get("email"), amount)
+    logging.info("[affiliate] SOLICITUD DE PAGO de %s: %s €", log_safe(aff.get("email")), log_safe(amount))
     return {"ok": True, "amount_eur": amount}
 
 
@@ -690,7 +691,7 @@ async def admin_payout_run(period: str, admin: dict = Depends(_require_admin_pro
     }
     await db.affiliate_payout_runs.insert_one(run)
     logging.info("[affiliate] liquidación %s generada: %s € a %d afiliados",
-                 period, totals["payable_eur"], totals["affiliates_paid"])
+                 log_safe(period), log_safe(totals["payable_eur"]), log_safe(totals["affiliates_paid"]))
     return {"ok": True, "run": run}
 
 
@@ -842,7 +843,7 @@ async def ensure_affiliate_indexes(database) -> None:
         await database.affiliate_payout_requests.create_index("affiliate_id")
         logging.info("✅ affiliate_program indexes ensured")
     except Exception as e:
-        logging.error(f"affiliate_program index error: {e}")
+        logging.error(f"affiliate_program index error: {log_safe(e)}")
 
 
 # ---------------------------------------------------------------------------

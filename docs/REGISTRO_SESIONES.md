@@ -4392,6 +4392,190 @@ en él; el diario de verdad es `/performance`.
 check-edu-index · gen-mapa · check-doc-links · ESLint 0 errores · pytest 782
 passed · y las dos pruebas de dos dispositivos, en el navegador real.
 
+---
+
+### 2026-08-22 — Las 38 rutas muertas: una decisión por cada una
+
+`MAPA.md` las contaba desde hacía días. Contarlas no había servido de nada
+porque la lista no decía **qué hacer** con ninguna, y una lista sin decisión se
+lee una vez y se ignora para siempre. Así que lo primero fue leerlas una a una y
+escribir la decisión al lado: `docs/RUTAS_MUERTAS.md`, con tres verbos —`BORRAR`,
+`CONSTRUIR`, `ARREGLAR`— y el porqué de cada fila.
+
+Leyéndolas aparecieron tres cosas que el número no enseñaba:
+
+**1. La capa de failover de precios estaba construida y desconectada.**
+`market_data.py` —329 líneas con cortacircuitos, cuota por proveedor y
+`stale`/`as_of`— existe para que el producto no dependa de Yahoo. Su propia
+cabecera lo dice: el día que Yahoo apriete su anti-bot se apagan a la vez los
+precios, la watchlist, las alertas, las cadenas de opciones, el IV rank y todas
+las calculadoras alimentadas por precio. Y se llegaba a ese módulo **sólo** por
+`/api/quote/{symbol}`, que estaba muerta: el punto de fallo seguía ahí con la
+solución al lado.
+
+Se resolvió, pero no por donde parecía. Cambiar la URL que llama el frontend
+habría movido el problema —`/api/quote` devuelve precio y cierre anterior;
+`/api/stock` devuelve además nombre largo, 52 semanas, sector y volumen, con los
+nombres en camelCase que la interfaz ya consume—. Lo que faltaba no era otra URL,
+era el failover, así que **la cascada se enchufó a la ruta viva**: Yahoo sigue
+siendo el primario y la cadena entra cuando Yahoo no devuelve precio, que es
+exactamente el caso que antes acababa en error.
+
+Con eso vino la otra mitad, la que el módulo exige en su cabecera: *un precio que
+no se pudo refrescar se devuelve con `stale=True` y el llamante DEBE enseñarlo*.
+El «LIVE» verde del panel de opciones estaba **escrito a mano** y se pintaba
+igual con un precio de hace un segundo que con uno de ayer. Ahora sale de
+`stock.stale`: con un precio sin refrescar es ámbar, con la antigüedad al lado y
+**sin el punto que palpita** —lo que palpita dice «esto se está actualizando»,
+que es justo lo que no pasa—.
+
+**2. El monedero de referidos se llena y no se puede ni ver ni gastar.**
+`credit_referrer_for_payment` está enganchado a los tres caminos de cobro y hace
+`$inc` sobre `referral_wallet`: es dinero que el sistema debe, acumulándose ahora
+mismo. Las dos rutas que lo enseñan y lo gastan están muertas. La de canjear
+además mentía dos veces —restaba de un saldo que no bajaba y escribía «aplicado
+al próximo checkout» sin que nadie lo leyera—; ahora responde 501 y no escribe
+nada mientras el crédito no se aplique de verdad. Sigue abierto dónde vive la
+pantalla.
+
+**3. `POST /backtest` metía el apalancamiento en el P&L.** `move_pct = ((price −
+entry) / entry) × 100 × side × leverage`, que es el invariante que este
+repositorio tiene escrito en mayúsculas. Y el P&L no salía del movimiento del
+precio sino de `balance × 2 % × (move_pct / stop_loss_pct)` recortado a una
+banda: una curva de equity inventada, etiquetada `data_source: "yfinance"`.
+
+**Las 8 bajas.** De las 14 marcadas `BORRAR` se ejecutaron las 8 cuyo sucesor
+estaba escrito en el propio código —no había nada de producto que decidir, sólo
+dejar de servir dos veces lo mismo—: el diario legado `/journal/trades` (cuatro
+verbos; era la segunda puerta autenticada a `db.trades`, el BUG-039, y su propio
+docstring ya ponía «⚠️ OBSOLETO»), `change-plan-legacy`, `POST /backtest`,
+`/ohlc-universal` y `/referrals/leaderboard`. Con sus modelos y ayudantes:
+**~500 líneas**. Las 6 que quedan exigen decisión de producto y no se tocaron.
+
+Lo que **no** se borró importa: la sonda de autorización cruzada comprobaba que
+la puerta legada al diario estuviera cerrada. Ahora comprueba que **no haya
+puerta**, leyendo el `openapi.json` del propio servidor — pedirle un 404 a la
+ruta no valdría, porque FastAPI devuelve 404 igual para un camino inexistente que
+para una operación que no es tuya.
+
+**El trinquete es de dos direcciones.** `check-rutas-muertas.py` falla si aparece
+una ruta sin consumidor que no está en la tabla, **y también** si una fila de la
+tabla ya tiene pantalla: así la lista ni crece ni se pudre. 38 → 29.
+
+#### La regla de log injection cubría un fichero y una forma
+
+CodeQL marcó un `logging.info(...)` **mío**, recién escrito. La regla que yo mismo
+había puesto para eso no lo vio, y al mirarla se entendía por qué: era un regex
+por líneas sobre `server.py`. Un f-string partido en dos líneas se le escapaba, y
+los otros 11 módulos no los miraba nadie. Medido: **48 f-strings crudos y 88
+argumentos `%` sin sanear** en 11 módulos.
+
+La reescritura es con `ast` sobre **todos** los módulos, y busca la propiedad —un
+valor no saneado que entra en una llamada de log— en vez de una forma. Con ella,
+`log_safe` salió de `server.py` a `log_seguro.py` para que puedan importarlo los
+doce. Y se le añadió un `.replace()` explícito de `\r` y `\n` que ya era
+redundante con el `isprintable()` de después: **CodeQL modela `str.replace` y no
+modela un `isprintable()` dentro de un generador**, así que el código era correcto
+y la herramienta no podía verlo. Escribirlo de forma que la herramienta lo vea no
+es ceder, es que el análisis sirva para algo.
+
+*La lección, que es la de siempre en este repositorio:* una regla que describe una
+**forma** tiene agujeros fuera de esa forma. Hay que describir la **propiedad**.
+
+#### Los seis brókers de referido
+
+Se pidieron los enlaces de Axi, VT Markets, Saxo, Interactive Brokers, Swissquote
+y Dukascopy. Un enlace de referido a un bróker de CFDs no es un banner: **es una
+promoción financiera**. Así que el módulo no guarda enlaces, guarda **las
+condiciones bajo las que un enlace se puede publicar** —entidad legal, regulador,
+número de licencia, porcentaje de pérdidas con su fecha— y la advertencia
+normalizada de ESMA con la cifra real de ese bróker.
+
+**El porcentaje caduca a los 100 días**, que es la pieza que casi nadie
+implementa: ESMA obliga al bróker a recalcularlo cada trimestre, así que una cifra
+fija en el código es falsa a los pocos meses. Mismo criterio que `stale` en los
+precios. Y los enlaces van en el entorno (`BROKER_REF_AXI`…), nunca en el
+repositorio: uno incrustado acaba apuntando a la cuenta de otro el día que alguien
+copie el fichero. Hay una prueba que lo impide.
+
+Con el listón europeo aplicado, hoy **no se publicaba ninguno de los seis**. El
+propietario decidió publicarlos igual: opera bajo **régimen suizo de sola
+promoción** y para público internacional. La decisión se respetó y se ejecutó —
+pero **el listón no se borró**: `puede_mostrarse()` sigue entero y cada bróker
+publica `cumpleUe` en la API. Borrar el dato en vez de decidir sobre él es lo que
+no se puede hacer.
+
+**La prueba que no disparaba.** Para comprobar que no se inventaban porcentajes,
+se le metió a Swissquote un 55,05 % fabricado. **La suite siguió en verde**: la
+prueba comprobaba que el número apareciera, no que fuera defendible. Se añadió
+`perdida_pct_fuente`, obligatorio para que una cifra llegue a pantalla, y se
+volvió a sabotear: ahora sí falla. No prueba que la cifra sea correcta —ningún
+test puede—, pero obliga a que inventarse una exija inventarse su procedencia.
+
+Los dos porcentajes que hay salen de buscador y están marcados **pendientes de
+confirmar**: `axi.com`, `dukascopy.com`, `swissquote.com`,
+`interactivebrokers.com`, `cnmv.es` y `cysec.gov.cy` **están bloqueados por el
+proxy de este entorno**. Lo que no se pudo leer en la fuente se dice, no se
+rellena.
+
+#### Un test que prohibía decir «no lo sé», y por eso obligaba a mentir
+
+Escribiendo la entrada de este diario hubo que abrir `stock_data.py` para
+**verificar** lo que se iba a afirmar sobre el arreglo del máximo de 52 semanas.
+Dos líneas más abajo estaba `"dividendYield": 0.0`, fijo. El endpoint de chart de
+Yahoo **no publica el dividendo**: ese cero no venía del proveedor, lo escribía
+nuestro código, y no dice «no lo sé» sino «esta acción no paga dividendo» — falso
+de Coca-Cola, de J&J y de media lista del S&P 500. Y `q` entra en el
+Black-Scholes de toda la app.
+
+Estaba en cuatro sitios: la ruta en vivo, el helper `raw or 0.0`, el estado de
+error —la respuesta que existe justo para decir que no se sabe nada, con todo a
+`None` **menos** el dividendo— y `_build_stock_dict`, que además sacaba el máximo
+anual de `precio × 1.3` y el mínimo de `precio × 0.7`. Esa última función **no la
+llama nadie**; se arregló igual, porque el día que se conecte nadie va a releer
+esas dos líneas.
+
+Lo que más enseña es **por qué seguía ahí**: la prueba de integración exigía
+`isinstance(d["dividendYield"], (int, float))` y `d["high52w"] > 0`. Un test que
+prohíbe responder «no lo sé» **empuja al código a inventarse una respuesta**. Se
+cambió por lo único que sí se puede exigir: o un número con sentido, o `None`. Los
+cuatro sitios se sabotearon uno a uno para comprobar que las pruebas nuevas fallan
+—las dos primeras rondas sólo dispararon dos de las cuatro, así que hubo segunda
+ronda—. (BUG-063.)
+
+#### Cuatro errores propios, y cómo se cazaron
+
+- **Un sabotaje viejo dejó pasar el verificador nuevo.** `probar-verificadores.sh`
+  tenía escrita a mano una fila (`/api/quote … CONSTRUIR`) que yo había cambiado a
+  `BORRAR`: el `replace` no encontraba nada, el fichero no se alteraba y el
+  verificador pasaba **con razón**. El arreglo no es cambiar el literal: es
+  quitar la primera fila de decisión sea cual sea, y **abortar si el sabotaje no
+  cambió nada**.
+- **La sonda del tamaño de letra medía el contenedor, no el texto.** Decía «16 px»
+  midiendo un `div` sin clase de tamaño que hereda del cuerpo, mientras el `<p>`
+  estaba a 14. Comprobado poniendo la advertencia a `text-[10px]`: **la sonda
+  seguía verde** con la letra diminuta, que es justo el incumplimiento que existía
+  para cazar. (Y con ello se corrigió un mensaje de commit anterior que afirmaba
+  «16 px frente a 14» cuando eran 14 y 14.)
+- **`justify-center` sobre una fila que desborda** dejaba a Margex e Hyperliquid
+  **inalcanzables**: centrar recorta el principio, y eso no se recupera
+  desplazando. Se vio en la captura, no leyendo el código.
+- **El script de sabotaje sobrevivió a un reinicio del contenedor** y volvió a
+  aplicar sus cambios; estuve a punto de commitear fuente saboteada dos veces. La
+  comprobación de residuos buscaba dos cadenas concretas y se le escapó una: se
+  cambió por una verificación de integridad por propiedad.
+
+**Verificado:** pytest **1006 passed / 72 skipped** (27 nuevos de brókers, 8 de
+honestidad numérica en `stock_data`) · engine-check
+370/370 · i18n 10/10 · gen-mapa `--check` · gen-instruments `--check` ·
+check-rutas-muertas · check-doc-links · ESLint 0 errores · `brokers.js` 22
+comprobaciones y `precio-viejo.js` 12, en un navegador real sobre el build.
+
+**Queda abierto:** las 6 rutas `BORRAR` que exigen decisión de producto, las 20
+`CONSTRUIR` (la más barata: `/performance/export`), el alta en los programas de
+Axi y Dukascopy, los logos de los seis y la tarjeta de Margex, que anuncia bono e
+incentivos sin aviso de riesgo.
+
 ### 2026-08-22 — Margen cruzado: la pregunta que ninguna calculadora responde
 
 Llegó una herramienta empaquetada aparte —motor, componente y currículo— para

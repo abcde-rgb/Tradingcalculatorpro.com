@@ -5,7 +5,7 @@ Helpers being verified:
 - _build_unusual_row + _scan_chain_for_unusual    (get_unusual_options)
 - _build_market_flow_row + _scan_chain_for_flow + _scan_ticker_flow (market_wide_flow)
 - _format_legs_for_prompt + _build_ai_trade_prompt (ai_analyze_trade)
-- _get_cached_stock + _normalize_dividend_yield + _build_stock_dict (get_stock_data)
+- _get_cached_stock + _normaliza_dividendo_o_nada + _build_stock_dict (get_stock_data)
 """
 import os
 import time
@@ -140,7 +140,7 @@ class TestAIAnalyze:
 # ============= Stock Data (refactored with cache + helpers) =============
 
 class TestStockData:
-    """get_stock_data refactor with _get_cached_stock + _normalize_dividend_yield + _build_stock_dict."""
+    """get_stock_data refactor with _get_cached_stock + _normaliza_dividendo_o_nada + _build_stock_dict."""
 
     EXPECTED_FIELDS = {
         "price", "change", "changePercent",
@@ -157,19 +157,28 @@ class TestStockData:
         assert isinstance(d["price"], (int, float)) and d["price"] > 0
         assert isinstance(d["change"], (int, float))
         assert isinstance(d["changePercent"], (int, float))
-        assert isinstance(d["high52w"], (int, float)) and d["high52w"] > 0
-        assert isinstance(d["low52w"], (int, float)) and d["low52w"] > 0
+        # 52 semanas y dividendo: un número REAL o `None`, nunca un relleno.
+        #
+        # Estas tres afirmaciones exigían un número, y esa exigencia era justo
+        # lo que empujaba al código a inventarlo: el máximo salía como el precio
+        # de hoy (o `precio × 1.3`) y el dividendo como 0.0, que no es «no lo
+        # sé» sino «esta acción no paga dividendo». Un test que prohíbe decir
+        # «no lo sé» obliga a mentir. Lo que sí se puede exigir es que, cuando
+        # haya número, tenga sentido.
+        for campo in ("high52w", "low52w"):
+            assert d[campo] is None or (isinstance(d[campo], (int, float)) and d[campo] > 0), (
+                f"{campo} debe ser un precio real o None, no un relleno; got {d[campo]!r}"
+            )
         # Volume should be a formatted string like "45.2M"
         assert isinstance(d["volume"], str) and len(d["volume"]) > 0, (
             f"volume should be string like '45.2M', got {d['volume']!r}"
         )
         # Sector → AAPL = Technology (yfinance source of truth)
         assert d["sector"] == "Technology", f"Expected sector='Technology', got {d['sector']!r}"
-        # Dividend yield must be normalized to decimal (e.g. 0.005 = 0.5%)
-        assert isinstance(d["dividendYield"], (int, float))
-        assert 0 <= d["dividendYield"] <= 1, (
-            f"dividendYield should be decimal ≤1, got {d['dividendYield']}"
-        )
+        # Dividend yield: decimal normalizado (0.005 = 0,5 %) o None.
+        assert d["dividendYield"] is None or (
+            isinstance(d["dividendYield"], (int, float)) and 0 <= d["dividendYield"] <= 1
+        ), f"dividendYield debe ser decimal ≤1 o None, got {d['dividendYield']!r}"
 
     def test_stock_aapl_second_call_uses_cache(self) -> None:
         """Second consecutive call must hit cache — verify by faster response and identical price."""

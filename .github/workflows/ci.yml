@@ -27,8 +27,13 @@ jobs:
           cache: 'pip'
           cache-dependency-path: backend/requirements.txt
 
+      # pytest-asyncio NO sobra: hay siete pruebas `async def` en
+      # test_app_settings_roundtrip_unit.py. Sin el plugin, pytest no las salta
+      # —las da por FALLIDAS— y encima avisa de que `@pytest.mark.asyncio` es un
+      # marcador desconocido, que es fácil de leer como ruido. En local estaba
+      # instalado de arrastre y en CI no, así que el fallo sólo salía aquí.
       - name: Instalar dependencias
-        run: pip install -r requirements.txt pytest
+        run: pip install -r requirements.txt pytest pytest-asyncio
 
       # La lista de módulos iba a mano y se quedó atrás: price_action, timeframes,
       # market_data, nowpayments, revolut y affiliate_program no se comprobaban.
@@ -71,6 +76,12 @@ jobs:
       - name: El catálogo de instrumentos está en paridad (backend ↔ frontend)
         run: python scripts/gen-instruments-js.py --check
 
+      # El mapa CUENTA las rutas que ninguna pantalla llama; esto exige que cada
+      # una lleve escrito qué se hace con ella. Sin ello, una ruta nueva e
+      # inalcanzable sólo sube el contador y CI se queda verde.
+      - name: Cada ruta sin consumidor tiene una decisión escrita
+        run: python scripts/check-rutas-muertas.py
+
       # Este SÍ bloquea. Comprueba que cada verificador falla cuando debe
       # fallar, saboteándolo y revirtiendo. Existe porque han aparecido varias
       # comprobaciones que no comprobaban nada —una guarda tautológica sobre el
@@ -112,6 +123,11 @@ jobs:
 
       - name: fetch() al backend con credentials
         run: node scripts/check-fetch-credentials.js
+
+      # Un logo dejado en `assets/partners/` sin regenerar el mapa no sale en la
+      # web y nadie entiende por qué: el fichero está, la tarjeta no lo usa.
+      - name: Los logos de socios reflejan los ficheros de la carpeta
+        run: node scripts/gen-partner-logos.js --check
 
       # El simulador y el modelo del sistema de trading producen números con los
       # que el usuario dimensiona posiciones, y viven en el frontend, donde no

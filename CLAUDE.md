@@ -63,6 +63,7 @@ cd frontend && npx eslint src scripts       # 0 errores; los avisos de símbolos
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
 python scripts/gen-instruments-js.py --check   # catálogo backend ↔ frontend
 python scripts/gen-mapa.py --check             # el mapa refleja el código
+python scripts/check-rutas-muertas.py          # cada ruta sin pantalla tiene decisión
 python scripts/check-doc-links.py              # los enlaces de la doc resuelven
 bash scripts/probar-verificadores.sh           # ¿y esos verificadores verifican?
 ```
@@ -112,9 +113,12 @@ ya costaron bugs y están fijadas por tests:
 - **Lo generado no se edita a mano**: `instrumentSpecs.generated.js` y `docs/MAPA.md`
   salen de un script, y CI falla si divergen.
 - **Secretos nunca en el repo**: `.env.example` + Secret Manager / GitHub Secrets.
-- **Antes de escribir un módulo nuevo, comprueba si ya existe.** Cuatro backends están
-  terminados y sin interfaz (~1770 líneas): `trading_plan.py`, `backtest.py`,
-  `portfolio_risk.py`, `american_options.py`. Es el hueco G-14.
+- **Antes de escribir un módulo nuevo, comprueba si ya existe.** Decenas de rutas que
+  ninguna pantalla llama tienen una decisión escrita en
+  [`docs/RUTAS_MUERTAS.md`](./docs/RUTAS_MUERTAS.md) —la mayoría son backends
+  terminados esperando interfaz: `backtest.py`, `portfolio_risk.py`,
+  `american_options.py`, `market_data.py`… Es el hueco G-14, y
+  `check-rutas-muertas.py` impide que la lista crezca (o se pudra) en silencio.
 
 ## Arquitectura en cinco líneas
 

@@ -3,12 +3,17 @@
 Each user gets a unique referral code on first request.
 - Referrer earns commission when their referee buys a paid plan.
 - 10% of plan value (configurable) credited to referrer's "wallet".
-- Wallet can be redeemed against future Stripe checkouts (handled in checkout flow).
+
+⚠️ El monedero SE LLENA pero todavía NO SE GASTA. `credit_referrer_for_payment`
+está enganchado a los tres caminos de cobro de `server.py`, así que el saldo se
+acumula de verdad; el canje, en cambio, no llega a ninguna parte porque
+`create_checkout` no lee `pending_referral_credit`. Ver `CHECKOUT_APLICA_CREDITO`
+más abajo: mientras eso sea False, canjear responde 501 en vez de prometer un
+descuento que no va a aplicarse. El saldo no se pierde.
 
 Endpoints:
   GET  /referrals/me               — my code, stats, recent referrals
   POST /referrals/track            — track a referral signup (body: {code, referee_email})
-  GET  /referrals/leaderboard      — top 10 referrers (admin)
   POST /referrals/redeem-credit    — apply wallet to next purchase
 """
 from __future__ import annotations
@@ -23,6 +28,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
+from log_seguro import log_safe
 
 router = APIRouter()
 _security = HTTPBearer(auto_error=False)
@@ -30,10 +36,33 @@ _security = HTTPBearer(auto_error=False)
 # Injected at register()
 db = None  # type: ignore[assignment]
 require_user = None  # type: ignore[assignment]
-require_admin = None  # type: ignore[assignment]
 
 # Commission % credited to the referrer when referee makes a paid purchase
 COMMISSION_PCT = 10.0  # 10% of the plan price
+
+# ¿El cobro descuenta ya el crédito de referidos?
+#
+# Estaba escrito como si sí. `redeem_credit` marcaba el saldo «aplicado al
+# próximo checkout» y devolvía un `available_after` ya descontado, y ninguna de
+# las dos cosas era verdad:
+#
+#   · `pending_referral_credit` no lo lee NADIE. Ni `create_checkout`, ni el
+#     webhook de Stripe, ni PayPal, ni NOWPayments. Se escribía en el usuario y
+#     ahí se quedaba.
+#   · `referral_wallet_redeemed` —de donde sale el saldo disponible— no se
+#     tocaba. Así que el número que devolvía la respuesta no era el saldo del
+#     usuario después de canjear: era una resta hecha para la ocasión, y en la
+#     BD el saldo seguía entero.
+#
+# Las dos mentiras se cancelaban en la práctica porque ninguna pantalla llama a
+# la ruta. En cuanto alguien le pusiera un botón, el usuario habría visto su
+# saldo bajar, habría pagado el precio completo, y el dinero habría seguido en
+# la cuenta sin que nada explicara el descuadre.
+#
+# Mientras esto sea False, canjear responde 501 y dice la verdad. El día que el
+# cobro lea el crédito, `test_referrals_credito_unit.py` falla y pide ponerlo a
+# True: la constante no puede quedarse desfasada en silencio.
+CHECKOUT_APLICA_CREDITO = False
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -48,15 +77,6 @@ async def _require_user_proxy(
         raise HTTPException(status_code=503, detail="Service not initialized")
     # require_user's signature is (request, credentials) — pass both.
     return await require_user(request, credentials)
-
-
-async def _require_admin_proxy(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(_security),
-) -> Dict[str, Any]:
-    if require_admin is None:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-    return await require_admin(request, credentials)
 
 
 # ---------------------------------------------------------------------------
@@ -127,8 +147,8 @@ async def my_referrals(user: dict = Depends(_require_user_proxy)):
     ]).to_list(1)
     total_earned = earnings_doc[0]["total"] if earnings_doc else 0.0
 
-    wallet = float(fresh.get("referral_wallet", 0.0))
-    redeemed = float(fresh.get("referral_wallet_redeemed", 0.0))
+    wallet = float(fresh.get("referral_wallet", 0.0) or 0.0)
+    redeemed = float(fresh.get("referral_wallet_redeemed", 0.0) or 0.0)
 
     # Recent referrals (last 50)
     recent = await db.referrals.find(
@@ -144,10 +164,14 @@ async def my_referrals(user: dict = Depends(_require_user_proxy)):
             "total_signups": total_signups,
             "total_paid": total_paid,
             "total_earned": round(total_earned, 2),
-            "wallet_balance": round(wallet - redeemed, 2),
+            "wallet_balance": saldo_disponible(fresh),
             "wallet_total_earned": round(wallet, 2),
             "wallet_redeemed": round(redeemed, 2),
             "currency": "EUR",
+            # Que la pantalla que consuma esto no ofrezca un botón de canjear
+            # que va a devolver 501. Es la única forma de que el frontend sepa
+            # lo que el backend sabe.
+            "redeemable": CHECKOUT_APLICA_CREDITO,
         },
         "recent_referrals": recent,
     }
@@ -209,7 +233,7 @@ async def track_referral(request: Request, payload: TrackReferralRequest):
         }},
     )
 
-    logging.info(f"[referrals] tracked: {referrer['email']} → {referee_email} (code={code})")
+    logging.info(f"[referrals] tracked: {log_safe(referrer['email'])} → {log_safe(referee_email)} (code={log_safe(code)})")
     return {"ok": True, "referral_id": ref_doc["id"]}
 
 
@@ -235,10 +259,10 @@ async def credit_referrer_for_payment(referee_user_id: str, plan_id: str,
             {"user_id": referee["referred_by_id"], "status": "approved"}, {"_id": 0, "id": 1})
         if aff:
             logging.info("[referrals] referrer %s es afiliado → wallet omitido (programa de afiliados)",
-                         referee["referred_by_id"])
+                         log_safe(referee["referred_by_id"]))
             return None
     except Exception as _e:
-        logging.warning("[referrals] affiliate check failed: %s", _e)
+        logging.warning("[referrals] affiliate check failed: %s", log_safe(_e))
 
     referral = await db.referrals.find_one({
         "referrer_id": referee["referred_by_id"],
@@ -269,56 +293,67 @@ async def credit_referrer_for_payment(referee_user_id: str, plan_id: str,
         {"id": referee["referred_by_id"]},
         {"$inc": {"referral_wallet": commission}},
     )
-    logging.info(f"[referrals] credited {commission} {plan_currency} to {referral['referrer_email']} for {referee['email']}")
+    logging.info(f"[referrals] credited {log_safe(commission)} {log_safe(plan_currency)} to {log_safe(referral['referrer_email'])} for {log_safe(referee['email'])}")
     return await db.referrals.find_one({"id": referral["id"]}, {"_id": 0})
 
 
-@router.get("/referrals/leaderboard")
-async def referral_leaderboard(admin: dict = Depends(_require_admin_proxy), limit: int = 20):
-    """Top referrers by total earnings."""
-    pipeline = [
-        {"$match": {"status": "paid"}},
-        {"$group": {
-            "_id": "$referrer_id",
-            "referrer_email": {"$first": "$referrer_email"},
-            "total_earned": {"$sum": "$commission_amount"},
-            "total_referees": {"$sum": 1},
-        }},
-        {"$sort": {"total_earned": -1}},
-        {"$limit": limit},
-    ]
-    results = await db.referrals.aggregate(pipeline).to_list(limit)
-    cleaned = [{
-        "referrer_id": r["_id"],
-        "referrer_email": r["referrer_email"],
-        "total_earned": round(r["total_earned"], 2),
-        "total_referees": r["total_referees"],
-    } for r in results]
-    return {"leaderboard": cleaned, "limit": limit}
+def saldo_disponible(usuario: dict) -> float:
+    """Lo que al usuario le queda por canjear: lo ganado menos lo ya canjeado.
+
+    Una sola definición para las dos rutas. `/referrals/me` y el canje hacían
+    cada uno la misma resta por su cuenta, que es como acaban divergiendo.
+    """
+    ganado = float(usuario.get("referral_wallet", 0.0) or 0.0)
+    canjeado = float(usuario.get("referral_wallet_redeemed", 0.0) or 0.0)
+    return round(ganado - canjeado, 2)
+
+
+def cuanto_se_canjea(usuario: dict, pedido: Optional[float]) -> float:
+    """Cuánto sale de este canje, o `ValueError` con el motivo.
+
+    Sin `pedido` se canjea todo. Va aparte de la ruta porque es la parte que
+    tiene que ser exacta, y la única que se puede comprobar sin una BD delante.
+    """
+    disponible = saldo_disponible(usuario)
+    if disponible <= 0:
+        raise ValueError("No hay saldo de referidos disponible")
+    if pedido is None:
+        return disponible
+    try:
+        cantidad = round(float(pedido), 2)
+    except (TypeError, ValueError):
+        raise ValueError(f"Monto de crédito inválido: {pedido!r}")
+    if cantidad <= 0:
+        raise ValueError("El crédito debe ser positivo")
+    if cantidad > disponible:
+        raise ValueError(f"Saldo insuficiente. Disponible: {disponible} €")
+    return cantidad
 
 
 @router.post("/referrals/redeem-credit")
 async def redeem_credit(user: dict = Depends(_require_user_proxy), amount: Optional[float] = None):
     """
-    Redeem some/all wallet balance against the next checkout. Returns the new
-    balance and a redemption record id; the checkout creation flow will read
-    `pending_referral_credit` on the user doc and apply it as a Stripe coupon
-    or amount discount.
+    Redeem some/all wallet balance against the next checkout.
+
+    ⚠️ Responde 501 mientras `CHECKOUT_APLICA_CREDITO` sea False, porque el cobro
+    no lee `pending_referral_credit` y el descuento no llegaría a aplicarse. Lo
+    que había aquí antes afirmaba lo contrario; ver el comentario de la constante.
     """
     fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0})
-    wallet_total = float(fresh.get("referral_wallet", 0.0))
-    redeemed = float(fresh.get("referral_wallet_redeemed", 0.0))
-    available = round(wallet_total - redeemed, 2)
-    if available <= 0:
-        raise HTTPException(status_code=400, detail="No hay saldo de referidos disponible")
     try:
-        redeem_amount = float(amount) if amount is not None else available
-        if redeem_amount <= 0:
-            raise ValueError("El crédito debe ser positivo")
-    except (TypeError, ValueError) as _e:
-        raise HTTPException(status_code=400, detail=f"Monto de crédito inválido: {_e}")
-    if redeem_amount > available:
-        raise HTTPException(status_code=400, detail=f"Saldo insuficiente. Disponible: {available} €")
+        redeem_amount = cuanto_se_canjea(fresh, amount)
+    except ValueError as _e:
+        raise HTTPException(status_code=400, detail=str(_e))
+
+    if not CHECKOUT_APLICA_CREDITO:
+        # Antes de escribir nada, para que el saldo se quede exactamente como
+        # está. Decirle cuánto tiene y que no lo pierde es más útil que un 501
+        # pelado, y es la única vía por la que hoy puede enterarse.
+        raise HTTPException(status_code=501, detail=(
+            f"Tienes {saldo_disponible(fresh)} € de saldo por referidos, pero todavía "
+            "no se puede canjear solo: el cobro no aplica el crédito. El saldo sigue "
+            "intacto y no caduca — escríbenos y te lo abonamos a mano."
+        ))
 
     redemption_id = str(uuid.uuid4())
     await db.referral_redemptions.insert_one({
@@ -329,15 +364,21 @@ async def redeem_credit(user: dict = Depends(_require_user_proxy), amount: Optio
         "status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
+    # `$inc` sobre lo canjeado —no un `$set` con un total calculado aquí—: dos
+    # canjes a la vez con `$set` se pisan y uno de los dos sale gratis. Y sin
+    # este `$inc` el saldo no bajaba NUNCA, que es lo que hacía falsa la resta
+    # de `available_after`.
     await db.users.update_one(
         {"id": user["id"]},
-        {"$set": {"pending_referral_credit": redeem_amount, "pending_referral_redemption_id": redemption_id}},
+        {"$inc": {"referral_wallet_redeemed": redeem_amount},
+         "$set": {"pending_referral_credit": redeem_amount,
+                  "pending_referral_redemption_id": redemption_id}},
     )
     return {
         "ok": True,
         "redemption_id": redemption_id,
         "redeemed_amount": redeem_amount,
-        "available_after": round(available - redeem_amount, 2),
+        "available_after": round(saldo_disponible(fresh) - redeem_amount, 2),
         "message": "Saldo aplicado al próximo checkout",
     }
 
@@ -355,7 +396,7 @@ async def ensure_referral_indexes(database) -> None:
         await database.referrals.create_index("status")
         logging.info("✅ referrals indexes ensured")
     except Exception as e:
-        logging.error(f"referrals index error: {e}")
+        logging.error(f"referrals index error: {log_safe(e)}")
 
 
 # ---------------------------------------------------------------------------
@@ -363,10 +404,9 @@ async def ensure_referral_indexes(database) -> None:
 # ---------------------------------------------------------------------------
 
 def register(app_router, database, helpers: Dict[str, Any]) -> None:
-    global db, require_user, require_admin
+    global db, require_user
     db = database
     require_user = helpers["require_user"]
-    require_admin = helpers["require_admin"]
     # Apply rate limit to the unauthenticated track endpoint before including router
     if helpers.get("limiter"):
         helpers["limiter"].limit("5/minute")(track_referral)

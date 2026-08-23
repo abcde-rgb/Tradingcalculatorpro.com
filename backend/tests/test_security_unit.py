@@ -41,8 +41,15 @@ def _load_shim_helpers():
         if isinstance(node, ast.FunctionDef) and node.name in wanted_funcs:
             chunks.append(ast.get_source_segment(src, node))
     assert len(chunks) >= 3, "could not extract shim helpers from server.py"
+    # `log_safe` se importa de `log_seguro`, que es un módulo suelto y SIN
+    # dependencias justamente para esto: los ayudantes del shim sanean lo que
+    # loguean, y sin él aquí salían diez `NameError` que no tenían nada que ver
+    # con la inyección SQL que este fichero prueba. Importarlo de `server.py`
+    # arrastraría FastAPI, Stripe y asyncpg, que es lo que este test evita.
+    from log_seguro import log_safe
+
     ns = {
-        "_re_module": _re, "re": _re, "logging": logging,
+        "_re_module": _re, "re": _re, "logging": logging, "log_safe": log_safe,
         "_json_module": json, "json": json, "_json_default": str,
     }
     exec("\n\n".join(chunks), ns)  # noqa: S102 — trusted first-party source

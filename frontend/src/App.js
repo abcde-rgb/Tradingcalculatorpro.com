@@ -62,6 +62,7 @@ const NewsPage         = lazyRetry(() => import("@/pages/NewsPage"));
 const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
 const TradingPlanPage  = lazyRetry(() => import("@/pages/TradingPlanPage"));
 const BacktestingPage  = lazyRetry(() => import("@/pages/BacktestingPage"));
+const BrokersPage      = lazyRetry(() => import("@/pages/BrokersPage"));
 const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
 const AffiliatePage    = lazyRetry(() => import("@/pages/AffiliatePage"));
 const LegalPage        = lazyRetry(() => import("@/pages/LegalPage"));
@@ -156,6 +157,9 @@ const AppContent = () => (
           {/* Sin ProtectedRoute a propósito: lo que hay dentro es una herramienta
               gratuita de terceros y cobrar por ella sería vender lo que no es tuyo. */}
           <Route path="/backtesting"     element={<BacktestingPage />} />
+          {/* Enlaces de referido. Lo que se puede enseñar lo decide el
+              servidor (`brokers_referidos.py`); hoy la lista está vacía. */}
+          <Route path="/brokers"         element={<BrokersPage />} />
           <Route path="/news"            element={<ProtectedRoute premiumOnly><NewsPage /></ProtectedRoute>} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/affiliate"       element={<ProtectedRoute><AffiliatePage /></ProtectedRoute>} />

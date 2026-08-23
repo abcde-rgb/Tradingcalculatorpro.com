@@ -102,6 +102,39 @@ probar() {
   }
 }
 
+# probar_inverso <nombre> <comando> <cebo> [restaurar]
+#   La otra mitad, y hace falta: un verificador que grita con TODO tampoco
+#   verifica nada, sólo que de otra manera —se desactiva a la semana y ya no
+#   protege—. Aquí se aplica un <cebo> que NO es un fallo y se exige que el
+#   verificador siga pasando.
+#
+#   Sin esto, «arreglar» un falso positivo desactivando el verificador entero
+#   pasaría igual el sabotaje normal, porque un verificador apagado detecta lo
+#   mismo que uno roto: nada.
+probar_inverso() {
+  local nombre="$1" comando="$2" cebo="$3" restaurar="${4:-git checkout -- .}"
+
+  if ! eval "$comando" >/dev/null 2>&1; then
+    echo "  ⚠️  $nombre: no pasa ni ANTES del cebo — hay algo roto de verdad"
+    FALLOS=$((FALLOS + 1)); return
+  fi
+
+  eval "$cebo" >/dev/null 2>&1
+
+  if eval "$comando" >/dev/null 2>&1; then
+    echo "  ✅ $nombre: no salta con un falso positivo"
+  else
+    echo "  ❌ $nombre: SALTA con algo que no es un fallo — falso positivo"
+    FALLOS=$((FALLOS + 1))
+  fi
+
+  eval "$restaurar" >/dev/null 2>&1
+  eval "$comando" >/dev/null 2>&1 || {
+    echo "  ❌ $nombre: NO vuelve a pasar tras restaurar — el cebo dejó residuo"
+    FALLOS=$((FALLOS + 1))
+  }
+}
+
 echo "═══ ¿Los verificadores verifican? ═══"
 
 # ── El mapa detecta que el código cambió ────────────────────────────────────
@@ -153,6 +186,52 @@ import pathlib
 p = pathlib.Path('scripts/gen-mapa.py'); t = p.read_text()
 p.write_text(t.replace('def se_consume(', 'def se_consume(*_a, **_k):\n    return True\n\n\ndef _se_consume_original(', 1))\""
 
+# ── Las rutas muertas llevan decisión escrita ───────────────────────────────
+titulo "Decisión por ruta muerta (check-rutas-muertas.py)"
+
+# El mapa CUENTA las rutas sin consumidor; esto exige que cada una tenga escrito
+# qué se hace con ella. Sin ello el número sube de 38 a 39, se regenera el mapa,
+# y CI se pone verde con una ruta más que nadie puede alcanzar.
+probar "una ruta nueva que ninguna pantalla llama" \
+  "python scripts/check-rutas-muertas.py" \
+  "printf '\n\n@api_router.get(\"/sabotaje/sin/decision\")\nasync def sabotaje_sin_decision():\n    return {}\n' >> backend/timeframes.py"
+
+# ⚠️ Este sabotaje nombraba una ruta y su decisión a pelo
+# (`/api/quote/{symbol}` … CONSTRUIR). El día que esa ruta cambió de decisión, el
+# `replace` dejó de encontrar nada: el fichero quedaba INTACTO, el verificador
+# pasaba con toda la razón, y la suite lo cantó como «SOBREVIVE al sabotaje».
+# Un sabotaje que no sabotea es la misma nada que un verificador que no verifica,
+# sólo que además acusa a quien no ha hecho nada. Ahora se borra la PRIMERA fila
+# de decisión que haya, sea cual sea, y se comprueba que de verdad ha cambiado
+# algo antes de dar el sabotaje por aplicado.
+probar "una fila que desaparece de la tabla" \
+  "python scripts/check-rutas-muertas.py" \
+  "python -c \"
+import pathlib, re, sys
+p = pathlib.Path('docs/RUTAS_MUERTAS.md'); t = p.read_text()
+corte = t.index('## Las decisiones')
+# El ancla es el backtick: las filas de DECISIÓN empiezan por '| \\\`GET\\\`…'. Sin
+# él, el primer '|' de la sección es la cabecera de la tabla, borrarla no quita
+# ninguna decisión y el verificador pasa — otro sabotaje que no sabotea.
+nuevo = t[:corte] + re.sub(r'^\\| \\\`[^\\n]*\\n', '| x |\\n', t[corte:], count=1, flags=re.M)
+if nuevo == t: sys.exit('el sabotaje no cambió nada: no hay filas de decisión')
+p.write_text(nuevo)\""
+
+# La dirección que de verdad pudre las listas: una ruta que YA tiene pantalla y
+# se queda en la tabla de deuda. Le pasó a `/plan` —estuvo en la lista de muertas
+# después de tener pantalla— y sólo se cazó por los controles de `gen-mapa.py`.
+probar "una ruta de la tabla que ya tiene consumidor" \
+  "python scripts/check-rutas-muertas.py" \
+  "printf '\nexport const _sab = () => fetch(\`\${API}/education/pattern-catalog\`);\n' >> frontend/src/lib/store.js"
+
+# Y el falso positivo simétrico: un COMENTARIO que nombra una ruta no la consume.
+# `gen-mapa.py` los quita a propósito (lo descubrió el comentario de `/pricing`
+# que citaba `/api/portfolio/rebalance` al explicar por qué se retiraba). Si esto
+# saltara, la forma de callarlo sería borrar el comentario que explica las cosas.
+probar_inverso "un comentario que NOMBRA una ruta no la consume" \
+  "python scripts/check-rutas-muertas.py" \
+  "printf '\n// TODO: conectar \`\${API}/education/pattern-catalog\` algún día\n' >> frontend/src/lib/store.js"
+
 # ── El catálogo de instrumentos ─────────────────────────────────────────────
 titulo "Catálogo backend ↔ frontend (gen-instruments-js.py --check)"
 probar "el catálogo del backend cambia y el generado no" \
@@ -168,6 +247,16 @@ titulo "Enlaces de la doc (check-doc-links.py)"
 probar "enlace a un documento inexistente" \
   "python scripts/check-doc-links.py" \
   "printf '\n[enlace roto](./NO_EXISTE_SABOTAJE.md)\n' >> docs/README.md"
+
+# La otra mitad, que es la que faltaba: el verificador tiene que CALLARSE dentro
+# de un bloque de código. Sin esta comprobación, «arreglar» el falso positivo
+# desactivando el verificador entero también habría pasado el sabotaje de arriba.
+# El falso positivo era real: un `[a-z0-9-]+` seguido de un paréntesis de grupo
+# tiene la forma exacta de `[texto](destino)`, y cualquier documento que enseñe
+# una expresión regular quedaba marcado como roto.
+probar_inverso "un enlace roto DENTRO de un bloque de código no cuenta" \
+  "python scripts/check-doc-links.py" \
+  "printf '\n\`\`\`\n[enlace roto](./NO_EXISTE_SABOTAJE.md)\n\`\`\`\n' >> docs/README.md"
 
 # ── Paridad de idiomas ──────────────────────────────────────────────────────
 titulo "Paridad i18n (i18n-check.js)"
@@ -308,6 +397,26 @@ probar "un fetch al backend sin credentials" \
   "(cd frontend && node scripts/check-fetch-credentials.js)" \
   "printf \"export const x = () => fetch(API + '/api/sabotaje', { method: 'GET' });\n\" > $FETCH_FALSO" \
   "rm -f $FETCH_FALSO"
+
+# ── Los logos de socios: el fichero de la carpeta tiene que llegar a la web ──
+# El fallo real que esto caza no es un logo feo, es un logo INVISIBLE: alguien
+# deja `axi-square.svg` en `assets/partners/`, da por hecho que ya sale, y el
+# mapa generado ni se entera. Se sabotea dejando un fichero sin regenerar, que
+# es exactamente eso.
+titulo "Logos de socios (gen-partner-logos.js --check)"
+LOGO_FALSO="frontend/src/assets/partners/zzsabotaje-square.svg"
+TEMPORALES+=("$LOGO_FALSO")
+probar "un logo dejado en la carpeta que el mapa generado no conoce" \
+  "(cd frontend && node scripts/gen-partner-logos.js --check)" \
+  "printf '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1 1\"></svg>' > $LOGO_FALSO" \
+  "rm -f $LOGO_FALSO"
+
+# Y la otra dirección: un `import` del mapa que ya no tiene fichero detrás
+# rompe el build entero, así que el mapa no puede sobrevivir a un borrado.
+probar "un logo borrado que el mapa generado sigue importando" \
+  "(cd frontend && node scripts/gen-partner-logos.js --check)" \
+  "mv frontend/src/assets/partners/margex-square.png /tmp/zz-margex.png" \
+  "mv /tmp/zz-margex.png frontend/src/assets/partners/margex-square.png"
 
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
 # Un módulo que se navega pero no se indexa existe y no se encuentra nunca; uno
