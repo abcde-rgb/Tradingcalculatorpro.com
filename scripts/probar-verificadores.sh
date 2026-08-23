@@ -337,6 +337,41 @@ probar "un logo borrado que el mapa generado sigue importando" \
   "mv frontend/src/assets/partners/margex-square.png /tmp/zz-margex.png" \
   "mv /tmp/zz-margex.png frontend/src/assets/partners/margex-square.png"
 
+# ── El precio anunciado es el que se cobra ──────────────────────────────────
+# Las dos direcciones: que un idioma se desvíe, y que suba el precio en el
+# backend sin que nadie toque los textos. La segunda es la que pasa de verdad.
+titulo "Precio anunciado vs cobrado (check-precios.py)"
+probar "un idioma anuncia un precio distinto del que se cobra" \
+  "python scripts/check-precios.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/ja.js')
+p.write_text(p.read_text().replace('\\\"monthlyPrice\\\": \\\"€17\\\"', '\\\"monthlyPrice\\\": \\\"€19\\\"', 1))\""
+
+probar "sube el precio en el backend y los textos se quedan atrás" \
+  "python scripts/check-precios.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('backend/server.py')
+p.write_text(p.read_text().replace('\\\"price\\\": 17.00', '\\\"price\\\": 21.00', 1))\""
+
+# ── El presupuesto de peso caza una pantalla que engorda ────────────────────
+# Necesita el build compilado y el servidor en pie, así que sólo se prueba si
+# están; si no, se dice que se salta en vez de figurar como aprobado.
+if [ -d frontend/build ] && curl -s -o /dev/null --max-time 3 "http://localhost:3100/Tradingcalculatorpro.com/"; then
+  titulo "Presupuesto de peso (peso.js)"
+  probar "un presupuesto por debajo de lo que pesa la pantalla" \
+    "node tests/e2e/navegador/peso.js" \
+    "python -c \"
+import json, pathlib
+p = pathlib.Path('tests/e2e/presupuesto-peso.json'); d = json.loads(p.read_text())
+r = d['rutas']['portada']; r['js'] //= 2; r['total'] //= 2
+p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
+    "git checkout -- tests/e2e/presupuesto-peso.json"
+else
+  echo "  ⏭️  Presupuesto de peso: sin build o sin servidor en :3100, no se prueba"
+fi
+
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
 # Un módulo que se navega pero no se indexa existe y no se encuentra nunca; uno
 # indexado y no navegable es un enlace roto. Se sabotea renombrando un `value:`

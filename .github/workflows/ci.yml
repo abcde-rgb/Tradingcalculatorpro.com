@@ -82,6 +82,12 @@ jobs:
       - name: Cada ruta sin consumidor tiene una decisión escrita
         run: python scripts/check-rutas-muertas.py
 
+      # El importe de cada plan está en doce sitios y el que manda al cobrar
+      # —SUBSCRIPTION_PLANS— es el único que la página NO consulta. Anunciar
+      # un precio y cobrar otro no es un bug: es motivo de devolución.
+      - name: El precio anunciado es el que se cobra
+        run: python scripts/check-precios.py
+
       # Este SÍ bloquea. Comprueba que cada verificador falla cuando debe
       # fallar, saboteándolo y revirtiendo. Existe porque han aparecido varias
       # comprobaciones que no comprobaban nada —una guarda tautológica sobre el
