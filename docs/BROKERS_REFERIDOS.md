@@ -183,7 +183,7 @@ Cuatro piezas, de dentro afuera:
 |---|---|
 | `backend/brokers_referidos.py` | El registro: los seis, con lo confirmado y lo pendiente marcado **como pendiente**, no como valor optimista. Y las condiciones — `autorizado_ue`, `esta_al_dia()`, `puede_mostrarse()`, `advertencia()`, `advertencia_corta()`. |
 | `GET /api/brokers` (`server.py`) | Sirve los publicables con `entidad`, `regulador`, `licencia`, `url`, `esReferido`, `cumpleUe` y las dos formas del aviso. La cifra **sale del servidor con su fecha detrás**, nunca de una constante del frontend: caduca. |
-| `components/common/RecommendedTools.jsx` | La fila de socios de la portada. Los ocho —Margex, Hyperliquid y los seis— de izquierda a derecha, con el aviso abreviado y «leer más». |
+| `components/common/RecommendedTools.jsx` | La marquesina de socios de la portada. Los ocho —Margex, Hyperliquid y los seis— en bucle continuo de derecha a izquierda, con descripción, ficha legal, aviso abreviado y «leer más». |
 | `pages/BrokersPage.jsx` (`/brokers`) | La ficha completa: declaración de afiliación arriba del todo, advertencia normalizada entera y `rel="sponsored noopener noreferrer"`. Enlazada desde el pie. `noindex`. |
 
 **El porcentaje caduca a los 100 días.** Es la pieza que casi nadie implementa:
@@ -223,10 +223,16 @@ primero de esos tres comandos, y a día de hoy es: **0 de 6**.
 3. Verificar las condiciones de IBKR y Swissquote **desde una red sin el proxy de
    este entorno**.
 4. Rellenar en el registro lo que falta, con la fecha de lectura del porcentaje.
-5. **Los logos.** Los oficiales son marcas registradas y no los tengo, así que la
-   tarjeta pinta hoy el nombre y la entidad. En cuanto haya fichero en
-   `frontend/src/assets/partners/<id>-square.png|svg`, se añade su `import` al
-   mapa `LOGOS` de `RecommendedTools.jsx` —dos líneas— y la tarjeta lo usa sola.
+5. **Los logos oficiales.** Los sirven los propios brókers en su media kit de
+   afiliados, y **desde este entorno no se pueden descargar**: el proxy de
+   salida responde 403 a los seis dominios. Dibujar una imitación de un logo
+   registrado es peor que no ponerlo —se parecería lo justo para confundir y no
+   sería el suyo—, así que la tarjeta pinta una **ficha de marca propia**:
+   monograma, nombre y supervisor, con un tono estable derivado del `id` que
+   **no es el color corporativo del bróker** y no pretende serlo. En cuanto
+   haya fichero en `frontend/src/assets/partners/<id>-square.png|svg`, se añade
+   su `import` al mapa `LOGOS` de `RecommendedTools.jsx` —dos líneas— y la
+   tarjeta lo usa sola.
 6. **Los porcentajes, confirmados en la web del bróker y fechados.** Los dos que
    hay salen de buscador y están marcados como pendientes en el propio registro.
    Desde este entorno no se puede: `axi.com` y `dukascopy.com` están bloqueados
