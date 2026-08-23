@@ -211,6 +211,9 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 
 ---
 
+| G-49 | **`starlette==0.41.3` arrastra 9 CVEs** (pip-audit: PYSEC-2026-161/248/249/1941/1942/2280/2281 y otras). Va clavado en `backend/requirements.txt:59` junto a `fastapi==0.115.5`. Encontrado ejecutando `pip-audit` en la pasada de QA del 2026-08-22 | 🟠 | Subir `starlette` (arrastra el pin de `fastapi`) y re-correr el suite. Es dependencia de **runtime**, no de build: se sirve en cada request |
+| G-50 | **7 tests unitarios no corren sin `pytest-asyncio`.** `test_app_settings_roundtrip_unit.py` (añadido el 2026-08-11) usa `@pytest.mark.asyncio`, pero el plugin no está en `requirements.txt` ni en `ci.yml` (que instala sólo `requirements.txt pytest`). Sin él fallan con *«async def functions are not natively supported»* — verificado, y falla igual con o sin el arreglo de BUG-058, así que es previo e independiente. `ci.yml:42` corre `pytest tests/ -q` como paso bloqueante | 🟠 | Comprobar si el paso de CI está de verdad verde; si sólo instala `requirements.txt pytest`, estos 7 llevan fallando desde el 2026-08-11. Añadir `pytest-asyncio` a `requirements.txt` (o a un `requirements-dev.txt`) |
+
 ## 4. Qué hay que PROBAR (plan de test)
 
 **Automático (ya disponible, todo verificado el 2026-08-03):**
@@ -258,6 +261,8 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
       y reset de contraseña.
 - [ ] **IP no falsificable en referidos y afiliados** (G-38) — helper compartido, antes de
       cualquier dedup por IP.
+- [ ] **Subir `starlette`** por los 9 CVEs de pip-audit (G-49).
+- [ ] **`pytest-asyncio` en requirements/CI** (G-50) — 7 tests unitarios no corren sin él.
 - [ ] Tests del shim `Collection` (G-17).
 - [ ] `check-doc-links.py` en CI (G-18).
 
@@ -322,11 +327,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-22 | Ejecutar las skills de seguridad: BUG-058 (revocación) hallado y arreglado |
 | 2026-08-15 | Lo último que seguía atado a un navegador |
 | 2026-08-14 (5) | Mil escenarios generados, y lo que 264 comprobaciones no veían |
 | 2026-08-14 (4) | La captura mentía: la barra de navegación salía tres veces |
 | 2026-08-14 (3) | La mesa, rehecha: una pregunta, un botón, una respuesta |
-| 2026-08-14 | La mesa de cálculo: el dashboard deja de ser catorce calculadoras sueltas |
 
 ```bash
 # buscar una sesión por fecha o por tema

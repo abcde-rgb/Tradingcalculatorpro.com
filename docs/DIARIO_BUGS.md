@@ -587,3 +587,11 @@ a `round(plan["price"], 2)` con comentario explicativo.
 ---
 
 *Actualizado 2026-08-10 (3) — passkeys operativas de punta a punta (FEAT-PASSKEYS).*
+
+---
+
+| BUG-058 | **La revocación de sesión mataba el token recién emitido si el re-login caía en el mismo segundo.** `change-password` y `reset-password` revocan las sesiones vivas escribiendo `user_revocations.revoked_after = datetime.now().isoformat()` — con precisión de **microsegundos** — y `_is_user_session_revoked` comparaba `iat_dt < revoked_after`. Pero el `iat` de un JWT es un NumericDate en **segundos enteros**: PyJWT descarta la fracción al codificar. Así que un token emitido en el mismo segundo del cambio de contraseña tenía `iat = X.000000`, que es `< X.234567` → la sesión **nueva** nacía muerta. Y la propia respuesta del endpoint le dice al usuario *"vuelve a iniciar sesión"*, justo lo que dispara el caso: un cliente rápido (o el SPA re-logueando solo) entra en el mismo segundo y su sesión recién creada da 401. Ventana ≤1 s, se cura reintentando el login un instante después; por eso parece intermitente. Afecta a los dos puntos que revocan (`server.py` ~2418 reset y ~2450 change-password). **Encontrado por el E2E `api/autorizacion.py`**, cuya guarda "la sesión nueva sirve para releer el usuario" salía en 401; **reproducido en vivo** contra el backend real (2/8 reintentos mataban la sesión) y **aislado** en un test unitario contra la función real. Fix: comparar a granularidad de segundo, `iat_dt < revoked_after.replace(microsecond=0)`, de modo que un token del segundo X sobreviva a una revocación sellada en el segundo X y los de segundos anteriores sigan muriendo (el residual —un token del mismo segundo pero anterior al cambio sobrevive <1 s— es el compromiso estándar de la revocación por segundo, y el access token dura 1 h). **Verificado tras el fix**: 5/5 cambios reales de contraseña dejan la sesión nueva viva; 4 tests en `test_session_revocation_unit.py`, que fallan sin el arreglo. | 🟡 | ✅ Resuelto (2026-08-22) |
+
+---
+
+*Actualizado 2026-08-22 — revocación de sesión con el token del mismo segundo (BUG-058), encontrado ejecutando el banco E2E (`api/autorizacion.py`) como parte de una pasada de QA.*

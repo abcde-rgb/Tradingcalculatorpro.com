@@ -1477,7 +1477,15 @@ async def _is_user_session_revoked(payload: dict) -> bool:
         # Ensure timezone-aware comparison
         if revoked_after.tzinfo is None:
             revoked_after = revoked_after.replace(tzinfo=timezone.utc)
-    return iat_dt < revoked_after
+    # `iat` is a JWT NumericDate: whole seconds, the sub-second part is dropped on
+    # encode. `revoked_after` is written with microsecond precision. Comparing them
+    # directly kills a token minted in the SAME second as the password change — its
+    # iat floors to X.000000, which is < X.234567 — so a user who changes their
+    # password and logs straight back in (which the response tells them to do) lands
+    # on a dead session. Floor the cutoff to the second: a token from second X
+    # survives a revocation stamped in second X, tokens from earlier seconds still
+    # die. (BUG-058, found by the E2E autorización probe.)
+    return iat_dt < revoked_after.replace(microsecond=0)
 
 
 def _extract_token_from_request(request: Request, credentials: Optional[HTTPAuthorizationCredentials]) -> Optional[str]:

@@ -4391,3 +4391,50 @@ en él; el diario de verdad es `/performance`.
 **Verificado:** engine-check 264/264 · simulación masiva 20.227 · i18n 10/10 ·
 check-edu-index · gen-mapa · check-doc-links · ESLint 0 errores · pytest 782
 passed · y las dos pruebas de dos dispositivos, en el navegador real.
+
+---
+
+### 2026-08-22 — Ejecutar las skills de seguridad: BUG-058 hallado y arreglado
+
+Se pidió, tras doblar lo útil de la librería `mukul975/Anthropic-Cybersecurity-Skills`
+en `seguridad-pagos` y `revisor-seguridad`, **ejecutar** de verdad las skills que corren
+en este entorno: el agente `revisor-seguridad` (estático) y el banco E2E `qa` (app viva).
+
+**`revisor-seguridad`** devolvió la tabla de controles completa. Confirmó lo ya sabido
+(webhooks verifican firma antes de actuar, claim atómico de pagos con `find_one_and_update`,
+JWT/cookies/2FA/passkeys correctos, G-37 y G-38 tal como se documentaron) y añadió dos
+hallazgos de dependencias que no estaban: `starlette==0.41.3` con 9 CVEs (pip-audit) →
+**G-49**, y las 44 vulns de `npm audit` (mayoría build-time). C-08 confirmado DB-first en
+`server.py:2774`.
+
+**`qa` — el banco E2E.** Levantar el stack necesitó dos parches de arranque: `arriba.sh`
+no crea `.qa-estado/` antes de redirigir el log, y compila el frontend sin `npm ci` previo
+(faltaba `node_modules`). Con eso: Postgres + backend + build de producción + datos
+sembrados + Playwright.
+
+- **`api/autorizacion.py`** → 28/29. El único ❌ no era de la sonda: su propia guarda "la
+  sesión nueva sirve para releer el usuario" salía en 401 y destapó un **bug real**.
+- **`api/rgpd.py`** → 12/12. El export se lleva todo, el borrado no deja ninguna fila
+  (10 de 6 tablas), sin hash de contraseña.
+- **`api/persistencia.py`** → bloqueada por el limitador de registro (3/h) agotado por las
+  otras sondas. Artefacto del banco, no del producto.
+- **`navegador/recorrido.js`** → 35/35 (escritorio): login, datos sembrados, los 7
+  productos, la aritmética de oro/forex/futuros/opciones/perpetuos.
+- **`navegador/seguridad-origenes.js`** y **`csp-ensayo.js`** → la munición para G-10: los
+  orígenes reales que contacta la web (incluido **PostHog**, `us-assets.i.posthog.com`,
+  que la doc no mencionaba) y la confirmación de que un `<meta>` CSP bloquea inline y
+  fetch pero **ignora `frame-ancestors`**.
+
+**BUG-058 (el hallazgo).** `change-password` y `reset-password` escriben `revoked_after`
+con microsegundos; `_is_user_session_revoked` comparaba `iat_dt < revoked_after`, pero el
+`iat` de un JWT es en segundos enteros. Un re-login en el **mismo segundo** que el cambio
+nacía con iat = X.000000 < X.234567 → sesión muerta. Reproducido en vivo (2/8), aislada la
+causa en un unit test, arreglado comparando a granularidad de segundo
+(`revoked_after.replace(microsecond=0)`), y re-verificado en vivo (5/5 sesiones vivas).
+`test_session_revocation_unit.py` (4 tests) lo fija y falla sin el arreglo.
+
+**De paso, G-50**: `test_app_settings_roundtrip_unit.py` usa `@pytest.mark.asyncio` y el
+plugin no está ni en `requirements.txt` ni en CI → 7 tests erroran desde el 2026-08-11,
+con o sin el cambio de esta sesión. Suite: 887 pasan, esos 7 previos fallan.
+
+Sin tocar red externa real (bloqueada): Yahoo/CoinGecko caídos por diseño del sandbox.
