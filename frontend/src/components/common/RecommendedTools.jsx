@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Ban, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 // Generado por `scripts/gen-partner-logos.js` a partir de los ficheros que haya
 // en `src/assets/partners/`. Ver el comentario largo sobre logos más abajo.
@@ -72,6 +72,12 @@ const MONOGRAMA = {
 // que los hechos (entidad, regulador, licencia, porcentaje) siguen viniendo del
 // servidor y de un solo sitio. Mezclar las dos cosas es cómo un dato acaba
 // escrito en once ficheros y desfasado en diez.
+// La jurisdicción, traducida por CÓDIGO. El texto que manda el servidor va en
+// castellano y sirve de respaldo: si aparece una jurisdicción nueva antes de
+// tener su clave, sale en castellano —incompleto pero cierto— en vez de salir
+// como «jurisd_xx» o como un hueco.
+const JURISDICCION = { ue: 'jurisdUe', svg: 'jurisdSvg' };
+
 const DESCRIPCION = {
   axi: 'partnerAxiDesc',
   dukascopy: 'partnerDukascopyDesc',
@@ -177,6 +183,8 @@ function useTarjetas() {
       info: null,
       regulador: null,
       reguladorCorto: null,
+      jurisdiccion: null,
+      noAdmite: null,
       advertenciaCorta: null,
       esReferido: true,
     })),
@@ -190,6 +198,14 @@ function useTarjetas() {
       regulador: b.regulador ? `${b.regulador}${b.licencia ? ` · ${b.licencia}` : ''}` : null,
       // En la ficha de marca cabe el supervisor, no el número de licencia.
       reguladorCorto: b.regulador || null,
+      // A qué público sirve esa entidad. Sin esto, la ficha le dice a un
+      // lector de Chile que su bróker es una sociedad chipriota supervisada
+      // por CySEC, y no lo es: la marca tiene una entidad por región.
+      jurisdiccion: (JURISDICCION[b.jurisdiccionCodigo] && t(JURISDICCION[b.jurisdiccionCodigo]))
+        || b.jurisdiccion || null,
+      // A quién no admite el alta. Va en la tarjeta, no en la letra pequeña:
+      // enterarse después de rellenar el formulario no sirve de nada.
+      noAdmite: b.noAdmiteResidentes?.length ? b.noAdmiteResidentes.join(', ') : null,
       advertenciaCorta: b.advertenciaCorta || null,
       esReferido: !!b.esReferido,
     })),
@@ -200,7 +216,7 @@ function Tarjeta({ tarjeta, clon }) {
   const { t } = useTranslation();
   const {
     id, nombre, url, imagen, descripcion, info, regulador, reguladorCorto,
-    advertenciaCorta, esReferido,
+    jurisdiccion, noAdmite, advertenciaCorta, esReferido,
   } = tarjeta;
 
   // La segunda copia de la pista existe sólo para que el bucle empalme sin
@@ -238,11 +254,33 @@ function Tarjeta({ tarjeta, clon }) {
         )}
 
         {/* Quién firma el contrato y quién lo regula. Más pequeño que la
-            descripción a propósito: es la letra pequeña, y va en su sitio. */}
+            descripción a propósito: es la letra pequeña, y va en su sitio.
+
+            ⚠️ La jurisdicción va PEGADA a la entidad, no en otra línea. El
+            público es internacional: «Solaris EMEA Ltd · CySEC · 433/23» a
+            secas le dice a un lector de Chile que ése es su bróker, y no lo
+            es. Con «(entidad para la Unión Europea)» la frase es verdad para
+            todo el mundo. */}
         {(info || regulador) && (
-          <p className="text-xs text-muted-foreground/80 mb-2 flex items-start gap-1 leading-snug">
+          <p className="text-xs text-muted-foreground/80 mb-2 flex items-start gap-1 leading-snug"
+             {...(clon ? {} : { 'data-testid': `partner-ficha-${id}` })}>
             {regulador && <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-px text-primary" />}
-            <span>{[info, regulador].filter(Boolean).join(' · ')}</span>
+            <span>
+              {[info, regulador].filter(Boolean).join(' · ')}
+              {jurisdiccion && (
+                <span className="opacity-80"> — {t('brokersEntidadPara')} {jurisdiccion}</span>
+              )}
+            </span>
+          </p>
+        )}
+
+        {/* A quién NO admite. En la tarjeta y antes del botón: enterarse
+            después de rellenar el alta no le sirve a nadie. */}
+        {noAdmite && (
+          <p className="text-xs text-muted-foreground/80 mb-2 leading-snug"
+             {...(clon ? {} : { 'data-testid': `partner-noadmite-${id}` })}>
+            <Ban className="w-3.5 h-3.5 shrink-0 mt-px inline-block mr-1 align-text-top" />
+            {t('brokersNoAdmite')} {noAdmite}
           </p>
         )}
 

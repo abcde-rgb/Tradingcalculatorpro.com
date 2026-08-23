@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, ExternalLink, ShieldCheck, Info } from 'lucide-react';
+import { AlertTriangle, Ban, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,26 +8,41 @@ import { useSEO } from '@/hooks/useSEO';
 
 const API = process.env.REACT_APP_BACKEND_URL ? `${process.env.REACT_APP_BACKEND_URL}/api` : null;
 
+// La jurisdicción, traducida por código; el texto del servidor es el respaldo.
+const JURISDICCION = { ue: 'jurisdUe', svg: 'jurisdSvg' };
+
 /**
  * Los brókers a los que referimos.
  *
  * Todo lo que decide qué se pinta aquí vive en el servidor
- * (`backend/brokers_referidos.py`): un bróker sólo llega a esta pantalla si
- * tiene a la vez autorización en la UE, porcentaje de pérdidas dentro de la
- * ventana trimestral de ESMA y enlace configurado. Esta página **no** puede
- * enseñar uno que no cumpla, porque no los recibe.
+ * (`backend/brokers_referidos.py`). Esta página no filtra ni decide: recibe la
+ * lista ya resuelta y la pinta. Lo único que el servidor **bloquea** es un
+ * enlace de referido cuyo destino no se ha leído, porque enseñar una ficha
+ * legal que no corresponde al sitio al que lleva el botón es peor que no
+ * enlazar.
  *
- * Lo que sí es responsabilidad de la pantalla, y por eso está escrito aquí:
+ * El público es INTERNACIONAL, y eso decide qué se enseña:
  *
- *   · la advertencia normalizada va **igual de visible que el enlace**, no en
- *     una nota al pie — es lo que exige la intervención de producto de ESMA;
+ *   · la entidad va **con la jurisdicción a la que sirve**. Una marca tiene una
+ *     entidad por región; «Solaris EMEA Ltd · CySEC» a secas le afirma a un
+ *     lector de Chile que ése es su bróker, y no lo es;
+ *   · el porcentaje de pérdidas va **con el nombre de la entidad que lo
+ *     publicó**, no atribuido al bróker entero — Swissquote publica 55,05 % en
+ *     la UE y 78,23 % en Reino Unido;
+ *   · a quién NO admite el alta se dice **antes del botón**, no después de que
+ *     haya rellenado el formulario.
+ *
+ * Y lo que no cambia por ser internacional:
+ *
+ *   · la advertencia va **igual de visible que el enlace**, no en una nota al
+ *     pie;
  *   · la relación de afiliación se declara arriba del todo (Directiva Omnibus);
  *   · los enlaces salen con `rel="sponsored"`, que es lo que son.
  *
  * Y no hay comparativa. Decir «el más barato» o «el mejor» exigiría datos de
  * comisiones que no puedo verificar, y este producto no publica cifras que no
  * ha medido. Lo que se publica es lo comprobable: quién es la entidad, quién la
- * regula y con qué número.
+ * regula, con qué número, qué porcentaje publica y a quién no acepta.
  */
 export default function BrokersPage() {
   const { t } = useTranslation();
@@ -98,6 +113,26 @@ export default function BrokersPage() {
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                         <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                         {b.regulador}{b.licencia ? ` · ${b.licencia}` : ''}
+                      </p>
+                    )}
+                    {/* A qué público sirve esa entidad. El sitio se dirige a
+                        público internacional, y una marca tiene una entidad
+                        por región: sin esta línea la ficha le está diciendo a
+                        quien lee que ésa es la suya, y para la mayoría no. */}
+                    {b.jurisdiccion && (
+                      <p className="text-xs text-muted-foreground/80 mt-1"
+                         data-testid={`broker-jurisdiccion-${b.id}`}>
+                        {t('brokersEntidadPara')}{' '}
+                        {(JURISDICCION[b.jurisdiccionCodigo] && t(JURISDICCION[b.jurisdiccionCodigo]))
+                          || b.jurisdiccion}
+                      </p>
+                    )}
+                    {/* A quién no admite el alta, antes del botón. */}
+                    {b.noAdmiteResidentes?.length > 0 && (
+                      <p className="text-xs text-muted-foreground flex items-start gap-1 mt-1"
+                         data-testid={`broker-noadmite-${b.id}`}>
+                        <Ban className="w-3.5 h-3.5 shrink-0 mt-px" />
+                        <span>{t('brokersNoAdmite')} {b.noAdmiteResidentes.join(', ')}</span>
                       </p>
                     )}
                   </div>

@@ -9,6 +9,73 @@
 > salida de este entorno**, así que hay datos que salen de buscador y no de la
 > página oficial. Van marcados.
 
+## Reanálisis del 2026-08-23: el público es INTERNACIONAL
+
+El expediente entero se escribió contestando **una pregunta europea**: cada campo
+del registro se llamaba `*_ue`, el listón era `cumple_ue` y la advertencia era la
+literal de ESMA. Revisado con el marco real —**sola promoción, público
+internacional**— ese modelo se equivoca en las dos direcciones.
+
+**Es demasiado estricto.** VT Markets no tiene autorización en la UE, y bajo ASIC
+(Australia), FSCA (Sudáfrica) o FSC (Mauricio) es un bróker supervisado.
+Descartarlo para un lector australiano por una regla europea no protege a nadie.
+El listón de la UE se conserva —es el más exigente que conocemos y sirve de vara—
+pero pasa a llamarse por su nombre: **el listón de una jurisdicción**, no *el*
+listón. Se publica como `cumpleUe` y no decide qué se muestra.
+
+**Y es demasiado laxo, que es lo grave.** Una marca no tiene «una» entidad ni «un»
+porcentaje de pérdidas: tiene **uno por región**. La tarjeta decía:
+
+> El 67,24 % de las cuentas de CFD minoristas pierden dinero **con este proveedor**.
+
+Esa cifra es de **Solaris EMEA Ltd, bajo CySEC**. A un lector de Chile, México o
+Singapur —que abriría cuenta con otra entidad, con otra cifra— le está
+atribuyendo a su futuro bróker una estadística que no es la de su futuro bróker.
+Swissquote publica **55,05 % en la UE y 78,23 % en Reino Unido**: la misma marca,
+dos números, ninguno de los dos «el suyo». Es la misma familia que BUG-059 y
+BUG-063 — un número presentado como más general de lo que es.
+
+### La regla que sale de ahí
+
+**Cada dato va etiquetado con la jurisdicción y la entidad a la que pertenece.**
+No se traduce un régimen a otro ni se generaliza el de nadie.
+
+| Antes | Ahora |
+|---|---|
+| «…pierden dinero con **este proveedor**» | «…pierden dinero con **Solaris EMEA Ltd (CySEC, UE)**», y la advertencia larga añade que la entidad y su porcentaje **dependen de tu país de residencia** |
+| «Solaris EMEA Ltd · CySEC · 433/23» | lo mismo **+ «entidad para la Unión Europea»**, traducido a los 10 idiomas por código (`jurisdUe`, `jurisdSvg`), no por texto del servidor |
+| a quién no admite, enterrado en una nota interna | **`noAdmiteResidentes`, en la tarjeta y antes del botón** |
+| el porcentaje exigía cifra + fuente | exige cifra + fuente + **de qué entidad es** (`perdida_pct_entidad`) |
+
+### Lo que «recomendación» arrastra, y que no es neutro
+
+La sección se titula «Herramientas que recomendamos». Recomendar una
+**plataforma** no es asesoramiento en inversión —eso sería recomendar un
+instrumento— pero sí es una afirmación nuestra, y el contrato de Axi lo deja por
+escrito: el Partner debe confirmar al cliente que **«any advice provided by the
+Partner is provided by the Partner independently, without the consultation,
+knowledge or approval of Axi»**, y que Axi «acts as principal, provides an
+execution-only service and does not provide any personal financial advice».
+
+Traducido: **el bróker no respalda nuestra recomendación y no hay ningún tercero
+detrás de ella.** De ahí que lo que se publique de cada uno sea comprobable
+—entidad, supervisor, número de licencia, porcentaje con su origen y a quién no
+acepta— y que no haya comparativas ni «el mejor».
+
+### Lo que sigue sin poder verificarse
+
+Un modelo internacional honesto necesitaría **la lista de entidades por región de
+cada bróker**, y hoy no se puede leer: el proxy de este entorno responde 403 a los
+seis dominios y a sus alternativos. Lo que hay son dos entidades europeas sin
+confirmar en la fuente y una offshore **sí confirmada** (AxiTrader LLC, del PDF
+oficial). El resto va como `None`, que es lo que es.
+
+⚠️ **Deuda conocida, no arreglada aquí:** los nombres de entidad los sirve el
+backend en castellano —«Solaris EMEA Ltd (HE376148, **Chipre**)»— y no se
+traducen, así que en inglés la ficha mezcla idiomas. La jurisdicción sí se ha
+resuelto por código; los nombres de entidad son un cambio mayor y quedan
+apuntados.
+
 ## Lo primero, porque cambia el resto
 
 Un enlace de referido a un bróker de CFDs dirigido a minoristas de la UE **no es

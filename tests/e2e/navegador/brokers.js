@@ -38,15 +38,22 @@ const CON_BROKERS = {
     entidad: 'Solaris EMEA Ltd (HE376148, Chipre)',
     regulador: 'CySEC',
     licencia: '433/23',
+    // El público es internacional: la entidad va con la jurisdicción a la que
+    // sirve, y la cifra con el nombre de quien la publicó.
+    jurisdiccion: 'Unión Europea',
+    jurisdiccionCodigo: 'ue',
+    noAdmiteResidentes: ['los países de su lista de vetados y embargados'],
     url: 'https://ejemplo.test/?ref=PRUEBA',
     esReferido: true,
     cumpleUe: true,
-    advertenciaCorta: 'El 67.24 % de las cuentas de CFD minoristas pierden dinero con este proveedor.',
+    advertenciaCorta: 'El 67.24 % de las cuentas de CFD minoristas pierden dinero '
+      + 'con Solaris EMEA Ltd (CySEC, UE).',
     advertencia: 'Los CFD son instrumentos complejos y conllevan un alto riesgo de perder '
       + 'dinero rápidamente debido al apalancamiento. El 67.24 % de las cuentas de '
-      + 'inversores minoristas pierden dinero al operar CFD con este proveedor. Debe '
-      + 'considerar si comprende cómo funcionan los CFD y si puede permitirse asumir un '
-      + 'riesgo elevado de perder su dinero.',
+      + 'inversores minoristas pierden dinero al operar CFD con Solaris EMEA Ltd '
+      + '(CySEC, UE). Debe considerar si comprende cómo funcionan los CFD y si puede '
+      + 'permitirse asumir un riesgo elevado de perder su dinero. La entidad con la que '
+      + 'abrirías cuenta —y su porcentaje— dependen de tu país de residencia.',
   }],
 };
 const VACIO = { afiliacion: true, brokers: [] };
@@ -95,6 +102,29 @@ async function abre(nav, cuerpo, salida, nombre) {
       const texto = (await aviso.innerText()).replace(/\s+/g, ' ');
       marca('lleva el porcentaje real del bróker', /67\.24\s*%/.test(texto), texto.slice(0, 70));
       marca('y dice de qué producto habla', /CFD/.test(texto));
+
+      // Público INTERNACIONAL. La cifra es de UNA entidad bajo UN régimen, y
+      // atribuírsela al bróker entero le dice a un lector de fuera de la UE
+      // que ése es el porcentaje de su futuro bróker, cuando no lo es.
+      marca('la cifra dice DE QUÉ ENTIDAD es', /Solaris EMEA/.test(texto));
+      marca('y no se la atribuye al bróker entero', !/este proveedor/.test(texto));
+      marca('y avisa de que la entidad depende del país',
+            /depende/.test(texto) && /residencia/.test(texto));
+    }
+
+    // La ficha legal dice a qué público sirve esa entidad, y a quién no admite.
+    {
+      const jur = page.locator('[data-testid="broker-jurisdiccion-axi"]');
+      marca('la ficha dice a qué público sirve esa entidad', await jur.count() === 1,
+            (await jur.count()) ? (await jur.innerText()).trim() : '');
+      const veto = page.locator('[data-testid="broker-noadmite-axi"]');
+      marca('y a quién NO admite, antes del botón', await veto.count() === 1);
+      if (await veto.count() && await enlace.count()) {
+        const yVeto = (await veto.boundingBox())?.y ?? 1e9;
+        const yBoton = (await enlace.boundingBox())?.y ?? 0;
+        marca('el veto se lee sin desplazarse hasta el botón',
+              Math.abs(yVeto - yBoton) < 400, `Δy=${Math.round(Math.abs(yVeto - yBoton))}px`);
+      }
 
       // «Tan prominente como la promoción»: si el aviso se pinta más pequeño
       // que el botón, se está cumpliendo con la letra y no con la norma.
@@ -244,6 +274,15 @@ async function abre(nav, cuerpo, salida, nombre) {
       // también es larga y tampoco lleva el porcentaje. La comprobación seguía
       // en verde con la descripción borrada. Ahora se pide POR SU IDENTIFICADOR
       // y se comprueba que dice lo suyo, no que haya un párrafo cualquiera.
+      // Lo mismo en la portada, que es la pantalla que ve todo el mundo.
+      marca('la cifra de la portada dice de qué entidad es', /Solaris EMEA/.test(texto));
+      const fichaP = portada.locator('[data-testid="partner-ficha-axi"]');
+      marca('y la ficha dice a qué público sirve esa entidad',
+            await fichaP.count() === 1 && /European Union|Uni[oó]n Europea/.test(await fichaP.innerText()),
+            (await fichaP.count()) ? (await fichaP.innerText()).replace(/\s+/g, ' ').slice(0, 80) : '');
+      marca('y a quién NO admite',
+            await portada.locator('[data-testid="partner-noadmite-axi"]').count() === 1);
+
       const desc = portada.locator('[data-testid="partner-desc-axi"]');
       const hayDesc = await desc.count() === 1;
       marca('la tarjeta lleva descripción propia', hayDesc);

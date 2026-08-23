@@ -1,7 +1,29 @@
 """Los brókers a los que referimos, y las condiciones bajo las que se pueden mostrar.
 
-Por qué esto no es una lista de enlaces
----------------------------------------
+El público es INTERNACIONAL, y eso cambia el modelo
+---------------------------------------------------
+Este módulo nació contestando una pregunta europea: cada campo se llamaba
+`*_ue`, el listón era `cumple_ue` y la advertencia era la literal de ESMA. Para
+un sitio dirigido a **público internacional en régimen de sola promoción** ese
+modelo se equivoca en las dos direcciones:
+
+  · **Es demasiado estricto.** VT Markets no tiene autorización en la UE, y
+    bajo ASIC, FSCA o FSC de Mauricio es un bróker supervisado. Descartarlo
+    para un lector australiano por una regla europea no lo protege de nada.
+  · **Y es demasiado laxo, que es lo grave.** Una marca no tiene «una» entidad
+    ni «un» porcentaje de pérdidas: tiene uno por región. Decir «el 67,24 % de
+    las cuentas pierden dinero **con este proveedor**» a alguien de Chile o
+    Singapur —que abriría cuenta con otra entidad, con otra cifra— es
+    atribuirle a su bróker una estadística que no es la de su bróker.
+
+La regla que sale de ahí, y que gobierna el resto del fichero: **cada dato va
+etiquetado con la jurisdicción y la entidad a la que pertenece**. No se traduce
+un régimen a otro ni se generaliza el de nadie. `FichaLegal` lleva su
+`jurisdiccion`, el porcentaje lleva su `perdida_pct_entidad`, y lo que no se
+sabe sigue yendo como `None`.
+
+Lo que **no** cambia con público internacional
+----------------------------------------------
 Un enlace de referido a un bróker de CFDs dirigido a minoristas de la UE **es una
 promoción financiera**, no un banner. `docs/COMPETENCIA_Y_PASARELA_BROKERS.md` §4
 ya lo dejó escrito y lo que sigue no lo repite, lo ejecuta:
@@ -24,6 +46,27 @@ sólo es publicable **junto a** su entidad legal, su regulador y su porcentaje d
 pérdidas con fecha. Si falta cualquiera de los tres, `puede_mostrarse()` dice que
 no y no hay forma de saltárselo desde la plantilla.
 
+⚠️ `puede_mostrarse()` / `cumple_ue` **no es el listón universal, es el de UNA
+jurisdicción** — la más exigente que conocemos, y por eso se conserva como
+referencia. No decide qué se publica (eso es `publicables()`), y no debe
+interpretarse como «este bróker no vale»: significa «este bróker no vale para un
+minorista de la UE».
+
+Y «recomendar» no es una palabra neutra
+---------------------------------------
+La sección se titula «Herramientas que recomendamos». Recomendar una
+**plataforma** no es asesoramiento en inversión —eso es recomendar un
+instrumento— pero sí es una afirmación nuestra, y el contrato de Axi lo dice sin
+rodeos: el Partner debe confirmar al cliente «that any advice provided by the
+Partner is provided by the Partner independently, without the consultation,
+knowledge or approval of Axi», y que Axi «acts as principal, provides an
+execution-only service and does not provide any personal financial advice».
+
+Traducido: **el bróker no respalda nuestra recomendación, y no hay ningún
+tercero detrás de ella.** Por eso lo que se publica de cada uno es comprobable
+—quién es la entidad, quién la supervisa, con qué número, qué porcentaje publica
+y a quién no acepta— y no hay comparativas ni «el mejor».
+
 Dónde viven los enlaces
 -----------------------
 En el entorno, no aquí: `BROKER_REF_<ID>` (por ejemplo `BROKER_REF_AXI`). Un
@@ -41,7 +84,27 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Optional
+from typing import NamedTuple, Optional
+
+
+class FichaLegal(NamedTuple):
+    """Con quién contrata quien pulsa, y a qué público sirve esa entidad.
+
+    `jurisdiccion` no sobra: sin ella la ficha afirma en silencio que esa
+    entidad es la de quien lee, y ante público internacional eso es falso para
+    la mayoría.
+    """
+
+    entidad: Optional[str]
+    regulador: Optional[str]
+    licencia: Optional[str]
+    # Texto legible, en castellano. Es el respaldo: si la interfaz no conoce
+    # el código, enseña esto en vez de un hueco.
+    jurisdiccion: Optional[str]
+    # Código estable para traducir. El sitio se dirige a diez idiomas: una
+    # etiqueta traducida junto a un valor en castellano —«entity for Unión
+    # Europea»— es peor que no traducir ninguna de las dos.
+    jurisdiccion_codigo: Optional[str]
 
 # ESMA obliga al bróker a recalcular el porcentaje CADA TRIMESTRE sobre los 12
 # meses anteriores. 100 días da margen para el retraso de publicación sin llegar
@@ -70,6 +133,20 @@ class Broker:
     # y deja la afirmación auditable por quien venga detrás. Sin fuente, el
     # porcentaje no se publica.
     perdida_pct_fuente: Optional[str] = None
+    # ── DE QUÉ ENTIDAD es ese porcentaje ─────────────────────────────────
+    #
+    # Esto importa más cuanto más internacional es el público, y es la razón
+    # de que exista el campo. El porcentaje NO es del bróker: es de **una
+    # entidad concreta bajo un régimen concreto**. Swissquote publica 55,05 %
+    # en la UE y 78,23 % en Reino Unido — la misma marca, dos cifras, ninguna
+    # de las dos «la suya».
+    #
+    # Decir «el 67,24 % … con este proveedor» a alguien de Chile, México o
+    # Singapur —que abriría cuenta con otra entidad y tiene otra cifra— es
+    # atribuirle a su bróker una estadística que no es la de su bróker. Misma
+    # familia que BUG-059 y BUG-063: un número presentado como más general de
+    # lo que es. Sin esto, el porcentaje no se publica.
+    perdida_pct_entidad: Optional[str] = None
     # La web pública del bróker. Se usa mientras no haya enlace de referido —
     # es el patrón que ya seguía Hyperliquid en `RecommendedTools`.
     url_publica: str = ""
@@ -88,7 +165,20 @@ class Broker:
     # va a contratar con alguien con quien no va a contratar.
     programa_entidad: Optional[str] = None
     programa_regulador: Optional[str] = None
+    programa_jurisdiccion: Optional[str] = None
+    programa_jurisdiccion_codigo: Optional[str] = None
     programa_fuente: Optional[str] = None
+    # ── A quién NO acepta ─────────────────────────────────────────────────
+    #
+    # Con público internacional esto deja de ser letra pequeña. El propio
+    # contrato de Axi excluye del cómputo al cliente «resident in any country
+    # specified by Axi on its website that is banned, embargoed or otherwise
+    # prohibited by policy», y el «Refer a Friend» de IBKR excluye países
+    # concretos. Mandar a alguien a un alta que va a rechazarle no es sólo no
+    # cobrar: es hacerle perder el tiempo y darle nuestros datos a un tercero
+    # para nada. Se dice ANTES de que pulse.
+    no_admite_residentes: tuple[str, ...] = ()
+    no_admite_fuente: Optional[str] = None
     # Notas que hay que tener delante antes de firmar nada.
     aviso: str = ""
 
@@ -118,19 +208,29 @@ class Broker:
         """
         return self.url_referido() is not None
 
-    def contrato_del_cliente(self) -> tuple[Optional[str], Optional[str], Optional[str]]:
-        """Entidad, regulador y licencia **de donde lleva nuestro enlace**.
+    def contrato_del_cliente(self) -> "FichaLegal":
+        """Entidad, regulador, licencia **y a quién sirve esa entidad**.
 
         Sin enlace de referido, el visitante aterriza en la web pública y la
-        enruta el propio bróker por geografía: en la UE acaba en su entidad
-        europea, que es lo que decimos. Con enlace de referido, el destino lo
-        fija el programa, y si ese programa contrata con otra entidad hay que
-        decir ESA — y sin regulador ni licencia, porque los de la entidad
-        europea no la amparan.
+        enruta el propio bróker por geografía. Con enlace de referido, el
+        destino lo fija el programa, y si ese programa contrata con otra
+        entidad hay que decir ESA — y sin regulador ni licencia, porque los de
+        la entidad europea no la amparan.
+
+        ⚠️ **La jurisdicción no es adorno.** Una marca no tiene «una» entidad:
+        tiene una por región. Enseñar «Solaris EMEA Ltd · CySEC · 433/23» a
+        secas ante público internacional afirma, sin decirlo, que ésa es la
+        entidad de quien lee — y para un australiano o un chileno no lo es.
+        Va etiquetada para que la frase sea verdad para todo el mundo: ésta es
+        la entidad para ESE público, la tuya depende de dónde vivas.
         """
         if self.es_referido and self.programa_entidad:
-            return (self.programa_entidad, self.programa_regulador, None)
-        return (self.entidad_ue, self.regulador_ue, self.licencia_ue)
+            return FichaLegal(self.programa_entidad, self.programa_regulador,
+                              None, self.programa_jurisdiccion,
+                              self.programa_jurisdiccion_codigo)
+        return FichaLegal(self.entidad_ue, self.regulador_ue, self.licencia_ue,
+                          "Unión Europea" if self.entidad_ue else None,
+                          "ue" if self.entidad_ue else None)
 
     def enlace_con_destino_conocido(self) -> bool:
         """¿Sabemos a qué entidad manda nuestro enlace de referido?
@@ -151,8 +251,7 @@ class Broker:
         """
         if not self.ofrece_cfd_minorista:
             return True
-        if (self.perdida_pct is None or self.perdida_pct_leido_el is None
-                or not self.perdida_pct_fuente):
+        if self.perdida_pct_leido_el is None or self._pct_publicable() is None:
             return False
         hoy = hoy or date.today()
         return hoy - self.perdida_pct_leido_el <= timedelta(days=DIAS_VALIDEZ_PORCENTAJE)
@@ -169,48 +268,75 @@ class Broker:
             and self.url_referido()
         )
 
+    def _pct_publicable(self) -> Optional[str]:
+        """El porcentaje formateado, o None si no se puede publicar.
+
+        Tres condiciones, no una: la cifra, **de dónde salió** y **de qué
+        entidad es**. La tercera se añadió al mirar esto con público
+        internacional delante: sin ella la cifra sale atribuida al bróker
+        entero, y no es del bróker, es de una entidad suya bajo un régimen.
+        """
+        if (self.perdida_pct is None or not self.perdida_pct_fuente
+                or not self.perdida_pct_entidad):
+            return None
+        return f"{self.perdida_pct:.2f}".rstrip("0").rstrip(".")
+
     def advertencia_corta(self) -> str:
         """La línea que cabe en una tarjeta, para acompañar al «leer más».
 
-        Con porcentaje: es la **forma abreviada que la propia ESMA admite**
-        donde hay límite de espacio («[X] % de las cuentas de CFD minoristas
-        pierden dinero»). Una tarjeta de 288 px es exactamente ese caso.
+        Con porcentaje: la **forma abreviada que la propia ESMA admite** donde
+        hay límite de espacio, pero **con la entidad delante**. Una tarjeta de
+        288 px es ese caso; lo que no cabe es la explicación larga, no la
+        atribución.
 
-        Sin porcentaje: aviso genérico y SIN número. Los porcentajes de un mismo
-        bróker varían por jurisdicción —Swissquote publica 55,05 % en la UE y
-        78,23 % en Reino Unido— así que elegir uno «que suene bien» sería
-        inventarse una estadística sobre pérdidas ajenas.
+        Sin porcentaje: aviso genérico y SIN número. Elegir uno «que suene
+        bien» sería inventarse una estadística sobre pérdidas ajenas.
         """
         if not self.ofrece_cfd_minorista:
             return ""
-        if self.perdida_pct is None or not self.perdida_pct_fuente:
+        pct = self._pct_publicable()
+        if pct is None:
             return ("Producto apalancado: alto riesgo de perder dinero "
                     "rápidamente.")
-        pct = f"{self.perdida_pct:.2f}".rstrip("0").rstrip(".")
         return (f"El {pct} % de las cuentas de CFD minoristas pierden dinero "
-                f"con este proveedor.")
+                f"con {self.perdida_pct_entidad}.")
 
     def advertencia(self) -> Optional[str]:
-        """La advertencia normalizada de ESMA, con el porcentaje de ESTE bróker.
+        """La advertencia normalizada, con el porcentaje **de esa entidad**.
 
         Devuelve `None` —y no un texto genérico— cuando no hay porcentaje: una
         advertencia sin cifra no cumple, y una cifra inventada es peor que no
-        enlazar. El texto es el de la intervención de producto; la versión
-        reducida («X % de las cuentas de CFD minoristas pierden dinero») sólo
-        vale donde hay límite de caracteres, que no es nuestro caso.
+        enlazar.
+
+        ⚠️ Dos diferencias con el texto literal de ESMA, y las dos son para
+        que la frase sea verdad ante público internacional:
+
+        1. Donde ESMA dice «con este proveedor», aquí va **el nombre de la
+           entidad que publicó la cifra**. La marca no tiene un porcentaje;
+           cada entidad suya tiene el suyo, y varían mucho (Swissquote: 55,05 %
+           en la UE, 78,23 % en Reino Unido).
+        2. Se añade que la entidad que le toque a quien lee depende de su país.
+           Sin eso, la frase le está atribuyendo a su futuro bróker una cifra
+           que puede no ser la de su futuro bróker.
+
+        El texto de ESMA está pensado para una promoción dirigida a minoristas
+        de un solo régimen. Reproducirlo palabra por palabra ante un público de
+        muchos países no lo hace más correcto: lo hace preciso en la forma y
+        falso en el contenido.
         """
         if not self.ofrece_cfd_minorista:
             return None
-        if self.perdida_pct is None or not self.perdida_pct_fuente:
+        pct = self._pct_publicable()
+        if pct is None:
             return None
-        pct = f"{self.perdida_pct:.2f}".rstrip("0").rstrip(".")
         return (
             f"Los CFD son instrumentos complejos y conllevan un alto riesgo de "
             f"perder dinero rápidamente debido al apalancamiento. "
             f"El {pct} % de las cuentas de inversores minoristas pierden dinero "
-            f"al operar CFD con este proveedor. Debe considerar si comprende "
-            f"cómo funcionan los CFD y si puede permitirse asumir un riesgo "
-            f"elevado de perder su dinero."
+            f"al operar CFD con {self.perdida_pct_entidad}. Debe considerar si "
+            f"comprende cómo funcionan los CFD y si puede permitirse asumir un "
+            f"riesgo elevado de perder su dinero. La entidad con la que abrirías "
+            f"cuenta —y su porcentaje— dependen de tu país de residencia."
         )
 
 
@@ -232,8 +358,16 @@ BROKERS: tuple[Broker, ...] = (
         perdida_pct_leido_el=date(2026, 8, 22),
         perdida_pct_fuente="buscador, 2026-08-22 — PENDIENTE de confirmar en axi.com "
                            "(bloqueado por el proxy de este entorno)",
+        perdida_pct_entidad="Solaris EMEA Ltd (CySEC, UE)",
         programa_entidad="AxiTrader LLC (San Vicente y las Granadinas)",
         programa_regulador=None,   # SVG no regula el forex/CFD: no hay supervisor que poner
+        programa_jurisdiccion="San Vicente y las Granadinas — sin supervisión de forex ni CFD",
+        programa_jurisdiccion_codigo="svg",
+        no_admite_residentes=("los países de su lista de vetados y embargados",),
+        no_admite_fuente="Axi Partner Agreement: no cuenta como cliente referido quien sea "
+                         "«resident in any country specified by Axi on its website that is "
+                         "banned, embargoed or otherwise prohibited by policy». La LISTA "
+                         "está en su web y no se ha podido leer (proxy).",
         programa_fuente="Axi Partner Agreement, efectivo 2025-12-18, leído del PDF "
                         "oficial (axidocs.s3.ap-southeast-2.amazonaws.com): «between the "
                         "Partner and AxiTrader LLC, a Limited Liability Company "
@@ -262,6 +396,7 @@ BROKERS: tuple[Broker, ...] = (
         perdida_pct_leido_el=date(2026, 8, 22),
         perdida_pct_fuente="buscador, 2026-08-22 — PENDIENTE de confirmar en "
                            "dukascopy.com/europe (bloqueado por el proxy)",
+        perdida_pct_entidad="Dukascopy Europe IBS AS (Latvijas Banka, UE)",
         aviso="«Business Introducer», aprobación en ~7 días. Sus condiciones se "
               "reservan revisar el marketing y exigir cambios a su discreción: "
               "eso es lo normal y lo correcto, pero implica que cada texto "
@@ -308,11 +443,20 @@ BROKERS: tuple[Broker, ...] = (
         ofrece_cfd_minorista=True,
         perdida_pct=None,
         perdida_pct_leido_el=None,
-        aviso="⚠️ Su «Refer a Friend» EXCLUYE a residentes en España, entre "
-              "otros, y exige ser cliente con 2.000 $ en activos. El programa de "
-              "afiliados es otra cosa y no he podido leer sus condiciones: "
-              "interactivebrokers.com está bloqueado por el proxy de este "
-              "entorno. Verificar antes de contar con él.",
+        no_admite_residentes=("España", "Japón", "Dinamarca", "Portugal", "Polonia",
+                              "China continental", "Israel"),
+        no_admite_fuente="Condiciones del «Refer a Friend» de IBKR, leídas de buscador el "
+                         "2026-08-22 — PENDIENTE de confirmar en su web (bloqueada por el "
+                         "proxy). Aplica al programa de REFERIDOS; el de afiliados/CPC "
+                         "publisher es otro y sus condiciones no se han leído.",
+        aviso="⚠️ Su «Refer a Friend» excluye residentes de varios países (ver "
+              "`no_admite_residentes`) y exige ser cliente con 2.000 $ en activos. "
+              "Con público internacional eso no lo descarta —la mayoría del mundo "
+              "sí entra— pero obliga a decir a quién NO sirve antes de que pulse. "
+              "Las vías que sí encajan con un sitio de contenido son «CPC Publisher» "
+              "e «Influencer Program» (publishers@interactivebrokers.com), y sus "
+              "condiciones no se han leído: interactivebrokers.com está bloqueado "
+              "por el proxy de este entorno.",
     ),
     Broker(
         id="vtmarkets",
@@ -328,6 +472,10 @@ BROKERS: tuple[Broker, ...] = (
               "proporcionado o aprobado por ellos, y a pedir aprobación previa por "
               "escrito para cualquier banner o página propia — lo que incluye la "
               "descripción y la ficha de marca de nuestra tarjeta. "
+              "🌍 Con público internacional cambia el veredicto, no los hechos: "
+              "bajo ASIC (Australia), FSCA (Sudáfrica) o FSC (Mauricio) es un "
+              "bróker supervisado y recomendarlo ahí es defendible. Lo que NO "
+              "cambia es que a un minorista de la UE no se le puede mandar. "
               "🔴 NO tiene autorización en la UE. Su propia entidad chipriota "
               "declara que «no ofrece productos financieros regulados ni "
               "servicios de negociación»; opera bajo ASIC, FSCA y FSC Mauricio. "
@@ -393,10 +541,17 @@ def pendientes() -> list[tuple[str, str]]:
             faltan.append("número de licencia")
         if b.ofrece_cfd_minorista and b.perdida_pct is None:
             faltan.append("porcentaje de pérdidas")
+        elif b.ofrece_cfd_minorista and not b.perdida_pct_entidad:
+            faltan.append("DE QUÉ ENTIDAD es el porcentaje")
         elif not b.esta_al_dia():
             faltan.append("porcentaje de pérdidas CADUCADO")
         if not b.url_referido():
             faltan.append(f"enlace (BROKER_REF_{b.id.upper()})")
+        # No es un requisito para publicar, pero sí para no mandar a alguien a
+        # un alta que va a rechazarle: con público internacional hay que saber
+        # a quién NO admite cada uno.
+        if not b.no_admite_fuente:
+            faltan.append("a quién NO admite (sin leer)")
         if faltan:
             fuera.append((b.id, ", ".join(faltan)))
     return fuera
