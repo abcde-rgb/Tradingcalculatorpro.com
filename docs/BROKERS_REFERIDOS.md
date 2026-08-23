@@ -32,6 +32,14 @@ las que un enlace puede publicarse**. Sin entidad legal, regulador, licencia,
 porcentaje fresco y enlace configurado, `puede_mostrarse()` dice que no, y no hay
 parámetro para saltárselo.
 
+> ⚠️ **`puede_mostrarse()` ya no es lo que decide qué sale a pantalla.** El
+> 2026-08-22 el propietario decidió publicar los seis bajo régimen suizo de sola
+> promoción — ver [§ Decisión del 2026-08-22](#decisión-del-2026-08-22-se-publican-los-seis).
+> El listón sigue calculándose y sigue publicándose por la API (`cumpleUe`), pero
+> hoy **ninguno de los seis lo pasa**. Lo que ese listón describe es el requisito
+> de la UE, y sigue aquí escrito porque el día que el público objetivo sea la UE
+> vuelve a ser la puerta.
+
 ## Los seis, de más a menos viable
 
 ### ✅ Axi — el más directo
@@ -169,16 +177,27 @@ Lo que eso cambia y lo que **no**:
 
 ## Lo que ya está montado
 
-`backend/brokers_referidos.py` — los seis, con lo confirmado y lo pendiente
-marcado como pendiente (no como valor optimista). Un bróker sólo es publicable si
-tiene **las cuatro cosas a la vez**: autorización en la UE, porcentaje **dentro de
-la ventana trimestral**, enlace configurado y —si ofrece CFDs— su advertencia con
-cifra.
+Cuatro piezas, de dentro afuera:
+
+| Pieza | Qué hace |
+|---|---|
+| `backend/brokers_referidos.py` | El registro: los seis, con lo confirmado y lo pendiente marcado **como pendiente**, no como valor optimista. Y las condiciones — `autorizado_ue`, `esta_al_dia()`, `puede_mostrarse()`, `advertencia()`, `advertencia_corta()`. |
+| `GET /api/brokers` (`server.py`) | Sirve los publicables con `entidad`, `regulador`, `licencia`, `url`, `esReferido`, `cumpleUe` y las dos formas del aviso. La cifra **sale del servidor con su fecha detrás**, nunca de una constante del frontend: caduca. |
+| `components/common/RecommendedTools.jsx` | La fila de socios de la portada. Los ocho —Margex, Hyperliquid y los seis— de izquierda a derecha, con el aviso abreviado y «leer más». |
+| `pages/BrokersPage.jsx` (`/brokers`) | La ficha completa: declaración de afiliación arriba del todo, advertencia normalizada entera y `rel="sponsored noopener noreferrer"`. Enlazada desde el pie. `noindex`. |
 
 **El porcentaje caduca a los 100 días.** Es la pieza que casi nadie implementa:
 ESMA obliga al bróker a recalcularlo cada trimestre, así que una cifra fija en el
-código es falsa a los pocos meses. Pasada la ventana, el bróker deja de mostrarse
-en vez de enseñar el dato viejo — el mismo criterio que `stale` en los precios.
+código es falsa a los pocos meses. Pasada la ventana, `esta_al_dia()` devuelve
+`False` y el bróker deja de pasar el listón europeo en vez de enseñar el dato
+viejo — el mismo criterio que `stale` en los precios.
+
+**Ninguna cifra se publica sin fuente.** `perdida_pct_fuente` es obligatorio para
+que el número salga a pantalla. No prueba que la cifra sea correcta —ningún test
+puede—, pero obliga a que inventarse una exija inventarse también su procedencia.
+Se puso después de comprobar que la prueba anterior **no lo cazaba**: se le metió
+un 55,05 % fabricado a Swissquote y la suite siguió en verde, porque comprobaba
+que el número apareciera, no que fuera defendible.
 
 Los enlaces van en el entorno (`BROKER_REF_AXI`, `BROKER_REF_DUKASCOPY`…), nunca
 en el repositorio: un enlace de referido no es un secreto, pero es específico de
@@ -186,10 +205,15 @@ la cuenta de afiliado, y uno incrustado acaba apuntando a la cuenta de otro el d
 que alguien copie el fichero. Hay una prueba que lo impide.
 
 ```bash
-python backend/brokers_referidos.py     # qué falta para poder publicar cada uno
+python backend/brokers_referidos.py            # qué le falta a cada uno
+pytest backend/tests/test_brokers_referidos_unit.py -q   # 27 comprobaciones
+node tests/e2e/navegador/brokers.js            # 22, en un navegador de verdad
 ```
 
-Hoy: **0 de 6 publicables**, que es lo correcto — no hay ni un enlace todavía.
+Hoy: **6 de 6 publicados** y **0 con enlace de referido configurado** — todos
+llevan a la web pública del bróker, que es lo que hay hasta que se firme el
+primer programa. Lo que falta para que cada uno pase el listón europeo lo dice el
+primero de esos tres comandos, y a día de hoy es: **0 de 6**.
 
 ## Lo que falta por hacer
 
@@ -199,7 +223,22 @@ Hoy: **0 de 6 publicables**, que es lo correcto — no hay ni un enlace todavía
 3. Verificar las condiciones de IBKR y Swissquote **desde una red sin el proxy de
    este entorno**.
 4. Rellenar en el registro lo que falta, con la fecha de lectura del porcentaje.
-5. **La pantalla, que aún no existe.** Cuando la haya: la advertencia tan visible
-   como el enlace, la relación de afiliación declarada de forma clara —la
-   Directiva Omnibus lo exige para el contenido comercial— y `rel="sponsored"` en
-   los enlaces salientes.
+5. **Los logos.** Los oficiales son marcas registradas y no los tengo, así que la
+   tarjeta pinta hoy el nombre y la entidad. En cuanto haya fichero en
+   `frontend/src/assets/partners/<id>-square.png|svg`, se añade su `import` al
+   mapa `LOGOS` de `RecommendedTools.jsx` —dos líneas— y la tarjeta lo usa sola.
+6. **Los porcentajes, confirmados en la web del bróker y fechados.** Los dos que
+   hay salen de buscador y están marcados como pendientes en el propio registro.
+   Desde este entorno no se puede: `axi.com` y `dukascopy.com` están bloqueados
+   por el proxy de salida.
+7. **La tarjeta de Margex.** No es de este lote, pero está en la misma fila y
+   anuncia «sin KYC, bono de bienvenida de 100 $ y cashback hasta 10.000 $» **sin
+   aviso de riesgo ninguno**. Los bonos e incentivos son justamente lo que la
+   intervención de producto de ESMA prohíbe promocionar a minoristas de la UE. Si
+   el criterio es el suizo de sola promoción, la decisión es del propietario —
+   pero conviene tomarla a la vista, no por omisión.
+
+La pantalla ya está: `/brokers` con la advertencia tan visible como el enlace, la
+relación de afiliación declarada arriba del todo —la Directiva Omnibus lo exige
+para el contenido comercial— y `rel="sponsored"` en los enlaces salientes. Las
+tres cosas están comprobadas en un navegador real, no sólo escritas.

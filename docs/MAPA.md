@@ -15,10 +15,10 @@
 | | |
 |---|---:|
 | Módulos del backend | 34 |
-| Líneas de Python (backend) | 25,687 |
+| Líneas de Python (backend) | 25,712 |
 | Rutas declaradas | 198 |
 | **Rutas sin consumidor en el frontend** | **34** |
-| Ficheros de test · funciones de test | 56 · 915 |
+| Ficheros de test · funciones de test | 56 · 923 |
 | Rutas del frontend (`App.js`) | 29 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,655 |
 
@@ -86,8 +86,8 @@ esperando una pantalla. Esto es el hueco G-14.
 | `missing_apis.py` | 928 | 9 | missing_apis.py |
 | `instruments.py` | 902 |  | instruments.py — qué es cada producto financiero, como dato y no como suposición. |
 | `affiliate_program.py` | 867 | 18 | affiliate_program.py — Programa de Afiliados (pagos mensuales por volumen). |
+| `stock_data.py` | 745 |  | Stock data provider — hits Yahoo Finance's JSON API directly (via curl_cffi |
 | `options_math.py` | 736 |  | Black-Scholes-Merton Option Pricing and Greeks. |
-| `stock_data.py` | 720 |  | Stock data provider — hits Yahoo Finance's JSON API directly (via curl_cffi |
 | `backtest.py` | 643 |  | Backtest engine with validation — does this system have an edge, or am I fooling myself? |
 | `options_optimize.py` | 608 |  | Options Strategy Optimizer. |
 | `level_odds.py` | 603 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
