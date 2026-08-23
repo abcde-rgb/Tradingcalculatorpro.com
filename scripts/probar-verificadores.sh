@@ -317,6 +317,26 @@ probar "un fetch al backend sin credentials" \
   "printf \"export const x = () => fetch(API + '/api/sabotaje', { method: 'GET' });\n\" > $FETCH_FALSO" \
   "rm -f $FETCH_FALSO"
 
+# ── Los logos de socios: el fichero de la carpeta tiene que llegar a la web ──
+# El fallo real que esto caza no es un logo feo, es un logo INVISIBLE: alguien
+# deja `axi-square.svg` en `assets/partners/`, da por hecho que ya sale, y el
+# mapa generado ni se entera. Se sabotea dejando un fichero sin regenerar, que
+# es exactamente eso.
+titulo "Logos de socios (gen-partner-logos.js --check)"
+LOGO_FALSO="frontend/src/assets/partners/zzsabotaje-square.svg"
+TEMPORALES+=("$LOGO_FALSO")
+probar "un logo dejado en la carpeta que el mapa generado no conoce" \
+  "(cd frontend && node scripts/gen-partner-logos.js --check)" \
+  "printf '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1 1\"></svg>' > $LOGO_FALSO" \
+  "rm -f $LOGO_FALSO"
+
+# Y la otra dirección: un `import` del mapa que ya no tiene fichero detrás
+# rompe el build entero, así que el mapa no puede sobrevivir a un borrado.
+probar "un logo borrado que el mapa generado sigue importando" \
+  "(cd frontend && node scripts/gen-partner-logos.js --check)" \
+  "mv frontend/src/assets/partners/margex-square.png /tmp/zz-margex.png" \
+  "mv /tmp/zz-margex.png frontend/src/assets/partners/margex-square.png"
+
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
 # Un módulo que se navega pero no se indexa existe y no se encuentra nunca; uno
 # indexado y no navegable es un enlace roto. Se sabotea renombrando un `value:`

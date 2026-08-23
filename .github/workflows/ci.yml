@@ -124,6 +124,11 @@ jobs:
       - name: fetch() al backend con credentials
         run: node scripts/check-fetch-credentials.js
 
+      # Un logo dejado en `assets/partners/` sin regenerar el mapa no sale en la
+      # web y nadie entiende por qué: el fichero está, la tarjeta no lo usa.
+      - name: Los logos de socios reflejan los ficheros de la carpeta
+        run: node scripts/gen-partner-logos.js --check
+
       # El simulador y el modelo del sistema de trading producen números con los
       # que el usuario dimensiona posiciones, y viven en el frontend, donde no
       # hay pytest que detecte una regresión.

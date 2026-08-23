@@ -131,6 +131,79 @@ Aun descartando lo no verificado, **lo que sí está confirmado basta**: sin
 autorización en la UE, enlazarlo desde un sitio español dirigido a minoristas es
 exactamente el supuesto que el §4 del otro documento describe.
 
+## 🔴 El programa de Axi NO contrata con la entidad europea
+
+Leído del **PDF oficial** (`axidocs.s3.ap-southeast-2.amazonaws.com`, el único
+dominio de los brókers que el proxy de este entorno sí deja pasar), *Axi Partner
+Agreement*, efectivo **2025-12-18**:
+
+> «This Partner Agreement sets out the terms and conditions between the Partner
+> and **AxiTrader LLC, a Limited Liability Company incorporated under the laws
+> of Saint Vincent and the Grenadines**.»
+>
+> «*Client Agreement*: means the agreement between a Client and **Axi**.»
+>
+> «This Agreement is governed by and construed in accordance with the laws of
+> Saint Vincent and the Grenadines.»
+
+Y «Axi», en todo el documento, es esa entidad. Es decir: **el programa que se
+anuncia públicamente manda al cliente referido a la sociedad offshore, no a
+Solaris EMEA Ltd (CySEC 433/23)**, que es la ficha que enseña nuestra tarjeta.
+El aviso que llevaba el registro —«confirmar que el contrato es con la entidad
+CySEC y no con la australiana»— se queda corto: no es australiana, es de SVG, y
+SVG no supervisa forex ni CFD.
+
+Hoy **no hay problema**, porque sin enlace de referido la tarjeta lleva a la web
+pública y allí enruta el propio bróker por geografía. El problema aparecía a un
+`BROKER_REF_AXI` de distancia, así que se ha cerrado en el código:
+
+- `contrato_del_cliente()` devuelve la ficha **de donde lleva nuestro enlace**.
+  Con enlace de referido y programa conocido, la entidad del programa — y sin
+  regulador ni licencia, porque los de la entidad europea no la amparan.
+- `enlace_con_destino_conocido()` **impide publicar** un enlace de referido cuyo
+  destino no se ha leído. Saxo, IBKR, Swissquote y VT Markets están en ese caso:
+  el día que se configure su enlace sin haber leído con quién contrata su
+  programa, desaparecen de la lista en vez de salir con una ficha que quizá no
+  les corresponde.
+
+Cinco tests lo fijan, los dos que importan comprobados con sabotaje.
+
+## De dónde se sacan los logos y los materiales (fuentes oficiales)
+
+Facilitadas por el propietario. **Ninguna es accesible desde este entorno** —el
+proxy responde 403 a todas menos al bucket S3 de Axi—, así que hay que abrirlas
+desde una red normal.
+
+| Bróker | Vía | Enlace |
+|---|---|---|
+| VT Markets | Portal de afiliados / IB | `vtaffiliates.com/marketing-materials/` · `vtmarkets.com/introducing-brokers/` |
+| Axi | Partner Portal (tras aprobación) | `axi.com/int/partnerships/affiliate-program` |
+| Saxo | **Media Center público** | `home.saxo/en-ch/about-us/media-center` → «Saxo logo package» (AI, EPS, SVG, PNG, CMYK/Pantone) |
+| Saxo | Programa de afiliados / comercial | `home.saxo/campaigns/affiliate` · `mediadeals@saxobank.com` |
+| IBKR | Influencer / CPC Publisher / White Branding | `interactivebrokers.com/en/general/about/affiliate-programs.php` · `publishers@interactivebrokers.com` |
+
+**Saxo es el único con paquete de logo descargable sin cuenta**; los demás lo
+sirven dentro del portal de partners una vez aprobado el alta.
+
+⚠️ **No se descargan logos de Freepik, Seeklogo, Brandfetch ni similares.** Sirven
+como referencia visual pero no dan permiso para promocionar al bróker. Se usan
+los ficheros que entrega el propio bróker, o se pide autorización por escrito.
+
+### Lo que eso obliga en NUESTRA tarjeta
+
+Tanto Axi como VT Markets exigen que el material promocional sea suyo o esté
+aprobado:
+
+> Axi, cláusula de deberes del Partner: «*submit all marketing or promotional
+> material to Axi for approval before use and refrain from altering approved
+> materials*».
+
+Nuestra tarjeta lleva **descripción propia y ficha de marca propia**. Eso es
+material promocional propio, así que en cuanto se firme cualquiera de los dos
+programas hay que **someterles el texto y la tarjeta**. No es un trámite
+opcional: es la cláusula que convierte al bróker en responsable del contenido
+del afiliado, que es justamente la señal de que el bróker es serio.
+
 ## Lo que hay que pedirle a cada uno, por escrito
 
 Vale para los cinco que sigan en pie:
@@ -183,7 +256,7 @@ Cuatro piezas, de dentro afuera:
 |---|---|
 | `backend/brokers_referidos.py` | El registro: los seis, con lo confirmado y lo pendiente marcado **como pendiente**, no como valor optimista. Y las condiciones — `autorizado_ue`, `esta_al_dia()`, `puede_mostrarse()`, `advertencia()`, `advertencia_corta()`. |
 | `GET /api/brokers` (`server.py`) | Sirve los publicables con `entidad`, `regulador`, `licencia`, `url`, `esReferido`, `cumpleUe` y las dos formas del aviso. La cifra **sale del servidor con su fecha detrás**, nunca de una constante del frontend: caduca. |
-| `components/common/RecommendedTools.jsx` | La fila de socios de la portada. Los ocho —Margex, Hyperliquid y los seis— de izquierda a derecha, con el aviso abreviado y «leer más». |
+| `components/common/RecommendedTools.jsx` | La marquesina de socios de la portada. Los ocho —Margex, Hyperliquid y los seis— en bucle continuo de derecha a izquierda, con descripción, ficha legal, aviso abreviado y «leer más». |
 | `pages/BrokersPage.jsx` (`/brokers`) | La ficha completa: declaración de afiliación arriba del todo, advertencia normalizada entera y `rel="sponsored noopener noreferrer"`. Enlazada desde el pie. `noindex`. |
 
 **El porcentaje caduca a los 100 días.** Es la pieza que casi nadie implementa:
@@ -223,10 +296,16 @@ primero de esos tres comandos, y a día de hoy es: **0 de 6**.
 3. Verificar las condiciones de IBKR y Swissquote **desde una red sin el proxy de
    este entorno**.
 4. Rellenar en el registro lo que falta, con la fecha de lectura del porcentaje.
-5. **Los logos.** Los oficiales son marcas registradas y no los tengo, así que la
-   tarjeta pinta hoy el nombre y la entidad. En cuanto haya fichero en
-   `frontend/src/assets/partners/<id>-square.png|svg`, se añade su `import` al
-   mapa `LOGOS` de `RecommendedTools.jsx` —dos líneas— y la tarjeta lo usa sola.
+5. **Los logos oficiales.** Los sirven los propios brókers en su media kit de
+   afiliados, y **desde este entorno no se pueden descargar**: el proxy de
+   salida responde 403 a los seis dominios. Dibujar una imitación de un logo
+   registrado es peor que no ponerlo —se parecería lo justo para confundir y no
+   sería el suyo—, así que la tarjeta pinta una **ficha de marca propia**:
+   monograma, nombre y supervisor, con un tono estable derivado del `id` que
+   **no es el color corporativo del bróker** y no pretende serlo. En cuanto
+   haya fichero en `frontend/src/assets/partners/<id>-square.png|svg`, se añade
+   su `import` al mapa `LOGOS` de `RecommendedTools.jsx` —dos líneas— y la
+   tarjeta lo usa sola.
 6. **Los porcentajes, confirmados en la web del bróker y fechados.** Los dos que
    hay salen de buscador y están marcados como pendientes en el propio registro.
    Desde este entorno no se puede: `axi.com` y `dukascopy.com` están bloqueados

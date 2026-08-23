@@ -164,6 +164,64 @@ async function abre(nav, cuerpo, salida, nombre) {
     const tarjetaP = portada.locator('[data-testid="partner-card-axi"]');
     marca('el bróker aparece en la sección de socios', await tarjetaP.count() === 1);
 
+    // ── La marquesina ──────────────────────────────────────────────────
+    //
+    // Tres cosas que sólo se ven en un navegador de verdad, y que son
+    // justo lo que se pidió: que se mueva sola, que no se vea la barra de
+    // desplazamiento, y que se PARE al pasar por encima. La tercera no es
+    // un detalle: una tarjeta en movimiento no se puede pulsar.
+    const pista = portada.locator('.marquesina-pista');
+    const anim = await pista.first().evaluate((e) => {
+      const s = getComputedStyle(e);
+      return { nombre: s.animationName, estado: s.animationPlayState, dur: s.animationDuration };
+    });
+    marca('la fila se mueve sola', anim.nombre === 'marquesina' && anim.dur !== '0s',
+          `${anim.nombre} ${anim.dur}`);
+
+    // ⚠️ Medir sólo `offsetHeight - clientHeight` NO vale, y se comprobó:
+    // con el `overflow: hidden` y el `scrollbar-width: none` quitados a
+    // propósito, este número seguía siendo 0 —Chromium headless no reserva
+    // sitio para la barra— y la comprobación pasaba con la barra puesta. Hay
+    // que preguntar por el ESTILO, que es lo que decide si se ve.
+    const barra = await portada.locator('.marquesina').first().evaluate((e) => ({
+      alto: e.offsetHeight - e.clientHeight,
+      desborda: e.scrollWidth > e.clientWidth,
+      ancho: getComputedStyle(e).scrollbarWidth,
+      pseudo: getComputedStyle(e, '::-webkit-scrollbar').display,
+      overflow: getComputedStyle(e).overflowX,
+    }));
+    // Y sin esto la comprobación sería tautológica: una fila que no desborda
+    // no tiene barra que ocultar, así que «no se ve» no diría nada.
+    marca('la fila desborda de verdad', barra.desborda, `scrollWidth vs clientWidth`);
+    marca('sin barra de desplazamiento a la vista',
+          barra.alto === 0
+          && (barra.overflow === 'hidden' || barra.ancho === 'none' || barra.pseudo === 'none'),
+          `alto ${barra.alto}px · scrollbar-width ${barra.ancho} · overflow-x ${barra.overflow}`);
+
+    // ⚠️ Nada de `tarjetaP.hover()`. Playwright espera a que el elemento esté
+    // QUIETO antes de actuar sobre él, y sobre una animación infinita eso no
+    // llega nunca: la primera versión de esta comprobación se quedó colgada
+    // 30 s y reventó la sonda entera. Un ratón de verdad no espera a nada, así
+    // que se mueve por coordenadas — y sobre el CONTENEDOR, que no se mueve.
+    const cajaM = await portada.locator('.marquesina').first().boundingBox();
+    await portada.mouse.move(cajaM.x + cajaM.width / 2, cajaM.y + cajaM.height / 2);
+    await portada.waitForTimeout(200);
+    const pausada = await pista.first().evaluate((e) => getComputedStyle(e).animationPlayState);
+    marca('se para al pasar el ratón por encima', pausada === 'paused', pausada);
+
+    await portada.mouse.move(5, 5);
+    await portada.waitForTimeout(200);
+    const reanudada = await pista.first().evaluate((e) => getComputedStyle(e).animationPlayState);
+    marca('y vuelve a andar al quitarlo', reanudada === 'running', reanudada);
+
+    // El bucle empalma porque hay DOS copias. La segunda no puede duplicar
+    // los `data-testid` ni salir en el árbol de accesibilidad.
+    const copias = await portada.locator('a[href="https://ejemplo.test/?ref=PRUEBA"]').count();
+    marca('hay dos copias para que el bucle empalme', copias === 2, `${copias} copias`);
+    marca('pero sólo UNA cuenta como tarjeta', await tarjetaP.count() === 1);
+    marca('y la copia está fuera del árbol de accesibilidad',
+          await portada.locator('a[href="https://ejemplo.test/?ref=PRUEBA"][aria-hidden="true"]').count() === 1);
+
     const avisoP = portada.locator('[data-testid="partner-advertencia-axi"]');
     marca('con su advertencia normalizada', await avisoP.count() === 1);
     if (await avisoP.count() && await tarjetaP.count()) {
@@ -172,29 +230,27 @@ async function abre(nav, cuerpo, salida, nombre) {
       // esconde el porcentaje deja la tarjeta promocionando sin avisar.
       marca('el porcentaje sigue VISIBLE en la tarjeta', /67\.24\s*%/.test(texto), texto.slice(0, 70));
       const tAviso = await avisoP.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
-      const tInfo = await tarjetaP.locator('p').first()
+      const tDesc = await tarjetaP.locator('p').first()
         .evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
-      marca('no más pequeña que la línea de información', tAviso >= tInfo,
-            `aviso ${tAviso}px vs info ${tInfo}px`);
+      marca('no más pequeña que la descripción', tAviso >= tDesc,
+            `aviso ${tAviso}px vs descripción ${tDesc}px`);
 
-      const leerMas = portada.locator('[data-testid="partner-leermas-axi"]');
-      marca('hay un «leer más»', await leerMas.count() === 1);
-      if (await leerMas.count()) {
-        const [nueva] = await Promise.all([
-          ctxP.waitForEvent('page', { timeout: 10000 }).catch(() => null),
-          leerMas.click(),
-        ]);
-        marca('que abre en OTRA pestaña', !!nueva,
-              nueva ? await nueva.url() : 'no se abrió ninguna pestaña');
-        if (nueva) {
-          marca('y lleva a la advertencia completa, no al bróker',
-                /\/brokers/.test(nueva.url()) && !/ejemplo\.test/.test(nueva.url()),
-                await nueva.url());
-          await nueva.close();
-        }
-        marca('la tarjeta NO se abrió al pulsar «leer más»',
-              portada.url().endsWith('/') || /Tradingcalculatorpro\.com\/?$/.test(portada.url()),
-              portada.url());
+      // La descripción existe, que es lo que se pidió: los brókers ya no salen
+      // sólo con la letra pequeña de la entidad.
+      //
+      // ⚠️ Esto se apuntaba antes al primer `<p>` de la tarjeta, y era falso:
+      // quitando la descripción, el primer `<p>` pasaba a ser la línea de la
+      // entidad —«Solaris EMEA Ltd (HE376148, Chipre) · CySEC · 433/23»—, que
+      // también es larga y tampoco lleva el porcentaje. La comprobación seguía
+      // en verde con la descripción borrada. Ahora se pide POR SU IDENTIFICADOR
+      // y se comprueba que dice lo suyo, no que haya un párrafo cualquiera.
+      const desc = portada.locator('[data-testid="partner-desc-axi"]');
+      const hayDesc = await desc.count() === 1;
+      marca('la tarjeta lleva descripción propia', hayDesc);
+      if (hayDesc) {
+        const txt = (await desc.innerText()).trim();
+        marca('y describe al bróker, no repite la ficha legal',
+              txt.length > 40 && !/HE376148|433\/23|67\.24/.test(txt), txt.slice(0, 70));
       }
     }
 
@@ -205,6 +261,64 @@ async function abre(nav, cuerpo, salida, nombre) {
     marca('sin errores de consola en la portada', erroresP.length === 0,
           erroresP[0]?.slice(0, 90) || '');
     await ctxP.close();
+
+    // ── Con «reducir movimiento» activado ──────────────────────────────
+    //
+    // Esta pasada no es un extra de accesibilidad: es donde se prueba el
+    // «leer más». Playwright exige que un elemento esté QUIETO antes de
+    // pulsarlo, y sobre una animación infinita eso no llega nunca.
+    //
+    // Y además cubre el fallo que la regla global de accesibilidad provoca
+    // sola: deja toda animación en 0,01 ms con una iteración, lo que sobre
+    // esta pista la dejaría congelada a −50 %, con la mitad de las tarjetas
+    // fuera de la pantalla y sin forma de alcanzarlas.
+    console.log('\n── Con «reducir movimiento» del sistema ─────────────────');
+    const ctxR = await nav.newContext({ viewport: { width: 1400, height: 1000 }, reducedMotion: 'reduce' });
+    const quieta = await ctxR.newPage();
+    const erroresR = [];
+    quieta.on('pageerror', (e) => erroresR.push(String(e)));
+    await quieta.route('**/api/brokers', (r) =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(CON_BROKERS) }));
+    await quieta.goto(`${BASE}/`, { waitUntil: 'networkidle', timeout: 60000 });
+    await descartaModales(quieta).catch(() => {});
+    await quieta.locator('[data-testid="recommended-tools"]').scrollIntoViewIfNeeded().catch(() => {});
+    await quieta.waitForTimeout(800);
+    await quieta.screenshot({ path: path.join(salida, 'portada-sin-movimiento.png'), fullPage: false });
+
+    const estadoR = await quieta.locator('.marquesina-pista').first().evaluate((e) => ({
+      nombre: getComputedStyle(e).animationName,
+      x: e.getBoundingClientRect().x,
+      padre: e.parentElement.getBoundingClientRect().x,
+    }));
+    marca('la animación se QUITA, no se acelera', estadoR.nombre === 'none', estadoR.nombre);
+    marca('y la pista no queda desplazada a mitad de recorrido',
+          Math.abs(estadoR.x - estadoR.padre) < 2,
+          `pista en x=${Math.round(estadoR.x)}, contenedor en x=${Math.round(estadoR.padre)}`);
+    marca('la barra de desplazamiento sigue oculta',
+          await quieta.locator('.marquesina').first()
+            .evaluate((e) => e.offsetHeight - e.clientHeight) === 0);
+
+    const leerMas = quieta.locator('[data-testid="partner-leermas-axi"]');
+    marca('hay un «leer más»', await leerMas.count() === 1);
+    if (await leerMas.count()) {
+      const [nueva] = await Promise.all([
+        ctxR.waitForEvent('page', { timeout: 10000 }).catch(() => null),
+        leerMas.click(),
+      ]);
+      marca('que abre en OTRA pestaña', !!nueva,
+            nueva ? await nueva.url() : 'no se abrió ninguna pestaña');
+      if (nueva) {
+        marca('y lleva a la advertencia completa, no al bróker',
+              /\/brokers/.test(nueva.url()) && !/ejemplo\.test/.test(nueva.url()),
+              await nueva.url());
+        await nueva.close();
+      }
+      marca('la tarjeta NO se abrió al pulsar «leer más»',
+            quieta.url().endsWith('/') || /Tradingcalculatorpro\.com\/?$/.test(quieta.url()),
+            quieta.url());
+    }
+    marca('sin errores de consola', erroresR.length === 0, erroresR[0]?.slice(0, 90) || '');
+    await ctxR.close();
 
     console.log(`\n  capturas en ${salida}`);
   } finally {

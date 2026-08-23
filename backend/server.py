@@ -8331,15 +8331,27 @@ async def listar_brokers():
     """
     import brokers_referidos
 
+    def _ficha(b):
+        # ⚠️ La ficha legal describe **a dónde lleva NUESTRO enlace**, no a la
+        # entidad europea del bróker sin más. No es lo mismo: el Partner
+        # Agreement público de Axi lo firma AxiTrader LLC (San Vicente y las
+        # Granadinas), así que un enlace de ese programa NO lleva a Solaris
+        # EMEA (CySEC) y enseñar la ficha chipriota al lado sería decirle al
+        # usuario que contrata con alguien con quien no contrata.
+        entidad, regulador, licencia = b.contrato_del_cliente()
+        return {
+            "id": b.id,
+            "nombre": b.nombre,
+            "entidad": entidad,
+            "regulador": regulador,
+            "licencia": licencia,
+            "url": b.url(),
+        }
+
     return {
         "brokers": [
             {
-                "id": b.id,
-                "nombre": b.nombre,
-                "entidad": b.entidad_ue,
-                "regulador": b.regulador_ue,
-                "licencia": b.licencia_ue,
-                "url": b.url(),
+                **_ficha(b),
                 # Si NO nos pagan por este enlace, no se etiqueta como
                 # afiliado. Llamar afiliado a lo que no lo es también es una
                 # declaración falsa, sólo que en la dirección que no preocupa.
