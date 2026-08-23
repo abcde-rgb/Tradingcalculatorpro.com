@@ -180,19 +180,47 @@ export function marginLevelPrice({
 /**
  * Colchón: cuánto puede moverse el precio EN CONTRA antes del umbral.
  * Positivo mientras quede margen; NEGATIVO si el umbral ya se pasó.
+ *
+ * Cuál es «en contra» NO lo decide el signo de la exposición neta. Lo decide la
+ * pendiente del excedente
+ *
+ *     excedente(P) = equity(P) − th/100 · margen(P) = B + (A − th/100·M)·P
+ *
+ * que es lineal en el precio. Mientras la pendiente sea positiva —el caso
+ * normal— la cuenta está a salvo por encima del disparo y la mata una caída.
+ * Pero la pendiente se INVIERTE cuando el término de margen pesa más que la
+ * exposición neta, y entonces a la cuenta la mata una SUBIDA aunque esté neta
+ * larga. Ocurre de verdad: tres largos y dos cortos con el modelo que cobra las
+ * dos patas y apalancamiento bajo están al 400 % de margin level y se liquidan
+ * subiendo, porque el margen crece con el precio más deprisa que el equity.
+ *
+ * Tomar la dirección de `signedUnits` daba ahí −5.000 —la magnitud correcta con
+ * el signo cambiado—, que en pantalla se lee como «ya te han liquidado» sobre
+ * una cuenta sana. La pendiente se mide sobre el propio `accountState` en dos
+ * precios: es exacta porque la función es lineal, y no duplica el álgebra que
+ * resuelve `marginLevelPrice`.
  */
 export function cushion({
   balance, positions, price, leverage, contractSize,
   thresholdPct = DEFAULT_STOP_OUT_PCT, marginModel = 'net',
 }) {
-  const trigger = marginLevelPrice({
-    balance, positions, leverage, contractSize, thresholdPct, marginModel,
-  });
+  const args = { balance, positions, leverage, contractSize, marginModel };
+  const trigger = marginLevelPrice({ ...args, thresholdPct });
   const p = price0(price);
   if (trigger === null || p === null) return null;
-  const net = signedUnits(positions, num(contractSize));
-  if (net === 0) return null;
-  return net > 0 ? p - trigger : trigger - p;
+
+  const excedente = (q) => {
+    const st = accountState({ ...args, price: q });
+    return st.equity === null ? null : st.equity - (thresholdPct / 100) * st.marginUsed;
+  };
+  const paso = Math.max(p * 1e-3, 1e-9);
+  const e1 = excedente(p);
+  const e2 = excedente(p + paso);
+  if (e1 === null || e2 === null) return null;
+  const pendiente = e2 - e1;
+  if (pendiente === 0) return null; // el umbral no depende del precio
+
+  return pendiente > 0 ? p - trigger : trigger - p;
 }
 
 /**
@@ -502,6 +530,13 @@ export function absoluteMaxLots({ balance, contractSize, cushionPrice }) {
  * ejecución y sin huecos. Con tendencia real la cifra mejora; con spread, swap
  * y el hueco del domingo, empeora. `sigmaPerDay` va en las mismas unidades de
  * precio que el objetivo y el colchón, igual que `driftPerDay`.
+ *
+ * Puede devolver exactamente 1 cuando la deriva aplasta a la volatilidad
+ * (k·b ≳ 37): ahí `1 − e^(−k·b)` redondea a 1 en doble precisión. Es el límite
+ * del tipo de dato, no una certeza — la probabilidad real es 1 menos algo del
+ * orden de e^(−k·b). Quien lo pinte no debe leerlo como una garantía. La rama
+ * sin deriva, que es la única que usa hoy el simulador, no puede llegar ahí:
+ * b/(a+b) es estrictamente menor que 1 para cualquier objetivo positivo.
  */
 export function survivalProbability({ targetMove, cushionMove, driftPerDay = 0, sigmaPerDay = null }) {
   const a = num(targetMove);

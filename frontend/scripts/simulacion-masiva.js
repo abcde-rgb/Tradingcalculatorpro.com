@@ -783,12 +783,227 @@ async function montecarlo(n) {
 
 // ─── Reparto y ejecución ──────────────────────────────────────────
 
+// ─── 7 · Margen cruzado: la cuenta entera como colateral ──────────
+//
+// El motor de `lib/crossMargin.js` publica cifras con las que alguien decide si
+// abre el siguiente tramo. Aquí se generan cuentas, instrumentos y escaleras al
+// azar y se exige que los números signifiquen lo que dicen — sobre todo por
+// IDENTIDAD: en vez de creerse el precio de stop-out que devuelve el álgebra, se
+// reconstruye la cuenta a ese precio y se comprueba que el margin level es el
+// umbral. Eso no puede pasar por casualidad.
+async function cruzado(n) {
+  const {
+    accountState, marginLevelPrice, cushion, canOpen, simulateLadder, buildLadder,
+    sizeForCushion, absoluteMaxLots, survivalProbability, isolatedStopDistance,
+  } = await imp('lib/crossMargin.js');
+
+  for (let i = 0; i < n; i += 1) {
+    const caso = `cruzado#${i}`;
+    const m = apunta('cruzado'); m.casos += 1;
+
+    const balance = logEntre(200, 500000);
+    const leverage = uno([2, 5, 10, 20, 30, 50, 100, 200, 500, 1000]);
+    const contractSize = uno([1, 10, 100, 1000, 5000, 10000, 100000]);
+    const precio = logEntre(0.5, 60000);
+    const side = uno(['long', 'short']);
+    const modelo = uno(['net', 'max', 'sum']);
+    const umbral = uno([10, 20, 30, 50, 80, 100]);
+
+    // Una cartera con 1-4 patas, a veces mixta: el modelo de margen sólo se
+    // distingue cuando hay las dos direcciones.
+    const posiciones = [];
+    const patas = enteroEntre(1, 4);
+    for (let k = 0; k < patas; k += 1) {
+      posiciones.push({
+        lots: entre(0.01, 5),
+        entry: precio * entre(0.9, 1.1),
+        side: k === 0 ? side : uno(['long', 'short']),
+      });
+    }
+
+    const base = { balance, positions: posiciones, leverage, contractSize, marginModel: modelo };
+    const st = accountState({ ...base, price: precio });
+    if (!todoFinito('cruzado', caso, st)) continue;
+
+    // La aritmética, rehecha aquí sin usar el motor.
+    const dir = (s) => (s === 'short' ? -1 : 1);
+    const largas = posiciones.filter((q) => q.side !== 'short').reduce((a, q) => a + q.lots * contractSize, 0);
+    const cortas = posiciones.filter((q) => q.side === 'short').reduce((a, q) => a + q.lots * contractSize, 0);
+    const unidades = modelo === 'sum' ? largas + cortas
+      : modelo === 'max' ? Math.max(largas, cortas) : Math.abs(largas - cortas);
+    const flotante = posiciones.reduce((a, q) => a + q.lots * contractSize * (precio - q.entry) * dir(q.side), 0);
+
+    exige('cruzado', caso, 'el margen usado es unidades × precio / apalancamiento',
+      cerca(st.marginUsed, (unidades * precio) / leverage), `${st.marginUsed}`);
+    exige('cruzado', caso, 'el equity es saldo más flotante',
+      cerca(st.equity, balance + flotante), `${st.equity} vs ${balance + flotante}`);
+    exige('cruzado', caso, 'el margen libre es equity menos margen usado',
+      cerca(st.freeMargin, st.equity - st.marginUsed), `${st.freeMargin}`);
+    exige('cruzado', caso, 'el margin level sin margen usado es null, no cero',
+      st.marginUsed > 0 ? st.marginLevel !== null : st.marginLevel === null,
+      `usado=${st.marginUsed} nivel=${st.marginLevel}`);
+    if (st.marginLevel !== null) {
+      exige('cruzado', caso, 'el margin level es equity ÷ margen usado × 100',
+        cerca(st.marginLevel, (st.equity / st.marginUsed) * 100), `${st.marginLevel}`);
+    }
+    exige('cruzado', caso, 'el nocional cuenta TODAS las patas, no la neta',
+      cerca(st.notional, posiciones.reduce((a, q) => a + q.lots, 0) * contractSize * precio),
+      `${st.notional}`);
+
+    // ── La identidad que no se puede fingir ────────────────────────
+    const disparo = marginLevelPrice({ ...base, thresholdPct: umbral });
+    if (disparo !== null) {
+      exige('cruzado', caso, 'el precio de disparo es finito y positivo',
+        Number.isFinite(disparo) && disparo > 0, `${disparo}`);
+      const enDisparo = accountState({ ...base, price: disparo });
+      exige('cruzado', caso, 'en el precio de disparo el margin level ES el umbral',
+        enDisparo.marginLevel !== null && cerca(enDisparo.marginLevel, umbral, 1e-6),
+        `umbral=${umbral} salió=${enDisparo.marginLevel} P=${disparo}`);
+    } else {
+      // Un null tiene que estar justificado: o no hay exposición neta, o la
+      // ecuación no tiene raíz positiva. Nunca «no me apetecía calcularlo».
+      const neta = largas - cortas;
+      const A = neta;
+      const B = balance - posiciones.reduce((a, q) => a + q.lots * contractSize * q.entry * dir(q.side), 0);
+      const den = A - (umbral / 100) * (unidades / leverage);
+      exige('cruzado', caso, 'un null de liquidación está justificado',
+        A === 0 || den === 0 || !(-B / den > 0), `A=${A} den=${den} B=${B}`);
+    }
+
+    // El colchón y el margin level tienen que contar la misma historia.
+    const colchon = cushion({ ...base, price: precio, thresholdPct: umbral });
+    if (colchon !== null && st.marginLevel !== null) {
+      exige('cruzado', caso, 'colchón positivo si y sólo si aún no se ha cruzado el umbral',
+        (colchon > 0) === (st.marginLevel > umbral),
+        `colchón=${colchon} nivel=${st.marginLevel} umbral=${umbral}`);
+    }
+
+    // ── canOpen: coherencia y máximo exacto ────────────────────────
+    const añadir = entre(0.01, 3);
+    const ladoNuevo = uno(['long', 'short']);
+    const co = canOpen({ ...base, price: precio, addLots: añadir, side: ladoNuevo });
+    if (co.required !== null) {
+      todoFinito('cruzado', caso, co, 'canOpen.');
+      exige('cruzado', caso, 'ok es exactamente «lo que pide cabe en lo que hay»',
+        co.ok === (co.required <= co.available), `pide=${co.required} hay=${co.available} ok=${co.ok}`);
+      exige('cruzado', caso, 'el déficit es cero cuando cabe',
+        co.ok ? co.shortfall === 0 : co.shortfall > 0, `${co.shortfall}`);
+      exige('cruzado', caso, 'el máximo no es negativo', co.maxLots >= 0, `${co.maxLots}`);
+      if (co.maxLots > 0 && co.maxLots < 1e6) {
+        const enMax = accountState({
+          ...base, price: precio,
+          positions: [...posiciones, { lots: co.maxLots, entry: precio, side: ladoNuevo }],
+        });
+        exige('cruzado', caso, 'en el máximo el margen libre queda en cero, no en negativo',
+          enMax.freeMargin >= -Math.abs(balance) * 1e-9,
+          `libre=${enMax.freeMargin} max=${co.maxLots}`);
+      }
+    }
+
+    // ── sizeForCushion: la promesa literal de su etiqueta ──────────
+    const exigido = precio * entre(0.001, 0.2);
+    const L = sizeForCushion({
+      balance, price: precio, leverage, contractSize, cushionPrice: exigido, thresholdPct: umbral, side,
+    });
+    if (L !== null && L > 0) {
+      const pStop = side === 'short' ? precio + exigido : precio - exigido;
+      if (pStop > 0) {
+        const enStop = accountState({
+          balance, positions: [{ lots: L, entry: precio, side }], price: pStop, leverage, contractSize,
+        });
+        exige('cruzado', caso, 'con el tamaño defendible, el movimiento exigido deja el ML en el umbral',
+          enStop.marginLevel !== null && cerca(enStop.marginLevel, umbral, 1e-6),
+          `L=${L} umbral=${umbral} salió=${enStop.marginLevel}`);
+      }
+      const techo = absoluteMaxLots({ balance, contractSize, cushionPrice: exigido });
+      exige('cruzado', caso, 'el tamaño defendible nunca supera el techo de la cuenta',
+        L <= techo * (1 + 1e-9), `L=${L} techo=${techo}`);
+    }
+
+    // ── La escalera ────────────────────────────────────────────────
+    const sentido = uno(['with', 'against']);
+    const entradas = buildLadder({
+      entry: precio, lots: entre(0.01, 3), spacing: precio * entre(0.0001, 0.02),
+      rungs: enteroEntre(1, 8), side, direction: sentido, taper: uno([1, 0.8, 0.6]),
+    });
+    if (entradas.length) {
+      const signo = dir(side) * (sentido === 'against' ? -1 : 1);
+      exige('cruzado', caso, 'la escalera va en el sentido declarado',
+        entradas.length === 1 || Math.sign(entradas[1].price - entradas[0].price) === signo,
+        `${sentido} ${side}: ${entradas[0].price} → ${entradas[1] && entradas[1].price}`);
+
+      const sim = simulateLadder({
+        balance, leverage, contractSize, side, entries: entradas,
+        marginModel: modelo, stopOutPct: umbral, target: precio * entre(0.8, 1.2),
+      });
+      exige('cruzado', caso, 'los lotes abiertos son la suma de los tramos aceptados',
+        cerca(sim.lotsOpened, sim.rungs.filter((r) => r.accepted).reduce((a, r) => a + r.lots, 0)),
+        `${sim.lotsOpened}`);
+      exige('cruzado', caso, 'completada si y sólo si no hay tramo bloqueado',
+        sim.completed === (sim.blockedAt === null && sim.rungs.filter((r) => r.accepted).length === entradas.length),
+        `completada=${sim.completed} bloqueo=${sim.blockedAt}`);
+      exige('cruzado', caso, 'como mucho un tramo rechazado, y es el último de la lista',
+        sim.rungs.filter((r) => !r.accepted).length <= 1
+          && (sim.blockedAt === null || sim.rungs[sim.rungs.length - 1].accepted === false),
+        `${sim.rungs.map((r) => r.accepted).join(',')}`);
+      const conColchon = sim.rungs.filter((r) => r.accepted && r.cushion !== null);
+      if (conColchon.length) {
+        exige('cruzado', caso, 'el colchón mínimo es el menor de todos',
+          cerca(sim.minCushion, Math.min(...conColchon.map((r) => r.cushion))), `${sim.minCushion}`);
+        exige('cruzado', caso, 'y minCushionAt señala a un tramo que lo tiene',
+          sim.rungs[sim.minCushionAt - 1] && cerca(sim.rungs[sim.minCushionAt - 1].cushion, sim.minCushion),
+          `at=${sim.minCushionAt}`);
+      }
+      if (sim.atTarget) {
+        todoFinito('cruzado', caso, sim.atTarget, 'atTarget.');
+        exige('cruzado', caso, 'un objetivo del lado perdedor no da probabilidad de éxito',
+          sim.atTarget.move > 0 || sim.survival === null,
+          `recorrido=${sim.atTarget.move} superv=${sim.survival}`);
+      }
+      if (sim.survival !== null) {
+        exige('cruzado', caso, 'la supervivencia es una probabilidad',
+          sim.survival > 0 && sim.survival < 1, `${sim.survival}`);
+      }
+      for (const r of sim.rungs) todoFinito('cruzado', caso, r.state || {}, 'tramo.');
+    }
+
+    // ── Aislado: la etiqueta dice «no depende del tamaño» ──────────
+    const dAisl = isolatedStopDistance({ price: precio, leverage });
+    if (dAisl !== null) {
+      exige('cruzado', caso, 'la distancia en aislado es precio ÷ apalancamiento',
+        cerca(dAisl, precio / leverage), `${dAisl}`);
+    }
+
+    // ── Ruina del jugador ──────────────────────────────────────────
+    const a = precio * entre(0.005, 0.3);
+    const b = precio * entre(0.001, 0.1);
+    const sigma = precio * entre(0.005, 0.05);
+    const mu = precio * entre(-0.02, 0.02);
+    const p0 = survivalProbability({ targetMove: a, cushionMove: b });
+    const pMu = survivalProbability({ targetMove: a, cushionMove: b, driftPerDay: mu, sigmaPerDay: sigma });
+    exige('cruzado', caso, 'sin deriva la ruina es exactamente b/(a+b)', cerca(p0, b / (a + b)), `${p0}`);
+    exige('cruzado', caso, 'con deriva sigue siendo una probabilidad',
+      pMu > 0 && pMu <= 1, `${pMu}`);
+    // Un 1 exacto sólo puede venir de que 1−e^(−k·b) redondee a 1, y eso exige
+    // que la deriva aplaste a la volatilidad. Si sale de cualquier otro sitio
+    // es un fallo, así que la saturación se comprueba contra su causa.
+    if (pMu === 1) {
+      const k = (2 * mu) / (sigma * sigma);
+      exige('cruzado', caso, 'una certeza de 1 sólo la produce una deriva dominante',
+        k * b > 30, `k·b=${k * b}`);
+    }
+    exige('cruzado', caso, 'la deriva a favor no puede empeorar la probabilidad',
+      mu >= 0 ? pMu >= p0 - 1e-12 : pMu <= p0 + 1e-12, `mu=${mu} p0=${p0} pMu=${pMu}`);
+  }
+}
+
 (async () => {
   const reparto = {
-    mesa: Math.round(N * 0.34),
-    opciones: Math.round(N * 0.22),
+    mesa: Math.round(N * 0.28),
+    opciones: Math.round(N * 0.18),
+    cruzado: Math.round(N * 0.12),
     simulador: Math.round(N * 0.10),
-    montecarlo: Math.round(N * 0.12),
+    montecarlo: Math.round(N * 0.10),
     pnl: Math.round(N * 0.12),
     proyeccion: Math.round(N * 0.10),
   };
@@ -804,6 +1019,7 @@ async function montecarlo(n) {
   await simulador(reparto.simulador);
   await montecarlo(reparto.montecarlo);
   await pnl(reparto.pnl);
+  await cruzado(reparto.cruzado);
   await proyeccion(reparto.proyeccion);
   const ms = Date.now() - t0;
 

@@ -1363,6 +1363,40 @@ async function checkSiteFacts() {
     calculadoras === SITE_FACTS.calculators,
     `siteFacts dice ${SITE_FACTS.calculators}, CALC_NAV tiene ${calculadoras}`);
 
+  // ── Las páginas estáticas apuntan a algo que existe ──────────────────
+  //
+  // Las ~1.600 páginas de captación son anzuelo: su única llamada a la acción
+  // es un enlace profundo `?tab=` o `?topic=`. Si alguien renombra una
+  // pestaña, la página sigue publicándose, sigue posicionando y deja al
+  // visitante en la calculadora por defecto sin decir nada. No lo ve el lint,
+  // ni el build, ni el sitemap —que las cuenta igual—, así que se comprueba
+  // aquí: cada destino que la máquina de SEO promete tiene que existir en la
+  // aplicación, y `?tab=` además tiene que estar en la lista que el panel
+  // acepta, porque un valor fuera de ella se ignora en silencio.
+  const seoSrc = fs.readFileSync(path.join(SRC, '..', 'scripts', 'gen-seo-pages.js'), 'utf8');
+
+  const navTabs = new Set([...dash.slice(navIni, navFin).matchAll(/value: '([a-z0-9-]+)'/g)].map((m) => m[1]));
+  const permIni = dash.indexOf('const allowed = [');
+  const permitidas = new Set([...dash.slice(permIni, dash.indexOf('];', permIni)).matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]));
+  const calcsIni = seoSrc.indexOf('const CALCS = [');
+  const seoTabs = [...seoSrc.slice(calcsIni, seoSrc.indexOf('\n];', calcsIni)).matchAll(/tab: '([a-z0-9-]+)'/g)].map((m) => m[1]);
+  ok('la máquina de SEO enlaza a calculadoras que existen',
+    seoTabs.length > 0 && seoTabs.every((t) => navTabs.has(t)),
+    `sin destino: ${seoTabs.filter((t) => !navTabs.has(t)).join(', ')}`);
+  ok('y a pestañas que el panel acepta por la URL',
+    seoTabs.every((t) => permitidas.has(t)),
+    `no permitidas: ${seoTabs.filter((t) => !permitidas.has(t)).join(', ')}`);
+
+  const edu = fs.readFileSync(path.join(SRC, 'pages', 'EducationPage.jsx'), 'utf8');
+  const eduIni = edu.indexOf('const EDUCATION_NAV');
+  const eduTemas = new Set([...edu.slice(eduIni, edu.indexOf('const totalTopics'))
+    .matchAll(/value: '([a-z0-9-]+)'/g)].map((m) => m[1]));
+  const topIni = seoSrc.indexOf('const TOPICS = [');
+  const seoTemas = [...seoSrc.slice(topIni, seoSrc.indexOf('\n];', topIni)).matchAll(/v:'([a-z0-9-]+)'/g)].map((m) => m[1]);
+  ok('la máquina de SEO enlaza a temas de la Academia que existen',
+    seoTemas.length > 0 && seoTemas.every((t) => eduTemas.has(t)),
+    `sin destino: ${seoTemas.filter((t) => !eduTemas.has(t)).join(', ')}`);
+
   // Activos: claves de primer nivel de ALL_ASSETS.
   const activosSrc = lee('lib/assets.js');
   const aIni = activosSrc.indexOf('export const ALL_ASSETS');
@@ -1826,6 +1860,30 @@ async function checkCrossMargin() {
   ok('un corto escala a favor a la inversa', conCorto[2].price === 80);
   ok('el decrecimiento reduce cada tramo',
     near(buildLadder({ entry: 100, lots: 1, spacing: 10, rungs: 3, taper: 0.5 })[2].lots, 0.25, 1e-12));
+
+  // La dirección adversa la marca la PENDIENTE, no la exposición neta.
+  //
+  // Tres largos y dos cortos con el modelo que cobra las dos patas y
+  // apalancamiento 2: la cuenta está neta LARGA y al 400 % de margin level, y
+  // la mata una SUBIDA, porque el margen crece con el precio más deprisa que el
+  // equity. Tomando la dirección del signo de la exposición neta salía −5.000:
+  // la magnitud correcta con el signo cambiado, que en pantalla se lee como
+  // «ya te han liquidado» sobre una cuenta sana. Lo encontró la simulación
+  // masiva, no una comprobación elegida a mano.
+  {
+    const raro = { balance: 10000, contractSize: 1, leverage: 2, marginModel: 'sum' };
+    const mixto = [{ lots: 3, entry: 1000, side: 'long' }, { lots: 2, entry: 1000, side: 'short' }];
+    const est = accountState({ ...raro, positions: mixto, price: 1000 });
+    ok('la cuenta cubierta con margen de dos patas está al 400 %', near(est.marginLevel, 400, 1e-9));
+    ok('y a esa cuenta NETA LARGA la liquida una subida',
+      near(marginLevelPrice({ ...raro, positions: mixto, thresholdPct: 100 }), 6000, 1e-9));
+    const c = cushion({ ...raro, positions: mixto, price: 1000, thresholdPct: 100 });
+    ok('su colchón sale POSITIVO: 5.000 hacia arriba, no −5.000',
+      near(c, 5000, 1e-9), `${c}`);
+    // La regla general, que es lo que de verdad hay que conservar.
+    ok('colchón positivo si y sólo si el margin level supera el umbral',
+      (c > 0) === (est.marginLevel > 100));
+  }
 
   // Honestidad numérica: lo que no se puede calcular es null, nunca 0.
   ok('sin posiciones no hay precio de liquidación',

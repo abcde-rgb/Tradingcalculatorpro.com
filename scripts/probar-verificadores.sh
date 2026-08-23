@@ -254,6 +254,44 @@ p.write_text(t.replace('dirOf(side) * (direction', 'dirOf(side) * -1 * (directio
 import pathlib
 p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
 p.write_text(t.replace('* 100 : null,', '* 100 : 0,', 1))\""
+
+  # 5) La dirección del colchón tomada de la exposición neta en vez de la
+  #    pendiente. Lo destapó la simulación masiva; aquí se fija para siempre.
+  probar "el colchón vuelve a tomar la dirección de la exposición neta" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
+p.write_text(t.replace('return pendiente > 0 ? p - trigger : trigger - p;',
+                       'return signedUnits(positions, num(contractSize)) > 0 ? p - trigger : trigger - p;', 1))\""
+
+  # 6) Un enlace profundo que ya no lleva a ninguna parte. La página estática
+  #    se sigue publicando y posicionando, y el visitante aterriza en la
+  #    calculadora por defecto sin que nada avise.
+  probar "una página de SEO que enlaza a una pestaña inexistente" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/scripts/gen-seo-pages.js'); t = p.read_text()
+p.write_text(t.replace('tab: ' + q + 'cross-margin' + q, 'tab: ' + q + 'cross-margen' + q, 1))\""
+
+  probar "una página de SEO que enlaza a un tema que no existe" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/scripts/gen-seo-pages.js'); t = p.read_text()
+p.write_text(t.replace(q + 'cross-margin' + q + ', slug:', q + 'margen-cruzado' + q + ', slug:', 1))\""
+
+  # ── La simulación masiva también tiene que poder fallar ───────────────────
+  titulo "Simulación masiva (simulacion-masiva.js)"
+  probar "una identidad del margen cruzado que deja de cumplirse" \
+    "(cd frontend && node scripts/simulacion-masiva.js --n 200)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
+p.write_text(t.replace('freeMargin: equity - marginUsed,', 'freeMargin: equity - marginUsed * 0.999,', 1))\""
 else
   echo "  ⏭️  i18n-check y engine-check: sin node_modules (ejecuta scripts/preparar-entorno.sh)"
 fi
