@@ -8338,13 +8338,24 @@ async def listar_brokers():
         # Granadinas), así que un enlace de ese programa NO lleva a Solaris
         # EMEA (CySEC) y enseñar la ficha chipriota al lado sería decirle al
         # usuario que contrata con alguien con quien no contrata.
-        entidad, regulador, licencia = b.contrato_del_cliente()
+        f = b.contrato_del_cliente()
         return {
             "id": b.id,
             "nombre": b.nombre,
-            "entidad": entidad,
-            "regulador": regulador,
-            "licencia": licencia,
+            "entidad": f.entidad,
+            "regulador": f.regulador,
+            "licencia": f.licencia,
+            # A QUÉ PÚBLICO sirve esa entidad. Sin esto la ficha afirma en
+            # silencio que es la del lector, y con público internacional eso es
+            # falso para la mayoría: la marca tiene una entidad por región.
+            "jurisdiccion": f.jurisdiccion,
+            # El código va aparte del texto para que la interfaz pueda
+            # traducirlo. Una etiqueta traducida junto a un valor en castellano
+            # —«entity for Unión Europea»— es peor que no traducir ninguna.
+            "jurisdiccionCodigo": f.jurisdiccion_codigo,
+            # A quién no acepta el alta. Se dice antes de que pulse, no después
+            # de que rellene el formulario y le rechacen.
+            "noAdmiteResidentes": list(b.no_admite_residentes),
             "url": b.url(),
         }
 

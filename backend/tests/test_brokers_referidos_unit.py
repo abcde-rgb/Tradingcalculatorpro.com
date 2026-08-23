@@ -30,6 +30,10 @@ def _broker(**cambios):
         ofrece_cfd_minorista=True,
         perdida_pct=70.0, perdida_pct_leido_el=HOY,
         perdida_pct_fuente="fuente de prueba",
+        # Un porcentaje necesita las TRES: cifra, de dónde salió y de qué
+        # entidad es. La tercera se añadió al mirar el registro con público
+        # internacional delante — ver la sección del final.
+        perdida_pct_entidad="Entidad UE SA (CySEC, UE)",
     )
     base.update(cambios)
     return br.Broker(**base)
@@ -262,18 +266,18 @@ def test_ningun_enlace_esta_escrito_en_el_codigo():
 # ══════════════════════════════════════════════════════════════════════════
 def test_sin_enlace_de_referido_la_ficha_es_la_entidad_europea(monkeypatch):
     monkeypatch.delenv("BROKER_REF_AXI", raising=False)
-    entidad, regulador, licencia = br.por_id("axi").contrato_del_cliente()
-    assert "Solaris EMEA" in entidad
-    assert (regulador, licencia) == ("CySEC", "433/23")
+    f = br.por_id("axi").contrato_del_cliente()
+    assert "Solaris EMEA" in f.entidad
+    assert (f.regulador, f.licencia) == ("CySEC", "433/23")
 
 
 def test_con_enlace_de_referido_la_ficha_es_la_del_PROGRAMA(monkeypatch):
     monkeypatch.setenv("BROKER_REF_AXI", "https://ejemplo.test/?ref=abc")
-    entidad, regulador, licencia = br.por_id("axi").contrato_del_cliente()
-    assert "AxiTrader LLC" in entidad, "la ficha sigue anunciando la entidad chipriota"
-    assert "Vicente" in entidad
+    f = br.por_id("axi").contrato_del_cliente()
+    assert "AxiTrader LLC" in f.entidad, "la ficha sigue anunciando la entidad chipriota"
+    assert "Vicente" in f.entidad
     # Y sin supervisor ni licencia: los de Solaris EMEA no amparan a la de SVG.
-    assert regulador is None and licencia is None
+    assert f.regulador is None and f.licencia is None
 
 
 def test_un_enlace_de_referido_de_destino_desconocido_no_se_publica(monkeypatch):
@@ -307,6 +311,78 @@ def test_la_entidad_del_programa_tambien_declara_su_fuente():
     for b in br.BROKERS:
         if b.programa_entidad:
             assert b.programa_fuente, f"{b.id}: entidad de programa sin fuente"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Público INTERNACIONAL: cada dato con la jurisdicción a la que pertenece
+#
+# El modelo nació contestando una pregunta europea y eso producía una
+# afirmación falsa para la mayoría de los lectores: «el 67,24 % de las cuentas
+# pierden dinero **con este proveedor**» es la cifra de Solaris EMEA bajo
+# CySEC, no la de la entidad que le tocaría a alguien de Chile o Singapur.
+# Misma familia que BUG-059 y BUG-063: un número presentado como más general
+# de lo que es.
+# ══════════════════════════════════════════════════════════════════════════
+def test_el_porcentaje_dice_de_que_entidad_es():
+    corta = br.por_id("axi").advertencia_corta()
+    larga = br.por_id("axi").advertencia()
+    assert "Solaris EMEA" in corta, "la cifra sale sin decir de quién es"
+    assert "Solaris EMEA" in larga
+    assert "este proveedor" not in larga, "atribuye la cifra al bróker entero"
+
+
+def test_la_advertencia_larga_dice_que_la_entidad_depende_del_pais():
+    larga = br.por_id("axi").advertencia()
+    assert "depende" in larga and "residencia" in larga
+
+
+def test_un_porcentaje_sin_saber_de_que_entidad_es_no_se_publica():
+    """Tercera condición del porcentaje, junto a la cifra y la fuente."""
+    b = _broker(perdida_pct=70.0, perdida_pct_fuente="una fuente",
+                perdida_pct_entidad=None)
+    assert b.advertencia() is None
+    assert "70" not in b.advertencia_corta()
+    assert b.esta_al_dia(HOY) is False
+
+
+def test_toda_entidad_de_porcentaje_del_registro_esta_puesta():
+    for b in br.BROKERS:
+        if b.perdida_pct is not None:
+            assert b.perdida_pct_entidad, f"{b.id}: cifra sin entidad"
+
+
+def test_la_ficha_legal_dice_a_que_publico_sirve_esa_entidad(monkeypatch):
+    monkeypatch.delenv("BROKER_REF_AXI", raising=False)
+    f = br.por_id("axi").contrato_del_cliente()
+    assert f.jurisdiccion == "Unión Europea", (
+        "la ficha afirma en silencio que esa entidad es la del lector")
+
+
+def test_sin_entidad_no_se_inventa_una_jurisdiccion():
+    """Swissquote no tiene entidad de la UE confirmada: tampoco jurisdicción."""
+    f = br.por_id("swissquote").contrato_del_cliente()
+    assert f.entidad is None and f.jurisdiccion is None
+
+
+def test_la_jurisdiccion_del_programa_viaja_con_su_entidad(monkeypatch):
+    monkeypatch.setenv("BROKER_REF_AXI", "https://ejemplo.test/?ref=abc")
+    f = br.por_id("axi").contrato_del_cliente()
+    assert "AxiTrader" in f.entidad
+    assert f.jurisdiccion and "Vicente" in f.jurisdiccion
+
+
+def test_a_quien_no_admite_se_sabe_antes_de_pulsar():
+    """Con público internacional, mandar a alguien a un alta que va a
+    rechazarle es hacerle perder el tiempo y sus datos."""
+    ibkr = br.por_id("ibkr")
+    assert "España" in ibkr.no_admite_residentes
+    assert ibkr.no_admite_fuente, "una lista de países sin fuente no es un dato"
+
+
+def test_ninguna_lista_de_vetados_va_sin_fuente():
+    for b in br.BROKERS:
+        if b.no_admite_residentes:
+            assert b.no_admite_fuente, f"{b.id}: lista de vetados sin fuente"
 
 
 def test_pendientes_dice_exactamente_que_falta(monkeypatch):
