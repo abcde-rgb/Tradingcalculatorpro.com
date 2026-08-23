@@ -4192,7 +4192,7 @@ export default {
   "deskModeDesk": "Banco di calcolo",
   "deskModeDeskHint": "Parti dal tuo capitale ed esce l'operazione intera: size, margine, leva e liquidazione.",
   "deskModeBasic": "Calcolatrici singole",
-  "deskModeBasicHint": "Le solite quattordici, ognuna per sé. Per quando vuoi solo un numero.",
+  "deskModeBasicHint": "Ognuna per sé, nella sua schermata. Per quando vuoi solo un numero.",
   "deskCapitalLabel": "Capitale totale",
   "deskCapitalPlaceholder": "Scrivi con quanto operi",
   "deskCapitalEmpty": "Senza capitale non c'è size: è il dato da cui dipendono tutti gli altri. Non c'è un valore predefinito di proposito — una cifra inventata qui finisce per dimensionare posizioni vere.",

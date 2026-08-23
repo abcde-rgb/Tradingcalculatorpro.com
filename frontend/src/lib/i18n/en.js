@@ -4192,7 +4192,7 @@ export default {
   "deskModeDesk": "Calculation desk",
   "deskModeDeskHint": "Start from your capital and get the whole trade: size, margin, leverage and liquidation.",
   "deskModeBasic": "Single calculators",
-  "deskModeBasicHint": "The same fourteen as always, each one on its own. For when you just want one number.",
+  "deskModeBasicHint": "Each one on its own screen. For when you just want one number.",
   "deskCapitalLabel": "Total capital",
   "deskCapitalPlaceholder": "Type what you trade with",
   "deskCapitalEmpty": "No capital, no size: it's the number every other one depends on. There's no default on purpose — a made-up figure here ends up sizing real positions.",

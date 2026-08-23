@@ -4192,7 +4192,7 @@ export default {
   "deskModeDesk": "Mesa de cálculo",
   "deskModeDeskHint": "Empiezas por tu capital y sale la operación entera: tamaño, margen, apalancamiento y liquidación.",
   "deskModeBasic": "Calculadoras sueltas",
-  "deskModeBasicHint": "Las catorce de siempre, cada una a lo suyo. Para cuando sólo quieres una cifra.",
+  "deskModeBasicHint": "Cada una a lo suyo, en su propia pantalla. Para cuando sólo quieres una cifra.",
   "deskCapitalLabel": "Capital total",
   "deskCapitalPlaceholder": "Escribe con cuánto operas",
   "deskCapitalEmpty": "Sin capital no hay tamaño: es el dato del que dependen todos los demás. No hay valor por defecto a propósito — una cifra inventada aquí acaba dimensionando posiciones reales.",

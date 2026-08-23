@@ -4192,7 +4192,7 @@ export default {
   "deskModeDesk": "Table de calcul",
   "deskModeDeskHint": "Tu pars de ton capital et tu obtiens toute l'opération : taille, marge, levier et liquidation.",
   "deskModeBasic": "Calculatrices simples",
-  "deskModeBasicHint": "Les quatorze habituelles, chacune de son côté. Quand tu ne veux qu'un chiffre.",
+  "deskModeBasicHint": "Chacune de son côté, sur son propre écran. Quand tu ne veux qu'un chiffre.",
   "deskCapitalLabel": "Capital total",
   "deskCapitalPlaceholder": "Indique ton capital de trading",
   "deskCapitalEmpty": "Sans capital, pas de taille : c'est la donnée dont dépendent toutes les autres. Aucune valeur par défaut, volontairement — un chiffre inventé ici finit par dimensionner de vraies positions.",

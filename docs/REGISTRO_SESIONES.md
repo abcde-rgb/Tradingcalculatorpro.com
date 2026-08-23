@@ -4495,7 +4495,65 @@ según el modelo de margen—.
 > ejecutan. Con el plugin, 890 pasan. Un ❌ es una hipótesis, no un veredicto.
 
 **Lo que NO cierra:** G-33 sigue abierto. Ésta es una herramienta nueva escrita
-ya sobre el catálogo, no una de las catorce viejas rehechas. Y la aritmética
-vive en `lib/`, así que sí es importable desde `simulacion-masiva`, aunque
-todavía no se le ha añadido un generador de escenarios: hoy la cubren las 52
-comprobaciones de referencia de `engine-check`.
+ya sobre el catálogo, no una de las catorce viejas rehechas.
+
+### 2026-08-22 (2) — Revisión adversaria de la rama, y lo que encontró
+
+Se pidió revisar la rama antes de implementarla. El método fue el de
+`no-me-fio`: dar por FALSA cada afirmación y buscarle una ruta que no comparta
+código con ella.
+
+**La aritmética, por segunda ruta.** `engine-check` llama a las mismas funciones
+que el componente: comprueba que no han cambiado, no que sean correctas. Se
+hicieron 52 comprobaciones por caminos independientes —cuentas a mano con
+números redondos; el catálogo por su otra puerta (`positionMetrics` de
+`instruments.js`); **identidades**, que en vez de creerse el precio despejado
+reconstruyen la cuenta a ese precio y exigen que el margin level sea el umbral;
+y la **EDO de la ruina resuelta por diferencias finitas** contra la fórmula
+cerrada—. Las 52 coinciden.
+
+Dos de las rutas que fallaron eran de la sonda, no del producto, y merece
+anotarse: el primer intento leía `pm.margin` cuando el campo es `marginUsed`, y
+el Monte Carlo de la ruina usaba un paso de σ/√40 = 9,5 $ contra una barrera de
+7,66 $ — no resolvía el problema, lo cambiaba, y daba 17,6 % donde hay 8,6 %.
+
+**El bug que encontró la simulación masiva.** Al cubrir el motor con escenarios
+generados apareció a la primera algo que ninguna comprobación elegida a mano
+habría mirado: `cushion()` tomaba la dirección adversa del signo de la
+exposición neta, cuando la marca la pendiente del excedente. Detalle y arreglo
+en el commit; lo importante del método es que el fallo estaba en un régimen
+—cartera cubierta, margen de dos patas, apalancamiento bajo— que nadie habría
+elegido a mano, y que el síntoma era un colchón NEGATIVO sobre una cuenta al
+400 % de margin level.
+
+**El hueco de integración.** La rama pasaba todas las puertas y la herramienta
+seguía siendo invisible para el embudo de captación: `gen-seo-pages.js` genera
+las ~1.600 páginas estáticas desde dos listas escritas a mano, y ni la
+calculadora ni el curso estaban en ellas. Ahora sí, en los diez idiomas
+(sitemap 1589 → **1609 URLs**), y con una guarda nueva en `engine-check` para
+que un renombrado no deje esas páginas apuntando al vacío: cada `?tab=` de la
+máquina de SEO tiene que existir en `CALC_NAV` **y** estar en la lista que el
+panel acepta por URL, y cada `?topic=` tiene que existir en `EDUCATION_NAV`.
+Sin ella, una página renombrada se sigue publicando, sigue posicionando y deja
+al visitante en la calculadora por defecto sin que nada avise.
+
+**Lo que sólo se vio mirando.** Las dos pantallas nuevas, en los diez idiomas
+sobre el build compilado: 20/20 sin claves crudas, sin desbordamiento y sin
+errores de JavaScript, con el árabe en RTL. Y en tema claro, que era la mitad
+sin comprobar: `hsl(var(--primary))` resuelve a `rgb(27,152,79)` en claro y
+`rgb(23,207,99)` en oscuro — es decir, los colores del gráfico y de la regleta
+son de verdad sensibles al tema, que es lo que el arreglo de `var(--short)`
+perseguía. Ahí se vio también que el conmutador seguía diciendo «las mismas
+catorce de siempre» con quince herramientas, en los diez idiomas. Se quitó la
+cifra en vez de subirla a quince: la barra lateral ya muestra el recuento vivo
+y un número escrito a mano sólo vuelve a envejecer.
+
+**Lo que queda sin comprobar, y se dice:** el contenido del curso se contrastó
+contra los límites de ESMA y contra el catálogo, pero las afirmaciones sobre
+*cómo se comporta cada bróker concreto* (qué modelo de margen aplica, si cobra
+el swap en las dos patas) son de sector, no verificables desde el repositorio, y
+el propio curso manda comprobarlas en la ficha del instrumento. Tampoco se probó
+la herramienta con un bróker real. Y dos restos ajenos a esta rama: `s.tmp.cjs`
+en `frontend/`, un fichero temporal que se coló en el commit 8a0ade5, y
+`toolMapIntro`, una clave i18n muerta que aún dice «14 calculadoras» en los diez
+idiomas sin que ningún componente la pinte.

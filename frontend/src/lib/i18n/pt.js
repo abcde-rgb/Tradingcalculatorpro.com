@@ -4192,7 +4192,7 @@ export default {
   "deskModeDesk": "Mesa de cálculo",
   "deskModeDeskHint": "Começas pelo teu capital e sai a operação inteira: tamanho, margem, alavancagem e liquidação.",
   "deskModeBasic": "Calculadoras avulsas",
-  "deskModeBasicHint": "As catorze de sempre, cada uma no seu. Para quando só queres um número.",
+  "deskModeBasicHint": "Cada uma no seu, no seu próprio ecrã. Para quando só queres um número.",
   "deskCapitalLabel": "Capital total",
   "deskCapitalPlaceholder": "Escreve com quanto operas",
   "deskCapitalEmpty": "Sem capital não há tamanho: é o dado do qual dependem todos os outros. Não há valor por omissão de propósito — um número inventado aqui acaba a dimensionar posições reais.",

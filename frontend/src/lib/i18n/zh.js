@@ -4192,7 +4192,7 @@ export default {
   "deskModeDesk": "计算台",
   "deskModeDeskHint": "从你的资金出发，直接得到完整交易：仓位、保证金、杠杆和强平价。",
   "deskModeBasic": "单项计算器",
-  "deskModeBasicHint": "还是那十四个，各管各的。只想要一个数字时用这个。",
+  "deskModeBasicHint": "各管各的，各有各的界面。只想要一个数字时用这个。",
   "deskCapitalLabel": "总资金",
   "deskCapitalPlaceholder": "输入你实际交易的资金",
   "deskCapitalEmpty": "没有资金就没有仓位：其他数字全都依赖它。这里刻意不给默认值——编出来的数字最后会被用来开真实仓位。",

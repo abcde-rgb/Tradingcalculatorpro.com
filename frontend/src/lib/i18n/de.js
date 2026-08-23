@@ -4192,7 +4192,7 @@ export default {
   "deskModeDesk": "Rechenpult",
   "deskModeDeskHint": "Du startest mit deinem Kapital und bekommst den ganzen Trade: Größe, Margin, Hebel und Liquidation.",
   "deskModeBasic": "Einzelrechner",
-  "deskModeBasicHint": "Dieselben vierzehn wie immer, jede für sich. Wenn du nur eine Zahl brauchst.",
+  "deskModeBasicHint": "Jede für sich, auf ihrem eigenen Bildschirm. Wenn du nur eine Zahl brauchst.",
   "deskCapitalLabel": "Gesamtkapital",
   "deskCapitalPlaceholder": "Womit handelst du?",
   "deskCapitalEmpty": "Ohne Kapital keine Größe: davon hängt alles andere ab. Es gibt bewusst keinen Vorgabewert — eine erfundene Zahl hier dimensioniert am Ende echte Positionen.",

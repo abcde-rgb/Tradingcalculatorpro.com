@@ -4192,7 +4192,7 @@ export default {
   "deskModeDesk": "計算デスク",
   "deskModeDeskHint": "資金からはじめて、取引まるごとが出ます：数量・証拠金・レバレッジ・清算価格。",
   "deskModeBasic": "個別の計算機",
-  "deskModeBasicHint": "いつもの14個、それぞれ単体で。数字ひとつだけ欲しいときに。",
+  "deskModeBasicHint": "それぞれ単体で、それぞれの画面に。数字ひとつだけ欲しいときに。",
   "deskCapitalLabel": "総資金",
   "deskCapitalPlaceholder": "実際に運用している金額",
   "deskCapitalEmpty": "資金がなければ数量も出ません。ほかのすべてが依存する数字です。既定値をあえて置いていません——ここの適当な数字が実際の建玉を決めてしまうからです。",

@@ -42,7 +42,7 @@
 
 | Área | Estado | Nota |
 |---|:--:|---|
-| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-03: exit 0, **38 MB** en `build/`, **1589 URLs** en el sitemap, code-splitting OK. Bajó de 40 MB al apagar los source maps |
+| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-22: exit 0, **40 MB** en `build/`, **1609 URLs** en el sitemap (+20 al dar página al simulador de margen cruzado y a su curso), code-splitting OK |
 | **Backend import + sintaxis** | 🟢 | `import server` OK y todos los módulos compilan. **Los conteos (módulos, rutas, líneas) están en [`MAPA.md`](./MAPA.md)** — generado, así que no se desvía |
 | **Tests offline** | 🟢 | `pytest tests/` → **782 passed, 74 skipped** en 13 s (2026-08-14). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
@@ -139,7 +139,7 @@
 - **Prueba de 7 días con tarjeta por adelantado** (`TRIAL_PERIOD_DAYS = 7`, solo
   para nuevos suscriptores y planes recurrentes). Stripe Checkout cobra solo al
   acabar el periodo si no se cancela antes desde «Mi suscripción».
-- **Las 1589 páginas estáticas son anzuelo, no contenido**: título, primer
+- **Las 1609 páginas estáticas son anzuelo, no contenido**: título, primer
   párrafo y llamada a la prueba de 7 días. La receta de cada estrategia, las
   tablas de mercado y las FAQ ya no se publican.
 - **Journal de trading**, alertas de precio (WebSocket), historial de cálculos.
@@ -230,7 +230,7 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 - `cd backend && python -m py_compile *.py` → los 24 módulos. ✔
 - `cd frontend && npx eslint src scripts` → 0 errores, 126 avisos. ✔
 - `cd frontend && node scripts/i18n-check.js` → 5652 × 10, 0 huecos · `node scripts/engine-check.js` → 60/60. ✔
-- `cd frontend && npm run build` → exit 0, 1589 URLs. ✔
+- `cd frontend && npm run build` → exit 0, 1609 URLs. ✔
 - `python scripts/check-doc-links.py` → 47 documentos, 0 roturas. ✔ *(no está en CI — G-18)*
 
 **Manual / E2E pendiente de hacer en un entorno con backend vivo:**
