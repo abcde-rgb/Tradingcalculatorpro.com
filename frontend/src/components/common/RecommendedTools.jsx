@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import margexLogo from '@/assets/partners/margex-square.png';
-import hyperliquidLogo from '@/assets/partners/hyperliquid-square.svg';
+// Generado por `scripts/gen-partner-logos.js` a partir de los ficheros que haya
+// en `src/assets/partners/`. Ver el comentario largo sobre logos más abajo.
+import LOGOS from '@/assets/partners/logos.generated';
 
 const API = process.env.REACT_APP_BACKEND_URL ? `${process.env.REACT_APP_BACKEND_URL}/api` : null;
 
@@ -13,7 +14,6 @@ const PARTNERS = [
     id: 'margex',
     name: 'Margex',
     url: 'https://margex.com/?rid=44932212',
-    image: margexLogo,
     descKey: 'partnerMargexDesc',
   },
   {
@@ -23,7 +23,6 @@ const PARTNERS = [
     // cuando el usuario lo facilite. Y sustituir el logo placeholder (SVG) por el
     // oficial (hyperliquid-square.png). Ver docs/PENDIENTES.md.
     url: 'https://app.hyperliquid.xyz/',
-    image: hyperliquidLogo,
     descKey: 'partnerHyperliquidDesc',
   },
 ];
@@ -36,20 +35,29 @@ const PARTNERS = [
  * una constante del frontend. `/api/brokers` la sirve con su fecha detrás.
  */
 
-// Logos de bróker. Para añadir uno: deja el fichero en
-// `src/assets/partners/<id>-square.(png|svg)` y añade aquí su import — dos
-// líneas. Se hace con imports explícitos y no con `require.context` porque eso
-// último es API de webpack, no de ES, y el linter tiene razón en marcarlo.
-//
-// ⚠️ Vacío a propósito, y conviene que se sepa por qué. Los logos oficiales
-// son marcas registradas y los sirven los propios brókers en su media kit de
-// afiliados; desde este entorno **no se pueden descargar** —el proxy de salida
-// responde 403 a axi.com, dukascopy.com, swissquote.com, home.saxo,
-// interactivebrokers.com y vtmarkets.com—. Y dibujar una imitación de un logo
-// registrado es peor que no ponerlo: se parecería lo justo para confundir y no
-// sería el suyo. Mientras tanto la tarjeta pinta una ficha de marca propia
-// (monograma + nombre), que es claramente NUESTRA y no finge ser de nadie.
-const LOGOS = {};
+/*
+ * LOGOS — de dónde salen y por qué faltan seis.
+ *
+ * El mapa lo genera `scripts/gen-partner-logos.js` mirando qué hay en
+ * `src/assets/partners/`. **Para añadir un logo no se toca este fichero**:
+ * se deja `<id>-square.svg` (o .png) en esa carpeta y se ejecuta el script.
+ * Antes esto era un mapa a mano, y un mapa a mano es cómo un logo acaba en la
+ * carpeta sin salir en la web porque nadie se acordó del `import`.
+ *
+ * ⚠️ Hoy sólo están Margex e Hyperliquid, y conviene que conste por qué. Los
+ * logos oficiales de los seis brókers son marcas registradas y los sirve cada
+ * uno en su media kit de afiliados. Desde este entorno **no se pueden
+ * descargar**: el proxy de salida responde 403 —denegación de política, no
+ * fallo de red— a los seis dominios, a sus dominios alternativos
+ * (axitrader.com, dukascopy.bank, swissquote.ch, saxobank.com, ibkr.com,
+ * vtmarkets.net), a Wikimedia, a los CDN de npm y a los servicios de favicon.
+ * Y `simple-icons` —3453 iconos de marca, sí accesible— no tiene ninguno de
+ * los seis; tiene «Axis Bank» y «Axios», que son otras empresas.
+ *
+ * Lo que NO se hace mientras tanto es dibujar una imitación: se parecería lo
+ * justo para confundir y no sería la suya. La tarjeta pinta una ficha de marca
+ * propia —monograma, nombre y supervisor— que es claramente NUESTRA.
+ */
 
 // El monograma de la ficha de marca. Explícito y no derivado del nombre porque
 // las reglas automáticas dan resultados feos justo donde importa: «Dukascopy
@@ -162,7 +170,9 @@ function useTarjetas() {
       id: p.id,
       nombre: p.name,
       url: p.url,
-      imagen: p.image,
+      // Mismo origen que los brókers: el mapa generado. Que un socio tenga
+      // logo y otro no deja de ser un caso especial en el código.
+      imagen: LOGOS[p.id] || null,
       descripcion: t(p.descKey),
       info: null,
       regulador: null,
