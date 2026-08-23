@@ -3598,3 +3598,224 @@ export const getCotContent = (t) => ({
     items: [t('cotLimit1'), t('cotLimit2'), t('cotLimit3')],
   },
 });
+
+/**
+ * Margen cruzado: el curso que acompaña al simulador de escalera
+ * (`components/calculators/CrossMarginSimulator.jsx`, pestaña `cross-margin`
+ * del panel).
+ *
+ * Tres reglas que este currículo se impone a sí mismo, y que son la razón de
+ * que esté aquí y no en un PDF:
+ *
+ *  1. **Toda cifra sale de una fórmula que el lector puede reproducir en el
+ *     simulador.** Los cuatro escenarios con botón del simulador son
+ *     exactamente los casos trabajados de estos módulos, y las cifras están
+ *     fijadas en `scripts/engine-check.js`: si el motor cambia, el texto se
+ *     cae con él en vez de quedarse mintiendo.
+ *  2. **La respuesta correcta rota de posición.** El repositorio arrastraba
+ *     pilares enteros con la correcta siempre en A; eso enseña a pulsar el
+ *     primer botón, no el contenido.
+ *  3. **Cada módulo declara el error concreto que corrige.** Si un módulo no
+ *     desmonta ninguna creencia, no hace falta.
+ *
+ * Estructura propia (`modules` con `sections` y `quiz`) en vez del `items`
+ * plano del resto: aquí el orden es una secuencia, no un catálogo, y el
+ * buscador de la Academia la indexa igual porque `eduIndex.harvest` recorre el
+ * árbol sin saber su forma.
+ */
+export const getCrossMargin = (t) => ({
+  title: t('xmEduTitle'),
+  intro: t('xmEduIntro'),
+  promise: t('xmEduPromise'),
+  note: t('xmEduNote'),
+  modules: [
+    {
+      id: 'xm-01', minutes: 6,
+      name: t('xmM01Title'),
+      corrects: t('xmM01Corrects'),
+      keyIdea: t('xmM01Idea'),
+      sections: [
+        { name: t('xmM01S1H'), desc: t('xmM01S1B'), formula: t('xmM01F') },
+        { name: t('xmM01S2H'), desc: t('xmM01S2B') },
+      ],
+      quiz: {
+        q: t('xmM01Q'),
+        options: [t('xmM01A1'), t('xmM01A2'), t('xmM01A3'), t('xmM01A4')],
+        correct: 1,
+        why: t('xmM01Why'),
+      },
+    },
+    {
+      id: 'xm-02', minutes: 8,
+      name: t('xmM02Title'),
+      corrects: t('xmM02Corrects'),
+      keyIdea: t('xmM02Idea'),
+      sections: [
+        { name: t('xmM02S1H'), desc: t('xmM02S1B'), formula: t('xmM02F') },
+        { name: t('xmM02S2H'), desc: t('xmM02S2B') },
+      ],
+      quiz: {
+        q: t('xmM02Q'),
+        options: [t('xmM02A1'), t('xmM02A2'), t('xmM02A3'), t('xmM02A4')],
+        correct: 1,
+        why: t('xmM02Why'),
+      },
+    },
+    {
+      id: 'xm-03', minutes: 8,
+      name: t('xmM03Title'),
+      corrects: t('xmM03Corrects'),
+      keyIdea: t('xmM03Idea'),
+      sections: [
+        { name: t('xmM03S1H'), desc: t('xmM03S1B') },
+        { name: t('xmM03S2H'), desc: t('xmM03S2B') },
+      ],
+      quiz: {
+        q: t('xmM03Q'),
+        options: [t('xmM03A1'), t('xmM03A2'), t('xmM03A3'), t('xmM03A4')],
+        correct: 2,
+        why: t('xmM03Why'),
+      },
+    },
+    {
+      id: 'xm-04', minutes: 7,
+      name: t('xmM04Title'),
+      corrects: t('xmM04Corrects'),
+      keyIdea: t('xmM04Idea'),
+      sections: [
+        { name: t('xmM04S1H'), desc: t('xmM04S1B') },
+        { name: t('xmM04S2H'), desc: t('xmM04S2B') },
+      ],
+      quiz: {
+        q: t('xmM04Q'),
+        options: [t('xmM04A1'), t('xmM04A2'), t('xmM04A3'), t('xmM04A4')],
+        correct: 0,
+        why: t('xmM04Why'),
+      },
+    },
+    {
+      id: 'xm-05', minutes: 10,
+      name: t('xmM05Title'),
+      corrects: t('xmM05Corrects'),
+      keyIdea: t('xmM05Idea'),
+      sections: [
+        { name: t('xmM05S1H'), desc: t('xmM05S1B') },
+        { name: t('xmM05S2H'), desc: t('xmM05S2B') },
+        { name: t('xmM05S3H'), desc: t('xmM05S3B') },
+      ],
+      quiz: {
+        q: t('xmM05Q'),
+        options: [t('xmM05A1'), t('xmM05A2'), t('xmM05A3'), t('xmM05A4')],
+        correct: 3,
+        why: t('xmM05Why'),
+      },
+    },
+    {
+      id: 'xm-06', minutes: 9,
+      name: t('xmM06Title'),
+      corrects: t('xmM06Corrects'),
+      keyIdea: t('xmM06Idea'),
+      sections: [
+        { name: t('xmM06S1H'), desc: t('xmM06S1B') },
+        { name: t('xmM06S2H'), desc: t('xmM06S2B') },
+      ],
+      quiz: {
+        q: t('xmM06Q'),
+        options: [t('xmM06A1'), t('xmM06A2'), t('xmM06A3'), t('xmM06A4')],
+        correct: 0,
+        why: t('xmM06Why'),
+      },
+    },
+    {
+      id: 'xm-07', minutes: 8,
+      name: t('xmM07Title'),
+      corrects: t('xmM07Corrects'),
+      keyIdea: t('xmM07Idea'),
+      sections: [
+        { name: t('xmM07S1H'), desc: t('xmM07S1B') },
+        { name: t('xmM07S2H'), desc: t('xmM07S2B') },
+        { name: t('xmM07S3H'), desc: t('xmM07S3B') },
+      ],
+      quiz: {
+        q: t('xmM07Q'),
+        options: [t('xmM07A1'), t('xmM07A2'), t('xmM07A3'), t('xmM07A4')],
+        correct: 2,
+        why: t('xmM07Why'),
+      },
+    },
+    {
+      id: 'xm-08', minutes: 10,
+      name: t('xmM08Title'),
+      corrects: t('xmM08Corrects'),
+      keyIdea: t('xmM08Idea'),
+      sections: [
+        { name: t('xmM08S1H'), desc: t('xmM08S1B') },
+        { name: t('xmM08S2H'), desc: t('xmM08S2B'), formula: t('xmM08F') },
+        { name: t('xmM08S3H'), desc: t('xmM08S3B') },
+      ],
+      quiz: {
+        q: t('xmM08Q'),
+        options: [t('xmM08A1'), t('xmM08A2'), t('xmM08A3'), t('xmM08A4')],
+        correct: 2,
+        why: t('xmM08Why'),
+      },
+    },
+    {
+      id: 'xm-09', minutes: 7,
+      name: t('xmM09Title'),
+      corrects: t('xmM09Corrects'),
+      keyIdea: t('xmM09Idea'),
+      sections: [
+        { name: t('xmM09S1H'), desc: t('xmM09S1B') },
+        { name: t('xmM09S2H'), desc: t('xmM09S2B') },
+      ],
+      quiz: {
+        q: t('xmM09Q'),
+        options: [t('xmM09A1'), t('xmM09A2'), t('xmM09A3'), t('xmM09A4')],
+        correct: 1,
+        why: t('xmM09Why'),
+      },
+    },
+    {
+      id: 'xm-10', minutes: 12,
+      name: t('xmM10Title'),
+      corrects: t('xmM10Corrects'),
+      keyIdea: t('xmM10Idea'),
+      sections: [
+        { name: t('xmM10S1H'), desc: t('xmM10S1B'), formula: t('xmM10F') },
+        { name: t('xmM10S2H'), desc: t('xmM10S2B') },
+        { name: t('xmM10S3H'), desc: t('xmM10S3B') },
+      ],
+      quiz: {
+        q: t('xmM10Q'),
+        options: [t('xmM10A1'), t('xmM10A2'), t('xmM10A3'), t('xmM10A4')],
+        correct: 2,
+        why: t('xmM10Why'),
+      },
+    },
+    {
+      id: 'xm-11', minutes: 7,
+      name: t('xmM11Title'),
+      corrects: t('xmM11Corrects'),
+      keyIdea: t('xmM11Idea'),
+      sections: [
+        { name: t('xmM11S1H'), desc: t('xmM11S1B') },
+        { name: t('xmM11S2H'), desc: t('xmM11S2B') },
+      ],
+      quiz: {
+        q: t('xmM11Q'),
+        options: [t('xmM11A1'), t('xmM11A2'), t('xmM11A3'), t('xmM11A4')],
+        correct: 1,
+        why: t('xmM11Why'),
+      },
+    },
+  ],
+  misconceptions: [
+    { id: 'xm-mc-1', module: 'xm-01', claim: t('xmMc1Claim'), reality: t('xmMc1Real') },
+    { id: 'xm-mc-2', module: 'xm-03', claim: t('xmMc2Claim'), reality: t('xmMc2Real') },
+    { id: 'xm-mc-3', module: 'xm-05', claim: t('xmMc3Claim'), reality: t('xmMc3Real') },
+    { id: 'xm-mc-4', module: 'xm-07', claim: t('xmMc4Claim'), reality: t('xmMc4Real') },
+    { id: 'xm-mc-5', module: 'xm-08', claim: t('xmMc5Claim'), reality: t('xmMc5Real') },
+    { id: 'xm-mc-6', module: 'xm-10', claim: t('xmMc6Claim'), reality: t('xmMc6Real') },
+  ],
+});

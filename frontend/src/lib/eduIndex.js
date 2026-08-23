@@ -112,6 +112,7 @@ export const EDU_MODULES = [
   { id: 'partial-exits', titleKey: 'pexTitle', getters: ['getPartialExits'] },
   { id: 'trade-mgmt', titleKey: 'tmgTitle', getters: ['getTradeManagement'] },
   { id: 'margin-liq', titleKey: 'mlqTitle', getters: ['getMarginLiquidation'] },
+  { id: 'cross-margin', titleKey: 'xmEduTitle', getters: ['getCrossMargin'] },
   { id: 'probability', titleKey: 'probabilityStatsTitle', getters: ['getProbabilityStatistics'] },
   { id: 'tail-risk', titleKey: 'tailTitle', getters: ['getTailRisk', 'getAccountKillers'] },
 
