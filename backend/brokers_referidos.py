@@ -73,6 +73,22 @@ class Broker:
     # La web pública del bróker. Se usa mientras no haya enlace de referido —
     # es el patrón que ya seguía Hyperliquid en `RecommendedTools`.
     url_publica: str = ""
+    # ── Con quién contrata quien llega POR NUESTRO ENLACE ─────────────────
+    #
+    # No tiene por qué ser `entidad_ue`, y en Axi NO lo es. Su Partner
+    # Agreement público lo firma **AxiTrader LLC, de San Vicente y las
+    # Granadinas**, y define «Client Agreement» como el acuerdo entre el
+    # cliente y *Axi* — es decir, esa misma entidad. Un visitante que entra
+    # por la web pública lo enrutan ellos por geografía y en la UE acaba en
+    # Solaris EMEA; uno que entra por un enlace de afiliado va a donde lo
+    # mande el programa que se haya firmado.
+    #
+    # Por eso son campos aparte: mostrar la ficha chipriota junto a un enlace
+    # que lleva a una entidad de SVG no es un matiz, es decirle al usuario que
+    # va a contratar con alguien con quien no va a contratar.
+    programa_entidad: Optional[str] = None
+    programa_regulador: Optional[str] = None
+    programa_fuente: Optional[str] = None
     # Notas que hay que tener delante antes de firmar nada.
     aviso: str = ""
 
@@ -101,6 +117,31 @@ class Broker:
         declaración falsa, sólo que en la dirección que no suele preocupar.
         """
         return self.url_referido() is not None
+
+    def contrato_del_cliente(self) -> tuple[Optional[str], Optional[str], Optional[str]]:
+        """Entidad, regulador y licencia **de donde lleva nuestro enlace**.
+
+        Sin enlace de referido, el visitante aterriza en la web pública y la
+        enruta el propio bróker por geografía: en la UE acaba en su entidad
+        europea, que es lo que decimos. Con enlace de referido, el destino lo
+        fija el programa, y si ese programa contrata con otra entidad hay que
+        decir ESA — y sin regulador ni licencia, porque los de la entidad
+        europea no la amparan.
+        """
+        if self.es_referido and self.programa_entidad:
+            return (self.programa_entidad, self.programa_regulador, None)
+        return (self.entidad_ue, self.regulador_ue, self.licencia_ue)
+
+    def enlace_con_destino_conocido(self) -> bool:
+        """¿Sabemos a qué entidad manda nuestro enlace de referido?
+
+        Un enlace de la web pública siempre lo sabe: lo decide el bróker por
+        geografía. Uno de afiliado lo fija el programa, así que hace falta
+        haber leído CON QUIÉN se firma. Publicar un enlace de referido sin
+        saberlo es enseñar una ficha legal que puede no corresponder al sitio
+        al que lleva el botón.
+        """
+        return (not self.es_referido) or bool(self.programa_entidad and self.programa_fuente)
 
     def esta_al_dia(self, hoy: Optional[date] = None) -> bool:
         """¿El porcentaje sigue dentro de la ventana trimestral?
@@ -191,9 +232,23 @@ BROKERS: tuple[Broker, ...] = (
         perdida_pct_leido_el=date(2026, 8, 22),
         perdida_pct_fuente="buscador, 2026-08-22 — PENDIENTE de confirmar en axi.com "
                            "(bloqueado por el proxy de este entorno)",
-        aviso="Programa de afiliados por región: el de la UE no es el mismo que "
-              "el internacional. Confirmar que el contrato es con la entidad "
-              "CySEC y no con la australiana.",
+        programa_entidad="AxiTrader LLC (San Vicente y las Granadinas)",
+        programa_regulador=None,   # SVG no regula el forex/CFD: no hay supervisor que poner
+        programa_fuente="Axi Partner Agreement, efectivo 2025-12-18, leído del PDF "
+                        "oficial (axidocs.s3.ap-southeast-2.amazonaws.com): «between the "
+                        "Partner and AxiTrader LLC, a Limited Liability Company "
+                        "incorporated under the laws of Saint Vincent and the "
+                        "Grenadines», y «Client Agreement: means the agreement between a "
+                        "Client and Axi».",
+        aviso="🔴 El Partner Agreement PÚBLICO lo firma AxiTrader LLC (San Vicente "
+              "y las Granadinas), NO Solaris EMEA Ltd. Es decir: el programa que "
+              "se anuncia manda al cliente a la entidad offshore, no a la "
+              "chipriota. Antes de poner `BROKER_REF_AXI` hay que exigir por "
+              "escrito el programa que contrata con la entidad CySEC — si es que "
+              "existe— y actualizar `programa_entidad`. También obliga a "
+              "someterles todo material promocional: «submit all marketing or "
+              "promotional material to Axi for approval before use and refrain "
+              "from altering approved materials».",
     ),
     Broker(
         id="dukascopy",
@@ -269,7 +324,11 @@ BROKERS: tuple[Broker, ...] = (
         ofrece_cfd_minorista=True,
         perdida_pct=None,
         perdida_pct_leido_el=None,
-        aviso="🔴 NO tiene autorización en la UE. Su propia entidad chipriota "
+        aviso="⚠️ Sus condiciones de afiliado obligan a usar ÚNICAMENTE material "
+              "proporcionado o aprobado por ellos, y a pedir aprobación previa por "
+              "escrito para cualquier banner o página propia — lo que incluye la "
+              "descripción y la ficha de marca de nuestra tarjeta. "
+              "🔴 NO tiene autorización en la UE. Su propia entidad chipriota "
               "declara que «no ofrece productos financieros regulados ni "
               "servicios de negociación»; opera bajo ASIC, FSCA y FSC Mauricio. "
               "Hay además informaciones de prensa sectorial sobre una lista "
@@ -306,8 +365,15 @@ def publicables(hoy: Optional[date] = None) -> list[Broker]:
     API). Y todos llevan aviso de riesgo, con cifra cuando la hay y sin número
     inventado cuando no. Si algún día el público objetivo pasa a ser
     explícitamente la UE, el listón está aquí, entero, para volver a aplicarlo.
+
+    ⚠️ **La única condición que sí bloquea**: un enlace de referido cuyo
+    destino no sabemos no se publica (`enlace_con_destino_conocido`). No es
+    celo: el Partner Agreement público de Axi lo firma AxiTrader LLC, de San
+    Vicente y las Granadinas, no su entidad chipriota. Poner ese enlace debajo
+    de la ficha «Solaris EMEA Ltd · CySEC · 433/23» sería decirle al usuario
+    que contrata con alguien con quien no contrata.
     """
-    return [b for b in BROKERS if b.url()]
+    return [b for b in BROKERS if b.url() and b.enlace_con_destino_conocido()]
 
 
 def pendientes() -> list[tuple[str, str]]:

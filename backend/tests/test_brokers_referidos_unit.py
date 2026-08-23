@@ -246,6 +246,69 @@ def test_ningun_enlace_esta_escrito_en_el_codigo():
         assert pista not in fuente, f"parece un enlace de referido incrustado: {pista}"
 
 
+# ══════════════════════════════════════════════════════════════════════════
+# La ficha legal tiene que describir A DÓNDE LLEVA NUESTRO ENLACE
+#
+# El fallo que esto impide es concreto y estaba a un `BROKER_REF_AXI` de
+# distancia. El Partner Agreement PÚBLICO de Axi (efectivo 2025-12-18, leído
+# del PDF oficial) lo firma **AxiTrader LLC, de San Vicente y las Granadinas**,
+# y define «Client Agreement» como el acuerdo entre el cliente y *Axi* — esa
+# misma entidad. Nuestra tarjeta anuncia «Solaris EMEA Ltd · CySEC · 433/23».
+#
+# Sin enlace de referido no hay problema: el visitante aterriza en la web
+# pública y lo enruta el propio bróker por geografía. En cuanto se configura el
+# enlace de ese programa, la ficha chipriota al lado del botón le está diciendo
+# al usuario que va a contratar con alguien con quien no va a contratar.
+# ══════════════════════════════════════════════════════════════════════════
+def test_sin_enlace_de_referido_la_ficha_es_la_entidad_europea(monkeypatch):
+    monkeypatch.delenv("BROKER_REF_AXI", raising=False)
+    entidad, regulador, licencia = br.por_id("axi").contrato_del_cliente()
+    assert "Solaris EMEA" in entidad
+    assert (regulador, licencia) == ("CySEC", "433/23")
+
+
+def test_con_enlace_de_referido_la_ficha_es_la_del_PROGRAMA(monkeypatch):
+    monkeypatch.setenv("BROKER_REF_AXI", "https://ejemplo.test/?ref=abc")
+    entidad, regulador, licencia = br.por_id("axi").contrato_del_cliente()
+    assert "AxiTrader LLC" in entidad, "la ficha sigue anunciando la entidad chipriota"
+    assert "Vicente" in entidad
+    # Y sin supervisor ni licencia: los de Solaris EMEA no amparan a la de SVG.
+    assert regulador is None and licencia is None
+
+
+def test_un_enlace_de_referido_de_destino_desconocido_no_se_publica(monkeypatch):
+    """Saxo no tiene leído con qué entidad contrata su programa.
+
+    Publicar su enlace sería enseñar una ficha legal que puede no corresponder
+    al sitio al que lleva el botón. Se cae de la lista hasta que se lea.
+    """
+    for b in br.BROKERS:
+        monkeypatch.delenv(f"BROKER_REF_{b.id.upper()}", raising=False)
+    monkeypatch.setenv("BROKER_REF_SAXO", "https://ejemplo.test/?ref=abc")
+    ids = [b.id for b in br.publicables()]
+    assert "saxo" not in ids, "se publicó un enlace sin saber a qué entidad lleva"
+    # Y no se lleva por delante a los demás, que siguen con su web pública.
+    assert "dukascopy" in ids and "swissquote" in ids
+
+
+def test_axi_si_se_publica_con_enlace_porque_su_destino_SI_se_leyo(monkeypatch):
+    """La otra mitad: la puerta no puede estar cerrada para todos.
+
+    Un `enlace_con_destino_conocido` que devolviera siempre False dejaría los
+    tres tests de arriba en verde sin proteger nada.
+    """
+    monkeypatch.setenv("BROKER_REF_AXI", "https://ejemplo.test/?ref=abc")
+    assert "axi" in [b.id for b in br.publicables()]
+
+
+def test_la_entidad_del_programa_tambien_declara_su_fuente():
+    """Misma regla que los porcentajes: un dato sobre terceros sin procedencia
+    no es un dato, es una afirmación."""
+    for b in br.BROKERS:
+        if b.programa_entidad:
+            assert b.programa_fuente, f"{b.id}: entidad de programa sin fuente"
+
+
 def test_pendientes_dice_exactamente_que_falta(monkeypatch):
     for b in br.BROKERS:
         monkeypatch.delenv(f"BROKER_REF_{b.id.upper()}", raising=False)
