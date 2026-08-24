@@ -125,7 +125,7 @@ Ese es el trabajo real que hay que hacer, y es lo que especifica la Parte 3.
 
 ## Contexto
 
-Repositorio `Tradingcalculatorpro.com`. Backend FastAPI en `backend/` sobre un shim Mongo→PostgreSQL (usar siempre la API tipo Mongo del shim, nunca SQL suelto). Frontend React 19 + CRACO en `frontend/`. i18n obligatorio: 8 idiomas (`es, en, de, fr, ru, zh, ja, ar`), paridad total de claves, sin cadenas incrustadas en los componentes.
+Repositorio `Tradingcalculatorpro.com`. Backend FastAPI en `backend/` sobre un shim Mongo→PostgreSQL (usar siempre la API tipo Mongo del shim, nunca SQL suelto). Frontend React 19 + CRACO en `frontend/`. i18n obligatorio: 10 idiomas (`es, en, de, fr, ru, zh, ja, ar, pt, it`), paridad total de claves, sin cadenas incrustadas en los componentes.
 
 ## Objetivo
 

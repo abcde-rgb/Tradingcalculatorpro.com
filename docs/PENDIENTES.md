@@ -23,10 +23,16 @@
       `PositioningPanel` sólo consume `/options/positioning`.
 
 ## Cumplimiento (RGPD) — G-15
-- [ ] **`trading_plans` no se borra ni se exporta.** Falta en la lista de
-      `delete_account`, en `_USER_DATA_COLLECTIONS` (purga por retención) y en
-      `/auth/my-data`. Añadirla a las tres y dejar un test que recorra las
-      colecciones con `user_id`.
+- [x] ~~**`trading_plans` no se borra ni se exporta.**~~ ✅ **Cerrado
+      (2026-08-06, BUG-044).** Y no parcheando las tres listas sino la causa:
+      las cuatro derivan hoy de una sola tupla, `_USER_DATA_COLLECTIONS` →
+      `_ALL_USER_COLLECTIONS` → `_EXPORTABLE_COLLECTIONS`, así que una
+      colección nueva las hereda. `test_user_data_collections_unit.py` fija que
+      lo que se purga se borra y lo que se borra se puede exportar. Verificado
+      contra Postgres real el 2026-08-07.
+      *Esta línea siguió diciendo lo contrario durante dos semanas y la cazó
+      `auditar.py` en el examen del 2026-08-23: una tarea pendiente que ya está
+      hecha no es ruido inofensivo, es alguien rehaciéndola.*
 
 
 ## Referidos / partners

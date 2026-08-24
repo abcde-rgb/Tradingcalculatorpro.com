@@ -4,7 +4,7 @@
 > respaldo real o uso profesional que el retail ha **olvidado, ignorado o dejado
 > de usar por moda**, para convertirlas en el módulo diferencial
 > **"Técnicas verificadas"**: cada una con su **estadística viva** sobre datos
-> reales (tasa de acierto, muestra, peor racha) y en 8 idiomas. No son "señales":
+> reales (tasa de acierto, muestra, peor racha) y en 10 idiomas. No son "señales":
 > es educación cuantificada y honesta sobre ineficiencias reales.
 >
 > **Aviso de honestidad.** Son sesgos/técnicas con rachas en contra y que se
@@ -450,7 +450,7 @@ Máxima probabilidad + máxima diferenciación + ya construible con lo que tiene
 4. **TD Sequential 9-13** — agotamiento de tendencia, mecánico.
 5. **VSA** — no demand / no supply / stopping volume.
 
-Cada uno como **tarjeta con estadística viva** (tasa de acierto, retorno medio, nº de casos desde año X, peor racha) por activo, integrado en el escáner del Dashboard, en 8 idiomas.
+Cada uno como **tarjeta con estadística viva** (tasa de acierto, retorno medio, nº de casos desde año X, peor racha) por activo, integrado en el escáner del Dashboard, en 10 idiomas.
 
 ## Fase 2 (necesita dato extra 🔧)
 Amplitud/internals (constituyentes del índice) y order flow (tick/volumen intradía):

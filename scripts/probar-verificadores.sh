@@ -423,6 +423,28 @@ probar "un componente que nadie importa" \
   "printf 'export const ZzSabotajeHuerfano = () => null;\n' > $COMPONENTE_MUERTO" \
   "rm -f $COMPONENTE_MUERTO"
 
+# La regla «la doc dice 8 idiomas y hay 10» tiene que distinguir una afirmación
+# VIVA de una entrada FECHADA, donde «8 idiomas» era cierto ese día. Por eso van
+# los dos sentidos: una sola dirección deja pasar los dos fallos que ya tuvo
+# —marcar el histórico entero (empuja a reescribir el pasado) y no marcar nada.
+DOC_SABOTAJE="docs/ZzSabotajeIdiomas.md"
+TEMPORALES+=("$DOC_SABOTAJE")
+CONTRADICE="python scripts/auditar.py > $INFORME 2>/dev/null; ! grep -q 'dicen «8 idiomas»' $INFORME"
+
+probar "una afirmación viva de que la web tiene 8 idiomas" \
+  "$CONTRADICE" \
+  "printf '# Zz sabotaje\n\n## Idiomas\n\nLa interfaz está en 8 idiomas.\n' > $DOC_SABOTAJE" \
+  "rm -f $DOC_SABOTAJE"
+
+# El cebo es la forma EXACTA que se coló hasta el 2026-08-24: encabezado con la
+# fecha entre paréntesis en vez de al principio. `_ENCABEZADO_FECHADO` exigía
+# `## 2026-07-30 — …` y contaba las cuarenta líneas que colgaban de
+# `## Plan de trading versionado (2026-07-30)` como afirmaciones de hoy.
+probar_inverso "un registro fechado que dice 8 idiomas porque ese día había 8" \
+  "$CONTRADICE" \
+  "printf '# Zz sabotaje\n\n## Sesión de ayer (2026-07-04) — i18n\n\nCerró con 8 idiomas a la par.\n' > $DOC_SABOTAJE" \
+  "rm -f $DOC_SABOTAJE"
+
 # ── Veredicto ───────────────────────────────────────────────────────────────
 echo ""
 echo "══════════════════════════════════════════════════════"
