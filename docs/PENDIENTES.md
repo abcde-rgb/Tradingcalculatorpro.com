@@ -35,6 +35,51 @@
       hecha no es ruido inofensivo, es alguien rehaciéndola.*
 
 
+## Componentes escritos y nunca conectados
+
+El 2026-08-24 se retiró el **andamiaje de shadcn/ui que nunca se usó** (16
+componentes, 1.334 líneas) y los **15 paquetes** que sólo servían a esos
+ficheros. No aligera el bundle —código que nadie importa no entra en él— pero sí
+`node_modules`, el tiempo de instalación y la superficie que hay que auditar.
+Se regeneran con `npx shadcn@latest add <nombre>` el día que hagan falta.
+
+Quedan **cuatro componentes propios**: trabajo terminado que no cuelga de
+ninguna pantalla. Cada uno con su decisión, para que la lista no vuelva a ser
+un recuento sin dueño:
+
+- [ ] **`education/TradingBasicsGuide.jsx` (671 líneas) — decisión del dueño.**
+      Guía de largo/corto con diagramas SVG propios y **135 claves i18n que no
+      usa nada más**, traducidas a los diez idiomas: ~14 KB del diccionario que
+      cada visitante descarga, más 138 KB en el repositorio. Las dos salidas son
+      legítimas y llevan a sitios distintos, así que no se toma sola: **(a)**
+      colgarla de la Academia —es contenido acabado y hoy son 86 módulos— o
+      **(b)** retirarla con sus 135 claves × 10 idiomas. Lo que no vale es
+      dejarla como está: se paga el peso sin que nadie la lea.
+- [ ] **`options/GreeksPanel.jsx` (127 líneas).** Lo sustituyó `GreeksDisplay`,
+      que sí está montado en el panel de opciones. Retirar; comprobar antes que
+      no tenga nada que el vivo no haga.
+- [ ] **`dashboard/PriceTicker.jsx` (79 líneas).** Sin pantalla. Ojo: lee precio
+      en vivo, así que antes de reconectarlo tiene que respetar `stale`/`as_of`
+      de la cascada de `market_data.py` — pintar un precio viejo como fresco es
+      exactamente BUG-060.
+- [ ] **`education/WhyItMatters.jsx` (60 líneas).** Retirar salvo que se quiera
+      dentro de la Academia.
+
+## Autenticación
+
+- [ ] **La revocación de sesión mata el token del mismo segundo.**
+      `_revoke_user_sessions` guarda `revoked_after` con **microsegundos**
+      (`datetime.now(timezone.utc)`) y el `iat` del JWT se codifica en segundos
+      enteros, así que un token emitido a las 10:00:00**.8** lleva `iat` =
+      10:00:00**.0** y pierde contra una revocación de 10:00:00**.5**: quien
+      cambia la contraseña y vuelve a entrar dentro del mismo segundo recibe un
+      token que el backend da por revocado. Falla **cerrado** —rechaza un token
+      válido, no acepta uno muerto—, así que es usabilidad, no un agujero.
+      **El arreglo ya está escrito** en la rama
+      `claude/anthropic-cybersecurity-skills-nqqmr1` (PR #207), que además hay
+      que renumerar: llama BUG-058 a esto y en `main` ese número ya es la regla
+      de inyección en logs. Encontrado al inventariar las ramas el 2026-08-24.
+
 ## Referidos / partners
 - [ ] **Hyperliquid — enlace de referido real.** Ahora usa un placeholder
       (`https://app.hyperliquid.xyz/`) en `components/common/RecommendedTools.jsx`.
