@@ -337,6 +337,28 @@ probar "un logo borrado que el mapa generado sigue importando" \
   "mv frontend/src/assets/partners/margex-square.png /tmp/zz-margex.png" \
   "mv /tmp/zz-margex.png frontend/src/assets/partners/margex-square.png"
 
+# ── Las claves están traducidas, no sólo presentes ──────────────────────────
+# Las dos direcciones. El sabotaje normal copia el inglés a un idioma de
+# alfabeto distinto, que es el caso que de verdad ocurrió. El inverso mete una
+# traducción REAL y exige que no salte: un verificador que marcase en rojo el
+# japonés bien traducido se desactivaría en una semana.
+titulo "Idiomas traducidos (i18n-traducido.js)"
+probar "una clave con el texto inglés literal en japonés" \
+  "(cd frontend && node scripts/i18n-traducido.js)" \
+  "python -c \"
+import pathlib, re
+en = pathlib.Path('frontend/src/lib/i18n/en.js').read_text()
+v = re.search(r'\\\"planInvalidationHint\\\": \\\"([^\\\"]*)\\\"', en).group(1)
+p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
+p.write_text(re.sub(r'(\\\"planInvalidationHint\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"' + v + '\\\"', t, count=1))\""
+
+probar_inverso "una traducción de verdad no la hace saltar" \
+  "(cd frontend && node scripts/i18n-traducido.js)" \
+  "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
+p.write_text(re.sub(r'(\\\"planInvalidationHint\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"入る前に書くこと。\\\"', t, count=1))\""
+
 # ── El precio anunciado es el que se cobra ──────────────────────────────────
 # Las dos direcciones: que un idioma se desvíe, y que suba el precio en el
 # backend sin que nadie toque los textos. La segunda es la que pasa de verdad.

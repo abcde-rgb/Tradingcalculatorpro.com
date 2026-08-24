@@ -130,6 +130,12 @@ jobs:
       - name: fetch() al backend con credentials
         run: node scripts/check-fetch-credentials.js
 
+      # `i18n-check` comprueba paridad de CLAVES. Esto comprueba que además
+      # estén TRADUCIDAS: llegó a haber 205 claves con el texto inglés literal
+      # con `i18n-check` en verde, y se pintaban en pantalla.
+      - name: Los diez idiomas están traducidos, no sólo presentes
+        run: node scripts/i18n-traducido.js
+
       # Un logo dejado en `assets/partners/` sin regenerar el mapa no sale en la
       # web y nadie entiende por qué: el fichero está, la tarjeta no lo usa.
       - name: Los logos de socios reflejan los ficheros de la carpeta
