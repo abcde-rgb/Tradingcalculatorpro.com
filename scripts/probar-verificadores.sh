@@ -390,8 +390,54 @@ p = pathlib.Path('tests/e2e/presupuesto-peso.json'); d = json.loads(p.read_text(
 r = d['rutas']['portada']; r['js'] //= 2; r['total'] //= 2
 p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
     "git checkout -- tests/e2e/presupuesto-peso.json"
+
+  # ── El arranque del idioma ────────────────────────────────────────────────
+  # Se sabotea en la FUENTE y se recompila, que tarda unos minutos. Es el
+  # precio de probar de verdad: el fallo que vigila —el diccionario que no
+  # llega antes de pintar, o `t` con identidad estable— no existe en el
+  # código fuente, sólo en el artefacto compilado. Parchear el build a mano
+  # probaría que la sonda sabe contar, no que caza la regresión.
+  titulo "Arranque del idioma (idioma-arranque.js)"
+  RECOMPILA="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1)"
+
+  probar "el español vuelve a viajar incrustado en main.js" \
+    "node tests/e2e/navegador/idioma-arranque.js" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
+p.write_text(t.replace(chr(39) + 'zustand/middleware' + chr(39) + ';',
+                       chr(39) + 'zustand/middleware' + chr(39) + ';' + chr(10) +
+                       'import esT from ' + chr(39) + './i18n/es' + chr(39) + ';')
+              .replace('const loadedLocales = {};', 'const loadedLocales = { es: esT };'))\" \
+     && $RECOMPILA" \
+    "git checkout -- frontend/src/lib/i18n.js && $RECOMPILA"
+
+  # `t` con identidad estable: los memos con `[t]` se congelan en el idioma del
+  # primer render (BUG-065). Ojo — con este sabotaje el MENÚ sigue cambiando
+  # bien de idioma. Comprobado el 2026-08-24: de los dos textos que mira la
+  # sonda, sólo el memoizado se queda atrás. Una prueba de idioma que mirase la
+  # navegación —lo natural— daría verde con el fallo dentro.
+  # El cebo devuelve SIEMPRE la misma función, y esa función traduce leyendo el
+  # idioma activo. O sea: la traducción sigue siendo correcta y sólo se pierde
+  # el cambio de identidad. Es la forma exacta que tenía el fallo, no una
+  # versión más rota: si el sabotaje reventara también la traducción, la sonda
+  # saltaría por el motivo equivocado y no probaría nada sobre los memos.
+  probar "t con identidad estable (los useMemo se congelan)" \
+    "node tests/e2e/navegador/idioma-arranque.js" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
+cebo = (
+  'let _unica = null;' + chr(10) +
+  'const estable = (loc) => { if (!_unica) _unica = (k, v) => '
+  'creaT(useI18nStore.getState().locale)(k, v); return _unica; };' + chr(10) + chr(10) +
+  'function creaT(locale) {')
+p.write_text(t.replace('function creaT(locale) {', cebo, 1).replace('t: creaT', 't: estable'))\" \
+     && $RECOMPILA" \
+    "git checkout -- frontend/src/lib/i18n.js && $RECOMPILA"
 else
-  echo "  ⏭️  Presupuesto de peso: sin build o sin servidor en :3100, no se prueba"
+  echo "  ⏭️  Presupuesto de peso y arranque del idioma: sin build o sin servidor"
+  echo "      en :3100, no se prueban (bash tests/e2e/stack/arriba.sh)"
 fi
 
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────

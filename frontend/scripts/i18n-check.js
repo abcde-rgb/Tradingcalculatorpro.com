@@ -142,7 +142,13 @@ if (asJson) {
     if (full && missing.length) console.log('   FALTAN: ' + missing.join(', '));
     if (full && extra.length) console.log('   SOBRAN: ' + extra.join(', '));
   }
-  console.log('\nPista: usa --full para ver las claves; las que faltan caen a español por t().');
+  // ⚠️ Esta pista decía «las que faltan caen a español por t()». Dejó de ser
+  // cierto el 2026-08-24: ya no hay ningún diccionario incrustado en main.js,
+  // así que el español sólo está en memoria si el español es el idioma activo.
+  // Una clave que falte se pinta CRUDA en pantalla. La consecuencia de fallar
+  // aquí es peor que antes, no menor.
+  console.log('\nPista: usa --full para ver las claves. Una clave que falte se pinta cruda:');
+  console.log('el español ya no viaja en main.js, así que no hay respaldo que la tape.');
 }
 
 // `loadKeys` ya fusiona el diccionario general con el de la Academia, así que
