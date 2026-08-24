@@ -2032,7 +2032,7 @@ export default {
   "disciplinedTrading": "Trading con Disciplina",
   "disciplineDesc": "Sistema completo de seguimiento y análisis para desarrollar la disciplina de un trader profesional",
   "advancedMetrics": "Métricas Avanzadas",
-  "advancedMetricsItems": "Win Rate, Expectancy, Profit Factor, Max Drawdown, R:R Ratio",
+  "advancedMetricsItems": "Tasa de acierto, Esperanza, Factor de beneficio, Drawdown máximo, Ratio R:B",
   "disciplineRules": "Reglas de Disciplina",
   "disciplineRulesItems": "Límite diario de trades, Límite de pérdidas consecutivas, Control de capital",
   "professionalTrack": "Track Profesional",
