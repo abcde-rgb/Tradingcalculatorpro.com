@@ -7709,6 +7709,11 @@ async def admin_list_users(
 def _csv_safe(value: Any) -> Any:
     """Neutraliza la inyección de fórmulas (CSV/Excel/LibreOffice).
 
+    ⚠️ La lógica vive ahora en `csv_seguro.py` y aquí sólo se delega. Estaba
+    escrita aquí y por eso el CSV de liquidaciones de afiliados —que no importa
+    nada de este fichero— se quedó sin proteger. Una defensa que sólo alcanza al
+    módulo donde se escribió no es una defensa.
+
     Una celda que empieza por = + - @, tabulador o retorno de carro la evalúa la
     hoja de cálculo al abrirla: `=HYPERLINK(...)` exfiltra datos con un clic y con
     DDE se llega a ejecución de comandos. El dato de mayor riesgo aquí es `name`,
@@ -7717,9 +7722,8 @@ def _csv_safe(value: Any) -> Any:
     desactiva la fórmula. Se antepone un apóstrofo, que la hoja trata como "texto
     literal" y no muestra. Verificado con test.
     """
-    if isinstance(value, str) and value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
-        return "'" + value
-    return value
+    from csv_seguro import csv_safe
+    return csv_safe(value)
 
 
 @api_router.get("/admin/users.csv")

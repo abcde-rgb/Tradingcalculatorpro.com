@@ -31,6 +31,8 @@ Endpoints:
 from __future__ import annotations
 
 import csv
+
+from csv_seguro import fila_segura
 import io
 import logging
 import secrets
@@ -811,10 +813,16 @@ async def admin_export_csv(rid: str, admin: dict = Depends(_require_admin_proxy)
         aff = await db.affiliates.find_one({"id": ln.get("affiliate_id")},
                                            {"_id": 0, "payout_details_enc": 1})
         details = _decrypt((aff or {}).get("payout_details_enc") or "") or ""
-        w.writerow([ln.get("period"), ln.get("affiliate_email"), ln.get("payout_method"),
-                    details, ln.get("active_count"), ln.get("blocks"),
-                    ln.get("lifetime_new_count"), ln.get("net_eur"), ln.get("status"),
-                    ln.get("payout_reference") or ""])
+        # ⚠️ `fila_segura` no es adorno. `details` son los datos de cobro que el
+        # AFILIADO teclea libremente, y este fichero lo abre un ADMIN para
+        # pagarle: atacante almacena, víctima abre. Es la misma forma de
+        # BUG-055, y este exportador se quedó fuera de aquel arreglo porque
+        # `_csv_safe` vivía en `server.py` y aquí no se importa nada de ahí.
+        w.writerow(fila_segura([
+            ln.get("period"), ln.get("affiliate_email"), ln.get("payout_method"),
+            details, ln.get("active_count"), ln.get("blocks"),
+            ln.get("lifetime_new_count"), ln.get("net_eur"), ln.get("status"),
+            ln.get("payout_reference") or ""]))
     csv_text = buf.getvalue()
     return Response(
         content=csv_text, media_type="text/csv",
