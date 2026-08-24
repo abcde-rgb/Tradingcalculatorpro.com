@@ -66,8 +66,12 @@ const EXCEPCIONES = {
     idiomas: true,
   },
   basicsSummaryLotsDesc: {
-    motivo: 'tamaños de lote: en italiano «Micro · Mini · Standard · Macro» se escribe igual',
-    idiomas: ['it'],
+    motivo: 'tamaños de lote: «Micro · Mini · Standard · Macro» se escribe igual en las lenguas latinas',
+    idiomas: ['it', 'de', 'fr', 'pt'],
+  },
+  tsysTickersPh: {
+    motivo: '«Optional» se escribe igual en de/fr/pt/it y el resto son tickers',
+    idiomas: ['de', 'fr', 'pt', 'it'],
   },
   tfOptionStrategyPlaceholder: {
     motivo: 'nombres de estrategia (Bull Put Spread, Iron Condor, PMCC) sin traducir en el sector',
