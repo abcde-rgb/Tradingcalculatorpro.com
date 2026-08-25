@@ -413,7 +413,7 @@ p.write_text(t.replace(chr(39) + 'zustand/middleware' + chr(39) + ';',
     "git checkout -- frontend/src/lib/i18n.js && $RECOMPILA"
 
   # `t` con identidad estable: los memos con `[t]` se congelan en el idioma del
-  # primer render (BUG-065). Ojo — con este sabotaje el MENÚ sigue cambiando
+  # primer render (BUG-066). Ojo — con este sabotaje el MENÚ sigue cambiando
   # bien de idioma. Comprobado el 2026-08-24: de los dos textos que mira la
   # sonda, sólo el memoizado se queda atrás. Una prueba de idioma que mirase la
   # navegación —lo natural— daría verde con el fallo dentro.

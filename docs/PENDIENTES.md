@@ -67,18 +67,17 @@ un recuento sin dueño:
 
 ## Autenticación
 
-- [ ] **La revocación de sesión mata el token del mismo segundo.**
-      `_revoke_user_sessions` guarda `revoked_after` con **microsegundos**
-      (`datetime.now(timezone.utc)`) y el `iat` del JWT se codifica en segundos
-      enteros, así que un token emitido a las 10:00:00**.8** lleva `iat` =
-      10:00:00**.0** y pierde contra una revocación de 10:00:00**.5**: quien
-      cambia la contraseña y vuelve a entrar dentro del mismo segundo recibe un
-      token que el backend da por revocado. Falla **cerrado** —rechaza un token
-      válido, no acepta uno muerto—, así que es usabilidad, no un agujero.
-      **El arreglo ya está escrito** en la rama
-      `claude/anthropic-cybersecurity-skills-nqqmr1` (PR #207), que además hay
-      que renumerar: llama BUG-058 a esto y en `main` ese número ya es la regla
-      de inyección en logs. Encontrado al inventariar las ramas el 2026-08-24.
+- [x] ~~**La revocación de sesión mata el token del mismo segundo.**~~
+      ✅ **Ya estaba cerrado en `main`** (2026-08-23, PR #208, ahí numerado
+      BUG-064): `_is_user_session_revoked` compara contra
+      `revoked_after.replace(microsecond=0)`, que es justo la asimetría que
+      fallaba —el `iat` del JWT va en segundos enteros y `revoked_after` se
+      guardaba con microsegundos—.
+      *Se apuntó aquí el 2026-08-24 como fallo VIVO y no lo era: se leyó
+      `server.py` de esta rama, que iba diez commits por detrás de `main`.
+      Leer el código de tu rama y concluir sobre `main` es exactamente el
+      error que `auditar.py` avisa de las ramas sin fusionar. Comprobar contra
+      `origin/main`, no contra el árbol de trabajo.*
 
 ## Referidos / partners
 - [ ] **Hyperliquid — enlace de referido real.** Ahora usa un placeholder

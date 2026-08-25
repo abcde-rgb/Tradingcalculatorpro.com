@@ -249,7 +249,7 @@ async function cambiaIdiomaEnCaliente(nav) {
 
     // ── Cambiar de idioma cambia TODO el texto, también lo memoizado ──────
     //
-    // Esta es la comprobación que cazó BUG-065. `t` era una función estable en
+    // Esta es la comprobación que cazó BUG-066. `t` era una función estable en
     // el store, así que diecisiete `useMemo(..., [t])` no se recalculaban nunca
     // al cambiar de idioma: el menú pasaba a inglés y la descripción de Margex
     // seguía en español, en la misma pantalla. Mirar sólo la navegación —lo que
