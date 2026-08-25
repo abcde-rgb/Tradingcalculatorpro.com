@@ -458,6 +458,30 @@ import pathlib
 p = pathlib.Path('backend/server.py')
 p.write_text(p.read_text().replace('\\\"price\\\": 17.00', '\\\"price\\\": 21.00', 1))\""
 
+# ── La identidad de `t` acompaña al idioma ──────────────────────────────────
+# Corre en Node contra el store, sin navegador ni build: la invariante vive en
+# `lib/i18n.js` y se comprueba ahí. El cebo es la forma EXACTA de BUG-066 —una
+# `t` única que lee el idioma activo—, que traduce bien y sólo pierde el cambio
+# de identidad.
+titulo "Identidad de t por idioma (check-i18n-identidad.js)"
+probar "t vuelve a ser una funcion estable (los useMemo se congelan)" \
+  "(cd frontend && node scripts/check-i18n-identidad.js)" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
+cebo = ('let _unica = null;' + chr(10) +
+        'const estable = (loc) => { if (!_unica) _unica = (k, v) => '
+        'creaT(useI18nStore.getState().locale)(k, v); return _unica; };' + chr(10) + chr(10) +
+        'function creaT(locale) {')
+p.write_text(t.replace('function creaT(locale) {', cebo, 1).replace('t: creaT', 't: estable'))\""
+
+probar "una t nueva cada vez pero que no traduce" \
+  "(cd frontend && node scripts/check-i18n-identidad.js)" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
+p.write_text(t.replace('  return (key, vars) => {', '  return (key) => key;' + chr(10) + '  return (key, vars) => {', 1))\""
+
 # ── El presupuesto de peso caza una pantalla que engorda ────────────────────
 # Necesita el build compilado y el servidor en pie, así que sólo se prueba si
 # están; si no, se dice que se salta en vez de figurar como aprobado.
@@ -498,24 +522,21 @@ p.write_text(t.replace(chr(39) + 'zustand/middleware' + chr(39) + ';',
   # bien de idioma. Comprobado el 2026-08-24: de los dos textos que mira la
   # sonda, sólo el memoizado se queda atrás. Una prueba de idioma que mirase la
   # navegación —lo natural— daría verde con el fallo dentro.
-  # El cebo devuelve SIEMPRE la misma función, y esa función traduce leyendo el
-  # idioma activo. O sea: la traducción sigue siendo correcta y sólo se pierde
-  # el cambio de identidad. Es la forma exacta que tenía el fallo, no una
-  # versión más rota: si el sabotaje reventara también la traducción, la sonda
-  # saltaría por el motivo equivocado y no probaría nada sobre los memos.
-  probar "t con identidad estable (los useMemo se congelan)" \
-    "node tests/e2e/navegador/idioma-arranque.js" \
-    "python -c \"
-import pathlib
-p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
-cebo = (
-  'let _unica = null;' + chr(10) +
-  'const estable = (loc) => { if (!_unica) _unica = (k, v) => '
-  'creaT(useI18nStore.getState().locale)(k, v); return _unica; };' + chr(10) + chr(10) +
-  'function creaT(locale) {')
-p.write_text(t.replace('function creaT(locale) {', cebo, 1).replace('t: creaT', 't: estable'))\" \
-     && $RECOMPILA" \
-    "git checkout -- frontend/src/lib/i18n.js && $RECOMPILA"
+  # ⚠️ Aquí había un segundo sabotaje —`t` con identidad estable— y se ha
+  # RETIRADO, no perdido: se mudó a `check-i18n-identidad.js`, que lo comprueba
+  # en el store y no a través de un componente.
+  #
+  # El motivo es instructivo. Esta sonda miraba un texto memoizado de la
+  # marquesina de socios, y funcionó hasta que ese memo pasó a llevar `locale`
+  # en sus dependencias —hizo falta para traducir los países con
+  # `Intl.DisplayNames`—. Desde entonces el componente recalcula por `locale`
+  # aunque `t` no cambie: el sabotaje empezó a SOBREVIVIR y la sonda llevaba
+  # sin discriminar desde ese commit sin que nada avisara. Lo cazó esta batería.
+  #
+  # La lección: una comprobación indirecta envejece cuando cambia aquello a
+  # través de lo cual mira. El testigo dejó de ser sensible al fallo que
+  # vigilaba y siguió diciendo ✅.
+
 else
   echo "  ⏭️  Presupuesto de peso y arranque del idioma: sin build o sin servidor"
   echo "      en :3100, no se prueban (bash tests/e2e/stack/arriba.sh)"

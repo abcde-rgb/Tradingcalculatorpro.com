@@ -136,6 +136,12 @@ jobs:
       - name: Los diez idiomas están traducidos, no sólo presentes
         run: node scripts/i18n-traducido.js
 
+      # `t` con identidad estable congela todo `useMemo(..., [t])` en el idioma
+      # del primer render (BUG-066). No lo ve ningún check de diccionarios: la
+      # traducción es correcta, lo que falla es CUÁNDO se recalcula.
+      - name: La identidad de `t` acompaña al idioma
+        run: node scripts/check-i18n-identidad.js
+
       # Un logo dejado en `assets/partners/` sin regenerar el mapa no sale en la
       # web y nadie entiende por qué: el fichero está, la tarjeta no lo usa.
       - name: Los logos de socios reflejan los ficheros de la carpeta

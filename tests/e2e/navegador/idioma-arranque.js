@@ -148,9 +148,18 @@ async function arranca(nav, { idioma, ruta = '/', almacenado = null }) {
 /**
  * Cambia el idioma con el selector de la cabecera —el camino del usuario, que
  * pasa por `pickLocale`— y lee dos textos: uno normal y otro que sale de un
- * `useMemo`. Que cambien LOS DOS es lo que se comprueba; mirando sólo el menú,
- * el fallo de la identidad de `t` pasa desapercibido, que es exactamente lo
- * que ocurrió hasta el 2026-08-24.
+ * `useMemo`. Que cambien los dos es lo que se comprueba.
+ *
+ * ⚠️ Esto NO es ya la red que caza BUG-066 (`t` con identidad estable). Lo fue
+ * hasta que el memo de la marquesina pasó a llevar `locale` en sus
+ * dependencias —hizo falta para traducir los países—: desde entonces recalcula
+ * por `locale` aunque `t` no cambie, y el sabotaje controlado empezó a
+ * sobrevivir. La invariante se comprueba ahora donde vive, en el store, con
+ * `frontend/scripts/check-i18n-identidad.js`.
+ *
+ * Lo que sigue valiendo aquí es lo que se ve: que cambiar de idioma cambia el
+ * texto de la pantalla, memoizado incluido. Es una afirmación de usuario, no
+ * una prueba de la invariante.
  */
 async function cambiaIdiomaEnCaliente(nav) {
   const ctx = await nav.newContext({ locale: 'es-ES', viewport: { width: 1400, height: 1000 } });
