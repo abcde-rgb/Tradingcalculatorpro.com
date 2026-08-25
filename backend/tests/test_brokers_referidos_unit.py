@@ -445,3 +445,103 @@ async def test_un_broker_completo_sale_con_su_advertencia(monkeypatch):
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# La tabla comparativa
+# ══════════════════════════════════════════════════════════════════════════
+
+def test_los_ocho_recomendados_tienen_fila():
+    """La comparativa cubre los OCHO, no sólo los seis brókers del catálogo.
+
+    Margex e Hyperliquid son socios y viven en el frontend, pero sus hechos
+    comparables salen de aquí. Si alguien añade un socio y se olvida de la
+    tabla, la fila sale vacía en la web y aquí no.
+    """
+    esperados = {"axi", "dukascopy", "swissquote", "saxo", "ibkr",
+                 "vtmarkets", "margex", "hyperliquid"}
+    assert set(br.TIPO) == esperados
+    assert set(br.QUE_SE_CONTRATA) == esperados
+    assert set(br.SUPERVISOR) == esperados
+    for bid in esperados:
+        assert br.regimen_de(bid) is not None, bid
+
+
+# Nombres de país en castellano. Si uno de estos aparece DENTRO de un campo
+# que llega a la interfaz, ese texto se quedará en castellano en los otros
+# nueve idiomas.
+_PAISES_ES = (
+    "Chipre", "Letonia", "Suiza", "Dinamarca", "Alemania", "Irlanda",
+    "Malta", "Luxemburgo", "Australia", "Mauricio", "Sudáfrica",
+    "Estados Unidos", "EE. UU.", "EE.UU.", "Reino Unido", "España",
+)
+
+
+def test_ningun_pais_en_castellano_dentro_de_un_dato():
+    """Un país traducible metido en una cadena ya compuesta no hay `t()` que lo alcance.
+
+    Este fallo se cometió DOS VECES el mismo día: primero en
+    `perdida_pct_entidad` («Solaris EMEA Ltd (CySEC, UE)») y en `entidad_ue`
+    («… (HE376148, Chipre)»), y otra vez tres horas después al escribir
+    `SUPERVISOR` como «CySEC (Chipre)». Las dos veces se vio en una captura en
+    inglés con el país en español, no leyendo el código.
+
+    El país va SIEMPRE por código ISO en un campo aparte, y lo traduce
+    `Intl.DisplayNames` en el frontend. La regla mira los campos que de verdad
+    llegan a la pantalla, no todo el módulo: `aviso`, `*_fuente` y
+    `programa_jurisdiccion` son prosa interna para quien lea el código, y ahí
+    el castellano es correcto.
+    """
+    fallos = []
+    for b in br.BROKERS:
+        for campo in ("entidad_ue", "regulador_ue", "perdida_pct_entidad",
+                      "programa_entidad"):
+            valor = getattr(b, campo, None)
+            for pais in _PAISES_ES:
+                if valor and pais in valor:
+                    fallos.append(f"{b.id}.{campo} contiene «{pais}»: {valor}")
+    for bid, supervisores in br.SUPERVISOR.items():
+        for nombre, _codigo in supervisores:
+            for pais in _PAISES_ES:
+                if pais in nombre:
+                    fallos.append(f"SUPERVISOR[{bid}] contiene «{pais}»: {nombre}")
+    assert not fallos, (
+        "país en castellano dentro de un dato que llega a la interfaz; "
+        "sácalo a un código ISO aparte:\n  " + "\n  ".join(fallos))
+
+
+def test_el_apalancamiento_del_regimen_no_se_confunde_con_el_de_la_casa():
+    """Son dos cosas distintas y no pueden vivir en el mismo sitio.
+
+    `apalancamiento` del régimen es el máximo que la NORMA permite a un
+    minorista; `APALANCAMIENTO_DECLARADO` es lo que anuncia la casa. Un bróker
+    con las dos cosas dejaría a la interfaz eligiendo cuál enseña, y la tabla
+    pasaría a decir «30:1» o «100:1» según el orden del código.
+    """
+    for bid, declarado in br.APALANCAMIENTO_DECLARADO.items():
+        r = br.regimen_de(bid)
+        assert r is not None, bid
+        assert r.apalancamiento is None, (
+            f"{bid} tiene tope de régimen ({r.apalancamiento}) y además un "
+            f"apalancamiento declarado ({declarado}): decide cuál manda")
+
+
+def test_sin_regimen_no_se_inventan_protecciones():
+    """Lo que no impone ninguna norma va como `None`, no como `False` alegre.
+
+    `None` es «no lo sé / no aplica» y la tabla lo pinta como tal. `False`
+    afirmaría que el bróker NO cubre el saldo negativo, que es una declaración
+    sobre un tercero que no podemos sostener.
+    """
+    for codigo in ("svg", "ninguno", "ch", "us"):
+        r = br.REGIMENES[codigo]
+        assert r.saldo_negativo_cubierto is not False, (
+            f"régimen {codigo}: `False` afirma que no está cubierto; usa None")
+        assert r.apalancamiento is None or isinstance(r.apalancamiento, dict)
+        assert r.fuente, f"régimen {codigo} sin fuente"
+
+
+def test_cada_regimen_dice_de_donde_sale():
+    """Sin procedencia, un tope de apalancamiento es un número que alguien recordaba."""
+    for codigo, r in br.REGIMENES.items():
+        assert r.fuente and len(r.fuente) > 30, codigo
