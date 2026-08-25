@@ -1,15 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Ban, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
+import TablaComparativa from '@/components/brokers/TablaComparativa';
 
 const API = process.env.REACT_APP_BACKEND_URL ? `${process.env.REACT_APP_BACKEND_URL}/api` : null;
 
 // La jurisdicción, traducida por código; el texto del servidor es el respaldo.
 const JURISDICCION = { ue: 'jurisdUe', svg: 'jurisdSvg' };
+
+// Los dos socios que NO son brókers y por eso no vienen de `/api/brokers`.
+// Aquí sólo están su id y su nombre: sus hechos comparables llegan igual del
+// servidor, en `comparativa`, para que no haya un segundo sitio donde puedan
+// desviarse. Ver `RecommendedTools.jsx`, que es de donde salen.
+const SOCIOS = [
+  { id: 'margex', nombre: 'Margex' },
+  { id: 'hyperliquid', nombre: 'Hyperliquid' },
+];
 
 /**
  * Los brókers a los que referimos.
@@ -72,10 +82,29 @@ export default function BrokersPage() {
 
   const brokers = datos?.brokers || [];
 
+  // Las OCHO filas de la comparativa: los seis brókers del backend más los dos
+  // socios. Se construye aquí y no en la tabla para que el componente reciba
+  // una lista ya resuelta y no tenga que saber de dónde sale cada mitad.
+  const filas = useMemo(() => {
+    const comp = datos?.comparativa || {};
+    const deBrokers = (datos?.brokers || []).map((b) => ({
+      id: b.id,
+      nombre: b.nombre,
+      comp: comp[b.id],
+      perdidaPct: b.perdidaPct,
+      perdidaPctEntidad: b.perdidaPctEntidad,
+    }));
+    const yaEstan = new Set(deBrokers.map((f) => f.id));
+    const socios = SOCIOS
+      .filter((s) => !yaEstan.has(s.id) && comp[s.id])
+      .map((s) => ({ ...s, comp: comp[s.id], perdidaPct: null, perdidaPctEntidad: null }));
+    return [...deBrokers, ...socios];
+  }, [datos]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 pt-24 pb-14">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 pt-24 pb-14">
         <h1 className="text-3xl font-bold mb-3">{t('brokersTitle')}</h1>
         <p className="text-muted-foreground mb-6">{t('brokersIntro')}</p>
 
@@ -87,6 +116,8 @@ export default function BrokersPage() {
         </div>
 
         {cargando && <p className="text-sm text-muted-foreground">{t('loading')}</p>}
+
+        {!cargando && filas.length > 0 && <TablaComparativa filas={filas} />}
 
         {!cargando && brokers.length === 0 && (
           // Sin acuerdos todavía. Se dice, en vez de dejar la página muda o

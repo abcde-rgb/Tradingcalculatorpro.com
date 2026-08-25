@@ -8432,6 +8432,40 @@ async def listar_brokers():
         # de la Directiva Omnibus para el contenido comercial, y que la ponga el
         # servidor evita que una pantalla nueva se olvide de pintarla.
         "afiliacion": True,
+        # ── La tabla comparativa ──────────────────────────────────────────
+        #
+        # Cubre los OCHO que se recomiendan, no sólo los seis de `BROKERS`:
+        # Margex e Hyperliquid son socios y viven en el frontend, pero sus
+        # hechos comparables salen de aquí como los demás. Un dato en dos
+        # sitios es un dato que se desvía.
+        #
+        # ⚠️ `apalancamientoRegimen` es el máximo que la NORMA permite a un
+        # minorista, no lo que ofrece la casa. Van separados de
+        # `apalancamientoDeclarado` a propósito: mezclarlos en una celda es
+        # cómo una tabla miente sin decir una sola falsedad.
+        "comparativa": {
+            bid: {
+                "tipo": brokers_referidos.TIPO.get(bid),
+                # Lista de (acrónimo, país ISO). El país se traduce en el frontend.
+                "supervisores": [
+                    {"nombre": n, "pais": c}
+                    for n, c in brokers_referidos.SUPERVISOR.get(bid, ())
+                ],
+                "queSeContrata": brokers_referidos.QUE_SE_CONTRATA.get(bid),
+                "apalancamientoDeclarado":
+                    brokers_referidos.APALANCAMIENTO_DECLARADO.get(bid),
+                "regimen": (r.codigo if (r := brokers_referidos.regimen_de(bid)) else None),
+                "apalancamientoRegimen": (r.apalancamiento if r else None),
+                "saldoNegativoCubierto": (r.saldo_negativo_cubierto if r else None),
+                "fondoGarantia": ({
+                    "importe": r.fondo_garantia_importe,
+                    "moneda": r.fondo_garantia_moneda,
+                    "nombre": r.fondo_garantia_nombre,
+                } if r and r.fondo_garantia_importe is not None else None),
+                "fuenteRegimen": (r.fuente if r else None),
+            }
+            for bid in brokers_referidos.TIPO
+        },
     }
 
 

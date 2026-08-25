@@ -362,6 +362,225 @@ class Broker:
 # Los seis pedidos el 2026-08-22. Lo que está SIN confirmar va como None y no
 # como un valor optimista: el detalle, las fuentes y lo que falta pedir a cada
 # uno están en `docs/BROKERS_REFERIDOS.md`.
+# ══════════════════════════════════════════════════════════════════════════
+# La tabla comparativa: qué se puede comparar con fuente y qué NO
+# ══════════════════════════════════════════════════════════════════════════
+#
+# Una comparativa de brókers suele llevar spread, comisión, depósito mínimo y
+# plataformas. **Aquí no van, y no es un descuido.** Esas cifras cambian por
+# tipo de cuenta, por par y por semana, y la única forma de tenerlas es leerlas
+# en la web del bróker — que desde este entorno está bloqueada por política del
+# proxy (403 a los ocho dominios). El `aviso` de Swissquote ya lo dejó escrito
+# antes que yo: «las cifras de comisiones que circulan salen de webs de
+# afiliados, no de Swissquote: no las tomes por buenas».
+#
+# Publicar un spread de memoria en una tabla que el lector usa para elegir
+# dónde mete su dinero es exactamente la clase de invención que este
+# repositorio trata como fallo grave — y aquí, además, el contenido del
+# afiliado es responsabilidad legal del bróker.
+#
+# Lo que SÍ se compara es lo que se deriva del RÉGIMEN bajo el que opera cada
+# entidad, que es verificable, cambia poco y es lo que de verdad decide el
+# riesgo: cuánto apalancamiento permite la ley, si el saldo negativo está
+# cubierto, qué fondo de garantía hay detrás y qué se contrata en realidad.
+#
+# ⚠️ El apalancamiento de la tabla es el **máximo que la norma permite a un
+# minorista**, no el que ofrece el bróker. No es lo mismo: un bróker puede
+# ofrecer menos, y la mayoría lo hace en algunos instrumentos. La cabecera de
+# la columna lo dice, porque una tabla que ponga «30:1» a secas se lee como una
+# promesa del bróker.
+
+class Regimen(NamedTuple):
+    """Lo que impone la jurisdicción, no lo que promete la casa.
+
+    Vive aparte del `Broker` a propósito: el tope de apalancamiento es del
+    régimen, no de la marca. Tipado por bróker se desviaría —seis entradas que
+    hay que acordarse de cambiar el día que ESMA mueva un número— y además
+    invitaría a poner el que dice la web de cada uno, que es justo lo que no se
+    puede verificar desde aquí.
+    """
+
+    codigo: str
+    # Tope para minoristas, por instrumento. `None` = la jurisdicción no fija
+    # ninguno, que es un dato en sí mismo y no un hueco.
+    apalancamiento: Optional[dict]
+    # ¿Obliga la norma a que el cliente no pueda perder más de lo depositado?
+    saldo_negativo_cubierto: Optional[bool]
+    # Fondo de garantía de inversiones: importe y moneda POR SEPARADO.
+    #
+    # No va como texto ya formateado («20.000 €») porque el separador de miles
+    # y la posición del símbolo son del idioma: en la tabla en inglés salía
+    # «20.000 €» donde toca «€20,000». Se manda el número y lo formatea
+    # `Intl.NumberFormat` en el idioma que se está leyendo.
+    fondo_garantia_importe: Optional[int]
+    fondo_garantia_moneda: Optional[str]
+    # Nombre del esquema, cuando lo tiene (SIPC, esisuisse…). No se traduce.
+    fondo_garantia_nombre: Optional[str]
+    fuente: str
+
+
+# Los topes de la UE son la intervención de producto de ESMA de 2018, que los
+# reguladores nacionales hicieron permanente. Son los mismos para toda entidad
+# autorizada en la UE, y por eso están aquí una vez y no seis.
+_ESMA = {
+    "fxMayor": "30:1", "fxOtros": "20:1", "oro": "20:1", "indicesMayores": "20:1",
+    "materiasPrimas": "10:1", "acciones": "5:1", "cripto": "2:1",
+}
+
+REGIMENES: dict[str, Regimen] = {
+    "ue": Regimen(
+        codigo="ue",
+        apalancamiento=_ESMA,
+        saldo_negativo_cubierto=True,
+        fondo_garantia_importe=20000,
+        fondo_garantia_moneda="EUR",
+        fondo_garantia_nombre=None,
+        fuente="Intervención de producto de ESMA (2018), permanente vía "
+               "reguladores nacionales; fondo de garantía de inversiones de la "
+               "directiva 97/9/CE.",
+    ),
+    # ASIC copió los topes de ESMA en 2021, con protección de saldo negativo.
+    "au": Regimen(
+        codigo="au",
+        apalancamiento=_ESMA,
+        saldo_negativo_cubierto=True,
+        fondo_garantia_importe=None,   # AFCA resuelve quejas; no garantiza fondos
+        fondo_garantia_moneda=None,
+        fondo_garantia_nombre=None,
+        fuente="ASIC Product Intervention Order de 2021, topes equivalentes a "
+               "los de ESMA. Sin fondo de garantía de inversiones equivalente.",
+    ),
+    "ch": Regimen(
+        codigo="ch",
+        apalancamiento=None,       # FINMA no fija tope al minorista
+        saldo_negativo_cubierto=None,
+        fondo_garantia_importe=100000,
+        fondo_garantia_moneda="CHF",
+        fondo_garantia_nombre="esisuisse",
+        fuente="FINMA no impone tope de apalancamiento al minorista. La "
+               "garantía de depósitos (esisuisse) cubre depósitos BANCARIOS, "
+               "no posiciones abiertas.",
+    ),
+    "us": Regimen(
+        codigo="us",
+        apalancamiento=None,
+        saldo_negativo_cubierto=None,
+        fondo_garantia_importe=500000,
+        fondo_garantia_moneda="USD",
+        fondo_garantia_nombre="SIPC",
+        fuente="SIPC cubre valores y efectivo en caso de quiebra del bróker; "
+               "no cubre pérdidas de mercado. Los CFD no se ofrecen a "
+               "minoristas de EE. UU.",
+    ),
+    # San Vicente y las Granadinas no regula forex ni CFD. No es un hueco de
+    # datos: es el dato.
+    "svg": Regimen(
+        codigo="svg",
+        apalancamiento=None,
+        saldo_negativo_cubierto=None,
+        fondo_garantia_importe=None,
+        fondo_garantia_moneda=None,
+        fondo_garantia_nombre=None,
+        fuente="SVG no regula forex ni CFD: no hay tope, ni obligación de "
+               "cubrir el saldo negativo, ni fondo de garantía.",
+    ),
+    # Los exchanges de cripto sin licencia de inversión no están bajo ninguno
+    # de los anteriores. Lo que ofrecen lo dicen ellos, y se marca como tal.
+    "ninguno": Regimen(
+        codigo="ninguno",
+        apalancamiento=None,
+        saldo_negativo_cubierto=None,
+        fondo_garantia_importe=None,
+        fondo_garantia_moneda=None,
+        fondo_garantia_nombre=None,
+        fuente="Sin licencia de servicios de inversión: ningún régimen impone "
+               "tope, cobertura de saldo negativo ni fondo de garantía.",
+    ),
+}
+
+
+def regimen_de(broker_id: str) -> Optional[Regimen]:
+    """El régimen bajo el que se contrata, por id de bróker.
+
+    Va por tabla explícita y no derivado del `jurisdiccion_codigo`, porque la
+    entidad que firma con el cliente y la que firma el programa de afiliados
+    pueden ser de sitios distintos — es justo el caso de Axi.
+    """
+    return REGIMENES.get(_REGIMEN_POR_BROKER.get(broker_id, ""))
+
+
+# Qué régimen aplica a QUIEN ABRE CUENTA por nuestro enlace.
+_REGIMEN_POR_BROKER = {
+    "axi": "ue", "dukascopy": "ue", "saxo": "ue",
+    "swissquote": "ch", "ibkr": "us", "vtmarkets": "au",
+    "margex": "ninguno", "hyperliquid": "ninguno",
+}
+
+# El supervisor que de verdad tiene detrás cada uno, con jurisdicción.
+#
+# Hace falta porque el modelo nació eurocéntrico (`regulador_ue`) y para
+# Swissquote, IBKR y VT Markets ese campo es `None` — no porque no estén
+# supervisados, sino porque no tienen entidad EUROPEA registrada aquí. Una
+# tabla que leyera `regulador_ue` diría «sin supervisor» de un banco suizo
+# cotizado, que es peor que no tener columna.
+SUPERVISOR = {
+    # (acrónimo del supervisor, país en ISO 3166-1 alfa-2)
+    #
+    # ⚠️ El país va por CÓDIGO y no dentro del texto. La primera versión de
+    # esto ponía «CySEC (Chipre)» y la tabla en inglés salía con los países en
+    # castellano — el mismo fallo que se acababa de corregir en las tarjetas de
+    # la marquesina, cometido otra vez tres horas después. Un dato traducible
+    # metido en una cadena ya compuesta no hay `t()` que lo alcance.
+    #
+    # VT Markets lleva tres supervisores en tres jurisdicciones y por eso es
+    # una lista: aplastarlo a uno para que quepa en la columna sería elegir por
+    # el lector cuál le aplica, que depende de dónde abra la cuenta.
+    "axi": (("CySEC", "CY"),),
+    "dukascopy": (("Latvijas Banka", "LV"),),
+    "saxo": (("DFSA", "DK"),),
+    "swissquote": (("FINMA", "CH"),),
+    "ibkr": (("SEC", "US"), ("FINRA", "US")),
+    "vtmarkets": (("ASIC", "AU"), ("FSCA", "ZA"), ("FSC", "MU")),
+    "margex": (),
+    "hyperliquid": (),
+}
+
+
+# Qué es cada casa. Clave de i18n, no texto: va en la tabla y se traduce.
+TIPO = {
+    "axi": "brokerTipoCfd",
+    "dukascopy": "brokerTipoCasaInversion",
+    "saxo": "brokerTipoBanco",
+    "swissquote": "brokerTipoBanco",
+    "ibkr": "brokerTipoMultimercado",
+    "vtmarkets": "brokerTipoCfd",
+    "margex": "brokerTipoExchangeCripto",
+    "hyperliquid": "brokerTipoDex",
+}
+
+# QUÉ se contrata: un derivado sobre el precio, o el valor de verdad. Es la
+# diferencia que más gente ignora al comparar, y decide qué pasa si quiebra.
+QUE_SE_CONTRATA = {
+    "axi": "brokerContrataCfd",
+    "dukascopy": "brokerContrataCfd",
+    "saxo": "brokerContrataAmbos",
+    "swissquote": "brokerContrataAmbos",
+    "ibkr": "brokerContrataValores",
+    "vtmarkets": "brokerContrataCfd",
+    "margex": "brokerContrataPerpetuos",
+    "hyperliquid": "brokerContrataPerpetuos",
+}
+
+# Apalancamiento que anuncia la propia casa, SÓLO donde ya lo teníamos por
+# escrito y con procedencia. `None` es lo normal aquí y no se rellena: el tope
+# del régimen ya va en su columna, y mezclar «lo que permite la ley» con «lo
+# que anuncia el bróker» en la misma celda es cómo una tabla miente sin decir
+# una sola falsedad.
+APALANCAMIENTO_DECLARADO = {
+    "margex": "100:1",      # lo dice su propia descripción y su portada
+}
+
+
 BROKERS: tuple[Broker, ...] = (
     Broker(
         id="axi",
