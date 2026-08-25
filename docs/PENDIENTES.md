@@ -120,8 +120,11 @@ un recuento sin dueño:
       [`MIGRACION_NEON.md`](./MIGRACION_NEON.md).
 - [ ] **Cloud Scheduler** para la purga diaria de retención (hoy sólo al arrancar,
       `purge_lapsed_user_data` en `startup_event`).
-- [ ] **Despliegue del backend**: desde el 2026-08-03 no hay workflow. Se hace a
-      mano con `cloudbuild.yaml`. Decidir si se repone con la federación arreglada.
+- [x] ~~**Despliegue del backend**: desde el 2026-08-03 no hay workflow.~~
+      ✅ **No existía tal problema.** Comprobado el 2026-08-25 contra el proyecto
+      real: el backend se despliega solo con cada push a `main` (Cloud Run source
+      deploy, `us-east1`), y así es desde el 2026-07-19. Esta línea pedía reponer
+      algo que ya estaba puesto. `cloudbuild.yaml` se retiró — ver `DECISIONES.md`.
 
 ## Contenido / producto
 - [x] **Borrado de cuenta completo** — `DELETE /api/auth/account` cancela la

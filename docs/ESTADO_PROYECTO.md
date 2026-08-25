@@ -57,7 +57,7 @@
 | **Seguridad (auth, pagos, admin)** | 🟢 | Auditoría sólida; sin secretos en el repo; cabeceras + CSP en las respuestas de API |
 | **CSP del sitio (GitHub Pages)** | 🟠 | El HTML servido por Pages **no lleva CSP** (Pages no permite cabeceras). Ver G-10 |
 | **CI de PR (`ci.yml`)** | 🟢 | Backend: `py_compile *.py` + pytest. Frontend: i18n + credentials + engine + lint + build. **Doc: `gen-mapa --check` + `check-doc-links` + paridad del catálogo** (añadido 2026-08-13, cierra G-18) |
-| **Despliegue del backend** | 🟠 | **No hay nada automático desde el 2026-08-03**: el workflow se retiró (fallaba la federación de identidad). Se despliega a mano con `cloudbuild.yaml` desde GCP |
+| **Despliegue del backend** | 🟢 | **Automático**: Cloud Run source deploy en cada push a `main`, a `us-east1`. La fila decía lo contrario hasta el 2026-08-25 y era falso desde el 2026-07-19 — ver `DECISIONES.md` |
 | **CI frontend (GitHub Pages)** | 🟢 | Workflow correcto (OAuth + analytics + 404.html) + i18n + credentials + **lint** |
 | **Backend con interfaz de usuario** | 🟠 | **29 rutas que ningún fichero del frontend menciona**, y **cada una con una decisión escrita** desde el 2026-08-22: [`RUTAS_MUERTAS.md`](./RUTAS_MUERTAS.md) (borrar 7, construir 20, arreglar 2). Eran 38: se retiraron 8 cuyo sucesor estaba escrito en el propio código, y `/api/quote` dejó de estar muerta al enchufarse su cascada de failover a `/api/stock`. `check-rutas-muertas.py` corre en CI **en las dos direcciones**: una ruta nueva sin consumidor y sin fila hace fallar, y una fila cuya ruta ya tiene pantalla también. Siguen ahí los 4 módulos completos de G-14 —plan, backtest, riesgo de cartera, americanas— |
 | **Stripe (código)** | 🟢 | Checkout + webhooks implementados |

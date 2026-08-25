@@ -1171,7 +1171,7 @@ for _o in _extra.split(","):
 
 # Base de los enlaces que se ENVÍAN POR CORREO (verificación, reset, magic
 # link). Por defecto apunta a donde se sirve la web hoy, que es lo que ponen
-# `cloudbuild.yaml` y ponía el workflow retirado: el valor del código no puede
+# el despliegue de entonces y ponía el workflow retirado: el valor del código no puede
 # contradecir al del despliegue, porque si la variable se pierde los correos
 # llevan a un dominio que no existe y el usuario tampoco puede entrar.
 # Una sola constante para que los cuatro sitios que la usaban no vuelvan a

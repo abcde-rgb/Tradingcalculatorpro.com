@@ -229,7 +229,7 @@ def test_emailed_link_base_honours_explicit_cors_allowlist(monkeypatch):
 # puede entrar y no hay ningún error que mirar. `curl` tampoco lo reproduce,
 # porque curl ignora CORS.
 #
-# Y desde el 2026-08-03 el backend se despliega A MANO (`cloudbuild.yaml`): un
+# Y el backend se despliega solo en cada push a `main` (Cloud Run source deploy): un
 # `gcloud run deploy` sin `--set-env-vars` borra las variables del servicio y
 # tumba el login de todo el sitio. El origen real no puede depender de que
 # alguien se acuerde de una variable.

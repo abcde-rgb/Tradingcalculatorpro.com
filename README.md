@@ -105,7 +105,7 @@ Atajo: el comando `/verify` de Claude Code ejecuta la secuencia entera.
 |---|---|---|
 | PR | `ci.yml` | Compila backend, tests unitarios, build del frontend |
 | Push a `main` con `frontend/**` | `deploy-gh-pages.yml` | GitHub Pages |
-| Push a `main` con `backend/**` | — | **Despliegue manual.** El workflow se retiró; ver `cloudbuild.yaml` |
+| Push a `main` con `backend/**` | — | **Cloud Run source deploy** → `tradingcalculator-api` en `us-east1`. Sale solo |
 
 Auth de GCP mediante **Workload Identity Federation** (sin claves JSON).
 
