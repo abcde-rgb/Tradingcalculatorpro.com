@@ -463,6 +463,10 @@ p.write_text(p.read_text().replace('\\\"price\\\": 17.00', '\\\"price\\\": 21.00
 # `lib/i18n.js` y se comprueba ahí. El cebo es la forma EXACTA de BUG-066 —una
 # `t` única que lee el idioma activo—, que traduce bien y sólo pierde el cambio
 # de identidad.
+# Necesita `frontend/node_modules` (importa zustand). El job de doc de CI sólo
+# monta Python, así que ahí se salta y lo cubre el job de frontend, que sí
+# ejecuta el verificador —aunque sin sabotearlo—.
+if [ -d frontend/node_modules ]; then
 titulo "Identidad de t por idioma (check-i18n-identidad.js)"
 probar "t vuelve a ser una funcion estable (los useMemo se congelan)" \
   "(cd frontend && node scripts/check-i18n-identidad.js)" \
@@ -481,6 +485,9 @@ probar "una t nueva cada vez pero que no traduce" \
 import pathlib
 p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
 p.write_text(t.replace('  return (key, vars) => {', '  return (key) => key;' + chr(10) + '  return (key, vars) => {', 1))\""
+else
+  echo "  ⏭️  Identidad de t: sin frontend/node_modules, no se prueba"
+fi
 
 # ── El presupuesto de peso caza una pantalla que engorda ────────────────────
 # Necesita el build compilado y el servidor en pie, así que sólo se prueba si
