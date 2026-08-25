@@ -168,7 +168,10 @@ export default function LandingPage() {
               </Link>
               <Link to="/pricing">
                 <Button size="lg" variant="outline" className="gap-2 text-lg h-14 px-8" data-testid="view-plans-btn">
-                  <Crown className="w-5 h-5 text-yellow-500" />
+                  {/* Sin oro: en el hero conviven este botón y el primario
+                      verde, y dos acentos en la misma fila reparten la
+                      atención en vez de dirigirla. Ver `identidad-visual` §2. */}
+                  <Crown className="w-5 h-5 text-primary" />
                   {t('viewPremiumPlans')}
                 </Button>
               </Link>

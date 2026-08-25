@@ -440,6 +440,26 @@ else
   echo "      en :3100, no se prueban (bash tests/e2e/stack/arriba.sh)"
 fi
 
+# ── Contraste del texto en los dos temas ────────────────────────────────────
+# Levanta su propio servidor, así que basta con el build. Se sabotea el token
+# que causó el fallo real: el verde del tema claro a `35%`, que dejaba 48
+# textos por debajo de la WCAG. Un umbral escrito y nunca roto no prueba nada.
+if [ -d frontend/build ]; then
+  titulo "Contraste WCAG (contraste.js)"
+  RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1)"
+  probar "el verde del tema claro vuelve a un tono que no contrasta" \
+    "node tests/e2e/navegador/contraste.js" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/index.css'); t = p.read_text()
+i = t.index('.light {'); j = t.index('}', i)
+p.write_text(t[:i] + t[i:j].replace('145 70% 26%', '145 70% 35%') + t[j:])\" \
+     && $RECOMPILA_CSS" \
+    "git checkout -- frontend/src/index.css && $RECOMPILA_CSS"
+else
+  echo "  ⏭️  Contraste: sin build, no se prueba"
+fi
+
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
 # Un módulo que se navega pero no se indexa existe y no se encuentra nunca; uno
 # indexado y no navegable es un enlace roto. Se sabotea renombrando un `value:`

@@ -224,9 +224,15 @@ export default function PricingPage() {
           <AnimatedHeroChart />
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
           <div className="max-w-6xl mx-auto text-center relative">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 mb-4">
-                <Crown className="w-5 h-5 text-yellow-500" />
-                <span className="text-sm text-yellow-500 font-medium">Premium</span>
+              {/* Era una corona dorada sobre `bg-yellow-500/10`. Dos motivos
+                  para que ya no lo sea, y el primero es medible: sobre papel
+                  daba **1,67:1** —el peor contraste de toda la web, ilegible—.
+                  El segundo es la regla de un solo acento: el oro aquí no
+                  significaba nada, sólo decoraba, y competía con el verde de
+                  marca en la pantalla donde se cobra. */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                <Crown className="w-5 h-5 text-primary" />
+                <span className="text-sm text-primary font-medium">Premium</span>
               </div>
               <h1 className="font-unbounded text-3xl md:text-4xl font-bold mb-4">{t('choosePlanTitle')}</h1>
               <p className="text-muted-foreground max-w-xl mx-auto">
