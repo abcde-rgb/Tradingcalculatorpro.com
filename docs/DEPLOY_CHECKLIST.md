@@ -6,6 +6,30 @@
 
 ---
 
+## 0.bis. Antes de nada: ¿el proyecto de GCP tiene con qué? 🔴
+
+`cloudbuild.yaml` da por hechos seis recursos con nombre fijo —`trading-repo`,
+`tradingcalculator-api`, `trading-backend-sa`, los siete secretos, y con Cloud SQL
+también `trading-db`—. En un proyecto **nuevo** no existe ninguno, y el build no
+dice «te falta esto»: revienta con un `not found` en el primer paso que toque uno.
+
+```bash
+bash scripts/provisionar-gcp.sh            # informe: qué falta
+bash scripts/provisionar-gcp.sh --crear    # crea lo que falta (idempotente)
+```
+
+⚠️ **Descubierto el 2026-08-25.** Se había migrado a `tradingcalculatorpro-502817`,
+con facturación activa y **cero** repositorios, cero servicios y cero secretos. El
+despliegue llevaba roto desde la migración sin que nadie lo supiera: el backend no
+sale solo, así que nada avisa de que lleve meses sin desplegarse.
+
+⚠️ **Y antes de apuntar producción a una base nueva, EXPORTA la vieja.** Una base
+vacía no produce ningún error: la web arranca, responde y simplemente no conoce a
+ningún usuario. Los registros y las suscripciones se descubren perdidos cuando
+alguien intenta entrar.
+
+---
+
 ## 0. Orden: **el backend PRIMERO, siempre** 🔴
 
 Las dos mitades se despliegan por caminos distintos y a velocidades distintas: el

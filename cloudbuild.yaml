@@ -56,9 +56,12 @@ steps:
       - --max-instances=10
       - --timeout=300
       - --concurrency=80
-      - --set-env-vars=^;^GCP_PROJECT=${_GCP_PROJECT};CORS_ORIGINS=https://abcde-rgb.github.io,https://tradingcalculatorpro.com;FRONTEND_URL=https://abcde-rgb.github.io/Tradingcalculatorpro.com;DEMO_EMAIL=demo@btccalc.pro;SENDER_EMAIL=alerts@tradingcalculatorpro.com
+      - --set-env-vars=^;^GCP_PROJECT=${_GCP_PROJECT};DB_PROVIDER=${_DB_PROVIDER};CORS_ORIGINS=https://abcde-rgb.github.io,https://tradingcalculatorpro.com;FRONTEND_URL=https://abcde-rgb.github.io/Tradingcalculatorpro.com;DEMO_EMAIL=demo@btccalc.pro;SENDER_EMAIL=alerts@tradingcalculatorpro.com
       - --update-secrets=JWT_SECRET=JWT_SECRET:latest,DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,STRIPE_API_KEY=STRIPE_API_KEY:latest,SENDGRID_API_KEY=SENDGRID_API_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest
-      - --add-cloudsql-instances=${_GCP_PROJECT}:europe-west1:trading-db
+      # Con `neon` esto es `--clear-cloudsql-instances`; con `cloudsql`, el
+      # `--add-cloudsql-instances=proyecto:region:instancia` de siempre. Es un
+      # argumento entero y no un valor porque los dos flags son distintos.
+      - ${_CONEXION_BD}
       - --service-account=trading-backend-sa@${_GCP_PROJECT}.iam.gserviceaccount.com
     waitFor: ['push-sha']
     id: 'deploy'
@@ -90,3 +93,13 @@ timeout: '1200s'
 # que sin tocar nada se despliega sobre sí mismo.
 substitutions:
   _GCP_PROJECT: '${PROJECT_ID}'
+  # Neon por defecto: PostgreSQL serverless por TCP+SSL, que es la rama que
+  # `init_pool` ya tenía escrita («TCP (Neon/Supabase/dev)»). No hay instancia
+  # de Cloud SQL que encender ni socket que montar, y desaparece el mayor coste
+  # fijo del proyecto. Ver `docs/MIGRACION_NEON.md`.
+  #
+  # Para volver a Cloud SQL, en la misma línea de comandos:
+  #   gcloud builds submit --config=cloudbuild.yaml \
+  #     --substitutions=_DB_PROVIDER=cloudsql,^:^_CONEXION_BD=--add-cloudsql-instances=PROY:europe-west1:trading-db .
+  _DB_PROVIDER: 'neon'
+  _CONEXION_BD: '--clear-cloudsql-instances'
