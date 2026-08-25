@@ -300,6 +300,87 @@ if m: p.write_text(t[:m.end()] + '  ' + m.group(1) + '\n' + t[m.end():])\""
 import pathlib, re
 p = pathlib.Path('frontend/src/lib/siteFacts.js'); t = p.read_text()
 p.write_text(re.sub(r'assets: \\d+', 'assets: 999', t, count=1))\""
+
+  # ── Margen cruzado: los cuatro fallos reales del borrador ─────────────────
+  # Las cifras del curso de la Academia (?topic=cross-margin) salen de este
+  # motor. Cada sabotaje de aquí reintroduce un bug que el borrador traía de
+  # verdad, y si `engine-check` no lo cazara, el contenido diría cosas falsas
+  # con toda la autoridad de una web que cobra por ellas.
+
+  # 1) El margen evaluado en el precio de ENTRADA en vez de en el del stop-out
+  #    —lo que contradice la tesis del propio módulo xm-04—.
+  probar "el tamaño defendible vuelve a medir el margen en la entrada" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
+p.write_text(t.replace('? p + c : p - c', '? p : p', 1))\""
+
+  # 2) La cota de la bisección derivada del margen libre: al cubrir en modelo
+  #    neto caben lotes que no cuestan margen y se cortaban en silencio.
+  probar "la cota del máximo abrible vuelve a salir del margen libre" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
+p.write_text(t.replace('while (hi < MAX_LOTS_CAP && fits(hi)) hi *= 2;',
+                       'hi = Math.max(1, (available * lev) / (cs * p)) * 4;', 1))\""
+
+  # 3) El sentido de la escalera invertido: convierte piramidar en promediar a
+  #    la baja sin que nada en la pantalla lo diga.
+  probar "la escalera vuelve a escalar en el sentido contrario" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
+p.write_text(t.replace('dirOf(side) * (direction', 'dirOf(side) * -1 * (direction', 1))\""
+
+  # 4) Un margin level indefinido devuelto como 0: la regla de honestidad
+  #    numérica del proyecto, y en pantalla se lee como cuenta muerta.
+  probar "un margin level indefinido vuelve a devolverse como cero" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
+p.write_text(t.replace('* 100 : null,', '* 100 : 0,', 1))\""
+
+  # 5) La dirección del colchón tomada de la exposición neta en vez de la
+  #    pendiente. Lo destapó la simulación masiva; aquí se fija para siempre.
+  probar "el colchón vuelve a tomar la dirección de la exposición neta" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
+p.write_text(t.replace('return pendiente > 0 ? p - trigger : trigger - p;',
+                       'return signedUnits(positions, num(contractSize)) > 0 ? p - trigger : trigger - p;', 1))\""
+
+  # 6) Un enlace profundo que ya no lleva a ninguna parte. La página estática
+  #    se sigue publicando y posicionando, y el visitante aterriza en la
+  #    calculadora por defecto sin que nada avise.
+  probar "una página de SEO que enlaza a una pestaña inexistente" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/scripts/gen-seo-pages.js'); t = p.read_text()
+p.write_text(t.replace('tab: ' + q + 'cross-margin' + q, 'tab: ' + q + 'cross-margen' + q, 1))\""
+
+  probar "una página de SEO que enlaza a un tema que no existe" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/scripts/gen-seo-pages.js'); t = p.read_text()
+p.write_text(t.replace(q + 'cross-margin' + q + ', slug:', q + 'margen-cruzado' + q + ', slug:', 1))\""
+
+  # ── La simulación masiva también tiene que poder fallar ───────────────────
+  titulo "Simulación masiva (simulacion-masiva.js)"
+  probar "una identidad del margen cruzado que deja de cumplirse" \
+    "(cd frontend && node scripts/simulacion-masiva.js --n 200)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/crossMargin.js'); t = p.read_text()
+p.write_text(t.replace('freeMargin: equity - marginUsed,', 'freeMargin: equity - marginUsed * 0.999,', 1))\""
 else
   echo "  ⏭️  i18n-check y engine-check: sin node_modules (ejecuta scripts/preparar-entorno.sh)"
 fi

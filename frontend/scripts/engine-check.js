@@ -1377,6 +1377,40 @@ async function checkSiteFacts() {
     calculadoras === SITE_FACTS.calculators,
     `siteFacts dice ${SITE_FACTS.calculators}, CALC_NAV tiene ${calculadoras}`);
 
+  // ── Las páginas estáticas apuntan a algo que existe ──────────────────
+  //
+  // Las ~1.600 páginas de captación son anzuelo: su única llamada a la acción
+  // es un enlace profundo `?tab=` o `?topic=`. Si alguien renombra una
+  // pestaña, la página sigue publicándose, sigue posicionando y deja al
+  // visitante en la calculadora por defecto sin decir nada. No lo ve el lint,
+  // ni el build, ni el sitemap —que las cuenta igual—, así que se comprueba
+  // aquí: cada destino que la máquina de SEO promete tiene que existir en la
+  // aplicación, y `?tab=` además tiene que estar en la lista que el panel
+  // acepta, porque un valor fuera de ella se ignora en silencio.
+  const seoSrc = fs.readFileSync(path.join(SRC, '..', 'scripts', 'gen-seo-pages.js'), 'utf8');
+
+  const navTabs = new Set([...dash.slice(navIni, navFin).matchAll(/value: '([a-z0-9-]+)'/g)].map((m) => m[1]));
+  const permIni = dash.indexOf('const allowed = [');
+  const permitidas = new Set([...dash.slice(permIni, dash.indexOf('];', permIni)).matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]));
+  const calcsIni = seoSrc.indexOf('const CALCS = [');
+  const seoTabs = [...seoSrc.slice(calcsIni, seoSrc.indexOf('\n];', calcsIni)).matchAll(/tab: '([a-z0-9-]+)'/g)].map((m) => m[1]);
+  ok('la máquina de SEO enlaza a calculadoras que existen',
+    seoTabs.length > 0 && seoTabs.every((t) => navTabs.has(t)),
+    `sin destino: ${seoTabs.filter((t) => !navTabs.has(t)).join(', ')}`);
+  ok('y a pestañas que el panel acepta por la URL',
+    seoTabs.every((t) => permitidas.has(t)),
+    `no permitidas: ${seoTabs.filter((t) => !permitidas.has(t)).join(', ')}`);
+
+  const edu = fs.readFileSync(path.join(SRC, 'pages', 'EducationPage.jsx'), 'utf8');
+  const eduIni = edu.indexOf('const EDUCATION_NAV');
+  const eduTemas = new Set([...edu.slice(eduIni, edu.indexOf('const totalTopics'))
+    .matchAll(/value: '([a-z0-9-]+)'/g)].map((m) => m[1]));
+  const topIni = seoSrc.indexOf('const TOPICS = [');
+  const seoTemas = [...seoSrc.slice(topIni, seoSrc.indexOf('\n];', topIni)).matchAll(/v:'([a-z0-9-]+)'/g)].map((m) => m[1]);
+  ok('la máquina de SEO enlaza a temas de la Academia que existen',
+    seoTemas.length > 0 && seoTemas.every((t) => eduTemas.has(t)),
+    `sin destino: ${seoTemas.filter((t) => !eduTemas.has(t)).join(', ')}`);
+
   // Activos: claves de primer nivel de ALL_ASSETS.
   const activosSrc = lee('lib/assets.js');
   const aIni = activosSrc.indexOf('export const ALL_ASSETS');
@@ -1671,6 +1705,211 @@ async function checkMonteCarlo() {
     JSON.stringify(c1) === JSON.stringify(c2));
 }
 
+async function checkCrossMargin() {
+  console.log('\ncrossMargin.js');
+  const {
+    accountState, marginLevelPrice, cushion, canOpen, simulateLadder, buildLadder,
+    sizeForCushion, absoluteMaxLots, survivalProbability, isolatedStopDistance,
+  } = await imp('lib/crossMargin.js');
+
+  // Caso de referencia del curso de la Academia (?topic=cross-margin): cinco
+  // lotes de oro a 4.328,15 con 5.000 $ y 1:500. Cada cifra de aquí abajo está
+  // ESCRITA en el texto de los módulos, así que si el motor cambia, el
+  // contenido deja de ser cierto y este check lo caza antes que un lector.
+  const base = { balance: 5000, leverage: 500, contractSize: 100, marginModel: 'net' };
+  const pos = [{ lots: 5, entry: 4328.15, side: 'long' }];
+  const st = accountState({ ...base, positions: pos, price: 4328.15 });
+
+  ok('margen usado = lotes·contrato·precio/apalancamiento', near(st.marginUsed, 4328.15, 1e-9),
+    `${st.marginUsed}`);
+  ok('margen libre = 671,85 (módulo xm-05)', near(st.freeMargin, 671.85, 1e-9), `${st.freeMargin}`);
+  ok('margin level = 115,5 % (quiz xm-02)', near(st.marginLevel, 115.5, 0.05), `${st.marginLevel}`);
+
+  const so = marginLevelPrice({ ...base, positions: pos, thresholdPct: 50 });
+  ok('stop-out al 50 % en 4.322,47 (módulo xm-04)', near(so, 4322.47, 0.01), `${so}`);
+  ok('colchón cruzado = 5,68 $ (módulos xm-04 y xm-08)',
+    near(cushion({ ...base, positions: pos, price: 4328.15 }), 5.68, 0.005));
+  ok('colchón a 1:1000 = 7,84 $ (módulo xm-08)',
+    near(cushion({ ...base, leverage: 1000, positions: pos, price: 4328.15 }), 7.84, 0.005));
+  ok('distancia en aislado = 8,66 $ = precio/apalancamiento (módulo xm-04)',
+    near(isolatedStopDistance({ price: 4328.15, leverage: 500 }), 8.66, 0.005));
+  // Y la comparación que da sentido al módulo: el cruzado liquida ANTES.
+  ok('el cruzado al 50 % liquida antes que el aislado',
+    cushion({ ...base, positions: pos, price: 4328.15 })
+      < isolatedStopDistance({ price: 4328.15, leverage: 500 }));
+
+  // El tramo que no entra (módulo xm-05).
+  const add = canOpen({ ...base, positions: pos, price: 4328.20, addLots: 5, side: 'long' });
+  ok('el segundo tramo de 5 lotes se rechaza', add.ok === false);
+  ok('pide 4.328,20 y hay 696,80', near(add.required, 4328.20, 1e-6) && near(add.available, 696.80, 1e-6),
+    `req=${add.required} disp=${add.available}`);
+  ok('sólo caben 0,80 lotes', near(add.maxLots, 0.805, 0.005), `${add.maxLots}`);
+
+  // El precio que lo desbloquea: 4.335,49, no el 4.337,35 que decía el borrador
+  // del que salió este contenido. La cifra del texto sale de aquí.
+  let lo = 4328.2;
+  let hi = 4400;
+  for (let i = 0; i < 80; i += 1) {
+    const m = (lo + hi) / 2;
+    if (canOpen({ ...base, positions: pos, price: m, addLots: 5, side: 'long' }).ok) hi = m;
+    else lo = m;
+  }
+  ok('el segundo tramo se desbloquea en 4.335,49 (módulo xm-05)', near(hi, 4335.49, 0.01), `${hi}`);
+
+  // La cota de la bisección no puede salir del margen libre: al cubrir en
+  // modelo neto caben lotes que no cuestan margen ninguno, y una cota derivada
+  // del dinero disponible los cortaba en silencio (daba ~3,1 en vez de 10,78).
+  const hedge = canOpen({ ...base, positions: pos, price: 4328.15, addLots: 5, side: 'short' });
+  ok('cubrir en modelo neto no consume margen', hedge.ok === true && hedge.required <= 0);
+  ok('el máximo al cubrir no lo limita el margen libre', hedge.maxLots > 5, `${hedge.maxLots}`);
+
+  // El candado bajo los tres modelos (módulo xm-07).
+  const locked = [...pos, { lots: 5, entry: 4328.15, side: 'short' }];
+  const lockNet = accountState({ ...base, positions: locked, price: 4328.15 });
+  const lockMax = accountState({ ...base, marginModel: 'max', positions: locked, price: 4328.15 });
+  const lockSum = accountState({ ...base, marginModel: 'sum', positions: locked, price: 4328.15 });
+  ok('candado en modelo neto: margen cero', near(lockNet.marginUsed, 0, 1e-9));
+  ok('margin level sin margen usado es INDEFINIDO, no cero', lockNet.marginLevel === null);
+  ok('candado en modelo de mayor pata: margen sin cambio', near(lockMax.marginUsed, st.marginUsed, 1e-9));
+  ok('candado en modelo de ambas patas: margen al doble', near(lockSum.marginUsed, st.marginUsed * 2, 1e-9));
+  ok('y el margin level cae al 58 % (módulo xm-07)', near(lockSum.marginLevel, 58, 0.5),
+    `${lockSum.marginLevel}`);
+  ok('una cuenta bloqueada no tiene precio de liquidación',
+    marginLevelPrice({ ...base, positions: locked, thresholdPct: 50 }) === null);
+
+  // Tamaño defendible frente a tamaño abrible (módulo xm-08).
+  const defensible = (lev) => sizeForCushion({
+    balance: 5000, price: 4328.15, leverage: lev, contractSize: 100, cushionPrice: 70,
+  });
+  const esperado = { 200: 0.620, 500: 0.673, 1000: 0.693, 2000: 0.704 };
+  for (const [lev, v] of Object.entries(esperado)) {
+    ok(`tamaño defendible a 1:${lev} = ${v}`, near(defensible(Number(lev)), v, 0.0005),
+      `${defensible(Number(lev))}`);
+  }
+  const techo = absoluteMaxLots({ balance: 5000, contractSize: 100, cushionPrice: 70 });
+  ok('techo de la cuenta = 0,714 lotes (quiz xm-08)', near(techo, 0.7143, 0.0005), `${techo}`);
+  ok('ningún apalancamiento supera el techo',
+    [200, 500, 1000, 2000, 1e6].every((l) => defensible(l) <= techo + 1e-9));
+  ok('el tamaño defendible converge al techo', near(defensible(1e9), techo, 1e-4));
+  // Y el punto entero del módulo: casi todo el recorrido está en el primer salto.
+  ok('de 1:500 a 1:1000 el tamaño defendible sube ~3 %',
+    Math.abs((defensible(1000) / defensible(500) - 1) * 100 - 3) < 0.5);
+
+  // El margen se evalúa en el precio del STOP-OUT, no en el de entrada: es la
+  // tesis del módulo xm-04 y estaba contradicha en la propia fórmula.
+  ok('sizeForCushion usa el precio del stop-out, no el de entrada',
+    !near(defensible(200), 5000 / (100 * (70 + (0.5 * 4328.15) / 200)), 1e-9));
+
+  // Ruina del jugador (módulo xm-10).
+  ok('supervivencia sin deriva = b/(a+b)',
+    near(survivalProbability({ targetMove: 260, cushionMove: 7.66 }), 7.66 / 267.66, 1e-12));
+  ok('supervivencia 2,9 % con 7,66 de colchón y 260 de objetivo',
+    near(survivalProbability({ targetMove: 260, cushionMove: 7.66 }) * 100, 2.9, 0.05));
+  ok('con deriva de 20 $/día y sigma 60 $ sube al 8,6 %',
+    near(survivalProbability({
+      targetMove: 260, cushionMove: 7.66, driftPerDay: 20, sigmaPerDay: 60,
+    }) * 100, 8.6, 0.05));
+  ok('la deriva a favor sólo puede mejorar la probabilidad',
+    survivalProbability({ targetMove: 260, cushionMove: 7.66, driftPerDay: 20, sigmaPerDay: 60 })
+      > survivalProbability({ targetMove: 260, cushionMove: 7.66 }));
+  ok('5 de colchón y 100 de objetivo dan 4,8 % (quiz xm-10)',
+    near(survivalProbability({ targetMove: 100, cushionMove: 5 }) * 100, 4.8, 0.05));
+
+  // La escalera: piramidar ensancha el colchón, amontonar lo mata.
+  const piramide = simulateLadder({
+    ...base,
+    side: 'long',
+    entries: buildLadder({ entry: 4328.15, lots: 5, spacing: 10, rungs: 5, side: 'long', direction: 'with' }),
+    target: 4588.15,
+  });
+  ok('la escalera con 10 $ de separación entra entera', piramide.completed === true);
+  ok('y el colchón CRECE hasta 17,65 $ (módulo xm-06)', near(piramide.finalCushion, 17.65, 0.01),
+    `${piramide.finalCushion}`);
+  ok('el colchón final supera al del primer tramo',
+    piramide.finalCushion > piramide.rungs[0].cushion);
+
+  const apretada = simulateLadder({
+    ...base,
+    side: 'long',
+    entries: buildLadder({ entry: 4328.15, lots: 5, spacing: 0.05, rungs: 5, side: 'long', direction: 'with' }),
+    target: 4588.15,
+  });
+  ok('con 5 céntimos de separación muere en el tramo 2', apretada.blockedAt === 2);
+  ok('y sólo deja abiertos los 5 lotes del primero', near(apretada.lotsOpened, 5, 1e-9));
+
+  const promediando = simulateLadder({
+    ...base,
+    side: 'long',
+    entries: buildLadder({ entry: 4328.15, lots: 5, spacing: 10, rungs: 5, side: 'long', direction: 'against' }),
+    target: 4588.15,
+  });
+  ok('promediar a la baja muere en el tramo 2', promediando.blockedAt === 2);
+
+  // `minCushionAt` señalaba al tramo equivocado en cuanto un peldaño tenía
+  // colchón indefinido: se buscaba la posición en una lista ya filtrada.
+  const aceptados = piramide.rungs.filter((r) => r.accepted && r.cushion !== null);
+  const minReal = Math.min(...aceptados.map((r) => r.cushion));
+  ok('el colchón mínimo es el menor de los peldaños', near(piramide.minCushion, minReal, 1e-12));
+  ok('y minCushionAt señala al peldaño que de verdad lo tiene',
+    near(piramide.rungs[piramide.minCushionAt - 1].cushion, minReal, 1e-12),
+    `at=${piramide.minCushionAt}`);
+
+  // Un objetivo del lado perdedor no es una distancia a recorrer a favor, y no
+  // puede convertirse en una probabilidad de éxito.
+  const alReves = simulateLadder({
+    ...base,
+    side: 'long',
+    entries: buildLadder({ entry: 4328.15, lots: 1, spacing: 10, rungs: 2, side: 'long', direction: 'with' }),
+    target: 4000,
+  });
+  ok('un objetivo del lado perdedor da recorrido negativo', alReves.atTarget.move < 0);
+  ok('y no produce probabilidad de supervivencia', alReves.survival === null);
+
+  // Sentido de la escalera: es del que llama, y tiene que ser el correcto.
+  const conLargo = buildLadder({ entry: 100, lots: 1, spacing: 10, rungs: 3, side: 'long', direction: 'with' });
+  const contraLargo = buildLadder({ entry: 100, lots: 1, spacing: 10, rungs: 3, side: 'long', direction: 'against' });
+  const conCorto = buildLadder({ entry: 100, lots: 1, spacing: 10, rungs: 3, side: 'short', direction: 'with' });
+  ok('un largo escala A FAVOR subiendo de precio', conLargo[2].price === 120);
+  ok('un largo escala EN CONTRA bajando de precio', contraLargo[2].price === 80);
+  ok('un corto escala a favor a la inversa', conCorto[2].price === 80);
+  ok('el decrecimiento reduce cada tramo',
+    near(buildLadder({ entry: 100, lots: 1, spacing: 10, rungs: 3, taper: 0.5 })[2].lots, 0.25, 1e-12));
+
+  // La dirección adversa la marca la PENDIENTE, no la exposición neta.
+  //
+  // Tres largos y dos cortos con el modelo que cobra las dos patas y
+  // apalancamiento 2: la cuenta está neta LARGA y al 400 % de margin level, y
+  // la mata una SUBIDA, porque el margen crece con el precio más deprisa que el
+  // equity. Tomando la dirección del signo de la exposición neta salía −5.000:
+  // la magnitud correcta con el signo cambiado, que en pantalla se lee como
+  // «ya te han liquidado» sobre una cuenta sana. Lo encontró la simulación
+  // masiva, no una comprobación elegida a mano.
+  {
+    const raro = { balance: 10000, contractSize: 1, leverage: 2, marginModel: 'sum' };
+    const mixto = [{ lots: 3, entry: 1000, side: 'long' }, { lots: 2, entry: 1000, side: 'short' }];
+    const est = accountState({ ...raro, positions: mixto, price: 1000 });
+    ok('la cuenta cubierta con margen de dos patas está al 400 %', near(est.marginLevel, 400, 1e-9));
+    ok('y a esa cuenta NETA LARGA la liquida una subida',
+      near(marginLevelPrice({ ...raro, positions: mixto, thresholdPct: 100 }), 6000, 1e-9));
+    const c = cushion({ ...raro, positions: mixto, price: 1000, thresholdPct: 100 });
+    ok('su colchón sale POSITIVO: 5.000 hacia arriba, no −5.000',
+      near(c, 5000, 1e-9), `${c}`);
+    // La regla general, que es lo que de verdad hay que conservar.
+    ok('colchón positivo si y sólo si el margin level supera el umbral',
+      (c > 0) === (est.marginLevel > 100));
+  }
+
+  // Honestidad numérica: lo que no se puede calcular es null, nunca 0.
+  ok('sin posiciones no hay precio de liquidación',
+    marginLevelPrice({ ...base, positions: [] }) === null);
+  ok('un colchón exigido de cero no da un tamaño infinito',
+    sizeForCushion({ balance: 5000, price: 4328.15, leverage: 500, contractSize: 100, cushionPrice: 0 }) === null);
+  ok('un precio de cero no produce estado de cuenta',
+    accountState({ ...base, positions: pos, price: 0 }).equity === null);
+  ok('canOpen con precio inválido no inventa un máximo',
+    canOpen({ ...base, positions: pos, price: 0, addLots: 1 }).maxLots === null);
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -1680,6 +1919,7 @@ async function checkMonteCarlo() {
   await checkInstruments();
   await checkSinCatalogosParalelos();
   await checkDeskMath();
+  await checkCrossMargin();
   await checkEduIndex();
   await checkScannerMeta();
   await checkOptionsEngine();

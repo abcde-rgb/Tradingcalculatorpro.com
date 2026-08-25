@@ -31,6 +31,7 @@ import CandlePatternFigure, { hasCandleBlueprint } from '@/components/education/
 import ChartPatternFigure, { hasChartFigure, ChartPatternCandleFigure } from '@/components/education/ChartPatternFigure';
 import SymVsBroadeningCard from '@/components/education/SymVsBroadeningCard';
 import HarmonicPatternFigure from '@/components/education/HarmonicPatternFigure';
+import CrossMarginCourse from '@/components/education/CrossMarginCourse';
 import ElliottWavesVisual from '@/components/education/ElliottWavesVisual';
 import IchimokuVisual from '@/components/education/IchimokuVisual';
 import SmartMoneyVisual from '@/components/education/SmartMoneyVisual';
@@ -675,6 +676,7 @@ export default function EducationPage() {
       { value: 'partial-exits', label: t('pexTitle') },
       { value: 'trade-mgmt', label: t('tmgTitle') },
       { value: 'margin-liq', label: t('mlqTitle') },
+      { value: 'cross-margin', label: t('xmEduTitle') },
       { value: 'probability', label: t('probabilityStatsTitle') },
       { value: 'tail-risk', label: t('tailTitle') },
     ]},
@@ -5304,6 +5306,12 @@ export default function EducationPage() {
                   ))}
                 </ul>
               </div>
+            </TabsContent>
+
+            {/* Margen cruzado: curso propio, no plantilla plana. El porqué, en
+                `components/education/CrossMarginCourse.jsx`. */}
+            <TabsContent value="cross-margin" className="space-y-6">
+              <CrossMarginCourse />
             </TabsContent>
 
             {/* The 5 CMT/Babypips gap modules — shared compact layout */}

@@ -4575,3 +4575,169 @@ comprobaciones y `precio-viejo.js` 12, en un navegador real sobre el build.
 `CONSTRUIR` (la más barata: `/performance/export`), el alta en los programas de
 Axi y Dukascopy, los logos de los seis y la tarjeta de Margex, que anuncia bono e
 incentivos sin aviso de riesgo.
+
+### 2026-08-22 — Margen cruzado: la pregunta que ninguna calculadora responde
+
+Llegó una herramienta empaquetada aparte —motor, componente y currículo— para
+integrar. Lo primero fue no creérsela: **cada cifra que afirmaba se recalculó**,
+y de las que sobrevivieron salieron las comprobaciones de `engine-check`. Tres
+de ellas eran falsas.
+
+**Lo que decía y lo que sale.** El texto sostenía que la diferencia entre
+congelar el margen en la entrada y recalcularlo a mercado eran «5,68 $ frente a
+8,66 $ de colchón, un 52 % de error». Las dos cifras existen, pero **no son eso**:
+recalcular el margen mueve el colchón de 5,672 $ a 5,678 $ —un 0,1 %, y a
+favor—. Los 8,66 $ son otra cosa: la distancia hasta perder el margen en
+**aislado**, que es `precio ÷ apalancamiento`. Puestas una al lado de la otra
+dicen algo mucho mejor que el error que se les atribuía: *el cruzado, con los
+5.000 $ de la cuenta entera detrás, liquida ANTES que el aislado*, porque el
+umbral del bróker no es perder el margen sino bajar de la mitad de él. El módulo
+se reescribió alrededor de eso y el simulador enseña las dos lecturas juntas.
+
+También decía que el segundo tramo se desbloquea en 4.337,35. Sale **4.335,49**
+(la condición es `499·P − 2.159.075 ≥ P`, y se comprueba por bisección en
+`engine-check`). Y que completar la escalera exigía «16.641 $ de balance», que
+era el *extra*, no el balance. Se sustituyó por la comparación que sí se
+reproduce con un clic: con 5 céntimos de separación el plan muere en el tramo 2;
+con 10 $, entra entero y el colchón **crece** de 5,68 $ a 17,65 $.
+
+**Cuatro fallos de código, cada uno con su sabotaje.**
+
+- `sizeForCushion` evaluaba el margen en el precio de **entrada**, contradiciendo
+  la tesis del módulo que lo acompaña. Ahora lo evalúa en el del stop-out
+  (`P ∓ colchón`), lo que corrige 0,619 → 0,620 lotes a 1:200 y 0,703 → 0,704 a
+  1:2000. El techo (`saldo ÷ (contrato × colchón)` = 0,714) no se mueve: es el
+  límite cuando el apalancamiento tiende a infinito, y ahora la función converge
+  a él de verdad.
+- La cota superior de la bisección de `canOpen` salía del margen libre. Al
+  **cubrir** en modelo neto caben lotes que no cuestan margen ninguno, así que
+  esa cota los cortaba en silencio: daba 3,1 donde caben 10,78. Ahora `hi` se
+  duplica hasta que el predicado falla.
+- `minCushionAt` buscaba la posición del mínimo en una lista ya filtrada de
+  nulos y la usaba para indexar otra sin filtrar: en cuanto un peldaño tenía
+  colchón indefinido, el aviso señalaba al tramo equivocado.
+- La escalera se construía **en contra** de la posición con el comentario «se
+  escala a favor»: un largo bajaba de precio. Eso convierte piramidar en
+  promediar a la baja, que es exactamente lo que el módulo 06 advierte que no se
+  haga. Ahora el sentido es un campo del usuario (*a favor* / *en contra*) y vive
+  en `buildLadder`, no escondido en un signo.
+
+Los cuatro están en `scripts/probar-verificadores.sh`: se reintroducen a
+propósito y `engine-check` tiene que caerse. Se cae.
+
+**El componente no se podía pintar.** Usaba un vocabulario de tokens que este
+repositorio no tiene —`bg-ink`, `text-bone`, `rounded-soft` y **ámbar como color
+de acento**, que es justo lo que el dueño rechazó y `identidad-visual` prohíbe
+volver a proponer—. Reescrito sobre el sistema real (`bg-card`, `border-rule`,
+`text-primary`, `--long`/`--short`). Los colores en línea y los de Recharts iban
+como `var(--short)`, que es CSS inválido: las variables guardan el trío HSL
+suelto, así que la marca del stop-out salía invisible. Ahora van en
+`hsl(var(--short))` y el gráfico cambia con el tema. Y `resolveSpec(símbolo)`
+llevaba un argumento de dos: resolvía el producto por defecto —contado— y
+devolvía un tamaño de contrato genérico en vez de las 100 onzas del oro.
+
+**Lo que hay ahora.** `lib/crossMargin.js` (funciones puras),
+`CrossMarginSimulator` como decimoquinta herramienta del panel
+(`?tab=cross-margin`) con cuatro escenarios de un clic —piramidar, el tramo que
+no entra, promediar a la baja, tramos decrecientes—, la curva de margen libre
+por precio, la regleta a escala, el candado bajo los tres modelos de margen y el
+aviso cuando el apalancamiento supera el tope minorista de la UE del catálogo.
+Y en la Academia → Riesgo, el curso **«Margen cruzado»** (`?topic=cross-margin`):
+once módulos con la creencia que corrige cada uno, su comprobación de una
+pregunta —con la correcta rotando de posición— y la tabla de lo que se cree
+frente a lo que ocurre. Los escenarios del simulador son los casos trabajados
+del curso, para que se puedan reproducir en vez de creer.
+
+**Y dos fallos que sólo aparecieron al MIRAR.** El banco E2E se levantó y se
+abrió la pantalla, como manda el skill `qa`, y encontró en la primera captura lo
+que ni el lint ni las 422 comprobaciones podían ver:
+
+- el panel de «las dos lecturas» enfrentaba la distancia en aislado medida en la
+  **entrada** contra el colchón cruzado al **final de la escalera**. Dos
+  posiciones distintas en dos momentos distintos: salía 8,66 frente a 17,65 y el
+  cruzado parecía dar más aire, justo lo contrario del módulo. Ahora ambas se
+  miden sobre el primer tramo → 8,66 frente a 5,68;
+- las etiquetas de los extremos de la regleta se anclan en el 0 % y el 100 %, así
+  que sin acolchado lateral el stop-out y el objetivo se comían el borde de la
+  tarjeta y perdían un dígito. En un precio, un orden de magnitud.
+
+**Verificado:** `engine-check` **422/422** (52 comprobaciones nuevas, todas
+atadas a una frase del curso) · `i18n-check` 6.858 claves × 10 idiomas, 0
+huecos, 0 sobrantes · `check-edu-index` 86 = 86 · `check-fetch-credentials` ·
+`gen-instruments-js --check` · `gen-mapa --check` · `check-doc-links` · ESLint 0
+errores · `npm run build` exit 0 · `probar-verificadores.sh` (los cuatro
+sabotajes nuevos detectados) · `pytest` **890 passed / 74 skipped** · y en el
+navegador sobre el build de producción, escritorio y móvil, sin errores de
+JavaScript ni desbordamiento: con el escenario «El tramo que no entra» la
+pantalla reproduce las cifras del curso —rechazo en el tramo 2 pidiendo 4.328,20
+con 696,80 disponibles, y el candado en 0 / ∞, 4.328,15 / 116 % y 8.656,30 / 58 %
+según el modelo de margen—.
+
+> ⚠️ **Nota para quien ejecute `pytest` en el venv del banco E2E:** sin
+> `pytest-asyncio` instalado, los siete tests de `test_app_settings_roundtrip_unit.py`
+> salen en rojo. No es el producto: son `@pytest.mark.asyncio` que nunca se
+> ejecutan. Con el plugin, 890 pasan. Un ❌ es una hipótesis, no un veredicto.
+
+**Lo que NO cierra:** G-33 sigue abierto. Ésta es una herramienta nueva escrita
+ya sobre el catálogo, no una de las catorce viejas rehechas.
+
+### 2026-08-22 (2) — Revisión adversaria de la rama, y lo que encontró
+
+Se pidió revisar la rama antes de implementarla. El método fue el de
+`no-me-fio`: dar por FALSA cada afirmación y buscarle una ruta que no comparta
+código con ella.
+
+**La aritmética, por segunda ruta.** `engine-check` llama a las mismas funciones
+que el componente: comprueba que no han cambiado, no que sean correctas. Se
+hicieron 52 comprobaciones por caminos independientes —cuentas a mano con
+números redondos; el catálogo por su otra puerta (`positionMetrics` de
+`instruments.js`); **identidades**, que en vez de creerse el precio despejado
+reconstruyen la cuenta a ese precio y exigen que el margin level sea el umbral;
+y la **EDO de la ruina resuelta por diferencias finitas** contra la fórmula
+cerrada—. Las 52 coinciden.
+
+Dos de las rutas que fallaron eran de la sonda, no del producto, y merece
+anotarse: el primer intento leía `pm.margin` cuando el campo es `marginUsed`, y
+el Monte Carlo de la ruina usaba un paso de σ/√40 = 9,5 $ contra una barrera de
+7,66 $ — no resolvía el problema, lo cambiaba, y daba 17,6 % donde hay 8,6 %.
+
+**El bug que encontró la simulación masiva.** Al cubrir el motor con escenarios
+generados apareció a la primera algo que ninguna comprobación elegida a mano
+habría mirado: `cushion()` tomaba la dirección adversa del signo de la
+exposición neta, cuando la marca la pendiente del excedente. Detalle y arreglo
+en el commit; lo importante del método es que el fallo estaba en un régimen
+—cartera cubierta, margen de dos patas, apalancamiento bajo— que nadie habría
+elegido a mano, y que el síntoma era un colchón NEGATIVO sobre una cuenta al
+400 % de margin level.
+
+**El hueco de integración.** La rama pasaba todas las puertas y la herramienta
+seguía siendo invisible para el embudo de captación: `gen-seo-pages.js` genera
+las ~1.600 páginas estáticas desde dos listas escritas a mano, y ni la
+calculadora ni el curso estaban en ellas. Ahora sí, en los diez idiomas
+(sitemap 1589 → **1609 URLs**), y con una guarda nueva en `engine-check` para
+que un renombrado no deje esas páginas apuntando al vacío: cada `?tab=` de la
+máquina de SEO tiene que existir en `CALC_NAV` **y** estar en la lista que el
+panel acepta por URL, y cada `?topic=` tiene que existir en `EDUCATION_NAV`.
+Sin ella, una página renombrada se sigue publicando, sigue posicionando y deja
+al visitante en la calculadora por defecto sin que nada avise.
+
+**Lo que sólo se vio mirando.** Las dos pantallas nuevas, en los diez idiomas
+sobre el build compilado: 20/20 sin claves crudas, sin desbordamiento y sin
+errores de JavaScript, con el árabe en RTL. Y en tema claro, que era la mitad
+sin comprobar: `hsl(var(--primary))` resuelve a `rgb(27,152,79)` en claro y
+`rgb(23,207,99)` en oscuro — es decir, los colores del gráfico y de la regleta
+son de verdad sensibles al tema, que es lo que el arreglo de `var(--short)`
+perseguía. Ahí se vio también que el conmutador seguía diciendo «las mismas
+catorce de siempre» con quince herramientas, en los diez idiomas. Se quitó la
+cifra en vez de subirla a quince: la barra lateral ya muestra el recuento vivo
+y un número escrito a mano sólo vuelve a envejecer.
+
+**Lo que queda sin comprobar, y se dice:** el contenido del curso se contrastó
+contra los límites de ESMA y contra el catálogo, pero las afirmaciones sobre
+*cómo se comporta cada bróker concreto* (qué modelo de margen aplica, si cobra
+el swap en las dos patas) son de sector, no verificables desde el repositorio, y
+el propio curso manda comprobarlas en la ficha del instrumento. Tampoco se probó
+la herramienta con un bróker real. Y dos restos ajenos a esta rama: `s.tmp.cjs`
+en `frontend/`, un fichero temporal que se coló en el commit 8a0ade5, y
+`toolMapIntro`, una clave i18n muerta que aún dice «14 calculadoras» en los diez
+idiomas sin que ningún componente la pinte.

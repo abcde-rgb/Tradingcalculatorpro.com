@@ -1463,7 +1463,23 @@ async def _is_user_session_revoked(payload: dict) -> bool:
         # Ensure timezone-aware comparison
         if revoked_after.tzinfo is None:
             revoked_after = revoked_after.replace(tzinfo=timezone.utc)
-    return iat_dt < revoked_after
+    # BUG-064. El `iat` de un JWT es un NumericDate: SEGUNDOS enteros, PyJWT
+    # descarta la fracción al codificar. `revoked_after` se escribe con
+    # `datetime.now()`, con microsegundos. Comparándolos tal cual, un token
+    # emitido en el MISMO segundo del cambio de contraseña tiene
+    # `iat = X.000000`, que es `< X.234567`, y la sesión NUEVA nace muerta.
+    #
+    # Y es justo el caso que el producto provoca: la respuesta de
+    # `change-password` le dice al usuario que vuelva a entrar, así que un
+    # cliente rápido —o el propio SPA re-logueando solo— cae dentro de ese
+    # segundo y recibe un 401 que parece intermitente.
+    #
+    # Truncar el corte al segundo: un token del segundo X sobrevive a una
+    # revocación sellada en el segundo X, y los de segundos anteriores siguen
+    # muriendo. El residual —un token del mismo segundo pero anterior al cambio
+    # sobrevive menos de un segundo— es el compromiso estándar de revocar con
+    # granularidad de segundo, y el access token dura una hora de todas formas.
+    return iat_dt < revoked_after.replace(microsecond=0)
 
 
 def _extract_token_from_request(request: Request, credentials: Optional[HTTPAuthorizationCredentials]) -> Optional[str]:
