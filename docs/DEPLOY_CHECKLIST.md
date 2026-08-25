@@ -6,39 +6,43 @@
 
 ---
 
-## 0. Orden: **el backend PRIMERO, siempre** 🔴
+## 0. Las dos mitades salen solas 🔴
 
-Las dos mitades se despliegan por caminos distintos y a velocidades distintas: el
-frontend sale solo en cuanto se toca `frontend/**` en `main`, y el backend **no sale
-nunca solo** — hay que lanzar `cloudbuild.yaml` a mano. Esa asimetría hace que el
-orden por defecto sea justo el peligroso.
+| Push a `main` que toque… | Qué pasa |
+|---|---|
+| `frontend/**` | `deploy-gh-pages.yml` → GitHub Pages |
+| `backend/**` | Cloud Run source deploy → `tradingcalculator-api` en **`us-east1`** |
 
-Un frontend por delante de su backend **no degrada, rompe**. El caso real: el diario
-multiproducto (2026-08-06) manda `instrument_type` con siete valores nuevos; el
-backend anterior los valida contra `^(spot|option)$` y responde **422 a todo**,
-incluido el valor por defecto del formulario. No se pierde nada y se arregla
-desplegando el backend, pero mientras tanto el usuario no puede guardar ni una
-operación.
+⚠️ **Esta sección decía que el backend «no sale nunca solo» y había que lanzar
+`cloudbuild.yaml` a mano. Era falso**, y llevaba siéndolo desde el 2026-07-19,
+cuando se conectó el despliegue desde código. `cloudbuild.yaml` se retiró el
+2026-08-25 porque describía un montaje inexistente y, de haber funcionado,
+habría creado un servicio duplicado en Europa.
+
+Como salen las dos solas y del mismo push, el orden ya no hay que vigilarlo. Lo
+que sí hay que vigilar es **que el push disparó las dos cosas**:
 
 ```bash
-# 1) Backend (desde la raíz del repo, con el proyecto de GCP activo)
-gcloud builds submit --config=cloudbuild.yaml .
+# El backend: la etiqueta de la imagen es el SHA del commit desplegado
+gcloud run services describe tradingcalculator-api --region=us-east1 \
+  --format='value(spec.template.spec.containers[0].image)'
 
-# 2) Comprobar que respondió ANTES de tocar el frontend
-gcloud run services describe tradingcalculator-api --region=europe-west1 \
-  --format='value(status.url)'
-curl -fsS "$(gcloud run services describe tradingcalculator-api \
-  --region=europe-west1 --format='value(status.url)')/api/health"
+# ¿Responde? (la primera petición tras un rato ociosa arranca en frío: da margen)
+curl -s -m 60 -o /dev/null -w 'HTTP %{http_code} en %{time_total}s\n' \
+  https://tradingcalculator-api-2rkq2snofq-ue.a.run.app/api/health
 
-# 3) Frontend: sale solo al mergear a `main`. Si el workflow no se disparó,
-#    Actions → «Build & Deploy to GitHub Pages» → Run workflow (tiene
-#    workflow_dispatch). Un merge que no dispara nada NO es un despliegue.
+# El frontend: Actions → «Build & Deploy to GitHub Pages». Un merge que no
+# dispara nada NO es un despliegue (pasó con el PR #177 el 2026-08-06).
 ```
 
-⚠️ **Comprueba siempre que el merge disparó el workflow.** El 2026-08-06 el merge del
-PR #177 tocó 23 archivos de `frontend/**` y no generó ninguna ejecución: el sitio se
-quedó en la versión anterior sin que nada avisara, porque la ausencia de un run no
-produce ningún error en ninguna pantalla.
+⚠️ **La configuración del backend NO está en el repositorio.** Son 15 variables
+de entorno puestas en el propio servicio de Cloud Run. Para ver cuáles hay sin
+imprimir sus valores —entre ellos la cadena de conexión con contraseña—:
+
+```bash
+gcloud run services describe tradingcalculator-api --region=us-east1 \
+  --format='value(spec.template.spec.containers[0].env[].name)'
+```
 
 ---
 

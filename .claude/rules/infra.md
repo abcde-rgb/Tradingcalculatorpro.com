@@ -14,11 +14,52 @@ paths:
 | Trigger | Resultado |
 |---|---|
 | Push a `main` con cambios en `frontend/**` | `deploy-gh-pages.yml` → GitHub Pages |
-| Push a `main` con cambios en `backend/**` | **Nada.** El workflow se retiró el 2026-08-03 (fallaba la federación de identidad) |
-| Manual desde GCP | `cloudbuild.yaml` |
+| Push a `main` con cambios en `backend/**` | **Cloud Run source deploy** → `tradingcalculator-api` en `us-east1` |
 
-El backend **se despliega a mano**. Un despliegue manual es un despliegue que se olvida:
-si tocas backend, dilo explícitamente al cerrar la sesión.
+**Las dos mitades salen solas.** El backend NO se despliega a mano.
+
+⚠️ **Esta tabla decía lo contrario hasta el 2026-08-25**: que el backend no salía
+nunca solo y que había que lanzar `cloudbuild.yaml` desde GCP. Era falso, y llevaba
+siéndolo desde que se conectó el despliegue desde código —el repositorio de imágenes
+`cloud-run-source-deploy` se creó el **2026-07-19**—. Nadie lo notó porque un
+despliegue que ocurre solo no produce ninguna señal, y la documentación que dice
+«esto no pasa» tampoco.
+
+Se descubrió por el camino más caro: se le dijo al propietario que lanzara
+`gcloud builds submit`, dio error, y al investigarlo apareció que el servicio vivo
+corría ya el commit del último merge.
+
+### Cómo está montado de verdad (comprobado el 2026-08-25)
+
+| Qué | Valor |
+|---|---|
+| Servicio | `tradingcalculator-api`, **`us-east1`** (no `europe-west1`) |
+| URL | `https://tradingcalculator-api-2rkq2snofq-ue.a.run.app` |
+| Imágenes | `us-east1-docker.pkg.dev/<proy>/cloud-run-source-deploy/…` |
+| Configuración | **15 variables de entorno en el propio servicio**, no `--update-secrets` |
+| Base de datos | Externa, por `DATABASE_URL`. **No hay Cloud SQL** — la API `sqladmin` ni está habilitada |
+
+Cómo comprobar qué está corriendo ahora mismo:
+
+```bash
+gcloud run services describe tradingcalculator-api --region=us-east1 \
+  --format='value(spec.template.spec.containers[0].image)'   # la etiqueta es el SHA del commit
+gcloud run revisions list --service=tradingcalculator-api --region=us-east1 --limit=3
+```
+
+⚠️ **No uses `describe` a secas para mirar la configuración**: imprime las variables
+de entorno CON sus valores, y ahí va la cadena de conexión con contraseña. Para ver
+sólo los nombres, `--format='value(spec.template.spec.containers[0].env[].name)'`.
+
+### `cloudbuild.yaml` se retiró el 2026-08-25
+
+Describía un montaje que no existe: `europe-west1`, un repositorio `trading-repo`,
+una cuenta de servicio `trading-backend-sa`, siete secretos en Secret Manager y una
+instancia de Cloud SQL `trading-db`. **Ninguno existe en el proyecto.** Lanzarlo no
+sólo fallaba: si hubiera llegado al final habría creado un **segundo servicio en
+Europa** mientras el frontend sigue apuntando al de EE. UU.
+
+Un plan B que no funciona no es un plan B. Ver `docs/DECISIONES.md`.
 
 Auth de GCP en Actions: **Workload Identity Federation**, sin claves JSON.
 

@@ -259,3 +259,34 @@ revisado**.
 Los nombres de estrategias de opciones van en literal. `tr()` resuelve literal o
 clave i18n indistintamente, así que añadir una estrategia no obliga a inventar
 diez traducciones.
+
+
+## 2026-08-25 — Se retira `cloudbuild.yaml`
+
+**Decisión:** borrarlo, no arreglarlo.
+
+**Por qué.** Describía un despliegue a `europe-west1` sobre un repositorio de
+imágenes `trading-repo`, una cuenta de servicio `trading-backend-sa`, siete
+secretos en Secret Manager y una instancia de Cloud SQL `trading-db`. Comprobado
+contra el proyecto real: **no existe ninguno de los cinco**. El despliegue de
+verdad lo hace Cloud Run desde el código, a `us-east1`, y se dispara solo con
+cada push a `main`.
+
+**Qué se descartó.** Corregirlo para que apuntara a la región y los recursos
+reales, como plan B manual. Se descartó porque duplicaría en un fichero la
+configuración que ya vive en el servicio —15 variables de entorno— y esa copia
+se desviaría en silencio, que es exactamente lo que acababa de pasar. Y porque
+un plan B que nadie ejecuta nunca es un plan B que no se sabe si funciona.
+
+**Lo que costó no haberlo hecho antes.** La documentación afirmaba que el
+backend se desplegaba a mano desde el 2026-08-03. Llevaba desplegándose solo
+desde el 2026-07-19. Sobre esa base se le dijo al propietario que lanzara
+`gcloud builds submit`; dio error, y al investigarlo se vio que el servicio vivo
+ya corría el commit del último merge. La documentación no sólo estaba
+desfasada: llevaba a ejecutar un comando que, de haber funcionado, habría
+creado un segundo backend en otra región.
+
+**Lo que NO se puede comprobar desde el repositorio.** El disparador vive en la
+consola de GCP, así que ningún verificador de aquí puede afirmar que sigue
+conectado. Lo que sí se puede es mirar qué está corriendo, y el comando está en
+`DEPLOY_CHECKLIST.md` §0: la etiqueta de la imagen es el SHA del commit.
