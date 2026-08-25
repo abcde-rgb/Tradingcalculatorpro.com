@@ -168,8 +168,15 @@ function sondaEnPagina() {
   const servidor = http.createServer((q, s) => {
     let u = decodeURIComponent(q.url.split('?')[0]);
     if (u.startsWith(BASE)) u = u.slice(BASE.length) || '/';
-    let f = path.join(BUILD, u);
-    if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) f = path.join(BUILD, 'index.html');
+    // ⚠️ La ruta se RESUELVE y se comprueba que sigue dentro de `BUILD`.
+    // `path.join(BUILD, u)` con `u` sacado de la URL deja salir del directorio
+    // con `..%2f..%2fetc/passwd`, y CodeQL lo marca como alta con razón: da
+    // igual que este servidor sólo viva durante un test y escuche en local —
+    // el patrón es el mismo que en producción, y aquí se copia y se pega.
+    const indice = path.join(BUILD, 'index.html');
+    const pedido = path.resolve(BUILD, `.${path.posix.normalize(`/${u}`)}`);
+    let f = pedido.startsWith(BUILD + path.sep) || pedido === BUILD ? pedido : indice;
+    if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) f = indice;
     s.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' });
     fs.createReadStream(f).pipe(s);
   });

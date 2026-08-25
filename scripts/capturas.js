@@ -80,10 +80,17 @@ function servir() {
   return http.createServer((req, res) => {
     let limpio = decodeURIComponent(req.url.split('?')[0]);
     if (BASE && limpio.startsWith(BASE)) limpio = limpio.slice(BASE.length) || '/';
-    let f = path.join(BUILD, limpio);
+    // ⚠️ La ruta se RESUELVE y se comprueba que sigue dentro de `BUILD`.
+    // `path.join(BUILD, u)` con `u` sacado de la URL deja salir del directorio
+    // con `..%2f..%2fetc/passwd`, y CodeQL lo marca como alta con razón: da
+    // igual que este servidor sólo viva durante un test y escuche en local —
+    // el patrón es el mismo que en producción, y aquí se copia y se pega.
+    const raiz = path.join(BUILD, 'index.html');
+    const pedido = path.resolve(BUILD, `.${path.posix.normalize(`/${limpio}`)}`);
+    let f = pedido.startsWith(BUILD + path.sep) || pedido === BUILD ? pedido : raiz;
     if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) {
       const indice = path.join(f, 'index.html');
-      f = fs.existsSync(indice) ? indice : path.join(BUILD, 'index.html');
+      f = fs.existsSync(indice) ? indice : raiz;
     }
     try {
       res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
