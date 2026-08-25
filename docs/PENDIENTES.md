@@ -23,11 +23,61 @@
       `PositioningPanel` sólo consume `/options/positioning`.
 
 ## Cumplimiento (RGPD) — G-15
-- [ ] **`trading_plans` no se borra ni se exporta.** Falta en la lista de
-      `delete_account`, en `_USER_DATA_COLLECTIONS` (purga por retención) y en
-      `/auth/my-data`. Añadirla a las tres y dejar un test que recorra las
-      colecciones con `user_id`.
+- [x] ~~**`trading_plans` no se borra ni se exporta.**~~ ✅ **Cerrado
+      (2026-08-06, BUG-044).** Y no parcheando las tres listas sino la causa:
+      las cuatro derivan hoy de una sola tupla, `_USER_DATA_COLLECTIONS` →
+      `_ALL_USER_COLLECTIONS` → `_EXPORTABLE_COLLECTIONS`, así que una
+      colección nueva las hereda. `test_user_data_collections_unit.py` fija que
+      lo que se purga se borra y lo que se borra se puede exportar. Verificado
+      contra Postgres real el 2026-08-07.
+      *Esta línea siguió diciendo lo contrario durante dos semanas y la cazó
+      `auditar.py` en el examen del 2026-08-23: una tarea pendiente que ya está
+      hecha no es ruido inofensivo, es alguien rehaciéndola.*
 
+
+## Componentes escritos y nunca conectados
+
+El 2026-08-24 se retiró el **andamiaje de shadcn/ui que nunca se usó** (16
+componentes, 1.334 líneas) y los **15 paquetes** que sólo servían a esos
+ficheros. No aligera el bundle —código que nadie importa no entra en él— pero sí
+`node_modules`, el tiempo de instalación y la superficie que hay que auditar.
+Se regeneran con `npx shadcn@latest add <nombre>` el día que hagan falta.
+
+Quedan **cuatro componentes propios**: trabajo terminado que no cuelga de
+ninguna pantalla. Cada uno con su decisión, para que la lista no vuelva a ser
+un recuento sin dueño:
+
+- [ ] **`education/TradingBasicsGuide.jsx` (671 líneas) — decisión del dueño.**
+      Guía de largo/corto con diagramas SVG propios y **135 claves i18n que no
+      usa nada más**, traducidas a los diez idiomas: ~14 KB del diccionario que
+      cada visitante descarga, más 138 KB en el repositorio. Las dos salidas son
+      legítimas y llevan a sitios distintos, así que no se toma sola: **(a)**
+      colgarla de la Academia —es contenido acabado y hoy son 86 módulos— o
+      **(b)** retirarla con sus 135 claves × 10 idiomas. Lo que no vale es
+      dejarla como está: se paga el peso sin que nadie la lea.
+- [ ] **`options/GreeksPanel.jsx` (127 líneas).** Lo sustituyó `GreeksDisplay`,
+      que sí está montado en el panel de opciones. Retirar; comprobar antes que
+      no tenga nada que el vivo no haga.
+- [ ] **`dashboard/PriceTicker.jsx` (79 líneas).** Sin pantalla. Ojo: lee precio
+      en vivo, así que antes de reconectarlo tiene que respetar `stale`/`as_of`
+      de la cascada de `market_data.py` — pintar un precio viejo como fresco es
+      exactamente BUG-060.
+- [ ] **`education/WhyItMatters.jsx` (60 líneas).** Retirar salvo que se quiera
+      dentro de la Academia.
+
+## Autenticación
+
+- [x] ~~**La revocación de sesión mata el token del mismo segundo.**~~
+      ✅ **Ya estaba cerrado en `main`** (2026-08-23, PR #208, ahí numerado
+      BUG-064): `_is_user_session_revoked` compara contra
+      `revoked_after.replace(microsecond=0)`, que es justo la asimetría que
+      fallaba —el `iat` del JWT va en segundos enteros y `revoked_after` se
+      guardaba con microsegundos—.
+      *Se apuntó aquí el 2026-08-24 como fallo VIVO y no lo era: se leyó
+      `server.py` de esta rama, que iba diez commits por detrás de `main`.
+      Leer el código de tu rama y concluir sobre `main` es exactamente el
+      error que `auditar.py` avisa de las ramas sin fusionar. Comprobar contra
+      `origin/main`, no contra el árbol de trabajo.*
 
 ## Referidos / partners
 - [ ] **Hyperliquid — enlace de referido real.** Ahora usa un placeholder

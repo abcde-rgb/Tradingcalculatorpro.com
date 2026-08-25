@@ -226,7 +226,15 @@ def provisionales() -> None:
     marca_explicita = re.compile(r"\bTODO\s*[:(]|\bFIXME\b")
     # «temporal» fuera: es vocabulario del dominio («eje temporal», «evolución
     # temporal»), no un aviso de que algo esté sin terminar.
-    provisional = re.compile(r"\b(provisional|placeholder)\b", re.I)
+    #
+    # Y «placeholder» A SECAS también fuera, desde el examen del 2026-08-23.
+    # Daba 4 de 5 hallazgos, y los cuatro eran el atributo `placeholder` de un
+    # input comentado en JSDoc o en una nota de UI —«input is shown empty;
+    # placeholder communicates»—, no código provisional. El único real ya lo
+    # cazaba `TODO(`, así que la rama no aportaba nada y sí ruido: un informe
+    # con 80 % de falsos positivos se deja de leer, y entonces el 20 % bueno
+    # tampoco se lee.
+    provisional = re.compile(r"\bprovisional\b", re.I)
     hits = []
     for f in FRONT.rglob("*.jsx"):
         if "node_modules" in str(f) or "/ui/" in str(f):
@@ -245,6 +253,65 @@ def provisionales() -> None:
 # ══════════════════════════════════════════════════════════════════════════
 # E. La documentación contra el código
 # ══════════════════════════════════════════════════════════════════════════
+# Una afirmación sobre el PASADO no contradice el presente
+#
+# Las dos reglas de esta sección marcaban en rojo frases que eran ciertas:
+# una tarea tachada como cerrada, y los registros de julio que decían «8
+# idiomas» cuando en julio había ocho. Corregir esos últimos sería falsear el
+# histórico —que es justo lo que esos ficheros existen para impedir—, así que
+# una regla que empuja a hacerlo está mal planteada, no el documento.
+#
+# Encontrado en el examen del 2026-08-23: de 13 documentos señalados, 7 eran
+# fechados o de sólo-añadir y 3 más sólo lo decían en líneas de trabajo ya
+# hecho. Reales: 3.
+_CERRADO = re.compile(
+    r"~~|^\s*[-*]\s*\[x\]|✅|\bCerrado\b|\bhecho\]|Hecho en esta sesi[oó]n",
+    re.I | re.M,
+)
+
+
+# ⚠️ La fecha se busca en TODO el encabezado, no sólo al principio. La versión
+# anterior exigía `### 2026-07-30 — …` y se le escapaba
+# `## Plan de trading versionado (2026-07-30) — backend completo`, que es el
+# mismo tipo de entrada con la fecha entre paréntesis: cuarenta líneas de
+# registro del 30 de julio volvían a contarse como afirmaciones de hoy. La
+# regla describía una FORMA («el encabezado empieza por fecha») en vez de la
+# propiedad («el encabezado data lo que cuelga de él»), y todo lo que quedaba
+# fuera de esa forma se colaba.
+_ENCABEZADO_FECHADO = re.compile(r"^#{1,4}[^\n]*\b\d{4}-\d{2}-\d{2}\b")
+_ENCABEZADO = re.compile(r"^#{1,6}\s")
+
+
+def _sin_lo_ya_cerrado(texto: str) -> str:
+    """El texto sin lo que habla del pasado.
+
+    Dos cosas: las líneas marcadas como cerradas, y **todo lo que cuelga de un
+    encabezado con fecha**. `ESTADO_PROYECTO.md` conserva decenas de entradas
+    `### 2026-07-04 (11) — …` que dicen «8 idiomas» porque ese día había ocho.
+    Sin esta segunda parte la regla señalaba el documento entero por su propio
+    histórico, y la única forma de callarla habría sido reescribir el pasado.
+    """
+    fuera, nivel_hist = [], 0
+    for l in texto.split("\n"):
+        m = _ENCABEZADO.match(l)
+        if m:
+            nivel = len(m.group(0).strip())
+            if _ENCABEZADO_FECHADO.match(l):
+                nivel_hist = nivel
+            elif nivel_hist and nivel <= nivel_hist:
+                # ⚠️ Sólo un encabezado del MISMO nivel o más alto cierra la
+                # sección histórica. Uno más profundo cuelga de ella y sigue
+                # hablando del pasado: con `#### Funcionalidad nueva` dentro de
+                # `### 2026-07-29` la regla creía haber vuelto al presente y
+                # volvía a marcar cuarenta líneas de registro. La jerarquía del
+                # markdown es un árbol, no una lista.
+                nivel_hist = 0
+        if nivel_hist or _CERRADO.search(l):
+            continue
+        fuera.append(l)
+    return "\n".join(fuera)
+
+
 def contradicciones() -> None:
     """Comprueba afirmaciones concretas de la doc contra el código.
 
@@ -262,6 +329,7 @@ def contradicciones() -> None:
     # no casaba jamás. Una regla que no dispara es peor
     # que no tenerla, porque parece que el problema no existe.
     texto_pend = re.sub(r"[`*]", "", pend.read_text(errors="ignore")) if pend.exists() else ""
+    texto_pend = _sin_lo_ya_cerrado(texto_pend)
     texto_pend = " ".join(texto_pend.split())      # une líneas partidas del markdown
     reglas = [
         ("PENDIENTES dice que `trading_plans` no se borra ni se exporta",
@@ -281,8 +349,16 @@ def contradicciones() -> None:
     # idiomas
     n_idiomas = len([f for f in (FRONT / "lib" / "i18n").glob("*.js")
                      if not f.stem.endswith(".edu")]) if (FRONT / "lib" / "i18n").exists() else 0
+    # ⚠️ Los documentos FECHADOS y los de sólo-añadir quedan fuera, y no es
+    # indulgencia: cuando el registro de sesiones del 11 de julio dice «8
+    # idiomas» está diciendo la verdad sobre el 11 de julio. Reescribirlo para
+    # que cuadre con hoy sería falsear el histórico, que es justo lo que esos
+    # ficheros existen para impedir. Marcarlos como contradicción empuja a
+    # hacerlo. En el examen del 2026-08-23 eran 7 de 13.
+    HISTORICOS = re.compile(r"\d{4}-\d{2}-\d{2}|REGISTRO_SESIONES|DIARIO_BUGS|DECISIONES")
     docs_8 = [f.name for f in (RAIZ / "docs").glob("*.md")
-              if "8 idiomas" in f.read_text(errors="ignore")]
+              if not HISTORICOS.search(f.name)
+              and "8 idiomas" in _sin_lo_ya_cerrado(f.read_text(errors="ignore"))]
     if n_idiomas != 8 and docs_8:
         problemas += 1
         linea(f"  ❌ {len(docs_8)} documento(s) dicen «8 idiomas» y hay {n_idiomas}:"

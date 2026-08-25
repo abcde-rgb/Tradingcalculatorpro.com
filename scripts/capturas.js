@@ -80,10 +80,17 @@ function servir() {
   return http.createServer((req, res) => {
     let limpio = decodeURIComponent(req.url.split('?')[0]);
     if (BASE && limpio.startsWith(BASE)) limpio = limpio.slice(BASE.length) || '/';
-    let f = path.join(BUILD, limpio);
+    // ⚠️ La ruta se RESUELVE y se comprueba que sigue dentro de `BUILD`.
+    // `path.join(BUILD, u)` con `u` sacado de la URL deja salir del directorio
+    // con `..%2f..%2fetc/passwd`, y CodeQL lo marca como alta con razón: da
+    // igual que este servidor sólo viva durante un test y escuche en local —
+    // el patrón es el mismo que en producción, y aquí se copia y se pega.
+    const raiz = path.join(BUILD, 'index.html');
+    const pedido = path.resolve(BUILD, `.${path.posix.normalize(`/${limpio}`)}`);
+    let f = pedido.startsWith(BUILD + path.sep) || pedido === BUILD ? pedido : raiz;
     if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) {
       const indice = path.join(f, 'index.html');
-      f = fs.existsSync(indice) ? indice : path.join(BUILD, 'index.html');
+      f = fs.existsSync(indice) ? indice : raiz;
     }
     try {
       res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
@@ -141,6 +148,10 @@ function servir() {
   const pantallas = soloRuta ? PANTALLAS.filter(([r]) => r === soloRuta) : PANTALLAS;
   const problemas = [];
   let hechas = 0;
+  // Fallos DUROS: la captura no se pudo tomar, o se tomó del tema
+  // equivocado. Distinto de un error de consola, que se informa pero no
+  // invalida la foto.
+  let fallosDuros = 0;
 
   for (const [nombreVista, viewport] of VISTAS) {
     for (const tema of temas) {
@@ -149,7 +160,17 @@ function servir() {
       // siembran ANTES de que cargue la app; si no, la primera pintura sale con
       // el valor por defecto y la captura del tema oscuro sale clara.
       await ctx.addInitScript((t) => {
-        localStorage.setItem('theme', t);
+        // ⚠️ `lib/theme.js` guarda el tema con el `persist` de zustand bajo
+        // `trading-theme-storage`, y lo lee como `JSON.parse(...).state.theme`.
+        // Aquí se escribía `localStorage.setItem('theme', t)` —clave inventada,
+        // sin el sobre de zustand—, que la aplicación no lee jamás: las 18
+        // capturas «light» eran el tema OSCURO, píxel por píxel idénticas a su
+        // pareja en seis pantallas, y el log las daba por buenas.
+        //
+        // El comentario de abajo ya avisaba de esto para la cookie: la clave
+        // SALE DEL CÓDIGO. Con el tema no se hizo y se supuso.
+        localStorage.setItem('trading-theme-storage',
+          JSON.stringify({ state: { theme: t }, version: 0 }));
         // La clave y el valor SALEN DEL CÓDIGO (components/common/CookieBanner.jsx:
         // CONSENT_KEY = 'tcp-cookie-consent', niveles 'all' | 'essential'). Con una
         // clave inventada el banner seguía saliendo y tapaba la calculadora de la
@@ -184,6 +205,19 @@ function servir() {
           await pagina.goto(`http://localhost:${PUERTO}${BASE}${ruta}`, {
             waitUntil: 'domcontentloaded', timeout: 20000,
           });
+          // Quitar la carga perezosa ANTES del barrido.
+          //
+          // No basta con esperar a que las imágenes carguen: en una captura de
+          // página completa Chromium redimensiona el viewport a los 8.800 px de
+          // la portada y **descarta lo decodificado de las imágenes lejanas**,
+          // así que los logotipos de la marquesina se pintaban como huecos de
+          // 286×286 aunque `complete` fuera true y `naturalWidth` valiera 400.
+          // Fotografiado con la marquesina parada se veían perfectamente: era la
+          // captura, no el producto. Con `eager` se quedan.
+          await pagina.evaluate(() => {
+            for (const img of document.images) img.loading = 'eager';
+          });
+
           // Recorrer la página ANTES de fotografiar. Tres componentes usan
           // `whileInView` de framer-motion: arrancan con opacity 0 y sólo
           // aparecen cuando entran en el viewport. En una captura de página
@@ -226,16 +260,101 @@ function servir() {
             return n;
           });
           if (revelados) await pagina.waitForTimeout(250);
+
+          // El tema que se pidió tiene que ser el que se fotografía.
+          //
+          // Sin esta comprobación, sembrar mal el localStorage no rompe nada:
+          // sale una captura perfectamente válida del tema por defecto con el
+          // nombre del otro. Pasó dieciocho veces seguidas y el log dijo ✅
+          // dieciocho veces. Una captura que miente sobre lo que retrata es
+          // peor que no tenerla, porque se usa para decidir.
+          const modo = await pagina.evaluate(() => ({
+            claro: document.documentElement.classList.contains('light'),
+            oscuro: document.documentElement.classList.contains('dark'),
+          }));
+          const esperado = tema === 'light';
+          if (modo.claro !== esperado || modo.oscuro === esperado) {
+            throw new Error(
+              `el tema no se aplicó: se pidió "${tema}" y <html> lleva `
+              + `${modo.claro ? 'light' : ''}${modo.oscuro ? 'dark' : ''}`
+              + ' — revisa la clave de localStorage contra lib/theme.js');
+          }
+
+          // Las imágenes perezosas (`loading="lazy"`) empiezan a cargar al
+          // entrar en el viewport durante el barrido de arriba, pero pueden no
+          // haber terminado de decodificar cuando se dispara la foto. Los
+          // logotipos de la marquesina salían como huecos negros de 286×286 y
+          // parecían un fallo del producto. Se espera a que todas terminen.
+          //
+          // ⚠️ Con plazo, y no por prudencia genérica: una imagen `lazy` que
+          // nunca llega a entrar en el viewport se queda con `complete=false`
+          // PARA SIEMPRE —no ha empezado a cargar, así que no va a disparar ni
+          // `onload` ni `onerror`—. La primera versión de esto esperaba a todas
+          // sin plazo y la tanda se colgó indefinidamente sin escribir un solo
+          // fichero. Esperar es correcto; esperar sin límite es un cuelgue.
+          await pagina.evaluate(() => Promise.race([
+            Promise.all([...document.images]
+              .filter((i) => !i.complete)
+              .map((i) => new Promise((r) => { i.onload = r; i.onerror = r; }))),
+            new Promise((r) => setTimeout(r, 3000)),
+          ]));
+          const sinPintar = await pagina.evaluate(() => [...document.images]
+            .filter((i) => i.currentSrc && !i.naturalWidth).map((i) => i.currentSrc).slice(0, 3));
+
+          // Parar las animaciones CSS antes de disparar.
+          //
+          // No es por estética ni por determinismo (que también): un elemento
+          // con una animación de `transform` vive en su propia capa del
+          // compositor, y en una captura de página completa —donde Chromium
+          // extiende el viewport a los 8.800 px de la portada— esas capas **no
+          // se rasterizan fuera del viewport visible**. La marquesina de socios
+          // salía con los cuatro logotipos en blanco mientras `naturalWidth`
+          // valía 400 y la consola no decía nada. Parada, se rasteriza.
+          //
+          // Se comprobó antes que no era el producto: fotografiando el elemento
+          // con la animación detenida, los logos estaban ahí.
+          await pagina.addStyleTag({
+            content: '*, *::before, *::after { animation: none !important;'
+              + ' transition: none !important; }',
+          });
+          await pagina.waitForTimeout(200);
+
+          // Agrandar el VIEWPORT hasta la página entera y fotografiar sin
+          // `fullPage`, en vez de usar `fullPage` sobre un viewport de 900 px.
+          //
+          // No es equivalente. Con `fullPage`, Chromium compone una imagen más
+          // alta que el viewport y **las imágenes que quedan fuera de él no
+          // llegan a rasterizarse**: los cuatro logotipos de la marquesina
+          // salían como rectángulos vacíos de 286×286 mientras `complete` era
+          // true, `naturalWidth` valía 400 y la consola no decía nada. Se
+          // descartó una por una que fuera el producto: la misma página, en el
+          // mismo instante y con la animación parada, fotografiada como
+          // viewport normal enseña los logos; en `fullPage`, no. Ni `eager` ni
+          // esperar al `decode` lo arreglan, porque no es un problema de carga.
+          //
+          // Con el viewport a la altura del documento todo cae dentro y se
+          // pinta. El ancho no se toca, así que el layout responsive es el
+          // mismo que se pidió.
+          const alto = await pagina.evaluate(() => Math.min(
+            Math.max(document.body.scrollHeight, document.documentElement.scrollHeight), 20000));
+          if (alto > viewport.height) {
+            await pagina.setViewportSize({ width: viewport.width, height: alto });
+            await pagina.waitForTimeout(400);
+          }
+
           const fichero = path.join(SALIDA, `${nombre}__${nombreVista}__${tema}.png`);
-          await pagina.screenshot({ path: fichero, fullPage: true });
+          await pagina.screenshot({ path: fichero });
           hechas++;
           const marca = [errores.length ? `⚠️  ${errores.length} error(es) de consola` : '',
+                         sinPintar.length ? `⚠️  ${sinPintar.length} imagen(es) sin pintar` : '',
                          revelados ? `(${revelados} animaciones forzadas)` : ''].filter(Boolean).join(' ');
           console.log(`  ✅ ${nombre.padEnd(22)} ${nombreVista.padEnd(11)} ${tema.padEnd(6)} ${marca}`);
           if (errores.length) problemas.push({ ruta, nombreVista, tema, errores });
+          if (sinPintar.length) problemas.push({ ruta, nombreVista, tema, errores: sinPintar.map((s) => `[imagen sin pintar] ${s}`) });
         } catch (e) {
           console.log(`  ❌ ${nombre.padEnd(22)} ${nombreVista.padEnd(11)} ${tema.padEnd(6)} ${String(e).slice(0, 90)}`);
           problemas.push({ ruta, nombreVista, tema, errores: [String(e).slice(0, 160)] });
+          fallosDuros += 1;
         }
         await pagina.close();
       }
@@ -256,6 +375,16 @@ function servir() {
     console.log('\n  Una captura bonita de una pantalla que escupe errores engaña.');
   } else {
     console.log('✅ ninguna pantalla escupió errores de consola');
+  }
+
+  // ⚠️ Esto salía SIEMPRE con 0. Una tanda que no llegó a tomar una sola
+  // captura válida —build roto, tema mal sembrado, servidor caído— le decía
+  // «bien» a quien la llamara. Los errores de consola siguen siendo informe:
+  // la foto es válida y ya se dice arriba. Lo que sale con 1 es no tener foto,
+  // o tenerla del tema que no se pidió.
+  if (fallosDuros) {
+    console.error(`\n❌ ${fallosDuros} captura(s) no se pudieron tomar o salieron del tema equivocado.`);
+    process.exit(1);
   }
   process.exit(0);
 })();

@@ -43,7 +43,7 @@ La regla: **ayuda primero, enlaza después**. Responde dudas reales enlazando tu
 ### D. Plantilla de outreach (para pedir enlaces/menciones)
 > Asunto: Calculadora gratuita para tu artículo sobre [tema]
 >
-> Hola [nombre], he visto tu artículo sobre [tema] — muy útil. He creado una calculadora gratuita de [X] que encaja justo con esa sección: [enlace]. Sin registro, en 8 idiomas. Por si te sirve para complementar el artículo. ¡Gracias por el contenido!
+> Hola [nombre], he visto tu artículo sobre [tema] — muy útil. He creado una calculadora gratuita de [X] que encaja justo con esa sección: [enlace]. Sin registro, en 10 idiomas. Por si te sirve para complementar el artículo. ¡Gracias por el contenido!
 
 ### E. Señales que mejoran el CTR desde Google (ya tienes base)
 - JSON-LD en las páginas nuevas (hecho) → posibles estrellas/enriquecidos.

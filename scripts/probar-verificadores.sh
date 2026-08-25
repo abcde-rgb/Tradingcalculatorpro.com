@@ -418,6 +418,157 @@ probar "un logo borrado que el mapa generado sigue importando" \
   "mv frontend/src/assets/partners/margex-square.png /tmp/zz-margex.png" \
   "mv /tmp/zz-margex.png frontend/src/assets/partners/margex-square.png"
 
+# ── Las claves están traducidas, no sólo presentes ──────────────────────────
+# Las dos direcciones. El sabotaje normal copia el inglés a un idioma de
+# alfabeto distinto, que es el caso que de verdad ocurrió. El inverso mete una
+# traducción REAL y exige que no salte: un verificador que marcase en rojo el
+# japonés bien traducido se desactivaría en una semana.
+titulo "Idiomas traducidos (i18n-traducido.js)"
+probar "una clave con el texto inglés literal en japonés" \
+  "(cd frontend && node scripts/i18n-traducido.js)" \
+  "python -c \"
+import pathlib, re
+en = pathlib.Path('frontend/src/lib/i18n/en.js').read_text()
+v = re.search(r'\\\"planInvalidationHint\\\": \\\"([^\\\"]*)\\\"', en).group(1)
+p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
+p.write_text(re.sub(r'(\\\"planInvalidationHint\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"' + v + '\\\"', t, count=1))\""
+
+probar_inverso "una traducción de verdad no la hace saltar" \
+  "(cd frontend && node scripts/i18n-traducido.js)" \
+  "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
+p.write_text(re.sub(r'(\\\"planInvalidationHint\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"入る前に書くこと。\\\"', t, count=1))\""
+
+# ── El precio anunciado es el que se cobra ──────────────────────────────────
+# Las dos direcciones: que un idioma se desvíe, y que suba el precio en el
+# backend sin que nadie toque los textos. La segunda es la que pasa de verdad.
+titulo "Precio anunciado vs cobrado (check-precios.py)"
+probar "un idioma anuncia un precio distinto del que se cobra" \
+  "python scripts/check-precios.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/ja.js')
+p.write_text(p.read_text().replace('\\\"monthlyPrice\\\": \\\"€17\\\"', '\\\"monthlyPrice\\\": \\\"€19\\\"', 1))\""
+
+probar "sube el precio en el backend y los textos se quedan atrás" \
+  "python scripts/check-precios.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('backend/server.py')
+p.write_text(p.read_text().replace('\\\"price\\\": 17.00', '\\\"price\\\": 21.00', 1))\""
+
+# ── La identidad de `t` acompaña al idioma ──────────────────────────────────
+# Corre en Node contra el store, sin navegador ni build: la invariante vive en
+# `lib/i18n.js` y se comprueba ahí. El cebo es la forma EXACTA de BUG-066 —una
+# `t` única que lee el idioma activo—, que traduce bien y sólo pierde el cambio
+# de identidad.
+# Necesita `frontend/node_modules` (importa zustand). El job de doc de CI sólo
+# monta Python, así que ahí se salta y lo cubre el job de frontend, que sí
+# ejecuta el verificador —aunque sin sabotearlo—.
+if [ -d frontend/node_modules ]; then
+titulo "Identidad de t por idioma (check-i18n-identidad.js)"
+probar "t vuelve a ser una funcion estable (los useMemo se congelan)" \
+  "(cd frontend && node scripts/check-i18n-identidad.js)" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
+cebo = ('let _unica = null;' + chr(10) +
+        'const estable = (loc) => { if (!_unica) _unica = (k, v) => '
+        'creaT(useI18nStore.getState().locale)(k, v); return _unica; };' + chr(10) + chr(10) +
+        'function creaT(locale) {')
+p.write_text(t.replace('function creaT(locale) {', cebo, 1).replace('t: creaT', 't: estable'))\""
+
+probar "una t nueva cada vez pero que no traduce" \
+  "(cd frontend && node scripts/check-i18n-identidad.js)" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
+p.write_text(t.replace('  return (key, vars) => {', '  return (key) => key;' + chr(10) + '  return (key, vars) => {', 1))\""
+else
+  echo "  ⏭️  Identidad de t: sin frontend/node_modules, no se prueba"
+fi
+
+# ── El presupuesto de peso caza una pantalla que engorda ────────────────────
+# Necesita el build compilado y el servidor en pie, así que sólo se prueba si
+# están; si no, se dice que se salta en vez de figurar como aprobado.
+if [ -d frontend/build ] && curl -s -o /dev/null --max-time 3 "http://localhost:3100/Tradingcalculatorpro.com/"; then
+  titulo "Presupuesto de peso (peso.js)"
+  probar "un presupuesto por debajo de lo que pesa la pantalla" \
+    "node tests/e2e/navegador/peso.js" \
+    "python -c \"
+import json, pathlib
+p = pathlib.Path('tests/e2e/presupuesto-peso.json'); d = json.loads(p.read_text())
+r = d['rutas']['portada']; r['js'] //= 2; r['total'] //= 2
+p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
+    "git checkout -- tests/e2e/presupuesto-peso.json"
+
+  # ── El arranque del idioma ────────────────────────────────────────────────
+  # Se sabotea en la FUENTE y se recompila, que tarda unos minutos. Es el
+  # precio de probar de verdad: el fallo que vigila —el diccionario que no
+  # llega antes de pintar, o `t` con identidad estable— no existe en el
+  # código fuente, sólo en el artefacto compilado. Parchear el build a mano
+  # probaría que la sonda sabe contar, no que caza la regresión.
+  titulo "Arranque del idioma (idioma-arranque.js)"
+  RECOMPILA="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1)"
+
+  probar "el español vuelve a viajar incrustado en main.js" \
+    "node tests/e2e/navegador/idioma-arranque.js" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n.js'); t = p.read_text()
+p.write_text(t.replace(chr(39) + 'zustand/middleware' + chr(39) + ';',
+                       chr(39) + 'zustand/middleware' + chr(39) + ';' + chr(10) +
+                       'import esT from ' + chr(39) + './i18n/es' + chr(39) + ';')
+              .replace('const loadedLocales = {};', 'const loadedLocales = { es: esT };'))\" \
+     && $RECOMPILA" \
+    "git checkout -- frontend/src/lib/i18n.js && $RECOMPILA"
+
+  # `t` con identidad estable: los memos con `[t]` se congelan en el idioma del
+  # primer render (BUG-066). Ojo — con este sabotaje el MENÚ sigue cambiando
+  # bien de idioma. Comprobado el 2026-08-24: de los dos textos que mira la
+  # sonda, sólo el memoizado se queda atrás. Una prueba de idioma que mirase la
+  # navegación —lo natural— daría verde con el fallo dentro.
+  # ⚠️ Aquí había un segundo sabotaje —`t` con identidad estable— y se ha
+  # RETIRADO, no perdido: se mudó a `check-i18n-identidad.js`, que lo comprueba
+  # en el store y no a través de un componente.
+  #
+  # El motivo es instructivo. Esta sonda miraba un texto memoizado de la
+  # marquesina de socios, y funcionó hasta que ese memo pasó a llevar `locale`
+  # en sus dependencias —hizo falta para traducir los países con
+  # `Intl.DisplayNames`—. Desde entonces el componente recalcula por `locale`
+  # aunque `t` no cambie: el sabotaje empezó a SOBREVIVIR y la sonda llevaba
+  # sin discriminar desde ese commit sin que nada avisara. Lo cazó esta batería.
+  #
+  # La lección: una comprobación indirecta envejece cuando cambia aquello a
+  # través de lo cual mira. El testigo dejó de ser sensible al fallo que
+  # vigilaba y siguió diciendo ✅.
+
+else
+  echo "  ⏭️  Presupuesto de peso y arranque del idioma: sin build o sin servidor"
+  echo "      en :3100, no se prueban (bash tests/e2e/stack/arriba.sh)"
+fi
+
+# ── Contraste del texto en los dos temas ────────────────────────────────────
+# Levanta su propio servidor, así que basta con el build. Se sabotea el token
+# que causó el fallo real: el verde del tema claro a `35%`, que dejaba 48
+# textos por debajo de la WCAG. Un umbral escrito y nunca roto no prueba nada.
+if [ -d frontend/build ]; then
+  titulo "Contraste WCAG (contraste.js)"
+  RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1)"
+  probar "el verde del tema claro vuelve a un tono que no contrasta" \
+    "node tests/e2e/navegador/contraste.js" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/index.css'); t = p.read_text()
+i = t.index('.light {'); j = t.index('}', i)
+p.write_text(t[:i] + t[i:j].replace('145 70% 26%', '145 70% 35%') + t[j:])\" \
+     && $RECOMPILA_CSS" \
+    "git checkout -- frontend/src/index.css && $RECOMPILA_CSS"
+else
+  echo "  ⏭️  Contraste: sin build, no se prueba"
+fi
+
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
 # Un módulo que se navega pero no se indexa existe y no se encuentra nunca; uno
 # indexado y no navegable es un enlace roto. Se sabotea renombrando un `value:`
@@ -446,6 +597,28 @@ probar "un componente que nadie importa" \
   "python scripts/auditar.py > $INFORME 2>/dev/null; ! grep -q ZzSabotajeHuerfano $INFORME" \
   "printf 'export const ZzSabotajeHuerfano = () => null;\n' > $COMPONENTE_MUERTO" \
   "rm -f $COMPONENTE_MUERTO"
+
+# La regla «la doc dice 8 idiomas y hay 10» tiene que distinguir una afirmación
+# VIVA de una entrada FECHADA, donde «8 idiomas» era cierto ese día. Por eso van
+# los dos sentidos: una sola dirección deja pasar los dos fallos que ya tuvo
+# —marcar el histórico entero (empuja a reescribir el pasado) y no marcar nada.
+DOC_SABOTAJE="docs/ZzSabotajeIdiomas.md"
+TEMPORALES+=("$DOC_SABOTAJE")
+CONTRADICE="python scripts/auditar.py > $INFORME 2>/dev/null; ! grep -q 'dicen «8 idiomas»' $INFORME"
+
+probar "una afirmación viva de que la web tiene 8 idiomas" \
+  "$CONTRADICE" \
+  "printf '# Zz sabotaje\n\n## Idiomas\n\nLa interfaz está en 8 idiomas.\n' > $DOC_SABOTAJE" \
+  "rm -f $DOC_SABOTAJE"
+
+# El cebo es la forma EXACTA que se coló hasta el 2026-08-24: encabezado con la
+# fecha entre paréntesis en vez de al principio. `_ENCABEZADO_FECHADO` exigía
+# `## 2026-07-30 — …` y contaba las cuarenta líneas que colgaban de
+# `## Plan de trading versionado (2026-07-30)` como afirmaciones de hoy.
+probar_inverso "un registro fechado que dice 8 idiomas porque ese día había 8" \
+  "$CONTRADICE" \
+  "printf '# Zz sabotaje\n\n## Sesión de ayer (2026-07-04) — i18n\n\nCerró con 8 idiomas a la par.\n' > $DOC_SABOTAJE" \
+  "rm -f $DOC_SABOTAJE"
 
 # ── Veredicto ───────────────────────────────────────────────────────────────
 echo ""

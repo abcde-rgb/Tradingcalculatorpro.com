@@ -35,6 +35,7 @@ import ecb_rates
 import httpx
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
+from csv_seguro import csv_safe
 from fastapi.responses import Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
@@ -698,7 +699,11 @@ def _trades_to_csv_bytes(trades: List[Dict[str, Any]]) -> bytes:
         row = {k: t.get(k, "") for k in _TRADE_EXPORT_FIELDS}
         if isinstance(row.get("tags"), list):
             row["tags"] = ",".join(row["tags"])
-        writer.writerow(row)
+        # Aquí el que exporta y el que abre suelen ser la misma persona, así que
+        # parece que no hace falta. Se sanea igual: en cuanto alguien manda su
+        # diario a un mentor o a su gestor —que es lo normal— deja de serlo, y
+        # el símbolo y las notas los teclea el usuario.
+        writer.writerow({k: csv_safe(v) for k, v in row.items()})
     return buf.getvalue().encode("utf-8-sig")  # BOM for Excel compatibility
 
 

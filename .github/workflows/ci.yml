@@ -82,6 +82,12 @@ jobs:
       - name: Cada ruta sin consumidor tiene una decisión escrita
         run: python scripts/check-rutas-muertas.py
 
+      # El importe de cada plan está en doce sitios y el que manda al cobrar
+      # —SUBSCRIPTION_PLANS— es el único que la página NO consulta. Anunciar
+      # un precio y cobrar otro no es un bug: es motivo de devolución.
+      - name: El precio anunciado es el que se cobra
+        run: python scripts/check-precios.py
+
       # Este SÍ bloquea. Comprueba que cada verificador falla cuando debe
       # fallar, saboteándolo y revirtiendo. Existe porque han aparecido varias
       # comprobaciones que no comprobaban nada —una guarda tautológica sobre el
@@ -123,6 +129,18 @@ jobs:
 
       - name: fetch() al backend con credentials
         run: node scripts/check-fetch-credentials.js
+
+      # `i18n-check` comprueba paridad de CLAVES. Esto comprueba que además
+      # estén TRADUCIDAS: llegó a haber 205 claves con el texto inglés literal
+      # con `i18n-check` en verde, y se pintaban en pantalla.
+      - name: Los diez idiomas están traducidos, no sólo presentes
+        run: node scripts/i18n-traducido.js
+
+      # `t` con identidad estable congela todo `useMemo(..., [t])` en el idioma
+      # del primer render (BUG-066). No lo ve ningún check de diccionarios: la
+      # traducción es correcta, lo que falla es CUÁNDO se recalcula.
+      - name: La identidad de `t` acompaña al idioma
+        run: node scripts/check-i18n-identidad.js
 
       # Un logo dejado en `assets/partners/` sin regenerar el mapa no sale en la
       # web y nadie entiende por qué: el fichero está, la tarjeta no lo usa.

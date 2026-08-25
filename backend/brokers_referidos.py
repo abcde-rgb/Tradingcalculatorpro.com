@@ -178,6 +178,23 @@ class Broker:
     # cobrar: es hacerle perder el tiempo y darle nuestros datos a un tercero
     # para nada. Se dice ANTES de que pulse.
     no_admite_residentes: tuple[str, ...] = ()
+    # Los mismos países en ISO 3166-1 alfa-2. El frontend los traduce con
+    # `Intl.DisplayNames` al idioma que esté leyendo el visitante; la tupla de
+    # arriba es castellano y sólo se usa como respaldo y para el informe.
+    #
+    # ⚠️ No todo lo que excluye un bróker es un país: el contrato de Axi veta
+    # «cualquier país de su lista de vetados y embargados», que no tiene código
+    # ISO. Para eso va `no_admite_clave`, una clave de i18n. Meterlo a la fuerza
+    # como país sería falsear la exclusión para que cupiera en el formato.
+    # El país de constitución de `entidad_ue`, en ISO 3166-1 alfa-2.
+    #
+    # Iba DENTRO del literal —«Solaris EMEA Ltd (HE376148, Chipre)»— y por
+    # ahí se colaba en castellano a las tarjetas de los otros nueve idiomas.
+    # Misma familia que la advertencia de riesgo: un dato traducible metido
+    # en una cadena ya compuesta no hay `t()` que lo alcance.
+    entidad_pais_codigo: Optional[str] = None
+    no_admite_codigos: tuple[str, ...] = ()
+    no_admite_clave: Optional[str] = None
     no_admite_fuente: Optional[str] = None
     # Notas que hay que tener delante antes de firmar nada.
     aviso: str = ""
@@ -350,7 +367,8 @@ BROKERS: tuple[Broker, ...] = (
         id="axi",
         url_publica="https://www.axi.com/",
         nombre="Axi",
-        entidad_ue="Solaris EMEA Ltd (HE376148, Chipre)",
+        entidad_ue="Solaris EMEA Ltd (HE376148)",
+        entidad_pais_codigo="CY",
         regulador_ue="CySEC",
         licencia_ue="433/23",
         ofrece_cfd_minorista=True,
@@ -358,12 +376,17 @@ BROKERS: tuple[Broker, ...] = (
         perdida_pct_leido_el=date(2026, 8, 22),
         perdida_pct_fuente="buscador, 2026-08-22 — PENDIENTE de confirmar en axi.com "
                            "(bloqueado por el proxy de este entorno)",
-        perdida_pct_entidad="Solaris EMEA Ltd (CySEC, UE)",
+        # Sin «, UE»: la región ya va en su propia línea de la tarjeta
+        # (`jurisdiccion`), traducida por código. Aquí dentro se quedaba en
+        # castellano y se colaba en la frase inglesa como «(CySEC, UE)».
+        perdida_pct_entidad="Solaris EMEA Ltd (CySEC)",
         programa_entidad="AxiTrader LLC (San Vicente y las Granadinas)",
         programa_regulador=None,   # SVG no regula el forex/CFD: no hay supervisor que poner
         programa_jurisdiccion="San Vicente y las Granadinas — sin supervisión de forex ni CFD",
         programa_jurisdiccion_codigo="svg",
         no_admite_residentes=("los países de su lista de vetados y embargados",),
+        # Sin código ISO: no es un país, es una lista que mantiene el bróker.
+        no_admite_clave="brokersNoAdmiteListaVetados",
         no_admite_fuente="Axi Partner Agreement: no cuenta como cliente referido quien sea "
                          "«resident in any country specified by Axi on its website that is "
                          "banned, embargoed or otherwise prohibited by policy». La LISTA "
@@ -388,7 +411,8 @@ BROKERS: tuple[Broker, ...] = (
         id="dukascopy",
         url_publica="https://www.dukascopy.com/europe/",
         nombre="Dukascopy Europe",
-        entidad_ue="Dukascopy Europe IBS AS (Letonia)",
+        entidad_ue="Dukascopy Europe IBS AS",
+        entidad_pais_codigo="LV",
         regulador_ue="Latvijas Banka",
         licencia_ue=None,          # falta el número: pedirlo antes de publicar
         ofrece_cfd_minorista=True,
@@ -396,7 +420,7 @@ BROKERS: tuple[Broker, ...] = (
         perdida_pct_leido_el=date(2026, 8, 22),
         perdida_pct_fuente="buscador, 2026-08-22 — PENDIENTE de confirmar en "
                            "dukascopy.com/europe (bloqueado por el proxy)",
-        perdida_pct_entidad="Dukascopy Europe IBS AS (Latvijas Banka, UE)",
+        perdida_pct_entidad="Dukascopy Europe IBS AS (Latvijas Banka)",
         aviso="«Business Introducer», aprobación en ~7 días. Sus condiciones se "
               "reservan revisar el marketing y exigir cambios a su discreción: "
               "eso es lo normal y lo correcto, pero implica que cada texto "
@@ -421,7 +445,8 @@ BROKERS: tuple[Broker, ...] = (
         id="saxo",
         url_publica="https://www.home.saxo/",
         nombre="Saxo",
-        entidad_ue="Saxo Bank A/S (Dinamarca)",
+        entidad_ue="Saxo Bank A/S",
+        entidad_pais_codigo="DK",
         regulador_ue=None,         # confirmar; el programa es institucional
         licencia_ue=None,
         ofrece_cfd_minorista=True,
@@ -445,6 +470,12 @@ BROKERS: tuple[Broker, ...] = (
         perdida_pct_leido_el=None,
         no_admite_residentes=("España", "Japón", "Dinamarca", "Portugal", "Polonia",
                               "China continental", "Israel"),
+        # ⚠️ «China continental» se manda como CN a sabiendas de que no es lo
+        # mismo: la exclusión es la China continental y CN incluye lo que cada
+        # `Intl.DisplayNames` entienda por China. Es la aproximación más
+        # cercana que hay en ISO 3166-1, y queda dicho aquí en vez de
+        # aparentar una precisión que el código no tiene.
+        no_admite_codigos=("ES", "JP", "DK", "PT", "PL", "CN", "IL"),
         no_admite_fuente="Condiciones del «Refer a Friend» de IBKR, leídas de buscador el "
                          "2026-08-22 — PENDIENTE de confirmar en su web (bloqueada por el "
                          "proxy). Aplica al programa de REFERIDOS; el de afiliados/CPC "

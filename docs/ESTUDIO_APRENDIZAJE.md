@@ -99,7 +99,7 @@ La amplitud ya es alta; estas son adiciones de valor real, no relleno:
 ## 5. Plan de ejecución
 
 **Enfoque:** no añadir amplitud, sino **subir la base al nivel del resto**, manteniendo la paridad de
-8 idiomas (es/en/de/fr/ru/zh/ja/ar) que el sitio ya respeta.
+10 idiomas (es/en/de/fr/ru/zh/ja/ar/pt/it) que el sitio ya respeta.
 
 | Batch | Contenido | Estado |
 |---|---|---|
@@ -174,7 +174,7 @@ retención (el detector de patrones en vivo ya cubre la parte de "practicar").
 
 Nueva auditoría (medición de cobertura real en `tradingEducationContent.js` + `i18n/es.js`) y ejecución
 completa de todos los huecos detectados. La Academia pasa de **53 → 63 módulos** (10 nuevos) + 2 conceptos
-dentro de módulos existentes + 2 mejoras de retención. Todo en los 8 idiomas, con SVGs y página SEO.
+dentro de módulos existentes + 2 mejoras de retención. Todo en los 10 idiomas, con SVGs y página SEO.
 
 | Hueco (del análisis) | Estado | Módulo/ubicación |
 |---|---|---|

@@ -93,8 +93,36 @@ code {
     }
 
     /* Tema claro — papel hueso, no blanco puro. El verde baja de luminosidad
-       (145 70% 35%) para que el texto blanco sobre el botón primario mantenga
-       contraste: el verde del tema oscuro sobre papel no lo aguanta. */
+       respecto al del tema oscuro: el verde de `145 80% 45%` sobre papel no lo
+       aguanta.
+       ⚠️ Hasta el 2026-08-25 esto decía `145 70% 35%` «para que el texto blanco
+       sobre el botón primario mantenga contraste». Medido, no lo mantenía:
+
+           verde sobre papel  #F7F6F2 → 3.44:1   (mínimo 4.5)
+           verde sobre card   #FBFAF9 → 3.56:1   (mínimo 4.5)
+           blanco sobre verde          → 3.72:1   (mínimo 4.5)
+
+       Los tres por debajo de la WCAG 2.1 AA, y el comentario afirmando justo lo
+       contrario. Nadie lo vio porque el tema claro NUNCA se había fotografiado:
+       `capturas.js` sembraba el tema en una clave que la aplicación no lee, así
+       que las dieciocho capturas «light» eran el tema oscuro.
+
+       Se baja a `26%`. Es el mismo verde de marca, más profundo: la decisión de
+       color NO se toca —ver el skill `identidad-visual` §1.bis—, se corrige su
+       luminosidad.
+
+       El 26 no es redondeo: el caso que manda no es el verde sobre papel sino
+       **el verde sobre su propio tinte**, los chips `bg-primary/10` y `/15` del
+       tipo «7-day free trial with card». Ahí el fondo sube y el listón con él:
+
+           L    papel   tinte/10   tinte/15   blanco encima
+           29%   4.76      4.17       3.90        5.15      ← falla en los chips
+           26%   5.64      4.90       4.56        6.10      ← pasa todo
+
+       Medir sólo contra el fondo de página habría dado por bueno un 29% que
+       deja ocho textos por debajo. La comprobación vive en
+       `tests/e2e/navegador/contraste.js` y mira el fondo REAL de cada texto,
+       subiendo por los ancestros hasta encontrar uno opaco. */
     .light {
         --background: 42 24% 96%;
         --foreground: 220 22% 12%;
@@ -102,7 +130,7 @@ code {
         --card-foreground: 220 22% 12%;
         --popover: 40 20% 98%;
         --popover-foreground: 220 22% 12%;
-        --primary: 145 70% 35%;
+        --primary: 145 70% 26%;
         --primary-foreground: 0 0% 100%;
         --secondary: 42 16% 90%;
         --secondary-foreground: 220 22% 12%;
@@ -114,8 +142,8 @@ code {
         --destructive-foreground: 0 0% 100%;
         --border: 40 12% 85%;
         --input: 40 12% 85%;
-        --ring: 145 70% 35%;
-        --chart-1: 145 70% 35%;
+        --ring: 145 70% 26%;
+        --chart-1: 145 70% 26%;
         --chart-2: 217 80% 50%;
         --chart-3: 0 80% 50%;
         --chart-4: 45 90% 45%;

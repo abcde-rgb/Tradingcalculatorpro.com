@@ -58,7 +58,7 @@ Leyenda: ✅ existe con profundidad · 🟡 existe pero flojo/ampliar · 🔴 no
 > (2ª de la Academia). Chips para marco temporal, estilo, enfoques (Wyckoff/ICT/S-R/Elliott/
 > Ichimoku/Dow/Price Action/Volume Profile/VWAP/armónicos) y herramientas (EMA/RSI/MACD/…),
 > + riesgo por operación y R:R, con **resumen en vivo**, botones Guardar/Copiar/Reiniciar y
-> **persistencia en `localStorage` (v1)**. 8 idiomas. **v2 (futuro):** guardar por usuario en backend.
+> **persistencia en `localStorage` (v1)**. 10 idiomas. **v2 (futuro):** guardar por usuario en backend.
 
 Objetivo: panel donde el usuario **configura su propio setup**.
 - Elegir **marco temporal**.
@@ -111,7 +111,7 @@ son workstreams separados:
 - §3.14 "Crea tu setup" (v1 localStorage; v2 backend).
 
 Cada fase = 1 PR a `main` (o a la rama de trabajo actual), con `npm run build` verde e i18n
-de las cadenas nuevas en los 8 idiomas.
+de las cadenas nuevas en los 10 idiomas.
 
 ---
 
@@ -119,6 +119,6 @@ de las cadenas nuevas en los 8 idiomas.
 
 1. **¿Por dónde empezar?** ¿Fase 1 completa, o priorizar algún tema concreto (p.ej. Wyckoff/ICT)?
 2. **"Crea tu setup"**: ¿v1 solo local (rápido) o directamente con guardado en backend por usuario?
-3. **Idiomas**: ¿el contenido técnico nuevo va en los 8 idiomas desde el principio, o primero
+3. **Idiomas**: ¿el contenido técnico nuevo va en los 10 idiomas desde el principio, o primero
    ES/EN y luego el resto? (Traducir contenido pedagógico largo es costoso.)
 4. **Calendario económico (Investing.com)**: ¿lo metemos en este bloque o va aparte?

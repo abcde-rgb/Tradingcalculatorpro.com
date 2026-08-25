@@ -300,6 +300,14 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 - [ ] Decidir el **Grupo B** de proveedores de datos (G-16).
 - [ ] Revisión **nativa** de las traducciones `pt` e `it` antes de anunciarlas.
 - [ ] Decidir si `/affiliate` cae tras el muro de pago (hoy es sólo-auth y el backend ya rechaza a quien no paga).
+- [ ] **Que `PricingPage` lea el precio de `GET /api/plans`.** Hoy el importe está
+      en doce sitios y el que manda al cobrar es el único que la página no
+      consulta. `check-precios.py` lo vigila en CI, pero es una tirita: la cura
+      es leer el precio de donde se cobra. Skill `conversion-y-precio`.
+- [ ] **Instrumentar el embudo.** Hoy no se sabe cuántos pasan de la landing a
+      `/pricing`, cuántos abandonan el checkout ni —lo que más importa— **cuántas
+      pruebas de 7 días acaban en cobro**. Sin ese último número, discutir sobre
+      el trial es opinión.
 - [ ] **Brókers referidos**: dar de alta los programas (Axi por la entidad CySEC,
       Dukascopy Europe), confirmar y fechar los dos porcentajes de pérdidas en la web
       del propio bróker, y dejar los logos en `assets/partners/`. Hoy los seis salen
@@ -314,6 +322,11 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 ### P3 — Deuda técnica
 - [ ] `on_event` → `lifespan` y `class Config` → `ConfigDict` (G-19).
 - [ ] Bajar los 126 avisos de ESLint a 0 y subir el linter a `error`.
+- [ ] **Bajar el peso de las pantallas públicas.** Medido el 2026-08-23: la portada
+      descarga **1 281 KB de JS** sin comprimir y las cinco páginas públicas pesan
+      casi lo mismo — el síntoma exacto de que no hay code-splitting por ruta.
+      Herramienta: `node tests/e2e/navegador/peso.js` (presupuesto en CI). Cómo
+      arreglarlo: skill `reorganizar-frontend` § 2.3.
 - [ ] Refactor de `server.py` monolítico a `app/routers/` — **después** de G-17.
 
 ---

@@ -166,9 +166,65 @@ function useBrokers() {
   return brokers;
 }
 
+/**
+ * La advertencia de riesgo, compuesta AQUÍ y no en el servidor.
+ *
+ * El backend la mandaba ya escrita, y sólo en castellano: quien leía la web en
+ * inglés o en japonés veía la advertencia normalizada —la parte que exige el
+ * regulador— en español, rodeada de etiquetas traducidas. `i18n-check` no podía
+ * verlo: comprueba los diccionarios, y esta frase no salía de un diccionario.
+ *
+ * Con las piezas (`perdidaPct`, `perdidaPctEntidad`) la frase se arma en el
+ * idioma del lector. Y la regla de honestidad se conserva entera: sin
+ * porcentaje publicable **no se inventa uno**, se usa el aviso genérico sin
+ * cifra. `perdidaPct === null` significa «no lo sé», no «cero».
+ */
+function advertenciaEnIdioma(b, t) {
+  if (!b.ofreceCfdMinorista) return b.advertenciaCorta || null;
+  if (b.perdidaPct == null || !b.perdidaPctEntidad) {
+    return t('brokersAvisoApalancado');
+  }
+  return t('brokersAvisoPct', { pct: b.perdidaPct, entidad: b.perdidaPctEntidad });
+}
+
+/**
+ * A quién no admite, en el idioma del lector.
+ *
+ * `Intl.DisplayNames` traduce los códigos ISO sin que haya que mantener 200
+ * nombres de país por diez idiomas a mano — es el mismo mecanismo que ya usa
+ * `lib/countries.js` para el formulario de alta. Lo que no tiene código ISO
+ * llega como clave; el texto del servidor es el último recurso.
+ */
+function nombresDeExclusion(b, t, locale) {
+  const partes = [];
+  if (b.noAdmiteCodigos?.length) {
+    let nombre = (c) => c;
+    try {
+      const dn = new Intl.DisplayNames([locale], { type: 'region' });
+      nombre = (c) => dn.of(c) || c;
+    } catch (_) { /* motor sin Intl.DisplayNames: se queda el código */ }
+    partes.push(...b.noAdmiteCodigos.map(nombre));
+  }
+  if (b.noAdmiteClave) partes.push(t(b.noAdmiteClave));
+  if (!partes.length && b.noAdmiteResidentes?.length) partes.push(...b.noAdmiteResidentes);
+  return partes.length ? partes.join(', ') : null;
+}
+
+/** El nombre de la entidad con su país, traducido al idioma que se lee. */
+function conPais(entidad, codigo, locale) {
+  if (!entidad) return null;
+  if (!codigo) return entidad;
+  try {
+    const pais = new Intl.DisplayNames([locale], { type: 'region' }).of(codigo);
+    return pais ? `${entidad} · ${pais}` : entidad;
+  } catch (_) {
+    return entidad;   // motor sin Intl.DisplayNames
+  }
+}
+
 /** Socios y brókers en un solo modelo, para que la marquesina pinte una lista. */
 function useTarjetas() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const brokers = useBrokers();
 
   return useMemo(() => [
@@ -194,7 +250,10 @@ function useTarjetas() {
       url: b.url,
       imagen: LOGOS[b.id] || null,
       descripcion: DESCRIPCION[b.id] ? t(DESCRIPCION[b.id]) : null,
-      info: b.entidad || null,
+      // La entidad, con su país de constitución traducido. El código va
+      // aparte del nombre justamente para poder traducirlo: dentro del
+      // literal se quedaba en castellano en los otros nueve idiomas.
+      info: conPais(b.entidad, b.entidadPaisCodigo, locale),
       regulador: b.regulador ? `${b.regulador}${b.licencia ? ` · ${b.licencia}` : ''}` : null,
       // En la ficha de marca cabe el supervisor, no el número de licencia.
       reguladorCorto: b.regulador || null,
@@ -205,11 +264,16 @@ function useTarjetas() {
         || b.jurisdiccion || null,
       // A quién no admite el alta. Va en la tarjeta, no en la letra pequeña:
       // enterarse después de rellenar el formulario no sirve de nada.
-      noAdmite: b.noAdmiteResidentes?.length ? b.noAdmiteResidentes.join(', ') : null,
-      advertenciaCorta: b.advertenciaCorta || null,
+      //
+      // Los países se traducen con `Intl.DisplayNames` en el idioma activo; lo
+      // que no es un país llega como clave de i18n. El texto del servidor —en
+      // castellano— queda de último respaldo, para no dejar el hueco vacío si
+      // un día llega una exclusión que no es ni lo uno ni lo otro.
+      noAdmite: nombresDeExclusion(b, t, locale),
+      advertenciaCorta: advertenciaEnIdioma(b, t),
       esReferido: !!b.esReferido,
     })),
-  ], [brokers, t]);
+  ], [brokers, t, locale]);
 }
 
 function Tarjeta({ tarjeta, clon }) {

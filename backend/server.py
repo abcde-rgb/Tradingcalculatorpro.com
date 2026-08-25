@@ -7725,6 +7725,11 @@ async def admin_list_users(
 def _csv_safe(value: Any) -> Any:
     """Neutraliza la inyección de fórmulas (CSV/Excel/LibreOffice).
 
+    ⚠️ La lógica vive ahora en `csv_seguro.py` y aquí sólo se delega. Estaba
+    escrita aquí y por eso el CSV de liquidaciones de afiliados —que no importa
+    nada de este fichero— se quedó sin proteger. Una defensa que sólo alcanza al
+    módulo donde se escribió no es una defensa.
+
     Una celda que empieza por = + - @, tabulador o retorno de carro la evalúa la
     hoja de cálculo al abrirla: `=HYPERLINK(...)` exfiltra datos con un clic y con
     DDE se llega a ejecución de comandos. El dato de mayor riesgo aquí es `name`,
@@ -7733,9 +7738,8 @@ def _csv_safe(value: Any) -> Any:
     desactiva la fórmula. Se antepone un apóstrofo, que la hoja trata como "texto
     literal" y no muestra. Verificado con test.
     """
-    if isinstance(value, str) and value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
-        return "'" + value
-    return value
+    from csv_seguro import csv_safe
+    return csv_safe(value)
 
 
 @api_router.get("/admin/users.csv")
@@ -8359,6 +8363,10 @@ async def listar_brokers():
             "id": b.id,
             "nombre": b.nombre,
             "entidad": f.entidad,
+            # El país de constitución, por CÓDIGO: iba dentro del nombre de
+            # la entidad y se colaba en castellano («…, Chipre») a las nueve
+            # tarjetas que no se leen en español.
+            "entidadPaisCodigo": b.entidad_pais_codigo,
             "regulador": f.regulador,
             "licencia": f.licencia,
             # A QUÉ PÚBLICO sirve esa entidad. Sin esto la ficha afirma en
@@ -8371,7 +8379,15 @@ async def listar_brokers():
             "jurisdiccionCodigo": f.jurisdiccion_codigo,
             # A quién no acepta el alta. Se dice antes de que pulse, no después
             # de que rellene el formulario y le rechacen.
+            #
+            # Van las tres formas y cada una tiene su papel: los CÓDIGOS ISO
+            # para que el frontend los traduzca con `Intl.DisplayNames` al
+            # idioma que se está leyendo, una CLAVE de i18n para lo que no es
+            # un país (Axi veta «su lista de vetados y embargados», que no
+            # tiene código), y el texto en castellano como respaldo.
             "noAdmiteResidentes": list(b.no_admite_residentes),
+            "noAdmiteCodigos": list(b.no_admite_codigos),
+            "noAdmiteClave": b.no_admite_clave,
             "url": b.url(),
         }
 
@@ -8385,8 +8401,26 @@ async def listar_brokers():
                 "esReferido": b.es_referido,
                 # La corta va en la tarjeta; la larga, detrás del «leer más».
                 # `None` cuando no aplica (no ofrece CFDs a minoristas).
+                #
+                # ⚠️ Estas dos salen del servidor **en castellano** y son las
+                # únicas frases de la respuesta que lo hacen. Se conservan como
+                # respaldo, pero la tarjeta compone la suya con `t()` a partir
+                # de las PIEZAS de abajo: hasta el 2026-08-25 un visitante en
+                # inglés o en japonés leía la advertencia de riesgo —que es la
+                # parte que exige el regulador— en español, con la etiqueta que
+                # la rodea traducida. `i18n-check` no lo veía y no es culpa
+                # suya: comprueba los diccionarios, y esta frase no salía de un
+                # diccionario sino de un f-string del backend.
                 "advertenciaCorta": b.advertencia_corta() or None,
                 "advertencia": b.advertencia(),
+                # Las piezas, para componer la frase en el idioma del lector.
+                # `perdidaPct` es float o None — None significa «no hay cifra
+                # publicable», no «cero»: el aviso pasa a ser el genérico SIN
+                # número, nunca uno inventado.
+                "ofreceCfdMinorista": b.ofrece_cfd_minorista,
+                "perdidaPct": b._pct_publicable(),
+                # Nombre propio de la entidad: no se traduce, se interpola.
+                "perdidaPctEntidad": b.perdida_pct_entidad,
                 # Si este bróker pasa el listón europeo. Se publica aunque no lo
                 # pase —decisión del propietario, que opera bajo regulación
                 # suiza y para público internacional— pero el dato no se pierde.

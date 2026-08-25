@@ -1,0 +1,27 @@
+{
+  "_leeme": "Generado por tests/e2e/navegador/peso.js --actualizar. Bytes SIN comprimir servidos por el servidor local; el usuario real recibe menos (Pages comprime). Subir un número aquí es una DECISIÓN: escribe por qué en el commit.",
+  "_medido_el": "2026-08-24",
+  "_holgura_bytes": 15360,
+  "rutas": {
+    "portada": {
+      "js": 1023302,
+      "total": 1178367
+    },
+    "precios": {
+      "js": 1052685,
+      "total": 1207750
+    },
+    "legales": {
+      "js": 1441628,
+      "total": 1596693
+    },
+    "brokers": {
+      "js": 1027591,
+      "total": 1182656
+    },
+    "sobre": {
+      "js": 1033338,
+      "total": 1188403
+    }
+  }
+}
