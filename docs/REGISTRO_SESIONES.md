@@ -4866,3 +4866,26 @@ precio acotado si es arranque y no estructura. Y un hueco nuevo detectado por el
 camino: **no existe aviso de vencimiento por email**. Hay confirmación (`:3522`),
 impago (`:3543`) y cancelación (`:3556`), pero nada que avise «te vence en 7
 días», que es justo lo que sustituye al dunning cuando el raíl no renueva solo.
+
+**Quinto añadido — sus «partners tecnológicos» (§ 15).** Crossmint, Bridge, Pomelo,
+BlindPay y Fireblocks **existen los cinco y son serios**: Bridge es la API de
+stablecoins **comprada por Stripe por 1.100 M$** (cerrada el 04/02/2025), Fireblocks
+es custodia institucional de referencia, Pomelo emite tarjetas para Western Union,
+BBVA, Santander y Binance —casi con seguridad es quien emite la KunfuCard—, y
+BlindPay, respaldada por Y Combinator, enchufa stablecoins a PIX, SPEI y PSE. O sea
+que parte del dinero correría sobre infraestructura **propiedad de Stripe**.
+
+Pero la lista no es un sello de confianza: **es el plano de la arquitectura**, y
+dice que la facturación no descansa en una cuenta de fondos de clientes de un banco
+europeo, sino **en stablecoins hasta que se retira**. De ahí dos cosas concretas: al
+menos dos conversiones por el camino (EUR → stablecoin → moneda de retirada), donde
+se puede ir otro 1-2 % que la pregunta 7 del § 5 tiene que fijar; y que lo que
+Fireblocks custodia son las claves de KUNFU GLOBAL INC, no el saldo de nadie.
+
+Lo que sí prueba, y no es poco: para integrarse con Bridge, Fireblocks y Pomelo hay
+que pasar su KYB y su diligencia debida. Es **verificación indirecta** por terceros
+con obligaciones de AML — lo más parecido a un aval en todo el expediente, y sube la
+nota del § 12.4. Sin ser lo mismo que estar regulado. Se añaden las preguntas 11 y
+12 (quién emite la tarjeta y custodia el saldo; si está segregado de los fondos
+propios) y una regla que vale desde el día 1: **cobrar ahí, no guardar ahí** —
+retirar cada semana y no usar su wallet como cuenta corriente.

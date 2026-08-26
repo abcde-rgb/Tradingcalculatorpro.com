@@ -656,6 +656,81 @@ Esto es lo que hace que «sólo para comenzar» sea verdad y no una jaula (§ 13
 
 ---
 
+## 15. Sus «partners tecnológicos»: qué son y qué prueban (2026-08-26)
+
+Texto que publican: «trabajamos con proveedores de tecnología e infraestructura financiera,
+entre ellos **Crossmint, Bridge, Pomelo, Blindpay y Fireblocks**».
+
+### 15.1 Los cinco existen, y no son nombres de relleno
+
+| Proveedor | Qué es | Peso |
+|---|---|---|
+| **Bridge** (bridge.xyz) | API de stablecoins: on-ramp fiat↔stablecoin, custodia, conversión y pagos de salida por ACH, SEPA y SWIFT, con KYC/KYB y *Travel Rule* incorporados | **Comprada por Stripe por 1.100 M$** — anunciada en octubre de 2024, cerrada el 4 de febrero de 2025 |
+| **Fireblocks** | Custodia institucional de activos digitales (MPC) | Estándar del sector; lo usan bancos y MoneyGram |
+| **Crossmint** | *Wallets-as-a-service* + pagos y tesorería multi-cadena, con reconciliación por webhook | Proveedor establecido del ecosistema |
+| **Pomelo** | Fintech argentina (2021) de **emisión y procesamiento de tarjetas** en LatAm; en julio de 2026 lanzó emisión global a +150 países | Clientes: Western Union, BBVA, Santander, Binance, Astropay. **Casi con seguridad, quien emite la KunfuCard** |
+| **BlindPay** | API de stablecoins enchufada a los raíles locales de LatAm (**PIX, SPEI, PSE**, transferencias argentinas) | Respaldada por Y Combinator; fundada en 2024 por ex-PicPay y ex-LendingClub; de 30 k$ a 10 M$ de volumen mensual en 14 meses |
+
+**Detalle con gracia:** parte de tu dinero acabaría corriendo sobre infraestructura
+**propiedad de Stripe**, la empresa de la que se trataba de prescindir.
+
+### 15.2 Lo que esa lista dice de verdad: no es un sello, es el plano
+
+Los cinco juntos describen **un stack de stablecoins**, no una pasarela bancaria clásica:
+BlindPay y Bridge meten el dinero local (PIX, SPEI, transferencia) y lo convierten a
+stablecoin, Fireblocks lo custodia, Crossmint gestiona las wallets, Pomelo emite la
+tarjeta con la que se gasta el saldo.
+
+Eso explica de golpe todo lo que ya sabíamos y no encajaba: la liquidación **semanal**, la
+retirada «en moneda local en cualquier país **o en cripto**», la wallet «con tecnología
+blockchain» y la tarjeta Visa instantánea.
+
+**Consecuencia, dicha claro: tu facturación no descansaría en una cuenta de fondos de
+clientes de un banco europeo. Viviría como stablecoin hasta que la retires.** No es
+automáticamente malo —así se mueve hoy buena parte del dinero transfronterizo de
+LatAm, y es justo por eso que pueden pagar rápido y en moneda local— pero es **otro perfil
+de riesgo**, y trae dos cosas concretas:
+
+1. **Conversiones por el camino.** Cobras 17 € y hasta que ese dinero llega a tu banco hay
+   al menos dos saltos (EUR → stablecoin → moneda de retirada). El diferencial lo pone la
+   cadena, no tú. La pregunta 7 del § 5 (coste de retirada y conversión) deja de ser un
+   detalle: ahí se puede ir otro 1-2 %.
+2. **La custodia no es tuya.** Lo que Fireblocks protege son las claves de **KUNFU GLOBAL
+   INC**, no tu saldo. Custodia de primera no devuelve el dinero si la sociedad quiebra o
+   te cierra la cuenta.
+
+### 15.3 Y lo que sí prueba, que no es poco
+
+Para integrarse con Bridge (o sea, Stripe), Fireblocks y Pomelo hay que pasar **su KYB y
+su diligencia debida**, y esas casas tienen obligaciones de AML y *Travel Rule*: no abren
+cuenta a cualquiera. Que cinco proveedores serios los hayan aceptado como cliente es
+**verificación indirecta** de que la empresa existe, opera y ha pasado controles de
+terceros. Es lo más parecido a un aval que aparece en todo este expediente, y sube la
+nota respecto al § 12.4.
+
+**Pero contratar buenos proveedores no equivale a estar regulado.** Ninguno de los cinco
+es un supervisor, ninguno responde por sus deudas, y sigue sin aparecer licencia alguna.
+Y esa lista es texto de marketing: que esté publicada no prueba que los contratos estén
+vigentes ni al nivel que sugiere.
+
+### 15.4 Qué preguntar ahora, y qué hacer mientras
+
+Dos preguntas nuevas, que se suman a las diez del § 5 y son las que separan «buenos
+proveedores» de «mi dinero está protegido»:
+
+11. **¿Quién emite la tarjeta y quién custodia el saldo de los comercios**, con nombre de
+    entidad?
+12. **¿El saldo de los comercios está segregado** de los fondos propios de KUNFU GLOBAL
+    INC, y en qué instrumento se mantiene (stablecoin, cuenta bancaria, ambos)?
+
+Y una regla de operación que vale desde el primer día, con respuesta o sin ella:
+
+> **Cobra por ahí, pero no guardes ahí.** Retira en cuanto liquiden —semanalmente— y no
+> uses su wallet como cuenta corriente. La lista de partners es buena; no convierte a
+> Kunfupay en un sitio donde dejar 50.000 € parados.
+
+---
+
 ## Fuentes
 
 Todas consultadas el 2026-08-26 **desde buscador**, porque el dominio del proveedor está
@@ -673,5 +748,6 @@ bloqueado en este entorno (§ 0):
   · [El Ecosistema Startup](https://ecosistemastartup.com/kunfupay-un-millon-al-mes-sin-inversion-externa/)
 - **Fuente primaria** (sí accesible desde aquí, al estar en S3 y no en su dominio): [Condiciones de uso, privacidad y protección de datos de Kunfupay (PDF, 13 págs.)](https://kunfupay-payment-app-production.s3.eu-west-1.amazonaws.com/public/use-conditions.pdf) — de aquí salen la entidad titular del § 1 y todo el § 12
 - [`docs.kunfupay.com`](https://docs.kunfupay.com/) y `business.kunfupay.com` — existen, bloqueados desde este entorno
+- Partners del § 15: [Bridge — API de stablecoins, comprada por Stripe](https://eco.com/support/en/articles/15083178-bridge-xyz-stablecoin-api-for-payouts-and-orchestration) · [BlindPay](https://blindpay.com/) y su [documentación de *payins*](https://blindpay.com/docs/essentials/payins) · [Pomelo](https://www.latamfintech.co/companies/pomelo) y su [tarjeta global a +150 países (Infobae, 07/2026)](https://www.infobae.com/tecno/2026/07/02/empresa-latina-que-impulsa-a-bancos-y-fintechs-lanza-una-tarjeta-global-para-llegar-a-mas-de-150-paises/) · [Crossmint](https://www.crossmint.com/learn/bridge-alternatives-for-stablecoin-infrastructure)
 - [Tarifas de Stripe](https://stripe.com/pricing) ·
   [comisiones de Stripe en España](https://getquipu.com/blog/comisiones-stripe/)
