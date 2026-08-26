@@ -4741,3 +4741,142 @@ la herramienta con un bróker real. Y dos restos ajenos a esta rama: `s.tmp.cjs`
 en `frontend/`, un fichero temporal que se coló en el commit 8a0ade5, y
 `toolMapIntro`, una clave i18n muerta que aún dice «14 calculadoras» en los diez
 idiomas sin que ningún componente la pinte.
+
+---
+
+## 2026-08-26 — «Búscame los fallos, y dime qué está subido que no se ve»
+
+Dos encargos en uno: arreglar lo que esté roto recorriendo el sitio pantalla por
+pantalla, y **verificar una sospecha del dueño** — que hay trabajo subido al
+repositorio que no llega al frontend. La sospecha era correcta, y además había
+dos cosas rotas que ningún test veía: una en el producto y otra en la herramienta
+que se supone que las encuentra.
+
+### Lo que estaba roto en el producto — BUG-064
+
+`change-password` y `reset-password` sellan `user_revocations.revoked_after` con
+`datetime.now()`, que lleva **microsegundos**. `_is_user_session_revoked`
+comparaba `iat_dt < revoked_after` a pelo. Pero el `iat` de un JWT es un
+NumericDate en **segundos enteros**: PyJWT descarta la fracción al codificar. Un
+token emitido en el mismo segundo del cambio tiene `iat = X.000000`, que es
+`< X.234567`, y **la sesión nueva nacía muerta**.
+
+Es justo el caso que el producto provoca: la respuesta del endpoint le pide al
+usuario que vuelva a entrar, así que un cliente rápido —o el propio SPA
+re-logueando solo— cae dentro de ese segundo. Parece intermitente porque la
+ventana dura ≤1 s y se cura reintentando un instante después, que es exactamente
+la clase de fallo que nadie reproduce y todos achacan a «cosas de la red».
+
+**Reproducido en vivo** contra el backend real, no sólo en unitarios: sin el
+arreglo la primera sesión sale 401 y a partir de ahí todo cae en cascada, porque
+el token muerto tampoco sirve para volver a cambiar la contraseña. Con el
+arreglo, 5 de 5 sesiones vivas. Fix: `revoked_after.replace(microsecond=0)`.
+Cuatro tests en `test_session_revocation_unit.py`, saboteados uno a uno: dos de
+los cuatro se caen sin el arreglo.
+
+Venía arreglado en `claude/anthropic-cybersecurity-skills-nqqmr1`, una rama sin
+fusionar que lo numeraba **BUG-058** — número que `main` ya había dado a la regla
+de log injection. Fusionarla habría dejado dos BUG-058 en el diario.
+
+### Lo que estaba roto en la herramienta
+
+`auditar.py` marcaba **7 de los 10 rastros de tecnología retirada como «⚠️ CÓDIGO
+vivo»** y subía el resumen a 🔴 con «3 bloqueantes». Los siete eran prosa: los
+docstrings de `nowpayments.py` y `revolut.py` que explican de qué pasarela viene
+el modelo de cobro, el de `Collection.aggregate` que describe la semántica de
+PyMongo que imita, el comentario al final de la tupla de secretos y el bloque
+`{/* */}` de `OptionsStrategyPage`.
+
+La causa: `es_comentario()` decidía **mirando por dónde empezaba la línea**. Eso
+no ve un docstring de varias líneas —sólo la primera empieza por comillas—, ni un
+`{/* … */}` de JSX repartido, ni un `#` al final de una línea de código.
+`CLAUDE.md` dice «no queda código de ninguna» y CLAUDE.md tenía razón: el que se
+equivocaba era el informe. Y un informe que grita en rojo por siete cosas que
+están bien deja de leerse, con lo que tampoco se lee lo que sí importa.
+
+Ahora se parsea de verdad: Python con `tokenize` (da los `#`, también los del
+final de línea) y `ast` (da los docstrings, que son sentencias `Expr` de una
+constante de texto); JS/JSX con un recorrido de estados que sabe si va dentro de
+una cadena, de `//` o de `/* */`. La clasificación es **por columna**, no por
+línea: un término que aparece antes del `#` sigue siendo código.
+
+Un detalle costó un falso positivo propio: el recorrido de JS no lee expresiones
+regulares, así que `.replace(/"/g, …)` parecía abrir una cadena que no se cerraba
+nunca y se tragaba el `//` de la línea siguiente. Como en JS una cadena de
+comillas simples o dobles no cruza el salto de línea, cerrarla ahí es correcto y
+además cura ese caso.
+
+**Sabotaje en las dos direcciones**, porque uno solo dejaría pasar al clasificador
+que contesta siempre lo mismo: un cebo con las cinco formas conocidas (docstring,
+código, comentario al final, bloque JSX, cadena en JSX) y el clasificador roto
+primero a todo-código y después a todo-comentario.
+
+### La sospecha del dueño: qué hay subido que no se ve
+
+**Es cierta, y tiene tres formas distintas.** Verificado recorriendo el AST de
+`server.py` —qué ruta importa y usa cada módulo— y cruzándolo con el detector de
+consumo de `gen-mapa.py`, que está validado contra 18 controles.
+
+1. **Backend sin pantalla (G-14).** 29 rutas escritas, probadas y que ningún
+   fichero del frontend menciona. `backtest.py` (0 de 2 rutas alcanzables) y
+   `portfolio_risk.py` (0 de 2) son inalcanzables enteros.
+2. **Frontend que nadie importa (G-30).** Cuatro componentes propios, 937 líneas:
+   `TradingBasicsGuide` (671), `GreeksPanel` (127), `PriceTicker` (79) y
+   `WhyItMatters` (60). El andamiaje de shadcn ya se retiró el 25-08.
+3. **Trabajo que no está en `main`.** 12 ramas de producto con commits sin
+   fusionar, más 14 PRs de Dependabot.
+
+Y **dos afirmaciones de la documentación resultaron falsas** al comprobarlas, que
+es la tercera forma del mismo problema:
+
+- La §2 decía que **cuatro** módulos no tienen ninguna interfaz. `trading_plan.py`
+  tiene sus **10 de 10** rutas consumidas desde que el asistente del plan estrenó
+  pantalla: la afirmación sobrevivió a su propio arreglo, porque
+  `check-rutas-muertas.py` ya lo había echado de `RUTAS_MUERTAS.md` y esta lista
+  se quedó quieta. Y `american_options.py` está **a medias**:
+  `early_assignment_risk` sí llega al usuario por `POST /calculate/assignment`;
+  lo que no llega es el motor binomial/BAW. Contarlo entero como muerto escondía
+  que la mitad está en producción.
+- El inventario del backend decía **24 módulos, 19 831 líneas, `server.py` 8232 y
+  195 rutas** cuando el mapa generado ya contaba **35, 26 356, 9 279 y 198**. No
+  envejeció un número: envejecieron todos a la vez, y el bloque seguía leyéndose
+  como un inventario verificado. La §2 del frontend ya tenía escrita la regla
+  —los conteos vivos salen de `MAPA.md`, aquí se describe qué es cada cosa—; la
+  del backend nunca la recibió. Ahora sí.
+
+### Lo que NO está roto, y también hace falta decirlo
+
+Las pantallas están sanas. Barrido sobre el build de producción, autenticado,
+buscando errores de JavaScript, respuestas 4xx/5xx del backend, claves i18n
+crudas, desbordamiento horizontal y pantallas que cargan vacías:
+**22 de 22 en escritorio y 22 de 22 en móvil**. El único aviso, un 404 en
+`/api/plan`, es la respuesta correcta cuando el usuario nunca ha escrito un plan
+—el propio endpoint lo documenta así—, y contarlo como fallo acusaba al producto
+de lo que hace bien.
+
+### Lo demás
+
+Se retiran los dos restos que la sesión anterior dejó anotados sin tocar:
+`frontend/s.tmp.cjs`, una sonda de usar y tirar con la ruta absoluta del
+contenedor dentro apuntando a un puerto que ningún script levanta; y
+`toolMapIntro`, una clave i18n que ningún componente pinta y que decía «las 14
+calculadoras» con quince. Se borra en vez de subirla a quince: la barra lateral
+ya muestra el recuento vivo.
+
+### Verificado
+
+`pytest` **1041 passed / 72 skipped** · `py_compile` sobre los 35 módulos ·
+`engine-check` **429/429** · `simulacion-masiva` **36 017 comprobaciones, 0
+invariantes rotas** · `i18n-check` 6 964 claves en los diez idiomas, faltan 0 y
+sobran 0 · `eslint` 0 errores · `gen-mapa --check`, `check-rutas-muertas`,
+`check-doc-links`, `check-edu-index`, `gen-instruments-js --check` en verde ·
+`npm run build` con las 1 609 URLs del sitemap · contraste WCAG en los dos temas
+sobre las cinco pantallas públicas · **`probar-verificadores.sh` completo: todos
+los verificadores fallan cuando deben fallar**, incluidos los dos sabotajes
+nuevos.
+
+Un aviso para la siguiente sesión: el fallo de contraste que apareció a mitad de
+camino **era el build, no el CSS**. `contraste.js` mide sobre `frontend/build`, y
+ese directorio se había quedado de antes del rebase, con el verde del tema claro
+al 35 % que ya se había corregido a 26 %. Recompilar antes de creerse una medida
+que se toma sobre artefactos.
