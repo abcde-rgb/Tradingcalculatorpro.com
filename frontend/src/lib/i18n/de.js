@@ -4800,4 +4800,10 @@ export default {
   "lsNote": "Die beiden Spalten beantworten verschiedene Fragen und werden ständig verwechselt. „An einer bestimmten Stelle“ ist die Chance, dass die Serie genau jetzt beginnt. „Irgendwann in der Serie“ ist die Chance, dass sie überhaupt vorkommt — und die ist viel höher. Die zweite entscheidet, ob eine Serie ungewöhnlich ist.",
   "calcDescBreakeven": "Die Mindest-Trefferquote, die dein Verhältnis nach Abzug deiner Kosten verlangt, und wie viel Kapital sie monatlich kosten.",
   "calcDescStreaks": "Wie viele Verluste in Folge bei deiner Trefferquote statistisch normal sind — bevor du sie erlebst.",
+  "advSkew": "Schiefe",
+  "advSkewHint": "Negativ = linke Flanke: viele kleine Gewinne und seltene, große Verluste. Das Profil jedes Chance-Risiko-Verhältnisses unter 1.",
+  "advKurtosis": "Kurtosis",
+  "advKurtosisHint": "Überschuss gegenüber der Normalverteilung. Über 3 treten Extreme häufiger auf, als die Standardabweichung nahelegt, und Sharpe unterschätzt das Risiko.",
+  "advTailRatio": "Tail Ratio",
+  "advTailRatioHint": "Das 95. Perzentil geteilt durch den Betrag des 5. Unter 1 sind deine extremen Verluste größer als deine extremen Gewinne. Braucht 20 Trades.",
 }

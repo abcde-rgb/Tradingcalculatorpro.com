@@ -4800,4 +4800,10 @@ export default {
   "lsNote": "As duas colunas respondem a perguntas diferentes e confundem-se constantemente. «Num ponto dado» é a probabilidade de a sequência começar agora mesmo. «Alguma vez na série» é a de ocorrer em algum momento do percurso, e é muito maior. É a segunda que diz se uma sequência é anormal.",
   "calcDescBreakeven": "A taxa de acerto mínima que o teu rácio exige com os custos descontados, e quanto capital levam por mês.",
   "calcDescStreaks": "Quantas perdas seguidas são estatisticamente normais com o teu acerto, antes de as viveres.",
+  "advSkew": "Assimetria",
+  "advSkewHint": "Negativa = cauda esquerda: muitos acertos pequenos e perdas raras e grandes. É o perfil de todo o rácio inferior a 1.",
+  "advKurtosis": "Curtose",
+  "advKurtosisHint": "Em excesso sobre a normal. Acima de 3, os extremos ocorrem mais do que o desvio-padrão sugere, e o Sharpe fica curto a medir o risco.",
+  "advTailRatio": "Rácio de caudas",
+  "advTailRatioHint": "O percentil 95 dividido pelo valor absoluto do 5. Abaixo de 1, as tuas perdas extremas são maiores que os teus ganhos extremos. Precisa de 20 operações.",
 }

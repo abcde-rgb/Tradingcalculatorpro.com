@@ -15,12 +15,12 @@
 | | |
 |---|---:|
 | Módulos del backend | 35 |
-| Líneas de Python (backend) | 26,356 |
+| Líneas de Python (backend) | 26,452 |
 | Rutas declaradas | 198 |
 | **Rutas sin consumidor en el frontend** | **34** |
-| Ficheros de test · funciones de test | 58 · 953 |
+| Ficheros de test · funciones de test | 58 · 967 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 7,108 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,114 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -80,7 +80,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | Módulo | Líneas | Rutas | Responsabilidad |
 |---|---:|---:|---|
 | `server.py` | 9,279 | 140 | — |
-| `performance.py` | 1,819 |  | Performance analytics — trade journal, metrics, error detection. |
+| `performance.py` | 1,820 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,206 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
 | `missing_apis.py` | 933 | 9 | missing_apis.py |
@@ -102,13 +102,13 @@ esperando una pantalla. Esto es el hueco G-14.
 | `portfolio_risk.py` | 327 |  | Account-level risk — heat, correlation, loss limits, volatility sizing. |
 | `level_features.py` | 323 |  | Los rasgos del montaje, tal y como se veían EN esa barra y no después. |
 | `timeframes.py` | 303 |  | The timeframe ladder for the price-action scanners (structure + patterns). |
+| `performance_metrics.py` | 291 |  | Advanced performance & risk metrics — the professional-grade gap. |
 | `american_options.py` | 283 |  | American option pricing — early exercise, which Black-Scholes cannot see. |
 | `crypto_data.py` | 257 |  | Precios de criptomonedas desde las propias bolsas. |
 | `passkeys.py` | 243 |  | Passkeys (WebAuthn / FIDO2) — alta y acceso sin contraseña. |
 | `revolut.py` | 216 |  | Revolut — Revolut Pay / Merchant API integration (order + webhook helpers). |
 | `market_rates.py` | 214 |  | Live risk-free rate. |
 | `notifications.py` | 213 |  | notifications.py — un aviso, tres canales, y la verdad sobre cuáles funcionan. |
-| `performance_metrics.py` | 196 |  | Advanced performance & risk metrics — the professional-grade gap. |
 | `nowpayments.py` | 182 |  | NOWPayments — crypto payment gateway integration (invoice + IPN helpers). |
 | `migrate_trades_schema.py` | 169 |  | Migra los documentos del diario legado (camelCase) al esquema canónico. |
 | `ecb_rates.py` | 145 |  | Tipos de cambio del Banco Central Europeo. |
@@ -403,7 +403,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 590 |
 | `components/options/` | 37 | 8,122 |
-| `components/performance/` | 7 | 3,469 |
+| `components/performance/` | 7 | 3,484 |
 | `components/performance/form/` | 6 | 724 |
 | `components/pricing/` | 1 | 22 |
 | `components/settings/` | 2 | 308 |
@@ -420,16 +420,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 9,279 |
 | `frontend/src/pages/EducationPage.jsx` | 5,575 |
-| `frontend/src/lib/i18n/ar.js` | 4,804 |
-| `frontend/src/lib/i18n/de.js` | 4,804 |
-| `frontend/src/lib/i18n/en.js` | 4,804 |
-| `frontend/src/lib/i18n/es.js` | 4,804 |
-| `frontend/src/lib/i18n/fr.js` | 4,804 |
-| `frontend/src/lib/i18n/it.js` | 4,804 |
-| `frontend/src/lib/i18n/ja.js` | 4,804 |
-| `frontend/src/lib/i18n/pt.js` | 4,804 |
-| `frontend/src/lib/i18n/ru.js` | 4,804 |
-| `frontend/src/lib/i18n/zh.js` | 4,804 |
+| `frontend/src/lib/i18n/ar.js` | 4,810 |
+| `frontend/src/lib/i18n/de.js` | 4,810 |
+| `frontend/src/lib/i18n/en.js` | 4,810 |
+| `frontend/src/lib/i18n/es.js` | 4,810 |
+| `frontend/src/lib/i18n/fr.js` | 4,810 |
+| `frontend/src/lib/i18n/it.js` | 4,810 |
+| `frontend/src/lib/i18n/ja.js` | 4,810 |
+| `frontend/src/lib/i18n/pt.js` | 4,810 |
+| `frontend/src/lib/i18n/ru.js` | 4,810 |
+| `frontend/src/lib/i18n/zh.js` | 4,810 |
 
 ## Verificadores del repositorio
 

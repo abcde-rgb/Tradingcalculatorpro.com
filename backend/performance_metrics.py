@@ -177,6 +177,93 @@ def mae_mfe_stats(trades: List[Dict[str, Any]]) -> Optional[Dict[str, Optional[f
     }
 
 
+def _momentos(vals: List[float]) -> Optional[tuple]:
+    """(media, m2, m3, m4) centrados y poblacionales, o None si no hay dispersión.
+
+    Poblacionales, no muestrales, por coherencia con el resto del módulo: `sqn`
+    y `value_at_risk_parametric` ya usan `pstdev`. Mezclar las dos convenciones
+    en el mismo panel daría dos desviaciones distintas para la misma serie.
+    """
+    n = len(vals)
+    if n < 2:
+        return None
+    mu = statistics.mean(vals)
+    m2 = sum((x - mu) ** 2 for x in vals) / n
+    if m2 <= 0:
+        return None  # todos iguales: la forma de la distribución es indefinida
+    m3 = sum((x - mu) ** 3 for x in vals) / n
+    m4 = sum((x - mu) ** 4 for x in vals) / n
+    return mu, m2, m3, m4
+
+
+def skewness(r_multiples: List[float]) -> Optional[float]:
+    """Asimetría de la distribución de R-múltiplos (momento poblacional g1).
+
+    g1 = m3 / m2^1.5. Negativa = cola izquierda: muchos aciertos pequeños y
+    pérdidas ocasionales grandes, que es el perfil de toda estrategia de ratio
+    menor que 1. Es el número que separa «cobro una prima de riesgo real» de
+    «todavía no ha llegado la cola».
+
+    Referencias: [1,2,3,4,5] simétrico → 0.0 · [1,1,1,10] → +1.1547.
+    None con menos de 3 valores o sin dispersión.
+    """
+    rs = _clean(r_multiples)
+    if len(rs) < 3:
+        return None
+    m = _momentos(rs)
+    if m is None:
+        return None
+    _, m2, m3, _ = m
+    return m3 / (m2 ** 1.5)
+
+
+def kurtosis(r_multiples: List[float]) -> Optional[float]:
+    """Curtosis EN EXCESO de los R-múltiplos (g2 = m4/m2² − 3).
+
+    Cero es la normal. Positiva = colas más gruesas de lo normal: los extremos
+    pasan más a menudo de lo que sugiere la desviación típica, y por tanto un
+    Sharpe alto puede estar escondiendo un riesgo que el Sharpe no penaliza.
+
+    Referencias: [1,2,3,4,5] → −1.3 · una normal → ~0.
+    None con menos de 4 valores o sin dispersión.
+    """
+    rs = _clean(r_multiples)
+    if len(rs) < 4:
+        return None
+    m = _momentos(rs)
+    if m is None:
+        return None
+    _, m2, _, m4 = m
+    return m4 / (m2 ** 2) - 3.0
+
+
+# Por debajo de esto, el «percentil 95» de una muestra es sencillamente su
+# máximo: con 20 valores el índice 0.95×19 = 18.05 ya cae entre los dos últimos.
+# Devolver un cociente de extremos llamándolo percentil sería inventar precisión.
+_MIN_COLA = 20
+
+
+def tail_ratio(r_multiples: List[float]) -> Optional[float]:
+    """Percentil 95 / |percentil 5| de los R-múltiplos.
+
+    Por debajo de 1 la cola izquierda pesa más que la derecha: las pérdidas
+    extremas son mayores que las ganancias extremas. Es la comprobación directa
+    de si un win rate alto está pagando una prima real o aplazando el golpe.
+
+    None con menos de 20 operaciones (con menos, el percentil 95 es el máximo y
+    el cociente no significa lo que dice) o si el percentil 5 es cero.
+    """
+    rs = _clean(r_multiples)
+    if len(rs) < _MIN_COLA:
+        return None
+    ordenados = sorted(rs)
+    p95 = _percentile(ordenados, 0.95)
+    p05 = _percentile(ordenados, 0.05)
+    if p05 == 0:
+        return None
+    return p95 / abs(p05)
+
+
 def compute_advanced_metrics(pnls: List[float], equity_curve: List[float],
                              r_multiples: Optional[List[float]] = None,
                              wins: int = 0, losses: int = 0, runs: int = 0,
@@ -192,4 +279,12 @@ def compute_advanced_metrics(pnls: List[float], equity_curve: List[float],
         "var_95": value_at_risk_historical(pnls, 0.95),
         "var_95_parametric": value_at_risk_parametric(pnls, 0.95),
         "cvar_95": conditional_var(pnls, 0.95),
+        # Forma de la distribución de R. Van sobre R-múltiplos y no sobre P&L a
+        # propósito: normalizan el tamaño de posición, así que describen la
+        # ESTRATEGIA y no el tamaño con que se operó. Las tres son invariantes
+        # de escala, de modo que sólo difieren de la versión en dinero cuando el
+        # riesgo por operación cambia — que es justo cuando importa.
+        "skewness": skewness(r_multiples if r_multiples is not None else []),
+        "kurtosis": kurtosis(r_multiples if r_multiples is not None else []),
+        "tail_ratio": tail_ratio(r_multiples if r_multiples is not None else []),
     }

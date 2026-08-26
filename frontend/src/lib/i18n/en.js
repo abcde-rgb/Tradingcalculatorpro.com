@@ -4800,4 +4800,10 @@ export default {
   "lsNote": "The two columns answer different questions and get confused constantly. \"At a given point\" is the chance the streak starts right now. \"At some point in the run\" is the chance it happens anywhere along the way, and it is far higher. The second one is what tells you whether a streak is abnormal.",
   "calcDescBreakeven": "The minimum win rate your ratio demands once your costs are subtracted, and how much capital they take each month.",
   "calcDescStreaks": "How many consecutive losses are statistically normal at your win rate — before you live through them.",
+  "advSkew": "Skewness",
+  "advSkewHint": "Negative = left tail: many small wins and rare, large losses. It is the profile of every sub-1 reward-to-risk ratio.",
+  "advKurtosis": "Kurtosis",
+  "advKurtosisHint": "Excess over the normal. Above 3, extremes happen more often than the standard deviation suggests, and Sharpe understates the risk.",
+  "advTailRatio": "Tail ratio",
+  "advTailRatioHint": "The 95th percentile over the absolute 5th. Below 1, your extreme losses are bigger than your extreme wins. Needs 20 trades.",
 }

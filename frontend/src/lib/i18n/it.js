@@ -4800,4 +4800,10 @@ export default {
   "lsNote": "Le due colonne rispondono a domande diverse e vengono confuse di continuo. «In un punto dato» è la probabilità che la serie cominci proprio ora. «Almeno una volta nella serie» è quella che accada da qualche parte lungo il percorso, ed è molto più alta. È la seconda a dire se una serie è anomala.",
   "calcDescBreakeven": "La percentuale di successo minima che il tuo rapporto richiede al netto dei costi, e quanto capitale si prendono al mese.",
   "calcDescStreaks": "Quante perdite consecutive sono statisticamente normali con la tua percentuale di successo, prima di viverle.",
+  "advSkew": "Asimmetria",
+  "advSkewHint": "Negativa = coda sinistra: molte vincite piccole e perdite rare e grandi. È il profilo di ogni rapporto inferiore a 1.",
+  "advKurtosis": "Curtosi",
+  "advKurtosisHint": "In eccesso sulla normale. Sopra 3 gli estremi accadono più di quanto suggerisca la deviazione standard, e lo Sharpe sottostima il rischio.",
+  "advTailRatio": "Rapporto di code",
+  "advTailRatioHint": "Il 95° percentile diviso il valore assoluto del 5°. Sotto 1 le tue perdite estreme sono maggiori delle tue vincite estreme. Servono 20 operazioni.",
 }

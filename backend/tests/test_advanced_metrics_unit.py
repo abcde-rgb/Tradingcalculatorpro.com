@@ -108,3 +108,96 @@ def test_mae_mfe_stats():
 def test_mae_mfe_none_fields_when_absent():
     s = pm.mae_mfe_stats([{"pnl": 100}])
     assert s["avg_mae"] is None and s["avg_mfe"] is None
+
+
+# ---------------------------------------------------------------------------
+# Forma de la distribución de R: asimetría, curtosis y ratio de colas.
+#
+# Los valores de referencia salen de `scipy.stats` con `bias=True`, que es la
+# convención poblacional (momentos, sin corrección muestral) — la misma que usa
+# el resto del módulo con `pstdev`. Se citan aquí como números fijos para que el
+# test corra sin scipy, pero la comprobación contra scipy se hizo y coincide a
+# 1e-9 en cinco distribuciones distintas, incluida la de un sistema R:R<1.
+# ---------------------------------------------------------------------------
+
+def test_skewness_simetrica_es_cero():
+    assert pm.skewness([1, 2, 3, 4, 5]) == 0.0
+
+
+def test_skewness_cola_derecha_valor_de_referencia():
+    # scipy.stats.skew([1,1,1,10], bias=True) = 1.1547005383792515
+    assert abs(pm.skewness([1, 1, 1, 10]) - 1.1547005383792515) < 1e-12
+
+
+def test_skewness_negativa_con_cola_izquierda():
+    # El perfil de un sistema de ratio negativo: muchos aciertos pequeños y
+    # pérdidas raras y grandes. La asimetría TIENE que salir negativa, que es
+    # lo único que esta métrica existe para decir.
+    rs = [0.5] * 80 + [-1.0] * 15 + [-4.0] * 5
+    assert pm.skewness(rs) < -2
+
+
+def test_kurtosis_valor_de_referencia():
+    # scipy.stats.kurtosis([1,2,3,4,5], bias=True) = -1.3 (exceso sobre normal)
+    assert abs(pm.kurtosis([1, 2, 3, 4, 5]) - (-1.3)) < 1e-12
+
+
+def test_kurtosis_colas_gruesas_es_positiva():
+    rs = [0.5] * 80 + [-1.0] * 15 + [-4.0] * 5
+    assert pm.kurtosis(rs) > 3
+
+
+def test_tail_ratio_detecta_la_cola_izquierda():
+    rs = [0.5] * 80 + [-1.0] * 15 + [-4.0] * 5
+    tr = pm.tail_ratio(rs)
+    # p95 = 0.5, p05 ≈ -1.15 → por debajo de 1: las pérdidas extremas mandan.
+    assert tr is not None and tr < 1
+
+
+def test_tail_ratio_por_encima_de_uno_con_cola_derecha():
+    rs = [-0.5] * 80 + [1.0] * 15 + [4.0] * 5
+    assert pm.tail_ratio(rs) > 1
+
+
+# --- Honestidad numérica: lo incalculable es None, nunca 0 ------------------
+
+def test_skewness_none_con_menos_de_tres():
+    assert pm.skewness([1, 2]) is None
+
+
+def test_kurtosis_none_con_menos_de_cuatro():
+    assert pm.kurtosis([1, 2, 3]) is None
+
+
+def test_forma_none_sin_dispersion():
+    # Todos iguales: la forma de la distribución no está definida. Devolver 0
+    # diría "simétrica y normal", que es una afirmación, no una ausencia.
+    assert pm.skewness([2.0] * 50) is None
+    assert pm.kurtosis([2.0] * 50) is None
+
+
+def test_tail_ratio_none_por_debajo_de_veinte_operaciones():
+    # Con 19 valores el percentil 95 ES el máximo: el cociente sería de
+    # extremos, no de percentiles, y llamarlo percentil sería inventar precisión.
+    assert pm.tail_ratio([float(i) for i in range(19)]) is None
+    assert pm.tail_ratio([float(i) for i in range(20)]) is not None
+
+
+def test_tail_ratio_none_si_el_percentil_cinco_es_cero():
+    assert pm.tail_ratio([0.0] * 19 + [5.0]) is None
+
+
+def test_bundle_incluye_la_forma_de_la_distribucion():
+    rs = [0.5] * 80 + [-1.0] * 15 + [-4.0] * 5
+    out = pm.compute_advanced_metrics(pnls=rs, equity_curve=[100, 101, 99],
+                                      r_multiples=rs, wins=80, losses=20, runs=30)
+    assert out["skewness"] is not None and out["skewness"] < 0
+    assert out["kurtosis"] is not None
+    assert out["tail_ratio"] is not None and out["tail_ratio"] < 1
+
+
+def test_bundle_sin_r_multiples_no_inventa_forma():
+    out = pm.compute_advanced_metrics(pnls=[1, 2, 3], equity_curve=[100, 101])
+    assert out["skewness"] is None
+    assert out["kurtosis"] is None
+    assert out["tail_ratio"] is None

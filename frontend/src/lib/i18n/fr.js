@@ -4800,4 +4800,10 @@ export default {
   "lsNote": "Les deux colonnes répondent à des questions différentes et on les confond sans cesse. « À un point donné » est la probabilité que la série commence maintenant. « À un moment de la série » est celle qu'elle survienne quelque part, et elle est bien plus élevée. C'est la seconde qui dit si une série est anormale.",
   "calcDescBreakeven": "Le taux de réussite minimum qu'exige votre ratio, coûts déduits, et le capital qu'ils prennent chaque mois.",
   "calcDescStreaks": "Combien de pertes consécutives sont statistiquement normales avec votre taux de réussite, avant de les vivre.",
+  "advSkew": "Asymétrie",
+  "advSkewHint": "Négative = queue à gauche : beaucoup de petits gains et des pertes rares mais grandes. C'est le profil de tout ratio inférieur à 1.",
+  "advKurtosis": "Kurtosis",
+  "advKurtosisHint": "En excès sur la loi normale. Au-dessus de 3, les extrêmes surviennent plus souvent que ne le suggère l'écart-type, et le Sharpe sous-estime le risque.",
+  "advTailRatio": "Ratio de queues",
+  "advTailRatioHint": "Le 95e percentile divisé par la valeur absolue du 5e. En dessous de 1, vos pertes extrêmes dépassent vos gains extrêmes. Exige 20 opérations.",
 }

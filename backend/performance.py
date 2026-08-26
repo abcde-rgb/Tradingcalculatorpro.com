@@ -1394,6 +1394,7 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "advanced": {
             "sqn": None, "calmar_ratio": None, "ulcer_index": None,
             "streak_zscore": None, "var_95": None, "var_95_parametric": None, "cvar_95": None,
+            "skewness": None, "kurtosis": None, "tail_ratio": None,
         },
     }
 

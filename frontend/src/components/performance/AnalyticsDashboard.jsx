@@ -559,6 +559,21 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
             <AdvTile label={t('advCvar')} value={fmtMoney(a.advanced.cvar_95)}
               hint={t('advCvarHint')} color={a.advanced.cvar_95 == null ? 'text-muted-foreground' : 'text-[#ef4444]'}
               testId="adv-cvar" />
+            {/* Forma de la distribución de R. Son las tres que delatan la cola
+                izquierda —muchos aciertos pequeños, pérdidas raras y enormes—
+                que ni el Sharpe ni el win rate penalizan. */}
+            <AdvTile label={t('advSkew')} value={fmtNum(a.advanced.skewness)}
+              hint={t('advSkewHint')}
+              color={a.advanced.skewness == null ? 'text-muted-foreground' : a.advanced.skewness < -0.5 ? 'text-[#ef4444]' : 'text-foreground'}
+              testId="adv-skew" />
+            <AdvTile label={t('advKurtosis')} value={fmtNum(a.advanced.kurtosis)}
+              hint={t('advKurtosisHint')}
+              color={a.advanced.kurtosis == null ? 'text-muted-foreground' : a.advanced.kurtosis > 3 ? 'text-[#f59e0b]' : 'text-foreground'}
+              testId="adv-kurtosis" />
+            <AdvTile label={t('advTailRatio')} value={fmtNum(a.advanced.tail_ratio)}
+              hint={t('advTailRatioHint')}
+              color={a.advanced.tail_ratio == null ? 'text-muted-foreground' : a.advanced.tail_ratio < 1 ? 'text-[#ef4444]' : 'text-[#22c55e]'}
+              testId="adv-tailratio" />
           </div>
         </div>
       )}

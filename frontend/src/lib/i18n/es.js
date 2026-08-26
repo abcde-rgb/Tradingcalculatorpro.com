@@ -4800,4 +4800,10 @@ export default {
   "lsNote": "Las dos columnas responden a preguntas distintas y se confunden constantemente. «En un punto dado» es la probabilidad de que la racha empiece justo ahora. «Alguna vez en la serie» es la de que ocurra en algún momento del recorrido, y es mucho mayor. La segunda es la que hay que mirar para decidir si una racha es anormal.",
   "calcDescBreakeven": "El acierto mínimo que exige tu ratio, con tus costes descontados, y cuánto capital se llevan al mes.",
   "calcDescStreaks": "Cuántas pérdidas seguidas son estadísticamente normales con tu acierto, antes de vivirlas.",
+  "advSkew": "Asimetría",
+  "advSkewHint": "Negativa = cola izquierda: muchos aciertos pequeños y pérdidas raras y grandes. Es el perfil de todo ratio menor que 1.",
+  "advKurtosis": "Curtosis",
+  "advKurtosisHint": "En exceso sobre la normal. Por encima de 3, los extremos ocurren más de lo que sugiere la desviación típica, y el Sharpe se queda corto midiendo el riesgo.",
+  "advTailRatio": "Ratio de colas",
+  "advTailRatioHint": "Percentil 95 dividido por el percentil 5 en valor absoluto. Por debajo de 1, tus pérdidas extremas son mayores que tus ganancias extremas. Necesita 20 operaciones.",
 }
