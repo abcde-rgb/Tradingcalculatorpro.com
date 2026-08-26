@@ -98,6 +98,7 @@ import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
 import TailRiskVisual from '@/components/education/TailRiskVisual';
+import TailRiskFigures from '@/components/education/TailRiskFigures';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 import MarketTypeModal from '@/components/education/MarketTypeModal';
 
@@ -2140,6 +2141,21 @@ export default function EducationPage() {
                   </Card>
                 ))}
               </div>
+
+              {/* 1.096 palabras y cero cifras, justo en el módulo donde el
+                  número ES el argumento. Estas tres tablas lo arreglan: la
+                  teórica se calcula, las reales llevan fecha. */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-xl">
+                    <Sigma className="w-5 h-5 text-rose-500" />
+                    {t('tailFigTitle')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TailRiskFigures />
+                </CardContent>
+              </Card>
 
               <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/5 border border-rose-500/20">
                 <Info className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />

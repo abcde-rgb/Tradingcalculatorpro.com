@@ -2020,6 +2020,114 @@ async function checkEdgeMath() {
     E.probAlgunaRacha(10, 60, 20) === 0);
 }
 
+/**
+ * Las cifras del riesgo de cola.
+ *
+ * El módulo `tail-risk` tenía 1.096 palabras y ninguna cifra. Ahora las tiene,
+ * y una cifra en pantalla es una afirmación: «un movimiento de 20 sigma pasa
+ * una vez cada 7 × 10⁸⁵ años» o es verdad o es propaganda con decimales.
+ *
+ * La ruta independiente es doble:
+ *  · Las teóricas, contra los valores que devuelve `erfc` en doble precisión
+ *    (Python `math.erfc(s/√2)`, transcritos aquí con doce dígitos). El código
+ *    usa la fracción continua de Mills, que no comparte nada con erfc salvo
+ *    el resultado.
+ *  · Las reales, contra la aritmética que las relaciona: si el Nasdaq cayó un
+ *    77,9 %, volver EXIGE un +352 %, y eso lo dice la fórmula, no el texto.
+ */
+async function checkTailRisk() {
+  console.log('\ntailRiskData.js  (las cifras del riesgo de cola)');
+  const T = await imp('lib/tailRiskData.js');
+
+  // math.erfc(s/sqrt(2)) — probabilidad de |Z| > s, dos colas.
+  const ERFC = {
+    3: 2.699796063260e-03,
+    4: 6.334248366624e-05,
+    5: 5.733031437584e-07,
+    6: 1.973175290075e-09,
+    7: 2.559625087772e-12,
+    10: 1.523970604832e-23,
+    20: 5.507248237213e-89,
+  };
+  for (const [s, ref] of Object.entries(ERFC)) {
+    const got = T.colaNormal(Number(s));
+    const err = Math.abs(got - ref) / ref;
+    ok(`cola de ${s} σ = ${ref.toExponential(3)} (erfc)`, err < 1e-9,
+      `fracción continua ${got.toExponential(6)}, error relativo ${err.toExponential(2)}`);
+  }
+
+  // Y la razón por la que no se usa la CDF de blackScholes.js: su error
+  // ABSOLUTO (~1,5e-7) es cien mil veces mayor que la respuesta a 7 σ. Si
+  // alguien «unifica» las dos funciones, esto lo caza.
+  const { calculateD1D2 } = await imp('utils/blackScholes.js').catch(() => ({}));
+  void calculateD1D2; // sólo para dejar constancia de que se miró el módulo
+  ok('la cola de 7 σ es más pequeña que el error de una CDF de opciones',
+    T.colaNormal(7) < 1.5e-7 / 1000,
+    `cola ${T.colaNormal(7).toExponential(2)} vs error típico 1,5e-7`);
+
+  // Anualización: 252 sesiones. Cambiarlo mueve TODAS las frecuencias.
+  ok('3 σ, una vez cada ~1,5 años', near(T.frecuenciaNormal(3), 1 / ERFC[3] / 252, 1e-9));
+  ok('la frecuencia usa 252 sesiones y no 365',
+    Math.abs(T.frecuenciaNormal(3) - 1.4696) < 0.001,
+    `da ${T.frecuenciaNormal(3).toFixed(4)}`);
+  ok('20 σ supera los 10⁷⁵ universos',
+    T.frecuenciaNormal(20) / T.EDAD_UNIVERSO_ANIOS > 1e75);
+
+  // Recuperación: la asimetría es el argumento entero del módulo de ruina.
+  ok('recuperar el 50 % exige el 100 %', near(T.subidaParaRecuperar(0.50), 1, 1e-12));
+  ok('recuperar el 80 % exige el 400 %', near(T.subidaParaRecuperar(0.80), 4, 1e-12));
+  ok('recuperar el 90 % exige el 900 %', near(T.subidaParaRecuperar(0.90), 9, 1e-12));
+  ok('una caída del 100 % no se recupera: es null (no Infinity, no 0)',
+    T.subidaParaRecuperar(1) === null);
+  ok('la recuperación siempre supera a la caída (nunca es simétrica)',
+    T.CAIDAS.every((d) => T.subidaParaRecuperar(d) > d));
+
+  // Las cifras de recuperación que el TEXTO de los eventos afirma, derivadas
+  // de los niveles reales y no de la caída ya redondeada. Escribir «+352 %»
+  // (que era 353) fue exactamente este fallo, y sólo lo cazó pedirle la cifra
+  // a los dos precios en vez de a la memoria.
+  const evento = (id) => T.EVENTOS_COLA.find((e) => e.id === id);
+  const recuperar = (id) => T.subidaParaRecuperar(T.caidaDesde(evento(id).ref)) * 100;
+  ok('el Nasdaq (5.048,62 → 1.114,11) exige un +353 % para volver',
+    Math.round(recuperar('puntocom')) === 353, `da ${recuperar('puntocom').toFixed(1)} %`);
+  ok('el Nikkei (38.915,87 → 7.603,76) exige un +412 %',
+    Math.round(recuperar('nikkei')) === 412, `da ${recuperar('nikkei').toFixed(1)} %`);
+  // `pctDe` devuelve la variación CON signo; `caidaDesde`, la magnitud sin él.
+  ok('y sus caídas se pintan con signo: −77,9 % y −80,5 %',
+    Math.abs(T.pctDe(evento('puntocom')) + 77.9) < 0.05
+    && Math.abs(T.pctDe(evento('nikkei')) + 80.5) < 0.05,
+    `da ${T.pctDe(evento('puntocom')).toFixed(2)} y ${T.pctDe(evento('nikkei')).toFixed(2)}`);
+
+  // Cada evento, completo. Una fila a medias se pinta a medias y nadie lo ve.
+  const campos = ['id', 'activo', 'cuando', 'k'];
+  const incompletos = T.EVENTOS_COLA.filter((e) => campos.some((c) => !e[c]));
+  ok(`los ${T.EVENTOS_COLA.length} eventos traen fecha, activo y clave`,
+    incompletos.length === 0, `incompletos: ${incompletos.map((e) => e.id || '?').join(', ')}`);
+  ok('cada evento resuelve a una magnitud numérica (escrita o derivada)',
+    T.EVENTOS_COLA.every((e) => Number.isFinite(T.pctDe(e))),
+    `sin magnitud: ${T.EVENTOS_COLA.filter((e) => !Number.isFinite(T.pctDe(e))).map((e) => e.id).join(', ')}`);
+  // La magnitud es número y no cadena a propósito: una cifra escrita a mano
+  // enseñaría «−77,9 %» a un lector inglés, que lee la coma como millar.
+  ok('ninguna magnitud viene preformateada como texto',
+    T.EVENTOS_COLA.every((e) => typeof e.pct !== 'string'));
+  // Un evento con `ref` no puede además escribir su `pct`: serían dos fuentes
+  // para la misma cifra, y una de las dos envejecería en silencio.
+  ok('ningún evento declara a la vez los niveles y el porcentaje',
+    T.EVENTOS_COLA.every((e) => !(e.ref && Number.isFinite(e.pct))),
+    `duplicados: ${T.EVENTOS_COLA.filter((e) => e.ref && Number.isFinite(e.pct)).map((e) => e.id).join(', ')}`);
+
+  // `t(e.k)` es una llamada dinámica: `i18n-check` no la modela, así que una
+  // errata en la clave se pintaría cruda y ningún otro verificador la vería.
+  const IDIOMAS = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar', 'pt', 'it'];
+  const faltan = [];
+  for (const l of IDIOMAS) {
+    const dic = { ...(await imp(`lib/i18n/${l}.js`)).default, ...(await imp(`lib/i18n/${l}.edu.js`)).default };
+    for (const e of T.EVENTOS_COLA) if (!dic[e.k]) faltan.push(`${e.k}/${l}`);
+  }
+  ok('las claves de los eventos existen en los diez idiomas',
+    faltan.length === 0, `faltan: ${faltan.slice(0, 5).join(', ')}`);
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -2036,6 +2144,7 @@ async function checkEdgeMath() {
   await checkSiteFacts();
   await checkMonteCarlo();
   await checkEdgeMath();
+  await checkTailRisk();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {
     console.error(`\n${failures} check(s) FAILED`);

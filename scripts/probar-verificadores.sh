@@ -405,6 +405,65 @@ p = pathlib.Path('frontend/src/pages/DashboardPage.jsx'); t = p.read_text()
 p.write_text(t.replace('const allowed = ALL_CALC_TOOLS.map((it) => it.value);',
                        'const allowed = [' + q + 'position' + q + '];', 1))\""
 
+  # ── Las cifras del riesgo de cola ─────────────────────────────────────────
+  # `tail-risk` pasó de cero cifras a tres tablas, y una cifra en pantalla es
+  # una afirmación: «20 σ pasa una vez cada 7 × 10⁸⁵ años» o es verdad, o es
+  # propaganda con decimales. Cada sabotaje rompe una propiedad distinta.
+  titulo "Cifras del riesgo de cola (engine-check.js)"
+  probar "la cola de la normal se queda en una, no en dos" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('return 2 * (phi / (x + f));', 'return phi / (x + f);', 1))\""
+
+  probar "la frecuencia se anualiza con 365 días en vez de 252 sesiones" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('SESIONES_ANIO = 252', 'SESIONES_ANIO = 365', 1))\""
+
+  probar "la recuperación se vuelve simétrica a la caída" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('return d / (1 - d);', 'return d;', 1))\""
+
+  probar "una caída del 100 % devuelve Infinity en vez de null" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('d < 0 || d >= 1) return null;', 'd < 0) return null;', 1))\""
+
+  probar "un nivel real cambiado: la cifra del texto deja de cuadrar" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('pico: 5048.62', 'pico: 5000', 1))\""
+
+  probar "un evento con los niveles Y el porcentaje: dos fuentes para una cifra" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('k: ' + q + 'tailEvNikkei' + q,
+                       'pct: -80.5, k: ' + q + 'tailEvNikkei' + q, 1))\""
+
+  # `t(e.k)` es una llamada dinámica: i18n-check no la modela, así que una
+  # errata aquí se pinta cruda y ningún otro verificador la ve.
+  probar "una errata en la clave i18n de un evento" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace(q + 'tailEvCovid' + q, q + 'tailEvCovid19' + q, 1))\""
+
   # ── Los enlaces de la Academia a las herramientas ─────────────────────────
   # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja
   # en la pestaña por defecto), un id fuera de la tabla (`return null`, el
