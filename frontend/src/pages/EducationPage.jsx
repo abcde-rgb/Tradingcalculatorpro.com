@@ -782,21 +782,36 @@ export default function EducationPage() {
 
   // Per-pillar quizzes: pick a pillar, answer its 3 questions. Correct-answer
   // indices live here (0-based); the questions/options come from i18n.
+  // La respuesta correcta se nombra por su LETRA de clave, no por su posición.
+  //
+  // Antes era `correct: [0, 1, 2]`, índices en el array `opts` de más abajo.
+  // Funcionaba, pero ataba la corrección a un orden que vive en otro sitio:
+  // reordenar `opts` —dos líneas más allá y sin relación aparente— habría hecho
+  // que el quiz calificara mal sin que saltara nada. Nombrar la letra quita esa
+  // distancia: `'b'` es `qzRisk1b` mire donde mire el array.
+  //
+  // Queda un modo de fallo que esto NO cubre y que ningún cambio de estructura
+  // puede cubrir: que una traducción intercambie los VALORES entre las claves
+  // `a` y `b`. Ese lo vigila `scripts/check-quiz.js`, que comprueba que la
+  // opción marcada correcta siga diciendo lo que dice en los diez idiomas.
+  const QUIZ_OPCIONES = ['a', 'b', 'c'];
   const QUIZ_BANK = {
-    start:     { label: t('eduCatStart'),     keys: ['qzStart1', 'qzStart2', 'qzStart3'], correct: [0, 1, 2] },
-    technical: { label: t('eduCatTechnical'), keys: ['qzTech1', 'qzTech2', 'qzTech3'],    correct: [0, 1, 0] },
-    advanced:  { label: t('eduCatAdvanced'),  keys: ['qzAdv1', 'qzAdv2', 'qzAdv3'],       correct: [0, 1, 1] },
-    risk:      { label: t('eduCatRisk'),      keys: ['qzRisk1', 'qzRisk2', 'qzRisk3'],    correct: [1, 2, 1] },
-    psych:     { label: t('eduCatPsych'),     keys: ['qzPsy1', 'qzPsy2', 'qzPsy3'],       correct: [0, 0, 0] },
-    pro:       { label: t('eduCatPro'),       keys: ['qzPro1', 'qzPro2', 'qzPro3'],       correct: [0, 0, 0] },
+    start:     { label: t('eduCatStart'),     keys: ['qzStart1', 'qzStart2', 'qzStart3'], correct: ['a', 'b', 'c'] },
+    technical: { label: t('eduCatTechnical'), keys: ['qzTech1', 'qzTech2', 'qzTech3'],    correct: ['a', 'b', 'a'] },
+    advanced:  { label: t('eduCatAdvanced'),  keys: ['qzAdv1', 'qzAdv2', 'qzAdv3'],       correct: ['a', 'b', 'b'] },
+    risk:      { label: t('eduCatRisk'),      keys: ['qzRisk1', 'qzRisk2', 'qzRisk3'],    correct: ['b', 'c', 'b'] },
+    psych:     { label: t('eduCatPsych'),     keys: ['qzPsy1', 'qzPsy2', 'qzPsy3'],       correct: ['a', 'a', 'a'] },
+    pro:       { label: t('eduCatPro'),       keys: ['qzPro1', 'qzPro2', 'qzPro3'],       correct: ['a', 'a', 'a'] },
   };
   const QUIZ_PILLARS = ['start', 'technical', 'advanced', 'risk', 'psych', 'pro'];
   const [quizPillar, setQuizPillar] = useState('start');
   const [quizSel, setQuizSel] = useState({});
   const [quizDone, setQuizDone] = useState(false);
   const activeBank = QUIZ_BANK[quizPillar];
-  const QUIZ = activeBank.keys.map(k => ({ q: t(`${k}q`), opts: [t(`${k}a`), t(`${k}b`), t(`${k}c`)] }));
-  const QUIZ_CORRECT = activeBank.correct;
+  const QUIZ = activeBank.keys.map(k => ({ q: t(`${k}q`), opts: QUIZ_OPCIONES.map(L => t(`${k}${L}`)) }));
+  // Las opciones y la respuesta correcta se derivan de la MISMA lista de letras,
+  // así que no pueden desalinearse.
+  const QUIZ_CORRECT = activeBank.correct.map(L => QUIZ_OPCIONES.indexOf(L));
   const quizScore = QUIZ_CORRECT.reduce((n, c, i) => n + (quizSel[i] === c ? 1 : 0), 0);
   const pickQuizPillar = (p) => { setQuizPillar(p); setQuizSel({}); setQuizDone(false); };
 

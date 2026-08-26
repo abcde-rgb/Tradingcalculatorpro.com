@@ -174,6 +174,14 @@ jobs:
       - name: Índice de la Academia ↔ navegación
         run: node scripts/check-edu-index.js
 
+      # El quiz califica por la LETRA de la clave, no por posición. Lo que eso
+      # no cubre —y esto sí— es que una traducción intercambie los valores
+      # entre `a` y `b`: siete de las dieciocho preguntas tienen opciones que
+      # son opuestos exactos, y ahí un intercambio hace que el quiz enseñe lo
+      # contrario devolviendo un ✅.
+      - name: El quiz califica lo que dice calificar (10 idiomas)
+        run: node scripts/check-quiz.js
+
       # `engine-check` comprueba casos ELEGIDOS y sólo encuentra lo que a
       # alguien se le ocurrió mirar. Esto son 1000 escenarios GENERADOS, todos
       # distintos, con ~20.000 invariantes sobre el significado de cada cifra.

@@ -609,6 +609,33 @@ if [ -d frontend/node_modules ]; then
     "sed -i 's/\"nfHome\": \"Go home\"/\"nfHome\": \"Go home Γ\"/' frontend/src/lib/i18n/en.js" \
     "git checkout -- frontend/src/lib/i18n/en.js"
 
+  # ── El quiz califica lo que dice calificar (check-quiz.js) ──────────────
+  titulo "Corrección del quiz (check-quiz.js)"
+  QUIZ="(cd frontend && node scripts/check-quiz.js)"
+
+  # El cebo es el fallo REAL que vigila: intercambiar los valores de las dos
+  # opciones opuestas en un idioma. La pregunta sigue leyéndose bien y el quiz
+  # empieza a calificar al revés.
+  probar "una traducción intercambia «sube» y «baja» entre las dos opciones" \
+    "$QUIZ" \
+    "python3 -c \"
+import io
+p='frontend/src/lib/i18n/ja.js'; s=io.open(p,encoding='utf-8').read()
+a=s[s.index('\\\"qzStart1a\\\":'):s.index(chr(10),s.index('\\\"qzStart1a\\\":'))]
+b=s[s.index('\\\"qzStart1b\\\":'):s.index(chr(10),s.index('\\\"qzStart1b\\\":'))]
+va=a.split(': ',1)[1].rstrip(','); vb=b.split(': ',1)[1].rstrip(',')
+s=s.replace(a,'  \\\"qzStart1a\\\": '+vb+',').replace(b,'  \\\"qzStart1b\\\": '+va+',')
+io.open(p,'w',encoding='utf-8').write(s)\"" \
+    "git checkout -- frontend/src/lib/i18n/ja.js"
+
+  # Y el inverso, que es el que evita que el verificador se vuelva insufrible:
+  # reescribir una opción con otras palabras del MISMO sentido no puede saltar,
+  # o a la primera traducción mejorada alguien lo desactiva.
+  probar_inverso "una opción reescrita con otras palabras del mismo sentido" \
+    "$QUIZ" \
+    "sed -i 's|\"qzPro1a\": \"Prämie verkaufen\"|\"qzPro1a\": \"Optionsprämien verkaufen und die Zeitprämie vereinnahmen\"|' frontend/src/lib/i18n/de.js" \
+    "git checkout -- frontend/src/lib/i18n/de.js"
+
   # ── Los diagramas de la academia no ganan castellano (check-visuales-idioma) ─
   titulo "Techo de castellano en los diagramas (check-visuales-idioma.js)"
   VISUALES="(cd frontend && node scripts/check-visuales-idioma.js)"
