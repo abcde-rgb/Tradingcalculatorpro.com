@@ -4841,3 +4841,28 @@ métodos de pago; con una Inc. de Delaware de trece meses, el día que cierren l
 cuenta no hay forma de seguir cobrando a tus suscriptores. Veredicto: buen
 producto, mal encaje — buen método de pago para LatAm, no buen sistema de
 suscripción para esta web.
+
+**Cuarto añadido — compatibilidad para los primeros 50 k (§ 14).** La pregunta era
+si funciona la suscripción y si con un impago se bloquea. **Se bloquea, y no
+depende de la pasarela**: `check_premium` (`server.py:1650`) mira `subscription_end`
+—o el plan `lifetime`—, y **todos** los endpoints que devuelven el usuario al
+frontend envían `is_premium` **calculado** con esa función, no el campo guardado
+(`:2023, :2088, :2179, :2290, :2570, :2746, :3019`). El navegador nunca ve un
+premium caducado, así que `ProtectedRoute` cierra a la vez que `require_premium`
+devuelve 403. De Kunfupay no hace falta un evento de impago: hace falta uno de
+**cobro**. Y el fallo peligroso es el contrario del que se temía — que cobren la
+renovación y no nos enteremos, bloqueando a alguien que paga.
+
+De ahí que los dos caminos lleguen a 50 k. Con webhook, `kunfupay.py` calcado de
+`revolut.py`, un día. Sin webhook, alta a mano desde admin —el plan calcula la
+fecha solo (`_compute_subscription_end`, `:7962`) y queda en auditoría, cero
+código nuevo—, pero el coste operativo lo fija el ticket: 2.941 cobros hasta 50 k
+en el plan mensual (~245 altas manuales al mes, inviable) frente a 250 en el anual
+(~21 al mes) o 100 en el De Por Vida. **En camino B se vende Anual y De Por Vida.**
+
+Peaje de arranque cuantificado: 2.500-5.000 € de comisión sobre 50 k, frente a
+1.000-2.500 € por Stripe. Sobrecoste de 1.000 a 3.500 € en todo el trayecto — un
+precio acotado si es arranque y no estructura. Y un hueco nuevo detectado por el
+camino: **no existe aviso de vencimiento por email**. Hay confirmación (`:3522`),
+impago (`:3543`) y cancelación (`:3556`), pero nada que avise «te vence en 7
+días», que es justo lo que sustituye al dunning cuando el raíl no renueva solo.

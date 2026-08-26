@@ -558,6 +558,104 @@ portal, facturas, reembolsos— se queda en Stripe mientras Stripe te acepte.
 
 ---
 
+## 14. Compatibilidad real con este proyecto, para los primeros 50.000 € (2026-08-26)
+
+Escenario: **Kunfupay como raíl de arranque**, para facturar los primeros 50 k y migrar
+después. La pregunta concreta: ¿funciona la suscripción, y con un impago se bloquea?
+
+### 14.1 El impago ya está resuelto, y no depende de la pasarela
+
+Éste es el hallazgo que cambia la respuesta. **El muro de pago de esta web es por fecha,
+no por estado del proveedor:**
+
+```python
+def check_premium(user: dict) -> bool:          # server.py:1650
+    if user.get("subscription_plan") == "lifetime": return True
+    if user.get("subscription_end"):
+        return datetime.fromisoformat(...) > datetime.now(timezone.utc)
+    return False
+```
+
+Y no es sólo el backend: **todos los endpoints que devuelven el usuario al frontend envían
+`is_premium` calculado con esa función** —no el campo guardado en la base de datos—
+(`server.py:2023, 2088, 2179, 2290, 2570, 2746, 3019`). El navegador nunca llega a ver un
+premium caducado, así que `useIsPremium()` y `ProtectedRoute` cierran a la vez que
+`require_premium` devuelve 403.
+
+Consecuencias, y son grandes:
+
+1. **Sí: con un impago se bloquea solo.** No hace falta que Kunfupay avise de nada. Vence
+   la fecha, se acabó el acceso, en las dos capas. Ya está escrito y probado.
+2. **De Kunfupay no necesitas un evento de impago: necesitas un evento de COBRO.** Uno
+   solo: «se ha pagado el plan X del usuario Y». Con eso extiendes `subscription_end` y el
+   resto lo hace tu propio código.
+3. **El fallo peligroso es el contrario al que temías:** que Kunfupay cobre la renovación
+   y tú no te enteres. Ahí bloquearías a alguien que está pagando. Ése es el caso que hay
+   que cubrir, no el impago.
+
+### 14.2 Encaje pieza a pieza
+
+| Pieza | ¿Encaja? | Por qué |
+|---|---|---|
+| Conceder premium tras un pago | ✅ | `_activate_paid_subscription` (`:4118`) ya es común a los cuatro raíles |
+| **Bloquear al vencer / impago** | ✅ **nativo** | § 14.1. No necesita pasarela |
+| Renovación automática | ⚠️ | Depende del webhook de ellos (§ 13.1). Sin él, no hay renovación: hay repago |
+| Prueba de 7 días | ❌ | Quitarla de este raíl, como ya pasa con PayPal/Revolut/cripto (`METODOS_CON_PRUEBA`) |
+| Portal del cliente y facturas | ⚠️ | Como MoR, son suyos, no tuyos |
+| Reembolso | ⚠️ | Desde su panel; el de admin (`:8541`) es sólo Stripe |
+| Aviso «te vence en 7 días» | ❌ **no existe** | Hay confirmación, impago y cancelación (`:3522`, `:3543`, `:3556`), pero **ningún aviso de vencimiento**. Sin renovación automática, hace falta |
+
+### 14.3 Los dos caminos — y los dos llegan a 50 k
+
+**Camino A — hay webhook (preguntas 1, 2 y 3 del § 5 en verde).** `backend/kunfupay.py`
+calcado de `revolut.py`, un día de trabajo (§ 9, fase 2A). Cada cobro, alta o renovación,
+extiende la fecha. Impago = no llega evento = vence = bloquea. Cero mantenimiento manual.
+
+**Camino B — no hay webhook.** Enlace de pago suyo + alta a mano desde el panel de admin:
+editar el usuario y ponerle el plan, que **la fecha de fin se calcula sola**
+(`_compute_subscription_end`, `server.py:7962`) y queda en el registro de auditoría. **Cero
+líneas de código nuevas.** Lo que cuesta es tiempo, y depende del ticket:
+
+| Plan | Precio | Cobros hasta 50 k | Altas a mano al mes (en 12 meses) | ¿Viable? |
+|---|---|---|---|---|
+| Mensual | 17 € | 2.941 | ~245 | ❌ inviable |
+| Trimestral | 45 € | 1.111 | ~93 | 🟠 duro |
+| **Anual** | 200 € | 250 | ~21 (≈1 al día) | ✅ |
+| **De Por Vida** | 500 € | 100 | ~8 | ✅ trivial |
+
+**En camino B se vende Anual y De Por Vida.** Es la misma conclusión del § 11.3, ahora por
+un segundo motivo independiente: cada renovación mensual es un toque manual, y 245 al mes
+no los hace nadie.
+
+### 14.4 Lo que cuesta el peaje de arranque
+
+50.000 € facturados por Kunfupay al 5-10 %: **2.500-5.000 € de comisión**. Por Stripe con
+tarjeta del EEE serían ~1.000-1.500 €; con tarjeta internacional, ~1.700-2.500 €.
+
+**El sobrecoste de arrancar con Kunfupay hasta los 50 k es de 1.000 a 3.500 € en todo el
+trayecto.** A cambio: sin depender de que Stripe te apruebe, sin OSS propio, con métodos
+locales de LatAm y sin cuota fija. Para una fase de arranque es un precio acotado y
+defendible — **siempre que sea un peaje de arranque y no la estructura definitiva**.
+
+### 14.5 Lo que hay que dejar hecho el día 1 para poder salir el día 50 k
+
+Esto es lo que hace que «sólo para comenzar» sea verdad y no una jaula (§ 13.4: con un MoR
+**el cliente no es tuyo**):
+
+1. **Cada cobro deja fila en `payment_transactions`**, aunque sea a mano: email, plan,
+   importe, fecha y referencia de Kunfupay. Sin ese registro, el día de migrar no sabes a
+   quién le debes cuánto tiempo.
+2. **Vender Anual y De Por Vida**, que además de lo anterior reduce a cuánta gente hay que
+   pedirle que vuelva a pagar el día del cambio.
+3. **Escribir el aviso de vencimiento** (§ 14.2): SendGrid ya está, `subscription_end` ya
+   está, el aviso no. Es lo que sustituye al *dunning* que no sabemos si ellos tienen.
+4. **No prometer en la web lo que el raíl no da**: ni prueba de 7 días ni renovación
+   automática mientras se cobre por aquí.
+5. **Fijar hoy el criterio de salida** —«a 30 k, o el día que Stripe me acepte, migro»—
+   y no dejarlo a la inercia: cuanto más tarde, más suscriptores hay que rescatar a mano.
+
+---
+
 ## Fuentes
 
 Todas consultadas el 2026-08-26 **desde buscador**, porque el dominio del proveedor está
