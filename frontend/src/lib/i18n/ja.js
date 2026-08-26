@@ -4074,7 +4074,6 @@ export default {
   "helpDrawdown": "口座の高値からその後の安値までの最大の落ち込みです。システムを続けられるかを本当に決めるのはこの数字です。想定していなかった連敗を耐えられる人はほとんどいません。",
   "toolMapOpen": "一覧",
   "toolMapClose": "一覧を閉じる",
-  "toolMapIntro": "14種類の計算ツールと、それぞれの用途。クリックで開きます。",
   "prodStock": "株式",
   "prodCfd": "CFD",
   "prodFutures": "先物",

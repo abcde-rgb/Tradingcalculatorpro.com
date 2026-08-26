@@ -4074,7 +4074,6 @@ export default {
   "helpDrawdown": "The largest drop from an account peak to the low that follows it. This is the number that really decides whether you can stick to the system: almost nobody keeps trading through a drawdown they didn't expect.",
   "toolMapOpen": "Map",
   "toolMapClose": "Close map",
-  "toolMapIntro": "All 14 calculators and what each one does. Click one to open it.",
   "prodStock": "Stocks",
   "prodCfd": "CFD",
   "prodFutures": "Futures",

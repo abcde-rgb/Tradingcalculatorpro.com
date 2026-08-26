@@ -4073,7 +4073,6 @@ export default {
   "helpDrawdown": "Il calo più ampio da un massimo del conto al minimo successivo. È il numero che decide davvero se riuscirai a seguire il sistema: quasi nessuno continua a operare durante una serie che non si aspettava.",
   "toolMapOpen": "Mappa",
   "toolMapClose": "Chiudi mappa",
-  "toolMapIntro": "Le 14 calcolatrici e cosa fa ciascuna. Clicca su una per aprirla.",
   "prodStock": "Azioni",
   "prodCfd": "CFD",
   "prodFutures": "Futures",

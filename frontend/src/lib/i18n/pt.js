@@ -4073,7 +4073,6 @@ export default {
   "helpDrawdown": "A maior queda desde um máximo da conta até ao mínimo seguinte. É o número que decide mesmo se conseguirá seguir o sistema: quase ninguém aguenta operar uma série que não esperava.",
   "toolMapOpen": "Mapa",
   "toolMapClose": "Fechar mapa",
-  "toolMapIntro": "As 14 calculadoras e o que faz cada uma. Clique numa para abrir.",
   "prodStock": "Ações",
   "prodCfd": "CFD",
   "prodFutures": "Futuros",

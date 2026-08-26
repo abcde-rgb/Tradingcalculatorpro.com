@@ -4074,7 +4074,6 @@ export default {
   "helpDrawdown": "La plus forte baisse entre un sommet du compte et le creux qui suit. C'est le chiffre qui décide vraiment si vous tiendrez le système : presque personne ne continue à trader une série qu'il n'avait pas anticipée.",
   "toolMapOpen": "Carte",
   "toolMapClose": "Fermer la carte",
-  "toolMapIntro": "Les 14 calculatrices et ce que fait chacune. Cliquez pour ouvrir.",
   "prodStock": "Actions",
   "prodCfd": "CFD",
   "prodFutures": "Futures",

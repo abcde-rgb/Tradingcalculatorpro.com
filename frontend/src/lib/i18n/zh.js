@@ -4074,7 +4074,6 @@ export default {
   "helpDrawdown": "账户从高点到随后低点的最大回撤。这个数字才真正决定你能否坚持这套系统：几乎没人能扛过一段自己没预料到的回撤。",
   "toolMapOpen": "总览",
   "toolMapClose": "关闭总览",
-  "toolMapIntro": "全部 14 个计算器及其用途。点击即可打开。",
   "prodStock": "股票",
   "prodCfd": "差价合约",
   "prodFutures": "期货",

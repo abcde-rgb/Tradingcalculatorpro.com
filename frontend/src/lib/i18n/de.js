@@ -4074,7 +4074,6 @@ export default {
   "helpDrawdown": "Der größte Rückgang von einem Kontohoch bis zum darauffolgenden Tief. Diese Zahl entscheidet wirklich, ob du dem System treu bleiben kannst: Kaum jemand handelt eine Serie durch, mit der er nicht gerechnet hat.",
   "toolMapOpen": "Übersicht",
   "toolMapClose": "Übersicht schließen",
-  "toolMapIntro": "Alle 14 Rechner und was jeder macht. Zum Öffnen anklicken.",
   "prodStock": "Aktien",
   "prodCfd": "CFD",
   "prodFutures": "Futures",

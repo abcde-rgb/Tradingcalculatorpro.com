@@ -4074,7 +4074,6 @@ export default {
   "helpDrawdown": "La mayor caída desde un máximo de la cuenta hasta el mínimo posterior. Es el número que de verdad decide si podrás seguir el sistema: casi nadie aguanta operando una racha que no esperaba.",
   "toolMapOpen": "Mapa",
   "toolMapClose": "Cerrar mapa",
-  "toolMapIntro": "Las 14 calculadoras y qué hace cada una. Pulsa una para abrirla.",
   "prodStock": "Acciones",
   "prodCfd": "CFD",
   "prodFutures": "Futuros",
