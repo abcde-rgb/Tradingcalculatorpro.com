@@ -22,6 +22,30 @@
 - [ ] **Term structure de IV** (`/options/term-structure`): el endpoint existe;
       `PositioningPanel` sólo consume `/options/positioning`.
 
+## Los diagramas de la academia hablan castellano (2026-08-26)
+
+- [ ] **179 rótulos en castellano fijo repartidos por 37 de los 44
+      `components/education/*Visual.jsx` — decisión del dueño.**
+      La cabecera de cada fichero dice «Language-neutral schematic SVGs» y no lo
+      son: dentro hay «máx ↑», «recesión», «pérdida media», «el 'descuento'
+      enruta la comisión». `/education` es premium, así que quien lo ve es un
+      cliente que paga: abre la academia en alemán y los gráficos le salen en
+      castellano.
+
+      El recuento completo son **1.180 rótulos de texto** en los 44 ficheros
+      (los 179 son sólo los que llevan tilde, ñ o signo de apertura, que es lo
+      que se puede detectar sin ambigüedad). Traducirlos todos son ~11.800
+      cadenas, y **no todas se traducen igual**: hay rótulos que son prosa y
+      quieren traducción («patrón + nivel = alta probabilidad») y otros que
+      quieren volverse neutros de verdad, quitando la palabra y dejando el
+      símbolo («máx ↑» → «↑»). Eso es una decisión de producto, no una tarea
+      mecánica, y por eso no se hizo de paso.
+
+      Lo que sí está hecho: `frontend/scripts/check-visuales-idioma.js` fija el
+      número de cada fichero como techo en `visuales-idioma.json`. Puede BAJAR
+      —arreglar uno y sellar— pero no subir, y un diagrama nuevo parte de cero.
+      Corre en CI. La deuda está acotada; no crece en silencio.
+
 ## Cumplimiento (RGPD) — G-15
 - [x] ~~**`trading_plans` no se borra ni se exporta.**~~ ✅ **Cerrado
       (2026-08-06, BUG-044).** Y no parcheando las tres listas sino la causa:

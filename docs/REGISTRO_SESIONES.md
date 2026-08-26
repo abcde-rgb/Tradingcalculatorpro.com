@@ -4741,3 +4741,100 @@ la herramienta con un bróker real. Y dos restos ajenos a esta rama: `s.tmp.cjs`
 en `frontend/`, un fichero temporal que se coló en el commit 8a0ade5, y
 `toolMapIntro`, una clave i18n muerta que aún dice «14 calculadoras» en los diez
 idiomas sin que ningún componente la pinte.
+
+---
+
+## 2026-08-26 — Tres páginas públicas hablaban castellano en los diez idiomas
+
+Examen integral pedido de arriba abajo (contenido, idiomas, cálculos,
+organización). Lo que salió verde y por qué ruta:
+
+| Vertical | Ruta de comprobación | Resultado |
+|---|---|---|
+| Base | pytest + eslint + 14 verificadores + build | 1.041 pasan / 72 skip · 0 errores |
+| Fórmulas | valores de referencia + diferencias finitas | BS call 10,4506 · put 5,5735 · Δ 0,6368 · paridad OK · IV imposible → `None` |
+| SEO | el build REAL, con `postbuild` | 1.601 páginas · 1.609 URLs · hreflang ×10 + `x-default` |
+| Seguridad | AST estático, no re-correr los tests | 41 rutas `/admin`, 0 sin guarda · 4 webhooks de pago, 4 verifican firma |
+| i18n (paridad) | `i18n-check` | 6.965 claves × 10 idiomas · 0 ausentes · 0 sin traducir |
+
+Y lo que no.
+
+### El fallo
+
+`AboutPage`, `ContactPage` y `NotFoundPage` **no importaban i18n**: cero
+llamadas a `t()`, cero `useI18n`. El texto iba en castellano dentro del JSX y
+salía en castellano en los diez idiomas, con la cabecera y el pie correctamente
+traducidos alrededor. `/about` está en el sitemap con prioridad 0,7.
+`AuthPages` —la pantalla de mayor intención de la web— iba a medias: 37 `t()` y
+26 literales, incluidos los `aria-label` de la contraseña, que llegaban en
+castellano a los lectores de pantalla de los diez idiomas.
+
+Se vio en una captura, no leyendo código: `sobre__escritorio__light.png` con la
+navegación en inglés y el cuerpo entero en castellano.
+
+**Por qué los verificadores de i18n estaban en verde, y con razón:**
+`i18n-check` compara juegos de claves entre idiomas. `i18n-traducido` compara el
+valor contra el inglés. Los dos miran el DICCIONARIO. Ninguno pregunta si la
+pantalla lo usa. Es el «check que sólo mira la mitad» del catálogo de
+`no-me-fio`, aplicado a una capa entera.
+
+### Lo que se hizo
+
+- 103 claves nuevas × 10 idiomas para las cuatro pantallas. Los CTA de `/about`
+  reutilizan `viewPlans` y `getStarted`, que estaban definidas y sin usar.
+- **`scripts/i18n-escritura.js`** (nuevo, en CI): que cada idioma esté escrito en
+  su alfabeto. En su primera ejecución cazó dos erratas que ya estaban en
+  producción — `zh.js futPriceMove` valía «Движение цены», la fila entera en
+  ruso, y `zh.edu.js ntStratsDesc` llevaba «первый» incrustado en mitad de una
+  frase china. Las dos pasaban los otros dos verificadores sin despeinarse.
+- **`tests/e2e/navegador/paginas-traducidas.js`** (nuevo): la ruta independiente
+  que faltaba. Mira la PANTALLA, sobre el build compilado, en un navegador. 42
+  comprobaciones (7 textos × 3 idiomas), cada una con **su aserción negativa** —
+  que el castellano tampoco se cuele—, porque aquí los falsos verdes han sido
+  siempre de omisión. Devolver `AboutPage` a su literal la hace fallar 6 veces.
+- **`scripts/check-visuales-idioma.js`** (nuevo, en CI): techo por fichero para
+  los 179 rótulos castellanos de los diagramas de la academia. Puede bajar, no
+  subir; un diagrama nuevo parte de cero. No salda la deuda —son ~1.180 rótulos
+  × 10 idiomas y llevan decisión de producto detrás, ver `PENDIENTES.md`—
+  impide que crezca en silencio.
+- **Precio pegado al periodo** en `/pricing` y en la portada: dos `<span>`
+  adyacentes sin separador. Con «/mes» la barra disimula; con el plan lifetime
+  salía «€500pago único», «€500Einmalzahlung», «€5001回限りの支払い». Ahora lo
+  decide `components/pricing/PlanPeriod.jsx`, no un espacio invisible dentro de
+  la traducción.
+- **`capturas.js` decía cubrir «pantallas públicas»** y listaba `/options` y
+  `/options/strategies`, que son `premiumOnly`: pintaban el login, la misma
+  imagen byte a byte que `/login`. Tres de nueve capturas eran la misma y el
+  smoke cerraba en verde. Lista corregida (entran `/brokers` y
+  `/forgot-password`) y comprobación nueva: dos capturas idénticas son fallo
+  duro.
+
+### Dos sondas propias que estaban mal
+
+**El recuento de claves muertas.** Se dijo «573 claves muertas, ~35 KB por
+visitante» y luego «≥175, 12,8 KB» como suelo conservador. **Las dos cifras son
+malas**: el detector no modelaba las claves construidas por concatenación
+(`t(plan.id + 'Price')`), así que daba por muertas `monthlyPrice`,
+`lifetimePeriod` y cuatro más que se están pintando ahora mismo en `/pricing`.
+Borrarlas habría vaciado la página de precios. No se borró ninguna clave. Cuando
+una sonda falla, la primera sospechosa es la sonda.
+
+**Los cuatro sabotajes nuevos.** Llevaban `cd frontend && …` sin subshell dentro
+de `probar`, que evalúa en el shell del script: el directorio se quedaba
+cambiado y los tests siguientes medían otra cosa. 13 fallos, de los que sólo uno
+era real. El aviso estaba escrito en el propio `probar()`, con este mismo fallo
+como ejemplo.
+
+Y una tercera lección de fontanería: `probar-verificadores.sh` restaura con
+`git checkout -- .`, así que editar ficheros con seguimiento MIENTRAS corre se
+los lleva por delante. Pasó con estas mismas notas.
+
+### Lo que NO se comprobó
+
+- **Las pantallas premium no se han visto.** El smoke sólo cubre público y no hay
+  sesión de pago en el sandbox. Los 179 rótulos de la academia salen de leer el
+  código, no de verlos renderizados.
+- **El recuento de literales es un suelo.** El barrido caza castellano por
+  tilde/ñ/¿; «Solo Lifetime» o «Listo para empezar» no llevan diacríticos.
+- **Brókers y datos de mercado**: el proxy bloquea esos dominios.
+- **El disparador de despliegue** vive en la consola de GCP, no en el repo.

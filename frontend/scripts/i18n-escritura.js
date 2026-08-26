@@ -31,15 +31,19 @@ const DIR = path.join(__dirname, '..', 'src', 'lib', 'i18n');
 
 // Rangos por sistema de escritura. Lo que no está aquí (latino, dígitos,
 // puntuación, símbolos, emoji, flechas) no se mira: es común a todos.
+// Los rangos van en \u escapado a propósito. Escritos con el carácter literal,
+// el rango árabe acaba en U+FEFF y eslint lo marcaba como espacio irregular —
+// con razón: un carácter invisible dentro de una clase de caracteres es
+// exactamente lo que nadie ve al revisar. Escapado se lee y se revisa.
 const ESCRITURAS = {
-  cirilico: /[Ѐ-ӿ]/u,
-  han:      /[一-鿿㐀-䶿]/u,
-  kana:     /[぀-ゟ゠-ヿ]/u,
-  hangul:   /[가-힯ᄀ-ᇿ㄰-㆏]/u,
-  arabe:    /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/u,
-  hebreo:   /[֐-׿]/u,
-  tailandes:/[฀-๿]/u,
-  devanagari:/[ऀ-ॿ]/u,
+  cirilico:  /[\u0400-\u052F]/u,                                     // cirilico + suplemento
+  han:       /[\u4E00-\u9FFF\u3400-\u4DBF]/u,                        // ideogramas CJK
+  kana:      /[\u3040-\u309F\u30A0-\u30FF]/u,                        // hiragana + katakana
+  hangul:    /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/u,
+  arabe:     /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFC]/u,
+  hebreo:    /[\u0590-\u05FF]/u,
+  tailandes: /[\u0E00-\u0E7F]/u,
+  devanagari:/[\u0900-\u097F]/u,
 };
 
 // Qué escritura puede aparecer en cada idioma. El griego NO se lista porque se
