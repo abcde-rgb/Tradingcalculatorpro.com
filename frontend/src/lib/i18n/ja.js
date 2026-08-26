@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "窓",
   "btvTrainSharpe": "学習シャープ",
   "btvTestSharpe": "テストシャープ",
+  "gmTitle": "グリッドとマーチンゲール — 嘘をつく曲線",
+  "vrpTitle": "ボラティリティ・リスクプレミアム",
 }

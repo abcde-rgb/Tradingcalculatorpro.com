@@ -322,6 +322,8 @@ const TOPICS = [
   { v:'copy-trading', slug:'copy-y-social-trading', tk:'cpTitle', ik:'cpIntro' },
   { v:'inst-desk', slug:'mesa-institucional', tk:'ideskTitle', ik:'ideskIntro' },
   { v:'business', slug:'el-negocio-del-trading', tk:'tbizTitle', ik:'tbizIntro' },
+  { v:'grid-martingale', slug:'grid-y-martingala-por-que-no-funcionan', tk:'gmTitle', ik:'gmIntro' },
+  { v:'vol-premium', slug:'prima-de-riesgo-de-volatilidad', tk:'vrpTitle', ik:'vrpIntro' },
 ];
 
 // ─── Plantilla HTML ───────────────────────────────────────────────

@@ -90,6 +90,8 @@ export const EDU_MODULES = [
   { id: 'ehlers', titleKey: 'ehlTitle', getters: ['getEhlers'] },
   { id: 'rrg', titleKey: 'rrgTitle', getters: ['getRRG'] },
   { id: 'pitchfork', titleKey: 'pfTitle', getters: ['getPitchfork'] },
+  { id: 'grid-martingale', titleKey: 'gmTitle', getters: ['getGridMartingale'] },
+  { id: 'vol-premium', titleKey: 'vrpTitle', getters: ['getVolPremium'] },
   { id: 'bill-williams', titleKey: 'bwTitle', getters: ['getBillWilliams'], evidence: 'caution' },
   { id: 'wolfe-waves', titleKey: 'wlfTitle', getters: ['getWolfeWaves'], evidence: 'disputed' },
   { id: 'oscillators', titleKey: 'oscTitle', getters: ['getObscureOscillators'] },

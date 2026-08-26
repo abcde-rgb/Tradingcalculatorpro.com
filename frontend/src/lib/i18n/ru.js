@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "Окно",
   "btvTrainSharpe": "Шарп обуч.",
   "btvTestSharpe": "Шарп тест",
+  "gmTitle": "Сетка и мартингейл: кривые, которые лгут",
+  "vrpTitle": "Премия за риск волатильности",
 }

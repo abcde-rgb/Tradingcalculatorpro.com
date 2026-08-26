@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "Finestra",
   "btvTrainSharpe": "Sharpe addestr.",
   "btvTestSharpe": "Sharpe test",
+  "gmTitle": "Griglia e martingala: le curve che ingannano",
+  "vrpTitle": "Il premio al rischio di volatilità",
 }

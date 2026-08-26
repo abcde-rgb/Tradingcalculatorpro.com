@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "النافذة",
   "btvTrainSharpe": "شارب التدريب",
   "btvTestSharpe": "شارب الاختبار",
+  "gmTitle": "الشبكة والمضاعفة: منحنيات تكذب",
+  "vrpTitle": "علاوة مخاطر التقلب",
 }

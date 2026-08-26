@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "窗口",
   "btvTrainSharpe": "训练夏普",
   "btvTestSharpe": "测试夏普",
+  "gmTitle": "网格与马丁格尔：会骗人的曲线",
+  "vrpTitle": "波动率风险溢价",
 }

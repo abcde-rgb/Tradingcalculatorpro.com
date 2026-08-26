@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "Janela",
   "btvTrainSharpe": "Sharpe treino",
   "btvTestSharpe": "Sharpe teste",
+  "gmTitle": "Grid e martingala: as curvas que enganam",
+  "vrpTitle": "O prémio de risco de volatilidade",
 }

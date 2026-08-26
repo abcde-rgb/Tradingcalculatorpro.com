@@ -2019,6 +2019,44 @@ export const getRRG = (t) => ({
   note: t('rrgNote'),
 });
 
+// Grid and martingale — why the prettiest equity curves on the internet have
+// genuinely negative expectancy: the curve only counts what is CLOSED and the
+// system never closes what is losing. Includes the anti-martingale contrast,
+// which is the same gesture reversed and is defensible.
+export const getGridMartingale = (t) => ({
+  title: t('gmTitle'),
+  intro: t('gmIntro'),
+  items: [
+    { id: 'what',       name: t('gmWhatName'),       desc: t('gmWhatDesc') },
+    { id: 'curve',      name: t('gmCurveName'),      desc: t('gmCurveDesc'),      type: 'bearish' },
+    { id: 'martingale', name: t('gmMartingaleName'), desc: t('gmMartingaleDesc'), type: 'bearish' },
+    { id: 'regime',     name: t('gmRegimeName'),     desc: t('gmRegimeDesc') },
+    { id: 'detect',     name: t('gmDetectName'),     desc: t('gmDetectDesc'),     type: 'bearish' },
+    { id: 'anti',       name: t('gmAntiName'),       desc: t('gmAntiDesc'),       type: 'bullish' },
+    { id: 'verdict',    name: t('gmVerdictName'),    desc: t('gmVerdictDesc'),    type: 'neutral' },
+  ],
+  note: t('gmNote'),
+});
+
+// The volatility risk premium — the honest version of "selling options works":
+// implied trades above realised because protection has structural demand, so
+// the seller is paid for carrying tail risk. Volmageddon is what the bill looks
+// like. Pairs with the grid module: same payoff shape, opposite substance.
+export const getVolPremium = (t) => ({
+  title: t('vrpTitle'),
+  intro: t('vrpIntro'),
+  items: [
+    { id: 'what',     name: t('vrpWhatName'),     desc: t('vrpWhatDesc') },
+    { id: 'why',      name: t('vrpWhyName'),      desc: t('vrpWhyDesc'),      type: 'bullish' },
+    { id: 'evidence', name: t('vrpEvidenceName'), desc: t('vrpEvidenceDesc'), type: 'neutral' },
+    { id: 'tail',     name: t('vrpTailName'),     desc: t('vrpTailDesc'),     type: 'bearish' },
+    { id: 'vsgrid',   name: t('vrpVsGridName'),   desc: t('vrpVsGridDesc') },
+    { id: 'manage',   name: t('vrpManageName'),   desc: t('vrpManageDesc'),   type: 'bullish' },
+    { id: 'verdict',  name: t('vrpVerdictName'),  desc: t('vrpVerdictDesc'),  type: 'neutral' },
+  ],
+  note: t('vrpNote'),
+});
+
 // Andrews' Pitchfork (median line theory) — Alan Andrews' 3-parallel-line tool
 // from 3 pivots: how to draw it, the median line as a magnet, the parallels as
 // channel S/R, the Schiff variant, how to trade it, and honest (discretionary) limits.

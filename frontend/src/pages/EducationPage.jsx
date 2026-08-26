@@ -18,7 +18,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useCloudPref } from '@/lib/cloudPrefs';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, getGridMartingale, getVolPremium, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -573,6 +573,8 @@ export default function EducationPage() {
   const EHLERS = getEhlers(t);
   const RRG_G = getRRG(t);
   const PITCHFORK = getPitchfork(t);
+  const GRID_MARTINGALE = getGridMartingale(t);
+  const VOL_PREMIUM = getVolPremium(t);
   const BILL_WILLIAMS = getBillWilliams(t);
   const WOLFE = getWolfeWaves(t);
   const MARKET_PROFILE = getMarketProfile(t);
@@ -679,6 +681,7 @@ export default function EducationPage() {
       { value: 'cross-margin', label: t('xmEduTitle') },
       { value: 'probability', label: t('probabilityStatsTitle') },
       { value: 'tail-risk', label: t('tailTitle') },
+      { value: 'grid-martingale', label: t('gmTitle') },
     ]},
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
@@ -701,6 +704,7 @@ export default function EducationPage() {
       { value: 'options-strat', label: t('optTitle') },
       { value: 'options-income', label: t('oiTitle') },
       { value: 'options-vol', label: t('ovTitle') },
+      { value: 'vol-premium', label: t('vrpTitle') },
       { value: 'gamma-exposure', label: t('gexTitle') },
       { value: 'news-trading', label: t('ntTitle') },
       { value: 'algo-trading', label: t('atTitle') },
@@ -1548,6 +1552,58 @@ export default function EducationPage() {
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{RRG_G.note}</p>
               </div>
+            </TabsContent>
+
+            {/* Grid y martingala — por qué la curva sube y la cuenta no */}
+            <TabsContent value="grid-martingale" className="space-y-8">
+              <Card className="bg-gradient-to-br from-red-500/5 to-primary/10 border-red-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                    {GRID_MARTINGALE.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{GRID_MARTINGALE.intro}</p>
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {GRID_MARTINGALE.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{GRID_MARTINGALE.note}</p>
+            </TabsContent>
+
+            {/* Prima de riesgo de volatilidad — el mismo perfil que la malla, otra sustancia */}
+            <TabsContent value="vol-premium" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Activity className="w-6 h-6 text-amber-500" />
+                    {VOL_PREMIUM.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{VOL_PREMIUM.intro}</p>
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {VOL_PREMIUM.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{VOL_PREMIUM.note}</p>
             </TabsContent>
 
             {/* Andrews' Pitchfork — build, median magnet, parallels, Schiff, use, limits */}

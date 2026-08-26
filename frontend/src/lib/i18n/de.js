@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "Fenster",
   "btvTrainSharpe": "Sharpe Training",
   "btvTestSharpe": "Sharpe Test",
+  "gmTitle": "Grid und Martingale: die Kurven, die lügen",
+  "vrpTitle": "Die Volatilitätsrisikoprämie",
 }

@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "Ventana",
   "btvTrainSharpe": "Sharpe entren.",
   "btvTestSharpe": "Sharpe prueba",
+  "gmTitle": "Grid y martingala: las curvas que engañan",
+  "vrpTitle": "La prima de riesgo de volatilidad",
 }

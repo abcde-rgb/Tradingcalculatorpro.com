@@ -4846,4 +4846,6 @@ export default {
   "btvWindow": "Fenêtre",
   "btvTrainSharpe": "Sharpe entraîn.",
   "btvTestSharpe": "Sharpe test",
+  "gmTitle": "Grille et martingale : les courbes qui mentent",
+  "vrpTitle": "La prime de risque de volatilité",
 }
