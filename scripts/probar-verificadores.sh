@@ -620,6 +620,67 @@ probar_inverso "un registro fechado que dice 8 idiomas porque ese día había 8"
   "printf '# Zz sabotaje\n\n## Sesión de ayer (2026-07-04) — i18n\n\nCerró con 8 idiomas a la par.\n' > $DOC_SABOTAJE" \
   "rm -f $DOC_SABOTAJE"
 
+# ── El clasificador de comentarios de la auditoría ──────────────────────────
+#
+# La sección C separa un resto de tecnología retirada que está VIVO de uno que
+# sólo se menciona en un comentario, y esa marca es la que decide si el resumen
+# sale 🔴 o 🟡. Mientras la clasificación miraba cómo empezaba la línea, decía
+# «⚠️ CÓDIGO» de siete menciones que estaban dentro de un docstring, de un
+# `{/* */}` de JSX o al final de una línea tras un `#`. El informe contradecía a
+# `CLAUDE.md` («no queda código de ninguna») y CLAUDE.md tenía razón.
+#
+# Que la clasificación acierte no se ve ejecutando la auditoría —imprime algo
+# igual—, así que se le pone delante un fichero de propiedades conocidas y se
+# rompe el clasificador en las DOS direcciones: todo-código y todo-comentario.
+# Un solo sabotaje dejaría pasar el clasificador que dice siempre lo mismo.
+titulo "Clasificación de comentarios de la auditoría (auditar.py § C)"
+CEBO_PY="backend/zz_sabotaje_restos.py"
+CEBO_JSX="frontend/src/components/ZzSabotajeRestos.jsx"
+TEMPORALES+=("$CEBO_PY" "$CEBO_JSX")
+# `MONGO_URL` a propósito: es el único término retirado sin ninguna aparición
+# real, así que las cinco del cebo caben bajo el tope de seis sitios por término
+# y ninguna queda fuera del informe por culpa del recorte.
+cat > "$CEBO_PY" <<'CEBO'
+"""Cebo del sabotaje: clasificación de comentarios.
+
+Este docstring menciona MONGO_URL y no es código vivo (línea 3).
+"""
+MONGO_URL_ZZ = "postgres"
+TOTAL_ZZ = 1  # antes esto salía de MONGO_URL
+CEBO
+cat > "$CEBO_JSX" <<'CEBO'
+export const ZzSabotajeRestos = () => (
+  /* Antes esto leía MONGO_URL. Ya no. */
+  'MONGO_URL'
+);
+CEBO
+INFORME_C=$(mktemp)
+TEMPORALES+=("$INFORME_C")
+# Sin tubería, por lo mismo que el test de más abajo: `auditar.py` sale 1 con
+# hallazgos y con `pipefail` la tubería heredaría ESE código.
+CLASIFICA="python scripts/auditar.py > $INFORME_C 2>/dev/null;
+  grep -q 'zz_sabotaje_restos.py:3 \[coment.\]'    $INFORME_C &&
+  grep -q 'zz_sabotaje_restos.py:5 \[⚠️ CÓDIGO\]'  $INFORME_C &&
+  grep -q 'zz_sabotaje_restos.py:6 \[coment.\]'    $INFORME_C &&
+  grep -q 'ZzSabotajeRestos.jsx:2 \[coment.\]'     $INFORME_C &&
+  grep -q 'ZzSabotajeRestos.jsx:3 \[⚠️ CÓDIGO\]'   $INFORME_C"
+RETORNO="return (_comentarios_py if fichero.suffix == \".py\" else _comentarios_js)(texto)"
+probar "un clasificador que da TODO por código vivo (el fallo real)" \
+  "$CLASIFICA" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('scripts/auditar.py')
+ls = p.read_text().split(chr(10))
+ls.insert(ls.index('def restos() -> None:'), 'zonas_de_comentario = lambda f, x: {}' + chr(10))
+p.write_text(chr(10).join(ls))\""
+probar "un clasificador que da TODO por comentario (el contrario)" \
+  "$CLASIFICA" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('scripts/auditar.py')
+ls = p.read_text().split(chr(10))
+ls.insert(ls.index('def restos() -> None:'), 'zonas_de_comentario = lambda f, x: dict.fromkeys(range(1, 10000), 0)' + chr(10))
+p.write_text(chr(10).join(ls))\""
 # ── Veredicto ───────────────────────────────────────────────────────────────
 echo ""
 echo "══════════════════════════════════════════════════════"

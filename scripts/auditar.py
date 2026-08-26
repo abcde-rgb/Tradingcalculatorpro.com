@@ -23,10 +23,13 @@ rompe el build se acaba desactivando, y entonces deja de leerse.
 """
 from __future__ import annotations
 
+import ast
+import io
 import json
 import re
 import subprocess
 import sys
+import tokenize
 from collections import Counter
 from pathlib import Path
 
@@ -174,9 +177,99 @@ RETIRADOS = {
 }
 
 
-def es_comentario(txt: str) -> bool:
-    t = txt.strip()
-    return t.startswith(("#", "//", "*", "/*", '"""', "'''"))
+def _comentarios_py(texto: str) -> dict[int, int]:
+    """Por cada línea, la columna desde la que empieza territorio de comentario.
+
+    Se parsea de verdad en vez de mirar por dónde empieza la línea: `tokenize` da
+    los `#` —incluidos los que van AL FINAL de una línea de código— y el AST da
+    los docstrings, que ocupan varias líneas y de los que sólo la primera empieza
+    por comillas. Mirar línea a línea acusaba de «código vivo» a cinco menciones
+    que estaban dentro de un docstring, y ese 🔴 contradecía a `CLAUDE.md`.
+    """
+    desde: dict[int, int] = {}
+    try:
+        arbol = ast.parse(texto)
+    except SyntaxError:
+        arbol = None
+    if arbol is not None:
+        for n in ast.walk(arbol):
+            # Un docstring es una sentencia cuyo único valor es una cadena.
+            if (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
+                    and isinstance(n.value.value, str)):
+                fin = n.value.end_lineno or n.value.lineno
+                for ln in range(n.value.lineno, fin + 1):
+                    desde[ln] = 0
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(texto).readline):
+            if tok.type == tokenize.COMMENT:
+                ln, col = tok.start
+                desde[ln] = min(desde.get(ln, col), col)
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        pass    # fichero a medio escribir: mejor sin dato que con un dato falso
+    return desde
+
+
+def _comentarios_js(texto: str) -> dict[int, int]:
+    """Lo mismo para JS/JSX, con un recorrido de estados.
+
+    No hay parser de JS en la biblioteca estándar, así que se recorre el fichero
+    llevando la cuenta de si vamos dentro de una cadena, de `//` o de `/* */`.
+    Ese último caso cubre el `{/* … */}` de JSX, que es el que colaba el
+    comentario de una pantalla como si fuera código.
+    """
+    desde: dict[int, int] = {}
+    estado: str | None = None       # None | 'linea' | 'bloque' | la comilla abierta
+    ln, col, i, n = 1, 0, 0, len(texto)
+    while i < n:
+        c = texto[i]
+        dos = texto[i:i + 2]
+        if estado is None:
+            if dos in ("//", "/*"):
+                estado = "linea" if dos == "//" else "bloque"
+                desde[ln] = min(desde.get(ln, col), col)
+                i += 2
+                col += 2
+                continue
+            if c in "\"'`":
+                estado = c
+        elif estado == "linea":
+            if c == "\n":
+                estado = None
+        elif estado == "bloque":
+            if dos == "*/":
+                estado = None
+                i += 2
+                col += 2
+                continue
+        else:                                   # dentro de una cadena
+            if c == "\\":
+                i += 2
+                col += 2
+                continue
+            if c == estado:
+                estado = None
+            elif c == "\n" and estado in ("'", '"'):
+                # Una cadena de comillas simples o dobles NO cruza el salto de
+                # línea en JS. Cerrarla aquí es correcto, y además cura el único
+                # caso que este recorrido no sabe distinguir: una expresión
+                # regular con una comilla dentro (`.replace(/"/g, …)`) se leía
+                # como cadena abierta y se tragaba el `//` de la línea siguiente.
+                # Sólo la plantilla (`) sigue viva de una línea a otra.
+                estado = None
+        if c == "\n":
+            ln += 1
+            col = 0
+            if estado == "bloque":
+                desde[ln] = 0
+        else:
+            col += 1
+        i += 1
+    return desde
+
+
+def zonas_de_comentario(fichero: Path, texto: str) -> dict[int, int]:
+    """Línea → columna desde la que es comentario. Sin entrada = línea de código."""
+    return (_comentarios_py if fichero.suffix == ".py" else _comentarios_js)(texto)
 
 
 def restos() -> None:
@@ -188,12 +281,21 @@ def restos() -> None:
             for f in base.glob(pat):
                 if "node_modules" in str(f):
                     continue
-                for i, l in enumerate(f.read_text(errors="ignore").split("\n"), 1):
+                texto = f.read_text(errors="ignore")
+                desde = zonas_de_comentario(f, texto)
+                for i, l in enumerate(texto.split("\n"), 1):
+                    bajo = l.lower()
                     for termino in RETIRADOS:
-                        if termino.lower() in l.lower():
-                            marca = "coment." if es_comentario(l) else "⚠️ CÓDIGO"
-                            encontrados.setdefault(termino, []).append(
-                                f"{f.relative_to(RAIZ)}:{i} [{marca}]")
+                        col = bajo.find(termino.lower())
+                        if col < 0:
+                            continue
+                        # Comentario sólo si el término cae DENTRO de él: un `#`
+                        # al final de la línea no absuelve lo que hay antes.
+                        inicio = desde.get(i)
+                        marca = ("coment." if inicio is not None and col >= inicio
+                                 else "⚠️ CÓDIGO")
+                        encontrados.setdefault(termino, []).append(
+                            f"{f.relative_to(RAIZ)}:{i} [{marca}]")
     if not encontrados:
         linea("  ✅ ni rastro")
         return
@@ -239,8 +341,11 @@ def provisionales() -> None:
     for f in FRONT.rglob("*.jsx"):
         if "node_modules" in str(f) or "/ui/" in str(f):
             continue
-        for i, l in enumerate(f.read_text(errors="ignore").split("\n"), 1):
-            if marca_explicita.search(l) or (es_comentario(l) and provisional.search(l)):
+        texto = f.read_text(errors="ignore")
+        desde = zonas_de_comentario(f, texto)
+        for i, l in enumerate(texto.split("\n"), 1):
+            en_comentario = desde.get(i) is not None
+            if marca_explicita.search(l) or (en_comentario and provisional.search(l)):
                 hits.append((f"{f.relative_to(RAIZ)}:{i}", l.strip()[:88]))
     if hits:
         anota("🟠", f"{len(hits)} marca(s) de provisional en componentes de usuario")
