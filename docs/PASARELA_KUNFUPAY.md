@@ -481,6 +481,83 @@ para un gestor, no para este documento**: aquí sólo queda anotado que la respu
 
 ---
 
+## 13. Su sistema de suscripción y el resto del producto: ¿bueno? (añadido el 2026-08-26)
+
+### 13.1 Bueno, sí — pero para otro negocio
+
+Su suscripción está pensada para **un grupo de Telegram o Discord de pago**, y para eso es
+muy buena: desde su panel se crea el producto, el grupo se genera solo, el bot mete al que
+paga y —esto es lo relevante— **echa al miembro cuando la suscripción caduca o se
+cancela**, sin intervención del vendedor. Para un tipster o una comunidad, eso resuelve el
+negocio entero.
+
+Ese detalle dice algo técnico que importa más que el folleto: **internamente sí tienen el
+estado de la suscripción y sus eventos** (alta, renovación, caducidad, baja). Alguien los
+consume, porque el bot actúa sobre ellos. La pregunta, entonces, no es si existen:
+
+> **¿Esos eventos se publican por webhook a un servidor cualquiera, o sólo se los pasan a
+> su propio bot de Telegram?** Es la diferencia entre integrarlo aquí en un día y no poder
+> integrarlo. Preguntas 2 y 4 del § 5.
+
+### 13.2 Para esta web, el encaje es malo aunque el producto sea bueno
+
+Aquí no hay que meter a nadie en un grupo: hay que poner `is_premium` a `true` en Postgres
+y a `false` cuando caduque, sobre una cuenta que ya existe, con su email verificado, su
+2FA, su passkey y sus preferencias. Todo lo que ellos aportan **alrededor** del cobro ya
+está construido en este repositorio o no hace falta:
+
+| Lo que ofrecen «de más» | Aquí |
+|---|---|
+| Escaparate de productos (`shops.kunfupay.com`) | Hay web propia, en diez idiomas, con SEO y prerender |
+| Grupos de Telegram/Discord automatizados | No es el producto |
+| Automatizaciones de email y embudos | SendGrid ya integrado (verificación, reset, avisos de suscripción) |
+| «+100 herramientas» y asesor IA «Sensei» | El producto **es** un conjunto de herramientas; el asesor IA propio ya existe (AI Trade Coach) |
+| Wallet + tarjeta Visa para gastar el saldo | Comodidad personal, no capacidad del negocio |
+
+Conclusión de la tabla: **no pagarías 5-10 % por sus herramientas — pagarías 5-10 % por
+sus métodos locales y por el Merchant of Record.** Todo lo demás es superficie que este
+proyecto no va a usar. Y eso devuelve la decisión al § 11, donde ya está hecha.
+
+### 13.3 Lo que NO se puede decir que sea bueno, porque no se puede comprobar
+
+Aviso, porque es fácil tragárselo: al buscar «cómo funcionan las suscripciones de
+Kunfupay» aparecen descripciones de reintentos de cobro fallido, *dunning* por email y
+WhatsApp, cupones, periodos de prueba y portal del cliente con recibos descargables —
+**pero esas descripciones son de otras plataformas** (Recaudo, Paytia), no suyas. Aquí no
+se les atribuyen.
+
+De su sistema de suscripción **no hay nada público** que diga si:
+
+- reintentan un cobro fallido, y cuántas veces (sin reintentos, una suscripción con tarjeta
+  pierde del orden del 5-10 % de los cobros cada mes por tarjetas caducadas o rechazos
+  temporales — cifra de sector, no suya);
+- el cliente puede cancelar solo, y desde dónde;
+- hay prorrateo al cambiar de plan, cupones o periodo de prueba;
+- hay portal del suscriptor con sus facturas.
+
+Stripe tiene todo eso documentado y ya integrado aquí (§ 2). Es la diferencia entre un
+sistema que se puede auditar antes de casarse con él y uno que hay que creer.
+
+### 13.4 El riesgo que yo pondría por delante de la comisión
+
+Con un Merchant of Record, **el cliente no es tuyo: es suyo.** No tienes la tarjeta, no
+tienes el mandato de cobro, no tienes la relación de facturación. Con Stripe, si un día te
+vas, te llevas los `customer_id` y existe un procedimiento de migración PCI de los métodos
+de pago a otro proveedor. Con una Inc. de Delaware inscrita hace trece meses (§ 12.4), el
+día que cierren la cuenta —o cierren— **no hay forma de seguir cobrando a tus propios
+suscriptores**: hay que pedirle a cada uno que vuelva a pagar en otro sitio.
+
+Para un producto de suscripción, eso no es un riesgo operativo: es el negocio.
+
+### 13.5 Veredicto
+
+**Buen producto, mal encaje.** Para esta web, Kunfupay es un **buen método de pago para
+LatAm**, no un buen **sistema de suscripción**. Si entra, que entre como cuarto raíl para
+quien no puede pagar con tarjeta europea; la suscripción troncal —renovación, prueba,
+portal, facturas, reembolsos— se queda en Stripe mientras Stripe te acepte.
+
+---
+
 ## Fuentes
 
 Todas consultadas el 2026-08-26 **desde buscador**, porque el dominio del proveedor está

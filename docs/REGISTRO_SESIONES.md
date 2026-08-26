@@ -4818,3 +4818,26 @@ este registro: se escribió que «no existe documentación técnica indexada, ni
 de **usuario**, no referencia de API — que es lo que sigue sin aparecer — pero la
 afirmación tal como se escribió era más fuerte que la evidencia. Corregido en el
 § 0 del documento, con la corrección a la vista y no borrando el error.
+
+**Tercer añadido — «¿y su sistema de suscripción y todo lo demás?» (§ 13).** Su
+suscripción está construida para **grupos de Telegram/Discord de pago**: el bot mete
+al que paga y **echa al que caduca o cancela**. Eso demuestra que internamente
+tienen el estado y los eventos del ciclo de vida; lo que no se sabe es si los
+publican por webhook o sólo se los pasan a su bot — que es la diferencia entre
+integrarlos aquí en un día y no poder. Todo lo que aportan alrededor del cobro
+(escaparate, embudos de email, «+100 herramientas», asesor IA, grupos) **ya está
+construido en este repositorio o no hace falta**: no se pagaría 5-10 % por sus
+herramientas, sino por sus métodos locales y su MoR.
+
+Y un aviso metodológico que casi cuela: buscando «cómo funcionan las suscripciones
+de Kunfupay» salen reintentos de cobro fallido, dunning por email y WhatsApp,
+cupones, prueba gratis y portal del cliente — **pero eso es de Recaudo y Paytia, no
+suyo**. No se les atribuye. De su sistema de suscripción no hay nada público sobre
+reintentos, cancelación por el cliente, prorrateo ni portal del suscriptor.
+
+El riesgo que el § 13.4 pone por delante de la comisión: con un MoR **el cliente no
+es tuyo**. Con Stripe te llevas los `customer_id` y existe migración PCI de los
+métodos de pago; con una Inc. de Delaware de trece meses, el día que cierren la
+cuenta no hay forma de seguir cobrando a tus suscriptores. Veredicto: buen
+producto, mal encaje — buen método de pago para LatAm, no buen sistema de
+suscripción para esta web.
