@@ -155,29 +155,46 @@
   candidatos que ya encontró el navegador; si cita un `id` inexistente, se descarta.
 
 ### Backend — FastAPI + asyncpg (shim Mongo→PostgreSQL)
-- **195 rutas registradas** en la app (contadas sobre `server.app.routes`, 2026-08-03).
-- **24 módulos** (`backend/*.py`, **19 831 líneas** en total): `server.py` (monolito,
-  **8232 líneas**), `admin_routes.py` (1150), `performance.py` (1084),
-  `missing_apis.py` (986), `affiliate_program.py` (859), `options_math.py` (679),
-  `price_action.py` (646) —swings/BOS-CHoCH/S-R/FVG—, `backtest.py` (642),
-  `stock_data.py` (615), `options_optimize.py` (587), `trading_plan.py` (558),
-  `candle_patterns.py` (518), `referrals.py` (373), `options_positioning.py` (370),
-  `realtime_alerts.py` (353), `market_data.py` (328), `portfolio_risk.py` (290),
-  `american_options.py` (282), `timeframes.py` (273), `crypto_data.py` (255),
-  `revolut.py` (215), `market_rates.py` (212), `nowpayments.py` (181),
-  `ecb_rates.py` (143).
-  > ⚠️ **Cuatro de ellos no tienen ninguna interfaz**: `trading_plan.py`,
-  > `backtest.py`, `portfolio_risk.py` y `american_options.py`. Están escritos,
-  > enrutados y con tests, y **el usuario no puede llegar a ellos**. Ver G-14.
+> 📊 Igual que arriba: **los conteos vivos —módulos, líneas, rutas, tests— están en
+> [`MAPA.md`](./MAPA.md)**, generado desde el código y con `--check` en CI. Aquí se
+> describe qué es cada cosa. Esta sección es el caso que enseñó la lección: llegó a
+> decir *24 módulos, 19 831 líneas, `server.py` 8232, 195 rutas* cuando el mapa ya
+> contaba 35, 26 356, 9 279 y 198. Ningún número envejecía solo: envejecían todos a la
+> vez, y el bloque se leía como un inventario verificado.
+
+- **`server.py` es el monolito**: shim de BD, casi todas las rutas, auth, Stripe y el
+  arranque. `admin_routes.py` se importa tarde, en `startup_event`. El resto de módulos
+  son puros y cada uno está listado, con su responsabilidad y su tamaño, en
+  [`MAPA.md`](./MAPA.md) § Módulos.
+- **Módulos sin ninguna pantalla que los alcance** — verificado el 2026-08-26 recorriendo
+  el AST de `server.py` (qué ruta importa y usa cada módulo) y cruzándolo con el detector
+  de consumo de `gen-mapa.py`:
+
+  | Módulo | Rutas que lo llaman | Con pantalla | Estado |
+  |---|:--:|:--:|---|
+  | `backtest.py` | `GET /backtest/strategies`, `POST /backtest/validate` | 0 de 2 | ❌ inalcanzable |
+  | `portfolio_risk.py` | `POST /performance/portfolio-risk`, `POST /calculate/volatility-size` | 0 de 2 | ❌ inalcanzable |
+  | `american_options.py` | `POST /calculate/american`, `POST /calculate/assignment` | 1 de 2 | 🟡 a medias |
+  | `trading_plan.py` | `/plan`, `/plan/history`, `/plan/draft`, `/plan/compliance` y 6 del diario | 10 de 10 | ✅ vivo |
+
+  > `american_options.py` está **a medias**, no fuera: `early_assignment_risk` sí llega al
+  > usuario por `POST /calculate/assignment`, que el panel de opciones llama. Lo que no
+  > llega es el motor de precio americano —binomial y Barone-Adesi-Whaley— y sus griegas
+  > por árbol, que sólo salen por `POST /calculate/american`. Contarlo entero como muerto
+  > escondía que la mitad ya está en producción.
   >
-  > `market_data.py` **ya no está en esa lista**: desde el 2026-08-22 su cascada de
-  > failover entra por `/api/stock/{symbol}` cuando Yahoo no devuelve precio, y la
-  > respuesta arrastra `stale`, `as_of` y `source` hasta la interfaz.
-  - Dos módulos nuevos del 2026-08-22, ninguno con rutas propias:
-    **`log_seguro.py`** (`log_safe`, extraído de `server.py` para que lo importen los
-    12 módulos que registran datos del usuario) y **`brokers_referidos.py`** (el
-    registro de brókers y las condiciones bajo las que un enlace es publicable;
-    sirve `GET /api/brokers`).
+  > `trading_plan.py` **ya no está en la lista**, y llevaba tiempo sin estar: el asistente
+  > del plan estrenó pantalla y consume sus cuatro rutas, más las seis del diario que leen
+  > el plan para juzgar la operación. La afirmación contraria sobrevivió aquí a su propio
+  > arreglo —`check-rutas-muertas.py` ya la había echado de `RUTAS_MUERTAS.md`—, que es
+  > la forma en que se pudre una lista escrita a mano: no se equivoca, se queda quieta.
+  >
+  > `market_data.py` salió el 2026-08-22: su cascada de failover entra por
+  > `GET /api/stock/{symbol}` cuando Yahoo no devuelve precio, y la respuesta arrastra
+  > `stale`, `as_of` y `source` hasta la interfaz.
+
+  Sigue siendo el hueco **G-14**, y la lista completa de rutas huérfanas —con una decisión
+  escrita por cada una— está en [`RUTAS_MUERTAS.md`](./RUTAS_MUERTAS.md).
 - **Datos de mercado**: Binance + Kraken (cripto), BCE (forex), Tesoro de EE. UU.
   (tipo libre de riesgo) y **Yahoo** para acciones, índices, materias primas y la
   cadena de opciones — este último **sin licencia comercial resuelta** (Grupo B,
@@ -187,7 +204,6 @@
 - **Email**: SendGrid. **Rate limiting**: slowapi.
 - **Shim de BD**: clase `Collection` que traduce operadores Mongo (`$set/$inc/$push/$or/
   $in/$regex/$unset/...`) a SQL paramétrico sobre JSONB. **Nunca usar SQL directo.**
-
 ---
 
 ## 3. Qué FALTA / huecos conocidos
@@ -199,8 +215,8 @@
 | G-03 | `conftest.py` con skip roto → CI podía fallar | 🟠 | ✅ Corregido |
 | C-08 | API keys (Stripe/SendGrid) almacenables en `app_settings` (DB) en claro | 🟠 | **Sigue abierto** (verificado 2026-08-03: `sendgrid_api_key` continúa en la lista de ajustes de `server.py` y `admin_routes.py`). Decisión de producto: usar solo Secret Manager; quitar el override por DB |
 | BUG-007 | Preferencias de usuario solo en `localStorage` (no cross-device) | 🟡 | **Sigue abierto**: no existe ningún endpoint `/user/preferences` en el backend (verificado 2026-08-03) |
-| BUG-008 | `server.py` monolítico (**8232 líneas**, +2100 desde que se anotó) | 🟠 | Refactor a `app/routers/` (requiere G-17 antes). Deuda técnica |
-| G-04 | ~~**Route shadowing** en admin~~ | 🟢 | ✅ **Cerrado**: `test_route_uniqueness_unit.py` pasa sobre las 195 rutas registradas — no queda ningún (método, path) duplicado |
+| BUG-008 | `server.py` monolítico, y creciendo con cada sesión — el tamaño de hoy, en [`MAPA.md`](./MAPA.md) | 🟠 | Refactor a `app/routers/` (requiere G-17 antes). Deuda técnica |
+| G-04 | ~~**Route shadowing** en admin~~ | 🟢 | ✅ **Cerrado**: `test_route_uniqueness_unit.py` pasa sobre **todas** las rutas registradas, las de hoy y las que se añadan — no queda ningún (método, path) duplicado |
 | G-05 | TradingView: sin guardar análisis/dibujos/layouts por usuario | 🟡 | Roadmap en TRADINGVIEW_PERSONALIZACION.md |
 | G-06 | Sin CI de PR (lint/build/tests antes de merge); solo deploy en push a `main` | 🟡 | ✅ Añadido `ci.yml` esta sesión |
 | G-07 | Sin Dependabot/CodeQL/secret-scanning declarados en repo | 🟡 | Activar en ajustes del repo |
@@ -211,10 +227,10 @@
 | G-13 | **11 tarjetas del panel admin se quedaban vacías tras recargar** (efecto con deps `[]` que disparaba `Bearer null` y nunca reintentaba) | 🟠 | ✅ **Cerrado (2026-07-27)**: hook `useAuthedLoad` compartido, que espera al token real y relanza la carga cuando llega |
 | G-09 | ~~**i18n incompleto**: 6 idiomas con ~290 claves sin traducir → caían a español~~ | 🟢 | ✅ **Cerrado (2026-07-11)**: backfill completo (candlestick, armónicos, opciones Black-Scholes/futuros/volatilidad/griegas, estrategias 6-9, auth, sesgos). Los 8 locales con sets idénticos (4401 c/u), 0 huecos. Eliminadas 9 claves muertas de de/fr/ru |
 | G-14 | **Backend terminado que ningún usuario puede alcanzar.** Medido el 2026-08-17 con `gen-mapa.py`, ya con el detector arreglado: **38 rutas sospechosas** + 5 huérfanas por diseño = 43. Eran 43 + 5 = 48 hasta que el
-asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las cifras anteriores (35, 41, 51) salían de un detector que se equivocaba en las DOS direcciones: casaba por prefijo (`/backtest` daba por consumida al existir la página `/backtesting`), se quedaba con los dos primeros segmentos fijos y descartaba el resto (`/campaigns/{id}/send` se buscaba como «campaigns/send», que no existe porque el frontend escribe `campaigns/${id}/send`), y desconocía el `prefix="/admin"` con el que se monta `admin_routes.py`. Resultado: cinco rutas del panel que `AdminPage` llama a diario figuraban como muertas, y dos que nadie llama figuraban como «huérfanas por diseño» detrás de una hipótesis —«comprueba si AdminPage la construye dinámicamente»— que nadie comprobó nunca. Incluye los cuatro módulos completos —`trading_plan.py` (`/plan`, `/plan/history`, `/plan/draft`, `/plan/compliance`), `backtest.py`, `portfolio_risk.py`, `american_options.py`— más el CRUD entero de `/portfolio`, `/performance/export`, `/education/pattern-catalog`, `/calculate/implied-volatility`, `/calculate/volatility-size`, `/options/term-structure` y el diario legado `/journal/trades`. | 🟠 | **Bajado a 29 el 2026-08-22, y cada una con una decisión escrita**: [`RUTAS_MUERTAS.md`](./RUTAS_MUERTAS.md) — borrar 7, construir 20, arreglar 2. Se retiraron 8 (~500 líneas) cuyo sucesor estaba escrito en el propio código, incluido el diario legado `/journal/trades` (segunda puerta autenticada a `db.trades`, el BUG-039) y `POST /backtest`, que metía el apalancamiento en el P&L. `/api/quote` dejó de ser la única puerta a `market_data.py` al enchufarse el failover a `/api/stock`. `check-rutas-muertas.py` corre en CI en las dos direcciones, así que la lista **ni crece ni se pudre** en silencio. Sigue 🟠 y no 🟢 porque quedan 20 pantallas por construir. Lo más barato y lo más pedido: `GET /performance/export` (CSV/Excel del diario) |
+asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las cifras anteriores (35, 41, 51) salían de un detector que se equivocaba en las DOS direcciones: casaba por prefijo (`/backtest` daba por consumida al existir la página `/backtesting`), se quedaba con los dos primeros segmentos fijos y descartaba el resto (`/campaigns/{id}/send` se buscaba como «campaigns/send», que no existe porque el frontend escribe `campaigns/${id}/send`), y desconocía el `prefix="/admin"` con el que se monta `admin_routes.py`. Resultado: cinco rutas del panel que `AdminPage` llama a diario figuraban como muertas, y dos que nadie llama figuraban como «huérfanas por diseño» detrás de una hipótesis —«comprueba si AdminPage la construye dinámicamente»— que nadie comprobó nunca. Incluye los cuatro módulos completos —`trading_plan.py` (`/plan`, `/plan/history`, `/plan/draft`, `/plan/compliance`), `backtest.py`, `portfolio_risk.py`, `american_options.py`— más el CRUD entero de `/portfolio`, `/performance/export`, `/education/pattern-catalog`, `/calculate/implied-volatility`, `/calculate/volatility-size`, `/options/term-structure` y el diario legado `/journal/trades`. | 🟠 | **Bajado a 29 el 2026-08-22, y cada una con una decisión escrita**: [`RUTAS_MUERTAS.md`](./RUTAS_MUERTAS.md) — borrar 7, construir 20, arreglar 2. Se retiraron 8 (~500 líneas) cuyo sucesor estaba escrito en el propio código, incluido el diario legado `/journal/trades` (segunda puerta autenticada a `db.trades`, el BUG-039) y `POST /backtest`, que metía el apalancamiento en el P&L. `/api/quote` dejó de ser la única puerta a `market_data.py` al enchufarse el failover a `/api/stock`. `check-rutas-muertas.py` corre en CI en las dos direcciones, así que la lista **ni crece ni se pudre** en silencio. Sigue 🟠 y no 🟢 porque quedan 20 pantallas por construir. Lo más barato y lo más pedido: `GET /performance/export` (CSV/Excel del diario). **Corrección del 2026-08-26**: de los «cuatro módulos completos» que cita la medición del 17-08, hoy sólo dos lo son. `trading_plan.py` tiene pantalla y sus 10 rutas están consumidas; `american_options.py` está a medias —`early_assignment_risk` llega por `POST /calculate/assignment`, el motor binomial/BAW no—. Inalcanzables de verdad quedan `backtest.py` y `portfolio_risk.py`. Ver §2 § Backend |
 | G-15 | ~~**`trading_plans` no entra en las tres rutas del RGPD.**~~ La colección guardaba `user_id` pero no aparecía en `delete_account`, ni en `_USER_DATA_COLLECTIONS`, ni en el export de `/auth/my-data` | 🟢 | ✅ **Cerrado (2026-08-06)**: arreglada la CAUSA, no el síntoma — había **cuatro listas escritas a mano** y ahora derivan de una sola tupla (`_USER_DATA_COLLECTIONS` → `_ALL_USER_COLLECTIONS` → `_EXPORTABLE_COLLECTIONS`). El borrado de cuenta también se había quedado sin `journal_entries`. `test_user_data_collections_unit.py` fija que lo que se purga se borra y lo que se borra se puede exportar (salvo artefactos de seguridad) |
 | G-16 | **Grupo B del saneamiento de licencias, sin hacer.** Acciones y ETFs de EE. UU., los 23 índices, los 15 futuros de materias primas y la cadena de opciones siguen saliendo de **Yahoo**, cuya licencia no permite redistribuir el dato en un producto de pago. El 2026-08-02 se retiró la *mención* pública, no la dependencia | 🟠 | Decisión de negocio con coste: IEX para acciones, ETF equivalentes para índices y materias primas, cadena sintética para opciones. **Cambia lo que ve el usuario**, por eso está parado |
-| G-17 | **El shim `Collection` sigue sin tests.** Es la capa casera (~750 líneas) que traduce Mongo→SQL y de la que depende **todo** el backend. Bloquea el refactor de `server.py` (BUG-008): partir 8232 líneas sin red es cambiar deuda por riesgo | 🟠 | T-03 del backlog de auditoría: `$set/$inc/$push/$unset/$or/$in/$regex`, agregación y `find_one_and_update`, contra PostgreSQL real |
+| G-17 | **El shim `Collection` sigue sin tests.** Es la capa casera (~750 líneas) que traduce Mongo→SQL y de la que depende **todo** el backend. Bloquea el refactor de `server.py` (BUG-008): partir un fichero de nueve mil líneas sin red es cambiar deuda por riesgo | 🟠 | T-03 del backlog de auditoría: `$set/$inc/$push/$unset/$or/$in/$regex`, agregación y `find_one_and_update`, contra PostgreSQL real |
 | G-18 | ~~**`check-doc-links.py` no corre en CI.**~~ Existía, funcionaba y sólo se ejecutaba si alguien se acordaba; `PENDIENTES.md` acumuló dos referencias a documentos inexistentes sin que nada avisara | 🟢 | ✅ **Cerrado (2026-08-13)**: nuevo job `documentacion` en `ci.yml` con `check-doc-links`, `gen-mapa --check` y la paridad del catálogo. Y las dos referencias «rotas» no eran erratas: apuntaban a documentos reales que viven en una rama sin fusionar (ver auditoría del 13-08 §2.2) |
 | G-20 | ~~**Dos esquemas incompatibles escribiendo en `db.trades`, y el P&L se pierde.**~~ `POST /journal/trades` guardaba camelCase (`entryPrice`) y `POST /performance/trades` snake_case (`entry_price`), **en la misma colección**, y ninguno filtraba al leer: `compute_trade_pnl` no encontraba `entry_price`, salía por la rama de `entry == 0` y devolvía `pnl = 0.0`, que `perf_update_trade` **persistía** al primer edit | 🟢 | ✅ **Cerrado (2026-08-06)**: `normalize_trade_schema` traduce en `compute_trade_pnl` (punto único por el que pasa todo el P&L), el endpoint legado **escribe ya en el esquema canónico**, los dos `PUT` hacen `$unset` de las claves viejas, y `migrate_trades_schema.py` limpia lo almacenado con backup y rollback. El mapeo `leverage`→`multiplier` recupera el importe **exacto**: misma posición en la fórmula. Verificado contra Postgres real |
 | G-21 | **El diario no guarda las patas de una operación de opciones.** Cero apariciones de `legs`: no hay griegas agregadas de la estructura, ni cierre de una pata suelta, ni rolar media posición | 🟠 | **Media parte cerrada (2026-08-06)**: el R-múltiplo ya no se cae. El riesgo de una estructura sale de `max_loss` —la prima en una opción comprada, anchura − crédito en un spread— y no de `\|entry − sl\|`, así que una operación de opciones entra en la distribución de R y compara con el resto del diario. Lo que queda es el detalle por pata: reconstrucción `Position` → `Leg` → `Execution` |
@@ -226,8 +242,8 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
 | G-27 | **Las passkeys no están documentadas en ninguna parte.** `backend/passkeys.py` (242 líneas, 10-08) añadió un método de autenticación completo: no está en la tabla de módulos de `CLAUDE.md`, no está en el inventario §2, y la sección «Autenticación» de `CLAUDE.md` sigue describiendo sólo JWT + Google OAuth. `migrate_trades_schema.py` tampoco está en la tabla | 🔴 | Dar de alta los dos módulos y reescribir la sección de autenticación. Anotar de paso por qué `passkeys.py:63` usa un origen **sin la ruta del repositorio** (WebAuthn no la lleva), para que nadie lo «arregle» y rompa el login |
 | G-28 | **Se anuncia precio 0 a Google con muro de pago duro.** `gen-seo-pages.js:421` emite `offers: {price:'0', priceCurrency:'EUR'}` en las páginas de calculadora, con títulos «Gratis»/«Free», mientras `public/index.html` declara ofertas de 17/45/200 €. El CTA lleva a `/dashboard`, que exige suscripción activa | 🟠 | Quitar el `price:'0'` y alinear los títulos con lo que el usuario encuentra al llegar. Son 12 slugs × los idiomas con traducción |
-| G-29 | **`PENDIENTES.md` da por abierto lo que está cerrado.** Afirma que `trading_plans` no se borra ni se exporta (G-15, cerrado y verificado contra Postgres el 07-08) y que `FRONTEND_URL` cae a `tradingcalculatorpro.com` (hoy cae a `github.io`, `server.py:1167`). También cita 5652 claves (son 6110) y dice que no hay selector de instrumento (el multiproducto entró el 06-08) | 🟠 | Repasar `PENDIENTES.md` contra el código. Un documento de pendientes con datos falsos cuesta una sesión entera |
-| G-30 | **Código muerto en el frontend.** 20 componentes `.jsx` que ningún fichero importa: 17 de `components/ui/` (1318 líneas) y 3 propios (`options/GreeksPanel.jsx`, `education/TradingBasicsGuide.jsx`, `education/WhyItMatters.jsx`, `dashboard/PriceTicker.jsx`, 933 líneas). **10 de los 27 paquetes `@radix-ui` del `package.json` sólo los usan esos muertos** | 🟡 | Borrar los componentes y desinstalar los 10 paquetes. Deja de generar PRs de Dependabot para código que no llega a ninguna pantalla |
+| G-29 | **`PENDIENTES.md` da por abierto lo que está cerrado.** Afirma que `trading_plans` no se borra ni se exporta (G-15, cerrado y verificado contra Postgres el 07-08) y que `FRONTEND_URL` cae a `tradingcalculatorpro.com` (hoy cae a `github.io`, `server.py:1167`). También cita 5652 claves (hoy son 6 965 — la cifra viva, en [`MAPA.md`](./MAPA.md)) y dice que no hay selector de instrumento (el multiproducto entró el 06-08) | 🟠 | Repasar `PENDIENTES.md` contra el código. Un documento de pendientes con datos falsos cuesta una sesión entera |
+| G-30 | **Código muerto en el frontend.** Quedan **4 componentes propios que ningún fichero importa** (937 líneas): `education/TradingBasicsGuide.jsx` (671), `options/GreeksPanel.jsx` (127), `dashboard/PriceTicker.jsx` (79) y `education/WhyItMatters.jsx` (60). No son andamiaje: son cuatro piezas terminadas y abandonadas, y por eso no se borran sin decidir antes si lo que hacen debería estar en alguna pantalla | 🟡 | **La mitad ya está hecha**: el 2026-08-25 se retiró el andamiaje de shadcn que nunca se usó (16 componentes, 1 334 líneas) y con él los paquetes `@radix-ui` que sólo servían a código muerto. Falta decidir los cuatro propios: `GreeksPanel` y `PriceTicker` tienen sitio natural en el panel de opciones y en el dashboard; los dos de la Academia se solapan con el contenido que ya se pinta. `auditar.py` los cuenta en cada pasada, así que la lista no puede pudrirse |
 | G-31 | **Residuos que dan instrucciones falsas.** `backend/patches/server_fixes.patch` (parche manual de mayo, con `MONGO_URL` — la BD descartada), `backend/FIXES_README.md` (manda integrar un `fixes.py` que no existe), `backend/ADMIN_INTEGRATION.md` (ya integrado en `startup_event`), `memory/PRD.md`, `monitoring/`, `packaging/twa-manifest.json` y `check.sh` | 🟡 | Borrar o mover a `_archive/`. No es limpieza estética: quien los lea intentará aplicar pasos ya aplicados sobre una base de datos que no existe |
 | G-32 | **Trabajo terminado que no está en `main`.** Las 16 ramas se clasificaron y se ejecutó la clasificación el 2026-08-18: **6 fusionadas**, **1 rehecha** sobre `main`, **4 cerradas sin fusionar** (sus `refs` siguen en `origin`, con el SHA anotado) y **5 pendientes de una decisión que no es técnica** — la migración de cuenta GCP, el salto mayor de `lucide-react`, y tres de diseño, producto y arquitectura | 🟠 | Quedan las 5 de la §5 de [`CIERRE_RAMAS_2026-08-18.md`](./CIERRE_RAMAS_2026-08-18.md), que es donde está el porqué de cada una. Los 14 PRs de Dependabot siguen sin tocar |
 | G-33 | **Las catorce calculadoras sueltas siguen sin rehacer, ni por dentro ni por fuera.** `LotSizeCalculator` da **10 $/pip por lote estándar siempre** (falso en USDJPY, en el oro y en cualquier cruce sin dólar) con su propia tabla de once pares escrita a mano, y `PositionSizeCalculator` pinta `BTC` fijo en el resultado sea cual sea el activo. La mesa (2026-08-14) hace lo correcto sacando el pip de la ficha del instrumento, pero las catorce sueltas no se tocaron | 🔴 | **Es el siguiente trabajo.** Por dentro: reescribirlas sobre `lib/instruments.js` + `lib/deskMath.js`. Y son las **únicas pantallas sin cobertura de `simulacion-masiva`**, porque su matemática vive dentro del JSX y no se puede importar. Por fuera: el patrón que ya usa la mesa desde el 2026-08-14 (pocos campos, un botón, una frase como respuesta, desglose plegado) y la ley de `identidad-visual` (tokens `--long`/`--short`, `tabular-nums`, un solo acento, dos radios) |
@@ -241,7 +257,7 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 
 **Automático (ya disponible, todo verificado el 2026-08-03):**
 - `cd backend && pytest tests/ -q` → **503 passed, 74 skipped** (integración se salta sin `BACKEND_URL`). ✔
-- `cd backend && python -m py_compile *.py` → los 24 módulos. ✔
+- `cd backend && python -m py_compile *.py` → **todos** los módulos (la lista a mano omitía 6). ✔
 - `cd frontend && npx eslint src scripts` → 0 errores, 126 avisos. ✔
 - `cd frontend && node scripts/i18n-check.js` → 5652 × 10, 0 huecos · `node scripts/engine-check.js` → 60/60. ✔
 - `cd frontend && npm run build` → exit 0, 1609 URLs. ✔
