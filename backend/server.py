@@ -1122,12 +1122,36 @@ DEMO_PASSWORD = _demo_pw
 _ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 # Emails with FREE full (comp) access — always treated as premium without paying.
-# Útil mientras no está la facturación/Stripe activa. Ampliable por env FREE_ACCESS_EMAILS
-# (coma-separado); hardcodeamos una cuenta de cortesía por defecto.
-_FREE_ACCESS_EMAILS = (
-    {e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()}
-    | {"tradingcalculatorpro@gmail.com"}
-)
+# Útil mientras no está la facturación/Stripe activa. Sólo por FREE_ACCESS_EMAILS
+# (coma-separado).
+#
+# ⚠️ NO vuelvas a codificar aquí una dirección concreta. Había una
+# (`tradingcalculatorpro@gmail.com`) y era un muro de pago abierto: cualquiera
+# que registrase ese email —nadie lo había hecho— entraba premium con dos
+# peticiones anónimas. Una cortesía se concede sobre un `user_id` ya existente,
+# no sobre una cadena que cualquiera puede reclamar registrándose.
+_FREE_ACCESS_EMAILS = {
+    e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()
+}
+
+
+def normalize_email(email: str | None) -> str:
+    """La forma canónica de un email: sin espacios y en minúsculas.
+
+    Existe porque la autorización de este backend se apoya en la cadena del
+    email —`_ADMIN_EMAILS`, `_FREE_ACCESS_EMAILS`, la atribución de referidos—
+    y los guardias comparaban `user["email"].lower()` mientras el registro
+    guardaba lo que llegase. Con `ADMIN_EMAILS=owner@example.com`, registrar
+    `Owner@Example.com` pasaba el control de duplicados (igualdad exacta), creaba
+    una SEGUNDA cuenta, y esa cuenta pasaba `require_admin` al bajarla a
+    minúsculas. Escalada a administrador con un registro público.
+
+    Regla: todo email que entre por una petición pasa por aquí ANTES de tocar la
+    base de datos, tanto para escribir como para buscar. Si añades una ruta que
+    reciba un email, aplícala; `test_email_normalizado_unit.py` recorre los
+    puntos de entrada y falla si alguno se salta.
+    """
+    return (email or "").strip().lower()
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
@@ -1690,6 +1714,32 @@ DATA_RETENTION_DAYS = int(os.environ.get("DATA_RETENTION_DAYS", "90"))
 # datos, que es exactamente la multa que el RGPD contempla. Con una sola tupla,
 # olvidarse deja de ser posible; `test_user_data_collections_unit.py` fija que
 # ninguna colección con `user_id` se quede fuera.
+# Campos del documento de usuario que SÍ salen en el export del RGPD.
+#
+# Es una lista blanca a propósito. Era una lista negra de una sola clave
+# (`if k not in ("password",)`), así que cada campo nuevo del usuario se
+# exportaba solo, sin que nadie lo decidiera. Así salían por `/auth/my-data`
+# `totp_secret` y `totp_pending_secret`: la semilla del segundo factor, en un
+# JSON que acaba en la carpeta de Descargas. Esa semilla sobrevive al cambio de
+# contraseña y a `_revoke_all_tokens_for_user`, así que quien la copie conserva
+# el segundo factor para siempre. Contradecía además la política escrita en
+# `_USER_DATA_COLLECTIONS`: los artefactos de seguridad no se exportan nunca.
+#
+# Regla: un campo nuevo NO se exporta hasta que alguien lo añada aquí. Si el
+# campo es un secreto, no se añade. `test_export_rgpd_unit.py` lo fija.
+_EXPORTABLE_PROFILE_FIELDS = frozenset({
+    "id", "email", "name", "picture", "created_at",
+    "auth_provider", "email_verified",
+    "subscription_plan", "subscription_end", "is_premium", "premium_lapsed_at",
+    "is_admin",
+    "referral_code", "referred_by_code", "referred_at",
+    "referral_wallet", "referral_wallet_redeemed",
+    "country", "locale", "timezone",
+    # `totp_enabled` sí: saber que tienes 2FA activo es un dato tuyo.
+    # `totp_secret` / `totp_pending_secret` NO: son la credencial, no el dato.
+    "totp_enabled",
+})
+
 _USER_DATA_COLLECTIONS = (
     "trades", "calculations", "alerts", "saved_positions", "portfolio",
     "user_states", "journal_entries", "trading_plans",
@@ -1943,14 +1993,18 @@ def _norm_country(value: Optional[str]) -> Optional[str]:
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
 async def register(request: Request, response: Response, user_data: UserCreate):
-    existing = await db.users.find_one({"email": user_data.email})
+    # Canónico ANTES de comprobar duplicados y antes de escribir. Con el email
+    # crudo, `Owner@Example.com` no colisionaba con `owner@example.com` y creaba
+    # una cuenta paralela que `require_admin` aceptaba (ver `normalize_email`).
+    email = normalize_email(user_data.email)
+    existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")
-    
+
     user_id = str(uuid.uuid4())
     user = {
         "id": user_id,
-        "email": user_data.email,
+        "email": email,
         "password": await hash_password_async(user_data.password),
         "name": user_data.name,
         "subscription_plan": None,
@@ -1964,19 +2018,19 @@ async def register(request: Request, response: Response, user_data: UserCreate):
     await db.users.insert_one(user)
     try:
         import asyncio as _asyncio
-        _asyncio.create_task(_send_welcome_email(user_data.email, user_data.name))
-        _asyncio.create_task(_send_email_verification(user_id, user_data.email, user_data.name))
+        _asyncio.create_task(_send_welcome_email(email, user_data.name))
+        _asyncio.create_task(_send_email_verification(user_id, email, user_data.name))
     except Exception:
         pass
 
-    token = create_token(user_id, user_data.email)
-    refresh_token = create_refresh_token(user_id, user_data.email)
+    token = create_token(user_id, email)
+    refresh_token = create_refresh_token(user_id, email)
     _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
         "user": {
             "id": user_id,
-            "email": user_data.email,
+            "email": email,
             "name": user_data.name,
             "subscription_plan": None,
             "subscription_end": None,
@@ -1990,7 +2044,7 @@ async def register(request: Request, response: Response, user_data: UserCreate):
 @api_router.post("/auth/login", response_model=dict)
 @limiter.limit("10/minute")
 async def login(request: Request, response: Response, credentials: UserLogin):
-    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    user = await db.users.find_one({"email": normalize_email(credentials.email)}, {"_id": 0})
     if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
@@ -2207,7 +2261,7 @@ class MagicLinkVerifyRequest(BaseModel):
 @limiter.limit("3/hour")
 async def request_magic_link(request: Request, body: MagicLinkRequest):
     """Send a one-time login link to the user's email. Creates account if it doesn't exist."""
-    email = body.email.lower().strip()
+    email = normalize_email(body.email)
     user = await db.users.find_one({"email": email}, {"_id": 0})
     if not user:
         # Auto-create a passwordless account
@@ -2266,6 +2320,15 @@ async def verify_magic_link(request: Request, response: Response, body: MagicLin
     user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    # El segundo factor se exigía SÓLO en /auth/login. Quien tuviera TOTP activo
+    # podía saltárselo pidiendo un enlace mágico a su propio correo: un atacante
+    # con acceso al buzón —que es justo contra lo que protege el 2FA— entraba con
+    # sesión completa. Mismo contrato que el login: token pendiente y a verificar.
+    if user.get("totp_enabled"):
+        return {
+            "totp_required": True,
+            "pending_token": _create_2fa_pending_token(user["id"], user["email"]),
+        }
     await db.users.update_one({"id": user["id"]}, {"$set": {
         "last_seen": datetime.now(timezone.utc).isoformat(),
         "login_count": (user.get("login_count") or 0) + 1,
@@ -2373,7 +2436,7 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
 @limiter.limit("3/hour")
 async def forgot_password(request: Request, body: ForgotPasswordRequest):
     """Generate a password-reset token, store it in DB, and email the reset link."""
-    user = await db.users.find_one({"email": body.email}, {"_id": 0})
+    user = await db.users.find_one({"email": normalize_email(body.email)}, {"_id": 0})
     # Always return 200 to prevent email enumeration
     if not user:
         return {"ok": True}
@@ -2819,7 +2882,7 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     """RGPD Art. 20 — portabilidad de datos. Devuelve todos los datos del usuario en JSON."""
     import json as _json
     user_id = user["id"]
-    safe_user = {k: v for k, v in user.items() if k not in ("password",)}
+    safe_user = {k: v for k, v in user.items() if k in _EXPORTABLE_PROFILE_FIELDS}
 
     async def collect(collection, query):
         # find() returns a lazy _Cursor; it must be materialised with .to_list().
@@ -2932,7 +2995,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
         logging.warning("Google token validation failed: %s", log_safe(exc))
         raise HTTPException(status_code=401, detail="Token de Google inválido") from exc
 
-    email = (info.get("email") or "").lower()
+    email = normalize_email(info.get("email"))
     if not email or not info.get("email_verified"):
         raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
 
@@ -3001,6 +3064,18 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             # Fuera del `if updates` a propósito: la revocación tiene que
             # ocurrir aunque el `$set` fallara por lo que fuera.
             await _revoke_all_tokens_for_user(user["id"])
+
+    # Igual que en /auth/login y en el enlace mágico: si la cuenta tiene TOTP,
+    # Google prueba QUIÉN eres, no que tengas el segundo factor. Sin esto, una
+    # sesión de Google robada saltaba el 2FA que el usuario activó a propósito.
+    # (Las passkeys sí se saltan el TOTP, y está justificado por escrito en
+    # `passkeys.py`: la passkey ya es un factor de posesión resistente al
+    # phishing. Google no lo es.)
+    if user.get("totp_enabled"):
+        return {
+            "totp_required": True,
+            "pending_token": _create_2fa_pending_token(user["id"], user["email"]),
+        }
 
     token = create_token(user["id"], user["email"])
     refresh_token = create_refresh_token(user["id"], user["email"])
@@ -7823,7 +7898,7 @@ class AdminPromoteRequest(BaseModel):
 @api_router.post("/admin/promote")
 async def admin_promote_user(request: Request, payload: AdminPromoteRequest, admin: dict = Depends(require_admin)):
     """Toggle is_admin flag for any user (only callable by an existing admin)."""
-    target = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
+    target = await db.users.find_one({"email": normalize_email(payload.email)}, {"_id": 0})
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     result = await db.users.update_one(
@@ -7895,7 +7970,7 @@ def _compute_subscription_end(plan: Optional[str], explicit_end: Optional[str]) 
 @api_router.post("/admin/users", response_model=dict)
 async def admin_create_user(request: Request, payload: AdminUserCreate, admin: dict = Depends(require_admin)):
     """Create a new user from the admin panel (full control over plan / premium / admin)."""
-    email_lc = payload.email.lower()
+    email_lc = normalize_email(payload.email)
     existing = await db.users.find_one({"email": email_lc})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
@@ -7948,7 +8023,7 @@ async def admin_update_user(request: Request, user_id: str, payload: AdminUserUp
         updates["name"] = payload.name
 
     if payload.email is not None:
-        new_email = payload.email.lower()
+        new_email = normalize_email(payload.email)
         if new_email != user["email"]:
             clash = await db.users.find_one({"email": new_email, "id": {"$ne": user_id}})
             if clash:
@@ -9152,6 +9227,10 @@ try:
         "require_user": require_user,
         "require_admin": require_admin,
         "limiter": limiter,
+        # La IP del referido se guardaba con el PRIMER salto de x-forwarded-for,
+        # que es justo el trozo que puede escribir el cliente. `_real_client_ip`
+        # cuenta desde la derecha con TRUSTED_PROXY_HOPS y no es falsificable.
+        "real_client_ip": _real_client_ip,
     })
     register_affiliate_program(api_router, db, {
         "require_user": require_user,

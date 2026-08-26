@@ -13,7 +13,8 @@ descuento que no va a aplicarse. El saldo no se pierde.
 
 Endpoints:
   GET  /referrals/me               — my code, stats, recent referrals
-  POST /referrals/track            — track a referral signup (body: {code, referee_email})
+  POST /referrals/track            — track a referral signup (requiere sesión; el
+                                     referido es SIEMPRE la cuenta autenticada)
   POST /referrals/redeem-credit    — apply wallet to next purchase
 """
 from __future__ import annotations
@@ -36,6 +37,7 @@ _security = HTTPBearer(auto_error=False)
 # Injected at register()
 db = None  # type: ignore[assignment]
 require_user = None  # type: ignore[assignment]
+real_client_ip = None  # type: ignore[assignment]
 
 # Commission % credited to the referrer when referee makes a paid purchase
 COMMISSION_PCT = 10.0  # 10% of the plan price
@@ -82,6 +84,31 @@ async def _require_user_proxy(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+# Ventana en la que una cuenta se considera "recién creada" a efectos de
+# atribución. El frontend llama a /referrals/track justo después de register(),
+# así que un día sobra; lo que corta es que nadie pueda atribuirse una cuenta
+# veterana.
+VENTANA_ALTA_HORAS = 24
+
+
+def _es_alta_reciente(created_at: Optional[str]) -> bool:
+    """¿La cuenta se creó dentro de la ventana de atribución?
+
+    Sin fecha de creación devolvemos False: el caso por defecto es NO atribuir.
+    Un documento antiguo sin `created_at` no debe abrir la puerta.
+    """
+    if not created_at:
+        return False
+    try:
+        alta = datetime.fromisoformat(str(created_at).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return False
+    if alta.tzinfo is None:
+        alta = alta.replace(tzinfo=timezone.utc)
+    edad = (datetime.now(timezone.utc) - alta).total_seconds()
+    return 0 <= edad <= VENTANA_ALTA_HORAS * 3600
+
 
 def _generate_code() -> str:
     """Short, human-friendly referral code: 8 chars uppercase + digits."""
@@ -178,26 +205,54 @@ async def my_referrals(user: dict = Depends(_require_user_proxy)):
 
 
 @router.post("/referrals/track")
-async def track_referral(request: Request, payload: TrackReferralRequest):
+async def track_referral(
+    request: Request,
+    payload: TrackReferralRequest,
+    usuario: Dict[str, Any] = Depends(_require_user_proxy),
+):
     """
     Track a new signup that came through a referral code.
     Called by the frontend after register() succeeds with `?ref=` in URL.
     Idempotent: same (referrer, referee) pair only counts once.
+
+    ⚠️ El referido es SIEMPRE la sesión que llama, nunca el `referee_email` del
+    cuerpo. Sin sesión, esta ruta era una petición anónima que ataba la cuenta
+    de cualquiera al código de quien la enviase: bastaba con conocer el email de
+    la víctima para cobrar el 10 % de lo que pagara. El campo del cuerpo sigue
+    aceptándose por compatibilidad con el frontend, pero sólo se valida contra
+    la sesión — no se usa para buscar a nadie. Eso cierra de paso el oráculo de
+    enumeración (404 «no encontrado» vs 200 para un email cualquiera).
     """
     code = payload.code.strip().upper()
-    referee_email = payload.referee_email.lower()
 
     referrer = await db.users.find_one({"referral_code": code}, {"_id": 0, "id": 1, "email": 1})
     if not referrer:
         raise HTTPException(status_code=404, detail="Código de referido no válido")
 
-    # Find referee (must exist by now)
-    referee = await db.users.find_one({"email": referee_email}, {"_id": 0, "id": 1})
-    if not referee:
-        raise HTTPException(status_code=404, detail="Usuario referido no encontrado")
+    referee = {"id": usuario["id"]}
+    referee_email = (usuario.get("email") or "").strip().lower()
+
+    # Si el frontend manda un email, tiene que ser el de la sesión. Un desajuste
+    # es un intento de atribuir a otra cuenta, no una errata.
+    if payload.referee_email and payload.referee_email.strip().lower() != referee_email:
+        raise HTTPException(status_code=403, detail="El referido debe ser la cuenta autenticada")
 
     if referrer["id"] == referee["id"]:
         raise HTTPException(status_code=400, detail="No puedes referirte a ti mismo")
+
+    # Una atribución sólo vale para un alta NUEVA y sin padrino previo. Sin esta
+    # comprobación, `$set` sobrescribía el `referred_by_id` de una cuenta ya
+    # atribuida —o ya veterana— y le robaba la comisión al padrino original.
+    actual = await db.users.find_one(
+        {"id": referee["id"]}, {"_id": 0, "referred_by_id": 1, "created_at": 1}
+    ) or {}
+    if actual.get("referred_by_id"):
+        return {"ok": True, "already_tracked": True}
+    if not _es_alta_reciente(actual.get("created_at")):
+        raise HTTPException(
+            status_code=400,
+            detail="La atribución de referido sólo aplica a cuentas recién creadas",
+        )
 
     # Idempotent insert
     existing = await db.referrals.find_one({
@@ -217,7 +272,8 @@ async def track_referral(request: Request, payload: TrackReferralRequest):
         "status": "pending",            # pending → paid (when first payment)
         "commission_amount": 0.0,
         "commission_currency": "EUR",
-        "ip": request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else ""),
+        "ip": (real_client_ip(request) if real_client_ip
+               else (request.client.host if request.client else "")),
         "user_agent": request.headers.get("user-agent", "") or "",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -404,10 +460,11 @@ async def ensure_referral_indexes(database) -> None:
 # ---------------------------------------------------------------------------
 
 def register(app_router, database, helpers: Dict[str, Any]) -> None:
-    global db, require_user
+    global db, require_user, real_client_ip
     db = database
     require_user = helpers["require_user"]
-    # Apply rate limit to the unauthenticated track endpoint before including router
+    real_client_ip = helpers.get("real_client_ip")
+    # `track` ya exige sesión; el límite se mantiene contra el abuso por cuenta.
     if helpers.get("limiter"):
         helpers["limiter"].limit("5/minute")(track_referral)
     app_router.include_router(router)
