@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { getTailRiskFigures } from '@/lib/tradingEducationContent';
 import {
   SIGMAS, CAIDAS, EVENTOS_COLA, EDAD_UNIVERSO_ANIOS,
   colaNormal, frecuenciaNormal, subidaParaRecuperar, pctDe,
@@ -14,6 +15,10 @@ import {
  * interioriza. Ninguna de estas cifras está escrita a mano en el render: las
  * teóricas se calculan y las reales viven en `lib/tailRiskData.js` con su
  * fecha, para que se puedan comprobar una a una.
+ *
+ * Los rótulos y las diez líneas salen de `getTailRiskFigures`, en el contenido
+ * de la academia, para que `split-i18n-edu` los difiera con el resto en vez de
+ * mandarlos en `main.js` a quien sólo abre la portada.
  */
 
 const SUPER = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
@@ -53,6 +58,7 @@ function magnitud(x, locale) {
 
 export function TailRiskFigures() {
   const { t, locale } = useTranslation();
+  const c = getTailRiskFigures(t);
 
   const filasSigma = useMemo(() => SIGMAS.map((s) => ({
     s,
@@ -75,15 +81,15 @@ export function TailRiskFigures() {
     <div className="space-y-8" data-testid="tail-figures">
       {/* ── Lo que promete la campana ─────────────────────────────────── */}
       <div>
-        <h3 className="font-unbounded text-lg font-bold mb-1">{t('tailFigSigmaTitle')}</h3>
-        <p className="text-xs text-muted-foreground leading-relaxed mb-3 max-w-3xl">{t('tailFigSigmaIntro')}</p>
+        <h3 className="font-unbounded text-lg font-bold mb-1">{c.sigma.title}</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed mb-3 max-w-3xl">{c.sigma.intro}</p>
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full min-w-[24rem]">
             <thead className="bg-muted/50">
               <tr>
-                <th className={th}>{t('tailFigColMove')}</th>
-                <th className={`${th} text-right`}>{t('tailFigColProb')}</th>
-                <th className={`${th} text-right`}>{t('tailFigColFreq')}</th>
+                <th className={th}>{c.sigma.move}</th>
+                <th className={`${th} text-right`}>{c.sigma.prob}</th>
+                <th className={`${th} text-right`}>{c.sigma.freq}</th>
               </tr>
             </thead>
             <tbody>
@@ -98,7 +104,7 @@ export function TailRiskFigures() {
                     </td>
                     <td className={`${td} text-right text-muted-foreground`}>{cientifica(p, locale)}</td>
                     <td className={`${td} text-right ${ultima ? 'font-bold text-destructive' : ''}`}>
-                      {magnitud(anios, locale)} {t('tailFigYears')}
+                      {magnitud(anios, locale)} {c.sigma.years}
                     </td>
                   </tr>
                 );
@@ -107,21 +113,21 @@ export function TailRiskFigures() {
           </table>
         </div>
         <p className="text-[11px] text-muted-foreground mt-2" data-testid="tail-universos">
-          {cientifica(universos, locale)} {t('tailFigUniverses')}
+          {cientifica(universos, locale)} {c.sigma.universes}
         </p>
       </div>
 
       {/* ── Las colas, con fecha y nombre ─────────────────────────────── */}
       <div>
-        <h3 className="font-unbounded text-lg font-bold mb-3">{t('tailFigEventsTitle')}</h3>
+        <h3 className="font-unbounded text-lg font-bold mb-3">{c.events.title}</h3>
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full min-w-[42rem]">
             <thead className="bg-muted/50">
               <tr>
-                <th className={th}>{t('tailFigColWhen')}</th>
-                <th className={th}>{t('tailFigColAsset')}</th>
-                <th className={`${th} text-right`}>{t('tailFigColSize')}</th>
-                <th className={th}>{t('tailFigColWhat')}</th>
+                <th className={th}>{c.events.when}</th>
+                <th className={th}>{c.events.asset}</th>
+                <th className={`${th} text-right`}>{c.events.size}</th>
+                <th className={th}>{c.events.what}</th>
               </tr>
             </thead>
             <tbody>
@@ -135,7 +141,7 @@ export function TailRiskFigures() {
                       {porcentaje(p, locale, e.dec)}
                     </td>
                     <td className="py-2 px-3 text-xs leading-relaxed text-muted-foreground min-w-[18rem]">
-                      {t(e.k)}
+                      {c.events.lines[e.id]}
                     </td>
                   </tr>
                 );
@@ -143,19 +149,19 @@ export function TailRiskFigures() {
             </tbody>
           </table>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-2">{t('tailFigEventsNote')}</p>
+        <p className="text-[11px] text-muted-foreground mt-2">{c.events.note}</p>
       </div>
 
       {/* ── Lo que cuesta volver ──────────────────────────────────────── */}
       <div>
-        <h3 className="font-unbounded text-lg font-bold mb-1">{t('tailFigRecTitle')}</h3>
-        <p className="text-xs text-muted-foreground leading-relaxed mb-3 max-w-3xl">{t('tailFigRecIntro')}</p>
+        <h3 className="font-unbounded text-lg font-bold mb-1">{c.recovery.title}</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed mb-3 max-w-3xl">{c.recovery.intro}</p>
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full min-w-[20rem]">
             <thead className="bg-muted/50">
               <tr>
-                <th className={th}>{t('tailFigColFall')}</th>
-                <th className={`${th} text-right`}>{t('tailFigColNeed')}</th>
+                <th className={th}>{c.recovery.fall}</th>
+                <th className={`${th} text-right`}>{c.recovery.need}</th>
               </tr>
             </thead>
             <tbody>
@@ -172,7 +178,7 @@ export function TailRiskFigures() {
             </tbody>
           </table>
         </div>
-        <p className="text-[11px] text-muted-foreground leading-relaxed mt-2 max-w-3xl">{t('tailFigRecNote')}</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed mt-2 max-w-3xl">{c.recovery.note}</p>
       </div>
     </div>
   );

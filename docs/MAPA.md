@@ -397,7 +397,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/common/` | 12 | 2,248 |
 | `components/dashboard/` | 8 | 1,005 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 84 | 14,035 |
+| `components/education/` | 84 | 14,041 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 590 |
@@ -408,7 +408,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 30 | 1,612 |
-| `pages/` | 23 | 16,530 |
+| `pages/` | 23 | 16,531 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -418,17 +418,17 @@ dan) en vez de abrirlos de arriba abajo.
 | Fichero | Líneas |
 |---|---:|
 | `backend/server.py` | 9,279 |
-| `frontend/src/pages/EducationPage.jsx` | 5,768 |
-| `frontend/src/lib/i18n/ar.js` | 4,893 |
-| `frontend/src/lib/i18n/de.js` | 4,893 |
-| `frontend/src/lib/i18n/en.js` | 4,893 |
-| `frontend/src/lib/i18n/es.js` | 4,893 |
-| `frontend/src/lib/i18n/fr.js` | 4,893 |
-| `frontend/src/lib/i18n/it.js` | 4,893 |
-| `frontend/src/lib/i18n/ja.js` | 4,893 |
-| `frontend/src/lib/i18n/pt.js` | 4,893 |
-| `frontend/src/lib/i18n/ru.js` | 4,893 |
-| `frontend/src/lib/i18n/zh.js` | 4,893 |
+| `frontend/src/pages/EducationPage.jsx` | 5,769 |
+| `frontend/src/lib/i18n/ar.js` | 4,864 |
+| `frontend/src/lib/i18n/de.js` | 4,864 |
+| `frontend/src/lib/i18n/en.js` | 4,864 |
+| `frontend/src/lib/i18n/es.js` | 4,864 |
+| `frontend/src/lib/i18n/fr.js` | 4,864 |
+| `frontend/src/lib/i18n/it.js` | 4,864 |
+| `frontend/src/lib/i18n/ja.js` | 4,864 |
+| `frontend/src/lib/i18n/pt.js` | 4,864 |
+| `frontend/src/lib/i18n/ru.js` | 4,864 |
+| `frontend/src/lib/i18n/zh.js` | 4,864 |
 
 ## Verificadores del repositorio
 

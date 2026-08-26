@@ -13,8 +13,11 @@
  *  · Donde hay `ref`, el porcentaje NO se escribe: se deriva de los dos
  *    precios. Así la cifra de la tabla y la del texto no pueden divergir, que
  *    es exactamente como se coló un «+352 %» que eran 353.
- *  · `k` es la clave i18n de la línea que explica qué se rompió; fecha, activo
- *    y cifra son universales.
+ *  · Aquí NO hay claves i18n. Fecha, activo y cifra son universales; la línea
+ *    que explica qué se rompió vive en `getTailRiskFigures`, indexada por
+ *    `id`. Tenerla aquí como `k: 'tailEv…'` costaba peso: `split-i18n-edu`
+ *    deja en el paquete inicial toda clave citada fuera del contenido de la
+ *    academia, así que las veintinueve viajaban a quien sólo abre la portada.
  */
 
 /** Sesiones bursátiles al año. Convención del sector para anualizar. */
@@ -77,16 +80,16 @@ export const CAIDAS = [0.10, 0.25, 0.50, 0.75, 0.80, 0.90, 0.95];
  * calcula de los niveles y `pct` no se escribe: `pctDe()` lo resuelve.
  */
 export const EVENTOS_COLA = [
-  { id: 'lunesNegro',  activo: 'S&P 500',          cuando: '19-10-1987',         pct: -20.47, dec: 2, k: 'tailEvBlackMonday' },
-  { id: 'ltcm',        activo: 'LTCM',             cuando: '1998',               ref: { pico: 4700, suelo: 400 },       k: 'tailEvLtcm' },
-  { id: 'puntocom',    activo: 'Nasdaq Composite', cuando: '2000 → 2002',        ref: { pico: 5048.62, suelo: 1114.11 }, k: 'tailEvDotcom' },
-  { id: 'gfc',         activo: 'S&P 500',          cuando: '2007 → 2009',        ref: { pico: 1565.15, suelo: 676.53 },  k: 'tailEvGfc' },
-  { id: 'franco',      activo: 'EUR/CHF',          cuando: '15-01-2015',         pct: -30,    k: 'tailEvChf' },
-  { id: 'volmageddon', activo: 'VIX / XIV',        cuando: '05-02-2018',         pct: 115.6,  k: 'tailEvVolmageddon' },
-  { id: 'covid',       activo: 'S&P 500',          cuando: '19-02 → 23-03-2020', ref: { pico: 3386.15, suelo: 2237.40 }, k: 'tailEvCovid' },
-  { id: 'niquel',      activo: 'Níquel (LME)',     cuando: '07/08-03-2022',      pct: 250,    k: 'tailEvNickel' },
-  { id: 'nikkei',      activo: 'Nikkei 225',       cuando: '1989 → 2003',        ref: { pico: 38915.87, suelo: 7603.76 }, k: 'tailEvNikkei' },
-  { id: 'bitcoin',     activo: 'Bitcoin',          cuando: '2017 → 2018',        ref: { pico: 19783, suelo: 3122 },      k: 'tailEvBitcoin' },
+  { id: 'lunesNegro',  activo: 'S&P 500',          cuando: '19-10-1987',         pct: -20.47, dec: 2 },
+  { id: 'ltcm',        activo: 'LTCM',             cuando: '1998',               ref: { pico: 4700, suelo: 400 } },
+  { id: 'puntocom',    activo: 'Nasdaq Composite', cuando: '2000 → 2002',        ref: { pico: 5048.62, suelo: 1114.11 } },
+  { id: 'gfc',         activo: 'S&P 500',          cuando: '2007 → 2009',        ref: { pico: 1565.15, suelo: 676.53 } },
+  { id: 'franco',      activo: 'EUR/CHF',          cuando: '15-01-2015',         pct: -30 },
+  { id: 'volmageddon', activo: 'VIX / XIV',        cuando: '05-02-2018',         pct: 115.6 },
+  { id: 'covid',       activo: 'S&P 500',          cuando: '19-02 → 23-03-2020', ref: { pico: 3386.15, suelo: 2237.40 } },
+  { id: 'niquel',      activo: 'Níquel (LME)',     cuando: '07/08-03-2022',      pct: 250 },
+  { id: 'nikkei',      activo: 'Nikkei 225',       cuando: '1989 → 2003',        ref: { pico: 38915.87, suelo: 7603.76 } },
+  { id: 'bitcoin',     activo: 'Bitcoin',          cuando: '2017 → 2018',        ref: { pico: 19783, suelo: 3122 } },
 ];
 
 /** La variación de un evento, venga escrita o derivada de sus dos niveles. */

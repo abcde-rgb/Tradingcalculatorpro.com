@@ -2298,6 +2298,58 @@ export const getNetLiquidity = (t) => ({
 // Fat tails & tail risk — why the normal distribution lies: fat tails/kurtosis,
 // black swans (Taleb), the "impossible" sigma moves that keep happening, ruin &
 // non-ergodicity, convexity/tail hedging and the barbell. Pairs with TailRiskVisual.jsx.
+/**
+ * Los rótulos y las diez líneas de las tablas de cifras del riesgo de cola.
+ *
+ * Vive aquí y no junto a los datos por una razón concreta: `split-i18n-edu.js`
+ * extrae las claves de la academia de las llamadas `t('…')` LITERALES de este
+ * fichero, y deja en el paquete inicial cualquier clave citada fuera de él.
+ * Con las claves escritas en `tailRiskData.js`, las veintinueve viajaban en
+ * `main.js` a todo el que abre la portada. Aquí se difieren con el resto.
+ *
+ * Las líneas se indexan por el `id` del evento, no por clave: así el dato y el
+ * texto se emparejan sin que ninguno de los dos tenga que conocer al otro.
+ */
+export const getTailRiskFigures = (t) => ({
+  title: t('tailFigTitle'),
+  sigma: {
+    title: t('tailFigSigmaTitle'),
+    intro: t('tailFigSigmaIntro'),
+    move: t('tailFigColMove'),
+    prob: t('tailFigColProb'),
+    freq: t('tailFigColFreq'),
+    years: t('tailFigYears'),
+    universes: t('tailFigUniverses'),
+  },
+  events: {
+    title: t('tailFigEventsTitle'),
+    when: t('tailFigColWhen'),
+    asset: t('tailFigColAsset'),
+    size: t('tailFigColSize'),
+    what: t('tailFigColWhat'),
+    note: t('tailFigEventsNote'),
+    lines: {
+      lunesNegro: t('tailEvBlackMonday'),
+      ltcm: t('tailEvLtcm'),
+      puntocom: t('tailEvDotcom'),
+      gfc: t('tailEvGfc'),
+      franco: t('tailEvChf'),
+      volmageddon: t('tailEvVolmageddon'),
+      covid: t('tailEvCovid'),
+      niquel: t('tailEvNickel'),
+      nikkei: t('tailEvNikkei'),
+      bitcoin: t('tailEvBitcoin'),
+    },
+  },
+  recovery: {
+    title: t('tailFigRecTitle'),
+    intro: t('tailFigRecIntro'),
+    fall: t('tailFigColFall'),
+    need: t('tailFigColNeed'),
+    note: t('tailFigRecNote'),
+  },
+});
+
 export const getTailRisk = (t) => ({
   title: t('tailTitle'),
   intro: t('tailIntro'),

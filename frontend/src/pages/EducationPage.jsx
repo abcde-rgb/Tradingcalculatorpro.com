@@ -18,7 +18,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useCloudPref } from '@/lib/cloudPrefs';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, getGridMartingale, getVolPremium, getBacktestValidation, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, getGridMartingale, getVolPremium, getBacktestValidation, getTailRiskFigures, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -644,6 +644,7 @@ export default function EducationPage() {
   const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
   const NET_LIQUIDITY = getNetLiquidity(t);
   const TAIL_RISK = getTailRisk(t);
+  const TAIL_FIGURES = getTailRiskFigures(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -2149,7 +2150,7 @@ export default function EducationPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-xl">
                     <Sigma className="w-5 h-5 text-rose-500" />
-                    {t('tailFigTitle')}
+                    {TAIL_FIGURES.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

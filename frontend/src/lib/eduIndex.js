@@ -117,7 +117,9 @@ export const EDU_MODULES = [
   { id: 'margin-liq', titleKey: 'mlqTitle', getters: ['getMarginLiquidation'] },
   { id: 'cross-margin', titleKey: 'xmEduTitle', getters: ['getCrossMargin'] },
   { id: 'probability', titleKey: 'probabilityStatsTitle', getters: ['getProbabilityStatistics'] },
-  { id: 'tail-risk', titleKey: 'tailTitle', getters: ['getTailRisk', 'getAccountKillers'] },
+  // `getTailRiskFigures` no es decoración en el índice: quien busque «LTCM»,
+  // «Volmageddon» o «Nikkei» sólo los encuentra si sus diez líneas se indexan.
+  { id: 'tail-risk', titleKey: 'tailTitle', getters: ['getTailRisk', 'getTailRiskFigures', 'getAccountKillers'] },
 
   // ── Psicología ───────────────────────────────────────────────
   { id: 'psychology', titleKey: 'tradingPsychologyTitle', getters: ['getTradingPsychology'] },

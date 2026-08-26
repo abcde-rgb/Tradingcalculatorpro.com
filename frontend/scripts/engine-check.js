@@ -2099,9 +2099,9 @@ async function checkTailRisk() {
     `da ${T.pctDe(evento('puntocom')).toFixed(2)} y ${T.pctDe(evento('nikkei')).toFixed(2)}`);
 
   // Cada evento, completo. Una fila a medias se pinta a medias y nadie lo ve.
-  const campos = ['id', 'activo', 'cuando', 'k'];
+  const campos = ['id', 'activo', 'cuando'];
   const incompletos = T.EVENTOS_COLA.filter((e) => campos.some((c) => !e[c]));
-  ok(`los ${T.EVENTOS_COLA.length} eventos traen fecha, activo y clave`,
+  ok(`los ${T.EVENTOS_COLA.length} eventos traen fecha y activo`,
     incompletos.length === 0, `incompletos: ${incompletos.map((e) => e.id || '?').join(', ')}`);
   ok('cada evento resuelve a una magnitud numérica (escrita o derivada)',
     T.EVENTOS_COLA.every((e) => Number.isFinite(T.pctDe(e))),
@@ -2116,16 +2116,35 @@ async function checkTailRisk() {
     T.EVENTOS_COLA.every((e) => !(e.ref && Number.isFinite(e.pct))),
     `duplicados: ${T.EVENTOS_COLA.filter((e) => e.ref && Number.isFinite(e.pct)).map((e) => e.id).join(', ')}`);
 
-  // `t(e.k)` es una llamada dinámica: `i18n-check` no la modela, así que una
-  // errata en la clave se pintaría cruda y ningún otro verificador la vería.
+  // El emparejamiento dato ↔ texto se hace por `id`, y un id que el getter no
+  // conoce no da error: la celda sale VACÍA. Esto se comprueba resolviendo el
+  // getter contra los diez diccionarios de verdad, que es lo que se pinta —no
+  // la existencia de una clave, que es sólo la mitad del camino.
+  const { getTailRiskFigures } = await imp('lib/tradingEducationContent.js');
   const IDIOMAS = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar', 'pt', 'it'];
-  const faltan = [];
+  const huecos = [];
   for (const l of IDIOMAS) {
     const dic = { ...(await imp(`lib/i18n/${l}.js`)).default, ...(await imp(`lib/i18n/${l}.edu.js`)).default };
-    for (const e of T.EVENTOS_COLA) if (!dic[e.k]) faltan.push(`${e.k}/${l}`);
+    const c = getTailRiskFigures((k) => dic[k] ?? '');
+    for (const e of T.EVENTOS_COLA) if (!c.events.lines[e.id]) huecos.push(`${e.id}/${l}`);
+    for (const [seccion, campos2] of Object.entries({
+      sigma: ['title', 'intro', 'move', 'prob', 'freq', 'years', 'universes'],
+      events: ['title', 'when', 'asset', 'size', 'what', 'note'],
+      recovery: ['title', 'intro', 'fall', 'need', 'note'],
+    })) {
+      for (const campo of campos2) if (!c[seccion][campo]) huecos.push(`${seccion}.${campo}/${l}`);
+    }
+    if (!c.title) huecos.push(`title/${l}`);
   }
-  ok('las claves de los eventos existen en los diez idiomas',
-    faltan.length === 0, `faltan: ${faltan.slice(0, 5).join(', ')}`);
+  ok('cada evento y cada rótulo tienen texto en los diez idiomas',
+    huecos.length === 0, `vacíos: ${huecos.slice(0, 5).join(', ')} (${huecos.length} en total)`);
+
+  // Y al revés: una línea que el getter tiene y ningún evento usa es texto
+  // escrito, traducido diez veces y que no se pinta en ninguna parte.
+  const sobran = Object.keys(getTailRiskFigures((k) => k).events.lines)
+    .filter((id) => !T.EVENTOS_COLA.some((e) => e.id === id));
+  ok('ninguna línea del getter se queda sin evento que la pinte',
+    sobran.length === 0, `sobran: ${sobran.join(', ')}`);
 }
 
 (async () => {

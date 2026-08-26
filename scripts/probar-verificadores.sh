@@ -454,15 +454,25 @@ p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
 p.write_text(t.replace('k: ' + q + 'tailEvNikkei' + q,
                        'pct: -80.5, k: ' + q + 'tailEvNikkei' + q, 1))\""
 
-  # `t(e.k)` es una llamada dinámica: i18n-check no la modela, así que una
-  # errata aquí se pinta cruda y ningún otro verificador la ve.
-  probar "una errata en la clave i18n de un evento" \
+  # El dato y su texto se emparejan por `id`. Un id que el getter no conoce no
+  # da error: la celda sale VACÍA, que es peor que una clave cruda porque no se
+  # nota. `i18n-check` no lo ve —las claves existen—, así que lo ve esto.
+  probar "un evento cuyo id el texto no conoce: la celda saldría vacía" \
     "(cd frontend && node scripts/engine-check.js)" \
     "python -c \"
 import pathlib
 q = chr(39)
 p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
-p.write_text(t.replace(q + 'tailEvCovid' + q, q + 'tailEvCovid19' + q, 1))\""
+p.write_text(t.replace(q + 'covid' + q, q + 'covid19' + q, 1))\""
+
+  probar "una línea traducida diez veces que ningún evento pinta" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+i = t.index('  { id: ' + chr(39) + 'bitcoin' + chr(39))
+j = t.index('\n', i) + 1
+p.write_text(t[:i] + t[j:])\""
 
   # ── Los enlaces de la Academia a las herramientas ─────────────────────────
   # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja
