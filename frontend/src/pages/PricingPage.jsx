@@ -18,6 +18,24 @@ const API = process.env.REACT_APP_BACKEND_URL;
 // Framer Motion variants — extracted to prevent re-creation per render
 const HOVER_SCALE_UP = { scale: 1.02 };
 
+/**
+ * El periodo, junto al precio, con el espacio que le corresponda.
+ *
+ * Iban como dos <span> pegados sin separador. Con «/mes» la barra hace de
+ * separación y se lee bien; con el plan lifetime, cuyo periodo es una FRASE
+ * («pago único», «Einmalzahlung», «1回限りの支払い»), salía «€500pago único»
+ * en los diez idiomas. La separación no puede depender de que el traductor
+ * recuerde meter un espacio dentro de la cadena: se decide aquí.
+ */
+function PlanPeriod({ texto }) {
+  const pegadoAlPrecio = /^[/⁄]/.test(texto);   // «/mes», «⁄mes»
+  return (
+    <span className={`text-muted-foreground text-sm${pegadoAlPrecio ? '' : ' ml-1.5'}`}>
+      {texto}
+    </span>
+  );
+}
+
 // Plans will use t() for dynamic translation
 const PLANS_DATA = [
   { id: 'monthly', popular: false },
@@ -276,7 +294,7 @@ export default function PricingPage() {
                 <h3 className="font-bold text-lg mb-2">{t(plan.id + 'Plan')}</h3>
                 <div className="mb-4">
                   <span className="font-unbounded text-3xl font-bold">{t(plan.id + 'Price')}</span>
-                  <span className="text-muted-foreground text-sm">{t(plan.id + 'Period')}</span>
+                  <PlanPeriod texto={t(plan.id + 'Period')} />
                 </div>
                 {plan.id !== 'lifetime' && hayPrueba && (
                   <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5 mb-3" data-testid={`trial-badge-${plan.id}`}>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useTranslation, languages } from '@/lib/i18n';
+import { useTranslation, useI18nStore, languages } from '@/lib/i18n';
 import { getCountryOptions } from '@/lib/countries';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
@@ -35,7 +35,7 @@ function PasswordStrengthBar({ password, t }) {
   const colors  = ['', 'bg-red-500', 'bg-amber-400', 'bg-blue-400', 'bg-green-500'];
   const textColors = ['', 'text-red-500', 'text-amber-400', 'text-blue-400', 'text-green-500'];
   return (
-    <div className="space-y-1 mt-1" role="status" aria-live="polite" aria-label={`Fortaleza de contraseña: ${labels[strength]}`}>
+    <div className="space-y-1 mt-1" role="status" aria-live="polite" aria-label={t('authPwStrengthAria', { nivel: labels[strength] })}>
       <div className="flex gap-1">
         {[1, 2, 3].map((i) => (
           <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-200 ${strength >= i ? colors[strength] : 'bg-muted'}`} />
@@ -309,7 +309,7 @@ export const LoginPage = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="login-email" className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Label htmlFor="login-email" className="text-xs uppercase tracking-wider text-muted-foreground">{t('authEmail')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -318,7 +318,7 @@ export const LoginPage = () => {
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setEmailErr(''); }}
                   onBlur={() => { if (email && !EMAIL_RE.test(email)) setEmailErr(t('emailInvalid')); }}
-                  placeholder="tu@email.com"
+                  placeholder={t('authEmailPh')}
                   className={`pl-10 bg-black/50 border-white/10 ${emailErr ? 'border-destructive' : ''}`}
                   required
                   aria-describedby={emailErr ? 'login-email-err' : undefined}
@@ -346,7 +346,7 @@ export const LoginPage = () => {
                   type="button"
                   onClick={() => setShowPw(!showPw)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showPw ? t('authHidePw') : t('authShowPw')}
                 >
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -355,7 +355,7 @@ export const LoginPage = () => {
             
             <div className="flex justify-end">
               <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                ¿Olvidaste tu contraseña?
+                {t('authForgot')}
               </Link>
             </div>
 
@@ -372,7 +372,7 @@ export const LoginPage = () => {
             </Button>
             {isLoading && (
               <p className="text-xs text-center text-muted-foreground animate-pulse">
-                El servidor puede tardar unos segundos en arrancar…
+                {t('authColdStart')}
               </p>
             )}
             {loginError && !isLoading && (
@@ -448,7 +448,7 @@ export const RegisterPage = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="register-name" className="text-xs uppercase tracking-wider text-muted-foreground">Nombre</Label>
+              <Label htmlFor="register-name" className="text-xs uppercase tracking-wider text-muted-foreground">{t('authName')}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -456,7 +456,7 @@ export const RegisterPage = () => {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Tu nombre"
+                  placeholder={t('authNamePh')}
                   className="pl-10 bg-black/50 border-white/10"
                   required
                   data-testid="register-name"
@@ -465,7 +465,7 @@ export const RegisterPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="register-email" className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Label htmlFor="register-email" className="text-xs uppercase tracking-wider text-muted-foreground">{t('authEmail')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -474,7 +474,7 @@ export const RegisterPage = () => {
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setEmailErr(''); }}
                   onBlur={() => { if (email && !EMAIL_RE.test(email)) setEmailErr(t('emailInvalid')); }}
-                  placeholder="tu@email.com"
+                  placeholder={t('authEmailPh')}
                   className={`pl-10 bg-black/50 border-white/10 ${emailErr ? 'border-destructive' : ''}`}
                   required
                   aria-describedby={emailErr ? 'register-email-err' : undefined}
@@ -503,7 +503,7 @@ export const RegisterPage = () => {
                   type="button"
                   onClick={() => setShowPw(!showPw)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showPw ? t('authHidePw') : t('authShowPw')}
                 >
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -577,6 +577,7 @@ export const RegisterPage = () => {
 };
 
 export const ResetPasswordPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -588,9 +589,9 @@ export const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirm) { setError('Las contraseñas no coinciden'); return; }
-    if (password.length < 8) { setError('Mínimo 8 caracteres'); return; }
-    if (!API) { setError('Backend no configurado'); return; }
+    if (password !== confirm) { setError(t('authPwMismatch')); return; }
+    if (password.length < 8) { setError(t('authPwMin8')); return; }
+    if (!API) { setError(t('authNoBackend')); return; }
     setError('');
     setIsLoading(true);
     try {
@@ -602,7 +603,7 @@ export const ResetPasswordPage = () => {
       const data = await res.json();
       if (res.ok) { setDone(true); }
       else { setError(data.detail || 'Error al restablecer la contraseña'); }
-    } catch (_) { setError('Error de conexión'); }
+    } catch (_) { setError(t('authConnError')); }
     setIsLoading(false);
   };
 
@@ -613,25 +614,25 @@ export const ResetPasswordPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <KeyRound className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">Nueva contraseña</h1>
-          <p className="text-muted-foreground text-sm mt-2">Elige una nueva contraseña para tu cuenta.</p>
+          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">{t('authNewPassword')}</h1>
+          <p className="text-muted-foreground text-sm mt-2">{t('authChooseNewPassword')}</p>
         </CardHeader>
         <CardContent>
           {done ? (
             <div className="text-center space-y-4">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
-              <p className="text-sm text-muted-foreground">Contraseña actualizada correctamente.</p>
+              <p className="text-sm text-muted-foreground">{t('authPasswordUpdated')}</p>
               <Button className="w-full bg-primary text-black hover:bg-primary/90" onClick={() => navigate('/login')}>
-                Iniciar sesión
+                {t('iniciarSesion_9faefe')}
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {!token && (
-                <p className="text-sm text-destructive text-center">Enlace inválido. Solicita uno nuevo.</p>
+                <p className="text-sm text-destructive text-center">{t('authInvalidLink')}</p>
               )}
               <div className="space-y-2">
-                <Label htmlFor="reset-password" className="text-xs uppercase tracking-wider text-muted-foreground">Nueva contraseña</Label>
+                <Label htmlFor="reset-password" className="text-xs uppercase tracking-wider text-muted-foreground">{t('authNewPassword')}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input id="reset-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
@@ -639,7 +640,7 @@ export const ResetPasswordPage = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reset-confirm" className="text-xs uppercase tracking-wider text-muted-foreground">Confirmar contraseña</Label>
+                <Label htmlFor="reset-confirm" className="text-xs uppercase tracking-wider text-muted-foreground">{t('authConfirmPassword')}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input id="reset-confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
@@ -653,7 +654,7 @@ export const ResetPasswordPage = () => {
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
               <div className="text-center text-sm">
-                <Link to="/login" className="text-primary hover:underline">Volver al inicio de sesión</Link>
+                <Link to="/login" className="text-primary hover:underline">{t('authBackToLogin')}</Link>
               </div>
             </form>
           )}
@@ -665,6 +666,7 @@ export const ResetPasswordPage = () => {
 
 export const ForgotPasswordPage = () => {
   useSEO({ titleKey: 'seoForgotTitle', descriptionKey: 'seoForgotDesc', canonicalPath: '/forgot-password' });
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -676,7 +678,7 @@ export const ForgotPasswordPage = () => {
     if (!API) {
       // No mentir al usuario: si no hay backend configurado, decirlo claramente
       // en lugar de simular un "email enviado" que nunca llega.
-      toast.error('Backend no configurado');
+      toast.error(t('authNoBackend'));
       setIsLoading(false);
       return;
     }
@@ -698,9 +700,9 @@ export const ForgotPasswordPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <KeyRound className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">Recuperar contraseña</h1>
+          <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">{t('authRecoverTitle')}</h1>
           <p className="text-muted-foreground text-sm mt-2">
-            Te enviaremos un enlace para restablecer tu contraseña.
+            {t('authRecoverIntro')}
           </p>
         </CardHeader>
         <CardContent>
@@ -708,23 +710,23 @@ export const ForgotPasswordPage = () => {
             <div className="text-center space-y-4">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
               <p className="text-sm text-muted-foreground">
-                Si existe una cuenta con ese email, recibirás un enlace en breve.
+                {t('authRecoverSent')}
               </p>
               <Button className="w-full" onClick={() => navigate('/login')}>
-                Volver al inicio de sesión
+                {t('authBackToLogin')}
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('authEmail')}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu@email.com"
+                    placeholder={t('authEmailPh')}
                     className="pl-10 bg-black/50 border-white/10"
                     required
                   />
@@ -740,7 +742,7 @@ export const ForgotPasswordPage = () => {
               </Button>
               <div className="text-center text-sm">
                 <Link to="/login" className="text-primary hover:underline">
-                  Volver al inicio de sesión
+                  {t('authBackToLogin')}
                 </Link>
               </div>
             </form>
@@ -752,6 +754,7 @@ export const ForgotPasswordPage = () => {
 };
 
 const MagicLinkButton = () => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
@@ -759,7 +762,7 @@ const MagicLinkButton = () => {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!API) { toast.error('Backend no configurado'); return; }
+    if (!API) { toast.error(t('authNoBackend')); return; }
     setIsLoading(true);
     try {
       const res = await fetch(`${API}/auth/magic-link`, { credentials: 'include',
@@ -769,7 +772,7 @@ const MagicLinkButton = () => {
       });
       if (res.ok) { setSent(true); }
       else { const d = await res.json(); toast.error(d.detail || 'Error al enviar el enlace'); }
-    } catch (_) { toast.error('Error de conexión'); }
+    } catch (_) { toast.error(t('authConnError')); }
     setIsLoading(false);
   };
 
@@ -780,7 +783,7 @@ const MagicLinkButton = () => {
         className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-yellow-400 transition-colors"
       >
         <Zap className="w-4 h-4 text-yellow-400" />
-        Iniciar con Magic Link (sin contraseña)
+        {t('authMagicOpen')}
       </button>
     );
   }
@@ -794,7 +797,7 @@ const MagicLinkButton = () => {
       {sent ? (
         <div className="text-center space-y-2">
           <CheckCircle className="w-8 h-8 text-green-500 mx-auto" />
-          <p className="text-xs text-muted-foreground">Revisa tu email — el enlace expira en 15 minutos.</p>
+          <p className="text-xs text-muted-foreground">{t('authMagicSent')}</p>
         </div>
       ) : (
         <form onSubmit={handleSend} className="space-y-3">
@@ -804,7 +807,7 @@ const MagicLinkButton = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
+              placeholder={t('authEmailPh')}
               className="pl-10 bg-black/50 border-white/10 h-9 text-sm"
               required
             />
@@ -816,7 +819,7 @@ const MagicLinkButton = () => {
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}
               className="h-8 text-xs text-muted-foreground">
-              Cancelar
+              {t('authCancel')}
             </Button>
           </div>
         </form>
@@ -826,6 +829,7 @@ const MagicLinkButton = () => {
 };
 
 export const MagicPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('verifying');
@@ -848,7 +852,10 @@ export const MagicPage = () => {
             user: data.user,
             isAuthenticated: true,
           });
-          toast.success('¡Bienvenido!');
+          // `t` se lee del store al vuelo, no se captura: meterla en las
+          // dependencias del efecto haría que un cambio de idioma reenviara el
+          // token de verificación.
+          toast.success(useI18nStore.getState().t('bienvenido_b33c1f'));
           navigate('/dashboard');
         } else {
           setStatus('invalid');
@@ -860,10 +867,10 @@ export const MagicPage = () => {
   }, [token, navigate]);
 
   const messages = {
-    verifying: { icon: <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />, text: 'Verificando enlace...' },
-    invalid: { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: 'Enlace inválido o expirado. Solicita uno nuevo.' },
-    'no-backend': { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: 'Backend no configurado.' },
-    error: { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: 'Error de conexión. Inténtalo de nuevo.' },
+    verifying: { icon: <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />, text: t('authMagicVerifying') },
+    invalid: { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: t('authMagicInvalid') },
+    'no-backend': { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: t('authNoBackend') },
+    error: { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: t('authConnError') },
   };
 
   const msg = messages[status] || messages.error;
@@ -882,7 +889,7 @@ export const MagicPage = () => {
           <p className="text-sm text-muted-foreground">{msg.text}</p>
           {status !== 'verifying' && (
             <Button className="w-full bg-primary text-black hover:bg-primary/90" onClick={() => navigate('/login')}>
-              Volver al inicio de sesión
+              {t('authBackToLogin')}
             </Button>
           )}
         </CardContent>
