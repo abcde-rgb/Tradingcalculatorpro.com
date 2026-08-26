@@ -301,6 +301,85 @@ renovación, ni prueba, ni revocación.
 
 ---
 
+## 11. ¿Cuál renta más? (añadido el 2026-08-26, a pregunta directa)
+
+### 11.1 La comisión no es la variable que decide
+
+Lo que decide es **si el cobro se renueva solo**. Un plan mensual de 17 € que hay que
+volver a pagar a mano cada 30 días no es una suscripción: es una venta que se repite si
+el cliente se acuerda. Con supuestos de sector —**no medidos en esta web, aquí no hay
+todavía datos propios que medir**— y 100 suscriptores mensuales:
+
+| Escenario | Vida media | Ingreso por cliente | Por 100 clientes |
+|---|---|---|---|
+| Cargo automático, fuga del 8 %/mes | 12,5 meses | ~212 € | ~21.200 € |
+| Pago manual, vuelve el 70 % cada mes | 3,3 meses | ~56 € | ~5.600 € |
+| Pago manual, vuelve el 50 % cada mes | 2 meses | ~34 € | ~3.400 € |
+
+La diferencia entre la primera fila y las otras dos es de **cuatro a seis veces**. La
+diferencia de comisión entre Stripe y Kunfupay, sobre ese mismo cobro de 17 €, es de
+**0,34 € a 1,19 €**. No es una comparación reñida: quien te dé cargo recurrente
+automático gana, aunque cobre el doble de comisión.
+
+Corolario incómodo, y es lo que hay hoy: **PayPal, Revolut y NOWPayments, tal como están
+integrados aquí, son la fila de abajo de esa tabla.** Conceden `plan["days"]` y caducan.
+
+### 11.2 Y cuando sí toca mirar la comisión, Stripe no es tan barato como parece
+
+El 1,5 % + 0,25 € es la tarifa de **tarjeta del EEE**. Un comprador de LatAm paga con
+tarjeta internacional: **3,15 % + 0,25 €**, más un 2 % adicional si hay conversión de
+divisa. Y si algún día se activa Stripe Tax para cumplir lo que prometen los Términos
+(§ 7.1), son **0,5 puntos más** — y aun así Stripe **no presenta** la declaración
+por ti.
+
+Coste real del cobro, por plan:
+
+| Plan | Stripe (EEE) | Stripe (internacional) | Stripe int. + Tax | Kunfupay 5 % | Kunfupay 10 % |
+|---|---|---|---|---|---|
+| 17 € | 0,51 € (3,0 %) | 0,79 € (4,6 %) | 0,87 € (5,1 %) | 0,85 € | 1,70 € |
+| 45 € | 0,93 € (2,1 %) | 1,67 € (3,7 %) | 1,89 € (4,2 %) | 2,25 € | 4,50 € |
+| 200 € | 3,25 € (1,6 %) | 6,55 € (3,3 %) | 7,55 € (3,8 %) | 10,00 € | 20,00 € |
+| 500 € | 7,75 € (1,6 %) | 16,00 € (3,2 %) | 18,50 € (3,7 %) | 25,00 € | 50,00 € |
+
+Dos lecturas que no se ven en la horquilla «1,5 % contra 5-10 %»:
+
+1. **Para un comprador de LatAm en el plan mensual, Stripe con Tax cuesta 5,1 % y
+   Kunfupay al 5 % cuesta 5,0 %** — con el IVA resuelto y con PIX o Nequi en el checkout.
+   Ahí Kunfupay no es más caro: es más barato y convierte mejor.
+2. **En tickets grandes Stripe gana sin discusión.** En el De Por Vida de 500 €, la
+   diferencia va de 9 € a 34 € por venta.
+
+Y el coste fijo del cumplimiento propio (registro OSS + presentación trimestral, del
+orden de 400-600 €/año) **se diluye con el volumen**: por debajo de unos 20.000 €/año
+facturados a compradores del EEE, ese coste fijo se come la ventaja de comisión de
+Stripe; por encima, Stripe se separa y no vuelve.
+
+### 11.3 La respuesta, en tres ramas
+
+- **Si Stripe te acepta y puedes verificar la cuenta (G-01): Stripe, y no está reñido.**
+  Es lo único que hoy renueva solo, ya está escrito, probado y con webhooks, y en los
+  planes caros es entre 3 y 6 veces más barato. Todo lo demás es secundario.
+- **Kunfupay al lado, no en lugar de** — y sólo si contestan que sí a las preguntas 1, 2
+  y 3 del § 5. Su hueco es LatAm, donde Stripe ya no es barato y donde hoy no tienes
+  método local ninguno. Como cuarto raíl suma; como sustituto, resta.
+- **Si Stripe no te acepta** —que es el escenario que hace realista esta pregunta—
+  entonces Kunfupay renta más que PayPal y Revolut **a pesar de la comisión**, porque es
+  el único de los tres que dice tener cobro recurrente. Si resulta que su «enlace
+  recurrente» no es un cargo automático, entonces no compensa el día de integración:
+  en ese caso lo que renta es **empujar el plan Anual y el De Por Vida**, que es donde el
+  pago único no duele, y dejar el mensual como puerta de entrada.
+
+### 11.4 El dato que te falta para decidirlo tú, no yo
+
+**De dónde son los que compran.** Si la mayoría paga con tarjeta del EEE, Stripe gana por
+goleada y Kunfupay es un capricho caro. Si un tercio o más viene de LatAm, Kunfupay se
+paga solo entre la comisión equivalente, el IVA y la conversión de un checkout con PIX.
+Eso ya se puede mirar: GA4 está instalado y `PricingPage` emite `begin_checkout` y
+`purchase` (`REACT_APP_GA4_MEASUREMENT_ID`). **Un mes de datos de geografía en el embudo
+decide esto mejor que cualquier tabla de este documento.**
+
+---
+
 ## Fuentes
 
 Todas consultadas el 2026-08-26 **desde buscador**, porque el dominio del proveedor está

@@ -4781,3 +4781,18 @@ cargo automático o recordatorio de pago.
 5-10% que ellos publican. Con 100 mensuales: ~612 €/año frente a 1.020-2.040 €/año.
 La comparación honesta no es 1,5% contra 5-10%, es 1,5% **más el cumplimiento
 fiscal propio** contra 5-10% con el cumplimiento incluido.
+
+**Añadido en la misma sesión — «¿cuál renta más?».** Se responde en el § 11 del
+documento. Resumen: **la comisión no es la variable que decide, la renovación
+automática sí**. Un mensual de 17 € que hay que volver a pagar a mano rinde entre
+cuatro y seis veces menos que el mismo plan con cargo recurrente (supuestos de
+sector, no medidos aquí — no hay datos propios todavía), mientras que toda la
+diferencia de comisión entre Stripe y Kunfupay en ese cobro es de 0,34 a 1,19 €.
+Y una segunda lectura que la horquilla «1,5 % contra 5-10 %» escondía: el 1,5 %
+es tarifa de tarjeta del **EEE**; para un comprador de LatAm son 3,15 % + 0,25 €,
+y con Stripe Tax activado 5,1 % — es decir, **lo mismo que Kunfupay al 5 %**, pero
+sin IVA resuelto y sin métodos locales. Conclusión: Stripe si te acepta; Kunfupay
+como cuarto raíl para LatAm, no como sustituto; y si Stripe no te acepta y su
+«enlace recurrente» no es cargo automático, lo que renta es empujar Anual y De Por
+Vida en vez de integrar nada. El dato que falta para decidirlo con datos y no con
+tablas: la geografía de quien compra, que GA4 ya puede dar.
