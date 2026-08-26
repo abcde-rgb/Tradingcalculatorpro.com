@@ -109,7 +109,7 @@ export const EDU_MODULES = [
   { id: 'cot', titleKey: 'cotTab', getters: ['getCotContent'] },
 
   // ── Riesgo y capital ─────────────────────────────────────────
-  { id: 'risk', titleKey: 'riskManagement', getters: ['getRiskManagementConcepts'] },
+  { id: 'risk', titleKey: 'riskManagement', getters: ['getRiskManagementConcepts', 'getWhyItMattersBlocks'] },
   { id: 'stops-targets', titleKey: 'sltpTitle', getters: ['getStopsAndTargets'] },
   { id: 'capital', titleKey: 'capitalManagementTitle', getters: ['getCapitalManagement'] },
   { id: 'partial-exits', titleKey: 'pexTitle', getters: ['getPartialExits'] },

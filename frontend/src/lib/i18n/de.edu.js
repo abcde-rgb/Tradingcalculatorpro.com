@@ -2387,4 +2387,12 @@ export default {
   "tailEvNickel": "Von rund 29.000 auf über 100.000 Dollar je Tonne in zwei Sitzungen. Die Börse setzte den Handel aus und STORNIERTE bereits ausgeführte Geschäfte: wenn dein Risiko davon abhing, dass der Markt offen bleibt, half kein Stop.",
   "tailEvNikkei": "Von 38.915,87 auf 7.603,76. Für die Rückkehr brauchte es +412 %, und es dauerte vierunddreißig Jahre: der Index erreichte dieses Hoch erst im Februar 2024 wieder.",
   "tailEvBitcoin": "Von rund 19.800 auf etwa 3.100 Dollar. Und noch einmal −77 % im Jahr 2022. Das ist keine Anomalie eines jungen Vermögenswerts: es ist die normale Form seiner Verteilung.",
+  "wimSizeWhat": "Die Positionsgröße ist, wie viel KAPITAL du in einem Trade riskierst, nicht wie viele Einheiten du kaufst. Sie ergibt sich aus dem Abstand zum Stop und wird vor dem Einstieg festgelegt.",
+  "wimSizeWhy": "Es ist die einzige Variable der Gleichung, die du vollständig kontrollierst. Der Markt entscheidet, ob du richtig liegst; du entscheidest, was Irren kostet.",
+  "wimSizeCost": "Bei 2 % je Trade lassen dich acht Verluste in Folge bei 85,1 % des Kapitals zurück, und die Rückkehr kostet +17,5 %. Bei 10 % bleiben 43,0 %, und die Rückkehr kostet +132 %. Dieselbe Serie, zwei verschiedene Enden.",
+  "wimSizeUse": "Lege dein Risiko je Trade fest, bevor du auf den Chart schaust, und leite die Größe aus dem Stop-Abstand ab, nie umgekehrt. Prüfe dann mit dem Serienrechner, wie viele Verluste in Folge bei deiner Trefferquote normal sind: fast immer mehr, als du denkst.",
+  "wimEdgeWhat": "Der Erwartungswert ist, was du im Schnitt je Trade verdienst, gemessen in R: Trefferquote × Gewinn − (1 − Trefferquote) × Verlust. Eine Zahl, kein Gefühl.",
+  "wimEdgeWhy": "Ein System mit 70 % Trefferquote kann Geld verlieren, eines mit 35 % kann welches verdienen. Die Trefferquote allein sagt nichts: entscheidend ist, wie viel du kassierst, wenn du richtig liegst, und wie viel du zahlst, wenn nicht.",
+  "wimEdgeCost": "Bei 1:1 CRV brauchst du 50 % Trefferquote, um bei null zu landen. Kosten von 0,1 R je Trade heben die Latte auf 55 %. Das zu ignorieren heißt, fünf Punkte unter dem Break-even zu handeln und zu glauben, man liege darüber.",
+  "wimEdgeUse": "Berechne deinen Break-even mit DEINEN Kosten, bevor du entscheidest, ob ein System sich lohnt, und vergleiche ihn mit deiner echten Trefferquote — der aus dem Journal —, nicht mit der erinnerten.",
 }

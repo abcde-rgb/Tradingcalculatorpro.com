@@ -2387,4 +2387,12 @@ export default {
   "tailEvNickel": "D’environ 29 000 à plus de 100 000 dollars la tonne en deux séances. La Bourse a suspendu la cotation et ANNULÉ des transactions déjà exécutées : si votre risque dépendait de la tenue du marché, aucun stop ne pouvait vous sauver.",
   "tailEvNikkei": "De 38 915,87 à 7 603,76. Il fallait +412 % pour revenir, et cela a pris trente-quatre ans : l’indice n’a retrouvé ce sommet qu’en février 2024.",
   "tailEvBitcoin": "D’environ 19 800 à environ 3 100 dollars. Et encore −77 % en 2022. Ce n’est pas l’anomalie d’un actif jeune : c’est la forme ordinaire de sa distribution.",
+  "wimSizeWhat": "La taille de position, c’est le CAPITAL que vous risquez sur une opération, pas le nombre d’unités achetées. Elle découle de la distance au stop et se décide avant d’entrer.",
+  "wimSizeWhy": "C’est la seule variable de l’équation que vous contrôlez entièrement. Le marché décide si vous avez raison ; vous décidez ce que coûte d’avoir tort.",
+  "wimSizeCost": "À 2 % par opération, huit pertes d’affilée vous laissent à 85,1 % du capital et revenir coûte +17,5 %. À 10 %, elles vous laissent à 43,0 %, et revenir coûte +132 %. Même série, deux fins différentes.",
+  "wimSizeUse": "Fixez votre risque par opération avant de regarder le graphique et déduisez la taille de la distance au stop, jamais l’inverse. Vérifiez ensuite avec le calculateur de séries combien de pertes consécutives sont normales à votre taux de réussite : presque toujours plus que vous ne croyez.",
+  "wimEdgeWhat": "L’espérance, c’est ce que vous gagnez en moyenne par opération, mesuré en R : taux de réussite × gain − (1 − taux de réussite) × perte. Un chiffre, pas une impression.",
+  "wimEdgeWhy": "Un système à 70 % de réussite peut perdre de l’argent et un système à 35 % peut en gagner. Le taux de réussite seul ne dit rien : la question est combien vous encaissez quand vous avez raison et combien vous payez quand vous avez tort.",
+  "wimEdgeCost": "À un ratio 1:1, il faut 50 % de réussite pour être à l’équilibre. Si vos coûts valent 0,1 R par opération, la barre monte à 55 %. L’ignorer, c’est trader cinq points sous le seuil en croyant être au-dessus.",
+  "wimEdgeUse": "Calculez votre seuil de rentabilité avec VOS coûts avant de décider si un système en vaut la peine, et comparez-le à votre taux de réussite réel — celui du journal —, pas à celui dont vous vous souvenez.",
 }

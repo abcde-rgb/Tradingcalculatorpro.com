@@ -2387,4 +2387,12 @@ export default {
   "tailEvNickel": "From about $29,000 to over $100,000 a tonne in two sessions. The exchange halted trading and CANCELLED trades already executed: if your risk depended on the market staying open, no stop was going to help.",
   "tailEvNikkei": "From 38,915.87 to 7,603.76. Getting back required +412%, and it took thirty-four years: the index did not regain that high until February 2024.",
   "tailEvBitcoin": "From about $19,800 to about $3,100. And another −77% in 2022. This is not the anomaly of a young asset: it is the ordinary shape of its distribution.",
+  "wimSizeWhat": "Position size is how much CAPITAL you risk on a trade, not how many units you buy. It comes from the distance to your stop, and it is decided before you enter.",
+  "wimSizeWhy": "It is the only variable in the equation you control completely. The market decides whether you are right; you decide what being wrong costs.",
+  "wimSizeCost": "At 2% per trade, eight losses in a row leave you at 85.1% of capital and getting back costs +17.5%. At 10%, they leave you at 43.0%, and getting back costs +132%. Same streak, two different endings.",
+  "wimSizeUse": "Set your risk per trade before you look at the chart and derive size from the stop distance, never the other way round. Then check with the streak calculator how many losses in a row are normal at your win rate: it is almost always more than you think.",
+  "wimEdgeWhat": "Expectancy is what you make on average per trade, measured in R: win rate × gain − (1 − win rate) × loss. A number, not a feeling.",
+  "wimEdgeWhy": "A system with a 70% win rate can lose money and one with 35% can make it. Win rate alone says nothing: the question is how much you collect when right and how much you pay when wrong.",
+  "wimEdgeCost": "At 1:1 R:R you need a 50% win rate to break even. If your costs are worth 0.1 R per trade, the bar rises to 55%. Ignoring it means trading five points below breakeven while believing you are above it.",
+  "wimEdgeUse": "Work out your breakeven with YOUR costs before deciding whether a system is worth it, and compare it against your real win rate — the one in your journal — not the one you remember.",
 }

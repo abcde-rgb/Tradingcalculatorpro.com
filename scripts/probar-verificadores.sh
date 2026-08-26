@@ -449,10 +449,9 @@ p.write_text(t.replace('pico: 5048.62', 'pico: 5000', 1))\""
     "(cd frontend && node scripts/engine-check.js)" \
     "python -c \"
 import pathlib
-q = chr(39)
 p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
-p.write_text(t.replace('k: ' + q + 'tailEvNikkei' + q,
-                       'pct: -80.5, k: ' + q + 'tailEvNikkei' + q, 1))\""
+p.write_text(t.replace('ref: { pico: 38915.87',
+                       'pct: -80.5, ref: { pico: 38915.87', 1))\""
 
   # El dato y su texto se emparejan por `id`. Un id que el getter no conoce no
   # da error: la celda sale VACÍA, que es peor que una clave cruda porque no se
@@ -473,6 +472,17 @@ p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
 i = t.index('  { id: ' + chr(39) + 'bitcoin' + chr(39))
 j = t.index('\n', i) + 1
 p.write_text(t[:i] + t[j:])\""
+
+  # El bloque «por qué importa» promete cifras concretas —«ocho pérdidas al
+  # 10 % te dejan al 43,0 %»— porque un consejo sin consecuencia cuantificada
+  # se olvida. Eso convierte la prosa en una afirmación numérica más, y aquí se
+  # comprueba que sigue cuadrando con la función que la produce.
+  probar "el texto de «por qué importa» dice una cifra que el cálculo desmiente" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/es.edu.js'); t = p.read_text()
+p.write_text(t.replace('43,0 %', '45,0 %', 1))\""
 
   # ── Los enlaces de la Academia a las herramientas ─────────────────────────
   # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja

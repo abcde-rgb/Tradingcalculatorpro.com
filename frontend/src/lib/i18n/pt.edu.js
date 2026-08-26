@@ -2387,4 +2387,12 @@ export default {
   "tailEvNickel": "De cerca de 29.000 para mais de 100.000 dólares por tonelada em duas sessões. A bolsa suspendeu a cotação e ANULOU operações já executadas: se o teu risco dependia de o mercado continuar aberto, não havia stop que valesse.",
   "tailEvNikkei": "De 38.915,87 para 7.603,76. Era preciso +412 % para voltar, e demorou trinta e quatro anos: o índice só recuperou esse máximo em fevereiro de 2024.",
   "tailEvBitcoin": "De cerca de 19.800 para cerca de 3.100 dólares. E outra vez −77 % em 2022. Não é a anomalia de um ativo jovem: é a forma normal da sua distribuição.",
+  "wimSizeWhat": "O tamanho da posição é quanto CAPITAL arriscas numa operação, não quantas unidades compras. Sai da distância ao stop e decide-se antes de entrar.",
+  "wimSizeWhy": "É a única variável da equação que controlas por completo. O mercado decide se acertas; tu decides quanto custa errar.",
+  "wimSizeCost": "Com 2 % por operação, oito perdas seguidas deixam-te a 85,1 % do capital e voltar custa +17,5 %. Com 10 %, deixam-te a 43,0 %, e voltar custa +132 %. A mesma série, dois finais diferentes.",
+  "wimSizeUse": "Fixa o risco por operação antes de olhar para o gráfico e deriva o tamanho da distância ao stop, nunca ao contrário. Depois confirma na calculadora de séries quantas perdas seguidas são normais com a tua taxa de acerto: são quase sempre mais do que julgas.",
+  "wimEdgeWhat": "A esperança é o que ganhas em média por operação, medida em R: taxa de acerto × ganho − (1 − taxa de acerto) × perda. Um número, não uma sensação.",
+  "wimEdgeWhy": "Um sistema com 70 % de acerto pode perder dinheiro e um com 35 % pode ganhá-lo. A taxa de acerto sozinha não diz nada: a pergunta é quanto recebes quando acertas e quanto pagas quando não.",
+  "wimEdgeCost": "Com R:R 1:1 precisas de 50 % de acerto para não perder. Se os teus custos valem 0,1 R por operação, a fasquia sobe para 55 %. Ignorá-lo é operar cinco pontos abaixo do equilíbrio a julgar que estás acima.",
+  "wimEdgeUse": "Calcula o teu ponto de equilíbrio com OS TEUS custos antes de decidir se um sistema vale a pena, e compara-o com a tua taxa de acerto real — a do diário —, não com a que recordas.",
 }

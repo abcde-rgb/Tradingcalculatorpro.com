@@ -2145,6 +2145,38 @@ async function checkTailRisk() {
     .filter((id) => !T.EVENTOS_COLA.some((e) => e.id === id));
   ok('ninguna línea del getter se queda sin evento que la pinte',
     sobran.length === 0, `sobran: ${sobran.join(', ')}`);
+
+  // ── Las cifras que el texto de «por qué importa» promete ────────────────
+  //
+  // Ese bloque existe porque un consejo sin consecuencia cuantificada se
+  // olvida: «gestiona el riesgo» no enseña nada, «ocho pérdidas al 10 % te
+  // dejan al 43 %» sí. Pero entonces la prosa es una afirmación numérica más,
+  // y aquí se ata a la función que la produce: si `edgeMath` o
+  // `subidaParaRecuperar` cambian, el texto deja de cuadrar y esto salta.
+  const { getWhyItMattersBlocks } = await imp('lib/tradingEducationContent.js');
+  const E2 = await imp('lib/edgeMath.js');
+  const es = (await imp('lib/i18n/es.edu.js')).default;
+  const W = getWhyItMattersBlocks((k) => es[k] ?? '');
+
+  const tras8 = (riesgo) => (1 - riesgo) ** 8;
+  const cifras = [
+    ['85,1', tras8(0.02) * 100, 0.05],
+    ['17,5', T.subidaParaRecuperar(1 - tras8(0.02)) * 100, 0.05],
+    ['43,0', tras8(0.10) * 100, 0.05],
+    ['132', T.subidaParaRecuperar(1 - tras8(0.10)) * 100, 0.5],
+  ];
+  for (const [texto, valor, tol] of cifras) {
+    const calc = Number(texto.replace(',', '.'));
+    ok(`el bloque de tamaño dice ${texto} y la aritmética da ${valor.toFixed(1)}`,
+      Math.abs(calc - valor) <= tol && W.size.cost.includes(texto),
+      W.size.cost.includes(texto) ? 'la cifra no cuadra' : `«${texto}» ya no aparece en el texto`);
+  }
+
+  // El equilibrio con y sin costes, que es la cifra del segundo bloque.
+  ok('el bloque de esperanza dice 50 % sin costes, y eso es lo que calcula',
+    Math.abs(E2.equilibrioNeto(1, 0) - 50) < 1e-9 && W.edge.cost.includes('50 %'));
+  ok('…y 55 % con costes de 0,1 R, que es el salto que denuncia',
+    Math.abs(E2.equilibrioNeto(1, 0.1) - 55) < 1e-9 && W.edge.cost.includes('55 %'));
 }
 
 (async () => {

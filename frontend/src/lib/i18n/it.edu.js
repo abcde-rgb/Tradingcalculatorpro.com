@@ -2387,4 +2387,12 @@ export default {
   "tailEvNickel": "Da circa 29.000 a oltre 100.000 dollari la tonnellata in due sedute. La borsa ha sospeso le contrattazioni e ANNULLATO operazioni già eseguite: se il tuo rischio dipendeva dal fatto che il mercato restasse aperto, nessuno stop poteva servire.",
   "tailEvNikkei": "Da 38.915,87 a 7.603,76. Servivano +412 % per tornare, e ci vollero trentaquattro anni: l’indice non ha recuperato quel massimo fino a febbraio 2024.",
   "tailEvBitcoin": "Da circa 19.800 a circa 3.100 dollari. E di nuovo −77 % nel 2022. Non è l’anomalia di un asset giovane: è la forma normale della sua distribuzione.",
+  "wimSizeWhat": "La dimensione della posizione è quanto CAPITALE rischi in un’operazione, non quante unità compri. Deriva dalla distanza dallo stop e si decide prima di entrare.",
+  "wimSizeWhy": "È l’unica variabile dell’equazione che controlli del tutto. Il mercato decide se hai ragione; tu decidi quanto costa sbagliare.",
+  "wimSizeCost": "Con il 2 % per operazione, otto perdite di fila ti lasciano all’85,1 % del capitale e tornare costa +17,5 %. Con il 10 %, ti lasciano al 43,0 %, e tornare costa +132 %. La stessa serie, due finali diversi.",
+  "wimSizeUse": "Fissa il rischio per operazione prima di guardare il grafico e ricava la dimensione dalla distanza dallo stop, mai il contrario. Poi verifica col calcolatore di serie quante perdite consecutive sono normali con la tua percentuale: quasi sempre più di quante credi.",
+  "wimEdgeWhat": "L’aspettativa è quanto guadagni in media per operazione, misurata in R: percentuale di successo × guadagno − (1 − percentuale) × perdita. Un numero, non una sensazione.",
+  "wimEdgeWhy": "Un sistema con il 70 % di successo può perdere denaro e uno col 35 % può guadagnarlo. La percentuale da sola non dice nulla: la domanda è quanto incassi quando hai ragione e quanto paghi quando no.",
+  "wimEdgeCost": "Con R:R 1:1 serve il 50 % di successo per andare in pari. Se i tuoi costi valgono 0,1 R per operazione, l’asticella sale al 55 %. Ignorarlo significa operare cinque punti sotto il pareggio credendo di stare sopra.",
+  "wimEdgeUse": "Calcola il tuo punto di pareggio con I TUOI costi prima di decidere se un sistema vale la pena, e confrontalo con la tua percentuale reale — quella del diario —, non con quella che ricordi.",
 }

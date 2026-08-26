@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { TrendingDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/lib/i18n';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import JournalEdgeButton from '@/components/education/JournalEdgeButton';
 import { rachaMaximaEsperada, tablaRachas, probAlgunaRacha } from '@/lib/edgeMath';
 
 /**
@@ -32,6 +33,25 @@ export function LosingStreakCalculator() {
     operaciones: 200,
   });
   const set = (k) => (e) => setDatos((p) => ({ ...p, [k]: e.target.value }));
+
+  /**
+   * El acierto de VERDAD, traído del diario.
+   *
+   * La pregunta que responde esta pantalla —«¿cuántas pérdidas seguidas son
+   * normales?»— es muy sensible al acierto: al 40 % la racha esperada en 200
+   * operaciones es de siete; al 50 %, de cinco. Un acierto recordado dos
+   * puntos por encima ya cambia la respuesta, y la memoria redondea al alza.
+   *
+   * También trae el número de operaciones cerradas: la racha esperada depende
+   * de cuántas veces se tira la moneda, no sólo de cómo está cargada.
+   */
+  const desdeDiario = useCallback((a) => {
+    setDatos((p) => ({
+      ...p,
+      ...(a.win_rate != null ? { acierto: Math.round(a.win_rate * 10) / 10 } : {}),
+      ...(a.closed_trades ? { operaciones: a.closed_trades } : {}),
+    }));
+  }, [setDatos]);
 
   const r = useMemo(() => {
     const acierto = NUM(datos.acierto);
@@ -80,6 +100,8 @@ export function LosingStreakCalculator() {
                        className="font-mono bg-muted border-border" data-testid="ls-trades" />
               </div>
             </div>
+
+            <JournalEdgeButton onLoad={desdeDiario} testId="ls-journal" />
 
             <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
               <p className="text-xs uppercase tracking-wider text-primary mb-1">{t('lsMaxExpected')}</p>

@@ -2299,6 +2299,33 @@ export const getNetLiquidity = (t) => ({
 // black swans (Taleb), the "impossible" sigma moves that keep happening, ruin &
 // non-ergodicity, convexity/tail hedging and the barbell. Pairs with TailRiskVisual.jsx.
 /**
+ * Los dos bloques «por qué importa»: tamaño de posición y esperanza.
+ *
+ * Cuatro filas —qué es, por qué importa, qué te cuesta ignorarlo, qué haces
+ * mañana— de las que sólo una fija el concepto: el coste. Por eso va con
+ * número y no en abstracto, y por eso las cifras que cita están comprobadas
+ * en `engine-check` contra las funciones que las producen: si `edgeMath`
+ * cambia, el texto que lo explica deja de cuadrar y el PR se rompe.
+ *
+ * Vive aquí, y no suelto en la página, por lo mismo que `getTailRiskFigures`:
+ * `split-i18n-edu` sólo difiere lo que sale de este fichero.
+ */
+export const getWhyItMattersBlocks = (t) => ({
+  size: {
+    what: t('wimSizeWhat'),
+    why: t('wimSizeWhy'),
+    cost: t('wimSizeCost'),
+    use: t('wimSizeUse'),
+  },
+  edge: {
+    what: t('wimEdgeWhat'),
+    why: t('wimEdgeWhy'),
+    cost: t('wimEdgeCost'),
+    use: t('wimEdgeUse'),
+  },
+});
+
+/**
  * Los rótulos y las diez líneas de las tablas de cifras del riesgo de cola.
  *
  * Vive aquí y no junto a los datos por una razón concreta: `split-i18n-edu.js`

@@ -18,7 +18,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useCloudPref } from '@/lib/cloudPrefs';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, getGridMartingale, getVolPremium, getBacktestValidation, getTailRiskFigures, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, getGridMartingale, getVolPremium, getBacktestValidation, getTailRiskFigures, getWhyItMattersBlocks, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -99,6 +99,8 @@ import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
 import TailRiskVisual from '@/components/education/TailRiskVisual';
 import TailRiskFigures from '@/components/education/TailRiskFigures';
+import TradingBasicsGuide from '@/components/education/TradingBasicsGuide';
+import WhyItMatters from '@/components/education/WhyItMatters';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 import MarketTypeModal from '@/components/education/MarketTypeModal';
 
@@ -645,6 +647,7 @@ export default function EducationPage() {
   const NET_LIQUIDITY = getNetLiquidity(t);
   const TAIL_RISK = getTailRisk(t);
   const TAIL_FIGURES = getTailRiskFigures(t);
+  const WHY = getWhyItMattersBlocks(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -1243,6 +1246,14 @@ export default function EducationPage() {
                   </Card>
                 ))}
               </div>
+
+              {/* 671 líneas escritas, traducidas a los diez idiomas y sin
+                  importar por nadie desde que se escribieron: largo y corto,
+                  TP, SL y tamaño de posición con diagramas y preguntas
+                  frecuentes. Es literalmente lo que un principiante necesita
+                  antes de la llamada a la calculadora de posición, y estaba
+                  a un `import` de distancia. */}
+              <TradingBasicsGuide />
 
               <Card className="bg-primary/5 border-primary/30">
                 <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
@@ -4641,6 +4652,8 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              <WhyItMatters {...WHY.edge} />
+
               {/* Mathematical Expectation */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
@@ -5064,8 +5077,14 @@ export default function EducationPage() {
               {/* Leverage 0x-100x guide with mini calc + redirect to full Dashboard */}
               <LeverageGuide />
 
+              {/* Lo que separa aprender de memorizar: qué te cuesta ignorarlo,
+                  con un número. Las cifras salen de la aritmética que las
+                  produce y engine-check las comprueba. */}
+              <WhyItMatters {...WHY.size} />
+
+              <EnlacesHerramienta ids={['position', 'breakeven', 'streaks']} t={t} />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="mb-4"><EnlacesHerramienta ids={['position', 'breakeven']} t={t} /></div>
                 {RISK_MANAGEMENT_CONCEPTS.map(concept => (
                   <Card key={concept.id} className="bg-card border-border">
                     <CardHeader>

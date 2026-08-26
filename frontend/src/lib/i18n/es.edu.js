@@ -2387,4 +2387,12 @@ export default {
   "tailEvNickel": "De unos 29.000 a más de 100.000 dólares por tonelada en dos sesiones. La bolsa suspendió la cotización y ANULÓ operaciones ya ejecutadas: si tu riesgo dependía de que el mercado siguiera abierto, no había stop que valiera.",
   "tailEvNikkei": "De 38.915,87 a 7.603,76. Hacía falta un +412 % para volver, y tardó treinta y cuatro años: el índice no recuperó ese máximo hasta febrero de 2024.",
   "tailEvBitcoin": "De unos 19.800 a unos 3.100 dólares. Y otra vez un −77 % en 2022. No es la anomalía de un activo joven: es la forma normal de su distribución.",
+  "wimSizeWhat": "El tamaño de la posición es cuánto CAPITAL arriesgas en una operación, no cuántas unidades compras. Sale de la distancia al stop, y se decide antes de entrar.",
+  "wimSizeWhy": "Es la única variable de la ecuación que controlas por completo. El mercado decide si aciertas; tú decides cuánto cuesta equivocarte.",
+  "wimSizeCost": "Con un 2 % por operación, ocho pérdidas seguidas te dejan al 85,1 % del capital y volver cuesta un +17,5 %. Con un 10 %, te dejan al 43,0 %, y volver cuesta un +132 %. La misma racha, dos finales distintos.",
+  "wimSizeUse": "Fija el riesgo por operación antes de mirar el gráfico y deriva el tamaño de la distancia al stop, nunca al revés. Y comprueba con la calculadora de rachas cuántas pérdidas seguidas son normales con tu acierto: casi siempre son más de las que crees.",
+  "wimEdgeWhat": "La esperanza es lo que ganas de media por operación, medida en R: acierto × ganancia − (1 − acierto) × pérdida. Un número, no una sensación.",
+  "wimEdgeWhy": "Un sistema con un 70 % de acierto puede perder dinero y uno con un 35 % puede ganarlo. El acierto solo no dice nada: la pregunta es cuánto cobras cuando aciertas y cuánto pagas cuando no.",
+  "wimEdgeCost": "Con R:R 1:1 necesitas acertar el 50 % para no perder. Si tus costes valen 0,1 R por operación, el listón sube al 55 %. Ignorarlo es operar cinco puntos por debajo del equilibrio creyendo que estás por encima.",
+  "wimEdgeUse": "Calcula tu punto de equilibrio con TUS costes antes de decidir si un sistema merece la pena, y compáralo con tu acierto real —el del diario—, no con el que recuerdas.",
 }

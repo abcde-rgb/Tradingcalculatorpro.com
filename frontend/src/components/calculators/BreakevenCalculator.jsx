@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Scale } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/lib/i18n';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import JournalEdgeButton from '@/components/education/JournalEdgeButton';
 import {
   costeEnR, equilibrioNeto, esperanzaNetaR, arrastreMensual, tablaEquilibrio,
 } from '@/lib/edgeMath';
@@ -34,6 +35,28 @@ export function BreakevenCalculator() {
     opsMes: 40,
   });
   const set = (k) => (e) => setDatos((p) => ({ ...p, [k]: e.target.value }));
+
+  /**
+   * El acierto y el R:R de VERDAD, traídos del diario.
+   *
+   * Esta calculadora responde «¿con mis costes, este sistema gana?», y esa
+   * pregunta se contesta mal con el acierto que uno recuerda: la memoria
+   * redondea al alza. El botón lo sustituye por el que está registrado.
+   *
+   * `avg_loss` viene en negativo, así que el R:R es el cociente de valores
+   * absolutos. Si no hay pérdidas registradas el cociente es indefinido y NO
+   * se toca el campo: escribir un cero ahí bajaría el equilibrio al 0 % y
+   * diría que cualquier sistema gana.
+   */
+  const desdeDiario = useCallback((a) => {
+    if (a.win_rate != null) {
+      setDatos((p) => ({ ...p, acierto: Math.round(a.win_rate * 10) / 10 }));
+    }
+    const rr = a.avg_loss ? Math.abs(a.avg_win / a.avg_loss) : null;
+    if (rr && Number.isFinite(rr) && rr > 0) {
+      setDatos((p) => ({ ...p, rr: Math.round(rr * 100) / 100 }));
+    }
+  }, [setDatos]);
 
   const r = useMemo(() => {
     const capital = NUM(datos.capital);
@@ -105,6 +128,9 @@ export function BreakevenCalculator() {
             <p className="col-span-2 text-[11px] text-muted-foreground leading-relaxed">
               {t('beCostHint')}
             </p>
+            <div className="col-span-2">
+              <JournalEdgeButton onLoad={desdeDiario} testId="be-journal" />
+            </div>
           </div>
 
           {/* Resultado */}
