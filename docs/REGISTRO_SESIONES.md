@@ -4838,3 +4838,94 @@ los lleva por delante. Pasó con estas mismas notas.
   tilde/ñ/¿; «Solo Lifetime» o «Listo para empezar» no llevan diacríticos.
 - **Brókers y datos de mercado**: el proxy bloquea esos dominios.
 - **El disparador de despliegue** vive en la consola de GCP, no en el repo.
+
+---
+
+## 2026-08-26 (2) — Del informe de esperanza matemática, lo que no estaba ya
+
+Un informe sobre estrategias con esperanza positiva. Lo primero fue el
+inventario, que es lo que manda `CLAUDE.md`: **la mayor parte ya estaba**.
+Expectativa, R-múltiplos, SQN con tope 100, Kelly y ½ Kelly, riesgo de ruina,
+Monte Carlo, Sharpe/Sortino/Calmar/Ulcer, VaR/CVaR, no-ergodicidad, martingala
+frente a piramidar. No se duplicó nada.
+
+Lo que faltaba de verdad, por orden de valor:
+
+### 1 · Dos calculadoras (15 → 17)
+
+**Punto de equilibrio y costes.** `ProjectionPanel` ya calculaba el equilibrio
+pero exige diario y no mira los costes. El modelo nuevo se apoya en una
+identidad limpia: con `k = coste / riesgo`, el ganador neto vale `R − k` y el
+perdedor `1 + k`, así que `E = W·R − (1−W) − k` y el equilibrio se desplaza a
+`(1 + k) / (1 + R)`. Con `k = 0` vuelve a `1/(1+R)`, y esa vuelta es la
+comprobación que ata el módulo a `breakevenWinRate` — que se importa, no se
+reescribe.
+
+Y el número que faltaba: el **arrastre por frecuencia**. Mismo `k` de 0,05 con
+1 % de riesgo son 0,4 % del capital al mes con 8 operaciones y 10 % con 200.
+
+**Rachas de pérdidas.** Separa las dos preguntas que todo el mundo confunde:
+perder 5 seguidas EN UN PUNTO al 60 % de acierto es 1,02 %; que ocurra ALGUNA
+VEZ en 200 operaciones es 71 %.
+
+Verificación: la recursión exacta de rachas contra **Monte Carlo** con 120.000
+tandas, a menos de 0,1 pp en cinco configuraciones. Comprobar la recursión
+contra sí misma no habría comprobado nada.
+
+### 2 · Asimetría, curtosis y ratio de colas en el diario
+
+Sharpe, Sortino, Calmar, Ulcer, VaR y CVaR: ninguna dice la FORMA de la
+distribución, y un sistema de ratio menor que 1 saca buen Sharpe justo porque el
+Sharpe penaliza la varianza y no la asimetría. Sobre R-múltiplos, no sobre P&L:
+normalizan el tamaño de posición y describen la estrategia. Verificado contra
+`scipy.stats` con `bias=True` en cinco distribuciones, coincidencia a 1e-9.
+`tail_ratio` devuelve `None` por debajo de 20 operaciones porque con 19 el
+percentil 95 ES el máximo.
+
+### 3 · La pantalla de `backtest.py` (hueco G-14)
+
+643 líneas escritas el 2026-08-22 —hold-out, walk-forward, Deflated Sharpe— con
+sus dos rutas marcadas CONSTRUIR y sin puerta. Nueva pestaña «Validación» en
+Performance. El veredicto se redacta en el frontend con los campos
+estructurados: el `verdict` del backend viene en inglés y la web tiene diez
+idiomas. CONSTRUIR baja de 20 a 18.
+
+### 4 · Dos módulos de academia (89 temas, 730 páginas SEO)
+
+Grid y martingala; la prima de riesgo de volatilidad. Emparejados porque el
+error que corrigen es confundirlos: mismo perfil de pagos, sustancia opuesta.
+
+### Tres correcciones a cosas que dije yo
+
+**El recuento de claves muertas era falso.** «573» y luego «≥175» salían de un
+detector que no modelaba `t(plan.id + 'Price')`. Daba por muertas `monthlyPrice`
+y `lifetimePeriod`, que se pintan ahora mismo en `/pricing`. No se borró
+ninguna clave.
+
+**Dije que Volmageddon ya estaba en la academia.** No estaba. Mi búsqueda de
+«XIV» sin distinguir mayúsculas dio positivo dentro de «refle-xiv-idad».
+
+**Los cuatro sabotajes nuevos** llevaban `cd frontend` sin subshell y tumbaron
+13 tests de la batería, de los que sólo uno era real. El aviso estaba escrito
+dentro de la propia función `probar()`.
+
+### Un fallo del detector de rutas, destapado por el trabajo
+
+Escribir el cliente de `/backtest/validate` rompió el control negativo
+`/backtest` de `gen-mapa.py`: la ruta retirada pasaba por consumida porque el
+frontend nombra otra MÁS LARGA con su prefijo. El cierre del patrón excluía
+letras y guiones, pero no `/`. Arreglado en el detector, no en el control.
+Destapa además un falso negativo viejo: `GET /api/admin/referrals` no la llama
+nadie. Rutas sin consumidor 32 → 33.
+
+### Lo que NO se comprobó
+
+- **La pantalla de backtest no se ha ejecutado contra datos reales.** Descarga
+  histórico diario y aquí los proveedores de precio están bloqueados. Compila y
+  pasa lint, i18n y build; el resultado con datos por ver.
+- **Las cifras del CBOE sobre venta sistemática de opciones** no se han podido
+  contrastar (proxy). El módulo describe la dirección del hallazgo con sus dos
+  reservas —índices brutos, y el Sharpe favorece a las colas izquierdas— y no
+  reproduce porcentajes concretos.
+- **Nada de esto se ha visto renderizado**: las dos calculadoras y la pestaña de
+  validación viven tras el muro premium, y el smoke visual sólo cubre público.
