@@ -4858,4 +4858,6 @@ export default {
   "gl110d": "As mesmas três letras para duas ideias sem relação. Em fóruns de retalho, contração de «Support and Resistance»: o suporte e a resistência de sempre. Não é terminologia clássica — nem Nison, nem Schwager, nem Douglas a usam — e a abreviatura académica é S/R. Em quantitativo, «Signal-to-Noise Ratio»: quanto do movimento de um preço é direção aproveitável e quanto é ruído aleatório. Esse sim é um conceito estatístico com definição precisa.",
   "gl111t": "Prémio de risco de volatilidade",
   "gl111d": "A diferença sistemática entre a volatilidade implícita que as opções descontam e a que o ativo acaba por realizar. Quem vende opções cobra-a em troca do risco de a realizada superar a implícita. Não é uma ineficiência esquecida mas o preço de um seguro, e por isso não desaparece ao publicar-se; a fatura chega inteira e de uma vez, não repartida.",
+  "eduToolLinks": "Experimenta:",
+  "bvlTitle": "Validar um backtest",
 }

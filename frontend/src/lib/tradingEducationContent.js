@@ -2019,6 +2019,26 @@ export const getRRG = (t) => ({
   note: t('rrgNote'),
 });
 
+// Backtest validation — the module the academy was missing while the site sold
+// backtesting. Covers the four biases that manufacture false expectancy, the
+// in/out-of-sample split, walk-forward, Monte Carlo over the trade SEQUENCE,
+// how many trades significance needs, the data-snooping correction, and alpha
+// decay. Pairs with the tools: MonteCarloSimulator and the Validación tab.
+export const getBacktestValidation = (t) => ({
+  title: t('bvlTitle'),
+  intro: t('bvlIntro'),
+  items: [
+    { id: 'bias',     name: t('bvlBiasName'),     desc: t('bvlBiasDesc'),     type: 'bearish' },
+    { id: 'oos',      name: t('bvlOosName'),      desc: t('bvlOosDesc'),      type: 'bullish' },
+    { id: 'wf',       name: t('bvlWfName'),       desc: t('bvlWfDesc'),       type: 'bullish' },
+    { id: 'mc',       name: t('bvlMcName'),       desc: t('bvlMcDesc') },
+    { id: 'n',        name: t('bvlNName'),        desc: t('bvlNDesc') },
+    { id: 'deflated', name: t('bvlDeflatedName'), desc: t('bvlDeflatedDesc'), type: 'bullish' },
+    { id: 'decay',    name: t('bvlDecayName'),    desc: t('bvlDecayDesc'),    type: 'bearish' },
+  ],
+  note: t('bvlNote'),
+});
+
 // Grid and martingale — why the prettiest equity curves on the internet have
 // genuinely negative expectancy: the curve only counts what is CLOSED and the
 // system never closes what is losing. Includes the anti-martingale contrast,

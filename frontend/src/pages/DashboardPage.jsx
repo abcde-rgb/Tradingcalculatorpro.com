@@ -149,11 +149,13 @@ export default function DashboardPage() {
   // enlace llevaría al dashboard y la calculadora pedida no se vería.
   useEffect(() => {
     const requested = searchParams.get('tab');
-    const allowed = [
-      'percentage', 'target', 'leverage', 'position', 'lotsize',
-      'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
-      'futures', 'compound', 'partial-exit', 'cross-margin',
-    ];
+    // Derivada de CALC_NAV, no escrita a mano. La lista literal que había aquí
+    // era la TERCERA copia de los nombres de pestaña —CALC_NAV, los
+    // `TabsContent` y ésta— y ya se había quedado atrás: al añadir las
+    // calculadoras de equilibrio y rachas (2026-08-26) el enlace
+    // `/dashboard?tab=breakeven` no abría nada y no fallaba nada, simplemente
+    // aterrizabas en la pestaña por defecto sin entender por qué.
+    const allowed = ALL_CALC_TOOLS.map((it) => it.value);
     if (requested && allowed.includes(requested)) {
       setActiveTab(requested);
       setDeskAccount(prev => ({ ...(prev || {}), mode: 'basic' }));

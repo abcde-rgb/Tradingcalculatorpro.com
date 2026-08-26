@@ -324,6 +324,7 @@ const TOPICS = [
   { v:'business', slug:'el-negocio-del-trading', tk:'tbizTitle', ik:'tbizIntro' },
   { v:'grid-martingale', slug:'grid-y-martingala-por-que-no-funcionan', tk:'gmTitle', ik:'gmIntro' },
   { v:'vol-premium', slug:'prima-de-riesgo-de-volatilidad', tk:'vrpTitle', ik:'vrpIntro' },
+  { v:'backtest-validation', slug:'validar-un-backtest', tk:'bvlTitle', ik:'bvlIntro' },
 ];
 
 // ─── Plantilla HTML ───────────────────────────────────────────────

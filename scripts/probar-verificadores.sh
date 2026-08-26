@@ -373,6 +373,86 @@ q = chr(39)
 p = pathlib.Path('frontend/scripts/gen-seo-pages.js'); t = p.read_text()
 p.write_text(t.replace(q + 'cross-margin' + q + ', slug:', q + 'margen-cruzado' + q + ', slug:', 1))\""
 
+  # 7) La lista que el panel acepta por `?tab=`. Era una copia a mano de
+  #    CALC_NAV y se quedó atrás: `/dashboard?tab=breakeven` aterrizaba en la
+  #    pestaña por defecto sin fallar nada. Ahora se deriva, y comprobar los
+  #    destinos del SEO contra ella sería preguntarle dos veces a la misma
+  #    lista. Lo que engine-check comprueba es la CADENA de derivación, así que
+  #    los sabotajes tienen que romperla por sus dos eslabones — y el tercero
+  #    vuelve a poner la lista literal, para que la rama vieja siga viva.
+  probar "lo permitido por ?tab= deja de derivar de las herramientas" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/pages/DashboardPage.jsx'); t = p.read_text()
+p.write_text(t.replace('const allowed = ALL_CALC_TOOLS.map(',
+                       'const allowed = TABS_SUELTAS.map(', 1))\""
+
+  probar "las herramientas dejan de derivar de CALC_NAV" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/pages/DashboardPage.jsx'); t = p.read_text()
+p.write_text(t.replace('const ALL_CALC_TOOLS = CALC_NAV.flatMap(',
+                       'const ALL_CALC_TOOLS = OTRA_COSA.flatMap(', 1))\""
+
+  probar "vuelve la lista literal de pestañas, y llega incompleta" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/DashboardPage.jsx'); t = p.read_text()
+p.write_text(t.replace('const allowed = ALL_CALC_TOOLS.map((it) => it.value);',
+                       'const allowed = [' + q + 'position' + q + '];', 1))\""
+
+  # ── Los enlaces de la Academia a las herramientas ─────────────────────────
+  # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja
+  # en la pestaña por defecto), un id fuera de la tabla (`return null`, el
+  # enlace no se pinta) y una clave mal escrita (cruda, en un solo idioma).
+  titulo "Enlaces de la Academia (check-enlaces-academia.js)"
+  probar "un enlace a una pestaña del panel que no existe" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/EducationPage.jsx'); t = p.read_text()
+p.write_text(t.replace('to: ' + q + '/dashboard?tab=montecarlo' + q,
+                       'to: ' + q + '/dashboard?tab=monte-carlo' + q, 1))\""
+
+  probar "un enlace a una pestaña del diario que la URL no acepta" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/EducationPage.jsx'); t = p.read_text()
+p.write_text(t.replace('to: ' + q + '/performance?tab=validation' + q,
+                       'to: ' + q + '/performance?tab=validacion' + q, 1))\""
+
+  probar "un módulo que enlaza un id que no está en la tabla" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/EducationPage.jsx'); t = p.read_text()
+p.write_text(t.replace('ids={[' + q + 'pattern' + q + ']}',
+                       'ids={[' + q + 'patrones' + q + ']}', 1))\""
+
+  probar "la etiqueta de un enlace desaparece de un solo idioma" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
+p.write_text(t.replace('\\\"lsTitle\\\":', '\\\"lsTitleX\\\":', 1))\""
+
+  probar "el diario acepta por la URL una pestaña que no pinta" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/PerformancePage.jsx'); t = p.read_text()
+p.write_text(t.replace(q + 'overview' + q + ', ' + q + 'backtesting' + q,
+                       q + 'overview' + q + ', ' + q + 'fantasma' + q, 1))\""
+
   # ── La simulación masiva también tiene que poder fallar ───────────────────
   titulo "Simulación masiva (simulacion-masiva.js)"
   probar "una identidad del margen cruzado que deja de cumplirse" \

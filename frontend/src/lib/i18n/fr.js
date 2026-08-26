@@ -4858,4 +4858,6 @@ export default {
   "gl110d": "Les mêmes trois lettres pour deux idées sans rapport. Dans les forums de particuliers, contraction de « Support and Resistance » : le support et la résistance de toujours. Ce n'est pas de la terminologie classique (ni Nison, ni Schwager, ni Douglas ne l'emploient) et l'abréviation académique est S/R. En quantitatif, « Signal-to-Noise Ratio » : quelle part d'un mouvement de prix est une direction exploitable et quelle part est du bruit aléatoire. Celui-là est un concept statistique à définition précise.",
   "gl111t": "Prime de risque de volatilité",
   "gl111d": "L'écart systématique entre la volatilité implicite escomptée par les options et celle que le sous-jacent réalise finalement. Le vendeur d'options l'encaisse en échange du risque que la réalisée dépasse l'implicite. Ce n'est pas une inefficience oubliée mais le prix d'une assurance, et c'est pourquoi la publier ne la fait pas disparaître ; sa facture arrive entière et d'un coup, pas étalée.",
+  "eduToolLinks": "Essayez :",
+  "bvlTitle": "Valider un backtest",
 }

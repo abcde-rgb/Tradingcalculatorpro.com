@@ -4858,4 +4858,6 @@ export default {
   "gl110d": "Dieselben drei Buchstaben für zwei unverbundene Dinge. In Retail-Foren eine Kurzform von „Support and Resistance\" — schlicht Unterstützung und Widerstand. Das ist keine klassische Terminologie (Nison, Schwager und Douglas verwenden sie nicht), die akademische Abkürzung ist S/R. In der Quant-Welt „Signal-to-Noise Ratio\": wie viel einer Preisbewegung nutzbare Richtung ist und wie viel Zufallsrauschen. Das ist ein statistischer Begriff mit präziser Definition.",
   "gl111t": "Volatilitätsrisikoprämie",
   "gl111d": "Der systematische Abstand zwischen der in Optionen eingepreisten impliziten Volatilität und der Volatilität, die der Basiswert am Ende realisiert. Der Optionsverkäufer kassiert ihn für das Risiko, dass die realisierte die implizite übersteigt. Keine vergessene Ineffizienz, sondern der Preis einer Versicherung — deshalb verschwindet sie durch Veröffentlichung nicht; ihre Rechnung kommt ganz und auf einmal, nicht verteilt.",
+  "eduToolLinks": "Ausprobieren:",
+  "bvlTitle": "Einen Backtest validieren",
 }

@@ -5,7 +5,7 @@ import {
   Sparkles, Eye, Repeat, FileText, ChevronRight, Lock, Mail, Rewind, ClipboardList,
   FlaskConical,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -30,10 +30,26 @@ const FADE_UP = {
   viewport: { once: true, amount: 0.2 },
 };
 
+// Las pestañas que un enlace externo puede pedir con `?tab=`. Escrita aquí y
+// no derivada de los `TabsTrigger` porque éstos viven dentro del JSX; a cambio,
+// `check-enlaces-academia.js` comprueba que todo enlace de la academia apunte a
+// una que exista. Sin eso, un enlace a una pestaña mal escrita no falla: te deja
+// en la de por defecto y parece que el enlace no hacía nada.
+const PESTANAS_PERFORMANCE = [
+  'overview', 'backtesting', 'validation', 'journal', 'analytics',
+  'plan', 'setups', 'projection',
+];
+
 export default function PerformancePage() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
-  const [tab, setTab] = useState(isAuthenticated ? 'journal' : 'overview');
+  const [searchParams] = useSearchParams();
+  const pedida = searchParams.get('tab');
+  const [tab, setTab] = useState(
+    pedida && PESTANAS_PERFORMANCE.includes(pedida)
+      ? pedida
+      : (isAuthenticated ? 'journal' : 'overview'),
+  );
   const [refreshKey, setRefreshKey] = useState(0);
   // Setup → sus operaciones: el marcador de la pestaña Setups y el desglose de
   // la analítica llevan al diario ya filtrado, para que las tres pestañas

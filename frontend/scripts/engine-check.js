@@ -1390,16 +1390,35 @@ async function checkSiteFacts() {
   const seoSrc = fs.readFileSync(path.join(SRC, '..', 'scripts', 'gen-seo-pages.js'), 'utf8');
 
   const navTabs = new Set([...dash.slice(navIni, navFin).matchAll(/value: '([a-z0-9-]+)'/g)].map((m) => m[1]));
-  const permIni = dash.indexOf('const allowed = [');
-  const permitidas = new Set([...dash.slice(permIni, dash.indexOf('];', permIni)).matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]));
   const calcsIni = seoSrc.indexOf('const CALCS = [');
   const seoTabs = [...seoSrc.slice(calcsIni, seoSrc.indexOf('\n];', calcsIni)).matchAll(/tab: '([a-z0-9-]+)'/g)].map((m) => m[1]);
   ok('la máquina de SEO enlaza a calculadoras que existen',
     seoTabs.length > 0 && seoTabs.every((t) => navTabs.has(t)),
     `sin destino: ${seoTabs.filter((t) => !navTabs.has(t)).join(', ')}`);
-  ok('y a pestañas que el panel acepta por la URL',
-    seoTabs.every((t) => permitidas.has(t)),
-    `no permitidas: ${seoTabs.filter((t) => !permitidas.has(t)).join(', ')}`);
+
+  // La lista que el panel acepta por `?tab=` era una COPIA a mano de CALC_NAV
+  // y se quedó atrás: al añadir dos calculadoras el 2026-08-26,
+  // `/dashboard?tab=breakeven` aterrizaba en la pestaña por defecto sin que
+  // fallara nada. Ahora se deriva de CALC_NAV, así que comprobar "los destinos
+  // del SEO están permitidos" contra ella sería preguntarle dos veces a la
+  // misma lista: verde garantizado, información cero. Lo que se comprueba es
+  // que la derivación siga en pie — si alguien vuelve a escribir la lista a
+  // mano, esta rama deja de valer y la de arriba vuelve a ser necesaria.
+  const permIni = dash.indexOf('const allowed = [');
+  if (permIni !== -1) {
+    const permitidas = new Set([...dash.slice(permIni, dash.indexOf('];', permIni)).matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]));
+    ok('y a pestañas que el panel acepta por la URL (lista literal)',
+      seoTabs.every((t) => permitidas.has(t)),
+      `no permitidas: ${seoTabs.filter((t) => !permitidas.has(t)).join(', ')}`);
+  } else {
+    const derivaDeNav = /const ALL_CALC_TOOLS = CALC_NAV\.flatMap\(/.test(dash);
+    const derivaLoPermitido = /const allowed = ALL_CALC_TOOLS\.map\(/.test(dash);
+    ok('y a pestañas que el panel acepta por la URL (derivadas de CALC_NAV)',
+      derivaDeNav && derivaLoPermitido,
+      derivaDeNav
+        ? 'ALL_CALC_TOOLS existe, pero `allowed` ya no sale de él: vuelve a haber dos listas'
+        : 'ALL_CALC_TOOLS ya no sale de CALC_NAV: la cadena de derivación está rota');
+  }
 
   const edu = fs.readFileSync(path.join(SRC, 'pages', 'EducationPage.jsx'), 'utf8');
   const eduIni = edu.indexOf('const EDUCATION_NAV');

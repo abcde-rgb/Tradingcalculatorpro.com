@@ -8,7 +8,7 @@ import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
   CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer,
-  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves, RefreshCw, GitFork, Fish, Spline, BarChartHorizontal, AudioLines, Hourglass, HeartPulse, ClipboardCheck
+  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves, RefreshCw, GitFork, Fish, Spline, BarChartHorizontal, AudioLines, Hourglass, HeartPulse, ClipboardCheck, ArrowRight, FlaskConical
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useCloudPref } from '@/lib/cloudPrefs';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, getGridMartingale, getVolPremium, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, getGridMartingale, getVolPremium, getBacktestValidation, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -441,6 +441,56 @@ function EvidenceTag({ kind, t, className = '' }) {
 // fix was to name one canonical source per concept (see CanonicalLink in
 // components/options/EducationTab.jsx). A glossary entry defines in one line;
 // it must not become a seventh copy of the module.
+/**
+ * Enlaces de un módulo a la herramienta que lo pone en práctica.
+ *
+ * La academia tenía CINCO enlaces salientes en 5.500 líneas y uno solo iba a
+ * una calculadora. Quince herramientas construidas y módulos que las mencionan
+ * sin llevar a ellas: el lector termina de leer y no tiene dónde ir.
+ *
+ * Los destinos van en una tabla y no sueltos por el JSX para que
+ * `check-enlaces-academia.js` pueda comprobar que cada uno existe de verdad.
+ * Un enlace a una pestaña mal escrita no da error: te deja en la de por defecto
+ * y parece que el enlace simplemente no hacía nada.
+ */
+const HERRAMIENTAS = {
+  montecarlo:   { to: '/dashboard?tab=montecarlo',    k: 'monteCarlo' },
+  breakeven:    { to: '/dashboard?tab=breakeven',     k: 'beTitle' },
+  streaks:      { to: '/dashboard?tab=streaks',       k: 'lsTitle' },
+  position:     { to: '/dashboard?tab=position',      k: 'positionSize' },
+  lotsize:      { to: '/dashboard?tab=lotsize',       k: 'lotSize' },
+  // Apalancamiento y margen cruzado NO están aquí: sus módulos usan componente
+  // propio (`LeverageGuide`, `CrossMarginCourse`) y ya enlazan a su calculadora
+  // desde dentro. Una entrada más aquí serían dos enlaces al mismo sitio en la
+  // misma pantalla.
+  partialExit:  { to: '/dashboard?tab=partial-exit',  k: 'pxcTitle' },
+  fibonacci:    { to: '/dashboard?tab=fibonacci',     k: 'fibonacci' },
+  target:       { to: '/dashboard?tab=target',        k: 'targetPrice' },
+  compound:     { to: '/dashboard?tab=compound',      k: 'cmpCalcTitle' },
+  pattern:      { to: '/dashboard?tab=pattern',       k: 'patternTrading' },
+  simulator:    { to: '/dashboard?tab=simulator',     k: 'simulator' },
+  validacion:   { to: '/performance?tab=validation',  k: 'btvTitle' },
+  analitica:    { to: '/performance?tab=analytics',   k: 'perfTabAnalytics' },
+};
+
+const EnlacesHerramienta = ({ ids, t }) => (
+  <div className="flex flex-wrap items-center gap-2 pt-1">
+    <span className="text-[11px] uppercase tracking-wider text-muted-foreground mr-1">
+      {t('eduToolLinks')}
+    </span>
+    {ids.map((id) => {
+      const h = HERRAMIENTAS[id];
+      if (!h) return null;
+      return (
+        <Link key={id} to={h.to} data-testid={`edu-tool-${id}`}
+              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors">
+          {t(h.k)} <ArrowRight className="w-3 h-3" />
+        </Link>
+      );
+    })}
+  </div>
+);
+
 const GLOSSARY_TOPIC = {
   79: 'options-vol',      // Volatilidad implícita
   80: 'options-vol',      // IV Rank
@@ -577,6 +627,7 @@ export default function EducationPage() {
   const EHLERS = getEhlers(t);
   const RRG_G = getRRG(t);
   const PITCHFORK = getPitchfork(t);
+  const BACKTEST_VALIDATION = getBacktestValidation(t);
   const GRID_MARTINGALE = getGridMartingale(t);
   const VOL_PREMIUM = getVolPremium(t);
   const BILL_WILLIAMS = getBillWilliams(t);
@@ -685,6 +736,7 @@ export default function EducationPage() {
       { value: 'cross-margin', label: t('xmEduTitle') },
       { value: 'probability', label: t('probabilityStatsTitle') },
       { value: 'tail-risk', label: t('tailTitle') },
+      { value: 'backtest-validation', label: t('bvlTitle') },
       { value: 'grid-martingale', label: t('gmTitle') },
     ]},
     { id: 'psych', label: t('eduCatPsych'), topics: [
@@ -1573,6 +1625,39 @@ export default function EducationPage() {
               </div>
             </TabsContent>
 
+            {/* Validación de backtests — el módulo que faltaba mientras la web
+                vendía backtesting. Enlaza a las tres herramientas que lo ponen
+                en práctica: el Monte Carlo, el backtest validado y la analítica
+                del diario. */}
+            <TabsContent value="backtest-validation" className="space-y-8">
+              <Card className="bg-gradient-to-br from-sky-500/5 to-primary/10 border-sky-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <FlaskConical className="w-6 h-6 text-sky-500" />
+                    {BACKTEST_VALIDATION.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">{BACKTEST_VALIDATION.intro}</p>
+                  <EnlacesHerramienta ids={['validacion', 'montecarlo', 'simulator', 'analitica']} t={t} />
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {BACKTEST_VALIDATION.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      {item.id === 'mc' && <div className="mt-3"><EnlacesHerramienta ids={['montecarlo']} t={t} /></div>}
+                      {item.id === 'deflated' && <div className="mt-3"><EnlacesHerramienta ids={['validacion']} t={t} /></div>}
+                      {item.id === 'n' && <div className="mt-3"><EnlacesHerramienta ids={['breakeven', 'streaks']} t={t} /></div>}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{BACKTEST_VALIDATION.note}</p>
+            </TabsContent>
+
             {/* Grid y martingala — por qué la curva sube y la cuenta no */}
             <TabsContent value="grid-martingale" className="space-y-8">
               <Card className="bg-gradient-to-br from-red-500/5 to-primary/10 border-red-500/20">
@@ -1582,8 +1667,9 @@ export default function EducationPage() {
                     {GRID_MARTINGALE.title}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <p className="text-muted-foreground leading-relaxed">{GRID_MARTINGALE.intro}</p>
+                  <EnlacesHerramienta ids={['streaks', 'montecarlo']} t={t} />
                 </CardContent>
               </Card>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1608,8 +1694,9 @@ export default function EducationPage() {
                     {VOL_PREMIUM.title}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <p className="text-muted-foreground leading-relaxed">{VOL_PREMIUM.intro}</p>
+                  <EnlacesHerramienta ids={['analitica', 'breakeven']} t={t} />
                 </CardContent>
               </Card>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2038,6 +2125,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{TAIL_RISK.intro}</p>
+                  <EnlacesHerramienta ids={['montecarlo', 'streaks']} t={t} />
                 </CardContent>
               </Card>
 
@@ -2070,6 +2158,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{EVIDENCE.intro}</p>
+                  <EnlacesHerramienta ids={['validacion', 'analitica']} t={t} />
                 </CardContent>
               </Card>
 
@@ -2248,6 +2337,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{LONG_INVEST.intro}</p>
+                  <EnlacesHerramienta ids={['compound']} t={t} />
                 </CardContent>
               </Card>
 
@@ -2771,6 +2861,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{ELLIOTT_WAVE.intro}</p>
+                  <EnlacesHerramienta ids={['fibonacci']} t={t} />
                 </CardContent>
               </Card>
 
@@ -3292,6 +3383,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{PARTIAL_EXITS.intro}</p>
+                  <EnlacesHerramienta ids={['partialExit']} t={t} />
                 </CardContent>
               </Card>
 
@@ -3332,6 +3424,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{STOPS_TARGETS.intro}</p>
+                  <EnlacesHerramienta ids={['target', 'partialExit']} t={t} />
                 </CardContent>
               </Card>
 
@@ -4144,6 +4237,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{TRADER_CRAFT.intro}</p>
+                  <EnlacesHerramienta ids={['validacion', 'analitica']} t={t} />
                 </CardContent>
               </Card>
 
@@ -4328,6 +4422,7 @@ export default function EducationPage() {
                   <p className="text-muted-foreground leading-relaxed">
                     {CAPITAL_MANAGEMENT.intro}
                   </p>
+                  <EnlacesHerramienta ids={['position', 'lotsize']} t={t} />
                 </CardContent>
               </Card>
 
@@ -4525,6 +4620,7 @@ export default function EducationPage() {
                   <p className="text-muted-foreground leading-relaxed">
                     {PROBABILITY_STATS.intro}
                   </p>
+                  <EnlacesHerramienta ids={['montecarlo', 'breakeven', 'streaks']} t={t} />
                 </CardContent>
               </Card>
 
@@ -4752,6 +4848,10 @@ export default function EducationPage() {
 
             {/* Chart Patterns */}
             <TabsContent value="chart-patterns" className="space-y-8">
+              {/* Este módulo no tiene tarjeta de cabecera —empieza directo en el
+                  filtro—, así que el enlace a la calculadora de patrones va
+                  suelto arriba en vez de dentro de un CardContent. */}
+              <EnlacesHerramienta ids={['pattern']} t={t} />
               {(() => {
                 const q = patternQuery.trim().toLowerCase();
                 const filterFn = (p) => {
@@ -4948,6 +5048,7 @@ export default function EducationPage() {
               <LeverageGuide />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="mb-4"><EnlacesHerramienta ids={['position', 'breakeven']} t={t} /></div>
                 {RISK_MANAGEMENT_CONCEPTS.map(concept => (
                   <Card key={concept.id} className="bg-card border-border">
                     <CardHeader>
@@ -4979,6 +5080,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{t('harmonicPatternsIntro')}</p>
+                  <EnlacesHerramienta ids={['fibonacci']} t={t} />
                 </CardContent>
               </Card>
 

@@ -4858,4 +4858,6 @@ export default {
   "gl110d": "The same three letters for two unrelated ideas. In retail forums, a contraction of \"Support and Resistance\" — ordinary support and resistance. It is not classical terminology (Nison, Schwager and Douglas do not use it) and the academic abbreviation is S/R. In quant work, \"Signal-to-Noise Ratio\": how much of a price move is usable direction and how much is random noise. That one is a statistical concept with a precise definition.",
   "gl111t": "Volatility risk premium",
   "gl111d": "The systematic gap between the implied volatility priced into options and the volatility the asset ends up realising. The option seller collects it in exchange for the risk that realised exceeds implied. It is not a forgotten inefficiency but the price of insurance, which is why publishing it does not make it vanish; its bill arrives whole and at once, not spread out.",
+  "eduToolLinks": "Try it:",
+  "bvlTitle": "Validating a backtest",
 }
