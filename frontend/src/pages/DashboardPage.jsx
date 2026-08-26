@@ -18,6 +18,8 @@ import { PatternTradingCalculator } from '@/components/calculators/PatternTradin
 import { FuturesCalculator } from '@/components/calculators/FuturesCalculator';
 import { CompoundCalculator } from '@/components/calculators/CompoundCalculator';
 import { CrossMarginSimulator } from '@/components/calculators/CrossMarginSimulator';
+import { BreakevenCalculator } from '@/components/calculators/BreakevenCalculator';
+import { LosingStreakCalculator } from '@/components/calculators/LosingStreakCalculator';
 import { Watchlist } from '@/components/dashboard/Watchlist';
 import { EconomicCalendar } from '@/components/dashboard/EconomicCalendar';
 import { NextDataCountdown } from '@/components/dashboard/NextDataCountdown';
@@ -66,6 +68,8 @@ export default function DashboardPage() {
       { value: 'leverage', label: t('leverage'), descKey: 'calcDescLeverage' },
       { value: 'cross-margin', label: t('xmTitle'), descKey: 'calcDescCrossMargin' },
       { value: 'futures', label: t('futuresTabLabel'), descKey: 'calcDescFutures' },
+      { value: 'breakeven', label: t('beTitle'), descKey: 'calcDescBreakeven' },
+      { value: 'streaks', label: t('lsTitle'), descKey: 'calcDescStreaks' },
     ]},
     { id: 'price', label: t('calcCatPrice'), Icon: Target, items: [
       { value: 'target', label: t('targetPrice'), descKey: 'calcDescTarget' },
@@ -532,6 +536,12 @@ export default function DashboardPage() {
 
               {/* ── Calculadora activa ────────────────────────────────── */}
               <div className="min-w-0 flex-1">
+              <TabsContent value="breakeven">
+                <BreakevenCalculator />
+              </TabsContent>
+              <TabsContent value="streaks">
+                <LosingStreakCalculator />
+              </TabsContent>
               <TabsContent value="percentage">
                 <PercentageCalculator />
               </TabsContent>

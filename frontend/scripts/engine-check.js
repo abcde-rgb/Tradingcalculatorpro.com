@@ -1910,6 +1910,97 @@ async function checkCrossMargin() {
     canOpen({ ...base, positions: pos, price: 0, addLots: 1 }).maxLots === null);
 }
 
+async function checkEdgeMath() {
+  console.log('\nedgeMath.js');
+  const E = await imp('lib/edgeMath.js');
+  const { breakevenWinRate } = await imp('lib/projection.js');
+
+  // 1. La comprobación que ata este módulo al que ya existía: sin costes, el
+  //    equilibrio nuevo TIENE que ser el de projection.js. Si alguien toca una
+  //    de las dos fórmulas, esto salta.
+  for (const rr of [0.25, 0.5, 1, 2, 3, 10]) {
+    ok(`equilibrio sin costes == breakevenWinRate (R:R ${rr})`,
+      near(E.equilibrioNeto(rr, 0), breakevenWinRate(rr), 1e-9));
+  }
+
+  // 2. La tabla de referencia del sector, a mano.
+  ok('R:R 0,25 exige 80 % de acierto', near(E.equilibrioNeto(0.25, 0), 80, 0.01));
+  ok('R:R 2 exige 33,33 %',            near(E.equilibrioNeto(2, 0), 33.33, 0.01));
+  ok('R:R 3 exige 25 %',               near(E.equilibrioNeto(3, 0), 25, 0.01));
+
+  // 3. Esperanza. 35 % de acierto con 3:1 es el caso canónico: +0,40R.
+  ok('35 % @ 3:1 = +0,40R', near(E.esperanzaNetaR(35, 3, 0), 0.40, 1e-9));
+  // El coste resta k EXACTOS a la esperanza, sea cual sea el acierto. Es la
+  // propiedad que hace que el modelo de costes sea legible.
+  for (const w of [20, 35, 50, 80]) {
+    ok(`un coste de 0,05R resta 0,05R con acierto ${w} %`,
+      near(E.esperanzaNetaR(w, 3, 0.05), E.esperanzaNetaR(w, 3, 0) - 0.05, 1e-9));
+  }
+
+  // 4. Coherencia interna: en el equilibrio neto la esperanza neta es cero.
+  //    Tolerancia 1e-4 porque el equilibrio se devuelve redondeado a dos
+  //    decimales de porcentaje, igual que `breakevenWinRate`; medio milésimo de
+  //    punto de acierto son 5e-5 R. Con 1e-9 el test mediría el redondeo.
+  for (const [rr, k] of [[1, 0.07], [2, 0.08], [0.5, 0.03], [3, 0.12]]) {
+    const w = E.equilibrioNeto(rr, k);
+    ok(`esperanza nula en el equilibrio (R:R ${rr}, k ${k})`,
+      near(E.esperanzaNetaR(w, rr, k), 0, 1e-4));
+  }
+
+  // 5. Rachas en un punto dado. El segundo número es el que circula mal por ahí
+  //    (se lee «~0,5 %» en más de un sitio): 0,4^5 es 1,024 %, no 0,5 %.
+  ok('4 pérdidas seguidas con 60 % de acierto = 2,56 %',
+    near(E.probRachaEnUnPunto(60, 4), 0.0256, 1e-9));
+  ok('5 pérdidas seguidas con 60 % de acierto = 1,024 %',
+    near(E.probRachaEnUnPunto(60, 5), 0.01024, 1e-9));
+
+  // 6. `probAlgunaRacha` contra Monte Carlo: la recursión es exacta, así que
+  //    una simulación independiente tiene que caer encima. Es la segunda ruta —
+  //    comprobar la recursión contra sí misma no comprobaría nada.
+  const mc = (N, winPct, k, tandas, semilla) => {
+    let s = semilla >>> 0;
+    const rnd = () => {
+      s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0;
+      return s / 4294967296;
+    };
+    const q = 1 - winPct / 100;
+    let exitos = 0;
+    for (let t = 0; t < tandas; t++) {
+      let run = 0;
+      for (let i = 0; i < N; i++) {
+        if (rnd() < q) { if (++run >= k) { exitos++; break; } } else run = 0;
+      }
+    }
+    return exitos / tandas;
+  };
+  for (const [N, w, k] of [[100, 60, 5], [200, 60, 5], [100, 35, 7], [500, 50, 8], [50, 70, 3]]) {
+    const exacto = E.probAlgunaRacha(N, w, k);
+    const sim = mc(N, w, k, 120000, 9973 + N * 31 + w * 7 + k);
+    ok(`racha de ${k} en ${N} ops al ${w} %: recursión ${(exacto * 100).toFixed(2)} % ≈ MC ${(sim * 100).toFixed(2)} %`,
+      Math.abs(exacto - sim) < 0.006, `dif ${(Math.abs(exacto - sim) * 100).toFixed(3)} pp`);
+  }
+
+  // 7. Lo que separa las dos preguntas que todo el mundo confunde: perder 5
+  //    seguidas AQUÍ es raro; que pase ALGUNA VEZ en 200 operaciones no lo es.
+  ok('perder 5 seguidas alguna vez en 200 ops al 60 % supera el 70 %',
+    E.probAlgunaRacha(200, 60, 5) > 0.70);
+  ok('…y en un punto dado no llega al 2 %',
+    E.probRachaEnUnPunto(60, 5) < 0.02);
+
+  // 8. El arrastre por frecuencia, que es el argumento entero.
+  ok('mismo coste, 8 ops/mes = 0,4 % del capital', near(E.arrastreMensual(0.05, 1, 8), 0.4, 1e-9));
+  ok('mismo coste, 200 ops/mes = 10 % del capital', near(E.arrastreMensual(0.05, 1, 200), 10, 1e-9));
+
+  // 9. Honestidad numérica: lo incalculable es null, nunca 0.
+  ok('un riesgo de cero no define el coste en R', E.costeEnR({ coste: 10, riesgo: 0 }) === null);
+  ok('R:R cero no tiene equilibrio', E.equilibrioNeto(0, 0) === null);
+  ok('un 100 % de acierto no define racha máxima', E.rachaMaximaEsperada(100, 100) === null);
+  ok('un acierto del 120 % no da esperanza', E.esperanzaNetaR(120, 2, 0) === null);
+  // Cero SÍ es la respuesta correcta aquí: no es indefinido, es imposible.
+  ok('una racha más larga que la serie es imposible, no indefinida',
+    E.probAlgunaRacha(10, 60, 20) === 0);
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -1925,6 +2016,7 @@ async function checkCrossMargin() {
   await checkOptionsEngine();
   await checkSiteFacts();
   await checkMonteCarlo();
+  await checkEdgeMath();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {
     console.error(`\n${failures} check(s) FAILED`);
