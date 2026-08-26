@@ -54,6 +54,30 @@ const SOCIOS = [
  * ha medido. Lo que se publica es lo comprobable: quién es la entidad, quién la
  * regula, con qué número, qué porcentaje publica y a quién no acepta.
  */
+
+/**
+ * La advertencia normalizada de ESMA, EN EL IDIOMA DEL LECTOR.
+ *
+ * El backend la componía en castellano (`brokers_referidos.py:
+ * `advertencia_esma()`) y esta página volcaba esa prosa tal cual, así que un
+ * lector alemán, japonés o árabe recibía el aviso de riesgo OBLIGATORIO en un
+ * idioma que puede no entender. Un aviso incomprensible no cumple su función,
+ * que es justo lo que la norma persigue.
+ *
+ * Es el mismo arreglo que ya tenía `RecommendedTools.jsx:advertenciaEnIdioma`
+ * para la versión corta: se hizo allí y no aquí.
+ *
+ * La regla de honestidad se conserva entera: sin porcentaje publicable NO se
+ * inventa uno — se usa el aviso genérico sin cifra. `perdidaPct == null`
+ * significa «no lo sé», no «cero».
+ */
+function avisoEsma(b, t) {
+  if (!b.ofreceCfdMinorista) return null;
+  if (b.perdidaPct == null || !b.perdidaPctEntidad) return t('brokersAvisoApalancado');
+  return t('brokersAvisoLargo', { pct: b.perdidaPct, entidad: b.perdidaPctEntidad });
+}
+
+
 export default function BrokersPage() {
   const { t } = useTranslation();
   const [datos, setDatos] = useState(null);
@@ -186,11 +210,11 @@ export default function BrokersPage() {
                     igualarla deja la discusión abierta por un píxel. Un párrafo
                     legal a 16 px pesa en la página — que es exactamente lo que
                     la norma quiere que pese. */}
-                {b.advertencia && (
+                {avisoEsma(b, t) && (
                   <div className="flex items-start gap-2 mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30"
                        data-testid={`broker-advertencia-${b.id}`}>
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-base leading-snug text-amber-200/90 dark:text-amber-200/90">{b.advertencia}</p>
+                    <p className="text-base leading-snug text-amber-200/90 dark:text-amber-200/90">{avisoEsma(b, t)}</p>
                   </div>
                 )}
               </CardContent>

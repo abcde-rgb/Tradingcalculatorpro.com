@@ -3594,6 +3594,7 @@ export default {
   "partnerIbkrDesc": "US-Broker für große Depots und marktübergreifenden Handel. Sein „Refer a Friend“-Programm schließt in Spanien Ansässige aus.",
   "partnerVtmarketsDesc": "CFD-Broker unter ASIC, FSCA und FSC Mauritius. Keine EU-Zulassung: die eigene zyprische Gesellschaft erklärt, keine regulierten Wertpapierdienstleistungen zu erbringen.",
   "brokersEntidadPara": "Gesellschaft für",
+  "brokersAvisoLargo": "CFDs sind komplexe Instrumente und bergen wegen der Hebelwirkung ein hohes Risiko, schnell Geld zu verlieren. {pct} % der Kleinanlegerkonten verlieren Geld beim CFD-Handel mit {entidad}. Du solltest überlegen, ob du verstehst, wie CFDs funktionieren, und ob du dir das hohe Risiko eines Geldverlusts leisten kannst. Mit welchem Unternehmen du ein Konto eröffnest — und dessen Prozentsatz — hängt von deinem Wohnsitzland ab.",
   "brokersAvisoPct": "{pct} % der Konten von CFD-Kleinanlegern verlieren Geld bei {entidad}.",
   "brokersAvisoApalancado": "Gehebeltes Produkt: hohes Risiko, schnell Geld zu verlieren.",
   "brokersNoAdmiteListaVetados": "die Länder auf seiner Sperr- und Embargoliste",

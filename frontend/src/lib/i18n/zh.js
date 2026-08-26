@@ -3594,6 +3594,7 @@ export default {
   "partnerIbkrDesc": "面向大额投资组合与多市场交易的美国经纪商。其 Refer a Friend 计划不接受西班牙居民。",
   "partnerVtmarketsDesc": "受 ASIC、FSCA 与毛里求斯 FSC 监管的差价合约经纪商。未获欧盟授权：其塞浦路斯实体自述不提供受监管的投资服务。",
   "brokersEntidadPara": "适用地区：",
+  "brokersAvisoLargo": "差价合约是复杂的金融工具，由于杠杆作用，存在快速亏损的高风险。在 {entidad} 交易差价合约时，{pct}% 的零售投资者账户会亏损。你应当考虑自己是否理解差价合约的运作方式，以及是否能够承担损失资金的高风险。你将开户的实体及其比例取决于你的居住国家。",
   "brokersAvisoPct": "{pct}% 的散户差价合约账户在 {entidad} 亏损。",
   "brokersAvisoApalancado": "杠杆产品：快速亏损的风险很高。",
   "brokersNoAdmiteListaVetados": "其禁入与禁运名单上的国家和地区",

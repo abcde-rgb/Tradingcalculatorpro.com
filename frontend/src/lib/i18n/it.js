@@ -3593,6 +3593,7 @@ export default {
   "partnerIbkrDesc": "Broker statunitense pensato per portafogli grandi e operatività multimercato. Il programma «Refer a Friend» esclude i residenti in Spagna.",
   "partnerVtmarketsDesc": "Broker di CFD sotto ASIC, FSCA e FSC Mauritius. Senza autorizzazione nell'UE: la sua stessa entità cipriota dichiara di non prestare servizi di investimento regolamentati.",
   "brokersEntidadPara": "entità per",
+  "brokersAvisoLargo": "I CFD sono strumenti complessi e comportano un rischio elevato di perdere denaro rapidamente a causa della leva finanziaria. Il {pct} % dei conti degli investitori al dettaglio perde denaro negoziando CFD con {entidad}. Dovresti valutare se comprendi il funzionamento dei CFD e se puoi permetterti di correre il rischio elevato di perdere il tuo denaro. L'entità presso cui apriresti il conto — e la sua percentuale — dipendono dal tuo paese di residenza.",
   "brokersAvisoPct": "Il {pct} % dei conti CFD al dettaglio perde denaro con {entidad}.",
   "brokersAvisoApalancado": "Prodotto a leva: rischio elevato di perdere denaro rapidamente.",
   "brokersNoAdmiteListaVetados": "i paesi del suo elenco di vietati ed embargati",

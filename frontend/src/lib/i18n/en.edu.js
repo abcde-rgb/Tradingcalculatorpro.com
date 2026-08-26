@@ -1645,7 +1645,7 @@ export default {
   "optIronCondorName": "Iron condor",
   "optIronCondorDesc": "Sell an out-of-the-money call spread and put spread at the same time. You win if price stays inside a range; defined risk. A range/income strategy.",
   "optStraddleName": "Straddle / strangle",
-  "optStraddleDesc": "Buy a call and a put at the same time to bet on a BIG move in either direction (e.g. before earnings). You profit from volatility; you lose if price doesn't move.",
+  "optStraddleDesc": "Buy a call and a put at the SAME strike to bet on a BIG move in either direction (e.g. before earnings). You profit from volatility; you lose if price doesn't move. (different strikes make it a strangle: cheaper, but it needs a bigger move).",
   "optProtectivePutName": "Protective put",
   "optProtectivePutDesc": "Buy a put on stock you hold, like insurance: it caps your loss if it falls, in exchange for the premium cost. A hedge for a long position.",
   "optNote": "Note: options carry their own risks (time works against you when buying them, and selling options can have large or unlimited losses). Understand the greeks and payoff diagram before trading live.",

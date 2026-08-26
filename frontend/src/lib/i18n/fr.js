@@ -3594,6 +3594,7 @@ export default {
   "partnerIbkrDesc": "Courtier américain pensé pour les portefeuilles importants et l'opérationnel multimarché. Son programme « Refer a Friend » exclut les résidents espagnols.",
   "partnerVtmarketsDesc": "Courtier CFD sous ASIC, FSCA et FSC Maurice. Sans agrément dans l'UE : sa propre entité chypriote déclare ne fournir aucun service d'investissement réglementé.",
   "brokersEntidadPara": "entité pour",
+  "brokersAvisoLargo": "Les CFD sont des instruments complexes et présentent un risque élevé de perte rapide d'argent en raison de l'effet de levier. {pct} % des comptes d'investisseurs particuliers perdent de l'argent en négociant des CFD avec {entidad}. Vous devez vous demander si vous comprenez le fonctionnement des CFD et si vous pouvez vous permettre de prendre ce risque élevé de perdre votre argent. L'entité auprès de laquelle vous ouvririez un compte — et son pourcentage — dépendent de votre pays de résidence.",
   "brokersAvisoPct": "{pct} % des comptes de CFD de détail perdent de l’argent avec {entidad}.",
   "brokersAvisoApalancado": "Produit à effet de levier : risque élevé de perdre de l’argent rapidement.",
   "brokersNoAdmiteListaVetados": "les pays figurant sur sa liste d’interdiction et d’embargo",

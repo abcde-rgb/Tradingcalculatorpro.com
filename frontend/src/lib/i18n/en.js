@@ -3594,6 +3594,7 @@ export default {
   "partnerIbkrDesc": "US broker built for large portfolios and multi-market trading. Its Refer a Friend programme excludes residents of Spain.",
   "partnerVtmarketsDesc": "CFD broker under ASIC, FSCA and FSC Mauritius. Not authorised in the EU: its own Cypriot entity states it provides no regulated investment services.",
   "brokersEntidadPara": "entity for",
+  "brokersAvisoLargo": "CFDs are complex instruments and come with a high risk of losing money rapidly due to leverage. {pct}% of retail investor accounts lose money when trading CFDs with {entidad}. You should consider whether you understand how CFDs work and whether you can afford to take the high risk of losing your money. The entity you would open an account with — and its percentage — depend on your country of residence.",
   "brokersAvisoPct": "{pct}% of retail CFD accounts lose money with {entidad}.",
   "brokersAvisoApalancado": "Leveraged product: high risk of losing money rapidly.",
   "brokersNoAdmiteListaVetados": "the countries on its banned and embargoed list",

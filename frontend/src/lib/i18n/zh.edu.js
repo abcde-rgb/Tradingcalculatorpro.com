@@ -1645,7 +1645,7 @@ export default {
   "optIronCondorName": "铁鹰式（Iron Condor）",
   "optIronCondorDesc": "同时卖出虚值看涨价差和看跌价差。若价格停留在区间内则获利；风险确定。区间/收入策略。",
   "optStraddleName": "跨式 / 宽跨式（Straddle / Strangle）",
-  "optStraddleDesc": "同时买入看涨和看跌期权，押注任一方向的大幅波动（如财报前）。你从波动中获利；若价格不动则亏损。",
+  "optStraddleDesc": "同时买入看涨和看跌期权，押注任一方向的大幅波动（如财报前）。你从波动中获利；若价格不动则亏损。（若行权价不同则是宽跨式：更便宜，但需要更大的波动）。",
   "optProtectivePutName": "保护性看跌（Protective Put）",
   "optProtectivePutDesc": "对你持有的股票买入看跌期权，如同保险：若下跌则封顶你的亏损，代价是权利金成本。用于对冲多头仓位。",
   "optNote": "提示：期权有其自身风险（买入时时间对你不利，卖出期权可能有巨大或无限的亏损）。在实盘前理解希腊字母和盈亏图。",

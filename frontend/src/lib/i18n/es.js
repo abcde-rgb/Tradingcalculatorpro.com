@@ -3594,6 +3594,7 @@ export default {
   "partnerIbkrDesc": "Bróker estadounidense orientado a carteras grandes y operativa multimercado. Su programa «Refer a Friend» excluye a residentes en España.",
   "partnerVtmarketsDesc": "Bróker de CFDs bajo ASIC, FSCA y FSC Mauricio. Sin autorización en la UE: su entidad chipriota declara que no presta servicios de inversión regulados.",
   "brokersEntidadPara": "entidad para",
+  "brokersAvisoLargo": "Los CFD son instrumentos complejos y conllevan un alto riesgo de perder dinero rápidamente debido al apalancamiento. El {pct} % de las cuentas de inversores minoristas pierden dinero al operar CFD con {entidad}. Debe considerar si comprende cómo funcionan los CFD y si puede permitirse asumir un riesgo elevado de perder su dinero. La entidad con la que abrirías cuenta —y su porcentaje— dependen de tu país de residencia.",
   "brokersAvisoPct": "El {pct} % de las cuentas de CFD minoristas pierden dinero con {entidad}.",
   "brokersAvisoApalancado": "Producto apalancado: alto riesgo de perder dinero rápidamente.",
   "brokersNoAdmiteListaVetados": "los países de su lista de vetados y embargados",

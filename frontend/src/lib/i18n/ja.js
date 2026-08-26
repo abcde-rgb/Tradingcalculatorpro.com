@@ -3594,6 +3594,7 @@ export default {
   "partnerIbkrDesc": "大口ポートフォリオと多市場取引に向いた米国のブローカー。「Refer a Friend」はスペイン居住者を対象外としている。",
   "partnerVtmarketsDesc": "ASIC・FSCA・モーリシャスFSCの下で運営するCFDブローカー。EUの認可はなく、キプロス法人自身が規制対象の投資サービスは提供しないと明記している。",
   "brokersEntidadPara": "対象地域：",
+  "brokersAvisoLargo": "CFDは複雑な金融商品であり、レバレッジにより短期間で資金を失う高いリスクを伴います。{entidad} でCFDを取引する個人投資家口座の {pct}% が損失を出しています。CFDの仕組みを理解しているか、資金を失う高いリスクを負う余裕があるかを検討してください。口座を開設する事業体とその割合は、居住国によって異なります。",
   "brokersAvisoPct": "{entidad} では個人のCFD口座の {pct}％ が損失を出しています。",
   "brokersAvisoApalancado": "レバレッジ商品：短期間で資金を失う危険性が高い商品です。",
   "brokersNoAdmiteListaVetados": "同社の禁止・禁輸リストに掲載された国・地域",

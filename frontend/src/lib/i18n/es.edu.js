@@ -1645,7 +1645,7 @@ export default {
   "optIronCondorName": "Iron condor",
   "optIronCondorDesc": "Vendes un spread de calls y otro de puts fuera del dinero a la vez. Ganas si el precio se queda dentro de un rango; riesgo definido. Estrategia de rango/ingresos.",
   "optStraddleName": "Straddle / strangle",
-  "optStraddleDesc": "Compras una call y una put a la vez para apostar por un movimiento GRANDE en cualquier dirección (p. ej. antes de resultados). Ganas con la volatilidad; pierdes si el precio no se mueve.",
+  "optStraddleDesc": "Compras una call y una put del MISMO strike para apostar por un movimiento GRANDE en cualquier dirección (p. ej. antes de resultados). Ganas con la volatilidad; pierdes si el precio no se mueve. (con strikes distintos sería un strangle: más barato, pero exige un movimiento mayor).",
   "optProtectivePutName": "Protective put (put protectora)",
   "optProtectivePutDesc": "Compras una put sobre acciones que tienes, como un seguro: limita tu pérdida si cae, a cambio del coste de la prima. Cobertura de una posición larga.",
   "optNote": "Aviso: las opciones tienen riesgos propios (el tiempo juega en tu contra al comprarlas, y vender opciones puede tener pérdidas grandes o ilimitadas). Entiende las griegas y el diagrama de payoff antes de operar en real.",

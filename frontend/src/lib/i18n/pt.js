@@ -3593,6 +3593,7 @@ export default {
   "partnerIbkrDesc": "Corretora norte-americana orientada para carteiras grandes e operação multimercado. O programa «Refer a Friend» exclui residentes em Espanha.",
   "partnerVtmarketsDesc": "Corretora de CFD sob ASIC, FSCA e FSC Maurícia. Sem autorização na UE: a sua própria entidade cipriota declara não prestar serviços de investimento regulados.",
   "brokersEntidadPara": "entidade para",
+  "brokersAvisoLargo": "Os CFD são instrumentos complexos e acarretam um risco elevado de perder dinheiro rapidamente devido à alavancagem. {pct} % das contas de investidores não profissionais perdem dinheiro ao negociar CFD com {entidad}. Deves ponderar se compreendes o funcionamento dos CFD e se podes assumir o risco elevado de perder o teu dinheiro. A entidade com que abririas conta — e a respetiva percentagem — dependem do teu país de residência.",
   "brokersAvisoPct": "{pct} % das contas de CFD de retalho perdem dinheiro com {entidad}.",
   "brokersAvisoApalancado": "Produto alavancado: risco elevado de perder dinheiro rapidamente.",
   "brokersNoAdmiteListaVetados": "os países da sua lista de vetados e embargados",
