@@ -2177,6 +2177,37 @@ async function checkTailRisk() {
     Math.abs(E2.equilibrioNeto(1, 0) - 50) < 1e-9 && W.edge.cost.includes('50 %'));
   ok('…y 55 % con costes de 0,1 R, que es el salto que denuncia',
     Math.abs(E2.equilibrioNeto(1, 0.1) - 55) < 1e-9 && W.edge.cost.includes('55 %'));
+
+  // ── La tabla de equilibrio del módulo de riesgo ─────────────────────────
+  //
+  // El coste de referencia está escrito DOS veces: en la constante que pinta
+  // la columna y en el texto que la explica («costes de 0,1 R»). Dos fuentes
+  // para la misma cifra es exactamente lo que envejece en silencio, así que
+  // aquí se exige que coincidan.
+  const { COSTE_REFERENCIA } = await imp('components/education/BreakevenTable.jsx')
+    .catch(() => ({ COSTE_REFERENCIA: null }));
+  const { getBreakevenTable } = await imp('lib/tradingEducationContent.js');
+  const B = getBreakevenTable((k) => es[k] ?? '');
+  ok('la tabla del curso y la del panel salen de la misma función',
+    E2.RR_REFERENCIA.length === 10 && E2.tablaEquilibrio(0.1).length === 10);
+  ok('la columna con costes usa el 0,1 R que su propio texto anuncia',
+    B.colNet.includes('0,1 R') && B.intro.includes('0,1 R'),
+    `colNet: «${B.colNet}»`);
+  // La afirmación concreta de la nota: a 0,5 : 1 hay que acertar dos de cada
+  // tres para empatar. Si `breakevenWinRate` cambiara, la frase mentiría.
+  const dosDeTres = E2.equilibrioNeto(0.5, 0);
+  ok('a 0,5 : 1 el equilibrio son dos de cada tres (66,7 %)',
+    Math.abs(dosDeTres - (100 / 1.5)) < 0.01 && B.note.includes('0,5 : 1'),
+    `da ${dosDeTres.toFixed(2)} %`);
+  // Y con costes se acerca a tres de cada cuatro, que es la otra mitad.
+  const conCostes = E2.equilibrioNeto(0.5, 0.1);
+  ok('…y con costes sube hacia tres de cada cuatro (73,3 %)',
+    conCostes > 70 && conCostes < 75, `da ${conCostes.toFixed(2)} %`);
+  void COSTE_REFERENCIA; // el JSX no se importa; la constante se lee del fuente
+  const fuenteTabla = fs.readFileSync(path.join(SRC, 'components', 'education', 'BreakevenTable.jsx'), 'utf8');
+  ok('la constante del componente es el 0,1 R del texto',
+    /COSTE_REFERENCIA = 0\.1;/.test(fuenteTabla),
+    'si cambia el coste, cambia la columna y el texto deja de describirla');
 }
 
 (async () => {

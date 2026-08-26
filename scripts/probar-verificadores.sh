@@ -484,6 +484,16 @@ import pathlib
 p = pathlib.Path('frontend/src/lib/i18n/es.edu.js'); t = p.read_text()
 p.write_text(t.replace('43,0 %', '45,0 %', 1))\""
 
+  # El coste de referencia de la tabla de equilibrio está escrito dos veces:
+  # en la constante que pinta la columna y en el texto que la explica. Dos
+  # fuentes para una cifra es lo que envejece en silencio.
+  probar "la columna de costes y el texto que la describe se separan" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/components/education/BreakevenTable.jsx'); t = p.read_text()
+p.write_text(t.replace('COSTE_REFERENCIA = 0.1;', 'COSTE_REFERENCIA = 0.2;', 1))\""
+
   # ── Los enlaces de la Academia a las herramientas ─────────────────────────
   # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja
   # en la pestaña por defecto), un id fuera de la tabla (`return null`, el

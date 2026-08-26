@@ -2395,4 +2395,10 @@ export default {
   "wimEdgeWhy": "Un sistema con il 70 % di successo può perdere denaro e uno col 35 % può guadagnarlo. La percentuale da sola non dice nulla: la domanda è quanto incassi quando hai ragione e quanto paghi quando no.",
   "wimEdgeCost": "Con R:R 1:1 serve il 50 % di successo per andare in pari. Se i tuoi costi valgono 0,1 R per operazione, l’asticella sale al 55 %. Ignorarlo significa operare cinque punti sotto il pareggio credendo di stare sopra.",
   "wimEdgeUse": "Calcola il tuo punto di pareggio con I TUOI costi prima di decidere se un sistema vale la pena, e confrontalo con la tua percentuale reale — quella del diario —, non con quella che ricordi.",
+  "betTitle": "Quanto devi indovinare, a seconda di quanto ti pagano",
+  "betIntro": "L’accademia cita il rapporto guadagno/rischio decine di volte senza mai dire quale percentuale di successo ciascuno imponga. È questa tabella, ed è aritmetica esatta: la percentuale di pareggio è 1/(1+R). La seconda colonna aggiunge un costo di 0,1 R per operazione — una commissione e uno spread ordinari — ed ecco il conto che quasi nessuno fa: l’asticella sale su ogni riga, e su quelle a R:R basso sale molto.",
+  "betColRR": "Guadagno : rischio",
+  "betColGross": "Percentuale di pareggio",
+  "betColNet": "Con costi di 0,1 R",
+  "betNote": "Leggi la tabella al contrario e si capisce perché tanti sistemi ad alta percentuale perdono denaro: a 0,5 : 1 devi indovinare due volte su tre solo per pareggiare, e con i costi quasi tre su quattro. La percentuale non è l’obiettivo: è ciò che il rapporto scelto pretende da te.",
 }

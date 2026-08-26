@@ -169,6 +169,8 @@ async function figuraDibuja(page, testid, minTrazos = 3) {
 
     // El bloque «por qué importa» y sus cifras, que `engine-check` ata a la
     // aritmética que las produce. Aquí se comprueba que salgan a pantalla.
+    // En `risk` va además la tabla de equilibrio: diez filas que el curso
+    // nombraba decenas de veces sin decir nunca a cuánto acierto obligaban.
     for (const [tema, textos] of [['risk', ['85,1 %', '43,0 %', '+132 %']],
                                   ['probability', ['50 %', '55 %']]]) {
       await abre(page, tema);
@@ -176,6 +178,16 @@ async function figuraDibuja(page, testid, minTrazos = 3) {
       marca(`${tema}: el bloque «por qué importa» se pinta`, await bloque.count() > 0);
       const txt = await bloque.count() ? await bloque.innerText() : '';
       for (const s of textos) marca(`${tema}: dice «${s}»`, txt.includes(s));
+    }
+    await abre(page, 'risk');
+    const tablaEq = page.locator('[data-testid="breakeven-table"]');
+    marca('la tabla de equilibrio se pinta en el módulo de riesgo',
+          await tablaEq.count() > 0);
+    const eq = await tablaEq.count() ? await tablaEq.innerText() : '';
+    // Los dos extremos y la fila de referencia: si `tablaEquilibrio` cambiara,
+    // aquí se vería antes que en ningún otro sitio.
+    for (const s of ['80,0 %', '50,0 %', '55,0 %', '9,1 %']) {
+      marca(`la tabla dice ${s}`, eq.includes(s));
     }
     await page.screenshot({ path: path.join(salida, '05-por-que-importa.png'), fullPage: true });
 

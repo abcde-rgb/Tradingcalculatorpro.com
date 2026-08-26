@@ -2395,4 +2395,10 @@ export default {
   "wimEdgeWhy": "Um sistema com 70 % de acerto pode perder dinheiro e um com 35 % pode ganhá-lo. A taxa de acerto sozinha não diz nada: a pergunta é quanto recebes quando acertas e quanto pagas quando não.",
   "wimEdgeCost": "Com R:R 1:1 precisas de 50 % de acerto para não perder. Se os teus custos valem 0,1 R por operação, a fasquia sobe para 55 %. Ignorá-lo é operar cinco pontos abaixo do equilíbrio a julgar que estás acima.",
   "wimEdgeUse": "Calcula o teu ponto de equilíbrio com OS TEUS custos antes de decidir se um sistema vale a pena, e compara-o com a tua taxa de acerto real — a do diário —, não com a que recordas.",
+  "betTitle": "Quanto tens de acertar, consoante o que te pagam",
+  "betIntro": "A academia menciona o rácio ganho/risco dezenas de vezes sem nunca dizer que taxa de acerto cada um exige. É esta tabela, e é aritmética exata: o acerto de equilíbrio é 1/(1+R). A segunda coluna acrescenta um custo de 0,1 R por operação — uma comissão e um spread correntes — e aí está a conta que quase ninguém faz: a fasquia sobe em todas as linhas, e nas de R:R baixo sobe muito.",
+  "betColRR": "Ganho : risco",
+  "betColGross": "Acerto de equilíbrio",
+  "betColNet": "Com custos de 0,1 R",
+  "betNote": "Lê a tabela ao contrário e percebe-se porque tantos sistemas de acerto alto perdem dinheiro: a 0,5 : 1 tens de acertar duas em cada três vezes só para empatar, e com custos, quase três em cada quatro. O acerto não é a meta: é o que te exige o rácio que escolheste.",
 }

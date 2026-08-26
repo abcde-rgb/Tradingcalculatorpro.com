@@ -2395,4 +2395,10 @@ export default {
   "wimEdgeWhy": "Ein System mit 70 % Trefferquote kann Geld verlieren, eines mit 35 % kann welches verdienen. Die Trefferquote allein sagt nichts: entscheidend ist, wie viel du kassierst, wenn du richtig liegst, und wie viel du zahlst, wenn nicht.",
   "wimEdgeCost": "Bei 1:1 CRV brauchst du 50 % Trefferquote, um bei null zu landen. Kosten von 0,1 R je Trade heben die Latte auf 55 %. Das zu ignorieren heißt, fünf Punkte unter dem Break-even zu handeln und zu glauben, man liege darüber.",
   "wimEdgeUse": "Berechne deinen Break-even mit DEINEN Kosten, bevor du entscheidest, ob ein System sich lohnt, und vergleiche ihn mit deiner echten Trefferquote — der aus dem Journal —, nicht mit der erinnerten.",
+  "betTitle": "Wie oft du richtig liegen musst — je nachdem, was du bekommst",
+  "betIntro": "Die Akademie erwähnt das Chance-Risiko-Verhältnis Dutzende Male, ohne je zu sagen, welche Trefferquote jedes davon verlangt. Das ist diese Tabelle, und es ist exakte Arithmetik: die Break-even-Trefferquote ist 1/(1+R). Die zweite Spalte addiert Kosten von 0,1 R je Trade — eine gewöhnliche Kommission plus Spread — und da steht die Rechnung, die fast niemand macht: die Latte steigt in jeder Zeile, und bei niedrigem CRV steigt sie stark.",
+  "betColRR": "Chance : Risiko",
+  "betColGross": "Break-even-Trefferquote",
+  "betColNet": "Mit Kosten von 0,1 R",
+  "betNote": "Lies die Tabelle rückwärts, und es wird klar, warum so viele Systeme mit hoher Trefferquote Geld verlieren: bei 0,5 : 1 musst du zwei von drei Mal richtig liegen, nur um bei null zu landen — mit Kosten fast drei von vier. Die Trefferquote ist nicht das Ziel: sie ist das, was das gewählte Verhältnis von dir verlangt.",
 }

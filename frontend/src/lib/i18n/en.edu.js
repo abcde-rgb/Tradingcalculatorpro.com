@@ -2395,4 +2395,10 @@ export default {
   "wimEdgeWhy": "A system with a 70% win rate can lose money and one with 35% can make it. Win rate alone says nothing: the question is how much you collect when right and how much you pay when wrong.",
   "wimEdgeCost": "At 1:1 R:R you need a 50% win rate to break even. If your costs are worth 0.1 R per trade, the bar rises to 55%. Ignoring it means trading five points below breakeven while believing you are above it.",
   "wimEdgeUse": "Work out your breakeven with YOUR costs before deciding whether a system is worth it, and compare it against your real win rate — the one in your journal — not the one you remember.",
+  "betTitle": "How often you must be right, given what you get paid",
+  "betIntro": "The academy mentions reward-to-risk dozens of times without ever saying what win rate each one demands. This is that table, and it is exact arithmetic: the breakeven win rate is 1/(1+R). The second column adds a cost of 0.1 R per trade — an ordinary commission and spread — and there is the sum almost nobody does: the bar rises on every row, and on the low-R:R rows it rises a lot.",
+  "betColRR": "Reward : risk",
+  "betColGross": "Breakeven win rate",
+  "betColNet": "With costs of 0.1 R",
+  "betNote": "Read the table backwards and it becomes clear why so many high-win-rate systems lose money: at 0.5:1 you must be right two times out of three just to break even, and with costs, nearly three out of four. Win rate is not the goal: it is what the ratio you chose demands of you.",
 }

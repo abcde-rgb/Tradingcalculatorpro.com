@@ -2395,4 +2395,10 @@ export default {
   "wimEdgeWhy": "Un système à 70 % de réussite peut perdre de l’argent et un système à 35 % peut en gagner. Le taux de réussite seul ne dit rien : la question est combien vous encaissez quand vous avez raison et combien vous payez quand vous avez tort.",
   "wimEdgeCost": "À un ratio 1:1, il faut 50 % de réussite pour être à l’équilibre. Si vos coûts valent 0,1 R par opération, la barre monte à 55 %. L’ignorer, c’est trader cinq points sous le seuil en croyant être au-dessus.",
   "wimEdgeUse": "Calculez votre seuil de rentabilité avec VOS coûts avant de décider si un système en vaut la peine, et comparez-le à votre taux de réussite réel — celui du journal —, pas à celui dont vous vous souvenez.",
+  "betTitle": "À quelle fréquence il faut avoir raison, selon ce qu’on vous paie",
+  "betIntro": "L’académie évoque des dizaines de fois le rapport gain/risque sans jamais dire quel taux de réussite chacun exige. C’est ce tableau, et c’est de l’arithmétique exacte : le taux d’équilibre vaut 1/(1+R). La deuxième colonne ajoute un coût de 0,1 R par opération — une commission et un spread ordinaires — et voilà le calcul que presque personne ne fait : la barre monte sur chaque ligne, et beaucoup sur les faibles ratios.",
+  "betColRR": "Gain : risque",
+  "betColGross": "Taux d’équilibre",
+  "betColNet": "Avec des coûts de 0,1 R",
+  "betNote": "Lisez le tableau à l’envers et l’on comprend pourquoi tant de systèmes à fort taux de réussite perdent de l’argent : à 0,5 : 1, il faut avoir raison deux fois sur trois rien que pour être à l’équilibre, et avec les coûts, près de trois fois sur quatre. Le taux de réussite n’est pas l’objectif : c’est ce que le ratio choisi exige de vous.",
 }

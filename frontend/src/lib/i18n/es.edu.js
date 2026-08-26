@@ -2395,4 +2395,10 @@ export default {
   "wimEdgeWhy": "Un sistema con un 70 % de acierto puede perder dinero y uno con un 35 % puede ganarlo. El acierto solo no dice nada: la pregunta es cuánto cobras cuando aciertas y cuánto pagas cuando no.",
   "wimEdgeCost": "Con R:R 1:1 necesitas acertar el 50 % para no perder. Si tus costes valen 0,1 R por operación, el listón sube al 55 %. Ignorarlo es operar cinco puntos por debajo del equilibrio creyendo que estás por encima.",
   "wimEdgeUse": "Calcula tu punto de equilibrio con TUS costes antes de decidir si un sistema merece la pena, y compáralo con tu acierto real —el del diario—, no con el que recuerdas.",
+  "betTitle": "Cuánto tienes que acertar, según lo que te pagan",
+  "betIntro": "La academia menciona la relación beneficio/riesgo decenas de veces sin decir nunca a cuánto acierto obliga cada una. Es esta tabla, y es aritmética exacta: el acierto de equilibrio es 1/(1+R). La segunda columna añade un coste de 0,1 R por operación —una comisión y un diferencial corrientes— y ahí está el detalle que casi nadie hace: el listón sube en todas las filas, y en las de R:R bajo sube mucho.",
+  "betColRR": "Beneficio : riesgo",
+  "betColGross": "Acierto de equilibrio",
+  "betColNet": "Con costes de 0,1 R",
+  "betNote": "Lee la tabla al revés y se entiende por qué tantos sistemas de acierto alto pierden dinero: con 0,5 : 1 hay que acertar dos de cada tres veces sólo para empatar, y con costes, casi tres de cada cuatro. El acierto no es la meta: es lo que te exige la relación que hayas elegido.",
 }

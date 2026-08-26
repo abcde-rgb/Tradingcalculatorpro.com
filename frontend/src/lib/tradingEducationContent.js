@@ -2299,6 +2299,24 @@ export const getNetLiquidity = (t) => ({
 // black swans (Taleb), the "impossible" sigma moves that keep happening, ruin &
 // non-ergodicity, convexity/tail hedging and the barbell. Pairs with TailRiskVisual.jsx.
 /**
+ * La tabla que respalda las menciones al beneficio/riesgo.
+ *
+ * La academia nombraba la relación decenas de veces sin decir nunca a cuánto
+ * acierto obliga cada una, que es justo la parte que se puede calcular. Las
+ * cifras no están aquí: salen de `tablaEquilibrio` en `edgeMath`, la misma
+ * función que usa la calculadora del panel, para que el curso y la herramienta
+ * no puedan decir cosas distintas.
+ */
+export const getBreakevenTable = (t) => ({
+  title: t('betTitle'),
+  intro: t('betIntro'),
+  colRR: t('betColRR'),
+  colGross: t('betColGross'),
+  colNet: t('betColNet'),
+  note: t('betNote'),
+});
+
+/**
  * Los dos bloques «por qué importa»: tamaño de posición y esperanza.
  *
  * Cuatro filas —qué es, por qué importa, qué te cuesta ignorarlo, qué haces

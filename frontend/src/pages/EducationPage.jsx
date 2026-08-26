@@ -101,6 +101,7 @@ import TailRiskVisual from '@/components/education/TailRiskVisual';
 import TailRiskFigures from '@/components/education/TailRiskFigures';
 import TradingBasicsGuide from '@/components/education/TradingBasicsGuide';
 import WhyItMatters from '@/components/education/WhyItMatters';
+import BreakevenTable from '@/components/education/BreakevenTable';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 import MarketTypeModal from '@/components/education/MarketTypeModal';
 
@@ -5081,6 +5082,10 @@ export default function EducationPage() {
                   con un número. Las cifras salen de la aritmética que las
                   produce y engine-check las comprueba. */}
               <WhyItMatters {...WHY.size} />
+
+              {/* La tabla que faltaba: el curso nombraba el beneficio/riesgo
+                  decenas de veces sin decir nunca a cuánto acierto obliga. */}
+              <BreakevenTable />
 
               <EnlacesHerramienta ids={['position', 'breakeven', 'streaks']} t={t} />
 
