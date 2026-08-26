@@ -894,7 +894,7 @@ export default {
   "mstrSorosDesc": "Peu importe d'avoir raison ou tort, ce qui compte c'est combien tu gagnes quand tu as raison et combien tu perds quand tu as tort. Survivre d'abord. Forte conviction, mise grosse ; en cas d'erreur, sors sans ego (réflexivité).",
   "mstrSeykotaName": "Ed Seykota",
   "mstrSeykotaDesc": "Les clés du bon trading : couper les pertes, couper les pertes et couper les pertes. Laisser courir les gagnantes et risquer peu. « Chacun obtient du marché ce qu'il veut » : ta psychologie définit tes résultats.",
-  "mstrDennisName": "Richard Dennis (los Turtles)",
+  "mstrDennisName": "Richard Dennis (the Turtles)",
   "mstrDennisDesc": "Il a prouvé que le trading PEUT S'APPRENDRE : il a pris 21 novices (les « Turtles »), leur a donné des règles mécaniques de tendance et de risque, et ils ont gagné des millions. Le secret n'est pas l'edge, c'est la discipline de suivre le système.",
   "mstrTharpName": "Van Tharp",
   "mstrTharpDesc": "Tu ne trades pas le marché, tu trades tes CROYANCES à son sujet. Ce qui te fait gagner n'est pas l'entrée, c'est le position sizing et l'espérance. Pense en multiples de R : chaque perte vaut 1R ; cherche des gagnantes de plusieurs R.",

@@ -894,7 +894,7 @@ export default {
   "mstrSorosDesc": "Nicht ob du richtig oder falsch liegst zählt, sondern wie viel du gewinnst, wenn du richtig liegst, und verlierst, wenn falsch. Überleben zuerst. Bei starker Überzeugung groß setzen; bei Fehlern ohne Ego aussteigen (Reflexivität).",
   "mstrSeykotaName": "Ed Seykota",
   "mstrSeykotaDesc": "Die Schlüssel zum guten Trading: Verluste begrenzen, Verluste begrenzen und Verluste begrenzen. Gewinner laufen lassen und wenig riskieren. 'Jeder bekommt vom Markt, was er will': deine Psychologie bestimmt dein Ergebnis.",
-  "mstrDennisName": "Richard Dennis (los Turtles)",
+  "mstrDennisName": "Richard Dennis (the Turtles)",
   "mstrDennisDesc": "Er bewies, dass Trading LEHRBAR ist: er nahm 21 Anfänger (die 'Turtles'), gab ihnen mechanische Trend- und Risikoregeln, und sie verdienten Millionen. Das Geheimnis ist nicht der Edge, sondern die Disziplin, dem System zu folgen.",
   "mstrTharpName": "Van Tharp",
   "mstrTharpDesc": "Du handelst nicht den Markt, du handelst deine ÜBERZEUGUNGEN über ihn. Was Geld bringt, ist nicht der Einstieg, sondern Position Sizing und Erwartungswert. Denke in R-Vielfachen: jeder Verlust ist 1R; suche Gewinner von mehreren R.",

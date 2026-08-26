@@ -986,7 +986,7 @@ export default {
   "mstrSorosDesc": "正しいか間違うかではなく、正しいとき幾ら稼ぎ、間違うとき幾ら失うかが重要。まず生き残ること。強い確信では大きく賭け、間違えたらエゴを捨てて撤退（再帰性）。",
   "mstrSeykotaName": "Ed Seykota",
   "mstrSeykotaDesc": "良いトレードの鍵：損切り、損切り、そして損切り。勝ちは伸ばし、リスクは小さく。『誰もが相場から欲しいものを得る』——あなたの心理が結果を決める。",
-  "mstrDennisName": "Richard Dennis (los Turtles)",
+  "mstrDennisName": "Richard Dennis (the Turtles)",
   "mstrDennisDesc": "トレードは『教えられる』ことを証明：21人の素人（『タートルズ』）に機械的なトレンドとリスクの規則を与え、彼らは数百万ドルを稼いだ。秘密はエッジではなく、システムに従う規律。",
   "mstrTharpName": "Van Tharp",
   "mstrTharpDesc": "あなたは市場ではなく、市場についての『信念』を取引している。稼がせるのはエントリーではなく、ポジションサイズと期待値。Rの倍数で考える：損失は各1R、数R分の勝ちを狙う。",

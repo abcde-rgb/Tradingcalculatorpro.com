@@ -779,7 +779,7 @@ export default {
   "mstrSorosDesc": "No importa si aciertas o fallas, sino cuánto ganas cuando aciertas y cuánto pierdes cuando fallas. Sobrevivir es lo primero. Con convicción fuerte, apuesta grande; al equivocarte, sal sin ego (teoría de la reflexividad).",
   "mstrSeykotaName": "Ed Seykota",
   "mstrSeykotaDesc": "Las claves del buen trading: cortar pérdidas, cortar pérdidas y cortar pérdidas. Deja correr las ganadoras y arriesga poco. 'Todos obtienen del mercado lo que quieren': tu psicología define tu resultado.",
-  "mstrDennisName": "Richard Dennis (los Turtles)",
+  "mstrDennisName": "Richard Dennis (the Turtles)",
   "mstrDennisDesc": "Demostró que operar SE PUEDE ENSEÑAR: cogió a 21 novatos (los 'Turtles'), les dio reglas mecánicas de tendencia y control de riesgo, y ganaron millones. El secreto no es la ventaja, es la disciplina para seguir el sistema.",
   "mstrTharpName": "Van Tharp",
   "mstrTharpDesc": "No operas el mercado, operas tus CREENCIAS sobre él. Lo que te hace ganar no es la entrada, es el tamaño de la posición y la esperanza matemática. Piensa en R-múltiplos: cada pérdida es 1R; busca ganadoras de varias R.",

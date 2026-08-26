@@ -440,6 +440,20 @@ import pathlib, re
 p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
 p.write_text(re.sub(r'(\\\"planInvalidationHint\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"入る前に書くこと。\\\"', t, count=1))\""
 
+# El diccionario de cada idioma vive en DOS ficheros, y `lee()` sólo abría el
+# primero. Con los 2.308 claves de la academia fuera de su alcance, el
+# verificador imprimía ✅ con 103 claves en inglés literal en pantalla — el
+# mismo fallo que dice cerrar, una carpeta más allá. Este sabotaje va contra
+# `.edu.js` a propósito: es el fichero que no miraba.
+probar "una clave con el texto inglés literal en el .edu.js de japonés" \
+  "(cd frontend && node scripts/i18n-traducido.js)" \
+  "python -c \"
+import pathlib, re
+en = pathlib.Path('frontend/src/lib/i18n/en.edu.js').read_text()
+v = re.search(r'\\\"wyckoffVolumeTitle\\\": \\\"([^\\\"]*)\\\"', en).group(1)
+p = pathlib.Path('frontend/src/lib/i18n/ja.edu.js'); t = p.read_text()
+p.write_text(re.sub(r'(\\\"wyckoffVolumeTitle\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"' + v + '\\\"', t, count=1))\""
+
 # ── El precio anunciado es el que se cobra ──────────────────────────────────
 # Las dos direcciones: que un idioma se desvíe, y que suba el precio en el
 # backend sin que nadie toque los textos. La segunda es la que pasa de verdad.
@@ -610,6 +624,31 @@ probar "una afirmación viva de que la web tiene 8 idiomas" \
   "$CONTRADICE" \
   "printf '# Zz sabotaje\n\n## Idiomas\n\nLa interfaz está en 8 idiomas.\n' > $DOC_SABOTAJE" \
   "rm -f $DOC_SABOTAJE"
+
+# ── Prosa NO es código vivo ─────────────────────────────────────────────────
+# `es_comentario()` sólo miraba el primer carácter de la línea, así que
+# etiquetaba «⚠️ CÓDIGO» cualquier prosa que no empezara por su marcador: una
+# línea en medio de un docstring, un comentario al final de una línea, la
+# continuación de un bloque {/* … */}. Los diez rastros del informe estaban los
+# diez en prosa y escalaban a «🔴 2 bloqueantes».
+#
+# Van los DOS sentidos porque el fallo no era no-detectar, era no-distinguir:
+# metiendo una asignación real recibía exactamente la misma marca que un
+# docstring. Con una sola dirección, un clasificador que dijera «CÓDIGO» a todo
+# seguiría pasando.
+VIVO_PY="backend/zz_sabotaje_resto.py"
+TEMPORALES+=("$VIVO_PY")
+EN_CODIGO="python scripts/auditar.py > $INFORME 2>/dev/null; ! grep -q 'en código vivo' $INFORME"
+
+probar "una asignación real a una pasarela retirada" \
+  "$EN_CODIGO" \
+  "printf 'OXAPAY_API_KEY = \"zz\"\n' > $VIVO_PY" \
+  "rm -f $VIVO_PY"
+
+probar_inverso "un docstring que sólo NOMBRA la pasarela retirada" \
+  "$EN_CODIGO" \
+  "printf '\"\"\"Sustituye al flujo de OxaPay.\n\nSegunda linea del docstring, que tambien dice OxaPay.\n\"\"\"\n' > $VIVO_PY" \
+  "rm -f $VIVO_PY"
 
 # El cebo es la forma EXACTA que se coló hasta el 2026-08-24: encabezado con la
 # fecha entre paréntesis en vez de al principio. `_ENCABEZADO_FECHADO` exigía

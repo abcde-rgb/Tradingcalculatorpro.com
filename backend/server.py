@@ -3699,11 +3699,22 @@ def _simulate_one_mc_path(
     initial: float, num_trades: int, win_rate: float,
     avg_win: float, avg_loss: float, rng: secrets.SystemRandom,
 ) -> Dict[str, Any]:
-    """Simulate one full equity curve and its max drawdown."""
+    """Simulate one full equity curve, its max drawdown, and whether it ruined.
+
+    `arruinada` es lo que le pasa a la CUENTA, no lo que marca el saldo final.
+    El resumen contaba `saldo final <= 0`, así que una trayectoria que tocaba
+    -500 en la operación 20 y terminaba en +2.000 no contaba como ruina — y una
+    cuenta real en cero no sigue operando para recuperarse: la cierra el bróker.
+    Medido sobre 100 operaciones al 45 % de aciertos, eso publicaba 0,88 % donde
+    el riesgo real es 1,19 %.
+
+    La simulación además CORTA al tocar cero, que es lo que ocurre de verdad.
+    """
     balance = initial
     curve = [balance]
     peak = balance
     max_dd = 0.0
+    arruinada = False
     for _ in range(num_trades):
         balance += avg_win if rng.random() < win_rate else avg_loss
         curve.append(balance)
@@ -3712,20 +3723,36 @@ def _simulate_one_mc_path(
         dd = (peak - balance) / peak if peak > 0 else 0
         if dd > max_dd:
             max_dd = dd
-    return {"final": balance, "curve": curve, "max_dd_pct": max_dd * 100}
+        if balance <= 0:
+            arruinada = True
+            break
+    return {"final": balance, "curve": curve, "max_dd_pct": max_dd * 100,
+            "arruinada": arruinada}
 
 
-def _summarize_mc_runs(initial: float, finals: List[float], drawdowns: List[float]) -> Dict[str, Any]:
-    """Compute percentile/risk-of-ruin statistics from a batch of MC final balances."""
+def _summarize_mc_runs(initial: float, finals: List[float], drawdowns: List[float],
+                       ruinas: Optional[List[bool]] = None) -> Dict[str, Any]:
+    """Compute percentile/risk-of-ruin statistics from a batch of MC paths.
+
+    `ruinas` marca, por trayectoria, si el saldo LLEGÓ a tocar cero. Es opcional
+    para no romper llamadas antiguas, pero sin ella el riesgo de ruina se
+    infravalora: ver `_simulate_one_mc_path`.
+    """
     finals_sorted = sorted(finals)
     n = len(finals_sorted)
+    if n == 0:
+        return {}
     return {
         "initialCapital": initial,
         "avgFinalBalance": round(sum(finals_sorted) / n, 2),
         "percentile5": round(finals_sorted[int(n * 0.05)], 2),
         "percentile50": round(finals_sorted[int(n * 0.50)], 2),
         "percentile95": round(finals_sorted[int(n * 0.95)], 2),
-        "riskOfRuin": round(sum(1 for b in finals_sorted if b <= 0) / n * 100, 2),
+        # Cuenta las trayectorias que TOCARON cero en algún momento, no las que
+        # acabaron por debajo. Ver `_simulate_one_mc_path`.
+        "riskOfRuin": round(
+            (sum(1 for r in ruinas if r) if ruinas
+             else sum(1 for b in finals_sorted if b <= 0)) / n * 100, 2),
         "avgMaxDrawdown": round(sum(drawdowns) / len(drawdowns), 2),
         "profitProbability": round(sum(1 for b in finals_sorted if b > initial) / n * 100, 2),
     }
@@ -3742,20 +3769,25 @@ async def run_monte_carlo(request: dict, user: dict = Depends(require_user)) -> 
     avg_loss = request.get("avgLoss", -50)
     initial = request.get("initialCapital", 10000)
     num_trades = min(int(request.get("numTrades", 100)), 1000)
-    num_simulations = min(int(request.get("numSimulations", 1000)), 5000)
+    # `min(..., 5000)` no tenía suelo: con numSimulations=0 el resumen dividía
+    # entre n=0 y la ruta devolvía un 500.
+    num_simulations = max(1, min(int(request.get("numSimulations", 1000)), 5000))
 
     rng = secrets.SystemRandom()
     finals: List[float] = []
     drawdowns: List[float] = []
+    ruinas: List[bool] = []
     curves: List[List[float]] = []
     for _ in range(num_simulations):
         path = _simulate_one_mc_path(initial, num_trades, win_rate, avg_win, avg_loss, rng)
         finals.append(path["final"])
         drawdowns.append(path["max_dd_pct"])
+        ruinas.append(bool(path.get("arruinada")))
         if len(curves) < 100:  # keep first 100 paths for charting
             curves.append(path["curve"])
 
-    return {"simulations": curves[:50], "statistics": _summarize_mc_runs(initial, finals, drawdowns)}
+    return {"simulations": curves[:50],
+            "statistics": _summarize_mc_runs(initial, finals, drawdowns, ruinas)}
 
 # ============= CALCULATIONS =============
 

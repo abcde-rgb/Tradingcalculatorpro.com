@@ -986,7 +986,7 @@ export default {
   "mstrSorosDesc": "重要的不是对错，而是对的时候赚多少、错的时候亏多少。生存第一。信念强时下重注；错了就放下自我离场（反身性理论）。",
   "mstrSeykotaName": "Ed Seykota",
   "mstrSeykotaDesc": "好交易的关键：止损、止损、还是止损。让盈利奔跑、少冒风险。『每个人都从市场得到他想要的』：你的心理决定你的结果。",
-  "mstrDennisName": "Richard Dennis (los Turtles)",
+  "mstrDennisName": "Richard Dennis (the Turtles)",
   "mstrDennisDesc": "他证明了交易『可以被传授』：他招募 21 名新手（『海龟』），给他们机械的趋势与风控规则，他们赚了数百万。秘密不在优势，而在遵守系统的纪律。",
   "mstrTharpName": "Van Tharp",
   "mstrTharpDesc": "你交易的不是市场，而是你对市场的『信念』。让你赚钱的不是入场，而是仓位大小和数学期望。用 R 倍数思考：每次亏损为 1R；寻找数个 R 的盈利。",

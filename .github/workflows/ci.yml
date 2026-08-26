@@ -179,3 +179,22 @@ jobs:
         run: npm run build
         env:
           CI: false   # mismo criterio que el deploy: warnings no rompen el build
+
+      # El presupuesto de peso existía, funcionaba y no corría en ningún sitio,
+      # así que sólo lo veía quien se acordaba de lanzarlo a mano. Nadie se
+      # acordó: `/brokers` se pasó de su presupuesto y el repo no se enteró.
+      # Un presupuesto que no se comprueba no es un presupuesto.
+      #
+      # La holgura es en KB ABSOLUTOS, no en porcentaje: con un 8 % sobre una
+      # pantalla de 1 MB caben 80 KB de librería nueva sin que salte nada.
+      - name: Presupuesto de peso por pantalla
+        working-directory: .
+        run: |
+          mkdir -p tests/e2e/lib
+          (cd tests/e2e && npm install --silent --no-save --prefix . playwright-core)
+          ln -sfn "$PWD/tests/e2e/node_modules/playwright-core" "$PWD/tests/e2e/lib/playwright-core"
+          node tests/e2e/stack/servidor.js &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:3100 >/dev/null && break || sleep 1
+          done
+          node tests/e2e/navegador/peso.js

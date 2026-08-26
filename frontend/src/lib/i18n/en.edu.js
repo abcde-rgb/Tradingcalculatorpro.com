@@ -779,7 +779,7 @@ export default {
   "mstrSorosDesc": "It's not whether you're right or wrong, but how much you make when right and how much you lose when wrong. Survival first. With strong conviction, bet big; when wrong, exit without ego (reflexivity).",
   "mstrSeykotaName": "Ed Seykota",
   "mstrSeykotaDesc": "The keys to good trading: cut losses, cut losses and cut losses. Let winners run and risk little. 'Everybody gets what they want out of the market': your psychology defines your results.",
-  "mstrDennisName": "Richard Dennis (los Turtles)",
+  "mstrDennisName": "Richard Dennis (the Turtles)",
   "mstrDennisDesc": "He proved trading CAN BE TAUGHT: he took 21 novices (the 'Turtles'), gave them mechanical trend + risk rules, and they made millions. The secret isn't the edge; it's the discipline to follow the system.",
   "mstrTharpName": "Van Tharp",
   "mstrTharpDesc": "You don't trade the market, you trade your BELIEFS about it. What makes you money isn't the entry, it's position sizing and expectancy. Think in R-multiples: each loss is 1R; seek winners worth several R.",

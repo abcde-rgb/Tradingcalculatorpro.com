@@ -47,6 +47,12 @@ export default function PerformancePage() {
     titleKey: 'seoPerformanceTitle',
     descriptionKey: 'seoPerformanceDesc',
     canonicalPath: '/performance',
+    // Era la ÚNICA ruta privada sin `noindex`, y además la única en el sitemap.
+    // La combinación es la receta del resultado "URL sin descripción": el
+    // sitemap le dice a Google que la indexe, robots.txt le impide rastrearla,
+    // y sin rastreo nunca llega a leer un noindex. Las otras cuatro privadas
+    // (dashboard, ajustes, admin, suscripción) sí lo llevaban.
+    noindex: true,
   });
 
   // ─── Hero stats — eye-opening trader statistics with real sources ───

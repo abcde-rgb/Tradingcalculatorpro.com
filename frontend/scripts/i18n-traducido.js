@@ -77,16 +77,54 @@ const EXCEPCIONES = {
     motivo: 'nombres de estrategia (Bull Put Spread, Iron Condor, PMCC) sin traducir en el sector',
     idiomas: true,
   },
+
+  // Nomenclatura de análisis técnico que el sector usa en inglés en TODOS los
+  // idiomas. Estas siete salieron a la luz al hacer que el verificador leyera
+  // también los `.edu.js`; no son deuda de traducción, son el nombre de la cosa.
+  // Los textos que las EXPLICAN sí están traducidos: lo que se conserva es el
+  // término, no la frase.
+  mstrDennisName: { motivo: 'nombre propio + apodo del grupo (los Turtles)', idiomas: true },
+  imethProfileName: {
+    motivo: '«Volume Profile / Market Profile»: nombre de la técnica, en inglés en el sector',
+    idiomas: true,
+  },
+  advVolProfileName: { motivo: 'igual que imethProfileName', idiomas: true },
+  advVsaName: { motivo: 'VSA (Volume Spread Analysis): siglas del método', idiomas: true },
+  advSqueezeName: {
+    motivo: '«Squeeze» + los apellidos de los indicadores (Bollinger, Keltner)',
+    idiomas: true,
+  },
+  fomoTitle: { motivo: 'FOMO: sigla adoptada tal cual en los diez idiomas', idiomas: true },
+  pfofPfofName: {
+    motivo: 'Payment for order flow (PFOF): término regulatorio, se cita en inglés',
+    idiomas: true,
+  },
 };
 
 const LINEA = /^\s*"([A-Za-z0-9_]+)":\s*"((?:[^"\\]|\\.)*)",?\s*$/gm;
 
+// Los diccionarios de cada idioma viven en DOS ficheros: `<idioma>.js` y
+// `<idioma>.edu.js` (toda la academia — Wyckoff, COT, Renko, Heikin Ashi…).
+//
+// ⚠️ Esta función leía sólo el primero. Con 2.308 claves de academia por idioma
+// fuera del alcance, imprimía «✅ ninguna clave se queda con el texto del idioma
+// de origen» mientras 103 claves seguían en inglés literal en los nueve idiomas
+// no ingleses, montadas y visibles en pantalla. Es exactamente el fallo que el
+// propio verificador dice cerrar, una carpeta más allá.
+//
+// Si mañana aparece un tercer fichero por idioma, va aquí.
+const SUFIJOS = ['.js', '.edu.js'];
+
 function lee(idioma) {
-  const txt = fs.readFileSync(path.join(DIR, `${idioma}.js`), 'utf8');
   const out = {};
-  let m;
-  LINEA.lastIndex = 0;
-  while ((m = LINEA.exec(txt)) !== null) out[m[1]] = m[2];
+  for (const suf of SUFIJOS) {
+    const ruta = path.join(DIR, `${idioma}${suf}`);
+    if (!fs.existsSync(ruta)) continue;
+    const txt = fs.readFileSync(ruta, 'utf8');
+    let m;
+    LINEA.lastIndex = 0;
+    while ((m = LINEA.exec(txt)) !== null) out[m[1]] = m[2];
+  }
   return out;
 }
 
