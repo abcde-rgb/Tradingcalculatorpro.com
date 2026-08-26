@@ -5,10 +5,11 @@
 > o persona que retome el proyecto debe **leer este archivo primero** y **actualizarlo
 > al terminar** su sesión (ver § _Cómo mantener este documento_ al final).
 >
-> - 📅 **Última verificación real contra el código:** 2026-08-18 (55 commits fusionados a
->   `main` y desplegados: calculadoras corregidas, mesa por margen, plan de trading,
->   métricas avanzadas, G-32 cerrado. Verificado en navegador sobre el build compilado —
->   `tests/e2e/navegador/pre-despliegue.js`; antes 2026-08-14, mesa y buscador)
+> - 📅 **Última verificación real contra el código:** 2026-08-26 (examen integral:
+>   fórmulas, seguridad, SEO, i18n, rendimiento y diseño. Se corrigió el signo del POP,
+>   tres bypass de autorización y tres verificadores que no miraban lo que decían
+>   mirar. Suite en 1086 passed / 72 skipped)
+> - 🌿 **Rama de trabajo actual:** `claude/hola-s0mxlz`
 > - 🗺️ **Los conteos no viven aquí.** Módulos, rutas, líneas, componentes y claves i18n
 >   están en [`MAPA.md`](./MAPA.md), **generado desde el código** (`scripts/gen-mapa.py`,
 >   con `--check` en CI). Este documento describe *el estado*; el mapa mide *el tamaño*.
@@ -17,11 +18,6 @@
 >   multiproducto que sí está fusionado** — no lo fusiones. Inventario completo en
 >   [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) §2.
 >   El hook de arranque te lo recuerda en cada sesión.
-> - 📅 **Última verificación real contra el código:** 2026-08-10 (auditoría integral: contenido,
->   cálculos, APIs, fuentes de datos, normativa y admin — ver
->   [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md); antes 2026-08-08,
->   persistencia de los ajustes del usuario)
-> - 🌿 **Rama de trabajo actual:** `claude/herramienta-analisis-implementacion-iygv2y`
 >
 > ⚠️ **Aviso de método (2026-07-27, otra vez el 2026-08-03, y atacado de raíz el
 > 2026-08-13).** Las §1, §2 y §6 se quedaban por detrás del código mientras el registro
@@ -44,10 +40,7 @@
 |---|:--:|---|
 | **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-08-22: exit 0, **40 MB** en `build/`, **1609 URLs** en el sitemap (+20 al dar página al simulador de margen cruzado y a su curso), code-splitting OK |
 | **Backend import + sintaxis** | 🟢 | `import server` OK y todos los módulos compilan. **Los conteos (módulos, rutas, líneas) están en [`MAPA.md`](./MAPA.md)** — generado, así que no se desvía |
-| **Tests offline** | 🟢 | `pytest tests/` → **782 passed, 74 skipped** en 13 s (2026-08-14). Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
-| **Frontend build** (`npm run build`) | 🟢 | Verificado 2026-07-27: exit 0, 40 MB en `build/` (28 MB de JS, casi todo las ~744 páginas SEO estáticas), code-splitting OK |
-| **Backend import + sintaxis** | 🟢 | `import server` OK → **188 rutas**; los **20** módulos compilan (2026-07-29) |
-| **Tests offline** | 🟢 | `pytest tests/` → **361 passed, 74 skipped** (2026-07-29) |
+| **Tests offline** | 🟢 | `pytest tests/` → **1086 passed, 72 skipped** (2026-08-26). Necesita `requirements-dev.txt` (pytest-asyncio): sin él fallan 19. Incluye `test_route_uniqueness_unit.py`, que **sí pasa** — ojo: falla si el contenedor tiene una FastAPI distinta de la fijada en `requirements.txt` (con 0.141 `app.routes` ya no expone las rutas del router) |
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
 | **Paridad i18n / motor** | 🟢 | `i18n-check` 0 huecos en los 10 idiomas · `engine-check` **264/264** · `simulacion-masiva` **1.000 escenarios generados / ~20.000 invariantes** (60.000 probados en 6 semillas) · `check-edu-index` 85 = 85. Cifra de claves al día en [`MAPA.md`](./MAPA.md) |
@@ -224,11 +217,11 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 | G-26 | **No se puede editar el perfil.** No existe `PUT /auth/profile` ni pantalla: el nombre y la foto son los del registro para siempre. En Ajustes sólo se puede cambiar contraseña, gestionar 2FA, exportar los datos y borrar la cuenta | 🟡 | Descubierto al cerrar G-25. Es un hueco distinto: no es que el dato no se guarde, es que no hay forma de cambiarlo |
 | G-22 | **Dos fuentes de verdad para las mismas estadísticas.** `dashboard/JournalStats.jsx` y `education/ExpectancyCalculator.jsx` leen `/journal/stats`; `services/performanceApi.js` y `education/JournalEdgeButton.jsx` leen `/performance/analytics`. Fórmulas distintas sobre la misma colección → el usuario ve **dos expectancies distintas** según la pantalla | 🟠 | Converge al unificar el modelo (G-20). Mientras tanto, las dos rutas ya ordenan cronológicamente y tratan igual el breakeven |
 | G-19 | **Deprecaciones que romperán en la siguiente mayor**: `@app.on_event("startup"/"shutdown")` (FastAPI pide `lifespan`) y una `class Config` de Pydantic v1 (pide `ConfigDict`). `pytest` ya las escupe como warnings | 🟡 | T-08 del backlog. Mecánico, pero toca el arranque: hacerlo con el suite en verde delante |
-| G-27 | **Las passkeys no están documentadas en ninguna parte.** `backend/passkeys.py` (242 líneas, 10-08) añadió un método de autenticación completo: no está en la tabla de módulos de `CLAUDE.md`, no está en el inventario §2, y la sección «Autenticación» de `CLAUDE.md` sigue describiendo sólo JWT + Google OAuth. `migrate_trades_schema.py` tampoco está en la tabla | 🔴 | Dar de alta los dos módulos y reescribir la sección de autenticación. Anotar de paso por qué `passkeys.py:63` usa un origen **sin la ruta del repositorio** (WebAuthn no la lleva), para que nadie lo «arregle» y rompa el login |
-| G-28 | **Se anuncia precio 0 a Google con muro de pago duro.** `gen-seo-pages.js:421` emite `offers: {price:'0', priceCurrency:'EUR'}` en las páginas de calculadora, con títulos «Gratis»/«Free», mientras `public/index.html` declara ofertas de 17/45/200 €. El CTA lleva a `/dashboard`, que exige suscripción activa | 🟠 | Quitar el `price:'0'` y alinear los títulos con lo que el usuario encuentra al llegar. Son 12 slugs × los idiomas con traducción |
+| G-27 | ~~**Las passkeys no están documentadas en ninguna parte.**~~ `backend/passkeys.py` (242 líneas, 10-08) añadió un método de autenticación completo: no está en la tabla de módulos de `CLAUDE.md`, no está en el inventario §2, y la sección «Autenticación» de `CLAUDE.md` sigue describiendo sólo JWT + Google OAuth. `migrate_trades_schema.py` tampoco está en la tabla | 🟢 | ✅ **Cerrado**: `CLAUDE.md` § Autenticación pt. 5 las describe con el aviso del *origin* sin ruta, y `MAPA.md` lista `passkeys.py` y `migrate_trades_schema.py` (generado, así que no puede volver a desfasarse). Verificado el 2026-08-26: seguía marcado 🔴 estando hecho |
+| G-28 | ~~**Se anuncia precio 0 a Google con muro de pago duro.**~~ `gen-seo-pages.js:421` emite `offers: {price:'0', priceCurrency:'EUR'}` en las páginas de calculadora, con títulos «Gratis»/«Free», mientras `public/index.html` declara ofertas de 17/45/200 €. El CTA lleva a `/dashboard`, que exige suscripción activa | 🟢 | ✅ **Cerrado**: `gen-seo-pages.js:435` ya no emite bloque `offers`, y el porqué está escrito ahí mismo. Verificado sobre el build el 2026-08-26 |
 | G-29 | **`PENDIENTES.md` da por abierto lo que está cerrado.** Afirma que `trading_plans` no se borra ni se exporta (G-15, cerrado y verificado contra Postgres el 07-08) y que `FRONTEND_URL` cae a `tradingcalculatorpro.com` (hoy cae a `github.io`, `server.py:1167`). También cita 5652 claves (son 6110) y dice que no hay selector de instrumento (el multiproducto entró el 06-08) | 🟠 | Repasar `PENDIENTES.md` contra el código. Un documento de pendientes con datos falsos cuesta una sesión entera |
-| G-30 | **Código muerto en el frontend.** 20 componentes `.jsx` que ningún fichero importa: 17 de `components/ui/` (1318 líneas) y 3 propios (`options/GreeksPanel.jsx`, `education/TradingBasicsGuide.jsx`, `education/WhyItMatters.jsx`, `dashboard/PriceTicker.jsx`, 933 líneas). **10 de los 27 paquetes `@radix-ui` del `package.json` sólo los usan esos muertos** | 🟡 | Borrar los componentes y desinstalar los 10 paquetes. Deja de generar PRs de Dependabot para código que no llega a ninguna pantalla |
-| G-31 | **Residuos que dan instrucciones falsas.** `backend/patches/server_fixes.patch` (parche manual de mayo, con `MONGO_URL` — la BD descartada), `backend/FIXES_README.md` (manda integrar un `fixes.py` que no existe), `backend/ADMIN_INTEGRATION.md` (ya integrado en `startup_event`), `memory/PRD.md`, `monitoring/`, `packaging/twa-manifest.json` y `check.sh` | 🟡 | Borrar o mover a `_archive/`. No es limpieza estética: quien los lea intentará aplicar pasos ya aplicados sobre una base de datos que no existe |
+| G-30 | ~~**Código muerto en el frontend.**~~ 20 componentes `.jsx` que ningún fichero importa: 17 de `components/ui/` (1318 líneas) y 3 propios (`options/GreeksPanel.jsx`, `education/TradingBasicsGuide.jsx`, `education/WhyItMatters.jsx`, `dashboard/PriceTicker.jsx`, 933 líneas). **10 de los 27 paquetes `@radix-ui` del `package.json` sólo los usan esos muertos** | 🟢 | ✅ **Cerrado (2026-08-26)**: los 17 de `components/ui/` se retiraron con el andamiaje de shadcn y los 4 propios (937 líneas) se borraron ahora. `auditar.py` ya no encuentra ningún componente huérfano. Quedan los paquetes `@radix-ui` por desinstalar |
+| G-31 | ~~**Residuos que dan instrucciones falsas.**~~ `backend/patches/server_fixes.patch` (parche manual de mayo, con `MONGO_URL` — la BD descartada), `backend/FIXES_README.md` (manda integrar un `fixes.py` que no existe), `backend/ADMIN_INTEGRATION.md` (ya integrado en `startup_event`), `memory/PRD.md`, `monitoring/`, `packaging/twa-manifest.json` y `check.sh` | 🟢 | ✅ **Cerrado (2026-08-26)**: los siete están en `_archive/residuos-2026-08-26/`, con un `LEEME.md` que explica qué instrucción falsa daba cada uno |
 | G-32 | **Trabajo terminado que no está en `main`.** Las 16 ramas se clasificaron y se ejecutó la clasificación el 2026-08-18: **6 fusionadas**, **1 rehecha** sobre `main`, **4 cerradas sin fusionar** (sus `refs` siguen en `origin`, con el SHA anotado) y **5 pendientes de una decisión que no es técnica** — la migración de cuenta GCP, el salto mayor de `lucide-react`, y tres de diseño, producto y arquitectura | 🟠 | Quedan las 5 de la §5 de [`CIERRE_RAMAS_2026-08-18.md`](./CIERRE_RAMAS_2026-08-18.md), que es donde está el porqué de cada una. Los 14 PRs de Dependabot siguen sin tocar |
 | G-33 | **Las catorce calculadoras sueltas siguen sin rehacer, ni por dentro ni por fuera.** `LotSizeCalculator` da **10 $/pip por lote estándar siempre** (falso en USDJPY, en el oro y en cualquier cruce sin dólar) con su propia tabla de once pares escrita a mano, y `PositionSizeCalculator` pinta `BTC` fijo en el resultado sea cual sea el activo. La mesa (2026-08-14) hace lo correcto sacando el pip de la ficha del instrumento, pero las catorce sueltas no se tocaron | 🔴 | **Es el siguiente trabajo.** Por dentro: reescribirlas sobre `lib/instruments.js` + `lib/deskMath.js`. Y son las **únicas pantallas sin cobertura de `simulacion-masiva`**, porque su matemática vive dentro del JSX y no se puede importar. Por fuera: el patrón que ya usa la mesa desde el 2026-08-14 (pocos campos, un botón, una frase como respuesta, desglose plegado) y la ley de `identidad-visual` (tokens `--long`/`--short`, `tabular-nums`, un solo acento, dos radios) |
 | G-34 | **La mesa dimensiona UNA pata, no la estructura de opciones.** Con producto `option` calcula sobre la prima y el número de contratos, que es correcto para los cuatro sueltos y para cualquier compra; pero la pérdida máxima real de un spread es *anchura − crédito* y la de un iron condor depende de las cuatro patas, y eso la mesa no lo sabe: el selector de estructura elige la etiqueta y el enlace a `/options/calculator`, no el cálculo | 🟠 | Es el mismo modelo `Position → Leg` que piden G-21 y G-23 para el diario. Mientras tanto, la mesa no miente —no publica una pérdida máxima de estructura— pero tampoco la calcula, y el usuario tiene que ir a `/options/calculator` para eso |
@@ -239,13 +232,22 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 
 ## 4. Qué hay que PROBAR (plan de test)
 
-**Automático (ya disponible, todo verificado el 2026-08-03):**
-- `cd backend && pytest tests/ -q` → **503 passed, 74 skipped** (integración se salta sin `BACKEND_URL`). ✔
-- `cd backend && python -m py_compile *.py` → los 24 módulos. ✔
-- `cd frontend && npx eslint src scripts` → 0 errores, 126 avisos. ✔
-- `cd frontend && node scripts/i18n-check.js` → 5652 × 10, 0 huecos · `node scripts/engine-check.js` → 60/60. ✔
-- `cd frontend && npm run build` → exit 0, 1609 URLs. ✔
-- `python scripts/check-doc-links.py` → 47 documentos, 0 roturas. ✔ *(no está en CI — G-18)*
+**Automático (verificado el 2026-08-26, corriendo TODO lo que corre `ci.yml`):**
+> ⚠️ Estas cifras se quedaban desfasadas cada pocas semanas porque se escriben a
+> mano. Las que se pueden generar viven en [`MAPA.md`](./MAPA.md); las de aquí
+> son el resultado de una ejecución concreta, así que llevan su fecha y hay que
+> volver a correrlas antes de creérselas.
+
+- `pip install -r requirements.txt -r requirements-dev.txt` **primero**: sin
+  `pytest-asyncio` fallan 19 tests en un contenedor recién clonado. ✔
+- `cd backend && pytest tests/ -q` → **1086 passed, 72 skipped**. ✔
+- `cd backend && python -m py_compile *.py` → los **35** módulos. ✔
+- `cd frontend && npx eslint src scripts` → 0 errores, **116** avisos. ✔
+- `node scripts/i18n-check.js` → **6965 × 10**, 0 huecos · `engine-check` → **429/429** ·
+  `simulacion-masiva` → **35.673** comprobaciones · `check-edu-index` → 87 = 87. ✔
+- `cd frontend && npm run build` → exit 0, **1608** URLs (sin `/performance`). ✔
+- `python scripts/check-doc-links.py` → **101** documentos, 0 roturas. ✔
+- `bash scripts/probar-verificadores.sh` → todos detectan su sabotaje. ✔
 
 **Manual / E2E pendiente de hacer en un entorno con backend vivo:**
 1. **Registro + verificación email** (SendGrid) → recibir y validar enlace.

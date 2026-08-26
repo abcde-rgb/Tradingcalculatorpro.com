@@ -15,7 +15,10 @@ y produce un semáforo. Distingue claramente **código** (verificable aquí) de 
   `STRIPE_API_KEY` sk_live, `STRIPE_WEBHOOK_SECRET` whsec.
 - Secretos frontend (GitHub Actions): `REACT_APP_BACKEND_URL` (sin `/api`), `REACT_APP_GOOGLE_CLIENT_ID`.
 - Google OAuth: origen autorizado. Dominio: decisión + DNS antes de mergear.
-- Infra: Cloud SQL + Cloud Run en europe-west1; `GET /api/health` → 200.
+- Infra: Cloud SQL + Cloud Run. ⚠️ La región NO está confirmada: la tabla de
+  despliegue de `DEPLOY_CHECKLIST.md` dice `us-east1` y su § de infra dice
+  `europe-west1`. Compruébalo en la consola antes de dar ninguna por buena.
+  `GET /api/health` → 200.
 
 ## 🟢 Verificable aquí (código)
 Corre `/verify`. Confirma build exit 0, tests passed, i18n paridad, sin secretos en el repo,

@@ -585,6 +585,24 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
 
 
 # ---------------------------------------------------------------------------
+# ⚠️ ESTE MANEJADOR DUPLICA LOS TRES EVENTOS DEL WEBHOOK PRINCIPAL.
+#
+# `POST /webhook/stripe` en `server.py` atiende ya `customer.subscription.deleted`,
+# `invoice.payment_failed` y `customer.subscription.updated`. Este vive en otra
+# ruta, así que el guardián de rutas duplicadas (G-04) no lo ve: para él son dos
+# `(método, path)` distintos.
+#
+# La divergencia costaba datos: el de `server.py` marca `premium_lapsed_at`, que
+# es lo que arranca el reloj de purga a DATA_RETENTION_DAYS. Éste no lo hacía,
+# así que si Stripe apuntaba aquí el reloj no empezaba NUNCA y los datos de un
+# usuario que dejó de pagar se quedaban indefinidamente — justo lo que la
+# política de retención existe para evitar.
+#
+# No se retira la ruta porque puede haber un endpoint de Stripe configurado
+# contra ella y perder eventos es peor que duplicarlos (los dos manejadores son
+# idempotentes). Lo que se cierra es la divergencia. Si algún día se unifica,
+# hay que repuntar el endpoint en el panel de Stripe ANTES de borrarla.
+#
 # 9.  STRIPE WEBHOOK — subscription.deleted + invoice.payment_failed
 #     (This is an ADDITIONAL handler; the main checkout.session.completed is
 #      still handled by the existing /webhook/stripe in server.py)
@@ -634,6 +652,10 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
                         "subscription_status": "canceled",
                         "stripe_subscription_id": None,
                         "subscription_canceled_at": datetime.now(timezone.utc).isoformat(),
+                        # Arranca (o conserva) el reloj de retención. Sin esto
+                        # los datos del usuario no se purgan jamás.
+                        "premium_lapsed_at": user.get("premium_lapsed_at")
+                        or datetime.now(timezone.utc).isoformat(),
                     }},
                 )
                 logging.info(f"Subscription deleted for customer {log_safe(customer_id)} ({log_safe(user.get('email'))})")
@@ -648,6 +670,12 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
                 update["is_premium"] = False
                 update["subscription_plan"] = None
                 update["subscription_status"] = "unpaid"
+                _prev = await db.users.find_one(
+                    {"stripe_customer_id": customer_id}, {"_id": 0, "premium_lapsed_at": 1}
+                ) or {}
+                update["premium_lapsed_at"] = (
+                    _prev.get("premium_lapsed_at") or datetime.now(timezone.utc).isoformat()
+                )
                 logging.warning(f"Payment failed {log_safe(attempt)}x for {log_safe(customer_id)} — premium revoked")
             await db.users.update_one(
                 {"stripe_customer_id": customer_id},
@@ -660,6 +688,13 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
         if customer_id and status:
             is_active = status in ("active", "trialing")
             update: Dict[str, Any] = {"subscription_status": status, "is_premium": is_active}
+            if not is_active:
+                _prev = await db.users.find_one(
+                    {"stripe_customer_id": customer_id}, {"_id": 0, "premium_lapsed_at": 1}
+                ) or {}
+                update["premium_lapsed_at"] = (
+                    _prev.get("premium_lapsed_at") or datetime.now(timezone.utc).isoformat()
+                )
             # Keep the local period end in sync on auto-renewal / plan change,
             # otherwise subscription_end drifts stale after every renewal.
             period_end = data_obj.get("current_period_end")

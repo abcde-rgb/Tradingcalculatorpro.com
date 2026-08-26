@@ -2504,7 +2504,10 @@ async def change_password(request: Request, body: ChangePasswordRequest, user: d
     if not user_doc or not user_doc.get("password"):
         raise HTTPException(status_code=400, detail="Esta cuenta usa login con Google. Usa la opción de Google para gestionar tu contraseña.")
 
-    if not verify_password(body.current_password, user_doc["password"]):
+    # bcrypt bloquea el event loop entero: era la última llamada síncrona en un
+    # handler async (invariante de CLAUDE.md). El resto ya usaba la versión
+    # asíncrona; ésta se quedó atrás.
+    if not await verify_password_async(body.current_password, user_doc["password"]):
         raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
 
     await db.users.update_one(
@@ -4156,14 +4159,29 @@ async def paypal_capture_order(
         await db.payment_transactions.update_one({"id": transaction["id"]}, {"$set": {"status": "pending"}})
         raise HTTPException(status_code=503, detail="PayPal no está configurado")
 
+    # ⚠️ TODA salida de error a partir del claim tiene que devolver la
+    # transacción a `pending`. La rama del 503 de arriba ya lo hacía; el 502 y
+    # el 402 no, y la transacción se quedaba clavada en `capturing`: al
+    # reintentar, el `find_one_and_update` no encontraba nada en `pending` y la
+    # ruta respondía `already_paid` SIN conceder premium. Cobro sin producto —
+    # y encima invisible, porque `paid_not_permium` de la reconciliación busca
+    # `status == "paid"`, no `capturing`.
+    async def _soltar_claim():
+        await db.payment_transactions.update_one(
+            {"id": transaction["id"], "status": "capturing"},
+            {"$set": {"status": "pending"}},
+        )
+
     try:
         capture_result = await _paypal_capture_order(order_id, pp_client_id, pp_client_secret, pp_mode)
     except Exception as _e:
         logging.error(f"[paypal] capture error for {log_safe(order_id)}: {log_safe(_e)}")
+        await _soltar_claim()
         raise HTTPException(status_code=502, detail="Error al capturar pago PayPal. Contacta soporte.")
 
     capture_status = capture_result.get("status")
     if capture_status != "COMPLETED":
+        await _soltar_claim()
         raise HTTPException(
             status_code=402,
             detail=f"Pago no completado (estado: {capture_status}). Inténtalo de nuevo."
@@ -4172,6 +4190,7 @@ async def paypal_capture_order(
     plan_id = transaction["plan_id"]
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
+        await _soltar_claim()
         raise HTTPException(status_code=400, detail="Plan no válido")
 
     # Reuse existing subscription activation (no stripe_session_id — pass empty string)
@@ -6425,6 +6444,22 @@ Be direct and quantitative. Do not restate numbers the trader can already see �
 explain what they IMPLY. Maximum 280 words."""
 
 
+
+def _texto_de_respuesta(message) -> str:
+    """El primer bloque de TEXTO de una respuesta de la API de Claude.
+
+    `message.content[0].text` da por hecho que el primer bloque es texto. Hoy lo
+    es, pero deja de serlo en cuanto alguien active el pensamiento adaptativo o
+    una herramienta: el primer bloque pasa a ser de otro tipo y la ruta revienta
+    con AttributeError, en una función de pago. Buscar el bloque por su tipo
+    cuesta lo mismo y no depende del orden.
+    """
+    for bloque in getattr(message, "content", None) or []:
+        if getattr(bloque, "type", None) == "text" or hasattr(bloque, "text"):
+            return getattr(bloque, "text", "") or ""
+    return ""
+
+
 @api_router.post("/options/ai-analyze")
 @limiter.limit("10/minute")
 async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: dict = Depends(require_user)) -> Dict[str, Any]:
@@ -6458,18 +6493,27 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
             logging.warning(f"AI coach: could not load trader context: {log_safe(ctx_err)}")
 
         prompt = _build_ai_trade_prompt(req, analytics)
-        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
+        # ID sin sufijo de fecha: los identificadores actuales están completos
+        # tal cual y `claude-sonnet-4-5-20250929` apuntaba a una instantánea
+        # concreta de un modelo que ya no es el vigente de su gama. Cuando esa
+        # instantánea se retire, el AI Coach —que es una función de PAGO— deja
+        # de responder. `AI_COACH_MODEL` sigue permitiendo cambiarlo sin
+        # desplegar; lo que no se puede cambiar por variable de entorno es el
+        # texto de la web, así que la versión ya no se anuncia en la copy.
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-5")
         message = await _asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.messages.create(
                 model=model,
-                max_tokens=1024,
+                # 1024 truncaba el análisis a mitad de frase justo en las
+                # estructuras con más patas, que son las que más texto piden.
+                max_tokens=4096,
                 system=AI_COACH_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
             ),
         )
         return {
-            "analysis": message.content[0].text,
+            "analysis": _texto_de_respuesta(message),
             "model": model,
             "usedTraderContext": bool(analytics and analytics.get("closed_trades")),
             # Shown at the point of use, not just in the footer.
@@ -6574,7 +6618,14 @@ async def education_assistant(
             f"Pregunta del usuario:\n{req.question.strip()[:500]}\n\n"
             f"Módulos disponibles (los únicos que existen):\n{listing}"
         )
-        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
+        # ID sin sufijo de fecha: los identificadores actuales están completos
+        # tal cual y `claude-sonnet-4-5-20250929` apuntaba a una instantánea
+        # concreta de un modelo que ya no es el vigente de su gama. Cuando esa
+        # instantánea se retire, el AI Coach —que es una función de PAGO— deja
+        # de responder. `AI_COACH_MODEL` sigue permitiendo cambiarlo sin
+        # desplegar; lo que no se puede cambiar por variable de entorno es el
+        # texto de la web, así que la versión ya no se anuncia en la copy.
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-5")
         message = await _asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.messages.create(
@@ -6584,7 +6635,7 @@ async def education_assistant(
                 messages=[{"role": "user", "content": prompt}],
             ),
         )
-        answer = (message.content[0].text or "").strip()
+        answer = _texto_de_respuesta(message).strip()
 
         # El modelo no puede mandar a donde no hay: si cita un identificador que
         # no estaba entre los candidatos, la respuesta se tira entera. Es

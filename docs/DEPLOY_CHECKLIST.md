@@ -80,6 +80,21 @@ Los usa el despliegue del backend (`cloudbuild.yaml`, manual desde GCP):
 
 ## D. Cloud Run / Cloud SQL (infra)
 
+> ⚠️ **La región de este bloque contradecía la de la tabla de arriba** (`us-east1`
+> en las filas de despliegue, `europe-west1` aquí y en la skill `pre-deploy`).
+> No es un detalle: `gcloud run services describe --region=europe-west1` devuelve
+> «not found» sobre un servicio que existe, y quien lo lea puede concluir que el
+> backend está caído — o desplegar un segundo servicio en la región equivocada.
+> Y si Cloud SQL estuviera de verdad en `europe-west1` con Cloud Run en
+> `us-east1`, cada consulta cruzaría el Atlántico.
+>
+> **Sólo se puede cerrar mirando la consola de GCP.** Hasta entonces la región
+> que manda es la de la tabla de despliegue (`us-east1`), porque describe lo que
+> el push a `main` hace de verdad; estas casillas quedan marcadas como
+> pendientes de verificar, no como verdad.
+
+- [ ] 🔴 **VERIFICAR LA REGIÓN EN LA CONSOLA** y unificar este bloque con la
+      tabla de despliegue. Lo de abajo asume `europe-west1` y puede ser falso.
 - [ ] 🔴 Cloud SQL **PostgreSQL** `trading-db` en `europe-west1` operativa.
 - [ ] 🔴 Servicio Cloud Run `tradingcalculator-api` en `europe-west1`,
       `--add-cloudsql-instances=PROJ:europe-west1:trading-db`.

@@ -30,6 +30,13 @@ sucio=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 if [ "$sucio" = "0" ]; then estado="limpio"; else estado="$sucio fichero(s) sin commitear"; fi
 echo "Rama: $rama · árbol: $estado"
 
+# `origin/main` es una ref LOCAL: en un contenedor recién clonado apunta a donde
+# estaba main el día del clon, no a donde está hoy. Sin este fetch el hook
+# saludaba con «66 commits por delante de origin/main» cuando la rama estaba
+# exactamente al día — y ese número es lo primero que se lee al abrir sesión.
+# Con --quiet y un timeout corto: si no hay red, se informa con lo que haya.
+timeout 15 git fetch --quiet origin main >/dev/null 2>&1 || true
+
 if git rev-parse --verify origin/main >/dev/null 2>&1; then
   ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo "?")
   behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo "?")
