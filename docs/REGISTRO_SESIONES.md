@@ -4796,3 +4796,25 @@ como cuarto raíl para LatAm, no como sustituto; y si Stripe no te acepta y su
 «enlace recurrente» no es cargo automático, lo que renta es empujar Anual y De Por
 Vida en vez de integrar nada. El dato que falta para decidirlo con datos y no con
 tablas: la geografía de quien compra, que GA4 ya puede dar.
+
+**Segundo añadido — «¿hace falta ser empresa para retirar?» (§ 12).** Buscando
+eso apareció una fuente primaria que sí es accesible desde este entorno: sus
+*Condiciones de uso*, un PDF de 13 páginas servido desde un bucket de S3 y no
+desde su dominio bloqueado. Dice que la titular es **KUNFU GLOBAL INC, sociedad
+de Delaware inscrita el 14/07/2025** (registro 10259941, EIN 39-3235422), con
+dirección en Hialeah, Florida, e invoca FTC Act, ECPA y DMCA. Ni una mención a
+licencia de entidad de pago, ni al Banco de España, ni a supervisor europeo
+alguno: **no es «la fintech española» de las notas de prensa, y tiene trece meses
+de vida registral**. Sobre el retiro en sí, el documento no sirve: de la lista
+*saldo, wallet, cobro, pago, reembolso, KYC, verificación, blanqueo, AML,
+licencia, comisión, tarifa, empresa, autónomo*, **ninguna aparece una sola vez**;
+las cuatro apariciones de «retirar» son sobre el consentimiento del RGPD. Las
+condiciones de la cuenta de pago no son públicas (el resto del bucket da 403).
+
+**Y una corrección de la entrada de esta misma mañana**, que es para lo que sirve
+este registro: se escribió que «no existe documentación técnica indexada, ni
+`docs.kunfupay.com`». Falso. `docs.kunfupay.com` existe y está indexado, y
+`business.kunfupay.com` también. Por su contenido indexado parece documentación
+de **usuario**, no referencia de API — que es lo que sigue sin aparecer — pero la
+afirmación tal como se escribió era más fuerte que la evidencia. Corregido en el
+§ 0 del documento, con la corrección a la vista y no borrando el error.

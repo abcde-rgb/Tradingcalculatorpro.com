@@ -31,14 +31,29 @@ Todo lo que sigue sobre Kunfupay sale de **material indexado por buscador**: su 
 marketing, notas de prensa, y fichas de Crunchbase/Tracxn. Y hay un dato que **es un
 hallazgo en sí mismo**:
 
-> **No existe documentación técnica de Kunfupay indexada en ningún sitio.** Ni
-> `docs.kunfupay.com`, ni `api.kunfupay.com`, ni una referencia de API, ni un repositorio,
-> ni una integración de Zapier. Sus propios textos dicen que se puede «integrar
-> suscripciones y pagos globales en tu aplicación en unas horas», pero no dicen cómo.
+> **No hay una referencia de API de Kunfupay indexada en ningún sitio.** Ni en su dominio,
+> ni en un repositorio, ni como integración de Zapier. Sus propios textos dicen que se
+> puede «integrar suscripciones y pagos globales en tu aplicación en unas horas», pero no
+> dicen cómo.
+
+> ⚠️ **Corrección del 2026-08-26, misma fecha, más tarde.** La primera versión de este §
+> decía que «no existe documentación técnica indexada **ni `docs.kunfupay.com`**». Eso era
+> falso: **`docs.kunfupay.com` existe y está indexado** («Kunfupay: Cobra en todo el mundo
+> como creador»). Por lo que se ve de su contenido indexado es **documentación de usuario**
+> —cobros, suscripciones con acceso nativo a Telegram, automatizaciones, su asistente
+> «Sensei»—, no una referencia de API con endpoints y webhooks. También existe
+> `business.kunfupay.com`. Los tres siguen bloqueados desde aquí, así que lo que contienen
+> exactamente sigue sin poder comprobarse; lo que cambia es que **hay dónde mirar**, y es
+> lo primero que hay que abrir desde un navegador normal.
 
 Es el mismo caso que [`PROVEEDORES_DATOS.md`](./PROVEEDORES_DATOS.md): **ninguna
 afirmación técnica de este documento está confirmada contra el proveedor**. El § 5 es la
 lista exacta de preguntas que hay que hacerles antes de decidir nada.
+
+**Sí se pudo leer una fuente primaria** (añadido el 2026-08-26): sus *Condiciones de uso,
+privacidad y protección de datos*, 13 páginas en PDF, servidas desde un bucket de S3 que
+**no está bloqueado**. De ahí sale el § 12, y de ahí sale la corrección de la ficha del
+§ 1.
 
 ---
 
@@ -46,7 +61,7 @@ lista exacta de preguntas que hay que hacerles antes de decidir nada.
 
 | | |
 |---|---|
-| Entidad | Fintech española, fundada en **2022**. 2-10 empleados según Crunchbase |
+| Entidad | **KUNFU GLOBAL INC**, sociedad de **Delaware** inscrita el **14/07/2025** (registro 10259941, EIN 39-3235422), dirección en Hialeah, Florida. *Fuente: sus propias Condiciones de uso.* La prensa y Crunchbase la describen como «fintech española fundada en 2022» con 2-10 empleados; su documento legal dice otra cosa (§ 12) |
 | Modelo | **Merchant of Record** (MoR): ellos son el comercio registrado y asumen facturación, IVA, reembolsos y cumplimiento |
 | Producto | Checkout con métodos locales + wallet + tarjeta VISA + panel de creador («Creator OS») |
 | Métodos | PIX (BR), Nequi (CO), Yape (PE), OXXO (MX), Pago Móvil (VE), Mercado Pago (AR), **tarjeta y Bizum (ES)** |
@@ -380,6 +395,92 @@ decide esto mejor que cualquier tabla de este documento.**
 
 ---
 
+## 12. ¿Hace falta ser empresa para retirar? (añadido el 2026-08-26, a pregunta directa)
+
+### 12.1 La respuesta corta
+
+**Por parte de Kunfupay, aparentemente no. Por parte de Hacienda, eso no lo decide
+Kunfupay.** Son dos preguntas distintas y conviene no mezclarlas.
+
+### 12.2 Lo que dicen ellos
+
+Su propio material comercial lo afirma sin matices: «**No hace falta estar dado de alta
+como empresa** ni contratar desarrolladores». La cuenta personal (wallet multidivisa +
+KunfuCard, una Visa virtual) se abre gratis desde la app, sin cuota de alta ni mensual, y
+desde el saldo se retira «en moneda local en cualquier país, o en cripto», con
+liquidaciones semanales.
+
+Y el único requisito de acceso que aparece **en un documento suyo**, no en un folleto, es
+la mayoría de edad:
+
+> «El Usuario declara ser mayor de edad y disponer de la capacidad jurídica suficiente…
+> Kunfupay no se dirige a menores de edad».
+> — *Condiciones de uso, privacidad y protección de datos*, pág. 2
+
+### 12.3 Lo que no dicen en ninguna parte pública, y es justo lo que gobierna un retiro
+
+El único PDF legal que exponen —el citado arriba, 13 páginas— es **condiciones del sitio
+web y política de privacidad**. Contadas una por una sobre el texto extraído, estas
+palabras aparecen **cero veces** en todo el documento: *saldo*, *wallet*, *monedero*,
+*cobro*, *pago*, *reembolso*, *KYC*, *verificación*, *blanqueo*, *AML*, *licencia*,
+*comisión*, *tarifa*, *empresa* y *autónomo*. La única de la familia que sale es
+*retirar/retirada* —cuatro veces— y siempre sobre **retirar el consentimiento** del RGPD,
+nunca sobre retirar dinero.
+
+Es decir: **las condiciones de la cuenta de pago, que son las que dicen quién puede
+retirar y con qué papeles, no son públicas.** El resto del bucket donde vive ese PDF
+responde 403 a todo lo demás (`terms`, `privacy`, `aml`, `kyc`) y no permite listado.
+
+Cualquier plataforma que mueve dinero acaba pidiendo KYC antes de un retiro —documento de
+identidad como mínimo, y con frecuencia justificación de la actividad al subir el volumen.
+Que su folleto diga «sin ser empresa» no es lo mismo que un contrato que diga qué te van a
+pedir el día que quieras sacar 4.000 €. **Eso hay que pedírselo por escrito antes de
+enviarles un solo cobro** (pregunta 10 del § 5, ahora con más filo).
+
+### 12.4 El hallazgo que cambia el marco: quién es Kunfupay legalmente
+
+De su propia primera página, no de la prensa:
+
+> «La titularidad de este sitio web, www.kunfupay.com … la ostenta: **KUNFU GLOBAL INC**,
+> operando bajo la marca comercial Kunfupay, provista de **EIN: 39-3235422** e inscrita en
+> la **División de Incorporaciones de la Secretaría de Estado de Delaware: inclusión el
+> 14/07/2025** bajo el número de registro **10259941**». Dirección: *20062 Northwest 66th
+> Place, Hialeah, FL 33015 US*.
+
+Y el marco normativo que invocan es **estadounidense**: FTC Act (1914), ECPA (1986) y DMCA
+(1998). En trece páginas **no hay una sola mención** a licencia de entidad de pago o de
+dinero electrónico, ni al Banco de España, ni a ningún supervisor europeo.
+
+Tres consecuencias, y ninguna es un detalle:
+
+1. **No es «la fintech española» que cuentan las notas de prensa.** Es una sociedad de
+   Delaware con dirección en Florida, **inscrita hace trece meses**. Puede haber una
+   filial española detrás; en su documento legal no aparece.
+2. **Tu facturación viviría en la wallet de esa sociedad** entre cobro y liquidación
+   semanal. Sin licencia europea visible, ese saldo no está bajo las reglas de
+   salvaguarda de fondos que sí obligan a un Stripe o un Revolut en la UE. Para un negocio
+   cuyos ingresos pasan **todos** por ahí, ése es el riesgo de verdad, mucho más que el
+   5-10 %.
+3. **Su promesa de Merchant of Record hay que verificarla con lupa.** Que una Inc. de
+   Delaware se encargue del IVA europeo de tus ventas es posible —existe el régimen OSS
+   para no establecidos— pero es exactamente el tipo de afirmación que hay que ver por
+   escrito, con NIF-IVA y todo, antes de apoyar en ella el § 7.1 de este documento.
+
+### 12.5 Lo que sí decide si tienes que ser autónomo
+
+No es la pasarela: es **Hacienda**. Vender suscripciones de forma continuada desde una web
+es actividad económica habitual, y eso pide alta censal (036/037) y, en principio, RETA,
+cobres por Stripe, por Kunfupay o en mano. Que el dinero aterrice primero en una wallet no
+cambia el hecho imponible; sólo cambia el rastro.
+
+Y si son MoR de verdad, cambia **qué** facturas: ya no vendes al usuario final, le vendes
+a **KUNFU GLOBAL INC**, una sociedad estadounidense — otra factura, otro tratamiento de
+IVA (prestación de servicios fuera de la UE) y otro casillero en los modelos. **Esto es
+para un gestor, no para este documento**: aquí sólo queda anotado que la respuesta
+«Kunfupay no me pide ser empresa» no responde a la pregunta «¿tengo que darme de alta?».
+
+---
+
 ## Fuentes
 
 Todas consultadas el 2026-08-26 **desde buscador**, porque el dominio del proveedor está
@@ -395,5 +496,7 @@ bloqueado en este entorno (§ 0):
   · [TechBullion](https://techbullion.com/kunfupay-the-platform-that-lets-influencers-and-entrepreneurs-get-paid-worldwide-in-a-matter-of-minutes/)
   · [ExtraConfidencial](https://extraconfidencial.com/noticias/kunfupay-la-plataforma-que-permite-a-influencers-y-emprendedores-cobrar-en-todo-el-mundo-en-cuestion-de-minutos/)
   · [El Ecosistema Startup](https://ecosistemastartup.com/kunfupay-un-millon-al-mes-sin-inversion-externa/)
+- **Fuente primaria** (sí accesible desde aquí, al estar en S3 y no en su dominio): [Condiciones de uso, privacidad y protección de datos de Kunfupay (PDF, 13 págs.)](https://kunfupay-payment-app-production.s3.eu-west-1.amazonaws.com/public/use-conditions.pdf) — de aquí salen la entidad titular del § 1 y todo el § 12
+- [`docs.kunfupay.com`](https://docs.kunfupay.com/) y `business.kunfupay.com` — existen, bloqueados desde este entorno
 - [Tarifas de Stripe](https://stripe.com/pricing) ·
   [comisiones de Stripe en España](https://getquipu.com/blog/comisiones-stripe/)
