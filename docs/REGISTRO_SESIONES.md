@@ -4741,3 +4741,43 @@ la herramienta con un bróker real. Y dos restos ajenos a esta rama: `s.tmp.cjs`
 en `frontend/`, un fichero temporal que se coló en el commit 8a0ade5, y
 `toolMapIntro`, una clave i18n muerta que aún dice «14 calculadoras» en los diez
 idiomas sin que ningún componente la pinte.
+
+---
+
+### 2026-08-26 — ¿Kunfupay en lugar de Stripe? El estudio, y lo que no se pudo verificar
+
+**Lo que se preguntó:** si Kunfupay serviría para sustituir a Stripe «por el
+momento». **Lo que se entrega:** [`PASARELA_KUNFUPAY.md`](./PASARELA_KUNFUPAY.md).
+**Nada adoptado, ni una línea de código tocada.**
+
+**El hallazgo que cambia la pregunta.** Apagar Stripe no deja la web sin cobrar:
+PayPal, Revolut Pay y NOWPayments ya cobran, con webhook firmado y concesión de
+premium por el mismo `_activate_paid_subscription`. Lo que Stripe se lleva al
+irse es concreto y está inventariado con `fichero:línea`: renovación automática,
+prueba de 7 días (`METODOS_CON_PRUEBA` es sólo raíl Stripe), SEPA, Klarna, portal
+de cliente, historial de facturas, reembolso de un clic y revocación por impago.
+O sea: la urgencia no es «sustituir a Stripe», es decidir si se quiere recurrencia.
+
+**El segundo hallazgo, que es un bug de honestidad y es anterior a Kunfupay.**
+Los Términos prometen, en los diez idiomas, que «el IVA aplicable se calcula en el
+momento del pago … y se muestra desglosado» (`legalContent/es.js:134`).
+`_create_stripe_session` **no pasa `automatic_tax`** y no hay rastro de Stripe Tax
+en el backend: hoy se cobran 17 € planos, sin desglose ni determinación de país.
+Con un Merchant of Record el problema no se arregla, **deja de ser nuestro** — y
+ése, no la comisión, es el mejor argumento a favor de Kunfupay en este caso.
+
+**Lo que NO se pudo verificar, y por eso no hay recomendación de integrar.**
+`kunfupay.com` está bloqueado por el proxy de salida de este entorno
+(`EGRESS_BLOCKED`), igual que dos de las fuentes secundarias. Todo lo que dice el
+documento sobre ellos sale de material indexado por buscador. Y **no existe
+documentación técnica suya indexada en ningún sitio**: ni referencia de API, ni
+webhooks, ni Zapier. Su control de acceso automático documentado es nativo de
+Telegram/Discord, no genérico. Por eso el documento termina en diez preguntas para
+su soporte, de las que **las tres primeras deciden si hay integración o enlaces a
+mano**: API con referencia propia, webhook firmado, y si el «cobro recurrente» es
+cargo automático o recordatorio de pago.
+
+**Coste, para que esté escrito:** 1,5% + 0,25 € (Stripe, tarjeta EEE) frente al
+5-10% que ellos publican. Con 100 mensuales: ~612 €/año frente a 1.020-2.040 €/año.
+La comparación honesta no es 1,5% contra 5-10%, es 1,5% **más el cumplimiento
+fiscal propio** contra 5-10% con el cumplimiento incluido.
