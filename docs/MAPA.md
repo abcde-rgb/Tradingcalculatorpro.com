@@ -17,10 +17,10 @@
 | Módulos del backend | 35 |
 | Líneas de Python (backend) | 26,452 |
 | Rutas declaradas | 198 |
-| **Rutas sin consumidor en el frontend** | **34** |
+| **Rutas sin consumidor en el frontend** | **32** |
 | Ficheros de test · funciones de test | 58 · 967 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 7,114 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,154 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -28,7 +28,7 @@ Endpoints que **ningún fichero del frontend menciona**. Algunos lo están por
 diseño (un webhook lo llama la pasarela, no el navegador); el resto es código
 escrito, probado y que ningún usuario puede alcanzar.
 
-### Sospechosas (29)
+### Sospechosas (27)
 
 **Antes de escribir un módulo nuevo, mira si lo que te piden ya está aquí**
 esperando una pantalla. Esto es el hueco G-14.
@@ -38,8 +38,6 @@ esperando una pantalla. Esto es el hueco G-14.
 | `POST` | `/api/admin/subscriptions/{user_id}/refund` | `backend/server.py:8541` |
 | `GET` | `/api/alerts/realtime/status` | `backend/realtime_alerts.py:352` |
 | `POST` | `/api/alerts/send-email` | `backend/server.py:3577` |
-| `GET` | `/api/backtest/strategies` | `backend/server.py:7321` |
-| `POST` | `/api/backtest/validate` | `backend/server.py:7250` |
 | `POST` | `/api/calculate/american` | `backend/server.py:5698` |
 | `POST` | `/api/calculate/implied-volatility` | `backend/server.py:5582` |
 | `POST` | `/api/calculate/volatility-size` | `backend/server.py:7385` |
@@ -265,8 +263,8 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `POST` | `/auth/refresh` | 2127 | ✅ |
 | `POST` | `/auth/register` | 1943 | ✅ |
 | `POST` | `/auth/reset-password` | 2399 | ✅ |
-| `GET` | `/backtest/strategies` | 7321 | ❌ |
-| `POST` | `/backtest/validate` | 7250 | ❌ |
+| `GET` | `/backtest/strategies` | 7321 | ✅ |
+| `POST` | `/backtest/validate` | 7250 | ✅ |
 | `POST` | `/billing/create-portal-session` | 4655 | ✅ |
 | `GET` | `/billing/history` | 4690 | ✅ |
 | `GET` | `/brokers` | 8337 | ✅ |
@@ -403,13 +401,13 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 590 |
 | `components/options/` | 37 | 8,122 |
-| `components/performance/` | 7 | 3,484 |
+| `components/performance/` | 8 | 3,820 |
 | `components/performance/form/` | 6 | 724 |
 | `components/pricing/` | 1 | 22 |
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 30 | 1,612 |
-| `pages/` | 23 | 16,307 |
+| `pages/` | 23 | 16,319 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -420,16 +418,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 9,279 |
 | `frontend/src/pages/EducationPage.jsx` | 5,575 |
-| `frontend/src/lib/i18n/ar.js` | 4,810 |
-| `frontend/src/lib/i18n/de.js` | 4,810 |
-| `frontend/src/lib/i18n/en.js` | 4,810 |
-| `frontend/src/lib/i18n/es.js` | 4,810 |
-| `frontend/src/lib/i18n/fr.js` | 4,810 |
-| `frontend/src/lib/i18n/it.js` | 4,810 |
-| `frontend/src/lib/i18n/ja.js` | 4,810 |
-| `frontend/src/lib/i18n/pt.js` | 4,810 |
-| `frontend/src/lib/i18n/ru.js` | 4,810 |
-| `frontend/src/lib/i18n/zh.js` | 4,810 |
+| `frontend/src/lib/i18n/ar.js` | 4,850 |
+| `frontend/src/lib/i18n/de.js` | 4,850 |
+| `frontend/src/lib/i18n/en.js` | 4,850 |
+| `frontend/src/lib/i18n/es.js` | 4,850 |
+| `frontend/src/lib/i18n/fr.js` | 4,850 |
+| `frontend/src/lib/i18n/it.js` | 4,850 |
+| `frontend/src/lib/i18n/ja.js` | 4,850 |
+| `frontend/src/lib/i18n/pt.js` | 4,850 |
+| `frontend/src/lib/i18n/ru.js` | 4,850 |
+| `frontend/src/lib/i18n/zh.js` | 4,850 |
 
 ## Verificadores del repositorio
 
