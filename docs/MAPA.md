@@ -17,7 +17,7 @@
 | Módulos del backend | 35 |
 | Líneas de Python (backend) | 26,452 |
 | Rutas declaradas | 198 |
-| **Rutas sin consumidor en el frontend** | **32** |
+| **Rutas sin consumidor en el frontend** | **33** |
 | Ficheros de test · funciones de test | 58 · 967 |
 | Rutas del frontend (`App.js`) | 29 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 7,188 |
@@ -63,11 +63,12 @@ esperando una pantalla. Esto es el hueco G-14.
 | `POST` | `/api/subscriptions/change-plan` | `backend/missing_apis.py:492` |
 | `GET` | `/api/user-states/list` | `backend/server.py:4843` |
 
-### Huérfanas por diseño (5)
+### Huérfanas por diseño (6)
 
 | Método | Ruta | Por qué |
 |---|---|---|
 | `GET` | `/api/admin/connectors/status` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
+| `GET` | `/api/admin/referrals` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
 | `POST` | `/api/admin/set-plan` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
 | `GET` | `/api/health` | infra — sonda de salud |
 | `POST` | `/api/webhook/stripe` | externo — lo llama la pasarela de pago |
@@ -141,7 +142,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `POST` | `/admin/plans/{plan_id}` | 944 | ✅ |
 | `GET` | `/admin/public/settings` | 1191 | ✅ |
 | `GET` | `/admin/rate-limits` | 1076 | ✅ |
-| `GET` | `/admin/referrals` | 866 | ✅ |
+| `GET` | `/admin/referrals` | 866 | ❌ |
 | `GET` | `/admin/referrals/leaderboard` | 888 | ✅ |
 | `POST` | `/admin/set-plan` | 376 | ❌ |
 | `POST` | `/admin/settings` | 452 | ✅ |
