@@ -468,6 +468,10 @@ const GLOSSARY_TOPIC = {
   107: 'stops-targets',   // ATR
   108: 'risk',            // Correlación
   109: 'options-vol',     // Volatilidad realizada
+  // 110 (SNR) no enlaza a ningún módulo a propósito: la entrada existe
+  // precisamente para separar dos siglas que no comparten tema, y
+  // mandar a uno de los dos sería elegir por el lector.
+  111: 'vol-premium',     // Prima de riesgo de volatilidad
 };
 
 export default function EducationPage() {

@@ -15,12 +15,12 @@
 | | |
 |---|---:|
 | Módulos del backend | 35 |
-| Líneas de Python (backend) | 26,452 |
+| Líneas de Python (backend) | 26,583 |
 | Rutas declaradas | 198 |
 | **Rutas sin consumidor en el frontend** | **33** |
-| Ficheros de test · funciones de test | 58 · 967 |
+| Ficheros de test · funciones de test | 58 · 981 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 7,188 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,198 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -93,6 +93,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `level_odds.py` | 603 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
 | `trading_plan.py` | 565 |  | Trading plan: the user's own rules, versioned server-side. |
 | `candle_patterns.py` | 519 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
+| `performance_metrics.py` | 422 |  | Advanced performance & risk metrics — the professional-grade gap. |
 | `referrals.py` | 414 | 3 | referrals.py — Referral / Affiliate program API. |
 | `level_research.py` | 385 |  | ¿Cuál de todos estos rasgos aporta algo, y cuál sólo lo parece? |
 | `realtime_alerts.py` | 385 | 3 | realtime_alerts.py — WebSocket-based real-time price alerts. |
@@ -101,7 +102,6 @@ esperando una pantalla. Esto es el hueco G-14.
 | `portfolio_risk.py` | 327 |  | Account-level risk — heat, correlation, loss limits, volatility sizing. |
 | `level_features.py` | 323 |  | Los rasgos del montaje, tal y como se veían EN esa barra y no después. |
 | `timeframes.py` | 303 |  | The timeframe ladder for the price-action scanners (structure + patterns). |
-| `performance_metrics.py` | 291 |  | Advanced performance & risk metrics — the professional-grade gap. |
 | `american_options.py` | 283 |  | American option pricing — early exercise, which Black-Scholes cannot see. |
 | `crypto_data.py` | 257 |  | Precios de criptomonedas desde las propias bolsas. |
 | `passkeys.py` | 243 |  | Passkeys (WebAuthn / FIDO2) — alta y acceso sin contraseña. |
@@ -402,13 +402,13 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 590 |
 | `components/options/` | 37 | 8,122 |
-| `components/performance/` | 8 | 3,820 |
+| `components/performance/` | 8 | 3,881 |
 | `components/performance/form/` | 6 | 724 |
 | `components/pricing/` | 1 | 22 |
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 30 | 1,612 |
-| `pages/` | 23 | 16,375 |
+| `pages/` | 23 | 16,379 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -418,17 +418,17 @@ dan) en vez de abrirlos de arriba abajo.
 | Fichero | Líneas |
 |---|---:|
 | `backend/server.py` | 9,279 |
-| `frontend/src/pages/EducationPage.jsx` | 5,631 |
-| `frontend/src/lib/i18n/ar.js` | 4,852 |
-| `frontend/src/lib/i18n/de.js` | 4,852 |
-| `frontend/src/lib/i18n/en.js` | 4,852 |
-| `frontend/src/lib/i18n/es.js` | 4,852 |
-| `frontend/src/lib/i18n/fr.js` | 4,852 |
-| `frontend/src/lib/i18n/it.js` | 4,852 |
-| `frontend/src/lib/i18n/ja.js` | 4,852 |
-| `frontend/src/lib/i18n/pt.js` | 4,852 |
-| `frontend/src/lib/i18n/ru.js` | 4,852 |
-| `frontend/src/lib/i18n/zh.js` | 4,852 |
+| `frontend/src/pages/EducationPage.jsx` | 5,635 |
+| `frontend/src/lib/i18n/ar.js` | 4,862 |
+| `frontend/src/lib/i18n/de.js` | 4,862 |
+| `frontend/src/lib/i18n/en.js` | 4,862 |
+| `frontend/src/lib/i18n/es.js` | 4,862 |
+| `frontend/src/lib/i18n/fr.js` | 4,862 |
+| `frontend/src/lib/i18n/it.js` | 4,862 |
+| `frontend/src/lib/i18n/ja.js` | 4,862 |
+| `frontend/src/lib/i18n/pt.js` | 4,862 |
+| `frontend/src/lib/i18n/ru.js` | 4,862 |
+| `frontend/src/lib/i18n/zh.js` | 4,862 |
 
 ## Verificadores del repositorio
 

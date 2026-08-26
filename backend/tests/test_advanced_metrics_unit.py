@@ -201,3 +201,141 @@ def test_bundle_sin_r_multiples_no_inventa_forma():
     assert out["skewness"] is None
     assert out["kurtosis"] is None
     assert out["tail_ratio"] is None
+
+
+# ---------------------------------------------------------------------------
+# SQN rodante y el test que distingue degradación de mala suerte.
+#
+# La serie rodante sola invita a un error concreto: leer cualquier bajada como
+# «se me está apagando la ventaja». Con 30 operaciones por ventana, el error de
+# muestreo del SQN es enorme y esa lectura casi siempre es falsa. Por eso estos
+# tests comprueban las DOS direcciones: que el test grite cuando la ventaja se
+# apaga de verdad, y que NO grite cuando sólo hay varianza.
+# ---------------------------------------------------------------------------
+
+def _serie(media, desv, n, semilla):
+    import random
+    rnd = random.Random(semilla)
+    return [rnd.gauss(media, desv) for _ in range(n)]
+
+
+def test_rolling_sqn_una_entrada_por_ventana_completa():
+    rs = _serie(0.4, 1.2, 100, 1)
+    serie = pm.rolling_sqn(rs, window=30)
+    assert len(serie) == 100 - 30 + 1
+    assert serie[0]["n"] == 30 and serie[-1]["n"] == 100
+
+
+def test_rolling_sqn_none_sin_una_ventana_completa():
+    assert pm.rolling_sqn([0.5] * 29, window=30) is None
+
+
+def test_rolling_sqn_coincide_con_sqn_de_esa_ventana():
+    rs = _serie(0.3, 1.0, 60, 7)
+    serie = pm.rolling_sqn(rs, window=30)
+    assert abs(serie[0]["sqn"] - pm.sqn(rs[:30])) < 1e-12
+    assert abs(serie[-1]["sqn"] - pm.sqn(rs[-30:])) < 1e-12
+
+
+def test_decay_no_grita_cuando_solo_hay_varianza():
+    # Misma distribución de principio a fin. El SQN de la última ventana puede
+    # salir MUY por debajo del anterior por puro azar — y el test tiene que
+    # decir justamente eso. Sin esta comprobación, un test que sólo mirara el
+    # caso degradado daría verde con un p-valor constante de cero.
+    rs = _serie(0.4, 1.2, 200, 1)
+    d = pm.sqn_decay(rs, window=30)
+    assert d is not None
+    assert d["sqn_reciente"] < d["sqn_anterior"]      # la bajada existe…
+    assert d["p_value"] > 0.10                        # …y no significa nada
+
+
+def test_decay_grita_cuando_la_ventaja_se_apaga():
+    rs = _serie(0.6, 1.2, 170, 2) + _serie(-0.5, 1.2, 30, 3)
+    d = pm.sqn_decay(rs, window=30)
+    assert d is not None and d["p_value"] < 0.01
+
+
+def test_decay_es_determinista():
+    rs = _serie(0.4, 1.2, 200, 5)
+    assert pm.sqn_decay(rs)["p_value"] == pm.sqn_decay(rs)["p_value"]
+
+
+def test_decay_depende_del_ORDEN():
+    # Si invertir la serie no cambiara el resultado, la métrica no estaría
+    # midiendo el tiempo y todo el módulo sobraría. Es la tercera regla de
+    # honestidad del proyecto aplicada a esta métrica.
+    rs = _serie(0.6, 1.2, 170, 2) + _serie(-0.5, 1.2, 30, 3)
+    d1 = pm.sqn_decay(rs, window=30)
+    d2 = pm.sqn_decay(list(reversed(rs)), window=30)
+    assert d1["p_value"] != d2["p_value"]
+    # En orden: la ventaja se apaga y el test lo ve. Invertida: las últimas 30
+    # salen del tramo bueno mezcladas con el malo, no hay señal. El umbral es
+    # 0,10 —el mismo que «esto es ruido» del test anterior— y no 0,5: invertir
+    # no produce una mejora limpia, produce AUSENCIA de señal, y exigir medio
+    # exacto sería fijar el test a un decimal del azar.
+    assert d1["p_value"] < 0.01 and d2["p_value"] > 0.10
+
+
+def test_decay_none_sin_dos_ventanas():
+    assert pm.sqn_decay([0.5, -1.0] * 29, window=30) is None    # 58 < 60
+
+
+def test_decay_none_sin_dispersion():
+    assert pm.sqn_decay([0.5] * 200, window=30) is None
+
+
+def test_bundle_incluye_rodante_y_decay():
+    rs = _serie(0.4, 1.2, 200, 9)
+    out = pm.compute_advanced_metrics(pnls=rs, equity_curve=[100, 101],
+                                      r_multiples=rs, wins=120, losses=80, runs=90)
+    assert out["rolling_sqn"] is not None and len(out["rolling_sqn"]) > 0
+    assert out["sqn_decay"] is not None and 0.0 <= out["sqn_decay"]["p_value"] <= 1.0
+
+
+def test_bundle_sin_historial_no_inventa_serie():
+    out = pm.compute_advanced_metrics(pnls=[1, 2, 3], equity_curve=[100, 101])
+    assert out["rolling_sqn"] is None and out["sqn_decay"] is None
+
+
+def test_ruta_rapida_de_sqn_coincide_con_sqn():
+    """La ruta rápida de `sqn_decay` tiene que dar EXACTAMENTE lo mismo que `sqn`.
+
+    Este test existe porque faltaba: al sabotear la ruta rápida quitándole el
+    tope de 100 de Van Tharp, los once tests de `sqn_decay` seguían en verde.
+    Un atajo de rendimiento sin una comprobación de equivalencia es una segunda
+    implementación esperando a divergir en silencio.
+
+    Se cubren a propósito longitudes por debajo, justo en y por encima de 100,
+    que es donde vive el tope.
+    """
+    import math
+    import random
+    rnd = random.Random(4242)
+    for n in (2, 5, 30, 99, 100, 101, 250):
+        for _ in range(40):
+            xs = [rnd.gauss(rnd.uniform(-1, 1), rnd.uniform(0.2, 3)) for _ in range(n)]
+            suma = math.fsum(xs)
+            suma2 = math.fsum(x * x for x in xs)
+            rapido = pm._sqn_desde_sumas(suma, suma2, n)
+            lento = pm.sqn(xs)
+            assert (rapido is None) == (lento is None), f"n={n}"
+            if lento is not None:
+                assert abs(rapido - lento) < 1e-9, f"n={n}: {rapido} vs {lento}"
+
+
+def test_ruta_rapida_none_en_los_mismos_casos_que_sqn():
+    assert pm._sqn_desde_sumas(1.0, 1.0, 1) is None          # <2 valores
+    assert pm._sqn_desde_sumas(10.0, 20.0, 5) is None        # varianza cero
+    assert pm.sqn([2.0] * 5) is None                          # el original, igual
+
+
+def test_los_sqn_publicados_salen_de_la_misma_ruta_que_el_p_valor():
+    # Los dos SQN del informe se calculaban con `sqn` mientras el estadístico
+    # del test venía de la ruta rápida. Coinciden, pero eran dos caminos: si uno
+    # se tocaba, se publicaba un p-valor que no correspondía a las cifras de al
+    # lado. Ahora es uno solo, y esto lo fija.
+    rs = _serie(0.5, 1.1, 200, 11)
+    d = pm.sqn_decay(rs, window=30)
+    assert abs(d["sqn_reciente"] - pm.sqn(rs[-30:])) < 1e-9
+    assert abs(d["sqn_anterior"] - pm.sqn(rs[:-30])) < 1e-9
+    assert abs(d["delta"] - (d["sqn_reciente"] - d["sqn_anterior"])) < 1e-12
