@@ -583,6 +583,47 @@ i = t.index('const EDUCATION_NAV')
 m = re.search(r\\\"value: '([a-z0-9-]+)'\\\", t[i:])
 if m: p.write_text(t[:i] + t[i:].replace(m.group(0), \\\"value: 'zz-sabotaje'\\\", 1))\""
 
+# ── Cada idioma en su alfabeto (i18n-escritura.js) ──────────────────────────
+# Los dos cebos son las erratas REALES que se colaron escribiendo traducciones a
+# mano y que pasaron `i18n-check` e `i18n-traducido` sin despeinarse: un carácter
+# chino dentro de una frase italiana y uno coreano dentro de una japonesa.
+titulo "Alfabeto por idioma (i18n-escritura.js)"
+ESCRITURA="cd frontend && node scripts/i18n-escritura.js"
+
+probar "un carácter chino dentro de una frase italiana" \
+  "$ESCRITURA" \
+  "sed -i 's/\"nfHome\": \"Vai alla home\"/\"nfHome\": \"Vai alla 决home\"/' frontend/src/lib/i18n/it.js" \
+  "git checkout -- frontend/src/lib/i18n/it.js"
+
+probar "un carácter coreano dentro de una frase japonesa" \
+  "$ESCRITURA" \
+  "sed -i 's/\"nfHome\": \"ホームへ\"/\"nfHome\": \"ホーム별へ\"/' frontend/src/lib/i18n/ja.js" \
+  "git checkout -- frontend/src/lib/i18n/ja.js"
+
+# El griego se permite en TODOS los idiomas a propósito: Γ, Δ, Θ y σ son
+# notación financiera, no idioma. Si esto saltara, el verificador estaría
+# marcando como errata la mitad del panel de opciones.
+probar_inverso "una letra griega en una frase inglesa (Γ es notación, no idioma)" \
+  "$ESCRITURA" \
+  "sed -i 's/\"nfHome\": \"Go home\"/\"nfHome\": \"Go home Γ\"/' frontend/src/lib/i18n/en.js" \
+  "git checkout -- frontend/src/lib/i18n/en.js"
+
+# ── Los diagramas de la academia no ganan castellano (check-visuales-idioma) ─
+titulo "Techo de castellano en los diagramas (check-visuales-idioma.js)"
+VISUALES="cd frontend && node scripts/check-visuales-idioma.js"
+VISUAL_NUEVO="frontend/src/components/education/ZzSabotajeVisual.jsx"
+TEMPORALES+=("$VISUAL_NUEVO")
+
+probar "un rótulo castellano nuevo en un diagrama existente" \
+  "$VISUALES" \
+  "sed -i 's|>trigo · café<|>trigo · café</T><T>rotación estacional<|' frontend/src/components/education/CommoditiesVisual.jsx" \
+  "git checkout -- frontend/src/components/education/CommoditiesVisual.jsx"
+
+probar "un diagrama NUEVO que nace en castellano (techo cero)" \
+  "$VISUALES" \
+  "printf 'import React from \"react\";\nexport default () => <svg><text>máximo previo</text></svg>;\n' > $VISUAL_NUEVO" \
+  "rm -f $VISUAL_NUEVO"
+
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────
 titulo "Auditoría (auditar.py --estricto)"
 COMPONENTE_MUERTO="frontend/src/components/ZzSabotajeHuerfano.jsx"

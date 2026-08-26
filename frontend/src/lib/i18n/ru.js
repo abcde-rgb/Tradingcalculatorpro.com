@@ -4758,4 +4758,6 @@ export default {
   "authConnError": "Ошибка соединения. Попробуйте ещё раз.",
   "authPwMismatch": "Пароли не совпадают",
   "authPwMin8": "Минимум 8 символов",
+  "pricingLifetimeOnly": "Только Lifetime",
+  "pricingNoBackend": "Бэкенд не настроен. Свяжитесь с поддержкой.",
 }

@@ -4758,4 +4758,6 @@ export default {
   "authConnError": "连接出错，请重试。",
   "authPwMismatch": "两次输入的密码不一致",
   "authPwMin8": "至少 8 个字符",
+  "pricingLifetimeOnly": "仅限终身方案",
+  "pricingNoBackend": "后端未配置，请联系客服。",
 }

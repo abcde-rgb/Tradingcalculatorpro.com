@@ -10,6 +10,7 @@ import AnimatedHeroChart from '@/components/landing/AnimatedHeroChart';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
+import { PlanPeriod } from '@/components/pricing/PlanPeriod';
 import { toast } from 'sonner';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
@@ -18,23 +19,6 @@ const API = process.env.REACT_APP_BACKEND_URL;
 // Framer Motion variants — extracted to prevent re-creation per render
 const HOVER_SCALE_UP = { scale: 1.02 };
 
-/**
- * El periodo, junto al precio, con el espacio que le corresponda.
- *
- * Iban como dos <span> pegados sin separador. Con «/mes» la barra hace de
- * separación y se lee bien; con el plan lifetime, cuyo periodo es una FRASE
- * («pago único», «Einmalzahlung», «1回限りの支払い»), salía «€500pago único»
- * en los diez idiomas. La separación no puede depender de que el traductor
- * recuerde meter un espacio dentro de la cadena: se decide aquí.
- */
-function PlanPeriod({ texto }) {
-  const pegadoAlPrecio = /^[/⁄]/.test(texto);   // «/mes», «⁄mes»
-  return (
-    <span className={`text-muted-foreground text-sm${pegadoAlPrecio ? '' : ' ml-1.5'}`}>
-      {texto}
-    </span>
-  );
-}
 
 // Plans will use t() for dynamic translation
 const PLANS_DATA = [
@@ -139,7 +123,7 @@ export default function PricingPage() {
     }
 
     if (!API) {
-      toast.error('Backend no configurado. Contacta soporte.');
+      toast.error(t('pricingNoBackend'));
       return;
     }
 
@@ -357,7 +341,7 @@ export default function PricingPage() {
                           {t(method.nameKey)}
                           {method.lifetimeOnly && (
                             <span className="text-[10px] bg-pink-500/20 text-pink-400 px-1.5 py-0.5 rounded-full font-normal">
-                              Solo Lifetime
+                              {t('pricingLifetimeOnly')}
                             </span>
                           )}
                         </p>

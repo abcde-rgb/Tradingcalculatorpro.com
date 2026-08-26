@@ -4758,4 +4758,6 @@ export default {
   "authConnError": "خطأ في الاتصال. حاول مرة أخرى.",
   "authPwMismatch": "كلمتا المرور غير متطابقتين",
   "authPwMin8": "8 أحرف على الأقل",
+  "pricingLifetimeOnly": "خطة مدى الحياة فقط",
+  "pricingNoBackend": "الخادم غير مُهيأ. يرجى التواصل مع الدعم.",
 }

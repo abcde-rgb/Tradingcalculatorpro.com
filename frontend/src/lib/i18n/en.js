@@ -4758,4 +4758,6 @@ export default {
   "authConnError": "Connection error. Please try again.",
   "authPwMismatch": "The passwords do not match",
   "authPwMin8": "At least 8 characters",
+  "pricingLifetimeOnly": "Lifetime only",
+  "pricingNoBackend": "Backend not configured. Please contact support.",
 }

@@ -17,6 +17,17 @@ Ejecuta en orden y reporta cada resultado. No sigas si uno falla de forma bloque
    cambia el recuento porque el objeto las colapsa— y que pasan todas las
    comprobaciones del motor.
 
+2.b **Que además estén traducidas, escritas en su alfabeto y PINTADAS**:
+   ```
+   cd frontend && node scripts/i18n-traducido.js       # no es el inglés literal
+   cd frontend && node scripts/i18n-escritura.js       # cada idioma en su escritura
+   cd frontend && node scripts/check-visuales-idioma.js # los diagramas no ganan castellano
+   node tests/e2e/navegador/paginas-traducidas.js      # necesita build; ver paso 6
+   ```
+   Los tres primeros miran el DICCIONARIO. El último mira la PANTALLA, que es donde
+   estuvo el fallo: `AboutPage`, `ContactPage` y `NotFoundPage` no llamaban a `t()` ni
+   una vez y salían en castellano en los diez idiomas con los tres primeros en verde.
+
 3. **Tests del backend** (los `*_unit.py` corren sin red ni BD; integración se salta):
    `backend/.venv/bin/python -m pytest backend/tests/ -q`
 

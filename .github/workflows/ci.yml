@@ -136,6 +136,21 @@ jobs:
       - name: Los diez idiomas están traducidos, no sólo presentes
         run: node scripts/i18n-traducido.js
 
+      # Y escritos en su alfabeto. Los dos anteriores miran claves y valores;
+      # ninguno mira los CARACTERES, y por ahí se colaron un «決» chino en una
+      # frase italiana y un «별» coreano en una japonesa. En su primera
+      # ejecución este verificador encontró dos más que ya estaban en
+      # producción: una fila entera del chino escrita en ruso.
+      - name: Cada idioma en su sistema de escritura
+        run: node scripts/i18n-escritura.js
+
+      # Los diagramas de la academia llevan 179 rótulos en castellano fijo.
+      # Es deuda conocida y grande (~1.180 rótulos × 10 idiomas); esto no la
+      # arregla, impide que crezca: el techo por fichero puede bajar, no subir,
+      # y un diagrama nuevo parte de cero.
+      - name: Los diagramas de la academia no ganan castellano nuevo
+        run: node scripts/check-visuales-idioma.js
+
       # `t` con identidad estable congela todo `useMemo(..., [t])` en el idioma
       # del primer render (BUG-066). No lo ve ningún check de diccionarios: la
       # traducción es correcta, lo que falla es CUÁNDO se recalcula.

@@ -4758,4 +4758,6 @@ export default {
   "authConnError": "接続エラーです。もう一度お試しください。",
   "authPwMismatch": "パスワードが一致しません",
   "authPwMin8": "8文字以上",
+  "pricingLifetimeOnly": "ライフタイムのみ",
+  "pricingNoBackend": "バックエンドが未設定です。サポートにご連絡ください。",
 }
