@@ -731,6 +731,96 @@ Y una regla de operación que vale desde el primer día, con respuesta o sin ell
 
 ---
 
+## 16. Lo que ya está construido (2026-08-26)
+
+Decisión tomada: Kunfupay entra como raíl de arranque. Esto es lo que **ya está en el
+código**, y lo que sigue sin poder hacerse hasta tener su documentación.
+
+### 16.1 El interruptor de raíles
+
+Qué métodos se pueden pagar se decide ahora **en configuración, no en el código**:
+`payment_methods_enabled` (ajuste de admin o `PAYMENT_METHODS_ENABLED`), lista separada
+por comas. Apagar Stripe es escribir `paypal,revolut,nowpayments,kunfupay` y guardar; no
+hace falta desplegar ni borrar una línea del código de Stripe.
+
+- **El ajuste vacío significa «los de siempre», nunca «ninguno».** Un despliegue que
+  pierda la variable no puede dejar la web sin cobrar — es literalmente el fallo que ya
+  costó el login entero con `CORS_ORIGINS`.
+- **Se comprueba en el servidor** (`create_checkout`), no sólo escondiendo el botón:
+  apagar un método en el frontend no apaga nada para quien llame al endpoint a mano.
+- **La página de precios ya no deduce nada**: `/api/public/settings` devuelve
+  `payment_methods`, `recurring_payment_methods` y `trial_payment_methods` **ya
+  resueltos**, y `PricingPage` pinta sólo lo encendido, cambia de método solo si el
+  elegido se apaga, y enseña la prueba de 7 días únicamente cuando el raíl la da.
+
+### 16.2 El raíl Kunfupay (camino B, el que no necesita su API)
+
+`POST /api/checkout/create` con `payment_method: "kunfupay"` escribe la transacción
+**antes** de mandar a nadie a pagar —el rastro del § 14.5— y devuelve el enlace de cobro
+del plan, tomado de `kunfupay_links` (JSON `plan → https://…`). Sin enlace configurado
+para ese plan devuelve 503 en vez de mandar al cliente a ninguna parte.
+
+Y el alta la confirma un admin: **`POST /api/admin/payments/manual`**, con formulario en el
+panel (`Alta manual de cobro`, junto a Conciliación de pagos). Guardas:
+
+| Guarda | Por qué |
+|---|---|
+| `reference` obligatoria e **idempotente** | Reintentar tras un timeout no puede regalar un segundo periodo |
+| Sólo proveedores manuales (`kunfupay`, `bank_transfer`, `other`) | Un alta a mano en Stripe taparía un webhook roto en vez de arreglarlo |
+| Mismo `_activate_paid_subscription` que los webhooks | El estado resultante es idéntico al de un pago normal, con su correo |
+| **Apila sobre la fecha vigente** (`extend_from_current`) | Quien renueva tres días antes de vencer no pierde esos tres días — el caso normal cuando no hay cargo automático |
+| Fila en `payment_transactions` + registro de auditoría | Sin rastro, el día de migrar no se sabe a quién se le debe cuánto |
+
+### 16.3 Un bug de propina, que estaba antes que todo esto
+
+`hayPrueba` sólo miraba el método, así que con **Klarna** elegido —que sólo cobra el plan
+De Por Vida, al que `trial_eligible` nunca da prueba— la página anunciaba «7 días sin
+cargo» y el checkout cobraba al instante. Es el mismo fallo que ya documenta el comentario
+de `PricingPage.jsx:59-67`, que se arregló para cripto/PayPal/Revolut y se dejó abierto
+para Klarna. Ahora la prueba sale de `_TRIAL_PAYMENT_METHODS`, que es del backend, y el
+backend la exige además en `trial_eligible`.
+
+### 16.4 Cómo se enciende, en tres pasos
+
+1. En Kunfupay: crear un producto por plan (17 / 45 / 200 / 500 €, **IVA incluido** — ver
+   pregunta 8 del § 5) y copiar el enlace de cobro de cada uno.
+2. En Admin → Ajustes: `kunfupay_links` con
+   `{"monthly":"https://…","annual":"https://…"}` y `payment_methods_enabled` con los
+   raíles que quieras encendidos.
+3. Cada cobro que aparezca en su panel → Admin → **Alta manual de cobro**: email, plan,
+   referencia. El premium se concede y el correo de confirmación sale solo.
+
+Nota: `kunfupay` sólo aparece en la página de precios si además hay enlaces configurados.
+Encendido sin enlaces = invisible, en lugar de un botón que da 503.
+
+### 16.5 Lo que sigue sin estar, y por qué
+
+- **El conector con webhook (camino A).** No se puede escribir contra una API que no
+  publica endpoints ni formato de firma. En cuanto contesten a las preguntas 1-3 del § 5,
+  es `backend/kunfupay.py` calcado de `revolut.py` y un día de trabajo; el resto del
+  andamiaje ya está puesto.
+- **El aviso de vencimiento por email** (§ 14.2). Es el hueco que más duele en un raíl sin
+  renovación: hay correo de confirmación, de impago y de cancelación, pero ninguno que
+  diga «te vence en 7 días». Necesita un disparador diario (Cloud Scheduler contra un
+  endpoint, no un bucle en el proceso).
+- **Los legales**, que sólo se tocan cuando esté decidido el MoR (§ 10).
+
+### 16.6 Verificado
+
+`py_compile` de los 34 módulos · **27 tests nuevos** en
+`backend/tests/test_payment_rails_unit.py`, **saboteados uno a uno** para comprobar que
+fallan cuando deben (quitar el respaldo de la lista vacía, quitar la puerta del servidor y
+admitir Stripe en el alta manual: 7 fallos, los tres sabotajes cazados) · `i18n-check` con
+las tres claves nuevas en los diez idiomas · `engine-check` 429/429 ·
+`gen-instruments-js --check` · `check-precios` (40 precios en 10 idiomas) ·
+`check-rutas-muertas` · `gen-mapa` regenerado · `check-doc-links`.
+
+**No verificado, y hay que decirlo**: nada de esto se ha probado contra un cobro real de
+Kunfupay, porque su dominio está bloqueado desde este entorno y no hay cuenta. El primer
+cobro de verdad hay que hacerlo con **un plan barato y ojos encima**.
+
+---
+
 ## Fuentes
 
 Todas consultadas el 2026-08-26 **desde buscador**, porque el dominio del proveedor está

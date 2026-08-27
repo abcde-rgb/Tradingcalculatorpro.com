@@ -4889,3 +4889,70 @@ nota del § 12.4. Sin ser lo mismo que estar regulado. Se añaden las preguntas 
 12 (quién emite la tarjeta y custodia el saldo; si está segregado de los fondos
 propios) y una regla que vale desde el día 1: **cobrar ahí, no guardar ahí** —
 retirar cada semana y no usar su wallet como cuenta corriente.
+
+---
+
+### 2026-08-26 (2) — El raíl de Kunfupay, el interruptor de raíles, y un «7 días» que se prometía con Klarna
+
+Decidido arrancar con Kunfupay, esto es lo construido. **Nada de esto se ha
+probado contra un cobro real**: su dominio sigue bloqueado desde este entorno y
+no hay cuenta. El primer cobro de verdad, con un plan barato y mirando.
+
+**El interruptor.** Qué métodos se pueden pagar sale ahora de un ajuste
+(`payment_methods_enabled`), no del código: apagar Stripe es escribir
+`paypal,revolut,nowpayments,kunfupay` y guardar. Dos decisiones que importan más
+que la función en sí:
+
+1. **El ajuste vacío significa «los de siempre», nunca «ninguno».** Una lista
+   ilegible vuelve al valor por defecto en vez de dejar la web sin cobrar — es
+   exactamente el fallo que ya costó el login entero cuando un `gcloud run
+   deploy` sin `--set-env-vars` borró `CORS_ORIGINS`.
+2. **La puerta está en el servidor** (`create_checkout`), no en el botón. Apagar
+   un método en el frontend no apaga nada para quien llame al endpoint a mano.
+
+Y `/api/public/settings` devuelve los raíles **ya resueltos** —`payment_methods`,
+`recurring_payment_methods`, `trial_payment_methods`— para que la página de
+precios no deduzca nada por su cuenta. Deducirlo era justo lo que llevó a
+prometer 7 días con métodos que no los daban.
+
+**El raíl (camino B, el que no necesita su API).** `POST /checkout/create` con
+`payment_method: "kunfupay"` escribe la transacción **antes** de mandar a nadie a
+pagar y devuelve el enlace del plan (`kunfupay_links`, JSON validado: sólo
+`https` y sólo planes que existen). El alta la confirma un admin en
+`POST /admin/payments/manual`, con formulario en el panel: referencia obligatoria
+e **idempotente** (reintentar tras un timeout no regala un segundo periodo),
+sólo proveedores sin webhook (Stripe/PayPal/Revolut/NOWPayments excluidos a
+propósito: un alta a mano ahí taparía un webhook roto), mismo
+`_activate_paid_subscription` que los webhooks, y fila en `payment_transactions`
++ auditoría, que es el rastro sin el cual el día de migrar no se sabe a quién se
+le debe cuánto.
+
+**`extend_from_current`.** Sin cargo automático, el cliente renueva a mano y casi
+siempre unos días antes de vencer. Contando desde hoy, cada renovación
+anticipada le robaba esos días; ahora el periodo se apila sobre la fecha vigente.
+Sólo lo usan los raíles sin renovación: los webhooks entran como siempre.
+
+**El bug de propina, anterior a todo esto.** `hayPrueba` sólo miraba el método,
+así que con **Klarna** —que sólo cobra el De Por Vida, al que `trial_eligible`
+nunca da prueba— la página anunciaba «7 días sin cargo» y el checkout cobraba al
+instante. Es el mismo fallo que el comentario de `PricingPage.jsx` dice haber
+arreglado para cripto, PayPal y Revolut, con Klarna dejado dentro. Ahora la
+prueba sale de `_TRIAL_PAYMENT_METHODS`, y el backend la exige además en
+`trial_eligible`.
+
+**Verificado.** `py_compile` de todos los módulos · **27 tests nuevos**
+(`test_payment_rails_unit.py`), y **saboteados**: quitar el respaldo de la lista
+vacía, quitar la puerta del servidor y admitir Stripe en el alta manual dan 7
+fallos, los tres sabotajes cazados · suite completa **755 pasan**; los 3 fallos
+(`brokers_referidos` ×2, `ecb_rates`) **son anteriores y ajenos**: fallan igual
+con el trabajo en `git stash` · `eslint` 0 errores · `i18n-check` con las tres
+claves nuevas en los diez idiomas · `engine-check` 429/429 · `check-precios` ·
+`gen-instruments-js --check` · `check-rutas-muertas` · `gen-mapa` regenerado ·
+`check-doc-links`.
+
+**Lo que sigue sin estar, y por qué:** el conector con webhook (no se puede
+escribir contra una API que nadie publica) y el **aviso de vencimiento por
+email**, que es el hueco que más duele en un raíl sin renovación: hay correo de
+confirmación, de impago y de cancelación, pero ninguno que diga «te vence en 7
+días». Necesita un disparador diario de verdad (Cloud Scheduler contra un
+endpoint), no un bucle en el proceso.

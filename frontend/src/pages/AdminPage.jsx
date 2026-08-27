@@ -486,6 +486,7 @@ export default function AdminPage() {
 
         {/* Usage Heatmap — qué miran más los usuarios */}
         <PaymentReconciliationCard headers={headers} />
+        <ManualPaymentCard headers={headers} />
         <UsageHeatmapCard headers={headers} />
 
         {/* Coupon Manager */}
@@ -1670,6 +1671,121 @@ function PaymentReconciliationCard({ headers }) {
           <p className="text-xs text-muted-foreground">
             Sin discrepancias: todo el que ha pagado tiene su premium.
             {' '}{data.transactions_scanned} transacciones revisadas.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * ManualPaymentCard — dar de alta un cobro que ocurrió FUERA de la web.
+ *
+ * Es el camino de Kunfupay mientras no tengan webhook (docs/PASARELA_KUNFUPAY.md
+ * § 14.3): el cliente paga en su enlace, aquí se registra y el premium se concede
+ * por el mismo camino que un pago normal.
+ *
+ * La referencia es el id del cobro en el panel del proveedor, y es obligatoria a
+ * propósito: es lo que hace el alta idempotente (reintentar tras un timeout no
+ * regala un segundo periodo) y lo que deja el rastro para el día que haya que
+ * migrar de pasarela.
+ */
+function ManualPaymentCard({ headers }) {
+  const [form, setForm] = useState({ email: '', plan_id: 'annual', reference: '', provider: 'kunfupay', amount: '' });
+  const [busy, setBusy] = useState(false);
+  const [ultimo, setUltimo] = useState(null);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const enviar = async (e) => {
+    e.preventDefault();
+    if (!API || busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`${API}/admin/payments/manual`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: form.email.trim(),
+          plan_id: form.plan_id,
+          reference: form.reference.trim(),
+          provider: form.provider,
+          ...(form.amount ? { amount: Number(form.amount) } : {}),
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Error ${res.status}`);
+      toast.success(body.already_processed ? 'Esa referencia ya estaba dada de alta' : 'Cobro registrado y premium concedido');
+      setUltimo(body);
+      setForm((f) => ({ ...f, email: '', reference: '', amount: '' }));
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="bg-card border-border" data-testid="manual-payment">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Alta manual de cobro</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={enviar} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              type="email" required value={form.email} onChange={set('email')}
+              placeholder="email del cliente"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              data-testid="manual-payment-email"
+            />
+            <select
+              value={form.plan_id} onChange={set('plan_id')}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              data-testid="manual-payment-plan"
+            >
+              <option value="monthly">Mensual — 17 €</option>
+              <option value="quarterly">Trimestral — 45 €</option>
+              <option value="annual">Anual — 200 €</option>
+              <option value="lifetime">De Por Vida — 500 €</option>
+            </select>
+            <input
+              required value={form.reference} onChange={set('reference')}
+              placeholder="referencia del cobro en el proveedor"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono"
+              data-testid="manual-payment-reference"
+            />
+            <select
+              value={form.provider} onChange={set('provider')}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              data-testid="manual-payment-provider"
+            >
+              <option value="kunfupay">Kunfupay</option>
+              <option value="bank_transfer">Transferencia</option>
+              <option value="other">Otro</option>
+            </select>
+          </div>
+          <input
+            type="number" step="0.01" min="0" value={form.amount} onChange={set('amount')}
+            placeholder="importe recibido (opcional, si difiere del plan)"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            data-testid="manual-payment-amount"
+          />
+          <div className="flex items-center gap-3">
+            <Button type="submit" size="sm" disabled={busy}>
+              {busy ? 'Registrando…' : 'Registrar y conceder'}
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Sólo para raíles sin webhook. Stripe, PayPal, Revolut y NOWPayments conceden solos.
+            </p>
+          </div>
+        </form>
+
+        {ultimo?.subscription_end && (
+          <p className="mt-3 text-xs text-muted-foreground" data-testid="manual-payment-result">
+            {ultimo.user_email} — premium hasta{' '}
+            <span className="font-mono">{new Date(ultimo.subscription_end).toLocaleDateString()}</span>
           </p>
         )}
       </CardContent>

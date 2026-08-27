@@ -3725,6 +3725,79 @@ _PAYMENT_METHODS_MAP = {
     "klarna": ["klarna"],
 }
 
+# ── Raíles de cobro activos ───────────────────────────────────────────────
+# Qué métodos se pueden usar HOY se decide en configuración, no en el código:
+# así se puede apagar Stripe —o encender Kunfupay— sin desplegar el backend.
+# Ver `docs/PASARELA_KUNFUPAY.md` § 14.
+#
+# El ajuste vacío significa «los de siempre», nunca «ninguno». Un despliegue que
+# pierda la variable no puede dejar la web sin cobrar: es exactamente el fallo
+# que ya costó el login entero con `CORS_ORIGINS` (ver `_CORS_ORIGINS`).
+_ALL_PAYMENT_METHODS = ("card", "sepa", "klarna", "paypal", "revolut", "nowpayments", "kunfupay")
+_DEFAULT_PAYMENT_METHODS = ("card", "sepa", "klarna", "paypal", "revolut", "nowpayments")
+
+# Los que cobran solos al vencer el periodo. Hoy, sólo la suscripción de Stripe:
+# los demás conceden `plan["days"]` y caducan, y el cliente vuelve a pagar a mano.
+_RECURRING_PAYMENT_METHODS = ("card", "sepa")
+# Los que pueden dar la prueba de 7 días: hace falta método de pago guardado y
+# cargo automático el día 8, o sea, suscripción de Stripe. **Klarna no está**:
+# sólo cobra el plan De Por Vida, al que `trial_eligible` nunca le da prueba, así
+# que anunciarla con Klarna elegido era prometer 7 días y cobrar al instante.
+_TRIAL_PAYMENT_METHODS = ("card", "sepa")
+
+
+def _normalize_payment_method(method: str) -> str:
+    """`stripe` es el alias histórico de la tarjeta; el resto va tal cual."""
+    m = (method or "").strip().lower()
+    return "card" if m == "stripe" else m
+
+
+def _parse_enabled_methods(raw: str) -> List[str]:
+    """Lista separada por comas → raíles válidos, en el orden del catálogo.
+
+    Lo que no se reconoce se ignora en vez de fallar: un ajuste con una errata no
+    puede tumbar el checkout entero. Y si no queda ninguno válido se vuelve al
+    catálogo por defecto, por la misma razón.
+    """
+    pedidos = {_normalize_payment_method(x) for x in (raw or "").split(",") if x.strip()}
+    validos = [m for m in _ALL_PAYMENT_METHODS if m in pedidos]
+    return validos or list(_DEFAULT_PAYMENT_METHODS)
+
+
+async def _enabled_payment_methods() -> List[str]:
+    raw = (await get_setting("payment_methods_enabled")
+           or os.environ.get("PAYMENT_METHODS_ENABLED", ""))
+    return _parse_enabled_methods(raw)
+
+
+def _parse_kunfupay_links(raw: str) -> Dict[str, str]:
+    """`{"annual": "https://…"}` → enlace de cobro hospedado, por plan.
+
+    Kunfupay no publica API ni webhooks (`docs/PASARELA_KUNFUPAY.md` § 0), así que
+    su raíl es un enlace suyo y el alta la confirma un admin con
+    `/admin/payments/manual`. Se exige `https` y que el plan exista: un enlace mal
+    pegado manda al cliente a cualquier sitio con la tarjeta en la mano, y un plan
+    inventado cobraría un importe que la web no anuncia.
+    """
+    if not (raw or "").strip():
+        return {}
+    try:
+        data = _json_module.loads(raw)
+    except (ValueError, TypeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {
+        str(k): v.strip()
+        for k, v in data.items()
+        if k in SUBSCRIPTION_PLANS and isinstance(v, str) and v.strip().startswith("https://")
+    }
+
+
+async def _kunfupay_links() -> Dict[str, str]:
+    raw = (await get_setting("kunfupay_links") or os.environ.get("KUNFUPAY_LINKS", ""))
+    return _parse_kunfupay_links(raw)
+
 # ── PayPal REST API v2 helpers (httpx async) ──────────────────────────────────
 
 def _paypal_base_url(mode: str) -> str:
@@ -3866,6 +3939,13 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
     if not plan:
         raise HTTPException(status_code=400, detail="Plan no válido")
 
+    # El raíl tiene que estar encendido en configuración. Se comprueba AQUÍ, en el
+    # servidor, y no sólo escondiendo el botón: apagar un método en el frontend no
+    # apaga nada para quien llame al endpoint a mano.
+    payment_method = _normalize_payment_method(payment_method)
+    if payment_method not in await _enabled_payment_methods():
+        raise HTTPException(status_code=400, detail="Método de pago no disponible")
+
     # Klarna is only available for the lifetime one-time plan
     if payment_method == "klarna" and not plan.get("klarna"):
         raise HTTPException(
@@ -3959,12 +4039,28 @@ async def create_checkout(request: Request, body: dict, user: dict = Depends(req
         transaction["nowpayments_sandbox"] = np_sandbox
         transaction["checkout_url"] = np_invoice["invoice_url"]
 
+    elif payment_method == "kunfupay":
+        # Kunfupay no publica API ni webhooks (`docs/PASARELA_KUNFUPAY.md` § 0):
+        # se cobra en su enlace hospedado y el premium lo concede un admin desde
+        # `/admin/payments/manual` al ver el cobro en su panel — el camino B del
+        # § 14.3. La transacción se escribe ANTES de mandar a nadie a pagar: sin
+        # ese rastro, el día de migrar no se sabe quién pagó qué (§ 14.5).
+        enlace = (await _kunfupay_links()).get(plan_id)
+        if not enlace:
+            raise HTTPException(
+                status_code=503,
+                detail="Kunfupay no está configurado para este plan. Contacta soporte.",
+            )
+        transaction["checkout_url"] = enlace
+        transaction["manual_confirmation"] = True
+
     elif payment_method in _PAYMENT_METHODS_MAP:
         # 7-day free trial only for NEW subscribers (never premium, no prior/active
         # Stripe subscription, trial not already used) and only on recurring plans.
         user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or {}
         trial_eligible = (
-            plan.get("interval") != "lifetime"
+            payment_method in _TRIAL_PAYMENT_METHODS
+            and plan.get("interval") != "lifetime"
             and not user_doc.get("is_premium")
             and not user_doc.get("stripe_subscription_id")
             and not user_doc.get("trial_used")
@@ -4117,9 +4213,29 @@ def _stripe_session_ids(session_id: str) -> Dict[str, Optional[str]]:
 
 async def _activate_paid_subscription(
     user_id: str, plan_id: str, plan: dict, transaction_id: Optional[str], session_id: str,
+    extend_from_current: bool = False,
 ) -> None:
-    """Mark user premium and the matching transaction as paid."""
-    subscription_end = datetime.now(timezone.utc) + timedelta(days=plan["days"])
+    """Mark user premium and the matching transaction as paid.
+
+    `extend_from_current` apila el periodo sobre la fecha de fin vigente en vez de
+    contar desde hoy. Lo usan **sólo los raíles sin renovación automática**, donde
+    el cliente vuelve a pagar a mano y casi siempre lo hace unos días antes de
+    vencer: contando desde hoy, cada renovación anticipada le robaría esos días.
+    Los webhooks siguen entrando con el comportamiento de siempre.
+    """
+    base = datetime.now(timezone.utc)
+    if extend_from_current:
+        vigente = (await db.users.find_one(
+            {"id": user_id}, {"_id": 0, "subscription_end": 1}
+        ) or {}).get("subscription_end")
+        if vigente:
+            try:
+                fin = datetime.fromisoformat(str(vigente).replace("Z", "+00:00"))
+                if fin > base:
+                    base = fin
+            except ValueError:
+                pass          # fecha ilegible → se cuenta desde hoy, nunca se pierde el alta
+    subscription_end = base + timedelta(days=plan["days"])
     update_data: Dict[str, Any] = {
         "subscription_plan": plan_id,
         "subscription_end": subscription_end.isoformat(),
@@ -8092,6 +8208,11 @@ PUBLIC_SETTING_KEYS = (
     "revolut_sandbox",            # "true" | "false"
     # NOWPayments (crypto, non-custodial) — sandbox flag public, keys secret
     "nowpayments_sandbox",        # "true" | "false"
+    # Kunfupay — enlaces de cobro por plan (JSON). Sin API pública: ver
+    # docs/PASARELA_KUNFUPAY.md § 0 y § 14.3
+    "kunfupay_links",
+    # Raíles encendidos, separados por comas. Vacío = los de siempre
+    "payment_methods_enabled",
     # Misc
     "trustpilot_business_id",
     "clarity_project_id",
@@ -8136,6 +8257,8 @@ _SETTING_ENV_FALLBACK: Dict[str, str] = {
     "nowpayments_ipn_secret": "NOWPAYMENTS_IPN_SECRET",
     "nowpayments_sandbox":    "NOWPAYMENTS_SANDBOX",
     "sendgrid_api_key":       "SENDGRID_API_KEY",
+    "kunfupay_links":         "KUNFUPAY_LINKS",
+    "payment_methods_enabled": "PAYMENT_METHODS_ENABLED",
     "trustpilot_business_id": "REACT_APP_TRUSTPILOT_BUSINESS_ID",
     "clarity_project_id":     "REACT_APP_CLARITY_PROJECT_ID",
 }
@@ -8165,6 +8288,8 @@ class AdminSettingsUpdate(BaseModel):
     nowpayments_api_key: Optional[str] = None
     nowpayments_ipn_secret: Optional[str] = None
     nowpayments_sandbox: Optional[str] = None
+    kunfupay_links: Optional[str] = None
+    payment_methods_enabled: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
     trustpilot_business_id: Optional[str] = None
     clarity_project_id: Optional[str] = None
@@ -8331,7 +8456,20 @@ async def admin_update_settings(request: Request, payload: AdminSettingsUpdate, 
 async def public_settings():
     """Non-sensitive subset, readable by anyone (frontend boot uses this)."""
     doc = await _load_settings_doc()
-    return {k: (doc.get(k) or "") for k in PUBLIC_SETTING_KEYS}
+    out: Dict[str, Any] = {k: (doc.get(k) or "") for k in PUBLIC_SETTING_KEYS}
+
+    # Los raíles van RESUELTOS, no en crudo: qué se puede pagar, qué se renueva
+    # solo y qué da prueba de 7 días lo decide el backend, que es quien lo va a
+    # cumplir. Si la página de precios lo dedujera por su cuenta acabaría
+    # prometiendo lo que el checkout no hace — que es justo el bug que documenta
+    # el comentario de `PricingPage.jsx:59-67`.
+    habilitados = await _enabled_payment_methods()
+    if "kunfupay" in habilitados and not await _kunfupay_links():
+        habilitados = [m for m in habilitados if m != "kunfupay"]   # encendido pero sin enlaces = no existe
+    out["payment_methods"] = habilitados
+    out["recurring_payment_methods"] = [m for m in _RECURRING_PAYMENT_METHODS if m in habilitados]
+    out["trial_payment_methods"] = [m for m in _TRIAL_PAYMENT_METHODS if m in habilitados]
+    return out
 
 
 @api_router.get("/brokers")
@@ -8829,6 +8967,121 @@ async def admin_payment_grant(
     logging.info("[reconciliation] admin %s granted %s to %s (tx %s)",
                  log_safe(admin.get("email")), log_safe(plan_id), log_safe(user.get("email")), log_safe(transaction_id))
     return {"ok": True, "already_premium": False, "granted": True, "plan_id": plan_id}
+
+
+class AdminManualPayment(BaseModel):
+    email: str
+    plan_id: str
+    reference: str
+    provider: str = "kunfupay"
+    amount: Optional[float] = None
+
+
+# Proveedores que se dan de alta a mano porque NO avisan solos. Stripe, PayPal,
+# Revolut y NOWPayments están fuera a propósito: conceden por webhook firmado, y
+# un alta manual ahí taparía un webhook roto en vez de arreglarlo (y se saltaría
+# la comprobación de que el dinero llegó de verdad).
+_MANUAL_PAYMENT_PROVIDERS = ("kunfupay", "bank_transfer", "other")
+
+
+@api_router.post("/admin/payments/manual")
+async def admin_payment_manual(
+    request: Request,
+    payload: AdminManualPayment,
+    admin: dict = Depends(require_admin),
+):
+    """Registrar un cobro ocurrido FUERA de la web y conceder el premium.
+
+    Es el camino de Kunfupay mientras no tengan webhook (`docs/PASARELA_KUNFUPAY.md`
+    § 14.3, camino B): el cliente paga en su enlace, el admin ve el cobro en el
+    panel del proveedor y lo da de alta aquí.
+
+    Las guardas, porque esto reparte producto de pago:
+
+      * **`reference` es obligatoria e idempotente.** Es el id del cobro en el
+        panel del proveedor; dos altas con la misma referencia no conceden dos
+        veces, que es exactamente lo que pasaría al reintentar tras un timeout.
+      * **Sólo proveedores manuales** (`_MANUAL_PAYMENT_PROVIDERS`).
+      * **Mismo `_activate_paid_subscription` que los webhooks**, así que el estado
+        resultante es idéntico al de un pago normal, con su correo de confirmación.
+      * **Apila sobre la fecha vigente**: quien renueva tres días antes de vencer no
+        pierde esos tres días.
+      * **Deja fila en `payment_transactions`.** Sin ese rastro, el día de migrar de
+        pasarela no se sabe a quién se le debe cuánto tiempo (§ 14.5).
+      * **Queda en el registro de auditoría** de admin, con quién lo hizo.
+    """
+    provider = (payload.provider or "").strip().lower()
+    if provider not in _MANUAL_PAYMENT_PROVIDERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Proveedor no válido para alta manual: {', '.join(_MANUAL_PAYMENT_PROVIDERS)}",
+        )
+
+    reference = (payload.reference or "").strip()
+    if not reference:
+        raise HTTPException(status_code=400, detail="Falta la referencia del cobro en el proveedor")
+
+    plan = SUBSCRIPTION_PLANS.get(payload.plan_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail=f"Plan desconocido: {payload.plan_id}")
+
+    email_lc = (payload.email or "").strip().lower()
+    user = await db.users.find_one({"email": email_lc}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="No hay ninguna cuenta con ese email")
+
+    # Idempotencia por referencia: el reintento devuelve lo que ya se hizo.
+    previa = await db.payment_transactions.find_one(
+        {"provider_reference": reference, "payment_method": provider}, {"_id": 0}
+    )
+    if previa:
+        return {
+            "ok": True,
+            "already_processed": True,
+            "transaction_id": previa.get("id"),
+            "user_email": previa.get("user_email"),
+        }
+
+    transaction = _build_pending_transaction(user, payload.plan_id, plan, provider)
+    transaction["provider_reference"] = reference
+    transaction["manual_confirmation"] = True
+    transaction["confirmed_by_admin"] = admin.get("email")
+    if payload.amount is not None:
+        transaction["amount_received"] = float(payload.amount)
+    await db.payment_transactions.insert_one(transaction)
+
+    await _activate_paid_subscription(
+        user_id=user["id"],
+        plan_id=payload.plan_id,
+        plan=plan,
+        transaction_id=transaction["id"],
+        session_id=f"admin-manual:{provider}:{reference}",
+        extend_from_current=True,
+    )
+
+    fresco = await db.users.find_one({"id": user["id"]}, {"_id": 0, "subscription_end": 1}) or {}
+    await log_admin_action(
+        admin=admin,
+        action="payment.manual",
+        target_type="user",
+        target_id=user["id"],
+        target_email=user.get("email", ""),
+        details={
+            "provider": provider,
+            "reference": reference,
+            "plan_id": payload.plan_id,
+            "transaction_id": transaction["id"],
+            "amount": payload.amount if payload.amount is not None else plan["price"],
+        },
+        request=request,
+    )
+    return {
+        "ok": True,
+        "already_processed": False,
+        "transaction_id": transaction["id"],
+        "user_email": user.get("email"),
+        "subscription_end": fresco.get("subscription_end"),
+    }
 
 
 @api_router.get("/admin/payments/webhook-health")
