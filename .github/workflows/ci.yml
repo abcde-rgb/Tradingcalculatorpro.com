@@ -222,3 +222,11 @@ jobs:
             curl -sf http://127.0.0.1:3100 >/dev/null && break || sleep 1
           done
           node tests/e2e/navegador/peso.js
+
+      # La CSP viaja en un `meta` porque Pages no admite cabeceras, y el meta NO
+      # admite report-only: no hay ensayo. Una directiva de menos bloquea
+      # TradingView o el botón de Google EN PRODUCCIÓN, y ningún test offline lo
+      # nota porque ninguno abre un navegador.
+      - name: La CSP no rompe la web
+        working-directory: .
+        run: node tests/e2e/navegador/csp.js

@@ -517,6 +517,33 @@ r = d['rutas']['portada']; r['js'] //= 2; r['total'] //= 2
 p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
     "git checkout -- tests/e2e/presupuesto-peso.json"
 
+  # ── La CSP no puede romper la web ─────────────────────────────────────────
+  # El `meta` NO admite report-only: no hay ensayo posible. Si esta sonda no
+  # discriminara, una directiva de menos llegaría a producción bloqueando
+  # TradingView o el botón de Google, y ningún test offline lo notaría porque
+  # ninguno abre un navegador.
+  #
+  # Se sabotea el ARTEFACTO (build/index.html) y no la fuente: recompilar aquí
+  # costaría minutos y lo que se prueba —que la sonda ve una violación— no
+  # depende de por dónde entró la directiva.
+  # `frontend/build/` está en .gitignore, así que `git checkout --` NO lo
+  # restaura: la copia de seguridad se hace y se deshace a mano.
+  CSP_COPIA="$(mktemp)"
+  TEMPORALES+=("$CSP_COPIA")
+  cp frontend/build/index.html "$CSP_COPIA"
+
+  titulo "Content-Security-Policy (csp.js)"
+  probar "una directiva de menos bloquea un script que la web necesita" \
+    "node tests/e2e/navegador/csp.js" \
+    "sed -i 's|https://www.googletagmanager.com|https://zz-sabotaje.invalid|' frontend/build/index.html" \
+    "cp '$CSP_COPIA' frontend/build/index.html"
+
+  # Y la otra mitad: que NO grite con la política correcta. Sin esto, una sonda
+  # que diera error siempre pasaría igual el sabotaje de arriba.
+  probar_inverso "la política real no produce ninguna violación" \
+    "node tests/e2e/navegador/csp.js" \
+    "true"
+
   # ── El arranque del idioma ────────────────────────────────────────────────
   # Se sabotea en la FUENTE y se recompila, que tarda unos minutos. Es el
   # precio de probar de verdad: el fallo que vigila —el diccionario que no
