@@ -5017,3 +5017,191 @@ skill `qa`. Ahora son ocho hilos con barrera, y el sabotaje las pone rojas.
 También se revirtió el 2FA que se había activado a mano en la cuenta sembrada para
 poder ver el panel: con TOTP puesto, `cuenta()` se quedaba sin token y **ninguna**
 sonda de API podía arrancar.
+
+---
+
+## 2026-08-26 — Tres páginas públicas hablaban castellano en los diez idiomas
+
+Examen integral pedido de arriba abajo (contenido, idiomas, cálculos,
+organización). Lo que salió verde y por qué ruta:
+
+| Vertical | Ruta de comprobación | Resultado |
+|---|---|---|
+| Base | pytest + eslint + 14 verificadores + build | 1.041 pasan / 72 skip · 0 errores |
+| Fórmulas | valores de referencia + diferencias finitas | BS call 10,4506 · put 5,5735 · Δ 0,6368 · paridad OK · IV imposible → `None` |
+| SEO | el build REAL, con `postbuild` | 1.601 páginas · 1.609 URLs · hreflang ×10 + `x-default` |
+| Seguridad | AST estático, no re-correr los tests | 41 rutas `/admin`, 0 sin guarda · 4 webhooks de pago, 4 verifican firma |
+| i18n (paridad) | `i18n-check` | 6.965 claves × 10 idiomas · 0 ausentes · 0 sin traducir |
+
+Y lo que no.
+
+### El fallo
+
+`AboutPage`, `ContactPage` y `NotFoundPage` **no importaban i18n**: cero
+llamadas a `t()`, cero `useI18n`. El texto iba en castellano dentro del JSX y
+salía en castellano en los diez idiomas, con la cabecera y el pie correctamente
+traducidos alrededor. `/about` está en el sitemap con prioridad 0,7.
+`AuthPages` —la pantalla de mayor intención de la web— iba a medias: 37 `t()` y
+26 literales, incluidos los `aria-label` de la contraseña, que llegaban en
+castellano a los lectores de pantalla de los diez idiomas.
+
+Se vio en una captura, no leyendo código: `sobre__escritorio__light.png` con la
+navegación en inglés y el cuerpo entero en castellano.
+
+**Por qué los verificadores de i18n estaban en verde, y con razón:**
+`i18n-check` compara juegos de claves entre idiomas. `i18n-traducido` compara el
+valor contra el inglés. Los dos miran el DICCIONARIO. Ninguno pregunta si la
+pantalla lo usa. Es el «check que sólo mira la mitad» del catálogo de
+`no-me-fio`, aplicado a una capa entera.
+
+### Lo que se hizo
+
+- 103 claves nuevas × 10 idiomas para las cuatro pantallas. Los CTA de `/about`
+  reutilizan `viewPlans` y `getStarted`, que estaban definidas y sin usar.
+- **`scripts/i18n-escritura.js`** (nuevo, en CI): que cada idioma esté escrito en
+  su alfabeto. En su primera ejecución cazó dos erratas que ya estaban en
+  producción — `zh.js futPriceMove` valía «Движение цены», la fila entera en
+  ruso, y `zh.edu.js ntStratsDesc` llevaba «первый» incrustado en mitad de una
+  frase china. Las dos pasaban los otros dos verificadores sin despeinarse.
+- **`tests/e2e/navegador/paginas-traducidas.js`** (nuevo): la ruta independiente
+  que faltaba. Mira la PANTALLA, sobre el build compilado, en un navegador. 42
+  comprobaciones (7 textos × 3 idiomas), cada una con **su aserción negativa** —
+  que el castellano tampoco se cuele—, porque aquí los falsos verdes han sido
+  siempre de omisión. Devolver `AboutPage` a su literal la hace fallar 6 veces.
+- **`scripts/check-visuales-idioma.js`** (nuevo, en CI): techo por fichero para
+  los 179 rótulos castellanos de los diagramas de la academia. Puede bajar, no
+  subir; un diagrama nuevo parte de cero. No salda la deuda —son ~1.180 rótulos
+  × 10 idiomas y llevan decisión de producto detrás, ver `PENDIENTES.md`—
+  impide que crezca en silencio.
+- **Precio pegado al periodo** en `/pricing` y en la portada: dos `<span>`
+  adyacentes sin separador. Con «/mes» la barra disimula; con el plan lifetime
+  salía «€500pago único», «€500Einmalzahlung», «€5001回限りの支払い». Ahora lo
+  decide `components/pricing/PlanPeriod.jsx`, no un espacio invisible dentro de
+  la traducción.
+- **`capturas.js` decía cubrir «pantallas públicas»** y listaba `/options` y
+  `/options/strategies`, que son `premiumOnly`: pintaban el login, la misma
+  imagen byte a byte que `/login`. Tres de nueve capturas eran la misma y el
+  smoke cerraba en verde. Lista corregida (entran `/brokers` y
+  `/forgot-password`) y comprobación nueva: dos capturas idénticas son fallo
+  duro.
+
+### Dos sondas propias que estaban mal
+
+**El recuento de claves muertas.** Se dijo «573 claves muertas, ~35 KB por
+visitante» y luego «≥175, 12,8 KB» como suelo conservador. **Las dos cifras son
+malas**: el detector no modelaba las claves construidas por concatenación
+(`t(plan.id + 'Price')`), así que daba por muertas `monthlyPrice`,
+`lifetimePeriod` y cuatro más que se están pintando ahora mismo en `/pricing`.
+Borrarlas habría vaciado la página de precios. No se borró ninguna clave. Cuando
+una sonda falla, la primera sospechosa es la sonda.
+
+**Los cuatro sabotajes nuevos.** Llevaban `cd frontend && …` sin subshell dentro
+de `probar`, que evalúa en el shell del script: el directorio se quedaba
+cambiado y los tests siguientes medían otra cosa. 13 fallos, de los que sólo uno
+era real. El aviso estaba escrito en el propio `probar()`, con este mismo fallo
+como ejemplo.
+
+Y una tercera lección de fontanería: `probar-verificadores.sh` restaura con
+`git checkout -- .`, así que editar ficheros con seguimiento MIENTRAS corre se
+los lleva por delante. Pasó con estas mismas notas.
+
+### Lo que NO se comprobó
+
+- **Las pantallas premium no se han visto.** El smoke sólo cubre público y no hay
+  sesión de pago en el sandbox. Los 179 rótulos de la academia salen de leer el
+  código, no de verlos renderizados.
+- **El recuento de literales es un suelo.** El barrido caza castellano por
+  tilde/ñ/¿; «Solo Lifetime» o «Listo para empezar» no llevan diacríticos.
+- **Brókers y datos de mercado**: el proxy bloquea esos dominios.
+- **El disparador de despliegue** vive en la consola de GCP, no en el repo.
+
+---
+
+## 2026-08-26 (2) — Del informe de esperanza matemática, lo que no estaba ya
+
+Un informe sobre estrategias con esperanza positiva. Lo primero fue el
+inventario, que es lo que manda `CLAUDE.md`: **la mayor parte ya estaba**.
+Expectativa, R-múltiplos, SQN con tope 100, Kelly y ½ Kelly, riesgo de ruina,
+Monte Carlo, Sharpe/Sortino/Calmar/Ulcer, VaR/CVaR, no-ergodicidad, martingala
+frente a piramidar. No se duplicó nada.
+
+Lo que faltaba de verdad, por orden de valor:
+
+### 1 · Dos calculadoras (15 → 17)
+
+**Punto de equilibrio y costes.** `ProjectionPanel` ya calculaba el equilibrio
+pero exige diario y no mira los costes. El modelo nuevo se apoya en una
+identidad limpia: con `k = coste / riesgo`, el ganador neto vale `R − k` y el
+perdedor `1 + k`, así que `E = W·R − (1−W) − k` y el equilibrio se desplaza a
+`(1 + k) / (1 + R)`. Con `k = 0` vuelve a `1/(1+R)`, y esa vuelta es la
+comprobación que ata el módulo a `breakevenWinRate` — que se importa, no se
+reescribe.
+
+Y el número que faltaba: el **arrastre por frecuencia**. Mismo `k` de 0,05 con
+1 % de riesgo son 0,4 % del capital al mes con 8 operaciones y 10 % con 200.
+
+**Rachas de pérdidas.** Separa las dos preguntas que todo el mundo confunde:
+perder 5 seguidas EN UN PUNTO al 60 % de acierto es 1,02 %; que ocurra ALGUNA
+VEZ en 200 operaciones es 71 %.
+
+Verificación: la recursión exacta de rachas contra **Monte Carlo** con 120.000
+tandas, a menos de 0,1 pp en cinco configuraciones. Comprobar la recursión
+contra sí misma no habría comprobado nada.
+
+### 2 · Asimetría, curtosis y ratio de colas en el diario
+
+Sharpe, Sortino, Calmar, Ulcer, VaR y CVaR: ninguna dice la FORMA de la
+distribución, y un sistema de ratio menor que 1 saca buen Sharpe justo porque el
+Sharpe penaliza la varianza y no la asimetría. Sobre R-múltiplos, no sobre P&L:
+normalizan el tamaño de posición y describen la estrategia. Verificado contra
+`scipy.stats` con `bias=True` en cinco distribuciones, coincidencia a 1e-9.
+`tail_ratio` devuelve `None` por debajo de 20 operaciones porque con 19 el
+percentil 95 ES el máximo.
+
+### 3 · La pantalla de `backtest.py` (hueco G-14)
+
+643 líneas escritas el 2026-08-22 —hold-out, walk-forward, Deflated Sharpe— con
+sus dos rutas marcadas CONSTRUIR y sin puerta. Nueva pestaña «Validación» en
+Performance. El veredicto se redacta en el frontend con los campos
+estructurados: el `verdict` del backend viene en inglés y la web tiene diez
+idiomas. CONSTRUIR baja de 20 a 18.
+
+### 4 · Dos módulos de academia (89 temas, 730 páginas SEO)
+
+Grid y martingala; la prima de riesgo de volatilidad. Emparejados porque el
+error que corrigen es confundirlos: mismo perfil de pagos, sustancia opuesta.
+
+### Tres correcciones a cosas que dije yo
+
+**El recuento de claves muertas era falso.** «573» y luego «≥175» salían de un
+detector que no modelaba `t(plan.id + 'Price')`. Daba por muertas `monthlyPrice`
+y `lifetimePeriod`, que se pintan ahora mismo en `/pricing`. No se borró
+ninguna clave.
+
+**Dije que Volmageddon ya estaba en la academia.** No estaba. Mi búsqueda de
+«XIV» sin distinguir mayúsculas dio positivo dentro de «refle-xiv-idad».
+
+**Los cuatro sabotajes nuevos** llevaban `cd frontend` sin subshell y tumbaron
+13 tests de la batería, de los que sólo uno era real. El aviso estaba escrito
+dentro de la propia función `probar()`.
+
+### Un fallo del detector de rutas, destapado por el trabajo
+
+Escribir el cliente de `/backtest/validate` rompió el control negativo
+`/backtest` de `gen-mapa.py`: la ruta retirada pasaba por consumida porque el
+frontend nombra otra MÁS LARGA con su prefijo. El cierre del patrón excluía
+letras y guiones, pero no `/`. Arreglado en el detector, no en el control.
+Destapa además un falso negativo viejo: `GET /api/admin/referrals` no la llama
+nadie. Rutas sin consumidor 32 → 33.
+
+### Lo que NO se comprobó
+
+- **La pantalla de backtest no se ha ejecutado contra datos reales.** Descarga
+  histórico diario y aquí los proveedores de precio están bloqueados. Compila y
+  pasa lint, i18n y build; el resultado con datos por ver.
+- **Las cifras del CBOE sobre venta sistemática de opciones** no se han podido
+  contrastar (proxy). El módulo describe la dirección del hallazgo con sus dos
+  reservas —índices brutos, y el Sharpe favorece a las colas izquierdas— y no
+  reproduce porcentajes concretos.
+- **Nada de esto se ha visto renderizado**: las dos calculadoras y la pestaña de
+  validación viven tras el muro premium, y el smoke visual sólo cubre público.

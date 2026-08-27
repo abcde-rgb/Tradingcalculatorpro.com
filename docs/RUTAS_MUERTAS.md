@@ -120,15 +120,20 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 | `GET` | `/api/quote/{symbol}` | BORRAR | Era la única puerta a `market_data.py`, y por eso estaba marcada CONSTRUIR. Ya no lo es: desde el 2026-08-22 la cadena de reserva entra por `/api/stock/{symbol}`, que devuelve lo mismo **más** la ficha completa de Yahoo y con los nombres que la interfaz ya consume. Lo que queda aquí es la forma cruda de `_norm()` sin consumidor. |
 | `GET` | `/api/user-states/list` | BORRAR | «List all saved states for debugging». |
 
-### CONSTRUIR (20)
+> ✅ **Construidas el 2026-08-26**: `POST /api/backtest/validate` y
+> `GET /api/backtest/strategies` ya tienen pantalla — la pestaña «Validación» de
+> Performance (`components/performance/BacktestValidation.jsx`). Eran las dos
+> filas más caras de esta lista: 643 líneas de hold-out, walk-forward y Deflated
+> Sharpe escritas y sin puerta. `check-rutas-muertas.py` avisó de que habían
+> dejado de estar muertas antes de que nadie tocara este fichero.
+
+### CONSTRUIR (18)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
 | `GET` | `/api/performance/export` | CONSTRUIR | CSV y Excel del diario, con filtros por estado, símbolo y fechas. Un botón. Es lo que más se pide y lo más barato de la lista. |
 | `POST` | `/api/performance/portfolio-risk` | CONSTRUIR | Riesgo de cuenta: calor abierto, correlación y estado de los límites de pérdida (`portfolio_risk.py`). Todo lo demás del diario razona operación a operación; esto es la vista que un prop trader mira primero. |
 | `POST` | `/api/calculate/volatility-size` | CONSTRUIR | Tamaño de posición por ATR. Sin esto, 1R no significa lo mismo entre instrumentos y las estadísticas por R no son comparables. |
-| `POST` | `/api/backtest/validate` | CONSTRUIR | `backtest.py` (643 líneas): hold-out evaluado una sola vez y walk-forward. Es la parte que responde «¿esto tiene ventaja o la he encontrado de tanto mirar?». |
-| `GET` | `/api/backtest/strategies` | CONSTRUIR | Los juegos de reglas y sus rejillas de parámetros. Va con la anterior. |
 | `POST` | `/api/calculate/american` | CONSTRUIR | `american_options.py`: precio americano, prima de ejercicio anticipado y griegas de árbol. Toda opción listada sobre acción estadounidense es americana, así que la diferencia con el Black-Scholes del resto de la app no es un redondeo. |
 | `POST` | `/api/calculate/implied-volatility` | CONSTRUIR | Despeja la IV desde el precio de mercado. Sin esto la app se traga la IV que le dé el proveedor, que en strikes ilíquidos es basura o un 0.30 por defecto. Devuelve `null` cuando ninguna volatilidad reproduce el precio. |
 | `GET` | `/api/options/term-structure/{symbol}` | CONSTRUIR | IV ATM por vencimiento: contango o backwardation. La app enseña el skew entre strikes y nunca la curva en el tiempo, que es la primera pregunta de quien vende prima. |

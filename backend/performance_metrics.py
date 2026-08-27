@@ -59,6 +59,27 @@ def sqn(r_multiples: List[float]) -> Optional[float]:
     return statistics.mean(rs) / sd * math.sqrt(capped_n)
 
 
+def _sqn_desde_sumas(suma: float, suma2: float, n: int) -> Optional[float]:
+    """`sqn` calculado desde sumas, sin recorrer la lista ni usar `statistics`.
+
+    MISMA fórmula: media / desviación poblacional × √min(n, 100), tope de Van
+    Tharp incluido. Existe porque `sqn_decay` la ejecuta miles de veces y
+    `statistics.pstdev` sobre la lista entera costaba 460 ms por petición; por
+    aquí son 12.
+
+    Que sea la misma fórmula no es una promesa: `test_ruta_rapida_de_sqn_*` la
+    contrasta contra `sqn` en cientos de series, incluidas las que cruzan el
+    tope de 100. Sin ese test, quitarle el `min(n, 100)` pasaba desapercibido.
+    """
+    if n < 2:
+        return None
+    media = suma / n
+    var = suma2 / n - media * media
+    if var <= 0:
+        return None
+    return media / math.sqrt(var) * math.sqrt(min(n, 100))
+
+
 def calmar(cagr: Optional[float], max_drawdown: Optional[float]) -> Optional[float]:
     """Calmar = annualized return / |max drawdown|. max_drawdown as a fraction
     (0.25 = 25%) or return-unit magnitude; must be non-zero. None if DD is 0/None.
@@ -177,6 +198,198 @@ def mae_mfe_stats(trades: List[Dict[str, Any]]) -> Optional[Dict[str, Optional[f
     }
 
 
+def _momentos(vals: List[float]) -> Optional[tuple]:
+    """(media, m2, m3, m4) centrados y poblacionales, o None si no hay dispersión.
+
+    Poblacionales, no muestrales, por coherencia con el resto del módulo: `sqn`
+    y `value_at_risk_parametric` ya usan `pstdev`. Mezclar las dos convenciones
+    en el mismo panel daría dos desviaciones distintas para la misma serie.
+    """
+    n = len(vals)
+    if n < 2:
+        return None
+    mu = statistics.mean(vals)
+    m2 = sum((x - mu) ** 2 for x in vals) / n
+    if m2 <= 0:
+        return None  # todos iguales: la forma de la distribución es indefinida
+    m3 = sum((x - mu) ** 3 for x in vals) / n
+    m4 = sum((x - mu) ** 4 for x in vals) / n
+    return mu, m2, m3, m4
+
+
+def skewness(r_multiples: List[float]) -> Optional[float]:
+    """Asimetría de la distribución de R-múltiplos (momento poblacional g1).
+
+    g1 = m3 / m2^1.5. Negativa = cola izquierda: muchos aciertos pequeños y
+    pérdidas ocasionales grandes, que es el perfil de toda estrategia de ratio
+    menor que 1. Es el número que separa «cobro una prima de riesgo real» de
+    «todavía no ha llegado la cola».
+
+    Referencias: [1,2,3,4,5] simétrico → 0.0 · [1,1,1,10] → +1.1547.
+    None con menos de 3 valores o sin dispersión.
+    """
+    rs = _clean(r_multiples)
+    if len(rs) < 3:
+        return None
+    m = _momentos(rs)
+    if m is None:
+        return None
+    _, m2, m3, _ = m
+    return m3 / (m2 ** 1.5)
+
+
+def kurtosis(r_multiples: List[float]) -> Optional[float]:
+    """Curtosis EN EXCESO de los R-múltiplos (g2 = m4/m2² − 3).
+
+    Cero es la normal. Positiva = colas más gruesas de lo normal: los extremos
+    pasan más a menudo de lo que sugiere la desviación típica, y por tanto un
+    Sharpe alto puede estar escondiendo un riesgo que el Sharpe no penaliza.
+
+    Referencias: [1,2,3,4,5] → −1.3 · una normal → ~0.
+    None con menos de 4 valores o sin dispersión.
+    """
+    rs = _clean(r_multiples)
+    if len(rs) < 4:
+        return None
+    m = _momentos(rs)
+    if m is None:
+        return None
+    _, m2, _, m4 = m
+    return m4 / (m2 ** 2) - 3.0
+
+
+# Por debajo de esto, el «percentil 95» de una muestra es sencillamente su
+# máximo: con 20 valores el índice 0.95×19 = 18.05 ya cae entre los dos últimos.
+# Devolver un cociente de extremos llamándolo percentil sería inventar precisión.
+_MIN_COLA = 20
+
+
+def tail_ratio(r_multiples: List[float]) -> Optional[float]:
+    """Percentil 95 / |percentil 5| de los R-múltiplos.
+
+    Por debajo de 1 la cola izquierda pesa más que la derecha: las pérdidas
+    extremas son mayores que las ganancias extremas. Es la comprobación directa
+    de si un win rate alto está pagando una prima real o aplazando el golpe.
+
+    None con menos de 20 operaciones (con menos, el percentil 95 es el máximo y
+    el cociente no significa lo que dice) o si el percentil 5 es cero.
+    """
+    rs = _clean(r_multiples)
+    if len(rs) < _MIN_COLA:
+        return None
+    ordenados = sorted(rs)
+    p95 = _percentile(ordenados, 0.95)
+    p05 = _percentile(ordenados, 0.05)
+    if p05 == 0:
+        return None
+    return p95 / abs(p05)
+
+
+# Ventana por defecto del SQN rodante. Treinta operaciones es el mínimo con el
+# que la desviación de los R tiene algún sentido, y aun así es POCO: el SQN de
+# una ventana de 30 tiene un error de muestreo grande. Por eso el módulo no
+# publica sólo la serie —invitaría a leer cada bajada como degradación— sino
+# también `sqn_decay`, que dice cuánta de esa bajada explica el puro azar.
+_VENTANA_SQN = 30
+
+
+def rolling_sqn(r_multiples: List[float], window: int = _VENTANA_SQN) -> Optional[List[Dict[str, Any]]]:
+    """SQN sobre una ventana móvil, para ver si la ventaja se está apagando.
+
+    `r_multiples` tiene que venir en ORDEN CRONOLÓGICO: una ventana móvil sobre
+    una lista desordenada no significa nada. `performance.py` los construye tras
+    `sort_trades_chronologically`, que es de donde sale esa garantía.
+
+    Devuelve [{n, sqn}] con `n` = número de operaciones acumuladas hasta el final
+    de esa ventana. None si no hay al menos una ventana completa.
+    """
+    rs = _clean(r_multiples)
+    w = int(window)
+    if w < 2 or len(rs) < w:
+        return None
+    salida = []
+    for fin in range(w, len(rs) + 1):
+        salida.append({"n": fin, "sqn": sqn(rs[fin - w:fin])})
+    return salida
+
+
+def sqn_decay(r_multiples: List[float], window: int = _VENTANA_SQN,
+              muestras: int = 1000, semilla: int = 20260826) -> Optional[Dict[str, Any]]:
+    """¿La caída del SQN reciente es degradación de la ventaja, o mala suerte?
+
+    Es la pregunta que la serie rodante hace inevitable y no responde. Se
+    contesta con un test de PERMUTACIÓN sobre el propio historial:
+
+      · estadístico observado: SQN(últimas `window`) − SQN(todas las anteriores)
+      · bajo la hipótesis nula de que el ORDEN no importa —misma ventaja todo el
+        tiempo, sólo varianza— barajar los R-múltiplos debería producir caídas
+        así de grandes a menudo
+      · `p` es la fracción de barajados cuya caída iguala o supera la observada
+
+    Un `p` bajo dice que el orden SÍ importa: las últimas operaciones no parecen
+    salir de la misma distribución que las anteriores. Un `p` alto dice que la
+    bajada cabe dentro de lo que hace el azar, y entonces reaccionar a ella es
+    exactamente el error que el test existe para evitar.
+
+    Baraja con semilla fija: el mismo historial tiene que dar el mismo `p` en
+    dos cargas seguidas de la pantalla, o el número no se puede citar.
+
+    None si no hay al menos DOS ventanas completas — sin un «antes» con el que
+    comparar, no hay nada que contrastar.
+    """
+    rs = _clean(r_multiples)
+    w = int(window)
+    if w < 2 or len(rs) < 2 * w:
+        return None
+
+    total = math.fsum(rs)
+    total2 = math.fsum(x * x for x in rs)
+    n_ant = len(rs) - w
+
+    def _delta(ventana: List[float]) -> Optional[float]:
+        sv = math.fsum(ventana)
+        sv2 = math.fsum(x * x for x in ventana)
+        reciente = _sqn_desde_sumas(sv, sv2, w)
+        anterior = _sqn_desde_sumas(total - sv, total2 - sv2, n_ant)
+        if reciente is None or anterior is None:
+            return None
+        return reciente - anterior
+
+    _ventana = rs[-w:]
+    _s_ventana = math.fsum(_ventana)
+    _s2_ventana = math.fsum(x * x for x in _ventana)
+    observado = _delta(_ventana)
+    if observado is None:
+        return None
+
+    import random
+    rnd = random.Random(semilla)
+    al_menos_tan_malo = 0
+    validos = 0
+    for _ in range(max(1, int(muestras))):
+        d = _delta(rnd.sample(rs, w))
+        if d is None:
+            continue
+        validos += 1
+        if d <= observado:
+            al_menos_tan_malo += 1
+    if validos == 0:
+        return None
+
+    return {
+        "window": w,
+        # Los dos SQN salen de la MISMA ruta que el estadístico del test. Si
+        # se calcularan con `sqn` y el p-valor con la ruta rápida, una
+        # divergencia entre ambas publicaría un p-valor que no corresponde a
+        # las cifras que tiene al lado.
+        "sqn_reciente": _sqn_desde_sumas(_s_ventana, _s2_ventana, w),
+        "sqn_anterior": _sqn_desde_sumas(total - _s_ventana, total2 - _s2_ventana, n_ant),
+        "delta": observado,
+        "p_value": al_menos_tan_malo / validos,
+        "muestras": validos,
+    }
+
+
 def compute_advanced_metrics(pnls: List[float], equity_curve: List[float],
                              r_multiples: Optional[List[float]] = None,
                              wins: int = 0, losses: int = 0, runs: int = 0,
@@ -192,4 +405,17 @@ def compute_advanced_metrics(pnls: List[float], equity_curve: List[float],
         "var_95": value_at_risk_historical(pnls, 0.95),
         "var_95_parametric": value_at_risk_parametric(pnls, 0.95),
         "cvar_95": conditional_var(pnls, 0.95),
+        # Forma de la distribución de R. Van sobre R-múltiplos y no sobre P&L a
+        # propósito: normalizan el tamaño de posición, así que describen la
+        # ESTRATEGIA y no el tamaño con que se operó. Las tres son invariantes
+        # de escala, de modo que sólo difieren de la versión en dinero cuando el
+        # riesgo por operación cambia — que es justo cuando importa.
+        "skewness": skewness(r_multiples if r_multiples is not None else []),
+        "kurtosis": kurtosis(r_multiples if r_multiples is not None else []),
+        "tail_ratio": tail_ratio(r_multiples if r_multiples is not None else []),
+        # ¿Se está apagando la ventaja? La serie rodante sola invita a leer cada
+        # bajada como degradación, así que va acompañada del test que dice
+        # cuánta de esa bajada explica el azar.
+        "rolling_sqn": rolling_sqn(r_multiples if r_multiples is not None else []),
+        "sqn_decay": sqn_decay(r_multiples if r_multiples is not None else []),
     }

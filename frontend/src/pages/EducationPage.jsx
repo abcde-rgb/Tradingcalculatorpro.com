@@ -8,7 +8,7 @@ import {
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle,
   ChevronRight, ChevronDown, Search, Filter, Star, Info,
   CandlestickChart, BarChart3, Scale, Brain, Lightbulb, X, CheckCircle2, Printer,
-  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves, RefreshCw, GitFork, Fish, Spline, BarChartHorizontal, AudioLines, Hourglass, HeartPulse, ClipboardCheck
+  Newspaper, Globe, Gauge, Activity, Sigma, Landmark, Focus, Layers, Clock, Grid3x3, Timer, Waves, RefreshCw, GitFork, Fish, Spline, BarChartHorizontal, AudioLines, Hourglass, HeartPulse, ClipboardCheck, ArrowRight, FlaskConical
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useCloudPref } from '@/lib/cloudPrefs';
-import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
+import { getTradingRules, getGoldenRules, getAccountKillers, getTraderCraft, getSmartMoney, getOptionsStrategies, getAdvancedTA, getTradingBusiness, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics, getTradingFundamentals, getTechnicalAnalysis, getFundamentalAnalysis, getTradingStylesContent, getMarketMechanics, getHarmonicPatterns, getWyckoffContent, getAlternativeCharts, getCotContent, getElliottWave, getIchimoku, getNewsTrading, getSentiment, getIntermarket, getBreadthCycles, getBrokerSafety, getMarginLiquidation, getOptionGreeks, getInstitutionalDesk, getInstitutionalMethods, getPositionBuilding, getTradingMindset, getTradingMasters, getFuturesMasters, getPartialExits, getStopsAndTargets, getTradeManagement, getProDiscipline, getStartHere, getOrderFlow, getCompanyValuation, getMacro, getMarketStructure, getSessionTiming, getEvidenceBased, getOptionsIncome, getOptionsVol, getLongInvest, getTaxes, getAlgoTrading, getCopyTrading, getForexDeep, getCommodities, getCryptoDeep, getIndices, getFundedTruth, getTraderJourney, getMovingAverages, getPriceAction, getGammaExposure, getOrderFlowPayment, getNetLiquidity, getTailRisk, getGannBox, getDeMark, getEhlers, getRRG, getPitchfork, getBillWilliams, getWolfeWaves, getMarketProfile, getElder, getObscureOscillators, getTimeCycles, getPsychSolutions, getSystemAdherence, getGamblingHarm, getGridMartingale, getVolPremium, getBacktestValidation, getTailRiskFigures, getWhyItMattersBlocks, CANDLE_PATTERN_STATS } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
@@ -98,6 +98,12 @@ import GammaExposureVisual from '@/components/education/GammaExposureVisual';
 import PfofVisual from '@/components/education/PfofVisual';
 import NetLiquidityVisual from '@/components/education/NetLiquidityVisual';
 import TailRiskVisual from '@/components/education/TailRiskVisual';
+import TailRiskFigures from '@/components/education/TailRiskFigures';
+import TradingBasicsGuide from '@/components/education/TradingBasicsGuide';
+import WhyItMatters from '@/components/education/WhyItMatters';
+import BreakevenTable from '@/components/education/BreakevenTable';
+import WyckoffNumbers from '@/components/education/WyckoffNumbers';
+import MovingAverageLag from '@/components/education/MovingAverageLag';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 import MarketTypeModal from '@/components/education/MarketTypeModal';
 
@@ -441,6 +447,56 @@ function EvidenceTag({ kind, t, className = '' }) {
 // fix was to name one canonical source per concept (see CanonicalLink in
 // components/options/EducationTab.jsx). A glossary entry defines in one line;
 // it must not become a seventh copy of the module.
+/**
+ * Enlaces de un módulo a la herramienta que lo pone en práctica.
+ *
+ * La academia tenía CINCO enlaces salientes en 5.500 líneas y uno solo iba a
+ * una calculadora. Quince herramientas construidas y módulos que las mencionan
+ * sin llevar a ellas: el lector termina de leer y no tiene dónde ir.
+ *
+ * Los destinos van en una tabla y no sueltos por el JSX para que
+ * `check-enlaces-academia.js` pueda comprobar que cada uno existe de verdad.
+ * Un enlace a una pestaña mal escrita no da error: te deja en la de por defecto
+ * y parece que el enlace simplemente no hacía nada.
+ */
+const HERRAMIENTAS = {
+  montecarlo:   { to: '/dashboard?tab=montecarlo',    k: 'monteCarlo' },
+  breakeven:    { to: '/dashboard?tab=breakeven',     k: 'beTitle' },
+  streaks:      { to: '/dashboard?tab=streaks',       k: 'lsTitle' },
+  position:     { to: '/dashboard?tab=position',      k: 'positionSize' },
+  lotsize:      { to: '/dashboard?tab=lotsize',       k: 'lotSize' },
+  // Apalancamiento y margen cruzado NO están aquí: sus módulos usan componente
+  // propio (`LeverageGuide`, `CrossMarginCourse`) y ya enlazan a su calculadora
+  // desde dentro. Una entrada más aquí serían dos enlaces al mismo sitio en la
+  // misma pantalla.
+  partialExit:  { to: '/dashboard?tab=partial-exit',  k: 'pxcTitle' },
+  fibonacci:    { to: '/dashboard?tab=fibonacci',     k: 'fibonacci' },
+  target:       { to: '/dashboard?tab=target',        k: 'targetPrice' },
+  compound:     { to: '/dashboard?tab=compound',      k: 'cmpCalcTitle' },
+  pattern:      { to: '/dashboard?tab=pattern',       k: 'patternTrading' },
+  simulator:    { to: '/dashboard?tab=simulator',     k: 'simulator' },
+  validacion:   { to: '/performance?tab=validation',  k: 'btvTitle' },
+  analitica:    { to: '/performance?tab=analytics',   k: 'perfTabAnalytics' },
+};
+
+const EnlacesHerramienta = ({ ids, t }) => (
+  <div className="flex flex-wrap items-center gap-2 pt-1">
+    <span className="text-[11px] uppercase tracking-wider text-muted-foreground mr-1">
+      {t('eduToolLinks')}
+    </span>
+    {ids.map((id) => {
+      const h = HERRAMIENTAS[id];
+      if (!h) return null;
+      return (
+        <Link key={id} to={h.to} data-testid={`edu-tool-${id}`}
+              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors">
+          {t(h.k)} <ArrowRight className="w-3 h-3" />
+        </Link>
+      );
+    })}
+  </div>
+);
+
 const GLOSSARY_TOPIC = {
   79: 'options-vol',      // Volatilidad implícita
   80: 'options-vol',      // IV Rank
@@ -468,6 +524,10 @@ const GLOSSARY_TOPIC = {
   107: 'stops-targets',   // ATR
   108: 'risk',            // Correlación
   109: 'options-vol',     // Volatilidad realizada
+  // 110 (SNR) no enlaza a ningún módulo a propósito: la entrada existe
+  // precisamente para separar dos siglas que no comparten tema, y
+  // mandar a uno de los dos sería elegir por el lector.
+  111: 'vol-premium',     // Prima de riesgo de volatilidad
 };
 
 export default function EducationPage() {
@@ -573,6 +633,9 @@ export default function EducationPage() {
   const EHLERS = getEhlers(t);
   const RRG_G = getRRG(t);
   const PITCHFORK = getPitchfork(t);
+  const BACKTEST_VALIDATION = getBacktestValidation(t);
+  const GRID_MARTINGALE = getGridMartingale(t);
+  const VOL_PREMIUM = getVolPremium(t);
   const BILL_WILLIAMS = getBillWilliams(t);
   const WOLFE = getWolfeWaves(t);
   const MARKET_PROFILE = getMarketProfile(t);
@@ -586,6 +649,8 @@ export default function EducationPage() {
   const ORDER_FLOW_PAYMENT = getOrderFlowPayment(t);
   const NET_LIQUIDITY = getNetLiquidity(t);
   const TAIL_RISK = getTailRisk(t);
+  const TAIL_FIGURES = getTailRiskFigures(t);
+  const WHY = getWhyItMattersBlocks(t);
   const HARMONIC_PATTERNS = getHarmonicPatterns(t);
   const WYCKOFF = getWyckoffContent(t);
   const ALT_CHARTS = getAlternativeCharts(t);
@@ -679,6 +744,8 @@ export default function EducationPage() {
       { value: 'cross-margin', label: t('xmEduTitle') },
       { value: 'probability', label: t('probabilityStatsTitle') },
       { value: 'tail-risk', label: t('tailTitle') },
+      { value: 'backtest-validation', label: t('bvlTitle') },
+      { value: 'grid-martingale', label: t('gmTitle') },
     ]},
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
@@ -701,6 +768,7 @@ export default function EducationPage() {
       { value: 'options-strat', label: t('optTitle') },
       { value: 'options-income', label: t('oiTitle') },
       { value: 'options-vol', label: t('ovTitle') },
+      { value: 'vol-premium', label: t('vrpTitle') },
       { value: 'gamma-exposure', label: t('gexTitle') },
       { value: 'news-trading', label: t('ntTitle') },
       { value: 'algo-trading', label: t('atTitle') },
@@ -774,21 +842,36 @@ export default function EducationPage() {
 
   // Per-pillar quizzes: pick a pillar, answer its 3 questions. Correct-answer
   // indices live here (0-based); the questions/options come from i18n.
+  // La respuesta correcta se nombra por su LETRA de clave, no por su posición.
+  //
+  // Antes era `correct: [0, 1, 2]`, índices en el array `opts` de más abajo.
+  // Funcionaba, pero ataba la corrección a un orden que vive en otro sitio:
+  // reordenar `opts` —dos líneas más allá y sin relación aparente— habría hecho
+  // que el quiz calificara mal sin que saltara nada. Nombrar la letra quita esa
+  // distancia: `'b'` es `qzRisk1b` mire donde mire el array.
+  //
+  // Queda un modo de fallo que esto NO cubre y que ningún cambio de estructura
+  // puede cubrir: que una traducción intercambie los VALORES entre las claves
+  // `a` y `b`. Ese lo vigila `scripts/check-quiz.js`, que comprueba que la
+  // opción marcada correcta siga diciendo lo que dice en los diez idiomas.
+  const QUIZ_OPCIONES = ['a', 'b', 'c'];
   const QUIZ_BANK = {
-    start:     { label: t('eduCatStart'),     keys: ['qzStart1', 'qzStart2', 'qzStart3'], correct: [0, 1, 2] },
-    technical: { label: t('eduCatTechnical'), keys: ['qzTech1', 'qzTech2', 'qzTech3'],    correct: [0, 1, 0] },
-    advanced:  { label: t('eduCatAdvanced'),  keys: ['qzAdv1', 'qzAdv2', 'qzAdv3'],       correct: [0, 1, 1] },
-    risk:      { label: t('eduCatRisk'),      keys: ['qzRisk1', 'qzRisk2', 'qzRisk3'],    correct: [1, 2, 1] },
-    psych:     { label: t('eduCatPsych'),     keys: ['qzPsy1', 'qzPsy2', 'qzPsy3'],       correct: [0, 0, 0] },
-    pro:       { label: t('eduCatPro'),       keys: ['qzPro1', 'qzPro2', 'qzPro3'],       correct: [0, 0, 0] },
+    start:     { label: t('eduCatStart'),     keys: ['qzStart1', 'qzStart2', 'qzStart3'], correct: ['a', 'b', 'c'] },
+    technical: { label: t('eduCatTechnical'), keys: ['qzTech1', 'qzTech2', 'qzTech3'],    correct: ['a', 'b', 'a'] },
+    advanced:  { label: t('eduCatAdvanced'),  keys: ['qzAdv1', 'qzAdv2', 'qzAdv3'],       correct: ['a', 'b', 'b'] },
+    risk:      { label: t('eduCatRisk'),      keys: ['qzRisk1', 'qzRisk2', 'qzRisk3'],    correct: ['b', 'c', 'b'] },
+    psych:     { label: t('eduCatPsych'),     keys: ['qzPsy1', 'qzPsy2', 'qzPsy3'],       correct: ['a', 'a', 'a'] },
+    pro:       { label: t('eduCatPro'),       keys: ['qzPro1', 'qzPro2', 'qzPro3'],       correct: ['a', 'a', 'a'] },
   };
   const QUIZ_PILLARS = ['start', 'technical', 'advanced', 'risk', 'psych', 'pro'];
   const [quizPillar, setQuizPillar] = useState('start');
   const [quizSel, setQuizSel] = useState({});
   const [quizDone, setQuizDone] = useState(false);
   const activeBank = QUIZ_BANK[quizPillar];
-  const QUIZ = activeBank.keys.map(k => ({ q: t(`${k}q`), opts: [t(`${k}a`), t(`${k}b`), t(`${k}c`)] }));
-  const QUIZ_CORRECT = activeBank.correct;
+  const QUIZ = activeBank.keys.map(k => ({ q: t(`${k}q`), opts: QUIZ_OPCIONES.map(L => t(`${k}${L}`)) }));
+  // Las opciones y la respuesta correcta se derivan de la MISMA lista de letras,
+  // así que no pueden desalinearse.
+  const QUIZ_CORRECT = activeBank.correct.map(L => QUIZ_OPCIONES.indexOf(L));
   const quizScore = QUIZ_CORRECT.reduce((n, c, i) => n + (quizSel[i] === c ? 1 : 0), 0);
   const pickQuizPillar = (p) => { setQuizPillar(p); setQuizSel({}); setQuizDone(false); };
 
@@ -1167,6 +1250,14 @@ export default function EducationPage() {
                 ))}
               </div>
 
+              {/* 671 líneas escritas, traducidas a los diez idiomas y sin
+                  importar por nadie desde que se escribieron: largo y corto,
+                  TP, SL y tamaño de posición con diagramas y preguntas
+                  frecuentes. Es literalmente lo que un principiante necesita
+                  antes de la llamada a la calculadora de posición, y estaba
+                  a un `import` de distancia. */}
+              <TradingBasicsGuide />
+
               <Card className="bg-primary/5 border-primary/30">
                 <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                   <div>
@@ -1372,6 +1463,10 @@ export default function EducationPage() {
                 </CardContent>
               </Card>
 
+              {/* «Van por detrás del precio» se decía dos veces sin decir nunca
+                  cuánto, que es de lo poco que aquí se calcula exacto. */}
+              <MovingAverageLag />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {MOVING_AVERAGES.items.map((item) => (
                   <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
@@ -1548,6 +1643,93 @@ export default function EducationPage() {
                 <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{RRG_G.note}</p>
               </div>
+            </TabsContent>
+
+            {/* Validación de backtests — el módulo que faltaba mientras la web
+                vendía backtesting. Enlaza a las tres herramientas que lo ponen
+                en práctica: el Monte Carlo, el backtest validado y la analítica
+                del diario. */}
+            <TabsContent value="backtest-validation" className="space-y-8">
+              <Card className="bg-gradient-to-br from-sky-500/5 to-primary/10 border-sky-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <FlaskConical className="w-6 h-6 text-sky-500" />
+                    {BACKTEST_VALIDATION.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">{BACKTEST_VALIDATION.intro}</p>
+                  <EnlacesHerramienta ids={['validacion', 'montecarlo', 'simulator', 'analitica']} t={t} />
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {BACKTEST_VALIDATION.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                      {item.id === 'mc' && <div className="mt-3"><EnlacesHerramienta ids={['montecarlo']} t={t} /></div>}
+                      {item.id === 'deflated' && <div className="mt-3"><EnlacesHerramienta ids={['validacion']} t={t} /></div>}
+                      {item.id === 'n' && <div className="mt-3"><EnlacesHerramienta ids={['breakeven', 'streaks']} t={t} /></div>}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{BACKTEST_VALIDATION.note}</p>
+            </TabsContent>
+
+            {/* Grid y martingala — por qué la curva sube y la cuenta no */}
+            <TabsContent value="grid-martingale" className="space-y-8">
+              <Card className="bg-gradient-to-br from-red-500/5 to-primary/10 border-red-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                    {GRID_MARTINGALE.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">{GRID_MARTINGALE.intro}</p>
+                  <EnlacesHerramienta ids={['streaks', 'montecarlo']} t={t} />
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {GRID_MARTINGALE.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{GRID_MARTINGALE.note}</p>
+            </TabsContent>
+
+            {/* Prima de riesgo de volatilidad — el mismo perfil que la malla, otra sustancia */}
+            <TabsContent value="vol-premium" className="space-y-8">
+              <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
+                    <Activity className="w-6 h-6 text-amber-500" />
+                    {VOL_PREMIUM.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">{VOL_PREMIUM.intro}</p>
+                  <EnlacesHerramienta ids={['analitica', 'breakeven']} t={t} />
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {VOL_PREMIUM.items.map((item) => (
+                  <Card key={item.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold mb-1.5">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{VOL_PREMIUM.note}</p>
             </TabsContent>
 
             {/* Andrews' Pitchfork — build, median magnet, parallels, Schiff, use, limits */}
@@ -1963,6 +2145,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{TAIL_RISK.intro}</p>
+                  <EnlacesHerramienta ids={['montecarlo', 'streaks']} t={t} />
                 </CardContent>
               </Card>
 
@@ -1977,6 +2160,21 @@ export default function EducationPage() {
                   </Card>
                 ))}
               </div>
+
+              {/* 1.096 palabras y cero cifras, justo en el módulo donde el
+                  número ES el argumento. Estas tres tablas lo arreglan: la
+                  teórica se calcula, las reales llevan fecha. */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-unbounded text-xl">
+                    <Sigma className="w-5 h-5 text-rose-500" />
+                    {TAIL_FIGURES.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TailRiskFigures />
+                </CardContent>
+              </Card>
 
               <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/5 border border-rose-500/20">
                 <Info className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
@@ -1995,6 +2193,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{EVIDENCE.intro}</p>
+                  <EnlacesHerramienta ids={['validacion', 'analitica']} t={t} />
                 </CardContent>
               </Card>
 
@@ -2173,6 +2372,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{LONG_INVEST.intro}</p>
+                  <EnlacesHerramienta ids={['compound']} t={t} />
                 </CardContent>
               </Card>
 
@@ -2696,6 +2896,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{ELLIOTT_WAVE.intro}</p>
+                  <EnlacesHerramienta ids={['fibonacci']} t={t} />
                 </CardContent>
               </Card>
 
@@ -3217,6 +3418,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{PARTIAL_EXITS.intro}</p>
+                  <EnlacesHerramienta ids={['partialExit']} t={t} />
                 </CardContent>
               </Card>
 
@@ -3257,6 +3459,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{STOPS_TARGETS.intro}</p>
+                  <EnlacesHerramienta ids={['target', 'partialExit']} t={t} />
                 </CardContent>
               </Card>
 
@@ -4069,6 +4272,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{TRADER_CRAFT.intro}</p>
+                  <EnlacesHerramienta ids={['validacion', 'analitica']} t={t} />
                 </CardContent>
               </Card>
 
@@ -4253,6 +4457,7 @@ export default function EducationPage() {
                   <p className="text-muted-foreground leading-relaxed">
                     {CAPITAL_MANAGEMENT.intro}
                   </p>
+                  <EnlacesHerramienta ids={['position', 'lotsize']} t={t} />
                 </CardContent>
               </Card>
 
@@ -4450,8 +4655,11 @@ export default function EducationPage() {
                   <p className="text-muted-foreground leading-relaxed">
                     {PROBABILITY_STATS.intro}
                   </p>
+                  <EnlacesHerramienta ids={['montecarlo', 'breakeven', 'streaks']} t={t} />
                 </CardContent>
               </Card>
+
+              <WhyItMatters {...WHY.edge} />
 
               {/* Mathematical Expectation */}
               <div>
@@ -4677,6 +4885,10 @@ export default function EducationPage() {
 
             {/* Chart Patterns */}
             <TabsContent value="chart-patterns" className="space-y-8">
+              {/* Este módulo no tiene tarjeta de cabecera —empieza directo en el
+                  filtro—, así que el enlace a la calculadora de patrones va
+                  suelto arriba en vez de dentro de un CardContent. */}
+              <EnlacesHerramienta ids={['pattern']} t={t} />
               {(() => {
                 const q = patternQuery.trim().toLowerCase();
                 const filterFn = (p) => {
@@ -4872,6 +5084,17 @@ export default function EducationPage() {
               {/* Leverage 0x-100x guide with mini calc + redirect to full Dashboard */}
               <LeverageGuide />
 
+              {/* Lo que separa aprender de memorizar: qué te cuesta ignorarlo,
+                  con un número. Las cifras salen de la aritmética que las
+                  produce y engine-check las comprueba. */}
+              <WhyItMatters {...WHY.size} />
+
+              {/* La tabla que faltaba: el curso nombraba el beneficio/riesgo
+                  decenas de veces sin decir nunca a cuánto acierto obliga. */}
+              <BreakevenTable />
+
+              <EnlacesHerramienta ids={['position', 'breakeven', 'streaks']} t={t} />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {RISK_MANAGEMENT_CONCEPTS.map(concept => (
                   <Card key={concept.id} className="bg-card border-border">
@@ -4904,6 +5127,7 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{t('harmonicPatternsIntro')}</p>
+                  <EnlacesHerramienta ids={['fibonacci']} t={t} />
                 </CardContent>
               </Card>
 
@@ -5038,6 +5262,12 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
+
+              {/* La segunda ley es la única cuantitativa del método, y el
+                  módulo la enunciaba sin enseñar nunca la cuenta. */}
+              <WyckoffNumbers />
+
+              <EnlacesHerramienta ids={['target', 'position', 'breakeven']} t={t} />
 
               {/* Schematics */}
               <WyckoffSchematic />

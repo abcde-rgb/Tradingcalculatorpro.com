@@ -3,8 +3,9 @@ import {
   TrendingDown, AlertTriangle, BookOpen, Activity, Brain, DollarSign,
   PieChart, BarChart3, Clock, Target, Layers, Award, ArrowRight,
   Sparkles, Eye, Repeat, FileText, ChevronRight, Lock, Mail, Rewind, ClipboardList,
+  FlaskConical,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -18,6 +19,7 @@ import AnalyticsDashboard from '@/components/performance/AnalyticsDashboard';
 import SetupPerformance from '@/components/performance/SetupPerformance';
 import SetupBuilder from '@/components/education/SetupBuilder';
 import ProjectionPanel from '@/components/performance/ProjectionPanel';
+import BacktestValidation from '@/components/performance/BacktestValidation';
 import ReplayEmbed from '@/components/backtesting/ReplayEmbed';
 import TradingPlanPage from '@/pages/TradingPlanPage';
 
@@ -28,10 +30,26 @@ const FADE_UP = {
   viewport: { once: true, amount: 0.2 },
 };
 
+// Las pestañas que un enlace externo puede pedir con `?tab=`. Escrita aquí y
+// no derivada de los `TabsTrigger` porque éstos viven dentro del JSX; a cambio,
+// `check-enlaces-academia.js` comprueba que todo enlace de la academia apunte a
+// una que exista. Sin eso, un enlace a una pestaña mal escrita no falla: te deja
+// en la de por defecto y parece que el enlace no hacía nada.
+const PESTANAS_PERFORMANCE = [
+  'overview', 'backtesting', 'validation', 'journal', 'analytics',
+  'plan', 'setups', 'projection',
+];
+
 export default function PerformancePage() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
-  const [tab, setTab] = useState(isAuthenticated ? 'journal' : 'overview');
+  const [searchParams] = useSearchParams();
+  const pedida = searchParams.get('tab');
+  const [tab, setTab] = useState(
+    pedida && PESTANAS_PERFORMANCE.includes(pedida)
+      ? pedida
+      : (isAuthenticated ? 'journal' : 'overview'),
+  );
   const [refreshKey, setRefreshKey] = useState(0);
   // Setup → sus operaciones: el marcador de la pestaña Setups y el desglose de
   // la analítica llevan al diario ya filtrado, para que las tres pestañas
@@ -151,6 +169,9 @@ export default function PerformancePage() {
               <TabsTrigger value="backtesting" data-testid="perftab-backtesting">
                 <Rewind className="w-3.5 h-3.5 mr-1.5" /> {t('backtesting')}
               </TabsTrigger>
+              <TabsTrigger value="validation" data-testid="perftab-validation">
+                <FlaskConical className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabValidation')}
+              </TabsTrigger>
               <TabsTrigger value="journal" data-testid="perftab-journal">
                 <BookOpen className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabJournal')}
               </TabsTrigger>
@@ -174,6 +195,13 @@ export default function PerformancePage() {
             gratuita y de terceros, así que aquí no se cobra por ella. */}
         <TabsContent value="backtesting" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
           <ReplayEmbed titular={false} enlaceDiario={false} />
+        </TabsContent>
+
+        {/* Backtest validado. Con `AuthRequired`: la ruta del backend es premium
+            (`require_premium`), así que enseñar el formulario a quien no puede
+            ejecutarlo sería prometer algo que el 402 va a negar. */}
+        <TabsContent value="validation" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
+          {!isAuthenticated ? <AuthRequired t={t} /> : <BacktestValidation />}
         </TabsContent>
 
         {/* Journal tab — pt-24 clears fixed header (h-16) + sticky tab bar (~58px) */}

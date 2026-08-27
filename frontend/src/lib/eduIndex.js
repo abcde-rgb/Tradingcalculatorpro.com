@@ -66,13 +66,13 @@ export const EDU_MODULES = [
 
   // ── Análisis técnico ─────────────────────────────────────────
   { id: 'tech-analysis', titleKey: 'techTab', getters: ['getTechnicalAnalysis'] },
-  { id: 'moving-averages', titleKey: 'mavTitle', getters: ['getMovingAverages'] },
+  { id: 'moving-averages', titleKey: 'mavTitle', getters: ['getMovingAverages', 'getMovingAverageLag'] },
   { id: 'chart-patterns', titleKey: 'chartPatterns', getters: ['getChartPatterns'] },
   { id: 'candlesticks', titleKey: 'candlestickPatterns', getters: ['getCandlestickPatterns'] },
   { id: 'price-action', titleKey: 'pacTitle', getters: ['getPriceAction'] },
   { id: 'dow-theory', titleKey: 'dowTheoryTitle', getters: ['getDowTheory'] },
   { id: 'market-structure', titleKey: 'msTitle', getters: ['getMarketStructure'] },
-  { id: 'wyckoff', titleKey: 'wyckoffTab', getters: ['getWyckoffContent'] },
+  { id: 'wyckoff', titleKey: 'wyckoffTab', getters: ['getWyckoffContent', 'getWyckoffNumbers'] },
   { id: 'alt-charts', titleKey: 'altChartTab', getters: ['getAlternativeCharts'] },
   { id: 'gann-box', titleKey: 'gannTitle', getters: ['getGannBox'], evidence: 'disputed' },
 
@@ -90,6 +90,9 @@ export const EDU_MODULES = [
   { id: 'ehlers', titleKey: 'ehlTitle', getters: ['getEhlers'] },
   { id: 'rrg', titleKey: 'rrgTitle', getters: ['getRRG'] },
   { id: 'pitchfork', titleKey: 'pfTitle', getters: ['getPitchfork'] },
+  { id: 'backtest-validation', titleKey: 'bvlTitle', getters: ['getBacktestValidation'] },
+  { id: 'grid-martingale', titleKey: 'gmTitle', getters: ['getGridMartingale'] },
+  { id: 'vol-premium', titleKey: 'vrpTitle', getters: ['getVolPremium'] },
   { id: 'bill-williams', titleKey: 'bwTitle', getters: ['getBillWilliams'], evidence: 'caution' },
   { id: 'wolfe-waves', titleKey: 'wlfTitle', getters: ['getWolfeWaves'], evidence: 'disputed' },
   { id: 'oscillators', titleKey: 'oscTitle', getters: ['getObscureOscillators'] },
@@ -106,7 +109,7 @@ export const EDU_MODULES = [
   { id: 'cot', titleKey: 'cotTab', getters: ['getCotContent'] },
 
   // ── Riesgo y capital ─────────────────────────────────────────
-  { id: 'risk', titleKey: 'riskManagement', getters: ['getRiskManagementConcepts'] },
+  { id: 'risk', titleKey: 'riskManagement', getters: ['getRiskManagementConcepts', 'getWhyItMattersBlocks', 'getBreakevenTable'] },
   { id: 'stops-targets', titleKey: 'sltpTitle', getters: ['getStopsAndTargets'] },
   { id: 'capital', titleKey: 'capitalManagementTitle', getters: ['getCapitalManagement'] },
   { id: 'partial-exits', titleKey: 'pexTitle', getters: ['getPartialExits'] },
@@ -114,7 +117,9 @@ export const EDU_MODULES = [
   { id: 'margin-liq', titleKey: 'mlqTitle', getters: ['getMarginLiquidation'] },
   { id: 'cross-margin', titleKey: 'xmEduTitle', getters: ['getCrossMargin'] },
   { id: 'probability', titleKey: 'probabilityStatsTitle', getters: ['getProbabilityStatistics'] },
-  { id: 'tail-risk', titleKey: 'tailTitle', getters: ['getTailRisk', 'getAccountKillers'] },
+  // `getTailRiskFigures` no es decoración en el índice: quien busque «LTCM»,
+  // «Volmageddon» o «Nikkei» sólo los encuentra si sus diez líneas se indexan.
+  { id: 'tail-risk', titleKey: 'tailTitle', getters: ['getTailRisk', 'getTailRiskFigures', 'getAccountKillers'] },
 
   // ── Psicología ───────────────────────────────────────────────
   { id: 'psychology', titleKey: 'tradingPsychologyTitle', getters: ['getTradingPsychology'] },

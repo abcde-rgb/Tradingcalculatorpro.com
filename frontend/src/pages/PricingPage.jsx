@@ -10,6 +10,7 @@ import AnimatedHeroChart from '@/components/landing/AnimatedHeroChart';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
+import { PlanPeriod } from '@/components/pricing/PlanPeriod';
 import { toast } from 'sonner';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
@@ -17,6 +18,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 // Framer Motion variants — extracted to prevent re-creation per render
 const HOVER_SCALE_UP = { scale: 1.02 };
+
 
 // Plans will use t() for dynamic translation
 const PLANS_DATA = [
@@ -154,7 +156,7 @@ export default function PricingPage() {
     }
 
     if (!API) {
-      toast.error('Backend no configurado. Contacta soporte.');
+      toast.error(t('pricingNoBackend'));
       return;
     }
 
@@ -309,7 +311,7 @@ export default function PricingPage() {
                 <h3 className="font-bold text-lg mb-2">{t(plan.id + 'Plan')}</h3>
                 <div className="mb-4">
                   <span className="font-unbounded text-3xl font-bold">{t(plan.id + 'Price')}</span>
-                  <span className="text-muted-foreground text-sm">{t(plan.id + 'Period')}</span>
+                  <PlanPeriod texto={t(plan.id + 'Period')} />
                 </div>
                 {plan.id !== 'lifetime' && pruebaDisponible && (
                   <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5 mb-3" data-testid={`trial-badge-${plan.id}`}>
@@ -372,7 +374,7 @@ export default function PricingPage() {
                           {t(method.nameKey)}
                           {method.lifetimeOnly && (
                             <span className="text-[10px] bg-pink-500/20 text-pink-400 px-1.5 py-0.5 rounded-full font-normal">
-                              Solo Lifetime
+                              {t('pricingLifetimeOnly')}
                             </span>
                           )}
                         </p>

@@ -121,6 +121,108 @@ async function figuraDibuja(page, testid, minTrazos = 3) {
     marca('capital sigue en pie tras quitarle la guía',
           await page.locator('[role="tabpanel"]').count() > 0);
 
+    // ── Las cifras del riesgo de cola ──────────────────────────────────
+    // `tail-risk` tenía 1.096 palabras y cero cifras. `engine-check` comprueba
+    // la aritmética; esto comprueba la otra mitad, que en este repositorio ya
+    // ha mentido dos veces: que la cifra LLEGUE a la pantalla, y en el formato
+    // del idioma. Los números vienen del cálculo, así que un cambio en
+    // `tailRiskData.js` que rompa el render sale aquí.
+    console.log('\n── tail-risk: tres tablas donde no había un solo número ──');
+    await abre(page, 'tail-risk');
+    marca('las tablas de cifras existen',
+          await page.locator('[data-testid="tail-figures"]').count() > 0);
+    const cola = await page.locator('[data-testid="tail-figures"]').innerText().catch(() => '');
+    for (const cifra of ['−20,47 %', '−77,9 %', '−91,5 %', '+900 %', '+1.900 %']) {
+      marca(`la tabla dice ${cifra}`, cola.includes(cifra));
+    }
+    // La fila que da sentido a todas las demás: 20 σ frente al universo.
+    const universos = await page.locator('[data-testid="tail-universos"]').innerText().catch(() => '');
+    marca('20 σ se compara con la edad del universo en potencias de diez',
+          /10⁷⁵|10⁷⁵/.test(universos) || /× 10/.test(universos), universos.trim());
+    // Aserción negativa: las diez filas tienen texto, ninguna celda vacía.
+    const vacias = await page.locator('[data-testid^="tail-ev-"]').evaluateAll(
+      (fs2) => fs2.filter((f) => (f.lastElementChild?.textContent || '').trim().length < 20).length);
+    marca('ninguna fila de evento se queda sin explicación', vacias === 0, `${vacias} vacías`);
+    await page.screenshot({ path: path.join(salida, '04-riesgo-cola.png'), fullPage: true });
+
+    // ── Los dos componentes que estaban sin importar ───────────────────
+    // `auditar.py` los deja de contar como huérfanos en cuanto alguien escribe
+    // su nombre en otro fichero: eso comprueba el import, no el render. Un
+    // componente importado dentro de una rama que nunca se cumple sigue sin
+    // verlo nadie, y el informe diría que ya está integrado.
+    console.log('\n── TradingBasicsGuide y WhyItMatters, ya no huérfanos ────');
+    await abre(page, 'start-here');
+    marca('el diagrama de largos se pinta',
+          await page.locator('svg[aria-label="Long diagram"]').count() > 0);
+    // Es una guía por PESTAÑAS: el de cortos no existe hasta que se pulsa. Sin
+    // esta mitad, la comprobación de arriba pasaría con el resto sin montar.
+    marca('el de cortos no está antes de pulsar',
+          await page.locator('svg[aria-label="Short diagram"]').count() === 0);
+    const botonCorto = page.locator('button', { hasText: /Short/i }).first();
+    if (await botonCorto.count()) {
+      await botonCorto.click();
+      await page.waitForTimeout(500);
+      marca('…y aparece después', await page.locator('svg[aria-label="Short diagram"]').count() > 0);
+    } else {
+      marca('el botón de la sección de cortos existe', false);
+    }
+
+    // El bloque «por qué importa» y sus cifras, que `engine-check` ata a la
+    // aritmética que las produce. Aquí se comprueba que salgan a pantalla.
+    // En `risk` va además la tabla de equilibrio: diez filas que el curso
+    // nombraba decenas de veces sin decir nunca a cuánto acierto obligaban.
+    for (const [tema, textos] of [['risk', ['85,1 %', '43,0 %', '+132 %']],
+                                  ['probability', ['50 %', '55 %']]]) {
+      await abre(page, tema);
+      const bloque = page.locator('[data-testid="why-it-matters"]').first();
+      marca(`${tema}: el bloque «por qué importa» se pinta`, await bloque.count() > 0);
+      const txt = await bloque.count() ? await bloque.innerText() : '';
+      for (const s of textos) marca(`${tema}: dice «${s}»`, txt.includes(s));
+    }
+    await abre(page, 'risk');
+    const tablaEq = page.locator('[data-testid="breakeven-table"]');
+    marca('la tabla de equilibrio se pinta en el módulo de riesgo',
+          await tablaEq.count() > 0);
+    const eq = await tablaEq.count() ? await tablaEq.innerText() : '';
+    // Los dos extremos y la fila de referencia: si `tablaEquilibrio` cambiara,
+    // aquí se vería antes que en ningún otro sitio.
+    for (const s of ['80,0 %', '50,0 %', '55,0 %', '9,1 %']) {
+      marca(`la tabla dice ${s}`, eq.includes(s));
+    }
+    await page.screenshot({ path: path.join(salida, '05-por-que-importa.png'), fullPage: true });
+
+    // ── Wyckoff, que tampoco tenía un número ───────────────────────────
+    console.log('\n── wyckoff: el recuento y la operación, con cifras ───────');
+    await abre(page, 'wyckoff');
+    marca('el bloque de cifras se pinta',
+          await page.locator('[data-testid="wyckoff-numbers"]').count() > 0);
+    const wyk = await page.locator('[data-testid="wyckoff-numbers"]').innerText().catch(() => '');
+    // La ley de causa y efecto en tres filas: doble columnas, doble recorrido.
+    for (const s of ['+30', '+60', '+120']) marca(`el recuento muestra ${s}`, wyk.includes(s));
+    const rr = await page.locator('[data-testid="wyk-rr"]').innerText().catch(() => '');
+    marca('la operación da 1,75 : 1', rr.includes('1,75'), rr.trim());
+    // El puente con el módulo de riesgo: el acierto mínimo de esa relación lo
+    // calcula la misma función que pinta su tabla de equilibrio.
+    const acierto = await page.locator('[data-testid="wyk-acierto"]').innerText().catch(() => '');
+    marca('y el acierto mínimo sale de la función de la tabla de equilibrio',
+          acierto.includes('36,4') && acierto.includes('40,0'), acierto.trim());
+    await page.screenshot({ path: path.join(salida, '06-wyckoff.png'), fullPage: true });
+
+    // ── Medias móviles: el retardo, que se nombraba sin medir ──────────
+    console.log('\n── moving-averages: cuánto van por detrás ────────────────');
+    await abre(page, 'moving-averages');
+    marca('la tabla del retardo se pinta', await page.locator('[data-testid="ma-lag"]').count() > 0);
+    // La fila de 200 tiene que repetir 99,5 DOS veces: retardo de la SMA y
+    // centro de masa de la EMA. Que sean el mismo número es el argumento.
+    const fila200 = await page.locator('[data-testid="ma-lag-200"]').innerText().catch(() => '');
+    marca('la fila de 200 repite 99,5 en las dos columnas',
+          (fila200.match(/99,5/g) || []).length === 2, fila200.replace(/\s+/g, ' ').trim());
+    // Y la frase con variables: si una traducción pierde una, se ve «{d}».
+    const desfase = await page.locator('[data-testid="ma-precio"]').innerText().catch(() => '');
+    marca('la frase del desfase llega interpolada',
+          !/\{[mnd]\}/.test(desfase) && desfase.includes('49,75'), desfase.trim().slice(0, 80));
+    await page.screenshot({ path: path.join(salida, '07-medias.png'), fullPage: true });
+
     // ── Móvil oscuro: donde se rompe la maquetación de un SVG ──────────
     console.log('\n── Móvil y modo oscuro ──────────────────────────────────');
     const movil = await navegador.newContext({

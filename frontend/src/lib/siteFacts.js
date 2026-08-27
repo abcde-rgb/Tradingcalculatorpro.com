@@ -17,7 +17,7 @@
  */
 export const SITE_FACTS = {
   /** Herramientas del banco de calculadoras · fuente: `CALC_NAV` en `pages/DashboardPage.jsx` */
-  calculators: 15,
+  calculators: 17,
   /** Activos con precio y ficha · fuente: `ALL_ASSETS` en `lib/assets.js` */
   assets: 186,
   /** Estrategias de opciones · fuente: `STRATEGIES` en `data/mockData.js` */

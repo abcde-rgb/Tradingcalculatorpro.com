@@ -1390,16 +1390,35 @@ async function checkSiteFacts() {
   const seoSrc = fs.readFileSync(path.join(SRC, '..', 'scripts', 'gen-seo-pages.js'), 'utf8');
 
   const navTabs = new Set([...dash.slice(navIni, navFin).matchAll(/value: '([a-z0-9-]+)'/g)].map((m) => m[1]));
-  const permIni = dash.indexOf('const allowed = [');
-  const permitidas = new Set([...dash.slice(permIni, dash.indexOf('];', permIni)).matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]));
   const calcsIni = seoSrc.indexOf('const CALCS = [');
   const seoTabs = [...seoSrc.slice(calcsIni, seoSrc.indexOf('\n];', calcsIni)).matchAll(/tab: '([a-z0-9-]+)'/g)].map((m) => m[1]);
   ok('la máquina de SEO enlaza a calculadoras que existen',
     seoTabs.length > 0 && seoTabs.every((t) => navTabs.has(t)),
     `sin destino: ${seoTabs.filter((t) => !navTabs.has(t)).join(', ')}`);
-  ok('y a pestañas que el panel acepta por la URL',
-    seoTabs.every((t) => permitidas.has(t)),
-    `no permitidas: ${seoTabs.filter((t) => !permitidas.has(t)).join(', ')}`);
+
+  // La lista que el panel acepta por `?tab=` era una COPIA a mano de CALC_NAV
+  // y se quedó atrás: al añadir dos calculadoras el 2026-08-26,
+  // `/dashboard?tab=breakeven` aterrizaba en la pestaña por defecto sin que
+  // fallara nada. Ahora se deriva de CALC_NAV, así que comprobar "los destinos
+  // del SEO están permitidos" contra ella sería preguntarle dos veces a la
+  // misma lista: verde garantizado, información cero. Lo que se comprueba es
+  // que la derivación siga en pie — si alguien vuelve a escribir la lista a
+  // mano, esta rama deja de valer y la de arriba vuelve a ser necesaria.
+  const permIni = dash.indexOf('const allowed = [');
+  if (permIni !== -1) {
+    const permitidas = new Set([...dash.slice(permIni, dash.indexOf('];', permIni)).matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]));
+    ok('y a pestañas que el panel acepta por la URL (lista literal)',
+      seoTabs.every((t) => permitidas.has(t)),
+      `no permitidas: ${seoTabs.filter((t) => !permitidas.has(t)).join(', ')}`);
+  } else {
+    const derivaDeNav = /const ALL_CALC_TOOLS = CALC_NAV\.flatMap\(/.test(dash);
+    const derivaLoPermitido = /const allowed = ALL_CALC_TOOLS\.map\(/.test(dash);
+    ok('y a pestañas que el panel acepta por la URL (derivadas de CALC_NAV)',
+      derivaDeNav && derivaLoPermitido,
+      derivaDeNav
+        ? 'ALL_CALC_TOOLS existe, pero `allowed` ya no sale de él: vuelve a haber dos listas'
+        : 'ALL_CALC_TOOLS ya no sale de CALC_NAV: la cadena de derivación está rota');
+  }
 
   const edu = fs.readFileSync(path.join(SRC, 'pages', 'EducationPage.jsx'), 'utf8');
   const eduIni = edu.indexOf('const EDUCATION_NAV');
@@ -1910,6 +1929,392 @@ async function checkCrossMargin() {
     canOpen({ ...base, positions: pos, price: 0, addLots: 1 }).maxLots === null);
 }
 
+async function checkEdgeMath() {
+  console.log('\nedgeMath.js');
+  const E = await imp('lib/edgeMath.js');
+  const { breakevenWinRate } = await imp('lib/projection.js');
+
+  // 1. La comprobación que ata este módulo al que ya existía: sin costes, el
+  //    equilibrio nuevo TIENE que ser el de projection.js. Si alguien toca una
+  //    de las dos fórmulas, esto salta.
+  for (const rr of [0.25, 0.5, 1, 2, 3, 10]) {
+    ok(`equilibrio sin costes == breakevenWinRate (R:R ${rr})`,
+      near(E.equilibrioNeto(rr, 0), breakevenWinRate(rr), 1e-9));
+  }
+
+  // 2. La tabla de referencia del sector, a mano.
+  ok('R:R 0,25 exige 80 % de acierto', near(E.equilibrioNeto(0.25, 0), 80, 0.01));
+  ok('R:R 2 exige 33,33 %',            near(E.equilibrioNeto(2, 0), 33.33, 0.01));
+  ok('R:R 3 exige 25 %',               near(E.equilibrioNeto(3, 0), 25, 0.01));
+
+  // 3. Esperanza. 35 % de acierto con 3:1 es el caso canónico: +0,40R.
+  ok('35 % @ 3:1 = +0,40R', near(E.esperanzaNetaR(35, 3, 0), 0.40, 1e-9));
+  // El coste resta k EXACTOS a la esperanza, sea cual sea el acierto. Es la
+  // propiedad que hace que el modelo de costes sea legible.
+  for (const w of [20, 35, 50, 80]) {
+    ok(`un coste de 0,05R resta 0,05R con acierto ${w} %`,
+      near(E.esperanzaNetaR(w, 3, 0.05), E.esperanzaNetaR(w, 3, 0) - 0.05, 1e-9));
+  }
+
+  // 4. Coherencia interna: en el equilibrio neto la esperanza neta es cero.
+  //    Tolerancia 1e-4 porque el equilibrio se devuelve redondeado a dos
+  //    decimales de porcentaje, igual que `breakevenWinRate`; medio milésimo de
+  //    punto de acierto son 5e-5 R. Con 1e-9 el test mediría el redondeo.
+  for (const [rr, k] of [[1, 0.07], [2, 0.08], [0.5, 0.03], [3, 0.12]]) {
+    const w = E.equilibrioNeto(rr, k);
+    ok(`esperanza nula en el equilibrio (R:R ${rr}, k ${k})`,
+      near(E.esperanzaNetaR(w, rr, k), 0, 1e-4));
+  }
+
+  // 5. Rachas en un punto dado. El segundo número es el que circula mal por ahí
+  //    (se lee «~0,5 %» en más de un sitio): 0,4^5 es 1,024 %, no 0,5 %.
+  ok('4 pérdidas seguidas con 60 % de acierto = 2,56 %',
+    near(E.probRachaEnUnPunto(60, 4), 0.0256, 1e-9));
+  ok('5 pérdidas seguidas con 60 % de acierto = 1,024 %',
+    near(E.probRachaEnUnPunto(60, 5), 0.01024, 1e-9));
+
+  // 6. `probAlgunaRacha` contra Monte Carlo: la recursión es exacta, así que
+  //    una simulación independiente tiene que caer encima. Es la segunda ruta —
+  //    comprobar la recursión contra sí misma no comprobaría nada.
+  const mc = (N, winPct, k, tandas, semilla) => {
+    let s = semilla >>> 0;
+    const rnd = () => {
+      s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0;
+      return s / 4294967296;
+    };
+    const q = 1 - winPct / 100;
+    let exitos = 0;
+    for (let t = 0; t < tandas; t++) {
+      let run = 0;
+      for (let i = 0; i < N; i++) {
+        if (rnd() < q) { if (++run >= k) { exitos++; break; } } else run = 0;
+      }
+    }
+    return exitos / tandas;
+  };
+  for (const [N, w, k] of [[100, 60, 5], [200, 60, 5], [100, 35, 7], [500, 50, 8], [50, 70, 3]]) {
+    const exacto = E.probAlgunaRacha(N, w, k);
+    const sim = mc(N, w, k, 120000, 9973 + N * 31 + w * 7 + k);
+    ok(`racha de ${k} en ${N} ops al ${w} %: recursión ${(exacto * 100).toFixed(2)} % ≈ MC ${(sim * 100).toFixed(2)} %`,
+      Math.abs(exacto - sim) < 0.006, `dif ${(Math.abs(exacto - sim) * 100).toFixed(3)} pp`);
+  }
+
+  // 7. Lo que separa las dos preguntas que todo el mundo confunde: perder 5
+  //    seguidas AQUÍ es raro; que pase ALGUNA VEZ en 200 operaciones no lo es.
+  ok('perder 5 seguidas alguna vez en 200 ops al 60 % supera el 70 %',
+    E.probAlgunaRacha(200, 60, 5) > 0.70);
+  ok('…y en un punto dado no llega al 2 %',
+    E.probRachaEnUnPunto(60, 5) < 0.02);
+
+  // 8. El arrastre por frecuencia, que es el argumento entero.
+  ok('mismo coste, 8 ops/mes = 0,4 % del capital', near(E.arrastreMensual(0.05, 1, 8), 0.4, 1e-9));
+  ok('mismo coste, 200 ops/mes = 10 % del capital', near(E.arrastreMensual(0.05, 1, 200), 10, 1e-9));
+
+  // 9. Honestidad numérica: lo incalculable es null, nunca 0.
+  ok('un riesgo de cero no define el coste en R', E.costeEnR({ coste: 10, riesgo: 0 }) === null);
+  ok('R:R cero no tiene equilibrio', E.equilibrioNeto(0, 0) === null);
+  ok('un 100 % de acierto no define racha máxima', E.rachaMaximaEsperada(100, 100) === null);
+  ok('un acierto del 120 % no da esperanza', E.esperanzaNetaR(120, 2, 0) === null);
+  // Cero SÍ es la respuesta correcta aquí: no es indefinido, es imposible.
+  ok('una racha más larga que la serie es imposible, no indefinida',
+    E.probAlgunaRacha(10, 60, 20) === 0);
+}
+
+/**
+ * Las cifras del riesgo de cola.
+ *
+ * El módulo `tail-risk` tenía 1.096 palabras y ninguna cifra. Ahora las tiene,
+ * y una cifra en pantalla es una afirmación: «un movimiento de 20 sigma pasa
+ * una vez cada 7 × 10⁸⁵ años» o es verdad o es propaganda con decimales.
+ *
+ * La ruta independiente es doble:
+ *  · Las teóricas, contra los valores que devuelve `erfc` en doble precisión
+ *    (Python `math.erfc(s/√2)`, transcritos aquí con doce dígitos). El código
+ *    usa la fracción continua de Mills, que no comparte nada con erfc salvo
+ *    el resultado.
+ *  · Las reales, contra la aritmética que las relaciona: si el Nasdaq cayó un
+ *    77,9 %, volver EXIGE un +352 %, y eso lo dice la fórmula, no el texto.
+ */
+async function checkTailRisk() {
+  console.log('\ntailRiskData.js  (las cifras del riesgo de cola)');
+  const T = await imp('lib/tailRiskData.js');
+
+  // math.erfc(s/sqrt(2)) — probabilidad de |Z| > s, dos colas.
+  const ERFC = {
+    3: 2.699796063260e-03,
+    4: 6.334248366624e-05,
+    5: 5.733031437584e-07,
+    6: 1.973175290075e-09,
+    7: 2.559625087772e-12,
+    10: 1.523970604832e-23,
+    20: 5.507248237213e-89,
+  };
+  for (const [s, ref] of Object.entries(ERFC)) {
+    const got = T.colaNormal(Number(s));
+    const err = Math.abs(got - ref) / ref;
+    ok(`cola de ${s} σ = ${ref.toExponential(3)} (erfc)`, err < 1e-9,
+      `fracción continua ${got.toExponential(6)}, error relativo ${err.toExponential(2)}`);
+  }
+
+  // Y la razón por la que no se usa la CDF de blackScholes.js: su error
+  // ABSOLUTO (~1,5e-7) es cien mil veces mayor que la respuesta a 7 σ. Si
+  // alguien «unifica» las dos funciones, esto lo caza.
+  const { calculateD1D2 } = await imp('utils/blackScholes.js').catch(() => ({}));
+  void calculateD1D2; // sólo para dejar constancia de que se miró el módulo
+  ok('la cola de 7 σ es más pequeña que el error de una CDF de opciones',
+    T.colaNormal(7) < 1.5e-7 / 1000,
+    `cola ${T.colaNormal(7).toExponential(2)} vs error típico 1,5e-7`);
+
+  // Anualización: 252 sesiones. Cambiarlo mueve TODAS las frecuencias.
+  ok('3 σ, una vez cada ~1,5 años', near(T.frecuenciaNormal(3), 1 / ERFC[3] / 252, 1e-9));
+  ok('la frecuencia usa 252 sesiones y no 365',
+    Math.abs(T.frecuenciaNormal(3) - 1.4696) < 0.001,
+    `da ${T.frecuenciaNormal(3).toFixed(4)}`);
+  ok('20 σ supera los 10⁷⁵ universos',
+    T.frecuenciaNormal(20) / T.EDAD_UNIVERSO_ANIOS > 1e75);
+
+  // Recuperación: la asimetría es el argumento entero del módulo de ruina.
+  ok('recuperar el 50 % exige el 100 %', near(T.subidaParaRecuperar(0.50), 1, 1e-12));
+  ok('recuperar el 80 % exige el 400 %', near(T.subidaParaRecuperar(0.80), 4, 1e-12));
+  ok('recuperar el 90 % exige el 900 %', near(T.subidaParaRecuperar(0.90), 9, 1e-12));
+  ok('una caída del 100 % no se recupera: es null (no Infinity, no 0)',
+    T.subidaParaRecuperar(1) === null);
+  ok('la recuperación siempre supera a la caída (nunca es simétrica)',
+    T.CAIDAS.every((d) => T.subidaParaRecuperar(d) > d));
+
+  // Las cifras de recuperación que el TEXTO de los eventos afirma, derivadas
+  // de los niveles reales y no de la caída ya redondeada. Escribir «+352 %»
+  // (que era 353) fue exactamente este fallo, y sólo lo cazó pedirle la cifra
+  // a los dos precios en vez de a la memoria.
+  const evento = (id) => T.EVENTOS_COLA.find((e) => e.id === id);
+  const recuperar = (id) => T.subidaParaRecuperar(T.caidaDesde(evento(id).ref)) * 100;
+  ok('el Nasdaq (5.048,62 → 1.114,11) exige un +353 % para volver',
+    Math.round(recuperar('puntocom')) === 353, `da ${recuperar('puntocom').toFixed(1)} %`);
+  ok('el Nikkei (38.915,87 → 7.603,76) exige un +412 %',
+    Math.round(recuperar('nikkei')) === 412, `da ${recuperar('nikkei').toFixed(1)} %`);
+  // `pctDe` devuelve la variación CON signo; `caidaDesde`, la magnitud sin él.
+  ok('y sus caídas se pintan con signo: −77,9 % y −80,5 %',
+    Math.abs(T.pctDe(evento('puntocom')) + 77.9) < 0.05
+    && Math.abs(T.pctDe(evento('nikkei')) + 80.5) < 0.05,
+    `da ${T.pctDe(evento('puntocom')).toFixed(2)} y ${T.pctDe(evento('nikkei')).toFixed(2)}`);
+
+  // Cada evento, completo. Una fila a medias se pinta a medias y nadie lo ve.
+  const campos = ['id', 'activo', 'cuando'];
+  const incompletos = T.EVENTOS_COLA.filter((e) => campos.some((c) => !e[c]));
+  ok(`los ${T.EVENTOS_COLA.length} eventos traen fecha y activo`,
+    incompletos.length === 0, `incompletos: ${incompletos.map((e) => e.id || '?').join(', ')}`);
+  ok('cada evento resuelve a una magnitud numérica (escrita o derivada)',
+    T.EVENTOS_COLA.every((e) => Number.isFinite(T.pctDe(e))),
+    `sin magnitud: ${T.EVENTOS_COLA.filter((e) => !Number.isFinite(T.pctDe(e))).map((e) => e.id).join(', ')}`);
+  // La magnitud es número y no cadena a propósito: una cifra escrita a mano
+  // enseñaría «−77,9 %» a un lector inglés, que lee la coma como millar.
+  ok('ninguna magnitud viene preformateada como texto',
+    T.EVENTOS_COLA.every((e) => typeof e.pct !== 'string'));
+  // Un evento con `ref` no puede además escribir su `pct`: serían dos fuentes
+  // para la misma cifra, y una de las dos envejecería en silencio.
+  ok('ningún evento declara a la vez los niveles y el porcentaje',
+    T.EVENTOS_COLA.every((e) => !(e.ref && Number.isFinite(e.pct))),
+    `duplicados: ${T.EVENTOS_COLA.filter((e) => e.ref && Number.isFinite(e.pct)).map((e) => e.id).join(', ')}`);
+
+  // El emparejamiento dato ↔ texto se hace por `id`, y un id que el getter no
+  // conoce no da error: la celda sale VACÍA. Esto se comprueba resolviendo el
+  // getter contra los diez diccionarios de verdad, que es lo que se pinta —no
+  // la existencia de una clave, que es sólo la mitad del camino.
+  const { getTailRiskFigures } = await imp('lib/tradingEducationContent.js');
+  const IDIOMAS = ['es', 'en', 'de', 'fr', 'ru', 'zh', 'ja', 'ar', 'pt', 'it'];
+  const huecos = [];
+  for (const l of IDIOMAS) {
+    const dic = { ...(await imp(`lib/i18n/${l}.js`)).default, ...(await imp(`lib/i18n/${l}.edu.js`)).default };
+    const c = getTailRiskFigures((k) => dic[k] ?? '');
+    for (const e of T.EVENTOS_COLA) if (!c.events.lines[e.id]) huecos.push(`${e.id}/${l}`);
+    for (const [seccion, campos2] of Object.entries({
+      sigma: ['title', 'intro', 'move', 'prob', 'freq', 'years', 'universes'],
+      events: ['title', 'when', 'asset', 'size', 'what', 'note'],
+      recovery: ['title', 'intro', 'fall', 'need', 'note'],
+    })) {
+      for (const campo of campos2) if (!c[seccion][campo]) huecos.push(`${seccion}.${campo}/${l}`);
+    }
+    if (!c.title) huecos.push(`title/${l}`);
+  }
+  ok('cada evento y cada rótulo tienen texto en los diez idiomas',
+    huecos.length === 0, `vacíos: ${huecos.slice(0, 5).join(', ')} (${huecos.length} en total)`);
+
+  // Y al revés: una línea que el getter tiene y ningún evento usa es texto
+  // escrito, traducido diez veces y que no se pinta en ninguna parte.
+  const sobran = Object.keys(getTailRiskFigures((k) => k).events.lines)
+    .filter((id) => !T.EVENTOS_COLA.some((e) => e.id === id));
+  ok('ninguna línea del getter se queda sin evento que la pinte',
+    sobran.length === 0, `sobran: ${sobran.join(', ')}`);
+
+  // ── Las cifras que el texto de «por qué importa» promete ────────────────
+  //
+  // Ese bloque existe porque un consejo sin consecuencia cuantificada se
+  // olvida: «gestiona el riesgo» no enseña nada, «ocho pérdidas al 10 % te
+  // dejan al 43 %» sí. Pero entonces la prosa es una afirmación numérica más,
+  // y aquí se ata a la función que la produce: si `edgeMath` o
+  // `subidaParaRecuperar` cambian, el texto deja de cuadrar y esto salta.
+  const { getWhyItMattersBlocks } = await imp('lib/tradingEducationContent.js');
+  const E2 = await imp('lib/edgeMath.js');
+  const es = (await imp('lib/i18n/es.edu.js')).default;
+  const W = getWhyItMattersBlocks((k) => es[k] ?? '');
+
+  const tras8 = (riesgo) => (1 - riesgo) ** 8;
+  const cifras = [
+    ['85,1', tras8(0.02) * 100, 0.05],
+    ['17,5', T.subidaParaRecuperar(1 - tras8(0.02)) * 100, 0.05],
+    ['43,0', tras8(0.10) * 100, 0.05],
+    ['132', T.subidaParaRecuperar(1 - tras8(0.10)) * 100, 0.5],
+  ];
+  for (const [texto, valor, tol] of cifras) {
+    const calc = Number(texto.replace(',', '.'));
+    ok(`el bloque de tamaño dice ${texto} y la aritmética da ${valor.toFixed(1)}`,
+      Math.abs(calc - valor) <= tol && W.size.cost.includes(texto),
+      W.size.cost.includes(texto) ? 'la cifra no cuadra' : `«${texto}» ya no aparece en el texto`);
+  }
+
+  // El equilibrio con y sin costes, que es la cifra del segundo bloque.
+  ok('el bloque de esperanza dice 50 % sin costes, y eso es lo que calcula',
+    Math.abs(E2.equilibrioNeto(1, 0) - 50) < 1e-9 && W.edge.cost.includes('50 %'));
+  ok('…y 55 % con costes de 0,1 R, que es el salto que denuncia',
+    Math.abs(E2.equilibrioNeto(1, 0.1) - 55) < 1e-9 && W.edge.cost.includes('55 %'));
+
+  // ── La tabla de equilibrio del módulo de riesgo ─────────────────────────
+  //
+  // El coste de referencia está escrito DOS veces: en la constante que pinta
+  // la columna y en el texto que la explica («costes de 0,1 R»). Dos fuentes
+  // para la misma cifra es exactamente lo que envejece en silencio, así que
+  // aquí se exige que coincidan.
+  const { COSTE_REFERENCIA } = await imp('components/education/BreakevenTable.jsx')
+    .catch(() => ({ COSTE_REFERENCIA: null }));
+  const { getBreakevenTable } = await imp('lib/tradingEducationContent.js');
+  const B = getBreakevenTable((k) => es[k] ?? '');
+  ok('la tabla del curso y la del panel salen de la misma función',
+    E2.RR_REFERENCIA.length === 10 && E2.tablaEquilibrio(0.1).length === 10);
+  ok('la columna con costes usa el 0,1 R que su propio texto anuncia',
+    B.colNet.includes('0,1 R') && B.intro.includes('0,1 R'),
+    `colNet: «${B.colNet}»`);
+  // La afirmación concreta de la nota: a 0,5 : 1 hay que acertar dos de cada
+  // tres para empatar. Si `breakevenWinRate` cambiara, la frase mentiría.
+  const dosDeTres = E2.equilibrioNeto(0.5, 0);
+  ok('a 0,5 : 1 el equilibrio son dos de cada tres (66,7 %)',
+    Math.abs(dosDeTres - (100 / 1.5)) < 0.01 && B.note.includes('0,5 : 1'),
+    `da ${dosDeTres.toFixed(2)} %`);
+  // Y con costes se acerca a tres de cada cuatro, que es la otra mitad.
+  const conCostes = E2.equilibrioNeto(0.5, 0.1);
+  ok('…y con costes sube hacia tres de cada cuatro (73,3 %)',
+    conCostes > 70 && conCostes < 75, `da ${conCostes.toFixed(2)} %`);
+  void COSTE_REFERENCIA; // el JSX no se importa; la constante se lee del fuente
+  const fuenteTabla = fs.readFileSync(path.join(SRC, 'components', 'education', 'BreakevenTable.jsx'), 'utf8');
+  ok('la constante del componente es el 0,1 R del texto',
+    /COSTE_REFERENCIA = 0\.1;/.test(fuenteTabla),
+    'si cambia el coste, cambia la columna y el texto deja de describirla');
+
+  // ── Las dos cifras que Wyckoff prometía y no daba ───────────────────────
+  //
+  // 1.236 palabras y ningún número, en un método cuya segunda ley es
+  // explícitamente cuantitativa. Lo que se comprueba aquí no es que el
+  // recuento «acierte» —no predice nada— sino que la cuenta sea la cuenta y
+  // que el trade que el módulo describe dé los números que dice dar.
+  const Y = await imp('lib/wyckoffMath.js');
+
+  // Recuento horizontal: objetivo = base + columnas × caja × reversión.
+  ok('el recuento de Punto y Figura es base + columnas × caja × reversión',
+    Y.objetivoPF({ columnas: 20, caja: 1, reversion: 3, base: 40 }) === 100);
+  // La ley de causa y efecto, en su forma comprobable: doble tiempo en el
+  // rango, doble recorrido financiado. Si la fórmula deja de ser lineal en
+  // columnas, la tabla deja de enseñar lo que dice enseñar.
+  const causa = (c2) => Y.causaPF({ columnas: c2, caja: 1, reversion: 3 });
+  ok('doblar las columnas dobla la causa (es la segunda ley)',
+    near(causa(20), causa(10) * 2, 1e-9) && near(causa(40), causa(10) * 4, 1e-9));
+  ok('un rango de cero columnas no tiene objetivo: es null, no la base',
+    Y.objetivoPF({ columnas: 0, caja: 1, reversion: 3, base: 40 }) === null);
+  ok('las tres filas de referencia salen de la misma función que la tabla',
+    Y.CUENTAS_PF.length === 3 && Y.CUENTAS_PF.every((f) => Number.isFinite(Y.objetivoPF(f))));
+
+  // La operación del último paso, con sus tres precios.
+  const objetivoW = Y.objetivoRango(Y.EJEMPLO_SPRING);
+  const rrW = Y.relacionRR({ ...Y.EJEMPLO_SPRING, objetivo: objetivoW });
+  ok('el objetivo es la amplitud del rango proyectada desde la rotura (60)',
+    objetivoW === 60, `da ${objetivoW}`);
+  ok('riesgo 8, beneficio 14, relación 1,75 : 1',
+    Y.EJEMPLO_SPRING.entrada - Y.EJEMPLO_SPRING.stop === 8
+    && objetivoW - Y.EJEMPLO_SPRING.entrada === 14
+    && near(rrW, 1.75, 1e-9), `R:R ${rrW}`);
+  // El stop tiene que estar por debajo del mínimo del Spring, que es lo que el
+  // propio módulo indica. Un stop por encima invalidaría el ejemplo entero.
+  ok('el stop queda por debajo del mínimo del Spring, como dice el método',
+    Y.EJEMPLO_SPRING.stop < Y.EJEMPLO_SPRING.minimoSpring
+    && Y.EJEMPLO_SPRING.minimoSpring < Y.EJEMPLO_SPRING.rangoBajo);
+  // Honestidad numérica: riesgo cero no es una relación infinita.
+  ok('un stop en el precio de entrada no da ∞ : 1, da null',
+    Y.relacionRR({ entrada: 46, stop: 46, objetivo: 60 }) === null);
+
+  // Y el puente con el módulo de riesgo: el acierto mínimo de ESA relación lo
+  // calcula la misma función que pinta la tabla de equilibrio.
+  ok('con 1,75 : 1 el equilibrio es el 36,4 %, y lo dice la función de la tabla',
+    near(E2.equilibrioNeto(rrW, 0), 36.36, 0.01), `${E2.equilibrioNeto(rrW, 0)} %`);
+  ok('…y el 40,0 % con los mismos costes de 0,1 R',
+    near(E2.equilibrioNeto(rrW, 0.1), 40, 0.01), `${E2.equilibrioNeto(rrW, 0.1)} %`);
+
+  // ── El retardo de las medias móviles ────────────────────────────────────
+  //
+  // El módulo decía dos veces «van por detrás del precio» sin decir cuánto.
+  // Aquí no se comprueba una opinión sobre medias: se comprueba una identidad
+  // y una media aritmética, las dos por una ruta que no es la fórmula.
+  const M = await imp('lib/maMath.js');
+
+  // 1. La identidad que sostiene el argumento entero del bloque: con el alfa
+  //    estándar, SMA y EMA tienen el MISMO centro de masa. Si alguien
+  //    «mejora» el alfa, la tabla enseñaría dos columnas distintas y el texto
+  //    diría que son iguales.
+  for (const n2 of [2, 9, 20, 50, 200, 500]) {
+    ok(`SMA(${n2}) y EMA(${n2}) comparten centro de masa`,
+      near(M.centroMasaEMA(M.alfaEMA(n2)), M.retardoSMA(n2), 1e-12),
+      `${M.centroMasaEMA(M.alfaEMA(n2))} vs ${M.retardoSMA(n2)}`);
+  }
+
+  // 2. Ruta independiente para el desfase en precio: en vez de aplicar la
+  //    fórmula, se CONSTRUYE una recta y se promedia de verdad. Dos caminos
+  //    que no comparten una línea de código y tienen que dar el mismo número.
+  for (const [m2, n2] of [[0.5, 200], [2, 20], [0.1, 50]]) {
+    const serie = Array.from({ length: n2 * 2 }, (_, i) => 10 + m2 * i);
+    const ventana = serie.slice(-n2);
+    const sma = ventana.reduce((a, b) => a + b, 0) / n2;
+    const medido = serie[serie.length - 1] - sma;
+    ok(`el desfase de la SMA(${n2}) a ${m2}/barra sale igual midiéndolo (${medido.toFixed(2)})`,
+      near(M.desfaseEnPrecio({ pendiente: m2, n: n2 }), medido, 1e-9));
+  }
+
+  // 3. El 86,5 % de la última columna no es un número elegido: es el límite
+  //    1 − e⁻², y por eso la tabla puede afirmarlo para cualquier periodo.
+  const limite = 1 - Math.exp(-2);
+  ok('lo absorbido en N barras tiende a 1 − e⁻² (86,5 %) en todos los periodos',
+    M.PERIODOS_MA.every((n2) => Math.abs(M.absorbidoTrasN(n2) - limite) < 0.002),
+    M.PERIODOS_MA.map((n2) => (M.absorbidoTrasN(n2) * 100).toFixed(2)).join(' · '));
+  ok('…y nunca llega al 100 %: una EMA no olvida',
+    M.PERIODOS_MA.every((n2) => M.absorbidoTrasN(n2) < 1));
+
+  // 4. Honestidad numérica en los bordes.
+  ok('un periodo de cero no tiene retardo definido', M.retardoSMA(0) === null);
+  ok('una SMA de 1 no va por detrás de nada', M.retardoSMA(1) === 0);
+  ok('un alfa fuera de (0, 1] no tiene centro de masa',
+    M.centroMasaEMA(0) === null && M.centroMasaEMA(1.5) === null);
+
+  // 5. Y la frase con variables: las tres tienen que llegar interpoladas en
+  //    los diez idiomas, o la tarjeta enseña «{m}» en pantalla.
+  const { getMovingAverageLag } = await imp('lib/tradingEducationContent.js');
+  const crudas = [];
+  for (const l of IDIOMAS) {
+    const dic = { ...(await imp(`lib/i18n/${l}.js`)).default, ...(await imp(`lib/i18n/${l}.edu.js`)).default };
+    const frase = (dic.mavPriceLabel || '')
+      .replace('{m}', '0,50').replace('{n}', '200').replace('{d}', '49,75');
+    if (!frase || /\{[mnd]\}/.test(frase) || !frase.includes('49,75')) crudas.push(l);
+  }
+  ok('la frase del desfase interpola sus tres cifras en los diez idiomas',
+    crudas.length === 0, `sin interpolar: ${crudas.join(', ')}`);
+  void getMovingAverageLag;
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -1925,6 +2330,8 @@ async function checkCrossMargin() {
   await checkOptionsEngine();
   await checkSiteFacts();
   await checkMonteCarlo();
+  await checkEdgeMath();
+  await checkTailRisk();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {
     console.error(`\n${failures} check(s) FAILED`);

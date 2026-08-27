@@ -202,7 +202,15 @@ def se_consume(path: str, blob: str) -> bool:
         else:
             partes.append(f"(?:{re.escape(seg)}|{_PARAMETRO})")
     cuerpo = "/".join(partes)
-    patron = r"""(?:["'`}]|/api)/""" + cuerpo + r"(?![A-Za-z0-9_-])"
+    # El cierre excluye `/` además de los caracteres de nombre. Sin eso, una
+    # ruta se daba por consumida porque otra MÁS LARGA compartía su prefijo:
+    # al escribir el cliente de `/backtest/validate` (2026-08-26), la ruta
+    # retirada `/backtest` volvió a contar como viva. Es la misma clase de
+    # fallo que ya costó el `in` pelado con la página `/backtesting`, sólo que
+    # entre dos rutas en vez de entre ruta y página. Una ruta padre sólo está
+    # consumida si el frontend la llama A ELLA: `${API}/plan` termina en
+    # comilla, `${API}/plan/history` no la hace pasar por consumida.
+    patron = r"""(?:["'`}]|/api)/""" + cuerpo + r"(?![A-Za-z0-9_/-])"
     return re.search(patron, blob) is not None
 
 

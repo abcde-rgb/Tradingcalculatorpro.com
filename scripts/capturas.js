@@ -27,6 +27,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const RAIZ = path.resolve(__dirname, '..');
 const BUILD = path.join(RAIZ, 'frontend', 'build');
@@ -48,13 +49,21 @@ const BASE = (() => {
 // Sólo lo que vive FUERA del muro de pago. Todo lo demás exige suscripción
 // activa y saldría como una redirección a /pricing: una captura de la pantalla
 // equivocada es peor que ninguna captura.
+//
+// Eso era la intención; durante meses la lista incluyó `/options` y
+// `/options/strategies`, que son `premiumOnly` en `App.js`. Las dos pintaban la
+// pantalla de login — la MISMA imagen, byte a byte, que `/login` — y el smoke
+// cerraba con «✅ ninguna pantalla escupió errores de consola» sobre nueve
+// capturas de las que tres eran la misma. Por eso ahora, además de la lista
+// corregida, se comprueba que no haya dos capturas idénticas (ver `duplicadas`):
+// si una ruta vuelve a caer en el login, sale solo.
 const PANTALLAS = [
   ['/',                    'landing'],
   ['/pricing',             'precios'],
-  ['/options',             'opciones-publico'],
-  ['/options/strategies',  'opciones-estrategias'],
+  ['/brokers',             'brokers'],
   ['/login',               'entrar'],
   ['/register',            'registro'],
+  ['/forgot-password',     'recuperar'],
   ['/legal',               'legal'],
   ['/contact',             'contacto'],
   ['/about',               'sobre'],
@@ -366,6 +375,28 @@ function servir() {
   servidor.close();
 
   console.log(`\n${hechas} capturas en .capturas/`);
+
+  // Dos rutas distintas no pueden dar la MISMA imagen byte a byte. Cuando pasa,
+  // es que una de ellas no está pintando lo suyo: cayó en el login, redirigió a
+  // /pricing o se quedó en una pantalla de error. Sin esta comprobación el
+  // smoke informaba de una cobertura que no tenía.
+  const duplicadas = (() => {
+    const porHuella = new Map();
+    for (const f of fs.readdirSync(SALIDA).filter((n) => n.endsWith('.png'))) {
+      const huella = crypto.createHash('sha1')
+        .update(fs.readFileSync(path.join(SALIDA, f))).digest('hex');
+      if (!porHuella.has(huella)) porHuella.set(huella, []);
+      porHuella.get(huella).push(f);
+    }
+    return [...porHuella.values()].filter((grupo) => grupo.length > 1);
+  })();
+
+  if (duplicadas.length) {
+    console.error(`\n❌ ${duplicadas.length} grupo(s) de capturas idénticas: una ruta no está pintando lo suyo.`);
+    for (const grupo of duplicadas) console.error(`     ${grupo.join('  ==  ')}`);
+    fallosDuros += duplicadas.length;
+  }
+
   if (problemas.length) {
     console.log(`\n⚠️  ${problemas.length} pantalla(s) con errores de consola:`);
     for (const p of problemas.slice(0, 10)) {

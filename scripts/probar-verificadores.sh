@@ -373,6 +373,236 @@ q = chr(39)
 p = pathlib.Path('frontend/scripts/gen-seo-pages.js'); t = p.read_text()
 p.write_text(t.replace(q + 'cross-margin' + q + ', slug:', q + 'margen-cruzado' + q + ', slug:', 1))\""
 
+  # 7) La lista que el panel acepta por `?tab=`. Era una copia a mano de
+  #    CALC_NAV y se quedó atrás: `/dashboard?tab=breakeven` aterrizaba en la
+  #    pestaña por defecto sin fallar nada. Ahora se deriva, y comprobar los
+  #    destinos del SEO contra ella sería preguntarle dos veces a la misma
+  #    lista. Lo que engine-check comprueba es la CADENA de derivación, así que
+  #    los sabotajes tienen que romperla por sus dos eslabones — y el tercero
+  #    vuelve a poner la lista literal, para que la rama vieja siga viva.
+  probar "lo permitido por ?tab= deja de derivar de las herramientas" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/pages/DashboardPage.jsx'); t = p.read_text()
+p.write_text(t.replace('const allowed = ALL_CALC_TOOLS.map(',
+                       'const allowed = TABS_SUELTAS.map(', 1))\""
+
+  probar "las herramientas dejan de derivar de CALC_NAV" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/pages/DashboardPage.jsx'); t = p.read_text()
+p.write_text(t.replace('const ALL_CALC_TOOLS = CALC_NAV.flatMap(',
+                       'const ALL_CALC_TOOLS = OTRA_COSA.flatMap(', 1))\""
+
+  probar "vuelve la lista literal de pestañas, y llega incompleta" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/DashboardPage.jsx'); t = p.read_text()
+p.write_text(t.replace('const allowed = ALL_CALC_TOOLS.map((it) => it.value);',
+                       'const allowed = [' + q + 'position' + q + '];', 1))\""
+
+  # ── Las cifras del riesgo de cola ─────────────────────────────────────────
+  # `tail-risk` pasó de cero cifras a tres tablas, y una cifra en pantalla es
+  # una afirmación: «20 σ pasa una vez cada 7 × 10⁸⁵ años» o es verdad, o es
+  # propaganda con decimales. Cada sabotaje rompe una propiedad distinta.
+  titulo "Cifras del riesgo de cola (engine-check.js)"
+  probar "la cola de la normal se queda en una, no en dos" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('return 2 * (phi / (x + f));', 'return phi / (x + f);', 1))\""
+
+  probar "la frecuencia se anualiza con 365 días en vez de 252 sesiones" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('SESIONES_ANIO = 252', 'SESIONES_ANIO = 365', 1))\""
+
+  probar "la recuperación se vuelve simétrica a la caída" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('return d / (1 - d);', 'return d;', 1))\""
+
+  probar "una caída del 100 % devuelve Infinity en vez de null" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('d < 0 || d >= 1) return null;', 'd < 0) return null;', 1))\""
+
+  probar "un nivel real cambiado: la cifra del texto deja de cuadrar" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('pico: 5048.62', 'pico: 5000', 1))\""
+
+  probar "un evento con los niveles Y el porcentaje: dos fuentes para una cifra" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace('ref: { pico: 38915.87',
+                       'pct: -80.5, ref: { pico: 38915.87', 1))\""
+
+  # El dato y su texto se emparejan por `id`. Un id que el getter no conoce no
+  # da error: la celda sale VACÍA, que es peor que una clave cruda porque no se
+  # nota. `i18n-check` no lo ve —las claves existen—, así que lo ve esto.
+  probar "un evento cuyo id el texto no conoce: la celda saldría vacía" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+p.write_text(t.replace(q + 'covid' + q, q + 'covid19' + q, 1))\""
+
+  probar "una línea traducida diez veces que ningún evento pinta" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/tailRiskData.js'); t = p.read_text()
+i = t.index('  { id: ' + chr(39) + 'bitcoin' + chr(39))
+j = t.index('\n', i) + 1
+p.write_text(t[:i] + t[j:])\""
+
+  # El bloque «por qué importa» promete cifras concretas —«ocho pérdidas al
+  # 10 % te dejan al 43,0 %»— porque un consejo sin consecuencia cuantificada
+  # se olvida. Eso convierte la prosa en una afirmación numérica más, y aquí se
+  # comprueba que sigue cuadrando con la función que la produce.
+  probar "el texto de «por qué importa» dice una cifra que el cálculo desmiente" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/es.edu.js'); t = p.read_text()
+p.write_text(t.replace('43,0 %', '45,0 %', 1))\""
+
+  # El coste de referencia de la tabla de equilibrio está escrito dos veces:
+  # en la constante que pinta la columna y en el texto que la explica. Dos
+  # fuentes para una cifra es lo que envejece en silencio.
+  probar "la columna de costes y el texto que la describe se separan" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/components/education/BreakevenTable.jsx'); t = p.read_text()
+p.write_text(t.replace('COSTE_REFERENCIA = 0.1;', 'COSTE_REFERENCIA = 0.2;', 1))\""
+
+  # ── Las cifras de Wyckoff ─────────────────────────────────────────────────
+  # El módulo tenía 1.236 palabras y ningún número, en un método cuya segunda
+  # ley es explícitamente cuantitativa. Lo que se protege no es que el recuento
+  # «acierte» —no predice nada— sino que sea la cuenta que dice ser, y que la
+  # operación del último paso dé los números que el texto afirma.
+  probar "el recuento de Punto y Figura deja de contar la reversión" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/wyckoffMath.js'); t = p.read_text()
+p.write_text(t.replace('return b + c * k * r;', 'return b + c * k;', 1))\""
+
+  probar "un riesgo cero se pinta como relación infinita" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/wyckoffMath.js'); t = p.read_text()
+p.write_text(t.replace('if (riesgo === 0) return null;', '', 1))\""
+
+  probar "el objetivo deja de proyectar la amplitud del rango" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/wyckoffMath.js'); t = p.read_text()
+p.write_text(t.replace('return a + (a - b);', 'return a;', 1))\""
+
+  # ── El retardo de las medias móviles ──────────────────────────────────────
+  # La tabla afirma que SMA y EMA comparten centro de masa, y ése es el
+  # argumento entero del bloque: si el alfa deja de ser 2/(N+1) o el retardo
+  # deja de ser (N−1)/2, las dos columnas se separan y el texto miente.
+  probar "el alfa de la EMA deja de ser 2/(N+1)" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/maMath.js'); t = p.read_text()
+p.write_text(t.replace('return 2 / (N + 1);', 'return 1 / (N + 1);', 1))\""
+
+  probar "el retardo de la SMA pasa de (N−1)/2 a N/2" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/maMath.js'); t = p.read_text()
+p.write_text(t.replace('return (N - 1) / 2;', 'return N / 2;', 1))\""
+
+  # Ésta la caza la ruta que NO usa la fórmula: construye una recta y promedia.
+  probar "el desfase en precio deja de escalar con la pendiente" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/maMath.js'); t = p.read_text()
+p.write_text(t.replace('return m * r;', 'return r;', 1))\""
+
+  # Una frase con variables que pierde una en UN idioma enseña «{d}» en
+  # pantalla, y sólo a quien lee en ese idioma.
+  probar "una traducción pierde una variable de la frase del desfase" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/de.edu.js'); t = p.read_text()
+p.write_text(t.replace('um {d} darunter', 'darunter', 1))\""
+
+  # ── Los enlaces de la Academia a las herramientas ─────────────────────────
+  # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja
+  # en la pestaña por defecto), un id fuera de la tabla (`return null`, el
+  # enlace no se pinta) y una clave mal escrita (cruda, en un solo idioma).
+  titulo "Enlaces de la Academia (check-enlaces-academia.js)"
+  probar "un enlace a una pestaña del panel que no existe" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/EducationPage.jsx'); t = p.read_text()
+p.write_text(t.replace('to: ' + q + '/dashboard?tab=montecarlo' + q,
+                       'to: ' + q + '/dashboard?tab=monte-carlo' + q, 1))\""
+
+  probar "un enlace a una pestaña del diario que la URL no acepta" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/EducationPage.jsx'); t = p.read_text()
+p.write_text(t.replace('to: ' + q + '/performance?tab=validation' + q,
+                       'to: ' + q + '/performance?tab=validacion' + q, 1))\""
+
+  probar "un módulo que enlaza un id que no está en la tabla" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/EducationPage.jsx'); t = p.read_text()
+p.write_text(t.replace('ids={[' + q + 'pattern' + q + ']}',
+                       'ids={[' + q + 'patrones' + q + ']}', 1))\""
+
+  probar "la etiqueta de un enlace desaparece de un solo idioma" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
+p.write_text(t.replace('\\\"lsTitle\\\":', '\\\"lsTitleX\\\":', 1))\""
+
+  probar "el diario acepta por la URL una pestaña que no pinta" \
+    "(cd frontend && node scripts/check-enlaces-academia.js)" \
+    "python -c \"
+import pathlib
+q = chr(39)
+p = pathlib.Path('frontend/src/pages/PerformancePage.jsx'); t = p.read_text()
+p.write_text(t.replace(q + 'overview' + q + ', ' + q + 'backtesting' + q,
+                       q + 'overview' + q + ', ' + q + 'fantasma' + q, 1))\""
+
   # ── La simulación masiva también tiene que poder fallar ───────────────────
   titulo "Simulación masiva (simulacion-masiva.js)"
   probar "una identidad del margen cruzado que deja de cumplirse" \
@@ -582,6 +812,79 @@ p = pathlib.Path('frontend/src/pages/EducationPage.jsx'); t = p.read_text()
 i = t.index('const EDUCATION_NAV')
 m = re.search(r\\\"value: '([a-z0-9-]+)'\\\", t[i:])
 if m: p.write_text(t[:i] + t[i:].replace(m.group(0), \\\"value: 'zz-sabotaje'\\\", 1))\""
+
+if [ -d frontend/node_modules ]; then
+  # ── Cada idioma en su alfabeto (i18n-escritura.js) ──────────────────────────
+  # Los dos cebos son las erratas REALES que se colaron escribiendo traducciones a
+  # mano y que pasaron `i18n-check` e `i18n-traducido` sin despeinarse: un carácter
+  # chino dentro de una frase italiana y uno coreano dentro de una japonesa.
+  titulo "Alfabeto por idioma (i18n-escritura.js)"
+  ESCRITURA="(cd frontend && node scripts/i18n-escritura.js)"
+
+  probar "un carácter chino dentro de una frase italiana" \
+    "$ESCRITURA" \
+    "sed -i 's/\"nfHome\": \"Vai alla home\"/\"nfHome\": \"Vai alla 决home\"/' frontend/src/lib/i18n/it.js" \
+    "git checkout -- frontend/src/lib/i18n/it.js"
+
+  probar "un carácter coreano dentro de una frase japonesa" \
+    "$ESCRITURA" \
+    "sed -i 's/\"nfHome\": \"ホームへ\"/\"nfHome\": \"ホーム별へ\"/' frontend/src/lib/i18n/ja.js" \
+    "git checkout -- frontend/src/lib/i18n/ja.js"
+
+  # El griego se permite en TODOS los idiomas a propósito: Γ, Δ, Θ y σ son
+  # notación financiera, no idioma. Si esto saltara, el verificador estaría
+  # marcando como errata la mitad del panel de opciones.
+  probar_inverso "una letra griega en una frase inglesa (Γ es notación, no idioma)" \
+    "$ESCRITURA" \
+    "sed -i 's/\"nfHome\": \"Go home\"/\"nfHome\": \"Go home Γ\"/' frontend/src/lib/i18n/en.js" \
+    "git checkout -- frontend/src/lib/i18n/en.js"
+
+  # ── El quiz califica lo que dice calificar (check-quiz.js) ──────────────
+  titulo "Corrección del quiz (check-quiz.js)"
+  QUIZ="(cd frontend && node scripts/check-quiz.js)"
+
+  # El cebo es el fallo REAL que vigila: intercambiar los valores de las dos
+  # opciones opuestas en un idioma. La pregunta sigue leyéndose bien y el quiz
+  # empieza a calificar al revés.
+  probar "una traducción intercambia «sube» y «baja» entre las dos opciones" \
+    "$QUIZ" \
+    "python3 -c \"
+import io
+p='frontend/src/lib/i18n/ja.js'; s=io.open(p,encoding='utf-8').read()
+a=s[s.index('\\\"qzStart1a\\\":'):s.index(chr(10),s.index('\\\"qzStart1a\\\":'))]
+b=s[s.index('\\\"qzStart1b\\\":'):s.index(chr(10),s.index('\\\"qzStart1b\\\":'))]
+va=a.split(': ',1)[1].rstrip(','); vb=b.split(': ',1)[1].rstrip(',')
+s=s.replace(a,'  \\\"qzStart1a\\\": '+vb+',').replace(b,'  \\\"qzStart1b\\\": '+va+',')
+io.open(p,'w',encoding='utf-8').write(s)\"" \
+    "git checkout -- frontend/src/lib/i18n/ja.js"
+
+  # Y el inverso, que es el que evita que el verificador se vuelva insufrible:
+  # reescribir una opción con otras palabras del MISMO sentido no puede saltar,
+  # o a la primera traducción mejorada alguien lo desactiva.
+  probar_inverso "una opción reescrita con otras palabras del mismo sentido" \
+    "$QUIZ" \
+    "sed -i 's|\"qzPro1a\": \"Prämie verkaufen\"|\"qzPro1a\": \"Optionsprämien verkaufen und die Zeitprämie vereinnahmen\"|' frontend/src/lib/i18n/de.js" \
+    "git checkout -- frontend/src/lib/i18n/de.js"
+
+  # ── Los diagramas de la academia no ganan castellano (check-visuales-idioma) ─
+  titulo "Techo de castellano en los diagramas (check-visuales-idioma.js)"
+  VISUALES="(cd frontend && node scripts/check-visuales-idioma.js)"
+  VISUAL_NUEVO="frontend/src/components/education/ZzSabotajeVisual.jsx"
+  TEMPORALES+=("$VISUAL_NUEVO")
+
+  probar "un rótulo castellano nuevo en un diagrama existente" \
+    "$VISUALES" \
+    "sed -i 's|>trigo · café<|>trigo · café</T><T>rotación estacional<|' frontend/src/components/education/CommoditiesVisual.jsx" \
+    "git checkout -- frontend/src/components/education/CommoditiesVisual.jsx"
+
+  probar "un diagrama NUEVO que nace en castellano (techo cero)" \
+    "$VISUALES" \
+    "printf 'import React from \"react\";\nexport default () => <svg><text>máximo previo</text></svg>;\n' > $VISUAL_NUEVO" \
+    "rm -f $VISUAL_NUEVO"
+
+else
+  echo "  ⏭️  Alfabeto por idioma y techo de los diagramas: sin frontend/node_modules"
+fi
 
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────
 titulo "Auditoría (auditar.py --estricto)"

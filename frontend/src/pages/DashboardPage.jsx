@@ -18,6 +18,8 @@ import { PatternTradingCalculator } from '@/components/calculators/PatternTradin
 import { FuturesCalculator } from '@/components/calculators/FuturesCalculator';
 import { CompoundCalculator } from '@/components/calculators/CompoundCalculator';
 import { CrossMarginSimulator } from '@/components/calculators/CrossMarginSimulator';
+import { BreakevenCalculator } from '@/components/calculators/BreakevenCalculator';
+import { LosingStreakCalculator } from '@/components/calculators/LosingStreakCalculator';
 import { Watchlist } from '@/components/dashboard/Watchlist';
 import { EconomicCalendar } from '@/components/dashboard/EconomicCalendar';
 import { NextDataCountdown } from '@/components/dashboard/NextDataCountdown';
@@ -66,6 +68,8 @@ export default function DashboardPage() {
       { value: 'leverage', label: t('leverage'), descKey: 'calcDescLeverage' },
       { value: 'cross-margin', label: t('xmTitle'), descKey: 'calcDescCrossMargin' },
       { value: 'futures', label: t('futuresTabLabel'), descKey: 'calcDescFutures' },
+      { value: 'breakeven', label: t('beTitle'), descKey: 'calcDescBreakeven' },
+      { value: 'streaks', label: t('lsTitle'), descKey: 'calcDescStreaks' },
     ]},
     { id: 'price', label: t('calcCatPrice'), Icon: Target, items: [
       { value: 'target', label: t('targetPrice'), descKey: 'calcDescTarget' },
@@ -145,11 +149,13 @@ export default function DashboardPage() {
   // enlace llevaría al dashboard y la calculadora pedida no se vería.
   useEffect(() => {
     const requested = searchParams.get('tab');
-    const allowed = [
-      'percentage', 'target', 'leverage', 'position', 'lotsize',
-      'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
-      'futures', 'compound', 'partial-exit', 'cross-margin',
-    ];
+    // Derivada de CALC_NAV, no escrita a mano. La lista literal que había aquí
+    // era la TERCERA copia de los nombres de pestaña —CALC_NAV, los
+    // `TabsContent` y ésta— y ya se había quedado atrás: al añadir las
+    // calculadoras de equilibrio y rachas (2026-08-26) el enlace
+    // `/dashboard?tab=breakeven` no abría nada y no fallaba nada, simplemente
+    // aterrizabas en la pestaña por defecto sin entender por qué.
+    const allowed = ALL_CALC_TOOLS.map((it) => it.value);
     if (requested && allowed.includes(requested)) {
       setActiveTab(requested);
       setDeskAccount(prev => ({ ...(prev || {}), mode: 'basic' }));
@@ -532,6 +538,12 @@ export default function DashboardPage() {
 
               {/* ── Calculadora activa ────────────────────────────────── */}
               <div className="min-w-0 flex-1">
+              <TabsContent value="breakeven">
+                <BreakevenCalculator />
+              </TabsContent>
+              <TabsContent value="streaks">
+                <LosingStreakCalculator />
+              </TabsContent>
               <TabsContent value="percentage">
                 <PercentageCalculator />
               </TabsContent>

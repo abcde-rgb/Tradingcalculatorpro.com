@@ -2019,6 +2019,64 @@ export const getRRG = (t) => ({
   note: t('rrgNote'),
 });
 
+// Backtest validation — the module the academy was missing while the site sold
+// backtesting. Covers the four biases that manufacture false expectancy, the
+// in/out-of-sample split, walk-forward, Monte Carlo over the trade SEQUENCE,
+// how many trades significance needs, the data-snooping correction, and alpha
+// decay. Pairs with the tools: MonteCarloSimulator and the Validación tab.
+export const getBacktestValidation = (t) => ({
+  title: t('bvlTitle'),
+  intro: t('bvlIntro'),
+  items: [
+    { id: 'bias',     name: t('bvlBiasName'),     desc: t('bvlBiasDesc'),     type: 'bearish' },
+    { id: 'oos',      name: t('bvlOosName'),      desc: t('bvlOosDesc'),      type: 'bullish' },
+    { id: 'wf',       name: t('bvlWfName'),       desc: t('bvlWfDesc'),       type: 'bullish' },
+    { id: 'mc',       name: t('bvlMcName'),       desc: t('bvlMcDesc') },
+    { id: 'n',        name: t('bvlNName'),        desc: t('bvlNDesc') },
+    { id: 'deflated', name: t('bvlDeflatedName'), desc: t('bvlDeflatedDesc'), type: 'bullish' },
+    { id: 'decay',    name: t('bvlDecayName'),    desc: t('bvlDecayDesc'),    type: 'bearish' },
+  ],
+  note: t('bvlNote'),
+});
+
+// Grid and martingale — why the prettiest equity curves on the internet have
+// genuinely negative expectancy: the curve only counts what is CLOSED and the
+// system never closes what is losing. Includes the anti-martingale contrast,
+// which is the same gesture reversed and is defensible.
+export const getGridMartingale = (t) => ({
+  title: t('gmTitle'),
+  intro: t('gmIntro'),
+  items: [
+    { id: 'what',       name: t('gmWhatName'),       desc: t('gmWhatDesc') },
+    { id: 'curve',      name: t('gmCurveName'),      desc: t('gmCurveDesc'),      type: 'bearish' },
+    { id: 'martingale', name: t('gmMartingaleName'), desc: t('gmMartingaleDesc'), type: 'bearish' },
+    { id: 'regime',     name: t('gmRegimeName'),     desc: t('gmRegimeDesc') },
+    { id: 'detect',     name: t('gmDetectName'),     desc: t('gmDetectDesc'),     type: 'bearish' },
+    { id: 'anti',       name: t('gmAntiName'),       desc: t('gmAntiDesc'),       type: 'bullish' },
+    { id: 'verdict',    name: t('gmVerdictName'),    desc: t('gmVerdictDesc'),    type: 'neutral' },
+  ],
+  note: t('gmNote'),
+});
+
+// The volatility risk premium — the honest version of "selling options works":
+// implied trades above realised because protection has structural demand, so
+// the seller is paid for carrying tail risk. Volmageddon is what the bill looks
+// like. Pairs with the grid module: same payoff shape, opposite substance.
+export const getVolPremium = (t) => ({
+  title: t('vrpTitle'),
+  intro: t('vrpIntro'),
+  items: [
+    { id: 'what',     name: t('vrpWhatName'),     desc: t('vrpWhatDesc') },
+    { id: 'why',      name: t('vrpWhyName'),      desc: t('vrpWhyDesc'),      type: 'bullish' },
+    { id: 'evidence', name: t('vrpEvidenceName'), desc: t('vrpEvidenceDesc'), type: 'neutral' },
+    { id: 'tail',     name: t('vrpTailName'),     desc: t('vrpTailDesc'),     type: 'bearish' },
+    { id: 'vsgrid',   name: t('vrpVsGridName'),   desc: t('vrpVsGridDesc') },
+    { id: 'manage',   name: t('vrpManageName'),   desc: t('vrpManageDesc'),   type: 'bullish' },
+    { id: 'verdict',  name: t('vrpVerdictName'),  desc: t('vrpVerdictDesc'),  type: 'neutral' },
+  ],
+  note: t('vrpNote'),
+});
+
 // Andrews' Pitchfork (median line theory) — Alan Andrews' 3-parallel-line tool
 // from 3 pivots: how to draw it, the median line as a magnet, the parallels as
 // channel S/R, the Schiff variant, how to trade it, and honest (discretionary) limits.
@@ -2240,6 +2298,156 @@ export const getNetLiquidity = (t) => ({
 // Fat tails & tail risk — why the normal distribution lies: fat tails/kurtosis,
 // black swans (Taleb), the "impossible" sigma moves that keep happening, ruin &
 // non-ergodicity, convexity/tail hedging and the barbell. Pairs with TailRiskVisual.jsx.
+/**
+ * El retardo de las medias móviles, que el módulo nombraba sin medir nunca.
+ *
+ * `priceLabel` va como función porque su frase lleva tres cifras que sólo
+ * existen al calcularlas. La llamada a `t` sigue siendo literal —es lo que
+ * `split-i18n-edu` necesita para poder diferir la clave—, sólo se retrasa el
+ * momento de pasarle las variables.
+ */
+export const getMovingAverageLag = (t) => ({
+  title: t('mavLagTitle'),
+  intro: t('mavLagIntro'),
+  colPeriod: t('mavColPeriod'),
+  colLagSma: t('mavColLagSma'),
+  colAlpha: t('mavColAlpha'),
+  colComEma: t('mavColComEma'),
+  colAbsorbed: t('mavColAbsorbed'),
+  note: t('mavLagNote'),
+  priceLabel: (vars) => t('mavPriceLabel', vars),
+  priceNote: t('mavPriceNote'),
+});
+
+/**
+ * Los rótulos de las dos cifras que Wyckoff prometía y no daba.
+ *
+ * Aquí, como el resto del contenido de la academia, para que `split-i18n-edu`
+ * lo difiera: escritas en el componente, estas dieciocho claves viajarían en
+ * `main.js` a todo el que abre la portada.
+ */
+export const getWyckoffNumbers = (t) => ({
+  count: {
+    title: t('wykNumTitle'),
+    intro: t('wykNumIntro'),
+    colColumns: t('wykColColumns'),
+    colBase: t('wykColBase'),
+    colCause: t('wykColCause'),
+    colTarget: t('wykColTarget'),
+    note: t('wykCountNote'),
+  },
+  trade: {
+    title: t('wykTradeTitle'),
+    intro: t('wykTradeIntro'),
+    rowRange: t('wykRowRange'),
+    rowSpring: t('wykRowSpring'),
+    rowEntry: t('wykRowEntry'),
+    rowStop: t('wykRowStop'),
+    rowTarget: t('wykRowTarget'),
+    rowRisk: t('wykRowRisk'),
+    rowReward: t('wykRowReward'),
+    rowRR: t('wykRowRR'),
+    note: t('wykTradeNote'),
+  },
+});
+
+/**
+ * La tabla que respalda las menciones al beneficio/riesgo.
+ *
+ * La academia nombraba la relación decenas de veces sin decir nunca a cuánto
+ * acierto obliga cada una, que es justo la parte que se puede calcular. Las
+ * cifras no están aquí: salen de `tablaEquilibrio` en `edgeMath`, la misma
+ * función que usa la calculadora del panel, para que el curso y la herramienta
+ * no puedan decir cosas distintas.
+ */
+export const getBreakevenTable = (t) => ({
+  title: t('betTitle'),
+  intro: t('betIntro'),
+  colRR: t('betColRR'),
+  colGross: t('betColGross'),
+  colNet: t('betColNet'),
+  note: t('betNote'),
+});
+
+/**
+ * Los dos bloques «por qué importa»: tamaño de posición y esperanza.
+ *
+ * Cuatro filas —qué es, por qué importa, qué te cuesta ignorarlo, qué haces
+ * mañana— de las que sólo una fija el concepto: el coste. Por eso va con
+ * número y no en abstracto, y por eso las cifras que cita están comprobadas
+ * en `engine-check` contra las funciones que las producen: si `edgeMath`
+ * cambia, el texto que lo explica deja de cuadrar y el PR se rompe.
+ *
+ * Vive aquí, y no suelto en la página, por lo mismo que `getTailRiskFigures`:
+ * `split-i18n-edu` sólo difiere lo que sale de este fichero.
+ */
+export const getWhyItMattersBlocks = (t) => ({
+  size: {
+    what: t('wimSizeWhat'),
+    why: t('wimSizeWhy'),
+    cost: t('wimSizeCost'),
+    use: t('wimSizeUse'),
+  },
+  edge: {
+    what: t('wimEdgeWhat'),
+    why: t('wimEdgeWhy'),
+    cost: t('wimEdgeCost'),
+    use: t('wimEdgeUse'),
+  },
+});
+
+/**
+ * Los rótulos y las diez líneas de las tablas de cifras del riesgo de cola.
+ *
+ * Vive aquí y no junto a los datos por una razón concreta: `split-i18n-edu.js`
+ * extrae las claves de la academia de las llamadas `t('…')` LITERALES de este
+ * fichero, y deja en el paquete inicial cualquier clave citada fuera de él.
+ * Con las claves escritas en `tailRiskData.js`, las veintinueve viajaban en
+ * `main.js` a todo el que abre la portada. Aquí se difieren con el resto.
+ *
+ * Las líneas se indexan por el `id` del evento, no por clave: así el dato y el
+ * texto se emparejan sin que ninguno de los dos tenga que conocer al otro.
+ */
+export const getTailRiskFigures = (t) => ({
+  title: t('tailFigTitle'),
+  sigma: {
+    title: t('tailFigSigmaTitle'),
+    intro: t('tailFigSigmaIntro'),
+    move: t('tailFigColMove'),
+    prob: t('tailFigColProb'),
+    freq: t('tailFigColFreq'),
+    years: t('tailFigYears'),
+    universes: t('tailFigUniverses'),
+  },
+  events: {
+    title: t('tailFigEventsTitle'),
+    when: t('tailFigColWhen'),
+    asset: t('tailFigColAsset'),
+    size: t('tailFigColSize'),
+    what: t('tailFigColWhat'),
+    note: t('tailFigEventsNote'),
+    lines: {
+      lunesNegro: t('tailEvBlackMonday'),
+      ltcm: t('tailEvLtcm'),
+      puntocom: t('tailEvDotcom'),
+      gfc: t('tailEvGfc'),
+      franco: t('tailEvChf'),
+      volmageddon: t('tailEvVolmageddon'),
+      covid: t('tailEvCovid'),
+      niquel: t('tailEvNickel'),
+      nikkei: t('tailEvNikkei'),
+      bitcoin: t('tailEvBitcoin'),
+    },
+  },
+  recovery: {
+    title: t('tailFigRecTitle'),
+    intro: t('tailFigRecIntro'),
+    fall: t('tailFigColFall'),
+    need: t('tailFigColNeed'),
+    note: t('tailFigRecNote'),
+  },
+});
+
 export const getTailRisk = (t) => ({
   title: t('tailTitle'),
   intro: t('tailIntro'),

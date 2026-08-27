@@ -136,6 +136,21 @@ jobs:
       - name: Los diez idiomas están traducidos, no sólo presentes
         run: node scripts/i18n-traducido.js
 
+      # Y escritos en su alfabeto. Los dos anteriores miran claves y valores;
+      # ninguno mira los CARACTERES, y por ahí se colaron un «決» chino en una
+      # frase italiana y un «별» coreano en una japonesa. En su primera
+      # ejecución este verificador encontró dos más que ya estaban en
+      # producción: una fila entera del chino escrita en ruso.
+      - name: Cada idioma en su sistema de escritura
+        run: node scripts/i18n-escritura.js
+
+      # Los diagramas de la academia llevan 179 rótulos en castellano fijo.
+      # Es deuda conocida y grande (~1.180 rótulos × 10 idiomas); esto no la
+      # arregla, impide que crezca: el techo por fichero puede bajar, no subir,
+      # y un diagrama nuevo parte de cero.
+      - name: Los diagramas de la academia no ganan castellano nuevo
+        run: node scripts/check-visuales-idioma.js
+
       # `t` con identidad estable congela todo `useMemo(..., [t])` en el idioma
       # del primer render (BUG-066). No lo ve ningún check de diccionarios: la
       # traducción es correcta, lo que falla es CUÁNDO se recalcula.
@@ -158,6 +173,22 @@ jobs:
       # buscador manda a un ?topic= que la página no reconoce.
       - name: Índice de la Academia ↔ navegación
         run: node scripts/check-edu-index.js
+
+      # La academia tenía cinco enlaces salientes en 5.500 líneas. Al conectarla
+      # con las herramientas aparecieron veintitantos, y con ellos tres formas
+      # de fallar en silencio: un `?tab=` que el panel no acepta te deja en la
+      # pestaña por defecto, un id fuera de la tabla hace `return null`, y una
+      # clave mal escrita se pinta cruda en el idioma que nadie mira.
+      - name: Los enlaces de la Academia llevan a algún sitio
+        run: node scripts/check-enlaces-academia.js
+
+      # El quiz califica por la LETRA de la clave, no por posición. Lo que eso
+      # no cubre —y esto sí— es que una traducción intercambie los valores
+      # entre `a` y `b`: siete de las dieciocho preguntas tienen opciones que
+      # son opuestos exactos, y ahí un intercambio hace que el quiz enseñe lo
+      # contrario devolviendo un ✅.
+      - name: El quiz califica lo que dice calificar (10 idiomas)
+        run: node scripts/check-quiz.js
 
       # `engine-check` comprueba casos ELEGIDOS y sólo encuentra lo que a
       # alguien se le ocurrió mirar. Esto son 1000 escenarios GENERADOS, todos

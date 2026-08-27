@@ -15,12 +15,12 @@
 | | |
 |---|---:|
 | Módulos del backend | 35 |
-| Líneas de Python (backend) | 26,645 |
+| Líneas de Python (backend) | 26,872 |
 | Rutas declaradas | 199 |
-| **Rutas sin consumidor en el frontend** | **34** |
-| Ficheros de test · funciones de test | 59 · 971 |
+| **Rutas sin consumidor en el frontend** | **33** |
+| Ficheros de test · funciones de test | 59 · 999 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 6,968 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,290 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -28,7 +28,7 @@ Endpoints que **ningún fichero del frontend menciona**. Algunos lo están por
 diseño (un webhook lo llama la pasarela, no el navegador); el resto es código
 escrito, probado y que ningún usuario puede alcanzar.
 
-### Sospechosas (29)
+### Sospechosas (27)
 
 **Antes de escribir un módulo nuevo, mira si lo que te piden ya está aquí**
 esperando una pantalla. Esto es el hueco G-14.
@@ -38,8 +38,6 @@ esperando una pantalla. Esto es el hueco G-14.
 | `POST` | `/api/admin/subscriptions/{user_id}/refund` | `backend/server.py:8679` |
 | `GET` | `/api/alerts/realtime/status` | `backend/realtime_alerts.py:352` |
 | `POST` | `/api/alerts/send-email` | `backend/server.py:3577` |
-| `GET` | `/api/backtest/strategies` | `backend/server.py:7437` |
-| `POST` | `/api/backtest/validate` | `backend/server.py:7366` |
 | `POST` | `/api/calculate/american` | `backend/server.py:5814` |
 | `POST` | `/api/calculate/implied-volatility` | `backend/server.py:5698` |
 | `POST` | `/api/calculate/volatility-size` | `backend/server.py:7501` |
@@ -65,11 +63,12 @@ esperando una pantalla. Esto es el hueco G-14.
 | `POST` | `/api/subscriptions/change-plan` | `backend/missing_apis.py:492` |
 | `GET` | `/api/user-states/list` | `backend/server.py:4959` |
 
-### Huérfanas por diseño (5)
+### Huérfanas por diseño (6)
 
 | Método | Ruta | Por qué |
 |---|---|---|
 | `GET` | `/api/admin/connectors/status` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
+| `GET` | `/api/admin/referrals` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
 | `POST` | `/api/admin/set-plan` | panel admin — comprueba si `AdminPage` la construye dinámicamente |
 | `GET` | `/api/health` | infra — sonda de salud |
 | `POST` | `/api/webhook/stripe` | externo — lo llama la pasarela de pago |
@@ -80,7 +79,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | Módulo | Líneas | Rutas | Responsabilidad |
 |---|---:|---:|---|
 | `server.py` | 9,568 | 141 | — |
-| `performance.py` | 1,819 |  | Performance analytics — trade journal, metrics, error detection. |
+| `performance.py` | 1,820 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,206 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
 | `missing_apis.py` | 933 | 9 | missing_apis.py |
@@ -94,6 +93,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `level_odds.py` | 603 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
 | `trading_plan.py` | 565 |  | Trading plan: the user's own rules, versioned server-side. |
 | `candle_patterns.py` | 519 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
+| `performance_metrics.py` | 422 |  | Advanced performance & risk metrics — the professional-grade gap. |
 | `referrals.py` | 414 | 3 | referrals.py — Referral / Affiliate program API. |
 | `level_research.py` | 385 |  | ¿Cuál de todos estos rasgos aporta algo, y cuál sólo lo parece? |
 | `realtime_alerts.py` | 385 | 3 | realtime_alerts.py — WebSocket-based real-time price alerts. |
@@ -108,7 +108,6 @@ esperando una pantalla. Esto es el hueco G-14.
 | `revolut.py` | 216 |  | Revolut — Revolut Pay / Merchant API integration (order + webhook helpers). |
 | `market_rates.py` | 214 |  | Live risk-free rate. |
 | `notifications.py` | 213 |  | notifications.py — un aviso, tres canales, y la verdad sobre cuáles funcionan. |
-| `performance_metrics.py` | 196 |  | Advanced performance & risk metrics — the professional-grade gap. |
 | `nowpayments.py` | 182 |  | NOWPayments — crypto payment gateway integration (invoice + IPN helpers). |
 | `migrate_trades_schema.py` | 169 |  | Migra los documentos del diario legado (camelCase) al esquema canónico. |
 | `ecb_rates.py` | 145 |  | Tipos de cambio del Banco Central Europeo. |
@@ -143,7 +142,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `POST` | `/admin/plans/{plan_id}` | 944 | ✅ |
 | `GET` | `/admin/public/settings` | 1191 | ✅ |
 | `GET` | `/admin/rate-limits` | 1076 | ✅ |
-| `GET` | `/admin/referrals` | 866 | ✅ |
+| `GET` | `/admin/referrals` | 866 | ❌ |
 | `GET` | `/admin/referrals/leaderboard` | 888 | ✅ |
 | `POST` | `/admin/set-plan` | 376 | ❌ |
 | `POST` | `/admin/settings` | 452 | ✅ |
@@ -266,8 +265,8 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `POST` | `/auth/refresh` | 2127 | ✅ |
 | `POST` | `/auth/register` | 1943 | ✅ |
 | `POST` | `/auth/reset-password` | 2399 | ✅ |
-| `GET` | `/backtest/strategies` | 7437 | ❌ |
-| `POST` | `/backtest/validate` | 7366 | ❌ |
+| `GET` | `/backtest/strategies` | 7437 | ✅ |
+| `POST` | `/backtest/validate` | 7366 | ✅ |
 | `POST` | `/billing/create-portal-session` | 4771 | ✅ |
 | `GET` | `/billing/history` | 4806 | ✅ |
 | `GET` | `/brokers` | 8475 | ✅ |
@@ -392,24 +391,25 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/auth/` | 3 | 290 |
 | `components/backtesting/` | 1 | 175 |
 | `components/brokers/` | 1 | 230 |
-| `components/calculators/` | 15 | 4,644 |
+| `components/calculators/` | 17 | 5,023 |
 | `components/calculators/simulator/` | 6 | 1,436 |
 | `components/charts/` | 3 | 797 |
 | `components/charts/structure/` | 12 | 1,705 |
 | `components/common/` | 12 | 2,248 |
 | `components/dashboard/` | 8 | 1,005 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 83 | 13,853 |
+| `components/education/` | 87 | 14,390 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 590 |
 | `components/options/` | 37 | 8,122 |
-| `components/performance/` | 7 | 3,469 |
+| `components/performance/` | 8 | 3,881 |
 | `components/performance/form/` | 6 | 724 |
+| `components/pricing/` | 1 | 22 |
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 30 | 1,612 |
-| `pages/` | 23 | 16,587 |
+| `pages/` | 23 | 16,816 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -419,17 +419,17 @@ dan) en vez de abrirlos de arriba abajo.
 | Fichero | Líneas |
 |---|---:|
 | `backend/server.py` | 9,568 |
-| `frontend/src/pages/EducationPage.jsx` | 5,575 |
-| `frontend/src/lib/i18n/ar.js` | 4,664 |
-| `frontend/src/lib/i18n/de.js` | 4,664 |
-| `frontend/src/lib/i18n/en.js` | 4,664 |
-| `frontend/src/lib/i18n/es.js` | 4,664 |
-| `frontend/src/lib/i18n/fr.js` | 4,664 |
-| `frontend/src/lib/i18n/it.js` | 4,664 |
-| `frontend/src/lib/i18n/ja.js` | 4,664 |
-| `frontend/src/lib/i18n/pt.js` | 4,664 |
-| `frontend/src/lib/i18n/ru.js` | 4,664 |
-| `frontend/src/lib/i18n/zh.js` | 4,664 |
+| `frontend/src/pages/EducationPage.jsx` | 5,805 |
+| `frontend/src/lib/i18n/ar.js` | 4,867 |
+| `frontend/src/lib/i18n/de.js` | 4,867 |
+| `frontend/src/lib/i18n/en.js` | 4,867 |
+| `frontend/src/lib/i18n/es.js` | 4,867 |
+| `frontend/src/lib/i18n/fr.js` | 4,867 |
+| `frontend/src/lib/i18n/it.js` | 4,867 |
+| `frontend/src/lib/i18n/ja.js` | 4,867 |
+| `frontend/src/lib/i18n/pt.js` | 4,867 |
+| `frontend/src/lib/i18n/ru.js` | 4,867 |
+| `frontend/src/lib/i18n/zh.js` | 4,867 |
 
 ## Verificadores del repositorio
 

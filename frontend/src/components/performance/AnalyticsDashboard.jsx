@@ -73,6 +73,66 @@ const AdvTile = ({ label, value, hint, color = 'text-foreground', testId }) => (
   </div>
 );
 
+/**
+ * ¿Se está apagando la ventaja, o esto es varianza?
+ *
+ * La serie rodante del SQN sola invita a un error concreto: leer cualquier
+ * bajada como degradación. Con ventanas de 30 operaciones el error de muestreo
+ * es enorme y esa lectura casi siempre es falsa —una caída de 4,0 a 2,3 sale
+ * con p ≈ 0,5 sobre una ventaja que no ha cambiado nada—. Por eso el veredicto
+ * no lo decide la bajada, lo decide el test de permutación del backend.
+ */
+const DecaySqn = ({ decay, serie, t }) => {
+  if (!decay) return null;
+  const { sqn_anterior: antes, sqn_reciente: ahora, p_value: p, window: w } = decay;
+  if (antes == null || ahora == null || p == null) return null;
+
+  const bajada = ahora < antes;
+  const real = bajada && p < 0.05;
+  const cls = real ? 'text-[#ef4444]' : bajada ? 'text-[#f59e0b]' : 'text-[#22c55e]';
+  const txt = real ? t('decayReal') : bajada ? t('decayNoise') : t('decayNoDrop');
+
+  // Chispa de la serie rodante. Sin ejes ni escala absoluta a propósito: lo que
+  // se lee aquí es la FORMA, y el número exacto está en las dos cifras de al
+  // lado. Una escala inventada sería precisión que estos datos no tienen.
+  const pts = (serie || []).map((d) => d.sqn).filter((v) => v != null);
+  let ruta = null;
+  if (pts.length >= 2) {
+    const min = Math.min(...pts), max = Math.max(...pts);
+    const rango = max - min || 1;
+    ruta = pts.map((v, i) =>
+      `${(i / (pts.length - 1)) * 100},${28 - ((v - min) / rango) * 24}`).join(' ');
+  }
+
+  return (
+    <div className="bg-background border border-border rounded-lg p-4 mt-3" data-testid="adv-decay">
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <div>
+          <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-1">
+            {t('decayTitle', { w })}
+          </div>
+          <div className="font-mono text-sm">
+            <span className="text-muted-foreground">{fmtNum(antes)}</span>
+            <span className="mx-2 text-muted-foreground">→</span>
+            <span className={`text-lg font-bold ${cls}`}>{fmtNum(ahora)}</span>
+          </div>
+        </div>
+        {ruta && (
+          <svg viewBox="0 0 100 30" className="w-32 h-8 shrink-0" role="img"
+               aria-label={t('decaySparkAria')} preserveAspectRatio="none">
+            <polyline points={ruta} fill="none" stroke="currentColor" strokeWidth="1.5"
+                      className={cls} vectorEffect="non-scaling-stroke" />
+          </svg>
+        )}
+      </div>
+      <p className={`text-xs mt-2 font-medium ${cls}`}>{txt}</p>
+      <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+        {t('decayHint', { p: p.toFixed(3) })}
+      </p>
+    </div>
+  );
+};
+
 const Bar = ({ label, n, total, pnl, onClick }) => {
   const pct = total > 0 ? (n / total) * 100 : 0;
   // Una operación con dos setups cuenta en los dos grupos, así que un grupo
@@ -559,7 +619,23 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
             <AdvTile label={t('advCvar')} value={fmtMoney(a.advanced.cvar_95)}
               hint={t('advCvarHint')} color={a.advanced.cvar_95 == null ? 'text-muted-foreground' : 'text-[#ef4444]'}
               testId="adv-cvar" />
+            {/* Forma de la distribución de R. Son las tres que delatan la cola
+                izquierda —muchos aciertos pequeños, pérdidas raras y enormes—
+                que ni el Sharpe ni el win rate penalizan. */}
+            <AdvTile label={t('advSkew')} value={fmtNum(a.advanced.skewness)}
+              hint={t('advSkewHint')}
+              color={a.advanced.skewness == null ? 'text-muted-foreground' : a.advanced.skewness < -0.5 ? 'text-[#ef4444]' : 'text-foreground'}
+              testId="adv-skew" />
+            <AdvTile label={t('advKurtosis')} value={fmtNum(a.advanced.kurtosis)}
+              hint={t('advKurtosisHint')}
+              color={a.advanced.kurtosis == null ? 'text-muted-foreground' : a.advanced.kurtosis > 3 ? 'text-[#f59e0b]' : 'text-foreground'}
+              testId="adv-kurtosis" />
+            <AdvTile label={t('advTailRatio')} value={fmtNum(a.advanced.tail_ratio)}
+              hint={t('advTailRatioHint')}
+              color={a.advanced.tail_ratio == null ? 'text-muted-foreground' : a.advanced.tail_ratio < 1 ? 'text-[#ef4444]' : 'text-[#22c55e]'}
+              testId="adv-tailratio" />
           </div>
+          <DecaySqn decay={a.advanced.sqn_decay} serie={a.advanced.rolling_sqn} t={t} />
         </div>
       )}
 

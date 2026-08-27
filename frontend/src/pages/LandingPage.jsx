@@ -20,6 +20,7 @@ import { useAuthStore } from '@/lib/store';
 import { useTranslation, languages } from '@/lib/i18n';
 import { SITE_FACTS } from '@/lib/siteFacts';
 import { useSEO } from '@/hooks/useSEO';
+import { PlanPeriod } from '@/components/pricing/PlanPeriod';
 import { useThemeStore } from '@/lib/theme';
 
 // ===== Motion variants (module-level constants to avoid inline-object re-renders) =====
@@ -480,7 +481,7 @@ export default function LandingPage() {
                   <h3 className="font-bold text-xl mb-2">{t(plan.id + 'Plan')}</h3>
                   <div className="mb-1">
                     <span className="font-unbounded text-4xl font-bold">{t(plan.id + 'Price')}</span>
-                    <span className="text-muted-foreground text-sm">{t(plan.id + 'Period')}</span>
+                    <PlanPeriod texto={t(plan.id + 'Period')} />
                   </div>
                   
                   <ul className="space-y-2 mt-4 mb-6 flex-1">
