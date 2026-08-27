@@ -5205,3 +5205,397 @@ nadie. Rutas sin consumidor 32 → 33.
   reproduce porcentajes concretos.
 - **Nada de esto se ha visto renderizado**: las dos calculadoras y la pestaña de
   validación viven tras el muro premium, y el smoke visual sólo cubre público.
+
+---
+
+> **Entradas recuperadas de `ESTADO_PROYECTO.md` (2026-08-27).** La separación del
+> 2026-08-13 movió el registro a este fichero pero **no llegó a borrarlo del origen**:
+> allí quedaron 116 entradas, 108 de ellas ya copiadas aquí. Estas ocho eran las únicas
+> que no tenían copia, así que se traen antes de vaciar aquel documento. Van al final
+> —no en su hueco cronológico— porque este fichero es append-only: **la fecha del
+> título manda**, no la posición.
+
+### 2026-07-29 (cont.) — Revisión de los datos de los escáneres
+
+Auditoría de los cuatro escáneres a petición del dueño, aplicando el mismo
+criterio que el resto de la sesión: **lo que no se puede calcular no es un
+número, y lo provisional lo dice**. Tres defectos reales encontrados.
+
+#### 🔴 El ratio volumen/OI convertía el caso más normal en el más "inusual"
+
+`_scan_chain_for_unusual` calculaba `ratio = vol / max(oi, 1)`. Cuando el interés
+abierto es **cero** —el estado ordinario de un strike recién listado en su primer
+día— el denominador pasaba a valer 1 y el ratio se volvía **el volumen entero**:
+un strike con 500 contratos negociados y 0 de interés abierto puntuaba 500 y
+encabezaba el ranking de "actividad más inusual". Es exactamente la misma clase
+de fallo que el `r_multiple = 0` sin stop: una cantidad indefinida coaccionada a
+un número que además domina una ordenación.
+
+- `server.py → _volume_oi_ratio()`: devuelve `None` cuando no hay OI.
+- `server.py → _rank_flow_rows()`: las filas sin ratio van **después** de todas
+  las que tienen uno real, ordenadas entre sí por nocional. Antes, ordenar la
+  lista mezclada por `ratio` las ponía arriba del todo.
+- No se filtran por un `min_ratio` que no tienen: se conservan (volumen real en
+  un strike nuevo puede interesar) pero marcadas con `oiUnavailable: true`.
+- Frontend: `UnusualActivity.jsx` y `MarketFlow.jsx` renderizaban `{r.ratio}x`,
+  que con `null` habría pintado literalmente **"nullx"**. Ahora muestran
+  "sin OI" con su explicación.
+
+#### 🟠 El desfase del interés abierto no llegaba al usuario
+
+Yahoo publica el OI **una vez al día, tras el cierre**, así que todo ratio
+compara el volumen de hoy contra el interés abierto de la sesión anterior: sale
+alto a primera hora y es menos fiable tras un fin de semana. Está señalado en
+`ANALISIS_TRADER §3.2` pero no aparecía en ninguna parte del producto. Añadido
+`OI_STALENESS_NOTE` a las respuestas de `/options/unusual` y `/options/market-flow`,
+y banda de aviso en ambas vistas. **No lo arregla** —eso exige otro proveedor de
+datos, que es la decisión de negocio pendiente— pero deja de presentarse como
+una medición.
+
+#### 🟠 Patrones detectados sobre una vela sin cerrar se mostraban como confirmados
+
+`_bar_is_forming()` ya existía y su docstring decía que era "para que el cliente
+deje de presentar una ruptura provisional como un hecho" — pero la respuesta solo
+llevaba **un booleano global**, así que el cliente no podía saber *cuál* de las
+detecciones era la provisional. Y `LivePatternDetector.jsx` **ignoraba la bandera
+por completo**: un martillo sobre una vela a medio formar se pintaba igual que
+uno cerrado, aunque la figura pueda desaparecer en el siguiente tick.
+
+- `/education/pattern-scan`: cada detección lleva ahora `provisional`,
+  comparando su `index` con la última barra.
+- `/education/structure-scan`: `_mark_provisional()` hace lo mismo con swings,
+  eventos, FVGs y rupturas — un BOS "confirmado" por una vela en curso puede
+  deshacerse antes del cierre.
+- `LivePatternDetector.jsx`: etiqueta ámbar "Provisional" con explicación.
+  `StructureScanner.jsx` ya tenía la banda global y se mantiene.
+
+#### ✅ Revisado y correcto (para no repetir el trabajo)
+
+- **La cadena sintética no entra en los escáneres.** `/options/unusual` y
+  market-flow hacen `if not chain: continue` sobre `get_options_chain_real`, así
+  que solo ven datos reales. Con el cambio de esta sesión (volumen/OI sintéticos
+  a `None`), el `or 0` posterior los dejaría fuera igualmente por `min_volume`.
+- **`max(x, 1)` restantes**: son guardas numéricas legítimas
+  (`american_options.py:90-91`, `backtest.py:465`, `candle_patterns.py:197`).
+- **`churn_rate` y `conversion_rate`** (`server.py:7309`, `:7319`) usan el mismo
+  patrón `max(n, 1)`, pero ahí el numerador es **cero por construcción** cuando
+  el denominador lo sería (es un subconjunto), así que no producen una cifra
+  falsa. Comprobado, no tocado.
+- `pattern-scan` y `structure-scan` ya traían buena higiene previa:
+  `adjustments`, `aggregatedFrom` (4h compuesto desde 1h) e `interval` por
+  detección.
+
+#### 🔴 El "Precio ahora" del escáner de estructura no era el precio de ahora
+
+Lo más grave de esta revisión, y afecta directamente a **soportes y resistencias**.
+`detect_structure` usaba `current_price = rows[-1]["close"]` —el cierre de la
+última vela de la temporalidad pedida— y la UI lo etiquetaba **"Precio ahora"**.
+No lo es: en diario tras el cierre es el cierre de hoy, un sábado es el del
+viernes, en mensual es el cierre corriente del mes, y el feed de Yahoo va con
+retardo en muchos mercados.
+
+Importa más aquí que en ningún otro sitio del escáner porque **todo el rol de
+soporte/resistencia se decide comparando contra ese precio**. El propio
+docstring de `detect_sr_levels` dice que equivocar ese rol es *"lo más engañoso
+que este escáner podría decir, porque invierte la operación"* — y se estaba
+alimentando con un precio potencialmente rancio. Reproducido: con el precio
+un 1,2 % por encima del cierre, el nivel 115,02 pasa de **resistencia** a
+**soporte**.
+
+- `/education/structure-scan` pide ahora la **cotización en vivo**
+  (`get_stock_data`, ya cacheada 5 min) y clasifica contra ella. Si falla, cae al
+  último cierre y **lo dice** en `referenceSource`.
+- Nuevos campos: `referencePrice`, `referenceSource` (`live` | `last_close`),
+  `lastClose`, `livePrice`, `liveVsCloseDivergencePct`, `referenceDate`,
+  `referenceAgeSeconds` y `levelsBetweenLiveAndClose` — este último cuenta
+  exactamente los niveles cuyo rol depende de qué precio se use.
+- `StructureScanner.jsx`: la etiqueta pasa de "Precio ahora" a **"Precio en
+  vivo"** o **"Último cierre"** según lo que sea de verdad, con la fecha de la
+  vela y un aviso ámbar cuando hay niveles en la zona de divergencia.
+- ⚠️ Un test que ya existía (`test_empty_read_has_the_same_keys_as_a_full_one`)
+  detectó que había añadido las claves nuevas solo a la respuesta completa y no
+  a la vacía. El contrato es correcto —el cliente no debe ramificar según la
+  forma que le llegue— y se corrigió.
+
+**Verificación**: `pytest` **361 passed / 74 skipped** (+16 en
+`tests/test_scanner_data_unit.py`), 188 rutas, i18n **5490 × 8 sin huecos**,
+ESLint 0 errores, build exit 0.
+
+---
+
+### 2026-08-03 — Las herramientas se explican solas
+Auditoría pedida por el propietario («¿mis herramientas son profesionales?»). El
+motor lo era; la explicación no. Lo que se encontró, medido:
+
+- **14 de 14 calculadoras no decían qué hacían.** Ni una tenía `CardDescription`.
+- **`components/ui/tooltip.jsx` estaba instalado y muerto**: cero importaciones.
+  La ayuda existente usaba el atributo `title` del navegador, que **en móvil no
+  existe** — no hay hover — así que era invisible para quien entra del teléfono.
+- **No había vista de conjunto.** Con 14 herramientas en pestañas, saber cuál
+  sirve exigía abrirlas una a una.
+
+Lo hecho:
+
+- ✅ **`FieldHelp.jsx`**: interrogante que abre al **pulsar**, no al pasar por
+  encima, sobre el `popover` que ya estaba instalado. `onOpenAutoFocus`
+  prevenido: sin eso, abrir la ayuda robaba el foco al campo y en móvil cerraba
+  el teclado. Exporta también `LabelWithHelp` para no repetir el `flex` en cada
+  campo y que acabe desalineado en la mitad.
+- ✅ **Una descripción por calculadora**, las 14, en los 10 idiomas. Regla al
+  escribirlas: **qué** calcula y **cuándo** se usa. Si la frase no dice algo que
+  no estuviera ya en el título, sobra.
+- ✅ **Ayuda en 6 campos** de las calculadoras de riesgo, con la misma regla. Un
+  interrogante que sólo reformula la etiqueta enseña a no pulsar ninguno, así
+  que sólo se pone donde hay un rango sensato, un error frecuente o una
+  consecuencia que no se deduce. Ej.: riesgo por operación explica que con un 2%
+  hacen falta ~35 pérdidas seguidas para dejar la cuenta a la mitad, y con un
+  10% bastan 7.
+- ⛔ **El mapa de herramientas se retiró al integrar main.** Se había hecho un
+  `ToolMap.jsx` (las 14 en una pantalla, tras un botón), pero main había
+  reconstruido entretanto la estación como **barra lateral fija con buscador**,
+  que resuelve lo mismo de forma permanente y sin abrir nada. Dos maneras de
+  hacer lo mismo es peor que una: se queda la de main. De aquel trabajo
+  sobrevive el `descKey` por herramienta en `CALC_NAV`.
+- 🐛 **Fallo previo detectado por duplicado**: `CompoundCalculator` se titulaba
+  «Estilos Comparados de un Vistazo» y calcula interés compuesto. Se arregló a la
+  vez en main y en esta rama, con la misma solución (`cmpCalcTitle`); al integrar
+  se conservó la de main, que llegó primero.
+- ✅ **Verificado en navegador real** (Playwright, modo demo): descripción
+  visible bajo el título, el popover abre con su texto, el mapa pinta las 14
+  tarjetas y al pulsar una abre esa herramienta. ESLint 0 errores · i18n 10/10
+  (5681 claves, +32) · engine 60/60 · build con 1589 URLs.
+- ⏭️ **Pendiente**: ampliar la ayuda de campo a opciones, futuros y los
+  simuladores. La infraestructura ya está; es sólo escribir los textos.
+   Verifica antes de afirmar (compila, ejecuta, lee el archivo). Las cifras de §1 y §2
+   son las que más se desvían: el 2026-08-13 decían 24 módulos cuando había 28.
+
+---
+
+### 2026-07-17 (47) — Acceso libre (comp) para cuentas de cortesía
+- ✅ **`_FREE_ACCESS_EMAILS`** en `server.py`: correos con **acceso premium completo sin pagar**
+  (útil mientras no está la facturación/Stripe activa). Por defecto incluye
+  `tradingcalculatorpro@gmail.com`; ampliable por env `FREE_ACCESS_EMAILS` (coma-separado).
+  `check_premium` los trata como premium; `affiliate_program._is_paying_member` los acepta como
+  suscriptores de pago (pueden unirse al programa de afiliados). Sin cambios en el frontend: `/auth/me`
+  ya devuelve `is_premium=True` para ellos → desbloquea funciones y muestra la opción de afiliados.
+- ⚠️ **Revertir cuando haya pagos**: quitar el correo del set (o de la env var). No es admin por sí solo
+  (para admin, usar `ADMIN_EMAILS`).
+- ✅ Verificado: 10 tests afiliados; import 178 rutas; `check_premium`/`_is_paying_member` True para el
+  correo comp y False para un usuario gratis normal.
+
+---
+
+### 2026-08-10 — Auditoría integral (contenido, cálculos, APIs, datos, normativa, admin)
+
+Examen completo pedido de punta a punta. Informe entero en
+[`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md). Resumen de lo **nuevo**
+(lo ya conocido —G-14, G-16, C-08, G-26— sólo se reevaluó):
+
+**Base medida hoy:** `pytest` **761 passed / 74 skipped** (Postgres 16 real) ·
+`npm run build` exit 0, 39 MB, 1589 URLs · ESLint 0 errores / 123 avisos ·
+i18n **6019 × 10, 0 huecos** · engine-check **197/197** · instrumentos en
+paridad · 55 documentos sin enlaces rotos.
+
+**Hallazgos nuevos, por gravedad:**
+
+- 🔴 **Testimonios fabricados en portada** (`i18n/es.js:2454-2465` × 10 idiomas):
+  tres personas inventadas con antigüedad y «5 estrellas», más «Cientos de
+  traders». La Directiva Ómnibus (UE) 2019/2161 los metió en el **Anexo I** de la
+  2005/29/CE: desleales *en toda circunstancia*, hasta 4 % de facturación o 2 M€.
+  Uno de ellos es además una promesa implícita de rentabilidad, que contradice la
+  propia página de Advertencia de Riesgo.
+- 🔴 **El panel admin pierde el 100 % de tres tipos de escritura** — PROBADO
+  contra Postgres real. `app_settings` tiene dos esquemas incompatibles: se
+  escribe con el documento único `{_id:"global"}` y se lee buscando documentos
+  por `key`. Afecta al editor de planes (`admin_routes.py:892` vs `:934`, dentro
+  del mismo par de funciones), al gestor i18n (`:692` vs `:724`) y a
+  `/public/settings` (`:1144`). El admin recibe `{"success": true}` y no pasa
+  nada; GA4/GTM/Clarity/Trustpilot **no se pueden activar desde el panel**.
+- 🔴 **`days_to_expiry` pierde hasta un día entero** (`stock_data.py:601`):
+  `.days` trunca la fracción y mezcla naive-UTC con naive-local. Un contrato a 7
+  días se reporta como 6 → **−7,3 % en una call ATM semanal**, medido. Máximo
+  error justo en semanales y 0DTE. Irónico: `year_fraction()` se escribió para
+  contar las horas de sesión y recibe un entero al que ya se las han quitado.
+- 🔴 **Normativa, cuatro bloqueantes**: responsable sin identificar («una LLC
+  registrada en EE. UU.»), **sin representante en la UE** (RGPD art. 27), **sin
+  derecho de desistimiento** (0 apariciones; la política de reembolsos lo
+  condiciona a «no uso significativo», que es ilegal) y **PostHog con grabación
+  de sesión sin declarar** — con la Política de Cookies afirmando en negrita lo
+  contrario. Añadido: 🟠 sin IVA en el checkout (ni `automatic_tax` ni OSS), 🟠
+  rectificación anunciada y sin endpoint, 🟠 teléfono/Twilio SMS sin declarar,
+  🟡 cookies desfasadas por G-25.
+- 🟠 **La cadena REAL fabrica cifras sin marcarlas** (`stock_data.py:552`, `:564`):
+  `iv: 0.3`, `openInterest: 0`, `mid: 0` para el lado que no cotiza, y `or 0.3`
+  cuando Yahoo publica IV 0. Viola la regla nº 2 del proyecto y **anula el
+  cuidado de `_leg_oi()`**, que devuelve `None` «cuando nunca se observó» y al
+  que nunca le llega un `None`, sino un `0` indistinguible de una observación.
+- 🟠 **hreflang autodestructivo**: canonical a la URL desnuda y alternativas a
+  `?lang=xx` de la *misma* URL, sirviendo el mismo HTML. Google canonicaliza y
+  descarta las alternativas → 9 de 10 idiomas no se indexan. La inversión en
+  6019 claves × 10 idiomas no se está cobrando.
+- 🟠 **1589 páginas con 76 % de plantilla compartida** — PROBADO: 38 de 50 líneas
+  de texto idénticas entre dos estrategias distintas; lo único propio es una
+  frase. Patrón *doorway* + *thin content* en un sitio YMYL.
+- 🟠 **G-16 es peor de lo anotado**: no es «Yahoo sin licencia», es **evasión
+  deliberada de su detección de bots** (`curl_cffi impersonate="chrome"`,
+  `stock_data.py:34`, con el motivo escrito en el comentario) monetizada a
+  17-500 €. Cambia la naturaleza del riesgo y añade el derecho *sui generis* de
+  base de datos. Un cambio de fingerprint apaga el producto estrella.
+- 🟠 **`99.9 %` de uptime** en portada sin SLA y desmentido por los propios
+  Términos. 🟡 «50+ activos» cuando hay ~186.
+- 🔴 **Dominio**: sigue todo en `abcde-rgb.github.io/…`. Con un plan de 500 €, es
+  el mayor freno a la conversión y regala la autoridad SEO a github.io. Es el
+  arreglo con mejor relación impacto/esfuerzo del repositorio.
+
+**Lectura de conjunto:** el problema es de **frontera**, no de fondo. Cada módulo
+por dentro está por encima de la media; lo que falla es el contrato *entre*
+piezas (shim ↔ admin, adaptador de Yahoo ↔ honestidad numérica, código ↔
+políticas legales, producto ↔ portada). Ninguna de las siete comprobaciones
+automáticas del proyecto puede ver un fallo de esa clase — de ahí que G-17
+(tests del shim) suba de prioridad.
+
+**No se ha tocado código:** el encargo era el examen. El plan priorizado en 15
+pasos está en el §9 del informe.
+
+---
+
+---
+
+### 2026-08-10 (cont.) — Se corrigen los hallazgos de la auditoría
+
+Segunda mitad de la sesión: se pidió corregirlo todo y quitar los testimonios.
+Detalle completo en el §11 de [`AUDITORIA_2026-08-10.md`](./AUDITORIA_2026-08-10.md).
+
+**Estado final medido:** `pytest` **775 passed / 74 skipped** (eran 761; +14 de
+regresión) · `npm run build` exit 0, 39 MB, 1589 URLs · ESLint **0 errores** ·
+i18n **6021 × 10, 0 huecos** · engine-check **197/197** · instrumentos en
+paridad · 56 documentos sin enlaces rotos.
+
+- 🔴→🟢 **Testimonios fabricados eliminados** de los 10 idiomas y de
+  `LandingPage`. Los sustituye «Cómo tratamos tus números»: tres compromisos que
+  el repositorio cumple y los tests fijan. También fuera el **`99.9 %`** de
+  uptime (sin SLA y desmentido por los Términos) y el **«50+» activos** (hay
+  186): las cuatro cifras de portada se **cuentan ahora desde la fuente**.
+- 🔴→🟢 **`app_settings` unificado.** Los tres lectores rotos leen por donde se
+  escribe; verificado con la misma sonda que probó el fallo. Apareció una
+  **segunda capa**: el frontend pedía `gtm_id`/`gsc_verification`/
+  `bing_verification` y el backend publica `gtm_container_id`/
+  `gsc_verification_code`/`bing_verification_code` — tres de cuatro
+  integraciones no habrían funcionado ni con `/public/settings` arreglado.
+  Nuevo `test_app_settings_roundtrip_unit.py` (7 tests) — cubre parte de G-17.
+- 🔴→🟢 **El editor de precios deja de ser decorativo.** `get_effective_plans()`
+  es el punto único de `/plans`, checkout, los tres webhooks y las métricas.
+  Cambiar el importe **exige** mandar el `stripe_price_id` nuevo a la vez, o 400:
+  mover uno sin el otro haría que la web anunciara 17 € y Stripe cobrara 29.
+- 🔴→🟢 **`days_to_expiry`** con `ceil` sobre segundos y ambos lados en UTC. Se
+  acabó el −7,3 % en la call ATM semanal. Nuevo `test_chain_honesty_unit.py`
+  (7 tests) que fija tanto el día como la honestidad de la cadena.
+- 🟠→🟢 **La cadena real deja de fabricar cifras.** `iv`/`openInterest`/`mid` son
+  `None` sin observación. El `iv or 0.3` de `_build_chain_for_expiration` pasa a
+  → IV publicada → **despejada del precio** (que es una medida) → griegas `None`,
+  publicando `ivSource`. El ratio volumen/OI ya no calcula sobre un denominador
+  inventado, y el optimizador rechaza patas sin precio o sin IV reales.
+- 🔴→🟢 **Normativa**: desistimiento de 14 días + formulario del Anexo I(B) en
+  los 10 idiomas · `automatic_tax` + `tax_id_collection` +
+  `billing_address_collection` + `consent_collection` en el checkout (requisitos
+  de operación en DEPLOY_CHECKLIST §E-bis) · **PostHog declarado** y corregida la
+  frase falsa sobre seguimiento comportamental · teléfono y Twilio SMS
+  declarados · cookies al día tras G-25 · retención de `usage_events` y del
+  registro de SMS.
+- 🟡→🟢 **G-26 cerrado**: `PUT /auth/profile` + formulario en Ajustes. El derecho
+  de rectificación que la política prometía ya se puede ejercer.
+- 🟠 **N1/N2 preparados, no cerrados**: la identidad legal y el representante del
+  art. 27 pasan a **fuente única** (`lib/legalContent/entity.js`) con los tokens
+  `{entity}` y `{euRepresentative}`. Rellenarla es ahora **una edición** en vez
+  de diez ficheros. La sección del representante **se oculta sola** mientras no
+  haya uno designado. Faltan los datos reales, que no están en el código.
+- 🟠→🟢 **hreflang contradictorio retirado** del shell del SPA y de
+  `gen-sitemap.js`. Las páginas estáticas ya lo hacían bien y no se tocaron.
+  Queda pendiente la home estática por idioma para que la portada tenga hreflang
+  de verdad.
+- 🟡→🟢 **`user_state_ttl_days`** fuera del panel, con un comentario que explica
+  por qué no debe volver.
+
+**Sigue abierto y es decisión de negocio, no de código:** el dominio propio
+(§7), los datos reales del titular y del representante en la UE (§3), el Grupo B
+de proveedores de datos (§4, G-16 — evasión de la detección de bots de Yahoo,
+el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
+
+---
+
+### 2026-08-01 — Auditoría integral 100% (documento, sin cambios de código todavía)
+- 📄 **Nuevo doc [`AUDITORIA_INTEGRAL_2026-08-01.md`](./AUDITORIA_INTEGRAL_2026-08-01.md)**:
+  auditoría a petición del dueño de **todo** el proyecto (frontend 19 páginas/~200 componentes,
+  backend 169 rutas, 20+ docs), verificada contra el código real. Incluye: inventario, **matriz de
+  trazabilidad de las 26 peticiones** (cada una → estado → acción), hallazgos por bloque
+  (datos/APIs, TradingView, dashboard inteligente, educación, opciones, app móvil/desktop, SEO,
+  journal, seguridad, i18n, performance) y roadmap P0-P3.
+- 🔎 Hallazgos clave: (1) el gráfico usa el **embed iframe** → **no puede guardar dibujos** (necesita
+  migrar a **Advanced Charts**, hueco G-05); (2) los **tipos de mercado** en Educación son tarjetas
+  **estáticas** → falta la pestaña interactiva pedida (preguntas/ejemplos/calculadora/widget);
+  (3) el **calendario** no tiene cuenta atrás ni banderas, y no hay panel de **ponentes** ni de
+  **noticias**; (4) sin **badges de tiendas** ni apps nativas (PWA sí existe); (5) **Twelve Data**
+  solo está en PENDIENTES, no integrado (backend usa Yahoo curl_cffi + CoinGecko); (6) **seguridad
+  y ciclo de cuenta muy sólidos** (2FA, borrado RGPD, IP con x-forwarded-for) con endurecimiento
+  menor pendiente (10× `detail=str(e)`, Dependabot/CodeQL, C-08).
+- ✅ Confirmado ya implementado (no re-hacer): buscador universal con autocompletado, 8 idiomas a la
+  par con banderas, lotes/pips/valor-pip, borrado de cuenta RGPD, 3+ pasarelas de pago.
+- 🎯 Próximos pasos P1 recomendados: schema FAQ/HowTo en páginas prerenderizadas para featured
+  snippets, Twelve Data conmutable + caché, buscador del gráfico con backend, presets de indicadores,
+  Advanced Charts (dibujos guardables), calendario con cuenta atrás + banderas.
+- ✅ **Implementado y verificado en esta sesión** (build exit 0 + i18n-check 5185×8):
+  1. **Sección "Próximamente App"** en la landing (`components/landing/AppStorePromo.jsx`): badges
+     teaser de Google Play / App Store / Microsoft Store (SVG inline) + CTA "Avísame" + nota
+     multiplataforma Android/iOS/Windows/macOS/Linux. i18n ×8. (P-19)
+  2. **Tipos de mercado interactivos** en Educación → Fundamentos
+     (`components/education/MarketTypeDetailModal.jsx` + `data/marketTypeDetails.js`): las tarjetas
+     ahora abren un modal con cómo-se-mide + unidades, widget TradingView en vivo por mercado, FAQ
+     (inglés, para snippets), ejemplo y accesos a calculadora + módulo profundo. 10 mercados. i18n ×8.
+     (P-07/P-08/P-09; parte SEO de P-10 pendiente = JSON-LD en el generador de páginas SEO).
+
+---
+
+### 2026-08-01 (cont.) — Aplicar la investigación del dueño + red estructural de asistente
+- 🧠 **Red estructural de Claude Code** (`.claude/`): 5 skills (`auditar-formulas`,
+  `revisar-contenido-trading`, `auditar-seo-spa`, `seguridad-pagos`, `consistencia-diseno`),
+  4 subagentes (`auditor-formulas`, `crawler-visual`, `revisor-seguridad`, `revisor-i18n-contenido`),
+  2 comandos (`/examen-web`, `/pre-deploy`) y `ARQUITECTURA_ASISTENTE.md` (índice que interconecta
+  skills/subagentes/comandos/docs/código). Adaptado al stack REAL (shim PostgreSQL, no MongoDB).
+- 🧮 **Huecos financieros deterministas implementados y verificados offline:**
+  - `options_math.py`: **vanna, charm** (griegas 2º orden, verificadas por diferencias finitas) +
+    `calculate_second_order_greeks()` + **`gamma_exposure()` (GEX)** con honestidad (OI sintético→None).
+  - `performance_metrics.py` (nuevo, stdlib): **SQN, Calmar, Ulcer, z-score de rachas, VaR
+    (paramétrico+histórico), CVaR, MAE/MFE** — todo con regla None-no-0. 15 tests nuevos con valores
+    de referencia; cableado aditivo en `compute_analytics` → clave `advanced`; 0 regresiones.
+  - **UI:** panel "Métricas de mesa (avanzadas)" en `AnalyticsDashboard.jsx` (SQN/Calmar/Ulcer/
+    Z/VaR/CVaR) con "—" honesto. i18n ×8 (5198 claves).
+- 📄 **Investigación preservada en el repo:** `docs/ROADMAP_JOURNAL_OPCIONES.md` (journal/opciones:
+  métricas + fases + estado) y `docs/AUDITORIA_FINAL_PRELANZAMIENTO.md` (huecos GEX/vol/VaR/vanna/
+  funding/roll + checklist de deploy). El reparto free/paid NO se toca (solo estudio).
+- 🔴 **Pendiente grande de estos docs** (mapeado, no hecho): panel UI de GEX + vanna/charm en el
+  workspace; skew/term-structure/expected-move; funding/basis cripto y roll yield futuros;
+  constructor visual de estrategias; journal de opciones multi-pata + import CSV por broker; CSP meta.
+- ✅ Verificado: `pytest` 15 nuevos + 38/7-skip sin regresiones; `i18n-check` 5198×8; `npm run build` exit 0.
+
+---
+
+### 2026-08-01 (cont. 2) — Pestaña "Dealers": GEX + vanna/charm en el workspace de opciones
+- 🎯 **Los huecos A y D de la auditoría pasan de "motor listo" a producto usable.**
+- **Backend:** `_load_options_chain()` (helper compartido; elimina el cuerpo duplicado del endpoint
+  de cadena) · `GET /options/gex/{symbol}` (GEX por strike, total, call/put wall) ·
+  `POST /calculate/greeks-advanced` (vanna/charm de las patas) · `flatten_chain_for_gex()`.
+- **Frontend:** `components/options/DealerPositioning.jsx` + pestaña **Dealers** en `OptionsSubHeader`:
+  tiles de GEX total/muros/spot, barras de exposición por strike centradas en el spot, y vanna/charm
+  de la estrategia activa. i18n ×8 (21 claves nuevas → 5217 c/u).
+- 🐛 **BUG DE HONESTIDAD ENCONTRADO Y CORREGIDO:** la cadena **sintética fabricaba `openInterest` y
+  `volume` aleatorios** y el endpoint los devolvía **sin marcar**. (El informe del dueño daba por
+  existente un `SyntheticDataBanner` que **no estaba en el código**.) Ahora la respuesta lleva
+  `synthetic: true` y **el GEX se niega a calcularse** sobre datos modelados o sin interés abierto
+  real → `gex: null` + aviso explícito en la UI, en vez de inventar muros de gamma.
+- ✅ Verificado: **144 passed / 74 skipped** (0 regresiones), 8 tests nuevos de GEX/flatten, la app
+  importa con **180 rutas**, `i18n-check` 5217×8, `npm run build` exit 0.
+- 🔴 Sigue pendiente de estos docs: skew/term-structure/expected-move; funding/basis cripto y roll
+  yield futuros; constructor visual de estrategias; journal de opciones multi-pata + import CSV;
+  CSP meta; ficha educativa `/learn/gex/`.
+
+---

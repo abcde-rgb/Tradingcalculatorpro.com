@@ -13,7 +13,7 @@ Procedimiento:
 2. Verifica sintaxis: `python -m py_compile backend/*.py`.
 3. Corre los tests de matemáticas offline (no requieren red ni BD):
    `cd backend && pytest tests/ -k "greeks or blackscholes or payoff or performance or metrics or gex or options_math" -q`
-4. Contrasta los valores clave de referencia (sigue la skill `auditar-formulas`):
+4. Contrasta los valores clave de referencia (sigues la skill `auditar-formulas` — **léela primero**: `.claude/skills/auditar-formulas/SKILL.md`. No tienes la herramienta `Skill`, así que ábrela con `Read`, no de memoria):
    BS call ATM = 10.4506, put = 5.5735, delta call = 0.6368, paridad put-call; SQN con N=min(n,100).
 5. Marca cualquier violación de honestidad numérica (incalculable → `None`, nunca 0; datos
    modelados → `synthetic:true`).

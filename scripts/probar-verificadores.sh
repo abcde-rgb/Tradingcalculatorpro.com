@@ -923,6 +923,54 @@ probar_inverso "un registro fechado que dice 8 idiomas porque ese día había 8"
   "printf '# Zz sabotaje\n\n## Sesión de ayer (2026-07-04) — i18n\n\nCerró con 8 idiomas a la par.\n' > $DOC_SABOTAJE" \
   "rm -f $DOC_SABOTAJE"
 
+# ── El cableado del asistente ───────────────────────────────────────────────
+# Seis comprobaciones, seis sabotajes. Van una a una y no en bloque a propósito:
+# `gen-asistente.py` corta en el primer fallo, así que un sabotaje múltiple sólo
+# probaría el primero y dejaría los otros cinco sin verificar — que es justo la
+# clase de cobertura falsa que este fichero existe para impedir.
+titulo "Cableado del asistente (gen-asistente.py)"
+
+probar "una skill cuyo name: no coincide con su carpeta" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's/^name: no-me-fio$/name: no-me-fio-renombrada/' .claude/skills/no-me-fio/SKILL.md"
+
+probar "una cita a una skill que no existe" \
+  "python scripts/gen-asistente.py --check" \
+  "printf '\nAplica la skill \`fantasma-inexistente\`.\n' >> .claude/commands/examen-web.md"
+
+probar "una regla con un paths: que no casa con ningún fichero" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's|^  - \"backend/Dockerfile\"$|  - \"backend/Dockerfile\"\n  - \"backend/NO_EXISTE_SABOTAJE.yaml\"|' .claude/rules/infra.md"
+
+probar "una regla que CLAUDE.md deja de nombrar" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's|\`rules/preferencias.md\`|\`rules/NOMBRE_CAMBIADO.md\`|' CLAUDE.md"
+
+probar "un subagente que no puede cargar la skill que dice seguir" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's|\.claude/skills/seguridad-pagos/SKILL\.md|(de memoria)|' .claude/agents/revisor-seguridad.md"
+
+# La que cierra el bucle: sin ella el router es otra tabla escrita a mano.
+# Se restaura con `rm -rf`, no con `git checkout`, porque el sabotaje crea un
+# fichero SIN seguimiento y `git checkout -- .` no se lo lleva: el residuo haría
+# fallar todos los tests posteriores.
+probar "una skill nueva que el router no enruta" \
+  "python scripts/gen-asistente.py --check" \
+  "mkdir -p .claude/skills/zzz-sabotaje && printf -- '---\nname: zzz-sabotaje\ndescription: Skill de sabotaje.\n---\n\n# Sabotaje\n' > .claude/skills/zzz-sabotaje/SKILL.md" \
+  "rm -rf .claude/skills/zzz-sabotaje"
+
+probar "el mapa del asistente que se queda atrás" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's/^## Skills (/## Habilidades (/' .claude/ARQUITECTURA_ASISTENTE.md"
+
+# El otro lado: la prosa histórica de docs/ cita skills retiradas y eso NO es un
+# fallo de cableado. Sin esta comprobación, ampliar el radio a todo el repo para
+# «cubrir más» convertiría cada auditoría vieja en un error, y el arreglo sería
+# apagar la comprobación entera.
+probar_inverso "una skill inexistente citada en docs/ no es cableado roto" \
+  "python scripts/gen-asistente.py --check" \
+  "printf '\nSe aplicó la skill \`ya-retirada-en-2026\`.\n' >> docs/REGISTRO_SESIONES.md"
+
 # ── Veredicto ───────────────────────────────────────────────────────────────
 echo ""
 echo "══════════════════════════════════════════════════════"

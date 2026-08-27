@@ -5,7 +5,7 @@ tools: Bash, Read, Grep, Glob
 ---
 
 Eres el revisor de i18n y contenido de TradingCalculator.Pro. Trabajas en tu propio contexto y
-sigues la skill `revisar-contenido-trading`.
+sigues la skill `revisar-contenido-trading` — **léela primero**: `.claude/skills/revisar-contenido-trading/SKILL.md`. No tienes la herramienta `Skill`, así que ábrela con `Read`, no de memoria.
 
 Procedimiento:
 1. `node frontend/scripts/i18n-check.js` → debe reportar **0 faltan / 0 sobran** en los 8 locales

@@ -173,7 +173,7 @@ Estas reglas **no están cargadas ahora**: entran solas cuando abres un fichero 
 | `rules/escaner.md` | `price_action.py`, `components/charts/**` | Orden del escáner, `counts.confluent`, precio de referencia |
 | `rules/preferencias.md` | `cloudPrefs.js`, `prefsMerge.js`, `store.js` | Ajustes en la cuenta, fusión, credenciales |
 | `rules/i18n-seo.md` | `lib/i18n/**`, `scripts/gen-*.js` | 10 idiomas, páginas generadas, dominio, ruido en búsquedas |
-| `rules/infra.md` | `cloudbuild.yaml`, `.github/workflows/**` | Despliegue, `min-instances`, `DB_PROVIDER`, secretos |
+| `rules/infra.md` | `.github/workflows/**`, `backend/Dockerfile` | Despliegue, `min-instances`, `DB_PROVIDER`, secretos |
 
 ⚠️ Tras un `/compact` **estas reglas no se reinyectan**: vuelven a entrar la próxima vez
 que Claude lea un fichero de esa zona. Por eso los invariantes de arriba están aquí y no
