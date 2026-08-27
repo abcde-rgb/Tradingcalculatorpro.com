@@ -79,7 +79,13 @@ titulo() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 #   volviera a pasar, el sabotaje habría dejado residuo y el siguiente test
 #   mediría otra cosa.
 probar() {
+  # $5 (opcional) es un sabotaje que vive en el ENTORNO, no en un fichero: se
+  # antepone sólo a la ejecución saboteada. Hace falta para las condiciones que
+  # no se pueden escribir en el disco —una sesión que no arranca, por ejemplo—
+  # y que son justo las que producen el verde vacío: una sonda que no llega a
+  # ejercitar lo que mide no encuentra fallos, y sin esto pasaría por buena.
   local nombre="$1" comando="$2" sabotaje="$3" restaurar="${4:-git checkout -- .}"
+  local entorno="${5:-}"
 
   if ! eval "$comando" >/dev/null 2>&1; then
     echo "  ⚠️  $nombre: no pasa ni ANTES de sabotear — hay algo roto de verdad"
@@ -88,7 +94,7 @@ probar() {
 
   eval "$sabotaje" >/dev/null 2>&1
 
-  if eval "$comando" >/dev/null 2>&1; then
+  if eval "$entorno $comando" >/dev/null 2>&1; then
     echo "  ❌ $nombre: SOBREVIVE al sabotaje — no está verificando nada"
     FALLOS=$((FALLOS + 1))
   else
@@ -537,6 +543,26 @@ p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
     "node tests/e2e/navegador/csp.js" \
     "sed -i 's|https://www.googletagmanager.com|https://zz-sabotaje.invalid|' frontend/build/index.html" \
     "cp '$CSP_COPIA' frontend/build/index.html"
+
+  # El WebSocket va aparte porque su fallo tiene otra forma: no es un origen
+  # de menos, es un ESQUEMA de menos. En CSP3 una fuente `https://host` no
+  # autoriza `wss://host` —la relajación va de `ws` a `http`/`https`, nunca al
+  # revés—, así que la política podía listar el backend entero y aun así dejar
+  # las alertas mudas. La primera versión de esta sonda lo pasó por alto un mes
+  # entero: recorría `/dashboard` sin sesión, y sin token el hook no abre nada.
+  probar "el esquema wss:// de menos deja el WebSocket de alertas bloqueado" \
+    "node tests/e2e/navegador/csp.js" \
+    "sed -i 's| ws://127.0.0.1:8080||' frontend/build/index.html" \
+    "cp '$CSP_COPIA' frontend/build/index.html"
+
+  # Y la guarda contra el verde vacío: sin sesión no hay WebSocket que bloquear,
+  # así que «ninguna violación» no significaría nada. La sonda tiene que
+  # distinguir «autorizado» de «nunca se intentó».
+  probar "una sesión rota NO puede pasar por «no hubo violaciones»" \
+    "node tests/e2e/navegador/csp.js" \
+    "true" \
+    "true" \
+    "QA_PASSWORD=contrasena-que-no-es"
 
   # Y la otra mitad: que NO grite con la política correcta. Sin esto, una sonda
   # que diera error siempre pasaría igual el sabotaje de arriba.

@@ -21,6 +21,14 @@
                  más las integraciones que viven tras el muro y no se pueden
                  medir sin cuenta (TradingView, Google OAuth).
 
+               · `connect-src` necesita el origen `wss://` APARTE del `https://`:
+                 en CSP3 la relajación de esquemas va de `ws` a `http`/`https`,
+                 NUNCA al revés, así que `https://api…` no autoriza
+                 `wss://api…` y el WebSocket de alertas quedaba bloqueado. Lo
+                 destapó `pre-despliegue.js` en el navegador; ningún test
+                 offline podía verlo. `%REACT_APP_BACKEND_WS_URL%` lo deriva
+                 `craco.config.js` del backend, para que no pueda divergir.
+
              `'unsafe-inline'` en `script-src` es obligado hoy: CRA y el arranque
              de GTM inyectan scripts en línea. No protege contra XSS reflejado,
              pero sí acota A QUÉ ORIGEN puede pedir código o datos la página, que
@@ -32,7 +40,7 @@
             style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
             font-src 'self' data: https://fonts.gstatic.com;
             img-src 'self' data: blob: https:;
-            connect-src 'self' %REACT_APP_BACKEND_URL% https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://us.i.posthog.com https://us-assets.i.posthog.com https://accounts.google.com;
+            connect-src 'self' %REACT_APP_BACKEND_URL% %REACT_APP_BACKEND_WS_URL% https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://us.i.posthog.com https://us-assets.i.posthog.com https://accounts.google.com;
             frame-src 'self' https://s.tradingview.com https://s3.tradingview.com https://www.tradingview.com https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com;
             worker-src 'self' blob:;
             object-src 'none';
