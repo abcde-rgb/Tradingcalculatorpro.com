@@ -569,6 +569,17 @@ const INTEGRATION_SECTIONS = [
     ],
   },
   {
+    id: 'pasarelas',
+    title: 'Pasarelas activas (qué puede pagar el cliente)',
+    description: 'Lo que desmarques desaparece de la página de precios Y deja de aceptarse en el checkout: la comprobación está en el backend, no sólo en el botón. Tiene que quedar al menos una encendida.',
+    fields: [
+      { id: 'payment_methods_enabled', label: 'Métodos de pago', secret: false, widget: 'rails' },
+      { id: 'kunfupay_links', label: 'Kunfupay — enlaces de cobro por plan', secret: false,
+        placeholder: '{"annual":"https://…","lifetime":"https://…"}',
+        hint: 'JSON plan → enlace https de Kunfupay. Sin enlaces, Kunfupay no aparece aunque esté marcada. Planes: monthly, quarterly, annual, lifetime' },
+    ],
+  },
+  {
     id: 'stripe',
     title: 'Stripe (pagos con tarjeta y SEPA)',
     description: 'Las claves se aplican en caliente al runtime — no necesitas reiniciar el backend.',
@@ -620,6 +631,83 @@ const INTEGRATION_SECTIONS = [
     ],
   },
 ];
+
+/**
+ * PaymentRailsField — una casilla por pasarela.
+ *
+ * El valor guardado es la lista separada por comas de `payment_methods_enabled`.
+ * Dos reglas que vienen del backend y no se pueden contradecir aquí:
+ *
+ *   1. **Vacío significa «los de siempre», no «ninguno»** (`_parse_enabled_methods`).
+ *      Por eso, con el ajuste sin poner, las casillas salen marcadas con el valor
+ *      por defecto: enseñar todo desmarcado sería mentir sobre lo que se cobra.
+ *   2. **Tiene que quedar al menos una.** Desmarcarlas todas guardaría "" y el
+ *      backend volvería a encenderlas todas — el admin creería haber apagado la
+ *      web y estaría cobrando igual. Así que la última no se deja desmarcar.
+ */
+const RAILES = [
+  { id: 'card',        label: 'Tarjeta',        via: 'Stripe' },
+  { id: 'sepa',        label: 'SEPA',           via: 'Stripe' },
+  { id: 'klarna',      label: 'Klarna',         via: 'Stripe · sólo plan De Por Vida' },
+  { id: 'paypal',      label: 'PayPal',         via: 'PayPal' },
+  { id: 'revolut',     label: 'Revolut Pay',    via: 'Revolut · + Apple/Google Pay' },
+  { id: 'nowpayments', label: 'Criptomonedas',  via: 'NOWPayments' },
+  { id: 'kunfupay',    label: 'Kunfupay',       via: 'enlace + alta manual · necesita enlaces' },
+];
+const RAILES_POR_DEFECTO = ['card', 'sepa', 'klarna', 'paypal', 'revolut', 'nowpayments'];
+
+function PaymentRailsField({ value, onChange }) {
+  const explicito = (value || '').trim();
+  const activos = explicito
+    ? explicito.split(',').map((x) => x.trim()).filter(Boolean)
+    : RAILES_POR_DEFECTO;
+
+  const alternar = (id) => {
+    const siguiente = activos.includes(id)
+      ? activos.filter((x) => x !== id)
+      : [...RAILES.map((r) => r.id).filter((x) => activos.includes(x) || x === id)];
+    if (siguiente.length === 0) {
+      toast.error('Tiene que quedar al menos una pasarela encendida: la lista vacía vuelve a las de siempre.');
+      return;
+    }
+    onChange(siguiente.join(','));
+  };
+
+  return (
+    <div className="md:col-span-2 p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2"
+      data-testid="integration-payment_methods_enabled">
+      <div className="flex items-start justify-between gap-2">
+        <Label className="text-sm font-medium">Métodos de pago</Label>
+        <Badge variant="outline" className="text-muted-foreground">
+          {activos.length} activa{activos.length === 1 ? '' : 's'}
+        </Badge>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        {RAILES.map((r) => (
+          <label
+            key={r.id}
+            className="flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 cursor-pointer hover:border-primary/40"
+            data-testid={`rail-${r.id}`}
+          >
+            <input
+              type="checkbox"
+              checked={activos.includes(r.id)}
+              onChange={() => alternar(r.id)}
+              className="accent-primary"
+            />
+            <span className="text-sm">{r.label}</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">{r.via}</span>
+          </label>
+        ))}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        {explicito
+          ? <>Guardado: <code className="font-mono">{explicito}</code></>
+          : 'Sin guardar todavía: se está usando el valor por defecto (todo menos Kunfupay).'}
+      </p>
+    </div>
+  );
+}
 
 function IntegrationField({ field, value, isSet, onChange }) {
   const [show, setShow] = useState(false);
@@ -838,7 +926,13 @@ function IntegrationsEditor({ headers, t }) {
               {sec.description && <p className="text-xs text-muted-foreground">{sec.description}</p>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {sec.fields.map((f) => (
+              {sec.fields.map((f) => (f.widget === 'rails' ? (
+                <PaymentRailsField
+                  key={f.id}
+                  value={draft[f.id] || ''}
+                  onChange={(v) => setDraft({ ...draft, [f.id]: v })}
+                />
+              ) : (
                 <IntegrationField
                   key={f.id}
                   field={f}
@@ -846,7 +940,7 @@ function IntegrationsEditor({ headers, t }) {
                   isSet={f.secret ? !!settings?.[`${f.id}_set`] : !!draft[f.id]}
                   onChange={(v) => setDraft({ ...draft, [f.id]: v })}
                 />
-              ))}
+              )))}
             </div>
           </section>
         ))}

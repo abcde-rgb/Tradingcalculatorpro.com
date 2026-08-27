@@ -88,6 +88,7 @@ node navegador/accesibilidad.js escritorio   # y `movil`
 | `api/rgpd.py` | Que el export se lleva todo lo que el borrado destruye, y que borrar la cuenta **no deja ninguna fila** — contado en Postgres, no leído del código |
 | `navegador/idiomas.js` | Los 10 idiomas **en pantalla**: `<html lang>`/`dir` correctos, sin desbordes y sin claves i18n crudas coladas como texto. Incluye el árabe en RTL, que `i18n-check` no puede ver |
 | `navegador/accesibilidad.js` | WCAG 2.1 AA con axe-core sobre 4 páginas: nombres accesibles, contraste y ARIA. Sólo reporta lo `critical`/`serious` — los avisos menores esconden lo que de verdad bloquea a alguien |
+| `api/pasarelas.py` | Los raíles de cobro: que **apagar una pasarela en admin cierra el checkout en el servidor** (no sólo esconde el botón), que Kunfupay cobra **suscripción y pago único**, y que el alta manual concede premium, es idempotente por referencia y **apila** el periodo. 22 comprobaciones |
 | `api/persistencia.py` | Que la cifra que la pantalla enseña antes de guardar es **exactamente** la que queda almacenada (hay dos copias de la matemática: navegador y backend) |
 
 `entorno.js` y `entorno.py` tienen lo compartido: dónde está Chromium, cómo se

@@ -4956,3 +4956,37 @@ email**, que es el hueco que más duele en un raíl sin renovación: hay correo 
 confirmación, de impago y de cancelación, pero ninguno que diga «te vence en 7
 días». Necesita un disparador diario de verdad (Cloud Scheduler contra un
 endpoint), no un bucle en el proceso.
+
+**Tercer añadido — probado contra la aplicación viva, y el panel visto.** La
+pregunta era si esto sirve de algo hoy y si de verdad se puede ocultar cada
+pasarela. Respuesta con pruebas:
+
+- **Sonda nueva `tests/e2e/api/pasarelas.py`, 22 comprobaciones, 22 en verde**,
+  con Postgres y el backend de verdad: Kunfupay cobra la **suscripción** (17 €) y
+  el **pago único** (500 €), cada uno con su enlace y con la transacción escrita
+  antes de mandar a pagar (leído de Postgres, no de la respuesta); un plan sin
+  enlace da 503; apagar Kunfupay en admin hace que el checkout responda **400**;
+  apagar Stripe deja la tarjeta fuera y Kunfupay cobrando; encendida sin enlaces
+  no se ofrece; el alta manual **abre el muro** (de no-premium a premium, fin a
+  30 días), repetir la referencia no regala periodo, y un segundo cobro **apila**
+  a 60 días. Más las cuatro guardas (Stripe no se da de alta a mano, sin
+  referencia no hay alta, email de nadie 404, cliente 403).
+- **Saboteada**: quitando la puerta del servidor y reiniciando el backend, las
+  dos comprobaciones de «apagada en admin» se ponen rojas. Restaurado, verdes.
+- **El panel, visto**: entrando con 2FA real en `/admin`, la tarjeta de raíles
+  pinta las siete casillas con su estado, y desmarcar PayPal + Guardar deja al
+  backend sirviendo `["card","kunfupay"]`. Sin errores de JavaScript. En
+  `/pricing`, con tres raíles encendidos, se pintan esos tres y ninguno más.
+- Se añadió el **widget de casillas** al panel (antes el ajuste sólo existía como
+  texto en la API) y la sonda quedó registrada en `correr.sh` y en el skill `qa`.
+
+**Dos trampas del banco de pruebas que costaron una vuelta cada una**, anotadas
+para no repetirlas: `/checkout/create` está limitado a **10/hora por IP**, así que
+la sonda rota `X-Forwarded-For` (en producción Cloud Run añade la IP real al
+final y `_real_client_ip` toma esa, así que no abre ninguna puerta); y cuando el
+limitador de registros obliga a clonar la cuenta sembrada, la clonada **es
+premium**, con lo que «pasa a premium tras el alta» habría pasado sin probar
+nada — la sonda ahora resetea la suscripción por SQL antes de empezar.
+
+**Estado de la rama**: los 8 commits siguen **sólo aquí**. `main` no tiene nada de
+esto y no hay PR abierto.

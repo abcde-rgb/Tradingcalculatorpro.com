@@ -805,7 +805,21 @@ Encendido sin enlaces = invisible, en lugar de un botón que da 503.
   endpoint, no un bucle en el proceso).
 - **Los legales**, que sólo se tocan cuando esté decidido el MoR (§ 10).
 
-### 16.6 Verificado
+### 16.6 Apagar una pasarela, desde el panel
+
+Las siete pasarelas son **siete casillas** en Admin → Integraciones → «Pasarelas activas»
+(`payment_methods_enabled`). Lo que se desmarca desaparece de la página de precios **y**
+deja de aceptarse en el checkout.
+
+Dos reglas de la casilla, que vienen del backend y no se pueden contradecir en la UI:
+
+- **Con el ajuste sin poner, las casillas salen marcadas con el valor por defecto.** El
+  vacío significa «los de siempre», así que enseñarlas todas apagadas sería mentir sobre
+  lo que se está cobrando.
+- **La última no se deja desmarcar.** Guardar la lista vacía haría que el backend
+  encendiera todo otra vez: el admin creería haber cerrado la caja y estaría cobrando.
+
+### 16.7 Verificado
 
 `py_compile` de los 34 módulos · **27 tests nuevos** en
 `backend/tests/test_payment_rails_unit.py`, **saboteados uno a uno** para comprobar que
@@ -815,9 +829,34 @@ las tres claves nuevas en los diez idiomas · `engine-check` 429/429 ·
 `gen-instruments-js --check` · `check-precios` (40 precios en 10 idiomas) ·
 `check-rutas-muertas` · `gen-mapa` regenerado · `check-doc-links`.
 
+**Y contra la aplicación viva** (Postgres + backend + build de producción), sonda nueva
+`tests/e2e/api/pasarelas.py`, **22 comprobaciones, 22 en verde**:
+
+| Lo que demuestra | |
+|---|---|
+| Kunfupay cobra la **suscripción** (mensual, 17 €) y el **pago único** (De Por Vida, 500 €) | cada uno con su enlace, y la transacción escrita antes de mandar a pagar (`kunfupay\|pending\|17.0` leído de Postgres) |
+| Un plan sin enlace configurado devuelve **503** | no manda a nadie a pagar a ninguna parte |
+| Apagar Kunfupay en admin → el **checkout responde 400** | y la web deja de anunciarla |
+| Apagar Stripe → la tarjeta deja de aceptarse y **Kunfupay sigue cobrando** | el relevo funciona |
+| Encendida sin enlaces → **no se ofrece** | en vez de un botón que da 503 |
+| El alta manual **abre el muro**: el cliente pasa de no-premium a premium | con fin a 30 días |
+| Repetir la referencia **no regala** un segundo periodo | y la fecha no se mueve |
+| Un segundo cobro **apila** (30 → 60 días) | renovar antes de vencer no cuesta días |
+| Stripe no se puede dar de alta a mano · sin referencia no hay alta · un email de nadie no concede · un cliente no puede darse premium | 400 · 400 · 404 · 403 |
+
+**Y la sonda está saboteada**: quitando la puerta del servidor en `create_checkout` y
+reiniciando el backend, las dos comprobaciones de «apagada en admin» se ponen rojas
+(HTTP 200 donde debía haber 400). Restaurado, vuelven a verde.
+
+**El panel, visto de verdad**: entrando con 2FA en `/admin`, la tarjeta de raíles pinta
+las siete casillas con el estado real, y desmarcar PayPal + Guardar deja al backend
+sirviendo `["card","kunfupay"]`. Sin errores de JavaScript. Y en `/pricing`, con
+`card,paypal,kunfupay` encendidos, se pintan **esos tres y ninguno más**.
+
 **No verificado, y hay que decirlo**: nada de esto se ha probado contra un cobro real de
-Kunfupay, porque su dominio está bloqueado desde este entorno y no hay cuenta. El primer
-cobro de verdad hay que hacerlo con **un plan barato y ojos encima**.
+Kunfupay, porque su dominio está bloqueado desde este entorno y no hay cuenta. Los enlaces
+de la sonda son de mentira a propósito: lo que se prueba es **nuestro lado del trato**. El
+primer cobro de verdad hay que hacerlo con **un plan barato y ojos encima**.
 
 ---
 

@@ -25,7 +25,7 @@ corre() {  # corre <nombre> <orden...>
 quiere() { [ $# -eq 0 ] && return 0; for q in "$@"; do [ "$q" = "$OBJETIVO" ] && return 0; done; return 1; }
 
 TODO=("$@")
-for OBJETIVO in recorrido analitica temas ticker precio-viejo brokers idiomas accesibilidad autorizacion rgpd persistencia; do
+for OBJETIVO in recorrido analitica temas ticker precio-viejo brokers idiomas accesibilidad autorizacion rgpd persistencia pasarelas; do
   if [ ${#TODO[@]} -gt 0 ]; then
     encontrado=0
     for q in "${TODO[@]}"; do [ "$q" = "$OBJETIVO" ] && encontrado=1; done
@@ -58,6 +58,7 @@ for OBJETIVO in recorrido analitica temas ticker precio-viejo brokers idiomas ac
     autorizacion) corre "autorización cruzada"    "$PY" "$E2E/api/autorizacion.py" ;;
     rgpd)         corre "RGPD: export y borrado"  "$PY" "$E2E/api/rgpd.py" ;;
     persistencia) corre "pantalla vs base de datos" "$PY" "$E2E/api/persistencia.py" ;;
+    pasarelas)    corre "raíles de cobro"         "$PY" "$E2E/api/pasarelas.py" ;;
   esac
 done
 
