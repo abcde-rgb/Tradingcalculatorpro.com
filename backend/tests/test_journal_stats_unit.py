@@ -22,6 +22,7 @@ os.environ.setdefault("ENVIRONMENT", "development")
 os.environ.setdefault("JWT_SECRET", "test-only-secret")
 
 import server  # noqa: E402
+from ayuda_rutas import caminar_rutas  # noqa: E402
 from performance import sort_trades_chronologically  # noqa: E402
 
 agg = server._aggregate_journal_trades
@@ -153,9 +154,12 @@ class TestLimitsAreCapped:
     # colección con otro esquema, el BUG-039—, así que sólo queda la viva.
     @pytest.mark.parametrize("path", ["/api/performance/trades"])
     def test_limit_has_a_declared_ceiling(self, path):
+        # Igual que en `test_route_uniqueness_unit`: desde FastAPI 0.141 los
+        # routers incluidos no se aplanan en `app.routes`, así que buscar ahí
+        # deja de encontrar nada y el `next()` revienta con StopIteration.
         route = next(
-            r for r in server.app.routes
-            if getattr(r, "path", None) == path and "GET" in getattr(r, "methods", set())
+            r for camino, r in caminar_rutas(server.app)
+            if camino == path and "GET" in (getattr(r, "methods", None) or set())
         )
         limit = next(p for p in route.dependant.query_params if p.name == "limit")
         # Pydantic v2 guarda las restricciones como annotated-types en
