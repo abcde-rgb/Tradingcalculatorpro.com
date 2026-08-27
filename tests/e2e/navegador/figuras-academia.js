@@ -208,6 +208,21 @@ async function figuraDibuja(page, testid, minTrazos = 3) {
           acierto.includes('36,4') && acierto.includes('40,0'), acierto.trim());
     await page.screenshot({ path: path.join(salida, '06-wyckoff.png'), fullPage: true });
 
+    // ── Medias móviles: el retardo, que se nombraba sin medir ──────────
+    console.log('\n── moving-averages: cuánto van por detrás ────────────────');
+    await abre(page, 'moving-averages');
+    marca('la tabla del retardo se pinta', await page.locator('[data-testid="ma-lag"]').count() > 0);
+    // La fila de 200 tiene que repetir 99,5 DOS veces: retardo de la SMA y
+    // centro de masa de la EMA. Que sean el mismo número es el argumento.
+    const fila200 = await page.locator('[data-testid="ma-lag-200"]').innerText().catch(() => '');
+    marca('la fila de 200 repite 99,5 en las dos columnas',
+          (fila200.match(/99,5/g) || []).length === 2, fila200.replace(/\s+/g, ' ').trim());
+    // Y la frase con variables: si una traducción pierde una, se ve «{d}».
+    const desfase = await page.locator('[data-testid="ma-precio"]').innerText().catch(() => '');
+    marca('la frase del desfase llega interpolada',
+          !/\{[mnd]\}/.test(desfase) && desfase.includes('49,75'), desfase.trim().slice(0, 80));
+    await page.screenshot({ path: path.join(salida, '07-medias.png'), fullPage: true });
+
     // ── Móvil oscuro: donde se rompe la maquetación de un SVG ──────────
     console.log('\n── Móvil y modo oscuro ──────────────────────────────────');
     const movil = await navegador.newContext({

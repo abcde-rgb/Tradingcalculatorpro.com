@@ -520,6 +520,41 @@ import pathlib
 p = pathlib.Path('frontend/src/lib/wyckoffMath.js'); t = p.read_text()
 p.write_text(t.replace('return a + (a - b);', 'return a;', 1))\""
 
+  # ── El retardo de las medias móviles ──────────────────────────────────────
+  # La tabla afirma que SMA y EMA comparten centro de masa, y ése es el
+  # argumento entero del bloque: si el alfa deja de ser 2/(N+1) o el retardo
+  # deja de ser (N−1)/2, las dos columnas se separan y el texto miente.
+  probar "el alfa de la EMA deja de ser 2/(N+1)" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/maMath.js'); t = p.read_text()
+p.write_text(t.replace('return 2 / (N + 1);', 'return 1 / (N + 1);', 1))\""
+
+  probar "el retardo de la SMA pasa de (N−1)/2 a N/2" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/maMath.js'); t = p.read_text()
+p.write_text(t.replace('return (N - 1) / 2;', 'return N / 2;', 1))\""
+
+  # Ésta la caza la ruta que NO usa la fórmula: construye una recta y promedia.
+  probar "el desfase en precio deja de escalar con la pendiente" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/maMath.js'); t = p.read_text()
+p.write_text(t.replace('return m * r;', 'return r;', 1))\""
+
+  # Una frase con variables que pierde una en UN idioma enseña «{d}» en
+  # pantalla, y sólo a quien lee en ese idioma.
+  probar "una traducción pierde una variable de la frase del desfase" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/de.edu.js'); t = p.read_text()
+p.write_text(t.replace('um {d} darunter', 'darunter', 1))\""
+
   # ── Los enlaces de la Academia a las herramientas ─────────────────────────
   # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja
   # en la pestaña por defecto), un id fuera de la tabla (`return null`, el

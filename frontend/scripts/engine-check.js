@@ -2255,6 +2255,64 @@ async function checkTailRisk() {
     near(E2.equilibrioNeto(rrW, 0), 36.36, 0.01), `${E2.equilibrioNeto(rrW, 0)} %`);
   ok('…y el 40,0 % con los mismos costes de 0,1 R',
     near(E2.equilibrioNeto(rrW, 0.1), 40, 0.01), `${E2.equilibrioNeto(rrW, 0.1)} %`);
+
+  // ── El retardo de las medias móviles ────────────────────────────────────
+  //
+  // El módulo decía dos veces «van por detrás del precio» sin decir cuánto.
+  // Aquí no se comprueba una opinión sobre medias: se comprueba una identidad
+  // y una media aritmética, las dos por una ruta que no es la fórmula.
+  const M = await imp('lib/maMath.js');
+
+  // 1. La identidad que sostiene el argumento entero del bloque: con el alfa
+  //    estándar, SMA y EMA tienen el MISMO centro de masa. Si alguien
+  //    «mejora» el alfa, la tabla enseñaría dos columnas distintas y el texto
+  //    diría que son iguales.
+  for (const n2 of [2, 9, 20, 50, 200, 500]) {
+    ok(`SMA(${n2}) y EMA(${n2}) comparten centro de masa`,
+      near(M.centroMasaEMA(M.alfaEMA(n2)), M.retardoSMA(n2), 1e-12),
+      `${M.centroMasaEMA(M.alfaEMA(n2))} vs ${M.retardoSMA(n2)}`);
+  }
+
+  // 2. Ruta independiente para el desfase en precio: en vez de aplicar la
+  //    fórmula, se CONSTRUYE una recta y se promedia de verdad. Dos caminos
+  //    que no comparten una línea de código y tienen que dar el mismo número.
+  for (const [m2, n2] of [[0.5, 200], [2, 20], [0.1, 50]]) {
+    const serie = Array.from({ length: n2 * 2 }, (_, i) => 10 + m2 * i);
+    const ventana = serie.slice(-n2);
+    const sma = ventana.reduce((a, b) => a + b, 0) / n2;
+    const medido = serie[serie.length - 1] - sma;
+    ok(`el desfase de la SMA(${n2}) a ${m2}/barra sale igual midiéndolo (${medido.toFixed(2)})`,
+      near(M.desfaseEnPrecio({ pendiente: m2, n: n2 }), medido, 1e-9));
+  }
+
+  // 3. El 86,5 % de la última columna no es un número elegido: es el límite
+  //    1 − e⁻², y por eso la tabla puede afirmarlo para cualquier periodo.
+  const limite = 1 - Math.exp(-2);
+  ok('lo absorbido en N barras tiende a 1 − e⁻² (86,5 %) en todos los periodos',
+    M.PERIODOS_MA.every((n2) => Math.abs(M.absorbidoTrasN(n2) - limite) < 0.002),
+    M.PERIODOS_MA.map((n2) => (M.absorbidoTrasN(n2) * 100).toFixed(2)).join(' · '));
+  ok('…y nunca llega al 100 %: una EMA no olvida',
+    M.PERIODOS_MA.every((n2) => M.absorbidoTrasN(n2) < 1));
+
+  // 4. Honestidad numérica en los bordes.
+  ok('un periodo de cero no tiene retardo definido', M.retardoSMA(0) === null);
+  ok('una SMA de 1 no va por detrás de nada', M.retardoSMA(1) === 0);
+  ok('un alfa fuera de (0, 1] no tiene centro de masa',
+    M.centroMasaEMA(0) === null && M.centroMasaEMA(1.5) === null);
+
+  // 5. Y la frase con variables: las tres tienen que llegar interpoladas en
+  //    los diez idiomas, o la tarjeta enseña «{m}» en pantalla.
+  const { getMovingAverageLag } = await imp('lib/tradingEducationContent.js');
+  const crudas = [];
+  for (const l of IDIOMAS) {
+    const dic = { ...(await imp(`lib/i18n/${l}.js`)).default, ...(await imp(`lib/i18n/${l}.edu.js`)).default };
+    const frase = (dic.mavPriceLabel || '')
+      .replace('{m}', '0,50').replace('{n}', '200').replace('{d}', '49,75');
+    if (!frase || /\{[mnd]\}/.test(frase) || !frase.includes('49,75')) crudas.push(l);
+  }
+  ok('la frase del desfase interpola sus tres cifras en los diez idiomas',
+    crudas.length === 0, `sin interpolar: ${crudas.join(', ')}`);
+  void getMovingAverageLag;
 }
 
 (async () => {

@@ -2299,6 +2299,27 @@ export const getNetLiquidity = (t) => ({
 // black swans (Taleb), the "impossible" sigma moves that keep happening, ruin &
 // non-ergodicity, convexity/tail hedging and the barbell. Pairs with TailRiskVisual.jsx.
 /**
+ * El retardo de las medias móviles, que el módulo nombraba sin medir nunca.
+ *
+ * `priceLabel` va como función porque su frase lleva tres cifras que sólo
+ * existen al calcularlas. La llamada a `t` sigue siendo literal —es lo que
+ * `split-i18n-edu` necesita para poder diferir la clave—, sólo se retrasa el
+ * momento de pasarle las variables.
+ */
+export const getMovingAverageLag = (t) => ({
+  title: t('mavLagTitle'),
+  intro: t('mavLagIntro'),
+  colPeriod: t('mavColPeriod'),
+  colLagSma: t('mavColLagSma'),
+  colAlpha: t('mavColAlpha'),
+  colComEma: t('mavColComEma'),
+  colAbsorbed: t('mavColAbsorbed'),
+  note: t('mavLagNote'),
+  priceLabel: (vars) => t('mavPriceLabel', vars),
+  priceNote: t('mavPriceNote'),
+});
+
+/**
  * Los rótulos de las dos cifras que Wyckoff prometía y no daba.
  *
  * Aquí, como el resto del contenido de la academia, para que `split-i18n-edu`

@@ -66,7 +66,7 @@ export const EDU_MODULES = [
 
   // ── Análisis técnico ─────────────────────────────────────────
   { id: 'tech-analysis', titleKey: 'techTab', getters: ['getTechnicalAnalysis'] },
-  { id: 'moving-averages', titleKey: 'mavTitle', getters: ['getMovingAverages'] },
+  { id: 'moving-averages', titleKey: 'mavTitle', getters: ['getMovingAverages', 'getMovingAverageLag'] },
   { id: 'chart-patterns', titleKey: 'chartPatterns', getters: ['getChartPatterns'] },
   { id: 'candlesticks', titleKey: 'candlestickPatterns', getters: ['getCandlestickPatterns'] },
   { id: 'price-action', titleKey: 'pacTitle', getters: ['getPriceAction'] },

@@ -103,6 +103,7 @@ import TradingBasicsGuide from '@/components/education/TradingBasicsGuide';
 import WhyItMatters from '@/components/education/WhyItMatters';
 import BreakevenTable from '@/components/education/BreakevenTable';
 import WyckoffNumbers from '@/components/education/WyckoffNumbers';
+import MovingAverageLag from '@/components/education/MovingAverageLag';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 import MarketTypeModal from '@/components/education/MarketTypeModal';
 
@@ -1461,6 +1462,10 @@ export default function EducationPage() {
                   <p className="text-muted-foreground leading-relaxed">{MOVING_AVERAGES.intro}</p>
                 </CardContent>
               </Card>
+
+              {/* «Van por detrás del precio» se decía dos veces sin decir nunca
+                  cuánto, que es de lo poco que aquí se calcula exacto. */}
+              <MovingAverageLag />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {MOVING_AVERAGES.items.map((item) => (
