@@ -191,6 +191,23 @@ async function figuraDibuja(page, testid, minTrazos = 3) {
     }
     await page.screenshot({ path: path.join(salida, '05-por-que-importa.png'), fullPage: true });
 
+    // ── Wyckoff, que tampoco tenía un número ───────────────────────────
+    console.log('\n── wyckoff: el recuento y la operación, con cifras ───────');
+    await abre(page, 'wyckoff');
+    marca('el bloque de cifras se pinta',
+          await page.locator('[data-testid="wyckoff-numbers"]').count() > 0);
+    const wyk = await page.locator('[data-testid="wyckoff-numbers"]').innerText().catch(() => '');
+    // La ley de causa y efecto en tres filas: doble columnas, doble recorrido.
+    for (const s of ['+30', '+60', '+120']) marca(`el recuento muestra ${s}`, wyk.includes(s));
+    const rr = await page.locator('[data-testid="wyk-rr"]').innerText().catch(() => '');
+    marca('la operación da 1,75 : 1', rr.includes('1,75'), rr.trim());
+    // El puente con el módulo de riesgo: el acierto mínimo de esa relación lo
+    // calcula la misma función que pinta su tabla de equilibrio.
+    const acierto = await page.locator('[data-testid="wyk-acierto"]').innerText().catch(() => '');
+    marca('y el acierto mínimo sale de la función de la tabla de equilibrio',
+          acierto.includes('36,4') && acierto.includes('40,0'), acierto.trim());
+    await page.screenshot({ path: path.join(salida, '06-wyckoff.png'), fullPage: true });
+
     // ── Móvil oscuro: donde se rompe la maquetación de un SVG ──────────
     console.log('\n── Móvil y modo oscuro ──────────────────────────────────');
     const movil = await navegador.newContext({

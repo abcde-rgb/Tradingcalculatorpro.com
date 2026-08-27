@@ -2299,6 +2299,38 @@ export const getNetLiquidity = (t) => ({
 // black swans (Taleb), the "impossible" sigma moves that keep happening, ruin &
 // non-ergodicity, convexity/tail hedging and the barbell. Pairs with TailRiskVisual.jsx.
 /**
+ * Los rótulos de las dos cifras que Wyckoff prometía y no daba.
+ *
+ * Aquí, como el resto del contenido de la academia, para que `split-i18n-edu`
+ * lo difiera: escritas en el componente, estas dieciocho claves viajarían en
+ * `main.js` a todo el que abre la portada.
+ */
+export const getWyckoffNumbers = (t) => ({
+  count: {
+    title: t('wykNumTitle'),
+    intro: t('wykNumIntro'),
+    colColumns: t('wykColColumns'),
+    colBase: t('wykColBase'),
+    colCause: t('wykColCause'),
+    colTarget: t('wykColTarget'),
+    note: t('wykCountNote'),
+  },
+  trade: {
+    title: t('wykTradeTitle'),
+    intro: t('wykTradeIntro'),
+    rowRange: t('wykRowRange'),
+    rowSpring: t('wykRowSpring'),
+    rowEntry: t('wykRowEntry'),
+    rowStop: t('wykRowStop'),
+    rowTarget: t('wykRowTarget'),
+    rowRisk: t('wykRowRisk'),
+    rowReward: t('wykRowReward'),
+    rowRR: t('wykRowRR'),
+    note: t('wykTradeNote'),
+  },
+});
+
+/**
  * La tabla que respalda las menciones al beneficio/riesgo.
  *
  * La academia nombraba la relación decenas de veces sin decir nunca a cuánto

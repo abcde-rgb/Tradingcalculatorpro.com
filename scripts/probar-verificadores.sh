@@ -494,6 +494,32 @@ import pathlib
 p = pathlib.Path('frontend/src/components/education/BreakevenTable.jsx'); t = p.read_text()
 p.write_text(t.replace('COSTE_REFERENCIA = 0.1;', 'COSTE_REFERENCIA = 0.2;', 1))\""
 
+  # ── Las cifras de Wyckoff ─────────────────────────────────────────────────
+  # El módulo tenía 1.236 palabras y ningún número, en un método cuya segunda
+  # ley es explícitamente cuantitativa. Lo que se protege no es que el recuento
+  # «acierte» —no predice nada— sino que sea la cuenta que dice ser, y que la
+  # operación del último paso dé los números que el texto afirma.
+  probar "el recuento de Punto y Figura deja de contar la reversión" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/wyckoffMath.js'); t = p.read_text()
+p.write_text(t.replace('return b + c * k * r;', 'return b + c * k;', 1))\""
+
+  probar "un riesgo cero se pinta como relación infinita" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/wyckoffMath.js'); t = p.read_text()
+p.write_text(t.replace('if (riesgo === 0) return null;', '', 1))\""
+
+  probar "el objetivo deja de proyectar la amplitud del rango" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/wyckoffMath.js'); t = p.read_text()
+p.write_text(t.replace('return a + (a - b);', 'return a;', 1))\""
+
   # ── Los enlaces de la Academia a las herramientas ─────────────────────────
   # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja
   # en la pestaña por defecto), un id fuera de la tabla (`return null`, el

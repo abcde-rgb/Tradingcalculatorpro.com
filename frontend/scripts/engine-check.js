@@ -2208,6 +2208,53 @@ async function checkTailRisk() {
   ok('la constante del componente es el 0,1 R del texto',
     /COSTE_REFERENCIA = 0\.1;/.test(fuenteTabla),
     'si cambia el coste, cambia la columna y el texto deja de describirla');
+
+  // ── Las dos cifras que Wyckoff prometía y no daba ───────────────────────
+  //
+  // 1.236 palabras y ningún número, en un método cuya segunda ley es
+  // explícitamente cuantitativa. Lo que se comprueba aquí no es que el
+  // recuento «acierte» —no predice nada— sino que la cuenta sea la cuenta y
+  // que el trade que el módulo describe dé los números que dice dar.
+  const Y = await imp('lib/wyckoffMath.js');
+
+  // Recuento horizontal: objetivo = base + columnas × caja × reversión.
+  ok('el recuento de Punto y Figura es base + columnas × caja × reversión',
+    Y.objetivoPF({ columnas: 20, caja: 1, reversion: 3, base: 40 }) === 100);
+  // La ley de causa y efecto, en su forma comprobable: doble tiempo en el
+  // rango, doble recorrido financiado. Si la fórmula deja de ser lineal en
+  // columnas, la tabla deja de enseñar lo que dice enseñar.
+  const causa = (c2) => Y.causaPF({ columnas: c2, caja: 1, reversion: 3 });
+  ok('doblar las columnas dobla la causa (es la segunda ley)',
+    near(causa(20), causa(10) * 2, 1e-9) && near(causa(40), causa(10) * 4, 1e-9));
+  ok('un rango de cero columnas no tiene objetivo: es null, no la base',
+    Y.objetivoPF({ columnas: 0, caja: 1, reversion: 3, base: 40 }) === null);
+  ok('las tres filas de referencia salen de la misma función que la tabla',
+    Y.CUENTAS_PF.length === 3 && Y.CUENTAS_PF.every((f) => Number.isFinite(Y.objetivoPF(f))));
+
+  // La operación del último paso, con sus tres precios.
+  const objetivoW = Y.objetivoRango(Y.EJEMPLO_SPRING);
+  const rrW = Y.relacionRR({ ...Y.EJEMPLO_SPRING, objetivo: objetivoW });
+  ok('el objetivo es la amplitud del rango proyectada desde la rotura (60)',
+    objetivoW === 60, `da ${objetivoW}`);
+  ok('riesgo 8, beneficio 14, relación 1,75 : 1',
+    Y.EJEMPLO_SPRING.entrada - Y.EJEMPLO_SPRING.stop === 8
+    && objetivoW - Y.EJEMPLO_SPRING.entrada === 14
+    && near(rrW, 1.75, 1e-9), `R:R ${rrW}`);
+  // El stop tiene que estar por debajo del mínimo del Spring, que es lo que el
+  // propio módulo indica. Un stop por encima invalidaría el ejemplo entero.
+  ok('el stop queda por debajo del mínimo del Spring, como dice el método',
+    Y.EJEMPLO_SPRING.stop < Y.EJEMPLO_SPRING.minimoSpring
+    && Y.EJEMPLO_SPRING.minimoSpring < Y.EJEMPLO_SPRING.rangoBajo);
+  // Honestidad numérica: riesgo cero no es una relación infinita.
+  ok('un stop en el precio de entrada no da ∞ : 1, da null',
+    Y.relacionRR({ entrada: 46, stop: 46, objetivo: 60 }) === null);
+
+  // Y el puente con el módulo de riesgo: el acierto mínimo de ESA relación lo
+  // calcula la misma función que pinta la tabla de equilibrio.
+  ok('con 1,75 : 1 el equilibrio es el 36,4 %, y lo dice la función de la tabla',
+    near(E2.equilibrioNeto(rrW, 0), 36.36, 0.01), `${E2.equilibrioNeto(rrW, 0)} %`);
+  ok('…y el 40,0 % con los mismos costes de 0,1 R',
+    near(E2.equilibrioNeto(rrW, 0.1), 40, 0.01), `${E2.equilibrioNeto(rrW, 0.1)} %`);
 }
 
 (async () => {

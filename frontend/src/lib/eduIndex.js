@@ -72,7 +72,7 @@ export const EDU_MODULES = [
   { id: 'price-action', titleKey: 'pacTitle', getters: ['getPriceAction'] },
   { id: 'dow-theory', titleKey: 'dowTheoryTitle', getters: ['getDowTheory'] },
   { id: 'market-structure', titleKey: 'msTitle', getters: ['getMarketStructure'] },
-  { id: 'wyckoff', titleKey: 'wyckoffTab', getters: ['getWyckoffContent'] },
+  { id: 'wyckoff', titleKey: 'wyckoffTab', getters: ['getWyckoffContent', 'getWyckoffNumbers'] },
   { id: 'alt-charts', titleKey: 'altChartTab', getters: ['getAlternativeCharts'] },
   { id: 'gann-box', titleKey: 'gannTitle', getters: ['getGannBox'], evidence: 'disputed' },
 

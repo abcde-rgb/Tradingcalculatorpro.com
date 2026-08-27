@@ -102,6 +102,7 @@ import TailRiskFigures from '@/components/education/TailRiskFigures';
 import TradingBasicsGuide from '@/components/education/TradingBasicsGuide';
 import WhyItMatters from '@/components/education/WhyItMatters';
 import BreakevenTable from '@/components/education/BreakevenTable';
+import WyckoffNumbers from '@/components/education/WyckoffNumbers';
 import AuroraBackground from '@/components/landing/AuroraBackground';
 import MarketTypeModal from '@/components/education/MarketTypeModal';
 
@@ -5256,6 +5257,12 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
+
+              {/* La segunda ley es la única cuantitativa del método, y el
+                  módulo la enunciaba sin enseñar nunca la cuenta. */}
+              <WyckoffNumbers />
+
+              <EnlacesHerramienta ids={['target', 'position', 'breakeven']} t={t} />
 
               {/* Schematics */}
               <WyckoffSchematic />
