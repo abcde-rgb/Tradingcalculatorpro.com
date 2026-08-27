@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
+import { useRiskFreeRate } from '@/hooks/useRiskFreeRate';
 import {
   callPrice,
   putPrice,
@@ -71,17 +72,32 @@ function SliderInput({ label, value, onChange, min, max, step, unit = '' }) {
 export const BlackScholesCalculator = () => {
   const { t } = useTranslation();
 
+  // El tipo libre de riesgo NO se escribe aquí. Estaba a 5,0 % fijo mientras el
+  // backend valoraba con el rendimiento vivo del Tesoro: las dos mitades de la
+  // aplicación daban precios distintos para la MISMA opción, y Rho —que es
+  // literalmente la sensibilidad a este número— se calculaba sobre una cifra
+  // inventada. Se propone el vivo y el usuario puede cambiarlo; lo que no se
+  // hace es inventarlo. Mismo patrón que `FuturesCalculator` y el panel de
+  // opciones, para que no haya una tercera versión del mismo dato.
+  const { ratePct, isLive, source } = useRiskFreeRate();
+
   const [S, setS] = useState(100);
   const [K, setK] = useState(100);
   const [T_days, setTDays] = useState(30);
-  const [r_pct, setRPct] = useState(5.0);
+  const [r_pct, setRPct] = useState(null);
   const [sigma_pct, setSigmaPct] = useState(25.0);
   const [q_pct, setQPct] = useState(0.0);
   const [showD1D2, setShowD1D2] = useState(false);
 
+  // Cuando llega el tipo vivo entra en el campo, salvo que ya lo hayas tocado.
+  useEffect(() => {
+    setRPct((prev) => (prev === null ? ratePct : prev));
+  }, [ratePct]);
+  const rEfectivo = r_pct === null ? ratePct : r_pct;
+
   const results = useMemo(() => {
     const T = Math.max(0, T_days / 365);
-    const r = r_pct / 100;
+    const r = rEfectivo / 100;
     const sigma = Math.max(0.001, sigma_pct / 100);
     const q = q_pct / 100;
 
@@ -122,7 +138,7 @@ export const BlackScholesCalculator = () => {
       d1, d2,
       money: moneyness(S, K),
     };
-  }, [S, K, T_days, r_pct, sigma_pct, q_pct]);
+  }, [S, K, T_days, rEfectivo, sigma_pct, q_pct]);
 
   const moneyBadge = results ? results.money : 'ATM';
   const moneyColor =
@@ -173,15 +189,24 @@ export const BlackScholesCalculator = () => {
               step={1}
               unit=" d"
             />
-            <SliderInput
-              label={t('bsRiskFreeRate')}
-              value={r_pct}
-              onChange={setRPct}
-              min={0}
-              max={20}
-              step={0.1}
-              unit="%"
-            />
+            <div>
+              <SliderInput
+                label={t('bsRiskFreeRate')}
+                value={rEfectivo}
+                onChange={setRPct}
+                min={0}
+                max={20}
+                step={0.1}
+                unit="%"
+              />
+              {/* De dónde sale el tipo. Presentarlo sin procedencia es
+                  presentarlo como una cotización cuando puede ser el valor
+                  de reserva. */}
+              <p className="text-[10px] text-muted-foreground mt-1" data-testid="bs-rate-source">
+                {isLive ? t('optRiskFreeLive') : t('optRiskFreeFallback')}
+                {source ? ` (${source})` : ''}
+              </p>
+            </div>
             <SliderInput
               label={t('bsVolatility')}
               value={sigma_pct}

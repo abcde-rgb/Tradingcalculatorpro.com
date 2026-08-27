@@ -16,11 +16,16 @@ import JournalEdgeButton from './JournalEdgeButton';
  * Pure client-side math, no backend. All copy via t().
  */
 
+// `Number.isFinite`, NO el `isFinite` global: el global convierte antes de
+// mirar, así que `isFinite(null)` es `true` —porque `Number(null)` es 0— y un
+// «no se puede calcular» se habría pintado como un 0,00 con toda la pinta de
+// resultado. Es la misma trampa que la regla de honestidad numérica persigue,
+// escondida en el formateador en vez de en el cálculo.
 const fmtMoney = (n, ccy = '$') => {
-  if (!isFinite(n)) return '—';
+  if (!Number.isFinite(n)) return '—';
   return `${ccy}${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 };
-const fmtNum = (n, d = 2) => (isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: d }) : '—');
+const fmtNum = (n, d = 2) => (Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: d }) : '—');
 
 /* Module-level field so it keeps a stable identity across renders (defining it
  * inside the calculator would remount the input on each keystroke → lost focus). */
@@ -60,17 +65,22 @@ function PositionSizeCalculator() {
     const sl = Number(stop) || 0;
     const riskAmount = acc * (rp / 100);
     const stopDist = Math.abs(en - sl);
-    const stopPct = en ? (stopDist / en) * 100 : 0;
-    const units = stopDist > 0 ? riskAmount / stopDist : 0;
-    const positionValue = units * en;
-    const impliedLeverage = acc > 0 ? positionValue / acc : 0;
+    // Un cero aquí no dice «no se puede calcular», dice «sale cero»: sin
+    // distancia de stop el tamaño es INDEFINIDO —dividir por cero da infinito,
+    // no nada—, y sin cuenta el apalancamiento tampoco existe. `fmtNum` ya
+    // pinta la raya cuando no hay número, que es lo que el usuario tiene que
+    // ver en vez de un 0,00 con aspecto de resultado.
+    const stopPct = en ? (stopDist / en) * 100 : null;
+    const units = stopDist > 0 ? riskAmount / stopDist : null;
+    const positionValue = units === null ? null : units * en;
+    const impliedLeverage = acc > 0 && positionValue !== null ? positionValue / acc : null;
     return { riskAmount, stopDist, stopPct, units, positionValue, impliedLeverage };
   }, [account, riskPct, entry, stop]);
 
-  const leverageWarn = r.impliedLeverage > 5;
+  const leverageWarn = r.impliedLeverage !== null && r.impliedLeverage > 5;
 
   return (
-    <Card className="bg-gradient-to-br from-green-500/5 to-emerald-500/10 border-green-500/30" data-testid="position-size-calculator">
+    <Card className="bg-card border-border" data-testid="cmt-position-size-calculator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
           <Calculator className="w-5 h-5 text-green-500" />

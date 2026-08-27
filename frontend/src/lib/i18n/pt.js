@@ -4656,4 +4656,6 @@ export default {
   "deskModeBasicHint": "Cada uma no seu, no seu próprio ecrã. Para quando só queres um número.",
   "seoDashboardDesc": "15 calculadoras profissionais: tamanho de posição, lotes, alavancagem, margem cruzada, margem e liquidação, Fibonacci, Monte Carlo e Simulador Pro. Busca com 186 ativos.",
   "featureCalculators": "15 calculadoras Pro",
+  "posStopPrice": "Preço do stop",
+  "posNoDistance": "A entrada e o stop estão no mesmo preço: não há distância a arriscar, portanto não há tamanho a calcular. Mova um dos dois.",
 }

@@ -301,6 +301,36 @@ import pathlib, re
 p = pathlib.Path('frontend/src/lib/siteFacts.js'); t = p.read_text()
 p.write_text(re.sub(r'assets: \\d+', 'assets: 999', t, count=1))\""
 
+  # ── Dimensionar por precio de stop: el fallo que traía la pantalla ────────
+  # `PositionSizeCalculator` daba `riskAmount / |entrada − stop|` sin tamaño de
+  # contrato y sin convertir la divisa. Los dos sabotajes reintroducen cada
+  # mitad de ese error por separado, porque arreglar una y no la otra deja la
+  # cifra igual de falsa en la mitad de los instrumentos.
+  probar "el dimensionado vuelve a ignorar el tamaño de contrato" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/deskMath.js'); t = p.read_text()
+p.write_text(t.replace('  out.units = lots * csize;', '  out.units = lots;', 1))\""
+
+  # El tercero es el que sólo se vio mirando la pantalla: sin stop, `lotSizing`
+  # devolvía el máximo por margen o exposición, y las dos calculadoras pintaban
+  # el aviso de que falta el stop CON una cifra debajo.
+  probar "sin stop, el dimensionado vuelve a devolver el máximo por exposición" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/deskMath.js'); t = p.read_text()
+p.write_text(t.replace('  if (pos(stopDistance) === null) {', '  if (false) {', 1))\""
+
+  probar "el dimensionado vuelve a tratar la divisa cotizada como la de la cuenta" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/deskMath.js'); t = p.read_text()
+p.write_text(t.replace('  const factor = quoteToAccount({ spec, price: entry, account });',
+                       '  const factor = 1;', 1))\""
+
   # ── Margen cruzado: los cuatro fallos reales del borrador ─────────────────
   # Las cifras del curso de la Academia (?topic=cross-margin) salen de este
   # motor. Cada sabotaje de aquí reintroduce un bug que el borrador traía de

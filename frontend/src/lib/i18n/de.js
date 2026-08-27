@@ -4656,4 +4656,6 @@ export default {
   "deskModeBasicHint": "Jede für sich, auf ihrem eigenen Bildschirm. Wenn du nur eine Zahl brauchst.",
   "seoDashboardDesc": "15 professionelle Rechner: Positionsgröße, Lot, Hebel, Cross-Margin, Margin und Liquidation, Fibonacci, Monte Carlo und Simulator Pro. Suche über 186 Assets.",
   "featureCalculators": "15 Profi-Rechner",
+  "posStopPrice": "Stop-Kurs",
+  "posNoDistance": "Einstieg und Stop liegen auf demselben Kurs: Es gibt keine Distanz zu riskieren und damit keine Größe zu berechnen. Verschiebe einen der beiden.",
 }

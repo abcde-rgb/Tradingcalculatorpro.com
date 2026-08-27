@@ -4656,4 +4656,6 @@ export default {
   "deskModeBasicHint": "Each one on its own screen. For when you just want one number.",
   "seoDashboardDesc": "15 professional calculators: position size, lot size, leverage, cross margin, margin and liquidation, Fibonacci, Monte Carlo and Simulator Pro. Search across 186 assets.",
   "featureCalculators": "15 Pro Calculators",
+  "posStopPrice": "Stop price",
+  "posNoDistance": "Entry and stop are at the same price: there is no distance to risk, so there is no size to compute. Move one of them.",
 }

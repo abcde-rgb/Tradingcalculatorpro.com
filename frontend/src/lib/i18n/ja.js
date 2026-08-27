@@ -4656,4 +4656,6 @@ export default {
   "deskModeBasicHint": "それぞれ単体で、それぞれの画面に。数字ひとつだけ欲しいときに。",
   "seoDashboardDesc": "15種のプロ向け計算ツール：ポジションサイズ、ロット、レバレッジ、クロスマージン、証拠金と強制決済、Fibonacci、Monte Carlo、Simulator Pro。186銘柄を検索。",
   "featureCalculators": "プロ計算ツール15種",
+  "posStopPrice": "ストップ価格",
+  "posNoDistance": "エントリーとストップが同じ価格です。リスクを取る値幅がないため、サイズは計算できません。どちらかを動かしてください。",
 }

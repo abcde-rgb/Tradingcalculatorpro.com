@@ -699,6 +699,22 @@ export function lotSizing({
   };
   if (factor === null) return out;
 
+  // Sin distancia de stop NO hay dimensionado por riesgo, y devolver aquí el
+  // máximo que permiten el margen o la exposición era una trampa: la cifra sale
+  // perfectamente calculada, con su `binding` y todo, pero no responde a la
+  // pregunta que se hizo —«¿cuánto compro arriesgando el 1 %?»— porque no hay
+  // stop del que colgar ese 1 %. Las DOS calculadoras que usan esta función
+  // cayeron en ello por separado: enseñaban el aviso de que falta el stop y
+  // debajo un tamaño, que es peor que sólo el tamaño, porque el aviso hace
+  // creer que la cifra ya lo tiene en cuenta.
+  //
+  // Quien quiera el máximo por margen o por exposición tiene `maxSizes`, que es
+  // justo esa pregunta y se llama así.
+  if (pos(stopDistance) === null) {
+    out.binding = null;
+    return out;
+  }
+
   const cap = pos(capital);
   const riesgo = pos(riskAmount);
   const sizes = maxSizes({

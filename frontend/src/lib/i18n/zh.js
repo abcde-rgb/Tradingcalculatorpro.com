@@ -4656,4 +4656,6 @@ export default {
   "deskModeBasicHint": "各管各的，各有各的界面。只想要一个数字时用这个。",
   "seoDashboardDesc": "15 个专业计算器：仓位、手数、杠杆、全仓保证金、保证金与强平、Fibonacci、Monte Carlo 和 Simulator Pro。可搜索 186 个资产。",
   "featureCalculators": "15 个专业计算器",
+  "posStopPrice": "止损价格",
+  "posNoDistance": "入场价与止损价相同：没有可承担风险的距离，也就无法计算仓位。请移动其中之一。",
 }

@@ -4656,4 +4656,6 @@ export default {
   "deskModeBasicHint": "Chacune de son côté, sur son propre écran. Quand tu ne veux qu'un chiffre.",
   "seoDashboardDesc": "15 calculatrices pro : taille de position, lot, levier, marge croisée, marge et liquidation, Fibonacci, Monte Carlo et Simulateur Pro. Recherche sur 186 actifs.",
   "featureCalculators": "15 calculatrices Pro",
+  "posStopPrice": "Prix du stop",
+  "posNoDistance": "L'entrée et le stop sont au même prix : il n'y a aucune distance à risquer, donc aucune taille à calculer. Déplacez l'un des deux.",
 }

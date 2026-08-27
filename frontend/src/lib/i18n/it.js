@@ -4656,4 +4656,6 @@ export default {
   "deskModeBasicHint": "Ognuna per sé, nella sua schermata. Per quando vuoi solo un numero.",
   "seoDashboardDesc": "15 calcolatrici professionali: dimensione posizione, lotti, leva, margine incrociato, margine e liquidazione, Fibonacci, Monte Carlo e Simulatore Pro. Ricerca su 186 asset.",
   "featureCalculators": "15 calcolatrici Pro",
+  "posStopPrice": "Prezzo dello stop",
+  "posNoDistance": "L'ingresso e lo stop sono allo stesso prezzo: non c'è distanza da rischiare, quindi non c'è dimensione da calcolare. Sposta uno dei due.",
 }

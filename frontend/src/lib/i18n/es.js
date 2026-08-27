@@ -4656,4 +4656,6 @@ export default {
   "deskModeBasicHint": "Cada una a lo suyo, en su propia pantalla. Para cuando sólo quieres una cifra.",
   "seoDashboardDesc": "15 calculadoras profesionales: posición, lotaje, apalancamiento, margen cruzado, margen y liquidación, Fibonacci, Monte Carlo y Simulador Pro. Buscador con 186 activos.",
   "featureCalculators": "15 Calculadoras Pro",
+  "posStopPrice": "Precio del stop",
+  "posNoDistance": "La entrada y el stop están en el mismo precio: no hay distancia que arriesgar, así que no hay tamaño que calcular. Mueve uno de los dos.",
 }

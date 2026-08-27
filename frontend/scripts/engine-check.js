@@ -1910,6 +1910,114 @@ async function checkCrossMargin() {
     canOpen({ ...base, positions: pos, price: 0, addLots: 1 }).maxLots === null);
 }
 
+async function checkDimensionadoPorPrecio() {
+  console.log('\nDimensionar por PRECIO de stop  (PositionSizeCalculator)');
+  const { resolveSpec, contractSizeFor } = await imp('lib/instruments.js');
+  const { riskBudget, lotSizing, maxSizes, effectiveLeverage, requiredLeverage } = await imp('lib/deskMath.js');
+
+  // La calculadora de posición pregunta lo mismo que la de lotaje pero con el
+  // stop escrito como PRECIO. Aquí se fijan las cifras de esa traducción, y
+  // sobre todo las que la fórmula anterior daba mal: sin tamaño de contrato y
+  // sin convertir la divisa, `riskAmount / |entry − stop|` sólo acierta cuando
+  // una unidad vale una unidad de precio.
+  const CAPITAL = 10000, RIESGO = 2;   // 200 $ de presupuesto
+  const dimensiona = (product, symbol, entry, stop, lotType = 'standard') => {
+    const spec = resolveSpec(product, symbol);
+    const contractSize = contractSizeFor(product, symbol, { lotType });
+    const leverage = effectiveLeverage({ declared: '', spec, entry, contractSize });
+    const budget = riskBudget({ capital: CAPITAL, riskPct: RIESGO, mode: 'pct' });
+    const s = lotSizing({
+      entry, stopDistance: Math.abs(entry - stop), contractSize, spec,
+      capital: CAPITAL, riskAmount: budget.amount, leverage,
+    });
+    return { ...s, contractSize, viejo: budget.amount / Math.abs(entry - stop) };
+  };
+
+  // ── Donde la fórmula vieja acertaba: contrato de 1 y cuenta en la
+  //    divisa cotizada. Si esto cambiara, sería una regresión de verdad.
+  const aapl = dimensiona('stock', 'AAPL', 200, 196);
+  ok('una acción con contrato 1 sale igual que con la fórmula vieja',
+    near(aapl.lots, 50) && near(aapl.viejo, 50), `${aapl.lots} vs ${aapl.viejo}`);
+  ok('y arriesga exactamente el presupuesto', near(aapl.riskAccount, 200), String(aapl.riskAccount));
+
+  // ── Oro: el lote son 100 onzas. La cifra vieja (20) era ONZAS, y se
+  //    presentaba en el sitio donde va lo que se compra.
+  const oro = dimensiona('cfd', 'XAUUSD', 2000, 1990);
+  ok('el oro son 0,2 lotes, no 20', near(oro.lots, 0.2) && near(oro.viejo, 20),
+    `lotes=${oro.lots} viejo=${oro.viejo}`);
+  ok('esos 0,2 lotes SÍ son 20 onzas: la vieja daba unidades, no lo que se compra',
+    near(oro.units, 20) && oro.contractSize === 100, `${oro.units} × ${oro.contractSize}`);
+  ok('y el riesgo cae donde se pidió', near(oro.riskAccount, 200), String(oro.riskAccount));
+
+  // ── Futuro ES: 200 $ no llegan para un contrato entero, y medio contrato
+  //    no existe. La respuesta honesta es que no hay tamaño.
+  const es = dimensiona('futures', 'ES', 5000, 4990);
+  ok('con 200 $ no se compra medio ES: no hay tamaño', es.lots === null,
+    String(es.lots));
+
+  // ── USDJPY: cotiza en yenes y la cuenta está en dólares. El factor sale
+  //    del propio precio (1/157), y es lo que la vieja no hacía.
+  const jpy = dimensiona('forex', 'USDJPY', 157, 156.5);
+  ok('USDJPY se dimensiona convirtiendo desde el yen', near(jpy.lots, 0.62, 1e-9),
+    String(jpy.lots));
+  ok('el riesgo real queda por debajo del presupuesto porque el lote se ajusta al paso',
+    jpy.riskAccount < 200 && near(jpy.riskAccount, 197.4522, 1e-3), String(jpy.riskAccount));
+
+  // ── Un cruce sin tercer tipo de cambio no se dimensiona. Se dice.
+  const cruce = dimensiona('forex', 'EURGBP', 0.84, 0.835);
+  ok('un cruce sin tercer tipo no da cifra', cruce.lots === null && !cruce.convertible,
+    JSON.stringify({ lots: cruce.lots, convertible: cruce.convertible }));
+
+  // ── Contado sin palanca: el tope lo pone la cuenta, no el riesgo. La
+  //    fórmula vieja mandaba comprar 19 000 $ de BTC con 10 000 $.
+  const btc = dimensiona('crypto_spot', 'BTC', 95000, 94000);
+  // El vocabulario del motor tiene tres topes —`risk`, `margin`, `exposure`— y
+  // no tiene `capital`: en un producto SIN palanca el tope de margen es la
+  // cuenta entera, así que ese caso sale como `margin`. Lo importante no es la
+  // etiqueta sino que el tope lo ponga el dinero y no el riesgo.
+  ok('en contado el tope lo pone el dinero, no el presupuesto de riesgo',
+    btc.binding === 'margin' && !resolveSpec('crypto_spot', 'BTC').usesLeverage,
+    String(btc.binding));
+  ok('y por eso la posición no supera la cuenta',
+    btc.notionalAccount <= CAPITAL + 1e-6 && btc.viejo * 95000 > CAPITAL,
+    `nocional=${btc.notionalAccount} viejo=${btc.viejo * 95000}`);
+
+  // ── Sin stop no hay tamaño, y el motor es quien lo dice ─────────
+  // Devolver aquí el máximo por margen o por exposición es una trampa: la
+  // cifra sale bien calculada pero no responde a «¿cuánto compro arriesgando
+  // el 1 %?», porque no hay stop del que colgar ese 1 %. Las DOS calculadoras
+  // que usan `lotSizing` cayeron por separado en enseñar el aviso de que falta
+  // el stop Y un tamaño debajo. Quien quiera ese máximo tiene `maxSizes`.
+  const sinStop = lotSizing({
+    entry: 1.085, stopDistance: null, contractSize: 100000,
+    spec: resolveSpec('forex', 'EURUSD'), capital: 10000, riskAmount: 100, leverage: 30,
+  });
+  ok('sin distancia de stop no hay lotes ni motivo',
+    sinStop.lots === null && sinStop.binding === null && sinStop.riskAccount === null,
+    JSON.stringify({ lots: sinStop.lots, binding: sinStop.binding }));
+
+  const stopCero = lotSizing({
+    entry: 1.085, stopDistance: 0, contractSize: 100000,
+    spec: resolveSpec('forex', 'EURUSD'), capital: 10000, riskAmount: 100, leverage: 30,
+  });
+  ok('un stop a distancia CERO cuenta igual que no tenerlo', stopCero.lots === null,
+    String(stopCero.lots));
+
+  // Y sigue habiendo forma de preguntar por el máximo, que es otra pregunta.
+  const tope = maxSizes({
+    entry: 1.085, stopDistance: null, contractSize: 100000,
+    spec: resolveSpec('forex', 'EURUSD'), capital: 10000, riskAmount: null, leverage: 30,
+  });
+  ok('`maxSizes` sí contesta al máximo sin stop: es la pregunta que se llama así',
+    tope.quantity !== null, JSON.stringify(tope.quantity));
+
+  // ── El apalancamiento que hace falta no baja de 1: pedir 0,4× no
+  //    significa nada, y un 0,4 en esa casilla se lee como «desapalancado».
+  ok('el apalancamiento necesario nunca baja de 1', near(requiredLeverage(5000, 10000), 1),
+    String(requiredLeverage(5000, 10000)));
+  ok('y sin cuenta no se inventa', requiredLeverage(5000, null) === null);
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -1919,6 +2027,7 @@ async function checkCrossMargin() {
   await checkInstruments();
   await checkSinCatalogosParalelos();
   await checkDeskMath();
+  await checkDimensionadoPorPrecio();
   await checkCrossMargin();
   await checkEduIndex();
   await checkScannerMeta();

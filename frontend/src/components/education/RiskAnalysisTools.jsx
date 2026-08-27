@@ -481,7 +481,10 @@ function MarginStressTest() {
       net += n * s;
     });
     const maintReq = gross * m;
-    const grossLev = E > 0 ? gross / E : 0;
+    // Sin cuenta el apalancamiento no es cero, es indefinido: un 0,0x en esa
+    // casilla se lee como «vas sin apalancar», que es lo contrario de «no lo
+    // sé». Misma regla que el `liqMove` de dos líneas más abajo.
+    const grossLev = E > 0 ? gross / E : null;
     // Adverse move (fraction) that drops equity to the maintenance requirement.
     const liqMove = net !== 0 ? (maintReq - E) / net : null;
     const row = (movePct) => {
@@ -566,7 +569,7 @@ function MarginStressTest() {
         <div className="grid grid-cols-3 gap-3">
           <Output label={t('mstGross')} value={fmtMoneyShort(calc.gross)} />
           <Output label={t('mstNet')} value={fmtMoneyShort(calc.net)} />
-          <Output label={t('mstLeverage')} value={`${calc.grossLev.toFixed(1)}x`} accent={calc.grossLev > 5 ? 'text-red-500' : calc.grossLev > 2 ? 'text-amber-500' : 'text-foreground'} />
+          <Output label={t('mstLeverage')} value={calc.grossLev === null ? '—' : `${calc.grossLev.toFixed(1)}x`} accent={calc.grossLev === null ? 'text-muted-foreground' : calc.grossLev > 5 ? 'text-red-500' : calc.grossLev > 2 ? 'text-amber-500' : 'text-foreground'} />
         </div>
 
         {/* Liquidation headline */}
