@@ -146,11 +146,19 @@ else
   verde "datos de prueba ya presentes ($YA operaciones)"
 fi
 
-# ── 5 · Chromium ─────────────────────────────────────────────────────────
-if [ ! -d "$RAIZ/tests/e2e/lib/playwright-core" ]; then
-  aviso "instalando playwright-core (sólo la primera vez)"
+# ── 5 · Chromium y axe ───────────────────────────────────────────────────
+# Las DOS en la misma orden, y no es cosmético: `npm install --no-save` sin un
+# `package.json` que las declare PODA todo lo que no esté en la línea de
+# órdenes. Instalar axe-core aparte —como decía la guía de accesibilidad— se
+# llevaba por delante playwright-core y dejaba `lib/playwright-core` como un
+# enlace roto; reinstalar Playwright se llevaba axe. Un tira y afloja infinito
+# en el que ninguna de las dos sondas podía correr después de la otra.
+if [ ! -d "$RAIZ/tests/e2e/lib/playwright-core" ] \
+   || [ ! -d "$RAIZ/tests/e2e/node_modules/axe-core" ]; then
+  aviso "instalando playwright-core y axe-core (juntas: por separado se podan)"
   mkdir -p "$RAIZ/tests/e2e/lib"
-  ( cd "$RAIZ/tests/e2e" && npm install --silent --no-save --prefix . playwright-core >/dev/null 2>&1 )
+  ( cd "$RAIZ/tests/e2e" \
+      && npm install --silent --no-save --prefix . playwright-core axe-core >/dev/null 2>&1 )
   [ -d "$RAIZ/tests/e2e/node_modules/playwright-core" ] \
     && ln -sfn "$RAIZ/tests/e2e/node_modules/playwright-core" "$RAIZ/tests/e2e/lib/playwright-core"
 fi

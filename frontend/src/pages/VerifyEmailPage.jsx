@@ -53,7 +53,7 @@ export default function VerifyEmailPage() {
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             {status === 'verifying' && <Loader2 className="w-9 h-9 text-primary animate-spin" />}
-            {status === 'success' && <CheckCircle className="w-9 h-9 text-green-500" />}
+            {status === 'success' && <CheckCircle className="w-9 h-9 text-long" />}
             {status === 'error' && <XCircle className="w-9 h-9 text-destructive" />}
           </div>
           <CardTitle className="text-xl font-unbounded">

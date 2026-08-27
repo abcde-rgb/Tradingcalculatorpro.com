@@ -41,8 +41,8 @@ export const PATTERN_NAME_KEY = {
 };
 
 export const TYPE_BADGE = {
-  bullish: { color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/10', border: 'border-[#22c55e]/30', icon: '↑' },
-  bearish: { color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/10', border: 'border-[#ef4444]/30', icon: '↓' },
+  bullish: { color: 'text-long', bg: 'bg-long/10', border: 'border-long/30', icon: '↑' },
+  bearish: { color: 'text-short', bg: 'bg-short/10', border: 'border-short/30', icon: '↓' },
   neutral: { color: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border', icon: '↔' },
 };
 
@@ -54,4 +54,4 @@ export const BEHAVIOR_KEY = {
 
 // Colour the reliability % by strength: strong ≥65, medium ≥55, weak below.
 export const rateColor = (rate) =>
-  rate >= 65 ? 'text-[#22c55e]' : rate >= 55 ? 'text-[#f59e0b]' : 'text-muted-foreground';
+  rate >= 65 ? 'text-long' : rate >= 55 ? 'text-warn' : 'text-muted-foreground';

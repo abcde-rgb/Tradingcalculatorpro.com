@@ -256,9 +256,9 @@ export default function SettingsPage() {
 
           {emailUnverified && (
             <div className="flex items-start gap-3 rounded-lg bg-amber-500/10 border border-amber-500/25 px-4 py-3">
-              <Mail className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <Mail className="w-5 h-5 text-warn shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{t('verifyEmailBannerTitle')}</p>
+                <p className="text-sm font-semibold text-warn dark:text-warn">{t('verifyEmailBannerTitle')}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{t('verifyEmailBannerDesc')}</p>
               </div>
               <Button size="sm" variant="outline" onClick={handleResendVerification} disabled={resendingVerify} className="shrink-0">
@@ -335,7 +335,7 @@ export default function SettingsPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-yellow-500" />
+                <Crown className="w-5 h-5 text-caution" />
                 {t('subscription')}
               </CardTitle>
             </CardHeader>
@@ -343,8 +343,8 @@ export default function SettingsPage() {
               {user.is_premium ? (
                 <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 space-y-3">
                   <div className="flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-yellow-500" />
-                    <span className="font-semibold text-yellow-500">{t('premiumActivo_433549')}</span>
+                    <Crown className="w-5 h-5 text-caution" />
+                    <span className="font-semibold text-caution">{t('premiumActivo_433549')}</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {t('settingsPlanLabel')} <span className="text-foreground capitalize">{user.subscription_plan}</span>
@@ -400,8 +400,8 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setShowCurrent((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
-                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showCurrent ? t('hidePassword') : t('showPassword')}
                     >
                       {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -423,8 +423,8 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setShowNew((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
-                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showNew ? t('hidePassword') : t('showPassword')}
                     >
                       {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -446,8 +446,8 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirm((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
-                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showConfirm ? t('hidePassword') : t('showPassword')}
                     >
                       {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -467,7 +467,7 @@ export default function SettingsPage() {
               className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3"
               data-testid="admin-2fa-notice"
             >
-              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-warn shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold">{t('admin2faRequiredTitle')}</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
@@ -558,7 +558,7 @@ export default function SettingsPage() {
           {/* Delete Account Card (RGPD) */}
           <Card className="bg-card border-red-900/30">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-400">
+              <CardTitle className="flex items-center gap-2 text-short">
                 <AlertTriangle className="w-5 h-5" />
                 {t('dangerZoneTitle')}
               </CardTitle>
@@ -569,7 +569,7 @@ export default function SettingsPage() {
               </p>
               <Button
                 variant="outline"
-                className="border-red-800 text-red-400 hover:bg-red-950 hover:text-red-300 w-full sm:w-auto"
+                className="border-red-800 text-short hover:bg-red-950 hover:text-short w-full sm:w-auto"
                 onClick={() => {
                   setDeleteConfirmText('');
                   setDeleteDialogOpen(true);
@@ -589,11 +589,11 @@ export default function SettingsPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md bg-[#0f0f0f] border-red-900/40">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-400">
+            <DialogTitle className="flex items-center gap-2 text-short">
               <AlertTriangle className="w-5 h-5" />
               {t('confirmDeleteAccountTitle')}
             </DialogTitle>
-            <DialogDescription className="text-zinc-400 pt-2">
+            <DialogDescription className="text-muted-foreground pt-2">
               {(() => {
                 const [before, after] = t('confirmDeleteAccountDesc').split('{confirmWord}');
                 return (
@@ -608,8 +608,8 @@ export default function SettingsPage() {
           </DialogHeader>
 
           <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
+            <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
+            <p className="text-xs text-warn dark:text-warn leading-relaxed">
               {t('deleteAccountCancelsSubNote')}
             </p>
           </div>

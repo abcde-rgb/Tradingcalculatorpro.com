@@ -15,8 +15,8 @@ const fmt = (n) => (n >= 0 ? n.toFixed(2) : n.toFixed(2));
 
 const cellColor = (ev) => {
   if (Math.abs(ev) < 0.005) return 'text-foreground';
-  if (ev < 0) return 'text-[#ef4444]';
-  return 'text-[#22c55e]';
+  if (ev < 0) return 'text-short';
+  return 'text-long';
 };
 
 const ExpectancyMatrix = () => {
@@ -47,7 +47,7 @@ const ExpectancyMatrix = () => {
     <Card className="bg-gradient-to-br from-red-500/5 to-orange-500/5 border-red-500/20">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-unbounded text-xl">
-          <Calculator className="w-5 h-5 text-red-500" />
+          <Calculator className="w-5 h-5 text-short" />
           {t('expectancyMatrixTitle')}
         </CardTitle>
       </CardHeader>
@@ -58,11 +58,11 @@ const ExpectancyMatrix = () => {
 
         {/* Formula */}
         <div className="bg-card/60 border border-border rounded-lg px-4 py-3 font-mono text-sm flex items-center gap-3 flex-wrap">
-          <Target className="w-4 h-4 text-orange-500 flex-shrink-0" />
+          <Target className="w-4 h-4 text-warn flex-shrink-0" />
           <span className="text-muted-foreground">EV =</span>
-          <span className="text-[#22c55e]">(%A × R)</span>
+          <span className="text-long">(%A × R)</span>
           <span className="text-muted-foreground">−</span>
-          <span className="text-[#ef4444]">(%F × 1)</span>
+          <span className="text-short">(%F × 1)</span>
           {hoveredEV !== null && (
             <span className="ml-auto text-foreground font-semibold whitespace-nowrap">
               {hoveredWR}% × {hoveredR} − {100 - hoveredWR}% × 1 ={' '}
@@ -79,15 +79,15 @@ const ExpectancyMatrix = () => {
           <table className="w-full text-sm font-mono" data-testid="expectancy-matrix-table">
             <thead>
               <tr className="bg-red-500/10 border-b border-red-500/30">
-                <th className="px-3 py-2 text-left text-red-400 font-bold tracking-wider text-xs whitespace-nowrap">
+                <th className="px-3 py-2 text-left text-short font-bold tracking-wider text-xs whitespace-nowrap">
                   %A
                 </th>
-                <th className="px-3 py-2 text-left text-red-400 font-bold tracking-wider text-xs whitespace-nowrap">
+                <th className="px-3 py-2 text-left text-short font-bold tracking-wider text-xs whitespace-nowrap">
                   %F
                 </th>
                 <th
                   colSpan={R_RATIOS.length}
-                  className="px-3 py-2 text-center text-red-400 font-bold tracking-wider text-xs"
+                  className="px-3 py-2 text-center text-short font-bold tracking-wider text-xs"
                 >
                   {t('expectancyMatrixRiskRewardCol')}
                 </th>
@@ -149,11 +149,11 @@ const ExpectancyMatrix = () => {
         {/* Legend */}
         <div className="flex items-center gap-4 flex-wrap text-xs">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm bg-[#ef4444]/80"></span>
+            <span className="w-3 h-3 rounded-sm bg-short/80"></span>
             <span className="text-muted-foreground">{t('expectancyMatrixLegendLoss')}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm bg-[#22c55e]/80"></span>
+            <span className="w-3 h-3 rounded-sm bg-long/80"></span>
             <span className="text-muted-foreground">{t('expectancyMatrixLegendProfit')}</span>
           </div>
         </div>
@@ -161,7 +161,7 @@ const ExpectancyMatrix = () => {
         {/* Interpretation */}
         <div className="bg-orange-500/5 border-l-4 border-orange-500/60 rounded-r-lg px-4 py-3">
           <div className="flex items-start gap-2">
-            <TrendingUp className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+            <TrendingUp className="w-4 h-4 text-warn mt-0.5 flex-shrink-0" />
             <p className="text-sm text-muted-foreground leading-relaxed">
               {t('expectancyMatrixInterpretation')}
             </p>

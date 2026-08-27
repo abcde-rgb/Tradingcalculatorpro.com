@@ -63,7 +63,7 @@ export default function FillBlanksExample({ n }) {
       </p>
       <div className="flex items-center gap-3 min-h-[1.25rem]">
         {!revealed && correct && (
-          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+          <span className="inline-flex items-center gap-1 text-long dark:text-long font-semibold">
             <CheckCircle2 className="w-3.5 h-3.5" /> {t('fillCorrect')}
           </span>
         )}

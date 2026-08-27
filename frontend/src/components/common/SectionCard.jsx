@@ -22,9 +22,9 @@ import { ChevronDown } from 'lucide-react';
  */
 const ACCENTS = {
   primary: 'text-primary bg-primary/10',
-  blue: 'text-[#60a5fa] bg-[#3b82f6]/10',
-  purple: 'text-[#c084fc] bg-[#a855f7]/10',
-  amber: 'text-[#fbbf24] bg-[#f59e0b]/10',
+  blue: 'text-info bg-info/10',
+  purple: 'text-compare bg-compare/10',
+  amber: 'text-warn bg-warn/10',
   muted: 'text-muted-foreground bg-muted',
 };
 

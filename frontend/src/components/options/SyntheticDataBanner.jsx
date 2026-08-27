@@ -22,11 +22,11 @@ export default function SyntheticDataBanner({ synthetic, className = '' }) {
     <div
       role="alert"
       data-testid="synthetic-data-banner"
-      className={`flex items-start gap-3 p-3 rounded-lg border border-[#f59e0b]/50 bg-[#f59e0b]/10 ${className}`}
+      className={`flex items-start gap-3 p-3 rounded-lg border border-warn/50 bg-warn/10 ${className}`}
     >
-      <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#f59e0b]" />
+      <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-warn" />
       <div className="text-sm">
-        <p className="font-semibold text-[#f59e0b]">{t('syntheticDataTitle')}</p>
+        <p className="font-semibold text-warn">{t('syntheticDataTitle')}</p>
         <p className="text-muted-foreground text-xs mt-0.5">{t('syntheticDataBody')}</p>
       </div>
     </div>

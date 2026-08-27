@@ -131,7 +131,7 @@ export default function ScanReading({ data }) {
           son soporte y con el otro resistencia. Cuando los hay, el reparto de
           la escalera no es una verdad sino una elección, y se dice. */}
       {data.levelsBetweenLiveAndClose > 0 && (
-        <div className="flex items-start gap-2 rounded-md border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2"
+        <div className="flex items-start gap-2 rounded-md border border-warn/40 bg-warn/5 px-3 py-2"
              data-testid="struct-ref-disputed">
           <span className="text-[11px] leading-snug">
             {t('structRefDisputed')
@@ -147,7 +147,7 @@ export default function ScanReading({ data }) {
           label={t('structRoomAbove')}
           value={ctx.roomAbovePct == null ? null : signed(ctx.roomAbovePct)}
           sub={atrLabel(ctx.roomAboveAtr)}
-          tone="text-[#ef4444]"
+          tone="text-short"
           testid="struct-room-above"
         />
         {/* El precio contra el que se reparte soporte/resistencia. Puede ser
@@ -174,7 +174,7 @@ export default function ScanReading({ data }) {
           label={t('structRoomBelow')}
           value={ctx.roomBelowPct == null ? null : signed(-ctx.roomBelowPct)}
           sub={atrLabel(ctx.roomBelowAtr)}
-          tone="text-[#22c55e]"
+          tone="text-long"
           testid="struct-room-below"
         />
       </div>
@@ -191,7 +191,7 @@ export default function ScanReading({ data }) {
               {pos}%{ctx.rangeWidthPct != null && ` · ${ctx.rangeWidthPct}%`}
             </span>
           </div>
-          <div className="relative h-2 rounded-full bg-gradient-to-r from-[#22c55e]/40 to-[#ef4444]/40">
+          <div className="relative h-2 rounded-full bg-gradient-to-r from-long/40 to-short/40">
             <span
               className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-primary border-2 border-background"
               style={{ left: `${Math.max(0, Math.min(100, pos))}%` }}

@@ -29,7 +29,7 @@ const StopLossGuide = () => {
     {
       id: 'structure',
       icon: Crosshair,
-      color: 'text-green-500',
+      color: 'text-long',
       ring: 'border-green-500/30 bg-green-500/5',
       name: t('slStructureName'),
       desc: t('slStructureDesc'),
@@ -38,7 +38,7 @@ const StopLossGuide = () => {
     {
       id: 'atr',
       icon: Activity,
-      color: 'text-blue-500',
+      color: 'text-info',
       ring: 'border-blue-500/30 bg-blue-500/5',
       name: t('slAtrName'),
       desc: t('slAtrDesc'),
@@ -47,7 +47,7 @@ const StopLossGuide = () => {
     {
       id: 'fixed',
       icon: Ruler,
-      color: 'text-amber-500',
+      color: 'text-warn',
       ring: 'border-amber-500/30 bg-amber-500/5',
       name: t('slFixedName'),
       desc: t('slFixedDesc'),
@@ -59,7 +59,7 @@ const StopLossGuide = () => {
     <Card className="bg-gradient-to-br from-red-500/5 to-orange-500/10 border-red-500/30" data-testid="stop-loss-guide">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Crosshair className="w-5 h-5 text-red-500" />
+          <Crosshair className="w-5 h-5 text-short" />
           {t('slGuideTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('slGuideIntro')}</p>
@@ -80,8 +80,8 @@ const StopLossGuide = () => {
                     <Icon className={`w-4 h-4 ${s.color}`} />
                     <span className="font-semibold text-sm">{s.name}</span>
                     {s.good
-                      ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500 ml-auto" />
-                      : <AlertTriangle className="w-3.5 h-3.5 text-amber-500 ml-auto" />}
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-long ml-auto" />
+                      : <AlertTriangle className="w-3.5 h-3.5 text-warn ml-auto" />}
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
                 </div>
@@ -100,9 +100,9 @@ const StopLossGuide = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-red-500/10 border-b border-red-500/30">
-                  <th className="px-3 py-2 text-left text-red-400 font-bold text-xs uppercase tracking-wider">{t('slColWinRate')}</th>
-                  <th className="px-3 py-2 text-left text-red-400 font-bold text-xs uppercase tracking-wider">{t('slColBreakeven')}</th>
-                  <th className="px-3 py-2 text-left text-red-400 font-bold text-xs uppercase tracking-wider">{t('slColProfitable')}</th>
+                  <th className="px-3 py-2 text-left text-short font-bold text-xs uppercase tracking-wider">{t('slColWinRate')}</th>
+                  <th className="px-3 py-2 text-left text-short font-bold text-xs uppercase tracking-wider">{t('slColBreakeven')}</th>
+                  <th className="px-3 py-2 text-left text-short font-bold text-xs uppercase tracking-wider">{t('slColProfitable')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -112,7 +112,7 @@ const StopLossGuide = () => {
                     <tr key={wr} className="border-b border-border/40 last:border-0">
                       <td className="px-3 py-2 font-mono font-semibold">{wr}%</td>
                       <td className="px-3 py-2 font-mono text-muted-foreground">1 : {be.toFixed(2)}</td>
-                      <td className="px-3 py-2 font-mono text-green-500">&gt; 1 : {be.toFixed(2)}</td>
+                      <td className="px-3 py-2 font-mono text-long">&gt; 1 : {be.toFixed(2)}</td>
                     </tr>
                   );
                 })}
@@ -124,7 +124,7 @@ const StopLossGuide = () => {
 
         {/* Key insight */}
         <div className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-xs">
-          <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <XCircle className="w-4 h-4 text-short shrink-0 mt-0.5" />
           <span className="text-muted-foreground">{t('slKeyInsight')}</span>
         </div>
       </CardContent>

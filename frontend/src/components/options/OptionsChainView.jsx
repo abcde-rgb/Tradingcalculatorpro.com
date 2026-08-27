@@ -70,9 +70,9 @@ const OptionsChainView = ({ chain, stockPrice, expirations, selectedExpIdx, onEx
           <table className="w-full text-[11px]">
             <thead className="sticky top-0 z-10">
               <tr className="bg-card">
-                <th colSpan="7" className="text-center py-2 text-[#22c55e] text-xs font-semibold border-b border-border">CALLS</th>
+                <th colSpan="7" className="text-center py-2 text-long text-xs font-semibold border-b border-border">CALLS</th>
                 <th className="py-2 px-3 text-center text-foreground font-bold border-b border-border bg-muted">Strike</th>
-                <th colSpan="7" className="text-center py-2 text-[#ef4444] text-xs font-semibold border-b border-border">PUTS</th>
+                <th colSpan="7" className="text-center py-2 text-short text-xs font-semibold border-b border-border">PUTS</th>
               </tr>
               <tr className="bg-background">
                 {CALL_COLS.map((h) => (
@@ -89,8 +89,8 @@ const OptionsChainView = ({ chain, stockPrice, expirations, selectedExpIdx, onEx
                 const isITMCall = row.strike < stockPrice;
                 const isITMPut = row.strike > stockPrice;
                 const isATM = idx === atmIdx;
-                const callBg = isITMCall ? 'bg-[#22c55e]/5' : '';
-                const putBg = isITMPut ? 'bg-[#ef4444]/5' : '';
+                const callBg = isITMCall ? 'bg-long/5' : '';
+                const putBg = isITMPut ? 'bg-short/5' : '';
                 return (
                   <tr
                     key={row.strike}
@@ -102,16 +102,16 @@ const OptionsChainView = ({ chain, stockPrice, expirations, selectedExpIdx, onEx
                     <td className={`py-1.5 px-2 text-right font-mono tabular-nums text-muted-foreground ${callBg}`}>{(row.call?.volume ?? 0).toLocaleString()}</td>
                     <td className={`py-1.5 px-2 text-right font-mono tabular-nums text-muted-foreground ${callBg}`}>{(row.call?.openInterest ?? 0).toLocaleString()}</td>
                     <td className={`py-1.5 px-2 text-right font-mono tabular-nums ${callBg}`}>{((row.call?.iv ?? 0) * 100).toFixed(1)}%</td>
-                    <td className={`py-1.5 px-2 text-right font-mono tabular-nums ${isITMCall ? 'bg-[#22c55e]/5 text-[#4ade80]' : 'text-muted-foreground'}`}>{(row.call?.delta ?? 0).toFixed(3)}</td>
+                    <td className={`py-1.5 px-2 text-right font-mono tabular-nums ${isITMCall ? 'bg-long/5 text-long' : 'text-muted-foreground'}`}>{(row.call?.delta ?? 0).toFixed(3)}</td>
 
                     <td className={`py-1.5 px-3 text-center font-mono tabular-nums font-bold bg-muted border-x border-border ${
-                      isATM ? 'text-primary' : isITMCall ? 'text-[#4ade80]' : 'text-[#f87171]'
+                      isATM ? 'text-primary' : isITMCall ? 'text-long' : 'text-short'
                     }`}>
                       ${row.strike}
                       {isATM && <span className="text-[8px] ml-1 text-primary opacity-70">ATM</span>}
                     </td>
 
-                    <td className={`py-1.5 px-2 text-left font-mono tabular-nums ${isITMPut ? 'bg-[#ef4444]/5 text-[#f87171]' : 'text-muted-foreground'}`}>{(row.put?.delta ?? 0).toFixed(3)}</td>
+                    <td className={`py-1.5 px-2 text-left font-mono tabular-nums ${isITMPut ? 'bg-short/5 text-short' : 'text-muted-foreground'}`}>{(row.put?.delta ?? 0).toFixed(3)}</td>
                     <td className={`py-1.5 px-2 text-left font-mono tabular-nums ${putBg}`}>{((row.put?.iv ?? 0) * 100).toFixed(1)}%</td>
                     <td className={`py-1.5 px-2 text-left font-mono tabular-nums text-muted-foreground ${putBg}`}>{(row.put?.openInterest ?? 0).toLocaleString()}</td>
                     <td className={`py-1.5 px-2 text-left font-mono tabular-nums text-muted-foreground ${putBg}`}>{(row.put?.volume ?? 0).toLocaleString()}</td>

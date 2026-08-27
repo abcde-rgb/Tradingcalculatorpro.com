@@ -6,11 +6,11 @@ import { useAuthStore } from '@/lib/store';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const GREEK_ROWS = [
-  { key: 'delta', label: 'Delta Δ', subKey: 'greekDeltaSub_bc3a40', good: (v) => Math.abs(v) < 100, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
-  { key: 'gamma', label: 'Gamma Γ', subKey: 'greekGammaSub_bc3a41', good: () => true, color: () => 'text-[#fbbf24]' },
-  { key: 'theta', label: 'Theta Θ', subKey: 'porCadaDia_ca6f47', good: (v) => v >= 0, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
-  { key: 'vega', label: 'Vega ν', subKey: 'greekVegaSub_bc3a42', good: () => true, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
-  { key: 'rho', label: 'Rho ρ', subKey: 'greekRhoSub_bc3a43', good: () => true, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
+  { key: 'delta', label: 'Delta Δ', subKey: 'greekDeltaSub_bc3a40', good: (v) => Math.abs(v) < 100, color: (v) => v >= 0 ? 'text-long' : 'text-short' },
+  { key: 'gamma', label: 'Gamma Γ', subKey: 'greekGammaSub_bc3a41', good: () => true, color: () => 'text-warn' },
+  { key: 'theta', label: 'Theta Θ', subKey: 'porCadaDia_ca6f47', good: (v) => v >= 0, color: (v) => v >= 0 ? 'text-long' : 'text-short' },
+  { key: 'vega', label: 'Vega ν', subKey: 'greekVegaSub_bc3a42', good: () => true, color: (v) => v >= 0 ? 'text-long' : 'text-short' },
+  { key: 'rho', label: 'Rho ρ', subKey: 'greekRhoSub_bc3a43', good: () => true, color: (v) => v >= 0 ? 'text-long' : 'text-short' },
 ];
 
 /**
@@ -113,7 +113,7 @@ const PortfolioGreeks = () => {
                   <div className="grid grid-cols-4 gap-2 text-[10px] font-mono">
                     <div><span className="text-muted-foreground">Δ</span> <span className="text-foreground">{(p.greeks?.delta ?? 0).toFixed(2)}</span></div>
                     <div><span className="text-muted-foreground">Γ</span> <span className="text-foreground">{(p.greeks?.gamma ?? 0).toFixed(4)}</span></div>
-                    <div><span className="text-muted-foreground">Θ</span> <span className={(p.greeks?.theta ?? 0) >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'}>{(p.greeks?.theta ?? 0).toFixed(2)}</span></div>
+                    <div><span className="text-muted-foreground">Θ</span> <span className={(p.greeks?.theta ?? 0) >= 0 ? 'text-long' : 'text-short'}>{(p.greeks?.theta ?? 0).toFixed(2)}</span></div>
                     <div><span className="text-muted-foreground">ν</span> <span className="text-foreground">{(p.greeks?.vega ?? 0).toFixed(2)}</span></div>
                   </div>
                 </div>

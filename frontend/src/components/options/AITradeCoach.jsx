@@ -61,17 +61,17 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#a855f7]/5 via-card to-[#6366f1]/5 border border-[#a855f7]/30 rounded-xl p-4" data-testid="ai-trade-coach">
+    <div className="bg-gradient-to-br from-compare/5 via-card to-[#6366f1]/5 border border-compare/30 rounded-xl p-4" data-testid="ai-trade-coach">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#c084fc]" />
+          <Sparkles className="w-4 h-4 text-compare" />
           <h4 className="text-sm font-bold text-foreground">AI Trade Coach</h4>
-          <span className="text-[9px] bg-[#a855f7]/15 border border-[#a855f7]/30 text-[#c084fc] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">Claude Sonnet 4.5</span>
+          <span className="text-[9px] bg-compare/15 border border-compare/30 text-compare px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">Claude Sonnet 4.5</span>
         </div>
         <button
           onClick={analyze}
           disabled={loading || !legs?.length}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#c084fc] text-xs font-bold hover:bg-[#a855f7]/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-compare/15 border border-compare/40 text-compare text-xs font-bold hover:bg-compare/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           data-testid="ai-analyze-btn"
         >
           {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('aiCoachAnalyzing_91e0e9')}</> : analysis ? <><RefreshCw className="w-3.5 h-3.5" /> {t('aiCoachReanalyze_91e0ea')}</> : <><Sparkles className="w-3.5 h-3.5" /> {t('analizarEstaOperacion_804981')}</>}
@@ -79,7 +79,7 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
       </div>
 
       {error && (
-        <div className="bg-[#ef4444]/10 border border-[#ef4444]/30 rounded-lg p-3 text-xs text-[#f87171]">
+        <div className="bg-short/10 border border-short/30 rounded-lg p-3 text-xs text-short">
           {error}
         </div>
       )}
@@ -89,7 +89,7 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
         return (
           <p className="text-xs text-muted-foreground leading-relaxed">
             {parts[0]}
-            <span className="text-[#c084fc] font-semibold">{t('aiCoachAnalyze_91e0e8')}</span>
+            <span className="text-compare font-semibold">{t('aiCoachAnalyze_91e0e8')}</span>
             {parts[1]}
           </p>
         );
@@ -99,10 +99,10 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
         <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed text-foreground/90">
           <ReactMarkdown
             components={{
-              p: ({ node, ...props }) => <p className="mb-2 text-foreground/85" {...props} />,
+              p: ({ node, ...props }) => <p className="mb-2 text-foreground" {...props} />,
               strong: ({ node, ...props }) => <strong className="text-foreground font-bold" {...props} />,
               ul: ({ node, ...props }) => <ul className="list-disc ml-5 space-y-1 mb-3 text-muted-foreground" {...props} />,
-              li: ({ node, ...props }) => <li className="text-foreground/80" {...props} />,
+              li: ({ node, ...props }) => <li className="text-foreground" {...props} />,
               h1: ({ node, ...props }) => <h4 className="text-sm font-bold mt-3 mb-1.5 text-foreground" {...props} />,
               h2: ({ node, ...props }) => <h4 className="text-sm font-bold mt-3 mb-1.5 text-foreground" {...props} />,
               h3: ({ node, ...props }) => <h4 className="text-sm font-bold mt-3 mb-1.5 text-foreground" {...props} />,

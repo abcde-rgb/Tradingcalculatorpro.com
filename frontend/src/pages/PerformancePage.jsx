@@ -61,28 +61,28 @@ export default function PerformancePage() {
       value: '90%',
       labelKey: 'perfStat1Label',
       sourceKey: 'perfStat1Source',
-      color: 'text-[#ef4444]',
+      color: 'text-short',
       icon: TrendingDown,
     },
     {
       value: '3×',
       labelKey: 'perfStat2Label',
       sourceKey: 'perfStat2Source',
-      color: 'text-[#22c55e]',
+      color: 'text-long',
       icon: Activity,
     },
     {
       value: '65%',
       labelKey: 'perfStat3Label',
       sourceKey: 'perfStat3Source',
-      color: 'text-[#f59e0b]',
+      color: 'text-warn',
       icon: Brain,
     },
     {
       value: '2.5%',
       labelKey: 'perfStat4Label',
       sourceKey: 'perfStat4Source',
-      color: 'text-[#3b82f6]',
+      color: 'text-info',
       icon: Award,
     },
   ];
@@ -261,7 +261,7 @@ export default function PerformancePage() {
       {/* ─── Hero — punchy headline + 4 demolishing stats ─── */}
       <section className="relative pt-24 pb-16 px-4 overflow-hidden">
         {/* Subtle red→orange gradient suggesting urgency */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#ef4444]/5 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-short/5 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
           style={{
             backgroundImage: 'radial-gradient(circle at 50% 30%, currentColor 1px, transparent 1px)',
@@ -271,16 +271,16 @@ export default function PerformancePage() {
 
         <div className="max-w-6xl mx-auto relative z-10 text-center">
           <motion.div {...FADE_UP} transition={{ duration: 0.5 }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-[#ef4444]/10 border border-[#ef4444]/30">
-              <AlertTriangle className="w-3.5 h-3.5 text-[#ef4444]" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-[#ef4444]">
+            <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-short/10 border border-short/30">
+              <AlertTriangle className="w-3.5 h-3.5 text-short" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-short">
                 {t('perfHeroBadge')}
               </span>
             </div>
 
             <h1 className="font-unbounded text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               {t('perfHeroTitle1')}{' '}
-              <span className="text-[#ef4444]">{t('perfHeroTitle2')}</span>
+              <span className="text-short">{t('perfHeroTitle2')}</span>
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-10">
@@ -337,11 +337,11 @@ export default function PerformancePage() {
                   key={r.key}
                   {...FADE_UP}
                   transition={{ duration: 0.4, delay: i * 0.05 }}
-                  className="bg-card border border-border rounded-xl p-6 hover:border-[#ef4444]/30 transition-colors group"
+                  className="bg-card border border-border rounded-xl p-6 hover:border-short/30 transition-colors group"
                   data-testid={`perf-reason-${i}`}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[#ef4444]/10 flex items-center justify-center mb-3 group-hover:bg-[#ef4444]/20 transition-colors">
-                    <Ic className="w-5 h-5 text-[#ef4444]" />
+                  <div className="w-10 h-10 rounded-lg bg-short/10 flex items-center justify-center mb-3 group-hover:bg-short/20 transition-colors">
+                    <Ic className="w-5 h-5 text-short" />
                   </div>
                   <h3 className="font-bold text-base mb-2">{t(`${r.key}Title`)}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">

@@ -175,7 +175,7 @@ export default function BrokersPage() {
                         por región: sin esta línea la ficha le está diciendo a
                         quien lee que ésa es la suya, y para la mayoría no. */}
                     {b.jurisdiccion && (
-                      <p className="text-xs text-muted-foreground/80 mt-1"
+                      <p className="text-xs text-muted-foreground mt-1"
                          data-testid={`broker-jurisdiccion-${b.id}`}>
                         {t('brokersEntidadPara')}{' '}
                         {(JURISDICCION[b.jurisdiccionCodigo] && t(JURISDICCION[b.jurisdiccionCodigo]))
@@ -213,8 +213,8 @@ export default function BrokersPage() {
                 {avisoEsma(b, t) && (
                   <div className="flex items-start gap-2 mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30"
                        data-testid={`broker-advertencia-${b.id}`}>
-                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-base leading-snug text-amber-200/90 dark:text-amber-200/90">{avisoEsma(b, t)}</p>
+                    <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
+                    <p className="text-base leading-snug text-warn">{avisoEsma(b, t)}</p>
                   </div>
                 )}
               </CardContent>

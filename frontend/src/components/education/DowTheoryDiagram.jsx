@@ -25,8 +25,8 @@ const DowTheoryDiagram = () => {
     'L370,80 L400,120';                             // early markdown
 
   const degrees = [
-    { id: 'primary', icon: LineChart, color: 'text-green-500', dot: 'bg-green-500', name: t('dowDegreePrimaryName'), desc: t('dowDegreePrimaryDesc') },
-    { id: 'secondary', icon: Layers3, color: 'text-amber-500', dot: 'bg-amber-500', name: t('dowDegreeSecondaryName'), desc: t('dowDegreeSecondaryDesc') },
+    { id: 'primary', icon: LineChart, color: 'text-long', dot: 'bg-green-500', name: t('dowDegreePrimaryName'), desc: t('dowDegreePrimaryDesc') },
+    { id: 'secondary', icon: Layers3, color: 'text-warn', dot: 'bg-amber-500', name: t('dowDegreeSecondaryName'), desc: t('dowDegreeSecondaryDesc') },
     { id: 'minor', icon: BarChart2, color: 'text-muted-foreground', dot: 'bg-muted-foreground', name: t('dowDegreeMinorName'), desc: t('dowDegreeMinorDesc') },
   ];
 
@@ -40,7 +40,7 @@ const DowTheoryDiagram = () => {
     <Card className="bg-gradient-to-br from-indigo-500/5 to-blue-500/10 border-indigo-500/30" data-testid="dow-theory-diagram">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <LineChart className="w-5 h-5 text-indigo-500" />
+          <LineChart className="w-5 h-5 text-compare" />
           {t('dowDiagramTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('dowDiagramIntro')}</p>
@@ -89,7 +89,7 @@ const DowTheoryDiagram = () => {
 
         {/* Volume confirms the trend */}
         <div className="flex items-start gap-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 p-3 text-xs">
-          <BarChart2 className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
+          <BarChart2 className="w-4 h-4 text-compare shrink-0 mt-0.5" />
           <span className="text-muted-foreground">{t('dowVolumeConfirm')}</span>
         </div>
       </CardContent>

@@ -34,7 +34,7 @@ export default function ScanLog({ log, onClear }) {
         <button
           type="button"
           onClick={onClear}
-          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-[#ef4444] transition-colors"
+          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-short transition-colors"
           data-testid="struct-log-clear"
         >
           <Trash2 className="w-3 h-3" />

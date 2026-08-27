@@ -69,12 +69,17 @@ Los recursos externos bloqueados por la política de red del sandbox se cuentan
 > depende de la cantidad, que es lo que se estaba calculando) y el aviso de
 > email tapaba el campo de capital.
 
-La de accesibilidad va aparte porque necesita `axe-core`:
+La de accesibilidad necesita `axe-core`, y **ya lo instala `arriba.sh`**:
 
 ```bash
-cd tests/e2e && npm install --no-save axe-core
-node navegador/accesibilidad.js escritorio   # y `movil`
+node tests/e2e/navegador/accesibilidad.js escritorio   # y `movil`
 ```
+
+> ⚠️ No lo instales a mano con `npm install --no-save axe-core`. Aquí no hay
+> `package.json`, así que esa orden **poda todo lo que no nombres**: se lleva
+> `playwright-core` por delante y deja `tests/e2e/lib/playwright-core` como un
+> enlace roto. Reinstalar Playwright se lleva entonces axe, y así
+> indefinidamente. `arriba.sh` las instala en la misma orden por eso.
 
 ## Qué hay dentro
 

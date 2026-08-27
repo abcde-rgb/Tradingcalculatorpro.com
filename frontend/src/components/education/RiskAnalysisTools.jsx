@@ -110,13 +110,13 @@ function RiskOfRuinCalculator() {
     if (po && isFinite(po) && po > 0) setPayoff(Math.round(po * 100) / 100);
   }, []);
 
-  const rorAccent = result == null ? 'text-foreground' : result < 1 ? 'text-green-500' : result < 10 ? 'text-amber-500' : 'text-red-500';
+  const rorAccent = result == null ? 'text-foreground' : result < 1 ? 'text-long' : result < 10 ? 'text-warn' : 'text-short';
 
   return (
     <Card className="bg-gradient-to-br from-red-500/5 to-rose-500/10 border-red-500/30" data-testid="risk-of-ruin-calculator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Skull className="w-5 h-5 text-red-500" />
+          <Skull className="w-5 h-5 text-short" />
           {t('rorTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('rorIntro')}</p>
@@ -136,7 +136,7 @@ function RiskOfRuinCalculator() {
             {t('rorRun')}
           </Button>
           <span className="text-xs text-muted-foreground">
-            {t('cmtExpectancy')}: <span className={`font-mono font-semibold ${expectancyR >= 0 ? 'text-green-500' : 'text-red-500'}`}>{expectancyR >= 0 ? '+' : ''}{expectancyR.toFixed(2)}R</span>
+            {t('cmtExpectancy')}: <span className={`font-mono font-semibold ${expectancyR >= 0 ? 'text-long' : 'text-short'}`}>{expectancyR >= 0 ? '+' : ''}{expectancyR.toFixed(2)}R</span>
           </span>
         </div>
 
@@ -147,7 +147,7 @@ function RiskOfRuinCalculator() {
         )}
 
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <Info className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <Info className="w-4 h-4 text-short shrink-0 mt-0.5" />
           <span>{t('rorNote')}</span>
         </div>
       </CardContent>
@@ -175,7 +175,7 @@ function PortfolioHeatCalculator() {
     return Math.sqrt(sumSq + 2 * rho * cross);
   }, [risks, corr]);
   const level = total <= 4 ? 'ok' : total <= 6 ? 'warn' : 'danger';
-  const heatColor = level === 'ok' ? 'text-green-500' : level === 'warn' ? 'text-amber-500' : 'text-red-500';
+  const heatColor = level === 'ok' ? 'text-long' : level === 'warn' ? 'text-warn' : 'text-short';
   const barColor = level === 'ok' ? '#22c55e' : level === 'warn' ? '#f59e0b' : '#ef4444';
 
   const setRisk = (i, v) => setRisks((r) => r.map((x, idx) => (idx === i ? v : x)));
@@ -186,7 +186,7 @@ function PortfolioHeatCalculator() {
     <Card className="bg-gradient-to-br from-orange-500/5 to-amber-500/10 border-orange-500/30" data-testid="portfolio-heat-calculator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Flame className="w-5 h-5 text-orange-500" />
+          <Flame className="w-5 h-5 text-warn" />
           {t('heatTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('heatIntro')}</p>
@@ -207,12 +207,12 @@ function PortfolioHeatCalculator() {
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
               </div>
-              <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-red-500 p-1" aria-label="remove">
+              <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-short p-1" aria-label="remove">
                 <Minus className="w-4 h-4" />
               </button>
             </div>
           ))}
-          <button onClick={addRow} className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 mt-1">
+          <button onClick={addRow} className="flex items-center gap-1 text-xs text-warn hover:text-warn mt-1">
             <Plus className="w-3.5 h-3.5" /> {t('heatAddPosition')}
           </button>
         </div>
@@ -227,12 +227,12 @@ function PortfolioHeatCalculator() {
             <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, total * 8)}%`, background: barColor }} />
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-            <span>0%</span><span className="text-green-500">4%</span><span className="text-amber-500">6%</span><span>12%+</span>
+            <span>0%</span><span className="text-long">4%</span><span className="text-warn">6%</span><span>12%+</span>
           </div>
         </div>
 
         <div className={`flex items-start gap-2 rounded-lg p-3 text-xs ${level === 'danger' ? 'bg-red-500/10 border border-red-500/30' : level === 'warn' ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-green-500/10 border border-green-500/30'}`}>
-          {level === 'danger' ? <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" /> : <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${heatColor}`} />}
+          {level === 'danger' ? <AlertTriangle className="w-4 h-4 text-short shrink-0 mt-0.5" /> : <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${heatColor}`} />}
           <span className="text-muted-foreground">{t(level === 'danger' ? 'heatDanger' : level === 'warn' ? 'heatWarn' : 'heatOk')}</span>
         </div>
 
@@ -257,12 +257,12 @@ function PortfolioHeatCalculator() {
             label={t('heatEffective')}
             value={fmtPct(effective)}
             sub={t('heatEffectiveSub')}
-            accent={effective <= 4 ? 'text-green-500' : effective <= 6 ? 'text-amber-500' : 'text-red-500'}
+            accent={effective <= 4 ? 'text-long' : effective <= 6 ? 'text-warn' : 'text-short'}
           />
         </div>
 
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <Info className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+          <Info className="w-4 h-4 text-warn shrink-0 mt-0.5" />
           <span>{t('heatCorrelationNote')}</span>
         </div>
       </CardContent>
@@ -323,7 +323,7 @@ function LosingStreakCalculator() {
     <Card className="bg-gradient-to-br from-purple-500/5 to-fuchsia-500/10 border-purple-500/30" data-testid="losing-streak-calculator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <TrendingDown className="w-5 h-5 text-purple-500" />
+          <TrendingDown className="w-5 h-5 text-compare" />
           {t('streakTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('streakIntro')}</p>
@@ -334,7 +334,7 @@ function LosingStreakCalculator() {
           <NumField id="streak-n" label={t('streakTrades')} value={trades} onChange={setTrades} step="1" />
         </div>
 
-        <Output label={t('streakExpLongest')} value={`${expLongest} ${t('streakLosses')}`} sub={t('streakExpLongestSub')} accent="text-purple-500" highlight />
+        <Output label={t('streakExpLongest')} value={`${expLongest} ${t('streakLosses')}`} sub={t('streakExpLongestSub')} accent="text-compare" highlight />
 
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t('streakTableTitle')}</p>
@@ -350,7 +350,7 @@ function LosingStreakCalculator() {
                 {rows.map((r) => (
                   <tr key={r.L} className="border-t border-border/40">
                     <td className="px-3 py-1.5 font-mono">{r.L}</td>
-                    <td className={`px-3 py-1.5 text-right font-mono font-semibold ${r.prob > 50 ? 'text-red-500' : r.prob > 20 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                    <td className={`px-3 py-1.5 text-right font-mono font-semibold ${r.prob > 50 ? 'text-short' : r.prob > 20 ? 'text-warn' : 'text-muted-foreground'}`}>
                       {fmtPct(r.prob)}
                     </td>
                   </tr>
@@ -361,7 +361,7 @@ function LosingStreakCalculator() {
         </div>
 
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <Info className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+          <Info className="w-4 h-4 text-compare shrink-0 mt-0.5" />
           <span>{t('streakNote')}</span>
         </div>
       </CardContent>
@@ -390,13 +390,13 @@ function DrawdownRecoveryCalculator() {
   }, [dd, riskPct, expectancy]);
 
   const tableRows = [10, 20, 30, 40, 50, 70, 90].map((d) => ({ d, req: (d / (100 - d)) * 100 }));
-  const reqAccent = required <= 25 ? 'text-green-500' : required <= 100 ? 'text-amber-500' : 'text-red-500';
+  const reqAccent = required <= 25 ? 'text-long' : required <= 100 ? 'text-warn' : 'text-short';
 
   return (
     <Card className="bg-gradient-to-br from-sky-500/5 to-blue-500/10 border-sky-500/30" data-testid="drawdown-recovery-calculator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <TrendingDown className="w-5 h-5 text-sky-500" />
+          <TrendingDown className="w-5 h-5 text-info" />
           {t('ddrTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('ddrIntro')}</p>
@@ -414,7 +414,7 @@ function DrawdownRecoveryCalculator() {
             label={t('ddrTrades')}
             value={trades == null ? '∞' : trades}
             sub={t('ddrTradesSub')}
-            accent={trades == null ? 'text-red-500' : 'text-sky-500'}
+            accent={trades == null ? 'text-short' : 'text-info'}
             highlight={trades == null}
           />
         </div>
@@ -433,7 +433,7 @@ function DrawdownRecoveryCalculator() {
                 {tableRows.map((r) => (
                   <tr key={r.d} className={`border-t border-border/40 ${Math.abs(r.d - Number(drawdown)) < 5 ? 'bg-sky-500/10' : ''}`}>
                     <td className="px-3 py-1.5 font-mono">-{r.d}%</td>
-                    <td className={`px-3 py-1.5 text-right font-mono font-semibold ${r.req > 100 ? 'text-red-500' : r.req > 40 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                    <td className={`px-3 py-1.5 text-right font-mono font-semibold ${r.req > 100 ? 'text-short' : r.req > 40 ? 'text-warn' : 'text-muted-foreground'}`}>
                       +{fmtPct(r.req, 0)}
                     </td>
                   </tr>
@@ -444,7 +444,7 @@ function DrawdownRecoveryCalculator() {
         </div>
 
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+          <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
           <span>{t('ddrNote')}</span>
         </div>
       </CardContent>
@@ -499,16 +499,16 @@ function MarginStressTest() {
   }, [account, mmr, positions, customMove]);
 
   const STATUS = {
-    ok: { txt: t('mstOk'), cls: 'text-green-500' },
-    call: { txt: t('mstCall'), cls: 'text-amber-500' },
-    liq: { txt: t('mstLiq'), cls: 'text-red-500' },
+    ok: { txt: t('mstOk'), cls: 'text-long' },
+    call: { txt: t('mstCall'), cls: 'text-warn' },
+    liq: { txt: t('mstLiq'), cls: 'text-short' },
   };
 
   return (
     <Card className="bg-gradient-to-br from-amber-500/5 to-red-500/10 border-amber-500/30" data-testid="margin-stress-test">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Gauge className="w-5 h-5 text-amber-500" />
+          <Gauge className="w-5 h-5 text-warn" />
           {t('mstTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('mstIntro')}</p>
@@ -543,7 +543,7 @@ function MarginStressTest() {
                     onClick={() => setPos(i, { dir: d })}
                     className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                       p.dir === d
-                        ? d === 'long' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
+                        ? d === 'long' ? 'bg-green-500/20 text-long' : 'bg-red-500/20 text-short'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                     data-testid={`mst-dir-${i}-${d}`}
@@ -552,12 +552,12 @@ function MarginStressTest() {
                   </button>
                 ))}
               </div>
-              <button onClick={() => removePos(i)} className="text-muted-foreground hover:text-red-500 p-1 shrink-0" aria-label="remove">
+              <button onClick={() => removePos(i)} className="text-muted-foreground hover:text-short p-1 shrink-0" aria-label="remove">
                 <Minus className="w-4 h-4" />
               </button>
             </div>
           ))}
-          <button onClick={addPos} className="flex items-center gap-1 text-xs text-amber-500 hover:text-amber-600 mt-1">
+          <button onClick={addPos} className="flex items-center gap-1 text-xs text-warn hover:text-warn mt-1">
             <Plus className="w-3.5 h-3.5" /> {t('mstAddPosition')}
           </button>
         </div>
@@ -566,7 +566,7 @@ function MarginStressTest() {
         <div className="grid grid-cols-3 gap-3">
           <Output label={t('mstGross')} value={fmtMoneyShort(calc.gross)} />
           <Output label={t('mstNet')} value={fmtMoneyShort(calc.net)} />
-          <Output label={t('mstLeverage')} value={`${calc.grossLev.toFixed(1)}x`} accent={calc.grossLev > 5 ? 'text-red-500' : calc.grossLev > 2 ? 'text-amber-500' : 'text-foreground'} />
+          <Output label={t('mstLeverage')} value={`${calc.grossLev.toFixed(1)}x`} accent={calc.grossLev > 5 ? 'text-short' : calc.grossLev > 2 ? 'text-warn' : 'text-foreground'} />
         </div>
 
         {/* Liquidation headline */}
@@ -577,7 +577,7 @@ function MarginStressTest() {
             label={t('mstLiqLabel')}
             value={`${(calc.liqMove * 100).toFixed(1)}%`}
             sub={t('mstLiqSub')}
-            accent={Math.abs(calc.liqMove) < 0.1 ? 'text-red-500' : Math.abs(calc.liqMove) < 0.2 ? 'text-amber-500' : 'text-green-500'}
+            accent={Math.abs(calc.liqMove) < 0.1 ? 'text-short' : Math.abs(calc.liqMove) < 0.2 ? 'text-warn' : 'text-long'}
             highlight
           />
         )}
@@ -599,7 +599,7 @@ function MarginStressTest() {
                 {calc.scenarios.map((r) => (
                   <tr key={r.movePct} className="border-t border-border/40">
                     <td className="px-3 py-1.5 font-mono">{r.movePct}%</td>
-                    <td className={`px-3 py-1.5 text-right font-mono ${r.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <td className={`px-3 py-1.5 text-right font-mono ${r.pnl >= 0 ? 'text-long' : 'text-short'}`}>
                       {r.pnl >= 0 ? '+' : ''}{fmtMoneyShort(r.pnl)}
                     </td>
                     <td className="px-3 py-1.5 text-right font-mono">{fmtMoneyShort(r.eq)}</td>
@@ -615,7 +615,7 @@ function MarginStressTest() {
         <div className="rounded-lg border border-border/60 p-3 space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="mst-custom" className="text-xs text-muted-foreground">{t('mstCustom')}</Label>
-            <span className={`font-mono text-xs font-semibold ${calc.custom.status === 'liq' ? 'text-red-500' : calc.custom.status === 'call' ? 'text-amber-500' : 'text-green-500'}`}>
+            <span className={`font-mono text-xs font-semibold ${calc.custom.status === 'liq' ? 'text-short' : calc.custom.status === 'call' ? 'text-warn' : 'text-long'}`}>
               {Number(customMove) || 0}% → {STATUS[calc.custom.status].txt}
             </span>
           </div>
@@ -631,13 +631,13 @@ function MarginStressTest() {
             data-testid="mst-custom"
           />
           <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>{t('mstColPnl')}: <span className={`font-mono ${calc.custom.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>{calc.custom.pnl >= 0 ? '+' : ''}{fmtMoneyShort(calc.custom.pnl)}</span></span>
+            <span>{t('mstColPnl')}: <span className={`font-mono ${calc.custom.pnl >= 0 ? 'text-long' : 'text-short'}`}>{calc.custom.pnl >= 0 ? '+' : ''}{fmtMoneyShort(calc.custom.pnl)}</span></span>
             <span>{t('mstColEquity')}: <span className="font-mono">{fmtMoneyShort(calc.custom.eq)}</span></span>
           </div>
         </div>
 
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <Info className="w-4 h-4 text-warn shrink-0 mt-0.5" />
           <span>{t('mstNote')}</span>
         </div>
       </CardContent>

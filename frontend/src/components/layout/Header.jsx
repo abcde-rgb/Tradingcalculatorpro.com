@@ -199,7 +199,7 @@ export function Header() {
                 >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-black text-[10px] font-bold rounded-full flex items-center justify-center">
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
                       {unreadCount}
                     </span>
                   )}
@@ -252,7 +252,7 @@ export function Header() {
                       <User className="w-4 h-4 text-primary" />
                     </div>
                     <span className="hidden sm:block text-sm">{user?.name || t('userFallback')}</span>
-                    {isPremium && <Crown className="w-4 h-4 text-yellow-500" />}
+                    {isPremium && <Crown className="w-4 h-4 text-caution" />}
                     <ChevronDown className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -262,8 +262,8 @@ export function Header() {
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
                     {isPremium && (
                       <div className="flex items-center gap-1 mt-1">
-                        <Crown className="w-3 h-3 text-yellow-500" />
-                        <span className="text-xs text-yellow-500">
+                        <Crown className="w-3 h-3 text-caution" />
+                        <span className="text-xs text-caution">
                           {user?.subscription_plan === 'lifetime' ? 'Lifetime' : 'Premium'}
                         </span>
                       </div>

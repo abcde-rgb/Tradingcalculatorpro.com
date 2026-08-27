@@ -48,7 +48,7 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-            <BarChart3 className="w-4 h-4 text-green-500" />
+            <BarChart3 className="w-4 h-4 text-long" />
           </div>
           {t('simulationResults')}
           {isMedianOfSweep && (
@@ -72,16 +72,16 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
             <Kpi label={t('finalBalance')} testId="final-balance" valueClass="text-primary">
               ${finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Kpi>
-            <Kpi label={t('netGain')} valueClass={netGain >= 0 ? 'text-green-500' : 'text-red-500'}>
+            <Kpi label={t('netGain')} valueClass={netGain >= 0 ? 'text-long' : 'text-short'}>
               {netGain >= 0 ? '+' : ''}${netGain.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Kpi>
-            <Kpi label={t('totalRoi')} valueClass={roi >= 0 ? 'text-green-500' : 'text-red-500'}>
+            <Kpi label={t('totalRoi')} valueClass={roi >= 0 ? 'text-long' : 'text-short'}>
               {roi >= 0 ? '+' : ''}{roi.toFixed(2)}%
             </Kpi>
             <Kpi label={t('winRate')}>{winRate.toFixed(2)}%</Kpi>
-            <Kpi label={t('maxDrawdown')} valueClass="text-red-500">{maxDrawdown.toFixed(2)}%</Kpi>
+            <Kpi label={t('maxDrawdown')} valueClass="text-short">{maxDrawdown.toFixed(2)}%</Kpi>
             <Kpi label={t('profitFactor')}
-              valueClass={profitFactor == null || profitFactor >= 1.5 ? 'text-green-500' : profitFactor >= 1 ? 'text-yellow-500' : 'text-red-500'}>
+              valueClass={profitFactor == null || profitFactor >= 1.5 ? 'text-long' : profitFactor >= 1 ? 'text-caution' : 'text-short'}>
               {profitFactor == null ? '∞' : `${profitFactor.toFixed(2)}x`}
             </Kpi>
           </div>
@@ -101,7 +101,7 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
               <ScenarioCard
                 label={t('scenarioPessimistic')} value={fmt(distribution.p5)}
-                tone="bg-red-500/10 border-red-500/30" valueClass="text-red-500"
+                tone="bg-red-500/10 border-red-500/30" valueClass="text-short"
               />
               <ScenarioCard
                 label={t('scenarioMedian')} value={fmt(distribution.p50)}
@@ -109,20 +109,20 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
               />
               <ScenarioCard
                 label={t('scenarioOptimistic')} value={fmt(distribution.p95)}
-                tone="bg-green-500/10 border-green-500/30" valueClass="text-green-500"
+                tone="bg-green-500/10 border-green-500/30" valueClass="text-long"
               />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <Kpi label={t('profitProbability')}
-                valueClass={distribution.profitProbability >= 55 ? 'text-green-500' : distribution.profitProbability >= 45 ? 'text-yellow-500' : 'text-red-500'}
+                valueClass={distribution.profitProbability >= 55 ? 'text-long' : distribution.profitProbability >= 45 ? 'text-caution' : 'text-short'}
                 size="sm">
                 {distribution.profitProbability.toFixed(1)}%
               </Kpi>
-              <Kpi label={t('worstCaseDrawdown')} valueClass="text-red-500" size="sm">
+              <Kpi label={t('worstCaseDrawdown')} valueClass="text-short" size="sm">
                 {distribution.worstMaxDrawdown.toFixed(1)}%
               </Kpi>
-              <Kpi label={t('worstLosingStreak')} valueClass="text-orange-500" size="sm">
+              <Kpi label={t('worstLosingStreak')} valueClass="text-warn" size="sm">
                 {distribution.worstLosingStreak}
               </Kpi>
             </div>
@@ -139,24 +139,24 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
             <Activity className="w-4 h-4 text-primary" /> {t('advancedMetrics')}
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <Kpi label={t('grossGain')} valueClass="text-green-500" size="sm">
+            <Kpi label={t('grossGain')} valueClass="text-long" size="sm">
               ${grossGain.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Kpi>
-            <Kpi label={t('grossLoss')} valueClass="text-red-500" size="sm">
+            <Kpi label={t('grossLoss')} valueClass="text-short" size="sm">
               ${grossLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Kpi>
             <Kpi label={t('totalCommissions')} size="sm">
               ${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Kpi>
-            <Kpi label={t('expectancy')} valueClass={expectancy >= 0 ? 'text-green-500' : 'text-red-500'} size="sm">
+            <Kpi label={t('expectancy')} valueClass={expectancy >= 0 ? 'text-long' : 'text-short'} size="sm">
               {expectancy >= 0 ? '+' : ''}${expectancy.toFixed(2)}
             </Kpi>
             <Kpi label={t('totalOperations')} size="sm">{totalOps}</Kpi>
             <Kpi label={t('winnersLosers')} size="sm">
-              <span className="text-green-500">{totalWins}</span> / <span className="text-red-500">{totalLosses}</span>
+              <span className="text-long">{totalWins}</span> / <span className="text-short">{totalLosses}</span>
             </Kpi>
-            <Kpi label={t('maxWinStreak')} valueClass="text-green-500" size="sm">{maxWinStreak ?? 0}</Kpi>
-            <Kpi label={t('maxLossStreak')} valueClass="text-red-500" size="sm">{maxLossStreak ?? 0}</Kpi>
+            <Kpi label={t('maxWinStreak')} valueClass="text-long" size="sm">{maxWinStreak ?? 0}</Kpi>
+            <Kpi label={t('maxLossStreak')} valueClass="text-short" size="sm">{maxLossStreak ?? 0}</Kpi>
           </div>
         </section>
 
@@ -179,7 +179,7 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
                       style={{ height: `${(totalWins / Math.max(totalOps, 1)) * 100}px` }}
                     />
                     <p className="text-xs text-muted-foreground">Wins</p>
-                    <p className="font-bold text-green-500">{totalWins}</p>
+                    <p className="font-bold text-long">{totalWins}</p>
                   </div>
                   <div className="text-center">
                     <div
@@ -187,7 +187,7 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
                       style={{ height: `${(totalLosses / Math.max(totalOps, 1)) * 100}px` }}
                     />
                     <p className="text-xs text-muted-foreground">Losses</p>
-                    <p className="font-bold text-red-500">{totalLosses}</p>
+                    <p className="font-bold text-short">{totalLosses}</p>
                   </div>
                 </div>
               </div>
@@ -238,16 +238,16 @@ export default function SimulatorResults({ results, operations, isMedianOfSweep 
                     <td className="p-2">{op.num}</td>
                     <td className="p-2">{op.phase}</td>
                     <td className="p-2 font-mono">${op.capitalInOp.toFixed(2)}</td>
-                    <td className={`p-2 font-mono ${op.isWin ? 'text-green-500' : 'text-red-500'}`}>
+                    <td className={`p-2 font-mono ${op.isWin ? 'text-long' : 'text-short'}`}>
                       {op.pnl >= 0 ? '+' : ''}${op.pnl.toFixed(2)}
                     </td>
                     <td className="p-2 font-mono">${op.commission.toFixed(2)}</td>
                     <td className="p-2">
                       {op.isWin
-                        ? <span className="text-green-500">✓ WIN</span>
-                        : <span className="text-red-500">✗ LOSS</span>}
+                        ? <span className="text-long">✓ WIN</span>
+                        : <span className="text-short">✗ LOSS</span>}
                     </td>
-                    <td className={`p-2 font-mono ${op.roi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <td className={`p-2 font-mono ${op.roi >= 0 ? 'text-long' : 'text-short'}`}>
                       {op.roi >= 0 ? '+' : ''}{op.roi.toFixed(2)}%
                     </td>
                   </tr>

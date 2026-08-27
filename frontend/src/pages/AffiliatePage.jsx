@@ -192,7 +192,7 @@ export default function AffiliatePage() {
           {!loading && data && !data.is_affiliate && !data.eligible && (
             <Card className="bg-card border-border">
               <CardHeader><CardTitle className="text-lg flex items-center gap-2">
-                <Crown className="w-5 h-5 text-yellow-500" /> {t('affNeedPaidTitle')}</CardTitle></CardHeader>
+                <Crown className="w-5 h-5 text-caution" /> {t('affNeedPaidTitle')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">{t('affNeedPaid')}</p>
                 <Button asChild><Link to="/pricing">{t('affGoPremium')}</Link></Button>
@@ -269,8 +269,8 @@ export default function AffiliatePage() {
                   </div>
                   {/* Compartir rápido */}
                   <div className="flex flex-wrap gap-2">
-                    <a href={waUrl} target="_blank" rel="noreferrer"><Button variant="outline" size="sm" className="gap-2"><MessageCircle className="w-4 h-4 text-green-500" /> WhatsApp</Button></a>
-                    <a href={tgUrl} target="_blank" rel="noreferrer"><Button variant="outline" size="sm" className="gap-2"><Send className="w-4 h-4 text-sky-500" /> Telegram</Button></a>
+                    <a href={waUrl} target="_blank" rel="noreferrer"><Button variant="outline" size="sm" className="gap-2"><MessageCircle className="w-4 h-4 text-long" /> WhatsApp</Button></a>
+                    <a href={tgUrl} target="_blank" rel="noreferrer"><Button variant="outline" size="sm" className="gap-2"><Send className="w-4 h-4 text-info" /> Telegram</Button></a>
                     <a href={mailUrl}><Button variant="outline" size="sm" className="gap-2"><Mail className="w-4 h-4" /> Email</Button></a>
                     <a href={xUrl} target="_blank" rel="noreferrer"><Button variant="outline" size="sm" className="gap-2"><span className="font-bold text-sm leading-none">𝕏</span></Button></a>
                     {typeof navigator !== 'undefined' && navigator.share && (
@@ -299,7 +299,7 @@ export default function AffiliatePage() {
                     <p className="text-xs text-muted-foreground mt-0.5">{t('affRequestHint')}</p>
                   </div>
                   {data.open_request ? (
-                    <Badge className="bg-yellow-500/10 text-yellow-600 gap-1 py-1.5 px-3">
+                    <Badge className="bg-yellow-500/10 text-caution gap-1 py-1.5 px-3">
                       <Clock className="w-3.5 h-3.5" /> {t('affRequestPending')} · {data.open_request.amount_eur} €
                     </Badge>
                   ) : (

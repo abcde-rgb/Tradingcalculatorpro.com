@@ -47,7 +47,7 @@ export default function SmartMoneyVisual() {
     <Card className="border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-fuchsia-500/10">
       <CardContent className="pt-6 space-y-3">
         <h3 className="font-semibold flex items-center gap-2">
-          <Crosshair className="w-5 h-5 text-purple-500" /> {t('smcVisTitle')}
+          <Crosshair className="w-5 h-5 text-compare" /> {t('smcVisTitle')}
         </h3>
         <svg viewBox="0 0 460 240" className="w-full h-auto rounded-lg bg-muted/20" role="img" aria-label={t('smcVisTitle')}>
           {/* Liquidity resting below a prior low */}
@@ -69,8 +69,8 @@ export default function SmartMoneyVisual() {
           <text x={cx(SWEEP_I)} y={(py(104) + 14).toFixed(1)} textAnchor="middle" fontSize="10" fontWeight="700" fill="#dc2626">{t('smcVisSweep')} ↑</text>
         </svg>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          <span><b className="text-[#a855f7]">OB</b> = {t('gl66t')}</span>
-          <span><b className="text-[#3b82f6]">FVG</b> = {t('gl67t')}</span>
+          <span><b className="text-compare">OB</b> = {t('gl66t')}</span>
+          <span><b className="text-info">FVG</b> = {t('gl67t')}</span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">{t('smcVisCaption')}</p>
       </CardContent>

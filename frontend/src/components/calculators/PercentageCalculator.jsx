@@ -130,7 +130,7 @@ export const PercentageCalculator = () => {
               <Button
                 variant={isLong ? 'default' : 'outline'}
                 onClick={() => setIsLong(true)}
-                className={`flex-1 ${isLong ? 'bg-primary text-black' : ''}`}
+                className={`flex-1 ${isLong ? 'bg-primary text-primary-foreground' : ''}`}
                 data-testid="long-btn"
               >
                 <TrendingUp className="w-4 h-4 mr-2" /> {t('long')}
@@ -145,7 +145,7 @@ export const PercentageCalculator = () => {
               </Button>
             </div>
             
-            <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="calculate-btn">
+            <Button onClick={calculate} className="w-full bg-primary text-primary-foreground hover:bg-primary/90" data-testid="calculate-btn">
               {t('calculate')}
             </Button>
           </div>

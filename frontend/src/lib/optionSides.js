@@ -39,8 +39,8 @@ export function optionDirection(action, type) {
  * si se compra o se vende**, que es justo la corrección.
  */
 export const DIRECTION_CLASSES = {
-  up:   { border: 'border-[#22c55e]/20', bg: 'bg-[#22c55e]/[0.03]', text: 'text-[#4ade80]', chip: 'bg-[#22c55e]/15 text-[#4ade80] border-[#22c55e]/40' },
-  down: { border: 'border-[#ef4444]/20', bg: 'bg-[#ef4444]/[0.03]', text: 'text-[#f87171]', chip: 'bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/40' },
+  up:   { border: 'border-long/20', bg: 'bg-long/[0.03]', text: 'text-long', chip: 'bg-long/15 text-long border-long/40' },
+  down: { border: 'border-short/20', bg: 'bg-short/[0.03]', text: 'text-short', chip: 'bg-short/15 text-short border-short/40' },
 };
 
 /**

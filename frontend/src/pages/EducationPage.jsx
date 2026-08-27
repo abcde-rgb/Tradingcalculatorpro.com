@@ -102,15 +102,15 @@ import AuroraBackground from '@/components/landing/AuroraBackground';
 import MarketTypeModal from '@/components/education/MarketTypeModal';
 
 const priorityColors = {
-  critical: 'bg-red-500/10 text-red-500 border-red-500/30',
-  high: 'bg-orange-500/10 text-orange-500 border-orange-500/30',
-  medium: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
+  critical: 'bg-red-500/10 text-short border-red-500/30',
+  high: 'bg-orange-500/10 text-warn border-orange-500/30',
+  medium: 'bg-yellow-500/10 text-caution border-yellow-500/30'
 };
 
 const patternTypeColors = {
-  bullish: 'text-green-500',
-  bearish: 'text-red-500',
-  neutral: 'text-yellow-500'
+  bullish: 'text-long',
+  bearish: 'text-short',
+  neutral: 'text-caution'
 };
 
 const PATTERN_BEHAVIOR_KEY = {
@@ -120,7 +120,7 @@ const PATTERN_BEHAVIOR_KEY = {
 };
 // Colour the historical hit-rate by strength.
 const candleRateColor = (r) =>
-  r >= 65 ? 'text-green-500' : r >= 55 ? 'text-yellow-500' : 'text-muted-foreground';
+  r >= 65 ? 'text-long' : r >= 55 ? 'text-caution' : 'text-muted-foreground';
 
 // Motion variants extracted to module level to avoid inline-object re-renders
 const MOTION_FADE_UP = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
@@ -215,7 +215,7 @@ function PatternCard({ pattern, onClick }) {
           if (!s) {
             return pattern.reliability ? (
               <div className="mt-3 flex items-center gap-2">
-                <Star className="w-3 h-3 text-yellow-500" />
+                <Star className="w-3 h-3 text-caution" />
                 <span className="text-xs text-muted-foreground">{t('reliability')}: {pattern.reliability}</span>
               </div>
             ) : null;
@@ -418,8 +418,8 @@ const TOPIC_REVIEW = {
    ya se escapó una vez: la etiqueta existía sólo en la barra de escritorio y
    en el móvil no salía. Una sola pieza, tres puntos de uso. */
 const EVIDENCE_STYLE = {
-  disputed: 'border-amber-500/40 text-amber-500/80',
-  caution: 'border-sky-500/40 text-sky-500/80',
+  disputed: 'border-amber-500/40 text-warn',
+  caution: 'border-sky-500/40 text-info',
 };
 
 function EvidenceTag({ kind, t, className = '' }) {
@@ -1015,9 +1015,9 @@ export default function EducationPage() {
                     return (
                       <div key={cat.id}>
                         <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                          <span className="font-mono text-primary/70">{String(ci + 1).padStart(2, '0')}</span>
+                          <span className="font-mono text-primary">{String(ci + 1).padStart(2, '0')}</span>
                           {cat.label}
-                          <span className="ml-auto font-mono normal-case tracking-normal opacity-70">
+                          <span className="ml-auto font-mono normal-case tracking-normal">
                             {cat.topics.filter(tp => eduDone.includes(tp.value)).length}/{cat.topics.length}
                           </span>
                         </p>
@@ -1079,7 +1079,7 @@ export default function EducationPage() {
                       onClick={() => setActiveTopic(cat.topics[0].value)}
                       className={`flex-shrink-0 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors ${
                         activeCategory?.id === cat.id
-                          ? 'bg-primary text-black border-primary'
+                          ? 'bg-primary text-primary-foreground border-primary'
                           : 'bg-card text-muted-foreground border-border'
                       }`}
                     >
@@ -1203,7 +1203,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-blue-500/5 to-primary/10 border-blue-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Activity className="w-6 h-6 text-blue-500" />
+                    <Activity className="w-6 h-6 text-info" />
                     {ORDER_FLOW.title}
                   </CardTitle>
                 </CardHeader>
@@ -1235,7 +1235,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-emerald-500/5 to-primary/10 border-emerald-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Landmark className="w-6 h-6 text-emerald-500" />
+                    <Landmark className="w-6 h-6 text-long" />
                     {COMPANY_VALUATION.title}
                   </CardTitle>
                 </CardHeader>
@@ -1267,7 +1267,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-blue-500/5 to-indigo-500/10 border-blue-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Layers className="w-6 h-6 text-blue-500" />
+                    <Layers className="w-6 h-6 text-info" />
                     {MACRO.title}
                   </CardTitle>
                 </CardHeader>
@@ -1331,7 +1331,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Clock className="w-6 h-6 text-amber-500" />
+                    <Clock className="w-6 h-6 text-warn" />
                     {SESSION_TIMING.title}
                   </CardTitle>
                 </CardHeader>
@@ -1363,7 +1363,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-sky-500/5 to-primary/10 border-sky-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Activity className="w-6 h-6 text-sky-500" />
+                    <Activity className="w-6 h-6 text-info" />
                     {MOVING_AVERAGES.title}
                   </CardTitle>
                 </CardHeader>
@@ -1395,7 +1395,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-violet-500/5 to-primary/10 border-violet-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <CandlestickChart className="w-6 h-6 text-violet-500" />
+                    <CandlestickChart className="w-6 h-6 text-compare" />
                     {PRICE_ACTION.title}
                   </CardTitle>
                 </CardHeader>
@@ -1427,7 +1427,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Grid3x3 className="w-6 h-6 text-amber-500" />
+                    <Grid3x3 className="w-6 h-6 text-warn" />
                     {GANN_BOX.title}
                   </CardTitle>
                 </CardHeader>
@@ -1459,7 +1459,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-rose-500/5 to-primary/10 border-rose-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Timer className="w-6 h-6 text-rose-500" />
+                    <Timer className="w-6 h-6 text-short" />
                     {DEMARK.title}
                   </CardTitle>
                 </CardHeader>
@@ -1491,7 +1491,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-cyan-500/5 to-primary/10 border-cyan-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Waves className="w-6 h-6 text-cyan-500" />
+                    <Waves className="w-6 h-6 text-info" />
                     {EHLERS.title}
                   </CardTitle>
                 </CardHeader>
@@ -1523,7 +1523,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-indigo-500/5 to-primary/10 border-indigo-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <RefreshCw className="w-6 h-6 text-indigo-500" />
+                    <RefreshCw className="w-6 h-6 text-compare" />
                     {RRG_G.title}
                   </CardTitle>
                 </CardHeader>
@@ -1555,7 +1555,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-emerald-500/5 to-primary/10 border-emerald-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <GitFork className="w-6 h-6 text-emerald-500" />
+                    <GitFork className="w-6 h-6 text-long" />
                     {PITCHFORK.title}
                   </CardTitle>
                 </CardHeader>
@@ -1587,7 +1587,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-lime-500/5 to-primary/10 border-lime-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Fish className="w-6 h-6 text-lime-500" />
+                    <Fish className="w-6 h-6 text-long" />
                     {BILL_WILLIAMS.title}
                   </CardTitle>
                 </CardHeader>
@@ -1619,7 +1619,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-orange-500/5 to-primary/10 border-orange-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Spline className="w-6 h-6 text-orange-500" />
+                    <Spline className="w-6 h-6 text-warn" />
                     {WOLFE.title}
                   </CardTitle>
                 </CardHeader>
@@ -1683,7 +1683,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-purple-500/5 to-primary/10 border-purple-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Brain className="w-6 h-6 text-purple-500" />
+                    <Brain className="w-6 h-6 text-compare" />
                     {ELDER.title}
                   </CardTitle>
                 </CardHeader>
@@ -1747,7 +1747,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-sky-500/5 to-primary/10 border-sky-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Hourglass className="w-6 h-6 text-sky-500" />
+                    <Hourglass className="w-6 h-6 text-info" />
                     {TIME_CYCLES.title}
                   </CardTitle>
                 </CardHeader>
@@ -1780,7 +1780,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-amber-500/5 to-destructive/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <HeartPulse className="w-6 h-6 text-amber-500" />
+                    <HeartPulse className="w-6 h-6 text-warn" />
                     {GAMBLING_HARM.title}
                   </CardTitle>
                 </CardHeader>
@@ -1797,7 +1797,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-violet-500/5 to-primary/10 border-violet-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <HeartPulse className="w-6 h-6 text-violet-500" />
+                    <HeartPulse className="w-6 h-6 text-compare" />
                     {PSYCH_SOLUTIONS.title}
                   </CardTitle>
                 </CardHeader>
@@ -1829,7 +1829,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-emerald-500/5 to-primary/10 border-emerald-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <ClipboardCheck className="w-6 h-6 text-emerald-500" />
+                    <ClipboardCheck className="w-6 h-6 text-long" />
                     {SYSTEM_ADHERENCE.title}
                   </CardTitle>
                 </CardHeader>
@@ -1861,7 +1861,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-fuchsia-500/5 to-primary/10 border-fuchsia-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Sigma className="w-6 h-6 text-fuchsia-500" />
+                    <Sigma className="w-6 h-6 text-compare" />
                     {GAMMA_EXPOSURE.title}
                   </CardTitle>
                 </CardHeader>
@@ -1893,7 +1893,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Scale className="w-6 h-6 text-amber-500" />
+                    <Scale className="w-6 h-6 text-warn" />
                     {ORDER_FLOW_PAYMENT.title}
                   </CardTitle>
                 </CardHeader>
@@ -1915,7 +1915,7 @@ export default function EducationPage() {
               </div>
 
               <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <Info className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{ORDER_FLOW_PAYMENT.note}</p>
               </div>
             </TabsContent>
@@ -1925,7 +1925,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-cyan-500/5 to-primary/10 border-cyan-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Landmark className="w-6 h-6 text-cyan-500" />
+                    <Landmark className="w-6 h-6 text-info" />
                     {NET_LIQUIDITY.title}
                   </CardTitle>
                 </CardHeader>
@@ -1957,7 +1957,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-rose-500/5 to-primary/10 border-rose-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <TrendingDown className="w-6 h-6 text-rose-500" />
+                    <TrendingDown className="w-6 h-6 text-short" />
                     {TAIL_RISK.title}
                   </CardTitle>
                 </CardHeader>
@@ -1979,7 +1979,7 @@ export default function EducationPage() {
               </div>
 
               <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/5 border border-rose-500/20">
-                <Info className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                <Info className="w-4 h-4 text-short flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{TAIL_RISK.note}</p>
               </div>
             </TabsContent>
@@ -2016,9 +2016,9 @@ export default function EducationPage() {
               </div>
 
               <button onClick={() => goToTopic('trader-journey')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors">
-                <Clock className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                <Clock className="w-5 h-5 text-compare flex-shrink-0" />
                 <span className="text-sm font-medium">{t('xlJourneyB')}</span>
-                <ChevronRight className="w-4 h-4 ml-auto text-indigo-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-4 h-4 ml-auto text-compare flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </TabsContent>
 
@@ -2027,7 +2027,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-indigo-500/5 to-primary/10 border-indigo-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Clock className="w-6 h-6 text-indigo-500" />
+                    <Clock className="w-6 h-6 text-compare" />
                     {TRADER_JOURNEY.title}
                   </CardTitle>
                 </CardHeader>
@@ -2054,9 +2054,9 @@ export default function EducationPage() {
               </div>
 
               <button onClick={() => goToTopic('funded-truth')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-red-500/5 border border-red-500/20 hover:border-red-500/40 transition-colors">
-                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <AlertTriangle className="w-5 h-5 text-short flex-shrink-0" />
                 <span className="text-sm font-medium">{t('xlFundedA')}</span>
-                <ChevronRight className="w-4 h-4 ml-auto text-red-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-4 h-4 ml-auto text-short flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </TabsContent>
 
@@ -2065,7 +2065,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-red-500/5 to-primary/10 border-red-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                    <AlertTriangle className="w-6 h-6 text-short" />
                     {FUNDED_TRUTH.title}
                   </CardTitle>
                 </CardHeader>
@@ -2087,14 +2087,14 @@ export default function EducationPage() {
               </div>
 
               <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{FUNDED_TRUTH.note}</p>
               </div>
 
               <button onClick={() => goToTopic('trader-journey')} className="group flex items-center gap-3 w-full text-left p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 hover:border-indigo-500/40 transition-colors">
-                <Clock className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                <Clock className="w-5 h-5 text-compare flex-shrink-0" />
                 <span className="text-sm font-medium">{t('xlJourneyA')}</span>
-                <ChevronRight className="w-4 h-4 ml-auto text-indigo-500 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-4 h-4 ml-auto text-compare flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </TabsContent>
 
@@ -2103,7 +2103,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-emerald-500/5 to-primary/10 border-emerald-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Landmark className="w-6 h-6 text-emerald-500" />
+                    <Landmark className="w-6 h-6 text-long" />
                     {OPTIONS_INCOME.title}
                   </CardTitle>
                 </CardHeader>
@@ -2135,7 +2135,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-violet-500/5 to-primary/10 border-violet-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Gauge className="w-6 h-6 text-violet-500" />
+                    <Gauge className="w-6 h-6 text-compare" />
                     {OPTIONS_VOL.title}
                   </CardTitle>
                 </CardHeader>
@@ -2167,7 +2167,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-green-500/5 to-primary/10 border-green-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <TrendingUp className="w-6 h-6 text-green-500" />
+                    <TrendingUp className="w-6 h-6 text-long" />
                     {LONG_INVEST.title}
                   </CardTitle>
                 </CardHeader>
@@ -2203,7 +2203,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-amber-500/5 to-primary/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Scale className="w-6 h-6 text-amber-500" />
+                    <Scale className="w-6 h-6 text-warn" />
                     {TAXES.title}
                   </CardTitle>
                 </CardHeader>
@@ -2225,7 +2225,7 @@ export default function EducationPage() {
               </div>
 
               <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">{TAXES.note}</p>
               </div>
               </div>
@@ -2237,7 +2237,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-cyan-500/5 to-primary/10 border-cyan-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Sigma className="w-6 h-6 text-cyan-500" />
+                    <Sigma className="w-6 h-6 text-info" />
                     {ALGO_TRADING.title}
                   </CardTitle>
                 </CardHeader>
@@ -2269,7 +2269,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-sky-500/5 to-primary/10 border-sky-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Globe className="w-6 h-6 text-sky-500" />
+                    <Globe className="w-6 h-6 text-info" />
                     {COPY_TRADING.title}
                   </CardTitle>
                 </CardHeader>
@@ -2301,7 +2301,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-blue-500/5 to-primary/10 border-blue-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Globe className="w-6 h-6 text-blue-500" />
+                    <Globe className="w-6 h-6 text-info" />
                     {FOREX_DEEP.title}
                   </CardTitle>
                 </CardHeader>
@@ -2333,7 +2333,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-yellow-500/5 to-primary/10 border-yellow-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Layers className="w-6 h-6 text-yellow-500" />
+                    <Layers className="w-6 h-6 text-caution" />
                     {COMMODITIES.title}
                   </CardTitle>
                 </CardHeader>
@@ -2365,7 +2365,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-orange-500/5 to-primary/10 border-orange-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Activity className="w-6 h-6 text-orange-500" />
+                    <Activity className="w-6 h-6 text-warn" />
                     {CRYPTO_DEEP.title}
                   </CardTitle>
                 </CardHeader>
@@ -2397,7 +2397,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-indigo-500/5 to-primary/10 border-indigo-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <BarChart3 className="w-6 h-6 text-indigo-500" />
+                    <BarChart3 className="w-6 h-6 text-compare" />
                     {INDICES.title}
                   </CardTitle>
                 </CardHeader>
@@ -2499,7 +2499,7 @@ export default function EducationPage() {
               {/* Market Participants */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-blue-500" />
+                  <Brain className="w-5 h-5 text-info" />
                   {TRADING_FUNDAMENTALS.participants.title}
                 </h2>
                 {TRADING_FUNDAMENTALS.participants.intro && (
@@ -2527,7 +2527,7 @@ export default function EducationPage() {
               {/* Trading Sessions */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-orange-500" />
+                  <TrendingUp className="w-5 h-5 text-warn" />
                   {TRADING_FUNDAMENTALS.sessions.title}
                 </h2>
                 {TRADING_FUNDAMENTALS.sessions.intro && (
@@ -2538,7 +2538,7 @@ export default function EducationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {TRADING_FUNDAMENTALS.sessions.items.map(item => {
                     const colorMap = { blue: 'border-blue-500/30 bg-blue-500/5', green: 'border-green-500/30 bg-green-500/5', orange: 'border-orange-500/30 bg-orange-500/5', red: 'border-red-500/30 bg-red-500/5' };
-                    const textMap = { blue: 'text-blue-500', green: 'text-green-500', orange: 'text-orange-500', red: 'text-red-500' };
+                    const textMap = { blue: 'text-info', green: 'text-long', orange: 'text-warn', red: 'text-short' };
                     return (
                       <Card key={item.id} className={`border ${colorMap[item.color]}`}>
                         <CardHeader className="pb-2">
@@ -2562,7 +2562,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-green-500/5 to-teal-500/10 border-green-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <TrendingUp className="w-6 h-6 text-green-500" />
+                    <TrendingUp className="w-6 h-6 text-long" />
                     {TECHNICAL_ANALYSIS.title}
                   </CardTitle>
                 </CardHeader>
@@ -2630,7 +2630,7 @@ export default function EducationPage() {
               {/* Trend Analysis */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                  <TrendingUp className="w-5 h-5 text-info" />
                   {TECHNICAL_ANALYSIS.trends.title}
                 </h2>
                 <div className="grid gap-4">
@@ -2638,9 +2638,9 @@ export default function EducationPage() {
                     <Card key={c.id} className="bg-card border-border">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-3 text-base">
-                          {c.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
-                          {c.type === 'bearish' && <TrendingDown className="w-4 h-4 text-red-500" />}
-                          {c.type === 'neutral' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+                          {c.type === 'bullish' && <TrendingUp className="w-4 h-4 text-long" />}
+                          {c.type === 'bearish' && <TrendingDown className="w-4 h-4 text-short" />}
+                          {c.type === 'neutral' && <AlertTriangle className="w-4 h-4 text-caution" />}
                           <span>{c.name}</span>
                         </CardTitle>
                       </CardHeader>
@@ -2655,7 +2655,7 @@ export default function EducationPage() {
               {/* Indicators */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-purple-500" />
+                  <BarChart3 className="w-5 h-5 text-compare" />
                   {TECHNICAL_ANALYSIS.indicators.title}
                 </h2>
                 <div className="grid gap-4">
@@ -2690,7 +2690,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-indigo-500/5 to-blue-500/10 border-indigo-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <TrendingUp className="w-6 h-6 text-indigo-500" />
+                    <TrendingUp className="w-6 h-6 text-compare" />
                     {ELLIOTT_WAVE.title}
                   </CardTitle>
                 </CardHeader>
@@ -2705,7 +2705,7 @@ export default function EducationPage() {
               {/* Motive waves 1-5 */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  <TrendingUp className="w-5 h-5 text-long" />
                   {ELLIOTT_WAVE.motive.title}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
@@ -2716,7 +2716,7 @@ export default function EducationPage() {
                     <Card key={w.id} className="bg-card border-border">
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-base">
-                          <span className="w-7 h-7 rounded-full bg-indigo-500/15 text-indigo-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                          <span className="w-7 h-7 rounded-full bg-indigo-500/15 text-compare flex items-center justify-center text-sm font-bold flex-shrink-0">
                             {w.id}
                           </span>
                           <span className={patternTypeColors[w.type]}>{w.name}</span>
@@ -2733,7 +2733,7 @@ export default function EducationPage() {
               {/* Corrective waves A-B-C */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <TrendingDown className="w-5 h-5 text-red-500" />
+                  <TrendingDown className="w-5 h-5 text-short" />
                   {ELLIOTT_WAVE.corrective.title}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
@@ -2744,7 +2744,7 @@ export default function EducationPage() {
                     <Card key={w.id} className="bg-card border-border">
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-base">
-                          <span className="w-7 h-7 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                          <span className="w-7 h-7 rounded-full bg-red-500/15 text-short flex items-center justify-center text-sm font-bold flex-shrink-0">
                             {w.id}
                           </span>
                           <span className={patternTypeColors[w.type]}>{w.name}</span>
@@ -2784,7 +2784,7 @@ export default function EducationPage() {
               {/* Corrective patterns */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-purple-500" />
+                  <BarChart3 className="w-5 h-5 text-compare" />
                   {ELLIOTT_WAVE.patterns.title}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2806,7 +2806,7 @@ export default function EducationPage() {
                 <Card className="bg-yellow-500/5 border-yellow-500/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Target className="w-4 h-4 text-yellow-500" />
+                      <Target className="w-4 h-4 text-caution" />
                       {ELLIOTT_WAVE.fibonacci.title}
                     </CardTitle>
                   </CardHeader>
@@ -2817,7 +2817,7 @@ export default function EducationPage() {
                 <Card className="bg-blue-500/5 border-blue-500/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Info className="w-4 h-4 text-blue-500" />
+                      <Info className="w-4 h-4 text-info" />
                       {ELLIOTT_WAVE.degrees.title}
                     </CardTitle>
                   </CardHeader>
@@ -2831,7 +2831,7 @@ export default function EducationPage() {
               <Card className="bg-orange-500/10 border-orange-500/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    <AlertTriangle className="w-5 h-5 text-warn" />
                     {ELLIOTT_WAVE.mistakes.title}
                   </CardTitle>
                 </CardHeader>
@@ -2839,7 +2839,7 @@ export default function EducationPage() {
                   <ul className="space-y-2">
                     {ELLIOTT_WAVE.mistakes.items.map((m, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
-                        <span className="text-orange-500 mt-0.5">•</span> {m}
+                        <span className="text-warn mt-0.5">•</span> {m}
                       </li>
                     ))}
                   </ul>
@@ -2852,7 +2852,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-red-500/5 to-orange-500/10 border-red-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <CandlestickChart className="w-6 h-6 text-red-500" />
+                    <CandlestickChart className="w-6 h-6 text-short" />
                     {ICHIMOKU.title}
                   </CardTitle>
                 </CardHeader>
@@ -2893,7 +2893,7 @@ export default function EducationPage() {
               {/* The cloud (Kumo) */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <CandlestickChart className="w-5 h-5 text-orange-500" />
+                  <CandlestickChart className="w-5 h-5 text-warn" />
                   {ICHIMOKU.cloud.title}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
@@ -2904,9 +2904,9 @@ export default function EducationPage() {
                     <Card key={c.id} className="bg-card border-border">
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-base">
-                          {c.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
-                          {c.type === 'bearish' && <TrendingDown className="w-4 h-4 text-red-500" />}
-                          {c.type === 'neutral' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+                          {c.type === 'bullish' && <TrendingUp className="w-4 h-4 text-long" />}
+                          {c.type === 'bearish' && <TrendingDown className="w-4 h-4 text-short" />}
+                          {c.type === 'neutral' && <AlertTriangle className="w-4 h-4 text-caution" />}
                           <span>{c.name}</span>
                         </CardTitle>
                       </CardHeader>
@@ -2945,7 +2945,7 @@ export default function EducationPage() {
               <Card className="bg-orange-500/10 border-orange-500/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Lightbulb className="w-5 h-5 text-orange-500" />
+                    <Lightbulb className="w-5 h-5 text-warn" />
                     {ICHIMOKU.tips.title}
                   </CardTitle>
                 </CardHeader>
@@ -2953,7 +2953,7 @@ export default function EducationPage() {
                   <ul className="space-y-2">
                     {ICHIMOKU.tips.items.map((tip, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
-                        <span className="text-orange-500 mt-0.5">•</span> {tip}
+                        <span className="text-warn mt-0.5">•</span> {tip}
                       </li>
                     ))}
                   </ul>
@@ -2966,7 +2966,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-purple-500/5 to-blue-500/10 border-purple-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <TrendingUp className="w-6 h-6 text-purple-500" />
+                    <TrendingUp className="w-6 h-6 text-compare" />
                     {SMART_MONEY.title}
                   </CardTitle>
                 </CardHeader>
@@ -2983,9 +2983,9 @@ export default function EducationPage() {
                   <Card key={s.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        {s.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
-                        {s.type === 'bearish' && <TrendingDown className="w-4 h-4 text-red-500" />}
-                        {s.type === 'neutral' && <BarChart3 className="w-4 h-4 text-purple-500" />}
+                        {s.type === 'bullish' && <TrendingUp className="w-4 h-4 text-long" />}
+                        {s.type === 'bearish' && <TrendingDown className="w-4 h-4 text-short" />}
+                        {s.type === 'neutral' && <BarChart3 className="w-4 h-4 text-compare" />}
                         <span>{s.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -2999,7 +2999,7 @@ export default function EducationPage() {
               <Card className="bg-orange-500/10 border-orange-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                     {SMART_MONEY.note}
                   </p>
                 </CardContent>
@@ -3011,7 +3011,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-amber-500/5 to-blue-500/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Landmark className="w-6 h-6 text-amber-500" />
+                    <Landmark className="w-6 h-6 text-warn" />
                     {INST_METHODS.title}
                   </CardTitle>
                 </CardHeader>
@@ -3025,7 +3025,7 @@ export default function EducationPage() {
                   <Card key={s.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        {s.type === 'bearish' ? <AlertTriangle className="w-4 h-4 text-orange-500" /> : <BarChart3 className="w-4 h-4 text-amber-500" />}
+                        {s.type === 'bearish' ? <AlertTriangle className="w-4 h-4 text-warn" /> : <BarChart3 className="w-4 h-4 text-warn" />}
                         <span>{s.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3039,7 +3039,7 @@ export default function EducationPage() {
               <Card className="bg-orange-500/10 border-orange-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                     {INST_METHODS.note}
                   </p>
                 </CardContent>
@@ -3051,7 +3051,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-emerald-500/5 to-blue-500/10 border-emerald-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Layers className="w-6 h-6 text-emerald-500" />
+                    <Layers className="w-6 h-6 text-long" />
                     {POS_BUILDING.title}
                   </CardTitle>
                 </CardHeader>
@@ -3065,7 +3065,7 @@ export default function EducationPage() {
                   <Card key={s.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-500 text-[11px] font-bold flex-shrink-0">{i + 1}</span>
+                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-long text-[11px] font-bold flex-shrink-0">{i + 1}</span>
                         <span>{s.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3079,7 +3079,7 @@ export default function EducationPage() {
               <Card className="bg-emerald-500/10 border-emerald-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <Lightbulb className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <Lightbulb className="w-4 h-4 text-long flex-shrink-0 mt-0.5" />
                     {POS_BUILDING.note}
                   </p>
                 </CardContent>
@@ -3091,7 +3091,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-violet-500/5 to-blue-500/10 border-violet-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Brain className="w-6 h-6 text-violet-500" />
+                    <Brain className="w-6 h-6 text-compare" />
                     {TRADING_MINDSET.title}
                   </CardTitle>
                 </CardHeader>
@@ -3105,7 +3105,7 @@ export default function EducationPage() {
                   <Card key={s.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        <Brain className="w-4 h-4 text-violet-500" />
+                        <Brain className="w-4 h-4 text-compare" />
                         <span>{s.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3119,7 +3119,7 @@ export default function EducationPage() {
               <Card className="bg-violet-500/10 border-violet-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <Lightbulb className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
+                    <Lightbulb className="w-4 h-4 text-compare flex-shrink-0 mt-0.5" />
                     {TRADING_MINDSET.note}
                   </p>
                 </CardContent>
@@ -3131,7 +3131,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-amber-500/5 to-yellow-500/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Star className="w-6 h-6 text-amber-500" />
+                    <Star className="w-6 h-6 text-warn" />
                     {TRADING_MASTERS.title}
                   </CardTitle>
                 </CardHeader>
@@ -3145,7 +3145,7 @@ export default function EducationPage() {
                   <Card key={s.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        <Star className="w-4 h-4 text-amber-500" />
+                        <Star className="w-4 h-4 text-warn" />
                         <span>{s.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3159,7 +3159,7 @@ export default function EducationPage() {
               <Card className="bg-amber-500/10 border-amber-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <Lightbulb className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                     {TRADING_MASTERS.note}
                   </p>
                 </CardContent>
@@ -3211,7 +3211,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-blue-500/5 to-cyan-500/10 border-blue-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Gauge className="w-6 h-6 text-blue-500" />
+                    <Gauge className="w-6 h-6 text-info" />
                     {PARTIAL_EXITS.title}
                   </CardTitle>
                 </CardHeader>
@@ -3225,7 +3225,7 @@ export default function EducationPage() {
                   <Card key={s.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        <Gauge className="w-4 h-4 text-blue-500" />
+                        <Gauge className="w-4 h-4 text-info" />
                         <span>{s.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3239,7 +3239,7 @@ export default function EducationPage() {
               <Card className="bg-blue-500/10 border-blue-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <Lightbulb className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <Lightbulb className="w-4 h-4 text-info flex-shrink-0 mt-0.5" />
                     {PARTIAL_EXITS.note}
                   </p>
                 </CardContent>
@@ -3251,7 +3251,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-rose-500/5 to-orange-500/10 border-rose-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Target className="w-6 h-6 text-rose-500" />
+                    <Target className="w-6 h-6 text-short" />
                     {STOPS_TARGETS.title}
                   </CardTitle>
                 </CardHeader>
@@ -3271,7 +3271,7 @@ export default function EducationPage() {
                   <Card key={s.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        <Target className="w-4 h-4 text-rose-500" />
+                        <Target className="w-4 h-4 text-short" />
                         <span>{s.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3285,7 +3285,7 @@ export default function EducationPage() {
               <Card className="bg-rose-500/10 border-rose-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-short flex-shrink-0 mt-0.5" />
                     {STOPS_TARGETS.note}
                   </p>
                 </CardContent>
@@ -3297,7 +3297,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-sky-500/5 to-blue-500/10 border-sky-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Activity className="w-6 h-6 text-sky-500" />
+                    <Activity className="w-6 h-6 text-info" />
                     {TRADE_MGMT.title}
                   </CardTitle>
                 </CardHeader>
@@ -3311,7 +3311,7 @@ export default function EducationPage() {
                   <Card key={s.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        <Activity className="w-4 h-4 text-sky-500" />
+                        <Activity className="w-4 h-4 text-info" />
                         <span>{s.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3325,7 +3325,7 @@ export default function EducationPage() {
               <Card className="bg-sky-500/10 border-sky-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <Lightbulb className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <Lightbulb className="w-4 h-4 text-info flex-shrink-0 mt-0.5" />
                     {TRADE_MGMT.note}
                   </p>
                 </CardContent>
@@ -3337,7 +3337,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-cyan-500/5 to-blue-500/10 border-cyan-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Scale className="w-6 h-6 text-cyan-500" />
+                    <Scale className="w-6 h-6 text-info" />
                     {OPTIONS_STRATEGIES.title}
                   </CardTitle>
                 </CardHeader>
@@ -3351,9 +3351,9 @@ export default function EducationPage() {
                   <Card key={o.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        {o.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
-                        {o.type === 'bearish' && <TrendingDown className="w-4 h-4 text-red-500" />}
-                        {o.type === 'neutral' && <BarChart3 className="w-4 h-4 text-cyan-500" />}
+                        {o.type === 'bullish' && <TrendingUp className="w-4 h-4 text-long" />}
+                        {o.type === 'bearish' && <TrendingDown className="w-4 h-4 text-short" />}
+                        {o.type === 'neutral' && <BarChart3 className="w-4 h-4 text-info" />}
                         <span>{o.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3371,7 +3371,7 @@ export default function EducationPage() {
               <Card className="bg-orange-500/10 border-orange-500/30">
                 <CardContent className="pt-5">
                   <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                     {OPTIONS_STRATEGIES.note}
                   </p>
                 </CardContent>
@@ -3383,7 +3383,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-emerald-500/5 to-teal-500/10 border-emerald-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <BarChart3 className="w-6 h-6 text-emerald-500" />
+                    <BarChart3 className="w-6 h-6 text-long" />
                     {ADVANCED_TA.title}
                   </CardTitle>
                 </CardHeader>
@@ -3397,7 +3397,7 @@ export default function EducationPage() {
                   <Card key={a.id} className="bg-card border-border">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-base">
-                        <BarChart3 className="w-4 h-4 text-emerald-500" />
+                        <BarChart3 className="w-4 h-4 text-long" />
                         <span>{a.name}</span>
                       </CardTitle>
                     </CardHeader>
@@ -3414,7 +3414,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-amber-500/5 to-yellow-500/10 border-amber-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Shield className="w-6 h-6 text-amber-500" />
+                    <Shield className="w-6 h-6 text-warn" />
                     {TRADING_BUSINESS.title}
                   </CardTitle>
                 </CardHeader>
@@ -3439,7 +3439,7 @@ export default function EducationPage() {
               {/* Instrument deep dives */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-amber-500" />
+                  <BarChart3 className="w-5 h-5 text-warn" />
                   {TRADING_BUSINESS.instruments.title}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3462,7 +3462,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-yellow-500/5 to-orange-500/10 border-yellow-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <BarChart3 className="w-6 h-6 text-yellow-500" />
+                    <BarChart3 className="w-6 h-6 text-caution" />
                     {FUNDAMENTAL_ANALYSIS.title}
                   </CardTitle>
                 </CardHeader>
@@ -3474,7 +3474,7 @@ export default function EducationPage() {
               {/* Macro */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-red-500" />
+                  <TrendingUp className="w-5 h-5 text-short" />
                   {FUNDAMENTAL_ANALYSIS.macro.title}
                 </h2>
                 <div className="grid gap-4">
@@ -3483,7 +3483,7 @@ export default function EducationPage() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-3 text-base">
                           <span>{item.name}</span>
-                          <Badge variant="outline" className={item.impact === FUNDAMENTAL_ANALYSIS.macro.items[0].impact ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'}>
+                          <Badge variant="outline" className={item.impact === FUNDAMENTAL_ANALYSIS.macro.items[0].impact ? 'bg-red-500/10 text-short border-red-500/30' : 'bg-yellow-500/10 text-caution border-yellow-500/30'}>
                             {item.impact}
                           </Badge>
                         </CardTitle>
@@ -3499,7 +3499,7 @@ export default function EducationPage() {
               {/* Economic Calendar */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <Info className="w-5 h-5 text-blue-500" />
+                  <Info className="w-5 h-5 text-info" />
                   {FUNDAMENTAL_ANALYSIS.calendar.title}
                 </h2>
                 <div className="grid gap-4">
@@ -3522,7 +3522,7 @@ export default function EducationPage() {
               {/* Stock Fundamentals */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  <TrendingUp className="w-5 h-5 text-long" />
                   {FUNDAMENTAL_ANALYSIS.stocks.title}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3548,7 +3548,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-purple-500/5 to-blue-500/10 border-purple-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Target className="w-6 h-6 text-purple-500" />
+                    <Target className="w-6 h-6 text-compare" />
                     {TRADING_STYLES_CONTENT.title}
                   </CardTitle>
                 </CardHeader>
@@ -3564,7 +3564,7 @@ export default function EducationPage() {
                 {TRADING_STYLES_CONTENT.styles.map(style => {
                   const colorBorder = { purple: 'border-purple-500/30', blue: 'border-blue-500/30', green: 'border-green-500/30', orange: 'border-orange-500/30' };
                   const colorBg = { purple: 'bg-purple-500/5', blue: 'bg-blue-500/5', green: 'bg-green-500/5', orange: 'bg-orange-500/5' };
-                  const colorText = { purple: 'text-purple-500', blue: 'text-blue-500', green: 'text-green-500', orange: 'text-orange-500' };
+                  const colorText = { purple: 'text-compare', blue: 'text-info', green: 'text-long', orange: 'text-warn' };
                   return (
                     <Card key={style.id} className={`border ${colorBorder[style.color]} ${colorBg[style.color]}`}>
                       <CardHeader>
@@ -3581,25 +3581,25 @@ export default function EducationPage() {
                         <p className="text-sm text-muted-foreground leading-relaxed">{style.desc}</p>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <p className="text-xs font-semibold text-green-500 mb-2 flex items-center gap-1">
+                            <p className="text-xs font-semibold text-long mb-2 flex items-center gap-1">
                               <ChevronRight className="w-3 h-3" /> {t('styleProsLabel')}
                             </p>
                             <ul className="space-y-1">
                               {style.pros.map((pro, i) => (
                                 <li key={i} className="text-xs text-muted-foreground flex items-start gap-1">
-                                  <span className="text-green-500 mt-0.5">✓</span> {pro}
+                                  <span className="text-long mt-0.5">✓</span> {pro}
                                 </li>
                               ))}
                             </ul>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-red-500 mb-2 flex items-center gap-1">
+                            <p className="text-xs font-semibold text-short mb-2 flex items-center gap-1">
                               <ChevronRight className="w-3 h-3" /> {t('styleConsLabel')}
                             </p>
                             <ul className="space-y-1">
                               {style.cons.map((con, i) => (
                                 <li key={i} className="text-xs text-muted-foreground flex items-start gap-1">
-                                  <span className="text-red-500 mt-0.5">✗</span> {con}
+                                  <span className="text-short mt-0.5">✗</span> {con}
                                 </li>
                               ))}
                             </ul>
@@ -3629,7 +3629,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-cyan-500/5 to-blue-500/10 border-cyan-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Scale className="w-6 h-6 text-cyan-500" />
+                    <Scale className="w-6 h-6 text-info" />
                     {MARKET_MECHANICS.title}
                   </CardTitle>
                 </CardHeader>
@@ -3671,7 +3671,7 @@ export default function EducationPage() {
               {/* Broker */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-green-500" />
+                  <Shield className="w-5 h-5 text-long" />
                   {MARKET_MECHANICS.broker.title}
                 </h2>
                 <p className="text-muted-foreground mb-4 text-sm">{MARKET_MECHANICS.broker.intro}</p>
@@ -3695,7 +3695,7 @@ export default function EducationPage() {
               {/* Platforms */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <Info className="w-5 h-5 text-blue-500" />
+                  <Info className="w-5 h-5 text-info" />
                   {MARKET_MECHANICS.platforms.title}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -3722,7 +3722,7 @@ export default function EducationPage() {
               {/* Journal */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-orange-500" />
+                  <BookOpen className="w-5 h-5 text-warn" />
                   {MARKET_MECHANICS.journal.title}
                 </h2>
                 <div className="grid gap-4">
@@ -3749,7 +3749,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-yellow-500/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-xl">
-                    <Star className="w-5 h-5 text-yellow-500" />
+                    <Star className="w-5 h-5 text-caution" />
                     {GOLDEN_RULES.title}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{GOLDEN_RULES.intro}</p>
@@ -3758,7 +3758,7 @@ export default function EducationPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {GOLDEN_RULES.rules.map((r, i) => (
                       <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg bg-background/40 border border-yellow-500/15">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-500/20 text-yellow-500 flex items-center justify-center text-xs font-bold">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-500/20 text-caution flex items-center justify-center text-xs font-bold">
                           {i + 1}
                         </span>
                         <div>
@@ -3870,7 +3870,7 @@ export default function EducationPage() {
               <Card className="bg-green-500/10 border-green-500/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Info className="w-5 h-5 text-green-500" />
+                    <Info className="w-5 h-5 text-long" />
                     {DOW_THEORY.application.title}
                   </CardTitle>
                 </CardHeader>
@@ -3885,7 +3885,7 @@ export default function EducationPage() {
               <Card className="bg-orange-500/10 border-orange-500/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    <AlertTriangle className="w-5 h-5 text-warn" />
                     {DOW_THEORY.limitations.title}
                   </CardTitle>
                 </CardHeader>
@@ -3905,7 +3905,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-blue-500/5 to-purple-500/10 border-blue-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Brain className="w-6 h-6 text-blue-500" />
+                    <Brain className="w-6 h-6 text-info" />
                     {TRADING_PSYCHOLOGY.title}
                   </CardTitle>
                 </CardHeader>
@@ -3919,7 +3919,7 @@ export default function EducationPage() {
               {/* Account killers — self-diagnosis of the most common ways traders lose */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                  <AlertTriangle className="w-5 h-5 text-short" />
                   {ACCOUNT_KILLERS.title}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
@@ -3928,16 +3928,16 @@ export default function EducationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {ACCOUNT_KILLERS.items.map((k, i) => {
                     const tagStyle = {
-                      psych: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-                      risk: 'bg-red-500/10 text-red-500 border-red-500/30',
-                      discipline: 'bg-green-500/10 text-green-500 border-green-500/30',
-                      system: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
+                      psych: 'bg-blue-500/10 text-info border-blue-500/30',
+                      risk: 'bg-red-500/10 text-short border-red-500/30',
+                      discipline: 'bg-green-500/10 text-long border-green-500/30',
+                      system: 'bg-purple-500/10 text-compare border-purple-500/30',
                     }[k.tag] || 'bg-muted text-muted-foreground border-border';
                     const tagLabel = { psych: t('killerTagPsych'), risk: t('killerTagRisk'), discipline: t('killerTagDiscipline'), system: t('killerTagSystem') }[k.tag] || k.tag;
                     return (
                       <div key={k.id} className="flex items-start gap-3 p-3 rounded-lg bg-card border border-red-500/15"
                         data-testid={`account-killer-${k.id}`}>
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center text-xs font-bold">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/15 text-short flex items-center justify-center text-xs font-bold">
                           {i + 1}
                         </span>
                         <div>
@@ -3956,7 +3956,7 @@ export default function EducationPage() {
               {/* Cognitive Biases */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                  <AlertTriangle className="w-5 h-5 text-warn" />
                   {TRADING_PSYCHOLOGY.cognitiveBiases.title}
                 </h2>
                 <div className="grid gap-4">
@@ -3984,7 +3984,7 @@ export default function EducationPage() {
               {TRADING_PSYCHOLOGY.emotions && (
                 <div>
                   <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-red-500" />
+                    <Brain className="w-5 h-5 text-short" />
                     {TRADING_PSYCHOLOGY.emotions.title}
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
@@ -4008,7 +4008,7 @@ export default function EducationPage() {
               {/* Emotional Control */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-green-500" />
+                  <Shield className="w-5 h-5 text-long" />
                   {TRADING_PSYCHOLOGY.emotionalControl.title}
                 </h2>
                 <div className="grid gap-4">
@@ -4037,8 +4037,8 @@ export default function EducationPage() {
                 <div key={`psy-sec-${si}`}>
                   <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
                     {si === 0
-                      ? <TrendingDown className="w-5 h-5 text-red-500" />
-                      : <Shield className="w-5 h-5 text-green-500" />}
+                      ? <TrendingDown className="w-5 h-5 text-short" />
+                      : <Shield className="w-5 h-5 text-long" />}
                     {sec.title}
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">{sec.intro}</p>
@@ -4075,7 +4075,7 @@ export default function EducationPage() {
               {/* Trade management */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-green-500" />
+                  <Target className="w-5 h-5 text-long" />
                   {TRADER_CRAFT.management.title}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
@@ -4098,7 +4098,7 @@ export default function EducationPage() {
               {/* Trading plan + pre-trade checklist */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-blue-500" />
+                  <BookOpen className="w-5 h-5 text-info" />
                   {TRADER_CRAFT.plan.title}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
@@ -4108,7 +4108,7 @@ export default function EducationPage() {
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center justify-between gap-2 text-base flex-wrap">
                       <span className="flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                        <CheckCircle2 className="w-5 h-5 text-info" />
                         {TRADER_CRAFT.plan.checklistTitle}
                       </span>
                       <Button
@@ -4126,7 +4126,7 @@ export default function EducationPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {TRADER_CRAFT.plan.checklist.map((c, i) => (
                         <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-lg bg-background/40 border border-blue-500/15">
-                          <span className="flex-shrink-0 w-5 h-5 rounded border border-blue-500/40 text-blue-500 flex items-center justify-center text-[10px] font-bold mt-0.5">{i + 1}</span>
+                          <span className="flex-shrink-0 w-5 h-5 rounded border border-blue-500/40 text-info flex items-center justify-center text-[10px] font-bold mt-0.5">{i + 1}</span>
                           <p className="text-sm text-muted-foreground leading-relaxed">{c}</p>
                         </div>
                       ))}
@@ -4138,7 +4138,7 @@ export default function EducationPage() {
               {/* Thinking in R */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-yellow-500" />
+                  <BarChart3 className="w-5 h-5 text-caution" />
                   {TRADER_CRAFT.rmultiple.title}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">
@@ -4185,7 +4185,7 @@ export default function EducationPage() {
               {[TRADER_CRAFT.journal, TRADER_CRAFT.testing, TRADER_CRAFT.routine].map((sec, si) => sec && (
                 <div key={`craft-sec-${si}`}>
                   <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-orange-500" />
+                    <BookOpen className="w-5 h-5 text-warn" />
                     {sec.title}
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">{sec.intro}</p>
@@ -4207,7 +4207,7 @@ export default function EducationPage() {
               {TRADER_CRAFT.regimes && (
                 <div>
                   <h2 className="font-unbounded text-xl font-bold mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                    <TrendingUp className="w-5 h-5 text-info" />
                     {TRADER_CRAFT.regimes.title}
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-3xl">{TRADER_CRAFT.regimes.intro}</p>
@@ -4216,9 +4216,9 @@ export default function EducationPage() {
                       <Card key={r.id} className="bg-card border-border">
                         <CardHeader className="pb-2">
                           <CardTitle className="flex items-center gap-2 text-base">
-                            {r.type === 'bullish' && <TrendingUp className="w-4 h-4 text-green-500" />}
-                            {r.type === 'bearish' && <AlertTriangle className="w-4 h-4 text-red-500" />}
-                            {r.type === 'neutral' && <BarChart3 className="w-4 h-4 text-yellow-500" />}
+                            {r.type === 'bullish' && <TrendingUp className="w-4 h-4 text-long" />}
+                            {r.type === 'bearish' && <AlertTriangle className="w-4 h-4 text-short" />}
+                            {r.type === 'neutral' && <BarChart3 className="w-4 h-4 text-caution" />}
                             <span>{r.name}</span>
                           </CardTitle>
                         </CardHeader>
@@ -4231,7 +4231,7 @@ export default function EducationPage() {
                   <Card className="bg-orange-500/10 border-orange-500/30 mt-4">
                     <CardContent className="pt-5">
                       <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                         {TRADER_CRAFT.regimes.note}
                       </p>
                     </CardContent>
@@ -4245,7 +4245,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-green-500/5 to-emerald-500/10 border-green-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Shield className="w-6 h-6 text-green-500" />
+                    <Shield className="w-6 h-6 text-long" />
                     {CAPITAL_MANAGEMENT.title}
                   </CardTitle>
                 </CardHeader>
@@ -4328,7 +4328,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-purple-500/5 to-pink-500/10 border-purple-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Target className="w-6 h-6 text-purple-500" />
+                    <Target className="w-6 h-6 text-compare" />
                     {TRADING_STRATEGIES.title}
                   </CardTitle>
                 </CardHeader>
@@ -4346,7 +4346,7 @@ export default function EducationPage() {
                 className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4"
                 data-testid="strat-winrate-note"
               >
-                <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-warn dark:text-warn" />
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {t('stratWinRateNote')}
                 </p>
@@ -4361,9 +4361,9 @@ export default function EducationPage() {
                         <div className="flex flex-wrap gap-2 justify-end">
                           {strategy.difficulty && (
                             <Badge variant="outline" className={
-                              strategy.difficulty === 'beginner' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30'
-                              : strategy.difficulty === 'advanced' ? 'bg-red-500/10 text-red-500 border-red-500/30'
-                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/30'
+                              strategy.difficulty === 'beginner' ? 'bg-blue-500/10 text-info border-blue-500/30'
+                              : strategy.difficulty === 'advanced' ? 'bg-red-500/10 text-short border-red-500/30'
+                              : 'bg-amber-500/10 text-warn dark:text-warn border-amber-500/30'
                             }>
                               {strategy.difficulty === 'beginner' ? t('diffBeginner')
                                 : strategy.difficulty === 'advanced' ? t('diffAdvanced')
@@ -4394,7 +4394,7 @@ export default function EducationPage() {
                     <CardContent className="space-y-4">
                       <div>
                         <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                          <Info className="w-4 h-4 text-blue-500" />
+                          <Info className="w-4 h-4 text-info" />
                           {t('setupLabel')}
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed pl-6">
@@ -4404,7 +4404,7 @@ export default function EducationPage() {
                       
                       <div>
                         <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                          <ChevronRight className="w-4 h-4 text-green-500" />
+                          <ChevronRight className="w-4 h-4 text-long" />
                           {t('entryLabel')}
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed pl-6">
@@ -4414,7 +4414,7 @@ export default function EducationPage() {
                       
                       <div>
                         <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                          <ChevronRight className="w-4 h-4 text-red-500" />
+                          <ChevronRight className="w-4 h-4 text-short" />
                           {t('exitLabel')}
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed pl-6">
@@ -4423,7 +4423,7 @@ export default function EducationPage() {
                       </div>
                       
                       <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-yellow-600 dark:text-yellow-500">
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-caution dark:text-caution">
                           <Lightbulb className="w-4 h-4" />
                           {t('tipsLabel')}
                         </h4>
@@ -4442,7 +4442,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-orange-500/5 to-yellow-500/10 border-orange-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <TrendingUp className="w-6 h-6 text-orange-500" />
+                    <TrendingUp className="w-6 h-6 text-warn" />
                     {PROBABILITY_STATS.title}
                   </CardTitle>
                 </CardHeader>
@@ -4456,7 +4456,7 @@ export default function EducationPage() {
               {/* Mathematical Expectation */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-green-500" />
+                  <Target className="w-5 h-5 text-long" />
                   {PROBABILITY_STATS.sections.mathematicalExpectation.title}
                 </h2>
                 <div className="grid gap-4">
@@ -4487,7 +4487,7 @@ export default function EducationPage() {
               {/* Law of Large Numbers */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                  <BarChart3 className="w-5 h-5 text-info" />
                   {PROBABILITY_STATS.sections.lawOfLargeNumbers.title}
                 </h2>
                 <div className="grid gap-4">
@@ -4514,7 +4514,7 @@ export default function EducationPage() {
               {/* Results Distribution */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                  <AlertTriangle className="w-5 h-5 text-warn" />
                   {PROBABILITY_STATS.sections.resultsDistribution.title}
                 </h2>
                 <div className="grid gap-4">
@@ -4541,7 +4541,7 @@ export default function EducationPage() {
               {/* Streaks Management */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <TrendingDown className="w-5 h-5 text-red-500" />
+                  <TrendingDown className="w-5 h-5 text-short" />
                   {PROBABILITY_STATS.sections.streaksManagement.title}
                 </h2>
                 <div className="grid gap-4">
@@ -4568,7 +4568,7 @@ export default function EducationPage() {
               {/* Variance & Std Dev */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-purple-500" />
+                  <Scale className="w-5 h-5 text-compare" />
                   {PROBABILITY_STATS.sections.varianceStdDev.title}
                 </h2>
                 <div className="grid gap-4">
@@ -4595,7 +4595,7 @@ export default function EducationPage() {
               {/* Correlation */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-cyan-500" />
+                  <TrendingUp className="w-5 h-5 text-info" />
                   {PROBABILITY_STATS.sections.correlation.title}
                 </h2>
                 <div className="grid gap-4">
@@ -4649,7 +4649,7 @@ export default function EducationPage() {
               {/* Backtesting Statistics */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <Info className="w-5 h-5 text-blue-500" />
+                  <Info className="w-5 h-5 text-info" />
                   {PROBABILITY_STATS.sections.backtestingStats.title}
                 </h2>
                 <div className="grid gap-4">
@@ -4657,7 +4657,7 @@ export default function EducationPage() {
                     <Card key={concept.id} className="bg-yellow-500/10 border-yellow-500/30">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-3 text-base">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                          <AlertTriangle className="w-4 h-4 text-caution" />
                           <span>{concept.title}</span>
                           <Badge variant="outline" className={priorityColors[concept.importance]}>
                             {t(concept.importance)}
@@ -4730,8 +4730,8 @@ export default function EducationPage() {
                     {reversal.length > 0 && (
                       <div>
                         <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                          <TrendingDown className="w-5 h-5 text-red-500" />
-                          <TrendingUp className="w-5 h-5 text-green-500" />
+                          <TrendingDown className="w-5 h-5 text-short" />
+                          <TrendingUp className="w-5 h-5 text-long" />
                           {t('reversalPatterns')}
                           <span className="text-xs text-muted-foreground font-normal ml-1">({reversal.length})</span>
                         </h2>
@@ -4747,7 +4747,7 @@ export default function EducationPage() {
                     {continuation.length > 0 && (
                       <div>
                         <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                          <ChevronRight className="w-5 h-5 text-blue-500" />
+                          <ChevronRight className="w-5 h-5 text-info" />
                           {t('continuationPatterns')}
                           <span className="text-xs text-muted-foreground font-normal ml-1">({continuation.length})</span>
                         </h2>
@@ -4816,7 +4816,7 @@ export default function EducationPage() {
                         {bull.length > 0 && (
                           <div>
                             <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                              <TrendingUp className="w-5 h-5 text-green-500" />
+                              <TrendingUp className="w-5 h-5 text-long" />
                               {t('bullishPatterns')}
                               <span className="text-xs text-muted-foreground font-normal ml-1">({bull.length})</span>
                             </h2>
@@ -4831,7 +4831,7 @@ export default function EducationPage() {
                         {bear.length > 0 && (
                           <div>
                             <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                              <TrendingDown className="w-5 h-5 text-red-500" />
+                              <TrendingDown className="w-5 h-5 text-short" />
                               {t('bearishPatterns')}
                               <span className="text-xs text-muted-foreground font-normal ml-1">({bear.length})</span>
                             </h2>
@@ -4846,7 +4846,7 @@ export default function EducationPage() {
                         {neut.length > 0 && (
                           <div>
                             <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                              <AlertTriangle className="w-5 h-5 text-caution" />
                               {t('indecisionPatterns')}
                               <span className="text-xs text-muted-foreground font-normal ml-1">({neut.length})</span>
                             </h2>
@@ -4940,10 +4940,10 @@ export default function EducationPage() {
                           <Badge
                             className={
                               pattern.type === 'bullish'
-                                ? 'bg-green-500/10 text-green-500 border-green-500/30'
+                                ? 'bg-green-500/10 text-long border-green-500/30'
                                 : pattern.type === 'bearish'
-                                ? 'bg-red-500/10 text-red-500 border-red-500/30'
-                                : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
+                                ? 'bg-red-500/10 text-short border-red-500/30'
+                                : 'bg-yellow-500/10 text-caution border-yellow-500/30'
                             }
                           >
                             {pattern.type === 'bullish'
@@ -5004,8 +5004,8 @@ export default function EducationPage() {
                           </div>
                           <span className={`text-xs font-semibold ${
                             pattern.reliability === 'High' || pattern.reliability === 'Alta'
-                              ? 'text-green-500'
-                              : 'text-yellow-500'
+                              ? 'text-long'
+                              : 'text-caution'
                           }`}>
                             {pattern.reliability}
                           </span>
@@ -5020,7 +5020,7 @@ export default function EducationPage() {
               {/* Intro */}
               <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-xl p-6">
                 <h2 className="font-unbounded text-2xl font-bold mb-3 flex items-center gap-3">
-                  <TrendingUp className="w-7 h-7 text-amber-500" />
+                  <TrendingUp className="w-7 h-7 text-warn" />
                   {WYCKOFF.title}
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">{WYCKOFF.intro}</p>
@@ -5032,7 +5032,7 @@ export default function EducationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {WYCKOFF.laws.items.map((law) => (
                     <div key={law.id} className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
-                      <h4 className="font-bold text-sm text-amber-400 mb-2">{law.name}</h4>
+                      <h4 className="font-bold text-sm text-warn mb-2">{law.name}</h4>
                       <p className="text-xs text-muted-foreground leading-relaxed">{law.desc}</p>
                     </div>
                   ))}
@@ -5051,7 +5051,7 @@ export default function EducationPage() {
                     <div key={phase.id} className={`rounded-xl border p-5 ${phase.type === 'bullish' ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-bold text-base">{phase.name}</h4>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${phase.type === 'bullish' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${phase.type === 'bullish' ? 'bg-green-500/20 text-long' : 'bg-red-500/20 text-short'}`}>
                           {phase.type === 'bullish' ? '↑' : '↓'}
                         </span>
                       </div>
@@ -5072,9 +5072,9 @@ export default function EducationPage() {
                         <h4 className="font-bold text-sm text-primary">{event.name}</h4>
                         {event.sentiment && (
                           <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                            event.sentiment === 'bullish' ? 'bg-green-500/15 text-green-500'
-                            : event.sentiment === 'bearish' ? 'bg-red-500/15 text-red-500'
-                            : 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-500'
+                            event.sentiment === 'bullish' ? 'bg-green-500/15 text-long'
+                            : event.sentiment === 'bearish' ? 'bg-red-500/15 text-short'
+                            : 'bg-yellow-500/15 text-caution dark:text-caution'
                           }`}>
                             {event.sentiment === 'bullish' ? `↑ ${t('bullish')}` : event.sentiment === 'bearish' ? `↓ ${t('bearish')}` : `↔ ${t('neutral')}`}
                           </span>
@@ -5089,13 +5089,13 @@ export default function EducationPage() {
               {/* Composite Operator */}
               <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-6">
                 <h3 className="font-unbounded text-lg font-bold mb-2 flex items-center gap-2">
-                  <span className="text-purple-400">◈</span> {WYCKOFF.composite.title}
+                  <span className="text-compare">◈</span> {WYCKOFF.composite.title}
                 </h3>
                 <p className="text-muted-foreground text-sm mb-4 leading-relaxed">{WYCKOFF.composite.desc}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {WYCKOFF.composite.concepts.map((c) => (
                     <div key={c.id} className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                      <h4 className="font-semibold text-sm mb-1 text-purple-300">{c.name}</h4>
+                      <h4 className="font-semibold text-sm mb-1 text-compare">{c.name}</h4>
                       <p className="text-xs text-muted-foreground leading-relaxed">{c.desc}</p>
                     </div>
                   ))}
@@ -5109,7 +5109,7 @@ export default function EducationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {WYCKOFF.volume.rules.map((rule) => (
                     <div key={rule.id} className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
-                      <h4 className="font-semibold text-sm mb-1 text-blue-400">{rule.name}</h4>
+                      <h4 className="font-semibold text-sm mb-1 text-info">{rule.name}</h4>
                       <p className="text-xs text-muted-foreground leading-relaxed">{rule.desc}</p>
                     </div>
                   ))}
@@ -5119,12 +5119,12 @@ export default function EducationPage() {
               {/* How to Trade */}
               <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-6">
                 <h3 className="font-unbounded text-lg font-bold mb-4 flex items-center gap-2">
-                  <span className="text-green-400">▶</span> {WYCKOFF.howToTrade.title}
+                  <span className="text-long">▶</span> {WYCKOFF.howToTrade.title}
                 </h3>
                 <ol className="space-y-3">
                   {WYCKOFF.howToTrade.steps.map((step, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-xs font-bold border border-green-500/30">
+                      <span className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500/20 text-long flex items-center justify-center text-xs font-bold border border-green-500/30">
                         {idx + 1}
                       </span>
                       <p className="text-sm text-muted-foreground leading-relaxed pt-0.5">{step}</p>
@@ -5138,7 +5138,7 @@ export default function EducationPage() {
               {/* Intro */}
               <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/5 border border-purple-500/20 rounded-xl p-6">
                 <h2 className="font-unbounded text-2xl font-bold mb-3 flex items-center gap-3">
-                  <BarChart3 className="w-7 h-7 text-purple-500" />
+                  <BarChart3 className="w-7 h-7 text-compare" />
                   {ALT_CHARTS.title}
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">{ALT_CHARTS.intro}</p>
@@ -5148,11 +5148,11 @@ export default function EducationPage() {
               <div className="space-y-6">
                 {ALT_CHARTS.charts.map((chart) => {
                   const colorMap = {
-                    orange: { card: 'bg-orange-500/5 border-orange-500/20', badge: 'bg-orange-500/20 text-orange-400', pro: 'text-green-400', con: 'text-red-400', heading: 'text-orange-400' },
-                    blue:   { card: 'bg-blue-500/5 border-blue-500/20',   badge: 'bg-blue-500/20 text-blue-400',     pro: 'text-green-400', con: 'text-red-400', heading: 'text-blue-400' },
-                    purple: { card: 'bg-purple-500/5 border-purple-500/20', badge: 'bg-purple-500/20 text-purple-400', pro: 'text-green-400', con: 'text-red-400', heading: 'text-purple-400' },
-                    green:  { card: 'bg-green-500/5 border-green-500/20',  badge: 'bg-green-500/20 text-green-400',   pro: 'text-green-400', con: 'text-red-400', heading: 'text-green-400' },
-                    cyan:   { card: 'bg-cyan-500/5 border-cyan-500/20',    badge: 'bg-cyan-500/20 text-cyan-400',     pro: 'text-green-400', con: 'text-red-400', heading: 'text-cyan-400' },
+                    orange: { card: 'bg-orange-500/5 border-orange-500/20', badge: 'bg-orange-500/20 text-warn', pro: 'text-long', con: 'text-short', heading: 'text-warn' },
+                    blue:   { card: 'bg-blue-500/5 border-blue-500/20',   badge: 'bg-blue-500/20 text-info',     pro: 'text-long', con: 'text-short', heading: 'text-info' },
+                    purple: { card: 'bg-purple-500/5 border-purple-500/20', badge: 'bg-purple-500/20 text-compare', pro: 'text-long', con: 'text-short', heading: 'text-compare' },
+                    green:  { card: 'bg-green-500/5 border-green-500/20',  badge: 'bg-green-500/20 text-long',   pro: 'text-long', con: 'text-short', heading: 'text-long' },
+                    cyan:   { card: 'bg-cyan-500/5 border-cyan-500/20',    badge: 'bg-cyan-500/20 text-info',     pro: 'text-long', con: 'text-short', heading: 'text-info' },
                   };
                   const colors = colorMap[chart.color] || colorMap.blue;
                   return (
@@ -5183,7 +5183,7 @@ export default function EducationPage() {
                           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t('altChartWeaknesses')}</p>
                           <ul className="space-y-1">
                             {chart.weaknesses.map((w, i) => (
-                              <li key={i} className="text-xs leading-relaxed flex items-start gap-1.5 text-red-400">
+                              <li key={i} className="text-xs leading-relaxed flex items-start gap-1.5 text-short">
                                 <span className="mt-0.5 flex-shrink-0">✗</span><span className="text-muted-foreground">{w}</span>
                               </li>
                             ))}
@@ -5255,7 +5255,7 @@ export default function EducationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {COT.contrarian.items.map((item) => (
                     <div key={item.id} className={`rounded-xl border p-5 ${item.id === 'bottom' ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
-                      <h4 className={`font-bold text-sm mb-2 ${item.id === 'bottom' ? 'text-green-400' : 'text-red-400'}`}>{item.name}</h4>
+                      <h4 className={`font-bold text-sm mb-2 ${item.id === 'bottom' ? 'text-long' : 'text-short'}`}>{item.name}</h4>
                       <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
                     </div>
                   ))}
@@ -5290,7 +5290,7 @@ export default function EducationPage() {
 
               {/* Sources */}
               <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-5">
-                <h4 className="font-semibold text-sm text-blue-400 mb-1">{COT.sources.title}</h4>
+                <h4 className="font-semibold text-sm text-info mb-1">{COT.sources.title}</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">{COT.sources.desc}</p>
               </div>
 
@@ -5300,7 +5300,7 @@ export default function EducationPage() {
                 <ul className="space-y-2">
                   {COT.limitations.items.map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+                      <AlertTriangle className="w-4 h-4 text-caution mt-0.5 shrink-0" />
                       <p className="text-sm text-muted-foreground leading-relaxed">{item}</p>
                     </li>
                   ))}
@@ -5316,15 +5316,15 @@ export default function EducationPage() {
 
             {/* The 5 CMT/Babypips gap modules — shared compact layout */}
             {[
-              { value: 'news-trading', data: NEWS_TRADING, Icon: Newspaper, color: 'text-orange-500', grad: 'from-orange-500/5 to-primary/10 border-orange-500/20' },
-              { value: 'sentiment', data: SENTIMENT, Icon: Gauge, color: 'text-purple-500', grad: 'from-purple-500/5 to-blue-500/10 border-purple-500/20' },
-              { value: 'intermarket', data: INTERMARKET, Icon: Globe, color: 'text-blue-500', grad: 'from-blue-500/5 to-teal-500/10 border-blue-500/20' },
+              { value: 'news-trading', data: NEWS_TRADING, Icon: Newspaper, color: 'text-warn', grad: 'from-orange-500/5 to-primary/10 border-orange-500/20' },
+              { value: 'sentiment', data: SENTIMENT, Icon: Gauge, color: 'text-compare', grad: 'from-purple-500/5 to-blue-500/10 border-purple-500/20' },
+              { value: 'intermarket', data: INTERMARKET, Icon: Globe, color: 'text-info', grad: 'from-blue-500/5 to-teal-500/10 border-blue-500/20' },
               { value: 'breadth-cycles', data: BREADTH_CYCLES, Icon: Activity, color: 'text-teal-500', grad: 'from-teal-500/5 to-primary/10 border-teal-500/20' },
               { value: 'broker-safety', data: BROKER_SAFETY, Icon: Shield, color: 'text-primary', grad: 'from-primary/5 to-red-500/10 border-primary/20' },
-              { value: 'margin-liq', data: MARGIN_LIQ, Icon: Scale, color: 'text-red-500', grad: 'from-red-500/5 to-orange-500/10 border-red-500/20' },
-              { value: 'option-greeks', data: OPTION_GREEKS, Icon: Sigma, color: 'text-cyan-500', grad: 'from-cyan-500/5 to-blue-500/10 border-cyan-500/20', Visual: OptionGreeksVisual },
-              { value: 'inst-desk', data: INST_DESK, Icon: Landmark, color: 'text-indigo-500', grad: 'from-indigo-500/5 to-blue-500/10 border-indigo-500/20' },
-              { value: 'pro-discipline', data: PRO_DISCIPLINE, Icon: Focus, color: 'text-emerald-500', grad: 'from-emerald-500/5 to-primary/10 border-emerald-500/20' },
+              { value: 'margin-liq', data: MARGIN_LIQ, Icon: Scale, color: 'text-short', grad: 'from-red-500/5 to-orange-500/10 border-red-500/20' },
+              { value: 'option-greeks', data: OPTION_GREEKS, Icon: Sigma, color: 'text-info', grad: 'from-cyan-500/5 to-blue-500/10 border-cyan-500/20', Visual: OptionGreeksVisual },
+              { value: 'inst-desk', data: INST_DESK, Icon: Landmark, color: 'text-compare', grad: 'from-indigo-500/5 to-blue-500/10 border-indigo-500/20' },
+              { value: 'pro-discipline', data: PRO_DISCIPLINE, Icon: Focus, color: 'text-long', grad: 'from-emerald-500/5 to-primary/10 border-emerald-500/20' },
             ].map(mod => (
               <TabsContent key={mod.value} value={mod.value} className="space-y-6">
                 <Card className={`bg-gradient-to-br ${mod.grad}`}>
@@ -5359,7 +5359,7 @@ export default function EducationPage() {
                   <Card className="bg-orange-500/10 border-orange-500/30">
                     <CardContent className="pt-5">
                       <p className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
                         {mod.data.note}
                       </p>
                     </CardContent>
@@ -5432,7 +5432,7 @@ export default function EducationPage() {
               <Card className="bg-gradient-to-br from-purple-500/5 to-primary/10 border-purple-500/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-unbounded text-2xl">
-                    <Brain className="w-6 h-6 text-purple-500" />
+                    <Brain className="w-6 h-6 text-compare" />
                     {t('quizTab')}
                   </CardTitle>
                 </CardHeader>
@@ -5474,8 +5474,8 @@ export default function EducationPage() {
                           const chosen = quizSel[qi] === oi;
                           const correct = QUIZ_CORRECT[qi] === oi;
                           let cls = 'border-border bg-background text-muted-foreground hover:text-foreground';
-                          if (quizDone && correct) cls = 'border-[#22c55e]/60 bg-[#22c55e]/10 text-[#4ade80] font-medium';
-                          else if (quizDone && chosen && !correct) cls = 'border-[#ef4444]/60 bg-[#ef4444]/10 text-[#f87171]';
+                          if (quizDone && correct) cls = 'border-long/60 bg-long/10 text-long font-medium';
+                          else if (quizDone && chosen && !correct) cls = 'border-short/60 bg-short/10 text-short';
                           else if (chosen) cls = 'border-primary text-primary bg-primary/10 font-medium';
                           return (
                             <button
@@ -5500,13 +5500,13 @@ export default function EducationPage() {
                 <Button
                   onClick={() => setQuizDone(true)}
                   disabled={Object.keys(quizSel).length < QUIZ.length}
-                  className="bg-primary text-black hover:bg-primary/90"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                   data-testid="quiz-submit"
                 >
                   {t('qzSubmit')}
                 </Button>
               ) : (
-                <Card className={`border ${quizScore === QUIZ.length ? 'border-[#22c55e]/40 bg-[#22c55e]/10' : quizScore >= 2 ? 'border-[#f59e0b]/40 bg-[#f59e0b]/10' : 'border-[#ef4444]/40 bg-[#ef4444]/10'}`}>
+                <Card className={`border ${quizScore === QUIZ.length ? 'border-long/40 bg-long/10' : quizScore >= 2 ? 'border-warn/40 bg-warn/10' : 'border-short/40 bg-short/10'}`}>
                   <CardContent className="pt-5 flex items-center justify-between gap-3 flex-wrap">
                     <p className="text-sm font-semibold" data-testid="quiz-score">
                       {t('qzScoreLabel')}: <span className="font-mono text-lg">{quizScore}/{QUIZ.length}</span>
@@ -5546,7 +5546,7 @@ export default function EducationPage() {
                   className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors max-w-[46%] ml-auto"
                 >
                   <span className="text-right min-w-0">
-                    <span className="block text-[10px] uppercase tracking-wide text-primary/70">{t('eduNextModule')}</span>
+                    <span className="block text-[10px] uppercase tracking-wide text-primary">{t('eduNextModule')}</span>
                     <span className="block text-xs font-semibold text-foreground truncate">{nextTopic.label}</span>
                   </span>
                   <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />

@@ -368,7 +368,7 @@ export default function SetupBuilder({ onSaved }) {
                             s.rr && `R:R ${s.rr}`].filter(Boolean).join(' · ') || t('tsysNoDetail')}
                         </p>
                         {missing.length > 0 && (
-                          <p className="text-xs text-amber-500 flex items-center gap-1.5">
+                          <p className="text-xs text-warn flex items-center gap-1.5">
                             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                             {t('tsysIncomplete', { n: missing.length })}
                           </p>
@@ -564,7 +564,7 @@ export default function SetupBuilder({ onSaved }) {
               {gaps.length > 0 && (
                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4" data-testid="tsys-gaps">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-500" /> {t('tsysGapsTitle')}
+                    <AlertTriangle className="w-4 h-4 text-warn" /> {t('tsysGapsTitle')}
                   </h4>
                   <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
                     {gaps.map((g) => <li key={g}>{t(`tsysGap_${g}`)}</li>)}

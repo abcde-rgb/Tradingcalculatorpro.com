@@ -160,7 +160,7 @@ export const PatternTradingCalculator = () => {
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Hexagon className="w-5 h-5 text-emerald-500" />
+          <Hexagon className="w-5 h-5 text-long" />
           {t('patternTrading')}
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed max-w-2xl">
@@ -203,7 +203,7 @@ export const PatternTradingCalculator = () => {
             <Button
               variant={direction === 'long' ? 'default' : 'outline'}
               onClick={() => setDirection('long')}
-              className={`flex-1 ${direction === 'long' ? 'bg-primary text-black' : ''}`}
+              className={`flex-1 ${direction === 'long' ? 'bg-primary text-primary-foreground' : ''}`}
             >
               <TrendingUp className="w-4 h-4 mr-2" /> {t('long')}
             </Button>
@@ -329,7 +329,7 @@ export const PatternTradingCalculator = () => {
           </div>
         </div>
 
-        <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90">
+        <Button onClick={calculate} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
           {t('calculate')}
         </Button>
 
@@ -357,7 +357,7 @@ export const PatternTradingCalculator = () => {
                     ? 'bg-destructive/10 border-destructive/50 text-destructive'
                     : warning.type === 'success'
                     ? 'bg-primary/10 border-primary/50 text-primary'
-                    : 'bg-yellow-500/10 border-yellow-500/50 text-yellow-500'
+                    : 'bg-yellow-500/10 border-yellow-500/50 text-caution'
                 }`}
               >
                 {warning.type === 'danger' && <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />}
@@ -403,7 +403,7 @@ export const PatternTradingCalculator = () => {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('stopLossPrice')}</p>
-                <p className="font-mono text-lg text-yellow-500">${formatNumber(result.slPrice)}</p>
+                <p className="font-mono text-lg text-caution">${formatNumber(result.slPrice)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('rrRatio')}</p>

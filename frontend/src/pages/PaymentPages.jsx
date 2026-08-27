@@ -83,7 +83,7 @@ export const PaymentSuccessPage = () => {
             <>
               <Loader2 className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
               <h2 className="text-xl font-bold mb-2">Verificando pago...</h2>
-              <p className="text-zinc-400">{t('porFavorEsperaMientrasConfirmamos_b1b193')}</p>
+              <p className="text-muted-foreground">{t('porFavorEsperaMientrasConfirmamos_b1b193')}</p>
             </>
           )}
           
@@ -91,8 +91,8 @@ export const PaymentSuccessPage = () => {
             <>
               <CheckCircle className="w-16 h-16 mx-auto mb-4 text-primary" />
               <h2 className="text-xl font-bold mb-2">{t('pagoCompletado_8f3808')}</h2>
-              <p className="text-zinc-400 mb-6">{t('tuCuentaHaSidoActualizada_ccea28')}</p>
-              <Button onClick={() => navigate('/dashboard')} className="bg-primary text-black">
+              <p className="text-muted-foreground mb-6">{t('tuCuentaHaSidoActualizada_ccea28')}</p>
+              <Button onClick={() => navigate('/dashboard')} className="bg-primary text-primary-foreground">
                 Ir al Dashboard
               </Button>
             </>
@@ -100,9 +100,9 @@ export const PaymentSuccessPage = () => {
           
           {status === 'pending' && (
             <>
-              <Loader2 className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+              <Loader2 className="w-16 h-16 mx-auto mb-4 text-caution" />
               <h2 className="text-xl font-bold mb-2">Pago en Proceso</h2>
-              <p className="text-zinc-400 mb-6">{t('tuPagoEstaSiendoProcesado_e1da9e')}</p>
+              <p className="text-muted-foreground mb-6">{t('tuPagoEstaSiendoProcesado_e1da9e')}</p>
               <Button onClick={() => navigate('/dashboard')} variant="outline">
                 Ir al Dashboard
               </Button>
@@ -113,7 +113,7 @@ export const PaymentSuccessPage = () => {
             <>
               <XCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
               <h2 className="text-xl font-bold mb-2">Error</h2>
-              <p className="text-zinc-400 mb-6">{t('noPudimosVerificarTuPago_0c114f')}</p>
+              <p className="text-muted-foreground mb-6">{t('noPudimosVerificarTuPago_0c114f')}</p>
               <Button onClick={() => navigate('/pricing')} variant="outline">
                 Volver a Intentar
               </Button>
@@ -133,11 +133,11 @@ export const PaymentCancelPage = () => {
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-card border-border">
         <CardContent className="p-8 text-center">
-          <XCircle className="w-16 h-16 mx-auto mb-4 text-zinc-500" />
+          <XCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-bold mb-2">Pago Cancelado</h2>
-          <p className="text-zinc-400 mb-6">{t('hasCanceladoElProcesoDe_c37e10')}</p>
+          <p className="text-muted-foreground mb-6">{t('hasCanceladoElProcesoDe_c37e10')}</p>
           <div className="space-y-2">
-            <Button onClick={() => navigate('/pricing')} className="w-full bg-primary text-black">
+            <Button onClick={() => navigate('/pricing')} className="w-full bg-primary text-primary-foreground">
               Ver Planes
             </Button>
             <Button onClick={() => navigate('/dashboard')} variant="outline" className="w-full">

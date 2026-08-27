@@ -15,7 +15,7 @@ export default function NotFoundPage() {
       <main className="flex-1 flex items-center justify-center px-4 py-24">
         <div className="text-center max-w-lg mx-auto space-y-6">
           <div className="relative inline-block select-none">
-            <p className="text-8xl font-bold text-primary/20 font-unbounded leading-none">404</p>
+            <p className="text-8xl font-bold text-primary font-unbounded leading-none">404</p>
             <div className="absolute inset-0 flex items-center justify-center">
               <TrendingDown
                 className="w-14 h-14 text-destructive"

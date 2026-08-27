@@ -102,7 +102,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxProfitUn
       {kelly.status !== 'ok' ? (
         <div className={`flex items-start gap-2 p-2.5 rounded-lg border ${
           kelly.status === 'negative'
-            ? 'bg-[#ef4444]/10 border-[#ef4444]/30 text-[#f87171]'
+            ? 'bg-short/10 border-short/30 text-short'
             : 'bg-muted border-border text-muted-foreground'
         }`}>
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
@@ -122,7 +122,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxProfitUn
               label="Kelly Completo"
               pct={kelly.fullPct}
               contracts={suggestedContracts(kelly.fullPct)}
-              color="text-[#f59e0b]"
+              color="text-warn"
               subtitle="Agresivo"
               tid="kelly-full"
             />
@@ -141,7 +141,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxProfitUn
               label="¼ Kelly"
               pct={kelly.quarterPct}
               contracts={suggestedContracts(kelly.quarterPct)}
-              color="text-[#22c55e]"
+              color="text-long"
               subtitle="Conservador"
               tid="kelly-quarter"
             />

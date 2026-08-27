@@ -127,7 +127,7 @@ const SavedPositionsPanel = ({ currentLegs, currentSymbol, currentExpiration, on
             <button
               onClick={savePosition}
               disabled={saving || !saveName.trim()}
-              className="px-2.5 py-1.5 rounded-md bg-primary text-black text-[10px] font-bold disabled:opacity-50"
+              className="px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-[10px] font-bold disabled:opacity-50"
             >
               {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Guardar'}
             </button>
@@ -160,10 +160,10 @@ const SavedPositionsPanel = ({ currentLegs, currentSymbol, currentExpiration, on
               </button>
               <button
                 onClick={() => deletePosition(p.id)}
-                className="p-1 rounded hover:bg-[#ef4444]/15 transition-colors opacity-0 group-hover:opacity-100"
+                className="p-1 rounded hover:bg-short/15 transition-colors opacity-0 group-hover:opacity-100"
                 title="Eliminar"
               >
-                <Trash2 className="w-3 h-3 text-[#f87171]" />
+                <Trash2 className="w-3 h-3 text-short" />
               </button>
             </li>
           ))}

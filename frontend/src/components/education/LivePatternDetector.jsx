@@ -107,7 +107,7 @@ const LivePatternDetector = () => {
             onClick={scan}
             disabled={loading || !symbol}
             size="sm"
-            className="bg-primary text-black hover:bg-primary/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             data-testid="live-pattern-scan-btn"
           >
             <ScanLine className="w-3.5 h-3.5 mr-1.5" />
@@ -151,7 +151,7 @@ const LivePatternDetector = () => {
                           detection. */}
                       {d.provisional && (
                         <span
-                          className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border border-amber-500/50 text-amber-500"
+                          className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border border-amber-500/50 text-warn"
                           title={t('patProvisionalHint')}
                           data-testid={`live-pattern-provisional-${i}`}
                         >

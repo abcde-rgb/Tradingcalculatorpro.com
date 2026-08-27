@@ -133,8 +133,8 @@ const EducationTab = ({ onSwitchToCalc }) => {
                           {t(bs.labelKey)}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-[#4ade80]">{s.maxProfit ? t(s.maxProfit) : 'Variable'}</td>
-                      <td className="px-4 py-2.5 text-[#f87171]">{s.maxLoss ? t(s.maxLoss) : 'Variable'}</td>
+                      <td className="px-4 py-2.5 text-long">{s.maxProfit ? t(s.maxProfit) : 'Variable'}</td>
+                      <td className="px-4 py-2.5 text-short">{s.maxLoss ? t(s.maxLoss) : 'Variable'}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{s.whenToUse ? t(s.whenToUse) : t('verDescripcion_8d4e1f')}</td>
                     </tr>
                   );
@@ -201,15 +201,15 @@ const EducationTab = ({ onSwitchToCalc }) => {
                 <h3 className="text-sm font-bold text-foreground">{s.title}</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
                 <div className="space-y-1 text-xs">
-                  <p className="text-[#4ade80]">{s.maxProfit}</p>
-                  <p className="text-[#f87171]">{s.maxLoss}</p>
+                  <p className="text-long">{s.maxProfit}</p>
+                  <p className="text-short">{s.maxLoss}</p>
                   <p className="text-muted-foreground">{s.when}</p>
                 </div>
                 <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground border border-border">
                   {s.tip}
                 </div>
                 {s.notBuildable && (
-                  <p className="text-[11px] leading-snug text-[#fbbf24] border border-[#f59e0b]/40 bg-[#f59e0b]/10 rounded-lg px-3 py-2">
+                  <p className="text-[11px] leading-snug text-warn border border-warn/40 bg-warn/10 rounded-lg px-3 py-2">
                     {t('strategyNotBuildable')}
                   </p>
                 )}

@@ -41,7 +41,7 @@ export default function GamblingHarmVisual({ data }) {
         className="flex gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4"
         data-testid="gmb-disclaimer"
       >
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warn dark:text-warn" aria-hidden="true" />
         <p className="text-sm leading-relaxed text-foreground/90">{data.disclaimer}</p>
       </div>
 
@@ -137,7 +137,7 @@ export default function GamblingHarmVisual({ data }) {
         data-testid="gmb-help"
       >
         <h3 className="mb-1 flex items-center gap-2 text-base font-semibold text-foreground">
-          <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <Phone className="h-4 w-4 text-long dark:text-long" aria-hidden="true" />
           {data.help.title}
         </h3>
         <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{data.help.intro}</p>
