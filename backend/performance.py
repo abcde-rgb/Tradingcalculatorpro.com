@@ -949,10 +949,18 @@ def compute_analytics(
     profit_factor = _safe_div(sum(wins), abs(sum(losses)), 0) if losses else (
         float("inf") if wins else 0
     )
-    expectancy = (
-        win_rate / 100 * avg_win
-        + (1 - win_rate / 100) * avg_loss
-    )
+    # Esperanza matemática = P&L MEDIO por operación, dicho directamente.
+    #
+    # Estaba como `winRate·avgWin + (1 − winRate)·avgLoss`, y esa identidad sólo
+    # se cumple cuando toda operación es ganadora o perdedora. Con breakevens en
+    # la muestra, `(1 − winRate)` los mete en el segundo término y los cobra al
+    # precio de la pérdida media. Con +100, −50 y un 0, la fórmula daba **0,00**
+    # cuando la esperanza real es **16,67**.
+    #
+    # `GET /journal/stats` ya lo hacía bien y lo tenía escrito; esta ruta no. Era
+    # el hueco G-22: dos pantallas, la misma colección, dos números distintos.
+    # Ahora las dos calculan lo mismo, y sale igual cuando no hay breakevens.
+    expectancy = _safe_div(total_pnl, len(closed), 0)
 
     # Equity curve — built over the chronologically sorted list, so the balance
     # we start from is the one recorded on the OLDEST trade, not the newest.
