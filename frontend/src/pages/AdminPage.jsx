@@ -486,6 +486,7 @@ export default function AdminPage() {
 
         {/* Usage Heatmap — qué miran más los usuarios */}
         <PaymentReconciliationCard headers={headers} />
+        <ManualPaymentCard headers={headers} />
         <UsageHeatmapCard headers={headers} />
 
         {/* Coupon Manager */}
@@ -568,6 +569,17 @@ const INTEGRATION_SECTIONS = [
     ],
   },
   {
+    id: 'pasarelas',
+    title: 'Pasarelas activas (qué puede pagar el cliente)',
+    description: 'Lo que desmarques desaparece de la página de precios Y deja de aceptarse en el checkout: la comprobación está en el backend, no sólo en el botón. Tiene que quedar al menos una encendida.',
+    fields: [
+      { id: 'payment_methods_enabled', label: 'Métodos de pago', secret: false, widget: 'rails' },
+      { id: 'kunfupay_links', label: 'Kunfupay — enlaces de cobro por plan', secret: false,
+        placeholder: '{"annual":"https://…","lifetime":"https://…"}',
+        hint: 'JSON plan → enlace https de Kunfupay. Sin enlaces, Kunfupay no aparece aunque esté marcada. Planes: monthly, quarterly, annual, lifetime' },
+    ],
+  },
+  {
     id: 'stripe',
     title: 'Stripe (pagos con tarjeta y SEPA)',
     description: 'Las claves se aplican en caliente al runtime — no necesitas reiniciar el backend.',
@@ -619,6 +631,83 @@ const INTEGRATION_SECTIONS = [
     ],
   },
 ];
+
+/**
+ * PaymentRailsField — una casilla por pasarela.
+ *
+ * El valor guardado es la lista separada por comas de `payment_methods_enabled`.
+ * Dos reglas que vienen del backend y no se pueden contradecir aquí:
+ *
+ *   1. **Vacío significa «los de siempre», no «ninguno»** (`_parse_enabled_methods`).
+ *      Por eso, con el ajuste sin poner, las casillas salen marcadas con el valor
+ *      por defecto: enseñar todo desmarcado sería mentir sobre lo que se cobra.
+ *   2. **Tiene que quedar al menos una.** Desmarcarlas todas guardaría "" y el
+ *      backend volvería a encenderlas todas — el admin creería haber apagado la
+ *      web y estaría cobrando igual. Así que la última no se deja desmarcar.
+ */
+const RAILES = [
+  { id: 'card',        label: 'Tarjeta',        via: 'Stripe' },
+  { id: 'sepa',        label: 'SEPA',           via: 'Stripe' },
+  { id: 'klarna',      label: 'Klarna',         via: 'Stripe · sólo plan De Por Vida' },
+  { id: 'paypal',      label: 'PayPal',         via: 'PayPal' },
+  { id: 'revolut',     label: 'Revolut Pay',    via: 'Revolut · + Apple/Google Pay' },
+  { id: 'nowpayments', label: 'Criptomonedas',  via: 'NOWPayments' },
+  { id: 'kunfupay',    label: 'Kunfupay',       via: 'enlace + alta manual · necesita enlaces' },
+];
+const RAILES_POR_DEFECTO = ['card', 'sepa', 'klarna', 'paypal', 'revolut', 'nowpayments'];
+
+function PaymentRailsField({ value, onChange }) {
+  const explicito = (value || '').trim();
+  const activos = explicito
+    ? explicito.split(',').map((x) => x.trim()).filter(Boolean)
+    : RAILES_POR_DEFECTO;
+
+  const alternar = (id) => {
+    const siguiente = activos.includes(id)
+      ? activos.filter((x) => x !== id)
+      : [...RAILES.map((r) => r.id).filter((x) => activos.includes(x) || x === id)];
+    if (siguiente.length === 0) {
+      toast.error('Tiene que quedar al menos una pasarela encendida: la lista vacía vuelve a las de siempre.');
+      return;
+    }
+    onChange(siguiente.join(','));
+  };
+
+  return (
+    <div className="md:col-span-2 p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2"
+      data-testid="integration-payment_methods_enabled">
+      <div className="flex items-start justify-between gap-2">
+        <Label className="text-sm font-medium">Métodos de pago</Label>
+        <Badge variant="outline" className="text-muted-foreground">
+          {activos.length} activa{activos.length === 1 ? '' : 's'}
+        </Badge>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        {RAILES.map((r) => (
+          <label
+            key={r.id}
+            className="flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 cursor-pointer hover:border-primary/40"
+            data-testid={`rail-${r.id}`}
+          >
+            <input
+              type="checkbox"
+              checked={activos.includes(r.id)}
+              onChange={() => alternar(r.id)}
+              className="accent-primary"
+            />
+            <span className="text-sm">{r.label}</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">{r.via}</span>
+          </label>
+        ))}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        {explicito
+          ? <>Guardado: <code className="font-mono">{explicito}</code></>
+          : 'Sin guardar todavía: se está usando el valor por defecto (todo menos Kunfupay).'}
+      </p>
+    </div>
+  );
+}
 
 function IntegrationField({ field, value, isSet, onChange }) {
   const [show, setShow] = useState(false);
@@ -837,7 +926,13 @@ function IntegrationsEditor({ headers, t }) {
               {sec.description && <p className="text-xs text-muted-foreground">{sec.description}</p>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {sec.fields.map((f) => (
+              {sec.fields.map((f) => (f.widget === 'rails' ? (
+                <PaymentRailsField
+                  key={f.id}
+                  value={draft[f.id] || ''}
+                  onChange={(v) => setDraft({ ...draft, [f.id]: v })}
+                />
+              ) : (
                 <IntegrationField
                   key={f.id}
                   field={f}
@@ -845,7 +940,7 @@ function IntegrationsEditor({ headers, t }) {
                   isSet={f.secret ? !!settings?.[`${f.id}_set`] : !!draft[f.id]}
                   onChange={(v) => setDraft({ ...draft, [f.id]: v })}
                 />
-              ))}
+              )))}
             </div>
           </section>
         ))}
@@ -1670,6 +1765,121 @@ function PaymentReconciliationCard({ headers }) {
           <p className="text-xs text-muted-foreground">
             Sin discrepancias: todo el que ha pagado tiene su premium.
             {' '}{data.transactions_scanned} transacciones revisadas.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * ManualPaymentCard — dar de alta un cobro que ocurrió FUERA de la web.
+ *
+ * Es el camino de Kunfupay mientras no tengan webhook (docs/PASARELA_KUNFUPAY.md
+ * § 14.3): el cliente paga en su enlace, aquí se registra y el premium se concede
+ * por el mismo camino que un pago normal.
+ *
+ * La referencia es el id del cobro en el panel del proveedor, y es obligatoria a
+ * propósito: es lo que hace el alta idempotente (reintentar tras un timeout no
+ * regala un segundo periodo) y lo que deja el rastro para el día que haya que
+ * migrar de pasarela.
+ */
+function ManualPaymentCard({ headers }) {
+  const [form, setForm] = useState({ email: '', plan_id: 'annual', reference: '', provider: 'kunfupay', amount: '' });
+  const [busy, setBusy] = useState(false);
+  const [ultimo, setUltimo] = useState(null);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const enviar = async (e) => {
+    e.preventDefault();
+    if (!API || busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`${API}/admin/payments/manual`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: form.email.trim(),
+          plan_id: form.plan_id,
+          reference: form.reference.trim(),
+          provider: form.provider,
+          ...(form.amount ? { amount: Number(form.amount) } : {}),
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Error ${res.status}`);
+      toast.success(body.already_processed ? 'Esa referencia ya estaba dada de alta' : 'Cobro registrado y premium concedido');
+      setUltimo(body);
+      setForm((f) => ({ ...f, email: '', reference: '', amount: '' }));
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="bg-card border-border" data-testid="manual-payment">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Alta manual de cobro</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={enviar} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              type="email" required value={form.email} onChange={set('email')}
+              placeholder="email del cliente"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              data-testid="manual-payment-email"
+            />
+            <select
+              value={form.plan_id} onChange={set('plan_id')}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              data-testid="manual-payment-plan"
+            >
+              <option value="monthly">Mensual — 17 €</option>
+              <option value="quarterly">Trimestral — 45 €</option>
+              <option value="annual">Anual — 200 €</option>
+              <option value="lifetime">De Por Vida — 500 €</option>
+            </select>
+            <input
+              required value={form.reference} onChange={set('reference')}
+              placeholder="referencia del cobro en el proveedor"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono"
+              data-testid="manual-payment-reference"
+            />
+            <select
+              value={form.provider} onChange={set('provider')}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              data-testid="manual-payment-provider"
+            >
+              <option value="kunfupay">Kunfupay</option>
+              <option value="bank_transfer">Transferencia</option>
+              <option value="other">Otro</option>
+            </select>
+          </div>
+          <input
+            type="number" step="0.01" min="0" value={form.amount} onChange={set('amount')}
+            placeholder="importe recibido (opcional, si difiere del plan)"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            data-testid="manual-payment-amount"
+          />
+          <div className="flex items-center gap-3">
+            <Button type="submit" size="sm" disabled={busy}>
+              {busy ? 'Registrando…' : 'Registrar y conceder'}
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Sólo para raíles sin webhook. Stripe, PayPal, Revolut y NOWPayments conceden solos.
+            </p>
+          </div>
+        </form>
+
+        {ultimo?.subscription_end && (
+          <p className="mt-3 text-xs text-muted-foreground" data-testid="manual-payment-result">
+            {ultimo.user_email} — premium hasta{' '}
+            <span className="font-mono">{new Date(ultimo.subscription_end).toLocaleDateString()}</span>
           </p>
         )}
       </CardContent>

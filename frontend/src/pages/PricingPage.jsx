@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Crown, Check, CreditCard, Wallet, ArrowRight, Loader2, Building, ShoppingCart, Zap, Coins } from 'lucide-react';
+import { Crown, Check, CreditCard, Wallet, ArrowRight, Loader2, Building, ShoppingCart, Zap, Coins, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -36,6 +36,7 @@ const PAYMENT_METHODS_DATA = [
   { id: 'paypal',  icon: Wallet,      color: 'text-blue-400',   nameKey: 'paypalPayment',   descKey: 'paypalDesc',     lifetimeOnly: false },
   { id: 'nowpayments', icon: Coins,   color: 'text-amber-400',  nameKey: 'nowPaymentsPayment', descKey: 'nowPaymentsDesc', lifetimeOnly: false },
   { id: 'revolut', icon: Zap,         color: 'text-indigo-400', nameKey: 'revolutPayment',  descKey: 'revolutDesc',    lifetimeOnly: false },
+  { id: 'kunfupay', icon: Globe,      color: 'text-teal-400',   nameKey: 'kunfupayPayment', descKey: 'kunfupayDesc',   lifetimeOnly: false },
 ];
 
 // Processor name displayed in "Secure payment via {processor}" footer
@@ -46,6 +47,7 @@ const PAYMENT_PROCESSOR_NAMES = {
   paypal: 'PayPal',
   sepa: 'Stripe (SEPA)',
   klarna: 'Klarna',
+  kunfupay: 'Kunfupay',
 };
 
 export default function PricingPage() {
@@ -67,8 +69,20 @@ export default function PricingPage() {
    * gastó la prueba —el frontend ni siquiera conocía `trial_used`, ahora sí— y
    * quien paga con cripto, PayPal o Revolut, que no pasan por Stripe.
    */
-  const METODOS_CON_PRUEBA = ['card', 'sepa', 'klarna'];
-  const hayPrueba = !user?.trial_used && METODOS_CON_PRUEBA.includes(selectedPayment);
+  // La lista la manda el backend en /public/settings ya resuelta: qué raíles están
+  // encendidos, cuáles renuevan solos y cuáles dan la prueba. Deducirlo aquí es lo
+  // que llevó a prometer 7 días con métodos que no los daban.
+  const [railes, setRailes] = useState(null);   // null = aún no ha contestado
+  const metodosActivos = PAYMENT_METHODS_DATA.filter(
+    (m) => !railes || railes.metodos.includes(m.id)
+  );
+  // `pruebaDisponible` mira sólo el método (vale para el badge de cada tarjeta de
+  // plan); `hayPrueba` mira además el plan elegido, porque el De Por Vida nunca la
+  // lleva: `trial_eligible` la descarta en el backend.
+  const pruebaDisponible =
+    !user?.trial_used && (railes ? railes.conPrueba : ['card', 'sepa']).includes(selectedPayment);
+  const hayPrueba = pruebaDisponible && selectedPlan !== 'lifetime';
+  const seRenuevaSolo = (railes ? railes.recurrentes : ['card', 'sepa']).includes(selectedPayment);
   const [isLoading, setIsLoading] = useState(false);
   const [paypalClientId, setPaypalClientId] = useState('');
 
@@ -92,14 +106,33 @@ export default function PricingPage() {
     }
   }, [selectedPlan, selectedPayment]);
 
-  // Load PayPal client ID from public settings
+  // Load PayPal client ID + raíles activos from public settings
   useEffect(() => {
     if (!API) return;
     fetch(`${API}/api/public/settings`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : {})
-      .then(d => { if (d.paypal_client_id) setPaypalClientId(d.paypal_client_id); })
+      .then(d => {
+        if (d.paypal_client_id) setPaypalClientId(d.paypal_client_id);
+        if (Array.isArray(d.payment_methods) && d.payment_methods.length) {
+          setRailes({
+            metodos: d.payment_methods,
+            recurrentes: d.recurring_payment_methods || [],
+            conPrueba: d.trial_payment_methods || [],
+          });
+        }
+      })
       .catch(() => {});
   }, []);
+
+  // Si el método seleccionado ya no está encendido, saltar al primero que sí.
+  // Sin esto, apagar Stripe dejaría el botón de pagar apuntando a un 400.
+  useEffect(() => {
+    if (!railes || railes.metodos.includes(selectedPayment)) return;
+    const alternativo = PAYMENT_METHODS_DATA.find(
+      (m) => railes.metodos.includes(m.id) && (!m.lifetimeOnly || selectedPlan === 'lifetime')
+    );
+    if (alternativo) setSelectedPayment(alternativo.id);
+  }, [railes, selectedPayment, selectedPlan]);
 
   // The access token isn't persisted (memory-only). After a reload/deep-link the
   // token is null while isAuthenticated rehydrates true, so repopulate it via a
@@ -280,7 +313,7 @@ export default function PricingPage() {
                   <span className="font-unbounded text-3xl font-bold">{t(plan.id + 'Price')}</span>
                   <PlanPeriod texto={t(plan.id + 'Period')} />
                 </div>
-                {plan.id !== 'lifetime' && hayPrueba && (
+                {plan.id !== 'lifetime' && pruebaDisponible && (
                   <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5 mb-3" data-testid={`trial-badge-${plan.id}`}>
                     {t('trialBadge')}
                   </div>
@@ -315,7 +348,7 @@ export default function PricingPage() {
                 <CardTitle>{t('paymentMethodTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {PAYMENT_METHODS_DATA.map((method) => {
+                {metodosActivos.map((method) => {
                   const isKlarnaLocked = method.lifetimeOnly && selectedPlan !== 'lifetime';
                   return (
                     <button
@@ -440,7 +473,13 @@ export default function PricingPage() {
                       <p>
                         {t('securePayment')} {PAYMENT_PROCESSOR_NAMES[selectedPayment] || 'Stripe'}
                       </p>
-                      <p>{t('cancelAnytime')}</p>
+                      {seRenuevaSolo ? (
+                        <p>{t('cancelAnytime')}</p>
+                      ) : (
+                        // Sin cargo recurrente no hay nada que cancelar: hay que
+                        // volver a pagar. Decirlo aquí, y no después del cobro.
+                        <p className="text-amber-500" data-testid="no-auto-renew">{t('noAutoRenewNote')}</p>
+                      )}
                     </div>
                   </>
                 )}

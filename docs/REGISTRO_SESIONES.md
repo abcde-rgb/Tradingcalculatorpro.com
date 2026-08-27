@@ -4744,6 +4744,282 @@ idiomas sin que ningún componente la pinte.
 
 ---
 
+### 2026-08-26 — ¿Kunfupay en lugar de Stripe? El estudio, y lo que no se pudo verificar
+
+**Lo que se preguntó:** si Kunfupay serviría para sustituir a Stripe «por el
+momento». **Lo que se entrega:** [`PASARELA_KUNFUPAY.md`](./PASARELA_KUNFUPAY.md).
+**Nada adoptado, ni una línea de código tocada.**
+
+**El hallazgo que cambia la pregunta.** Apagar Stripe no deja la web sin cobrar:
+PayPal, Revolut Pay y NOWPayments ya cobran, con webhook firmado y concesión de
+premium por el mismo `_activate_paid_subscription`. Lo que Stripe se lleva al
+irse es concreto y está inventariado con `fichero:línea`: renovación automática,
+prueba de 7 días (`METODOS_CON_PRUEBA` es sólo raíl Stripe), SEPA, Klarna, portal
+de cliente, historial de facturas, reembolso de un clic y revocación por impago.
+O sea: la urgencia no es «sustituir a Stripe», es decidir si se quiere recurrencia.
+
+**El segundo hallazgo, que es un bug de honestidad y es anterior a Kunfupay.**
+Los Términos prometen, en los diez idiomas, que «el IVA aplicable se calcula en el
+momento del pago … y se muestra desglosado» (`legalContent/es.js:134`).
+`_create_stripe_session` **no pasa `automatic_tax`** y no hay rastro de Stripe Tax
+en el backend: hoy se cobran 17 € planos, sin desglose ni determinación de país.
+Con un Merchant of Record el problema no se arregla, **deja de ser nuestro** — y
+ése, no la comisión, es el mejor argumento a favor de Kunfupay en este caso.
+
+**Lo que NO se pudo verificar, y por eso no hay recomendación de integrar.**
+`kunfupay.com` está bloqueado por el proxy de salida de este entorno
+(`EGRESS_BLOCKED`), igual que dos de las fuentes secundarias. Todo lo que dice el
+documento sobre ellos sale de material indexado por buscador. Y **no existe
+documentación técnica suya indexada en ningún sitio**: ni referencia de API, ni
+webhooks, ni Zapier. Su control de acceso automático documentado es nativo de
+Telegram/Discord, no genérico. Por eso el documento termina en diez preguntas para
+su soporte, de las que **las tres primeras deciden si hay integración o enlaces a
+mano**: API con referencia propia, webhook firmado, y si el «cobro recurrente» es
+cargo automático o recordatorio de pago.
+
+**Coste, para que esté escrito:** 1,5% + 0,25 € (Stripe, tarjeta EEE) frente al
+5-10% que ellos publican. Con 100 mensuales: ~612 €/año frente a 1.020-2.040 €/año.
+La comparación honesta no es 1,5% contra 5-10%, es 1,5% **más el cumplimiento
+fiscal propio** contra 5-10% con el cumplimiento incluido.
+
+**Añadido en la misma sesión — «¿cuál renta más?».** Se responde en el § 11 del
+documento. Resumen: **la comisión no es la variable que decide, la renovación
+automática sí**. Un mensual de 17 € que hay que volver a pagar a mano rinde entre
+cuatro y seis veces menos que el mismo plan con cargo recurrente (supuestos de
+sector, no medidos aquí — no hay datos propios todavía), mientras que toda la
+diferencia de comisión entre Stripe y Kunfupay en ese cobro es de 0,34 a 1,19 €.
+Y una segunda lectura que la horquilla «1,5 % contra 5-10 %» escondía: el 1,5 %
+es tarifa de tarjeta del **EEE**; para un comprador de LatAm son 3,15 % + 0,25 €,
+y con Stripe Tax activado 5,1 % — es decir, **lo mismo que Kunfupay al 5 %**, pero
+sin IVA resuelto y sin métodos locales. Conclusión: Stripe si te acepta; Kunfupay
+como cuarto raíl para LatAm, no como sustituto; y si Stripe no te acepta y su
+«enlace recurrente» no es cargo automático, lo que renta es empujar Anual y De Por
+Vida en vez de integrar nada. El dato que falta para decidirlo con datos y no con
+tablas: la geografía de quien compra, que GA4 ya puede dar.
+
+**Segundo añadido — «¿hace falta ser empresa para retirar?» (§ 12).** Buscando
+eso apareció una fuente primaria que sí es accesible desde este entorno: sus
+*Condiciones de uso*, un PDF de 13 páginas servido desde un bucket de S3 y no
+desde su dominio bloqueado. Dice que la titular es **KUNFU GLOBAL INC, sociedad
+de Delaware inscrita el 14/07/2025** (registro 10259941, EIN 39-3235422), con
+dirección en Hialeah, Florida, e invoca FTC Act, ECPA y DMCA. Ni una mención a
+licencia de entidad de pago, ni al Banco de España, ni a supervisor europeo
+alguno: **no es «la fintech española» de las notas de prensa, y tiene trece meses
+de vida registral**. Sobre el retiro en sí, el documento no sirve: de la lista
+*saldo, wallet, cobro, pago, reembolso, KYC, verificación, blanqueo, AML,
+licencia, comisión, tarifa, empresa, autónomo*, **ninguna aparece una sola vez**;
+las cuatro apariciones de «retirar» son sobre el consentimiento del RGPD. Las
+condiciones de la cuenta de pago no son públicas (el resto del bucket da 403).
+
+**Y una corrección de la entrada de esta misma mañana**, que es para lo que sirve
+este registro: se escribió que «no existe documentación técnica indexada, ni
+`docs.kunfupay.com`». Falso. `docs.kunfupay.com` existe y está indexado, y
+`business.kunfupay.com` también. Por su contenido indexado parece documentación
+de **usuario**, no referencia de API — que es lo que sigue sin aparecer — pero la
+afirmación tal como se escribió era más fuerte que la evidencia. Corregido en el
+§ 0 del documento, con la corrección a la vista y no borrando el error.
+
+**Tercer añadido — «¿y su sistema de suscripción y todo lo demás?» (§ 13).** Su
+suscripción está construida para **grupos de Telegram/Discord de pago**: el bot mete
+al que paga y **echa al que caduca o cancela**. Eso demuestra que internamente
+tienen el estado y los eventos del ciclo de vida; lo que no se sabe es si los
+publican por webhook o sólo se los pasan a su bot — que es la diferencia entre
+integrarlos aquí en un día y no poder. Todo lo que aportan alrededor del cobro
+(escaparate, embudos de email, «+100 herramientas», asesor IA, grupos) **ya está
+construido en este repositorio o no hace falta**: no se pagaría 5-10 % por sus
+herramientas, sino por sus métodos locales y su MoR.
+
+Y un aviso metodológico que casi cuela: buscando «cómo funcionan las suscripciones
+de Kunfupay» salen reintentos de cobro fallido, dunning por email y WhatsApp,
+cupones, prueba gratis y portal del cliente — **pero eso es de Recaudo y Paytia, no
+suyo**. No se les atribuye. De su sistema de suscripción no hay nada público sobre
+reintentos, cancelación por el cliente, prorrateo ni portal del suscriptor.
+
+El riesgo que el § 13.4 pone por delante de la comisión: con un MoR **el cliente no
+es tuyo**. Con Stripe te llevas los `customer_id` y existe migración PCI de los
+métodos de pago; con una Inc. de Delaware de trece meses, el día que cierren la
+cuenta no hay forma de seguir cobrando a tus suscriptores. Veredicto: buen
+producto, mal encaje — buen método de pago para LatAm, no buen sistema de
+suscripción para esta web.
+
+**Cuarto añadido — compatibilidad para los primeros 50 k (§ 14).** La pregunta era
+si funciona la suscripción y si con un impago se bloquea. **Se bloquea, y no
+depende de la pasarela**: `check_premium` (`server.py:1650`) mira `subscription_end`
+—o el plan `lifetime`—, y **todos** los endpoints que devuelven el usuario al
+frontend envían `is_premium` **calculado** con esa función, no el campo guardado
+(`:2023, :2088, :2179, :2290, :2570, :2746, :3019`). El navegador nunca ve un
+premium caducado, así que `ProtectedRoute` cierra a la vez que `require_premium`
+devuelve 403. De Kunfupay no hace falta un evento de impago: hace falta uno de
+**cobro**. Y el fallo peligroso es el contrario del que se temía — que cobren la
+renovación y no nos enteremos, bloqueando a alguien que paga.
+
+De ahí que los dos caminos lleguen a 50 k. Con webhook, `kunfupay.py` calcado de
+`revolut.py`, un día. Sin webhook, alta a mano desde admin —el plan calcula la
+fecha solo (`_compute_subscription_end`, `:7962`) y queda en auditoría, cero
+código nuevo—, pero el coste operativo lo fija el ticket: 2.941 cobros hasta 50 k
+en el plan mensual (~245 altas manuales al mes, inviable) frente a 250 en el anual
+(~21 al mes) o 100 en el De Por Vida. **En camino B se vende Anual y De Por Vida.**
+
+Peaje de arranque cuantificado: 2.500-5.000 € de comisión sobre 50 k, frente a
+1.000-2.500 € por Stripe. Sobrecoste de 1.000 a 3.500 € en todo el trayecto — un
+precio acotado si es arranque y no estructura. Y un hueco nuevo detectado por el
+camino: **no existe aviso de vencimiento por email**. Hay confirmación (`:3522`),
+impago (`:3543`) y cancelación (`:3556`), pero nada que avise «te vence en 7
+días», que es justo lo que sustituye al dunning cuando el raíl no renueva solo.
+
+**Quinto añadido — sus «partners tecnológicos» (§ 15).** Crossmint, Bridge, Pomelo,
+BlindPay y Fireblocks **existen los cinco y son serios**: Bridge es la API de
+stablecoins **comprada por Stripe por 1.100 M$** (cerrada el 04/02/2025), Fireblocks
+es custodia institucional de referencia, Pomelo emite tarjetas para Western Union,
+BBVA, Santander y Binance —casi con seguridad es quien emite la KunfuCard—, y
+BlindPay, respaldada por Y Combinator, enchufa stablecoins a PIX, SPEI y PSE. O sea
+que parte del dinero correría sobre infraestructura **propiedad de Stripe**.
+
+Pero la lista no es un sello de confianza: **es el plano de la arquitectura**, y
+dice que la facturación no descansa en una cuenta de fondos de clientes de un banco
+europeo, sino **en stablecoins hasta que se retira**. De ahí dos cosas concretas: al
+menos dos conversiones por el camino (EUR → stablecoin → moneda de retirada), donde
+se puede ir otro 1-2 % que la pregunta 7 del § 5 tiene que fijar; y que lo que
+Fireblocks custodia son las claves de KUNFU GLOBAL INC, no el saldo de nadie.
+
+Lo que sí prueba, y no es poco: para integrarse con Bridge, Fireblocks y Pomelo hay
+que pasar su KYB y su diligencia debida. Es **verificación indirecta** por terceros
+con obligaciones de AML — lo más parecido a un aval en todo el expediente, y sube la
+nota del § 12.4. Sin ser lo mismo que estar regulado. Se añaden las preguntas 11 y
+12 (quién emite la tarjeta y custodia el saldo; si está segregado de los fondos
+propios) y una regla que vale desde el día 1: **cobrar ahí, no guardar ahí** —
+retirar cada semana y no usar su wallet como cuenta corriente.
+
+---
+
+### 2026-08-26 (2) — El raíl de Kunfupay, el interruptor de raíles, y un «7 días» que se prometía con Klarna
+
+Decidido arrancar con Kunfupay, esto es lo construido. **Nada de esto se ha
+probado contra un cobro real**: su dominio sigue bloqueado desde este entorno y
+no hay cuenta. El primer cobro de verdad, con un plan barato y mirando.
+
+**El interruptor.** Qué métodos se pueden pagar sale ahora de un ajuste
+(`payment_methods_enabled`), no del código: apagar Stripe es escribir
+`paypal,revolut,nowpayments,kunfupay` y guardar. Dos decisiones que importan más
+que la función en sí:
+
+1. **El ajuste vacío significa «los de siempre», nunca «ninguno».** Una lista
+   ilegible vuelve al valor por defecto en vez de dejar la web sin cobrar — es
+   exactamente el fallo que ya costó el login entero cuando un `gcloud run
+   deploy` sin `--set-env-vars` borró `CORS_ORIGINS`.
+2. **La puerta está en el servidor** (`create_checkout`), no en el botón. Apagar
+   un método en el frontend no apaga nada para quien llame al endpoint a mano.
+
+Y `/api/public/settings` devuelve los raíles **ya resueltos** —`payment_methods`,
+`recurring_payment_methods`, `trial_payment_methods`— para que la página de
+precios no deduzca nada por su cuenta. Deducirlo era justo lo que llevó a
+prometer 7 días con métodos que no los daban.
+
+**El raíl (camino B, el que no necesita su API).** `POST /checkout/create` con
+`payment_method: "kunfupay"` escribe la transacción **antes** de mandar a nadie a
+pagar y devuelve el enlace del plan (`kunfupay_links`, JSON validado: sólo
+`https` y sólo planes que existen). El alta la confirma un admin en
+`POST /admin/payments/manual`, con formulario en el panel: referencia obligatoria
+e **idempotente** (reintentar tras un timeout no regala un segundo periodo),
+sólo proveedores sin webhook (Stripe/PayPal/Revolut/NOWPayments excluidos a
+propósito: un alta a mano ahí taparía un webhook roto), mismo
+`_activate_paid_subscription` que los webhooks, y fila en `payment_transactions`
++ auditoría, que es el rastro sin el cual el día de migrar no se sabe a quién se
+le debe cuánto.
+
+**`extend_from_current`.** Sin cargo automático, el cliente renueva a mano y casi
+siempre unos días antes de vencer. Contando desde hoy, cada renovación
+anticipada le robaba esos días; ahora el periodo se apila sobre la fecha vigente.
+Sólo lo usan los raíles sin renovación: los webhooks entran como siempre.
+
+**El bug de propina, anterior a todo esto.** `hayPrueba` sólo miraba el método,
+así que con **Klarna** —que sólo cobra el De Por Vida, al que `trial_eligible`
+nunca da prueba— la página anunciaba «7 días sin cargo» y el checkout cobraba al
+instante. Es el mismo fallo que el comentario de `PricingPage.jsx` dice haber
+arreglado para cripto, PayPal y Revolut, con Klarna dejado dentro. Ahora la
+prueba sale de `_TRIAL_PAYMENT_METHODS`, y el backend la exige además en
+`trial_eligible`.
+
+**Verificado.** `py_compile` de todos los módulos · **27 tests nuevos**
+(`test_payment_rails_unit.py`), y **saboteados**: quitar el respaldo de la lista
+vacía, quitar la puerta del servidor y admitir Stripe en el alta manual dan 7
+fallos, los tres sabotajes cazados · suite completa **755 pasan**; los 3 fallos
+(`brokers_referidos` ×2, `ecb_rates`) **son anteriores y ajenos**: fallan igual
+con el trabajo en `git stash` · `eslint` 0 errores · `i18n-check` con las tres
+claves nuevas en los diez idiomas · `engine-check` 429/429 · `check-precios` ·
+`gen-instruments-js --check` · `check-rutas-muertas` · `gen-mapa` regenerado ·
+`check-doc-links`.
+
+**Lo que sigue sin estar, y por qué:** el conector con webhook (no se puede
+escribir contra una API que nadie publica) y el **aviso de vencimiento por
+email**, que es el hueco que más duele en un raíl sin renovación: hay correo de
+confirmación, de impago y de cancelación, pero ninguno que diga «te vence en 7
+días». Necesita un disparador diario de verdad (Cloud Scheduler contra un
+endpoint), no un bucle en el proceso.
+
+**Tercer añadido — probado contra la aplicación viva, y el panel visto.** La
+pregunta era si esto sirve de algo hoy y si de verdad se puede ocultar cada
+pasarela. Respuesta con pruebas:
+
+- **Sonda nueva `tests/e2e/api/pasarelas.py`, 22 comprobaciones, 22 en verde**,
+  con Postgres y el backend de verdad: Kunfupay cobra la **suscripción** (17 €) y
+  el **pago único** (500 €), cada uno con su enlace y con la transacción escrita
+  antes de mandar a pagar (leído de Postgres, no de la respuesta); un plan sin
+  enlace da 503; apagar Kunfupay en admin hace que el checkout responda **400**;
+  apagar Stripe deja la tarjeta fuera y Kunfupay cobrando; encendida sin enlaces
+  no se ofrece; el alta manual **abre el muro** (de no-premium a premium, fin a
+  30 días), repetir la referencia no regala periodo, y un segundo cobro **apila**
+  a 60 días. Más las cuatro guardas (Stripe no se da de alta a mano, sin
+  referencia no hay alta, email de nadie 404, cliente 403).
+- **Saboteada**: quitando la puerta del servidor y reiniciando el backend, las
+  dos comprobaciones de «apagada en admin» se ponen rojas. Restaurado, verdes.
+- **El panel, visto**: entrando con 2FA real en `/admin`, la tarjeta de raíles
+  pinta las siete casillas con su estado, y desmarcar PayPal + Guardar deja al
+  backend sirviendo `["card","kunfupay"]`. Sin errores de JavaScript. En
+  `/pricing`, con tres raíles encendidos, se pintan esos tres y ninguno más.
+- Se añadió el **widget de casillas** al panel (antes el ajuste sólo existía como
+  texto en la API) y la sonda quedó registrada en `correr.sh` y en el skill `qa`.
+
+**Dos trampas del banco de pruebas que costaron una vuelta cada una**, anotadas
+para no repetirlas: `/checkout/create` está limitado a **10/hora por IP**, así que
+la sonda rota `X-Forwarded-For` (en producción Cloud Run añade la IP real al
+final y `_real_client_ip` toma esa, así que no abre ninguna puerta); y cuando el
+limitador de registros obliga a clonar la cuenta sembrada, la clonada **es
+premium**, con lo que «pasa a premium tras el alta» habría pasado sin probar
+nada — la sonda ahora resetea la suscripción por SQL antes de empezar.
+
+**Estado de la rama**: los 8 commits siguen **sólo aquí**. `main` no tiene nada de
+esto y no hay PR abierto.
+
+**Cuarto añadido — el alta manual no era idempotente de verdad (§ 16.7).** Al
+abrirse el PR #212 y repasar el checklist del propio repo
+(`.claude/skills/seguridad-pagos`, punto 4: «idempotencia de pagos: claim
+atómico»), se vio que el endpoint comprobaba la referencia y **luego** insertaba.
+Entre esas dos cosas cabe otra petición —doble clic, o el reintento del navegador
+tras un timeout— y las dos concedían: **un cobro, sesenta días**. Medido con la
+guarda quitada: de ocho peticiones simultáneas, **cinco** concedieron y el periodo
+avanzó 60 días.
+
+Arreglado con lo único atómico que da el shim, su `INSERT … ON CONFLICT DO
+NOTHING`: el id de la transacción se deriva de la referencia (misma referencia,
+misma fila, un solo INSERT sobrevive), cada petición mete su **testigo** y se
+relee, y quien no encuentra el suyo no concede. El id se deriva **con el secreto
+del servidor** para no romper el invariante de que `payment_transactions.id` es
+inadivinable — es la referencia de pedido de los webhooks de Revolut y
+NOWPayments.
+
+**Y una lección sobre la sonda, que es la que más vale**: la primera versión de la
+comprobación lanzaba **dos hilos en fila** y salía ✅ **también con la guarda
+quitada** — la ventana es de milisegundos y la primera petición terminaba antes de
+que arrancara la segunda. Un ✅ que no probaba nada, exactamente lo que avisa el
+skill `qa`. Ahora son ocho hilos con barrera, y el sabotaje las pone rojas.
+
+También se revirtió el 2FA que se había activado a mano en la cuenta sembrada para
+poder ver el panel: con TOTP puesto, `cuenta()` se quedaba sin token y **ninguna**
+sonda de API podía arrancar.
+
+---
+
 ## 2026-08-26 — Tres páginas públicas hablaban castellano en los diez idiomas
 
 Examen integral pedido de arriba abajo (contenido, idiomas, cálculos,
