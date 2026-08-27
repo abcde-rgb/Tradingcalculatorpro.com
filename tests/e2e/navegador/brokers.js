@@ -22,7 +22,7 @@
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('../lib/playwright-core');
-const { rutaChromium, descartaModales, BASE } = require('../entorno');
+const { rutaChromium, descartaModales, BASE, API } = require('../entorno');
 
 const fallos = [];
 const marca = (n, ok, d = '') => {
@@ -43,9 +43,19 @@ const CON_BROKERS = {
     jurisdiccion: 'Unión Europea',
     jurisdiccionCodigo: 'ue',
     noAdmiteResidentes: ['los países de su lista de vetados y embargados'],
+    noAdmiteCodigos: [],
+    noAdmiteClave: 'brokersNoAdmiteListaVetados',
+    entidadPaisCodigo: 'CY',
     url: 'https://ejemplo.test/?ref=PRUEBA',
     esReferido: true,
     cumpleUe: true,
+    // Los campos ESTRUCTURADOS con los que la página compone la advertencia en
+    // el idioma del lector. Sin ellos `avisoEsma()` devuelve null y la tarjeta
+    // sale sin aviso: es lo que pasó cuando la prosa del backend se sustituyó
+    // por estos campos y esta ficción se quedó con la versión vieja.
+    ofreceCfdMinorista: true,
+    perdidaPct: '67.24',
+    perdidaPctEntidad: 'Solaris EMEA Ltd (CySEC, UE)',
     advertenciaCorta: 'El 67.24 % de las cuentas de CFD minoristas pierden dinero '
       + 'con Solaris EMEA Ltd (CySEC, UE).',
     advertencia: 'Los CFD son instrumentos complejos y conllevan un alto riesgo de perder '
@@ -65,11 +75,62 @@ async function abre(nav, cuerpo, salida, nombre) {
   page.on('pageerror', (e) => errores.push(String(e)));
   await page.route('**/api/brokers', (r) =>
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cuerpo) }));
+
+  // El idioma se FIJA, no se hereda. Las comprobaciones de abajo son sobre
+  // prosa («depende», «residencia»), y desde que la advertencia se compone en
+  // el idioma del lector —antes se volcaba la del backend, siempre en
+  // castellano— dependían del `Accept-Language` de la máquina que corriera el
+  // examen: verde en un portátil, roja en CI, por nada. Se fija como lo hace
+  // la propia aplicación, igual que `idiomas.js`.
+  await page.addInitScript(() => {
+    localStorage.setItem('trading-i18n-storage',
+      JSON.stringify({ state: { locale: 'es', autoDetected: true }, version: 0 }));
+  });
   await page.goto(`${BASE}/brokers`, { waitUntil: 'networkidle', timeout: 60000 });
   await descartaModales(page).catch(() => {});
   await page.waitForTimeout(1200);
   await page.screenshot({ path: path.join(salida, `${nombre}.png`), fullPage: true });
   return { page, ctx, errores };
+}
+
+/**
+ * Que la ficción de arriba siga siendo el contrato del backend.
+ *
+ * Interceptar `/api/brokers` es lo correcto —sin acuerdos publicados no hay
+ * otra forma de probar el estado «hay brókers»—, pero tiene un precio: la
+ * ficción envejece sola y en silencio. Pasó: la página dejó de volcar la prosa
+ * del backend y pasó a componer la advertencia con campos estructurados
+ * (`ofreceCfdMinorista`, `perdidaPct`, `perdidaPctEntidad`); el backend los
+ * sirve, esta ficción no los tenía, y la sonda acusó al producto de saltarse
+ * una obligación legal que en realidad cumple.
+ *
+ * La comprobación es el conjunto de claves, no los valores: los valores son
+ * de mentira a propósito.
+ */
+async function fixtureAlDia() {
+  let reales = null;
+  try {
+    const r = await fetch(`${API}/api/brokers`);
+    if (r.ok) reales = (await r.json()).brokers;
+  } catch { /* se reporta abajo */ }
+
+  // Sin backend NO se puede afirmar nada, y callar sería el falso verde de
+  // siempre. Se marca en rojo: la sonda necesita el stack en pie.
+  if (!Array.isArray(reales) || !reales.length) {
+    marca('la ficción coincide con el contrato real de /api/brokers', false,
+          'no se pudo leer la API real — ¿está el backend en pie?');
+    return;
+  }
+
+  const enApi = new Set(Object.keys(reales[0]));
+  const enFiccion = new Set(Object.keys(CON_BROKERS.brokers[0]));
+  const faltan = [...enApi].filter((k) => !enFiccion.has(k));
+  const sobran = [...enFiccion].filter((k) => !enApi.has(k));
+  marca('la ficción coincide con el contrato real de /api/brokers',
+        faltan.length === 0 && sobran.length === 0,
+        faltan.length || sobran.length
+          ? `faltan: ${faltan.join(', ') || '—'} · sobran: ${sobran.join(', ') || '—'}`
+          : `${enApi.size} campos`);
 }
 
 (async () => {
@@ -78,6 +139,8 @@ async function abre(nav, cuerpo, salida, nombre) {
   fs.mkdirSync(salida, { recursive: true });
 
   try {
+    await fixtureAlDia();
+
     console.log('\n── Con brókers publicados ────────────────────────────────');
     let { page, ctx, errores } = await abre(nav, CON_BROKERS, salida, 'con-brokers');
 
@@ -135,10 +198,16 @@ async function abre(nav, cuerpo, salida, nombre) {
       // Comprobado poniéndolo a `text-[10px]` — la sonda seguía en verde con la
       // advertencia en letra diminuta, que es justo el incumplimiento que esta
       // comprobación existe para cazar.
-      const parrafo = aviso.locator('p').first();
-      const tAviso = await parrafo.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      // Guardado tras `hayAviso`: sin aviso no hay párrafo que medir, y la
+      // versión anterior reventaba el proceso con un TimeoutError de 30 s que
+      // se llevaba por delante las 20 comprobaciones siguientes. Un ❌ tiene
+      // que dejar correr el resto del examen; si no, un fallo tapa los demás.
+      const tAviso = hayAviso
+        ? await aviso.locator('p').first()
+            .evaluate((e) => parseFloat(getComputedStyle(e).fontSize)).catch(() => 0)
+        : 0;
       const tBoton = await enlace.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
-      marca('no está empequeñecida frente al botón', tAviso >= tBoton,
+      marca('no está empequeñecida frente al botón', hayAviso && tAviso >= tBoton,
             `aviso ${tAviso}px vs botón ${tBoton}px`);
 
       // Y por encima del enlace en el flujo de lectura, o al menos visible sin

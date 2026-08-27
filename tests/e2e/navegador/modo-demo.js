@@ -62,6 +62,16 @@ const TIPOS = {
   const ctx = await navegador.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
 
+  // El idioma se FIJA. `rechazoVisible` busca prosa, y desde que los mensajes
+  // del store se traducen («Backend no configurado» → «Backend not
+  // configured») la sonda dependía del `Accept-Language` de la máquina: veía
+  // el rechazo en castellano y no en inglés, y concluía que el formulario ni
+  // se había enviado.
+  await page.addInitScript(() => {
+    localStorage.setItem('trading-i18n-storage',
+      JSON.stringify({ state: { locale: 'es', autoDetected: true }, version: 0 }));
+  });
+
   const peticiones = [];
   page.on('request', (r) => { if (/\/api\//.test(r.url())) peticiones.push(r.url()); });
 
@@ -87,7 +97,16 @@ const TIPOS = {
 
   // ── 1 · las credenciales originales ──────────────────────────────────
   for (const [email, clave] of CREDENCIALES) {
-    await page.evaluate(() => { try { localStorage.clear(); } catch (_) { /* nada */ } });
+    // `clear()` se lleva por delante el idioma fijado arriba, así que se
+    // vuelve a poner: sin esto la primera credencial se probaría en castellano
+    // y la segunda en el idioma del navegador.
+    await page.evaluate(() => {
+      try {
+        localStorage.clear();
+        localStorage.setItem('trading-i18n-storage',
+          JSON.stringify({ state: { locale: 'es', autoDetected: true }, version: 0 }));
+      } catch (_) { /* nada */ }
+    });
     await page.goto(`${BASE}/login`, { waitUntil: 'networkidle', timeout: 45000 });
     await page.waitForTimeout(400);
     await page.fill('input[type="email"]', email);

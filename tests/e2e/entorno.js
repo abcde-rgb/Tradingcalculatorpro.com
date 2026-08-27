@@ -166,8 +166,54 @@ function capturador(page, subcarpeta) {
   return shot;
 }
 
+/** Una cuenta SIN premium, garantizada.
+ *
+ *  `sembrar.py` sólo prepara la cuenta premium, así que las sondas que miden el
+ *  muro de pago necesitaban una libre y la traían escrita a mano — un correo
+ *  que había dejado una tanda anterior. En cuanto la base se vacía (o se siembra
+ *  en otra máquina) esa cuenta no existe, el login falla, y la sonda acusa al
+ *  producto de no dejar entrar a un usuario que nunca se creó.
+ *
+ *  El correo es FIJO a propósito: registrar uno nuevo en cada vuelta agotaría
+ *  el límite de 3 registros/hora a la tercera. Login primero, registro sólo si
+ *  hace falta. Es lo mismo que hace `cuenta()` en `entorno.py`.
+ */
+const CUENTA_LIBRE = {
+  email: process.env.QA_CUENTA_LIBRE || 'libre@example.com',
+  password: process.env.QA_CUENTA_LIBRE_CLAVE || 'QaLibre2026!',
+};
+
+async function aseguraCuentaLibre(cuenta = CUENTA_LIBRE) {
+  const pide = async (ruta, cuerpo) => {
+    const r = await fetch(`${API}/api${ruta}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cuerpo),
+    });
+    return { estado: r.status, cuerpo: await r.json().catch(() => ({})) };
+  };
+
+  let r = await pide('/auth/login', { email: cuenta.email, password: cuenta.password });
+  if (r.estado === 200) return cuenta;
+
+  // Se dice por su nombre: si no, el flujo cae al registro, que responde «ya
+  // existe», y el mensaje que llega no tiene nada que ver con la causa.
+  if (r.estado === 429) {
+    throw new Error(`límite de login alcanzado (10/min) para ${cuenta.email}. `
+      + 'Espera un minuto — el limitador funciona, que también hay que comprobarlo.');
+  }
+
+  r = await pide('/auth/register', {
+    email: cuenta.email, password: cuenta.password, name: 'QA Libre',
+  });
+  if (r.estado === 200 || r.estado === 201) return cuenta;
+
+  throw new Error(`no se pudo preparar la cuenta libre ${cuenta.email}: `
+    + `HTTP ${r.estado} ${JSON.stringify(r.cuerpo).slice(0, 200)}`);
+}
+
 module.exports = {
-  API, BASE, BASE_PATH, CUENTA, PUERTO_WEB, VISTAS,
-  abreNavegador, capturador, descartaCookies, descartaModales, desbordamiento,
+  API, BASE, BASE_PATH, CUENTA, CUENTA_LIBRE, PUERTO_WEB, VISTAS,
+  abreNavegador, aseguraCuentaLibre, capturador, descartaCookies, descartaModales, desbordamiento,
   entra, marcador, rutaChromium,
 };
