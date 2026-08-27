@@ -15,10 +15,10 @@
 | | |
 |---|---:|
 | Módulos del backend | 35 |
-| Líneas de Python (backend) | 26,609 |
+| Líneas de Python (backend) | 26,645 |
 | Rutas declaradas | 199 |
 | **Rutas sin consumidor en el frontend** | **34** |
-| Ficheros de test · funciones de test | 59 · 970 |
+| Ficheros de test · funciones de test | 59 · 971 |
 | Rutas del frontend (`App.js`) | 29 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 6,968 |
 
@@ -59,7 +59,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `GET` | `/api/portfolio/rebalance` | `backend/server.py:3383` |
 | `DELETE` | `/api/portfolio/{asset_id}` | `backend/server.py:3376` |
 | `PUT` | `/api/portfolio/{asset_id}` | `backend/server.py:3365` |
-| `GET` | `/api/quote/{symbol}` | `backend/server.py:9153` |
+| `GET` | `/api/quote/{symbol}` | `backend/server.py:9189` |
 | `GET` | `/api/referrals/me` | `backend/referrals.py:133` |
 | `POST` | `/api/referrals/redeem-credit` | `backend/referrals.py:333` |
 | `POST` | `/api/subscriptions/change-plan` | `backend/missing_apis.py:492` |
@@ -79,7 +79,7 @@ esperando una pantalla. Esto es el hueco G-14.
 
 | Módulo | Líneas | Rutas | Responsabilidad |
 |---|---:|---:|---|
-| `server.py` | 9,532 | 141 | — |
+| `server.py` | 9,568 | 141 | — |
 | `performance.py` | 1,819 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,206 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
@@ -209,38 +209,38 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 |---|---|---:|:---:|
 | `GET` | `/` | 4974 | ✅ |
 | `GET` | `/admin/audit-log` | 8612 | ✅ |
-| `GET` | `/admin/coupons` | 9290 | ✅ |
-| `POST` | `/admin/coupons` | 9296 | ✅ |
-| `POST` | `/admin/coupons/{coupon_id}/toggle` | 9319 | ✅ |
-| `GET` | `/admin/feature-flags` | 9339 | ✅ |
-| `PATCH` | `/admin/feature-flags/{flag_id}` | 9348 | ✅ |
+| `GET` | `/admin/coupons` | 9326 | ✅ |
+| `POST` | `/admin/coupons` | 9332 | ✅ |
+| `POST` | `/admin/coupons/{coupon_id}/toggle` | 9355 | ✅ |
+| `GET` | `/admin/feature-flags` | 9375 | ✅ |
+| `PATCH` | `/admin/feature-flags/{flag_id}` | 9384 | ✅ |
 | `POST` | `/admin/impersonate/{user_id}` | 8649 | ✅ |
-| `GET` | `/admin/market-data-health` | 9133 | ✅ |
+| `GET` | `/admin/market-data-health` | 9169 | ✅ |
 | `GET` | `/admin/metrics` | 7891 | ✅ |
 | `POST` | `/admin/payments/manual` | 8987 | ✅ |
 | `GET` | `/admin/payments/reconciliation` | 8831 | ✅ |
-| `GET` | `/admin/payments/webhook-health` | 9087 | ✅ |
+| `GET` | `/admin/payments/webhook-health` | 9123 | ✅ |
 | `POST` | `/admin/payments/{transaction_id}/grant` | 8919 | ✅ |
 | `POST` | `/admin/promote` | 7939 | ✅ |
 | `GET` | `/admin/revenue` | 8712 | ✅ |
 | `GET` | `/admin/settings` | 8362 | ✅ |
 | `PUT` | `/admin/settings` | 8385 | ✅ |
 | `POST` | `/admin/subscriptions/{user_id}/refund` | 8679 | ❌ |
-| `GET` | `/admin/usage` | 9169 | ✅ |
-| `GET` | `/admin/usage-heatmap` | 9236 | ✅ |
+| `GET` | `/admin/usage` | 9205 | ✅ |
+| `GET` | `/admin/usage-heatmap` | 9272 | ✅ |
 | `GET` | `/admin/users` | 7791 | ✅ |
 | `POST` | `/admin/users` | 8011 | ✅ |
 | `GET` | `/admin/users.csv` | 7861 | ✅ |
 | `DELETE` | `/admin/users/{user_id}` | 8121 | ✅ |
 | `PATCH` | `/admin/users/{user_id}` | 8054 | ✅ |
 | `POST` | `/admin/users/{user_id}/reset-password` | 8156 | ✅ |
-| `GET` | `/admin/webhooks` | 9363 | ✅ |
-| `POST` | `/admin/webhooks/{event_id}/retry` | 9369 | ✅ |
+| `GET` | `/admin/webhooks` | 9399 | ✅ |
+| `POST` | `/admin/webhooks/{event_id}/retry` | 9405 | ✅ |
 | `GET` | `/alerts` | 3451 | ✅ |
 | `POST` | `/alerts` | 3437 | ✅ |
 | `POST` | `/alerts/send-email` | 3577 | ❌ |
 | `DELETE` | `/alerts/{alert_id}` | 3459 | ✅ |
-| `POST` | `/analytics/track` | 9209 | ✅ |
+| `POST` | `/analytics/track` | 9245 | ✅ |
 | `POST` | `/auth/2fa/disable` | 2517 | ✅ |
 | `POST` | `/auth/2fa/enable` | 2498 | ✅ |
 | `POST` | `/auth/2fa/setup` | 2482 | ✅ |
@@ -333,7 +333,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `PUT` | `/portfolio/{asset_id}` | 3365 | ❌ |
 | `GET` | `/prices` | 3059 | ✅ |
 | `GET` | `/public/settings` | 8455 | ✅ |
-| `GET` | `/quote/{symbol}` | 9153 | ❌ |
+| `GET` | `/quote/{symbol}` | 9189 | ❌ |
 | `GET` | `/stock/{symbol}` | 5141 | ✅ |
 | `POST` | `/subscriptions/cancel` | 4666 | ✅ |
 | `GET` | `/subscriptions/current` | 4618 | ✅ |
@@ -418,7 +418,7 @@ dan) en vez de abrirlos de arriba abajo.
 
 | Fichero | Líneas |
 |---|---:|
-| `backend/server.py` | 9,532 |
+| `backend/server.py` | 9,568 |
 | `frontend/src/pages/EducationPage.jsx` | 5,575 |
 | `frontend/src/lib/i18n/ar.js` | 4,664 |
 | `frontend/src/lib/i18n/de.js` | 4,664 |

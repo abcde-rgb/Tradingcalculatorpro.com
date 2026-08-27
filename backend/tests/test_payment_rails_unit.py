@@ -140,6 +140,24 @@ def test_el_alta_manual_es_idempotente_por_referencia():
     assert "already_processed" in fuente
 
 
+def test_el_alta_manual_aguanta_dos_peticiones_a_la_vez():
+    """Dos clics simultáneos: sólo uno concede.
+
+    El atajo por `provider_reference` no basta —las dos peticiones leerían «no hay
+    nada» antes de que ninguna escriba—, así que el id se deriva de la referencia
+    para que el `ON CONFLICT DO NOTHING` del shim deje pasar un solo INSERT, y cada
+    petición se relee para ver si el testigo guardado es el suyo.
+    """
+    fuente = _source_of("admin_payment_manual")
+    assert "uuid5" in fuente, "el id ya no se deriva: dos INSERT distintos volverían a colar"
+    assert "claim_token" in fuente
+    assert 'claim_token") != testigo' in fuente, "falta comprobar que la fila guardada es la nuestra"
+    # Y derivado con el secreto del servidor: `payment_transactions.id` es la
+    # referencia de pedido de los webhooks de Revolut y NOWPayments, y tiene que
+    # seguir siendo inadivinable.
+    assert "JWT_SECRET" in fuente
+
+
 def test_el_alta_manual_no_admite_los_raíles_con_webhook():
     """Un alta a mano en Stripe taparía un webhook roto en vez de arreglarlo."""
     manuales = _const("_MANUAL_PAYMENT_PROVIDERS")

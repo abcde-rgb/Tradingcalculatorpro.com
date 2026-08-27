@@ -9030,7 +9030,22 @@ async def admin_payment_manual(
     if not user:
         raise HTTPException(status_code=404, detail="No hay ninguna cuenta con ese email")
 
-    # Idempotencia por referencia: el reintento devuelve lo que ya se hizo.
+    # ── Idempotencia, en dos capas ────────────────────────────────────────
+    # La primera es el atajo: si esa referencia ya se dio de alta, se devuelve lo
+    # que se hizo. La segunda es la que aguanta una carrera —dos clics a la vez,
+    # o el reintento del navegador tras un timeout— y hace falta porque el shim
+    # no da un claim atómico para una fila que **todavía no existe**:
+    # `find_one_and_update` bloquea con `FOR UPDATE` una fila que ya está, y aquí
+    # las dos peticiones llegarían a insertar.
+    #
+    # Lo que sí es atómico es el `INSERT … ON CONFLICT (_key) DO NOTHING` del shim.
+    # Así que el id de la transacción se deriva de la referencia (misma referencia,
+    # misma fila) y cada petición mete su propio testigo: sólo una gana el INSERT,
+    # y quien se relee y no encuentra SU testigo sabe que perdió y no concede nada.
+    #
+    # El id se deriva con el secreto del servidor, no de la referencia a pelo, para
+    # no romper el invariante de que `payment_transactions.id` es **inadivinable**:
+    # es la referencia de pedido que llevan los webhooks de Revolut y NOWPayments.
     previa = await db.payment_transactions.find_one(
         {"provider_reference": reference, "payment_method": provider}, {"_id": 0}
     )
@@ -9042,13 +9057,34 @@ async def admin_payment_manual(
             "user_email": previa.get("user_email"),
         }
 
+    huella = hashlib.sha256(
+        f"{JWT_SECRET}|manual|{provider}|{reference}".encode()
+    ).hexdigest()
+    testigo = secrets.token_hex(16)
+
     transaction = _build_pending_transaction(user, payload.plan_id, plan, provider)
+    transaction["id"] = str(uuid.uuid5(uuid.NAMESPACE_URL, huella))
+    transaction["claim_token"] = testigo
     transaction["provider_reference"] = reference
     transaction["manual_confirmation"] = True
     transaction["confirmed_by_admin"] = admin.get("email")
     if payload.amount is not None:
         transaction["amount_received"] = float(payload.amount)
     await db.payment_transactions.insert_one(transaction)
+
+    ganada = await db.payment_transactions.find_one(
+        {"id": transaction["id"]}, {"_id": 0}
+    )
+    if not ganada or ganada.get("claim_token") != testigo:
+        # Otra petición con la misma referencia llegó primero. No se concede nada:
+        # el periodo lo apila quien ganó, y apilarlo dos veces por un solo cobro es
+        # regalar treinta días.
+        return {
+            "ok": True,
+            "already_processed": True,
+            "transaction_id": (ganada or {}).get("id", transaction["id"]),
+            "user_email": (ganada or {}).get("user_email", user.get("email")),
+        }
 
     await _activate_paid_subscription(
         user_id=user["id"],

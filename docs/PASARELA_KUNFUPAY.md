@@ -819,7 +819,28 @@ Dos reglas de la casilla, que vienen del backend y no se pueden contradecir en l
 - **La última no se deja desmarcar.** Guardar la lista vacía haría que el backend
   encendiera todo otra vez: el admin creería haber cerrado la caja y estaría cobrando.
 
-### 16.7 Verificado
+### 16.7 El alta manual, a prueba de dos clics
+
+Encontrado releyendo el propio checklist del repo (`.claude/skills/seguridad-pagos`, punto
+4: «idempotencia de pagos: claim atómico»): la primera versión del alta manual comprobaba
+la referencia y **luego** insertaba. Entre esas dos cosas cabe otra petición — un doble
+clic, o el reintento del navegador tras un timeout— y las dos concedían: **un cobro,
+sesenta días**. Medido con la guarda quitada: de ocho peticiones a la vez, **cinco**
+concedieron.
+
+El shim no ofrece un claim atómico para una fila que aún no existe (`find_one_and_update`
+bloquea con `FOR UPDATE` una fila que ya está). Lo que sí es atómico es su
+`INSERT … ON CONFLICT (_key) DO NOTHING`. Así que:
+
+1. el **id de la transacción se deriva de la referencia** — misma referencia, misma fila,
+   y sólo un INSERT sobrevive;
+2. cada petición mete su propio **testigo** y se relee: quien no encuentra el suyo sabe
+   que perdió y no concede nada;
+3. el id se deriva **con el secreto del servidor**, no de la referencia a pelo, para no
+   romper el invariante de que `payment_transactions.id` es inadivinable: es la referencia
+   de pedido que llevan los webhooks de Revolut y NOWPayments.
+
+### 16.8 Verificado
 
 `py_compile` de los 34 módulos · **27 tests nuevos** en
 `backend/tests/test_payment_rails_unit.py`, **saboteados uno a uno** para comprobar que
@@ -841,12 +862,20 @@ las tres claves nuevas en los diez idiomas · `engine-check` 429/429 ·
 | Encendida sin enlaces → **no se ofrece** | en vez de un botón que da 503 |
 | El alta manual **abre el muro**: el cliente pasa de no-premium a premium | con fin a 30 días |
 | Repetir la referencia **no regala** un segundo periodo | y la fecha no se mueve |
+| **Ocho peticiones simultáneas** con la misma referencia: sólo una concede | el periodo avanza 30 días, no 60 |
 | Un segundo cobro **apila** (30 → 60 días) | renovar antes de vencer no cuesta días |
 | Stripe no se puede dar de alta a mano · sin referencia no hay alta · un email de nadie no concede · un cliente no puede darse premium | 400 · 400 · 404 · 403 |
 
-**Y la sonda está saboteada**: quitando la puerta del servidor en `create_checkout` y
-reiniciando el backend, las dos comprobaciones de «apagada en admin» se ponen rojas
-(HTTP 200 donde debía haber 400). Restaurado, vuelven a verde.
+**Y la sonda está saboteada**, dos veces. Quitando la puerta del servidor en
+`create_checkout` y reiniciando el backend, las dos comprobaciones de «apagada en admin»
+se ponen rojas (HTTP 200 donde debía haber 400). Y quitando el claim atómico del alta
+manual (§ 16.3), la carrera concede **cinco veces** el mismo cobro. Restaurados, verde.
+
+> El sabotaje de la carrera enseñó además algo sobre la propia sonda: **con dos hilos
+> lanzados en fila, el ✅ salía igual con la guarda quitada**. La ventana entre el atajo
+> por referencia y el INSERT es de milisegundos y la primera petición terminaba antes de
+> que arrancara la segunda: la comprobación no probaba nada. Ahora son **ocho hilos con
+> barrera**, y sin la guarda se ponen rojas.
 
 **El panel, visto de verdad**: entrando con 2FA en `/admin`, la tarjeta de raíles pinta
 las siete casillas con el estado real, y desmarcar PayPal + Guardar deja al backend

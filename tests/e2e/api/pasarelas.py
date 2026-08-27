@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -246,7 +247,46 @@ def main() -> int:
           and abs((fin3 - fin1).days - 30) <= 1,
           f"{fin1} → {fin3}")
 
-    # ── 7 · lo que el alta manual no debe aceptar ────────────────────────
+    # ── 7 · dos peticiones a la vez ──────────────────────────────────────
+    # El caso real: el admin hace doble clic, o el navegador reintenta tras un
+    # timeout. Si las dos conceden, un solo cobro paga sesenta días.
+    print("\n── ocho altas simultáneas con la misma referencia ──")
+    fin_antes = fin_suscripcion(correo)
+    ref_carrera = f"{ref}-carrera"
+    # Ocho a la vez y con barrera, no dos «casi a la vez»: la ventana entre el
+    # atajo por referencia y el INSERT es de milisegundos, y con dos peticiones
+    # lanzadas en fila la primera terminaba antes de que arrancara la segunda —
+    # el ✅ salía igual con la guarda quitada, o sea, no probaba nada.
+    PETICIONES = 8
+    salida = threading.Barrier(PETICIONES)
+    resultados: list = []
+    cerrojo = threading.Lock()
+
+    def intenta():
+        salida.wait()
+        r = llama("POST", "/admin/payments/manual",
+                  {"email": correo, "plan_id": "monthly", "reference": ref_carrera},
+                  tok_admin)
+        with cerrojo:
+            resultados.append(r)
+
+    hilos = [threading.Thread(target=intenta) for _ in range(PETICIONES)]
+    for h in hilos:
+        h.start()
+    for h in hilos:
+        h.join()
+
+    concedidas = [c for c, cuerpo in resultados
+                  if c == 200 and isinstance(cuerpo, dict) and not cuerpo.get("already_processed")]
+    marca("de ocho peticiones simultáneas, sólo una concede",
+          len(concedidas) == 1,
+          f"{[(c, (b or {}).get('already_processed') if isinstance(b, dict) else b) for c, b in resultados]}")
+    fin_despues = fin_suscripcion(correo)
+    dias = (fin_despues - fin_antes).days if (fin_antes and fin_despues) else None
+    marca("y el periodo avanza 30 días, no 60", dias is not None and abs(dias - 30) <= 1,
+          f"avanzó {dias} días")
+
+    # ── 8 · lo que el alta manual no debe aceptar ────────────────────────
     print("\n── guardas del alta manual ──")
     cod, _ = llama("POST", "/admin/payments/manual",
                    {"email": correo, "plan_id": "monthly",

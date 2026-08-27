@@ -4990,3 +4990,30 @@ nada — la sonda ahora resetea la suscripción por SQL antes de empezar.
 
 **Estado de la rama**: los 8 commits siguen **sólo aquí**. `main` no tiene nada de
 esto y no hay PR abierto.
+
+**Cuarto añadido — el alta manual no era idempotente de verdad (§ 16.7).** Al
+abrirse el PR #212 y repasar el checklist del propio repo
+(`.claude/skills/seguridad-pagos`, punto 4: «idempotencia de pagos: claim
+atómico»), se vio que el endpoint comprobaba la referencia y **luego** insertaba.
+Entre esas dos cosas cabe otra petición —doble clic, o el reintento del navegador
+tras un timeout— y las dos concedían: **un cobro, sesenta días**. Medido con la
+guarda quitada: de ocho peticiones simultáneas, **cinco** concedieron y el periodo
+avanzó 60 días.
+
+Arreglado con lo único atómico que da el shim, su `INSERT … ON CONFLICT DO
+NOTHING`: el id de la transacción se deriva de la referencia (misma referencia,
+misma fila, un solo INSERT sobrevive), cada petición mete su **testigo** y se
+relee, y quien no encuentra el suyo no concede. El id se deriva **con el secreto
+del servidor** para no romper el invariante de que `payment_transactions.id` es
+inadivinable — es la referencia de pedido de los webhooks de Revolut y
+NOWPayments.
+
+**Y una lección sobre la sonda, que es la que más vale**: la primera versión de la
+comprobación lanzaba **dos hilos en fila** y salía ✅ **también con la guarda
+quitada** — la ventana es de milisegundos y la primera petición terminaba antes de
+que arrancara la segunda. Un ✅ que no probaba nada, exactamente lo que avisa el
+skill `qa`. Ahora son ocho hilos con barrera, y el sabotaje las pone rojas.
+
+También se revirtió el 2FA que se había activado a mano en la cuenta sembrada para
+poder ver el panel: con TOTP puesto, `cuenta()` se quedaba sin token y **ninguna**
+sonda de API podía arrancar.
