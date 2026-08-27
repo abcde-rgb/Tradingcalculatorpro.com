@@ -5599,3 +5599,51 @@ el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
   CSP meta; ficha educativa `/learn/gex/`.
 
 ---
+
+### 2026-08-27 — La puerta de entrada estaba atascada, y nadie comprobaba al que comprueba
+
+- 🎯 Petición: «una skill para que Claude trabaje rápido y preciso; hay un desorden
+  descomunal y la IA se pierde». El diagnóstico no encontró piezas que faltaran —17
+  skills, 6 comandos, 4 subagentes y 7 reglas, todos buenos— sino **34 puertas y
+  ningún cartel**, y una de ellas atascada.
+- 🔴 **ESTADO_PROYECTO.md pesaba 4.290 líneas (327 KB) diciendo que pesaba 300.** Su
+  §7 declaraba que las sesiones se habían separado a `REGISTRO_SESIONES.md` el
+  2026-08-13 —«eran el 93 % de este documento»—. La separación **copió pero no
+  borró**: 108 de sus 115 entradas seguían dentro, duplicadas byte a byte. Cada
+  sesión que seguía el flujo documentado («empieza por ESTADO_PROYECTO») se comía la
+  historia repetida antes de empezar a trabajar. Ese era el «desorden descomunal».
+- ✅ Rescatadas al registro las **8 entradas que sólo vivían allí** (al final: este
+  fichero es append-only y la fecha del título manda), borradas las 108 copias.
+  Queda en **412 líneas / 45 KB**. Comprobado entrada por entrada contra la versión
+  en git antes de borrar: las 116 están íntegras aquí, 0 con el cuerpo alterado.
+- 🐛 **Tres fallos de cableado que ningún test podía cazar** porque no rompen nada,
+  sólo hacen que la IA se oriente con un mapa falso:
+  `ARQUITECTURA_ASISTENTE.md` —el mapa del asistente— listaba **7 de las 17 skills**;
+  `rules/infra.md` y `CLAUDE.md` seguían disparando sobre `cloudbuild.yaml`, retirado
+  el 2026-08-25 y documentado en `DECISIONES.md`; y los **tres subagentes** decían
+  «sigues la skill X» sin tener la herramienta `Skill` ni citar su ruta, así que
+  seguían lo que recordaran.
+- ✅ **Nuevo: skill `orientarse`**, el router. Ante cualquier petición obliga a
+  responder cinco líneas —zona · regla · skill · qué leo · qué puerta la cierra—
+  antes de abrir un fichero, con una tabla de enrutado de 22 entradas, la lista de
+  **qué NO leer** (el error caro no es leer poco, es leer 300 KB sin contexto útil) y
+  los seis invariantes de «no romper nada». El hook de arranque la anuncia.
+- ✅ **Nuevo: `scripts/gen-asistente.py`.** Genera el mapa del asistente —ya no se
+  escribe a mano— y comprueba seis invariantes de cableado, entre ellas que el router
+  enrute **todas** las skills: una skill nueva sin ruta rompe CI. Es lo que impide
+  que el router acabe como la tabla que sustituye. `--check` en CI, como `gen-mapa`.
+- ✅ Sus **ocho sabotajes** en `probar-verificadores.sh`, uno por comprobación
+  (`gen-asistente` corta en el primer fallo: un sabotaje múltiple sólo probaría el
+  primero), más el inverso — que la prosa histórica de `docs/` cite una skill
+  retirada **no** es cableado roto, y ampliar el radio para «cubrir más» habría
+  convertido cada auditoría vieja en un error.
+- ✅ Verificado: los 8 sabotajes detectan lo suyo y el árbol queda sin residuo;
+  `check-doc-links`, `gen-mapa --check`, `gen-instruments-js --check`,
+  `check-rutas-muertas`, `check-precios` y `gen-asistente --check` en verde;
+  `py_compile` de los 35 módulos del backend; `ci.yml` sigue siendo YAML válido.
+- ⚠️ **No verificado aquí**: `pytest`, `eslint`, `i18n-check` y `npm run build` — este
+  sandbox no tiene `backend/.venv` ni `frontend/node_modules`. Ningún cambio toca
+  código de la aplicación (sólo `.claude/`, `scripts/`, `docs/` y `ci.yml`), pero eso
+  es un argumento, no una ejecución: quien lo retome con entorno debe correr `/verify`.
+
+---

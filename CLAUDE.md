@@ -63,6 +63,7 @@ cd frontend && npx eslint src scripts       # 0 errores; los avisos de símbolos
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
 python scripts/gen-instruments-js.py --check   # catálogo backend ↔ frontend
 python scripts/gen-mapa.py --check             # el mapa refleja el código
+python scripts/gen-asistente.py --check        # skills/reglas/agentes bien cableados
 python scripts/check-rutas-muertas.py          # cada ruta sin pantalla tiene decisión
 python scripts/check-doc-links.py              # los enlaces de la doc resuelven
 bash scripts/probar-verificadores.sh           # ¿y esos verificadores verifican?

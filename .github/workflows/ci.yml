@@ -76,6 +76,13 @@ jobs:
       - name: El catálogo de instrumentos está en paridad (backend ↔ frontend)
         run: python scripts/gen-instruments-js.py --check
 
+      # El cableado del asistente no rompe ningún test cuando se pudre: sólo
+      # hace que la IA se oriente con un mapa falso. El 2026-08-27 el mapa
+      # listaba 7 de 17 skills, dos reglas disparaban sobre un fichero retirado
+      # y los tres subagentes decían seguir una skill que no podían cargar.
+      - name: El asistente está cableado (skills, comandos, agentes, reglas)
+        run: python scripts/gen-asistente.py --check
+
       # El mapa CUENTA las rutas que ninguna pantalla llama; esto exige que cada
       # una lleve escrito qué se hace con ella. Sin ello, una ruta nueva e
       # inalcanzable sólo sube el contador y CI se queda verde.
