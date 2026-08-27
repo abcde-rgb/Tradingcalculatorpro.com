@@ -20,7 +20,7 @@
 | **Rutas sin consumidor en el frontend** | **34** |
 | Ficheros de test · funciones de test | 58 · 953 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 6,964 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 6,966 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -391,14 +391,14 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/auth/` | 3 | 290 |
 | `components/backtesting/` | 1 | 175 |
 | `components/brokers/` | 1 | 230 |
-| `components/calculators/` | 15 | 4,644 |
+| `components/calculators/` | 15 | 4,812 |
 | `components/calculators/simulator/` | 6 | 1,436 |
 | `components/charts/` | 3 | 797 |
 | `components/charts/structure/` | 12 | 1,705 |
 | `components/common/` | 12 | 2,248 |
 | `components/dashboard/` | 8 | 1,005 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 83 | 13,853 |
+| `components/education/` | 83 | 13,866 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 590 |
@@ -419,16 +419,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 9,279 |
 | `frontend/src/pages/EducationPage.jsx` | 5,575 |
-| `frontend/src/lib/i18n/ar.js` | 4,660 |
-| `frontend/src/lib/i18n/de.js` | 4,660 |
-| `frontend/src/lib/i18n/en.js` | 4,660 |
-| `frontend/src/lib/i18n/es.js` | 4,660 |
-| `frontend/src/lib/i18n/fr.js` | 4,660 |
-| `frontend/src/lib/i18n/it.js` | 4,660 |
-| `frontend/src/lib/i18n/ja.js` | 4,660 |
-| `frontend/src/lib/i18n/pt.js` | 4,660 |
-| `frontend/src/lib/i18n/ru.js` | 4,660 |
-| `frontend/src/lib/i18n/zh.js` | 4,660 |
+| `frontend/src/lib/i18n/ar.js` | 4,662 |
+| `frontend/src/lib/i18n/de.js` | 4,662 |
+| `frontend/src/lib/i18n/en.js` | 4,662 |
+| `frontend/src/lib/i18n/es.js` | 4,662 |
+| `frontend/src/lib/i18n/fr.js` | 4,662 |
+| `frontend/src/lib/i18n/it.js` | 4,662 |
+| `frontend/src/lib/i18n/ja.js` | 4,662 |
+| `frontend/src/lib/i18n/pt.js` | 4,662 |
+| `frontend/src/lib/i18n/ru.js` | 4,662 |
+| `frontend/src/lib/i18n/zh.js` | 4,662 |
 
 ## Verificadores del repositorio
 

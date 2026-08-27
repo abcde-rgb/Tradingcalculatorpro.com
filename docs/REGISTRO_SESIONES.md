@@ -4880,3 +4880,109 @@ camino **era el build, no el CSS**. `contraste.js` mide sobre `frontend/build`, 
 ese directorio se había quedado de antes del rebase, con el verde del tema claro
 al 35 % que ya se había corregido a 26 %. Recompilar antes de creerse una medida
 que se toma sobre artefactos.
+
+---
+
+## 2026-08-26 (2) — G-33: la calculadora que dimensionaba sin saber qué compras
+
+El hueco pedía «rehacer las catorce calculadoras sueltas» y citaba dos fallos.
+Lo primero fue comprobar si seguían existiendo, porque un hueco en rojo puede
+llevar semanas cerrado: **el primero lo estaba** —el `pipValuePerStandardLot = 10`
+de `LotSizeCalculator` se arregló el 22-08— y **el segundo estaba mal descrito**.
+La ficha decía que `PositionSizeCalculator` «pinta BTC fijo en el resultado»;
+eso ya seguía al activo elegido. Lo que hacía era mucho peor.
+
+### El fallo real
+
+    positionInCoins = riskAmount / |entrada − stop|
+
+Sin tamaño de contrato y sin convertir la divisa. Es correcto **sólo** si una
+unidad del instrumento vale una unidad de precio y la divisa cotizada es la de
+la cuenta — o sea, en contado, que es justo donde estaban sus valores por
+defecto. Por eso nadie lo vio.
+
+Con 10 000 $ y un 2 % de riesgo:
+
+| instrumento | decía | es | por qué |
+|---|---:|---:|---|
+| Oro CFD | 20 | **0,2 lotes** | el lote son 100 onzas; ese 20 eran onzas, en la casilla de lo que se compra |
+| Futuro ES | 20 | **no hay tamaño** | 200 $ no llegan a un contrato entero y medio contrato no existe |
+| USDJPY | 400 | **0,62 lotes** | el riesgo está en yenes y la cuenta en dólares |
+| EURGBP | 40 000 | **no se puede** | hace falta un tercer tipo de cambio que no tenemos |
+| AAPL, BTC contado | igual | igual | contrato 1 y cuenta en la divisa cotizada: donde la fórmula vieja acertaba |
+
+Y el error **salía de la pantalla**: «enviar al diario» mandaba esas unidades
+como `quantity` sin declarar el producto, y el diario calcula el P&L como
+`(salida − entrada) × cantidad × multiplicador`. En un futuro, eso aplica el
+tamaño de contrato dos veces.
+
+Reescrita sobre `lib/instruments.js` + `lib/deskMath.js`. No queda ninguna cifra
+de instrumento dentro del componente. Se va el botón «calcular»: dejaba en
+pantalla un tamaño que ya no correspondía a los campos de arriba.
+
+### Lo que sólo se vio mirando
+
+Dos fallos que ningún test offline habría dado, y que aparecieron al abrir la
+pantalla en el navegador sobre el build compilado:
+
+**Con entrada = stop salía el aviso Y una cifra debajo.** La causa no estaba en
+la pantalla: `lotSizing` sin `stopDistance` dejaba que mandara el margen o la
+exposición y devolvía un tamaño perfectamente calculado que no responde a la
+pregunta que se hizo. Las **dos** calculadoras que usan esa función habían caído
+por separado —`LotSizeCalculator` daba 0,92 lotes con el campo de stop vacío—,
+que es la señal de que el arreglo va en el motor y no en cada pantalla. Ahora
+sin distancia de stop no hay lotes ni motivo; quien quiera el máximo por margen
+tiene `maxSizes`, que es esa pregunta y se llama así.
+
+**Avisaba de que «BTC no está en el catálogo».** En una acción o en cripto
+contado una unidad es una unidad: el 1 no es una suposición, es la definición
+del producto. El aviso venía copiado de `LotSizeCalculator`, donde sí tiene
+sentido porque allí sólo hay futuros, CFD y forex.
+
+### Lo que apareció de camino
+
+- **Black-Scholes se inventaba el tipo libre de riesgo.** `r_pct = 5.0` escrito
+  a mano mientras el backend valora con el rendimiento vivo del Tesoro: las dos
+  mitades daban precios distintos para la misma opción, y Rho —que es
+  literalmente la sensibilidad a ese número— se calculaba sobre una cifra
+  inventada. Es el invariante de `CLAUDE.md` («un 0,05 suelto es un bug») y el
+  hook ya existía, usado por dos pantallas.
+- **Hay dos calculadoras de posición**, y la de la Academia
+  (`CapitalManagementTools`) compartía `data-testid` con la del panel: cualquier
+  sonda medía la que encontrara primero. Además devolvía `0` donde no se puede
+  calcular, y su formateador usaba el `isFinite` **global**, que convierte antes
+  de mirar — `isFinite(null)` es `true` porque `Number(null)` es 0—, así que el
+  «no lo sé» se habría pintado como un 0,00 con toda la pinta de resultado. La
+  regla de honestidad numérica escondida en el formateador en vez de en el
+  cálculo.
+- `RiskAnalysisTools` daba apalancamiento **0,0×** sin cuenta, que se lee como
+  «vas sin apalancar» y significa lo contrario.
+
+### Verificado
+
+`engine-check` **445/445** (16 nuevas, con las cifras del oro, el ES, USDJPY y
+el cruce fijadas a mano) · `simulacion-masiva` 36 341 y 35 872 comprobaciones con
+semillas nuevas, 0 invariantes rotas · **tres sabotajes nuevos** —ignorar el
+tamaño de contrato, tratar la divisa cotizada como la de la cuenta, devolver el
+máximo sin stop—, los tres detectados · sonda de navegador sobre el build
+compilado, escritorio y móvil, con seis instrumentos de propiedades distintas ·
+i18n 6 966 claves en los diez idiomas, faltan 0 y sobran 0 · eslint 0 errores.
+
+### Lo que queda de G-33, dicho con precisión
+
+**Por dentro está cerrado**: ninguna calculadora que dé dinero dependiente del
+instrumento tiene ya cifras de instrumento dentro.
+
+**Por fuera no.** Quedan **12 etiquetas `($)`** y **5 `(USD)`** escritas a mano
+—`Leverage`, `MonteCarlo`, `Percentage`, `Spot`, `TargetPrice`,
+`PatternTrading`— que mienten en cualquier instrumento que no cotice en dólares,
+y colores fuera de los tokens en nueve ficheros, con `Futures` a la cabeza (22).
+Y cinco calculadoras siguen con la matemática dentro del JSX (`Spot`,
+`TargetPrice`, `Percentage`, `Fibonacci`, `Compound`); las cinco son aritmética
+sin instrumento y su resultado es correcto, así que es deuda de cobertura, no
+una cifra falsa esperando.
+
+Un aviso operativo: el banco de pruebas sirve `frontend/build`, y un
+`npm run build` a secas lo deja apuntando a otro backend. Si la pantalla deja de
+pintarse en la sonda, recompilar con `REACT_APP_BACKEND_URL=http://127.0.0.1:8080`
+antes de buscar el fallo en el código.
