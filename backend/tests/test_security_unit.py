@@ -31,7 +31,11 @@ _MISSING_APIS = Path(__file__).resolve().parent.parent / "missing_apis.py"
 def _load_shim_helpers():
     src = _SERVER.read_text(encoding="utf-8")
     tree = ast.parse(src)
-    wanted_funcs = {"_build_where_clause", "_serialize"}
+    # Todo lo que `_build_where_clause` NECESITE va aquí. `_regex_seguro` entró
+    # al cerrar el 500 por expresión regular inválida: sin él, este fichero
+    # fallaba con un `NameError` en `<string>` que no dice nada de inyección SQL
+    # y cuesta un rato localizar. Ver la comprobación de humo del final.
+    wanted_funcs = {"_build_where_clause", "_serialize", "_regex_seguro"}
     chunks = []
     for node in tree.body:
         if isinstance(node, ast.Assign) and any(
@@ -53,6 +57,23 @@ def _load_shim_helpers():
         "_json_module": json, "json": json, "_json_default": str,
     }
     exec("\n\n".join(chunks), ns)  # noqa: S102 — trusted first-party source
+
+    # Humo: que lo extraído se pueda EJECUTAR, no sólo compilar.
+    #
+    # El extractor coge funciones por nombre, así que en cuanto
+    # `_build_where_clause` llama a un ayudante nuevo, este espacio de nombres
+    # se queda corto y todas las pruebas del fichero revientan con un
+    # `NameError: name 'X' is not defined` en `<string>:NN`. Eso no se lee como
+    # «falta añadir X a wanted_funcs», que es lo que pasa. Aquí se dice.
+    try:
+        ns["_build_where_clause"]({"campo": {"$regex": "x", "$options": "i"}}, 1)
+        ns["_build_where_clause"]({"$or": [{"a": 1}, {"b": {"$in": [1, "x"]}}]}, 1)
+    except NameError as e:  # pragma: no cover - sólo salta si alguien añade una dependencia
+        falta = str(e).split("'")[1] if "'" in str(e) else str(e)
+        raise AssertionError(
+            f"`_build_where_clause` usa `{falta}`, que este test no extrae de "
+            f"server.py. Añádelo a `wanted_funcs` (o a `ns` si es un módulo)."
+        ) from e
     return ns
 
 

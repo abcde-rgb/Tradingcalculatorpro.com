@@ -76,14 +76,24 @@ Auth de GCP en Actions: **Workload Identity Federation**, sin claves JSON.
 - **`ENVIRONMENT`** no se setea en producción → cae a `"production"`. En local,
   `ENVIRONMENT=development`.
 
-## `init_pool` trata todo host TCP como si fuera Neon
+## `init_pool` y el TLS (G-11, cerrado el 2026-08-27)
 
-Exige SSL verificado, así que un Postgres local sin SSL falla con
-`CERTIFICATE_VERIFY_FAILED` (hueco G-11). En local, conecta **por socket Unix**:
+`sslmode` de la cadena de conexión manda, como en libpq:
 
-```
-DATABASE_URL='postgresql://user:pass@/trading_dev?host=/var/run/postgresql'
-```
+| `sslmode` | Efecto |
+|---|---|
+| *(sin poner)* | **`verify-full`** — cifra y valida certificado + nombre de host |
+| `require` | Cifra sin validar la cadena. Escotilla para un proveedor cuyo certificado no encadene |
+| `disable` | Sin cifrado. **Sólo en desarrollo**: en producción lanza `RuntimeError` |
+
+En local ya conecta por TCP: `...@localhost:5432/trading_dev?sslmode=disable`. El socket
+Unix sigue funcionando igual.
+
+⚠️ **Antes cifraba sin autenticar.** Se le pasaba un `SSLContext` a asyncpg sin decir
+`sslmode`, lo que deja el modo en `prefer`; y para prefer/allow/require asyncpg fuerza
+`check_hostname=False` + `verify_mode=CERT_NONE`. O sea: el código decía «SSL verificado»
+y aceptaba cualquier certificado. Comprobado con un nombre de host que no casa —antes
+conectaba, ahora se niega—, y fijado en `test_shim_collection_unit.py`.
 
 ## Los secretos nunca entran al repo
 

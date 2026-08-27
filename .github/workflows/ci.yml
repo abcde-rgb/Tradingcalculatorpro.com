@@ -17,6 +17,26 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    # PostgreSQL de verdad para las pruebas del shim `Collection` (G-17).
+    #
+    # Sin esto, `test_shim_collection_unit.py` se saltaría entero en CI y
+    # tendríamos 42 pruebas que no corren en ningún sitio — que es exactamente
+    # el tipo de verificador decorativo que este repositorio ya ha cazado tres
+    # veces. Lo que prueban es la TRADUCCIÓN Mongo→SQL, así que un doble en
+    # memoria daría verde sin traducir nada: o va contra Postgres o no vale.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_PASSWORD: runner
+          POSTGRES_DB: shim_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -33,7 +53,7 @@ jobs:
       # marcador desconocido, que es fácil de leer como ruido. En local estaba
       # instalado de arrastre y en CI no, así que el fallo sólo salía aquí.
       - name: Instalar dependencias
-        run: pip install -r requirements.txt pytest pytest-asyncio
+        run: pip install -r requirements.txt -r requirements-dev.txt
 
       # La lista de módulos iba a mano y se quedó atrás: price_action, timeframes,
       # market_data, nowpayments, revolut y affiliate_program no se comprobaban.
@@ -47,6 +67,10 @@ jobs:
         run: pytest tests/ -q
         env:
           PYTHONPATH: "."
+          # El shim se prueba contra el Postgres del servicio de arriba. Va por
+          # TCP, así que lleva su propia variable: `DATABASE_URL` dispararía la
+          # rama SSL de `init_pool` y las pruebas se saltarían en silencio.
+          SHIM_TEST_DATABASE_URL: "postgresql://runner:runner@localhost:5432/shim_test"
           # Sin BACKEND_URL: los tests de integración se saltan; los *_unit.py corren.
 
   # ============================================================

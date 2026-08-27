@@ -10,7 +10,8 @@ import json as _json_module
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
+from contextlib import asynccontextmanager
+from pydantic import ConfigDict, BaseModel, Field, EmailStr
 from typing import Any, Dict, List, Optional, Tuple
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -127,6 +128,26 @@ def _deserialize(raw) -> dict:
 _SAFE_FIELD_RE = _re_module.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 
+
+def _detalle_publico(e: Exception, generico: str) -> str:
+    """Lo que se le puede contar al cliente sobre un error interno: casi nada.
+
+    Había trece `detail=str(e)` / `detail=f"…{e}"`. El texto de una excepción no
+    está pensado para un usuario: lleva rutas, nombres de tabla, identificadores
+    internos y, en el caso de Stripe, a veces parte de la petición. El manejador
+    global (`_unhandled_exception_handler`) ya generaliza los 500 que se le
+    escapan a nadie; estas trece lo esquivaban por ser `HTTPException` explícitas.
+
+    Stripe es la única excepción razonable: su `user_message` existe justamente
+    para enseñárselo al cliente («tu tarjeta ha sido rechazada»), así que ese sí
+    se pasa. Todo lo demás va al log y al usuario le llega el mensaje genérico.
+    """
+    mensaje = getattr(e, "user_message", None)
+    if isinstance(mensaje, str) and mensaje.strip():
+        return mensaje.strip()
+    return generico
+
+
 def _literal_regex(text: str) -> str:
     """Convierte texto de un buscador en un patrón que lo busca TAL CUAL.
 
@@ -138,6 +159,31 @@ def _literal_regex(text: str) -> str:
     paréntesis y la búsqueda hace lo que el usuario espera: subcadena literal.
     """
     return _re_module.escape(text or "")
+
+
+def _regex_seguro(patron) -> str:
+    """Un patrón que PostgreSQL pueda compilar, pase lo que pase.
+
+    `_literal_regex` protege AL LLAMADOR, y hoy sólo hay uno que se acuerde de
+    usarlo (el buscador del panel admin). Esto protege el punto de paso: un
+    patrón que no compila —un `(` suelto, un `[` sin cerrar— aborta la consulta
+    entera con *invalid regular expression* y la petición acaba en 500, con el
+    filtro ya dentro de la cadena SQL y sin forma de recuperarse.
+
+    Si el patrón compila, se respeta tal cual: hay usos deliberados de expresión
+    regular (`{"$regex": "^i18n_"}` en `admin_routes`) que deben seguir
+    funcionando. Si NO compila, sólo puede venir de texto que alguien tecleó, y
+    lo que esa persona espera es buscar esa cadena literalmente.
+
+    Es la misma decisión que G-15: arreglar la causa en el único sitio por el
+    que pasa todo, en vez de confiar en que cada ruta futura se acuerde.
+    """
+    texto = patron if isinstance(patron, str) else str(patron or "")
+    try:
+        _re_module.compile(texto)
+        return texto
+    except _re_module.error:
+        return _re_module.escape(texto)
 
 
 def _build_where_clause(filter_dict: dict, start_param: int = 1):
@@ -194,7 +240,7 @@ def _build_where_clause(filter_dict: dict, start_param: int = 1):
                         parts.append(f"(data->>'{ key }') ~* ${param_idx}")
                     else:
                         parts.append(f"(data->>'{ key }') ~ ${param_idx}")
-                    params.append(operand)
+                    params.append(_regex_seguro(operand))
                     param_idx += 1
                 elif op == "$options":
                     continue  # handled with $regex
@@ -950,11 +996,61 @@ class Database:
                 min_size=5, max_size=20, timeout=10, command_timeout=30,
             )
         else:
+            # TCP. Por defecto, SSL VERIFICADO: es la única forma de conectar a
+            # Neon/Supabase y no queremos que un despliegue caiga a texto claro
+            # por accidente.
+            #
+            # Pero la rama trataba TODO host TCP como si fuera Neon, así que un
+            # Postgres local sin SSL fallaba con CERTIFICATE_VERIFY_FAILED —
+            # incluida la orden de desarrollo que documentaban CLAUDE.md y el
+            # README (hueco G-11). Ahora se respeta `sslmode`/`ssl` de la URL,
+            # que es el parámetro estándar de libpq:
+            #
+            #   ...?sslmode=disable   → sin SSL (sólo desarrollo local)
+            #   ...?sslmode=require   → cifrado sin verificar el certificado
+            #   sin parámetro         → verificado (el comportamiento de antes)
+            #
+            # `sslmode=disable` se RECHAZA en producción: bajar el cifrado por
+            # una cadena de conexión mal copiada no puede ser algo que ocurra en
+            # silencio.
             import ssl as _ssl
-            ssl_ctx = _ssl.create_default_context()
+            from urllib.parse import parse_qs, urlparse
+
+            consulta = parse_qs(urlparse(database_url).query)
+            modo = (consulta.get("sslmode") or consulta.get("ssl") or [""])[0].lower()
+
+            # ⚠️ El parámetro `ssl=` de asyncpg NO basta para verificar.
+            #
+            # Pasarle un `SSLContext` sin decir `sslmode` deja el modo en
+            # `prefer`, y para prefer/allow/require asyncpg fuerza
+            # `check_hostname=False` + `verify_mode=CERT_NONE` sobre una copia
+            # del contexto. Es decir: el código decía «SSL verificado», el
+            # comentario lo repetía, y lo que hacía era CIFRAR SIN AUTENTICAR —
+            # abierto a un intermediario que presente cualquier certificado.
+            # Comprobado contra un Postgres con certificado autofirmado: conectó
+            # sin rechistar, y `pg_stat_ssl` confirmaba cifrado.
+            #
+            # Sólo `verify-ca` y `verify-full` verifican de verdad, así que el
+            # modo va EXPLÍCITO en la cadena de conexión.
+            if modo in ("disable", "false", "off", "0"):
+                if os.environ.get("ENVIRONMENT", "production") == "production":
+                    raise RuntimeError(
+                        "sslmode=disable no se permite en producción: la conexión a la "
+                        "base de datos viajaría en claro. Quita el parámetro o usa "
+                        "sslmode=require."
+                    )
+                modo_efectivo = "disable"
+            elif modo in ("require", "allow", "prefer", "verify-ca"):
+                # Escotilla para un proveedor cuyo certificado no encadene
+                # contra el almacén del sistema. Es una decisión consciente.
+                modo_efectivo = modo
+            else:
+                modo_efectivo = "verify-full"
+
             self._pool = await asyncpg.create_pool(
-                clean_url, ssl=ssl_ctx, min_size=5, max_size=20,
-                timeout=10, command_timeout=30,
+                f"{clean_url}?sslmode={modo_efectivo}",
+                ssl=_ssl.create_default_context() if modo_efectivo.startswith("verify") else None,
+                min_size=5, max_size=20, timeout=10, command_timeout=30,
             )
 
     async def create_all_tables(self):
@@ -1857,7 +1953,6 @@ async def purge_lapsed_user_data(database, now: Optional[datetime] = None) -> in
 
 # ============= STARTUP - Create Demo User =============
 
-@app.on_event("startup")
 async def startup_event():
     """Initialise asyncpg pool, create tables, seed demo user."""
 
@@ -4718,7 +4813,7 @@ async def cancel_subscription(
                 "cancel_at": sub.current_period_end
             }
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4764,7 +4859,7 @@ async def resume_subscription(user: dict = Depends(require_user)):
 
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4799,7 +4894,7 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         
         return {"url": session.url}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4843,7 +4938,7 @@ async def get_billing_history(user: dict = Depends(require_user)):
             ]
         }
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except Exception as e:
         logging.error(f"Error fetching billing history: {log_safe(e)}")
         return {"invoices": []}
@@ -5009,8 +5104,7 @@ class OptionLegInput(BaseModel):
     iv: Optional[float] = 0.3
     daysToExpiry: Optional[int] = 30
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
     def get_qty(self):
         return self.quantity or self.qty or 1
@@ -5167,7 +5261,7 @@ async def opt_get_stock(symbol: str):
         data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
         logging.error(f"Error getting stock data for {log_safe(symbol)}: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
     if data.get("price") is None:
         try:
@@ -5671,7 +5765,7 @@ async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
         }
     except Exception as e:
         logging.error(f"Payoff calculation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 class ImpliedVolRequest(BaseModel):
@@ -5741,7 +5835,7 @@ async def opt_calculate_greeks(request: GreeksRequest) -> Dict[str, Any]:
         return calculate_greeks(legs_dicts, request.stockPrice, q=request.dividendYield or 0.0)
     except Exception as e:
         logging.error(f"Greeks calculation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.post("/calculate/pnl-attribution")
@@ -5762,7 +5856,7 @@ async def opt_pnl_attribution(request: PnlAttributionRequest) -> Dict[str, Any]:
         )
     except Exception as e:
         logging.error(f"PnL attribution error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.post("/calculate/assignment")
@@ -5805,7 +5899,7 @@ async def opt_assignment(request: AssignmentRequest) -> Dict[str, Any]:
         return result
     except Exception as e:
         logging.error(f"Assignment simulation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 class AmericanPriceRequest(BaseModel):
@@ -5929,7 +6023,7 @@ async def optimize_options_strategy(req: OptimizeRequest):
         }
     except Exception as e:
         logging.error(f"Optimize error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.get("/options/earnings/{symbol}")
@@ -6524,7 +6618,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         }
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="El análisis de IA no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.")
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -6536,7 +6630,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         raise
     except Exception as e:
         logging.error(f"AI analyze error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="El análisis de IA no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.")
 
 
 # ─── Asistente de la Academia ─────────────────────────────────────
@@ -8725,7 +8819,7 @@ async def admin_refund_subscription(request: Request, user_id: str, admin: dict 
         )
         return {"status": "refunded", "refund_id": refund.id}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=f"Error de Stripe: {e}")
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
 
 
 # ── REVENUE ANALYTICS ────────────────────────────────────────────────────────
@@ -9430,7 +9524,6 @@ else:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
 
-@app.on_event("shutdown")
 async def shutdown_db_client():
     try:
         from realtime_alerts import stop_poller
@@ -9438,3 +9531,60 @@ async def shutdown_db_client():
     except Exception:
         pass
     await db.close()
+
+
+# ============================================================
+#  Ciclo de vida (sustituye a @app.on_event, retirado en FastAPI)
+# ============================================================
+#
+# `startup_event` y `shutdown_db_client` se definen MUCHO después de crear
+# `app`, así que no se pueden pasar como `lifespan=` en el constructor sin
+# reordenar medio fichero — y reordenar el arranque es justo lo que no conviene
+# tocar a ciegas. Engancharlo aquí conserva el orden y el comportamiento
+# exactos, y quita las dos deprecaciones (G-19).
+@asynccontextmanager
+async def _ciclo_de_vida(_app):
+    await startup_event()
+    tarea_purga = asyncio.create_task(_purga_periodica())
+    try:
+        yield
+    finally:
+        tarea_purga.cancel()
+        try:
+            await tarea_purga
+        except (asyncio.CancelledError, Exception):  # noqa: B014
+            pass
+        await shutdown_db_client()
+
+
+app.router.lifespan_context = _ciclo_de_vida
+
+
+# ── La purga por retención necesita repetirse, no sólo arrancar ──────────────
+#
+# `purge_lapsed_user_data` sólo corría en el arranque. Con `min-instances=1`, un
+# contenedor que no se reinicie en semanas NO PURGA NADA: la política de
+# conservar los datos DATA_RETENTION_DAYS y borrarlos después queda escrita y sin
+# cumplir, que en materia de RGPD es peor que no tenerla — es una promesa
+# incumplida por escrito.
+#
+# Un bucle dentro del proceso no es tan sólido como un Cloud Scheduler, pero no
+# depende de configurar nada fuera del repositorio y convierte «nunca» en «cada
+# día». Si algún día hay planificador, esto se quita.
+PURGA_CADA_SEGUNDOS = int(os.environ.get("PURGE_INTERVAL_SECONDS", 24 * 3600))
+
+
+async def _purga_periodica():
+    """Repite la purga por retención mientras el proceso viva."""
+    while True:
+        try:
+            await asyncio.sleep(PURGA_CADA_SEGUNDOS)
+            purgados = await purge_lapsed_user_data(db)
+            if purgados:
+                logging.info(
+                    "[retención] purgados los datos de %d usuario(s) sin pago > %d días",
+                    log_safe(purgados), log_safe(DATA_RETENTION_DAYS))
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001 — un fallo no puede matar el bucle
+            logging.warning("[retención] la purga periódica falló: %s", log_safe(e))

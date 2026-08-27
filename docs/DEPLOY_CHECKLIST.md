@@ -80,26 +80,32 @@ Los usa el despliegue del backend (`cloudbuild.yaml`, manual desde GCP):
 
 ## D. Cloud Run / Cloud SQL (infra)
 
-> ⚠️ **La región de este bloque contradecía la de la tabla de arriba** (`us-east1`
-> en las filas de despliegue, `europe-west1` aquí y en la skill `pre-deploy`).
-> No es un detalle: `gcloud run services describe --region=europe-west1` devuelve
-> «not found» sobre un servicio que existe, y quien lo lea puede concluir que el
-> backend está caído — o desplegar un segundo servicio en la región equivocada.
-> Y si Cloud SQL estuviera de verdad en `europe-west1` con Cloud Run en
-> `us-east1`, cada consulta cruzaría el Atlántico.
+> ✅ **Resuelto el 2026-08-27.** Este bloque describía un montaje que NO EXISTE:
+> `europe-west1`, una instancia de Cloud SQL `trading-db`, un repositorio
+> `trading-repo` y siete secretos en Secret Manager. La comprobación contra el
+> proyecto real (anotada en `.claude/rules/infra.md` el 2026-08-25, cuando se
+> retiró `cloudbuild.yaml` por describir esa misma ficción) dice otra cosa:
 >
-> **Sólo se puede cerrar mirando la consola de GCP.** Hasta entonces la región
-> que manda es la de la tabla de despliegue (`us-east1`), porque describe lo que
-> el push a `main` hace de verdad; estas casillas quedan marcadas como
-> pendientes de verificar, no como verdad.
+> | Qué | De verdad |
+> |---|---|
+> | Servicio | `tradingcalculator-api` en **`us-east1`** |
+> | Base de datos | **Externa, por `DATABASE_URL`. No hay Cloud SQL** — la API `sqladmin` ni está habilitada |
+> | Configuración | 15 variables de entorno en el propio servicio, no `--update-secrets` |
+>
+> Dejarlo como estaba costaba caro en las dos direcciones: quien mirase
+> `--region=europe-west1` vería «not found» sobre un servicio que existe y podría
+> darlo por caído, y quien siguiera las casillas crearía un SEGUNDO servicio en
+> Europa mientras el frontend apunta al de EE. UU.
 
-- [ ] 🔴 **VERIFICAR LA REGIÓN EN LA CONSOLA** y unificar este bloque con la
-      tabla de despliegue. Lo de abajo asume `europe-west1` y puede ser falso.
-- [ ] 🔴 Cloud SQL **PostgreSQL** `trading-db` en `europe-west1` operativa.
-- [ ] 🔴 Servicio Cloud Run `tradingcalculator-api` en `europe-west1`,
-      `--add-cloudsql-instances=PROJ:europe-west1:trading-db`.
+- [x] ~~Cloud SQL `trading-db` en `europe-west1`~~ — **no aplica**: la base de datos
+      es externa y llega por `DATABASE_URL`.
+- [x] ~~Servicio Cloud Run en `europe-west1` con `--add-cloudsql-instances`~~ —
+      **no aplica**: el servicio vive en `us-east1` y no monta ningún socket de
+      Cloud SQL.
 - [ ] `min-instances=1` (no bajar a 0). `concurrency=80`. Memoria 512Mi.
-- [ ] Artifact Registry `trading-repo` en `europe-west1` (el workflow lo crea si falta).
+- [x] ~~Artifact Registry `trading-repo` en `europe-west1`~~ — **no aplica**: las
+      imágenes van a `us-east1-docker.pkg.dev/<proy>/cloud-run-source-deploy/`,
+      que crea el propio despliegue desde código.
 - [ ] Healthcheck post-deploy responde: `GET {SERVICE_URL}/api/health` → 200 `{status: healthy}`.
 
 ## E. Stripe (operación) 🔴
