@@ -65,6 +65,8 @@
 | **NOWPayments / crypto (código)** | 🟢 | Invoice + IPN con HMAC-SHA512 verificado (`backend/nowpayments.py`) |
 | **NOWPayments / crypto (operación)** | 🔴 | Falta API Key + IPN secret en el panel admin y registrar el callback. **OxaPay y MaxelPay ya NO existen en el código** |
 | **Revolut Pay (código)** | 🟢 | `backend/revolut.py`, registrado en el checkout |
+| **Kunfupay (código)** | 🟢 | Cuarto raíl, **camino B**: enlace de cobro por plan (`kunfupay_links`) + alta manual auditada e idempotente (`POST /admin/payments/manual`, con formulario en el panel). Los raíles activos se encienden y apagan con el ajuste `payment_methods_enabled` —apagar Stripe ya no exige desplegar—. Ver [`PASARELA_KUNFUPAY.md`](./PASARELA_KUNFUPAY.md) § 16 |
+| **Kunfupay (operación)** | 🔴 | Falta la cuenta, los enlaces de cobro y **el primer cobro real**: su dominio está bloqueado desde el entorno remoto y nada se ha probado contra un pago de verdad. El conector con webhook (camino A) no se puede escribir hasta que publiquen API — § 5, preguntas 1-3 |
 | **DNS / dominio `tradingcalculatorpro.com`** | ❓ | **Hoy se sirve en `abcde-rgb.github.io/Tradingcalculatorpro.com`** (no hay `CNAME` en `public/`). Los despliegues ya apuntan ahí; el dominio propio sigue sin usarse |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
@@ -130,8 +132,11 @@
   Los textos legales (`lib/legalContent/`) también están en los 10; la versión
   vinculante sigue siendo la española.
 - **Pagos**: Stripe + PayPal (`@paypal/react-paypal-js`) + **Revolut Pay** +
-  **NOWPayments** (crypto, botón "Criptomonedas"). *No* OxaPay ni MaxelPay: ambas
-  se probaron y se retiraron; no queda código de ninguna.
+  **NOWPayments** (crypto, botón "Criptomonedas") + **Kunfupay** (enlace + alta manual,
+  apagado hasta que haya enlaces configurados). Qué raíles se ven y se pueden cobrar lo
+  decide `payment_methods_enabled`, y el backend lo comprueba en el checkout, no sólo la
+  página. *No* OxaPay ni MaxelPay: ambas se probaron y se retiraron; no queda código de
+  ninguna.
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
 - **Analítica/SEO**: GA4 + GTM + GSC/Bing, `sitemap.xml`, `robots.txt`, `og-image`,
   `manifest.json` (PWA), hook `useSEO`.
