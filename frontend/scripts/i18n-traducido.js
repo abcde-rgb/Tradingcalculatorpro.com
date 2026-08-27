@@ -99,6 +99,14 @@ const EXCEPCIONES = {
     motivo: 'Payment for order flow (PFOF): término regulatorio, se cita en inglés',
     idiomas: true,
   },
+  smcFvgName: {
+    motivo: 'Fair Value Gap (imbalance): nomenclatura de Smart Money Concepts, en inglés en todas partes',
+    idiomas: true,
+  },
+  cotTffName: {
+    motivo: 'Traders in Financial Futures (TFF): nombre oficial del informe de la CFTC',
+    idiomas: true,
+  },
 };
 
 const LINEA = /^\s*"([A-Za-z0-9_]+)":\s*"((?:[^"\\]|\\.)*)",?\s*$/gm;
