@@ -15,12 +15,12 @@
 | | |
 |---|---:|
 | Módulos del backend | 36 |
-| Líneas de Python (backend) | 27,042 |
+| Líneas de Python (backend) | 27,050 |
 | Rutas declaradas | 198 |
 | **Rutas sin consumidor en el frontend** | **34** |
-| Ficheros de test · funciones de test | 62 · 1019 |
+| Ficheros de test · funciones de test | 62 · 1022 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 6,966 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 6,972 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -80,7 +80,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | Módulo | Líneas | Rutas | Responsabilidad |
 |---|---:|---:|---|
 | `server.py` | 9,591 | 140 | — |
-| `performance.py` | 1,835 |  | Performance analytics — trade journal, metrics, error detection. |
+| `performance.py` | 1,843 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,248 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
 | `missing_apis.py` | 968 | 9 | missing_apis.py |
@@ -391,7 +391,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 |---|---:|---:|
 | `components/auth/` | 3 | 290 |
 | `components/backtesting/` | 1 | 175 |
-| `components/brokers/` | 1 | 230 |
+| `components/brokers/` | 1 | 240 |
 | `components/calculators/` | 15 | 4,644 |
 | `components/calculators/simulator/` | 6 | 1,436 |
 | `components/charts/` | 3 | 797 |
@@ -399,12 +399,12 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/common/` | 12 | 2,248 |
 | `components/dashboard/` | 7 | 926 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 81 | 13,122 |
+| `components/education/` | 81 | 13,127 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 590 |
 | `components/options/` | 36 | 7,995 |
-| `components/performance/` | 7 | 3,469 |
+| `components/performance/` | 7 | 3,479 |
 | `components/performance/form/` | 6 | 724 |
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
@@ -420,16 +420,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 9,591 |
 | `frontend/src/pages/EducationPage.jsx` | 5,575 |
-| `frontend/src/lib/i18n/ar.js` | 4,662 |
-| `frontend/src/lib/i18n/de.js` | 4,662 |
-| `frontend/src/lib/i18n/en.js` | 4,662 |
-| `frontend/src/lib/i18n/es.js` | 4,662 |
-| `frontend/src/lib/i18n/fr.js` | 4,662 |
-| `frontend/src/lib/i18n/it.js` | 4,662 |
-| `frontend/src/lib/i18n/ja.js` | 4,662 |
-| `frontend/src/lib/i18n/pt.js` | 4,662 |
-| `frontend/src/lib/i18n/ru.js` | 4,662 |
-| `frontend/src/lib/i18n/zh.js` | 4,662 |
+| `frontend/src/lib/i18n/ar.js` | 4,668 |
+| `frontend/src/lib/i18n/de.js` | 4,668 |
+| `frontend/src/lib/i18n/en.js` | 4,668 |
+| `frontend/src/lib/i18n/es.js` | 4,668 |
+| `frontend/src/lib/i18n/fr.js` | 4,668 |
+| `frontend/src/lib/i18n/it.js` | 4,668 |
+| `frontend/src/lib/i18n/ja.js` | 4,668 |
+| `frontend/src/lib/i18n/pt.js` | 4,668 |
+| `frontend/src/lib/i18n/ru.js` | 4,668 |
+| `frontend/src/lib/i18n/zh.js` | 4,668 |
 
 ## Verificadores del repositorio
 
