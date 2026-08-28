@@ -1,7 +1,11 @@
 import { useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 
-const ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+// Dominio propio. Tiene que ser LA MISMA cadena que `frontend/public/CNAME`,
+// que `SITE_ORIGIN` del workflow de despliegue y que el `DEFAULT_ORIGIN` de
+// `scripts/gen-sitemap.js` y `scripts/gen-seo-pages.js`: si el canonical de una
+// página y su `<loc>` en el sitemap no coinciden, Google descarta el sitemap.
+const ORIGIN = 'https://tradingcalculator.pro';
 const BRAND  = 'Trading Calculator PRO';
 
 /**

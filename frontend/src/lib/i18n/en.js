@@ -3583,7 +3583,7 @@ export default {
   "passwordChangeErrorToast": "Could not change the password",
   "typeWordToConfirmToast": "Type {word} to confirm",
   "accountDeletedToast": "Account deleted. See you soon.",
-  "accountDeleteManualToast": "Your account could not be deleted automatically. Please email contact@tradingcalculatorpro.com with the subject \"Account deletion request\" from your registered email address.",
+  "accountDeleteManualToast": "Your account could not be deleted automatically. Please email contact@tradingcalculator.pro with the subject \"Account deletion request\" from your registered email address.",
   "accountDeleteErrorToast": "Could not delete the account. Please contact support.",
   "downloadDataErrorToast": "Error downloading the data",
   "partnersTitle": "Tools we recommend",

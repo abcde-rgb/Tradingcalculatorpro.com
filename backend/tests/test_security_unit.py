@@ -170,45 +170,56 @@ class _FakeRequest:
         self.headers = _FakeHeaders(headers)
 
 
+CANONICAL = "https://tradingcalculator.pro"
+
+
 @pytest.fixture(autouse=True)
 def _clean_link_env(monkeypatch):
     monkeypatch.delenv("CORS_ORIGINS", raising=False)
-    monkeypatch.setenv("FRONTEND_URL", "https://tradingcalculatorpro.com")
+    monkeypatch.setenv("FRONTEND_URL", CANONICAL)
     monkeypatch.setenv("ENVIRONMENT", "production")
 
 
 @pytest.mark.parametrize("evil_origin", [
     "https://evil.com",
     "http://attacker.example",
-    "https://tradingcalculatorpro.com.evil.com",   # suffix trick
-    "https://eviltradingcalculatorpro.com",         # prefix trick
-    "https://tradingcalculatorpro.com@evil.com",    # userinfo trick
+    "https://tradingcalculator.pro.evil.com",   # suffix trick
+    "https://eviltradingcalculator.pro",         # prefix trick
+    "https://tradingcalculator.pro@evil.com",    # userinfo trick
     "null",
 ])
 def test_emailed_link_base_ignores_untrusted_origin(evil_origin):
     """A poisoned Host/Origin/Referer must never end up in an emailed link."""
     req = _FakeRequest(origin=evil_origin, referer=evil_origin + "/x", host="evil.com")
     base = trusted_link_base(req)
-    assert base == "https://tradingcalculatorpro.com", f"leaked untrusted origin: {base!r}"
+    assert base == CANONICAL, f"leaked untrusted origin: {base!r}"
     assert "evil" not in base and "attacker" not in base
 
 
 def test_emailed_link_base_falls_back_to_canonical_when_no_headers():
-    assert trusted_link_base(_FakeRequest()) == "https://tradingcalculatorpro.com"
-    assert trusted_link_base(None) == "https://tradingcalculatorpro.com"
+    assert trusted_link_base(_FakeRequest()) == CANONICAL
+    assert trusted_link_base(None) == CANONICAL
 
 
 def test_emailed_link_base_allows_canonical_and_www():
-    for good in ("https://tradingcalculatorpro.com", "https://www.tradingcalculatorpro.com"):
+    for good in (CANONICAL, "https://www.tradingcalculator.pro"):
         assert trusted_link_base(_FakeRequest(origin=good)) == good
 
 
 def test_emailed_link_base_honours_explicit_cors_allowlist(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGINS", "https://staging.tradingcalculatorpro.com")
-    ok = "https://staging.tradingcalculatorpro.com"
+    monkeypatch.setenv("CORS_ORIGINS", "https://staging.tradingcalculator.pro")
+    ok = "https://staging.tradingcalculator.pro"
     assert trusted_link_base(_FakeRequest(origin=ok)) == ok
     # something NOT on the list still falls back to canonical
-    assert trusted_link_base(_FakeRequest(origin="https://evil.com")) == "https://tradingcalculatorpro.com"
+    assert trusted_link_base(_FakeRequest(origin="https://evil.com")) == CANONICAL
+
+
+def test_emailed_link_base_rejects_the_lookalike_third_party_domain():
+    """`tradingcalculatorpro.com` (sin punto) es de un tercero: ni CORS ni un
+    enlace de reset pueden apuntar ahí. Estuvo en ambas listas por error hasta
+    el cutover del 2026-08-28 — ver docs/MIGRACION_DOMINIO.md."""
+    for ajeno in ("https://tradingcalculatorpro.com", "https://www.tradingcalculatorpro.com"):
+        assert trusted_link_base(_FakeRequest(origin=ajeno)) == CANONICAL
 
 
 # ============================================================
@@ -216,12 +227,15 @@ def test_emailed_link_base_honours_explicit_cors_allowlist(monkeypatch):
 #  sin depender de una variable de entorno del despliegue
 # ============================================================
 #
-# Contexto del fallo que fija esto (2026-08-05): la web se publica en
-# `https://abcde-rgb.github.io/Tradingcalculatorpro.com` — no hay `CNAME` en
-# `frontend/public/` y el `homepage` de `package.json` apunta ahí. Pero la lista
-# de CORS del código sólo traía `tradingcalculatorpro.com`, que es el dominio que
-# NO está en uso. Lo único que hacía funcionar el login era la variable
-# `CORS_ORIGINS` que ponía el despliegue.
+# Contexto del fallo que fija esto (2026-08-05): la web se publicaba en
+# `https://abcde-rgb.github.io/Tradingcalculatorpro.com` y la lista de CORS del
+# código sólo traía `tradingcalculatorpro.com`. Lo único que hacía funcionar el
+# login era la variable `CORS_ORIGINS` que ponía el despliegue.
+#
+# Y volvió a pasar el 2026-08-28, en el otro sentido: el cutover puso el `CNAME`
+# a `tradingcalculator.pro` y desplegó la web ahí, pero nadie tocó esta lista.
+# Resultado: la web entera dejó de hablar con el backend en producción. Por eso
+# el origen servido se fija AQUÍ, y por eso hay un test que lo comprueba.
 #
 # Por qué es grave y por qué se ve tan mal: sin la cabecera CORS el backend
 # responde **200 con las cookies puestas** y es el NAVEGADOR quien descarta la
@@ -260,24 +274,54 @@ def _cors_origins_with_env(env: dict) -> list:
     return ns["_CORS_ORIGINS"]
 
 
-SERVED_ORIGIN = "https://abcde-rgb.github.io"
+# El Origin que manda el navegador de un usuario real. Sale del `CNAME` de
+# `frontend/public/` — si algún día cambia ahí, tiene que cambiar aquí, y este
+# test es lo que obliga a acordarse.
+SERVED_ORIGIN = "https://tradingcalculator.pro"
+
+
+def test_served_origin_matches_the_cname_committed_in_the_frontend():
+    """La lista de CORS y el `CNAME` desplegado no pueden divergir.
+
+    El fallo del 2026-08-28 fue exactamente esto: el `CNAME` pasó a
+    `tradingcalculator.pro` y la lista se quedó con el dominio viejo.
+    """
+    cname = (_SERVER.parent.parent / "frontend" / "public" / "CNAME")
+    assert cname.exists(), "falta frontend/public/CNAME: el dominio propio no sobrevive al deploy"
+    dominio = cname.read_text(encoding="utf-8").strip()
+    assert SERVED_ORIGIN == f"https://{dominio}", (
+        f"el CNAME sirve {dominio!r} y este test fija {SERVED_ORIGIN!r}"
+    )
 
 
 def test_served_origin_is_allowed_without_any_env_var():
-    """El origen donde vive la web hoy entra por código, no por despliegue."""
+    """El origen donde vive la web entra por código, no por despliegue."""
     origins = _cors_origins_with_env({})
     assert SERVED_ORIGIN in origins, (
         "El frontend se sirve en " + SERVED_ORIGIN + " y no está en la lista de "
         "CORS. Sin la cabecera el navegador descarta la respuesta del login: el "
         "backend devuelve 200 y el usuario no puede entrar."
     )
+    assert "https://www.tradingcalculator.pro" in origins, "falta el www del dominio propio"
 
 
-def test_own_domain_stays_allowed_for_the_dns_cutover():
-    """El dominio propio sigue permitido: el día del cutover no debe romperse."""
+def test_github_pages_stays_allowed_as_a_fallback():
+    """Pages sigue respondiendo y redirige al dominio propio: si el DNS falla,
+    que al menos el login no se caiga además por CORS."""
+    assert "https://abcde-rgb.github.io" in _cors_origins_with_env({})
+
+
+def test_the_lookalike_third_party_domain_is_never_allowed():
+    """`tradingcalculatorpro.com` (sin punto) lo sirve un tercero.
+
+    Con `allow_credentials=True`, tenerlo en la lista permitiría a esa web leer
+    respuestas autenticadas de nuestros usuarios. Estuvo ahí por error.
+    """
     origins = _cors_origins_with_env({})
-    assert "https://tradingcalculatorpro.com" in origins
-    assert "https://www.tradingcalculatorpro.com" in origins
+    for ajeno in ("https://tradingcalculatorpro.com", "https://www.tradingcalculatorpro.com"):
+        assert ajeno not in origins, (
+            f"{ajeno} es un dominio ajeno y está en la lista de CORS con credenciales"
+        )
 
 
 def test_extra_origins_from_env_still_work_and_do_not_duplicate():

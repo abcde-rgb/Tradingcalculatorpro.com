@@ -44,4 +44,4 @@ User-agent: DotBot
 Disallow: /
 
 # Sitemap
-Sitemap: https://abcde-rgb.github.io/Tradingcalculatorpro.com/sitemap.xml
+Sitemap: https://tradingcalculator.pro/sitemap.xml

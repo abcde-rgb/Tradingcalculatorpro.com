@@ -11,7 +11,7 @@ import { useTranslation } from '@/lib/i18n';
 import { getLegalContent } from '@/lib/legalContent';
 import { LEGAL_ENTITY } from '@/lib/legalContent/entity';
 
-const CONTACT_EMAIL = 'contact@tradingcalculatorpro.com';
+const CONTACT_EMAIL = 'contact@tradingcalculator.pro';
 
 // ---------------------------------------------------------------------------
 // Rich-text renderer for the legal content files. Supports:

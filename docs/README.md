@@ -40,7 +40,7 @@ leen en el mismo momento ni con la misma intención.
 | [`setup/GOOGLE_CLOUD_SETUP.md`](./setup/GOOGLE_CLOUD_SETUP.md) | Alta de Cloud Run, Cloud SQL, Secret Manager y Workload Identity |
 | [`setup/GOOGLE_OAUTH_SETUP.md`](./setup/GOOGLE_OAUTH_SETUP.md) | Credenciales de Google OAuth |
 | [`PUBLICAR_EN_TIENDAS.md`](./PUBLICAR_EN_TIENDAS.md) | Empaquetado para Play Store / App Store (TWA) |
-| [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) | Activar el dominio propio `tradingcalculatorpro.com` (hoy se sirve en `github.io`) |
+| [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) | El dominio propio `tradingcalculator.pro`: cómo se hizo el cutover y qué falta fuera del repo |
 
 ## 📈 Voy a captar usuarios
 
