@@ -167,6 +167,19 @@ export default function AdminPage() {
         navigate('/dashboard');
         return;
       }
+      // 428: el backend exige 2FA a los administradores y lo dice en `detail`.
+      // Sin esta rama el panel se pintaba VACÍO y el motivo se quedaba en la
+      // consola: el administrador veía tablas en blanco y ninguna explicación.
+      // El 428 existe justamente para distinguir «no puedes» de «te falta un
+      // paso», así que se le lleva a Ajustes, que es donde se activa.
+      if (mRes.status === 428 || uRes.status === 428) {
+        let motivo = '';
+        try { motivo = (await mRes.clone().json()).detail || ''; } catch { /* sin cuerpo */ }
+        toast.error(motivo || 'Los administradores deben activar la verificación en dos pasos.',
+                    { duration: 9000 });
+        navigate('/settings', { state: { need2fa: true } });
+        return;
+      }
       if (!mRes.ok || !uRes.ok) {
         throw new Error(`metrics=${mRes.status} users=${uRes.status}`);
       }
@@ -319,7 +332,10 @@ export default function AdminPage() {
             <MetricCard icon={TrendingUp} label={t('adminMetricNew30d')}
               value={metrics.new_users_30d} testId="metric-new-30d" />
             <MetricCard icon={Globe2} label={t('adminMetricLocales')}
-              value={metrics.by_locale.length} testId="metric-locales" />
+              // `?.` a propósito: una respuesta sin `by_locale` —un error con otra
+              // forma, una versión antigua del backend— tiraba la página entera al
+              // ErrorBoundary («Algo salió mal»), que no dice nada de lo que pasa.
+              value={metrics.by_locale?.length ?? '—'} testId="metric-locales" />
           </div>
         )}
 

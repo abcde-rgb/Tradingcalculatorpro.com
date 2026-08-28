@@ -779,6 +779,20 @@ else
   echo "      en :3100, no se prueban (bash tests/e2e/stack/arriba.sh)"
 fi
 
+# ── El panel de admin explica el fallo en vez de romperse ───────────────────
+# Sirve el build y responde a /api/** desde la propia sonda: no necesita backend
+# ni Postgres, porque lo que se prueba es cómo REACCIONA la interfaz.
+if [ -d frontend/build ] && [ -d tests/e2e/lib/playwright-core ]; then
+  titulo "Panel de admin ante respuestas de error (panel-admin.js)"
+  RECOMPILA_ADMIN="(cd frontend && PUBLIC_URL=/ REACT_APP_BACKEND_URL=https://backend.example CI=false npx craco build >/dev/null 2>&1)"
+  probar "el panel se traga un 428 y deja las tablas en blanco" \
+    "node tests/e2e/navegador/panel-admin.js" \
+    "python -c \"import pathlib; p=pathlib.Path('frontend/src/pages/AdminPage.jsx'); s=p.read_text(encoding='utf-8'); i=s.find('      if (mRes.status === 428'); j=s.find('        return;', i)+len('        return;\\n      }\\n'); p.write_text(s[:i]+s[j:], encoding='utf-8')\" && $RECOMPILA_ADMIN" \
+    "git checkout -- . && $RECOMPILA_ADMIN"
+else
+  echo "  ⏭️  Panel de admin: sin build o sin playwright-core, no se prueba"
+fi
+
 # ── Contraste del texto en los dos temas ────────────────────────────────────
 # Levanta su propio servidor, así que basta con el build. Se sabotea el token
 # que causó el fallo real: el verde del tema claro a `35%`, que dejaba 48
