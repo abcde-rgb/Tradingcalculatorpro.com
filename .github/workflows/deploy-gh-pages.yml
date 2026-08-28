@@ -48,7 +48,13 @@ jobs:
           # 'google' si el consentimiento lo gestiona la CMP certificada de
           # Google (AdSense → Privacidad y mensajes). Vacío = manda el banner
           # de cookies propio.
+          # Con dominio propio el sitio cuelga de la RAÍZ. Mientras se servía en
+          # `github.io/Tradingcalculatorpro.com` esto valía `/Tradingcalculatorpro.com`;
+          # dejarlo así con el CNAME puesto rompe TODOS los assets.
           PUBLIC_URL: /
+          # Origen único del que salen el sitemap y las ~1.630 páginas generadas
+          # (`gen-sitemap.js` y `gen-seo-pages.js` lo leen). Si no coincide con el
+          # canonical de cada página, Google descarta las URLs anunciadas.
           SITE_ORIGIN: https://tradingcalculator.pro
           CI: false
         run: npm run build

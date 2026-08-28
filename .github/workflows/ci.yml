@@ -78,6 +78,13 @@ jobs:
       - name: El catálogo de instrumentos está en paridad (backend ↔ frontend)
         run: python scripts/gen-instruments-js.py --check
 
+      # El cableado del asistente no rompe ningún test cuando se pudre: sólo
+      # hace que la IA se oriente con un mapa falso. El 2026-08-27 el mapa
+      # listaba 7 de 17 skills, dos reglas disparaban sobre un fichero retirado
+      # y los tres subagentes decían seguir una skill que no podían cargar.
+      - name: El asistente está cableado (skills, comandos, agentes, reglas)
+        run: python scripts/gen-asistente.py --check
+
       # El mapa CUENTA las rutas que ninguna pantalla llama; esto exige que cada
       # una lleve escrito qué se hace con ella. Sin ello, una ruta nueva e
       # inalcanzable sólo sube el contador y CI se queda verde.
@@ -212,3 +219,12 @@ jobs:
         run: npm run build
         env:
           CI: false   # mismo criterio que el deploy: warnings no rompen el build
+
+      # El `postbuild` genera 1.630 páginas indexables y un sitemap de 1.639
+      # URLs — el mayor activo de captación del proyecto — y hasta el
+      # 2026-08-27 no lo comprobaba nada. Los fallos de SEO son silenciosos por
+      # naturaleza: un canonical cruzado o un hreflang incompleto no rompen
+      # ninguna pantalla, sólo hacen que Google deje de indexar. Va DESPUÉS del
+      # build porque mira las páginas generadas, no el código que las genera.
+      - name: Las páginas prerenderizadas son indexables
+        run: node scripts/check-seo.js

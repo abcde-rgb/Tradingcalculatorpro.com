@@ -12,13 +12,13 @@ description: >-
 
 SEO = que Google/Bing encuentren, entiendan e indexen bien la web para que aparezca en
 búsquedas. Este skill reúne **dónde está cada cosa** y **qué mejorar**, específico de este
-proyecto (React SPA en GitHub Pages, 8 idiomas).
+proyecto (React SPA en GitHub Pages, 10 idiomas).
 
 ## 1. Arquitectura SEO (dónde vive cada pieza)
 
 | Pieza | Archivo | Qué hace |
 |---|---|---|
-| **Meta por página** | `frontend/src/hooks/useSEO.js` | Hook que fija `<title>`, description, OG/Twitter, **canonical**, `lang/dir` y **hreflang** de los 8 idiomas en cada ruta. |
+| **Meta por página** | `frontend/src/hooks/useSEO.js` | Hook que fija `<title>`, description, OG/Twitter, **canonical**, `lang/dir` y **hreflang** de los 10 idiomas en cada ruta. |
 | **Meta base + schema** | `frontend/public/index.html` | Meta por defecto, **JSON-LD schema.org**, OG/Twitter, verificación (Google/Bing/Yandex), preconnect de fuentes. |
 | **Sitemap** | `frontend/public/sitemap.xml` | Lista de páginas públicas. Se regenera con `frontend/scripts/gen-sitemap.js`. |
 | **Robots** | `frontend/public/robots.txt` | Permite/bloquea crawlers + enlaza el sitemap. |
@@ -33,7 +33,7 @@ con el dominio del sitemap, robots y el CORS del backend (ver §6, gotcha de dom
 
 - [ ] **Cada página pública usa `useSEO`** con `titleKey` + `descriptionKey` + `canonicalPath`.
 - [ ] Títulos únicos y descriptivos (<60 car.) y descriptions con gancho (<155 car.).
-- [ ] **Claves SEO traducidas** en los 8 idiomas (`node scripts/i18n-check.js`; ver hueco G-09).
+- [ ] **Claves SEO traducidas** en los 10 idiomas (`node scripts/i18n-check.js`; ver hueco G-09).
 - [ ] **Sitemap** solo con páginas públicas indexables (sin login/muro) y dominio correcto.
 - [ ] **robots.txt**: `Disallow` a `/api/`, `/admin/`, `/settings`, pagos; `Sitemap:` correcto.
 - [ ] **hreflang** coherente (lo gestiona `useSEO`; no dejar alternates estáticos viejos).
@@ -63,7 +63,11 @@ Validar: https://www.xml-sitemaps.com/validate-xml-sitemap.html
 
 1. **Resolver el dominio** (§6) y unificar todo a él — sin esto, nada indexa bien.
 2. **Verificar + enviar sitemap** en Google Search Console y Bing (ver `SEO_GUIDE.md`).
-3. **Completar traducciones SEO** (títulos/descripcions en los 6 idiomas incompletos, G-09).
+3. ~~Completar traducciones SEO~~ — **hecho**. El hueco G-09 se cerró el 2026-07-11 y
+   `i18n-check` confirma paridad total: 10 locales, 7.290 claves cada uno, 0 faltan.
+   Lo que sí queda es que un título traducido no es un título *optimizado*: revisa que
+   los `seoTitle`/`seoDesc` de cada idioma lleven el término que se busca en ese idioma,
+   no una traducción literal del español.
 4. **Prerender** de las rutas públicas (react-snap o migrar a SSG/Next) → los crawlers ven HTML
    completo sin esperar a React. Es la mayor palanca para un SPA.
 5. **Contenido**: la zona de Educación es el imán de tráfico; estructurar en URLs indexables,

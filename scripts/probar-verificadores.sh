@@ -900,136 +900,151 @@ else
   echo "  ⏭️  Alfabeto por idioma y techo de los diagramas: sin frontend/node_modules"
 fi
 
-# ── El origen servido y la lista de CORS no pueden divergir ─────────────────
-# El fallo que esto fija ocurrió dos veces, una en cada sentido: el 2026-08-05
-# la lista traía el dominio propio y la web se servía en GitHub Pages, y el
-# 2026-08-28 el cutover puso el `CNAME` en `tradingcalculator.pro` y la lista se
-# quedó con el dominio viejo. En los dos casos la web entera dejó de hablar con
-# el backend, y en los dos casos los logs de Cloud Run se veían perfectos: sin
-# cabecera CORS el backend responde 200 y es el NAVEGADOR quien tira la
-# respuesta. `curl` tampoco lo reproduce.
-#
-# Se sabotea moviendo el `CNAME` a otro dominio, que es exactamente el cambio de
-# una línea que dejó la web caída.
-titulo "El origen servido está permitido (test_security_unit.py)"
-CORS_TEST="(cd backend && python -m pytest tests/test_security_unit.py -q -k origin_matches_the_cname -p no:cacheprovider)"
-probar "un CNAME que ya no coincide con la lista de CORS" \
-  "$CORS_TEST" \
-  "printf 'otrodominio.example\n' > frontend/public/CNAME"
+# ── Los sabotajes que corren pytest necesitan las dependencias del backend ──
+# El job de «Doc» de CI monta Python pero NO instala `requirements.txt`, así que
+# ahí `python -m pytest` no existe. Sin esta guarda los cinco bloques de abajo
+# reportan «no pasa ni ANTES de sabotear» y tumban el CI entero — que es lo que
+# le pasaba a `main` (runs de ec2c576 y 0b289e2, ambos en rojo). Los cubre el job
+# de backend, que sí instala e invoca esos mismos tests.
+# Se comprueba lo que los tests NECESITAN (pytest Y las dependencias que importa
+# `server.py`), no sólo que exista el corredor: con pytest instalado pero sin
+# fastapi, los bloques pasan la guarda y fallan igual — que es el mismo verde
+# falso, sólo que un paso más adelante.
+if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py ]; then
+  # ── El origen servido y la lista de CORS no pueden divergir ─────────────────
+  # El fallo que esto fija ocurrió dos veces, una en cada sentido: el 2026-08-05
+  # la lista traía el dominio propio y la web se servía en GitHub Pages, y el
+  # 2026-08-28 el cutover puso el `CNAME` en `tradingcalculator.pro` y la lista se
+  # quedó con el dominio viejo. En los dos casos la web entera dejó de hablar con
+  # el backend, y en los dos casos los logs de Cloud Run se veían perfectos: sin
+  # cabecera CORS el backend responde 200 y es el NAVEGADOR quien tira la
+  # respuesta. `curl` tampoco lo reproduce.
+  #
+  # Se sabotea moviendo el `CNAME` a otro dominio, que es exactamente el cambio de
+  # una línea que dejó la web caída.
+  titulo "El origen servido está permitido (test_security_unit.py)"
+  CORS_TEST="(cd backend && python -m pytest tests/test_security_unit.py -q -k origin_matches_the_cname -p no:cacheprovider)"
+  probar "un CNAME que ya no coincide con la lista de CORS" \
+    "$CORS_TEST" \
+    "printf 'otrodominio.example\n' > frontend/public/CNAME"
 
-# Y la otra dirección: el dominio parecido de un tercero
-# (`tradingcalculatorpro.com`, sin punto) no puede volver a colarse en la lista.
-# Con `allow_credentials=True` le dejaría leer respuestas autenticadas.
-titulo "El dominio ajeno sigue fuera de CORS (test_security_unit.py)"
-probar "el dominio de un tercero devuelto a la lista de CORS" \
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k lookalike_third_party -p no:cacheprovider)" \
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
-EOF"
+  # Y la otra dirección: el dominio parecido de un tercero
+  # (`tradingcalculatorpro.com`, sin punto) no puede volver a colarse en la lista.
+  # Con `allow_credentials=True` le dejaría leer respuestas autenticadas.
+  titulo "El dominio ajeno sigue fuera de CORS (test_security_unit.py)"
+  probar "el dominio de un tercero devuelto a la lista de CORS" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k lookalike_third_party -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
+  EOF"
 
-# ── El correo no puede distinguir mayúsculas ────────────────────────────────
-# BUG-070: el registro guardaba el correo tal como se tecleaba y el login lo
-# buscaba con igualdad exacta, que en PostgreSQL SÍ distingue mayúsculas. Quien
-# se registró como `Ana@x.com` y entraba como `ana@x.com` recibía 401 con la
-# contraseña correcta, y el 401 es idéntico al de una contraseña mala: no había
-# ninguna pista ni en pantalla ni en los logs.
-titulo "Correo insensible a mayúsculas (test_security_unit.py)"
-probar "el login vuelve a buscar el correo con igualdad exacta" \
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
-EOF"
+  # ── El correo no puede distinguir mayúsculas ────────────────────────────────
+  # BUG-070: el registro guardaba el correo tal como se tecleaba y el login lo
+  # buscaba con igualdad exacta, que en PostgreSQL SÍ distingue mayúsculas. Quien
+  # se registró como `Ana@x.com` y entraba como `ana@x.com` recibía 401 con la
+  # contraseña correcta, y el 401 es idéntico al de una contraseña mala: no había
+  # ninguna pista ni en pantalla ni en los logs.
+  titulo "Correo insensible a mayúsculas (test_security_unit.py)"
+  probar "el login vuelve a buscar el correo con igualdad exacta" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
+  EOF"
 
-probar "el registro deja de normalizar el correo al guardarlo" \
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k register_stores -p no:cacheprovider)" \
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
-EOF"
+  probar "el registro deja de normalizar el correo al guardarlo" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k register_stores -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
+  EOF"
 
-# La otra mitad, y es la que de verdad importa: el arreglo NO puede degradar a
-# un regex sin anclar. `~*` haría substring, y un correo es un regex válido, así
-# que `ana@x.com` casaría con `otro+ana@x.com.evil.com` — suplantación de cuenta.
-probar "el operador insensible degrada a un regex sin anclar" \
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k ieq_is_not_an_unanchored -p no:cacheprovider)" \
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
-nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
-assert s.count(viejo) == 1
-p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
-EOF"
+  # La otra mitad, y es la que de verdad importa: el arreglo NO puede degradar a
+  # un regex sin anclar. `~*` haría substring, y un correo es un regex válido, así
+  # que `ana@x.com` casaría con `otro+ana@x.com.evil.com` — suplantación de cuenta.
+  probar "el operador insensible degrada a un regex sin anclar" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k ieq_is_not_an_unanchored -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
+  nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
+  assert s.count(viejo) == 1
+  p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+  EOF"
 
-# ── Con duplicados, la cuenta elegida no puede cambiar ──────────────────────
-# El daño colateral de BUG-070: la comprobación de duplicados del registro
-# también distinguía mayúsculas, así que el mismo correo se dio de alta DOS
-# veces en producción. Y `find_one` es `SELECT … LIMIT 1` sin `ORDER BY`: con dos
-# filas que casan, PostgreSQL devuelve una cualquiera. Entrar unas veces en una
-# cuenta y otras en la otra es peor que fallar, y en `admin/promote` o en el alta
-# manual de un cobro significa tocar la fila equivocada.
-titulo "Elección determinista de cuenta (test_security_unit.py)"
-probar "el buscador deja de preferir la coincidencia exacta" \\
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k exact_match_wins -p no:cacheprovider)" \\
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-viejo = '        if (u.get(\"email\") or \"\") == correo:'
-assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
-p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
-EOF"
+  # ── Con duplicados, la cuenta elegida no puede cambiar ──────────────────────
+  # El daño colateral de BUG-070: la comprobación de duplicados del registro
+  # también distinguía mayúsculas, así que el mismo correo se dio de alta DOS
+  # veces en producción. Y `find_one` es `SELECT … LIMIT 1` sin `ORDER BY`: con dos
+  # filas que casan, PostgreSQL devuelve una cualquiera. Entrar unas veces en una
+  # cuenta y otras en la otra es peor que fallar, y en `admin/promote` o en el alta
+  # manual de un cobro significa tocar la fila equivocada.
+  titulo "Elección determinista de cuenta (test_security_unit.py)"
+  probar "el buscador deja de preferir la coincidencia exacta" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k exact_match_wins -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  viejo = '        if (u.get(\"email\") or \"\") == correo:'
+  assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
+  p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
+  EOF"
 
-probar "el buscador deja de ordenar y vuelve a elegir al azar" \\
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k row_order -p no:cacheprovider)" \\
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-viejo = '.sort(\"created_at\", 1).to_list(None)'
-assert s.count(viejo) == 1, 'ancla del orden no encontrada'
-p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
-EOF"
+  probar "el buscador deja de ordenar y vuelve a elegir al azar" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k row_order -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  viejo = '.sort(\"created_at\", 1).to_list(None)'
+  assert s.count(viejo) == 1, 'ancla del orden no encontrada'
+  p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
+  EOF"
 
-# ── Toda respuesta de auth describe al usuario igual ────────────────────────
-# BUG-072: cuatro respuestas —login, refresh, magic link y Google— mandaban
-# `is_admin` pero no `two_factor_enabled`. La guarda del panel decide con
-# `two_factor_enabled === false`, y con el campo ausente `undefined === false`
-# es FALSO: el admin entraba y luego el backend le devolvía 428 en cada llamada.
-# Síntoma: en incógnito «funcionaba» y en el navegador de siempre no.
-titulo "Forma de las respuestas de auth (test_security_unit.py)"
-probar "una respuesta de auth que se deja el 2FA" \\
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \\
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
-assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
-p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
-EOF"
+  # ── Toda respuesta de auth describe al usuario igual ────────────────────────
+  # BUG-072: cuatro respuestas —login, refresh, magic link y Google— mandaban
+  # `is_admin` pero no `two_factor_enabled`. La guarda del panel decide con
+  # `two_factor_enabled === false`, y con el campo ausente `undefined === false`
+  # es FALSO: el admin entraba y luego el backend le devolvía 428 en cada llamada.
+  # Síntoma: en incógnito «funcionaba» y en el navegador de siempre no.
+  titulo "Forma de las respuestas de auth (test_security_unit.py)"
+  probar "una respuesta de auth que se deja el 2FA" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
+  assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
+  p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+  EOF"
 
-# Y el otro sentido: la regla mira los objetos `user` de RESPUESTA, no las filas
-# de base de datos ni las tablas del panel, que no tienen por qué llevar el
-# campo. Un heurístico por claves las marcaba a todas y se habría desactivado.
-probar_inverso "una fila de base de datos con is_admin y sin 2FA" \\
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \\
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
-EOF"
+  # Y el otro sentido: la regla mira los objetos `user` de RESPUESTA, no las filas
+  # de base de datos ni las tablas del panel, que no tienen por qué llevar el
+  # campo. Un heurístico por claves las marcaba a todas y se habría desactivado.
+  probar_inverso "una fila de base de datos con is_admin y sin 2FA" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
+  EOF"
 
+else
+  titulo "Sabotajes sobre test_security_unit.py"
+  echo "  ⏭️  se saltan: no hay pytest en este entorno (los cubre el job de backend)"
+fi
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────
 titulo "Auditoría (auditar.py --estricto)"
 COMPONENTE_MUERTO="frontend/src/components/ZzSabotajeHuerfano.jsx"
@@ -1066,6 +1081,143 @@ probar_inverso "un registro fechado que dice 8 idiomas porque ese día había 8"
   "$CONTRADICE" \
   "printf '# Zz sabotaje\n\n## Sesión de ayer (2026-07-04) — i18n\n\nCerró con 8 idiomas a la par.\n' > $DOC_SABOTAJE" \
   "rm -f $DOC_SABOTAJE"
+
+# ── El cableado del asistente ───────────────────────────────────────────────
+# Seis comprobaciones, seis sabotajes. Van una a una y no en bloque a propósito:
+# `gen-asistente.py` corta en el primer fallo, así que un sabotaje múltiple sólo
+# probaría el primero y dejaría los otros cinco sin verificar — que es justo la
+# clase de cobertura falsa que este fichero existe para impedir.
+titulo "Cableado del asistente (gen-asistente.py)"
+
+probar "una skill cuyo name: no coincide con su carpeta" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's/^name: no-me-fio$/name: no-me-fio-renombrada/' .claude/skills/no-me-fio/SKILL.md"
+
+probar "una cita a una skill que no existe" \
+  "python scripts/gen-asistente.py --check" \
+  "printf '\nAplica la skill \`fantasma-inexistente\`.\n' >> .claude/commands/examen-web.md"
+
+probar "una regla con un paths: que no casa con ningún fichero" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's|^  - \"backend/Dockerfile\"$|  - \"backend/Dockerfile\"\n  - \"backend/NO_EXISTE_SABOTAJE.yaml\"|' .claude/rules/infra.md"
+
+probar "una regla que CLAUDE.md deja de nombrar" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's|\`rules/preferencias.md\`|\`rules/NOMBRE_CAMBIADO.md\`|' CLAUDE.md"
+
+probar "un subagente que no puede cargar la skill que dice seguir" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's|\.claude/skills/seguridad-pagos/SKILL\.md|(de memoria)|' .claude/agents/revisor-seguridad.md"
+
+# La que cierra el bucle: sin ella el router es otra tabla escrita a mano.
+# Se restaura con `rm -rf`, no con `git checkout`, porque el sabotaje crea un
+# fichero SIN seguimiento y `git checkout -- .` no se lo lleva: el residuo haría
+# fallar todos los tests posteriores.
+probar "una skill nueva que el router no enruta" \
+  "python scripts/gen-asistente.py --check" \
+  "mkdir -p .claude/skills/zzz-sabotaje && printf -- '---\nname: zzz-sabotaje\ndescription: Skill de sabotaje.\n---\n\n# Sabotaje\n' > .claude/skills/zzz-sabotaje/SKILL.md" \
+  "rm -rf .claude/skills/zzz-sabotaje"
+
+probar "el mapa del asistente que se queda atrás" \
+  "python scripts/gen-asistente.py --check" \
+  "sed -i 's/^## Skills (/## Habilidades (/' .claude/ARQUITECTURA_ASISTENTE.md"
+
+# El otro lado: la prosa histórica de docs/ cita skills retiradas y eso NO es un
+# fallo de cableado. Sin esta comprobación, ampliar el radio a todo el repo para
+# «cubrir más» convertiría cada auditoría vieja en un error, y el arreglo sería
+# apagar la comprobación entera.
+probar_inverso "una skill inexistente citada en docs/ no es cableado roto" \
+  "python scripts/gen-asistente.py --check" \
+  "printf '\nSe aplicó la skill \`ya-retirada-en-2026\`.\n' >> docs/REGISTRO_SESIONES.md"
+
+# El mapa cuenta cuántos ficheros casan con cada regla, y ese número tiene que
+# salir igual en todas las máquinas. No salía: al crear un `backend/.venv` local,
+# `backend/**/*.py` pasó de 130 a 8990 y `--check` empezó a fallar solo — con el
+# repositorio intacto. Un fichero generado que depende de lo que tengas instalado
+# convierte su propio aviso en ruido, y un aviso que es ruido se deja de leer.
+probar_inverso "un .venv o node_modules no cambia el recuento" \
+  "python scripts/gen-asistente.py --check" \
+  "mkdir -p backend/.venv/lib/sab frontend/node_modules/sab && echo 'x=1' > backend/.venv/lib/sab/f.py && echo '//' > frontend/node_modules/sab/f.js" \
+  "rm -rf backend/.venv/lib/sab frontend/node_modules/sab"
+
+# ── Las páginas prerenderizadas siguen siendo indexables ────────────────────
+# Necesita el build compilado: este verificador mira las páginas GENERADAS, no
+# el generador. Sin build se dice que se salta, en vez de figurar como aprobado.
+#
+# Restaura con `cp`, no con `git checkout`: `build/` está en .gitignore, así que
+# git no revertiría el sabotaje y todos los casos siguientes medirían una página
+# ya rota — dando por bueno cualquier verificador que viniera detrás.
+if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
+  titulo "SEO de las páginas prerenderizadas (check-seo.js)"
+
+  SEO_PAG=$(find frontend/build -path '*/learn/*' -name index.html | head -1)
+  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp)
+  TEMPORALES+=("$SEO_BAK" "$SEO_MAP")
+  cp "$SEO_PAG" "$SEO_BAK"; cp frontend/build/sitemap.xml "$SEO_MAP"
+  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml"
+
+  # El canonical cruzado es el fallo más caro y el menos visible: la página se
+  # ve perfecta y le está diciendo a Google que indexe otra.
+  probar "un canonical que apunta a otra página" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|rel=\"canonical\" href=\"[^\"]*\"|rel=\"canonical\" href=\"https://abcde-rgb.github.io/Tradingcalculatorpro.com/otra/\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "un idioma que se cae del hreflang" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i '/hreflang=\"it\"/d' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "<html lang> que no es el de su carpeta" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<html lang=\"[a-z]*\">|<html lang=\"es\">|' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "una página sin título" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<title>[^<]*</title>|<title></title>|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # Un JSON-LD con una coma de más no da error en pantalla: Google lo descarta y
+  # se pierde el resultado enriquecido sin que nadie se entere.
+  probar "un JSON-LD que no parsea" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<script type=\"application/ld+json\">|<script type=\"application/ld+json\">,,,|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # El canonical secuestrado hacia un SUBDOMINIO que empieza igual. La primera
+  # versión comparaba con `url.startsWith(DOMINIO)` y esto pasaba por bueno:
+  # `https://tradingcalculator.pro.evil.com/x` empieza por
+  # `https://tradingcalculator.pro`. Lo cazó CodeQL como alerta alta
+  # (js/incomplete-url-substring-sanitization), no una prueba — de ahí ésta.
+  probar "un canonical a un subdominio que empieza igual" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|rel=\"canonical\" href=\"[^\"]*\"|rel=\"canonical\" href=\"https://tradingcalculator.pro.evil.com/x/\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "el sitemap anunciando una URL que no existe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/no/existe/</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+
+  # El otro lado: las rutas de aplicación (`/options/strategies`, `/pricing`…)
+  # están en el sitemap a propósito y las sirve la SPA sin página estática. Si
+  # el verificador las denunciara, el arreglo evidente —relajar la regla de
+  # «URL anunciada que no existe»— dejaría de detectar las que sí faltan.
+  #
+  # ⚠️ El dominio de este cebo tiene que ser el de producción. Se escribió con
+  # `abcde-rgb.github.io` y tras el cutover del 2026-08-28 dejó de ser una ruta
+  # de app para ser un dominio ajeno: el verificador la marcaba —con razón— y
+  # el arnés lo cantó como falso positivo. El dato de prueba se había quedado
+  # desfasado, no la comprobación.
+  probar_inverso "una ruta de app en el sitemap sin página propia no es un fallo" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|</urlset>|<url><loc>https://tradingcalculator.pro/options/strategies</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+else
+  titulo "SEO de las páginas prerenderizadas (check-seo.js)"
+  echo "  ⏭️  se salta: no hay frontend/build/ (compila con 'cd frontend && npm run build')"
+fi
 
 # ── Veredicto ───────────────────────────────────────────────────────────────
 echo ""

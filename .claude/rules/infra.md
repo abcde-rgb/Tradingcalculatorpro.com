@@ -1,6 +1,5 @@
 ---
 paths:
-  - "cloudbuild.yaml"
   - ".github/workflows/**"
   - "backend/Dockerfile"
   - "backend/setup-gcp.sh"

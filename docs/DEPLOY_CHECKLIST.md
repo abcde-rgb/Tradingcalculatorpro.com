@@ -2,7 +2,7 @@
 
 > Pasos para dejar la web **publicada y operativa**. Lo marcado 🔴 **bloquea** el lanzamiento.
 > Lo que está en código ya funciona; esta lista es sobre todo **operación** (consolas externas).
-> Fuente de los nombres: `.github/workflows/*.yml`, `backend/.env.example`, `cloudbuild.yaml`.
+> Fuente de los nombres: `.github/workflows/*.yml` y `backend/.env.example`.
 
 ---
 

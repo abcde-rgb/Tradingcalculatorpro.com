@@ -103,6 +103,8 @@ elif command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; th
 fi
 
 echo ""
+echo "¿Por dónde entro? → skill \`orientarse\`: enruta cualquier petición a su zona,"
+echo "   su skill y su verificador, y dice qué NO leer. Es la puerta; úsala antes de abrir nada."
 echo "Orientación: docs/ESTADO_PROYECTO.md (estado) · docs/MAPA.md (dónde está cada cosa)"
 echo "Las reglas por zona (.claude/rules/) se cargan solas al abrir ficheros de su área."
 echo "═════════════════════════════════════════════════"

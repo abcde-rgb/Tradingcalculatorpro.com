@@ -22,10 +22,10 @@ import passkeys  # noqa: E402
 def test_rp_id_is_the_frontend_host_without_scheme(monkeypatch):
     """El `rp_id` es el HOST del frontend, sin esquema ni ruta. Con esquema, el
     navegador aborta la ceremonia con un SecurityError poco explicativo."""
-    monkeypatch.setenv("PASSKEY_ORIGIN", "https://abcde-rgb.github.io/Tradingcalculatorpro.com")
+    monkeypatch.setenv("PASSKEY_ORIGIN", "https://tradingcalculator.pro/alguna/ruta")
     monkeypatch.delenv("PASSKEY_RP_ID", raising=False)
     rp = passkeys.relying_party()
-    assert rp["rp_id"] == "abcde-rgb.github.io"
+    assert rp["rp_id"] == "tradingcalculator.pro"
     assert "://" not in rp["rp_id"] and "/" not in rp["rp_id"]
 
 

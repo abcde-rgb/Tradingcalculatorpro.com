@@ -40,9 +40,11 @@ export async function reloadFreshShell() {
 }
 
 /**
- * The site root. NOT `/`: on GitHub Pages the app is served under
- * `/Tradingcalculatorpro.com/`, so a hardcoded `/` lands on a 404 — and it did,
- * from the error screen's own "back home" button.
+ * The site root. Reads `PUBLIC_URL` instead of hardcoding `/`: while the app
+ * was served from `github.io/Tradingcalculatorpro.com/` a hardcoded `/` landed
+ * on a 404 — and it did, from the error screen's own "back home" button. Since
+ * the cutover to `tradingcalculator.pro` the base IS `/`, but reading the env
+ * var keeps this correct under either.
  */
 export function homeUrl() {
   return process.env.PUBLIC_URL || '/';

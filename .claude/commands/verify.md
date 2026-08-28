@@ -31,12 +31,18 @@ Ejecuta en orden y reporta cada resultado. No sigas si uno falla de forma bloque
 3. **Tests del backend** (los `*_unit.py` corren sin red ni BD; integración se salta):
    `backend/.venv/bin/python -m pytest backend/tests/ -q`
 
-4. **Coherencia de la documentación** — los tres corren también en CI:
+4. **Coherencia de la documentación** — los cuatro corren también en CI:
    ```
    python scripts/gen-mapa.py --check           # el mapa refleja el código
    python scripts/gen-instruments-js.py --check # catálogo backend ↔ frontend
    python scripts/check-doc-links.py            # los enlaces resuelven
+   python scripts/gen-asistente.py --check      # skills/reglas/agentes cableados
    ```
+   `gen-asistente --check` es el único que falla por algo que no rompe la web:
+   un mapa del asistente desfasado, una regla que dispara sobre un fichero que ya
+   no existe, un subagente que no puede cargar su skill. Nada de eso da error en
+   ninguna pantalla — sólo hace que la siguiente sesión se oriente con datos
+   falsos, que es como se llegó a tener 34 puntos de entrada sin puerta.
    Si `gen-mapa --check` falla porque añadiste rutas o módulos, regenera con
    `python scripts/gen-mapa.py` y **mira el diff**: si aparecen rutas nuevas bajo
    «sin consumidor», acabas de escribir backend sin interfaz.

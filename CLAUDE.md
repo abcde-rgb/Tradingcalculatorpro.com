@@ -63,6 +63,7 @@ cd frontend && npx eslint src scripts       # 0 errores; los avisos de símbolos
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
 python scripts/gen-instruments-js.py --check   # catálogo backend ↔ frontend
 python scripts/gen-mapa.py --check             # el mapa refleja el código
+python scripts/gen-asistente.py --check        # skills/reglas/agentes bien cableados
 python scripts/check-rutas-muertas.py          # cada ruta sin pantalla tiene decisión
 python scripts/check-doc-links.py              # los enlaces de la doc resuelven
 bash scripts/probar-verificadores.sh           # ¿y esos verificadores verifican?
@@ -173,7 +174,7 @@ Estas reglas **no están cargadas ahora**: entran solas cuando abres un fichero 
 | `rules/escaner.md` | `price_action.py`, `components/charts/**` | Orden del escáner, `counts.confluent`, precio de referencia |
 | `rules/preferencias.md` | `cloudPrefs.js`, `prefsMerge.js`, `store.js` | Ajustes en la cuenta, fusión, credenciales |
 | `rules/i18n-seo.md` | `lib/i18n/**`, `scripts/gen-*.js` | 10 idiomas, páginas generadas, dominio, ruido en búsquedas |
-| `rules/infra.md` | `cloudbuild.yaml`, `.github/workflows/**` | Despliegue, `min-instances`, `DB_PROVIDER`, secretos |
+| `rules/infra.md` | `.github/workflows/**`, `backend/Dockerfile` | Despliegue, `min-instances`, `DB_PROVIDER`, secretos |
 
 ⚠️ Tras un `/compact` **estas reglas no se reinyectan**: vuelven a entrar la próxima vez
 que Claude lea un fichero de esa zona. Por eso los invariantes de arriba están aquí y no

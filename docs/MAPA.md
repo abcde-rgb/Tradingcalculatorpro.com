@@ -15,7 +15,7 @@
 | | |
 |---|---:|
 | Módulos del backend | 35 |
-| Líneas de Python (backend) | 27,011 |
+| Líneas de Python (backend) | 27,019 |
 | Rutas declaradas | 199 |
 | **Rutas sin consumidor en el frontend** | **33** |
 | Ficheros de test · funciones de test | 59 · 1015 |
@@ -104,7 +104,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `timeframes.py` | 303 |  | The timeframe ladder for the price-action scanners (structure + patterns). |
 | `american_options.py` | 283 |  | American option pricing — early exercise, which Black-Scholes cannot see. |
 | `crypto_data.py` | 257 |  | Precios de criptomonedas desde las propias bolsas. |
-| `passkeys.py` | 243 |  | Passkeys (WebAuthn / FIDO2) — alta y acceso sin contraseña. |
+| `passkeys.py` | 251 |  | Passkeys (WebAuthn / FIDO2) — alta y acceso sin contraseña. |
 | `revolut.py` | 216 |  | Revolut — Revolut Pay / Merchant API integration (order + webhook helpers). |
 | `market_rates.py` | 214 |  | Live risk-free rate. |
 | `notifications.py` | 213 |  | notifications.py — un aviso, tres canales, y la verdad sobre cuáles funcionan. |
