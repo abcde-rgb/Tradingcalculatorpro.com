@@ -25,7 +25,7 @@ corre() {  # corre <nombre> <orden...>
 quiere() { [ $# -eq 0 ] && return 0; for q in "$@"; do [ "$q" = "$OBJETIVO" ] && return 0; done; return 1; }
 
 TODO=("$@")
-for OBJETIVO in recorrido analitica temas ticker precio-viejo brokers idiomas accesibilidad autorizacion rgpd persistencia; do
+for OBJETIVO in recorrido analitica nulos temas ticker precio-viejo brokers idiomas accesibilidad autorizacion rgpd persistencia; do
   if [ ${#TODO[@]} -gt 0 ]; then
     encontrado=0
     for q in "${TODO[@]}"; do [ "$q" = "$OBJETIVO" ] && encontrado=1; done
@@ -38,6 +38,7 @@ for OBJETIVO in recorrido analitica temas ticker precio-viejo brokers idiomas ac
     analitica)
       corre "analítica · escritorio" node "$E2E/navegador/analitica.js" desktop
       corre "analítica · móvil"      node "$E2E/navegador/analitica.js" mobile ;;
+    nulos)        corre "lo indefinido es una raya"  node "$E2E/navegador/nulos.js" ;;
     temas)        corre "temas e idiomas (móvil)" node "$E2E/navegador/temas.js" ;;
     ticker)       corre "ticker sin proveedor"    node "$E2E/navegador/ticker.js" ;;
     precio-viejo) corre "un precio viejo se ve"    node "$E2E/navegador/precio-viejo.js" ;;
@@ -52,7 +53,9 @@ for OBJETIVO in recorrido analitica temas ticker precio-viejo brokers idiomas ac
         corre "accesibilidad · móvil"      node "$E2E/navegador/accesibilidad.js" movil
       else
         echo "══ accesibilidad ══"
-        echo "  ⏭  falta axe-core: cd tests/e2e && npm install --no-save axe-core"
+        # NO se instala a mano: sin `package.json`, `npm install --no-save`
+        # poda todo lo que no nombres y se lleva playwright-core por delante.
+        echo "  ⏭  falta axe-core: vuelve a correr tests/e2e/stack/arriba.sh"
         echo
       fi ;;
     autorizacion) corre "autorización cruzada"    "$PY" "$E2E/api/autorizacion.py" ;;

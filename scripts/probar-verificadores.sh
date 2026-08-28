@@ -570,6 +570,32 @@ p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
     "node tests/e2e/navegador/csp.js" \
     "true"
 
+  # ── Lo indefinido se pinta como raya ──────────────────────────────────────
+  # La primera regla de honestidad del proyecto convirtió varias métricas de `0`
+  # a `None`. El otro extremo del cambio se olvidó: la pantalla que las
+  # interpolaba a pelo pasó a pintar «nullR» y «Sharpe: null», que es peor que
+  # el cero que se quería evitar — el cero parece un número, «null» parece una
+  # web rota, y en la pantalla con la que alguien dimensiona una posición eso
+  # se lleva por delante la confianza en el resto de las cifras.
+  #
+  # Se sabotea el ARTEFACTO: se quita la guarda `null==avg_r?"—"` del bundle
+  # servido, que es exactamente la regresión que la sonda vigila.
+  NULOS_COPIA="$(mktemp -d)"
+  TEMPORALES+=("$NULOS_COPIA")
+  cp frontend/build/static/js/*.js "$NULOS_COPIA/"
+
+  titulo "Lo indefinido es una raya (nulos.js)"
+  probar "una métrica indefinida vuelve a pintarse cruda" \
+    "node tests/e2e/navegador/nulos.js" \
+    "sed -i 's|null==V.avg_r?\"\\u2014\"|null==V.avg_r\&\&!1?\"\\u2014\"|g' frontend/build/static/js/*.js" \
+    "cp '$NULOS_COPIA'/*.js frontend/build/static/js/"
+
+  # Y la otra mitad: con la guarda puesta NO grita. Sin esto, una sonda que
+  # diera error siempre pasaría igual el sabotaje de arriba.
+  probar_inverso "con las guardas puestas no encuentra ninguna cifra cruda" \
+    "node tests/e2e/navegador/nulos.js" \
+    "true"
+
   # ── El arranque del idioma ────────────────────────────────────────────────
   # Se sabotea en la FUENTE y se recompila, que tarda unos minutos. Es el
   # precio de probar de verdad: el fallo que vigila —el diccionario que no

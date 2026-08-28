@@ -507,11 +507,17 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
           subValue={a.expectancy > 0 ? t('kpiPositiveEdge') : t('kpiNegativeEdge')}
           color={a.expectancy > 0 ? 'text-long' : 'text-short'}
           testId="kpi-exp" />
+        {/* `avg_r` y el Sharpe son `None` cuando no hay muestra con la que
+            calcularlos —una R sin stop es indefinida, no cero— desde que se
+            aplicó la regla de honestidad en el backend. Interpolarlos a pelo
+            pintaba «nullR» y «Sharpe: null» en pantalla. `fmtNum` es la
+            convención del propio fichero: lo indefinido es una raya. */}
         <KpiCard icon={Layers} label={t('kpiAvgR')}
-          value={`${a.avg_r > 0 ? '+' : ''}${a.avg_r}R`}
-          subValue={a.annualized ? t('kpiSharpeShort', { val: a.sharpe_ratio })
-            : t('kpiSharpePerTrade', { val: a.sharpe_per_trade ?? a.sharpe_ratio })}
-          color={a.avg_r > 0 ? 'text-long' : 'text-short'}
+          value={a.avg_r == null ? '—' : `${a.avg_r > 0 ? '+' : ''}${a.avg_r}R`}
+          subValue={a.annualized ? t('kpiSharpeShort', { val: fmtNum(a.sharpe_ratio) })
+            : t('kpiSharpePerTrade', { val: fmtNum(a.sharpe_per_trade ?? a.sharpe_ratio) })}
+          color={a.avg_r == null ? 'text-muted-foreground'
+            : a.avg_r > 0 ? 'text-long' : 'text-short'}
           testId="kpi-r" />
         <KpiCard icon={TrendingUp} label={t('kpiTotalPnL')}
           value={`${a.total_pnl > 0 ? '+' : ''}$${a.total_pnl}`}
