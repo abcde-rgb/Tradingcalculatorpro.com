@@ -10,11 +10,19 @@
 const fs = require('fs');
 const path = require('path');
 
-/** El build de producción lleva `PUBLIC_URL=/Tradingcalculatorpro.com` incrustado
+/** El build de producción lleva `PUBLIC_URL=/` incrustado
  *  en las rutas de los assets, que es como se publica en GitHub Pages. Se sirve
  *  bajo esa misma base para probar el artefacto REAL: recompilarlo con otra base
  *  sería probar un binario que nunca llega al usuario. */
-const BASE_PATH = '/Tradingcalculatorpro.com';
+// Base bajo la que se sirve la app. Desde el cutover a `tradingcalculator.pro`
+// (2026-08-28) el build cuelga de la RAÍZ (`PUBLIC_URL: /`), así que por defecto
+// va vacía; `E2E_BASE_PATH` la fuerza para probar un build antiguo.
+//
+// Estuvo escrita a mano en seis ficheros, y por eso el cutover la dejó desfasada
+// en los seis a la vez: las sondas pedían `/Tradingcalculatorpro.com/...` a un
+// build que ya servía desde `/`, y contestaba 404. Mismo fallo que el CORS —
+// una constante copiada que no siguió al dominio.
+const BASE_PATH = process.env.E2E_BASE_PATH ?? '';
 const PUERTO_WEB = Number(process.env.QA_PUERTO_WEB || 3100);
 const BASE = `http://127.0.0.1:${PUERTO_WEB}${BASE_PATH}`;
 const API = process.env.QA_API || 'http://127.0.0.1:8080';

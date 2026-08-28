@@ -188,7 +188,21 @@ def _build_where_clause(filter_dict: dict, start_param: int = 1):
 
         if isinstance(value, dict) and any(k.startswith("$") for k in value):
             for op, operand in value.items():
-                if op == "$regex":
+                if op == "$ieq":
+                    # Igualdad SIN distinguir mayúsculas. Existe para los correos:
+                    # el registro guardaba lo que el usuario tecleaba y el login
+                    # buscaba lo mismo tal cual, así que `Ana@x.com` y `ana@x.com`
+                    # eran cuentas distintas y el login devolvía 401 (BUG-070).
+                    #
+                    # NO se hace con `$regex` + `i`: `~*` va SIN anclar y un correo
+                    # es un regex válido, así que el patrón `ana@x.com` casaría con
+                    # `otro+ana@x.com.evil.com`. Sería un agujero de suplantación,
+                    # no un arreglo. `LOWER(...) = LOWER(...)` compara la cadena
+                    # entera y nada más.
+                    parts.append(f"LOWER((data->>'{ key }')) = LOWER(${param_idx})")
+                    params.append(operand)
+                    param_idx += 1
+                elif op == "$regex":
                     flags = value.get("$options", "")
                     if "i" in flags:
                         parts.append(f"(data->>'{ key }') ~* ${param_idx}")
@@ -1003,6 +1017,10 @@ class Database:
         # Expression indexes on frequently-queried fields (idempotent)
         async with self._pool.acquire() as conn:
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users ((data->>'email'))")
+            # El de arriba no sirve para `$ieq`: PostgreSQL sólo usa un índice
+            # funcional si su expresión coincide con la de la consulta. Sin este,
+            # cada login haría un recorrido completo de `users`.
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users (LOWER((data->>'email')))")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_id ON users ((data->>'id'))")
             for tbl in ("trades", "calculations", "alerts", "saved_positions",
                         "trading_plans"):
@@ -1148,9 +1166,14 @@ _CORS_ORIGINS = [
     # DONDE SE SIRVE LA WEB. Desde el cutover del 2026-08-28 hay `CNAME` en
     # `frontend/public/`, el `homepage` de package.json apunta aquí y el
     # workflow construye con `PUBLIC_URL: /`, así que este es el Origin real de
-    # todas las peticiones del navegador. Va en el código a propósito: estaba
-    # sólo en la variable `CORS_ORIGINS` del despliegue, y un `gcloud run
-    # deploy` sin `--set-env-vars` borra esa variable y tumba el login entero.
+    # todas las peticiones del navegador. Va en el código a propósito: estuvo
+    # sólo en la variable `CORS_ORIGINS` del servicio, y el origen donde vive la
+    # web no puede depender de que alguien se acuerde de una variable de
+    # entorno — ni de que una edición del servicio se la lleve por delante.
+    #
+    # De esta lista sale también `_get_allowed_origins()`, que valida el
+    # `origin_url` del checkout: con el dominio fuera, los pagos no fallaban
+    # por CORS sino con un 400 explícito del propio backend.
     #
     # El fallo no se ve en los logs: sin cabecera CORS el backend responde 200
     # con las cookies puestas y es el navegador quien descarta la respuesta.
@@ -1183,10 +1206,12 @@ for _o in _extra.split(","):
 # usuario tampoco puede entrar. Una sola constante para que los cuatro sitios
 # que la usaban no vuelvan a divergir.
 #
-# Cutover de dominio 2026-08-28: era la URL de proyecto de GitHub Pages. Si en
-# Cloud Run sigue puesta `FRONTEND_URL` con el valor viejo, gana la variable y
-# los correos siguen llevando a la URL antigua — hay que actualizarla también
-# en el servicio (ver docs/MIGRACION_DOMINIO.md § 8b).
+# Cutover de dominio 2026-08-28: era la URL de proyecto de GitHub Pages. El
+# servicio de Cloud Run lleva su configuración como variables propias, que
+# SOBREVIVEN al despliegue desde código: si `FRONTEND_URL` sigue ahí con el
+# valor viejo, gana la variable y los correos seguirán llevando a la URL
+# antigua por mucho que este fichero diga otra cosa. Hay que actualizarla en el
+# servicio (ver docs/MIGRACION_DOMINIO.md § «Lo que falta»).
 DEFAULT_FRONTEND_URL = "https://tradingcalculator.pro"
 FRONTEND_URL = os.environ.get("FRONTEND_URL", DEFAULT_FRONTEND_URL).strip().rstrip("/")
 
@@ -1954,14 +1979,19 @@ def _norm_country(value: Optional[str]) -> Optional[str]:
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
 async def register(request: Request, response: Response, user_data: UserCreate):
-    existing = await db.users.find_one({"email": user_data.email})
+    # El correo se normaliza AL ESCRIBIR y se comprueba sin distinguir mayúsculas.
+    # Sin lo primero conviven `Ana@x.com` y `ana@x.com` como cuentas distintas;
+    # sin lo segundo, registrarse con otra caja crea la segunda encima de la
+    # primera y el usuario acaba con dos cuentas sin saber en cuál están sus datos.
+    email_norm = user_data.email.strip().lower()
+    existing = await db.users.find_one({"email": {"$ieq": email_norm}})
     if existing:
         raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")
-    
+
     user_id = str(uuid.uuid4())
     user = {
         "id": user_id,
-        "email": user_data.email,
+        "email": email_norm,
         "password": await hash_password_async(user_data.password),
         "name": user_data.name,
         "subscription_plan": None,
@@ -1975,24 +2005,32 @@ async def register(request: Request, response: Response, user_data: UserCreate):
     await db.users.insert_one(user)
     try:
         import asyncio as _asyncio
-        _asyncio.create_task(_send_welcome_email(user_data.email, user_data.name))
-        _asyncio.create_task(_send_email_verification(user_id, user_data.email, user_data.name))
+        _asyncio.create_task(_send_welcome_email(email_norm, user_data.name))
+        _asyncio.create_task(_send_email_verification(user_id, email_norm, user_data.name))
     except Exception:
         pass
 
-    token = create_token(user_id, user_data.email)
-    refresh_token = create_refresh_token(user_id, user_data.email)
+    # A partir de aquí, SIEMPRE `email_norm`: el JWT y la respuesta tienen que
+    # decir lo mismo que la fila. Con el correo tecleado, el token viajaba con
+    # una caja y la base guardaba otra, así que cualquier comprobación que cruce
+    # las dos (admin, revocación, verificación) comparaba cadenas distintas para
+    # el mismo usuario.
+    token = create_token(user_id, email_norm)
+    refresh_token = create_refresh_token(user_id, email_norm)
     _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
         "user": {
             "id": user_id,
-            "email": user_data.email,
+            "email": email_norm,
             "name": user_data.name,
             "subscription_plan": None,
             "subscription_end": None,
             "is_premium": False,
             "is_admin": False,
+            # Cuenta recién creada: nunca tiene TOTP. Viaja igualmente para que
+            # todas las respuestas de auth tengan la misma forma (ver BUG-072).
+            "two_factor_enabled": False,
             "auth_provider": "password",
             "email_verified": False,
         }
@@ -2001,7 +2039,11 @@ async def register(request: Request, response: Response, user_data: UserCreate):
 @api_router.post("/auth/login", response_model=dict)
 @limiter.limit("10/minute")
 async def login(request: Request, response: Response, credentials: UserLogin):
-    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    # `$ieq`, no igualdad exacta: el correo no distingue mayúsculas, pero esta
+    # consulta sí lo hacía. Quien se registró como `Ana@x.com` y entraba como
+    # `ana@x.com` recibía «Credenciales inválidas» con la contraseña correcta, y
+    # no había forma de saberlo: el 401 es el mismo que el de una contraseña mala.
+    user = await _buscar_usuario_por_correo(credentials.email)
     if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
@@ -2033,12 +2075,56 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             "subscription_status": user.get("subscription_status"),
             "is_premium": is_premium,
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            # `ProtectedRoute` decide con `two_factor_enabled === false`. Si el
+            # campo NO viaja, `undefined === false` es falso y la guarda no salta:
+            # el admin entra al panel y luego el backend le devuelve 428 en cada
+            # llamada, porque el 2FA es obligatorio para administradores. Tiene
+            # que viajar en TODAS las respuestas que construyen `user`, o la app
+            # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
+            "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "password"),
             "email_verified": bool(user.get("email_verified", False)),
             "last_seen": now_iso,
             "login_count": (user.get("login_count") or 0) + 1,
         }
     }
+
+async def _buscar_usuario_por_correo(email: str) -> Optional[dict]:
+    """Encuentra la cuenta de un correo sin distinguir mayúsculas, y de forma
+    DETERMINISTA aunque existan duplicados.
+
+    Hace falta porque BUG-070 dejó duplicados en la base: la comprobación de
+    duplicados del registro también era sensible a mayúsculas, así que el mismo
+    correo pudo darse de alta dos veces con distinta caja —una cuenta con los
+    datos y el admin, y otra recién creada y vacía—.
+
+    `find_one` es `SELECT … LIMIT 1` **sin `ORDER BY`**: con dos filas que casan,
+    PostgreSQL devuelve una cualquiera, y puede cambiar de una consulta a otra.
+    Entrar unas veces en una cuenta y otras en la otra es peor que fallar, y en
+    `admin/promote` significaría ascender la fila equivocada del par.
+
+    Criterio, en este orden:
+      1. La coincidencia EXACTA, si existe. Es inequívoca: esa cuenta se registró
+         con exactamente esa dirección.
+      2. Si no, la MÁS ANTIGUA de las que casan sin distinguir mayúsculas — la
+         original, la que tiene los datos; la segunda es la que creó el fallo.
+
+    No sustituye a limpiar los duplicados: sólo hace que, mientras existan, el
+    resultado sea siempre el mismo.
+    """
+    correo = (email or "").strip()
+    if not correo:
+        return None
+    candidatos = await db.users.find(
+        {"email": {"$ieq": correo}}, {"_id": 0}
+    ).sort("created_at", 1).to_list(None)
+    if not candidatos:
+        return None
+    for u in candidatos:
+        if (u.get("email") or "") == correo:
+            return u
+    return candidatos[0]
+
 
 async def _sync_stripe_subscription(user: dict) -> None:
     """If subscription_end is in the past and user has a stripe_customer_id,
@@ -2189,6 +2275,13 @@ async def refresh_access_token(request: Request, response: Response, body: Token
             "subscription_status": user.get("subscription_status"),
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            # `ProtectedRoute` decide con `two_factor_enabled === false`. Si el
+            # campo NO viaja, `undefined === false` es falso y la guarda no salta:
+            # el admin entra al panel y luego el backend le devuelve 428 en cada
+            # llamada, porque el 2FA es obligatorio para administradores. Tiene
+            # que viajar en TODAS las respuestas que construyen `user`, o la app
+            # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
+            "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "password"),
             "email_verified": bool(user.get("email_verified", False)),
         },
@@ -2219,7 +2312,9 @@ class MagicLinkVerifyRequest(BaseModel):
 async def request_magic_link(request: Request, body: MagicLinkRequest):
     """Send a one-time login link to the user's email. Creates account if it doesn't exist."""
     email = body.email.lower().strip()
-    user = await db.users.find_one({"email": email}, {"_id": 0})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    user = await _buscar_usuario_por_correo(email)
     if not user:
         # Auto-create a passwordless account
         import uuid as _uuid
@@ -2298,6 +2393,13 @@ async def verify_magic_link(request: Request, response: Response, body: MagicLin
             # Honor ADMIN_EMAILS so the admin gets the panel no matter which
             # login method they use (matches /auth/login and /auth/google).
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            # `ProtectedRoute` decide con `two_factor_enabled === false`. Si el
+            # campo NO viaja, `undefined === false` es falso y la guarda no salta:
+            # el admin entra al panel y luego el backend le devuelve 428 en cada
+            # llamada, porque el 2FA es obligatorio para administradores. Tiene
+            # que viajar en TODAS las respuestas que construyen `user`, o la app
+            # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
+            "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "is_premium": check_premium(user),
             "subscription_plan": user.get("subscription_plan"),
             "auth_provider": user.get("auth_provider", "magic_link"),
@@ -2384,7 +2486,9 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
 @limiter.limit("3/hour")
 async def forgot_password(request: Request, body: ForgotPasswordRequest):
     """Generate a password-reset token, store it in DB, and email the reset link."""
-    user = await db.users.find_one({"email": body.email}, {"_id": 0})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    user = await _buscar_usuario_por_correo(body.email)
     # Always return 200 to prevent email enumeration
     if not user:
         return {"ok": True}
@@ -2948,7 +3052,12 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
         raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
 
     # Look up by email, otherwise create a passwordless user with `auth_provider=google`.
-    user = await db.users.find_one({"email": email}, {"_id": 0})
+    # Sin esto, quien se registró como `Ana@x.com` y luego entra con Google
+    # —que devuelve el correo en minúsculas— se encuentra una cuenta NUEVA y
+    # vacía en vez de la suya, y sus datos quedan en la otra. Ver BUG-070.
+    # Determinista: con un duplicado del mismo correo, entrar con Google no
+    # puede caer unas veces en una cuenta y otras en la otra. Ver BUG-070.
+    user = await _buscar_usuario_por_correo(email)
     is_new_user = user is None   # para atribución de referidos: solo altas nuevas
     if not user:
         user_id = str(uuid.uuid4())
@@ -3029,6 +3138,13 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "subscription_status": user.get("subscription_status"),
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            # `ProtectedRoute` decide con `two_factor_enabled === false`. Si el
+            # campo NO viaja, `undefined === false` es falso y la guarda no salta:
+            # el admin entra al panel y luego el backend le devuelve 428 en cada
+            # llamada, porque el 2FA es obligatorio para administradores. Tiene
+            # que viajar en TODAS las respuestas que construyen `user`, o la app
+            # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
+            "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "google"),
         },
     }
@@ -7950,7 +8066,9 @@ class AdminPromoteRequest(BaseModel):
 @api_router.post("/admin/promote")
 async def admin_promote_user(request: Request, payload: AdminPromoteRequest, admin: dict = Depends(require_admin)):
     """Toggle is_admin flag for any user (only callable by an existing admin)."""
-    target = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    target = await _buscar_usuario_por_correo(payload.email)
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     result = await db.users.update_one(
@@ -8023,7 +8141,9 @@ def _compute_subscription_end(plan: Optional[str], explicit_end: Optional[str]) 
 async def admin_create_user(request: Request, payload: AdminUserCreate, admin: dict = Depends(require_admin)):
     """Create a new user from the admin panel (full control over plan / premium / admin)."""
     email_lc = payload.email.lower()
-    existing = await db.users.find_one({"email": email_lc})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    existing = await db.users.find_one({"email": {"$ieq": email_lc}})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     if len(payload.password) < 8:
@@ -8077,7 +8197,9 @@ async def admin_update_user(request: Request, user_id: str, payload: AdminUserUp
     if payload.email is not None:
         new_email = payload.email.lower()
         if new_email != user["email"]:
-            clash = await db.users.find_one({"email": new_email, "id": {"$ne": user_id}})
+            # Sin `$ieq`, cambiar un correo a otra caja pasa el control de
+            # choque y crea un duplicado. Ver BUG-070.
+            clash = await db.users.find_one({"email": {"$ieq": new_email}, "id": {"$ne": user_id}})
             if clash:
                 raise HTTPException(status_code=400, detail="Ese email ya está en uso por otro usuario")
             updates["email"] = new_email
@@ -9037,7 +9159,11 @@ async def admin_payment_manual(
         raise HTTPException(status_code=400, detail=f"Plan desconocido: {payload.plan_id}")
 
     email_lc = (payload.email or "").strip().lower()
-    user = await db.users.find_one({"email": email_lc}, {"_id": 0})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    # Determinista: acreditar un cobro a la fila equivocada de un par duplicado
+    # deja al cliente sin lo que ha pagado. Ver BUG-070.
+    user = await _buscar_usuario_por_correo(email_lc)
     if not user:
         raise HTTPException(status_code=404, detail="No hay ninguna cuenta con ese email")
 

@@ -779,6 +779,20 @@ else
   echo "      en :3100, no se prueban (bash tests/e2e/stack/arriba.sh)"
 fi
 
+# ── El panel de admin explica el fallo en vez de romperse ───────────────────
+# Sirve el build y responde a /api/** desde la propia sonda: no necesita backend
+# ni Postgres, porque lo que se prueba es cómo REACCIONA la interfaz.
+if [ -d frontend/build ] && [ -d tests/e2e/lib/playwright-core ]; then
+  titulo "Panel de admin ante respuestas de error (panel-admin.js)"
+  RECOMPILA_ADMIN="(cd frontend && PUBLIC_URL=/ REACT_APP_BACKEND_URL=https://backend.example CI=false npx craco build >/dev/null 2>&1)"
+  probar "el panel se traga un 428 y deja las tablas en blanco" \
+    "node tests/e2e/navegador/panel-admin.js" \
+    "python -c \"import pathlib; p=pathlib.Path('frontend/src/pages/AdminPage.jsx'); s=p.read_text(encoding='utf-8'); i=s.find('      if (mRes.status === 428'); j=s.find('        return;', i)+len('        return;\\n      }\\n'); p.write_text(s[:i]+s[j:], encoding='utf-8')\" && $RECOMPILA_ADMIN" \
+    "git checkout -- . && $RECOMPILA_ADMIN"
+else
+  echo "  ⏭️  Panel de admin: sin build o sin playwright-core, no se prueba"
+fi
+
 # ── Contraste del texto en los dos temas ────────────────────────────────────
 # Levanta su propio servidor, así que basta con el build. Se sabotea el token
 # que causó el fallo real: el verde del tema claro a `35%`, que dejaba 48
@@ -914,6 +928,106 @@ import pathlib
 p = pathlib.Path('backend/server.py')
 s = p.read_text(encoding='utf-8')
 p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
+EOF"
+
+# ── El correo no puede distinguir mayúsculas ────────────────────────────────
+# BUG-070: el registro guardaba el correo tal como se tecleaba y el login lo
+# buscaba con igualdad exacta, que en PostgreSQL SÍ distingue mayúsculas. Quien
+# se registró como `Ana@x.com` y entraba como `ana@x.com` recibía 401 con la
+# contraseña correcta, y el 401 es idéntico al de una contraseña mala: no había
+# ninguna pista ni en pantalla ni en los logs.
+titulo "Correo insensible a mayúsculas (test_security_unit.py)"
+probar "el login vuelve a buscar el correo con igualdad exacta" \
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
+EOF"
+
+probar "el registro deja de normalizar el correo al guardarlo" \
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k register_stores -p no:cacheprovider)" \
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
+EOF"
+
+# La otra mitad, y es la que de verdad importa: el arreglo NO puede degradar a
+# un regex sin anclar. `~*` haría substring, y un correo es un regex válido, así
+# que `ana@x.com` casaría con `otro+ana@x.com.evil.com` — suplantación de cuenta.
+probar "el operador insensible degrada a un regex sin anclar" \
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k ieq_is_not_an_unanchored -p no:cacheprovider)" \
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
+nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
+assert s.count(viejo) == 1
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+EOF"
+
+# ── Con duplicados, la cuenta elegida no puede cambiar ──────────────────────
+# El daño colateral de BUG-070: la comprobación de duplicados del registro
+# también distinguía mayúsculas, así que el mismo correo se dio de alta DOS
+# veces en producción. Y `find_one` es `SELECT … LIMIT 1` sin `ORDER BY`: con dos
+# filas que casan, PostgreSQL devuelve una cualquiera. Entrar unas veces en una
+# cuenta y otras en la otra es peor que fallar, y en `admin/promote` o en el alta
+# manual de un cobro significa tocar la fila equivocada.
+titulo "Elección determinista de cuenta (test_security_unit.py)"
+probar "el buscador deja de preferir la coincidencia exacta" \\
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k exact_match_wins -p no:cacheprovider)" \\
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '        if (u.get(\"email\") or \"\") == correo:'
+assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
+p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
+EOF"
+
+probar "el buscador deja de ordenar y vuelve a elegir al azar" \\
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k row_order -p no:cacheprovider)" \\
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '.sort(\"created_at\", 1).to_list(None)'
+assert s.count(viejo) == 1, 'ancla del orden no encontrada'
+p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
+EOF"
+
+# ── Toda respuesta de auth describe al usuario igual ────────────────────────
+# BUG-072: cuatro respuestas —login, refresh, magic link y Google— mandaban
+# `is_admin` pero no `two_factor_enabled`. La guarda del panel decide con
+# `two_factor_enabled === false`, y con el campo ausente `undefined === false`
+# es FALSO: el admin entraba y luego el backend le devolvía 428 en cada llamada.
+# Síntoma: en incógnito «funcionaba» y en el navegador de siempre no.
+titulo "Forma de las respuestas de auth (test_security_unit.py)"
+probar "una respuesta de auth que se deja el 2FA" \\
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \\
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
+assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+# Y el otro sentido: la regla mira los objetos `user` de RESPUESTA, no las filas
+# de base de datos ni las tablas del panel, que no tienen por qué llevar el
+# campo. Un heurístico por claves las marcaba a todas y se habría desactivado.
+probar_inverso "una fila de base de datos con is_admin y sin 2FA" \\
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \\
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
 EOF"
 
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────

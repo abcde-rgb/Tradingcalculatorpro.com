@@ -116,14 +116,14 @@ if [ ! -f "$RAIZ/frontend/build/index.html" ]; then
       GENERATE_SOURCEMAP=false CI=false npx craco build > "$ESTADO/build.log" 2>&1 ) \
     || { echo "  ✗ el build falló (ver $ESTADO/build.log)" >&2; exit 1; }
 fi
-if curl -sf -o /dev/null "http://127.0.0.1:$PUERTO_WEB/Tradingcalculatorpro.com/"; then
+if curl -sf -o /dev/null "http://127.0.0.1:$PUERTO_WEB${E2E_BASE_PATH:-}/"; then
   verde "servidor estático ya respondía en :$PUERTO_WEB"
 else
   QA_PUERTO_WEB="$PUERTO_WEB" nohup node "$RAIZ/tests/e2e/stack/servidor.js" \
     > "$ESTADO/servidor.log" 2>&1 &
   echo $! > "$ESTADO/servidor.pid"
   sleep 2
-  curl -sf -o /dev/null "http://127.0.0.1:$PUERTO_WEB/Tradingcalculatorpro.com/" \
+  curl -sf -o /dev/null "http://127.0.0.1:$PUERTO_WEB${E2E_BASE_PATH:-}/" \
     && verde "frontend en :$PUERTO_WEB" \
     || { echo "  ✗ el servidor estático no respondió" >&2; exit 1; }
 fi
@@ -159,5 +159,5 @@ node -e "require('$RAIZ/tests/e2e/entorno.js').rutaChromium()" 2>/dev/null \
 
 echo
 echo "  API   http://127.0.0.1:$PUERTO_API/api"
-echo "  Web   http://127.0.0.1:$PUERTO_WEB/Tradingcalculatorpro.com/"
+echo "  Web   http://127.0.0.1:$PUERTO_WEB${E2E_BASE_PATH:-}/"
 echo "  Logs  $ESTADO/"

@@ -142,11 +142,14 @@ lo de abajo no está hecho en el dashboard de Stripe:
 resuelve a los cuatro registros A de GitHub Pages (`185.199.108–111.153`, verificado).
 El canonical/sitemap/robots y el CORS y los correos del backend están al dominio propio.
 
-- [ ] 🔴 **Desplegar el backend.** El arreglo del CORS está en `server.py` pero Cloud Run
-      sigue corriendo el código anterior: **hasta que se despliegue, la web carga y no
-      habla con el backend**. Ver `docs/MIGRACION_DOMINIO.md` § «Lo que falta» para las
-      variables (`FRONTEND_URL`, `PASSKEY_RP_ID`, `PASSKEY_ORIGIN`) que hay que dejar
-      puestas en el mismo despliegue.
+- [ ] 🔴 **Llevar el arreglo del CORS a `main`.** Está en `server.py` y Cloud Run corre
+      el código anterior: **hasta que se despliegue, la web carga y no habla con el
+      backend**. El push a `main` con cambios en `backend/**` dispara el despliegue solo
+      (ver `.claude/rules/infra.md`); comprueba la revisión, no lo des por hecho.
+- [ ] 🔴 **Actualizar `FRONTEND_URL`, `PASSKEY_RP_ID` y `PASSKEY_ORIGIN` en el servicio.**
+      Las variables del servicio **sobreviven** al despliegue desde código, así que una
+      `FRONTEND_URL` vieja le gana al valor del código y los correos seguirán llevando a
+      la URL antigua. Comando exacto en `docs/MIGRACION_DOMINIO.md` § «Lo que falta».
 - [ ] **GitHub → Settings → Pages → Custom domain** = `tradingcalculator.pro`, y
       **Enforce HTTPS** activado.
 - [ ] Verifica: `curl -I https://tradingcalculator.pro` · `…/sitemap.xml` · `…/robots.txt`.

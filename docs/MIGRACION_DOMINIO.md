@@ -169,46 +169,65 @@ Marcado a 2026-08-28. Lo que sigue abierto está en «Lo que falta».
 Mientras el punto 1 no esté hecho, la web sigue cargando y **sin backend**: es
 el estado exacto de BUG-067.
 
-1. 🔴 **Desplegar el backend a Cloud Run.** Es lo único que levanta la web. El
-   arreglo del CORS vive en `server.py`, y el servicio corre el código del
-   despliegue anterior. Y en el mismo `gcloud run deploy`, o con
-   `--update-env-vars` después, hay que dejar puestas:
+1. 🔴 **Llevar este arreglo a `main`.** Es lo único que levanta la web. El
+   arreglo del CORS vive en `server.py` y el servicio corre el código del
+   despliegue anterior; un push a `main` que toque `backend/**` dispara el
+   **despliegue desde código de Cloud Run** (`tradingcalculator-api`,
+   `us-east1`) — ver [`.claude/rules/infra.md`](../.claude/rules/infra.md). Es
+   decir: **al fusionar, el CORS se arregla solo**.
+
+   Comprobar que la revisión salió de verdad, en vez de darlo por hecho:
+
+   ```bash
+   gcloud run services describe tradingcalculator-api --region=us-east1 \\
+     --format='value(spec.template.spec.containers[0].image)'   # la etiqueta es el SHA
+   ```
+
+2. 🔴 **Actualizar las variables del servicio** — esto **no** lo arregla el
+   despliegue. La configuración vive como variables del propio servicio y
+   **sobrevive** al despliegue desde código, así que una `FRONTEND_URL` con el
+   valor viejo seguirá ganándole al valor por defecto del código:
 
    | Variable | Valor | Por qué |
    |---|---|---|
-   | `FRONTEND_URL` | `https://tradingcalculator.pro` | Si sigue con el valor viejo **gana la variable** sobre el código y los correos de verificación y reset seguirán llevando a la URL antigua. |
-   | `PASSKEY_RP_ID` | `tradingcalculator.pro` | Fijarlo evita que un despliegue que pierda `FRONTEND_URL` cambie el `rp_id` por sorpresa. |
+   | `FRONTEND_URL` | `https://tradingcalculator.pro` | Si sigue con el valor viejo, los correos de verificación, reset y magic link seguirán llevando a la URL antigua y quien se registre no podrá validar la cuenta. |
+   | `PASSKEY_RP_ID` | `tradingcalculator.pro` | Fijarlo evita que perder `FRONTEND_URL` cambie el `rp_id` por sorpresa. |
    | `PASSKEY_ORIGIN` | `https://tradingcalculator.pro` | Ídem. |
-   | `CORS_ORIGINS` | *(vacío, o sólo staging)* | Si trae el dominio ajeno, lo vuelve a permitir: la lista del código ya no lo lleva a propósito. |
+   | `CORS_ORIGINS` | *(vacío, o sólo staging)* | Si trae el dominio ajeno lo vuelve a permitir: la lista del código ya no lo lleva a propósito. |
 
-   ⚠️ Un `gcloud run deploy` **sin** `--set-env-vars` borra las variables del
-   servicio. Por eso el código trae los mismos valores por defecto: para que
-   perder la variable no tumbe nada.
+   ```bash
+   gcloud run services update tradingcalculator-api --region=us-east1 \\
+     --update-env-vars FRONTEND_URL=https://tradingcalculator.pro,PASSKEY_RP_ID=tradingcalculator.pro,PASSKEY_ORIGIN=https://tradingcalculator.pro
+   ```
 
-2. 🔴 **Google OAuth** (Google Cloud Console → Credenciales → cliente OAuth):
+   ⚠️ Para mirar qué variables hay puestas, **no** uses `describe` a secas:
+   imprime los valores, y entre ellos va la cadena de conexión con contraseña.
+   `--format='value(spec.template.spec.containers[0].env[].name)'`.
+
+3. 🔴 **Google OAuth** (Google Cloud Console → Credenciales → cliente OAuth):
    añadir `https://tradingcalculator.pro` a **orígenes JavaScript autorizados**.
    Sin esto el botón de Google falla aunque el CORS ya esté bien.
 
-3. 🟠 **GitHub → Settings → Pages**: comprobar que **Custom domain** dice
+4. 🟠 **GitHub → Settings → Pages**: comprobar que **Custom domain** dice
    `tradingcalculator.pro` y que **Enforce HTTPS** está activado. El DNS ya
    resuelve a los cuatro registros A de Pages (verificado 2026-08-28).
 
-4. 🟠 **Passkeys**: el `rp_id` cambia, así que **toda passkey registrada contra
+5. 🟠 **Passkeys**: el `rp_id` cambia, así que **toda passkey registrada contra
    `abcde-rgb.github.io` deja de validar** — WebAuthn ata cada credencial a su
    dominio a propósito y no se pueden migrar. Quien la tuviera debe registrarla
    de nuevo desde Ajustes; asegúrate de que tiene contraseña o Google antes.
 
-5. 🟠 **SendGrid**: verificar el dominio remitente de `alerts@tradingcalculator.pro`
+6. 🟠 **SendGrid**: verificar el dominio remitente de `alerts@tradingcalculator.pro`
    (`SENDER_EMAIL`). Hasta entonces los correos transaccionales no salen.
 
-6. 🟡 **Buzón de contacto**: `contact@tradingcalculator.pro` aparece ahora en el
+7. 🟡 **Buzón de contacto**: `contact@tradingcalculator.pro` aparece ahora en el
    pie, en Legal y en Contacto. Tiene que existir de verdad — antes apuntaba a
    un dominio de un tercero, así que ese correo nunca llegó a nadie nuestro.
 
-7. 🟡 **Pasarelas de pago**: revisar en Stripe, PayPal, Revolut, NOWPayments y
+8. 🟡 **Pasarelas de pago**: revisar en Stripe, PayPal, Revolut, NOWPayments y
    Kunfupay las URLs de retorno y de webhook que lleven el dominio viejo.
 
-8. 🟡 **Search Console**: alta de la propiedad nueva + herramienta de cambio de
+9. 🟡 **Search Console**: alta de la propiedad nueva + herramienta de cambio de
    dirección; mantener la vieja hasta que se traspase la indexación.
 
 ## Verificación después

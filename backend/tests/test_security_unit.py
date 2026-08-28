@@ -15,6 +15,7 @@ helpers (_SAFE_FIELD_RE, _build_where_clause, _serialize) from the source with
 `ast` and exercise them in isolation.
 """
 import ast
+import asyncio
 import json
 import logging
 import os
@@ -450,4 +451,265 @@ def test_google_handler_wires_the_guard_and_revokes_sessions():
     )
     assert "_revoke_all_tokens_for_user" in handler, (
         "el enlazado no revoca las sesiones vivas del atacante"
+    )
+
+
+# ============================================================
+#  El correo no distingue mayúsculas (BUG-070)
+# ============================================================
+#
+# El registro guardaba el correo TAL COMO SE TECLEABA y el login lo buscaba con
+# igualdad exacta, que en PostgreSQL distingue mayúsculas. Resultado: quien se
+# registró como `Ana@x.com` y entraba como `ana@x.com` recibía «Credenciales
+# inválidas» con la contraseña correcta — y el 401 es idéntico al de una
+# contraseña mala, así que no había ninguna pista. Peor: al entrar con Google
+# (que devuelve el correo en minúsculas) se le creaba una cuenta NUEVA y vacía.
+
+_SERVER_SRC = _SERVER.read_text(encoding="utf-8")
+
+
+def test_ieq_compares_the_whole_string_lowercased():
+    """`$ieq` baja AMBOS lados y compara por igualdad, no por patrón."""
+    clause, params, _ = build_where({"email": {"$ieq": "Ana@X.com"}}, 1)
+    assert "LOWER" in clause and "=" in clause, clause
+    assert "~" not in clause, "un operador de regex aquí sería substring, no igualdad"
+    assert params == ["Ana@X.com"], "el valor va como parámetro, no incrustado"
+
+
+def test_ieq_is_not_an_unanchored_regex():
+    """La trampa que este operador existe para evitar.
+
+    Con `$regex` + `i` el shim emite `~*`, que va SIN anclar: el patrón
+    `ana@x.com` casaría con `otro+ana@x.com.evil.com`, y un correo es un regex
+    válido (el `.` comodín, el `+` cuantificador). Sería un agujero de
+    suplantación, no un arreglo.
+    """
+    import re
+    victima = "ana@x.com"
+    atacante = "otro+ana@x.com.evil.com"
+    # Así se comportaría la alternativa descartada:
+    assert re.search(victima, atacante, re.I), "premisa del test: el regex sí casa"
+    # Y así se comporta la elegida:
+    assert victima.lower() != atacante.lower(), "`$ieq` compara la cadena entera"
+
+    clause, _, _ = build_where({"email": {"$ieq": victima}}, 1)
+    assert "~*" not in clause, "`$ieq` no puede degradar a regex sin anclar"
+
+
+@pytest.mark.parametrize("payload", [
+    "'; DROP TABLE users; --",
+    "x' OR '1'='1",
+])
+def test_ieq_parameterises_malicious_values(payload):
+    clause, params, _ = build_where({"email": {"$ieq": payload}}, 1)
+    assert payload not in (clause or ""), f"valor incrustado en el SQL: {clause!r}"
+    assert payload in " ".join(str(p) for p in params)
+
+
+def test_login_looks_the_user_up_case_insensitively():
+    """El fallo estaba AQUÍ, no en el shim: la consulta del login.
+
+    Vale tanto el `$ieq` a pelo como el buscador determinista que lo envuelve
+    —lo que NO puede volver es una igualdad exacta sobre `credentials.email`.
+    """
+    i = _SERVER_SRC.find("async def login(")
+    assert i != -1, "no se encontró el endpoint de login"
+    cuerpo = _SERVER_SRC[i:i + 1200]
+    assert ('"$ieq"' in cuerpo) or ("_buscar_usuario_por_correo" in cuerpo), (
+        "el login vuelve a buscar el correo con igualdad exacta: quien se "
+        "registró con otra caja no puede entrar y el 401 no lo explica"
+    )
+    assert 'find_one({"email": credentials.email}' not in cuerpo
+
+
+def test_register_stores_the_email_normalised():
+    """Normalizar al ESCRIBIR: sin esto conviven dos cuentas por el mismo correo."""
+    i = _SERVER_SRC.find("async def register(")
+    assert i != -1, "no se encontró el endpoint de registro"
+    cuerpo = _SERVER_SRC[i:i + 1600]
+    assert ".strip().lower()" in cuerpo, "el registro no normaliza el correo"
+    assert '"email": email_norm' in cuerpo, "el registro guarda el correo sin normalizar"
+
+
+def test_there_is_a_functional_index_for_the_case_insensitive_lookup():
+    """Sin índice sobre LOWER(...), cada login recorre `users` entera.
+
+    PostgreSQL sólo usa un índice funcional si su expresión coincide con la de
+    la consulta, y el que ya existía es sobre `(data->>'email')` a secas.
+    """
+    assert "idx_users_email_lower" in _SERVER_SRC
+    assert "LOWER((data->>'email'))" in _SERVER_SRC
+
+
+# ============================================================
+#  Con duplicados, la cuenta elegida tiene que ser SIEMPRE la misma
+# ============================================================
+#
+# BUG-070 dejó duplicados en producción: la comprobación de duplicados del
+# registro también distinguía mayúsculas, así que el mismo correo se pudo dar de
+# alta dos veces —una cuenta con los datos y el admin, otra vacía—. Y `find_one`
+# es `SELECT … LIMIT 1` SIN `ORDER BY`: con dos filas que casan, PostgreSQL
+# devuelve una cualquiera y puede cambiar entre consultas. Entrar unas veces en
+# una cuenta y otras en la otra es peor que fallar, y en `admin/promote` o en el
+# alta manual de un cobro significa tocar la fila equivocada.
+
+def _cargar_buscador():
+    """Extrae `_buscar_usuario_por_correo` de server.py y lo ejecuta con un `db`
+    de mentira: así se prueba la REGLA sin levantar la aplicación ni la base."""
+    tree = ast.parse(_SERVER_SRC)
+    for node in tree.body:
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_buscar_usuario_por_correo":
+            return ast.get_source_segment(_SERVER_SRC, node)
+    raise AssertionError("no se encontró _buscar_usuario_por_correo en server.py")
+
+
+class _CursorFalso:
+    def __init__(self, filas): self._filas = filas
+    def sort(self, campo, direccion=1):
+        self._filas = sorted(self._filas, key=lambda d: d.get(campo) or "",
+                             reverse=(direccion == -1))
+        return self
+    async def to_list(self, n=None): return list(self._filas)
+
+
+class _ColeccionFalsa:
+    def __init__(self, filas): self._filas = filas
+    def find(self, filtro, projection=None):
+        pedido = filtro["email"]["$ieq"].strip().lower()
+        return _CursorFalso([f for f in self._filas
+                             if (f.get("email") or "").lower() == pedido])
+
+
+class _DbFalsa:
+    def __init__(self, filas): self.users = _ColeccionFalsa(filas)
+
+
+def _buscar(filas, correo):
+    ns = {"db": _DbFalsa(filas), "Optional": Optional}
+    exec(_cargar_buscador(), ns)  # noqa: S102 — código propio
+    return asyncio.run(ns["_buscar_usuario_por_correo"](correo))
+
+
+# El par que de verdad existe en producción: la cuenta vieja con el admin, y la
+# que creó el teclado del móvil al capitalizar la primera letra.
+_PAR = [
+    {"email": "ana@x.com",  "id": "vieja", "created_at": "2026-01-01T00:00:00"},
+    {"email": "Ana@x.com",  "id": "nueva", "created_at": "2026-08-28T00:00:00"},
+]
+
+
+def test_exact_match_wins_over_a_case_variant():
+    """Una coincidencia exacta es inequívoca: esa cuenta se registró así."""
+    assert _buscar(_PAR, "ana@x.com")["id"] == "vieja"
+    assert _buscar(_PAR, "Ana@x.com")["id"] == "nueva"
+
+
+def test_without_an_exact_match_the_oldest_wins():
+    """Al adivinar, la original — la que tiene los datos y el admin."""
+    assert _buscar(_PAR, "ANA@X.COM")["id"] == "vieja"
+
+
+def test_the_choice_does_not_depend_on_the_row_order():
+    """El fallo que esto evita: `LIMIT 1` sin `ORDER BY` devuelve una cualquiera.
+
+    Se consulta con las filas en los dos órdenes posibles y se exige el mismo
+    resultado. Sin el criterio, cada orden devolvería una cuenta distinta.
+    """
+    a = _buscar(_PAR, "ANA@X.COM")
+    b = _buscar(list(reversed(_PAR)), "ANA@X.COM")
+    assert a["id"] == b["id"] == "vieja", "la cuenta elegida cambia con el orden de las filas"
+
+
+def test_a_single_account_is_found_whatever_the_case():
+    una = [{"email": "ana@x.com", "id": "u1", "created_at": "2026-01-01T00:00:00"}]
+    for tecleado in ("ana@x.com", "Ana@x.com", "ANA@X.COM", "  Ana@X.com  "):
+        assert _buscar(una, tecleado)["id"] == "u1", f"no la encuentra con {tecleado!r}"
+
+
+def test_an_unknown_or_empty_email_finds_nobody():
+    assert _buscar(_PAR, "otro@x.com") is None
+    assert _buscar(_PAR, "") is None
+    assert _buscar(_PAR, None) is None
+
+
+def test_the_identity_routes_use_the_deterministic_lookup():
+    """Login, Google, promote y el alta manual de cobros, por el mismo camino."""
+    for ruta in ("async def login(", "async def google_auth(",
+                 "async def admin_promote_user(", "async def admin_payment_manual("):
+        i = _SERVER_SRC.find(ruta)
+        assert i != -1, f"no se encontró {ruta}"
+        assert "_buscar_usuario_por_correo" in _SERVER_SRC[i:i + 2600], (
+            f"{ruta.strip()} vuelve a resolver el correo sin criterio de desempate: "
+            "con un duplicado, la cuenta elegida cambia entre consultas"
+        )
+
+
+# ============================================================
+#  Toda respuesta de auth describe al usuario IGUAL (BUG-072)
+# ============================================================
+#
+# `ProtectedRoute` decide con `user?.two_factor_enabled === false`. Cuatro
+# respuestas —login, refresh, magic link y Google— no mandaban ese campo, así
+# que valía `undefined`, y `undefined === false` es FALSO: la guarda no saltaba y
+# el admin entraba al panel, donde el backend le devolvía 428 en cada llamada
+# porque el 2FA es obligatorio para administradores.
+#
+# El síntoma era desconcertante: en incógnito «funcionaba» (recién logueado el
+# campo no existe → te deja pasar) y en el navegador de siempre no (el `user`
+# guardado venía de `/auth/me`, que SÍ lo manda, así que valía `false` → a
+# Ajustes). El mismo usuario, la misma cuenta, dos comportamientos.
+#
+# La regla no mira los cuatro sitios: mira que NINGUNA respuesta que describa a
+# un usuario se deje el campo. Comprobar sólo los conocidos dejaría pasar el
+# siguiente endpoint que se escriba.
+
+def _objetos_user_de_respuesta():
+    """Los objetos que el frontend guarda como `user`, y sólo esos.
+
+    Se identifican por su POSICIÓN, no por sus claves: son el valor de la clave
+    `"user"` de una respuesta, que es literalmente lo que hace el store
+    (`set({ user: data.user })`), más el `return` de `/auth/me`, que lo devuelve
+    plano. Un heurístico por claves cazaba también las FILAS de base de datos y
+    las tablas del panel de admin, que no tienen por qué llevar este campo.
+    """
+    tree = ast.parse(_SERVER_SRC)
+    objetos = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Dict):
+            for k, v in zip(node.keys, node.values):
+                if (isinstance(k, ast.Constant) and k.value == "user"
+                        and isinstance(v, ast.Dict)):
+                    claves = {kk.value for kk in v.keys
+                              if isinstance(kk, ast.Constant) and isinstance(kk.value, str)}
+                    objetos.append((v.lineno, claves))
+    # `/auth/me` devuelve el usuario plano, sin envolverlo en `"user"`.
+    for node in ast.walk(tree):
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "get_me":
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Return) and isinstance(sub.value, ast.Dict):
+                    claves = {kk.value for kk in sub.value.keys
+                              if isinstance(kk, ast.Constant) and isinstance(kk.value, str)}
+                    objetos.append((sub.value.lineno, claves))
+    return objetos
+
+
+def test_every_auth_response_describes_the_user_the_same_way():
+    """Si un objeto de usuario lleva `is_admin`, tiene que llevar el 2FA.
+
+    Son las dos claves con las que la guarda de rutas decide, y que una viaje
+    sin la otra hace que la app se comporte distinto según por dónde entres.
+    """
+    objetos = _objetos_user_de_respuesta()
+    assert len(objetos) >= 7, (
+        f"sólo se han encontrado {len(objetos)} objetos `user` de respuesta; la "
+        "regla ha dejado de reconocerlos y no está comprobando nada"
+    )
+    incompletos = [(ln, sorted({"is_admin", "two_factor_enabled"} - claves))
+                   for ln, claves in objetos
+                   if "is_admin" in claves and "two_factor_enabled" not in claves]
+    assert not incompletos, (
+        f"estas respuestas mandan `is_admin` sin `two_factor_enabled`: {incompletos}. "
+        "En el frontend el campo valdrá `undefined`, y `undefined === false` es "
+        "falso: la guarda del panel no salta y el admin entra a una pantalla "
+        "donde cada llamada devolverá 428."
     )
