@@ -58,6 +58,20 @@ RAIZ = Path(__file__).resolve().parent.parent
 CLAUDE = RAIZ / ".claude"
 SALIDA = CLAUDE / "ARQUITECTURA_ASISTENTE.md"
 
+# Carpetas que no son del proyecto aunque vivan dentro de él. Sin esta lista, el
+# recuento de ficheros por regla deja de ser determinista: `backend/**/*.py` pasó
+# de 130 a 8990 en cuanto se creó un `.venv` local, y un fichero generado que sale
+# distinto según lo que tengas instalado hace que `--check` falle solo — el aviso
+# se vuelve ruido y se deja de mirar.
+AJENAS = {".venv", "venv", "node_modules", "build", "__pycache__", ".git",
+          "_archive", ".pytest_cache", "dist", "coverage"}
+
+
+def propios(patron: str):
+    """Los ficheros del repo que casan con `patron`, sin dependencias ni artefactos."""
+    return [p for p in RAIZ.glob(patron)
+            if not AJENAS & set(p.relative_to(RAIZ).parts)]
+
 
 # ─────────────────────────── lectura del cableado ───────────────────────────
 
@@ -202,7 +216,7 @@ def revisar(inv: dict[str, list[Pieza]]) -> list[str]:
             fallos.append(f"{p.rel}: sin `paths:`. Una regla sin rutas no se carga jamás.")
             continue
         for patron in patrones:
-            if not any(RAIZ.glob(patron)):
+            if not propios(patron):
                 fallos.append(
                     f"{p.rel}: el patrón `{patron}` no casa con ningún fichero. "
                     f"La regla figura en la tabla y se cuenta como cobertura, "
@@ -348,7 +362,7 @@ def construir(inv: dict[str, list[Pieza]]) -> str:
     a("|---|---|---|")
     for p in inv["reglas"]:
         patrones = p.meta.get("paths") or []
-        casan = sum(1 for pa in patrones for _ in RAIZ.glob(pa)) if isinstance(patrones, list) else 0
+        casan = sum(len(propios(pa)) for pa in patrones) if isinstance(patrones, list) else 0
         rutas = "<br>".join(f"`{x}`" for x in patrones) if isinstance(patrones, list) else "—"
         a(f"| `rules/{p.ruta.name}` | {rutas} | {casan} |")
     a("")

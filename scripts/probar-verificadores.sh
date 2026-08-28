@@ -971,6 +971,16 @@ probar_inverso "una skill inexistente citada en docs/ no es cableado roto" \
   "python scripts/gen-asistente.py --check" \
   "printf '\nSe aplicó la skill \`ya-retirada-en-2026\`.\n' >> docs/REGISTRO_SESIONES.md"
 
+# El mapa cuenta cuántos ficheros casan con cada regla, y ese número tiene que
+# salir igual en todas las máquinas. No salía: al crear un `backend/.venv` local,
+# `backend/**/*.py` pasó de 130 a 8990 y `--check` empezó a fallar solo — con el
+# repositorio intacto. Un fichero generado que depende de lo que tengas instalado
+# convierte su propio aviso en ruido, y un aviso que es ruido se deja de leer.
+probar_inverso "un .venv o node_modules no cambia el recuento" \
+  "python scripts/gen-asistente.py --check" \
+  "mkdir -p backend/.venv/lib/sab frontend/node_modules/sab && echo 'x=1' > backend/.venv/lib/sab/f.py && echo '//' > frontend/node_modules/sab/f.js" \
+  "rm -rf backend/.venv/lib/sab frontend/node_modules/sab"
+
 # ── Las páginas prerenderizadas siguen siendo indexables ────────────────────
 # Necesita el build compilado: este verificador mira las páginas GENERADAS, no
 # el generador. Sin build se dice que se salta, en vez de figurar como aprobado.

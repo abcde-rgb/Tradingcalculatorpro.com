@@ -5687,7 +5687,13 @@ el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
   pasado a mi paso y el build habría vuelto a romperse con warnings; y mi primer arnés
   de sabotaje del verificador en vivo buscaba un carácter presente en toda salida, así
   que dio ✅ a los cuatro casos sin comprobar ninguno — el fallo exacto que
-  `probar-verificadores.sh` existe para impedir.
+  `probar-verificadores.sh` existe para impedir. Y el tercero, el peor: el recuento de
+  ficheros por regla de `gen-asistente.py` **no era determinista**. Al crear un `.venv`
+  local, `backend/**/*.py` pasó de 130 a 8990 y `--check` empezó a fallar solo, con el
+  repositorio intacto. Un fichero generado que sale distinto según lo que tengas
+  instalado convierte su propio aviso en ruido. Se excluyen `.venv`, `node_modules`,
+  `build`, `__pycache__` y `_archive`, y queda un `probar_inverso` permanente que crea
+  esas carpetas y exige que el recuento no se mueva.
 - ✅ Verificado con entorno completo (esta vez sí había `node_modules`): `py_compile`
   35 módulos · `check-doc-links` · `gen-mapa --check` · `gen-instruments-js --check` ·
   `check-rutas-muertas` · `check-precios` · `gen-asistente --check` · `i18n-check` ·
