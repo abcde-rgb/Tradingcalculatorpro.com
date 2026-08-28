@@ -73,6 +73,18 @@ export const useAuthStore = create(
       isLoading: false,
       _isRefreshing: false,
 
+      // `isAuthenticated` SÍ se persiste, el token NO. Si al recargar el
+      // refresco silencioso falla por red —y un bloqueo de CORS es exactamente
+      // eso: `TypeError: Failed to fetch`—, el navegador se quedaba con
+      // `isAuthenticated: true` y sin token: la app pintaba la interfaz de
+      // alguien con sesión mientras cada llamada iba sin credenciales. Y no se
+      // curaba sola: cada recarga repetía lo mismo. Sólo se salía borrando los
+      // datos del sitio, que es justo lo que hace una ventana de incógnito —de
+      // ahí el síntoma «sólo funciona en incógnito» tras la caída del dominio.
+      //
+      // No se persiste: es estado de esta pestaña, no de la cuenta.
+      sessionUnverified: false,
+
       login: async (email, password) => {
         if (!API) {
           return { success: false, error: t('backendNotConfigured') };
@@ -254,7 +266,9 @@ export const useAuthStore = create(
             body: JSON.stringify({}),
           });
           if (!res.ok) {
-            set({ user: null, token: null, isAuthenticated: false, _isRefreshing: false });
+            // El servidor ha respondido y dice que no: sesión cerrada de verdad.
+            set({ user: null, token: null, isAuthenticated: false,
+                  _isRefreshing: false, sessionUnverified: false });
             return null;
           }
           const data = await safeJson(res);
@@ -263,13 +277,16 @@ export const useAuthStore = create(
             user: data.user || get().user,
             isAuthenticated: true,
             _isRefreshing: false,
+            sessionUnverified: false,
           });
           return data.token;
         } catch (err) {
-          // Network timeout or abort — do not clear isAuthenticated (may be transient).
-          // But if it was an auth/server error disguised as a network error, leave state
-          // consistent so the next attempt can retry via the cookie.
-          set({ _isRefreshing: false });
+          // Fallo de RED (timeout, corte, CORS). No se cierra la sesión: puede
+          // ser pasajero y echar a alguien por un túnel es peor que esperar.
+          // Pero se marca como SIN VERIFICAR, porque sin token la interfaz de
+          // «con sesión» es mentira: la guarda de rutas lo mira y manda a
+          // /login en vez de pintar pantallas vacías para siempre.
+          set({ _isRefreshing: false, sessionUnverified: true });
           return null;
         }
       },
