@@ -62,6 +62,22 @@ const LANGS = [
 const HREFLANGS = new Set([...LANGS.map(([, , h]) => h), 'x-default']);
 const PREFIJOS = new Map(LANGS.map(([l, p]) => [p.replace(/^\//, ''), l]));
 
+// Compara el ORIGEN de dos URLs, no su prefijo de texto.
+//
+// Estuvo escrito como `url.startsWith(DOMINIO)` y CodeQL lo marcó como alerta
+// alta (`js/incomplete-url-substring-sanitization`). Tenía razón, y no era
+// teórico: `https://tradingcalculator.pro.evil.com/x` empieza por
+// `https://tradingcalculator.pro`, así que un canonical secuestrado hacia un
+// subdominio ajeno pasaba por bueno — que es exactamente lo que este
+// verificador existe para cazar.
+const mismoOrigen = (url, referencia) => {
+  try { return new URL(url).origin === new URL(referencia).origin; }
+  catch { return false; }
+};
+
+// La ruta de una URL sin depender de la longitud del dominio.
+const rutaDe = (url) => { try { return new URL(url).pathname; } catch { return url; } };
+
 const problemas = new Map();          // tipo → [{pagina, detalle}]
 const anota = (tipo, pagina, detalle) => {
   if (!problemas.has(tipo)) problemas.set(tipo, []);
@@ -100,7 +116,7 @@ function revisar(fichero) {
   // 1 · canonical
   const canonical = attr(html, /<link rel="canonical" href="([^"]+)"/);
   if (!canonical) anota('canonical ausente', rel, '');
-  else if (!canonical.startsWith(DOMAIN)) anota('canonical a otro dominio', rel, canonical);
+  else if (!mismoOrigen(canonical, DOMAIN)) anota('canonical a otro dominio', rel, canonical);
   else if (canonical.replace(/\/+$/, '/') !== propia.replace(/\/+$/, '/'))
     anota('canonical NO auto-referente', rel, `dice ${canonical}`);
 
@@ -191,12 +207,12 @@ if (!fs.existsSync(SITEMAP)) {
   for (const loc of enSitemap) {
     const sinBarra = loc.replace(/\/+$/, '');
     if (rutasApp.has(sinBarra)) continue;
-    const ruta = loc.slice(DOMAIN.length).replace(/^\/|\/$/g, '');
+    const ruta = rutaDe(loc).replace(/^\/|\/$/g, '');
     if (ruta.split('/').length >= 2 && !norm.has(loc))
       anota('sitemap anuncia una página que no existe', ruta, '');
   }
   for (const u of norm) if (!enSitemap.has(u))
-    anota('página generada que el sitemap no anuncia', u.slice(DOMAIN.length), '');
+    anota('página generada que el sitemap no anuncia', rutaDe(u), '');
 }
 
 // ── veredicto ───────────────────────────────────────────────────────────────

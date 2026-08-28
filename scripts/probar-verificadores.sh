@@ -1026,6 +1026,16 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
     "sed -i 's|<script type=\"application/ld+json\">|<script type=\"application/ld+json\">,,,|' $SEO_PAG" \
     "$SEO_REST"
 
+  # El canonical secuestrado hacia un SUBDOMINIO que empieza igual. La primera
+  # versión comparaba con `url.startsWith(DOMINIO)` y esto pasaba por bueno:
+  # `https://tradingcalculator.pro.evil.com/x` empieza por
+  # `https://tradingcalculator.pro`. Lo cazó CodeQL como alerta alta
+  # (js/incomplete-url-substring-sanitization), no una prueba — de ahí ésta.
+  probar "un canonical a un subdominio que empieza igual" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|rel=\"canonical\" href=\"[^\"]*\"|rel=\"canonical\" href=\"https://tradingcalculator.pro.evil.com/x/\"|' $SEO_PAG" \
+    "$SEO_REST"
+
   probar "el sitemap anunciando una URL que no existe" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/no/existe/</loc></url></urlset>|' frontend/build/sitemap.xml" \

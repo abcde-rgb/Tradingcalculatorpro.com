@@ -47,8 +47,24 @@ const iM = process.argv.indexOf('--muestra');
 const MUESTRA = iM > -1 ? parseInt(process.argv[iM + 1], 10) || 12 : 12;
 const iO = process.argv.indexOf('--origen');
 const ORIGEN = (iO > -1 ? process.argv[iO + 1] : BASE).replace(/\/+$/, '');
+// Compara el ORIGEN de dos URLs, no su prefijo de texto.
+//
+// Estuvo escrito como `url.startsWith(DOMINIO)` y CodeQL lo marcó como alerta
+// alta (`js/incomplete-url-substring-sanitization`). Tenía razón, y no era
+// teórico: `https://tradingcalculator.pro.evil.com/x` empieza por
+// `https://tradingcalculator.pro`, así que un canonical secuestrado hacia un
+// subdominio ajeno pasaba por bueno — que es exactamente lo que este
+// verificador existe para cazar.
+const mismoOrigen = (url, referencia) => {
+  try { return new URL(url).origin === new URL(referencia).origin; }
+  catch { return false; }
+};
+
+// La ruta de una URL sin depender de la longitud del dominio.
+const rutaDe = (url) => { try { return new URL(url).pathname; } catch { return url; } };
+
 // De la URL anunciada a la URL que se descarga. Idéntica en producción.
-const aBase = (u) => (u.startsWith(ORIGEN) ? BASE + u.slice(ORIGEN.length) : u);
+const aBase = (u) => (mismoOrigen(u, ORIGEN) ? BASE + rutaDe(u) + (new URL(u).search || '') : u);
 
 const fallos = [];
 const mal = (q, d) => fallos.push(`${q}${d ? ` — ${d}` : ''}`);
@@ -87,7 +103,7 @@ async function pedir(url) {
   else {
     locs = [...sm.texto.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
     if (locs.length === 0) mal('sitemap.xml sin ninguna <loc>', 'se publicó vacío');
-    const ajenas = locs.filter((u) => !u.startsWith(ORIGEN));
+    const ajenas = locs.filter((u) => !mismoOrigen(u, ORIGEN));
     if (ajenas.length)
       mal(`${ajenas.length} URL(s) del sitemap apuntan a otro dominio`, ajenas[0]);
   }
