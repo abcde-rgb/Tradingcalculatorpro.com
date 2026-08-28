@@ -1257,7 +1257,24 @@ SUBSCRIPTION_PLANS = {
     "lifetime":  {"name": "De Por Vida", "price": 500.00, "currency": "EUR", "interval": "lifetime", "days": 36500, "stripe_price_id": "price_1TXM8YImYjMeegYBouBCvmC0", "klarna": True},
 }
 
-app = FastAPI(title="Trading Calculator PRO API")
+# ── Los docs interactivos, sólo fuera de producción ──────────────────────────
+# `FastAPI()` publica `/docs`, `/redoc` y `/openapi.json` sin autenticación. Eso
+# es el índice COMPLETO de la API —incluidas las rutas de admin, con sus
+# parámetros y sus esquemas— servido a cualquiera que lo pida. No da acceso a
+# nada, pero entrega el mapa: qué existe, cómo se llama y qué espera.
+#
+# En desarrollo hacen falta: `tests/e2e/api/autorizacion.py` lee `/openapi.json`
+# para comprobar que una ruta retirada ya no existe (un 404 no distingue
+# «retirada» de «bien protegida»), y el banco corre con `ENVIRONMENT=development`.
+_DOCS_ABIERTOS = os.environ.get("ENVIRONMENT", "production").lower() in (
+    "development", "dev", "local", "test",
+)
+app = FastAPI(
+    title="Trading Calculator PRO API",
+    docs_url="/docs" if _DOCS_ABIERTOS else None,
+    redoc_url="/redoc" if _DOCS_ABIERTOS else None,
+    openapi_url="/openapi.json" if _DOCS_ABIERTOS else None,
+)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -9423,6 +9440,10 @@ try:
         # El poller necesita poder mandar correo: sin esto, una alerta con canal
         # de correo pedido se dispararía y no saldría de la pestaña.
         "send_email": _send_email,
+        # El apretón de manos de un WebSocket NO pasa por el middleware de
+        # CORS, así que el endpoint tiene que comprobar `Origin` por su cuenta
+        # antes de aceptar la cookie como credencial.
+        "cors_origins": _CORS_ORIGINS,
     })
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:

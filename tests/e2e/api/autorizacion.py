@@ -153,10 +153,20 @@ if tid:
     # propio servidor publica.
     caminos = set()
     try:
-        with urllib.request.urlopen(f"{API}/openapi.json", timeout=15) as r:
+        # El esquema lo publica la aplicación en su RAÍZ, no bajo `/api`:
+        # `api_router` cuelga de `/api`, pero `openapi_url` es de `app`.
+        # Pedirlo a `{API}/openapi.json` daba 404 y la comprobación llevaba
+        # tiempo en rojo por la URL, sin llegar a mirar ninguna ruta.
+        raiz = API[:-4] if API.endswith("/api") else API
+        with urllib.request.urlopen(f"{raiz}/openapi.json", timeout=15) as r:
             caminos = set(json.load(r).get("paths", {}))
     except (urllib.error.URLError, ValueError) as e:
-        marca("se puede leer el índice de rutas del servidor", False, str(e))
+        # Desde el 2026-08-28 `/openapi.json` sólo existe fuera de producción
+        # (era el índice completo de la API servido a cualquiera). Contra un
+        # despliegue real esto da 404 y es CORRECTO: el banco corre con
+        # ENVIRONMENT=development, donde sigue publicado.
+        marca("se puede leer el índice de rutas del servidor", False,
+              f"{e} — ¿el backend corre con ENVIRONMENT=development?")
     if caminos:
         legadas = sorted(p for p in caminos if p.startswith("/api/journal/trades"))
         marca("la puerta legada al diario ya no existe", not legadas,
