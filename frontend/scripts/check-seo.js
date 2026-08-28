@@ -46,9 +46,28 @@
 const fs = require('fs');
 const path = require('path');
 
+// Quitar barras finales sin cuantificador de expresión regular.
+//
+// Estaba escrito como `.replace(/\/+$/, '')` sobre cadenas que salen del
+// sitemap y de las páginas —es decir, datos que no controla este script—, y
+// `\/+$` obliga al motor a retroceder: con una URL de muchas barras el coste
+// es cuadrático. Es `js/polynomial-redos`, alerta alta de CodeQL. Un recorrido
+// hacia atrás es lineal y hace exactamente lo mismo.
+const sinBarras = (s) => {
+  let i = s.length;
+  while (i > 0 && s[i - 1] === '/') i -= 1;
+  return s.slice(0, i);
+};
+
+// Equivalente a `.replace(/\/+$/, '/')`: colapsa las barras finales a UNA sola,
+// y deja intacta la cadena que no acaba en barra. Ojo con esa segunda mitad —
+// `sinBarras(s) + '/'` a secas añadiría una barra donde no la había y rompería
+// la comparación entre el canonical y su <loc>.
+const unaBarra = (s) => (s.endsWith('/') ? `${sinBarras(s)}/` : s);
+
 const BUILD = path.join(__dirname, '..', 'build');
 const DEFAULT_ORIGIN = 'https://tradingcalculator.pro';
-const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
+const DOMAIN = sinBarras(process.env.SITE_ORIGIN || DEFAULT_ORIGIN);
 const BREVE = process.argv.includes('--breve');
 
 // Los mismos diez de `gen-seo-pages.js` e `i18n-check.js`. Si divergen, el
@@ -117,7 +136,7 @@ function revisar(fichero) {
   const canonical = attr(html, /<link rel="canonical" href="([^"]+)"/);
   if (!canonical) anota('canonical ausente', rel, '');
   else if (!mismoOrigen(canonical, DOMAIN)) anota('canonical a otro dominio', rel, canonical);
-  else if (canonical.replace(/\/+$/, '/') !== propia.replace(/\/+$/, '/'))
+  else if (unaBarra(canonical) !== unaBarra(propia))
     anota('canonical NO auto-referente', rel, `dice ${canonical}`);
 
   // 2 · hreflang
@@ -184,8 +203,8 @@ if (!fs.existsSync(SITEMAP)) {
 } else {
   const xml = fs.readFileSync(SITEMAP, 'utf8');
   enSitemap = new Set([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
-    .map((m) => m[1].replace(/\/+$/, '/')));
-  const norm = new Set([...generadas].map((u) => u.replace(/\/+$/, '/')));
+    .map((m) => unaBarra(m[1])));
+  const norm = new Set([...generadas].map(unaBarra));
   // Las rutas de APLICACIÓN (el array MAIN de `gen-seo-pages.js`: /, /options,
   // /options/strategies, /pricing…) van al sitemap a propósito y las sirve la
   // SPA, sin página estática propia. No son un fallo.
@@ -200,12 +219,12 @@ if (!fs.existsSync(SITEMAP)) {
   const rutasApp = new Set(
     (mMain ? [...mMain[1].matchAll(/\['([^']+)'/g)].map((m) => m[1]) : [])
       .flatMap((r) => LANGS.map(([, pref]) =>
-        `${DOMAIN}${pref}${r}`.replace(/\/+$/, '') || DOMAIN)));
+        sinBarras(`${DOMAIN}${pref}${r}`) || DOMAIN)));
   if (!mMain) anota('no se pudo leer MAIN de gen-seo-pages.js', 'scripts/gen-seo-pages.js',
                     'sin esa lista no se distingue una ruta de app de una página que falta');
 
   for (const loc of enSitemap) {
-    const sinBarra = loc.replace(/\/+$/, '');
+    const sinBarra = sinBarras(loc);
     if (rutasApp.has(sinBarra)) continue;
     const ruta = rutaDe(loc).replace(/^\/|\/$/g, '');
     if (ruta.split('/').length >= 2 && !norm.has(loc))

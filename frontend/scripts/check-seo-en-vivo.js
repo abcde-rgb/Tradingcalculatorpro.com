@@ -41,12 +41,31 @@
  *
  * Sin argumentos usa el dominio de producción para ambos. Sale 1 si algo falla.
  */
-const BASE = (process.argv.find((a) => a.startsWith('http'))
-  || 'https://tradingcalculator.pro').replace(/\/+$/, '');
+// Quitar barras finales sin cuantificador de expresión regular.
+//
+// Estaba escrito como `.replace(/\/+$/, '')` sobre cadenas que salen del
+// sitemap y de las páginas —es decir, datos que no controla este script—, y
+// `\/+$` obliga al motor a retroceder: con una URL de muchas barras el coste
+// es cuadrático. Es `js/polynomial-redos`, alerta alta de CodeQL. Un recorrido
+// hacia atrás es lineal y hace exactamente lo mismo.
+const sinBarras = (s) => {
+  let i = s.length;
+  while (i > 0 && s[i - 1] === '/') i -= 1;
+  return s.slice(0, i);
+};
+
+// Equivalente a `.replace(/\/+$/, '/')`: colapsa las barras finales a UNA sola,
+// y deja intacta la cadena que no acaba en barra. Ojo con esa segunda mitad —
+// `sinBarras(s) + '/'` a secas añadiría una barra donde no la había y rompería
+// la comparación entre el canonical y su <loc>.
+const unaBarra = (s) => (s.endsWith('/') ? `${sinBarras(s)}/` : s);
+
+const BASE = sinBarras(process.argv.find((a) => a.startsWith('http'))
+  || 'https://tradingcalculator.pro');
 const iM = process.argv.indexOf('--muestra');
 const MUESTRA = iM > -1 ? parseInt(process.argv[iM + 1], 10) || 12 : 12;
 const iO = process.argv.indexOf('--origen');
-const ORIGEN = (iO > -1 ? process.argv[iO + 1] : BASE).replace(/\/+$/, '');
+const ORIGEN = sinBarras(iO > -1 ? process.argv[iO + 1] : BASE);
 // Compara el ORIGEN de dos URLs, no su prefijo de texto.
 //
 // Estuvo escrito como `url.startsWith(DOMINIO)` y CodeQL lo marcó como alerta
@@ -137,7 +156,7 @@ async function pedir(url) {
     vistas++;
     const can = r.texto.match(/<link rel="canonical" href="([^"]+)"/);
     if (!can) mal('página publicada sin canonical', url);
-    else if (can[1].replace(/\/+$/, '') !== url.replace(/\/+$/, ''))
+    else if (sinBarras(can[1]) !== sinBarras(url))
       mal('canonical publicado que no es auto-referente', `${url} → ${can[1]}`);
     if (!/rel="alternate" hreflang=/.test(r.texto))
       mal('página publicada sin hreflang', url);
