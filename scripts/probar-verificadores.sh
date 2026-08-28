@@ -986,6 +986,36 @@ assert s.count(viejo) == 1, 'ancla del orden no encontrada'
 p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
 EOF"
 
+# ── Toda respuesta de auth describe al usuario igual ────────────────────────
+# BUG-072: cuatro respuestas —login, refresh, magic link y Google— mandaban
+# `is_admin` pero no `two_factor_enabled`. La guarda del panel decide con
+# `two_factor_enabled === false`, y con el campo ausente `undefined === false`
+# es FALSO: el admin entraba y luego el backend le devolvía 428 en cada llamada.
+# Síntoma: en incógnito «funcionaba» y en el navegador de siempre no.
+titulo "Forma de las respuestas de auth (test_security_unit.py)"
+probar "una respuesta de auth que se deja el 2FA" \\
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \\
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
+assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+# Y el otro sentido: la regla mira los objetos `user` de RESPUESTA, no las filas
+# de base de datos ni las tablas del panel, que no tienen por qué llevar el
+# campo. Un heurístico por claves las marcaba a todas y se habría desactivado.
+probar_inverso "una fila de base de datos con is_admin y sin 2FA" \\
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \\
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
+EOF"
+
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────
 titulo "Auditoría (auditar.py --estricto)"
 COMPONENTE_MUERTO="frontend/src/components/ZzSabotajeHuerfano.jsx"

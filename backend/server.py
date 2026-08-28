@@ -2028,6 +2028,9 @@ async def register(request: Request, response: Response, user_data: UserCreate):
             "subscription_end": None,
             "is_premium": False,
             "is_admin": False,
+            # Cuenta recién creada: nunca tiene TOTP. Viaja igualmente para que
+            # todas las respuestas de auth tengan la misma forma (ver BUG-072).
+            "two_factor_enabled": False,
             "auth_provider": "password",
             "email_verified": False,
         }
@@ -2072,6 +2075,13 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             "subscription_status": user.get("subscription_status"),
             "is_premium": is_premium,
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            # `ProtectedRoute` decide con `two_factor_enabled === false`. Si el
+            # campo NO viaja, `undefined === false` es falso y la guarda no salta:
+            # el admin entra al panel y luego el backend le devuelve 428 en cada
+            # llamada, porque el 2FA es obligatorio para administradores. Tiene
+            # que viajar en TODAS las respuestas que construyen `user`, o la app
+            # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
+            "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "password"),
             "email_verified": bool(user.get("email_verified", False)),
             "last_seen": now_iso,
@@ -2265,6 +2275,13 @@ async def refresh_access_token(request: Request, response: Response, body: Token
             "subscription_status": user.get("subscription_status"),
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            # `ProtectedRoute` decide con `two_factor_enabled === false`. Si el
+            # campo NO viaja, `undefined === false` es falso y la guarda no salta:
+            # el admin entra al panel y luego el backend le devuelve 428 en cada
+            # llamada, porque el 2FA es obligatorio para administradores. Tiene
+            # que viajar en TODAS las respuestas que construyen `user`, o la app
+            # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
+            "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "password"),
             "email_verified": bool(user.get("email_verified", False)),
         },
@@ -2376,6 +2393,13 @@ async def verify_magic_link(request: Request, response: Response, body: MagicLin
             # Honor ADMIN_EMAILS so the admin gets the panel no matter which
             # login method they use (matches /auth/login and /auth/google).
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            # `ProtectedRoute` decide con `two_factor_enabled === false`. Si el
+            # campo NO viaja, `undefined === false` es falso y la guarda no salta:
+            # el admin entra al panel y luego el backend le devuelve 428 en cada
+            # llamada, porque el 2FA es obligatorio para administradores. Tiene
+            # que viajar en TODAS las respuestas que construyen `user`, o la app
+            # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
+            "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "is_premium": check_premium(user),
             "subscription_plan": user.get("subscription_plan"),
             "auth_provider": user.get("auth_provider", "magic_link"),
@@ -3114,6 +3138,13 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "subscription_status": user.get("subscription_status"),
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
+            # `ProtectedRoute` decide con `two_factor_enabled === false`. Si el
+            # campo NO viaja, `undefined === false` es falso y la guarda no salta:
+            # el admin entra al panel y luego el backend le devuelve 428 en cada
+            # llamada, porque el 2FA es obligatorio para administradores. Tiene
+            # que viajar en TODAS las respuestas que construyen `user`, o la app
+            # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
+            "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "google"),
         },
     }

@@ -642,3 +642,74 @@ def test_the_identity_routes_use_the_deterministic_lookup():
             f"{ruta.strip()} vuelve a resolver el correo sin criterio de desempate: "
             "con un duplicado, la cuenta elegida cambia entre consultas"
         )
+
+
+# ============================================================
+#  Toda respuesta de auth describe al usuario IGUAL (BUG-072)
+# ============================================================
+#
+# `ProtectedRoute` decide con `user?.two_factor_enabled === false`. Cuatro
+# respuestas —login, refresh, magic link y Google— no mandaban ese campo, así
+# que valía `undefined`, y `undefined === false` es FALSO: la guarda no saltaba y
+# el admin entraba al panel, donde el backend le devolvía 428 en cada llamada
+# porque el 2FA es obligatorio para administradores.
+#
+# El síntoma era desconcertante: en incógnito «funcionaba» (recién logueado el
+# campo no existe → te deja pasar) y en el navegador de siempre no (el `user`
+# guardado venía de `/auth/me`, que SÍ lo manda, así que valía `false` → a
+# Ajustes). El mismo usuario, la misma cuenta, dos comportamientos.
+#
+# La regla no mira los cuatro sitios: mira que NINGUNA respuesta que describa a
+# un usuario se deje el campo. Comprobar sólo los conocidos dejaría pasar el
+# siguiente endpoint que se escriba.
+
+def _objetos_user_de_respuesta():
+    """Los objetos que el frontend guarda como `user`, y sólo esos.
+
+    Se identifican por su POSICIÓN, no por sus claves: son el valor de la clave
+    `"user"` de una respuesta, que es literalmente lo que hace el store
+    (`set({ user: data.user })`), más el `return` de `/auth/me`, que lo devuelve
+    plano. Un heurístico por claves cazaba también las FILAS de base de datos y
+    las tablas del panel de admin, que no tienen por qué llevar este campo.
+    """
+    tree = ast.parse(_SERVER_SRC)
+    objetos = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Dict):
+            for k, v in zip(node.keys, node.values):
+                if (isinstance(k, ast.Constant) and k.value == "user"
+                        and isinstance(v, ast.Dict)):
+                    claves = {kk.value for kk in v.keys
+                              if isinstance(kk, ast.Constant) and isinstance(kk.value, str)}
+                    objetos.append((v.lineno, claves))
+    # `/auth/me` devuelve el usuario plano, sin envolverlo en `"user"`.
+    for node in ast.walk(tree):
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "get_me":
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Return) and isinstance(sub.value, ast.Dict):
+                    claves = {kk.value for kk in sub.value.keys
+                              if isinstance(kk, ast.Constant) and isinstance(kk.value, str)}
+                    objetos.append((sub.value.lineno, claves))
+    return objetos
+
+
+def test_every_auth_response_describes_the_user_the_same_way():
+    """Si un objeto de usuario lleva `is_admin`, tiene que llevar el 2FA.
+
+    Son las dos claves con las que la guarda de rutas decide, y que una viaje
+    sin la otra hace que la app se comporte distinto según por dónde entres.
+    """
+    objetos = _objetos_user_de_respuesta()
+    assert len(objetos) >= 7, (
+        f"sólo se han encontrado {len(objetos)} objetos `user` de respuesta; la "
+        "regla ha dejado de reconocerlos y no está comprobando nada"
+    )
+    incompletos = [(ln, sorted({"is_admin", "two_factor_enabled"} - claves))
+                   for ln, claves in objetos
+                   if "is_admin" in claves and "two_factor_enabled" not in claves]
+    assert not incompletos, (
+        f"estas respuestas mandan `is_admin` sin `two_factor_enabled`: {incompletos}. "
+        "En el frontend el campo valdrá `undefined`, y `undefined === false` es "
+        "falso: la guarda del panel no salta y el admin entra a una pantalla "
+        "donde cada llamada devolverá 428."
+    )
