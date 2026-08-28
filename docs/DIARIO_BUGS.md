@@ -10,6 +10,35 @@
 
 ---
 
+### Endurecimiento asociado (2026-08-28) — qué significan los 43 avisos de `npm audit`
+
+`npm audit` sobre `frontend/` reportaba **44 vulnerabilidades**, y ese número
+por sí solo no dice nada útil: CRA declara `react-scripts` como dependencia de
+producción, así que **todo su árbol de compilación** —webpack, jest, eslint,
+babel, svgo, workbox— cuenta como «producción» aunque no llegue nunca al
+navegador. Repetir «44 vulnerabilidades» en cada sesión sin separarlas es
+ruido que acaba tapando lo que sí importa.
+
+Separadas, sólo cinco paquetes podían acabar en el bundle publicado. De ésos:
+
+| Paquete | Qué se hizo |
+|---|---|
+| `react-router` / `-dom` 7.18.1 | **Alta** (CSRF en modo RSC). Subido a 7.18.2, que es un parche. La SPA no usa RSC, pero no hay razón para cargar con el aviso cuando el arreglo es una versión de parche |
+| `dompurify` (10 avisos) | Entraba por `jspdf`, y **`jspdf` no se importa en ningún sitio**: ni en `src/`, ni en `scripts/`, ni por importación dinámica, ni aparece en el bundle. Retirada, junto a `html2canvas`, por la misma razón |
+| `nanoid`, `uuid`, `qs` | Entran por `postcss` y el árbol de webpack: compilación, no navegador |
+
+Resultado: **0 avisos que lleguen al navegador**. Los 43 restantes son del árbol
+de `react-scripts` y sólo se cierran migrando de CRA a Vite —que está en el
+backlog como P3, no como problema de seguridad—.
+
+Se comprueba así, y conviene rehacerlo antes de creerse un número:
+
+```bash
+cd frontend && npm audit --json | python3 -c "…"   # separar build de runtime
+grep -rl "jspdf\|dompurify" src/ scripts/          # ¿se usa de verdad?
+grep -l "<paquete>" build/static/js/*.js            # ¿está en el artefacto?
+```
+
 ### BUG-025 — El CSP no autorizaba `wss://`: las alertas en vivo quedaban mudas en producción
 **Severidad:** 🟠 ALTA · **Archivo:** `frontend/public/index.html`, `frontend/craco.config.js` · **Estado:** ✅ RESUELTO (2026-08-28)
 
