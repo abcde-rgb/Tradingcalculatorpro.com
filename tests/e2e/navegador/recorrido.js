@@ -16,8 +16,8 @@ const path = require('path');
 
 const { BASE, rutaChromium } = require('../entorno');
 const EXE = rutaChromium();
-// Bajo la misma base que en producción (`PUBLIC_URL=/Tradingcalculatorpro.com`),
-// para probar el artefacto que de verdad se publica.
+// `BASE` sale de `entorno.js`, que sigue al cutover: desde 2026-08-28 la app
+// cuelga de la raíz. Se prueba el artefacto que de verdad se publica.
 
 const MODE = process.argv[2] === 'mobile' ? 'mobile' : 'desktop';
 const OUT = path.join(__dirname, '..', '..', '..', '.qa-capturas', 'recorrido');

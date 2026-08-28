@@ -1,7 +1,7 @@
 # Banco de pruebas E2E
 
 Contra la aplicación **viva**: Postgres real, backend real y el **build de
-producción** servido bajo `/Tradingcalculatorpro.com` (la misma base que GitHub
+producción** servido bajo la raíz `/` (la misma base que GitHub
 Pages), recorrido con Chromium.
 
 ```bash

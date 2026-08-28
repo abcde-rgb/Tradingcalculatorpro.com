@@ -26,7 +26,15 @@ const { chromium } = require('../lib/playwright-core');
 const { rutaChromium } = require('../entorno');
 
 const BUILD = path.join(__dirname, '..', '..', '..', 'frontend', 'build');
-const BASE_PATH = '/Tradingcalculatorpro.com';
+// Base bajo la que se sirve la app. Desde el cutover a `tradingcalculator.pro`
+// (2026-08-28) el build cuelga de la RAÍZ (`PUBLIC_URL: /`), así que por defecto
+// va vacía; `E2E_BASE_PATH` la fuerza para probar un build antiguo.
+//
+// Estuvo escrita a mano en seis ficheros, y por eso el cutover la dejó desfasada
+// en los seis a la vez: las sondas pedían `/Tradingcalculatorpro.com/...` a un
+// build que ya servía desde `/`, y contestaba 404. Mismo fallo que el CORS —
+// una constante copiada que no siguió al dominio.
+const BASE_PATH = process.env.E2E_BASE_PATH ?? '';
 const PUERTO = 3199;
 
 // Candidato deliberadamente ESTRECHO: sólo primera parte. No es la propuesta

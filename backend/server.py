@@ -1148,9 +1148,14 @@ _CORS_ORIGINS = [
     # DONDE SE SIRVE LA WEB. Desde el cutover del 2026-08-28 hay `CNAME` en
     # `frontend/public/`, el `homepage` de package.json apunta aquí y el
     # workflow construye con `PUBLIC_URL: /`, así que este es el Origin real de
-    # todas las peticiones del navegador. Va en el código a propósito: estaba
-    # sólo en la variable `CORS_ORIGINS` del despliegue, y un `gcloud run
-    # deploy` sin `--set-env-vars` borra esa variable y tumba el login entero.
+    # todas las peticiones del navegador. Va en el código a propósito: estuvo
+    # sólo en la variable `CORS_ORIGINS` del servicio, y el origen donde vive la
+    # web no puede depender de que alguien se acuerde de una variable de
+    # entorno — ni de que una edición del servicio se la lleve por delante.
+    #
+    # De esta lista sale también `_get_allowed_origins()`, que valida el
+    # `origin_url` del checkout: con el dominio fuera, los pagos no fallaban
+    # por CORS sino con un 400 explícito del propio backend.
     #
     # El fallo no se ve en los logs: sin cabecera CORS el backend responde 200
     # con las cookies puestas y es el navegador quien descarta la respuesta.
@@ -1183,10 +1188,12 @@ for _o in _extra.split(","):
 # usuario tampoco puede entrar. Una sola constante para que los cuatro sitios
 # que la usaban no vuelvan a divergir.
 #
-# Cutover de dominio 2026-08-28: era la URL de proyecto de GitHub Pages. Si en
-# Cloud Run sigue puesta `FRONTEND_URL` con el valor viejo, gana la variable y
-# los correos siguen llevando a la URL antigua — hay que actualizarla también
-# en el servicio (ver docs/MIGRACION_DOMINIO.md § 8b).
+# Cutover de dominio 2026-08-28: era la URL de proyecto de GitHub Pages. El
+# servicio de Cloud Run lleva su configuración como variables propias, que
+# SOBREVIVEN al despliegue desde código: si `FRONTEND_URL` sigue ahí con el
+# valor viejo, gana la variable y los correos seguirán llevando a la URL
+# antigua por mucho que este fichero diga otra cosa. Hay que actualizarla en el
+# servicio (ver docs/MIGRACION_DOMINIO.md § «Lo que falta»).
 DEFAULT_FRONTEND_URL = "https://tradingcalculator.pro"
 FRONTEND_URL = os.environ.get("FRONTEND_URL", DEFAULT_FRONTEND_URL).strip().rstrip("/")
 

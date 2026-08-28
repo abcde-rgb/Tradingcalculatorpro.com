@@ -16,7 +16,7 @@
   ],
 
   "packageId": "com.tradingcalculatorpro.app",
-  "host": "abcde-rgb.github.io",
+  "host": "tradingcalculator.pro",
   "name": "Trading Calculator PRO",
   "launcherName": "TradeCalc PRO",
   "display": "standalone",
@@ -29,9 +29,9 @@
   "navigationDividerColorDark": "#09090b",
   "backgroundColor": "#09090b",
   "enableNotifications": true,
-  "startUrl": "/Tradingcalculatorpro.com/?source=twa",
-  "iconUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/apple-touch-icon.png",
-  "maskableIconUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/apple-touch-icon.png",
+  "startUrl": "/?source=twa",
+  "iconUrl": "https://tradingcalculator.pro/apple-touch-icon.png",
+  "maskableIconUrl": "https://tradingcalculator.pro/apple-touch-icon.png",
   "splashScreenFadeOutDuration": 300,
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
@@ -39,14 +39,14 @@
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
-      "url": "/Tradingcalculatorpro.com/dashboard",
-      "chosenIconUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/apple-touch-icon.png"
+      "url": "/dashboard",
+      "chosenIconUrl": "https://tradingcalculator.pro/apple-touch-icon.png"
     },
     {
       "name": "Opciones",
       "short_name": "Opciones",
-      "url": "/Tradingcalculatorpro.com/options",
-      "chosenIconUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/apple-touch-icon.png"
+      "url": "/options",
+      "chosenIconUrl": "https://tradingcalculator.pro/apple-touch-icon.png"
     }
   ],
   "signingKey": {
@@ -57,7 +57,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://abcde-rgb.github.io/Tradingcalculatorpro.com/",
+  "fullScopeUrl": "https://tradingcalculator.pro/",
   "minSdkVersion": 23,
   "shareTarget": null
 }
