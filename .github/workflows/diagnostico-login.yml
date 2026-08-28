@@ -1,0 +1,55 @@
+# ============================================================================
+# ¿Por qué no entra el login?
+#
+# «El login no funciona» tiene cuatro causas y desde el navegador se ven IGUAL:
+# metes tus datos y te quedas fuera, sin error que mirar. Ninguna se distingue
+# sin salir a la red — y el sandbox donde trabaja Claude Code no tiene salida,
+# así que esto vive aquí, donde sí la hay.
+#
+# Dice CUÁL de las cuatro es y qué tocar para arreglarla.
+# ============================================================================
+name: Diagnóstico del login
+
+on:
+  workflow_dispatch:
+    inputs:
+      sitio:
+        description: 'URL del sitio (por defecto, producción)'
+        required: false
+        default: 'https://tradingcalculator.pro'
+  # También tras cada despliegue: es cuando puede haberse roto.
+  workflow_run:
+    workflows: ["Build & Deploy to GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  login:
+    name: 🔐 ¿Puede entrar alguien?
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Pages tarda en propagar; sin esto se auditaría el despliegue anterior.
+      - name: Dar tiempo a que Pages propague
+        if: github.event_name == 'workflow_run'
+        run: sleep 90
+
+      # `BACKEND_URL` sale del mismo secreto con el que se compila la web, así
+      # que se comprueba EL BACKEND QUE LA WEB LLAMA, no uno escrito a mano
+      # aquí que podría haberse quedado atrás.
+      - name: Diagnosticar
+        working-directory: frontend
+        env:
+          BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
+        run: node scripts/check-login-en-vivo.js ${{ github.event.inputs.sitio }}
