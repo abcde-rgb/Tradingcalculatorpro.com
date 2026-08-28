@@ -451,3 +451,85 @@ def test_google_handler_wires_the_guard_and_revokes_sessions():
     assert "_revoke_all_tokens_for_user" in handler, (
         "el enlazado no revoca las sesiones vivas del atacante"
     )
+
+
+# ============================================================
+#  El correo no distingue mayúsculas (BUG-070)
+# ============================================================
+#
+# El registro guardaba el correo TAL COMO SE TECLEABA y el login lo buscaba con
+# igualdad exacta, que en PostgreSQL distingue mayúsculas. Resultado: quien se
+# registró como `Ana@x.com` y entraba como `ana@x.com` recibía «Credenciales
+# inválidas» con la contraseña correcta — y el 401 es idéntico al de una
+# contraseña mala, así que no había ninguna pista. Peor: al entrar con Google
+# (que devuelve el correo en minúsculas) se le creaba una cuenta NUEVA y vacía.
+
+_SERVER_SRC = _SERVER.read_text(encoding="utf-8")
+
+
+def test_ieq_compares_the_whole_string_lowercased():
+    """`$ieq` baja AMBOS lados y compara por igualdad, no por patrón."""
+    clause, params, _ = build_where({"email": {"$ieq": "Ana@X.com"}}, 1)
+    assert "LOWER" in clause and "=" in clause, clause
+    assert "~" not in clause, "un operador de regex aquí sería substring, no igualdad"
+    assert params == ["Ana@X.com"], "el valor va como parámetro, no incrustado"
+
+
+def test_ieq_is_not_an_unanchored_regex():
+    """La trampa que este operador existe para evitar.
+
+    Con `$regex` + `i` el shim emite `~*`, que va SIN anclar: el patrón
+    `ana@x.com` casaría con `otro+ana@x.com.evil.com`, y un correo es un regex
+    válido (el `.` comodín, el `+` cuantificador). Sería un agujero de
+    suplantación, no un arreglo.
+    """
+    import re
+    victima = "ana@x.com"
+    atacante = "otro+ana@x.com.evil.com"
+    # Así se comportaría la alternativa descartada:
+    assert re.search(victima, atacante, re.I), "premisa del test: el regex sí casa"
+    # Y así se comporta la elegida:
+    assert victima.lower() != atacante.lower(), "`$ieq` compara la cadena entera"
+
+    clause, _, _ = build_where({"email": {"$ieq": victima}}, 1)
+    assert "~*" not in clause, "`$ieq` no puede degradar a regex sin anclar"
+
+
+@pytest.mark.parametrize("payload", [
+    "'; DROP TABLE users; --",
+    "x' OR '1'='1",
+])
+def test_ieq_parameterises_malicious_values(payload):
+    clause, params, _ = build_where({"email": {"$ieq": payload}}, 1)
+    assert payload not in (clause or ""), f"valor incrustado en el SQL: {clause!r}"
+    assert payload in " ".join(str(p) for p in params)
+
+
+def test_login_looks_the_user_up_case_insensitively():
+    """El fallo estaba AQUÍ, no en el shim: la consulta del login."""
+    i = _SERVER_SRC.find("async def login(")
+    assert i != -1, "no se encontró el endpoint de login"
+    cuerpo = _SERVER_SRC[i:i + 1200]
+    assert '"$ieq"' in cuerpo, (
+        "el login vuelve a buscar el correo con igualdad exacta: quien se "
+        "registró con otra caja no puede entrar y el 401 no lo explica"
+    )
+
+
+def test_register_stores_the_email_normalised():
+    """Normalizar al ESCRIBIR: sin esto conviven dos cuentas por el mismo correo."""
+    i = _SERVER_SRC.find("async def register(")
+    assert i != -1, "no se encontró el endpoint de registro"
+    cuerpo = _SERVER_SRC[i:i + 1600]
+    assert ".strip().lower()" in cuerpo, "el registro no normaliza el correo"
+    assert '"email": email_norm' in cuerpo, "el registro guarda el correo sin normalizar"
+
+
+def test_there_is_a_functional_index_for_the_case_insensitive_lookup():
+    """Sin índice sobre LOWER(...), cada login recorre `users` entera.
+
+    PostgreSQL sólo usa un índice funcional si su expresión coincide con la de
+    la consulta, y el que ya existía es sobre `(data->>'email')` a secas.
+    """
+    assert "idx_users_email_lower" in _SERVER_SRC
+    assert "LOWER((data->>'email'))" in _SERVER_SRC

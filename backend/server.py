@@ -188,7 +188,21 @@ def _build_where_clause(filter_dict: dict, start_param: int = 1):
 
         if isinstance(value, dict) and any(k.startswith("$") for k in value):
             for op, operand in value.items():
-                if op == "$regex":
+                if op == "$ieq":
+                    # Igualdad SIN distinguir mayúsculas. Existe para los correos:
+                    # el registro guardaba lo que el usuario tecleaba y el login
+                    # buscaba lo mismo tal cual, así que `Ana@x.com` y `ana@x.com`
+                    # eran cuentas distintas y el login devolvía 401 (BUG-070).
+                    #
+                    # NO se hace con `$regex` + `i`: `~*` va SIN anclar y un correo
+                    # es un regex válido, así que el patrón `ana@x.com` casaría con
+                    # `otro+ana@x.com.evil.com`. Sería un agujero de suplantación,
+                    # no un arreglo. `LOWER(...) = LOWER(...)` compara la cadena
+                    # entera y nada más.
+                    parts.append(f"LOWER((data->>'{ key }')) = LOWER(${param_idx})")
+                    params.append(operand)
+                    param_idx += 1
+                elif op == "$regex":
                     flags = value.get("$options", "")
                     if "i" in flags:
                         parts.append(f"(data->>'{ key }') ~* ${param_idx}")
@@ -1003,6 +1017,10 @@ class Database:
         # Expression indexes on frequently-queried fields (idempotent)
         async with self._pool.acquire() as conn:
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users ((data->>'email'))")
+            # El de arriba no sirve para `$ieq`: PostgreSQL sólo usa un índice
+            # funcional si su expresión coincide con la de la consulta. Sin este,
+            # cada login haría un recorrido completo de `users`.
+            await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users (LOWER((data->>'email')))")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_users_id ON users ((data->>'id'))")
             for tbl in ("trades", "calculations", "alerts", "saved_positions",
                         "trading_plans"):
@@ -1961,14 +1979,19 @@ def _norm_country(value: Optional[str]) -> Optional[str]:
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
 async def register(request: Request, response: Response, user_data: UserCreate):
-    existing = await db.users.find_one({"email": user_data.email})
+    # El correo se normaliza AL ESCRIBIR y se comprueba sin distinguir mayúsculas.
+    # Sin lo primero conviven `Ana@x.com` y `ana@x.com` como cuentas distintas;
+    # sin lo segundo, registrarse con otra caja crea la segunda encima de la
+    # primera y el usuario acaba con dos cuentas sin saber en cuál están sus datos.
+    email_norm = user_data.email.strip().lower()
+    existing = await db.users.find_one({"email": {"$ieq": email_norm}})
     if existing:
         raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")
-    
+
     user_id = str(uuid.uuid4())
     user = {
         "id": user_id,
-        "email": user_data.email,
+        "email": email_norm,
         "password": await hash_password_async(user_data.password),
         "name": user_data.name,
         "subscription_plan": None,
@@ -1982,19 +2005,24 @@ async def register(request: Request, response: Response, user_data: UserCreate):
     await db.users.insert_one(user)
     try:
         import asyncio as _asyncio
-        _asyncio.create_task(_send_welcome_email(user_data.email, user_data.name))
-        _asyncio.create_task(_send_email_verification(user_id, user_data.email, user_data.name))
+        _asyncio.create_task(_send_welcome_email(email_norm, user_data.name))
+        _asyncio.create_task(_send_email_verification(user_id, email_norm, user_data.name))
     except Exception:
         pass
 
-    token = create_token(user_id, user_data.email)
-    refresh_token = create_refresh_token(user_id, user_data.email)
+    # A partir de aquí, SIEMPRE `email_norm`: el JWT y la respuesta tienen que
+    # decir lo mismo que la fila. Con el correo tecleado, el token viajaba con
+    # una caja y la base guardaba otra, así que cualquier comprobación que cruce
+    # las dos (admin, revocación, verificación) comparaba cadenas distintas para
+    # el mismo usuario.
+    token = create_token(user_id, email_norm)
+    refresh_token = create_refresh_token(user_id, email_norm)
     _set_auth_cookies(response, token, refresh_token)
     return {
         "token": token,
         "user": {
             "id": user_id,
-            "email": user_data.email,
+            "email": email_norm,
             "name": user_data.name,
             "subscription_plan": None,
             "subscription_end": None,
@@ -2008,7 +2036,11 @@ async def register(request: Request, response: Response, user_data: UserCreate):
 @api_router.post("/auth/login", response_model=dict)
 @limiter.limit("10/minute")
 async def login(request: Request, response: Response, credentials: UserLogin):
-    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    # `$ieq`, no igualdad exacta: el correo no distingue mayúsculas, pero esta
+    # consulta sí lo hacía. Quien se registró como `Ana@x.com` y entraba como
+    # `ana@x.com` recibía «Credenciales inválidas» con la contraseña correcta, y
+    # no había forma de saberlo: el 401 es el mismo que el de una contraseña mala.
+    user = await db.users.find_one({"email": {"$ieq": credentials.email}}, {"_id": 0})
     if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
@@ -2226,7 +2258,9 @@ class MagicLinkVerifyRequest(BaseModel):
 async def request_magic_link(request: Request, body: MagicLinkRequest):
     """Send a one-time login link to the user's email. Creates account if it doesn't exist."""
     email = body.email.lower().strip()
-    user = await db.users.find_one({"email": email}, {"_id": 0})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    user = await db.users.find_one({"email": {"$ieq": email}}, {"_id": 0})
     if not user:
         # Auto-create a passwordless account
         import uuid as _uuid
@@ -2391,7 +2425,9 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
 @limiter.limit("3/hour")
 async def forgot_password(request: Request, body: ForgotPasswordRequest):
     """Generate a password-reset token, store it in DB, and email the reset link."""
-    user = await db.users.find_one({"email": body.email}, {"_id": 0})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    user = await db.users.find_one({"email": {"$ieq": body.email}}, {"_id": 0})
     # Always return 200 to prevent email enumeration
     if not user:
         return {"ok": True}
@@ -2955,7 +2991,10 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
         raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
 
     # Look up by email, otherwise create a passwordless user with `auth_provider=google`.
-    user = await db.users.find_one({"email": email}, {"_id": 0})
+    # Sin esto, quien se registró como `Ana@x.com` y luego entra con Google
+    # —que devuelve el correo en minúsculas— se encuentra una cuenta NUEVA y
+    # vacía en vez de la suya, y sus datos quedan en la otra. Ver BUG-070.
+    user = await db.users.find_one({"email": {"$ieq": email}}, {"_id": 0})
     is_new_user = user is None   # para atribución de referidos: solo altas nuevas
     if not user:
         user_id = str(uuid.uuid4())
@@ -7957,7 +7996,9 @@ class AdminPromoteRequest(BaseModel):
 @api_router.post("/admin/promote")
 async def admin_promote_user(request: Request, payload: AdminPromoteRequest, admin: dict = Depends(require_admin)):
     """Toggle is_admin flag for any user (only callable by an existing admin)."""
-    target = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    target = await db.users.find_one({"email": {"$ieq": payload.email}}, {"_id": 0})
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     result = await db.users.update_one(
@@ -8030,7 +8071,9 @@ def _compute_subscription_end(plan: Optional[str], explicit_end: Optional[str]) 
 async def admin_create_user(request: Request, payload: AdminUserCreate, admin: dict = Depends(require_admin)):
     """Create a new user from the admin panel (full control over plan / premium / admin)."""
     email_lc = payload.email.lower()
-    existing = await db.users.find_one({"email": email_lc})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    existing = await db.users.find_one({"email": {"$ieq": email_lc}})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     if len(payload.password) < 8:
@@ -8084,7 +8127,9 @@ async def admin_update_user(request: Request, user_id: str, payload: AdminUserUp
     if payload.email is not None:
         new_email = payload.email.lower()
         if new_email != user["email"]:
-            clash = await db.users.find_one({"email": new_email, "id": {"$ne": user_id}})
+            # Sin `$ieq`, cambiar un correo a otra caja pasa el control de
+            # choque y crea un duplicado. Ver BUG-070.
+            clash = await db.users.find_one({"email": {"$ieq": new_email}, "id": {"$ne": user_id}})
             if clash:
                 raise HTTPException(status_code=400, detail="Ese email ya está en uso por otro usuario")
             updates["email"] = new_email
@@ -9044,7 +9089,9 @@ async def admin_payment_manual(
         raise HTTPException(status_code=400, detail=f"Plan desconocido: {payload.plan_id}")
 
     email_lc = (payload.email or "").strip().lower()
-    user = await db.users.find_one({"email": email_lc}, {"_id": 0})
+    # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
+    # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
+    user = await db.users.find_one({"email": {"$ieq": email_lc}}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="No hay ninguna cuenta con ese email")
 

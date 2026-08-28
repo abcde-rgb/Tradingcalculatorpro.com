@@ -916,6 +916,46 @@ s = p.read_text(encoding='utf-8')
 p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
 EOF"
 
+# ── El correo no puede distinguir mayúsculas ────────────────────────────────
+# BUG-070: el registro guardaba el correo tal como se tecleaba y el login lo
+# buscaba con igualdad exacta, que en PostgreSQL SÍ distingue mayúsculas. Quien
+# se registró como `Ana@x.com` y entraba como `ana@x.com` recibía 401 con la
+# contraseña correcta, y el 401 es idéntico al de una contraseña mala: no había
+# ninguna pista ni en pantalla ni en los logs.
+titulo "Correo insensible a mayúsculas (test_security_unit.py)"
+probar "el login vuelve a buscar el correo con igualdad exacta" \
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
+EOF"
+
+probar "el registro deja de normalizar el correo al guardarlo" \
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k register_stores -p no:cacheprovider)" \
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
+EOF"
+
+# La otra mitad, y es la que de verdad importa: el arreglo NO puede degradar a
+# un regex sin anclar. `~*` haría substring, y un correo es un regex válido, así
+# que `ana@x.com` casaría con `otro+ana@x.com.evil.com` — suplantación de cuenta.
+probar "el operador insensible degrada a un regex sin anclar" \
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k ieq_is_not_an_unanchored -p no:cacheprovider)" \
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
+nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
+assert s.count(viejo) == 1
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+EOF"
+
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────
 titulo "Auditoría (auditar.py --estricto)"
 COMPONENTE_MUERTO="frontend/src/components/ZzSabotajeHuerfano.jsx"
