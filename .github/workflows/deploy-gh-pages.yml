@@ -48,7 +48,8 @@ jobs:
           # 'google' si el consentimiento lo gestiona la CMP certificada de
           # Google (AdSense → Privacidad y mensajes). Vacío = manda el banner
           # de cookies propio.
-          PUBLIC_URL: /Tradingcalculatorpro.com
+          PUBLIC_URL: /
+          SITE_ORIGIN: https://tradingcalculator.pro
           CI: false
         run: npm run build
 
