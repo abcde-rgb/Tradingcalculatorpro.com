@@ -230,6 +230,47 @@ el estado exacto de BUG-067.
 9. 🟡 **Search Console**: alta de la propiedad nueva + herramienta de cambio de
    dirección; mantener la vieja hasta que se traspase la indexación.
 
+## Si el login sigue dando 401 después de todo esto
+
+El 401 de «Credenciales inválidas» es **byte a byte el mismo** para una
+contraseña mala, un correo con otra caja y una fila duplicada. La pantalla no
+distingue las tres causas y los logs de Cloud Run tampoco, así que no se
+adivina: se mira la base.
+
+Dos comprobaciones, en este orden.
+
+**a. ¿Corre en producción el código del arreglo?** Sin `gcloud` a mano, la
+cabecera de CORS lo dice sola: `https://tradingcalculator.pro` entró en la lista
+con el arreglo, y el código anterior no lo llevaba.
+
+```bash
+curl -s -o /dev/null -D- -X OPTIONS \
+  -H 'Origin: https://tradingcalculator.pro' \
+  -H 'Access-Control-Request-Method: POST' \
+  https://tradingcalculator-api-2rkq2snofq-ue.a.run.app/api/auth/login \
+  | grep -i access-control-allow-origin
+```
+
+Si **no** sale la cabecera, el servicio corre código viejo y ahí está el fallo:
+el frontend ya manda el correo en minúsculas, así que contra un backend anterior
+a `$ieq` una fila guardada con mayúscula **ya no casa nunca**. El arreglo a
+medias deja el login peor que antes de tocarlo.
+
+**b. ¿Qué hay en la base para ese correo?** `scripts/diagnostico-login.py`
+responde a las tres preguntas que el 401 esconde —si el índice del arreglo
+existe, si hay filas duplicadas, y a cuál de ellas pertenece la contraseña que
+se teclea—. No escribe nada:
+
+```bash
+read -rs DATABASE_URL && export DATABASE_URL   # no la dejes en el historial
+python scripts/diagnostico-login.py tu@correo.com --password 'la que tecleas'
+```
+
+Si la contraseña casa con una fila y el login contesta con **otra**, no falla la
+clave: falla cuál de las dos cuentas duplicadas responde, y hay que borrar la
+que sobra. El informe dice cuál tiene el admin y el plan; borrarla es un paso
+deliberado aparte, porque decide qué datos sobreviven.
+
 ## Verificación después
 
 ```bash
