@@ -244,7 +244,7 @@ parts.push(brandMark(PAD, 58, MARK));
 }
 
 // Dominio
-parts.push(text(inter600, 'tradingcalculatorpro.com', W - PAD - measure(inter600, 'tradingcalculatorpro.com', 20), 566, 20, C.faint));
+parts.push(text(inter600, 'tradingcalculator.pro', W - PAD - measure(inter600, 'tradingcalculator.pro', 20), 566, 20, C.faint));
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Trading Calculator PRO">
   <title>Trading Calculator PRO — 7 días gratis</title>

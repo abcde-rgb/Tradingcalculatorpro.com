@@ -60,16 +60,24 @@ def _default_origin() -> str:
     cambia, y una passkey registrada contra el origen viejo deja de validar."""
     return os.environ.get(
         "PASSKEY_ORIGIN",
-        os.environ.get("FRONTEND_URL", "https://abcde-rgb.github.io"),
+        os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro"),
     ).rstrip("/")
 
 
 def relying_party() -> Dict[str, str]:
     """`rp_id` es el dominio registrable del frontend; `origin` la URL completa.
 
-    El `rp_id` NO lleva esquema ni ruta: para `https://abcde-rgb.github.io/x` es
-    `abcde-rgb.github.io`. Ponerle la ruta o el esquema hace que el navegador
-    rechace la ceremonia con un `SecurityError` poco explicativo.
+    El `rp_id` NO lleva esquema ni ruta: para `https://tradingcalculator.pro/x`
+    es `tradingcalculator.pro`. Ponerle la ruta o el esquema hace que el
+    navegador rechace la ceremonia con un `SecurityError` poco explicativo.
+
+    ⚠️ El cutover de dominio del 2026-08-28 cambió este valor de
+    `abcde-rgb.github.io` a `tradingcalculator.pro`. **Toda passkey registrada
+    contra el origen anterior deja de validar**: WebAuthn ata cada credencial a
+    su dominio a propósito y no hay migración posible. Quien tuviera una debe
+    registrarla de nuevo desde Ajustes. Conviene fijar `PASSKEY_RP_ID` y
+    `PASSKEY_ORIGIN` en el despliegue para que un `gcloud run deploy` que pierda
+    `FRONTEND_URL` no vuelva a cambiar el `rp_id` por sorpresa.
     """
     origin = _default_origin()
     rp_id = os.environ.get("PASSKEY_RP_ID", "").strip()

@@ -47,7 +47,7 @@ const fs = require('fs');
 const path = require('path');
 
 const BUILD = path.join(__dirname, '..', 'build');
-const DEFAULT_ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DEFAULT_ORIGIN = 'https://tradingcalculator.pro';
 const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const BREVE = process.argv.includes('--breve');
 

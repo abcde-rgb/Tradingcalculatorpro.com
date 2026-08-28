@@ -170,10 +170,10 @@ export default function ContactPage() {
               <span>
                 {t('contactDirect')}{' '}
                 <a
-                  href="mailto:contact@tradingcalculatorpro.com"
+                  href="mailto:contact@tradingcalculator.pro"
                   className="text-primary underline underline-offset-4 hover:opacity-80 transition-opacity"
                 >
-                  contact@tradingcalculatorpro.com
+                  contact@tradingcalculator.pro
                 </a>
               </span>
             </div>

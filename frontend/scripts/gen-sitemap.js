@@ -20,7 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DEFAULT_ORIGIN = 'https://tradingcalculator.pro';
 const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const LASTMOD = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 

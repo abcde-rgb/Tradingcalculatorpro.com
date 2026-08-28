@@ -85,7 +85,7 @@ export function Footer() {
                 </a>
               </Button>
               <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Email" data-testid="footer-email" asChild>
-                <a href="mailto:contact@tradingcalculatorpro.com">
+                <a href="mailto:contact@tradingcalculator.pro">
                   <Mail className="w-4 h-4" />
                 </a>
               </Button>

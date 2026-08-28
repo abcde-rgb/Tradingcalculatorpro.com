@@ -42,7 +42,7 @@
  * Sin argumentos usa el dominio de producción para ambos. Sale 1 si algo falla.
  */
 const BASE = (process.argv.find((a) => a.startsWith('http'))
-  || 'https://abcde-rgb.github.io/Tradingcalculatorpro.com').replace(/\/+$/, '');
+  || 'https://tradingcalculator.pro').replace(/\/+$/, '');
 const iM = process.argv.indexOf('--muestra');
 const MUESTRA = iM > -1 ? parseInt(process.argv[iM + 1], 10) || 12 : 12;
 const iO = process.argv.indexOf('--origen');

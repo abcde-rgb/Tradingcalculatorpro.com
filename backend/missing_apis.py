@@ -66,15 +66,17 @@ def _trusted_link_base(request: Optional[Request] = None) -> str:
     # un despliegue manual, un enlace de reset apuntando a un dominio muerto deja
     # al usuario igual de fuera que un login roto. Mismo valor que server.py.
     canonical = os.environ.get(
-        "FRONTEND_URL", "https://abcde-rgb.github.io/Tradingcalculatorpro.com"
+        "FRONTEND_URL", "https://tradingcalculator.pro"
     ).strip().rstrip("/")
     # Lista fija, nunca derivada de la petición (ver la nota de seguridad arriba).
     allowed = {
         canonical,
+        "https://tradingcalculator.pro",
+        "https://www.tradingcalculator.pro",
+        # Origen anterior: se mantiene mientras propaga el DNS.
         "https://abcde-rgb.github.io",
-        "https://abcde-rgb.github.io/Tradingcalculatorpro.com",
-        "https://tradingcalculatorpro.com",
-        "https://www.tradingcalculatorpro.com",
+        "https://tradingcalculator.pro",
+        "https://www.tradingcalculator.pro",
     }
     for extra in os.environ.get("CORS_ORIGINS", "").split(","):
         extra = extra.strip().rstrip("/")

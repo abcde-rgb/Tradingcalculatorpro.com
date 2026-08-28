@@ -5705,3 +5705,53 @@ el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
   sesión no tenía `node_modules` ni `.venv` y lo dijo; ésta los montó y ejecutó todo.
 
 ---
+
+### 2026-08-28 — La mudanza a `tradingcalculator.pro`, hecha entera menos el DNS
+
+- 🎯 Petición: «tengo el dominio, ¿puedo subir ya la página?». La respuesta corta era
+  que **ya estaba subida** —`abcde-rgb.github.io/Tradingcalculatorpro.com`— y que lo
+  que bloquea no es el dominio sino **cobrar**: las tres pasarelas están 🟢 de código y
+  🔴 de operación. Confirmado el dominio propio (`tradingcalculator.pro`), se hace la
+  mudanza del repositorio.
+- 🔴 **Hallazgo de seguridad: la lista de CORS incluía `https://tradingcalculatorpro.com`
+  y su `www` con `allow_credentials=True`.** Ese dominio **no es de este proyecto**:
+  resuelve a Cloudflare y lo sirve un tercero. Una página suya podía lanzar peticiones
+  autenticadas a esta API con las cookies de sesión del usuario **y leer la respuesta**.
+  Llevaba ahí desde que una sesión de junio «unificó» el dominio al revés. Retirado, y
+  fijado por `test_the_lookalike_third_party_domain_is_never_allowed`: los dos nombres
+  se parecen demasiado como para confiar en que no vuelva a colarse.
+- 🔴 **El correo de contacto público estaba en el dominio ajeno**
+  (`contact@tradingcalculatorpro.com`, en el pie, en Contacto y en Legal), igual que
+  `SENDER_EMAIL` (`alerts@…`). No se podía recibir nada ahí.
+- ✅ **44 referencias corregidas** en fuente: `server.py` (CORS, `SENDER_EMAIL`, los 5
+  enlaces de los correos), `missing_apis.py`, `admin_routes.py`, los 10 i18n,
+  `Footer.jsx`, `ContactPage.jsx`, `LegalPage.jsx`, `EducationPage.jsx`,
+  `gen-og-image.js` y los tests.
+- ✅ **Origen del sitio mudado**: `frontend/public/CNAME`, `PUBLIC_URL: /` y
+  `SITE_ORIGIN` en el workflow, `homepage`, `useSEO.js`, `public/index.html` (20
+  literales: canonical, x-default, OG, Twitter y los cinco bloques JSON-LD),
+  `robots.txt`, `gen-seo-pages.js`, `gen-sitemap.js`, `check-seo.js` y
+  `check-seo-en-vivo.js`.
+- ✅ **Passkeys**: el `rp_id` pasa a derivarse de `tradingcalculator.pro`. Documentado en
+  `passkeys.py` que **toda passkey registrada contra el origen anterior deja de
+  validar** —WebAuthn ata cada credencial a su dominio y no hay migración posible—, y
+  que conviene fijar `PASSKEY_RP_ID`/`PASSKEY_ORIGIN` en el despliegue. Sin usuarios
+  reales el coste es cero: es la razón de peso para hacer el cutover ahora.
+- ✅ El origen anterior (`abcde-rgb.github.io`) **se mantiene** en CORS mientras propaga
+  el DNS, con test propio. Quitarlo el mismo día deja sin sesión a quien tenga la
+  pestaña abierta, con el síntoma peor posible: 200 en los logs y un login que no entra.
+- ✅ Verificado con build real: **1.639 URLs del sitemap en el dominio nuevo, 0 en el
+  viejo**; canonical == `<loc>` comprobado en alemán, árabe e italiano; assets desde la
+  raíz; `CNAME` en el build; `check-seo.js` en verde sobre las **1.630 páginas**.
+  `pytest` **1099 passed / 72 skipped**, `eslint` 0 errores, y toda la batería offline.
+  `gen-mapa` regenerado (los números de línea se desplazaron 19 líneas por el comentario
+  del CORS).
+- 🚨 **Esta rama NO se fusiona hasta que el DNS resuelva.** Con `PUBLIC_URL: /` y el
+  `CNAME` puesto, un despliegue anterior al DNS pide todos los assets desde la raíz de
+  `github.io`, donde no están: rompería el sitio que hoy funciona. Orden correcto: DNS
+  primero, fusión después.
+- ⬜ Queda fuera del repositorio: DNS en GoDaddy (A del apex a las cuatro IP de GitHub
+  Pages + CNAME de `www`), orígenes de Google OAuth, Search Console, `FRONTEND_URL` y
+  `PASSKEY_*` en Cloud Run, y dar de alta `contact@` y `alerts@` en el dominio nuevo.
+
+---

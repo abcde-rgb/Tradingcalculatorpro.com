@@ -1,8 +1,19 @@
 # Mudanza a `tradingcalculator.pro`
 
-**Estado: NO hecha.** El sitio se sirve hoy desde
-`https://abcde-rgb.github.io/Tradingcalculatorpro.com`. Este documento es el
-checklist para mudarlo, y existe porque el cambio **no es una línea**.
+**Estado: la parte del REPOSITORIO está hecha (2026-08-28). Falta el DNS.**
+
+El código ya apunta entero a `tradingcalculator.pro`: CNAME, `PUBLIC_URL: /`,
+`SITE_ORIGIN`, `homepage`, los literales de SEO, el CORS y `FRONTEND_URL`. Lo que
+queda son los pasos **2, 9 y 10** —DNS, Google OAuth y Search Console—, que no se
+pueden hacer desde el repositorio.
+
+> ## 🚨 Esta rama no se fusiona hasta que el DNS apunte
+>
+> El cutover es **todo o nada**, y ya está a un lado. Con `PUBLIC_URL: /` y el
+> `CNAME` puesto, un despliegue **antes** de que `tradingcalculator.pro` resuelva
+> a GitHub Pages deja el sitio actual roto: todos los assets se piden desde la
+> raíz de `github.io`, donde no están. El orden correcto es **DNS primero, fusión
+> después**.
 
 > ## ⚠️ El dominio es `tradingcalculator.pro`, NO `tradingcalculatorpro.com`
 >
@@ -60,30 +71,33 @@ gana.
 
 ## Checklist (todo o nada, en este orden)
 
-1. **Corregir el dominio en el repositorio.** Las ~95 apariciones de
-   `tradingcalculatorpro.com` (dominio ajeno) → `tradingcalculator.pro`,
-   **respetando las mayúsculas de la ruta del repo** (ver el aviso de arriba).
-   Sin esto, el cutover apunta el CORS y los correos a un dominio de un tercero.
-2. **DNS en GoDaddy** (el dominio está ahí, y las NS también — no hay Cloudflare
+1. ✅ **Hecho (2026-08-28).** 44 apariciones del dominio ajeno corregidas en
+   fuente: `server.py` (CORS, `SENDER_EMAIL` y los 5 enlaces de los correos),
+   `missing_apis.py`, `admin_routes.py`, los 10 ficheros i18n, `Footer.jsx`,
+   `ContactPage.jsx`, `LegalPage.jsx`, `EducationPage.jsx`, `gen-og-image.js` y
+   los tests. **El correo de contacto público estaba en el dominio ajeno**
+   (`contact@tradingcalculatorpro.com`): hoy es `contact@tradingcalculator.pro`,
+   así que hay que darlo de alta antes de anunciarlo.
+2. ⬜ **PENDIENTE — es tuyo.** DNS en GoDaddy (el dominio está ahí, y las NS también — no hay Cloudflare
    de por medio) → registros **A** del apex `@` a `185.199.108.153`,
    `185.199.109.153`, `185.199.110.153`, `185.199.111.153`, y **CNAME** `www` a
    `abcde-rgb.github.io`. Quitar antes los registros del parking de GoDaddy.
-3. **`frontend/public/CNAME`** con una línea: `tradingcalculator.pro`.
+3. ✅ **Hecho.** `frontend/public/CNAME` con una línea: `tradingcalculator.pro`.
    En `public/` para que CRA lo copie al build en cada despliegue — si se sube
    a mano al branch `gh-pages`, `keep_files: false` lo borra.
-4. **`PUBLIC_URL: /`** en `.github/workflows/deploy-gh-pages.yml`. Con dominio
+4. ✅ **Hecho.** `PUBLIC_URL: /` en `.github/workflows/deploy-gh-pages.yml`. Con dominio
    propio el sitio cuelga de la raíz; dejarlo en `/Tradingcalculatorpro.com`
    rompe **todos** los assets.
-5. **`homepage`** en `frontend/package.json` → `https://tradingcalculator.pro`.
-6. **`SITE_ORIGIN`** en el paso de build del workflow → `https://tradingcalculator.pro`.
+5. ✅ **Hecho.** `homepage` en `frontend/package.json` → `https://tradingcalculator.pro`.
+6. ✅ **Hecho.** `SITE_ORIGIN` en el paso de build del workflow → `https://tradingcalculator.pro`.
    Cubre de golpe `gen-sitemap.js` y `gen-seo-pages.js` (sitemap + las ~1.580
    páginas generadas).
-7. **Literales que aún no leen `SITE_ORIGIN`** — hay que cambiarlos a mano:
+7. ✅ **Hecho.** Literales que no leen `SITE_ORIGIN`:
    - `frontend/src/hooks/useSEO.js` (`ORIGIN`)
    - `frontend/public/index.html` (canonical, 10 × hreflang, `og:url`,
      `og:image`, `twitter:url`, `twitter:image`, y las URLs de los bloques JSON-LD)
    - `frontend/public/robots.txt` (línea `Sitemap:`)
-8. **Backend** — ⚠️ **sí hay que tocarlo.** (Este paso decía «nada que tocar»; era
+8. ✅ **Hecho.** Backend — ⚠️ **sí había que tocarlo.** (Este paso decía «nada que tocar»; era
    falso y dejaba dos fallos servidos el día del cutover.)
 
    a. **CORS**: la lista de `server.py` está hardcodeada con
@@ -125,9 +139,9 @@ gana.
       `PASSKEY_RP_ID` y `PASSKEY_ORIGIN` permiten fijarlos explícitamente en vez
       de derivarlos; conviene ponerlos para que un despliegue que pierda
       `FRONTEND_URL` no cambie el `rp_id` por sorpresa.
-9. **Google OAuth**: añadir el dominio nuevo a los orígenes autorizados en la
+9. ⬜ **PENDIENTE — es tuyo.** Google OAuth: añadir el dominio nuevo a los orígenes autorizados en la
    consola de Google Cloud, o los logins fallan.
-10. **Search Console**: dar de alta la propiedad nueva y usar la herramienta de
+10. ⬜ **PENDIENTE — es tuyo.** Search Console: dar de alta la propiedad nueva y usar la herramienta de
     cambio de dirección. Mantener la vieja hasta que se traspase la indexación.
 
 ## Verificación después
@@ -142,3 +156,20 @@ grep -o '<loc>[^<]*</loc>' build/sitemap.xml | head -3 # sin /Tradingcalculatorp
 Y ya desplegado: que el canonical de una página generada y su `<loc>` en el
 sitemap sean **la misma cadena**. Si no coinciden, algo del paso 7 se quedó sin
 cambiar.
+
+---
+
+## Lo que quedó fijado por tests
+
+`backend/tests/test_security_unit.py` añade
+`test_the_lookalike_third_party_domain_is_never_allowed`: la lista de CORS no
+puede volver a contener `tradingcalculatorpro.com`. Estuvo ahí con
+`allow_credentials=True`, lo que autorizaba a una página de ese dominio —de un
+tercero— a lanzar peticiones con las cookies de sesión del usuario y leer la
+respuesta. Los dos nombres se parecen demasiado como para confiar en que no
+vuelva a colarse.
+
+También queda fijado que el origen anterior (`abcde-rgb.github.io`) sigue
+permitido: quitarlo el mismo día del cutover deja sin sesión a quien tenga la
+pestaña abierta o el DNS cacheado, con el síntoma peor posible —200 en los logs
+y un login que no entra—. Se puede retirar cuando el tráfico por ahí sea cero.
