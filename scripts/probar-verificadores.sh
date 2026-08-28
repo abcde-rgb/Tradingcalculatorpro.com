@@ -1045,9 +1045,15 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   # están en el sitemap a propósito y las sirve la SPA sin página estática. Si
   # el verificador las denunciara, el arreglo evidente —relajar la regla de
   # «URL anunciada que no existe»— dejaría de detectar las que sí faltan.
+  #
+  # ⚠️ El dominio de este cebo tiene que ser el de producción. Se escribió con
+  # `abcde-rgb.github.io` y tras el cutover del 2026-08-28 dejó de ser una ruta
+  # de app para ser un dominio ajeno: el verificador la marcaba —con razón— y
+  # el arnés lo cantó como falso positivo. El dato de prueba se había quedado
+  # desfasado, no la comprobación.
   probar_inverso "una ruta de app en el sitemap sin página propia no es un fallo" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/options/strategies</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "sed -i 's|</urlset>|<url><loc>https://tradingcalculator.pro/options/strategies</loc></url></urlset>|' frontend/build/sitemap.xml" \
     "$SEO_REST"
 else
   titulo "SEO de las páginas prerenderizadas (check-seo.js)"
