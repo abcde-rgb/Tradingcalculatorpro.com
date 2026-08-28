@@ -217,3 +217,12 @@ jobs:
         run: npm run build
         env:
           CI: false   # mismo criterio que el deploy: warnings no rompen el build
+
+      # El `postbuild` genera 1.630 páginas indexables y un sitemap de 1.639
+      # URLs — el mayor activo de captación del proyecto — y hasta el
+      # 2026-08-27 no lo comprobaba nada. Los fallos de SEO son silenciosos por
+      # naturaleza: un canonical cruzado o un hreflang incompleto no rompen
+      # ninguna pantalla, sólo hacen que Google deje de indexar. Va DESPUÉS del
+      # build porque mira las páginas generadas, no el código que las genera.
+      - name: Las páginas prerenderizadas son indexables
+        run: node scripts/check-seo.js

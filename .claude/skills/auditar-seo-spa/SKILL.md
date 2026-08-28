@@ -1,6 +1,6 @@
 ---
 name: auditar-seo-spa
-description: Audita el SEO técnico de la SPA React desplegada en GitHub Pages (prerender de páginas estáticas, canonical, hreflang x8, JSON-LD FAQPage/HowTo/LearningResource, sitemap, robots, noindex en páginas privadas). Úsala antes de un deploy o cuando se toque useSEO.js, gen-seo-pages.js o el sitemap.
+description: Audita el SEO técnico de la SPA React desplegada en GitHub Pages (prerender de páginas estáticas, canonical, hreflang x10, JSON-LD FAQPage/HowTo/LearningResource, sitemap, robots, noindex en páginas privadas). Úsala antes de un deploy o cuando se toque useSEO.js, gen-seo-pages.js o el sitemap.
 ---
 
 # Auditoría SEO técnica (SPA en GitHub Pages)

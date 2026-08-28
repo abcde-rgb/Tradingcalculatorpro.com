@@ -34,6 +34,11 @@ Qué comprueba (además de regenerar el mapa)
   6. La skill `orientarse` —el router— enruta TODAS las skills que existen. Es la
      comprobación que impide que vuelva a pasar lo de la tabla desactualizada: una
      skill nueva no se puede añadir sin decidir cuándo se entra por ella.
+  7. Ninguna pieza afirma un número de idiomas distinto del que tiene el código.
+     La web pasó de 8 a 10 y tres skills se quedaron en 8: una auditoría de SEO o
+     de contenido que las siguiera habría comprobado ocho idiomas y dado por
+     buenos `pt` e `it` sin mirarlos. Un número desfasado en una checklist no
+     avisa de nada — hace que se revise de menos, en silencio.
 
 Uso
 ---
@@ -141,6 +146,18 @@ CITA_NOMBRADA = re.compile(
 CITA_BARRA = re.compile(r"(?<![\w/`])/([a-z][a-z0-9-]{2,})\b")
 
 
+def idiomas_reales() -> int:
+    """Cuántos idiomas tiene la web, según el código y no según la doc.
+
+    Fuente: el `LANGS` de `i18n-check.js`, que es el que decide si CI pasa.
+    """
+    f = RAIZ / "frontend" / "scripts" / "i18n-check.js"
+    if not f.exists():
+        return 0
+    m = re.search(r"const LANGS\s*=\s*\[(.*?)\]", f.read_text(encoding="utf-8"), re.S)
+    return len(re.findall(r"'[a-z]{2}'", m.group(1))) if m else 0
+
+
 def revisar(inv: dict[str, list[Pieza]]) -> list[str]:
     fallos: list[str] = []
     nombres = {c: {p.nombre for p in inv[c]} for c in inv}
@@ -232,6 +249,37 @@ def revisar(inv: dict[str, list[Pieza]]) -> list[str]:
                     f"la skill `{p.nombre}` existe pero el router "
                     f"(.claude/skills/orientarse/SKILL.md) no la enruta: nadie sabrá "
                     f"cuándo se entra por ella. Añádele una fila en «1 · Enrutado».")
+
+    # 7 · el número de idiomas que afirman las piezas, contra el del código
+    #     ARQUITECTURA_ASISTENTE.md queda fuera: es generado a partir de las
+    #     descripciones, así que se cura solo al regenerar. Incluirlo impediría
+    #     ejecutar el generador para arreglar precisamente esto.
+    n = idiomas_reales()
+    if n:
+        # «los 6 idiomas incompletos» es un subconjunto, no el total: si el
+        # número lleva detrás un cualificador, no es una afirmación sobre cuántos
+        # idiomas tiene la web. Sin esta salvedad el verificador gritaría con
+        # frases correctas, y un verificador que grita de más se apaga.
+        CUALIFICADO = re.compile(
+            r"\d+\s+idiomas\s+(incompletos?|restantes?|pendientes?|nuevos?|"
+            r"con\b|sin\b|que\b|más\b|menos\b)")
+        CLAIMS = [(re.compile(r"(\d+)\s+idiomas"), "«N idiomas»"),
+                  (re.compile(r"hreflang\s*x\s*(\d+)", re.I), "«hreflang xN»"),
+                  (re.compile(r"(\d+)\s+locales"), "«N locales»")]
+        for f in sorted(CLAUDE.rglob("*.md")):
+            if f.name == "ARQUITECTURA_ASISTENTE.md":
+                continue
+            for num, linea in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+                if CUALIFICADO.search(linea):
+                    continue
+                for patron, etiqueta in CLAIMS:
+                    for m in patron.finditer(linea):
+                        if int(m.group(1)) != n:
+                            fallos.append(
+                                f"{f.relative_to(RAIZ)}:{num}: dice {etiqueta} con "
+                                f"{m.group(1)}, y el código tiene {n} "
+                                f"(frontend/scripts/i18n-check.js). Una checklist con el "
+                                f"número viejo revisa de menos sin avisar.")
     return fallos
 
 

@@ -971,6 +971,69 @@ probar_inverso "una skill inexistente citada en docs/ no es cableado roto" \
   "python scripts/gen-asistente.py --check" \
   "printf '\nSe aplicó la skill \`ya-retirada-en-2026\`.\n' >> docs/REGISTRO_SESIONES.md"
 
+# ── Las páginas prerenderizadas siguen siendo indexables ────────────────────
+# Necesita el build compilado: este verificador mira las páginas GENERADAS, no
+# el generador. Sin build se dice que se salta, en vez de figurar como aprobado.
+#
+# Restaura con `cp`, no con `git checkout`: `build/` está en .gitignore, así que
+# git no revertiría el sabotaje y todos los casos siguientes medirían una página
+# ya rota — dando por bueno cualquier verificador que viniera detrás.
+if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
+  titulo "SEO de las páginas prerenderizadas (check-seo.js)"
+
+  SEO_PAG=$(find frontend/build -path '*/learn/*' -name index.html | head -1)
+  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp)
+  TEMPORALES+=("$SEO_BAK" "$SEO_MAP")
+  cp "$SEO_PAG" "$SEO_BAK"; cp frontend/build/sitemap.xml "$SEO_MAP"
+  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml"
+
+  # El canonical cruzado es el fallo más caro y el menos visible: la página se
+  # ve perfecta y le está diciendo a Google que indexe otra.
+  probar "un canonical que apunta a otra página" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|rel=\"canonical\" href=\"[^\"]*\"|rel=\"canonical\" href=\"https://abcde-rgb.github.io/Tradingcalculatorpro.com/otra/\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "un idioma que se cae del hreflang" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i '/hreflang=\"it\"/d' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "<html lang> que no es el de su carpeta" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<html lang=\"[a-z]*\">|<html lang=\"es\">|' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "una página sin título" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<title>[^<]*</title>|<title></title>|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # Un JSON-LD con una coma de más no da error en pantalla: Google lo descarta y
+  # se pierde el resultado enriquecido sin que nadie se entere.
+  probar "un JSON-LD que no parsea" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<script type=\"application/ld+json\">|<script type=\"application/ld+json\">,,,|' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "el sitemap anunciando una URL que no existe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/no/existe/</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+
+  # El otro lado: las rutas de aplicación (`/options/strategies`, `/pricing`…)
+  # están en el sitemap a propósito y las sirve la SPA sin página estática. Si
+  # el verificador las denunciara, el arreglo evidente —relajar la regla de
+  # «URL anunciada que no existe»— dejaría de detectar las que sí faltan.
+  probar_inverso "una ruta de app en el sitemap sin página propia no es un fallo" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/options/strategies</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+else
+  titulo "SEO de las páginas prerenderizadas (check-seo.js)"
+  echo "  ⏭️  se salta: no hay frontend/build/ (compila con 'cd frontend && npm run build')"
+fi
+
 # ── Veredicto ───────────────────────────────────────────────────────────────
 echo ""
 echo "══════════════════════════════════════════════════════"

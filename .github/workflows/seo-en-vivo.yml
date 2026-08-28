@@ -1,0 +1,70 @@
+# ============================================================================
+# SEO del sitio PUBLICADO
+#
+# Por qué existe un workflow aparte
+# ---------------------------------
+# `check-seo.js` corre en el CI de cada PR y mira el `build/` local: comprueba
+# que el generador produce páginas correctas. Eso no dice nada sobre lo que hay
+# publicado. Entre el build y el sitio en vivo pasan cosas que ningún
+# verificador local puede ver: el deploy falla a medias y Pages sigue sirviendo
+# lo anterior, el sitemap se publica pero sus URLs devuelven 404, o el dominio
+# cambia y el canonical apunta a otro sitio.
+#
+# Ninguna de esas rompe nada visible. La web funciona perfectamente mientras
+# deja de captar, y sin esto nadie se entera hasta que baja el tráfico.
+#
+# Aquí, y no en una sesión de Claude Code, porque el sandbox de Claude **no
+# tiene salida a internet**: allí no se puede comprobar el sitio real por mucho
+# que se quiera. Este runner sí.
+# ============================================================================
+name: SEO en vivo
+
+on:
+  # Tras cada despliegue: es cuando puede haberse roto algo.
+  workflow_run:
+    workflows: ["Build & Deploy to GitHub Pages"]
+    types: [completed]
+  # Y una vez por semana, porque no todo lo que rompe el SEO es un despliegue:
+  # un cambio de DNS, una caída de Pages o una expiración de dominio no dejan
+  # rastro en este repositorio.
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL base a comprobar (por defecto, producción)'
+        required: false
+        default: ''
+
+# Sólo lectura: esto observa, no toca nada.
+permissions:
+  contents: read
+
+jobs:
+  en-vivo:
+    name: 🌐 El sitio publicado se puede indexar
+    runs-on: ubuntu-latest
+    # Si el deploy falló, el sitio no ha cambiado y comprobarlo sólo produciría
+    # un segundo aviso rojo por la misma causa.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # GitHub Pages tarda en propagar el despliegue. Sin esta espera, el
+      # workflow leería la versión anterior y su veredicto —bueno o malo— sería
+      # sobre un sitio que ya no existe.
+      - name: Dar tiempo a que Pages propague
+        if: github.event_name == 'workflow_run'
+        run: sleep 90
+
+      # Sin dependencias: usa `fetch`, que Node 22 trae de serie.
+      - name: Comprobar el sitio publicado
+        working-directory: frontend
+        run: node scripts/check-seo-en-vivo.js ${{ github.event.inputs.url }} --muestra 25

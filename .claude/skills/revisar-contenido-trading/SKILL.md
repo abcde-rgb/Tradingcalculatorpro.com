@@ -1,6 +1,6 @@
 ---
 name: revisar-contenido-trading
-description: Revisa la exactitud, el nivel profesional y la consistencia terminológica del contenido educativo de trading en los 8 idiomas. Úsala al añadir o editar módulos de la academia (EducationPage.jsx, tradingEducationContent.js, componentes education/*), glosario, o textos de opciones/futuros/forex/cripto.
+description: Revisa la exactitud, el nivel profesional y la consistencia terminológica del contenido educativo de trading en los 10 idiomas. Úsala al añadir o editar módulos de la academia (EducationPage.jsx, tradingEducationContent.js, componentes education/*), glosario, o textos de opciones/futuros/forex/cripto.
 ---
 
 # Revisión de contenido educativo (público PROFESIONAL)
@@ -18,8 +18,8 @@ description: Revisa la exactitud, el nivel profesional y la consistencia termino
 3. **Terminología unificada (es):** "tamaño de posición" (no "lotaje" salvo forex), "stop loss",
    "apalancamiento". Los términos del sector NO se traducen (Black-Scholes, iron condor, GEX,
    funding rate, order flow).
-4. **i18n:** `node frontend/scripts/i18n-check.js` → **0 claves crudas y paridad exacta en los 8
-   idiomas** (es/en/de/fr/ru/zh/ja/ar). Toda clave nueva va en los 8 ficheros.
+4. **i18n:** `node frontend/scripts/i18n-check.js` → **0 claves crudas y paridad exacta en los 10
+   idiomas** (es/en/de/fr/ru/zh/ja/ar/pt/it). Toda clave nueva va en los 10 ficheros.
 5. **Contenido en inglés para SEO:** las FAQ orientadas a *featured snippets* de Google se
    redactan en inglés (canónico) a propósito (ver `data/marketTypeDetails.js`); la UI que las
    envuelve sí se traduce.

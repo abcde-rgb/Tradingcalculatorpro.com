@@ -13,7 +13,7 @@ description: >-
 
 # Por dónde se entra
 
-Este repo tiene **35 puntos de entrada** (18 skills, 6 comandos, 4 subagentes, 7
+Este repo tiene **37 puntos de entrada** (18 skills, 6 comandos, 6 subagentes, 7
 reglas) y **1,6 MB de documentación**. Perderse no es un descuido: es lo que pasa
 por defecto. Esta skill existe para gastar 30 segundos en decidir el camino en vez
 de veinte minutos en encontrarlo.
@@ -49,8 +49,10 @@ Busca la petición por lo que **dice el usuario**, no por el fichero que imagina
 | algo en 3D, WebGL, superficie de volatilidad | visual | `3d-webgl` | `rendimiento-web` |
 | «carga lento», «pesa mucho» — **medir** | frontend | `rendimiento-web` | `npm run build` |
 | «está desordenado», partir ficheros — **arreglar** | frontend | `reorganizar-frontend` | `npm run build` |
-| no sale en Google, meta, sitemap, hreflang | SEO | `mejorar-seo` | `/verify` |
-| prerender, JSON-LD, canonical, noindex | SEO | `auditar-seo-spa` | `/verify` |
+| no sale en Google, meta, sitemap, hreflang | SEO | `mejorar-seo` | `node scripts/check-seo.js` |
+| prerender, JSON-LD, canonical, noindex | SEO | `auditar-seo-spa` | `node scripts/check-seo.js` |
+| auditoría SEO completa sin gastar contexto | SEO | subagente `auditor-seo` | — |
+| «¿por qué está así?», «¿ya se decidió esto?» | — | subagente `buscador-doc` | — |
 | traducciones, idioma, claves crudas | i18n | `revisar-contenido-trading` | `node scripts/i18n-check.js` |
 | contenido de la academia, glosario, exactitud | contenido | `revisar-contenido-trading` | subagente `revisor-i18n-contenido` |
 | login, JWT, 2FA, pagos, webhooks, admin | seguridad | `/seguridad-pagos` ⌨️ | subagente `revisor-seguridad` |
@@ -65,6 +67,26 @@ Busca la petición por lo que **dice el usuario**, no por el fichero que imagina
 | examen completo de la web | — | `/examen-web` | — |
 
 ⌨️ `seguridad-pagos` no se activa sola: hay que escribir `/seguridad-pagos`.
+
+### Delegar para no gastar contexto
+
+Seis subagentes trabajan **en su propio contexto** y devuelven sólo el veredicto. Lo
+que se comen ellos —miles de líneas de `pytest`, 1.630 páginas de HTML, 1,6 MB de
+documentación— no entra en esta conversación. Delega siempre que la tarea produzca
+mucha salida y poca conclusión:
+
+| Delega en… | Cuando la respuesta cuesta leer |
+|---|---|
+| `buscador-doc` | la documentación: 53 ficheros, 5.649 líneas sólo el registro |
+| `auditor-formulas` | los tests matemáticos del backend |
+| `auditor-seo` | las 1.630 páginas prerenderizadas |
+| `revisor-seguridad` | auth, pagos, webhooks y admin |
+| `revisor-i18n-contenido` | la paridad de los 10 idiomas |
+| `crawler-visual` | las capturas de las pantallas |
+
+No delegues lo que ya sabes hacer en dos comandos: un subagente arranca en frío y
+vuelve a deducir el contexto que tú ya tienes. La regla es **mucha salida, poca
+conclusión**; si es al revés, hazlo aquí.
 
 **Las reglas de `.claude/rules/` no se invocan.** Entran solas al abrir un fichero
 de su zona, y **no vuelven tras un `/compact`**. Si compactaste y sigues en la
@@ -139,12 +161,19 @@ que salían en verde no los habría cazado.
 Si tocaste el cableado del asistente (skills, comandos, subagentes, reglas):
 `python scripts/gen-asistente.py`.
 
+Si tocaste SEO, `useSEO.js` o `gen-seo-pages.js`: `cd frontend && npm run build &&
+node scripts/check-seo.js` — las 1.630 páginas prerenderizadas son el mayor activo
+de captación y sus fallos son invisibles: un canonical cruzado no rompe ninguna
+pantalla, sólo hace que Google deje de indexar.
+
 **Al terminar, deja rastro** — es lo que evita que la próxima sesión repita el
 trabajo: entrada con fecha en `docs/REGISTRO_SESIONES.md`, semáforo e inventario de
 `ESTADO_PROYECTO.md` §1–§2 si cambiaron, y `docs/DIARIO_BUGS.md` si era un bug.
 El comando `/cerrar-sesion` recorre el ritual entero.
 
-**No digas «funciona» de lo que no has ejecutado.** En este sandbox Yahoo Finance y
-los proveedores de precio están **bloqueados**: cualquier prueba que llame a la red
-real no prueba nada. Mockea o usa fixtures. Ante un verde que decide algo
+**No digas «funciona» de lo que no has ejecutado.** Este sandbox **no tiene salida a
+internet**: ni Yahoo Finance ni los proveedores de precio, pero tampoco Google,
+Search Console ni el sitio publicado. Cualquier afirmación sobre indexación real o
+posiciones es inventada — eso lo comprueba `.github/workflows/seo-en-vivo.yml`, que
+sí corre con red. Aquí, mockea o usa fixtures. Ante un verde que decide algo
 importante, `no-me-fio`.

@@ -5647,3 +5647,55 @@ el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
   es un argumento, no una ejecución: quien lo retome con entorno debe correr `/verify`.
 
 ---
+
+### 2026-08-27 (2) — Tres agentes más, y el activo SEO que nadie comprobaba
+
+- 🎯 Petición: «¿se puede poner una IA para ahorrar tokens, otra que ayude en el SEO
+  cuando esté en línea, y que la que propones haga más cosas?». Dos sí y un no.
+- 🔴 **El no, por delante: desde el sandbox de Claude Code no hay salida a internet.**
+  Comprobado: ni el sitio publicado, ni Google, ni Search Console responden. Cualquier
+  «IA que vigile el SEO en vivo» dentro de una sesión sería inventada. Lo que sí puede
+  hacerlo es un runner de Actions, y ahí se ha puesto.
+- 🔴 **La web tiene 10 idiomas y tres skills seguían diciendo 8** (`auditar-seo-spa`,
+  `mejorar-seo`, `revisar-contenido-trading`, más el agente `revisor-i18n-contenido`;
+  9 sitios). Una auditoría que las siguiera habría comprobado ocho y dado por buenos
+  `pt` e `it` **sin mirarlos**. Corregido, y `gen-asistente.py` gana una séptima
+  comprobación que deriva el número real de `i18n-check.js` y falla si alguna pieza
+  afirma otro. Excluye los subconjuntos cualificados («los 6 idiomas incompletos»):
+  un verificador que grita de más se apaga.
+- 🔴 **La lista «mejoras de mayor impacto» de `mejorar-seo` tenía como prioridad nº3 un
+  hueco cerrado el 2026-07-11** (G-09, traducciones incompletas). `i18n-check` confirma
+  paridad total: 10 locales × 7.290 claves, 0 faltan. Mandaba a hacer trabajo ya hecho.
+- ✅ **Nuevo: `frontend/scripts/check-seo.js`.** El `postbuild` genera **1.630 páginas**
+  indexables y un sitemap de 1.639 URLs —el mayor activo de captación— y **nada lo
+  comprobaba**: ni CI ni script; `auditar-seo-spa` era una lista para leer a mano.
+  Verifica canonical auto-referente, hreflang ×10 + x-default, `<html lang>`/`dir`,
+  title/description, JSON-LD que parsee y sitemap ↔ ficheros en las dos direcciones.
+  Las rutas de aplicación se **leen** del array `MAIN` de `gen-seo-pages.js` en vez de
+  copiarse: una exención escrita a mano se pudre igual que cualquier lista.
+- ✅ **Nuevo: `check-seo-en-vivo.js` + `.github/workflows/seo-en-vivo.yml`.** Comprueba
+  el sitio PUBLICADO tras cada despliegue y una vez por semana. Separa ORIGEN (con qué
+  dominio se anuncia) de BASE (de dónde se descarga): sin esa separación sólo podría
+  ejecutarse contra producción, es decir, no podría probarse. Se probó sirviendo el
+  build en localhost, y sus 5 sabotajes se detectan.
+- ✅ **Nuevos subagentes**: `buscador-doc` (responde sobre 1,6 MB de documentación sin
+  traerla al contexto principal — el mayor sumidero que quedaba) y `auditor-seo`.
+- ✅ `orientarse` gana la tabla de **cuándo delegar** en cada uno de los seis
+  subagentes, con el criterio explícito: mucha salida y poca conclusión.
+- 🐛 **Dos fallos propios, cazados y corregidos durante la sesión**: metí el paso de
+  CI entre `run: npm run build` y su bloque `env:`, con lo que el `CI: false` habría
+  pasado a mi paso y el build habría vuelto a romperse con warnings; y mi primer arnés
+  de sabotaje del verificador en vivo buscaba un carácter presente en toda salida, así
+  que dio ✅ a los cuatro casos sin comprobar ninguno — el fallo exacto que
+  `probar-verificadores.sh` existe para impedir.
+- ✅ Verificado con entorno completo (esta vez sí había `node_modules`): `py_compile`
+  35 módulos · `check-doc-links` · `gen-mapa --check` · `gen-instruments-js --check` ·
+  `check-rutas-muertas` · `check-precios` · `gen-asistente --check` · `i18n-check` ·
+  `i18n-traducido` · `i18n-escritura` · `engine-check` · `check-fetch-credentials` ·
+  `check-edu-index` · `check-seo` sobre 1.630 páginas reales · **eslint 0 errores** ·
+  **`pytest` 1097 passed / 72 skipped** en 3m41s. Los 7 sabotajes de `check-seo` y los
+  5 de `check-seo-en-vivo` detectan lo suyo, y el árbol queda sin residuo.
+- 📌 Queda así cubierto el «no verificado» que dejó anotado la entrada anterior: aquella
+  sesión no tenía `node_modules` ni `.venv` y lo dijo; ésta los montó y ejecutó todo.
+
+---

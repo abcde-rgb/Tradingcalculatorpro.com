@@ -19,7 +19,7 @@ leen en el mismo momento ni con la misma intención.
 | [`RUTAS_MUERTAS.md`](./RUTAS_MUERTAS.md) | **Qué se hace con cada ruta que ninguna pantalla llama** (borrar / construir / arreglar). El mapa las cuenta; esto las decide. `check-rutas-muertas.py` en CI | 130 |
 | [`../CLAUDE.md`](../CLAUDE.md) | Invariantes que aplican siempre. Se carga en cada sesión; lo específico por zona vive en `.claude/rules/` | 173 |
 | [`DIARIO_BUGS.md`](./DIARIO_BUGS.md) | Historial de bugs con su causa raíz. Se consulta para no repetir un error ya pagado | 589 |
-| [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md) | Histórico de 149 sesiones. **No se lee entero** (~5.650 líneas): se busca por fecha o palabra | 5.649 |
+| [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md) | Histórico de 150 sesiones. **No se lee entero** (~5.700 líneas): se busca por fecha o palabra | 5.701 |
 | [`PENDIENTES.md`](./PENDIENTES.md) | Lo inmediato, en crudo. ⚠️ Con datos caducados: ver auditoría del 13-08 §3.3 | 97 |
 
 ## 🔧 Voy a escribir código
