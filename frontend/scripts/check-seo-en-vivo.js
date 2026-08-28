@@ -69,7 +69,24 @@ const aBase = (u) => (mismoOrigen(u, ORIGEN) ? BASE + rutaDe(u) + (new URL(u).se
 const fallos = [];
 const mal = (q, d) => fallos.push(`${q}${d ? ` — ${d}` : ''}`);
 
+// Sólo se descarga de la BASE que se está auditando. Las URLs vienen del
+// sitemap del propio sitio, y un sitemap alterado —o simplemente mal
+// generado— haría que este verificador saliera a pedir a donde le dijeran.
+// CodeQL lo marca como `js/request-forgery`, y tiene razón: el destino de un
+// `fetch` no puede decidirlo el documento que estás auditando.
+//
+// Además evita un falso verde: sin esta guarda, una <loc> que apunte a otro
+// host se descargaría bien y contaría como «página publicada OK» cuando no es
+// de este sitio.
+function permitida(url) {
+  try { return new URL(url).origin === new URL(BASE).origin; }
+  catch { return false; }
+}
+
 async function pedir(url) {
+  if (!permitida(url)) {
+    return { ok: false, status: 0, texto: '', error: `fuera de ${BASE}` };
+  }
   try {
     const r = await fetch(url, { redirect: 'follow' });
     return { ok: r.ok, status: r.status, texto: r.ok ? await r.text() : '' };
