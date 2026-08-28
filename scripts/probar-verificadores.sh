@@ -59,7 +59,8 @@ fi
 # Pase lo que pase —error, Ctrl-C, salida anticipada— el repositorio queda como
 # estaba. Un test que ensucia el árbol es un test que nadie vuelve a ejecutar.
 limpiar() {
-  for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -f "$f"; done
+  # `-r` porque algún temporal es un directorio (la copia de `build/static/js`).
+  for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -rf "$f"; done
   git checkout -- . 2>/dev/null
 }
 trap limpiar EXIT INT TERM
@@ -587,7 +588,20 @@ p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
   titulo "Lo indefinido es una raya (nulos.js)"
   probar "una métrica indefinida vuelve a pintarse cruda" \
     "node tests/e2e/navegador/nulos.js" \
-    "sed -i 's|null==V.avg_r?\"\\u2014\"|null==V.avg_r\&\&!1?\"\\u2014\"|g' frontend/build/static/js/*.js" \
+    "python -c \"
+import glob, io, re
+# La guarda se localiza por FORMA, no por el nombre que el minificador
+# asigne: era 'V.avg_r' hoy y puede ser otra letra en la proxima
+# compilacion. Atarlo a la letra hizo que el sabotaje no se aplicara y
+# el verificador 'sobreviviera' sin que nadie hubiera roto nada.
+patron = re.compile(r'null==([A-Za-z_\$]+)\\.avg_r\\?')
+tocados = 0
+for f in glob.glob('frontend/build/static/js/*.js'):
+    t = io.open(f, encoding='utf-8').read()
+    t2, n = patron.subn(lambda m: 'null==%s.avg_r&&!1?' % m.group(1), t)
+    if n:
+        io.open(f, 'w', encoding='utf-8').write(t2); tocados += n
+assert tocados, 'el sabotaje de nulos no encontro la guarda de la raya'\"" \
     "cp '$NULOS_COPIA'/*.js frontend/build/static/js/"
 
   # Y la otra mitad: con la guarda puesta NO grita. Sin esto, una sonda que
@@ -655,7 +669,14 @@ if [ -d frontend/build ]; then
 import pathlib
 p = pathlib.Path('frontend/src/index.css'); t = p.read_text()
 i = t.index('.light {'); j = t.index('}', i)
-p.write_text(t[:i] + t[i:j].replace('145 70% 26%', '145 70% 35%') + t[j:])\" \
+import re
+# Se ACLARA el verde primario del tema claro sea cual sea su valor: atarlo
+# al literal '145 70% 26%' hizo que el sabotaje dejara de aplicarse el dia
+# que ese 26% bajo a 22% por accesibilidad, y el verificador paso sin que
+# nadie hubiera roto nada.
+trozo = re.sub(r'--primary:\\s*145 70% \\d+%', '--primary: 145 70% 35%', t[i:j])
+assert trozo != t[i:j], 'el sabotaje de contraste no encontro --primary en .light'
+p.write_text(t[:i] + trozo + t[j:])\" \
      && $RECOMPILA_CSS" \
     "git checkout -- frontend/src/index.css && $RECOMPILA_CSS"
 else
