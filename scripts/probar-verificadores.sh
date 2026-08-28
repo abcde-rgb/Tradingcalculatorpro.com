@@ -956,6 +956,36 @@ assert s.count(viejo) == 1
 p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
 EOF"
 
+# ── Con duplicados, la cuenta elegida no puede cambiar ──────────────────────
+# El daño colateral de BUG-070: la comprobación de duplicados del registro
+# también distinguía mayúsculas, así que el mismo correo se dio de alta DOS
+# veces en producción. Y `find_one` es `SELECT … LIMIT 1` sin `ORDER BY`: con dos
+# filas que casan, PostgreSQL devuelve una cualquiera. Entrar unas veces en una
+# cuenta y otras en la otra es peor que fallar, y en `admin/promote` o en el alta
+# manual de un cobro significa tocar la fila equivocada.
+titulo "Elección determinista de cuenta (test_security_unit.py)"
+probar "el buscador deja de preferir la coincidencia exacta" \\
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k exact_match_wins -p no:cacheprovider)" \\
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '        if (u.get(\"email\") or \"\") == correo:'
+assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
+p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
+EOF"
+
+probar "el buscador deja de ordenar y vuelve a elegir al azar" \\
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k row_order -p no:cacheprovider)" \\
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '.sort(\"created_at\", 1).to_list(None)'
+assert s.count(viejo) == 1, 'ancla del orden no encontrada'
+p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
+EOF"
+
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────
 titulo "Auditoría (auditar.py --estricto)"
 COMPONENTE_MUERTO="frontend/src/components/ZzSabotajeHuerfano.jsx"

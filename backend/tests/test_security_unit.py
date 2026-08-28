@@ -15,6 +15,7 @@ helpers (_SAFE_FIELD_RE, _build_where_clause, _serialize) from the source with
 `ast` and exercise them in isolation.
 """
 import ast
+import asyncio
 import json
 import logging
 import os
@@ -506,14 +507,19 @@ def test_ieq_parameterises_malicious_values(payload):
 
 
 def test_login_looks_the_user_up_case_insensitively():
-    """El fallo estaba AQUÍ, no en el shim: la consulta del login."""
+    """El fallo estaba AQUÍ, no en el shim: la consulta del login.
+
+    Vale tanto el `$ieq` a pelo como el buscador determinista que lo envuelve
+    —lo que NO puede volver es una igualdad exacta sobre `credentials.email`.
+    """
     i = _SERVER_SRC.find("async def login(")
     assert i != -1, "no se encontró el endpoint de login"
     cuerpo = _SERVER_SRC[i:i + 1200]
-    assert '"$ieq"' in cuerpo, (
+    assert ('"$ieq"' in cuerpo) or ("_buscar_usuario_por_correo" in cuerpo), (
         "el login vuelve a buscar el correo con igualdad exacta: quien se "
         "registró con otra caja no puede entrar y el 401 no lo explica"
     )
+    assert 'find_one({"email": credentials.email}' not in cuerpo
 
 
 def test_register_stores_the_email_normalised():
@@ -533,3 +539,106 @@ def test_there_is_a_functional_index_for_the_case_insensitive_lookup():
     """
     assert "idx_users_email_lower" in _SERVER_SRC
     assert "LOWER((data->>'email'))" in _SERVER_SRC
+
+
+# ============================================================
+#  Con duplicados, la cuenta elegida tiene que ser SIEMPRE la misma
+# ============================================================
+#
+# BUG-070 dejó duplicados en producción: la comprobación de duplicados del
+# registro también distinguía mayúsculas, así que el mismo correo se pudo dar de
+# alta dos veces —una cuenta con los datos y el admin, otra vacía—. Y `find_one`
+# es `SELECT … LIMIT 1` SIN `ORDER BY`: con dos filas que casan, PostgreSQL
+# devuelve una cualquiera y puede cambiar entre consultas. Entrar unas veces en
+# una cuenta y otras en la otra es peor que fallar, y en `admin/promote` o en el
+# alta manual de un cobro significa tocar la fila equivocada.
+
+def _cargar_buscador():
+    """Extrae `_buscar_usuario_por_correo` de server.py y lo ejecuta con un `db`
+    de mentira: así se prueba la REGLA sin levantar la aplicación ni la base."""
+    tree = ast.parse(_SERVER_SRC)
+    for node in tree.body:
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_buscar_usuario_por_correo":
+            return ast.get_source_segment(_SERVER_SRC, node)
+    raise AssertionError("no se encontró _buscar_usuario_por_correo en server.py")
+
+
+class _CursorFalso:
+    def __init__(self, filas): self._filas = filas
+    def sort(self, campo, direccion=1):
+        self._filas = sorted(self._filas, key=lambda d: d.get(campo) or "",
+                             reverse=(direccion == -1))
+        return self
+    async def to_list(self, n=None): return list(self._filas)
+
+
+class _ColeccionFalsa:
+    def __init__(self, filas): self._filas = filas
+    def find(self, filtro, projection=None):
+        pedido = filtro["email"]["$ieq"].strip().lower()
+        return _CursorFalso([f for f in self._filas
+                             if (f.get("email") or "").lower() == pedido])
+
+
+class _DbFalsa:
+    def __init__(self, filas): self.users = _ColeccionFalsa(filas)
+
+
+def _buscar(filas, correo):
+    ns = {"db": _DbFalsa(filas), "Optional": Optional}
+    exec(_cargar_buscador(), ns)  # noqa: S102 — código propio
+    return asyncio.run(ns["_buscar_usuario_por_correo"](correo))
+
+
+# El par que de verdad existe en producción: la cuenta vieja con el admin, y la
+# que creó el teclado del móvil al capitalizar la primera letra.
+_PAR = [
+    {"email": "ana@x.com",  "id": "vieja", "created_at": "2026-01-01T00:00:00"},
+    {"email": "Ana@x.com",  "id": "nueva", "created_at": "2026-08-28T00:00:00"},
+]
+
+
+def test_exact_match_wins_over_a_case_variant():
+    """Una coincidencia exacta es inequívoca: esa cuenta se registró así."""
+    assert _buscar(_PAR, "ana@x.com")["id"] == "vieja"
+    assert _buscar(_PAR, "Ana@x.com")["id"] == "nueva"
+
+
+def test_without_an_exact_match_the_oldest_wins():
+    """Al adivinar, la original — la que tiene los datos y el admin."""
+    assert _buscar(_PAR, "ANA@X.COM")["id"] == "vieja"
+
+
+def test_the_choice_does_not_depend_on_the_row_order():
+    """El fallo que esto evita: `LIMIT 1` sin `ORDER BY` devuelve una cualquiera.
+
+    Se consulta con las filas en los dos órdenes posibles y se exige el mismo
+    resultado. Sin el criterio, cada orden devolvería una cuenta distinta.
+    """
+    a = _buscar(_PAR, "ANA@X.COM")
+    b = _buscar(list(reversed(_PAR)), "ANA@X.COM")
+    assert a["id"] == b["id"] == "vieja", "la cuenta elegida cambia con el orden de las filas"
+
+
+def test_a_single_account_is_found_whatever_the_case():
+    una = [{"email": "ana@x.com", "id": "u1", "created_at": "2026-01-01T00:00:00"}]
+    for tecleado in ("ana@x.com", "Ana@x.com", "ANA@X.COM", "  Ana@X.com  "):
+        assert _buscar(una, tecleado)["id"] == "u1", f"no la encuentra con {tecleado!r}"
+
+
+def test_an_unknown_or_empty_email_finds_nobody():
+    assert _buscar(_PAR, "otro@x.com") is None
+    assert _buscar(_PAR, "") is None
+    assert _buscar(_PAR, None) is None
+
+
+def test_the_identity_routes_use_the_deterministic_lookup():
+    """Login, Google, promote y el alta manual de cobros, por el mismo camino."""
+    for ruta in ("async def login(", "async def google_auth(",
+                 "async def admin_promote_user(", "async def admin_payment_manual("):
+        i = _SERVER_SRC.find(ruta)
+        assert i != -1, f"no se encontró {ruta}"
+        assert "_buscar_usuario_por_correo" in _SERVER_SRC[i:i + 2600], (
+            f"{ruta.strip()} vuelve a resolver el correo sin criterio de desempate: "
+            "con un duplicado, la cuenta elegida cambia entre consultas"
+        )

@@ -2040,7 +2040,7 @@ async def login(request: Request, response: Response, credentials: UserLogin):
     # consulta sí lo hacía. Quien se registró como `Ana@x.com` y entraba como
     # `ana@x.com` recibía «Credenciales inválidas» con la contraseña correcta, y
     # no había forma de saberlo: el 401 es el mismo que el de una contraseña mala.
-    user = await db.users.find_one({"email": {"$ieq": credentials.email}}, {"_id": 0})
+    user = await _buscar_usuario_por_correo(credentials.email)
     if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
@@ -2078,6 +2078,43 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             "login_count": (user.get("login_count") or 0) + 1,
         }
     }
+
+async def _buscar_usuario_por_correo(email: str) -> Optional[dict]:
+    """Encuentra la cuenta de un correo sin distinguir mayúsculas, y de forma
+    DETERMINISTA aunque existan duplicados.
+
+    Hace falta porque BUG-070 dejó duplicados en la base: la comprobación de
+    duplicados del registro también era sensible a mayúsculas, así que el mismo
+    correo pudo darse de alta dos veces con distinta caja —una cuenta con los
+    datos y el admin, y otra recién creada y vacía—.
+
+    `find_one` es `SELECT … LIMIT 1` **sin `ORDER BY`**: con dos filas que casan,
+    PostgreSQL devuelve una cualquiera, y puede cambiar de una consulta a otra.
+    Entrar unas veces en una cuenta y otras en la otra es peor que fallar, y en
+    `admin/promote` significaría ascender la fila equivocada del par.
+
+    Criterio, en este orden:
+      1. La coincidencia EXACTA, si existe. Es inequívoca: esa cuenta se registró
+         con exactamente esa dirección.
+      2. Si no, la MÁS ANTIGUA de las que casan sin distinguir mayúsculas — la
+         original, la que tiene los datos; la segunda es la que creó el fallo.
+
+    No sustituye a limpiar los duplicados: sólo hace que, mientras existan, el
+    resultado sea siempre el mismo.
+    """
+    correo = (email or "").strip()
+    if not correo:
+        return None
+    candidatos = await db.users.find(
+        {"email": {"$ieq": correo}}, {"_id": 0}
+    ).sort("created_at", 1).to_list(None)
+    if not candidatos:
+        return None
+    for u in candidatos:
+        if (u.get("email") or "") == correo:
+            return u
+    return candidatos[0]
+
 
 async def _sync_stripe_subscription(user: dict) -> None:
     """If subscription_end is in the past and user has a stripe_customer_id,
@@ -2260,7 +2297,7 @@ async def request_magic_link(request: Request, body: MagicLinkRequest):
     email = body.email.lower().strip()
     # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
     # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
-    user = await db.users.find_one({"email": {"$ieq": email}}, {"_id": 0})
+    user = await _buscar_usuario_por_correo(email)
     if not user:
         # Auto-create a passwordless account
         import uuid as _uuid
@@ -2427,7 +2464,7 @@ async def forgot_password(request: Request, body: ForgotPasswordRequest):
     """Generate a password-reset token, store it in DB, and email the reset link."""
     # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
     # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
-    user = await db.users.find_one({"email": {"$ieq": body.email}}, {"_id": 0})
+    user = await _buscar_usuario_por_correo(body.email)
     # Always return 200 to prevent email enumeration
     if not user:
         return {"ok": True}
@@ -2994,7 +3031,9 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
     # Sin esto, quien se registró como `Ana@x.com` y luego entra con Google
     # —que devuelve el correo en minúsculas— se encuentra una cuenta NUEVA y
     # vacía en vez de la suya, y sus datos quedan en la otra. Ver BUG-070.
-    user = await db.users.find_one({"email": {"$ieq": email}}, {"_id": 0})
+    # Determinista: con un duplicado del mismo correo, entrar con Google no
+    # puede caer unas veces en una cuenta y otras en la otra. Ver BUG-070.
+    user = await _buscar_usuario_por_correo(email)
     is_new_user = user is None   # para atribución de referidos: solo altas nuevas
     if not user:
         user_id = str(uuid.uuid4())
@@ -7998,7 +8037,7 @@ async def admin_promote_user(request: Request, payload: AdminPromoteRequest, adm
     """Toggle is_admin flag for any user (only callable by an existing admin)."""
     # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
     # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
-    target = await db.users.find_one({"email": {"$ieq": payload.email}}, {"_id": 0})
+    target = await _buscar_usuario_por_correo(payload.email)
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     result = await db.users.update_one(
@@ -9091,7 +9130,9 @@ async def admin_payment_manual(
     email_lc = (payload.email or "").strip().lower()
     # `$ieq`: una fila antigua guardada con mayúsculas es invisible a una
     # búsqueda exacta, aunque el correo ya venga en minúsculas. Ver BUG-070.
-    user = await db.users.find_one({"email": {"$ieq": email_lc}}, {"_id": 0})
+    # Determinista: acreditar un cobro a la fila equivocada de un par duplicado
+    # deja al cliente sin lo que ha pagado. Ver BUG-070.
+    user = await _buscar_usuario_por_correo(email_lc)
     if not user:
         raise HTTPException(status_code=404, detail="No hay ninguna cuenta con ese email")
 
