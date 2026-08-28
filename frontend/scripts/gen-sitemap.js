@@ -8,9 +8,9 @@
  *
  * Uso:  node scripts/gen-sitemap.js
  *
- * ⚠️ DOMINIO: sale de `SITE_ORIGIN`, con el de GitHub Pages por defecto porque
- * es el que sirve hoy (el workflow compila con PUBLIC_URL=/Tradingcalculatorpro.com
- * y publica sin CNAME). NO lo cambies aquí suelto: el sitemap tiene que coincidir
+ * ⚠️ DOMINIO: sale de `SITE_ORIGIN`, con el dominio propio por defecto — que es
+ * el que sirve desde el cutover del 2026-08-28 (`public/CNAME`, el workflow
+ * compila con PUBLIC_URL=/). NO lo cambies aquí suelto: el sitemap debe coincidir
  * con el canonical de `src/hooks/useSEO.js`, el de `public/index.html`, el
  * `Sitemap:` de `public/robots.txt`, `homepage` en package.json y el PUBLIC_URL
  * del workflow. Un sitemap que anuncia un dominio y un canonical que apunta a

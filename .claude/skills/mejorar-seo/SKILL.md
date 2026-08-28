@@ -26,7 +26,7 @@ proyecto (React SPA en GitHub Pages, 10 idiomas).
 | **Guía de envío** | `SEO_GUIDE.md` (raíz) | Cómo verificar dominio y enviar el sitemap a Search Console/Bing/Yandex. |
 | **Analítica** | `components/integrations/AnalyticsTracker.jsx` | GA4/GTM (mide, no posiciona). |
 
-`ORIGIN` del canonical está en `useSEO.js` (`https://tradingcalculatorpro.com`). **Debe coincidir**
+`ORIGIN` del canonical está en `useSEO.js` (`https://tradingcalculator.pro`). **Debe coincidir**
 con el dominio del sitemap, robots y el CORS del backend (ver §6, gotcha de dominio).
 
 ## 2. Checklist de auditoría (recórrelo)
@@ -96,8 +96,10 @@ esa investigación para **enriquecer páginas existentes**, no para crear nuevas
 
 ## 6. Gotchas / trampas conocidas
 
-- **Dominio:** producción es **`tradingcalculatorpro.com`**, ya unificado en frontend, backend
-  (CORS/emails) y configs (+ `frontend/public/CNAME`). Si alguna vez cambia, actualiza a la vez:
+- **Dominio:** producción es **`tradingcalculator.pro`** — con punto. `tradingcalculatorpro.com`
+  es el nombre del REPOSITORIO y un dominio **de un tercero**; ponerlo en el CORS o en un
+  canonical es un fallo, y ya tumbó la web una vez (BUG-067). Está unificado en frontend,
+  backend (CORS/emails) y configs (+ `frontend/public/CNAME`). Si alguna vez cambia, actualiza a la vez:
   `useSEO.js`, `gen-sitemap.js`, `robots.txt`, `index.html` (canonical/OG), `_CORS_ORIGINS` y
   `FRONTEND_URL` (server.py), los workflows y el `CNAME`. Requiere DNS + dominio configurado en
   GitHub Pages (Settings → Pages). Con dominio propio el sitio se sirve en la **raíz** → `homepage`

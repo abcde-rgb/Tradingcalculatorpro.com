@@ -15,10 +15,10 @@
 | | |
 |---|---:|
 | Módulos del backend | 35 |
-| Líneas de Python (backend) | 26,891 |
+| Líneas de Python (backend) | 27,019 |
 | Rutas declaradas | 199 |
 | **Rutas sin consumidor en el frontend** | **33** |
-| Ficheros de test · funciones de test | 59 · 1001 |
+| Ficheros de test · funciones de test | 59 · 1015 |
 | Rutas del frontend (`App.js`) | 29 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 7,290 |
 
@@ -35,33 +35,33 @@ esperando una pantalla. Esto es el hueco G-14.
 
 | Método | Ruta | Definida en |
 |---|---|---|
-| `POST` | `/api/admin/subscriptions/{user_id}/refund` | `backend/server.py:8688` |
+| `POST` | `/api/admin/subscriptions/{user_id}/refund` | `backend/server.py:8812` |
 | `GET` | `/api/alerts/realtime/status` | `backend/realtime_alerts.py:352` |
-| `POST` | `/api/alerts/send-email` | `backend/server.py:3586` |
-| `POST` | `/api/calculate/american` | `backend/server.py:5823` |
-| `POST` | `/api/calculate/implied-volatility` | `backend/server.py:5707` |
-| `POST` | `/api/calculate/volatility-size` | `backend/server.py:7510` |
+| `POST` | `/api/alerts/send-email` | `backend/server.py:3704` |
+| `POST` | `/api/calculate/american` | `backend/server.py:5941` |
+| `POST` | `/api/calculate/implied-volatility` | `backend/server.py:5825` |
+| `POST` | `/api/calculate/volatility-size` | `backend/server.py:7628` |
 | `POST` | `/api/calculations/{calc_id}/save-to-journal` | `backend/missing_apis.py:804` |
 | `GET` | `/api/commodities-prices` | `backend/missing_apis.py:281` |
-| `GET` | `/api/education/pattern-catalog` | `backend/server.py:6821` |
+| `GET` | `/api/education/pattern-catalog` | `backend/server.py:6939` |
 | `GET` | `/api/forex-prices` | `backend/missing_apis.py:188` |
 | `GET` | `/api/indices-prices` | `backend/missing_apis.py:225` |
-| `POST` | `/api/monte-carlo` | `backend/server.py:3668` |
-| `GET` | `/api/ohlc/{symbol}` | `backend/server.py:3157` |
-| `GET` | `/api/options/term-structure/{symbol}` | `backend/server.py:5605` |
+| `POST` | `/api/monte-carlo` | `backend/server.py:3786` |
+| `GET` | `/api/ohlc/{symbol}` | `backend/server.py:3275` |
+| `GET` | `/api/options/term-structure/{symbol}` | `backend/server.py:5723` |
 | `GET` | `/api/performance/export` | `backend/missing_apis.py:741` |
-| `POST` | `/api/performance/portfolio-risk` | `backend/server.py:7468` |
-| `GET` | `/api/plans` | `backend/server.py:3726` |
-| `GET` | `/api/portfolio` | `backend/server.py:3344` |
-| `POST` | `/api/portfolio` | `backend/server.py:3352` |
-| `GET` | `/api/portfolio/rebalance` | `backend/server.py:3392` |
-| `DELETE` | `/api/portfolio/{asset_id}` | `backend/server.py:3385` |
-| `PUT` | `/api/portfolio/{asset_id}` | `backend/server.py:3374` |
-| `GET` | `/api/quote/{symbol}` | `backend/server.py:9198` |
+| `POST` | `/api/performance/portfolio-risk` | `backend/server.py:7586` |
+| `GET` | `/api/plans` | `backend/server.py:3844` |
+| `GET` | `/api/portfolio` | `backend/server.py:3462` |
+| `POST` | `/api/portfolio` | `backend/server.py:3470` |
+| `GET` | `/api/portfolio/rebalance` | `backend/server.py:3510` |
+| `DELETE` | `/api/portfolio/{asset_id}` | `backend/server.py:3503` |
+| `PUT` | `/api/portfolio/{asset_id}` | `backend/server.py:3492` |
+| `GET` | `/api/quote/{symbol}` | `backend/server.py:9326` |
 | `GET` | `/api/referrals/me` | `backend/referrals.py:133` |
 | `POST` | `/api/referrals/redeem-credit` | `backend/referrals.py:333` |
 | `POST` | `/api/subscriptions/change-plan` | `backend/missing_apis.py:494` |
-| `GET` | `/api/user-states/list` | `backend/server.py:4968` |
+| `GET` | `/api/user-states/list` | `backend/server.py:5086` |
 
 ### Huérfanas por diseño (6)
 
@@ -78,7 +78,7 @@ esperando una pantalla. Esto es el hueco G-14.
 
 | Módulo | Líneas | Rutas | Responsabilidad |
 |---|---:|---:|---|
-| `server.py` | 9,577 | 141 | — |
+| `server.py` | 9,705 | 141 | — |
 | `performance.py` | 1,820 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,206 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
@@ -206,147 +206,147 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 
 | Método | Ruta | Línea | Front |
 |---|---|---:|:---:|
-| `GET` | `/` | 4983 | ✅ |
-| `GET` | `/admin/audit-log` | 8621 | ✅ |
-| `GET` | `/admin/coupons` | 9335 | ✅ |
-| `POST` | `/admin/coupons` | 9341 | ✅ |
-| `POST` | `/admin/coupons/{coupon_id}/toggle` | 9364 | ✅ |
-| `GET` | `/admin/feature-flags` | 9384 | ✅ |
-| `PATCH` | `/admin/feature-flags/{flag_id}` | 9393 | ✅ |
-| `POST` | `/admin/impersonate/{user_id}` | 8658 | ✅ |
-| `GET` | `/admin/market-data-health` | 9178 | ✅ |
-| `GET` | `/admin/metrics` | 7900 | ✅ |
-| `POST` | `/admin/payments/manual` | 8996 | ✅ |
-| `GET` | `/admin/payments/reconciliation` | 8840 | ✅ |
-| `GET` | `/admin/payments/webhook-health` | 9132 | ✅ |
-| `POST` | `/admin/payments/{transaction_id}/grant` | 8928 | ✅ |
-| `POST` | `/admin/promote` | 7948 | ✅ |
-| `GET` | `/admin/revenue` | 8721 | ✅ |
-| `GET` | `/admin/settings` | 8371 | ✅ |
-| `PUT` | `/admin/settings` | 8394 | ✅ |
-| `POST` | `/admin/subscriptions/{user_id}/refund` | 8688 | ❌ |
-| `GET` | `/admin/usage` | 9214 | ✅ |
-| `GET` | `/admin/usage-heatmap` | 9281 | ✅ |
-| `GET` | `/admin/users` | 7800 | ✅ |
-| `POST` | `/admin/users` | 8020 | ✅ |
-| `GET` | `/admin/users.csv` | 7870 | ✅ |
-| `DELETE` | `/admin/users/{user_id}` | 8130 | ✅ |
-| `PATCH` | `/admin/users/{user_id}` | 8063 | ✅ |
-| `POST` | `/admin/users/{user_id}/reset-password` | 8165 | ✅ |
-| `GET` | `/admin/webhooks` | 9408 | ✅ |
-| `POST` | `/admin/webhooks/{event_id}/retry` | 9414 | ✅ |
-| `GET` | `/alerts` | 3460 | ✅ |
-| `POST` | `/alerts` | 3446 | ✅ |
-| `POST` | `/alerts/send-email` | 3586 | ❌ |
-| `DELETE` | `/alerts/{alert_id}` | 3468 | ✅ |
-| `POST` | `/analytics/track` | 9254 | ✅ |
-| `POST` | `/auth/2fa/disable` | 2526 | ✅ |
-| `POST` | `/auth/2fa/enable` | 2507 | ✅ |
-| `POST` | `/auth/2fa/setup` | 2491 | ✅ |
-| `POST` | `/auth/2fa/verify` | 2544 | ✅ |
-| `DELETE` | `/auth/account` | 2799 | ✅ |
-| `POST` | `/auth/change-password` | 2442 | ✅ |
-| `POST` | `/auth/forgot-password` | 2381 | ✅ |
-| `POST` | `/auth/google` | 2916 | ✅ |
-| `POST` | `/auth/login` | 1999 | ✅ |
-| `POST` | `/auth/logout` | 2113 | ✅ |
-| `POST` | `/auth/magic-link` | 2215 | ✅ |
-| `POST` | `/auth/magic-link/verify` | 2262 | ✅ |
-| `GET` | `/auth/me` | 2081 | ✅ |
-| `GET` | `/auth/my-data` | 2825 | ✅ |
-| `GET` | `/auth/passkey/available` | 2630 | ✅ |
-| `GET` | `/auth/passkey/list` | 2764 | ✅ |
-| `POST` | `/auth/passkey/login/begin` | 2690 | ✅ |
-| `POST` | `/auth/passkey/login/complete` | 2701 | ✅ |
-| `POST` | `/auth/passkey/register/begin` | 2637 | ✅ |
-| `POST` | `/auth/passkey/register/complete` | 2655 | ✅ |
-| `DELETE` | `/auth/passkey/{passkey_id}` | 2770 | ✅ |
-| `POST` | `/auth/profile` | 3039 | ✅ |
-| `POST` | `/auth/refresh` | 2136 | ✅ |
-| `POST` | `/auth/register` | 1952 | ✅ |
-| `POST` | `/auth/reset-password` | 2408 | ✅ |
-| `GET` | `/backtest/strategies` | 7446 | ✅ |
-| `POST` | `/backtest/validate` | 7375 | ✅ |
-| `POST` | `/billing/create-portal-session` | 4780 | ✅ |
-| `GET` | `/billing/history` | 4815 | ✅ |
-| `GET` | `/brokers` | 8484 | ✅ |
-| `POST` | `/calculate/american` | 5823 | ❌ |
-| `POST` | `/calculate/assignment` | 5767 | ✅ |
-| `POST` | `/calculate/greeks` | 5736 | ✅ |
-| `POST` | `/calculate/greeks-advanced` | 5463 | ✅ |
-| `POST` | `/calculate/implied-volatility` | 5707 | ❌ |
-| `POST` | `/calculate/payoff` | 5653 | ✅ |
-| `POST` | `/calculate/pnl-attribution` | 5746 | ✅ |
-| `POST` | `/calculate/volatility-size` | 7510 | ❌ |
-| `GET` | `/calculations` | 3709 | ✅ |
-| `POST` | `/calculations` | 3696 | ✅ |
-| `DELETE` | `/calculations/{calc_id}` | 3717 | ✅ |
-| `POST` | `/checkout/create` | 3938 | ✅ |
-| `GET` | `/checkout/status/{session_id}` | 4104 | ✅ |
-| `POST` | `/education/assistant` | 6549 | ✅ |
-| `GET` | `/education/level-odds/{symbol}` | 6948 | ✅ |
-| `GET` | `/education/pattern-catalog` | 6821 | ❌ |
-| `GET` | `/education/pattern-scan/{symbol}` | 6828 | ✅ |
-| `GET` | `/education/scan-timeframes` | 6814 | ✅ |
-| `GET` | `/education/structure-scan/{symbol}` | 6881 | ✅ |
-| `GET` | `/health` | 4987 | ❌ |
-| `GET` | `/journal/stats` | 3326 | ✅ |
-| `GET` | `/market/risk-free` | 5687 | ✅ |
-| `POST` | `/monte-carlo` | 3668 | ❌ |
-| `GET` | `/ohlc/{symbol}` | 3157 | ❌ |
-| `POST` | `/optimize` | 5881 | ✅ |
-| `POST` | `/options/ai-analyze` | 6446 | ✅ |
-| `GET` | `/options/chain/{symbol}` | 5391 | ✅ |
-| `GET` | `/options/earnings/{symbol}` | 5934 | ✅ |
-| `GET` | `/options/expirations/{symbol}` | 5287 | ✅ |
-| `GET` | `/options/iv-rank/{symbol}` | 6108 | ✅ |
-| `GET` | `/options/iv-surface/{symbol}` | 5481 | ✅ |
-| `GET` | `/options/market-flow` | 6690 | ✅ |
-| `GET` | `/options/positioning/{symbol}` | 5539 | ✅ |
-| `GET` | `/options/positions` | 6002 | ✅ |
-| `GET` | `/options/positions/portfolio-greeks` | 6021 | ✅ |
-| `POST` | `/options/positions/save` | 5984 | ✅ |
-| `DELETE` | `/options/positions/{position_id}` | 6011 | ✅ |
-| `GET` | `/options/term-structure/{symbol}` | 5605 | ❌ |
-| `GET` | `/options/unusual/{symbol}` | 6241 | ✅ |
-| `POST` | `/paypal/capture/{order_id}` | 4126 | ✅ |
-| `GET` | `/performance/analytics` | 7528 | ✅ |
-| `GET` | `/performance/instruments` | 7188 | ✅ |
-| `POST` | `/performance/portfolio-risk` | 7468 | ❌ |
-| `GET` | `/performance/trades` | 7259 | ✅ |
-| `POST` | `/performance/trades` | 7201 | ✅ |
-| `POST` | `/performance/trades/bulk` | 7224 | ✅ |
-| `DELETE` | `/performance/trades/{trade_id}` | 7347 | ✅ |
-| `GET` | `/performance/trades/{trade_id}` | 7284 | ✅ |
-| `PUT` | `/performance/trades/{trade_id}` | 7297 | ✅ |
-| `GET` | `/plan` | 7679 | ✅ |
-| `POST` | `/plan` | 7707 | ✅ |
-| `GET` | `/plan/compliance` | 7742 | ✅ |
-| `PATCH` | `/plan/draft` | 7731 | ✅ |
-| `GET` | `/plan/history` | 7688 | ✅ |
-| `GET` | `/plans` | 3726 | ❌ |
-| `GET` | `/portfolio` | 3344 | ❌ |
-| `POST` | `/portfolio` | 3352 | ❌ |
-| `GET` | `/portfolio/rebalance` | 3392 | ❌ |
-| `DELETE` | `/portfolio/{asset_id}` | 3385 | ❌ |
-| `PUT` | `/portfolio/{asset_id}` | 3374 | ❌ |
-| `GET` | `/prices` | 3068 | ✅ |
-| `GET` | `/public/settings` | 8464 | ✅ |
-| `GET` | `/quote/{symbol}` | 9198 | ❌ |
-| `GET` | `/stock/{symbol}` | 5150 | ✅ |
-| `POST` | `/subscriptions/cancel` | 4675 | ✅ |
-| `GET` | `/subscriptions/current` | 4627 | ✅ |
-| `POST` | `/subscriptions/resume` | 4734 | ✅ |
-| `GET` | `/tickers/search` | 5257 | ✅ |
-| `GET` | `/tickers/universal-search` | 5270 | ✅ |
-| `DELETE` | `/user-states/delete/{state_id}` | 4944 | ✅ |
-| `GET` | `/user-states/get/{state_id}` | 4927 | ✅ |
-| `GET` | `/user-states/list` | 4968 | ❌ |
-| `DELETE` | `/user-states/reset-all` | 4957 | ✅ |
-| `POST` | `/user-states/save` | 4860 | ✅ |
-| `POST` | `/webhook/nowpayments` | 4545 | ✅ |
-| `POST` | `/webhook/revolut` | 4451 | ✅ |
-| `POST` | `/webhook/stripe` | 4286 | ❌ |
+| `GET` | `/` | 5101 | ✅ |
+| `GET` | `/admin/audit-log` | 8745 | ✅ |
+| `GET` | `/admin/coupons` | 9463 | ✅ |
+| `POST` | `/admin/coupons` | 9469 | ✅ |
+| `POST` | `/admin/coupons/{coupon_id}/toggle` | 9492 | ✅ |
+| `GET` | `/admin/feature-flags` | 9512 | ✅ |
+| `PATCH` | `/admin/feature-flags/{flag_id}` | 9521 | ✅ |
+| `POST` | `/admin/impersonate/{user_id}` | 8782 | ✅ |
+| `GET` | `/admin/market-data-health` | 9306 | ✅ |
+| `GET` | `/admin/metrics` | 8018 | ✅ |
+| `POST` | `/admin/payments/manual` | 9120 | ✅ |
+| `GET` | `/admin/payments/reconciliation` | 8964 | ✅ |
+| `GET` | `/admin/payments/webhook-health` | 9260 | ✅ |
+| `POST` | `/admin/payments/{transaction_id}/grant` | 9052 | ✅ |
+| `POST` | `/admin/promote` | 8066 | ✅ |
+| `GET` | `/admin/revenue` | 8845 | ✅ |
+| `GET` | `/admin/settings` | 8495 | ✅ |
+| `PUT` | `/admin/settings` | 8518 | ✅ |
+| `POST` | `/admin/subscriptions/{user_id}/refund` | 8812 | ❌ |
+| `GET` | `/admin/usage` | 9342 | ✅ |
+| `GET` | `/admin/usage-heatmap` | 9409 | ✅ |
+| `GET` | `/admin/users` | 7918 | ✅ |
+| `POST` | `/admin/users` | 8140 | ✅ |
+| `GET` | `/admin/users.csv` | 7988 | ✅ |
+| `DELETE` | `/admin/users/{user_id}` | 8254 | ✅ |
+| `PATCH` | `/admin/users/{user_id}` | 8185 | ✅ |
+| `POST` | `/admin/users/{user_id}/reset-password` | 8289 | ✅ |
+| `GET` | `/admin/webhooks` | 9536 | ✅ |
+| `POST` | `/admin/webhooks/{event_id}/retry` | 9542 | ✅ |
+| `GET` | `/alerts` | 3578 | ✅ |
+| `POST` | `/alerts` | 3564 | ✅ |
+| `POST` | `/alerts/send-email` | 3704 | ❌ |
+| `DELETE` | `/alerts/{alert_id}` | 3586 | ✅ |
+| `POST` | `/analytics/track` | 9382 | ✅ |
+| `POST` | `/auth/2fa/disable` | 2632 | ✅ |
+| `POST` | `/auth/2fa/enable` | 2613 | ✅ |
+| `POST` | `/auth/2fa/setup` | 2597 | ✅ |
+| `POST` | `/auth/2fa/verify` | 2650 | ✅ |
+| `DELETE` | `/auth/account` | 2905 | ✅ |
+| `POST` | `/auth/change-password` | 2548 | ✅ |
+| `POST` | `/auth/forgot-password` | 2485 | ✅ |
+| `POST` | `/auth/google` | 3022 | ✅ |
+| `POST` | `/auth/login` | 2039 | ✅ |
+| `POST` | `/auth/logout` | 2201 | ✅ |
+| `POST` | `/auth/magic-link` | 2310 | ✅ |
+| `POST` | `/auth/magic-link/verify` | 2359 | ✅ |
+| `GET` | `/auth/me` | 2169 | ✅ |
+| `GET` | `/auth/my-data` | 2931 | ✅ |
+| `GET` | `/auth/passkey/available` | 2736 | ✅ |
+| `GET` | `/auth/passkey/list` | 2870 | ✅ |
+| `POST` | `/auth/passkey/login/begin` | 2796 | ✅ |
+| `POST` | `/auth/passkey/login/complete` | 2807 | ✅ |
+| `POST` | `/auth/passkey/register/begin` | 2743 | ✅ |
+| `POST` | `/auth/passkey/register/complete` | 2761 | ✅ |
+| `DELETE` | `/auth/passkey/{passkey_id}` | 2876 | ✅ |
+| `POST` | `/auth/profile` | 3157 | ✅ |
+| `POST` | `/auth/refresh` | 2224 | ✅ |
+| `POST` | `/auth/register` | 1979 | ✅ |
+| `POST` | `/auth/reset-password` | 2514 | ✅ |
+| `GET` | `/backtest/strategies` | 7564 | ✅ |
+| `POST` | `/backtest/validate` | 7493 | ✅ |
+| `POST` | `/billing/create-portal-session` | 4898 | ✅ |
+| `GET` | `/billing/history` | 4933 | ✅ |
+| `GET` | `/brokers` | 8608 | ✅ |
+| `POST` | `/calculate/american` | 5941 | ❌ |
+| `POST` | `/calculate/assignment` | 5885 | ✅ |
+| `POST` | `/calculate/greeks` | 5854 | ✅ |
+| `POST` | `/calculate/greeks-advanced` | 5581 | ✅ |
+| `POST` | `/calculate/implied-volatility` | 5825 | ❌ |
+| `POST` | `/calculate/payoff` | 5771 | ✅ |
+| `POST` | `/calculate/pnl-attribution` | 5864 | ✅ |
+| `POST` | `/calculate/volatility-size` | 7628 | ❌ |
+| `GET` | `/calculations` | 3827 | ✅ |
+| `POST` | `/calculations` | 3814 | ✅ |
+| `DELETE` | `/calculations/{calc_id}` | 3835 | ✅ |
+| `POST` | `/checkout/create` | 4056 | ✅ |
+| `GET` | `/checkout/status/{session_id}` | 4222 | ✅ |
+| `POST` | `/education/assistant` | 6667 | ✅ |
+| `GET` | `/education/level-odds/{symbol}` | 7066 | ✅ |
+| `GET` | `/education/pattern-catalog` | 6939 | ❌ |
+| `GET` | `/education/pattern-scan/{symbol}` | 6946 | ✅ |
+| `GET` | `/education/scan-timeframes` | 6932 | ✅ |
+| `GET` | `/education/structure-scan/{symbol}` | 6999 | ✅ |
+| `GET` | `/health` | 5105 | ❌ |
+| `GET` | `/journal/stats` | 3444 | ✅ |
+| `GET` | `/market/risk-free` | 5805 | ✅ |
+| `POST` | `/monte-carlo` | 3786 | ❌ |
+| `GET` | `/ohlc/{symbol}` | 3275 | ❌ |
+| `POST` | `/optimize` | 5999 | ✅ |
+| `POST` | `/options/ai-analyze` | 6564 | ✅ |
+| `GET` | `/options/chain/{symbol}` | 5509 | ✅ |
+| `GET` | `/options/earnings/{symbol}` | 6052 | ✅ |
+| `GET` | `/options/expirations/{symbol}` | 5405 | ✅ |
+| `GET` | `/options/iv-rank/{symbol}` | 6226 | ✅ |
+| `GET` | `/options/iv-surface/{symbol}` | 5599 | ✅ |
+| `GET` | `/options/market-flow` | 6808 | ✅ |
+| `GET` | `/options/positioning/{symbol}` | 5657 | ✅ |
+| `GET` | `/options/positions` | 6120 | ✅ |
+| `GET` | `/options/positions/portfolio-greeks` | 6139 | ✅ |
+| `POST` | `/options/positions/save` | 6102 | ✅ |
+| `DELETE` | `/options/positions/{position_id}` | 6129 | ✅ |
+| `GET` | `/options/term-structure/{symbol}` | 5723 | ❌ |
+| `GET` | `/options/unusual/{symbol}` | 6359 | ✅ |
+| `POST` | `/paypal/capture/{order_id}` | 4244 | ✅ |
+| `GET` | `/performance/analytics` | 7646 | ✅ |
+| `GET` | `/performance/instruments` | 7306 | ✅ |
+| `POST` | `/performance/portfolio-risk` | 7586 | ❌ |
+| `GET` | `/performance/trades` | 7377 | ✅ |
+| `POST` | `/performance/trades` | 7319 | ✅ |
+| `POST` | `/performance/trades/bulk` | 7342 | ✅ |
+| `DELETE` | `/performance/trades/{trade_id}` | 7465 | ✅ |
+| `GET` | `/performance/trades/{trade_id}` | 7402 | ✅ |
+| `PUT` | `/performance/trades/{trade_id}` | 7415 | ✅ |
+| `GET` | `/plan` | 7797 | ✅ |
+| `POST` | `/plan` | 7825 | ✅ |
+| `GET` | `/plan/compliance` | 7860 | ✅ |
+| `PATCH` | `/plan/draft` | 7849 | ✅ |
+| `GET` | `/plan/history` | 7806 | ✅ |
+| `GET` | `/plans` | 3844 | ❌ |
+| `GET` | `/portfolio` | 3462 | ❌ |
+| `POST` | `/portfolio` | 3470 | ❌ |
+| `GET` | `/portfolio/rebalance` | 3510 | ❌ |
+| `DELETE` | `/portfolio/{asset_id}` | 3503 | ❌ |
+| `PUT` | `/portfolio/{asset_id}` | 3492 | ❌ |
+| `GET` | `/prices` | 3186 | ✅ |
+| `GET` | `/public/settings` | 8588 | ✅ |
+| `GET` | `/quote/{symbol}` | 9326 | ❌ |
+| `GET` | `/stock/{symbol}` | 5268 | ✅ |
+| `POST` | `/subscriptions/cancel` | 4793 | ✅ |
+| `GET` | `/subscriptions/current` | 4745 | ✅ |
+| `POST` | `/subscriptions/resume` | 4852 | ✅ |
+| `GET` | `/tickers/search` | 5375 | ✅ |
+| `GET` | `/tickers/universal-search` | 5388 | ✅ |
+| `DELETE` | `/user-states/delete/{state_id}` | 5062 | ✅ |
+| `GET` | `/user-states/get/{state_id}` | 5045 | ✅ |
+| `GET` | `/user-states/list` | 5086 | ❌ |
+| `DELETE` | `/user-states/reset-all` | 5075 | ✅ |
+| `POST` | `/user-states/save` | 4978 | ✅ |
+| `POST` | `/webhook/nowpayments` | 4663 | ✅ |
+| `POST` | `/webhook/revolut` | 4569 | ✅ |
+| `POST` | `/webhook/stripe` | 4404 | ❌ |
 
 ## Frontend
 
@@ -395,7 +395,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/calculators/simulator/` | 6 | 1,436 |
 | `components/charts/` | 3 | 797 |
 | `components/charts/structure/` | 12 | 1,705 |
-| `components/common/` | 12 | 2,248 |
+| `components/common/` | 12 | 2,258 |
 | `components/dashboard/` | 8 | 1,005 |
 | `components/desk/` | 6 | 1,553 |
 | `components/education/` | 87 | 14,390 |
@@ -409,7 +409,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 30 | 1,612 |
-| `pages/` | 23 | 16,816 |
+| `pages/` | 23 | 16,854 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -418,7 +418,7 @@ dan) en vez de abrirlos de arriba abajo.
 
 | Fichero | Líneas |
 |---|---:|
-| `backend/server.py` | 9,577 |
+| `backend/server.py` | 9,705 |
 | `frontend/src/pages/EducationPage.jsx` | 5,805 |
 | `frontend/src/lib/i18n/ar.js` | 4,867 |
 | `frontend/src/lib/i18n/de.js` | 4,867 |

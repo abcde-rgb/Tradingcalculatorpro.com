@@ -27,9 +27,12 @@ const TYPES = {
 // estaría probando un binario que nunca se publica.
 // Base bajo la que se sirve la app. Desde el cutover a `tradingcalculator.pro`
 // (2026-08-28) el build cuelga de la RAÍZ (`PUBLIC_URL: /`), así que por defecto
-// va vacía; se puede forzar con `E2E_BASE_PATH` para probar un build antiguo.
-// Estuvo escrita a mano en seis ficheros y por eso se quedó desfasada en todos
-// a la vez: ahora sale de una sola expresión.
+// va vacía; `E2E_BASE_PATH` la fuerza para probar un build antiguo.
+//
+// Estuvo escrita a mano en seis ficheros, y por eso el cutover la dejó desfasada
+// en los seis a la vez: las sondas pedían `/Tradingcalculatorpro.com/...` a un
+// build que ya servía desde `/`, y contestaba 404. Mismo fallo que el CORS —
+// una constante copiada que no siguió al dominio.
 const BASE_PATH = process.env.E2E_BASE_PATH ?? '';
 
 http.createServer((req, res) => {

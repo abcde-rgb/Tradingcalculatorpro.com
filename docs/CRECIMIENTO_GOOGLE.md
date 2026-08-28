@@ -41,7 +41,7 @@ Muestra lo que pasa **antes del clic** (impresiones, CTR, posición por consulta
 - [ ] **PageSpeed Insights**: medir/mejorar CWV.
 
 ## La mayor palanca (estructural, honesta)
-- [ ] **Dominio propio activo** (`tradingcalculatorpro.com`). github.io tiene techo
+- [x] **Dominio propio activo** (`tradingcalculator.pro`, desde 2026-08-28). github.io tiene techo
       de credibilidad e indexación; Google crece mucho más rápido sobre dominio propio.
       (Repetido en `ESTADO_PROYECTO.md` §6 y en el skill de SEO.)
 

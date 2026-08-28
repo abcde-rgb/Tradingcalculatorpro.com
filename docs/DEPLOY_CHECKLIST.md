@@ -127,36 +127,38 @@ lo de abajo no está hecho en el dashboard de Stripe:
 ## F. Google OAuth 🔴
 
 - [ ] En Google Cloud Console → Credenciales → OAuth client:
-  - Orígenes JS autorizados: `https://abcde-rgb.github.io` (y el dominio propio si aplica).
+  - Orígenes JS autorizados: **`https://tradingcalculator.pro`** — obligatorio desde el
+    cutover del 2026-08-28, o el botón de Google falla. Deja también
+    `https://abcde-rgb.github.io` mientras Pages siga respondiendo.
   - El `GOOGLE_CLIENT_ID` del backend (C) y `REACT_APP_GOOGLE_CLIENT_ID` (A) son el **mismo**.
 
-## G. Dominio / DNS — **dominio: `tradingcalculatorpro.com`**
+## G. Dominio / DNS — **dominio: `tradingcalculator.pro`** ✅ (falta desplegar el backend)
 
-⚠️ **Estado real, verificado el 2026-08-03:** el cutover **se revirtió en su día y no
-está hecho**. Hoy `frontend/public/CNAME` **no existe**, el `homepage` de `package.json`
-sigue en `https://abcde-rgb.github.io/Tradingcalculatorpro.com` y el workflow publica con
-`PUBLIC_URL: /Tradingcalculatorpro.com`. Lo que sí está unificado al dominio propio es el
-canonical/sitemap/robots del frontend y el CORS y los emails del backend. Falta reponer
-las tres piezas de la ruta base **y** el cutover de DNS/Pages (acción manual en consolas):
+⚠️ Ojo con el nombre: es `tradingcalculator.pro`, con punto. `tradingcalculatorpro.com`
+—que es como se llama el repositorio— **es de un tercero**. Confundirlos costó BUG-067.
 
-1. **En tu registrador de dominios**, apunta el dominio a GitHub Pages:
-   - Registros **A** del apex `@` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
-   - Registro **CNAME** `www` → `abcde-rgb.github.io`
-2. **Crear `frontend/public/CNAME`** con `tradingcalculatorpro.com` dentro, y poner el
-   `homepage` de `package.json` y el `PUBLIC_URL` del workflow en la raíz (`/`). Luego
-   **GitHub → Settings → Pages → Custom domain** → `tradingcalculatorpro.com` → Save.
-3. Activa **Enforce HTTPS** cuando GitHub emita el certificado (minutos/horas).
-4. ⚠️ **Orden:** configura el DNS (paso 1) **antes** de mergear el PR. Tras el deploy la web
-   vivirá en `https://tradingcalculatorpro.com/` (raíz); el viejo
-   `abcde-rgb.github.io/Tradingcalculatorpro.com` dejará de servir (el `homepage`/`PUBLIC_URL`
-   cambiaron a raíz). Si mergeas sin DNS, habrá un hueco hasta que propague.
-5. Verifica: `curl -I https://tradingcalculatorpro.com` · `…/sitemap.xml` · `…/robots.txt`.
-6. ⚠️ **Nada de esto es reversible en caliente:** hasta que el DNS propague, cambiar la
-   ruta base deja el sitio actual sin servir. Por eso el paso 1 va antes que el 2.
+**Estado a 2026-08-28:** el cutover está hecho. `frontend/public/CNAME` lleva
+`tradingcalculator.pro`, el `homepage` y el `PUBLIC_URL` cuelgan de la raíz, y el DNS
+resuelve a los cuatro registros A de GitHub Pages (`185.199.108–111.153`, verificado).
+El canonical/sitemap/robots y el CORS y los correos del backend están al dominio propio.
+
+- [ ] 🔴 **Llevar el arreglo del CORS a `main`.** Está en `server.py` y Cloud Run corre
+      el código anterior: **hasta que se despliegue, la web carga y no habla con el
+      backend**. El push a `main` con cambios en `backend/**` dispara el despliegue solo
+      (ver `.claude/rules/infra.md`); comprueba la revisión, no lo des por hecho.
+- [ ] 🔴 **Actualizar `FRONTEND_URL`, `PASSKEY_RP_ID` y `PASSKEY_ORIGIN` en el servicio.**
+      Las variables del servicio **sobreviven** al despliegue desde código, así que una
+      `FRONTEND_URL` vieja le gana al valor del código y los correos seguirán llevando a
+      la URL antigua. Comando exacto en `docs/MIGRACION_DOMINIO.md` § «Lo que falta».
+- [ ] **GitHub → Settings → Pages → Custom domain** = `tradingcalculator.pro`, y
+      **Enforce HTTPS** activado.
+- [ ] Verifica: `curl -I https://tradingcalculator.pro` · `…/sitemap.xml` · `…/robots.txt`.
+- [ ] ⚠️ Las **passkeys** registradas contra el dominio viejo dejan de validar: el `rp_id`
+      cambia y WebAuthn no las migra. Hay que registrarlas de nuevo desde Ajustes.
 
 ## H. SendGrid
 
-- [ ] Dominio remitente verificado para `alerts@tradingcalculatorpro.com` (`SENDER_EMAIL`).
+- [ ] Dominio remitente verificado para `alerts@tradingcalculator.pro` (`SENDER_EMAIL`).
 - [ ] Probar: verificación de email, reset de contraseña, alerta de precio.
 
 ## I. Endurecimiento del repositorio (recomendado)

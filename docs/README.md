@@ -14,7 +14,7 @@ leen en el mismo momento ni con la misma intención.
 
 | Documento | Para qué | Tamaño |
 |---|---|---|
-| [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) | **Fuente de verdad del estado.** Semáforo, inventario, huecos `G-xx`, plan de test y backlog. Criterio, no conteos | 419 |
+| [`ESTADO_PROYECTO.md`](./ESTADO_PROYECTO.md) | **Fuente de verdad del estado.** Semáforo, inventario, huecos `G-xx`, plan de test y backlog. Criterio, no conteos | 415 |
 | [`MAPA.md`](./MAPA.md) | **Dónde está cada cosa.** Módulos, rutas con `fichero:línea`, rutas sin consumidor, carpetas y ficheros grandes. **Generado** — `--check` en CI | generado |
 | [`RUTAS_MUERTAS.md`](./RUTAS_MUERTAS.md) | **Qué se hace con cada ruta que ninguna pantalla llama** (borrar / construir / arreglar). El mapa las cuenta; esto las decide. `check-rutas-muertas.py` en CI | 130 |
 | [`../CLAUDE.md`](../CLAUDE.md) | Invariantes que aplican siempre. Se carga en cada sesión; lo específico por zona vive en `.claude/rules/` | 173 |
@@ -40,7 +40,7 @@ leen en el mismo momento ni con la misma intención.
 | [`setup/GOOGLE_CLOUD_SETUP.md`](./setup/GOOGLE_CLOUD_SETUP.md) | Alta de Cloud Run, Cloud SQL, Secret Manager y Workload Identity |
 | [`setup/GOOGLE_OAUTH_SETUP.md`](./setup/GOOGLE_OAUTH_SETUP.md) | Credenciales de Google OAuth |
 | [`PUBLICAR_EN_TIENDAS.md`](./PUBLICAR_EN_TIENDAS.md) | Empaquetado para Play Store / App Store (TWA) |
-| [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) | Activar el dominio propio `tradingcalculatorpro.com` (hoy se sirve en `github.io`) |
+| [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) | El dominio propio `tradingcalculator.pro`: cómo se hizo el cutover y qué falta fuera del repo |
 
 ## 📈 Voy a captar usuarios
 

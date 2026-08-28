@@ -40,11 +40,18 @@ cumple lo que promete el título. Si tocas el generador, arréglalo.
 
 ## Nada de dominios a mano
 
-Todo el SEO sale de `DEFAULT_ORIGIN`, hoy
-`https://abcde-rgb.github.io/Tradingcalculatorpro.com`. **No hay `CNAME`**: el dominio
-propio `tradingcalculatorpro.com` no está en uso. Canonical, hreflang de los 10 idiomas,
+Todo el SEO sale de `DEFAULT_ORIGIN` / `SITE_ORIGIN`, hoy
+`https://tradingcalculator.pro` — el dominio propio, activo desde el 2026-08-28
+(`frontend/public/CNAME`, `PUBLIC_URL: /`). Canonical, hreflang de los 10 idiomas,
 sitemap y JSON-LD son coherentes entre sí — si cambias uno, cambian todos.
-Para activar el dominio: [`docs/MIGRACION_DOMINIO.md`](../../docs/MIGRACION_DOMINIO.md).
+
+⚠️ **`tradingcalculatorpro.com` (sin punto, con «pro» pegado) NO es nuestro**: lo sirve
+un tercero. Se llama así el repositorio, y confundirlos ya tumbó la web entera una vez
+(BUG-067). El origen vive en cinco sitios que tienen que decir lo mismo: `public/CNAME`,
+`SITE_ORIGIN` del workflow, `homepage` de `package.json`, `ORIGIN` de `useSEO.js` y los
+`DEFAULT_ORIGIN` de `gen-sitemap.js`/`gen-seo-pages.js` — **más `_CORS_ORIGINS` y
+`DEFAULT_FRONTEND_URL` del backend**, que es lo que se olvidó.
+Historia y pasos pendientes: [`docs/MIGRACION_DOMINIO.md`](../../docs/MIGRACION_DOMINIO.md).
 
 ## Estos ficheros ensucian las búsquedas
 

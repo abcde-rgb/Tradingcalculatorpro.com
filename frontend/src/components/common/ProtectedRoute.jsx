@@ -12,12 +12,22 @@ import { useIsPremium } from '@/lib/premium';
  *    esta guarda, para que un cliente caducado pueda renovar.)
  */
 function ProtectedRoute({ children, adminOnly = false, premiumOnly = false }) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, token, sessionUnverified } = useAuthStore();
   const isPremium = useIsPremium();
   const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Sesión que no se ha podido verificar y sin token en memoria: `isAuthenticated`
+  // viene de localStorage y el refresco por cookie falló por RED (un bloqueo de
+  // CORS entra por ahí). Dejar pasar pinta la interfaz de alguien con sesión
+  // mientras cada llamada va sin credenciales — pantallas vacías, y en cada
+  // recarga lo mismo, sin salida salvo borrar los datos del sitio. Sin token no
+  // se puede hacer nada de todos modos, así que se pide entrar otra vez.
+  if (sessionUnverified && !token) {
+    return <Navigate to="/login" state={{ from: location, sessionExpired: true }} replace />;
   }
 
   if (adminOnly && !user?.is_admin) {

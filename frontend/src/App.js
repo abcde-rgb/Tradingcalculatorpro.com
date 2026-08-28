@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useI18nStore, languages } from "@/lib/i18n";
 import { REF_STORAGE_KEY } from "@/lib/store";
 import { startCloudPrefsSync } from "@/lib/cloudPrefs";
+import { useAuthStore } from "@/lib/store";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
@@ -115,6 +116,19 @@ function CloudPrefsSync() {
   return null;
 }
 
+// Al arrancar, `token` es null (no se persiste) pero `isAuthenticated` puede
+// venir de localStorage. Nadie intentaba reponer la sesión aquí: lo hacían
+// algunas páginas en su propio efecto, así que en el resto de rutas la app
+// pintaba la interfaz de alguien con sesión y cada llamada iba sin
+// credenciales. Un intento, en un sitio, al arrancar.
+function SessionBoot() {
+  useEffect(() => {
+    const { isAuthenticated, token, silentRefresh } = useAuthStore.getState();
+    if (isAuthenticated && !token) silentRefresh();
+  }, []);
+  return null;
+}
+
 // Capture a referral code from ?ref=CODE on any landing and remember it, so it can
 // be attributed when the visitor registers (see trackReferral in store.js).
 function RefCapture() {
@@ -134,6 +148,7 @@ const AppContent = () => (
       <AnalyticsTracker />
       <LangSync />
       <RefCapture />
+      <SessionBoot />
       <CloudPrefsSync />
       <Suspense fallback={<PageLoader />}>
         <Routes>

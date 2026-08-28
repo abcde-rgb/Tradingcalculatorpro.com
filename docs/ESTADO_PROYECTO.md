@@ -67,7 +67,7 @@
 | **Revolut Pay (código)** | 🟢 | `backend/revolut.py`, registrado en el checkout |
 | **Kunfupay (código)** | 🟢 | Cuarto raíl, **camino B**: enlace de cobro por plan (`kunfupay_links`) + alta manual auditada e idempotente (`POST /admin/payments/manual`, con formulario en el panel). Los raíles activos se encienden y apagan con el ajuste `payment_methods_enabled` —apagar Stripe ya no exige desplegar—. Ver [`PASARELA_KUNFUPAY.md`](./PASARELA_KUNFUPAY.md) § 16 |
 | **Kunfupay (operación)** | 🔴 | Falta la cuenta, los enlaces de cobro y **el primer cobro real**: su dominio está bloqueado desde el entorno remoto y nada se ha probado contra un pago de verdad. El conector con webhook (camino A) no se puede escribir hasta que publiquen API — § 5, preguntas 1-3 |
-| **DNS / dominio `tradingcalculator.pro`** | 🟠 | **El repositorio ya está mudado** (2026-08-28): `CNAME`, `PUBLIC_URL: /`, `SITE_ORIGIN`, `homepage`, literales de SEO, CORS y `FRONTEND_URL`. Verificado con build real: 1.639 URLs del sitemap en el dominio nuevo, 0 en el viejo, y canonical == `<loc>`. **Falta el DNS en GoDaddy, el origen de Google OAuth y Search Console** — ver [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) pasos 2, 9 y 10. ⚠️ **No fusionar a `main` hasta que el DNS resuelva**: con `PUBLIC_URL: /` un despliegue anterior al DNS rompe todos los assets del sitio actual |
+| **DNS / dominio `tradingcalculator.pro`** | 🟠 | **Cutover hecho el 2026-08-28**: `CNAME` en `public/`, `PUBLIC_URL: /`, y el DNS resuelve a los cuatro registros A de GitHub Pages (verificado). El repo entero apunta ya al dominio propio. **Falta desplegar el backend**: hasta entonces el CORS sigue con el dominio viejo y la web carga sin hablar con la API (BUG-067) |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
 > Leyenda: 🟢 listo · 🟡 funciona con condiciones · 🔴 bloquea · ❓ requiere verificación externa (ops)
@@ -273,8 +273,10 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 ### P0 — Bloquea lanzamiento (ops)
 - [ ] Verificar **todos los secretos** en GitHub (frontend) y GCP Secret Manager (backend).
 - [ ] Verificar **Stripe** real: productos, price IDs (`price_1TXM8...`), webhook `whsec_...`.
-- [ ] Verificar **dominio** `tradingcalculatorpro.com` y CNAME de GitHub Pages.
-- [ ] Confirmar **Google OAuth**: origen `https://abcde-rgb.github.io` autorizado.
+- [ ] 🔴 **Desplegar el backend** tras el cutover de dominio: el arreglo del CORS está en
+      `server.py` y Cloud Run corre el código anterior. Sin esto la web no llama a la API.
+- [ ] Verificar **Custom domain** = `tradingcalculator.pro` y **Enforce HTTPS** en GitHub Pages.
+- [ ] Confirmar **Google OAuth**: origen `https://tradingcalculator.pro` autorizado.
 
 ### P1 — Robustez antes de escalar
 - [ ] **Dar interfaz a lo que ya está escrito** (G-14) — 20 rutas, todas decididas en
@@ -357,17 +359,14 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   > Ojo: **OxaPay y MaxelPay ya no existen en el código.** Si un documento antiguo te
   > manda configurarlas, ese documento está caducado (ver aviso de la cabecera).
 - **Revolut Pay**: credenciales del comercio para `backend/revolut.py`.
-- **Google Cloud Console**: OAuth client + orígenes autorizados. Tras el cutover hay que
-  autorizar **`https://tradingcalculator.pro`** (y `https://www.tradingcalculator.pro`).
-  Mantener **`https://abcde-rgb.github.io`** mientras propaga el DNS: quitarlo el mismo
-  día deja sin login a quien llegue por el origen viejo.
-- **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculatorpro.com`).
+- **Google Cloud Console**: OAuth client + orígenes autorizados. El origen que hay que
+  autorizar es **`https://tradingcalculator.pro`**, que es donde se sirve el frontend
+  desde el 2026-08-28.
+- **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculator.pro`).
 - **GitHub**: Secrets de Actions (ver DEPLOY_CHECKLIST) + branch protection.
-- **DNS**: el dominio propio es **`tradingcalculator.pro`** (registrado en GoDaddy).
-  El repositorio ya está mudado; falta apuntar los registros **A** del apex a
-  `185.199.108.153`, `.109.153`, `.110.153`, `.111.153` y el **CNAME** de `www` a
-  `abcde-rgb.github.io`, quitando antes los del parking. `tradingcalculatorpro.com`
-  **NO es de este proyecto**: lo sirve un tercero.
+- **DNS**: hecho. `tradingcalculator.pro` y su `www` resuelven a GitHub Pages y el build
+  se publica en la raíz del dominio propio. Lo que queda fuera del repo está en
+  [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) § «Lo que falta».
 
 ---
 
@@ -377,21 +376,18 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 
 **Las entradas viven en [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md)** — desde el
 2026-06-25 (`grep -c "^#\{2,3\} 2026-" docs/REGISTRO_SESIONES.md` las cuenta: **152**).
-Se separaron el 2026-08-13 —eran el 93 % de este documento y hacían que consultar el
-semáforo costase leer 320 KB—, pero el borrado en origen quedó pendiente hasta el
-2026-08-27: hasta entonces las entradas seguían **aquí y allí a la vez**, y este
-documento pesaba 4.290 líneas mientras se anunciaba como 300.
+Se separaron el 2026-08-13: eran el 93 % de este documento y hacían que consultar el
+semáforo costase leer 320 KB.
 
 Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
-| 2026-08-28 (2) | Cinco informes de otras IA, calificados contra el código |
-| 2026-08-28 | La mudanza a `tradingcalculator.pro`, hecha entera menos el DNS |
-| 2026-08-27 (2) | Tres agentes más, y el activo SEO que nadie comprobaba |
-| 2026-08-27 | La puerta de entrada estaba atascada, y nadie comprobaba al que comprueba |
 | 2026-08-26 (2) | Del informe de esperanza matemática, lo que no estaba ya |
 | 2026-08-26 | Tres páginas públicas hablaban castellano en los diez idiomas |
+| 2026-08-22 | Las 38 rutas muertas: una decisión por cada una |
+| 2026-08-15 | Lo último que seguía atado a un navegador |
+| 2026-08-14 (5) | Mil escenarios generados, y lo que 264 comprobaciones no veían |
 
 ```bash
 # buscar una sesión por fecha o por tema

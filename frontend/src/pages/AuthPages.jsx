@@ -224,7 +224,11 @@ export const LoginPage = () => {
     e.preventDefault();
     setLoginError('');
     if (!EMAIL_RE.test(email)) { setEmailErr(t('emailInvalid')); return; }
-    const result = await login(email, password);
+    // El correo va normalizado SIEMPRE. El backend ya no distingue mayúsculas
+    // (BUG-070), pero esto lo corta en origen: en móvil el teclado capitaliza la
+    // primera letra y un gestor puede rellenar lo que guardó con mayúscula, y el
+    // resultado era «Credenciales inválidas» con la contraseña correcta.
+    const result = await login(email.trim().toLowerCase(), password);
     if (result.success) {
       toast.success(t('bienvenido_b33c1f'));
       navigate('/dashboard');
@@ -315,6 +319,10 @@ export const LoginPage = () => {
                 <Input
                   id="login-email"
                   type="email"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setEmailErr(''); }}
                   onBlur={() => { if (email && !EMAIL_RE.test(email)) setEmailErr(t('emailInvalid')); }}
@@ -424,7 +432,9 @@ export const RegisterPage = () => {
       toast.error(t('passwordMinChars'));
       return;
     }
-    const result = await register(name, email, password, { country, preferredLocale: language });
+    // Normalizado al crear la cuenta, igual que al entrar: si se guardara con la
+    // caja tecleada, el siguiente inicio de sesión desde otro teclado fallaría.
+    const result = await register(name, email.trim().toLowerCase(), password, { country, preferredLocale: language });
     if (result.success) {
       // Make the chosen language stick as this client's preferred UI language.
       if (language && language !== locale) { try { setLocale(language); } catch (_) {} }
@@ -471,6 +481,10 @@ export const RegisterPage = () => {
                 <Input
                   id="register-email"
                   type="email"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setEmailErr(''); }}
                   onBlur={() => { if (email && !EMAIL_RE.test(email)) setEmailErr(t('emailInvalid')); }}
@@ -686,7 +700,7 @@ export const ForgotPasswordPage = () => {
       await fetch(`${API}/auth/forgot-password`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
     } catch (_) {}
     setSent(true);
@@ -724,6 +738,10 @@ export const ForgotPasswordPage = () => {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={t('authEmailPh')}
@@ -768,7 +786,7 @@ const MagicLinkButton = () => {
       const res = await fetch(`${API}/auth/magic-link`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       if (res.ok) { setSent(true); }
       else { const d = await res.json(); toast.error(d.detail || 'Error al enviar el enlace'); }
@@ -805,6 +823,10 @@ const MagicLinkButton = () => {
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t('authEmailPh')}
