@@ -1145,12 +1145,12 @@ security = HTTPBearer(auto_error=False)
 #  CORS — must be registered first so every response gets headers
 # ============================================================
 _CORS_ORIGINS = [
-    # DONDE SE SIRVE LA WEB HOY. No hay `CNAME` en `frontend/public/` y el
-    # `homepage` de package.json apunta aquí, así que este es el Origin real de
-    # todas las peticiones del navegador. Va en el código a propósito: estaba
-    # sólo en la variable `CORS_ORIGINS` del despliegue, y desde que el backend
-    # se despliega a mano un `gcloud run deploy` sin `--set-env-vars` borra esa
-    # variable y tumba el login de todo el sitio.
+    # DONDE SE SIRVE LA WEB. Desde el cutover del 2026-08-28 hay `CNAME` en
+    # `frontend/public/`, el `homepage` de package.json apunta al dominio propio
+    # y el build cuelga de la raíz, así que el Origin real de las peticiones del
+    # navegador es `tradingcalculator.pro`. Va en el código a propósito: estaba
+    # sólo en la variable `CORS_ORIGINS` del despliegue, y un `gcloud run deploy`
+    # sin `--set-env-vars` borra esa variable y tumba el login de todo el sitio.
     #
     # El fallo no se ve en los logs: sin cabecera CORS el backend responde 200
     # con las cookies puestas y es el navegador quien descarta la respuesta.
