@@ -25,7 +25,12 @@ const TYPES = {
 // en las rutas de los assets, que es como se sirve en GitHub Pages. Se monta bajo
 // esa misma base para probar el artefacto REAL: recompilarlo con otra base
 // estaría probando un binario que nunca se publica.
-const BASE_PATH = '/Tradingcalculatorpro.com';
+// Base bajo la que se sirve la app. Desde el cutover a `tradingcalculator.pro`
+// (2026-08-28) el build cuelga de la RAÍZ (`PUBLIC_URL: /`), así que por defecto
+// va vacía; se puede forzar con `E2E_BASE_PATH` para probar un build antiguo.
+// Estuvo escrita a mano en seis ficheros y por eso se quedó desfasada en todos
+// a la vez: ahora sale de una sola expresión.
+const BASE_PATH = process.env.E2E_BASE_PATH ?? '';
 
 http.createServer((req, res) => {
   // Todo el manejador va dentro de un try: una URL con un %-escape inválido hace

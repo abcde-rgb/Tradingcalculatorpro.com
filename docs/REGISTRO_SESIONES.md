@@ -5755,3 +5755,44 @@ el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
   `PASSKEY_*` en Cloud Run, y dar de alta `contact@` y `alerts@` en el dominio nuevo.
 
 ---
+
+### 2026-08-28 (2) — Cinco informes de otras IA, calificados contra el código
+
+- 🎯 Petición: calificar cinco análisis de distintas IA, resumir qué hay en `main` hoy
+  y comprobar la web en vivo.
+- 🔴 **`main` tiene el cutover A MEDIAS.** Tres commits sueltos (`f5c79c5`, `4df5507`,
+  `aea8a38`) metieron `PUBLIC_URL: /`, el `CNAME` y el `homepage`, pero **no** el CORS,
+  ni `DEFAULT_FRONTEND_URL`, ni `useSEO.js`, ni `robots.txt`, ni el canonical. El
+  dominio propio **no está en la lista de CORS de `main`**: si eso está desplegado, el
+  login sólo funciona si la variable `CORS_ORIGINS` de Cloud Run lo tapa. Es
+  exactamente el fallo que los tests de `test_security_unit.py` describen como el peor
+  posible: 200 en los logs y un login que no entra.
+- ✅ El PR #214 (esta rama) trae la otra mitad, y ya estaba escrita antes de ver los
+  informes.
+- ✅ **`CUTOVERQUEHACER.md` es el único informe exacto y vigente**, y encontró cuatro
+  cosas que a esta rama le faltaban. Cerradas aquí: `packaging/twa-manifest.json`
+  (apuntaba a `github.io` y a rutas bajo `/Tradingcalculatorpro.com/`);
+  `PASSKEY_RP_ID`/`PASSKEY_ORIGIN` en `.env.example` —y de paso `SENDER_EMAIL`,
+  `FRONTEND_URL` y `CORS_ORIGINS` de ese fichero, que seguían en el dominio viejo y se
+  me habían escapado—; `frontend/s.tmp.cjs`, un temporal comiteado con una ruta
+  absoluta de otra máquina; y la base `/Tradingcalculatorpro.com` de los e2e.
+- ✅ La base de los e2e estaba **escrita a mano en seis ficheros** pese a que
+  `entorno.js` la exporta: por eso se quedó desfasada en todos a la vez. Ahora sale de
+  `process.env.E2E_BASE_PATH ?? ''` en los seis.
+- 📊 **Informe de Grok, contrastado dato a dato**: precios 17/45/200/500 € ✅ exacto ·
+  6 raíles de pago ✅ · 179 rótulos castellanos ✅ exacto · `/plan` fuera del header ✅ ·
+  cadenas sintéticas ✅ · `OnboardingModal` existe ✅ · `GreeksPanel` y `PriceTicker`
+  muertos ✅ (0 importadores). Pero **«77 módulos» es falso: hoy son 90**, y
+  **`TradingBasicsGuide.jsx` NO es código muerto**: `EducationPage.jsx:1259` lo importa
+  y lo renderiza. `WhyItMatters` tampoco: 3 importadores.
+- 🔴 **No se pudo comprobar la web en vivo.** Este sandbox no tiene salida a internet:
+  `tradingcalculator.pro`, su sitemap y la URL vieja dan «sin acceso». Cualquier
+  afirmación sobre si la web responde hoy sería inventada. Para eso está
+  `.github/workflows/seo-en-vivo.yml`, que corre con red.
+- ✅ Verificado: `py_compile` 35 módulos · 82 tests de seguridad y passkeys ·
+  `node --check` de los seis e2e · eslint 0 errores · `check-doc-links`,
+  `gen-mapa --check`, `gen-instruments-js --check`, `check-rutas-muertas`,
+  `check-precios`, `gen-asistente --check`, `i18n-check`, `engine-check`,
+  `check-edu-index` y `check-visuales-idioma`.
+
+---

@@ -376,7 +376,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 ## 7. Registro de sesiones
 
 **Las entradas viven en [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md)** — desde el
-2026-06-25 (`grep -c "^#\{2,3\} 2026-" docs/REGISTRO_SESIONES.md` las cuenta: **151**).
+2026-06-25 (`grep -c "^#\{2,3\} 2026-" docs/REGISTRO_SESIONES.md` las cuenta: **152**).
 Se separaron el 2026-08-13 —eran el 93 % de este documento y hacían que consultar el
 semáforo costase leer 320 KB—, pero el borrado en origen quedó pendiente hasta el
 2026-08-27: hasta entonces las entradas seguían **aquí y allí a la vez**, y este
@@ -386,6 +386,7 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-28 (2) | Cinco informes de otras IA, calificados contra el código |
 | 2026-08-28 | La mudanza a `tradingcalculator.pro`, hecha entera menos el DNS |
 | 2026-08-27 (2) | Tres agentes más, y el activo SEO que nadie comprobaba |
 | 2026-08-27 | La puerta de entrada estaba atascada, y nadie comprobaba al que comprueba |
