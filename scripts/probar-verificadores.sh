@@ -900,136 +900,151 @@ else
   echo "  ⏭️  Alfabeto por idioma y techo de los diagramas: sin frontend/node_modules"
 fi
 
-# ── El origen servido y la lista de CORS no pueden divergir ─────────────────
-# El fallo que esto fija ocurrió dos veces, una en cada sentido: el 2026-08-05
-# la lista traía el dominio propio y la web se servía en GitHub Pages, y el
-# 2026-08-28 el cutover puso el `CNAME` en `tradingcalculator.pro` y la lista se
-# quedó con el dominio viejo. En los dos casos la web entera dejó de hablar con
-# el backend, y en los dos casos los logs de Cloud Run se veían perfectos: sin
-# cabecera CORS el backend responde 200 y es el NAVEGADOR quien tira la
-# respuesta. `curl` tampoco lo reproduce.
-#
-# Se sabotea moviendo el `CNAME` a otro dominio, que es exactamente el cambio de
-# una línea que dejó la web caída.
-titulo "El origen servido está permitido (test_security_unit.py)"
-CORS_TEST="(cd backend && python -m pytest tests/test_security_unit.py -q -k origin_matches_the_cname -p no:cacheprovider)"
-probar "un CNAME que ya no coincide con la lista de CORS" \
-  "$CORS_TEST" \
-  "printf 'otrodominio.example\n' > frontend/public/CNAME"
+# ── Los sabotajes que corren pytest necesitan las dependencias del backend ──
+# El job de «Doc» de CI monta Python pero NO instala `requirements.txt`, así que
+# ahí `python -m pytest` no existe. Sin esta guarda los cinco bloques de abajo
+# reportan «no pasa ni ANTES de sabotear» y tumban el CI entero — que es lo que
+# le pasaba a `main` (runs de ec2c576 y 0b289e2, ambos en rojo). Los cubre el job
+# de backend, que sí instala e invoca esos mismos tests.
+# Se comprueba lo que los tests NECESITAN (pytest Y las dependencias que importa
+# `server.py`), no sólo que exista el corredor: con pytest instalado pero sin
+# fastapi, los bloques pasan la guarda y fallan igual — que es el mismo verde
+# falso, sólo que un paso más adelante.
+if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py ]; then
+  # ── El origen servido y la lista de CORS no pueden divergir ─────────────────
+  # El fallo que esto fija ocurrió dos veces, una en cada sentido: el 2026-08-05
+  # la lista traía el dominio propio y la web se servía en GitHub Pages, y el
+  # 2026-08-28 el cutover puso el `CNAME` en `tradingcalculator.pro` y la lista se
+  # quedó con el dominio viejo. En los dos casos la web entera dejó de hablar con
+  # el backend, y en los dos casos los logs de Cloud Run se veían perfectos: sin
+  # cabecera CORS el backend responde 200 y es el NAVEGADOR quien tira la
+  # respuesta. `curl` tampoco lo reproduce.
+  #
+  # Se sabotea moviendo el `CNAME` a otro dominio, que es exactamente el cambio de
+  # una línea que dejó la web caída.
+  titulo "El origen servido está permitido (test_security_unit.py)"
+  CORS_TEST="(cd backend && python -m pytest tests/test_security_unit.py -q -k origin_matches_the_cname -p no:cacheprovider)"
+  probar "un CNAME que ya no coincide con la lista de CORS" \
+    "$CORS_TEST" \
+    "printf 'otrodominio.example\n' > frontend/public/CNAME"
 
-# Y la otra dirección: el dominio parecido de un tercero
-# (`tradingcalculatorpro.com`, sin punto) no puede volver a colarse en la lista.
-# Con `allow_credentials=True` le dejaría leer respuestas autenticadas.
-titulo "El dominio ajeno sigue fuera de CORS (test_security_unit.py)"
-probar "el dominio de un tercero devuelto a la lista de CORS" \
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k lookalike_third_party -p no:cacheprovider)" \
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
-EOF"
+  # Y la otra dirección: el dominio parecido de un tercero
+  # (`tradingcalculatorpro.com`, sin punto) no puede volver a colarse en la lista.
+  # Con `allow_credentials=True` le dejaría leer respuestas autenticadas.
+  titulo "El dominio ajeno sigue fuera de CORS (test_security_unit.py)"
+  probar "el dominio de un tercero devuelto a la lista de CORS" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k lookalike_third_party -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
+  EOF"
 
-# ── El correo no puede distinguir mayúsculas ────────────────────────────────
-# BUG-070: el registro guardaba el correo tal como se tecleaba y el login lo
-# buscaba con igualdad exacta, que en PostgreSQL SÍ distingue mayúsculas. Quien
-# se registró como `Ana@x.com` y entraba como `ana@x.com` recibía 401 con la
-# contraseña correcta, y el 401 es idéntico al de una contraseña mala: no había
-# ninguna pista ni en pantalla ni en los logs.
-titulo "Correo insensible a mayúsculas (test_security_unit.py)"
-probar "el login vuelve a buscar el correo con igualdad exacta" \
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
-EOF"
+  # ── El correo no puede distinguir mayúsculas ────────────────────────────────
+  # BUG-070: el registro guardaba el correo tal como se tecleaba y el login lo
+  # buscaba con igualdad exacta, que en PostgreSQL SÍ distingue mayúsculas. Quien
+  # se registró como `Ana@x.com` y entraba como `ana@x.com` recibía 401 con la
+  # contraseña correcta, y el 401 es idéntico al de una contraseña mala: no había
+  # ninguna pista ni en pantalla ni en los logs.
+  titulo "Correo insensible a mayúsculas (test_security_unit.py)"
+  probar "el login vuelve a buscar el correo con igualdad exacta" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
+  EOF"
 
-probar "el registro deja de normalizar el correo al guardarlo" \
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k register_stores -p no:cacheprovider)" \
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
-EOF"
+  probar "el registro deja de normalizar el correo al guardarlo" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k register_stores -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
+  EOF"
 
-# La otra mitad, y es la que de verdad importa: el arreglo NO puede degradar a
-# un regex sin anclar. `~*` haría substring, y un correo es un regex válido, así
-# que `ana@x.com` casaría con `otro+ana@x.com.evil.com` — suplantación de cuenta.
-probar "el operador insensible degrada a un regex sin anclar" \
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k ieq_is_not_an_unanchored -p no:cacheprovider)" \
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
-nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
-assert s.count(viejo) == 1
-p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
-EOF"
+  # La otra mitad, y es la que de verdad importa: el arreglo NO puede degradar a
+  # un regex sin anclar. `~*` haría substring, y un correo es un regex válido, así
+  # que `ana@x.com` casaría con `otro+ana@x.com.evil.com` — suplantación de cuenta.
+  probar "el operador insensible degrada a un regex sin anclar" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k ieq_is_not_an_unanchored -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
+  nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
+  assert s.count(viejo) == 1
+  p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+  EOF"
 
-# ── Con duplicados, la cuenta elegida no puede cambiar ──────────────────────
-# El daño colateral de BUG-070: la comprobación de duplicados del registro
-# también distinguía mayúsculas, así que el mismo correo se dio de alta DOS
-# veces en producción. Y `find_one` es `SELECT … LIMIT 1` sin `ORDER BY`: con dos
-# filas que casan, PostgreSQL devuelve una cualquiera. Entrar unas veces en una
-# cuenta y otras en la otra es peor que fallar, y en `admin/promote` o en el alta
-# manual de un cobro significa tocar la fila equivocada.
-titulo "Elección determinista de cuenta (test_security_unit.py)"
-probar "el buscador deja de preferir la coincidencia exacta" \\
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k exact_match_wins -p no:cacheprovider)" \\
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-viejo = '        if (u.get(\"email\") or \"\") == correo:'
-assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
-p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
-EOF"
+  # ── Con duplicados, la cuenta elegida no puede cambiar ──────────────────────
+  # El daño colateral de BUG-070: la comprobación de duplicados del registro
+  # también distinguía mayúsculas, así que el mismo correo se dio de alta DOS
+  # veces en producción. Y `find_one` es `SELECT … LIMIT 1` sin `ORDER BY`: con dos
+  # filas que casan, PostgreSQL devuelve una cualquiera. Entrar unas veces en una
+  # cuenta y otras en la otra es peor que fallar, y en `admin/promote` o en el alta
+  # manual de un cobro significa tocar la fila equivocada.
+  titulo "Elección determinista de cuenta (test_security_unit.py)"
+  probar "el buscador deja de preferir la coincidencia exacta" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k exact_match_wins -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  viejo = '        if (u.get(\"email\") or \"\") == correo:'
+  assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
+  p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
+  EOF"
 
-probar "el buscador deja de ordenar y vuelve a elegir al azar" \\
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k row_order -p no:cacheprovider)" \\
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-viejo = '.sort(\"created_at\", 1).to_list(None)'
-assert s.count(viejo) == 1, 'ancla del orden no encontrada'
-p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
-EOF"
+  probar "el buscador deja de ordenar y vuelve a elegir al azar" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k row_order -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  viejo = '.sort(\"created_at\", 1).to_list(None)'
+  assert s.count(viejo) == 1, 'ancla del orden no encontrada'
+  p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
+  EOF"
 
-# ── Toda respuesta de auth describe al usuario igual ────────────────────────
-# BUG-072: cuatro respuestas —login, refresh, magic link y Google— mandaban
-# `is_admin` pero no `two_factor_enabled`. La guarda del panel decide con
-# `two_factor_enabled === false`, y con el campo ausente `undefined === false`
-# es FALSO: el admin entraba y luego el backend le devolvía 428 en cada llamada.
-# Síntoma: en incógnito «funcionaba» y en el navegador de siempre no.
-titulo "Forma de las respuestas de auth (test_security_unit.py)"
-probar "una respuesta de auth que se deja el 2FA" \\
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \\
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
-assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
-p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
-EOF"
+  # ── Toda respuesta de auth describe al usuario igual ────────────────────────
+  # BUG-072: cuatro respuestas —login, refresh, magic link y Google— mandaban
+  # `is_admin` pero no `two_factor_enabled`. La guarda del panel decide con
+  # `two_factor_enabled === false`, y con el campo ausente `undefined === false`
+  # es FALSO: el admin entraba y luego el backend le devolvía 428 en cada llamada.
+  # Síntoma: en incógnito «funcionaba» y en el navegador de siempre no.
+  titulo "Forma de las respuestas de auth (test_security_unit.py)"
+  probar "una respuesta de auth que se deja el 2FA" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
+  assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
+  p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+  EOF"
 
-# Y el otro sentido: la regla mira los objetos `user` de RESPUESTA, no las filas
-# de base de datos ni las tablas del panel, que no tienen por qué llevar el
-# campo. Un heurístico por claves las marcaba a todas y se habría desactivado.
-probar_inverso "una fila de base de datos con is_admin y sin 2FA" \\
-  "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \\
-  "python - <<'EOF'
-import pathlib
-p = pathlib.Path('backend/server.py')
-s = p.read_text(encoding='utf-8')
-p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
-EOF"
+  # Y el otro sentido: la regla mira los objetos `user` de RESPUESTA, no las filas
+  # de base de datos ni las tablas del panel, que no tienen por qué llevar el
+  # campo. Un heurístico por claves las marcaba a todas y se habría desactivado.
+  probar_inverso "una fila de base de datos con is_admin y sin 2FA" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \
+    "python - <<'EOF'
+  import pathlib
+  p = pathlib.Path('backend/server.py')
+  s = p.read_text(encoding='utf-8')
+  p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
+  EOF"
 
+else
+  titulo "Sabotajes sobre test_security_unit.py"
+  echo "  ⏭️  se saltan: no hay pytest en este entorno (los cubre el job de backend)"
+fi
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────
 titulo "Auditoría (auditar.py --estricto)"
 COMPONENTE_MUERTO="frontend/src/components/ZzSabotajeHuerfano.jsx"
