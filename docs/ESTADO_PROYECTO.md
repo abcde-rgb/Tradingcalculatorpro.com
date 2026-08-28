@@ -371,7 +371,7 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 ## 7. Registro de sesiones
 
 **Las entradas viven en [`REGISTRO_SESIONES.md`](./REGISTRO_SESIONES.md)** — desde el
-2026-06-25 (`grep -c "^#\{2,3\} 2026-" docs/REGISTRO_SESIONES.md` las cuenta: **134**).
+2026-06-25 (`grep -c "^#\{2,3\} 2026-" docs/REGISTRO_SESIONES.md` las cuenta: **135**).
 Se separaron el 2026-08-13: eran el 93 % de este documento y hacían que consultar el
 semáforo costase leer 320 KB.
 
@@ -379,11 +379,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-28 | Lo que el banco de pruebas no miraba: un tema entero, un esquema y un `null` |
 | 2026-08-22 | Las 38 rutas muertas: una decisión por cada una |
 | 2026-08-15 | Lo último que seguía atado a un navegador |
 | 2026-08-14 (5) | Mil escenarios generados, y lo que 264 comprobaciones no veían |
 | 2026-08-14 (4) | La captura mentía: la barra de navegación salía tres veces |
-| 2026-08-14 (3) | La mesa, rehecha: una pregunta, un botón, una respuesta |
 
 ```bash
 # buscar una sesión por fecha o por tema

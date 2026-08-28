@@ -4741,3 +4741,67 @@ la herramienta con un bróker real. Y dos restos ajenos a esta rama: `s.tmp.cjs`
 en `frontend/`, un fichero temporal que se coló en el commit 8a0ade5, y
 `toolMapIntro`, una clave i18n muerta que aún dice «14 calculadoras» en los diez
 idiomas sin que ningún componente la pinte.
+
+## 2026-08-28 — Lo que el banco de pruebas no miraba: un tema entero, un esquema y un `null`
+
+Sesión larga de «arréglalo todo, incluido lo que encuentres». Lo que se arregló
+importa menos que **dónde estaba escondido**: cinco de los seis fallos vivían en
+un punto ciego de las propias sondas, no en un rincón oscuro del producto.
+
+### Lo que se rompía de verdad
+
+| Qué | Dónde estaba escondido |
+|---|---|
+| El CSP bloqueaba `wss://`: las alertas en vivo, mudas en producción | `csp.js` recorría `/dashboard` **sin sesión**, y sin token el hook no abre nada |
+| Las cifras de P&L a 2,09:1 sobre papel — ilegibles | `accesibilidad.js` medía **un solo tema**: el oscuro, que es el de arranque |
+| Tres botones sin nombre accesible y uno inalcanzable con teclado | La sonda medía **cuatro páginas**; Ajustes no era una de ellas |
+| Un botón sin nombre **sólo en móvil** (`hidden sm:inline`) | Existe únicamente por debajo del punto de ruptura |
+| «nullR» en la R media | La regla de honestidad se aplicó en el productor, no en el consumidor |
+| El JWT del WebSocket, escrito en los registros de Cloud Run | Nadie miraba la URL, sólo si conectaba |
+
+Detalle y causa raíz de cada uno en [`DIARIO_BUGS.md`](./DIARIO_BUGS.md),
+BUG-025 a BUG-029.
+
+### La causa común de los colores
+
+`#22c55e` resultó ser **exactamente** `--long` del tema oscuro, y `#ef4444`
+exactamente `--short`. Los 1.499 colores escritos a mano no eran una paleta
+paralela: eran los tokens del sistema congelados en el valor de un tema. Por eso
+sustituirlos fue seguro —en oscuro el cambio es imperceptible, 7,61 → 7,54— y
+por eso arreglaba el claro de golpe: 2,19 → 4,65.
+
+### Lo que se aprendió sobre las sondas
+
+- **Interceptar la API envejece en silencio.** La ficción de `brokers.js` se
+  quedó sin los campos con los que la página compone la advertencia ESMA, y la
+  sonda acusó al producto de saltarse una obligación legal que cumple. Ahora
+  compara su conjunto de claves con el de la API real — y al estrenar esa
+  guarda destapó tres campos más desfasados.
+- **Medir prosa sin fijar el idioma es medir el `Accept-Language` de la
+  máquina.** Cuatro sondas comparaban castellano contra pantallas en inglés.
+- **«Ninguna respuesta 2xx con datos» pasa igual si no se pidió nada.**
+  `muro-cliente.js` afirmaba que el servidor niega los datos sin llegar a
+  pedirlos: al mentir, el guardia de cliente echa a `/pricing` y la pantalla
+  protegida no monta. Ahora se hace la petición y se exige el 403.
+- **`\bnull\b` no casa con «nullR».** La comprobación general daba verde
+  mientras la específica gritaba, sobre el mismo fallo.
+- **`npm install --no-save` sin `package.json` poda lo que no nombres.** La
+  guía de accesibilidad mandaba instalar axe-core aparte, y eso dejaba
+  `lib/playwright-core` como enlace roto. Ahora `arriba.sh` instala las dos
+  juntas.
+
+### Lo que quedó fuera a propósito
+
+- Los colores de **fondo** de paleta (`bg-red-500/15` y compañía, 543 clases) no
+  se tocaron: no son un problema de contraste de texto y cambiarlos sería un
+  rediseño, no un arreglo.
+- Los hexadecimales dentro de comillas (colores de gráficas de Recharts, 
+  ~200) tampoco: no son clases de Tailwind y axe no los evalúa como texto.
+
+### Verificado
+
+`accesibilidad.js` 2 temas × 8 páginas, escritorio y móvil: **0 incumplimientos
+graves** (eran 53 al ampliar la cobertura, y 77 sólo en `/performance` con el
+tema claro). 1.091 tests de backend + 9 nuevos del WebSocket. 433/433 del motor.
+`i18n-check` con 6.972 claves y 0 huecos. Catálogo en paridad, mapa regenerado,
+enlaces de doc resueltos, 29 rutas muertas todas decididas.
