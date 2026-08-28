@@ -67,7 +67,7 @@
 | **Revolut Pay (código)** | 🟢 | `backend/revolut.py`, registrado en el checkout |
 | **Kunfupay (código)** | 🟢 | Cuarto raíl, **camino B**: enlace de cobro por plan (`kunfupay_links`) + alta manual auditada e idempotente (`POST /admin/payments/manual`, con formulario en el panel). Los raíles activos se encienden y apagan con el ajuste `payment_methods_enabled` —apagar Stripe ya no exige desplegar—. Ver [`PASARELA_KUNFUPAY.md`](./PASARELA_KUNFUPAY.md) § 16 |
 | **Kunfupay (operación)** | 🔴 | Falta la cuenta, los enlaces de cobro y **el primer cobro real**: su dominio está bloqueado desde el entorno remoto y nada se ha probado contra un pago de verdad. El conector con webhook (camino A) no se puede escribir hasta que publiquen API — § 5, preguntas 1-3 |
-| **DNS / dominio `tradingcalculatorpro.com`** | ❓ | **Hoy se sirve en `abcde-rgb.github.io/Tradingcalculatorpro.com`** (no hay `CNAME` en `public/`). Los despliegues ya apuntan ahí; el dominio propio sigue sin usarse |
+| **DNS / dominio `tradingcalculator.pro`** | 🟠 | **Cutover hecho el 2026-08-28**: `CNAME` en `public/`, `PUBLIC_URL: /`, y el DNS resuelve a los cuatro registros A de GitHub Pages (verificado). El repo entero apunta ya al dominio propio. **Falta desplegar el backend**: hasta entonces el CORS sigue con el dominio viejo y la web carga sin hablar con la API (BUG-067) |
 | **Secretos en GitHub + GCP** | ❓ | Verificar que están todos configurados |
 
 > Leyenda: 🟢 listo · 🟡 funciona con condiciones · 🔴 bloquea · ❓ requiere verificación externa (ops)
@@ -273,8 +273,10 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 ### P0 — Bloquea lanzamiento (ops)
 - [ ] Verificar **todos los secretos** en GitHub (frontend) y GCP Secret Manager (backend).
 - [ ] Verificar **Stripe** real: productos, price IDs (`price_1TXM8...`), webhook `whsec_...`.
-- [ ] Verificar **dominio** `tradingcalculatorpro.com` y CNAME de GitHub Pages.
-- [ ] Confirmar **Google OAuth**: origen `https://abcde-rgb.github.io` autorizado.
+- [ ] 🔴 **Desplegar el backend** tras el cutover de dominio: el arreglo del CORS está en
+      `server.py` y Cloud Run corre el código anterior. Sin esto la web no llama a la API.
+- [ ] Verificar **Custom domain** = `tradingcalculator.pro` y **Enforce HTTPS** en GitHub Pages.
+- [ ] Confirmar **Google OAuth**: origen `https://tradingcalculator.pro` autorizado.
 
 ### P1 — Robustez antes de escalar
 - [ ] **Dar interfaz a lo que ya está escrito** (G-14) — 20 rutas, todas decididas en
@@ -358,12 +360,13 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
   > manda configurarlas, ese documento está caducado (ver aviso de la cabecera).
 - **Revolut Pay**: credenciales del comercio para `backend/revolut.py`.
 - **Google Cloud Console**: OAuth client + orígenes autorizados. El origen que hay que
-  autorizar hoy es **`https://abcde-rgb.github.io`**, que es donde se sirve el frontend.
-- **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculatorpro.com`).
+  autorizar es **`https://tradingcalculator.pro`**, que es donde se sirve el frontend
+  desde el 2026-08-28.
+- **SendGrid**: API key + dominio remitente verificado (`alerts@tradingcalculator.pro`).
 - **GitHub**: Secrets de Actions (ver DEPLOY_CHECKLIST) + branch protection.
-- **DNS**: sólo aplica si se decide activar el dominio propio `tradingcalculatorpro.com`
-  / `www`. Hoy **no está en uso**: no hay `frontend/public/CNAME` y el build se publica en
-  `https://abcde-rgb.github.io/Tradingcalculatorpro.com`.
+- **DNS**: hecho. `tradingcalculator.pro` y su `www` resuelven a GitHub Pages y el build
+  se publica en la raíz del dominio propio. Lo que queda fuera del repo está en
+  [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) § «Lo que falta».
 
 ---
 

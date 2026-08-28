@@ -60,7 +60,7 @@ def _default_origin() -> str:
     cambia, y una passkey registrada contra el origen viejo deja de validar."""
     return os.environ.get(
         "PASSKEY_ORIGIN",
-        os.environ.get("FRONTEND_URL", "https://abcde-rgb.github.io"),
+        os.environ.get("FRONTEND_URL", "https://tradingcalculator.pro"),
     ).rstrip("/")
 
 

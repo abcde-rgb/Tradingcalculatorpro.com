@@ -1100,7 +1100,7 @@ stripe.api_key = STRIPE_API_KEY
 
 # SendGrid Configuration
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculatorpro.com')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
 
 # Demo User (siempre tiene acceso PRO completo)
 DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
@@ -1145,20 +1145,27 @@ security = HTTPBearer(auto_error=False)
 #  CORS — must be registered first so every response gets headers
 # ============================================================
 _CORS_ORIGINS = [
-    # DONDE SE SIRVE LA WEB HOY. No hay `CNAME` en `frontend/public/` y el
-    # `homepage` de package.json apunta aquí, así que este es el Origin real de
+    # DONDE SE SIRVE LA WEB. Desde el cutover del 2026-08-28 hay `CNAME` en
+    # `frontend/public/`, el `homepage` de package.json apunta aquí y el
+    # workflow construye con `PUBLIC_URL: /`, así que este es el Origin real de
     # todas las peticiones del navegador. Va en el código a propósito: estaba
-    # sólo en la variable `CORS_ORIGINS` del despliegue, y desde que el backend
-    # se despliega a mano un `gcloud run deploy` sin `--set-env-vars` borra esa
-    # variable y tumba el login de todo el sitio.
+    # sólo en la variable `CORS_ORIGINS` del despliegue, y un `gcloud run
+    # deploy` sin `--set-env-vars` borra esa variable y tumba el login entero.
     #
     # El fallo no se ve en los logs: sin cabecera CORS el backend responde 200
     # con las cookies puestas y es el navegador quien descarta la respuesta.
     # `curl` tampoco lo reproduce, porque ignora CORS.
+    "https://tradingcalculator.pro",
+    "https://www.tradingcalculator.pro",
+    # GitHub Pages sigue respondiendo en su URL de proyecto y redirige al
+    # dominio propio. Se queda como red de seguridad por si el DNS cae: sin
+    # esto, un problema de dominio dejaría además el login muerto.
     "https://abcde-rgb.github.io",
-    # Dominio propio, para el día del cutover de DNS (ver DEPLOY_CHECKLIST §G).
-    "https://tradingcalculatorpro.com",
-    "https://www.tradingcalculatorpro.com",
+    # OJO — `tradingcalculatorpro.com` (sin punto, con «pro» pegado) NO es
+    # nuestro: resuelve a Cloudflare y lo sirve un tercero (comprobado por DNS
+    # el 2026-08-14, ver docs/MIGRACION_DOMINIO.md). Estuvo en esta lista por
+    # error. Con `allow_credentials=True` permitir un origen ajeno le deja leer
+    # respuestas autenticadas de nuestros usuarios: no vuelvas a añadirlo.
 ]
 # Localhost only in non-production (dev) — add via CORS_ORIGINS env var in staging
 if os.environ.get("ENVIRONMENT", "production") != "production":
@@ -1170,13 +1177,17 @@ for _o in _extra.split(","):
         _CORS_ORIGINS.append(_o)
 
 # Base de los enlaces que se ENVÍAN POR CORREO (verificación, reset, magic
-# link). Por defecto apunta a donde se sirve la web hoy, que es lo que ponen
-# el despliegue de entonces y ponía el workflow retirado: el valor del código no puede
-# contradecir al del despliegue, porque si la variable se pierde los correos
-# llevan a un dominio que no existe y el usuario tampoco puede entrar.
-# Una sola constante para que los cuatro sitios que la usaban no vuelvan a
-# divergir. El día del cutover de DNS se cambia aquí (ver DEPLOY_CHECKLIST §G).
-DEFAULT_FRONTEND_URL = "https://abcde-rgb.github.io/Tradingcalculatorpro.com"
+# link) y de las vueltas de las pasarelas. Por defecto apunta a donde se sirve
+# la web: el valor del código no puede contradecir al del despliegue, porque si
+# la variable se pierde los correos llevan a un dominio que no existe y el
+# usuario tampoco puede entrar. Una sola constante para que los cuatro sitios
+# que la usaban no vuelvan a divergir.
+#
+# Cutover de dominio 2026-08-28: era la URL de proyecto de GitHub Pages. Si en
+# Cloud Run sigue puesta `FRONTEND_URL` con el valor viejo, gana la variable y
+# los correos siguen llevando a la URL antigua — hay que actualizarla también
+# en el servicio (ver docs/MIGRACION_DOMINIO.md § 8b).
+DEFAULT_FRONTEND_URL = "https://tradingcalculator.pro"
 FRONTEND_URL = os.environ.get("FRONTEND_URL", DEFAULT_FRONTEND_URL).strip().rstrip("/")
 
 app.add_middleware(
@@ -3487,7 +3498,7 @@ _EMAIL_BASE = """
 <table width="600" cellpadding="0" cellspacing="0" style="background:#1a1a1a;border-radius:12px;overflow:hidden;border:1px solid #2a2a2a;">
 <tr><td style="background:linear-gradient(135deg,#00E676,#00B0FF);padding:32px 40px;text-align:center;">
 <h1 style="margin:0;color:#000;font-size:24px;font-weight:bold;">Trading Calculator PRO</h1>
-<p style="margin:8px 0 0;color:#000;opacity:0.7;font-size:14px;">tradingcalculatorpro.com</p>
+<p style="margin:8px 0 0;color:#000;opacity:0.7;font-size:14px;">tradingcalculator.pro</p>
 </td></tr>
 <tr><td style="padding:40px;">{body}</td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #2a2a2a;text-align:center;">
@@ -3515,7 +3526,7 @@ async def _send_welcome_email(to_email: str, name: str) -> None:
 <p style="color:#aaa;margin:6px 0;">📈 Análisis de opciones y estrategias</p>
 <p style="color:#aaa;margin:6px 0;">🎯 Seguimiento de rendimiento</p>
 </div>
-<a href="https://tradingcalculatorpro.com/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
+<a href="{FRONTEND_URL}/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
 """
     await _send_email(to_email, "¡Bienvenido a Trading Calculator PRO!", _email_html(body))
 
@@ -3536,7 +3547,7 @@ async def _send_subscription_confirmation_email(to_email: str, name: str, plan_n
 <p style="color:#aaa;margin:6px 0;">Válido hasta: <strong style="color:#fff;">{end_str}</strong></p>
 </div>
 <p style="color:#aaa;line-height:1.6;">Ahora tienes acceso completo a todas las funcionalidades premium.</p>
-<a href="https://tradingcalculatorpro.com/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
+<a href="{FRONTEND_URL}/dashboard" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Ir al Dashboard →</a>
 """
     await _send_email(to_email, f"Suscripción {plan_name} activada — Trading Calculator PRO", _email_html(body))
 
@@ -3549,7 +3560,7 @@ async def _send_payment_failed_email(to_email: str, name: str, attempt: int) -> 
 <div style="background:#1a0a0a;border:1px solid #5a1a1a;border-radius:8px;padding:20px;margin:24px 0;">
 <p style="color:#ff6b6b;margin:0;">Para mantener tu acceso premium, actualiza tu método de pago lo antes posible.</p>
 </div>
-<a href="https://tradingcalculatorpro.com/settings" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Actualizar método de pago →</a>
+<a href="{FRONTEND_URL}/settings" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">Actualizar método de pago →</a>
 """
     await _send_email(to_email, "⚠️ Pago fallido — Trading Calculator PRO", _email_html(body))
 
@@ -3558,7 +3569,7 @@ async def _send_subscription_cancelled_email(to_email: str, name: str) -> None:
 <h2 style="color:#fff;margin-top:0;">Suscripción cancelada</h2>
 <p style="color:#aaa;line-height:1.6;">Hola <strong style="color:#fff;">{name}</strong>, tu suscripción a Trading Calculator PRO ha sido cancelada.</p>
 <p style="color:#aaa;line-height:1.6;">Tu acceso premium ha sido desactivado. Puedes reactivarlo en cualquier momento.</p>
-<a href="https://tradingcalculatorpro.com/pricing" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:24px;">Reactivar suscripción →</a>
+<a href="{FRONTEND_URL}/pricing" style="display:inline-block;background:#00E676;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:24px;">Reactivar suscripción →</a>
 """
     await _send_email(to_email, "Suscripción cancelada — Trading Calculator PRO", _email_html(body))
 

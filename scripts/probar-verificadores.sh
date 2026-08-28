@@ -886,6 +886,36 @@ else
   echo "  ⏭️  Alfabeto por idioma y techo de los diagramas: sin frontend/node_modules"
 fi
 
+# ── El origen servido y la lista de CORS no pueden divergir ─────────────────
+# El fallo que esto fija ocurrió dos veces, una en cada sentido: el 2026-08-05
+# la lista traía el dominio propio y la web se servía en GitHub Pages, y el
+# 2026-08-28 el cutover puso el `CNAME` en `tradingcalculator.pro` y la lista se
+# quedó con el dominio viejo. En los dos casos la web entera dejó de hablar con
+# el backend, y en los dos casos los logs de Cloud Run se veían perfectos: sin
+# cabecera CORS el backend responde 200 y es el NAVEGADOR quien tira la
+# respuesta. `curl` tampoco lo reproduce.
+#
+# Se sabotea moviendo el `CNAME` a otro dominio, que es exactamente el cambio de
+# una línea que dejó la web caída.
+titulo "El origen servido está permitido (test_security_unit.py)"
+CORS_TEST="(cd backend && python -m pytest tests/test_security_unit.py -q -k origin_matches_the_cname -p no:cacheprovider)"
+probar "un CNAME que ya no coincide con la lista de CORS" \
+  "$CORS_TEST" \
+  "printf 'otrodominio.example\n' > frontend/public/CNAME"
+
+# Y la otra dirección: el dominio parecido de un tercero
+# (`tradingcalculatorpro.com`, sin punto) no puede volver a colarse en la lista.
+# Con `allow_credentials=True` le dejaría leer respuestas autenticadas.
+titulo "El dominio ajeno sigue fuera de CORS (test_security_unit.py)"
+probar "el dominio de un tercero devuelto a la lista de CORS" \
+  "(cd backend && python -m pytest tests/test_security_unit.py -q -k lookalike_third_party -p no:cacheprovider)" \
+  "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
+EOF"
+
 # ── La auditoría detecta lo que dice detectar ───────────────────────────────
 titulo "Auditoría (auditar.py --estricto)"
 COMPONENTE_MUERTO="frontend/src/components/ZzSabotajeHuerfano.jsx"

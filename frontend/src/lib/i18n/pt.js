@@ -3582,7 +3582,7 @@ export default {
   "passwordChangeErrorToast": "Não foi possível alterar a palavra-passe",
   "typeWordToConfirmToast": "Escreva {word} para confirmar",
   "accountDeletedToast": "Conta eliminada. Até breve.",
-  "accountDeleteManualToast": "Não foi possível eliminar a conta automaticamente. Envie um e-mail para contact@tradingcalculatorpro.com com o assunto \"Pedido de eliminação de conta\" a partir do seu e-mail registado.",
+  "accountDeleteManualToast": "Não foi possível eliminar a conta automaticamente. Envie um e-mail para contact@tradingcalculator.pro com o assunto \"Pedido de eliminação de conta\" a partir do seu e-mail registado.",
   "accountDeleteErrorToast": "Não foi possível eliminar a conta. Contacte o suporte.",
   "downloadDataErrorToast": "Erro ao descarregar os dados",
   "partnersTitle": "Ferramentas que recomendamos",

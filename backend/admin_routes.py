@@ -222,7 +222,7 @@ ALL_CONNECTORS: List[Dict[str, Any]] = [
         "description": "Parámetros generales de la aplicación",
         "keys": [
             {"key": "site_name",         "label": "Nombre del sitio",       "secret": False, "placeholder": "Trading Calculator PRO"},
-            {"key": "support_email",     "label": "Email de soporte",       "secret": False, "placeholder": "support@tradingcalculatorpro.com"},
+            {"key": "support_email",     "label": "Email de soporte",       "secret": False, "placeholder": "support@tradingcalculator.pro"},
             {"key": "default_currency",  "label": "Moneda por defecto",     "secret": False, "placeholder": "EUR"},
             {"key": "default_locale",    "label": "Idioma por defecto",     "secret": False, "placeholder": "es"},
             {"key": "maintenance_mode",  "label": "Modo mantenimiento",     "secret": False, "placeholder": "false"},
@@ -674,7 +674,7 @@ def build_admin_router(
         # Get SendGrid API key from settings
         settings_raw = await _get_all_settings(db)
         sg_key = settings_raw.get("sendgrid_api_key", "")
-        sender_email = settings_raw.get("sendgrid_sender_email", "noreply@tradingcalculatorpro.com")
+        sender_email = settings_raw.get("sendgrid_sender_email", "noreply@tradingcalculator.pro")
 
         sent_count = 0
         if sg_key:
@@ -1133,7 +1133,7 @@ def build_admin_router(
         # Send via SendGrid if configured
         settings_raw = await _get_all_settings(db)
         sg_key = settings_raw.get("sendgrid_api_key", "")
-        sender = settings_raw.get("sendgrid_sender_email", "noreply@tradingcalculatorpro.com")
+        sender = settings_raw.get("sendgrid_sender_email", "noreply@tradingcalculator.pro")
         email = export_doc.get("email", "")
         sent = False
 

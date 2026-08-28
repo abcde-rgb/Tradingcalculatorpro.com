@@ -917,7 +917,7 @@ export default function EducationPage() {
   <h2>6 · ${esc(t('tplReview'))}</h2>${lines(2)}
   <div class="commit">${esc(t('tplCommit'))}</div>
   <div class="sign"><div></div></div>
-  <div class="foot">tradingcalculatorpro.com</div>
+  <div class="foot">tradingcalculator.pro</div>
 <script>setTimeout(function(){window.print();},350);</script>
 </body></html>`);
     w.document.close();

@@ -18,7 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_ORIGIN = 'https://abcde-rgb.github.io/Tradingcalculatorpro.com';
+const DEFAULT_ORIGIN = 'https://tradingcalculator.pro';
 const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const BUILD = path.join(__dirname, '..', 'build');
 const I18N_DIR = path.join(__dirname, '..', 'src', 'lib', 'i18n');
