@@ -4863,4 +4863,5 @@ export default {
   "gl111d": "La diferencia sistemática entre la volatilidad implícita que descuentan las opciones y la que el activo acaba realizando. Quien vende opciones la cobra a cambio de asumir el riesgo de que la realizada supere a la implícita. No es una ineficiencia olvidada sino el precio de un seguro, y por eso no desaparece al publicarse; su factura llega entera y de golpe, no repartida.",
   "eduToolLinks": "Pruébalo:",
   "bvlTitle": "Validar un backtest",
+  "sphTitle": "El proceso emocional de una sesión",
 }

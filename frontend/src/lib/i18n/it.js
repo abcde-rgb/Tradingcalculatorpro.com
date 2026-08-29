@@ -4863,4 +4863,5 @@ export default {
   "gl111d": "Il divario sistematico tra la volatilità implicita scontata dalle opzioni e quella che il sottostante finisce per realizzare. Chi vende opzioni lo incassa in cambio del rischio che la realizzata superi l'implicita. Non è un'inefficienza dimenticata ma il prezzo di un'assicurazione, ed è per questo che pubblicarla non la fa sparire; il suo conto arriva intero e tutto insieme, non spalmato.",
   "eduToolLinks": "Provalo:",
   "bvlTitle": "Validare un backtest",
+  "sphTitle": "Il processo emotivo di una sessione",
 }

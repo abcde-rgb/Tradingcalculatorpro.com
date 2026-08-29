@@ -123,6 +123,7 @@ export const EDU_MODULES = [
 
   // ── Psicología ───────────────────────────────────────────────
   { id: 'psychology', titleKey: 'tradingPsychologyTitle', getters: ['getTradingPsychology'] },
+  { id: 'session-phases', titleKey: 'sphTitle', getters: ['getSessionPhases'] },
   { id: 'psych-solutions', titleKey: 'pssTitle', getters: ['getPsychSolutions'] },
   { id: 'gambling-harm', titleKey: 'gmbTitle', getters: ['getGamblingHarm'] },
   { id: 'system-adherence', titleKey: 'sysTitle', getters: ['getSystemAdherence'] },

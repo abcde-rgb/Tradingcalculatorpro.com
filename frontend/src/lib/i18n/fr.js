@@ -4863,4 +4863,5 @@ export default {
   "gl111d": "L'écart systématique entre la volatilité implicite escomptée par les options et celle que le sous-jacent réalise finalement. Le vendeur d'options l'encaisse en échange du risque que la réalisée dépasse l'implicite. Ce n'est pas une inefficience oubliée mais le prix d'une assurance, et c'est pourquoi la publier ne la fait pas disparaître ; sa facture arrive entière et d'un coup, pas étalée.",
   "eduToolLinks": "Essayez :",
   "bvlTitle": "Valider un backtest",
+  "sphTitle": "Le processus émotionnel d'une séance",
 }
