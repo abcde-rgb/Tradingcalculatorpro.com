@@ -30,6 +30,7 @@ leen en el mismo momento ni con la misma intención.
 | [`ESCANER_ESTRUCTURA.md`](./ESCANER_ESTRUCTURA.md) | Manual del escáner de estructura de precio (`price_action.py`): swings, BOS/CHoCH, FVG |
 | [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) | Gráficos y personalización por usuario |
 | [`MIGRACION_NEON.md`](./MIGRACION_NEON.md) | Conmutar la BD entre Cloud SQL y Neon (`DB_PROVIDER`) |
+| [`MCP.md`](./MCP.md) | Servidores MCP del agente (`playwright`, `firecrawl-mcp`): cómo se añaden, los tres ámbitos y dónde va la clave que no puede entrar en git |
 | [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) | Especificación del plan de trading versionado. **Backend terminado; sigue sin una sola pantalla** (G-14) |
 
 ## 🚀 Voy a desplegar
