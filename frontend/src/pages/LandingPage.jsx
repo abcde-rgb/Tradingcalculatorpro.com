@@ -25,11 +25,21 @@ import { useThemeStore } from '@/lib/theme';
 
 // ===== Motion variants (module-level constants to avoid inline-object re-renders) =====
 const MOTION_FADE_UP = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
-const MOTION_FADE_UP_VIEW = { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 } };
-const MOTION_SLIDE_RIGHT_VIEW = { initial: { opacity: 0, x: -20 }, whileInView: { opacity: 1, x: 0 } };
-const MOTION_SLIDE_LEFT_VIEW = { initial: { opacity: 0, x: 20 }, whileInView: { opacity: 1, x: 0 } };
-const MOTION_SCALE_IN_VIEW = { initial: { opacity: 0, scale: 0.9 }, whileInView: { opacity: 1, scale: 1 } };
-const MOTION_SCALE_UP_VIEW = { initial: { opacity: 0, scale: 0.95 }, whileInView: { opacity: 1, scale: 1 } };
+// `once: true` NO es cosmético. Sin él, el defecto de framer-motion es volver a
+// `initial` al salir de pantalla: medido sobre la landing servida, parado abajo
+// del todo había 47 bloques ya recorridos en opacity 0, y vuelto arriba 48 por
+// debajo. Es decir, cada tarjeta se desvanecía otra vez en cuanto la dejabas
+// atrás, en una página de 9.000 px. Efectos: al subir a releer, la sección está
+// en blanco hasta que se re-anima; el buscador del navegador encuentra texto
+// invisible; y cualquier captura o impresión sale con media página negra.
+// El margen negativo dispara la entrada un poco antes de que el bloque asome,
+// que es lo que evita ver aparecer el propio movimiento.
+const VIEW_ONCE = { once: true, margin: '-10% 0px' };
+const MOTION_FADE_UP_VIEW = { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }, viewport: VIEW_ONCE };
+const MOTION_SLIDE_RIGHT_VIEW = { initial: { opacity: 0, x: -20 }, whileInView: { opacity: 1, x: 0 }, viewport: VIEW_ONCE };
+const MOTION_SLIDE_LEFT_VIEW = { initial: { opacity: 0, x: 20 }, whileInView: { opacity: 1, x: 0 }, viewport: VIEW_ONCE };
+const MOTION_SCALE_IN_VIEW = { initial: { opacity: 0, scale: 0.9 }, whileInView: { opacity: 1, scale: 1 }, viewport: VIEW_ONCE };
+const MOTION_SCALE_UP_VIEW = { initial: { opacity: 0, scale: 0.95 }, whileInView: { opacity: 1, scale: 1 }, viewport: VIEW_ONCE };
 const TRANSITION_HERO = { duration: 0.6 };
 const TRANSITION_STAGGER_SM = { delay: 0.05 };
 const TRANSITION_STAGGER_MD = { delay: 0.1 };
