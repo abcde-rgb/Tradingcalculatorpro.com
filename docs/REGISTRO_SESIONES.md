@@ -5796,3 +5796,42 @@ el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
   `check-edu-index` y `check-visuales-idioma`.
 
 ---
+
+### 2026-08-29 (2) — Entra el Master Plan de la Academia, reverificado
+El propietario aporta `TRADINGCALCULATORPRO_ACADEMY_MASTERPLAN_UNIFICADO.md` (698 líneas,
+consolidado de 16 análisis) como dirección de producto de la Academia. Se archiva en
+`docs/ACADEMIA_MASTER_PLAN.md`.
+
+- ✅ **Reverificado antes de archivar**, porque el propio documento lo exige en su regla
+  de oro y porque la convención del repo manda anotar la contradicción cuando un
+  documento discrepa del código. Resultado en su nueva **§0.bis**.
+- ✅ **Acierta** en: MAE/MFE implementado (`performance_metrics.py:176`),
+  `rule_compliance_rate` y `detect_behavioral_biases` (`performance.py:1032`, `:836`),
+  35 módulos backend, 27.019 líneas de Python, 199 rutas, 29 rutas de frontend,
+  59 ficheros × 1.015 funciones de test, y las 33 rutas sin consumidor del MAPA.
+- ⚠️ **Corregido en §0.bis**: dice 68 módulos de academia (son **91** en `eduIndex.js`),
+  «8-10 idiomas» (son **10**, con paridad forzada en CI), 7.290 claves i18n (son
+  **7.355**), 14 calculadoras (hay **17**: omite `Breakeven`, `CrossMarginSimulator` y
+  `LosingStreak`), y hereda la lista vieja de G-30 con 4 componentes muertos propios
+  (quedan **2**: `GreeksPanel` y `PriceTicker`; `TradingBasicsGuide` y `WhyItMatters` ya
+  se importan en `EducationPage.jsx:103` y `:104`). `auditar.py --estricto` lo confirma
+  por su cuenta: «2 componentes que nadie importa».
+- ✅ **G-14 está cerrado a medias, y el documento tenía razón en señalarlo.** El plan de
+  trading **sí tiene pantalla** (`TradingPlanPage`, `App.js:64` y `:171`, ruta `/plan`) y
+  el backtest también (`BacktestingPage`). Siguen huérfanos `portfolio_risk.py` y
+  `american_options.py`: cero menciones en todo `frontend/src`.
+- ✅ **Corregida una ficha falsa en `docs/README.md`**: decía de
+  `PLAN_DE_TRADING_spec.md` «Backend terminado; sigue sin una sola pantalla (G-14)».
+  Es falso desde que se enrutó `TradingPlanPage`. Es el mismo patrón del hueco G-29
+  (documentos que dan por abierto lo ya cerrado), esta vez en el índice de la doc.
+- ⬜ **No tocado**: `ESTADO_PROYECTO.md` §G-14 y su línea 62 siguen diciendo que los
+  cuatro módulos están sin pantalla, y §62 habla de 29 rutas mientras el MAPA dice 33 y
+  `check-rutas-muertas.py` dice 27 (miden cosas distintas, pero conviene que lo diga).
+  Es una revisión del semáforo, más grande que esta sesión, y no se improvisa.
+- ✅ Verificado: `check-doc-links` (105 documentos) · `gen-mapa --check` ·
+  `gen-instruments-js --check` · `gen-asistente --check` · `check-rutas-muertas` ·
+  `check-precios` · `auditar.py --breve` (lo que corre CI, exit 0). En el bloque E,
+  «las afirmaciones comprobables cuadran»: el documento nuevo no descuadra ninguna.
+  ⚠️ `auditar.py --estricto` sale **1**, pero sale 1 igual sobre `origin/main` limpio:
+  son los dos bloqueantes preexistentes (rastros de tecnología retirada y rutas sin
+  consumidor), no algo que traiga este cambio. CI usa `--breve`, que no bloquea.
