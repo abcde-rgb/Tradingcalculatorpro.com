@@ -55,5 +55,8 @@
         ]
       }
     ]
-  }
+  },
+
+  "// enabledMcpjsonServers": "Aprueba los servidores de .mcp.json sin diálogo. Sólo surte efecto en una carpeta de confianza; ver docs/MCP.md.",
+  "enabledMcpjsonServers": ["playwright", "firecrawl-mcp"]
 }

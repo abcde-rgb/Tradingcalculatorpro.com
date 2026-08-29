@@ -12,9 +12,10 @@ hay conectado hoy, y dónde va la clave que no puede entrar en git.
 ## Lo que hay conectado
 
 [`.mcp.json`](../.mcp.json) en la raíz, ámbito **proyecto**: viaja en git, así que
-quien clone el repo lo tiene sin configurar nada. La primera sesión interactiva
-pide aprobación una vez (`claude mcp reset-project-choices` la rehace); las
-sesiones en la nube no pueden preguntar y lo cargan directamente.
+quien clone el repo lo tiene sin configurar nada. Un `.mcp.json` de proyecto pide
+aprobación la primera vez —ejecuta procesos que vienen en el repo—; ver
+§ [Salir de «Pending approval»](#salir-de-pending-approval). Las sesiones en la
+nube no pueden mostrar el diálogo y lo cargan directamente.
 
 | Servidor | Para qué | Necesita |
 |---|---|---|
@@ -83,6 +84,32 @@ En sesión, `/mcp` muestra los servidores vivos, sus herramientas y el estado de
 autenticación. **Un servidor añadido a mitad de sesión no se carga hasta
 reiniciar Claude Code.**
 
+## Salir de «Pending approval»
+
+`claude mcp list` puede insistir en `⏸ Pending approval (run \`claude\` to approve)`
+por más ajustes que le pongas. El motivo no es la clave `enabledMcpjsonServers`,
+es **la confianza de la carpeta**: en una carpeta cuyo diálogo de confianza no has
+aceptado, Claude Code ignora las aprobaciones que vengan de ficheros del propio
+repositorio —si no, un repo clonado se aprobaría a sí mismo—.
+
+Medido el 2026-08-29 sobre este repo, con `claude mcp list` como juez:
+
+| `enabledMcpjsonServers` en… | Sin confianza | Con confianza |
+|---|---|---|
+| `.claude/settings.json` (versionado) | ⏸ ignorado | ✅ Connected |
+| `.claude/settings.local.json` (ignorado por git) | ⏸ ignorado | ✅ Connected |
+| `~/.claude/settings.json` (tu usuario) | ✅ Connected | ✅ Connected |
+| `~/.claude.json`, entrada del proyecto | ⏸ no es una fuente de aprobación | — |
+
+La última fila es un callejón sin salida que costó un rato: ahí es donde Claude
+Code *escribe* tu decisión cuando aceptas el diálogo, pero escribirla a mano no
+aprueba nada.
+
+Este repo ya trae `enabledMcpjsonServers` en `.claude/settings.json`, así que en
+cuanto aceptes la confianza de la carpeta —el diálogo que sale la primera vez que
+abres `claude` aquí— los dos servidores conectan sin un segundo diálogo. La
+confianza sigue siendo tuya y explícita; lo único que se ahorra es repetirla.
+
 ## Trampas medidas al probarlo (2026-08-29)
 
 Comprobado de verdad: Playwright MCP conduciendo el build de producción servido en
@@ -94,8 +121,11 @@ portada. Lo que costó llegar ahí:
    /opt/google/chrome/chrome`. En una máquina con Chrome instalado no se nota; en
    el sandbox y en un CI, sí.
 2. **`--browser chromium` tampoco basta aquí**: espera la revisión que trae su
-   propio Playwright (`chromium-1237`) y el contenedor tiene la 1194. Lo que
-   funciona es señalar el ejecutable a mano:
+   propio Playwright (`chromium-1237`) y el contenedor tiene la 1194. Y la
+   instalación que sugiere el propio error tampoco sale: `install-browser
+   chrome-for-testing` muere con `Failed to download Chrome for Testing
+   152.0.7977.8`, porque la CDN de Playwright está fuera de la red permitida. En
+   el sandbox, señalar el ejecutable a mano no es una comodidad, es la única vía:
 
    ```bash
    npx -y @playwright/mcp@latest --headless --no-sandbox --isolated \
