@@ -4864,4 +4864,10 @@ export default {
   "eduToolLinks": "Try it:",
   "bvlTitle": "Validating a backtest",
   "sphTitle": "The emotional process of a session",
+
+  // ── La regleta del hero (identidad-visual §3) ──
+  "regEntry": "Entry",
+  "regStop": "Stop",
+  "regCaption": "The distance between your entry and your stop is {d} per unit: that is 1R. The targets marked are that same distance projected, not a forecast.",
+  "regAria": "Trade scale: entry, stop and R multiples",
 }

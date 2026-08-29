@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import LandingDemoCalculator from '@/components/landing/LandingDemoCalculator';
-import AnimatedHeroChart from '@/components/landing/AnimatedHeroChart';
 import AppComingSoon from '@/components/landing/AppComingSoon';
 import { 
   TrendingUp, Calculator, Shield, Crown, ArrowRight, Check, 
@@ -144,55 +143,69 @@ export default function LandingPage() {
       <Header />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 px-4 relative overflow-hidden">
-        <AnimatedHeroChart />
-        {/* Sin degradado ni orbes `blur-3xl`: el "blob difuminado" es el fondo
-            genérico de 2023-25 y aquí competía con el gráfico de velas que sí
-            dice algo. El hero se sostiene en el instrumento, no en el adorno. */}
-        
+      {/* Hero — `identidad-visual` §4, ejecutado.
+          Antes eran cuatro cosas compitiendo: titular centrado enorme, degradado
+          sobre «PRO», gráfico de velas animado de fondo y, muy abajo, la
+          calculadora. La tesis del hero tiene que ser UNA, y la cosa más
+          característica de este producto es la calculadora funcionando.
+          Ahora: titular corto a la izquierda, el instrumento ocupa el peso a la
+          derecha, y bajo él la regleta mide el trade recién dimensionado.
+          Fuera el `AnimatedHeroChart`: era adorno y competía con el único
+          elemento de la página que hace algo. */}
+      <section className="pt-24 pb-16 px-4 relative">
         <div className="max-w-7xl mx-auto relative">
-          <motion.div 
+          <motion.div
             {...MOTION_FADE_UP}
             transition={TRANSITION_HERO}
-            className="text-center"
+            className="grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] gap-10 lg:gap-14 items-center"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <span className="text-sm text-primary font-medium">{t('tagline')}</span>
-            </div>
-            
-            <h1 className="font-unbounded text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              Trading Calculator<br />
-              <span className="bg-gradient-to-r from-primary via-green-400 to-emerald-500 bg-clip-text text-transparent">PRO</span>
-            </h1>
-            
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              {t('heroDescription')}
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link to={isAuthenticated ? '/dashboard' : '/register'}>
-                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-lg h-14 px-8" data-testid="hero-cta">
-                  {isAuthenticated ? t('goToDashboard') : t('getStartedFree')}
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
-              <Link to="/pricing">
-                <Button size="lg" variant="outline" className="gap-2 text-lg h-14 px-8" data-testid="view-plans-btn">
-                  {/* Sin oro: en el hero conviven este botón y el primario
-                      verde, y dos acentos en la misma fila reparten la
-                      atención en vez de dirigirla. Ver `identidad-visual` §2. */}
-                  <Crown className="w-5 h-5 text-primary" />
-                  {t('viewPremiumPlans')}
-                </Button>
-              </Link>
-            </div>
-            {!isAuthenticated && (
-              <p className="text-sm text-primary font-medium -mt-8 mb-12" data-testid="hero-trial-note">
-                {t('trialHeroNote')}
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <span className="text-sm text-primary font-medium">{t('tagline')}</span>
+              </div>
+
+              {/* Una línea corta, y sin degradado: el gradiente sobre «PRO» era
+                  uno de los cuatro elementos que competían. La display aparece
+                  aquí y en ningún otro sitio de esta vista. */}
+              <h1 className="font-unbounded text-4xl md:text-5xl lg:text-6xl font-bold mb-5 leading-[1.05] tracking-tight">
+                Trading Calculator <span className="text-primary">PRO</span>
+              </h1>
+
+              <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
+                {t('heroDescription')}
               </p>
-            )}
-            
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Link to={isAuthenticated ? '/dashboard' : '/register'}>
+                  <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-lg h-14 px-8 w-full sm:w-auto" data-testid="hero-cta">
+                    {isAuthenticated ? t('goToDashboard') : t('getStartedFree')}
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link to="/pricing">
+                  <Button size="lg" variant="outline" className="gap-2 text-lg h-14 px-8 w-full sm:w-auto" data-testid="view-plans-btn">
+                    {/* Sin oro: en el hero conviven este botón y el primario
+                        verde, y dos acentos en la misma fila reparten la
+                        atención en vez de dirigirla. Ver `identidad-visual` §2. */}
+                    <Crown className="w-5 h-5 text-primary" />
+                    {t('viewPremiumPlans')}
+                  </Button>
+                </Link>
+              </div>
+              {!isAuthenticated && (
+                <p className="text-sm text-primary font-medium mt-4" data-testid="hero-trial-note">
+                  {t('trialHeroNote')}
+                </p>
+              )}
+            </div>
+
+            {/* El instrumento. Se pinta también con sesión iniciada: un hero que
+                se queda sin su tesis según quién mire no es un hero. */}
+            <LandingDemoCalculator embedded />
+          </motion.div>
+
+          <div className="mt-14">
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
               {/* Cuatro cifras, las cuatro comprobables.
@@ -227,13 +240,9 @@ export default function LandingPage() {
                 );
               })}
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
-
-      {/* Free demo calculator — try before you register. Hidden once logged in:
-          authenticated users already have the full Position Size calculator. */}
-      {!isAuthenticated && <LandingDemoCalculator />}
 
       {/* Asset Types Section */}
       <section className="py-16 px-4 bg-card/50">

@@ -4864,4 +4864,10 @@ export default {
   "eduToolLinks": "动手试试：",
   "bvlTitle": "如何验证回测",
   "sphTitle": "一场交易时段的情绪过程",
+
+  // ── La regleta del hero (identidad-visual §3) ──
+  "regEntry": "入场",
+  "regStop": "止损",
+  "regCaption": "你的入场价与止损价相差每单位 {d}：这就是 1R。图上标出的目标是同一段距离的延伸，不是预测。",
+  "regAria": "交易标尺：入场、止损与 R 的倍数",
 }
