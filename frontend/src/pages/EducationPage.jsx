@@ -90,6 +90,7 @@ import ElderVisual from '@/components/education/ElderVisual';
 import ObscureOscillatorsVisual from '@/components/education/ObscureOscillatorsVisual';
 import TimeCyclesVisual from '@/components/education/TimeCyclesVisual';
 import PsychSolutionsVisual from '@/components/education/PsychSolutionsVisual';
+import SessionPhasesTimeline from '@/components/education/SessionPhasesTimeline';
 import GamblingHarmVisual from '@/components/education/GamblingHarmVisual';
 import OptionGreeksVisual from '@/components/education/OptionGreeksVisual';
 import OptionsStratVisual from '@/components/education/OptionsStratVisual';
@@ -749,6 +750,7 @@ export default function EducationPage() {
     ]},
     { id: 'psych', label: t('eduCatPsych'), topics: [
       { value: 'psychology', label: t('tradingPsychologyTitle') },
+      { value: 'session-phases', label: t('sphTitle') },
       { value: 'psych-solutions', label: t('pssTitle') },
       { value: 'gambling-harm', label: t('gmbTitle') },
       { value: 'system-adherence', label: t('sysTitle') },
@@ -1972,6 +1974,12 @@ export default function EducationPage() {
               </Card>
 
               <GamblingHarmVisual data={GAMBLING_HARM} />
+            </TabsContent>
+
+            {/* La psicología ordenada por el momento de la sesión, no por concepto:
+                el eje temporal que faltaba junto a los sesgos y las soluciones. */}
+            <TabsContent value="session-phases" className="space-y-8">
+              <SessionPhasesTimeline />
             </TabsContent>
 
             {/* Psychology: problem -> solution — the actionable fix layer (if-then, Steenbarger) */}

@@ -4863,4 +4863,5 @@ export default {
   "gl111d": "The systematic gap between the implied volatility priced into options and the volatility the asset ends up realising. The option seller collects it in exchange for the risk that realised exceeds implied. It is not a forgotten inefficiency but the price of insurance, which is why publishing it does not make it vanish; its bill arrives whole and at once, not spread out.",
   "eduToolLinks": "Try it:",
   "bvlTitle": "Validating a backtest",
+  "sphTitle": "The emotional process of a session",
 }

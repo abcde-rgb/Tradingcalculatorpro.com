@@ -280,6 +280,7 @@ const TOPICS = [
   { v:'oscillators', slug:'osciladores-raros-coppock-schaff-rsi2-tsi', tk:'oscTitle', ik:'oscIntro' },
   { v:'time-cycles', slug:'tiempo-ciclos-fibonacci-temporal-hurst', tk:'cycTitle', ik:'cycIntro' },
   { v:'psych-solutions', slug:'psicologia-trading-problema-solucion', tk:'pssTitle', ik:'pssIntro' },
+  { v:'session-phases', slug:'proceso-emocional-del-trader-fases', tk:'sphTitle', ik:'sphIntro' },
   { v:'system-adherence', slug:'disciplina-cumplir-sistema-trading-siempre', tk:'sysTitle', ik:'sysIntro' },
   { v:'dow-theory', slug:'teoria-de-dow', tk:'dowTheoryTitle', ik:'dowTheoryIntro' },
   { v:'market-structure', slug:'estructura-de-mercado-bos-choch', tk:'msTitle', ik:'msIntro' },
