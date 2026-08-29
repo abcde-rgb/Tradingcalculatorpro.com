@@ -83,6 +83,40 @@ En sesión, `/mcp` muestra los servidores vivos, sus herramientas y el estado de
 autenticación. **Un servidor añadido a mitad de sesión no se carga hasta
 reiniciar Claude Code.**
 
+## Trampas medidas al probarlo (2026-08-29)
+
+Comprobado de verdad: Playwright MCP conduciendo el build de producción servido en
+`127.0.0.1:4173`, con captura en 1440×900 y 390×844 y los errores de consola de la
+portada. Lo que costó llegar ahí:
+
+1. **Playwright MCP abre Google Chrome, no el Chromium de Playwright.** Sin flags
+   falla con `Chromium distribution 'chrome' is not found at
+   /opt/google/chrome/chrome`. En una máquina con Chrome instalado no se nota; en
+   el sandbox y en un CI, sí.
+2. **`--browser chromium` tampoco basta aquí**: espera la revisión que trae su
+   propio Playwright (`chromium-1237`) y el contenedor tiene la 1194. Lo que
+   funciona es señalar el ejecutable a mano:
+
+   ```bash
+   npx -y @playwright/mcp@latest --headless --no-sandbox --isolated \
+     --executable-path "$(ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome | head -1)"
+   ```
+
+   No se ha metido en `.mcp.json` a propósito: esa ruta y ese número de revisión
+   son de este contenedor, y en la máquina de nadie más existen.
+3. **`browser_take_screenshot` agota su límite de 5 s esperando las fuentes web**
+   cuando `fonts.googleapis.com` está bloqueado. La primera captura falla con
+   `TimeoutError … waiting for fonts to load`; la segunda, con las fuentes ya
+   descartadas, sale bien. Si automatizas capturas aquí, cuenta con un reintento.
+4. **`filename` relativo se resuelve contra el CWD del servidor, que es la raíz
+   del repo** — una captura acabó en `movil.png` junto a `CLAUDE.md`. Pasa rutas
+   absolutas o confía sólo en `--output-dir`.
+
+Y lo que el MCP vio de la portada, que es el motivo de tenerlo: cuatro errores de
+consola, los cuatro explicados por la red cerrada del sandbox (Google Tag Manager,
+PostHog, `localhost:8080/api/brokers` sin backend y las fuentes de Google). En una
+máquina con red, esos cuatro son la línea base contra la que comparar.
+
 ## Qué no funciona en el sandbox remoto
 
 Claude Code en la web corre con la red de salida restringida (ver `CLAUDE.md` §
@@ -91,10 +125,11 @@ Sandbox remoto). Medido el 2026-08-29:
 - **`api.firecrawl.dev` está bloqueado** (`CONNECT tunnel failed, 403`). El
   servidor arranca —el registro de npm sí se alcanza— pero cualquier `scrape`
   falla. Firecrawl sólo sirve desde tu máquina.
-- **Playwright sí funciona**: Chromium viene preinstalado en el contenedor
-  (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`) y no hay que descargar nada. Lo
-  que no puede es visitar sitios bloqueados; contra el frontend servido en
-  `localhost` va bien, que es justo lo que pide la skill `qa`.
+- **Playwright sí funciona, pero no con la configuración por defecto**: Chromium
+  viene preinstalado (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`) y no hay que
+  descargar nada, aunque hay que señalarlo con `--executable-path` — ver § Trampas
+  medidas, punto 2. Lo que no puede es visitar sitios bloqueados; contra el
+  frontend servido en `localhost` va bien, que es justo lo que pide la skill `qa`.
 - Los **conectores de claude.ai** (GitHub, Vercel, GoDaddy…) los inyecta el
   anfitrión en las sesiones web; no salen de `.mcp.json` y no aparecen en
   `claude mcp list`. Se gestionan en claude.ai → Conectores.
