@@ -398,7 +398,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/common/` | 12 | 2,258 |
 | `components/dashboard/` | 8 | 1,005 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 88 | 14,620 |
+| `components/education/` | 88 | 14,641 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 576 |
 | `components/layout/` | 2 | 590 |

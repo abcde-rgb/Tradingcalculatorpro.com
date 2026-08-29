@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Brain, Repeat, Eye, Hand, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/lib/i18n';
@@ -53,6 +53,27 @@ export default function SessionPhasesTimeline() {
   const c = useMemo(() => getSessionPhases(t), [t]);
   const refs = useRef([]);
   const [active, setActive] = useState(0);
+
+  // El raíl sigue a la lectura: sin esto sería una lista de saltos y no diría en
+  // qué fase estás. IntersectionObserver, no un listener de scroll — el
+  // navegador ya sabe hacer esto sin recalcular en cada píxel.
+  useEffect(() => {
+    const nodes = refs.current.filter(Boolean);
+    if (!nodes.length || typeof IntersectionObserver === 'undefined') return undefined;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting);
+        if (!visible.length) return;
+        // La que más superficie enseña gana: con fases altas puede haber dos a la vez.
+        const top = visible.reduce((a, b) => (b.intersectionRatio > a.intersectionRatio ? b : a));
+        const i = nodes.indexOf(top.target);
+        if (i !== -1) setActive(i);
+      },
+      { rootMargin: '-45% 0px -45% 0px', threshold: [0, 0.25, 0.5] },
+    );
+    nodes.forEach((n) => obs.observe(n));
+    return () => obs.disconnect();
+  }, [c.phases.length]);
 
   // El salto entre fases usa scrollIntoView nativo: no hace falta una librería de
   // scroll suave para nueve anclas, y así respeta prefers-reduced-motion solo.
