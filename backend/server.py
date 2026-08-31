@@ -2600,10 +2600,20 @@ async def _send_magic_link_email(to_email: str, name: str, magic_url: str) -> No
 </div>"""}],
         }
         async with _httpx.AsyncClient(timeout=10) as c:
-            await c.post(
+            resp = await c.post(
                 "https://api.sendgrid.com/v3/mail/send",
                 json=payload,
                 headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            )
+        # `httpx` no lanza por sí solo en un 4xx/5xx — sin este chequeo, una
+        # clave inválida, un dominio remitente sin verificar o un límite de
+        # SendGrid fallaban en total silencio: ni excepción ni log, el correo
+        # sin más no llegaba y no había ni rastro de por qué. `_send_email`
+        # (el otro camino, con el SDK) sí lo captura; este no lo hacía.
+        if resp.status_code >= 300:
+            logging.warning(
+                "[magic-link] SendGrid respondió %s al enviar a %s: %s",
+                log_safe(resp.status_code), log_safe(to_email), log_safe(resp.text[:500]),
             )
     except Exception as e:
         logging.warning(f"[magic-link] email error: {log_safe(e)}")
@@ -2645,9 +2655,17 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
 </div>"""}],
         }
         async with _httpx.AsyncClient(timeout=10) as c:
-            await c.post(
+            resp = await c.post(
                 "https://api.sendgrid.com/v3/mail/send", json=payload,
                 headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            )
+        # Mismo fallo que el magic link: httpx no lanza por un 4xx/5xx, así que
+        # sin comprobar el código un envío rechazado (clave inválida, dominio
+        # remitente sin verificar…) no dejaba ni rastro en los logs.
+        if resp.status_code >= 300:
+            logging.warning(
+                "[verify-email] SendGrid respondió %s al enviar a %s: %s",
+                log_safe(resp.status_code), log_safe(to_email), log_safe(resp.text[:500]),
             )
     except Exception as e:
         logging.warning(f"[verify-email] send error: {log_safe(e)}")

@@ -6106,3 +6106,41 @@ sistema propietario de un tercero).
   build + postbuild SEO · i18n-check **7.376×10, 0 huecos** · engine-check 535/535 ·
   check-edu-index 91=91 · check-quiz 140/140 · check-i18n-identidad · gen-mapa/
   gen-asistente/gen-instruments-js --check · check-rutas-muertas · check-doc-links.
+
+### 2026-08-31 (cont. 7) — BUG-075: "el correo no funciona ni magic link" — causa doble
+
+El dueño reportó que ni el envío de correos ni el magic link funcionaban, y pidió
+revisarlo entero. Dos causas, una de código (arreglada) y una operativa (sigue
+pendiente, y ya estaba escrita sin marcar como bloqueante).
+
+- 🔴 **Código — fallo total y silencioso.** `_send_magic_link_email()` y
+  `_send_email_verification()` mandan el correo con `httpx` en crudo contra la API
+  de SendGrid y **nunca miraban el código de respuesta**. `httpx` no lanza excepción
+  por un 4xx/5xx —sólo por fallos de red—, así que un rechazo de SendGrid (clave
+  inválida, dominio remitente sin verificar, límite de tasa) no dejaba ni una línea
+  en los logs de Cloud Run: el `except` nunca se disparaba porque no había nada que
+  capturar. El tercer camino de envío, `_send_email()` (reset de contraseña,
+  bienvenida, confirmación de suscripción), usa el SDK oficial y **sí** loguea sus
+  fallos — de ahí que "ni magic link" fuera la pista correcta: es justo el camino
+  que no dejaba rastro.
+- 🟡 **Operativo, no de código, y ya estaba en la documentación sin marcar como
+  bloqueante en la práctica**: `MIGRACION_DOMINIO.md` § «Lo que falta» punto 6 y
+  `DEPLOY_CHECKLIST.md` §H llevan sin marcar desde el cutover del dominio
+  (2026-08-28) — el dominio remitente `alerts@tradingcalculator.pro` no está
+  verificado en SendGrid, así que **cualquiera** de los tres caminos de envío se
+  rechaza. El punto 2 del mismo documento (`FRONTEND_URL` en el propio servicio de
+  Cloud Run, que sobrevive al despliegue) es la otra mitad: si sigue con el dominio
+  viejo, aunque el correo llegara, el enlace de dentro apuntaría a la URL antigua.
+- ✅ **Fix de código**: ambas funciones ahora comprueban `resp.status_code` y
+  loguean el cuerpo de la respuesta de SendGrid en cualquier `>= 300`. No cambia si
+  el correo sale o no —eso es operativo—, sólo hace que el fallo real, sea cual sea,
+  quede escrito en los logs en vez de desaparecer. **3 tests nuevos**
+  (`test_email_send_status_unit.py`): un 403/401 deja rastro, un 202 de éxito no
+  genera ruido.
+- ⚠️ **Pendiente y es del dueño, no del repo**: verificar el dominio remitente en
+  el panel de SendGrid y confirmar `FRONTEND_URL` en el servicio de Cloud Run —
+  comandos exactos en `MIGRACION_DOMINIO.md` puntos 2 y 6, ahora también anotado en
+  `DEPLOY_CHECKLIST.md` §H con el porqué.
+- ✅ Verificado: pytest **1189 passed / 1 failed** (el mismo de siempre, TLS sin
+  Postgres local TCP en este sandbox) / 114 skipped, incluidos los 3 tests nuevos ·
+  py_compile · gen-mapa/gen-asistente --check · check-doc-links · check-rutas-muertas.

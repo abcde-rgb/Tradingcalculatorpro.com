@@ -389,11 +389,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-31 (cont. 7) | BUG-075: "el correo no funciona ni magic link" — causa doble |
 | 2026-08-31 (cont. 6) | Cinco patrones de vela más, investigados contra TrendSpider |
 | 2026-08-31 (cont. 5) | Panel admin: navegación por secciones + limpieza de colores |
 | 2026-08-31 (cont. 4) | BUG-074: el cifrado de secretos fallaba en silencio |
 | 2026-08-31 | SEO para buscadores de IA: robots por grupos, llms.txt y la contradicción del sitemap |
-| 2026-08-29 (2) | Entra el Master Plan de la Academia, reverificado |
 
 ```bash
 # buscar una sesión por fecha o por tema

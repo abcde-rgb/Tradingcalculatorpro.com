@@ -184,8 +184,13 @@ El canonical/sitemap/robots y el CORS y los correos del backend están al domini
 
 ## H. SendGrid
 
-- [ ] Dominio remitente verificado para `alerts@tradingcalculator.pro` (`SENDER_EMAIL`).
-- [ ] Probar: verificación de email, reset de contraseña, alerta de precio.
+- [ ] 🔴 Dominio remitente verificado para `alerts@tradingcalculator.pro` (`SENDER_EMAIL`).
+      Sin esto **ningún correo transaccional sale** — registro, reset de contraseña,
+      magic link, alertas. Confirmado como causa raíz de BUG-075 (2026-08-31): "el
+      envío de correos no funciona ni magic link". El fallo de magic link/verificación
+      además era **silencioso en los logs** hasta ese commit (`server.py`: `_send_magic_link_email`,
+      `_send_email_verification` no comprobaban el código de respuesta de SendGrid).
+- [ ] Probar: verificación de email, reset de contraseña, magic link, alerta de precio.
 
 ## I. Endurecimiento del repositorio (recomendado)
 
