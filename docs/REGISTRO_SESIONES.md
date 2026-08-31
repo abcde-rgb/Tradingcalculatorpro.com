@@ -5840,15 +5840,39 @@ consolidado de 16 análisis) como dirección de producto de la Academia. Se arch
 Petición: revisar todo el SEO e indexación con el objetivo de ser la referencia
 que citan las IAs.
 
-- 🔴 **Hallazgo mayor, sin arreglar aún: la portada es invisible para los bots de
-  IA.** Los rastreadores de IA no ejecutan JavaScript. El shell de la SPA tiene
-  **0 caracteres de texto** en `build/index.html`, así que `/`, `/pricing`,
-  `/about`, `/education`, `/options` y `/options/strategies` —las 8 rutas de
-  `MAIN`, ×10 idiomas = 80 URLs del sitemap— se sirven en blanco a GPTBot,
-  ClaudeBot o PerplexityBot. Las 1.640 páginas de `/learn/`, `/tools/`,
-  `/markets/` y `/estrategias/` sí están prerenderizadas y tienen texto real.
-  Consecuencia: una IA puede citar un módulo suelto, pero no tiene de dónde leer
-  qué es TradingCalculator.Pro. Es la palanca pendiente más grande.
+- 🟠 **Hallazgo mayor, mitigado a medias: las 8 rutas de `MAIN` no están
+  prerenderizadas.** Los rastreadores de IA no ejecutan JavaScript y `#root`
+  llega vacío, así que `/`, `/pricing`, `/about`, `/education`, `/options` y
+  `/options/strategies` sólo enseñan lo que haya escrito a mano en el shell.
+  Medido sobre `build/index.html`: `#root` tiene **0 caracteres**, y el
+  `<body>` entero tenía **449** — un `<noscript>` que nadie contaba como
+  contenido. Las 1.640 páginas de `/learn/`, `/tools/`, `/markets/` y
+  `/estrategias/` sí están prerenderizadas, con texto real, JSON-LD y los 11
+  `hreflang`; el shell sólo lleva `x-default` (los otros diez los inyecta
+  `useSEO` en tiempo de ejecución, que es justo lo que el bot no ve).
+  ⚠️ **Corrección de una cifra que escribí mal antes en este mismo registro:**
+  las rutas de `MAIN` aparecen en el sitemap **8 veces, sólo en español**, no
+  80. No hay variante por idioma de ninguna de ellas — a diferencia de todo lo
+  generado, que sí tiene las diez. Añadirlas sin prerenderizar sería peor:
+  serían 72 URLs sirviendo el mismo shell.
+  Consecuencia que sigue en pie: una IA puede citar un módulo suelto de
+  `/learn/`, pero tiene muy poco de donde leer qué es TradingCalculator.Pro.
+  Prerenderizar esas 8 rutas es la palanca pendiente más grande.
+- ✅ **Reescrito el `<noscript>` del shell, que es esa portada.** Estaba escrito
+  como un aviso de «activa JavaScript» y no como contenido, con dos
+  consecuencias que sí eran bugs: decía **«27 patrones de velas japonesas»**
+  cuando el catálogo tiene **30** —la cifra exacta que `engine-check` ya
+  perseguía en `educationCenterDesc` y `seoEducationDesc`, en el único sitio
+  donde el candado no miraba— y su **primer enlace era `/dashboard`**, que es
+  premium y está en `Disallow`. Ahora lleva las cifras de `siteFacts.js`, el
+  aviso de riesgo, y enlaces a páginas estáticas reales para que el bot tenga
+  por dónde entrar al resto del sitio.
+- ✅ **`engine-check` gana 7 comprobaciones sobre ese bloque** (524 → 531): que
+  existe y tiene contenido, que sus cinco cifras son las de `siteFacts.js`, y
+  que no enlaza ninguna ruta que `robots.txt` prohíba —leyendo las rutas del
+  propio `robots.txt`, para que añadir un `Disallow` mañana quede cubierto sin
+  tocar nada—. Los tres sabotajes están registrados en `probar-verificadores.sh`
+  y medidos uno a uno: con sabotaje `exit=1`, sin él `exit=0`.
 - ✅ **Corregida la contradicción sitemap ↔ robots.** `/performance` es premium y
   `robots.txt` la bloquea, pero el sitemap la anunciaba. El arreglo YA estaba
   escrito, con su comentario, en `gen-sitemap.js`… que el build no ejecuta:

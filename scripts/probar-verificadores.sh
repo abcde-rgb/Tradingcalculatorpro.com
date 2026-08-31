@@ -301,6 +301,35 @@ import pathlib, re
 p = pathlib.Path('frontend/src/lib/siteFacts.js'); t = p.read_text()
 p.write_text(re.sub(r'assets: \\d+', 'assets: 999', t, count=1))\""
 
+  # ── El <noscript> del shell: la portada que ve un bot sin JavaScript ──────
+  # `#root` llega vacío, así que ese bloque ES `/`, `/pricing` y `/about` para
+  # GPTBot, ClaudeBot o PerplexityBot. Estuvo tratado como un aviso de «activa
+  # JavaScript» y decía «27 patrones de vela» sobre 30 —la cifra exacta que el
+  # candado de arriba ya perseguía en las claves i18n— y enlazaba /dashboard,
+  # que es premium y está en Disallow, como primer destino.
+  probar "el <noscript> del shell diciendo una cifra que ya no es la del catálogo" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('42 patrones chartistas y 30 patrones',
+                       '42 patrones chartistas y 27 patrones', 1), encoding='utf-8')\""
+
+  probar "el <noscript> del shell enlazando una ruta que robots.txt prohíbe" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('<li><a href=\\\"/education\\\">Academia de trading</a></li>',
+                       '<li><a href=\\\"/dashboard\\\">Dashboard</a></li>', 1), encoding='utf-8')\""
+
+  probar "el <noscript> del shell desapareciendo del todo" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(re.sub(r'<noscript>\\s*<h1>[\\s\\S]*?</noscript>', '', t, count=1), encoding='utf-8')\""
+
   # ── Margen cruzado: los cuatro fallos reales del borrador ─────────────────
   # Las cifras del curso de la Academia (?topic=cross-margin) salen de este
   # motor. Cada sabotaje de aquí reintroduce un bug que el borrador traía de
@@ -1151,10 +1180,14 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   titulo "SEO de las páginas prerenderizadas (check-seo.js)"
 
   SEO_PAG=$(find frontend/build -path '*/learn/*' -name index.html | head -1)
-  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp)
-  TEMPORALES+=("$SEO_BAK" "$SEO_MAP")
+  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp)
+  TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL")
   cp "$SEO_PAG" "$SEO_BAK"; cp frontend/build/sitemap.xml "$SEO_MAP"
-  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml"
+  # El shell también, que ahora hay sabotajes que lo tocan y `build/` está en
+  # .gitignore: sin esta copia el sabotaje se quedaría puesto y los casos
+  # siguientes medirían una portada ya rota.
+  cp frontend/build/index.html "$SEO_SHELL"
+  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml; cp $SEO_SHELL frontend/build/index.html"
 
   # El canonical cruzado es el fallo más caro y el menos visible: la página se
   # ve perfecta y le está diciendo a Google que indexe otra.
@@ -1207,6 +1240,24 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   probar "el sitemap anunciando una ruta que robots.txt prohíbe" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|</urlset>|<url><loc>https://tradingcalculator.pro/performance</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+
+  # Un enlace plausible y muerto en el <noscript> del shell. Es el único camino
+  # que tiene un rastreador sin JavaScript hacia las 1.640 páginas estáticas, así
+  # que ahí un 404 no es un 404 más: es el callejón sin salida de la portada.
+  # Pasó al escribir el bloque: `/learn/gestion-del-riesgo/`, cuando el módulo se
+  # llama `gestion-del-capital`.
+  probar "el <noscript> del shell enlazando una página que no existe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|/learn/gestion-del-capital/|/learn/gestion-del-riesgo/|' frontend/build/index.html" \
+    "$SEO_REST"
+
+  probar "el <noscript> del shell borrado del build" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/build/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), encoding='utf-8')\"" \
     "$SEO_REST"
 
   # El otro lado: las rutas de aplicación (`/options/strategies`, `/pricing`…)

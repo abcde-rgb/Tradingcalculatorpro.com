@@ -368,15 +368,41 @@
         </noscript>
         <!-- End Google Tag Manager (noscript) -->
 
+        <!-- ESTE BLOQUE NO ES UN MENSAJE DE ERROR: es lo único que lee un rastreador
+             que no ejecuta JavaScript, y los de IA (GPTBot, ClaudeBot, PerplexityBot)
+             no lo ejecutan. `#root` llega vacío, así que estas líneas son todo el texto
+             que existe en `/`, `/pricing`, `/about`, `/education`, `/options` y
+             `/options/strategies` para ellos. Tratándolo como un aviso de «activa
+             JavaScript» acabó diciendo «27 patrones de vela» cuando son 30 y mandando
+             al bot primero a /dashboard, que es premium y está en Disallow.
+
+             Las cifras salen de `src/lib/siteFacts.js` y `scripts/engine-check.js` las
+             comprueba también aquí: si el catálogo cambia y este texto no, CI falla. -->
         <noscript>
-            <h1>Trading Calculator PRO — Calculadoras y Simuladores de Trading Profesional</h1>
-            <p>Necesitas habilitar JavaScript para usar nuestra plataforma de trading.</p>
-            <p>Trading Calculator PRO ofrece calculadoras de apalancamiento, tamaño de posición, opciones (Black-Scholes), Monte Carlo, Fibonacci, y un centro educativo con 42+ patrones gráficos y 27 patrones de velas japonesas en 10 idiomas.</p>
+            <h1>Trading Calculator PRO — Calculadoras de trading, opciones y gestión de riesgo</h1>
+            <p>Herramientas para dimensionar posiciones y gestionar riesgo: 17 calculadoras
+               (tamaño de posición, apalancamiento, Monte Carlo, riesgo de ruina,
+               expectativa), opciones con Black-Scholes y griegas sobre 66 estrategias
+               documentadas, 186 activos con ficha, 42 patrones chartistas y 30 patrones
+               de vela. Disponible en 10 idiomas.</p>
+            <p>Contenido educativo. No es asesoramiento financiero: operar conlleva riesgo
+               de pérdida de capital.</p>
             <ul>
-                <li><a href="/dashboard">Dashboard con calculadoras</a></li>
-                <li><a href="/options">Suite de Opciones</a></li>
-                <li><a href="/education">Centro de Aprendizaje</a></li>
+                <li><a href="/education">Academia de trading</a></li>
+                <li><a href="/options">Opciones y griegas</a></li>
+                <li><a href="/options/strategies">Estrategias de opciones</a></li>
                 <li><a href="/pricing">Precios</a></li>
+                <li><a href="/about">Qué es TradingCalculator.Pro</a></li>
+                <li><a href="/sitemap.xml">Mapa completo del sitio</a></li>
+            </ul>
+            <p>Las calculadoras necesitan JavaScript, pero el contenido educativo está
+               además en páginas estáticas que no lo necesitan. Algunas, para empezar:</p>
+            <ul>
+                <li><a href="/tools/calculadora-tamano-posicion/">Calculadora de tamaño de posición</a></li>
+                <li><a href="/tools/simulador-monte-carlo-risk-of-ruin/">Simulador de Monte Carlo y riesgo de ruina</a></li>
+                <li><a href="/tools/calculadora-de-apalancamiento/">Calculadora de apalancamiento</a></li>
+                <li><a href="/learn/analisis-tecnico/">Análisis técnico</a></li>
+                <li><a href="/learn/gestion-del-capital/">Gestión del capital y del riesgo</a></li>
             </ul>
         </noscript>
 

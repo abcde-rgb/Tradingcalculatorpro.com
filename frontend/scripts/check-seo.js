@@ -267,6 +267,38 @@ if (!fs.existsSync(SITEMAP)) {
         anota('el sitemap anuncia una URL que robots.txt prohíbe', ruta, `Disallow: ${choca}`);
     }
   }
+
+  // Los enlaces del <noscript> del shell tienen que llevar a algún sitio.
+  //
+  // Ese bloque es lo único que lee un rastreador sin JavaScript, y sus enlaces
+  // son su única salida hacia las 1.640 páginas estáticas: uno roto ahí no es
+  // un 404 más, es el callejón sin salida de la portada. `engine-check` mira su
+  // contenido (cifras y rutas prohibidas) pero corre sin build y no puede saber
+  // qué páginas existen; aquí sí.
+  //
+  // Existe porque al escribir ese bloque puse `/learn/gestion-del-riesgo/`, que
+  // no existe — el módulo se llama `gestion-del-capital`. Un enlace plausible y
+  // muerto es exactamente lo que ninguna lectura por encima caza.
+  const SHELL = path.join(BUILD, 'index.html');
+  if (!fs.existsSync(SHELL)) {
+    anota('falta el shell', 'build/index.html', '');
+  } else {
+    const html = fs.readFileSync(SHELL, 'utf8');
+    const bloque = ([...html.matchAll(/<noscript>([\s\S]*?)<\/noscript>/g)]
+      .map((m) => m[1]).find((b) => b.includes('<h1>'))) || '';
+    if (!bloque) {
+      anota('el shell no trae <noscript> con contenido', 'build/index.html',
+        'sin él, la portada es una página en blanco para cualquier bot que no ejecute JS');
+    }
+    for (const m of bloque.matchAll(/href="(\/[^"#?]*)"/g)) {
+      const href = m[1];
+      const limpio = sinBarras(`${DOMAIN}${href}`) || DOMAIN;
+      if (rutasApp.has(limpio)) continue;                       // ruta de la SPA
+      const local = path.join(BUILD, href.replace(/^\//, ''));
+      if (fs.existsSync(local) || fs.existsSync(path.join(local, 'index.html'))) continue;
+      anota('el <noscript> del shell enlaza algo que no existe en el build', href, '');
+    }
+  }
 }
 
 // ── veredicto ───────────────────────────────────────────────────────────────
