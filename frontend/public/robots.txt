@@ -1,19 +1,20 @@
 # robots.txt — Trading Calculator PRO
+#
+# ⚠️ LA REGLA QUE HAY QUE ENTENDER ANTES DE TOCAR ESTE FICHERO
+# Un rastreador obedece UN SOLO grupo: el más específico que casa con su nombre.
+# En cuanto existe `User-agent: AhrefsBot`, ese bot deja de leer el grupo `*`
+# ENTERO — incluidos sus `Disallow`. Por eso cada grupo con nombre repite la
+# lista de rutas prohibidas. Antes no lo hacía, y AhrefsBot, SemrushBot y MJ12bot
+# tenían vía libre a /admin, /dashboard, /settings y /api mientras el grupo `*`
+# los bloqueaba para todos los demás.
+#
+# Si añades un bot, COPIA el bloque de Disallow. Un grupo con sólo `Crawl-delay`
+# es un grupo sin restricciones.
 
-# Allow all major crawlers on the public, indexable routes
+# ── Todos los rastreadores ────────────────────────────────────────────────
 User-agent: *
 Allow: /
-Allow: /options
-Allow: /education
-Allow: /pricing
-Allow: /login
-Allow: /register
-Allow: /about
-Allow: /contact
-Allow: /legal
 
-# Block gated/walled routes, single-use token pages, APIs & payments
-# (all require auth or carry no SEO value → keep them out of the index)
 Disallow: /api/
 Disallow: /admin
 Disallow: /dashboard
@@ -26,22 +27,117 @@ Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
 
-# Specific bot rules — large/aggressive crawlers throttled
+# ── Buscadores con IA: los que CITAN ──────────────────────────────────────
+# Estos rastrean para responder una pregunta que un usuario acaba de hacer, y
+# la respuesta lleva enlace. Son los que traen tráfico y reputación, así que se
+# permiten explícitamente: que la política sea una decisión escrita y no un
+# efecto colateral del comodín.
+
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Amazonbot
+User-agent: cohere-ai
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /subscription
+Disallow: /performance
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /magic
+Disallow: /payment/success
+Disallow: /payment/cancel
+
+# ── Rastreadores de ENTRENAMIENTO ─────────────────────────────────────────
+# GPTBot, CCBot y compañía no devuelven tráfico: alimentan pesos de modelo. Se
+# permiten a propósito, porque el objetivo declarado es ser la referencia que
+# las IAs dan sobre dimensionamiento de posición y gestión de riesgo, y para eso
+# conviene estar dentro de lo que el modelo aprendió. Es una decisión de negocio
+# reversible: cambiar `Allow: /` por `Disallow: /` en este bloque los echa sin
+# tocar el bloque de citación de arriba.
+
+User-agent: GPTBot
+User-agent: CCBot
+User-agent: meta-externalagent
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /subscription
+Disallow: /performance
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /magic
+Disallow: /payment/success
+Disallow: /payment/cancel
+
+# ── SEO comerciales: se admiten, pero con freno y sin puertas abiertas ─────
 User-agent: AhrefsBot
 Crawl-delay: 5
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /subscription
+Disallow: /performance
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /magic
+Disallow: /payment/success
+Disallow: /payment/cancel
 
 User-agent: SemrushBot
 Crawl-delay: 5
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /subscription
+Disallow: /performance
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /magic
+Disallow: /payment/success
+Disallow: /payment/cancel
 
 User-agent: MJ12bot
 Crawl-delay: 10
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /subscription
+Disallow: /performance
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /magic
+Disallow: /payment/success
+Disallow: /payment/cancel
 
-# Block bad bots
+# ── Fuera ─────────────────────────────────────────────────────────────────
+# Bytespider ignora robots con frecuencia documentada; queda escrito igualmente
+# para que la intención conste.
 User-agent: PetalBot
 Disallow: /
 
 User-agent: DotBot
 Disallow: /
 
-# Sitemap
+User-agent: Bytespider
+Disallow: /
+
 Sitemap: https://tradingcalculator.pro/sitemap.xml

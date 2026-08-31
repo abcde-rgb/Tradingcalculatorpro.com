@@ -31,9 +31,13 @@ const LAYERS = [
   { key: 'fix', Icon: Hand, color: ACTION },
 ];
 
-function Layer({ Icon, color, label, text }) {
+// `id` es la clave de la capa (`conscious`…), no su etiqueta: el data-testid
+// tiene que ser el mismo en los diez idiomas. Salía `sph-layer-Señal observable`
+// en español y `sph-layer-観察できるサイン` en japonés, así que cualquier sonda
+// escrita contra él sólo habría funcionado en el idioma en que se escribió.
+function Layer({ id, Icon, color, label, text }) {
   return (
-    <div className="flex gap-2.5" data-testid={`sph-layer-${label}`}>
+    <div className="flex gap-2.5" data-testid={`sph-layer-${id}`}>
       <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color }} aria-hidden="true" />
       <div className="min-w-0">
         <p
@@ -155,6 +159,7 @@ export default function SessionPhasesTimeline() {
                 {LAYERS.map(({ key, Icon, color }) => (
                   <Layer
                     key={key}
+                    id={key}
                     Icon={Icon}
                     color={color}
                     label={c.labels[key]}

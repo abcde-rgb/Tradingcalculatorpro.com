@@ -1494,6 +1494,46 @@ async function checkSiteFacts() {
     ok(`${clave} dice las ${SITE_FACTS.candlePatterns} velas reales`, citaVelas(clave),
       `debería nombrar ${SITE_FACTS.candlePatterns}`);
   }
+
+  // El <noscript> de `public/index.html`, que es donde el 27 sobrevivió.
+  //
+  // El candado de arriba mira las dos claves i18n, y por eso las dos decían 30
+  // mientras el shell seguía diciendo 27 en el único sitio donde un rastreador
+  // sin JavaScript lo lee. No es una cadena más: `#root` llega vacío, así que
+  // ese bloque ES la portada para GPTBot, ClaudeBot o PerplexityBot.
+  //
+  // Se comprueba también que no enlace rutas que robots.txt prohíbe: enlazaba
+  // /dashboard, premium y en Disallow, como primer destino.
+  const shell = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+  const noscripts = [...shell.matchAll(/<noscript>([\s\S]*?)<\/noscript>/g)].map((m) => m[1]);
+  const portada = noscripts.find((b) => b.includes('<h1>')) || '';
+
+  ok('el <noscript> del shell existe y tiene contenido',
+    portada.length > 200,
+    'sin él, la portada es una página en blanco para cualquier bot que no ejecute JS');
+
+  for (const [clave, valor] of [
+    ['candlePatterns', SITE_FACTS.candlePatterns],
+    ['chartPatterns', SITE_FACTS.chartPatterns],
+    ['calculators', SITE_FACTS.calculators],
+    ['assets', SITE_FACTS.assets],
+    ['strategies', SITE_FACTS.strategies],
+  ]) {
+    ok(`el <noscript> del shell dice ${valor} (${clave})`,
+      new RegExp(`\\b${valor}\\b`).test(portada),
+      `public/index.html debería nombrar ${valor}; es la única cifra que ve un bot sin JS`);
+  }
+
+  // Las rutas que robots.txt prohíbe, sacadas del propio robots.txt: si mañana
+  // se añade una a Disallow, esta comprobación la cubre sin tocarla.
+  const robots = fs.readFileSync(path.join(__dirname, '..', 'public', 'robots.txt'), 'utf8');
+  const vetadas = [...robots.matchAll(/^Disallow:\s*(\S+)\s*$/gm)]
+    .map((m) => m[1]).filter((d) => d !== '/');
+  const enlaces = [...portada.matchAll(/href="(\/[^"]*)"/g)].map((m) => m[1]);
+  const prohibido = enlaces.find((h) => vetadas.some((d) => h === d || h.startsWith(`${d}/`)));
+  ok('el <noscript> del shell no enlaza rutas prohibidas en robots.txt',
+    !prohibido,
+    `enlaza ${prohibido}, que robots.txt bloquea`);
   // ── El precio que se le dice a Google, en los DIEZ idiomas ──────
   // `seoPricingDesc` anunciaba «9,99 $/mes» en alemán, francés, ruso, japonés,
   // chino y árabe. El precio real son 17 €: ni la cifra ni la divisa. Es la

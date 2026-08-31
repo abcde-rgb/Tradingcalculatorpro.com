@@ -5796,3 +5796,124 @@ el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
   `check-edu-index` y `check-visuales-idioma`.
 
 ---
+
+### 2026-08-29 (2) — Entra el Master Plan de la Academia, reverificado
+El propietario aporta `TRADINGCALCULATORPRO_ACADEMY_MASTERPLAN_UNIFICADO.md` (698 líneas,
+consolidado de 16 análisis) como dirección de producto de la Academia. Se archiva en
+`docs/ACADEMIA_MASTER_PLAN.md`.
+
+- ✅ **Reverificado antes de archivar**, porque el propio documento lo exige en su regla
+  de oro y porque la convención del repo manda anotar la contradicción cuando un
+  documento discrepa del código. Resultado en su nueva **§0.bis**.
+- ✅ **Acierta** en: MAE/MFE implementado (`performance_metrics.py:176`),
+  `rule_compliance_rate` y `detect_behavioral_biases` (`performance.py:1032`, `:836`),
+  35 módulos backend, 27.019 líneas de Python, 199 rutas, 29 rutas de frontend,
+  59 ficheros × 1.015 funciones de test, y las 33 rutas sin consumidor del MAPA.
+- ⚠️ **Corregido en §0.bis**: dice 68 módulos de academia (son **91** en `eduIndex.js`),
+  «8-10 idiomas» (son **10**, con paridad forzada en CI), 7.290 claves i18n (son
+  **7.355**), 14 calculadoras (hay **17**: omite `Breakeven`, `CrossMarginSimulator` y
+  `LosingStreak`), y hereda la lista vieja de G-30 con 4 componentes muertos propios
+  (quedan **2**: `GreeksPanel` y `PriceTicker`; `TradingBasicsGuide` y `WhyItMatters` ya
+  se importan en `EducationPage.jsx:103` y `:104`). `auditar.py --estricto` lo confirma
+  por su cuenta: «2 componentes que nadie importa».
+- ✅ **G-14 está cerrado a medias, y el documento tenía razón en señalarlo.** El plan de
+  trading **sí tiene pantalla** (`TradingPlanPage`, `App.js:64` y `:171`, ruta `/plan`) y
+  el backtest también (`BacktestingPage`). Siguen huérfanos `portfolio_risk.py` y
+  `american_options.py`: cero menciones en todo `frontend/src`.
+- ✅ **Corregida una ficha falsa en `docs/README.md`**: decía de
+  `PLAN_DE_TRADING_spec.md` «Backend terminado; sigue sin una sola pantalla (G-14)».
+  Es falso desde que se enrutó `TradingPlanPage`. Es el mismo patrón del hueco G-29
+  (documentos que dan por abierto lo ya cerrado), esta vez en el índice de la doc.
+- ⬜ **No tocado**: `ESTADO_PROYECTO.md` §G-14 y su línea 62 siguen diciendo que los
+  cuatro módulos están sin pantalla, y §62 habla de 29 rutas mientras el MAPA dice 33 y
+  `check-rutas-muertas.py` dice 27 (miden cosas distintas, pero conviene que lo diga).
+  Es una revisión del semáforo, más grande que esta sesión, y no se improvisa.
+- ✅ Verificado: `check-doc-links` (105 documentos) · `gen-mapa --check` ·
+  `gen-instruments-js --check` · `gen-asistente --check` · `check-rutas-muertas` ·
+  `check-precios` · `auditar.py --breve` (lo que corre CI, exit 0). En el bloque E,
+  «las afirmaciones comprobables cuadran»: el documento nuevo no descuadra ninguna.
+  ⚠️ `auditar.py --estricto` sale **1**, pero sale 1 igual sobre `origin/main` limpio:
+  son los dos bloqueantes preexistentes (rastros de tecnología retirada y rutas sin
+  consumidor), no algo que traiga este cambio. CI usa `--breve`, que no bloquea.
+
+### 2026-08-31 — SEO para buscadores de IA: robots por grupos, llms.txt y la contradicción del sitemap
+Petición: revisar todo el SEO e indexación con el objetivo de ser la referencia
+que citan las IAs.
+
+- 🟠 **Hallazgo mayor, mitigado a medias: las 8 rutas de `MAIN` no están
+  prerenderizadas.** Los rastreadores de IA no ejecutan JavaScript y `#root`
+  llega vacío, así que `/`, `/pricing`, `/about`, `/education`, `/options` y
+  `/options/strategies` sólo enseñan lo que haya escrito a mano en el shell.
+  Medido sobre `build/index.html`: `#root` tiene **0 caracteres**, y el
+  `<body>` entero tenía **449** — un `<noscript>` que nadie contaba como
+  contenido. Las 1.640 páginas de `/learn/`, `/tools/`, `/markets/` y
+  `/estrategias/` sí están prerenderizadas, con texto real, JSON-LD y los 11
+  `hreflang`; el shell sólo lleva `x-default` (los otros diez los inyecta
+  `useSEO` en tiempo de ejecución, que es justo lo que el bot no ve).
+  ⚠️ **Corrección de una cifra que escribí mal antes en este mismo registro:**
+  las rutas de `MAIN` aparecen en el sitemap **8 veces, sólo en español**, no
+  80. No hay variante por idioma de ninguna de ellas — a diferencia de todo lo
+  generado, que sí tiene las diez. Añadirlas sin prerenderizar sería peor:
+  serían 72 URLs sirviendo el mismo shell.
+  Consecuencia que sigue en pie: una IA puede citar un módulo suelto de
+  `/learn/`, pero tiene muy poco de donde leer qué es TradingCalculator.Pro.
+  Prerenderizar esas 8 rutas es la palanca pendiente más grande.
+- ✅ **Reescrito el `<noscript>` del shell, que es esa portada.** Estaba escrito
+  como un aviso de «activa JavaScript» y no como contenido, con dos
+  consecuencias que sí eran bugs: decía **«27 patrones de velas japonesas»**
+  cuando el catálogo tiene **30** —la cifra exacta que `engine-check` ya
+  perseguía en `educationCenterDesc` y `seoEducationDesc`, en el único sitio
+  donde el candado no miraba— y su **primer enlace era `/dashboard`**, que es
+  premium y está en `Disallow`. Ahora lleva las cifras de `siteFacts.js`, el
+  aviso de riesgo, y enlaces a páginas estáticas reales para que el bot tenga
+  por dónde entrar al resto del sitio.
+- ✅ **`engine-check` gana 7 comprobaciones sobre ese bloque** (524 → 531): que
+  existe y tiene contenido, que sus cinco cifras son las de `siteFacts.js`, y
+  que no enlaza ninguna ruta que `robots.txt` prohíba —leyendo las rutas del
+  propio `robots.txt`, para que añadir un `Disallow` mañana quede cubierto sin
+  tocar nada—. Los tres sabotajes están registrados en `probar-verificadores.sh`
+  y medidos uno a uno: con sabotaje `exit=1`, sin él `exit=0`.
+- ✅ **Corregida la contradicción sitemap ↔ robots.** `/performance` es premium y
+  `robots.txt` la bloquea, pero el sitemap la anunciaba. El arreglo YA estaba
+  escrito, con su comentario, en `gen-sitemap.js`… que el build no ejecuta:
+  `postbuild` corre **sólo** `gen-seo-pages.js`, y ahí seguía en `MAIN`. Sitemap
+  1.649 → 1.648 URLs.
+- ✅ **Verificador nuevo en `check-seo.js`**: ninguna URL del sitemap puede estar
+  en `Disallow` del grupo `*`. Saboteado y comprobado (exit 1 con sabotaje, 0
+  sin él) y registrado en `probar-verificadores.sh`.
+- ✅ **Retirado `frontend/public/sitemap.xml`, que era una escopeta cargada.** Un
+  segundo sitemap de **8 URLs** con `lastmod` congelado en 2026-08-11, escrito
+  por `gen-sitemap.js` —que ya no ejecuta nadie—. CRA copia `public/` dentro de
+  `build/` y el `postbuild` lo pisa con el bueno, así que en el flujo normal no
+  se notaba; pero **cualquier build que no llegue al postbuild publica ése**, y
+  Search Console vería el sitio encoger de 1.648 URLs a 8. `check-seo` falla
+  ahora si reaparece. Queda pendiente decidir qué hacer con `gen-sitemap.js`:
+  no lo llama ni CI ni `package.json`, y su única salida era ese fichero.
+- 🐛 **Y esa escopeta ya se había disparado, dentro del propio
+  `probar-verificadores.sh`.** Tres sabotajes recompilan con `npx craco build`
+  a secas —el paso de webpack **sin** `postbuild`—, que vacía `build/` y se
+  lleva por delante las 1.640 páginas generadas. El bloque de `check-seo` viene
+  después, no encontraba ninguna, y **sus diez casos salían como «no pasa ni
+  ANTES de sabotear»**: diez sabotajes degradados a avisos que se leen como
+  ruido. Los tres recompilan ahora también las páginas. Nota a favor de
+  `check-seo`: se negó a pasar en verde sobre cero páginas, que es justo lo que
+  hizo visible el problema.
+- ✅ **`robots.txt` reescrito por grupos.** Corrige un fallo real de semántica: un
+  bot que casa con su propio grupo **ignora el grupo `*` entero**, `Disallow`
+  incluidos. `AhrefsBot`, `SemrushBot` y `MJ12bot` tenían sólo `Crawl-delay`, así
+  que tenían vía libre a `/admin`, `/dashboard`, `/settings` y `/api`. Ahora cada
+  grupo repite la lista de prohibidas.
+- ✅ **Política explícita de IA**, separada en dos bloques por si se quiere
+  cambiar sólo uno: los que CITAN (OAI-SearchBot, ChatGPT-User, PerplexityBot,
+  ClaudeBot, Google-Extended, Applebot-Extended…) y los de ENTRENAMIENTO (GPTBot,
+  CCBot, meta-externalagent). Ambos permitidos a propósito. `Bytespider` fuera.
+- ✅ **`frontend/public/llms.txt` nuevo**: mapa del sitio para agentes, con las
+  cifras de `SITE_FACTS` (que `engine-check` contrasta con el código), qué se
+  puede citar, y las tres advertencias de honestidad del proyecto — datos
+  sintéticos marcados, lo indefinido no es cero, y que no es asesoramiento.
+- ⬜ **No tocado, y es decisión de producto**: `/education` sigue en el sitemap y
+  es `premiumOnly`. No es la contradicción dura de `/performance` (robots sí la
+  permite), pero un rastreador que la siga se encuentra un muro.
+- ✅ Verificado: `i18n-check` · `engine-check` · `check-seo` ·
+  `check-enlaces-academia` · `gen-mapa --check` · `check-doc-links` ·
+  `gen-asistente --check` · `check-rutas-muertas` · `eslint` 0 errores · build.

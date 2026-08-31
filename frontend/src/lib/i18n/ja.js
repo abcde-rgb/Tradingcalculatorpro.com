@@ -4864,4 +4864,10 @@ export default {
   "eduToolLinks": "試してみる：",
   "bvlTitle": "バックテストの検証",
   "sphTitle": "あるセッションの感情プロセス",
+
+  // ── La regleta del hero (identidad-visual §3) ──
+  "regEntry": "エントリー",
+  "regStop": "ストップ",
+  "regCaption": "エントリーとストップの差は1単位あたり {d}、これが 1R です。示した目標は同じ幅を先に伸ばしただけで、予測ではありません。",
+  "regAria": "トレードの目盛り：エントリー、ストップ、R の倍数",
 }

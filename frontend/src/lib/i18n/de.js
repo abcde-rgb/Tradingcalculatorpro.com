@@ -4864,4 +4864,10 @@ export default {
   "eduToolLinks": "Ausprobieren:",
   "bvlTitle": "Einen Backtest validieren",
   "sphTitle": "Der emotionale Ablauf einer Sitzung",
+
+  // ── La regleta del hero (identidad-visual §3) ──
+  "regEntry": "Einstieg",
+  "regStop": "Stop",
+  "regCaption": "Der Abstand zwischen Einstieg und Stop beträgt {d} je Einheit: das ist 1R. Die markierten Ziele sind derselbe Abstand projiziert, keine Prognose.",
+  "regAria": "Skala des Trades: Einstieg, Stop und R-Vielfache",
 }

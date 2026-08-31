@@ -301,6 +301,35 @@ import pathlib, re
 p = pathlib.Path('frontend/src/lib/siteFacts.js'); t = p.read_text()
 p.write_text(re.sub(r'assets: \\d+', 'assets: 999', t, count=1))\""
 
+  # ── El <noscript> del shell: la portada que ve un bot sin JavaScript ──────
+  # `#root` llega vacío, así que ese bloque ES `/`, `/pricing` y `/about` para
+  # GPTBot, ClaudeBot o PerplexityBot. Estuvo tratado como un aviso de «activa
+  # JavaScript» y decía «27 patrones de vela» sobre 30 —la cifra exacta que el
+  # candado de arriba ya perseguía en las claves i18n— y enlazaba /dashboard,
+  # que es premium y está en Disallow, como primer destino.
+  probar "el <noscript> del shell diciendo una cifra que ya no es la del catálogo" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('42 patrones chartistas y 30 patrones',
+                       '42 patrones chartistas y 27 patrones', 1), encoding='utf-8')\""
+
+  probar "el <noscript> del shell enlazando una ruta que robots.txt prohíbe" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('<li><a href=\\\"/education\\\">Academia de trading</a></li>',
+                       '<li><a href=\\\"/dashboard\\\">Dashboard</a></li>', 1), encoding='utf-8')\""
+
+  probar "el <noscript> del shell desapareciendo del todo" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(re.sub(r'<noscript>\\s*<h1>[\\s\\S]*?</noscript>', '', t, count=1), encoding='utf-8')\""
+
   # ── Margen cruzado: los cuatro fallos reales del borrador ─────────────────
   # Las cifras del curso de la Academia (?topic=cross-margin) salen de este
   # motor. Cada sabotaje de aquí reintroduce un bug que el borrador traía de
@@ -733,6 +762,19 @@ r = d['rutas']['portada']; r['js'] //= 2; r['total'] //= 2
 p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
     "git checkout -- tests/e2e/presupuesto-peso.json"
 
+  # ⚠️ Los tres recompilados de aquí abajo (RECOMPILA, RECOMPILA_ADMIN y
+  # RECOMPILA_CSS) llaman a `craco build`, que es SÓLO el paso de webpack: no
+  # ejecuta el `postbuild`, y el postbuild es quien genera las 1.640 páginas
+  # estáticas. `craco build` empieza vaciando `build/`, así que cada uno de
+  # estos sabotajes se llevaba por delante `build/learn/`, `build/tools/`,
+  # `build/markets/` y `build/estrategias/`.
+  #
+  # Consecuencia, y este script existe precisamente para que no pase: el bloque
+  # de check-seo viene DESPUÉS, no encontraba páginas, y sus diez casos salían
+  # como «no pasa ni ANTES de sabotear». Diez sabotajes que llevaban tiempo sin
+  # probar nada, degradados a avisos que se leen como ruido. Por eso los tres
+  # recompilan ahora también las páginas.
+
   # ── El arranque del idioma ────────────────────────────────────────────────
   # Se sabotea en la FUENTE y se recompila, que tarda unos minutos. Es el
   # precio de probar de verdad: el fallo que vigila —el diccionario que no
@@ -740,7 +782,7 @@ p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
   # código fuente, sólo en el artefacto compilado. Parchear el build a mano
   # probaría que la sonda sabe contar, no que caza la regresión.
   titulo "Arranque del idioma (idioma-arranque.js)"
-  RECOMPILA="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1)"
+  RECOMPILA="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
 
   probar "el español vuelve a viajar incrustado en main.js" \
     "node tests/e2e/navegador/idioma-arranque.js" \
@@ -784,7 +826,7 @@ fi
 # ni Postgres, porque lo que se prueba es cómo REACCIONA la interfaz.
 if [ -d frontend/build ] && [ -d tests/e2e/lib/playwright-core ]; then
   titulo "Panel de admin ante respuestas de error (panel-admin.js)"
-  RECOMPILA_ADMIN="(cd frontend && PUBLIC_URL=/ REACT_APP_BACKEND_URL=https://backend.example CI=false npx craco build >/dev/null 2>&1)"
+  RECOMPILA_ADMIN="(cd frontend && PUBLIC_URL=/ REACT_APP_BACKEND_URL=https://backend.example CI=false npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   probar "el panel se traga un 428 y deja las tablas en blanco" \
     "node tests/e2e/navegador/panel-admin.js" \
     "python -c \"import pathlib; p=pathlib.Path('frontend/src/pages/AdminPage.jsx'); s=p.read_text(encoding='utf-8'); i=s.find('      if (mRes.status === 428'); j=s.find('        return;', i)+len('        return;\\n      }\\n'); p.write_text(s[:i]+s[j:], encoding='utf-8')\" && $RECOMPILA_ADMIN" \
@@ -799,7 +841,7 @@ fi
 # textos por debajo de la WCAG. Un umbral escrito y nunca roto no prueba nada.
 if [ -d frontend/build ]; then
   titulo "Contraste WCAG (contraste.js)"
-  RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1)"
+  RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   probar "el verde del tema claro vuelve a un tono que no contrasta" \
     "node tests/e2e/navegador/contraste.js" \
     "python -c \"
@@ -1151,10 +1193,14 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   titulo "SEO de las páginas prerenderizadas (check-seo.js)"
 
   SEO_PAG=$(find frontend/build -path '*/learn/*' -name index.html | head -1)
-  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp)
-  TEMPORALES+=("$SEO_BAK" "$SEO_MAP")
+  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp)
+  TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL")
   cp "$SEO_PAG" "$SEO_BAK"; cp frontend/build/sitemap.xml "$SEO_MAP"
-  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml"
+  # El shell también, que ahora hay sabotajes que lo tocan y `build/` está en
+  # .gitignore: sin esta copia el sabotaje se quedaría puesto y los casos
+  # siguientes medirían una portada ya rota.
+  cp frontend/build/index.html "$SEO_SHELL"
+  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml; cp $SEO_SHELL frontend/build/index.html"
 
   # El canonical cruzado es el fallo más caro y el menos visible: la página se
   # ve perfecta y le está diciendo a Google que indexe otra.
@@ -1198,6 +1244,42 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   probar "el sitemap anunciando una URL que no existe" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/no/existe/</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+
+  # El sitemap anunciando una ruta que robots.txt prohíbe. Pasó de verdad:
+  # `/performance` es premium y robots la bloqueaba, pero el sitemap la anunciaba
+  # porque el arreglo estaba escrito en `gen-sitemap.js` —que el build no ejecuta—
+  # y no en `gen-seo-pages.js`, que es el que corre en `postbuild`.
+  probar "el sitemap anunciando una ruta que robots.txt prohíbe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|</urlset>|<url><loc>https://tradingcalculator.pro/performance</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+
+  # Un enlace plausible y muerto en el <noscript> del shell. Es el único camino
+  # que tiene un rastreador sin JavaScript hacia las 1.640 páginas estáticas, así
+  # que ahí un 404 no es un 404 más: es el callejón sin salida de la portada.
+  # Pasó al escribir el bloque: `/learn/gestion-del-riesgo/`, cuando el módulo se
+  # llama `gestion-del-capital`.
+  probar "el <noscript> del shell enlazando una página que no existe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|/learn/gestion-del-capital/|/learn/gestion-del-riesgo/|' frontend/build/index.html" \
+    "$SEO_REST"
+
+  # Un sitemap en public/. Había uno de verdad: 8 URLs con lastmod congelado en
+  # 2026-08-11, que CRA copia a build/ y el postbuild pisa — salvo cuando el
+  # postbuild no corre, y entonces se publica ése. Search Console vería el sitio
+  # encoger de 1.648 URLs a 8.
+  probar "un sitemap en public/ que pisaría al generado" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "printf '<?xml version=\"1.0\"?><urlset></urlset>' > frontend/public/sitemap.xml" \
+    "rm -f frontend/public/sitemap.xml; $SEO_REST"
+
+  probar "el <noscript> del shell borrado del build" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/build/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), encoding='utf-8')\"" \
     "$SEO_REST"
 
   # El otro lado: las rutas de aplicación (`/options/strategies`, `/pricing`…)
