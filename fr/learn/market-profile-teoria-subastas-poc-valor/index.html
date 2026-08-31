@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Market Profile et théorie des enchères : lire où est la &quot;valeur&quot; | TradingCalculator.Pro</title>
 <meta name="description" content="Le Market Profile, créé par Peter Steidlmayer au CBOT, organise la séance non par l'écoulement du temps mais par COMBIEN de temps le prix se traite à chaque n">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Le Market Profile, créé par Peter Steidlmayer au CBOT, organise la séance non par l'écoulement du temps mais par COMBIEN de temps le prix se traite à chaque niveau, formant une cloche. Derrière, il y a la théorie des enchères : le marché est une enchère continue qui monte et descend pour trouver le prix &quot;juste&quot; (la valeur). Tu as déjà le profil de VOLUME dans d'autres modules ; ceci en est le cousin basé sur le TEMPS (TPO) et, surtout, le cadre mental pour lire le contexte.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=market-profile">Ouvrir le module complet →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>

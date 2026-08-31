@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Liquidité macro : la plomberie qui meut le marché | TradingCalculator.Pro</title>
 <meta name="description" content="Le moteur caché des Bourses que presque personne n'explique : combien d'argent « utilisable » il y a vraiment dans le système. Ce ne sont pas que les taux ou ">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Le moteur caché des Bourses que presque personne n'explique : combien d'argent « utilisable » il y a vraiment dans le système. Ce ne sont pas que les taux ou les bénéfices, mais la liquidité nette — ce que la Réserve fédérale injecte ou draine — que beaucoup de gros acteurs surveillent. Elle se calcule à partir de trois pièces (bilan de la Fed − TGA − reverse repo) et a corrélé autour de 0,95 avec le S&amp;P 500. Voici la plomberie, pièce par pièce, et ses limites.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=net-liquidity">Ouvrir le module complet →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>

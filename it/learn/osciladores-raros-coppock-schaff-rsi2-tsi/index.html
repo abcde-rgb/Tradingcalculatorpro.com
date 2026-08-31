@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Oscillatori poco conosciuti: Coppock, Schaff, RSI-2 e TSI | TradingCalculator.Pro</title>
 <meta name="description" content="Oltre a RSI, MACD e stocastico, c'è una manciata di oscillatori di momentum che quasi nessuno usa ma che portano idee utili. Qui ne raccogliamo quattro: il Co">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Oltre a RSI, MACD e stocastico, c'è una manciata di oscillatori di momentum che quasi nessuno usa ma che portano idee utili. Qui ne raccogliamo quattro: il Coppock (per i minimi di lungo periodo), lo Schaff Trend Cycle (un ciclo più rapido e con meno ritardo), il Connors RSI-2 (per il ritorno alla media) e il True Strength Index (momentum molto smussato). Nessuno è magico, ma ognuno risolve qualcosa di preciso.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=oscillators">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

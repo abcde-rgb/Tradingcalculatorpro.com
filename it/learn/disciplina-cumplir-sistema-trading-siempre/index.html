@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Disciplina: come rispettare il tuo sistema SEMPRE | TradingCalculator.Pro</title>
 <meta name="description" content="Un vantaggio del 60% che rispetti solo il 70% delle volte smette di essere un vantaggio. Il problema non è quasi mai il sistema: è l'ADERENZA. Questo modulo n">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Un vantaggio del 60% che rispetti solo il 70% delle volte smette di essere un vantaggio. Il problema non è quasi mai il sistema: è l'ADERENZA. Questo modulo non ti chiede &quot;più forza di volontà&quot; —che si esaurisce—, ma di costruire la struttura che ti fa rispettare le regole anche quando non ne hai voglia: regole scritte, automazione, pre-impegno, rendicontazione e abitudine. Ogni scheda è un problema reale di mancata aderenza e la sua soluzione ingegneristica.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=system-adherence">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

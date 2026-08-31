@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>السيولة الكلية: السباكة التي تحرّك السوق | TradingCalculator.Pro</title>
 <meta name="description" content="المحرّك الخفي للبورصات الذي لا يكاد أحد يشرحه: كم من المال &quot;القابل للاستخدام&quot; في النظام فعلًا. ليست الفائدة أو الأرباح فقط، بل السيولة الصافية — ما يضخّه أو ي">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">المحرّك الخفي للبورصات الذي لا يكاد أحد يشرحه: كم من المال &quot;القابل للاستخدام&quot; في النظام فعلًا. ليست الفائدة أو الأرباح فقط، بل السيولة الصافية — ما يضخّه أو يسحبه الاحتياطي الفيدرالي — هي ما يراقبه كثير من كبار اللاعبين. تُحسب من ثلاث قطع (ميزانية الفيدرالي − TGA − الريبو العكسي) وبلغ ارتباطها نحو 0.95 مع S&amp;P 500. إليك السباكة قطعةً قطعة، وحدودها.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=net-liquidity">افتح الوحدة كاملة →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>

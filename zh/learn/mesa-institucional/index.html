@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>机构交易台 | TradingCalculator.Pro</title>
 <meta name="description" content="银行或基金的「交易」和散户不同：工作在专家之间分工，有流程、限额和技术。这里你能看到一个专业交易台内部如何运作，以及能从每个角色偷学什么，让你即便独自在家也能像专业人士一样交易。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">银行或基金的「交易」和散户不同：工作在专家之间分工，有流程、限额和技术。这里你能看到一个专业交易台内部如何运作，以及能从每个角色偷学什么，让你即便独自在家也能像专业人士一样交易。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=inst-desk">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

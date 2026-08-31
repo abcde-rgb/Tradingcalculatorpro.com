@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Temps et cycles : Fibonacci temporel et cycles de Hurst | TradingCalculator.Pro</title>
 <meta name="description" content="Presque toute l'analyse technique s'obsède du PRIX (où) et oublie le TEMPS (quand). Ce module récupère cette dimension oubliée avec deux approches peu connues">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Presque toute l'analyse technique s'obsède du PRIX (où) et oublie le TEMPS (quand). Ce module récupère cette dimension oubliée avec deux approches peu connues : les zones de temps de Fibonacci (pour anticiper QUAND le marché peut tourner) et les cycles de Hurst (l'idée que le prix est une somme d'ondes imbriquées de longueurs différentes). Des idées puissantes mais subjectives ; on te les raconte honnêtement.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=time-cycles">Ouvrir le module complet →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>

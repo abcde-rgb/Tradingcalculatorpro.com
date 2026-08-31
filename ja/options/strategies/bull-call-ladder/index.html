@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Bull Call Ladder | オプション戦略</title>
 <meta name="description" content="ブル・コール・スプレッドに上値でコールをもう1枚売る。追加クレジットと引き換えに上方向が無限リスクになる。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">ブル・コール・スプレッドに上値でコールをもう1枚売る。追加クレジットと引き換えに上方向が無限リスクになる。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/options/calculator?strategy=bull_call_ladder">計算機で開く →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>

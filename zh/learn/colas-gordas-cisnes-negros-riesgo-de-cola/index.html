@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>肥尾：为什么高斯钟形曲线在骗你 | TradingCalculator.Pro</title>
 <meta name="description" content="几乎所有金融理论都假设价格服从正态分布（高斯钟形曲线）。这是个谎言，而且代价高昂：在市场里，极端事件发生的频率远远高于那条钟形曲线的预测。这叫&quot;肥尾&quot;，理解它——跟着纳西姆·塔勒布——会改变你管理风险的方式，因为灾难并不像别人告诉你的那么罕见。这个模块讲的是：如何在&quot;不太可能&quot;里活下来。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">几乎所有金融理论都假设价格服从正态分布（高斯钟形曲线）。这是个谎言，而且代价高昂：在市场里，极端事件发生的频率远远高于那条钟形曲线的预测。这叫&quot;肥尾&quot;，理解它——跟着纳西姆·塔勒布——会改变你管理风险的方式，因为灾难并不像别人告诉你的那么罕见。这个模块讲的是：如何在&quot;不太可能&quot;里活下来。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=tail-risk">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Психология: проблема → решение (практический гид) | TradingCalculator.Pro</title>
 <meta name="description" content="Большинство модулей по психологии ОПИСЫВАЮТ проблему; этот даёт РЕШЕНИЕ. Каждая карточка называет реальную проблему —твоими словами— и её конкретное лекарство">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Большинство модулей по психологии ОПИСЫВАЮТ проблему; этот даёт РЕШЕНИЕ. Каждая карточка называет реальную проблему —твоими словами— и её конкретное лекарство, взятое у лучших (Бретт Стинбаргер, Марк Даглас) и из науки о поведении. Базовый инструмент — план «если-то»: он превращает самоконтроль (который истощается) в автоматизм. Не читай это один раз: преврати в правила своего плана.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Начать 7 дней бесплатно →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=psych-solutions">Открыть полный модуль →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Начать 7 дней бесплатно →</a>

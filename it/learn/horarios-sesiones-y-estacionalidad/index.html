@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Orari e stagionalità | TradingCalculator.Pro</title>
 <meta name="description" content="In certe ore e date il mercato TENDE a comportarsi in modo simile, per via dei flussi di denaro (aperture, dati, chiusure, scadenze). Non sono regole fisse né">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">In certe ore e date il mercato TENDE a comportarsi in modo simile, per via dei flussi di denaro (aperture, dati, chiusure, scadenze). Non sono regole fisse né segnali di acquisto: sono tendenze statistiche che ti aiutano a scegliere QUANDO operare e quando stare fuori. Tutti gli orari sono in ora di Francoforte (UTC+2) (variano di ±1 h con l'ora legale).</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=session-timing">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

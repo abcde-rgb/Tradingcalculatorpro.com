@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Inizia da qui | TradingCalculator.Pro</title>
 <meta name="description" content="Se è la tua prima volta, questo è l'unico modulo che ti serve per cominciare. In 9 passi vedrai di cosa si tratta davvero aprire un'operazione: cosa significa">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Se è la tua prima volta, questo è l'unico modulo che ti serve per cominciare. In 9 passi vedrai di cosa si tratta davvero aprire un'operazione: cosa significa comprare o vendere, come leggere il grafico, quanto rischiare e come piazzare e chiudere il tuo primo ordine. Senza fuffa: solo ciò che userai davvero il primo giorno.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=start-here">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

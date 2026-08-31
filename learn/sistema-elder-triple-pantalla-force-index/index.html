@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>El sistema de Elder: Triple Pantalla, Elder-Ray y Force Index | TradingCalculator.Pro</title>
 <meta name="description" content="Alexander Elder, psiquiatra reconvertido en trader y autor de &quot;Trading for a Living&quot;, construyó un enfoque completo alrededor de tres pilares —Mente, Método y">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Alexander Elder, psiquiatra reconvertido en trader y autor de &quot;Trading for a Living&quot;, construyó un enfoque completo alrededor de tres pilares —Mente, Método y Dinero (psicología, sistema y gestión)— y varias herramientas propias hoy poco usadas. Aquí tienes las principales: la Triple Pantalla, el Elder-Ray, el Force Index y el Impulse System, con lo que valen de verdad y sus límites.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=elder">Abrir el módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>

@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Makro-Liquidität: die Klempnerei, die den Markt bewegt | TradingCalculator.Pro</title>
 <meta name="description" content="Der verborgene Motor der Börsen, den fast niemand erklärt: wie viel „nutzbares&quot; Geld wirklich im System ist. Es sind nicht nur Zinsen oder Gewinne, sondern di">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Der verborgene Motor der Börsen, den fast niemand erklärt: wie viel „nutzbares&quot; Geld wirklich im System ist. Es sind nicht nur Zinsen oder Gewinne, sondern die Nettoliquidität – was die Federal Reserve injiziert oder abzieht –, die viele große Akteure beobachten. Sie wird aus drei Teilen berechnet (Fed-Bilanz − TGA − Reverse Repo) und korrelierte um die 0,95 mit dem S&amp;P 500. Hier ist die Klempnerei, Stück für Stück, und ihre Grenzen.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=net-liquidity">Vollständiges Modul öffnen →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>

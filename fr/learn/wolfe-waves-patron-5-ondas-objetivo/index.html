@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Wolfe Waves : le motif à 5 vagues qui projette une cible | TradingCalculator.Pro</title>
 <meta name="description" content="Les Wolfe Waves, popularisées par Bill Wolfe, sont un motif à 5 vagues qui — selon ses adeptes — reflète &quot;l'équilibre naturel&quot; vers lequel tend le marché, et ">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Les Wolfe Waves, popularisées par Bill Wolfe, sont un motif à 5 vagues qui — selon ses adeptes — reflète &quot;l'équilibre naturel&quot; vers lequel tend le marché, et qui permet de projeter une ligne cible en prix ET en temps. Un motif culte, très peu connu et assez subjectif, mais visuellement puissant. Le voici démonté : structure, lignes, règles, trading et ses limites réelles.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=wolfe-waves">Ouvrir le module complet →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>

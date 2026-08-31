@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>La caja de Gann: cómo se monta y se opera paso a paso | TradingCalculator.Pro</title>
 <meta name="description" content="La caja de Gann (Gann Box) es una herramienta de dibujo del análisis técnico que parte de un pivote importante y divide el rango en una rejilla de precio y de">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">La caja de Gann (Gann Box) es una herramienta de dibujo del análisis técnico que parte de un pivote importante y divide el rango en una rejilla de precio y de tiempo. Aquí la ves como se usa de verdad en el gráfico —desde qué máximo o mínimo se ancla, cómo se monta, qué proporciones lleva y cómo se opera— sin el humo esotérico que suele acompañarla. Es la prima geométrica del Fibonacci: un mapa de niveles donde el precio tiende a reaccionar, útil si lo usas con disciplina y contexto.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gann-box">Abrir el módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>

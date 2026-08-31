@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>斐波那契计算器 — 回撤与扩展</title>
 <meta name="description" content="在两点之间生成斐波那契回撤（38.2%、50%、61.8%）和扩展位，寻找支撑、阻力和目标位。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -26,7 +33,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="zh">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"斐波那契计算器 — 回撤与扩展","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/zh/tools/calculadora-fibonacci/","inLanguage":"zh","description":"在两点之间生成斐波那契回撤（38.2%、50%、61.8%）和扩展位，寻找支撑、阻力和目标位。"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"斐波那契计算器 — 回撤与扩展","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/zh/tools/calculadora-fibonacci/","inLanguage":"zh","description":"在两点之间生成斐波那契回撤（38.2%、50%、61.8%）和扩展位，寻找支撑、阻力和目标位。"},{"@type":"HowTo","name":"如何使用: 斐波那契计算器","inLanguage":"zh","step":[{"@type":"HowToStep","position":1,"name":"输入你的数据：公式中的各项（资金、风险、价格与止损）。","text":"输入你的数据：公式中的各项（资金、风险、价格与止损）。"},{"@type":"HowToStep","position":2,"name":"计算器套用公式，并以你所选品种的单位给出结果。","text":"计算器套用公式，并以你所选品种的单位给出结果。"},{"@type":"HowToStep","position":3,"name":"下单前先看明细：无法计算的项目会留空，而不会显示为零。","text":"下单前先看明细：无法计算的项目会留空，而不会显示为零。"}]}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"计算器","item":"https://tradingcalculator.pro/dashboard"},{"@type":"ListItem","position":3,"name":"斐波那契计算器","item":"https://tradingcalculator.pro/zh/tools/calculadora-fibonacci/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/dashboard?tab=fibonacci">使用计算器 →</a></p>
   <div class="card"><h2>公式</h2><code class="formula">Level = High − (Range × Fib ratio)</code></div>
   <div class="card"><h2>你将获得</h2><ul><li>自动回撤与扩展</li><li>入场区与目标位</li><li>看涨与看跌</li></ul></div>
+  <div class="card"><h2>如何使用</h2><ol><li>输入你的数据：公式中的各项（资金、风险、价格与止损）。</li><li>计算器套用公式，并以你所选品种的单位给出结果。</li><li>下单前先看明细：无法计算的项目会留空，而不会显示为零。</li></ol></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <div class="related card"><h2>其他计算器</h2><ul><li><a href="https://tradingcalculator.pro/zh/tools/calculadora-tamano-posicion/">仓位大小计算器</a></li><li><a href="https://tradingcalculator.pro/zh/tools/calculadora-de-lotes-forex/">外汇手数计算器</a></li><li><a href="https://tradingcalculator.pro/zh/tools/calculadora-de-apalancamiento/">杠杆计算器</a></li><li><a href="https://tradingcalculator.pro/zh/tools/calculadora-de-futuros/">期货计算器</a></li><li><a href="https://tradingcalculator.pro/zh/tools/calculadora-precio-objetivo/">目标价计算器</a></li><li><a href="https://tradingcalculator.pro/zh/tools/calculadora-porcentaje-trading/">交易百分比计算器</a></li></ul></div>
 </main>

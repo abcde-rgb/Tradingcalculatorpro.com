@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Wolfe Waves: o padrão de 5 ondas que projeta um objetivo | TradingCalculator.Pro</title>
 <meta name="description" content="As Wolfe Waves, popularizadas por Bill Wolfe, são um padrão de 5 ondas que —segundo os seus seguidores— reflete o &quot;equilíbrio natural&quot; para o qual o mercado t">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">As Wolfe Waves, popularizadas por Bill Wolfe, são um padrão de 5 ondas que —segundo os seus seguidores— reflete o &quot;equilíbrio natural&quot; para o qual o mercado tende, e que permite projetar uma linha objetivo tanto em preço como em tempo. É um padrão de culto, muito pouco conhecido e bastante subjetivo, mas visualmente potente. Aqui tem-no desmontado: estrutura, linhas, regras, operativa e os seus limites reais.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=wolfe-waves">Abrir o módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>

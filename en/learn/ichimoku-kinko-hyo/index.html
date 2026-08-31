@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Ichimoku Kinko Hyo | TradingCalculator.Pro</title>
 <meta name="description" content="A Japanese 'one-glance equilibrium chart' created by Goichi Hosoda. Five lines and a projected 'cloud' show trend, support/resistance, momentum and entry sign">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">A Japanese 'one-glance equilibrium chart' created by Goichi Hosoda. Five lines and a projected 'cloud' show trend, support/resistance, momentum and entry signals all at once — designed so you can read the market at a glance. Very popular in forex and crypto.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=ichimoku">Open the full module →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>

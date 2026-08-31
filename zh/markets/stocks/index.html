@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>股票 — 这是什么 · TradingCalculator.Pro</title>
 <meta name="description" content="A share is a unit of ownership in a company. When you buy one share of Apple you are, literally, a part-owner of Apple in that proportion. The price moves ">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -27,6 +34,7 @@
 <meta property="og:locale" content="zh">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"市场","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"股票","item":"https://tradingcalculator.pro/zh/markets/stocks/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"zh","mainEntity":[{"@type":"Question","name":"How is a company's market capitalization calculated?","acceptedAnswer":{"@type":"Answer","text":"Multiply the share price by the number of shares outstanding. A company trading at $50 with 1 billion shares has a $50 billion market cap. This is the correct way to compare the size of two companies — the share price alone tells you nothing."}},{"@type":"Question","name":"What are the largest companies in the world by market cap?","acceptedAnswer":{"@type":"Answer","text":"The top of the table is persistently occupied by US technology companies — Apple, Microsoft, NVIDIA, Alphabet, Amazon, Meta — alongside Saudi Aramco. The exact order changes weekly; the live table on this page shows the current ranking."}},{"@type":"Question","name":"What is a P/E ratio and what counts as high?","acceptedAnswer":{"@type":"Answer","text":"The price-to-earnings ratio is the share price divided by earnings per share. The S&P 500 historical average sits around 16-18. Above 25 the market is paying for strong expected growth; below 10 there is usually a problem — or an opportunity. It is only comparable between companies in the same sector."}},{"@type":"Question","name":"What are US stock market hours?","acceptedAnswer":{"@type":"Answer","text":"9:30 to 16:00 New York time. Pre-market runs from 4:00 and after-hours until 20:00 ET, both with far less liquidity and much wider spreads."}},{"@type":"Question","name":"What is free float and why does it matter?","acceptedAnswer":{"@type":"Answer","text":"It is the shares actually available to trade, excluding those locked up with founders, the state or insiders. With a small float a handful of orders move the price enormously — the feature shared by nearly every easily manipulated stock."}}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
@@ -67,6 +75,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fundamentals&amp;market=stocks">打开互动资料卡 →</a></p>
 
+  <div class="card"><h2>常见问题</h2><h3>How is a company's market capitalization calculated?</h3><p>Multiply the share price by the number of shares outstanding. A company trading at $50 with 1 billion shares has a $50 billion market cap. This is the correct way to compare the size of two companies — the share price alone tells you nothing.</p><h3>What are the largest companies in the world by market cap?</h3><p>The top of the table is persistently occupied by US technology companies — Apple, Microsoft, NVIDIA, Alphabet, Amazon, Meta — alongside Saudi Aramco. The exact order changes weekly; the live table on this page shows the current ranking.</p><h3>What is a P/E ratio and what counts as high?</h3><p>The price-to-earnings ratio is the share price divided by earnings per share. The S&amp;P 500 historical average sits around 16-18. Above 25 the market is paying for strong expected growth; below 10 there is usually a problem — or an opportunity. It is only comparable between companies in the same sector.</p><h3>What are US stock market hours?</h3><p>9:30 to 16:00 New York time. Pre-market runs from 4:00 and after-hours until 20:00 ET, both with far less liquidity and much wider spreads.</p><h3>What is free float and why does it matter?</h3><p>It is the shares actually available to trade, excluding those locked up with founders, the state or insiders. With a small float a handful of orders move the price enormously — the feature shared by nearly every easily manipulated stock.</p></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <div class="card"><h2>其他市场</h2><ul><li><a href="https://tradingcalculator.pro/zh/markets/forex/">外汇</a></li><li><a href="https://tradingcalculator.pro/zh/markets/crypto/">加密货币</a></li><li><a href="https://tradingcalculator.pro/zh/markets/commodities/">大宗商品</a></li><li><a href="https://tradingcalculator.pro/zh/markets/indices/">指数</a></li><li><a href="https://tradingcalculator.pro/zh/markets/etfs/">ETF</a></li><li><a href="https://tradingcalculator.pro/zh/markets/futures/">期货</a></li></ul></div>
 </main>

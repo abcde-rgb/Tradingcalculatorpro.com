@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>江恩箱：一步步搭建与交易 | TradingCalculator.Pro</title>
 <meta name="description" content="江恩箱是技术分析的画线工具，从一个重要的枢轴点出发，把区间划分成价格与时间的网格。这里你会看到它在图表上真正的用法——锚定在哪个高点或低点、如何搭建、用什么比例、怎样交易——不带通常伴随它的玄学迷雾。它是斐波那契的几何表亲：一张价格容易做出反应的水平位地图，只要配合纪律与背景来使用就有价值。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">江恩箱是技术分析的画线工具，从一个重要的枢轴点出发，把区间划分成价格与时间的网格。这里你会看到它在图表上真正的用法——锚定在哪个高点或低点、如何搭建、用什么比例、怎样交易——不带通常伴随它的玄学迷雾。它是斐波那契的几何表亲：一张价格容易做出反应的水平位地图，只要配合纪律与背景来使用就有价值。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gann-box">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

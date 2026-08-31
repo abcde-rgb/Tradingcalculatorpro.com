@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Courtiers, régulation et arnaques | TradingCalculator.Pro</title>
 <meta name="description" content="Vous pouvez tout réussir sur le graphique et tout perdre en choisissant mal où déposer. Ce module vous apprend à vérifier un courtier en 10 minutes et à repér">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Vous pouvez tout réussir sur le graphique et tout perdre en choisissant mal où déposer. Ce module vous apprend à vérifier un courtier en 10 minutes et à repérer les arnaques du secteur.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=broker-safety">Ouvrir le module complet →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>

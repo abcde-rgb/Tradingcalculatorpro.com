@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Andrews-Gabel: mit der Medianlinie handeln | TradingCalculator.Pro</title>
 <meta name="description" content="Die Andrews-Gabel (Andrews' Pitchfork), von Alan Andrews entwickelt, ist ein geometrisches Werkzeug aus 3 parallelen Linien, die aus 3 Preis-Pivots gezogen we">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Die Andrews-Gabel (Andrews' Pitchfork), von Alan Andrews entwickelt, ist ein geometrisches Werkzeug aus 3 parallelen Linien, die aus 3 Preis-Pivots gezogen werden. Sie bildet einen dynamischen Kanal, dessen Mittelachse — die Medianlinie — wie ein Magnet wirkt, zu dem der Preis zurückzukehren neigt. Sie wird selten gelehrt, ist aber sehr anschaulich und passt neben Gann als Art, die Bewegung mit Geometrie zu lesen.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=pitchfork">Vollständiges Modul öffnen →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>

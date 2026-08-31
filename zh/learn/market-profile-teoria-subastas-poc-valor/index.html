@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>市场轮廓与拍卖理论：读出“价值”在哪里 | TradingCalculator.Pro</title>
 <meta name="description" content="由 Peter Steidlmayer 在芝加哥期货交易所（CBOT）创建的市场轮廓（Market Profile），不是按时间流逝、而是按价格在每个价位“停留多久”来组织一天，形成一个钟形。其背后是拍卖理论：市场是一场持续的拍卖，上下起伏以寻找“公允”价格（即价值）。你在其他模块已有“成交量”轮廓；这是它基于“时">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">由 Peter Steidlmayer 在芝加哥期货交易所（CBOT）创建的市场轮廓（Market Profile），不是按时间流逝、而是按价格在每个价位“停留多久”来组织一天，形成一个钟形。其背后是拍卖理论：市场是一场持续的拍卖，上下起伏以寻找“公允”价格（即价值）。你在其他模块已有“成交量”轮廓；这是它基于“时间”（TPO）的表亲，更重要的是读取背景的思维框架。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=market-profile">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

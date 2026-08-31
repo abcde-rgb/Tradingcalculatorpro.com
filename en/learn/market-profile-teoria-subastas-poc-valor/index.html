@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Market Profile and auction theory: reading where &quot;value&quot; is | TradingCalculator.Pro</title>
 <meta name="description" content="Market Profile, created by Peter Steidlmayer at the CBOT, organises the session not by the passing of time but by HOW MUCH time price trades at each level, fo">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Market Profile, created by Peter Steidlmayer at the CBOT, organises the session not by the passing of time but by HOW MUCH time price trades at each level, forming a bell. Behind it is Auction Market Theory: the market is a continuous auction rising and falling to find the &quot;fair&quot; price (value). You already have the VOLUME profile in other modules; this is its TIME-based cousin (TPO) and, above all, the mental framework for reading context.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=market-profile">Open the full module →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>

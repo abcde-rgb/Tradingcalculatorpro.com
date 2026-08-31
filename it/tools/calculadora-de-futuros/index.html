@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Calcolatrice Futures — Margine, Tick e Nozionale</title>
 <meta name="description" content="Traduci dimensione del contratto, moltiplicatore e margine in esposizione reale: quanto vale ogni tick e il nozionale totale.">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -26,7 +33,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="it">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Calcolatrice Futures — Margine, Tick e Nozionale","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/it/tools/calculadora-de-futuros/","inLanguage":"it","description":"Traduci dimensione del contratto, moltiplicatore e margine in esposizione reale: quanto vale ogni tick e il nozionale totale."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Calcolatrice Futures — Margine, Tick e Nozionale","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/it/tools/calculadora-de-futuros/","inLanguage":"it","description":"Traduci dimensione del contratto, moltiplicatore e margine in esposizione reale: quanto vale ogni tick e il nozionale totale."},{"@type":"HowTo","name":"Come si usa: Calcolatrice futures","inLanguage":"it","step":[{"@type":"HowToStep","position":1,"name":"Inserisci i tuoi dati","text":"Inserisci i tuoi dati: i termini della formula (capitale, rischio, prezzi e stop)."},{"@type":"HowToStep","position":2,"name":"La calcolatrice applica la formula e restituisce il risultato nelle unità del tuo strumento.","text":"La calcolatrice applica la formula e restituisce il risultato nelle unità del tuo strumento."},{"@type":"HowToStep","position":3,"name":"Controlla il dettaglio prima di operare","text":"Controlla il dettaglio prima di operare: ciò che non si può calcolare resta vuoto, mai zero."}]}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Calcolatrici","item":"https://tradingcalculator.pro/dashboard"},{"@type":"ListItem","position":3,"name":"Calcolatrice futures","item":"https://tradingcalculator.pro/it/tools/calculadora-de-futuros/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/dashboard?tab=futures">Usa la calcolatrice →</a></p>
   <div class="card"><h2>Formula</h2><code class="formula">Tick value = Contract size × Tick size</code></div>
   <div class="card"><h2>Cosa ottieni</h2><ul><li>Valore del tick e del punto</li><li>Margine iniziale e di mantenimento</li><li>Esposizione nozionale reale</li></ul></div>
+  <div class="card"><h2>Come si usa</h2><ol><li>Inserisci i tuoi dati: i termini della formula (capitale, rischio, prezzi e stop).</li><li>La calcolatrice applica la formula e restituisce il risultato nelle unità del tuo strumento.</li><li>Controlla il dettaglio prima di operare: ciò che non si può calcolare resta vuoto, mai zero.</li></ol></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <div class="related card"><h2>Altre calcolatrici</h2><ul><li><a href="https://tradingcalculator.pro/it/tools/calculadora-tamano-posicion/">Calcolatrice size posizione</a></li><li><a href="https://tradingcalculator.pro/it/tools/calculadora-de-lotes-forex/">Calcolatrice lotti forex</a></li><li><a href="https://tradingcalculator.pro/it/tools/calculadora-de-apalancamiento/">Calcolatrice leva finanziaria</a></li><li><a href="https://tradingcalculator.pro/it/tools/calculadora-precio-objetivo/">Calcolatrice prezzo obiettivo</a></li><li><a href="https://tradingcalculator.pro/it/tools/calculadora-porcentaje-trading/">Calcolatrice percentuale trading</a></li><li><a href="https://tradingcalculator.pro/it/tools/calculadora-precio-medio/">Calcolatrice prezzo medio</a></li></ul></div>
 </main>

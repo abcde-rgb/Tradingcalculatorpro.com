@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Il processo emotivo di una sessione | TradingCalculator.Pro</title>
 <meta name="description" content="La psicologia del trading viene di solito raccontata come un elenco di bias. Qui è ordinata per il momento in cui compare: ogni fase di una sessione porta con">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">La psicologia del trading viene di solito raccontata come un elenco di bias. Qui è ordinata per il momento in cui compare: ogni fase di una sessione porta con sé il proprio modo di sbagliare. Di ciascuna vedrai cosa fa la parte deliberata, cosa fa l'abitudine, il segnale che puoi osservare in te stesso e l'azione concreta che interrompe il comportamento prima che diventi un ordine.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=session-phases">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

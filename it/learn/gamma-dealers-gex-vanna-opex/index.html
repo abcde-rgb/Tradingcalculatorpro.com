@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Posizionamento dei dealer: gamma, vanna e OPEX | TradingCalculator.Pro</title>
 <meta name="description" content="Uno dei fattori che più muove il mercato e che quasi nessun corso per il retail spiega: come si coprono i market maker di opzioni (dealer). Non scommettono su">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Uno dei fattori che più muove il mercato e che quasi nessun corso per il retail spiega: come si coprono i market maker di opzioni (dealer). Non scommettono sulla direzione; comprano e vendono il sottostante per restare neutrali, e quell'hedging meccanico —a volte enorme— spinge il prezzo. Qui trovi gamma, vanna, charm e il motivo per cui il mercato si &quot;inchioda&quot; o schizza alle scadenze.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gamma-exposure">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

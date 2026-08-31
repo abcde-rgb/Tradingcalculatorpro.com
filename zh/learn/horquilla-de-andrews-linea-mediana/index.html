@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>安德鲁斯音叉：用中位线交易 | TradingCalculator.Pro</title>
 <meta name="description" content="由 Alan Andrews 创建的安德鲁斯音叉（Andrews' Pitchfork），是一个由 3 条平行线组成的几何工具，从 3 个价格枢轴点画出。它形成一个动态通道，其中轴——中位线——像磁铁一样，价格倾向于回到它那里。它很少被讲授，却非常直观，和江恩并列，作为用几何来读走势的一种方式很合适。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">由 Alan Andrews 创建的安德鲁斯音叉（Andrews' Pitchfork），是一个由 3 条平行线组成的几何工具，从 3 个价格枢轴点画出。它形成一个动态通道，其中轴——中位线——像磁铁一样，价格倾向于回到它那里。它很少被讲授，却非常直观，和江恩并列，作为用几何来读走势的一种方式很合适。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=pitchfork">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

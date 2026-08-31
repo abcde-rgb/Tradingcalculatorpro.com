@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>الانضباط: كيف تلتزم بنظامك في &quot;كل&quot; مرة | TradingCalculator.Pro</title>
 <meta name="description" content="أفضليةٌ بنسبة 60% تحترمها 70% من الوقت فقط تكفّ عن كونها أفضلية. المشكلة نادراً ما تكون في النظام: بل في &quot;الالتزام&quot; به. لا تطلب هذه الوحدة &quot;مزيداً من قوّة الإ">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">أفضليةٌ بنسبة 60% تحترمها 70% من الوقت فقط تكفّ عن كونها أفضلية. المشكلة نادراً ما تكون في النظام: بل في &quot;الالتزام&quot; به. لا تطلب هذه الوحدة &quot;مزيداً من قوّة الإرادة&quot; —التي تنفد— بل أن تبني البنية التي تجعلك تلتزم ولو دون رغبة: قواعد مكتوبة، وأتمتة، والتزام مسبق، ومساءلة، وعادة. كل بطاقة مشكلةُ عدم التزامٍ حقيقية، وحلّها الهندسي.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=system-adherence">افتح الوحدة كاملة →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>

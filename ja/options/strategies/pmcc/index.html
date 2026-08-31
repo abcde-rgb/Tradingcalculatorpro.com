@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Poor Man's Covered Call | オプション戦略</title>
 <meta name="description" content="期先のディープITMコールを株式代わりにし、それに対して期近コールを売る。100株を買わないカバード・コール。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/options/calculator?strategy=pmcc">計算機で開く →</a></p>
   
   <div class="card"><h2>学べること</h2><ul><li>複数の満期を使用</li></ul></div>
+  
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
   <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/options/strategies/long-call/">Long Call · BUY</a></li><li><a href="https://tradingcalculator.pro/ja/options/strategies/short-put/">Short Put (CSP) · SELL</a></li><li><a href="https://tradingcalculator.pro/ja/options/strategies/bull-call-spread/">Bull Call Spread</a></li><li><a href="https://tradingcalculator.pro/ja/options/strategies/bull-put-spread/">Bull Put Spread</a></li><li><a href="https://tradingcalculator.pro/ja/options/strategies/call-ratio-backspread/">Call Ratio Backspread</a></li><li><a href="https://tradingcalculator.pro/ja/options/strategies/collar/">Collar</a></li></ul></div>
 </main>

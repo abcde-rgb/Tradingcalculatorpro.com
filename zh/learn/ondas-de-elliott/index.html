@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>艾略特波浪理论 | TradingCalculator.Pro</title>
 <meta name="description" content="拉尔夫·艾略特发现，群体心理以重复的波浪形态推动市场。价格沿趋势方向以5浪“推动”序列上行，随后以3浪序列逆势修正。同样的“5-3”结构在每个层级重复出现，从几分钟到数十年。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">拉尔夫·艾略特发现，群体心理以重复的波浪形态推动市场。价格沿趋势方向以5浪“推动”序列上行，随后以3浪序列逆势修正。同样的“5-3”结构在每个层级重复出现，从几分钟到数十年。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=elliott">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

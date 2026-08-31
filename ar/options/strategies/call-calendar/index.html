@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Call Calendar Spread | استراتيجيات الخيارات</title>
 <meta name="description" content="بيع خيار الشراء القريب وشراء نفس الخيار لأجل أبعد. يعتمد على تسارع تآكل الوقت في الرجل المُباعة.">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/options/calculator?strategy=call_calendar">افتح في الحاسبة →</a></p>
   
   <div class="card"><h2>ما ستتعلمه</h2><ul><li>تستخدم أكثر من تاريخ استحقاق</li></ul></div>
+  
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
   <div class="related card"><h2>مواضيع أخرى</h2><ul><li><a href="https://tradingcalculator.pro/ar/options/strategies/covered-call/">Covered Call</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/iron-condor/">Iron Condor</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/iron-butterfly/">Iron Butterfly</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/butterfly-call/">Butterfly Call</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/butterfly-put/">Butterfly Put</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/jade-lizard/">Jade Lizard</a></li></ul></div>
 </main>

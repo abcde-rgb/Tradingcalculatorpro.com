@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>DeMark TD Sequential: o contador de esgotamento que as instituições usam | TradingCalculator.Pro</title>
 <meta name="description" content="O TD Sequential de Tom DeMark é uma ferramenta de timing contra-tendência que tenta assinalar o ponto exato em que uma tendência se esgota e fica vulnerável a">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">O TD Sequential de Tom DeMark é uma ferramenta de timing contra-tendência que tenta assinalar o ponto exato em que uma tendência se esgota e fica vulnerável a uma inversão. É dos poucos indicadores &quot;raros&quot; que os gestores profissionais usam mesmo —vem de série nos terminais Bloomberg—, mas o investidor de retalho mal o conhece. Não prevê: conta o cansaço de compradores e vendedores através de duas fases, o Setup (9) e o Countdown (13).</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=demark">Abrir o módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>

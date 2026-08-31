@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>循证交易 | TradingCalculator.Pro</title>
 <meta name="description" content="什么是用数据、而不是用承诺『证明』过的?这里汇集了学术研究、监管机构以及基金、银行和交易台一个世纪的数据所展示的东西:到底有多少人亏损、哪些策略经受住了几十年的统计考验、专业人士如何管理风险。贯穿始终的主线是大数定律:一笔交易是运气,一千笔交易才是统计。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">什么是用数据、而不是用承诺『证明』过的?这里汇集了学术研究、监管机构以及基金、银行和交易台一个世纪的数据所展示的东西:到底有多少人亏损、哪些策略经受住了几十年的统计考验、专业人士如何管理风险。贯穿始终的主线是大数定律:一笔交易是运气,一千笔交易才是统计。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=evidence-based">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>O garfo de Andrews: operar com a linha mediana | TradingCalculator.Pro</title>
 <meta name="description" content="O garfo de Andrews (Andrews' Pitchfork), criado por Alan Andrews, é uma ferramenta geométrica de 3 linhas paralelas traçadas a partir de 3 pivôs do preço. For">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">O garfo de Andrews (Andrews' Pitchfork), criado por Alan Andrews, é uma ferramenta geométrica de 3 linhas paralelas traçadas a partir de 3 pivôs do preço. Forma um canal dinâmico cujo eixo central —a linha mediana— funciona como um íman ao qual o preço tende a regressar. É pouco ensinado mas muito visual, e encaixa ao lado de Gann como forma de ler o movimento com geometria.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=pitchfork">Abrir o módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>

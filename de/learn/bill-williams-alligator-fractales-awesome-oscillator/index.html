@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Bill Williams und &quot;Trading Chaos&quot;: Alligator, Fraktale und der AO | TradingCalculator.Pro</title>
 <meta name="description" content="Bill Williams war Trader und Psychologe, der die Chaostheorie auf die Märkte anwandte: für ihn ist der Markt keine geordnete Maschine, sondern ein nichtlinear">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Bill Williams war Trader und Psychologe, der die Chaostheorie auf die Märkte anwandte: für ihn ist der Markt keine geordnete Maschine, sondern ein nichtlineares System, das man in mehreren &quot;Dimensionen&quot; zugleich lesen muss. Sein in den 90ern berühmtes und heute fast vergessenes System kombiniert fünf eigene Indikatoren — Alligator, Fraktale, Awesome Oscillator, Gator und MFI —, um nur einzusteigen, wenn mehrere Teile zusammenpassen. Hier ist jeder und wie sie zusammenwirken.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=bill-williams">Vollständiges Modul öffnen →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>

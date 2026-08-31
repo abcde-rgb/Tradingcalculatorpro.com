@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>比尔·威廉姆斯与“混沌交易”：鳄鱼、分形与 AO | TradingCalculator.Pro</title>
 <meta name="description" content="比尔·威廉姆斯是一位交易者兼心理学家，他把混沌理论用到市场上：在他看来，市场不是一台有序的机器，而是一个非线性系统，必须同时从几个“维度”去读。他的系统在 90 年代非常有名、如今几乎被遗忘，它组合了他自创的五个指标——鳄鱼线、分形、动量神奇振荡器（AO）、Gator 和 MFI——只有当多个部件对齐时才进场。下面">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">比尔·威廉姆斯是一位交易者兼心理学家，他把混沌理论用到市场上：在他看来，市场不是一台有序的机器，而是一个非线性系统，必须同时从几个“维度”去读。他的系统在 90 年代非常有名、如今几乎被遗忘，它组合了他自创的五个指标——鳄鱼线、分形、动量神奇振荡器（AO）、Gator 和 MFI——只有当多个部件对齐时才进场。下面逐一介绍它们如何拼合。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=bill-williams">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

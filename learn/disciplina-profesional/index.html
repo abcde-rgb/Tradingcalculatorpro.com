@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Disciplina y rendimiento profesional | TradingCalculator.Pro</title>
 <meta name="description" content="Lo que separa al profesional rentable del retail que se quema no es el indicador secreto: es cómo gestionan su mente, sus errores y su estrés bajo presión. Es">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Lo que separa al profesional rentable del retail que se quema no es el indicador secreto: es cómo gestionan su mente, sus errores y su estrés bajo presión. Esto es el «software» del trader de élite, prestado de mesas institucionales, pilotos, cirujanos y deportistas de alto rendimiento.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=pro-discipline">Abrir el módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>

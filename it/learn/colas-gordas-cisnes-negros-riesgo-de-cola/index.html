@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Code grasse: perché la campana di Gauss mente | TradingCalculator.Pro</title>
 <meta name="description" content="Quasi tutta la teoria finanziaria assume che i prezzi seguano una distribuzione normale (la campana di Gauss). È falso, ed è un errore costoso: nei mercati gl">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Quasi tutta la teoria finanziaria assume che i prezzi seguano una distribuzione normale (la campana di Gauss). È falso, ed è un errore costoso: nei mercati gli eventi estremi accadono MOLTO più spesso di quanto quella campana preveda. Si chiamano &quot;code grasse&quot;, e capirlo —con Nassim Taleb come guida— cambia il modo in cui gestisci il rischio, perché il disastro non è così raro come ti hanno raccontato. Questo modulo parla di sopravvivere all'improbabile.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=tail-risk">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

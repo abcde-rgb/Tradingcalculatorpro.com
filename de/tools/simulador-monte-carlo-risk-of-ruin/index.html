@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Monte-Carlo- &amp; Risk-of-Ruin-Simulator — Blow-up-Wahrscheinlichkeit</title>
 <meta name="description" content="Simuliere Tausende Trade-Sequenzen mit deiner Trefferquote und deinem CRV, um deine echte Wahrscheinlichkeit für einen Totalverlust und die schlimmste Verlust">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -26,7 +33,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="de">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Monte-Carlo- & Risk-of-Ruin-Simulator — Blow-up-Wahrscheinlichkeit","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/de/tools/simulador-monte-carlo-risk-of-ruin/","inLanguage":"de","description":"Simuliere Tausende Trade-Sequenzen mit deiner Trefferquote und deinem CRV, um deine echte Wahrscheinlichkeit für einen Totalverlust und die schlimmste Verlust"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Monte-Carlo- & Risk-of-Ruin-Simulator — Blow-up-Wahrscheinlichkeit","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/de/tools/simulador-monte-carlo-risk-of-ruin/","inLanguage":"de","description":"Simuliere Tausende Trade-Sequenzen mit deiner Trefferquote und deinem CRV, um deine echte Wahrscheinlichkeit für einen Totalverlust und die schlimmste Verlust"},{"@type":"HowTo","name":"So wird er benutzt: Risk-of-Ruin-Rechner","inLanguage":"de","step":[{"@type":"HowToStep","position":1,"name":"Gib deine Daten ein","text":"Gib deine Daten ein: die Terme der Formel (Kapital, Risiko, Kurse und Stopp)."},{"@type":"HowToStep","position":2,"name":"Der Rechner wendet die Formel an und liefert das Ergebnis in den Einheiten deines Instruments.","text":"Der Rechner wendet die Formel an und liefert das Ergebnis in den Einheiten deines Instruments."},{"@type":"HowToStep","position":3,"name":"Prüfe die Aufschlüsselung vor dem Handeln","text":"Prüfe die Aufschlüsselung vor dem Handeln: Was sich nicht berechnen lässt, bleibt leer — nie null."}]}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Start","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Rechner","item":"https://tradingcalculator.pro/dashboard"},{"@type":"ListItem","position":3,"name":"Risk-of-Ruin-Rechner","item":"https://tradingcalculator.pro/de/tools/simulador-monte-carlo-risk-of-ruin/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/dashboard?tab=montecarlo">Rechner öffnen →</a></p>
   <div class="card"><h2>Formel</h2><code class="formula">Thousands of random simulations of your system</code></div>
   <div class="card"><h2>Was du bekommst</h2><ul><li>Ruin-Wahrscheinlichkeit für deine Positionsgröße</li><li>Schlimmste erwartete Verluststrähne</li><li>Prüft, ob dein System tragfähig ist</li></ul></div>
+  <div class="card"><h2>So wird er benutzt</h2><ol><li>Gib deine Daten ein: die Terme der Formel (Kapital, Risiko, Kurse und Stopp).</li><li>Der Rechner wendet die Formel an und liefert das Ergebnis in den Einheiten deines Instruments.</li><li>Prüfe die Aufschlüsselung vor dem Handeln: Was sich nicht berechnen lässt, bleibt leer — nie null.</li></ol></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
   <div class="related card"><h2>Weitere Rechner</h2><ul><li><a href="https://tradingcalculator.pro/de/tools/calculadora-tamano-posicion/">Positionsgrößen-Rechner</a></li><li><a href="https://tradingcalculator.pro/de/tools/calculadora-de-lotes-forex/">Forex-Lot-Rechner</a></li><li><a href="https://tradingcalculator.pro/de/tools/calculadora-de-apalancamiento/">Hebel-Rechner</a></li><li><a href="https://tradingcalculator.pro/de/tools/calculadora-de-futuros/">Futures-Rechner</a></li><li><a href="https://tradingcalculator.pro/de/tools/calculadora-precio-objetivo/">Kursziel-Rechner</a></li><li><a href="https://tradingcalculator.pro/de/tools/calculadora-porcentaje-trading/">Trading-Prozentrechner</a></li></ul></div>
 </main>

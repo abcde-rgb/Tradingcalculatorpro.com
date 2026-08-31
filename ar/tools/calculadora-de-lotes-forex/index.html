@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>حاسبة عقود الفوركس (اللوت) — حجم اللوت وقيمة النقطة</title>
 <meta name="description" content="حوّل مخاطرتك بالدولار إلى حجم اللوت الصحيح (قياسي أو ميني أو مايكرو) حسب زوجك ووقف الخسارة بالنقاط ورأس مالك.">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -26,7 +33,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="ar">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"حاسبة عقود الفوركس (اللوت) — حجم اللوت وقيمة النقطة","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/ar/tools/calculadora-de-lotes-forex/","inLanguage":"ar","description":"حوّل مخاطرتك بالدولار إلى حجم اللوت الصحيح (قياسي أو ميني أو مايكرو) حسب زوجك ووقف الخسارة بالنقاط ورأس مالك."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"حاسبة عقود الفوركس (اللوت) — حجم اللوت وقيمة النقطة","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/ar/tools/calculadora-de-lotes-forex/","inLanguage":"ar","description":"حوّل مخاطرتك بالدولار إلى حجم اللوت الصحيح (قياسي أو ميني أو مايكرو) حسب زوجك ووقف الخسارة بالنقاط ورأس مالك."},{"@type":"HowTo","name":"كيفية الاستخدام: حاسبة لوت الفوركس","inLanguage":"ar","step":[{"@type":"HowToStep","position":1,"name":"أدخل بياناتك","text":"أدخل بياناتك: حدود المعادلة (رأس المال، المخاطرة، الأسعار ووقف الخسارة)."},{"@type":"HowToStep","position":2,"name":"تطبّق الآلة الحاسبة المعادلة وتعيد النتيجة بوحدات أداتك.","text":"تطبّق الآلة الحاسبة المعادلة وتعيد النتيجة بوحدات أداتك."},{"@type":"HowToStep","position":3,"name":"راجع التفصيل قبل التداول","text":"راجع التفصيل قبل التداول: ما لا يمكن حسابه يظهر فارغًا، لا صفرًا."}]}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"الحاسبات","item":"https://tradingcalculator.pro/dashboard"},{"@type":"ListItem","position":3,"name":"حاسبة لوت الفوركس","item":"https://tradingcalculator.pro/ar/tools/calculadora-de-lotes-forex/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/dashboard?tab=lotsize">استخدم الحاسبة →</a></p>
   <div class="card"><h2>الصيغة</h2><code class="formula">Lots = Risk($) ÷ (Stop in pips × Pip value)</code></div>
   <div class="card"><h2>ما ستحصل عليه</h2><ul><li>لوت قياسي وميني ومايكرو</li><li>قيمة النقطة لكل زوج عملات</li><li>مضبوط على نسبة مخاطرتك لكل صفقة</li></ul></div>
+  <div class="card"><h2>كيفية الاستخدام</h2><ol><li>أدخل بياناتك: حدود المعادلة (رأس المال، المخاطرة، الأسعار ووقف الخسارة).</li><li>تطبّق الآلة الحاسبة المعادلة وتعيد النتيجة بوحدات أداتك.</li><li>راجع التفصيل قبل التداول: ما لا يمكن حسابه يظهر فارغًا، لا صفرًا.</li></ol></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
   <div class="related card"><h2>حاسبات أخرى</h2><ul><li><a href="https://tradingcalculator.pro/ar/tools/calculadora-tamano-posicion/">حاسبة حجم المركز</a></li><li><a href="https://tradingcalculator.pro/ar/tools/calculadora-de-apalancamiento/">حاسبة الرافعة المالية</a></li><li><a href="https://tradingcalculator.pro/ar/tools/calculadora-de-futuros/">حاسبة العقود الآجلة</a></li><li><a href="https://tradingcalculator.pro/ar/tools/calculadora-precio-objetivo/">حاسبة السعر المستهدف</a></li><li><a href="https://tradingcalculator.pro/ar/tools/calculadora-porcentaje-trading/">حاسبة نسبة التداول</a></li><li><a href="https://tradingcalculator.pro/ar/tools/calculadora-precio-medio/">حاسبة متوسط السعر</a></li></ul></div>
 </main>

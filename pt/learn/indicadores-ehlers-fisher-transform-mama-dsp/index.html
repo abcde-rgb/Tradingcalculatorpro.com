@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Indicadores de Ehlers: processamento de sinais aplicado ao preço | TradingCalculator.Pro</title>
 <meta name="description" content="John Ehlers, engenheiro aeroespacial, trouxe para o trading o processamento digital de sinais (DSP): em vez de tratar o preço como uma linha, trata-o como um ">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">John Ehlers, engenheiro aeroespacial, trouxe para o trading o processamento digital de sinais (DSP): em vez de tratar o preço como uma linha, trata-o como um SINAL formado por ciclos mais ruído, e aplica filtros de engenharia para separar um do outro. É do mais desconhecido da análise técnica, mas com base matemática séria. Aqui tem as suas ferramentas estrela, para que servem e quando falham.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=ehlers">Abrir o módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>

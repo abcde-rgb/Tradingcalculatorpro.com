@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Dealer-Positionierung: Gamma, Vanna und OPEX | TradingCalculator.Pro</title>
 <meta name="description" content="Einer der größten Markttreiber, den fast kein Retail-Kurs erklärt: wie sich Optionsmarktmacher (Dealer) absichern. Sie wetten nicht auf die Richtung; sie kauf">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Einer der größten Markttreiber, den fast kein Retail-Kurs erklärt: wie sich Optionsmarktmacher (Dealer) absichern. Sie wetten nicht auf die Richtung; sie kaufen und verkaufen den Basiswert, um neutral zu bleiben, und dieses mechanische – manchmal enorme – Hedging treibt den Preis. Hier findest du Gamma, Vanna, Charm und warum der Markt an Verfallsterminen „pinnt&quot; oder explodiert.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gamma-exposure">Vollständiges Modul öffnen →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>

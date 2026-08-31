@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>价格行为：不用指标读懂价格 | TradingCalculator.Pro</title>
 <meta name="description" content="价格行为（price action）就是通过读价格本身的走势——K线和柱——来交易，不用指标。前提是：所有信息（新闻、数据、情绪）最终都反映在价格里，所以会读价格就够了。它不是魔法：需要练习和背景判断，但它去掉了上千个指标的噪声，把你带回本质：谁在主导，买方还是卖方。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">价格行为（price action）就是通过读价格本身的走势——K线和柱——来交易，不用指标。前提是：所有信息（新闻、数据、情绪）最终都反映在价格里，所以会读价格就够了。它不是魔法：需要练习和背景判断，但它去掉了上千个指标的噪声，把你带回本质：谁在主导，买方还是卖方。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=price-action">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

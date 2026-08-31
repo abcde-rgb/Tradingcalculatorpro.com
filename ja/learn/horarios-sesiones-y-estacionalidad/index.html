@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>時間帯と季節性 | TradingCalculator.Pro</title>
 <meta name="description" content="特定の時間帯や日付では、資金の流れ(始値・指標・引け・満期)によって相場は似た動きを『しやすい』。固定ルールでも買いシグナルでもなく、『いつ』取引し、いつ手を引くかを選ぶのに役立つ統計的な傾向だ。時刻はすべてフランクフルト時間/UTC+2(夏時間で±1時間ずれる)。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">特定の時間帯や日付では、資金の流れ(始値・指標・引け・満期)によって相場は似た動きを『しやすい』。固定ルールでも買いシグナルでもなく、『いつ』取引し、いつ手を引くかを選ぶのに役立つ統計的な傾向だ。時刻はすべてフランクフルト時間/UTC+2(夏時間で±1時間ずれる)。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=session-timing">モジュール全体を開く →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>

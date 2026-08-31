@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Calculadora de Preço Médio (DCA) — Custo Médio</title>
 <meta name="description" content="Calcule o seu preço de entrada médio ao comprar em várias vezes (DCA) e saiba a que preço fica e o que precisa para sair em positivo.">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -26,7 +33,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="pt">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Calculadora de Preço Médio (DCA) — Custo Médio","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/pt/tools/calculadora-precio-medio/","inLanguage":"pt","description":"Calcule o seu preço de entrada médio ao comprar em várias vezes (DCA) e saiba a que preço fica e o que precisa para sair em positivo."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Calculadora de Preço Médio (DCA) — Custo Médio","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/pt/tools/calculadora-precio-medio/","inLanguage":"pt","description":"Calcule o seu preço de entrada médio ao comprar em várias vezes (DCA) e saiba a que preço fica e o que precisa para sair em positivo."},{"@type":"HowTo","name":"Como se usa: Calculadora de preço médio","inLanguage":"pt","step":[{"@type":"HowToStep","position":1,"name":"Introduz os teus dados","text":"Introduz os teus dados: os termos da fórmula (capital, risco, preços e stop)."},{"@type":"HowToStep","position":2,"name":"A calculadora aplica a fórmula e devolve o resultado nas unidades do teu instrumento.","text":"A calculadora aplica a fórmula e devolve o resultado nas unidades do teu instrumento."},{"@type":"HowToStep","position":3,"name":"Confere o detalhe antes de operar","text":"Confere o detalhe antes de operar: o que não se pode calcular aparece vazio, nunca como zero."}]}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Início","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Calculadoras","item":"https://tradingcalculator.pro/dashboard"},{"@type":"ListItem","position":3,"name":"Calculadora de preço médio","item":"https://tradingcalculator.pro/pt/tools/calculadora-precio-medio/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/dashboard?tab=spot">Usar a calculadora →</a></p>
   <div class="card"><h2>Fórmula</h2><code class="formula">Avg = Σ(price × qty) ÷ Σ qty</code></div>
   <div class="card"><h2>O que obtém</h2><ul><li>Preço médio ponderado</li><li>Break-even depois de fazer média</li><li>Ideal para DCA em cripto e ações</li></ul></div>
+  <div class="card"><h2>Como se usa</h2><ol><li>Introduz os teus dados: os termos da fórmula (capital, risco, preços e stop).</li><li>A calculadora aplica a fórmula e devolve o resultado nas unidades do teu instrumento.</li><li>Confere o detalhe antes de operar: o que não se pode calcular aparece vazio, nunca como zero.</li></ol></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
   <div class="related card"><h2>Outras calculadoras</h2><ul><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-tamano-posicion/">Calculadora de tamanho de posição</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-lotes-forex/">Calculadora de lotes forex</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-apalancamiento/">Calculadora de alavancagem</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-futuros/">Calculadora de futuros</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-precio-objetivo/">Calculadora de preço objetivo</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-porcentaje-trading/">Calculadora de percentagem de trading</a></li></ul></div>
 </main>

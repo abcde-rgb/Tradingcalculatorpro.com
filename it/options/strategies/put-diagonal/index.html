@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Put Diagonal Spread | Strategie in opzioni</title>
 <meta name="description" content="Calendar di put con strike diversi: la corta più in basso aggiunge un bias ribassista.">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/options/calculator?strategy=put_diagonal">Apri nella calcolatrice →</a></p>
   
   <div class="card"><h2>Cosa imparerai</h2><ul><li>Usa più di una scadenza</li></ul></div>
+  
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <div class="related card"><h2>Altri temi</h2><ul><li><a href="https://tradingcalculator.pro/it/options/strategies/long-put/">Long Put · BUY</a></li><li><a href="https://tradingcalculator.pro/it/options/strategies/short-call/">Short Call (Naked) · SELL</a></li><li><a href="https://tradingcalculator.pro/it/options/strategies/bear-put-spread/">Bear Put Spread</a></li><li><a href="https://tradingcalculator.pro/it/options/strategies/bear-call-spread/">Bear Call Spread</a></li><li><a href="https://tradingcalculator.pro/it/options/strategies/put-ratio-backspread/">Put Ratio Backspread</a></li><li><a href="https://tradingcalculator.pro/it/options/strategies/synthetic-short/">Synthetic Short</a></li></ul></div>
 </main>

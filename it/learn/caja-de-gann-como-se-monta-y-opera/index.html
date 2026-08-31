@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>La Gann Box: come si costruisce e si opera passo dopo passo | TradingCalculator.Pro</title>
 <meta name="description" content="La Gann Box è uno strumento di disegno dell'analisi tecnica che parte da un pivot importante e divide il range in una griglia di prezzo e di tempo. Qui la ved">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">La Gann Box è uno strumento di disegno dell'analisi tecnica che parte da un pivot importante e divide il range in una griglia di prezzo e di tempo. Qui la vedi come si usa davvero sul grafico —da quale massimo o minimo si ancora, come si costruisce, quali proporzioni usa e come si opera— senza il fumo esoterico che di solito l'accompagna. È la cugina geometrica di Fibonacci: una mappa di livelli dove il prezzo tende a reagire, utile se la usi con disciplina e contesto.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gann-box">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

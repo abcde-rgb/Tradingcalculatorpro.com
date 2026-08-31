@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>订单流 / 盘口解读 | TradingCalculator.Pro</title>
 <meta name="description" content="价格是结果,订单流是原因。在这里你学会解读真实的买卖压力——谁在主动进攻、流动性在哪、在哪被吸收——而不是只看走完的那根K线。它需要二级(Level 2)数据和练习,却是职业日内交易者所用的透镜。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">价格是结果,订单流是原因。在这里你学会解读真实的买卖压力——谁在主动进攻、流动性在哪、在哪被吸收——而不是只看走完的那根K线。它需要二级(Level 2)数据和练习,却是职业日内交易者所用的透镜。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=order-flow">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

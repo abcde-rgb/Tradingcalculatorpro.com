@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>المسار العاطفي لجلسة تداول | TradingCalculator.Pro</title>
 <meta name="description" content="عادةً ما تُروى سيكولوجيا التداول كقائمة من التحيّزات. هنا نرتّبها بحسب اللحظة التي تظهر فيها: فلكل مرحلة من الجلسة طريقتها الخاصة في الإخفاق. ستجد في كل مرحلة">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">عادةً ما تُروى سيكولوجيا التداول كقائمة من التحيّزات. هنا نرتّبها بحسب اللحظة التي تظهر فيها: فلكل مرحلة من الجلسة طريقتها الخاصة في الإخفاق. ستجد في كل مرحلة ما يفعله الجزء المتعمَّد، وما تفعله العادة، والإشارة التي يمكنك ملاحظتها في نفسك، والفعل المحدّد الذي يقطع السلوك قبل أن يتحوّل إلى أمر تنفيذ.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=session-phases">افتح الوحدة كاملة →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>

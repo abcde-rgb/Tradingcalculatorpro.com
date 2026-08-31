@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>O caminho do trader: quanto tempo se demora mesmo a ser rentável | TradingCalculator.Pro</title>
 <meta name="description" content="A pergunta que todo o principiante faz e que quase nenhum curso responde com honestidade. Aqui tem o mapa real da viagem —as etapas por que passa toda a gente">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">A pergunta que todo o principiante faz e que quase nenhum curso responde com honestidade. Aqui tem o mapa real da viagem —as etapas por que passa toda a gente, quanto tempo demora segundo os dados e porque é que a maioria desiste— reunido de estudos académicos, reguladores e da investigação sobre como se adquire qualquer competência difícil. Não é para o desanimar: é para que não confunda uma fase normal da aprendizagem com um fracasso e, sobretudo, para que sobreviva tempo suficiente para aprender.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=trader-journey">Abrir o módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>

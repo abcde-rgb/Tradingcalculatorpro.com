@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>マクロ流動性：市場を動かす「配管」 | TradingCalculator.Pro</title>
 <meta name="description" content="株式市場の、ほとんど誰も説明しない隠れたエンジン――システムに「使える」お金が本当はどれだけあるか。多くの大口が見ているのは、金利や業績だけでなく、純流動性――FRBが注入するか吸い上げるか――だ。三つの部品（FRSバランスシート − TGA − 逆レポ）から計算し、S&amp;P500と約0.95の相関を示したこともある">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">株式市場の、ほとんど誰も説明しない隠れたエンジン――システムに「使える」お金が本当はどれだけあるか。多くの大口が見ているのは、金利や業績だけでなく、純流動性――FRBが注入するか吸い上げるか――だ。三つの部品（FRSバランスシート − TGA − 逆レポ）から計算し、S&amp;P500と約0.95の相関を示したこともある。ここではその配管を一つずつ、そして限界も扱う。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=net-liquidity">モジュール全体を開く →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>

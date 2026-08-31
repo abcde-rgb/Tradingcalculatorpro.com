@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Liquidità macro: l'impianto idraulico che muove il mercato | TradingCalculator.Pro</title>
 <meta name="description" content="Il motore nascosto delle borse che quasi nessuno spiega: quanto denaro &quot;utilizzabile&quot; c'è davvero nel sistema. Non sono solo i tassi o gli utili, ma la liquid">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Il motore nascosto delle borse che quasi nessuno spiega: quanto denaro &quot;utilizzabile&quot; c'è davvero nel sistema. Non sono solo i tassi o gli utili, ma la liquidità netta —ciò che la Federal Reserve immette o drena— che molti grandi operatori sorvegliano. Si calcola con tre pezzi (bilancio della Fed − TGA − reverse repo) ed è arrivata a correlarsi intorno a 0,95 con l'S&amp;P 500. Ecco l'impianto, pezzo per pezzo, e i suoi limiti.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=net-liquidity">Apri il modulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>

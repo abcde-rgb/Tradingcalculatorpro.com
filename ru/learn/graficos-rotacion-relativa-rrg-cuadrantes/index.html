@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Графики относительной ротации (RRG): карта ротации профессионалов | TradingCalculator.Pro</title>
 <meta name="description" content="Relative Rotation Graphs (RRG), созданные Юлиусом де Кемпенаром, — наглядный способ увидеть, какие активы или секторы набирают или теряют силу ОТНОСИТЕЛЬНО эт">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Relative Rotation Graphs (RRG), созданные Юлиусом де Кемпенаром, — наглядный способ увидеть, какие активы или секторы набирают или теряют силу ОТНОСИТЕЛЬНО эталонного индекса и с какой скоростью. Вместо того чтобы смотреть на каждый актив отдельно, ты помещаешь их все на плоскость из 4 квадрантов и с одного взгляда видишь, кто лидирует, а кто отстаёт. Это институциональный инструмент (StockCharts, Bloomberg), которым розница почти не пользуется.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Начать 7 дней бесплатно →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=rrg">Открыть полный модуль →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Начать 7 дней бесплатно →</a>

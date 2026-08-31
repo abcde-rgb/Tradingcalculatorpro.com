@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Calculadora de Fibonacci — Retrocesos y Extensiones</title>
 <meta name="description" content="Genera los niveles de retroceso (38,2 %, 50 %, 61,8 %) y de extensión de Fibonacci entre dos puntos, para encontrar soportes, resistencias y objetivos.">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -26,7 +33,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="es">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Calculadora de Fibonacci — Retrocesos y Extensiones","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/tools/calculadora-fibonacci/","inLanguage":"es","description":"Genera los niveles de retroceso (38,2 %, 50 %, 61,8 %) y de extensión de Fibonacci entre dos puntos, para encontrar soportes, resistencias y objetivos."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Calculadora de Fibonacci — Retrocesos y Extensiones","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/tools/calculadora-fibonacci/","inLanguage":"es","description":"Genera los niveles de retroceso (38,2 %, 50 %, 61,8 %) y de extensión de Fibonacci entre dos puntos, para encontrar soportes, resistencias y objetivos."},{"@type":"HowTo","name":"Cómo se usa: Calculadora de fibonacci","inLanguage":"es","step":[{"@type":"HowToStep","position":1,"name":"Introduce tus datos","text":"Introduce tus datos: los términos de la fórmula (capital, riesgo, precios y stop)."},{"@type":"HowToStep","position":2,"name":"La calculadora aplica la fórmula y devuelve el resultado en las unidades de tu instrumento.","text":"La calculadora aplica la fórmula y devuelve el resultado en las unidades de tu instrumento."},{"@type":"HowToStep","position":3,"name":"Comprueba el desglose antes de operar","text":"Comprueba el desglose antes de operar: si un dato no se puede calcular, se muestra vacío, nunca como cero."}]}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Inicio","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Calculadoras","item":"https://tradingcalculator.pro/dashboard"},{"@type":"ListItem","position":3,"name":"Calculadora de fibonacci","item":"https://tradingcalculator.pro/tools/calculadora-fibonacci/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,6 +73,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/dashboard?tab=fibonacci">Usar la calculadora →</a></p>
   <div class="card"><h2>Fórmula</h2><code class="formula">Level = High − (Range × Fib ratio)</code></div>
   <div class="card"><h2>Qué obtienes</h2><ul><li>Retrocesos y extensiones automáticos</li><li>Zonas de entrada y objetivos</li><li>Alcista y bajista</li></ul></div>
+  <div class="card"><h2>Cómo se usa</h2><ol><li>Introduce tus datos: los términos de la fórmula (capital, riesgo, precios y stop).</li><li>La calculadora aplica la fórmula y devuelve el resultado en las unidades de tu instrumento.</li><li>Comprueba el desglose antes de operar: si un dato no se puede calcular, se muestra vacío, nunca como cero.</li></ol></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
   <div class="related card"><h2>Otras calculadoras</h2><ul><li><a href="https://tradingcalculator.pro/tools/calculadora-tamano-posicion/">Calculadora de tamaño de posición</a></li><li><a href="https://tradingcalculator.pro/tools/calculadora-de-lotes-forex/">Calculadora de lotes forex</a></li><li><a href="https://tradingcalculator.pro/tools/calculadora-de-apalancamiento/">Calculadora de apalancamiento</a></li><li><a href="https://tradingcalculator.pro/tools/calculadora-de-futuros/">Calculadora de futuros</a></li><li><a href="https://tradingcalculator.pro/tools/calculadora-precio-objetivo/">Calculadora de precio objetivo</a></li><li><a href="https://tradingcalculator.pro/tools/calculadora-porcentaje-trading/">Calculadora de porcentaje de trading</a></li></ul></div>
 </main>

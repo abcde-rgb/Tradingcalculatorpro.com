@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Psychology: problem → solution (the practical guide) | TradingCalculator.Pro</title>
 <meta name="description" content="Most psychology modules DESCRIBE the problem; this one gives you the SOLUTION. Each card names a real problem —in your own voice— and its concrete fix, drawn ">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Most psychology modules DESCRIBE the problem; this one gives you the SOLUTION. Each card names a real problem —in your own voice— and its concrete fix, drawn from the best (Brett Steenbarger, Mark Douglas) and from behavioural science. The base tool is the &quot;if-then&quot; plan: it turns self-control (which runs out) into an automatism. Don't read this once: turn it into rules in your plan.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=psych-solutions">Open the full module →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>

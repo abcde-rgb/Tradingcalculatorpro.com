@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Der emotionale Ablauf einer Sitzung | TradingCalculator.Pro</title>
 <meta name="description" content="Trading-Psychologie wird meist als Liste von Verzerrungen erzählt. Hier ist sie nach dem Moment geordnet, in dem sie auftritt: Jede Phase einer Sitzung bringt">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Trading-Psychologie wird meist als Liste von Verzerrungen erzählt. Hier ist sie nach dem Moment geordnet, in dem sie auftritt: Jede Phase einer Sitzung bringt ihre eigene Art zu scheitern mit. Zu jeder siehst du, was der bewusste Teil tut, was die Gewohnheit tut, das Signal, das du an dir selbst beobachten kannst, und die konkrete Handlung, die das Verhalten stoppt, bevor daraus eine Order wird.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=session-phases">Vollständiges Modul öffnen →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>

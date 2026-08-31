@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>エーラーズの指標：信号処理を価格に応用する | TradingCalculator.Pro</title>
 <meta name="description" content="航空宇宙エンジニアのジョン・エーラーズは、デジタル信号処理（DSP）をトレードに持ち込みました。価格を線ではなく、周期＋ノイズからなる「信号」として扱い、工学的なフィルターで両者を分離します。テクニカル分析の中でも最も知られていない領域の一つですが、数学的な裏付けは本物です。看板ツールと、その用途、そしてどこで失敗">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">航空宇宙エンジニアのジョン・エーラーズは、デジタル信号処理（DSP）をトレードに持ち込みました。価格を線ではなく、周期＋ノイズからなる「信号」として扱い、工学的なフィルターで両者を分離します。テクニカル分析の中でも最も知られていない領域の一つですが、数学的な裏付けは本物です。看板ツールと、その用途、そしてどこで失敗するかを紹介します。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=ehlers">モジュール全体を開く →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>

@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>深入估值一家公司 | TradingCalculator.Pro</title>
 <meta name="description" content="基本面分析寻找一家公司真正值多少,并与它在市场上的价格比较。价格 ≠ 价值:好公司若你买贵了也可能是糟糕的投资,平庸公司也可能是便宜货。在这里,你将学会读懂它的数字、估算它的价值——超越那 4 个基础比率。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">基本面分析寻找一家公司真正值多少,并与它在市场上的价格比较。价格 ≠ 价值:好公司若你买贵了也可能是糟糕的投资,平庸公司也可能是便宜货。在这里,你将学会读懂它的数字、估算它的价值——超越那 4 个基础比率。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=company-valuation">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

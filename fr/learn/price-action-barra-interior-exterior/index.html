@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Price action : lire le prix sans indicateurs | TradingCalculator.Pro</title>
 <meta name="description" content="Le price action, c'est trader en lisant le mouvement du prix lui-même — bougies et barres — sans indicateurs. La prémisse : toute l'information (actualités, d">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Le price action, c'est trader en lisant le mouvement du prix lui-même — bougies et barres — sans indicateurs. La prémisse : toute l'information (actualités, données, émotions) finit reflétée dans le prix, il suffit donc de savoir le lire. Ce n'est pas magique : ça demande de la pratique et du contexte, mais ça enlève le bruit de mille indicateurs et te ramène à l'essentiel : qui commande, acheteurs ou vendeurs.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=price-action">Ouvrir le module complet →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>

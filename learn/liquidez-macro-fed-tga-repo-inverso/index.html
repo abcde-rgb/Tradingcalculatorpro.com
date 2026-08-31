@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Liquidez macro: la fontanería que mueve el mercado | TradingCalculator.Pro</title>
 <meta name="description" content="El motor oculto de las bolsas que casi nadie explica: cuánto dinero &quot;utilizable&quot; hay de verdad en el sistema. No son solo los tipos o los beneficios, sino la ">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">El motor oculto de las bolsas que casi nadie explica: cuánto dinero &quot;utilizable&quot; hay de verdad en el sistema. No son solo los tipos o los beneficios, sino la liquidez neta —lo que la Reserva Federal inyecta o drena— la que muchos grandes vigilan. Se calcula con tres piezas (balance de la Fed − TGA − repo inverso) y ha llegado a correlacionarse en torno a 0,95 con el S&amp;P 500. Aquí tienes la fontanería, pieza a pieza, y sus límites.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=net-liquidity">Abrir el módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>

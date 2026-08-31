@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Macro : cycle, taux et rotation | TradingCalculator.Pro</title>
 <meta name="description" content="Le contexte macro fait bouger des marchés entiers — plus que n'importe quel graphique isolé. Les taux d'intérêt, l'inflation et la croissance fixent la marée ">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Le contexte macro fait bouger des marchés entiers — plus que n'importe quel graphique isolé. Les taux d'intérêt, l'inflation et la croissance fixent la marée qui soulève ou coule tous les bateaux. Il ne s'agit pas de le prédire mais de se positionner : savoir dans quelle phase du cycle on est et ce qui y fonctionne d'ordinaire.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=macro">Ouvrir le module complet →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>

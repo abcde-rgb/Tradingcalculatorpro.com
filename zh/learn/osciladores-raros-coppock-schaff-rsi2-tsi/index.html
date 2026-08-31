@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>冷门振荡指标：Coppock、Schaff、RSI-2 与 TSI | TradingCalculator.Pro</title>
 <meta name="description" content="在 RSI、MACD 和随机指标之外，还有一小撮几乎没人用、却带着有用想法的动量振荡指标。这里我们汇集四个：Coppock（找长期底部）、Schaff 趋势周期（更快、滞后更小的周期）、Connors RSI-2（均值回归）以及真实强度指数 TSI（高度平滑的动量）。它们都不神奇，但各自解决一件具体的事。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">在 RSI、MACD 和随机指标之外，还有一小撮几乎没人用、却带着有用想法的动量振荡指标。这里我们汇集四个：Coppock（找长期底部）、Schaff 趋势周期（更快、滞后更小的周期）、Connors RSI-2（均值回归）以及真实强度指数 TSI（高度平滑的动量）。它们都不神奇，但各自解决一件具体的事。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=oscillators">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>

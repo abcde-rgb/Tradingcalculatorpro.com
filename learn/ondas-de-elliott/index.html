@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>Teoría de las Ondas de Elliott | TradingCalculator.Pro</title>
 <meta name="description" content="Ralph Elliott observó que la psicología de masas mueve los mercados en patrones de ondas repetitivos. El precio avanza en una secuencia 'motriz' de 5 ondas en">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">Ralph Elliott observó que la psicología de masas mueve los mercados en patrones de ondas repetitivos. El precio avanza en una secuencia 'motriz' de 5 ondas en la dirección de la tendencia y luego corrige en una secuencia de 3 ondas en contra. La misma forma 5-3 se repite en cada grado, desde minutos hasta décadas.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=elliott">Abrir el módulo completo →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>

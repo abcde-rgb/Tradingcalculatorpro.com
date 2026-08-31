@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>DeMark TD 序列：机构在用的“衰竭计数器” | TradingCalculator.Pro</title>
 <meta name="description" content="汤姆·迪马克的 TD 序列是一个逆势择时工具，试图标出趋势衰竭、易于反转的确切位置。它是少数专业管理人真正在用的“冷门”指标之一——彭博终端内置——但散户几乎不知道。它不预测：它通过两个阶段——Setup（9）和 Countdown（13）——来数买卖双方的疲惫。">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -64,6 +71,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="lead">汤姆·迪马克的 TD 序列是一个逆势择时工具，试图标出趋势衰竭、易于反转的确切位置。它是少数专业管理人真正在用的“冷门”指标之一——彭博终端内置——但散户几乎不知道。它不预测：它通过两个阶段——Setup（9）和 Countdown（13）——来数买卖双方的疲惫。</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=demark">打开完整模块 →</a></p>
+  
   
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
