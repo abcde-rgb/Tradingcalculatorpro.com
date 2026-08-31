@@ -11,8 +11,9 @@ Endpoints:
   POST /admin/set-plan                    — asignar plan premium
   POST /admin/users/{user_id}             — editar usuario (nombre, email, plan, admin)
   POST /admin/users/{user_id}/reset-password — resetear contraseña
-  GET  /admin/settings                    — ver todos los conectores/APIs (secretos enmascarados)
   POST /admin/settings                    — guardar/actualizar conectores y APIs
+                                            (el GET y el PUT viven en server.py:8511 y 8534;
+                                             el enmascarado real es `_mask_secret` de allí)
   GET  /public/settings                   — claves públicas sin autenticación
   GET  /admin/connectors/status           — health check en vivo de cada API
   GET  /admin/audit-log                   — log de acciones admin paginado
@@ -243,11 +244,6 @@ ALL_CONNECTORS: List[Dict[str, Any]] = [
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _mask(value: Optional[str]) -> str:
-    """Return *** if value exists, empty string otherwise."""
-    return "***" if value else ""
-
-
 async def _get_all_settings(db) -> Dict[str, str]:
     """Load all settings from app_settings (single global doc keyed by _id='global')."""
     doc = await db.app_settings.find_one({"_id": "global"}) or {}
@@ -347,6 +343,7 @@ def build_admin_router(
     require_admin_dep,
     subscription_plans: dict,
     log_admin_action_fn=None,
+    encrypt_setting_fn=None,
 ) -> APIRouter:
     """
     Crea y devuelve el router de admin con las rutas ADICIONALES del panel.
@@ -473,9 +470,29 @@ def build_admin_router(
             if value == "__CLEAR__":
                 await _delete_setting(db, key)
                 cleared.append(key)
-            elif value and str(value).strip() and str(value).strip() != "***":
-                await _upsert_setting(db, key, str(value).strip())
-                saved.append(key)
+                continue
+            valor = str(value).strip() if value else ""
+            if not valor:
+                continue
+            if key in SECRET_SETTING_KEYS:
+                # La máscara son BOLITAS, no `***`.
+                #
+                # Este camino comparaba contra `"***"`, que era lo que devolvía un
+                # `_mask()` de este módulo al que no llamaba nadie. La máscara real
+                # la pinta `_mask_secret()` de server.py y son `••••1234`, así que
+                # la guarda no cubría nada: reenviar el formulario sin tocar un
+                # campo guardaba las bolitas COMO credencial. El PUT de server.py
+                # ya se defendía de esto; este POST no.
+                if "•" in valor or "\u2022" in valor:
+                    rejected.append(key)
+                    continue
+                # Y cifrar, como hace el PUT. Sin esto había dos puertas al mismo
+                # armario y sólo una con llave: lo que entrara por aquí quedaba en
+                # claro aunque SECRET_ENCRYPTION_KEY estuviera puesta.
+                if encrypt_setting_fn is not None:
+                    valor = encrypt_setting_fn(valor)
+            await _upsert_setting(db, key, valor)
+            saved.append(key)
         await _audit(
             admin_user, "update_settings",
             details={"saved": saved, "cleared": cleared, "rejected": rejected},

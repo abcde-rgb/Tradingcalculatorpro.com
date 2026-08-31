@@ -935,6 +935,34 @@ function IntegrationsEditor({ headers, t }) {
         )}
       </CardHeader>
       <CardContent className="space-y-5 pt-2">
+        {/* El estado del cifrado, dicho.
+
+            Los secretos se pintan enmascarados (`••••1234`) estén cifrados o no,
+            así que desde aquí los dos casos eran indistinguibles: sin
+            SECRET_ENCRYPTION_KEY en el entorno, la clave secreta de Stripe se
+            guardaba en claro en la base de datos y el panel se veía idéntico.
+            `encryption_active` viene del backend (server.py, `cifrado_activo`). */}
+        {settings && settings.encryption_active === false && (
+          <div
+            className="flex items-start gap-3 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10"
+            data-testid="aviso-sin-cifrado"
+            role="alert"
+          >
+            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="text-xs leading-relaxed">
+              <p className="font-semibold text-amber-500">
+                Los secretos se guardan SIN CIFRAR en la base de datos.
+              </p>
+              <p className="text-muted-foreground mt-1">
+                Falta <code className="font-mono">SECRET_ENCRYPTION_KEY</code> en el entorno del
+                servicio. Todo lo que guardes aquí —claves de Stripe, SendGrid, PayPal— queda en
+                texto plano. Genera una clave Fernet, ponla en Secret Manager y vuelve a guardar
+                cada secreto para que se reescriba cifrado: los valores ya guardados no se
+                convierten solos.
+              </p>
+            </div>
+          </div>
+        )}
         {INTEGRATION_SECTIONS.map((sec) => (
           <section key={sec.id} className="space-y-2" data-testid={`integration-section-${sec.id}`}>
             <div>

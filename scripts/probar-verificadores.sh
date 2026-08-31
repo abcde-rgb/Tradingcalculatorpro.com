@@ -942,6 +942,82 @@ else
   echo "  ⏭️  Alfabeto por idioma y techo de los diagramas: sin frontend/node_modules"
 fi
 
+# ── Exposición de secretos: los cuatro arreglos del 2026-08-31 ─────────────
+# Estas pruebas leen el TEXTO de server.py y admin_routes.py, así que NO
+# necesitan fastapi: van en su propio bloque, con guarda sólo de pytest, para
+# que corran también donde el de abajo se salta (el job de «Doc», el sandbox).
+#
+# Tres de las diez sobrevivieron a su primer sabotaje —comprobaban que
+# aparecía un NOMBRE, no que se llamara; aceptaban la secuencia `\u2022` además
+# del carácter; y un regex no perezoso paraba en la primera llave y dejaba
+# fuera lo añadido después—. Los sabotajes de aquí son los que las cazaron.
+if python -c 'import pytest' >/dev/null 2>&1 && [ -f backend/tests/test_exposicion_secretos_unit.py ]; then
+  titulo "Exposición de secretos (test_exposicion_secretos_unit.py)"
+  EXP="(cd backend && python -m pytest tests/test_exposicion_secretos_unit.py -q -p no:cacheprovider -k"
+
+  probar "vuelve /docs abierto al público" \
+    "$EXP no_publica_su_documentacion)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('backend/server.py'); t = p.read_text(encoding='utf-8')
+p.write_text(re.sub(r'app = FastAPI\\((.*?)\\n\\)',
+                    'app = FastAPI(title=\\'x\\'\\n)', t, count=1, flags=re.S), encoding='utf-8')\""
+
+  probar "production pasa a contar como entorno de desarrollo" \
+    "$EXP no_incluye_produccion)" \
+    "sed -i 's/in (\"development\", \"dev\", \"local\")/in (\"development\", \"dev\", \"local\", \"production\")/' backend/server.py"
+
+  probar "la caída a texto plano vuelve a ser muda" \
+    "$EXP deja_rastro)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('backend/server.py'); t = p.read_text(encoding='utf-8')
+i = t.index('    logging.error('); j = t.index('    return value', i)
+p.write_text(t[:i] + t[j:], encoding='utf-8')\""
+
+  probar "el GET deja de publicar encryption_active" \
+    "$EXP se_puede_consultar)" \
+    "sed -i 's/    out\[\"encryption_active\"\] = cifrado_activo()//' backend/server.py"
+
+  probar "el panel deja de pintar el aviso de «sin cifrar»" \
+    "$EXP el_panel_avisa)" \
+    "sed -i 's/settings.encryption_active === false/false/' frontend/src/pages/AdminPage.jsx"
+
+  # Este es el que importa: el POST de admin_routes.py escribía SIEMPRE en claro.
+  probar "el POST de settings vuelve a guardar sin cifrar" \
+    "$EXP cifra_los_secretos)" \
+    "sed -i 's/valor = encrypt_setting_fn(valor)/pass/' backend/admin_routes.py"
+
+  probar "el POST escribe el valor sin pasar por el cifrador" \
+    "$EXP cifra_los_secretos)" \
+    "sed -i 's/await _upsert_setting(db, key, valor)/await _upsert_setting(db, key, str(value).strip())/' backend/admin_routes.py"
+
+  probar "la guarda de máscara vuelve a comparar con ***" \
+    "$EXP rechaza_la_mascara_real)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('backend/admin_routes.py'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace(chr(8226), '*'), encoding='utf-8')\""
+
+  probar "reaparece el _mask muerto que prometía enmascarar" \
+    "$EXP enmascarado_muerto)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('backend/admin_routes.py'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('def build_admin_router(',
+    'def _mask(v):' + chr(10) + '    return v' + chr(10) + chr(10) + chr(10) + 'def build_admin_router(', 1), encoding='utf-8')\""
+
+  probar "vuelve un correo escrito a mano al acceso de cortesía" \
+    "$EXP correos_escritos_a_mano)" \
+    "sed -i 's/    if e.strip()/    if e.strip()\n} | {\"alguien@ejemplo.org\"/' backend/server.py"
+
+  probar "un gmail vuelve al código del backend" \
+    "$EXP da_acceso_desde_el_codigo)" \
+    "sed -i '1i # contacto: alguien@gmail.com' backend/server.py"
+else
+  echo "  ⏭️  Exposición de secretos: sin pytest, no se prueba"
+fi
+
 # ── Los sabotajes que corren pytest necesitan las dependencias del backend ──
 # El job de «Doc» de CI monta Python pero NO instala `requirements.txt`, así que
 # ahí `python -m pytest` no existe. Sin esta guarda los cinco bloques de abajo

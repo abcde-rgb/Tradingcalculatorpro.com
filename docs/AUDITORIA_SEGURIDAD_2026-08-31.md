@@ -22,6 +22,7 @@ la historia, no de sondear producción.
 | Credenciales reales en la historia | **0** (13 coincidencias, todas marcadores) |
 | Hallazgos | **1 alto · 1 medio · 3 bajos · 1 nota** |
 | Lo más urgente | **F-1**: los secretos de pago se guardan sin cifrar y nada lo dice |
+| Estado | **F-2, F-3, F-4 y la mitad de código de F-1: arreglados** (ver §Arreglos) |
 
 ---
 
@@ -74,6 +75,34 @@ añade que no es un riesgo latente: es el comportamiento por defecto.
    `--update-secrets` del servicio, y re-guardar cada secreto para que se escriba
    ya cifrado (los valores viejos siguen en claro hasta que se reescriban).
    Esto es tuyo: requiere consola de GCP.
+
+### 🔴 F-1 bis — Y hay un segundo camino de escritura que no cifraba nunca
+
+*Encontrado al implementar el arreglo de F-1, no en el primer barrido.*
+
+`backend/admin_routes.py`, `POST /admin/settings` — montado y alcanzable por
+cualquier admin:
+
+```python
+elif value and str(value).strip() and str(value).strip() != "***":
+    await _upsert_setting(db, key, str(value).strip())   # sin cifrar, siempre
+```
+
+Dos problemas en dos líneas:
+
+1. **No pasa por `_encrypt_setting` en ningún caso.** Lo que entre por aquí
+   queda en claro *aunque* `SECRET_ENCRYPTION_KEY` esté puesta. Eran dos puertas
+   al mismo armario y sólo una con llave.
+2. **La guarda de máscara compara contra `"***"`**, que era lo que devolvía el
+   `_mask()` muerto de F-4. La máscara real la pinta `_mask_secret()` de
+   `server.py` y son bolitas (`••••1234`), así que la guarda no cubría nada:
+   reenviar el formulario sin tocar un campo guardaba **la máscara como
+   credencial**. El `PUT` de `server.py` sí se defiende de esto (`v.startswith("•")`).
+
+El panel usa el `PUT`, así que el daño no se ha materializado por esa vía. El
+endpoint sigue ahí.
+
+---
 
 ---
 
@@ -243,3 +272,34 @@ Ambas llevan `Depends(require_admin)`; fue mi expresión regular, no las rutas.
 
 Ninguno de los cuatro primeros toca el comportamiento de la aplicación para un
 usuario.
+
+---
+
+## Arreglos aplicados (2026-08-31)
+
+| | Qué se hizo |
+|---|---|
+| **F-1** (mitad de código) | `cifrado_activo()` nuevo; `GET /admin/settings` publica `encryption_active`; el panel pinta un aviso ámbar cuando es `false`; la caída a texto plano deja `logging.error` nombrando la variable que falta |
+| **F-1 bis** | El `POST` de `admin_routes.py` recibe el cifrador y lo usa, y su guarda pasa a mirar las bolitas de verdad |
+| **F-2** | `docs_url` / `redoc_url` / `openapi_url` a `None` salvo en desarrollo |
+| **F-3** | El correo sale del fuente; `FREE_ACCESS_EMAILS` es la única entrada, y el arranque registra cuántas hay (sin imprimirlas) |
+| **F-4** | `_mask` borrada; la cabecera del módulo deja de prometer un GET que no sirve |
+
+Diez pruebas en `backend/tests/test_exposicion_secretos_unit.py`, **saboteadas
+una a una**. Tres sobrevivieron al primer intento y hubo que reforzarlas:
+comprobaban que aparecía un *nombre* en vez de que se hiciera la *llamada*;
+aceptaban la secuencia de escape `\u2022` además del carácter; y un `re.search`
+no perezoso paraba en la primera llave, dejando fuera lo añadido después. Los
+once sabotajes quedan registrados en `scripts/probar-verificadores.sh`.
+
+### Lo que sigue siendo tuyo
+
+**La mitad de infraestructura de F-1.** Generar la clave Fernet, guardarla en
+Secret Manager y añadirla al servicio. Hasta entonces el aviso del panel estará
+encendido, que es exactamente lo que se pretendía. **Los valores ya guardados en
+claro no se convierten solos**: hay que volver a guardarlos desde el panel una
+vez la clave esté puesta.
+
+⚠️ **Y una acción obligatoria al desplegar F-3:** definir `FREE_ACCESS_EMAILS`
+en el servicio de Cloud Run con las direcciones de cortesía. Si se despliega sin
+eso, esas cuentas dejan de tener premium. El arranque lo dice en el log.

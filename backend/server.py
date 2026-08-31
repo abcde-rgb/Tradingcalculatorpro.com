@@ -1139,12 +1139,30 @@ DEMO_PASSWORD = _demo_pw
 # Set ADMIN_EMAILS env var in Cloud Run — no database change needed.
 _ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
 
-# Emails with FREE full (comp) access — always treated as premium without paying.
-# Útil mientras no está la facturación/Stripe activa. Ampliable por env FREE_ACCESS_EMAILS
-# (coma-separado); hardcodeamos una cuenta de cortesía por defecto.
-_FREE_ACCESS_EMAILS = (
-    {e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()}
-    | {"tradingcalculatorpro@gmail.com"}
+# Correos con acceso completo GRATIS (cortesía): premium sin pagar.
+#
+# Sólo del entorno. Antes esta línea llevaba un correo escrito en el código, y
+# eso costaba dos cosas: publicaba en el repositorio la dirección que da el
+# acceso —M-14 de DIARIO_BUGS.md ya sacó ESE MISMO correo de `cloudbuild.yaml`
+# por estar expuesto, y aquí se quedó— y convertía «quién entra gratis» en algo
+# que sólo se cambia con un despliegue.
+#
+# ⚠️ Al desplegar esto hay que definir FREE_ACCESS_EMAILS en el servicio, o las
+# cuentas de cortesía dejan de serlo. El arranque lo dice en el log (sin
+# imprimir las direcciones).
+_FREE_ACCESS_EMAILS = {
+    e.strip().lower()
+    for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",")
+    if e.strip()
+}
+# `log_safe` sobre un entero parece de más, y la puerta que lo exige tiene
+# razón: `test_log_injection_unit` no distingue tipos a propósito —vigila
+# también las llamadas que aún no existen—, y relajarla para dejar pasar un
+# `len()` la relajaría para todo lo demás. Sale más barato conformarse.
+logging.info(
+    "[acceso] cuentas de cortesía configuradas: %s "
+    "(se definen en FREE_ACCESS_EMAILS, no en el código)",
+    log_safe(len(_FREE_ACCESS_EMAILS)),
 )
 
 # Subscription Plans
@@ -1155,7 +1173,23 @@ SUBSCRIPTION_PLANS = {
     "lifetime":  {"name": "De Por Vida", "price": 500.00, "currency": "EUR", "interval": "lifetime", "days": 36500, "stripe_price_id": "price_1TXM8YImYjMeegYBouBCvmC0", "klarna": True},
 }
 
-app = FastAPI(title="Trading Calculator PRO API")
+# Fuera de desarrollo, la API no publica su propia documentación.
+#
+# Por defecto FastAPI sirve `/docs`, `/redoc` y `/openapi.json` a quien pase, y
+# ahí va el esquema COMPLETO: las 141 rutas con sus modelos y el nombre de cada
+# campo, `/admin/*` incluidas. No es una brecha —las rutas siguen pidiendo
+# autenticación— pero es el mapa de la superficie de ataque servido con
+# formulario de prueba incorporado, y no hace falta que esté.
+#
+# En desarrollo sí interesa: es la forma rápida de probar un endpoint nuevo.
+_ES_DESARROLLO = os.environ.get("ENVIRONMENT", "production").lower() in ("development", "dev", "local")
+
+app = FastAPI(
+    title="Trading Calculator PRO API",
+    docs_url="/docs" if _ES_DESARROLLO else None,
+    redoc_url="/redoc" if _ES_DESARROLLO else None,
+    openapi_url="/openapi.json" if _ES_DESARROLLO else None,
+)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -7907,6 +7941,15 @@ try:
             require_admin_dep=require_admin,
             subscription_plans=SUBSCRIPTION_PLANS,
             log_admin_action_fn=log_admin_action,
+            # LAMBDA A PROPÓSITO, no la simplifiques al nombre pelado.
+            # Este bloque corre al importar el módulo, en la línea ~7920, y
+            # `_encrypt_setting` no se define hasta la ~8472. Pasar el nombre
+            # directamente lanza NameError aquí mismo… y lo recoge el `except`
+            # de abajo, que sólo escribe una línea de log: el resultado sería
+            # quedarse SIN NINGUNA ruta de admin y con la web aparentemente
+            # bien. La lambda resuelve el nombre al llamarla, con el módulo ya
+            # cargado entero.
+            encrypt_setting_fn=lambda _v: _encrypt_setting(_v),
         ),
         prefix="/admin",
     )
@@ -8452,12 +8495,36 @@ def _get_fernet():
         logging.warning(f"[settings] Fernet init failed: {log_safe(_e)}")
         return None
 
+def cifrado_activo() -> bool:
+    """¿Hay clave de cifrado utilizable para los secretos de la base de datos?
+
+    Existe para que este estado se pueda MIRAR. El panel enseña los secretos
+    enmascarados (`••••1234`) tanto si están cifrados como si no, así que quien
+    los teclea no tenía ninguna forma de saber en cuál de los dos casos estaba.
+    """
+    return _get_fernet() is not None
+
+
 def _encrypt_setting(value: str) -> str:
     if not value:
         return value
     f = _get_fernet()
     if f:
         return _ENC_PREFIX + f.encrypt(value.encode()).decode()
+    # Sin clave se guarda en claro, que es el comportamiento de siempre — pero
+    # ya no en silencio. La caída era muda en los dos extremos: ni un log aquí
+    # ni una señal en el panel, así que una instalación sin
+    # SECRET_ENCRYPTION_KEY escribía la clave secreta de Stripe sin cifrar y
+    # nada en el sistema lo decía. No se aborta el guardado: dejar al
+    # administrador sin poder configurar la pasarela sería peor que el riesgo
+    # que se evita, y Cloud SQL sigue cifrando en reposo por debajo.
+    logging.error(
+        "[settings] SECRET_ENCRYPTION_KEY ausente o inválida: el secreto se "
+        "guarda EN CLARO en la base de datos. Genera una clave "
+        "(python -c \"from cryptography.fernet import Fernet; "
+        "print(Fernet.generate_key().decode())\"), guárdala en Secret Manager y "
+        "vuelve a guardar los secretos para que se reescriban cifrados."
+    )
     return value
 
 def _decrypt_setting(value: str) -> str:
@@ -8510,6 +8577,11 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
         flags[f"{k}_set"] = bool(raw)
 
     out.update(flags)
+    # Que el administrador pueda VER si lo que guarda queda cifrado. Es la mitad
+    # del arreglo que no depende de tocar infraestructura: la máscara se pinta
+    # igual en los dos casos, así que sin esta bandera el estado era
+    # indistinguible desde el panel.
+    out["encryption_active"] = cifrado_activo()
     out["updated_at"] = doc.get("updated_at")
     out["updated_by"] = doc.get("updated_by")
     return out
