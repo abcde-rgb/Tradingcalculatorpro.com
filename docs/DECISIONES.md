@@ -29,8 +29,9 @@ variables del workflow— y el sitio pasó a ser de pago íntegro con prueba de 
 con tarjeta por adelantado.
 **Sustituye a** la decisión del 2026-08-01 de monetizar con Google AdSense, que
 duró un día.
-**Consecuencia viva:** ⚠️ `gen-seo-pages.js` sigue anunciando `price: "0"` en el
-JSON-LD de las calculadoras, con títulos que dicen «Gratis». Sin cerrar (G-28).
+**Consecuencia, cerrada (2026-08-31):** `gen-seo-pages.js` anunciaba `price: "0"` en
+el JSON-LD de las calculadoras, con el título de una de ellas diciendo «Gratis».
+G-28, cerrado y verificado.
 
 ### 2026-08-02 · No se da de alta ninguna cuenta de AdSense
 Corolario de lo anterior, escrito aparte porque `ESTADO_PROYECTO.md` §6 siguió

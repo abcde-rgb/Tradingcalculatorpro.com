@@ -5963,3 +5963,21 @@ desde aquí — sólo la mitad que vive en el repo.
   matizar que ya está mayormente resuelto.
 - ⚠️ Sigue sin validar por nativo: `pt` e `it` (aviso ya existente en
   `.claude/rules/i18n-seo.md`).
+
+### 2026-08-31 (cont. 2) — G-28 cerrado: el título «Gratis»/«Free» de Tamaño de Posición
+
+- ✅ **Corregido** `gen-seo-pages.js:76-77`: «Calculadora de Tamaño de Posición —
+  Gratis y Profesional» / «Position Size Calculator — Free & Professional» →
+  «— Riesgo y Gestión de Capital» / «— Risk & Money Management», coherente con
+  el patrón `Calculadora de X — <descriptor>` que usan las otras 12 calculadoras.
+  El bloque `offers` con `price:'0'` ya se había quitado en una sesión anterior
+  (el comentario de `gen-seo-pages.js:439` explica por qué); sólo quedaba este
+  título suelto sin tocar.
+- ✅ Verificado con `npm run build` (instala deps + `craco build` + `postbuild`)
+  → 1640 páginas, 1648 URLs; `check-seo.js` en verde; título confirmado en el
+  HTML servido (`build/tools/calculadora-tamano-posicion/index.html` y su par
+  `en/`); `grep -i gratis` en el generador sólo devuelve el trial real de 7
+  días, ninguna calculadora más dice «Free»; `i18n-check` y `engine-check` sin
+  cambios (7.359 × 10, 531/531); `eslint` 0 errores.
+- ✅ **G-28 marcado 🟢 cerrado y verificado** en `ESTADO_PROYECTO.md` §3 y en
+  `DECISIONES.md` (2026-08-02 · Todo el contenido va tras el muro de pago).
