@@ -77,6 +77,11 @@ Los usa el despliegue del backend (`cloudbuild.yaml`, manual desde GCP):
 - [ ] 🔴 `STRIPE_WEBHOOK_SECRET` — `whsec_...`
 - [ ] `SENDGRID_API_KEY` — email
 - [ ] `ANTHROPIC_API_KEY` — AI Trade Coach
+- [ ] 🔴 `SECRET_ENCRYPTION_KEY` — `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+      Sin ella, las claves de Stripe/SendGrid/PayPal/Google que se guarden desde `/admin` caen a
+      **texto plano** en Postgres (`server.py:cifrado_activo()`, `GET /admin/settings` lo expone como
+      `encryption_active` y el panel pinta un aviso ámbar si falta). No rota nada por sí sola: si ya
+      había secretos guardados en claro antes de ponerla, siguen en claro hasta que se regraben.
 
 ## D. Cloud Run / Cloud SQL (infra)
 

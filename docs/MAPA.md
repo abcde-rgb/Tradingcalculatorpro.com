@@ -15,10 +15,10 @@
 | | |
 |---|---:|
 | Módulos del backend | 36 |
-| Líneas de Python (backend) | 27,770 |
+| Líneas de Python (backend) | 27,788 |
 | Rutas declaradas | 199 |
 | **Rutas sin consumidor en el frontend** | **33** |
-| Ficheros de test · funciones de test | 64 · 1093 |
+| Ficheros de test · funciones de test | 65 · 1100 |
 | Rutas del frontend (`App.js`) | 29 |
 | Idiomas · claves i18n (referencia `es`) | 10 · 7,366 |
 
@@ -35,7 +35,7 @@ esperando una pantalla. Esto es el hueco G-14.
 
 | Método | Ruta | Definida en |
 |---|---|---|
-| `POST` | `/api/admin/subscriptions/{user_id}/refund` | `backend/server.py:9077` |
+| `POST` | `/api/admin/subscriptions/{user_id}/refund` | `backend/server.py:9095` |
 | `GET` | `/api/alerts/realtime/status` | `backend/realtime_alerts.py:386` |
 | `POST` | `/api/alerts/send-email` | `backend/server.py:3890` |
 | `POST` | `/api/calculate/american` | `backend/server.py:6174` |
@@ -57,7 +57,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `GET` | `/api/portfolio/rebalance` | `backend/server.py:3696` |
 | `DELETE` | `/api/portfolio/{asset_id}` | `backend/server.py:3689` |
 | `PUT` | `/api/portfolio/{asset_id}` | `backend/server.py:3678` |
-| `GET` | `/api/quote/{symbol}` | `backend/server.py:9591` |
+| `GET` | `/api/quote/{symbol}` | `backend/server.py:9609` |
 | `GET` | `/api/referrals/me` | `backend/referrals.py:160` |
 | `POST` | `/api/referrals/redeem-credit` | `backend/referrals.py:389` |
 | `POST` | `/api/subscriptions/change-plan` | `backend/missing_apis.py:494` |
@@ -78,7 +78,7 @@ esperando una pantalla. Esto es el hueco G-14.
 
 | Módulo | Líneas | Rutas | Responsabilidad |
 |---|---:|---:|---|
-| `server.py` | 10,034 | 141 | — |
+| `server.py` | 10,052 | 141 | — |
 | `performance.py` | 1,844 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,248 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
@@ -208,39 +208,39 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | Método | Ruta | Línea | Front |
 |---|---|---:|:---:|
 | `GET` | `/` | 5335 | ✅ |
-| `GET` | `/admin/audit-log` | 9010 | ✅ |
-| `GET` | `/admin/coupons` | 9728 | ✅ |
-| `POST` | `/admin/coupons` | 9734 | ✅ |
-| `POST` | `/admin/coupons/{coupon_id}/toggle` | 9757 | ✅ |
-| `GET` | `/admin/feature-flags` | 9777 | ✅ |
-| `PATCH` | `/admin/feature-flags/{flag_id}` | 9786 | ✅ |
-| `POST` | `/admin/impersonate/{user_id}` | 9047 | ✅ |
-| `GET` | `/admin/market-data-health` | 9571 | ✅ |
+| `GET` | `/admin/audit-log` | 9028 | ✅ |
+| `GET` | `/admin/coupons` | 9746 | ✅ |
+| `POST` | `/admin/coupons` | 9752 | ✅ |
+| `POST` | `/admin/coupons/{coupon_id}/toggle` | 9775 | ✅ |
+| `GET` | `/admin/feature-flags` | 9795 | ✅ |
+| `PATCH` | `/admin/feature-flags/{flag_id}` | 9804 | ✅ |
+| `POST` | `/admin/impersonate/{user_id}` | 9065 | ✅ |
+| `GET` | `/admin/market-data-health` | 9589 | ✅ |
 | `GET` | `/admin/metrics` | 8283 | ✅ |
-| `POST` | `/admin/payments/manual` | 9385 | ✅ |
-| `GET` | `/admin/payments/reconciliation` | 9229 | ✅ |
-| `GET` | `/admin/payments/webhook-health` | 9525 | ✅ |
-| `POST` | `/admin/payments/{transaction_id}/grant` | 9317 | ✅ |
+| `POST` | `/admin/payments/manual` | 9403 | ✅ |
+| `GET` | `/admin/payments/reconciliation` | 9247 | ✅ |
+| `GET` | `/admin/payments/webhook-health` | 9543 | ✅ |
+| `POST` | `/admin/payments/{transaction_id}/grant` | 9335 | ✅ |
 | `POST` | `/admin/promote` | 8331 | ✅ |
-| `GET` | `/admin/revenue` | 9110 | ✅ |
-| `GET` | `/admin/settings` | 8760 | ✅ |
-| `PUT` | `/admin/settings` | 8783 | ✅ |
-| `POST` | `/admin/subscriptions/{user_id}/refund` | 9077 | ❌ |
-| `GET` | `/admin/usage` | 9607 | ✅ |
-| `GET` | `/admin/usage-heatmap` | 9674 | ✅ |
+| `GET` | `/admin/revenue` | 9128 | ✅ |
+| `GET` | `/admin/settings` | 8777 | ✅ |
+| `PUT` | `/admin/settings` | 8801 | ✅ |
+| `POST` | `/admin/subscriptions/{user_id}/refund` | 9095 | ❌ |
+| `GET` | `/admin/usage` | 9625 | ✅ |
+| `GET` | `/admin/usage-heatmap` | 9692 | ✅ |
 | `GET` | `/admin/users` | 8183 | ✅ |
 | `POST` | `/admin/users` | 8405 | ✅ |
 | `GET` | `/admin/users.csv` | 8253 | ✅ |
 | `DELETE` | `/admin/users/{user_id}` | 8519 | ✅ |
 | `PATCH` | `/admin/users/{user_id}` | 8450 | ✅ |
 | `POST` | `/admin/users/{user_id}/reset-password` | 8554 | ✅ |
-| `GET` | `/admin/webhooks` | 9801 | ✅ |
-| `POST` | `/admin/webhooks/{event_id}/retry` | 9807 | ✅ |
+| `GET` | `/admin/webhooks` | 9819 | ✅ |
+| `POST` | `/admin/webhooks/{event_id}/retry` | 9825 | ✅ |
 | `GET` | `/alerts` | 3764 | ✅ |
 | `POST` | `/alerts` | 3750 | ✅ |
 | `POST` | `/alerts/send-email` | 3890 | ❌ |
 | `DELETE` | `/alerts/{alert_id}` | 3772 | ✅ |
-| `POST` | `/analytics/track` | 9647 | ✅ |
+| `POST` | `/analytics/track` | 9665 | ✅ |
 | `POST` | `/auth/2fa/disable` | 2806 | ✅ |
 | `POST` | `/auth/2fa/enable` | 2787 | ✅ |
 | `POST` | `/auth/2fa/setup` | 2771 | ✅ |
@@ -270,7 +270,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `POST` | `/backtest/validate` | 7758 | ✅ |
 | `POST` | `/billing/create-portal-session` | 5132 | ✅ |
 | `GET` | `/billing/history` | 5167 | ✅ |
-| `GET` | `/brokers` | 8873 | ✅ |
+| `GET` | `/brokers` | 8891 | ✅ |
 | `POST` | `/calculate/american` | 6174 | ❌ |
 | `POST` | `/calculate/assignment` | 6118 | ✅ |
 | `POST` | `/calculate/greeks` | 6087 | ✅ |
@@ -332,8 +332,8 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `DELETE` | `/portfolio/{asset_id}` | 3689 | ❌ |
 | `PUT` | `/portfolio/{asset_id}` | 3678 | ❌ |
 | `GET` | `/prices` | 3372 | ✅ |
-| `GET` | `/public/settings` | 8853 | ✅ |
-| `GET` | `/quote/{symbol}` | 9591 | ❌ |
+| `GET` | `/public/settings` | 8871 | ✅ |
+| `GET` | `/quote/{symbol}` | 9609 | ❌ |
 | `GET` | `/stock/{symbol}` | 5501 | ✅ |
 | `POST` | `/subscriptions/cancel` | 5027 | ✅ |
 | `GET` | `/subscriptions/current` | 4979 | ✅ |
@@ -410,7 +410,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 308 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 31 | 1,763 |
-| `pages/` | 23 | 16,911 |
+| `pages/` | 23 | 16,929 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -419,7 +419,7 @@ dan) en vez de abrirlos de arriba abajo.
 
 | Fichero | Líneas |
 |---|---:|
-| `backend/server.py` | 10,034 |
+| `backend/server.py` | 10,052 |
 | `frontend/src/pages/EducationPage.jsx` | 5,813 |
 | `frontend/src/lib/i18n/ar.js` | 4,881 |
 | `frontend/src/lib/i18n/de.js` | 4,881 |

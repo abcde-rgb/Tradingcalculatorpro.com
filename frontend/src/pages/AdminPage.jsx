@@ -935,6 +935,24 @@ function IntegrationsEditor({ headers, t }) {
         )}
       </CardHeader>
       <CardContent className="space-y-5 pt-2">
+        {/* Sin SECRET_ENCRYPTION_KEY, lo que se guarda aquí abajo cae a texto
+            plano en la base de datos sin ningún aviso — hasta ahora. El admin
+            necesita saberlo ANTES de teclear una clave, no descubrirlo en una
+            auditoría. */}
+        {settings && settings.encryption_active === false && (
+          <div className="rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 flex items-start gap-3 text-sm"
+               data-testid="encryption-inactive-warning">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-warn" />
+            <div>
+              <p className="font-medium text-warn">Cifrado desactivado: las claves se guardan en texto plano</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Falta <code className="px-1 py-0.5 rounded bg-muted font-mono text-[11px]">SECRET_ENCRYPTION_KEY</code> en
+                el entorno del backend. Las claves de Stripe, SendGrid, PayPal y Google que guardes aquí
+                quedan legibles en la base de datos hasta que se configure.
+              </p>
+            </div>
+          </div>
+        )}
         {INTEGRATION_SECTIONS.map((sec) => (
           <section key={sec.id} className="space-y-2" data-testid={`integration-section-${sec.id}`}>
             <div>

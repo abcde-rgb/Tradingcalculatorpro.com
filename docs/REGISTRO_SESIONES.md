@@ -5980,3 +5980,40 @@ graves** (eran 53 al ampliar la cobertura, y 77 sólo en `/performance` con el
 tema claro). 1.091 tests de backend + 9 nuevos del WebSocket. 433/433 del motor.
 `i18n-check` con 6.972 claves y 0 huecos. Catálogo en paridad, mapa regenerado,
 enlaces de doc resueltos, 29 rutas muertas todas decididas.
+
+### 2026-08-31 (cont. 4) — BUG-074: el cifrado de secretos fallaba en silencio
+
+Auditoría del panel de admin a petición del dueño ("qué le falta, buen diseño,
+ajustes y todo lo demás"). Dos hallazgos grandes de diseño/IA quedaron sólo
+reportados (32 secciones en scroll continuo sin navegación, 57 `fetch()` que
+disparan al montar la página, 70 colores Tailwind crudos fuera del sistema de
+tokens) — el dueño pidió arreglar primero el de seguridad.
+
+- 🔴 **Verificado contra `main` de hoy, no heredado de las ramas ya revisadas**:
+  `_encrypt_setting()` cae a texto plano sin loguear nada si falta
+  `SECRET_ENCRYPTION_KEY`, y esa variable no está en ningún workflow ni en
+  `DEPLOY_CHECKLIST.md` — sólo en `.env.example`, vacía. El panel no daba
+  ninguna señal de si una clave de Stripe/SendGrid/PayPal/Google quedaba
+  cifrada o no.
+- ✅ El otro half del hallazgo (`POST /admin/settings` de `admin_routes.py`
+  saltándose el cifrado y comparando contra la máscara `"***"`) **ya no
+  aplica**: comprobado que el `PUT /admin/settings` de `server.py` —el que de
+  verdad llama `IntegrationsEditor`— ya cifraba bien y rechazaba un valor con
+  el carácter de máscara dentro.
+- ✅ **Fix**: `cifrado_activo()` junto a `_get_fernet()`, aviso único al
+  arrancar si la clave falta, `GET /admin/settings` expone `encryption_active`,
+  panel pinta aviso ámbar (`text-warn`/`bg-warn`, tokens del sistema, no un
+  color suelto) sin bloquear el guardado. `DEPLOY_CHECKLIST.md` §C ya lista
+  la variable. `docs/DIARIO_BUGS.md` → BUG-074.
+- ✅ **7 tests nuevos** (`test_secret_encryption_unit.py`): activo/inactivo
+  según la variable, clave con forma inválida no cuenta como activa,
+  ida-y-vuelta del cifrado, idempotencia de `_decrypt_setting` sobre un valor
+  ya en claro, y que `admin_get_settings` de verdad expone el campo.
+- ✅ Verificado: pytest 1179 passed / 1 failed (el mismo de siempre, TLS sin
+  Postgres local en este sandbox) / 114 skipped · py_compile · build exit 0 ·
+  eslint 0 errores · i18n-check 7.366×10 (sin cambios — el aviso va en
+  castellano fijo, como el resto del panel admin, que no es superficie
+  multi-idioma) · engine-check · gen-mapa --check · check-doc-links.
+- ⚠️ **Pendiente y es operativo, no de código**: generar la clave
+  (`Fernet.generate_key()`) y ponerla en Cloud Run. Sin eso el aviso ámbar
+  sigue apareciendo, que es la señal correcta de que sigue sin cifrar.

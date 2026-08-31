@@ -8703,7 +8703,12 @@ async def _load_settings_doc() -> Dict[str, Any]:
 # Set SECRET_ENCRYPTION_KEY in env (generate once: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 # Without this key, secrets fall back to plaintext — functional but not encrypted at application level.
 # GCP Cloud SQL still encrypts at rest; this adds an extra layer.
-
+#
+# Sin la variable, esto caía a texto plano EN SILENCIO: ni un log, ni una
+# señal en el panel. Un admin podía teclear la clave secreta de Stripe
+# creyendo que quedaba cifrada y no había forma de saberlo. Ahora arranca con
+# un aviso (una vez, no por cada guardado) y `cifrado_activo()` viaja a
+# `GET /admin/settings` para que el panel lo pinte.
 _ENC_PREFIX = "fernet:"
 
 def _get_fernet():
@@ -8716,6 +8721,18 @@ def _get_fernet():
     except Exception as _e:
         logging.warning(f"[settings] Fernet init failed: {log_safe(_e)}")
         return None
+
+def cifrado_activo() -> bool:
+    """Si es False, `_encrypt_setting` está devolviendo el valor tal cual."""
+    return _get_fernet() is not None
+
+if not cifrado_activo():
+    logging.warning(
+        "⚠️  SECRET_ENCRYPTION_KEY no está configurada — las claves de Stripe, "
+        "SendGrid, PayPal y Google que se guarden desde /admin quedarán en "
+        "texto plano en la base de datos. Genera una con: python -c "
+        "\"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+    )
 
 def _encrypt_setting(value: str) -> str:
     if not value:
@@ -8777,6 +8794,7 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
     out.update(flags)
     out["updated_at"] = doc.get("updated_at")
     out["updated_by"] = doc.get("updated_by")
+    out["encryption_active"] = cifrado_activo()
     return out
 
 
