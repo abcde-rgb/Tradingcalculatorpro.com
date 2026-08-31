@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "陽の寄り付き坊主",
+  "bearishBeltHoldName": "陰の寄り付き坊主",
+  "inNeckName": "首内線",
+  "bullishAbandonedBabyName": "陽の捨て子線",
+  "bearishAbandonedBabyName": "陰の捨て子線",
   "ichiVisTenkan": "転換線 Tenkan（速い、9）",
   "brokersTitle": "ブローカー",
   "brokersLeerMas": "詳しく見る",
@@ -464,7 +469,6 @@ export default {
   "haramiName": "はらみ足",
   "haramiDesc": "2本のローソクパターンで、2本目が最初の範囲内に収まる。反転の可能性を示すシグナル。",
   "spinningTopName": "コマ",
-  "lowReliability": "低",
   "gatedNotice": "サブスクリプションが有効ではありません。プランを選択してプラットフォームにアクセスしてください。",
   "tradeInstrument": "商品",
   "tradeInstrumentSpot": "現物 / 株式",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "試してみる：",
   "bvlTitle": "バックテストの検証",
   "sphTitle": "あるセッションの感情プロセス",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "エントリー",
   "regStop": "ストップ",
   "regCaption": "エントリーとストップの差は1単位あたり {d}、これが 1R です。示した目標は同じ幅を先に伸ばしただけで、予測ではありません。",

@@ -2493,4 +2493,10 @@ export default {
   "sphMxWinBad": "Günstiges Ergebnis, gefährlicher Prozess. Zählt als Fehler, auch wenn das Geld etwas anderes sagt.",
   "sphMxLossGood": "Ein Verlust, den das System erwartet. Es gibt nichts zu korrigieren.",
   "sphMxLossBad": "Der einzige Fall, der eine Änderung bei Auswahl, Risiko oder Ausführung verlangt.",
+  "bullishBeltHoldDesc": "Eröffnet praktisch am Tief und schließt stark nahe dem Hoch, mit nur einem kurzen oberen Docht. Bullisches Umkehrsignal nach einem Rückgang.",
+  "bearishBeltHoldDesc": "Eröffnet praktisch am Hoch und schließt stark nahe dem Tief, mit nur einem kurzen unteren Docht. Bärisches Umkehrsignal nach einer Rally.",
+  "inNeckDesc": "Eine lange bärische Kerze, gefolgt von einer Kerze, die mit Kurslücke nach unten eröffnet, aber knapp über dem vorherigen Schlusskurs schließt — kaum Erholung. Bärische Fortsetzung mit geringer Zuverlässigkeit.",
+  "bullishAbandonedBabyDesc": "Ein Doji steht isoliert mit einer echten Kurslücke auf beiden Seiten, zwischen einer bärischen und einer bullischen Kerze. Die strenge Version des Morgensterns mit Doji.",
+  "bearishAbandonedBabyDesc": "Ein Doji steht isoliert mit einer echten Kurslücke auf beiden Seiten, zwischen einer bullischen und einer bärischen Kerze. Die strenge Version des Abendsterns mit Doji.",
+  "lowReliability": "Niedrig",
 }

@@ -2493,4 +2493,10 @@ export default {
   "sphMxWinBad": "Resultado favorable, proceso peligroso. Cuenta como error aunque el dinero diga lo contrario.",
   "sphMxLossGood": "Pérdida esperada del sistema. No hay nada que corregir.",
   "sphMxLossBad": "El único caso que exige un cambio en selección, riesgo o ejecución.",
+  "bullishBeltHoldDesc": "Abre prácticamente en el mínimo y cierra fuerte cerca del máximo, con una única mecha superior corta. Señal de reversión alcista tras una caída.",
+  "bearishBeltHoldDesc": "Abre prácticamente en el máximo y cierra fuerte cerca del mínimo, con una única mecha inferior corta. Señal de reversión bajista tras una subida.",
+  "inNeckDesc": "Vela bajista larga seguida de otra que abre con hueco a la baja pero cierra apenas por encima del cierre anterior, sin recuperar terreno real. Continuación bajista de fiabilidad baja.",
+  "bullishAbandonedBabyDesc": "Un doji queda aislado por un hueco real a cada lado entre una vela bajista y una alcista. Versión estricta de la estrella de la mañana con doji.",
+  "bearishAbandonedBabyDesc": "Un doji queda aislado por un hueco real a cada lado entre una vela alcista y una bajista. Versión estricta de la estrella de la tarde con doji.",
+  "lowReliability": "Baja",
 }

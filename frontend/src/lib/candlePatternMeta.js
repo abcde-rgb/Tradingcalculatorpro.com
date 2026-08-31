@@ -38,6 +38,12 @@ export const PATTERN_NAME_KEY = {
   'three-black-crows':    'threeBlackCrowsName',
   'three-inside-up':      'threeInsideUpName',
   'three-inside-down':    'threeInsideDownName',
+  // extra (Bulkowski corpus)
+  'bullish-belt-hold':      'bullishBeltHoldName',
+  'bearish-belt-hold':      'bearishBeltHoldName',
+  'in-neck':                'inNeckName',
+  'bullish-abandoned-baby': 'bullishAbandonedBabyName',
+  'bearish-abandoned-baby': 'bearishAbandonedBabyName',
 };
 
 export const TYPE_BADGE = {

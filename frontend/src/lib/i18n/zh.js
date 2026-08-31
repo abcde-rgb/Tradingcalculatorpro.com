@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "看涨捉腰带线",
+  "bearishBeltHoldName": "看跌捉腰带线",
+  "inNeckName": "颈内线",
+  "bullishAbandonedBabyName": "看涨弃婴线",
+  "bearishAbandonedBabyName": "看跌弃婴线",
   "ichiVisTenkan": "转换线 Tenkan（快，9）",
   "brokersTitle": "券商",
   "brokersLeerMas": "了解更多",
@@ -472,7 +477,6 @@ export default {
   "haramiName": "孕线",
   "haramiDesc": "两根蜡烛形态，第二根包含在第一根的范围内。可能的反转信号。",
   "spinningTopName": "陀螺",
-  "lowReliability": "低",
   "gatedNotice": "您的订阅未激活。请选择一个套餐以使用平台。",
   "tradeInstrument": "品种",
   "tradeInstrumentSpot": "现货 / 股票",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "动手试试：",
   "bvlTitle": "如何验证回测",
   "sphTitle": "一场交易时段的情绪过程",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "入场",
   "regStop": "止损",
   "regCaption": "你的入场价与止损价相差每单位 {d}：这就是 1R。图上标出的目标是同一段距离的延伸，不是预测。",

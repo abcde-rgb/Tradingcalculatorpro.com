@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "Cinto de Alta",
+  "bearishBeltHoldName": "Cinto de Baixa",
+  "inNeckName": "Dentro do Pescoço",
+  "bullishAbandonedBabyName": "Bebê Abandonado de Alta",
+  "bearishAbandonedBabyName": "Bebê Abandonado de Baixa",
   "ichiVisTenkan": "Tenkan (rápida, 9)",
   "brokersTitle": "Corretoras",
   "brokersLeerMas": "Ler mais",
@@ -681,7 +686,6 @@ export default {
   "longLeggedDojiName": "Doji de Pernas Longas",
   "highWaveName": "Onda Alta",
   "spinningTopName": "Pião",
-  "lowReliability": "Baixa",
   "gatedNotice": "A sua subscrição não está ativa. Escolha um plano para aceder à plataforma.",
   "tradeInstrument": "Instrumento",
   "tradeInstrumentSpot": "Spot / Ação",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "Experimenta:",
   "bvlTitle": "Validar um backtest",
   "sphTitle": "O processo emocional de uma sessão",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "Entrada",
   "regStop": "Stop",
   "regCaption": "A distância entre a sua entrada e o seu stop é de {d} por unidade: isso é 1R. Os objetivos marcados são essa mesma distância projetada, não uma previsão.",

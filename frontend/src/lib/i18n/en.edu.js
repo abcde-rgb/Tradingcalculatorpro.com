@@ -2493,4 +2493,10 @@ export default {
   "sphMxWinBad": "Favourable result, dangerous process. It counts as an error even though the money says otherwise.",
   "sphMxLossGood": "A loss the system expects. There is nothing to correct.",
   "sphMxLossBad": "The only case that demands a change in selection, risk or execution.",
+  "bullishBeltHoldDesc": "Opens essentially at the low and closes strong near the high, with only a short upper wick. Bullish reversal signal after a decline.",
+  "bearishBeltHoldDesc": "Opens essentially at the high and closes strong near the low, with only a short lower wick. Bearish reversal signal after a rally.",
+  "inNeckDesc": "A long bearish candle followed by one that gaps down but closes just above the prior close, barely recovering any ground. Low-reliability bearish continuation.",
+  "bullishAbandonedBabyDesc": "A doji sits isolated by a real gap on both sides, between a bearish candle and a bullish one. The strict version of the morning doji star.",
+  "bearishAbandonedBabyDesc": "A doji sits isolated by a real gap on both sides, between a bullish candle and a bearish one. The strict version of the evening doji star.",
+  "lowReliability": "Low",
 }

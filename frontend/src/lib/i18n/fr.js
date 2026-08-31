@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "Ceinture Haussière",
+  "bearishBeltHoldName": "Ceinture Baissière",
+  "inNeckName": "Dans la Nuque",
+  "bullishAbandonedBabyName": "Bébé Abandonné Haussier",
+  "bearishAbandonedBabyName": "Bébé Abandonné Baissier",
   "ichiVisTenkan": "Tenkan (rapide, 9)",
   "brokersTitle": "Courtiers",
   "brokersLeerMas": "En savoir plus",
@@ -597,7 +602,6 @@ export default {
   "threeBlackCrowsName": "Trois Corbeaux Noirs",
   "haramiName": "Harami",
   "haramiDesc": "Pattern de deux chandeliers où le second est contenu dans la plage du premier. Signal de retournement possible.",
-  "lowReliability": "Faible",
   "gatedNotice": "Ton abonnement n'est pas actif. Choisis un plan pour accéder à la plateforme.",
   "tradeInstrument": "Instrument",
   "tradeInstrumentSpot": "Spot / Action",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "Essayez :",
   "bvlTitle": "Valider un backtest",
   "sphTitle": "Le processus émotionnel d'une séance",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "Entrée",
   "regStop": "Stop",
   "regCaption": "La distance entre votre entrée et votre stop est de {d} par unité : c'est 1R. Les objectifs indiqués sont cette même distance projetée, pas une prévision.",

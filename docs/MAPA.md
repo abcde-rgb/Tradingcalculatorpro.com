@@ -15,12 +15,12 @@
 | | |
 |---|---:|
 | Módulos del backend | 36 |
-| Líneas de Python (backend) | 27,788 |
+| Líneas de Python (backend) | 27,873 |
 | Rutas declaradas | 199 |
 | **Rutas sin consumidor en el frontend** | **33** |
-| Ficheros de test · funciones de test | 65 · 1100 |
+| Ficheros de test · funciones de test | 65 · 1107 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 7,366 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,376 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -90,9 +90,9 @@ esperando una pantalla. Esto es el hueco G-14.
 | `options_math.py` | 744 |  | Black-Scholes-Merton Option Pricing and Greeks. |
 | `backtest.py` | 643 |  | Backtest engine with validation — does this system have an edge, or am I fooling myself? |
 | `options_optimize.py` | 633 |  | Options Strategy Optimizer. |
+| `candle_patterns.py` | 604 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
 | `level_odds.py` | 603 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
 | `trading_plan.py` | 565 |  | Trading plan: the user's own rules, versioned server-side. |
-| `candle_patterns.py` | 519 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
 | `referrals.py` | 471 | 3 | referrals.py — Referral / Affiliate program API. |
 | `realtime_alerts.py` | 425 | 3 | realtime_alerts.py — WebSocket-based real-time price alerts. |
 | `performance_metrics.py` | 422 |  | Advanced performance & risk metrics — the professional-grade gap. |
@@ -399,7 +399,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/common/` | 12 | 2,258 |
 | `components/dashboard/` | 7 | 926 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 88 | 14,651 |
+| `components/education/` | 88 | 14,667 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 600 |
 | `components/layout/` | 2 | 590 |
@@ -421,16 +421,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 10,052 |
 | `frontend/src/pages/EducationPage.jsx` | 5,813 |
-| `frontend/src/lib/i18n/ar.js` | 4,881 |
-| `frontend/src/lib/i18n/de.js` | 4,881 |
-| `frontend/src/lib/i18n/en.js` | 4,881 |
-| `frontend/src/lib/i18n/es.js` | 4,881 |
-| `frontend/src/lib/i18n/fr.js` | 4,881 |
-| `frontend/src/lib/i18n/it.js` | 4,881 |
-| `frontend/src/lib/i18n/ja.js` | 4,881 |
-| `frontend/src/lib/i18n/pt.js` | 4,881 |
-| `frontend/src/lib/i18n/ru.js` | 4,881 |
-| `frontend/src/lib/i18n/zh.js` | 4,881 |
+| `frontend/src/lib/i18n/ar.js` | 4,883 |
+| `frontend/src/lib/i18n/de.js` | 4,883 |
+| `frontend/src/lib/i18n/en.js` | 4,883 |
+| `frontend/src/lib/i18n/es.js` | 4,883 |
+| `frontend/src/lib/i18n/fr.js` | 4,883 |
+| `frontend/src/lib/i18n/it.js` | 4,883 |
+| `frontend/src/lib/i18n/ja.js` | 4,883 |
+| `frontend/src/lib/i18n/pt.js` | 4,883 |
+| `frontend/src/lib/i18n/ru.js` | 4,883 |
+| `frontend/src/lib/i18n/zh.js` | 4,883 |
 
 ## Verificadores del repositorio
 

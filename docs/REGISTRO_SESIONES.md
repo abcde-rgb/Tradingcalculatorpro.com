@@ -6063,3 +6063,46 @@ tokens "mecánico, se puede hacer a la vez".
   `gen-mapa --check` y `gen-asistente --check` regenerados · `check-doc-links`
   130 documentos, todo resuelve. No se tocó ningún fichero de backend, así que
   el pytest suite no aplica a este cambio.
+
+### 2026-08-31 (cont. 6) — Cinco patrones de vela más, investigados contra TrendSpider
+
+El dueño pidió comparar el escáner contra TrendSpider (226 patrones: 172 de velas +
+54 chartistas, medido con búsqueda web) y, tras verlo, que se documentara CÓMO detecta
+TrendSpider lo suyo antes de copiar nada. Metodología pública: pivotes + relaciones
+geométricas + volumen — el mismo esqueleto que ya llevaba diseñado y sin construir el
+Lote 5 de `DETALLE_TECNICAS_IMPLEMENTACION.md`. El 172 de velas no son 172 formas
+distintas: es la suma de cuatro fuentes con nombre propio (el corpus clásico Nison/
+Bulkowski, "The Strat" de Rob Smith, variantes de Bulkowski y "Newsome Candles", un
+sistema propietario de un tercero).
+
+- ✅ **5 patrones nuevos en `candle_patterns.py`** (30 → **35**), con cifras reales de
+  Bulkowski (thepatternsite.com, verificadas hoy, no inventadas): **Belt Hold**
+  alcista/bajista (71%/68%, rank 62/63), **In Neck** (53%, rank 17, fiabilidad baja
+  y se etiqueta como tal), **Abandoned Baby** alcista/bajista (70%/69%, rank 13/14 —
+  versión ESTRICTA de la estrella con doji, exige hueco real a los dos lados, no sólo
+  que el cuerpo del doji quede bajo el cierre de la vela anterior).
+- 🔍 **Investigados y descartados a propósito**: On Neck, Meeting Lines/Counterattack
+  y Stick Sandwich/Homing Pigeon. Bulkowski mide que actúan "casi al azar" o
+  **al revés de su nombre de libro** (Stick Sandwich se vende como reversión alcista
+  y en la muestra real actúa como continuación bajista el 62% de las veces). Forzarlos
+  en una tabla type/behavior/rate alineados habría sido la misma clase de dato
+  inventado que prohíbe la Regla 1 de honestidad numérica.
+- ✅ **7 tests nuevos** (`test_candle_patterns_unit.py`, 30 → 37 en el fichero):
+  positivos, el belt-hold no se confunde con un marubozu, el in-neck exige el hueco
+  de verdad, y el abandoned baby exige mecha sin tocar a los dos lados (no basta con
+  que el cuerpo del doji quede bajo el cierre, que es lo que ya exigía la estrella
+  con doji — si no, sale mal etiquetado como el patrón menos específico).
+- ✅ **Frontend**: `candlePatternMeta.js`, `tradingEducationContent.js` (stats +
+  entradas bullish/bearish) y `CandlePatternFigure.jsx` (5 ilustraciones SVG nuevas,
+  con huecos reales dibujados en los abandoned baby). **100 claves i18n** (Name+Desc
+  × 5 patrones × 10 idiomas) insertadas en los diccionarios principales y repartidas
+  con `split-i18n-edu.js` — las Desc son de la Academia y se quedaron ahí solas.
+- 📌 **G-40**: el hueco grande (~18-20 patrones chartistas geométricos, diseño
+  completo en el Lote 5, endpoint y fichero ya nombrados) queda en cola, a petición
+  expresa del dueño — es un proyecto de varias horas separado, no algo para colar en
+  la misma tanda que las cinco velas.
+- ✅ Verificado: pytest **1186 passed / 1 failed** (el mismo de siempre, TLS sin
+  Postgres local TCP en este sandbox) / 114 skipped · py_compile · eslint 0 errores ·
+  build + postbuild SEO · i18n-check **7.376×10, 0 huecos** · engine-check 535/535 ·
+  check-edu-index 91=91 · check-quiz 140/140 · check-i18n-identidad · gen-mapa/
+  gen-asistente/gen-instruments-js --check · check-rutas-muertas · check-doc-links.

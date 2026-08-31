@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "Bullish Belt Hold",
+  "bearishBeltHoldName": "Bearish Belt Hold",
+  "inNeckName": "In Neck",
+  "bullishAbandonedBabyName": "Bullish Abandoned Baby",
+  "bearishAbandonedBabyName": "Bearish Abandoned Baby",
   "ichiVisTenkan": "Tenkan (fast, 9)",
   "brokersTitle": "Brokers",
   "brokersLeerMas": "Read more",
@@ -652,7 +657,6 @@ export default {
   "longLeggedDojiName": "Long-Legged Doji",
   "highWaveName": "High Wave",
   "spinningTopName": "Spinning Top",
-  "lowReliability": "Low",
   "gatedNotice": "Your subscription is not active. Choose a plan to access the platform.",
   "tradeInstrument": "Instrument",
   "tradeInstrumentSpot": "Spot / Stock",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "Try it:",
   "bvlTitle": "Validating a backtest",
   "sphTitle": "The emotional process of a session",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "Entry",
   "regStop": "Stop",
   "regCaption": "The distance between your entry and your stop is {d} per unit: that is 1R. The targets marked are that same distance projected, not a forecast.",

@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "Cintura Rialzista",
+  "bearishBeltHoldName": "Cintura Ribassista",
+  "inNeckName": "Dentro il Collo",
+  "bullishAbandonedBabyName": "Bambino Abbandonato Rialzista",
+  "bearishAbandonedBabyName": "Bambino Abbandonato Ribassista",
   "ichiVisTenkan": "Tenkan (veloce, 9)",
   "brokersTitle": "Broker",
   "brokersLeerMas": "Leggi di più",
@@ -681,7 +686,6 @@ export default {
   "longLeggedDojiName": "Doji a Gambe Lunghe",
   "highWaveName": "High Wave",
   "spinningTopName": "Trottola",
-  "lowReliability": "Bassa",
   "gatedNotice": "Il tuo abbonamento non è attivo. Scegli un piano per accedere alla piattaforma.",
   "tradeInstrument": "Strumento",
   "tradeInstrumentSpot": "Spot / Azione",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "Provalo:",
   "bvlTitle": "Validare un backtest",
   "sphTitle": "Il processo emotivo di una sessione",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "Ingresso",
   "regStop": "Stop",
   "regCaption": "La distanza tra il tuo ingresso e il tuo stop è di {d} per unità: questo è 1R. Gli obiettivi segnati sono quella stessa distanza proiettata, non una previsione.",

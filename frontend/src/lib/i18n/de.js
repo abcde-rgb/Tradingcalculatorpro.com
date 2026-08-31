@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "Bullische Gürtellinie",
+  "bearishBeltHoldName": "Bärische Gürtellinie",
+  "inNeckName": "In-Neck-Formation",
+  "bullishAbandonedBabyName": "Bullisches Verlassenes Baby",
+  "bearishAbandonedBabyName": "Bärisches Verlassenes Baby",
   "ichiVisTenkan": "Tenkan (schnell, 9)",
   "brokersTitle": "Broker",
   "brokersLeerMas": "Mehr lesen",
@@ -597,7 +602,6 @@ export default {
   "threeBlackCrowsName": "Drei Schwarze Krähen",
   "haramiName": "Harami",
   "haramiDesc": "Zwei-Kerzen-Muster, bei dem die zweite innerhalb des Bereichs der ersten enthalten ist. Mögliches Umkehrsignal.",
-  "lowReliability": "Niedrig",
   "gatedNotice": "Dein Abo ist nicht aktiv. Wähle einen Plan, um die Plattform zu nutzen.",
   "tradeInstrument": "Instrument",
   "tradeInstrumentSpot": "Spot / Aktie",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "Ausprobieren:",
   "bvlTitle": "Einen Backtest validieren",
   "sphTitle": "Der emotionale Ablauf einer Sitzung",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "Einstieg",
   "regStop": "Stop",
   "regCaption": "Der Abstand zwischen Einstieg und Stop beträgt {d} je Einheit: das ist 1R. Die markierten Ziele sind derselbe Abstand projiziert, keine Prognose.",

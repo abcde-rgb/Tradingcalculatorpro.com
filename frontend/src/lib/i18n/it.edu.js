@@ -2493,4 +2493,10 @@ export default {
   "sphMxWinBad": "Risultato favorevole, processo pericoloso. Conta come errore anche se il denaro dice il contrario.",
   "sphMxLossGood": "Una perdita che il sistema si aspetta. Non c'è nulla da correggere.",
   "sphMxLossBad": "L'unico caso che richiede un cambiamento nella selezione, nel rischio o nell'esecuzione.",
+  "bullishBeltHoldDesc": "Apre praticamente al minimo e chiude forte vicino al massimo, con una breve ombra superiore. Segnale di inversione rialzista dopo un calo.",
+  "bearishBeltHoldDesc": "Apre praticamente al massimo e chiude forte vicino al minimo, con una breve ombra inferiore. Segnale di inversione ribassista dopo un rialzo.",
+  "inNeckDesc": "Una lunga candela ribassista seguita da un'altra che apre con gap al ribasso ma chiude appena sopra la chiusura precedente, senza vero recupero. Continuazione ribassista poco affidabile.",
+  "bullishAbandonedBabyDesc": "Un doji isolato da un vero gap su entrambi i lati, tra una candela ribassista e una rialzista. Versione rigorosa della stella del mattino con doji.",
+  "bearishAbandonedBabyDesc": "Un doji isolato da un vero gap su entrambi i lati, tra una candela rialzista e una ribassista. Versione rigorosa della stella della sera con doji.",
+  "lowReliability": "Bassa",
 }

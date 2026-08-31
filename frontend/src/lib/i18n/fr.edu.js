@@ -2493,4 +2493,10 @@ export default {
   "sphMxWinBad": "Résultat favorable, processus dangereux. Cela compte comme une erreur même si l'argent dit le contraire.",
   "sphMxLossGood": "Une perte attendue par le système. Il n'y a rien à corriger.",
   "sphMxLossBad": "Le seul cas qui exige un changement de sélection, de risque ou d'exécution.",
+  "bullishBeltHoldDesc": "Ouvre pratiquement au plus bas et clôture fortement près du plus haut, avec seulement une courte mèche supérieure. Signal de retournement haussier après une baisse.",
+  "bearishBeltHoldDesc": "Ouvre pratiquement au plus haut et clôture fortement près du plus bas, avec seulement une courte mèche inférieure. Signal de retournement baissier après une hausse.",
+  "inNeckDesc": "Une longue bougie baissière suivie d'une autre qui ouvre par un gap baissier mais clôture juste au-dessus de la clôture précédente, sans réelle reprise. Continuation baissière peu fiable.",
+  "bullishAbandonedBabyDesc": "Un doji isolé par un vrai gap de chaque côté, entre une bougie baissière et une haussière. Version stricte de l'étoile du matin avec doji.",
+  "bearishAbandonedBabyDesc": "Un doji isolé par un vrai gap de chaque côté, entre une bougie haussière et une baissière. Version stricte de l'étoile du soir avec doji.",
+  "lowReliability": "Faible",
 }

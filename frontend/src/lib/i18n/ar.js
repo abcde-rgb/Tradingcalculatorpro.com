@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "حزام الإمساك الصاعد",
+  "bearishBeltHoldName": "حزام الإمساك الهابط",
+  "inNeckName": "نمط داخل الرقبة",
+  "bullishAbandonedBabyName": "الطفل المتروك الصاعد",
+  "bearishAbandonedBabyName": "الطفل المتروك الهابط",
   "ichiVisTenkan": "تنكان (سريع، 9)",
   "brokersTitle": "الوسطاء",
   "brokersLeerMas": "اقرأ المزيد",
@@ -2067,7 +2072,6 @@ export default {
   "haramiName": "هارامي",
   "haramiDesc": "نموذج من شمعتين حيث الثانية موجودة ضمن نطاق الأولى. إشارة انعكاس محتمل.",
   "spinningTopName": "القمة الدوارة",
-  "lowReliability": "منخفضة",
   "chartLoading": "جارٍ تحميل الرسم البياني...",
   "chartLoadFailed": "تعذّر تحميل الرسم البياني",
   "chartNotAvailable": "أداة TradingView غير متاحة حاليًا",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "جرّبه:",
   "bvlTitle": "التحقق من الاختبار الخلفي",
   "sphTitle": "المسار العاطفي لجلسة تداول",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "الدخول",
   "regStop": "الإيقاف",
   "regCaption": "المسافة بين نقطة دخولك ووقف الخسارة هي {d} للوحدة: هذه هي 1R. الأهداف المعلَّمة هي المسافة نفسها ممتدة إلى الأمام، وليست توقعًا.",

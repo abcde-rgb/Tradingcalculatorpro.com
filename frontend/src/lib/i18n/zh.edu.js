@@ -2493,4 +2493,10 @@ export default {
   "sphMxWinBad": "结果有利，过程危险。即使账面数字说的相反，它也算作错误。",
   "sphMxLossGood": "系统预期之内的亏损。没有什么需要修正。",
   "sphMxLossBad": "唯一需要在选择、风险或执行上做出改变的情况。",
+  "bullishBeltHoldDesc": "开盘几乎就是最低价，收盘接近最高价，上影线很短。下跌后出现的看涨反转信号。",
+  "bearishBeltHoldDesc": "开盘几乎就是最高价，收盘接近最低价，下影线很短。上涨后出现的看跌反转信号。",
+  "inNeckDesc": "一根长阴线之后出现向下跳空开盘、但收盘价仅略高于前一根收盘价的蜡烛，几乎没有实质反弹。可靠性较低的看跌延续形态。",
+  "bullishAbandonedBabyDesc": "一根十字星被两侧真实的跳空缺口孤立，夹在一根阴线和一根阳线之间。是启明十字星的严格版本。",
+  "bearishAbandonedBabyDesc": "一根十字星被两侧真实的跳空缺口孤立，夹在一根阳线和一根阴线之间。是黄昏十字星的严格版本。",
+  "lowReliability": "低",
 }

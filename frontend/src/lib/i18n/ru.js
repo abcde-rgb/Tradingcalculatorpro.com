@@ -1,4 +1,9 @@
 export default {
+  "bullishBeltHoldName": "Бычий Пояс",
+  "bearishBeltHoldName": "Медвежий Пояс",
+  "inNeckName": "В Шее",
+  "bullishAbandonedBabyName": "Бычий Брошенный Ребёнок",
+  "bearishAbandonedBabyName": "Медвежий Брошенный Ребёнок",
   "ichiVisTenkan": "Tenkan (быстрая, 9)",
   "brokersTitle": "Брокеры",
   "brokersLeerMas": "Подробнее",
@@ -605,7 +610,6 @@ export default {
   "threeBlackCrowsName": "Три Черных Ворона",
   "haramiName": "Харами",
   "haramiDesc": "Паттерн из двух свечей, где вторая содержится в диапазоне первой. Возможный сигнал разворота.",
-  "lowReliability": "Низкая",
   "gatedNotice": "Ваша подписка неактивна. Выберите план, чтобы получить доступ к платформе.",
   "tradeInstrument": "Инструмент",
   "tradeInstrumentSpot": "Спот / Акция",
@@ -4871,8 +4875,6 @@ export default {
   "eduToolLinks": "Попробуйте:",
   "bvlTitle": "Проверка бэктеста",
   "sphTitle": "Эмоциональный процесс торговой сессии",
-
-  // ── La regleta del hero (identidad-visual §3) ──
   "regEntry": "Вход",
   "regStop": "Стоп",
   "regCaption": "Расстояние между вашим входом и стопом — {d} на единицу: это и есть 1R. Отмеченные цели — то же расстояние, отложенное вперёд, а не прогноз.",
