@@ -2934,7 +2934,7 @@ export default {
   "smcTitle": "Smart Money / ICT",
   "optTitle": "Strategie in opzioni",
   "optIntro": "Combinare call e put ti permette di costruire posizioni a rischio definito e di sfruttare non solo la direzione, ma anche la volatilità e il passare del tempo. Usa la Calcolatrice di Opzioni per vedere le greche e il diagramma di payoff di ognuna.",
-  "smcIntro": "L'approccio 'smart money' (reso popolare da ICT) cerca di seguire le tracce del denaro istituzionale: dove accumula ordini, come va a caccia della liquidità del retail e dove torna il prezzo. È discrezionale: usalo come confluenza, non come sistema magico.",
+  "smcIntro": "L'approccio 'smart money' (reso popolare da ICT) cerca di seguire le tracce degli istituzionali: dove costruiscono gli ordini, come cacciano la liquidità del retail e dove il prezzo ritorna. È discrezionale — usalo come confluenza, non come un sistema magico.",
   "ichiIntro": "Un 'grafico dell'equilibrio a colpo d'occhio' giapponese, creato da Goichi Hosoda. Cinque linee e una 'nuvola' proiettata mostrano insieme trend, supporti/resistenze, momentum e segnali di ingresso: è pensato per leggere il mercato con un solo sguardo. Molto popolare nel forex e nelle cripto.",
   "ewTitle": "Teoria delle Onde di Elliott",
   "ewIntro": "Ralph Elliott osservò che la psicologia di massa muove i mercati secondo pattern d'onda ripetitivi. Il prezzo avanza in una sequenza 'impulsiva' di 5 onde nella direzione del trend e poi corregge in una sequenza di 3 onde contraria. La stessa forma 5-3 si ripete a ogni grado, dai minuti ai decenni.",

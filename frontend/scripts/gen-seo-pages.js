@@ -507,7 +507,11 @@ const urlOf = (rel) => `${DOMAIN}/${enc(rel)}/`;
 
 function slugify(texto) {
   const base = String(texto || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '') // funde acentos latinos; deja cirílico/árabe/CJK
+    // Funde acentos SOLO sobre letras latinas (é→e, ü→u). Antes se quitaban las
+    // marcas combinantes de cualquier alfabeto y el cirílico й (и + breve) se
+    // plegaba a и: /ru/learn/метод-ваикоффа/ en vez de …вайкоффа. NFC recompone
+    // lo no latino, así que й sigue siendo й y ё sigue siendo ё.
+    .normalize('NFD').replace(/([a-zA-Z])[̀-ͯ]+/g, '$1').normalize('NFC')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, '-')
     .replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');
