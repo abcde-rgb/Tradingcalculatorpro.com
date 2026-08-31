@@ -2207,6 +2207,27 @@ async def login(request: Request, response: Response, credentials: UserLogin):
     # no había forma de saberlo: el 401 es el mismo que el de una contraseña mala.
     user = await _buscar_usuario_por_correo(credentials.email)
     if not user or not user.get("password") or not await verify_password_async(credentials.password, user["password"]):
+        # El 401 que ve el usuario sigue siendo UNO solo y sin pistas: decirle
+        # «ese correo no existe» es enumeración de cuentas. Pero en el LOG del
+        # servidor sí se distingue, porque sin esto un login que falla no deja
+        # ningún rastro: los tres motivos —no existe, no tiene contraseña
+        # (entró con Google), contraseña incorrecta— se ven idénticos desde
+        # fuera Y desde dentro, y averiguar cuál era costó días.
+        #
+        # `log_safe` corta la inyección de saltos de línea en el log, y el
+        # correo se recorta: sirve para reconocer la cuenta, no para publicarla.
+        if not user:
+            motivo = "no existe ninguna cuenta con ese correo"
+        elif not user.get("password"):
+            # `auth_provider` sale de la BASE DE DATOS, así que va saneado igual
+            # que el correo: la regla de inyección en logs no distingue de dónde
+            # viene un valor, y hace bien — cazó esta línea al escribirla.
+            motivo = "la cuenta existe pero no tiene contraseña (auth_provider=%s)" % (
+                log_safe(user.get("auth_provider")),
+            )
+        else:
+            motivo = "contraseña incorrecta"
+        logging.warning("[login] rechazado para %s: %s", log_safe(credentials.email), log_safe(motivo))
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
     # Password is correct — if the user enabled 2FA, don't issue a session yet.
