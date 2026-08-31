@@ -5917,3 +5917,49 @@ que citan las IAs.
 - ✅ Verificado: `i18n-check` · `engine-check` · `check-seo` ·
   `check-enlaces-academia` · `gen-mapa --check` · `check-doc-links` ·
   `gen-asistente --check` · `check-rutas-muertas` · `eslint` 0 errores · build.
+
+### 2026-08-31 (cont.) — Auditoría de Stripe (sin acceso a producción) y de los 10 idiomas, a petición del dueño
+
+**Stripe** — revisado sólo en código: este sandbox remoto no tiene `gcloud` ni el SDK
+`stripe` instalados y su red de salida está restringida (sin acceso a `api.stripe.com`
+ni a la consola de Cloud Run), así que "que acepte pagos hoy" no se puede certificar
+desde aquí — sólo la mitad que vive en el repo.
+- ✅ Compila; **42 passed, 15 skipped** en `test_stripe_payments.py` +
+  `test_payment_rails_unit.py` + `test_payment_reconciliation_unit.py` (los 15
+  skipped son de integración contra backend vivo, ausente aquí).
+- ✅ Firma del webhook verificada (`stripe.Webhook.construct_event`, rechaza sin
+  secreto o firma), idempotencia doble (idempotency_key al crear sesión +
+  `stripe_session_id` ya procesado en el webhook), los 4 eventos del checklist
+  manejados, price IDs de los 4 planes coherentes con `SUBSCRIPTION_PLANS`.
+- 🔴 **Hallazgo**: `docs/DEPLOY_CHECKLIST.md` §E-bis afirma que el checkout manda
+  `automatic_tax`/`tax_id_collection`/`billing_address_collection`/
+  `consent_collection`. **No existe en `server.py`, ni ha existido nunca** (0
+  apariciones en todo el historial de git del fichero). El registro del
+  2026-08-10 lo daba por cerrado (🔴→🟢); el commit `49678c3` del 26-08 ya lo
+  desmintió ("el IVA que los Términos prometen y el código no calcula") y sigue
+  igual hoy: no se recauda/desglosa IVA en ventas a la UE pese a que los
+  Términos lo prometen en los 10 idiomas. No bloquea el cobro; sí lo hace no
+  conforme a lo prometido.
+- 🟠 C-08 (claves Stripe sobreescribibles desde `app_settings`/BD en vez de sólo
+  Secret Manager) sigue abierto.
+- ⚠️ Pendiente de cerrar en consola por el dueño: `STRIPE_API_KEY` real
+  `sk_live_…` y `STRIPE_WEBHOOK_SECRET` real en Cloud Run, price IDs en modo
+  LIVE del Dashboard, y un pago de prueba real por plan → confirma premium.
+
+**Idiomas (10: es/en/de/fr/ru/zh/ja/ar/pt/it)** — revisado a fondo:
+- ✅ `i18n-check` 0 huecos, **7.359 claves × 10**, coincide con `MAPA.md` (fresco).
+- ✅ `engine-check` **531/531**. La cifra "264/264" que sigue en
+  `ESTADO_PROYECTO.md` §1 está desfasada (doc, no código).
+- ✅ RTL de `ar` aplicado en dos sitios coherentes entre sí
+  (`lib/i18n.js:103` y `hooks/useSEO.js:70`), hreflang dinámico por ruta +
+  `x-default`→es (`useSEO.js`), lista de 10 idiomas idéntica en `LOCALE_META`,
+  `languages` y `SUPPORTED`.
+- 🟡 **G-28 sólo medio cerrado**: el JSON-LD `price:'0'` en las páginas de
+  calculadora ya se quitó (`gen-seo-pages.js:439`, con comentario explicando
+  por qué), pero el título SEO de **una** calculadora —Tamaño de Posición—
+  sigue diciendo "Gratis y Profesional" / "Free & Professional"
+  (`gen-seo-pages.js:76-77`) contradiciendo el muro de pago duro.
+  `ESTADO_PROYECTO.md` línea 233 sigue listando G-28 como 🟠 abierto sin
+  matizar que ya está mayormente resuelto.
+- ⚠️ Sigue sin validar por nativo: `pt` e `it` (aviso ya existente en
+  `.claude/rules/i18n-seo.md`).
