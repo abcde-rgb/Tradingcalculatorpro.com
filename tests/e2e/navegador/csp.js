@@ -47,7 +47,7 @@ const RUTAS_SPA = [
 // así que se comprueban aparte: un script que se colara ahí sería un fallo
 // distinto y más grave.
 const RUTAS_ESTATICAS = [
-  '/en/tools/calculadora-tamano-posicion/',
+  '/en/tools/position-size-calculator/',  // slug inglés nativo (la URL vieja es un puente)
   '/en/markets/forex/',
   '/en/learn/',
 ];

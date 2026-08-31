@@ -6144,3 +6144,61 @@ pendiente, y ya estaba escrita sin marcar como bloqueante).
 - ✅ Verificado: pytest **1189 passed / 1 failed** (el mismo de siempre, TLS sin
   Postgres local TCP en este sandbox) / 114 skipped, incluidos los 3 tests nuevos ·
   py_compile · gen-mapa/gen-asistente --check · check-doc-links · check-rutas-muertas.
+## 2026-08-31 — Una URL rusa con slug en castellano: slugs nativos por idioma
+
+El usuario buscó su web y el primer resultado fue
+`tradingcalculator.pro/ru/learn/operar-noticias/`: una página en ruso —contenido
+ruso correcto, indexada a propósito— viviendo en una **ruta en castellano**.
+
+`gen-seo-pages.js` usaba **un único slug español para los diez idiomas** en
+`/learn/` (71 temas) y `/tools/` (14 calculadoras). Los `markets` ya usaban ids
+en inglés y las estrategias de opciones un id inglés **acoplado a una ruta de
+React** (`/options/strategies/:slug`), así que esas dos quedaron fuera: no eran
+el problema y localizarlas rompería la app.
+
+### El arreglo
+
+Cada idioma deriva su slug del **título ya traducido**, no de un slug español:
+
+- `/ru/learn/торговля-на-новостях/` · `/de/learn/news-events-handeln/` ·
+  `/fr/learn/trader-les-news-et-evenements/` · `/de/tools/positionsgrößen-rechner/`
+- El **español conserva** su slug redactado a mano (ya es nativo y ya está
+  indexado): no se toca ni se redirige.
+- Derivar del título —en vez de escribir ~640 slugs a mano— los mantiene
+  consistentes con el contenido y sin erratas. Colisiones resueltas con sufijo
+  de forma determinista (0 en esta build).
+
+### Que nada indexado dé 404
+
+Cada URL vieja (slug español) queda como **página-puente**: `canonical` +
+`meta refresh` + `location.replace` a la nueva, `noindex,follow`, fuera del
+sitemap. Google lo trata como un 301 y conserva el posicionamiento. Se
+mantienen indefinidamente: no cuestan nada.
+
+### Correcciones de correctitud que trajo el cambio
+
+- Los slugs cirílico/árabe/CJK se **percent-codifican** (RFC 3986) en canonical,
+  hreflang y sitemap; el navegador los vuelve a mostrar en su alfabeto. El
+  fichero de la página se escribe con el nombre nativo y el servidor lo resuelve
+  al decodificar.
+- **hreflang recíproco de verdad**: cada página apunta al slug REAL de cada
+  idioma (antes todas al slug español bajo cada prefijo). `x-default` → español.
+- Las relacionadas ahora enlazan solo temas publicados en ESE idioma.
+
+### Hallazgo aparte (NO causado por esto, preexistente)
+
+De 71 temas, **67 tienen ya traducción** en ru/zh/ja/ar y estrenan slug nativo;
+**4 por idioma siguen sin traducir** (el título cae a español o inglés) y su
+slug lo refleja con honestidad. Antes estaban igual de sin traducir, solo que
+con slug español. Traducir esos 4 × idioma es contenido, no slug: queda como
+tarea aparte.
+
+### Verificado
+
+Build limpio de producción (`SITE_ORIGIN=https://tradingcalculator.pro`):
+1.608 URLs en el sitemap, ninguna con slug español de un idioma no español.
+La URL cirílica codificada se sirve con http 200 y su título ruso; la vieja
+redirige con canonical a la nueva. `csp.js` (páginas estáticas) en verde con el
+slug nuevo. `i18n-check`, `engine-check` y `eslint scripts` sin errores.
+
+Tocado: `frontend/scripts/gen-seo-pages.js`, `tests/e2e/navegador/csp.js`.

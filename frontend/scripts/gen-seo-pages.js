@@ -489,19 +489,95 @@ function write(rel, html) {
 
 const sitemapUrls = [];
 
-// ── Calculadoras (todos los idiomas de LANGS: es+en inline, resto desde CALC_I18N) ──
+// ── Slugs por idioma (nativos, no un slug castellano para los diez) ──────────
+// El español conserva su slug redactado a mano: ya es nativo y ya está
+// indexado, así que no se toca ni se redirige. El resto de idiomas derivan su
+// slug del TÍTULO ya traducido — una página rusa vive en
+// /ru/learn/торговля-на-новостях/, no en /operar-noticias/. Derivar del título,
+// en vez de escribir cientos de slugs a mano, los mantiene consistentes con el
+// contenido y sin erratas. Las URLs viejas (slug español) se conservan como
+// páginas-puente que redirigen a la nueva: nada de lo ya indexado da 404.
 const calcData = (c, lang) => c[lang] || (CALC_I18N[c.slug] || {})[lang];
+
+// Cada segmento se percent-codifica: un slug cirílico/árabe/CJK tiene que
+// viajar como URL válida (RFC 3986) en canonical, hreflang y sitemap; el
+// navegador lo vuelve a mostrar en su alfabeto. Sobre ASCII es la identidad.
+const enc = (rel) => rel.split('/').map(encodeURIComponent).join('/');
+const urlOf = (rel) => `${DOMAIN}/${enc(rel)}/`;
+
+function slugify(texto) {
+  const base = String(texto || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // funde acentos latinos; deja cirílico/árabe/CJK
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');
+  if (base.length <= 60) return base;                 // una URL no necesita la frase entera
+  const corte = base.slice(0, 60), ultimo = corte.lastIndexOf('-');
+  return (ultimo > 20 ? corte.slice(0, ultimo) : corte).replace(/-+$/, '');
+}
+
+// Colisiones resueltas de forma DETERMINISTA (mismo orden de entrada → mismos
+// slugs en cada compilación), para que las URLs no cambien entre builds.
+const _slugUsados = {};
+let _colisiones = 0;
+function slugUnico(seccion, lang, base, fallback) {
+  let s = base || slugify(fallback) || String(fallback);
+  const usados = (_slugUsados[`${seccion}:${lang}`] || (_slugUsados[`${seccion}:${lang}`] = new Set()));
+  if (usados.has(s)) { let n = 2; while (usados.has(`${s}-${n}`)) n++; s = `${s}-${n}`; _colisiones++; }
+  usados.add(s);
+  return s;
+}
+
+function writeRedirect(relViejo, urlNuevo) {
+  write(relViejo, `<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Moved</title>
+<link rel="canonical" href="${urlNuevo}">
+<meta name="robots" content="noindex, follow">
+<meta http-equiv="refresh" content="0; url=${urlNuevo}">
+<script>location.replace(${JSON.stringify(urlNuevo)})</script>
+</head><body>
+<p>This page has moved to <a href="${urlNuevo}">${urlNuevo}</a>.</p>
+</body></html>
+`);
+}
+
+// Slug de cada tema/calculadora por idioma, PRECALCULADO para que el bloque
+// hreflang de una página pueda apuntar al slug real de cada idioma (no al suyo).
+const learnSlug = {};   // tp.v  → { lang: slug }
+TOPICS.forEach((tp) => {
+  learnSlug[tp.v] = { es: tp.slug };
+  LANGS.forEach(([lang]) => {
+    if (lang === 'es') return;
+    if (!T[lang] || !T[lang][tp.tk] || !T[lang][tp.ik]) return; // ese idioma no publica esta página
+    learnSlug[tp.v][lang] = slugUnico('learn', lang, slugify(T[lang][tp.tk]), tp.v);
+  });
+});
+const calcSlug = {};    // c.slug → { lang: slug }
+CALCS.forEach((c) => {
+  calcSlug[c.slug] = { es: c.slug };
+  LANGS.forEach(([lang]) => {
+    if (lang === 'es') return;
+    const d = calcData(c, lang);
+    if (!d || !d.title) return;
+    calcSlug[c.slug][lang] = slugUnico('tools', lang, slugify(d.kw || d.title), c.slug);
+  });
+});
+
+// ── Calculadoras (todos los idiomas de LANGS: es+en inline, resto desde CALC_I18N) ──
 let calcCount = 0;
 CALCS.forEach((c, i) => {
   LANGS.forEach(([lang, pref, hl]) => {
     const d = calcData(c, lang);
     if (!d || !d.title) return; // idioma sin traducción → se salta
-    const rel = `${pref ? pref.slice(1) + '/' : ''}tools/${c.slug}`;
-    const url = `${DOMAIN}/${rel}/`;
-    // hreflang: solo idiomas que tienen traducción de esta calculadora
-    const alts = LANGS.filter(([l]) => { const dd = calcData(c, l); return dd && dd.title; }).map(([l, p, h]) => [h, `${DOMAIN}/${p ? p.slice(1) + '/' : ''}tools/${c.slug}/`]);
+    const slug = calcSlug[c.slug][lang];
+    const rel = `${pref ? pref.slice(1) + '/' : ''}tools/${slug}`;
+    const url = urlOf(rel);
+    // hreflang: cada idioma apunta a SU slug nativo, no al de esta página
+    const alts = LANGS.filter(([l]) => { const dd = calcData(c, l); return dd && dd.title; }).map(([l, p, h]) => [h, urlOf(`${p ? p.slice(1) + '/' : ''}tools/${calcSlug[c.slug][l]}`)]);
     const ui = UI[lang];
-    const related = CALCS.filter((_, j) => j !== i).slice(0, 6).map(r => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}tools/${r.slug}/`, label: cap((calcData(r, lang) || r.en).kw) }));
+    // Relacionadas: solo las que existen en ESTE idioma, cada una con su slug
+    const related = CALCS.filter((r, j) => j !== i && (calcData(r, lang) || {}).title).slice(0, 6).map(r => ({ url: urlOf(`${pref ? pref.slice(1) + '/' : ''}tools/${calcSlug[r.slug][lang]}`), label: cap((calcData(r, lang) || r.en).kw) }));
     const description = d.lead.slice(0, 158);
     const html = render({
       lang, url, alts, title: d.title, description, h1: cap(d.kw), kw: d.kw, ui,
@@ -524,7 +600,9 @@ CALCS.forEach((c, i) => {
       ] },
     });
     write(rel, html);
-    sitemapUrls.push([`/${rel}/`, '0.8']);
+    sitemapUrls.push([`/${enc(rel)}/`, '0.8']);
+    // Puente desde la URL vieja (slug castellano) → nueva, salvo en español.
+    if (lang !== 'es' && slug !== c.slug) writeRedirect(`${pref ? pref.slice(1) + '/' : ''}tools/${c.slug}`, url);
     calcCount++;
   });
 });
@@ -536,12 +614,13 @@ TOPICS.forEach((tp, i) => {
     const title = T[lang][tp.tk];
     const intro = T[lang][tp.ik];
     if (!title || !intro) return; // salta si falta contenido en ese idioma
-    const rel = `${pref ? pref.slice(1) + '/' : ''}learn/${tp.slug}`;
-    const url = `${DOMAIN}/${rel}/`;
+    const slug = learnSlug[tp.v][lang];
+    const rel = `${pref ? pref.slice(1) + '/' : ''}learn/${slug}`;
+    const url = urlOf(rel);
     const ui = UI[lang];
-    // hreflang: solo idiomas que tienen el contenido
-    const alts = LANGS.filter(([l]) => T[l][tp.tk] && T[l][tp.ik]).map(([l, p, hl]) => [hl, `${DOMAIN}/${p ? p.slice(1) + '/' : ''}learn/${tp.slug}/`]);
-    const related = TOPICS.filter((_, j) => j !== i).filter(r => T[lang][r.tk]).slice(0, 6).map(r => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}learn/${r.slug}/`, label: T[lang][r.tk] }));
+    // hreflang: cada idioma apunta a SU slug nativo
+    const alts = LANGS.filter(([l]) => T[l][tp.tk] && T[l][tp.ik]).map(([l, p, hl]) => [hl, urlOf(`${p ? p.slice(1) + '/' : ''}learn/${learnSlug[tp.v][l]}`)]);
+    const related = TOPICS.filter((_, j) => j !== i).filter(r => T[lang][r.tk] && T[lang][r.ik]).slice(0, 6).map(r => ({ url: urlOf(`${pref ? pref.slice(1) + '/' : ''}learn/${learnSlug[r.v][lang]}`), label: T[lang][r.tk] }));
     const description = String(intro).slice(0, 158);
     const html = render({
       lang, url, alts, title: `${title} | TradingCalculator.Pro`, description, h1: title, kw: title, ui,
@@ -550,7 +629,9 @@ TOPICS.forEach((tp, i) => {
       jsonld: { '@context':'https://schema.org','@type':'LearningResource', name: title, url, inLanguage: lang, description, provider:{ '@type':'Organization', name:'TradingCalculator.Pro', url: DOMAIN + '/' } },
     });
     write(rel, html);
-    sitemapUrls.push([`/${rel}/`, '0.7']);
+    sitemapUrls.push([`/${enc(rel)}/`, '0.7']);
+    // Puente desde la URL vieja (slug castellano) → nueva, salvo en español.
+    if (lang !== 'es' && slug !== tp.slug) writeRedirect(`${pref ? pref.slice(1) + '/' : ''}learn/${tp.slug}`, url);
     learnCount++;
   });
 });
@@ -831,3 +912,4 @@ console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} tema
 console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × ${LANGS.length} idiomas)`);
 console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × ${LANGS.length} idiomas)`);
 console.log(`✅ sitemap.xml: ${all.length} URLs`);
+if (_colisiones) console.log(`ℹ️  ${_colisiones} colisión(es) de slug resueltas con sufijo`);
