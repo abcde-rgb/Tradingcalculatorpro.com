@@ -548,7 +548,11 @@ def test_register_stores_the_email_normalised():
     i = _SERVER_SRC.find("async def register(")
     assert i != -1, "no se encontró el endpoint de registro"
     cuerpo = _SERVER_SRC[i:i + 1600]
-    assert ".strip().lower()" in cuerpo, "el registro no normaliza el correo"
+    # `normalize_email()` es la forma canónica desde que dejó de bastar con
+    # `.strip().lower()` disperso: un punto de entrada que llame a la
+    # función a mano en vez de a la canónica es exactamente el fallo que
+    # dejó escalar a Owner@Example.com a admin (test_email_normalizado_unit.py).
+    assert "normalize_email(" in cuerpo, "el registro no normaliza el correo"
     assert '"email": email_norm' in cuerpo, "el registro guarda el correo sin normalizar"
 
 
