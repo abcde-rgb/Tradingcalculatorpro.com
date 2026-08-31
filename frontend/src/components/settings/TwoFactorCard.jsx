@@ -12,7 +12,14 @@ import { toast } from 'sonner';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Two-step verification (TOTP) management: enable with an authenticator app,
-// or disable with a current code. Only shown for password accounts.
+// or disable with a current code.
+//
+// Para CUALQUIER cuenta, entre con contraseña, con Google o con enlace mágico:
+// los tres endpoints van por `require_user` y no miran el proveedor, y los tres
+// caminos de entrada piden el código si la cuenta lo tiene activado. Estuvo
+// oculta a las cuentas que no eran de contraseña, y como el 2FA es OBLIGATORIO
+// para administradores, un admin de Google quedaba encerrado: se le mandaba
+// aquí a activarlo y aquí no aparecía nada. Ver BUG-076.
 export default function TwoFactorCard() {
   const { t } = useTranslation();
   const { user } = useAuthStore();

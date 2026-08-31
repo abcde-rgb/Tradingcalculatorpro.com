@@ -1091,11 +1091,11 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "el dominio de un tercero devuelto a la lista de CORS" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k lookalike_third_party -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
+EOF"
 
   # ── El correo no puede distinguir mayúsculas ────────────────────────────────
   # BUG-070: el registro guardaba el correo tal como se tecleaba y el login lo
@@ -1107,20 +1107,20 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "el login vuelve a buscar el correo con igualdad exacta" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
+EOF"
 
   probar "el registro deja de normalizar el correo al guardarlo" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k register_stores -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
+EOF"
 
   # La otra mitad, y es la que de verdad importa: el arreglo NO puede degradar a
   # un regex sin anclar. `~*` haría substring, y un correo es un regex válido, así
@@ -1128,14 +1128,14 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "el operador insensible degrada a un regex sin anclar" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k ieq_is_not_an_unanchored -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
-  nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
-  assert s.count(viejo) == 1
-  p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
+nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
+assert s.count(viejo) == 1
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+EOF"
 
   # ── Con duplicados, la cuenta elegida no puede cambiar ──────────────────────
   # El daño colateral de BUG-070: la comprobación de duplicados del registro
@@ -1148,24 +1148,24 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "el buscador deja de preferir la coincidencia exacta" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k exact_match_wins -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  viejo = '        if (u.get(\"email\") or \"\") == correo:'
-  assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
-  p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '        if (u.get(\"email\") or \"\") == correo:'
+assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
+p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
+EOF"
 
   probar "el buscador deja de ordenar y vuelve a elegir al azar" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k row_order -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  viejo = '.sort(\"created_at\", 1).to_list(None)'
-  assert s.count(viejo) == 1, 'ancla del orden no encontrada'
-  p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '.sort(\"created_at\", 1).to_list(None)'
+assert s.count(viejo) == 1, 'ancla del orden no encontrada'
+p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
+EOF"
 
   # ── Toda respuesta de auth describe al usuario igual ────────────────────────
   # BUG-072: cuatro respuestas —login, refresh, magic link y Google— mandaban
@@ -1177,13 +1177,13 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "una respuesta de auth que se deja el 2FA" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
-  assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
-  p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
+assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
 
   # Y el otro sentido: la regla mira los objetos `user` de RESPUESTA, no las filas
   # de base de datos ni las tablas del panel, que no tienen por qué llevar el
@@ -1191,11 +1191,86 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar_inverso "una fila de base de datos con is_admin y sin 2FA" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
+EOF"
+
+  # ── El encierro del admin y la sesión que se cerraba sola (BUG-076) ─────────
+  # Cuatro maneras distintas de volver a encerrar a alguien:
+  #   · esconder la tarjeta de 2FA a las cuentas que no son de contraseña,
+  #   · devolverle al frontend una decisión que sólo el backend puede tomar,
+  #   · reabrir el margen de alta en cada petición (margen infinito),
+  #   · perdonar por la ventana de rotación un token revocado al cerrar sesión.
+  titulo "Admin 2FA y sesión (test_admin_2fa_unit.py / test_refresh_rotation_unit.py)"
+
+  probar "la tarjeta de 2FA vuelve a esconderse a las cuentas de Google" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k todas_las_cuentas -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/pages/SettingsPage.jsx')
+s = p.read_text(encoding='utf-8')
+viejo = '          <TwoFactorCard />'
+assert s.count(viejo) == 1, 'ancla de la tarjeta no encontrada'
+p.write_text(s.replace(viejo, \"          {user?.auth_provider === 'password' && <TwoFactorCard />}\", 1), encoding='utf-8')
+EOF"
+
+  probar "la guarda del frontend vuelve a adelantar la decisión del 2FA" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k no_vuelve_a_adelantar -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/components/common/ProtectedRoute.jsx')
+s = p.read_text(encoding='utf-8')
+viejo = '  if (adminOnly && !user?.is_admin) {'
+assert s.count(viejo) == 1, 'ancla de la guarda no encontrada'
+nuevo = '  if (adminOnly && user?.two_factor_enabled === false) { return null; }\n\n' + viejo
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+EOF"
+
+  probar "el margen de alta se reabre en cada petición (sería infinito)" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k un_solo_uso -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    if marca:'
+assert s.count(viejo) == 1, 'ancla de la rama de lectura no encontrada'
+p.write_text(s.replace(viejo, '    if False:', 1), encoding='utf-8')
+EOF"
+
+  probar "la ventana de rotación deja de mirar POR QUÉ se revocó el token" \
+    "(cd backend && python -m pytest tests/test_refresh_rotation_unit.py -q -k solo_perdona -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    if not doc or doc.get(\"reason\") != \"rotation\":'
+assert s.count(viejo) == 1, 'ancla del motivo no encontrada'
+p.write_text(s.replace(viejo, '    if not doc:', 1), encoding='utf-8')
+EOF"
+
+  probar "cerrar sesión deja vivo el refresh token" \
+    "(cd backend && python -m pytest tests/test_refresh_rotation_unit.py -q -k revoca_tambien -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    crudo_refresh = request.cookies.get(\"refresh_token\")'
+assert s.count(viejo) == 1, 'ancla del refresh del logout no encontrada'
+p.write_text(s.replace(viejo, '    crudo_refresh = None', 1), encoding='utf-8')
+EOF"
+
+  probar "un arranque en frío vuelve a cerrar la sesión al recargar" \
+    "(cd backend && python -m pytest tests/test_refresh_rotation_unit.py -q -k solo_cierra -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/lib/store.js')
+s = p.read_text(encoding='utf-8')
+viejo = 'if (res.status === 401 || res.status === 403) {'
+assert s.count(viejo) == 1, 'ancla del 401 no encontrada'
+p.write_text(s.replace(viejo, 'if (!res.ok) {', 1), encoding='utf-8')
+EOF"
 
 else
   titulo "Sabotajes sobre test_security_unit.py"

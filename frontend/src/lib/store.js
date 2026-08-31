@@ -52,6 +52,8 @@ async function safeJson(res) {
   }
 }
 
+const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
+
 function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -104,7 +106,7 @@ export const useAuthStore = create(
             return { success: false, totpRequired: true, pendingToken: data.pending_token };
           }
           if (!data.token || !data.user) throw new Error(t('invalidCredentials'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false, sessionUnverified: false });
           applyUserLocale(data.user);
           trackEvent('login', { method: 'email' });
           return { success: true };
@@ -129,7 +131,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('invalidCode'));
           if (!data.token || !data.user) throw new Error(t('invalidCode'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false, sessionUnverified: false });
           applyUserLocale(data.user);
           trackEvent('login', { method: 'email_2fa' });
           return { success: true };
@@ -156,7 +158,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('registrationError'));
           if (!data.token || !data.user) throw new Error(t('registrationError'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false, sessionUnverified: false });
           trackEvent('sign_up', { method: 'email' });
           await trackReferral(email);
           return { success: true };
@@ -183,7 +185,7 @@ export const useAuthStore = create(
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
           if (!data.token || !data.user) throw new Error(t('googleLoginError'));
-          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false, sessionUnverified: false });
           applyUserLocale(data.user);
           trackEvent('login', { method: 'google' });
           if (data.is_new_user) await trackReferral(data.user?.email);
@@ -204,7 +206,7 @@ export const useAuthStore = create(
        * si divergiera, media app creería que hay sesión y la otra media no.
        */
       setSession: (user, token) => {
-        set({ user, token, isAuthenticated: true, isLoading: false });
+        set({ user, token, isAuthenticated: true, isLoading: false, sessionUnverified: false });
         trackEvent('login', { method: 'passkey' });
       },
 
@@ -248,7 +250,7 @@ export const useAuthStore = create(
             });
           } catch (_) {}
         }
-        set({ user: null, token: null, isAuthenticated: false });
+        set({ user: null, token: null, isAuthenticated: false, sessionUnverified: false });
       },
 
       // Silently exchange refresh_token for a new access token.
@@ -258,37 +260,60 @@ export const useAuthStore = create(
         const { _isRefreshing, isAuthenticated } = get();
         if (!API || !isAuthenticated || _isRefreshing) return null;
         set({ _isRefreshing: true });
-        try {
-          const res = await fetchWithTimeout(`${API}/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // Send empty body: backend reads refresh token from httpOnly cookie only.
-            body: JSON.stringify({}),
-          });
-          if (!res.ok) {
-            // El servidor ha respondido y dice que no: sesión cerrada de verdad.
-            set({ user: null, token: null, isAuthenticated: false,
-                  _isRefreshing: false, sessionUnverified: false });
+
+        // Dos intentos, con una espera corta entre ellos.
+        //
+        // El backend vive en Cloud Run sin instancias calientes: la PRIMERA
+        // petición tras un rato de silencio arranca un contenedor y puede
+        // tardar decenas de segundos o morir por el camino. Y esta es
+        // literalmente la primera petición de cada recarga, porque el token de
+        // acceso sólo vive en memoria. Un único intento convertía ese arranque
+        // en frío en «tu sesión ha caducado»: recargar la pestaña te echaba.
+        for (let intento = 0; intento < 2; intento++) {
+          try {
+            const res = await fetchWithTimeout(`${API}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              // Send empty body: backend reads refresh token from httpOnly cookie only.
+              body: JSON.stringify({}),
+            }, 45000);
+
+            // SÓLO el 401/403 significa «esta sesión ya no vale». Antes lo
+            // significaba cualquier respuesta no-OK, así que un 429 del
+            // limitador o un 502 del arranque en frío cerraban la sesión de
+            // alguien que la tenía perfectamente viva.
+            if (res.status === 401 || res.status === 403) {
+              set({ user: null, token: null, isAuthenticated: false,
+                    _isRefreshing: false, sessionUnverified: false });
+              return null;
+            }
+            if (!res.ok) {
+              if (intento === 0) { await pausa(1500); continue; }
+              set({ _isRefreshing: false, sessionUnverified: true });
+              return null;
+            }
+            const data = await safeJson(res);
+            set({
+              token: data.token,
+              user: data.user || get().user,
+              isAuthenticated: true,
+              _isRefreshing: false,
+              sessionUnverified: false,
+            });
+            return data.token;
+          } catch (err) {
+            // Fallo de RED (timeout, corte, CORS). No se cierra la sesión: puede
+            // ser pasajero y echar a alguien por un túnel es peor que esperar.
+            // Pero se marca como SIN VERIFICAR, porque sin token la interfaz de
+            // «con sesión» es mentira: la guarda de rutas lo mira y manda a
+            // /login en vez de pintar pantallas vacías para siempre.
+            if (intento === 0) { await pausa(1500); continue; }
+            set({ _isRefreshing: false, sessionUnverified: true });
             return null;
           }
-          const data = await safeJson(res);
-          set({
-            token: data.token,
-            user: data.user || get().user,
-            isAuthenticated: true,
-            _isRefreshing: false,
-            sessionUnverified: false,
-          });
-          return data.token;
-        } catch (err) {
-          // Fallo de RED (timeout, corte, CORS). No se cierra la sesión: puede
-          // ser pasajero y echar a alguien por un túnel es peor que esperar.
-          // Pero se marca como SIN VERIFICAR, porque sin token la interfaz de
-          // «con sesión» es mentira: la guarda de rutas lo mira y manda a
-          // /login en vez de pintar pantallas vacías para siempre.
-          set({ _isRefreshing: false, sessionUnverified: true });
-          return null;
         }
+        set({ _isRefreshing: false, sessionUnverified: true });
+        return null;
       },
 
       refreshUser: async () => {

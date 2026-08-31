@@ -34,12 +34,19 @@ function ProtectedRoute({ children, adminOnly = false, premiumOnly = false }) {
     return <Navigate to="/" replace />;
   }
 
-  // El backend exige 2FA a los administradores (428 en /admin/*). Sin esto el
-  // admin vería el panel entero cargar y luego fallar cada llamada: se le lleva
-  // a Ajustes, donde puede activarlo.
-  if (adminOnly && user?.is_admin && user?.two_factor_enabled === false) {
-    return <Navigate to="/settings" state={{ from: location, need2fa: true }} replace />;
-  }
+  // El 2FA de administrador NO se decide aquí, y no es un descuido.
+  //
+  // Esta guarda redirigía a /settings a todo admin con `two_factor_enabled ===
+  // false`, y con eso adelantaba una decisión que sólo el backend puede tomar:
+  // `require_admin` tiene un escape hatch fuera de producción
+  // (`ADMIN_2FA_OPTIONAL`) y, desde BUG-076, un margen de alta de diez minutos
+  // de un solo uso. El frontend no conoce ninguna de las dos cosas, así que
+  // expulsaba a admins que el servidor SÍ iba a dejar entrar — el hueco G-39, y
+  // la razón por la que probar el panel en local exigía fabricar un TOTP real.
+  //
+  // Quien manda es el 428 de `/admin/*`, y `AdminPage` ya lo traduce: enseña el
+  // motivo que da el servidor y lleva a Ajustes (BUG-073). Una sola fuente de
+  // verdad, y es la que tiene los datos.
 
   // Los administradores conservan acceso aunque no tengan suscripción.
   if (premiumOnly && !isPremium && !user?.is_admin) {

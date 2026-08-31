@@ -6144,3 +6144,101 @@ pendiente, y ya estaba escrita sin marcar como bloqueante).
 - ✅ Verificado: pytest **1189 passed / 1 failed** (el mismo de siempre, TLS sin
   Postgres local TCP en este sandbox) / 114 skipped, incluidos los 3 tests nuevos ·
   py_compile · gen-mapa/gen-asistente --check · check-doc-links · check-rutas-muertas.
+
+---
+
+### 2026-08-31 — El administrador estaba encerrado: BUG-076, BUG-077 y BUG-078
+
+Petición del dueño: *«hay que arreglar el admin de inmediato»*, revisando lo que
+tocaron los PR **#216 en adelante**, más el registro/inicio de sesión, la sospecha
+de que exigir el 2FA en el primer acceso deja al admin fuera, y la sesión que se
+cierra sola al recargar la pestaña.
+
+**El fallo principal estaba justo donde el dueño dijo**, y era el eslabón que
+faltaba de la cadena que empezó en el PR #216:
+
+- **BUG-076 · El admin no tenía salida.** `SettingsPage.jsx` pintaba
+  `<TwoFactorCard />` sólo con `auth_provider === 'password'`. La cuenta del
+  dueño entra con **Google**: `/admin` → `ProtectedRoute` ve
+  `two_factor_enabled === false` → te manda a `/settings` a activar el 2FA → y en
+  `/settings` no hay tarjeta de 2FA. Callejón sin salida, sin mensaje. El backend
+  nunca puso esa condición (`/auth/2fa/setup|enable|disable` van por
+  `require_user`): la restricción vivía sólo en esa línea del frontend.
+  El PR #216 (BUG-072) no lo causó pero lo **destapó**: al hacer que
+  `two_factor_enabled` viajara en las ocho respuestas, la guarda pasó a saltar
+  siempre, y lo que antes era «el panel se pinta y cada llamada da 428» pasó a ser
+  «no llegas al panel y no puedes arreglarlo».
+- **BUG-077 · La sesión se cerraba sola al recargar, y cerrar sesión no cerraba.**
+  Dos fallos opuestos sobre el mismo par de tokens: la rotación de `/auth/refresh`
+  mataba el token en el acto (un segundo canje = 401 = sesión cerrada), y
+  `silentRefresh` trataba **cualquier** respuesta no-OK como «sesión caducada»,
+  incluido el 502 de un arranque en frío de Cloud Run. Y `/auth/logout` revocaba
+  el token de acceso pero **no el de refresco**, que dura siete días.
+- **BUG-078 · Ocho sabotajes de `probar-verificadores.sh` no saboteaban nada.**
+  Encontrado de paso, al ir a añadir los míos.
+
+**Lo que se hizo**
+
+| Cambio | Dónde |
+|---|---|
+| La tarjeta de 2FA se pinta para **cualquier** cuenta | `SettingsPage.jsx`, `TwoFactorCard.jsx` |
+| **Margen de alta de 10 min**, un solo uso, pedido por el dueño | `require_admin` + `_abrir_o_comprobar_margen_2fa` |
+| Banda ámbar con cuenta atrás y enlace a Ajustes (10 idiomas) | `AdminPage.jsx`, `lib/i18n/*` |
+| `ProtectedRoute` deja de decidir sobre el 2FA de admin (**cierra G-39**) | `ProtectedRoute.jsx` |
+| El registro calcula `is_admin` con `ADMIN_EMAILS`, como las otras siete respuestas | `register` |
+| Ventana de 30 s para un refresh **recién rotado**, sólo para rotaciones | `_rotado_hace_nada`, `/auth/refresh` |
+| `silentRefresh` reintenta y sólo cierra con **401/403** | `lib/store.js` |
+| `logout` revoca también el refresh token | `logout` |
+| Los ocho heredocs de sabotaje, dedentados | `probar-verificadores.sh` |
+
+**Cómo se decidió el margen de 10 minutos.** Se abre **al usarlo**, no al crear la
+cuenta: un admin dado de alta hace seis meses conserva el suyo, y un atacante con
+la contraseña sólo lo encuentra intacto si el dueño nunca ha pisado el panel. La
+marca (`admin_2fa_grace_started_at`) **no se reescribe jamás** —ni al vencer, ni
+al activar y desactivar el 2FA—, así que son diez minutos en toda la vida de la
+cuenta. Abrirlo escribe un aviso en el log y una entrada en `admin_audit_log`.
+`ADMIN_2FA_GRACE_MINUTES=0` lo apaga entero.
+
+**Cómo se comprobó** — dos backends del mismo Postgres, uno con el código de
+`main` y otro con el arreglado, los dos con `ADMIN_2FA_OPTIONAL=false` (2FA
+exigido como en producción), sus dos builds servidos, y **la misma sonda** contra
+los dos:
+
+```
+CÓDIGO ORIGINAL (main)          CÓDIGO ARREGLADO
+❌ /admin se abre                ✅  (margen de alta)
+❌ el panel se pinta             ✅
+❌ Ajustes ofrece ACTIVAR 2FA    ✅  ← el encierro
+✅ margen vencido → Ajustes      ✅
+✅ el TOTP real activa           ✅
+5 fallos                         0 fallos (16 comprobaciones)
+```
+
+Y a nivel de API: `is_admin` en el registro `False → True`; primer `/admin/metrics`
+sin 2FA `428 → 200`; con la marca envejecida 11 min, `→ 428` y **no se reabre**;
+reuso de un refresh recién rotado `401 → 200`; tras `logout`, el refresh seguía
+dando **200 en las dos versiones** — eso era BUG-077(b), y ahora da 401.
+
+**El ✅ que no probaba nada.** La primera versión de la sonda buscaba el texto
+«dos pasos» en cualquier parte de `/settings`, y **pasaba con el código roto**: el
+aviso ámbar de «activa el 2FA» lleva esa frase, así que casaba justo en la
+pantalla donde la tarjeta no estaba. Se cambió por el BOTÓN («Activar 2FA»).
+Es el modo de fallo que el propio banco de pruebas advierte, y cayó igual.
+
+**Lo que NO se tocó, y hay que decidir fuera del repo**
+
+- **Las cookies de sesión son de tercera parte.** El frontend vive en
+  `tradingcalculator.pro` y el backend en `…run.app`: para el navegador son sitios
+  distintos, así que `access_token`/`refresh_token` son cookies de terceros.
+  Safari las bloquea por defecto (ITP) y Chrome está en ello. Donde estén
+  bloqueadas, **cada recarga cierra la sesión** y ningún arreglo de este commit lo
+  evita: el token de acceso no se persiste a propósito y el de refresco viaja sólo
+  por cookie. Lo que lo cierra de verdad es dar al backend un dominio del mismo
+  sitio (`api.tradingcalculator.pro`), que es un cambio de infraestructura.
+- **G-41**, abierto: `probar()` no comprueba que su sabotaje se haya aplicado, y
+  por eso BUG-078 pasó desapercibido ocho veces.
+
+**Verificado**: 1.204 tests (114 skip, 0 fallos), `py_compile` de los 26 módulos,
+eslint 0 errores, i18n 7.379 claves × 10 idiomas a la par, engine-check 535/535,
+catálogo en paridad, mapa y asistente al día, enlaces de doc OK, build de
+producción, y la sonda de navegador contra el backend real en sus dos versiones.

@@ -1404,6 +1404,30 @@ ADMIN_2FA_OPTIONAL = (
     and os.environ.get("ADMIN_2FA_OPTIONAL", "true").lower() != "false"
 )
 
+# Margen de cortesía para dar de alta el segundo factor, UNA sola vez por cuenta.
+#
+# Sin él, el primer administrador de una instalación se encuentra con un muro:
+# entra al panel, recibe 428, y la pantalla que le resuelve el problema está en
+# otra parte. Con él, la primera vez que un admin sin TOTP toca el panel se le
+# abre una ventana de diez minutos para activarlo con el panel delante.
+#
+# Las tres propiedades que lo hacen aceptable, y que están fijadas por tests:
+#   · ES DE UN SOLO USO. El instante de apertura se graba en la fila
+#     (`admin_2fa_grace_started_at`) y NO SE REESCRIBE NUNCA: ni al expirar, ni
+#     al activar y desactivar el 2FA, ni al ascender de nuevo la cuenta. Una
+#     cuenta sólo tiene diez minutos en toda su vida.
+#   · SE ABRE AL USARLA, no al crear la cuenta. Un admin dado de alta hace seis
+#     meses conserva su margen; un atacante que robe hoy esa contraseña se lo
+#     encuentra intacto sólo si el dueño nunca ha pisado el panel.
+#   · QUEDA REGISTRADA. Abrirla escribe un aviso en el log y una entrada en
+#     `admin_audit_log`, así que no es una puerta silenciosa.
+#
+# A 0 se desactiva por completo (el 428 vuelve a ser inmediato).
+try:
+    ADMIN_2FA_GRACE_MINUTES = max(0, int(os.environ.get("ADMIN_2FA_GRACE_MINUTES", "10")))
+except ValueError:
+    ADMIN_2FA_GRACE_MINUTES = 10
+
 
 def _real_client_ip(request: Optional[Request]) -> str:
     """Client IP as seen by our outermost trusted proxy.
@@ -1574,8 +1598,15 @@ async def _is_token_revoked(payload: dict) -> bool:
     return bool(await db.revoked_tokens.find_one({"jti": jti}, {"_id": 1}))
 
 
-async def _revoke_token(payload: dict) -> None:
-    """Insert the token's jti into the blacklist so subsequent requests fail."""
+async def _revoke_token(payload: dict, motivo: str = "logout") -> None:
+    """Insert the token's jti into the blacklist so subsequent requests fail.
+
+    `motivo` distingue las dos razones por las que un token acaba aquí, que no
+    significan lo mismo: `logout` es «el dueño ha cerrado la sesión, no vuelve a
+    valer jamás»; `rotation` es «lo hemos cambiado por uno nuevo hace un
+    momento». Sin esa distinción no se puede tolerar la carrera de dos pestañas
+    refrescando a la vez sin abrir también la puerta a reusar un token cerrado.
+    """
     jti = payload.get("jti")
     if not jti:
         return  # nothing to revoke
@@ -1592,9 +1623,55 @@ async def _revoke_token(payload: dict) -> None:
             "user_id": payload.get("user_id"),
             "expires_at": expires_at,
             "revoked_at": datetime.now(timezone.utc),
+            "reason": motivo,
         }},
         upsert=True,
     )
+
+
+# Ventana en la que un refresh token RECIÉN ROTADO se sigue aceptando.
+#
+# El fallo que cierra: `/auth/refresh` rota el token —revoca el viejo y emite
+# uno nuevo— y el frontend lo llama AL ARRANCAR, porque el access token vive
+# sólo en memoria. Con dos pestañas abiertas (o una recarga mientras otra
+# pestaña arranca) las dos leen la MISMA cookie y llaman a la vez: la primera
+# rota, la segunda llega con el token que la primera acaba de revocar y recibe
+# 401. El store trata el 401 como «el servidor dice que no» y cierra la sesión.
+# Resultado: recargar una pestaña te echa, y no se cura sola.
+#
+# La ventana sólo cubre `reason == "rotation"`. Un token revocado por LOGOUT
+# sigue muriendo en el acto, que es lo que promete el botón de cerrar sesión.
+try:
+    REFRESH_ROTATION_GRACE_SECONDS = max(0, int(os.environ.get("REFRESH_ROTATION_GRACE_SECONDS", "30")))
+except ValueError:
+    REFRESH_ROTATION_GRACE_SECONDS = 30
+
+
+async def _rotado_hace_nada(payload: dict) -> bool:
+    """¿Este refresh token es uno que acabamos de rotar nosotros mismos?
+
+    Cualquier duda —sin jti, sin registro, otro motivo, fecha ilegible— responde
+    False y el 401 se mantiene.
+    """
+    if REFRESH_ROTATION_GRACE_SECONDS <= 0:
+        return False
+    jti = payload.get("jti")
+    if not jti:
+        return False
+    doc = await db.revoked_tokens.find_one({"jti": jti}, {"_id": 0})
+    if not doc or doc.get("reason") != "rotation":
+        return False
+    marca = doc.get("revoked_at")
+    if isinstance(marca, datetime):
+        revocado = marca if marca.tzinfo else marca.replace(tzinfo=timezone.utc)
+    else:
+        try:
+            revocado = datetime.fromisoformat(str(marca).replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return False
+        if revocado.tzinfo is None:
+            revocado = revocado.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - revocado).total_seconds() <= REFRESH_ROTATION_GRACE_SECONDS
 
 
 async def _revoke_all_tokens_for_user(user_id: str) -> int:
@@ -1775,12 +1852,64 @@ async def require_admin(
     # finish setting this up" and send the admin to Settings instead of a dead
     # end. Escape hatch for local development only.
     if not user.get("totp_enabled") and not ADMIN_2FA_OPTIONAL:
-        raise HTTPException(
-            status_code=428,
-            detail="Los administradores deben activar la verificación en dos pasos "
-                   "(Ajustes → Seguridad) antes de usar el panel.",
-        )
+        # …salvo el margen de alta: diez minutos, una vez en la vida de la
+        # cuenta, para activar el segundo factor con el panel delante en vez de
+        # contra un muro. Ver ADMIN_2FA_GRACE_MINUTES.
+        if not await _abrir_o_comprobar_margen_2fa(user, request):
+            raise HTTPException(
+                status_code=428,
+                detail="Los administradores deben activar la verificación en dos pasos "
+                       "(Ajustes → Seguridad) antes de usar el panel.",
+            )
     return user
+
+
+async def _abrir_o_comprobar_margen_2fa(user: dict, request: Optional[Request] = None) -> bool:
+    """¿Sigue abierto el margen de alta de 2FA de este administrador?
+
+    Lo abre la PRIMERA llamada que llega hasta aquí, y sólo esa: el instante se
+    graba en la fila y a partir de entonces esta función únicamente lee. Si la
+    cuenta ya gastó su margen —porque expiró, o porque activó el 2FA y luego lo
+    desactivó— devuelve False para siempre y el que llama responde 428.
+
+    Devolver False es el camino seguro: cualquier error de reloj, de formato o
+    de base de datos deja el 428 en pie.
+    """
+    if ADMIN_2FA_GRACE_MINUTES <= 0:
+        return False
+
+    ahora = datetime.now(timezone.utc)
+    marca = user.get("admin_2fa_grace_started_at")
+
+    if marca:
+        try:
+            inicio = datetime.fromisoformat(str(marca).replace("Z", "+00:00"))
+        except ValueError:
+            return False
+        if inicio.tzinfo is None:
+            inicio = inicio.replace(tzinfo=timezone.utc)
+        return ahora < inicio + timedelta(minutes=ADMIN_2FA_GRACE_MINUTES)
+
+    # Primera vez: se abre, se graba y se deja constancia. El `$set` va con el
+    # instante YA calculado (no con "ahora" del servidor de base de datos) para
+    # que el margen que se concede sea exactamente el que se acaba de medir.
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"admin_2fa_grace_started_at": ahora.isoformat()}},
+    )
+    user["admin_2fa_grace_started_at"] = ahora.isoformat()
+    logging.warning(
+        "[admin] Margen de alta de 2FA abierto (%s min, uso único) para %s",
+        log_safe(ADMIN_2FA_GRACE_MINUTES), log_safe(user.get("email", "")),
+    )
+    await log_admin_action(
+        admin=user,
+        action="admin_2fa_grace_opened",
+        details={"minutes": ADMIN_2FA_GRACE_MINUTES, "expires_at":
+                 (ahora + timedelta(minutes=ADMIN_2FA_GRACE_MINUTES)).isoformat()},
+        request=request,
+    )
+    return True
 
 
 # ============================================================
@@ -2189,7 +2318,13 @@ async def register(request: Request, response: Response, user_data: UserCreate):
             "subscription_plan": None,
             "subscription_end": None,
             "is_premium": False,
-            "is_admin": False,
+            # `ADMIN_EMAILS` también manda aquí. Esta respuesta lo daba por
+            # `False` fijo mientras login, refresh, `/auth/me`, Google y el
+            # enlace mágico lo calculaban con la lista: el dueño que se
+            # registraba por primera vez con SU correo de administrador salía a
+            # una sesión sin panel, y sólo aparecía al recargar (que es cuando
+            # entra `/auth/refresh`). El mismo usuario, dos respuestas distintas.
+            "is_admin": email_norm.lower() in _ADMIN_EMAILS,
             # Cuenta recién creada: nunca tiene TOTP. Viaja igualmente para que
             # todas las respuestas de auth tengan la misma forma (ver BUG-072).
             "two_factor_enabled": False,
@@ -2366,16 +2501,39 @@ async def logout(
     response: Response,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ):
-    """Revoke the caller's JWT so it cannot be reused even if leaked. Also clears httpOnly cookies."""
+    """Revoke the caller's JWT so it cannot be reused even if leaked. Also clears httpOnly cookies.
+
+    Se revocan LOS DOS tokens, no sólo el de acceso. Borrar las cookies deja
+    limpio el navegador que cierra la sesión, pero no invalida nada: quien
+    tuviera copia del refresh —una extensión, una copia de seguridad del perfil,
+    un proxy— seguía canjeándolo por sesiones nuevas durante siete días, con el
+    botón de «cerrar sesión» ya pulsado. El de acceso caduca en una hora; el de
+    refresco es el que abre la puerta, y era justo el que sobrevivía.
+    """
     _clear_auth_cookies(response)
+    revocados = 0
+
+    # El de refresco: sólo viaja por cookie (su path es /api/auth/refresh), así
+    # que se lee de ahí. Se marca como `logout`, NO como `rotation`: la ventana
+    # de tolerancia a la rotación no puede resucitar una sesión cerrada.
+    crudo_refresh = request.cookies.get("refresh_token")
+    if crudo_refresh:
+        try:
+            carga = jwt.decode(crudo_refresh, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            if carga.get("type") == "refresh":
+                await _revoke_token(carga, motivo="logout")
+                revocados += 1
+        except jwt.InvalidTokenError:
+            pass  # caducado o falso: ya no vale, nada que revocar
+
     token = _extract_token_from_request(request, credentials)
     if not token:
-        return {"ok": True, "revoked": False}
+        return {"ok": True, "revoked": revocados > 0}
     try:
         payload = decode_token(token)
     except HTTPException:
-        return {"ok": True, "revoked": False}
-    await _revoke_token(payload)
+        return {"ok": True, "revoked": revocados > 0}
+    await _revoke_token(payload, motivo="logout")
     return {"ok": True, "revoked": True}
 
 
@@ -2402,7 +2560,11 @@ async def refresh_access_token(request: Request, response: Response, body: Token
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Token no es un refresh token.")
 
-    if await _is_token_revoked(payload):
+    if await _is_token_revoked(payload) and not await _rotado_hace_nada(payload):
+        # Revocado de verdad (logout, o una rotación de hace rato): 401.
+        # Si en cambio lo acabamos de rotar nosotros hace segundos, es la
+        # carrera de dos pestañas arrancando a la vez y no una sesión cerrada:
+        # se le entrega un par nuevo. Ver REFRESH_ROTATION_GRACE_SECONDS.
         raise HTTPException(status_code=401, detail="Refresh token revocado. Inicia sesión de nuevo.")
 
     if await _is_user_session_revoked(payload):
@@ -2418,7 +2580,7 @@ async def refresh_access_token(request: Request, response: Response, body: Token
         raise HTTPException(status_code=401, detail="Usuario no encontrado.")
 
     # Revoke old refresh token (rotation)
-    await _revoke_token(payload)
+    await _revoke_token(payload, motivo="rotation")
 
     new_access = create_token(user_id, email)
     new_refresh = create_refresh_token(user_id, email)

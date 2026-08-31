@@ -461,7 +461,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Two-factor authentication (password accounts only) */}
+          {/* Verificación en dos pasos: para CUALQUIER cuenta. */}
           {need2fa && (
             <div
               className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3"
@@ -476,7 +476,14 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-          {user?.auth_provider === 'password' && <TwoFactorCard />}
+          {/* Estaba condicionada a `auth_provider === 'password'`, y eso dejaba
+              SIN SALIDA al administrador que entra con Google o con enlace
+              mágico: la guarda del panel lo mandaba aquí a activar el 2FA y
+              aquí no había nada que activar. El backend nunca puso esa
+              condición —`/auth/2fa/setup`, `/enable` y `/disable` van por
+              `require_user`, no miran el proveedor—, así que la restricción
+              sólo existía en esta línea. Ver BUG-076. */}
+          <TwoFactorCard />
 
           {/* Passkeys: para cualquier cuenta, también las de Google */}
           <PasskeysCard />

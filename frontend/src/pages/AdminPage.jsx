@@ -358,6 +358,31 @@ export default function AdminPage() {
             <span>Modo demo — los datos reales requieren el backend conectado. Las acciones están deshabilitadas.</span>
           </div>
         )}
+        {/* Margen de alta del segundo factor.
+            Estás viendo el panel sin 2FA, así que o el servidor te ha dado el
+            margen de diez minutos (uso único: cuando venza, `require_admin`
+            devuelve 428 y no vuelve a abrirse) o corres en desarrollo con el
+            escape hatch. En los dos casos la acción es la misma y urge, así que
+            el aviso lleva el enlace en vez de sólo describir el problema. */}
+        {token !== DEMO_TOKEN && user?.two_factor_enabled === false && (
+          <div
+            className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3
+                       flex items-start gap-3 text-sm"
+            data-testid="admin-2fa-grace-banner"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 text-warn mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">{t('admin2faGraceTitle')}</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {t('admin2faGraceBody')}
+              </p>
+              <Link to="/settings" className="inline-block text-primary underline text-xs font-medium">
+                {t('admin2faGraceCta')}
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Header row */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
