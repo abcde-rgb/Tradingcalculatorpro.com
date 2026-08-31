@@ -1200,6 +1200,15 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
     "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/no/existe/</loc></url></urlset>|' frontend/build/sitemap.xml" \
     "$SEO_REST"
 
+  # El sitemap anunciando una ruta que robots.txt prohíbe. Pasó de verdad:
+  # `/performance` es premium y robots la bloqueaba, pero el sitemap la anunciaba
+  # porque el arreglo estaba escrito en `gen-sitemap.js` —que el build no ejecuta—
+  # y no en `gen-seo-pages.js`, que es el que corre en `postbuild`.
+  probar "el sitemap anunciando una ruta que robots.txt prohíbe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|</urlset>|<url><loc>https://tradingcalculator.pro/performance</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+
   # El otro lado: las rutas de aplicación (`/options/strategies`, `/pricing`…)
   # están en el sitemap a propósito y las sirve la SPA sin página estática. Si
   # el verificador las denunciara, el arreglo evidente —relajar la regla de

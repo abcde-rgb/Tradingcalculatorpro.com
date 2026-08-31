@@ -700,7 +700,16 @@ STRATEGIES.forEach((s, i) => {
 });
 
 // ── Sitemap ──
-const MAIN = [['/','1.0'],['/options','0.9'],['/options/strategies','0.85'],['/education','0.9'],['/performance','0.8'],['/pricing','0.85'],['/about','0.7'],['/contact','0.6'],['/legal','0.4']];
+// `/performance` NO va aquí, y la razón ya estaba escrita en gen-sitemap.js: es
+// una ruta premium (`ProtectedRoute premiumOnly`) y robots.txt la bloquea con
+// `Disallow: /performance`. Anunciar en el sitemap una URL que robots prohíbe es
+// la contradicción que Search Console marca como «enviada pero bloqueada por
+// robots.txt», y resta autoridad al resto del sitemap.
+//
+// El arreglo estaba en el generador equivocado: `postbuild` ejecuta SÓLO este
+// fichero, así que gen-sitemap.js —donde sí se había quitado, con su comentario—
+// no llega nunca al sitemap publicado. Por eso `/performance` seguía saliendo.
+const MAIN = [['/','1.0'],['/options','0.9'],['/options/strategies','0.85'],['/education','0.9'],['/pricing','0.85'],['/about','0.7'],['/contact','0.6'],['/legal','0.4']];
 const all = [...MAIN, ...sitemapUrls];
 const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   all.map(([p, pr]) => `  <url><loc>${DOMAIN}${p}</loc><lastmod>${LASTMOD}</lastmod><priority>${pr}</priority></url>`).join('\n') +

@@ -232,6 +232,41 @@ if (!fs.existsSync(SITEMAP)) {
   }
   for (const u of norm) if (!enSitemap.has(u))
     anota('página generada que el sitemap no anuncia', rutaDe(u), '');
+
+  // Ninguna URL del sitemap puede estar prohibida en robots.txt.
+  //
+  // Existe porque pasó: `/performance` es premium y robots la bloqueaba, pero el
+  // sitemap la anunciaba igual. El arreglo estaba escrito —con su comentario— en
+  // `gen-sitemap.js`, que el build NO ejecuta: `postbuild` corre sólo
+  // `gen-seo-pages.js`, y ahí seguía. Search Console lo marca como «enviada pero
+  // bloqueada por robots.txt» y resta autoridad al resto del sitemap.
+  //
+  // Se leen las reglas del grupo `*`, que es el que aplica a los rastreadores de
+  // buscador. Prefijo simple, que es como funciona robots.txt.
+  const ROBOTS = path.join(BUILD, 'robots.txt');
+  if (!fs.existsSync(ROBOTS)) {
+    anota('falta robots.txt', 'build/robots.txt', '');
+  } else {
+    const lineas = fs.readFileSync(ROBOTS, 'utf8').split('\n').map((l) => l.trim());
+    const prohibidas = [];
+    let enComodin = false;
+    for (const l of lineas) {
+      const ua = l.match(/^User-agent:\s*(.+)$/i);
+      if (ua) { enComodin = ua[1].trim() === '*'; continue; }
+      if (!enComodin) continue;
+      const d = l.match(/^Disallow:\s*(\S+)\s*$/i);
+      if (d && d[1] !== '/') prohibidas.push(d[1]);
+    }
+    for (const loc of enSitemap) {
+      const ruta = rutaDe(loc);
+      const sinIdioma = ruta.replace(
+        new RegExp(`^/(${LANGS.map(([l]) => l).filter((l) => l !== 'es').join('|')})(?=/|$)`), '');
+      const choca = prohibidas.find((d) => sinIdioma === d || sinIdioma.startsWith(`${d}/`)
+        || sinIdioma === `${d}/`);
+      if (choca)
+        anota('el sitemap anuncia una URL que robots.txt prohíbe', ruta, `Disallow: ${choca}`);
+    }
+  }
 }
 
 // ── veredicto ───────────────────────────────────────────────────────────────

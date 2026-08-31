@@ -5835,3 +5835,44 @@ consolidado de 16 análisis) como dirección de producto de la Academia. Se arch
   ⚠️ `auditar.py --estricto` sale **1**, pero sale 1 igual sobre `origin/main` limpio:
   son los dos bloqueantes preexistentes (rastros de tecnología retirada y rutas sin
   consumidor), no algo que traiga este cambio. CI usa `--breve`, que no bloquea.
+
+### 2026-08-31 — SEO para buscadores de IA: robots por grupos, llms.txt y la contradicción del sitemap
+Petición: revisar todo el SEO e indexación con el objetivo de ser la referencia
+que citan las IAs.
+
+- 🔴 **Hallazgo mayor, sin arreglar aún: la portada es invisible para los bots de
+  IA.** Los rastreadores de IA no ejecutan JavaScript. El shell de la SPA tiene
+  **0 caracteres de texto** en `build/index.html`, así que `/`, `/pricing`,
+  `/about`, `/education`, `/options` y `/options/strategies` —las 8 rutas de
+  `MAIN`, ×10 idiomas = 80 URLs del sitemap— se sirven en blanco a GPTBot,
+  ClaudeBot o PerplexityBot. Las 1.640 páginas de `/learn/`, `/tools/`,
+  `/markets/` y `/estrategias/` sí están prerenderizadas y tienen texto real.
+  Consecuencia: una IA puede citar un módulo suelto, pero no tiene de dónde leer
+  qué es TradingCalculator.Pro. Es la palanca pendiente más grande.
+- ✅ **Corregida la contradicción sitemap ↔ robots.** `/performance` es premium y
+  `robots.txt` la bloquea, pero el sitemap la anunciaba. El arreglo YA estaba
+  escrito, con su comentario, en `gen-sitemap.js`… que el build no ejecuta:
+  `postbuild` corre **sólo** `gen-seo-pages.js`, y ahí seguía en `MAIN`. Sitemap
+  1.649 → 1.648 URLs.
+- ✅ **Verificador nuevo en `check-seo.js`**: ninguna URL del sitemap puede estar
+  en `Disallow` del grupo `*`. Saboteado y comprobado (exit 1 con sabotaje, 0
+  sin él) y registrado en `probar-verificadores.sh`.
+- ✅ **`robots.txt` reescrito por grupos.** Corrige un fallo real de semántica: un
+  bot que casa con su propio grupo **ignora el grupo `*` entero**, `Disallow`
+  incluidos. `AhrefsBot`, `SemrushBot` y `MJ12bot` tenían sólo `Crawl-delay`, así
+  que tenían vía libre a `/admin`, `/dashboard`, `/settings` y `/api`. Ahora cada
+  grupo repite la lista de prohibidas.
+- ✅ **Política explícita de IA**, separada en dos bloques por si se quiere
+  cambiar sólo uno: los que CITAN (OAI-SearchBot, ChatGPT-User, PerplexityBot,
+  ClaudeBot, Google-Extended, Applebot-Extended…) y los de ENTRENAMIENTO (GPTBot,
+  CCBot, meta-externalagent). Ambos permitidos a propósito. `Bytespider` fuera.
+- ✅ **`frontend/public/llms.txt` nuevo**: mapa del sitio para agentes, con las
+  cifras de `SITE_FACTS` (que `engine-check` contrasta con el código), qué se
+  puede citar, y las tres advertencias de honestidad del proyecto — datos
+  sintéticos marcados, lo indefinido no es cero, y que no es asesoramiento.
+- ⬜ **No tocado, y es decisión de producto**: `/education` sigue en el sitemap y
+  es `premiumOnly`. No es la contradicción dura de `/performance` (robots sí la
+  permite), pero un rastreador que la siga se encuentra un muro.
+- ✅ Verificado: `i18n-check` · `engine-check` · `check-seo` ·
+  `check-enlaces-academia` · `gen-mapa --check` · `check-doc-links` ·
+  `gen-asistente --check` · `check-rutas-muertas` · `eslint` 0 errores · build.
