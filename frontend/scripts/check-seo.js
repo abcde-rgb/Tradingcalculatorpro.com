@@ -279,6 +279,24 @@ if (!fs.existsSync(SITEMAP)) {
   // Existe porque al escribir ese bloque puse `/learn/gestion-del-riesgo/`, que
   // no existe — el módulo se llama `gestion-del-capital`. Un enlace plausible y
   // muerto es exactamente lo que ninguna lectura por encima caza.
+  // En `public/` no puede haber un sitemap.
+  //
+  // Había uno: 8 URLs con `lastmod` congelado en 2026-08-11, de cuando el
+  // sitemap se escribía a mano. CRA copia `public/` dentro de `build/` y luego
+  // el `postbuild` lo pisa con el bueno, así que en el flujo normal no se
+  // notaba — pero cualquier build que no llegue al postbuild publica ESE, y
+  // Search Console ve el sitio encoger de 1.648 URLs a 8. Pasó de verdad en
+  // `probar-verificadores.sh`, donde tres sabotajes recompilan con `craco
+  // build` a secas.
+  //
+  // Lo escribe `gen-sitemap.js`, que ya no ejecuta nadie. Si vuelve a aparecer
+  // el fichero, es que alguien lo ha corrido: mejor que salte aquí.
+  const PUB_SITEMAP = path.join(__dirname, '..', 'public', 'sitemap.xml');
+  if (fs.existsSync(PUB_SITEMAP)) {
+    anota('hay un sitemap en public/ que pisaría al generado', 'public/sitemap.xml',
+      'lo escribe gen-sitemap.js, que el build no ejecuta; el bueno lo genera gen-seo-pages.js');
+  }
+
   const SHELL = path.join(BUILD, 'index.html');
   if (!fs.existsSync(SHELL)) {
     anota('falta el shell', 'build/index.html', '');

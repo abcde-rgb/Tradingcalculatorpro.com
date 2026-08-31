@@ -5881,6 +5881,23 @@ que citan las IAs.
 - ✅ **Verificador nuevo en `check-seo.js`**: ninguna URL del sitemap puede estar
   en `Disallow` del grupo `*`. Saboteado y comprobado (exit 1 con sabotaje, 0
   sin él) y registrado en `probar-verificadores.sh`.
+- ✅ **Retirado `frontend/public/sitemap.xml`, que era una escopeta cargada.** Un
+  segundo sitemap de **8 URLs** con `lastmod` congelado en 2026-08-11, escrito
+  por `gen-sitemap.js` —que ya no ejecuta nadie—. CRA copia `public/` dentro de
+  `build/` y el `postbuild` lo pisa con el bueno, así que en el flujo normal no
+  se notaba; pero **cualquier build que no llegue al postbuild publica ése**, y
+  Search Console vería el sitio encoger de 1.648 URLs a 8. `check-seo` falla
+  ahora si reaparece. Queda pendiente decidir qué hacer con `gen-sitemap.js`:
+  no lo llama ni CI ni `package.json`, y su única salida era ese fichero.
+- 🐛 **Y esa escopeta ya se había disparado, dentro del propio
+  `probar-verificadores.sh`.** Tres sabotajes recompilan con `npx craco build`
+  a secas —el paso de webpack **sin** `postbuild`—, que vacía `build/` y se
+  lleva por delante las 1.640 páginas generadas. El bloque de `check-seo` viene
+  después, no encontraba ninguna, y **sus diez casos salían como «no pasa ni
+  ANTES de sabotear»**: diez sabotajes degradados a avisos que se leen como
+  ruido. Los tres recompilan ahora también las páginas. Nota a favor de
+  `check-seo`: se negó a pasar en verde sobre cero páginas, que es justo lo que
+  hizo visible el problema.
 - ✅ **`robots.txt` reescrito por grupos.** Corrige un fallo real de semántica: un
   bot que casa con su propio grupo **ignora el grupo `*` entero**, `Disallow`
   incluidos. `AhrefsBot`, `SemrushBot` y `MJ12bot` tenían sólo `Crawl-delay`, así
