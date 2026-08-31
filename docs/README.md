@@ -31,6 +31,7 @@ leen en el mismo momento ni con la misma intención.
 | [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) | Gráficos y personalización por usuario |
 | [`MIGRACION_NEON.md`](./MIGRACION_NEON.md) | Conmutar la BD entre Cloud SQL y Neon (`DB_PROVIDER`) |
 | [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) | Especificación del plan de trading versionado. **Ya tiene pantalla**: `TradingPlanPage` en `App.js:171` (`/plan`). De los cuatro módulos de G-14 siguen huérfanos `portfolio_risk.py` y `american_options.py` |
+| [`WEBMCP.md`](./WEBMCP.md) | Herramientas para agentes de IA en el navegador (`navigator.modelContext`, origin trial de Chrome). Qué se expone, qué NO y por qué, y el token de origen que falta fuera del repo |
 
 ## 🚀 Voy a desplegar
 

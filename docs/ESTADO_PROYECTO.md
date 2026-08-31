@@ -158,6 +158,11 @@
   y contesta con el módulo **y el apartado**. Funciona sin red. La IA
   (`POST /api/education/assistant`) es una segunda capa que **sólo redacta** sobre los
   candidatos que ya encontró el navegador; si cita un `id` inexistente, se descarta.
+- **WebMCP** (2026-08-31, `lib/webmcp.js`): dos herramientas para un agente de IA
+  en el navegador vía `navigator.modelContext` — tamaño de posición y valor del
+  pip, sobre el motor de la mesa (`deskMath.js`/`instruments.js`), no sobre las
+  14 calculadoras sueltas (G-33 sigue mal). Feature-detect: no-op fuera de
+  Chrome con el origin trial activado. Ver [`WEBMCP.md`](./WEBMCP.md).
 
 ### Backend — FastAPI + asyncpg (shim Mongo→PostgreSQL)
 - **195 rutas registradas** en la app (contadas sobre `server.app.routes`, 2026-08-03).
@@ -367,6 +372,10 @@ Estos puntos no se pueden cerrar desde el repo; requieren acceso a consolas exte
 - **DNS**: hecho. `tradingcalculator.pro` y su `www` resuelven a GitHub Pages y el build
   se publica en la raíz del dominio propio. Lo que queda fuera del repo está en
   [`MIGRACION_DOMINIO.md`](./MIGRACION_DOMINIO.md) § «Lo que falta».
+- **WebMCP**: origin trial token de Chrome para `tradingcalculator.pro`
+  (developer.chrome.com/origin-trials). Sin él, el código no falla —es
+  feature-detect— pero Chrome no expone las herramientas a ningún agente real.
+  Ver [`WEBMCP.md`](./WEBMCP.md).
 
 ---
 
@@ -383,9 +392,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-31 (cont. 3) | WebMCP: de cero, no "otra vez" |
+| 2026-08-31 (cont. 2) | G-28 cerrado: el título «Gratis»/«Free» de Tamaño de Posición |
+| 2026-08-31 (cont.) | Auditoría de Stripe (sin acceso a producción) y de los 10 idiomas |
 | 2026-08-26 (2) | Del informe de esperanza matemática, lo que no estaba ya |
 | 2026-08-26 | Tres páginas públicas hablaban castellano en los diez idiomas |
-| 2026-08-22 | Las 38 rutas muertas: una decisión por cada una |
 | 2026-08-15 | Lo último que seguía atado a un navegador |
 | 2026-08-14 (5) | Mil escenarios generados, y lo que 264 comprobaciones no veían |
 

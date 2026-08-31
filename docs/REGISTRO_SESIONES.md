@@ -5981,3 +5981,51 @@ desde aquí — sólo la mitad que vive en el repo.
   cambios (7.359 × 10, 531/531); `eslint` 0 errores.
 - ✅ **G-28 marcado 🟢 cerrado y verificado** en `ESTADO_PROYECTO.md` §3 y en
   `DECISIONES.md` (2026-08-02 · Todo el contenido va tras el muro de pago).
+
+### 2026-08-31 (cont. 3) — WebMCP: de cero, no "otra vez"
+
+El dueño pidió "estudiar de nuevo" el WebMCP del sitio. Búsqueda exhaustiva
+—`main`, las 39 ramas remotas, `docs/REGISTRO_SESIONES.md` entero— **no
+encontró ni una línea**: no existía código, ni doc, ni sesión previa. Lo único
+que sonaba parecido, la rama `claude/conectar-mcp-olvmvg`, es sobre conectar
+MCP de Playwright/Firecrawl al *entorno de desarrollo*, sin relación con
+exponer el sitio a un agente. Se construyó de cero, dejándolo dicho en vez de
+fingir continuidad con algo que no estaba.
+
+- Investigado el estado real de WebMCP (WebSearch, agosto 2026): propuesta del
+  W3C Web Machine Learning CG, origin trial en Chrome 149–156,
+  `navigator.modelContext.registerTool(...)` con JSON Schema. Sin soporte
+  nativo todavía.
+- ✅ **`lib/webmcp.js`** nuevo: dos tools —`calcular_tamano_posicion` y
+  `calcular_valor_pip`— sobre el motor de la mesa (`resolveSpec` → `riskBudget`
+  → `maxSizes` → `positionMetrics`, y `pipValue`), no sobre las 14
+  calculadoras sueltas (G-33 sigue con matemática incorrecta: exponerla como
+  API con apariencia oficial sería peor que no exponerla). Tampoco opciones
+  (G-34: una pata no es la pérdida máxima de una estructura). Imports
+  relativos a propósito, como `deskMath.js`/`crossMargin.js`, para que
+  `engine-check.js` pueda importarlo con Node puro.
+- 🐛 **Encontrado al construirlo, no antes de**: `futures` no tiene
+  `default_leverage` en el catálogo (varía por contrato, no por producto).
+  Calcular con un 1x inventado habría dado un margen y un tope por margen que
+  no significan nada. Ahora bloquea con `no_default_leverage` y pide el
+  apalancamiento explícito — el mismo invariante de "lo indefinido es `null`,
+  no un valor inventado" que ya regía en `deskMath.js`, aplicado a un caso que
+  la UI de la mesa no fuerza a decidir porque siempre pinta un selector.
+- ✅ **6 comprobaciones nuevas en `engine-check.js`** (`checkWebMcp`, 531→537):
+  forex da 0,2 lotes por riesgo (verificado a mano: 100 € / (0,0050×100.000)),
+  futuros sin apalancamiento bloquea, riesgo >10 % bloquea, capital
+  insuficiente da `null`, valor del pip de 1 lote EURUSD = 10 USD. Corrida y
+  en verde antes de dar el resto por bueno.
+- ✅ `<WebMcpTools />` montado en `App.js` con el mismo patrón que
+  `<CloudPrefsSync />`: un componente que no pinta nada, se engancha una vez,
+  y es no-op si `navigator.modelContext` no existe (todo navegador sin el
+  trial, hoy).
+- ✅ **`docs/WEBMCP.md` nuevo**, enlazado desde `docs/README.md`. Dice qué se
+  expone y qué NO (y por qué), y dos cosas que no se pueden cerrar desde el
+  repo: el **origin trial token** de Chrome para `tradingcalculator.pro` (sin
+  él el código no falla, pero Chrome no expone nada a un agente real) y que no
+  hay forma de probarlo contra un Chrome real desde este sandbox. Añadido a
+  `ESTADO_PROYECTO.md` §2 (inventario) y §6 (gating de operación).
+- ✅ Verificado: `engine-check` 537/537 · `eslint` 0 errores · `npm run build`
+  exit 0 (1640 páginas) · `gen-mapa --check` · `check-doc-links` 106 docs, 0
+  roturas. `i18n-check` sin cambios (no toca ninguna clave).

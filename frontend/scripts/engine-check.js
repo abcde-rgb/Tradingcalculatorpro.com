@@ -1969,6 +1969,52 @@ async function checkCrossMargin() {
     canOpen({ ...base, positions: pos, price: 0, addLots: 1 }).maxLots === null);
 }
 
+async function checkWebMcp() {
+  console.log('\nwebmcp.js');
+  const { calcularTamanoPosicion, calcularValorPip } = await imp('lib/webmcp.js');
+
+  // Forex al contado, 10.000 de capital, 1 % de riesgo → 100 de presupuesto.
+  // Distancia 50 pips (0,0050), lote estándar 100.000: byRisk = 100/500 = 0,2
+  // lotes, y con apalancamiento por defecto (30x) y tope de exposición (10x)
+  // ninguno de los otros dos topes es más estricto, así que gana el riesgo.
+  const r1 = calcularTamanoPosicion({
+    producto: 'forex', simbolo: 'EURUSD', capital: 10000,
+    entrada: 1.1000, stop: 1.0950, riesgo_porcentaje: 1,
+  }).structuredContent;
+  ok('forex: el riesgo manda y da 0,2 lotes', r1.binding === 'risk' && near(r1.quantity, 0.2, 0.005),
+    `${r1.binding} ${r1.quantity}`);
+  ok('forex: el riesgo declarado es 100 (1 % de 10.000)', near(r1.riskAmount, 100, 1), `${r1.riskAmount}`);
+
+  // Futuros no tiene apalancamiento por defecto en el catálogo (varía por
+  // contrato, no por producto): sin "apalancamiento" explícito es indefinido,
+  // no un 1x inventado que daría un margen que no significa nada.
+  const r2 = calcularTamanoPosicion({
+    producto: 'futures', simbolo: 'MES', capital: 10000, entrada: 5000, stop: 4980,
+  }).structuredContent;
+  ok('futuros sin apalancamiento explícito queda bloqueado, no en 1x',
+    r2.blocked === true && r2.reason === 'no_default_leverage');
+
+  // El tope duro del 10 % (mismo invariante que la mesa) bloquea, no recorta en silencio.
+  const r3 = calcularTamanoPosicion({
+    producto: 'forex', simbolo: 'EURUSD', capital: 10000,
+    entrada: 1.1000, stop: 1.0950, riesgo_porcentaje: 15,
+  }).structuredContent;
+  ok('riesgo por encima del 10 % bloqueado, no recortado', r3.blocked === true && r3.reason === 'over_cap');
+
+  // Capital que no llega ni al escalón mínimo: null, no 0.
+  const r4 = calcularTamanoPosicion({
+    producto: 'forex', simbolo: 'EURUSD', capital: 1,
+    entrada: 1.1000, stop: 1.0950, riesgo_porcentaje: 1,
+  }).structuredContent;
+  ok('capital insuficiente para el mínimo negociable: bloqueado, no cero',
+    r4.blocked === true && r4.reason === 'below_min_step');
+
+  // 1 lote estándar de EURUSD: el pip (0,0001) × 100.000 = 10, ya en USD.
+  const p1 = calcularValorPip({ producto: 'forex', simbolo: 'EURUSD', cantidad: 1, precio: 1.1000 })
+    .structuredContent;
+  ok('valor del pip de 1 lote EURUSD = 10 USD', near(p1.quoteValue, 10, 0.1), `${p1.quoteValue}`);
+}
+
 async function checkEdgeMath() {
   console.log('\nedgeMath.js');
   const E = await imp('lib/edgeMath.js');
@@ -2365,6 +2411,7 @@ async function checkTailRisk() {
   await checkSinCatalogosParalelos();
   await checkDeskMath();
   await checkCrossMargin();
+  await checkWebMcp();
   await checkEduIndex();
   await checkScannerMeta();
   await checkOptionsEngine();

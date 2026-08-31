@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useI18nStore, languages } from "@/lib/i18n";
 import { REF_STORAGE_KEY } from "@/lib/store";
 import { startCloudPrefsSync } from "@/lib/cloudPrefs";
+import { registerWebMcpTools } from "@/lib/webmcp";
 import { useAuthStore } from "@/lib/store";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
@@ -116,6 +117,14 @@ function CloudPrefsSync() {
   return null;
 }
 
+// WebMCP (navigator.modelContext): expone el tamaño de posición y el valor
+// del pip como herramientas tipadas para un agente de IA en el navegador, sin
+// tocar nada si el navegador no soporta la API todavía. Ver lib/webmcp.js.
+function WebMcpTools() {
+  useEffect(() => registerWebMcpTools(), []);
+  return null;
+}
+
 // Al arrancar, `token` es null (no se persiste) pero `isAuthenticated` puede
 // venir de localStorage. Nadie intentaba reponer la sesión aquí: lo hacían
 // algunas páginas en su propio efecto, así que en el resto de rutas la app
@@ -150,6 +159,7 @@ const AppContent = () => (
       <RefCapture />
       <SessionBoot />
       <CloudPrefsSync />
+      <WebMcpTools />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/"                element={<LandingPage />} />
