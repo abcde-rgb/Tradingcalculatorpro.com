@@ -801,7 +801,13 @@ fi
 # ── El presupuesto de peso caza una pantalla que engorda ────────────────────
 # Necesita el build compilado y el servidor en pie, así que sólo se prueba si
 # están; si no, se dice que se salta en vez de figurar como aprobado.
-if [ -d frontend/build ] && curl -s -o /dev/null --max-time 3 "http://localhost:3100/Tradingcalculatorpro.com/"; then
+# ⚠️ La comprobación va con `curl -f` y contra la RAÍZ. Estaba sin `-f` y contra
+# `/Tradingcalculatorpro.com/`, la base de GitHub Pages de antes del cutover
+# (2026-08-28): sin `-f`, curl sale 0 también con un 404, así que la guarda decía
+# «el servidor está en pie» ante cualquier cosa que escuchara en el puerto, y la
+# ruta que preguntaba ya no existía. Misma familia que los anclas obsoletos de
+# BUG-078: una constante copiada que no siguió al dominio.
+if [ -d frontend/build ] && curl -sf -o /dev/null --max-time 3 "http://localhost:3100/"; then
   titulo "Presupuesto de peso (peso.js)"
   probar "un presupuesto por debajo de lo que pesa la pantalla" \
     "node tests/e2e/navegador/peso.js" \

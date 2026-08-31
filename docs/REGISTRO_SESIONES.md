@@ -6245,6 +6245,29 @@ de salida del sabotaje, así que «el verificador no verifica» y «el sabotaje 
 tocó nada» imprimían lo mismo. Ahora un sabotaje que falla se reporta con su
 error y cuenta como fallo **del test**, no del producto.
 
+**La batería de sabotajes, entera.** 105 sabotajes detectados, 11 cebos que no
+producen falsos positivos, **0 «SOBREVIVE»**. Los 7 avisos de la primera pasada
+eran del banco de pruebas, no del producto, y se comprobaron uno por uno:
+
+- **5 (csp ×3, nulos ×2)**: mi `frontend/build` apuntaba al backend de :8090 —el
+  estricto que monté para comparar—, y esas sondas esperan el stack estándar de
+  :8080. Con el build correcto pasan las tres.
+- **2 (peso.js)**: la ruta `precios` se pasaba del presupuesto. **Compilando el
+  punto de partida de esta rama (`f5f79b4`) se pasa igual**: 1039 KB > 1038 KB
+  ya sin mis commits. El presupuesto se midió el 2026-08-27 y los PR #218 y #219
+  entraron después. Mis dos commits suman **1 KB más** (los tres textos del aviso
+  de 2FA × 10 idiomas, ~470 bytes en el idioma que se carga, más la lógica de
+  `silentRefresh`). Presupuesto rebasado en total: 2 KB, de los que **la mitad no
+  es de esta rama**. Re-medido con `--actualizar`, que es lo que el propio
+  verificador pide para un aumento deliberado.
+
+**Y otro ancla obsoleta, de la misma familia que BUG-078.** La guarda que decide
+si se prueban peso/CSP/nulos preguntaba por `curl -s` a
+`http://localhost:3100/Tradingcalculatorpro.com/` — la base de GitHub Pages de
+**antes** del cutover del 2026-08-28. Sin `-f`, curl sale 0 también con un 404,
+así que la guarda daba por bueno cualquier proceso escuchando en ese puerto. Va
+con `-f` y contra la raíz.
+
 **Verificado**: 1.204 tests (114 skip, 0 fallos), `py_compile` de los 26 módulos,
 eslint 0 errores, i18n 7.379 claves × 10 idiomas a la par, engine-check 535/535,
 catálogo en paridad, mapa y asistente al día, enlaces de doc OK, build de
