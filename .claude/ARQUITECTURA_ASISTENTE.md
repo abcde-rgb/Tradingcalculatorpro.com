@@ -73,7 +73,7 @@ No se invocan: entran solas al abrir un fichero que case con su `paths:`.
 
 | Regla | Se carga al tocar | Ficheros que casan |
 |---|---|---|
-| `rules/backend.md` | `backend/*.py`<br>`backend/**/*.py` | 138 |
+| `rules/backend.md` | `backend/*.py`<br>`backend/**/*.py` | 139 |
 | `rules/diario-riesgo.md` | `backend/performance.py`<br>`backend/instruments.py`<br>`backend/trading_plan.py`<br>`backend/portfolio_risk.py`<br>`backend/backtest.py`<br>`frontend/src/components/performance/**`<br>`frontend/src/lib/instruments.js`<br>`frontend/src/lib/instrumentSpecs.generated.js`<br>`frontend/src/lib/tradingSystem.js`<br>`frontend/src/services/performanceApi.js` | 11 |
 | `rules/escaner.md` | `backend/price_action.py`<br>`backend/candle_patterns.py`<br>`backend/timeframes.py`<br>`frontend/src/components/charts/**` | 5 |
 | `rules/i18n-seo.md` | `frontend/src/lib/i18n/**`<br>`frontend/scripts/gen-*.js`<br>`frontend/public/index.html`<br>`frontend/public/robots.txt`<br>`frontend/src/data/mockData.js` | 8 |

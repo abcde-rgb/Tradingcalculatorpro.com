@@ -387,11 +387,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-08-31 (cont. 5) | Panel admin: navegación por secciones + limpieza de colores |
 | 2026-08-31 (cont. 4) | BUG-074: el cifrado de secretos fallaba en silencio |
 | 2026-08-31 | SEO para buscadores de IA: robots por grupos, llms.txt y la contradicción del sitemap |
 | 2026-08-29 (2) | Entra el Master Plan de la Academia, reverificado |
 | 2026-08-28 | Lo que el banco de pruebas no miraba: un tema entero, un esquema y un `null` |
-| 2026-08-28 (2) | Cinco informes de otras IA, calificados contra el código |
 
 ```bash
 # buscar una sesión por fecha o por tema

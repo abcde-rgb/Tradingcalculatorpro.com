@@ -6017,3 +6017,49 @@ tokens) — el dueño pidió arreglar primero el de seguridad.
 - ⚠️ **Pendiente y es operativo, no de código**: generar la clave
   (`Fernet.generate_key()`) y ponerla en Cloud Run. Sin eso el aviso ámbar
   sigue apareciendo, que es la señal correcta de que sigue sin cifrar.
+
+### 2026-08-31 (cont. 5) — Panel admin: navegación por secciones + limpieza de colores
+
+Los otros dos hallazgos de la misma auditoría, que en la sesión anterior quedaron
+"sólo reportados": las 32 tarjetas del panel en scroll vertical continuo sin
+navegación, y ~70 clases Tailwind con color de paleta crudo (`bg-red-500`,
+`text-blue-500`…) fuera de los tokens semánticos del sistema de diseño. El dueño
+confirmó las dos a la vez: "el cambio de diseño con más impacto" primero, los
+tokens "mecánico, se puede hacer a la vez".
+
+- ✅ **Navegación por secciones**: `AdminPage.jsx` agrupa las 32 tarjetas en 7
+  secciones (`Resumen`, `Ingresos y pagos`, `Marketing y uso`, `Afiliados`,
+  `Sistema`, `Configuración`, `Legal y RGPD`) detrás de un nuevo componente
+  `AdminNav` — pestañas horizontales en móvil, columna fija con borde activo en
+  escritorio. Sólo la sección activa se monta, así que sus tarjetas (cada una con
+  su propio `useAuthedLoad`) sólo piden datos **al abrirse**, no las 57 peticiones
+  en paralelo de antes con cada carga de `/admin`. El resumen (filtros + tabla de
+  usuarios + audit log) y las métricas de cabecera se quedan siempre visibles, sin
+  sección, porque son el primer vistazo que se quiere ver siempre.
+- ✅ **Estado en la URL**: `activeSection` vive en `?section=` vía
+  `useSearchParams` (no en un `useState` suelto) — un enlace a
+  `/admin?section=sistema` abre directamente esa sección, compartible y
+  recargable.
+- ✅ **Colores**: sustituidas todas las clases de paleta cruda por los tokens
+  semánticos ya registrados en `tailwind.config.js`
+  (`long`/`short`/`warn`/`caution`/`info`/`compare`) — `green→long`,
+  `red→short`, `blue→info`, `amber`/`yellow`→`warn`/`caution` según el uso,
+  `purple`/`indigo`→`compare`. Verificado con grep de las clases de paleta
+  Tailwind sobre el fichero final: **cero restantes**. Se dejó fuera a
+  propósito `PLAN_COLORS` (hexadecimales de las cinco insignias de plan): son
+  categóricos, no de estado, y forzarlos a los seis tokens habría perdido
+  distinción entre planes en vez de ganarla.
+- ✅ **Verificado en navegador de verdad** (no sólo build): stack de QA
+  (`tests/e2e/stack/arriba.sh`), cuenta admin sembrada con 2FA real (secreto
+  TOTP generado y verificado con `pyotp`, porque el guard de `ProtectedRoute`
+  exige `two_factor_enabled === true` para entrar a `/admin` — el dato de
+  prueba se revirtió al terminar). Comprobado en escritorio y móvil: las 7
+  pestañas cambian de contenido, cada sección lee sus datos al abrirse, el
+  aviso ámbar de cifrado (BUG-074) se pinta en `Configuración`, sin
+  desbordamiento horizontal y sin errores de consola.
+- ✅ Resto de la batería: `eslint` 0 errores (mismos avisos preexistentes) ·
+  `npm run build` + postbuild SEO sin cambios · `i18n-check` 7.366×10 sin huecos
+  (el panel admin no es superficie multi-idioma) · `engine-check` 535/535 ·
+  `gen-mapa --check` y `gen-asistente --check` regenerados · `check-doc-links`
+  130 documentos, todo resuelve. No se tocó ningún fichero de backend, así que
+  el pytest suite no aplica a este cambio.

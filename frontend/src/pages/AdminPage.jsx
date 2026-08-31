@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback, Fragment } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
   Shield, ShieldOff, RefreshCw, Mail, Globe2, Calendar,
@@ -94,12 +94,76 @@ const PLAN_COLORS = { none: '#6b7280', free: '#6b7280', monthly: '#3b82f6', quar
 // Language code → { flag, name } for the admin users table.
 const LANG_BY_CODE = Object.fromEntries(languages.map((l) => [l.code, l]));
 
+/**
+ * Antes esto era un único `<main>` con 32 tarjetas en scroll vertical
+ * continuo: entrar a mirar la lista de usuarios significaba bajar por
+ * treinta secciones, y cada tarjeta dispara su propio fetch al montar, así
+ * que cargar la página lanzaba ~25 peticiones en paralelo aunque sólo se
+ * quisiera ver una cosa. Agrupar en secciones y renderizar sólo la activa
+ * hace las dos cosas a la vez: navegación real y carga perezosa — una
+ * tarjeta que no está montada no pide sus datos.
+ */
+const ADMIN_SECTIONS = [
+  { id: 'resumen',       label: 'Resumen',            icon: Users },
+  { id: 'ingresos',      label: 'Ingresos y pagos',   icon: DollarSign },
+  { id: 'marketing',     label: 'Marketing y uso',    icon: TrendingUp },
+  { id: 'afiliados',     label: 'Afiliados',          icon: Share2 },
+  { id: 'sistema',       label: 'Sistema',            icon: Gauge },
+  { id: 'configuracion', label: 'Configuración',      icon: Settings },
+  { id: 'legal',         label: 'Legal y RGPD',       icon: Lock },
+];
+const ADMIN_SECTION_IDS = new Set(ADMIN_SECTIONS.map((s) => s.id));
+
+function AdminNav({ active, onChange }) {
+  return (
+    <nav
+      className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible
+                 md:w-52 md:shrink-0 md:border-r md:border-border md:pr-3
+                 pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0"
+      aria-label="Secciones del panel"
+      data-testid="admin-nav"
+    >
+      {ADMIN_SECTIONS.map(({ id, label, icon: Icon }) => {
+        const isActive = active === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            data-testid={`admin-nav-${id}`}
+            aria-current={isActive ? 'page' : undefined}
+            className={`flex items-center gap-2 shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm
+                        transition-colors text-left
+                        ${isActive
+                          ? 'bg-primary/10 text-primary font-medium md:border-l-2 md:border-primary md:-ml-[2px] md:pl-[10px]'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+          >
+            <Icon className="w-4 h-4 shrink-0" />
+            {label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 export default function AdminPage() {
   const { t, locale: uiLocale } = useTranslation();
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuthStore();
 
   useSEO({ title: 'Admin', description: 'Panel administrativo', canonicalPath: '/admin', noindex: true });
+
+  // Sincronizada con `?section=` para que un enlace a una sección concreta
+  // (p. ej. mandarle a otro admin "mira /admin?section=ingresos") funcione.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sectionParam = searchParams.get('section');
+  const activeSection = ADMIN_SECTION_IDS.has(sectionParam) ? sectionParam : 'resumen';
+  const setActiveSection = (id) => {
+    const next = new URLSearchParams(searchParams);
+    if (id === 'resumen') next.delete('section'); else next.set('section', id);
+    setSearchParams(next, { replace: true });
+  };
 
   const [metrics, setMetrics] = useState(null);
   const [users, setUsers] = useState([]);
@@ -289,7 +353,7 @@ export default function AdminPage() {
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Demo mode banner */}
         {token === DEMO_TOKEN && (
-          <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 flex items-center gap-3 text-sm text-caution dark:text-caution">
+          <div className="rounded-xl border border-caution/40 bg-caution/10 px-4 py-3 flex items-center gap-3 text-sm text-caution">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>Modo demo — los datos reales requieren el backend conectado. Las acciones están deshabilitadas.</span>
           </div>
@@ -316,7 +380,8 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Metrics grid */}
+        {/* Metrics grid — visible en todas las secciones: es la orientación
+            de "cómo va esto" que no debería depender de dónde estés */}
         {metrics && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <MetricCard icon={Users} label={t('adminMetricUsers')}
@@ -339,197 +404,226 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Google integrations editor */}
-        <IntegrationsEditor headers={headers} t={t} />
+        {/* Navegación + contenido de la sección activa. Cada tarjeta pide
+            sus propios datos al montar (useAuthedLoad/useEffect); no
+            renderizar una sección es no montar sus tarjetas, así que
+            cambiar de sección es la carga perezosa — no hace falta
+            coordinar fetches a mano. */}
+        <div className="flex flex-col md:flex-row gap-6">
+          <AdminNav active={activeSection} onChange={setActiveSection} />
+          <div className="flex-1 min-w-0 space-y-6">
 
-        {/* Filters */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              <div className="md:col-span-2 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('adminSearchPlaceholder')}
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && loadAll()}
-                  className="pl-10"
-                  data-testid="admin-search-input"
-                />
-              </div>
-              <Select value={plan} onValueChange={setPlan}>
-                <SelectTrigger data-testid="admin-filter-plan"><SelectValue placeholder={t('adminFilterPlan')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('adminFilterPlan')}: {t('adminAll')}</SelectItem>
-                  <SelectItem value="none">Free</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="annual">Annual</SelectItem>
-                  <SelectItem value="lifetime">Lifetime</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={provider} onValueChange={setProvider}>
-                <SelectTrigger data-testid="admin-filter-provider"><SelectValue placeholder={t('adminFilterProvider')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('adminFilterProvider')}: {t('adminAll')}</SelectItem>
-                  <SelectItem value="password">Email + Password</SelectItem>
-                  <SelectItem value="google">Google</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={loadAll} className="gap-2" data-testid="admin-apply-filters">
-                {t('adminApplyFilters')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            {activeSection === 'resumen' && (
+              <>
+                {/* Filters */}
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      <div className="md:col-span-2 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder={t('adminSearchPlaceholder')}
+                          value={q}
+                          onChange={(e) => setQ(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && loadAll()}
+                          className="pl-10"
+                          data-testid="admin-search-input"
+                        />
+                      </div>
+                      <Select value={plan} onValueChange={setPlan}>
+                        <SelectTrigger data-testid="admin-filter-plan"><SelectValue placeholder={t('adminFilterPlan')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('adminFilterPlan')}: {t('adminAll')}</SelectItem>
+                          <SelectItem value="none">Free</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                          <SelectItem value="annual">Annual</SelectItem>
+                          <SelectItem value="lifetime">Lifetime</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={provider} onValueChange={setProvider}>
+                        <SelectTrigger data-testid="admin-filter-provider"><SelectValue placeholder={t('adminFilterProvider')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('adminFilterProvider')}: {t('adminAll')}</SelectItem>
+                          <SelectItem value="password">Email + Password</SelectItem>
+                          <SelectItem value="google">Google</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button onClick={loadAll} className="gap-2" data-testid="admin-apply-filters">
+                        {t('adminApplyFilters')}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        {/* Table */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">{t('adminUsersTable')}</CardTitle>
-              <Badge variant="outline">{total} {t('adminTotal')}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-sm" data-testid="admin-users-table">              <thead className="bg-muted/40">
-                <tr className="text-left">
-                  <Th><Mail className="w-3 h-3 inline" /> Email</Th>
-                  <Th>{t('adminColName')}</Th>
-                  <Th>{t('adminColPlan')}</Th>
-                  <Th>{t('adminColStatus')}</Th>
-                  <Th>{t('adminColProvider')}</Th>
-                  <Th>{t('adminColCountry')}</Th>
-                  <Th>{t('adminColLanguage')}</Th>
-                  <Th><Calendar className="w-3 h-3 inline" /> {t('adminColCreated')}</Th>
-                  <Th>Acciones</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => {
-                  const isSelf = u.id === user?.id;
-                  return (
-                    <tr key={u.id} className="border-t border-border hover:bg-muted/20">
-                      <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
-                      <td className="px-3 py-2">{u.name}</td>
-                      <td className="px-3 py-2">
-                        <Badge style={{ background: `${PLAN_COLORS[u.subscription_plan || 'free']}30`, color: PLAN_COLORS[u.subscription_plan || 'free'], border: `1px solid ${PLAN_COLORS[u.subscription_plan || 'free']}50` }}>
-                          {u.subscription_plan || 'free'}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge variant={u.is_premium ? 'default' : 'secondary'}
-                          className={u.is_premium ? 'bg-green-500/15 text-long' : ''}>
-                          {u.is_premium ? 'active' : (u.subscription_status || '—')}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="text-xs text-muted-foreground">{u.auth_provider || 'password'}</span>
-                      </td>
-                      <td className="px-3 py-2 text-xs">
-                        {u.country
-                          ? <span title={u.country}>{countryFlag(u.country)} {countryName(u.country, uiLocale)}</span>
-                          : <span className="text-muted-foreground">—</span>}
-                      </td>
-                      <td className="px-3 py-2 text-xs">
-                        {u.preferred_locale
-                          ? <span>{(LANG_BY_CODE[u.preferred_locale]?.flag || '')} {LANG_BY_CODE[u.preferred_locale]?.name || u.preferred_locale}</span>
-                          : <span className="text-muted-foreground">—</span>}
-                      </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">
-                        {u.created_at ? u.created_at.slice(0, 10) : '—'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex flex-wrap gap-1">
-                          <Button size="sm" variant="outline" onClick={() => setEditing(u)}
-                            className="gap-1 h-7" data-testid={`admin-edit-${u.email}`}>
-                            <Pencil className="w-3 h-3" /> Editar
-                          </Button>
-                          {!isSelf && (
-                            <Button size="sm" variant="outline"
-                              onClick={() => handleImpersonate(u)}
-                              className="gap-1 h-7 text-info border-blue-500/30 hover:bg-blue-500/10"
-                              data-testid={`admin-impersonate-${u.email}`}>
-                              <UserCheck className="w-3 h-3" /> Ver como
-                            </Button>
-                          )}
-                          <Button size="sm" variant={u.is_admin ? 'destructive' : 'outline'}
-                            onClick={() => togglePromote(u.email, u.is_admin)}
-                            className="gap-1 h-7" data-testid={`admin-toggle-${u.email}`}>
-                            {u.is_admin
-                              ? <><ShieldOff className="w-3 h-3" /> {t('adminDemote')}</>
-                              : <><Shield className="w-3 h-3" /> {t('adminPromote')}</>}
-                          </Button>
-                          <Button size="sm" variant="outline"
-                            onClick={() => setResetting(u)}
-                            className="gap-1 h-7" data-testid={`admin-reset-${u.email}`}>
-                            <KeyRound className="w-3 h-3" /> Reset
-                          </Button>
-                          {!isSelf && (
-                            <Button size="sm" variant="destructive"
-                              onClick={() => setConfirmDelete(u)}
-                              className="gap-1 h-7" data-testid={`admin-delete-${u.email}`}>
-                              <Trash2 className="w-3 h-3" /> Borrar
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">
-                      {loading ? t('loading') : t('adminNoUsers')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-        {/* Audit Log */}
-        <AuditLogPanel headers={headers} />
+                {/* Table */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{t('adminUsersTable')}</CardTitle>
+                      <Badge variant="outline">{total} {t('adminTotal')}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0 overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="admin-users-table">              <thead className="bg-muted/40">
+                        <tr className="text-left">
+                          <Th><Mail className="w-3 h-3 inline" /> Email</Th>
+                          <Th>{t('adminColName')}</Th>
+                          <Th>{t('adminColPlan')}</Th>
+                          <Th>{t('adminColStatus')}</Th>
+                          <Th>{t('adminColProvider')}</Th>
+                          <Th>{t('adminColCountry')}</Th>
+                          <Th>{t('adminColLanguage')}</Th>
+                          <Th><Calendar className="w-3 h-3 inline" /> {t('adminColCreated')}</Th>
+                          <Th>Acciones</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u) => {
+                          const isSelf = u.id === user?.id;
+                          return (
+                            <tr key={u.id} className="border-t border-border hover:bg-muted/20">
+                              <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
+                              <td className="px-3 py-2">{u.name}</td>
+                              <td className="px-3 py-2">
+                                <Badge style={{ background: `${PLAN_COLORS[u.subscription_plan || 'free']}30`, color: PLAN_COLORS[u.subscription_plan || 'free'], border: `1px solid ${PLAN_COLORS[u.subscription_plan || 'free']}50` }}>
+                                  {u.subscription_plan || 'free'}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2">
+                                <Badge variant={u.is_premium ? 'default' : 'secondary'}
+                                  className={u.is_premium ? 'bg-long/15 text-long' : ''}>
+                                  {u.is_premium ? 'active' : (u.subscription_status || '—')}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className="text-xs text-muted-foreground">{u.auth_provider || 'password'}</span>
+                              </td>
+                              <td className="px-3 py-2 text-xs">
+                                {u.country
+                                  ? <span title={u.country}>{countryFlag(u.country)} {countryName(u.country, uiLocale)}</span>
+                                  : <span className="text-muted-foreground">—</span>}
+                              </td>
+                              <td className="px-3 py-2 text-xs">
+                                {u.preferred_locale
+                                  ? <span>{(LANG_BY_CODE[u.preferred_locale]?.flag || '')} {LANG_BY_CODE[u.preferred_locale]?.name || u.preferred_locale}</span>
+                                  : <span className="text-muted-foreground">—</span>}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">
+                                {u.created_at ? u.created_at.slice(0, 10) : '—'}
+                              </td>
+                              <td className="px-3 py-2">
+                                <div className="flex flex-wrap gap-1">
+                                  <Button size="sm" variant="outline" onClick={() => setEditing(u)}
+                                    className="gap-1 h-7" data-testid={`admin-edit-${u.email}`}>
+                                    <Pencil className="w-3 h-3" /> Editar
+                                  </Button>
+                                  {!isSelf && (
+                                    <Button size="sm" variant="outline"
+                                      onClick={() => handleImpersonate(u)}
+                                      className="gap-1 h-7 text-info border-info/30 hover:bg-info/10"
+                                      data-testid={`admin-impersonate-${u.email}`}>
+                                      <UserCheck className="w-3 h-3" /> Ver como
+                                    </Button>
+                                  )}
+                                  <Button size="sm" variant={u.is_admin ? 'destructive' : 'outline'}
+                                    onClick={() => togglePromote(u.email, u.is_admin)}
+                                    className="gap-1 h-7" data-testid={`admin-toggle-${u.email}`}>
+                                    {u.is_admin
+                                      ? <><ShieldOff className="w-3 h-3" /> {t('adminDemote')}</>
+                                      : <><Shield className="w-3 h-3" /> {t('adminPromote')}</>}
+                                  </Button>
+                                  <Button size="sm" variant="outline"
+                                    onClick={() => setResetting(u)}
+                                    className="gap-1 h-7" data-testid={`admin-reset-${u.email}`}>
+                                    <KeyRound className="w-3 h-3" /> Reset
+                                  </Button>
+                                  {!isSelf && (
+                                    <Button size="sm" variant="destructive"
+                                      onClick={() => setConfirmDelete(u)}
+                                      className="gap-1 h-7" data-testid={`admin-delete-${u.email}`}>
+                                      <Trash2 className="w-3 h-3" /> Borrar
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {users.length === 0 && (
+                          <tr>
+                            <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">
+                              {loading ? t('loading') : t('adminNoUsers')}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+                <AuditLogPanel headers={headers} />
+              </>
+            )}
 
-        {/* Revenue Analytics */}
-        <RevenueAnalyticsCard metrics={metrics} headers={headers} />
+            {activeSection === 'ingresos' && (
+              <>
+                <RevenueAnalyticsCard metrics={metrics} headers={headers} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <PlanDistributionCard metrics={metrics} />
+                  <ChurnSurveyCard headers={headers} />
+                </div>
+                <PaymentReconciliationCard headers={headers} />
+                <ManualPaymentCard headers={headers} />
+                <PaymentHistoryCard headers={headers} />
+                <CouponManagerCard headers={headers} />
+                <PlansEditorCard headers={headers} />
+              </>
+            )}
 
-        {/* Plan Distribution + Usage side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PlanDistributionCard metrics={metrics} />
-          <UsageAnalyticsCard headers={headers} />
+            {activeSection === 'marketing' && (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <UsageAnalyticsCard headers={headers} />
+                  <CohortAnalysisCard headers={headers} />
+                </div>
+                <UsageHeatmapCard headers={headers} />
+                <EmailCampaignsCard headers={headers} />
+              </>
+            )}
+
+            {activeSection === 'afiliados' && (
+              <>
+                <ReferralManagerCard headers={headers} />
+                <AffiliatePayoutRequestsCard headers={headers} />
+                <AffiliatesAdminCard headers={headers} />
+                <AffiliatePayoutsCard headers={headers} />
+              </>
+            )}
+
+            {activeSection === 'sistema' && (
+              <>
+                <FeatureFlagsCard headers={headers} />
+                <WebhookLogsCard headers={headers} />
+                <MarketDataHealthCard headers={headers} />
+                <MaintenanceModeCard headers={headers} />
+                <ErrorMonitorCard headers={headers} />
+                <RateLimitingCard headers={headers} />
+              </>
+            )}
+
+            {activeSection === 'configuracion' && (
+              <>
+                <IntegrationsEditor headers={headers} t={t} />
+                <I18nManagerCard headers={headers} />
+              </>
+            )}
+
+            {activeSection === 'legal' && (
+              <GDPRExportCard headers={headers} />
+            )}
+
+          </div>
         </div>
-
-        {/* Usage Heatmap — qué miran más los usuarios */}
-        <PaymentReconciliationCard headers={headers} />
-        <ManualPaymentCard headers={headers} />
-        <UsageHeatmapCard headers={headers} />
-
-        {/* Coupon Manager */}
-        <CouponManagerCard headers={headers} />
-
-        {/* Feature Flags */}
-        <FeatureFlagsCard headers={headers} />
-
-        {/* Stripe Webhook Logs */}
-        <WebhookLogsCard headers={headers} />
-
-        {/* ── NEW FEATURES ── */}
-        <MarketDataHealthCard headers={headers} />
-        <MaintenanceModeCard headers={headers} />
-        <EmailCampaignsCard headers={headers} />
-        <PaymentHistoryCard headers={headers} />
-        <ChurnSurveyCard headers={headers} />
-        <CohortAnalysisCard headers={headers} />
-        <ReferralManagerCard headers={headers} />
-        <AffiliatePayoutRequestsCard headers={headers} />
-        <AffiliatesAdminCard headers={headers} />
-        <AffiliatePayoutsCard headers={headers} />
-        <PlansEditorCard headers={headers} />
-        <I18nManagerCard headers={headers} />
-        <ErrorMonitorCard headers={headers} />
-        <RateLimitingCard headers={headers} />
-        <GDPRExportCard headers={headers} />
       </main>
 
       {/* MODALS */}
@@ -739,7 +833,7 @@ function IntegrationField({ field, value, isSet, onChange }) {
       <div className="flex items-start justify-between gap-2">
         <Label htmlFor={field.id} className="text-sm font-medium">{field.label}</Label>
         {(isSet || (!field.secret && value))
-          ? <Badge className="bg-green-500/15 text-long gap-1"><Check className="w-3 h-3" /> Connected</Badge>
+          ? <Badge className="bg-long/15 text-long gap-1"><Check className="w-3 h-3" /> Connected</Badge>
           : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> Not configured</Badge>}
       </div>
       <div className="flex gap-1">
@@ -1304,13 +1398,13 @@ function ConfirmDeleteDialog({ user, onClose, onConfirm }) {
  * ============================================================ */
 
 const ACTION_LABELS = {
-  'user.create':         { label: 'Usuario creado',       color: 'bg-green-500/15 text-long' },
-  'user.update':         { label: 'Usuario editado',      color: 'bg-blue-500/15 text-info'   },
-  'user.delete':         { label: 'Usuario eliminado',    color: 'bg-red-500/15 text-short'     },
-  'user.reset_password': { label: 'Password reseteada',   color: 'bg-amber-500/15 text-warn' },
-  'user.promote':        { label: 'Promovido a admin',    color: 'bg-purple-500/15 text-compare' },
-  'user.demote':         { label: 'Admin removido',       color: 'bg-slate-500/15 text-muted-foreground' },
-  'settings.update':     { label: 'Settings guardadas',   color: 'bg-indigo-500/15 text-compare' },
+  'user.create':         { label: 'Usuario creado',       color: 'bg-long/15 text-long' },
+  'user.update':         { label: 'Usuario editado',      color: 'bg-info/15 text-info'   },
+  'user.delete':         { label: 'Usuario eliminado',    color: 'bg-short/15 text-short'     },
+  'user.reset_password': { label: 'Password reseteada',   color: 'bg-warn/15 text-warn' },
+  'user.promote':        { label: 'Promovido a admin',    color: 'bg-compare/15 text-compare' },
+  'user.demote':         { label: 'Admin removido',       color: 'bg-muted text-muted-foreground' },
+  'settings.update':     { label: 'Settings guardadas',   color: 'bg-compare/15 text-compare' },
 };
 
 function AuditLogPanel({ headers }) {
@@ -1520,7 +1614,7 @@ function RevenueAnalyticsCard({ metrics, headers }) {
           </div>
         </div>
         {loadError && (
-          <p className="text-xs text-short border border-red-500/30 bg-red-500/10 rounded px-2 py-1.5">
+          <p className="text-xs text-short border border-short/30 bg-short/10 rounded px-2 py-1.5">
             No se pudieron cargar los datos de facturación ({loadError}). Las cifras de
             arriba están vacías porque falló la carga, no porque valgan cero.
           </p>
@@ -1753,7 +1847,7 @@ function PaymentReconciliationCard({ headers }) {
         </div>
 
         {alerts.length > 0 && (
-          <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3">
+          <div className="rounded-lg border border-short/40 bg-short/5 p-3">
             <div className="text-xs font-semibold text-short mb-1">
               Sin webhooks recientes: {alerts.map(a => a.provider).join(', ')}
             </div>
@@ -1774,7 +1868,7 @@ function PaymentReconciliationCard({ headers }) {
               {data.paid_not_premium.map(tx => (
                 <div
                   key={tx.transaction_id}
-                  className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2"
+                  className="flex items-center gap-2 rounded-lg border border-short/30 bg-short/5 px-3 py-2"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-medium truncate">{tx.user_email}</div>
@@ -2084,7 +2178,7 @@ function CouponManagerCard({ headers }) {
                 <td className="px-3 py-2 text-muted-foreground">{c.max_uses ?? '∞'}</td>
                 <td className="px-3 py-2 text-muted-foreground text-xs">{c.expires ?? '—'}</td>
                 <td className="px-3 py-2">
-                  <Badge className={c.active ? 'bg-green-500/15 text-long' : 'bg-muted text-muted-foreground'}>
+                  <Badge className={c.active ? 'bg-long/15 text-long' : 'bg-muted text-muted-foreground'}>
                     {c.active ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </td>
@@ -2176,11 +2270,11 @@ function FeatureFlagsCard({ headers }) {
  *  STRIPE WEBHOOK LOGS
  * ============================================================ */
 const WEBHOOK_COLORS = {
-  'payment_intent.succeeded': 'bg-green-500/15 text-long',
-  'customer.subscription.created': 'bg-blue-500/15 text-info',
-  'customer.subscription.deleted': 'bg-red-500/15 text-short',
-  'invoice.payment_failed': 'bg-red-500/20 text-short',
-  'invoice.paid': 'bg-green-500/15 text-long',
+  'payment_intent.succeeded': 'bg-long/15 text-long',
+  'customer.subscription.created': 'bg-info/15 text-info',
+  'customer.subscription.deleted': 'bg-short/15 text-short',
+  'invoice.payment_failed': 'bg-short/20 text-short',
+  'invoice.paid': 'bg-long/15 text-long',
 };
 
 function WebhookLogsCard({ headers }) {
@@ -2236,7 +2330,7 @@ function WebhookLogsCard({ headers }) {
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{log.customer}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">{log.created?.slice(0, 16).replace('T', ' ')}</td>
                 <td className="px-3 py-2">
-                  <Badge className={log.status === 'ok' ? 'bg-green-500/15 text-long' : 'bg-red-500/15 text-short'}>
+                  <Badge className={log.status === 'ok' ? 'bg-long/15 text-long' : 'bg-short/15 text-short'}>
                     {log.status === 'ok' ? 'OK' : 'Error'}
                   </Badge>
                 </td>
@@ -2301,14 +2395,14 @@ function MarketDataHealthCard({ headers }) {
 
       <CardContent className="space-y-3">
         {data && !data.available && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-short/10 border border-short/30 text-sm">
             <AlertTriangle className="w-4 h-4 text-short shrink-0 mt-0.5" />
             <span>La capa de datos de mercado no se pudo cargar: <span className="font-mono text-xs">{data.error}</span></span>
           </div>
         )}
 
         {sinReserva && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm"
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-warn/10 border border-warn/30 text-sm"
                data-testid="market-health-sin-reserva">
             <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
             <span>
@@ -2322,7 +2416,7 @@ function MarketDataHealthCard({ headers }) {
         )}
 
         {abiertos.length > 0 && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-short/10 border border-short/30 text-sm">
             <AlertCircle className="w-4 h-4 text-short shrink-0 mt-0.5" />
             <span>
               Cortacircuito abierto en <span className="font-semibold">{abiertos.map((p) => p.name).join(', ')}</span>:
@@ -2332,7 +2426,7 @@ function MarketDataHealthCard({ headers }) {
         )}
 
         {alLimite.length > 0 && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-warn/10 border border-warn/30 text-sm">
             <Gauge className="w-4 h-4 text-warn shrink-0 mt-0.5" />
             <span>Cerca de la cuota diaria: <span className="font-semibold">{alLimite.map((p) => p.name).join(', ')}</span>.</span>
           </div>
@@ -2358,9 +2452,9 @@ function MarketDataHealthCard({ headers }) {
                     {!p.configured ? (
                       <Badge className="bg-muted text-muted-foreground text-[10px]">sin clave</Badge>
                     ) : p.circuit_open ? (
-                      <Badge className="bg-red-500/15 text-short text-[10px]">circuito abierto</Badge>
+                      <Badge className="bg-short/15 text-short text-[10px]">circuito abierto</Badge>
                     ) : (
-                      <Badge className="bg-green-500/15 text-long text-[10px]">en rotación</Badge>
+                      <Badge className="bg-long/15 text-long text-[10px]">en rotación</Badge>
                     )}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{p.calls}</td>
@@ -2447,14 +2541,14 @@ function MaintenanceModeCard({ headers }) {
   };
 
   return (
-    <Card className={`border-border ${enabled ? 'border-orange-500/50 bg-orange-500/5' : 'bg-card'}`}>
+    <Card className={`border-border ${enabled ? 'border-warn/50 bg-warn/5' : 'bg-card'}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Construction className="w-4 h-4 text-warn" /> Modo Mantenimiento
           </CardTitle>
           <div className="flex items-center gap-3">
-            {enabled && <Badge className="bg-orange-500/15 text-warn animate-pulse">ACTIVO</Badge>}
+            {enabled && <Badge className="bg-warn/15 text-warn animate-pulse">ACTIVO</Badge>}
             <Switch checked={enabled} onCheckedChange={setEnabled} disabled={loading} />
           </div>
         </div>
@@ -2471,11 +2565,11 @@ function MaintenanceModeCard({ headers }) {
           />
         </div>
         {enabled && (
-          <div className="p-3 rounded-md bg-orange-500/10 border border-orange-500/20 text-sm text-warn">
+          <div className="p-3 rounded-md bg-warn/10 border border-warn/20 text-sm text-warn">
             <strong>Vista previa:</strong> {message || 'Estamos realizando tareas de mantenimiento. Volvemos en breve...'}
           </div>
         )}
-        <Button onClick={save} disabled={saving} size="sm" className={enabled ? 'bg-orange-500 hover:bg-orange-600' : ''}>
+        <Button onClick={save} disabled={saving} size="sm" className={enabled ? 'bg-warn hover:bg-warn/90' : ''}>
           {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
           &nbsp;Guardar
         </Button>
@@ -2539,7 +2633,7 @@ function EmailCampaignsCard({ headers }) {
     finally { setSending(null); }
   };
 
-  const STATUS_CLS = { draft: 'bg-muted text-muted-foreground', sent: 'bg-green-500/15 text-long', sending: 'bg-blue-500/15 text-info' };
+  const STATUS_CLS = { draft: 'bg-muted text-muted-foreground', sent: 'bg-long/15 text-long', sending: 'bg-info/15 text-info' };
 
   return (
     <Card className="bg-card border-border">
@@ -2655,7 +2749,7 @@ function PaymentHistoryCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  const STATUS_CLS = { completed: 'bg-green-500/15 text-long', failed: 'bg-red-500/15 text-short', pending: 'bg-yellow-500/15 text-caution' };
+  const STATUS_CLS = { completed: 'bg-long/15 text-long', failed: 'bg-short/15 text-short', pending: 'bg-caution/15 text-caution' };
   const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
 
   return (
@@ -2820,10 +2914,10 @@ function ChurnSurveyCard({ headers }) {
               {surveys.slice(0, 20).map(s => (
                 <tr key={s.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs">{s.email}</td>
-                  <td className="px-3 py-2"><Badge className="text-[10px] bg-red-500/10 text-short">{CHURN_REASONS[s.reason] || s.reason}</Badge></td>
+                  <td className="px-3 py-2"><Badge className="text-[10px] bg-short/10 text-short">{CHURN_REASONS[s.reason] || s.reason}</Badge></td>
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate">{s.comment || '—'}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{s.created_at?.slice(0, 10)}</td>
-                  <td className="px-3 py-2">{s.follow_up_note ? <Badge className="bg-green-500/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-muted text-muted-foreground text-[10px]">Pendiente</Badge>}</td>
+                  <td className="px-3 py-2">{s.follow_up_note ? <Badge className="bg-long/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-muted text-muted-foreground text-[10px]">Pendiente</Badge>}</td>
                   <td className="px-3 py-2">
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setFollowUp(s); setNote(s.follow_up_note || ''); }}>Nota</Button>
                   </td>
@@ -2906,7 +3000,7 @@ function CohortAnalysisCard({ headers }) {
                       <td className="px-2 py-2 text-xs text-center">{c.total_users}</td>
                       <td className="px-2 py-2 text-xs text-center">{c.converted}</td>
                       <td className="px-2 py-2 text-xs text-center">
-                        <Badge className={`text-[10px] ${(c.conversion_rate || 0) > 10 ? 'bg-green-500/15 text-long' : 'bg-muted text-muted-foreground'}`}>
+                        <Badge className={`text-[10px] ${(c.conversion_rate || 0) > 10 ? 'bg-long/15 text-long' : 'bg-muted text-muted-foreground'}`}>
                           {Math.round(c.conversion_rate || 0)}%
                         </Badge>
                       </td>
@@ -2981,7 +3075,7 @@ function ReferralManagerCard({ headers }) {
                 <td className="px-3 py-2 text-xs font-bold text-muted-foreground">#{i + 1}</td>
                 <td className="px-3 py-2 font-mono text-xs">{r.email}</td>
                 <td className="px-3 py-2 text-xs text-center">{r.referrals}</td>
-                <td className="px-3 py-2 text-xs text-center"><Badge className="bg-green-500/10 text-long text-[10px]">{r.conversions}</Badge></td>
+                <td className="px-3 py-2 text-xs text-center"><Badge className="bg-long/10 text-long text-[10px]">{r.conversions}</Badge></td>
               </tr>
             ))}
           </tbody>
@@ -3034,7 +3128,7 @@ function AffiliatePayoutRequestsCard({ headers }) {
   if (pending === 0) return null;   // solo aparece cuando hay algo que pagar
 
   return (
-    <Card className="bg-yellow-500/5 border-yellow-500/40">
+    <Card className="bg-caution/5 border-caution/40">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2 text-caution dark:text-caution">
           <AlertCircle className="w-4 h-4" /> Solicitudes de pago pendientes ({pending}) — {amount} €
@@ -3059,7 +3153,7 @@ function AffiliatePayoutRequestsCard({ headers }) {
                   <td className="px-2 py-2 text-center text-[10px] text-muted-foreground">{(r.created_at || '').slice(0, 10)}</td>
                   <td className="px-2 py-2 text-right whitespace-nowrap">
                     <Button size="sm" variant="outline" className="h-7 text-xs mr-1" onClick={() => action(r.id, 'mark-paid')}>Marcar pagado</Button>
-                    <button onClick={() => action(r.id, 'reject')} title="Rechazar" className="p-1 text-short hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                    <button onClick={() => action(r.id, 'reject')} title="Rechazar" className="p-1 text-short hover:bg-short/10 rounded"><X className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -3116,8 +3210,8 @@ function AffiliatesAdminCard({ headers }) {
   };
 
   const badge = (s) => {
-    const map = { approved: 'bg-green-500/10 text-long', pending: 'bg-yellow-500/10 text-caution',
-      rejected: 'bg-red-500/10 text-short', suspended: 'bg-muted text-muted-foreground' };
+    const map = { approved: 'bg-long/10 text-long', pending: 'bg-caution/10 text-caution',
+      rejected: 'bg-short/10 text-short', suspended: 'bg-muted text-muted-foreground' };
     return <Badge className={`${map[s] || 'bg-muted'} text-[10px]`}>{s}</Badge>;
   };
 
@@ -3184,13 +3278,13 @@ function AffiliatesAdminCard({ headers }) {
                     <td className="px-2 py-2 text-center text-xs font-bold">{r.estimated_month_eur} €</td>
                     <td className="px-2 py-2 whitespace-nowrap text-right">
                       {r.status !== 'approved' && (
-                        <button onClick={() => act(r.id, 'approve')} title="Aprobar" className="p-1 text-long hover:bg-green-500/10 rounded"><Check className="w-4 h-4" /></button>
+                        <button onClick={() => act(r.id, 'approve')} title="Aprobar" className="p-1 text-long hover:bg-long/10 rounded"><Check className="w-4 h-4" /></button>
                       )}
                       {r.status === 'approved' && (
                         <button onClick={() => act(r.id, 'suspend')} title="Suspender" className="p-1 text-muted-foreground hover:bg-muted rounded"><ShieldOff className="w-4 h-4" /></button>
                       )}
                       {r.status === 'pending' && (
-                        <button onClick={() => act(r.id, 'reject')} title="Rechazar" className="p-1 text-short hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                        <button onClick={() => act(r.id, 'reject')} title="Rechazar" className="p-1 text-short hover:bg-short/10 rounded"><X className="w-4 h-4" /></button>
                       )}
                       <button onClick={() => toggle(r.id)} title="Ver referidos" className="p-1 text-primary hover:bg-primary/10 rounded">
                         {expanded === r.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -3355,7 +3449,7 @@ function AffiliatePayoutsCard({ headers }) {
                       <td className="px-2 py-2 text-center text-xs">{l.lifetime_new_count}</td>
                       <td className="px-2 py-2 text-center text-xs font-bold">{l.net_eur} €</td>
                       <td className="px-2 py-2 text-center">
-                        <Badge className={`${l.status === 'paid' ? 'bg-green-500/10 text-long' : 'bg-yellow-500/10 text-caution'} text-[10px]`}>{l.status}</Badge>
+                        <Badge className={`${l.status === 'paid' ? 'bg-long/10 text-long' : 'bg-caution/10 text-caution'} text-[10px]`}>{l.status}</Badge>
                       </td>
                       <td className="px-2 py-2 text-right">
                         {l.status !== 'paid' && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => markPaid(l.id)}>Marcar pagado</Button>}
@@ -3591,7 +3685,7 @@ function ErrorMonitorCard({ headers }) {
     finally { setResolving(null); }
   };
 
-  const SEV_CLS = { 5: 'bg-red-500/15 text-short', 4: 'bg-orange-500/15 text-warn', 3: 'bg-yellow-500/15 text-caution' };
+  const SEV_CLS = { 5: 'bg-short/15 text-short', 4: 'bg-warn/15 text-warn', 3: 'bg-caution/15 text-caution' };
 
   return (
     <Card className="bg-card border-border">
@@ -3637,7 +3731,7 @@ function ErrorMonitorCard({ headers }) {
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate" title={e.message}>{e.message}</td>
                   <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">{e.method} {e.endpoint}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{e.created_at?.slice(0, 16).replace('T', ' ')}</td>
-                  <td className="px-3 py-2">{e.resolved ? <Badge className="bg-green-500/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-red-500/10 text-short text-[10px]">Abierto</Badge>}</td>
+                  <td className="px-3 py-2">{e.resolved ? <Badge className="bg-long/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-short/10 text-short text-[10px]">Abierto</Badge>}</td>
                   <td className="px-3 py-2">
                     {!e.resolved && (
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowNote(e)}>Resolver</Button>
@@ -3764,7 +3858,7 @@ function GDPRExportCard({ headers }) {
     finally { setDelivering(null); }
   };
 
-  const STATUS_CLS = { pending: 'bg-yellow-500/15 text-caution', delivered: 'bg-green-500/15 text-long', failed: 'bg-red-500/15 text-short' };
+  const STATUS_CLS = { pending: 'bg-caution/15 text-caution', delivered: 'bg-long/15 text-long', failed: 'bg-short/15 text-short' };
 
   return (
     <Card className="bg-card border-border">
