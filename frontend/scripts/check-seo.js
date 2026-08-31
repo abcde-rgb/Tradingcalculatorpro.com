@@ -168,7 +168,13 @@ function revisar(fichero) {
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
     try {
       const datos = JSON.parse(m[1]);
-      if (!datos['@context'] || !datos['@type'])
+      // `@graph` combina varios tipos bajo un solo @context (p. ej. una
+      // calculadora que además publica su HowTo): no lleva `@type` en la
+      // raíz a propósito, lo lleva cada entrada del array.
+      const tipado = datos['@type']
+        || (Array.isArray(datos['@graph']) && datos['@graph'].length > 0
+            && datos['@graph'].every((n) => n && n['@type']));
+      if (!datos['@context'] || !tipado)
         anota('JSON-LD sin @context/@type', rel, '');
     } catch (e) {
       anota('JSON-LD que no parsea', rel, e.message.slice(0, 60));

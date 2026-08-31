@@ -2145,7 +2145,7 @@ async def register(request: Request, response: Response, user_data: UserCreate):
     # Sin lo primero conviven `Ana@x.com` y `ana@x.com` como cuentas distintas;
     # sin lo segundo, registrarse con otra caja crea la segunda encima de la
     # primera y el usuario acaba con dos cuentas sin saber en cuál están sus datos.
-    email_norm = user_data.email.strip().lower()
+    email_norm = normalize_email(user_data.email)
     existing = await db.users.find_one({"email": {"$ieq": email_norm}})
     if existing:
         raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")

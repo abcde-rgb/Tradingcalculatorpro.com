@@ -37,7 +37,7 @@ CLAUDE.md ─── constitución: stack real, honestidad numérica, invariantes
 | `microinteracciones` | Usar al añadir o revisar cualquier animación, transición, hover, estado de foco, feedback al pulsar, carga, aparición al hacer scroll o sonido en… | 175 |
 | `no-me-fio` | Verificación adversaria de una afirmación sobre TradingCalculator.Pro: una cifra de la web, un "ya está arreglado", un resultado de test, un dato de la… | 115 |
 | `orientarse` | La puerta de entrada | 180 |
-| `qa` | Banco de pruebas E2E de TradingCalculator.Pro contra la aplicación VIVA: levanta Postgres, el backend y el build de producción, y corre sondas de… | 149 |
+| `qa` | Banco de pruebas E2E de TradingCalculator.Pro contra la aplicación VIVA: levanta Postgres, el backend y el build de producción, y corre sondas de… | 154 |
 | `rendimiento-web` | Medir y defender el peso y la velocidad de TradingCalculator.Pro: cuánto se descarga cada pantalla, si un cambio la ha engordado, qué se puede quitar y… | 123 |
 | `reorganizar-frontend` | Usar para limpiar, reorganizar o refactorizar el frontend de TradingCalculator.Pro: partir archivos gigantes, eliminar duplicados, decidir dónde va un… | 146 |
 | `revisar-contenido-trading` | Revisa la exactitud, el nivel profesional y la consistencia terminológica del contenido educativo de trading en los 10 idiomas | 30 |
@@ -53,7 +53,7 @@ CLAUDE.md ─── constitución: stack real, honestidad numérica, invariantes
 | `/capturas` | Smoke visual de las pantallas públicas, sin backend. | 38 |
 | `/cerrar-sesion` | Cierra la sesión dejando el proyecto coherente | 68 |
 | `/examen-web` | Examen integral repetible de la web — dispara auditoría de fórmulas, SEO, seguridad, i18n y consistencia de diseño, y consolida un resumen con severidades. | 24 |
-| `/pre-deploy` | Recorre el checklist de lanzamiento y marca los bloqueantes operativos (Stripe, secretos, OAuth, dominio, health) que NO se pueden cerrar desde el repo. | 25 |
+| `/pre-deploy` | Recorre el checklist de lanzamiento y marca los bloqueantes operativos (Stripe, secretos, OAuth, dominio, health) que NO se pueden cerrar desde el repo. | 26 |
 | `/verify` | Verifica el proyecto antes de commit/push. | 79 |
 
 ## Subagentes (6)
@@ -73,7 +73,7 @@ No se invocan: entran solas al abrir un fichero que case con su `paths:`.
 
 | Regla | Se carga al tocar | Ficheros que casan |
 |---|---|---|
-| `rules/backend.md` | `backend/*.py`<br>`backend/**/*.py` | 130 |
+| `rules/backend.md` | `backend/*.py`<br>`backend/**/*.py` | 138 |
 | `rules/diario-riesgo.md` | `backend/performance.py`<br>`backend/instruments.py`<br>`backend/trading_plan.py`<br>`backend/portfolio_risk.py`<br>`backend/backtest.py`<br>`frontend/src/components/performance/**`<br>`frontend/src/lib/instruments.js`<br>`frontend/src/lib/instrumentSpecs.generated.js`<br>`frontend/src/lib/tradingSystem.js`<br>`frontend/src/services/performanceApi.js` | 11 |
 | `rules/escaner.md` | `backend/price_action.py`<br>`backend/candle_patterns.py`<br>`backend/timeframes.py`<br>`frontend/src/components/charts/**` | 5 |
 | `rules/i18n-seo.md` | `frontend/src/lib/i18n/**`<br>`frontend/scripts/gen-*.js`<br>`frontend/public/index.html`<br>`frontend/public/robots.txt`<br>`frontend/src/data/mockData.js` | 8 |

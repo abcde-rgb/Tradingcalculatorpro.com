@@ -1370,6 +1370,15 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
     "sed -i 's|<script type=\"application/ld+json\">|<script type=\"application/ld+json\">,,,|' $SEO_PAG" \
     "$SEO_REST"
 
+  # Las calculadoras publican `@graph` (SoftwareApplication + HowTo) en vez de
+  # `@type` en la raíz: el check tiene que aceptar eso, pero sin dejar pasar
+  # un `@graph` con una entrada sin tipo — un JSON-LD parseable no es lo
+  # mismo que un JSON-LD que describe algo.
+  probar "un JSON-LD sin @type ni @graph válido" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|\"@type\":\"LearningResource\"|\"@typeSABOTAJE\":\"LearningResource\"|' $SEO_PAG" \
+    "$SEO_REST"
+
   # El canonical secuestrado hacia un SUBDOMINIO que empieza igual. La primera
   # versión comparaba con `url.startsWith(DOMINIO)` y esto pasaba por bueno:
   # `https://tradingcalculator.pro.evil.com/x` empieza por
