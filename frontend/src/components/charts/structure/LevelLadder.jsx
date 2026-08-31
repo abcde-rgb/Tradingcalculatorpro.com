@@ -54,7 +54,7 @@ export function LevelRow({ lv, nearest }) {
       )}
       {lv.flipped && (
         <span
-          className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#fbbf24]"
+          className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-warn/15 text-warn"
           title={t('structFlippedTip').replace('{origin}', t(ORIGIN_KEY[lv.origin] || 'structOriginMixed'))}
         >
           {t('structFlippedTag')}
@@ -84,7 +84,7 @@ export function LevelRow({ lv, nearest }) {
           .replace('{score}', String(conf.score ?? 0))
           + (conf.reasons?.length ? ` — ${reasonList(conf.reasons)}` : '')}
       >
-        <span className={conf.confirmed ? 'text-[#22c55e]' : 'text-muted-foreground'}>
+        <span className={conf.confirmed ? 'text-long' : 'text-muted-foreground'}>
           {conf.confirmed ? `✓ ${t('structConfirmedTag')}` : t('structUnconfirmedTag')}
         </span>
       </span>
@@ -123,7 +123,7 @@ export default function LevelLadder({ data }) {
 
   return (
     <section data-testid="struct-levels">
-      <div className="text-[10px] uppercase tracking-wider text-[#ef4444] font-semibold mb-1">
+      <div className="text-[10px] uppercase tracking-wider text-short font-semibold mb-1">
         {t('structAboveIsResistance')}
       </div>
       <div className="space-y-1.5">
@@ -144,7 +144,7 @@ export default function LevelLadder({ data }) {
         <span className="font-mono font-bold text-primary">{fmtPrice(data.currentPrice)}</span>
       </div>
 
-      <div className="text-[10px] uppercase tracking-wider text-[#22c55e] font-semibold mb-1">
+      <div className="text-[10px] uppercase tracking-wider text-long font-semibold mb-1">
         {t('structBelowIsSupport')}
       </div>
       <div className="space-y-1.5">

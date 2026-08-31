@@ -1,0 +1,12 @@
+# Dependencias para EJECUTAR LOS TESTS. No van en la imagen de Cloud Run.
+#
+# Estaban sólo en el `pip install` de `ci.yml`, así que la orden documentada en
+# CLAUDE.md —`pip install -r requirements.txt` y luego `pytest tests/`— fallaba
+# 19 tests en un contenedor recién clonado: sin `pytest-asyncio` los
+# `@pytest.mark.asyncio` se ignoran y las corrutinas nunca se ejecutan.
+# Como toda sesión remota empieza con un clon fresco, fallaba SIEMPRE.
+#
+#     pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+pytest>=8.0
+pytest-asyncio>=0.23

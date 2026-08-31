@@ -53,10 +53,10 @@ const ShapeSVG = ({ shape, color }) => {
 
 // ============= CATEGORY CONFIG (i18n keys, not hardcoded labels) =============
 const CATEGORIES = {
-  Bullish:  { labelKey: 'filterBullish',  icon: TrendingUp,   color: '#22c55e', ring: 'ring-[#22c55e]/50',  bgActive: 'bg-[#22c55e]/15',  bgHover: 'hover:bg-[#22c55e]/10',  text: 'text-[#22c55e]' },
-  Bearish:  { labelKey: 'filterBearish',  icon: TrendingDown, color: '#ef4444', ring: 'ring-[#ef4444]/50',  bgActive: 'bg-[#ef4444]/15',  bgHover: 'hover:bg-[#ef4444]/10',  text: 'text-[#ef4444]' },
-  Neutral:  { labelKey: 'filterNeutral',  icon: Minus,        color: '#3b82f6', ring: 'ring-[#3b82f6]/50',  bgActive: 'bg-[#3b82f6]/15',  bgHover: 'hover:bg-[#3b82f6]/10',  text: 'text-[#3b82f6]' },
-  Volatile: { labelKey: 'filterVolatile', icon: Zap,          color: '#eab308', ring: 'ring-[#eab308]/50',  bgActive: 'bg-[#eab308]/15',  bgHover: 'hover:bg-[#eab308]/10',  text: 'text-[#eab308]' },
+  Bullish:  { labelKey: 'filterBullish',  icon: TrendingUp,   color: '#22c55e', ring: 'ring-long/50',  bgActive: 'bg-long/15',  bgHover: 'hover:bg-long/10',  text: 'text-long' },
+  Bearish:  { labelKey: 'filterBearish',  icon: TrendingDown, color: '#ef4444', ring: 'ring-short/50',  bgActive: 'bg-short/15',  bgHover: 'hover:bg-short/10',  text: 'text-short' },
+  Neutral:  { labelKey: 'filterNeutral',  icon: Minus,        color: '#3b82f6', ring: 'ring-info/50',  bgActive: 'bg-info/15',  bgHover: 'hover:bg-info/10',  text: 'text-info' },
+  Volatile: { labelKey: 'filterVolatile', icon: Zap,          color: '#eab308', ring: 'ring-caution/50',  bgActive: 'bg-caution/15',  bgHover: 'hover:bg-caution/10',  text: 'text-caution' },
 };
 
 const FilterPill = ({ active, onClick, Icon, label, count, text, bgActive, bgHover, ring, iconColor, testId }) => (

@@ -59,7 +59,8 @@ fi
 # Pase lo que pase —error, Ctrl-C, salida anticipada— el repositorio queda como
 # estaba. Un test que ensucia el árbol es un test que nadie vuelve a ejecutar.
 limpiar() {
-  for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -f "$f"; done
+  # `-r` porque algún temporal es un directorio (la copia de `build/static/js`).
+  for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -rf "$f"; done
   git checkout -- . 2>/dev/null
 }
 trap limpiar EXIT INT TERM
@@ -79,7 +80,13 @@ titulo() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 #   volviera a pasar, el sabotaje habría dejado residuo y el siguiente test
 #   mediría otra cosa.
 probar() {
+  # $5 (opcional) es un sabotaje que vive en el ENTORNO, no en un fichero: se
+  # antepone sólo a la ejecución saboteada. Hace falta para las condiciones que
+  # no se pueden escribir en el disco —una sesión que no arranca, por ejemplo—
+  # y que son justo las que producen el verde vacío: una sonda que no llega a
+  # ejercitar lo que mide no encuentra fallos, y sin esto pasaría por buena.
   local nombre="$1" comando="$2" sabotaje="$3" restaurar="${4:-git checkout -- .}"
+  local entorno="${5:-}"
 
   if ! eval "$comando" >/dev/null 2>&1; then
     echo "  ⚠️  $nombre: no pasa ni ANTES de sabotear — hay algo roto de verdad"
@@ -88,7 +95,7 @@ probar() {
 
   eval "$sabotaje" >/dev/null 2>&1
 
-  if eval "$comando" >/dev/null 2>&1; then
+  if eval "$entorno $comando" >/dev/null 2>&1; then
     echo "  ❌ $nombre: SOBREVIVE al sabotaje — no está verificando nada"
     FALLOS=$((FALLOS + 1))
   else
@@ -699,6 +706,20 @@ import pathlib, re
 p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
 p.write_text(re.sub(r'(\\\"planInvalidationHint\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"入る前に書くこと。\\\"', t, count=1))\""
 
+# El diccionario de cada idioma vive en DOS ficheros, y `lee()` sólo abría el
+# primero. Con los 2.308 claves de la academia fuera de su alcance, el
+# verificador imprimía ✅ con 103 claves en inglés literal en pantalla — el
+# mismo fallo que dice cerrar, una carpeta más allá. Este sabotaje va contra
+# `.edu.js` a propósito: es el fichero que no miraba.
+probar "una clave con el texto inglés literal en el .edu.js de japonés" \
+  "(cd frontend && node scripts/i18n-traducido.js)" \
+  "python -c \"
+import pathlib, re
+en = pathlib.Path('frontend/src/lib/i18n/en.edu.js').read_text()
+v = re.search(r'\\\"wyckoffVolumeTitle\\\": \\\"([^\\\"]*)\\\"', en).group(1)
+p = pathlib.Path('frontend/src/lib/i18n/ja.edu.js'); t = p.read_text()
+p.write_text(re.sub(r'(\\\"wyckoffVolumeTitle\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"' + v + '\\\"', t, count=1))\""
+
 # ── El precio anunciado es el que se cobra ──────────────────────────────────
 # Las dos direcciones: que un idioma se desvíe, y que suba el precio en el
 # backend sin que nadie toque los textos. La segunda es la que pasa de verdad.
@@ -775,6 +796,92 @@ p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
   # probar nada, degradados a avisos que se leen como ruido. Por eso los tres
   # recompilan ahora también las páginas.
 
+  # ── La CSP no puede romper la web ─────────────────────────────────────────
+  # El `meta` NO admite report-only: no hay ensayo posible. Si esta sonda no
+  # discriminara, una directiva de menos llegaría a producción bloqueando
+  # TradingView o el botón de Google, y ningún test offline lo notaría porque
+  # ninguno abre un navegador.
+  #
+  # Se sabotea el ARTEFACTO (build/index.html) y no la fuente: recompilar aquí
+  # costaría minutos y lo que se prueba —que la sonda ve una violación— no
+  # depende de por dónde entró la directiva.
+  # `frontend/build/` está en .gitignore, así que `git checkout --` NO lo
+  # restaura: la copia de seguridad se hace y se deshace a mano.
+  CSP_COPIA="$(mktemp)"
+  TEMPORALES+=("$CSP_COPIA")
+  cp frontend/build/index.html "$CSP_COPIA"
+
+  titulo "Content-Security-Policy (csp.js)"
+  probar "una directiva de menos bloquea un script que la web necesita" \
+    "node tests/e2e/navegador/csp.js" \
+    "sed -i 's|https://www.googletagmanager.com|https://zz-sabotaje.invalid|' frontend/build/index.html" \
+    "cp '$CSP_COPIA' frontend/build/index.html"
+
+  # El WebSocket va aparte porque su fallo tiene otra forma: no es un origen
+  # de menos, es un ESQUEMA de menos. En CSP3 una fuente `https://host` no
+  # autoriza `wss://host` —la relajación va de `ws` a `http`/`https`, nunca al
+  # revés—, así que la política podía listar el backend entero y aun así dejar
+  # las alertas mudas. La primera versión de esta sonda lo pasó por alto un mes
+  # entero: recorría `/dashboard` sin sesión, y sin token el hook no abre nada.
+  probar "el esquema wss:// de menos deja el WebSocket de alertas bloqueado" \
+    "node tests/e2e/navegador/csp.js" \
+    "sed -i 's| ws://127.0.0.1:8080||' frontend/build/index.html" \
+    "cp '$CSP_COPIA' frontend/build/index.html"
+
+  # Y la guarda contra el verde vacío: sin sesión no hay WebSocket que bloquear,
+  # así que «ninguna violación» no significaría nada. La sonda tiene que
+  # distinguir «autorizado» de «nunca se intentó».
+  probar "una sesión rota NO puede pasar por «no hubo violaciones»" \
+    "node tests/e2e/navegador/csp.js" \
+    "true" \
+    "true" \
+    "QA_PASSWORD=contrasena-que-no-es"
+
+  # Y la otra mitad: que NO grite con la política correcta. Sin esto, una sonda
+  # que diera error siempre pasaría igual el sabotaje de arriba.
+  probar_inverso "la política real no produce ninguna violación" \
+    "node tests/e2e/navegador/csp.js" \
+    "true"
+
+  # ── Lo indefinido se pinta como raya ──────────────────────────────────────
+  # La primera regla de honestidad del proyecto convirtió varias métricas de `0`
+  # a `None`. El otro extremo del cambio se olvidó: la pantalla que las
+  # interpolaba a pelo pasó a pintar «nullR» y «Sharpe: null», que es peor que
+  # el cero que se quería evitar — el cero parece un número, «null» parece una
+  # web rota, y en la pantalla con la que alguien dimensiona una posición eso
+  # se lleva por delante la confianza en el resto de las cifras.
+  #
+  # Se sabotea el ARTEFACTO: se quita la guarda `null==avg_r?"—"` del bundle
+  # servido, que es exactamente la regresión que la sonda vigila.
+  NULOS_COPIA="$(mktemp -d)"
+  TEMPORALES+=("$NULOS_COPIA")
+  cp frontend/build/static/js/*.js "$NULOS_COPIA/"
+
+  titulo "Lo indefinido es una raya (nulos.js)"
+  probar "una métrica indefinida vuelve a pintarse cruda" \
+    "node tests/e2e/navegador/nulos.js" \
+    "python -c \"
+import glob, io, re
+# La guarda se localiza por FORMA, no por el nombre que el minificador
+# asigne: era 'V.avg_r' hoy y puede ser otra letra en la proxima
+# compilacion. Atarlo a la letra hizo que el sabotaje no se aplicara y
+# el verificador 'sobreviviera' sin que nadie hubiera roto nada.
+patron = re.compile(r'null==([A-Za-z_\$]+)\\.avg_r\\?')
+tocados = 0
+for f in glob.glob('frontend/build/static/js/*.js'):
+    t = io.open(f, encoding='utf-8').read()
+    t2, n = patron.subn(lambda m: 'null==%s.avg_r&&!1?' % m.group(1), t)
+    if n:
+        io.open(f, 'w', encoding='utf-8').write(t2); tocados += n
+assert tocados, 'el sabotaje de nulos no encontro la guarda de la raya'\"" \
+    "cp '$NULOS_COPIA'/*.js frontend/build/static/js/"
+
+  # Y la otra mitad: con la guarda puesta NO grita. Sin esto, una sonda que
+  # diera error siempre pasaría igual el sabotaje de arriba.
+  probar_inverso "con las guardas puestas no encuentra ninguna cifra cruda" \
+    "node tests/e2e/navegador/nulos.js" \
+    "true"
+
   # ── El arranque del idioma ────────────────────────────────────────────────
   # Se sabotea en la FUENTE y se recompila, que tarda unos minutos. Es el
   # precio de probar de verdad: el fallo que vigila —el diccionario que no
@@ -848,7 +955,14 @@ if [ -d frontend/build ]; then
 import pathlib
 p = pathlib.Path('frontend/src/index.css'); t = p.read_text()
 i = t.index('.light {'); j = t.index('}', i)
-p.write_text(t[:i] + t[i:j].replace('145 70% 26%', '145 70% 35%') + t[j:])\" \
+import re
+# Se ACLARA el verde primario del tema claro sea cual sea su valor: atarlo
+# al literal '145 70% 26%' hizo que el sabotaje dejara de aplicarse el dia
+# que ese 26% bajo a 22% por accesibilidad, y el verificador paso sin que
+# nadie hubiera roto nada.
+trozo = re.sub(r'--primary:\\s*145 70% \\d+%', '--primary: 145 70% 35%', t[i:j])
+assert trozo != t[i:j], 'el sabotaje de contraste no encontro --primary en .light'
+p.write_text(t[:i] + trozo + t[j:])\" \
      && $RECOMPILA_CSS" \
     "git checkout -- frontend/src/index.css && $RECOMPILA_CSS"
 else
@@ -1114,6 +1228,31 @@ probar "una afirmación viva de que la web tiene 8 idiomas" \
   "$CONTRADICE" \
   "printf '# Zz sabotaje\n\n## Idiomas\n\nLa interfaz está en 8 idiomas.\n' > $DOC_SABOTAJE" \
   "rm -f $DOC_SABOTAJE"
+
+# ── Prosa NO es código vivo ─────────────────────────────────────────────────
+# `es_comentario()` sólo miraba el primer carácter de la línea, así que
+# etiquetaba «⚠️ CÓDIGO» cualquier prosa que no empezara por su marcador: una
+# línea en medio de un docstring, un comentario al final de una línea, la
+# continuación de un bloque {/* … */}. Los diez rastros del informe estaban los
+# diez en prosa y escalaban a «🔴 2 bloqueantes».
+#
+# Van los DOS sentidos porque el fallo no era no-detectar, era no-distinguir:
+# metiendo una asignación real recibía exactamente la misma marca que un
+# docstring. Con una sola dirección, un clasificador que dijera «CÓDIGO» a todo
+# seguiría pasando.
+VIVO_PY="backend/zz_sabotaje_resto.py"
+TEMPORALES+=("$VIVO_PY")
+EN_CODIGO="python scripts/auditar.py > $INFORME 2>/dev/null; ! grep -q 'en código vivo' $INFORME"
+
+probar "una asignación real a una pasarela retirada" \
+  "$EN_CODIGO" \
+  "printf 'OXAPAY_API_KEY = \"zz\"\n' > $VIVO_PY" \
+  "rm -f $VIVO_PY"
+
+probar_inverso "un docstring que sólo NOMBRA la pasarela retirada" \
+  "$EN_CODIGO" \
+  "printf '\"\"\"Sustituye al flujo de OxaPay.\n\nSegunda linea del docstring, que tambien dice OxaPay.\n\"\"\"\n' > $VIVO_PY" \
+  "rm -f $VIVO_PY"
 
 # El cebo es la forma EXACTA que se coló hasta el 2026-08-24: encabezado con la
 # fecha entre paréntesis en vez de al principio. `_ENCABEZADO_FECHADO` exigía

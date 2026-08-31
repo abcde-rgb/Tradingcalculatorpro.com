@@ -257,6 +257,23 @@ async def _get_all_settings(db) -> Dict[str, str]:
 
 
 async def _upsert_setting(db, key: str, value: str) -> None:
+    """Guarda un ajuste, CIFRANDO los que son secretos.
+
+    Este era el agujero: `POST /admin/settings` escribía por aquí en claro
+    mientras `PUT /admin/settings` (en `server.py`) cifraba con Fernet. Dos
+    puertas a la misma tabla con criterios opuestos, y la que no cifraba dejaba
+    claves de Stripe y SendGrid legibles en la base de datos.
+    
+    Se cifra en el punto de escritura y no en cada llamador, para que una ruta
+    futura no pueda volver a saltárselo sin darse cuenta. La lectura ya es
+    idempotente (`_decrypt_setting` no toca lo que no lleva prefijo).
+    """
+    if key in SECRET_SETTING_KEYS and value:
+        try:
+            from server import _encrypt_setting
+            value = _encrypt_setting(value)
+        except Exception as _e:  # noqa: BLE001
+            logging.warning(f"[settings] no se pudo cifrar {log_safe(key)}: {log_safe(_e)}")
     await db.app_settings.update_one(
         {"_id": "global"},
         {"$set": {key: value, "updated_at": datetime.now(timezone.utc).isoformat()}},
@@ -269,6 +286,31 @@ async def _delete_setting(db, key: str) -> None:
         {"_id": "global"},
         {"$unset": {key: ""}},
     )
+
+
+def _clave_en_claro(bruto: str) -> str:
+    """Descifra un ajuste guardado por `PUT /admin/settings`.
+
+    Había DOS puertas para los mismos ajustes: el `PUT` de `server.py` cifra con
+    Fernet y el `POST` de este módulo guardaba en claro. Estos tres lectores
+    tomaban el valor CRUDO, así que una clave guardada por la puerta que cifra
+    salía hacia SendGrid como `Bearer fernet:gAAAA…` y el envío fallaba sin que
+    nada explicara por qué.
+
+    `_decrypt_setting` no toca los valores sin el prefijo, así que aplicarlo es
+    idempotente y sirve para las claves guardadas por cualquiera de las dos
+    puertas. Se importa aquí dentro porque este módulo se carga tarde
+    (`startup_event`) y a nivel de módulo sería un import circular.
+    """
+    if not bruto:
+        return ""
+    try:
+        from server import _decrypt_setting
+        return _decrypt_setting(bruto)
+    except Exception:
+        return bruto
+
+
 
 
 async def _get_setting_raw(db, key: str) -> Optional[str]:
@@ -520,7 +562,7 @@ def build_admin_router(
             results.append({"connector": "Stripe", "status": "not_configured", "configured": False})
 
         # -- SendGrid --
-        sg_key = raw.get("sendgrid_api_key", "")
+        sg_key = _clave_en_claro(raw.get("sendgrid_api_key", ""))
         results.append({"connector": "SendGrid", "status": "configured" if sg_key else "not_configured",
                         "configured": bool(sg_key)})
 
@@ -673,7 +715,7 @@ def build_admin_router(
 
         # Get SendGrid API key from settings
         settings_raw = await _get_all_settings(db)
-        sg_key = settings_raw.get("sendgrid_api_key", "")
+        sg_key = _clave_en_claro(settings_raw.get("sendgrid_api_key", ""))
         sender_email = settings_raw.get("sendgrid_sender_email", "noreply@tradingcalculator.pro")
 
         sent_count = 0
@@ -1132,7 +1174,7 @@ def build_admin_router(
 
         # Send via SendGrid if configured
         settings_raw = await _get_all_settings(db)
-        sg_key = settings_raw.get("sendgrid_api_key", "")
+        sg_key = _clave_en_claro(settings_raw.get("sendgrid_api_key", ""))
         sender = settings_raw.get("sendgrid_sender_email", "noreply@tradingcalculator.pro")
         email = export_doc.get("email", "")
         sent = False

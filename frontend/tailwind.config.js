@@ -47,6 +47,14 @@ module.exports = {
   			   tocar `--primary`, y son el único sitio donde vive ese color. */
   			long: 'hsl(var(--long))',
   			short: 'hsl(var(--short))',
+  			/* Colores de SEÑAL. Sustituyen a 704 clases con el hexadecimal
+  			   escrito a mano, que estaba elegido para el tema oscuro y sobre
+  			   papel bajaba a 2:1. Sus valores por tema viven en `index.css`
+  			   y están medidos; ver el comentario de allí antes de tocarlos. */
+  			warn: 'hsl(var(--warn))',
+  			caution: 'hsl(var(--caution))',
+  			info: 'hsl(var(--info))',
+  			compare: 'hsl(var(--compare))',
   			/* Filete de 1px: el separador principal, en vez de sombra. */
   			rule: 'hsl(var(--rule))',
   			background: 'hsl(var(--background))',

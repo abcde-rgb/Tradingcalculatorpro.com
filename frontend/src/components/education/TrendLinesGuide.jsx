@@ -291,11 +291,11 @@ export default function TrendLinesGuide() {
   const steps = isBull ? bullSteps : bearSteps;
 
   const rules = [
-    { icon: <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />, text: t('trendRule1') },
-    { icon: <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />, text: t('trendRule2') },
-    { icon: <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />, text: t('trendRule3') },
-    { icon: <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0" />,  text: t('trendRule4') },
-    { icon: <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0" />,  text: t('trendRule5') },
+    { icon: <CheckCircle2 className="w-4 h-4 text-long flex-shrink-0" />, text: t('trendRule1') },
+    { icon: <CheckCircle2 className="w-4 h-4 text-long flex-shrink-0" />, text: t('trendRule2') },
+    { icon: <CheckCircle2 className="w-4 h-4 text-long flex-shrink-0" />, text: t('trendRule3') },
+    { icon: <AlertCircle className="w-4 h-4 text-caution flex-shrink-0" />,  text: t('trendRule4') },
+    { icon: <AlertCircle className="w-4 h-4 text-caution flex-shrink-0" />,  text: t('trendRule5') },
   ];
 
   return (
@@ -363,11 +363,11 @@ export default function TrendLinesGuide() {
             <p className="text-muted-foreground">{isBull ? t('trendBullEntryNote') : t('trendBearEntryNote')}</p>
           </div>
           <div>
-            <span className="font-semibold text-red-400">Stop Loss</span>
+            <span className="font-semibold text-short">Stop Loss</span>
             <p className="text-muted-foreground">{isBull ? t('trendBullSLNote') : t('trendBearSLNote')}</p>
           </div>
           <div>
-            <span className="font-semibold text-yellow-400">Take Profit</span>
+            <span className="font-semibold text-caution">Take Profit</span>
             <p className="text-muted-foreground">{t('trendTPNote')}</p>
           </div>
         </div>
@@ -389,7 +389,7 @@ export default function TrendLinesGuide() {
       {/* Rules */}
       <div className="bg-muted/30 border border-border rounded-xl p-4">
         <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-blue-400" />
+          <Shield className="w-4 h-4 text-info" />
           {t('trendRulesTitle')}
         </h4>
         <div className="space-y-2">
@@ -404,7 +404,7 @@ export default function TrendLinesGuide() {
 
       {/* Break warning */}
       <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
-        <p className="text-sm font-semibold text-orange-400 mb-1">{t('trendBreakTitle')}</p>
+        <p className="text-sm font-semibold text-warn mb-1">{t('trendBreakTitle')}</p>
         <p className="text-xs text-muted-foreground leading-relaxed">{t('trendBreakDesc')}</p>
       </div>
     </div>

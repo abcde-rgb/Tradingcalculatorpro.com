@@ -54,21 +54,21 @@ const StatsKPIBar = ({ stats, breakEvens, currentExp }) => {
           icon={TrendingUp}
           label={t('optMaxProfit')}
           value={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`}
-          color="text-[#22c55e]"
+          color="text-long"
           testid="kpi-max-profit"
         />
         <StatCard
           icon={TrendingDown}
           label={t('optMaxLoss')}
           value={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`}
-          color="text-[#ef4444]"
+          color="text-short"
           testid="kpi-max-loss"
         />
         <StatCard
           icon={Wallet}
           label={t('optCapitalReq')}
           value={stats.isMaxLossUnlimited ? `~$${stats.capitalRequired}` : `$${stats.capitalRequired}`}
-          color="text-[#f59e0b]"
+          color="text-warn"
           title={t('optCapitalReqHint')}
           testid="kpi-capital"
         />
@@ -91,19 +91,19 @@ const StatsKPIBar = ({ stats, breakEvens, currentExp }) => {
 
       {/* Datos derivados. Una sola línea, sin controles, sin envolverse. */}
       <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap bg-card/50 border border-border/60 rounded-lg px-3 py-2 text-[11px]">
-        <Fact icon={Scale} label={t('optRiskReward')} value={stats.rr || '—'} color="text-[#eab308]" testid="fact-rr" />
+        <Fact icon={Scale} label={t('optRiskReward')} value={stats.rr || '—'} color="text-caution" testid="fact-rr" />
         <Fact
           icon={Target}
           label={t('optBreakEven')}
           value={breakEvens.length > 0 ? breakEvens.map((b) => `$${b}`).join(' · ') : '—'}
-          color="text-[#a78bfa]"
+          color="text-compare"
           testid="fact-be"
         />
         <Fact
           icon={DollarSign}
           label={t('optPremium')}
           value={`$${stats.premium}`}
-          color={premium >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}
+          color={premium >= 0 ? 'text-long' : 'text-short'}
           testid="fact-premium"
         />
         <Fact

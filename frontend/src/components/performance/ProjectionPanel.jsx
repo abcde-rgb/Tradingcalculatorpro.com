@@ -12,7 +12,7 @@ import {
 
 const money = (v) => `${v > 0 ? '+' : ''}$${Number(v || 0).toFixed(0)}`;
 const pct = (v) => `${v > 0 ? '+' : ''}${Number(v || 0).toFixed(1)}%`;
-const tone = (v) => (v > 0 ? 'text-[#22c55e]' : v < 0 ? 'text-[#ef4444]' : 'text-foreground');
+const tone = (v) => (v > 0 ? 'text-long' : v < 0 ? 'text-short' : 'text-foreground');
 
 /** Un campo variable, con lo que mide el diario detrás. */
 const VarField = ({ label, value, onChange, measured, source, sample, suffix, step = '0.1', t }) => (
@@ -27,8 +27,8 @@ const VarField = ({ label, value, onChange, measured, source, sample, suffix, st
       <span
         className={`text-[9px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${
           source === 'measured'
-            ? 'bg-[#22c55e]/15 text-[#4ade80]'
-            : 'bg-[#f59e0b]/15 text-[#fbbf24]'
+            ? 'bg-long/15 text-long'
+            : 'bg-warn/15 text-warn'
         }`}
         title={source === 'measured'
           ? t('projFromJournalTip').replace('{n}', String(sample ?? 0))
@@ -240,10 +240,10 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
       ) : (
         <>
           {sample < MIN_SAMPLE_FOR_PROJECTION && (
-            <div className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2"
+            <div className="flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/5 px-3 py-2"
                  data-testid="proj-thin-sample">
-              <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
-              <p className="text-[11px] text-[#f59e0b] leading-relaxed">
+              <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
+              <p className="text-[11px] text-warn leading-relaxed">
                 {t('projThinSample')
                   .replace('{n}', String(sample))
                   .replace('{min}', String(MIN_SAMPLE_FOR_PROJECTION))}
@@ -379,19 +379,19 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                   label={t('projMaxDD')}
                   value={`${distribution.maxDrawdown.p50.toFixed(1)}%`}
                   sub={t('projMaxDDSub').replace('{v}', distribution.maxDrawdown.p95.toFixed(1))}
-                  color="text-[#f59e0b]"
+                  color="text-warn"
                 />
                 <Stat
                   label={t('projProfitable')}
                   value={`${distribution.probabilityOfProfit.toFixed(0)}%`}
                   sub={t('projProfitableSub')}
-                  color={distribution.probabilityOfProfit >= 50 ? 'text-[#22c55e]' : 'text-[#f59e0b]'}
+                  color={distribution.probabilityOfProfit >= 50 ? 'text-long' : 'text-warn'}
                 />
                 <Stat
                   label={t('projRuin')}
                   value={`${distribution.probabilityOfRuin.toFixed(1)}%`}
                   sub={t('projRuinSub').replace('{v}', String(RUIN_THRESHOLD * 100))}
-                  color={distribution.probabilityOfRuin > 5 ? 'text-[#ef4444]' : 'text-muted-foreground'}
+                  color={distribution.probabilityOfRuin > 5 ? 'text-short' : 'text-muted-foreground'}
                 />
                 {/* Perder la mitad del patrimonio y quedarse sin cuenta con la
                     que operar son sucesos distintos: al trader le importan los
@@ -401,7 +401,7 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                   label={t('projAccountWiped')}
                   value={`${distribution.probabilityOfAccountWiped.toFixed(1)}%`}
                   sub={t('projAccountWipedSub')}
-                  color={distribution.probabilityOfAccountWiped > 5 ? 'text-[#ef4444]' : 'text-muted-foreground'}
+                  color={distribution.probabilityOfAccountWiped > 5 ? 'text-short' : 'text-muted-foreground'}
                 />
               </div>
 
@@ -419,7 +419,7 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                     label={t('projWithdrawn')}
                     value={money(distribution.withdrawn.p50)}
                     sub={t('projWithdrawnSub')}
-                    color="text-[#22c55e]"
+                    color="text-long"
                   />
                   <Stat
                     label={t('projNetWorth')}
@@ -431,13 +431,13 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                     label={t('projMonthsCapped')}
                     value={`${distribution.monthsCapped.p50}`}
                     sub={t('projMonthsCappedSub')}
-                    color={distribution.monthsCapped.p50 > 0 ? 'text-[#f59e0b]' : 'text-muted-foreground'}
+                    color={distribution.monthsCapped.p50 > 0 ? 'text-warn' : 'text-muted-foreground'}
                   />
                 </div>
               )}
 
               {distribution.roi.p5 <= -100 && (
-                <p className="text-[10px] text-[#ef4444] leading-relaxed">{t('projBelowZeroNote')}</p>
+                <p className="text-[10px] text-short leading-relaxed">{t('projBelowZeroNote')}</p>
               )}
             </div>
           )}
@@ -477,7 +477,7 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                 <Stat label={t('projPeriodGood')} value={pct(per.p95)} color={tone(per.p95)}
                   sub={t('projPercentile95')} />
                 <Stat label={t('projPeriodRed')} value={`${per.negativeRate}%`}
-                  color={per.negativeRate > 33 ? 'text-[#ef4444]' : 'text-[#f59e0b]'}
+                  color={per.negativeRate > 33 ? 'text-short' : 'text-warn'}
                   sub={t('projPeriodRedSub')} />
               </div>
 
@@ -504,7 +504,7 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                         {t(`projPeriod_${k}`)} · {pct(hits[k].target)}
                       </div>
                       <div className={`font-mono font-bold text-base ${
-                        (hits[k].rate ?? 0) >= 50 ? 'text-[#22c55e]' : (hits[k].rate ?? 0) >= 20 ? 'text-[#f59e0b]' : 'text-[#ef4444]'
+                        (hits[k].rate ?? 0) >= 50 ? 'text-long' : (hits[k].rate ?? 0) >= 20 ? 'text-warn' : 'text-short'
                       }`}
                       >
                         {hits[k].rate == null ? '—' : `${hits[k].rate}%`}
@@ -576,17 +576,17 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                       <div className="mt-2 space-y-0.5 text-[11px] font-mono">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t('projRouteHit')}</span>
-                          <span className={o.hitRate >= 50 ? 'text-[#22c55e]' : 'text-[#f59e0b]'}>{o.hitRate}%</span>
+                          <span className={o.hitRate >= 50 ? 'text-long' : 'text-warn'}>{o.hitRate}%</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t('projRouteDD')}</span>
-                          <span className={o.drawdownP95 > 25 ? 'text-[#ef4444]' : o.drawdownP95 > 15 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}>
+                          <span className={o.drawdownP95 > 25 ? 'text-short' : o.drawdownP95 > 15 ? 'text-warn' : 'text-long'}>
                             {o.drawdownP95}%
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t('projRouteRed')}</span>
-                          <span className={o.redMonths > 20 ? 'text-[#ef4444]' : 'text-muted-foreground'}>{o.redMonths}%</span>
+                          <span className={o.redMonths > 20 ? 'text-short' : 'text-muted-foreground'}>{o.redMonths}%</span>
                         </div>
                       </div>
                     )}
@@ -594,24 +594,24 @@ export default function ProjectionPanel({ refreshKey, onGoToJournal }) {
                   </div>
                 ))}
               </div>
-              <p className="text-[11px] text-[#f59e0b] leading-relaxed">{t('projRoutesLesson')}</p>
+              <p className="text-[11px] text-warn leading-relaxed">{t('projRoutesLesson')}</p>
             </div>
           )}
 
           {/* 3c · EL PRECIO DE LA CAJA — la comparación que decide una vida de
               trading y que casi nadie hace. */}
           {cost && cost.ratio && cost.ratio > 1.05 && (
-            <div className="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-4" data-testid="proj-cashflow-cost">
+            <div className="rounded-xl border border-warn/40 bg-warn/5 p-4" data-testid="proj-cashflow-cost">
               <div className="flex items-center gap-2 mb-2">
-                <PiggyBank className="w-4 h-4 text-[#f59e0b]" />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#f59e0b]">
+                <PiggyBank className="w-4 h-4 text-warn" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-warn">
                   {t('projCostTitle')}
                 </h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <Stat label={t('projCostWithRules')} value={`$${cost.withRules.toFixed(0)}`} sub={t('projCostWithRulesSub')} />
-                <Stat label={t('projCostCompounded')} value={`$${cost.compounded.toFixed(0)}`} sub={t('projCostCompoundedSub')} color="text-[#22c55e]" />
-                <Stat label={t('projCostRatio')} value={`×${cost.ratio}`} sub={t('projCostRatioSub').replace('{n}', String(cost.months))} color="text-[#f59e0b]" />
+                <Stat label={t('projCostCompounded')} value={`$${cost.compounded.toFixed(0)}`} sub={t('projCostCompoundedSub')} color="text-long" />
+                <Stat label={t('projCostRatio')} value={`×${cost.ratio}`} sub={t('projCostRatioSub').replace('{n}', String(cost.months))} color="text-warn" />
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed mt-2">{t('projCostNote')}</p>
             </div>

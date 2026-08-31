@@ -267,10 +267,10 @@ export default function DashboardPage() {
 
       {/* Email verification banner */}
       {needsVerifyBanner && (
-        <div className="fixed top-16 left-0 right-0 z-40 bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2 text-center text-sm text-yellow-400 flex items-center justify-center gap-2">
+        <div className="fixed top-16 left-0 right-0 z-40 bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2 text-center text-sm text-caution flex items-center justify-center gap-2">
           <span>⚠️ {t('emailNotVerifiedBanner')}</span>
           <button
-            className="underline hover:text-yellow-300 ml-2"
+            className="underline hover:text-caution ml-2"
             onClick={() => {
               const backendUrl = process.env.REACT_APP_BACKEND_URL;
               if (!backendUrl) return;
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                     return (
                       <div key={g.id} data-testid={`calcgroup-${g.id}`}>
                         <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                          <span className="font-mono text-primary/70 tabular-nums">
+                          <span className="font-mono text-primary tabular-nums">
                             {String(g.idx + 1).padStart(2, '0')}
                           </span>
                           <GIcon className="w-3 h-3 flex-shrink-0 opacity-70" />

@@ -113,6 +113,36 @@ TRADES = [
          notify={"enabled": True, "channels": ["inapp", "email"],
                  "on": ["sl", "tp"]},
          entry_date="2026-08-06T13:00:00Z"),
+
+    # ── 11-13 · La SEGUNDA cuenta ────────────────────────────────────────
+    #
+    # Tres operaciones de futuros sobre un saldo de 50 000, frente a los 10 000
+    # de todo lo anterior. Sin esto, `detect_mixed_accounts` no tiene nada que
+    # detectar y las tres comprobaciones del aviso en `analitica.js` sólo podían
+    # FALLAR — que es tan inútil como un ✅ que no prueba nada, sólo más ruidoso.
+    #
+    # El escenario no es artificial: es lo normal que cada producto viva en su
+    # bróker. Y es justo el caso que importa, porque la curva de equity arranca
+    # del saldo de la operación más antigua y le suma importes dimensionados
+    # para otra cuenta — el drawdown que sale de ahí no ocurrió nunca.
+    dict(symbol="ES", instrument_type="futures", side="long", entry_price=5100,
+         quantity=1, leverage=10, account_balance=50000,
+         sl_unit="ticks", sl_input=12, tp_unit="ticks", tp_input=36,
+         exit_price=5109, status="closed", fees=4.5,
+         setups=["Apertura"], notes="Segunda cuenta: 50 000",
+         entry_date="2026-07-10T13:35:00Z", exit_date="2026-07-10T16:10:00Z"),
+    dict(symbol="NQ", instrument_type="futures", side="short", entry_price=18000,
+         quantity=1, leverage=10, account_balance=50000,
+         sl_unit="ticks", sl_input=20, tp_unit="ticks", tp_input=40,
+         exit_price=17960, status="closed", fees=4.5,
+         setups=["Reversion"], notes="Segunda cuenta: 50 000",
+         entry_date="2026-07-16T14:00:00Z", exit_date="2026-07-16T18:30:00Z"),
+    dict(symbol="ES", instrument_type="futures", side="long", entry_price=5150,
+         quantity=2, leverage=10, account_balance=50000,
+         sl_unit="ticks", sl_input=10, tp_unit="ticks", tp_input=30,
+         exit_price=5145, status="closed", fees=9,
+         setups=["Apertura"], notes="Segunda cuenta: 50 000",
+         entry_date="2026-07-23T13:40:00Z", exit_date="2026-07-23T15:05:00Z"),
 ]
 
 print(f"\n{'simbolo':10} {'producto':12} {'P&L':>10} {'R':>7} {'nocional':>12} "

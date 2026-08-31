@@ -83,7 +83,7 @@ export const TargetMeasurementTool = () => {
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Ruler className="w-5 h-5 text-purple-500" />
+          <Ruler className="w-5 h-5 text-compare" />
           Medición de Targets y Fibonacci
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed max-w-2xl">
@@ -132,7 +132,7 @@ export const TargetMeasurementTool = () => {
             
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <Target className="w-4 h-4 text-yellow-500" />
+                <Target className="w-4 h-4 text-caution" />
                 Punto de Confirmación/Ruptura (Opcional)
               </Label>
               <Input
@@ -177,7 +177,7 @@ export const TargetMeasurementTool = () => {
                 {/* Confirmación */}
                 {result.confirmationStatus && (
                   <div className={`p-3 rounded-lg border ${result.confirmationStatus.includes('CONFIRMADO') ? 'bg-primary/10 border-primary/20' : 'bg-yellow-500/10 border-yellow-500/20'}`}>
-                    <p className={`text-sm font-semibold ${result.confirmationStatus.includes('CONFIRMADO') ? 'text-primary' : 'text-yellow-500'}`}>
+                    <p className={`text-sm font-semibold ${result.confirmationStatus.includes('CONFIRMADO') ? 'text-primary' : 'text-caution'}`}>
                       {result.confirmationStatus}
                     </p>
                   </div>

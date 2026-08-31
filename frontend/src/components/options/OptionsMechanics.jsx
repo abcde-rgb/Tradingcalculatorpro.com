@@ -212,7 +212,7 @@ const OptionsMechanics = () => {
 
           <Card className="border-amber-500/40 bg-amber-500/5">
             <div className="flex gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
               <p className="text-xs text-muted-foreground leading-relaxed">{C.leverage.warning}</p>
             </div>
           </Card>
@@ -236,7 +236,7 @@ const OptionsMechanics = () => {
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
                       className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded ${
-                        opening ? 'bg-primary/15 text-primary' : 'bg-blue-500/15 text-blue-500'
+                        opening ? 'bg-primary/15 text-primary' : 'bg-blue-500/15 text-info'
                       }`}
                     >
                       {a.code}
@@ -244,7 +244,7 @@ const OptionsMechanics = () => {
                     <span className="text-sm font-semibold">{es ? a.es : a.en}</span>
                     <span
                       className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                        credit ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-500'
+                        credit ? 'bg-emerald-500/15 text-long' : 'bg-red-500/15 text-short'
                       }`}
                     >
                       {a.flow}
@@ -286,7 +286,7 @@ const OptionsMechanics = () => {
 
           <Card className="border-red-500/30">
             <H>{C.openClose.risks.title}</H>
-            <Bullets items={C.openClose.risks.items} icon={AlertTriangle} tone="text-red-500" />
+            <Bullets items={C.openClose.risks.items} icon={AlertTriangle} tone="text-short" />
           </Card>
         </div>
       )}
@@ -327,7 +327,7 @@ const OptionsMechanics = () => {
 
           <Card className="border-amber-500/40">
             <H>{C.rolling.cost.title}</H>
-            <Bullets items={C.rolling.cost.items} tone="text-amber-500" />
+            <Bullets items={C.rolling.cost.items} tone="text-warn" />
             <p className="text-xs text-foreground leading-relaxed mt-3 pt-3 border-t border-border/60 font-medium">
               {C.rolling.cost.key}
             </p>
@@ -336,17 +336,17 @@ const OptionsMechanics = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Card>
               <H>{C.rolling.checklist.title} — {es ? 'futuros' : 'futures'}</H>
-              <Bullets items={C.rolling.checklist.futures} icon={Check} tone="text-emerald-500" />
+              <Bullets items={C.rolling.checklist.futures} icon={Check} tone="text-long" />
             </Card>
             <Card>
               <H>{C.rolling.checklist.title} — {es ? 'opciones' : 'options'}</H>
-              <Bullets items={C.rolling.checklist.options} icon={Check} tone="text-emerald-500" />
+              <Bullets items={C.rolling.checklist.options} icon={Check} tone="text-long" />
             </Card>
           </div>
 
           <Card className="border-red-500/30">
             <H>{C.rolling.mistakes.title}</H>
-            <Bullets items={C.rolling.mistakes.items} icon={X} tone="text-red-500" />
+            <Bullets items={C.rolling.mistakes.items} icon={X} tone="text-short" />
             <p className="text-xs text-foreground leading-relaxed mt-3 pt-3 border-t border-border/60 font-medium">
               {C.rolling.mistakes.big}
             </p>

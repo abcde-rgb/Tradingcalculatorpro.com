@@ -117,10 +117,10 @@ export const PriceAlerts = () => {
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bell className="w-5 h-5 text-yellow-500" />
+          <Bell className="w-5 h-5 text-caution" />
           {t('alerts')}
           {wsConnected && (
-            <span className="ml-auto flex items-center gap-1 text-xs font-normal text-green-500">
+            <span className="ml-auto flex items-center gap-1 text-xs font-normal text-long">
               <Zap className="w-3 h-3" /> Live
             </span>
           )}
@@ -196,7 +196,7 @@ export const PriceAlerts = () => {
                     <div className="text-sm font-semibold">BTC</div>
                     <div className="text-xs text-muted-foreground">&gt; 100,000 $</div>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/15 text-yellow-500">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/15 text-caution">
                     {t('alertActiveBadge')}
                   </span>
                 </div>

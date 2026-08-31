@@ -38,7 +38,7 @@ export default function WipSection({ children, label, message }) {
         data-testid="wip-overlay"
         aria-label={t('wipTitle')}
       >
-        <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-600 dark:text-amber-400 backdrop-blur-sm shadow-sm group-hover:bg-amber-500/20 transition-colors">
+        <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-warn dark:text-warn backdrop-blur-sm shadow-sm group-hover:bg-amber-500/20 transition-colors">
           <Wrench className="w-4 h-4" />
           {label || t('wipBadge')}
         </span>
@@ -64,7 +64,7 @@ export default function WipSection({ children, label, message }) {
               data-testid="wip-modal"
             >
               <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center">
-                <Wrench className="w-7 h-7 text-amber-500" />
+                <Wrench className="w-7 h-7 text-warn" />
               </div>
               <h3 className="text-xl font-bold mb-2">{t('wipTitle')}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed mb-5">{message || t('wipMessage')}</p>

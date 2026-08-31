@@ -32,7 +32,7 @@ export default function ElliottWavesVisual() {
     <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-blue-500/10">
       <CardContent className="pt-6 space-y-3">
         <h3 className="font-semibold flex items-center gap-2">
-          <Waves className="w-5 h-5 text-indigo-500" /> {t('ewVisTitle')}
+          <Waves className="w-5 h-5 text-compare" /> {t('ewVisTitle')}
         </h3>
         <svg viewBox="0 0 460 240" className="w-full h-auto rounded-lg bg-muted/20" role="img" aria-label={t('ewVisTitle')}>
           {/* motive */}
@@ -53,8 +53,8 @@ export default function ElliottWavesVisual() {
           ))}
         </svg>
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
-          <span className="inline-flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-[#16a34a]" />{t('ewVisImpulse')}</span>
-          <span className="inline-flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-[#dc2626]" />{t('ewVisCorrective')}</span>
+          <span className="inline-flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-long" />{t('ewVisImpulse')}</span>
+          <span className="inline-flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-short" />{t('ewVisCorrective')}</span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">{t('ewVisCaption')}</p>
       </CardContent>

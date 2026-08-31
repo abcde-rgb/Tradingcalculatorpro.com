@@ -80,11 +80,32 @@ Los usa el despliegue del backend (`cloudbuild.yaml`, manual desde GCP):
 
 ## D. Cloud Run / Cloud SQL (infra)
 
-- [ ] 🔴 Cloud SQL **PostgreSQL** `trading-db` en `europe-west1` operativa.
-- [ ] 🔴 Servicio Cloud Run `tradingcalculator-api` en `europe-west1`,
-      `--add-cloudsql-instances=PROJ:europe-west1:trading-db`.
+> ✅ **Resuelto el 2026-08-27.** Este bloque describía un montaje que NO EXISTE:
+> `europe-west1`, una instancia de Cloud SQL `trading-db`, un repositorio
+> `trading-repo` y siete secretos en Secret Manager. La comprobación contra el
+> proyecto real (anotada en `.claude/rules/infra.md` el 2026-08-25, cuando se
+> retiró `cloudbuild.yaml` por describir esa misma ficción) dice otra cosa:
+>
+> | Qué | De verdad |
+> |---|---|
+> | Servicio | `tradingcalculator-api` en **`us-east1`** |
+> | Base de datos | **Externa, por `DATABASE_URL`. No hay Cloud SQL** — la API `sqladmin` ni está habilitada |
+> | Configuración | 15 variables de entorno en el propio servicio, no `--update-secrets` |
+>
+> Dejarlo como estaba costaba caro en las dos direcciones: quien mirase
+> `--region=europe-west1` vería «not found» sobre un servicio que existe y podría
+> darlo por caído, y quien siguiera las casillas crearía un SEGUNDO servicio en
+> Europa mientras el frontend apunta al de EE. UU.
+
+- [x] ~~Cloud SQL `trading-db` en `europe-west1`~~ — **no aplica**: la base de datos
+      es externa y llega por `DATABASE_URL`.
+- [x] ~~Servicio Cloud Run en `europe-west1` con `--add-cloudsql-instances`~~ —
+      **no aplica**: el servicio vive en `us-east1` y no monta ningún socket de
+      Cloud SQL.
 - [ ] `min-instances=1` (no bajar a 0). `concurrency=80`. Memoria 512Mi.
-- [ ] Artifact Registry `trading-repo` en `europe-west1` (el workflow lo crea si falta).
+- [x] ~~Artifact Registry `trading-repo` en `europe-west1`~~ — **no aplica**: las
+      imágenes van a `us-east1-docker.pkg.dev/<proy>/cloud-run-source-deploy/`,
+      que crea el propio despliegue desde código.
 - [ ] Healthcheck post-deploy responde: `GET {SERVICE_URL}/api/health` → 200 `{status: healthy}`.
 
 ## E. Stripe (operación) 🔴

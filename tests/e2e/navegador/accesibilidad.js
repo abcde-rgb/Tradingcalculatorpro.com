@@ -25,11 +25,23 @@ fs.mkdirSync(SALIDA, { recursive: true });
  *  tanto ruido que esconden lo que de verdad bloquea a alguien. */
 const GRAVES = new Set(['critical', 'serious']);
 
+// Claro y oscuro. Los cuatro temas con nombre heredan los colores de señal
+// de `:root` (= oscuro), así que medirlos sería medir el oscuro otra vez.
+const TEMAS = ['dark', 'light'];
+
+// Cuatro páginas medían poco: los colores de señal viven sobre todo en el
+// panel, la academia y el escáner, que no se miraban. Con el tema claro
+// añadido son 8 × 2 = 16 mediciones por vista, que es lo que cuesta que un
+// incumplimiento no dependa de qué pantalla le tocó a la sonda.
 const PAGINAS = [
   ['landing', '/'],
   ['precios', '/pricing'],
   ['opciones', '/options'],
   ['diario', '/performance'],
+  ['panel', '/dashboard'],
+  ['academia', '/education'],
+  ['brokers', '/brokers'],
+  ['ajustes', '/settings'],
 ];
 
 function rutaAxe() {
@@ -81,9 +93,26 @@ function rutaAxe() {
   const porRegla = new Map();
   let totalGraves = 0;
 
+  // ── Los DOS temas, y no es un extra ─────────────────────────────────────
+  // Esta sonda recorrió meses un solo tema —el oscuro, que es el de arranque—
+  // y por eso daba 1 incumplimiento en /performance. Con el tema claro eran
+  // 77: los colores de señal estaban escritos en hexadecimal, elegidos mirando
+  // el fondo oscuro, y sobre papel las CIFRAS DE P&L caían a 2,09:1. Un tema
+  // que no se mide es un tema que no existe para la sonda.
+  for (const tema of TEMAS) {
   for (const [nombre, ruta] of PAGINAS) {
+    // El tema se fija ANTES de navegar: aplicarlo después deja a axe midiendo
+    // los colores de la pintada anterior.
+    await page.evaluate((t) => localStorage.setItem('trading-theme-storage',
+      JSON.stringify({ state: { theme: t }, version: 0 })), tema);
     await page.goto(`${BASE}${ruta}`, { waitUntil: 'networkidle', timeout: 60000 });
     await page.waitForTimeout(2000);
+    const temaReal = await page.evaluate(() => document.documentElement.className);
+    if (!new RegExp(`\\b${tema}\\b`).test(temaReal)) {
+      console.log(`  ⚠️  ${nombre}: se pidió «${tema}» y quedó «${temaReal}» — `
+        + 'la medición de este tema NO vale');
+      totalGraves += 1;
+    }
     await page.addScriptTag({ content: fuenteAxe });
     const r = await page.evaluate(async () => {
       const res = await window.axe.run(document, {
@@ -98,16 +127,17 @@ function rutaAxe() {
     });
     const graves = r.filter((v) => GRAVES.has(v.impact));
     totalGraves += graves.reduce((s, v) => s + v.n, 0);
-    console.log(`  ${nombre.padEnd(10)} ${graves.length ? '❌' : '✅'} `
+    console.log(`  ${(tema + '/' + nombre).padEnd(16)} ${graves.length ? '❌' : '✅'} `
       + `${graves.length} regla(s) grave(s), ${graves.reduce((s, v) => s + v.n, 0)} elemento(s)`);
     for (const v of graves) {
       console.log(`      · [${v.impact}] ${v.id} ×${v.n} — ${v.help}`);
       console.log(`        ${v.objetivo}  ${v.ejemplo}`);
       const acc = porRegla.get(v.id) || { impact: v.impact, help: v.help, n: 0, paginas: [] };
-      acc.n += v.n; acc.paginas.push(nombre);
+      acc.n += v.n; acc.paginas.push(`${tema}/${nombre}`);
       porRegla.set(v.id, acc);
     }
-    await page.screenshot({ path: path.join(SALIDA, `${MODO}-${nombre}.png`) });
+    await page.screenshot({ path: path.join(SALIDA, `${MODO}-${tema}-${nombre}.png`) });
+  }
   }
 
   console.log('\n── resumen por regla ──');

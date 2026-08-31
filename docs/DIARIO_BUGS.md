@@ -10,6 +10,137 @@
 
 ---
 
+### Endurecimiento asociado (2026-08-28) — qué significan los 43 avisos de `npm audit`
+
+`npm audit` sobre `frontend/` reportaba **44 vulnerabilidades**, y ese número
+por sí solo no dice nada útil: CRA declara `react-scripts` como dependencia de
+producción, así que **todo su árbol de compilación** —webpack, jest, eslint,
+babel, svgo, workbox— cuenta como «producción» aunque no llegue nunca al
+navegador. Repetir «44 vulnerabilidades» en cada sesión sin separarlas es
+ruido que acaba tapando lo que sí importa.
+
+Separadas, sólo cinco paquetes podían acabar en el bundle publicado. De ésos:
+
+| Paquete | Qué se hizo |
+|---|---|
+| `react-router` / `-dom` 7.18.1 | **Alta** (CSRF en modo RSC). Subido a 7.18.2, que es un parche. La SPA no usa RSC, pero no hay razón para cargar con el aviso cuando el arreglo es una versión de parche |
+| `dompurify` (10 avisos) | Entraba por `jspdf`, y **`jspdf` no se importa en ningún sitio**: ni en `src/`, ni en `scripts/`, ni por importación dinámica, ni aparece en el bundle. Retirada, junto a `html2canvas`, por la misma razón |
+| `nanoid`, `uuid`, `qs` | Entran por `postcss` y el árbol de webpack: compilación, no navegador |
+
+Resultado: **0 avisos que lleguen al navegador**. Los 43 restantes son del árbol
+de `react-scripts` y sólo se cierran migrando de CRA a Vite —que está en el
+backlog como P3, no como problema de seguridad—.
+
+Se comprueba así, y conviene rehacerlo antes de creerse un número:
+
+```bash
+cd frontend && npm audit --json | python3 -c "…"   # separar build de runtime
+grep -rl "jspdf\|dompurify" src/ scripts/          # ¿se usa de verdad?
+grep -l "<paquete>" build/static/js/*.js            # ¿está en el artefacto?
+```
+
+### BUG-025 — El CSP no autorizaba `wss://`: las alertas en vivo quedaban mudas en producción
+**Severidad:** 🟠 ALTA · **Archivo:** `frontend/public/index.html`, `frontend/craco.config.js` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+La Content-Security-Policy que cerró G-10 listaba el backend como
+`connect-src https://api…`, y `useWebSocketAlerts` abre `wss://api…`. En CSP3
+eso es **otro esquema**: la relajación va de `ws` a `http`/`https`, nunca al
+revés. El navegador bloqueaba la conexión con `Refused to connect to
+'ws://…/api/ws/alerts'` y las alertas de precio no llegaban nunca — en
+producción, sin aviso, porque el `meta` no admite `report-only`.
+**Causa raíz:** al medir los orígenes con Playwright para escribir la política,
+se recorrió `/dashboard` **sin sesión**. Sin token el hook devuelve `null` y no
+abre nada: el WebSocket nunca apareció en la medición.
+**Solución:** `craco.config.js` deriva `REACT_APP_BACKEND_WS_URL` del backend
+(no un secreto nuevo: así no puede divergir) y `connect-src` lo incluye.
+**Verificado:** `pre-despliegue.js` en verde; `csp.js` gana un bloque
+autenticado que exige que el WebSocket **se intente** —sin esa guarda, un
+dashboard que dejara de montar `PriceAlerts` volvería a dar verde sin probar
+nada— y dos sabotajes en `probar-verificadores.sh`.
+
+### BUG-026 — Los colores de señal salían del tema oscuro: el P&L era ilegible sobre papel
+**Severidad:** 🟠 ALTA · **Archivo:** `frontend/src/index.css`, 151 ficheros de `frontend/src/` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+Con el tema claro, las cifras de P&L de `/performance` medían **2,09:1** (verde)
+y **3,60:1** (rojo) contra el mínimo de 4,5:1 de WCAG AA. axe encontraba 77
+incumplimientos graves en esa sola pantalla con el tema claro y **1** con el
+oscuro. Son los números con los que alguien dimensiona una posición real.
+**Causa raíz doble:** (1) 1.499 clases llevaban el color escrito a mano —760 en
+hexadecimal (`text-[#22c55e]`) y 742 de la paleta de Tailwind
+(`text-red-500`)—, todas elegidas mirando el fondo oscuro; `#22c55e` resultó ser
+exactamente `--long` del tema oscuro y `#ef4444` exactamente `--short`, o sea
+los tokens del sistema congelados en el valor de un tema. (2) La sonda de
+accesibilidad medía **un solo tema y cuatro páginas**, así que el tema claro no
+existía para ella.
+**Solución:** cuatro tokens nuevos (`--warn`, `--caution`, `--info`,
+`--compare`) junto a `--long`/`--short`, cada uno medido para pasar 4,5:1 sobre
+la tarjeta **y** como texto sobre su propio tinte al 15 %, que es el patrón de
+las insignias. 1.479 clases pasan a los tokens; en oscuro el cambio es
+imperceptible (7,61 → 7,54), en claro 2,19 → 4,65. Ajustados también
+`--primary`, `--accent` y `--destructive` del tema claro.
+**Verificado:** `accesibilidad.js` recorre ahora **2 temas × 8 páginas** — 0
+incumplimientos graves en escritorio y en móvil, frente a 53 al ampliar la
+cobertura.
+
+### BUG-027 — Tres botones sin nombre accesible, y uno inalcanzable con teclado
+**Severidad:** 🔴 CRÍTICA (accesibilidad) · **Archivo:** `frontend/src/pages/SettingsPage.jsx`, `frontend/src/components/education/EduAssistant.jsx` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+Los tres botones de ver/ocultar contraseña de Ajustes eran icono suelto sin
+`aria-label` **y** llevaban `tabIndex={-1}`: quien navega con teclado o lector
+de pantalla no podía usarlos en absoluto. El botón de preguntar de la academia
+esconde su etiqueta en un `hidden sm:inline`, así que **en móvil** se quedaba
+con el icono solo y sin nombre — un incumplimiento que sólo existe por debajo
+del punto de ruptura, y que por eso hacía falta medir accesibilidad también en
+móvil.
+**Causa raíz:** iconos como única etiqueta, y `tabIndex={-1}` puesto para que el
+botón no interrumpiera el tabulado del formulario.
+**Solución:** `aria-label` traducido en los cuatro (claves nuevas
+`showPassword`/`hidePassword` en los 10 idiomas) y `tabIndex={-1}` retirado. La
+tabla comparativa de brókers gana `tabIndex={0}` + `role="region"`.
+**Verificado:** `accesibilidad.js` en verde en escritorio y móvil.
+
+### BUG-028 — La R media indefinida se pintaba «nullR»
+**Severidad:** 🟡 MEDIA · **Archivo:** `frontend/src/components/performance/AnalyticsDashboard.jsx` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+Al aplicar la regla de honestidad nº 2 —lo que no se puede calcular es `None`,
+no `0`— `avg_r` y el Sharpe pasaron a ser opcionales en el backend. La pantalla
+seguía interpolándolos a pelo, así que pintaba `nullR` y `Sharpe: null`. Es
+**peor** que el cero que se quería evitar: el cero parece un número, «null»
+parece una web rota, y en la pantalla con la que alguien dimensiona una posición
+se lleva por delante la confianza en el resto de las cifras.
+**Causa raíz:** la regla se aplicó en el productor y no en el consumidor.
+`fmtNum` ya existía en el mismo fichero para esto; esas tres cifras no lo usaban.
+**Solución:** `fmtNum` en las tres. Sonda nueva `nulos.js`, que **fuerza** el
+caso interceptando la respuesta de `/performance/analytics` y anulando cada
+métrica que el contrato permite anular (sólo ésas: la primera versión anulaba
+también `win_rate` y `expectancy`, que `_safe_div(..., 0)` nunca deja nulas, y
+«encontraba» fallos de un escenario imposible).
+**Verificado:** sabotaje registrado en `probar-verificadores.sh` — quitar la
+guarda del bundle reproduce «AVG R nullR» y pone la sonda en rojo.
+
+### BUG-029 — El JWT del WebSocket viajaba en la cadena de consulta
+**Severidad:** 🟡 MEDIA · **Archivo:** `backend/realtime_alerts.py`, `frontend/src/hooks/useWebSocketAlerts.js` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+`useWebSocketAlerts` abría `wss://…/api/ws/alerts?token=<JWT>`. Cloud Run
+registra la URL completa de cada petición, así que el token de acceso quedaba
+escrito en los registros y sobrevivía allí mucho más que la hora que dura.
+**Causa raíz:** el navegador no deja poner cabeceras en un WebSocket, y la URL
+era el camino corto.
+**Solución:** el backend prefiere la cookie `access_token` (que viaja en una
+cabecera que no se registra) y conserva `?token=` como respaldo —hace falta:
+la cookie es `secure` y sobre `http://localhost` el navegador no la guarda, que
+es como corre el banco E2E—. El frontend intenta primero **sin** token y sólo
+recurre a la URL si el servidor cierra con 4401.
+⚠️ **La trampa que había que cerrar a la vez:** el apretón de manos de un
+WebSocket **no pasa por CORS**. Cualquier página puede abrir uno contra el
+backend y el navegador adjuntará las cookies de quien la visite. Autenticar por
+cookie sin comprobar `Origin` habría abierto un secuestro de sesión entre
+sitios (CSWSH) peor que el problema que se cerraba.
+**Verificado:** 9 tests en `tests/test_ws_credencial_unit.py`, incluidos el
+origen ajeno con la cookie de la víctima y el caso sin cabecera `Origin`. La
+vía de la cookie no se puede probar en el banco E2E precisamente porque corre
+sobre `http://localhost`.
+
 ### BUG-021 — Host-header injection en enlaces de email (reset de contraseña / verificación)
 **Severidad:** 🔴 CRÍTICA · **Archivo:** `backend/missing_apis.py` (`forgot_password`, `send_verification_email`) · **Estado:** ✅ RESUELTO (2026-07-14)
 

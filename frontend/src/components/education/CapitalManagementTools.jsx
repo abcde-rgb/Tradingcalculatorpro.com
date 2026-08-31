@@ -73,7 +73,7 @@ function PositionSizeCalculator() {
     <Card className="bg-gradient-to-br from-green-500/5 to-emerald-500/10 border-green-500/30" data-testid="position-size-calculator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Calculator className="w-5 h-5 text-green-500" />
+          <Calculator className="w-5 h-5 text-long" />
           {t('cmtPosSizeTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('cmtPosSizeIntro')}</p>
@@ -87,14 +87,14 @@ function PositionSizeCalculator() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Output label={t('cmtRiskAmount')} value={fmtMoney(r.riskAmount)} accent="text-red-500" />
+          <Output label={t('cmtRiskAmount')} value={fmtMoney(r.riskAmount)} accent="text-short" />
           <Output label={t('cmtStopDistance')} value={`${fmtMoney(r.stopDist)} (${fmtNum(r.stopPct)}%)`} />
-          <Output label={t('cmtPositionSize')} value={`${fmtNum(r.units, 4)}`} accent="text-green-500" highlight />
+          <Output label={t('cmtPositionSize')} value={`${fmtNum(r.units, 4)}`} accent="text-long" highlight />
           <Output label={t('cmtPositionValue')} value={fmtMoney(r.positionValue)} />
         </div>
 
         <div className={`flex items-start gap-2 rounded-lg p-3 text-xs ${leverageWarn ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-muted/40'}`}>
-          {leverageWarn ? <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" /> : <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />}
+          {leverageWarn ? <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" /> : <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />}
           <span className="text-muted-foreground">
             {t('cmtImpliedLeverage')}: <span className="font-mono font-semibold text-foreground">{fmtNum(r.impliedLeverage)}×</span>
             {leverageWarn && <> — {t('cmtLeverageWarn')}</>}
@@ -143,7 +143,7 @@ function KellyCalculator() {
     <Card className="bg-gradient-to-br from-blue-500/5 to-indigo-500/10 border-blue-500/30" data-testid="kelly-calculator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Percent className="w-5 h-5 text-blue-500" />
+          <Percent className="w-5 h-5 text-info" />
           {t('cmtKellyTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('cmtKellyIntro')}</p>
@@ -169,24 +169,24 @@ function KellyCalculator() {
         {r.hasEdge ? (
           <>
             <div className="grid grid-cols-3 gap-3">
-              <Output label={t('cmtFullKelly')} value={pct(r.kelly)} sub={t('cmtFullKellySub')} accent="text-red-500" />
-              <Output label={t('cmtHalfKelly')} value={pct(r.half)} sub={t('cmtHalfKellySub')} accent="text-amber-500" />
-              <Output label={t('cmtQuarterKelly')} value={pct(r.quarter)} sub={t('cmtQuarterKellySub')} accent="text-green-500" highlight />
+              <Output label={t('cmtFullKelly')} value={pct(r.kelly)} sub={t('cmtFullKellySub')} accent="text-short" />
+              <Output label={t('cmtHalfKelly')} value={pct(r.half)} sub={t('cmtHalfKellySub')} accent="text-warn" />
+              <Output label={t('cmtQuarterKelly')} value={pct(r.quarter)} sub={t('cmtQuarterKellySub')} accent="text-long" highlight />
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-muted/40 p-3 text-xs">
               <span className="text-muted-foreground">{t('cmtPayoff')}: <span className="font-mono font-semibold text-foreground">{fmtNum(r.payoff)}R</span></span>
-              <span className="text-muted-foreground">{t('cmtExpectancy')}: <span className={`font-mono font-semibold ${r.expectancyR >= 0 ? 'text-green-500' : 'text-red-500'}`}>{r.expectancyR >= 0 ? '+' : ''}{fmtNum(r.expectancyR)}R</span></span>
+              <span className="text-muted-foreground">{t('cmtExpectancy')}: <span className={`font-mono font-semibold ${r.expectancyR >= 0 ? 'text-long' : 'text-short'}`}>{r.expectancyR >= 0 ? '+' : ''}{fmtNum(r.expectancyR)}R</span></span>
             </div>
           </>
         ) : (
           <div className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-xs">
-            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-short shrink-0 mt-0.5" />
             <span className="text-muted-foreground">{t('cmtNoEdge')}</span>
           </div>
         )}
 
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <ShieldCheck className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+          <ShieldCheck className="w-4 h-4 text-long shrink-0 mt-0.5" />
           <span>{t('cmtKellyTip')}</span>
         </div>
       </CardContent>

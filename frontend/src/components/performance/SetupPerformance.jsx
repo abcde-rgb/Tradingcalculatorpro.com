@@ -7,7 +7,7 @@ import {
 } from '@/lib/tradingSystem';
 import { expectancyR, monthlyFromEdge } from '@/lib/projection';
 
-const pnlColor = (v) => (v > 0 ? 'text-[#22c55e]' : v < 0 ? 'text-[#ef4444]' : 'text-muted-foreground');
+const pnlColor = (v) => (v > 0 ? 'text-long' : v < 0 ? 'text-short' : 'text-muted-foreground');
 const money = (v) => `${v > 0 ? '+' : ''}$${Number(v || 0).toFixed(2)}`;
 
 /**
@@ -150,7 +150,7 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
                 )}
                 {gaps.length > 0 && (
                   <span
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#fbbf24] font-semibold"
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-warn/15 text-warn font-semibold"
                     title={t('setupPerfGapsTip')}
                   >
                     {t('setupPerfGaps').replace('{n}', String(gaps.length))}
@@ -172,7 +172,7 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
               {stats && (
                 <div className="mt-1.5 text-[11px]" data-testid="setupperf-contribution">
                   {contribution != null ? (
-                    <span className={contribution > 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}>
+                    <span className={contribution > 0 ? 'text-long' : 'text-short'}>
                       {t('setupPerfContribution')
                         .replace('{v}', `${contribution > 0 ? '+' : ''}${contribution}`)
                         .replace('{r}', String(edge))
@@ -194,7 +194,7 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
                   {/* Barra de acierto: proporción, no adjetivo. */}
                   <span className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-[160px]">
                     <span
-                      className="block h-full bg-[#22c55e]"
+                      className="block h-full bg-long"
                       style={{ width: `${Math.max(0, Math.min(100, stats.win_rate))}%` }}
                     />
                   </span>
@@ -208,12 +208,12 @@ export default function SetupPerformance({ refreshKey, onDefineSetups, onGoToJou
       {/* Operado fuera del sistema: errata o salto del plan. Las dos importan. */}
       {offSystem.length > 0 && (
         <div
-          className="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-4 py-3"
+          className="rounded-xl border border-warn/40 bg-warn/5 px-4 py-3"
           data-testid="setupperf-offsystem"
         >
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-[#f59e0b]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#f59e0b]">
+            <AlertTriangle className="w-4 h-4 text-warn" />
+            <span className="text-xs font-bold uppercase tracking-wider text-warn">
               {t('setupPerfOffSystem')}
             </span>
             <span className="ml-auto text-[11px] font-mono text-muted-foreground">

@@ -191,8 +191,8 @@ export default function PositionSetupBar({
               data-testid="compare-toggle"
               className={`flex items-center gap-1.5 px-2.5 h-10 rounded-lg text-[11px] font-bold border transition-colors whitespace-nowrap ${
                 compareMode
-                  ? 'bg-[#a855f7]/20 border-[#a855f7]/50 text-[#c084fc]'
-                  : 'bg-muted border-border text-muted-foreground hover:text-[#c084fc] hover:border-[#a855f7]/40'
+                  ? 'bg-compare/20 border-compare/50 text-compare'
+                  : 'bg-muted border-border text-muted-foreground hover:text-compare hover:border-compare/40'
               }`}
             >
               <GitCompare className="w-3.5 h-3.5" />

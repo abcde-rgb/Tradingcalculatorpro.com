@@ -14,13 +14,13 @@ const LEVERAGE_ROWS = [
     level: '0x – 2x',
     styleKey: 'leverageStyleSwing',
     commentKey: 'leverageCommentLow',
-    color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/8', border: 'border-[#22c55e]/30',
+    color: 'text-long', bg: 'bg-long/8', border: 'border-long/30',
   },
   {
     level: '5x – 10x',
     styleKey: 'leverageStyleDayTrading',
     commentKey: 'leverageCommentMedium',
-    color: 'text-[#eab308]', bg: 'bg-[#eab308]/8', border: 'border-[#eab308]/30',
+    color: 'text-caution', bg: 'bg-caution/8', border: 'border-caution/30',
   },
   {
     level: '20x – 50x',
@@ -32,7 +32,7 @@ const LEVERAGE_ROWS = [
     level: '75x – 100x',
     styleKey: 'leverageStyleScalping',
     commentKey: 'leverageCommentExtreme',
-    color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/8', border: 'border-[#ef4444]/30',
+    color: 'text-short', bg: 'bg-short/8', border: 'border-short/30',
   },
 ];
 
@@ -40,10 +40,10 @@ const LEVERAGE_ROWS = [
  * Risk-tier color for the mini-calculator output based on % move to liquidation.
  */
 const tierForLiqPct = (pct) => {
-  if (pct >= 25) return { color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/10', border: 'border-[#22c55e]/40' };
-  if (pct >= 8)  return { color: 'text-[#eab308]', bg: 'bg-[#eab308]/10', border: 'border-[#eab308]/40' };
+  if (pct >= 25) return { color: 'text-long', bg: 'bg-long/10', border: 'border-long/40' };
+  if (pct >= 8)  return { color: 'text-caution', bg: 'bg-caution/10', border: 'border-caution/40' };
   if (pct >= 3)  return { color: 'text-[#f97316]', bg: 'bg-[#f97316]/10', border: 'border-[#f97316]/40' };
-  return { color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/10', border: 'border-[#ef4444]/40' };
+  return { color: 'text-short', bg: 'bg-short/10', border: 'border-short/40' };
 };
 
 const LeverageGuide = () => {
@@ -62,7 +62,7 @@ const LeverageGuide = () => {
     >
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Gauge className="w-5 h-5 text-orange-500" />
+          <Gauge className="w-5 h-5 text-warn" />
           {t('leverageGuideTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
@@ -76,13 +76,13 @@ const LeverageGuide = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-orange-500/10 border-b border-orange-500/30">
-                <th className="px-3 py-2 text-left text-orange-400 font-bold tracking-wider text-xs uppercase">
+                <th className="px-3 py-2 text-left text-warn font-bold tracking-wider text-xs uppercase">
                   {t('leverageLevelCol')}
                 </th>
-                <th className="px-3 py-2 text-left text-orange-400 font-bold tracking-wider text-xs uppercase">
+                <th className="px-3 py-2 text-left text-warn font-bold tracking-wider text-xs uppercase">
                   {t('leverageStyleCol')}
                 </th>
-                <th className="px-3 py-2 text-left text-orange-400 font-bold tracking-wider text-xs uppercase">
+                <th className="px-3 py-2 text-left text-warn font-bold tracking-wider text-xs uppercase">
                   {t('leverageCommentCol')}
                 </th>
               </tr>
@@ -112,14 +112,14 @@ const LeverageGuide = () => {
         {/* Liquidation formula explanation */}
         <div className="bg-card/50 border border-border rounded-lg p-3.5 space-y-2">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-500" />
+            <AlertTriangle className="w-4 h-4 text-caution" />
             <span className="text-sm font-bold uppercase tracking-wider">{t('liquidationFormulaTitle')}</span>
           </div>
           <div className="bg-background/70 rounded-md px-3 py-2 font-mono text-sm text-center">
             <span className="text-muted-foreground">% liq ≈</span>
             <span className="text-foreground mx-2">100</span>
             <span className="text-muted-foreground">/</span>
-            <span className="text-orange-400 mx-2">leverage</span>
+            <span className="text-warn mx-2">leverage</span>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
             {t('liquidationFormulaExplain')}
@@ -130,7 +130,7 @@ const LeverageGuide = () => {
                 key={lev}
                 className="bg-muted rounded-md px-2 py-1.5 text-center font-mono text-[11px] border border-border/50"
               >
-                <span className="text-orange-400 font-bold">{lev}x</span>
+                <span className="text-warn font-bold">{lev}x</span>
                 <span className="text-muted-foreground mx-1">→</span>
                 <span className="text-foreground">{(100 / lev).toFixed(lev >= 100 ? 0 : lev >= 10 ? 0 : 1)}%</span>
               </div>
@@ -144,8 +144,8 @@ const LeverageGuide = () => {
           data-testid="leverage-mini-calc"
         >
           <div className="flex items-center gap-2 mb-1">
-            <Calculator className="w-4 h-4 text-orange-500" />
-            <span className="text-sm font-bold uppercase tracking-wider text-orange-400">
+            <Calculator className="w-4 h-4 text-warn" />
+            <span className="text-sm font-bold uppercase tracking-wider text-warn">
               {t('leverageMiniCalcTitle')}
             </span>
           </div>
@@ -223,7 +223,7 @@ const LeverageGuide = () => {
             <Button
               variant="outline"
               size="sm"
-              className="w-full mt-1 border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-500 font-semibold"
+              className="w-full mt-1 border-orange-500/50 hover:bg-orange-500/10 hover:text-warn font-semibold"
             >
               <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
               {t('leverageMiniCalcOpenFull')}
@@ -234,15 +234,15 @@ const LeverageGuide = () => {
         {/* Risk rules */}
         <div className="bg-red-500/5 border-l-4 border-red-500/60 rounded-r-lg px-4 py-3 space-y-2">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-red-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-red-400">
+            <Shield className="w-4 h-4 text-short" />
+            <span className="text-xs font-bold uppercase tracking-wider text-short">
               {t('riskManagement')}
             </span>
           </div>
           <ul className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
             {[1, 2, 3].map((n) => (
               <li key={n} className="flex items-start gap-2">
-                <span className="text-red-400 font-bold flex-shrink-0">{n}.</span>
+                <span className="text-short font-bold flex-shrink-0">{n}.</span>
                 <span>{t(`leverageRiskRule${n}`)}</span>
               </li>
             ))}

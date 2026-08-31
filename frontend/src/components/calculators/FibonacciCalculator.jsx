@@ -94,12 +94,12 @@ export function FibonacciCalculator() {
   const getLevelColor = (levelStr) => {
     const level = parseFloat(levelStr);
     if (level === 0 || level === 100) return 'text-muted-foreground';
-    if (level === 23.6) return 'text-blue-400';
-    if (level === 38.2) return 'text-cyan-400';
-    if (level === 50) return 'text-yellow-500';
-    if (level === 61.8) return 'text-orange-500';
-    if (level === 78.6) return 'text-red-400';
-    if (level > 100) return 'text-purple-400';
+    if (level === 23.6) return 'text-info';
+    if (level === 38.2) return 'text-info';
+    if (level === 50) return 'text-caution';
+    if (level === 61.8) return 'text-warn';
+    if (level === 78.6) return 'text-short';
+    if (level > 100) return 'text-compare';
     return 'text-primary';
   };
 
@@ -108,7 +108,7 @@ export function FibonacciCalculator() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-            <span className="text-yellow-500 font-bold text-sm">φ</span>
+            <span className="text-caution font-bold text-sm">φ</span>
           </div>
           {t('fibonacci')}
         </CardTitle>
@@ -262,9 +262,9 @@ export function FibonacciCalculator() {
         <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
           <p className="font-medium mb-1">{t('keyLevels')}:</p>
           <ul className="space-y-1">
-            <li><span className="text-yellow-500">50%</span> - {t('midLevelDesc')}</li>
-            <li><span className="text-orange-500">61.8%</span> - {t('goldenRatio')}</li>
-            <li><span className="text-purple-400">161.8%</span> - {t('goldenExtensionDesc')}</li>
+            <li><span className="text-caution">50%</span> - {t('midLevelDesc')}</li>
+            <li><span className="text-warn">61.8%</span> - {t('goldenRatio')}</li>
+            <li><span className="text-compare">161.8%</span> - {t('goldenExtensionDesc')}</li>
           </ul>
         </div>
       </CardContent>

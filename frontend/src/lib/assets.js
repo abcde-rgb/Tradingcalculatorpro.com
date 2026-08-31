@@ -8,37 +8,37 @@ export const ASSET_CATEGORIES = {
     id: 'crypto',
     name: 'Criptomonedas',
     icon: 'Bitcoin',
-    color: 'text-orange-500'
+    color: 'text-warn'
   },
   forex: {
     id: 'forex',
     name: 'Forex',
     icon: 'DollarSign',
-    color: 'text-green-500'
+    color: 'text-long'
   },
   stocks: {
     id: 'stocks',
     name: 'Acciones',
     icon: 'TrendingUp',
-    color: 'text-blue-500'
+    color: 'text-info'
   },
   indices: {
     id: 'indices',
     name: 'Índices',
     icon: 'BarChart3',
-    color: 'text-purple-500'
+    color: 'text-compare'
   },
   commodities: {
     id: 'commodities',
     name: 'Materias Primas',
     icon: 'Gem',
-    color: 'text-yellow-500'
+    color: 'text-caution'
   },
   futures: {
     id: 'futures',
     name: 'Futuros',
     icon: 'Calendar',
-    color: 'text-red-500'
+    color: 'text-short'
   }
 };
 

@@ -59,7 +59,7 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   return fetch(url, { credentials: 'include', ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer))
     .catch((err) => {
-      if (err.name === 'AbortError') throw new Error('La solicitud tardó demasiado. El servidor puede estar iniciando, inténtalo de nuevo.');
+      if (err.name === 'AbortError') throw new Error(t('requestTimedOut'));
       throw err;
     });
 }
@@ -111,7 +111,7 @@ export const useAuthStore = create(
         } catch (error) {
           set({ isLoading: false });
           const msg = (error.name === 'TypeError' || error.message === 'Failed to fetch')
-            ? 'No se puede conectar al servidor. Comprueba tu conexión o intenta de nuevo.'
+            ? t('cannotReachServer')
             : error.message;
           return { success: false, error: msg };
         }
@@ -127,8 +127,8 @@ export const useAuthStore = create(
             body: JSON.stringify({ pending_token: pendingToken, code }),
           });
           const data = await safeJson(res);
-          if (!res.ok) throw new Error(data.detail || 'Código incorrecto');
-          if (!data.token || !data.user) throw new Error('Código incorrecto');
+          if (!res.ok) throw new Error(data.detail || t('invalidCode'));
+          if (!data.token || !data.user) throw new Error(t('invalidCode'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           applyUserLocale(data.user);
           trackEvent('login', { method: 'email_2fa' });

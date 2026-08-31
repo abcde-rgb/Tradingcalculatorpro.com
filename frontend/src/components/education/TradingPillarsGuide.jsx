@@ -21,9 +21,9 @@ const PILLARS = [
     bulletKeys: ['pillarPsychologyP1', 'pillarPsychologyP2', 'pillarPsychologyP3'],
     Icon: Brain,
     color: '#3b82f6',
-    bg: 'bg-[#3b82f6]/8',
-    border: 'border-[#3b82f6]/30',
-    text: 'text-[#60a5fa]',
+    bg: 'bg-info/8',
+    border: 'border-info/30',
+    text: 'text-info',
   },
   {
     id: 'risk',
@@ -45,9 +45,9 @@ const PILLARS = [
     bulletKeys: ['pillarAnalysisP1', 'pillarAnalysisP2', 'pillarAnalysisP3'],
     Icon: BarChart3,
     color: '#22c55e',
-    bg: 'bg-[#22c55e]/8',
-    border: 'border-[#22c55e]/30',
-    text: 'text-[#4ade80]',
+    bg: 'bg-long/8',
+    border: 'border-long/30',
+    text: 'text-long',
   },
 ];
 
@@ -65,7 +65,7 @@ const TradingPillarsGuide = () => {
     >
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Brain className="w-5 h-5 text-blue-500" />
+          <Brain className="w-5 h-5 text-info" />
           {t('pillarsTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
@@ -226,7 +226,7 @@ const TradingPillarsGuide = () => {
 
         {/* Key quote */}
         <div className="bg-blue-500/5 border-l-4 border-blue-500/60 rounded-r-lg px-4 py-3 flex items-start gap-2">
-          <Quote className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+          <Quote className="w-4 h-4 text-info mt-0.5 flex-shrink-0" />
           <p className="text-sm italic text-muted-foreground leading-relaxed">
             {t('pillarsKeyQuote')}
           </p>

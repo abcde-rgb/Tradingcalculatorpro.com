@@ -106,7 +106,7 @@ export default function TradeImportWizard({ open, onOpenChange, headers, rows, o
                   >
                     <span className="text-xs font-medium w-32 shrink-0 truncate">
                       {t(`importField_${f.key}`)}
-                      {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                      {f.required && <span className="text-short ml-0.5">*</span>}
                     </span>
                     <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
                     <Select
@@ -175,7 +175,7 @@ export default function TradeImportWizard({ open, onOpenChange, headers, rows, o
               <Check className="w-3.5 h-3.5" /> {t('importWizardWillImport', { n: valid.length })}
             </span>
             {invalid.length > 0 && (
-              <span className="flex items-center gap-1.5 text-amber-500">
+              <span className="flex items-center gap-1.5 text-warn">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 {t('importWizardWillSkip', { n: invalid.length })}
               </span>
@@ -196,7 +196,7 @@ export default function TradeImportWizard({ open, onOpenChange, headers, rows, o
           )}
 
           {missingRequired.length > 0 && (
-            <p className="text-xs text-red-500 flex items-center gap-1.5">
+            <p className="text-xs text-short flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5" />
               {t('importWizardMissingRequired', {
                 fields: missingRequired.map((f) => t(`importField_${f.key}`)).join(', '),

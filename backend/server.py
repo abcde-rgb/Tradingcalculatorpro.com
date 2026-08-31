@@ -10,7 +10,8 @@ import json as _json_module
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
+from contextlib import asynccontextmanager
+from pydantic import ConfigDict, BaseModel, Field, EmailStr
 from typing import Any, Dict, List, Optional, Tuple
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -127,6 +128,26 @@ def _deserialize(raw) -> dict:
 _SAFE_FIELD_RE = _re_module.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 
+
+def _detalle_publico(e: Exception, generico: str) -> str:
+    """Lo que se le puede contar al cliente sobre un error interno: casi nada.
+
+    Había trece `detail=str(e)` / `detail=f"…{e}"`. El texto de una excepción no
+    está pensado para un usuario: lleva rutas, nombres de tabla, identificadores
+    internos y, en el caso de Stripe, a veces parte de la petición. El manejador
+    global (`_unhandled_exception_handler`) ya generaliza los 500 que se le
+    escapan a nadie; estas trece lo esquivaban por ser `HTTPException` explícitas.
+
+    Stripe es la única excepción razonable: su `user_message` existe justamente
+    para enseñárselo al cliente («tu tarjeta ha sido rechazada»), así que ese sí
+    se pasa. Todo lo demás va al log y al usuario le llega el mensaje genérico.
+    """
+    mensaje = getattr(e, "user_message", None)
+    if isinstance(mensaje, str) and mensaje.strip():
+        return mensaje.strip()
+    return generico
+
+
 def _literal_regex(text: str) -> str:
     """Convierte texto de un buscador en un patrón que lo busca TAL CUAL.
 
@@ -138,6 +159,31 @@ def _literal_regex(text: str) -> str:
     paréntesis y la búsqueda hace lo que el usuario espera: subcadena literal.
     """
     return _re_module.escape(text or "")
+
+
+def _regex_seguro(patron) -> str:
+    """Un patrón que PostgreSQL pueda compilar, pase lo que pase.
+
+    `_literal_regex` protege AL LLAMADOR, y hoy sólo hay uno que se acuerde de
+    usarlo (el buscador del panel admin). Esto protege el punto de paso: un
+    patrón que no compila —un `(` suelto, un `[` sin cerrar— aborta la consulta
+    entera con *invalid regular expression* y la petición acaba en 500, con el
+    filtro ya dentro de la cadena SQL y sin forma de recuperarse.
+
+    Si el patrón compila, se respeta tal cual: hay usos deliberados de expresión
+    regular (`{"$regex": "^i18n_"}` en `admin_routes`) que deben seguir
+    funcionando. Si NO compila, sólo puede venir de texto que alguien tecleó, y
+    lo que esa persona espera es buscar esa cadena literalmente.
+
+    Es la misma decisión que G-15: arreglar la causa en el único sitio por el
+    que pasa todo, en vez de confiar en que cada ruta futura se acuerde.
+    """
+    texto = patron if isinstance(patron, str) else str(patron or "")
+    try:
+        _re_module.compile(texto)
+        return texto
+    except _re_module.error:
+        return _re_module.escape(texto)
 
 
 def _build_where_clause(filter_dict: dict, start_param: int = 1):
@@ -208,7 +254,7 @@ def _build_where_clause(filter_dict: dict, start_param: int = 1):
                         parts.append(f"(data->>'{ key }') ~* ${param_idx}")
                     else:
                         parts.append(f"(data->>'{ key }') ~ ${param_idx}")
-                    params.append(operand)
+                    params.append(_regex_seguro(operand))
                     param_idx += 1
                 elif op == "$options":
                     continue  # handled with $regex
@@ -964,11 +1010,61 @@ class Database:
                 min_size=5, max_size=20, timeout=10, command_timeout=30,
             )
         else:
+            # TCP. Por defecto, SSL VERIFICADO: es la única forma de conectar a
+            # Neon/Supabase y no queremos que un despliegue caiga a texto claro
+            # por accidente.
+            #
+            # Pero la rama trataba TODO host TCP como si fuera Neon, así que un
+            # Postgres local sin SSL fallaba con CERTIFICATE_VERIFY_FAILED —
+            # incluida la orden de desarrollo que documentaban CLAUDE.md y el
+            # README (hueco G-11). Ahora se respeta `sslmode`/`ssl` de la URL,
+            # que es el parámetro estándar de libpq:
+            #
+            #   ...?sslmode=disable   → sin SSL (sólo desarrollo local)
+            #   ...?sslmode=require   → cifrado sin verificar el certificado
+            #   sin parámetro         → verificado (el comportamiento de antes)
+            #
+            # `sslmode=disable` se RECHAZA en producción: bajar el cifrado por
+            # una cadena de conexión mal copiada no puede ser algo que ocurra en
+            # silencio.
             import ssl as _ssl
-            ssl_ctx = _ssl.create_default_context()
+            from urllib.parse import parse_qs, urlparse
+
+            consulta = parse_qs(urlparse(database_url).query)
+            modo = (consulta.get("sslmode") or consulta.get("ssl") or [""])[0].lower()
+
+            # ⚠️ El parámetro `ssl=` de asyncpg NO basta para verificar.
+            #
+            # Pasarle un `SSLContext` sin decir `sslmode` deja el modo en
+            # `prefer`, y para prefer/allow/require asyncpg fuerza
+            # `check_hostname=False` + `verify_mode=CERT_NONE` sobre una copia
+            # del contexto. Es decir: el código decía «SSL verificado», el
+            # comentario lo repetía, y lo que hacía era CIFRAR SIN AUTENTICAR —
+            # abierto a un intermediario que presente cualquier certificado.
+            # Comprobado contra un Postgres con certificado autofirmado: conectó
+            # sin rechistar, y `pg_stat_ssl` confirmaba cifrado.
+            #
+            # Sólo `verify-ca` y `verify-full` verifican de verdad, así que el
+            # modo va EXPLÍCITO en la cadena de conexión.
+            if modo in ("disable", "false", "off", "0"):
+                if os.environ.get("ENVIRONMENT", "production") == "production":
+                    raise RuntimeError(
+                        "sslmode=disable no se permite en producción: la conexión a la "
+                        "base de datos viajaría en claro. Quita el parámetro o usa "
+                        "sslmode=require."
+                    )
+                modo_efectivo = "disable"
+            elif modo in ("require", "allow", "prefer", "verify-ca"):
+                # Escotilla para un proveedor cuyo certificado no encadene
+                # contra el almacén del sistema. Es una decisión consciente.
+                modo_efectivo = modo
+            else:
+                modo_efectivo = "verify-full"
+
             self._pool = await asyncpg.create_pool(
-                clean_url, ssl=ssl_ctx, min_size=5, max_size=20,
-                timeout=10, command_timeout=30,
+                f"{clean_url}?sslmode={modo_efectivo}",
+                ssl=_ssl.create_default_context() if modo_efectivo.startswith("verify") else None,
+                min_size=5, max_size=20, timeout=10, command_timeout=30,
             )
 
     async def create_all_tables(self):
@@ -1140,12 +1236,36 @@ DEMO_PASSWORD = _demo_pw
 _ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 # Emails with FREE full (comp) access — always treated as premium without paying.
-# Útil mientras no está la facturación/Stripe activa. Ampliable por env FREE_ACCESS_EMAILS
-# (coma-separado); hardcodeamos una cuenta de cortesía por defecto.
-_FREE_ACCESS_EMAILS = (
-    {e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()}
-    | {"tradingcalculatorpro@gmail.com"}
-)
+# Útil mientras no está la facturación/Stripe activa. Sólo por FREE_ACCESS_EMAILS
+# (coma-separado).
+#
+# ⚠️ NO vuelvas a codificar aquí una dirección concreta. Había una
+# (`tradingcalculatorpro@gmail.com`) y era un muro de pago abierto: cualquiera
+# que registrase ese email —nadie lo había hecho— entraba premium con dos
+# peticiones anónimas. Una cortesía se concede sobre un `user_id` ya existente,
+# no sobre una cadena que cualquiera puede reclamar registrándose.
+_FREE_ACCESS_EMAILS = {
+    e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()
+}
+
+
+def normalize_email(email: str | None) -> str:
+    """La forma canónica de un email: sin espacios y en minúsculas.
+
+    Existe porque la autorización de este backend se apoya en la cadena del
+    email —`_ADMIN_EMAILS`, `_FREE_ACCESS_EMAILS`, la atribución de referidos—
+    y los guardias comparaban `user["email"].lower()` mientras el registro
+    guardaba lo que llegase. Con `ADMIN_EMAILS=owner@example.com`, registrar
+    `Owner@Example.com` pasaba el control de duplicados (igualdad exacta), creaba
+    una SEGUNDA cuenta, y esa cuenta pasaba `require_admin` al bajarla a
+    minúsculas. Escalada a administrador con un registro público.
+
+    Regla: todo email que entre por una petición pasa por aquí ANTES de tocar la
+    base de datos, tanto para escribir como para buscar. Si añades una ruta que
+    reciba un email, aplícala; `test_email_normalizado_unit.py` recorre los
+    puntos de entrada y falla si alguno se salta.
+    """
+    return (email or "").strip().lower()
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
@@ -1155,7 +1275,24 @@ SUBSCRIPTION_PLANS = {
     "lifetime":  {"name": "De Por Vida", "price": 500.00, "currency": "EUR", "interval": "lifetime", "days": 36500, "stripe_price_id": "price_1TXM8YImYjMeegYBouBCvmC0", "klarna": True},
 }
 
-app = FastAPI(title="Trading Calculator PRO API")
+# ── Los docs interactivos, sólo fuera de producción ──────────────────────────
+# `FastAPI()` publica `/docs`, `/redoc` y `/openapi.json` sin autenticación. Eso
+# es el índice COMPLETO de la API —incluidas las rutas de admin, con sus
+# parámetros y sus esquemas— servido a cualquiera que lo pida. No da acceso a
+# nada, pero entrega el mapa: qué existe, cómo se llama y qué espera.
+#
+# En desarrollo hacen falta: `tests/e2e/api/autorizacion.py` lee `/openapi.json`
+# para comprobar que una ruta retirada ya no existe (un 404 no distingue
+# «retirada» de «bien protegida»), y el banco corre con `ENVIRONMENT=development`.
+_DOCS_ABIERTOS = os.environ.get("ENVIRONMENT", "production").lower() in (
+    "development", "dev", "local", "test",
+)
+app = FastAPI(
+    title="Trading Calculator PRO API",
+    docs_url="/docs" if _DOCS_ABIERTOS else None,
+    redoc_url="/redoc" if _DOCS_ABIERTOS else None,
+    openapi_url="/openapi.json" if _DOCS_ABIERTOS else None,
+)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -1726,6 +1863,32 @@ DATA_RETENTION_DAYS = int(os.environ.get("DATA_RETENTION_DAYS", "90"))
 # datos, que es exactamente la multa que el RGPD contempla. Con una sola tupla,
 # olvidarse deja de ser posible; `test_user_data_collections_unit.py` fija que
 # ninguna colección con `user_id` se quede fuera.
+# Campos del documento de usuario que SÍ salen en el export del RGPD.
+#
+# Es una lista blanca a propósito. Era una lista negra de una sola clave
+# (`if k not in ("password",)`), así que cada campo nuevo del usuario se
+# exportaba solo, sin que nadie lo decidiera. Así salían por `/auth/my-data`
+# `totp_secret` y `totp_pending_secret`: la semilla del segundo factor, en un
+# JSON que acaba en la carpeta de Descargas. Esa semilla sobrevive al cambio de
+# contraseña y a `_revoke_all_tokens_for_user`, así que quien la copie conserva
+# el segundo factor para siempre. Contradecía además la política escrita en
+# `_USER_DATA_COLLECTIONS`: los artefactos de seguridad no se exportan nunca.
+#
+# Regla: un campo nuevo NO se exporta hasta que alguien lo añada aquí. Si el
+# campo es un secreto, no se añade. `test_export_rgpd_unit.py` lo fija.
+_EXPORTABLE_PROFILE_FIELDS = frozenset({
+    "id", "email", "name", "picture", "created_at",
+    "auth_provider", "email_verified",
+    "subscription_plan", "subscription_end", "is_premium", "premium_lapsed_at",
+    "is_admin",
+    "referral_code", "referred_by_code", "referred_at",
+    "referral_wallet", "referral_wallet_redeemed",
+    "country", "locale", "timezone",
+    # `totp_enabled` sí: saber que tienes 2FA activo es un dato tuyo.
+    # `totp_secret` / `totp_pending_secret` NO: son la credencial, no el dato.
+    "totp_enabled",
+})
+
 _USER_DATA_COLLECTIONS = (
     "trades", "calculations", "alerts", "saved_positions", "portfolio",
     "user_states", "journal_entries", "trading_plans",
@@ -1843,7 +2006,6 @@ async def purge_lapsed_user_data(database, now: Optional[datetime] = None) -> in
 
 # ============= STARTUP - Create Demo User =============
 
-@app.on_event("startup")
 async def startup_event():
     """Initialise asyncpg pool, create tables, seed demo user."""
 
@@ -2372,6 +2534,15 @@ async def verify_magic_link(request: Request, response: Response, body: MagicLin
     user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    # El segundo factor se exigía SÓLO en /auth/login. Quien tuviera TOTP activo
+    # podía saltárselo pidiendo un enlace mágico a su propio correo: un atacante
+    # con acceso al buzón —que es justo contra lo que protege el 2FA— entraba con
+    # sesión completa. Mismo contrato que el login: token pendiente y a verificar.
+    if user.get("totp_enabled"):
+        return {
+            "totp_required": True,
+            "pending_token": _create_2fa_pending_token(user["id"], user["email"]),
+        }
     await db.users.update_one({"id": user["id"]}, {"$set": {
         "last_seen": datetime.now(timezone.utc).isoformat(),
         "login_count": (user.get("login_count") or 0) + 1,
@@ -2556,7 +2727,10 @@ async def change_password(request: Request, body: ChangePasswordRequest, user: d
     if not user_doc or not user_doc.get("password"):
         raise HTTPException(status_code=400, detail="Esta cuenta usa login con Google. Usa la opción de Google para gestionar tu contraseña.")
 
-    if not verify_password(body.current_password, user_doc["password"]):
+    # bcrypt bloquea el event loop entero: era la última llamada síncrona en un
+    # handler async (invariante de CLAUDE.md). El resto ya usaba la versión
+    # asíncrona; ésta se quedó atrás.
+    if not await verify_password_async(body.current_password, user_doc["password"]):
         raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
 
     await db.users.update_one(
@@ -2934,7 +3108,7 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     """RGPD Art. 20 — portabilidad de datos. Devuelve todos los datos del usuario en JSON."""
     import json as _json
     user_id = user["id"]
-    safe_user = {k: v for k, v in user.items() if k not in ("password",)}
+    safe_user = {k: v for k, v in user.items() if k in _EXPORTABLE_PROFILE_FIELDS}
 
     async def collect(collection, query):
         # find() returns a lazy _Cursor; it must be materialised with .to_list().
@@ -3047,7 +3221,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
         logging.warning("Google token validation failed: %s", log_safe(exc))
         raise HTTPException(status_code=401, detail="Token de Google inválido") from exc
 
-    email = (info.get("email") or "").lower()
+    email = normalize_email(info.get("email"))
     if not email or not info.get("email_verified"):
         raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
 
@@ -3121,6 +3295,18 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             # Fuera del `if updates` a propósito: la revocación tiene que
             # ocurrir aunque el `$set` fallara por lo que fuera.
             await _revoke_all_tokens_for_user(user["id"])
+
+    # Igual que en /auth/login y en el enlace mágico: si la cuenta tiene TOTP,
+    # Google prueba QUIÉN eres, no que tengas el segundo factor. Sin esto, una
+    # sesión de Google robada saltaba el 2FA que el usuario activó a propósito.
+    # (Las passkeys sí se saltan el TOTP, y está justificado por escrito en
+    # `passkeys.py`: la passkey ya es un factor de posesión resistente al
+    # phishing. Google no lo es.)
+    if user.get("totp_enabled"):
+        return {
+            "totp_required": True,
+            "pending_token": _create_2fa_pending_token(user["id"], user["email"]),
+        }
 
     token = create_token(user["id"], user["email"])
     refresh_token = create_refresh_token(user["id"], user["email"])
@@ -3751,11 +3937,22 @@ def _simulate_one_mc_path(
     initial: float, num_trades: int, win_rate: float,
     avg_win: float, avg_loss: float, rng: secrets.SystemRandom,
 ) -> Dict[str, Any]:
-    """Simulate one full equity curve and its max drawdown."""
+    """Simulate one full equity curve, its max drawdown, and whether it ruined.
+
+    `arruinada` es lo que le pasa a la CUENTA, no lo que marca el saldo final.
+    El resumen contaba `saldo final <= 0`, así que una trayectoria que tocaba
+    -500 en la operación 20 y terminaba en +2.000 no contaba como ruina — y una
+    cuenta real en cero no sigue operando para recuperarse: la cierra el bróker.
+    Medido sobre 100 operaciones al 45 % de aciertos, eso publicaba 0,88 % donde
+    el riesgo real es 1,19 %.
+
+    La simulación además CORTA al tocar cero, que es lo que ocurre de verdad.
+    """
     balance = initial
     curve = [balance]
     peak = balance
     max_dd = 0.0
+    arruinada = False
     for _ in range(num_trades):
         balance += avg_win if rng.random() < win_rate else avg_loss
         curve.append(balance)
@@ -3764,20 +3961,36 @@ def _simulate_one_mc_path(
         dd = (peak - balance) / peak if peak > 0 else 0
         if dd > max_dd:
             max_dd = dd
-    return {"final": balance, "curve": curve, "max_dd_pct": max_dd * 100}
+        if balance <= 0:
+            arruinada = True
+            break
+    return {"final": balance, "curve": curve, "max_dd_pct": max_dd * 100,
+            "arruinada": arruinada}
 
 
-def _summarize_mc_runs(initial: float, finals: List[float], drawdowns: List[float]) -> Dict[str, Any]:
-    """Compute percentile/risk-of-ruin statistics from a batch of MC final balances."""
+def _summarize_mc_runs(initial: float, finals: List[float], drawdowns: List[float],
+                       ruinas: Optional[List[bool]] = None) -> Dict[str, Any]:
+    """Compute percentile/risk-of-ruin statistics from a batch of MC paths.
+
+    `ruinas` marca, por trayectoria, si el saldo LLEGÓ a tocar cero. Es opcional
+    para no romper llamadas antiguas, pero sin ella el riesgo de ruina se
+    infravalora: ver `_simulate_one_mc_path`.
+    """
     finals_sorted = sorted(finals)
     n = len(finals_sorted)
+    if n == 0:
+        return {}
     return {
         "initialCapital": initial,
         "avgFinalBalance": round(sum(finals_sorted) / n, 2),
         "percentile5": round(finals_sorted[int(n * 0.05)], 2),
         "percentile50": round(finals_sorted[int(n * 0.50)], 2),
         "percentile95": round(finals_sorted[int(n * 0.95)], 2),
-        "riskOfRuin": round(sum(1 for b in finals_sorted if b <= 0) / n * 100, 2),
+        # Cuenta las trayectorias que TOCARON cero en algún momento, no las que
+        # acabaron por debajo. Ver `_simulate_one_mc_path`.
+        "riskOfRuin": round(
+            (sum(1 for r in ruinas if r) if ruinas
+             else sum(1 for b in finals_sorted if b <= 0)) / n * 100, 2),
         "avgMaxDrawdown": round(sum(drawdowns) / len(drawdowns), 2),
         "profitProbability": round(sum(1 for b in finals_sorted if b > initial) / n * 100, 2),
     }
@@ -3794,20 +4007,25 @@ async def run_monte_carlo(request: dict, user: dict = Depends(require_user)) -> 
     avg_loss = request.get("avgLoss", -50)
     initial = request.get("initialCapital", 10000)
     num_trades = min(int(request.get("numTrades", 100)), 1000)
-    num_simulations = min(int(request.get("numSimulations", 1000)), 5000)
+    # `min(..., 5000)` no tenía suelo: con numSimulations=0 el resumen dividía
+    # entre n=0 y la ruta devolvía un 500.
+    num_simulations = max(1, min(int(request.get("numSimulations", 1000)), 5000))
 
     rng = secrets.SystemRandom()
     finals: List[float] = []
     drawdowns: List[float] = []
+    ruinas: List[bool] = []
     curves: List[List[float]] = []
     for _ in range(num_simulations):
         path = _simulate_one_mc_path(initial, num_trades, win_rate, avg_win, avg_loss, rng)
         finals.append(path["final"])
         drawdowns.append(path["max_dd_pct"])
+        ruinas.append(bool(path.get("arruinada")))
         if len(curves) < 100:  # keep first 100 paths for charting
             curves.append(path["curve"])
 
-    return {"simulations": curves[:50], "statistics": _summarize_mc_runs(initial, finals, drawdowns)}
+    return {"simulations": curves[:50],
+            "statistics": _summarize_mc_runs(initial, finals, drawdowns, ruinas)}
 
 # ============= CALCULATIONS =============
 
@@ -4272,14 +4490,29 @@ async def paypal_capture_order(
         await db.payment_transactions.update_one({"id": transaction["id"]}, {"$set": {"status": "pending"}})
         raise HTTPException(status_code=503, detail="PayPal no está configurado")
 
+    # ⚠️ TODA salida de error a partir del claim tiene que devolver la
+    # transacción a `pending`. La rama del 503 de arriba ya lo hacía; el 502 y
+    # el 402 no, y la transacción se quedaba clavada en `capturing`: al
+    # reintentar, el `find_one_and_update` no encontraba nada en `pending` y la
+    # ruta respondía `already_paid` SIN conceder premium. Cobro sin producto —
+    # y encima invisible, porque `paid_not_permium` de la reconciliación busca
+    # `status == "paid"`, no `capturing`.
+    async def _soltar_claim():
+        await db.payment_transactions.update_one(
+            {"id": transaction["id"], "status": "capturing"},
+            {"$set": {"status": "pending"}},
+        )
+
     try:
         capture_result = await _paypal_capture_order(order_id, pp_client_id, pp_client_secret, pp_mode)
     except Exception as _e:
         logging.error(f"[paypal] capture error for {log_safe(order_id)}: {log_safe(_e)}")
+        await _soltar_claim()
         raise HTTPException(status_code=502, detail="Error al capturar pago PayPal. Contacta soporte.")
 
     capture_status = capture_result.get("status")
     if capture_status != "COMPLETED":
+        await _soltar_claim()
         raise HTTPException(
             status_code=402,
             detail=f"Pago no completado (estado: {capture_status}). Inténtalo de nuevo."
@@ -4288,6 +4521,7 @@ async def paypal_capture_order(
     plan_id = transaction["plan_id"]
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
+        await _soltar_claim()
         raise HTTPException(status_code=400, detail="Plan no válido")
 
     # Reuse existing subscription activation (no stripe_session_id — pass empty string)
@@ -4835,7 +5069,7 @@ async def cancel_subscription(
                 "cancel_at": sub.current_period_end
             }
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4881,7 +5115,7 @@ async def resume_subscription(user: dict = Depends(require_user)):
 
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4916,7 +5150,7 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         
         return {"url": session.url}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4960,7 +5194,7 @@ async def get_billing_history(user: dict = Depends(require_user)):
             ]
         }
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except Exception as e:
         logging.error(f"Error fetching billing history: {log_safe(e)}")
         return {"invoices": []}
@@ -5126,8 +5360,7 @@ class OptionLegInput(BaseModel):
     iv: Optional[float] = 0.3
     daysToExpiry: Optional[int] = 30
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
     def get_qty(self):
         return self.quantity or self.qty or 1
@@ -5284,7 +5517,7 @@ async def opt_get_stock(symbol: str):
         data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
         logging.error(f"Error getting stock data for {log_safe(symbol)}: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
     if data.get("price") is None:
         try:
@@ -5788,7 +6021,7 @@ async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
         }
     except Exception as e:
         logging.error(f"Payoff calculation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 class ImpliedVolRequest(BaseModel):
@@ -5858,7 +6091,7 @@ async def opt_calculate_greeks(request: GreeksRequest) -> Dict[str, Any]:
         return calculate_greeks(legs_dicts, request.stockPrice, q=request.dividendYield or 0.0)
     except Exception as e:
         logging.error(f"Greeks calculation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.post("/calculate/pnl-attribution")
@@ -5879,7 +6112,7 @@ async def opt_pnl_attribution(request: PnlAttributionRequest) -> Dict[str, Any]:
         )
     except Exception as e:
         logging.error(f"PnL attribution error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.post("/calculate/assignment")
@@ -5922,7 +6155,7 @@ async def opt_assignment(request: AssignmentRequest) -> Dict[str, Any]:
         return result
     except Exception as e:
         logging.error(f"Assignment simulation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 class AmericanPriceRequest(BaseModel):
@@ -6046,7 +6279,7 @@ async def optimize_options_strategy(req: OptimizeRequest):
         }
     except Exception as e:
         logging.error(f"Optimize error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.get("/options/earnings/{symbol}")
@@ -6561,6 +6794,22 @@ Be direct and quantitative. Do not restate numbers the trader can already see �
 explain what they IMPLY. Maximum 280 words."""
 
 
+
+def _texto_de_respuesta(message) -> str:
+    """El primer bloque de TEXTO de una respuesta de la API de Claude.
+
+    `message.content[0].text` da por hecho que el primer bloque es texto. Hoy lo
+    es, pero deja de serlo en cuanto alguien active el pensamiento adaptativo o
+    una herramienta: el primer bloque pasa a ser de otro tipo y la ruta revienta
+    con AttributeError, en una función de pago. Buscar el bloque por su tipo
+    cuesta lo mismo y no depende del orden.
+    """
+    for bloque in getattr(message, "content", None) or []:
+        if getattr(bloque, "type", None) == "text" or hasattr(bloque, "text"):
+            return getattr(bloque, "text", "") or ""
+    return ""
+
+
 @api_router.post("/options/ai-analyze")
 @limiter.limit("10/minute")
 async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: dict = Depends(require_user)) -> Dict[str, Any]:
@@ -6594,18 +6843,27 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
             logging.warning(f"AI coach: could not load trader context: {log_safe(ctx_err)}")
 
         prompt = _build_ai_trade_prompt(req, analytics)
-        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
+        # ID sin sufijo de fecha: los identificadores actuales están completos
+        # tal cual y `claude-sonnet-4-5-20250929` apuntaba a una instantánea
+        # concreta de un modelo que ya no es el vigente de su gama. Cuando esa
+        # instantánea se retire, el AI Coach —que es una función de PAGO— deja
+        # de responder. `AI_COACH_MODEL` sigue permitiendo cambiarlo sin
+        # desplegar; lo que no se puede cambiar por variable de entorno es el
+        # texto de la web, así que la versión ya no se anuncia en la copy.
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-5")
         message = await _asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.messages.create(
                 model=model,
-                max_tokens=1024,
+                # 1024 truncaba el análisis a mitad de frase justo en las
+                # estructuras con más patas, que son las que más texto piden.
+                max_tokens=4096,
                 system=AI_COACH_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
             ),
         )
         return {
-            "analysis": message.content[0].text,
+            "analysis": _texto_de_respuesta(message),
             "model": model,
             "usedTraderContext": bool(analytics and analytics.get("closed_trades")),
             # Shown at the point of use, not just in the footer.
@@ -6616,7 +6874,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         }
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="El análisis de IA no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.")
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -6628,7 +6886,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         raise
     except Exception as e:
         logging.error(f"AI analyze error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="El análisis de IA no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.")
 
 
 # ─── Asistente de la Academia ─────────────────────────────────────
@@ -6710,7 +6968,14 @@ async def education_assistant(
             f"Pregunta del usuario:\n{req.question.strip()[:500]}\n\n"
             f"Módulos disponibles (los únicos que existen):\n{listing}"
         )
-        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
+        # ID sin sufijo de fecha: los identificadores actuales están completos
+        # tal cual y `claude-sonnet-4-5-20250929` apuntaba a una instantánea
+        # concreta de un modelo que ya no es el vigente de su gama. Cuando esa
+        # instantánea se retire, el AI Coach —que es una función de PAGO— deja
+        # de responder. `AI_COACH_MODEL` sigue permitiendo cambiarlo sin
+        # desplegar; lo que no se puede cambiar por variable de entorno es el
+        # texto de la web, así que la versión ya no se anuncia en la copy.
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-5")
         message = await _asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.messages.create(
@@ -6720,7 +6985,7 @@ async def education_assistant(
                 messages=[{"role": "user", "content": prompt}],
             ),
         )
-        answer = (message.content[0].text or "").strip()
+        answer = _texto_de_respuesta(message).strip()
 
         # El modelo no puede mandar a donde no hay: si cita un identificador que
         # no estaba entre los candidatos, la respuesta se tira entera. Es
@@ -8195,7 +8460,7 @@ async def admin_update_user(request: Request, user_id: str, payload: AdminUserUp
         updates["name"] = payload.name
 
     if payload.email is not None:
-        new_email = payload.email.lower()
+        new_email = normalize_email(payload.email)
         if new_email != user["email"]:
             # Sin `$ieq`, cambiar un correo a otra caja pasa el control de
             # choque y crea un duplicado. Ver BUG-070.
@@ -8838,7 +9103,7 @@ async def admin_refund_subscription(request: Request, user_id: str, admin: dict 
         )
         return {"status": "refunded", "refund_id": refund.id}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=f"Error de Stripe: {e}")
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
 
 
 # ── REVENUE ANALYTICS ────────────────────────────────────────────────────────
@@ -9578,6 +9843,10 @@ try:
         "require_user": require_user,
         "require_admin": require_admin,
         "limiter": limiter,
+        # La IP del referido se guardaba con el PRIMER salto de x-forwarded-for,
+        # que es justo el trozo que puede escribir el cliente. `_real_client_ip`
+        # cuenta desde la derecha con TRUSTED_PROXY_HOPS y no es falsificable.
+        "real_client_ip": _real_client_ip,
     })
     register_affiliate_program(api_router, db, {
         "require_user": require_user,
@@ -9593,6 +9862,10 @@ try:
         # El poller necesita poder mandar correo: sin esto, una alerta con canal
         # de correo pedido se dispararía y no saldría de la pestaña.
         "send_email": _send_email,
+        # El apretón de manos de un WebSocket NO pasa por el middleware de
+        # CORS, así que el endpoint tiene que comprobar `Origin` por su cuenta
+        # antes de aceptar la cookie como credencial.
+        "cors_origins": _CORS_ORIGINS,
     })
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:
@@ -9694,7 +9967,6 @@ else:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
 
-@app.on_event("shutdown")
 async def shutdown_db_client():
     try:
         from realtime_alerts import stop_poller
@@ -9702,3 +9974,60 @@ async def shutdown_db_client():
     except Exception:
         pass
     await db.close()
+
+
+# ============================================================
+#  Ciclo de vida (sustituye a @app.on_event, retirado en FastAPI)
+# ============================================================
+#
+# `startup_event` y `shutdown_db_client` se definen MUCHO después de crear
+# `app`, así que no se pueden pasar como `lifespan=` en el constructor sin
+# reordenar medio fichero — y reordenar el arranque es justo lo que no conviene
+# tocar a ciegas. Engancharlo aquí conserva el orden y el comportamiento
+# exactos, y quita las dos deprecaciones (G-19).
+@asynccontextmanager
+async def _ciclo_de_vida(_app):
+    await startup_event()
+    tarea_purga = asyncio.create_task(_purga_periodica())
+    try:
+        yield
+    finally:
+        tarea_purga.cancel()
+        try:
+            await tarea_purga
+        except (asyncio.CancelledError, Exception):  # noqa: B014
+            pass
+        await shutdown_db_client()
+
+
+app.router.lifespan_context = _ciclo_de_vida
+
+
+# ── La purga por retención necesita repetirse, no sólo arrancar ──────────────
+#
+# `purge_lapsed_user_data` sólo corría en el arranque. Con `min-instances=1`, un
+# contenedor que no se reinicie en semanas NO PURGA NADA: la política de
+# conservar los datos DATA_RETENTION_DAYS y borrarlos después queda escrita y sin
+# cumplir, que en materia de RGPD es peor que no tenerla — es una promesa
+# incumplida por escrito.
+#
+# Un bucle dentro del proceso no es tan sólido como un Cloud Scheduler, pero no
+# depende de configurar nada fuera del repositorio y convierte «nunca» en «cada
+# día». Si algún día hay planificador, esto se quita.
+PURGA_CADA_SEGUNDOS = int(os.environ.get("PURGE_INTERVAL_SECONDS", 24 * 3600))
+
+
+async def _purga_periodica():
+    """Repite la purga por retención mientras el proceso viva."""
+    while True:
+        try:
+            await asyncio.sleep(PURGA_CADA_SEGUNDOS)
+            purgados = await purge_lapsed_user_data(db)
+            if purgados:
+                logging.info(
+                    "[retención] purgados los datos de %d usuario(s) sin pago > %d días",
+                    log_safe(purgados), log_safe(DATA_RETENTION_DAYS))
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001 — un fallo no puede matar el bucle
+            logging.warning("[retención] la purga periódica falló: %s", log_safe(e))

@@ -54,6 +54,42 @@ const overflow = (page) => page.evaluate(() => ({
     if (r.url().includes('/performance/analytics')) calls.push(r.url().split('/api')[1]);
   });
 
+  // Y las RESPUESTAS, porque lo que esta sonda quiere demostrar es que la
+  // pantalla enseña lo que el backend calculó — no que el diario de prueba
+  // sume una cifra concreta.
+  //
+  // ⚠️ Antes iban tres números escritos a fuego (3.471, 1.496, 544,8) tomados
+  // de una siembra de trece operaciones. Sembrar dos veces —que es lo que pasa
+  // en cuanto alguien repite la tanda— deja veintidós, los totales cambian y
+  // seis comprobaciones se ponen rojas acusando al producto de algo que hace el
+  // banco de pruebas. La propia skill lo dice: «compara por contenido, no por
+  // número de filas». Esto lo cumple.
+  const respuestas = new Map();
+  page.on('response', async (r) => {
+    if (!r.url().includes('/performance/analytics')) return;
+    try {
+      const d = await r.json();
+      // El total viene ANIDADO en `analytics`, no en la raíz de la respuesta.
+      const total = d && d.analytics ? d.analytics.total_pnl : undefined;
+      const clave = (r.url().match(/product=([a-z_]+)/) || [null, 'all'])[1];
+      if (typeof total === 'number') respuestas.set(clave, total);
+    } catch { /* una respuesta no-JSON no es un fallo de esta sonda */ }
+  });
+
+  // El total tal y como lo escribe la pantalla en es-ES: +$4.061,72 → "4061.72".
+  const comoEnPantalla = (n) => Math.abs(n).toFixed(2);
+  const contiene = (texto, n) => {
+    const v = comoEnPantalla(n);
+    const sinEspacios = texto.replace(/\s/g, '');
+    const entero = v.split('.')[0];
+    const dec = v.split('.')[1];
+    // Acepta separador de miles, coma o punto decimal, y que la pantalla
+    // recorte el cero final (544,8 en vez de 544,80).
+    const miles = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '[.,]?');
+    const decimales = dec.endsWith('0') ? `[.,]${dec[0]}0?` : `[.,]${dec}`;
+    return new RegExp(miles + decimales).test(sinEspacios);
+  };
+
   console.log(`\n=== ${MODE.toUpperCase()} ${VIEWPORT.width}x${VIEWPORT.height} — alcance de la analítica ===\n`);
 
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle', timeout: 60000 });
@@ -102,8 +138,10 @@ const overflow = (page) => page.evaluate(() => ({
     return (body.match(/[-+]?\$[\d,]+\.\d{2}/) || ['?'])[0];
   };
   const all = await page.locator('[data-testid="analytics-dashboard"]').innerText();
-  ok('sin filtro, el P&L es el del conjunto', /3,471|3471/.test(all.replace(/\s/g, '')),
-    (all.match(/[-+]?\$?3[,.]?471[.,]\d{2}/) || ['?'])[0]);
+  const totalConjunto = respuestas.get('all');
+  ok('sin filtro, el P&L es el que devolvió el backend',
+    totalConjunto !== undefined && contiene(all, totalConjunto),
+    totalConjunto === undefined ? 'el backend no respondió' : `backend ${comoEnPantalla(totalConjunto)}`);
 
   // ── 4 · Filtrar por futuros recalcula EN EL BACKEND ────────────
   const before = calls.length;
@@ -114,8 +152,11 @@ const overflow = (page) => page.evaluate(() => ({
   ok('la llamada lleva el producto en la query',
     /product=futures/.test(calls[calls.length - 1] || ''));
   const fut = await page.locator('[data-testid="analytics-dashboard"]').innerText();
-  ok('las cifras cambian a las de futuros', /1,496|1496/.test(fut.replace(/\s/g, '')),
-    (fut.match(/[-+]?\$?1[,.]?496[.,]\d{2}/) || ['?'])[0]);
+  const totalFuturos = respuestas.get('futures');
+  ok('las cifras cambian a las que devolvió el backend para futuros',
+    totalFuturos !== undefined && contiene(fut, totalFuturos)
+      && totalFuturos !== totalConjunto,
+    totalFuturos === undefined ? 'sin respuesta' : `backend ${comoEnPantalla(totalFuturos)}`);
   ok('el aviso de cuentas desaparece al filtrar',
     !(await page.locator('[data-testid="analytics-mixed-accounts"]').isVisible().catch(() => false)));
   await page.locator('[data-testid="analytics-product-filter"]').scrollIntoViewIfNeeded().catch(() => {});
@@ -125,8 +166,10 @@ const overflow = (page) => page.evaluate(() => ({
   await page.locator('[data-testid="analytics-product-option"]').click();
   await page.waitForTimeout(3000);
   const opt = await page.locator('[data-testid="analytics-dashboard"]').innerText();
-  ok('las opciones se leen con la misma regla', /\+\$544\.8/.test(opt.replace(/\s/g, '')),
-    (opt.match(/[-+]?\$?544[.,]\d{1,2}/) || ['?'])[0]);
+  const totalOpciones = respuestas.get('option');
+  ok('las opciones se leen con la misma regla',
+    totalOpciones !== undefined && contiene(opt, totalOpciones),
+    totalOpciones === undefined ? 'sin respuesta' : `backend ${comoEnPantalla(totalOpciones)}`);
   ok('la llamada de opciones también viaja al backend',
     /product=option/.test(calls[calls.length - 1] || ''));
   await page.locator('[data-testid="analytics-product-filter"]').scrollIntoViewIfNeeded().catch(() => {});
@@ -136,7 +179,8 @@ const overflow = (page) => page.evaluate(() => ({
   await page.locator('[data-testid="analytics-product-all"]').click();
   await page.waitForTimeout(3000);
   ok('volver a «Todo» devuelve el conjunto',
-    /3,471|3471/.test((await page.locator('[data-testid="analytics-dashboard"]').innerText()).replace(/\s/g, '')));
+    totalConjunto !== undefined
+      && contiene(await page.locator('[data-testid="analytics-dashboard"]').innerText(), totalConjunto));
   ok('y el aviso de cuentas vuelve a salir',
     await page.locator('[data-testid="analytics-mixed-accounts"]').isVisible().catch(() => false));
   await shot(page, 'vuelta-a-todo');

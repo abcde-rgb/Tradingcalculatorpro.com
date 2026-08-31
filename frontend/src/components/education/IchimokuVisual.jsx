@@ -54,7 +54,7 @@ export default function IchimokuVisual() {
     <Card className="border-red-500/30 bg-gradient-to-br from-red-500/5 to-orange-500/10">
       <CardContent className="pt-6 space-y-4">
         <h3 className="font-semibold flex items-center gap-2">
-          <CandlestickChart className="w-5 h-5 text-red-500" /> {t('ichiVisTitle')}
+          <CandlestickChart className="w-5 h-5 text-short" /> {t('ichiVisTitle')}
         </h3>
 
         <svg viewBox="0 0 460 240" className="w-full h-auto rounded-lg bg-muted/20" role="img" aria-label={t('ichiVisTitle')}>
@@ -83,13 +83,13 @@ export default function IchimokuVisual() {
         {/* when bullish / when bearish */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-4">
-            <div className="flex items-center gap-2 mb-1.5 font-semibold text-sm text-green-600 dark:text-green-400">
+            <div className="flex items-center gap-2 mb-1.5 font-semibold text-sm text-long dark:text-long">
               <TrendingUp className="w-4 h-4" /> {t('ichiVisBullTitle')}
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{t('ichiVisBullBody')}</p>
           </div>
           <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-            <div className="flex items-center gap-2 mb-1.5 font-semibold text-sm text-red-600 dark:text-red-400">
+            <div className="flex items-center gap-2 mb-1.5 font-semibold text-sm text-short dark:text-short">
               <TrendingDown className="w-4 h-4" /> {t('ichiVisBearTitle')}
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{t('ichiVisBearBody')}</p>
@@ -97,7 +97,7 @@ export default function IchimokuVisual() {
         </div>
 
         <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-          <span className="text-amber-500 font-bold">!</span>
+          <span className="text-warn font-bold">!</span>
           <p className="text-xs text-muted-foreground leading-relaxed">{t('ichiVisNeutral')}</p>
         </div>
 

@@ -459,7 +459,7 @@ export default function LandingPage() {
             >
               <div className="aspect-video rounded-xl bg-card border border-border overflow-hidden shadow-2xl">
                 <div className="w-full h-full bg-secondary/40 flex items-center justify-center">
-                  <CandlestickChart className="w-24 h-24 text-primary/50" />
+                  <CandlestickChart className="w-24 h-24 text-primary" />
                 </div>
               </div>
             </motion.div>
@@ -649,7 +649,7 @@ export default function LandingPage() {
               >
                 <div className="flex gap-1 mb-3">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={`star-${testimonial.authorKey}-${i}`} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                    <Star key={`star-${testimonial.authorKey}-${i}`} className="w-4 h-4 fill-yellow-500 text-caution" />
                   ))}
                 </div>
                 <p className="text-sm leading-relaxed text-foreground/90 mb-4 flex-1">

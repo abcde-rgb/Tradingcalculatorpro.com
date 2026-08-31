@@ -125,7 +125,17 @@ export default function TablaComparativa({ filas }) {
 
       {/* Scroll propio: una tabla de nueve columnas no cabe en un móvil, y el
           `overflow-x` del documento está a `clip` por regla del proyecto. */}
-      <div className="overflow-x-auto rounded-lg border border-border">
+      {/* `tabIndex={0}` + `role="region"` + nombre: sin ellos, quien navega con
+          teclado no puede desplazar la tabla en horizontal y las columnas de la
+          derecha quedan fuera de su alcance. Es la regla
+          `scrollable-region-focusable` de axe, y no es teórica: en móvil la
+          tabla desborda siempre. */}
+      <div
+        className="overflow-x-auto rounded-lg border border-border"
+        tabIndex={0}
+        role="region"
+        aria-label={t('tablaDesplazable')}
+      >
         <table className="w-full text-sm border-collapse min-w-[46rem]">
           <caption className="sr-only">{t('brokerComparativaTitulo')}</caption>
           <thead>

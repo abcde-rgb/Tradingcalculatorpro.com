@@ -28,12 +28,12 @@ const PatternFilterBar = ({
 
   const FILTER_OPTIONS = [
     { id: 'all',     label: t('patternFilterAll'),     color: 'text-foreground' },
-    { id: 'bullish', label: t('patternFilterBullish'), color: 'text-[#22c55e]', icon: TrendingUp },
-    { id: 'bearish', label: t('patternFilterBearish'), color: 'text-[#ef4444]', icon: TrendingDown },
+    { id: 'bullish', label: t('patternFilterBullish'), color: 'text-long', icon: TrendingUp },
+    { id: 'bearish', label: t('patternFilterBearish'), color: 'text-short', icon: TrendingDown },
     {
       id: 'neutral',
       label: t('patternFilterNeutral'),
-      color: 'text-[#eab308]',
+      color: 'text-caution',
       icon: neutralIcon ? AlertTriangle : undefined,
     },
   ];

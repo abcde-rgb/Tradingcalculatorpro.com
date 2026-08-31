@@ -136,7 +136,7 @@ export default function NewsPage() {
                                 {t('newsSampleHeadline', { cat: t(meta.key) })}
                               </h2>
                               <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
-                                <span className="font-medium text-foreground/80">{r.src}</span>
+                                <span className="font-medium text-foreground">{r.src}</span>
                                 <span aria-hidden="true">·</span>
                                 <span className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" /> {rel(r.mins)}

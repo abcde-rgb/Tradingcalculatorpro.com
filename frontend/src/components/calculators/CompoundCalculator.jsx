@@ -176,7 +176,7 @@ export const CompoundCalculator = () => {
           </div>
           <div className="p-4 rounded-xl bg-muted/50 border border-border">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{t('cmpProfit')}</p>
-            <p className={`font-mono text-2xl font-bold ${profit >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+            <p className={`font-mono text-2xl font-bold ${profit >= 0 ? 'text-long' : 'text-short'}`}>
               {formatCurrency(profit)}
             </p>
           </div>
@@ -220,7 +220,7 @@ export const CompoundCalculator = () => {
         )}
 
         <p className="text-[11px] text-muted-foreground leading-relaxed flex items-start gap-1.5">
-          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-yellow-500" />
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-caution" />
           {t('cmpNote')}
         </p>
       </CardContent>

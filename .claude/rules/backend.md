@@ -23,8 +23,15 @@ Los datos van como JSONB. La clase `Collection` traduce `$set`, `$inc`, `$push`,
 `$in`, `$regex`… a SQL paramétrico. Las tablas se crean al inicio con
 `CREATE TABLE IF NOT EXISTS {name} (_key TEXT PRIMARY KEY, data JSONB NOT NULL)`.
 
-⚠️ **El shim no tiene tests** (hueco G-17). Es la capa de la que depende todo el backend
-y lo que bloquea partir `server.py`. Si tocas `Collection`, ve con cuidado extremo.
+✅ **El shim YA tiene tests** (G-17, cerrado el 2026-08-27):
+`backend/tests/test_shim_collection_unit.py`, 44 pruebas contra PostgreSQL de verdad
+—no un doble: lo que puede fallar aquí es la traducción a SQL, y un doble no traduce—.
+Cubren los operadores de consulta y de escritura, el reclamo atómico, la agregación,
+`distinct`, y el TLS de `init_pool`. Corren en CI con un servicio `postgres:16`.
+
+Encontraron dos fallos al escribirlas: un `$regex` con un paréntesis suelto tumbaba la
+consulta entera (500), y `init_pool` **cifraba sin autenticar** pese a decir «SSL
+verificado». Si tocas `Collection`, ya hay red — pero sigue yendo con cuidado.
 
 ## El `$unset` corre DESPUÉS del `$set`
 

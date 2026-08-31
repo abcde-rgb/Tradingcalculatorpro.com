@@ -13,10 +13,10 @@ import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
 
 const SEVERITY_BG = {
-  critical: 'border-[#ef4444]/40 bg-[#ef4444]/5',
-  warning:  'border-[#f59e0b]/40 bg-[#f59e0b]/5',
-  good:     'border-[#22c55e]/40 bg-[#22c55e]/5',
-  info:     'border-[#3b82f6]/40 bg-[#3b82f6]/5',
+  critical: 'border-short/40 bg-short/5',
+  warning:  'border-warn/40 bg-warn/5',
+  good:     'border-long/40 bg-long/5',
+  info:     'border-info/40 bg-info/5',
 };
 const SEVERITY_ICON = {
   critical: AlertTriangle,
@@ -25,16 +25,16 @@ const SEVERITY_ICON = {
   info:     Activity,
 };
 const SEVERITY_COLOR = {
-  critical: 'text-[#ef4444]',
-  warning:  'text-[#f59e0b]',
-  good:     'text-[#22c55e]',
-  info:     'text-[#3b82f6]',
+  critical: 'text-short',
+  warning:  'text-warn',
+  good:     'text-long',
+  info:     'text-info',
 };
 // Behavioral-bias severities (critical / high / medium)
 const BIAS_STYLE = {
-  critical: { bg: 'border-[#ef4444]/40 bg-[#ef4444]/5', col: 'text-[#ef4444]' },
-  high:     { bg: 'border-[#f59e0b]/40 bg-[#f59e0b]/5', col: 'text-[#f59e0b]' },
-  medium:   { bg: 'border-[#3b82f6]/40 bg-[#3b82f6]/5', col: 'text-[#3b82f6]' },
+  critical: { bg: 'border-short/40 bg-short/5', col: 'text-short' },
+  high:     { bg: 'border-warn/40 bg-warn/5', col: 'text-warn' },
+  medium:   { bg: 'border-info/40 bg-info/5', col: 'text-info' },
 };
 
 const KpiCard = ({ icon: Ic, label, value, subValue, color = 'text-foreground', testId }) => (
@@ -152,13 +152,13 @@ const Bar = ({ label, n, total, pnl, onClick }) => {
         <span className="font-semibold">{label}</span>
         <span className="text-muted-foreground">
           {n} ({pct.toFixed(0)}%)
-          <span className={`ml-2 font-mono ${pnlPositive ? 'text-[#22c55e]' : pnl < 0 ? 'text-[#ef4444]' : ''}`}>
+          <span className={`ml-2 font-mono ${pnlPositive ? 'text-long' : pnl < 0 ? 'text-short' : ''}`}>
             {pnl > 0 ? '+' : ''}${pnl?.toFixed(0)}
           </span>
         </span>
       </div>
       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full ${pnlPositive ? 'bg-[#22c55e]' : pnl < 0 ? 'bg-[#ef4444]' : 'bg-primary'}`}
+        <div className={`h-full ${pnlPositive ? 'bg-long' : pnl < 0 ? 'bg-short' : 'bg-primary'}`}
              style={{ width: `${barPct}%` }} />
       </div>
     </div>
@@ -305,10 +305,10 @@ const PnLCalendar = ({ data }) => {
           const pnl = c.info?.pnl;
           const has = pnl != null;
           const bg = !has ? 'bg-muted/15'
-            : pnl > 0 ? 'bg-[#22c55e]/15 border-[#22c55e]/30'
-            : pnl < 0 ? 'bg-[#ef4444]/15 border-[#ef4444]/30'
+            : pnl > 0 ? 'bg-long/15 border-long/30'
+            : pnl < 0 ? 'bg-short/15 border-short/30'
             : 'bg-muted/30';
-          const col = pnl > 0 ? 'text-[#22c55e]' : pnl < 0 ? 'text-[#ef4444]' : 'text-muted-foreground';
+          const col = pnl > 0 ? 'text-long' : pnl < 0 ? 'text-short' : 'text-muted-foreground';
           const pct = c.info?.pct;
           return (
             <div key={`d${c.day}`}
@@ -334,7 +334,7 @@ const PnLCalendar = ({ data }) => {
         <span className="text-muted-foreground">
           {tradingDays} {t('tradingDays')} · {monthWins}/{monthOps} ✓ ({monthOps ? Math.round((monthWins / monthOps) * 100) : 0}%)
         </span>
-        <span className={`font-bold font-mono ${monthPnl > 0 ? 'text-[#22c55e]' : monthPnl < 0 ? 'text-[#ef4444]' : ''}`}>
+        <span className={`font-bold font-mono ${monthPnl > 0 ? 'text-long' : monthPnl < 0 ? 'text-short' : ''}`}>
           {monthPnl > 0 ? '+' : ''}${monthPnl.toFixed(2)} ({monthPct > 0 ? '+' : ''}{monthPct.toFixed(1)}%)
         </span>
       </div>
@@ -431,11 +431,11 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
 
       {desajusteFiltro && (
         <div
-          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2.5"
+          className="flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/5 px-3 py-2.5"
           data-testid="analytics-filter-mismatch"
         >
-          <AlertTriangle className="w-4 h-4 text-[#fbbf24] shrink-0 mt-0.5" />
-          <div className="text-[11px] text-[#fbbf24] leading-relaxed">
+          <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
+          <div className="text-[11px] text-warn leading-relaxed">
             {t('analyticsFilterMismatch')}
           </div>
         </div>
@@ -450,7 +450,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
               type="button"
               onClick={onGoToJournal}
               data-testid="analytics-empty-cta"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] text-white text-sm font-semibold transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-long hover:bg-long text-white text-sm font-semibold transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
               {t('addFirstTrade')}
@@ -461,7 +461,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
     );
   }
 
-  const pnlColor = a.total_pnl > 0 ? 'text-[#22c55e]' : a.total_pnl < 0 ? 'text-[#ef4444]' : 'text-foreground';
+  const pnlColor = a.total_pnl > 0 ? 'text-long' : a.total_pnl < 0 ? 'text-short' : 'text-foreground';
   const periodRows = (a.returns_by_period?.[periodKey]) || [];
   // Escala común a todas las barras del bloque, para que se comparen entre sí.
   const periodMax = Math.max(1, ...periodRows.map((r) => Math.abs(r.pct)));
@@ -479,18 +479,18 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
           Se dice y se ofrece el filtro, en vez de dibujar la curva callando. */}
       {mixed.suspected && product === null && (
         <div
-          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2.5"
+          className="flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/5 px-3 py-2.5"
           data-testid="analytics-mixed-accounts"
         >
-          <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
-          <div className="text-[11px] text-[#f59e0b] leading-relaxed">
+          <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
+          <div className="text-[11px] text-warn leading-relaxed">
             <div className="font-semibold">{t('analyticsMixedAccounts')}</div>
-            <div className="mt-0.5 text-[#f59e0b]/85">
+            <div className="mt-0.5 text-warn">
               {Object.entries(mixed.balance_by_product || {})
                 .map(([p, b]) => `${t(productLabelKey(p))}: $${Number(b).toLocaleString('en-US')}`)
                 .join(' · ')}
             </div>
-            <div className="mt-1 text-[#f59e0b]/85">{t('analyticsMixedAccountsFix')}</div>
+            <div className="mt-1 text-warn">{t('analyticsMixedAccountsFix')}</div>
           </div>
         </div>
       )}
@@ -527,14 +527,14 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
               <div key={row.period} className="flex items-center gap-3 text-xs">
                 <span className="font-mono text-muted-foreground w-20 shrink-0">{row.period}</span>
                 <span className={`font-mono font-bold w-16 shrink-0 ${
-                  row.pct > 0 ? 'text-[#22c55e]' : row.pct < 0 ? 'text-[#ef4444]' : 'text-muted-foreground'
+                  row.pct > 0 ? 'text-long' : row.pct < 0 ? 'text-short' : 'text-muted-foreground'
                 }`}
                 >
                   {row.pct > 0 ? '+' : ''}{row.pct}%
                 </span>
                 <span className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                   <span
-                    className={`block h-full ${row.pct >= 0 ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}
+                    className={`block h-full ${row.pct >= 0 ? 'bg-long' : 'bg-short'}`}
                     style={{ width: `${Math.min(100, (Math.abs(row.pct) / periodMax) * 100)}%` }}
                   />
                 </span>
@@ -560,18 +560,24 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
         <KpiCard icon={Activity} label={t('kpiProfitFactor')}
           value={a.profit_factor != null ? a.profit_factor : '∞'}
           subValue={a.profit_factor >= 1.5 ? t('pfExcellent') : a.profit_factor >= 1.0 ? t('pfOk') : t('pfLosing')}
-          color={a.profit_factor >= 1.5 ? 'text-[#22c55e]' : a.profit_factor >= 1.0 ? 'text-[#f59e0b]' : 'text-[#ef4444]'}
+          color={a.profit_factor >= 1.5 ? 'text-long' : a.profit_factor >= 1.0 ? 'text-warn' : 'text-short'}
           testId="kpi-pf" />
         <KpiCard icon={Target} label={t('kpiExpectancy')}
           value={`$${a.expectancy}`}
           subValue={a.expectancy > 0 ? t('kpiPositiveEdge') : t('kpiNegativeEdge')}
-          color={a.expectancy > 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}
+          color={a.expectancy > 0 ? 'text-long' : 'text-short'}
           testId="kpi-exp" />
+        {/* `avg_r` y el Sharpe son `None` cuando no hay muestra con la que
+            calcularlos —una R sin stop es indefinida, no cero— desde que se
+            aplicó la regla de honestidad en el backend. Interpolarlos a pelo
+            pintaba «nullR» y «Sharpe: null» en pantalla. `fmtNum` es la
+            convención del propio fichero: lo indefinido es una raya. */}
         <KpiCard icon={Layers} label={t('kpiAvgR')}
-          value={`${a.avg_r > 0 ? '+' : ''}${a.avg_r}R`}
-          subValue={a.annualized ? t('kpiSharpeShort', { val: a.sharpe_ratio })
-            : t('kpiSharpePerTrade', { val: a.sharpe_per_trade ?? a.sharpe_ratio })}
-          color={a.avg_r > 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}
+          value={a.avg_r == null ? '—' : `${a.avg_r > 0 ? '+' : ''}${a.avg_r}R`}
+          subValue={a.annualized ? t('kpiSharpeShort', { val: fmtNum(a.sharpe_ratio) })
+            : t('kpiSharpePerTrade', { val: fmtNum(a.sharpe_per_trade ?? a.sharpe_ratio) })}
+          color={a.avg_r == null ? 'text-muted-foreground'
+            : a.avg_r > 0 ? 'text-long' : 'text-short'}
           testId="kpi-r" />
         <KpiCard icon={TrendingUp} label={t('kpiTotalPnL')}
           value={`${a.total_pnl > 0 ? '+' : ''}$${a.total_pnl}`}
@@ -581,12 +587,12 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
         <KpiCard icon={TrendingDown} label={t('kpiMaxDD')}
           value={`-$${a.max_drawdown_dollars}`}
           subValue={`${a.max_drawdown_pct}%`}
-          color="text-[#ef4444]"
+          color="text-short"
           testId="kpi-dd" />
         <KpiCard icon={CheckCircle2} label={t('kpiCompliance')}
           value={`${a.rule_compliance_rate}%`}
           subValue={`${a.errors_total} ${t('kpiErrorsDetected')}`}
-          color={a.rule_compliance_rate >= 90 ? 'text-[#22c55e]' : a.rule_compliance_rate >= 70 ? 'text-[#f59e0b]' : 'text-[#ef4444]'}
+          color={a.rule_compliance_rate >= 90 ? 'text-long' : a.rule_compliance_rate >= 70 ? 'text-warn' : 'text-short'}
           testId="kpi-compliance" />
         <KpiCard icon={Activity} label={t('kpiStreaks')}
           value={`+${a.max_consecutive_wins} / -${a.max_consecutive_losses}`}
@@ -600,11 +606,11 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
           <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
             <BarChart3 className="w-4 h-4" /> {t('advMetricsTitle')}
           </h3>
-          <p className="text-[11px] text-muted-foreground/70 mb-4">{t('advMetricsHint')}</p>
+          <p className="text-[11px] text-muted-foreground mb-4">{t('advMetricsHint')}</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <AdvTile label={t('advSqn')} value={fmtNum(a.advanced.sqn)}
               hint={t('advSqnHint')}
-              color={a.advanced.sqn == null ? 'text-muted-foreground' : a.advanced.sqn >= 2.5 ? 'text-[#22c55e]' : a.advanced.sqn >= 1.6 ? 'text-[#f59e0b]' : 'text-[#ef4444]'}
+              color={a.advanced.sqn == null ? 'text-muted-foreground' : a.advanced.sqn >= 2.5 ? 'text-long' : a.advanced.sqn >= 1.6 ? 'text-warn' : 'text-short'}
               testId="adv-sqn" />
             <AdvTile label={t('advCalmar')} value={fmtNum(a.advanced.calmar_ratio)}
               color={a.advanced.calmar_ratio == null ? 'text-muted-foreground' : 'text-foreground'}
@@ -614,10 +620,10 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
             <AdvTile label={t('advZScore')} value={fmtNum(a.advanced.streak_zscore)}
               hint={t('advZScoreHint')} testId="adv-zscore" />
             <AdvTile label={t('advVar')} value={fmtMoney(a.advanced.var_95)}
-              hint={t('advVarHint')} color={a.advanced.var_95 == null ? 'text-muted-foreground' : 'text-[#ef4444]'}
+              hint={t('advVarHint')} color={a.advanced.var_95 == null ? 'text-muted-foreground' : 'text-short'}
               testId="adv-var" />
             <AdvTile label={t('advCvar')} value={fmtMoney(a.advanced.cvar_95)}
-              hint={t('advCvarHint')} color={a.advanced.cvar_95 == null ? 'text-muted-foreground' : 'text-[#ef4444]'}
+              hint={t('advCvarHint')} color={a.advanced.cvar_95 == null ? 'text-muted-foreground' : 'text-short'}
               testId="adv-cvar" />
             {/* Forma de la distribución de R. Son las tres que delatan la cola
                 izquierda —muchos aciertos pequeños, pérdidas raras y enormes—
@@ -751,7 +757,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
                 </div>
               )}
               {a.leverage_usage.over_exposure_trades > 0 && (
-                <div className="text-[#ef4444] font-semibold">
+                <div className="text-short font-semibold">
                   {t('levUsageOverCap')
                     .replace('{n}', String(a.leverage_usage.over_exposure_trades))
                     .replace('{cap}', String(a.leverage_usage.max_exposure_multiple))}
@@ -813,7 +819,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
               <p className="text-[11px] text-muted-foreground mb-1">{t('excCapture')}</p>
               <p className={`text-lg font-bold ${
                 a.excursion.capture_ratio != null && a.excursion.capture_ratio < 0.4
-                  ? 'text-[#f59e0b]' : ''
+                  ? 'text-warn' : ''
               }`}>
                 {a.excursion.capture_ratio != null
                   ? `${Math.round(a.excursion.capture_ratio * 100)}%`
@@ -861,7 +867,7 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
           {t('rDistribution')}
         </h3>
         {a.trades_without_r > 0 && (
-          <p className="text-xs text-amber-500 mb-3" data-testid="r-partial-sample">
+          <p className="text-xs text-warn mb-3" data-testid="r-partial-sample">
             {t('rSamplePartial', { excluded: a.trades_without_r, n: a.r_sample_size })}
           </p>
         )}
@@ -871,8 +877,8 @@ export default function AnalyticsDashboard({ refreshKey, onGoToJournal, onGoToSe
             const bullish = bucket.startsWith('>') || bucket.startsWith('1R');
             return (
               <div key={bucket} className="text-center">
-                <div className={`h-20 flex items-end ${bullish ? 'bg-[#22c55e]/5' : bucket.startsWith('0R') ? 'bg-muted/40' : 'bg-[#ef4444]/5'} rounded`}>
-                  <div className={`w-full ${bullish ? 'bg-[#22c55e]' : bucket.startsWith('0R') ? 'bg-muted-foreground/40' : 'bg-[#ef4444]'} rounded transition-all`}
+                <div className={`h-20 flex items-end ${bullish ? 'bg-long/5' : bucket.startsWith('0R') ? 'bg-muted/40' : 'bg-short/5'} rounded`}>
+                  <div className={`w-full ${bullish ? 'bg-long' : bucket.startsWith('0R') ? 'bg-muted-foreground/40' : 'bg-short'} rounded transition-all`}
                        style={{ height: `${pct}%` }} />
                 </div>
                 <div className="text-[9px] text-muted-foreground mt-1 font-mono">{bucket}</div>

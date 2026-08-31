@@ -50,7 +50,7 @@ const TradingStylesCompare = () => {
     <Card className="bg-gradient-to-br from-purple-500/5 to-blue-500/10 border-purple-500/30" data-testid="trading-styles-compare">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <GitCompareArrows className="w-5 h-5 text-purple-500" />
+          <GitCompareArrows className="w-5 h-5 text-compare" />
           {t('cmpTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('cmpIntro')}</p>
@@ -60,7 +60,7 @@ const TradingStylesCompare = () => {
         <div className="overflow-x-auto rounded-xl border border-border bg-background/40">
           <table className="w-full text-sm min-w-[560px]">
             <thead>
-              <tr className="bg-purple-500/10 border-b border-purple-500/30 text-purple-400 text-xs uppercase tracking-wider">
+              <tr className="bg-purple-500/10 border-b border-purple-500/30 text-compare text-xs uppercase tracking-wider">
                 <th className="px-3 py-2 text-left font-bold">{t('cmpColStyle')}</th>
                 <th className="px-3 py-2 text-left font-bold"><span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{t('cmpColHold')}</span></th>
                 <th className="px-3 py-2 text-left font-bold"><span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" />{t('cmpColTrades')}</span></th>

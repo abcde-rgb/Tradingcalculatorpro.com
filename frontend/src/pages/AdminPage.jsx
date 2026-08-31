@@ -289,7 +289,7 @@ export default function AdminPage() {
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Demo mode banner */}
         {token === DEMO_TOKEN && (
-          <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 flex items-center gap-3 text-sm text-yellow-600 dark:text-yellow-400">
+          <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 flex items-center gap-3 text-sm text-caution dark:text-caution">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>Modo demo — los datos reales requieren el backend conectado. Las acciones están deshabilitadas.</span>
           </div>
@@ -328,7 +328,7 @@ export default function AdminPage() {
                 ? `$${metrics.mrr_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                 : '—'}
               hint="equivalente mensual de los planes activos · excluye Lifetime"
-              valueClass="text-green-500" testId="metric-mrr" />
+              valueClass="text-long" testId="metric-mrr" />
             <MetricCard icon={TrendingUp} label={t('adminMetricNew30d')}
               value={metrics.new_users_30d} testId="metric-new-30d" />
             <MetricCard icon={Globe2} label={t('adminMetricLocales')}
@@ -419,7 +419,7 @@ export default function AdminPage() {
                       </td>
                       <td className="px-3 py-2">
                         <Badge variant={u.is_premium ? 'default' : 'secondary'}
-                          className={u.is_premium ? 'bg-green-500/15 text-green-600' : ''}>
+                          className={u.is_premium ? 'bg-green-500/15 text-long' : ''}>
                           {u.is_premium ? 'active' : (u.subscription_status || '—')}
                         </Badge>
                       </td>
@@ -448,7 +448,7 @@ export default function AdminPage() {
                           {!isSelf && (
                             <Button size="sm" variant="outline"
                               onClick={() => handleImpersonate(u)}
-                              className="gap-1 h-7 text-blue-500 border-blue-500/30 hover:bg-blue-500/10"
+                              className="gap-1 h-7 text-info border-blue-500/30 hover:bg-blue-500/10"
                               data-testid={`admin-impersonate-${u.email}`}>
                               <UserCheck className="w-3 h-3" /> Ver como
                             </Button>
@@ -559,7 +559,7 @@ const MetricCard = ({ icon: Icon, label, value, valueClass = '', testId, hint })
       <div>
         <p className="text-xs text-muted-foreground" title={hint || undefined}>{label}</p>
         <p className={`text-xl font-bold ${valueClass}`}>{value}</p>
-        {hint && <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p>}
+        {hint && <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{hint}</p>}
       </div>
     </CardContent>
   </Card>
@@ -739,7 +739,7 @@ function IntegrationField({ field, value, isSet, onChange }) {
       <div className="flex items-start justify-between gap-2">
         <Label htmlFor={field.id} className="text-sm font-medium">{field.label}</Label>
         {(isSet || (!field.secret && value))
-          ? <Badge className="bg-green-500/15 text-green-500 gap-1"><Check className="w-3 h-3" /> Connected</Badge>
+          ? <Badge className="bg-green-500/15 text-long gap-1"><Check className="w-3 h-3" /> Connected</Badge>
           : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> Not configured</Badge>}
       </div>
       <div className="flex gap-1">
@@ -1286,13 +1286,13 @@ function ConfirmDeleteDialog({ user, onClose, onConfirm }) {
  * ============================================================ */
 
 const ACTION_LABELS = {
-  'user.create':         { label: 'Usuario creado',       color: 'bg-green-500/15 text-green-600' },
-  'user.update':         { label: 'Usuario editado',      color: 'bg-blue-500/15 text-blue-500'   },
-  'user.delete':         { label: 'Usuario eliminado',    color: 'bg-red-500/15 text-red-500'     },
-  'user.reset_password': { label: 'Password reseteada',   color: 'bg-amber-500/15 text-amber-500' },
-  'user.promote':        { label: 'Promovido a admin',    color: 'bg-purple-500/15 text-purple-500' },
-  'user.demote':         { label: 'Admin removido',       color: 'bg-slate-500/15 text-slate-400' },
-  'settings.update':     { label: 'Settings guardadas',   color: 'bg-indigo-500/15 text-indigo-500' },
+  'user.create':         { label: 'Usuario creado',       color: 'bg-green-500/15 text-long' },
+  'user.update':         { label: 'Usuario editado',      color: 'bg-blue-500/15 text-info'   },
+  'user.delete':         { label: 'Usuario eliminado',    color: 'bg-red-500/15 text-short'     },
+  'user.reset_password': { label: 'Password reseteada',   color: 'bg-amber-500/15 text-warn' },
+  'user.promote':        { label: 'Promovido a admin',    color: 'bg-purple-500/15 text-compare' },
+  'user.demote':         { label: 'Admin removido',       color: 'bg-slate-500/15 text-muted-foreground' },
+  'settings.update':     { label: 'Settings guardadas',   color: 'bg-indigo-500/15 text-compare' },
 };
 
 function AuditLogPanel({ headers }) {
@@ -1470,11 +1470,11 @@ function RevenueAnalyticsCard({ metrics, headers }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Cobrado este mes</p>
-            <p className="text-xl font-bold text-green-500">
+            <p className="text-xl font-bold text-long">
               {currentCollected != null ? `$${currentCollected.toLocaleString()}` : '—'}
             </p>
             {growth != null ? (
-              <p className={`text-xs ${Number(growth) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <p className={`text-xs ${Number(growth) >= 0 ? 'text-long' : 'text-short'}`}>
                 {Number(growth) >= 0 ? '+' : ''}{growth}% vs mes anterior
               </p>
             ) : (
@@ -1483,26 +1483,26 @@ function RevenueAnalyticsCard({ metrics, headers }) {
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Churn rate</p>
-            <p className="text-xl font-bold text-red-400">{stats.churn != null ? `${stats.churn}%` : '—'}</p>
+            <p className="text-xl font-bold text-short">{stats.churn != null ? `${stats.churn}%` : '—'}</p>
             <p className="text-xs text-muted-foreground">
               {stats.churn != null ? `mensual · base ${meta?.churn_base ?? '?'}` : 'sin base premium'}
             </p>
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Conversión Free→Premium</p>
-            <p className="text-xl font-bold text-blue-400">{stats.conversion != null ? `${stats.conversion}%` : '—'}</p>
+            <p className="text-xl font-bold text-info">{stats.conversion != null ? `${stats.conversion}%` : '—'}</p>
             <p className="text-xs text-muted-foreground">
               {stats.conversion != null ? `30 días · base ${meta?.conversion_base ?? '?'}` : 'sin altas en 30 días'}
             </p>
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Precio Lifetime</p>
-            <p className="text-xl font-bold text-amber-400">{stats.ltv?.lifetime != null ? `$${stats.ltv.lifetime}` : '—'}</p>
+            <p className="text-xl font-bold text-warn">{stats.ltv?.lifetime != null ? `$${stats.ltv.lifetime}` : '—'}</p>
             <p className="text-xs text-muted-foreground">precio de tarifa, no LTV</p>
           </div>
         </div>
         {loadError && (
-          <p className="text-xs text-red-400 border border-red-500/30 bg-red-500/10 rounded px-2 py-1.5">
+          <p className="text-xs text-short border border-red-500/30 bg-red-500/10 rounded px-2 py-1.5">
             No se pudieron cargar los datos de facturación ({loadError}). Las cifras de
             arriba están vacías porque falló la carga, no porque valgan cero.
           </p>
@@ -1715,7 +1715,7 @@ function PaymentReconciliationCard({ headers }) {
     <Card className="bg-card border-border" data-testid="payment-reconciliation">
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <CardTitle className="text-base flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <AlertTriangle className="w-4 h-4 text-warn" />
           Conciliación de pagos
         </CardTitle>
         <Button size="sm" variant="outline" onClick={load}>Actualizar</Button>
@@ -1723,8 +1723,8 @@ function PaymentReconciliationCard({ headers }) {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-2">
           {[
-            ['Pagados sin premium', c.paid_not_premium, 'text-red-500'],
-            ['Pendientes antiguos', c.stale_pending, 'text-amber-500'],
+            ['Pagados sin premium', c.paid_not_premium, 'text-short'],
+            ['Pendientes antiguos', c.stale_pending, 'text-warn'],
             ['Premium sin pago', c.premium_no_payment, 'text-muted-foreground'],
           ].map(([label, n, tone]) => (
             <div key={label} className="rounded-lg border border-border bg-muted/30 p-3">
@@ -1736,7 +1736,7 @@ function PaymentReconciliationCard({ headers }) {
 
         {alerts.length > 0 && (
           <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3">
-            <div className="text-xs font-semibold text-red-500 mb-1">
+            <div className="text-xs font-semibold text-short mb-1">
               Sin webhooks recientes: {alerts.map(a => a.provider).join(', ')}
             </div>
             <p className="text-[11px] text-muted-foreground">
@@ -2066,7 +2066,7 @@ function CouponManagerCard({ headers }) {
                 <td className="px-3 py-2 text-muted-foreground">{c.max_uses ?? '∞'}</td>
                 <td className="px-3 py-2 text-muted-foreground text-xs">{c.expires ?? '—'}</td>
                 <td className="px-3 py-2">
-                  <Badge className={c.active ? 'bg-green-500/15 text-green-500' : 'bg-muted text-muted-foreground'}>
+                  <Badge className={c.active ? 'bg-green-500/15 text-long' : 'bg-muted text-muted-foreground'}>
                     {c.active ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </td>
@@ -2158,11 +2158,11 @@ function FeatureFlagsCard({ headers }) {
  *  STRIPE WEBHOOK LOGS
  * ============================================================ */
 const WEBHOOK_COLORS = {
-  'payment_intent.succeeded': 'bg-green-500/15 text-green-500',
-  'customer.subscription.created': 'bg-blue-500/15 text-blue-400',
-  'customer.subscription.deleted': 'bg-red-500/15 text-red-400',
-  'invoice.payment_failed': 'bg-red-500/20 text-red-500',
-  'invoice.paid': 'bg-green-500/15 text-green-500',
+  'payment_intent.succeeded': 'bg-green-500/15 text-long',
+  'customer.subscription.created': 'bg-blue-500/15 text-info',
+  'customer.subscription.deleted': 'bg-red-500/15 text-short',
+  'invoice.payment_failed': 'bg-red-500/20 text-short',
+  'invoice.paid': 'bg-green-500/15 text-long',
 };
 
 function WebhookLogsCard({ headers }) {
@@ -2218,7 +2218,7 @@ function WebhookLogsCard({ headers }) {
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{log.customer}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">{log.created?.slice(0, 16).replace('T', ' ')}</td>
                 <td className="px-3 py-2">
-                  <Badge className={log.status === 'ok' ? 'bg-green-500/15 text-green-500' : 'bg-red-500/15 text-red-500'}>
+                  <Badge className={log.status === 'ok' ? 'bg-green-500/15 text-long' : 'bg-red-500/15 text-short'}>
                     {log.status === 'ok' ? 'OK' : 'Error'}
                   </Badge>
                 </td>
@@ -2284,7 +2284,7 @@ function MarketDataHealthCard({ headers }) {
       <CardContent className="space-y-3">
         {data && !data.available && (
           <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm">
-            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-short shrink-0 mt-0.5" />
             <span>La capa de datos de mercado no se pudo cargar: <span className="font-mono text-xs">{data.error}</span></span>
           </div>
         )}
@@ -2292,7 +2292,7 @@ function MarketDataHealthCard({ headers }) {
         {sinReserva && (
           <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm"
                data-testid="market-health-sin-reserva">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
             <span>
               <span className="font-semibold">Sin cadena de reserva.</span> Sólo hay{' '}
               {configurados.length === 1 ? `un proveedor configurado (${configurados[0].name})` : 'ninguno configurado'}:
@@ -2305,7 +2305,7 @@ function MarketDataHealthCard({ headers }) {
 
         {abiertos.length > 0 && (
           <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-short shrink-0 mt-0.5" />
             <span>
               Cortacircuito abierto en <span className="font-semibold">{abiertos.map((p) => p.name).join(', ')}</span>:
               está fuera de rotación hasta que pase el enfriamiento.
@@ -2315,7 +2315,7 @@ function MarketDataHealthCard({ headers }) {
 
         {alLimite.length > 0 && (
           <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
-            <Gauge className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <Gauge className="w-4 h-4 text-warn shrink-0 mt-0.5" />
             <span>Cerca de la cuota diaria: <span className="font-semibold">{alLimite.map((p) => p.name).join(', ')}</span>.</span>
           </div>
         )}
@@ -2340,16 +2340,16 @@ function MarketDataHealthCard({ headers }) {
                     {!p.configured ? (
                       <Badge className="bg-muted text-muted-foreground text-[10px]">sin clave</Badge>
                     ) : p.circuit_open ? (
-                      <Badge className="bg-red-500/15 text-red-500 text-[10px]">circuito abierto</Badge>
+                      <Badge className="bg-red-500/15 text-short text-[10px]">circuito abierto</Badge>
                     ) : (
-                      <Badge className="bg-green-500/15 text-green-500 text-[10px]">en rotación</Badge>
+                      <Badge className="bg-green-500/15 text-long text-[10px]">en rotación</Badge>
                     )}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{p.calls}</td>
                   <td className="px-3 py-2 font-mono text-xs">
                     {p.failures}
                     {p.consecutive_failures > 0 && (
-                      <span className="text-amber-500"> ({p.consecutive_failures} seguidos)</span>
+                      <span className="text-warn"> ({p.consecutive_failures} seguidos)</span>
                     )}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{p.served}</td>
@@ -2433,10 +2433,10 @@ function MaintenanceModeCard({ headers }) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Construction className="w-4 h-4 text-orange-500" /> Modo Mantenimiento
+            <Construction className="w-4 h-4 text-warn" /> Modo Mantenimiento
           </CardTitle>
           <div className="flex items-center gap-3">
-            {enabled && <Badge className="bg-orange-500/15 text-orange-500 animate-pulse">ACTIVO</Badge>}
+            {enabled && <Badge className="bg-orange-500/15 text-warn animate-pulse">ACTIVO</Badge>}
             <Switch checked={enabled} onCheckedChange={setEnabled} disabled={loading} />
           </div>
         </div>
@@ -2453,7 +2453,7 @@ function MaintenanceModeCard({ headers }) {
           />
         </div>
         {enabled && (
-          <div className="p-3 rounded-md bg-orange-500/10 border border-orange-500/20 text-sm text-orange-600">
+          <div className="p-3 rounded-md bg-orange-500/10 border border-orange-500/20 text-sm text-warn">
             <strong>Vista previa:</strong> {message || 'Estamos realizando tareas de mantenimiento. Volvemos en breve...'}
           </div>
         )}
@@ -2521,7 +2521,7 @@ function EmailCampaignsCard({ headers }) {
     finally { setSending(null); }
   };
 
-  const STATUS_CLS = { draft: 'bg-muted text-muted-foreground', sent: 'bg-green-500/15 text-green-500', sending: 'bg-blue-500/15 text-blue-500' };
+  const STATUS_CLS = { draft: 'bg-muted text-muted-foreground', sent: 'bg-green-500/15 text-long', sending: 'bg-blue-500/15 text-info' };
 
   return (
     <Card className="bg-card border-border">
@@ -2637,7 +2637,7 @@ function PaymentHistoryCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  const STATUS_CLS = { completed: 'bg-green-500/15 text-green-500', failed: 'bg-red-500/15 text-red-500', pending: 'bg-yellow-500/15 text-yellow-500' };
+  const STATUS_CLS = { completed: 'bg-green-500/15 text-long', failed: 'bg-red-500/15 text-short', pending: 'bg-yellow-500/15 text-caution' };
   const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
 
   return (
@@ -2752,7 +2752,7 @@ function ChurnSurveyCard({ headers }) {
     <Card className="bg-card border-border">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2"><UserMinus className="w-4 h-4 text-red-500" /> Encuestas de Cancelación (Churn)</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><UserMinus className="w-4 h-4 text-short" /> Encuestas de Cancelación (Churn)</CardTitle>
           <Button size="sm" variant="outline" onClick={load} className="gap-1 h-7"><RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /></Button>
         </div>
         <p className="text-[11px] text-muted-foreground">Motivos de cancelación reportados por usuarios.</p>
@@ -2802,10 +2802,10 @@ function ChurnSurveyCard({ headers }) {
               {surveys.slice(0, 20).map(s => (
                 <tr key={s.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs">{s.email}</td>
-                  <td className="px-3 py-2"><Badge className="text-[10px] bg-red-500/10 text-red-500">{CHURN_REASONS[s.reason] || s.reason}</Badge></td>
+                  <td className="px-3 py-2"><Badge className="text-[10px] bg-red-500/10 text-short">{CHURN_REASONS[s.reason] || s.reason}</Badge></td>
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate">{s.comment || '—'}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{s.created_at?.slice(0, 10)}</td>
-                  <td className="px-3 py-2">{s.follow_up_note ? <Badge className="bg-green-500/10 text-green-500 text-[10px]">Resuelto</Badge> : <Badge className="bg-muted text-muted-foreground text-[10px]">Pendiente</Badge>}</td>
+                  <td className="px-3 py-2">{s.follow_up_note ? <Badge className="bg-green-500/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-muted text-muted-foreground text-[10px]">Pendiente</Badge>}</td>
                   <td className="px-3 py-2">
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setFollowUp(s); setNote(s.follow_up_note || ''); }}>Nota</Button>
                   </td>
@@ -2888,7 +2888,7 @@ function CohortAnalysisCard({ headers }) {
                       <td className="px-2 py-2 text-xs text-center">{c.total_users}</td>
                       <td className="px-2 py-2 text-xs text-center">{c.converted}</td>
                       <td className="px-2 py-2 text-xs text-center">
-                        <Badge className={`text-[10px] ${(c.conversion_rate || 0) > 10 ? 'bg-green-500/15 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                        <Badge className={`text-[10px] ${(c.conversion_rate || 0) > 10 ? 'bg-green-500/15 text-long' : 'bg-muted text-muted-foreground'}`}>
                           {Math.round(c.conversion_rate || 0)}%
                         </Badge>
                       </td>
@@ -2963,7 +2963,7 @@ function ReferralManagerCard({ headers }) {
                 <td className="px-3 py-2 text-xs font-bold text-muted-foreground">#{i + 1}</td>
                 <td className="px-3 py-2 font-mono text-xs">{r.email}</td>
                 <td className="px-3 py-2 text-xs text-center">{r.referrals}</td>
-                <td className="px-3 py-2 text-xs text-center"><Badge className="bg-green-500/10 text-green-500 text-[10px]">{r.conversions}</Badge></td>
+                <td className="px-3 py-2 text-xs text-center"><Badge className="bg-green-500/10 text-long text-[10px]">{r.conversions}</Badge></td>
               </tr>
             ))}
           </tbody>
@@ -3018,7 +3018,7 @@ function AffiliatePayoutRequestsCard({ headers }) {
   return (
     <Card className="bg-yellow-500/5 border-yellow-500/40">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
+        <CardTitle className="text-base flex items-center gap-2 text-caution dark:text-caution">
           <AlertCircle className="w-4 h-4" /> Solicitudes de pago pendientes ({pending}) — {amount} €
         </CardTitle>
         <p className="text-[11px] text-muted-foreground">Afiliados que han solicitado su pago. Haz la transferencia y márcala como pagada.</p>
@@ -3041,7 +3041,7 @@ function AffiliatePayoutRequestsCard({ headers }) {
                   <td className="px-2 py-2 text-center text-[10px] text-muted-foreground">{(r.created_at || '').slice(0, 10)}</td>
                   <td className="px-2 py-2 text-right whitespace-nowrap">
                     <Button size="sm" variant="outline" className="h-7 text-xs mr-1" onClick={() => action(r.id, 'mark-paid')}>Marcar pagado</Button>
-                    <button onClick={() => action(r.id, 'reject')} title="Rechazar" className="p-1 text-red-500 hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                    <button onClick={() => action(r.id, 'reject')} title="Rechazar" className="p-1 text-short hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -3098,8 +3098,8 @@ function AffiliatesAdminCard({ headers }) {
   };
 
   const badge = (s) => {
-    const map = { approved: 'bg-green-500/10 text-green-500', pending: 'bg-yellow-500/10 text-yellow-600',
-      rejected: 'bg-red-500/10 text-red-500', suspended: 'bg-muted text-muted-foreground' };
+    const map = { approved: 'bg-green-500/10 text-long', pending: 'bg-yellow-500/10 text-caution',
+      rejected: 'bg-red-500/10 text-short', suspended: 'bg-muted text-muted-foreground' };
     return <Badge className={`${map[s] || 'bg-muted'} text-[10px]`}>{s}</Badge>;
   };
 
@@ -3166,13 +3166,13 @@ function AffiliatesAdminCard({ headers }) {
                     <td className="px-2 py-2 text-center text-xs font-bold">{r.estimated_month_eur} €</td>
                     <td className="px-2 py-2 whitespace-nowrap text-right">
                       {r.status !== 'approved' && (
-                        <button onClick={() => act(r.id, 'approve')} title="Aprobar" className="p-1 text-green-500 hover:bg-green-500/10 rounded"><Check className="w-4 h-4" /></button>
+                        <button onClick={() => act(r.id, 'approve')} title="Aprobar" className="p-1 text-long hover:bg-green-500/10 rounded"><Check className="w-4 h-4" /></button>
                       )}
                       {r.status === 'approved' && (
                         <button onClick={() => act(r.id, 'suspend')} title="Suspender" className="p-1 text-muted-foreground hover:bg-muted rounded"><ShieldOff className="w-4 h-4" /></button>
                       )}
                       {r.status === 'pending' && (
-                        <button onClick={() => act(r.id, 'reject')} title="Rechazar" className="p-1 text-red-500 hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                        <button onClick={() => act(r.id, 'reject')} title="Rechazar" className="p-1 text-short hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
                       )}
                       <button onClick={() => toggle(r.id)} title="Ver referidos" className="p-1 text-primary hover:bg-primary/10 rounded">
                         {expanded === r.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -3337,7 +3337,7 @@ function AffiliatePayoutsCard({ headers }) {
                       <td className="px-2 py-2 text-center text-xs">{l.lifetime_new_count}</td>
                       <td className="px-2 py-2 text-center text-xs font-bold">{l.net_eur} €</td>
                       <td className="px-2 py-2 text-center">
-                        <Badge className={`${l.status === 'paid' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-600'} text-[10px]`}>{l.status}</Badge>
+                        <Badge className={`${l.status === 'paid' ? 'bg-green-500/10 text-long' : 'bg-yellow-500/10 text-caution'} text-[10px]`}>{l.status}</Badge>
                       </td>
                       <td className="px-2 py-2 text-right">
                         {l.status !== 'paid' && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => markPaid(l.id)}>Marcar pagado</Button>}
@@ -3573,13 +3573,13 @@ function ErrorMonitorCard({ headers }) {
     finally { setResolving(null); }
   };
 
-  const SEV_CLS = { 5: 'bg-red-500/15 text-red-500', 4: 'bg-orange-500/15 text-orange-500', 3: 'bg-yellow-500/15 text-yellow-600' };
+  const SEV_CLS = { 5: 'bg-red-500/15 text-short', 4: 'bg-orange-500/15 text-warn', 3: 'bg-yellow-500/15 text-caution' };
 
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2"><Bug className="w-4 h-4 text-red-400" /> Monitor de Errores</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Bug className="w-4 h-4 text-short" /> Monitor de Errores</CardTitle>
           <div className="flex gap-2">
             <Select value={filter} onValueChange={v => { setFilter(v); load(v); }}>
               <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
@@ -3619,7 +3619,7 @@ function ErrorMonitorCard({ headers }) {
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate" title={e.message}>{e.message}</td>
                   <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">{e.method} {e.endpoint}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{e.created_at?.slice(0, 16).replace('T', ' ')}</td>
-                  <td className="px-3 py-2">{e.resolved ? <Badge className="bg-green-500/10 text-green-500 text-[10px]">Resuelto</Badge> : <Badge className="bg-red-500/10 text-red-500 text-[10px]">Abierto</Badge>}</td>
+                  <td className="px-3 py-2">{e.resolved ? <Badge className="bg-green-500/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-red-500/10 text-short text-[10px]">Abierto</Badge>}</td>
                   <td className="px-3 py-2">
                     {!e.resolved && (
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowNote(e)}>Resolver</Button>
@@ -3699,7 +3699,7 @@ function RateLimitingCard({ headers }) {
                 <tbody>
                   {(data?.recent_violations || []).map((v, i) => (
                     <tr key={i} className="border-t border-border hover:bg-muted/20">
-                      <td className="px-3 py-2 font-mono text-xs text-red-400">{v.ip}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-short">{v.ip}</td>
                       <td className="px-3 py-2 font-mono text-xs">{v.endpoint}</td>
                       <td className="px-3 py-2 text-xs text-muted-foreground">{v.created_at?.slice(0, 16).replace('T', ' ')}</td>
                     </tr>
@@ -3746,7 +3746,7 @@ function GDPRExportCard({ headers }) {
     finally { setDelivering(null); }
   };
 
-  const STATUS_CLS = { pending: 'bg-yellow-500/15 text-yellow-600', delivered: 'bg-green-500/15 text-green-500', failed: 'bg-red-500/15 text-red-500' };
+  const STATUS_CLS = { pending: 'bg-yellow-500/15 text-caution', delivered: 'bg-green-500/15 text-long', failed: 'bg-red-500/15 text-short' };
 
   return (
     <Card className="bg-card border-border">
