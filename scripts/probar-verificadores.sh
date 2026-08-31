@@ -33,6 +33,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
 
 FALLOS=0
 TEMPORALES=()
+SALIDA_SABOTAJE=""
 
 # La guarda va ANTES del trap, y el orden no es estético.
 #
@@ -61,9 +62,15 @@ fi
 limpiar() {
   # `-r` porque algún temporal es un directorio (la copia de `build/static/js`).
   for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -rf "$f"; done
+  rm -f "${SALIDA_SABOTAJE:-}"
   git checkout -- . 2>/dev/null
 }
 trap limpiar EXIT INT TERM
+
+# Dónde queda el error de un sabotaje que no se aplica (ver `probar()`). Se crea
+# DESPUÉS del trap: si la guarda del árbol sucio corta antes, no deja huérfano un
+# temporal que nadie va a borrar.
+SALIDA_SABOTAJE="$(mktemp)"
 
 # ── utilidades ──────────────────────────────────────────────────────────────
 titulo() { printf '\n\033[1m%s\033[0m\n' "$1"; }
@@ -93,7 +100,22 @@ probar() {
     FALLOS=$((FALLOS + 1)); return
   fi
 
-  eval "$sabotaje" >/dev/null 2>&1
+  # El sabotaje TIENE que aplicarse, y hay que comprobarlo.
+  #
+  # Estaba con la salida descartada y el código de salida ignorado, y eso hace
+  # indistinguibles dos cosas muy distintas: un verificador que no verifica, y un
+  # sabotaje que no llegó a tocar nada. Las dos imprimen «SOBREVIVE». Ha pasado
+  # dos veces: ocho heredocs con el cuerpo indentado que morían con
+  # `IndentationError` (BUG-078), y un ancla que el código había dejado atrás
+  # —el `replace` no encontraba su texto, escribía el fichero igual y salía con
+  # 0—. Ahora un sabotaje que falla se dice, con su error, y cuenta como fallo
+  # del propio test: es un problema de la prueba, no del producto.
+  if ! eval "$sabotaje" > "$SALIDA_SABOTAJE" 2>&1; then
+    echo "  ⚠️  $nombre: el SABOTAJE no se aplicó — $(tail -1 "$SALIDA_SABOTAJE")"
+    FALLOS=$((FALLOS + 1))
+    eval "$restaurar" >/dev/null 2>&1
+    return
+  fi
 
   if eval "$entorno $comando" >/dev/null 2>&1; then
     echo "  ❌ $nombre: SOBREVIVE al sabotaje — no está verificando nada"
@@ -126,7 +148,14 @@ probar_inverso() {
     FALLOS=$((FALLOS + 1)); return
   fi
 
-  eval "$cebo" >/dev/null 2>&1
+  # Mismo motivo que en `probar()`: un cebo que no se aplica deja pasar el test
+  # sin haber probado nada, y con el ✅ puesto.
+  if ! eval "$cebo" > "$SALIDA_SABOTAJE" 2>&1; then
+    echo "  ⚠️  $nombre: el CEBO no se aplicó — $(tail -1 "$SALIDA_SABOTAJE")"
+    FALLOS=$((FALLOS + 1))
+    eval "$restaurar" >/dev/null 2>&1
+    return
+  fi
 
   if eval "$comando" >/dev/null 2>&1; then
     echo "  ✅ $nombre: no salta con un falso positivo"
@@ -1104,13 +1133,22 @@ EOF"
   # contraseña correcta, y el 401 es idéntico al de una contraseña mala: no había
   # ninguna pista ni en pantalla ni en los logs.
   titulo "Correo insensible a mayúsculas (test_security_unit.py)"
+  # ⚠️ El ancla de este sabotaje se quedó obsoleta y nadie se enteró: buscaba
+  # `{"email": {"$ieq": credentials.email}}`, que BUG-070 sustituyó por
+  # `_buscar_usuario_por_correo()`. El `replace` no encontraba nada, escribía el
+  # fichero igual, salía con 0 y el informe decía «SOBREVIVE» — indistinguible de
+  # un verificador roto. De ahí el `assert count == 1`: si el login se vuelve a
+  # reescribir, esto grita en vez de mentir.
   probar "el login vuelve a buscar el correo con igualdad exacta" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
     "python - <<'EOF'
 import pathlib
 p = pathlib.Path('backend/server.py')
 s = p.read_text(encoding='utf-8')
-p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
+viejo = 'user = await _buscar_usuario_por_correo(credentials.email)'
+assert s.count(viejo) == 1, 'ancla de la busqueda del login no encontrada'
+nuevo = 'user = await db.users.find_one({\"email\": credentials.email})'
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
 EOF"
 
   probar "el registro deja de normalizar el correo al guardarlo" \

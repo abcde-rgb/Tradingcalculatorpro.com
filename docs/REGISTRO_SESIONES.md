@@ -6235,8 +6235,15 @@ Es el modo de fallo que el propio banco de pruebas advierte, y cayó igual.
   evita: el token de acceso no se persiste a propósito y el de refresco viaja sólo
   por cookie. Lo que lo cierra de verdad es dar al backend un dominio del mismo
   sitio (`api.tradingcalculator.pro`), que es un cambio de infraestructura.
-- **G-41**, abierto: `probar()` no comprueba que su sabotaje se haya aplicado, y
-  por eso BUG-078 pasó desapercibido ocho veces.
+**G-41, abierto y cerrado en la misma sesión.** Al ir a añadir mis sabotajes
+aparecieron ocho que no saboteaban nada (BUG-078). Dedentarlos arregló siete; el
+octavo —el del login— seguía diciendo «SOBREVIVE» porque su ancla era un texto
+que BUG-070 había sustituido: el `replace` no encontraba nada, escribía el
+fichero igual y salía con 0. Esa segunda forma de morir en silencio **no se
+habría cazado dedentando**. La causa común es que `probar()` descartaba el código
+de salida del sabotaje, así que «el verificador no verifica» y «el sabotaje no
+tocó nada» imprimían lo mismo. Ahora un sabotaje que falla se reporta con su
+error y cuenta como fallo **del test**, no del producto.
 
 **Verificado**: 1.204 tests (114 skip, 0 fallos), `py_compile` de los 26 módulos,
 eslint 0 errores, i18n 7.379 claves × 10 idiomas a la par, engine-check 535/535,
