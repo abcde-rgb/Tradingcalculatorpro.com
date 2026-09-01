@@ -2574,6 +2574,25 @@ async def get_me(user: dict = Depends(require_user)):
     }
 
 
+# DOS rutas, un solo manejador, y la de abajo es la que de verdad cierra sesión.
+#
+# La cookie del refresh se emite con `path=/api/auth/refresh` a propósito: así no
+# viaja en cada llamada a la API. Pero el navegador aplica esa regla también al
+# CERRAR SESIÓN, y `/api/auth/logout` **no** empieza por `/api/auth/refresh`, así
+# que la cookie nunca llegaba aquí: `request.cookies.get("refresh_token")` era
+# None en todos los navegadores y el `_revoke_token` del refresco no se ejecutaba
+# jamás. El docstring prometía revocar los dos y revocaba uno, y el test que lo
+# vigilaba leía el CÓDIGO FUENTE —encontraba la línea, contaba los dos
+# `motivo="logout"` y daba el visto bueno— sin llegar a comprobar que la cookie
+# se entrega. Un token de refresco copiado seguía valiendo siete días después de
+# pulsar «cerrar sesión»: exactamente el agujero que este código decía tapar.
+#
+# `/api/auth/refresh/logout` sí recibe las dos cookies (RFC 6265 §5.1.4: la ruta
+# de la cookie es prefijo de la petición y el siguiente carácter es `/`), y es la
+# que llama el frontend. `/api/auth/logout` se mantiene para lo que ya estuviera
+# apuntando ahí —un bundle viejo en una pestaña abierta—, donde hace lo que puede:
+# borra las cookies y revoca el token de acceso.
+@api_router.post("/auth/refresh/logout")
 @api_router.post("/auth/logout")
 async def logout(
     request: Request,
@@ -10223,7 +10242,8 @@ app.include_router(api_router)
 _FRONTEND_URL = FRONTEND_URL
 
 _AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/me",
-               "/api/auth/logout", "/api/auth/refresh", "/api/auth/google",
+               "/api/auth/logout", "/api/auth/refresh", "/api/auth/refresh/logout",
+               "/api/auth/google",
                "/api/auth/magic-link", "/api/auth/magic-link/verify"}
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

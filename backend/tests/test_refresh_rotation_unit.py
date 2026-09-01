@@ -15,6 +15,8 @@ Se leen con `ast`, como el resto de pruebas de seguridad offline, para no
 necesitar fastapi ni asyncpg.
 """
 import ast
+import re
+import textwrap
 from pathlib import Path
 
 _SERVER = Path(__file__).resolve().parent.parent / "server.py"
@@ -115,3 +117,113 @@ def test_el_store_solo_cierra_la_sesion_con_un_401():
         "en frío de Cloud Run echaba a quien recargaba la pestaña"
     )
     assert "intento" in cuerpo, "el refresco tiene que reintentar antes de rendirse"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# La cookie del refresco tiene que LLEGAR a quien la revoca.
+#
+# El test de arriba (`test_cerrar_sesion_revoca_tambien_el_refresh`) lee el
+# código fuente: encuentra `request.cookies.get("refresh_token")`, cuenta los dos
+# `motivo="logout"` y da el visto bueno. Todo eso era cierto y la revocación NO
+# ocurría nunca, porque el navegador no entregaba la cookie: se emite con
+# `path=/api/auth/refresh` y se pedía en `/api/auth/logout`, que no cuelga de
+# ella. Leer el cuerpo de la función no puede ver eso; hay que comprobar la regla
+# de rutas del navegador.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _casa_la_ruta(ruta_peticion: str, ruta_cookie: str) -> bool:
+    """RFC 6265 §5.1.4 — ¿manda el navegador esta cookie a esta petición?"""
+    if ruta_cookie == ruta_peticion:
+        return True
+    if not ruta_peticion.startswith(ruta_cookie):
+        return False
+    return ruta_cookie.endswith("/") or ruta_peticion[len(ruta_cookie)] == "/"
+
+
+def test_la_regla_de_rutas_de_cookie_es_la_del_navegador():
+    """Primero, que el metro mida: sin esto lo de abajo no prueba nada."""
+    assert _casa_la_ruta("/api/auth/refresh", "/api/auth/refresh")
+    assert _casa_la_ruta("/api/auth/refresh/logout", "/api/auth/refresh")
+    assert _casa_la_ruta("/api/auth/logout", "/api")
+    # El caso que se coló en producción.
+    assert not _casa_la_ruta("/api/auth/logout", "/api/auth/refresh")
+    # Prefijo de texto que NO es prefijo de ruta.
+    assert not _casa_la_ruta("/api/auth/refreshing", "/api/auth/refresh")
+
+
+def _ruta_cookie_refresh() -> str:
+    """El `path=` con el que se emite la cookie del refresco."""
+    src = _fuente("_set_auth_cookies")
+    assert src is not None, "_set_auth_cookies no encontrado"
+    arbol = ast.parse(textwrap.dedent(src))
+    for llamada in ast.walk(arbol):
+        if not isinstance(llamada, ast.Call):
+            continue
+        claves = {kw.arg: kw.value for kw in llamada.keywords}
+        clave = claves.get("key")
+        if isinstance(clave, ast.Constant) and clave.value == "refresh_token":
+            ruta = claves.get("path")
+            assert isinstance(ruta, ast.Constant), "el path del refresh no es literal"
+            return ruta.value
+    raise AssertionError("no se encontró el set_cookie del refresh_token")
+
+
+def _rutas_de(nombre_funcion: str) -> list:
+    """Las rutas con las que está registrada una función de la API."""
+    arbol = ast.parse(_SRC)
+    for nodo in ast.walk(arbol):
+        if not isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if nodo.name != nombre_funcion:
+            continue
+        rutas = []
+        for dec in nodo.decorator_list:
+            if isinstance(dec, ast.Call) and dec.args and isinstance(dec.args[0], ast.Constant):
+                rutas.append(dec.args[0].value)
+        return rutas
+    return []
+
+
+def test_el_cierre_de_sesion_recibe_de_verdad_la_cookie_del_refresco():
+    """Sin una ruta que la reciba, «cerrar sesión» no revoca nada."""
+    ruta_cookie = _ruta_cookie_refresh()
+    rutas = [f"/api{r}" for r in _rutas_de("logout")]
+    assert rutas, "logout no está registrado en ninguna ruta"
+    alcanzables = [r for r in rutas if _casa_la_ruta(r, ruta_cookie)]
+    assert alcanzables, (
+        f"la cookie del refresco vive en {ruta_cookie!r} y ninguna ruta de cierre "
+        f"de sesión {rutas} cuelga de ahí: el navegador no la manda, así que el "
+        f"token de refresco sobrevive al botón de cerrar sesión durante 7 días"
+    )
+
+
+def test_el_frontend_cierra_sesion_por_la_ruta_que_si_recibe_la_cookie():
+    """Tener la ruta buena no sirve si el navegador llama a la otra."""
+    store = (Path(__file__).resolve().parents[2]
+             / "frontend/src/lib/store.js").read_text(encoding="utf-8")
+    inicio = store.find("logout: async ()")
+    fin = store.find("silentRefresh:", inicio)
+    assert -1 < inicio < fin, "no se encontró el logout del store"
+    cuerpo = store[inicio:fin]
+    llamadas = re.findall(r"\$\{API\}(/auth/[A-Za-z0-9/_-]+)", cuerpo)
+    assert llamadas, "el logout del store no llama a ninguna ruta de auth"
+    ruta_cookie = _ruta_cookie_refresh()
+    buenas = [r for r in llamadas if _casa_la_ruta(f"/api{r}", ruta_cookie)]
+    assert buenas, (
+        f"el store cierra sesión contra {llamadas}, y a ninguna llega la cookie "
+        f"del refresco ({ruta_cookie}): el token no se revoca"
+    )
+    # Y esa ruta tiene que EXISTIR: llamar a una que el backend no registra
+    # devuelve 404 y deja la sesión abierta igual de silenciosamente.
+    registradas = _rutas_de("logout")
+    assert set(buenas) & set(registradas), (
+        f"el store cierra sesión contra {buenas}, que el backend no registra "
+        f"(tiene {registradas}): la llamada se va en un 404"
+    )
+
+
+def test_las_respuestas_de_cierre_no_se_cachean():
+    """Una respuesta de auth cacheada por un proxy es la sesión de otro."""
+    rutas = [f"/api{r}" for r in _rutas_de("logout")]
+    for ruta in rutas:
+        assert f'"{ruta}"' in _SRC, f"{ruta} no está en _AUTH_PATHS (Cache-Control)"

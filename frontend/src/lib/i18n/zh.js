@@ -2883,6 +2883,8 @@ export default {
   "seoNotFoundDesc": "您查找的页面不存在。返回仪表板或探索Trading Calculator PRO工具。",
   "googleSignInError": "Google 登录失败",
   "orContinueWith": "或使用以下方式继续",
+  "authGoogleUnavailable": "无法加载 Google 登录。",
+  "authGoogleUnavailableHint": "通常是广告拦截器或第三方 Cookie 被阻止所致。请改用邮箱和密码登录，或申请魔法链接。",
   "adminPanelTitle": "管理面板",
   "adminPanelSubtitle": "订阅者、指标和实时 CSV 导出。",
   "adminMetricUsers": "总用户",

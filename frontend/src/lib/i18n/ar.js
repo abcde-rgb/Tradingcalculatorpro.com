@@ -2883,6 +2883,8 @@ export default {
   "seoNotFoundDesc": "الصفحة التي تبحث عنها غير موجودة. عد إلى لوحة التحكم أو استكشف أدوات Trading Calculator PRO.",
   "googleSignInError": "فشل تسجيل الدخول عبر Google",
   "orContinueWith": "أو تابع باستخدام",
+  "authGoogleUnavailable": "تعذّر تحميل تسجيل الدخول عبر Google.",
+  "authGoogleUnavailableHint": "عادةً ما يكون السبب مانع إعلانات أو حظر ملفات تعريف الارتباط من جهات خارجية. سجّل الدخول ببريدك وكلمة المرور، أو اطلب رابطًا سحريًا.",
   "adminPanelTitle": "لوحة الإدارة",
   "adminPanelSubtitle": "المشتركون والمقاييس وتصدير CSV مباشرة.",
   "adminMetricUsers": "إجمالي المستخدمين",

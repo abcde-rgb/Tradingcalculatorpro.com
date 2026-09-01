@@ -2809,6 +2809,8 @@ export default {
   "seoNotFoundDesc": "La página que buscas no existe. Vuelve al dashboard o explora las herramientas de Trading Calculator PRO.",
   "googleSignInError": "Error iniciando sesión con Google",
   "orContinueWith": "o continúa con",
+  "authGoogleUnavailable": "No hemos podido cargar el acceso con Google.",
+  "authGoogleUnavailableHint": "Suele deberse a un bloqueador o a las cookies de terceros. Entra con tu correo y contraseña, o pide un enlace mágico.",
   "adminPanelTitle": "Panel de Administración",
   "adminPanelSubtitle": "Suscriptores, métricas y export CSV en tiempo real.",
   "adminMetricUsers": "Usuarios totales",
