@@ -1269,6 +1269,59 @@ assert s.count(viejo) == 3, f'se esperaban 3 limites de 3/hora, hay {s.count(vie
 p.write_text(s.replace(viejo, '', 3), encoding='utf-8')
 EOF"
 
+  # ── Ajustes y alta: guardar de verdad, y que lo guardado vuelva ─────────────
+  # El botón «Guardar» de Ajustes daba 405 desde siempre, y el alta descartaba
+  # el país que su propio formulario obliga a rellenar.
+  titulo "Perfil y ajustes (test_perfil_ajustes_unit.py / test_security_unit.py)"
+
+  probar "el perfil vuelve a aceptar un solo método (405 en el otro)" \
+    "(cd backend && python -m pytest tests/test_perfil_ajustes_unit.py -q -k los_dos_metodos -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@api_router.put(\"/auth/profile\")' + chr(10)
+assert s.count(viejo) == 1, 'ancla del PUT no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "el alta vuelve a descartar el país en silencio" \
+    "(cd backend && python -m pytest tests/test_perfil_ajustes_unit.py -q -k acepta_el_pais -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+ini = s.find('class UserCreate(BaseModel):')
+fin = s.find('class UserLogin(BaseModel):')
+assert -1 < ini < fin, 'UserCreate no encontrado'
+cuerpo = s[ini:fin]
+viejo = '    country: Optional[str] = None' + chr(10)
+assert cuerpo.count(viejo) == 1, 'ancla del pais en UserCreate no encontrada'
+p.write_text(s[:ini] + cuerpo.replace(viejo, '', 1) + s[fin:], encoding='utf-8')
+EOF"
+
+  probar "una respuesta de auth deja de devolver lo que el usuario guardó" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k devuelven_lo_que -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '            \"country\": user.get(\"country\"),' + chr(10)
+assert s.count(viejo) >= 1, 'ancla de country no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "Ajustes deja de resincronizar el formulario (los datos saltan)" \
+    "(cd backend && python -m pytest tests/test_perfil_ajustes_unit.py -q -k resincroniza -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/pages/SettingsPage.jsx')
+s = p.read_text(encoding='utf-8')
+viejo = '  useEffect(() => { setProfileName(nombreServidor); }, [nombreServidor]);' + chr(10)
+assert s.count(viejo) == 1, 'ancla del efecto no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
   # ── La palanca de emergencia y el diagnóstico (2026-09-01) ──────────────────
   # Son la salida cuando el margen de alta ya está gastado. Si la palanca deja de
   # caducar, o el diagnóstico empieza a escribir, dejan de ser lo que prometen.
