@@ -1241,6 +1241,34 @@ s = p.read_text(encoding='utf-8')
 p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
 EOF"
 
+  # ── Qué rutas llevan límite de tasa, y cuáles no ────────────────────────────
+  # El alta se quedó sin límite a propósito (2026-09-01). Es justo el cambio que
+  # alguien deshace al ver un endpoint público sin limitar, y el que se lleva por
+  # delante los otros tres de una pasada.
+  titulo "Límites de tasa (test_rate_limit_key_unit.py)"
+
+  probar "vuelve a ponerse un límite en el alta" \
+    "(cd backend && python -m pytest tests/test_rate_limit_key_unit.py -q -k alta_no_lleva -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@api_router.post(\"/auth/register\", response_model=dict)'
+assert s.count(viejo) == 1, 'ancla del registro no encontrada'
+p.write_text(s.replace(viejo, viejo + chr(10) + '@limiter.limit(\"3/hour\")', 1), encoding='utf-8')
+EOF"
+
+  probar "se quitan también los límites que protegen al dueño de la cuenta" \
+    "(cd backend && python -m pytest tests/test_rate_limit_key_unit.py -q -k protegen_al_dueno -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@limiter.limit(\"3/hour\")' + chr(10)
+assert s.count(viejo) == 3, f'se esperaban 3 limites de 3/hora, hay {s.count(viejo)}'
+p.write_text(s.replace(viejo, '', 3), encoding='utf-8')
+EOF"
+
   # ── El encierro del admin y la sesión que se cerraba sola (BUG-076) ─────────
   # Cuatro maneras distintas de volver a encerrar a alguien:
   #   · esconder la tarjeta de 2FA a las cuentas que no son de contraseña,

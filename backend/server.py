@@ -2267,8 +2267,26 @@ def _norm_country(value: Optional[str]) -> Optional[str]:
     return code if len(code) == 2 and code.isalpha() else None
 
 
+# El alta NO lleva límite de tasa, y es una decisión, no un descuido.
+#
+# Llevaba `@limiter.limit("3/hour")`, y el cubo es POR IP: detrás de un NAT
+# compartido —una oficina, el CGNAT de un operador móvil, una universidad— tres
+# personas distintas agotaban la cuota de todas las demás, y la cuarta recibía un
+# 429 sin haber intentado nada raro. En un producto de pago eso son altas
+# perdidas que no dejan rastro: el 429 se ve en el navegador del usuario, no en
+# los logs de nadie. Ya pasó una vez a lo grande (BUG-015: la clave del limitador
+# era la IP del frontend de Cloud Run, así que el cubo era GLOBAL y eran tres
+# registros por hora en toda la web).
+#
+# ⚠️ Lo que queda expuesto, para quien venga a decidir otra cosa: cada llamada
+# INSERTA una fila y dispara DOS correos por SendGrid (bienvenida y verificación).
+# Sin límite aquí, la protección tiene que estar en la capa de delante (Cloud Run,
+# Cloud Armor, un WAF) o en el propio SendGrid; no la hay en la aplicación.
+#
+# Los otros `3/hour` del fichero —enlace mágico, recuperar contraseña y borrado de
+# cuenta— siguen puestos: ahí el límite protege al DUEÑO de la cuenta de que le
+# inunden el buzón o le borren los datos, que es otro problema.
 @api_router.post("/auth/register", response_model=dict)
-@limiter.limit("3/hour")
 async def register(request: Request, response: Response, user_data: UserCreate):
     # El correo se normaliza AL ESCRIBIR y se comprueba sin distinguir mayúsculas.
     # Sin lo primero conviven `Ana@x.com` y `ana@x.com` como cuentas distintas;

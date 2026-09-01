@@ -81,11 +81,26 @@ Hay dos endpoints PATCH que usa `AdminPage`: `PATCH /admin/users/{id}` y
 
 | Ruta | Límite |
 |---|---|
-| `POST /auth/register` | 3/hora |
+| `POST /auth/register` | **sin límite** — ver abajo |
 | `POST /auth/login` | 10/minuto |
 | `POST /auth/google` | 10/minuto |
 | `POST /auth/refresh` | 30/minuto |
+| `POST /auth/magic-link` · `/auth/forgot-password` · `DELETE /auth/account` | 3/hora |
 | Cálculos y datos de mercado | sin límite |
+
+**El alta no lleva límite a propósito** (2026-09-01, a petición del dueño). El cubo
+es por IP, y detrás de un NAT compartido —una oficina, el CGNAT de un operador
+móvil— tres personas agotaban la cuota de todas las demás: la cuarta recibía un
+429 sin haber hecho nada raro, y eso son altas perdidas que no dejan rastro en
+ningún log. Antes ya había mordido más fuerte (BUG-015: la clave era la IP del
+frontend de Cloud Run, así que el cubo era **global**).
+
+⚠️ Lo que eso deja expuesto: cada alta inserta una fila y dispara **dos correos**
+por SendGrid. Si hace falta frenar un abuso, el sitio es la capa de delante
+—Cloud Run, Cloud Armor, un WAF— o el propio SendGrid; en la aplicación ya no hay
+nada. Los `3/hora` de enlace mágico, recuperar contraseña y borrado **siguen
+puestos**: ahí el límite protege al dueño de la cuenta de que le inunden el buzón
+o le borren los datos, que es otro problema.
 
 ## `admin_routes.py` se importa tarde
 
