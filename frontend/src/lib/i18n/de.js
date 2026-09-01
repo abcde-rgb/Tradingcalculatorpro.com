@@ -2883,6 +2883,8 @@ export default {
   "seoNotFoundDesc": "Die gesuchte Seite existiert nicht. Zurück zum Dashboard oder erkunde die Trading Calculator PRO-Tools.",
   "googleSignInError": "Anmeldung mit Google fehlgeschlagen",
   "orContinueWith": "oder weiter mit",
+  "authGoogleUnavailable": "Die Google-Anmeldung konnte nicht geladen werden.",
+  "authGoogleUnavailableHint": "Meist liegt es an einem Werbeblocker oder an blockierten Drittanbieter-Cookies. Melde dich mit E-Mail und Passwort an oder fordere einen Magic Link an.",
   "adminPanelTitle": "Admin-Bereich",
   "adminPanelSubtitle": "Abonnenten, Kennzahlen und Live-CSV-Export.",
   "adminMetricUsers": "Nutzer gesamt",

@@ -1385,6 +1385,82 @@ assert s.count(viejo) == 1, 'ancla del 401 no encontrada'
 p.write_text(s.replace(viejo, 'if (!res.ok) {', 1), encoding='utf-8')
 EOF"
 
+  # ── La cookie del refresco tiene que LLEGAR a quien la revoca (BUG-079) ─────
+  # El sabotaje de arriba («cerrar sesión deja vivo el refresh token») vigila el
+  # CUERPO de la función. Estos dos vigilan lo que ese test no puede ver: que la
+  # ruta contra la que se cierra sesión cuelgue del `path` de la cookie. Con el
+  # cuerpo intacto y la ruta mal, el navegador no manda la cookie y no se revoca
+  # nada — que es lo que pasó durante un día entero con el test en verde.
+  titulo "La cookie del refresco llega al cierre de sesión (test_refresh_rotation_unit.py)"
+
+  probar "la ruta de cierre vuelve a quedar fuera del alcance de la cookie" \
+    "(cd backend && python -m pytest tests/test_refresh_rotation_unit.py -q -k recibe_de_verdad -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@api_router.post(\"/auth/refresh/logout\")' + chr(10)
+assert s.count(viejo) == 1, 'ancla de la ruta de cierre no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "el frontend vuelve a cerrar sesión por la ruta que no recibe la cookie" \
+    "(cd backend && python -m pytest tests/test_refresh_rotation_unit.py -q -k por_la_ruta_que_si -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/lib/store.js')
+s = p.read_text(encoding='utf-8')
+viejo = '/auth/refresh/logout'
+assert s.count(viejo) == 1, 'ancla del logout del store no encontrada'
+p.write_text(s.replace(viejo, '/auth/logout', 1), encoding='utf-8')
+EOF"
+
+  # ── El segundo factor se pide en las TRES vías, no sólo con contraseña ──────
+  # BUG-080: `/auth/login`, `/auth/google` y `/auth/magic-link/verify` responden
+  # `totp_required` sin token. Quien no lo lea convierte un paso intermedio en un
+  # error genérico, y el usuario con 2FA se queda fuera sin saber por qué.
+  titulo "2FA en todas las vías de acceso (test_2fa_en_todas_las_vias_unit.py)"
+
+  probar "entrar con Google vuelve a tratar el 2FA como un error" \
+    "(cd backend && python -m pytest tests/test_2fa_en_todas_las_vias_unit.py -q -k google_no_trata -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/lib/store.js')
+s = p.read_text(encoding='utf-8')
+i = s.find('loginWithGoogle:')
+k = s.find('// 2FA activo', i)
+j = s.find('if (!data.token || !data.user) throw new Error', i)
+assert -1 < i < k < j, 'ancla de la rama de 2FA de Google no encontrada'
+p.write_text(s[:k] + s[j:], encoding='utf-8')
+EOF"
+
+  probar "el enlace mágico vuelve a llamar inválido a un 2FA pendiente" \
+    "(cd backend && python -m pytest tests/test_2fa_en_todas_las_vias_unit.py -q -k toda_via_que_pide -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/pages/AuthPages.jsx')
+s = p.read_text(encoding='utf-8')
+i = s.find('        // La cuenta tiene 2FA: el backend responde 200 SIN token')
+j = s.find('        if (res.ok && data.access_token) {', i)
+assert -1 < i < j, 'ancla del 2FA del enlace magico no encontrada'
+p.write_text(s[:i] + s[j:], encoding='utf-8')
+EOF"
+
+  # El sabotaje que cazó un test flojo: la primera versión de la prueba buscaba
+  # el NOMBRE del componente y lo encontraba en un comentario del propio fichero,
+  # así que sobrevivía a quitar el import y el uso. Ahora exige las dos cosas.
+  probar "el botón de Google deja de pedir el código del 2FA" \
+    "(cd backend && python -m pytest tests/test_2fa_en_todas_las_vias_unit.py -q -k reto_de_2fa_es_uno_solo -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/components/auth/GoogleSignInButton.jsx')
+s = p.read_text(encoding='utf-8')
+imp = \"import TwoFactorChallenge from '@/components/auth/TwoFactorChallenge';\" + chr(10)
+assert s.count(imp) == 1, 'ancla del import del reto no encontrada'
+assert s.count('<TwoFactorChallenge') == 1, 'ancla del uso del reto no encontrada'
+p.write_text(s.replace(imp, '', 1).replace('<TwoFactorChallenge', '<div', 1), encoding='utf-8')
+EOF"
+
 else
   titulo "Sabotajes sobre test_security_unit.py"
   echo "  ⏭️  se saltan: no hay pytest en este entorno (los cubre el job de backend)"

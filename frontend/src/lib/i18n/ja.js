@@ -2883,6 +2883,8 @@ export default {
   "seoNotFoundDesc": "お探しのページは存在しません。ダッシュボードに戻るかTrading Calculator PROのツールを探索してください。",
   "googleSignInError": "Googleでのログインに失敗しました",
   "orContinueWith": "または以下で続行",
+  "authGoogleUnavailable": "Google ログインを読み込めませんでした。",
+  "authGoogleUnavailableHint": "広告ブロッカーやサードパーティ Cookie の制限が原因のことが多いです。メールアドレスとパスワードでログインするか、マジックリンクをご利用ください。",
   "adminPanelTitle": "管理パネル",
   "adminPanelSubtitle": "サブスクライバー、メトリクス、ライブCSVエクスポート。",
   "adminMetricUsers": "総ユーザー数",

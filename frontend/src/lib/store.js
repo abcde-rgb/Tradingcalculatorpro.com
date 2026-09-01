@@ -184,6 +184,15 @@ export const useAuthStore = create(
           });
           const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || t('googleLoginError'));
+          // 2FA activo: Google prueba QUIÉN eres, no que tengas el segundo
+          // factor, así que el backend responde 200 con `totp_required` y SIN
+          // `token` — igual que `/auth/login`. Sin esta rama caía en el
+          // `!data.token` de abajo y el usuario veía «Error con Google» en
+          // cada intento, sin manera de deducir que le faltaba el código.
+          if (data.totp_required && data.pending_token) {
+            set({ isLoading: false });
+            return { success: false, totpRequired: true, pendingToken: data.pending_token };
+          }
           if (!data.token || !data.user) throw new Error(t('googleLoginError'));
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false, sessionUnverified: false });
           applyUserLocale(data.user);
@@ -244,7 +253,12 @@ export const useAuthStore = create(
         const token = get().token;
         if (API) {
           try {
-            await fetchWithTimeout(`${API}/auth/logout`, {
+            // `/auth/refresh/logout`, no `/auth/logout`: la cookie del refresco
+            // se emite con `path=/api/auth/refresh` y el navegador SÓLO la manda
+            // a rutas que cuelgan de ahí. Contra `/auth/logout` el servidor
+            // nunca la recibía, así que no podía revocarla: el token seguía
+            // canjeable siete días después de cerrar sesión.
+            await fetchWithTimeout(`${API}/auth/refresh/logout`, {
               method: 'POST',
               headers: token && token !== DEMO_TOKEN ? { 'Authorization': `Bearer ${token}` } : {},
             });

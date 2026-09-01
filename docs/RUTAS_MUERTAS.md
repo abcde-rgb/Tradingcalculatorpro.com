@@ -108,7 +108,7 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 `CONSTRUIR` — el backend está terminado y lo que falta es la pantalla (G-14).
 `ARREGLAR` — hay que tocar el backend antes de poder enseñarla.
 
-### BORRAR — quedan 7 (8 ya retiradas el 2026-08-22)
+### BORRAR — quedan 8 (8 ya retiradas el 2026-08-22)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
@@ -119,6 +119,7 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 | `POST` | `/api/alerts/send-email` | BORRAR | Relé de SendGrid pedido desde el navegador. El aviso de una alerta que salta ya lo manda el poller por `notifications.py`, que es donde tiene que estar. |
 | `GET` | `/api/quote/{symbol}` | BORRAR | Era la única puerta a `market_data.py`, y por eso estaba marcada CONSTRUIR. Ya no lo es: desde el 2026-08-22 la cadena de reserva entra por `/api/stock/{symbol}`, que devuelve lo mismo **más** la ficha completa de Yahoo y con los nombres que la interfaz ya consume. Lo que queda aquí es la forma cruda de `_norm()` sin consumidor. |
 | `GET` | `/api/user-states/list` | BORRAR | «List all saved states for debugging». |
+| `POST` | `/api/auth/logout` | BORRAR | **Se quedó sin consumidor a propósito el 2026-09-01, y hay que dejarla un tiempo.** La cookie del refresco se emite con `path=/api/auth/refresh`, así que el navegador **nunca** la mandaba aquí: cerrar sesión no podía revocar el token que de verdad abre la puerta (BUG-079). El frontend cierra sesión ahora por `/api/auth/refresh/logout`, que sí la recibe. Ésta se mantiene porque una pestaña abierta con el bundle viejo seguirá llamándola —y ahí hace lo que puede: borra las cookies y revoca el de acceso—. **Se retira cuando haya pasado la vida del refresh token (7 días) desde el despliegue del frontend nuevo.** |
 
 > ✅ **Construidas el 2026-08-26**: `POST /api/backtest/validate` y
 > `GET /api/backtest/strategies` ya tienen pantalla — la pestaña «Validación» de

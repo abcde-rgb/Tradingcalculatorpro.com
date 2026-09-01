@@ -2809,6 +2809,8 @@ export default {
   "seoNotFoundDesc": "The page you are looking for does not exist. Return to the dashboard or explore Trading Calculator PRO tools.",
   "googleSignInError": "Failed to sign in with Google",
   "orContinueWith": "or continue with",
+  "authGoogleUnavailable": "We couldn't load Google sign-in.",
+  "authGoogleUnavailableHint": "It's usually an ad blocker or blocked third-party cookies. Sign in with your email and password, or request a magic link.",
   "adminPanelTitle": "Admin Panel",
   "adminPanelSubtitle": "Subscribers, metrics and live CSV export.",
   "adminMetricUsers": "Total users",

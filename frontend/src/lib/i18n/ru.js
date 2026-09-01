@@ -2883,6 +2883,8 @@ export default {
   "seoNotFoundDesc": "Страница не существует. Вернитесь к панели управления или изучите инструменты Trading Calculator PRO.",
   "googleSignInError": "Не удалось войти через Google",
   "orContinueWith": "или войти через",
+  "authGoogleUnavailable": "Не удалось загрузить вход через Google.",
+  "authGoogleUnavailableHint": "Обычно причина — блокировщик рекламы или запрет сторонних cookie. Войдите по почте и паролю или запросите магическую ссылку.",
   "adminPanelTitle": "Панель администратора",
   "adminPanelSubtitle": "Подписчики, метрики и экспорт CSV в реальном времени.",
   "adminMetricUsers": "Всего пользователей",
