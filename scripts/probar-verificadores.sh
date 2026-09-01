@@ -1099,9 +1099,21 @@ fi
 # dependencia no estaba declarada. Ahora vive en requirements-dev.txt.
 titulo "Dependencias de test (check-deps-test.py)"
 
+# El sabotaje reescribe la línea de instalación SEA CUAL SEA, en vez de casar
+# un texto concreto. La versión anterior llevaba escrito
+# `pip install -r requirements-dev.txt`, y al traer main la línea pasó a ser
+# `pip install -r requirements.txt -r requirements-dev.txt`: el sed dejó de
+# casar, el sabotaje no se aplicaba, y el caso salía como «SOBREVIVE» — un
+# sabotaje que no sabotea se lee igual que un verificador que no verifica.
 probar "CI vuelve a listar los plugins a mano" \
   "python scripts/check-deps-test.py" \
-  "sed -i 's|run: pip install -r requirements-dev.txt|run: pip install -r requirements.txt pytest pytest-asyncio|' .github/workflows/ci.yml"
+  "python -c \"
+import pathlib, re
+p = pathlib.Path('.github/workflows/ci.yml'); t = p.read_text(encoding='utf-8')
+nuevo, n = re.subn(r'run: pip install[^\\n]*requirements-dev\\.txt[^\\n]*',
+                   'run: pip install -r requirements.txt pytest pytest-asyncio', t, count=1)
+assert n == 1, 'el sabotaje no encontró la línea de instalación'
+p.write_text(nuevo, encoding='utf-8')\""
 
 probar "la guía vuelve a documentar sólo requirements.txt" \
   "python scripts/check-deps-test.py" \
