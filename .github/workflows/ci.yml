@@ -27,7 +27,13 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-          cache-dependency-path: backend/requirements.txt
+          # Los DOS ficheros: el job instala requirements-dev.txt, así que con la
+          # clave apuntando sólo a requirements.txt un cambio en las dependencias
+          # de test no invalidaría la caché y CI seguiría con la versión vieja del
+          # plugin. Se listan los dos porque dev arrastra al otro con `-r`.
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
 
       # Las dependencias de test se declaran en `backend/requirements-dev.txt`,
       # que arrastra `requirements.txt` con `-r`. Estaban sin declarar: aquí se
