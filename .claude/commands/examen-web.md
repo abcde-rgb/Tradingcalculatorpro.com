@@ -13,8 +13,11 @@ Orquesta el examen completo de la web. Ejecuta en este orden y consolida:
 3. **SEO técnico:** aplica la skill `auditar-seo-spa`.
 4. **Seguridad y pagos:** lanza el subagente `revisor-seguridad`.
 5. **i18n y contenido:** lanza el subagente `revisor-i18n-contenido`.
-6. **Consistencia visual:** aplica la skill `consistencia-diseno` (o el subagente `crawler-visual`
-   si hay Playwright).
+6. **Consistencia visual:** corre `node scripts/capturas.js` (público: 9 pantallas ×
+   escritorio/móvil × claro/oscuro) y juzga las capturas con la skill `consistencia-diseno`.
+   Playwright está siempre disponible —el script resuelve el navegador solo—, así que este
+   paso no se salta. Para el breakpoint de tablet (768 px) y las pantallas tras el muro de
+   pago, lanza el subagente `crawler-visual`.
 
 Si `$ARGUMENTS` indica un área (p. ej. "opciones"), prioriza esa vertical pero no omitas la base verde.
 

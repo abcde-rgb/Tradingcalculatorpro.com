@@ -82,7 +82,7 @@ mucha salida y poca conclusión:
 | `auditor-seo` | las 1.630 páginas prerenderizadas |
 | `revisor-seguridad` | auth, pagos, webhooks y admin |
 | `revisor-i18n-contenido` | la paridad de los 10 idiomas |
-| `crawler-visual` | las capturas de las pantallas |
+| `crawler-visual` | tablet (768 px) y las pantallas tras el muro — lo público es `/capturas` |
 
 No delegues lo que ya sabes hacer en dos comandos: un subagente arranca en frío y
 vuelve a deducir el contexto que tú ya tienes. La regla es **mucha salida, poca

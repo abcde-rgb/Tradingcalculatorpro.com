@@ -52,7 +52,7 @@ CLAUDE.md ─── constitución: stack real, honestidad numérica, invariantes
 | `/auditar` | Audita el estado del repositorio más allá de la rama actual. | 34 |
 | `/capturas` | Smoke visual de las pantallas públicas, sin backend. | 38 |
 | `/cerrar-sesion` | Cierra la sesión dejando el proyecto coherente | 68 |
-| `/examen-web` | Examen integral repetible de la web — dispara auditoría de fórmulas, SEO, seguridad, i18n y consistencia de diseño, y consolida un resumen con severidades. | 24 |
+| `/examen-web` | Examen integral repetible de la web — dispara auditoría de fórmulas, SEO, seguridad, i18n y consistencia de diseño, y consolida un resumen con severidades. | 27 |
 | `/pre-deploy` | Recorre el checklist de lanzamiento y marca los bloqueantes operativos (Stripe, secretos, OAuth, dominio, health) que NO se pueden cerrar desde el repo. | 26 |
 | `/verify` | Verifica el proyecto antes de commit/push. | 79 |
 
@@ -63,7 +63,7 @@ CLAUDE.md ─── constitución: stack real, honestidad numérica, invariantes
 | `auditor-formulas` | Corre los tests matemáticos del backend en aislamiento y devuelve SOLO el veredicto (no contamina el… | Bash, Read, Grep, Glob |
 | `auditor-seo` | Audita el SEO del sitio sobre el build compilado y devuelve un veredicto compacto (no vuelca las 1.630… | Bash, Read, Grep, Glob |
 | `buscador-doc` | Responde preguntas sobre la documentación del proyecto (1,6 MB en 53 ficheros) sin traer los documentos al… | Bash, Read, Grep, Glob |
-| `crawler-visual` | Recorre las rutas de la SPA con Playwright, hace capturas en desktop/tablet/móvil y reporta inconsistencias… | Bash, Read, Grep, Glob |
+| `crawler-visual` | Fotografía y audita lo que `scripts/capturas.js` NO cubre — el breakpoint de tablet (768px) y las rutas tras… | Bash, Read, Grep, Glob |
 | `revisor-i18n-contenido` | Valida la paridad de los 10 idiomas (0 claves crudas, sets idénticos) y la exactitud factual de los módulos… | Bash, Read, Grep, Glob |
 | `revisor-seguridad` | Audita auth (JWT/OAuth/2FA), pagos (Stripe/PayPal/Revolut/NOWPayments), webhooks y admin del backend… | Bash, Read, Grep, Glob |
 
