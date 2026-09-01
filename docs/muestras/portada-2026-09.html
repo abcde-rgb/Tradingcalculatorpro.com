@@ -1,0 +1,1263 @@
+<title>Seis portadas para TradingCalculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Inter+Tight:wght@300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ── TOKENS ─────────────────────────────────────────────────────────────────
+   Salen de frontend/src/index.css. Oscuro por defecto: es el tema real del
+   producto, así que aquí el :root desnudo ES el oscuro y la variante clara se
+   define en los dos bloques de abajo. */
+:root{
+  --bg:#101319; --bg-2:#0B0E13; --card:#171B22; --raised:#1C222B;
+  --rule:#262C36; --rule-soft:#1E242D;
+  --ink:#E7E2D6; --ink-dim:#93979F; --ink-faint:#6B7079;
+  --brand:#17CF63; --brand-ink:#06140C; --brand-soft:rgba(23,207,99,.12);
+  --long:#22C55E; --short:#EF4444; --warn:#E0A458;
+  --r-sharp:2px; --r-soft:10px;
+  --ease:cubic-bezier(.2,.7,.3,1); --ease-out:cubic-bezier(.16,1,.3,1);
+  --shell:#0B0E13; --shell-ink:#E7E2D6;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#F7F5F0; --bg-2:#EFEBE2; --card:#FFFFFF; --raised:#FBFAF7;
+    --rule:#DAD5C9; --rule-soft:#E7E3D9;
+    --ink:#1A1D22; --ink-dim:#5C6069; --ink-faint:#878B93;
+    --brand:#1A9954; --brand-ink:#FFFFFF; --brand-soft:rgba(26,153,84,.10);
+    --long:#178A47; --short:#C6392F;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#F7F5F0; --bg-2:#EFEBE2; --card:#FFFFFF; --raised:#FBFAF7;
+  --rule:#DAD5C9; --rule-soft:#E7E3D9;
+  --ink:#1A1D22; --ink-dim:#5C6069; --ink-faint:#878B93;
+  --brand:#1A9954; --brand-ink:#FFFFFF; --brand-soft:rgba(26,153,84,.10);
+  --long:#178A47; --short:#C6392F;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:400 16px/1.6 "Inter Tight","Inter",system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0; text-wrap:balance; font-weight:600; line-height:1.12}
+p{margin:0}
+a{color:inherit}
+.disp{font-family:"Archivo","Inter Tight",sans-serif; font-variation-settings:"wdth" 108; letter-spacing:-.02em}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* ── CHROME DE LA SALA DE MUESTRAS ─────────────────────────────────────── */
+.wrap{max-width:1180px; margin:0 auto; padding:0 24px}
+.top{border-bottom:1px solid var(--rule); background:var(--bg)}
+.top-in{display:flex; flex-wrap:wrap; gap:20px; align-items:flex-end; justify-content:space-between; padding:34px 0 26px}
+.eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); font-weight:500}
+.top h1{font-size:clamp(28px,4.4vw,46px); margin:10px 0 8px}
+.top p.lede{color:var(--ink-dim); max-width:60ch; font-size:16.5px}
+.theme-btn{
+  font:500 13px/1 "Inter Tight",sans-serif; color:var(--ink-dim);
+  background:var(--card); border:1px solid var(--rule); border-radius:var(--r-sharp);
+  padding:9px 13px; cursor:pointer; transition:color .18s var(--ease),border-color .18s var(--ease); white-space:nowrap;
+}
+.theme-btn:hover{color:var(--ink); border-color:var(--ink-faint)}
+
+/* regleta: el elemento firma. Filete con marcas de distinta altura. */
+.regleta{height:13px; position:relative; border-top:1px solid var(--rule)}
+.regleta i{position:absolute; top:0; width:1px; background:var(--rule)}
+.regleta i.maj{height:11px; background:var(--ink-faint)}
+.regleta i.med{height:7px}
+.regleta i.min{height:4px}
+
+/* pestañas */
+.tabs{position:sticky; top:0; z-index:40; background:var(--bg); border-bottom:1px solid var(--rule)}
+.tabs-in{display:flex; gap:0; overflow-x:auto; scrollbar-width:none}
+.tabs-in::-webkit-scrollbar{display:none}
+.tab{
+  flex:0 0 auto; display:flex; align-items:baseline; gap:9px; padding:15px 18px;
+  background:none; border:0; border-bottom:2px solid transparent; cursor:pointer;
+  color:var(--ink-faint); font:500 14px/1 "Inter Tight",sans-serif; white-space:nowrap;
+  transition:color .18s var(--ease), border-color .18s var(--ease);
+}
+.tab .n{font-family:"IBM Plex Mono",monospace; font-size:11px; opacity:.75}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--brand)}
+.tab[aria-selected="true"] .n{color:var(--brand); opacity:1}
+
+section.blk{padding:56px 0}
+.blk h2{font-size:clamp(21px,2.6vw,29px); margin-bottom:10px}
+.blk h3{font-size:17px; margin-bottom:8px}
+.sub{color:var(--ink-dim); max-width:68ch}
+
+/* ficha de cada propuesta */
+.ficha{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:34px; align-items:start; margin-bottom:26px}
+@media (max-width:900px){.ficha{grid-template-columns:1fr; gap:20px}}
+.ficha .tesis{font-size:18px; color:var(--ink); line-height:1.5}
+.ficha .tesis b{color:var(--brand); font-weight:600}
+.meta{border-left:1px solid var(--rule); padding-left:18px; display:grid; gap:13px}
+.meta dt{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:3px}
+.meta dd{margin:0; font-size:13.5px; color:var(--ink-dim); line-height:1.5}
+.pill{display:inline-block; font:500 11px/1 "IBM Plex Mono",monospace; padding:5px 8px; border:1px solid var(--rule); border-radius:var(--r-sharp); color:var(--ink-dim)}
+.pill.on{color:var(--brand); border-color:color-mix(in srgb,var(--brand) 45%,transparent); background:var(--brand-soft)}
+
+/* marco de navegador */
+.frame{border:1px solid var(--rule); border-radius:var(--r-soft); overflow:hidden; background:var(--shell)}
+.frame-bar{display:flex; align-items:center; gap:10px; padding:9px 13px; background:var(--bg-2); border-bottom:1px solid var(--rule)}
+.dots{display:flex; gap:6px}
+.dots i{width:9px;height:9px;border-radius:50%;background:var(--rule)}
+.url{flex:1; text-align:center; font:400 11.5px/1 "IBM Plex Mono",monospace; color:var(--ink-faint);
+  background:var(--card); border:1px solid var(--rule-soft); border-radius:var(--r-sharp); padding:5px 10px; max-width:340px; margin:0 auto}
+.stage{max-height:none; overflow:hidden}
+.panel[hidden]{display:none!important}
+
+/* ── PRIMITIVAS COMUNES DE LAS MAQUETAS ────────────────────────────────── */
+.mk{background:var(--bg); color:var(--ink); padding:0; position:relative}
+.mk-in{max-width:1080px; margin:0 auto; padding:0 30px}
+@media (max-width:640px){.mk-in{padding:0 18px}}
+.mk-nav{display:flex; align-items:center; justify-content:space-between; gap:18px; padding:15px 0; border-bottom:1px solid var(--rule-soft)}
+.mk-logo{display:flex; align-items:center; gap:9px; font:600 15px/1 "Archivo",sans-serif; font-variation-settings:"wdth" 100; letter-spacing:-.01em}
+.mk-logo .glyph{width:19px;height:19px;border:1.5px solid var(--brand); border-radius:var(--r-sharp); position:relative; flex:0 0 auto}
+.mk-logo .glyph::after{content:""; position:absolute; left:2px; right:2px; top:8px; height:1.5px; background:var(--brand)}
+.mk-links{display:flex; gap:20px; font-size:13.5px; color:var(--ink-dim)}
+@media (max-width:720px){.mk-links{display:none}}
+.mk-links span{cursor:default; transition:color .18s var(--ease)}
+.mk-links span:hover{color:var(--ink)}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  font:600 14px/1 "Inter Tight",sans-serif; padding:12px 18px; cursor:pointer;
+  border-radius:var(--r-sharp); border:1px solid transparent; transition:all .18s var(--ease);
+}
+.btn-p{background:var(--brand); color:var(--brand-ink)}
+.btn-p:hover{filter:brightness(1.08); transform:translateY(-1px)}
+.btn-g{background:transparent; color:var(--ink); border-color:var(--rule)}
+.btn-g:hover{border-color:var(--ink-faint)}
+.btn-lg{padding:15px 26px; font-size:15.5px}
+.field{display:grid; gap:6px}
+.field label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); font-weight:500}
+.field .box{display:flex; align-items:center; background:var(--bg-2); border:1px solid var(--rule); border-radius:var(--r-sharp)}
+.field .box:focus-within{border-color:var(--brand)}
+.field input{
+  width:100%; background:none; border:0; color:var(--ink); padding:10px 11px;
+  font:500 15px/1 "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums;
+}
+.field input:focus{outline:none}
+.field .unit{padding:0 11px; font:400 12px/1 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+.card{background:var(--card); border:1px solid var(--rule); border-radius:var(--r-soft)}
+.hair{height:1px; background:var(--rule); border:0; margin:0}
+.kpi{font:600 clamp(26px,3.6vw,38px)/1 "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.lbl{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint)}
+.aviso{
+  display:inline-flex; align-items:center; gap:7px; font:500 11px/1.35 "Inter Tight",sans-serif;
+  color:var(--warn); border:1px solid color-mix(in srgb,var(--warn) 38%,transparent);
+  background:color-mix(in srgb,var(--warn) 9%,transparent); padding:6px 9px; border-radius:var(--r-sharp);
+}
+
+/* regleta viva: mide el trade tecleado */
+.rule-live{position:relative; height:62px; margin-top:20px; user-select:none}
+.rule-live .axis{position:absolute; left:0; right:0; top:26px; height:1px; background:var(--rule)}
+.rule-live .seg{position:absolute; top:24px; height:5px; border-radius:1px}
+.rule-live .mk-tick{position:absolute; top:14px; width:1px; height:25px; background:var(--ink-faint)}
+.rule-live .cap{position:absolute; top:0; font:500 10px/1 "IBM Plex Mono",monospace; color:var(--ink-faint); transform:translateX(-50%); white-space:nowrap}
+.rule-live .val{position:absolute; top:44px; font:500 11px/1 "IBM Plex Mono",monospace; transform:translateX(-50%); white-space:nowrap}
+.rule-live .grad i{position:absolute; top:27px; width:1px; height:4px; background:var(--rule)}
+
+/* cinta de specs de contrato — datos del catálogo, no precios */
+.tape{overflow:hidden; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); background:var(--bg-2)}
+.tape-track{display:flex; gap:0; width:max-content; animation:slide 46s linear infinite}
+@media (prefers-reduced-motion: reduce){.tape-track{animation:none}}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tape-item{display:flex; align-items:baseline; gap:9px; padding:9px 20px; border-right:1px solid var(--rule-soft); font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-variant-numeric:tabular-nums; white-space:nowrap}
+.tape-item b{color:var(--ink); font-weight:600; letter-spacing:.02em}
+.tape-item span{color:var(--ink-faint)}
+.tape-item em{color:var(--brand); font-style:normal}
+
+/* ── M1 · EL INSTRUMENTO ───────────────────────────────────────────────── */
+#m1 .hero{display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1fr); gap:52px; align-items:center; padding:62px 0 46px}
+@media (max-width:880px){#m1 .hero{grid-template-columns:1fr; gap:32px; padding:38px 0}}
+#m1 h1{font-size:clamp(30px,4.6vw,52px); line-height:1.04; margin-bottom:18px}
+#m1 .claim{color:var(--ink-dim); font-size:17px; max-width:44ch; margin-bottom:26px}
+#m1 .ctas{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+#m1 .trial{font-size:13px; color:var(--brand); font-weight:500}
+#m1 .instr{padding:22px}
+#m1 .instr-h{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px}
+#m1 .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+#m1 .out{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px; padding-top:16px; border-top:1px solid var(--rule)}
+#m1 .facts{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--rule); border-top:1px solid var(--rule); border-bottom:1px solid var(--rule)}
+@media (max-width:640px){#m1 .facts{grid-template-columns:repeat(2,1fr)}}
+#m1 .fact{background:var(--bg); padding:20px 16px; text-align:left}
+#m1 .fact .v{font:600 27px/1 "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; color:var(--ink)}
+#m1 .fact .k{font-size:11.5px; color:var(--ink-faint); margin-top:5px}
+
+/* ── M2 · LA ANTIGUA, BIEN HECHA ───────────────────────────────────────── */
+#m2{background:var(--bg-2); overflow:hidden}
+#m2 canvas{position:absolute; inset:0; width:100%; height:100%; z-index:0}
+#m2 .hero{position:relative; z-index:2; text-align:center; padding:74px 0 54px}
+@media (max-width:640px){#m2 .hero{padding:46px 0 36px}}
+#m2 .veil{position:absolute; inset:0; z-index:1;
+  background:radial-gradient(120% 78% at 50% 34%, var(--bg-2) 26%, color-mix(in srgb,var(--bg-2) 55%,transparent) 62%, transparent 100%)}
+#m2 h1{font-size:clamp(38px,7.6vw,84px); line-height:.96; font-variation-settings:"wdth" 88; margin-bottom:16px}
+#m2 h1 em{display:block; font-style:normal; color:var(--brand); font-variation-settings:"wdth" 125; letter-spacing:.02em}
+#m2 .badge{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--rule); background:var(--card);
+  border-radius:100px; padding:7px 15px; font-size:12.5px; color:var(--ink-dim); margin-bottom:24px}
+#m2 .badge i{width:6px;height:6px;border-radius:50%;background:var(--brand);flex:0 0 auto}
+#m2 .claim{color:var(--ink-dim); font-size:17px; max-width:52ch; margin:0 auto 28px}
+#m2 .ctas{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:12px}
+#m2 .facts{display:grid; grid-template-columns:repeat(4,1fr); gap:22px; max-width:640px; margin:38px auto 0}
+@media (max-width:640px){#m2 .facts{grid-template-columns:repeat(2,1fr); gap:22px 12px}}
+#m2 .fact{text-align:center}
+#m2 .fact .v{font:600 clamp(24px,3.4vw,34px)/1 "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; color:var(--brand)}
+#m2 .fact .k{font-size:11.5px; color:var(--ink-faint); margin-top:6px}
+#m2 .foot-aviso{position:relative; z-index:2; text-align:center; padding-bottom:22px}
+
+/* ── M3 · TERMINAL ─────────────────────────────────────────────────────── */
+#m3{background:var(--bg-2)}
+#m3 .grid{display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:0; border-bottom:1px solid var(--rule)}
+@media (max-width:920px){#m3 .grid{grid-template-columns:1fr}}
+#m3 .left{padding:40px 30px 34px; border-right:1px solid var(--rule)}
+@media (max-width:920px){#m3 .left{border-right:0; border-bottom:1px solid var(--rule)}}
+#m3 h1{font-size:clamp(26px,3.8vw,42px); line-height:1.06; margin-bottom:14px; font-variation-settings:"wdth" 96}
+#m3 .claim{color:var(--ink-dim); max-width:50ch; margin-bottom:24px; font-size:16px}
+#m3 table{width:100%; border-collapse:collapse; font-family:"IBM Plex Mono",monospace; font-size:12.5px; font-variant-numeric:tabular-nums}
+#m3 th{text-align:right; font-weight:500; color:var(--ink-faint); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; padding:0 0 9px; border-bottom:1px solid var(--rule)}
+#m3 th:first-child,#m3 td:first-child{text-align:left}
+#m3 td{text-align:right; padding:9px 0; border-bottom:1px solid var(--rule-soft); color:var(--ink-dim)}
+#m3 tr:hover td{color:var(--ink); background:var(--raised)}
+#m3 td b{color:var(--ink); font-weight:600}
+#m3 .right{padding:26px 24px; background:var(--card); display:grid; gap:18px; align-content:start}
+#m3 .sqr{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule)}
+#m3 .sqr div{background:var(--card); padding:13px}
+#m3 .sqr .v{font:600 19px/1 "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+#m3 .sqr .k{font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin-top:5px}
+
+/* ── M4 · EL ERROR ─────────────────────────────────────────────────────── */
+#m4 .hero{padding:52px 0 44px}
+#m4 h1{font-size:clamp(29px,4.5vw,50px); line-height:1.05; margin-bottom:16px; max-width:19ch}
+#m4 h1 s{text-decoration:none; color:var(--short)}
+#m4 .claim{color:var(--ink-dim); font-size:17px; max-width:56ch; margin-bottom:30px}
+#m4 .duel{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:var(--r-soft); overflow:hidden}
+@media (max-width:760px){#m4 .duel{grid-template-columns:1fr}}
+#m4 .side{background:var(--card); padding:24px}
+#m4 .side.bad{background:color-mix(in srgb,var(--short) 6%,var(--card))}
+#m4 .side.good{background:color-mix(in srgb,var(--long) 6%,var(--card))}
+#m4 .side h4{font-size:12px; letter-spacing:.09em; text-transform:uppercase; margin-bottom:16px}
+#m4 .side.bad h4{color:var(--short)} #m4 .side.good h4{color:var(--long)}
+#m4 .row{display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--rule-soft); font-size:13.5px}
+#m4 .row:last-of-type{border-bottom:0}
+#m4 .row span{color:var(--ink-dim)}
+#m4 .row b{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-weight:600}
+#m4 .big{margin-top:14px; padding-top:14px; border-top:1px solid var(--rule)}
+#m4 .slider-wrap{margin:26px 0 6px}
+#m4 input[type=range]{width:100%; accent-color:var(--brand); height:22px}
+#m4 .verdict{margin-top:26px; padding:20px; border:1px solid var(--rule); border-left:2px solid var(--brand); border-radius:var(--r-sharp); background:var(--card)}
+#m4 .verdict .kpi{color:var(--brand)}
+
+/* ── M5 · CALMA (banca/exchange) ───────────────────────────────────────── */
+#m5 .hero{display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:64px 0 48px}
+@media (max-width:880px){#m5 .hero{grid-template-columns:1fr; gap:30px; padding:40px 0}}
+#m5 h1{font-size:clamp(32px,4.8vw,54px); line-height:1.03; margin-bottom:18px; letter-spacing:-.025em}
+#m5 .claim{color:var(--ink-dim); font-size:18px; max-width:40ch; margin-bottom:28px; line-height:1.55}
+#m5 .video{position:relative; aspect-ratio:16/10; border:1px solid var(--rule); border-radius:var(--r-soft); overflow:hidden; background:var(--card); cursor:pointer}
+#m5 .video .poster{position:absolute; inset:0; display:grid; place-items:center; gap:14px; align-content:center}
+#m5 .play{width:62px;height:62px;border-radius:50%; border:1px solid var(--brand); background:var(--brand-soft); display:grid; place-items:center; transition:transform .25s var(--ease-out)}
+#m5 .video:hover .play{transform:scale(1.07)}
+#m5 .play::after{content:""; width:0;height:0; border-left:15px solid var(--brand); border-top:9px solid transparent; border-bottom:9px solid transparent; margin-left:4px}
+#m5 .vcap{font-size:12.5px; color:var(--ink-faint); text-align:center; max-width:30ch}
+#m5 .trust{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--rule); border-top:1px solid var(--rule); border-bottom:1px solid var(--rule)}
+@media (max-width:700px){#m5 .trust{grid-template-columns:repeat(2,1fr)}}
+#m5 .t-item{background:var(--bg); padding:22px 18px}
+#m5 .t-item .h{font-size:13.5px; font-weight:600; margin-bottom:5px}
+#m5 .t-item .d{font-size:12.5px; color:var(--ink-faint); line-height:1.45}
+
+/* ── M6 · SIN REGISTRO ─────────────────────────────────────────────────── */
+#m6 .hero{padding:44px 0 20px; text-align:center}
+#m6 h1{font-size:clamp(27px,4.1vw,44px); line-height:1.06; margin-bottom:12px}
+#m6 .claim{color:var(--ink-dim); max-width:50ch; margin:0 auto 26px; font-size:16.5px}
+#m6 .tools{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:20px}
+#m6 .tool{font:500 12.5px/1 "Inter Tight",sans-serif; padding:9px 13px; border:1px solid var(--rule); background:var(--card);
+  border-radius:var(--r-sharp); color:var(--ink-dim); cursor:pointer; transition:all .16s var(--ease)}
+#m6 .tool:hover{color:var(--ink); border-color:var(--ink-faint)}
+#m6 .tool[aria-pressed="true"]{color:var(--brand-ink); background:var(--brand); border-color:var(--brand)}
+#m6 .bench{padding:26px; text-align:left}
+#m6 .bench-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+@media (max-width:760px){#m6 .bench-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:460px){#m6 .bench-grid{grid-template-columns:1fr}}
+#m6 .res{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); margin-top:20px}
+@media (max-width:560px){#m6 .res{grid-template-columns:1fr}}
+#m6 .res div{background:var(--card); padding:16px}
+#m6 .gate{margin-top:20px; padding:16px 20px; border:1px dashed var(--rule); border-radius:var(--r-sharp);
+  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap}
+#m6 .gate p{font-size:13.5px; color:var(--ink-dim)}
+
+/* ── DOSIER ────────────────────────────────────────────────────────────── */
+.dos{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:var(--r-soft); overflow:hidden}
+@media (max-width:900px){.dos{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:600px){.dos{grid-template-columns:1fr}}
+.dos > div{background:var(--card); padding:22px}
+.dos .v{font:600 30px/1 "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; color:var(--brand); margin-bottom:8px}
+.dos .k{font-size:13.5px; color:var(--ink-dim); line-height:1.5}
+.dos .src{font-size:11px; color:var(--ink-faint); margin-top:10px; font-family:"IBM Plex Mono",monospace}
+table.plain{width:100%; border-collapse:collapse; font-size:14px}
+table.plain th{text-align:left; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:500; padding:0 12px 10px 0; border-bottom:1px solid var(--rule)}
+table.plain td{padding:11px 12px 11px 0; border-bottom:1px solid var(--rule-soft); color:var(--ink-dim); vertical-align:top; line-height:1.5}
+table.plain td b{color:var(--ink); font-weight:600}
+.scroll-x{overflow-x:auto}
+@media (max-width:760px){.comparativa{grid-template-columns:1fr!important}}
+.riesgo{border:1px solid color-mix(in srgb,var(--short) 42%,transparent); background:color-mix(in srgb,var(--short) 7%,transparent);
+  border-radius:var(--r-soft); padding:22px; margin-top:22px}
+.riesgo h3{color:var(--short)}
+.foot{border-top:1px solid var(--rule); padding:34px 0 60px; color:var(--ink-faint); font-size:13px}
+.foot a{color:var(--ink-dim)}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-in">
+      <div>
+        <div class="eyebrow">TradingCalculator.Pro · sala de muestras · septiembre 2026</div>
+        <h1 class="disp">Seis portadas, seis tesis distintas</h1>
+        <p class="lede">Ninguna sustituye a la actual: esto es un banco de pruebas. Las seis usan los tokens
+          reales del producto y <b>sólo cifras comprobables</b> — 17 calculadoras, 186 activos, 66 estrategias,
+          10 idiomas. Las tres primeras funcionan de verdad: teclea y calculan.</p>
+      </div>
+      <button class="theme-btn" id="themeBtn" type="button">Ver en claro</button>
+    </div>
+    <div class="regleta" id="reg0"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="blk" id="diagnostico">
+    <h2 class="disp">Por qué la actual te sabe a poco</h2>
+    <p class="sub" style="margin-bottom:26px">El commit <span class="mono" style="font-size:13px">d9d7377</span>
+      cambió el hero: el titular pasó de centrado y enorme a una línea corta a la izquierda, y se retiró el
+      gráfico de velas animado por «adorno». Técnicamente tenía razón — pero cambió <b>presencia</b> por
+      <b>pureza</b>, y una portada sin presencia no retiene a nadie. Reconstrucción a partir del código:</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px" class="comparativa">
+      <div class="card" style="padding:20px">
+        <div class="lbl" style="margin-bottom:14px">Antes · la que te gustaba</div>
+        <div style="border:1px solid var(--rule);border-radius:var(--r-sharp);padding:18px;text-align:center;background:var(--bg-2)">
+          <div style="height:7px;width:38%;margin:0 auto 12px;background:var(--brand);opacity:.45;border-radius:1px"></div>
+          <div style="height:22px;width:76%;margin:0 auto 6px;background:var(--ink);opacity:.72;border-radius:1px"></div>
+          <div style="height:22px;width:44%;margin:0 auto 12px;background:var(--brand);border-radius:1px"></div>
+          <div style="height:5px;width:62%;margin:0 auto 4px;background:var(--ink);opacity:.2"></div>
+          <div style="height:5px;width:52%;margin:0 auto 14px;background:var(--ink);opacity:.2"></div>
+          <div style="display:flex;gap:8px;justify-content:center"><div style="height:15px;width:80px;background:var(--brand);border-radius:1px"></div><div style="height:15px;width:80px;border:1px solid var(--rule);border-radius:1px"></div></div>
+          <div style="margin-top:14px;height:34px;background:linear-gradient(90deg,var(--long) 0 6%,transparent 6% 12%,var(--short) 12% 18%,transparent 18% 26%,var(--long) 26% 32%,transparent 32% 40%,var(--long) 40% 46%,transparent 46% 54%,var(--short) 54% 60%,transparent 60% 68%,var(--long) 68% 74%,transparent 74% 82%,var(--long) 82% 88%,transparent 88%);opacity:.3"></div>
+        </div>
+        <p style="font-size:13px;color:var(--ink-dim);margin-top:14px;line-height:1.5">Título gigante centrado, velas animadas
+          detrás, dos CTAs grandes. <b style="color:var(--ink)">Impacto de sobra</b>, pero cuatro cosas compitiendo
+          y la calculadora 200 líneas más abajo.</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="lbl" style="margin-bottom:14px">Ahora · la actual</div>
+        <div style="border:1px solid var(--rule);border-radius:var(--r-sharp);padding:18px;background:var(--bg-2);display:grid;grid-template-columns:.8fr 1fr;gap:14px;align-items:center">
+          <div>
+            <div style="height:13px;width:92%;background:var(--ink);opacity:.7;border-radius:1px;margin-bottom:5px"></div>
+            <div style="height:13px;width:64%;background:var(--ink);opacity:.7;border-radius:1px;margin-bottom:10px"></div>
+            <div style="height:4px;width:88%;background:var(--ink);opacity:.2;margin-bottom:3px"></div>
+            <div style="height:4px;width:70%;background:var(--ink);opacity:.2;margin-bottom:12px"></div>
+            <div style="height:13px;width:70px;background:var(--brand);border-radius:1px"></div>
+          </div>
+          <div style="border:1px solid var(--rule);border-radius:2px;padding:10px;background:var(--card)">
+            <div style="height:6px;width:50%;background:var(--ink);opacity:.35;margin-bottom:8px"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">
+              <div style="height:15px;background:var(--bg-2);border:1px solid var(--rule)"></div>
+              <div style="height:15px;background:var(--bg-2);border:1px solid var(--rule)"></div>
+              <div style="height:15px;background:var(--bg-2);border:1px solid var(--rule)"></div>
+              <div style="height:15px;background:var(--bg-2);border:1px solid var(--rule)"></div>
+            </div>
+            <div style="height:11px;width:42%;background:var(--brand);opacity:.8"></div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--ink-dim);margin-top:14px;line-height:1.5">Titular corto, instrumento a la
+          derecha, regleta. <b style="color:var(--ink)">Rigurosa y honesta</b>, pero entra en la pantalla como
+          entra un formulario: sin acontecimiento.</p>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:22px"><b style="color:var(--ink)">El diagnóstico:</b> no hay que volver atrás,
+      hay que devolverle la escala. Las seis propuestas van ordenadas por distancia respecto a la actual —
+      la 1 la retoca, la 6 la reinventa.</p>
+  </section>
+</div>
+
+<nav class="tabs" aria-label="Propuestas">
+  <div class="wrap"><div class="tabs-in" role="tablist">
+    <button class="tab" role="tab" aria-selected="true"  data-p="m1"><span class="n">01</span>El instrumento</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="m2"><span class="n">02</span>La antigua, bien hecha</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="m3"><span class="n">03</span>Terminal</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="m4"><span class="n">04</span>El error</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="m5"><span class="n">05</span>Calma</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="m6"><span class="n">06</span>Sin registro</button>
+  </div></div>
+</nav>
+
+<div class="wrap">
+<!-- ══ 01 ══════════════════════════════════════════════════════════════ -->
+<section class="blk panel" id="p-m1" role="tabpanel">
+  <div class="ficha">
+    <div>
+      <div class="eyebrow">Propuesta 01 · retoque</div>
+      <h2 class="disp" style="margin:8px 0 12px">El instrumento</h2>
+      <p class="tesis">La actual, pero con <b>escala</b>. Mismo esqueleto —titular a la izquierda, calculadora a la
+        derecha— y tres cambios: el titular sube a 52 px y dice qué hace el producto en una frase que se puede
+        discutir; la regleta mide en vivo el trade que acabas de teclear; y las cuatro cifras dejan de flotar
+        centradas y se convierten en un zócalo con filetes, que es como se presenta un dato serio.</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Riesgo</dt><dd>El más bajo. Es una tarde de trabajo sobre <span class="mono">LandingPage.jsx</span>.</dd></div>
+      <div><dt>Apuesta</dt><dd>Que el problema era el tamaño, no la estructura.</dd></div>
+      <div><dt>Vídeo</dt><dd>No lo pide.</dd></div>
+      <div><dt>Base</dt><dd><span class="pill on">demo interactiva en hero</span> <span class="pill">split layout</span></dd></div>
+    </dl>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">tradingcalculatorpro.com</div><div style="width:42px"></div></div>
+    <div class="stage"><div class="mk" id="m1">
+      <div class="mk-in">
+        <div class="mk-nav">
+          <div class="mk-logo"><span class="glyph"></span>TradingCalculator<span style="color:var(--brand)">.Pro</span></div>
+          <div class="mk-links"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div>
+          <button class="btn btn-p" style="padding:9px 15px;font-size:13px">Probar 7 días</button>
+        </div>
+        <div class="hero">
+          <div>
+            <h1 class="disp">Sabes cuánto arriesgas<br>antes de pulsar comprar.</h1>
+            <p class="claim">Tecleas capital, entrada y stop. Te devuelve el tamaño exacto de la posición y lo que
+              pierdes si salta — con el tick real de cada contrato, no con una regla de tres.</p>
+            <div class="ctas">
+              <button class="btn btn-p btn-lg">Empezar gratis</button>
+              <button class="btn btn-g btn-lg">Ver los planes</button>
+            </div>
+            <p class="trial">7 días de prueba. Se cancela desde Ajustes en dos clics.</p>
+          </div>
+          <div class="card instr">
+            <div class="instr-h">
+              <div class="lbl">Tamaño de posición · Micro E-mini S&amp;P 500</div>
+              <span class="mono" style="font-size:11px;color:var(--brand)">MES · tick 0,25 = 1,25 $</span>
+            </div>
+            <div class="grid2">
+              <div class="field"><label for="m1cap">Capital</label><div class="box"><input id="m1cap" type="number" value="25000" step="500"><span class="unit">$</span></div></div>
+              <div class="field"><label for="m1rsk">Riesgo</label><div class="box"><input id="m1rsk" type="number" value="1" step="0.25"><span class="unit">%</span></div></div>
+              <div class="field"><label for="m1ent">Entrada</label><div class="box"><input id="m1ent" type="number" value="5842.50" step="0.25"><span class="unit">pts</span></div></div>
+              <div class="field"><label for="m1stp">Stop</label><div class="box"><input id="m1stp" type="number" value="5830.00" step="0.25"><span class="unit">pts</span></div></div>
+            </div>
+            <div class="out">
+              <div><div class="lbl">Contratos</div><div class="kpi" id="m1qty" style="color:var(--brand)">—</div></div>
+              <div><div class="lbl">Pérdida si salta el stop</div><div class="kpi" id="m1loss" style="color:var(--short)">—</div></div>
+            </div>
+            <div class="rule-live" id="m1rule"></div>
+            <p style="font-size:11px;color:var(--ink-faint);margin-top:6px;line-height:1.45">La distancia entrada→stop
+              <b style="color:var(--ink-dim)">es</b> 1R por definición. 2R y 3R son esa misma distancia proyectada:
+              aritmética sobre lo que has tecleado, no un pronóstico.</p>
+          </div>
+        </div>
+      </div>
+      <div class="facts">
+        <div class="fact"><div class="v">17</div><div class="k">calculadoras</div></div>
+        <div class="fact"><div class="v">186</div><div class="k">activos con ficha</div></div>
+        <div class="fact"><div class="v">66</div><div class="k">estrategias de opciones</div></div>
+        <div class="fact"><div class="v">10</div><div class="k">idiomas</div></div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ══ 02 ══════════════════════════════════════════════════════════════ -->
+<section class="blk panel" id="p-m2" role="tabpanel" hidden>
+  <div class="ficha">
+    <div>
+      <div class="eyebrow">Propuesta 02 · recuperación</div>
+      <h2 class="disp" style="margin:8px 0 12px">La antigua, bien hecha</h2>
+      <p class="tesis">Lo que echas de menos, sin lo que estaba mal. Vuelve el <b>título gigante centrado</b> y
+        vuelven las <b>velas animadas</b> — pero el gráfico deja de ser papel pintado: es un trade con su entrada,
+        su stop y su objetivo marcados, y la marca de agua dice que los datos son ilustrativos. Del degradado
+        sobre «PRO» me despido: el peso lo lleva ahora la anchura variable de la tipografía, que es más raro y
+        no lo hace nadie. Si lo quieres de vuelta, es una línea.</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Riesgo</dt><dd>Medio. Recupera <span class="mono">AnimatedHeroChart</span> del historial.</dd></div>
+      <div><dt>Apuesta</dt><dd>Que lo cinematográfico vende, si además informa.</dd></div>
+      <div><dt>Vídeo</dt><dd>Encaja detrás del titular, en bucle y mudo.</dd></div>
+      <div><dt>Base</dt><dd><span class="pill on">hero cinematográfico</span> <span class="pill">tipografía maximalista</span></dd></div>
+    </dl>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">tradingcalculatorpro.com</div><div style="width:42px"></div></div>
+    <div class="stage"><div class="mk" id="m2">
+      <canvas id="m2canvas" aria-hidden="true"></canvas>
+      <div class="veil"></div>
+      <div class="mk-in" style="position:relative;z-index:3">
+        <div class="mk-nav" style="border-bottom-color:transparent">
+          <div class="mk-logo"><span class="glyph"></span>TradingCalculator<span style="color:var(--brand)">.Pro</span></div>
+          <div class="mk-links"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div>
+          <button class="btn btn-p" style="padding:9px 15px;font-size:13px">Probar 7 días</button>
+        </div>
+      </div>
+      <div class="hero mk-in">
+        <div class="badge"><i></i>17 calculadoras · 186 activos · 10 idiomas</div>
+        <h1 class="disp">Trading Calculator<em>PRO</em></h1>
+        <p class="claim">El tamaño de la posición, el riesgo real y las griegas de la opción — calculados con las
+          specs del contrato que operas, no con una aproximación.</p>
+        <div class="ctas">
+          <button class="btn btn-p btn-lg">Empezar gratis</button>
+          <button class="btn btn-g btn-lg">Ver los planes</button>
+        </div>
+        <p style="font-size:13px;color:var(--brand);font-weight:500">7 días de prueba. Se cancela en dos clics.</p>
+        <div class="facts">
+          <div class="fact"><div class="v" data-count="17">0</div><div class="k">calculadoras</div></div>
+          <div class="fact"><div class="v" data-count="186">0</div><div class="k">activos</div></div>
+          <div class="fact"><div class="v" data-count="66">0</div><div class="k">estrategias</div></div>
+          <div class="fact"><div class="v" data-count="10">0</div><div class="k">idiomas</div></div>
+        </div>
+      </div>
+      <div class="foot-aviso"><span class="aviso">Velas ilustrativas — no son cotizaciones reales</span></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ══ 03 ══════════════════════════════════════════════════════════════ -->
+<section class="blk panel" id="p-m3" role="tabpanel" hidden>
+  <div class="ficha">
+    <div>
+      <div class="eyebrow">Propuesta 03 · reinterpretación</div>
+      <h2 class="disp" style="margin:8px 0 12px">Terminal</h2>
+      <p class="tesis">Profesional por <b>densidad</b>, no por espacio en blanco. Es la lección de Interactive
+        Brokers y Bloomberg: al operador serio no lo convence una portada aireada, lo convence ver que la
+        herramienta conoce su instrumento. La cinta no lleva precios inventados — lleva <b>specs de contrato
+        reales del catálogo</b>: tamaño, tick y valor del tick. Es la cosa más difícil de fingir que tiene el
+        producto, y hoy no se enseña en la portada.</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Riesgo</dt><dd>Alto. Espanta al principiante; enamora al que ya opera.</dd></div>
+      <div><dt>Apuesta</dt><dd>Que tu cliente es el que ya sabe lo que es un tick.</dd></div>
+      <div><dt>Vídeo</dt><dd>No. Aquí el vídeo sobraría.</dd></div>
+      <div><dt>Base</dt><dd><span class="pill on">densidad IBKR</span> <span class="pill">un solo acento</span></dd></div>
+    </dl>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">tradingcalculatorpro.com</div><div style="width:42px"></div></div>
+    <div class="stage"><div class="mk" id="m3">
+      <div class="mk-in"><div class="mk-nav">
+        <div class="mk-logo"><span class="glyph"></span>TradingCalculator<span style="color:var(--brand)">.Pro</span></div>
+        <div class="mk-links"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Escáner</span><span>Precios</span></div>
+        <button class="btn btn-p" style="padding:9px 15px;font-size:13px">Probar 7 días</button>
+      </div></div>
+      <div class="tape"><div class="tape-track" id="m3tape"></div></div>
+      <div class="grid">
+        <div class="left">
+          <h1 class="disp">Cada contrato tiene su tick.<br>La calculadora también.</h1>
+          <p class="claim">186 activos con su tamaño de contrato, su tick y su margen inicial cargados. Eliges el
+            símbolo y el tamaño de posición sale con la aritmética de ese contrato, no con una regla de tres
+            sobre el precio.</p>
+          <div class="scroll-x"><table>
+            <thead><tr><th>Símbolo</th><th>Contrato</th><th>Tick</th><th>Valor tick</th><th>Margen ini.</th></tr></thead>
+            <tbody id="m3tbody"></tbody>
+          </table></div>
+          <p style="font-size:11.5px;color:var(--ink-faint);margin-top:12px">Seis de 186. Fuente:
+            <span class="mono">backend/instruments.py</span> — el mismo fichero del que come la calculadora.</p>
+        </div>
+        <div class="right">
+          <div>
+            <div class="lbl" style="margin-bottom:12px">Sesión</div>
+            <div class="sqr">
+              <div><div class="v" style="color:var(--brand)">17</div><div class="k">calculadoras</div></div>
+              <div><div class="v">186</div><div class="k">activos</div></div>
+              <div><div class="v">66</div><div class="k">estrategias</div></div>
+              <div><div class="v">42+30</div><div class="k">patrones</div></div>
+            </div>
+          </div>
+          <hr class="hair">
+          <div>
+            <div class="lbl" style="margin-bottom:10px">Empezar</div>
+            <button class="btn btn-p" style="width:100%;margin-bottom:9px">Abrir el banco de calculadoras</button>
+            <button class="btn btn-g" style="width:100%">Ver los planes · desde 17 €/mes</button>
+            <p style="font-size:11.5px;color:var(--ink-faint);margin-top:11px;line-height:1.45">7 días de prueba con
+              tarjeta. Cancelación en dos clics desde Ajustes.</p>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ══ 04 ══════════════════════════════════════════════════════════════ -->
+<section class="blk panel" id="p-m4" role="tabpanel" hidden>
+  <div class="ficha">
+    <div>
+      <div class="eyebrow">Propuesta 04 · conversión</div>
+      <h2 class="disp" style="margin:8px 0 12px">El error</h2>
+      <p class="tesis">La única de las seis que <b>ataca un dolor</b> en vez de presentar un producto. Enseña el
+        mismo trade dimensionado de dos maneras: a ojo, un contrato E-mini; con la calculadora, cuatro micros.
+        Idéntica idea, idéntico stop — y <b>dos veces y media el riesgo</b>. No hace falta exagerar nada: la
+        aritmética del catálogo ya es el argumento de venta.</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Riesgo</dt><dd>Medio. Empieza en negativo; hay que saber salir a tiempo.</dd></div>
+      <div><dt>Apuesta</dt><dd>Aversión a la pérdida &gt; lista de funciones.</dd></div>
+      <div><dt>Vídeo</dt><dd>Sí, y es donde más rinde: 40 s enseñando el error.</dd></div>
+      <div><dt>Base</dt><dd><span class="pill on">problema primero</span> <span class="pill">interacción en hero</span></dd></div>
+    </dl>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">tradingcalculatorpro.com</div><div style="width:42px"></div></div>
+    <div class="stage"><div class="mk" id="m4">
+      <div class="mk-in">
+        <div class="mk-nav">
+          <div class="mk-logo"><span class="glyph"></span>TradingCalculator<span style="color:var(--brand)">.Pro</span></div>
+          <div class="mk-links"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div>
+          <button class="btn btn-p" style="padding:9px 15px;font-size:13px">Probar 7 días</button>
+        </div>
+        <div class="hero">
+          <h1 class="disp">Una entrada mala cuesta una operación.<br><s>Un tamaño mal calculado cuesta la cuenta.</s></h1>
+          <p class="claim">Mismo trade, mismo stop, misma convicción. Lo único que cambia es <b style="color:var(--ink)">qué
+            contrato eliges y cuántos</b>. Mueve el riesgo que estás dispuesto a asumir y mira la diferencia.</p>
+          <div class="slider-wrap">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+              <span class="lbl">Riesgo por operación</span>
+              <span class="num" style="font-size:16px;font-weight:600;color:var(--brand)" id="m4pct">1,00 %</span>
+            </div>
+            <input type="range" id="m4slider" min="25" max="300" step="5" value="100" aria-label="Riesgo por operación en porcentaje">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint)" class="mono"><span>0,25 %</span><span>3,00 %</span></div>
+          </div>
+          <div class="duel">
+            <div class="side bad">
+              <h4>A ojo · 1 contrato ES</h4>
+              <div class="row"><span>Instrumento</span><b>E-mini S&amp;P 500</b></div>
+              <div class="row"><span>Valor del punto</span><b>50,00 $</b></div>
+              <div class="row"><span>Distancia al stop</span><b>12,50 pts</b></div>
+              <div class="row"><span>Contratos</span><b>1</b></div>
+              <div class="big">
+                <div class="lbl">Si salta el stop</div>
+                <div class="kpi" style="color:var(--short)">−625,00 $</div>
+                <div class="num" style="font-size:13px;color:var(--short);margin-top:4px" id="m4badpct">2,50 % de la cuenta</div>
+              </div>
+            </div>
+            <div class="side good">
+              <h4>Dimensionado · micros</h4>
+              <div class="row"><span>Instrumento</span><b>Micro E-mini S&amp;P 500</b></div>
+              <div class="row"><span>Valor del punto</span><b>5,00 $</b></div>
+              <div class="row"><span>Distancia al stop</span><b>12,50 pts</b></div>
+              <div class="row"><span>Contratos</span><b id="m4qty">4</b></div>
+              <div class="big">
+                <div class="lbl">Si salta el stop</div>
+                <div class="kpi" style="color:var(--long)" id="m4loss">−250,00 $</div>
+                <div class="num" style="font-size:13px;color:var(--long);margin-top:4px" id="m4goodpct">1,00 % de la cuenta</div>
+              </div>
+            </div>
+          </div>
+          <div class="verdict">
+            <div class="lbl">Diferencia sobre una cuenta de 25.000 $</div>
+            <div class="kpi" id="m4diff">375,00 $</div>
+            <p style="font-size:14px;color:var(--ink-dim);margin-top:8px;line-height:1.5">Por operación. En veinte
+              operaciones, <b class="num" style="color:var(--ink)" id="m4x20">7.500,00 $</b> de riesgo que nadie
+              decidió asumir — apareció al redondear el contrato hacia arriba.</p>
+            <div style="display:flex;gap:11px;flex-wrap:wrap;margin-top:18px">
+              <button class="btn btn-p">Calcular mi tamaño</button>
+              <button class="btn btn-g">Cómo funciona</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ══ 05 ══════════════════════════════════════════════════════════════ -->
+<section class="blk panel" id="p-m5" role="tabpanel" hidden>
+  <div class="ficha">
+    <div>
+      <div class="eyebrow">Propuesta 05 · confianza</div>
+      <h2 class="disp" style="margin:8px 0 12px">Calma</h2>
+      <p class="tesis">La escuela Coinbase/Revolut: una sola afirmación, aire alrededor y el bloque de confianza
+        pegado al botón, que es donde se decide. Aquí va el <b>hueco del vídeo</b>. Y un aviso que vale por toda
+        la investigación: <b>no somos un bróker</b>, así que no podemos colgar un sello de la FCA — que es
+        justamente lo que más convierte en las webs de bróker. Nuestro equivalente honesto es mejor:
+        no custodiamos fondos, así que no hay nada que perder aquí.</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Riesgo</dt><dd>Bajo, pero es la más parecida a la competencia.</dd></div>
+      <div><dt>Apuesta</dt><dd>Que la barrera es la desconfianza, no la ignorancia.</dd></div>
+      <div><dt>Vídeo</dt><dd>Imprescindible. Es su pieza central.</dd></div>
+      <div><dt>Base</dt><dd><span class="pill on">confianza junto al CTA</span> <span class="pill">vídeo &lt; 90 s</span></dd></div>
+    </dl>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">tradingcalculatorpro.com</div><div style="width:42px"></div></div>
+    <div class="stage"><div class="mk" id="m5">
+      <div class="mk-in">
+        <div class="mk-nav">
+          <div class="mk-logo"><span class="glyph"></span>TradingCalculator<span style="color:var(--brand)">.Pro</span></div>
+          <div class="mk-links"><span>Producto</span><span>Precios</span><span>Academia</span><span>Sobre nosotros</span></div>
+          <button class="btn btn-p" style="padding:9px 15px;font-size:13px">Probar 7 días</button>
+        </div>
+        <div class="hero">
+          <div>
+            <h1 class="disp">Calcula antes de operar.</h1>
+            <p class="claim">Tamaño de posición, riesgo, griegas y diario de operaciones. Una herramienta que se
+              abre cada mañana antes del mercado y se cierra en treinta segundos.</p>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+              <button class="btn btn-p btn-lg">Empezar los 7 días</button>
+              <button class="btn btn-g btn-lg">Ver el vídeo · 40 s</button>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-faint)">
+              <span>Sin permanencia</span><span>·</span><span>Cancelas en dos clics</span><span>·</span><span>Desde 17 €/mes</span>
+            </div>
+          </div>
+          <div class="video" id="m5video" role="button" tabindex="0" aria-label="Reproducir el vídeo de 40 segundos">
+            <div class="poster">
+              <div class="play"></div>
+              <p class="vcap">40 s: una cuenta de 25.000 $, un trade en el S&amp;P y por qué son cuatro micros y
+                no un mini.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="trust">
+        <div class="t-item"><div class="h">No custodiamos fondos</div><div class="d">Esto calcula, no opera ni guarda dinero. Tu bróker sigue siendo tu bróker.</div></div>
+        <div class="t-item"><div class="h">Pago con Stripe y PayPal</div><div class="d">La tarjeta no pasa por nuestros servidores en ningún momento.</div></div>
+        <div class="t-item"><div class="h">Tus datos son tuyos</div><div class="d">Exportas el diario completo o borras la cuenta cuando quieras.</div></div>
+        <div class="t-item"><div class="h">10 idiomas</div><div class="d">Interfaz y academia traducidas, no sólo el botón de comprar.</div></div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ══ 06 ══════════════════════════════════════════════════════════════ -->
+<section class="blk panel" id="p-m6" role="tabpanel" hidden>
+  <div class="ficha">
+    <div>
+      <div class="eyebrow">Propuesta 06 · reinvención</div>
+      <h2 class="disp" style="margin:8px 0 12px">Sin registro</h2>
+      <p class="tesis">La portada <b>es</b> la herramienta. Nada de contar lo que hace: tres de las diecisiete
+        calculadoras funcionando en la primera pantalla, sin cuenta, sin correo, sin muro. El registro aparece
+        cuando ya has obtenido algo — al querer guardarlo. Es la apuesta más agresiva de las seis y la que más
+        cambia el embudo: <b>convierte peor por visita y mejor por visitante que vuelve</b>.</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Riesgo</dt><dd>El más alto. Regala el producto en la portada.</dd></div>
+      <div><dt>Apuesta</dt><dd>Que probándolo se queda; contándoselo, no.</dd></div>
+      <div><dt>Vídeo</dt><dd>Innecesario: la demo es el vídeo.</dd></div>
+      <div><dt>Base</dt><dd><span class="pill on">demo interactiva</span> <span class="pill">product-led</span></dd></div>
+    </dl>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">tradingcalculatorpro.com</div><div style="width:42px"></div></div>
+    <div class="stage"><div class="mk" id="m6">
+      <div class="mk-in">
+        <div class="mk-nav">
+          <div class="mk-logo"><span class="glyph"></span>TradingCalculator<span style="color:var(--brand)">.Pro</span></div>
+          <div class="mk-links"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div>
+          <button class="btn btn-g" style="padding:9px 15px;font-size:13px">Entrar</button>
+        </div>
+        <div class="hero">
+          <h1 class="disp">Pruébalo ahora. El registro viene después.</h1>
+          <p class="claim">Tres de las diecisiete calculadoras, aquí mismo y sin cuenta. Si te sirven, las otras
+            catorce y el diario están detrás de siete días de prueba.</p>
+          <div class="tools" role="group" aria-label="Elegir calculadora">
+            <button class="tool" aria-pressed="true"  data-t="size">Tamaño de posición</button>
+            <button class="tool" aria-pressed="false" data-t="rr">Riesgo / Beneficio</button>
+            <button class="tool" aria-pressed="false" data-t="rec">Recuperar una pérdida</button>
+          </div>
+        </div>
+        <div class="mk-in" style="padding-bottom:34px">
+          <div class="card bench">
+            <div id="m6-size">
+              <div class="bench-grid">
+                <div class="field"><label for="m6cap">Capital</label><div class="box"><input id="m6cap" type="number" value="10000" step="500"><span class="unit">$</span></div></div>
+                <div class="field"><label for="m6rsk">Riesgo</label><div class="box"><input id="m6rsk" type="number" value="1.5" step="0.25"><span class="unit">%</span></div></div>
+                <div class="field"><label for="m6dist">Distancia al stop</label><div class="box"><input id="m6dist" type="number" value="35" step="1"><span class="unit">pips</span></div></div>
+              </div>
+              <div class="res">
+                <div><div class="lbl">Arriesgas</div><div class="kpi" id="m6risk" style="font-size:26px">—</div></div>
+                <div><div class="lbl">Tamaño</div><div class="kpi" id="m6lots" style="font-size:26px;color:var(--brand)">—</div></div>
+                <div><div class="lbl">Valor por pip</div><div class="kpi" id="m6pip" style="font-size:26px">—</div></div>
+              </div>
+              <p style="font-size:11.5px;color:var(--ink-faint);margin-top:12px">Par principal, lote estándar de
+                100.000 y pip de 10 $ por lote. Cambia el par en la versión completa.</p>
+            </div>
+            <div id="m6-rr" hidden>
+              <div class="bench-grid">
+                <div class="field"><label for="m6e">Entrada</label><div class="box"><input id="m6e" type="number" value="1.0850" step="0.0005"></div></div>
+                <div class="field"><label for="m6s">Stop</label><div class="box"><input id="m6s" type="number" value="1.0815" step="0.0005"></div></div>
+                <div class="field"><label for="m6t">Objetivo</label><div class="box"><input id="m6t" type="number" value="1.0955" step="0.0005"></div></div>
+              </div>
+              <div class="res">
+                <div><div class="lbl">Riesgo</div><div class="kpi" id="m6rrRisk" style="font-size:26px;color:var(--short)">—</div></div>
+                <div><div class="lbl">Beneficio</div><div class="kpi" id="m6rrRew" style="font-size:26px;color:var(--long)">—</div></div>
+                <div><div class="lbl">Ratio</div><div class="kpi" id="m6rrR" style="font-size:26px;color:var(--brand)">—</div></div>
+              </div>
+              <p style="font-size:11.5px;color:var(--ink-faint);margin-top:12px" id="m6rrNote">El ratio es la
+                distancia al objetivo dividida entre la distancia al stop. Sin stop no hay R: es indefinido, no cero.</p>
+            </div>
+            <div id="m6-rec" hidden>
+              <div class="bench-grid" style="grid-template-columns:1fr">
+                <div class="field" style="max-width:260px"><label for="m6loss">Pérdida acumulada</label><div class="box"><input id="m6loss" type="number" value="20" step="1"><span class="unit">%</span></div></div>
+              </div>
+              <div class="res">
+                <div><div class="lbl">Para volver a empezar necesitas</div><div class="kpi" id="m6need" style="font-size:26px;color:var(--brand)">—</div></div>
+                <div><div class="lbl">De cada 1.000 $</div><div class="kpi" id="m6left" style="font-size:26px">—</div></div>
+                <div><div class="lbl">Ganancia necesaria</div><div class="kpi" id="m6gain" style="font-size:26px">—</div></div>
+              </div>
+              <p style="font-size:11.5px;color:var(--ink-faint);margin-top:12px">Perder un 50 % no se arregla
+                ganando un 50 %: hace falta un 100 %. Es la asimetría que hace que el tamaño importe más que el acierto.</p>
+            </div>
+            <div class="gate">
+              <p><b style="color:var(--ink)">¿Guardarlo en el diario?</b> Las otras 14 calculadoras, las 66
+                estrategias de opciones y el histórico están tras la prueba de 7 días.</p>
+              <button class="btn btn-p">Crear cuenta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</section>
+</div>
+
+<div class="wrap">
+  <div class="regleta" id="reg1" style="margin-top:20px"></div>
+
+  <section class="blk" id="dosier">
+    <h2 class="disp">Lo que dice quien mide portadas</h2>
+    <p class="sub" style="margin-bottom:26px">Cifras de estudios del sector recogidas en septiembre de 2026. Aviso
+      de método: casi todas vienen de blogs de agencias y de fabricantes de la herramienta que venden, así que
+      valen como <b>dirección</b>, no como promesa. Ninguna sustituye a medir tu propia portada.</p>
+
+    <div class="dos">
+      <div>
+        <div class="v">5-8 %</div>
+        <div class="k">Conversión media de una portada fintech, frente al 2,35-5 % del SaaS genérico. La intención
+          de quien busca «calculadora de tamaño de posición» ya es alta: el trabajo es no estropearla.</div>
+        <div class="src">designrevision.com</div>
+      </div>
+      <div>
+        <div class="v">2,1 → 3,4 %</div>
+        <div class="k">Subida al mover el sello regulatorio del pie al hero en una web de bróker. <b>Nosotros no
+          podemos usarlo</b> —no somos bróker— y ahí está la propuesta 05: el equivalente honesto es «no
+          custodiamos fondos».</div>
+        <div class="src">wsa.design</div>
+      </div>
+      <div>
+        <div class="v">2,1 → 8,3 %</div>
+        <div class="k">Al recortar el vídeo de demostración de 4 minutos a 90 segundos. Por debajo de 90 s la
+          finalización se mantiene; por encima cae del 50 %. Nuestro guion son 40 s.</div>
+        <div class="src">levitatemedia.com · foundrycro.com</div>
+      </div>
+      <div>
+        <div class="v">×2</div>
+        <div class="k">Conversión al cambiar capturas estáticas por demo interactiva en el hero (Quantum Metric).
+          Es exactamente lo que ya hace la portada actual — y la razón por la que la propuesta 01 no la tira,
+          sólo le sube la escala.</div>
+        <div class="src">arcade.software</div>
+      </div>
+      <div>
+        <div class="v">−12 %</div>
+        <div class="k">Caída de conversión al amontonar sellos de confianza en la página de precios: sobrecarga
+          cognitiva. Más señales no es más confianza. Por eso la 05 lleva cuatro, no diez.</div>
+        <div class="src">inkbotdesign.com · maviklabs.com</div>
+      </div>
+      <div>
+        <div class="v">1</div>
+        <div class="k">Tesis por hero. Es la regla que el rediseño actual aplicó bien y hay que conservar: si el
+          visitante tiene que elegir dónde mirar, ya has perdido.</div>
+        <div class="src">wsa.design · bigmoves.marketing</div>
+      </div>
+    </div>
+
+    <h3 class="disp" style="margin:38px 0 10px;font-size:20px">Lo que hacen los grandes, y qué se roba</h3>
+    <div class="scroll-x"><table class="plain">
+      <thead><tr><th>Referencia</th><th>Lo que hace</th><th>¿Aplicable aquí?</th></tr></thead>
+      <tbody>
+        <tr><td><b>Coinbase</b></td><td>Minimalismo, tipografía grande, mucho aire, azul que calma. Cumplimiento e
+          información de seguro colocados donde se decide.</td><td>Sí → propuesta <b>05</b>. Pero sin fingir
+          credenciales que no tenemos.</td></tr>
+        <tr><td><b>Kraken</b></td><td>Certificaciones y alianzas repartidas por todo el recorrido; navegación
+          separada por perfil (spot, futuros, institucional).</td><td>Parcial: separar por perfil sí (futuros /
+          opciones / forex); certificaciones no tenemos.</td></tr>
+        <tr><td><b>Interactive Brokers</b></td><td>Densidad. Tablas, cifras, specs. Fea a propósito: comunica
+          «esto es una herramienta, no un folleto».</td><td>Sí → propuesta <b>03</b>. Es donde nuestro catálogo de
+          186 activos por fin se ve.</td></tr>
+        <tr><td><b>Stripe / Linear</b></td><td>El producto funcionando en el hero, no una captura. Split: copy a la
+          izquierda, producto a la derecha.</td><td>Ya lo hacemos. La <b>01</b> lo mantiene y le da tamaño.</td></tr>
+        <tr><td><b>Revolut / N26</b></td><td>Una promesa, un botón, y el móvil como diseño principal — no como
+          adaptación.</td><td>Sí. Cualquiera de las seis debe dibujarse primero a 390 px.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 class="disp" style="margin:38px 0 10px;font-size:20px">Si metemos vídeo</h3>
+    <p class="sub" style="margin-bottom:16px">Puedo producirlo aquí mismo: Chromium y ffmpeg ya están instalados y
+      Playwright graba la aplicación real funcionando. Sin voz en off —no hay TTS en este entorno— y sin metraje
+      de mercado en vivo, porque los proveedores de precio están bloqueados en el sandbox. Plan realista:</p>
+    <div class="scroll-x"><table class="plain">
+      <thead><tr><th>Plano</th><th>Duración</th><th>Qué se ve</th></tr></thead>
+      <tbody>
+        <tr><td><b>1 · El problema</b></td><td class="mono">0-8 s</td><td>Cuenta de 25.000 $ y un trade en el S&amp;P. Aparece «1 contrato ES» y debajo, en rojo, −625 $.</td></tr>
+        <tr><td><b>2 · La herramienta</b></td><td class="mono">8-26 s</td><td>Grabación real de la calculadora: se teclean capital, riesgo, entrada y stop. Salen 4 micros y −250 $.</td></tr>
+        <tr><td><b>3 · La regleta</b></td><td class="mono">26-34 s</td><td>La escala se dibuja midiendo el trade: tramo rojo hasta el stop, 1R/2R/3R en verde.</td></tr>
+        <tr><td><b>4 · Cierre</b></td><td class="mono">34-40 s</td><td>Marca, «7 días de prueba» y la dirección. Sin música épica.</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:13px;color:var(--ink-dim);margin-top:14px">Sale en WebM (VP8) sin instalar nada; para MP4
+      vertical de Shorts/Reels hace falta un <span class="mono">npm i ffmpeg-static</span>. Y se clona a los 10
+      idiomas cambiando una variable, porque los textos ya están traducidos.</p>
+
+    <div class="riesgo">
+      <h3 class="disp" style="font-size:19px">Antes de tocar la portada: hay testimonios inventados publicados</h3>
+      <p style="color:var(--ink-dim);margin-top:10px;line-height:1.55">«Carlos M. · Day Trader Cripto · 4 años» y
+        otros dos no existen. Están en <span class="mono" style="font-size:13px">frontend/src/lib/i18n/es.js:2712</span>
+        y en los diez idiomas, y se pintan hoy en la sección de testimonios. La auditoría interna ya los marcó en
+        rojo y siguen ahí.</p>
+      <p style="color:var(--ink-dim);margin-top:10px;line-height:1.55">No los he reproducido en ninguna de las seis
+        muestras, y no es purismo: un testimonio fabricado es publicidad engañosa en la UE (Directiva 2005/29/CE) y
+        en EE. UU. (regla de la FTC sobre reseñas falsas, con multa por infracción). Además contradice de frente la
+        regla de honestidad numérica del proyecto. <b style="color:var(--ink)">Retirarlos o sustituirlos por
+        testimonios reales con permiso es trabajo previo a cualquier rediseño</b> — la portada nueva heredaría el
+        problema y le daría más tráfico.</p>
+    </div>
+
+    <h3 class="disp" style="margin:38px 0 10px;font-size:20px">Qué haría yo</h3>
+    <p class="sub"><b style="color:var(--ink)">La 01 como base, con el zócalo de cifras de la 02 y el duelo de la 04
+      como segunda sección.</b> Razón: la 01 conserva lo único que la investigación respalda sin discusión —el
+      producto funcionando en el hero— y arregla lo que te chirría, que es la falta de escala. La 04 no aguanta
+      una portada entera en negativo, pero como segundo bloque es el mejor argumento que tiene el producto: el
+      catálogo demostrando que sabe de contratos. Y la 03 no la descartes: guárdala para una landing dirigida a
+      operadores de futuros, donde la densidad juega a favor.</p>
+    <p class="sub" style="margin-top:14px">Lo que <b style="color:var(--ink)">no</b> haría: elegir por gusto sin
+      medir. Las seis están construidas sobre los mismos tokens, así que se pueden desplegar por turnos y comparar
+      con GA4, que ya está montado. Una portada se decide con datos propios, no con el blog de una agencia.</p>
+  </section>
+
+  <div class="regleta" id="reg2"></div>
+  <footer class="foot">
+    <p><b style="color:var(--ink-dim)">Ninguna de estas seis está desplegada.</b> Es un banco de pruebas: la portada
+      en producción sigue intacta. Cifras verificadas contra
+      <span class="mono">siteFacts.js</span>, <span class="mono">instruments.py</span> y
+      <span class="mono">server.py</span>; ninguna es una estimación.</p>
+    <p style="margin-top:12px">Fuentes de la investigación:
+      <a href="https://designrevision.com/blog/fintech-saas-landing-pages">designrevision</a> ·
+      <a href="https://wsa.design/news/fintech-website-hero-section-best-practices">WSA</a> ·
+      <a href="https://levitatemedia.com/learn/video-conversion-statistics">Levitate Media</a> ·
+      <a href="https://foundrycro.com/blog/landing-page-video-benchmarks-2026/">Foundry CRO</a> ·
+      <a href="https://www.arcade.software/guides/how-to-use-figma">Arcade</a> ·
+      <a href="https://inkbotdesign.com/trust-signals/">Inkbot</a> ·
+      <a href="https://www.maviklabs.com/blog/design-for-trust-2026/">Mavik Labs</a> ·
+      <a href="https://azurodigital.com/crypto-website-examples/">Azuro</a> ·
+      <a href="https://www.bigmoves.marketing/blog/hero-section-examples">Big Moves</a></p>
+  </footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const nf = (n,d)=> new Intl.NumberFormat('es-ES',{minimumFractionDigits:d===undefined?2:d,maximumFractionDigits:d===undefined?2:d}).format(n);
+const money = (n,cur)=> nf(n,2)+' '+(cur||'$');
+
+/* ── tema ─────────────────────────────────────────────────────────────── */
+const btn = $('#themeBtn');
+const sysLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+function currentIsLight(){
+  const st = document.documentElement.getAttribute('data-theme');
+  return st ? st === 'light' : sysLight;
+}
+function syncBtn(){ btn.textContent = currentIsLight() ? 'Ver en oscuro' : 'Ver en claro'; }
+btn.addEventListener('click', ()=>{
+  document.documentElement.setAttribute('data-theme', currentIsLight() ? 'dark' : 'light');
+  syncBtn(); drawCandles(true);
+});
+syncBtn();
+
+/* ── regleta decorativa: marcas de tres alturas, más densas donde hay más
+      contenido debajo. Mide la página, no la decora. ──────────────────── */
+function fillRegleta(el, density){
+  if(!el) return;
+  const w = el.clientWidth || 900, step = 9, n = Math.floor(w/step);
+  let html = '';
+  for(let i=0;i<=n;i++){
+    const cls = i % 10 === 0 ? 'maj' : (i % 5 === 0 ? 'med' : 'min');
+    if(cls==='min' && density==='low' && i%2) continue;
+    html += '<i class="'+cls+'" style="left:'+(i*step)+'px"></i>';
+  }
+  el.innerHTML = html;
+}
+function regletas(){ fillRegleta($('#reg0')); fillRegleta($('#reg1'),'low'); fillRegleta($('#reg2'),'low'); }
+regletas();
+
+/* ── pestañas ─────────────────────────────────────────────────────────── */
+const tabs = $$('.tab');
+tabs.forEach(t=>{
+  t.addEventListener('click', ()=>{
+    tabs.forEach(o=>{
+      const on = o === t;
+      o.setAttribute('aria-selected', on ? 'true' : 'false');
+      const panel = $('#p-'+o.dataset.p);
+      if(panel) panel.hidden = !on;
+    });
+    if(t.dataset.p === 'm2'){ resizeCanvas(); countUp(); }
+    document.querySelector('.tabs').scrollIntoView({behavior: reduced ? 'auto':'smooth', block:'start'});
+  });
+});
+
+/* ══ 01 · tamaño de posición sobre Micro E-mini S&P 500 ═══════════════════
+   contract_size 5 → 1 punto = 5,00 $ · tick 0,25 = 1,25 $
+   Fuente: backend/instruments.py (MES). */
+const MES_POINT = 5;
+function calcM1(){
+  const cap = parseFloat($('#m1cap').value) || 0;
+  const pct = parseFloat($('#m1rsk').value) || 0;
+  const ent = parseFloat($('#m1ent').value);
+  const stp = parseFloat($('#m1stp').value);
+  const riskCash = cap * pct / 100;
+  const dist = (isFinite(ent) && isFinite(stp)) ? Math.abs(ent - stp) : NaN;
+
+  // Sin distancia no hay tamaño: es indefinido, no cero.
+  if(!isFinite(dist) || dist === 0 || riskCash <= 0){
+    $('#m1qty').textContent = '—';
+    $('#m1loss').textContent = '—';
+    $('#m1rule').innerHTML = '';
+    return;
+  }
+  const perContract = dist * MES_POINT;
+  const qty = Math.floor(riskCash / perContract);
+  const loss = qty * perContract;
+  $('#m1qty').textContent = String(qty);
+  $('#m1loss').textContent = qty ? '−'+money(loss) : '0,00 $';
+  drawRule($('#m1rule'), ent, stp, dist);
+}
+function drawRule(host, ent, stp, dist){
+  if(!host) return;
+  const up = stp < ent;                       // largo si el stop está por debajo
+  const sgn = up ? 1 : -1;
+  const pos = { stop: 6, entrada: 28, '1R': 50, '2R': 72, '3R': 94 };
+  const price = { stop: stp, entrada: ent, '1R': ent + sgn*dist, '2R': ent + sgn*2*dist, '3R': ent + sgn*3*dist };
+  let h = '<div class="axis"></div>';
+  h += '<div class="seg" style="left:6%;width:22%;background:var(--short)"></div>';
+  h += '<div class="seg" style="left:28%;width:66%;background:var(--long)"></div>';
+  h += '<div class="grad">';
+  for(let p=6;p<=94;p+=2.75){ h += '<i style="left:'+p+'%"></i>'; }
+  h += '</div>';
+  Object.keys(pos).forEach(k=>{
+    const x = pos[k];
+    h += '<div class="mk-tick" style="left:'+x+'%"></div>';
+    h += '<div class="cap" style="left:'+x+'%">'+k+'</div>';
+    const col = k==='stop' ? 'var(--short)' : (k==='entrada' ? 'var(--ink-dim)' : 'var(--long)');
+    h += '<div class="val" style="left:'+x+'%;color:'+col+'">'+nf(price[k],2)+'</div>';
+  });
+  host.innerHTML = h;
+}
+['#m1cap','#m1rsk','#m1ent','#m1stp'].forEach(s=>{ const el=$(s); if(el) el.addEventListener('input', calcM1); });
+calcM1();
+
+/* ══ 02 · velas ilustrativas, con el trade marcado ════════════════════════ */
+const cv = $('#m2canvas');
+let ctx = cv ? cv.getContext('2d') : null;
+let candles = [], anchor = null, scroll = 0, raf = 0, W=0, H=0, DPR=1;
+const CW = 14;
+function seedCandles(n){
+  candles = []; let p = 100;
+  for(let i=0;i<n;i++){
+    const o = p, mv = (Math.random()-0.48)*1.5, c = o + mv;
+    candles.push({o:o, c:c, h:Math.max(o,c)+Math.random()*0.6, l:Math.min(o,c)-Math.random()*0.6});
+    p = c;
+  }
+  anchor = candles[Math.floor(n*0.55)].c;
+}
+function resizeCanvas(){
+  if(!cv) return;
+  const host = cv.parentElement;
+  const r = host.getBoundingClientRect();
+  if(!r.width || !r.height) return;
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  const need = Math.ceil(W/CW)+3;
+  if(candles.length < need) seedCandles(need);
+  drawCandles(true);
+}
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function drawCandles(once){
+  if(!ctx || !W) return;
+  const long = css('--long'), short = css('--short'), rule = css('--rule'), faint = css('--ink-faint');
+  ctx.clearRect(0,0,W,H);
+  const vis = candles.slice(-Math.ceil(W/CW)-2);
+  let lo=Infinity, hi=-Infinity;
+  vis.forEach(k=>{ lo=Math.min(lo,k.l); hi=Math.max(hi,k.h); });
+  const stop = anchor - 1.3, target = anchor + 2.6;
+  lo = Math.min(lo, stop) - .6; hi = Math.max(hi, target) + .6;
+  const span = (hi-lo) || 1;
+  const y = v => H - ((v-lo)/span)*H;
+
+  // niveles del trade: entrada, stop y objetivo a 2R
+  ctx.save(); ctx.setLineDash([4,5]); ctx.lineWidth = 1;
+  [[anchor,faint,'Entrada'],[stop,short,'Stop'],[target,long,'Objetivo 2R']].forEach(function(L){
+    ctx.strokeStyle = L[1]; ctx.globalAlpha = .55;
+    ctx.beginPath(); ctx.moveTo(0, y(L[0])); ctx.lineTo(W, y(L[0])); ctx.stroke();
+    ctx.globalAlpha = .9; ctx.setLineDash([]);
+    ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.fillStyle = L[1]; ctx.textAlign='right';
+    ctx.fillText(L[2], W-10, y(L[0])-5);
+    ctx.setLineDash([4,5]);
+  });
+  ctx.restore();
+
+  ctx.globalAlpha = .58;
+  vis.forEach(function(k,i){
+    const x = Math.round(i*CW - scroll) + 0.5;
+    if(x < -CW || x > W+CW) return;
+    const upC = k.c >= k.o;
+    ctx.strokeStyle = upC ? long : short; ctx.fillStyle = upC ? long : short;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x+CW/2, y(k.h)); ctx.lineTo(x+CW/2, y(k.l)); ctx.stroke();
+    const top = y(Math.max(k.o,k.c)), hgt = Math.max(1.5, Math.abs(y(k.o)-y(k.c)));
+    ctx.fillRect(x+2, top, CW-5, hgt);
+  });
+  ctx.globalAlpha = 1;
+  if(once) return;
+}
+function tick(){
+  scroll += 0.35;
+  if(scroll >= CW){
+    scroll -= CW;
+    const last = candles[candles.length-1];
+    const o = last.c, mv = (Math.random()-0.48)*1.5, c = o+mv;
+    candles.push({o:o,c:c,h:Math.max(o,c)+Math.random()*0.6,l:Math.min(o,c)-Math.random()*0.6});
+    if(candles.length > 400) candles.shift();
+  }
+  drawCandles();
+  raf = requestAnimationFrame(tick);
+}
+if(cv){
+  seedCandles(140);
+  if(window.ResizeObserver) new ResizeObserver(resizeCanvas).observe(cv.parentElement);
+  window.addEventListener('resize', function(){ resizeCanvas(); regletas(); });
+  setTimeout(resizeCanvas, 60);
+  if(!reduced) raf = requestAnimationFrame(tick);
+}
+
+/* contadores: en reposo muestran el valor final; sólo animan al abrir la pestaña */
+$$('[data-count]').forEach(function(el){ el.textContent = el.dataset.count; });
+function countUp(){
+  if(reduced) return;
+  $$('#m2 [data-count]').forEach(function(el){
+    const to = parseInt(el.dataset.count,10), t0 = performance.now(), dur = 700;
+    function step(t){
+      const k = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-k,3);
+      el.textContent = String(Math.round(to*e));
+      if(k<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* ══ 03 · specs reales del catálogo ══════════════════════════════════════ */
+const SPECS = [
+  {s:'ES',  n:'E-mini S&P 500',        cs:50,   tick:0.25, tv:12.50, m:13200},
+  {s:'MES', n:'Micro E-mini S&P 500',  cs:5,    tick:0.25, tv:1.25,  m:1320},
+  {s:'NQ',  n:'E-mini Nasdaq 100',     cs:20,   tick:0.25, tv:5.00,  m:17600},
+  {s:'MNQ', n:'Micro E-mini Nasdaq',   cs:2,    tick:0.25, tv:0.50,  m:1760},
+  {s:'GC',  n:'Gold',                  cs:100,  tick:0.10, tv:10.00, m:10000},
+  {s:'CL',  n:'Crude Oil WTI',         cs:1000, tick:0.01, tv:10.00, m:6500}
+];
+const tb = $('#m3tbody');
+if(tb){
+  tb.innerHTML = SPECS.map(function(k){
+    return '<tr><td><b>'+k.s+'</b> <span style="color:var(--ink-faint)">'+k.n+'</span></td>'+
+      '<td>'+nf(k.cs,0)+'</td><td>'+nf(k.tick,2)+'</td>'+
+      '<td style="color:var(--brand)">'+nf(k.tv,2)+' $</td><td>'+nf(k.m,0)+' $</td></tr>';
+  }).join('');
+}
+const tape = $('#m3tape');
+if(tape){
+  const one = SPECS.concat([{s:'EURUSD',n:'Euro / Dólar',cs:100000,tick:0.0001,tv:10.00,m:0}]).map(function(k){
+    return '<div class="tape-item"><b>'+k.s+'</b><span>tick</span>'+nf(k.tick, k.tick<0.01?4:2)+
+      '<span>=</span><em>'+nf(k.tv,2)+' $</em><span>· contrato '+nf(k.cs,0)+'</span></div>';
+  }).join('');
+  tape.innerHTML = one + one;   // duplicado: el bucle se cierra al -50 %
+}
+
+/* ══ 04 · el duelo ═══════════════════════════════════════════════════════ */
+const CAP4 = 25000, ES_LOSS = 12.5*50, MES_LOSS = 12.5*5;
+function calcM4(){
+  const sl = $('#m4slider'); if(!sl) return;
+  const pct = parseInt(sl.value,10)/100;
+  const riskCash = CAP4*pct/100;
+  const qty = Math.floor(riskCash/MES_LOSS);
+  const loss = qty*MES_LOSS;
+  const diff = ES_LOSS - loss;
+  $('#m4pct').textContent = nf(pct,2)+' %';
+  $('#m4qty').textContent = String(qty);
+  $('#m4loss').textContent = '−'+money(loss);
+  $('#m4goodpct').textContent = nf(loss/CAP4*100,2)+' % de la cuenta';
+  $('#m4badpct').textContent = nf(ES_LOSS/CAP4*100,2)+' % de la cuenta';
+  $('#m4diff').textContent = (diff>=0?'':'−')+money(Math.abs(diff));
+  $('#m4x20').textContent = (diff>=0?'':'−')+money(Math.abs(diff)*20);
+}
+const sl4 = $('#m4slider'); if(sl4){ sl4.addEventListener('input', calcM4); calcM4(); }
+
+/* ══ 05 · el hueco del vídeo ═════════════════════════════════════════════ */
+const vid = $('#m5video');
+if(vid){
+  const act = function(){
+    const cap = vid.querySelector('.vcap');
+    if(cap) cap.textContent = 'Hueco reservado. El vídeo aún no está grabado — el guion de 40 s está en el dosier, abajo.';
+  };
+  vid.addEventListener('click', act);
+  vid.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); act(); } });
+}
+
+/* ══ 06 · tres calculadoras de verdad ════════════════════════════════════ */
+const PIP_PER_LOT = 10;   // par principal, lote estándar de 100.000
+function m6size(){
+  const cap = parseFloat($('#m6cap').value)||0, pct = parseFloat($('#m6rsk').value)||0, d = parseFloat($('#m6dist').value);
+  const risk = cap*pct/100;
+  if(!isFinite(d) || d <= 0 || risk <= 0){
+    $('#m6risk').textContent='—'; $('#m6lots').textContent='—'; $('#m6pip').textContent='—'; return;
+  }
+  const lots = risk/(d*PIP_PER_LOT);
+  $('#m6risk').textContent = money(risk);
+  $('#m6lots').textContent = nf(lots,2)+' lotes';
+  $('#m6pip').textContent = money(lots*PIP_PER_LOT);
+}
+function m6rr(){
+  const e = parseFloat($('#m6e').value), s = parseFloat($('#m6s').value), t = parseFloat($('#m6t').value);
+  const risk = (isFinite(e)&&isFinite(s)) ? Math.abs(e-s) : NaN;
+  const rew  = (isFinite(e)&&isFinite(t)) ? Math.abs(t-e) : NaN;
+  $('#m6rrRisk').textContent = isFinite(risk) ? nf(risk*10000,0)+' pips' : '—';
+  $('#m6rrRew').textContent  = isFinite(rew)  ? nf(rew*10000,0)+' pips' : '—';
+  // Sin stop no hay R: indefinido, nunca 0 — arrastraría la media.
+  const ok = isFinite(risk) && risk > 0 && isFinite(rew);
+  $('#m6rrR').textContent = ok ? nf(rew/risk,2)+' : 1' : '—';
+  $('#m6rrNote').textContent = ok
+    ? 'El ratio es la distancia al objetivo dividida entre la distancia al stop. Sin stop no hay R: es indefinido, no cero.'
+    : 'Entrada y stop no pueden coincidir: sin distancia, la R es indefinida — y por eso aquí pone «—» y no «0».';
+}
+function m6rec(){
+  const l = parseFloat($('#m6loss').value);
+  if(!isFinite(l) || l < 0 || l >= 100){
+    $('#m6need').textContent='—'; $('#m6left').textContent='—'; $('#m6gain').textContent='—'; return;
+  }
+  const left = 1000*(1-l/100);
+  $('#m6need').textContent = '+'+nf(l/(100-l)*100,1)+' %';
+  $('#m6left').textContent = nf(left,2)+' $';
+  $('#m6gain').textContent = '+'+nf(1000-left,2)+' $';
+}
+['#m6cap','#m6rsk','#m6dist'].forEach(function(s){ const el=$(s); if(el) el.addEventListener('input', m6size); });
+['#m6e','#m6s','#m6t'].forEach(function(s){ const el=$(s); if(el) el.addEventListener('input', m6rr); });
+const ml = $('#m6loss'); if(ml) ml.addEventListener('input', m6rec);
+m6size(); m6rr(); m6rec();
+
+$$('#m6 .tool').forEach(function(b){
+  b.addEventListener('click', function(){
+    $$('#m6 .tool').forEach(function(o){ o.setAttribute('aria-pressed', String(o===b)); });
+    ['size','rr','rec'].forEach(function(k){
+      const el = $('#m6-'+k); if(el) el.hidden = (k !== b.dataset.t);
+    });
+  });
+});
+})();
+</script>
