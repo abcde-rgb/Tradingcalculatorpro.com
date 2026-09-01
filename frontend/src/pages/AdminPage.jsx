@@ -408,7 +408,7 @@ export default function AdminPage() {
         {/* Metrics grid — visible en todas las secciones: es la orientación
             de "cómo va esto" que no debería depender de dónde estés */}
         {metrics && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <MetricCard icon={Users} label={t('adminMetricUsers')}
               value={metrics.total_users} testId="metric-total-users" />
             <MetricCard icon={Crown} label={t('adminMetricPremium')}
@@ -426,6 +426,16 @@ export default function AdminPage() {
               // forma, una versión antigua del backend— tiraba la página entera al
               // ErrorBoundary («Algo salió mal»), que no dice nada de lo que pasa.
               value={metrics.by_locale?.length ?? '—'} testId="metric-locales" />
+            {/* El aviso. La tarjeta con el detalle vive en Sistema, pero esta
+                fila se ve desde todas las secciones: si el contador no está
+                aquí, enterarse de que la web se está cayendo exige ir a
+                buscarlo, y a eso no va nadie. En verde cuando es 0 —«no hay
+                nada»— y en rojo en cuanto hay algo. */}
+            <MetricCard icon={Bug} label="Errores abiertos"
+              value={metrics.open_errors ?? '—'}
+              hint="caídas del navegador sin resolver · Sistema → Monitor de Errores"
+              valueClass={metrics.open_errors ? 'text-short' : 'text-long'}
+              testId="metric-open-errors" />
           </div>
         )}
 
@@ -3820,22 +3830,26 @@ function ErrorMonitorCard({ headers }) {
             </Button>
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">Errores recientes capturados por el backend.</p>
+        <p className="text-[11px] text-muted-foreground">
+          Caídas del navegador de los usuarios, agrupadas por error. «Veces» es cuántas
+          veces ha ocurrido; la fecha es la última. Un error resuelto que vuelve a ocurrir
+          se reabre solo.
+        </p>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/40">
             <tr className="text-left">
-              {['Código', 'Tipo', 'Mensaje', 'Endpoint', 'Fecha', 'Estado', ''].map(h => (
+              {['Código', 'Tipo', 'Mensaje', 'Pantalla', 'Veces', 'Última vez', 'Estado', ''].map(h => (
                 <th key={h} className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+              <tr><td colSpan={8} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
             ) : errors.length === 0 ? (
-              <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">{filter === 'unresolved' ? '✓ Sin errores pendientes' : 'Sin errores registrados'}</td></tr>
+              <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">{filter === 'unresolved' ? '✓ Sin errores pendientes' : 'Sin errores registrados'}</td></tr>
             ) : errors.map(e => {
               const sev = Math.floor((e.status_code || 500) / 100);
               return (
@@ -3844,7 +3858,11 @@ function ErrorMonitorCard({ headers }) {
                   <td className="px-3 py-2 font-mono text-[10px]">{e.type || '—'}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate" title={e.message}>{e.message}</td>
                   <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">{e.method} {e.endpoint}</td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">{e.created_at?.slice(0, 16).replace('T', ' ')}</td>
+                  <td className="px-3 py-2 text-xs">
+                    <span className={e.veces > 1 ? 'font-semibold text-warn' : 'text-muted-foreground'}>{e.veces ?? 1}</span>
+                    {e.reopened_at && <Badge className="ml-1 bg-warn/15 text-warn text-[9px]">reabierto</Badge>}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground" title={e.first_seen ? `Primera vez: ${e.first_seen.slice(0, 16).replace('T', ' ')}` : undefined}>{e.created_at?.slice(0, 16).replace('T', ' ')}</td>
                   <td className="px-3 py-2">{e.resolved ? <Badge className="bg-long/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-short/10 text-short text-[10px]">Abierto</Badge>}</td>
                   <td className="px-3 py-2">
                     {!e.resolved && (

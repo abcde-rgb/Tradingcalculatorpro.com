@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { homeUrl, reloadFreshShell } from '@/lib/appShell';
+import { reportarError } from '@/lib/reportarError';
 
 function ErrorDisplay({ error, onRetry }) {
   const { t } = useTranslation();
@@ -48,8 +49,11 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Wire up Sentry here when DSN is available:
-    // Sentry.captureException(error, { extra: info });
+    // La consola sólo la ve quien tiene las devtools abiertas, es decir: nadie
+    // de los que se comen el error. `reportarError` lo deja en el Monitor de
+    // Errores del panel de admin (Sistema), agrupado por huella y con el
+    // contador de veces. No se espera, no lanza y no puede tumbar esta pantalla.
+    reportarError(error, { componentStack: info?.componentStack, source: 'boundary' });
     console.error('[ErrorBoundary]', error, info.componentStack);
   }
 

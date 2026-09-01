@@ -1438,6 +1438,157 @@ assert s.count(viejo) == 1, 'ancla del 401 no encontrada'
 p.write_text(s.replace(viejo, 'if (!res.ok) {', 1), encoding='utf-8')
 EOF"
 
+
+  # ── El Monitor de Errores del admin recibe algo que mirar (2026-09-01) ──────
+  # La tarjeta llevaba desde siempre leyendo una tabla que nadie escribía: decía
+  # «✓ Sin errores pendientes» con la misma cara tanto si la web iba fina como si
+  # se caía cada dos minutos. Estos sabotajes son los cuatro modos de volver a
+  # eso: sin quien informe, sin quien agrupe, sin reapertura, o guardando de más.
+  titulo "Informe de errores del navegador (test_informe_errores_unit.py)"
+
+  probar "el ErrorBoundary vuelve a tragarse el error (nadie llena la tabla)" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k existe_el_endpoint -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@api_router.post(\"/errors/report\")' + chr(10)
+assert s.count(viejo) == 1, 'ancla del endpoint no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "un endpoint público de escritura se queda sin rate limit" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k tiene_rate_limit -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@api_router.post(\"/errors/report\")' + chr(10) + '@limiter.limit(\"30/minute\")' + chr(10)
+assert s.count(viejo) == 1, 'ancla del rate limit no encontrada'
+p.write_text(s.replace(viejo, '@api_router.post(\"/errors/report\")' + chr(10), 1), encoding='utf-8')
+EOF"
+
+  probar "el mensaje del error se guarda con el correo del usuario dentro" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k quita_correos -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    texto = _RE_CORREO.sub(\"[correo]\", texto)' + chr(10)
+assert s.count(viejo) == 1, 'ancla de la redaccion de correos no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "la huella deja de normalizar y un bug se parte en veinte grupos" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k veinte_grupos -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'normalizado = _re_module.sub(r\"\\d+\", \"#\", mensaje or \"\")'
+assert s.count(viejo) == 1, 'ancla de la normalizacion no encontrada'
+p.write_text(s.replace(viejo, 'normalizado = mensaje or \"\"', 1), encoding='utf-8')
+EOF"
+
+  probar "un error resuelto que vuelve a ocurrir se queda escondido" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k se_reabre -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'cambios[\"reopened_at\"] = ahora.isoformat()'
+assert s.count(viejo) == 1, 'ancla de la reapertura no encontrada'
+p.write_text(s.replace(viejo, 'pass', 1), encoding='utf-8')
+EOF"
+
+  probar "agrupar deja de refrescar la fecha (lo que cae hoy sale el último)" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k la_ultima_vez -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '                \"created_at\": ahora.isoformat(),   # \`created_at\` = última vez' + chr(10)
+assert s.count(viejo) == 1, 'ancla de la fecha al agrupar no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "el informe de error empieza a guardar quién es el usuario" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k no_se_guarda_el_usuario -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '            \"autenticado\": bool(user),' + chr(10)
+assert s.count(viejo) == 1, 'ancla del booleano no encontrada'
+nuevo = '            \"user_id\": user.get(\"id\") if user else None,' + chr(10) + viejo
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+EOF"
+
+  probar "la ruta del error se guarda con su query string (y sus tokens)" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k query_string -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'ruta = (payload.path or \"/\").split(\"?\")[0].split(\"#\")[0][:200] or \"/\"'
+assert s.count(viejo) == 1, 'ancla de la ruta no encontrada'
+p.write_text(s.replace(viejo, 'ruta = (payload.path or \"/\")[:200] or \"/\"', 1), encoding='utf-8')
+EOF"
+
+  probar "la tabla del monitor se queda sin dar de alta en el shim" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k alta_en_el_shim -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '\"email_campaigns\", \"gdpr_exports\", \"error_logs\",'
+assert s.count(viejo) == 1, 'ancla del known no encontrada'
+p.write_text(s.replace(viejo, '\"email_campaigns\", \"gdpr_exports\",', 1), encoding='utf-8')
+EOF"
+
+  probar "el backend guarda un campo que la tarjeta del admin no lee" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k pinta_la_tarjeta -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/pages/AdminPage.jsx')
+s = p.read_text(encoding='utf-8')
+assert s.count('e.veces') == 2, 'ancla de la columna veces no encontrada'
+p.write_text(s.replace('e.veces > 1', 'false').replace('{e.veces ?? 1}', '{1}'), encoding='utf-8')
+EOF"
+
+  probar "el flag de autenticado se queda en la primera vez (y miente)" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k sube_pero_no_baja -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'if user and not existente.get(\"autenticado\"):'
+assert s.count(viejo) == 1, 'ancla del flag no encontrada'
+p.write_text(s.replace(viejo, 'if False:', 1), encoding='utf-8')
+EOF"
+
+  probar "el contador de errores abiertos desaparece de las métricas" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k contador_de_errores_abiertos -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '        \"open_errors\":   open_errors,' + chr(10)
+assert s.count(viejo) == 1, 'ancla del contador no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "los informes viejos se purgan por la primera vez, no por la última" \
+    "(cd backend && python -m pytest tests/test_informe_errores_unit.py -q -k purgan_por_la_ultima -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'er_res = await db.error_logs.delete_many({\"last_seen\": {\"\$lt\": er_cutoff}})'
+assert s.count(viejo) == 1, 'ancla de la purga no encontrada'
+p.write_text(s.replace(viejo, 'er_res = await db.error_logs.delete_many({\"first_seen\": {\"\$lt\": er_cutoff}})', 1), encoding='utf-8')
+EOF"
+
 else
   titulo "Sabotajes sobre test_security_unit.py"
   echo "  ⏭️  se saltan: no hay pytest en este entorno (los cubre el job de backend)"

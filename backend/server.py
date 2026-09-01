@@ -1134,6 +1134,18 @@ class Database:
             await conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_usage_events_ts ON usage_events ((data->>'ts'))"
             )
+            # El informe de errores del navegador busca por huella en CADA caída,
+            # y agrupar es justamente lo que hace que la tabla no crezca: sin
+            # índice, cada informe recorre `error_logs` entera.
+            #
+            # GIN sobre `data`, y NO un btree sobre `(data->>'fingerprint')`: el
+            # shim compila una igualdad simple a `data @> $1::jsonb`, que un
+            # índice de expresión no puede servir. Un btree ahí quedaría bonito
+            # en el `CREATE INDEX` y no lo usaría ninguna consulta.
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_error_logs_fingerprint "
+                "ON error_logs USING GIN (data jsonb_path_ops)"
+            )
 
     async def close(self):
         if self._pool:
@@ -2287,6 +2299,17 @@ async def startup_event():
         logging.info("[startup] Purged %d old usage_events", log_safe(ue_res.deleted_count))
     except Exception as e:
         logging.warning("[startup] Could not purge usage_events: %s", log_safe(e))
+
+    # ── Purgar informes de error viejos ─────────────────────────────────────
+    # Se purgan por `last_seen`, no por `first_seen`: un bug que apareció hace
+    # un año y sigue cayendo hoy no es un registro viejo, es un bug vivo.
+    try:
+        er_cutoff = (datetime.now(timezone.utc) - timedelta(days=_ERRORES_RETENCION_DIAS)).isoformat()
+        er_res = await db.error_logs.delete_many({"last_seen": {"$lt": er_cutoff}})
+        if er_res.deleted_count:
+            logging.info("[startup] Purgados %d informes de error antiguos", log_safe(er_res.deleted_count))
+    except Exception as e:
+        logging.warning("[startup] No se pudieron purgar los informes de error: %s", log_safe(e))
 
     # ── Retención: purgar datos de clientes sin pago > DATA_RETENTION_DAYS ──
     try:
@@ -8705,12 +8728,22 @@ async def admin_metrics(admin: dict = Depends(require_admin)):
     cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     new_30d = await db.users.count_documents({"created_at": {"$gte": cutoff}})
 
+    # Errores del navegador sin resolver. Va en las métricas —y no sólo en la
+    # tarjeta de Sistema— porque la fila de arriba se ve desde TODAS las
+    # secciones: un monitor de errores al que hay que ir a buscar no avisa de
+    # nada. `try` porque una métrica no puede tumbar la cabecera entera.
+    try:
+        open_errors = await db.error_logs.count_documents({"resolved": False})
+    except Exception:
+        open_errors = None
+
     return {
         "total_users":   total,
         "premium_users": premium,
         "free_users":    free,
         "mrr_usd":       round(mrr, 2),
         "new_users_30d": new_30d,
+        "open_errors":   open_errors,
         "by_plan":       by_plan,
         "by_locale":     by_locale,
     }
@@ -10133,6 +10166,166 @@ async def admin_usage_heatmap(days: int = 30, admin: dict = Depends(require_admi
         "timeseries": [{"day": d, "views": day_counts[d]} for d in sorted(day_counts)],
         "heatmap": heatmap,   # 7×24 matrix, [dow 0=Mon][hour 0..23 UTC]
     }
+
+
+# ── INFORME DE ERRORES DEL NAVEGADOR ─────────────────────────────────────────
+# El panel de admin lleva desde siempre una tarjeta «Monitor de Errores» que lee
+# `error_logs` (`GET /api/admin/errors`, en admin_routes.py). Lo que no existía
+# era nadie que ESCRIBIERA en esa tabla: el `componentDidCatch` del
+# `ErrorBoundary` sólo hacía `console.error`, y una consola en el navegador de
+# otra persona no la lee nadie. La tarjeta pintaba «✓ Sin errores pendientes»
+# tanto si no había errores como si la web se caía cada dos minutos, que son
+# cosas distintas y se veían igual. Este endpoint cierra ese hueco.
+#
+# Tres decisiones que no son gratuitas:
+#
+# 1. **Se AGRUPA por huella**, no se guarda una fila por caída. Un bug de render
+#    en una pantalla con mucho tráfico mete miles de filas idénticas en una
+#    tarde; con `limit=50` eso es un único bug tapando todos los demás. La
+#    huella es tipo+mensaje+ruta, y la fila lleva `veces` y `first_seen`.
+#
+# 2. **No se guarda `user_id`.** Es telemetría de diagnóstico, y meter un
+#    identificador de persona obligaría a darla de alta en las listas del RGPD
+#    (export, borrado y purga) — y a decidir qué pasa con una fila agrupada que
+#    pertenece a cinco usuarios a la vez, uno de los cuales borra su cuenta.
+#    Para triar basta con saber si le pasa a gente identificada o anónima, así
+#    que se guarda `autenticado` (bool) y nada más. Con esto `error_logs` no
+#    contiene dato personal alguno y las listas del RGPD se quedan como están.
+#
+# 3. **Un error resuelto que vuelve a ocurrir se REABRE.** Si no, marcar
+#    «resuelto» un bug que sigue vivo lo esconde para siempre, y el monitor
+#    pasa de avisar a mentir.
+_ERRORES_MAX_ABIERTOS = 500          # tope de huellas distintas sin resolver
+_ERRORES_RETENCION_DIAS = 120        # lo que se conserva antes de purgar
+
+# Redacción defensiva: el mensaje de un error puede arrastrar lo que el usuario
+# escribió («Invalid email juan@ejemplo.com», un token en una URL). El navegador
+# ya trunca, pero el servidor es quien manda: si aquí no se limpia, no se limpia.
+_RE_CORREO = _re_module.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+_RE_DIGITOS_LARGOS = _re_module.compile(r"\b\d{9,}\b")
+_RE_TOKEN_JWT = _re_module.compile(r"\beyJ[\w-]{8,}\.[\w-]+\.[\w-]+")
+
+
+def _redactar(texto: str) -> str:
+    """Quita de un texto libre lo que nunca debe acabar en la tabla."""
+    if not texto:
+        return ""
+    texto = _RE_TOKEN_JWT.sub("[token]", texto)
+    texto = _RE_CORREO.sub("[correo]", texto)
+    texto = _RE_DIGITOS_LARGOS.sub("[num]", texto)
+    return texto
+
+
+def _huella_error(tipo: str, mensaje: str, ruta: str) -> str:
+    """Identidad estable de un error, para agrupar repeticiones."""
+    # El mensaje se normaliza antes de la huella: los números que cambian en
+    # cada caída («chunk 4821 failed») partirían el mismo bug en veinte grupos.
+    normalizado = _re_module.sub(r"\d+", "#", mensaje or "")
+    crudo = f"{tipo}|{normalizado}|{ruta}"
+    return hashlib.sha256(crudo.encode("utf-8")).hexdigest()[:32]
+
+
+class ClientErrorIn(BaseModel):
+    type: str = Field("Error", max_length=80)
+    message: str = Field(..., max_length=500)
+    path: str = Field("/", max_length=200)
+    component_stack: Optional[str] = Field(None, max_length=2000)
+    stack: Optional[str] = Field(None, max_length=2000)
+    # 500 = la aplicación se rompió (caída de render, promesa sin capturar).
+    # 409 = el shell cargado ya no casa con lo desplegado (ChunkLoadError tras
+    #       un deploy). No es un bug del código: mezclarlo en rojo con las
+    #       caídas reales hace que el monitor deje de distinguir lo urgente.
+    status_code: int = Field(500, ge=100, le=599)
+    source: str = Field("boundary", max_length=32)
+    app_version: Optional[str] = Field(None, max_length=40)
+    viewport: Optional[str] = Field(None, max_length=20)
+
+
+@api_router.post("/errors/report")
+@limiter.limit("30/minute")
+async def report_client_error(
+    request: Request,
+    payload: ClientErrorIn,
+    user: Optional[dict] = Depends(get_current_user),
+):
+    """Recoge una caída del navegador y la deja en el Monitor de Errores.
+
+    Best-effort de principio a fin: esto lo llama un `componentDidCatch`, es
+    decir, código que ya está corriendo dentro de un fallo. Si guardar el
+    informe fallara y propagara, el usuario vería un error dentro del error.
+    """
+    ahora = datetime.now(timezone.utc)
+    # Sin query string ni fragmento: ahí es donde viajan tokens de reseteo,
+    # códigos de OAuth y correos.
+    ruta = (payload.path or "/").split("?")[0].split("#")[0][:200] or "/"
+    tipo = _redactar((payload.type or "Error").strip())[:80] or "Error"
+    mensaje = _redactar((payload.message or "").strip())[:500]
+    if not mensaje:
+        return {"ok": True, "stored": False, "reason": "empty"}
+
+    huella = _huella_error(tipo, mensaje, ruta)
+
+    try:
+        existente = await db.error_logs.find_one({"fingerprint": huella})
+        if existente:
+            cambios = {
+                "created_at": ahora.isoformat(),   # `created_at` = última vez
+                "last_seen": ahora.isoformat(),
+            }
+            # `autenticado` sólo sube, nunca baja. Se puso mirando la PRIMERA
+            # vez, y así el campo mentía: un fallo visto primero por un anónimo
+            # se quedaba «no le pasa a gente identificada» aunque después lo
+            # sufriera cada usuario con sesión. Y esa es justo la pregunta que
+            # el campo existe para responder («¿esto rompe a los que pagan?»).
+            if user and not existente.get("autenticado"):
+                cambios["autenticado"] = True
+            if existente.get("resolved"):
+                # Volvió a pasar después de darlo por resuelto: se reabre, y se
+                # deja constancia de que ya se había cerrado una vez.
+                cambios["resolved"] = False
+                cambios["reopened_at"] = ahora.isoformat()
+            await db.error_logs.update_one(
+                {"fingerprint": huella},
+                {"$set": cambios, "$inc": {"veces": 1}},
+            )
+            return {"ok": True, "stored": True, "grouped": True}
+
+        # Huella nueva. Tope de filas abiertas: este endpoint es público, y sin
+        # techo cualquiera puede llenar la tabla generando mensajes distintos.
+        abiertos = await db.error_logs.count_documents({"resolved": False})
+        if abiertos >= _ERRORES_MAX_ABIERTOS:
+            return {"ok": True, "stored": False, "reason": "cap"}
+
+        await db.error_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "fingerprint": huella,
+            "type": tipo,
+            "message": mensaje,
+            "status_code": int(payload.status_code),
+            # La tarjeta pinta «{method} {endpoint}». Esto no es una petición
+            # HTTP, es una pantalla, así que el método es UI y el endpoint la
+            # ruta: se lee «UI /dashboard».
+            "method": "UI",
+            "endpoint": ruta,
+            "source": (payload.source or "boundary")[:32],
+            "component_stack": _redactar(payload.component_stack or "")[:2000] or None,
+            "stack": _redactar(payload.stack or "")[:2000] or None,
+            "app_version": (payload.app_version or "")[:40] or None,
+            "viewport": (payload.viewport or "")[:20] or None,
+            # Ver la nota 2 de arriba: se guarda si le pasa a gente identificada,
+            # nunca a QUIÉN. `error_logs` no contiene dato personal.
+            "autenticado": bool(user),
+            "veces": 1,
+            "first_seen": ahora.isoformat(),
+            "last_seen": ahora.isoformat(),
+            "created_at": ahora.isoformat(),
+            "resolved": False,
+        })
+    except Exception as e:  # noqa: BLE001 — nunca romper al que informa
+        logging.warning("[errors] No se pudo guardar el informe: %s", log_safe(e))
+        return {"ok": True, "stored": False, "reason": "error"}
+
+    return {"ok": True, "stored": True, "grouped": False}
 
 
 # ── COUPONS ──────────────────────────────────────────────────────────────────

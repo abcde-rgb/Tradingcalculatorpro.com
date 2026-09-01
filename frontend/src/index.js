@@ -4,6 +4,12 @@ import "@/index.css";
 import App from "@/App";
 import { initPWA } from "@/lib/pwa";
 import { bootI18n } from "@/lib/i18n";
+import { instalarCazadorGlobal } from "@/lib/reportarError";
+
+// Antes de montar React: una caída durante el primer render, o un fallo al
+// resolver el idioma, ocurre antes de que cualquier efecto de la app llegue a
+// correr. Instalarlo aquí es lo único que cubre esos.
+instalarCazadorGlobal();
 
 initPWA();
 
