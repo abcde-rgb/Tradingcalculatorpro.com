@@ -738,3 +738,28 @@ def test_every_auth_response_describes_the_user_the_same_way():
         "falso: la guarda del panel no salta y el admin entra a una pantalla "
         "donde cada llamada devolverá 428."
     )
+
+
+def test_las_respuestas_de_auth_devuelven_lo_que_el_usuario_guardó():
+    """Lo mismo, con `country` y `preferred_locale` — y por el mismo motivo.
+
+    Estaban guardados en la fila y NO viajaban en ninguna respuesta. El store
+    hace `set({ user: data.user })`, así que cada login, cada refresco y cada
+    `/auth/me` machacaba el objeto y los borraba de memoria. Efecto visible:
+    el idioma no seguía a la cuenta entre dispositivos, y el modal de «completa
+    tu perfil» —que decide con `!user.country`— volvía a salir en cada carga
+    aunque el usuario ya lo hubiera rellenado. Los ajustes «saltaban».
+
+    Se comprueba junto a `is_admin` porque es exactamente la misma clase de
+    fallo: un campo que la pantalla lee y que la respuesta no manda.
+    """
+    objetos = _objetos_user_de_respuesta()
+    incompletos = [(ln, sorted({"country", "preferred_locale"} - claves))
+                   for ln, claves in objetos
+                   if "is_admin" in claves
+                   and not {"country", "preferred_locale"} <= claves]
+    assert not incompletos, (
+        f"estas respuestas describen al usuario sin lo que él mismo guardó: "
+        f"{incompletos}. El store reemplaza `user` con lo que llega, así que "
+        "cualquier campo ausente se pierde en cada login y en cada refresco."
+    )

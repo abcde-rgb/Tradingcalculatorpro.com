@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff, Settings2, Download, Loader2 } from 'lucide-react';
@@ -34,6 +34,23 @@ export default function SettingsPage() {
   const [profileName, setProfileName] = useState(user?.name || '');
   const [profilePicture, setProfilePicture] = useState(user?.picture || '');
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // El formulario se resincroniza cuando cambia `user`, y hace falta.
+  //
+  // `useState(user?.name)` sólo corre en el PRIMER render. Al recargar, el
+  // token no se persiste: `SessionBoot` dispara `silentRefresh()` y el `user`
+  // llega DESPUÉS de montar esta pantalla, así que los campos se quedaban con
+  // lo que hubiera —o vacíos— y el usuario veía sus datos «saltar» a lo
+  // anterior. Lo mismo tras guardar, porque `handleSaveProfile` llama a
+  // `refreshUser()` y reemplaza el objeto entero.
+  //
+  // Sólo se pisa lo que el usuario NO está editando: si el campo difiere de lo
+  // que había en `user`, es que lo ha tocado, y una respuesta que llega tarde
+  // no puede borrarle lo que está escribiendo.
+  const nombreServidor = user?.name || '';
+  const fotoServidor = user?.picture || '';
+  useEffect(() => { setProfileName(nombreServidor); }, [nombreServidor]);
+  useEffect(() => { setProfilePicture(fotoServidor); }, [fotoServidor]);
   const profileDirty =
     profileName !== (user?.name || '') || profilePicture !== (user?.picture || '');
 
