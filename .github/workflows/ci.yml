@@ -146,6 +146,12 @@ jobs:
   frontend:
     name: ⚛️ Frontend — build
     runs-on: ubuntu-latest
+    # A nivel de JOB, no de paso: la necesitan `peso.js` Y `csp.js`, y ponerla
+    # sólo en el primero dejaba al segundo buscando en /opt/pw-browsers —la ruta
+    # del sandbox de Claude, que en un runner no existe—. El navegador se
+    # descarga una vez en el paso del presupuesto y desde aquí lo ven todos.
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
     defaults:
       run:
         working-directory: frontend
@@ -267,27 +273,24 @@ jobs:
       #
       # La holgura es en KB ABSOLUTOS, no en porcentaje: con un 8 % sobre una
       # pantalla de 1 MB caben 80 KB de librería nueva sin que salte nada.
-      - name: Presupuesto de peso por pantalla
+      # Paso propio, y ANTES de las dos sondas que lo necesitan. Estuvo metido
+      # dentro del paso del presupuesto, y eso acopló en silencio dos cosas que
+      # no tienen que ver: `csp.js` funcionaba sólo porque otro paso, más
+      # arriba, resultaba descargar el navegador. Reordenar o quitar aquél lo
+      # habría roto sin que nada lo dijera.
+      - name: Chromium para las sondas de navegador
         working-directory: .
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
         run: |
           mkdir -p tests/e2e/lib "$PLAYWRIGHT_BROWSERS_PATH"
-          # `playwright-core` es la librería: NO trae navegador. En el sandbox de
-          # Claude da igual porque hay uno preinstalado en /opt/pw-browsers, que
-          # es la ruta por defecto de `entorno.js`; en un runner de GitHub no
-          # existe, y el paso moría con «No encuentro Chromium bajo
-          # /opt/pw-browsers» — un mensaje escrito pensando en el sandbox, que
-          # aquí despista. Se instalaba la librería y se daba por hecho el
-          # navegador.
-          #
-          # Se añade `playwright` (el paquete completo) sólo por su instalador, y
-          # el navegador se baja a PLAYWRIGHT_BROWSERS_PATH, que `entorno.js`
-          # respeta. El formato que deja —`chromium-<rev>/chrome-linux/chrome`—
-          # es justo el que busca.
+          # `playwright-core` es la librería y NO trae navegador; `playwright`
+          # se instala sólo por su instalador.
           (cd tests/e2e && npm install --silent --no-save --prefix . playwright-core playwright)
           (cd tests/e2e && npx --no-install playwright install chromium)
           ln -sfn "$PWD/tests/e2e/node_modules/playwright-core" "$PWD/tests/e2e/lib/playwright-core"
+
+      - name: Presupuesto de peso por pantalla
+        working-directory: .
+        run: |
           node tests/e2e/stack/servidor.js &
           for i in $(seq 1 30); do
             curl -sf http://127.0.0.1:3100 >/dev/null && break || sleep 1
