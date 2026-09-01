@@ -37,17 +37,33 @@ const CUENTA = {
 function rutaChromium() {
   if (process.env.QA_CHROMIUM) return process.env.QA_CHROMIUM;
   const raiz = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/pw-browsers';
+  // DOS formatos, no uno. Playwright cambió la carpeta del binario al pasar a
+  // Chrome for Testing: `chrome-linux/chrome` en las builds viejas,
+  // `chrome-linux64/chrome` en las nuevas. El sandbox trae preinstalada una del
+  // formato viejo (chromium-1194), así que dar por hecho ése funcionaba AQUÍ por
+  // casualidad y rompía en CI, donde `playwright install` baja la nueva: el
+  // directorio `chromium-<rev>` existía, el binario no estaba donde se buscaba, y
+  // el error decía «no encuentro Chromium» como si hubiera fallado la descarga.
+  //
+  // Comprobado preguntándoselo al propio Playwright en vez de suponerlo:
+  // `playwright-core`.chromium.executablePath() devuelve hoy
+  // `…/chromium-1234/chrome-linux64/chrome`.
+  const BINARIOS = [['chrome-linux', 'chrome'], ['chrome-linux64', 'chrome']];
   const candidatos = fs.existsSync(raiz)
     ? fs.readdirSync(raiz)
         .filter((d) => d.startsWith('chromium-'))
-        .map((d) => path.join(raiz, d, 'chrome-linux', 'chrome'))
+        .flatMap((d) => BINARIOS.map((b) => path.join(raiz, d, ...b)))
         .filter((p) => fs.existsSync(p))
     : [];
   if (!candidatos.length) {
     throw new Error(
-      `No encuentro Chromium bajo ${raiz}. En este entorno viene preinstalado; ` +
-      'si no, exporta QA_CHROMIUM con la ruta al binario. No ejecutes ' +
-      '"playwright install": la política de red del sandbox lo bloquea.');
+      `No encuentro Chromium bajo ${raiz} ` +
+      `(se busca ${BINARIOS.map((b) => b.join('/')).join(' o ')} dentro de cada chromium-<rev>).\n` +
+      '· En el sandbox de Claude viene preinstalado en /opt/pw-browsers y NO hay ' +
+      'que ejecutar "playwright install": la política de red lo bloquea.\n' +
+      '· En CI o en local, bájalo con "npx playwright install chromium" y apunta ' +
+      'PLAYWRIGHT_BROWSERS_PATH a donde deba quedarse.\n' +
+      '· QA_CHROMIUM con la ruta al binario salta esta búsqueda entera.');
   }
   return candidatos.sort().reverse()[0];   // el build más alto
 }
