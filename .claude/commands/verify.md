@@ -36,6 +36,7 @@ Ejecuta en orden y reporta cada resultado. No sigas si uno falla de forma bloque
    python scripts/gen-mapa.py --check           # el mapa refleja el código
    python scripts/gen-instruments-js.py --check # catálogo backend ↔ frontend
    python scripts/check-doc-links.py            # los enlaces resuelven
+   python scripts/check-deps-test.py            # deps de test en un solo sitio
    python scripts/gen-asistente.py --check      # skills/reglas/agentes cableados
    ```
    `gen-asistente --check` es el único que falla por algo que no rompe la web:

@@ -942,6 +942,34 @@ else
   echo "  ⏭️  Alfabeto por idioma y techo de los diagramas: sin frontend/node_modules"
 fi
 
+# ── Las dependencias de test, declaradas en un solo sitio ──────────────────
+# El fallo tuvo dos caras y las dos se vivieron: pytest-asyncio instalado «de
+# arrastre» en local y no en CI (las `async def` fallaban sólo allí), y luego
+# CLAUDE.md documentando `pip install -r requirements.txt`, que tampoco basta
+# (fallaban sólo para quien siguiera la guía). La causa era la misma: la
+# dependencia no estaba declarada. Ahora vive en requirements-dev.txt.
+titulo "Dependencias de test (check-deps-test.py)"
+
+probar "CI vuelve a listar los plugins a mano" \
+  "python scripts/check-deps-test.py" \
+  "sed -i 's|run: pip install -r requirements-dev.txt|run: pip install -r requirements.txt pytest pytest-asyncio|' .github/workflows/ci.yml"
+
+probar "la guía vuelve a documentar sólo requirements.txt" \
+  "python scripts/check-deps-test.py" \
+  "sed -i 's|pip install -r requirements-dev.txt|pip install -r requirements.txt|' CLAUDE.md"
+
+probar "requirements-dev deja de arrastrar requirements.txt" \
+  "python scripts/check-deps-test.py" \
+  "sed -i 's|^-r requirements.txt||' backend/requirements-dev.txt"
+
+probar "se cae pytest-asyncio de la declaración" \
+  "python scripts/check-deps-test.py" \
+  "sed -i '/^pytest-asyncio/d' backend/requirements-dev.txt"
+
+probar "desaparece requirements-dev.txt" \
+  "python scripts/check-deps-test.py" \
+  "rm -f backend/requirements-dev.txt"
+
 # ── Exposición de secretos: los cuatro arreglos del 2026-08-31 ─────────────
 # Estas pruebas leen el TEXTO de server.py y admin_routes.py, así que NO
 # necesitan fastapi: van en su propio bloque, con guarda sólo de pytest, para

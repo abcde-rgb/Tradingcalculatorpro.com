@@ -54,7 +54,7 @@ CLAUDE.md ─── constitución: stack real, honestidad numérica, invariantes
 | `/cerrar-sesion` | Cierra la sesión dejando el proyecto coherente | 68 |
 | `/examen-web` | Examen integral repetible de la web — dispara auditoría de fórmulas, SEO, seguridad, i18n y consistencia de diseño, y consolida un resumen con severidades. | 24 |
 | `/pre-deploy` | Recorre el checklist de lanzamiento y marca los bloqueantes operativos (Stripe, secretos, OAuth, dominio, health) que NO se pueden cerrar desde el repo. | 25 |
-| `/verify` | Verifica el proyecto antes de commit/push. | 79 |
+| `/verify` | Verifica el proyecto antes de commit/push. | 80 |
 
 ## Subagentes (6)
 

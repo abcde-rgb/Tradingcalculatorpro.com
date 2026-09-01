@@ -41,7 +41,10 @@ Cualquier `.md` nuevo va a `docs/`; si es una foto fechada que no se mantendrá,
 
 ```bash
 # Backend (desde backend/) — por socket Unix; con TCP sin SSL falla, ver rules/infra.md
-pip install -r requirements.txt
+# `requirements-dev.txt` arrastra `requirements.txt` y añade pytest y
+# pytest-asyncio. Instalar sólo `requirements.txt` NO basta para correr las
+# pruebas: sin pytest-asyncio las `async def` no se saltan, se dan por FALLIDAS.
+pip install -r requirements-dev.txt
 ENVIRONMENT=development JWT_SECRET=devonly \
 DATABASE_URL='postgresql://user:pass@/trading_dev?host=/var/run/postgresql' \
 uvicorn server:app --host 0.0.0.0 --port 8080 --reload
@@ -66,6 +69,7 @@ python scripts/gen-mapa.py --check             # el mapa refleja el código
 python scripts/gen-asistente.py --check        # skills/reglas/agentes bien cableados
 python scripts/check-rutas-muertas.py          # cada ruta sin pantalla tiene decisión
 python scripts/check-doc-links.py              # los enlaces de la doc resuelven
+python scripts/check-deps-test.py             # deps de test declaradas en un solo sitio
 bash scripts/probar-verificadores.sh           # ¿y esos verificadores verifican?
 ```
 
@@ -189,7 +193,8 @@ Anthropic):
   los precios en vivo fallan. Todo smoke de escáner o datos de mercado tiene que
   **mockear** o usar fixtures. Una prueba que llame a la red real aquí no prueba nada.
 - **Sí corre siempre, offline**: `py_compile`, `i18n-check`, `engine-check`,
-  `gen-instruments-js --check`, `gen-mapa --check`, `check-doc-links`, `npm run build`.
+  `gen-instruments-js --check`, `gen-mapa --check`, `check-doc-links`,
+  `check-deps-test`, `npm run build`.
 - Para E2E con backend vivo (Postgres por socket + uvicorn + Playwright), usa el skill
   `qa`: arranca el stack y conoce las trampas (CORS del puerto, cookies `secure` sobre
   `http://localhost`, el banner de cookies que intercepta clics).

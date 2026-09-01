@@ -29,13 +29,14 @@ jobs:
           cache: 'pip'
           cache-dependency-path: backend/requirements.txt
 
-      # pytest-asyncio NO sobra: hay siete pruebas `async def` en
-      # test_app_settings_roundtrip_unit.py. Sin el plugin, pytest no las salta
-      # —las da por FALLIDAS— y encima avisa de que `@pytest.mark.asyncio` es un
-      # marcador desconocido, que es fácil de leer como ruido. En local estaba
-      # instalado de arrastre y en CI no, así que el fallo sólo salía aquí.
+      # Las dependencias de test se declaran en `backend/requirements-dev.txt`,
+      # que arrastra `requirements.txt` con `-r`. Estaban sin declarar: aquí se
+      # pasaban a mano y CLAUDE.md documentaba sólo `requirements.txt`, que NO
+      # basta —sin pytest-asyncio las pruebas `async def` no se saltan, se dan
+      # por FALLIDAS—. `scripts/check-deps-test.py` comprueba que este comando
+      # y el de la guía sigan apuntando al mismo fichero.
       - name: Instalar dependencias
-        run: pip install -r requirements.txt pytest pytest-asyncio
+        run: pip install -r requirements-dev.txt
 
       # La lista de módulos iba a mano y se quedó atrás: price_action, timeframes,
       # market_data, nowpayments, revolut y affiliate_program no se comprobaban.

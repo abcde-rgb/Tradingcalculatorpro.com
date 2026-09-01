@@ -1,0 +1,21 @@
+# Dependencias para CORRER LAS PRUEBAS. No entran en la imagen de Cloud Run.
+#
+# Existe porque estaban sin declarar en ningún sitio: `requirements.txt` no las
+# lleva (y hace bien: son de test, no de producción) y el workflow de CI las
+# pasaba a mano en su línea de `pip install`. Resultado, `CLAUDE.md` documentaba
+#
+#     pip install -r requirements.txt && pytest tests/ -v
+#
+# que NO basta: sin `pytest-asyncio`, las pruebas `async def` no se saltan, se
+# dan por FALLIDAS, con un aviso de «marcador desconocido» que se lee como
+# ruido. Quien siguiera la guía del proyecto veía fallos que no existían.
+#
+# El comentario del propio workflow cuenta la misma historia al revés: el
+# plugin estaba instalado de arrastre en local y no en CI, así que el fallo
+# sólo salía allí. Las dos caras del mismo problema: la dependencia no estaba
+# declarada. Ahora sí, en un solo sitio, y `check-deps-test.py` comprueba que
+# CI y la guía sigan apuntando aquí.
+-r requirements.txt
+
+pytest==9.1.1
+pytest-asyncio==1.3.0
