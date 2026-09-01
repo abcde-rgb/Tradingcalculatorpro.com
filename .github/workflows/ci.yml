@@ -252,10 +252,21 @@ jobs:
       - name: Lint (ESLint)
         run: npx eslint src scripts
 
+      # La CSP de `public/index.html` interpola %REACT_APP_BACKEND_URL% y
+      # %REACT_APP_BACKEND_WS_URL%. Sin definirlas, CRA deja el marcador tal cual
+      # y el navegador descarta la directiva entera con «invalid source» — o sea,
+      # CI compilaba una página con la CSP rota y lo comprobaba nadie: `csp.js`
+      # moría antes, al no encontrar Chromium. Al arreglar aquello salió esto.
+      #
+      # Valores de mentira a propósito: aquí no hay backend al que llamar, y lo
+      # que se comprueba es la FORMA de la política, no que responda. En el
+      # despliegue real salen de los secretos (deploy-gh-pages.yml).
       - name: Build de producción
-        run: npm run build
         env:
-          CI: false   # mismo criterio que el deploy: warnings no rompen el build
+          CI: false
+          REACT_APP_BACKEND_URL: https://backend.example
+          REACT_APP_BACKEND_WS_URL: wss://backend.example
+        run: npm run build
 
       # El `postbuild` genera 1.630 páginas indexables y un sitemap de 1.639
       # URLs — el mayor activo de captación del proyecto — y hasta el
