@@ -1410,9 +1410,16 @@ EOF"
 import pathlib
 p = pathlib.Path('frontend/src/lib/store.js')
 s = p.read_text(encoding='utf-8')
-viejo = '/auth/refresh/logout'
-assert s.count(viejo) == 1, 'ancla del logout del store no encontrada'
-p.write_text(s.replace(viejo, '/auth/logout', 1), encoding='utf-8')
+# La ruta a pelo aparece DOS veces —el comentario de encima la nombra— y con
+# 'assert count == 1' este sabotaje no llegaba a aplicarse nunca: exactamente
+# BUG-078 otra vez, y se coló porque el bloque entero se salta en el CI de Doc
+# (no hay pytest ahí) y porque probé el sabotaje a mano con otro texto del que
+# luego escribí aquí. Se ancla en la LLAMADA, que es única. Con chr() para no
+# meter '\$' ni acentos graves en una cadena que bash expande y luego evalua.
+llamada = 'fetchWithTimeout(' + chr(96) + chr(36) + '{API}/auth'
+ancla = llamada + '/refresh/logout'
+assert s.count(ancla) == 1, 'ancla del logout del store no encontrada'
+p.write_text(s.replace(ancla, llamada + '/logout', 1), encoding='utf-8')
 EOF"
 
   # ── El segundo factor se pide en las TRES vías, no sólo con contraseña ──────

@@ -397,7 +397,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | Carpeta | Ficheros | Líneas |
 |---|---:|---:|
 | `components/affiliate/` | 1 | 209 |
-| `components/auth/` | 4 | 469 |
+| `components/auth/` | 4 | 474 |
 | `components/backtesting/` | 1 | 175 |
 | `components/brokers/` | 1 | 240 |
 | `components/calculators/` | 17 | 5,023 |
