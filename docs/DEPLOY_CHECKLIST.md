@@ -150,6 +150,34 @@ lo de abajo no está hecho en el dashboard de Stripe:
 > devengaba un IVA no recaudado — un pasivo que crece con las ventas y que luego
 > se paga del margen y con recargo.
 
+## F-bis. Si te quedas fuera de `/admin` 🆘
+
+El 2FA es **obligatorio** para administradores y no se puede desactivar con una
+variable (`ADMIN_2FA_OPTIONAL` es inerte en producción, a propósito). El margen
+de alta de 10 minutos es **de un solo uso**: si se gastó, no vuelve.
+
+**Primero, averigua qué te bloquea** — con la sesión iniciada, en el navegador:
+
+```
+https://{BACKEND_URL}/api/auth/admin-status
+```
+
+Contesta, sobre TU cuenta, si eres admin, si tienes 2FA, en qué estado está el
+margen y si hay palanca activa. Un **404 ahí significa que el backend no se ha
+desplegado** con estos cambios, y ésa sería la causa de todo.
+
+**Y si hace falta entrar ya**, con fecha de caducidad (UTC, ISO-8601):
+
+```bash
+gcloud run services update tradingcalculator-api --region us-east1 \
+  --update-env-vars ADMIN_2FA_BYPASS_UNTIL=2026-09-02T18:00:00Z
+```
+
+Se apaga sola al pasar esa fecha aunque la variable siga puesta. Cada uso escribe
+un aviso en el log y una entrada en `admin_audit_log`. Ponerla exige acceso a
+Google Cloud, que es lo que hace de segundo factor. **Entra, activa el 2FA en
+Ajustes → Seguridad, y quítala.**
+
 ## F. Google OAuth 🔴
 
 - [ ] En Google Cloud Console → Credenciales → OAuth client:

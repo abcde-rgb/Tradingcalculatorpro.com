@@ -1269,6 +1269,47 @@ assert s.count(viejo) == 3, f'se esperaban 3 limites de 3/hora, hay {s.count(vie
 p.write_text(s.replace(viejo, '', 3), encoding='utf-8')
 EOF"
 
+  # ── La palanca de emergencia y el diagnóstico (2026-09-01) ──────────────────
+  # Son la salida cuando el margen de alta ya está gastado. Si la palanca deja de
+  # caducar, o el diagnóstico empieza a escribir, dejan de ser lo que prometen.
+  titulo "Palanca de 2FA y diagnóstico (test_admin_2fa_unit.py)"
+
+  probar "la palanca deja de caducar (se vuelve un interruptor)" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k una_fecha_no_un_interruptor -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'return limite if datetime.now(timezone.utc) < limite else None'
+assert s.count(viejo) == 1, 'ancla de la caducidad no encontrada'
+p.write_text(s.replace(viejo, 'return limite', 1), encoding='utf-8')
+EOF"
+
+  probar "una fecha ilegible deja de tratarse (revienta en vez de cerrar)" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k fecha_ilegible -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+ini = s.find('def _bypass_2fa_vigente')
+assert ini > -1, 'ayudante de la palanca no encontrado'
+fin = s.find(chr(10) + chr(10) + chr(10), ini)
+cuerpo = s[ini:fin]
+assert cuerpo.count('    except ValueError:') == 1, 'ancla del except no encontrada'
+p.write_text(s[:ini] + cuerpo.replace('    except ValueError:', '    except KeyError:', 1) + s[fin:], encoding='utf-8')
+EOF"
+
+  probar "preguntar por el diagnóstico gasta el margen de alta" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k no_abre_el_margen -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    email = (user.get(\"email\") or \"\").lower()'
+assert s.count(viejo) == 1, 'ancla del diagnostico no encontrada'
+p.write_text(s.replace(viejo, '    await _abrir_o_comprobar_margen_2fa(user)' + chr(10) + viejo, 1), encoding='utf-8')
+EOF"
+
   # ── El encierro del admin y la sesión que se cerraba sola (BUG-076) ─────────
   # Cuatro maneras distintas de volver a encerrar a alguien:
   #   · esconder la tarjeta de 2FA a las cuentas que no son de contraseña,

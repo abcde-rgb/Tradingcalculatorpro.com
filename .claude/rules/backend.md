@@ -102,6 +102,19 @@ nada. Los `3/hora` de enlace mágico, recuperar contraseña y borrado **siguen
 puestos**: ahí el límite protege al dueño de la cuenta de que le inunden el buzón
 o le borren los datos, que es otro problema.
 
+## Quedarse fuera de `/admin`
+
+El 2FA es obligatorio para admins y `ADMIN_2FA_OPTIONAL` es inerte en producción.
+El margen de alta (`ADMIN_2FA_GRACE_MINUTES`, 10 min) es **de un solo uso y se
+abre con la primera visita al panel**, así que un clic sin intención lo gasta.
+
+- **Diagnóstico**: `GET /api/auth/admin-status` (require_user) dice, sobre la
+  cuenta que pregunta, si es admin, si tiene 2FA, el estado del margen y si hay
+  palanca. No escribe ni abre nada — hay un test que lo fija.
+- **Salida**: `ADMIN_2FA_BYPASS_UNTIL=<ISO-8601 futuro>` en el servicio. Es una
+  FECHA, no un interruptor: caduca sola. Una fecha pasada o ilegible **no abre
+  nada**. Queda en `admin_audit_log`.
+
 ## `admin_routes.py` se importa tarde
 
 Se carga de forma lazy en `startup_event`. Si falla la importación, el servidor arranca

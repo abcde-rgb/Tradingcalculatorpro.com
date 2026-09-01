@@ -127,10 +127,11 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 > Sharpe escritas y sin puerta. `check-rutas-muertas.py` avisó de que habían
 > dejado de estar muertas antes de que nadie tocara este fichero.
 
-### CONSTRUIR (18)
+### CONSTRUIR (19)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
+| `GET` | `/api/auth/admin-status` | CONSTRUIR | **Ya construida, y sin pantalla A PROPÓSITO** — es la excepción de esta tabla. Existe para abrirla con la URL cuando el panel NO te deja entrar: colgarla de una pantalla la haría inútil justo en el escenario para el que se escribió. Dice, sobre la cuenta que pregunta, si es admin, si tiene 2FA, en qué estado está el margen de alta y si hay palanca. Nació el 2026-09-01 tras tres rondas seguidas diagnosticando «el admin no funciona» a base de suposiciones: cuatro causas distintas —403 a la portada, 428 a Ajustes, panel vacío, panel caído— dan pantallas parecidas y desde fuera no se distinguen. **Un 404 aquí ya es un diagnóstico**: el backend no se ha desplegado. `require_user`, no consulta la base y no escribe; dos tests lo fijan. Lo pendiente es la pantalla, si algún día compensa |
 | `GET` | `/api/performance/export` | CONSTRUIR | CSV y Excel del diario, con filtros por estado, símbolo y fechas. Un botón. Es lo que más se pide y lo más barato de la lista. |
 | `POST` | `/api/performance/portfolio-risk` | CONSTRUIR | Riesgo de cuenta: calor abierto, correlación y estado de los límites de pérdida (`portfolio_risk.py`). Todo lo demás del diario razona operación a operación; esto es la vista que un prop trader mira primero. |
 | `POST` | `/api/calculate/volatility-size` | CONSTRUIR | Tamaño de posición por ATR. Sin esto, 1R no significa lo mismo entre instrumentos y las estadísticas por R no son comparables. |

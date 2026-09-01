@@ -33,12 +33,22 @@ def test_require_admin_checks_totp():
 
 
 def test_require_admin_uses_428_not_403_for_missing_2fa():
-    """403 says 'you may not'; 428 says 'finish this first' — different UX."""
+    """403 says 'you may not'; 428 says 'finish this first' — different UX.
+
+    La ventana era de 400 caracteres tras `totp_enabled`, y los dos escapes que
+    se metieron en medio —la palanca y el margen— la desbordaron: el test
+    fallaba con el 428 intacto tres líneas más abajo. Se ancla en el `raise`,
+    que es la propiedad de verdad, en vez de en la distancia.
+    """
     src = _func_source("require_admin")
     idx = src.find("totp_enabled")
     assert idx > -1
-    after = src[idx:idx + 400]
-    assert "428" in after, "missing-2FA must answer 428 Precondition Required"
+    tras = src[idx:]
+    lanza = tras.find("raise HTTPException")
+    assert lanza > -1, "el camino sin 2FA tiene que terminar en un HTTPException"
+    assert "428" in tras[lanza:lanza + 200], (
+        "missing-2FA must answer 428 Precondition Required"
+    )
 
 
 def test_the_admin_role_check_still_runs_before_the_2fa_check():
@@ -181,3 +191,79 @@ def test_los_endpoints_de_2fa_no_miran_el_proveedor():
             f"{nombre} ha empezado a mirar el proveedor: la tarjeta de Ajustes "
             "promete que funciona para cualquier cuenta"
         )
+
+
+# ============================================================
+#  La palanca de emergencia y el diagnóstico (2026-09-01)
+# ============================================================
+#
+# El margen de alta resultó ser una trampa: se abre con la primera visita al
+# panel —que puede ser un clic sin intención— y no se reabre nunca. Gastado,
+# el dueño se queda fuera de su propio panel sin forma de entrar, que es
+# exactamente lo que ese código existía para evitar.
+#
+# `ADMIN_2FA_BYPASS_UNTIL` es la salida, y es una FECHA, no un interruptor:
+# se apaga sola aunque nadie se acuerde de quitar la variable.
+
+def test_la_palanca_es_una_fecha_no_un_interruptor():
+    """Un booleano se queda puesto para siempre; un instante caduca solo."""
+    src = _func_source("_bypass_2fa_vigente")
+    assert src is not None, "falta el ayudante de la palanca"
+    assert "fromisoformat" in src, "tiene que interpretarse como fecha"
+    assert "datetime.now(timezone.utc) < limite" in src, (
+        "la palanca tiene que comparar con AHORA, o no caduca"
+    )
+
+
+def test_una_fecha_ilegible_no_abre_nada():
+    """Cualquier duda deja el 428 en pie: el camino seguro es no abrir."""
+    src = _func_source("_bypass_2fa_vigente")
+    assert "except ValueError" in src
+    idx = src.find("except ValueError")
+    assert "return None" in src[idx:idx + 400], (
+        "una fecha mal escrita tiene que dejar el 2FA obligatorio, no saltárselo"
+    )
+
+
+def test_la_palanca_va_antes_del_margen_pero_despues_del_rol():
+    """Orden: primero eres admin, luego se mira cómo entras.
+
+    La palanca ANTES del margen porque hace falta justo cuando el margen ya
+    está gastado. Y las dos DESPUÉS del 403, para que un no-admin no pueda
+    abrir nada ni enterarse de que existen.
+    """
+    src = _func_source("require_admin")
+    rol = src.find("Acceso restringido")
+    palanca = src.find("_bypass_2fa_vigente")
+    margen = src.find("_abrir_o_comprobar_margen_2fa")
+    assert -1 < rol < palanca < margen
+
+
+def test_usar_la_palanca_deja_rastro():
+    """Una puerta de emergencia silenciosa no es aceptable."""
+    src = _func_source("require_admin")
+    idx = src.find("_bypass_2fa_vigente")
+    tramo = src[idx:idx + 700]
+    assert "logging.warning" in tramo
+    assert "admin_2fa_bypass_used" in tramo
+
+
+def test_el_diagnostico_no_habla_de_otros_usuarios():
+    """`/auth/admin-status` va por require_user y sólo mira al que pregunta."""
+    src = _func_source("admin_status")
+    assert src is not None, "falta el endpoint de diagnóstico"
+    assert "Depends(require_user)" in src
+    assert "find_one" not in src, (
+        "el diagnóstico no puede consultar la base: sólo describe al usuario "
+        "que ya viene resuelto en `user`, o se convierte en una fuga"
+    )
+
+
+def test_el_diagnostico_no_abre_el_margen():
+    """Preguntar por qué no entras no puede gastarte el margen de alta."""
+    src = _func_source("admin_status")
+    assert "_abrir_o_comprobar_margen_2fa" not in src, (
+        "el diagnóstico llamaría al ayudante que ABRE el margen: preguntar "
+        "gastaría los diez minutos sin que nadie lo pidiera"
+    )
+    assert "update_one" not in src, "un diagnóstico no escribe"

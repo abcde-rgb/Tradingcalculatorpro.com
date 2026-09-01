@@ -1428,6 +1428,48 @@ try:
 except ValueError:
     ADMIN_2FA_GRACE_MINUTES = 10
 
+# La palanca de emergencia: una FECHA LÍMITE, no un interruptor.
+#
+# `ADMIN_2FA_GRACE_MINUTES` resultó ser una trampa: se abre sola con la primera
+# visita al panel —que puede ser un clic sin intención— y no se reabre nunca. Si
+# se agota, el dueño se queda fuera de su propio panel sin ninguna forma de
+# entrar, que es exactamente lo que este código existía para evitar.
+#
+# Esto es la salida, y funciona aunque el margen esté gastado:
+#
+#     gcloud run services update tradingcalculator-api --region us-east1 \
+#       --update-env-vars ADMIN_2FA_BYPASS_UNTIL=2026-09-02T18:00:00Z
+#
+# Por qué es aceptable en producción, al contrario que `ADMIN_2FA_OPTIONAL`:
+#   · SE APAGA SOLA. Es un instante, no un booleano. Pasada la fecha vuelve el
+#     428 aunque la variable siga puesta y nadie se acuerde de quitarla — que es
+#     lo que de verdad pasa con los interruptores de emergencia.
+#   · PONERLA ES EL SEGUNDO FACTOR. Requiere acceso a la consola de Google Cloud
+#     y un despliegue del servicio. Quien tenga sólo la contraseña del admin no
+#     puede activarla; quien tenga GCP ya es dueño de todo de todos modos.
+#   · DEJA RASTRO. Cada petición que pasa por aquí escribe un aviso en el log y
+#     una entrada en `admin_audit_log`.
+#
+# Una fecha ilegible o pasada NO abre nada: cualquier duda deja el 428 en pie.
+ADMIN_2FA_BYPASS_UNTIL = (os.environ.get("ADMIN_2FA_BYPASS_UNTIL") or "").strip()
+
+
+def _bypass_2fa_vigente() -> Optional[datetime]:
+    """El instante en que caduca la palanca, si está puesta y aún no ha pasado."""
+    if not ADMIN_2FA_BYPASS_UNTIL:
+        return None
+    try:
+        limite = datetime.fromisoformat(ADMIN_2FA_BYPASS_UNTIL.replace("Z", "+00:00"))
+    except ValueError:
+        logging.error(
+            "[admin] ADMIN_2FA_BYPASS_UNTIL no es una fecha ISO-8601 (%s): se ignora, "
+            "el 2FA sigue siendo obligatorio", log_safe(ADMIN_2FA_BYPASS_UNTIL),
+        )
+        return None
+    if limite.tzinfo is None:
+        limite = limite.replace(tzinfo=timezone.utc)
+    return limite if datetime.now(timezone.utc) < limite else None
+
 
 def _real_client_ip(request: Optional[Request]) -> str:
     """Client IP as seen by our outermost trusted proxy.
@@ -1852,9 +1894,26 @@ async def require_admin(
     # finish setting this up" and send the admin to Settings instead of a dead
     # end. Escape hatch for local development only.
     if not user.get("totp_enabled") and not ADMIN_2FA_OPTIONAL:
-        # …salvo el margen de alta: diez minutos, una vez en la vida de la
-        # cuenta, para activar el segundo factor con el panel delante en vez de
-        # contra un muro. Ver ADMIN_2FA_GRACE_MINUTES.
+        # …salvo dos escapes, en este orden.
+        #
+        # (a) La palanca de emergencia, que alguien con acceso a Cloud Run ha
+        #     puesto a propósito y con fecha de caducidad. Va PRIMERO para que
+        #     funcione aunque el margen de alta ya esté gastado — que es
+        #     justamente cuando hace falta.
+        # (b) El margen de alta: diez minutos, una vez en la vida de la cuenta,
+        #     para activar el segundo factor con el panel delante en vez de
+        #     contra un muro. Ver ADMIN_2FA_GRACE_MINUTES.
+        caduca = _bypass_2fa_vigente()
+        if caduca is not None:
+            logging.warning(
+                "[admin] 2FA omitido por ADMIN_2FA_BYPASS_UNTIL (caduca %s) para %s",
+                log_safe(caduca.isoformat()), log_safe(user.get("email", "")),
+            )
+            await log_admin_action(
+                admin=user, action="admin_2fa_bypass_used",
+                details={"expires_at": caduca.isoformat()}, request=request,
+            )
+            return user
         if not await _abrir_o_comprobar_margen_2fa(user, request):
             raise HTTPException(
                 status_code=428,
@@ -3536,6 +3595,76 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
 class ProfileUpdateRequest(BaseModel):
     country: Optional[str] = None
     preferred_locale: Optional[str] = None
+
+
+@api_router.get("/auth/admin-status")
+async def admin_status(user: dict = Depends(require_user)):
+    """Por qué el panel te deja entrar o no. Sobre TU PROPIA cuenta.
+
+    Existe porque «el admin no funciona» tiene cuatro causas distintas que dan
+    cuatro pantallas parecidas —te echa a la portada, te echa a Ajustes, el panel
+    sale vacío, el panel se cae— y desde fuera no se distinguen. Sin esto, cada
+    diagnóstico es una ronda de suposiciones: pasó tres veces seguidas.
+
+    No filtra nada: son datos de tu propia cuenta que ya conoces, más la
+    configuración del servidor que decide sobre ti. Va por `require_user`, así
+    que hay que haber iniciado sesión, y no dice nada de NINGÚN otro usuario.
+    """
+    email = (user.get("email") or "").lower()
+    es_admin = bool(user.get("is_admin")) or email in _ADMIN_EMAILS
+    tiene_2fa = bool(user.get("totp_enabled"))
+    caduca_bypass = _bypass_2fa_vigente()
+
+    # El margen de alta, sin abrirlo: esto es un diagnóstico, no una puerta.
+    margen = {"minutos_configurados": ADMIN_2FA_GRACE_MINUTES, "estado": "sin_usar"}
+    marca = user.get("admin_2fa_grace_started_at")
+    if ADMIN_2FA_GRACE_MINUTES <= 0:
+        margen["estado"] = "desactivado"
+    elif marca:
+        try:
+            inicio = datetime.fromisoformat(str(marca).replace("Z", "+00:00"))
+            if inicio.tzinfo is None:
+                inicio = inicio.replace(tzinfo=timezone.utc)
+            fin = inicio + timedelta(minutes=ADMIN_2FA_GRACE_MINUTES)
+            vivo = datetime.now(timezone.utc) < fin
+            margen.update({"estado": "abierto" if vivo else "gastado",
+                           "abierto_el": inicio.isoformat(), "caduca_el": fin.isoformat()})
+        except ValueError:
+            margen["estado"] = "marca_ilegible"
+
+    if not es_admin:
+        motivo = ("Esta cuenta NO es administradora. El panel responde 403 y la app "
+                  "te devuelve a la portada. Revisa ADMIN_EMAILS en el servicio "
+                  "(coma sin espacios, minúsculas) o asciende la cuenta desde otra admin.")
+        puede = False
+    elif tiene_2fa or ADMIN_2FA_OPTIONAL or caduca_bypass is not None:
+        motivo = "Puedes entrar al panel."
+        puede = True
+    elif margen["estado"] == "abierto":
+        motivo = (f"Entras por el margen de alta, que caduca el {margen['caduca_el']}. "
+                  "Activa la verificación en dos pasos AHORA: no se vuelve a abrir.")
+        puede = True
+    else:
+        motivo = ("Eres administradora pero la cuenta no tiene verificación en dos "
+                  "pasos, y el margen de alta está " + margen["estado"] + ". El panel "
+                  "responde 428. Actívala en Ajustes → Seguridad, o pon "
+                  "ADMIN_2FA_BYPASS_UNTIL en el servicio con una fecha futura.")
+        puede = False
+
+    return {
+        "email": user.get("email"),
+        "puede_entrar_al_panel": puede,
+        "motivo": motivo,
+        "es_admin": es_admin,
+        "por_lista_admin_emails": email in _ADMIN_EMAILS,
+        "por_marca_en_la_fila": bool(user.get("is_admin")),
+        "hay_admin_emails_configurado": bool(_ADMIN_EMAILS),
+        "two_factor_enabled": tiene_2fa,
+        "auth_provider": user.get("auth_provider", "password"),
+        "margen_de_alta": margen,
+        "bypass_activo_hasta": caduca_bypass.isoformat() if caduca_bypass else None,
+        "entorno_permite_saltarse_2fa": ADMIN_2FA_OPTIONAL,
+    }
 
 
 @api_router.post("/auth/profile")
