@@ -12,10 +12,10 @@ export default function SimulatorLocked() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-            <FlaskConical className="w-4 h-4 text-cyan-500" />
+            <FlaskConical className="w-4 h-4 text-info" />
           </div>
           {t('simulator')} Pro
-          <Crown className="w-4 h-4 text-yellow-500" />
+          <Crown className="w-4 h-4 text-caution" />
         </CardTitle>
       </CardHeader>
       <CardContent>

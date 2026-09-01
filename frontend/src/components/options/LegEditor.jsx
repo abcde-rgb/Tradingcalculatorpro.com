@@ -148,7 +148,7 @@ const LegEditor = ({
             {t('optLegsActive')}: {legs.filter(l => l.enabled).length}
           </p>
           {isMultiExpiry && (
-            <p className="text-[9px] text-[#f59e0b] mt-0.5" data-testid="multi-expiry-notice">
+            <p className="text-[9px] text-warn mt-0.5" data-testid="multi-expiry-notice">
               {t('optMultiExpiryNotice')}
             </p>
           )}
@@ -156,7 +156,7 @@ const LegEditor = ({
         <div className="flex items-center gap-1.5">
           <button
             onClick={clearAll}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-short hover:bg-short/10 transition-all"
             title="Borrar todo"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -207,7 +207,7 @@ const LegEditor = ({
                 className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${
                   leg.type === 'call'
                     ? 'bg-primary/15 text-primary hover:bg-primary/25'
-                    : 'bg-[#a78bfa]/15 text-[#c4b5fd] hover:bg-[#a78bfa]/25'
+                    : 'bg-compare/15 text-compare hover:bg-compare/25'
                 }`}
               >
                 {leg.type === 'call' ? 'CALL' : 'PUT'}
@@ -226,7 +226,7 @@ const LegEditor = ({
               )}
               {dir && !dir.defined && (
                 <span
-                  className="text-[9px] font-bold uppercase tracking-wider text-[#fbbf24]"
+                  className="text-[9px] font-bold uppercase tracking-wider text-warn"
                   title={t(dir.riskKey)}
                   data-testid={`leg-${idx}-open-risk`}
                 >
@@ -239,14 +239,14 @@ const LegEditor = ({
               {/* Actions */}
               <button onClick={() => toggleEnabled(idx)} className="p-1 rounded hover:bg-muted transition-colors" title={leg.enabled ? 'Desactivar' : 'Activar'}>
                 {leg.enabled
-                  ? <ToggleRight className="w-4 h-4 text-[#22c55e]" />
+                  ? <ToggleRight className="w-4 h-4 text-long" />
                   : <ToggleLeft className="w-4 h-4 text-muted-foreground" />
                 }
               </button>
               <button onClick={() => duplicateLeg(idx)} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-primary" title="Duplicar">
                 <Copy className="w-3 h-3" />
               </button>
-              <button onClick={() => removeLeg(idx)} className="p-1 rounded hover:bg-[#ef4444]/10 transition-colors text-muted-foreground hover:text-[#f87171]" title="Eliminar">
+              <button onClick={() => removeLeg(idx)} className="p-1 rounded hover:bg-short/10 transition-colors text-muted-foreground hover:text-short" title="Eliminar">
                 <Trash2 className="w-3 h-3" />
               </button>
             </div>
@@ -256,7 +256,7 @@ const LegEditor = ({
                 heredaban el vencimiento global. */}
             {expirations.length > 0 && (
               <div className="px-3 pb-1.5">
-                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">
+                <label className="text-[8px] text-muted-foreground font-semibold uppercase mb-0.5 block">
                   {t('optLegExpiry')}
                 </label>
                 <Select
@@ -284,7 +284,7 @@ const LegEditor = ({
             <div className="grid grid-cols-3 gap-1.5 px-3 pb-2.5">
               {/* Strike */}
               <div>
-                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Strike</label>
+                <label className="text-[8px] text-muted-foreground font-semibold uppercase mb-0.5 block">Strike</label>
                 <Select
                   value={String(leg.strikeIdx)}
                   onValueChange={(v) => updateLeg(idx, { strikeIdx: parseInt(v, 10) })}
@@ -304,7 +304,7 @@ const LegEditor = ({
 
               {/* Quantity */}
               <div>
-                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">{t('cantidad_91e0e6')}</label>
+                <label className="text-[8px] text-muted-foreground font-semibold uppercase mb-0.5 block">{t('cantidad_91e0e6')}</label>
                 <div className="flex items-center bg-background border border-border rounded-lg overflow-hidden">
                   <button
                     onClick={() => updateLeg(idx, { quantity: Math.max(1, leg.quantity - 1) })}
@@ -344,7 +344,7 @@ const LegEditor = ({
 
               {/* Premium */}
               <div>
-                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">{t('prima_ua002')}</label>
+                <label className="text-[8px] text-muted-foreground font-semibold uppercase mb-0.5 block">{t('prima_ua002')}</label>
                 <div className="bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-muted-foreground text-center">
                   ${leg.premium?.toFixed(2)}
                 </div>
@@ -352,7 +352,7 @@ const LegEditor = ({
             </div>
 
             {/* Leg details */}
-            <div className="flex items-center justify-between px-3 pb-2 text-[9px] text-[#3a4f6e]">
+            <div className="flex items-center justify-between px-3 pb-2 text-[9px] text-muted-foreground">
               <span>IV: {(leg.iv * 100).toFixed(1)}%</span>
               <span>
                 {t(flowKey(leg.action))}: ${(leg.premium * leg.quantity * 100).toFixed(0)}
@@ -365,7 +365,7 @@ const LegEditor = ({
         {legs.length === 0 && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground mb-1">{t('optLegsEmpty')}</p>
-            <p className="text-[10px] text-[#3a4f6e]">{t('anadeCallsOPutsPara_423bc0')}</p>
+            <p className="text-[10px] text-muted-foreground">{t('anadeCallsOPutsPara_423bc0')}</p>
           </div>
         )}
       </div>
@@ -405,7 +405,7 @@ const LegEditor = ({
             <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
               {netPremium >= 0 ? t('creditoNeto_a96b7e') : t('debitoNeto_39b7f9')}
             </span>
-            <span className={`text-sm font-bold font-mono ${netPremium >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+            <span className={`text-sm font-bold font-mono ${netPremium >= 0 ? 'text-long' : 'text-short'}`}>
               {netPremium >= 0 ? '+' : ''}${netPremium.toFixed(0)}
             </span>
           </div>

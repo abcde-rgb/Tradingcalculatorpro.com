@@ -85,7 +85,7 @@ const OptionsSubHeader = ({
                 precio lo dice. */}
             <span
               className={`text-xl font-bold font-mono tabular-nums ${
-                stock.stale ? 'text-amber-500' : 'text-foreground'
+                stock.stale ? 'text-warn' : 'text-foreground'
               }`}
               title={stock.stale ? t('precioDesfasadoAviso') : undefined}
               data-testid="live-price"
@@ -94,7 +94,7 @@ const OptionsSubHeader = ({
               ${stock.price.toFixed(2)}
             </span>
             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums ${
-              stock.change >= 0 ? 'bg-[#22c55e]/10 text-[#4ade80]' : 'bg-[#ef4444]/10 text-[#f87171]'
+              stock.change >= 0 ? 'bg-long/10 text-long' : 'bg-short/10 text-short'
             }`}>
               {stock.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
               {stock.change >= 0 ? '+' : ''}{stock.change} ({stock.changePercent}%)
@@ -123,7 +123,7 @@ const OptionsSubHeader = ({
             title={t('optQuickGuide')}
             aria-label={t('optQuickGuide')}
           >
-            <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-[#eab308]" />
+            <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-caution" />
           </button>
         </div>
       </div>

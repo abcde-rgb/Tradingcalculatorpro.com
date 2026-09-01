@@ -34,7 +34,7 @@ const Metric = ({ icon: Icon, label, value, hint, tone = 'muted' }) => (
     </div>
     <span
       className={`block text-sm font-bold font-mono tabular-nums mt-1 ${
-        tone === 'up' ? 'text-[#22c55e]' : tone === 'down' ? 'text-[#ef4444]' : 'text-foreground'
+        tone === 'up' ? 'text-long' : tone === 'down' ? 'text-short' : 'text-foreground'
       }`}
     >
       {value}
@@ -86,8 +86,8 @@ const PositioningPanel = ({ symbol, expirationIdx = 3, stockPrice }) => {
   return (
     <div className="space-y-3" data-testid="positioning-panel">
       {nothingObserved && (
-        <div className="rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-3 py-2">
-          <p className="text-[11px] text-[#f59e0b]">{t('optPositioningUnavailable')}</p>
+        <div className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2">
+          <p className="text-[11px] text-warn">{t('optPositioningUnavailable')}</p>
         </div>
       )}
 

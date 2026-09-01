@@ -101,3 +101,65 @@ def test_audit_log_helper_delegates_to_the_same_logic():
     assert fn is not None
     body = ast.get_source_segment(src, fn)
     assert "_real_client_ip" in body, "_client_ip should delegate, not re-parse XFF"
+
+
+# ============================================================
+#  Qué rutas llevan límite, y cuáles NO — decisión, no descuido
+# ============================================================
+#
+# `POST /auth/register` se quedó SIN límite el 2026-09-01, a petición del dueño.
+# El cubo es por IP, y detrás de un NAT compartido tres personas agotaban la
+# cuota de todas las demás: la cuarta recibía un 429 sin haber hecho nada raro, y
+# eso son altas perdidas que no aparecen en ningún log del servidor.
+#
+# Lo fija un test porque es exactamente el tipo de cambio que alguien «arregla»
+# de vuelta al ver un endpoint público sin limitar. Y fija también la otra mitad:
+# los tres `3/hora` que SÍ se quedan, que protegen al dueño de una cuenta de que
+# le inunden el buzón o le borren los datos. Quitar los cuatro de una pasada es
+# el error probable, y aquí salta.
+
+def _decoradores_de(nombre: str):
+    """Los `@limiter.limit(...)` que lleva puestos una función de ruta."""
+    tree = ast.parse(_SERVER.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == nombre:
+            limites = []
+            for deco in node.decorator_list:
+                if not isinstance(deco, ast.Call):
+                    continue
+                f = deco.func
+                if isinstance(f, ast.Attribute) and f.attr == "limit":
+                    for a in deco.args:
+                        if isinstance(a, ast.Constant):
+                            limites.append(a.value)
+            return limites
+    return None
+
+
+def test_el_alta_no_lleva_limite_de_tasa():
+    """Detrás de un NAT compartido, 3/hora echaba a usuarios legítimos."""
+    limites = _decoradores_de("register")
+    assert limites is not None, "no se encontró el endpoint de registro"
+    assert limites == [], (
+        f"`/auth/register` ha vuelto a llevar límite ({limites}). Es por IP: "
+        "detrás de un NAT compartido bloquea altas de gente distinta, y el 429 "
+        "sólo lo ve el usuario. Si hace falta frenar abuso, va en la capa de "
+        "delante (Cloud Run / WAF) o en SendGrid, no aquí."
+    )
+
+
+def test_los_limites_que_protegen_al_dueno_de_una_cuenta_siguen_puestos():
+    """Quitar los cuatro `3/hora` de una pasada es el error probable."""
+    for nombre in ("request_magic_link", "forgot_password", "delete_account"):
+        limites = _decoradores_de(nombre)
+        assert limites, (
+            f"`{nombre}` se ha quedado sin límite. Ahí el 3/hora no protege al "
+            "servidor: protege al dueño de la cuenta de que le inunden el buzón "
+            "o le borren los datos. No es el mismo caso que el alta."
+        )
+
+
+def test_el_login_sigue_limitado():
+    """Sin esto, probar contraseñas a ciegas sale gratis."""
+    limites = _decoradores_de("login")
+    assert limites, "`/auth/login` sin límite deja la fuerza bruta gratis"

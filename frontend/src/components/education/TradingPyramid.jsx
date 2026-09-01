@@ -94,12 +94,12 @@ export default function TradingPyramid() {
       <div className="flex justify-center gap-8">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-green-500 shadow-sm shadow-green-500/50" />
-          <span className="text-sm font-semibold text-green-500">10% — {t('pyramidWinners')}</span>
+          <span className="text-sm font-semibold text-long">10% — {t('pyramidWinners')}</span>
           <span className="text-xs text-muted-foreground">(#1–10)</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-red-500 shadow-sm shadow-red-500/50" />
-          <span className="text-sm font-semibold text-red-500">90% — {t('pyramidLosers')}</span>
+          <span className="text-sm font-semibold text-short">90% — {t('pyramidLosers')}</span>
           <span className="text-xs text-muted-foreground">(#11–100)</span>
         </div>
       </div>
@@ -114,8 +114,8 @@ export default function TradingPyramid() {
                 <div className="flex items-center gap-3 my-3">
                   <div className="flex-1 border-t-2 border-dashed border-green-500/40" />
                   <div className="text-center px-2">
-                    <span className="text-[10px] font-bold text-green-500 block">↑ 10% {t('pyramidWinners')}</span>
-                    <span className="text-[10px] font-bold text-red-500 block">↓ 90% {t('pyramidLosers')}</span>
+                    <span className="text-[10px] font-bold text-long block">↑ 10% {t('pyramidWinners')}</span>
+                    <span className="text-[10px] font-bold text-short block">↓ 90% {t('pyramidLosers')}</span>
                   </div>
                   <div className="flex-1 border-t-2 border-dashed border-red-500/40" />
                 </div>
@@ -141,13 +141,13 @@ export default function TradingPyramid() {
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
         <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 text-center space-y-1">
-          <p className="text-4xl font-bold text-green-500">10</p>
-          <p className="text-sm font-semibold text-green-400">{t('pyramidWinners')}</p>
+          <p className="text-4xl font-bold text-long">10</p>
+          <p className="text-sm font-semibold text-long">{t('pyramidWinners')}</p>
           <p className="text-xs text-muted-foreground leading-snug">{t('pyramidStatWinners')}</p>
         </div>
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5 text-center space-y-1">
-          <p className="text-4xl font-bold text-red-500">90</p>
-          <p className="text-sm font-semibold text-red-400">{t('pyramidLosers')}</p>
+          <p className="text-4xl font-bold text-short">90</p>
+          <p className="text-sm font-semibold text-short">{t('pyramidLosers')}</p>
           <p className="text-xs text-muted-foreground leading-snug">{t('pyramidStatLosers')}</p>
         </div>
       </div>

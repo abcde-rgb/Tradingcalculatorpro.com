@@ -13,26 +13,26 @@ const verdictMeta = (ev) => {
     return {
       key: 'expectancyCalcVerdictPositive',
       Icon: CheckCircle2,
-      color: 'text-[#22c55e]',
-      bg: 'bg-[#22c55e]/10',
-      border: 'border-[#22c55e]/40',
+      color: 'text-long',
+      bg: 'bg-long/10',
+      border: 'border-long/40',
     };
   }
   if (ev < -0.05) {
     return {
       key: 'expectancyCalcVerdictNegative',
       Icon: AlertCircle,
-      color: 'text-[#ef4444]',
-      bg: 'bg-[#ef4444]/10',
-      border: 'border-[#ef4444]/40',
+      color: 'text-short',
+      bg: 'bg-short/10',
+      border: 'border-short/40',
     };
   }
   return {
     key: 'expectancyCalcVerdictNeutral',
     Icon: MinusCircle,
-    color: 'text-[#eab308]',
-    bg: 'bg-[#eab308]/10',
-    border: 'border-[#eab308]/40',
+    color: 'text-caution',
+    bg: 'bg-caution/10',
+    border: 'border-caution/40',
   };
 };
 
@@ -98,7 +98,7 @@ const ExpectancyCalculator = () => {
       <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
         <div>
           <CardTitle className="flex items-center gap-2 font-unbounded text-xl">
-            <Sparkles className="w-5 h-5 text-orange-500" />
+            <Sparkles className="w-5 h-5 text-warn" />
             {t('expectancyCalcTitle')}
           </CardTitle>
           <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
@@ -110,7 +110,7 @@ const ExpectancyCalculator = () => {
           size="sm"
           onClick={loadFromJournal}
           disabled={loading}
-          className="flex-shrink-0 border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-500 text-xs"
+          className="flex-shrink-0 border-orange-500/40 hover:bg-orange-500/10 hover:text-warn text-xs"
           data-testid="load-from-journal-btn"
         >
           <Target className="w-3.5 h-3.5 mr-1.5" />
@@ -143,8 +143,8 @@ const ExpectancyCalculator = () => {
               data-testid="winrate-slider"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-              <span className="text-[#ef4444]">% {winRate}% W</span>
-              <span className="text-[#ef4444]">% {lossRate}% L</span>
+              <span className="text-short">% {winRate}% W</span>
+              <span className="text-short">% {lossRate}% L</span>
             </div>
           </div>
 
@@ -205,9 +205,9 @@ const ExpectancyCalculator = () => {
         <div>
           <div className="flex items-center gap-2 mb-2.5">
             {ev >= 0 ? (
-              <TrendingUp className="w-4 h-4 text-[#22c55e]" />
+              <TrendingUp className="w-4 h-4 text-long" />
             ) : (
-              <TrendingDown className="w-4 h-4 text-[#ef4444]" />
+              <TrendingDown className="w-4 h-4 text-short" />
             )}
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t('expectancyCalcProjection')}
@@ -219,8 +219,8 @@ const ExpectancyCalculator = () => {
                 key={p.trades}
                 className={`rounded-lg border p-3 text-center ${
                   p.total >= 0
-                    ? 'bg-[#22c55e]/5 border-[#22c55e]/20'
-                    : 'bg-[#ef4444]/5 border-[#ef4444]/20'
+                    ? 'bg-long/5 border-long/20'
+                    : 'bg-short/5 border-short/20'
                 }`}
                 data-testid={`projection-${p.trades}`}
               >
@@ -229,7 +229,7 @@ const ExpectancyCalculator = () => {
                 </div>
                 <div
                   className={`text-xl font-bold font-mono mt-1 ${
-                    p.total >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'
+                    p.total >= 0 ? 'text-long' : 'text-short'
                   }`}
                 >
                   {fmtR(p.total)}

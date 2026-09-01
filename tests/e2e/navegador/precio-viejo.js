@@ -119,8 +119,22 @@ async function abre(nav, cuerpo, salida, nombre) {
     const precio = page.locator('[data-testid="live-price"]');
     marca('el propio precio queda marcado como viejo',
           await precio.getAttribute('data-stale') === 'true');
-    const clases = (await precio.getAttribute('class')) || '';
-    marca('y se ve distinto, no sólo en el DOM', /amber/.test(clases), clases.slice(0, 70));
+    // Se mide el COLOR, no el nombre de la clase. La versión anterior exigía
+    // `/amber/` en el atributo `class`, así que el día que los colores de señal
+    // pasaron de `text-amber-500` a `text-warn` —un token que se ajusta por
+    // tema— la sonda declaró roto un aviso que seguía pintándose igual. Una
+    // comprobación atada al nombre de una clase mide el CSS, no la pantalla.
+    const distinto = await precio.evaluate((el) => {
+      const suyo = getComputedStyle(el).color;
+      const patron = document.createElement('span');
+      patron.className = 'text-foreground';
+      el.parentElement.appendChild(patron);
+      const normal = getComputedStyle(patron).color;
+      patron.remove();
+      return { suyo, normal, distinto: suyo !== normal };
+    });
+    marca('y se ve distinto, no sólo en el DOM', distinto.distinto,
+          `viejo ${distinto.suyo} vs normal ${distinto.normal}`);
 
     marca('sin errores de consola', errores.length === 0, errores[0]?.slice(0, 90) || '');
     await ctx.close();

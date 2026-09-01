@@ -27,7 +27,7 @@ function StrategyCatalog({ byCategory }) {
                 >
                   <span className="text-sm font-medium truncate">{t(s.name)}</span>
                   {isMultiExpiryStrategy(s) && (
-                    <span className="text-[9px] uppercase tracking-wider text-[#a78bfa] font-bold flex-shrink-0">
+                    <span className="text-[9px] uppercase tracking-wider text-compare font-bold flex-shrink-0">
                       {t('optHubMultiExpiryTag')}
                     </span>
                   )}

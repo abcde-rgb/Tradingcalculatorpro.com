@@ -22,6 +22,7 @@ Cada prueba de aquí protege un fallo que EXISTÍA, no una hipótesis:
   que M-14 ya había sacado de `cloudbuild.yaml` por estar expuesto.
 """
 
+import ast
 import pathlib
 import re
 
@@ -41,18 +42,21 @@ def test_fastapi_no_publica_su_documentacion_por_defecto():
             f"FastAPI() no fija {clave}: con el valor por defecto publica el "
             f"esquema completo de la API a cualquiera"
         )
-    assert "_ES_DESARROLLO" in args, (
+    assert "_DOCS_ABIERTOS" in args, (
         "las tres URLs deben depender del entorno, no estar fijas"
     )
 
 
-def test_es_desarrollo_no_incluye_produccion():
-    linea = re.search(r"_ES_DESARROLLO = (.+)", SERVER).group(1)
-    assert "production" not in linea.replace('"production"', "", 1), (
-        "'production' no puede contar como entorno de desarrollo"
+def test_los_entornos_con_docs_abiertos_no_incluyen_produccion():
+    # `_DOCS_ABIERTOS` incluye "test" a propósito: `tests/e2e/api/autorizacion.py`
+    # lee `/openapi.json` para distinguir una ruta retirada de una bien
+    # protegida, y un 404 no las distingue. Lo que no puede entrar es production.
+    lista = re.search(r"_DOCS_ABIERTOS = .*?\bin \((.*?)\)", SERVER, re.S).group(1)
+    assert '"production"' not in lista, (
+        "'production' no puede estar entre los entornos que publican /docs"
     )
     for entorno in ("development", "dev", "local"):
-        assert f'"{entorno}"' in linea, f"falta {entorno} entre los entornos de desarrollo"
+        assert f'"{entorno}"' in lista, f"falta {entorno}"
 
 
 # ── F-1: el cifrado de secretos deja de fallar en silencio ─────────────────
@@ -90,7 +94,7 @@ def test_el_panel_avisa_cuando_no_hay_cifrado():
         "el panel tiene que pintar el aviso; una bandera que nadie enseña deja "
         "el problema tan invisible como estaba"
     )
-    assert 'data-testid="aviso-sin-cifrado"' in panel
+    assert 'data-testid="encryption-inactive-warning"' in panel
 
 
 # ── F-1 bis: el segundo camino de escritura también cifra ──────────────────
@@ -155,9 +159,30 @@ def test_el_acceso_de_cortesia_no_lleva_correos_escritos_a_mano():
     assert 'os.environ.get("FREE_ACCESS_EMAILS"' in bloque
 
 
-def test_ningun_correo_de_gmail_da_acceso_desde_el_codigo():
+def test_ningun_correo_concede_acceso_desde_una_cadena_del_codigo():
+    """Sólo cadenas de código, nunca comentarios.
+
+    La primera versión de esta prueba buscaba `@gmail.com` en el fichero entero
+    y marcaba el comentario que main dejó al quitar la dirección — el que avisa
+    de que era un muro de pago abierto y de que no vuelva. Prohibir la
+    advertencia es lo contrario de lo que hace falta: se comprueba el código.
+    """
+    # Sólo los conjuntos que CONCEDEN algo. Marcar cualquier dirección del
+    # fichero señalaba `alerts@tradingcalculator.pro`, que es el remitente de
+    # los correos y no otorga nada: un verificador que grita con todo se acaba
+    # desactivando, y entonces deja de cubrir lo que sí importaba.
     for nombre, fuente in (("server.py", SERVER), ("admin_routes.py", ADMIN)):
-        assert "@gmail.com" not in fuente, (
-            f"{nombre} lleva una dirección de gmail escrita; si concede algo, "
-            f"va en el entorno"
-        )
+        for nodo in ast.walk(ast.parse(fuente)):
+            if not isinstance(nodo, ast.Assign):
+                continue
+            destinos = [t.id for t in nodo.targets if isinstance(t, ast.Name)]
+            if not any(d in ("_FREE_ACCESS_EMAILS", "_ADMIN_EMAILS") for d in destinos):
+                continue
+            for hijo in ast.walk(nodo.value):
+                if isinstance(hijo, ast.Constant) and isinstance(hijo.value, str):
+                    assert "@" not in hijo.value, (
+                        f"{nombre}: {destinos[0]} lleva la dirección "
+                        f"{hijo.value!r} escrita en el código. Era un muro de "
+                        f"pago abierto: cualquiera que registrase ese correo "
+                        f"entraba premium. Va en el entorno."
+                    )

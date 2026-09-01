@@ -783,6 +783,11 @@ export const CANDLE_PATTERN_STATS = {
   'three-black-crows':    { behavior: 'reversal',     successRate: 78, rank: 5 },
   'three-inside-up':      { behavior: 'reversal',     successRate: 65, rank: 16 },
   'three-inside-down':    { behavior: 'reversal',     successRate: 60, rank: 28 },
+  'bullish-belt-hold':      { behavior: 'reversal',     successRate: 71, rank: 62 },
+  'bearish-belt-hold':      { behavior: 'reversal',     successRate: 68, rank: 63 },
+  'in-neck':                { behavior: 'continuation', successRate: 53, rank: 17 },
+  'bullish-abandoned-baby': { behavior: 'reversal',     successRate: 70, rank: 13 },
+  'bearish-abandoned-baby': { behavior: 'reversal',     successRate: 69, rank: 14 },
 };
 
 export const getCandlestickPatterns = (t) => ({
@@ -890,6 +895,22 @@ export const getCandlestickPatterns = (t) => ({
       type: 'bullish',
       signal: t('bullishReversal'),
       reliability: t('mediumReliability')
+    },
+    {
+      id: 'bullish-belt-hold',
+      name: t('bullishBeltHoldName'),
+      description: t('bullishBeltHoldDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('mediumReliability') + '-' + t('highReliability')
+    },
+    {
+      id: 'bullish-abandoned-baby',
+      name: t('bullishAbandonedBabyName'),
+      description: t('bullishAbandonedBabyDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('highReliability')
     }
   ],
   bearish: [
@@ -996,6 +1017,30 @@ export const getCandlestickPatterns = (t) => ({
       type: 'bearish',
       signal: t('bearishReversal'),
       reliability: t('mediumReliability')
+    },
+    {
+      id: 'bearish-belt-hold',
+      name: t('bearishBeltHoldName'),
+      description: t('bearishBeltHoldDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('mediumReliability') + '-' + t('highReliability')
+    },
+    {
+      id: 'in-neck',
+      name: t('inNeckName'),
+      description: t('inNeckDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('lowReliability')
+    },
+    {
+      id: 'bearish-abandoned-baby',
+      name: t('bearishAbandonedBabyName'),
+      description: t('bearishAbandonedBabyDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('highReliability')
     }
   ],
   neutral: [

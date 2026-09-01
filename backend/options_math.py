@@ -289,14 +289,22 @@ def charm_val(S: float, K: float, T: float, r: float, sigma: float,
 def calculate_second_order_greeks(legs: list[dict], stock_price: float,
                                   r: float = DEFAULT_RISK_FREE, q: float = 0.0) -> dict[str, float]:
     """Aggregate vanna and charm for a multi-leg strategy (mirrors calculate_greeks).
-    Returned per-position: vanna in Δ per 1% IV, charm in Δ per day (practical units)."""
+    Returned per-position: vanna in Δ per 1% IV, charm in Δ per day (practical units).
+
+    El docstring decía "mirrors calculate_greeks" y no lo hacía: el reloj era
+    `max(dias, 1) / 365` mientras las griegas de primer orden usan
+    `year_fraction()`, que sabe la hora del día. En 0DTE eso son 0,21 h contra
+    24 h —115× de diferencia en T— y el charm salía 10 veces menor justo el día
+    en que el charm es la métrica que importa. El suelo `max(..., 1)` valoraba
+    además una pata ya vencida como si le quedara un día entero.
+    """
     total = {"vanna": 0.0, "charm": 0.0}
     for leg in legs:
         if leg.get("type") == "stock":
             continue
         multiplier = 1 if leg["action"] == "buy" else -1
         qty = _leg_qty(leg)
-        T = max(leg.get("daysToExpiry", 30), 1) / SECONDS_PER_YEAR
+        T = year_fraction(leg.get("daysToExpiry", 30))
         iv = leg.get("iv", DEFAULT_IV)
         K = leg["strike"]
         otype = leg["type"]

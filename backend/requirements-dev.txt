@@ -1,21 +1,18 @@
-# Dependencias para CORRER LAS PRUEBAS. No entran en la imagen de Cloud Run.
+# Dependencias para EJECUTAR LOS TESTS. No van en la imagen de Cloud Run.
 #
-# Existe porque estaban sin declarar en ningún sitio: `requirements.txt` no las
-# lleva (y hace bien: son de test, no de producción) y el workflow de CI las
-# pasaba a mano en su línea de `pip install`. Resultado, `CLAUDE.md` documentaba
+# Estaban sólo en el `pip install` de `ci.yml`, así que la orden documentada en
+# CLAUDE.md —`pip install -r requirements.txt` y luego `pytest tests/`— fallaba
+# 19 tests en un contenedor recién clonado: sin `pytest-asyncio` los
+# `@pytest.mark.asyncio` se ignoran y las corrutinas nunca se ejecutan.
+# Como toda sesión remota empieza con un clon fresco, fallaba SIEMPRE.
 #
-#     pip install -r requirements.txt && pytest tests/ -v
+#     pip install -r requirements.txt -r requirements-dev.txt
 #
-# que NO basta: sin `pytest-asyncio`, las pruebas `async def` no se saltan, se
-# dan por FALLIDAS, con un aviso de «marcador desconocido» que se lee como
-# ruido. Quien siguiera la guía del proyecto veía fallos que no existían.
-#
-# El comentario del propio workflow cuenta la misma historia al revés: el
-# plugin estaba instalado de arrastre en local y no en CI, así que el fallo
-# sólo salía allí. Las dos caras del mismo problema: la dependencia no estaba
-# declarada. Ahora sí, en un solo sitio, y `check-deps-test.py` comprueba que
-# CI y la guía sigan apuntando aquí.
+# `scripts/check-deps-test.py` comprueba que CI y CLAUDE.md sigan apuntando
+# aquí. Hace falta porque el arreglo original dejó a medias la otra mitad: se
+# creó este fichero y se cambió el workflow, pero CLAUDE.md se quedó
+# documentando `pip install -r requirements.txt` a secas, que es la orden que
+# NO basta. El fallo no había desaparecido, se había mudado de sitio.
 -r requirements.txt
-
-pytest==9.1.1
-pytest-asyncio==1.3.0
+pytest>=8.0
+pytest-asyncio>=0.23

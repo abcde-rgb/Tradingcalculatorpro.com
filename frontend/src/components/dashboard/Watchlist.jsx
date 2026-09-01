@@ -156,7 +156,7 @@ export const Watchlist = () => {
                       la watchlist se mira de un vistazo y es donde más fácil
                       resulta tomar un valor de ayer por el de ahora. */}
                   {q?.stale ? (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-500"
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-warn"
                           title={t('precioDesfasadoAviso')}
                           data-testid={`watchlist-stale-${sym}`}>
                       <span className="inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
@@ -175,7 +175,7 @@ export const Watchlist = () => {
                       {typeof price === 'number' ? `$${price.toLocaleString()}` : '—'}
                     </p>
                     {typeof chg === 'number' && (
-                      <p className={`text-[11px] font-mono ${up ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                      <p className={`text-[11px] font-mono ${up ? 'text-long' : 'text-short'}`}>
                         {up ? '+' : ''}{chg.toFixed(2)}%
                       </p>
                     )}
@@ -183,7 +183,7 @@ export const Watchlist = () => {
                   <button
                     type="button"
                     onClick={() => removeSymbol(sym)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-[#ef4444] transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-short transition-all"
                     title={t('watchlistRemove')}
                   >
                     <X className="w-3.5 h-3.5" />

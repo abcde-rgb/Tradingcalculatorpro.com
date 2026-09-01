@@ -60,7 +60,7 @@ export default function AlertSection({ notify, onChange, status, hasLevels }) {
       subtitle={t('tfAlertHint')}
       accent="blue"
       badge={value.enabled ? (
-        <span className="px-1.5 py-0.5 rounded bg-[#3b82f6]/15 text-[#60a5fa] text-[10px] font-bold uppercase">
+        <span className="px-1.5 py-0.5 rounded bg-info/15 text-info text-[10px] font-bold uppercase">
           {t('tfAlertOn')}
         </span>
       ) : null}
@@ -131,7 +131,7 @@ export default function AlertSection({ notify, onChange, status, hasLevels }) {
               />
               <div className="text-[10px] text-muted-foreground mt-0.5">{t('tfAlertPhoneHint')}</div>
               {!available('sms') && (
-                <p className="text-[11px] text-[#f59e0b] mt-1.5 flex items-start gap-1">
+                <p className="text-[11px] text-warn mt-1.5 flex items-start gap-1">
                   <Info className="w-3 h-3 shrink-0 mt-0.5" />
                   {t('tfSmsUnavailable')}
                 </p>
@@ -143,7 +143,7 @@ export default function AlertSection({ notify, onChange, status, hasLevels }) {
             <p className="text-[11px] text-muted-foreground">{t('tfAlertOnlyOpen')}</p>
           )}
           {!hasLevels && (
-            <p className="text-[11px] text-[#f59e0b]">{t('tfAlertNeedsLevels')}</p>
+            <p className="text-[11px] text-warn">{t('tfAlertNeedsLevels')}</p>
           )}
         </div>
       )}

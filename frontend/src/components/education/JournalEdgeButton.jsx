@@ -51,7 +51,7 @@ const JournalEdgeButton = ({ onLoad, testId = 'journal-edge-btn' }) => {
         {t('edgeUseJournal')}
       </button>
       {status && (
-        <p className={`flex items-start gap-1 text-[10px] leading-snug ${status.type === 'ok' ? 'text-green-500' : 'text-amber-500'}`} data-testid={`${testId}-status`}>
+        <p className={`flex items-start gap-1 text-[10px] leading-snug ${status.type === 'ok' ? 'text-long' : 'text-warn'}`} data-testid={`${testId}-status`}>
           {status.type === 'ok'
             ? <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0" />
             : <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />}

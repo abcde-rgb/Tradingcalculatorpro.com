@@ -77,14 +77,40 @@ Los usa el despliegue del backend (`cloudbuild.yaml`, manual desde GCP):
 - [ ] 🔴 `STRIPE_WEBHOOK_SECRET` — `whsec_...`
 - [ ] `SENDGRID_API_KEY` — email
 - [ ] `ANTHROPIC_API_KEY` — AI Trade Coach
+- [ ] 🔴 `SECRET_ENCRYPTION_KEY` — `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+      Sin ella, las claves de Stripe/SendGrid/PayPal/Google que se guarden desde `/admin` caen a
+      **texto plano** en Postgres (`server.py:cifrado_activo()`, `GET /admin/settings` lo expone como
+      `encryption_active` y el panel pinta un aviso ámbar si falta). No rota nada por sí sola: si ya
+      había secretos guardados en claro antes de ponerla, siguen en claro hasta que se regraben.
 
 ## D. Cloud Run / Cloud SQL (infra)
 
-- [ ] 🔴 Cloud SQL **PostgreSQL** `trading-db` en `europe-west1` operativa.
-- [ ] 🔴 Servicio Cloud Run `tradingcalculator-api` en `europe-west1`,
-      `--add-cloudsql-instances=PROJ:europe-west1:trading-db`.
+> ✅ **Resuelto el 2026-08-27.** Este bloque describía un montaje que NO EXISTE:
+> `europe-west1`, una instancia de Cloud SQL `trading-db`, un repositorio
+> `trading-repo` y siete secretos en Secret Manager. La comprobación contra el
+> proyecto real (anotada en `.claude/rules/infra.md` el 2026-08-25, cuando se
+> retiró `cloudbuild.yaml` por describir esa misma ficción) dice otra cosa:
+>
+> | Qué | De verdad |
+> |---|---|
+> | Servicio | `tradingcalculator-api` en **`us-east1`** |
+> | Base de datos | **Externa, por `DATABASE_URL`. No hay Cloud SQL** — la API `sqladmin` ni está habilitada |
+> | Configuración | 15 variables de entorno en el propio servicio, no `--update-secrets` |
+>
+> Dejarlo como estaba costaba caro en las dos direcciones: quien mirase
+> `--region=europe-west1` vería «not found» sobre un servicio que existe y podría
+> darlo por caído, y quien siguiera las casillas crearía un SEGUNDO servicio en
+> Europa mientras el frontend apunta al de EE. UU.
+
+- [x] ~~Cloud SQL `trading-db` en `europe-west1`~~ — **no aplica**: la base de datos
+      es externa y llega por `DATABASE_URL`.
+- [x] ~~Servicio Cloud Run en `europe-west1` con `--add-cloudsql-instances`~~ —
+      **no aplica**: el servicio vive en `us-east1` y no monta ningún socket de
+      Cloud SQL.
 - [ ] `min-instances=1` (no bajar a 0). `concurrency=80`. Memoria 512Mi.
-- [ ] Artifact Registry `trading-repo` en `europe-west1` (el workflow lo crea si falta).
+- [x] ~~Artifact Registry `trading-repo` en `europe-west1`~~ — **no aplica**: las
+      imágenes van a `us-east1-docker.pkg.dev/<proy>/cloud-run-source-deploy/`,
+      que crea el propio despliegue desde código.
 - [ ] Healthcheck post-deploy responde: `GET {SERVICE_URL}/api/health` → 200 `{status: healthy}`.
 
 ## E. Stripe (operación) 🔴
@@ -124,6 +150,34 @@ lo de abajo no está hecho en el dashboard de Stripe:
 > devengaba un IVA no recaudado — un pasivo que crece con las ventas y que luego
 > se paga del margen y con recargo.
 
+## F-bis. Si te quedas fuera de `/admin` 🆘
+
+El 2FA es **obligatorio** para administradores y no se puede desactivar con una
+variable (`ADMIN_2FA_OPTIONAL` es inerte en producción, a propósito). El margen
+de alta de 10 minutos es **de un solo uso**: si se gastó, no vuelve.
+
+**Primero, averigua qué te bloquea** — con la sesión iniciada, en el navegador:
+
+```
+https://{BACKEND_URL}/api/auth/admin-status
+```
+
+Contesta, sobre TU cuenta, si eres admin, si tienes 2FA, en qué estado está el
+margen y si hay palanca activa. Un **404 ahí significa que el backend no se ha
+desplegado** con estos cambios, y ésa sería la causa de todo.
+
+**Y si hace falta entrar ya**, con fecha de caducidad (UTC, ISO-8601):
+
+```bash
+gcloud run services update tradingcalculator-api --region us-east1 \
+  --update-env-vars ADMIN_2FA_BYPASS_UNTIL=2026-09-02T18:00:00Z
+```
+
+Se apaga sola al pasar esa fecha aunque la variable siga puesta. Cada uso escribe
+un aviso en el log y una entrada en `admin_audit_log`. Ponerla exige acceso a
+Google Cloud, que es lo que hace de segundo factor. **Entra, activa el 2FA en
+Ajustes → Seguridad, y quítala.**
+
 ## F. Google OAuth 🔴
 
 - [ ] En Google Cloud Console → Credenciales → OAuth client:
@@ -158,8 +212,13 @@ El canonical/sitemap/robots y el CORS y los correos del backend están al domini
 
 ## H. SendGrid
 
-- [ ] Dominio remitente verificado para `alerts@tradingcalculator.pro` (`SENDER_EMAIL`).
-- [ ] Probar: verificación de email, reset de contraseña, alerta de precio.
+- [ ] 🔴 Dominio remitente verificado para `alerts@tradingcalculator.pro` (`SENDER_EMAIL`).
+      Sin esto **ningún correo transaccional sale** — registro, reset de contraseña,
+      magic link, alertas. Confirmado como causa raíz de BUG-075 (2026-08-31): "el
+      envío de correos no funciona ni magic link". El fallo de magic link/verificación
+      además era **silencioso en los logs** hasta ese commit (`server.py`: `_send_magic_link_email`,
+      `_send_email_verification` no comprobaban el código de respuesta de SendGrid).
+- [ ] Probar: verificación de email, reset de contraseña, magic link, alerta de precio.
 
 ## I. Endurecimiento del repositorio (recomendado)
 

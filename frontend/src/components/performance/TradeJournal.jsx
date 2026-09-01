@@ -14,16 +14,20 @@ import TradeImportExport from './TradeImportExport';
 import { toast } from 'sonner';
 
 const STATUS_LABELS = {
-  open:   { key: 'tradeStatusOpen',   color: 'bg-[#3b82f6]/15 text-[#60a5fa]' },
-  closed: { key: 'tradeStatusClosed', color: 'bg-muted-foreground/15 text-muted-foreground' },
-  sl_hit: { key: 'tradeStatusSLHit',  color: 'bg-[#ef4444]/15 text-[#f87171]' },
-  tp_hit: { key: 'tradeStatusTPHit',  color: 'bg-[#22c55e]/15 text-[#4ade80]' },
+  open:   { key: 'tradeStatusOpen',   color: 'bg-info/15 text-info' },
+    // El tinte baja de /15 a /10: a /15 la insignia se quedaba en 4,43:1 medido
+  // por axe (10 px en negrita exige 4,5), porque el tinte aclara la fila y
+  // acerca el fondo al propio color del texto. A /10 sube a ~4,9 sin cambiar
+  // el aspecto apagado que distingue «cerrada» de los estados vivos.
+  closed: { key: 'tradeStatusClosed', color: 'bg-muted-foreground/10 text-muted-foreground' },
+  sl_hit: { key: 'tradeStatusSLHit',  color: 'bg-short/15 text-short' },
+  tp_hit: { key: 'tradeStatusTPHit',  color: 'bg-long/15 text-long' },
 };
 
 const SEVERITY_COLORS = {
-  critical: 'bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/30',
-  high:     'bg-[#f59e0b]/15 text-[#fbbf24] border-[#f59e0b]/30',
-  medium:   'bg-[#eab308]/15 text-[#eab308] border-[#eab308]/30',
+  critical: 'bg-short/15 text-short border-short/30',
+  high:     'bg-warn/15 text-warn border-warn/30',
+  medium:   'bg-caution/15 text-caution border-caution/30',
 };
 
 /**
@@ -138,11 +142,11 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
 
       {(noStop > 0 || noBalance > 0) && !loading && (
         <div
-          className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2"
+          className="flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/5 px-3 py-2"
           data-testid="journal-quality"
         >
-          <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
-          <div className="text-[11px] text-[#f59e0b] leading-relaxed">
+          <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
+          <div className="text-[11px] text-warn leading-relaxed">
             {noStop > 0 && (
               <div>{t('journalNoStopWarn').replace('{n}', String(noStop)).replace('{total}', String(closed.length))}</div>
             )}
@@ -210,7 +214,7 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                             en una acción al contado es ruido, y un "—" invita a
                             pensar que falta el dato. */}
                         {tr.leverage > 1 && (
-                          <span className="px-1 py-0.5 rounded bg-[#f59e0b]/15 text-[#fbbf24] text-[10px] font-bold">
+                          <span className="px-1 py-0.5 rounded bg-warn/15 text-warn text-[10px] font-bold">
                             {tr.leverage}×
                           </span>
                         )}
@@ -218,7 +222,7 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                     </td>
                     <td className="px-3 py-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        tr.side === 'long' ? 'bg-[#22c55e]/15 text-[#4ade80]' : 'bg-[#ef4444]/15 text-[#f87171]'
+                        tr.side === 'long' ? 'bg-long/15 text-long' : 'bg-short/15 text-short'
                       }`}>
                         {tr.side === 'long' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                         {tr.side}
@@ -250,12 +254,12 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                     <td className="px-3 py-2 font-mono text-right">${tr.entry_price?.toFixed(2)}</td>
                     <td className="px-3 py-2 font-mono text-right">{tr.exit_price ? `$${tr.exit_price.toFixed(2)}` : '—'}</td>
                     <td className={`px-3 py-2 font-mono text-right font-bold ${
-                      pnlPositive ? 'text-[#22c55e]' : pnlNegative ? 'text-[#ef4444]' : 'text-muted-foreground'
+                      pnlPositive ? 'text-long' : pnlNegative ? 'text-short' : 'text-muted-foreground'
                     }`}>
                       {tr.exit_price ? `${pnlPositive ? '+' : ''}$${tr.pnl?.toFixed(2)}` : '—'}
                     </td>
                     <td className={`px-3 py-2 font-mono text-right ${
-                      (tr.r_multiple || 0) > 0 ? 'text-[#22c55e]' : (tr.r_multiple || 0) < 0 ? 'text-[#ef4444]' : 'text-muted-foreground'
+                      (tr.r_multiple || 0) > 0 ? 'text-long' : (tr.r_multiple || 0) < 0 ? 'text-short' : 'text-muted-foreground'
                     }`}>
                       {tr.r_multiple ? `${tr.r_multiple > 0 ? '+' : ''}${tr.r_multiple}R` : '—'}
                     </td>
@@ -263,7 +267,7 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                         analítica, y tenerla junto a R deja ver de un vistazo que
                         un +2R puede ser un +0,4 % o un +4 % según el tamaño. */}
                     <td className={`px-3 py-2 font-mono text-right ${
-                      (tr.pnl || 0) > 0 ? 'text-[#22c55e]' : (tr.pnl || 0) < 0 ? 'text-[#ef4444]' : 'text-muted-foreground'
+                      (tr.pnl || 0) > 0 ? 'text-long' : (tr.pnl || 0) < 0 ? 'text-short' : 'text-muted-foreground'
                     }`}
                     >
                       {tr.exit_price && tr.account_balance
@@ -276,7 +280,7 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                         .replace('{carry}', String(tr.carry_total)) : undefined}
                     >
                       {tr.costs_total ? `$${Number(tr.costs_total).toFixed(2)}` : '—'}
-                      {tr.carry_total ? <span className="text-[#f59e0b]"> •</span> : null}
+                      {tr.carry_total ? <span className="text-warn"> •</span> : null}
                     </td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${status.color}`}>
@@ -301,7 +305,7 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                           )}
                         </div>
                       ) : (
-                        <span className="text-[10px] text-[#22c55e]">✓ {t('tradeNoErrors')}</span>
+                        <span className="text-[10px] text-long">✓ {t('tradeNoErrors')}</span>
                       )}
                     </td>
                     <td className="px-3 py-2">
@@ -316,7 +320,7 @@ export default function TradeJournal({ refreshKey, onChange, setupFilter, onClea
                         </button>
                         <button
                           onClick={() => setDeleteId(tr.id)}
-                          className="p-1 rounded hover:bg-[#ef4444]/15 text-muted-foreground hover:text-[#f87171]"
+                          className="p-1 rounded hover:bg-short/15 text-muted-foreground hover:text-short"
                           data-testid={`trade-delete-${tr.id}`}
                           aria-label={`${t('delete')} ${tr.symbol}`}
                         >

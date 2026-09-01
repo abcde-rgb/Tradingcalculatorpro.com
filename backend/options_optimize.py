@@ -210,13 +210,33 @@ def _is_profit_at(legs: list[dict], price: float) -> bool:
     return _compute_pnl_at_price_and_time(legs, price, 0) > 0
 
 
+def _prob_below(be: float, spot: float, sigma: float) -> float:
+    """P(S_T < be) under the same log-normal this module integrates over.
+
+    With ``ln(S_T/S_0) ~ N(-sigma²/2, sigma²)`` (see ``_lognormal_grid``), the
+    drift shifts the standardised variable by ``+sigma/2``:
+
+        P(S_T < be) = Phi( (ln(be/S_0) + sigma²/2) / sigma ) = Phi(z + sigma/2)
+
+    This lives in ONE place on purpose. The two callers used to inline the
+    formula, and the "below" branches wrote ``Phi(z - sigma/2)`` — the drift
+    applied with the wrong sign. The two branches of a single break-even are
+    complementary events, so the bug was visible as soon as anyone added them
+    up: they summed to 88 % at sigma=0.30 and to 70 % at sigma=0.80 instead of
+    100 %. Because the error grows with sigma and tenor, it inflated POP for
+    exactly the premium-selling structures that live at high IV — a short
+    strangle at IV 80 % / 180d published 47.9 % against a true 27.4 %, which
+    flips Kelly from "do not trade" to a double-digit position.
+    """
+    return _normal_cdf(math.log(be / spot) / sigma + sigma / 2)
+
+
 def _pop_single_break_even(legs: list[dict], spot: float, be: float, sigma: float) -> float:
     """POP for strategies with a single break-even (long calls/puts, simple spreads)."""
-    z = math.log(be / spot) / sigma
     if _is_profit_at(legs, spot * 1.5):
-        p = 1 - _normal_cdf(z + sigma / 2)
+        p = 1 - _prob_below(be, spot, sigma)
     else:
-        p = _normal_cdf(z - sigma / 2)
+        p = _prob_below(be, spot, sigma)
     return max(1.0, min(99.0, p * 100))
 
 
@@ -224,8 +244,8 @@ def _pop_multi_break_even(legs: list[dict], spot: float, bes: list[float],
                           sigma: float) -> float:
     """POP for strategies with 2+ break-evens (iron condors, straddles, butterflies)."""
     mid = (bes[0] + bes[-1]) / 2
-    p_hi = 1 - _normal_cdf(math.log(bes[-1] / spot) / sigma + sigma / 2)
-    p_lo = _normal_cdf(math.log(bes[0] / spot) / sigma - sigma / 2)
+    p_hi = 1 - _prob_below(bes[-1], spot, sigma)
+    p_lo = _prob_below(bes[0], spot, sigma)
     if _is_profit_at(legs, mid):
         # Profit BETWEEN break-evens
         p = 1 - p_hi - p_lo
@@ -271,7 +291,7 @@ CVAR_ALPHA: float = 0.05      # worst 5%
 def _lognormal_grid(spot: float, sigma: float) -> list[tuple[float, float]]:
     """(price, probability_weight) pairs over a driftless log-normal terminal.
 
-    Driftless (risk-neutral-ish, median at spot) matches the POP model already
+    Driftless (risk-neutral-ish, MEAN at spot) matches the POP model already
     in use, so EV and POP describe the same distribution rather than two
     different ones. Weights are normalized, so the truncation at ±5σ doesn't
     leak probability mass.
@@ -284,7 +304,12 @@ def _lognormal_grid(spot: float, sigma: float) -> list[tuple[float, float]]:
     total = 0.0
     for i in range(_EV_GRID_POINTS):
         x = lo + i * step                       # log-return
-        # Median-at-spot lognormal: ln(S_T/S_0) ~ N(-sigma²/2, sigma²)
+        # Mean-at-spot lognormal: ln(S_T/S_0) ~ N(-sigma²/2, sigma²).
+        # E[S_T] = S_0 (martingale, which is what we want); the MEDIAN is
+        # S_0·e^(-sigma²/2), strictly below spot. The label used to say
+        # "median at spot" and that mislabel is what produced the sign bug
+        # in _prob_below: read as median-at-spot, the drift term looks like
+        # it should be subtracted.
         z = (x + sigma * sigma / 2) / sigma
         w = math.exp(-0.5 * z * z)
         price = spot * math.exp(x)

@@ -151,10 +151,10 @@ const CandleLab = ({ theme }) => {
           <h4 className="text-xs font-semibold mb-2">{t('labRulesTitle')}</h4>
           <div className="space-y-1 max-h-[240px] overflow-y-auto pr-1">
             {results.map((r) => (
-              <div key={r.id} className={`rounded-md border px-2.5 py-1.5 ${r.ok ? 'border-[#22c55e]/40 bg-[#22c55e]/5' : 'border-border bg-muted/20'}`}>
+              <div key={r.id} className={`rounded-md border px-2.5 py-1.5 ${r.ok ? 'border-long/40 bg-long/5' : 'border-border bg-muted/20'}`}>
                 <div className="flex items-center gap-1.5">
                   {r.ok
-                    ? <Check className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
+                    ? <Check className="w-3.5 h-3.5 text-long shrink-0" />
                     : <X className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                   <span className={`text-xs font-semibold ${r.ok ? '' : 'text-muted-foreground'}`}>
                     {PATTERN_NAME_KEY[r.id] ? t(PATTERN_NAME_KEY[r.id]) : t('labSoldierCandle')}

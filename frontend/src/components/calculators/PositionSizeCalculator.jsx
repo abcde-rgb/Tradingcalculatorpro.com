@@ -117,7 +117,7 @@ export const PositionSizeCalculator = () => {
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calculator className="w-5 h-5 text-blue-500" />
+          <Calculator className="w-5 h-5 text-info" />
           {t('positionSizeCalcTitle_p002')}
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed max-w-2xl">
@@ -150,7 +150,7 @@ export const PositionSizeCalculator = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground"><LabelWithHelp bodyKey="helpRiskPerTrade">{t('riesgoPorOperacion_3d966d')}</LabelWithHelp></Label>
-                <span className="font-mono text-lg font-bold text-blue-500">{riskPercent}%</span>
+                <span className="font-mono text-lg font-bold text-info">{riskPercent}%</span>
               </div>
               <Slider
                 value={[riskPercent]}
@@ -188,7 +188,7 @@ export const PositionSizeCalculator = () => {
               </div>
             </div>
             
-            <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="position-calculate-btn">
+            <Button onClick={calculate} className="w-full bg-primary text-primary-foreground hover:bg-primary/90" data-testid="position-calculate-btn">
               {t('calcPosition_pos001')}
             </Button>
           </div>
@@ -197,8 +197,8 @@ export const PositionSizeCalculator = () => {
             {result && (
               <div className="space-y-4">
                 <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                  <p className="text-xs uppercase tracking-wider text-blue-500 mb-1">{t('tamanoDePosicionRecomendado_7d9b61')}</p>
-                  <p className="font-mono text-3xl font-bold text-blue-500">{formatCurrency(result.positionSize)}</p>
+                  <p className="text-xs uppercase tracking-wider text-info mb-1">{t('tamanoDePosicionRecomendado_7d9b61')}</p>
+                  <p className="font-mono text-3xl font-bold text-info">{formatCurrency(result.positionSize)}</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {formatNumber(result.positionInCoins, 6)} {journalSymbol}
                   </p>
@@ -216,10 +216,10 @@ export const PositionSizeCalculator = () => {
                 </div>
                 
                 <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <p className="text-xs uppercase tracking-wider text-yellow-500 mb-1"><LabelWithHelp bodyKey="helpRequiredLeverage">{t('apalancamientoNecesario_f6ca45')}</LabelWithHelp></p>
-                  <p className="font-mono text-xl font-bold text-yellow-500">{formatNumber(result.leverageNeeded, 1)}x</p>
+                  <p className="text-xs uppercase tracking-wider text-caution mb-1"><LabelWithHelp bodyKey="helpRequiredLeverage">{t('apalancamientoNecesario_f6ca45')}</LabelWithHelp></p>
+                  <p className="font-mono text-xl font-bold text-caution">{formatNumber(result.leverageNeeded, 1)}x</p>
                   {result.leverageNeeded > 20 && (
-                    <div className="flex items-center gap-2 mt-2 text-xs text-yellow-500">
+                    <div className="flex items-center gap-2 mt-2 text-xs text-caution">
                       <AlertTriangle className="w-4 h-4" />
                       {t('highLeverageWarning_pos003')}
                     </div>

@@ -35,7 +35,7 @@ export default function FieldHelp({ titleKey, bodyKey, size = 'w-3.5 h-3.5', ali
           // `aria-label` y no sólo el icono: un lector de pantalla necesita
           // saber qué abre este botón.
           aria-label={t('helpAria')}
-          className="inline-flex items-center justify-center rounded-full text-muted-foreground/70
+          className="inline-flex items-center justify-center rounded-full text-muted-foreground
                      hover:text-primary focus-visible:outline-none focus-visible:ring-1
                      focus-visible:ring-primary transition-colors align-middle shrink-0"
           onClick={(e) => e.stopPropagation()}

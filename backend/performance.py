@@ -263,18 +263,26 @@ def returns_by_period(closed: List[dict], starting_balance: float) -> Dict[str, 
     }
 
 
-def _compute_sharpe(returns: List[float], rf_period: float = 0.0) -> float:
+def _compute_sharpe(returns: List[float], rf_period: float = 0.0) -> Optional[float]:
     """Sharpe over the given return series, net of the per-period risk-free rate.
 
     Uses the *sample* standard deviation (n-1), the convention every published
     Sharpe uses. Not annualized here — see `_risk_adjusted_metrics`.
+
+    Devuelve `None` —no `0.0`— cuando el ratio NO SE PUEDE calcular: con menos
+    de dos retornos no hay dispersión que medir, y con desviación cero la
+    división no existe. Devolvía cero, que en un Sharpe se lee como "sistema
+    mediocre" cuando lo que pasa es que no hay dato. Es la misma razón por la
+    que `_compute_sortino` ya devolvía None, y la asimetría llegaba al payload:
+    con una sola operación salía `sharpe_ratio: 0.0` junto a
+    `sortino_ratio: null`. Regla 2 de honestidad numérica del proyecto.
     """
     if len(returns) < 2:
-        return 0.0
+        return None
     excess = [r - rf_period for r in returns]
     sd = statistics.stdev(excess)
     if sd == 0:
-        return 0.0
+        return None
     return statistics.mean(excess) / sd
 
 
@@ -318,9 +326,9 @@ def _risk_adjusted_metrics(
 
     scale = math.sqrt(ppy) if ppy else 1.0
     return {
-        "sharpe_ratio": round(sharpe_pt * scale, 2),
+        "sharpe_ratio": round(sharpe_pt * scale, 2) if sharpe_pt is not None else None,
         "sortino_ratio": round(sortino_pt * scale, 2) if sortino_pt is not None else None,
-        "sharpe_per_trade": round(sharpe_pt, 3),
+        "sharpe_per_trade": round(sharpe_pt, 3) if sharpe_pt is not None else None,
         "sortino_per_trade": round(sortino_pt, 3) if sortino_pt is not None else None,
         "annualized": ppy is not None,
         "trades_per_year": round(ppy, 1) if ppy else None,
@@ -941,10 +949,18 @@ def compute_analytics(
     profit_factor = _safe_div(sum(wins), abs(sum(losses)), 0) if losses else (
         float("inf") if wins else 0
     )
-    expectancy = (
-        win_rate / 100 * avg_win
-        + (1 - win_rate / 100) * avg_loss
-    )
+    # Esperanza matemática = P&L MEDIO por operación, dicho directamente.
+    #
+    # Estaba como `winRate·avgWin + (1 − winRate)·avgLoss`, y esa identidad sólo
+    # se cumple cuando toda operación es ganadora o perdedora. Con breakevens en
+    # la muestra, `(1 − winRate)` los mete en el segundo término y los cobra al
+    # precio de la pérdida media. Con +100, −50 y un 0, la fórmula daba **0,00**
+    # cuando la esperanza real es **16,67**.
+    #
+    # `GET /journal/stats` ya lo hacía bien y lo tenía escrito; esta ruta no. Era
+    # el hueco G-22: dos pantallas, la misma colección, dos números distintos.
+    # Ahora las dos calculan lo mismo, y sale igual cuando no hay breakevens.
+    expectancy = _safe_div(total_pnl, len(closed), 0)
 
     # Equity curve — built over the chronologically sorted list, so the balance
     # we start from is the one recorded on the OLDEST trade, not the newest.
@@ -1106,7 +1122,12 @@ def compute_analytics(
         "max_drawdown_dollars": max_dd_dollars,
         "max_drawdown_pct": max_dd_pct,
         **risk_adj,
-        "avg_r": round(sum(rs) / len(rs), 2) if rs else 0,
+        # `None`, no 0: sin ninguna operación con R definido, el R medio no
+        # existe. Un cero se lee como "R medio de 1:0", que es lo peor posible,
+        # cuando lo que pasa es que no hay muestra. El agrupado por setup ya lo
+        # hacía bien (`g["avg_r"] … else None`) y el agregado no: la misma
+        # métrica decía dos cosas distintas en la misma respuesta.
+        "avg_r": round(sum(rs) / len(rs), 2) if rs else None,
         "r_sample_size": len(rs),
         "trades_without_r": trades_without_r,
         # Excursion (MAE/MFE) — stop & target calibration
@@ -1362,14 +1383,14 @@ def _empty_analytics(trades: List[dict]) -> Dict[str, Any]:
         "worst_trade": 0,
         "max_drawdown_dollars": 0,
         "max_drawdown_pct": 0,
-        "sharpe_ratio": 0,
+        "sharpe_ratio": None,
         "sortino_ratio": None,
-        "sharpe_per_trade": 0,
+        "sharpe_per_trade": None,
         "sortino_per_trade": None,
         "annualized": False,
         "trades_per_year": None,
         "risk_free_rate": DEFAULT_RISK_FREE_RATE,
-        "avg_r": 0,
+        "avg_r": None,
         "r_sample_size": 0,
         "trades_without_r": 0,
         "excursion": {"available": False, "sample_size": 0, "scatter": []},
@@ -1503,8 +1524,8 @@ def generate_insights(analytics: Dict[str, Any]) -> List[Dict[str, str]]:
     wr = analytics.get("win_rate", 0)
     pf = analytics.get("profit_factor")
     exp = analytics.get("expectancy", 0)
-    sharpe = analytics.get("sharpe_ratio", 0)
-    avg_r = analytics.get("avg_r", 0)
+    sharpe = analytics.get("sharpe_ratio")
+    avg_r = analytics.get("avg_r")
     compliance = analytics.get("rule_compliance_rate", 100)
     by_day = analytics.get("by_day") or []
     by_setup = analytics.get("by_setup") or []
@@ -1531,14 +1552,17 @@ def generate_insights(analytics: Dict[str, Any]) -> List[Dict[str, str]]:
     # system, >2 is excellent. They are meaningless against a per-trade Sharpe
     # (an annualized 2.0 at 120 trades/year is only ~0.18 per trade), so when
     # the sample was too small to annualize we stay quiet rather than judge.
-    if analytics.get("annualized"):
+    # `sharpe` puede ser None (indefinido). Un `None >= 1.0` lanza TypeError, y
+    # además no habría nada que juzgar: sin ratio no hay veredicto.
+    if analytics.get("annualized") and sharpe is not None:
         if sharpe >= 1.0:
             insights.append({"severity": "good", "key": "insightSharpeOK", "value": str(sharpe)})
         elif sharpe < 0:
             insights.append({"severity": "critical", "key": "insightSharpeBad", "value": str(sharpe)})
 
     # Avg R below recommended
-    if avg_r > 0 and avg_r < 1.0:
+    # `avg_r` puede ser None (sin muestra). Comparar None con un float lanza.
+    if avg_r is not None and 0 < avg_r < 1.0:
         insights.append({"severity": "warning", "key": "insightAvgRLow",
                          "value": str(avg_r)})
 

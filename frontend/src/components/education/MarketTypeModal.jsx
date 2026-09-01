@@ -532,7 +532,7 @@ export default function MarketTypeModal({ market, open, onOpenChange }) {
           </Section>
 
           {/* 3 · Worked example */}
-          <Section icon={Calculator} title={content.example.title} tone="text-amber-500">
+          <Section icon={Calculator} title={content.example.title} tone="text-warn">
             <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <table className="w-full text-sm">
@@ -547,7 +547,7 @@ export default function MarketTypeModal({ market, open, onOpenChange }) {
                 </table>
                 {content.example.note && (
                   <p className="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground leading-relaxed flex gap-2">
-                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
+                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-warn" />
                     <span>{content.example.note}</span>
                   </p>
                 )}
@@ -557,7 +557,7 @@ export default function MarketTypeModal({ market, open, onOpenChange }) {
 
           {/* 4 · Live calculator */}
           {Calc && (
-            <Section icon={Calculator} title={calcUI.calc} tone="text-emerald-500">
+            <Section icon={Calculator} title={calcUI.calc} tone="text-long">
               <Card className="bg-card border-border">
                 <CardContent className="p-4">
                   <Calc L={calcUI} />
@@ -577,14 +577,14 @@ export default function MarketTypeModal({ market, open, onOpenChange }) {
 
           {/* 5 · Real data */}
           {content.tv?.widget && (
-            <Section icon={BarChart3} title={calcUI.data} tone="text-violet-500">
+            <Section icon={BarChart3} title={calcUI.data} tone="text-compare">
               <MarketWidget widget={content.tv.widget} />
               <p className="text-[10px] text-muted-foreground text-right font-mono">{calcUI.source}</p>
             </Section>
           )}
 
           {/* 6 · Q&A — the same content indexed as FAQPage on /markets/<id>/ */}
-          <Section icon={HelpCircle} title={calcUI.faq} tone="text-sky-500">
+          <Section icon={HelpCircle} title={calcUI.faq} tone="text-info">
             <Accordion type="single" collapsible className="w-full">
               {content.faq.map((f, i) => (
                 <AccordionItem key={f.q} value={`q${i}`}>

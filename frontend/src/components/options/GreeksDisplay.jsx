@@ -57,7 +57,7 @@ const GreeksDisplay = ({ greeks, legs, stock }) => {
           {legs.map((leg, i) => (
             <div key={`${leg.type}-${leg.action}-${leg.strike}-${i}`} className="flex items-center justify-between text-[11px]">
               <div className="flex items-center gap-1.5">
-                <span className={`font-bold text-[10px] ${leg.action === 'buy' ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                <span className={`font-bold text-[10px] ${leg.action === 'buy' ? 'text-long' : 'text-short'}`}>
                   {leg.action === 'buy' ? 'BUY' : 'SELL'}
                 </span>
                 <span className="text-muted-foreground">
@@ -71,7 +71,7 @@ const GreeksDisplay = ({ greeks, legs, stock }) => {
           ))}
           <div className="border-t border-border pt-2 flex justify-between">
             <span className="text-[10px] text-muted-foreground">Net Debit/Credit</span>
-            <span className={`text-xs font-bold font-mono ${totalCost > 0 ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
+            <span className={`text-xs font-bold font-mono ${totalCost > 0 ? 'text-short' : 'text-long'}`}>
               {totalCost > 0 ? '-' : '+'}${Math.abs(totalCost).toFixed(0)}
             </span>
           </div>

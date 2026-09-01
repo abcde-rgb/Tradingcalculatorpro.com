@@ -99,7 +99,7 @@ export default function LivePosition({ metrics, spec, costsTotal, rrFloor }) {
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
               {t('tfLiquidation')}
             </span>
-            <span className={`font-mono font-bold ${m.liquidationBeforeStop ? 'text-[#ef4444]' : 'text-foreground'}`}
+            <span className={`font-mono font-bold ${m.liquidationBeforeStop ? 'text-short' : 'text-foreground'}`}
               data-testid="live-liquidation"
             >
               {fmtPrice(m.liquidationPrice, spec?.tickSize)}
@@ -112,7 +112,7 @@ export default function LivePosition({ metrics, spec, costsTotal, rrFloor }) {
             {t('tfLiquidationHint')}
           </p>
           {m.liquidationBeforeStop && (
-            <p className="text-[11px] text-[#ef4444] font-semibold mt-1 flex items-center gap-1">
+            <p className="text-[11px] text-short font-semibold mt-1 flex items-center gap-1">
               <AlertTriangle className="w-3 h-3 shrink-0" />
               {t('tfLiqBeforeStop')}
             </p>
@@ -130,8 +130,8 @@ export default function LivePosition({ metrics, spec, costsTotal, rrFloor }) {
 }
 
 const TONES = {
-  bad: 'text-[#ef4444]',
-  good: 'text-[#22c55e]',
+  bad: 'text-short',
+  good: 'text-long',
   muted: 'text-muted-foreground',
 };
 
@@ -147,8 +147,8 @@ function Cell({ label, value, hint, tone, testid }) {
 
 function Banner({ tone, icon, children, testid }) {
   const cls = tone === 'bad'
-    ? 'bg-[#ef4444]/10 border-[#ef4444]/40 text-[#f87171]'
-    : 'bg-[#f59e0b]/10 border-[#f59e0b]/40 text-[#fbbf24]';
+    ? 'bg-short/10 border-short/40 text-short'
+    : 'bg-warn/10 border-warn/40 text-warn';
   return (
     <div className={`flex items-start gap-2 px-4 py-2 border-t text-[11px] font-semibold leading-relaxed ${cls}`}
       data-testid={testid}

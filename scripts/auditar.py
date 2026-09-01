@@ -175,8 +175,123 @@ RETIRADOS = {
 
 
 def es_comentario(txt: str) -> bool:
+    """⚠️ Sólo mira el principio de la línea. Se conserva porque hay llamadas
+    fuera de `restos()`, pero NO sirve para decidir si algo es código: no ve el
+    interior de un docstring, ni un comentario al final de línea, ni un bloque
+    JSX. Para eso está `enmascarar_prosa()`.
+    """
     t = txt.strip()
     return t.startswith(("#", "//", "*", "/*", '"""', "'''"))
+
+
+def _mascara_python(src: str) -> list[str]:
+    """Devuelve las líneas de `src` con los comentarios y docstrings en blanco.
+
+    Usa `ast` para los docstrings (módulo, clase y función) y `tokenize` para
+    los comentarios, en vez de adivinar por el primer carácter de la línea.
+    """
+    import ast
+    import io
+    import tokenize
+
+    lineas = src.split("\n")
+    fuera: set[int] = set()          # líneas 1-based que son prosa entera
+    recortes: list[tuple[int, int]] = []   # (línea, columna desde la que borrar)
+
+    try:
+        arbol = ast.parse(src)
+    except SyntaxError:
+        arbol = None
+    if arbol is not None:
+        for nodo in ast.walk(arbol):
+            if not isinstance(nodo, (ast.Module, ast.ClassDef,
+                                     ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            cuerpo = getattr(nodo, "body", None)
+            if not cuerpo:
+                continue
+            primero = cuerpo[0]
+            if (isinstance(primero, ast.Expr)
+                    and isinstance(primero.value, ast.Constant)
+                    and isinstance(primero.value.value, str)):
+                fuera.update(range(primero.lineno, (primero.end_lineno or primero.lineno) + 1))
+
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(src).readline):
+            if tok.type == tokenize.COMMENT:
+                recortes.append((tok.start[0], tok.start[1]))
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        pass
+
+    salida = list(lineas)
+    for n, col in recortes:
+        if 1 <= n <= len(salida):
+            salida[n - 1] = salida[n - 1][:col]
+    for n in fuera:
+        if 1 <= n <= len(salida):
+            salida[n - 1] = ""
+    return salida
+
+
+def _mascara_js(src: str) -> list[str]:
+    """Igual para JS/JSX: borra `//`, `/* … */` y `{/* … */}` multilínea.
+
+    No pretende ser un parser: recorre carácter a carácter llevando la cuenta
+    de si está dentro de un comentario o de una cadena, que es todo lo que hace
+    falta para no confundir prosa con código.
+    """
+    salida: list[list[str]] = [list(l) for l in src.split("\n")]
+    en_bloque = False
+    comilla: str | None = None
+    for y, linea in enumerate(salida):
+        x = 0
+        while x < len(linea):
+            c = linea[x]
+            sig = linea[x + 1] if x + 1 < len(linea) else ""
+            if en_bloque:
+                if c == "*" and sig == "/":
+                    linea[x] = linea[x + 1] = " "
+                    en_bloque = False
+                    x += 2
+                    continue
+                linea[x] = " "
+            elif comilla:
+                if c == "\\":
+                    x += 2
+                    continue
+                if c == comilla:
+                    comilla = None
+            elif c in "\"'`":
+                comilla = c
+            elif c == "/" and sig == "/":
+                for k in range(x, len(linea)):
+                    linea[k] = " "
+                break
+            elif c == "/" and sig == "*":
+                linea[x] = linea[x + 1] = " "
+                en_bloque = True
+                x += 2
+                continue
+            x += 1
+        comilla = None   # una cadena sin cerrar no cruza de línea en JS
+    return ["".join(l) for l in salida]
+
+
+def enmascarar_prosa(ruta, src: str) -> list[str]:
+    """Las líneas del fichero con la PROSA en blanco, para buscar sólo en código.
+
+    Existe porque `es_comentario()` sólo miraba el primer carácter de la línea y
+    etiquetaba como «⚠️ CÓDIGO» cualquier prosa que no empezara por su marcador:
+    una línea en medio de un docstring, un comentario al final de una línea de
+    código, la continuación de un bloque `{/* … */}`. Los siete rastros que el
+    informe llegó a dar por código vivo estaban los siete en prosa, y escalaban
+    a «🔴 2 bloqueantes».
+
+    Peor que el falso positivo era que la etiqueta no distinguía: metiendo un
+    `OXAPAY_API_KEY = "…"` de verdad, recibía exactamente la misma marca. Un
+    aviso que no separa lo que dice separar no informa de nada.
+    """
+    return _mascara_python(src) if str(ruta).endswith(".py") else _mascara_js(src)
 
 
 def restos() -> None:
@@ -188,12 +303,20 @@ def restos() -> None:
             for f in base.glob(pat):
                 if "node_modules" in str(f):
                     continue
-                for i, l in enumerate(f.read_text(errors="ignore").split("\n"), 1):
+                src = f.read_text(errors="ignore")
+                solo_codigo = enmascarar_prosa(f, src)
+                for i, l in enumerate(src.split("\n"), 1):
+                    codigo = solo_codigo[i - 1] if i - 1 < len(solo_codigo) else ""
                     for termino in RETIRADOS:
-                        if termino.lower() in l.lower():
-                            marca = "coment." if es_comentario(l) else "⚠️ CÓDIGO"
-                            encontrados.setdefault(termino, []).append(
-                                f"{f.relative_to(RAIZ)}:{i} [{marca}]")
+                        if termino.lower() not in l.lower():
+                            continue
+                        # Vivo sólo si el término sobrevive al enmascarado, es
+                        # decir, si está en código y no en un comentario o
+                        # docstring que hable de él.
+                        vivo = termino.lower() in codigo.lower()
+                        marca = "⚠️ CÓDIGO" if vivo else "coment."
+                        encontrados.setdefault(termino, []).append(
+                            f"{f.relative_to(RAIZ)}:{i} [{marca}]")
     if not encontrados:
         linea("  ✅ ni rastro")
         return

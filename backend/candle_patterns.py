@@ -317,6 +317,75 @@ def _is_three_inside_down(c1: Dict, c2: Dict, c3: Dict) -> bool:
     )
 
 
+# ---------- More patterns from the same corpus (Bulkowski / Nison) ----------
+# Investigado y descartado para esta tanda: On Neck, Meeting Lines/Counterattack
+# y Stick Sandwich/Homing Pigeon. Los cinco de aquí abajo se añaden porque su
+# comportamiento REAL (Bulkowski, thepatternsite.com) coincide con lo que su
+# nombre promete; esos cuatro NO — Bulkowski mide que actúan "casi al azar" o
+# directamente AL REVÉS de su clasificación de libro (p. ej. Stick Sandwich se
+# vende como reversión alcista y en la muestra actúa como continuación bajista
+# el 62% de las veces). Meterlos con esta tabla (type/behavior alineados con
+# rate) sería mentir con la estadística que se enseña junto al patrón — la
+# regla de honestidad numérica del proyecto no permite esa clase de atajo.
+
+def _is_bullish_belt_hold(m: Dict[str, float]) -> bool:
+    """Abre prácticamente en el mínimo (mecha inferior ~nula) y cierra fuerte
+    arriba. Un marubozu es un caso más extremo (sin mecha en ningún lado) y
+    tiene su propia entrada — no se duplica aquí."""
+    return (
+        m["is_bull"]
+        and m["lower"] <= 0.05 * m["range"]
+        and m["body_pct"] >= 0.65
+        and not _is_marubozu(m)
+    )
+
+
+def _is_bearish_belt_hold(m: Dict[str, float]) -> bool:
+    return (
+        m["is_bear"]
+        and m["upper"] <= 0.05 * m["range"]
+        and m["body_pct"] >= 0.65
+        and not _is_marubozu(m)
+    )
+
+
+def _is_in_neck(prev: Dict, curr: Dict) -> bool:
+    """Vela bajista larga, y la siguiente abre con hueco POR DEBAJO de su
+    mínimo pero cierra apenas un pelo por encima de ese cierre — se queda "en
+    el cuello", sin penetrar el cuerpo como sí hace la línea penetrante."""
+    prev_body = abs(prev["close"] - prev["open"])
+    if not (prev["close"] < prev["open"] and prev_body > 0):
+        return False
+    if not curr["open"] < prev["low"]:
+        return False
+    return prev["close"] <= curr["close"] <= prev["close"] + 0.10 * prev_body
+
+
+def _is_bullish_abandoned_baby(c1: Dict, c2: Dict, c3: Dict) -> bool:
+    """Versión ESTRICTA de la estrella de la mañana con doji: aquí hace falta
+    un hueco de verdad a cada lado (ni una mecha se toca), no sólo que el
+    cuerpo del doji quede por debajo del cierre de la primera vela."""
+    if not _is_doji(_candle_metrics(c2)):
+        return False
+    return (
+        c1["close"] < c1["open"]
+        and c2["high"] < c1["low"]
+        and c3["close"] > c3["open"]
+        and c3["low"] > c2["high"]
+    )
+
+
+def _is_bearish_abandoned_baby(c1: Dict, c2: Dict, c3: Dict) -> bool:
+    if not _is_doji(_candle_metrics(c2)):
+        return False
+    return (
+        c1["close"] > c1["open"]
+        and c2["low"] > c1["high"]
+        and c3["close"] < c3["open"]
+        and c3["high"] < c2["low"]
+    )
+
+
 # ---------- Pattern catalogue ----------
 # type: visual/directional bias · candles: how many bars · behavior: what it
 # tends to do (reversal/continuation/indecision) · rate: how often it resolves
@@ -365,6 +434,12 @@ PATTERN_META: Dict[str, Dict[str, Any]] = {
     "three-black-crows":    {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 78, "rank": 5, "basis": "both"},
     "three-inside-up":      {"type": "bullish", "candles": 3, "behavior": "reversal",    "rate": 65, "rank": 16, "basis": "body"},
     "three-inside-down":    {"type": "bearish", "candles": 3, "behavior": "reversal",    "rate": 60, "rank": 28, "basis": "body"},
+    # ----- Extra (Bulkowski corpus, verificadas 2026-08-31 — ver nota arriba) -----
+    "bullish-belt-hold":    {"type": "bullish", "candles": 1, "behavior": "reversal",    "rate": 71, "rank": 62, "basis": "both"},
+    "bearish-belt-hold":    {"type": "bearish", "candles": 1, "behavior": "reversal",    "rate": 68, "rank": 63, "basis": "both"},
+    "in-neck":              {"type": "bearish", "candles": 2, "behavior": "continuation", "rate": 53, "rank": 17, "basis": "body"},
+    "bullish-abandoned-baby": {"type": "bullish", "candles": 3, "behavior": "reversal",  "rate": 70, "rank": 13, "basis": "both"},
+    "bearish-abandoned-baby": {"type": "bearish", "candles": 3, "behavior": "reversal",  "rate": 69, "rank": 14, "basis": "both"},
 }
 
 
@@ -398,6 +473,10 @@ def _detect_at_index(rows: List[Dict[str, float]], i: int) -> List[str]:
         hits.append("high-wave")
     if _is_spinning_top(m) and "doji" not in hits and "high-wave" not in hits:
         hits.append("spinning-top")
+    if _is_bullish_belt_hold(m):
+        hits.append("bullish-belt-hold")
+    elif _is_bearish_belt_hold(m):
+        hits.append("bearish-belt-hold")
 
     # Two-candle.
     if i >= 1:
@@ -423,14 +502,20 @@ def _detect_at_index(rows: List[Dict[str, float]], i: int) -> List[str]:
             hits.append("tweezer-bottom")
         elif _is_tweezer_top(prev, cur):
             hits.append("tweezer-top")
+        if _is_in_neck(prev, cur):
+            hits.append("in-neck")
 
     # Three-candle (doji-star variants take priority over their plain forms).
     if i >= 2:
         c1, c2, c3 = rows[i - 2], rows[i - 1], rows[i]
-        if _is_morning_doji_star(c1, c2, c3):
+        if _is_bullish_abandoned_baby(c1, c2, c3):
+            hits.append("bullish-abandoned-baby")
+        elif _is_morning_doji_star(c1, c2, c3):
             hits.append("morning-doji-star")
         elif _is_morning_star(c1, c2, c3):
             hits.append("morning-star")
+        elif _is_bearish_abandoned_baby(c1, c2, c3):
+            hits.append("bearish-abandoned-baby")
         elif _is_evening_doji_star(c1, c2, c3):
             hits.append("evening-doji-star")
         elif _is_evening_star(c1, c2, c3):

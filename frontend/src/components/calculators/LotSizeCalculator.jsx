@@ -121,7 +121,7 @@ export function LotSizeCalculator() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-            <Scale className="w-4 h-4 text-blue-500" />
+            <Scale className="w-4 h-4 text-info" />
           </div>
           {t('lotSizeCalcTitle_p001')}
         </CardTitle>

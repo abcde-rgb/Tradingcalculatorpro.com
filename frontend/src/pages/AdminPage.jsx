@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback, Fragment } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
   Shield, ShieldOff, RefreshCw, Mail, Globe2, Calendar,
@@ -8,7 +8,7 @@ import {
   Zap, TrendingDown, Percent, AlertCircle, ChevronDown, ChevronUp,
   Send, Languages, CreditCard, UserMinus, Share2, Package,
   Construction, Bug, Gauge, Lock, Settings, Database, ToggleLeft,
-  Layers, Gift, Wallet, AlertTriangle,
+  Layers, Gift, Wallet, AlertTriangle, Coins,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -94,12 +94,76 @@ const PLAN_COLORS = { none: '#6b7280', free: '#6b7280', monthly: '#3b82f6', quar
 // Language code → { flag, name } for the admin users table.
 const LANG_BY_CODE = Object.fromEntries(languages.map((l) => [l.code, l]));
 
+/**
+ * Antes esto era un único `<main>` con 32 tarjetas en scroll vertical
+ * continuo: entrar a mirar la lista de usuarios significaba bajar por
+ * treinta secciones, y cada tarjeta dispara su propio fetch al montar, así
+ * que cargar la página lanzaba ~25 peticiones en paralelo aunque sólo se
+ * quisiera ver una cosa. Agrupar en secciones y renderizar sólo la activa
+ * hace las dos cosas a la vez: navegación real y carga perezosa — una
+ * tarjeta que no está montada no pide sus datos.
+ */
+const ADMIN_SECTIONS = [
+  { id: 'resumen',       label: 'Resumen',            icon: Users },
+  { id: 'ingresos',      label: 'Ingresos y pagos',   icon: DollarSign },
+  { id: 'marketing',     label: 'Marketing y uso',    icon: TrendingUp },
+  { id: 'afiliados',     label: 'Afiliados',          icon: Share2 },
+  { id: 'sistema',       label: 'Sistema',            icon: Gauge },
+  { id: 'configuracion', label: 'Configuración',      icon: Settings },
+  { id: 'legal',         label: 'Legal y RGPD',       icon: Lock },
+];
+const ADMIN_SECTION_IDS = new Set(ADMIN_SECTIONS.map((s) => s.id));
+
+function AdminNav({ active, onChange }) {
+  return (
+    <nav
+      className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible
+                 md:w-52 md:shrink-0 md:border-r md:border-border md:pr-3
+                 pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0"
+      aria-label="Secciones del panel"
+      data-testid="admin-nav"
+    >
+      {ADMIN_SECTIONS.map(({ id, label, icon: Icon }) => {
+        const isActive = active === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            data-testid={`admin-nav-${id}`}
+            aria-current={isActive ? 'page' : undefined}
+            className={`flex items-center gap-2 shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm
+                        transition-colors text-left
+                        ${isActive
+                          ? 'bg-primary/10 text-primary font-medium md:border-l-2 md:border-primary md:-ml-[2px] md:pl-[10px]'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+          >
+            <Icon className="w-4 h-4 shrink-0" />
+            {label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 export default function AdminPage() {
   const { t, locale: uiLocale } = useTranslation();
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuthStore();
 
   useSEO({ title: 'Admin', description: 'Panel administrativo', canonicalPath: '/admin', noindex: true });
+
+  // Sincronizada con `?section=` para que un enlace a una sección concreta
+  // (p. ej. mandarle a otro admin "mira /admin?section=ingresos") funcione.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sectionParam = searchParams.get('section');
+  const activeSection = ADMIN_SECTION_IDS.has(sectionParam) ? sectionParam : 'resumen';
+  const setActiveSection = (id) => {
+    const next = new URLSearchParams(searchParams);
+    if (id === 'resumen') next.delete('section'); else next.set('section', id);
+    setSearchParams(next, { replace: true });
+  };
 
   const [metrics, setMetrics] = useState(null);
   const [users, setUsers] = useState([]);
@@ -289,11 +353,36 @@ export default function AdminPage() {
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Demo mode banner */}
         {token === DEMO_TOKEN && (
-          <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 flex items-center gap-3 text-sm text-yellow-600 dark:text-yellow-400">
+          <div className="rounded-xl border border-caution/40 bg-caution/10 px-4 py-3 flex items-center gap-3 text-sm text-caution">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>Modo demo — los datos reales requieren el backend conectado. Las acciones están deshabilitadas.</span>
           </div>
         )}
+        {/* Margen de alta del segundo factor.
+            Estás viendo el panel sin 2FA, así que o el servidor te ha dado el
+            margen de diez minutos (uso único: cuando venza, `require_admin`
+            devuelve 428 y no vuelve a abrirse) o corres en desarrollo con el
+            escape hatch. En los dos casos la acción es la misma y urge, así que
+            el aviso lleva el enlace en vez de sólo describir el problema. */}
+        {token !== DEMO_TOKEN && user?.two_factor_enabled === false && (
+          <div
+            className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3
+                       flex items-start gap-3 text-sm"
+            data-testid="admin-2fa-grace-banner"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 text-warn mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">{t('admin2faGraceTitle')}</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {t('admin2faGraceBody')}
+              </p>
+              <Link to="/settings" className="inline-block text-primary underline text-xs font-medium">
+                {t('admin2faGraceCta')}
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Header row */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -316,7 +405,8 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Metrics grid */}
+        {/* Metrics grid — visible en todas las secciones: es la orientación
+            de "cómo va esto" que no debería depender de dónde estés */}
         {metrics && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <MetricCard icon={Users} label={t('adminMetricUsers')}
@@ -328,7 +418,7 @@ export default function AdminPage() {
                 ? `$${metrics.mrr_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                 : '—'}
               hint="equivalente mensual de los planes activos · excluye Lifetime"
-              valueClass="text-green-500" testId="metric-mrr" />
+              valueClass="text-long" testId="metric-mrr" />
             <MetricCard icon={TrendingUp} label={t('adminMetricNew30d')}
               value={metrics.new_users_30d} testId="metric-new-30d" />
             <MetricCard icon={Globe2} label={t('adminMetricLocales')}
@@ -339,197 +429,227 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Google integrations editor */}
-        <IntegrationsEditor headers={headers} t={t} />
+        {/* Navegación + contenido de la sección activa. Cada tarjeta pide
+            sus propios datos al montar (useAuthedLoad/useEffect); no
+            renderizar una sección es no montar sus tarjetas, así que
+            cambiar de sección es la carga perezosa — no hace falta
+            coordinar fetches a mano. */}
+        <div className="flex flex-col md:flex-row gap-6">
+          <AdminNav active={activeSection} onChange={setActiveSection} />
+          <div className="flex-1 min-w-0 space-y-6">
 
-        {/* Filters */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              <div className="md:col-span-2 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('adminSearchPlaceholder')}
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && loadAll()}
-                  className="pl-10"
-                  data-testid="admin-search-input"
-                />
-              </div>
-              <Select value={plan} onValueChange={setPlan}>
-                <SelectTrigger data-testid="admin-filter-plan"><SelectValue placeholder={t('adminFilterPlan')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('adminFilterPlan')}: {t('adminAll')}</SelectItem>
-                  <SelectItem value="none">Free</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="annual">Annual</SelectItem>
-                  <SelectItem value="lifetime">Lifetime</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={provider} onValueChange={setProvider}>
-                <SelectTrigger data-testid="admin-filter-provider"><SelectValue placeholder={t('adminFilterProvider')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('adminFilterProvider')}: {t('adminAll')}</SelectItem>
-                  <SelectItem value="password">Email + Password</SelectItem>
-                  <SelectItem value="google">Google</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={loadAll} className="gap-2" data-testid="admin-apply-filters">
-                {t('adminApplyFilters')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            {activeSection === 'resumen' && (
+              <>
+                {/* Filters */}
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      <div className="md:col-span-2 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder={t('adminSearchPlaceholder')}
+                          value={q}
+                          onChange={(e) => setQ(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && loadAll()}
+                          className="pl-10"
+                          data-testid="admin-search-input"
+                        />
+                      </div>
+                      <Select value={plan} onValueChange={setPlan}>
+                        <SelectTrigger data-testid="admin-filter-plan"><SelectValue placeholder={t('adminFilterPlan')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('adminFilterPlan')}: {t('adminAll')}</SelectItem>
+                          <SelectItem value="none">Free</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                          <SelectItem value="annual">Annual</SelectItem>
+                          <SelectItem value="lifetime">Lifetime</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={provider} onValueChange={setProvider}>
+                        <SelectTrigger data-testid="admin-filter-provider"><SelectValue placeholder={t('adminFilterProvider')} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t('adminFilterProvider')}: {t('adminAll')}</SelectItem>
+                          <SelectItem value="password">Email + Password</SelectItem>
+                          <SelectItem value="google">Google</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button onClick={loadAll} className="gap-2" data-testid="admin-apply-filters">
+                        {t('adminApplyFilters')}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        {/* Table */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">{t('adminUsersTable')}</CardTitle>
-              <Badge variant="outline">{total} {t('adminTotal')}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-sm" data-testid="admin-users-table">              <thead className="bg-muted/40">
-                <tr className="text-left">
-                  <Th><Mail className="w-3 h-3 inline" /> Email</Th>
-                  <Th>{t('adminColName')}</Th>
-                  <Th>{t('adminColPlan')}</Th>
-                  <Th>{t('adminColStatus')}</Th>
-                  <Th>{t('adminColProvider')}</Th>
-                  <Th>{t('adminColCountry')}</Th>
-                  <Th>{t('adminColLanguage')}</Th>
-                  <Th><Calendar className="w-3 h-3 inline" /> {t('adminColCreated')}</Th>
-                  <Th>Acciones</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => {
-                  const isSelf = u.id === user?.id;
-                  return (
-                    <tr key={u.id} className="border-t border-border hover:bg-muted/20">
-                      <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
-                      <td className="px-3 py-2">{u.name}</td>
-                      <td className="px-3 py-2">
-                        <Badge style={{ background: `${PLAN_COLORS[u.subscription_plan || 'free']}30`, color: PLAN_COLORS[u.subscription_plan || 'free'], border: `1px solid ${PLAN_COLORS[u.subscription_plan || 'free']}50` }}>
-                          {u.subscription_plan || 'free'}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge variant={u.is_premium ? 'default' : 'secondary'}
-                          className={u.is_premium ? 'bg-green-500/15 text-green-600' : ''}>
-                          {u.is_premium ? 'active' : (u.subscription_status || '—')}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="text-xs text-muted-foreground">{u.auth_provider || 'password'}</span>
-                      </td>
-                      <td className="px-3 py-2 text-xs">
-                        {u.country
-                          ? <span title={u.country}>{countryFlag(u.country)} {countryName(u.country, uiLocale)}</span>
-                          : <span className="text-muted-foreground">—</span>}
-                      </td>
-                      <td className="px-3 py-2 text-xs">
-                        {u.preferred_locale
-                          ? <span>{(LANG_BY_CODE[u.preferred_locale]?.flag || '')} {LANG_BY_CODE[u.preferred_locale]?.name || u.preferred_locale}</span>
-                          : <span className="text-muted-foreground">—</span>}
-                      </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">
-                        {u.created_at ? u.created_at.slice(0, 10) : '—'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex flex-wrap gap-1">
-                          <Button size="sm" variant="outline" onClick={() => setEditing(u)}
-                            className="gap-1 h-7" data-testid={`admin-edit-${u.email}`}>
-                            <Pencil className="w-3 h-3" /> Editar
-                          </Button>
-                          {!isSelf && (
-                            <Button size="sm" variant="outline"
-                              onClick={() => handleImpersonate(u)}
-                              className="gap-1 h-7 text-blue-500 border-blue-500/30 hover:bg-blue-500/10"
-                              data-testid={`admin-impersonate-${u.email}`}>
-                              <UserCheck className="w-3 h-3" /> Ver como
-                            </Button>
-                          )}
-                          <Button size="sm" variant={u.is_admin ? 'destructive' : 'outline'}
-                            onClick={() => togglePromote(u.email, u.is_admin)}
-                            className="gap-1 h-7" data-testid={`admin-toggle-${u.email}`}>
-                            {u.is_admin
-                              ? <><ShieldOff className="w-3 h-3" /> {t('adminDemote')}</>
-                              : <><Shield className="w-3 h-3" /> {t('adminPromote')}</>}
-                          </Button>
-                          <Button size="sm" variant="outline"
-                            onClick={() => setResetting(u)}
-                            className="gap-1 h-7" data-testid={`admin-reset-${u.email}`}>
-                            <KeyRound className="w-3 h-3" /> Reset
-                          </Button>
-                          {!isSelf && (
-                            <Button size="sm" variant="destructive"
-                              onClick={() => setConfirmDelete(u)}
-                              className="gap-1 h-7" data-testid={`admin-delete-${u.email}`}>
-                              <Trash2 className="w-3 h-3" /> Borrar
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">
-                      {loading ? t('loading') : t('adminNoUsers')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-        {/* Audit Log */}
-        <AuditLogPanel headers={headers} />
+                {/* Table */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{t('adminUsersTable')}</CardTitle>
+                      <Badge variant="outline">{total} {t('adminTotal')}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0 overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="admin-users-table">              <thead className="bg-muted/40">
+                        <tr className="text-left">
+                          <Th><Mail className="w-3 h-3 inline" /> Email</Th>
+                          <Th>{t('adminColName')}</Th>
+                          <Th>{t('adminColPlan')}</Th>
+                          <Th>{t('adminColStatus')}</Th>
+                          <Th>{t('adminColProvider')}</Th>
+                          <Th>{t('adminColCountry')}</Th>
+                          <Th>{t('adminColLanguage')}</Th>
+                          <Th><Calendar className="w-3 h-3 inline" /> {t('adminColCreated')}</Th>
+                          <Th>Acciones</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u) => {
+                          const isSelf = u.id === user?.id;
+                          return (
+                            <tr key={u.id} className="border-t border-border hover:bg-muted/20">
+                              <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
+                              <td className="px-3 py-2">{u.name}</td>
+                              <td className="px-3 py-2">
+                                <Badge style={{ background: `${PLAN_COLORS[u.subscription_plan || 'free']}30`, color: PLAN_COLORS[u.subscription_plan || 'free'], border: `1px solid ${PLAN_COLORS[u.subscription_plan || 'free']}50` }}>
+                                  {u.subscription_plan || 'free'}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2">
+                                <Badge variant={u.is_premium ? 'default' : 'secondary'}
+                                  className={u.is_premium ? 'bg-long/15 text-long' : ''}>
+                                  {u.is_premium ? 'active' : (u.subscription_status || '—')}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className="text-xs text-muted-foreground">{u.auth_provider || 'password'}</span>
+                              </td>
+                              <td className="px-3 py-2 text-xs">
+                                {u.country
+                                  ? <span title={u.country}>{countryFlag(u.country)} {countryName(u.country, uiLocale)}</span>
+                                  : <span className="text-muted-foreground">—</span>}
+                              </td>
+                              <td className="px-3 py-2 text-xs">
+                                {u.preferred_locale
+                                  ? <span>{(LANG_BY_CODE[u.preferred_locale]?.flag || '')} {LANG_BY_CODE[u.preferred_locale]?.name || u.preferred_locale}</span>
+                                  : <span className="text-muted-foreground">—</span>}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">
+                                {u.created_at ? u.created_at.slice(0, 10) : '—'}
+                              </td>
+                              <td className="px-3 py-2">
+                                <div className="flex flex-wrap gap-1">
+                                  <Button size="sm" variant="outline" onClick={() => setEditing(u)}
+                                    className="gap-1 h-7" data-testid={`admin-edit-${u.email}`}>
+                                    <Pencil className="w-3 h-3" /> Editar
+                                  </Button>
+                                  {!isSelf && (
+                                    <Button size="sm" variant="outline"
+                                      onClick={() => handleImpersonate(u)}
+                                      className="gap-1 h-7 text-info border-info/30 hover:bg-info/10"
+                                      data-testid={`admin-impersonate-${u.email}`}>
+                                      <UserCheck className="w-3 h-3" /> Ver como
+                                    </Button>
+                                  )}
+                                  <Button size="sm" variant={u.is_admin ? 'destructive' : 'outline'}
+                                    onClick={() => togglePromote(u.email, u.is_admin)}
+                                    className="gap-1 h-7" data-testid={`admin-toggle-${u.email}`}>
+                                    {u.is_admin
+                                      ? <><ShieldOff className="w-3 h-3" /> {t('adminDemote')}</>
+                                      : <><Shield className="w-3 h-3" /> {t('adminPromote')}</>}
+                                  </Button>
+                                  <Button size="sm" variant="outline"
+                                    onClick={() => setResetting(u)}
+                                    className="gap-1 h-7" data-testid={`admin-reset-${u.email}`}>
+                                    <KeyRound className="w-3 h-3" /> Reset
+                                  </Button>
+                                  {!isSelf && (
+                                    <Button size="sm" variant="destructive"
+                                      onClick={() => setConfirmDelete(u)}
+                                      className="gap-1 h-7" data-testid={`admin-delete-${u.email}`}>
+                                      <Trash2 className="w-3 h-3" /> Borrar
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {users.length === 0 && (
+                          <tr>
+                            <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">
+                              {loading ? t('loading') : t('adminNoUsers')}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+                <AuditLogPanel headers={headers} />
+              </>
+            )}
 
-        {/* Revenue Analytics */}
-        <RevenueAnalyticsCard metrics={metrics} headers={headers} />
+            {activeSection === 'ingresos' && (
+              <>
+                <RevenueAnalyticsCard metrics={metrics} headers={headers} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <PlanDistributionCard metrics={metrics} />
+                  <ChurnSurveyCard headers={headers} />
+                </div>
+                <PaymentReconciliationCard headers={headers} />
+                <ManualPaymentCard headers={headers} />
+                <PaymentHistoryCard headers={headers} />
+                <CouponManagerCard headers={headers} />
+                <PlansEditorCard headers={headers} />
+              </>
+            )}
 
-        {/* Plan Distribution + Usage side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PlanDistributionCard metrics={metrics} />
-          <UsageAnalyticsCard headers={headers} />
+            {activeSection === 'marketing' && (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <UsageAnalyticsCard headers={headers} />
+                  <CohortAnalysisCard headers={headers} />
+                </div>
+                <UsageHeatmapCard headers={headers} />
+                <EmailCampaignsCard headers={headers} />
+              </>
+            )}
+
+            {activeSection === 'afiliados' && (
+              <>
+                <ReferralPayoutRequestsCard headers={headers} />
+                <ReferralManagerCard headers={headers} />
+                <AffiliatePayoutRequestsCard headers={headers} />
+                <AffiliatesAdminCard headers={headers} />
+                <AffiliatePayoutsCard headers={headers} />
+              </>
+            )}
+
+            {activeSection === 'sistema' && (
+              <>
+                <FeatureFlagsCard headers={headers} />
+                <WebhookLogsCard headers={headers} />
+                <MarketDataHealthCard headers={headers} />
+                <MaintenanceModeCard headers={headers} />
+                <ErrorMonitorCard headers={headers} />
+                <RateLimitingCard headers={headers} />
+              </>
+            )}
+
+            {activeSection === 'configuracion' && (
+              <>
+                <IntegrationsEditor headers={headers} t={t} />
+                <I18nManagerCard headers={headers} />
+              </>
+            )}
+
+            {activeSection === 'legal' && (
+              <GDPRExportCard headers={headers} />
+            )}
+
+          </div>
         </div>
-
-        {/* Usage Heatmap — qué miran más los usuarios */}
-        <PaymentReconciliationCard headers={headers} />
-        <ManualPaymentCard headers={headers} />
-        <UsageHeatmapCard headers={headers} />
-
-        {/* Coupon Manager */}
-        <CouponManagerCard headers={headers} />
-
-        {/* Feature Flags */}
-        <FeatureFlagsCard headers={headers} />
-
-        {/* Stripe Webhook Logs */}
-        <WebhookLogsCard headers={headers} />
-
-        {/* ── NEW FEATURES ── */}
-        <MarketDataHealthCard headers={headers} />
-        <MaintenanceModeCard headers={headers} />
-        <EmailCampaignsCard headers={headers} />
-        <PaymentHistoryCard headers={headers} />
-        <ChurnSurveyCard headers={headers} />
-        <CohortAnalysisCard headers={headers} />
-        <ReferralManagerCard headers={headers} />
-        <AffiliatePayoutRequestsCard headers={headers} />
-        <AffiliatesAdminCard headers={headers} />
-        <AffiliatePayoutsCard headers={headers} />
-        <PlansEditorCard headers={headers} />
-        <I18nManagerCard headers={headers} />
-        <ErrorMonitorCard headers={headers} />
-        <RateLimitingCard headers={headers} />
-        <GDPRExportCard headers={headers} />
       </main>
 
       {/* MODALS */}
@@ -559,7 +679,7 @@ const MetricCard = ({ icon: Icon, label, value, valueClass = '', testId, hint })
       <div>
         <p className="text-xs text-muted-foreground" title={hint || undefined}>{label}</p>
         <p className={`text-xl font-bold ${valueClass}`}>{value}</p>
-        {hint && <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{hint}</p>}
+        {hint && <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{hint}</p>}
       </div>
     </CardContent>
   </Card>
@@ -739,7 +859,7 @@ function IntegrationField({ field, value, isSet, onChange }) {
       <div className="flex items-start justify-between gap-2">
         <Label htmlFor={field.id} className="text-sm font-medium">{field.label}</Label>
         {(isSet || (!field.secret && value))
-          ? <Badge className="bg-green-500/15 text-green-500 gap-1"><Check className="w-3 h-3" /> Connected</Badge>
+          ? <Badge className="bg-long/15 text-long gap-1"><Check className="w-3 h-3" /> Connected</Badge>
           : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> Not configured</Badge>}
       </div>
       <div className="flex gap-1">
@@ -935,30 +1055,22 @@ function IntegrationsEditor({ headers, t }) {
         )}
       </CardHeader>
       <CardContent className="space-y-5 pt-2">
-        {/* El estado del cifrado, dicho.
-
-            Los secretos se pintan enmascarados (`••••1234`) estén cifrados o no,
-            así que desde aquí los dos casos eran indistinguibles: sin
-            SECRET_ENCRYPTION_KEY en el entorno, la clave secreta de Stripe se
-            guardaba en claro en la base de datos y el panel se veía idéntico.
-            `encryption_active` viene del backend (server.py, `cifrado_activo`). */}
+        {/* Sin SECRET_ENCRYPTION_KEY, lo que se guarda aquí abajo cae a texto
+            plano en la base de datos sin ningún aviso — hasta ahora. El admin
+            necesita saberlo ANTES de teclear una clave, no descubrirlo en una
+            auditoría. */}
         {settings && settings.encryption_active === false && (
-          <div
-            className="flex items-start gap-3 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10"
-            data-testid="aviso-sin-cifrado"
-            role="alert"
-          >
-            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
-            <div className="text-xs leading-relaxed">
-              <p className="font-semibold text-amber-500">
-                Los secretos se guardan SIN CIFRAR en la base de datos.
-              </p>
-              <p className="text-muted-foreground mt-1">
-                Falta <code className="font-mono">SECRET_ENCRYPTION_KEY</code> en el entorno del
-                servicio. Todo lo que guardes aquí —claves de Stripe, SendGrid, PayPal— queda en
-                texto plano. Genera una clave Fernet, ponla en Secret Manager y vuelve a guardar
-                cada secreto para que se reescriba cifrado: los valores ya guardados no se
-                convierten solos.
+          <div className="rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 flex items-start gap-3 text-sm"
+               data-testid="encryption-inactive-warning">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-warn" />
+            <div>
+              <p className="font-medium text-warn">Cifrado desactivado: las claves se guardan en texto plano</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Falta <code className="px-1 py-0.5 rounded bg-muted font-mono text-[11px]">SECRET_ENCRYPTION_KEY</code> en
+                el entorno del backend. Las claves de Stripe, SendGrid, PayPal y Google que guardes aquí
+                quedan legibles en la base de datos hasta que se configure. Los que ya estén
+                guardados <strong>no se cifran solos</strong>: hay que volver a guardarlos desde
+                aquí una vez la clave esté puesta.
               </p>
             </div>
           </div>
@@ -1314,13 +1426,13 @@ function ConfirmDeleteDialog({ user, onClose, onConfirm }) {
  * ============================================================ */
 
 const ACTION_LABELS = {
-  'user.create':         { label: 'Usuario creado',       color: 'bg-green-500/15 text-green-600' },
-  'user.update':         { label: 'Usuario editado',      color: 'bg-blue-500/15 text-blue-500'   },
-  'user.delete':         { label: 'Usuario eliminado',    color: 'bg-red-500/15 text-red-500'     },
-  'user.reset_password': { label: 'Password reseteada',   color: 'bg-amber-500/15 text-amber-500' },
-  'user.promote':        { label: 'Promovido a admin',    color: 'bg-purple-500/15 text-purple-500' },
-  'user.demote':         { label: 'Admin removido',       color: 'bg-slate-500/15 text-slate-400' },
-  'settings.update':     { label: 'Settings guardadas',   color: 'bg-indigo-500/15 text-indigo-500' },
+  'user.create':         { label: 'Usuario creado',       color: 'bg-long/15 text-long' },
+  'user.update':         { label: 'Usuario editado',      color: 'bg-info/15 text-info'   },
+  'user.delete':         { label: 'Usuario eliminado',    color: 'bg-short/15 text-short'     },
+  'user.reset_password': { label: 'Password reseteada',   color: 'bg-warn/15 text-warn' },
+  'user.promote':        { label: 'Promovido a admin',    color: 'bg-compare/15 text-compare' },
+  'user.demote':         { label: 'Admin removido',       color: 'bg-muted text-muted-foreground' },
+  'settings.update':     { label: 'Settings guardadas',   color: 'bg-compare/15 text-compare' },
 };
 
 function AuditLogPanel({ headers }) {
@@ -1498,11 +1610,11 @@ function RevenueAnalyticsCard({ metrics, headers }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Cobrado este mes</p>
-            <p className="text-xl font-bold text-green-500">
+            <p className="text-xl font-bold text-long">
               {currentCollected != null ? `$${currentCollected.toLocaleString()}` : '—'}
             </p>
             {growth != null ? (
-              <p className={`text-xs ${Number(growth) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <p className={`text-xs ${Number(growth) >= 0 ? 'text-long' : 'text-short'}`}>
                 {Number(growth) >= 0 ? '+' : ''}{growth}% vs mes anterior
               </p>
             ) : (
@@ -1511,26 +1623,26 @@ function RevenueAnalyticsCard({ metrics, headers }) {
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Churn rate</p>
-            <p className="text-xl font-bold text-red-400">{stats.churn != null ? `${stats.churn}%` : '—'}</p>
+            <p className="text-xl font-bold text-short">{stats.churn != null ? `${stats.churn}%` : '—'}</p>
             <p className="text-xs text-muted-foreground">
               {stats.churn != null ? `mensual · base ${meta?.churn_base ?? '?'}` : 'sin base premium'}
             </p>
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Conversión Free→Premium</p>
-            <p className="text-xl font-bold text-blue-400">{stats.conversion != null ? `${stats.conversion}%` : '—'}</p>
+            <p className="text-xl font-bold text-info">{stats.conversion != null ? `${stats.conversion}%` : '—'}</p>
             <p className="text-xs text-muted-foreground">
               {stats.conversion != null ? `30 días · base ${meta?.conversion_base ?? '?'}` : 'sin altas en 30 días'}
             </p>
           </div>
           <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs text-muted-foreground">Precio Lifetime</p>
-            <p className="text-xl font-bold text-amber-400">{stats.ltv?.lifetime != null ? `$${stats.ltv.lifetime}` : '—'}</p>
+            <p className="text-xl font-bold text-warn">{stats.ltv?.lifetime != null ? `$${stats.ltv.lifetime}` : '—'}</p>
             <p className="text-xs text-muted-foreground">precio de tarifa, no LTV</p>
           </div>
         </div>
         {loadError && (
-          <p className="text-xs text-red-400 border border-red-500/30 bg-red-500/10 rounded px-2 py-1.5">
+          <p className="text-xs text-short border border-short/30 bg-short/10 rounded px-2 py-1.5">
             No se pudieron cargar los datos de facturación ({loadError}). Las cifras de
             arriba están vacías porque falló la carga, no porque valgan cero.
           </p>
@@ -1743,7 +1855,7 @@ function PaymentReconciliationCard({ headers }) {
     <Card className="bg-card border-border" data-testid="payment-reconciliation">
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <CardTitle className="text-base flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <AlertTriangle className="w-4 h-4 text-warn" />
           Conciliación de pagos
         </CardTitle>
         <Button size="sm" variant="outline" onClick={load}>Actualizar</Button>
@@ -1751,8 +1863,8 @@ function PaymentReconciliationCard({ headers }) {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-2">
           {[
-            ['Pagados sin premium', c.paid_not_premium, 'text-red-500'],
-            ['Pendientes antiguos', c.stale_pending, 'text-amber-500'],
+            ['Pagados sin premium', c.paid_not_premium, 'text-short'],
+            ['Pendientes antiguos', c.stale_pending, 'text-warn'],
             ['Premium sin pago', c.premium_no_payment, 'text-muted-foreground'],
           ].map(([label, n, tone]) => (
             <div key={label} className="rounded-lg border border-border bg-muted/30 p-3">
@@ -1763,8 +1875,8 @@ function PaymentReconciliationCard({ headers }) {
         </div>
 
         {alerts.length > 0 && (
-          <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3">
-            <div className="text-xs font-semibold text-red-500 mb-1">
+          <div className="rounded-lg border border-short/40 bg-short/5 p-3">
+            <div className="text-xs font-semibold text-short mb-1">
               Sin webhooks recientes: {alerts.map(a => a.provider).join(', ')}
             </div>
             <p className="text-[11px] text-muted-foreground">
@@ -1784,7 +1896,7 @@ function PaymentReconciliationCard({ headers }) {
               {data.paid_not_premium.map(tx => (
                 <div
                   key={tx.transaction_id}
-                  className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2"
+                  className="flex items-center gap-2 rounded-lg border border-short/30 bg-short/5 px-3 py-2"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-medium truncate">{tx.user_email}</div>
@@ -2094,7 +2206,7 @@ function CouponManagerCard({ headers }) {
                 <td className="px-3 py-2 text-muted-foreground">{c.max_uses ?? '∞'}</td>
                 <td className="px-3 py-2 text-muted-foreground text-xs">{c.expires ?? '—'}</td>
                 <td className="px-3 py-2">
-                  <Badge className={c.active ? 'bg-green-500/15 text-green-500' : 'bg-muted text-muted-foreground'}>
+                  <Badge className={c.active ? 'bg-long/15 text-long' : 'bg-muted text-muted-foreground'}>
                     {c.active ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </td>
@@ -2186,11 +2298,11 @@ function FeatureFlagsCard({ headers }) {
  *  STRIPE WEBHOOK LOGS
  * ============================================================ */
 const WEBHOOK_COLORS = {
-  'payment_intent.succeeded': 'bg-green-500/15 text-green-500',
-  'customer.subscription.created': 'bg-blue-500/15 text-blue-400',
-  'customer.subscription.deleted': 'bg-red-500/15 text-red-400',
-  'invoice.payment_failed': 'bg-red-500/20 text-red-500',
-  'invoice.paid': 'bg-green-500/15 text-green-500',
+  'payment_intent.succeeded': 'bg-long/15 text-long',
+  'customer.subscription.created': 'bg-info/15 text-info',
+  'customer.subscription.deleted': 'bg-short/15 text-short',
+  'invoice.payment_failed': 'bg-short/20 text-short',
+  'invoice.paid': 'bg-long/15 text-long',
 };
 
 function WebhookLogsCard({ headers }) {
@@ -2246,7 +2358,7 @@ function WebhookLogsCard({ headers }) {
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{log.customer}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">{log.created?.slice(0, 16).replace('T', ' ')}</td>
                 <td className="px-3 py-2">
-                  <Badge className={log.status === 'ok' ? 'bg-green-500/15 text-green-500' : 'bg-red-500/15 text-red-500'}>
+                  <Badge className={log.status === 'ok' ? 'bg-long/15 text-long' : 'bg-short/15 text-short'}>
                     {log.status === 'ok' ? 'OK' : 'Error'}
                   </Badge>
                 </td>
@@ -2311,16 +2423,16 @@ function MarketDataHealthCard({ headers }) {
 
       <CardContent className="space-y-3">
         {data && !data.available && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm">
-            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-short/10 border border-short/30 text-sm">
+            <AlertTriangle className="w-4 h-4 text-short shrink-0 mt-0.5" />
             <span>La capa de datos de mercado no se pudo cargar: <span className="font-mono text-xs">{data.error}</span></span>
           </div>
         )}
 
         {sinReserva && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm"
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-warn/10 border border-warn/30 text-sm"
                data-testid="market-health-sin-reserva">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
             <span>
               <span className="font-semibold">Sin cadena de reserva.</span> Sólo hay{' '}
               {configurados.length === 1 ? `un proveedor configurado (${configurados[0].name})` : 'ninguno configurado'}:
@@ -2332,8 +2444,8 @@ function MarketDataHealthCard({ headers }) {
         )}
 
         {abiertos.length > 0 && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-short/10 border border-short/30 text-sm">
+            <AlertCircle className="w-4 h-4 text-short shrink-0 mt-0.5" />
             <span>
               Cortacircuito abierto en <span className="font-semibold">{abiertos.map((p) => p.name).join(', ')}</span>:
               está fuera de rotación hasta que pase el enfriamiento.
@@ -2342,8 +2454,8 @@ function MarketDataHealthCard({ headers }) {
         )}
 
         {alLimite.length > 0 && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
-            <Gauge className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-warn/10 border border-warn/30 text-sm">
+            <Gauge className="w-4 h-4 text-warn shrink-0 mt-0.5" />
             <span>Cerca de la cuota diaria: <span className="font-semibold">{alLimite.map((p) => p.name).join(', ')}</span>.</span>
           </div>
         )}
@@ -2368,16 +2480,16 @@ function MarketDataHealthCard({ headers }) {
                     {!p.configured ? (
                       <Badge className="bg-muted text-muted-foreground text-[10px]">sin clave</Badge>
                     ) : p.circuit_open ? (
-                      <Badge className="bg-red-500/15 text-red-500 text-[10px]">circuito abierto</Badge>
+                      <Badge className="bg-short/15 text-short text-[10px]">circuito abierto</Badge>
                     ) : (
-                      <Badge className="bg-green-500/15 text-green-500 text-[10px]">en rotación</Badge>
+                      <Badge className="bg-long/15 text-long text-[10px]">en rotación</Badge>
                     )}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{p.calls}</td>
                   <td className="px-3 py-2 font-mono text-xs">
                     {p.failures}
                     {p.consecutive_failures > 0 && (
-                      <span className="text-amber-500"> ({p.consecutive_failures} seguidos)</span>
+                      <span className="text-warn"> ({p.consecutive_failures} seguidos)</span>
                     )}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{p.served}</td>
@@ -2457,14 +2569,14 @@ function MaintenanceModeCard({ headers }) {
   };
 
   return (
-    <Card className={`border-border ${enabled ? 'border-orange-500/50 bg-orange-500/5' : 'bg-card'}`}>
+    <Card className={`border-border ${enabled ? 'border-warn/50 bg-warn/5' : 'bg-card'}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Construction className="w-4 h-4 text-orange-500" /> Modo Mantenimiento
+            <Construction className="w-4 h-4 text-warn" /> Modo Mantenimiento
           </CardTitle>
           <div className="flex items-center gap-3">
-            {enabled && <Badge className="bg-orange-500/15 text-orange-500 animate-pulse">ACTIVO</Badge>}
+            {enabled && <Badge className="bg-warn/15 text-warn animate-pulse">ACTIVO</Badge>}
             <Switch checked={enabled} onCheckedChange={setEnabled} disabled={loading} />
           </div>
         </div>
@@ -2481,11 +2593,11 @@ function MaintenanceModeCard({ headers }) {
           />
         </div>
         {enabled && (
-          <div className="p-3 rounded-md bg-orange-500/10 border border-orange-500/20 text-sm text-orange-600">
+          <div className="p-3 rounded-md bg-warn/10 border border-warn/20 text-sm text-warn">
             <strong>Vista previa:</strong> {message || 'Estamos realizando tareas de mantenimiento. Volvemos en breve...'}
           </div>
         )}
-        <Button onClick={save} disabled={saving} size="sm" className={enabled ? 'bg-orange-500 hover:bg-orange-600' : ''}>
+        <Button onClick={save} disabled={saving} size="sm" className={enabled ? 'bg-warn hover:bg-warn/90' : ''}>
           {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
           &nbsp;Guardar
         </Button>
@@ -2549,7 +2661,7 @@ function EmailCampaignsCard({ headers }) {
     finally { setSending(null); }
   };
 
-  const STATUS_CLS = { draft: 'bg-muted text-muted-foreground', sent: 'bg-green-500/15 text-green-500', sending: 'bg-blue-500/15 text-blue-500' };
+  const STATUS_CLS = { draft: 'bg-muted text-muted-foreground', sent: 'bg-long/15 text-long', sending: 'bg-info/15 text-info' };
 
   return (
     <Card className="bg-card border-border">
@@ -2665,7 +2777,7 @@ function PaymentHistoryCard({ headers }) {
     finally { setLoading(false); }
   };
 
-  const STATUS_CLS = { completed: 'bg-green-500/15 text-green-500', failed: 'bg-red-500/15 text-red-500', pending: 'bg-yellow-500/15 text-yellow-500' };
+  const STATUS_CLS = { completed: 'bg-long/15 text-long', failed: 'bg-short/15 text-short', pending: 'bg-caution/15 text-caution' };
   const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
 
   return (
@@ -2780,7 +2892,7 @@ function ChurnSurveyCard({ headers }) {
     <Card className="bg-card border-border">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2"><UserMinus className="w-4 h-4 text-red-500" /> Encuestas de Cancelación (Churn)</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><UserMinus className="w-4 h-4 text-short" /> Encuestas de Cancelación (Churn)</CardTitle>
           <Button size="sm" variant="outline" onClick={load} className="gap-1 h-7"><RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /></Button>
         </div>
         <p className="text-[11px] text-muted-foreground">Motivos de cancelación reportados por usuarios.</p>
@@ -2830,10 +2942,10 @@ function ChurnSurveyCard({ headers }) {
               {surveys.slice(0, 20).map(s => (
                 <tr key={s.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-mono text-xs">{s.email}</td>
-                  <td className="px-3 py-2"><Badge className="text-[10px] bg-red-500/10 text-red-500">{CHURN_REASONS[s.reason] || s.reason}</Badge></td>
+                  <td className="px-3 py-2"><Badge className="text-[10px] bg-short/10 text-short">{CHURN_REASONS[s.reason] || s.reason}</Badge></td>
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate">{s.comment || '—'}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{s.created_at?.slice(0, 10)}</td>
-                  <td className="px-3 py-2">{s.follow_up_note ? <Badge className="bg-green-500/10 text-green-500 text-[10px]">Resuelto</Badge> : <Badge className="bg-muted text-muted-foreground text-[10px]">Pendiente</Badge>}</td>
+                  <td className="px-3 py-2">{s.follow_up_note ? <Badge className="bg-long/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-muted text-muted-foreground text-[10px]">Pendiente</Badge>}</td>
                   <td className="px-3 py-2">
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setFollowUp(s); setNote(s.follow_up_note || ''); }}>Nota</Button>
                   </td>
@@ -2916,7 +3028,7 @@ function CohortAnalysisCard({ headers }) {
                       <td className="px-2 py-2 text-xs text-center">{c.total_users}</td>
                       <td className="px-2 py-2 text-xs text-center">{c.converted}</td>
                       <td className="px-2 py-2 text-xs text-center">
-                        <Badge className={`text-[10px] ${(c.conversion_rate || 0) > 10 ? 'bg-green-500/15 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                        <Badge className={`text-[10px] ${(c.conversion_rate || 0) > 10 ? 'bg-long/15 text-long' : 'bg-muted text-muted-foreground'}`}>
                           {Math.round(c.conversion_rate || 0)}%
                         </Badge>
                       </td>
@@ -2991,7 +3103,7 @@ function ReferralManagerCard({ headers }) {
                 <td className="px-3 py-2 text-xs font-bold text-muted-foreground">#{i + 1}</td>
                 <td className="px-3 py-2 font-mono text-xs">{r.email}</td>
                 <td className="px-3 py-2 text-xs text-center">{r.referrals}</td>
-                <td className="px-3 py-2 text-xs text-center"><Badge className="bg-green-500/10 text-green-500 text-[10px]">{r.conversions}</Badge></td>
+                <td className="px-3 py-2 text-xs text-center"><Badge className="bg-long/10 text-long text-[10px]">{r.conversions}</Badge></td>
               </tr>
             ))}
           </tbody>
@@ -3004,6 +3116,94 @@ function ReferralManagerCard({ headers }) {
 /* ═══════════════════════════════════════════════════════════════════════════
    AFFILIATE PAYOUT REQUESTS — notificación: afiliados que piden su pago
 ═══════════════════════════════════════════════════════════════════════════ */
+/**
+ * Solicitudes de cobro del MONEDERO DE REFERIDOS (el 10 % que gana cualquier
+ * cliente), no del programa de afiliados — ése es la tarjeta de abajo.
+ *
+ * El pago es manual a propósito: aquí no se mueve dinero, sólo se anota que ya
+ * se ha pagado por fuera. Y el saldo del usuario baja EN ESE MOMENTO, no cuando
+ * lo pide: una solicitud rechazada no puede dejarle sin su dinero.
+ */
+function ReferralPayoutRequestsCard({ headers }) {
+  const [reqs, setReqs] = useState([]);
+  const [pending, setPending] = useState(0);
+  const [amount, setAmount] = useState(0);
+  const avisado = useRef(false);
+  const bearer = headers?.Authorization || '';
+  const ready = bearer && !bearer.includes('null');
+
+  const cargar = async () => {
+    if (!API || !ready) return;
+    try {
+      const res = await fetch(`${API}/admin/referrals/payout-requests?status=pending`,
+        { credentials: 'include', headers });
+      if (!res.ok) return;
+      const d = await res.json();
+      setReqs(d.requests || []); setPending(d.pending_count || 0); setAmount(d.pending_amount_eur || 0);
+      if ((d.pending_count || 0) > 0 && !avisado.current) {
+        avisado.current = true;
+        toast.warning(`${d.pending_count} cliente(s) han pedido cobrar sus referidos — ${d.pending_amount_eur} €`,
+          { duration: 8000 });
+      }
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [headers]);
+
+  const accion = async (id, verbo) => {
+    // `window.confirm` y no un clic directo: marcar pagada DESCUENTA el saldo
+    // del usuario, y es idempotente pero no reversible desde el panel.
+    if (verbo === 'mark-paid' && !window.confirm('¿Confirmas que ya le has pagado? Su saldo bajará.')) return;
+    try {
+      const res = await fetch(`${API}/admin/referrals/payout-requests/${id}/${verbo}`,
+        { credentials: 'include', method: 'POST', headers });
+      if (res.ok) { toast.success('Hecho'); cargar(); } else toast.error('No se pudo');
+    } catch { toast.error('No se pudo'); }
+  };
+
+  if (pending === 0) return null;   // sólo aparece cuando hay algo que pagar
+
+  return (
+    <Card className="bg-caution/5 border-caution/40" data-testid="admin-referral-payouts">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2 text-caution">
+          <Coins className="w-4 h-4" /> Cobros de referidos pendientes ({pending}) — {amount} €
+        </CardTitle>
+        <p className="text-[11px] text-muted-foreground">
+          Clientes que han pedido cobrar el 10 % de lo que han traído. Págales por fuera y márcalo aquí.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40"><tr className="text-left">
+              {['Cliente', 'Importe', 'Pedido el', ''].map((h) => (
+                <th key={h} className="px-2 py-2 text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {reqs.map((r) => (
+                <tr key={r.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-2 py-2 font-mono text-xs">{r.email}</td>
+                  <td className="px-2 py-2 text-xs font-bold">{r.amount_eur} €</td>
+                  <td className="px-2 py-2 text-xs text-muted-foreground">
+                    {(r.created_at || '').slice(0, 10)}
+                  </td>
+                  <td className="px-2 py-2 text-right whitespace-nowrap">
+                    <Button size="sm" className="mr-2" onClick={() => accion(r.id, 'mark-paid')}>Pagada</Button>
+                    <Button size="sm" variant="outline" onClick={() => accion(r.id, 'reject')}>Rechazar</Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 function AffiliatePayoutRequestsCard({ headers }) {
   const [reqs, setReqs] = useState([]);
   const [pending, setPending] = useState(0);
@@ -3044,9 +3244,9 @@ function AffiliatePayoutRequestsCard({ headers }) {
   if (pending === 0) return null;   // solo aparece cuando hay algo que pagar
 
   return (
-    <Card className="bg-yellow-500/5 border-yellow-500/40">
+    <Card className="bg-caution/5 border-caution/40">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
+        <CardTitle className="text-base flex items-center gap-2 text-caution dark:text-caution">
           <AlertCircle className="w-4 h-4" /> Solicitudes de pago pendientes ({pending}) — {amount} €
         </CardTitle>
         <p className="text-[11px] text-muted-foreground">Afiliados que han solicitado su pago. Haz la transferencia y márcala como pagada.</p>
@@ -3069,7 +3269,7 @@ function AffiliatePayoutRequestsCard({ headers }) {
                   <td className="px-2 py-2 text-center text-[10px] text-muted-foreground">{(r.created_at || '').slice(0, 10)}</td>
                   <td className="px-2 py-2 text-right whitespace-nowrap">
                     <Button size="sm" variant="outline" className="h-7 text-xs mr-1" onClick={() => action(r.id, 'mark-paid')}>Marcar pagado</Button>
-                    <button onClick={() => action(r.id, 'reject')} title="Rechazar" className="p-1 text-red-500 hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                    <button onClick={() => action(r.id, 'reject')} title="Rechazar" className="p-1 text-short hover:bg-short/10 rounded"><X className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -3126,8 +3326,8 @@ function AffiliatesAdminCard({ headers }) {
   };
 
   const badge = (s) => {
-    const map = { approved: 'bg-green-500/10 text-green-500', pending: 'bg-yellow-500/10 text-yellow-600',
-      rejected: 'bg-red-500/10 text-red-500', suspended: 'bg-muted text-muted-foreground' };
+    const map = { approved: 'bg-long/10 text-long', pending: 'bg-caution/10 text-caution',
+      rejected: 'bg-short/10 text-short', suspended: 'bg-muted text-muted-foreground' };
     return <Badge className={`${map[s] || 'bg-muted'} text-[10px]`}>{s}</Badge>;
   };
 
@@ -3194,13 +3394,13 @@ function AffiliatesAdminCard({ headers }) {
                     <td className="px-2 py-2 text-center text-xs font-bold">{r.estimated_month_eur} €</td>
                     <td className="px-2 py-2 whitespace-nowrap text-right">
                       {r.status !== 'approved' && (
-                        <button onClick={() => act(r.id, 'approve')} title="Aprobar" className="p-1 text-green-500 hover:bg-green-500/10 rounded"><Check className="w-4 h-4" /></button>
+                        <button onClick={() => act(r.id, 'approve')} title="Aprobar" className="p-1 text-long hover:bg-long/10 rounded"><Check className="w-4 h-4" /></button>
                       )}
                       {r.status === 'approved' && (
                         <button onClick={() => act(r.id, 'suspend')} title="Suspender" className="p-1 text-muted-foreground hover:bg-muted rounded"><ShieldOff className="w-4 h-4" /></button>
                       )}
                       {r.status === 'pending' && (
-                        <button onClick={() => act(r.id, 'reject')} title="Rechazar" className="p-1 text-red-500 hover:bg-red-500/10 rounded"><X className="w-4 h-4" /></button>
+                        <button onClick={() => act(r.id, 'reject')} title="Rechazar" className="p-1 text-short hover:bg-short/10 rounded"><X className="w-4 h-4" /></button>
                       )}
                       <button onClick={() => toggle(r.id)} title="Ver referidos" className="p-1 text-primary hover:bg-primary/10 rounded">
                         {expanded === r.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -3365,7 +3565,7 @@ function AffiliatePayoutsCard({ headers }) {
                       <td className="px-2 py-2 text-center text-xs">{l.lifetime_new_count}</td>
                       <td className="px-2 py-2 text-center text-xs font-bold">{l.net_eur} €</td>
                       <td className="px-2 py-2 text-center">
-                        <Badge className={`${l.status === 'paid' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-600'} text-[10px]`}>{l.status}</Badge>
+                        <Badge className={`${l.status === 'paid' ? 'bg-long/10 text-long' : 'bg-caution/10 text-caution'} text-[10px]`}>{l.status}</Badge>
                       </td>
                       <td className="px-2 py-2 text-right">
                         {l.status !== 'paid' && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => markPaid(l.id)}>Marcar pagado</Button>}
@@ -3601,13 +3801,13 @@ function ErrorMonitorCard({ headers }) {
     finally { setResolving(null); }
   };
 
-  const SEV_CLS = { 5: 'bg-red-500/15 text-red-500', 4: 'bg-orange-500/15 text-orange-500', 3: 'bg-yellow-500/15 text-yellow-600' };
+  const SEV_CLS = { 5: 'bg-short/15 text-short', 4: 'bg-warn/15 text-warn', 3: 'bg-caution/15 text-caution' };
 
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2"><Bug className="w-4 h-4 text-red-400" /> Monitor de Errores</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Bug className="w-4 h-4 text-short" /> Monitor de Errores</CardTitle>
           <div className="flex gap-2">
             <Select value={filter} onValueChange={v => { setFilter(v); load(v); }}>
               <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
@@ -3647,7 +3847,7 @@ function ErrorMonitorCard({ headers }) {
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate" title={e.message}>{e.message}</td>
                   <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">{e.method} {e.endpoint}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{e.created_at?.slice(0, 16).replace('T', ' ')}</td>
-                  <td className="px-3 py-2">{e.resolved ? <Badge className="bg-green-500/10 text-green-500 text-[10px]">Resuelto</Badge> : <Badge className="bg-red-500/10 text-red-500 text-[10px]">Abierto</Badge>}</td>
+                  <td className="px-3 py-2">{e.resolved ? <Badge className="bg-long/10 text-long text-[10px]">Resuelto</Badge> : <Badge className="bg-short/10 text-short text-[10px]">Abierto</Badge>}</td>
                   <td className="px-3 py-2">
                     {!e.resolved && (
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowNote(e)}>Resolver</Button>
@@ -3727,7 +3927,7 @@ function RateLimitingCard({ headers }) {
                 <tbody>
                   {(data?.recent_violations || []).map((v, i) => (
                     <tr key={i} className="border-t border-border hover:bg-muted/20">
-                      <td className="px-3 py-2 font-mono text-xs text-red-400">{v.ip}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-short">{v.ip}</td>
                       <td className="px-3 py-2 font-mono text-xs">{v.endpoint}</td>
                       <td className="px-3 py-2 text-xs text-muted-foreground">{v.created_at?.slice(0, 16).replace('T', ' ')}</td>
                     </tr>
@@ -3774,7 +3974,7 @@ function GDPRExportCard({ headers }) {
     finally { setDelivering(null); }
   };
 
-  const STATUS_CLS = { pending: 'bg-yellow-500/15 text-yellow-600', delivered: 'bg-green-500/15 text-green-500', failed: 'bg-red-500/15 text-red-500' };
+  const STATUS_CLS = { pending: 'bg-caution/15 text-caution', delivered: 'bg-long/15 text-long', failed: 'bg-short/15 text-short' };
 
   return (
     <Card className="bg-card border-border">

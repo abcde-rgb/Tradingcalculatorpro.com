@@ -102,7 +102,7 @@ export const LeverageCalculator = () => {
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Gauge className="w-5 h-5 text-yellow-500" />
+          <Gauge className="w-5 h-5 text-caution" />
           {t('leverage')}
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed max-w-2xl">
@@ -158,7 +158,7 @@ export const LeverageCalculator = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('leverage')}</Label>
-                <span className="font-mono text-lg font-bold text-yellow-500">{leverage}x</span>
+                <span className="font-mono text-lg font-bold text-caution">{leverage}x</span>
               </div>
               <Slider
                 value={[leverage]}
@@ -183,7 +183,7 @@ export const LeverageCalculator = () => {
               <Button
                 variant={isLong ? 'default' : 'outline'}
                 onClick={() => setIsLong(true)}
-                className={`flex-1 ${isLong ? 'bg-primary text-black' : ''}`}
+                className={`flex-1 ${isLong ? 'bg-primary text-primary-foreground' : ''}`}
               >
                 {t('long')}
               </Button>
@@ -196,7 +196,7 @@ export const LeverageCalculator = () => {
               </Button>
             </div>
             
-            <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="leverage-calculate-btn">
+            <Button onClick={calculate} className="w-full bg-primary text-primary-foreground hover:bg-primary/90" data-testid="leverage-calculate-btn">
               {t('simular_lev001')}
             </Button>
           </div>

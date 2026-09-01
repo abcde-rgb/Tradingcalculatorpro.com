@@ -81,7 +81,7 @@ function StopRules() {
     <Card className="bg-card border-border" data-testid="stop-rules">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Shield className="w-5 h-5 text-red-500" />
+          <Shield className="w-5 h-5 text-short" />
           {t('brkTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t('brkIntro')}</p>
@@ -118,11 +118,11 @@ function StopRules() {
 
         {/* Rulebook */}
         <div className="rounded-lg border border-red-500/25 bg-red-500/5 p-3.5" data-testid="brk-rulebook">
-          <p className="text-[11px] uppercase tracking-wider font-semibold text-red-500 mb-2">{t('brkRulebook')}</p>
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-short mb-2">{t('brkRulebook')}</p>
           <ul className="space-y-1.5">
             {rules.map((r, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
-                <Circle className="w-1.5 h-1.5 mt-1.5 flex-shrink-0 fill-red-500 text-red-500" />
+                <Circle className="w-1.5 h-1.5 mt-1.5 flex-shrink-0 fill-red-500 text-short" />
                 <span>{r}</span>
               </li>
             ))}
@@ -232,7 +232,7 @@ function EmotionalReadiness() {
     <Card className="bg-card border-border" data-testid="emotional-readiness">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Brain className="w-5 h-5 text-blue-500" />
+          <Brain className="w-5 h-5 text-info" />
           {t('rdyTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t('rdyIntro')}</p>

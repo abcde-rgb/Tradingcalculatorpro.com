@@ -141,7 +141,7 @@ const ExitTargetsTable = ({ payoffData = [], legs = [], stockPrice, commission =
                 </td>
                 <td
                   className={`text-right py-1.5 pl-2 font-mono font-bold ${
-                    r.tone === 'up' ? 'text-[#22c55e]' : 'text-[#ef4444]'
+                    r.tone === 'up' ? 'text-long' : 'text-short'
                   }`}
                 >
                   {money(r.pnl)}
@@ -153,7 +153,7 @@ const ExitTargetsTable = ({ payoffData = [], legs = [], stockPrice, commission =
       </div>
 
       {rows.openEnded && (
-        <p className="text-[10px] text-[#f59e0b]">{t('optExitOpenEnded')}</p>
+        <p className="text-[10px] text-warn">{t('optExitOpenEnded')}</p>
       )}
       <p className="text-[10px] text-muted-foreground">{t('optExitNote')}</p>
     </div>

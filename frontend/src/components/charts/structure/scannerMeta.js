@@ -127,20 +127,20 @@ export const BASIS_KEY = {
 
 // ── Colour maps ─────────────────────────────────────────────────────────────
 export const TREND_UI = {
-  uptrend:   { color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/10', border: 'border-[#22c55e]/30', key: 'structTrendUp' },
-  downtrend: { color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/10', border: 'border-[#ef4444]/30', key: 'structTrendDown' },
+  uptrend:   { color: 'text-long', bg: 'bg-long/10', border: 'border-long/30', key: 'structTrendUp' },
+  downtrend: { color: 'text-short', bg: 'bg-short/10', border: 'border-short/30', key: 'structTrendDown' },
   range:     { color: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border',       key: 'structTrendRange' },
 };
 
 export const DIR_UI = {
-  bullish: { color: 'text-[#22c55e]', icon: '↑' },
-  bearish: { color: 'text-[#ef4444]', icon: '↓' },
+  bullish: { color: 'text-long', icon: '↑' },
+  bearish: { color: 'text-short', icon: '↓' },
 };
 
 export const LEVEL_UI = {
-  resistance: { color: 'text-[#ef4444]', dot: 'bg-[#ef4444]', key: 'structLvlResistance' },
-  support:    { color: 'text-[#22c55e]', dot: 'bg-[#22c55e]', key: 'structLvlSupport' },
-  pivot:      { color: 'text-[#f59e0b]', dot: 'bg-[#f59e0b]', key: 'structLvlPivot' },
+  resistance: { color: 'text-short', dot: 'bg-short', key: 'structLvlResistance' },
+  support:    { color: 'text-long', dot: 'bg-long', key: 'structLvlSupport' },
+  pivot:      { color: 'text-warn', dot: 'bg-warn', key: 'structLvlPivot' },
 };
 
 // ── Formatting ──────────────────────────────────────────────────────────────

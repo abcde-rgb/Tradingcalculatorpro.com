@@ -23,8 +23,8 @@ import { useTranslation } from '@/lib/i18n';
  */
 
 const TONO = {
-  resistance: 'text-[#22c55e]',
-  support: 'text-[#ef4444]',
+  resistance: 'text-long',
+  support: 'text-short',
   neither: 'text-muted-foreground',
 };
 
@@ -93,8 +93,8 @@ export default function LevelOdds({ symbol, interval, period, onFetch }) {
       <p className="text-[11px] text-muted-foreground leading-snug">{t('oddsIntro')}</p>
 
       {fallo && (
-        <div className="flex items-start gap-2 rounded-md border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2" data-testid="odds-error">
-          <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 rounded-md border border-warn/40 bg-warn/5 px-3 py-2" data-testid="odds-error">
+          <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
           <span className="text-[11px]">{t(`odds_${fallo}`) !== `odds_${fallo}` ? t(`odds_${fallo}`) : fallo}</span>
         </div>
       )}
@@ -119,9 +119,9 @@ export default function LevelOdds({ symbol, interval, period, onFetch }) {
               {/* Cuando los intervalos se solapan, no hay ganador: decirlo es
                   más útil que coronar al que salió medio punto por encima. */}
               {!v.separated && (
-                <div className="flex items-start gap-2 rounded-md border border-[#f59e0b]/40 bg-[#f59e0b]/5 px-3 py-2"
+                <div className="flex items-start gap-2 rounded-md border border-warn/40 bg-warn/5 px-3 py-2"
                      data-testid="odds-not-separated">
-                  <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-warn shrink-0 mt-0.5" />
                   <span className="text-[11px]">{t('oddsNotSeparated')}</span>
                 </div>
               )}

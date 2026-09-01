@@ -18,7 +18,7 @@ const CandleAnatomy = () => {
 
   const Annotated = ({ candle, type }) => {
     const isBull = type === 'bull';
-    const accent = isBull ? 'text-[#22c55e]' : 'text-[#ef4444]';
+    const accent = isBull ? 'text-long' : 'text-short';
     return (
       <div className="flex items-center gap-3">
         {/* SVG candle (compact) */}
@@ -40,7 +40,7 @@ const CandleAnatomy = () => {
             <span className="text-muted-foreground">{t('candleUpperWickLabel')}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`w-3 h-2 rounded-sm ${isBull ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+            <span className={`w-3 h-2 rounded-sm ${isBull ? 'bg-long' : 'bg-short'}`}></span>
             <span className={accent}>{t('candleBodyLabel')}</span>
             <span className="text-muted-foreground">
               ({isBull ? t('bullish') : t('bearish')})

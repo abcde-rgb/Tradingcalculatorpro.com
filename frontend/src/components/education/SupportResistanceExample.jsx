@@ -102,11 +102,11 @@ export default function SupportResistanceExample() {
                 {/* Legend */}
                 <div className="flex items-center gap-5 justify-center text-sm">
                   <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#16a34a]" />
+                    <span className="w-3 h-3 rounded-full bg-long" />
                     {t('srBounce')}
                   </span>
                   <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#dc2626]" />
+                    <span className="w-3 h-3 rounded-full bg-short" />
                     {t('srRejection')}
                   </span>
                 </div>

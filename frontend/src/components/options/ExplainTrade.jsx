@@ -32,13 +32,13 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
     bullets.push({
       icon: '↑',
       text: fmt(t('bullishBias_91e0ec'), { symbol: stock.symbol, be }),
-      color: 'text-[#4ade80]',
+      color: 'text-long',
     });
   } else if (netDelta < -0.3) {
     bullets.push({
       icon: '↓',
       text: fmt(t('bearishBias_91e0ed'), { symbol: stock.symbol, be }),
-      color: 'text-[#f87171]',
+      color: 'text-short',
     });
   } else {
     const berange = breakEvens?.length > 1
@@ -47,18 +47,18 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
     bullets.push({
       icon: '→',
       text: fmt(t('neutralBias_91e0ee'), { symbol: stock.symbol, berange }),
-      color: 'text-[#eab308]',
+      color: 'text-caution',
     });
   }
 
   // 2) Theta / time decay narrative
   const longsVsShorts = longs.length - shorts.length;
   if (longsVsShorts > 0) {
-    bullets.push({ icon: '⏰', text: t('thetaNegative_91e0f0'), color: 'text-[#f87171]' });
+    bullets.push({ icon: '⏰', text: t('thetaNegative_91e0f0'), color: 'text-short' });
   } else if (longsVsShorts < 0) {
-    bullets.push({ icon: '⏰', text: t('thetaPositive_91e0f1'), color: 'text-[#4ade80]' });
+    bullets.push({ icon: '⏰', text: t('thetaPositive_91e0f1'), color: 'text-long' });
   } else {
-    bullets.push({ icon: '⏰', text: t('thetaNeutral_91e0f2'), color: 'text-[#eab308]' });
+    bullets.push({ icon: '⏰', text: t('thetaNeutral_91e0f2'), color: 'text-caution' });
   }
 
   // 3) Max Loss / Risk narrative
@@ -67,14 +67,14 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
     bullets.push({
       icon: '⚠',
       text: up ? t('unlimitedRiskUp_91e0f3') : t('unlimitedRiskDown_91e0f4'),
-      color: 'text-[#ef4444]',
+      color: 'text-short',
     });
   } else if (stats?.maxLoss) {
     const ml = parseFloat(stats.maxLoss);
     bullets.push({
       icon: '🛡',
       text: fmt(t('maxLossDefined_91e0f5'), { amount: Math.abs(ml).toFixed(0) }),
-      color: 'text-[#a78bfa]',
+      color: 'text-compare',
     });
   }
 
@@ -104,27 +104,27 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
     bullets.push({
       icon: '⌬',
       text: fmt(t('ivHighLong_91e0f8'), { iv: ivPct }),
-      color: 'text-[#f87171]',
+      color: 'text-short',
     });
   } else if (longsVsShorts < 0 && avgIV > 0.5) {
     bullets.push({
       icon: '⌬',
       text: fmt(t('ivHighShort_91e0f9'), { iv: ivPct }),
-      color: 'text-[#4ade80]',
+      color: 'text-long',
     });
   }
 
   return (
     <div className="bg-card/60 border border-border/60 rounded-xl p-3.5" data-testid="explain-trade">
       <div className="flex items-center gap-1.5 mb-2">
-        <Lightbulb className="w-3.5 h-3.5 text-[#fbbf24]" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-[#fbbf24]">{t('entiendeEstaOperacion_11df0f')}</span>
+        <Lightbulb className="w-3.5 h-3.5 text-warn" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-warn">{t('entiendeEstaOperacion_11df0f')}</span>
       </div>
       <ul className="space-y-1.5">
         {bullets.map((b, i) => (
           <li key={`${b.icon}-${i}`} className="flex items-start gap-2 text-xs leading-relaxed">
             <span className={`${b.color} font-bold flex-shrink-0 w-4`}>{b.icon}</span>
-            <span className="text-foreground/85">{b.text}</span>
+            <span className="text-foreground">{b.text}</span>
           </li>
         ))}
       </ul>

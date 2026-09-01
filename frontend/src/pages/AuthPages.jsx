@@ -33,7 +33,7 @@ function PasswordStrengthBar({ password, t }) {
   if (!password) return null;
   const labels = ['', t('passwordStrengthWeak'), t('passwordStrengthFair'), t('passwordStrengthGood'), t('passwordStrengthStrong')];
   const colors  = ['', 'bg-red-500', 'bg-amber-400', 'bg-blue-400', 'bg-green-500'];
-  const textColors = ['', 'text-red-500', 'text-amber-400', 'text-blue-400', 'text-green-500'];
+  const textColors = ['', 'text-short', 'text-warn', 'text-info', 'text-long'];
   return (
     <div className="space-y-1 mt-1" role="status" aria-live="polite" aria-label={t('authPwStrengthAria', { nivel: labels[strength] })}>
       <div className="flex gap-1">
@@ -148,7 +148,7 @@ function AuthShell({ children }) {
             <div className="flex flex-wrap gap-x-5 gap-y-2">
               {trust.map(({ icon: Ic, label }) => (
                 <span key={label} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Ic className="w-3.5 h-3.5 text-primary/70" /> {label}
+                  <Ic className="w-3.5 h-3.5 text-primary" /> {label}
                 </span>
               ))}
             </div>
@@ -277,7 +277,7 @@ export const LoginPage = () => {
                 className="text-center text-2xl tracking-[0.5em] font-mono bg-black/50 border-white/10"
                 data-testid="totp-code"
               />
-              <Button type="submit" disabled={isLoading || totpCode.length < 6} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="totp-submit">
+              <Button type="submit" disabled={isLoading || totpCode.length < 6} className="w-full bg-primary text-primary-foreground hover:bg-primary/90" data-testid="totp-submit">
                 {isLoading ? <><Loader2 className="mr-2 w-4 h-4 animate-spin" />{t('loading') || '...'}</> : t('twoFactorVerifyBtn')}
               </Button>
               {loginError && !isLoading && (
@@ -370,7 +370,7 @@ export const LoginPage = () => {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary text-black hover:bg-primary/90"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               data-testid="login-submit"
             >
               {isLoading
@@ -568,7 +568,7 @@ export const RegisterPage = () => {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary text-black hover:bg-primary/90"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               data-testid="register-submit"
             >
               {isLoading ? t('loading') : t('crearCuenta_f32c7c')}
@@ -634,9 +634,9 @@ export const ResetPasswordPage = () => {
         <CardContent>
           {done ? (
             <div className="text-center space-y-4">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
+              <CheckCircle className="w-12 h-12 text-long mx-auto" />
               <p className="text-sm text-muted-foreground">{t('authPasswordUpdated')}</p>
-              <Button className="w-full bg-primary text-black hover:bg-primary/90" onClick={() => navigate('/login')}>
+              <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => navigate('/login')}>
                 {t('iniciarSesion_9faefe')}
               </Button>
             </div>
@@ -663,7 +663,7 @@ export const ResetPasswordPage = () => {
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" disabled={isLoading || !token}
-                className="w-full bg-primary text-black hover:bg-primary/90">
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                 {isLoading ? 'Guardando...' : 'Guardar nueva contraseña'}
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
@@ -722,7 +722,7 @@ export const ForgotPasswordPage = () => {
         <CardContent>
           {sent ? (
             <div className="text-center space-y-4">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
+              <CheckCircle className="w-12 h-12 text-long mx-auto" />
               <p className="text-sm text-muted-foreground">
                 {t('authRecoverSent')}
               </p>
@@ -753,7 +753,7 @@ export const ForgotPasswordPage = () => {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-primary text-black hover:bg-primary/90"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {isLoading ? 'Enviando...' : 'Enviar enlace'}
                 <ArrowRight className="ml-2 w-4 h-4" />
@@ -798,9 +798,9 @@ const MagicLinkButton = () => {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-yellow-400 transition-colors"
+        className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-caution transition-colors"
       >
-        <Zap className="w-4 h-4 text-yellow-400" />
+        <Zap className="w-4 h-4 text-caution" />
         {t('authMagicOpen')}
       </button>
     );
@@ -809,12 +809,12 @@ const MagicLinkButton = () => {
   return (
     <div className="mt-3 border border-yellow-400/20 rounded-lg p-4 bg-yellow-400/5">
       <div className="flex items-center gap-2 mb-3">
-        <Zap className="w-4 h-4 text-yellow-400" />
-        <span className="text-sm font-medium text-yellow-400">Magic Link</span>
+        <Zap className="w-4 h-4 text-caution" />
+        <span className="text-sm font-medium text-caution">Magic Link</span>
       </div>
       {sent ? (
         <div className="text-center space-y-2">
-          <CheckCircle className="w-8 h-8 text-green-500 mx-auto" />
+          <CheckCircle className="w-8 h-8 text-long mx-auto" />
           <p className="text-xs text-muted-foreground">{t('authMagicSent')}</p>
         </div>
       ) : (
@@ -902,7 +902,7 @@ export const MagicPage = () => {
       <Card className="w-full max-w-md bg-card/70 backdrop-blur-xl border-white/10 shadow-2xl shadow-black/30">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Zap className="w-10 h-10 text-yellow-400" />
+            <Zap className="w-10 h-10 text-caution" />
           </div>
           <h1 className="font-semibold leading-none tracking-tight text-2xl font-unbounded">Magic Link</h1>
         </CardHeader>
@@ -910,7 +910,7 @@ export const MagicPage = () => {
           {msg.icon}
           <p className="text-sm text-muted-foreground">{msg.text}</p>
           {status !== 'verifying' && (
-            <Button className="w-full bg-primary text-black hover:bg-primary/90" onClick={() => navigate('/login')}>
+            <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => navigate('/login')}>
               {t('authBackToLogin')}
             </Button>
           )}

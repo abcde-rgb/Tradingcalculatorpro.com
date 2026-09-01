@@ -57,6 +57,12 @@ const PATTERN_BLUEPRINTS = {
     { o: 60, h: 65, l: 30, c: 38 }, // bearish, low at 30
     { o: 38, h: 62, l: 30, c: 58 }, // bullish, identical low at 30
   ],
+  'bullish-belt-hold': [{ o: 20, h: 82, l: 20, c: 80 }], // opens at the low, tiny upper wick only
+  'bullish-abandoned-baby': [
+    { o: 80, h: 82, l: 45, c: 50 }, // big bearish
+    { o: 42, h: 44, l: 40, c: 42.5 }, // doji, gapped BELOW the first candle's low
+    { o: 48, h: 90, l: 47, c: 85 }, // big bullish, gapped ABOVE the doji's high
+  ],
 
   // ----- Bearish (single & multi) -----
   'shooting-star': [{ o: 35, h: 80, l: 33, c: 38 }],
@@ -102,6 +108,16 @@ const PATTERN_BLUEPRINTS = {
   'tweezer-top': [
     { o: 40, h: 75, l: 35, c: 68 }, // bullish, high at 75
     { o: 65, h: 75, l: 40, c: 45 }, // bearish, identical high at 75
+  ],
+  'bearish-belt-hold': [{ o: 80, h: 80, l: 18, c: 20 }], // opens at the high, tiny lower wick only
+  'in-neck': [
+    { o: 75, h: 78, l: 40, c: 45 }, // long bearish
+    { o: 37, h: 46.5, l: 35, c: 46 }, // gaps below the low, closes barely above the prior close
+  ],
+  'bearish-abandoned-baby': [
+    { o: 20, h: 55, l: 18, c: 50 }, // big bullish
+    { o: 58, h: 60, l: 56, c: 58.1 }, // doji, gapped ABOVE the first candle's high
+    { o: 50, h: 52, l: 15, c: 18 }, // big bearish, gapped BELOW the doji's low
   ],
 
   // ----- Neutral / Indecision -----

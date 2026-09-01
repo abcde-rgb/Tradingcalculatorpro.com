@@ -71,6 +71,69 @@ const UI = {
 
 // ─── Calculadoras: es + en (páginas comerciales) ──────────────────
 // tab = deep-link /dashboard?tab=<tab>. formula es casi universal (notación).
+const HOWTO = {
+ "es": [
+  "Cómo se usa",
+  "Introduce tus datos: los términos de la fórmula (capital, riesgo, precios y stop).",
+  "La calculadora aplica la fórmula y devuelve el resultado en las unidades de tu instrumento.",
+  "Comprueba el desglose antes de operar: si un dato no se puede calcular, se muestra vacío, nunca como cero."
+ ],
+ "en": [
+  "How to use it",
+  "Enter your inputs: the terms of the formula (capital, risk, prices and stop).",
+  "The calculator applies the formula and returns the result in your instrument's units.",
+  "Check the breakdown before trading: anything that cannot be computed is shown empty, never as zero."
+ ],
+ "de": [
+  "So wird er benutzt",
+  "Gib deine Daten ein: die Terme der Formel (Kapital, Risiko, Kurse und Stopp).",
+  "Der Rechner wendet die Formel an und liefert das Ergebnis in den Einheiten deines Instruments.",
+  "Prüfe die Aufschlüsselung vor dem Handeln: Was sich nicht berechnen lässt, bleibt leer — nie null."
+ ],
+ "fr": [
+  "Comment l'utiliser",
+  "Saisis tes données : les termes de la formule (capital, risque, prix et stop).",
+  "La calculatrice applique la formule et renvoie le résultat dans les unités de ton instrument.",
+  "Vérifie le détail avant de trader : ce qui ne peut pas être calculé reste vide, jamais zéro."
+ ],
+ "ru": [
+  "Как пользоваться",
+  "Введите данные: члены формулы (капитал, риск, цены и стоп).",
+  "Калькулятор применяет формулу и выдаёт результат в единицах вашего инструмента.",
+  "Проверьте разбор перед сделкой: то, что нельзя вычислить, показывается пустым, а не нулём."
+ ],
+ "zh": [
+  "如何使用",
+  "输入你的数据：公式中的各项（资金、风险、价格与止损）。",
+  "计算器套用公式，并以你所选品种的单位给出结果。",
+  "下单前先看明细：无法计算的项目会留空，而不会显示为零。"
+ ],
+ "ja": [
+  "使い方",
+  "データを入力します：計算式の各項（資金、リスク、価格、ストップ）。",
+  "計算機が式を適用し、対象銘柄の単位で結果を返します。",
+  "発注前に内訳を確認してください。算出できない項目は空欄で表示され、ゼロにはなりません。"
+ ],
+ "ar": [
+  "كيفية الاستخدام",
+  "أدخل بياناتك: حدود المعادلة (رأس المال، المخاطرة، الأسعار ووقف الخسارة).",
+  "تطبّق الآلة الحاسبة المعادلة وتعيد النتيجة بوحدات أداتك.",
+  "راجع التفصيل قبل التداول: ما لا يمكن حسابه يظهر فارغًا، لا صفرًا."
+ ],
+ "pt": [
+  "Como se usa",
+  "Introduz os teus dados: os termos da fórmula (capital, risco, preços e stop).",
+  "A calculadora aplica a fórmula e devolve o resultado nas unidades do teu instrumento.",
+  "Confere o detalhe antes de operar: o que não se pode calcular aparece vazio, nunca como zero."
+ ],
+ "it": [
+  "Come si usa",
+  "Inserisci i tuoi dati: i termini della formula (capitale, rischio, prezzi e stop).",
+  "La calcolatrice applica la formula e restituisce il risultato nelle unità del tuo strumento.",
+  "Controlla il dettaglio prima di operare: ciò che non si può calcolare resta vuoto, mai zero."
+ ]
+};
+
 const CALCS = [
   { slug: 'calculadora-tamano-posicion', tab: 'position', formula: 'Size = (Capital × Risk%) ÷ Stop distance',
     es: { title:'Calculadora de Tamaño de Posición — Gratis y Profesional', kw:'calculadora de tamaño de posición', lead:'Calcula exactamente cuántas unidades, lotes o contratos operar para arriesgar solo el porcentaje de tu cuenta que decidas por operación.', pts:['Arriesga siempre un % fijo y controlado (1-2 %)','Acciones, forex, cripto, índices y futuros','Evita el error nº1: el sobreapalancamiento'] },
@@ -331,7 +394,7 @@ const TOPICS = [
 // ─── Plantilla HTML ───────────────────────────────────────────────
 const ld = (o) => `<script type="application/ld+json">${JSON.stringify(o)}</script>`;
 
-function render({ lang, url, alts, title, description, h1, kw, ui, sectionLabel, sectionUrl, lead, formula, points, ctaUrl, ctaLabel, related, sectionKind, jsonld }) {
+function render({ lang, url, alts, title, description, h1, kw, ui, sectionLabel, sectionUrl, lead, formula, points, ctaUrl, ctaLabel, related, sectionKind, jsonld, howto }) {
   const dir = RTL.has(lang) ? ' dir="rtl"' : '';
   const hreflang = alts.map(([hl, u]) => `<link rel="alternate" hreflang="${hl}" href="${esc(u)}">`).join('\n') +
     `\n<link rel="alternate" hreflang="x-default" href="${esc(alts.find(a => a[0] === 'es') ? alts.find(a => a[0] === 'es')[1] : url)}">`;
@@ -342,6 +405,13 @@ function render({ lang, url, alts, title, description, h1, kw, ui, sectionLabel,
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -399,6 +469,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="${esc(ctaUrl)}">${esc(ctaLabel)} →</a></p>
   ${formula ? `<div class="card"><h2>${esc(ui.formula)}</h2><code class="formula">${esc(formula)}</code></div>` : ''}
   ${points && points.length ? `<div class="card"><h2>${esc(sectionKind === 'tools' ? ui.whatGet : ui.whatLearn)}</h2><ul>${pointsHtml}</ul></div>` : ''}
+  ${howto && howto.length > 1 ? `<div class="card"><h2>${esc(howto[0])}</h2><ol>${howto.slice(1).map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>` : ''}
   <a class="cta" href="${DOMAIN}/pricing">${esc(ui.trial)} →</a>
   <div class="related card"><h2>${esc(sectionKind === 'tools' ? ui.otherCalcs : ui.moreTopics)}</h2><ul>${relatedHtml}</ul></div>
 </main>
@@ -442,7 +513,15 @@ CALCS.forEach((c, i) => {
       // de pago. Y una calculadora suelta tampoco se vende por separado, asi
       // que no tiene precio propio que declarar. La oferta real vive donde
       // corresponde, en el `Product` de la portada.
-      jsonld: { '@context':'https://schema.org','@type':'SoftwareApplication', name: d.title, applicationCategory:'FinanceApplication', operatingSystem:'Web', url, inLanguage: lang, description },
+      // Los pasos se PINTAN (ver `howto` en render) y luego se marcan. Un
+      // HowTo sin texto visible describe contenido ausente — el mismo motivo
+      // por el que las fichas de estrategia no llevan ninguno.
+      howto: HOWTO[lang] || HOWTO.en,
+      jsonld: { '@context':'https://schema.org', '@graph': [
+        { '@type':'SoftwareApplication', name: d.title, applicationCategory:'FinanceApplication', operatingSystem:'Web', url, inLanguage: lang, description },
+        { '@type':'HowTo', name: (HOWTO[lang] || HOWTO.en)[0] + ': ' + cap(d.kw), inLanguage: lang,
+          step: (HOWTO[lang] || HOWTO.en).slice(1).map((t, n) => ({ '@type':'HowToStep', position: n + 1, name: t.split(':')[0], text: t })) },
+      ] },
     });
     write(rel, html);
     sitemapUrls.push([`/${rel}/`, '0.8']);
@@ -519,11 +598,40 @@ function renderMarket({ lang, url, alts, id, name, body, mui, related }) {
   const description = String(body.what).slice(0, 155);
   const relatedHtml = related.map(r => `<li><a href="${esc(r.url)}">${esc(r.label)}</a></li>`).join('');
 
+  // La FAQ se PINTA y se MARCA, en ese orden y desde la misma fuente.
+  //
+  // El comentario de arriba describía esto desde el principio («se imprimen
+  // ambas») y no ocurría ninguna de las dos: `mui.faq` estaba traducido a los
+  // diez idiomas sin que nadie lo usara, `body.faq` no se leía, y las 100
+  // fichas de mercado salían con BreadcrumbList y nada más. Un FAQPage cuyo
+  // texto no está visible es motivo de acción manual de Google, así que van
+  // juntos por construcción: mismo array, mismo bucle.
+  const faqs = Array.isArray(body.faq) ? body.faq.filter(f => f && f.q && f.a) : [];
+  const faqHtml = faqs.length
+    ? `<div class="card"><h2>${esc(mui.faq)}</h2>` +
+      faqs.map(f => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('') +
+      `</div>`
+    : '';
+  const faqLd = faqs.length
+    ? ld({ '@context':'https://schema.org', '@type':'FAQPage', inLanguage: lang,
+           mainEntity: faqs.map(f => ({
+             '@type':'Question', name: f.q,
+             acceptedAnswer: { '@type':'Answer', text: f.a },
+           })) })
+    : '';
+
   return `<!doctype html>
 <html lang="${lang}"${dir}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -541,6 +649,7 @@ ${ld({ '@context':'https://schema.org','@type':'BreadcrumbList', itemListElement
   { '@type':'ListItem', position:1, name: MARKET_UI[lang].section, item: DOMAIN + '/education' },
   { '@type':'ListItem', position:2, name: name, item: url },
 ] })}
+${faqLd}
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
@@ -581,6 +690,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <a class="cta" href="${DOMAIN}/pricing">${esc(UI[lang].trial)} →</a>
   <p class="sub"><a href="${DOMAIN}/education?topic=fundamentals&amp;market=${esc(id)}">${esc(mui.cta)} →</a></p>
 
+  ${faqHtml}
   <a class="cta" href="${DOMAIN}/pricing">${esc(UI[lang].trial)} →</a>
   <div class="card"><h2>${esc(mui.other)}</h2><ul>${relatedHtml}</ul></div>
 </main>

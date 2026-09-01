@@ -44,7 +44,7 @@ const TimeVsImpact = () => {
           data-testid="time-vs-impact">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Gauge className="w-5 h-5 text-amber-500" />
+          <Gauge className="w-5 h-5 text-warn" />
           {t('tviTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('tviIntro')}</p>
@@ -92,7 +92,7 @@ const TimeVsImpact = () => {
 
         {/* Key takeaway */}
         <div className="bg-amber-500/5 border-l-4 border-amber-500/60 rounded-r-lg px-4 py-3 flex items-start gap-2">
-          <Quote className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+          <Quote className="w-4 h-4 text-warn mt-0.5 flex-shrink-0" />
           <p className="text-sm italic text-muted-foreground leading-relaxed">{t('tviTakeaway')}</p>
         </div>
 

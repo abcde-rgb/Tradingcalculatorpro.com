@@ -127,10 +127,11 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 > Sharpe escritas y sin puerta. `check-rutas-muertas.py` avisó de que habían
 > dejado de estar muertas antes de que nadie tocara este fichero.
 
-### CONSTRUIR (18)
+### CONSTRUIR (19)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
+| `GET` | `/api/auth/admin-status` | CONSTRUIR | **Ya construida, y sin pantalla A PROPÓSITO** — es la excepción de esta tabla. Existe para abrirla con la URL cuando el panel NO te deja entrar: colgarla de una pantalla la haría inútil justo en el escenario para el que se escribió. Dice, sobre la cuenta que pregunta, si es admin, si tiene 2FA, en qué estado está el margen de alta y si hay palanca. Nació el 2026-09-01 tras tres rondas seguidas diagnosticando «el admin no funciona» a base de suposiciones: cuatro causas distintas —403 a la portada, 428 a Ajustes, panel vacío, panel caído— dan pantallas parecidas y desde fuera no se distinguen. **Un 404 aquí ya es un diagnóstico**: el backend no se ha desplegado. `require_user`, no consulta la base y no escribe; dos tests lo fijan. Lo pendiente es la pantalla, si algún día compensa |
 | `GET` | `/api/performance/export` | CONSTRUIR | CSV y Excel del diario, con filtros por estado, símbolo y fechas. Un botón. Es lo que más se pide y lo más barato de la lista. |
 | `POST` | `/api/performance/portfolio-risk` | CONSTRUIR | Riesgo de cuenta: calor abierto, correlación y estado de los límites de pérdida (`portfolio_risk.py`). Todo lo demás del diario razona operación a operación; esto es la vista que un prop trader mira primero. |
 | `POST` | `/api/calculate/volatility-size` | CONSTRUIR | Tamaño de posición por ATR. Sin esto, 1R no significa lo mismo entre instrumentos y las estadísticas por R no son comparables. |
@@ -150,12 +151,11 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 | `POST` | `/api/admin/subscriptions/{user_id}/refund` | CONSTRUIR | Reembolso por Stripe desde el panel. La política de reembolso de 14 días está publicada en los términos legales y se ejecuta a mano. |
 | `GET` | `/api/alerts/realtime/status` | CONSTRUIR | Estado del poller de alertas en vivo: si corre, cuántos conectados, antigüedad de la caché. Diagnóstico para el panel. |
 
-### ARREGLAR (2)
+### ARREGLAR (1)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
 | `POST` | `/api/referrals/redeem-credit` | ARREGLAR | **Hecho.** Devolvía un `available_after` restado de un saldo que no bajaba (`referral_wallet_redeemed` no se incrementaba nunca) y escribía `pending_referral_credit` diciendo «aplicado al próximo checkout» cuando no lo lee nadie. Ahora responde 501 mientras `CHECKOUT_APLICA_CREDITO` sea False, no escribe nada al hacerlo, y el `$inc` está puesto para el día que se active. `test_referrals_credito_unit.py` comprueba que la constante concuerde con el código. |
-| `GET` | `/api/referrals/me` | ARREGLAR | Es la única forma de ver un saldo que se está acumulando. Ya devuelve `redeemable` para que ninguna pantalla pinte un botón que da 501. Falta decidir dónde vive: lo natural es una tarjeta en `AffiliatePage`, que ya existe y ya tiene su propio programa al lado. |
 
 ## Las 5 huérfanas por diseño
 

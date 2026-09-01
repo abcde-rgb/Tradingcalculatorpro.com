@@ -55,12 +55,12 @@ const FUTURES_CONTRACTS = Object.entries(FUTURES_SPECS).map(([symbol, f]) => ({
 }));
 
 const CATEGORY_COLORS = {
-  index: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  energy: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  metals: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-  fx: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-  bonds: 'bg-green-500/10 text-green-400 border-green-500/30',
-  grains: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  index: 'bg-blue-500/10 text-info border-blue-500/30',
+  energy: 'bg-orange-500/10 text-warn border-orange-500/30',
+  metals: 'bg-yellow-500/10 text-caution border-yellow-500/30',
+  fx: 'bg-purple-500/10 text-compare border-purple-500/30',
+  bonds: 'bg-green-500/10 text-long border-green-500/30',
+  grains: 'bg-amber-500/10 text-warn border-amber-500/30',
 };
 
 function numFmt(n, decimals = 2) {
@@ -180,7 +180,7 @@ function PnLTab({ t }) {
     return { priceMove, ticksMoved, pnlPerContract, totalPnl };
   }, [contract, side, entryPrice, exitPrice, numContracts]);
 
-  const pnlColor = results && results.totalPnl >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]';
+  const pnlColor = results && results.totalPnl >= 0 ? 'text-long' : 'text-short';
 
   return (
     <div className="space-y-4">
@@ -196,8 +196,8 @@ function PnLTab({ t }) {
               className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${
                 side === s
                   ? s === 'long'
-                    ? 'bg-[#22c55e]/20 text-[#4ade80] border-[#22c55e]/50'
-                    : 'bg-[#ef4444]/20 text-[#f87171] border-[#ef4444]/50'
+                    ? 'bg-long/20 text-long border-long/50'
+                    : 'bg-short/20 text-short border-short/50'
                   : 'bg-muted text-muted-foreground border-border'
               }`}
             >
@@ -215,7 +215,7 @@ function PnLTab({ t }) {
         <div className="bg-muted/50 rounded-xl border border-border p-4 space-y-0.5">
           <ResultRow label={t('futPriceMove')} value={`${results.priceMove >= 0 ? '+' : ''}${numFmt(results.priceMove, 4)} pts`} />
           <ResultRow label={t('futTicksMoved')} value={`${results.ticksMoved >= 0 ? '+' : ''}${numFmt(results.ticksMoved, 1)} ticks`} />
-          <ResultRow label={t('futPnlPerContract')} value={`$${numFmt(results.pnlPerContract)}`} color={results.pnlPerContract >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'} />
+          <ResultRow label={t('futPnlPerContract')} value={`$${numFmt(results.pnlPerContract)}`} color={results.pnlPerContract >= 0 ? 'text-long' : 'text-short'} />
           <ResultRow label={t('futTotalPnl')} value={`$${numFmt(results.totalPnl)}`} color={pnlColor} />
         </div>
       )}
@@ -252,7 +252,7 @@ function MarginTab({ t }) {
       {results && (
         <>
           {highMargin && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#f87171] text-xs font-semibold">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-short/10 border border-short/30 text-short text-xs font-semibold">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               {t('futMarginWarning')}
             </div>
@@ -264,7 +264,7 @@ function MarginTab({ t }) {
             <ResultRow
               label={t('futPctOfAccount')}
               value={`${numFmt(results.pctOfAccount, 1)}%`}
-              color={highMargin ? 'text-[#ef4444]' : results.pctOfAccount > 25 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}
+              color={highMargin ? 'text-short' : results.pctOfAccount > 25 ? 'text-warn' : 'text-long'}
             />
           </div>
         </>
@@ -305,8 +305,8 @@ function FairValueTab({ t }) {
   }, [spotPrice, rEfectivo, qPct, daysToExpiry]);
 
   const stateColors = {
-    contango: 'text-[#f59e0b]',
-    backwardation: 'text-[#22c55e]',
+    contango: 'text-warn',
+    backwardation: 'text-long',
     parity: 'text-muted-foreground',
   };
 
@@ -336,7 +336,7 @@ function FairValueTab({ t }) {
         <ResultRow
           label={t('futBasis')}
           value={`${results.basis >= 0 ? '+' : ''}$${numFmt(results.basis, 4)}`}
-          color={results.basis >= 0 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}
+          color={results.basis >= 0 ? 'text-warn' : 'text-long'}
         />
         <ResultRow
           label={t('futBasisPct')}
@@ -346,9 +346,9 @@ function FairValueTab({ t }) {
 
       <div className={`px-3 py-2 rounded-lg border text-xs font-semibold ${
         results.marketState === 'contango'
-          ? 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#fbbf24]'
+          ? 'bg-warn/10 border-warn/30 text-warn'
           : results.marketState === 'backwardation'
-          ? 'bg-[#22c55e]/10 border-[#22c55e]/30 text-[#4ade80]'
+          ? 'bg-long/10 border-long/30 text-long'
           : 'bg-muted border-border text-muted-foreground'
       }`}>
         {stateLabels[results.marketState]}
@@ -380,10 +380,10 @@ export function FuturesCalculator() {
             <TabsTrigger value="specs" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               {t('futSubSpecs')}
             </TabsTrigger>
-            <TabsTrigger value="pnl" className="text-xs data-[state=active]:bg-[#22c55e] data-[state=active]:text-white">
+            <TabsTrigger value="pnl" className="text-xs data-[state=active]:bg-long data-[state=active]:text-white">
               {t('futSubPnl')}
             </TabsTrigger>
-            <TabsTrigger value="margin" className="text-xs data-[state=active]:bg-[#f59e0b] data-[state=active]:text-black">
+            <TabsTrigger value="margin" className="text-xs data-[state=active]:bg-warn data-[state=active]:text-black">
               {t('futSubMargin')}
             </TabsTrigger>
             <TabsTrigger value="fairvalue" className="text-xs data-[state=active]:bg-purple-500 data-[state=active]:text-white">

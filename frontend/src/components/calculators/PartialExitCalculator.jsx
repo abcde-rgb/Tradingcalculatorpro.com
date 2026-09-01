@@ -106,7 +106,7 @@ export function PartialExitCalculator() {
           <button
             onClick={() => set('dir')('long')}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-md border py-1.5 text-sm font-semibold transition-colors ${
-              isLong ? 'border-[#22c55e]/40 bg-[#22c55e]/10 text-[#4ade80]' : 'border-border text-muted-foreground'
+              isLong ? 'border-long/40 bg-long/10 text-long' : 'border-border text-muted-foreground'
             }`}
             data-testid="pxc-long"
           >
@@ -115,7 +115,7 @@ export function PartialExitCalculator() {
           <button
             onClick={() => set('dir')('short')}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-md border py-1.5 text-sm font-semibold transition-colors ${
-              !isLong ? 'border-[#ef4444]/40 bg-[#ef4444]/10 text-[#f87171]' : 'border-border text-muted-foreground'
+              !isLong ? 'border-short/40 bg-short/10 text-short' : 'border-border text-muted-foreground'
             }`}
             data-testid="pxc-short"
           >
@@ -145,7 +145,7 @@ export function PartialExitCalculator() {
             </div>
           ))}
           {r.valid && r.over && (
-            <p className="text-[11px] text-orange-500">{t('pxcPctWarn')}</p>
+            <p className="text-[11px] text-warn">{t('pxcPctWarn')}</p>
           )}
         </div>
 
@@ -172,8 +172,8 @@ export function PartialExitCalculator() {
                 <div key={i} className="grid grid-cols-4 gap-2 px-3 py-1.5 text-sm font-mono border-t border-border">
                   <span>{fmt(row.price)}</span>
                   <span className="text-right">{fmt(row.pct, 0)}%</span>
-                  <span className={`text-right ${row.rMult >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>{fmt(row.rMult)}R</span>
-                  <span className={`text-right ${row.profit >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>{fmt(row.profit)}</span>
+                  <span className={`text-right ${row.rMult >= 0 ? 'text-long' : 'text-short'}`}>{fmt(row.rMult)}R</span>
+                  <span className={`text-right ${row.profit >= 0 ? 'text-long' : 'text-short'}`}>{fmt(row.profit)}</span>
                 </div>
               ))}
             </div>
@@ -201,7 +201,7 @@ export function PartialExitCalculator() {
               {r.runnerPct > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">{t('pxcIfRunnerTop')}</span>
-                  <span className="font-mono font-semibold text-[#22c55e]">{fmt(r.ifRunnerTopR)}R</span>
+                  <span className="font-mono font-semibold text-long">{fmt(r.ifRunnerTopR)}R</span>
                 </div>
               )}
               <div className="flex items-center justify-between">

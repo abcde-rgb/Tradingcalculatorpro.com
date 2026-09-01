@@ -440,14 +440,40 @@ export function probabilityOfProfit(legs, stockPrice, r = FALLBACK_RISK_FREE_RAT
   const frontLeg =
     (legs || []).find((l) => l.type !== 'stock' && l.daysToExpiry === frontDTE) || legs?.[0];
   const iv = frontLeg?.iv || 0.3;
-  const minPrice = stockPrice * 0.5;
-  const maxPrice = stockPrice * 2.0;
-  const steps = 500;
-  const step = (maxPrice - minPrice) / steps;
+
+  // La ventana de integración se escala con la VOLATILIDAD y el PLAZO.
+  //
+  // Antes era fija: [0.5·S, 2·S]. En logaritmos eso son ±0,693, o sea ±1,22σ
+  // con IV 80 % a 180 días — se dejaba fuera el 21,7 % de la masa de
+  // probabilidad, y como la integral no se normaliza, ese trozo no se
+  // redistribuye: se pierde. El POP no podía pasar del 78,3 % por construcción,
+  // y con IV 120 % a un año el techo bajaba al 44 %. Cuanto más ancha la
+  // distribución —justo cuando el POP importa más— más se subestimaba.
+  //
+  // ±8σ en log-espacio deja fuera menos de 1e-15 de la masa. El suelo de ±0,693
+  // conserva la ventana antigua como mínimo, para que un plazo muy corto o una
+  // volatilidad muy baja no colapsen el rango a casi nada.
+  // Y se integra EN LOG-ESPACIO, con paso uniforme en x = ln(S_T/S_0).
+  //
+  // Ensanchar la ventana sin cambiar de variable no basta: con paso uniforme en
+  // PRECIO y un rango de ±8σ a IV 120 %, el rango va de 0,007 a 1.470.000 y el
+  // paso sale de 735 — casi ningún punto de la rejilla cae donde está la masa,
+  // que vive pegada al spot. Comprobado: una call profundamente dentro de dinero
+  // pasaba a dar 3 % de POP. El log-espacio es la variable natural de una
+  // log-normal: ahí la densidad es una normal y la rejilla queda repartida
+  // donde importa.
+  const sigmaT = iv * Math.sqrt(Math.max(T, 1e-9));
+  const anchoLog = Math.max(8 * sigmaT, Math.LN2);
+  const mu = (r - 0.5 * iv * iv) * T;
+  const steps = 2000;
+  const paso = (2 * anchoLog) / steps;
   let profitProb = 0;
 
   for (let i = 0; i < steps; i++) {
-    const price = minPrice + i * step;
+    // Punto MEDIO de cada celda: con el extremo izquierdo se sesga la integral
+    // hacia el lado bajo, que sobre una log-normal no es simétrico.
+    const x = -anchoLog + (i + 0.5) * paso;
+    const price = stockPrice * Math.exp(x);
     let pnl = 0;
 
     legs.forEach((leg) => {
@@ -468,10 +494,11 @@ export function probabilityOfProfit(legs, stockPrice, r = FALLBACK_RISK_FREE_RAT
     });
 
     if (pnl > 0 && T > 0) {
-      // Log-normal probability density
-      const d = (Math.log(price / stockPrice) - (r - 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
-      const pdfVal = Math.exp(-0.5 * d * d) / (price * iv * Math.sqrt(2 * Math.PI * T));
-      profitProb += pdfVal * step;
+      // Densidad NORMAL en x (el jacobiano 1/price desaparece al cambiar de
+      // variable: φ(x)·dx en vez de φ(x)/S_T·dS_T).
+      const d = (x - mu) / sigmaT;
+      const pdfVal = Math.exp(-0.5 * d * d) / (sigmaT * Math.sqrt(2 * Math.PI));
+      profitProb += pdfVal * paso;
     }
   }
 

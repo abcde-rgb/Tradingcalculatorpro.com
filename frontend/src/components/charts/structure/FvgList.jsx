@@ -28,7 +28,7 @@ export default function FvgList({ fvgs, limit = 6 }) {
             <span className="font-mono text-foreground">{fmtPrice(g.bottom)} – {fmtPrice(g.top)}</span>
             {g.sessionGap && (
               <span
-                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#fbbf24]"
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-warn/15 text-warn"
                 title={t('structFvgSessionGapTip')}
                 data-testid="struct-fvg-session"
               >

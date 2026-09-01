@@ -205,7 +205,7 @@ export default function SubscriptionPage() {
             <CardHeader>
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-yellow-500" />
+                  <Crown className="h-5 w-5 text-caution" />
                   {t('estadoDeLaSuscripcion_5c2c42')}
                 </CardTitle>
                 {subscription?.status && <StatusBadge status={subscription.status} />}
@@ -247,8 +247,8 @@ export default function SubscriptionPage() {
                   {/* Cancellation warning */}
                   {isCanceling && (
                     <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                      <p className="text-sm text-amber-600 dark:text-amber-400">
+                      <AlertCircle className="h-5 w-5 text-warn mt-0.5 shrink-0" />
+                      <p className="text-sm text-warn dark:text-warn">
                         {t('subscriptionEndsOn')} <strong>{formatDate(periodEnd)}</strong>.{' '}
                         {t('cancelConfirmDesc')}
                       </p>

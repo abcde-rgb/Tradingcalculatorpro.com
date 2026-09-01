@@ -120,7 +120,7 @@ export function ScanNotices({ data, chartInterval, chartRung, tfInterval, onSync
 
   const mismatch = (chartUnsupported || drifted) && (
     <div
-      className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#fbbf24] px-2.5 py-1.5 flex items-center gap-2 flex-wrap"
+      className="text-[11px] rounded-md border border-warn/30 bg-warn/10 text-warn px-2.5 py-1.5 flex items-center gap-2 flex-wrap"
       data-testid="struct-tf-mismatch"
     >
       <span>
@@ -150,7 +150,7 @@ export function ScanNotices({ data, chartInterval, chartRung, tfInterval, onSync
       {mismatch}
       {adjusted && (
         <div
-          className="text-[11px] rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[#fbbf24] px-2.5 py-1.5"
+          className="text-[11px] rounded-md border border-warn/30 bg-warn/10 text-warn px-2.5 py-1.5"
           data-testid="struct-adjusted"
         >
           {t('structAdjustedNotice')

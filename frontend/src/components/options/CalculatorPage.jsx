@@ -599,10 +599,10 @@ const CalculatorPage = () => {
         <div className="px-3 md:px-4 pt-3 space-y-2" data-testid="data-quality-notices">
           {dataError && (
             <div
-              className="rounded-lg border border-[#ef4444]/40 bg-[#ef4444]/10 px-4 py-3"
+              className="rounded-lg border border-short/40 bg-short/10 px-4 py-3"
               data-testid="market-data-error"
             >
-              <p className="text-sm font-semibold text-[#ef4444]">
+              <p className="text-sm font-semibold text-short">
                 {ticker}: {t('marketDataUnavailableTitle')}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">{dataError}</p>
@@ -611,10 +611,10 @@ const CalculatorPage = () => {
 
           {expWarning && (
             <div
-              className="rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-4 py-2.5"
+              className="rounded-lg border border-warn/40 bg-warn/10 px-4 py-2.5"
               data-testid="estimated-expirations-warning"
             >
-              <p className="text-xs font-semibold text-[#f59e0b]">{expWarning}</p>
+              <p className="text-xs font-semibold text-warn">{expWarning}</p>
             </div>
           )}
 

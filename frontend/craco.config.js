@@ -2,6 +2,25 @@
 const path = require("path");
 require("dotenv").config();
 
+// ── El origen del WebSocket, derivado (NO un secreto más) ───────────────────
+// `useWebSocketAlerts` abre `wss://<backend>/api/ws/alerts`, y la CSP del
+// `meta` de `public/index.html` tiene que autorizarlo explícitamente: en CSP3
+// una fuente `https://host` NO cubre una URL `wss://host` (la relajación de
+// esquemas sólo va en el sentido contrario, `ws` → `http`/`https`).
+//
+// Se calcula aquí en vez de pedir un GitHub Secret nuevo porque así no puede
+// desincronizarse del backend real, y porque un secreto que alguien olvide
+// definir dejaría la directiva vacía — que es exactamente el fallo silencioso
+// que el `meta` no permite ensayar (no admite report-only).
+//
+// Lo consume `%REACT_APP_BACKEND_WS_URL%` en `public/index.html`; CRA
+// interpola cualquier variable `REACT_APP_*` presente en `process.env`, y
+// craco carga este fichero antes de construir la configuración de webpack.
+const _backend = (process.env.REACT_APP_BACKEND_URL || "").trim();
+process.env.REACT_APP_BACKEND_WS_URL = _backend
+  ? _backend.replace(/^http(s?):\/\//, (_m, s) => (s ? "wss://" : "ws://"))
+  : "";
+
 // Check if we're in development/preview mode (not production build)
 // Craco sets NODE_ENV=development for start, NODE_ENV=production for build
 const isDevServer = process.env.NODE_ENV !== "production";
