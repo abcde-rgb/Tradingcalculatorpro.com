@@ -8,7 +8,7 @@ import {
   Zap, TrendingDown, Percent, AlertCircle, ChevronDown, ChevronUp,
   Send, Languages, CreditCard, UserMinus, Share2, Package,
   Construction, Bug, Gauge, Lock, Settings, Database, ToggleLeft,
-  Layers, Gift, Wallet, AlertTriangle,
+  Layers, Gift, Wallet, AlertTriangle, Coins,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -618,6 +618,7 @@ export default function AdminPage() {
 
             {activeSection === 'afiliados' && (
               <>
+                <ReferralPayoutRequestsCard headers={headers} />
                 <ReferralManagerCard headers={headers} />
                 <AffiliatePayoutRequestsCard headers={headers} />
                 <AffiliatesAdminCard headers={headers} />
@@ -3113,6 +3114,94 @@ function ReferralManagerCard({ headers }) {
 /* ═══════════════════════════════════════════════════════════════════════════
    AFFILIATE PAYOUT REQUESTS — notificación: afiliados que piden su pago
 ═══════════════════════════════════════════════════════════════════════════ */
+/**
+ * Solicitudes de cobro del MONEDERO DE REFERIDOS (el 10 % que gana cualquier
+ * cliente), no del programa de afiliados — ése es la tarjeta de abajo.
+ *
+ * El pago es manual a propósito: aquí no se mueve dinero, sólo se anota que ya
+ * se ha pagado por fuera. Y el saldo del usuario baja EN ESE MOMENTO, no cuando
+ * lo pide: una solicitud rechazada no puede dejarle sin su dinero.
+ */
+function ReferralPayoutRequestsCard({ headers }) {
+  const [reqs, setReqs] = useState([]);
+  const [pending, setPending] = useState(0);
+  const [amount, setAmount] = useState(0);
+  const avisado = useRef(false);
+  const bearer = headers?.Authorization || '';
+  const ready = bearer && !bearer.includes('null');
+
+  const cargar = async () => {
+    if (!API || !ready) return;
+    try {
+      const res = await fetch(`${API}/admin/referrals/payout-requests?status=pending`,
+        { credentials: 'include', headers });
+      if (!res.ok) return;
+      const d = await res.json();
+      setReqs(d.requests || []); setPending(d.pending_count || 0); setAmount(d.pending_amount_eur || 0);
+      if ((d.pending_count || 0) > 0 && !avisado.current) {
+        avisado.current = true;
+        toast.warning(`${d.pending_count} cliente(s) han pedido cobrar sus referidos — ${d.pending_amount_eur} €`,
+          { duration: 8000 });
+      }
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [headers]);
+
+  const accion = async (id, verbo) => {
+    // `window.confirm` y no un clic directo: marcar pagada DESCUENTA el saldo
+    // del usuario, y es idempotente pero no reversible desde el panel.
+    if (verbo === 'mark-paid' && !window.confirm('¿Confirmas que ya le has pagado? Su saldo bajará.')) return;
+    try {
+      const res = await fetch(`${API}/admin/referrals/payout-requests/${id}/${verbo}`,
+        { credentials: 'include', method: 'POST', headers });
+      if (res.ok) { toast.success('Hecho'); cargar(); } else toast.error('No se pudo');
+    } catch { toast.error('No se pudo'); }
+  };
+
+  if (pending === 0) return null;   // sólo aparece cuando hay algo que pagar
+
+  return (
+    <Card className="bg-caution/5 border-caution/40" data-testid="admin-referral-payouts">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2 text-caution">
+          <Coins className="w-4 h-4" /> Cobros de referidos pendientes ({pending}) — {amount} €
+        </CardTitle>
+        <p className="text-[11px] text-muted-foreground">
+          Clientes que han pedido cobrar el 10 % de lo que han traído. Págales por fuera y márcalo aquí.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40"><tr className="text-left">
+              {['Cliente', 'Importe', 'Pedido el', ''].map((h) => (
+                <th key={h} className="px-2 py-2 text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {reqs.map((r) => (
+                <tr key={r.id} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-2 py-2 font-mono text-xs">{r.email}</td>
+                  <td className="px-2 py-2 text-xs font-bold">{r.amount_eur} €</td>
+                  <td className="px-2 py-2 text-xs text-muted-foreground">
+                    {(r.created_at || '').slice(0, 10)}
+                  </td>
+                  <td className="px-2 py-2 text-right whitespace-nowrap">
+                    <Button size="sm" className="mr-2" onClick={() => accion(r.id, 'mark-paid')}>Pagada</Button>
+                    <Button size="sm" variant="outline" onClick={() => accion(r.id, 'reject')}>Rechazar</Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 function AffiliatePayoutRequestsCard({ headers }) {
   const [reqs, setReqs] = useState([]);
   const [pending, setPending] = useState(0);

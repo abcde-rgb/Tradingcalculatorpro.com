@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useSEO } from '@/hooks/useSEO';
 import { useTranslation } from '@/lib/i18n';
 import { useAuthStore } from '@/lib/store';
+import ReferralPanel from '@/components/affiliate/ReferralPanel';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
@@ -167,6 +168,12 @@ export default function AffiliatePage() {
         </section>
 
         <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
+          {/* Lo que tiene TODO cliente, sin solicitar nada ni esperar
+              aprobación. Va primero a propósito: el programa de afiliados de
+              abajo exige plan de pago y aprobación manual, así que para la
+              mayoría de quien entra aquí esto es lo único accionable. */}
+          <ReferralPanel />
+
           {loading && (
             <div className="flex justify-center py-16">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />

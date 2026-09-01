@@ -37,6 +37,7 @@ _security = HTTPBearer(auto_error=False)
 # Injected at register()
 db = None  # type: ignore[assignment]
 require_user = None  # type: ignore[assignment]
+require_admin = None  # type: ignore[assignment]
 real_client_ip = None  # type: ignore[assignment]
 
 # Commission % credited to the referrer when referee makes a paid purchase
@@ -66,11 +67,28 @@ COMMISSION_PCT = 10.0  # 10% of the plan price
 # True: la constante no puede quedarse desfasada en silencio.
 CHECKOUT_APLICA_CREDITO = False
 
+# Mínimo para pedir el cobro del monedero. El pago lo hace el admin A MANO
+# (transferencia, PayPal, lo que se haya acordado), así que cada solicitud le
+# cuesta tiempo a una persona: pedir 1,70 € no le sale a cuenta a nadie. Con la
+# comisión al 10 % y el plan mensual a 17 €, 20 € son unos doce referidos.
+PAYOUT_MINIMO_EUR = 20.0
+
 
 # ─────────────────────────────────────────────────────────────────────
 # Proxy dependencies (resolved at request time, since the real callables
 # are only injected by register() AFTER decoration).
 # ─────────────────────────────────────────────────────────────────────
+async def _require_admin_proxy(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(_security),
+) -> Dict[str, Any]:
+    """Igual que en `affiliate_program.py`: el callable real lo inyecta
+    `register()` DESPUÉS de decorar, así que se resuelve en cada petición."""
+    if require_admin is None:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    return await require_admin(request, credentials)
+
+
 async def _require_user_proxy(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_security),
@@ -177,6 +195,11 @@ async def my_referrals(user: dict = Depends(_require_user_proxy)):
     wallet = float(fresh.get("referral_wallet", 0.0) or 0.0)
     redeemed = float(fresh.get("referral_wallet_redeemed", 0.0) or 0.0)
 
+    abierta = await db.referral_payout_requests.find_one(
+        {"user_id": user["id"], "status": "pending"},
+        {"_id": 0, "id": 1, "amount_eur": 1, "created_at": 1},
+    )
+
     # Recent referrals (last 50)
     recent = await db.referrals.find(
         {"referrer_id": user["id"]},
@@ -199,6 +222,14 @@ async def my_referrals(user: dict = Depends(_require_user_proxy)):
             # que va a devolver 501. Es la única forma de que el frontend sepa
             # lo que el backend sabe.
             "redeemable": CHECKOUT_APLICA_CREDITO,
+        },
+        # Cobrar es PEDIRLO: el admin paga a mano. La pantalla necesita saber
+        # el mínimo y si ya hay una solicitud abierta, o pintaría un botón que
+        # el backend va a rechazar con un 400.
+        "payout": {
+            "minimo_eur": PAYOUT_MINIMO_EUR,
+            "puede_solicitar": saldo_disponible(fresh) >= PAYOUT_MINIMO_EUR and not abierta,
+            "solicitud_abierta": abierta,
         },
         "recent_referrals": recent,
     }
@@ -386,6 +417,54 @@ def cuanto_se_canjea(usuario: dict, pedido: Optional[float]) -> float:
     return cantidad
 
 
+@router.post("/referrals/request-payout")
+async def request_payout(user: dict = Depends(_require_user_proxy)):
+    """El cliente pide que le paguen lo que ha ganado trayendo clientes.
+
+    NO cobra nada por sí misma: crea una solicitud que el administrador ve y
+    liquida a mano, igual que las del programa de afiliados. Es a propósito —
+    no hay pagos automáticos en este producto, y prometer uno sería mentir.
+
+    El saldo NO se descuenta aquí: baja cuando el admin marca la solicitud como
+    pagada. Si se restara al pedirlo, una solicitud rechazada dejaría al usuario
+    sin su dinero.
+
+    Una sola solicitud abierta a la vez, como en `/affiliate/request-payout`:
+    dos pendientes por el mismo saldo son dos pagos por el mismo trabajo.
+    """
+    fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    if not fresh:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    abierta = await db.referral_payout_requests.find_one(
+        {"user_id": user["id"], "status": "pending"}, {"_id": 0, "id": 1, "amount_eur": 1})
+    if abierta:
+        return {"ok": True, "already": True, "amount_eur": abierta.get("amount_eur")}
+
+    disponible = saldo_disponible(fresh)
+    if disponible < PAYOUT_MINIMO_EUR:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Necesitas al menos {PAYOUT_MINIMO_EUR:.0f} € para pedir el cobro. "
+                   f"Ahora tienes {disponible:.2f} €.",
+        )
+
+    solicitud = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "email": fresh.get("email"),
+        "name": fresh.get("name"),
+        "amount_eur": disponible,
+        "status": "pending",
+        "origen": "referidos",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.referral_payout_requests.insert_one(solicitud)
+    logging.info("[referrals] SOLICITUD DE COBRO de %s: %s €",
+                 log_safe(fresh.get("email")), log_safe(disponible))
+    return {"ok": True, "amount_eur": disponible}
+
+
 @router.post("/referrals/redeem-credit")
 async def redeem_credit(user: dict = Depends(_require_user_proxy), amount: Optional[float] = None):
     """
@@ -443,6 +522,81 @@ async def redeem_credit(user: dict = Depends(_require_user_proxy), amount: Optio
 # Indexes
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Admin: liquidar a mano lo que pide el cliente
+# ---------------------------------------------------------------------------
+# No hay pagos automáticos: el admin paga por fuera (transferencia, PayPal…) y
+# marca la solicitud. Aquí sólo vive la contabilidad de ese acto.
+
+@router.get("/admin/referrals/payout-requests")
+async def admin_list_payout_requests(admin: dict = Depends(_require_admin_proxy),
+                                     status: str = "pending"):
+    """Las solicitudes de cobro del monedero de referidos.
+
+    Devuelve el recuento y la suma además de la lista: es lo que el panel pinta
+    como aviso, y calcularlo en el cliente sobre una lista paginada daría una
+    cifra distinta de la real.
+    """
+    filtro = {} if status == "all" else {"status": status}
+    cur = db.referral_payout_requests.find(filtro, {"_id": 0}).sort("created_at", -1)
+    filas = await cur.to_list(500)
+    pendientes = [f for f in filas if f.get("status") == "pending"]
+    return {
+        "requests": filas,
+        "pending_count": len(pendientes),
+        "pending_amount_eur": round(sum(float(f.get("amount_eur") or 0) for f in pendientes), 2),
+    }
+
+
+@router.post("/admin/referrals/payout-requests/{rid}/mark-paid")
+async def admin_mark_payout_paid(rid: str, admin: dict = Depends(_require_admin_proxy),
+                                 reference: Optional[str] = None):
+    """El admin ya ha pagado por fuera: se anota y el saldo baja.
+
+    El descuento va AQUÍ y no al solicitar, y el `$inc` es sobre
+    `referral_wallet_redeemed` —no una resta sobre `referral_wallet`— para que
+    lo ganado histórico siga siendo legible y `saldo_disponible()` siga siendo
+    la única definición del saldo.
+    """
+    req = await db.referral_payout_requests.find_one({"id": rid}, {"_id": 0})
+    if not req:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    if req.get("status") != "pending":
+        # Idempotente: marcar dos veces no puede descontar dos veces.
+        return {"ok": True, "already": True, "status": req.get("status")}
+
+    importe = float(req.get("amount_eur") or 0)
+    await db.referral_payout_requests.update_one(
+        {"id": rid},
+        {"$set": {"status": "paid", "paid_at": datetime.now(timezone.utc).isoformat(),
+                  "paid_by": admin.get("email"), "reference": (reference or "").strip()}},
+    )
+    await db.users.update_one(
+        {"id": req["user_id"]}, {"$inc": {"referral_wallet_redeemed": importe}},
+    )
+    logging.info("[referrals] pago marcado: %s € a %s por %s",
+                 log_safe(importe), log_safe(req.get("email")), log_safe(admin.get("email")))
+    return {"ok": True, "amount_eur": importe}
+
+
+@router.post("/admin/referrals/payout-requests/{rid}/reject")
+async def admin_reject_payout(rid: str, admin: dict = Depends(_require_admin_proxy),
+                              reason: Optional[str] = None):
+    """Se rechaza sin tocar el saldo: el dinero sigue siendo del usuario y puede
+    volver a pedirlo. Restarlo aquí sería quitárselo por no pagarle."""
+    req = await db.referral_payout_requests.find_one({"id": rid}, {"_id": 0})
+    if not req:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    if req.get("status") != "pending":
+        return {"ok": True, "already": True, "status": req.get("status")}
+    await db.referral_payout_requests.update_one(
+        {"id": rid},
+        {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc).isoformat(),
+                  "rejected_by": admin.get("email"), "reason": (reason or "").strip()}},
+    )
+    return {"ok": True}
+
+
 async def ensure_referral_indexes(database) -> None:
     try:
         await database.users.create_index("referral_code", unique=True, sparse=True)
@@ -460,9 +614,10 @@ async def ensure_referral_indexes(database) -> None:
 # ---------------------------------------------------------------------------
 
 def register(app_router, database, helpers: Dict[str, Any]) -> None:
-    global db, require_user, real_client_ip
+    global db, require_user, require_admin, real_client_ip
     db = database
     require_user = helpers["require_user"]
+    require_admin = helpers["require_admin"]
     real_client_ip = helpers.get("real_client_ip")
     # `track` ya exige sesión; el límite se mantiene contra el abuso por cuenta.
     if helpers.get("limiter"):

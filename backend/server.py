@@ -1080,6 +1080,8 @@ class Database:
             "referrals", "referral_redemptions",
             "affiliates", "affiliate_payout_runs", "affiliate_payout_lines",
             "affiliate_payout_requests",
+            # Solicitudes de cobro del monedero de referidos (el admin las paga a mano).
+            "referral_payout_requests",
             "password_reset_tokens", "email_verification_tokens",
             # Admin panel features (queried/written in admin_routes.py — must
             # exist upfront, since Collection methods don't auto-create tables)
@@ -2088,7 +2090,7 @@ _USER_DATA_COLLECTIONS = (
 # Datos del usuario que se exportan y se borran con la cuenta, pero que la purga
 # por impago NO toca: los referidos son contabilidad del programa, no datos de
 # trading, y purgarlos a los 90 días borraría créditos ya ganados.
-_USER_NON_PURGED_COLLECTIONS = ("referrals",)
+_USER_NON_PURGED_COLLECTIONS = ("referrals", "referral_payout_requests")
 
 # Facturación: se borra con la cuenta y se exporta (en forma resumida), pero la
 # purga por impago NO la toca — quien deja de pagar conserva su histórico.

@@ -151,12 +151,11 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 | `POST` | `/api/admin/subscriptions/{user_id}/refund` | CONSTRUIR | Reembolso por Stripe desde el panel. La política de reembolso de 14 días está publicada en los términos legales y se ejecuta a mano. |
 | `GET` | `/api/alerts/realtime/status` | CONSTRUIR | Estado del poller de alertas en vivo: si corre, cuántos conectados, antigüedad de la caché. Diagnóstico para el panel. |
 
-### ARREGLAR (2)
+### ARREGLAR (1)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
 | `POST` | `/api/referrals/redeem-credit` | ARREGLAR | **Hecho.** Devolvía un `available_after` restado de un saldo que no bajaba (`referral_wallet_redeemed` no se incrementaba nunca) y escribía `pending_referral_credit` diciendo «aplicado al próximo checkout» cuando no lo lee nadie. Ahora responde 501 mientras `CHECKOUT_APLICA_CREDITO` sea False, no escribe nada al hacerlo, y el `$inc` está puesto para el día que se active. `test_referrals_credito_unit.py` comprueba que la constante concuerde con el código. |
-| `GET` | `/api/referrals/me` | ARREGLAR | Es la única forma de ver un saldo que se está acumulando. Ya devuelve `redeemable` para que ninguna pantalla pinte un botón que da 501. Falta decidir dónde vive: lo natural es una tarjeta en `AffiliatePage`, que ya existe y ya tiene su propio programa al lado. |
 
 ## Las 5 huérfanas por diseño
 
