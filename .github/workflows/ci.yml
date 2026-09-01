@@ -269,9 +269,24 @@ jobs:
       # pantalla de 1 MB caben 80 KB de librería nueva sin que salte nada.
       - name: Presupuesto de peso por pantalla
         working-directory: .
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
         run: |
-          mkdir -p tests/e2e/lib
-          (cd tests/e2e && npm install --silent --no-save --prefix . playwright-core)
+          mkdir -p tests/e2e/lib "$PLAYWRIGHT_BROWSERS_PATH"
+          # `playwright-core` es la librería: NO trae navegador. En el sandbox de
+          # Claude da igual porque hay uno preinstalado en /opt/pw-browsers, que
+          # es la ruta por defecto de `entorno.js`; en un runner de GitHub no
+          # existe, y el paso moría con «No encuentro Chromium bajo
+          # /opt/pw-browsers» — un mensaje escrito pensando en el sandbox, que
+          # aquí despista. Se instalaba la librería y se daba por hecho el
+          # navegador.
+          #
+          # Se añade `playwright` (el paquete completo) sólo por su instalador, y
+          # el navegador se baja a PLAYWRIGHT_BROWSERS_PATH, que `entorno.js`
+          # respeta. El formato que deja —`chromium-<rev>/chrome-linux/chrome`—
+          # es justo el que busca.
+          (cd tests/e2e && npm install --silent --no-save --prefix . playwright-core playwright)
+          (cd tests/e2e && npx --no-install playwright install chromium)
           ln -sfn "$PWD/tests/e2e/node_modules/playwright-core" "$PWD/tests/e2e/lib/playwright-core"
           node tests/e2e/stack/servidor.js &
           for i in $(seq 1 30); do
