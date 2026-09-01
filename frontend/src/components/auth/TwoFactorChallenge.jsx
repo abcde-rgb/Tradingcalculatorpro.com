@@ -20,7 +20,7 @@ import { toast } from 'sonner';
  * Por eso el reto vive aquí y no dentro de una pantalla: es el mismo paso para
  * las tres, y tenerlo escrito tres veces es tener dos copias que se olvidan.
  */
-export default function TwoFactorChallenge({ pendingToken, onCancel, redirectTo = '/dashboard' }) {
+export default function TwoFactorChallenge({ pendingToken, onCancel, cancelLabel, redirectTo = '/dashboard' }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { verify2fa, isLoading } = useAuthStore();
@@ -76,7 +76,11 @@ export default function TwoFactorChallenge({ pendingToken, onCancel, redirectTo 
           onClick={() => { setCode(''); setError(''); onCancel(); }}
           className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground"
         >
-          {t('twoFactorBackToLogin')}
+          {/* El texto por defecto sirve cuando el reto ES la pantalla (login,
+              enlace mágico). Colgado del botón de Google no vale: ahí cancelar
+              devuelve al botón, y en /register «volver al inicio de sesión»
+              manda a otro sitio del que el usuario no venía. */}
+          {cancelLabel || t('twoFactorBackToLogin')}
         </button>
       )}
     </div>

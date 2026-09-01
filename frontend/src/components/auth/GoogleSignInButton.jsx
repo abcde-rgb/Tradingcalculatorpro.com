@@ -149,6 +149,7 @@ export default function GoogleSignInButton({ country, language } = {}) {
         </p>
         <TwoFactorChallenge
           pendingToken={pendingToken}
+          cancelLabel={t('authCancel')}
           onCancel={() => setPendingToken('')}
         />
       </div>
