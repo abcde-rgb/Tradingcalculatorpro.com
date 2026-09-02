@@ -41,7 +41,10 @@ Cualquier `.md` nuevo va a `docs/`; si es una foto fechada que no se mantendrá,
 
 ```bash
 # Backend (desde backend/) — por socket Unix; con TCP sin SSL falla, ver rules/infra.md
-pip install -r requirements.txt
+# Los dos ficheros: sin `requirements-dev.txt` no entra `pytest-asyncio`, y sin él
+# pytest NO salta las pruebas `async def` — las da por FALLIDAS. Son 22, y como
+# toda sesión remota empieza con un clon fresco, fallan siempre.
+pip install -r requirements.txt -r requirements-dev.txt
 ENVIRONMENT=development JWT_SECRET=devonly \
 DATABASE_URL='postgresql://user:pass@/trading_dev?host=/var/run/postgresql' \
 uvicorn server:app --host 0.0.0.0 --port 8080 --reload

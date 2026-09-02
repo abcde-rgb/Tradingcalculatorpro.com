@@ -635,6 +635,14 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
         }
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=f"Error de Stripe: {e.user_message or str(e)}")
+    except HTTPException:
+        # Los HTTPException que lanza esta función ya traen su código y su
+        # mensaje pensados. Sin esta línea, el `except Exception` de abajo los
+        # recogía y los devolvía como un 500 genérico: el aviso de «no se puede
+        # configurar el cobro de ese plan» habría llegado al usuario como
+        # «Error cambiando plan», que no le dice nada ni a él ni a soporte.
+        # Lo caza `test_http_error_codes_unit.py`.
+        raise
     except Exception as e:
         logging.error(f"change_plan_real error: {log_safe(e)}")
         raise HTTPException(status_code=500, detail="Error cambiando plan")

@@ -485,6 +485,24 @@ def test_verify_full_rechaza_un_nombre_que_no_casa(bucle):
     fallo = corre(bucle, intenta(dsn))
     if fallo in ("InvalidPasswordError", "InvalidAuthorizationSpecificationError"):
         pytest.skip("el Postgres local no acepta TCP con contraseña en este entorno")
+
+    # Y si no hay NADIE escuchando en el puerto, esto no ha comprobado nada.
+    #
+    # El guardián de arriba mira el DSN, no si hay servidor: en un contenedor
+    # sin Postgres arrancado la conexión muere con `ConnectionRefusedError` y el
+    # aserto de abajo lo leía como «verify-full aceptó un certificado que no
+    # casa». O sea, denunciaba un agujero de seguridad sin haber llegado a
+    # negociar TLS.
+    #
+    # Un test que falla por el motivo equivocado es peor que uno que no existe:
+    # enseña a ignorarlo, y éste guarda una propiedad real —que la conexión
+    # además de cifrar AUTENTIQUE al servidor—. La distinción que importa es
+    # «no pude conectar» (no prueba nada, se salta) frente a «conecté y la
+    # verificación pasó» (eso sí es el fallo), y el aserto se queda intacto.
+    if fallo in ("ConnectionRefusedError", "OSError", "TimeoutError",
+                 "ConnectionResetError", "CannotConnectNowError"):
+        pytest.skip(f"no hay Postgres escuchando en TCP ({fallo}): nada que verificar")
+
     assert fallo is not None and "Verification" in fallo, (
         "verify-full aceptó un certificado cuyo nombre no casa: la conexión "
         "cifra pero no autentica"
