@@ -9,14 +9,14 @@ cobra— y once veces como texto, una por cada uno de los diez idiomas más la
 página de precios. Subir un precio es editar doce ficheros y confiar en no
 olvidar ninguno.
 
-Y el sitio que manda es justamente **el que la página no consulta**: `GET /plans`
-existe, devuelve `SUBSCRIPTION_PLANS`, y ninguna pantalla lo llama — está en
-`docs/RUTAS_MUERTAS.md` como CONSTRUIR. Mientras siga así, nada impide que la
-página anuncie 17 € y el checkout cobre 19.
+**Desde el 2026-09-02 la página SÍ lo consulta**: `usePlanPrices` lee
+`GET /plans` y es el backend quien manda en pantalla. Los once literales pasan a
+ser el RESPALDO —para builds sin `REACT_APP_BACKEND_URL`, red caída o modo
+demo—, y por eso este verificador no sobra: un respaldo que nadie mira se pudre,
+y el día que se caiga el backend la web anunciaría el precio de hace dos años.
 
 Un usuario al que le cobran más de lo anunciado no tiene un bug: tiene un motivo
-de devolución y, en la UE, una práctica comercial desleal. Así que hasta que la
-página lea el precio del backend, esto lo comprueba en CI.
+de devolución y, en la UE, una práctica comercial desleal.
 
     python scripts/check-precios.py
 

@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/Footer';
 import AnimatedHeroChart from '@/components/landing/AnimatedHeroChart';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
+import { usePlanPrices } from '@/hooks/usePlanPrices';
 import { useSEO } from '@/hooks/useSEO';
 import { PlanPeriod } from '@/components/pricing/PlanPeriod';
 import { toast } from 'sonner';
@@ -51,6 +52,9 @@ const PAYMENT_PROCESSOR_NAMES = {
 };
 
 export default function PricingPage() {
+  // El precio sale de `/api/plans`, que es lo que Stripe cobra. Las claves
+  // i18n quedan de respaldo. Ver el comentario largo de `usePlanPrices`.
+  const { precio } = usePlanPrices();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -310,7 +314,7 @@ export default function PricingPage() {
                 )}
                 <h3 className="font-bold text-lg mb-2">{t(plan.id + 'Plan')}</h3>
                 <div className="mb-4">
-                  <span className="font-unbounded text-3xl font-bold">{t(plan.id + 'Price')}</span>
+                  <span className="font-unbounded text-3xl font-bold">{precio(plan.id)}</span>
                   <PlanPeriod texto={t(plan.id + 'Period')} />
                 </div>
                 {plan.id !== 'lifetime' && pruebaDisponible && (
@@ -400,7 +404,7 @@ export default function PricingPage() {
                     <div className="p-4 rounded-xl bg-muted/50 border border-border">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-semibold">{t(selectedPlan + 'Plan')}</span>
-                        <span className="font-mono text-lg">{t(selectedPlan + 'Price')}</span>
+                        <span className="font-mono text-lg">{precio(selectedPlan)}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">{t(selectedPlan + 'Period')}</p>
                     </div>
@@ -408,7 +412,7 @@ export default function PricingPage() {
                     <div className="border-t border-border pt-4">
                       <div className="flex justify-between items-center text-lg font-bold">
                         <span>{t('total')}</span>
-                        <span className="font-mono text-primary">{t(selectedPlan + 'Price')}</span>
+                        <span className="font-mono text-primary">{precio(selectedPlan)}</span>
                       </div>
                     </div>
                     
@@ -461,7 +465,7 @@ export default function PricingPage() {
                         ) : selectedPlan !== 'lifetime' && hayPrueba ? (
                           <>{t('trialCtaButton')} <ArrowRight className="ml-2" /></>
                         ) : (
-                          <>{t('payButton')} {t(selectedPlan + 'Price')} <ArrowRight className="ml-2" /></>
+                          <>{t('payButton')} {precio(selectedPlan)} <ArrowRight className="ml-2" /></>
                         )}
                       </Button>
                     )}

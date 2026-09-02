@@ -17,6 +17,7 @@ import { Footer } from '@/components/layout/Footer';
 import { RecommendedTools } from '@/components/common/RecommendedTools';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation, languages } from '@/lib/i18n';
+import { usePlanPrices } from '@/hooks/usePlanPrices';
 import { SITE_FACTS } from '@/lib/siteFacts';
 import { useSEO } from '@/hooks/useSEO';
 import { PlanPeriod } from '@/components/pricing/PlanPeriod';
@@ -124,6 +125,8 @@ const FAQS = [
 export default function LandingPage() {
   const { isAuthenticated } = useAuthStore();
   const { t, detectBrowserLanguage } = useTranslation();
+  // Mismo origen que en `/pricing`: el importe lo manda el backend.
+  const { precio } = usePlanPrices();
   const { theme, toggleTheme } = useThemeStore();
   const [openFaq, setOpenFaq] = useState(null);
 
@@ -499,7 +502,7 @@ export default function LandingPage() {
                   
                   <h3 className="font-bold text-xl mb-2">{t(plan.id + 'Plan')}</h3>
                   <div className="mb-1">
-                    <span className="font-unbounded text-4xl font-bold">{t(plan.id + 'Price')}</span>
+                    <span className="font-unbounded text-4xl font-bold">{precio(plan.id)}</span>
                     <PlanPeriod texto={t(plan.id + 'Period')} />
                   </div>
                   
