@@ -20,7 +20,7 @@
 | **Rutas sin consumidor en el frontend** | **33** |
 | Ficheros de test · funciones de test | 68 · 1137 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 7,404 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,405 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -403,7 +403,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/calculators/simulator/` | 6 | 1,436 |
 | `components/charts/` | 3 | 797 |
 | `components/charts/structure/` | 12 | 1,705 |
-| `components/common/` | 12 | 2,265 |
+| `components/common/` | 13 | 2,511 |
 | `components/dashboard/` | 7 | 926 |
 | `components/desk/` | 6 | 1,553 |
 | `components/education/` | 88 | 14,667 |
@@ -428,16 +428,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 10,445 |
 | `frontend/src/pages/EducationPage.jsx` | 5,813 |
-| `frontend/src/lib/i18n/ar.js` | 4,911 |
-| `frontend/src/lib/i18n/de.js` | 4,911 |
-| `frontend/src/lib/i18n/en.js` | 4,911 |
-| `frontend/src/lib/i18n/es.js` | 4,911 |
-| `frontend/src/lib/i18n/fr.js` | 4,911 |
-| `frontend/src/lib/i18n/it.js` | 4,911 |
-| `frontend/src/lib/i18n/ja.js` | 4,911 |
-| `frontend/src/lib/i18n/pt.js` | 4,911 |
-| `frontend/src/lib/i18n/ru.js` | 4,911 |
-| `frontend/src/lib/i18n/zh.js` | 4,911 |
+| `frontend/src/lib/i18n/ar.js` | 4,912 |
+| `frontend/src/lib/i18n/de.js` | 4,912 |
+| `frontend/src/lib/i18n/en.js` | 4,912 |
+| `frontend/src/lib/i18n/es.js` | 4,912 |
+| `frontend/src/lib/i18n/fr.js` | 4,912 |
+| `frontend/src/lib/i18n/it.js` | 4,912 |
+| `frontend/src/lib/i18n/ja.js` | 4,912 |
+| `frontend/src/lib/i18n/pt.js` | 4,912 |
+| `frontend/src/lib/i18n/ru.js` | 4,912 |
+| `frontend/src/lib/i18n/zh.js` | 4,912 |
 
 ## Verificadores del repositorio
 
