@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Loader2, Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight, AlertTriangle, ShieldAlert, Sigma, Activity } from 'lucide-react';
+import { Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight, AlertTriangle, ShieldAlert, Sigma, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -187,7 +188,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
           className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-primary to-long text-black font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           data-testid="optimize-run"
         >
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('analizandoMercado_334c80')}</> : <><Target className="w-4 h-4" /> {t('optimizeNow_op005')}</>}
+          {loading ? <><CargaVelas className="w-4 h-4" /> {t('analizandoMercado_334c80')}</> : <><Target className="w-4 h-4" /> {t('optimizeNow_op005')}</>}
         </button>
       </div>
 

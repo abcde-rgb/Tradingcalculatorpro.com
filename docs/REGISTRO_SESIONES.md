@@ -6272,3 +6272,66 @@ con `-f` y contra la raíz.
 eslint 0 errores, i18n 7.379 claves × 10 idiomas a la par, engine-check 535/535,
 catálogo en paridad, mapa y asistente al día, enlaces de doc OK, build de
 producción, y la sonda de navegador contra el backend real en sus dos versiones.
+
+## 2026-09-02 — Los indicadores de espera pasan a llevar la marca
+
+Ejecución del artefacto «Cargando con la marca» **excepto su pieza `CargaArco`**,
+excluida expresamente por el usuario. Lo demás entra entero.
+
+**El punto de partida.** 85 `<Loader2 className="animate-spin" />` repartidos por
+24 ficheros: el círculo genérico que trae shadcn. Es de lo que más veces se mira
+en una sesión —cada consulta a la cadena, cada refresco del escáner— y no llevaba
+nada del producto. No se ha dibujado ningún logotipo nuevo: se anima el que ya
+existe, con las coordenadas exactas de `public/tcpro-icono-512.svg`.
+
+**Una sola copia de la geometría.** `BrandMark.jsx` pasa a exportar `VELAS`,
+`Velas`, `Monograma`, `ARCO` y sus *viewBox*; `BrandLoading.jsx` los importa en
+vez de repetirlos. Dos copias de un logotipo divergen a la primera corrección, y
+aquí la corrección ya llegó una vez (el cutover de dominio del 2026-08-28).
+
+**Las cinco piezas y dónde han caído:**
+
+| Pieza | Dónde |
+|---|---|
+| `CargaVelas` | 58 sitios: dentro de botones y junto a etiquetas. Sustituye al `Loader2` |
+| `CargaMarca` | `PageLoader` de `App.js`, `PaymentPages`, `AuthPages`, `VerifyEmailPage` |
+| `CargaProgreso` | disponible; **sin usar a propósito** — ver abajo |
+| `CintaCarga` | borde superior de `OptionsSubHeader`: el refresco de fondo de la cadena |
+| `EsqueletoVelas` | vía `FilasEsqueleto`, en las 7 tablas de `AdminPage` que cargaban |
+
+**`CargaProgreso` no se ha cableado en ningún sitio, y es la decisión, no un
+olvido.** Sólo vale cuando el avance se mide de verdad; hoy ninguna espera de la
+web conoce su porcentaje. Fingirlo sería la versión visual de inventarse un dato,
+que es justo lo que las reglas de honestidad numérica prohíben con los números.
+Queda lista para la primera subida de fichero o backtest por lotes que sí lo mida.
+
+**Dos cosas que NO se han tocado**, ambas a conciencia:
+
+- `PaymentPages.jsx:104`, el `Loader2` del estado `pending`, **no lleva
+  `animate-spin`**: es un icono de estado («tu pago se está procesando», con un
+  botón para irse), no una espera viva. Animarlo diría que algo ocurre en esa
+  pantalla ahora mismo, y no ocurre. Sigue siendo el único `Loader2` del repo.
+- Los `RefreshCw` que giran mientras recargan: ahí el icono que da vueltas *es*
+  el botón de refrescar, un gesto distinto del «estoy esperando».
+
+**El indicador que empujaba el precio.** En `OptionsSubHeader` el `Loader2` vivía
+en la misma fila que la cotización, así que cada refresco metía 20 px y movía la
+cifra que el usuario está mirando para dimensionar. Ahora lo anuncia la cinta de
+2 px del borde superior, dentro de un envoltorio `h-0` para que al aparecer no
+mueva nada.
+
+**Movimiento reducido.** La regla global del proyecto deja toda animación en
+0,01 ms; sobre estas velas eso las congelaría a media impresión —dos casi
+transparentes— con pinta de adorno roto. Por eso `index.css` les **quita** la
+animación en vez de acelerarla, igual que ya se hacía con `.marquesina`. Quien
+pide menos movimiento se entera por `role="status"`, no por el movimiento.
+
+**Verificado**: eslint 0 errores (los avisos bajan de 115 a 108 al desaparecer
+los `Loader2` sin usar), build de producción + 1.648 URLs de sitemap, i18n 7.404
+claves × 10 idiomas sin claves nuevas (`CargaVelas` recibe el texto por prop, no
+llama a `t()`), engine-check 535/535, catálogo en paridad, mapa y asistente al
+día, enlaces de doc OK, `capturas.js` con las 36 pantallas públicas renderizando
+y sin errores de consola nuevos, y las seis piezas renderizadas de verdad con
+React + el CSS compilado y fotografiadas en claro y oscuro. Comprobado además que
+`tc-arco`/`tcpro-arco` **no aparecen en el CSS compilado**: la sección excluida
+no ha entrado por la puerta de atrás.

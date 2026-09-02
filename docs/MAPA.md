@@ -396,28 +396,28 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | Carpeta | Ficheros | Líneas |
 |---|---:|---:|
 | `components/affiliate/` | 1 | 209 |
-| `components/auth/` | 3 | 290 |
+| `components/auth/` | 3 | 291 |
 | `components/backtesting/` | 1 | 175 |
 | `components/brokers/` | 1 | 240 |
 | `components/calculators/` | 17 | 5,023 |
-| `components/calculators/simulator/` | 6 | 1,436 |
+| `components/calculators/simulator/` | 6 | 1,437 |
 | `components/charts/` | 3 | 797 |
-| `components/charts/structure/` | 12 | 1,705 |
-| `components/common/` | 12 | 2,265 |
+| `components/charts/structure/` | 12 | 1,706 |
+| `components/common/` | 13 | 2,527 |
 | `components/dashboard/` | 7 | 926 |
 | `components/desk/` | 6 | 1,553 |
-| `components/education/` | 88 | 14,667 |
+| `components/education/` | 88 | 14,669 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 600 |
 | `components/layout/` | 2 | 590 |
-| `components/options/` | 36 | 7,995 |
-| `components/performance/` | 8 | 3,891 |
+| `components/options/` | 36 | 8,011 |
+| `components/performance/` | 8 | 3,892 |
 | `components/performance/form/` | 6 | 724 |
 | `components/pricing/` | 1 | 22 |
-| `components/settings/` | 2 | 315 |
+| `components/settings/` | 2 | 317 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 31 | 1,763 |
-| `pages/` | 23 | 17,168 |
+| `pages/` | 23 | 17,173 |
 
 ## Los ficheros que más cuesta abrir
 

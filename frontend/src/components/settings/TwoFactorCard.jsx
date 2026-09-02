@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, ShieldAlert, Loader2, Copy, Check } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Copy, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -132,7 +133,7 @@ export default function TwoFactorCard() {
             {CodeInput}
             <div className="flex gap-2">
               <Button variant="destructive" onClick={confirmDisable} disabled={busy || code.length < 6}>
-                {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t('twoFactorDisableBtn')}
+                {busy && <CargaVelas className="w-4 h-4 mr-2" />}{t('twoFactorDisableBtn')}
               </Button>
               <Button variant="ghost" onClick={() => { setMode('idle'); setCode(''); }} disabled={busy}>
                 {t('twoFactorCancelBtn')}
@@ -144,7 +145,7 @@ export default function TwoFactorCard() {
         {/* Disabled → offer enable */}
         {!enabled && mode !== 'enrolling' && (
           <Button onClick={startSetup} disabled={busy}>
-            {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t('twoFactorEnableBtn')}
+            {busy && <CargaVelas className="w-4 h-4 mr-2" />}{t('twoFactorEnableBtn')}
           </Button>
         )}
 
@@ -186,7 +187,7 @@ export default function TwoFactorCard() {
             </div>
             <div className="flex gap-2">
               <Button onClick={confirmEnable} disabled={busy || code.length < 6}>
-                {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t('twoFactorConfirmBtn')}
+                {busy && <CargaVelas className="w-4 h-4 mr-2" />}{t('twoFactorConfirmBtn')}
               </Button>
               <Button variant="ghost" onClick={() => { setMode('idle'); setSetup(null); setCode(''); }} disabled={busy}>
                 {t('twoFactorCancelBtn')}

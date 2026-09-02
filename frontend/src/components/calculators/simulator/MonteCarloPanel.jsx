@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dices, AlertTriangle, Loader2 } from 'lucide-react';
+import { Dices, AlertTriangle } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { useTranslation } from '@/lib/i18n';
 import { runMonteCarlo, DEFAULT_MC_ITERATIONS } from './simulatorEngine';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const fmt = (n, d = 0) => Number(n).toLocaleString(undefined, {
   minimumFractionDigits: d, maximumFractionDigits: d,
@@ -80,7 +81,7 @@ export default function MonteCarloPanel({ config, onResult }) {
               value={ddLimit} onChange={(e) => setDdLimit(e.target.value)} />
           </label>
           <Button onClick={run} disabled={busy} data-testid="mc-run">
-            {busy ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> {t('mcsimRunning')}</> : t('mcsimRun')}
+            {busy ? <><CargaVelas className="w-4 h-4 mr-1.5" /> {t('mcsimRunning')}</> : t('mcsimRun')}
           </Button>
         </div>
 

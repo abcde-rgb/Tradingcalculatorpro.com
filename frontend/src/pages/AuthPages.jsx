@@ -3,7 +3,7 @@ import { useTranslation, useI18nStore, languages } from '@/lib/i18n';
 import { getCountryOptions } from '@/lib/countries';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
-import { TrendingUp, Mail, Lock, User, ArrowRight, ArrowLeft, X, KeyRound, CheckCircle, Zap, Loader2, Eye, EyeOff, Shield, Globe } from 'lucide-react';
+import { TrendingUp, Mail, Lock, User, ArrowRight, ArrowLeft, X, KeyRound, CheckCircle, Zap, Eye, EyeOff, Shield, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import PasskeyButton from '@/components/auth/PasskeyButton';
 import { motion } from 'framer-motion';
+import { CargaMarca, CargaVelas } from '@/components/common/BrandLoading';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -278,7 +279,7 @@ export const LoginPage = () => {
                 data-testid="totp-code"
               />
               <Button type="submit" disabled={isLoading || totpCode.length < 6} className="w-full bg-primary text-primary-foreground hover:bg-primary/90" data-testid="totp-submit">
-                {isLoading ? <><Loader2 className="mr-2 w-4 h-4 animate-spin" />{t('loading') || '...'}</> : t('twoFactorVerifyBtn')}
+                {isLoading ? <><CargaVelas className="mr-2 w-4 h-4" />{t('loading') || '...'}</> : t('twoFactorVerifyBtn')}
               </Button>
               {loginError && !isLoading && (
                 <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-sm text-destructive text-center">
@@ -374,7 +375,7 @@ export const LoginPage = () => {
               data-testid="login-submit"
             >
               {isLoading
-                ? <><Loader2 className="mr-2 w-4 h-4 animate-spin" />{t('loading') || 'Conectando...'}</>
+                ? <><CargaVelas className="mr-2 w-4 h-4" />{t('loading') || 'Conectando...'}</>
                 : <>{t('iniciarSesion_9faefe')}<ArrowRight className="ml-2 w-4 h-4" /></>
               }
             </Button>
@@ -837,7 +838,7 @@ const MagicLinkButton = () => {
           <div className="flex gap-2">
             <Button type="submit" disabled={isLoading} size="sm"
               className="flex-1 bg-yellow-400 text-black hover:bg-yellow-300 h-8 text-xs">
-              {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Enviar enlace'}
+              {isLoading ? <CargaVelas className="w-3 h-3" /> : 'Enviar enlace'}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}
               className="h-8 text-xs text-muted-foreground">
@@ -889,7 +890,7 @@ export const MagicPage = () => {
   }, [token, navigate]);
 
   const messages = {
-    verifying: { icon: <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />, text: t('authMagicVerifying') },
+    verifying: { icon: <CargaMarca className="w-16 h-16 mx-auto" />, text: t('authMagicVerifying') },
     invalid: { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: t('authMagicInvalid') },
     'no-backend': { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: t('authNoBackend') },
     error: { icon: <KeyRound className="w-12 h-12 text-destructive mx-auto" />, text: t('authConnError') },
