@@ -1040,10 +1040,17 @@ else
 fi
 
 # ── Contraste del texto en los dos temas ────────────────────────────────────
-# Levanta su propio servidor, así que basta con el build. Se sabotea el token
-# que causó el fallo real: el verde del tema claro a `35%`, que dejaba 48
-# textos por debajo de la WCAG. Un umbral escrito y nunca roto no prueba nada.
-if [ -d frontend/build ]; then
+# Levanta su propio servidor, así que basta con el build y con Chromium. Se
+# sabotea el token que causó el fallo real: el verde del tema claro a `35%`, que
+# dejaba 48 textos por debajo de la WCAG. Un umbral escrito y nunca roto no
+# prueba nada.
+#
+# La guarda pide también `tests/e2e/lib/playwright-core`, que está en
+# `.gitignore`: en un clon recién hecho —toda sesión remota lo es— la sonda no
+# arranca, y sin esta condición la batería lo cantaba como «no pasa ni ANTES de
+# sabotear — hay algo roto de verdad». Una falsa alarma en el guardián de los
+# guardianes es justo lo que este fichero existe para no tener.
+if [ -d frontend/build ] && [ -d tests/e2e/lib/playwright-core ]; then
   titulo "Contraste WCAG (contraste.js)"
   RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   probar "el verde del tema claro vuelve a un tono que no contrasta" \
@@ -1063,7 +1070,7 @@ p.write_text(t[:i] + trozo + t[j:])\" \
      && $RECOMPILA_CSS" \
     "git checkout -- frontend/src/index.css && $RECOMPILA_CSS"
 else
-  echo "  ⏭️  Contraste: sin build, no se prueba"
+  echo "  ⏭️  Contraste: sin build o sin playwright-core, no se prueba"
 fi
 
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
