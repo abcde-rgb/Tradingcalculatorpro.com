@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { numeroTecleado, decimalesUtiles, formatearEnEscala } from '@/lib/escalaTrade';
 
 /**
  * La regleta — el elemento firma del sistema de diseño (`identidad-visual` §3).
@@ -22,14 +23,10 @@ const VB_H = 78;
 const EJE_Y = 34;    // dónde va el filete horizontal
 const N_MENORES = 61;
 
-const fmt = (n, locale) => (Number.isFinite(n)
-  ? n.toLocaleString(locale, { maximumFractionDigits: 2 })
-  : '—');
-
 export function Regleta({ entry, stop, locale, labels = {}, className = '' }) {
   const m = useMemo(() => {
-    const e = Number(entry);
-    const s = Number(stop);
+    const e = numeroTecleado(entry);
+    const s = numeroTecleado(stop);
     const d = Math.abs(e - s);
     // Sin distancia no hay R, y sin R no hay nada que medir: mejor no pintar
     // una escala que sugiera precisión que no existe.
@@ -51,6 +48,12 @@ export function Regleta({ entry, stop, locale, labels = {}, className = '' }) {
   if (!m) return null;
 
   const { e, s, d, objetivos, x } = m;
+
+  // La precisión sale de la unidad de la escala, no de una constante: con dos
+  // decimales fijos un EURUSD (1R = 0,0025) enseñaba «1R = 0» y las dos marcas
+  // repetían «1,08».
+  const dec = decimalesUtiles(d);
+  const fmt = (n) => formatearEnEscala(n, locale, dec);
   const xe = x(e);
   const xs = x(s);
 
@@ -127,20 +130,20 @@ export function Regleta({ entry, stop, locale, labels = {}, className = '' }) {
           style={{ left: `${(xs / VB_W) * 100}%`, color: 'hsl(var(--short))' }}
         >
           <span className="block uppercase tracking-wider opacity-70">{labels.stop || 'Stop'}</span>
-          {fmt(s, locale)}
+          {fmt(s)}
         </span>
         <span
           className="absolute -translate-x-1/2 whitespace-nowrap text-foreground"
           style={{ left: `${(xe / VB_W) * 100}%` }}
         >
           <span className="block uppercase tracking-wider opacity-70">{labels.entry || 'Entrada'}</span>
-          {fmt(e, locale)}
+          {fmt(e)}
         </span>
       </figcaption>
 
       {labels.caption && (
         <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
-          {labels.caption.replace('{d}', fmt(d, locale))}
+          {labels.caption.replace('{d}', fmt(d))}
         </p>
       )}
     </figure>

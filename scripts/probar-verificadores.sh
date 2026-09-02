@@ -620,6 +620,57 @@ import pathlib
 p = pathlib.Path('frontend/src/lib/i18n/de.edu.js'); t = p.read_text()
 p.write_text(t.replace('um {d} darunter', 'darunter', 1))\""
 
+  # ── El calibre: una escala dibujada es una promesa ────────────────────────
+  # Quien mira la esfera estima con la longitud del trazo, no leyendo las cinco
+  # cifras. Si el arco de la entrada al stop no midiera lo mismo que el de 1R a
+  # 2R, el dibujo mentiría con la autoridad de un instrumento — y en silencio,
+  # porque seguiría saliendo bonito.
+  titulo "La escala del calibre (engine-check.js)"
+
+  # El fallo real del primer intento: la entrada fijada en 0,28 y el reparto
+  # hecho sólo sobre los objetivos. Con tres salía bien; con uno, el stop se iba
+  # a la fracción −0,38, o sea fuera de la esfera.
+  probar "la escala reparte los objetivos y se olvida de que el stop es −1R" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/calibreGeo.js'); t = p.read_text()
+p.write_text(t.replace('(F_ULTIMO - F_STOP) / (ns[ns.length - 1] + 1)',
+                       '(F_ULTIMO - F_STOP) / ns[ns.length - 1]', 1))\""
+
+  # Un signo en la trigonometría: las marcas siguen a radio R del centro, así
+  # que la comprobación de la circunferencia pasa igual. Lo que cambia es que
+  # la esfera se dibuja fuera del lienzo.
+  probar "la esfera se dibuja hacia abajo y se sale del lienzo" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/calibreGeo.js'); t = p.read_text()
+p.write_text(t.replace('return [VB.cx + r * Math.cos(a), VB.cy - r * Math.sin(a)];',
+                       'return [VB.cx + r * Math.cos(a), VB.cy + r * Math.sin(a)];', 1))\""
+
+  # `Number('')` es 0: borrar la entrada pintaba una escala impecable con la
+  # entrada en cero y tres objetivos negativos. Pasa en la regleta de la portada
+  # y en el calibre, porque las dos leen el campo por aquí.
+  probar "un campo de precio vacío vuelve a valer cero" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/escalaTrade.js'); t = p.read_text()
+p.write_text(t.replace('const n = typeof v === ' + chr(39) + 'number' + chr(39) + ' ? v : parseFloat(v);',
+                       'const n = Number(v);', 1))\""
+
+  # Dos decimales fijos: vale para el S&P y miente en divisas. Un EURUSD con
+  # 1R = 0,0025 enseñaba «0» en el centro de la esfera y cinco marcas
+  # repitiendo «1,08».
+  probar "la precisión vuelve a ser de dos decimales, pase lo que pase" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/escalaTrade.js'); t = p.read_text()
+p.write_text(t.replace('return Math.min(8, Math.max(2, 1 - Math.floor(Math.log10(d))));',
+                       'return 2;', 1))\""
+
   # ── Los enlaces de la Academia a las herramientas ─────────────────────────
   # Tres formas de fallar sin ruido: un `?tab=` que el panel no acepta (te deja
   # en la pestaña por defecto), un id fuera de la tabla (`return null`, el

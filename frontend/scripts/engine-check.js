@@ -2394,6 +2394,127 @@ async function checkTailRisk() {
   void getMovingAverageLag;
 }
 
+
+// ── El calibre: la esfera que mide el trade ─────────────────────────────────
+// `components/ui/calibre.jsx` sólo pinta; toda la escala sale de aquí. Y una
+// escala dibujada es una promesa: quien mira la esfera estima con la longitud
+// del trazo, no leyendo las cifras una a una. Si el arco de la entrada al stop
+// no midiera lo mismo que el de 1R a 2R, el dibujo mentiría con la autoridad
+// de un instrumento.
+async function checkCalibre() {
+  console.log('\nlib/calibreGeo.js + lib/escalaTrade.js');
+  const G = await imp('lib/calibreGeo.js');
+  const { numeroTecleado, decimalesUtiles, formatearEnEscala } = await imp('lib/escalaTrade.js');
+  const { escalaCalibre, punto, ticksCalibre, VB, F_STOP, F_ULTIMO } = G;
+
+  // 1. La esfera del ejemplar (docs/muestras/portadas, II · El calibre): con
+  //    los tres objetivos por defecto las marcas caen donde caían allí.
+  const largo = escalaCalibre({ entry: 4500, stop: 4487.5 });
+  ok('con 1R/2R/3R las marcas caen en 0,06 · 0,28 · 0,50 · 0,72 · 0,94',
+    largo && largo.marcas.map((m) => m.f.toFixed(2)).join(' ') === '0.06 0.28 0.50 0.72 0.94',
+    largo ? largo.marcas.map((m) => m.f.toFixed(3)).join(' ') : 'null');
+
+  // 2. Lo que hace honesto al dibujo: cada R ocupa el MISMO arco, y el tramo
+  //    entrada→stop es uno de ellos. Se mide sobre el lienzo, no sobre las
+  //    fracciones, para que no valga con estar «casi» bien colocado.
+  const cuerdas = largo.marcas.slice(1).map((m, i) => {
+    const [x1, y1] = punto(largo.marcas[i].f);
+    const [x2, y2] = punto(m.f);
+    return Math.hypot(x2 - x1, y2 - y1);
+  });
+  ok('cada múltiplo de R ocupa el mismo arco, el tramo de riesgo incluido',
+    cuerdas.every((c) => near(c, cuerdas[0], 1e-9)),
+    cuerdas.map((c) => c.toFixed(4)).join(' '));
+
+  // 3. El stop no es un punto decorativo antes de la entrada: es −1R.
+  ok('el stop se sitúa exactamente a −1R de la entrada, en el extremo de la escala',
+    near(largo.fStop, F_STOP) && near(largo.fEntrada, F_STOP + largo.paso)
+    && near(largo.marcas[0].r, -1));
+
+  // 4. Los objetivos son la distancia tecleada proyectada, no cifras nuevas.
+  ok('los objetivos son la distancia entrada-stop proyectada (largo)',
+    largo.marcas[2].valor === 4512.5 && largo.marcas[3].valor === 4525
+    && largo.marcas[4].valor === 4537.5);
+  const corto = escalaCalibre({ entry: 4487.5, stop: 4500 });
+  ok('en corto los objetivos bajan en vez de subir',
+    corto.dir === -1 && corto.marcas[2].valor === 4475 && corto.marcas[4].valor === 4450,
+    corto.marcas.map((m) => m.valor).join(' '));
+
+  // 5. Con otro número de objetivos la escala se reparte sola y el último
+  //    sigue llenando la esfera. Si esto se rompe, con 5 objetivos el último
+  //    se saldría del arco dibujado.
+  for (const n of [1, 2, 5, 8]) {
+    const ns = Array.from({ length: n }, (_, i) => i + 1);
+    const e = escalaCalibre({ entry: 100, stop: 90, objetivos: ns });
+    const fs = e.marcas.map((m) => m.f);
+    ok(`con ${n} objetivo(s) la escala va de ${F_STOP} a ${F_ULTIMO}, stop incluido`,
+      near(fs[0], F_STOP) && near(fs[fs.length - 1], F_ULTIMO)
+      && fs.every((f, i) => i === 0 || f > fs[i - 1]),
+      fs.map((f) => f.toFixed(3)).join(' '));
+  }
+
+  // 6. `Number('')` es 0. Un campo de precio vacío tomado por «0» pintaba una
+  //    esfera impecable con objetivos negativos: creíble y falsa.
+  ok('sin distancia no hay esfera (vacío, nulo, texto, entrada = stop)',
+    escalaCalibre({ entry: '', stop: 4500 }) === null
+    && escalaCalibre({ entry: null, stop: 4500 }) === null
+    && escalaCalibre({ entry: '  ', stop: 4500 }) === null
+    && escalaCalibre({ entry: 'abc', stop: 4500 }) === null
+    && escalaCalibre({ entry: 4500, stop: 4500 }) === null
+    && escalaCalibre({}) === null);
+
+  // 7. Objetivos basura: se sanean, y si no queda ninguno no se dibuja nada.
+  const sucio = escalaCalibre({ entry: 100, stop: 90, objetivos: [2, 2, 0, -1, NaN, 1] });
+  ok('los objetivos se ordenan, se deduplican y se limpian',
+    sucio.marcas.slice(2).map((m) => m.r).join(' ') === '1 2',
+    sucio.marcas.map((m) => m.r).join(' '));
+  ok('sin objetivos válidos no hay esfera',
+    escalaCalibre({ entry: 100, stop: 90, objetivos: [] }) === null
+    && escalaCalibre({ entry: 100, stop: 90, objetivos: [0, -3] }) === null);
+
+  // 8. La trigonometría: todo punto de la esfera está a radio R del centro, y
+  //    el dibujo cabe en el viewBox. Un signo cambiado en `punto()` reventaría
+  //    el arco sin que ninguna comprobación de fracciones se enterara.
+  const fs = [0, 0.02, 0.25, 0.5, 0.75, 0.98, 1];
+  ok('cada marca está a radio R del centro de la esfera',
+    fs.every((f) => {
+      const [x, y] = punto(f);
+      return near(Math.hypot(x - VB.cx, y - VB.cy), VB.r, 1e-9);
+    }));
+  ok('la esfera y sus etiquetas caben en el lienzo',
+    fs.every((f) => {
+      const [x, y] = punto(f, VB.r + 20);   // el radio de las etiquetas exteriores
+      return x >= 0 && x <= VB.w && y >= 0 && y <= VB.h;
+    }));
+
+  // 9. La precisión sale de la unidad de la escala. Dos decimales fijos valen
+  //    para el S&P y mienten en divisas: un EURUSD con 1R = 0,0025 enseñaba un
+  //    «0» en el centro de la esfera y cinco marcas repitiendo «1,08».
+  ok('un EURUSD no enseña «1R = 0» ni cinco marcas iguales', (() => {
+    const fx = escalaCalibre({ entry: 1.0845, stop: 1.0820 });
+    const dec = decimalesUtiles(fx.d);
+    const textos = fx.marcas.map((m) => formatearEnEscala(m.valor, 'es', dec));
+    return formatearEnEscala(fx.d, 'es', dec) === '0,0025'
+      && new Set(textos).size === fx.marcas.length;
+  })());
+  ok('la precisión crece sólo cuando la unidad lo pide',
+    decimalesUtiles(12.5) === 2 && decimalesUtiles(800) === 2 && decimalesUtiles(0.3) === 2
+    && decimalesUtiles(0.0025) === 4 && decimalesUtiles(0.0000004) === 8
+    && decimalesUtiles(0) === 2 && decimalesUtiles(NaN) === 2,
+    [12.5, 800, 0.3, 0.0025, 0.0000004].map(decimalesUtiles).join(' '));
+  ok('un campo vacío es NaN, no el precio cero',
+    Number.isNaN(numeroTecleado('')) && Number.isNaN(numeroTecleado(null))
+    && Number.isNaN(numeroTecleado(undefined)) && Number.isNaN(numeroTecleado('  '))
+    && Number.isNaN(numeroTecleado('abc')) && numeroTecleado('4500.5') === 4500.5
+    && numeroTecleado(0) === 0);
+
+  // 10. El borde de marcas: 49 menores de 0,02 a 0,98 y 9 altas, una cada 10 %.
+  const ticks = ticksCalibre();
+  ok('el borde lleva 49 marcas y 9 altas, una cada 10 % de la vuelta',
+    ticks.length === 49 && ticks.filter((t) => t.alto).length === 9,
+    `${ticks.length} / ${ticks.filter((t) => t.alto).length}`);
+}
+
 (async () => {
   console.log('engine-check — offline checks for the client-side engines');
   await checkSimulatorEngine();
@@ -2411,6 +2532,7 @@ async function checkTailRisk() {
   await checkMonteCarlo();
   await checkEdgeMath();
   await checkTailRisk();
+  await checkCalibre();
   console.log(`\n${checks - failures}/${checks} checks passed`);
   if (failures) {
     console.error(`\n${failures} check(s) FAILED`);

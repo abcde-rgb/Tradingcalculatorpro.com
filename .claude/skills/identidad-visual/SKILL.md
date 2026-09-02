@@ -148,6 +148,26 @@ Aparece en tres sitios y en ninguno más:
 Es un elemento estructural que codifica información (escala, distancia, riesgo), que es
 exactamente lo que el producto vende. No es decoración.
 
+### El calibre: la misma regleta, doblada en arco
+
+`components/ui/calibre.jsx` es la variante circular — una esfera de cronómetro con la
+misma información y los mismos tokens. Cabe en una tarjeta cuadrada, sostiene una cifra
+grande en el centro y se lee de un vistazo; la recta gana cuando hay ancho y el trade se
+lee de izquierda a derecha. Misma API que `Regleta` (`entry`, `stop`, `locale`, `labels`,
+`className`) más `objetivos`, y las dos devuelven `null` sin distancia entrada-stop.
+
+Las dos comparten `lib/escalaTrade.js` (leer el campo de precio, decidir los decimales) y
+el calibre saca su geometría de `lib/calibreGeo.js`, sin JSX a propósito: así
+`scripts/engine-check.js` comprueba la escala sin navegador. **Lo que comprueba es que la
+escala sea lineal en R** —el arco entrada→stop mide exactamente lo mismo que el de 1R a
+2R—, porque quien mira una esfera estima con la longitud del trazo, no leyendo las cinco
+cifras. Un dibujo de riesgo desproporcionado miente con la autoridad de un instrumento.
+
+Sin usar todavía en ninguna pantalla: se hizo para tenerlo listo, no para meterlo por en
+medio. Se enchufa donde ya haya entrada y stop —la calculadora de posición, el detalle de
+una operación del diario, la ficha de un plan— con
+`<Calibre entry={entry} stop={stop} locale={locale} labels={{ … }} />`.
+
 ## 4. El hero
 
 Hoy el hero es: titular + degradado + aurora + chart animado + demo. Son cuatro cosas

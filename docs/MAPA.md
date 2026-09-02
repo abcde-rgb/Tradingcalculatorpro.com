@@ -15,7 +15,7 @@
 | | |
 |---|---:|
 | Módulos del backend | 36 |
-| Líneas de Python (backend) | 28,475 |
+| Líneas de Python (backend) | 28,483 |
 | Rutas declaradas | 205 |
 | **Rutas sin consumidor en el frontend** | **28** |
 | Ficheros de test · funciones de test | 69 · 1142 |
@@ -41,7 +41,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `GET` | `/api/auth/admin-status` | `backend/server.py:3647` |
 | `POST` | `/api/calculate/american` | `backend/server.py:6567` |
 | `POST` | `/api/calculate/volatility-size` | `backend/server.py:8286` |
-| `POST` | `/api/calculations/{calc_id}/save-to-journal` | `backend/missing_apis.py:893` |
+| `POST` | `/api/calculations/{calc_id}/save-to-journal` | `backend/missing_apis.py:901` |
 | `GET` | `/api/commodities-prices` | `backend/missing_apis.py:281` |
 | `GET` | `/api/education/pattern-catalog` | `backend/server.py:7597` |
 | `GET` | `/api/forex-prices` | `backend/missing_apis.py:188` |
@@ -77,7 +77,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `performance.py` | 1,844 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,248 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
-| `missing_apis.py` | 1,024 | 9 | missing_apis.py |
+| `missing_apis.py` | 1,032 | 9 | missing_apis.py |
 | `instruments.py` | 902 |  | instruments.py — qué es cada producto financiero, como dato y no como suposición. |
 | `affiliate_program.py` | 875 | 18 | affiliate_program.py — Programa de Afiliados (pagos mensuales por volumen). |
 | `brokers_referidos.py` | 814 |  | Los brókers a los que referimos, y las condiciones bajo las que se pueden mostrar. |
@@ -174,13 +174,13 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 |---|---|---:|:---:|
 | `POST` | `/auth/send-verification-email` | 429 | ✅ |
 | `POST` | `/auth/verify-email` | 460 | ✅ |
-| `POST` | `/calculations/{calc_id}/save-to-journal` | 893 | ❌ |
+| `POST` | `/calculations/{calc_id}/save-to-journal` | 901 | ❌ |
 | `GET` | `/commodities-prices` | 281 | ❌ |
 | `GET` | `/forex-prices` | 188 | ❌ |
 | `GET` | `/indices-prices` | 225 | ❌ |
-| `GET` | `/performance/export` | 830 | ✅ |
+| `GET` | `/performance/export` | 838 | ✅ |
 | `POST` | `/subscriptions/change-plan` | 494 | ✅ |
-| `POST` | `/webhook/stripe/subscription` | 667 | ❌ |
+| `POST` | `/webhook/stripe/subscription` | 675 | ❌ |
 
 ### `backend/realtime_alerts.py` — 3 rutas
 
@@ -411,7 +411,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/pricing/` | 1 | 22 |
 | `components/settings/` | 2 | 315 |
 | `components/tools/` | 2 | 388 |
-| `components/ui/` | 31 | 1,763 |
+| `components/ui/` | 32 | 1,940 |
 | `pages/` | 23 | 17,274 |
 
 ## Los ficheros que más cuesta abrir
