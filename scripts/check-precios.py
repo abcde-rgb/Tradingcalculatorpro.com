@@ -73,10 +73,31 @@ def numero(txt: str) -> float | None:
         return None
 
 
+# Los cuatro planes que se cobran. La lista es explícita a propósito: si el
+# diccionario del backend cambia de forma y un plan deja de parsearse, hay que
+# ENTERARSE. Antes no se enteraba —comparaba los que hubiera encontrado y
+# cantaba victoria—, que es el fallo tautológico contra el que avisa CLAUDE.md:
+# lo cazó el sabotaje de renombrar `"price"` a `"importe"`.
+PLANES_ESPERADOS = {"monthly", "quarterly", "annual", "lifetime"}
+
+
 def main() -> int:
     planes = planes_del_backend()
     if not planes:
         print("❌ no se pudo leer SUBSCRIPTION_PLANS de backend/server.py")
+        return 1
+
+    if set(planes) != PLANES_ESPERADOS:
+        faltan = PLANES_ESPERADOS - set(planes)
+        sobran = set(planes) - PLANES_ESPERADOS
+        print("❌ SUBSCRIPTION_PLANS no tiene la forma esperada, así que este")
+        print("   verificador no puede comparar nada y NO va a decir que todo va bien.")
+        if faltan:
+            print(f"   · no se pudo leer el precio de: {', '.join(sorted(faltan))}")
+        if sobran:
+            print(f"   · aparecen planes nuevos sin comprobar: {', '.join(sorted(sobran))}")
+        print("   Si de verdad cambió el catálogo de planes, actualiza PLANES_ESPERADOS")
+        print("   y los literales i18n de los diez idiomas.")
         return 1
 
     locales = sorted(p for p in I18N.glob("*.js") if ".edu." not in p.name)
@@ -102,14 +123,20 @@ def main() -> int:
                     f"y el backend cobra {precio:g}"
                 )
 
+    if not comprobados:
+        print("❌ no se comprobó ni un solo precio: ningún idioma anuncia los planes.")
+        print("   Un verificador que no compara nada no puede salir en verde.")
+        return 1
+
     if fallos:
         print(f"❌ {len(fallos)} precio(s) anunciados no coinciden con lo que se cobra:")
         for f in fallos:
             print(f"   · {f}")
         print("\n   El importe vive en SUBSCRIPTION_PLANS (backend/server.py) y se repite")
         print("   como texto en los 10 idiomas. Si has subido un precio, súbelo en todos.")
-        print("   El arreglo de fondo es que la página lea GET /api/plans — ver")
-        print("   docs/RUTAS_MUERTAS.md.")
+        print("   Desde el 2026-09-02 la pantalla lee GET /api/plans y manda el")
+        print("   backend; estos literales son el respaldo, y un respaldo desfasado")
+        print("   es lo que se anuncia el día que el backend no responde.")
         return 1
 
     print(f"✅ los {comprobados} precios anunciados coinciden con los "

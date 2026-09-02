@@ -767,6 +767,17 @@ import pathlib
 p = pathlib.Path('backend/server.py')
 p.write_text(p.read_text().replace('\\\"price\\\": 17.00', '\\\"price\\\": 21.00', 1))\""
 
+# El sabotaje que destapó que este verificador no verificaba: al renombrar la
+# clave `"price"`, un plan dejaba de parsearse y comparaba los tres restantes
+# saliendo en verde. Un verificador que compara menos de lo que cree no avisa de
+# nada — es el fallo tautológico del que avisa CLAUDE.md.
+probar "un plan deja de parsearse porque cambia la forma del diccionario" \
+  "python scripts/check-precios.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('backend/server.py')
+p.write_text(p.read_text().replace('\\\"price\\\": 17.00', '\\\"importe\\\": 17.00', 1))\""
+
 # ── La identidad de `t` acompaña al idioma ──────────────────────────────────
 # Corre en Node contra el store, sin navegador ni build: la invariante vive en
 # `lib/i18n.js` y se comprueba ahí. El cebo es la forma EXACTA de BUG-066 —una
