@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react';
-import { Activity } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Activity, Sigma } from 'lucide-react';
+import { useRiskFreeRate } from '@/hooks/useRiskFreeRate';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,13 +70,119 @@ function SliderInput({ label, value, onChange, min, max, step, unit = '' }) {
   );
 }
 
+/**
+ * Despeja la volatilidad implícita desde el precio al que cotiza la opción.
+ *
+ * `POST /api/calculate/implied-volatility` llevaba terminado y sin pantalla
+ * (hueco G-14). Sin esto, la app sólo puede tragarse la IV que le dé el
+ * proveedor, que en strikes ilíquidos es basura o un 0,30 por defecto.
+ *
+ * Lo importante es el caso que falla: cuando ninguna volatilidad reproduce ese
+ * precio —la cotización está fuera de los límites de no arbitraje o el contrato
+ * ya venció—, el backend devuelve `null` y su motivo. Aquí se enseña el motivo
+ * y NO se toca el deslizador: rellenarlo con un número plausible sería
+ * exactamente lo que esta ruta existe para no hacer.
+ */
+function DespejarIV({ S, K, T_days, r_pct, q_pct, onResuelta }) {
+  const { t } = useTranslation();
+  const [precio, setPrecio] = useState('');
+  const [tipo, setTipo] = useState('call');
+  const [ocupado, setOcupado] = useState(false);
+  const [motivo, setMotivo] = useState(null);
+
+  const API = process.env.REACT_APP_BACKEND_URL;
+
+  const despejar = async () => {
+    const marketPrice = parseFloat(precio);
+    if (!API || !isFinite(marketPrice) || marketPrice <= 0) return;
+    setOcupado(true);
+    setMotivo(null);
+    try {
+      const res = await fetch(`${API}/api/calculate/implied-volatility`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          marketPrice, stockPrice: S, strike: K, daysToExpiry: T_days,
+          optionType: tipo, riskFreeRate: r_pct / 100, dividendYield: q_pct / 100,
+        }),
+      });
+      const d = await res.json();
+      if (d?.solved && typeof d.impliedVolatilityPct === 'number') {
+        onResuelta(Number(d.impliedVolatilityPct.toFixed(2)));
+        toast.success(t('ivDespejada', { v: d.impliedVolatilityPct.toFixed(2) }));
+      } else {
+        // Ni se rellena el deslizador ni se pone un valor «razonable».
+        setMotivo(t('ivSinSolucion'));
+      }
+    } catch (_) {
+      setMotivo(t('ivError'));
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  return (
+    <div className="rounded-sharp border border-border bg-muted/30 p-3 space-y-2" data-testid="despejar-iv">
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+        <Sigma className="w-3.5 h-3.5" /> {t('ivDesdePrecio')}
+      </Label>
+      <div className="flex gap-2">
+        <Input
+          type="number" value={precio} onChange={(e) => setPrecio(e.target.value)}
+          placeholder={t('ivPrecioMercado')} min={0} step="0.01"
+          className="font-mono bg-muted border-border text-sm h-8"
+          data-testid="iv-precio"
+        />
+        <select
+          value={tipo} onChange={(e) => setTipo(e.target.value)}
+          className="h-8 rounded-sharp border border-border bg-muted text-sm px-2"
+          aria-label={t('ivTipoOpcion')}
+          data-testid="iv-tipo"
+        >
+          <option value="call">Call</option>
+          <option value="put">Put</option>
+        </select>
+        <Button
+          size="sm" variant="outline" onClick={despejar}
+          disabled={ocupado || !precio}
+          className="h-8 shrink-0" data-testid="iv-despejar"
+        >
+          {t('ivDespejar')}
+        </Button>
+      </div>
+      {motivo && (
+        <p className="text-[11px] text-warn leading-relaxed" data-testid="iv-motivo">{motivo}</p>
+      )}
+    </div>
+  );
+}
+
 export const BlackScholesCalculator = () => {
   const { t } = useTranslation();
 
   const [S, setS] = useState(100);
   const [K, setK] = useState(100);
   const [T_days, setTDays] = useState(30);
-  const [r_pct, setRPct] = useState(5.0);
+  /**
+   * El tipo libre de riesgo, del backend y no de un literal.
+   *
+   * Estaba escrito `useState(5.0)`, que es exactamente el bug que el propio
+   * `CLAUDE.md` prohíbe («un 0.05 suelto es un bug») y que ya se pagó una vez:
+   * el frontend valoraba con 5 % mientras el backend usaba el ^IRX en vivo, así
+   * que Rho era decorativo y las dos mitades de la app discrepaban sobre la
+   * misma posición. Aquí el valor entra desde `useRiskFreeRate` y el usuario
+   * puede moverlo — pero parte de lo que se cotiza de verdad, no de un 5 %.
+   */
+  const { ratePct, isLive, source, resolved } = useRiskFreeRate();
+  const [r_pct, setRPct] = useState(ratePct);
+  const tocadoPorElUsuario = useRef(false);
+
+  // Cuando llega el tipo real se adopta, salvo que el usuario ya lo haya movido:
+  // pisarle un valor que acaba de teclear sería peor que empezar con el genérico.
+  useEffect(() => {
+    if (resolved && !tocadoPorElUsuario.current) setRPct(ratePct);
+  }, [resolved, ratePct]);
   const [sigma_pct, setSigmaPct] = useState(25.0);
   const [q_pct, setQPct] = useState(0.0);
   const [showD1D2, setShowD1D2] = useState(false);
@@ -173,14 +281,26 @@ export const BlackScholesCalculator = () => {
               step={1}
               unit=" d"
             />
-            <SliderInput
-              label={t('bsRiskFreeRate')}
-              value={r_pct}
-              onChange={setRPct}
-              min={0}
-              max={20}
-              step={0.1}
-              unit="%"
+            <div>
+              <SliderInput
+                label={t('bsRiskFreeRate')}
+                value={r_pct}
+                onChange={(v) => { tocadoPorElUsuario.current = true; setRPct(v); }}
+                min={0}
+                max={20}
+                step={0.1}
+                unit="%"
+              />
+              {/* De dónde sale el número. `isLive` en false significa caché vieja
+                  o valor de respaldo, y eso se dice: presentarlo como una
+                  cotización cuando no lo es es inventarse un dato. */}
+              <p className="text-[11px] text-muted-foreground mt-1" data-testid="bs-rate-origen">
+                {isLive ? t('bsRateEnVivo', { fuente: source }) : t('bsRateRespaldo')}
+              </p>
+            </div>
+            <DespejarIV
+              S={S} K={K} T_days={T_days} r_pct={r_pct} q_pct={q_pct}
+              onResuelta={setSigmaPct}
             />
             <SliderInput
               label={t('bsVolatility')}
