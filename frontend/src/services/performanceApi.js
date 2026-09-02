@@ -62,6 +62,34 @@ export async function listTrades(params = {}) {
   return data;
 }
 
+/**
+ * El diario completo, en CSV o Excel, generado por el servidor.
+ *
+ * No es lo mismo que el botón de exportar de siempre. Aquél serializaba lo que
+ * el navegador tenía en memoria, y el diario se carga con `limit: 200`: quien
+ * tuviera 250 operaciones se descargaba 200 **creyendo que las tenía todas**.
+ * Esta ruta las lee en el servidor (hasta 10.000) y además sabe hacer `.xlsx`,
+ * que en el cliente habría que implementar.
+ *
+ * `responseType: 'blob'` es obligatorio: sin él, axios intenta interpretar el
+ * binario del Excel como texto y el fichero llega corrupto.
+ */
+export async function exportTrades({ format = 'csv', ...filtros } = {}) {
+  const res = await client.get('/performance/export', {
+    params: { format, ...filtros },
+    responseType: 'blob',
+  });
+  // El nombre lo decide el servidor en Content-Disposition; si un proxy se lo
+  // come, se compone aquí en vez de dejar al usuario un fichero sin nombre.
+  const cd = res.headers?.['content-disposition'] || '';
+  const m = /filename="?([^"]+)"?/.exec(cd);
+  const sello = new Date().toISOString().slice(0, 10);
+  return {
+    blob: res.data,
+    filename: m ? m[1] : `trade-journal-${sello}.${format === 'excel' ? 'xlsx' : 'csv'}`,
+  };
+}
+
 export async function getTrade(id) {
   const { data } = await client.get(`/performance/trades/${id}`);
   return data;
