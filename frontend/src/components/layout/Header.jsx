@@ -102,7 +102,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2" data-testid="logo-link">
-            <BrandMark className="w-9 h-9 shrink-0" />
+            <BrandMark className="w-9 h-9 shrink-0" interactivo />
             <span className="font-unbounded font-bold text-lg hidden sm:block">
               Trading Calculator <span className="text-primary">PRO</span>
             </span>

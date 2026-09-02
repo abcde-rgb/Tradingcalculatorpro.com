@@ -591,3 +591,136 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
     -moz-appearance: textfield;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CARGA DE MARCA — las tres velas del logotipo, en movimiento
+   ═══════════════════════════════════════════════════════════════════════════
+
+   El indicador de carga que veía el cliente eran 85 `Loader2` de lucide con
+   `animate-spin`: el mismo círculo girando que tiene cualquier web hecha con
+   shadcn. Es de las cosas que más veces se miran en una sesión —cada consulta a
+   la cadena de opciones, cada refresco del escáner— y no llevaba marca ninguna.
+
+   Estas animaciones reutilizan la geometría EXACTA de `BrandMark.jsx`, que a su
+   vez está calcada de `public/tcpro-icono-512.svg`. No se redibuja el logo: se
+   anima el que hay. Las tres velas son la parte reducible —a 16 px el
+   monograma «TC» ya no se lee y las velas sí—, así que son ellas las que
+   cargan.
+   ------------------------------------------------------------------------- */
+
+/* Cada vela imprime por turno, como una cinta que va llegando. El ciclo dura
+   1,08 s: por debajo de 900 ms parece nerviosismo y por encima de 1,4 s parece
+   que la página se ha colgado. */
+@keyframes tcpro-imprimir {
+    0%,
+    100% {
+        opacity: 0.18;
+        transform: translateY(2.5px);
+    }
+    18%,
+    52% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tc-vela {
+    animation: tcpro-imprimir 1.08s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    transform-origin: center bottom;
+}
+
+/* El retardo entre velas es lo que crea la lectura de izquierda a derecha. */
+.tc-vela--2 { animation-delay: 0.13s; }
+.tc-vela--3 { animation-delay: 0.26s; }
+
+/* El arco de la «C» del logotipo, girando. Para esperas sin porcentaje que
+   ocupan una sección entera; en línea manda la cinta de velas. */
+@keyframes tcpro-arco {
+    to { transform: rotate(360deg); }
+}
+
+.tc-arco {
+    animation: tcpro-arco 1.6s linear infinite;
+    transform-origin: 50% 50%;
+}
+
+/* Cinta superior de progreso indeterminado: una vela que recorre el ancho.
+   Sólo `transform`, nunca `width`: animar el ancho fuerza layout en cada
+   fotograma y esto vive encima de páginas con tablas de cientos de filas. */
+@keyframes tcpro-cinta {
+    0%   { transform: translateX(-100%) scaleX(0.35); }
+    50%  { transform: translateX(0%)    scaleX(0.62); }
+    100% { transform: translateX(100%)  scaleX(0.35); }
+}
+
+.tc-cinta-barra {
+    animation: tcpro-cinta 1.25s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    transform-origin: left center;
+}
+
+/* Esqueleto con forma de vela para filas de tabla mientras llegan los datos. */
+@keyframes tcpro-latido {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.75; }
+}
+
+.tc-esqueleto {
+    animation: tcpro-latido 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    /* ⚠️ Igual que con `.marquesina`: la regla global de más arriba deja toda
+       animación en 0,01 ms y una sola iteración. Aplicada a un indicador de
+       carga, las velas se congelarían en su fotograma final —dos de ellas casi
+       transparentes— y el usuario vería un adorno roto en vez de enterarse de
+       que se está esperando.
+
+       Así que aquí la animación no se acelera: se QUITA, y la marca se queda
+       quieta y a plena opacidad. Quien pide menos movimiento sigue sabiendo
+       que se está cargando porque el componente lleva `role="status"` y su
+       texto: el estado lo comunica la semántica, no el movimiento. */
+    .tc-vela,
+    .tc-arco,
+    .tc-cinta-barra,
+    .tc-esqueleto {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    .tc-cinta-barra {
+        transform: scaleX(1);
+        opacity: 0.6;
+    }
+}
+
+/* La marca reacciona: al pasar el ratón por el logotipo de la cabecera —o al
+   recibir foco de teclado— las tres velas vuelven a imprimirse de izquierda a
+   derecha, una sola vez. 780 ms.
+
+   Es la ÚNICA animación de hover de la cabecera, y a propósito: el sistema de
+   movimiento del proyecto reparte la intensidad por jerarquía, y si reacciona
+   todo con la misma fuerza no destaca nada. El logotipo es lo primario. */
+.tc-marca-viva .tc-v {
+    transform-origin: center bottom;
+}
+
+a:hover .tc-marca-viva .tc-v,
+a:focus-visible .tc-marca-viva .tc-v,
+.tc-marca-viva:hover .tc-v {
+    animation: tcpro-imprimir 0.78s cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+
+.tc-marca-viva .tc-v--2 { animation-delay: 0.09s; }
+.tc-marca-viva .tc-v--3 { animation-delay: 0.18s; }
+
+@media (prefers-reduced-motion: reduce) {
+    /* Un hover decorativo sí se quita del todo: aquí no hay información que
+       comunicar, al contrario que en los indicadores de carga. */
+    a:hover .tc-marca-viva .tc-v,
+    a:focus-visible .tc-marca-viva .tc-v,
+    .tc-marca-viva:hover .tc-v {
+        animation: none;
+    }
+}
