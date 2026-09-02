@@ -15,12 +15,12 @@
 | | |
 |---|---:|
 | Módulos del backend | 36 |
-| Líneas de Python (backend) | 28,421 |
+| Líneas de Python (backend) | 28,475 |
 | Rutas declaradas | 205 |
-| **Rutas sin consumidor en el frontend** | **33** |
-| Ficheros de test · funciones de test | 68 · 1137 |
+| **Rutas sin consumidor en el frontend** | **28** |
+| Ficheros de test · funciones de test | 69 · 1142 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 7,405 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,440 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -28,7 +28,7 @@ Endpoints que **ningún fichero del frontend menciona**. Algunos lo están por
 diseño (un webhook lo llama la pasarela, no el navegador); el resto es código
 escrito, probado y que ningún usuario puede alcanzar.
 
-### Sospechosas (27)
+### Sospechosas (22)
 
 **Antes de escribir un módulo nuevo, mira si lo que te piden ya está aquí**
 esperando una pantalla. Esto es el hueco G-14.
@@ -40,9 +40,8 @@ esperando una pantalla. Esto es el hueco G-14.
 | `POST` | `/api/alerts/send-email` | `backend/server.py:4283` |
 | `GET` | `/api/auth/admin-status` | `backend/server.py:3647` |
 | `POST` | `/api/calculate/american` | `backend/server.py:6567` |
-| `POST` | `/api/calculate/implied-volatility` | `backend/server.py:6451` |
 | `POST` | `/api/calculate/volatility-size` | `backend/server.py:8286` |
-| `POST` | `/api/calculations/{calc_id}/save-to-journal` | `backend/missing_apis.py:839` |
+| `POST` | `/api/calculations/{calc_id}/save-to-journal` | `backend/missing_apis.py:893` |
 | `GET` | `/api/commodities-prices` | `backend/missing_apis.py:281` |
 | `GET` | `/api/education/pattern-catalog` | `backend/server.py:7597` |
 | `GET` | `/api/forex-prices` | `backend/missing_apis.py:188` |
@@ -50,9 +49,6 @@ esperando una pantalla. Esto es el hueco G-14.
 | `POST` | `/api/monte-carlo` | `backend/server.py:4392` |
 | `GET` | `/api/ohlc/{symbol}` | `backend/server.py:3854` |
 | `GET` | `/api/options/term-structure/{symbol}` | `backend/server.py:6349` |
-| `GET` | `/api/performance/export` | `backend/missing_apis.py:776` |
-| `POST` | `/api/performance/portfolio-risk` | `backend/server.py:8244` |
-| `GET` | `/api/plans` | `backend/server.py:4455` |
 | `GET` | `/api/portfolio` | `backend/server.py:4041` |
 | `POST` | `/api/portfolio` | `backend/server.py:4049` |
 | `GET` | `/api/portfolio/rebalance` | `backend/server.py:4089` |
@@ -60,7 +56,6 @@ esperando una pantalla. Esto es el hueco G-14.
 | `PUT` | `/api/portfolio/{asset_id}` | `backend/server.py:4071` |
 | `GET` | `/api/quote/{symbol}` | `backend/server.py:10002` |
 | `POST` | `/api/referrals/redeem-credit` | `backend/referrals.py:468` |
-| `POST` | `/api/subscriptions/change-plan` | `backend/missing_apis.py:494` |
 | `GET` | `/api/user-states/list` | `backend/server.py:5713` |
 
 ### Huérfanas por diseño (6)
@@ -82,7 +77,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `performance.py` | 1,844 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,248 | 25 | admin_routes.py — Endpoints del panel de administración |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
-| `missing_apis.py` | 970 | 9 | missing_apis.py |
+| `missing_apis.py` | 1,024 | 9 | missing_apis.py |
 | `instruments.py` | 902 |  | instruments.py — qué es cada producto financiero, como dato y no como suposición. |
 | `affiliate_program.py` | 875 | 18 | affiliate_program.py — Programa de Afiliados (pagos mensuales por volumen). |
 | `brokers_referidos.py` | 814 |  | Los brókers a los que referimos, y las condiciones bajo las que se pueden mostrar. |
@@ -179,13 +174,13 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 |---|---|---:|:---:|
 | `POST` | `/auth/send-verification-email` | 429 | ✅ |
 | `POST` | `/auth/verify-email` | 460 | ✅ |
-| `POST` | `/calculations/{calc_id}/save-to-journal` | 839 | ❌ |
+| `POST` | `/calculations/{calc_id}/save-to-journal` | 893 | ❌ |
 | `GET` | `/commodities-prices` | 281 | ❌ |
 | `GET` | `/forex-prices` | 188 | ❌ |
 | `GET` | `/indices-prices` | 225 | ❌ |
-| `GET` | `/performance/export` | 776 | ❌ |
-| `POST` | `/subscriptions/change-plan` | 494 | ❌ |
-| `POST` | `/webhook/stripe/subscription` | 613 | ❌ |
+| `GET` | `/performance/export` | 830 | ✅ |
+| `POST` | `/subscriptions/change-plan` | 494 | ✅ |
+| `POST` | `/webhook/stripe/subscription` | 667 | ❌ |
 
 ### `backend/realtime_alerts.py` — 3 rutas
 
@@ -281,7 +276,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `POST` | `/calculate/assignment` | 6511 | ✅ |
 | `POST` | `/calculate/greeks` | 6480 | ✅ |
 | `POST` | `/calculate/greeks-advanced` | 6207 | ✅ |
-| `POST` | `/calculate/implied-volatility` | 6451 | ❌ |
+| `POST` | `/calculate/implied-volatility` | 6451 | ✅ |
 | `POST` | `/calculate/payoff` | 6397 | ✅ |
 | `POST` | `/calculate/pnl-attribution` | 6490 | ✅ |
 | `POST` | `/calculate/volatility-size` | 8286 | ❌ |
@@ -319,7 +314,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `POST` | `/paypal/capture/{order_id}` | 4855 | ✅ |
 | `GET` | `/performance/analytics` | 8304 | ✅ |
 | `GET` | `/performance/instruments` | 7964 | ✅ |
-| `POST` | `/performance/portfolio-risk` | 8244 | ❌ |
+| `POST` | `/performance/portfolio-risk` | 8244 | ✅ |
 | `GET` | `/performance/trades` | 8035 | ✅ |
 | `POST` | `/performance/trades` | 7977 | ✅ |
 | `POST` | `/performance/trades/bulk` | 8000 | ✅ |
@@ -331,7 +326,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `GET` | `/plan/compliance` | 8518 | ✅ |
 | `PATCH` | `/plan/draft` | 8507 | ✅ |
 | `GET` | `/plan/history` | 8464 | ✅ |
-| `GET` | `/plans` | 4455 | ❌ |
+| `GET` | `/plans` | 4455 | ✅ |
 | `GET` | `/portfolio` | 4041 | ❌ |
 | `POST` | `/portfolio` | 4049 | ❌ |
 | `GET` | `/portfolio/rebalance` | 4089 | ❌ |
@@ -399,7 +394,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/auth/` | 3 | 290 |
 | `components/backtesting/` | 1 | 175 |
 | `components/brokers/` | 1 | 240 |
-| `components/calculators/` | 17 | 5,023 |
+| `components/calculators/` | 17 | 5,143 |
 | `components/calculators/simulator/` | 6 | 1,436 |
 | `components/charts/` | 3 | 797 |
 | `components/charts/structure/` | 12 | 1,705 |
@@ -411,13 +406,13 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/landing/` | 5 | 600 |
 | `components/layout/` | 2 | 590 |
 | `components/options/` | 36 | 7,995 |
-| `components/performance/` | 8 | 3,891 |
+| `components/performance/` | 9 | 4,119 |
 | `components/performance/form/` | 6 | 724 |
 | `components/pricing/` | 1 | 22 |
 | `components/settings/` | 2 | 315 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 31 | 1,763 |
-| `pages/` | 23 | 17,168 |
+| `pages/` | 23 | 17,274 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -428,16 +423,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 10,445 |
 | `frontend/src/pages/EducationPage.jsx` | 5,813 |
-| `frontend/src/lib/i18n/ar.js` | 4,912 |
-| `frontend/src/lib/i18n/de.js` | 4,912 |
-| `frontend/src/lib/i18n/en.js` | 4,912 |
-| `frontend/src/lib/i18n/es.js` | 4,912 |
-| `frontend/src/lib/i18n/fr.js` | 4,912 |
-| `frontend/src/lib/i18n/it.js` | 4,912 |
-| `frontend/src/lib/i18n/ja.js` | 4,912 |
-| `frontend/src/lib/i18n/pt.js` | 4,912 |
-| `frontend/src/lib/i18n/ru.js` | 4,912 |
-| `frontend/src/lib/i18n/zh.js` | 4,912 |
+| `frontend/src/lib/i18n/ar.js` | 4,947 |
+| `frontend/src/lib/i18n/de.js` | 4,947 |
+| `frontend/src/lib/i18n/en.js` | 4,947 |
+| `frontend/src/lib/i18n/es.js` | 4,947 |
+| `frontend/src/lib/i18n/fr.js` | 4,947 |
+| `frontend/src/lib/i18n/it.js` | 4,947 |
+| `frontend/src/lib/i18n/ja.js` | 4,947 |
+| `frontend/src/lib/i18n/pt.js` | 4,947 |
+| `frontend/src/lib/i18n/ru.js` | 4,947 |
+| `frontend/src/lib/i18n/zh.js` | 4,947 |
 
 ## Verificadores del repositorio
 
