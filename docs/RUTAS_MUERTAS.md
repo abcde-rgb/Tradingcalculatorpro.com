@@ -127,16 +127,33 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 > Sharpe escritas y sin puerta. `check-rutas-muertas.py` avisó de que habían
 > dejado de estar muertas antes de que nadie tocara este fichero.
 
-### CONSTRUIR (19)
+### Cerradas el 2026-09-02 (5)
+
+Cinco filas salen de la tabla porque ya tienen pantalla. Se anotan aquí y no se
+borran en silencio: media tabla de deuda es saber qué se pagó. (Va como lista y
+no como tabla a propósito: `check-rutas-muertas.py` lee TODAS las tablas de este
+fichero y una con otras columnas la interpreta como una fila rota.)
+
+- `GET /api/plans` → `hooks/usePlanPrices.js`. El precio de la página sale de lo
+  que Stripe cobra, y no de once literales i18n que podían desfasarse.
+- `GET /api/performance/export` → `components/performance/TradeImportExport.jsx`.
+  CSV y Excel del diario ENTERO; el botón anterior exportaba sólo las 200
+  operaciones cargadas en pantalla, sin decirlo.
+- `POST /api/performance/portfolio-risk` → `components/performance/PortfolioRisk.jsx`,
+  en la pestaña de Analítica.
+- `POST /api/subscriptions/change-plan` → `pages/SubscriptionPage.jsx`. Cambio con
+  prorrateo real; antes el botón llevaba a comprar otra vez. Al conectarlo se
+  descubrió que habría cobrado el plan anual a 200 € AL MES.
+- `POST /api/calculate/implied-volatility` → `components/calculators/BlackScholesCalculator.jsx`,
+  despejando desde el precio de mercado.
+
+### CONSTRUIR (14)
 
 | Método | Ruta | Decisión | Por qué |
 |---|---|---|---|
 | `GET` | `/api/auth/admin-status` | CONSTRUIR | **Ya construida, y sin pantalla A PROPÓSITO** — es la excepción de esta tabla. Existe para abrirla con la URL cuando el panel NO te deja entrar: colgarla de una pantalla la haría inútil justo en el escenario para el que se escribió. Dice, sobre la cuenta que pregunta, si es admin, si tiene 2FA, en qué estado está el margen de alta y si hay palanca. Nació el 2026-09-01 tras tres rondas seguidas diagnosticando «el admin no funciona» a base de suposiciones: cuatro causas distintas —403 a la portada, 428 a Ajustes, panel vacío, panel caído— dan pantallas parecidas y desde fuera no se distinguen. **Un 404 aquí ya es un diagnóstico**: el backend no se ha desplegado. `require_user`, no consulta la base y no escribe; dos tests lo fijan. Lo pendiente es la pantalla, si algún día compensa |
-| `GET` | `/api/performance/export` | CONSTRUIR | CSV y Excel del diario, con filtros por estado, símbolo y fechas. Un botón. Es lo que más se pide y lo más barato de la lista. |
-| `POST` | `/api/performance/portfolio-risk` | CONSTRUIR | Riesgo de cuenta: calor abierto, correlación y estado de los límites de pérdida (`portfolio_risk.py`). Todo lo demás del diario razona operación a operación; esto es la vista que un prop trader mira primero. |
 | `POST` | `/api/calculate/volatility-size` | CONSTRUIR | Tamaño de posición por ATR. Sin esto, 1R no significa lo mismo entre instrumentos y las estadísticas por R no son comparables. |
 | `POST` | `/api/calculate/american` | CONSTRUIR | `american_options.py`: precio americano, prima de ejercicio anticipado y griegas de árbol. Toda opción listada sobre acción estadounidense es americana, así que la diferencia con el Black-Scholes del resto de la app no es un redondeo. |
-| `POST` | `/api/calculate/implied-volatility` | CONSTRUIR | Despeja la IV desde el precio de mercado. Sin esto la app se traga la IV que le dé el proveedor, que en strikes ilíquidos es basura o un 0.30 por defecto. Devuelve `null` cuando ninguna volatilidad reproduce el precio. |
 | `GET` | `/api/options/term-structure/{symbol}` | CONSTRUIR | IV ATM por vencimiento: contango o backwardation. La app enseña el skew entre strikes y nunca la curva en el tiempo, que es la primera pregunta de quien vende prima. |
 | `GET` | `/api/education/pattern-catalog` | CONSTRUIR | La enciclopedia completa de velas con fiabilidad y ranking. La academia ya usa `pattern-scan`; el catálogo es la pieza de referencia que le falta. |
 | `POST` | `/api/calculations/{calc_id}/save-to-journal` | CONSTRUIR | Del cálculo guardado a una operación del diario, con los campos ya rellenos. Une dos partes del producto que hoy no se hablan. |
@@ -146,8 +163,6 @@ propio servidor — pedirle un 404 a la ruta no valdría, porque FastAPI devuelv
 | `DELETE` | `/api/portfolio/{asset_id}` | CONSTRUIR | Ídem — baja. |
 | `GET` | `/api/portfolio/rebalance` | CONSTRUIR | Sugerencias de rebalanceo cruzando la cartera con el rendimiento por símbolo del diario. Es la función que se anunciaba. |
 | `GET` | `/api/ohlc/{symbol}` | CONSTRUIR | OHLC universal (Binance para cripto, yfinance para el resto). Hoy las velas llegan incrustadas en las respuestas del escáner; esta es la puerta para pedirlas sueltas. |
-| `GET` | `/api/plans` | CONSTRUIR | `SUBSCRIPTION_PLANS` del backend, que es lo que de verdad se cobra. El mismo precio está escrito a mano en `PLANS_DATA` de `PricingPage.jsx` **y** como clave i18n (`monthlyPrice: "€17"`, `lifetimePrice: "€500"`…) en los **10 idiomas**: doce sitios para un número, y el que manda al cobrar es el único que la página no consulta. Subir un precio hoy es editar doce ficheros y confiar en no olvidar ninguno. |
-| `POST` | `/api/subscriptions/change-plan` | CONSTRUIR | Subida o bajada de plan con prorrateo real de Stripe. No hay ninguna pantalla de cambio de plan; hoy sólo se puede cancelar. |
 | `POST` | `/api/admin/subscriptions/{user_id}/refund` | CONSTRUIR | Reembolso por Stripe desde el panel. La política de reembolso de 14 días está publicada en los términos legales y se ejecuta a mano. |
 | `GET` | `/api/alerts/realtime/status` | CONSTRUIR | Estado del poller de alertas en vivo: si corre, cuántos conectados, antigüedad de la caché. Diagnóstico para el panel. |
 
