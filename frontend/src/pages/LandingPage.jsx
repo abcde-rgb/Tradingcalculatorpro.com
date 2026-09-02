@@ -8,7 +8,8 @@ import {
   CandlestickChart, History, Bell, BookOpen, Wallet, Target, 
   Scale, FlaskConical, BarChart3, Globe, Moon, Sun, 
   LineChart, PieChart, DollarSign, Percent, Users, Award,
-  ChevronRight, Play, Star, Briefcase, GraduationCap, ChevronDown,
+  ChevronRight, Play, Briefcase, GraduationCap, ChevronDown,
+  ShieldCheck, Code2, DoorOpen,
   Sigma, MessageSquare, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -104,11 +105,20 @@ const plansData = [
   { id: 'lifetime' },
 ];
 
-// Testimonials data — names and roles preserved across locales (translation keys handle copy)
-const TESTIMONIALS = [
-  { quoteKey: 'testimonial1Quote_l010', authorKey: 'testimonial1Author_l011', roleKey: 'testimonial1Role_l012', initial: 'C' },
-  { quoteKey: 'testimonial2Quote_l020', authorKey: 'testimonial2Author_l021', roleKey: 'testimonial2Role_l022', initial: 'A' },
-  { quoteKey: 'testimonial3Quote_l030', authorKey: 'testimonial3Author_l031', roleKey: 'testimonial3Role_l032', initial: 'D' },
+// Los tres testimonios que había aquí —«Carlos M., Day Trader Cripto, 4 años» y
+// dos más— eran INVENTADOS. Un testimonio fabricado es publicidad engañosa en la
+// UE (Directiva 2005/29/CE) y motivo de sanción por reseña falsa en EE. UU., y
+// además contradice de frente la regla de honestidad numérica del proyecto: no
+// tiene sentido devolver `None` en vez de un cero inventado y a la vez inventarse
+// a un cliente. Se retiraron el 2026-09-02.
+//
+// En su lugar van cuatro afirmaciones que el código respalda. Cuando haya
+// testimonios REALES con permiso escrito, este es su sitio.
+const GARANTIAS = [
+  { icon: ShieldCheck, k: 'garantia1' },
+  { icon: Code2,       k: 'garantia2' },
+  { icon: Sigma,       k: 'garantia3' },
+  { icon: DoorOpen,    k: 'garantia4' },
 ];
 
 // FAQ data
@@ -626,49 +636,43 @@ export default function LandingPage() {
       {/* Recommended Tools / Affiliate Partners */}
       <RecommendedTools />
 
-      {/* Testimonials Section */}
-      <section className="py-20 px-4 bg-muted/30">
+      {/* Por qué fiarse — sustituye a los testimonios inventados que había aquí.
+          Las cuatro afirmaciones son comprobables: las cifras las cuenta
+          `engine-check` en CI contra `SITE_FACTS`, y las otras tres son
+          decisiones escritas en CLAUDE.md. */}
+      <section className="py-20 px-4 bg-muted/30" data-testid="garantias">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <motion.h2
               {...MOTION_FADE_UP_VIEW}
               className="font-unbounded text-3xl md:text-4xl font-bold mb-4"
             >
-              {t('testimonialsTitle_l001')}
+              {t('garantiasTitle')}
             </motion.h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t('testimonialsSubtitle_l002')}
+              {t('garantiasSubtitle')}
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((testimonial, idx) => (
-              <motion.div
-                key={testimonial.authorKey}
-                {...MOTION_FADE_UP_VIEW}
-                transition={{ delay: idx * 0.1 }}
-                className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors flex flex-col"
-                data-testid={`testimonial-${idx}`}
-              >
-                <div className="flex gap-1 mb-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={`star-${testimonial.authorKey}-${i}`} className="w-4 h-4 fill-yellow-500 text-caution" />
-                  ))}
-                </div>
-                <p className="text-sm leading-relaxed text-foreground/90 mb-4 flex-1">
-                  "{t(testimonial.quoteKey)}"
-                </p>
-                <div className="flex items-center gap-3 pt-3 border-t border-border">
-                  <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center font-bold text-primary">
-                    {testimonial.initial}
-                  </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-xl overflow-hidden border border-border">
+            {GARANTIAS.map((g, idx) => {
+              const Ic = g.icon;
+              return (
+                <motion.div
+                  key={g.k}
+                  {...MOTION_FADE_UP_VIEW}
+                  transition={{ delay: idx * 0.06 }}
+                  className="bg-card p-6 flex gap-4 items-start"
+                  data-testid={`garantia-${g.k}`}
+                >
+                  <Ic className="w-5 h-5 shrink-0 mt-0.5 text-primary" />
                   <div>
-                    <p className="font-semibold text-sm">{t(testimonial.authorKey)}</p>
-                    <p className="text-xs text-muted-foreground">{t(testimonial.roleKey)}</p>
+                    <h3 className="font-semibold mb-1.5">{t(`${g.k}Title`)}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{t(`${g.k}Desc`)}</p>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
