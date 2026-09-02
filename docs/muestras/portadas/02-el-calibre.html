@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>El calibre · TradingCalculator.Pro</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Archivo:wdth,wght@62..125,300..800&family=Inter+Tight:wght@200..600&family=IBM+Plex+Mono:wght@300;400;500&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font:300 16px/1.65 "Inter Tight",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;font-weight:400;line-height:1.1;text-wrap:balance}
+p{margin:0}
+img{max-width:100%}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:1px solid currentColor;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* primitivas compartidas — cada portada las repinta con sus propias variables */
+.pg{min-height:100%}
+.in{max-width:1080px;margin:0 auto;padding:0 40px}
+@media (max-width:640px){.in{padding:0 20px}}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 0}
+.bd{display:flex;align-items:center;gap:10px;font-size:14px;letter-spacing:.04em}
+.bd .m{width:16px;height:16px;border:1px solid currentColor;position:relative;flex:0 0 auto}
+.bd .m::after{content:"";position:absolute;left:2px;right:2px;top:7px;height:1px;background:currentColor}
+.nl{display:flex;gap:26px;font-size:12.5px;letter-spacing:.05em}
+@media (max-width:820px){.nl{display:none}}
+.cta{display:inline-flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;
+  font:400 12.5px/1 "Inter Tight",sans-serif;letter-spacing:.13em;text-transform:uppercase;
+  padding:15px 26px;border:1px solid;background:none;transition:.25s cubic-bezier(.2,.7,.3,1)}
+.cta.sm{padding:11px 18px;font-size:11px}
+.cta.wide{width:100%}
+.inp{display:block}
+.inp span.k{display:block;font:400 10px/1 "Inter Tight",sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;margin-bottom:9px;opacity:.55}
+.inp .b{display:flex;align-items:baseline;border-bottom:1px solid currentColor;padding-bottom:7px;opacity:.75;transition:opacity .2s}
+.inp .b:focus-within{opacity:1}
+.inp input{flex:1;min-width:0;background:none;border:0;color:inherit;padding:0;
+  font:400 21px/1.1 "IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.inp input:focus{outline:none}
+.inp .u{font:400 11px/1 "IBM Plex Mono",monospace;opacity:.5;padding-left:8px}
+.faq details{border-bottom:1px solid currentColor;padding:18px 0}
+.faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:20px;align-items:baseline}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:"IBM Plex Mono",monospace;opacity:.5;transition:transform .2s}
+.faq details[open] summary::after{content:"−"}
+.faq .a{padding-top:12px;max-width:64ch;opacity:.7;font-size:15px;line-height:1.7}
+
+#c2{--jt:#08090C;--jt2:#0D0F13;--st:#C9CCD1;--dm:#7C8088;--ln:#1E2229;--ac:#17CF63;
+  background:var(--jt);color:var(--st);font-family:"Inter Tight",sans-serif}
+#c2 .nav{border-bottom:1px solid var(--ln)}
+#c2 .cta.ln{border-color:var(--ln);color:var(--dm)}
+#c2 .cta.ln:hover{color:var(--st);border-color:var(--dm)}
+#c2 .cta.so{background:var(--ac);border-color:var(--ac);color:#05130A}
+#c2 .cta.so:hover{background:transparent;color:var(--ac)}
+#c2 .hero{text-align:center;padding:78px 0 64px}
+@media (max-width:640px){#c2 .hero{padding:46px 0 40px}}
+#c2 h1{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(38px,6.4vw,74px);line-height:1.03;
+  color:#F2F1EE;margin-bottom:20px;letter-spacing:-.01em}
+#c2 h1 em{font-style:italic;color:var(--ac)}
+#c2 .cl{color:var(--dm);max-width:50ch;margin:0 auto 46px;line-height:1.8;font-size:15.5px}
+#c2 .dial{max-width:560px;margin:0 auto}
+#c2 .dg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;margin-bottom:32px;text-align:left}
+#c2 .read{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--ln);
+  padding-top:20px;margin-top:24px}
+#c2 .read .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:34px;
+  font-weight:300;color:var(--ac);letter-spacing:-.03em}
+#c2 .read .l{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dm)}
+#c2 .eng{color:var(--dm);font-size:11.5px;line-height:1.7;margin-top:20px;font-family:"IBM Plex Mono",monospace}
+#c2 section{padding:84px 0;border-top:1px solid var(--ln)}
+#c2 .sh{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(27px,3.4vw,42px);color:#F2F1EE;margin-bottom:12px}
+#c2 .sl{color:var(--dm);max-width:58ch;margin-bottom:46px;line-height:1.8}
+#c2 .comp{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ln);border:1px solid var(--ln)}
+@media (max-width:820px){#c2 .comp{grid-template-columns:1fr}}
+#c2 .comp > div{background:var(--jt2);padding:32px 26px;transition:background .3s}
+#c2 .comp > div:hover{background:#11141A}
+#c2 .comp .n{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.2em;color:var(--ac);margin-bottom:18px}
+#c2 .comp h3{font-family:"Instrument Serif",serif;font-size:23px;color:#F2F1EE;margin-bottom:12px}
+#c2 .comp p{color:var(--dm);font-size:14.5px;line-height:1.75}
+#c2 .mov{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+@media (max-width:820px){#c2 .mov{grid-template-columns:1fr;gap:32px}}
+#c2 .mov p{color:var(--dm);line-height:1.85;margin-bottom:18px}
+#c2 .mov b{color:var(--st);font-weight:500}
+#c2 .lst{list-style:none;margin:0;padding:0;border-top:1px solid var(--ln)}
+#c2 .lst li{display:flex;justify-content:space-between;gap:18px;padding:13px 0;border-bottom:1px solid var(--ln);
+  font-size:14px;color:var(--dm)}
+#c2 .lst li b{color:var(--st);font-weight:400}
+#c2 .lst li .num{color:var(--ac)}
+#c2 table{width:100%;border-collapse:collapse;font-size:13.5px}
+#c2 th{text-align:right;font:400 10px/1 "Inter Tight",sans-serif;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dm);padding:0 0 12px;border-bottom:1px solid var(--ln)}
+#c2 th:first-child,#c2 td:first-child{text-align:left}
+#c2 td{text-align:right;padding:13px 0;border-bottom:1px solid var(--ln);color:var(--dm)}
+#c2 td b{color:var(--st);font-weight:500}
+#c2 td .ac{color:var(--ac)}
+#c2 .planes{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--ln);border:1px solid var(--ln)}
+@media (max-width:760px){#c2 .planes{grid-template-columns:1fr 1fr}}
+#c2 .pl{background:var(--jt2);padding:28px 22px}
+#c2 .pl.mk{background:#11161A}
+#c2 .pn{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dm);margin-bottom:16px}
+#c2 .pp{font-family:"Instrument Serif",serif;font-size:40px;line-height:1;color:#F2F1EE}
+#c2 .pl.mk .pp{color:var(--ac)}
+#c2 .pu{font-size:12.5px;color:var(--dm);margin-top:8px}
+#c2 .faq details{border-bottom-color:var(--ln)}
+#c2 .faq summary{font-size:16.5px;color:var(--st)}
+#c2 footer{border-top:1px solid var(--ln);padding:40px 0 64px;color:var(--dm);font-size:13px;
+  display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+#c2 .muestra{background:var(--jt2);border-bottom:1px solid var(--ln);padding:9px 0;text-align:center;
+  font-size:11.5px;color:var(--dm);letter-spacing:.04em}
+</style>
+</head>
+<body>
+
+<div class="pg" id="c2">
+  <div class="muestra">Maqueta de trabajo. No sustituye a la portada en producción; las cifras salen del código del proyecto.</div>
+  <div class="in">
+    <nav class="nav "><a class="bd" href="#"><span class="m"></span>TRADINGCALCULATOR</a><div class="nl"><span>Calibres</span><span>Opciones</span><span>Registro</span><span>Honorarios</span></div><button class="cta sm ln">Comenzar</button></nav>
+    <div class="hero">
+      <h1>Calibrado al <em>tick</em><br>del contrato que opera.</h1>
+      <p class="cl">Micro E-mini S&amp;P 500 · tamaño de contrato 5 · tick 0,25 = 1,25&nbsp;$.
+        Mueva la entrada y el stop: la escala se recalibra.</p>
+      <div class="dial">
+        <div class="dg">
+          <label class="inp"><span class="k">Entrada</span><span class="b"><input id="c2ent" type="number" value="5842.50" step="0.25"><span class="u">pts</span></span></label>
+          <label class="inp"><span class="k">Stop</span><span class="b"><input id="c2stp" type="number" value="5830.00" step="0.25"><span class="u">pts</span></span></label>
+        </div>
+        <svg id="c2arc" viewBox="0 0 520 250" role="img" aria-labelledby="c2arcT" style="width:100%;height:auto;display:block">
+          <title id="c2arcT">Escala: distancia al stop y múltiplos de R proyectados</title></svg>
+        <div class="read">
+          <div><div class="l">Contratos</div><div class="v" id="c2qty">—</div></div>
+          <div style="text-align:right"><div class="l">Riesgo</div><div class="v" id="c2loss" style="color:#EF4444">—</div></div>
+        </div>
+        <p class="eng">Capital 25.000 $ · riesgo 1,00 % · la distancia entrada→stop es 1R por definición;
+          2R y 3R son esa distancia proyectada, no un pronóstico.</p>
+        <div style="margin-top:32px"><button class="cta so">Siete días de prueba</button></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="in">
+    <h2 class="sh">Complicaciones</h2>
+    <p class="sl">Lo que hay además del calibre principal. En relojería una complicación es toda función que
+      va más allá de dar la hora; aquí, todo lo que va más allá de dimensionar la posición.</p>
+    <div class="comp">
+      <div><div class="n">I</div><h3>Opciones</h3><p>66 estrategias con su diagrama de
+        resultado, las griegas completas —incluidas vanna y charm— y la volatilidad implícita resuelta desde
+        el precio. Cuando el precio no la determina, devuelve indefinido en lugar de inventarla.</p></div>
+      <div><div class="n">II</div><h3>Diario</h3><p>Cada operación con su R, su racha y su curva de capital,
+        ordenada por fecha de salida. El drawdown no es simétrico si se invierte el orden, así que el orden
+        no se deja al azar de la consulta.</p></div>
+      <div><div class="n">III</div><h3>Lectura de precio</h3><p>42 patrones chartistas
+        y 30 de vela, con las confluencias contadas por nivel. Sin indicadores de
+        adorno: sólo lo que el propio precio dice.</p></div>
+    </div>
+  </section>
+
+  <section class="in">
+    <h2 class="sh">El movimiento</h2>
+    <div class="mov">
+      <div>
+        <p>Un instrumento se juzga por lo que hay dentro. Aquí dentro hay <b>Black-Scholes</b> para el precio
+          teórico, las griegas derivadas analíticamente y no por diferencias finitas, y <b>Monte Carlo</b>
+          para la distribución de resultados de un sistema con su expectativa y su varianza.</p>
+        <p>Las cifras que no se pueden calcular <b>no salen a cero</b>: salen como indefinidas. Una R sin stop
+          es indefinida —tomarla por cero hunde la media—, y un Sortino sin pérdidas también. Es una decisión
+          incómoda de programar y la única honesta.</p>
+        <p>Cuando una cadena de opciones se construye con un modelo en lugar de con observaciones, la interfaz
+          lo dice con una banda de aviso, y el volumen y el interés abierto quedan vacíos. Son observaciones,
+          no salida de un modelo.</p>
+      </div>
+      <ul class="lst">
+        <li><b>Estrategias de opciones</b><span class="num">66</span></li>
+        <li><b>Activos con ficha</b><span class="num">186</span></li>
+        <li><b>Patrones chartistas</b><span class="num">42</span></li>
+        <li><b>Patrones de vela</b><span class="num">30</span></li>
+        <li><b>Reglas de operativa</b><span class="num">42</span></li>
+        <li><b>Idiomas</b><span class="num">10</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="in">
+    <h2 class="sh">Calibres</h2>
+    <p class="sl">Cada contrato con su tamaño, su tick y su margen. Seis de 186.</p>
+    <table><thead><tr><th>Contrato</th><th>Tamaño</th><th>Tick</th><th>Valor del tick</th><th>Margen inicial</th></tr></thead>
+      <tbody><tr class=""><td><b>MES</b> <span class="op">Micro E-mini S&P 500</span></td><td class="num">5</td><td class="num">0,25</td><td class="num ac">1,25 $</td><td class="num">1.320 $</td></tr><tr class=""><td><b>MNQ</b> <span class="op">Micro E-mini Nasdaq</span></td><td class="num">2</td><td class="num">0,25</td><td class="num ac">0,50 $</td><td class="num">1.760 $</td></tr><tr class=""><td><b>ES</b> <span class="op">E-mini S&P 500</span></td><td class="num">50</td><td class="num">0,25</td><td class="num ac">12,50 $</td><td class="num">13.200 $</td></tr><tr class=""><td><b>NQ</b> <span class="op">E-mini Nasdaq 100</span></td><td class="num">20</td><td class="num">0,25</td><td class="num ac">5,00 $</td><td class="num">17.600 $</td></tr><tr class=""><td><b>GC</b> <span class="op">Oro</span></td><td class="num">100</td><td class="num">0,10</td><td class="num ac">10,00 $</td><td class="num">10.000 $</td></tr><tr class=""><td><b>CL</b> <span class="op">Petróleo WTI</span></td><td class="num">1000</td><td class="num">0,01</td><td class="num ac">10,00 $</td><td class="num">6.500 $</td></tr></tbody></table>
+  </section>
+
+  <section class="in">
+    <h2 class="sh">Honorarios</h2>
+    <p class="sl">Cuatro formas de continuar cuando terminen los siete días. Ninguna con permanencia.</p>
+    <div class="planes"><div class="pl"><div class="pn">I · Mensual</div><div class="pp"><span class="num">17</span> €</div><div class="pu">al mes</div></div><div class="pl"><div class="pn">II · Trimestral</div><div class="pp"><span class="num">45</span> €</div><div class="pu">cada tres meses</div></div><div class="pl mk"><div class="pn">III · Anual</div><div class="pp"><span class="num">200</span> €</div><div class="pu">al año</div></div><div class="pl"><div class="pn">IV · Vitalicio</div><div class="pp"><span class="num">500</span> €</div><div class="pu">pago único</div></div></div>
+  </section>
+
+  <section class="in"><h2 class="sh">Preguntas</h2><div class="faq"><details><summary>¿Hay permanencia?</summary><div class="a">No. La suscripción se cancela desde Ajustes en dos clics y no hay penalización. El plan vitalicio es un pago único: no vuelve a cobrarse nunca.</div></details><details><summary>¿Qué mercados cubre?</summary><div class="a">Cripto, divisas, acciones de NYSE y NASDAQ, índices, materias primas y futuros: 186 activos con ficha, cada uno con su tamaño de contrato y su tick.</div></details><details><summary>¿Custodiáis fondos o ejecutáis órdenes?</summary><div class="a">Ninguna de las dos cosas. Esto calcula. Su bróker sigue siendo su bróker, y aquí no hay nada que se pueda perder.</div></details><details><summary>¿Hace falta experiencia previa?</summary><div class="a">No para las calculadoras de riesgo. La academia cubre desde qué es un stop hasta las 66 estrategias de opciones, y está traducida a los 10 idiomas.</div></details><details><summary>¿Funciona en el móvil?</summary><div class="a">Sí. Las calculadoras y el diario están diseñados para el ancho de un teléfono, no adaptados a él después.</div></details></div></section>
+
+  <footer class="in">
+    <span>TradingCalculator.Pro</span><span>Sin custodia de fondos · sin ejecución de órdenes</span>
+  </footer>
+</div>
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)}, $$=function(s){return [].slice.call(document.querySelectorAll(s))};
+var nf=function(n,d){d=(d===undefined?2:d);return new Intl.NumberFormat('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d}).format(n)};
+var usd=function(n){return nf(n,2)+' $'};
+var on=function(sel,fn){var e=$(sel); if(e) e.addEventListener('input',fn);};
+
+var SPECS=[['MES','Micro E-mini S&P',5,'0,25','1,25'],['MNQ','Micro E-mini Nasdaq',2,'0,25','0,50'],
+           ['ES','E-mini S&P 500',50,'0,25','12,50'],['NQ','E-mini Nasdaq 100',20,'0,25','5,00'],
+           ['GC','Oro',100,'0,10','10,00'],['CL','Petróleo WTI',1000,'0,01','10,00']];
+var MES_PT=5, DIST0=12.5;
+
+/* I · una sola cifra */
+function c1(){
+  if(!$('#c1out')) return;
+  var cap=parseFloat($('#c1cap').value)||0, r=parseFloat($('#c1rsk').value)||0, risk=cap*r/100;
+  if(risk<=0){$('#c1out').textContent='—';$('#c1sub').textContent='Introduzca capital y riesgo.';return;}
+  var q=Math.floor(risk/(DIST0*MES_PT));
+  $('#c1out').textContent=usd(risk);
+  $('#c1sub').textContent = q>0
+    ? q+' micro'+(q===1?'':'s')+' del S&P con el stop a 12,50 puntos.'
+    : 'Por debajo de un micro del S&P: el stop de 12,50 puntos no cabe en ese riesgo.';
+}
+on('#c1cap',c1); on('#c1rsk',c1); c1();
+
+/* II · escala de cronómetro */
+var CX=260,CY=214,R=168;
+function pt(f){var a=(180-180*f)*Math.PI/180;return [CX+R*Math.cos(a),CY-R*Math.sin(a)];}
+function arcp(a,b){var p=pt(a),q=pt(b);return 'M'+p[0].toFixed(1)+' '+p[1].toFixed(1)+' A'+R+' '+R+' 0 0 1 '+q[0].toFixed(1)+' '+q[1].toFixed(1);}
+function c2(){
+  var svg=$('#c2arc'); if(!svg) return;
+  var ent=parseFloat($('#c2ent').value), stp=parseFloat($('#c2stp').value);
+  var d=(isFinite(ent)&&isFinite(stp))?Math.abs(ent-stp):NaN;
+  var head=svg.querySelector('title').outerHTML;
+  if(!isFinite(d)||d===0){
+    svg.innerHTML=head+'<text x="260" y="150" text-anchor="middle" fill="#7C8088" font-family="IBM Plex Mono, monospace" font-size="13">Sin distancia no hay escala.</text>';
+    $('#c2qty').textContent='—'; $('#c2loss').textContent='—'; return;
+  }
+  var sg=stp<ent?1:-1, s=head;
+  s+='<path d="'+arcp(0.02,0.98)+'" fill="none" stroke="#1E2229" stroke-width="1"/>';
+  for(var f=0.02;f<=0.981;f+=0.02){
+    var big=Math.abs(f*100%10)<0.5, ang=(180-180*f)*Math.PI/180, rr=big?12:6;
+    s+='<line x1="'+(CX+R*Math.cos(ang)).toFixed(1)+'" y1="'+(CY-R*Math.sin(ang)).toFixed(1)+
+       '" x2="'+(CX+(R-rr)*Math.cos(ang)).toFixed(1)+'" y2="'+(CY-(R-rr)*Math.sin(ang)).toFixed(1)+
+       '" stroke="'+(big?'#3A4049':'#242A32')+'" stroke-width="1"/>';
+  }
+  s+='<path d="'+arcp(0.06,0.28)+'" fill="none" stroke="#EF4444" stroke-width="3"/>';
+  s+='<path d="'+arcp(0.28,0.94)+'" fill="none" stroke="#17CF63" stroke-width="3"/>';
+  [{f:0.06,k:'STOP',v:stp,c:'#EF4444'},{f:0.28,k:'ENTRADA',v:ent,c:'#C9CCD1'},
+   {f:0.50,k:'1R',v:ent+sg*d,c:'#17CF63'},{f:0.72,k:'2R',v:ent+sg*2*d,c:'#17CF63'},
+   {f:0.94,k:'3R',v:ent+sg*3*d,c:'#17CF63'}].forEach(function(m){
+    var p=pt(m.f), ang=(180-180*m.f)*Math.PI/180;
+    s+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="4" fill="'+m.c+'"/>';
+    s+='<text x="'+(CX+(R+20)*Math.cos(ang)).toFixed(1)+'" y="'+(CY-(R+20)*Math.sin(ang)).toFixed(1)+
+       '" text-anchor="middle" dominant-baseline="middle" fill="'+m.c+
+       '" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.5">'+m.k+'</text>';
+    s+='<text x="'+(CX+(R-30)*Math.cos(ang)).toFixed(1)+'" y="'+(CY-(R-30)*Math.sin(ang)).toFixed(1)+
+       '" text-anchor="middle" dominant-baseline="middle" fill="#7C8088" font-family="IBM Plex Mono, monospace" font-size="10">'+nf(m.v,2)+'</text>';
+  });
+  s+='<text x="260" y="196" text-anchor="middle" fill="#F2F1EE" font-family="IBM Plex Mono, monospace" font-size="26" letter-spacing="-1">'+nf(d,2)+'</text>';
+  s+='<text x="260" y="214" text-anchor="middle" fill="#7C8088" font-family="Inter Tight, sans-serif" font-size="9.5" letter-spacing="3">PUNTOS AL STOP · 1R</text>';
+  svg.innerHTML=s;
+  var per=d*MES_PT, q=Math.floor(250/per);
+  $('#c2qty').textContent=String(q);
+  $('#c2loss').textContent=q?('−'+usd(q*per)):usd(0);
+}
+on('#c2ent',c2); on('#c2stp',c2); c2();
+
+/* III · coste de la recuperación + la regleta del artículo */
+var need=function(l){return l/(100-l)*100;};
+(function(){
+  var svg=$('#c3chart'); if(!svg) return;
+  var INK='#1A1815',SOFT='#5E5A52',LINE='#CFC8B6',ACC='#0F8A45';
+  var X0=44,X1=288,Y0=16,Y1=168,XM=70,YM=250;
+  var sx=function(v){return X0+(v/XM)*(X1-X0)}, sy=function(v){return Y1-(v/YM)*(Y1-Y0)};
+  var s=svg.querySelector('title').outerHTML+svg.querySelector('desc').outerHTML;
+  [0,50,100,150,200,250].forEach(function(g){
+    s+='<line x1="'+X0+'" y1="'+sy(g).toFixed(1)+'" x2="'+X1+'" y2="'+sy(g).toFixed(1)+'" stroke="'+LINE+'" stroke-width="'+(g===0?1:.5)+'"/>';
+    s+='<text x="'+(X0-7)+'" y="'+(sy(g)+3.5).toFixed(1)+'" text-anchor="end" fill="'+SOFT+'" font-family="IBM Plex Mono, monospace" font-size="8">'+g+'</text>';
+  });
+  [0,10,20,30,40,50,60,70].forEach(function(t){
+    s+='<text x="'+sx(t).toFixed(1)+'" y="'+(Y1+14)+'" text-anchor="middle" fill="'+SOFT+'" font-family="IBM Plex Mono, monospace" font-size="8">'+t+'</text>';
+  });
+  s+='<text x="'+X0+'" y="'+(Y1+30)+'" fill="'+SOFT+'" font-family="Inter Tight, sans-serif" font-size="8" letter-spacing="1.4">PÉRDIDA %</text>';
+  s+='<text x="2" y="'+(Y0-4)+'" text-anchor="start" fill="'+SOFT+'" font-family="Inter Tight, sans-serif" font-size="8" letter-spacing="1.4">GANANCIA %</text>';
+  var d='';
+  for(var l=0;l<=70;l+=0.5){ d+=(l===0?'M':'L')+sx(l).toFixed(1)+' '+sy(need(l)).toFixed(1)+' '; }
+  s+='<path d="'+d+'" fill="none" stroke="'+ACC+'" stroke-width="2" stroke-linejoin="round"/>';
+  [20,50,70].forEach(function(l){
+    s+='<circle cx="'+sx(l).toFixed(1)+'" cy="'+sy(need(l)).toFixed(1)+'" r="3.4" fill="'+ACC+'" stroke="#F4F0E6" stroke-width="1.6"/>';
+    s+='<text x="'+(sx(l)-6).toFixed(1)+'" y="'+(sy(need(l))-8).toFixed(1)+'" text-anchor="end" fill="'+INK+'" font-family="IBM Plex Mono, monospace" font-size="9">+'+nf(need(l),0)+' %</text>';
+  });
+  s+='<line id="c3cross" x1="0" y1="'+Y0+'" x2="0" y2="'+Y1+'" stroke="'+INK+'" stroke-width="1" opacity="0"/>';
+  s+='<circle id="c3dot" r="3.4" fill="'+INK+'" opacity="0"/>';
+  s+='<rect id="c3hit" x="'+X0+'" y="'+Y0+'" width="'+(X1-X0)+'" height="'+(Y1-Y0)+'" fill="transparent" style="cursor:crosshair"/>';
+  svg.innerHTML=s;
+  var cap=$('#c3cap'), base=cap.textContent, hit=$('#c3hit'), cr=$('#c3cross'), dot=$('#c3dot');
+  function mv(ev){
+    var r=svg.getBoundingClientRect(), cx=ev.touches?ev.touches[0].clientX:ev.clientX;
+    var l=Math.max(0,Math.min(70,((cx-r.left)/r.width*300-X0)/(X1-X0)*XM));
+    cr.setAttribute('x1',sx(l).toFixed(1)); cr.setAttribute('x2',sx(l).toFixed(1)); cr.setAttribute('opacity','.35');
+    dot.setAttribute('cx',sx(l).toFixed(1)); dot.setAttribute('cy',sy(need(l)).toFixed(1)); dot.setAttribute('opacity','1');
+    cap.textContent='Con una pérdida del '+nf(l,1)+' % hace falta ganar el '+nf(need(l),1)+' % para volver al punto de partida.';
+  }
+  function out(){cr.setAttribute('opacity','0');dot.setAttribute('opacity','0');cap.textContent=base;}
+  hit.addEventListener('mousemove',mv); hit.addEventListener('mouseleave',out);
+  hit.addEventListener('touchmove',function(e){e.preventDefault();mv(e);},{passive:false});
+  hit.addEventListener('touchend',out);
+  var tb=$('#c3tb');
+  if(tb) tb.innerHTML=[10,20,30,40,50,70].map(function(l){
+    return '<tr><td style="text-align:left">−'+l+' %</td><td class="ac">+'+nf(need(l),1)+' %</td></tr>';}).join('');
+})();
+(function(){
+  var host=$('#c3rule'); if(!host) return;
+  var ent=5842.50, stp=5830.00, d=Math.abs(ent-stp);
+  var pos={'Stop':6,'Entrada':28,'1R':50,'2R':72,'3R':94};
+  var val={'Stop':stp,'Entrada':ent,'1R':ent+d,'2R':ent+2*d,'3R':ent+3*d};
+  var h='<div class="ax"></div><div class="sg" style="left:6%;width:22%;background:#BE3A30"></div>'+
+        '<div class="sg" style="left:28%;width:66%;background:#0F8A45"></div><div class="gd">';
+  for(var p=6;p<=94;p+=2.75) h+='<i style="left:'+p+'%"></i>';
+  h+='</div>';
+  Object.keys(pos).forEach(function(k){
+    var x=pos[k], col=(k==='Stop')?'#BE3A30':(k==='Entrada'?'#1A1815':'#0F8A45');
+    h+='<div class="tk" style="left:'+x+'%"></div><div class="cp" style="left:'+x+'%">'+k+'</div>'+
+       '<div class="vl" style="left:'+x+'%;color:'+col+'">'+nf(val[k],2)+'</div>';
+  });
+  host.innerHTML=h;
+})();
+
+/* IV · la mesa y la cinta */
+var DESK=[['MES','Micro E-mini S&P',5],['MNQ','Micro E-mini Nasdaq',2],['ES','E-mini S&P 500',50],['NQ','E-mini Nasdaq 100',20]];
+function c4(){
+  var host=$('#c4rows'); if(!host) return;
+  var cap=parseFloat($('#c4cap').value)||0, r=parseFloat($('#c4rsk').value)||0, d=parseFloat($('#c4dist').value);
+  var risk=cap*r/100;
+  host.innerHTML=DESK.map(function(k){
+    var per=(isFinite(d)&&d>0)?d*k[2]:NaN;
+    var q=(isFinite(per)&&per>0&&risk>0)?Math.floor(risk/per):NaN;
+    var fits=isFinite(q)&&q>0;
+    return '<div class="dr"><div class="dc"><b>'+k[0]+'</b> '+k[1]+'</div>'+
+      '<div class="dc">'+nf(k[2],2)+' $</div><div class="dc">'+(isFinite(per)?nf(per,2)+' $':'—')+'</div>'+
+      '<div class="dc"><span class="'+(fits?'q':'')+'" style="'+(fits?'':'opacity:.45')+'">'+(isFinite(q)?q:'—')+'</span>'+
+      (isFinite(q)&&q===0?' <span style="opacity:.45">no cabe</span>':'')+'</div>'+
+      '<div class="dc">'+(isFinite(q)?nf(q*per,2)+' $':'—')+'</div></div>';
+  }).join('');
+}
+on('#c4cap',c4); on('#c4rsk',c4); on('#c4dist',c4); c4();
+(function(){
+  var t=$('#c4tape'); if(!t) return;
+  var one=SPECS.map(function(k){
+    return '<div class="ti"><b>'+k[0]+'</b><span>tick</span>'+k[3]+'<span>=</span><em>'+k[4]+' $</em><span>· contrato '+nf(k[2],0)+'</span></div>';
+  }).join('');
+  t.innerHTML=one+one;
+})();
+
+/* VI · lo mínimo */
+function c6(){
+  if(!$('#c6out')) return;
+  var cap=parseFloat($('#c6cap').value)||0, r=parseFloat($('#c6rsk').value)||0, d=parseFloat($('#c6dist').value);
+  var risk=cap*r/100;
+  if(!isFinite(d)||d<=0||risk<=0){$('#c6out').textContent='—';$('#c6lbl').textContent='faltan datos';return;}
+  $('#c6out').textContent=nf(risk/(d*10),2);
+  $('#c6lbl').textContent='lotes · arriesgas '+usd(risk)+' con el stop a '+nf(d,0)+' pips';
+}
+on('#c6cap',c6); on('#c6rsk',c6); on('#c6dist',c6); c6();
+})();
+</script>
+</body>
+</html>
