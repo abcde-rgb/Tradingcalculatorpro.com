@@ -3600,6 +3600,7 @@ export default {
   "partnersSubtitle": "Plattformen, die wir zum Handeln und zur Marktanalyse nutzen und empfehlen",
   "partnerMargexDesc": "Krypto-Derivatebörse mit bis zu 100-fachem Hebel, ohne KYC, 100-USD-Willkommensbonus und Gebühren-Cashback bis zu 10.000 USD",
   "partnerHyperliquidDesc": "On-chain dezentrale Perpetual-Börse (DEX), ohne KYC, mit schneller Ausführung, niedrigen Gebühren und vollständig transparenten Daten",
+  "partnerTradingviewDesc": "Plattform für Charts und technische Analyse. Wir nutzen sie selbst: Die Charts in Scanner und Handelstagebuch stammen von ihr. Kostenloser Tarif verfügbar.",
   "partnerAxiDesc": "CFD- und Forex-Broker mit eigener EU-Gesellschaft: Privatkonten mit auf 30:1 begrenztem Hebel und Negativsaldoschutz.",
   "partnerDukascopyDesc": "Lettisches Wertpapierhaus der Schweizer Dukascopy-Gruppe, mit Anlegerschutz bis 20.000 € nach EU-Richtlinie.",
   "partnerSwissquoteDesc": "Börsennotierte Schweizer Bank unter FINMA-Aufsicht: Aktien, Forex und Derivate von einem echten Bankkonto aus.",

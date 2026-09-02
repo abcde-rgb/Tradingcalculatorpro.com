@@ -3600,6 +3600,7 @@ export default {
   "partnersSubtitle": "私たちが取引や市場分析に使用し、おすすめするプラットフォーム",
   "partnerMargexDesc": "最大100倍レバレッジ、KYC不要、$100ウェルカムボーナス、最大$10,000の手数料キャッシュバック付きの暗号資産デリバティブ取引所",
   "partnerHyperliquidDesc": "オンチェーンの分散型無期限先物取引所（DEX）。KYC不要、高速約定、低手数料、完全に透明なデータ",
+  "partnerTradingviewDesc": "チャートとテクニカル分析のプラットフォーム。当サイトのスキャナーと売買記録のチャートはここから来ています。無料プランあり。",
   "partnerAxiDesc": "自社のEU法人を持つCFD・FXブローカー。個人口座はレバレッジ30倍まで、負残高保護つき。",
   "partnerDukascopyDesc": "スイスのDukascopyグループに属するラトビアの投資会社。EU指令にもとづき最大2万ユーロの投資者保護。",
   "partnerSwissquoteDesc": "FINMAの監督下にある上場スイス銀行。本物の銀行口座から株式・FX・デリバティブを取引できる。",

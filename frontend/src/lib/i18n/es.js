@@ -3600,6 +3600,7 @@ export default {
   "partnersSubtitle": "Plataformas que usamos y recomendamos para operar y analizar los mercados",
   "partnerMargexDesc": "Exchange de derivados cripto con hasta 100x de apalancamiento, sin KYC, bono de bienvenida de $100 y cashback de comisiones hasta $10.000",
   "partnerHyperliquidDesc": "Exchange de perpetuos descentralizado (DEX) on-chain, sin KYC, con ejecución rápida, comisiones bajas y datos totalmente transparentes",
+  "partnerTradingviewDesc": "Plataforma de gráficos y análisis técnico. Es la que usamos: los gráficos del escáner y del diario salen de ella. Tiene plan gratuito.",
   "partnerAxiDesc": "Bróker de CFDs y forex con entidad europea propia: cuenta minorista con apalancamiento limitado a 30:1 y protección de saldo negativo.",
   "partnerDukascopyDesc": "Casa de inversión letona del grupo suizo Dukascopy, con protección al inversor de hasta 20.000 € por la directiva europea.",
   "partnerSwissquoteDesc": "Banco suizo cotizado y supervisado por la FINMA: acciones, forex y derivados desde una cuenta bancaria de verdad.",

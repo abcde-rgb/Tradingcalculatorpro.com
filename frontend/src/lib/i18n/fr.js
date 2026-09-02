@@ -3600,6 +3600,7 @@ export default {
   "partnersSubtitle": "Plateformes que nous utilisons et recommandons pour trader et analyser les marchés",
   "partnerMargexDesc": "Plateforme de produits dérivés crypto avec un effet de levier jusqu'à 100x, sans KYC, un bonus de bienvenue de 100 $ et un cashback sur les frais jusqu'à 10 000 $",
   "partnerHyperliquidDesc": "Exchange de perpétuels décentralisé (DEX) on-chain, sans KYC, avec exécution rapide, frais réduits et données entièrement transparentes",
+  "partnerTradingviewDesc": "Plateforme de graphiques et d'analyse technique. C'est celle que nous utilisons : les graphiques du scanner et du journal en proviennent. Offre gratuite disponible.",
   "partnerAxiDesc": "Courtier CFD et forex disposant de sa propre entité européenne : compte particulier avec effet de levier plafonné à 30:1 et protection contre solde négatif.",
   "partnerDukascopyDesc": "Entreprise d'investissement lettone du groupe suisse Dukascopy, avec une protection des investisseurs jusqu'à 20 000 € au titre de la directive européenne.",
   "partnerSwissquoteDesc": "Banque suisse cotée et supervisée par la FINMA : actions, forex et dérivés depuis un véritable compte bancaire.",

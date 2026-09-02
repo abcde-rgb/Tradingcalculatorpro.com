@@ -36,6 +36,7 @@ CSS_BASE, LINK_FUENTES = _v.CSS_BASE, _v.LINK_FUENTES
 nav, stats, pie, AVISO, LEYENDA = _v.nav, _v.stats, _v.pie, _v.AVISO, _v.LEYENDA
 sec_features, sec_calcs, sec_specs = _v.sec_features, _v.sec_calcs, _v.sec_specs
 sec_planes, sec_faq, sec_cierre = _v.sec_planes, _v.sec_faq, _v.sec_cierre
+sec_herramientas = _v.sec_herramientas
 
 # ── LO COMÚN A LAS SEIS ──────────────────────────────────────────────────────
 CSS_COMUN = """
@@ -78,7 +79,7 @@ def hero_comun(clase, extra_top='', extra_bajo='', h1=None, claim=None, badge=No
 
 def pagina(hero):
     return (AVISO + '<div class="in">' + nav() + '</div>' + hero + sec_features() + sec_calcs()
-            + sec_specs() + sec_planes() + sec_faq() + sec_cierre('rz') + pie())
+            + sec_specs() + sec_planes() + sec_herramientas() + sec_faq() + sec_cierre('rz') + pie())
 
 # ═══ R1 · EL TITULAR ES EL GRÁFICO ═══════════════════════════════════════════
 CSS_R1 = """
@@ -106,11 +107,11 @@ CSS_R2 = """
 #r2 .velas-fondo canvas{width:100%;height:100%;display:block}
 #r2 .velas-fondo .v{position:absolute;left:0;right:0;top:0;height:78%;
   background:linear-gradient(to bottom,var(--bg) 0%,rgba(16,19,25,.9) 42%,rgba(16,19,25,.6) 72%,transparent 100%)}
-#r2 .ent{opacity:0;transform:translateY(14px);animation:r2in .62s cubic-bezier(.16,1,.3,1) forwards}
+#r2 .ent{animation:r2in .62s cubic-bezier(.16,1,.3,1) backwards}
 #r2 .d1{animation-delay:.05s} #r2 .d2{animation-delay:.16s} #r2 .d3{animation-delay:.28s}
 #r2 .d4{animation-delay:.4s}  #r2 .d5{animation-delay:.52s} #r2 .d6{animation-delay:.64s}
-@keyframes r2in{to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){#r2 .ent{opacity:1;transform:none;animation:none}}
+@keyframes r2in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#r2 .ent{animation:none}}
 #r2 .barrido{position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--br);
   box-shadow:0 0 24px 4px rgba(23,207,99,.5);z-index:3;
   animation:r2sw 1.15s cubic-bezier(.5,0,.2,1) forwards;pointer-events:none}
@@ -454,6 +455,9 @@ JS_WIRE = r"""
       if(k<1) requestAnimationFrame(paso);
     })(performance.now());
   },700);
+  // una cifra a cero es un dato falso: si la animación no llega a su fin
+  // (pestaña en segundo plano, rAF pausado), se escriben las reales.
+  setTimeout(function(){ vs.forEach(function(el,i){ el.textContent=String(fin[i]); }); },2600);
 })();
 
 /* ── R3 · el hero es un gráfico ────────────────────────────────────────── */

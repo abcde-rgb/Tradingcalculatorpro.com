@@ -3599,6 +3599,7 @@ export default {
   "partnersSubtitle": "Piattaforme che usiamo e consigliamo per operare e analizzare i mercati",
   "partnerMargexDesc": "Exchange di derivati cripto con leva fino a 100x, senza KYC, bonus di benvenuto di $100 e cashback sulle commissioni fino a $10.000",
   "partnerHyperliquidDesc": "Exchange di perpetui decentralizzato (DEX) on-chain, senza KYC, con esecuzione rapida, commissioni basse e dati totalmente trasparenti",
+  "partnerTradingviewDesc": "Piattaforma di grafici e analisi tecnica. È quella che usiamo: i grafici dello scanner e del diario provengono da lì. Disponibile un piano gratuito.",
   "partnerAxiDesc": "Broker di CFD e forex con una propria entità europea: conto retail con leva limitata a 30:1 e protezione dal saldo negativo.",
   "partnerDukascopyDesc": "Società di investimento lettone del gruppo svizzero Dukascopy, con tutela dell'investitore fino a 20.000 € secondo la direttiva europea.",
   "partnerSwissquoteDesc": "Banca svizzera quotata e vigilata dalla FINMA: azioni, forex e derivati da un vero conto bancario.",

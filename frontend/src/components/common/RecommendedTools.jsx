@@ -15,6 +15,7 @@ const PARTNERS = [
     name: 'Margex',
     url: 'https://margex.com/?rid=44932212',
     descKey: 'partnerMargexDesc',
+    esReferido: true,
   },
   {
     id: 'hyperliquid',
@@ -24,6 +25,22 @@ const PARTNERS = [
     // oficial (hyperliquid-square.png). Ver docs/PENDIENTES.md.
     url: 'https://app.hyperliquid.xyz/',
     descKey: 'partnerHyperliquidDesc',
+    // Mientras el enlace sea el genérico, NO es de afiliado y la tarjeta no
+    // puede decir que lo es. Se pone a true el día que llegue el referido.
+    esReferido: false,
+  },
+  {
+    // La herramienta que más usa este producto y la única que faltaba: los
+    // gráficos del escáner, del diario y de la portada son suyos
+    // (`components/charts/TradingViewChart.jsx` y `TVWidget.jsx`).
+    // TODO(pendiente): TradingView tiene programa de afiliados; hasta tener el
+    // `aff_id` real, esto es un enlace directo y así se etiqueta. No se inventa
+    // un identificador de afiliado.
+    id: 'tradingview',
+    name: 'TradingView',
+    url: 'https://www.tradingview.com/',
+    descKey: 'partnerTradingviewDesc',
+    esReferido: false,
   },
 ];
 
@@ -65,6 +82,9 @@ const PARTNERS = [
 const MONOGRAMA = {
   axi: 'AX', dukascopy: 'DK', swissquote: 'SQ',
   saxo: 'SX', ibkr: 'IB', vtmarkets: 'VT',
+  // Sin la entrada explícita saldría «TR»: la regla automática corta por
+  // longitud y no sabe que la marca se abrevia TV.
+  tradingview: 'TV',
 };
 
 // La descripción de cada bróker, por clave i18n. Vive aquí y no en el registro
@@ -242,7 +262,10 @@ function useTarjetas() {
       jurisdiccion: null,
       noAdmite: null,
       advertenciaCorta: null,
-      esReferido: true,
+      // Sale de la propia entrada, no cableado a true: una tarjeta que dice
+      // «Enlace de afiliado» sobre un enlace que no lo es miente al lector, y
+      // en el sentido que además incumple la obligación de divulgación.
+      esReferido: !!p.esReferido,
     })),
     ...brokers.map((b) => ({
       id: b.id,

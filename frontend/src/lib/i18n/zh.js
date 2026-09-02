@@ -3600,6 +3600,7 @@ export default {
   "partnersSubtitle": "我们在交易和分析市场时使用并推荐的平台",
   "partnerMargexDesc": "加密衍生品交易所,最高100倍杠杆,无需KYC,新用户可获得100美元奖金,以及最高10000美元的手续费返现",
   "partnerHyperliquidDesc": "链上去中心化永续合约交易所（DEX），无需KYC，执行快速、手续费低，数据完全透明",
+  "partnerTradingviewDesc": "图表与技术分析平台。我们自己就在用：扫描器和交易日志的图表都出自它。提供免费方案。",
   "partnerAxiDesc": "拥有自有欧盟实体的差价合约与外汇经纪商：零售账户杠杆上限 30:1，并提供负余额保护。",
   "partnerDukascopyDesc": "瑞士 Dukascopy 集团旗下的拉脱维亚投资公司，依欧盟指令提供最高 20,000 欧元的投资者保护。",
   "partnerSwissquoteDesc": "受 FINMA 监管的瑞士上市银行：以真正的银行账户交易股票、外汇与衍生品。",

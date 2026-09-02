@@ -3600,6 +3600,7 @@ export default {
   "partnersSubtitle": "Platforms we use and recommend for trading and analyzing the markets",
   "partnerMargexDesc": "Crypto derivatives exchange with up to 100x leverage, no KYC, a $100 welcome bonus and fee cashback up to $10,000",
   "partnerHyperliquidDesc": "On-chain decentralized perpetuals exchange (DEX), no KYC, with fast execution, low fees and fully transparent data",
+  "partnerTradingviewDesc": "Charting and technical analysis platform. It is the one we use: the scanner and journal charts come from it. Free plan available.",
   "partnerAxiDesc": "CFD and forex broker with its own EU entity: retail accounts capped at 30:1 leverage, with negative balance protection.",
   "partnerDukascopyDesc": "Latvian investment firm of the Swiss Dukascopy group, with investor protection of up to €20,000 under the EU directive.",
   "partnerSwissquoteDesc": "Listed Swiss bank supervised by FINMA: equities, forex and derivatives from an actual bank account.",

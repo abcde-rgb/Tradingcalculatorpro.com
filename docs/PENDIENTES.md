@@ -107,6 +107,18 @@ un recuento sin dueño:
 - [ ] **Hyperliquid — enlace de referido real.** Ahora usa un placeholder
       (`https://app.hyperliquid.xyz/`) en `components/common/RecommendedTools.jsx`.
       Sustituir por el enlace de referido cuando el usuario lo facilite.
+- [ ] **TradingView — enlace de afiliado.** Añadido a «Herramientas que
+      recomendamos» el 2026-09-02 como **enlace directo**
+      (`https://www.tradingview.com/`), porque no tenemos su `aff_id` y no se
+      inventa uno. TradingView sí tiene programa de afiliados: al darse de alta,
+      poner el enlace con `aff_id` en `PARTNERS` de
+      `components/common/RecommendedTools.jsx` y cambiar `esReferido` a `true`.
+      Mientras tanto la tarjeta dice «Enlace directo», que es la verdad.
+- [ ] **TradingView — logo oficial.** No hay: el proxy de salida deniega la
+      descarga igual que con los seis brókers. La tarjeta pinta la ficha de marca
+      propia con el monograma `TV`. Cuando se consiga, dejar
+      `tradingview-square.png` en `src/assets/partners/` y ejecutar
+      `node scripts/gen-partner-logos.js`.
 - [ ] **Hyperliquid — logo oficial.** Ahora usa un SVG placeholder
       (`assets/partners/hyperliquid-square.svg`). Sustituir por el logo oficial
       (`hyperliquid-square.png`, cuadrado) y actualizar el import.

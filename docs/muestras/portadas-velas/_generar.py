@@ -162,6 +162,32 @@ table.spec td .ac{color:var(--br)}
 .pl.mk .pp{color:var(--br)}
 .pu{font-size:12.5px;color:var(--faint);margin-top:8px}
 
+/* herramientas recomendadas — marquesina, como en la portada real */
+.marq{overflow:hidden;position:relative;margin-top:8px}
+.marq::before,.marq::after{content:"";position:absolute;top:0;bottom:0;width:70px;z-index:2;pointer-events:none}
+.marq::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
+.marq::after{right:0;background:linear-gradient(to left,var(--bg),transparent)}
+.marq-p{display:flex;width:max-content;animation:marq 62s linear infinite}
+.marq:hover .marq-p{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.marq-p{animation:none}}
+@keyframes marq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tj{width:264px;flex:0 0 auto;margin-right:20px;border:1px solid var(--rule);border-radius:var(--r2);
+  background:var(--card);overflow:hidden;transition:border-color .2s}
+.tj:hover{border-color:rgba(23,207,99,.5)}
+.tj .fi{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;position:relative;overflow:hidden}
+.tj .mo{font:700 44px/1 "Archivo",sans-serif;font-variation-settings:"wdth" 100;letter-spacing:-.04em}
+.tj .ln{width:38px;height:1px;opacity:.55}
+.tj .nb{font-size:15px;color:var(--fg)}
+.tj .sp{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.tj .cu{padding:16px}
+.tj .cu h3{font-size:14.5px;font-weight:600;margin-bottom:6px}
+.tj .cu p{font-size:12.5px;color:var(--dim);line-height:1.55;margin-bottom:8px}
+.tj .et{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.tj .et.af{color:var(--br)}
+.aviso-riesgo{margin-top:26px;border:1px solid rgba(224,164,88,.32);background:rgba(224,164,88,.07);
+  border-radius:var(--r2);padding:16px 18px;font-size:13px;color:var(--dim);line-height:1.6}
+.aviso-riesgo b{color:#E0A458;font-weight:600}
 .faq details{border-bottom:1px solid var(--rule);padding:18px 0}
 .faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:20px;
   align-items:baseline;font-size:16px;font-weight:500}
@@ -237,6 +263,60 @@ def sec_specs(titulo='El catálogo por dentro'):
             f'Seis, de muestra — es la parte que ninguna calculadora genérica tiene.</p>'
             f'<table class="spec"><thead><tr><th>Contrato</th><th>Tamaño</th><th>Tick</th>'
             f'<th>Valor del tick</th><th>Margen inicial</th></tr></thead><tbody>{filas}</tbody></table></section>')
+
+# ── HERRAMIENTAS RECOMENDADAS ────────────────────────────────────────────────
+# Espejo de `components/common/RecommendedTools.jsx`. Los supervisores salen de
+# `backend/brokers_referidos.py`; los porcentajes de pérdida NO se replican aquí
+# porque caducan cada trimestre y en la app los sirve el backend con su fecha.
+HERRAMIENTAS = [
+    ('tradingview', 'TV', 'TradingView', True,
+     'Gráficos y análisis técnico. Es la que usamos: los del escáner y el diario salen de ella.', None),
+    ('margex', 'MX', 'Margex', False,
+     'Exchange de derivados cripto, sin KYC.', None),
+    ('hyperliquid', 'HL', 'Hyperliquid', False,
+     'Exchange de perpetuos descentralizado, on-chain y sin KYC.', None),
+    ('axi', 'AX', 'Axi', False, 'Bróker de CFD.', 'CySEC'),
+    ('dukascopy', 'DK', 'Dukascopy', False, 'Casa de inversión.', 'Latvijas Banka'),
+    ('saxo', 'SX', 'Saxo', False, 'Banco de inversión.', 'DFSA'),
+    ('swissquote', 'SQ', 'Swissquote', False, 'Banco suizo.', 'FINMA'),
+    ('ibkr', 'IB', 'Interactive Brokers', False, 'Multimercado.', 'SEC · FINRA'),
+    ('vtmarkets', 'VT', 'VT Markets', False, 'Bróker de CFD.', 'ASIC · FSCA · FSC'),
+]
+
+def _tono(id_):
+    h = 0
+    for c in id_:
+        h = (h * 31 + ord(c)) % 360
+    return h
+
+def _tarjeta(x, clon=False):
+    id_, mono, nombre, afiliado, desc, sup = x
+    h = _tono(id_)
+    extra = ' aria-hidden="true" tabindex="-1"' if clon else ''
+    et = ('<span class="et af">Enlace de afiliado</span>' if afiliado
+          else '<span class="et">Enlace directo</span>')
+    supl = f'<span class="sp">{sup}</span>' if sup else ''
+    return (
+      f'<a class="tj" href="#"{extra}>'
+      f'<div class="fi" style="background:linear-gradient(155deg,hsl({h} 55% 50% / .20),hsl({(h+45)%360} 55% 50% / .05))">'
+      f'<span class="mo" style="color:hsl({h} 60% 66%)">{mono}</span>'
+      f'<span class="ln" style="background:hsl({h} 60% 66%)"></span>'
+      f'<span class="nb">{nombre}</span>{supl}</div>'
+      f'<div class="cu"><h3>{nombre}</h3><p>{desc}</p>{et}</div></a>')
+
+def sec_herramientas():
+    pista = ''.join(_tarjeta(x) for x in HERRAMIENTAS) + ''.join(_tarjeta(x, True) for x in HERRAMIENTAS)
+    return (
+      '<section class="in" style="padding-bottom:22px"><h2 class="sh">Herramientas que recomendamos</h2>'
+      '<p class="sl">Plataformas que usamos para operar y analizar los mercados. Lo que es enlace de '
+      'afiliado se etiqueta como tal, y lo que no, tampoco. Pasa el ratón por encima para parar la cinta.</p>'
+      '</section>'
+      '<div class="marq"><div class="marq-p">' + pista + '</div></div>'
+      '<section class="in" style="padding-top:26px">'
+      '<div class="aviso-riesgo"><b>Aviso de riesgo.</b> Operar con CFD y con apalancamiento conlleva un '
+      'riesgo alto de perder dinero rápidamente. El porcentaje de cuentas minoristas que pierden dinero lo '
+      'publica cada entidad y se actualiza cada trimestre: en la web sale de <span class="mono">/api/brokers</span> '
+      'con su fecha, no de una cifra escrita a mano que caducaría.</div></section>')
 
 def sec_planes(titulo='Precios'):
     ps = ''.join(
@@ -729,34 +809,34 @@ v3();
 # ── MONTAJE DE CADA PÁGINA ───────────────────────────────────────────────────
 def pagina_v1():
     return (AVISO + '<div class="in">' + nav() + '</div>' + hero_v1() + sec_features() + sec_calcs()
-            + sec_specs() + sec_planes() + sec_faq() + sec_cierre('v1cz') + pie())
+            + sec_specs() + sec_planes() + sec_herramientas() + sec_faq() + sec_cierre('v1cz') + pie())
 
 def pagina_v2():
     return (AVISO + '<div class="in">' + nav() + '</div>' + hero_v2() + sec_calcs()
             + sec_features('Y lo que viene después de calcular',
                            'El tamaño es el principio. Lo que separa una racha de un sistema es lo que se '
-                           'mide luego.') + sec_specs() + sec_planes() + sec_faq()
+                           'mide luego.') + sec_specs() + sec_planes() + sec_herramientas() + sec_faq()
             + sec_cierre('v2cz', 'Empieza por el número. El resto viene solo.') + pie())
 
 def pagina_v3():
     return (AVISO + '<div class="in">' + nav() + '</div>' + hero_v3()
             + sec_specs('El catálogo que hay detrás del número') + sec_features() + sec_calcs()
-            + sec_planes() + sec_faq() + sec_cierre('v3cz') + pie())
+            + sec_planes() + sec_herramientas() + sec_faq() + sec_cierre('v3cz') + pie())
 
 def pagina_v4():
     return (AVISO + '<div class="in">' + nav() + '</div>' + hero_v4() + sec_features()
             + '<div class="sep"><div class="velas" id="v4s"><canvas></canvas><div class="fade-t"></div>'
               '<div class="fade-b"></div></div></div>'
-            + sec_calcs() + sec_specs() + sec_planes() + sec_faq()
+            + sec_calcs() + sec_specs() + sec_planes() + sec_herramientas() + sec_faq()
             + sec_cierre('v4cz', 'La cuenta manda. Haz la cuenta.') + pie())
 
 def pagina_v5():
     return (AVISO + '<div class="in">' + nav() + '</div>' + hero_v5() + sec_specs()
-            + sec_calcs() + sec_features() + sec_planes() + sec_faq() + sec_cierre('v5cz') + pie())
+            + sec_calcs() + sec_features() + sec_planes() + sec_herramientas() + sec_faq() + sec_cierre('v5cz') + pie())
 
 def pagina_v6():
     return (AVISO + '<div class="in">' + nav() + '</div>' + hero_v6() + sec_features()
-            + sec_calcs() + sec_specs() + sec_planes() + sec_faq() + sec_cierre('v6cz') + pie())
+            + sec_calcs() + sec_specs() + sec_planes() + sec_herramientas() + sec_faq() + sec_cierre('v6cz') + pie())
 
 PORTADAS = [
     ('01-original-restaurada', 'v1', 'La original, restaurada',
